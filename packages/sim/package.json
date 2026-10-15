@@ -1,0 +1,24 @@
+{
+	"name": "@orbital/sim",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Headless simulation loop: fixed timestep, flight/on-rails modes, staging, vessel assembly. Runs in Bun or a Web Worker.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/kepler": "workspace:*",
+		"@orbital/physics": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

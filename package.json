@@ -1,0 +1,37 @@
+{
+	"name": "orbital",
+	"private": true,
+	"type": "module",
+	"description": "Web-based space-flight game (KSP-like) — modular, moddable, TypeScript-first.",
+	"workspaces": {
+		"packages": [
+			"packages/*",
+			"apps/*",
+			"mods/*",
+			"tools/*"
+		],
+		"catalog": {
+			"typescript": "^6.0.3",
+			"zod": "^4.6.7",
+			"three": "^0.186.1",
+			"@types/three": "^0.186.0",
+			"@dimforge/rapier3d-compat": "^0.21.0",
+			"vitest": "^4.1.8",
+			"prettier": "^3.8.3"
+		}
+	},
+	"scripts": {
+		"test": "bun test packages mods",
+		"typecheck": "bun run --filter './packages/*' --filter './mods/*' typecheck && bun run --filter './apps/*' check",
+		"lint": "prettier --check . && bun run --filter @orbital/web lint",
+		"format": "prettier --write . && bun run --filter @orbital/web format",
+		"dev": "bun run --filter @orbital/web dev",
+		"build": "bun run --filter @orbital/web build",
+		"docs:check": "bun run tools/docs-check.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.3",
+		"prettier": "catalog:",
+		"typescript": "catalog:"
+	}
+}

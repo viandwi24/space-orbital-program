@@ -1,0 +1,22 @@
+{
+	"name": "@orbital/core",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Environment-neutral core: ids, units, ECS-style world, registries, event bus, plugin loader, resource graph.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

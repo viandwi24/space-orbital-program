@@ -1,0 +1,24 @@
+{
+	"name": "@orbital/renderer",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Three.js renderer: floating origin, log depth, vessel/body meshes, map view. Reads sim state only.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"three": "catalog:"
+	},
+	"devDependencies": {
+		"@types/three": "catalog:",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

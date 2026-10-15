@@ -1,0 +1,23 @@
+{
+	"name": "@orbital/sdk",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Public mod SDK: definePlugin / defineModule / definePart / defineResource / defineBody and all public types.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

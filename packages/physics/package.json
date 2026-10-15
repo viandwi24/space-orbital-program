@@ -1,0 +1,23 @@
+{
+	"name": "@orbital/physics",
+	"version": "0.0.0",
+	"private": true,
+	"description": "PhysicsBackend interface + Rapier adapter (rigid bodies, joints, forces).",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"@dimforge/rapier3d-compat": "catalog:"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

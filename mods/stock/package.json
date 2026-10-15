@@ -1,0 +1,22 @@
+{
+	"name": "@orbital/mod-stock",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Stock content written with the public SDK: resources, modules, parts, home planet. The reference mod.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}
