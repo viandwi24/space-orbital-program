@@ -24,5 +24,8 @@ Use these terms consistently in code, docs, and UI.
 | **Stage** | Ordered group of parts activated together (engines ignite, decouplers fire). |
 | **Attach node** | Named point on a part where another part can connect (`top`, `bottom`, `surface`). |
 | **System** | Logic that runs every sim step over the world (e.g. resource flow, aerodynamics). Registered by plugins. |
+| **Component token** | Typed key for world data, made with `defineComponent<T>(name)` (ADR 0010). |
+| **Snapshot / Command** | Read-only sim state sent to hosts / input messages sent to the sim; plain data (`core/src/protocol.ts`). |
+| **PhysicsBackend** | Interface in core that `@orbital/physics` implements (ADR 0004). |
 | **Plan** | A numbered unit of work in `docs/plans/` with executable acceptance criteria. |
 | **ADR** | Architecture Decision Record in `docs/decisions/`. |

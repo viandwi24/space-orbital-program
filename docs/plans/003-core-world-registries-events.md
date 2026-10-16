@@ -1,8 +1,8 @@
 ---
 id: 003
 title: "Core: world, registries, events"
-status: ready
-owner: ""
+status: done
+owner: "core session (Claude, 2026-10-16)"
 depends: [001]
 phase: 0
 created: 2026-10-16
@@ -61,19 +61,22 @@ updated: 2026-10-16
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core` passes with tests covering: world add/get/remove/query; serialize → deserialize round-trip equals (deep) the original; registry duplicate throws with both plugin ids in the message; event `once` fires once; rng with the same seed yields identical 1 000-number sequences.
-- [ ] A compile-time test (`test/types.test-d.ts` or equivalent checked by `tsc`) proves `events.on("world:entity-added", e => e.id)` is typed and `events.on("nope", …)` is a type error.
-- [ ] `bun run typecheck` passes; `packages/core/tsconfig.json` still has no DOM lib.
-- [ ] `grep -rn "Bun\.\|process\.\|window\.\|document\." packages/core/src` returns nothing.
-- [ ] `bun run docs:check` passes.
+- [x] `bun test packages/core` passes with tests covering: world add/get/remove/query; serialize → deserialize round-trip equals (deep) the original; registry duplicate throws with both plugin ids in the message; event `once` fires once; rng with the same seed yields identical 1 000-number sequences.
+- [x] A compile-time test (`test/types.test-d.ts` or equivalent checked by `tsc`) proves `events.on("world:entity-added", e => e.id)` is typed and `events.on("nope", …)` is a type error.
+- [x] `bun run typecheck` passes; `packages/core/tsconfig.json` still has no DOM lib.
+- [x] `grep -rn "Bun\.\|process\.\|window\.\|document\." packages/core/src` returns nothing.
+- [x] `bun run docs:check` passes.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`
-- [ ] `docs/journal/003-core-world-registries-events.md`
-- [ ] `docs/architecture/plugin-system.md` and `simulation.md` updated to match shipped types.
-- [ ] ADR for any deviation (e.g. if the world API changed shape).
+- [x] `docs/STATUS.md`
+- [x] `docs/journal/003-core-world-registries-events.md`
+- [x] `docs/architecture/plugin-system.md` and `simulation.md` updated to match shipped types.
+- [x] ADR for any deviation (e.g. if the world API changed shape).
 
 ## Log
 
 - 2026-10-16 — Created.
+- 2026-10-16 — Started (core session). zod v4 docs checked, see `research/zod.md`.
+- 2026-10-16 — Design deviation: components are keyed by typed tokens (`defineComponent<T>(name)`) rather than raw keys, ADR [0010](../decisions/0010-world-typed-component-tokens.md). Core depends on `@orbital/kepler` for types only (`Vec3`, `OrbitalElements`), ADR [0011](../decisions/0011-core-reuses-kepler-types.md).
+- 2026-10-16 — Done. 34 core tests pass; `test/types.test-d.ts` is checked by `tsc` (a removed `@ts-expect-error` makes typecheck fail, verified). Registries for data kinds also validate with zod schemas (`src/schemas.ts`). Journal: [003](../journal/003-core-world-registries-events.md).

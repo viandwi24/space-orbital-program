@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
 **Current plan:** none in progress
-**Next plan:** [`plans/003-core-world-registries-events.md`](plans/003-core-world-registries-events.md) (`ready`)
+**Next plan:** [`plans/004-physics-backend-rapier.md`](plans/004-physics-backend-rapier.md) (`draft`, needs refinement before starting)
 
 ## Plan board
 
@@ -13,7 +13,7 @@
 |---|---|---|---|---|
 | 001 | [Repo bootstrap](plans/001-repo-bootstrap.md) | done | bootstrap session | scaffold, workspaces, docs system |
 | 002 | [Kepler orbital mechanics](plans/002-kepler-orbital-mechanics.md) | done | kepler session | state↔elements, propagation, SOI; one AC value corrected (see plan Log) |
-| 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | ready | — | can run in parallel with 002 |
+| 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | done | core session | ADRs 0010, 0011 |
 | 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | draft | — | needs 003 |
 | 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | draft | — | needs 003 |
 | 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | draft | — | needs 005 |
@@ -40,5 +40,6 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [003 — Core: world, registries, events](journal/003-core-world-registries-events.md)
 - [002 — Kepler orbital mechanics](journal/002-kepler-orbital-mechanics.md)
 - [001 — Repo bootstrap](journal/001-repo-bootstrap.md)

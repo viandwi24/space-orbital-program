@@ -61,22 +61,34 @@ Time warp above 1× requires every vessel to be on rails; `sim` refuses otherwis
 
 ## Snapshots and commands (sim ↔ host protocol)
 
+Shipped as types in `packages/core/src/protocol.ts` (plan 003). Both are plain data, so the same protocol works in-process and over `postMessage`. The web app will move `sim` into a Worker in plan 009 without changing `sim`.
+
 ```ts
-type Snapshot = {
-  t: number;
-  vessels: Array<{ id; mode; position; velocity; orientation; parts: Array<{ id; position; orientation; modules: Record<string, unknown> }>; orbit?: OrbitalElements }>;
-  bodies: Array<{ id; position; rotation }>;
-};
+interface Snapshot { t: number; vessels: VesselSnapshot[]; bodies: BodySnapshot[] }
+interface VesselSnapshot {
+  id: EntityId; mode: 'flight' | 'on-rails';
+  soi: BodyId;                      // position/velocity are relative to this body (BCI)
+  position: Vec3; velocity: Vec3; orientation: Quat;
+  parts: PartSnapshot[];            // { id: EntityId; definition: PartId; position; orientation; modules: Record<string, unknown> }
+  orbit?: OrbitalElements;          // absent when not expressible (near-parabolic / radial)
+}
+interface BodySnapshot { id: BodyId; position: Vec3; rotation: Quat } // position in the root-body inertial frame
 type Command =
-  | { type: "throttle"; vessel; value }
-  | { type: "attitude"; vessel; pitch; yaw; roll }
-  | { type: "stage"; vessel }
-  | { type: "action"; vessel; part; module; action; args? }
-  | { type: "warp"; factor }
-  | { type: "load-vessel"; design };
+  | { type: 'throttle'; vessel: EntityId; value: number }
+  | { type: 'attitude'; vessel: EntityId; pitch: number; yaw: number; roll: number }
+  | { type: 'stage'; vessel: EntityId }
+  | { type: 'action'; vessel: EntityId; part: EntityId; module: string; action: string; args?: unknown }
+  | { type: 'warp'; factor: number }
+  | { type: 'load-vessel'; design: VesselDesign };
 ```
 
-Both are plain data, so the same protocol works in-process and over `postMessage`. The web app will move `sim` into a Worker in plan 009 without changing `sim`.
+Differences from the earlier sketch: ids are `EntityId`/`BodyId`; vessels carry `soi`; `VesselDesign` is a provisional minimal shape (`formatVersion: 1`, parts with parent links) that plans 006/007 own and may replace. Commands arrive from outside the sim and are not schema-validated in core yet; plan 007 must validate them at the sim boundary.
+
+## PhysicsBackend (`packages/core/src/physics-backend.ts`)
+
+Interface only; `@orbital/physics` implements it (plan 004). Methods: `createBody(BodyDesc)`, `removeBody`, `createFixedJoint(a, b, frameA, frameB)`, `removeJoint`, `applyForce(h, force, point?)`, `applyTorque`, `setMass(h, mass, inertia?)`, `step(dt)`, `getTransform/setTransform` (`Transform = { position, rotation }`), `getVelocity/setVelocity` (`Velocity = { linear, angular }`), `dispose()`. Handles are branded numbers (`BodyHandle`, `JointHandle`). `BodyDesc` has `kind` (`dynamic` default, `kinematic`, `fixed`), `shape` (`box | sphere | capsule`), `mass`, optional `inertia` (principal moments), `position`, `rotation`, optional velocities.
+
+Contract points the adapter must honour: everything is in the local physics frame; forces and torques act for the **next `step` only** and are cleared afterwards (so `sim` re-applies gravity and thrust every step; Rapier's persistent `addForce` must be reset); `Velocity.angular` is about local-frame axes, not body-fixed axes (differs from the "body frame" wording in `units-and-frames.md`, which describes stored vessel state; `sim` converts).
 
 ## Determinism
 

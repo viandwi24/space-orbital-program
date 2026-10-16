@@ -28,3 +28,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0007 | [SI units, float64 state, floating origin, +Y up](0007-units-si-float64-floating-origin.md) | accepted | 2026-10-16 |
 | 0008 | [Official scaffold commands only; verify tools against the internet](0008-official-scaffold-commands.md) | accepted | 2026-10-16 |
 | 0009 | [Plan-driven development with executable acceptance criteria](0009-plan-driven-development.md) | accepted | 2026-10-16 |
+| 0010 | [World components are keyed by typed tokens](0010-world-typed-component-tokens.md) | accepted | 2026-10-16 |
+| 0011 | [Core depends on `@orbital/kepler` for types only](0011-core-reuses-kepler-types.md) | accepted | 2026-10-16 |

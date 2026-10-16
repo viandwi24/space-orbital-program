@@ -103,6 +103,16 @@ declare module "@orbital/sdk" {
 - External mods (Phase 2) are loaded with dynamic `import()` from a URL or folder, validated (manifest, `api` range, schemas), then booted in dependency order.
 - The loader produces a **manifest report**: what was registered, by whom, and any conflicts (same id registered twice → error naming both plugins).
 
+## Core runtime pieces (`@orbital/core`, plan 003)
+
+Shipped; the loader and define-API above are still design targets (plan 005).
+
+- **Registries:** `createRegistry<T extends { id: string }>(kind, { schema? })` → `register(def, byPlugin)`, `get`, `has`, `list`, `entries`, `owner`. Ids must match `<plugin>.<name>` (lower-case kebab segments). A duplicate id throws `RegistryError` whose message names both plugins (`existingBy`, `attemptedBy` are also fields). When a zod `schema` is given, definitions are checked with `safeParse` and invalid ones throw `RegistryError` naming the plugin and the zod issues; the *original* object is stored. Definitions are deep-frozen on register (plain objects and arrays only; functions and class instances such as zod schemas are left alone). `createRegistries()` returns the five registries `parts`, `modules`, `resources`, `bodies`, `systems`; parts, resources and bodies are schema-validated (`src/schemas.ts`).
+- **Definition shapes in core** (`src/definitions.ts`): `PartDefinition` is the *data* form, so its `modules` is a list of `[moduleId, config]` pairs with ids as strings. The `definePart` example above (passing module objects) is sugar the SDK resolves to this form (plan 005 must say how). `ModuleDefinition` (`id`, `config?`, `requires?`) and `SystemDefinition` (`id`, `phase`, `update(world, dt)`) are minimal; plan 005 extends them with the behaviour hooks.
+- **Events:** `createEventBus<M = EventMap>()` → `on/once/off/emit`; `on`/`once` return an unsubscribe function. `EventMap` is an exported open interface that already contains `world:entity-added` and `world:entity-removed` (`{ id: EntityId }`); plugin events are added by module augmentation, and unknown names are compile errors (`test/types.test-d.ts`). Handlers run in subscription order; a handler throwing propagates to the emitter. Plan 005 must verify which module specifier SDK users augment (`@orbital/sdk` re-exporting the interface).
+- **World:** see ADR 0010. `createWorld({ events? })`, `defineComponent<T>(name)` tokens, `createEntity/destroyEntity/add/get/has/remove/query`, `serialize()` → `WorldData`, `deserializeWorld(data: unknown)` (validated with zod).
+- **Ids:** branded `EntityId`, `PluginId`, `PartId`, `ModuleId`, `ResourceId`, `BodyId`, `SystemId` with validating constructors (`partId('stock.engine-lv')`). Registry definitions use plain `string` ids; the brands are for code that handles ids.
+
 ## Patching (Phase 2)
 
 A plugin may declare `patches` that modify parts of other plugins (add a module, change a number). Patches apply after all registrations, in load order, and are reported. Modelled on KSP's ModuleManager, but typed.
