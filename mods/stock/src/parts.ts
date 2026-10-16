@@ -3,6 +3,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer
@@ -32,6 +33,7 @@ export const PartCommandPod = definePart({
 	title: 'Command Pod',
 	mass: kg(840),
 	impactTolerance: 10,
+	maxTemperature: 1000,
 	shape: cylinder(1),
 	attach: stackNodes(1),
 	modules: [
@@ -46,6 +48,7 @@ export const PartReactionWheel = definePart({
 	title: 'Reaction Wheel',
 	mass: kg(100),
 	impactTolerance: 6,
+	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	attach: stackNodes(0.4),
 	modules: [[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }]],
@@ -57,6 +60,7 @@ export const PartTankSmall = definePart({
 	title: 'Small Fuel Tank',
 	mass: kg(250),
 	impactTolerance: 5,
+	maxTemperature: 900,
 	shape: cylinder(2),
 	attach: stackNodes(2),
 	modules: [
@@ -78,6 +82,7 @@ export const PartTankMedium = definePart({
 	title: 'Medium Fuel Tank',
 	mass: kg(500),
 	impactTolerance: 5,
+	maxTemperature: 900,
 	shape: cylinder(4),
 	attach: stackNodes(4),
 	modules: [
@@ -99,6 +104,7 @@ export const PartEngineLV = definePart({
 	title: 'LV-T30 Liquid Engine',
 	mass: kg(1_250),
 	impactTolerance: 4,
+	maxTemperature: 1800,
 	shape: cylinder(1.2),
 	attach: stackNodes(1.2),
 	// An engine draws propellant but does not pass it through to whatever hangs below it.
@@ -125,6 +131,7 @@ export const PartDecoupler = definePart({
 	title: 'Stack Decoupler',
 	mass: kg(50),
 	impactTolerance: 8,
+	maxTemperature: 1000,
 	shape: cylinder(0.2),
 	attach: stackNodes(0.2),
 	// Stages are separated by decouplers: no propellant crosses them.
@@ -142,8 +149,26 @@ export const PartLandingLegs = definePart({
 	title: 'Landing Legs',
 	mass: kg(150),
 	impactTolerance: 12,
+	maxTemperature: 1000,
 	shape: cylinder(0.3),
 	attach: stackNodes(0.3),
 	modules: [[ModuleLandingLeg, {}]],
 	stagingIcon: 'legs'
+});
+
+/**
+ * An ablative heat shield, 1.25 m class. Mount it at the end that faces the airflow in a
+ * re-entry; it covers that end of the part above it (ADR 0023).
+ */
+export const PartHeatShield = definePart({
+	id: 'stock.heat-shield',
+	title: 'Heat Shield',
+	mass: kg(80),
+	impactTolerance: 8,
+	maxTemperature: 3_000,
+	shape: cylinder(0.2),
+	attach: stackNodes(0.2),
+	crossfeed: false,
+	modules: [[ModuleHeatShield, {}]],
+	stagingIcon: 'shield'
 });

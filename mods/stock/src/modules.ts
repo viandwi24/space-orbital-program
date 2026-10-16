@@ -6,7 +6,7 @@
  */
 import { defineModule, z, type EntityId } from '@orbital/sdk';
 import { engineOutput, propellantRates } from './engine.ts';
-import { ElectricCharge } from './resources.ts';
+import { Ablator, ElectricCharge } from './resources.ts';
 
 declare module '@orbital/sdk' {
 	interface EventMap {
@@ -357,4 +357,62 @@ export const ModuleLandingLeg = defineModule({
 		}
 	},
 	snapshot: (state) => ({ deployed: state.deployed })
+});
+
+// ---------------------------------------------------------------------------------------------
+// Heat shield
+// ---------------------------------------------------------------------------------------------
+
+export const heatShieldConfigSchema = z.object({
+	/** Ablator carried, in u (kg). */
+	ablator: z.number().positive().default(120),
+	/** Heat carried away per kg of ablator burnt, J/kg. */
+	heatOfAblation: z.number().positive().default(3e6),
+	/** Skin temperature at which ablation starts, K. */
+	ablationTemperature: z.number().positive().default(700)
+});
+export type HeatShieldConfig = z.output<typeof heatShieldConfigSchema>;
+export interface HeatShieldState {
+	/** Ablator left, u. */
+	ablator: number;
+}
+
+/**
+ * An ablative shield: once its skin is above `ablationTemperature` it carries the whole airflow
+ * heat away by burning ablator (`heat.power · dt / heatOfAblation` kg per step) and its skin stays
+ * near that temperature; with no ablator left it heats like any part. It is also the store of the
+ * ablator, so the ablator weighs on the vessel until it is burnt (ADR 0023).
+ */
+export const ModuleHeatShield = defineModule({
+	id: 'stock.heat-shield',
+	config: heatShieldConfigSchema,
+	state: (config): HeatShieldState => ({ ablator: config.ablator }),
+	store: {
+		resources: () => [Ablator.id],
+		amount: (_config, state, resource) => (resource === Ablator.id ? state.ablator : 0),
+		withdraw: (_config, state, resource, amount) => {
+			checkAmount(amount);
+			if (resource !== Ablator.id) return 0;
+			const taken = Math.min(state.ablator, amount);
+			state.ablator -= taken;
+			return taken;
+		},
+		deposit: (config, state, resource, amount) => {
+			checkAmount(amount);
+			if (resource !== Ablator.id) return 0;
+			const accepted = Math.min(config.ablator - state.ablator, amount);
+			state.ablator += accepted;
+			return accepted;
+		}
+	},
+	absorbHeat(ctx, heat, dt) {
+		const { state, config } = ctx;
+		if (state.ablator <= 0 || heat.temperature < config.ablationTemperature) return 0;
+		const kgPerUnit = ctx.registries.resources.get(Ablator.id)?.density ?? 1;
+		const capacity = (state.ablator * kgPerUnit * config.heatOfAblation) / dt;
+		const absorbed = Math.min(heat.power, capacity);
+		state.ablator -= (absorbed * dt) / (config.heatOfAblation * kgPerUnit);
+		return absorbed;
+	},
+	snapshot: (state) => ({ ablator: state.ablator })
 });

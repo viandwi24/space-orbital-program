@@ -4,6 +4,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
@@ -310,5 +311,39 @@ describe('landing leg', () => {
 		ModuleLandingLeg.actions!.retract!(ctx);
 		expect(ModuleLandingLeg.colliders!(ctx.config, ctx.state)).toEqual([]);
 		expect(ModuleLandingLeg.snapshot!(ctx.state)).toEqual({ deployed: false });
+	});
+});
+
+describe('heat shield', () => {
+	test('starts full, is the ablator store, and snapshots what is left', () => {
+		const ctx = contextFor(ModuleHeatShield, {});
+		expect(ctx.state.ablator).toBe(120);
+		const store = ModuleHeatShield.store!;
+		expect(store.resources(ctx.config, ctx.state)).toEqual(['stock.ablator']);
+		expect(store.withdraw(ctx.config, ctx.state, 'stock.ablator', 20)).toBe(20);
+		expect(store.withdraw(ctx.config, ctx.state, LF, 5)).toBe(0);
+		expect(store.deposit(ctx.config, ctx.state, 'stock.ablator', 99)).toBe(20);
+		expect(ModuleHeatShield.snapshot!(ctx.state)).toEqual({ ablator: 120 });
+	});
+
+	test('below the ablation temperature it absorbs nothing and burns nothing', () => {
+		const ctx = contextFor(ModuleHeatShield, {});
+		expect(ModuleHeatShield.absorbHeat!(ctx, { power: 1e6, temperature: 600 }, 0.02)).toBe(0);
+		expect(ctx.state.ablator).toBe(120);
+	});
+
+	test('hot, it absorbs all the power and burns power*dt/heatOfAblation kg', () => {
+		const ctx = contextFor(ModuleHeatShield, { heatOfAblation: 2e6 });
+		const taken = ModuleHeatShield.absorbHeat!(ctx, { power: 1e6, temperature: 800 }, 2);
+		expect(taken).toBe(1e6);
+		expect(120 - ctx.state.ablator).toBeCloseTo(1, 12); // 1e6 W * 2 s / 2e6 J/kg
+	});
+
+	test('with little ablator left it absorbs only what the rest can carry, then nothing', () => {
+		const ctx = contextFor(ModuleHeatShield, { ablator: 1, heatOfAblation: 1e6 });
+		const taken = ModuleHeatShield.absorbHeat!(ctx, { power: 1e9, temperature: 800 }, 1);
+		expect(taken).toBeCloseTo(1e6, 6); // 1 kg * 1e6 J/kg over 1 s
+		expect(ctx.state.ablator).toBeCloseTo(0, 12);
+		expect(ModuleHeatShield.absorbHeat!(ctx, { power: 1e9, temperature: 800 }, 1)).toBe(0);
 	});
 });

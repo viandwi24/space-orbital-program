@@ -10,6 +10,7 @@ describe('stock boots through the loader', () => {
 		const ids = (kind: keyof typeof report.registered) =>
 			report.registered[kind].map((e) => e.id).sort();
 		expect(ids('resource')).toEqual([
+			'stock.ablator',
 			'stock.electric-charge',
 			'stock.liquid-fuel',
 			'stock.oxidizer'
@@ -18,6 +19,7 @@ describe('stock boots through the loader', () => {
 			'stock.command',
 			'stock.decoupler',
 			'stock.engine',
+			'stock.heat-shield',
 			'stock.landing-leg',
 			'stock.reaction-wheel',
 			'stock.resource-container'
@@ -26,6 +28,7 @@ describe('stock boots through the loader', () => {
 			'stock.command-pod',
 			'stock.decoupler',
 			'stock.engine-lv',
+			'stock.heat-shield',
 			'stock.landing-legs',
 			'stock.reaction-wheel',
 			'stock.tank-medium',
@@ -59,6 +62,7 @@ describe('stock boots through the loader', () => {
 				if (moduleId === 'stock.resource-container') {
 					for (const r of Object.keys(containerConfigSchema.parse(config).contents)) used.add(r);
 				}
+				if (moduleId === 'stock.heat-shield') used.add('stock.ablator');
 				if (moduleId === 'stock.engine') {
 					for (const p of engineConfigSchema.parse(config).propellants) used.add(p.resource);
 				}

@@ -9,6 +9,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
@@ -19,12 +20,13 @@ import {
 	PartCommandPod,
 	PartDecoupler,
 	PartEngineLV,
+	PartHeatShield,
 	PartLandingLegs,
 	PartReactionWheel,
 	PartTankMedium,
 	PartTankSmall
 } from './parts.ts';
-import { ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
+import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
 export const stockApi = { engineOutput, ispAt, propellantRates, withdraw, deposit };
@@ -36,6 +38,7 @@ export const Stock = definePlugin({
 		ctx.resources.register(LiquidFuel);
 		ctx.resources.register(Oxidizer);
 		ctx.resources.register(ElectricCharge);
+		ctx.resources.register(Ablator);
 
 		ctx.modules.register(ModuleCommand);
 		ctx.modules.register(ModuleResourceContainer);
@@ -43,6 +46,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleDecoupler);
 		ctx.modules.register(ModuleReactionWheel);
 		ctx.modules.register(ModuleLandingLeg);
+		ctx.modules.register(ModuleHeatShield);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -51,6 +55,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartEngineLV);
 		ctx.parts.register(PartDecoupler);
 		ctx.parts.register(PartLandingLegs);
+		ctx.parts.register(PartHeatShield);
 
 		ctx.bodies.register(HomeBody);
 

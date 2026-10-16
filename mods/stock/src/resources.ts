@@ -28,3 +28,12 @@ export const ElectricCharge = defineResource({
 	flowMode: 'vessel',
 	unit: 'EC'
 });
+
+/** Consumed by heat shields to carry re-entry heat away (ADR 0023). 1 u is 1 kg. */
+export const Ablator = defineResource({
+	id: 'stock.ablator',
+	density: 1,
+	// Only the shield that holds it burns it; it is never pumped around.
+	flowMode: 'none',
+	unit: 'u'
+});
