@@ -4,11 +4,18 @@
  * time warp stops for a controlled vessel and not for debris.
  */
 import { describe, expect, test } from 'bun:test';
-import type { EntityId, Snapshot, Vec3 } from '@orbital/core';
+import {
+	createMoonTerrainField,
+	MOON_SHAPE,
+	type EntityId,
+	type Snapshot,
+	type Vec3
+} from '@orbital/core';
+import Stock from '@orbital/mod-stock';
 import { add, length, propagate, sub, toStateVector, type StateVector } from '@orbital/kepler';
-import type { Sim } from '../src/index.ts';
+import { createSim, type Sim } from '../src/index.ts';
 import { homeFrame, moonState, systemOf, transferState, type System } from './helpers/moon.ts';
-import { newSim, probe, stack, twoStage } from './helpers/vessels.ts';
+import { newSim, probe, rapier, stack, twoStage } from './helpers/vessels.ts';
 
 /** Transfer that misses the moon's centre by about 800 km: a flyby with a periapsis near 500 km. */
 const FLYBY = 800_000;
@@ -313,6 +320,31 @@ describe('the moon as a place', () => {
 		const rested = sim.snapshot().vessels[0]!;
 		expect(rested.mode).toBe('on-rails');
 		expect(rested.surface).toBe(true);
+		sim.dispose();
+	}, 30_000);
+
+	test("with a terrain function the lander stands on the moon's cratered ground, on the plain at the landing site", async () => {
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(16),
+			seed: 1,
+			terrain: (body) => (body.parent ? createMoonTerrainField({ radius: body.radius }) : undefined)
+		});
+		const s = systemOf(sim);
+		const placed = sim.dispatch({
+			type: 'load-vessel',
+			design: twoStage(),
+			placement: { kind: 'surface', body: s.moon.id as never }
+		});
+		if (!placed.ok) throw new Error(placed.reason);
+		for (let i = 0; i < 700; i++) sim.step(0.02);
+		const v = sim.snapshot().vessels[0]!;
+		expect(v.terrainHeight).toBeCloseTo(MOON_SHAPE.base, 6);
+		const altitude = length(v.position) - s.moon.radius;
+		expect(altitude).toBeGreaterThan(MOON_SHAPE.base);
+		expect(altitude).toBeLessThan(MOON_SHAPE.base + 15);
+		expect(v.mode).toBe('on-rails');
+		expect(v.surface).toBe(true);
 		sim.dispose();
 	}, 30_000);
 

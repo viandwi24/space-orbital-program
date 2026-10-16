@@ -84,8 +84,8 @@ const vec = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 const scale = (a: Vec3, s: number): Vec3 => vec(a.x * s, a.y * s, a.z * s);
 const dot = (a: Vec3, b: Vec3): number => a.x * b.x + a.y * b.y + a.z * b.z;
 
-/** Same hash as `pcg3d` in `renderer/shaders/atmosphere.glsl.ts`; returns the first component. */
-function pcgX(ix: number, iy: number, iz: number): number {
+/** Same hash as `pcg3d` in `renderer/shaders/atmosphere.glsl.ts`; returns the first component, in [0, 1]. */
+export function pcgX(ix: number, iy: number, iz: number): number {
 	let x = u32(Math.imul(u32(ix), 1664525) + 1013904223);
 	let y = u32(Math.imul(u32(iy), 1664525) + 1013904223);
 	let z = u32(Math.imul(u32(iz), 1664525) + 1013904223);
