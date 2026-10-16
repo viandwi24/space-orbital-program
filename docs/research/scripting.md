@@ -26,3 +26,11 @@ Stage 2.7 on the proposal repo page (https://github.com/tc39/proposal-shadowreal
 ## Rejected / not pursued
 
 `vm` / `node:vm` (Node/Bun only, not browser, not a security boundary), iframes with `sandbox` (DOM, main thread), `isolated-vm` (native V8 addon, no browser).
+
+## Bundling QuickJS WASM in the web client (plan 015)
+
+**Checked:** 2026-10-16.
+
+- README of quickjs-emscripten (https://github.com/justjake/quickjs-emscripten, 2026-10-16): Vite is listed as tested (5.0.10, Vue example); the default loader locates the `.wasm` with `new URL('./file', import.meta.url)`, "handled automatically by bundlers", with manual configuration as the fallback. Workers are not covered. Variants: `newQuickJSWASMModuleFromVariant(variant)`; `newVariant(base, CustomizeVariantOptions)` customises loading (`wasmLocation`, `wasmBinary`, `wasmModule`, `locateFile`).
+- Package contents of 0.32.0 (read from `node_modules`): `@jitl/quickjs-wasmfile-release-sync` exports `./wasm` (`dist/emscripten-module.wasm`, 491 KB) and `./emscripten-module` with a `browser` condition; its loader resolves the file with `new URL("emscripten-module.wasm", import.meta.url)` unless `locateFile`/`wasmLocation` is given. That `new URL` is inside a dependency, which Vite's dev optimiser rewrites into `.vite/deps`; so the app passes the asset URL explicitly.
+- Vite asset URL import (https://vite.dev/guide/assets#explicit-url-imports, 2026-10-16): a `?url` suffix imports any file as its resolved public URL (hashed in build). The page does not mention `.wasm` or workers; the outcome in dev and build is recorded in journal 015.
