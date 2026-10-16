@@ -33,6 +33,12 @@ export interface AutopilotOptions {
 	turnEnd?: number;
 	apoapsis?: number;
 	periapsis?: number;
+	/** Pitch from vertical reached at `turnEnd`, rad (default a quarter turn / 2 = 45 degrees). */
+	turnPitch?: number;
+	/** How many times to stage when an engine runs dry (default 1). */
+	stageCount?: number;
+	/** Fire the next stage at the throttle cut (jettison boosters and the spent lower stage). */
+	jettisonAtCut?: boolean;
 }
 
 const UP_Y: Vec3 = { x: 0, y: 1, z: 0 };
@@ -54,13 +60,20 @@ const rotate = (q: Quat, v: Vec3): Vec3 => {
 };
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
 
-export function createAutopilot(o: AutopilotOptions) {
+export function createAutopilot(given: AutopilotOptions) {
+	// Dev only: a console can set `globalThis.__autopilot = { turnPitch: 1.1, ... }` before pressing P
+	// to fly vessels that need another profile (plan 026: boosters).
+	const o: AutopilotOptions = {
+		...given,
+		...((globalThis as { __autopilot?: Partial<AutopilotOptions> }).__autopilot ?? {})
+	};
 	const mu = GRAVITATIONAL_CONSTANT * o.body.mass;
 	const radius = o.body.radius;
 	const turnStart = o.turnStart ?? 10_000;
 	const turnEnd = o.turnEnd ?? 40_000;
 	const targetApo = o.apoapsis ?? 80_000;
 	const targetPeri = o.periapsis ?? 76_000;
+	const pitchMax = o.turnPitch ?? Math.PI / 4;
 	const partDefs = new Map(o.parts.map((p) => [p.id as string, p]));
 	const density = new Map(o.resources.map((r) => [r.id as string, r.density ?? 0]));
 	let phase: AutopilotPhase = 'ascent';
@@ -139,7 +152,7 @@ export function createAutopilot(o: AutopilotOptions) {
 			const dry = v.parts.some(
 				(p) => (p.modules['stock.engine'] as { flameout?: boolean } | undefined)?.flameout
 			);
-			if (dry && staged < 1) {
+			if (dry && staged < (o.stageCount ?? 1)) {
 				staged++;
 				o.send({ type: 'stage', vessel: o.vessel });
 				note = 'staging';
@@ -148,14 +161,15 @@ export function createAutopilot(o: AutopilotOptions) {
 			const target =
 				alt > turnEnd
 					? normalize(v.velocity)
-					: add(
-							scale(up, Math.cos((Math.PI / 4) * frac)),
-							scale(east, Math.sin((Math.PI / 4) * frac))
-						);
+					: add(scale(up, Math.cos(pitchMax * frac)), scale(east, Math.sin(pitchMax * frac)));
 			steer(v, target, dt);
 			if (orbit && orbit.a * (1 + orbit.e) - radius >= targetApo) {
 				phase = 'coast';
 				o.send({ type: 'throttle', vessel: o.vessel, value: 0 });
+				if (o.jettisonAtCut) {
+					staged++;
+					o.send({ type: 'stage', vessel: o.vessel });
+				}
 				note = 'coasting to apoapsis';
 			}
 		} else if (orbit) {
