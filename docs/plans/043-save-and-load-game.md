@@ -1,7 +1,7 @@
 ---
 id: 043
 title: "Save and load game"
-status: in-progress
+status: done
 owner: "save session (Claude, 2026-10-17)"
 depends: []
 phase: 2
@@ -40,13 +40,13 @@ Headless criteria are in `packages/sim/test/resume.test.ts` (rig: the stock sim,
 - [x] **Corrupt, foreign and incompatible saves** are refused with a `SaveError` and a readable message (`code` `not-json`, `not-a-save`, `too-new`, `damaged`, `missing-mod`, `incompatible`): other JSON, text that is not JSON, cut-off text, an edited number (checksum), a newer format, a mod or part that is not loaded (named), inconsistent rails, a missing component field, a flight vessel without a body, a body for a vessel not in flight, another fixed step, too many frames (`save-format.test.ts`, `save.test.ts`).
 - [x] **Web logic (vitest, 48 tests in `apps/web/src/lib/save`):** list newest first with damaged records shown; quicksave replaces its slot; autosave rotation keeps the newest three and leaves quick and named saves alone; unique names; rename and delete; quota error reported as `quota` with the previous save intact; other storage errors as `unavailable`; export/import round trip and refusal of junk without storing anything; mod report; autosaver timing (interval, minimum gap, busy, paused, tab hidden); Worker `init`/`save` routing and `SimClient.save()`; the controller (quicksave/quickload, mods missing/changed, failures become notes).
 - [x] **`[manual]` browser, on a scratch copy of the tree with the integration patch** (built-in browser, port 5199): launch, throttle and stage, F5 in flight, reload the tab, Load a flight from the main menu, the flight continues from the saved altitude with throttle, stage count and thrust; a pad quicksave reloaded and flown to a 76.0 x 289.8 km orbit with the dev autopilot; a named save in orbit reloaded with the same periapsis and apoapsis to the metre and 100x warp working. Screenshots `docs/journal/assets/043-load-screen.png`, `043-orbit-after-load.png`. Note: the dev autopilot assumes a fresh vessel (it fires stage 0 first), so the mid-ascent save was resumed by hand, not flown to orbit by it (journal 043).
-- [ ] **Integration into the real tree** (flight page, flight loop, HUD controller, pause menu, help overlay, main menu): waits for plan 039 to be `done` and `flight-loop.ts`/`hud-controller.ts` to be committed; the hunks are `docs/journal/assets/043-integration.patch` (applies with `patch -p1 -F3` against the tree as of this writing). Then repeat the `[manual]` run on the real tree.
-- [ ] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files (library part run and green; repeat after the integration).
+- [x] **Integration into the real tree** (flight page, flight loop, HUD controller, pause menu, help overlay, main menu): applied from `docs/journal/assets/043-integration.patch` (`patch -p1 -F3`; two hunks were merged by hand: the `@orbital/core` import in `flight-loop.ts` and the `PauseMenu` props next to plan 039's toggle) on top of plans 039 and 042. The `[manual]` run was repeated on the real tree: F5 at 20.3 km with throttle 100 % and stage 2 burning, tab navigation to the main menu, "Load a flight", Quicksave: resumed at T+01:29 (saved T+01:24), 23.3 km, throttle 100 %, SAS prograde still on; a named save "Two-stage in orbit" from the pause menu reloaded from the main menu with apoapsis 289 693.4998 m and periapsis 76 038.5921 m, equal to the digits before the save, and the warp buttons took it to 50x (99.8 s in 2 s). Screenshots `043-integrated-*.jpg`.
+- [x] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files (repeated after the integration; journal 043). The web suite is vitest (`bun run test` is `bun test packages mods`; running `bun test` inside `apps/web` is the wrong runner for the `.svelte.ts` controller tests and is what failed in journal 047).
 
 ## Docs checklist
 
 - [x] STATUS, journal 043, ADR 0050, `architecture/simulation.md`, research `save-and-load.md`, `guides/writing-a-mod.md` (state in the world), API 0.1.12 in `plugin-system.md`.
-- [ ] STATUS board row to `done` and `product/spec.md` v1 list tick after the integration.
+- [x] STATUS board row to `done` (`product/spec.md` lists v1 as prose, there is no checkbox to tick).
 
 ## Log
 
@@ -54,3 +54,4 @@ Headless criteria are in `packages/sim/test/resume.test.ts` (rig: the stock sim,
 - 2026-10-17 — Refined draft → ready at the human's request (session: save session): measurable criteria, ADR 0050, research.
 - 2026-10-17 — ready → in-progress (save session). Core format and sim save/resume committed; web save library, dialogs and Worker messages committed; headless and vitest criteria pass; browser run done on a scratch worktree with the integration patch; real-tree integration pending plan 039.
 - 2026-10-17 — `depends: [042]` dropped: the only thing 043 needs from 042 is `VesselState.sas` as plain data, which is committed and round-trips (resume test, SAS hold); 042's pending flight-page integration is independent of the save work. docs:check refuses an in-progress plan with an in-progress dependency.
+- 2026-10-17 — Integration into the flight page, flight loop, HUD controller, pause menu, help overlay and main menu done on top of plans 039 and 042; manual run repeated on the real tree. done.

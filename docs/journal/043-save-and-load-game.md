@@ -1,6 +1,6 @@
 # 043 — Save and load game
 
-**Plan:** plans/043-save-and-load-game.md · **Session(s):** save session (Claude, 2026-10-17) · **Date:** 2026-10-17 · **ADRs:** [0050](../decisions/0050-save-format-and-resume.md) · **Status:** in progress: library, sim and format done; flight page, flight loop and main menu integration waits for plan 039.
+**Plan:** plans/043-save-and-load-game.md · **Session(s):** save session (Claude, 2026-10-17) · **Date:** 2026-10-17 · **ADRs:** [0050](../decisions/0050-save-format-and-resume.md) · **Status:** done: library, sim, format and the integration into the flight page, flight loop, pause menu and main menu.
 
 ## What was done
 
@@ -32,6 +32,14 @@
 | Browser | scratch worktree plus patch, built-in browser, port 5199: F5 mid-ascent (812 m), tab reload, "Load a flight" from the main menu: resumed at 1486 m with throttle 100 %, stage 1 fired, 12 s of flight carried over (`assets/043-load-screen.png`); pad quicksave on surface rails, reload, dev autopilot: periapsis 76.0 km, apoapsis 289.8 km (`assets/043-orbit-after-load.png`); named save "Two-stage in orbit" through the pause menu, reload: periapsis 76044.83 m and apoapsis 289846.38 m equal to the digits before, 100x warp advanced the clock, 1x resumed at 1 s per second |
 
 The scratch worktree was removed afterwards; the dev server on port 5199 was stopped.
+
+## Integration into the real tree (integration session, 2026-10-17)
+
+- `patch -p1 -F3 < assets/043-integration.patch` on top of plans 039 and 042: the `flight-loop.ts` import hunk and the `PauseMenu` props hunk failed (plan 039 added `autoQuality` props to the same lines) and were merged by hand; the rest applied. svelte-check 0 errors, vitest 414 tests pass (51 files, the `SaveController` tests included).
+- **The seven `SaveController` failures of journal 047 are a runner mistake**, not a bug: `bun test` inside `apps/web` runs the `.svelte.ts` tests under Bun, which cannot compile runes; the web tests are vitest (`cd apps/web && bunx vitest --run`), the repo script `bun run test` is `bun test packages mods`.
+- **Manual run on the real tree** (production-mode build with the dev hooks, port 5204, built-in browser): `Z`, stage, climb; `F5` at 20.3 km (the `quick` record: T+01:24, two vessels, thumbnail); tab to the main menu; "Load a flight" lists the quicksave and three autosaves made during the run with thumbnails ([`043-integrated-load-screen.jpg`](assets/043-integrated-load-screen.jpg)); Load: [`043-integrated-resumed-ascent.jpg`](assets/043-integrated-resumed-ascent.jpg), T+01:29, 23.3 km, throttle 100 %, stage 2 burning, the SAS prograde button still active (plan 042's state round-trips). The dev autopilot (`P`) then flew a fresh launch to 76 038.5 m by 289 690.7 m; "Save the flight" in the pause menu with the name "Two-stage in orbit" made a `manual` record at T+213; after a tab navigation and Load from the main menu the orbit read apoapsis 289 693.4998 m and periapsis 76 038.5921 m, the same digits as just before the save, and the warp button took it to 50x (99.8 s of simulation time in 2 s) with the elements unchanged ([`043-integrated-orbit-after-load.jpg`](assets/043-integrated-orbit-after-load.jpg)).
+- Not exercised in the browser: import/export of a save file, the corrupt-save screen (both are unit-tested), quickload by `F9`.
+- The keyboard `.` and `,` warp keys did not react to the browser tool's synthesized events (the warp buttons did); the same tool's `z`, `t`, `Space`, `Escape`, `F5` worked.
 
 ## For plans 044 and 046
 
