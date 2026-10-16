@@ -9,7 +9,9 @@ import {
 	loadPlugins,
 	type ModuleContext,
 	type ModuleDefinition,
-	type PhysicsBackend
+	type PhysicsBackend,
+	type Vec3,
+	type VesselApi
 } from '@orbital/sdk';
 import { Stock } from '../src/index.ts';
 
@@ -35,10 +37,55 @@ export const noPhysics: PhysicsBackend = {
 
 export const loaded = loadPlugins([Stock]);
 
+/** A recording `VesselApi`: resources are a plain map, forces and detach requests are logged. */
+export interface FakeVessel extends VesselApi {
+	control: { throttle: number; pitch: number; roll: number; yaw: number };
+	ambient: { pressure: number; density: number; altitude: number };
+	stock: Record<string, number>;
+	forces: Array<{ force: Vec3; point?: Vec3 }>;
+	torques: Vec3[];
+	detached: Array<{ node: string; impulse?: number }>;
+}
+
+export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
+	const v: FakeVessel = {
+		time: 0,
+		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
+		ambient: { pressure: 0, density: 0, altitude: 0 },
+		stock,
+		forces: [],
+		torques: [],
+		detached: [],
+		applyForce(force, point) {
+			v.forces.push(point ? { force, point } : { force });
+		},
+		applyTorque(torque) {
+			v.torques.push(torque);
+		},
+		resources: {
+			amount: (r) => v.stock[r] ?? 0,
+			withdraw(r, amount) {
+				const taken = Math.min(v.stock[r] ?? 0, amount);
+				v.stock[r] = (v.stock[r] ?? 0) - taken;
+				return taken;
+			},
+			deposit(r, amount) {
+				v.stock[r] = (v.stock[r] ?? 0) + amount;
+				return amount;
+			}
+		},
+		detach(node, impulse) {
+			v.detached.push(impulse === undefined ? { node } : { node, impulse });
+		}
+	};
+	return v;
+}
+
 /** Parse `input` with the module's schema and create fresh state from it, as the sim will. */
 export function contextFor<In, Out, State>(
 	module: ModuleDefinition<In, Out, State>,
-	input: In
+	input: In,
+	vessel: VesselApi = fakeVessel()
 ): ModuleContext<Out, State> {
 	if (!module.config || !module.state) {
 		throw new Error(
@@ -54,6 +101,7 @@ export function contextFor<In, Out, State>(
 		physics: noPhysics,
 		entity: world.createEntity(),
 		config,
-		state: module.state(config)
+		state: module.state(config),
+		vessel
 	};
 }

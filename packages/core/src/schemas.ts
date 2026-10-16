@@ -79,6 +79,8 @@ export const partDefinitionSchema = z.object({
 	mass: z.number().nonnegative(),
 	mesh: z.string().optional(),
 	shape: partShapeSchema.optional(),
+	/** Resources may flow through this part (default true); engines and decouplers set false. */
+	crossfeed: z.boolean().optional(),
 	attach: z.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple })).optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.

@@ -59,6 +59,7 @@ export {
 } from '@orbital/core';
 
 export type {
+	Ambient,
 	BasePluginContext,
 	BodyDefinition,
 	BodyId,
@@ -85,6 +86,7 @@ export type {
 	ResourceDefinition,
 	Registries,
 	ResourceId,
+	ResourceStore,
 	Rng,
 	SystemContext,
 	SystemDefinition,
@@ -93,6 +95,8 @@ export type {
 	Quat,
 	Transform,
 	Vec3,
+	VesselApi,
+	VesselControl,
 	ComponentType,
 	World
 } from '@orbital/core';

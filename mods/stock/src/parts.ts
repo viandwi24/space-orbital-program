@@ -95,6 +95,8 @@ export const PartEngineLV = definePart({
 	mass: kg(1_250),
 	shape: cylinder(1.2),
 	attach: stackNodes(1.2),
+	// An engine draws propellant but does not pass it through to whatever hangs below it.
+	crossfeed: false,
 	modules: [
 		[
 			ModuleEngine,
@@ -118,6 +120,8 @@ export const PartDecoupler = definePart({
 	mass: kg(50),
 	shape: cylinder(0.2),
 	attach: stackNodes(0.2),
+	// Stages are separated by decouplers: no propellant crosses them.
+	crossfeed: false,
 	modules: [[ModuleDecoupler, { separates: 'top', ejectionImpulse: 2_000 }]],
 	stagingIcon: 'decoupler'
 });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	G0,
+	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
 	ModuleReactionWheel,
@@ -13,7 +14,7 @@ import {
 	propellantRates,
 	withdraw
 } from '../src/index.ts';
-import { contextFor, loaded } from './helpers.ts';
+import { contextFor, fakeVessel, loaded } from './helpers.ts';
 
 const LF = 'stock.liquid-fuel';
 const OX = 'stock.oxidizer';
@@ -138,14 +139,135 @@ describe('engine', () => {
 	});
 });
 
+describe('engine update (through the vessel capability API)', () => {
+	const dt = 0.02;
+	const fuel = (amount: number) => ({ [LF]: amount, [OX]: amount * 1.2 });
+
+	test('burning: throttle copied, propellant drawn at the mass flow, thrust along +Y', () => {
+		const vessel = fakeVessel(fuel(400));
+		vessel.control.throttle = 0.5;
+		const ctx = contextFor(ModuleEngine, engine, vessel);
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, dt);
+		expect(ctx.state.throttle).toBe(0.5);
+		expect(vessel.forces).toHaveLength(1);
+		const { force } = vessel.forces[0]!;
+		expect(force.x).toBe(0);
+		expect(force.z).toBe(0);
+		expect(force.y).toBeCloseTo(107_500, 6); // vacuum, half throttle
+		const out = engineOutput(engine, { ...burning, throttle: 0.5 }, 0);
+		const rates = propellantRates(
+			engine,
+			out.massFlow,
+			(id) => loaded.registries.resources.get(id)!.density
+		);
+		expect(400 - vessel.stock[LF]!).toBeCloseTo(rates[0]!.rate * dt, 12);
+		expect(480 - vessel.stock[OX]!).toBeCloseTo(rates[1]!.rate * dt, 12);
+	});
+
+	test('uses the ambient pressure: lower thrust at sea level for the same flow', () => {
+		const vessel = fakeVessel(fuel(400));
+		vessel.control.throttle = 1;
+		vessel.ambient.pressure = 101_325;
+		const ctx = contextFor(ModuleEngine, engine, vessel);
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, dt);
+		expect(vessel.forces[0]!.force.y).toBeCloseTo((215_000 * 280) / 300, 6);
+	});
+
+	test('does nothing until ignited, at zero throttle, or after flameout', () => {
+		const vessel = fakeVessel(fuel(400));
+		vessel.control.throttle = 1;
+		const ctx = contextFor(ModuleEngine, engine, vessel);
+		ModuleEngine.update?.(ctx, dt); // cold
+		ModuleEngine.onStage?.(ctx);
+		vessel.control.throttle = 0;
+		ModuleEngine.update?.(ctx, dt); // zero throttle
+		expect(vessel.forces).toHaveLength(0);
+		expect(vessel.stock[LF]).toBe(400);
+	});
+
+	test('propellant shortfall: partial thrust for the fraction drawn, then flameout event', () => {
+		const vessel = fakeVessel({ [LF]: 0.05, [OX]: 100 });
+		vessel.control.throttle = 1;
+		const ctx = contextFor(ModuleEngine, engine, vessel);
+		const flameouts: unknown[] = [];
+		ctx.events.on('stock:engine-flameout', (e) => flameouts.push(e));
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, dt);
+		const full = engineOutput(engine, burning, 0).thrust;
+		const f = vessel.forces[0]!.force.y;
+		expect(f).toBeGreaterThan(0);
+		expect(f).toBeLessThan(full);
+		expect(vessel.stock[LF]).toBeCloseTo(0, 12);
+		expect(ctx.state).toMatchObject({ ignited: false, flameout: true });
+		expect(flameouts).toEqual([{ part: ctx.entity }]);
+		ModuleEngine.update?.(ctx, dt); // flamed out: silent
+		expect(vessel.forces).toHaveLength(1);
+	});
+
+	test('an empty tank flames out without thrust', () => {
+		const vessel = fakeVessel({});
+		vessel.control.throttle = 1;
+		const ctx = contextFor(ModuleEngine, engine, vessel);
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, dt);
+		expect(vessel.forces).toHaveLength(0);
+		expect(ctx.state.flameout).toBe(true);
+	});
+});
+
 describe('decoupler and reaction wheel', () => {
-	test('decoupler defaults, onStage fires once-and-stays', () => {
-		const ctx = contextFor(ModuleDecoupler, {});
+	test('decoupler defaults, onStage fires once-and-stays and detaches the configured node', () => {
+		const vessel = fakeVessel();
+		const ctx = contextFor(ModuleDecoupler, {}, vessel);
 		expect(ctx.config).toEqual({ separates: 'top', ejectionImpulse: 2_000 });
 		expect(ctx.state.decoupled).toBe(false);
 		ModuleDecoupler.onStage?.(ctx);
 		ModuleDecoupler.onStage?.(ctx);
 		expect(ModuleDecoupler.snapshot?.(ctx.state)).toEqual({ decoupled: true });
+		expect(vessel.detached).toEqual([{ node: 'top', impulse: 2_000 }]);
+	});
+
+	test('decouple action and a bottom-separating config', () => {
+		const vessel = fakeVessel();
+		const ctx = contextFor(ModuleDecoupler, { separates: 'bottom', ejectionImpulse: 10 }, vessel);
+		ModuleDecoupler.actions?.decouple?.(ctx);
+		expect(vessel.detached).toEqual([{ node: 'bottom', impulse: 10 }]);
+	});
+
+	test('wheel torque follows the attitude demand and draws charge in proportion', () => {
+		const vessel = fakeVessel({ 'stock.electric-charge': 10 });
+		vessel.control.pitch = 0.5;
+		const ctx = contextFor(ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }, vessel);
+		ModuleReactionWheel.update?.(ctx, 0.02);
+		expect(vessel.torques).toEqual([{ x: 2_500, y: 0, z: 0 }]);
+		expect(10 - vessel.stock['stock.electric-charge']!).toBeCloseTo(0.6 * 0.5 * 0.02, 12);
+	});
+
+	test('wheel: no demand, disabled, or no charge means no torque; partial charge scales it', () => {
+		const vessel = fakeVessel({ 'stock.electric-charge': 0 });
+		const ctx = contextFor(ModuleReactionWheel, { torque: 1_000, chargeRate: 1 }, vessel);
+		ModuleReactionWheel.update?.(ctx, 0.02); // no demand
+		vessel.control.yaw = 1;
+		ModuleReactionWheel.update?.(ctx, 0.02); // no charge
+		expect(vessel.torques).toHaveLength(0);
+		vessel.stock['stock.electric-charge'] = 0.01; // half of the 0.02 needed
+		ModuleReactionWheel.update?.(ctx, 0.02);
+		expect(vessel.torques[0]!.z).toBeCloseTo(500, 9);
+		ctx.state.enabled = false;
+		ModuleReactionWheel.update?.(ctx, 0.02);
+		expect(vessel.torques).toHaveLength(1);
+	});
+
+	test('resource container and command declare their generic roles', () => {
+		const ctx = contextFor(ModuleResourceContainer, { contents: { [LF]: { capacity: 10 } } });
+		const store = ModuleResourceContainer.store!;
+		expect(store.resources(ctx.config, ctx.state)).toEqual([LF]);
+		expect(store.amount(ctx.config, ctx.state, LF)).toBe(10);
+		expect(store.withdraw(ctx.config, ctx.state, LF, 4)).toBe(4);
+		expect(store.deposit(ctx.config, ctx.state, LF, 99)).toBe(4);
+		expect(ModuleCommand.controlSource).toBe(true);
 	});
 
 	test('reaction wheel starts enabled, toggles by action, validates its argument', () => {

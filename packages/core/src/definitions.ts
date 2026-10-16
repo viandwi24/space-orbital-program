@@ -6,6 +6,7 @@
 import type * as z from 'zod';
 import type { EntityId } from './ids.ts';
 import type { EventBus, EventMap } from './events.ts';
+import type { Vec3 } from './math.ts';
 import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { World } from './world.ts';
@@ -54,11 +55,67 @@ export interface ReadonlyRegistries {
 	systems: ReadonlyRegistry<SystemDefinition>;
 }
 
-/** What a module hook sees. Built by the sim (plan 007) per part instance and step. */
+/** Vessel-wide control input set by `throttle` and `attitude` commands. */
+export interface VesselControl {
+	/** 0..1. */
+	readonly throttle: number;
+	/** Attitude demand about the vessel body axes, each -1..1: pitch about +X, roll about +Y (the long axis), yaw about +Z. */
+	readonly pitch: number;
+	readonly roll: number;
+	readonly yaw: number;
+}
+
+/** Ambient conditions at the part. Vacuum (all zero) outside the atmosphere. */
+export interface Ambient {
+	/** Static pressure, Pa. */
+	readonly pressure: number;
+	/** Air density, kg/m³. */
+	readonly density: number;
+	/** Height above the body's reference sphere, m. */
+	readonly altitude: number;
+}
+
+/**
+ * What a module hook may ask of the vessel its part belongs to (ADR 0015). Everything is
+ * expressed from the part's point of view; the sim owns bodies, joints and the resource graph.
+ */
+export interface VesselApi {
+	/** Simulation time, s. */
+	readonly time: number;
+	readonly control: VesselControl;
+	readonly ambient: Ambient;
+	/**
+	 * Force in N, in the part's local frame, at `point` (a local-frame position in metres; the part
+	 * origin when omitted). Acts for the current step only, so call it every step. Flight mode only:
+	 * throws on rails.
+	 */
+	applyForce(force: Vec3, point?: Vec3): void;
+	/** Torque in N·m in the part's local frame; same lifetime and mode rules as `applyForce`. */
+	applyTorque(torque: Vec3): void;
+	/**
+	 * Resources reachable from this part according to each resource's `flowMode` (and parts'
+	 * `crossfeed`). Amounts are in the resource's unit; `withdraw`/`deposit` return what moved.
+	 */
+	readonly resources: {
+		amount(resource: string): number;
+		withdraw(resource: string, amount: number): number;
+		deposit(resource: string, amount: number): number;
+	};
+	/**
+	 * Sever the attachment at this part's attach node `node`: whatever hangs off it leaves as its
+	 * own vessel. `impulse` (N·s, default 0) pushes the two halves apart along the node direction,
+	 * equal and opposite. Applied by the sim after the current hook returns. No effect when nothing
+	 * is attached at `node`.
+	 */
+	detach(node: string, impulse?: number): void;
+}
+
+/** What a module hook sees. Built by the sim (plan 007) per part instance and call. */
 export interface ModuleContext<Config = unknown, State = unknown> {
 	readonly world: World;
 	readonly events: EventBus<EventMap>;
 	readonly registries: ReadonlyRegistries;
+	/** The flight frame's backend. Hooks have no body handle: use `vessel` for forces. */
 	readonly physics: PhysicsBackend;
 	/** The part entity this module instance belongs to. */
 	readonly entity: EntityId;
@@ -66,6 +123,24 @@ export interface ModuleContext<Config = unknown, State = unknown> {
 	readonly config: Config;
 	/** Serializable per-instance state, created by `ModuleDefinition.state`. Hooks mutate it. */
 	state: State;
+	/** Capabilities of the vessel this part belongs to (ADR 0015). */
+	readonly vessel: VesselApi;
+}
+
+/**
+ * A module that holds resources. The sim sums their mass and routes `VesselApi.resources` through
+ * them without knowing the module. Method syntax keeps the typed definition assignable to the
+ * erased registry type.
+ */
+export interface ResourceStore<Config = unknown, State = unknown> {
+	/** Ids of the resources this store can hold. */
+	resources(config: Config, state: State): readonly string[];
+	/** Current amount of `resource`. */
+	amount(config: Config, state: State, resource: string): number;
+	/** Remove up to `amount`; returns what was taken. */
+	withdraw(config: Config, state: State, resource: string, amount: number): number;
+	/** Add up to `amount` (bounded by capacity); returns what was accepted. */
+	deposit(config: Config, state: State, resource: string, amount: number): number;
 }
 
 /**
@@ -79,6 +154,10 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	config?: z.ZodType<Out, In>;
 	/** Ids of modules that must also be present on the same part. */
 	requires?: readonly string[];
+	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
+	controlSource?: boolean;
+	/** Present when this module holds resources (tanks, batteries); see `ResourceStore`. */
+	store?: ResourceStore<Out, State>;
 	/**
 	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
 	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant

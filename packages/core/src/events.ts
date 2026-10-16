@@ -5,10 +5,18 @@
  * settles which module specifier SDK users augment (the SDK re-exports this interface).
  */
 import type { EntityId } from './ids.ts';
+import type { VesselMode } from './protocol.ts';
 
 export interface EventMap {
 	'world:entity-added': { id: EntityId };
 	'world:entity-removed': { id: EntityId };
+	/** A vessel switched between physics (`flight`) and Kepler propagation (`on-rails`). */
+	'vessel:mode-changed': { vessel: EntityId; mode: VesselMode; reason: string };
+	/** A vessel was loaded, or split off `from` another one. */
+	'vessel:created': { vessel: EntityId; from?: EntityId };
+	'vessel:destroyed': { vessel: EntityId; reason: string };
+	/** A stage fired (`stage` is the index into the design's `stages`). */
+	'stage:activated': { vessel: EntityId; stage: number };
 }
 
 export type EventHandler<P> = (payload: P) => void;

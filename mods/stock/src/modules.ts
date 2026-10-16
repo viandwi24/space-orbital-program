@@ -1,11 +1,19 @@
 /**
- * Stock modules. Each defines a config schema, serializable state and the state transitions that
- * need nothing but that state (`onStage`, `actions`, `snapshot`). Effects on the physics backend
- * or on other parts (thrust force, propellant flow, splitting a vessel, wheel torque) are applied
- * by the sim from this config and state; the arithmetic lives in `engine.ts` and below, so it is
- * written once. See docs/guides/writing-a-mod.md and journal 006 for the full contract.
+ * Stock modules. Each defines a config schema, serializable state and hooks. Effects on the
+ * vessel (thrust, wheel torque, propellant draw, separation) go through `ctx.vessel`, the generic
+ * capability API every mod gets (ADR 0015); the arithmetic lives in `engine.ts` and below, so it is
+ * written once. See docs/guides/writing-a-mod.md.
  */
-import { defineModule, z } from '@orbital/sdk';
+import { defineModule, z, type EntityId } from '@orbital/sdk';
+import { engineOutput, propellantRates } from './engine.ts';
+import { ElectricCharge } from './resources.ts';
+
+declare module '@orbital/sdk' {
+	interface EventMap {
+		/** An engine ran out of propellant and shut down. */
+		'stock:engine-flameout': { part: EntityId };
+	}
+}
 
 /** Resource keys are definition ids, e.g. `stock.liquid-fuel`. */
 const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 'resource id');
@@ -18,7 +26,7 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
-export const ModuleCommand = defineModule({ id: 'stock.command' });
+export const ModuleCommand = defineModule({ id: 'stock.command', controlSource: true });
 
 // ---------------------------------------------------------------------------------------------
 // Resource container
@@ -84,6 +92,13 @@ export const ModuleResourceContainer = defineModule({
 			Object.entries(config.contents).map(([resource, slot]) => [resource, slot.amount])
 		)
 	}),
+	// The generic resource graph (ADR 0015) routes flow and sums mass through this.
+	store: {
+		resources: (config) => Object.keys(config.contents),
+		amount: (_config, state, resource) => state.amounts[resource] ?? 0,
+		withdraw: (_config, state, resource, amount) => withdraw(state, resource, amount),
+		deposit: (config, state, resource, amount) => deposit(config, state, resource, amount)
+	},
 	actions: {
 		/** `(resource, amount)` -> amount actually removed. */
 		withdraw: (ctx, ...args) => {
@@ -133,6 +148,37 @@ export const ModuleEngine = defineModule({
 		ctx.state.ignited = true;
 		ctx.state.flameout = false;
 	},
+	/**
+	 * Each step: take the vessel throttle, work out thrust and mass flow at the ambient pressure,
+	 * draw the propellants from what is reachable, and push along the part's local +Y. If the
+	 * propellants cannot cover the step the engine produces thrust for the fraction it got and
+	 * flames out.
+	 */
+	update(ctx, dt) {
+		const { state, config, vessel } = ctx;
+		state.throttle = Math.min(1, Math.max(0, vessel.control.throttle));
+		if (!state.ignited) return;
+		const out = engineOutput(config, state, vessel.ambient.pressure);
+		if (out.massFlow <= 0) return;
+		const rates = propellantRates(
+			config,
+			out.massFlow,
+			(resource) => ctx.registries.resources.get(resource)?.density ?? 0
+		);
+		let satisfied = 1;
+		for (const { resource, rate } of rates) {
+			satisfied = Math.min(satisfied, vessel.resources.amount(resource) / (rate * dt));
+		}
+		for (const { resource, rate } of rates) {
+			vessel.resources.withdraw(resource, rate * dt * satisfied);
+		}
+		if (satisfied > 0) vessel.applyForce({ x: 0, y: out.thrust * satisfied, z: 0 });
+		if (satisfied < 1) {
+			state.ignited = false;
+			state.flameout = true;
+			ctx.events.emit('stock:engine-flameout', { part: ctx.entity });
+		}
+	},
 	actions: {
 		activate: (ctx) => {
 			ctx.state.ignited = true;
@@ -174,16 +220,27 @@ export interface DecouplerState {
 	decoupled: boolean;
 }
 
+/** Fire once: mark the state and ask the vessel to sever the configured node with the ejection impulse. */
+function fire(ctx: {
+	config: DecouplerConfig;
+	state: DecouplerState;
+	vessel: { detach(node: string, impulse?: number): void };
+}): void {
+	if (ctx.state.decoupled) return;
+	ctx.state.decoupled = true;
+	ctx.vessel.detach(ctx.config.separates, ctx.config.ejectionImpulse);
+}
+
 export const ModuleDecoupler = defineModule({
 	id: 'stock.decoupler',
 	config: decouplerConfigSchema,
 	state: (): DecouplerState => ({ decoupled: false }),
 	onStage(ctx) {
-		ctx.state.decoupled = true;
+		fire(ctx);
 	},
 	actions: {
 		decouple: (ctx) => {
-			ctx.state.decoupled = true;
+			fire(ctx);
 		}
 	},
 	snapshot: (state) => ({ decoupled: state.decoupled })
@@ -208,6 +265,26 @@ export const ModuleReactionWheel = defineModule({
 	id: 'stock.reaction-wheel',
 	config: reactionWheelConfigSchema,
 	state: (): ReactionWheelState => ({ enabled: true }),
+	/**
+	 * Torque follows the vessel attitude demand (pitch about +X, roll about +Y, yaw about +Z) up to
+	 * `torque` per axis; electric charge is drawn in proportion to the demand magnitude, and the
+	 * torque is scaled by the fraction of the charge that was available.
+	 */
+	update(ctx, dt) {
+		const { state, config, vessel } = ctx;
+		if (!state.enabled) return;
+		const { pitch, roll, yaw } = vessel.control;
+		const demand = Math.min(1, Math.hypot(pitch, roll, yaw));
+		if (demand === 0) return;
+		let supplied = 1;
+		const need = config.chargeRate * demand * dt;
+		if (need > 0) {
+			supplied = vessel.resources.withdraw(ElectricCharge.id, need) / need;
+		}
+		if (supplied <= 0) return;
+		const k = config.torque * supplied;
+		vessel.applyTorque({ x: pitch * k, y: roll * k, z: yaw * k });
+	},
 	actions: {
 		/** `(enabled)`. */
 		setEnabled: (ctx, ...args) => {

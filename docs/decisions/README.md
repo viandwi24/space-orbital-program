@@ -33,3 +33,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0012 | [The renderer gets part shapes from the host, not from definitions](0012-renderer-part-shapes-host-supplied.md) | accepted | 2026-10-16 |
 | 0013 | [The define-API and plugin loader shape](0013-define-api-and-plugin-loader.md) | accepted | 2026-10-16 |
 | 0014 | [Part shape, `state(config)` and test-support exports](0014-part-shape-and-module-state-from-config.md) | accepted | 2026-10-16 |
+| 0015 | [Module capability API: `ModuleContext.vessel`, `store`, `controlSource`, `crossfeed`](0015-module-capability-api.md) | accepted | 2026-10-16 |
+| 0016 | [Vessel design format and protocol additions](0016-vessel-design-format-and-protocol.md) | accepted | 2026-10-16 |

@@ -16,6 +16,8 @@ export * from './definitions.ts';
 export * from './registry.ts';
 export * from './physics-backend.ts';
 export * from './protocol.ts';
+export * from './protocol-schemas.ts';
+export * from './design.ts';
 export * from './rng.ts';
 export * from './semver.ts';
 export * from './plugin.ts';
