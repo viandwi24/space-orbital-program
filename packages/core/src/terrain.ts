@@ -38,20 +38,22 @@ export const TERRAIN_SHAPE = {
 	rangeSalts: [5, 18] as const,
 	rangeLow: 0.5,
 	rangeHigh: 0.68,
-	/** A scenic massif around the launch site: mountains in a ring 14 to 46 km out, broken up by noise. */
-	backdropRiseMetres: [14_000, 24_000] as const,
-	backdropFallMetres: [34_000, 46_000] as const,
+	/** A scenic massif around the launch site: mountains in a ring 12 to 44 km out, broken up by noise. */
+	backdropRiseMetres: [12_000, 21_000] as const,
+	backdropFallMetres: [30_000, 44_000] as const,
 	backdropSalt: 41,
 	backdropWavelengthKm: 26,
-	backdropLow: 0.38,
-	backdropHigh: 0.6,
+	backdropLow: 0.36,
+	backdropHigh: 0.56,
 	ridgeWavelengthKm: 16,
 	ridgeOctaves: 4,
 	/**
 	 * The ridge's `abs` is a soft abs `sqrt(x^2 + e^2) - e`: no crease of unbounded curvature, so a
 	 * regular grid of 4 m texels reproduces the field within centimetres (ADR 0043, ADR 0044).
 	 */
-	ridgeSoftness: 0.12,
+	ridgeSoftness: 0.18,
+	/** Width of the smooth maximum of the range mask and the scenic massif. */
+	rangeBlend: 0.2,
 	uplandLow: 0.55,
 	uplandHigh: 0.92
 } as const;
@@ -172,6 +174,16 @@ function fbm(q0: Vec3, wavelengthKm: number, octaves: number, salt: number): num
 	return sum / norm;
 }
 
+/**
+ * Polynomial smooth maximum (blend width `TERRAIN_SHAPE.rangeBlend`): `max(a, b)` has a crease where
+ * the two terms cross, which a fixed grid cannot follow; this one is continuous in slope.
+ */
+const smoothMax = (a: number, b: number): number => {
+	const k = TERRAIN_SHAPE.rangeBlend;
+	const h = Math.max(k - Math.abs(a - b), 0);
+	return Math.max(a, b) + (h * h) / (4 * k);
+};
+
 /** `1 - softAbs(2n - 1)` with the crease rounded by `ridgeSoftness` (peak value 1 at n = 0.5). */
 const softRidge = (n: number): number => {
 	const e = TERRAIN_SHAPE.ridgeSoftness;
@@ -269,7 +281,7 @@ export function terrainHeight(n: Vec3, ctx: TerrainContext): number {
 			s.backdropHigh,
 			terrainNoise(q, 1 / s.backdropWavelengthKm, s.backdropSalt)
 		);
-	const range = Math.max(smoothstep(s.rangeLow, s.rangeHigh, rangeN), backdrop);
+	const range = smoothMax(smoothstep(s.rangeLow, s.rangeHigh, rangeN), backdrop);
 	const ridge = ridged(q, s.ridgeWavelengthKm, s.ridgeOctaves, 31);
 	const upland = smoothstep(s.uplandLow, s.uplandHigh, e);
 	const mountains =

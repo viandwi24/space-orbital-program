@@ -300,11 +300,11 @@ describe('the ridge is smooth enough for a fixed grid', () => {
 		return worst;
 	};
 
-	test('a 4 m grid reproduces the height within 0.15 m over the massif (maximum, 3 x 3000 points)', () => {
-		for (const km of [25_000, 30_000, 40_000]) expect(gridError(4, km, 3000)).toBeLessThan(0.15);
+	test('a 4 m grid reproduces the height within 0.05 m over the massif (maximum, 3 x 3000 points)', () => {
+		for (const km of [25_000, 30_000, 40_000]) expect(gridError(4, km, 3000)).toBeLessThan(0.05);
 	});
 
-	test('a 32 m grid reproduces the height within 2 m over the massif', () => {
-		for (const km of [25_000, 30_000, 40_000]) expect(gridError(32, km, 3000)).toBeLessThan(2);
+	test('a 32 m grid reproduces the height within 1 m over the massif', () => {
+		for (const km of [25_000, 30_000, 40_000]) expect(gridError(32, km, 3000)).toBeLessThan(1);
 	});
 });
