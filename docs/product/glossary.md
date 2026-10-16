@@ -29,3 +29,6 @@ Use these terms consistently in code, docs, and UI.
 | **PhysicsBackend** | Interface in core that `@orbital/physics` implements (ADR 0004). |
 | **Plan** | A numbered unit of work in `docs/plans/` with executable acceptance criteria. |
 | **ADR** | Architecture Decision Record in `docs/decisions/`. |
+| **Contributes** | The typed API a plugin exposes to its dependents: declared with `contributes: {} as {...}`, implemented with `ctx.provide`, visible on a dependent's `ctx` (ADR 0013). |
+| **Load report** | Result of `loadPlugins`: boot order, disabled plugins with reasons, and what each plugin registered (`{ id, by }` per kind). |
+| **Module augmentation** | `declare module '@orbital/sdk' { interface EventMap {…} }`: how a mod adds typed events, resource ids and module config types to the open interfaces. |
