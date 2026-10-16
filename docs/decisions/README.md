@@ -58,3 +58,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0038 | [The script Worker runs in a sandboxed iframe with a no-network CSP](0038-script-sandbox-in-an-opaque-origin-iframe.md) | accepted | 2026-10-16 |
 | 0041 | [Vessel library and sub-assemblies: IndexedDB records of format-2 designs](0041-vessel-library-and-sub-assemblies.md) | accepted | 2026-10-17 |
 | 0042 | [Stability read-out: centre of mass against centre of pressure, from part data](0042-stability-read-out-centre-of-mass-and-pressure.md) | accepted | 2026-10-17 |
+| 0043 | [Physical terrain: one height function in core, read by the sim and the renderer](0043-physical-terrain-one-height-function-in-core.md) | accepted | 2026-10-17 |
+| 0044 | [The visual terrain follows the physical one: a precise bake and camera-centred patches](0044-terrain-patches-camera-centred-and-hi-lo-bake.md) | accepted | 2026-10-17 |
