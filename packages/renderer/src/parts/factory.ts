@@ -67,6 +67,7 @@ class ProceduralModel implements PartModel {
 	readonly root = new Object3D();
 	readonly bounds: Box3;
 	readonly triangles: number;
+	readonly staticMesh: Mesh;
 	private readonly mesh: Mesh;
 	private readonly dynamic: DynamicPart | null;
 	private readonly plume: PlumeEffect | null;
@@ -93,6 +94,7 @@ class ProceduralModel implements PartModel {
 		this.mesh = new Mesh(template.built.geometry, mats);
 		this.mesh.castShadow = true;
 		this.mesh.receiveShadow = true;
+		this.staticMesh = this.mesh;
 		this.root.add(this.mesh);
 		this.bounds = template.bounds.clone();
 		this.triangles = template.triangles;
@@ -329,13 +331,14 @@ export class PartModelFactory {
 		return this.detail;
 	}
 
-	create(definition: string): PartModel {
+	/** `options.detail` overrides the preset's detail for this model (see `repeatedDetail`). */
+	create(definition: string, options: { detail?: PartDetail } = {}): PartModel {
 		const request: PartModelRequest = {
 			definition,
 			shape: this.config.shapes.get(definition),
 			visual: this.config.visuals?.get(definition),
 			attach: this.config.attach?.get(definition),
-			detail: this.detail
+			detail: options.detail ?? this.detail
 		};
 		for (const provider of this.providers) {
 			const model = provider.create(request, { materials: this.materials });

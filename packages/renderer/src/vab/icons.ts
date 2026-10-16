@@ -7,11 +7,20 @@ import { Box3, OrthographicCamera, Vector3 } from 'three';
 /** Direction from the part towards the camera. */
 export const ICON_VIEW_DIR = new Vector3(0.62, 0.38, 0.69).normalize();
 
-/** Positions `camera` and sets its frustum to frame `box`; returns the half-extent used. */
-export function frameIcon(box: Box3, camera: OrthographicCamera, margin = 1.08): number {
+/**
+ * Positions `camera` and sets its frustum to frame `box`; returns the half-height used. `aspect`
+ * (width / height) widens the frustum for non-square thumbnails; the box always fits with `margin`.
+ */
+export function frameIcon(
+	box: Box3,
+	camera: OrthographicCamera,
+	margin = 1.08,
+	aspect = 1,
+	dir: Vector3 = ICON_VIEW_DIR
+): number {
 	const centre = box.getCenter(new Vector3());
 	const radius = box.getSize(new Vector3()).length() / 2;
-	camera.position.copy(centre).addScaledVector(ICON_VIEW_DIR, radius * 4 + 1);
+	camera.position.copy(centre).addScaledVector(dir, radius * 4 + 1);
 	camera.up.set(0, 1, 0);
 	camera.lookAt(centre);
 	camera.updateMatrixWorld(true);
@@ -37,9 +46,9 @@ export function frameIcon(box: Box3, camera: OrthographicCamera, margin = 1.08):
 	}
 	cx = (minX + maxX) / 2;
 	cy = (minY + maxY) / 2;
-	half = (Math.max(maxX - minX, maxY - minY) / 2) * margin;
-	camera.left = cx - half;
-	camera.right = cx + half;
+	half = (Math.max((maxX - minX) / aspect, maxY - minY) / 2) * margin;
+	camera.left = cx - half * aspect;
+	camera.right = cx + half * aspect;
 	camera.top = cy + half;
 	camera.bottom = cy - half;
 	camera.near = 0.1;

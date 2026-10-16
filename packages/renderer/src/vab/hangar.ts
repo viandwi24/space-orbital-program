@@ -24,6 +24,8 @@ import {
 	Mesh,
 	MeshStandardMaterial,
 	NoColorSpace,
+	SpotLight,
+	ClampToEdgeWrapping,
 	Object3D,
 	PlaneGeometry,
 	Points,
@@ -41,6 +43,20 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { hash3 } from '../noise.ts';
 import { normalMapData, tileNoise } from '../parts/textures.ts';
+import { DEFAULT_TIME_OF_DAY, dayLight, floorPatch, type DayLight } from './hangar-light.ts';
+import {
+	CREW,
+	REST_TIME,
+	LANE,
+	createCrane,
+	createCrew,
+	createMoverMaterials,
+	createTug,
+	cranePose,
+	poseCrane,
+	poseTug
+} from './hangar-movers.ts';
+import { SAFETY_CELLS, SIGN_ATLAS, numberCell, type SignCell } from './hangar-signs.ts';
 
 /** Room half-extent on x and z, and height, metres. */
 export const HANGAR = { half: 30, height: 46, platformRadius: 6.2 } as const;
@@ -123,13 +139,41 @@ export const wallHeight: Field = (u, v) => {
 	return flute - seamU * 0.9 - seamV * 0.7 + tileNoise(u, v, 64, 61) * 0.1;
 };
 
+/** Panel (4 m wide, 2 m high) a texel belongs to; every panel is a little lighter or darker and tinted differently. */
+const panelOf = (u: number, v: number): readonly [number, number] => [
+	hash3(Math.floor(u * 2), Math.floor(v * 4), 0, 64) - 0.5,
+	hash3(Math.floor(u * 2), Math.floor(v * 4), 1, 66) - 0.5
+];
+
 export const wallBrightness: Field = (u, v) => {
 	const seam = Math.max(
 		1 - smooth(0.001, 0.005, lineDist(u, 2)),
 		1 - smooth(0.001, 0.004, lineDist(v, 4))
 	);
 	const streak = tileNoise(u * 1, v * 0.15, 20, 62) * 0.5 + tileNoise(u, v, 8, 63) * 0.5;
-	return 0.82 + streak * 0.2 - seam * 0.28;
+	const [panel] = panelOf(u, v);
+	// Run-off below the horizontal seams, in columns picked by noise: the wear of a hall that is used.
+	const below = 1 - ((((v * 4) % 1) + 1) % 1);
+	const drip = smooth(0.62, 0.8, tileNoise(u, 0.3, 36, 65)) * below * below;
+	return 0.82 + streak * 0.2 + panel * 0.2 - seam * 0.28 - drip * 0.12;
+};
+
+/** Wall colour: the brightness above with a slight warm/cool tint per panel. */
+export const wallColour = (u: number, v: number): readonly [number, number, number] => {
+	const b = wallBrightness(u, v);
+	const [, tint] = panelOf(u, v);
+	return [b * (0.97 + tint * 0.1), b * 1.0, b * (1.07 - tint * 0.1)];
+};
+
+/** Sky seen through a window, 0..1 in v from the sill to the head: pale haze at the horizon, blue above, soft clouds. */
+export const skyColour = (u: number, v: number): readonly [number, number, number] => {
+	const h = smooth(0.0, 1.0, v);
+	const cloud = smooth(0.55, 0.85, tileNoise(u, v, 3, 81)) * 0.35 * (1 - h * 0.5);
+	return [
+		0.62 + 0.3 * (1 - h) + cloud * 0.4,
+		0.8 + 0.18 * (1 - h) + cloud * 0.3,
+		1.0 - cloud * 0.05
+	];
 };
 
 /** Diamond plate for the platform and decks. One tile = 1 m. */
@@ -152,6 +196,7 @@ export interface HangarTextures {
 	floorMap: DataTexture;
 	floorNormal: DataTexture;
 	wallMap: DataTexture;
+	skyMap: DataTexture;
 	wallNormal: DataTexture;
 	plateNormal: DataTexture;
 	hazardMap: DataTexture;
@@ -167,11 +212,14 @@ export function createHangarTextures(size = 512): HangarTextures {
 	const t = {
 		floorMap: makeTexture(grey(floorBrightness, [1.0, 1.02, 1.05]), size, true),
 		floorNormal: makeTexture(normalMapData(size, floorHeight, 0.55), size, false),
-		wallMap: makeTexture(grey(wallBrightness, [0.95, 1.0, 1.08]), size, true),
+		wallMap: makeTexture(colourMapData(size, wallColour), size, true),
+		skyMap: makeTexture(colourMapData(Math.min(size, 128), skyColour), Math.min(size, 128), true),
 		wallNormal: makeTexture(normalMapData(size, wallHeight, 1.5), size, false),
 		plateNormal: makeTexture(normalMapData(size, plateHeight, 1.8), size, false),
 		hazardMap: makeTexture(colourMapData(size, hazard), size, true)
 	};
+	t.skyMap.wrapS = ClampToEdgeWrapping;
+	t.skyMap.wrapT = ClampToEdgeWrapping;
 	return {
 		...t,
 		dispose() {
@@ -212,6 +260,22 @@ class Batch {
 		this.add(new BoxGeometry(...size), c);
 	}
 
+	/** A round pipe from `a` to `b`. */
+	pipe(
+		a: readonly [number, number, number],
+		b: readonly [number, number, number],
+		radius: number
+	): void {
+		const d = new Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+		const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), d.clone().normalize());
+		const m = new Matrix4().compose(
+			new Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2),
+			q,
+			new Vector3(1, 1, 1)
+		);
+		this.parts.push(new CylinderGeometry(radius, radius, d.length(), 10, 1).applyMatrix4(m));
+	}
+
 	/** A square beam from `a` to `b` of cross section `t`. */
 	beam(
 		a: readonly [number, number, number],
@@ -245,8 +309,17 @@ export interface Hangar {
 	root: Group;
 	/** World positions of the ceiling lamps, for the baked environment's own lights. */
 	lamps: readonly (readonly [number, number, number])[];
-	/** Objects whose draw order or visibility the view controls (the light shafts). */
+	/** The sun shafts and their floor patches (empty in the low variant); the view controls visibility. */
 	shafts: Object3D;
+	/**
+	 * Real lights of the `high` variant: floodlights on the service towers aimed at the vessel. The
+	 * view adds them to the scene (not to the baked environment); empty for `low`.
+	 */
+	workLights: SpotLight[];
+	/** The sun of this hangar's time of day; the view tints its key light with `warmth`. */
+	daylight: DayLight;
+	/** Crane, tug and crew freeze at the rest pose (true) or move again (false). */
+	setReducedMotion(on: boolean): void;
 	update(dt: number, time: number): void;
 	dispose(): void;
 }
@@ -255,12 +328,91 @@ export interface HangarOptions {
 	/** 0 = no dust, light shafts only; used by the low preset. */
 	dust: number;
 	textureSize?: number;
+	/** `high`: work lights, daylight shafts and floor patches. `low`: the cheap static variant. Default `high`. */
+	quality?: 'low' | 'high';
+	/** 0 = dawn, 1 = dusk; default a fixed afternoon (`DEFAULT_TIME_OF_DAY`). */
+	timeOfDay?: number;
+	/** The crane, tug and crew stand still. */
+	reducedMotion?: boolean;
+}
+
+/** The four walls as [x, z, rotation about y]; a plane faces +z at rotation 0, so each faces into the room. */
+const WALLS = [
+	[0, -HANGAR.half, 0],
+	[0, HANGAR.half, Math.PI],
+	[-HANGAR.half, 0, Math.PI / 2],
+	[HANGAR.half, 0, -Math.PI / 2]
+] as const;
+
+/**
+ * A strip across all four walls between heights `y0` and `y1`, `offset` metres in front of the
+ * cladding, merged into one geometry. `uv(along, y)` maps metres along the wall and height to texture
+ * coordinates, so every band picks its own tiling.
+ */
+export function wallStrip(
+	y0: number,
+	y1: number,
+	offset: number,
+	uv: (along: number, y: number) => readonly [number, number]
+): BufferGeometry {
+	const W = HANGAR.half;
+	const parts = WALLS.map(([x, z, ry]) => {
+		const g = new PlaneGeometry(2 * W, y1 - y0);
+		const pos = g.getAttribute('position');
+		const uvs = g.getAttribute('uv');
+		for (let i = 0; i < pos.count; i++) {
+			const [u, v] = uv(pos.getX(i) + W, pos.getY(i) + (y0 + y1) / 2);
+			uvs.setXY(i, u, v);
+		}
+		g.rotateY(ry);
+		g.translate(x + Math.sin(ry) * offset, (y0 + y1) / 2, z + Math.cos(ry) * offset);
+		return g;
+	});
+	const merged = mergeGeometries(parts, false);
+	for (const g of parts) g.dispose();
+	if (!merged) throw new Error('Hangar wall strip could not be merged');
+	return merged;
+}
+
+/** A flat plate on a column face: `wall` indexes `WALLS`, `along` is metres along it from the room centre. */
+function plateGeometry(
+	wall: number,
+	along: number,
+	y: number,
+	w: number,
+	h: number,
+	cell: SignCell
+): BufferGeometry {
+	const [x, z, ry] = WALLS[wall]!;
+	const g = new PlaneGeometry(w, h);
+	const pos = g.getAttribute('position');
+	const uvs = g.getAttribute('uv');
+	const { width, height } = SIGN_ATLAS;
+	for (let i = 0; i < pos.count; i++) {
+		uvs.setXY(
+			i,
+			(pos.getX(i) > 0 ? cell.x + cell.w : cell.x) / width,
+			1 - (pos.getY(i) > 0 ? cell.y : cell.y + cell.h) / height
+		);
+	}
+	g.rotateY(ry);
+	// Along-wall direction for rotation ry is (cos ry, 0, -sin ry); the column face stands 1.2 m off the cladding.
+	const inward = HANGAR.half - 1.2 - 0.015;
+	g.translate(
+		(x === 0 ? 0 : Math.sign(x) * inward) + Math.cos(ry) * along,
+		y,
+		(z === 0 ? 0 : Math.sign(z) * inward) - Math.sin(ry) * along
+	);
+	return g;
 }
 
 export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const C = HANGAR_COLOURS;
 	const H = HANGAR.height;
 	const W = HANGAR.half;
+	const high = (options.quality ?? 'high') === 'high';
+	let reduced = options.reducedMotion === true;
+	const daylight = dayLight(options.timeOfDay ?? DEFAULT_TIME_OF_DAY);
 	const tex = createHangarTextures(options.textureSize ?? 512);
 	const disposables: { dispose(): void }[] = [tex];
 	const mat = <T extends Material>(m: T): T => {
@@ -270,6 +422,14 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const geo = <T extends BufferGeometry>(g: T): T => {
 		disposables.push(g);
 		return g;
+	};
+	/** A texture sharing the image of `t` with its own 1:1 repeat, for bands that set their uv in metres. */
+	const unit = (t: DataTexture): DataTexture => {
+		const c = t.clone();
+		c.repeat.set(1, 1);
+		c.needsUpdate = true;
+		disposables.push(c);
+		return c;
 	};
 	const root = new Group();
 	root.name = 'hangar';
@@ -299,6 +459,42 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	);
 	tex.wallMap.repeat.set((2 * W) / 8, H / 8);
 	tex.wallNormal.repeat.copy(tex.wallMap.repeat);
+	// The cladding above the paint band is lighter, so the wall reads as three zones, not one dark sheet.
+	const wallLightMat = mat(
+		new MeshStandardMaterial({
+			color: 0x77849a,
+			map: tex.wallMap,
+			normalMap: tex.wallNormal,
+			roughness: 0.52,
+			metalness: 0.45,
+			envMapIntensity: 0.9
+		})
+	);
+	const wainscotMat = mat(
+		new MeshStandardMaterial({
+			color: 0x3d5266,
+			map: unit(tex.floorMap),
+			normalMap: unit(tex.floorNormal),
+			roughness: 0.78,
+			metalness: 0.0
+		})
+	);
+	const hazardWallMat = mat(
+		new MeshStandardMaterial({
+			color: 0xffffff,
+			map: unit(tex.hazardMap),
+			roughness: 0.6,
+			metalness: 0.1
+		})
+	);
+	const bandMat = mat(
+		new MeshStandardMaterial({
+			color: 0x1f6272,
+			roughness: 0.45,
+			metalness: 0.3,
+			envMapIntensity: 1.1
+		})
+	);
 	const steel = mat(new MeshStandardMaterial({ color: 0x4a5565, roughness: 0.5, metalness: 0.7 }));
 	const darkSteel = mat(
 		new MeshStandardMaterial({ color: C.steelDark, roughness: 0.55, metalness: 0.6 })
@@ -347,11 +543,22 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 			roughness: 0.4
 		})
 	);
+	// Floodlight faces: bright, but not so bright that the bloom turns them into blobs.
+	const floodMat = mat(
+		new MeshStandardMaterial({
+			color: 0x222222,
+			emissive: new Color(C.lampWarm),
+			emissiveIntensity: 1.5,
+			roughness: 0.4
+		})
+	);
+	// Daylight through the clerestory: a sky gradient as emissive map, tinted by the time of day.
 	const windowMat = mat(
 		new MeshStandardMaterial({
 			color: 0x0a1118,
-			emissive: new Color(C.window),
-			emissiveIntensity: 3.4,
+			emissive: new Color(...daylight.sky),
+			emissiveMap: tex.skyMap,
+			emissiveIntensity: 3.0,
 			roughness: 0.3
 		})
 	);
@@ -374,26 +581,52 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const signMat = mat(
 		new MeshStandardMaterial({ color: 0x0c1218, roughness: 0.6, metalness: 0.4 })
 	);
+	const pipeBlue = mat(
+		new MeshStandardMaterial({ color: 0x2d73b5, roughness: 0.4, metalness: 0.6 })
+	);
+	const pipeRed = mat(
+		new MeshStandardMaterial({ color: 0xb8402f, roughness: 0.4, metalness: 0.6 })
+	);
+	const cabinetMat = mat(
+		new MeshStandardMaterial({ color: 0x69747f, roughness: 0.5, metalness: 0.5 })
+	);
+	const ledMat = mat(
+		new MeshStandardMaterial({
+			color: 0x06140c,
+			emissive: new Color(0x2fe38a),
+			emissiveIntensity: 3
+		})
+	);
+	const extinguisherMat = mat(
+		new MeshStandardMaterial({ color: 0xc23b2b, roughness: 0.4, metalness: 0.3 })
+	);
+	const platesMat = mat(
+		new MeshStandardMaterial({ color: 0x2a3138, roughness: 0.55, metalness: 0.3 })
+	);
 
-	// Floor and walls
+	// Floor and walls (one mesh for all four walls)
 	const floor = new Mesh(geo(new PlaneGeometry(2 * W, 2 * W)), floorMat);
 	floor.rotation.x = -Math.PI / 2;
 	floor.receiveShadow = true;
 	floor.name = 'floor';
 	root.add(floor);
 
-	const wallGeo = geo(new PlaneGeometry(2 * W, H));
-	for (const [x, z, ry] of [
-		[0, -W, 0],
-		[0, W, Math.PI],
-		[-W, 0, Math.PI / 2],
-		[W, 0, -Math.PI / 2]
+	const walls = new Mesh(geo(wallStrip(0, H, 0, (a, y) => [a / (2 * W), y / H])), wallMat);
+	walls.receiveShadow = true;
+	walls.name = 'walls';
+	root.add(walls);
+	// Bands in front of the cladding: painted blockwork with a hazard stripe at the foot, a teal
+	// paint band at the height of the crane, lighter cladding above it up to the windows.
+	for (const [g, m, name] of [
+		[wallStrip(0, 3.6, 0.03, (a, y) => [a / 8, y / 8]), wainscotMat, 'wainscot'],
+		[wallStrip(3.6, 4.15, 0.035, (a, y) => [a * 1.1, y * 1.1]), hazardWallMat, 'wall-hazard'],
+		[wallStrip(22.4, 24.0, 0.03, (a, y) => [a / 8, y / 8]), bandMat, 'wall-band'],
+		[wallStrip(24.0, 31.4, 0.02, (a, y) => [a / (2 * W), y / H]), wallLightMat, 'wall-upper']
 	] as const) {
-		const wall = new Mesh(wallGeo, wallMat);
-		wall.position.set(x, H / 2, z);
-		wall.rotation.y = ry;
-		wall.receiveShadow = true;
-		root.add(wall);
+		const mesh = new Mesh(geo(g), m);
+		mesh.name = name;
+		mesh.receiveShadow = true;
+		root.add(mesh);
 	}
 	const ceiling = new Mesh(geo(new PlaneGeometry(2 * W, 2 * W)), darkSteel);
 	ceiling.rotation.x = Math.PI / 2;
@@ -446,6 +679,11 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		frame.box([p, 36, W - 0.2], [8.2, 0.2, 0.3]);
 		frame.box([-W + 0.2, 36, p], [0.3, 0.2, 8.2]);
 		frame.box([W - 0.2, 36, p], [0.3, 0.2, 8.2]);
+		// Sills catch the light from the glass.
+		trim.box([p, 31.3, -W + 0.3], [8.6, 0.16, 0.5]);
+		trim.box([p, 31.3, W - 0.3], [8.6, 0.16, 0.5]);
+		trim.box([-W + 0.3, 31.3, p], [0.5, 0.16, 8.6]);
+		trim.box([W - 0.3, 31.3, p], [0.5, 0.16, 8.6]);
 	}
 	// Bay door on the back wall: frame, two leaves with ribs, and the bright gap between them.
 	frame.box([0, 17.5, -W + 0.25], [17.2, 35, 0.5]);
@@ -454,6 +692,9 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		for (let y = 2; y < 32; y += 2.4) frame.box([s * 4.1, y, -W + 0.7], [7.9, 0.22, 0.25]);
 	}
 	doorGlow.box([0, 16.4, -W + 0.85], [0.3, 32.4, 0.12]);
+	// Hazard chevrons on the foot of the door leaves and a number on each (painted by the sign atlas).
+	const doorTrim = new Batch(yellowPaint);
+	for (const s of [-1, 1]) doorTrim.box([s * 4.1, 0.9, -W + 0.68], [8.0, 0.32, 0.06]);
 
 	// Accent strips: a cyan band along the foot of every wall and a lit stripe at mid height (the UI accent, as light).
 	const strips = new Batch(ringMat);
@@ -571,19 +812,52 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	tower(-9.5, -7, 30, 1);
 	tower(9.5, -7, 26, -1);
 
-	// Overhead crane: rails along z on both side walls, a bridge across, trolley, cables and hook.
-	const crane = new Batch(yellowPaint);
+	// Floodlights on the towers' lower decks, aimed at the vessel. The fixtures are always there;
+	// the high variant adds real spot lights at the same places.
+	const floods = new Batch(floodMat);
+	const floodHousing = new Batch(darkSteel);
+	const workLights: SpotLight[] = [];
+	const target = new Object3D();
+	target.position.set(0, 6, 0);
+	for (const [fx, fy, fz, colour] of [
+		[-7.5, 13.2, -5.8, 0xe4eeff],
+		[-7.5, 19.2, -8.2, 0xe4eeff],
+		[7.4, 13.2, -5.8, 0xffe6c8]
+	] as const) {
+		const yaw = Math.atan2(-fx, -fz);
+		const q = { axis: [0, 1, 0] as const, angle: yaw };
+		floodHousing.add(new BoxGeometry(1.15, 0.7, 0.3), [fx, fy, fz], q);
+		floods.add(
+			new BoxGeometry(1.0, 0.55, 0.06),
+			[fx + Math.sin(yaw) * 0.17, fy, fz + Math.cos(yaw) * 0.17],
+			q
+		);
+		if (high) {
+			const light = new SpotLight(colour, 260, 46, 0.5, 0.8, 2);
+			light.position.set(fx, fy, fz);
+			light.target = target;
+			workLights.push(light);
+		}
+	}
+	if (high) root.add(target);
+
+	// Overhead crane: the rails are fixed, bridge, trolley, cables and hook move (`hangar-movers.ts`).
 	const craneRail = new Batch(darkSteel);
 	craneRail.box([-W + 1.6, 36.6, 0], [0.5, 0.5, 2 * W - 3]);
 	craneRail.box([W - 1.6, 36.6, 0], [0.5, 0.5, 2 * W - 3]);
-	crane.box([0, 37.3, 8], [2 * W - 3, 1.1, 0.9]);
-	crane.box([0, 37.3, 10], [2 * W - 3, 1.1, 0.9]);
-	crane.box([-W + 1.6, 37.3, 9], [1.6, 1.1, 3.4]);
-	crane.box([W - 1.6, 37.3, 9], [1.6, 1.1, 3.4]);
-	craneRail.box([2.5, 36.4, 9], [2.2, 0.9, 2.4]);
-	for (const dx of [-0.3, 0.3]) craneRail.box([2.5 + dx, 33, 9], [0.04, 7.6, 0.04]);
-	craneRail.box([2.5, 29, 9], [0.7, 0.9, 0.7]);
-	crane.box([2.5, 28.2, 9], [0.5, 0.35, 0.5]);
+	const movers = createMoverMaterials();
+	for (const m of Object.values(movers)) disposables.push(m);
+	const crane = createCrane(movers, W);
+	const tug = createTug(movers);
+	const crew = createCrew(movers, CREW);
+	disposables.push(...crane.geometries, ...tug.geometries, ...crew.geometries, ...crew.materials);
+	root.add(crane.bridge, tug.tug, tug.trailer, ...crew.meshes);
+	const poseMovers = (t: number, motion: boolean): void => {
+		poseCrane(crane, cranePose(t));
+		poseTug(tug, t, motion);
+		crew.pose(t);
+	};
+	poseMovers(REST_TIME, false);
 
 	// Props: crates, bottles, painted floor lines
 	const crates = new Batch(crateMat);
@@ -618,6 +892,85 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		lines.box([0, 0.012, s * 12.5], [25, 0.012, 0.16]);
 	}
 	for (let k = -6; k <= 6; k++) lines.box([k * 4, 0.012, -27.5], [0.12, 0.012, 3]);
+	// The tug lane: edge lines either side of the loop the tug drives.
+	const zc = (LANE.zEast + LANE.zWest) / 2;
+	for (const dz of [-2.55, 2.55]) {
+		lines.box([0, 0.012, zc + dz], [LANE.x1 - LANE.x0 + 4, 0.012, 0.12]);
+	}
+
+	// Pipes, ducts, cable trays, cabinets and extinguishers along the walls: the clutter of a working hall.
+	const pipesBlue = new Batch(pipeBlue);
+	const pipesRed = new Batch(pipeRed);
+	const ducts = new Batch(steel);
+	const cabinets = new Batch(cabinetMat);
+	const leds = new Batch(ledMat);
+	const extinguishers = new Batch(extinguisherMat);
+	const pipeRuns: [number, number, number][][] = [
+		// Left and right walls, full length; back and front walls leave the door and the bay clear.
+		[
+			[-W + 1.5, 5.2, -27],
+			[-W + 1.5, 5.2, 27]
+		],
+		[
+			[W - 1.5, 5.2, -27],
+			[W - 1.5, 5.2, 27]
+		],
+		[
+			[-27, 5.2, -W + 1.5],
+			[-11, 5.2, -W + 1.5]
+		],
+		[
+			[11, 5.2, -W + 1.5],
+			[27, 5.2, -W + 1.5]
+		],
+		[
+			[-27, 5.2, W - 1.5],
+			[27, 5.2, W - 1.5]
+		]
+	];
+	for (const [a, b] of pipeRuns) {
+		pipesBlue.pipe(a!, b!, 0.14);
+		pipesRed.pipe([a![0]!, a![1]! + 0.45, a![2]!], [b![0]!, b![1]! + 0.45, b![2]!], 0.1);
+		// Brackets every 5 m.
+		const n = Math.round(Math.hypot(b![0]! - a![0]!, b![2]! - a![2]!) / 5);
+		for (let k = 0; k <= n; k++) {
+			const f = k / n;
+			const x = a![0]! + (b![0]! - a![0]!) * f;
+			const z = a![2]! + (b![2]! - a![2]!) * f;
+			ducts.box([x, 4.9, z], [0.12, 0.9, 0.12]);
+		}
+	}
+	// Ventilation ducts under the girt on the side walls, and drops where the pipes go to the floor.
+	ducts.box([-W + 2.0, 15, 0], [1.5, 1.2, 2 * W - 12]);
+	ducts.box([W - 2.0, 15, 0], [1.5, 1.2, 2 * W - 12]);
+	for (const z of [-16, 16]) {
+		pipesBlue.pipe([-W + 1.5, 5.2, z], [-W + 1.5, 0.1, z], 0.14);
+		pipesRed.pipe([W - 1.5, 5.65, z], [W - 1.5, 0.1, z], 0.1);
+	}
+	for (const [x, z, ry] of [
+		[-27, -W + 0.5, 0],
+		[17, -W + 0.5, 0],
+		[-W + 0.5, 18, Math.PI / 2],
+		[W - 0.5, -14, -Math.PI / 2],
+		[-W + 0.5, -20, Math.PI / 2]
+	] as const) {
+		cabinets.add(new BoxGeometry(1.3, 2.3, 0.7), [x, 1.15, z], { axis: [0, 1, 0], angle: ry });
+		for (const f of [0.35, 0.55, 0.75]) {
+			leds.add(
+				new BoxGeometry(0.1, 0.06, 0.04),
+				[
+					x + Math.cos(ry) * (f - 0.55) + Math.sin(ry) * 0.36,
+					1.2 + f,
+					z - Math.sin(ry) * (f - 0.55) + Math.cos(ry) * 0.36
+				],
+				{ axis: [0, 1, 0], angle: ry }
+			);
+		}
+	}
+	for (const i of [-2, 0, 2]) {
+		extinguishers.box([i * 10 + 0.4, 1.4, -W + 1.25], [0.22, 0.55, 0.22]);
+		extinguishers.box([W - 1.25, 1.4, i * 10 - 0.4], [0.22, 0.55, 0.22]);
+	}
 
 	// Ceiling lamps: housing plus emissive disc, hanging on two cables.
 	const lamps: [number, number, number][] = [];
@@ -633,11 +986,53 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		}
 	}
 
-	// Name sign above the bay door (a dark panel; the lettering is drawn by the view if a canvas exists).
-	const sign = new Mesh(geo(new PlaneGeometry(13, 2.4)), signMat);
-	sign.position.set(0, 38.6, -W + 0.55);
+	// Lettering. Over the door a dark panel; on the back wall a hanging sign at eye height of the
+	// default camera, lit by a bar above it. The view paints the canvas texture (needs a DOM).
+	const sign = new Mesh(geo(new PlaneGeometry(17, 17 / (2048 / 384))), signMat);
+	sign.position.set(0, 38.9, -W + 0.56);
 	sign.name = 'sign';
 	root.add(sign);
+	const wallSign = new Mesh(geo(new PlaneGeometry(13.6, 13.6 / (2048 / 384))), signMat);
+	wallSign.position.set(-15.2, 11.4, -W + 1.45);
+	wallSign.name = 'sign-wall';
+	root.add(wallSign);
+	const signFrame = new Batch(darkSteel);
+	signFrame.box([-15.2, 11.4, -W + 1.38], [14.0, 2.95, 0.1]);
+	for (const dx of [-6.5, 6.5])
+		signFrame.beam([-15.2 + dx, 12.9, -W + 1.4], [-15.2 + dx, 20, -W + 1.4], 0.06);
+	const signLight = new Batch(lampMat);
+	signLight.box([-15.2, 13.15, -W + 1.7], [13.6, 0.12, 0.3]);
+	lampHousing.box([-15.2, 13.3, -W + 1.7], [13.8, 0.12, 0.4]);
+
+	// Plates on the columns: numbers and safety signs from one atlas (painted by the view).
+	const plateGeos: BufferGeometry[] = [];
+	for (let wall = 0; wall < 4; wall++) {
+		for (let i = -3; i <= 3; i++) {
+			plateGeos.push(plateGeometry(wall, i * 10, 2.9, 0.9, 0.9, numberCell(i + 4)));
+		}
+	}
+	for (const [wall, along, cell] of [
+		[0, 10, SAFETY_CELLS.exit],
+		[0, -10, SAFETY_CELLS.hardHat],
+		[0, -20, SAFETY_CELLS.lox],
+		[0, 20, SAFETY_CELLS.ear],
+		[1, 10, SAFETY_CELLS.exit],
+		[1, -10, SAFETY_CELLS.fire],
+		[1, 20, SAFETY_CELLS.noSmoking],
+		[2, -10, SAFETY_CELLS.crane],
+		[2, 10, SAFETY_CELLS.fire],
+		[2, -20, SAFETY_CELLS.hardHat],
+		[3, 10, SAFETY_CELLS.noSmoking],
+		[3, -10, SAFETY_CELLS.walk],
+		[3, 20, SAFETY_CELLS.ear]
+	] as const) {
+		plateGeos.push(plateGeometry(wall, along, 1.9, 1.1, 0.55, cell));
+	}
+	const platesGeo = geo(mergeGeometries(plateGeos, false)!);
+	for (const g of plateGeos) g.dispose();
+	const plates = new Mesh(platesGeo, platesMat);
+	plates.name = 'plates';
+	root.add(plates);
 
 	const lit = [
 		frame,
@@ -645,15 +1040,22 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		decks,
 		rails,
 		post,
-		crane,
 		craneRail,
 		crates,
 		crates2,
 		bottles,
 		lines,
-		lampHousing
+		lampHousing,
+		floodHousing,
+		doorTrim,
+		pipesBlue,
+		pipesRed,
+		ducts,
+		cabinets,
+		extinguishers,
+		signFrame
 	];
-	const glowing = [windows, doorGlow, lampBatch, strips];
+	const glowing = [windows, doorGlow, lampBatch, strips, floods, leds, signLight];
 	for (const [list, shadows] of [
 		[lit, true],
 		[glowing, false]
@@ -667,38 +1069,151 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		}
 	}
 
-	// Light shafts from the high windows: additive cones fading along their length.
+	// Daylight (high variant): additive shafts from the sun-facing windows to the floor, and the
+	// bright patches they leave there. Sun direction and colour come from the time of day.
 	const shafts = new Group();
 	shafts.name = 'light-shafts';
-	const shaftMat = mat(
-		new ShaderMaterial({
-			transparent: true,
-			depthWrite: false,
-			blending: AdditiveBlending,
-			side: DoubleSide,
-			uniforms: { uColor: { value: new Color(0xbfdcff) }, uStrength: { value: 0.07 } },
-			vertexShader: `varying float vT; varying vec3 vN; varying vec3 vV;
+	if (high) {
+		const toSun = daylight.toSun;
+		const shaftParts: BufferGeometry[] = [];
+		const patchParts: BufferGeometry[] = [];
+		const rect = (wall: 'z-' | 'z+' | 'x-' | 'x+', p: number): [number, number, number][] => {
+			const y0 = 31.6;
+			const y1 = 35.4;
+			const a = p - 4.0;
+			const b = p + 4.0;
+			const e = W - 0.45;
+			switch (wall) {
+				case 'z-':
+					return [
+						[a, y0, -e],
+						[b, y0, -e],
+						[b, y1, -e],
+						[a, y1, -e]
+					];
+				case 'z+':
+					return [
+						[a, y0, e],
+						[b, y0, e],
+						[b, y1, e],
+						[a, y1, e]
+					];
+				case 'x-':
+					return [
+						[-e, y0, a],
+						[-e, y0, b],
+						[-e, y1, b],
+						[-e, y1, a]
+					];
+				default:
+					return [
+						[e, y0, a],
+						[e, y0, b],
+						[e, y1, b],
+						[e, y1, a]
+					];
+			}
+		};
+		const facing: Record<string, boolean> = {
+			'z-': toSun[2] < -0.15,
+			'z+': toSun[2] > 0.15,
+			'x-': toSun[0] < -0.15,
+			'x+': toSun[0] > 0.15
+		};
+		for (const wall of ['z-', 'z+', 'x-', 'x+'] as const) {
+			if (!facing[wall]) continue;
+			for (let i = -3; i < 3; i++) {
+				const top = rect(wall, i * 10 + 5);
+				const floorQuad = floorPatch(top, toSun);
+				if (!floorQuad) continue;
+				// A shaft that would end in the wall or outside the room is left out.
+				if (floorQuad.some(([x, , z]) => Math.abs(x) > W - 2 || Math.abs(z) > W - 2)) continue;
+				const pos: number[] = [];
+				const uv: number[] = [];
+				for (let k = 0; k < 4; k++) {
+					const k2 = (k + 1) % 4;
+					const quad = [top[k]!, top[k2]!, floorQuad[k2]!, floorQuad[k]!];
+					const uvs = [
+						[0, 0],
+						[1, 0],
+						[1, 1],
+						[0, 1]
+					];
+					for (const idx of [0, 1, 2, 0, 2, 3]) {
+						pos.push(...quad[idx]!);
+						uv.push(...uvs[idx]!);
+					}
+				}
+				const g = new BufferGeometry();
+				g.setAttribute('position', new Float32BufferAttribute(pos, 3));
+				g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
+				g.computeVertexNormals();
+				// Shafts fade along their length: uv.y runs from the window (0) to the floor (1).
+				const uvA = g.getAttribute('uv');
+				for (let k = 0; k < uvA.count; k++) uvA.setXY(k, uvA.getX(k), uvA.getY(k) > 0.5 ? 1 : 0);
+				shaftParts.push(g);
+				const pp: number[] = [];
+				const pu: number[] = [];
+				const fq = floorQuad.map(([x, , z]) => [x, 0.014, z] as const);
+				const puv = [
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 1]
+				];
+				for (const idx of [0, 1, 2, 0, 2, 3]) {
+					pp.push(...fq[idx]!);
+					pu.push(...puv[idx]!);
+				}
+				const pg = new BufferGeometry();
+				pg.setAttribute('position', new Float32BufferAttribute(pp, 3));
+				pg.setAttribute('uv', new Float32BufferAttribute(pu, 2));
+				pg.computeVertexNormals();
+				patchParts.push(pg);
+			}
+		}
+		const sunColour = new Color(...daylight.sun);
+		if (shaftParts.length > 0) {
+			const shaftGeo = geo(mergeGeometries(shaftParts, false)!);
+			for (const g of shaftParts) g.dispose();
+			const shaftMat = mat(
+				new ShaderMaterial({
+					transparent: true,
+					depthWrite: false,
+					blending: AdditiveBlending,
+					side: DoubleSide,
+					uniforms: { uColor: { value: sunColour }, uStrength: { value: 0.07 } },
+					vertexShader: `varying float vT; varying vec3 vN; varying vec3 vV;
         void main(){ vT = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
-			fragmentShader: `uniform vec3 uColor; uniform float uStrength; varying float vT; varying vec3 vN; varying vec3 vV;
-        void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.6); float fade = smoothstep(0.0,0.25,vT) * (1.0 - smoothstep(0.55,1.0,vT)); gl_FragColor = vec4(uColor * uStrength * edge * fade, 1.0); }`
-		})
-	);
-	const shaftGeo = geo(new CylinderGeometry(1.2, 4.2, 38, 24, 1, true));
-	for (const [x, z, tx, tz] of [
-		[-15, -29, -6, -8],
-		[5, -29, 2, -10],
-		[29, -5, 12, -4],
-		[-29, 5, -13, 6]
-	] as const) {
-		const cone = new Mesh(shaftGeo, shaftMat);
-		const top = new Vector3(x, 35, z);
-		const bottom = new Vector3(tx, 0, tz);
-		const dir = bottom.clone().sub(top);
-		cone.position.copy(top).addScaledVector(dir, 0.5);
-		cone.quaternion.setFromUnitVectors(new Vector3(0, -1, 0), dir.clone().normalize());
-		cone.scale.y = dir.length() / 38;
-		cone.renderOrder = 4;
-		shafts.add(cone);
+					fragmentShader: `uniform vec3 uColor; uniform float uStrength; varying float vT; varying vec3 vN; varying vec3 vV;
+        void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.2); float fade = smoothstep(0.0,0.12,vT) * (1.0 - smoothstep(0.5,1.0,vT)); gl_FragColor = vec4(uColor * uStrength * edge * fade, 1.0); }`
+				})
+			);
+			const shaftMesh = new Mesh(shaftGeo, shaftMat);
+			shaftMesh.renderOrder = 4;
+			shaftMesh.frustumCulled = false;
+			shafts.add(shaftMesh);
+			const patchGeo = geo(mergeGeometries(patchParts, false)!);
+			for (const g of patchParts) g.dispose();
+			const patchMat = mat(
+				new ShaderMaterial({
+					transparent: true,
+					depthWrite: false,
+					blending: AdditiveBlending,
+					polygonOffset: true,
+					polygonOffsetFactor: -2,
+					polygonOffsetUnits: -2,
+					uniforms: { uColor: { value: sunColour }, uStrength: { value: 0.26 } },
+					vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+					fragmentShader: `uniform vec3 uColor; uniform float uStrength; varying vec2 vUv;
+        void main(){ vec2 e = smoothstep(0.0,0.1,vUv) * (1.0 - smoothstep(0.9,1.0,vUv)); gl_FragColor = vec4(uColor * uStrength * e.x * e.y, 1.0); }`
+				})
+			);
+			const patchMesh = new Mesh(patchGeo, patchMat);
+			patchMesh.renderOrder = 3;
+			patchMesh.frustumCulled = false;
+			shafts.add(patchMesh);
+		}
 	}
 	root.add(shafts);
 
@@ -742,7 +1257,14 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		root,
 		lamps,
 		shafts,
+		workLights,
+		daylight,
+		setReducedMotion(on) {
+			reduced = on;
+			if (on) poseMovers(REST_TIME, false);
+		},
 		update(_dt, time) {
+			if (!reduced) poseMovers(time, true);
 			if (!dust || !base || !dustSeed) return;
 			const attr = dust.geometry.getAttribute('position');
 			for (let i = 0; i < attr.count; i++) {

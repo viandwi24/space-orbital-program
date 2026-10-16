@@ -29,7 +29,7 @@ describe('hangar', () => {
 			}
 		});
 		// Batching keeps the draw calls low: a few dozen meshes, under 100k triangles.
-		expect(meshes).toBeLessThan(60);
+		expect(meshes).toBeLessThan(85);
 		expect(triangles).toBeLessThan(100_000);
 		expect(h.lamps.length).toBe(16);
 		h.update(0.016, 1);

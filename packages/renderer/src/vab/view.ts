@@ -37,18 +37,19 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { PRESETS, detailOf } from '../presets.ts';
 import { PartModelFactory, type PartModelFactoryConfig } from '../parts/factory.ts';
-import type { PartModel, PartNode, PartShape } from '../parts/types.ts';
+import { repeatedDetail, type PartModel, type PartNode, type PartShape } from '../parts/types.ts';
 import type { PartVisual } from '@orbital/core';
 import { HANGAR, createHangar, type Hangar } from './hangar.ts';
+import { HighlightMaterials, NodeMarkerKit, pulseMarkers } from './highlight.ts';
+import { PartLayer } from './part-layer.ts';
 import {
-	HighlightMaterials,
-	NodeMarkerKit,
-	addOverlay,
-	makeGhost,
-	pulseMarkers,
-	removeOverlay,
-	type HighlightKind
-} from './highlight.ts';
+	BAY_SIGN,
+	SIGN_ATLAS,
+	paintBaySign,
+	paintSignAtlas,
+	type SignContext
+} from './hangar-signs.ts';
+import { StabilityMarkerKit } from './stability-markers.ts';
 import { frameIcon } from './icons.ts';
 import {
 	approach,
@@ -65,9 +66,10 @@ import {
 import { pickNode, toNdc, type PickRay } from './picking.ts';
 import {
 	EMPTY_SCENE,
-	diffParts,
 	floorShift,
-	type PartSlot,
+	repeatedDefinitions,
+	sameMarkers,
+	type VabMarker,
 	type VabNode,
 	type VabScene
 } from './scene-model.ts';
@@ -83,6 +85,8 @@ export interface VabViewConfig {
 	quality?: 'low' | 'high';
 	/** `prefers-reduced-motion`: no pulsing rings or highlights, the camera and the stack jump instead of easing. */
 	reducedMotion?: boolean;
+	/** Daylight of the hangar, 0 = dawn to 1 = dusk (`high` only); default a fixed afternoon. */
+	timeOfDay?: number;
 }
 
 export type VabHit =
@@ -96,33 +100,32 @@ export interface VabStats {
 	renderMs: number;
 	/** Frames per second from the animation loop (moving average). */
 	fps: number;
+	/** Draw calls and triangles of the last frame as WebGL counted them: hangar, vessel and shadow pass together. */
 	drawCalls: number;
 	triangles: number;
+	/** The vessels alone, colour and shadow pass (deterministic, as of the last scene change). */
+	vesselDrawCalls: number;
+	vesselTriangles: number;
+	/** Parts drawn as an instance of a shared mesh. */
+	instancedParts: number;
 }
 
 /** Top of the assembly platform, metres: the vessel stands on it. */
 const PLATFORM_TOP = 0.3;
 const FOV = 38;
-
-interface PartEntry {
-	slot: PartSlot;
-	model: PartModel;
-	group: string;
-	overlays: Map<HighlightKind, ReturnType<typeof addOverlay>>;
-}
-
-interface GroupEntry {
-	object: Group;
-	markers: Group;
-	x: number;
-	z: number;
-	y: number;
-	goalY: number;
-	fresh: boolean;
-}
+/** Direction from a vessel to the thumbnail camera: from the front-right, slightly above. */
+const THUMBNAIL_DIR = new Vector3(0.55, 0.22, 0.8).normalize();
 
 export class VabView {
-	readonly stats: VabStats = { renderMs: 0, fps: 0, drawCalls: 0, triangles: 0 };
+	readonly stats: VabStats = {
+		renderMs: 0,
+		fps: 0,
+		drawCalls: 0,
+		triangles: 0,
+		vesselDrawCalls: 0,
+		vesselTriangles: 0,
+		instancedParts: 0
+	};
 	/** Resolves when the hangar lettering is drawn (needs the page fonts). */
 	readonly ready: Promise<void>;
 
@@ -138,7 +141,12 @@ export class VabView {
 	private readonly rimLight: DirectionalLight;
 	private readonly fill: HemisphereLight;
 	private readonly glowLight: PointLight;
-	private readonly vessels = new Group();
+	private readonly layer: PartLayer;
+	private readonly glyphKit = new StabilityMarkerKit();
+	private readonly glyphs = new Map<string, Mesh>();
+	private markerList: readonly VabMarker[] = [];
+	private highContrast = false;
+	private reduced: boolean;
 	private readonly props = new Group();
 	private readonly trestleGeometry = new BoxGeometry(0.2, 0.55, 1);
 	private readonly trestleMaterial = new MeshStandardMaterial({
@@ -146,13 +154,12 @@ export class VabView {
 		roughness: 0.5,
 		metalness: 0.3
 	});
+	private readonly signTextures: CanvasTexture[] = [];
 	private composer: EffectComposer | null = null;
 	private bloom: UnrealBloomPass | null = null;
 	private env: WebGLRenderTarget | null = null;
 	private iconScene: Scene | null = null;
 
-	private readonly parts = new Map<string, PartEntry>();
-	private readonly groups = new Map<string, GroupEntry>();
 	private nodes: VabNode[] = [];
 	private readonly markers = new Map<string, Object3D>();
 	private sceneModel: VabScene = EMPTY_SCENE;
@@ -174,6 +181,7 @@ export class VabView {
 
 	constructor(private readonly config: VabViewConfig) {
 		this.quality = config.quality ?? 'high';
+		this.reduced = config.reducedMotion === true;
 		this.gl = new WebGLRenderer({
 			canvas: config.canvas,
 			antialias: true,
@@ -191,18 +199,28 @@ export class VabView {
 			shapes: config.shapes,
 			visuals: config.visuals,
 			attach: config.attach,
-			detail: detailOf(PRESETS.high)
+			detail: detailOf(PRESETS[this.quality])
 		};
 		this.factory = new PartModelFactory(factoryConfig);
+		this.layer = new PartLayer(this.factory, this.highlights);
 
 		this.scene.background = new Color(0x0b1118);
 		this.scene.fog = new FogExp2(0x172029, 0.006);
-		this.hangar = createHangar({ dust: this.quality === 'high' ? 300 : 0, textureSize: 512 });
+		this.hangar = createHangar({
+			dust: this.quality === 'high' ? 300 : 0,
+			textureSize: 512,
+			quality: this.quality,
+			timeOfDay: config.timeOfDay,
+			reducedMotion: config.reducedMotion
+		});
 		this.scene.add(this.hangar.root);
 
 		// Lights: a warm key from above and in front with shadows, a cool rim from behind, a sky/ground fill
 		// and a small accent light over the platform so the lower stack picks up the ring's colour.
 		this.key = new DirectionalLight(0xfff1de, 2.0);
+		// A subtle time-of-day tint: the work-light key leans warm towards dawn and dusk.
+		if (this.quality === 'high')
+			this.key.color.lerp(new Color(0xffb584), 0.3 * this.hangar.daylight.warmth);
 		this.key.position.set(11, 38, 18);
 		this.key.target.position.set(0, 6, 0);
 		this.key.castShadow = this.quality === 'high';
@@ -227,7 +245,8 @@ export class VabView {
 		spot.position.set(0.5, 40, 1.5);
 		spot.target.position.set(0, 3, 0);
 		this.scene.add(spot, spot.target);
-		this.scene.add(this.vessels);
+		this.scene.add(this.layer.root);
+		for (const light of this.hangar.workLights) this.scene.add(light);
 		this.scene.add(this.props);
 		this.buildProps(config.props ?? []);
 		this.bakeEnvironment();
@@ -292,44 +311,65 @@ export class VabView {
 		}
 	}
 
-	/** Lettering over the bay door; only when a canvas exists (the page), after the UI fonts load. */
+	/**
+	 * Paints the hangar's lettering and column plates once the UI fonts are loaded (needs a DOM):
+	 * the bay sign over the door and on the back wall, and the number / safety atlas on the columns.
+	 * The signs are emissive so they read from the default camera without a light of their own.
+	 */
 	private async drawSign(): Promise<void> {
 		if (typeof document === 'undefined') return;
 		try {
-			await document.fonts?.load('600 100px "Barlow Semi Condensed"');
+			await document.fonts?.load('700 100px "Barlow Semi Condensed"');
+			await document.fonts?.load('500 100px "Barlow Semi Condensed"');
 		} catch {
 			// fall back to the system condensed face
 		}
 		if (this.disposed) return;
-		const canvas = document.createElement('canvas');
-		canvas.width = 1300;
-		canvas.height = 240;
-		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
-		ctx.fillStyle = '#0b1219';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.fillStyle = '#e3a61f';
-		ctx.fillRect(0, 0, 14, canvas.height);
-		ctx.fillStyle = '#e8eff8';
-		ctx.font = '600 118px "Barlow Semi Condensed", "Arial Narrow", sans-serif';
-		ctx.textBaseline = 'alphabetic';
-		ctx.fillText('ASSEMBLY BAY 1', 56, 130);
-		ctx.fillStyle = '#5ccfff';
-		ctx.font = '500 52px "Barlow Semi Condensed", "Arial Narrow", sans-serif';
-		ctx.fillText('Vehicle assembly building', 60, 205);
-		const map = new CanvasTexture(canvas);
-		map.colorSpace = SRGBColorSpace;
-		map.anisotropy = 8;
-		const sign = this.hangar.root.getObjectByName('sign') as Mesh | undefined;
-		if (sign) {
-			const old = sign.material as MeshStandardMaterial;
-			sign.material = new MeshStandardMaterial({
+		const texture = (
+			width: number,
+			height: number,
+			paint: (ctx: SignContext) => void
+		): CanvasTexture | null => {
+			const canvas = document.createElement('canvas');
+			canvas.width = width;
+			canvas.height = height;
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return null;
+			paint(ctx);
+			const map = new CanvasTexture(canvas);
+			map.colorSpace = SRGBColorSpace;
+			map.anisotropy = 8;
+			this.signTextures.push(map);
+			return map;
+		};
+		const bay = texture(BAY_SIGN.width, BAY_SIGN.height, paintBaySign);
+		if (bay) {
+			for (const name of ['sign', 'sign-wall']) {
+				const mesh = this.hangar.root.getObjectByName(name) as Mesh | undefined;
+				if (!mesh) continue;
+				const old = mesh.material as MeshStandardMaterial;
+				mesh.material = new MeshStandardMaterial({
+					color: 0xffffff,
+					map: bay,
+					emissive: new Color(0xffffff),
+					emissiveMap: bay,
+					emissiveIntensity: 1.6,
+					roughness: 0.6
+				});
+				old.dispose();
+			}
+		}
+		const atlas = texture(SIGN_ATLAS.width, SIGN_ATLAS.height, paintSignAtlas);
+		const plates = this.hangar.root.getObjectByName('plates') as Mesh | undefined;
+		if (atlas && plates) {
+			const old = plates.material as MeshStandardMaterial;
+			plates.material = new MeshStandardMaterial({
 				color: 0xffffff,
-				map,
+				map: atlas,
 				emissive: new Color(0xffffff),
-				emissiveMap: map,
-				emissiveIntensity: 1.2,
-				roughness: 0.6
+				emissiveMap: atlas,
+				emissiveIntensity: 0.55,
+				roughness: 0.55
 			});
 			old.dispose();
 		}
@@ -347,67 +387,13 @@ export class VabView {
 	// --- scene -----------------------------------------------------------------------------------------------
 
 	setScene(next: VabScene): void {
-		const prev = new Map<string, PartSlot>();
-		for (const [k, e] of this.parts) prev.set(k, e.slot);
-		const diff = diffParts(prev, next.parts);
-		for (const key of diff.remove) this.removePart(key);
-		const groupIds = new Set(next.groups.map((g) => g.id));
-		for (const g of next.groups) this.ensureGroup(g.id, g.x, g.z);
-		for (const [id, entry] of this.groups) {
-			if (!groupIds.has(id)) {
-				this.vessels.remove(entry.object);
-				this.groups.delete(id);
-			}
-		}
-		for (const p of diff.add) this.addPart(p.key, p.definition, p.role, p.group);
-		for (const p of next.parts) {
-			const e = this.parts.get(p.key);
-			if (!e) continue;
-			if (e.group !== p.group) {
-				e.group = p.group;
-				this.groups.get(p.group)?.object.add(e.model.root);
-			}
-			e.model.root.position.set(...p.position);
-			e.model.root.rotation.y = p.yaw ?? 0;
-		}
+		this.layer.sync(next);
 		this.sceneModel = next;
 		this.applyHighlights();
 		this.rebuildMarkers(next.nodes);
+		this.rebuildGlyphs(next.markers ?? []);
 		this.updateFloorShifts();
 		this.updateCameraGoal();
-	}
-
-	private ensureGroup(id: string, x: number, z: number): GroupEntry {
-		let g = this.groups.get(id);
-		if (!g) {
-			const object = new Group();
-			object.name = `group:${id}`;
-			const markers = new Group();
-			object.add(markers);
-			this.vessels.add(object);
-			g = { object, markers, x, z, y: 0, goalY: 0, fresh: true };
-			this.groups.set(id, g);
-		}
-		g.x = x;
-		g.z = z;
-		return g;
-	}
-
-	private addPart(key: string, definition: string, role: PartSlot['role'], group: string): void {
-		const model = this.factory.create(definition);
-		model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
-		model.root.userData.key = key;
-		if (role === 'ghost') makeGhost(model.root, this.highlights.ghost);
-		this.groups.get(group)?.object.add(model.root);
-		this.parts.set(key, { slot: { definition, role }, model, group, overlays: new Map() });
-	}
-
-	private removePart(key: string): void {
-		const e = this.parts.get(key);
-		if (!e) return;
-		e.model.root.removeFromParent();
-		e.model.dispose();
-		this.parts.delete(key);
 	}
 
 	private rebuildMarkers(nodes: readonly VabNode[]): void {
@@ -415,7 +401,7 @@ export class VabView {
 		this.markers.clear();
 		this.nodes = [...nodes];
 		for (const n of nodes) {
-			const group = this.groups.get(n.group);
+			const group = this.layer.groups.get(n.group);
 			if (!group) continue;
 			const marker = this.markerKit.create(n);
 			marker.userData.nodeKey = n.key;
@@ -424,13 +410,31 @@ export class VabView {
 		}
 	}
 
+	/** Stability glyphs (centre of mass and pressure) are re-created only when the list changes. */
+	private rebuildGlyphs(list: readonly VabMarker[]): void {
+		if (sameMarkers(this.markerList, list) && [...this.glyphs.values()].every((m) => m.parent)) {
+			return;
+		}
+		for (const m of this.glyphs.values()) m.removeFromParent();
+		this.glyphs.clear();
+		this.markerList = [...list];
+		for (const marker of list) {
+			const group = this.layer.groups.get(marker.group);
+			if (!group) continue;
+			const mesh = this.glyphKit.create(marker);
+			mesh.position.set(...marker.position);
+			group.glyphs.add(mesh);
+			this.glyphs.set(marker.key, mesh);
+		}
+	}
+
 	/** Stands every group on the floor (the design on the platform). The base eases to its new height. */
 	private updateFloorShifts(): void {
-		for (const [id, group] of this.groups) {
+		for (const [id, group] of this.layer.groups) {
 			const lows: number[] = [];
 			for (const p of this.sceneModel.parts) {
 				if (p.group !== id) continue;
-				const e = this.parts.get(p.key);
+				const e = this.layer.parts.get(p.key);
 				if (e) lows.push(p.position[1] + e.model.bounds.min.y);
 			}
 			group.goalY = floorShift(lows) + (id === 'main' ? PLATFORM_TOP : 0);
@@ -459,27 +463,35 @@ export class VabView {
 		this.applyHighlights();
 	}
 
+	/** Follows `prefers-reduced-motion` while the page is open: pulses stop, the camera jumps and the hangar's movers freeze. */
+	setReducedMotion(on: boolean): void {
+		this.reduced = on;
+		this.hangar.setReducedMotion(on);
+	}
+
+	/**
+	 * Thicker, brighter and steady outlines for rings, selection, flags, ghosts and the stability
+	 * glyphs (accessibility). Takes effect at once.
+	 */
+	setHighContrast(on: boolean): void {
+		if (this.highContrast === on) return;
+		this.highContrast = on;
+		this.highlights.setHighContrast(on);
+		this.markerKit.setHighContrast(on);
+		this.glyphKit.setHighContrast(on);
+		this.rebuildMarkers(this.sceneModel.nodes);
+		this.rebuildGlyphs([]);
+		this.rebuildGlyphs(this.sceneModel.markers ?? []);
+	}
+
 	private applyHighlights(): void {
-		for (const [key, e] of this.parts) {
-			const wanted: HighlightKind[] = [];
-			if (e.slot.role === 'ghost') wanted.push('ghost');
-			else {
-				if (this.flagged.has(key)) wanted.push('flag');
-				if (this.selected.has(key)) wanted.push('select');
-				else if (this.hover === key) wanted.push('hover');
-			}
-			for (const kind of [...e.overlays.keys()]) {
-				if (!wanted.includes(kind)) {
-					removeOverlay(e.overlays.get(kind)!);
-					e.overlays.delete(kind);
-				}
-			}
-			for (const kind of wanted) {
-				if (!e.overlays.has(kind)) {
-					e.overlays.set(kind, addOverlay(e.model.root, this.highlights.get(kind)));
-				}
-			}
-		}
+		this.layer.applyHighlights(this.hover, this.selected, this.flagged);
+		// The shadow pass exists only in the high variant.
+		const cost = this.layer.drawCost;
+		const shadows = this.quality === 'high';
+		this.stats.vesselDrawCalls = cost.drawCalls + (shadows ? cost.shadowDrawCalls : 0);
+		this.stats.vesselTriangles = cost.triangles + (shadows ? cost.shadowTriangles : 0);
+		this.stats.instancedParts = this.layer.instancedCount;
 	}
 
 	// --- camera -----------------------------------------------------------------------------------------------------
@@ -529,10 +541,10 @@ export class VabView {
 
 	/** Which extent of the main assembly the camera must fit. */
 	private mainExtent(): { height: number; width: number; centreY: number } {
-		const g = this.groups.get('main');
+		const g = this.layer.groups.get('main');
 		if (!g || !this.sceneModel.parts.some((p) => p.group === 'main')) {
 			let width = 4;
-			for (const [id, group] of this.groups) {
+			for (const [id, group] of this.layer.groups) {
 				if (id !== 'main') width = Math.max(width, 2 * (Math.abs(group.x) + 1.8));
 			}
 			return { height: 11, width: Math.max(width, 7), centreY: 4.2 };
@@ -542,14 +554,14 @@ export class VabView {
 		let w = 0;
 		for (const p of this.sceneModel.parts) {
 			if (p.group !== 'main') continue;
-			const e = this.parts.get(p.key);
+			const e = this.layer.parts.get(p.key);
 			if (!e) continue;
 			lo = Math.min(lo, p.position[1] + e.model.bounds.min.y);
 			hi = Math.max(hi, p.position[1] + e.model.bounds.max.y);
 			w = Math.max(w, e.model.bounds.max.x - e.model.bounds.min.x);
 		}
 		// Loose assemblies stand beside the platform; keep them in view.
-		for (const [id, group] of this.groups) {
+		for (const [id, group] of this.layer.groups) {
 			if (id !== 'main') w = Math.max(w, 2 * (Math.abs(group.x) + 1.8));
 		}
 		return { height: hi - lo, width: Math.max(w, 2), centreY: PLATFORM_TOP + (hi - lo) / 2 };
@@ -603,7 +615,7 @@ export class VabView {
 	/** Node markers win over parts when the ray is near one (they sit on the part's end faces). */
 	pick(clientX: number, clientY: number, options: { ignoreGhost?: boolean } = {}): VabHit | null {
 		const ray = this.rayAt(clientX, clientY);
-		this.vessels.updateMatrixWorld(true);
+		this.layer.root.updateMatrixWorld(true);
 		const candidates = [...this.markers.entries()].map(([key, m]) => {
 			const p = m.getWorldPosition(new Vector3());
 			const node = this.nodes.find((n) => n.key === key);
@@ -612,18 +624,18 @@ export class VabView {
 		const node = pickNode(ray, candidates);
 		if (node) return { kind: 'node', key: node.node.key };
 		const roots: Object3D[] = [];
-		for (const e of this.parts.values()) roots.push(e.model.root);
+		for (const e of this.layer.parts.values()) roots.push(e.model.root);
 		const hits = this.raycaster.intersectObjects(roots, true);
 		for (const h of hits) {
 			let o: Object3D | null = h.object;
 			while (o && o.userData.key === undefined) o = o.parent;
 			if (!o) continue;
-			const entry = this.parts.get(o.userData.key as string);
+			const entry = this.layer.parts.get(o.userData.key as string);
 			if (entry?.slot.role === 'ghost') {
 				if (options.ignoreGhost) continue;
 				return { kind: 'ghost' };
 			}
-			const group = entry && this.groups.get(entry.group);
+			const group = entry && this.layer.groups.get(entry.group);
 			const local = group ? group.object.worldToLocal(h.point.clone()) : h.point;
 			return { kind: 'part', key: o.userData.key as string, point: [local.x, local.y, local.z] };
 		}
@@ -632,7 +644,7 @@ export class VabView {
 
 	/** Screen position (CSS pixels in the canvas) of a part's centre, or null if it is unknown or behind the camera. */
 	screenPositionOf(key: string): { x: number; y: number } | null {
-		const e = this.parts.get(key);
+		const e = this.layer.parts.get(key);
 		if (!e) return null;
 		const p = new Box3().setFromObject(e.model.root).getCenter(new Vector3()).project(this.camera);
 		if (p.z > 1) return null;
@@ -659,45 +671,99 @@ export class VabView {
 		const cam = new OrthographicCamera(-1, 1, 1, -1);
 		frameIcon(box, cam);
 
+		const url = this.captureWith(scene, cam, size, size);
+		scene.remove(holder);
+		model.dispose();
+		return url;
+	}
+
+	/**
+	 * Renders `scene` through `cam` into the lower-left `width` x `height` CSS pixels of the canvas
+	 * (clear colour transparent, no shadows) and copies them out as a PNG data URL. The canvas, its
+	 * size and the page's own camera are restored afterwards; it is meant to run between frames.
+	 */
+	private captureWith(
+		scene: Scene,
+		cam: OrthographicCamera,
+		width: number,
+		height: number
+	): string {
 		const pr = this.pixelRatio();
 		const gl = this.gl;
 		const prevRatio = gl.getPixelRatio();
 		const prevSize = gl.getSize(new Vector2());
 		gl.setPixelRatio(pr);
-		gl.setSize(Math.max(prevSize.x, size), Math.max(prevSize.y, size), false);
+		gl.setSize(Math.max(prevSize.x, width), Math.max(prevSize.y, height), false);
 		const prevShadow = gl.shadowMap.enabled;
 		gl.shadowMap.enabled = false;
-		gl.setViewport(0, 0, size, size);
-		gl.setScissor(0, 0, size, size);
+		gl.setViewport(0, 0, width, height);
+		gl.setScissor(0, 0, width, height);
 		gl.setScissorTest(true);
 		gl.setClearColor(0x000000, 0);
 		gl.clear();
 		gl.render(scene, cam);
 		const out = document.createElement('canvas');
-		out.width = size * pr;
-		out.height = size * pr;
-		const ctx = out.getContext('2d');
+		out.width = Math.round(width * pr);
+		out.height = Math.round(height * pr);
 		const src = gl.domElement;
-		ctx?.drawImage(
-			src,
-			0,
-			src.height - size * pr,
-			size * pr,
-			size * pr,
-			0,
-			0,
-			out.width,
-			out.height
-		);
+		out
+			.getContext('2d')
+			?.drawImage(
+				src,
+				0,
+				src.height - out.height,
+				out.width,
+				out.height,
+				0,
+				0,
+				out.width,
+				out.height
+			);
 		gl.setScissorTest(false);
 		gl.shadowMap.enabled = prevShadow;
 		gl.setClearColor(0x0b1118, 1);
 		gl.setPixelRatio(prevRatio);
 		gl.setSize(prevSize.x, prevSize.y, false);
 		this.resize(this.width, this.height, true);
-		scene.remove(holder);
-		model.dispose();
 		return out.toDataURL('image/png');
+	}
+
+	/**
+	 * A PNG data URL of the design (group `main`, solid parts only: no ghosts, node rings, glyphs or
+	 * highlights) from a fixed three-quarter view with a transparent backdrop, for the vessel
+	 * library. Builds its own models from the last scene, so it is valid right after `setScene` and
+	 * leaves the live camera and scene alone. `''` for an empty design or without a DOM.
+	 */
+	captureThumbnail(width: number, height: number): string {
+		if (typeof document === 'undefined') return '';
+		const parts = this.sceneModel.parts.filter((p) => p.group === 'main' && p.role === 'solid');
+		if (parts.length === 0) return '';
+		const scene = (this.iconScene ??= this.createIconScene());
+		const holder = new Object3D();
+		const repeated = repeatedDefinitions(parts);
+		const models: PartModel[] = [];
+		for (const p of parts) {
+			const model = this.factory.create(
+				p.definition,
+				repeated.has(`solid|${p.definition}`)
+					? { detail: repeatedDetail(this.factory.currentDetail) }
+					: {}
+			);
+			model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
+			model.root.position.set(...p.position);
+			model.root.rotation.y = p.yaw ?? 0;
+			holder.add(model.root);
+			models.push(model);
+		}
+		scene.add(holder);
+		holder.updateMatrixWorld(true);
+		const box = new Box3().setFromObject(holder);
+		const cam = new OrthographicCamera(-1, 1, 1, -1);
+		frameIcon(box, cam, 1.05, width / height, THUMBNAIL_DIR);
+		const url = this.captureWith(scene, cam, width, height);
+		scene.remove(holder);
+		for (const m of models) m.dispose();
+		return url;
 	}
 
 	private createIconScene(): Scene {
@@ -759,9 +825,9 @@ export class VabView {
 		const t0 = performance.now();
 		this.gl.info.reset();
 		this.time += dt;
-		const ease = this.config.reducedMotion ? 1_000 : 1;
+		const ease = this.reduced ? 1_000 : 1;
 		this.cam = approachCamera(this.cam, this.goal, dt, 8 * ease);
-		for (const g of this.groups.values()) {
+		for (const g of this.layer.groups.values()) {
 			g.y = approach(g.y, g.goalY, dt, 9 * ease);
 			g.object.position.set(g.x, g.y, g.z);
 		}
@@ -773,11 +839,12 @@ export class VabView {
 		const p = cameraPosition(placed);
 		this.camera.position.set(...p);
 		this.camera.lookAt(...this.cam.target);
-		this.highlights.setTime(this.config.reducedMotion ? 0 : this.time);
-		if (!this.config.reducedMotion) pulseMarkers(this.markers.values(), this.time);
+		this.highlights.setTime(this.reduced ? 0 : this.time);
+		if (!this.reduced) pulseMarkers(this.markers.values(), this.time);
 		this.hangar.update(dt, this.time);
+		this.glyphKit.orient(this.glyphs.values(), this.camera, FOV, this.height);
 		this.fitShadow();
-		for (const e of this.parts.values()) e.model.tick(dt);
+		for (const e of this.layer.parts.values()) e.model.tick(dt);
 		if (this.composer) this.composer.render(dt);
 		else this.gl.render(this.scene, this.camera);
 		const ms = performance.now() - t0;
@@ -850,10 +917,12 @@ export class VabView {
 	dispose(): void {
 		this.disposed = true;
 		this.stop();
-		for (const key of [...this.parts.keys()]) this.removePart(key);
+		this.layer.dispose();
+		this.glyphKit.dispose();
 		this.markerKit.dispose();
 		this.highlights.dispose();
 		this.hangar.dispose();
+		for (const t of this.signTextures) t.dispose();
 		this.trestleGeometry.dispose();
 		this.trestleMaterial.dispose();
 		this.factory.dispose();

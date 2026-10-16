@@ -3,7 +3,7 @@
  * scene calls on it. Plan 022 (3D VAB, catalogue icons) uses the same interface without a snapshot.
  */
 import type { PartVisual, Vec3 } from '@orbital/core';
-import type { Box3, Object3D } from 'three';
+import type { Box3, Mesh, Object3D } from 'three';
 
 /** Placeholder geometry, supplied by the host from part definitions (ADR 0012, ADR 0014). */
 export type PartShape =
@@ -61,12 +61,31 @@ export interface PartModel {
 	readonly nodes: Readonly<Record<string, PartNode>>;
 	/** Triangles drawn with every animated piece out. */
 	readonly triangles: number;
+	/**
+	 * The static, shared-geometry mesh of the model (a child of `root` at the origin of the part
+	 * frame). A host that draws many identical parts (the VAB) may hide it and draw the same
+	 * geometry and materials as an `InstancedMesh`; pieces that animate stay on `root`.
+	 */
+	readonly staticMesh?: Mesh;
 	/** Apply a snapshot (targets for animation, glow, plume). */
 	setState(state: PartRuntimeState): void;
 	/** Advance animations by `dt` seconds of wall-clock time. */
 	tick(dt: number): void;
 	/** Release resources owned by this instance (cloned materials, effect meshes). */
 	dispose(): void;
+}
+
+/**
+ * Detail for parts that appear many times in one view (symmetric copies): half the segments and
+ * no plumbing/hardware extras, so four boosters cost what two did, and the copies are small
+ * on screen anyway.
+ */
+export function repeatedDetail(detail: PartDetail): PartDetail {
+	return {
+		...detail,
+		segments: Math.max(8, Math.round(detail.segments / 2)),
+		extras: Math.min(detail.extras, 1) as PartDetail['extras']
+	};
 }
 
 export interface PartModelProvider {
