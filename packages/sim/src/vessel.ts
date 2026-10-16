@@ -4,6 +4,7 @@
  */
 import {
 	parseModuleConfig,
+	SURFACE_NODE,
 	type EntityId,
 	type Quat,
 	type ResolvedDesign,
@@ -69,6 +70,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 			index: rp.index,
 			definition: rp.definition.id,
 			designPos: rp.position,
+			yaw: rp.yaw,
 			attachments: [],
 			temperature: AMBIENT_TEMPERATURE,
 			modules
@@ -175,6 +177,23 @@ export function placeAtState(
 	vessel.orientation = orientation;
 }
 
+/**
+ * Unit vector, body axes, from `part` towards the peer across `node`: the node's direction turned
+ * by the part's yaw, or for the reserved surface node the horizontal direction to the peer.
+ */
+function separationDirection(core: SimCore, part: PartState, node: string, peer: PartState): Vec3 {
+	if (node === SURFACE_NODE) {
+		const d = {
+			x: peer.designPos.x - part.designPos.x,
+			y: 0,
+			z: peer.designPos.z - part.designPos.z
+		};
+		return normalize(d);
+	}
+	const dir = fromTuple(partDefOf(core, part).attach![node]!.dir);
+	return qRotate(qAboutY(part.yaw), dir);
+}
+
 /** Entities reachable from `start` through attachments. */
 function component(core: SimCore, start: EntityId): EntityId[] {
 	const seen = new Set<EntityId>([start]);
@@ -203,8 +222,25 @@ export function splitVessel(
 	node: string,
 	impulse: number
 ): EntityId | undefined {
+	// Every attachment on the node is cut (only the reserved `surface` node hosts several, ADR 0034).
+	let last: EntityId | undefined;
+	const peers = partOf(core, partId)
+		.attachments.filter((a) => a.node === node)
+		.map((a) => a.peer)
+		.sort((a, b) => a - b);
+	for (const peer of peers) last = splitAt(core, partId, node, peer, impulse) ?? last;
+	return last;
+}
+
+function splitAt(
+	core: SimCore,
+	partId: EntityId,
+	node: string,
+	peerOf: EntityId,
+	impulse: number
+): EntityId | undefined {
 	const part = partOf(core, partId);
-	const att = part.attachments.find((a) => a.node === node);
+	const att = part.attachments.find((a) => a.node === node && a.peer === peerOf);
 	if (!att) return undefined;
 	const vesselId = part.vessel;
 	const vessel = vesselOf(core, vesselId);
@@ -260,7 +296,7 @@ export function splitVessel(
 	// Equal and opposite momentum along the node direction (pointing from `part` towards `peer`).
 	if (impulse > 0) {
 		const q = rootPose ? rootPose.rotation : vessel.orientation;
-		const dir = qRotate(q, fromTuple(partDefOf(core, part).attach![node]!.dir));
+		const dir = qRotate(q, separationDirection(core, part, node, partOf(core, peerId)));
 		const dvPeer = scale(dir, impulse / totalMass(core, sideQ));
 		const dvPart = scale(dir, -impulse / totalMass(core, sideP));
 		for (const [side, dv] of [
@@ -331,13 +367,93 @@ export function splitVessel(
 	return newId;
 }
 
-/** Apply the detach requests hooks queued, in order. */
+/**
+ * Apply the detach requests hooks queued. One request is a plain split. Several in one pass (the
+ * radial decouplers of a stage) are separated as if simultaneous: every cut's impulse is worked
+ * out against the vessel as it was before any of them, so boosters leave with equal speeds and
+ * the recoils add up on the rest, instead of the later boosters inheriting the earlier recoil.
+ */
 export function processPending(core: SimCore): void {
 	while (core.pending.length > 0) {
 		const queue = core.pending;
 		core.pending = [];
-		for (const req of queue) {
-			if (core.world.hasEntity(req.part)) splitVessel(core, req.part, req.node, req.impulse);
+		const live = queue.filter((r) => core.world.hasEntity(r.part));
+		if (live.length <= 1) {
+			for (const req of live) splitVessel(core, req.part, req.node, req.impulse);
+			continue;
+		}
+		const kicks = live.flatMap((req) => plannedKicks(core, req));
+		for (const req of live) {
+			if (core.world.hasEntity(req.part)) splitVessel(core, req.part, req.node, 0);
+		}
+		applyKicks(core, kicks);
+	}
+}
+
+/** The change of velocity a cut gives every part of each of its two sides, from the pre-cut graph. */
+function plannedKicks(
+	core: SimCore,
+	req: { part: EntityId; node: string; impulse: number }
+): Array<{ parts: EntityId[]; dv: Vec3 }> {
+	if (req.impulse <= 0) return [];
+	const part = partOf(core, req.part);
+	const vessel = vesselOf(core, part.vessel);
+	const q = orientationOf(core, vessel);
+	const out: Array<{ parts: EntityId[]; dv: Vec3 }> = [];
+	for (const att of part.attachments.filter((a) => a.node === req.node)) {
+		const sideP = componentWithout(core, req.part, req.part, att.peer);
+		const sideQ = componentWithout(core, att.peer, req.part, att.peer);
+		const dir = qRotate(q, separationDirection(core, part, req.node, partOf(core, att.peer)));
+		out.push(
+			{ parts: sideQ, dv: scale(dir, req.impulse / totalMass(core, sideQ)) },
+			{ parts: sideP, dv: scale(dir, -req.impulse / totalMass(core, sideP)) }
+		);
+	}
+	return out;
+}
+
+/** Entities reachable from `start` without crossing the edge between `a` and `b`. */
+function componentWithout(core: SimCore, start: EntityId, a: EntityId, b: EntityId): EntityId[] {
+	const seen = new Set<EntityId>([start]);
+	const order = [start];
+	for (let head = 0; head < order.length; head++) {
+		const here = order[head]!;
+		for (const att of partOf(core, here).attachments) {
+			if ((here === a && att.peer === b) || (here === b && att.peer === a)) continue;
+			if (!seen.has(att.peer)) {
+				seen.add(att.peer);
+				order.push(att.peer);
+			}
+		}
+	}
+	return order.sort((x, y) => x - y);
+}
+
+/** Add the planned velocity changes to the vessels the parts ended up in. */
+function applyKicks(core: SimCore, kicks: Array<{ parts: EntityId[]; dv: Vec3 }>): void {
+	const perVessel = new Map<EntityId, Vec3>();
+	for (const kick of kicks) {
+		// Every part of a side sits in one final vessel (the sides are unions of final components).
+		const seen = new Set<EntityId>();
+		for (const id of kick.parts) {
+			if (!core.world.hasEntity(id)) continue;
+			const vesselId = partOf(core, id).vessel;
+			if (seen.has(vesselId)) continue;
+			seen.add(vesselId);
+			perVessel.set(vesselId, add(perVessel.get(vesselId) ?? { x: 0, y: 0, z: 0 }, kick.dv));
+		}
+	}
+	for (const [vesselId, dv] of [...perVessel].sort((a, b) => a[0] - b[0])) {
+		const vessel = vesselOf(core, vesselId);
+		const frame = frameOfVessel(core, vesselId);
+		const body = frame?.bodies.get(vesselId);
+		if (frame && body) {
+			const v = frame.backend.getVelocity(body.handle);
+			frame.backend.setVelocity(body.handle, { linear: add(v.linear, dv), angular: v.angular });
+			vessel.velocity = add(vessel.velocity, dv);
+		} else if (vessel.rails && vessel.rails.kind !== 'surface') {
+			vessel.velocity = add(vessel.velocity, dv);
+			vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
 		}
 	}
 }

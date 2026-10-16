@@ -15,7 +15,7 @@ import type {
 import { add, length } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
-import { partTransform } from './frames.ts';
+import { airVelocityAt, partTransform } from './frames.ts';
 import { isNonZero, qRotate } from './math.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 
@@ -89,6 +89,11 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 					add(transform.position, qRotate(transform.rotation, point))
 				);
 			} else backend.applyForce(handle, world, transform.position);
+		},
+		airVelocity(point) {
+			if (point) finiteVec(point, 'point');
+			if (!frame) return needsFlight(`module "${moduleId}": airVelocity`);
+			return airVelocityAt(core, frame, partId, point ?? { x: 0, y: 0, z: 0 });
 		},
 		applyTorque(torque) {
 			finiteVec(torque, 'torque');

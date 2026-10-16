@@ -107,9 +107,14 @@ export function massProperties(
 		const own = inertiaOf(partDefOf(core, partOf(core, id)), m);
 		const r = { x: d.x - com.x, y: d.y - com.y, z: d.z - com.z };
 		const r2 = r.x * r.x + r.y * r.y + r.z * r.z;
-		t[0] += own.x + m * (r2 - r.x * r.x);
+		// The part's principal axes are turned about Y by its yaw (identity for cylinders' x = z).
+		const yaw = partOf(core, id).yaw;
+		const c = Math.cos(yaw);
+		const s = Math.sin(yaw);
+		t[0] += own.x * c * c + own.z * s * s + m * (r2 - r.x * r.x);
 		t[4] += own.y + m * (r2 - r.y * r.y);
-		t[8] += own.z + m * (r2 - r.z * r.z);
+		t[8] += own.x * s * s + own.z * c * c + m * (r2 - r.z * r.z);
+		t[2] += (own.z - own.x) * s * c;
 		t[1] -= m * r.x * r.y;
 		t[2] -= m * r.x * r.z;
 		t[5] -= m * r.y * r.z;

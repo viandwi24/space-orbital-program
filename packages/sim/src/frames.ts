@@ -42,7 +42,7 @@ import {
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
-import { ZERO, qConj, qRotate, uprightRotation } from './math.ts';
+import { ZERO, qAboutY, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf } from './parts.ts';
 import type { FlightBody, FlightFrame } from './state.ts';
@@ -107,8 +107,31 @@ export function partTransform(core: SimCore, frame: FlightFrame, partId: EntityI
 	const t = frame.backend.getTransform(bodyOfPart(core, frame, partId).handle);
 	return {
 		position: add(t.position, qRotate(t.rotation, partOffset(core, partId))),
-		rotation: t.rotation
+		rotation:
+			partYaw(core, partId) === 0 ? t.rotation : qMul(t.rotation, qAboutY(partYaw(core, partId)))
 	};
+}
+
+const partYaw = (core: SimCore, partId: EntityId): number => partOf(core, partId).yaw;
+
+/**
+ * Velocity of `point` (part frame) relative to the air, in the part frame (ADR 0035): the point's
+ * inertial velocity minus the co-rotating atmosphere's, `omega x r`.
+ */
+export function airVelocityAt(
+	core: SimCore,
+	frame: FlightFrame,
+	partId: EntityId,
+	point: Vec3
+): Vec3 {
+	const body = bodyOfPart(core, frame, partId);
+	const m = bodyMotion(frame, body);
+	const t = partTransform(core, frame, partId);
+	const local = add(t.position, qRotate(t.rotation, point));
+	const v = add(add(frame.velocity, m.linear), cross(m.angular, sub(local, m.centre)));
+	const r = add(frame.origin, local);
+	const rel = sub(v, cross({ x: 0, y: core.body.omega, z: 0 }, r));
+	return qRotate(qConj(t.rotation), rel);
 }
 
 /**
@@ -155,9 +178,11 @@ export function collectColliders(
 	for (const id of vessel.parts) {
 		const part = partOf(core, id);
 		const at = sub(part.designPos, rootDesign);
+		const turn = part.yaw === 0 ? undefined : qAboutY(part.yaw);
 		shapes.push({
 			shape: { type: 'box', halfExtents: halfExtentsOf(partDefOf(core, part)) },
-			position: at
+			position: at,
+			...(turn ? { rotation: turn } : {})
 		});
 		shapeParts.push(id);
 		for (const m of part.modules) {
@@ -166,7 +191,8 @@ export function collectColliders(
 			for (const c of colliders(m.config, moduleState(core, id, m.id))) {
 				shapes.push({
 					shape: { type: 'box', halfExtents: c.halfExtents },
-					position: add(at, c.offset)
+					position: add(at, turn ? qRotate(turn, c.offset) : c.offset),
+					...(turn ? { rotation: turn } : {})
 				});
 				shapeParts.push(id);
 				extras.push([id, c.offset, c.halfExtents]);
@@ -357,7 +383,8 @@ function applyDrag(
 			cross(motion.angular, sub(pose.position, motion.centre))
 		);
 		const rel = sub(v, cross(omega, r));
-		const local = qRotate(qConj(pose.rotation), rel);
+		const turned = part.yaw === 0 ? pose.rotation : qMul(pose.rotation, qAboutY(part.yaw));
+		const local = qRotate(qConj(turned), rel);
 		const def = partDefOf(core, part);
 		const covered = { top: false, bottom: false };
 		for (const att of part.attachments) {
@@ -366,13 +393,13 @@ function applyDrag(
 			else if (dirY < -0.5) covered.bottom = true;
 		}
 		const area = axisAreas(def.shape, local.y, covered);
-		const k = -0.5 * density * DRAG_COEFFICIENT;
+		const k = -0.5 * density * (def.dragCoefficient ?? DRAG_COEFFICIENT);
 		const force = {
 			x: k * area.x * Math.abs(local.x) * local.x,
 			y: k * area.y * Math.abs(local.y) * local.y,
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
-		frame.backend.applyForce(flight.handle, qRotate(pose.rotation, force), pose.position);
+		frame.backend.applyForce(flight.handle, qRotate(turned, force), pose.position);
 		heat.set(partId, heatInput(density, def.shape, area, local));
 	}
 	return heat;

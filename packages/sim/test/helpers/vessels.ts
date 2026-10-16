@@ -88,3 +88,72 @@ export const lander = (): VesselDesign =>
 		],
 		[[4]]
 	);
+
+/**
+ * Pod, wheel, two tanks and an engine in a stack (indices 0-4, top to bottom) with `n` boosters
+ * hung on the lower tank by radial decouplers (ADR 0034): decoupler `10 + 3k`, booster `11 + 3k`,
+ * nose cone `12 + 3k`, all in symmetry group 1 at `2 pi k / n`. Stage 0 lights the core engine and
+ * the boosters, stage 1 fires the radial decouplers. With `finCount > 0`, that many fins (indices
+ * `40 + k`) sit at the foot of the lower tank.
+ */
+export function boosted(n: number, finCount = 0, fins = { y: -0.7 }): VesselDesign {
+	const chain = [
+		'stock.command-pod',
+		'stock.reaction-wheel',
+		'stock.tank-small',
+		'stock.tank-small',
+		'stock.engine-lv'
+	];
+	const parts: VesselDesign['parts'] = chain.map((part, index) => ({
+		index,
+		part: partId(part),
+		parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
+	}));
+	const engines = [4];
+	const decouplers: number[] = [];
+	for (let k = 0; k < n; k++) {
+		const angle = (2 * Math.PI * k) / n;
+		parts.push(
+			{
+				index: 10 + 3 * k,
+				part: partId('stock.radial-decoupler'),
+				parent: { index: 3, parentNode: 'surface', node: 'radial', radial: { angle, y: 0 } },
+				symmetry: 1
+			},
+			{
+				index: 11 + 3 * k,
+				part: partId('stock.booster'),
+				parent: { index: 10 + 3 * k, parentNode: 'outer', node: 'radial' },
+				symmetry: 2
+			},
+			{
+				index: 12 + 3 * k,
+				part: partId('stock.nose-cone'),
+				parent: { index: 11 + 3 * k, parentNode: 'top', node: 'bottom' },
+				symmetry: 3
+			}
+		);
+		engines.push(11 + 3 * k);
+		decouplers.push(10 + 3 * k);
+	}
+	for (let k = 0; k < finCount; k++) {
+		parts.push({
+			index: 40 + k,
+			part: partId('stock.fin'),
+			parent: {
+				index: 3,
+				parentNode: 'surface',
+				node: 'radial',
+				// Between the boosters when there are some.
+				radial: { angle: (2 * Math.PI * (k + (n > 0 ? 0.5 : 0))) / finCount, y: fins.y }
+			},
+			symmetry: 4
+		});
+	}
+	return {
+		formatVersion: 2,
+		name: `Boosted ${n}`,
+		parts,
+		stages: n > 0 ? [engines, decouplers] : [engines]
+	};
+}

@@ -77,6 +77,8 @@ export interface PartState {
 	definition: string;
 	/** Origin in the design frame (design root at the origin), m. Never changes. */
 	designPos: Vec3;
+	/** Turn about the design +Y axis, rad (radial parts face their parent, ADR 0034). */
+	yaw: number;
 	attachments: Attachment[];
 	/** Skin temperature, K (ADR 0023). */
 	temperature: number;

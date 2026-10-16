@@ -19,7 +19,7 @@ import {
 	type SimCore
 } from './core.ts';
 import { partPose, partVelocity } from './frames.ts';
-import { ZERO, qAboutY, qRotate } from './math.ts';
+import { ZERO, qAboutY, qMul, qRotate } from './math.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
@@ -42,7 +42,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	if (frame) {
 		const root = partPose(core, frame, vessel.root);
 		position = root.position;
-		orientation = root.rotation;
+		orientation = vessel.orientation; // the body axes; a part's own yaw is in its snapshot
 		velocity = add(frame.velocity, partVelocity(core, frame, vessel.root));
 		for (const partEntity of vessel.parts) {
 			const pose = partPose(core, frame, partEntity);
@@ -67,7 +67,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				id: partEntity,
 				definition: partId(p.definition),
 				position: qRotate(orientation, sub(p.designPos, rootDesign)),
-				orientation,
+				orientation: p.yaw === 0 ? orientation : qMul(orientation, qAboutY(p.yaw)),
 				modules: moduleViews(core, partEntity),
 				temperature: p.temperature
 			});
