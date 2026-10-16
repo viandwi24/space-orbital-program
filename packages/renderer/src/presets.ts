@@ -16,9 +16,8 @@ export interface PresetSettings {
 	post: boolean;
 	/** Bloom runs at this fraction of the canvas size. */
 	bloomScale: number;
-	/** Ray-march samples along the view ray / the sun ray in the sky shader. */
+	/** Ray-march samples along the view ray in the sky shader (the sun ray is one fetch of the sun-depth table, ADR 0053). */
 	viewSamples: number;
-	lightSamples: number;
 	/** Noise octaves for the ground detail and the clouds. */
 	groundOctaves: number;
 	cloudOctaves: number;
@@ -58,7 +57,6 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		post: false,
 		bloomScale: 0.25,
 		viewSamples: 8,
-		lightSamples: 3,
 		groundOctaves: 8,
 		cloudOctaves: 3,
 		mapWidth: 512,
@@ -83,7 +81,6 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		post: true,
 		bloomScale: 0.5,
 		viewSamples: 12,
-		lightSamples: 4,
 		groundOctaves: 11,
 		cloudOctaves: 4,
 		mapWidth: 1024,
@@ -108,7 +105,6 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		post: true,
 		bloomScale: 0.5,
 		viewSamples: 12,
-		lightSamples: 5,
 		groundOctaves: 11,
 		cloudOctaves: 4,
 		mapWidth: 1024,

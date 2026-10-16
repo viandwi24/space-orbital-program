@@ -42,6 +42,7 @@
 	/** The text of the last Run: its error line only means something while the editor still holds it. */
 	let ranSource = $state<string | null>(null);
 	let pauseOpen = $state(false);
+	let autoQuality = $state(true);
 	let helpOpen = $state(false);
 	let deck = $state<InstrumentDeck>();
 	let markers = $state<MapMarkers>();
@@ -98,6 +99,7 @@
 			}
 		});
 		flight = started;
+		autoQuality = started.autoQuality;
 		return () => {
 			offSandbox();
 			window.removeEventListener('hashchange', importFromHash);
@@ -275,6 +277,11 @@
 			met={model?.met ?? 0}
 			onresume={() => (pauseOpen = false)}
 			oncontrols={() => (helpOpen = true)}
+			{autoQuality}
+			onautoquality={(on) => {
+				autoQuality = on;
+				flight?.setAutoQuality(on);
+			}}
 		/>
 		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
 	{/if}

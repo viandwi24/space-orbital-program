@@ -28,3 +28,16 @@ export function radarAltitude(
 /** Whether the HUD shows the radar read-out: there is data and the ground is near enough to matter. */
 export const radarVisible = (radar: number | null): radar is number =>
 	radar !== null && radar <= RADAR_MAX_ALTITUDE;
+
+/**
+ * The number the HUD shows: the radar altitude, or `null` when there is no terrain data or the
+ * ground is out of reach (`RADAR_MAX_ALTITUDE`). Arguments as for `radarAltitude`.
+ */
+export function radarReading(
+	altitude: number,
+	clearance: number,
+	terrainHeight: number | undefined
+): number | null {
+	const radar = radarAltitude(altitude, clearance, terrainHeight);
+	return radarVisible(radar) ? radar : null;
+}

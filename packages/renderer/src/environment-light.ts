@@ -36,7 +36,7 @@ export class EnvironmentLight {
 			fragmentShader: skyEnvFragment,
 			side: BackSide,
 			depthWrite: false,
-			defines: { VIEW_SAMPLES: 8, LIGHT_SAMPLES: 3 },
+			defines: { VIEW_SAMPLES: 8 },
 			uniforms: {
 				...createAtmosphereUniforms(environment.atmosphere),
 				uUp: { value: new Vector3(0, 1, 0) },

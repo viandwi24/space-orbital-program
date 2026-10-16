@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RADAR_MAX_ALTITUDE, radarAltitude, radarVisible } from './radar';
+import { RADAR_MAX_ALTITUDE, radarAltitude, radarReading, radarVisible } from './radar';
 
 describe('radar altitude', () => {
 	it('is the height above the ground under the vessel, not above the sphere', () => {
@@ -31,5 +31,16 @@ describe('radar altitude', () => {
 		expect(radarVisible(0)).toBe(true);
 		expect(radarVisible(RADAR_MAX_ALTITUDE)).toBe(true);
 		expect(radarVisible(RADAR_MAX_ALTITUDE + 1)).toBe(false);
+	});
+});
+
+describe('radar reading for the HUD model', () => {
+	it('is absent without terrain data', () => expect(radarReading(1800, 3, undefined)).toBeNull());
+	it('is the height above the ground on a hillside', () => {
+		expect(radarReading(1800, 3, 1650)).toBe(147);
+	});
+	it('is absent above the read-out limit', () => {
+		expect(radarReading(30_000, 3, 1650)).toBeNull();
+		expect(radarReading(RADAR_MAX_ALTITUDE + 10, 0, 10)).toBe(RADAR_MAX_ALTITUDE);
 	});
 });

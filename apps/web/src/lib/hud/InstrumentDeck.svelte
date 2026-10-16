@@ -116,6 +116,12 @@
 		<div class="sub num">
 			<span class="unit">above</span> <span>{model?.body ?? ''}</span>
 		</div>
+		{#if model && model.radar !== null}
+			<div class="sub num" title="Height above the ground under the vessel">
+				<span class="unit">radar</span>
+				<span data-testid="hud-radar">{formatDistance(model.radar)}</span>
+			</div>
+		{/if}
 	</div>
 </section>
 

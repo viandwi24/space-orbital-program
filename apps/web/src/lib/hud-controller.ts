@@ -31,6 +31,7 @@ import {
 	situationLabel,
 	vesselThrottle
 } from './hud-model';
+import { radarReading } from './radar';
 import { bodyMu, orbitInfo, type OrbitInfo } from './orbit-info';
 import type { SimEventMessage, StageEvent } from './sim-client';
 import { nextSpeedMode, speedReadout, type SpeedMode, type SpeedModePreference } from './speed';
@@ -65,6 +66,8 @@ export interface HudModel {
 	phase: FlightPhase | null;
 	met: number;
 	altitude: number;
+	/** Height of the vessel's lowest point above the ground under it, m; null without terrain data or above 20 km (plan 039). */
+	radar: number | null;
 	speed: number;
 	speedMode: SpeedMode;
 	speedPreference: SpeedModePreference;
@@ -332,6 +335,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				phase: tele.phase,
 				met: snap.t,
 				altitude: Math.max(0, tele.altitude - clearance),
+				radar: radarReading(tele.altitude, clearance, v.terrainHeight),
 				speed: read.speed,
 				speedMode: read.mode,
 				speedPreference: preference,

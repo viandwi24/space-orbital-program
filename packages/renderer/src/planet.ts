@@ -558,7 +558,6 @@ export class PlanetPass {
 	private definesFor(s: PresetSettings): Record<string, number> {
 		return {
 			VIEW_SAMPLES: s.viewSamples,
-			LIGHT_SAMPLES: s.lightSamples,
 			GROUND_OCTAVES: s.groundOctaves,
 			CLOUD_OCTAVES: s.cloudOctaves,
 			CLOUDS: 1,
@@ -577,8 +576,7 @@ export class PlanetPass {
 			TERRAIN_STEPS: Math.max(1, s.terrainSteps),
 			TERRAIN_PRE_STEPS: Math.max(1, s.terrainSteps),
 			TERRAIN_SHADOW_STEPS: 0,
-			VIEW_SAMPLES: 1,
-			LIGHT_SAMPLES: 1
+			VIEW_SAMPLES: 1
 		};
 	}
 

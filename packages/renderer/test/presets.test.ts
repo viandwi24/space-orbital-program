@@ -50,7 +50,6 @@ describe('presets', () => {
 			'shadowMapSize',
 			'bloomScale',
 			'viewSamples',
-			'lightSamples',
 			'groundOctaves',
 			'cloudOctaves',
 			'mapWidth',
