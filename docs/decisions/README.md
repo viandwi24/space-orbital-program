@@ -44,3 +44,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0023 | [Re-entry heating and part temperature](0023-reentry-heating-and-part-temperature.md) | accepted | 2026-10-16 |
 | 0024 | [Surface-fixed rails for controlled vessels at rest on the ground](0024-surface-fixed-rails.md) | accepted | 2026-10-16 |
 | 0025 | [Release-quality visual bar, procedural first](0025-release-quality-visual-bar.md) | accepted | 2026-10-16 |
+| 0027 | [Environment rendering pipeline: analytic planet and sky, one sun, post chain, presets](0027-environment-rendering-pipeline.md) | accepted | 2026-10-16 |

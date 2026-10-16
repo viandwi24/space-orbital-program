@@ -28,11 +28,12 @@
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | done | script-web session | ADR 0022; runner in the sim Worker, script panel in `/flight`; sample ascent from the panel reaches a 76.9 km periapsis, `while (true) {}` is terminated at the 10 ms budget with the page live |
 | 017 | [Script panel follow-ups and landed HUD](plans/017-script-panel-follow-ups.md) | done | panel session | no ADR; script text persists per design, HUD stage counter follows `stage:activated` (a script's `stage()` counts), HUD shows landed/orbit/suborbital/flight with warp buttons; dev autopilot starts from surface rails |
 | 018 | [Script sharing container and ship API constants](plans/018-script-sharing-and-ship-api.md) | draft | — | split from 017: runner in its own Worker when scripts become shareable, engine/wheel constants in `ship` |
-| 019 | [Visual: flight environment](plans/019-flight-environment.md) | draft | — | sky/atmosphere, planet shading, launch site, sun + shadows, clouds, presets; see `product/visual-direction.md` |
+| 019 | [Visual: flight environment](plans/019-flight-environment.md) | done | environment session | ADR 0027; analytic planet + atmosphere + clouds + stars pass, launch site, sun with shadows, bloom/ACES chain, presets low/medium/high (`Renderer.setPreset`); 1080p high 8-15 ms on an M5, M1/M2 not measured; launch site inferred from the first vessel (sim places at an inertial longitude, see plan 025) |
 | 020 | [Visual: part models, materials and effects](plans/020-part-models-and-effects.md) | draft | — | procedural part meshes, PBR, plume/smoke/re-entry glow/explosions; needs 019 |
 | 021 | [UI: design system and flight HUD](plans/021-hud-and-ui-design-system.md) | draft | — | navball, gauges, stage stack with Δv, toasts, pause menu, surface speed |
 | 022 | [UI: 3D vehicle assembly building](plans/022-vab-3d.md) | draft | — | 3D hangar, part catalogue with icons, node picking, Δv/TWR, validation; needs 020, 021 |
 | 023 | [Release readiness](plans/023-release-readiness.md) | draft | — | menus, settings, perf budget, polish, release checklist; needs 019–022 |
+| 025 | [Visual: environment follow-ups](plans/025-environment-follow-ups.md) | draft | — | terrain heights, vegetation, weather, sim launch-site coordinates, M1/M2 tuning; from the 019 self-review |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -46,6 +47,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Known issues / open questions
 
+- Launch site of the renderer is inferred from the first vessel near the ground, because `placeOnSurface` uses an inertial longitude and the body is already turning at load time (ADR 0027, draft plan 025). The first body is drawn by the planet pass; other bodies are plain lit spheres. Frame times are measured on an Apple M5 only.
 - Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
@@ -57,6 +59,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [019 — Visual: flight environment](journal/019-flight-environment.md)
 - [017 — Script panel follow-ups and landed HUD](journal/017-script-panel-follow-ups.md)
 - [016 — Landed vessels on surface-fixed rails](journal/016-landed-vessels-on-rails.md)
 - [015 — Scripting in the web client](journal/015-scripting-web-integration.md)

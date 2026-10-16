@@ -28,6 +28,10 @@ Orbital is a Bun workspace monorepo. The structure exists to enforce one idea: *
 
 Arrows point from importer to imported. The full rule set is in `boundaries.md`.
 
+### Flight environment (plan 019, ADR 0027)
+
+`packages/renderer` draws the home body as one analytic fullscreen pass (`planet.ts` + `shaders/`): exact planet sphere, single-scattering Rayleigh + Mie atmosphere seen from the ground or from orbit, biome ground and ocean from a generated map (`planet-map.ts`) plus distance-limited noise, a cloud shell with ground shadows, stars and the sun disc, writing a logarithmic `gl_FragDepth` so meshes and lines sort against it. `environment.ts` owns that pass, the sun `DirectionalLight` (colour from the atmosphere transmittance), the sky ambient, the fog, the exposure and the shadow camera that follows the vessel (`shadow-fit.ts`); `site-meshes.ts` builds the launch site from the pure layout in `site.ts` and `scene.ts` places it on the rotating body. The facade (`renderer.ts`) adds the post chain (`post.ts`: bloom, ACES tone mapping, sRGB), image-based light from a procedural sky (`environment-light.ts`), presets (`presets.ts`, `Renderer.setPreset`) and a dev-only `Renderer.debug`. Pure maths (sun, atmosphere, exposure, planet map, site layout, presets, shadow fit, precision frame) is tested in Bun; the GLSL is verified in the browser (journal 019). The sim places a vessel at an inertial latitude/longitude at load time, so the renderer takes the launch site from the first vessel seen near the ground (`SceneModel.lockLaunchSite`).
+
 ## Layers
 
 | Layer | Packages | Environment | Knows about |
