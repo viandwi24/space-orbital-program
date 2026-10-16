@@ -14,8 +14,10 @@ import {
 	Mesh,
 	MeshLambertMaterial,
 	PerspectiveCamera,
+	Quaternion,
 	Scene,
-	SphereGeometry
+	SphereGeometry,
+	Vector3
 } from 'three';
 import {
 	FLIGHT_RIG_LIMITS,
@@ -223,7 +225,18 @@ export class SceneModel {
 			rig = this.flightRig;
 		}
 		const o = rigOffset(rig);
-		this.camera.position.set(target.x + o.x, target.y + o.y, target.z + o.z);
+		// Flight view: "up" is away from the SOI body (the pad is not at the pole), so the vessel
+		// stands upright on screen. Map view keeps +Y (the body's rotation axis) up.
+		const up = new Vector3(0, 1, 0);
+		if (!this.map && active) {
+			const r = new Vector3(active.position.x, active.position.y, active.position.z);
+			if (r.lengthSq() > 0) up.copy(r.normalize());
+		}
+		const offset = new Vector3(o.x, o.y, o.z).applyQuaternion(
+			new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), up)
+		);
+		this.camera.up.copy(up);
+		this.camera.position.set(target.x + offset.x, target.y + offset.y, target.z + offset.z);
 		this.camera.lookAt(target.x, target.y, target.z);
 	}
 

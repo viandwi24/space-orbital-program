@@ -71,6 +71,18 @@ describe('SceneModel', () => {
 		expect(m.camera.position.distanceTo(group.position)).toBeCloseTo(25, 6);
 	});
 
+	test('flight camera is upright relative to the SOI body, map camera keeps +Y up', () => {
+		const m = make();
+		m.sync(snap(0, vessel(1, 0, 0, R + 100)));
+		expect(m.camera.up.z).toBeCloseTo(1, 9);
+		const target = m.scene.children.find((c) => c.type === 'Group')!.position;
+		// the camera sits on the outside of the vessel, not below the surface
+		expect(m.camera.position.z).toBeGreaterThan(target.z);
+		m.setMapView(true);
+		m.sync(snap(0, vessel(1, 0, 0, R + 100)));
+		expect(m.camera.up.y).toBeCloseTo(1, 9);
+	});
+
 	test('part meshes use host shapes; unknown ids fall back to a 1 m box', () => {
 		const m = new SceneModel({
 			bodies: [{ id: BODY, radius: R }],
