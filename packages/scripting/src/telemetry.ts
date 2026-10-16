@@ -7,6 +7,7 @@ import {
 	GRAVITATIONAL_CONSTANT,
 	type BodyDefinition,
 	type PartDefinition,
+	type SasMode,
 	type ResourceDefinition,
 	type Snapshot,
 	type Vec3,
@@ -94,6 +95,8 @@ export interface Telemetry {
 	/** Engines and reaction wheels read from the part definitions (plan 018); gone with their part. */
 	engines: TelemetryEngine[];
 	wheels: TelemetryWheel[];
+	/** Stability assist mode the sim reports (plan 042); `off` when the sim does not report one. */
+	sas: SasMode;
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -231,6 +234,7 @@ export function buildTelemetry(
 			modules: JSON.parse(JSON.stringify(p.modules)) as Record<string, unknown>
 		})),
 		engines,
-		wheels
+		wheels,
+		sas: v.sas?.mode ?? 'off'
 	};
 }

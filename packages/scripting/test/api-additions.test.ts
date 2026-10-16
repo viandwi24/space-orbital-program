@@ -1,5 +1,6 @@
 /** Plan 032: `bodies`, deterministic `Date`, command feedback, the fuel count and `warp`. */
 import { expect, test } from 'bun:test';
+import { entityId } from '@orbital/core';
 import { MAX_SCRIPT_WARP } from '../src/index.ts';
 import { newRig } from './helpers.ts';
 
@@ -147,5 +148,40 @@ test('fuel: a runaway ends after the same number of polls on every run, whatever
 		now: () => 0
 	});
 	for (let i = 0; i < 5; i++) expect(harmless.tick(rig.sim.snapshot()).status).toBe('running');
+	rig.sim.dispose();
+});
+
+test('ship.sas sets the stability assist mode through the command path and reads back the same', async () => {
+	const rig = await newRig();
+	const runner = await rig.runner(`
+		print(ship.sas);
+		ship.sas = 'prograde';
+		print(ship.sas);
+		ship.sas = 'prograde';
+		await nextTick();
+		print(ship.sas);
+		try { ship.sas = 'sideways'; } catch (e) { print(e.name); }
+		try { ship.sas = 3; } catch (e) { print(e.name); }
+		ship.sas = 'off';
+	`);
+	const first = rig.drive(runner);
+	expect(first.commands).toHaveLength(1);
+	expect(first.commands[0]).toMatchObject({ type: 'sas', mode: 'prograde' });
+	expect(first.commands[0]).not.toHaveProperty('reference');
+	expect(rig.sim.snapshot().vessels[0]!.sas?.mode).toBe('prograde');
+	// the repeat in the same tick was not sent again; the next tick reads the sim's own mode
+	const second = rig.drive(runner);
+	expect(runner.logs).toEqual(['off', 'prograde', 'prograde', 'TypeError', 'TypeError']);
+	expect(second.commands).toMatchObject([{ type: 'sas', mode: 'off' }]);
+	expect(runner.status).toBe('finished');
+	rig.sim.dispose();
+});
+
+test('ship.sas reports a mode the player set from the HUD', async () => {
+	const rig = await newRig();
+	rig.sim.dispatch({ type: 'sas', vessel: entityId(rig.vessel), mode: 'hold' });
+	const runner = await rig.runner(`print(ship.sas);`);
+	runner.tick(rig.sim.snapshot());
+	expect(runner.logs).toEqual(['hold']);
 	rig.sim.dispose();
 });

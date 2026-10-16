@@ -17,6 +17,9 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	let tickWaiters = [];
 	let throttle = 0;
 	let attitude = { pitch: 0, yaw: 0, roll: 0 };
+	// A mode set this tick reads back at once; the next snapshot carries the sim's own value.
+	let sasPending = null;
+	const SAS_MODES = ['off', 'hold', 'prograde', 'retrograde', 'normal', 'antinormal', 'radial-out', 'radial-in'];
 	let defined = false;
 
 	// Seeded PRNG (mulberry32): a script's Math.random must not depend on the host.
@@ -103,6 +106,18 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 		}
 	});
 
+	Object.defineProperty(ship, 'sas', {
+		enumerable: true,
+		get: () => (sasPending !== null ? sasPending : needTelemetry().sas),
+		set: (mode) => {
+			if (typeof mode !== 'string' || !SAS_MODES.includes(mode)) {
+				throw new TypeError('ship.sas must be one of ' + SAS_MODES.join(', '));
+			}
+			track('sas', host.cmd('sas', JSON.stringify({ mode })));
+			sasPending = mode;
+		}
+	});
+
 	const wait = (seconds) => {
 		if (typeof seconds !== 'number' || !(seconds >= 0) || !isFinite(seconds)) {
 			throw new RangeError('wait(seconds) needs a finite number >= 0');
@@ -131,6 +146,7 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	return {
 		update(json, verdictsJson) {
 			T = JSON.parse(json);
+			sasPending = null;
 			refusals = [];
 			for (const v of JSON.parse(verdictsJson)) {
 				const entry = sent.get(v.seq);
@@ -144,6 +160,7 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 				defined = true;
 				Object.defineProperty(ship, 'refusals', { enumerable: true, get: () => refusals });
 				for (const key of Object.keys(T)) {
+					if (key === 'sas') continue;
 					Object.defineProperty(ship, key, { enumerable: true, get: () => T[key] });
 				}
 				Object.freeze(ship);

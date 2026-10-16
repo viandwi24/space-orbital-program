@@ -31,9 +31,10 @@ print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 
 | Name | What it does |
 |---|---|
-| `ship` | read-only telemetry (below) plus the two writable setpoints `ship.throttle` and `ship.attitude` |
+| `ship` | read-only telemetry (below) plus the writable setpoints `ship.throttle`, `ship.attitude` and `ship.sas` |
 | `ship.throttle = x` | engine throttle, 0 to 1; reading returns the last value you set |
 | `ship.attitude = { pitch, yaw, roll }` | steering demand for the reaction wheels, each -1 to 1, missing keys are 0. This is a torque demand, not a target angle: you need a control loop (the sample has a PD loop) |
+| `ship.sas = 'prograde'` | stability assist mode (plan 042): `'off'`, `'hold'`, `'prograde'`, `'retrograde'`, `'normal'`, `'antinormal'`, `'radial-out'` or `'radial-in'`; any other value throws a `TypeError`. The game holds or points the vessel with its reaction wheels, gimbal and control surfaces, so a script can fly a gravity turn with `ship.sas = 'prograde'` instead of a control loop. Reading returns the mode the game reports (the player may switch it with `T` or the buttons) |
 | `stage()` | fire the next stage; returns a promise of `{ ok, reason? }` (see "Command feedback") |
 | `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)`; returns a promise of `{ ok, reason? }` |
 | `warp(factor)` | ask for time warp, 1 to 100 000; returns a promise of `{ ok, reason? }` that settles when the game has answered (see "Time warp") |
@@ -44,7 +45,7 @@ print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 | `time()` | simulation time, s (same as `ship.t`) |
 | `print(...)` | append a line to the panel log (strings as is, other values as JSON) |
 
-Invalid arguments throw inside the script (`RangeError`, `TypeError`) and issue nothing. A repeated identical throttle or attitude is not sent twice. Standard JavaScript built-ins are available (`Math`, `JSON`, `Date`, `Promise`, typed arrays, ...); `Math.random` is seeded and repeatable, and `Date` reads the **simulation** clock: `Date.now()` and `new Date()` are simulation seconds since the start times 1000, so a script behaves the same on every run (`new Date(2000, 0, 1)` and the other forms with arguments work as usual). There is no `fetch`, `window`, `document`, `process`, `console` or timers (`setTimeout`): use `wait`.
+Invalid arguments throw inside the script (`RangeError`, `TypeError`) and issue nothing. A repeated identical throttle, attitude or SAS mode is not sent twice. Standard JavaScript built-ins are available (`Math`, `JSON`, `Date`, `Promise`, typed arrays, ...); `Math.random` is seeded and repeatable, and `Date` reads the **simulation** clock: `Date.now()` and `new Date()` are simulation seconds since the start times 1000, so a script behaves the same on every run (`new Date(2000, 0, 1)` and the other forms with arguments work as usual). There is no `fetch`, `window`, `document`, `process`, `console` or timers (`setTimeout`): use `wait`.
 
 ## `ship` telemetry
 
@@ -65,7 +66,8 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 | `parts[]` | `{ id, definition, position, mass, modules }`: every part; `position` relative to the root in the inertial frame, `mass` the dry mass (kg), `modules` the module states by module id (an engine: `{ ignited, throttle, flameout }`, a tank: `{ amounts: { resource: units } }`) |
 | `engines[]` | `{ part, module, thrust, ispVacuum, ispSeaLevel, ignited, throttle, flameout }`: vacuum thrust at full throttle (N), Isp (s), and the engine's state |
 | `wheels[]` | `{ part, module, torque, enabled }`: maximum torque per axis (N m) of each reaction wheel |
-| `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle` and `attitude`, which have no return value) |
+| `sas` | the stability assist mode the game reports (also the setter above) |
+| `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle`, `attitude` and `sas`, which have no return value) |
 
 `engines` and `wheels` list the parts still attached, so they change when you stage. Any module whose configuration has `thrust`, `ispVacuum` and `ispSeaLevel` counts as an engine, and any with `torque` and an `enabled` state as a wheel, whoever made the mod. Exhaust speed is `ispVacuum * 9.80665`; with the engines that can still burn, `burn time = mass * ve * (1 - exp(-dv / ve)) / thrust` (the sample does this to time its circularisation burn).
 
@@ -88,7 +90,7 @@ const fired = await stage();
 if (!fired.ok) print('no stage fired: ' + fired.reason);
 ```
 
-`ship.throttle = x` and `ship.attitude = {...}` have no return value; if the game refuses one, it appears in `ship.refusals` on the following tick. A repeated identical setpoint is not sent, so it cannot be refused.
+`ship.throttle = x`, `ship.attitude = {...}` and `ship.sas = mode` have no return value; if the game refuses one, it appears in `ship.refusals` on the following tick. A repeated identical setpoint is not sent, so it cannot be refused.
 
 ## Time warp
 

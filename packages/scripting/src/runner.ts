@@ -201,6 +201,7 @@ export async function createScriptRunnerIn(
 	let nextSeq = 1;
 	let lastThrottle: number | undefined;
 	let lastAttitude: string | undefined;
+	let lastSas: string | undefined;
 	const logs: string[] = [];
 	const handles: QuickJSHandle[] = [];
 
@@ -254,6 +255,9 @@ export async function createScriptRunnerIn(
 			case 'attitude':
 				candidate = { type: 'attitude', vessel, pitch: p.pitch, yaw: p.yaw, roll: p.roll };
 				break;
+			case 'sas':
+				candidate = { type: 'sas', vessel, mode: p.mode };
+				break;
 			case 'stage':
 				candidate = { type: 'stage', vessel };
 				break;
@@ -289,6 +293,9 @@ export async function createScriptRunnerIn(
 			const key = `${command.pitch},${command.yaw},${command.roll}`;
 			if (key === lastAttitude) return NOT_SENT;
 			lastAttitude = key;
+		} else if (command.type === 'sas') {
+			if (command.mode === lastSas) return NOT_SENT;
+			lastSas = command.mode;
 		}
 		const seq = nextSeq++;
 		pending.push(command);
