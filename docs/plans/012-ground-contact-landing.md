@@ -39,3 +39,4 @@ Replace plan 007's idealised ground (a sphere that zeroes relative velocity, a p
 ## Log
 
 - 2026-10-16 — Created as draft by plan 007 (ground contact is idealised there).
+- 2026-10-16 — Note from plan 011 (done): vessels are one compound rigid body (ADR 0018); the pad hold is not needed for the tests when the ground clamp sticks the rigid body (experiment in journal 011), so this plan can remove it. See "For plan 012" in journal 011.

@@ -15,7 +15,7 @@ Use these terms consistently in code, docs, and UI.
 | **SDK** | `@orbital/sdk`: the only package a mod may import from. |
 | **Core** | `@orbital/core`: environment-neutral runtime (world, registries, events, loader). |
 | **Sim** | `@orbital/sim`: the fixed-timestep simulation loop that drives the world. |
-| **Flight mode** | Vessel simulated as rigid bodies with joints (physics backend active). |
+| **Flight mode** | Vessel simulated as one compound rigid body (physics backend active); split into two bodies when a decoupler fires. |
 | **On rails** | Vessel propagated analytically along a Keplerian orbit; no physics backend. Enables time warp. |
 | **Orbital elements** | The classical set `{ a, e, i, raan, argp, m0, epoch }` describing a two-body orbit (`@orbital/kepler`). Conventions in `architecture/units-and-frames.md`. |
 | **Time warp** | Simulation time runs faster than wall time. Only on rails (physics warp is out of scope for MVP). |

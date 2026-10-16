@@ -1,6 +1,6 @@
 # Simulation
 
-`@orbital/sim` drives the world. It is a library: `await createSim(options)` returns an object with `step(wallDelta)`, `dispatch(command)` and `snapshot()`, and no knowledge of where it runs (Bun, Worker, main thread). Shipped by plan 007; decisions in ADR 0015 (module capability API), 0016 (design format, protocol) and 0017 (flight model). Code: `packages/sim/src` (`sim.ts` loop and API, `commands.ts`, `vessel.ts`, `frames.ts`, `modes.ts`, `orbit.ts`, `resources.ts`, `hooks.ts`, `snapshot.ts`, `aero.ts`, `atmosphere.ts`, `parts.ts`, `state.ts`).
+`@orbital/sim` drives the world. It is a library: `await createSim(options)` returns an object with `step(wallDelta)`, `dispatch(command)` and `snapshot()`, and no knowledge of where it runs (Bun, Worker, main thread). Shipped by plan 007; decisions in ADR 0015 (module capability API), 0016 (design format, protocol) and 0017 (flight model). Code: `packages/sim/src` (`sim.ts` loop and API, `commands.ts`, `vessel.ts`, `frames.ts`, `modes.ts`, `orbit.ts`, `resources.ts`, `hooks.ts`, `snapshot.ts`, `aero.ts`, `atmosphere.ts`, `parts.ts`, `mass.ts`, `state.ts`). Rigid grouping: ADR 0018.
 
 ## API
 
@@ -30,13 +30,13 @@ while accumulator >= dt:
     else:                      railsStep(min(accumulator, 10 s))
 ```
 
-`flightStep`: run `pre-physics` systems; per active frame: masses → backend, gravity, every module's `update` (thrust, torque, propellant), drag; apply queued `detach` requests (splits); `backend.step(dt)`; advance the frame origin; pad hold; ground contact (and destruction of crashed debris); re-anchor; refresh vessel poses; then `updateOnRails` for rails vessels, `t += dt`, `post-physics` systems, idle bookkeeping and automatic rails transitions.
+`flightStep`: run `pre-physics` systems; per active frame: mass properties → backend (when a part mass changed), gravity, every module's `update` (thrust, torque, propellant), drag; `backend.step(dt)`; advance the frame origin; pad hold; ground contact (and destruction of crashed debris); re-anchor; refresh vessel poses; apply queued `detach` requests (splits, after the step so no queued force is lost); then `updateOnRails` for rails vessels, `t += dt`, `post-physics` systems, idle bookkeeping and automatic rails transitions.
 
 ## Vessel modes
 
 | Mode | What runs |
 |---|---|
-| **flight** | one box body per part in a flight frame, fixed joints per attachment, gravity as a force per body, drag, ground contact, modules' `update` |
+| **flight** | one compound rigid body per vessel in a flight frame (a box collider per part), gravity at the centre of mass, drag per part, ground contact, modules' `update` |
 | **on-rails** | centre-of-mass state from the stored Kepler elements (or state vector), attitude frozen, modules' `updateOnRails`, no backend |
 
 - flight → on-rails (`modes.ts`): automatically, when no module applied a force or torque for 2 s, the vessel is not in ground contact, and its periapsis radius is above `R + atmosphere.height` (`R` for an airless body). The state is the centre of mass; `kepler.fromStateVector` provides elements, and when it throws `KeplerError` (near-parabolic) the state vector is kept and propagated with `propagateUniversal`. Radial states have periapsis 0 and never go on rails. A `state` placement in a stable orbit is created on rails directly.
@@ -65,14 +65,15 @@ A flat list; `index` is any unique non-negative integer (stable under edits), `p
 ## Assembly and physics
 
 - A vessel and each part are world entities (`sim.vessel`, `sim.part`, `sim.module-state:<module id>` components, ADR 0010); physics handles live outside the world, in the frame.
-- One rigid body per part: a box `(r, h/2, r)` for cylinder shapes (explicit cylinder inertia), the shape's box, or 1 m without a shape. Mass = dry mass + Σ container contents × density, pushed to the backend whenever it changes. Each attachment is a fixed joint at the nodes. Rigid grouping remains plan 011.
+- **One rigid body per vessel** (ADR 0018, plan 011): a `compound` shape with one box collider per part (a box `(r, h/2, r)` for cylinder shapes, the shape's box, or 1 m without a shape) at `designPos − root.designPos`; the body origin is the root part's origin, so part poses are `body pose ∘ constant offset`. No joints. Part mass = dry mass + Σ container contents × density; whenever any part mass changed the sim recomputes the vessel's mass, centre of mass and full inertia tensor (parts' own inertia — solid cylinder or box — plus parallel axis; diagonalised by Jacobi into principal moments and a frame, `mass.ts`) and calls `setMass`. A 100-part stack costs one body and about 25 µs of backend time instead of 100 bodies, 99 joints and about 600 µs, and cannot flex.
+- Forces: gravity is one force at the centre of mass, drag is applied per part at its origin, module forces act on the vessel body at the part origin (or the given point); a reaction wheel's torque turns the whole vessel.
 - Gravity: `a = −μ r / |r|³` as a force on each body, `μ = G·M` of the root body (point mass). Rotation: `2π / rotationPeriod` about +Y; the launch site and the atmosphere co-rotate.
 - Ground: the reference sphere. A body below it is pushed out and its velocity relative to the rotating ground zeroed. Surface placements are pad-held until thrust exceeds weight. Uncontrolled vessels hitting the ground faster than 10 m/s are destroyed.
 - Atmosphere: `p = p0·exp(−h/H)` below the atmosphere height, `ρ = p / (287.05 · 288.15)`. Drag per part and per body axis `−½ρC_d A_i |v_i| v_i`, `C_d = 0.3` (no lift, no fins).
 
 ## Staging, splitting, resources
 
-- `stage` runs `onStage` on the modules of `stages[nextStage]` and advances the counter. A module may call `ctx.vessel.detach(node, impulse)` (the stock decoupler does); after the hooks the sim removes that joint and splits the vessel: the side with a control source keeps the vessel id (the side with the old root if both or neither has one), the other becomes a new vessel (`<name> (debris)`, throttle 0, no stages), and the halves get equal and opposite momentum `impulse` along the node direction.
+- `stage` runs `onStage` on the modules of `stages[nextStage]` and advances the counter. A module may call `ctx.vessel.detach(node, impulse)` (the stock decoupler does); after the hooks the sim cuts that attachment and splits the vessel (in flight: the one body is removed and one body per side is created, each side with the mass-weighted velocity of its parts and the old angular velocity, so momentum and angular momentum are conserved; the order is kept side first, then the new side): the side with a control source keeps the vessel id (the side with the old root if both or neither has one), the other becomes a new vessel (`<name> (debris)`, throttle 0, no stages), and the halves get equal and opposite momentum `impulse` along the node direction.
 - Resources are generic (`ResourceStore` modules, `flowMode`, `crossfeed`, ADR 0015): `none` nothing, `vessel` every store on the vessel, `stack` breadth-first from the requesting part never entering a part with `crossfeed: false`, nearest store first. Shortfall is the module's business (stock engines flame out and emit `stock:engine-flameout`).
 - Hooks get `ModuleContext` with `vessel: VesselApi` (`plugin-system.md`).
 
@@ -101,11 +102,11 @@ type Command =
 
 - **Part frame (precise):** `PartSnapshot.position` = part origin − vessel root origin, **in BCI axes** (already rotated by the vessel's attitude, not in the vessel body frame); `PartSnapshot.orientation` = the part's absolute orientation. This is what the renderer applies today (`scene.ts` `syncParts`), so no renderer change was needed. `VesselSnapshot.position` is the root part's origin, not the centre of mass.
 - `throttle`, `attitude` and `stage` need a control source (`ModuleDefinition.controlSource`). `dispatch` validates with `commandSchema` and refuses with a reason; semantic refusals cover unknown vessels/parts/modules/actions, exhausted stages, bad designs, warp rules and a missing physics frame.
-- A snapshot of the two-stage vessel is about 2.8 kB of JSON and takes about 5 µs to build; a flight step of that vessel costs about 56 µs (Bun, Rapier compat), so 50 Hz stepping uses well under 1 % of a core and a snapshot per rendered frame is cheap.
+- A snapshot of the two-stage vessel is about 2.8 kB of JSON and takes about 5 µs to build; a flight step of that vessel costs about 56 µs (Bun, Rapier compat; measured before rigid grouping, a 100-part stack now costs about 145 µs per step, see journal 011), so 50 Hz stepping uses well under 1 % of a core and a snapshot per rendered frame is cheap.
 
 ## PhysicsBackend (`packages/core/src/physics-backend.ts`)
 
-Unchanged by plan 007: interface in core, `@orbital/physics` implements it (`createRapierBackend({ solverIterations? })`, async; `createMockBackend()`). Contract points the sim honours: everything in the local frame; forces last one step, so gravity, thrust, drag and torque are re-applied every step; `Velocity.angular` is about local-frame axes; impulses (decoupler ejection) are applied as direct velocity changes because the backend only has one-step forces. The mock backend ignores joints and collisions and is only suitable for hook-level tests.
+Interface in core (additive changes by plan 011: a `compound` `BodyShape`, `MassPlacement` — `centerOfMass`, `inertiaFrame` — in `BodyDesc` and as a fourth `setMass` argument; `getTransform` is the body origin, velocities are the centre of mass's; the sim creates no joints any more but `createFixedJoint` stays in the interface), `@orbital/physics` implements it (`createRapierBackend({ solverIterations? })`, async; `createMockBackend()`). Contract points the sim honours: everything in the local frame; forces last one step, so gravity, thrust, drag and torque are re-applied every step; `Velocity.angular` is about local-frame axes; impulses (decoupler ejection) are applied as direct velocity changes because the backend only has one-step forces. The mock backend ignores joints, collisions and the centre-of-mass offset and is only suitable for hook-level tests.
 
 ## Determinism
 
@@ -113,4 +114,4 @@ Fixed `dt`, seeded PRNG, no clock, entity creation and Map iteration orders fixe
 
 ## Known limits (MVP)
 
-Single root body (no SOI transitions), stack attachments only, no lift/fins/heat, no terrain or landing legs (ground is a sphere), one physics bubble of 2.5 km (second far vessel in flight is refused), attitude is frozen on rails, reaction-wheel torque acts on the wheel's own body.
+Rigid vessels (no flex, no breakage until plan 012), single root body (no SOI transitions), stack attachments only, no lift/fins/heat, no terrain or landing legs (ground is a sphere), one physics bubble of 2.5 km (second far vessel in flight is refused), attitude is frozen on rails, reaction-wheel torque acts on the wheel's own body.

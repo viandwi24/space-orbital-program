@@ -3,6 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-16
 **Plan:** plans/011-physics-rigid-grouping.md
+**Supersedes:** the "Bodies" and "Reaction wheel torque" points of [0017](0017-flight-model.md); the rest of 0017 stands.
 
 ## Context
 

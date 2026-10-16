@@ -17,7 +17,7 @@ Kerbal Space Program proved that realistic orbital mechanics can be fun when the
 
 1. In the **Vehicle Assembly** view, attach stock parts (tank, engine, decoupler, command pod, …) into a vessel. Stages are assigned.
 2. **Launch** from the surface of the home planet. Throttle, pitch/yaw/roll, stage.
-3. Physics is simulated per part with joints while under thrust or in atmosphere; once coasting in vacuum the vessel goes **on rails** (Keplerian orbit) and **time warp** becomes available.
+3. Physics is simulated as one rigid vessel (a compound body, split when a decoupler fires, ADR 0018) while under thrust or in atmosphere; once coasting in vacuum the vessel goes **on rails** (Keplerian orbit) and **time warp** becomes available.
 4. The **map view** shows the vessel's orbit, apoapsis/periapsis, and the body's sphere of influence.
 5. Reach a stable orbit. That is the MVP victory condition.
 

@@ -22,7 +22,7 @@
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | in-progress | web session | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | draft | — | needs 007; ground is idealised in 007 (ADR 0017) |
-| 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | in-progress | grouping session | ADR 0018; one compound body per vessel; benchmark 573 µs → ~24 µs at 100 parts |
+| 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -38,12 +38,13 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
-- Rapier fixed-joint chains are soft under heavy load (default 4 solver iterations; see `journal/004`); `createRapierBackend({ solverIterations })` is the knob and plan 011 (rigid grouping) the structural fix. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
-- Sim limits (see `architecture/simulation.md`): idealised ground (plan 012), no lift/fins, one 2.5 km physics bubble, attitude frozen on rails. Rapier fixed-joint chains stayed rigid at 16 solver iterations in the exit scenario.
+- Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex, no breakage. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
+- Sim limits (see `architecture/simulation.md`): idealised ground (plan 012), no lift/fins, one 2.5 km physics bubble, attitude frozen on rails.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
 
 ## Recent journal entries
 
+- [011 — Physics rigid grouping](journal/011-physics-rigid-grouping.md)
 - [007 — Sim loop: flight + on-rails](journal/007-sim-loop-flight-onrails.md)
 - [006 — Stock mod, minimal](journal/006-stock-mod-minimal.md)
 - [005 — SDK define-API + plugin loader](journal/005-sdk-define-api-plugin-loader.md)
