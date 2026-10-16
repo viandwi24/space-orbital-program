@@ -2,13 +2,15 @@
  * Main thread <-> sim Worker protocol (plain data, structured-clone safe). Commands travel as
  * `unknown`: the sim validates them with `commandSchema` (ADR 0016), the client does not duplicate that.
  */
-import type {
-	BodyDefinition,
-	CommandResult,
-	PartDefinition,
-	ResourceDefinition,
-	SimSave,
-	Snapshot
+import {
+	modManifestSchema,
+	type BodyDefinition,
+	type CommandResult,
+	type ModBundle,
+	type PartDefinition,
+	type ResourceDefinition,
+	type SimSave,
+	type Snapshot
 } from '@orbital/core';
 
 /** Content the worker booted with; the main thread builds part shapes and the VAB palette from it. */
@@ -59,7 +61,7 @@ export type ClientMessage =
 	 * First message to the sim Worker (plan 043): boots the sim, from `save` when the player loads a
 	 * game. `save` is validated by `createSim`, so it travels as `unknown`.
 	 */
-	| { kind: 'init'; save?: unknown }
+	| { kind: 'init'; save?: unknown; mods?: ModBundle[] }
 	/** Ask for the whole simulation as a `SimSave`; answered with `saved` or `save-error`. */
 	| { kind: 'save'; id: number }
 	| { kind: 'command'; id: number; command: unknown }
@@ -173,12 +175,29 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 	}
 }
 
+/** The mods in an `init` message (ADR 0057): each manifest is validated again, anything malformed is dropped. */
+function parseModBundles(value: unknown): ModBundle[] {
+	if (!Array.isArray(value)) return [];
+	const bundles: ModBundle[] = [];
+	for (const item of value) {
+		if (!isRecord(item) || typeof item.code !== 'string') continue;
+		const manifest = modManifestSchema.safeParse(item.manifest);
+		if (manifest.success) bundles.push({ manifest: manifest.data, code: item.code });
+	}
+	return bundles;
+}
+
 /** Shallow runtime check of an incoming client message (worker side). */
 export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (!isRecord(data)) return null;
 	if (data.kind === 'dispose') return { kind: 'dispose' };
 	if (data.kind === 'init') {
-		return data.save === undefined ? { kind: 'init' } : { kind: 'init', save: data.save };
+		const mods = parseModBundles(data.mods);
+		return {
+			kind: 'init',
+			...(data.save === undefined ? {} : { save: data.save }),
+			...(mods.length === 0 ? {} : { mods })
+		};
 	}
 	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };
 	if (data.kind === 'script-stop') return { kind: 'script-stop' };

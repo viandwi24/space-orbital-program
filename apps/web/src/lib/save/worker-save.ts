@@ -3,7 +3,7 @@
  * so it can be tested without a Worker: `init` starts the host (once) with the save to resume,
  * `save` answers with the live sim's data. Everything else is left to the sim host.
  */
-import type { SimSave } from '@orbital/core';
+import type { ModBundle, SimSave } from '@orbital/core';
 import { parseClientMessage, type WorkerMessage } from '../messages';
 
 export interface SaveRouterOptions {
@@ -11,7 +11,7 @@ export interface SaveRouterOptions {
 	sim(): { save(): SimSave } | undefined;
 	post(message: WorkerMessage): void;
 	/** Boot the host; `resume` is the save from `init`, unvalidated (the sim checks it). */
-	boot(resume: unknown): void;
+	boot(resume: unknown, mods: ModBundle[]): void;
 }
 
 export interface SaveRouter {
@@ -27,7 +27,7 @@ export function createSaveRouter(options: SaveRouterOptions): SaveRouter {
 			if (message?.kind === 'init') {
 				if (!booted) {
 					booted = true;
-					options.boot(message.save);
+					options.boot(message.save, message.mods ?? []);
 				}
 				return true;
 			}

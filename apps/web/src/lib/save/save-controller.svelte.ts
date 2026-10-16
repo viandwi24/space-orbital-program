@@ -19,6 +19,8 @@ import { SaveWriteError } from './store';
 export interface SaveControllerOptions {
 	/** Plugin ids and versions the game booted; saves are compared against them. */
 	loadedMods(): ReadonlyMap<string, string>;
+	/** Why a mod the save needs is not running: "not installed", "installed but turned off", ... (plan 046). */
+	modHint?(id: string): string;
 	/** Collect the running sim's data; absent on the home page (no flight, no saving). */
 	collect?: () => Promise<SaveRequest>;
 	/** Start the flight stored under `id`. Called after the checks; may navigate away. */
@@ -140,7 +142,12 @@ export class SaveController {
 			if (report.missing.length > 0) {
 				throw new SaveError(
 					'missing-mod',
-					`This save needs mods that are not installed: ${report.missing.map((m) => `${m.id} ${m.version}`).join(', ')}.`
+					`This save needs mods that are not running: ${report.missing
+						.map((m) => {
+							const hint = this.options.modHint?.(m.id);
+							return `${m.id} ${m.version}${hint ? ` (${hint})` : ''}`;
+						})
+						.join(', ')}. Open the mod manager to install or turn them on.`
 				);
 			}
 			if (report.changed.length > 0 && !confirmed) {

@@ -1,0 +1,315 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { API_VERSION } from '@orbital/sdk';
+	import Button from '../../lib/ui/Button.svelte';
+	import Dialog from '../../lib/ui/Dialog.svelte';
+	import Icon from '../../lib/ui/Icon.svelte';
+	import {
+		dependencyList,
+		shortHash,
+		sizeLabel,
+		sourceLabel,
+		statusLabel
+	} from '../../lib/mods/format';
+	import { ModManager } from '../../lib/mods/manager.svelte';
+	import { openModStore } from '../../lib/mods/store-idb';
+
+	const manager = new ModManager({ open: openModStore, reload: () => location.assign('/mods') });
+	let fileInput = $state<HTMLInputElement>();
+	let url = $state('');
+
+	onMount(() => void manager.load());
+
+	async function picked(): Promise<void> {
+		const file = fileInput?.files?.[0];
+		if (file) await manager.inspectFile(file);
+		if (fileInput) fileInput.value = '';
+	}
+</script>
+
+<svelte:head><title>Mods · Orbital</title></svelte:head>
+
+<main>
+	<a class="back" href="/"><Icon name="back" size={16} /> Orbital</a>
+	<h1>Mods</h1>
+	<p class="lead">
+		Mods add parts, modules and bodies. A mod is code: it runs with the same access as this page, so
+		install only mods from people you trust. Mod API {API_VERSION}.
+	</p>
+
+	{#if manager.volatile}
+		<p class="warn" role="status">
+			<Icon name="alert" size={16} /> This browser would not keep mods, so they last until you close the
+			tab.
+		</p>
+	{/if}
+
+	{#if manager.changed}
+		<div class="banner" role="status">
+			<span>Changes apply when the page reloads. Reload before you start a flight.</span>
+			<Button variant="primary" onclick={() => manager.reload()}>Reload to apply</Button>
+		</div>
+	{/if}
+
+	{#if manager.error}
+		<p class="error" role="alert"><Icon name="alert" size={16} /> {manager.error}</p>
+	{/if}
+
+	<section aria-labelledby="installed">
+		<h2 id="installed">Installed</h2>
+		{#if manager.loading}
+			<p class="dim">Loading…</p>
+		{:else if manager.records.length === 0}
+			<p class="dim empty">
+				No mods installed. Stock parts are always available. Install a package (a
+				<code>.orbital-mod.json</code> file) below.
+			</p>
+		{:else}
+			<ul class="mods" aria-label="Installed mods">
+				{#each manager.records as record (record.id)}
+					{@const status = manager.statusOf(record)}
+					<li data-state={status.kind}>
+						<div class="main">
+							<strong>{record.manifest.title ?? record.id}</strong>
+							<span class="num dim">{record.id} {record.manifest.version}</span>
+							{#if record.manifest.description}<span class="dim">{record.manifest.description}</span
+								>{/if}
+							<span
+								class="status"
+								class:bad={status.kind === 'failed' || status.kind === 'untrusted'}
+							>
+								{statusLabel(status)}
+							</span>
+						</div>
+						<div class="acts">
+							<label class="toggle">
+								<input
+									type="checkbox"
+									checked={record.enabled}
+									disabled={manager.busy}
+									onchange={(e) => void manager.setEnabled(record.id, e.currentTarget.checked)}
+								/>
+								Enabled
+							</label>
+							<Button
+								variant="danger"
+								disabled={manager.busy}
+								aria-label="Remove {record.manifest.title ?? record.id}"
+								onclick={() => void manager.remove(record.id)}>Remove</Button
+							>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	<section aria-labelledby="install">
+		<h2 id="install">Install a mod</h2>
+		<div class="install">
+			<input
+				bind:this={fileInput}
+				type="file"
+				accept=".json,application/json"
+				aria-label="Mod package file"
+				onchange={() => void picked()}
+			/>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					void manager.inspectUrl(url);
+				}}
+			>
+				<input
+					type="url"
+					bind:value={url}
+					placeholder="https://example.com/my-mod.orbital-mod.json"
+					aria-label="Mod package address"
+				/>
+				<Button type="submit" disabled={manager.busy || url.trim() === ''}>Download</Button>
+			</form>
+		</div>
+		<p class="dim">
+			Nothing in a package runs until you confirm. Build your own: see <code
+				>docs/guides/writing-a-mod.md</code
+			>.
+		</p>
+	</section>
+</main>
+
+<Dialog open={manager.pending !== null} title="Install this mod?" onclose={() => manager.cancel()}>
+	{#if manager.pending}
+		{@const p = manager.pending}
+		<div class="prompt">
+			<p class="warn">
+				<Icon name="alert" size={16} />
+				<span>
+					<strong>A mod is a program.</strong> If you install it, it runs inside this game with access
+					to everything this page can reach: your saves, your designs and the network. Install it only
+					if you trust where it came from.
+				</span>
+			</p>
+			<dl>
+				<dt>Name</dt>
+				<dd>{p.package.manifest.title ?? p.package.manifest.id}</dd>
+				<dt>Id and version</dt>
+				<dd class="num">{p.package.manifest.id} {p.package.manifest.version}</dd>
+				<dt>Author</dt>
+				<dd>{p.package.manifest.author ?? 'not stated'}</dd>
+				<dt>Mod API</dt>
+				<dd class="num">{p.package.manifest.api}</dd>
+				<dt>Needs</dt>
+				<dd class="num">{dependencyList(p.package.manifest.dependencies)}</dd>
+				<dt>Source</dt>
+				<dd class="num">{sourceLabel(p.source)}</dd>
+				<dt>Size</dt>
+				<dd class="num">{sizeLabel(p.size)}</dd>
+				<dt>Fingerprint</dt>
+				<dd class="num" title={p.package.sha256}>{shortHash(p.package.sha256)}</dd>
+			</dl>
+			{#if p.package.manifest.description}<p class="dim">{p.package.manifest.description}</p>{/if}
+			{#if p.replaces}
+				<p class="dim">
+					This replaces version {p.replaces.manifest.version} of the same mod.
+				</p>
+			{/if}
+			<div class="foot">
+				<Button onclick={() => manager.cancel()}>Cancel</Button>
+				<Button variant="primary" disabled={manager.busy} onclick={() => void manager.confirm()}
+					>Trust and install</Button
+				>
+			</div>
+		</div>
+	{/if}
+</Dialog>
+
+<style>
+	main {
+		max-width: 44rem;
+		margin: 8vh auto 4rem;
+		padding: 0 var(--s-4);
+	}
+	.back {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--s-1);
+		color: var(--text-dim);
+		text-decoration: none;
+	}
+	h1 {
+		margin: var(--s-3) 0 0;
+		font-size: var(--t-xl);
+		font-weight: 600;
+	}
+	h2 {
+		margin: var(--s-6) 0 var(--s-3);
+		font-size: var(--t-lg);
+		font-weight: 600;
+	}
+	.lead,
+	.dim {
+		color: var(--text-dim);
+	}
+	.mods {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--s-3);
+	}
+	.mods li {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--s-4);
+		padding: var(--s-4);
+		background: var(--panel-raised);
+		border: 1px solid var(--line);
+		border-radius: var(--r-panel);
+	}
+	.main {
+		display: grid;
+		gap: var(--s-1);
+		min-width: 0;
+	}
+	.status {
+		font-size: var(--t-sm);
+		color: var(--text-dim);
+	}
+	.status.bad,
+	.error {
+		color: var(--c-danger, #ff8a7a);
+	}
+	.acts {
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		flex-shrink: 0;
+	}
+	.toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--s-2);
+	}
+	.banner,
+	.warn {
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		padding: var(--s-3) var(--s-4);
+		background: var(--panel-raised);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-panel);
+	}
+	.banner {
+		justify-content: space-between;
+		margin: var(--s-4) 0;
+	}
+	.install {
+		display: grid;
+		gap: var(--s-3);
+	}
+	.install form {
+		display: flex;
+		gap: var(--s-3);
+	}
+	.install input[type='url'] {
+		flex: 1;
+		min-height: 32px;
+		padding: 0 var(--s-3);
+		color: var(--text);
+		background: var(--field);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-control);
+	}
+	.prompt {
+		display: grid;
+		gap: var(--s-3);
+		max-width: 34rem;
+	}
+	dl {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		gap: var(--s-1) var(--s-4);
+		margin: 0;
+	}
+	dt {
+		color: var(--text-dim);
+	}
+	dd {
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+	.foot {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--s-3);
+	}
+	.warn :global(svg) {
+		flex-shrink: 0;
+	}
+	code {
+		font-family: var(--font-num);
+		font-size: 0.9em;
+	}
+</style>

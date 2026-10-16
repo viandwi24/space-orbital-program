@@ -48,6 +48,22 @@ describe('save router', () => {
 		expect(boots).toEqual([{ s: 1 }]);
 	});
 
+	it('hands the mods of the first init to the boot, malformed ones dropped (plan 046)', () => {
+		const mods: unknown[][] = [];
+		const router = createSaveRouter({
+			sim: () => undefined,
+			post: () => {},
+			boot: (_save, m) => void mods.push(m)
+		});
+		const good = { manifest: { id: 'm', version: '1.0.0', api: '^0.1' }, code: 'export default 1;' };
+		router.handle({
+			kind: 'init',
+			mods: [good, { manifest: { id: 'Bad Id', version: '1.0.0', api: '^0.1' }, code: 'x' }, 'junk', { manifest: good.manifest }]
+		});
+		expect(mods).toHaveLength(1);
+		expect(mods[0]).toEqual([{ manifest: { ...good.manifest, dependencies: {} }, code: good.code }]);
+	});
+
 	it('leaves other messages to the host', () => {
 		const { router } = make(undefined);
 		expect(router.handle({ kind: 'command', id: 1, command: {} })).toBe(false);

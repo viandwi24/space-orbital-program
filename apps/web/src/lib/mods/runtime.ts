@@ -1,0 +1,108 @@
+/**
+ * The mods this page load runs (plan 046, ADR 0057). `initModRuntime` reads the installed records,
+ * checks that each enabled mod is still the code the player trusted, and resolves them with the
+ * core loader; everything else (catalogue, Worker start, save checks) reads the result
+ * synchronously. The set is fixed for the life of the page: changes need a reload.
+ */
+import {
+	importModBundle,
+	installModSdk,
+	modCodeHash,
+	resolveMods,
+	type ModBundle,
+	type Plugin
+} from '@orbital/core';
+import * as sdk from '@orbital/sdk';
+import Stock from '@orbital/mod-stock';
+import type { ModRecord, ModStore } from './store';
+
+export type ModState =
+	| { kind: 'loaded' }
+	| { kind: 'disabled' }
+	/** Enabled but not booted: it threw, clashed, or needs something missing. */
+	| { kind: 'failed'; reason: string }
+	/** Enabled but its code is not what the player trusted. */
+	| { kind: 'untrusted'; reason: string };
+
+export interface ModEntry {
+	record: ModRecord;
+	state: ModState;
+}
+
+export interface ModRuntime {
+	entries: ModEntry[];
+	/** Plugins of the mods that booted, in boot order (after stock). */
+	plugins: Plugin[];
+	/** The same mods as bundles, for the sim Worker. */
+	bundles: ModBundle[];
+}
+
+const EMPTY: ModRuntime = { entries: [], plugins: [], bundles: [] };
+let current: ModRuntime = EMPTY;
+
+export interface EvaluateOptions {
+	importModule?: (code: string) => Promise<unknown>;
+	builtin?: readonly Plugin[];
+}
+
+/** Decide what runs for `records`. Pure of storage; the sdk is installed for the importer. */
+export async function evaluateMods(
+	records: readonly ModRecord[],
+	options: EvaluateOptions = {}
+): Promise<ModRuntime> {
+	installModSdk(sdk);
+	const states = new Map<string, ModState>();
+	const candidates: ModBundle[] = [];
+	for (const record of records) {
+		if (!record.enabled) {
+			states.set(record.id, { kind: 'disabled' });
+			continue;
+		}
+		const actual = await modCodeHash(record.code);
+		if (actual !== record.trusted || actual !== record.sha256) {
+			states.set(record.id, {
+				kind: 'untrusted',
+				reason: 'its code changed since you trusted it; install it again to review it'
+			});
+			continue;
+		}
+		candidates.push({ manifest: record.manifest, code: record.code });
+	}
+	const resolved = await resolveMods(candidates, {
+		builtin: options.builtin ?? [Stock],
+		importModule: options.importModule ?? importModBundle
+	});
+	for (const r of resolved.rejected) states.set(r.id, { kind: 'failed', reason: r.reason });
+	for (const m of resolved.accepted) states.set(m.id, { kind: 'loaded' });
+	const bootedIds = new Set(resolved.accepted.map((m) => m.id));
+	return {
+		entries: records.map((record) => ({
+			record,
+			state: states.get(record.id) ?? { kind: 'failed', reason: 'it was not loaded' }
+		})),
+		plugins: resolved.plugins,
+		bundles: candidates.filter((b) => bootedIds.has(b.manifest.id))
+	};
+}
+
+/** Load the installed mods; call once per page load before anything reads the runtime. */
+export async function initModRuntime(
+	store: ModStore,
+	options: EvaluateOptions = {}
+): Promise<ModRuntime> {
+	try {
+		current = await evaluateMods(await store.list(), options);
+	} catch {
+		current = EMPTY; // a store that cannot be read means stock only; the game still starts
+	}
+	return current;
+}
+
+export const modRuntime = (): ModRuntime => current;
+export const activePlugins = (): Plugin[] => current.plugins;
+export const activeBundles = (): ModBundle[] => current.bundles;
+
+/** Test support. */
+export function resetModRuntime(next: ModRuntime = EMPTY): void {
+	current = next;
+}

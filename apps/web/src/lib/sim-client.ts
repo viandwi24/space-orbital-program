@@ -6,6 +6,7 @@ import {
 	type ClientMessage,
 	type WorkerMessage
 } from './messages';
+import { activeBundles } from './mods/runtime';
 
 /** The slice of `Worker` the client uses, so tests can pass a double. */
 export interface WorkerLike {
@@ -218,9 +219,13 @@ export function createSimClient(worker: WorkerLike): SimClient {
 export function startSimWorker(options: { resume?: SimSave } = {}): SimClient {
 	const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
 	// The Worker boots on this first message, so a save is in place before the sim is built.
-	worker.postMessage(
-		options.resume === undefined ? { kind: 'init' } : { kind: 'init', save: options.resume }
-	);
+	// It also carries the mods the page decided to run, so both sides load the same set (ADR 0057).
+	const mods = activeBundles();
+	worker.postMessage({
+		kind: 'init',
+		...(options.resume === undefined ? {} : { save: options.resume }),
+		...(mods.length === 0 ? {} : { mods })
+	});
 	let onmessage: WorkerLike['onmessage'] = null;
 	let onerror: WorkerLike['onerror'] = null;
 	return createSimClient({

@@ -3,13 +3,14 @@ import type { PartShape } from '@orbital/renderer';
 import Stock from '@orbital/mod-stock';
 import type { ContentLookups } from './delta-v';
 import type { Catalog } from './messages';
+import { activePlugins } from './mods/runtime';
 
 /**
- * The same plugins the worker boots, loaded on the main thread for screens that need content but
+ * The same plugins the worker boots (stock plus the enabled mods that loaded, plan 046), loaded on the main thread for screens that need content but
  * no simulation (the VAB). `loadPlugins` is pure data work: no physics, no Worker.
  */
 export function loadCatalog(): Catalog {
-	const { registries, report } = loadPlugins([Stock]);
+	const { registries, report } = loadPlugins([Stock, ...activePlugins()]);
 	return {
 		plugins: [...report.order],
 		parts: registries.parts.list(),
@@ -25,7 +26,7 @@ export function partLookup(catalog: Catalog): PartLookup {
 
 /** Catalog plus the registries the HUD's stage maths needs (module definitions carry the store accessors). */
 export function loadContent(): { catalog: Catalog; content: ContentLookups } {
-	const { registries, report } = loadPlugins([Stock]);
+	const { registries, report } = loadPlugins([Stock, ...activePlugins()]);
 	return {
 		catalog: {
 			plugins: [...report.order],

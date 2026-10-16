@@ -168,7 +168,10 @@
 		{/if}
 
 		{#if saves.note}
-			<p class="note" class:error={saves.noteIsError} role="status">{saves.note}</p>
+			<p class="note" class:error={saves.noteIsError} role="status">
+				{saves.note}
+				{#if saves.note.includes('mod manager')}<a href="/mods">Mod manager</a>{/if}
+			</p>
 		{/if}
 
 		<div class="foot">

@@ -77,7 +77,28 @@ describe('SaveController', () => {
 		const id = other.controller.entries[0]!;
 		await other.controller.load(id.ok ? id.meta.id : '');
 		expect(other.started).toEqual([]);
-		expect(other.controller.note).toMatch(/needs mods that are not installed: stock 0\.1\.0/);
+		expect(other.controller.note).toMatch(/needs mods that are not running: stock 0\.1\.0/);
+	});
+
+	it('says whether the missing mod is turned off, failed or not installed, and points to the manager (plan 046)', async () => {
+		const maker = make();
+		await maker.controller.saveAs('x');
+		const started: string[] = [];
+		const hints: Record<string, string> = { stock: 'installed but turned off' };
+		const controller = new SaveController({
+			loadedMods: () => new Map(),
+			modHint: (id) => hints[id] ?? 'not installed',
+			collect: async () => request,
+			startLoad: (id) => void started.push(id)
+		});
+		await controller.saveAs('x');
+		await controller.refresh();
+		const entry = controller.entries[0]!;
+		await controller.load(entry.ok ? entry.meta.id : '');
+		expect(started).toEqual([]);
+		expect(controller.note).toBe(
+			'This save needs mods that are not running: stock 0.1.0 (installed but turned off). Open the mod manager to install or turn them on.'
+		);
 	});
 
 	it('asks before loading a save made with another version of a mod', async () => {

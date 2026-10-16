@@ -3,12 +3,13 @@
 	import { SIM_VERSION } from '@orbital/sim';
 	import { goto } from '$app/navigation';
 	import LoadDialog from '../lib/save/LoadDialog.svelte';
-	import { bootedMods } from '../lib/save/mods';
+	import { bootedMods, modHint } from '../lib/save/mods';
 	import { SaveController } from '../lib/save/save-controller.svelte';
 
 	// Load a saved flight (plan 043): the flight page resumes it from `?load=<id>`.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
+		modHint,
 		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`)
 	});
 </script>
@@ -22,6 +23,7 @@
 		<a class="primary" href="/vab">Build a vessel</a>
 		<a href="/flight">Fly the last vessel</a>
 		<button type="button" onclick={() => void saves.showLoad()}>Load a flight</button>
+		<a href="/mods">Mods</a>
 	</nav>
 	<LoadDialog {saves} />
 	<p class="meta num">mod API {API_VERSION} · sim {SIM_VERSION}</p>

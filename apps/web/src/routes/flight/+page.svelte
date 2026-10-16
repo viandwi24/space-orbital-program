@@ -31,7 +31,7 @@
 	import { createAutosaver } from '../../lib/save/autosave';
 	import type { GameSave } from '../../lib/save/game-save';
 	import LoadDialog from '../../lib/save/LoadDialog.svelte';
-	import { bootedMods } from '../../lib/save/mods';
+	import { bootedMods, modHint } from '../../lib/save/mods';
 	import SaveDialog from '../../lib/save/SaveDialog.svelte';
 	import { SaveController } from '../../lib/save/save-controller.svelte';
 
@@ -65,6 +65,7 @@
 	// Save and load (plan 043). A load reloads the page with `?load=<id>`: a fresh Worker and renderer.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
+		modHint,
 		collect: () => {
 			if (!flight) throw new Error('There is no flight to save yet.');
 			return flight.collectSave();

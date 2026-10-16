@@ -2,9 +2,17 @@
 // Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic. Player
 // scripts do not run here: each Run gets its own script Worker, in a sandboxed iframe (ADR 0031,
 // ADR 0038).
-import { createMoonTerrainField, createTerrainField } from '@orbital/core';
+import {
+	importModBundle,
+	installModSdk,
+	resolveMods,
+	createMoonTerrainField,
+	createTerrainField,
+	type ModBundle
+} from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
+import * as sdk from '@orbital/sdk';
 import { createSim, type Sim } from '@orbital/sim';
 import type { ScriptPortLike } from './messages';
 import type { ScriptWorkerLike } from './script-protocol';
@@ -20,12 +28,19 @@ function spawnScriptWorker(port: ScriptPortLike | undefined): ScriptWorkerLike {
 
 /** The save to continue, from the first message; the sim is built after it arrived. */
 let resume: unknown;
+/** The mods the page decided to run (ADR 0057); resolved again here, with the same function. */
+let modBundles: ModBundle[] = [];
 let current: Sim | undefined;
 
 const host = createSimHost({
 	createSim: async () => {
+		installModSdk(sdk);
+		const mods = await resolveMods(modBundles, {
+			builtin: [Stock],
+			importModule: importModBundle
+		});
 		current = await createSim({
-			plugins: [Stock],
+			plugins: [Stock, ...mods.plugins],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 			// The same procedural terrain the renderer draws (ADR 0043): the home planet's with the launch
 			// site at latitude 0, longitude 0, and the craters of the moon (ADR 0054) for a body with a parent.
@@ -50,8 +65,9 @@ const host = createSimHost({
 const saves = createSaveRouter({
 	sim: () => current,
 	post: (message) => self.postMessage(message),
-	boot: (save) => {
+	boot: (save, mods) => {
 		resume = save;
+		modBundles = mods;
 		void host.start();
 	}
 });
