@@ -1,4 +1,5 @@
 import { loadPlugins, type PartLookup } from '@orbital/core';
+import type { PartShape } from '@orbital/renderer';
 import Stock from '@orbital/mod-stock';
 import type { ContentLookups } from './delta-v';
 import type { Catalog } from './messages';
@@ -38,4 +39,20 @@ export function loadContent(): { catalog: Catalog; content: ContentLookups } {
 			resources: registries.resources
 		}
 	};
+}
+
+/** Physics shapes of the catalogue parts in the renderer's form (host-supplied, ADR 0012). */
+export function partShapesOf(catalog: Catalog): Map<string, PartShape> {
+	const shapes = new Map<string, PartShape>();
+	for (const p of catalog.parts) {
+		const s = p.shape;
+		if (!s) continue;
+		shapes.set(
+			p.id,
+			s.kind === 'box'
+				? { kind: 'box', size: { x: s.size[0], y: s.size[1], z: s.size[2] } }
+				: { kind: 'cylinder', radius: s.radius, height: s.height }
+		);
+	}
+	return shapes;
 }

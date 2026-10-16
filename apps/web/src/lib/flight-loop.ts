@@ -4,12 +4,8 @@
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
 import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
-import {
-	createRenderer,
-	type GraphicsPreset,
-	type PartShape,
-	type Renderer
-} from '@orbital/renderer';
+import { createRenderer, type GraphicsPreset, type Renderer } from '@orbital/renderer';
+import { partShapesOf } from './catalog';
 import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, type ScriptView } from './script-state';
@@ -75,21 +71,6 @@ export interface Flight {
 	/** While a dialog is open the flight keys do nothing. */
 	setModal(open: boolean): void;
 	dispose(): void;
-}
-
-export function partShapesOf(catalog: Catalog): Map<string, PartShape> {
-	const shapes = new Map<string, PartShape>();
-	for (const p of catalog.parts) {
-		const s = p.shape;
-		if (!s) continue;
-		shapes.set(
-			p.id,
-			s.kind === 'box'
-				? { kind: 'box', size: { x: s.size[0], y: s.size[1], z: s.size[2] } }
-				: { kind: 'cylinder', radius: s.radius, height: s.height }
-		);
-	}
-	return shapes;
 }
 
 export function startFlight(options: FlightOptions): Flight {
