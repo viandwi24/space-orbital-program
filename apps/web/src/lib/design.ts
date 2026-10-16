@@ -135,6 +135,11 @@ export function parseDesign(text: string, parts: PartLookup): ParseResult {
 	} catch (error) {
 		return { ok: false, errors: [`not valid JSON: ${(error as Error).message}`] };
 	}
+	return validateDesign(raw, parts);
+}
+
+/** `parseDesign` for a value that is already parsed (a library record). */
+export function validateDesign(raw: unknown, parts: PartLookup): ParseResult {
 	const parsed = vesselDesignSchema.safeParse(raw);
 	if (!parsed.success) {
 		return {

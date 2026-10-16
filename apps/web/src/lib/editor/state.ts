@@ -168,16 +168,33 @@ export function groupOf(design: Pick<VesselDesign, 'parts'>, index: number): num
 /** Symmetry counts the VAB offers, ordered. */
 export const SYMMETRY_COUNTS = [1, 2, 3, 4, 6] as const;
 
+/** Copy of `assembly` with its indices renumbered to `base`, `base + 1`, ... in ascending order of the old ones. */
+export function reindex(assembly: VesselDesign, base: number): VesselDesign {
+	const order = [...assembly.parts].sort((a, b) => a.index - b.index);
+	const map = new Map(order.map((p, i) => [p.index, base + i]));
+	return {
+		...assembly,
+		parts: order.map((p) => ({
+			...p,
+			index: map.get(p.index)!,
+			parent: p.parent ? { ...p.parent, index: map.get(p.parent.index)! } : null
+		})),
+		stages: []
+	};
+}
+
 /**
- * What adding `part` at `target` produces, with symmetry. A radial target with `symmetry` n > 1
- * gets n copies at `angle + 2 pi k / n`. A target on a part that belongs to a symmetry group gets
- * a copy on every member of the group (a booster on each radial decoupler). Copies share a new
- * group number. Falls back to one part when a member's node is taken. Pure; used by `attachNew`
- * and the ghost preview.
+ * What adding `assembly` (one root, any number of parts, indices unique and not in `state`) at
+ * `target` produces, with symmetry. A radial target with `symmetry` n > 1 gets n copies at
+ * `angle + 2 pi k / n`. A target on a part that belongs to a symmetry group gets a copy on every
+ * member of the group (a booster on each radial decoupler). Parts that were not in a group inside
+ * the assembly share a new group across the copies (corresponding parts move together); groups
+ * inside the assembly stay per copy. Falls back to one copy when a member's node is taken. Pure;
+ * used by `attachAssembly` and the ghost preview.
  */
-export function planAttach(
+export function planAttachAssembly(
 	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
-	part: string,
+	assembly: VesselDesign,
 	target: AttachTarget,
 	symmetry = 1
 ): { design: VesselDesign; added: number[] } {
@@ -203,22 +220,45 @@ export function planAttach(
 		}
 	}
 	if (targets.length === 0) targets.push(target);
-	const group = targets.length > 1 ? maxSymmetry([state.design, ...state.loose]) + 1 : undefined;
+	const sorted = [...assembly.parts].sort((a, b) => a.index - b.index);
+	const size = sorted.length;
+	let nextGroup = maxSymmetry([state.design, ...state.loose]) + 1;
+	// Corresponding parts across the copies share one group (only when there is more than one copy).
+	const shared = new Map<number, number>();
+	if (targets.length > 1) {
+		for (const p of sorted) if (p.symmetry === undefined) shared.set(p.index, nextGroup++);
+	}
 	let design = state.design;
 	const added: number[] = [];
 	targets.forEach((t, k) => {
-		const single = singlePart(part, base + k);
-		const one: VesselDesign =
-			group === undefined
-				? single
-				: {
-						...single,
-						parts: single.parts.map((p) => ({ ...p, symmetry: group }))
-					};
-		design = join(design, one, t);
-		added.push(base + k);
+		const copy = reindex(assembly, base + k * size);
+		const own = new Map<number, number>();
+		const parts = copy.parts.map((p, j) => {
+			const old = sorted[j]!;
+			let group: number | undefined;
+			if (old.symmetry !== undefined) {
+				if (!own.has(old.symmetry)) own.set(old.symmetry, nextGroup++);
+				group = own.get(old.symmetry);
+			} else {
+				group = shared.get(old.index);
+			}
+			const { symmetry: _drop, ...rest } = p;
+			return group === undefined ? rest : { ...rest, symmetry: group };
+		});
+		design = join(design, { ...copy, parts }, t);
+		added.push(...parts.map((p) => p.index));
 	});
 	return { design, added };
+}
+
+/** `planAttachAssembly` for one catalogue part. */
+export function planAttach(
+	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
+	part: string,
+	target: AttachTarget,
+	symmetry = 1
+): { design: VesselDesign; added: number[] } {
+	return planAttachAssembly(state, singlePart(part, state.nextIndex), target, symmetry);
 }
 
 /** Adds a catalogue part (and its symmetric copies). Throws when `target` is not one of `attachTargets` (callers pick from that list). */
@@ -231,6 +271,24 @@ export function attachNew(
 ): EditorState {
 	if (!content.parts.get(part)) throw new Error(`unknown part "${part}"`);
 	const { design, added } = planAttach(state, part, target, symmetry);
+	assertResolves(design, content);
+	return commit(state, { ...state, design, nextIndex: state.nextIndex + added.length }, content);
+}
+
+/** Adds a saved sub-assembly (and its symmetric copies) at `target`: one undo step. */
+export function attachAssembly(
+	state: EditorState,
+	content: Content,
+	assembly: VesselDesign,
+	target: AttachTarget,
+	symmetry = 1
+): EditorState {
+	const { design, added } = planAttachAssembly(
+		state,
+		reindex(assembly, state.nextIndex),
+		target,
+		symmetry
+	);
 	assertResolves(design, content);
 	return commit(state, { ...state, design, nextIndex: state.nextIndex + added.length }, content);
 }
@@ -333,6 +391,189 @@ export function moveSubtree(
 	const design = join(out.design, alone, target);
 	assertResolves(design, content);
 	return commit(state, { ...state, design, loose: out.loose }, content);
+}
+
+// --- symmetric groups: move and turn -----------------------------------------------------------
+
+const TAU = 2 * Math.PI;
+/** Angle wrapped to (-pi, pi]. */
+const wrapAngle = (a: number): number => {
+	const w = a - TAU * Math.floor((a + Math.PI) / TAU);
+	return w <= -Math.PI + 1e-12 ? Math.PI : w;
+};
+
+/** The radial link of a part of the design: its parent, azimuth and height; null for stack parts and loose parts. */
+export function radialOf(
+	design: Pick<VesselDesign, 'parts'>,
+	index: number
+): { parent: number; angle: number; y: number } | null {
+	const link = design.parts.find((p) => p.index === index)?.parent;
+	return link?.radial ? { parent: link.index, angle: link.radial.angle, y: link.radial.y } : null;
+}
+
+/** Tangential width of a radial part (its footprint on the parent's surface), metres. */
+function widthOf(def: PartDefinition | undefined): number {
+	const shape = def?.shape;
+	if (!shape) return 0.5;
+	return shape.kind === 'cylinder' ? shape.radius * 2 : Math.min(shape.size[0], shape.size[2]);
+}
+const heightOfShape = (def: PartDefinition | undefined): number =>
+	!def?.shape ? 0.5 : def.shape.kind === 'cylinder' ? def.shape.height : def.shape.size[1];
+
+/**
+ * Throws when two radial parts of one parent would overlap on its surface: closer than the sum of
+ * their half widths along the arc and of their half heights along the axis. A coarse footprint
+ * check; the exact-site check of `resolveVesselDesign` still applies.
+ */
+function assertRadialClear(design: VesselDesign, content: Content): void {
+	const radials = design.parts.filter((p) => p.parent?.radial);
+	for (let i = 0; i < radials.length; i++) {
+		for (let j = i + 1; j < radials.length; j++) {
+			const a = radials[i]!;
+			const b = radials[j]!;
+			if (a.parent!.index !== b.parent!.index) continue;
+			const parent = design.parts.find((p) => p.index === a.parent!.index);
+			const shape = parent && content.parts.get(parent.part)?.shape;
+			if (shape?.kind !== 'cylinder') continue;
+			const da = content.parts.get(a.part);
+			const db = content.parts.get(b.part);
+			const arc =
+				Math.abs(wrapAngle(a.parent!.radial!.angle - b.parent!.radial!.angle)) * shape.radius;
+			const dy = Math.abs(a.parent!.radial!.y - b.parent!.radial!.y);
+			const near = (widthOf(da) + widthOf(db)) / 2;
+			const tall = (heightOfShape(da) + heightOfShape(db)) / 2;
+			if (arc < near - 1e-6 && dy < tall - 1e-6) {
+				throw new Error(
+					`${da?.title ?? a.part} and ${db?.title ?? b.part} would overlap on the same part`
+				);
+			}
+		}
+	}
+}
+
+/**
+ * Members of the group of `index` that take part in a group operation: the group in the design
+ * when `index` has a radial link, else just `index`.
+ */
+function radialGroup(design: VesselDesign, index: number, single: boolean): number[] {
+	if (single || !radialOf(design, index)) return [index];
+	return groupOf(design, index).filter((i) => radialOf(design, i) !== null);
+}
+
+/**
+ * Turns and raises a radial part: sets its azimuth and/or height on its parent. The whole symmetry
+ * group follows by the same angle step (and the same height); with `single` only this part
+ * changes and it leaves the group. One undo step. Throws (design unchanged) for a part without a
+ * radial link, a spot outside the parent, an overlap or an invalid design.
+ */
+export function setRadial(
+	state: EditorState,
+	content: Content,
+	index: number,
+	change: { angle?: number; y?: number },
+	options: { single?: boolean } = {}
+): EditorState {
+	const here = radialOf(state.design, index);
+	if (!here) throw new Error(`part ${index} is not attached to the side of another part`);
+	const dAngle = change.angle === undefined ? 0 : wrapAngle(change.angle - here.angle);
+	const members = radialGroup(state.design, index, options.single === true);
+	const parts = state.design.parts.map((p) => {
+		if (!members.includes(p.index) || !p.parent?.radial) return p;
+		const { symmetry: _keep, ...rest } = p;
+		const turned = {
+			...(options.single ? rest : p),
+			parent: {
+				...p.parent,
+				radial: {
+					angle: wrapAngle(p.parent.radial.angle + dAngle),
+					y: change.y ?? p.parent.radial.y
+				}
+			}
+		};
+		return turned;
+	});
+	const design = { ...state.design, parts };
+	assertResolves(design, content);
+	assertRadialClear(design, content);
+	return commit(state, { ...state, design }, content);
+}
+
+/** What `moveGroup` carries: the design without the group's subtrees and each one as an assembly. */
+export interface CarryPlan {
+	design: VesselDesign;
+	loose: VesselDesign[];
+	/** The subtree of the part the player picked. */
+	held: VesselDesign;
+	/** The other members' subtrees with their angle relative to the picked one. */
+	followers: { assembly: VesselDesign; dAngle: number }[];
+}
+
+/** Takes `index` (and, for a radial part, its symmetry group) out of the document. Null when `index` does not exist. */
+export function planCarry(
+	state: Pick<Doc, 'design' | 'loose'>,
+	index: number,
+	options: { single?: boolean } = {}
+): CarryPlan | null {
+	const members = radialGroup(state.design, index, options.single === true);
+	const base = radialOf(state.design, index);
+	let cur: Pick<Doc, 'design' | 'loose'> = state;
+	const taken: { index: number; assembly: VesselDesign }[] = [];
+	for (const m of [index, ...members.filter((i) => i !== index)]) {
+		const out = extract(cur, m);
+		if (!out) {
+			if (m === index) return null;
+			continue;
+		}
+		cur = { design: out.design, loose: out.loose };
+		taken.push({ index: m, assembly: out.assembly });
+	}
+	const [first, ...rest] = taken;
+	return {
+		design: cur.design,
+		loose: cur.loose,
+		held: first!.assembly,
+		followers: rest.map((t) => ({
+			assembly: t.assembly,
+			dAngle: wrapAngle((radialOf(state.design, t.index)?.angle ?? 0) - (base?.angle ?? 0))
+		}))
+	};
+}
+
+/**
+ * Moves a part and, when it has a radial link and `target` is a radial site, its whole symmetry
+ * group: every member keeps its angle relative to the picked one and takes the target's height.
+ * A target that is not radial (or `single`) moves only the picked part and it leaves its group.
+ * One undo step.
+ */
+export function moveGroup(
+	state: EditorState,
+	content: Content,
+	index: number,
+	target: AttachTarget,
+	options: { single?: boolean } = {}
+): EditorState {
+	if (options.single || !target.radial || !target.parent) {
+		return moveSubtree(state, content, index, target);
+	}
+	const plan = planCarry(state, index);
+	if (!plan) throw new Error(`no part ${index}`);
+	let design = join(plan.design, plan.held, target);
+	for (const f of plan.followers) {
+		const angle = target.radial.angle + f.dAngle;
+		const t = radialTarget(
+			design,
+			f.assembly,
+			content.parts,
+			target.parent.index,
+			angle,
+			target.radial.y
+		);
+		if (!t) throw new Error('the group does not fit there');
+		design = join(design, f.assembly, t);
+	}
+	assertResolves(design, content);
+	assertRadialClear(design, content);
+	return commit(state, { ...state, design, loose: plan.loose }, content);
 }
 
 /** Replaces everything (load, new vessel, example); one undo step. */

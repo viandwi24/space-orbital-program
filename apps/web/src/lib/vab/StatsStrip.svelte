@@ -2,12 +2,14 @@
 	import Meter from '../ui/Meter.svelte';
 	import { formatMass } from '../format';
 	import type { DesignStats } from '../editor/stats';
+	import type { Stability } from '../editor/stability';
 
 	let {
 		stats,
 		ascent,
 		needed,
-		targetLabel
+		targetLabel,
+		stability
 	}: {
 		stats: DesignStats;
 		/** Delta-v available for the launch (first stage at sea level, the rest in vacuum), m/s. */
@@ -15,6 +17,7 @@
 		/** Estimated delta-v to reach the target orbit, m/s. */
 		needed: number;
 		targetLabel: string;
+		stability: Stability;
 	} = $props();
 
 	const enough = $derived(ascent >= needed);
@@ -27,6 +30,31 @@
 				: stats.liftoffTwr < 1.3
 					? 'warn'
 					: 'good'
+	);
+	const STABILITY_LABEL = {
+		none: '–',
+		unfinned: 'No fins',
+		unstable: 'Unstable',
+		marginal: 'Marginal',
+		stable: 'Stable'
+	} as const;
+	const stabilityTone = $derived(
+		stability.state === 'unstable'
+			? 'bad'
+			: stability.state === 'marginal'
+				? 'warn'
+				: stability.state === 'stable'
+					? 'good'
+					: 'idle'
+	);
+	const stabilityTitle = $derived(
+		stability.state === 'none'
+			? 'Centre of mass and centre of pressure'
+			: `Centre of mass ${stability.com!.toFixed(1)} m, centre of pressure ${stability.cop!.toFixed(1)} m (white disc and orange ring in the view). ${
+					stability.state === 'unfinned'
+						? 'Without fins the reaction wheel holds the vessel.'
+						: 'The pressure should sit below the mass.'
+				}`
 	);
 	const n = (v: number): string => Math.round(v).toLocaleString('en-US');
 </script>
@@ -44,6 +72,19 @@
 		<div>
 			<dt>Height</dt>
 			<dd class="num">{stats.partCount ? `${stats.height.toFixed(1)} m` : '–'}</dd>
+		</div>
+		<div title={stabilityTitle}>
+			<dt>Stability</dt>
+			<dd class="num {stabilityTone}">
+				{STABILITY_LABEL[
+					stability.state
+				]}{#if stability.state !== 'none' && stability.state !== 'unfinned'}<span class="u">
+						{stability.margin! >= 0 ? '+' : ''}{stability.margin!.toFixed(1)} cal</span
+					>{/if}
+			</dd>
+			{#if stability.state !== 'none'}
+				<span class="legend" aria-hidden="true"><b>◉</b> mass <b class="cop">△</b> pressure</span>
+			{/if}
 		</div>
 		<div>
 			<dt title="Thrust to weight at liftoff, sea level">Liftoff TWR</dt>
@@ -77,10 +118,13 @@
 
 <style>
 	.strip {
-		display: grid;
-		grid-template-columns: auto minmax(260px, 340px);
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
 		align-items: center;
-		gap: var(--s-5);
+		gap: var(--s-2) var(--s-5);
+		max-width: 100%;
+		box-sizing: border-box;
 		padding: var(--s-2) var(--s-4);
 		background: var(--panel);
 		border: 1px solid var(--line);
@@ -89,7 +133,9 @@
 	}
 	dl {
 		display: flex;
-		gap: var(--s-5);
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--s-2) var(--s-4);
 		margin: 0;
 	}
 	dt {
@@ -103,6 +149,18 @@
 		font-size: var(--t-lg);
 		font-weight: 500;
 	}
+	.legend {
+		display: block;
+		font-size: var(--t-xs);
+		color: var(--text-dim);
+		white-space: nowrap;
+	}
+	.legend b {
+		color: var(--c-accent);
+	}
+	.legend b.cop {
+		color: var(--c-warning);
+	}
 	.good {
 		color: var(--c-positive);
 	}
@@ -114,6 +172,8 @@
 	}
 	.trip {
 		display: grid;
+		flex: 1 1 250px;
+		max-width: 340px;
 		gap: 4px;
 	}
 	.line {

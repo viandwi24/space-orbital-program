@@ -4,13 +4,18 @@
 	import { CATEGORIES, categoryOf, matchesQuery, type CategoryId } from '../editor/categories';
 	import type { PartFact } from '../editor/part-info';
 	import { formatMass } from '../format';
+	import type { LibraryEntry } from './library';
 
 	let {
 		parts,
 		icons,
 		armed,
 		facts,
-		onarm
+		onarm,
+		assemblies = [],
+		armedAssembly = null,
+		onarmAssembly = () => {},
+		ondeleteAssembly = () => {}
 	}: {
 		parts: readonly PartDefinition[];
 		/** Rendered thumbnails by part id (data URLs); a glyph is shown until one exists. */
@@ -18,10 +23,15 @@
 		armed: string | null;
 		facts: (def: PartDefinition) => PartFact[];
 		onarm: (id: string) => void;
+		/** Saved sub-assemblies (ADR 0041), valid and damaged. */
+		assemblies?: readonly LibraryEntry[];
+		armedAssembly?: string | null;
+		onarmAssembly?: (id: string) => void;
+		ondeleteAssembly?: (id: string) => void;
 	} = $props();
 
 	let query = $state('');
-	let category = $state<CategoryId | 'all'>('all');
+	let category = $state<CategoryId | 'all' | 'assemblies'>('all');
 	let focusId = $state<string | null>(null);
 	let search: HTMLInputElement;
 
@@ -30,11 +40,25 @@
 		...CATEGORIES.map((c) => ({
 			...c,
 			count: parts.filter((p) => categoryOf(p) === c.id).length
-		})).filter((c) => c.count > 0)
+		})).filter((c) => c.count > 0),
+		{
+			id: 'assemblies' as const,
+			label: 'Sub-assemblies',
+			icon: 'assembly',
+			count: assemblies.length
+		}
 	]);
+	const shownAssemblies = $derived(
+		assemblies.filter(
+			(e) => query.trim() === '' || e.record.name.toLowerCase().includes(query.trim().toLowerCase())
+		)
+	);
 	const shown = $derived(
 		parts.filter(
-			(p) => (category === 'all' || categoryOf(p) === category) && matchesQuery(p, query)
+			(p) =>
+				category !== 'assemblies' &&
+				(category === 'all' || categoryOf(p) === category) &&
+				matchesQuery(p, query)
 		)
 	);
 	const heading = $derived(tabs.find((t) => t.id === category)?.label ?? 'All parts');
@@ -78,7 +102,9 @@
 <section class="catalogue" aria-label="Part catalogue">
 	<header>
 		<h2>{heading}</h2>
-		<span class="count num">{shown.length}</span>
+		<span class="count num"
+			>{category === 'assemblies' ? shownAssemblies.length : shown.length}</span
+		>
 	</header>
 
 	<div class="search">
@@ -119,36 +145,79 @@
 
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions: the keys bubble up from the card buttons -->
 	<div class="grid" bind:this={grid} role="group" aria-label="Parts" onkeydown={gridKey}>
-		{#each shown as p (p.id)}
-			<button
-				type="button"
-				class="card"
-				class:armed={armed === p.id}
-				aria-pressed={armed === p.id}
-				onclick={() => onarm(p.id)}
-				onmouseenter={() => (focusId = p.id)}
-				onmouseleave={() => (focusId = null)}
-				onfocus={() => (focusId = p.id)}
-				onblur={() => (focusId = null)}
-			>
-				<span class="thumb">
-					{#if icons[p.id]}
-						<img src={icons[p.id]} alt="" width="104" height="104" draggable="false" />
-					{:else}
-						<Icon name={p.stagingIcon ?? 'part'} size={40} />
-					{/if}
-				</span>
-				<span class="name">{p.title}</span>
-				<span class="mass num">{formatMass(p.mass)}</span>
-			</button>
+		{#if category === 'assemblies'}
+			{#each shownAssemblies as e (e.record.id)}
+				<div class="asm" class:armed={armedAssembly === e.record.id} class:damaged={!e.ok}>
+					<button
+						type="button"
+						class="card"
+						class:armed={armedAssembly === e.record.id}
+						aria-pressed={armedAssembly === e.record.id}
+						disabled={!e.ok}
+						title={e.ok ? `Place ${e.record.name}` : `Damaged: ${e.errors.join('; ')}`}
+						onclick={() => onarmAssembly(e.record.id)}
+					>
+						<span class="thumb">
+							{#if e.record.thumbnail}
+								<img src={e.record.thumbnail} alt="" width="104" height="69" draggable="false" />
+							{:else}
+								<Icon name="assembly" size={40} />
+							{/if}
+						</span>
+						<span class="name">{e.record.name}</span>
+						<span class="mass num">{e.ok ? `${e.design.parts.length} parts` : 'damaged'}</span>
+					</button>
+					<button
+						type="button"
+						class="del"
+						aria-label="Delete the sub-assembly {e.record.name}"
+						title="Delete"
+						onclick={() => ondeleteAssembly(e.record.id)}
+					>
+						<Icon name="trash" size={14} />
+					</button>
+				</div>
+			{:else}
+				<div class="none">
+					<p>
+						{assemblies.length === 0
+							? 'No sub-assemblies yet. Select a part on the vessel and press A (or Keep as sub-assembly): it and everything attached to it can then be placed again.'
+							: `No sub-assembly matches “${query}”.`}
+					</p>
+				</div>
+			{/each}
 		{:else}
-			<div class="none">
-				<p>No part matches “{query}”.</p>
-				<button type="button" class="link" onclick={() => ((query = ''), (category = 'all'))}>
-					Clear search
+			{#each shown as p (p.id)}
+				<button
+					type="button"
+					class="card"
+					class:armed={armed === p.id}
+					aria-pressed={armed === p.id}
+					onclick={() => onarm(p.id)}
+					onmouseenter={() => (focusId = p.id)}
+					onmouseleave={() => (focusId = null)}
+					onfocus={() => (focusId = p.id)}
+					onblur={() => (focusId = null)}
+				>
+					<span class="thumb">
+						{#if icons[p.id]}
+							<img src={icons[p.id]} alt="" width="104" height="104" draggable="false" />
+						{:else}
+							<Icon name={p.stagingIcon ?? 'part'} size={40} />
+						{/if}
+					</span>
+					<span class="name">{p.title}</span>
+					<span class="mass num">{formatMass(p.mass)}</span>
 				</button>
-			</div>
-		{/each}
+			{:else}
+				<div class="none">
+					<p>No part matches “{query}”.</p>
+					<button type="button" class="link" onclick={() => ((query = ''), (category = 'all'))}>
+						Clear search
+					</button>
+				</div>
+			{/each}
+		{/if}
 	</div>
 
 	<div class="info" aria-live="polite">
@@ -282,6 +351,30 @@
 	.card.armed {
 		border-color: var(--c-accent);
 		background: color-mix(in srgb, var(--c-accent) 16%, var(--panel-raised));
+	}
+	.asm {
+		position: relative;
+		display: grid;
+	}
+	.asm .del {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		color: var(--text-dim);
+		background: var(--panel-solid);
+		border: 1px solid var(--line);
+		border-radius: var(--r-control);
+	}
+	.asm .del:hover {
+		color: var(--c-danger);
+		border-color: var(--c-danger);
+	}
+	.asm .card:disabled {
+		opacity: 0.6;
 	}
 	.thumb {
 		display: grid;

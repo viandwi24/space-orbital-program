@@ -6,6 +6,7 @@ import { resolveVesselDesign, type PartLookup } from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { isAutoStaged } from './staging';
 import type { EditorState } from './state';
+import type { Stability } from './stability';
 import type { DesignStats } from './stats';
 
 export type CheckId =
@@ -17,6 +18,7 @@ export type CheckId =
 	| 'unstaged'
 	| 'empty-stage'
 	| 'low-twr'
+	| 'unstable'
 	| 'loose';
 
 export interface Check {
@@ -34,7 +36,8 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 export function checkDesign(
 	state: Pick<EditorState, 'design' | 'loose'>,
 	content: ContentLookups,
-	stats: Pick<DesignStats, 'liftoffTwr'>
+	stats: Pick<DesignStats, 'liftoffTwr'>,
+	stability?: Pick<Stability, 'state' | 'margin' | 'fins'>
 ): Check[] {
 	const { design, loose } = state;
 	if (design.parts.length === 0) {
@@ -121,6 +124,17 @@ export function checkDesign(
 			text: `Thrust-to-weight at liftoff is ${stats.liftoffTwr.toFixed(2)}: the vessel will not leave the pad.`,
 			hint: 'Add engines or remove mass above the first stage.',
 			parts: engines
+		});
+	}
+	if (stability?.state === 'unstable') {
+		out.push({
+			id: 'unstable',
+			severity: 'warning',
+			text: `The fins sit ahead of the centre of mass (margin ${(stability.margin ?? 0).toFixed(1)} calibres): the rocket will tumble in the air.`,
+			hint: 'Move the fins lower on the vessel, or add more behind the centre of mass.',
+			parts: design.parts
+				.filter((p) => content.parts.get(p.part)?.modules?.some((m) => m[0] === 'stock.fin'))
+				.map((p) => p.index)
 		});
 	}
 	if (loose.length > 0) {

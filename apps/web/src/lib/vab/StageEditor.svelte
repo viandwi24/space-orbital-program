@@ -15,6 +15,7 @@
 		selected,
 		titleOf,
 		iconOf,
+		thumbOf = () => undefined,
 		onenv,
 		onmove,
 		onselect,
@@ -31,6 +32,8 @@
 		selected: number | null;
 		titleOf: (index: number) => string;
 		iconOf: (index: number) => string;
+		/** Rendered thumbnail of the part (data URL), when there is one. */
+		thumbOf?: (index: number) => string | undefined;
 		onenv: (e: Environment) => void;
 		/** Stage index to move to, `stages.length` for a new stage, `null` for none. */
 		onmove: (index: number, stage: number | null) => void;
@@ -90,7 +93,11 @@
 		onclick={() => onselect(index)}
 		onkeydown={(e) => keyMove(e, index, current)}
 	>
-		<Icon name={iconOf(index)} size={18} />
+		{#if thumbOf(index)}
+			<img src={thumbOf(index)} alt="" width="26" height="26" draggable="false" />
+		{:else}
+			<Icon name={iconOf(index)} size={18} />
+		{/if}
 	</button>
 {/snippet}
 

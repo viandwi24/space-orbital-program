@@ -42,7 +42,13 @@ export const ICONS = {
 	shield: 'M12 3.5l7 2.8V12c0 4.2-3 7.2-7 8.5-4-1.3-7-4.3-7-8.5V6.3Z',
 	fin: 'M6.5 4v16M6.5 6.5l11 5.5v5.5l-11 3',
 	cone: 'M12 3.5c2.6 3.4 4 7.2 4 11.5H8c0-4.3 1.4-8.1 4-11.5ZM8 15v3.5h8V15',
-	part: 'M6 6h12v12H6Z'
+	part: 'M6 6h12v12H6Z',
+	assembly: 'M12 3.5l6 3v6l-6 3-6-3v-6ZM6 12.5l6 3 6-3M6 12.5v4l6 3 6-3v-4',
+	copy: 'M8.5 8.5h10v11h-10ZM5.5 15.5v-11h10',
+	download: 'M12 4v11M7 10.5l5 5 5-5M5 20h14',
+	pencil: 'M5 19l1-4L16.5 4.5l3 3L9 18ZM14.5 6.5l3 3',
+	contrast: 'M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17ZM12 3.5v17',
+	rotate: 'M19 12a7 7 0 1 1-2.1-5M19 4.5V8h-3.5'
 } as const;
 
 export type IconName = keyof typeof ICONS;

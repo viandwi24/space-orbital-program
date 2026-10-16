@@ -4,14 +4,16 @@
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
 import { rotateY, type PartDefinition, type PartLookup, type VesselDesign } from '@orbital/core';
-import type { VabGroup, VabNode, VabPart, VabScene } from '@orbital/renderer';
+import type { VabGroup, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
 import {
-	extract,
 	layoutOf,
-	planAttach,
+	planCarry,
+	radialTarget,
+	planAttachAssembly,
 	previewAttach,
 	rootOf,
 	type AttachTarget,
+	type CarryPlan,
 	type Doc
 } from './state';
 
@@ -27,18 +29,25 @@ const radiusOf = (def: PartDefinition | undefined): number =>
 	!def?.shape ? 0.6 : def.shape.kind === 'cylinder' ? def.shape.radius : def.shape.size[0] / 2;
 
 /**
- * What is on the floor while a subtree is carried: the design without it, and the assembly itself
- * (null when nothing is carried).
+ * What is on the floor while a subtree is carried: the design without it, the assembly itself
+ * (null when nothing is carried) and, for a radial part of a symmetry group, the other members
+ * that travel with it (`single` carries the part alone).
  */
 export function withoutCarried(
 	doc: Pick<Doc, 'design' | 'loose'>,
-	carried: number | null
-): { design: VesselDesign; loose: VesselDesign[]; assembly: VesselDesign | null } {
-	if (carried === null) return { ...doc, assembly: null };
-	const out = extract(doc, carried);
-	return out
-		? { design: out.design, loose: out.loose, assembly: out.assembly }
-		: { ...doc, assembly: null };
+	carried: number | null,
+	single = false
+): {
+	design: VesselDesign;
+	loose: VesselDesign[];
+	assembly: VesselDesign | null;
+	followers: CarryPlan['followers'];
+} {
+	if (carried === null) return { ...doc, assembly: null, followers: [] };
+	const plan = planCarry(doc, carried, { single });
+	return plan
+		? { design: plan.design, loose: plan.loose, assembly: plan.held, followers: plan.followers }
+		: { ...doc, assembly: null, followers: [] };
 }
 
 export interface SceneInput {
@@ -56,6 +65,10 @@ export interface SceneInput {
 	symmetry?: number;
 	/** Draw rings for the keyboard's radial sites (default true); the pointer needs none. */
 	radialMarkers?: boolean;
+	/** The other members of a carried symmetry group (see `withoutCarried`). */
+	followers?: CarryPlan['followers'];
+	/** Stability markers to draw (centre of mass, centre of pressure), in the main group's frame. */
+	markers?: VabMarker[];
 	/** `held` is a catalogue part not yet in the design (default) or an assembly being moved. */
 	kind?: 'new' | 'carry';
 }
@@ -63,6 +76,34 @@ export interface SceneInput {
 export interface BuiltScene {
 	scene: VabScene;
 	ghost: AttachTarget | null;
+}
+
+/** The carried subtree and its group at `ghost`: followers keep their angle relative to the picked part. */
+function carryPreview(
+	design: VesselDesign,
+	held: VesselDesign,
+	ghost: AttachTarget,
+	followers: CarryPlan['followers'],
+	parts: PartLookup
+): { design: VesselDesign; added: number[] } {
+	let merged = previewAttach(design, held, ghost);
+	const added = held.parts.map((p) => p.index);
+	if (ghost.radial && ghost.parent) {
+		for (const f of followers) {
+			const t = radialTarget(
+				merged,
+				f.assembly,
+				parts,
+				ghost.parent.index,
+				ghost.radial.angle + f.dAngle,
+				ghost.radial.y
+			);
+			if (!t) continue;
+			merged = previewAttach(merged, f.assembly, t);
+			added.push(...f.assembly.parts.map((p) => p.index));
+		}
+	}
+	return { design: merged, added };
 }
 
 export function buildScene(input: SceneInput): BuiltScene {
@@ -108,23 +149,21 @@ export function buildScene(input: SceneInput): BuiltScene {
 		pointer ?? (cursorTarget?.radial && input.radialMarkers === false ? null : cursorTarget);
 	if (held && shown) {
 		ghost = shown;
-		const heldRoot = rootOf(held);
 		const merged =
 			kind === 'new'
-				? planAttach(
-						{ design, loose: [...loose], nextIndex: heldRoot },
-						held.parts.find((p) => p.index === heldRoot)!.part,
+				? planAttachAssembly(
+						{ design, loose: [...loose], nextIndex: Math.min(...held.parts.map((p) => p.index)) },
+						held,
 						ghost,
 						symmetry
 					)
-				: { design: previewAttach(design, held, ghost), added: held.parts.map((p) => p.index) };
+				: carryPreview(design, held, ghost, input.followers ?? [], parts);
 		const at = layoutOf(merged.design, parts);
 		if (at) {
 			const added = new Set(merged.added);
-			const heldIds = kind === 'new' ? added : new Set(held.parts.map((p) => p.index));
 			for (const p of merged.design.parts) {
 				const l = at.get(p.index);
-				if (l && heldIds.has(p.index)) {
+				if (l && added.has(p.index)) {
 					out.push({
 						key: `g${partKey(p.index)}`,
 						definition: p.part,
@@ -170,7 +209,7 @@ export function buildScene(input: SceneInput): BuiltScene {
 			});
 		});
 	}
-	return { scene: { parts: out, groups, nodes }, ghost };
+	return { scene: { parts: out, groups, nodes, markers: input.markers ?? [] }, ghost };
 }
 
 /**

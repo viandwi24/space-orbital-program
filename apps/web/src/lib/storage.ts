@@ -35,3 +35,40 @@ export function loadScript(designName: string): string | null {
 		return null;
 	}
 }
+
+/** Id of the library record the working design autosaves into (plan 029, ADR 0041). */
+const LIBRARY_ID_KEY = 'orbital.library.current';
+
+export function saveLibraryId(id: string | null): void {
+	try {
+		if (id === null) localStorage.removeItem(LIBRARY_ID_KEY);
+		else localStorage.setItem(LIBRARY_ID_KEY, id);
+	} catch {
+		// private mode or quota: the next load starts without a linked record
+	}
+}
+
+export function loadLibraryId(): string | null {
+	try {
+		return localStorage.getItem(LIBRARY_ID_KEY);
+	} catch {
+		return null;
+	}
+}
+
+/** A per-viewer VAB preference (high-contrast markers). */
+export function loadFlag(key: string): boolean {
+	try {
+		return localStorage.getItem(`orbital.vab.${key}`) === '1';
+	} catch {
+		return false;
+	}
+}
+
+export function saveFlag(key: string, on: boolean): void {
+	try {
+		localStorage.setItem(`orbital.vab.${key}`, on ? '1' : '0');
+	} catch {
+		// the choice applies for this session only
+	}
+}
