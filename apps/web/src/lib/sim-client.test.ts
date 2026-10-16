@@ -18,6 +18,22 @@ function fakeWorker() {
 const catalog = { plugins: ['stock'], parts: [], bodies: [], resources: [] };
 const snapshot = { t: 1, vessels: [], bodies: [] };
 
+describe('sim-client stage events', () => {
+	it('forwards stage messages and rejects malformed ones', () => {
+		const { worker, emit } = fakeWorker();
+		const client = createSimClient(worker);
+		const seen: unknown[] = [];
+		const errors: string[] = [];
+		client.onStage((e) => seen.push(e));
+		client.onError((m) => errors.push(m));
+		emit({ kind: 'stage', vessel: 4, stage: 0 });
+		expect(seen).toEqual([{ kind: 'stage', vessel: 4, stage: 0 }]);
+		emit({ kind: 'stage', vessel: 4, stage: -1 });
+		expect(seen).toHaveLength(1);
+		expect(errors).toHaveLength(1);
+	});
+});
+
 describe('sim-client', () => {
 	it('resolves ready with the catalog when the worker reports ready', async () => {
 		const { worker, emit } = fakeWorker();

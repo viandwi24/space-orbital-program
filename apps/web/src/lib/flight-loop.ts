@@ -7,6 +7,7 @@ import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
 import { createRenderer, type PartShape, type Renderer } from '@orbital/renderer';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, type ScriptView } from './script-state';
+import { noStages, reduceStages, stagesFiredBy, type StageProgress } from './stage-state';
 import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
 
@@ -23,7 +24,7 @@ export interface FlightHud {
 	vesselName: string;
 	telemetry: Telemetry | null;
 	throttle: number;
-	/** Stage commands accepted so far / stages in the design. */
+	/** Stages the sim has fired for the vessel (any sender, plan 017) / stages in the design. */
 	stagesDone: number;
 	stagesTotal: number;
 	warp: number;
@@ -43,6 +44,8 @@ export interface Flight {
 	/** Run `source` against the active vessel in the sim Worker (replaces a running script). */
 	runScript(source: string): void;
 	stopScript(): void;
+	/** Step the time warp by `delta` entries of `WARP_STEPS` (the sim refuses it unless every vessel is on rails). */
+	stepWarp(delta: number): void;
 	dispose(): void;
 }
 
@@ -86,6 +89,7 @@ export function startFlight(options: FlightOptions): Flight {
 		map: false,
 		autopilot: null
 	};
+	let stages: StageProgress = noStages;
 	let script: ScriptView = idleScript();
 	let scriptDirty = false;
 	let messageUntil = 0;
@@ -170,11 +174,7 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'Space':
 				e.preventDefault();
-				if (vessel !== null) {
-					void send({ type: 'stage', vessel }).then((ok) => {
-						if (ok) hud.stagesDone++;
-					});
-				}
+				if (vessel !== null) void send({ type: 'stage', vessel });
 				break;
 			case 'KeyM':
 				hud.map = renderer?.toggleMapView() ?? false;
@@ -228,11 +228,9 @@ export function startFlight(options: FlightOptions): Flight {
 			parts: catalog.parts,
 			resources: catalog.resources,
 			send: (c) => {
-				// Keep the HUD's throttle and stage counter truthful for commands the autopilot sends.
+				// Keep the HUD's throttle truthful for commands the autopilot sends.
 				if (c.type === 'throttle') throttle = sentThrottle = c.value;
-				void send(c).then((ok) => {
-					if (ok && c.type === 'stage') hud.stagesDone++;
-				});
+				void send(c);
 			}
 		});
 		auto = ap;
@@ -261,6 +259,7 @@ export function startFlight(options: FlightOptions): Flight {
 				}
 			}
 			hud.throttle = throttle;
+			hud.stagesDone = stagesFiredBy(stages, vessel === null ? null : Number(vessel));
 			if (auto) hud.autopilot = `${auto.phase}: ${auto.note}`;
 			if (messageUntil && now > messageUntil && hud.status === 'flying') {
 				hud.message = '';
@@ -285,6 +284,9 @@ export function startFlight(options: FlightOptions): Flight {
 		snap = s;
 		dirty = true;
 		auto?.update(s);
+	});
+	client.onStage((event) => {
+		stages = reduceStages(stages, event);
 	});
 	client.onScript((event) => {
 		script = reduceScript(script, event);
@@ -367,6 +369,9 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		stopScript() {
 			client.stopScript();
+		},
+		stepWarp(delta) {
+			setWarp(warpIndex + delta);
 		},
 		dispose() {
 			disposed = true;

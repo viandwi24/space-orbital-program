@@ -18,6 +18,9 @@ export interface WorkerLike {
 /** What the script host reports: lifecycle changes and print output. */
 export type ScriptEvent = Extract<WorkerMessage, { kind: 'script-status' | 'script-log' }>;
 
+/** A stage the sim fired. */
+export type StageEvent = Extract<WorkerMessage, { kind: 'stage' }>;
+
 export interface SimClient {
 	/** Resolves when the worker has booted the sim (rejects on a boot error). */
 	readonly ready: Promise<Catalog>;
@@ -31,6 +34,7 @@ export interface SimClient {
 	startScript(source: string, vessel: number): void;
 	stopScript(): void;
 	onScript(listener: (event: ScriptEvent) => void): () => void;
+	onStage(listener: (event: StageEvent) => void): () => void;
 	dispose(): void;
 }
 
@@ -43,6 +47,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	const snapshotListeners = new Set<(snapshot: Snapshot) => void>();
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
+	const stageListeners = new Set<(event: StageEvent) => void>();
 	let resolveReady!: (catalog: Catalog) => void;
 	let rejectReady!: (error: Error) => void;
 	const ready = new Promise<Catalog>((resolve, reject) => {
@@ -91,6 +96,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			case 'script-log':
 				for (const listener of scriptListeners) listener(message);
 				break;
+			case 'stage':
+				for (const listener of stageListeners) listener(message);
+				break;
 		}
 	};
 	worker.onerror = (event) => fail(event.message ?? 'sim worker crashed');
@@ -126,6 +134,10 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			scriptListeners.add(listener);
 			return () => scriptListeners.delete(listener);
 		},
+		onStage(listener) {
+			stageListeners.add(listener);
+			return () => stageListeners.delete(listener);
+		},
 		dispose() {
 			if (disposed) return;
 			disposed = true;
@@ -138,6 +150,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			snapshotListeners.clear();
 			errorListeners.clear();
 			scriptListeners.clear();
+			stageListeners.clear();
 		}
 	};
 }

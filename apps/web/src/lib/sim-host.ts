@@ -56,6 +56,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let last = 0;
 	let cancel: (() => void) | null = null;
 	let disposed = false;
+	let unsubscribeStage: (() => void) | null = null;
 
 	// --- script (plan 015, ADR 0022): the runner ticks right after each sim step ------------------
 	let runner: ScriptRunner | null = null;
@@ -200,6 +201,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		endScript();
 		cancel?.();
 		cancel = null;
+		unsubscribeStage?.();
+		unsubscribeStage = null;
 		sim?.dispose();
 		sim = null;
 	}
@@ -213,6 +216,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					return;
 				}
 				sim = created;
+				// The page's stage counter follows what the sim fired, not what the page asked for.
+				unsubscribeStage = created.events.on('stage:activated', (e) =>
+					options.post({ kind: 'stage', vessel: Number(e.vessel), stage: e.stage })
+				);
 				last = options.now();
 				options.post({ kind: 'ready', ...catalogOf(created) });
 				cancel = options.schedule?.(tick, TICK_MS) ?? null;

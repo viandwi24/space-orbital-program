@@ -83,6 +83,23 @@ describe('sim host: scripts (plan 015)', () => {
 		t.host.dispose();
 	});
 
+	it("a script that stages makes the host post the sim's stage event (plan 017), a page command too", async () => {
+		const t = await setup();
+		const stages = () => t.posted.filter((m) => m.kind === 'stage');
+		t.host.handle({ kind: 'script-start', source: 'stage();', vessel: t.vessel });
+		await until(() => t.statuses().some((s) => s.status === 'running'));
+		expect(stages()).toEqual([]);
+		t.tick();
+		expect(stages()).toEqual([{ kind: 'stage', vessel: t.vessel, stage: 0 }]);
+		t.host.handle({
+			kind: 'command',
+			id: 9,
+			command: { type: 'stage', vessel: t.vessel }
+		});
+		expect(stages().at(-1)).toEqual({ kind: 'stage', vessel: t.vessel, stage: 1 });
+		t.host.dispose();
+	});
+
 	it('a finished script posts finished and stops ticking', async () => {
 		const t = await setup();
 		t.host.handle({ kind: 'script-start', source: 'print("done")', vessel: t.vessel });

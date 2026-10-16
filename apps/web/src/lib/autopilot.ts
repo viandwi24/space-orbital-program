@@ -117,7 +117,8 @@ export function createAutopilot(o: AutopilotOptions) {
 	function update(snap: Snapshot): AutopilotPhase {
 		if (phase === 'done') return phase;
 		const v = snap.vessels.find((s) => s.id === o.vessel);
-		if (!v || v.mode !== 'flight') return phase;
+		// A vessel parked on surface rails (plan 016) is woken by the first commands below.
+		if (!v || (v.mode !== 'flight' && !v.surface)) return phase;
 		const t = snap.t;
 		if (prev && t <= prev.t) return phase; // same snapshot twice
 		const dt = prev ? t - prev.t : 0;

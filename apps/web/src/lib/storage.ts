@@ -16,3 +16,22 @@ export function loadDraft(): string | null {
 		return null;
 	}
 }
+
+/** The player's script for one design (plan 017). Keyed by design name; same failure policy as the draft. */
+const scriptKey = (designName: string): string => `orbital.script.${designName}`;
+
+export function saveScript(designName: string, source: string): void {
+	try {
+		localStorage.setItem(scriptKey(designName), source);
+	} catch {
+		// private mode or quota: the text stays in the panel for this session
+	}
+}
+
+export function loadScript(designName: string): string | null {
+	try {
+		return localStorage.getItem(scriptKey(designName));
+	} catch {
+		return null;
+	}
+}

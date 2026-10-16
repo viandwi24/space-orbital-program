@@ -4,7 +4,8 @@
 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
 	import { loadCatalog, partLookup } from '../../lib/catalog';
 	import { parseDesign } from '../../lib/design';
-	import { loadDraft } from '../../lib/storage';
+	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
+	import { canWarp } from '../../lib/telemetry';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
 
@@ -14,6 +15,7 @@
 	let flight: Flight | null = null;
 	let panelOpen = $state(false);
 	let source = $state('');
+	let designName = '';
 	let script = $state.raw<ScriptView>(idleScript());
 	let logEl = $state<HTMLPreElement>();
 
@@ -35,6 +37,8 @@
 			problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
 			return;
 		}
+		designName = parsed.design.name;
+		source = loadScript(designName) ?? '';
 		const started: Flight = startFlight({
 			canvas,
 			design: parsed.design,
@@ -52,8 +56,15 @@
 		};
 	});
 
+	/** Edits and "Load sample" both go through here so the text is saved per design. */
+	function setSource(text: string): void {
+		source = text;
+		if (designName) saveScript(designName, text);
+	}
+
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
+	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1));
 	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
 </script>
 
@@ -73,7 +84,8 @@
 	{#if panelOpen}
 		<section class="script" aria-label="Script">
 			<textarea
-				bind:value={source}
+				value={source}
+				oninput={(e) => setSource(e.currentTarget.value)}
 				spellcheck="false"
 				rows="12"
 				placeholder="Script body (async function): ship.throttle = 1; stage(); await wait(5); print(ship.altitude)"
@@ -85,7 +97,7 @@
 				<button type="button" disabled={!running} onclick={() => flight?.stopScript()}>
 					Stop
 				</button>
-				<button type="button" onclick={() => (source = ascentScript)}>Load sample</button>
+				<button type="button" onclick={() => setSource(ascentScript)}>Load sample</button>
 				<span
 					class="status"
 					class:error={script.status === 'failed' || script.status === 'terminated'}
@@ -128,6 +140,8 @@
 				</dd>
 				<dt>Periapsis</dt>
 				<dd>{t?.periapsis !== undefined ? formatDistance(t.periapsis) : '-'}</dd>
+				<dt>Status</dt>
+				<dd data-testid="hud-phase">{t?.phase ?? '-'}</dd>
 				<dt>Mode</dt>
 				<dd>{t?.mode ?? '-'}</dd>
 				<dt>Throttle</dt>
@@ -138,7 +152,23 @@
 				<dt>Stage</dt>
 				<dd>{hud.stagesDone} / {hud.stagesTotal} fired</dd>
 				<dt>Warp</dt>
-				<dd>{hud.warp}x</dd>
+				<dd>
+					<button
+						type="button"
+						class="warp"
+						aria-label="Slower time warp"
+						disabled={!warpUsable}
+						onclick={() => flight?.stepWarp(-1)}>-</button
+					>
+					<span data-testid="hud-warp">{hud.warp}x</span>
+					<button
+						type="button"
+						class="warp"
+						aria-label="Faster time warp"
+						disabled={!warpUsable}
+						onclick={() => flight?.stepWarp(1)}>+</button
+					>
+				</dd>
 				<dt>View</dt>
 				<dd>{hud.map ? 'map' : 'vessel'}</dd>
 				{#if hud.autopilot}
@@ -280,6 +310,10 @@
 		margin: 0;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
+	}
+	.warp {
+		padding: 0 7px;
+		line-height: 1.3;
 	}
 	meter {
 		width: 70px;

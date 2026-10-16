@@ -41,7 +41,9 @@ export type WorkerMessage =
 			lastMs: number;
 			maxMs: number;
 	  }
-	| { kind: 'script-log'; lines: string[] };
+	| { kind: 'script-log'; lines: string[] }
+	/** A stage fired in the sim (`stage:activated`), whoever sent the command: page, autopilot or script. */
+	| { kind: 'stage'; vessel: number; stage: number };
 
 const SCRIPT_STATES: readonly unknown[] = [
 	'starting',
@@ -84,6 +86,13 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 				: null;
 		case 'script-log':
 			return Array.isArray(data.lines) && data.lines.every((l) => typeof l === 'string')
+				? (data as unknown as WorkerMessage)
+				: null;
+		case 'stage':
+			return typeof data.vessel === 'number' &&
+				typeof data.stage === 'number' &&
+				Number.isInteger(data.stage) &&
+				data.stage >= 0
 				? (data as unknown as WorkerMessage)
 				: null;
 		default:
