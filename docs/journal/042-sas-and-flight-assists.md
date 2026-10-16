@@ -2,7 +2,7 @@
 
 **Plan:** plans/042-sas-and-flight-assists.md · **Session:** sas session (Claude, 2026-10-17) · **ADR:** [0049](../decisions/0049-sas-in-the-sim-with-module-authority.md) · **Research:** [sas-attitude-control](../research/sas-attitude-control.md)
 
-**Status when written: in progress.** Sim, stock, core and the HUD components are done and committed; the hunks in plan 032's and 039's files (flight loop, flight page, script API) are waiting for those plans (see "Not done").
+**Status: done.** Sim, stock, core and the HUD components were committed first; the flight loop, flight page and script API hunks were integrated afterwards (section "Integration").
 
 ## What was done
 
@@ -43,7 +43,13 @@ On a copy of the repository at this plan's commits plus the integration hunks ([
 - Rails: pointing modes keep the vessel moving at the orbital rate (2.7e-3 rad/s) so no fixed rate dead band lets it go idle; the quiet band is defined on the error and a loose rate, and requires that the integrator has learned no disturbance. A first version evaluated the rails direction before the rails step advanced the elements and lagged by one rails step (1.5 degrees at 100x).
 - Latching a held attitude at 0.01 rad/s drifted almost a degree afterwards; 0.004 rad/s gives 0.000.
 
+## Integration (integration session, 2026-10-17)
+
+- `docs/journal/assets/042-flight-integration.patch` did not apply with `git apply` (the flight loop had changed under plan 039); `patch -p1 -F3` applied five of six hunks, the import hunk was merged by hand. `flight-loop.ts`: `Flight.setSas`, the key handler (`modeForKey`: `T` toggles hold and off, `1` to `7` the modes), the prograde reference follow-up after every HUD model; `routes/flight/+page.svelte`: `sas`, `controllable` and `onsas` on `InstrumentDeck`.
+- `ship.sas` (`packages/scripting`): the prelude's accessor (a mode set in a tick reads back at once, the sim's own mode from the next snapshot on), the runner's `case 'sas'` with the same repeat suppression as throttle and attitude, `Telemetry.sas`, three tests (command and read-back, bad values, a mode the player set), the documented-surface test and the scripting guide (`ship.sas`, `sas` in the telemetry table). The reference (`surface` or `orbit`) is not scriptable; the HUD's follow rule keeps choosing it.
+- **Manual run on the real tree** (built-in browser, a production-mode build with the dev hooks on port 5204, journal 039 for the method): launch, `Z`, `Space`, `T` (SAS on, hold: [`042-integrated-sas-hold-on-liftoff.jpg`](assets/042-integrated-sas-hold-on-liftoff.jpg)), a pitch kick by command, `2`: [`042-integrated-prograde-gravity-turn.jpg`](assets/042-integrated-prograde-gravity-turn.jpg) at 7.4 km (pitch +58 degrees, SAS error 0.6 degrees), the sim's `sas.error` 0.17, 0.09, 0.03, 0.02, 0.03, 0.04, 0.08, 0.12 degrees at 9.5 to 15.3 km, then `Space` (stage 2): [`042-integrated-prograde-after-staging.jpg`](assets/042-integrated-prograde-after-staging.jpg) at 16.5 km, mode still `prograde` on the surface reference, error 0.2 degrees. My own angle-of-attack arithmetic in the page was wrong (it ignored the sign of the body rotation) and read 25 degrees; the sim's own error field is what the numbers above use.
+- Checks after the integration: `bun run test` 814 pass 0 fail; `cd apps/web && bunx vitest --run` 414 pass (51 files); `bun run typecheck` 0 errors (svelte-check 1 388 files); `bun run build` ok; `bun run docs:check` OK (47 plans, 53 ADRs); prettier clean on the files touched.
+
 ## Not done
 
-- Integration into `flight-loop.ts` and `routes/flight/+page.svelte` (the patch above applies to the tree of this plan's commits), `ship.sas` in `packages/scripting` (prelude setter/getter, runner `case 'sas'` with repeat suppression, tests), the scripting guide paragraph: waiting for plans 032 and 039.
 - Maneuver and target modes (plans 044/045); SAS part requirements (every controlled vessel has SAS).

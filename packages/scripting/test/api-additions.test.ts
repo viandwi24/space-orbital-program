@@ -121,7 +121,13 @@ test('warp(f) is a command without a vessel, factor 1 to 100 000; anything else 
 		{ type: 'warp', factor: 10 },
 		{ type: 'warp', factor: MAX_SCRIPT_WARP }
 	]);
-	expect(runner.logs).toEqual(['RangeError', 'RangeError', 'RangeError', 'RangeError', 'RangeError']);
+	expect(runner.logs).toEqual([
+		'RangeError',
+		'RangeError',
+		'RangeError',
+		'RangeError',
+		'RangeError'
+	]);
 	rig.sim.dispose();
 });
 

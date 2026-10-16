@@ -1,7 +1,7 @@
 ---
 id: 042
 title: "SAS and flight assists"
-status: in-progress
+status: done
 owner: "sas session (Claude, 2026-10-17)"
 depends: [033]
 phase: 2
@@ -44,17 +44,18 @@ Tests are headless in `packages/sim/test/sas.test.ts` unless noted; vessels from
 - [x] **Determinism:** two sims run the same SAS scenario step for step with identical snapshots (`JSON.stringify` equal).
 - [x] **Protocol:** `sas` is refused for an unknown or uncontrolled vessel and for a bad mode/reference; the snapshot carries `sas`; `controlAuthority` has unit tests for the reaction wheel (including no power), gimbal (cold, lit, lever sign) and control surface (vacuum, in air); API version 0.1.11.
 - [x] **HUD:** vitest for the mode list, button states (active, disabled without a control source), the `T`/number key map and the reference follow rule; screenshots `docs/journal/assets/042-*.png` (components done; wiring into the flight page waits for 032/039).
-- [ ] **Script API:** `ship.sas = 'prograde'` (read back the same) sets the mode through the command path (test in `packages/scripting`/web script tests) — after plan 032 is done.
-- [ ] **[manual]** browser (done on a copy with the integration patch, see journal; repeat on the real tree after integration): launch, `T` toggles SAS, a navball button holds prograde through the gravity turn; screenshots.
-- [ ] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files all pass.
+- [x] **Script API:** `ship.sas = 'prograde'` (read back the same) sets the mode through the command path (`packages/scripting/test/api-additions.test.ts`: command issued once, repeat not sent, bad values throw `TypeError`, the sim's mode read back on the next tick, a mode the player set is visible to the script).
+- [x] **[manual]** browser, repeated on the real tree (journal 042, "Integration"): launch, `T` switches SAS on (hold), a kick, `2` (prograde): the SAS error stayed at 0.03 to 0.6 degrees from 7 to 15 km while the nose swung to +40 degrees pitch, staging kept the mode; screenshots `042-integrated-*.jpg`.
+- [x] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files all pass (journal 042, "Integration").
 
 ## Docs checklist
 
 - [x] STATUS, journal, ADR 0049, `architecture/simulation.md`, `guides/writing-a-mod.md` (`controlAuthority`), `plugin-system.md`, research.
-- [ ] `guides/scripting.md` (`ship.sas`) with the script API.
+- [x] `guides/scripting.md` (`ship.sas`) with the script API.
 
 ## Log
 
 - 2026-10-17 — Created as draft (ADR 0048, v1 scope).
 - 2026-10-17 — Refined draft → ready at the human's request (session: sas session).
 - 2026-10-17 — Sim, stock, core and HUD components done and committed (headless criteria pass, journal 042); integration into plan 032/039's files and the script API pending.
+- 2026-10-17 — Integrated into the flight loop and flight page (keys `T`, `1` to `7`, navball buttons) and the script API (`ship.sas`, telemetry `sas`) by the integration session, repeated the manual run on the real tree; plan 039 stayed in-progress for its own open criteria, which this plan does not depend on. done.
