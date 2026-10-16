@@ -111,6 +111,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 
 	function drawFrame(dt: number): void {
 		model.prepareFrame(dt);
+		env.planet.bakeTerrain(gl);
 		gl.toneMappingExposure = env.state.exposure;
 		const up = env.planet.material.uniforms.uCamUp!.value as Vec3;
 		const target = envLight.update(env, up, env.state.sun);

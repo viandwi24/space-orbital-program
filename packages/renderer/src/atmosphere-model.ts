@@ -24,25 +24,36 @@ export interface Atmosphere {
 	/** Henyey-Greenstein asymmetry. */
 	mieG: number;
 	sunIrradiance: number;
-	/** Multiplies in-scattered light to stand in for multiple scattering (single scattering is too dark and too blue). */
+	/** Multiplies Rayleigh in-scatter to stand in for multiple scattering (single scattering is too dark and too blue). */
 	skyBoost: number;
+	/** The same for Mie in-scatter. Kept apart from `skyBoost` so haze can be tuned alone; ADR 0037 found that Rayleigh, not Mie, veiled distant land, so both are 2.2. */
+	mieBoost: number;
 }
 
-/** Earth's optical depths squeezed into the home body's 5.6 km scale height (vertical blue depth 0.27). */
+/**
+ * The scattering layer is this many times thicker than the body's pressure scale height, with
+ * the density at the surface divided by the same factor, so the vertical optical depth (the colour
+ * of the sky) is unchanged while horizontal paths near the ground are that much clearer
+ * (ADR 0037: land at 3 to 10 km looked like milk).
+ */
+export const RAYLEIGH_THICKNESS = 2;
+
+/** Earth's optical depths (vertical blue depth 0.27) on a layer `RAYLEIGH_THICKNESS` x the home body's 5.6 km scale height. */
 export const atmosphereFor = (radius: number, height: number, scaleHeight = 5_600): Atmosphere => ({
 	radius,
 	height,
-	rayleighHeight: scaleHeight,
+	rayleighHeight: scaleHeight * RAYLEIGH_THICKNESS,
 	mieHeight: scaleHeight * 0.15,
 	betaRayleigh: [
-		(8.3e-6 * 5_600) / scaleHeight,
-		(19.3e-6 * 5_600) / scaleHeight,
-		(47.3e-6 * 5_600) / scaleHeight
+		(8.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
+		(19.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
+		(47.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS)
 	],
 	betaMie: (18e-6 * 5_600) / scaleHeight,
 	mieG: 0.76,
 	sunIrradiance: 12,
-	skyBoost: 2.2
+	skyBoost: 2.2,
+	mieBoost: 2.2
 });
 
 const STEPS = 24;
@@ -95,26 +106,33 @@ const rayleighPhase = (c: number): number => (3 / (16 * Math.PI)) * (1 + c * c);
 const miePhase = (c: number, g: number): number =>
 	(1 / (4 * Math.PI)) * ((1 - g * g) / Math.pow(1 + g * g - 2 * g * c, 1.5));
 
-/**
- * In-scattered radiance toward a viewer at `altitude`, looking `viewElevation` rad above the local
- * horizon, with the sun `sunElevation` above it and `relAzimuth` rad between their azimuths.
- */
-export function skyRadiance(
+interface PathIntegral {
+	/** Rayleigh and Mie in-scatter per channel before the boosts and the sun irradiance. */
+	rayleigh: RGB;
+	mie: RGB;
+	/** Rayleigh and Mie optical depth of the path. */
+	depth: [number, number];
+}
+
+/** Integrates the single-scattered light along a view path of at most `maxDistance` metres (to the surface or the atmosphere top when omitted). */
+function integratePath(
 	atm: Atmosphere,
 	altitude: number,
 	viewElevation: number,
 	sunElevation: number,
-	relAzimuth: number
-): RGB {
+	relAzimuth: number,
+	maxDistance = Number.POSITIVE_INFINITY
+): PathIntegral | null {
 	const r0 = atm.radius + Math.max(0, altitude);
 	const mu = Math.sin(viewElevation);
 	const top = sphereExit(r0, mu, atm.radius + atm.height);
-	if (top === null || top <= 0) return [0, 0, 0];
+	if (top === null || top <= 0) return null;
 	let end = top;
 	if (hitsPlanet(atm, r0, mu)) {
 		const disc = r0 * r0 * (mu * mu - 1) + atm.radius * atm.radius;
 		end = -r0 * mu - Math.sqrt(disc);
 	}
+	end = Math.min(end, maxDistance);
 	const cv = Math.cos(viewElevation);
 	const cs = Math.cos(sunElevation);
 	const sinS = Math.sin(sunElevation);
@@ -122,7 +140,8 @@ export function skyRadiance(
 	const pr = rayleighPhase(cosView);
 	const pm = miePhase(cosView, atm.mieG);
 	const ds = end / STEPS;
-	const out: RGB = [0, 0, 0];
+	const rayleigh: RGB = [0, 0, 0];
+	const mie: RGB = [0, 0, 0];
 	let odR = 0;
 	let odM = 0;
 	for (let i = 0; i < STEPS; i++) {
@@ -143,15 +162,51 @@ export function skyRadiance(
 		const viewT = extinction(atm, [odR, odM]);
 		const sunT = extinction(atm, columnDensity(atm, r, sunDotUp));
 		for (let c = 0; c < 3; c++) {
-			const scatter = atm.betaRayleigh[c]! * dR * pr + (atm.betaMie / 1.1) * dM * pm;
-			out[c]! += scatter * viewT[c]! * sunT[c]!;
+			const att = viewT[c]! * sunT[c]!;
+			rayleigh[c]! += atm.betaRayleigh[c]! * dR * pr * att;
+			mie[c]! += (atm.betaMie / 1.1) * dM * pm * att;
 		}
 	}
-	return [
-		out[0]! * atm.sunIrradiance * atm.skyBoost,
-		out[1]! * atm.sunIrradiance * atm.skyBoost,
-		out[2]! * atm.sunIrradiance * atm.skyBoost
-	];
+	return { rayleigh, mie, depth: [odR, odM] };
+}
+
+const boosted = (atm: Atmosphere, p: PathIntegral): RGB => [
+	(p.rayleigh[0] * atm.skyBoost + p.mie[0] * atm.mieBoost) * atm.sunIrradiance,
+	(p.rayleigh[1] * atm.skyBoost + p.mie[1] * atm.mieBoost) * atm.sunIrradiance,
+	(p.rayleigh[2] * atm.skyBoost + p.mie[2] * atm.mieBoost) * atm.sunIrradiance
+];
+
+/**
+ * In-scattered radiance toward a viewer at `altitude`, looking `viewElevation` rad above the local
+ * horizon, with the sun `sunElevation` above it and `relAzimuth` rad between their azimuths.
+ */
+export function skyRadiance(
+	atm: Atmosphere,
+	altitude: number,
+	viewElevation: number,
+	sunElevation: number,
+	relAzimuth: number
+): RGB {
+	const p = integratePath(atm, altitude, viewElevation, sunElevation, relAzimuth);
+	return p ? boosted(atm, p) : [0, 0, 0];
+}
+
+/**
+ * Aerial perspective of a surface `distance` metres away along a view ray: the haze radiance added
+ * on the way and the fraction of the surface's own light that survives. The planet pass applies
+ * the same two numbers per pixel (ADR 0037).
+ */
+export function aerialPerspective(
+	atm: Atmosphere,
+	altitude: number,
+	viewElevation: number,
+	distance: number,
+	sunElevation: number,
+	relAzimuth: number
+): { inscatter: RGB; transmittance: RGB } {
+	const p = integratePath(atm, altitude, viewElevation, sunElevation, relAzimuth, distance);
+	if (!p) return { inscatter: [0, 0, 0], transmittance: [1, 1, 1] };
+	return { inscatter: boosted(atm, p), transmittance: extinction(atm, p.depth) };
 }
 
 export const luminance = ([r, g, b]: RGB): number => 0.2126 * r + 0.7152 * g + 0.0722 * b;

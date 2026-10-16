@@ -96,7 +96,8 @@ export class Environment {
 	private preset: GraphicsPreset;
 	private sunOverride: { elevation: number; azimuth: number } | null = null;
 	private cloudAngle = 0;
-	private cloudCover = 0.45;
+	private time = 0;
+	private cloudCover = 0.42;
 	private exposure = 1;
 	private config: EnvironmentConfig;
 
@@ -273,6 +274,7 @@ export class Environment {
 		this.sunLight.target.updateMatrixWorld();
 
 		this.cloudAngle += input.dt * 2.2e-5;
+		this.time += input.dt;
 		this.site.setLamps(siteLamps);
 		const shadowMatrix = new Matrix4().copy(this.sunLight.shadow.matrix);
 		this.planet.update({
@@ -288,6 +290,7 @@ export class Environment {
 			siteLamps,
 			cloudCover: this.cloudCover,
 			cloudAngle: this.cloudAngle,
+			time: this.time,
 			starBrightness: 1,
 			shadow: {
 				on: shadowActive,

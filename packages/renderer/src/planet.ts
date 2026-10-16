@@ -7,6 +7,11 @@ import type { Quat, Vec3 } from '@orbital/core';
 import {
 	AlwaysDepth,
 	BufferAttribute,
+	HalfFloatType,
+	OrthographicCamera,
+	Scene,
+	WebGLCubeRenderTarget,
+	type WebGLRenderer,
 	BufferGeometry,
 	ClampToEdgeWrapping,
 	DataTexture,
@@ -33,12 +38,13 @@ import { type Atmosphere, type RGB } from './atmosphere-model.ts';
 import { cachedPlanetMap } from './planet-map.ts';
 import type { PlanetFrame } from './planet-frame.ts';
 import type { PresetSettings } from './presets.ts';
+import { CIRRUS_ALTITUDE, CLOUD_ALTITUDE } from './cloud-model.ts';
 import { PAD_RADIUS } from './site.ts';
 import { planetFragment, planetVertex } from './shaders/planet.glsl.ts';
-import { siteAxes } from './sun.ts';
-
-/** Height of the cloud layer above the surface, m. */
-export const CLOUD_ALTITUDE = 3_500;
+import { terrainBakeFragment, terrainBakeVertex } from './shaders/terrain.glsl.ts';
+import { siteAxes, surfaceUp } from './sun.ts';
+import { bubbleStrength, flatSkipRadius } from './terrain-model.ts';
+import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => ({ value }) as U<T>;
@@ -54,6 +60,7 @@ export interface AtmosphereUniforms {
 	uMieG: U<number>;
 	uSunIrr: U<number>;
 	uSkyBoost: U<number>;
+	uMieBoost: U<number>;
 }
 
 export function createAtmosphereUniforms(atm: Atmosphere): AtmosphereUniforms {
@@ -66,7 +73,8 @@ export function createAtmosphereUniforms(atm: Atmosphere): AtmosphereUniforms {
 		uHM: u(atm.mieHeight),
 		uMieG: u(atm.mieG),
 		uSunIrr: u(atm.sunIrradiance),
-		uSkyBoost: u(atm.skyBoost)
+		uSkyBoost: u(atm.skyBoost),
+		uMieBoost: u(atm.mieBoost)
 	};
 }
 
@@ -89,6 +97,8 @@ export interface PlanetUpdate {
 	siteLamps: number;
 	cloudCover: number;
 	cloudAngle: number;
+	/** Seconds since the environment started (the sea is periodic in `WAVE_PERIOD`). */
+	time: number;
 	starBrightness: number;
 	shadow: {
 		on: boolean;
@@ -124,6 +134,11 @@ export class PlanetPass {
 	})();
 	private map: DataTexture;
 	private mapWidth: number;
+	/** Baked terrain heights (ADR 0036): a cube map of height (m) and tangent gradient. */
+	private terrainTarget: WebGLCubeRenderTarget | null = null;
+	private terrainSize: number;
+	private terrainDirty = true;
+	private readonly bake: { scene: Scene; camera: OrthographicCamera; material: ShaderMaterial };
 	private readonly radius: number;
 	private siteLatitude: number;
 	private siteLongitude: number;
@@ -139,6 +154,7 @@ export class PlanetPass {
 		this.atmosphere = createAtmosphereUniforms(atm);
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
+		this.terrainSize = settings.terrainSize;
 		const axes = siteAxes(site.latitude, site.longitude);
 		const geometry = new BufferGeometry();
 		geometry.setAttribute(
@@ -176,13 +192,20 @@ export class PlanetPass {
 				uSiteLamps: u(0),
 				uCloudAngle: u(0),
 				uCloudAlt: u(atm.radius + CLOUD_ALTITUDE),
+				uCirrusAlt: u(atm.radius + CIRRUS_ALTITUDE),
 				uStarBright: u(1),
 				uShadowOn: u(0),
 				uShadowMap: u(this.dummyShadow),
 				uShadowMatrix: u(new Matrix4()),
 				uShadowBias: u(-0.0004),
 				uShadowTexel: u(1 / 2048),
-				uSiteRadius: u(PAD_RADIUS * 40)
+				uSiteRadius: u(PAD_RADIUS * 40),
+				uTerrain: u<unknown>(null),
+				uTerrainOn: u(0),
+				uBubbleA: u(1),
+				uSkipR: u(0),
+				uTime: u(0),
+				uWaveAnchor: u(WAVES.map(() => 0))
 			},
 			side: DoubleSide,
 			depthTest: true,
@@ -193,6 +216,72 @@ export class PlanetPass {
 		this.mesh.frustumCulled = false;
 		this.mesh.renderOrder = -10;
 		this.mesh.name = 'planet-pass';
+
+		const bakeMaterial = new ShaderMaterial({
+			name: 'terrain-bake',
+			vertexShader: terrainBakeVertex,
+			fragmentShader: terrainBakeFragment,
+			uniforms: {
+				uMap: u(this.map),
+				uFace: u(0),
+				uTexel: u(0.001),
+				uRadius: u(atm.radius),
+				uSiteDir: u(new Vector3(1, 0, 0))
+			},
+			depthTest: false,
+			depthWrite: false
+		});
+		const bakeScene = new Scene();
+		const bakeMesh = new Mesh(geometry, bakeMaterial);
+		bakeMesh.frustumCulled = false;
+		bakeScene.add(bakeMesh);
+		this.bake = {
+			scene: bakeScene,
+			camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
+			material: bakeMaterial
+		};
+		this.setSiteDirection(site.latitude, site.longitude);
+	}
+
+	private setSiteDirection(latitude: number, longitude: number): void {
+		const up = surfaceUp(latitude, longitude);
+		(this.bake.material.uniforms.uSiteDir!.value as Vector3).set(up.x, up.y, up.z);
+		this.terrainDirty = true;
+	}
+
+	/**
+	 * Renders the terrain cube map when the site, the map or the resolution changed (first frame,
+	 * `setSite`, `setQuality`). Needs a context, so the facade calls it; Bun tests never do.
+	 */
+	bakeTerrain(gl: WebGLRenderer): void {
+		if (!this.terrainDirty || this.terrainSize <= 0) return;
+		if (!this.terrainTarget || this.terrainTarget.width !== this.terrainSize) {
+			this.terrainTarget?.dispose();
+			this.terrainTarget = new WebGLCubeRenderTarget(this.terrainSize, {
+				type: HalfFloatType,
+				format: RGBAFormat,
+				generateMipmaps: false,
+				minFilter: LinearFilter,
+				magFilter: LinearFilter,
+				depthBuffer: false
+			});
+			this.material.uniforms.uTerrain!.value = this.terrainTarget.texture;
+		}
+		const uniforms = this.bake.material.uniforms;
+		uniforms.uMap!.value = this.map;
+		uniforms.uTexel!.value = (1.2 * Math.PI) / 2 / this.terrainSize;
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		for (let face = 0; face < 6; face++) {
+			uniforms.uFace!.value = face;
+			gl.setRenderTarget(this.terrainTarget, face);
+			gl.render(this.bake.scene, this.bake.camera);
+		}
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+		this.terrainDirty = false;
+		this.material.uniforms.uTerrainOn!.value = 1;
 	}
 
 	private buildMap(width: number): DataTexture {
@@ -215,7 +304,10 @@ export class PlanetPass {
 			GROUND_OCTAVES: s.groundOctaves,
 			CLOUD_OCTAVES: s.cloudOctaves,
 			CLOUDS: 1,
-			CLOUD_SHADOWS: s.cloudOctaves >= 4 ? 1 : 0
+			CLOUD_SHADOWS: s.cloudOctaves >= 4 ? 1 : 0,
+			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
+			TERRAIN_STEPS: Math.max(1, s.terrainSteps),
+			TERRAIN_SHADOW_STEPS: s.terrainShadowSteps
 		};
 	}
 
@@ -223,11 +315,30 @@ export class PlanetPass {
 	setSite(latitude: number, longitude: number): void {
 		this.siteLatitude = latitude;
 		this.siteLongitude = longitude;
+		this.setSiteDirection(latitude, longitude);
 		const axes = siteAxes(latitude, longitude);
 		const u = this.material.uniforms;
 		(u.uSiteEast!.value as Vector3).set(axes.east.x, axes.east.y, axes.east.z);
 		(u.uSiteNorth!.value as Vector3).set(axes.north.x, axes.north.y, axes.north.z);
 		(u.uSiteUp!.value as Vector3).set(axes.up.x, axes.up.y, axes.up.z);
+	}
+
+	/** Phase of each wave at the 1024 m anchor, kept in float64 and reduced to [0, 2 pi) so the GPU never sees large phases. */
+	private updateWaveAnchors(cell: Vec3): void {
+		const axes = siteAxes(this.siteLatitude, this.siteLongitude);
+		const out = this.material.uniforms.uWaveAnchor!.value as number[];
+		WAVES.forEach((w, i) => {
+			const dx = Math.cos(w.direction);
+			const dy = Math.sin(w.direction);
+			const d = {
+				x: dx * axes.east.x + dy * axes.north.x,
+				y: dx * axes.east.y + dy * axes.north.y,
+				z: dx * axes.east.z + dy * axes.north.z
+			};
+			const along = 1024 * (d.x * cell.x + d.y * cell.y + d.z * cell.z);
+			const phase = (waveNumber(w.wavelength) * along) % (2 * Math.PI);
+			out[i] = phase < 0 ? phase + 2 * Math.PI : phase;
+		});
 	}
 
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
@@ -240,6 +351,11 @@ export class PlanetPass {
 			this.map = this.buildMap(settings.mapWidth);
 			this.material.uniforms.uMap!.value = this.map;
 			this.material.uniforms.uMapTexel!.value = (2 * Math.PI * this.radius) / settings.mapWidth;
+			this.terrainDirty = true;
+		}
+		if (settings.terrainSize !== this.terrainSize) {
+			this.terrainSize = settings.terrainSize;
+			this.terrainDirty = true;
 		}
 	}
 
@@ -252,6 +368,12 @@ export class PlanetPass {
 		set<Vector3>('uCamPos', (v) => v.copy(p.camera.position));
 		set<Vector3>('uCamUp', (v) => v.set(p.frame.up.x, p.frame.up.y, p.frame.up.z));
 		un.uAlt!.value = p.frame.altitude;
+		un.uBubbleA!.value = bubbleStrength(p.frame.altitude);
+		const toSite = p.frame.camToSite;
+		const horizontal = Math.sqrt(
+			Math.max(toSite.x ** 2 + toSite.y ** 2 + toSite.z ** 2 - p.frame.altitude ** 2, 0)
+		);
+		un.uSkipR!.value = flatSkipRadius(p.frame.altitude, horizontal);
 		un.uPixelAngle!.value =
 			(2 * Math.tan((p.camera.fov * Math.PI) / 360)) / Math.max(1, p.pixelHeight);
 		set<Vector3>('uSunDir', (v) => v.set(p.sun.x, p.sun.y, p.sun.z));
@@ -272,6 +394,8 @@ export class PlanetPass {
 		un.uCloudCover!.value = p.cloudCover;
 		un.uSiteLamps!.value = p.siteLamps;
 		un.uCloudAngle!.value = p.cloudAngle;
+		un.uTime!.value = p.time % WAVE_PERIOD;
+		this.updateWaveAnchors(p.frame.anchorCell);
 		un.uStarBright!.value = p.starBrightness;
 		un.uShadowOn!.value = p.shadow.on && p.shadow.map ? 1 : 0;
 		un.uShadowMap!.value = p.shadow.map ?? this.dummyShadow;
@@ -281,6 +405,8 @@ export class PlanetPass {
 	}
 
 	dispose(): void {
+		this.terrainTarget?.dispose();
+		this.bake.material.dispose();
 		this.dummyShadow.dispose();
 		this.map.dispose();
 		this.material.dispose();

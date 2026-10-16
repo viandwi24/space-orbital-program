@@ -1,3 +1,47 @@
+/** Integer-hash value noise (pcg3d) shared by the planet pass and the terrain bake. */
+export const hashNoiseGLSL = /* glsl */ `
+// --- hash noise ---------------------------------------------------------------------------------
+uvec3 pcg3d(uvec3 v) {
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	v ^= v >> 16u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	return v;
+}
+float hash13i(ivec3 c) { return float(pcg3d(uvec3(c)).x) * (1.0 / 4294967295.0); }
+vec3 hash33i(ivec3 c) { return vec3(pcg3d(uvec3(c))) * (1.0 / 4294967295.0); }
+
+float valueNoiseCell(ivec3 c, vec3 f) {
+	f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	float a = mix(hash13i(c), hash13i(c + ivec3(1, 0, 0)), f.x);
+	float b = mix(hash13i(c + ivec3(0, 1, 0)), hash13i(c + ivec3(1, 1, 0)), f.x);
+	float cc = mix(hash13i(c + ivec3(0, 0, 1)), hash13i(c + ivec3(1, 0, 1)), f.x);
+	float d = mix(hash13i(c + ivec3(0, 1, 1)), hash13i(c + ivec3(1, 1, 1)), f.x);
+	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
+}
+// Three values per lattice fetch: one pcg3d hash gives a whole vec3, so a vector warp costs one noise, not three.
+vec3 noiseF3(vec3 p) {
+	vec3 fl = floor(p);
+	vec3 f = p - fl;
+	f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	ivec3 c = ivec3(fl);
+	vec3 a = mix(hash33i(c), hash33i(c + ivec3(1, 0, 0)), f.x);
+	vec3 b = mix(hash33i(c + ivec3(0, 1, 0)), hash33i(c + ivec3(1, 1, 0)), f.x);
+	vec3 cc = mix(hash33i(c + ivec3(0, 0, 1)), hash33i(c + ivec3(1, 0, 1)), f.x);
+	vec3 d = mix(hash33i(c + ivec3(0, 1, 1)), hash33i(c + ivec3(1, 1, 1)), f.x);
+	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
+}
+// Plain float-position noise (clouds, stars, ocean): fine where precision of the position is not critical.
+float noiseF(vec3 p) {
+	vec3 fl = floor(p);
+	return valueNoiseCell(ivec3(fl), p - fl);
+}
+`;
+
 /**
  * GLSL shared by the planet pass and the environment-light sky: single-scattering Rayleigh + Mie
  * march (the twin of `atmosphere-model.ts`, ADR 0027) and the hash noise. Positions are relative
@@ -13,6 +57,7 @@ uniform float uHM;
 uniform float uMieG;
 uniform float uSunIrr;
 uniform float uSkyBoost;
+uniform float uMieBoost;
 
 const float kPI = 3.14159265359;
 
@@ -63,30 +108,42 @@ float miePhase(float c, float g) {
 struct Scatter {
 	vec3 inscatter; // radiance added along the whole segment
 	vec3 transmittance; // of the whole segment
-	vec3 insCloud; // inscatter up to the cloud distance tc
-	vec3 transCloud;
+	vec3 insA; // inscatter up to the first snapshot distance tcA (a cloud layer)
+	vec3 transA;
+	vec3 insB; // and up to the second, tcB >= tcA
+	vec3 transB;
 };
 
-// March t0..t1 along rd from ro. tc is a distance at which to snapshot the state (cloud layer), or < 0.
-Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitter, float tc, float power) {
+// March t0..t1 along rd from ro. tcA <= tcB are distances at which to snapshot the state (cloud layers); 1e30 for none (the snapshot is then the whole path).
+Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitter, float tcA, float tcB, float power) {
 	Scatter o;
 	o.inscatter = vec3(0.0);
-	o.insCloud = vec3(0.0);
-	o.transCloud = vec3(1.0);
+	o.insA = vec3(0.0);
+	o.transA = vec3(1.0);
+	o.insB = vec3(0.0);
+	o.transB = vec3(1.0);
 	float len = max(t1 - t0, 0.0);
 	float cosv = dot(rd, l);
 	float pr = rayleighPhase(cosv);
 	float pm = miePhase(cosv, uMieG);
 	vec2 od = vec2(0.0);
-	bool snap = false;
+	vec3 insR = vec3(0.0);
+	vec3 insM = vec3(0.0);
+	bool snapA = false;
+	bool snapB = false;
 	for (int i = 0; i < VIEW_SAMPLES; i++) {
 		float u = (float(i) + jitter) / float(VIEW_SAMPLES);
 		float s = t0 + len * pow(u, power);
 		float ds = len * power * pow(max(u, 1e-4), power - 1.0) / float(VIEW_SAMPLES);
-		if (tc >= 0.0 && !snap && s >= tc) {
-			snap = true;
-			o.insCloud = o.inscatter * uSunIrr * uSkyBoost;
-			o.transCloud = extinction(od);
+		if (!snapA && s >= tcA) {
+			snapA = true;
+			o.insA = (insR * uSkyBoost + insM * uMieBoost) * uSunIrr;
+			o.transA = extinction(od);
+		}
+		if (!snapB && s >= tcB) {
+			snapB = true;
+			o.insB = (insR * uSkyBoost + insM * uMieBoost) * uSunIrr;
+			o.transB = extinction(od);
 		}
 		vec3 p = ro + rd * s;
 		float h = max(length(p) - uR, 0.0);
@@ -96,43 +153,20 @@ Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitt
 		vec2 sd = sunDepth(p, l);
 		if (sd.x < 0.0) continue;
 		vec3 att = extinction(od + sd);
-		o.inscatter += att * (uBetaR * dR * pr + vec3(uBetaM / 1.1 * dM * pm));
+		insR += att * uBetaR * dR * pr;
+		insM += att * (uBetaM / 1.1 * dM * pm);
 	}
-	o.inscatter *= uSunIrr * uSkyBoost;
+	o.inscatter = (insR * uSkyBoost + insM * uMieBoost) * uSunIrr;
 	o.transmittance = extinction(od);
-	if (tc >= 0.0 && !snap) {
-		o.insCloud = o.inscatter;
-		o.transCloud = o.transmittance;
+	if (!snapA) {
+		o.insA = o.inscatter;
+		o.transA = o.transmittance;
+	}
+	if (!snapB) {
+		o.insB = o.inscatter;
+		o.transB = o.transmittance;
 	}
 	return o;
 }
-
-// --- hash noise ---------------------------------------------------------------------------------
-uvec3 pcg3d(uvec3 v) {
-	v = v * 1664525u + 1013904223u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	v ^= v >> 16u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	return v;
-}
-float hash13i(ivec3 c) { return float(pcg3d(uvec3(c)).x) * (1.0 / 4294967295.0); }
-vec3 hash33i(ivec3 c) { return vec3(pcg3d(uvec3(c))) * (1.0 / 4294967295.0); }
-
-float valueNoiseCell(ivec3 c, vec3 f) {
-	f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
-	float a = mix(hash13i(c), hash13i(c + ivec3(1, 0, 0)), f.x);
-	float b = mix(hash13i(c + ivec3(0, 1, 0)), hash13i(c + ivec3(1, 1, 0)), f.x);
-	float cc = mix(hash13i(c + ivec3(0, 0, 1)), hash13i(c + ivec3(1, 0, 1)), f.x);
-	float d = mix(hash13i(c + ivec3(0, 1, 1)), hash13i(c + ivec3(1, 1, 1)), f.x);
-	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
-}
-// Plain float-position noise (clouds, stars, ocean): fine where precision of the position is not critical.
-float noiseF(vec3 p) {
-	vec3 fl = floor(p);
-	return valueNoiseCell(ivec3(fl), p - fl);
-}
+${hashNoiseGLSL}
 `;

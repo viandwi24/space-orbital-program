@@ -42,7 +42,7 @@ void main() {
 	}
 	vec3 colour = base;
 	if (at.y > 0.0 && t1 > t0) {
-		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, 0.5, -1.0, h < uAtmH ? 2.0 : 1.0);
+		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, 0.5, 1e30, 1e30, h < uAtmH ? 2.0 : 1.0);
 		colour = base * sc.transmittance + sc.inscatter;
 	}
 	gl_FragColor = vec4(colour + uNight, 1.0);

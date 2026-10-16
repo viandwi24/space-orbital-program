@@ -28,6 +28,10 @@ export interface PresetSettings {
 	trees: number;
 	/** Instanced grass tufts around the pad (plan 025). */
 	tufts: number;
+	/** Terrain (ADR 0036): baked cube face size in texels, march steps (0 = flat planet), sun-shadow march steps. */
+	terrainSize: 0 | 512 | 768 | 1024;
+	terrainSteps: number;
+	terrainShadowSteps: number;
 	/** PMREM cube size for image-based light. */
 	envSize: 64 | 128 | 256;
 	/** Part models (plan 020): radial segments, hardware detail level, procedural texture side. */
@@ -53,6 +57,9 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		mapWidth: 512,
 		trees: 250,
 		tufts: 0,
+		terrainSize: 512,
+		terrainSteps: 20,
+		terrainShadowSteps: 0,
 		envSize: 64,
 		partSegments: 16,
 		partExtras: 0,
@@ -73,6 +80,9 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		mapWidth: 1024,
 		trees: 900,
 		tufts: 10000,
+		terrainSize: 768,
+		terrainSteps: 32,
+		terrainShadowSteps: 5,
 		envSize: 128,
 		partSegments: 24,
 		partExtras: 1,
@@ -86,13 +96,16 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		shadowMapSize: 4096,
 		post: true,
 		bloomScale: 0.5,
-		viewSamples: 16,
-		lightSamples: 6,
-		groundOctaves: 13,
-		cloudOctaves: 5,
+		viewSamples: 12,
+		lightSamples: 5,
+		groundOctaves: 11,
+		cloudOctaves: 4,
 		mapWidth: 1024,
 		trees: 2000,
 		tufts: 28000,
+		terrainSize: 1024,
+		terrainSteps: 48,
+		terrainShadowSteps: 8,
 		envSize: 128,
 		partSegments: 32,
 		partExtras: 2,

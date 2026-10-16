@@ -13,6 +13,17 @@ import {
 } from '../site.ts';
 import { BEACH_WIDTH, HIGHLAND, SEA_LEVEL } from '../planet-map.ts';
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
+import { octaveRotationGLSL } from './terrain.glsl.ts';
+import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
+import {
+	BUBBLE_RADIUS,
+	BUBBLE_RAMP,
+	STEP_MIN_FRACTION,
+	STEP_MIN_METRES,
+	STEP_RELAX,
+	TERRAIN_MAX_HEIGHT,
+	TERRAIN_MAX_SLOPE
+} from '../terrain-model.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 
@@ -31,6 +42,17 @@ const int APRON_N = ${APRONS.length};
 const vec4 APRON_BOX[${APRONS.length}] = vec4[](${APRONS.map((a) => `vec4(${f(a.x)}, ${f(a.z)}, ${f(a.hx)}, ${f(a.hz)})`).join(', ')});
 `;
 
+const waveConstants = (): string => /* glsl */ `
+const int WAVE_N = ${WAVES.length};
+const float WAVE_LEN[${WAVES.length}] = float[](${WAVES.map((w) => f(w.wavelength)).join(', ')});
+const float WAVE_K[${WAVES.length}] = float[](${WAVES.map((w) => f(waveNumber(w.wavelength))).join(', ')});
+const float WAVE_A[${WAVES.length}] = float[](${WAVES.map((w) => f(w.amplitude)).join(', ')});
+const float WAVE_W[${WAVES.length}] = float[](${WAVES.map((w) => f(waveOmega(w.wavelength))).join(', ')});
+const float WAVE_PH[${WAVES.length}] = float[](${WAVES.map((w) => f(w.phase)).join(', ')});
+const vec2 WAVE_DIR[${WAVES.length}] = vec2[](${WAVES.map((w) => `vec2(${f(Math.cos(w.direction))}, ${f(Math.sin(w.direction))})`).join(', ')});
+const float WAVE_LOOP = ${f(WAVE_PERIOD)};
+`;
+
 export const planetVertex = /* glsl */ `
 varying vec2 vNdc;
 void main() {
@@ -44,6 +66,7 @@ export const planetFragment = /* glsl */ `
 #include <logdepthbuf_pars_fragment>
 ${atmosphereGLSL}
 ${siteConstants()}
+${waveConstants()}
 
 varying vec2 vNdc;
 
@@ -70,6 +93,7 @@ uniform vec3 uSkyColour;   // mean sky radiance at the camera (ocean reflection)
 uniform float uCloudCover;
 uniform float uCloudAngle;
 uniform float uCloudAlt;
+uniform float uCirrusAlt;
 uniform float uStarBright;
 uniform float uShadowOn;
 uniform sampler2DShadow uShadowMap;
@@ -77,7 +101,9 @@ uniform mat4 uShadowMatrix;
 uniform float uShadowBias;
 uniform float uShadowTexel;
 uniform float uSiteRadius;
-uniform float uSiteLamps;  // 0 by day, 1 at night: the mast floodlights are on
+uniform float uSiteLamps;
+uniform float uTime;           // seconds, wrapped at the wave period
+uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
 
 const float SEA = ${f(SEA_LEVEL)};
 const float BEACH = ${f(BEACH_WIDTH)};
@@ -96,6 +122,8 @@ float noiseA(vec3 pl, float lam, int salt) {
 	return valueNoiseCell(c, f - fl);
 }
 
+const mat3 OCT_ROT = ${octaveRotationGLSL};
+
 float fbmF(vec3 p, int octaves) {
 	float sum = 0.0;
 	float amp = 1.0;
@@ -105,24 +133,144 @@ float fbmF(vec3 p, int octaves) {
 		sum += amp * noiseF(p + float(i) * 7.31);
 		norm += amp;
 		amp *= 0.5;
-		p *= 2.03;
+		p = OCT_ROT * p * 2.03;
 	}
 	return sum / norm;
 }
+
+
+// --- terrain (ADR 0036) -------------------------------------------------------------------------
+#if TERRAIN
+uniform samplerCube uTerrain;
+uniform float uTerrainOn;
+uniform float uBubbleA;    // 1 at low altitude (flat bubble around the camera's ground point), 0 high up
+uniform float uSkipR;      // ground distance from the camera inside which terrain is flat, m
+const float T_MAX = ${f(TERRAIN_MAX_HEIGHT)};
+const float T_SLOPE = ${f(TERRAIN_MAX_SLOPE)};
+const float T_RELAX = ${f(STEP_RELAX)};
+const float T_MIN_FRAC = ${f(STEP_MIN_FRACTION)};
+const float T_MIN_M = ${f(STEP_MIN_METRES)};
+const float BUB_R = ${f(BUBBLE_RADIUS)};
+const float BUB_RAMP = ${f(BUBBLE_RAMP)};
+
+// Height (x, m) and body-fixed tangent gradient (yzw) at a position relative to the planet centre.
+vec4 terrainAt(vec3 pI) {
+	vec3 nI = pI / length(pI);
+	float s = length(nI - uCamUp) * uR;
+	float w = mix(1.0, smoothstep(BUB_R, BUB_R + BUB_RAMP, s), uBubbleA);
+	return textureLod(uTerrain, uBodyInv * nI, 0.0) * w;
+}
+
+// Sphere-traces the baked heights from the camera ray; true with the hit distance in tOut.
+bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, out float tOut) {
+	tOut = 0.0;
+	vec2 shell = raySphere(r0, d, uR + T_MAX);
+	if (shell.y <= 0.0) return false;
+	float t = max(shell.x, 0.0);
+	float tEnd = min(shell.y, tLimit);
+	if (uSkipR > 0.0) t = max(t, uSkipR / sqrt(max(1.0 - d * d, 0.0025)));
+	if (t >= tEnd) return false;
+	float tPrev = t;
+	bool hit = false;
+	for (int i = 0; i < TERRAIN_STEPS; i++) {
+		vec3 p = ro + rd * t;
+		float r = length(p);
+		float c = r - uR - terrainAt(p).x;
+		if (c < 0.0) {
+			hit = true;
+			break;
+		}
+		float mu = dot(rd, p / r);
+		float dt = max(max(t * T_MIN_FRAC, t * uPixelAngle * 1.5), T_MIN_M);
+		dt = max(dt, T_RELAX * c / (T_SLOPE + max(-mu, 0.0)));
+		float tStart = t;
+		tPrev = t;
+		if (c < dt * 0.5) {
+			// the step is longer than the clearance is safe for: look inside it so a thin crest is not skipped
+			for (int j = 1; j < 4; j++) {
+				float ts = tStart + dt * float(j) * 0.25;
+				if (ts >= tEnd) break;
+				vec3 ps = ro + rd * ts;
+				if (length(ps) - uR - terrainAt(ps).x < 0.0) {
+					hit = true;
+					t = ts;
+					break;
+				}
+				tPrev = ts;
+			}
+			if (hit) break;
+		}
+		t = tStart + dt;
+		if (t >= tEnd) {
+			t = tEnd;
+			vec3 pe = ro + rd * t;
+			hit = length(pe) - uR - terrainAt(pe).x < 0.0;
+			break;
+		}
+	}
+	if (!hit) return false;
+	float lo = tPrev;
+	float hi = t;
+	for (int k = 0; k < 10; k++) {
+		float mid = 0.5 * (lo + hi);
+		vec3 p = ro + rd * mid;
+		if (length(p) - uR - terrainAt(p).x < 0.0) hi = mid;
+		else lo = mid;
+	}
+	tOut = hi;
+	return true;
+}
+
+// Fraction of the sun that reaches a terrain point: a short march of the horizon toward the sun.
+float terrainShadow(vec3 pI, vec3 sunI) {
+	float vis = 1.0;
+	float s = 90.0;
+	for (int i = 0; i < TERRAIN_SHADOW_STEPS; i++) {
+		vec3 q = pI + sunI * s;
+		float c = length(q) - uR - terrainAt(q).x;
+		vis = min(vis, clamp(c / (0.12 * s) + 0.05, 0.0, 1.0));
+		s *= 2.2;
+	}
+	return vis;
+}
+#endif
 
 // --- clouds -----------------------------------------------------------------------------------
 vec3 rotY(vec3 v, float a) {
 	float c = cos(a), s = sin(a);
 	return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
 }
-float cloudDensity(vec3 dirBF) {
+// Cumulus: billowy puffs with defined edges. full adds the fine detail; ground shadows use the cheap form.
+float cloudDensity(vec3 dirBF, bool full, float fp) {
 	vec3 p = rotY(dirBF, uCloudAngle) * (uR / 16000.0);
-	p += 0.7 * (vec3(noiseF(p * 0.45 + 3.7), noiseF(p * 0.45 + 9.1), noiseF(p * 0.45 + 1.3)) - 0.5);
+	p += 0.7 * (noiseF3(p * 0.45 + 3.7) - 0.5);
 	float n = fbmF(p, CLOUD_OCTAVES);
+	// detail fades with the footprint of a pixel on the shell (grazing views would alias) and is skipped when faded out
+	float puff = 0.5;
+	float puffW = 1.0 - smoothstep(500.0, 1500.0, fp);
+	if (puffW > 0.001) puff = mix(0.5, smoothstep(0.3, 0.7, fbmF(p * 11.0 + 21.0, 2)), puffW);
 	float t0 = mix(0.66, 0.40, uCloudCover);
-	float body = smoothstep(t0, t0 + 0.24, n);
-	float detail = fbmF(p * 5.3 + 21.0, 3);
-	return clamp(body * (0.62 + 0.75 * detail) - 0.08 * (1.0 - body), 0.0, 1.0);
+	float body = smoothstep(t0, t0 + mix(0.2, 0.28, smoothstep(300.0, 3000.0, fp)), n + (puff - 0.5) * 0.3);
+	float dens = body * (0.55 + 0.75 * puff);
+	float billowW = 1.0 - smoothstep(120.0, 450.0, fp);
+	if (full && billowW > 0.001) {
+		float billow = mix(0.5, smoothstep(0.28, 0.72, fbmF(p * 48.0 + 5.0, 2)), billowW);
+		dens *= 0.65 + 0.65 * billow;
+	}
+	return clamp(dens - 0.06 * (1.0 - body), 0.0, 1.0);
+}
+
+// Cirrus: thin streaks stretched along the wind, high above the cumulus.
+float cirrusDensity(vec3 dirBF) {
+	vec3 p = rotY(dirBF, uCloudAngle * 1.7 + 1.3) * (uR / 26000.0);
+	float mask = noiseF(p * vec3(0.18, 0.5, 0.5) + 4.0);
+	if (mask < 0.3) return 0.0;
+	p += 0.5 * (noiseF3(p * 0.6 + 7.1) - 0.5);
+	vec3 q = p * vec3(0.25, 1.0, 1.0);
+	float n = fbmF(q, 2);
+	float streak = fbmF(q * vec3(2.2, 8.0, 8.0) + 11.0, 2);
+	float cover = smoothstep(0.3, 0.62, mask) * smoothstep(0.42, 0.7, n);
+	return clamp(cover * (0.2 + 1.0 * streak) * 0.42, 0.0, 1.0);
 }
 
 // --- stars ------------------------------------------------------------------------------------
@@ -236,9 +384,10 @@ float sitePaving(vec2 q, inout vec3 colour, out float dirt, float px) {
 
 // Hill relief used for shading only (physics and the pad stay on the reference sphere): height in
 // metres from the octaves at or above lamMin, so far hills shade as ridges and valleys.
-float macroRelief(vec3 p, float lamMin) {
+float macroRelief(vec3 p, float lamMin, int i0) {
 	float h = 0.0;
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 6; i++) { // the larger octaves are real terrain, kept only on mountains (ADR 0036)
+		if (i < i0) continue;
 		float lam = 1024.0 / exp2(float(i));
 		if (lam < lamMin) break;
 		float fade = clamp((lam / lamMin - 1.0) * 1.5, 0.0, 1.0);
@@ -247,7 +396,27 @@ float macroRelief(vec3 p, float lamMin) {
 	return h;
 }
 
-Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
+// Sum of deep-water waves: tangent gradient (rise over run) and height. Components shorter than
+// about three pixels fade out so the sea never aliases.
+vec3 waveGradient(vec3 p, vec3 n, float footprint, out float crest) {
+	vec3 g = vec3(0.0);
+	crest = 0.0;
+	// a slowly varying gain per component breaks the regular banding of a few plane waves
+	float seed = noiseA(p, 256.0, 91);
+	float warp = (noiseA(p, 48.0, 92) - 0.5) * 6.0;
+	for (int i = 0; i < WAVE_N; i++) {
+		float fade = clamp(WAVE_LEN[i] / (footprint * 3.0) - 1.0, 0.0, 1.0);
+		if (fade <= 0.0) continue;
+		vec3 D = WAVE_DIR[i].x * uSiteEast + WAVE_DIR[i].y * uSiteNorth;
+		float ph = WAVE_K[i] * dot(D, p) + uWaveAnchor[i] - WAVE_W[i] * uTime + WAVE_PH[i] + warp * (0.35 + 0.2 * float(i));
+		float a = WAVE_A[i] * fade * (0.75 + 0.5 * sin(seed * (5.0 + 2.3 * float(i)) + float(i)));
+		g += D * (a * WAVE_K[i] * cos(ph));
+		crest += a * sin(ph);
+	}
+	return g - n * dot(g, n);
+}
+
+Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec3 gT) {
 	Surface s;
 	float lat = asin(clamp(nBF.y, -1.0, 1.0));
 	float lon = atan(-nBF.z, nBF.x);
@@ -296,15 +465,19 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 
 	// Hill shading: normal from finite differences of a few octaves, away from the launch site.
 	float reliefAmp = smoothstep(500.0, 2500.0, siteDist) * (1.0 - smoothstep(25.0, 160.0, footprint)) * landW * mix(0.45, 1.0, smoothstep(0.45, 0.85, e2 + rockMap * 0.25));
+	// crags on real mountains: the large octaves too, stronger where the terrain is high
+	float rug = smoothstep(150.0, 1100.0, hT);
+	reliefAmp = max(reliefAmp, rug * 1.3 * (1.0 - smoothstep(25.0, 200.0, footprint)));
+	int i0 = rug > 0.05 ? 0 : 2;
 	vec3 Nr = nBF;
 	if (reliefAmp > 0.01) {
 		float eps = max(footprint * 1.5, 6.0);
 		float lm = max(footprint * 2.5, eps * 3.0);
 		vec3 T1 = normalize(cross(nBF, abs(nBF.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
 		vec3 T2 = cross(nBF, T1);
-		float h0 = macroRelief(pl, lm);
-		float h1 = macroRelief(pl + T1 * eps, lm);
-		float h2 = macroRelief(pl + T2 * eps, lm);
+		float h0 = macroRelief(pl, lm, i0);
+		float h1 = macroRelief(pl + T1 * eps, lm, i0);
+		float h2 = macroRelief(pl + T2 * eps, lm, i0);
 		Nr = normalize(nBF - reliefAmp * ((h1 - h0) / eps * T1 + (h2 - h0) / eps * T2));
 	}
 
@@ -323,6 +496,8 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	vec3 Nb = dot(gb, gb) > 1e-24 ? normalize(gb) : N;
 	Nb = normalize(Nb + (Nr - nBF));
 	float slope = 1.0 - dot(Nb, nBF);
+	float tanS = length(gT);
+	Nb = normalize(Nb + (normalize(nBF - gT) - nBF));
 
 	// --- vegetation colours -------------------------------------------------------------------
 	float lushness = clamp(0.5 + colourNoise * 0.6, 0.0, 1.0);
@@ -348,7 +523,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	// forest: crowns seen from above
 	vec3 forest = vec3(0.03, 0.075, 0.026) * (0.8 + 0.5 * clamp(0.5 + colourNoise, 0.0, 1.0));
 	float fadeCrown = 1.0 - smoothstep(6.0, 40.0, footprint);
-	float wForest = smoothstep(0.55, 0.72, moist);
+	float wForest = smoothstep(0.55, 0.72, moist) * (1.0 - smoothstep(900.0, 1600.0, hT));
 	if (fadeCrown > 0.01 && wForest > 0.01) {
 		float c1 = noiseA(pl, 8.0, 51) * 0.6 + noiseA(pl, 4.0, 52) * 0.4;
 		float crown = smoothstep(0.34, 0.66, c1);
@@ -379,9 +554,16 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	}
 	vec3 veg = mix(grass, forest, wForest);
 	veg = mix(veg, desert, wDesert);
+	// alpine meadow above the tree line
+	vec3 alpine = mix(vec3(0.13, 0.15, 0.07), vec3(0.2, 0.19, 0.11), clamp(0.5 + colourNoise, 0.0, 1.0));
+	veg = mix(veg, alpine, smoothstep(800.0, 1500.0, hT));
 	float wRock = max(smoothstep(HIGH - 0.06, HIGH + 0.05, e2), smoothstep(0.7, 0.9, rockMap + colourNoise * 0.3));
 	wRock = max(wRock, smoothstep(0.06, 0.22, slope * 3.0));
+	wRock = max(wRock, smoothstep(0.28, 0.55, tanS));
+	wRock = max(wRock, smoothstep(1500.0, 2100.0, hT + 300.0 * colourNoise));
+	float snowLine = 2250.0 + 380.0 * colourNoise;
 	float wSnow = max(smoothstep(0.22, 0.12, temp), smoothstep(0.9, 0.97, e2));
+	wSnow = max(wSnow, smoothstep(snowLine - 150.0, snowLine + 250.0, hT) * (1.0 - smoothstep(0.55, 0.95, tanS)));
 	float wBeach = (1.0 - smoothstep(SEA + BEACH * 0.5, SEA + BEACH * 1.6, e2)) * (1.0 - wRock) * (1.0 - smoothstep(300.0, 3000.0, footprint));
 
 	vec3 land = mix(veg, rockc, wRock);
@@ -392,13 +574,13 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 
 	// rivers: thin level-set curves of a low-frequency field on lowland, antialiased by distance
 	float riverMask = 0.0;
-	if (landW > 0.5 && siteDist > 900.0 && footprint < 40.0 && e2 < 0.68) {
+	if (landW > 0.5 && siteDist > 900.0 && footprint < 40.0 && e2 < 0.68 && wDesert < 0.5) {
 		float rn = noiseA(pl, 1024.0, 41) * 0.62 + noiseA(pl, 512.0, 42) * 0.3 + noiseA(pl, 128.0, 43) * 0.08;
 		float rr = abs(rn - 0.5);
 		float fw = max(length(vec2(dFdx(rn), dFdy(rn))), 1e-7);
 		float dist = rr / fw * footprint;
 		float W = 5.0 + 17.0 * noiseA(pl, 1024.0, 44);
-		float vis = smoothstep(0.35, 1.2, W / footprint) * smoothstep(0.68, 0.55, e2);
+		float vis = smoothstep(0.35, 1.2, W / footprint) * smoothstep(0.68, 0.55, e2) * (1.0 - smoothstep(60.0, 260.0, hT));
 		riverMask = (1.0 - smoothstep(W - footprint, W + footprint, dist)) * vis;
 		float bank = (1.0 - smoothstep(W, W * 2.2 + footprint, dist)) * vis;
 		land = mix(land, land * vec3(0.55, 0.7, 0.5), bank * 0.7);
@@ -446,6 +628,14 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 		float lines = smoothstep(0.42, 0.62, fn);
 		water = mix(water, vec3(0.8, 0.84, 0.86), clamp(band * (0.35 + 0.65 * lines), 0.0, 1.0) * foamFade * step(0.0, sdCoast + 1.0));
 	}
+	float crest = 0.0;
+	vec3 gWave = vec3(0.0);
+	if (landW < 0.999 && footprint < 120.0) {
+		gWave = waveGradient(pl, nBF, footprint, crest);
+		float capFade = 1.0 - smoothstep(6.0, 40.0, footprint);
+		float cap = smoothstep(0.85, 1.35, crest / 2.4 + (noiseA(pl, 1.5, 73) - 0.5) * 0.55 + length(gWave) * 0.8);
+		water = mix(water * (1.0 + 0.08 * crest), vec3(0.8, 0.85, 0.87), cap * capFade * smoothstep(0.1, 0.5, depth + depthNear));
+	}
 	vec3 riverCol = mix(vec3(0.03, 0.07, 0.06), vec3(0.02, 0.1, 0.1), noiseF(vec3(pl * 0.1)));
 	water = mix(water, riverCol, riverMask);
 	float lw = landW * (1.0 - riverMask);
@@ -462,6 +652,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 		float dw = dot(dpdx, rw1);
 		vec3 gw = abs(dw) * nBF - sign(dw) * (wdx * rw1 + wdy * rw2) * 1.8;
 		Nw = dot(gw, gw) > 1e-24 ? normalize(gw) : nBF;
+		Nw = normalize(Nw + (normalize(nBF - gWave) - nBF));
 	}
 	s.normal = normalize(mix(Nw, Nb, lw));
 	s.albedo = col;
@@ -491,38 +682,60 @@ void main() {
 		float q = r0 * (-d) + sqrt(disc);
 		tHit = h * (2.0 * R + h) / q;
 	}
+	// terrain: the first hit of the baked heights before the sea-level sphere (ADR 0036)
+	bool hitT = false;
+	float tT = 0.0;
+#if TERRAIN
+	if (uTerrainOn > 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tT);
+#endif
+	bool hitG = hitP || hitT;
+	float tG = hitT ? tT : tHit;
 
 	// atmosphere interval
 	float jitter = ign(gl_FragCoord.xy);
 	vec2 at = raySphere(r0, d, R + uAtmH);
 	float t0 = max(at.x, 0.0);
 	float t1 = at.y;
-	if (hitP) t1 = min(t1, tHit);
+	if (hitG) t1 = min(t1, tG);
 	bool inAtm = at.y > 0.0 && t1 > t0;
 
 	vec3 base = vec3(0.0);
 	float depthDist = -1.0; // distance along the ray written to the depth buffer
-	if (hitP) {
+	if (hitG) {
 		vec3 rdBF = uBodyInv * rd;
-		vec3 pl = uCamLocal + rdBF * tHit;
-		vec3 posRel = ro + rd * tHit;
+		vec3 pl = uCamLocal + rdBF * tG;
+		vec3 posRel = ro + rd * tG;
 		vec3 nI = normalize(posRel);
 		vec3 nBF = uBodyInv * nI;
-		float cosv = max(abs(dot(nI, rd)), 0.03);
-		float footprint = max(tHit * uPixelAngle / cosv, 0.002);
-		Surface sf = surfaceAt(nBF, pl, footprint, rdBF * tHit);
+		float hT = 0.0;
+		vec3 gT = vec3(0.0);
+		vec3 nGeoI = nI;
+#if TERRAIN
+		if (hitT) {
+			vec4 ter = terrainAt(posRel);
+			hT = ter.x;
+			gT = ter.yzw;
+			nGeoI = normalize(nI - gT * uBodyInv);
+		}
+#endif
+		float cosv = max(abs(dot(nGeoI, rd)), 0.03);
+		float footprint = max(tG * uPixelAngle / cosv, 0.002);
+		Surface sf = surfaceAt(nBF, pl, footprint, rdBF * tG, hT, gT);
 
 		vec3 Lb = uSunBF;
 		float ndl = max(dot(sf.normal, Lb), 0.0);
 		float geo = dot(nBF, Lb);
 		vec3 sunT = sunTransmittance(posRel, uSunDir);
-		vec3 posRender = uCamPos + rd * tHit;
+		vec3 posRender = uCamPos + rd * tG;
 		float sh = shadowFactor(posRender);
+#if TERRAIN && TERRAIN_SHADOW_STEPS > 0
+		if (hitT && geo > -0.05) sh *= terrainShadow(posRel + nGeoI * 2.0, uSunDir);
+#endif
 #if CLOUD_SHADOWS
 		if (geo > 0.04) {
 			float sc = raySphere(R, geo, uCloudAlt).y;
 			vec3 q = nBF * R + Lb * sc;
-			sh *= 1.0 - 0.45 * cloudDensity(normalize(q));
+			sh *= 1.0 - 0.45 * cloudDensity(normalize(q), false, 800.0);
 		}
 #endif
 		float k = max(0.0, 0.02 + smoothstep(-0.2, 0.4, geo)) / max(0.02 + smoothstep(-0.2, 0.4, uAmbientRefMu), 0.02);
@@ -538,7 +751,7 @@ void main() {
 			lit = mix(lit, refl, fres * 0.9) + uSunIrr * sunT * glint * fres * 0.5 * sf.spec;
 		}
 		base = lit;
-		depthDist = tHit;
+		depthDist = tG;
 	} else {
 		float px = uPixelAngle;
 		base = stars(rd, px);
@@ -549,38 +762,115 @@ void main() {
 		base += vec3(1.0, 0.96, 0.9) * SUN_DISC_RADIANCE * disc2 * limb;
 	}
 
-	// atmosphere
+	// atmosphere and cloud layers (ADR 0037): one march, snapshotted at the layers' distances
 	vec3 colour = base;
-	float tc = -1.0;
+	float tcA = 1e30;
+	float tcB = 1e30;
+	float alphaA = 0.0;
+	float alphaB = 0.0;
+	vec3 lightA = vec3(0.0);
+	vec3 lightB = vec3(0.0);
 #if CLOUDS
-	vec2 cs = raySphere(r0, d, uCloudAlt);
-	float cloudT = r0 < uCloudAlt ? cs.y : cs.x;
-	bool cloudHit = cs.y > 0.0 && cloudT > 0.0 && (!hitP || cloudT < tHit);
-	if (cloudHit) tc = cloudT;
+	// layer 1 = cumulus, layer 2 = cirrus; a layer the ray misses (or finds clear) stays at 1e30
+	vec2 csA = raySphere(r0, d, uCloudAlt);
+	float cloudTA = r0 < uCloudAlt ? csA.y : csA.x;
+	bool hitA = inAtm && csA.y > 0.0 && cloudTA > 0.0 && (!hitG || cloudTA < tG);
+	vec2 csB = raySphere(r0, d, uCirrusAlt);
+	float cloudTB = r0 < uCirrusAlt ? csB.y : csB.x;
+	bool hitB = inAtm && csB.y > 0.0 && cloudTB > 0.0 && (!hitG || cloudTB < tG);
+	vec3 dirBFA = vec3(0.0);
+	vec3 dirBFB = vec3(0.0);
+	float densA = 0.0;
+	float densB = 0.0;
+	float fpA = 0.0;
+	if (hitA) {
+		dirBFA = uBodyInv * normalize(ro + rd * cloudTA);
+		float coscA = max(abs(dot(normalize(ro + rd * cloudTA), rd)), 0.05);
+		fpA = cloudTA * uPixelAngle / coscA;
+		densA = cloudDensity(dirBFA, true, fpA);
+		float cosc = max(coscA, 0.12);
+		alphaA = (1.0 - exp(-densA * (1.6 + 0.3 / cosc))) * clamp(uCloudCover * 2.0, 0.0, 1.0) * (1.0 - smoothstep(45000.0, 120000.0, cloudTA));
+		if (alphaA < 0.002) {
+			hitA = false;
+			alphaA = 0.0;
+		}
+	}
+	if (hitB) {
+		dirBFB = uBodyInv * normalize(ro + rd * cloudTB);
+		densB = cirrusDensity(dirBFB);
+		alphaB = densB;
+		if (alphaB < 0.003) {
+			hitB = false;
+			alphaB = 0.0;
+		}
+	}
+	// nearest layer first: slot 1 snapshot at tc1, slot 2 at tc2
+	bool aFirst = !hitB || (hitA && cloudTA <= cloudTB);
+	if (hitA && hitB) {
+		tcA = aFirst ? cloudTA : cloudTB;
+		tcB = aFirst ? cloudTB : cloudTA;
+	} else if (hitA) {
+		tcA = cloudTA;
+	} else if (hitB) {
+		tcA = cloudTB;
+	}
 #endif
 	if (inAtm) {
 		float power = h < uAtmH ? 2.0 : 1.0;
-		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tc, power);
+		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tcA, tcB, power);
 		colour = base * sc.transmittance + sc.inscatter;
 #if CLOUDS
-		if (cloudHit) {
-			vec3 pc = ro + rd * cloudT;
-			vec3 dirI = normalize(pc);
-			vec3 dirBF = uBodyInv * dirI;
-			float dens = cloudDensity(dirBF);
-			float cosc = max(abs(dot(dirI, rd)), 0.12);
-			float alpha = clamp(dens * (0.75 + 0.5 / cosc * 0.25), 0.0, 1.0) * clamp(uCloudCover * 2.0, 0.0, 1.0);
-			if (alpha > 0.002) {
+		if (hitA || hitB) {
+			// lit radiance of each hit layer
+			if (hitA) {
+				vec3 dirI = normalize(ro + rd * cloudTA);
+				vec3 pc = dirI * uCloudAlt;
 				float muc = dot(dirI, uSunDir);
 				vec3 sunTc = sunTransmittance(pc, uSunDir);
 				vec3 tang = normalize(uSunDir - dirI * muc + 1e-5);
-				float d2 = cloudDensity(normalize(dirBF + (uBodyInv * tang) * 0.018));
-				float shade = clamp(1.0 - (d2 - dens) * 1.6, 0.3, 1.0);
+				float shOff = clamp(fpA * 60.0, 800.0, 10000.0) / uR;
+				float d2 = densA;
+				if (alphaA > 0.02) d2 = mix(densA, cloudDensity(normalize(dirBFA + (uBodyInv * tang) * shOff), true, fpA), smoothstep(0.02, 0.12, alphaA));
+				float shade = clamp(1.0 - (d2 - densA) * 1.3, 0.38, 1.0);
 				float hg = miePhase(dot(rd, uSunDir), 0.55) * 4.0 * kPI;
 				float phase = 0.55 + 0.45 * clamp(hg, 0.0, 4.0);
-				vec3 cl = vec3(0.92) / kPI * (uSunIrr * sunTc * max(muc, 0.0) * shade * phase * 1.25 + uAmbient * (0.55 + 0.45 * shade)) + NIGHT_AMBIENT * 0.6;
-				colour = sc.insCloud + alpha * sc.transCloud * cl + (1.0 - alpha) * (sc.inscatter - sc.insCloud + sc.transmittance * base);
+				float edge = clamp(1.0 - densA * 1.5, 0.0, 1.0);
+				float below = r0 < uCloudAlt ? 1.0 : 0.0;
+				float body = mix(1.0, 0.55 + 0.45 * shade, below);
+				vec3 direct = uSunIrr * sunTc * max(muc, 0.0) * shade * phase * (0.85 + 0.5 * edge) * body;
+				lightA = vec3(0.93) * mix(0.88, 1.04, clamp(densA, 0.0, 1.0)) / kPI * (direct + uAmbient * (0.45 + 0.4 * shade) * mix(1.0, 0.7, below)) + NIGHT_AMBIENT * 0.6;
 			}
+			if (hitB) {
+				vec3 dirI = normalize(ro + rd * cloudTB);
+				float muc = dot(dirI, uSunDir);
+				vec3 sunTc = sunTransmittance(dirI * uCirrusAlt, uSunDir);
+				float hg = miePhase(dot(rd, uSunDir), 0.65) * 4.0 * kPI;
+				float phase = 0.7 + 0.3 * clamp(hg, 0.0, 4.0);
+				lightB = vec3(0.97) / kPI * (uSunIrr * sunTc * max(muc, 0.0) * phase * 1.35 + uAmbient * 0.7) + NIGHT_AMBIENT * 0.5;
+			}
+			// slot order: (1) the nearer layer, (2) the farther one
+			vec3 l1 = lightA;
+			vec3 l2 = lightB;
+			float a1 = alphaA;
+			float a2 = alphaB;
+			if (hitA && hitB) {
+				if (!aFirst) {
+					l1 = lightB; l2 = lightA;
+					a1 = alphaB; a2 = alphaA;
+				}
+			} else if (hitB) {
+				l1 = lightB; a1 = alphaB;
+				l2 = vec3(0.0); a2 = 0.0;
+			} else {
+				l2 = vec3(0.0); a2 = 0.0;
+			}
+			vec3 S1 = sc.insA;
+			vec3 T1 = sc.transA;
+			vec3 S2 = sc.insB;
+			vec3 T2 = sc.transB;
+			colour = S1 + a1 * T1 * l1
+				+ (1.0 - a1) * ((S2 - S1) + a2 * T2 * l2
+				+ (1.0 - a2) * ((sc.inscatter - S2) + sc.transmittance * base));
 		}
 #endif
 	}
@@ -598,12 +888,15 @@ void main() {
 	#if DEBUG_VIEW == 1
 	gl_FragColor = vec4(rd * 0.5 + 0.5, 1.0);
 	#elif DEBUG_VIEW == 2
-	gl_FragColor = vec4(hitP ? 1.0 : 0.0, inAtm ? 1.0 : 0.0, fract(tHit / 100.0), 1.0);
+	gl_FragColor = vec4(hitG ? 1.0 : 0.0, inAtm ? 1.0 : 0.0, fract(tG / 100.0), 1.0);
 	#elif DEBUG_VIEW == 3
 	gl_FragColor = vec4(base, 1.0);
 	#elif DEBUG_VIEW == 5
-	Scatter dbg = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, -1.0, 2.0);
+	Scatter dbg = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, 1e30, 1e30, 2.0);
 	gl_FragColor = vec4(dbg.inscatter, 1.0);
+	#elif DEBUG_VIEW == 6
+	vec4 dbgT = hitP ? terrainAt(ro + rd * tHit) : vec4(0.0);
+	gl_FragColor = vec4(dbgT.x / 3000.0, length(dbgT.yzw), hitT ? 1.0 : 0.0, 1.0);
 	#elif DEBUG_VIEW == 4
 	gl_FragColor = vec4(uAlt / 100.0, d * 0.5 + 0.5, disc > 0.0 ? 1.0 : 0.0, 1.0);
 	#endif

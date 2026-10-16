@@ -49,6 +49,9 @@ describe('presets', () => {
 			'cloudOctaves',
 			'mapWidth',
 			'trees',
+			'terrainSize',
+			'terrainSteps',
+			'terrainShadowSteps',
 			'envSize'
 		] as const;
 		for (const k of keys) {

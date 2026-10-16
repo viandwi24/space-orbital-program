@@ -43,8 +43,8 @@ export function classifyBiome(
 }
 
 /** Angular radius (rad) around the launch site that is forced to low grassland, and the blend-out width. */
-export const SITE_CLEAR_RADIUS = 0.035;
-export const SITE_BLEND_RADIUS = 0.11;
+export const SITE_CLEAR_RADIUS = 0.08;
+export const SITE_BLEND_RADIUS = 0.2;
 
 /** Unit direction for a latitude/longitude (body-fixed, +Y north, lon 0 on +X). */
 const direction = (lat: number, lon: number): [number, number, number] => [

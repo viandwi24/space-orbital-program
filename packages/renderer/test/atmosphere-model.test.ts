@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	aerialPerspective,
 	atmosphereFor,
 	horizonColour,
 	hitsPlanet,
@@ -72,6 +73,75 @@ describe('atmosphere model', () => {
 				expect(Number.isFinite(v)).toBe(true);
 				expect(v).toBeGreaterThan(0);
 			}
+		}
+	});
+});
+
+describe('aerial perspective (ADR 0037)', () => {
+	/** The atmosphere of plan 019 to 025: scattering layer = pressure scale height, constant boost on Mie. */
+	const legacy = {
+		...atm,
+		rayleighHeight: 5_600,
+		betaRayleigh: [8.3e-6, 19.3e-6, 47.3e-6] as [number, number, number],
+		mieBoost: atm.skyBoost
+	};
+	const sunEl = 35 * DEG;
+	/** Radiance of dark ground (albedo 0.1) under the sun and the sky at sea level. */
+	const darkGround = (a: typeof atm): number => {
+		const sunT = sunTransmittance(a, 0, sunEl);
+		const amb = skyAmbient(a, 0, sunEl);
+		return luminance(
+			[0, 1, 2].map(
+				(c) => (0.1 / Math.PI) * (a.sunIrradiance * sunT[c]! * Math.sin(sunEl) + amb[c]! * Math.PI)
+			) as [number, number, number]
+		);
+	};
+	const veil = (a: typeof atm, altitude: number, distance: number): number => {
+		const el = -Math.asin(Math.min(altitude / distance, 1));
+		const ap = aerialPerspective(a, altitude, Math.min(el, -0.05), distance, sunEl, 1);
+		return luminance(ap.inscatter) / darkGround(a);
+	};
+
+	test('a 10 km slant path over dark ground has a veil of at most 0.6 of the ground at 3, 6 and 10 km altitude', () => {
+		for (const alt of [3_000, 6_000, 10_000]) {
+			expect(veil(atm, alt, 10_000)).toBeLessThanOrEqual(0.6);
+			// and it used to be worse: the change is what fixes the milky land
+			expect(veil(legacy, alt, 10_000)).toBeGreaterThan(veil(atm, alt, 10_000) * 1.3);
+		}
+	});
+
+	test('the sky colour is unchanged: zenith radiance and sun transmittance stay within 5 %', () => {
+		for (const [view, sun] of [
+			[85, 60],
+			[45, 35],
+			[20, 20]
+		] as const) {
+			const a = skyRadiance(atm, 0, view * DEG, sun * DEG, 0.5);
+			const b = skyRadiance(legacy, 0, view * DEG, sun * DEG, 0.5);
+			for (let c = 0; c < 3; c++) expect(Math.abs(a[c]! / b[c]! - 1)).toBeLessThan(0.05);
+		}
+		for (const e of [60, 30, 10]) {
+			const a = sunTransmittance(atm, 0, e * DEG);
+			const b = sunTransmittance(legacy, 0, e * DEG);
+			for (let c = 0; c < 3; c++) expect(Math.abs(a[c]! - b[c]!)).toBeLessThan(0.05);
+		}
+	});
+
+	test('the vertical optical depth is the same, only the density near the ground is lower', () => {
+		const vertical = (a: typeof atm) => a.betaRayleigh[2]! * a.rayleighHeight;
+		expect(vertical(atm)).toBeCloseTo(vertical(legacy), 6);
+		expect(atm.betaRayleigh[2]!).toBeLessThan(legacy.betaRayleigh[2]!);
+	});
+
+	test('the veil grows with distance and the surface fades with it', () => {
+		let lastVeil = 0;
+		let lastT = 1;
+		for (const d of [2_000, 5_000, 10_000, 20_000, 40_000]) {
+			const ap = aerialPerspective(atm, 3_000, -0.15, d, sunEl, 1);
+			expect(luminance(ap.inscatter)).toBeGreaterThan(lastVeil);
+			expect(luminance(ap.transmittance)).toBeLessThan(lastT);
+			lastVeil = luminance(ap.inscatter);
+			lastT = luminance(ap.transmittance);
 		}
 	});
 });
