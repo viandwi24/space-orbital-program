@@ -692,6 +692,16 @@ export class PlanetPass {
 		});
 	}
 
+	/**
+	 * Builds the biome maps of other widths ahead of a preset switch (they are cached per width and site):
+	 * the first visit to `low` spent about a second in `buildMap` inside `setPreset` (plan 039).
+	 */
+	warmMaps(widths: readonly number[]): void {
+		for (const width of widths) {
+			if (width !== this.mapWidth) cachedPlanetMap(width, this.siteLatitude, this.siteLongitude);
+		}
+	}
+
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
 	setQuality(settings: PresetSettings): void {
 		this.material.defines = this.definesFor(settings);

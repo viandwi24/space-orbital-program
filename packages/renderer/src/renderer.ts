@@ -98,7 +98,8 @@ export interface Renderer {
 	/**
 	 * Compiles the shader programs of this preset's scene and of the other presets' planet pass in the
 	 * background (`compileAsync`), so the first frame and a later `setPreset` do not stall on the
-	 * driver's shader compiler (plan 039). Resolves when the programs are ready; safe to ignore.
+	 * driver's shader compiler, then builds the biome maps of the other presets one idle period at a time
+	 * (plan 039). Resolves when the programs are ready; safe to ignore.
 	 */
 	precompile(): Promise<void>;
 	/** WebGL capability facts for `selectPreset`. */
@@ -163,6 +164,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 		else gl.render(model.scene, model.camera);
 	}
 
+	const idle = (): Promise<void> =>
+		new Promise((resolve) => {
+			if (typeof requestIdleCallback === 'function')
+				requestIdleCallback(() => resolve(), { timeout: 2000 });
+			else setTimeout(resolve, 50);
+		});
+
 	/** Programs of the other presets' planet pass, kept alive so three's program cache keeps them. */
 	let variants: ShaderMaterial[] = [];
 	let precompiling: Promise<void> | null = null;
@@ -189,6 +197,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 			gl.setRenderTarget(previous);
 			await Promise.all(waits);
 			compileTarget.dispose();
+			// the biome maps of the other presets, one per idle period: each takes up to a second to build
+			const widths = new Set(GRAPHICS_PRESETS.map((name) => PRESETS[name].mapWidth));
+			widths.delete(PRESETS[preset].mapWidth);
+			for (const width of widths) {
+				await idle();
+				env.planet.warmMaps([width]);
+			}
 		})();
 		return precompiling;
 	};
