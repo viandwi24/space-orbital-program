@@ -294,3 +294,67 @@ export const ModuleReactionWheel = defineModule({
 	},
 	snapshot: (state) => ({ enabled: state.enabled })
 });
+
+// ---------------------------------------------------------------------------------------------
+// Landing leg
+// ---------------------------------------------------------------------------------------------
+
+export const landingLegConfigSchema = z.object({
+	/** Distance of each of the four feet from the part axis, m. */
+	spread: z.number().positive().default(2),
+	/** How far below the part origin the feet's centres sit, m. */
+	drop: z.number().positive().default(0.4),
+	/** Edge length of a foot, m. */
+	footSize: z.number().positive().default(0.3),
+	/** Whether the legs start deployed. */
+	deployed: z.boolean().default(false)
+});
+export type LandingLegConfig = z.output<typeof landingLegConfigSchema>;
+export interface LandingLegState {
+	deployed: boolean;
+}
+
+/**
+ * Four foot boxes on the +X, -X, +Z and -Z sides, in the part frame, when deployed; nothing when
+ * retracted. The sim turns them into extra colliders of the vessel's body (ADR 0019).
+ */
+export function landingLegColliders(
+	config: LandingLegConfig,
+	state: LandingLegState
+): {
+	offset: { x: number; y: number; z: number };
+	halfExtents: { x: number; y: number; z: number };
+}[] {
+	if (!state.deployed) return [];
+	const h = config.footSize / 2;
+	const halfExtents = { x: h, y: h, z: h };
+	return [
+		[config.spread, 0],
+		[-config.spread, 0],
+		[0, config.spread],
+		[0, -config.spread]
+	].map(([x, z]) => ({ offset: { x: x!, y: -config.drop, z: z! }, halfExtents }));
+}
+
+export const ModuleLandingLeg = defineModule({
+	id: 'stock.landing-leg',
+	config: landingLegConfigSchema,
+	state: (config): LandingLegState => ({ deployed: config.deployed }),
+	// Staging deploys the legs, like a decoupler fires.
+	onStage(ctx) {
+		ctx.state.deployed = true;
+	},
+	colliders: (config, state) => landingLegColliders(config, state),
+	actions: {
+		deploy: (ctx) => {
+			ctx.state.deployed = true;
+		},
+		retract: (ctx) => {
+			ctx.state.deployed = false;
+		},
+		toggle: (ctx) => {
+			ctx.state.deployed = !ctx.state.deployed;
+		}
+	},
+	snapshot: (state) => ({ deployed: state.deployed })
+});

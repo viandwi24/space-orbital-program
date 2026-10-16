@@ -18,6 +18,7 @@ describe('stock boots through the loader', () => {
 			'stock.command',
 			'stock.decoupler',
 			'stock.engine',
+			'stock.landing-leg',
 			'stock.reaction-wheel',
 			'stock.resource-container'
 		]);
@@ -25,6 +26,7 @@ describe('stock boots through the loader', () => {
 			'stock.command-pod',
 			'stock.decoupler',
 			'stock.engine-lv',
+			'stock.landing-legs',
 			'stock.reaction-wheel',
 			'stock.tank-medium',
 			'stock.tank-small'

@@ -9,6 +9,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
 	deposit,
@@ -18,6 +19,7 @@ import {
 	PartCommandPod,
 	PartDecoupler,
 	PartEngineLV,
+	PartLandingLegs,
 	PartReactionWheel,
 	PartTankMedium,
 	PartTankSmall
@@ -40,6 +42,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleEngine);
 		ctx.modules.register(ModuleDecoupler);
 		ctx.modules.register(ModuleReactionWheel);
+		ctx.modules.register(ModuleLandingLeg);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -47,6 +50,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartTankMedium);
 		ctx.parts.register(PartEngineLV);
 		ctx.parts.register(PartDecoupler);
+		ctx.parts.register(PartLandingLegs);
 
 		ctx.bodies.register(HomeBody);
 

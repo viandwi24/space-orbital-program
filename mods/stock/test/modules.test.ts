@@ -4,6 +4,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
 	containerConfigSchema,
@@ -11,6 +12,7 @@ import {
 	engineConfigSchema,
 	engineOutput,
 	ispAt,
+	landingLegColliders,
 	propellantRates,
 	withdraw
 } from '../src/index.ts';
@@ -277,5 +279,36 @@ describe('decoupler and reaction wheel', () => {
 		ModuleReactionWheel.actions?.setEnabled?.(ctx, false);
 		expect(ctx.state.enabled).toBe(false);
 		expect(() => ModuleReactionWheel.actions?.setEnabled?.(ctx, 'no')).toThrow();
+	});
+});
+
+describe('landing leg', () => {
+	const config = { spread: 2, drop: 0.4, footSize: 0.3, deployed: false };
+
+	test('retracted it adds no boxes; deployed it adds four feet below the part, 2 m from the axis', () => {
+		expect(landingLegColliders(config, { deployed: false })).toEqual([]);
+		const feet = landingLegColliders(config, { deployed: true });
+		expect(feet).toHaveLength(4);
+		for (const f of feet) {
+			expect(f.offset.y).toBe(-0.4);
+			expect(Math.hypot(f.offset.x, f.offset.z)).toBe(2);
+			expect(f.halfExtents).toEqual({ x: 0.15, y: 0.15, z: 0.15 });
+		}
+		expect(new Set(feet.map((f) => `${f.offset.x},${f.offset.z}`)).size).toBe(4);
+	});
+
+	test('deploy, retract, toggle and onStage change the state; the definition exposes colliders', () => {
+		const ctx = contextFor(ModuleLandingLeg, {});
+		expect(ctx.state.deployed).toBe(false);
+		ModuleLandingLeg.actions!.deploy!(ctx);
+		expect(ctx.state.deployed).toBe(true);
+		ModuleLandingLeg.actions!.toggle!(ctx);
+		expect(ctx.state.deployed).toBe(false);
+		ModuleLandingLeg.onStage!(ctx);
+		expect(ctx.state.deployed).toBe(true);
+		expect(ModuleLandingLeg.colliders!(ctx.config, ctx.state)).toHaveLength(4);
+		ModuleLandingLeg.actions!.retract!(ctx);
+		expect(ModuleLandingLeg.colliders!(ctx.config, ctx.state)).toEqual([]);
+		expect(ModuleLandingLeg.snapshot!(ctx.state)).toEqual({ deployed: false });
 	});
 });

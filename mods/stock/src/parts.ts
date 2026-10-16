@@ -3,6 +3,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer
 } from './modules.ts';
@@ -30,6 +31,7 @@ export const PartCommandPod = definePart({
 	id: 'stock.command-pod',
 	title: 'Command Pod',
 	mass: kg(840),
+	impactTolerance: 10,
 	shape: cylinder(1),
 	attach: stackNodes(1),
 	modules: [
@@ -43,6 +45,7 @@ export const PartReactionWheel = definePart({
 	id: 'stock.reaction-wheel',
 	title: 'Reaction Wheel',
 	mass: kg(100),
+	impactTolerance: 6,
 	shape: cylinder(0.4),
 	attach: stackNodes(0.4),
 	modules: [[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }]],
@@ -53,6 +56,7 @@ export const PartTankSmall = definePart({
 	id: 'stock.tank-small',
 	title: 'Small Fuel Tank',
 	mass: kg(250),
+	impactTolerance: 5,
 	shape: cylinder(2),
 	attach: stackNodes(2),
 	modules: [
@@ -73,6 +77,7 @@ export const PartTankMedium = definePart({
 	id: 'stock.tank-medium',
 	title: 'Medium Fuel Tank',
 	mass: kg(500),
+	impactTolerance: 5,
 	shape: cylinder(4),
 	attach: stackNodes(4),
 	modules: [
@@ -93,6 +98,7 @@ export const PartEngineLV = definePart({
 	id: 'stock.engine-lv',
 	title: 'LV-T30 Liquid Engine',
 	mass: kg(1_250),
+	impactTolerance: 4,
 	shape: cylinder(1.2),
 	attach: stackNodes(1.2),
 	// An engine draws propellant but does not pass it through to whatever hangs below it.
@@ -118,10 +124,26 @@ export const PartDecoupler = definePart({
 	id: 'stock.decoupler',
 	title: 'Stack Decoupler',
 	mass: kg(50),
+	impactTolerance: 8,
 	shape: cylinder(0.2),
 	attach: stackNodes(0.2),
 	// Stages are separated by decouplers: no propellant crosses them.
 	crossfeed: false,
 	modules: [[ModuleDecoupler, { separates: 'top', ejectionImpulse: 2_000 }]],
 	stagingIcon: 'decoupler'
+});
+
+/**
+ * A ring of four landing legs under the stack. Retracted it is a thin disc; deployed (action or
+ * stage) it adds four feet 2 m from the axis, which carry the vessel and tolerate hard landings.
+ */
+export const PartLandingLegs = definePart({
+	id: 'stock.landing-legs',
+	title: 'Landing Legs',
+	mass: kg(150),
+	impactTolerance: 12,
+	shape: cylinder(0.3),
+	attach: stackNodes(0.3),
+	modules: [[ModuleLandingLeg, {}]],
+	stagingIcon: 'legs'
 });

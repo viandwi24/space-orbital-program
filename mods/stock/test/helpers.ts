@@ -27,6 +27,7 @@ export const noPhysics: PhysicsBackend = {
 	applyForce: unavailable,
 	applyTorque: unavailable,
 	setMass: unavailable,
+	contacts: unavailable,
 	step: unavailable,
 	getTransform: unavailable,
 	setTransform: unavailable,
