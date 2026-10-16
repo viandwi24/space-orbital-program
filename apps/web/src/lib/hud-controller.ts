@@ -3,7 +3,8 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
-import type { BodyDefinition, Snapshot, VesselDesign, VesselSnapshot } from '@orbital/core';
+import type { BodyDefinition, Snapshot, Vec3, VesselDesign, VesselSnapshot } from '@orbital/core';
+import type { ScreenPoint } from '@orbital/renderer';
 import { attitudeAngles, markerDirections, type Attitude } from './navball-math';
 import type { NavballFrame } from './hud/navball-draw';
 import {
@@ -19,7 +20,6 @@ import {
 	situationLabel,
 	vesselThrottle
 } from './hud-model';
-import { createMapRigMirror, type MapRigMirror } from './map-projection';
 import { bodyMu, orbitInfo, type OrbitInfo } from './orbit-info';
 import type { SimEventMessage, StageEvent } from './sim-client';
 import { nextSpeedMode, speedReadout, type SpeedMode, type SpeedModePreference } from './speed';
@@ -77,13 +77,18 @@ export interface FrameData {
 	/** Screen positions in px inside the canvas box; null when not in map view. */
 	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
 }
-/** A map marker position in px; `hidden` when the body is in front of it. */
-export type Point = { x: number; y: number; hidden: boolean };
+/** A map marker position in px inside the canvas box; `hidden` when a body is in front of it. */
+export type Point = ScreenPoint;
 
 export interface HudControllerOptions {
 	design: VesselDesign;
 	content: ContentLookups;
 	bodies: readonly BodyDefinition[];
+	/**
+	 * `Renderer.project` (plan 024, ADR 0033): a point in the sim's inertial frame to canvas pixels
+	 * through the camera that is drawn; `null` behind the camera or while there is no renderer.
+	 */
+	project: (world: Vec3) => Point | null;
 	/** Wall clock in ms (the render loop's `now`); toasts expire against it. */
 	now?: () => number;
 }
@@ -95,11 +100,8 @@ export interface HudController {
 	simEvent(e: SimEventMessage): void;
 	refused(command: string, reason: string): void;
 	cycleSpeedMode(): SpeedModePreference;
-	camera: {
-		orbit: MapRigMirror['orbit'];
-		setMap(on: boolean): void;
-		resize(w: number, h: number): void;
-	};
+	/** Whether the map view is on: map markers are only computed then. */
+	setMapView(on: boolean): void;
 	frame(): FrameData;
 	/** `localThrottle`: the page's own setting, used when the vessel has no engine to read it from. */
 	model(now: number, localThrottle: number): HudModel | null;
@@ -128,15 +130,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	/** Highest altitude seen, m: "Landed" only means something after leaving the ground. */
 	let ceiling = 0;
 	let map = false;
-	let size = { w: 1, h: 1 };
-	const mirrors = new Map<string, MapRigMirror>();
 	let stageCache: { at: number; model: StageStackModel; resources: ResourceRow[] } | null = null;
-
-	const mirrorFor = (body: BodyDefinition): MapRigMirror => {
-		let m = mirrors.get(body.id);
-		if (!m) mirrors.set(body.id, (m = createMapRigMirror(body.radius)));
-		return m;
-	};
 
 	const find = (): VesselSnapshot | undefined =>
 		snap && vessel !== null ? snap.vessels.find((v) => Number(v.id) === vessel) : undefined;
@@ -216,17 +210,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			preference = nextSpeedMode(preference);
 			return preference;
 		},
-		camera: {
-			orbit(input) {
-				const b = (find() && bodyOf(find()!)) ?? bodies[0];
-				if (b) mirrorFor(b).orbit(input);
-			},
-			setMap(on) {
-				map = on;
-			},
-			resize(w, h) {
-				size = { w, h };
-			}
+		setMapView(on) {
+			map = on;
 		},
 		get stagesFired() {
 			return stagesFiredBy(stages, vessel);
@@ -255,10 +240,11 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			}
 			let marks: FrameData['map'] = null;
 			const s = snap;
-			if (map && body && s) {
-				const mirror = mirrorFor(body);
-				const at = (p: { x: number; y: number; z: number }): Point | null =>
-					mirror.project(p, size.w, size.h);
+			const centre = body && s?.bodies.find((b) => b.id === body.id)?.position;
+			if (map && body && s && centre) {
+				// Orbit points and the vessel are SOI-relative; the renderer takes the inertial frame.
+				const at = (p: Vec3): Point | null =>
+					options.project({ x: centre.x + p.x, y: centre.y + p.y, z: centre.z + p.z });
 				const info = v.orbit ? orbitInfo(v.orbit, bodyMu(body), s.t, body.radius) : null;
 				const place = (dt: number | undefined): Point | null =>
 					v.orbit && dt !== undefined ? at(propagate(v.orbit, bodyMu(body), s.t + dt).r) : null;

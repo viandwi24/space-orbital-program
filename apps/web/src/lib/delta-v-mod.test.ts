@@ -78,7 +78,7 @@ const nodes = (height: number) => ({
 const shape = { kind: 'cylinder', radius: 0.5, height: 1 } as const;
 
 const Acme = definePlugin({
-	meta: { id: 'acme.ion', name: 'Acme ion drives', version: '1.0.0', api: '^0.1' },
+	meta: { id: 'acme.ion', title: 'Acme ion drives', version: '1.0.0', api: '^0.1' },
 	depends: [Stock],
 	setup(ctx) {
 		ctx.resources.register(Xenon);

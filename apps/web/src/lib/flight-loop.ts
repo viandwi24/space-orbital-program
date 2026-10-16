@@ -239,19 +239,17 @@ export function startFlight(options: FlightOptions): Flight {
 		if (dragging) {
 			const input = { dYaw: -e.movementX * 0.005, dPitch: e.movementY * 0.005 };
 			renderer?.orbitCamera(input);
-			hudCtl?.camera.orbit(input);
 		}
 	};
 	const onWheel = (e: WheelEvent): void => {
 		e.preventDefault();
 		const input = { zoomFactor: Math.exp(e.deltaY * 0.001) };
 		renderer?.orbitCamera(input);
-		hudCtl?.camera.orbit(input);
 	};
 
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
-		hudCtl?.camera.setMap(hud.map);
+		hudCtl?.setMapView(hud.map);
 	}
 
 	async function toggleAutopilot(): Promise<void> {
@@ -324,7 +322,6 @@ export function startFlight(options: FlightOptions): Flight {
 		const w = Math.max(1, parent.clientWidth);
 		const h = Math.max(1, parent.clientHeight);
 		renderer?.resize(w, h);
-		hudCtl?.camera.resize(w, h);
 	}
 	const observer = new ResizeObserver(resize);
 
@@ -350,7 +347,12 @@ export function startFlight(options: FlightOptions): Flight {
 		async (c) => {
 			if (disposed) return;
 			catalog = c;
-			hudCtl = createHudController({ design, content: options.content, bodies: c.bodies });
+			hudCtl = createHudController({
+				design,
+				content: options.content,
+				bodies: c.bodies,
+				project: (world) => renderer?.project(world) ?? null
+			});
 			renderer = createRenderer({
 				canvas,
 				bodies: c.bodies.map((b) => ({ id: b.id, radius: b.radius, atmosphere: b.atmosphere })),
