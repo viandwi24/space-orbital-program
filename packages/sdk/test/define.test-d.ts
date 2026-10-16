@@ -263,3 +263,57 @@ defineSystem({
 });
 // A system may also take fewer parameters.
 defineSystem({ id: 'test.noop', phase: 'post-physics', update() {} });
+
+// ---- the vessel capability API (ADR 0015) ---------------------------------------------------
+const Thruster = defineModule({
+	id: 'test.thruster',
+	config: z.object({ thrust: z.number() }),
+	state: () => ({ fired: 0 }),
+	controlSource: true,
+	store: {
+		resources: () => ['test.gas'],
+		amount: (_config, state) => state.fired,
+		withdraw: (_config, _state, _resource, amount) => amount,
+		deposit: (_config, _state, _resource, amount) => amount
+	},
+	update(ctx, dt) {
+		const pressure: number = ctx.vessel.ambient.pressure;
+		const throttle: number = ctx.vessel.control.throttle;
+		ctx.vessel.applyForce(
+			{ x: 0, y: ctx.config.thrust * throttle * dt, z: 0 },
+			{ x: 0, y: 1, z: 0 }
+		);
+		ctx.vessel.applyTorque({ x: pressure, y: 0, z: 0 });
+		const taken: number = ctx.vessel.resources.withdraw('test.gas', 1);
+		ctx.vessel.detach('top', taken);
+		// @ts-expect-error -- control is read-only
+		ctx.vessel.control.throttle = 1;
+		// @ts-expect-error -- force must be a Vec3
+		ctx.vessel.applyForce(5);
+	}
+});
+definePart({
+	id: 'test.thruster',
+	title: 'Thruster',
+	mass: 1,
+	crossfeed: false,
+	modules: [[Thruster, { thrust: 1 }]]
+});
+definePart({
+	id: 'test.bad',
+	title: 'Bad',
+	mass: 1,
+	// @ts-expect-error -- crossfeed is a boolean
+	crossfeed: 'no'
+});
+defineModule({
+	id: 'test.bad-store',
+	state: () => ({ n: 1 }),
+	store: {
+		resources: () => [],
+		// @ts-expect-error -- the store's state parameter is typed from the module state
+		amount: (_c, s) => s.missing,
+		withdraw: () => 0,
+		deposit: () => 0
+	}
+});

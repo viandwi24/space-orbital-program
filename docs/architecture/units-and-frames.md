@@ -19,7 +19,7 @@ Decided in ADR 0007. Every package follows this; conversions happen at the edges
 | Frame | Origin | Axes | Used by |
 |---|---|---|---|
 | **Body-centred inertial (BCI)** | centre of the current SOI body | right-handed; +Y is the body's north pole; +X toward the reference direction at epoch | `kepler`, on-rails state, map view |
-| **Local physics frame** | the active vessel's root part position at frame creation, re-anchored when the vessel drifts > 1 km | same orientation as BCI | `physics` (Rapier world), flight mode |
+| **Local physics frame** | a point that moves at constant velocity with the frame: `bci = origin + local`, `bciVelocity = frame.velocity + localVelocity`; created at the focus vessel's centre of mass, re-anchored (origin and velocity) when the focus root is > 1 km from the origin (plan 007, ADR 0017) | same orientation as BCI | `physics` (Rapier world), flight mode |
 | **Render frame** | floating origin (see above) | same orientation as BCI | `renderer` |
 | **Body-fixed** | body centre, rotating with the body | derived from BCI by rotation about +Y | surface positions, launch sites, terrain (later) |
 
@@ -42,6 +42,8 @@ Refinements of the frame convention above, as implemented in `packages/kepler`:
 
 - Quaternions `{x, y, z, w}` (unit length) in state. Euler angles only at UI edges.
 - Angular velocity in rad/s, body frame of the vessel.
+- Part transforms in snapshots: position relative to the vessel root in BCI axes, orientation absolute (`simulation.md`).
+- Body rotation: `2π / rotationPeriod` about +Y from t = 0; surface placements: local X east, Y up, Z south.
 
 ## Time
 

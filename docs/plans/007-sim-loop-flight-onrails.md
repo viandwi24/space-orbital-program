@@ -1,7 +1,7 @@
 ---
 id: 007
 title: "Sim loop: flight + on-rails"
-status: in-progress
+status: done
 owner: "sim session (Claude, 2026-10-16)"
 depends: [002, 004, 006]
 phase: 1
@@ -66,16 +66,16 @@ Decisions are recorded in ADRs 0015-0017; this is the working summary.
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes including `scenario-orbit.test.ts`: the stock two-stage vessel, flown by the scripted ascent through `dispatch`/`snapshot` only, ends with periapsis altitude > 70 km and eccentricity < 0.1 within 1 200 s of simulated time, and the test asserts its own wall time < 30 s in Bun.
-- [ ] `determinism.test.ts`: two runs with identical command scripts produce byte-identical `JSON.stringify(snapshot())` at t = 100 s.
-- [ ] `warp.test.ts`: `warp > 1` refused while any vessel is in flight mode; accepted when all are on rails; on-rails position after 10 000 s with warp matches `kepler.propagate` within 1e-6 relative.
-- [ ] Unit tests: design validation (valid, cycle, bad node, non-anti-parallel, unknown part), command validation (malformed, unknown vessel), resource flow (crossfeed blocked at the decoupler), decoupler split (two vessels, momentum conserved), pad hold (no throttle: stays within 0.5 m for 10 s), flight → rails → flight round trip, near-parabolic fallback keeps the state vector, stock hooks.
-- [ ] `bun test` (whole repo), `bun run typecheck`, `bun run build`, `bun run docs:check` pass; `bunx prettier --check` passes on touched packages.
-- [ ] `grep -rn "Bun\.\|process\.\|window\.\|document\." packages/sim/src` prints nothing; `grep -rn "stock\." packages/sim/src` prints nothing (the sim hard-codes no stock id); `packages/sim/package.json` dependencies are only `core`, `kepler`, `physics`.
+- [x] `bun test packages/sim` passes including `scenario-orbit.test.ts`: the stock two-stage vessel, flown by the scripted ascent through `dispatch`/`snapshot` only, ends with periapsis altitude > 70 km and eccentricity < 0.1 within 1 200 s of simulated time, and the test asserts its own wall time < 30 s in Bun.
+- [x] `determinism.test.ts`: two runs with identical command scripts produce byte-identical `JSON.stringify(snapshot())` at t = 100 s.
+- [x] `warp.test.ts`: `warp > 1` refused while any vessel is in flight mode; accepted when all are on rails; on-rails position after 10 000 s with warp matches `kepler.propagate` within 1e-6 relative.
+- [x] Unit tests: design validation (valid, cycle, bad node, non-anti-parallel, unknown part), command validation (malformed, unknown vessel), resource flow (crossfeed blocked at the decoupler), decoupler split (two vessels, momentum conserved), pad hold (no throttle: stays within 0.5 m for 10 s), flight → rails → flight round trip, near-parabolic fallback keeps the state vector, stock hooks.
+- [x] `bun test` (whole repo), `bun run typecheck`, `bun run build`, `bun run docs:check` pass; `bunx prettier --check` passes on touched packages.
+- [x] `grep -rn "Bun\.\|process\.\|window\.\|document\." packages/sim/src` prints nothing; `grep -rn "stock\." packages/sim/src` prints nothing (the sim hard-codes no stock id); `packages/sim/package.json` dependencies are only `core`, `kepler`, `physics`.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` (Phase 0 → complete if all Phase 0 plans done), journal, `architecture/simulation.md` (incl. design format), `plugin-system.md`, ADRs 0015-0017, glossary, `guides/writing-a-mod.md`.
+- [x] `docs/STATUS.md` (Phase 0 → complete if all Phase 0 plans done), journal, `architecture/simulation.md` (incl. design format), `plugin-system.md`, ADRs 0015-0017, glossary, `guides/writing-a-mod.md`.
 
 ## Log
 
@@ -83,3 +83,8 @@ Decisions are recorded in ADRs 0015-0017; this is the working summary.
 - 2026-10-16 — Refined draft → ready at the human's request (session: sim session).
 - 2026-10-16 — Started: status in-progress (sim session).
 - 2026-10-16 — Note from plan 006 (stock): module hooks cannot apply forces or move resources today (`ModuleContext` has no body handle or vessel resource access), so stock modules define config, state and pure helpers and leave the effect to this plan. Refinement must decide: sim applies effects from documented stock config/state (needs the sim to know stock module ids or a generic capability protocol), or extend `ModuleContext` additively (body handle, vessel resource access) so hooks do it. Contract and ids: journal 006. Also: `state(config)` and `PartDefinition.shape` exist (ADR 0014); the gravitational constant G is not in core (stock uses 6.6743e-11 to turn μ into a body mass).
+- 2026-10-16 — Decision (ADR 0015): the open design gap is closed by extending `ModuleContext` additively (`vessel: VesselApi`, `ModuleDefinition.store`/`controlSource`, `PartDefinition.crossfeed`); `API_VERSION` 0.1.2. Stock got real `update`/`onStage` hooks; the sim contains no stock id.
+- 2026-10-16 — Decision (ADR 0016): flat design list + `stages` (not the draft's nested tree); `formatVersion` stays 1; `resolveVesselDesign`, `vesselDesignSchema`, `commandSchema` live in core.
+- 2026-10-16 — Deviations from the refined body (ADR 0017 has the final text): (1) uncontrolled vessels are destroyed on a ground hit above 10 m/s, not on first contact (a loaded uncontrolled vessel must be able to sit on the pad); (2) drag is applied per body axis, not as one vector anti-parallel to the velocity (the vector version tumbled the stack at max-Q); (3) a launch-pad hold pins surface-loaded vessels until thrust exceeds weight (a stack on a point contact topples otherwise); (4) the flight frame also moves with constant velocity so Rapier sees small velocities; (5) the ascent profile is the one in the plan (vertical to 10 km, 45 degrees by 40 km, prograde after), only the attitude loop was tuned (PD with natural frequency 0.5 rad/s, inertia from the snapshot).
+- 2026-10-16 — Result: `scenario-orbit.test.ts` reaches periapsis 76.1 km, apoapsis 137.1 km, e 0.043 at t = 210.6 s in 0.6 s of wall time (journal 007). Whole suite 237 tests green.
+- 2026-10-16 — Done. All acceptance criteria verified (output in journal 007).

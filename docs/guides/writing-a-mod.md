@@ -31,7 +31,7 @@ export const LiquidFuel = defineResource({
 });
 ```
 
-`flowMode` tells the sim how far the resource may travel: `stack` from tanks connected towards the consumer, `vessel` from anywhere on the vessel (electric charge), `none` not at all.
+`flowMode` tells the sim how far the resource may travel: `stack` from tanks connected to the consumer (not through a part with `crossfeed: false`, such as an engine or decoupler), `vessel` from anywhere on the vessel (electric charge), `none` not at all.
 
 ## 2. Modules
 
@@ -53,10 +53,23 @@ export const ModuleDecoupler = defineModule({
 });
 ```
 
-What a hook may do today: read `ctx.config`, mutate `ctx.state`, emit on `ctx.events`. `ctx.physics` exists, but a hook has no body handle for its part and no access to other parts' state, so effects that cross parts or reach the physics backend are applied by the sim. The stock convention, which is what to follow until the sim publishes a richer context:
+A hook reads `ctx.config`, mutates `ctx.state`, emits on `ctx.events` and acts on its vessel through `ctx.vessel` (ADR 0015). Stock's engine, in short:
 
-- **The module owns the schema, the state and the pure arithmetic** (`engineOutput(config, state, pressure)` returns thrust and mass flow; `withdraw`/`deposit` move resource amounts).
-- **The sim reads config and state each step and applies the effect** (thrust force, propellant flow through the containers, splitting the vessel when `decoupled` flips, wheel torque).
+```ts
+update(ctx, dt) {
+	const { state, config, vessel } = ctx;
+	state.throttle = vessel.control.throttle;
+	if (!state.ignited) return;
+	const out = engineOutput(config, state, vessel.ambient.pressure);   // pure helper
+	// ...draw propellants with vessel.resources.withdraw(resource, amount)...
+	vessel.applyForce({ x: 0, y: out.thrust, z: 0 });                   // along the part's local +Y
+}
+```
+
+- `vessel.applyForce(force, point?)` / `applyTorque(torque)`: part-local frame, current step only, flight mode only. `vessel.resources.amount/withdraw/deposit(resource, n)`: what is reachable from this part (`flowMode`, and parts with `crossfeed: false` block `stack` flow). `vessel.detach(node, impulse)`: sever an attach node (stock decoupler). `vessel.control` (throttle, pitch/roll/yaw demand) and `vessel.ambient` (pressure, density, altitude) are read-only.
+- A module that holds resources declares `store: { resources, amount, withdraw, deposit }` (stock's container does) so the sim can sum its mass and route flow without knowing it; a module that makes a vessel controllable sets `controlSource: true` (stock's command module).
+- `updateOnRails(ctx, dt)` may use resources but not forces; `dt` can be up to 10 s.
+- **The module owns the schema, the state and the pure arithmetic** (`engineOutput`, `withdraw`, `deposit`), so tests can exercise it without a sim.
 - Actions take `unknown` arguments: validate them (stock uses `z.tuple([...]).parse(args)`).
 - Modules that need a sibling on the same part declare `requires: ['stock.resource-container']`; the loader checks it.
 
@@ -135,9 +148,9 @@ const { registries, report } = loadPlugins([Stock]);
 expect(report.registered.part.map((e) => e.id)).toContain('stock.engine-lv');
 ```
 
-`loadPlugins` validates schemas and cross-checks every part's module configs, so bad data fails the boot with the part and module named. To unit-test a hook, build a `ModuleContext` from `createWorld()` and `createEventBus()` (both exported by the SDK for this), the loaded `registries`, the module's parsed config and `module.state(config)`; see `mods/stock/test/helpers.ts`. Keep the physics backend out of module tests.
+`loadPlugins` validates schemas and cross-checks every part's module configs, so bad data fails the boot with the part and module named. To unit-test a hook, build a `ModuleContext` from `createWorld()` and `createEventBus()` (both exported by the SDK for this), the loaded `registries`, the module's parsed config, `module.state(config)` and a recording `vessel` stub; see `mods/stock/test/helpers.ts` (`fakeVessel`). To test with a real sim, `@orbital/sim`'s `createSim({ plugins: [Stock, YourMod], backendFactory })` is a test dependency, not something a mod imports in `src`.
 
 ## Open items
 
-- Systems (`defineSystem`) and the module context the sim will provide (body handle, vessel resources) arrive with plan 007; this guide will gain a section then.
+- `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`) is supported by the sim but has no stock example yet; this guide will gain a section when one exists.
 - Loading external mods from a folder or URL is Phase 2.

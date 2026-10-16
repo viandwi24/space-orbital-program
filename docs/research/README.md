@@ -8,6 +8,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `typescript.md` — module augmentation rules the SDK's open interfaces rely on (plan 005).
 - `rapier.md` — the Rapier JS API `@orbital/physics` uses, determinism notes and measured integrator behaviour (plan 004).
 - `three.md` — the Three.js surface `@orbital/renderer` uses: renderer options, log depth, `Line2`, camera (plan 008).
+- `atmosphere.md` — ISA sea-level constants behind the sim density, zod 4 number validation (plan 007).
 - Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
 
 When an entry is older than ~3 months or a major version behind, re-verify before relying on it.

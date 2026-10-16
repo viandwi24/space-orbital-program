@@ -218,33 +218,35 @@ describe('snapshot frames (ADR 0016)', () => {
 describe('resource flow and staging', () => {
 	test('a decoupler is a crossfeed barrier: each engine drains only its own side of the stack', async () => {
 		const { sim, id } = await pad();
-		const engines = (): { upper: string; lower: string } => {
-			const ps = sim.snapshot().vessels[0]!.parts;
-			return { upper: String(ps[3]!.id), lower: String(ps[6]!.id) };
-		};
-		const act = (part: string, action: string) =>
-			sim.dispatch({
-				type: 'action',
-				vessel: id,
-				part: Number(part) as never,
-				module: 'stock.engine',
-				action
-			});
+		const ps = sim.snapshot().vessels[0]!.parts;
+		const [upperTank, upperEngine, lowerEngine] = [ps[2]!.id, ps[3]!.id, ps[6]!.id];
+		const act = (part: number, module: string, action: string, ...args: unknown[]) =>
+			sim.dispatch({ type: 'action', vessel: id, part: part as never, module, action, args });
 		sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
-		act(engines().upper, 'activate'); // only the upper engine, decoupler untouched
+
+		// Upper engine alone: it drains its own tank (above it), never the lower one.
+		act(upperEngine, 'stock.engine', 'activate');
 		run(sim, 3);
 		let v = sim.snapshot().vessels[0]!;
 		expect(amounts(v, 2)[LF]).toBeLessThan(400);
 		expect(amounts(v, 5)[LF]).toBe(400);
 
-		act(engines().upper, 'shutdown');
-		act(engines().lower, 'activate');
+		// Empty its tank by hand: with the barrier the engine starves instead of reaching across.
+		act(upperTank, 'stock.resource-container', 'withdraw', LF, 1e6);
+		const flameouts: unknown[] = [];
+		sim.events.on('stock:engine-flameout', (e) => flameouts.push(e));
+		run(sim, 2);
+		v = sim.snapshot().vessels[0]!;
+		expect(v.parts[3]!.modules['stock.engine']).toMatchObject({ flameout: true });
+		expect(flameouts).toHaveLength(1);
+		expect(amounts(v, 5)[LF]).toBe(400);
+
+		// Lower engine: drains the lower tank only.
+		act(lowerEngine, 'stock.engine', 'activate');
 		run(sim, 3);
 		v = sim.snapshot().vessels[0]!;
 		expect(amounts(v, 5)[LF]).toBeLessThan(400);
-		const upperTank = amounts(v, 2)[LF]!;
-		run(sim, 3);
-		expect(amounts(sim.snapshot().vessels[0]!, 2)[LF]).toBe(upperTank);
+		expect(amounts(v, 2)[LF]).toBe(0);
 	});
 
 	test('mass follows the propellant: the vessel gets lighter as it burns', async () => {
@@ -258,6 +260,31 @@ describe('resource flow and staging', () => {
 		const burned = 400 * 5 + 490 * 5 - (amounts(v, 5)[LF]! + amounts(v, 5)['stock.oxidizer']!) * 5;
 		expect(burned).toBeCloseTo(73.08 * 10, -1); // about 730 kg at 73.08 kg/s (sea-level Isp changes thrust, not flow)
 		expect(vesselMass(sim, v)).toBeCloseTo(m0 - burned, 3);
+	});
+
+	test('the physics body masses follow the propellant (setMass reaches the backend)', async () => {
+		const real = await rapier()();
+		const calls: number[] = [];
+		const spy = {
+			...real,
+			setMass: (h: never, m: number, i?: never) => (calls.push(m), real.setMass(h, m, i))
+		};
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: () => spy,
+			maxFlightFrames: 1
+		});
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
+		if (!r.ok) throw new Error(r.reason);
+		sim.dispatch({ type: 'throttle', vessel: r.vessel!, value: 1 });
+		sim.dispatch({ type: 'stage', vessel: r.vessel! });
+		run(sim, 2);
+		const v = sim.snapshot().vessels[0]!;
+		const tank = partMasses(sim, v)[5]!;
+		expect(calls.length).toBeGreaterThan(50);
+		// The last mass handed to the backend is the one before the final step's burn (0.04 kg per step at most).
+		expect(calls.some((m) => Math.abs(m - tank) < 2)).toBe(true);
+		expect(Math.min(...calls)).toBeLessThan(4_700 + 250 - 100);
 	});
 
 	test('an engine that runs dry flames out and the event names the part', async () => {

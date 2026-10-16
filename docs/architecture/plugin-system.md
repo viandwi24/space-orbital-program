@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.1; decisions in ADR 0013 and 0014). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.2; decisions in ADR 0013, 0014 and 0015). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 
@@ -78,8 +78,22 @@ export const ModuleEngine = defineModule({
 
 - `z` is re-exported by the SDK (one zod copy for all mods). `config` is a zod schema: part definitions are type-checked against its **input** type at compile time and validated by the loader; hooks receive the parsed **output** (`ctx.config`, defaults applied). A module without `config` takes none.
 - `state(config)` is created per part instance from the parsed config (ADR 0014) and lives in the world as a component (plan 007 owns the storage; ADR 0010 tokens). Functions live on the definition.
-- Hook context (`ModuleContext`): `{ world, events, registries (read-only), physics, entity, config, state }`. `update` runs every fixed step in flight mode; `updateOnRails(ctx, dt)` on rails (must not use `physics`); `onStage(ctx)` when the part's stage fires; `actions` are callable from UI, staging and scripts; `snapshot(state)` returns JSON for the UI.
+- Hook context (`ModuleContext`): `{ world, events, registries (read-only), physics, entity, config, state, vessel }`; `vessel` is the capability API below. `update` runs every fixed step in flight mode; `updateOnRails(ctx, dt)` on rails (must not use `physics`); `onStage(ctx)` when the part's stage fires; `actions` are callable from UI, staging and scripts; `snapshot(state)` returns JSON for the UI.
 - Hooks are typed with a parameter-bivariant function type, which is what lets a typed definition be stored in the erased registry without casts.
+
+#### The vessel capability API (`ctx.vessel`, ADR 0015, plan 007)
+
+```ts
+update(ctx, dt) {
+  const { control, ambient, resources } = ctx.vessel;       // throttle/pitch/roll/yaw; pressure/density/altitude
+  ctx.vessel.applyForce({ x: 0, y: thrust, z: 0 });          // part-local frame, this step only, flight only
+  ctx.vessel.applyTorque({ x: 0, y: 0, z: torque });
+  const got = resources.withdraw('stock.liquid-fuel', 0.1);  // reachable per flowMode / crossfeed; amount() and deposit() too
+  ctx.vessel.detach('top', 2_000);                           // sever the attachment at a node; impulse N·s
+}
+```
+
+Forces and torques throw on rails (`updateOnRails` must not use them). Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
 
 ### `definePart`
 

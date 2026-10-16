@@ -33,3 +33,8 @@ Use these terms consistently in code, docs, and UI.
 | **Load report** | Result of `loadPlugins`: boot order, disabled plugins with reasons, and what each plugin registered (`{ id, by }` per kind). |
 | **Module augmentation** | `declare module '@orbital/sdk' { interface EventMap {…} }`: how a mod adds typed events, resource ids and module config types to the open interfaces. |
 | **Part shape** | Placeholder geometry of a part (`box` or `cylinder`, metres, axis = local Y) used by the renderer and physics body until art exists. `PartDefinition.shape`, ADR 0014. |
+| **Vessel API** | `ModuleContext.vessel`: the capabilities a module hook has over its vessel (forces, control input, ambient, resources, detach); ADR 0015. |
+| **Crossfeed** | Whether resources may flow through a part (`PartDefinition.crossfeed`, default true). Engines and decouplers block it, which makes a decoupler a stage barrier. |
+| **Flight frame** | One physics backend with a local frame that moves at constant velocity; holds a cluster of flight vessels (ADR 0017). |
+| **Pad hold** | The sim pins a vessel loaded on the surface to its pad pose until thrust exceeds weight (ADR 0017). |
+| **Vessel design** | The JSON a VAB saves: flat part list with parent links plus `stages` (`VesselDesign`, ADR 0016). |
