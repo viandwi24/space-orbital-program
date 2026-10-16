@@ -24,7 +24,7 @@
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 | 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | done | debris session | ADR 0021; ballistic debris goes on rails and is removed at re-entry, resting debris after 10 s; warp works 3 s after reaching orbit |
-| 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | draft | — | out of scope of 012; hooks: `impactTolerance`, `part:damaged` |
+| 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | in-progress | heating session (Claude, 2026-10-16) | ADR 0023; Sutton-Graves skin heating, radiation, `maxTemperature`, ablative `stock.heat-shield` |
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | in-progress | script-web session | ADR 0022: runner in the sim Worker; script panel in `/flight` |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | draft | — | found by 013: a controlled vessel on the ground still blocks warp |
 

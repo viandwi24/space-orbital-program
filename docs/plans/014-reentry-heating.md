@@ -1,9 +1,9 @@
 ---
 id: 014
 title: Re-entry heating and part temperature
-status: draft
-owner: ""
-depends: [012]
+status: in-progress
+owner: "heating session (Claude, 2026-10-16)"
+depends: [012, 013]
 phase: 3
 created: 2026-10-16
 updated: 2026-10-16
@@ -13,30 +13,48 @@ updated: 2026-10-16
 
 ## Goal
 
-A vessel that enters the atmosphere fast heats up: parts have a temperature that rises with air density times speed cubed and falls by radiation, and a part that exceeds its limit is lost the same way an impact loses it (break-off, destroyed). Plan 007 and plan 012 deliberately simulate no heat; the lander of plan 012 reaches 700 m/s in the dense atmosphere unharmed.
+A vessel that enters the atmosphere fast heats up: each part has a skin temperature that rises with the stagnation heat flux `k·√(ρ/r_n)·v³` over the area the airflow hits and falls by radiation, and a part that exceeds its `maxTemperature` is destroyed (`part:damaged`, cause `overheat`). A stock ablative heat shield, through the public SDK, carries the heat away by burning an ablator resource. Plans 007 and 012 deliberately simulate no heat.
 
 ## Context
 
-- Read: `docs/decisions/0019-ground-tile-and-impact-damage.md` ("re-entry survival hooks": `PartDefinition.impactTolerance` and the `part:damaged` event are the pattern), `docs/architecture/simulation.md` (drag, atmosphere), `packages/sim/src/aero.ts`, `packages/sim/src/vessel.ts` (`damagePart`).
-- Open questions: where temperature state lives (module state on the part vs a sim component), heat shield as a module (ablator resource), whether the damage outcome vocabulary (`broken` / `destroyed`) needs an `overheated` cause on `part:damaged`.
+- [ADR 0023](../decisions/0023-reentry-heating-and-part-temperature.md) (this plan's decisions), `docs/research/reentry-heating.md`.
+- ADR 0019 (`impactTolerance`, `part:damaged`, `damagePart`), ADR 0021 (debris is removed at the atmosphere top while on rails; kept), ADR 0017 (drag, atmosphere), `docs/architecture/simulation.md`, `packages/sim/src/aero.ts`, `frames.ts` (`applyDrag`), `vessel.ts`.
+- Journals 012 and 013; `docs/guides/writing-a-mod.md`, `docs/architecture/plugin-system.md`.
 
 ## Scope
 
-**In:** per-part temperature, convective heating from the existing drag state, a `maxTemperature` part field, a heat-shield module through the SDK, reuse of `damagePart`.
-**Out:** plasma blackout, radiative environments, per-face heating.
+**In:** `PartState.temperature` + `PartSnapshot.temperature`; Sutton-Graves heating from the drag state; radiation cooling (flight and rails); `PartDefinition.maxTemperature`; overheat loss through the damage path with `cause`/`temperature` on `part:damaged`; `ModuleDefinition.absorbHeat`; stock `stock.ablator`, `stock.heat-shield` module and part; stock `maxTemperature` values; `API_VERSION` 0.1.4.
+**Out:** plasma blackout, conduction between parts, per-face heating, convective cooling, a HUD/renderer readout (the snapshot carries the temperature), heating on rails, debris burn-up replacing `reapDebris`.
+
+## Design notes
+
+Decisions are in ADR 0023. Test fixtures: `packages/sim/test/helpers/reentry.ts` (`enter`, `probeEntry`, `shieldedProbe`, `deorbit` = 70 km, 2 250 m/s, 2.9 degrees down, tail first).
 
 ## Steps
 
-1. Refine (research atmosphere heating models, ADR, measurable criteria such as "the plan 012 lander without a shield loses its pod on a 100 km deorbit, with one it lands").
+1. Core/SDK (additive): `maxTemperature`, `PartSnapshot.temperature`, `part:damaged` `cause`/`temperature`, `ModuleDefinition.absorbHeat`/`HeatLoad`, `API_VERSION` 0.1.4.
+2. Sim: `thermal.ts` (heat input, implicit radiation update, module absorb, overheat list), `PartState.temperature`, heating from `applyDrag`, `burnPart` after the step, rails radiation, snapshot.
+3. Stock: `stock.ablator`, `stock.heat-shield` module and part, `maxTemperature` on every part.
+4. Tests (`heating.test.ts`, stock module tests, landing peak temperature), docs.
 
 ## Acceptance criteria
 
-- [ ] To be written when refined.
+- [ ] `bun test packages/sim/test/heating.test.ts`: an unshielded probe (pod, wheel, tank) on the `deorbit` path, tail first, emits `part:damaged` with `cause: 'overheat'`, `outcome: 'destroyed'`, `temperature` > 900 for `stock.tank-small`, and no impact event.
+- [ ] Same file: the same entry with a `stock.heat-shield` under the tank reaches 5 km altitude with 4 parts, no `part:damaged`, ablator strictly between 0 and 120 u, peak skin temperature < 900 K.
+- [ ] Same file: a slow low pass (300 m/s, 10 km) keeps every part within 10 K of ambient (288.15 K).
+- [ ] Same file: a part at 800 K cools monotonically by radiation to < 500 K within 600 s, in flight on the ground and on rails; `advanceTemperature` is monotone and stable for steps 0.02 s to 1e4 s, converges to the radiative equilibrium, and agrees with explicit integration at small steps.
+- [ ] Same file: two runs of the shielded entry give byte-identical snapshot and serialized world.
+- [ ] `bun test packages/sim/test/landing.test.ts`: the plan 012 lander still lands with every part, no `part:damaged`, and its peak skin temperature is < 400 K (no change to the test vessel or profile is needed).
+- [ ] `bun test packages/sim/test/debris.test.ts packages/sim/test/scenario-orbit.test.ts packages/sim/test/determinism.test.ts packages/sim/test/warp.test.ts` pass unchanged.
+- [ ] `bun test mods/stock`: the heat shield module's store, threshold, burn rate and exhaustion; stock boot lists `stock.ablator`, `stock.heat-shield`.
+- [ ] Mutation: raising the tank `maxTemperature` to 9000 fails the unshielded test; forcing the shield's `absorbHeat` to 0 fails the shielded test (both restored).
+- [ ] `bun run typecheck`, `bun run build`, `bun run docs:check`, `bunx prettier --check packages/core packages/sim packages/sdk mods/stock`, and the boundary greps (no `three`/DOM/`process` in sim/core/sdk/mods; mods import only `@orbital/sdk`) are clean.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal, `simulation.md`, ADR.
+- [ ] `docs/STATUS.md`, journal 014, `simulation.md`, `plugin-system.md`, `guides/writing-a-mod.md`, glossary, ADR 0023 + index, `research/reentry-heating.md` + index.
 
 ## Log
 
 - 2026-10-16 — Created as draft by plan 012 (re-entry heating is out of scope there; its hooks are `impactTolerance` and `part:damaged`).
+- 2026-10-16 — Refined draft → ready at the human's request (session: heating session). Physics verified online (research/reentry-heating.md); ADR 0023 answers the open questions (temperature is part state; heat shield = module hook `absorbHeat` + ablator resource; `part:damaged` gets `cause`). The "lander without a shield loses its pod on a 100 km deorbit" example from the draft is not adopted: the plan 012 lander brakes with its engine and peaks at 295 K, so the criteria use a probe on a ballistic deorbit path instead. ADR number 0023 (0022 was taken by plan 015).
