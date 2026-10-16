@@ -3,7 +3,7 @@
  * If stock content needs a "back door" into core, the SDK is incomplete: fix the SDK, not this package.
  */
 import { definePlugin } from '@orbital/sdk';
-import { HomeBody } from './bodies.ts';
+import { HomeBody, MoonBody } from './bodies.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
@@ -72,6 +72,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartControlSurface);
 
 		ctx.bodies.register(HomeBody);
+		ctx.bodies.register(MoonBody);
 
 		ctx.provide('stock', stockApi);
 	}

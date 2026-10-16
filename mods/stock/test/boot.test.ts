@@ -41,7 +41,7 @@ describe('stock boots through the loader', () => {
 			'stock.tank-medium',
 			'stock.tank-small'
 		]);
-		expect(ids('body')).toEqual(['stock.home']);
+		expect(ids('body')).toEqual(['stock.cinder', 'stock.home']);
 		expect(ids('system')).toEqual([]);
 		for (const kind of Object.keys(report.registered) as (keyof typeof report.registered)[]) {
 			expect(report.registered[kind].every((e) => e.by === 'stock')).toBe(true);
