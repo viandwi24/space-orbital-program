@@ -53,7 +53,7 @@
 | 039 | [Release pass: frame budget, mountain haze, radar altitude](plans/039-performance-and-look-pass.md) | draft | — | from the 031 review: high preset over budget at pad/hillside, pale mountains, no radar altitude |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 | 042 | [SAS and flight assists](plans/042-sas-and-flight-assists.md) | in-progress | sas session | ADR 0049, API 0.1.11; sim, stock and HUD components done (journal 042); flight-page integration and `ship.sas` wait for plans 032/039;  v1 (ADR 0048): attitude hold and pro/retro/normal/radial modes |
-| 043 | [Save and load game](plans/043-save-and-load-game.md) | draft | — | v1: quicksave, autosave, resume flights, versioned format |
+| 043 | [Save and load game](plans/043-save-and-load-game.md) | in-progress | save session (Claude, 2026-10-17) | ADR 0050, API 0.1.12; `Sim.save()`/`createSim({ resume })`, versioned format, save library and dialogs done; resume is byte-exact except in ground contact (bounded 5e-3); flight-page/main-menu integration waits for plan 039 (`journal/assets/043-integration.patch`) |
 | 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | draft | — | v1: second body, patched conics, landing on the moon |
 | 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | draft | — | v1: plan burns in map view, navball marker, SAS node mode |
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | draft | — | v1: install mods from file/URL, spec Phase 2 criterion |
@@ -74,6 +74,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
 - HUD (plan 021, ADR 0026): stage Δv reads module descriptors (`describe`, ADR 0033, plan 024), so a mod's engines and separators count, and the map markers use `Renderer.project`. The HUD throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own value). The layout is tuned for 1280x720 and up, the dev autopilot (`P`) is unreliable under software rendering, and the throttle gauge is read-only.
 - VAB (plans 022, 026, 029; ADRs 0029, 0041, 0042): the library is IndexedDB (falls back to memory with a notice), autosave makes a record per started vessel and has no housekeeping; the stability read-out is a small-angle guide that counts `stock.fin` only; group move and turn cover radial symmetry groups; the Δv trip estimate is still a rule of thumb (1.3 km/s allowance, draft 034); frame time measured only on an Apple M5 (VAB `high` 1.0 ms CPU, 179 draw calls at 1440x900 ratio 2; M1/M2 and Intel in draft 033); the hall is much better but the crane is partly out of view from the default camera and the walls are dark; the layout fits 1024x768 and up, narrower windows use drawers.
+- Saves (plan 043, ADR 0050): `Sim.save()`/`createSim({ resume })` and the save library are done; a resume is byte-exact except while a body touches the ground (bound 5e-3). The flight page, flight loop and main menu are not wired until plan 039 is done (`journal/assets/043-integration.patch`). Scripts are not saved (they stop on load); `save/mods.ts` lists stock only until plan 046; plan 044 must extend `SimSave` for a second body.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
@@ -86,6 +87,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 ## Recent journal entries
 
 - [032 — Script API additions and the sandbox in other browsers](journal/032-script-api-additions-and-browser-matrix.md)
+- [043 — Save and load game (in progress)](journal/043-save-and-load-game.md)
 - [042 — SAS and flight assists (in progress)](journal/042-sas-and-flight-assists.md)
 - [033 — Gimbal, damping, control surfaces, smoke, debris, plasma, glTF](journal/033-part-assets-effects-and-aero-follow-ups.md)
 - [031 — Physical terrain heights](journal/031-physical-terrain-and-sky-volumes.md)

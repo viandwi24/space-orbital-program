@@ -158,6 +158,10 @@ A body with no `parent`/`orbit` is a root body. Gravity is point-mass; the atmos
 
 `definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`. `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
 
+## Saves (API 0.1.12, ADR 0050)
+
+A flight is saved as plain JSON: the world (every module's `state`) plus the sim's clock and bodies. So a module's `state` must be plain, JSON-compatible data (numbers that are finite, strings, booleans, arrays, plain objects; no `undefined` meaning something, no `Map`/`Set`/typed arrays, no functions), and anything a module needs between steps belongs in `state`, never in a closure or a module-level variable: it would be lost on load. A save lists the plugins that were loaded; loading refuses it when a plugin is missing (or a part or module id it uses is gone) and says which. Keep ids stable across releases, and when a new version changes the shape of a module's `state`, read the old shape in `update`/`snapshot` defensively or ask for a save-format migration (an ADR and a bump of `SIM_SAVE_VERSION`).
+
 ## 6. Testing a mod
 
 ```ts

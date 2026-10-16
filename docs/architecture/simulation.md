@@ -17,6 +17,7 @@ const sim = await createSim({
 sim.step(wallDelta);       // host time in seconds; scaled by warp
 sim.dispatch(command);     // -> { ok: true, vessel? } | { ok: false, reason }; never throws on bad input
 sim.snapshot();            // plain data, built on request
+sim.save();                // the whole run as plain JSON data (plan 043, ADR 0050); createSim({ resume: save, plugins, backendFactory }) continues it
 sim.world; sim.events; sim.registries; sim.report; sim.rng; sim.time; sim.warp; sim.dispose();
 ```
 
@@ -122,6 +123,14 @@ type Command =
 ## PhysicsBackend (`packages/core/src/physics-backend.ts`)
 
 Interface in core (additive changes by plan 011: a `compound` `BodyShape`, `MassPlacement` — `centerOfMass`, `inertiaFrame` — in `BodyDesc` and as a fourth `setMass` argument; `getTransform` is the body origin, velocities are the centre of mass's; the sim creates no joints any more but `createFixedJoint` stays in the interface; additive by plan 012: `BodyDesc.friction` / `restitution` and `contacts(a, b)` returning `{ shape, point, distance }` contact points after a step, none in the mock), `@orbital/physics` implements it (`createRapierBackend({ solverIterations? })`, async; `createMockBackend()`). Contract points the sim honours: everything in the local frame; forces last one step, so gravity, thrust, drag and torque are re-applied every step; `Velocity.angular` is about local-frame axes; impulses (decoupler ejection) are applied as direct velocity changes because the backend only has one-step forces. The mock backend ignores joints, collisions and the centre-of-mass offset and is only suitable for hook-level tests.
+
+## Save and resume (plan 043, ADR 0050)
+
+`sim.save()` returns a `SimSave` (`@orbital/core`, `save.ts`): `format`/`formatVersion` (1), `apiVersion`, the booted `mods` (id, version), `body`, `dt`, `seed`, `time`, `warp`, `accumulator`, `rng` state, `world` (`world.serialize()`: vessels, parts, module states, SAS, rails, temperatures, counters), `frames` (per physics frame its origin, velocity and, per body in creation order, the pose of the body origin, rotation, linear and angular velocity and the mass properties last pushed to the backend) and a `checksum` of the rest. Call it between steps; it never changes the sim.
+
+`createSim({ resume })` validates the save like a file (`readSimSave`: marker, version, checksum, migration chain, schema; then the sim components, registered parts/modules/bodies, every flight vessel in exactly one frame body), restores the world, clock, accumulator and PRNG, and **rebuilds** each Rapier body with the saved pose and mass properties (`createVesselBody`); ground tiles come back at the next step. Failures are `SaveError`s with a `code` and a message for the player. The step `dt` and the root body must match the save; the plugin ids must be loaded (versions may differ). State a plugin keeps in closures outside the world is not saved.
+
+Equality with an uninterrupted run: byte for byte for flight in free space, on rails (orbital and surface), through staging and during an SAS hold; within 5e-3 (m, m/s, rad, K) while a body touches its ground tile, because the contact solver's warm start is private to Rapier and a rebuilt body starts cold (`test/resume.test.ts`, ADR 0050 point 4). New sim state must be added to the world (or to `SimSave` with a version bump and migration) and to the resume tests.
 
 ## Determinism
 

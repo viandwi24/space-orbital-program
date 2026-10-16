@@ -1,0 +1,541 @@
+diff --git a/apps/web/src/lib/flight-loop.ts b/apps/web/src/lib/flight-loop.ts
+index d78b1e2..31dcbcd 100644
+--- a/apps/web/src/lib/flight-loop.ts
++++ b/apps/web/src/lib/flight-loop.ts
+@@ -3,7 +3,13 @@
+  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
+  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
+  */
+-import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
++import {
++	entityId,
++	type Command,
++	type EntityId,
++	type Snapshot,
++	type VesselDesign
++} from '@orbital/core';
+ import { createRenderer, type GraphicsPreset, type Renderer } from '@orbital/renderer';
+ import { partShapesOf } from './catalog';
+ import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
+@@ -13,6 +19,9 @@ import type { ScriptSandbox } from './script-sandbox';
+ import { startSimWorker, type SimClient } from './sim-client';
+ import { computeTelemetry, type Telemetry } from './telemetry';
+ import type { ContentLookups } from './delta-v';
++import { resumeInfo, type GameSave } from './save/game-save';
++import type { SaveRequest } from './save/saves';
++import { captureThumbnail } from './save/thumbnail';
+ import { WARP_STEPS } from './warp';
+ import {
+ 	createHudController,
+@@ -49,8 +58,10 @@ export interface FlightOptions {
+ 	onHud(hud: FlightHud): void;
+ 	/** Every render frame, with what the canvas widgets draw (navball, map markers); no Svelte here. */
+ 	onFrame?(frame: FrameData): void;
+-	/** Esc (pause menu) and `?`/F1 (help overlay) were pressed. */
+-	onKey?(key: 'escape' | 'help'): void;
++	/** Esc (pause menu), `?`/F1 (help overlay), F5 (quicksave) and F9 (quickload) were pressed. */
++	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload'): void;
++	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
++	resume?: GameSave;
+ 	/** Script status and print output, at HUD rate and only when something changed. */
+ 	onScript?(view: ScriptView): void;
+ 	/**
+@@ -74,6 +85,8 @@ export interface Flight {
+ 	cycleSpeedMode(): void;
+ 	/** Freeze or resume the sim (pause menu). */
+ 	setPaused(paused: boolean): void;
++	/** Everything a save needs from the running flight (plan 043); rejects when there is no vessel to save. */
++	collectSave(): Promise<SaveRequest>;
+ 	/** While a dialog is open the flight keys do nothing. */
+ 	setModal(open: boolean): void;
+ 	dispose(): void;
+@@ -81,7 +94,7 @@ export interface Flight {
+ 
+ export function startFlight(options: FlightOptions): Flight {
+ 	const { canvas, design } = options;
+-	const client: SimClient = startSimWorker();
++	const client: SimClient = startSimWorker(options.resume ? { resume: options.resume.sim } : {});
+ 	let renderer: Renderer | null = null;
+ 	let catalog: Catalog | null = null;
+ 	let vessel: EntityId | null = null;
+@@ -195,6 +208,12 @@ export function startFlight(options: FlightOptions): Flight {
+ 			return;
+ 		}
+ 		if (modal || e.repeat || typingInField(e)) return;
++		if (e.key === 'F5' || e.key === 'F9') {
++			// The browser would reload the page (F5); in flight the keys are quicksave and quickload.
++			e.preventDefault();
++			options.onKey?.(e.key === 'F5' ? 'quicksave' : 'quickload');
++			return;
++		}
+ 		if (e.key === '?' || e.key === 'F1') {
+ 			e.preventDefault();
+ 			options.onKey?.('help');
+@@ -358,11 +377,15 @@ export function startFlight(options: FlightOptions): Flight {
+ 		async (c) => {
+ 			if (disposed) return;
+ 			catalog = c;
++			const resumed = options.resume ? resumeInfo(options.resume) : null;
+ 			hudCtl = createHudController({
+ 				design,
+ 				content: options.content,
+ 				bodies: c.bodies,
+-				project: (world) => renderer?.project(world) ?? null
++				project: (world) => renderer?.project(world) ?? null,
++				...(resumed
++					? { resume: { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } }
++					: {})
+ 			});
+ 			renderer = createRenderer({
+ 				canvas,
+@@ -373,14 +396,29 @@ export function startFlight(options: FlightOptions): Flight {
+ 				preset: initialGraphicsPreset()
+ 			});
+ 			resize();
+-			const result = await client.dispatch({ type: 'load-vessel', design });
+-			if (!result.ok || result.vessel === undefined) {
+-				hud.status = 'error';
+-				hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
+-				publish();
+-				return;
++			if (resumed && options.resume) {
++				// The sim already holds the flight; the page only takes up the controls where they were.
++				if (resumed.focus === null) {
++					hud.status = 'error';
++					hud.message = 'this save has no vessel to fly';
++					publish();
++					return;
++				}
++				vessel = entityId(resumed.focus);
++				throttle = sentThrottle = resumed.throttle;
++				const warp = options.resume.sim.warp;
++				hud.warp = warp;
++				warpIndex = Math.max(0, (WARP_STEPS as readonly number[]).indexOf(warp));
++			} else {
++				const result = await client.dispatch({ type: 'load-vessel', design });
++				if (!result.ok || result.vessel === undefined) {
++					hud.status = 'error';
++					hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
++					publish();
++					return;
++				}
++				vessel = result.vessel;
+ 			}
+-			vessel = result.vessel;
+ 			hudCtl.attach(Number(vessel));
+ 			renderer.setActiveVessel(vessel);
+ 			hud.status = 'flying';
+@@ -476,6 +514,18 @@ export function startFlight(options: FlightOptions): Flight {
+ 			client.stopScript();
+ 			options.sandbox?.close();
+ 		},
++		async collectSave() {
++			if (vessel === null || !catalog || !renderer || hud.status !== 'flying') {
++				throw new Error('There is no flight to save yet.');
++			}
++			const body = catalog.bodies[0];
++			if (!body) throw new Error('The simulation has no body to save.');
++			// Draw a frame and read it in the same task: a WebGL canvas is cleared after it is shown.
++			renderer.render();
++			const thumbnail = captureThumbnail(canvas);
++			const sim = await client.save();
++			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
++		},
+ 		setGraphicsPreset(preset) {
+ 			saveGraphicsPreset(preset);
+ 			renderer?.setPreset(preset);
+diff --git a/apps/web/src/lib/hud-controller.ts b/apps/web/src/lib/hud-controller.ts
+index 913bb7b..b0471c5 100644
+--- a/apps/web/src/lib/hud-controller.ts
++++ b/apps/web/src/lib/hud-controller.ts
+@@ -106,6 +106,12 @@ export interface HudControllerOptions {
+ 	project: (world: Vec3) => Point | null;
+ 	/** Wall clock in ms (the render loop's `now`); toasts expire against it. */
+ 	now?: () => number;
++	/**
++	 * A loaded flight (plan 043): the part entity to design index map of the vessel in focus, which
++	 * can no longer be derived from a snapshot of a vessel that already lost parts, and the stages
++	 * it had fired.
++	 */
++	resume?: { entityIndex: ReadonlyMap<number, number>; stagesFired: number };
+ }
+ 
+ export interface HudController {
+@@ -138,7 +144,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
+ 	const clearance = groundClearance(design, content.parts);
+ 	let vessel: number | null = null;
+ 	let snap: Snapshot | null = null;
+-	let entityIndex: Map<number, number> | null = null;
++	let entityIndex: Map<number, number> | null = options.resume
++		? new Map(options.resume.entityIndex)
++		: null;
+ 	let stages: StageProgress = noStages;
+ 	let preference: SpeedModePreference = 'auto';
+ 	let lastMode: SpeedMode = 'surface';
+@@ -213,6 +221,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
+ 	return {
+ 		attach(id) {
+ 			vessel = id;
++			if (options.resume && options.resume.stagesFired > 0) {
++				stages = { ...stages, [id]: options.resume.stagesFired };
++			}
+ 		},
+ 		snapshot(s) {
+ 			snap = s;
+diff --git a/apps/web/src/lib/hud/HelpOverlay.svelte b/apps/web/src/lib/hud/HelpOverlay.svelte
+index 41ea0d4..c0d6eeb 100644
+--- a/apps/web/src/lib/hud/HelpOverlay.svelte
++++ b/apps/web/src/lib/hud/HelpOverlay.svelte
+@@ -36,6 +36,7 @@
+ 			title: 'Time and menus',
+ 			rows: [
+ 				[[',', '.'], 'Time warp down, up'],
++				[['F5', 'F9'], 'Quicksave, quickload'],
+ 				[['Esc'], 'Pause menu'],
+ 				[['?'], 'This list']
+ 			]
+diff --git a/apps/web/src/lib/hud/PauseMenu.svelte b/apps/web/src/lib/hud/PauseMenu.svelte
+index 00bf3b5..ebe3764 100644
+--- a/apps/web/src/lib/hud/PauseMenu.svelte
++++ b/apps/web/src/lib/hud/PauseMenu.svelte
+@@ -8,13 +8,17 @@
+ 		name,
+ 		met,
+ 		onresume,
+-		oncontrols
++		oncontrols,
++		onsave,
++		onload
+ 	}: {
+ 		open: boolean;
+ 		name: string;
+ 		met: number;
+ 		onresume: () => void;
+ 		oncontrols: () => void;
++		onsave: () => void;
++		onload: () => void;
+ 	} = $props();
+ </script>
+ 
+@@ -25,6 +29,8 @@
+ 	</p>
+ 	<div class="actions">
+ 		<Button variant="primary" onclick={onresume}>Resume</Button>
++		<Button onclick={onsave}>Save the flight</Button>
++		<Button onclick={onload}>Load a flight</Button>
+ 		<Button onclick={oncontrols}>Controls</Button>
+ 		<a class="link" href="/vab">Back to the VAB</a>
+ 		<a class="link" href="/">Main menu</a>
+diff --git a/apps/web/src/routes/+page.svelte b/apps/web/src/routes/+page.svelte
+index 6c02f6d..767333f 100644
+--- a/apps/web/src/routes/+page.svelte
++++ b/apps/web/src/routes/+page.svelte
+@@ -1,6 +1,16 @@
+ <script lang="ts">
+ 	import { API_VERSION } from '@orbital/sdk';
+ 	import { SIM_VERSION } from '@orbital/sim';
++	import { goto } from '$app/navigation';
++	import LoadDialog from '../lib/save/LoadDialog.svelte';
++	import { bootedMods } from '../lib/save/mods';
++	import { SaveController } from '../lib/save/save-controller.svelte';
++
++	// Load a saved flight (plan 043): the flight page resumes it from `?load=<id>`.
++	const saves = new SaveController({
++		loadedMods: bootedMods,
++		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`)
++	});
+ </script>
+ 
+ <svelte:head><title>Orbital</title></svelte:head>
+@@ -11,7 +21,9 @@
+ 	<nav aria-label="Start">
+ 		<a class="primary" href="/vab">Build a vessel</a>
+ 		<a href="/flight">Fly the last vessel</a>
++		<button type="button" onclick={() => void saves.showLoad()}>Load a flight</button>
+ 	</nav>
++	<LoadDialog {saves} />
+ 	<p class="meta num">mod API {API_VERSION} · sim {SIM_VERSION}</p>
+ </main>
+ 
+@@ -37,7 +49,8 @@
+ 		gap: var(--s-3);
+ 		flex-wrap: wrap;
+ 	}
+-	a {
++	a,
++	nav button {
+ 		display: inline-flex;
+ 		align-items: center;
+ 		min-height: 40px;
+@@ -49,7 +62,12 @@
+ 		border: 1px solid var(--line-strong);
+ 		border-radius: var(--r-control);
+ 	}
+-	a:hover {
++	nav button {
++		font: inherit;
++		cursor: pointer;
++	}
++	a:hover,
++	nav button:hover {
+ 		border-color: var(--c-accent);
+ 	}
+ 	a.primary {
+diff --git a/apps/web/src/routes/flight/+page.svelte b/apps/web/src/routes/flight/+page.svelte
+index 721bb21..6fcf96c 100644
+--- a/apps/web/src/routes/flight/+page.svelte
++++ b/apps/web/src/routes/flight/+page.svelte
+@@ -16,6 +16,7 @@
+ 	import Button from '../../lib/ui/Button.svelte';
+ 	import Toasts from '../../lib/ui/Toasts.svelte';
+ 	import { loadContent, partLookup } from '../../lib/catalog';
++	import type { VesselDesign } from '@orbital/core';
+ 	import { parseDesign } from '../../lib/design';
+ 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
+ 	import type { FrameData } from '../../lib/hud-controller';
+@@ -25,10 +26,18 @@
+ 	import { decodeScript, tokenFromHash, type ImportInfo } from '../../lib/script-share';
+ 	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
+ 	import { canWarp } from '../../lib/telemetry';
++	import { createAutosaver } from '../../lib/save/autosave';
++	import type { GameSave } from '../../lib/save/game-save';
++	import LoadDialog from '../../lib/save/LoadDialog.svelte';
++	import { bootedMods } from '../../lib/save/mods';
++	import SaveDialog from '../../lib/save/SaveDialog.svelte';
++	import { SaveController } from '../../lib/save/save-controller.svelte';
+ 
+ 	let canvas: HTMLCanvasElement;
+ 	let hud = $state.raw<FlightHud | null>(null);
+ 	let problem = $state<string | null>(null);
++	/** The problem is a save that would not load, not a missing design. */
++	let loadFailed = $state(false);
+ 	let flight: Flight | null = null;
+ 	let scriptOpen = $state(false);
+ 	let source = $state('');
+@@ -47,19 +56,105 @@
+ 	let markers = $state<MapMarkers>();
+ 	let tall = $state(true);
+ 
++	// Save and load (plan 043). A load reloads the page with `?load=<id>`: a fresh Worker and renderer.
++	const saves = new SaveController({
++		loadedMods: bootedMods,
++		collect: () => {
++			if (!flight) throw new Error('There is no flight to save yet.');
++			return flight.collectSave();
++		},
++		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
++	});
++	const autosaver = createAutosaver(() => performance.now());
++	const saveState = () => ({
++		flying: hud?.status === 'flying',
++		paused: pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen,
++		busy: saves.busy
++	});
++	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
++		if (reason === null) return;
++		if (await saves.autosave()) autosaver.saved();
++	}
++	async function quicksave(): Promise<void> {
++		if (await saves.quicksave()) autosaver.saved();
++	}
++
++	// A short confirmation ("Quicksaved.") while no dialog shows the note.
++	let flashTimer: ReturnType<typeof setTimeout> | undefined;
++	$effect(() => {
++		if (saves.note === null || saves.loadOpen || saves.saveOpen) return;
++		clearTimeout(flashTimer);
++		flashTimer = setTimeout(() => (saves.note = null), 3500);
++		return () => clearTimeout(flashTimer);
++	});
++
++	// Saves on a stage and on touching down, besides the timer (the autosaver spaces them out).
++	let lastStages = 0;
++	let wasLanded = false;
++	$effect(() => {
++		const stages = model?.stagesFired ?? 0;
++		if (stages > lastStages) void autosave(autosaver.request('stage', saveState()));
++		lastStages = stages;
++		const landed = model?.phase === 'landed';
++		if (landed && !wasLanded) void autosave(autosaver.request('landed', saveState()));
++		wasLanded = landed;
++	});
++
+ 	onMount(() => {
+ 		const { catalog, content } = loadContent();
+-		const text = loadDraft();
+-		if (text === null) {
+-			problem = 'No vessel to launch yet.';
+-			return;
+-		}
+-		const parsed = parseDesign(text, partLookup(catalog));
+-		if (!parsed.ok) {
+-			problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
+-			return;
+-		}
+-		designName = parsed.design.name;
++		const timer = setInterval(() => void autosave(autosaver.tick(saveState())), 1000);
++		const onHidden = (): void => {
++			if (document.visibilityState === 'hidden')
++				void autosave(autosaver.request('hidden', saveState()));
++		};
++		document.addEventListener('visibilitychange', onHidden);
++		let stop: (() => void) | undefined;
++		let gone = false;
++		const loadId = new URLSearchParams(location.search).get('load');
++		void (async () => {
++			let design: VesselDesign;
++			let resume: GameSave | undefined;
++			if (loadId !== null) {
++				try {
++					resume = await saves.read(loadId);
++				} catch (e) {
++					loadFailed = true;
++					problem = e instanceof Error ? e.message : String(e);
++					return;
++				}
++				design = resume.design;
++			} else {
++				const text = loadDraft();
++				if (text === null) {
++					problem = 'No vessel to launch yet.';
++					return;
++				}
++				const parsed = parseDesign(text, partLookup(catalog));
++				if (!parsed.ok) {
++					problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
++					return;
++				}
++				design = parsed.design;
++			}
++			if (gone) return;
++			stop = begin(catalog, content, design, resume);
++		})();
++		return () => {
++			gone = true;
++			clearInterval(timer);
++			document.removeEventListener('visibilitychange', onHidden);
++			stop?.();
++		};
++	});
++
++	/** Start the flight and return its cleanup. */
++	function begin(
++		catalog: ReturnType<typeof loadContent>['catalog'],
++		content: ReturnType<typeof loadContent>['content'],
++		design: VesselDesign,
++		resume: GameSave | undefined
++	): () => void {
++		designName = design.name;
+ 		source = loadScript(designName) ?? '';
+ 		const scriptSandbox = startScriptSandbox();
+ 		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
+@@ -83,7 +178,8 @@
+ 		small.addEventListener('change', sync);
+ 		const started: Flight = startFlight({
+ 			canvas,
+-			design: parsed.design,
++			design,
++			...(resume ? { resume } : {}),
+ 			content,
+ 			onHud: (h) => (hud = h),
+ 			onScript: (v) => (script = v),
+@@ -94,6 +190,8 @@
+ 			},
+ 			onKey: (key) => {
+ 				if (key === 'escape') pauseOpen = true;
++				else if (key === 'quicksave') void quicksave();
++				else if (key === 'quickload') void saves.quickload();
+ 				else helpOpen = true;
+ 			}
+ 		});
+@@ -105,12 +203,13 @@
+ 			flight = null;
+ 			started.dispose();
+ 		};
+-	});
++	}
+ 
+ 	// The sim freezes and the flight keys go quiet while a dialog is open.
+ 	$effect(() => {
+-		flight?.setPaused(pauseOpen || helpOpen);
+-		flight?.setModal(pauseOpen || helpOpen);
++		const modal = pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen;
++		flight?.setPaused(modal);
++		flight?.setModal(modal);
+ 	});
+ 
+ 	/** Edits and "Load sample" both go through here so the text is saved per design. */
+@@ -155,12 +254,22 @@
+ 
+ 	{#if problem}
+ 		<div class="center">
+-			<StatusCard tone="warning" title="Nothing to fly">
+-				<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
+-				{#snippet actions()}
+-					<a class="cta" href="/vab">Open the VAB</a>
+-				{/snippet}
+-			</StatusCard>
++			{#if loadFailed}
++				<StatusCard tone="danger" title="That flight could not be loaded">
++					<p>{problem}</p>
++					{#snippet actions()}
++						<a class="cta" href="/">Main menu</a>
++						<a class="cta quiet" href="/vab">Open the VAB</a>
++					{/snippet}
++				</StatusCard>
++			{:else}
++				<StatusCard tone="warning" title="Nothing to fly">
++					<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
++					{#snippet actions()}
++						<a class="cta" href="/vab">Open the VAB</a>
++					{/snippet}
++				</StatusCard>
++			{/if}
+ 		</div>
+ 	{:else if hud}
+ 		{#if hud.status === 'booting'}
+@@ -275,7 +384,20 @@
+ 			met={model?.met ?? 0}
+ 			onresume={() => (pauseOpen = false)}
+ 			oncontrols={() => (helpOpen = true)}
++			onsave={() => {
++				pauseOpen = false;
++				saves.showSave();
++			}}
++			onload={() => {
++				pauseOpen = false;
++				void saves.showLoad();
++			}}
+ 		/>
++		<SaveDialog {saves} suggestion={model?.name ?? 'Saved flight'} />
++		<LoadDialog {saves} />
++		{#if saves.note && !saves.loadOpen && !saves.saveOpen}
++			<p class="savenote" class:error={saves.noteIsError} role="status">{saves.note}</p>
++		{/if}
+ 		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
+ 	{/if}
+ </div>
+@@ -322,6 +444,23 @@
+ 		width: min(420px, 46vw);
+ 		overflow: auto;
+ 	}
++	.savenote {
++		position: absolute;
++		z-index: 5;
++		top: 64px;
++		left: 50%;
++		transform: translateX(-50%);
++		margin: 0;
++		padding: var(--s-2) var(--s-4);
++		font-size: var(--t-sm);
++		background: var(--panel-solid);
++		border: 1px solid var(--line-strong);
++		border-radius: var(--r-panel);
++		pointer-events: none;
++	}
++	.savenote.error {
++		border-color: var(--c-danger);
++	}
+ 	.tc {
+ 		top: var(--s-3);
+ 		left: 50%;

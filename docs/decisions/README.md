@@ -67,3 +67,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0047 | [glTF asset provider, shard debris, lit smoke, plume ground light, plasma colour](0047-asset-provider-and-effect-techniques.md) | accepted | 2026-10-17 |
 | 0048 | [v1 public release scope](0048-v1-public-release-scope.md) | accepted | 2026-10-17 |
 | 0049 | [SAS lives in the sim; modules report their control authority](0049-sas-in-the-sim-with-module-authority.md) | accepted | 2026-10-17 |
+| 0050 | [Save format: plain versioned JSON, bodies rebuilt on resume](0050-save-format-and-resume.md) | accepted | 2026-10-17 |
