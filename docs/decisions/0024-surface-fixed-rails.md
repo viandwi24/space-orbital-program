@@ -1,6 +1,6 @@
 # 0024 — Surface-fixed rails for controlled vessels at rest on the ground
 
-**Status:** accepted
+**Status:** accepted (the "no terrain" notes are overtaken by [0043](0043-physical-terrain-one-height-function-in-core.md): the body-fixed centre of mass already carries the terrain pose)
 **Date:** 2026-10-16
 **Plan:** plans/016-landed-vessels-on-rails.md
 

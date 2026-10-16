@@ -1,6 +1,6 @@
 # 0036 — Terrain heights are visual: baked on the GPU, ray-marched by the planet pass
 
-**Status:** accepted
+**Status:** accepted (points 1 and 3, heights are visual only and the camera bubble, are superseded by [0043](0043-physical-terrain-one-height-function-in-core.md) and [0044](0044-terrain-patches-camera-centred-and-hi-lo-bake.md); the march, shading and self-shadows stand)
 **Date:** 2026-10-16
 **Plan:** plans/027-terrain-and-sky-follow-ups.md
 

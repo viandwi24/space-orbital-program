@@ -9,6 +9,7 @@ import {
 	loadPlugins,
 	type Command,
 	type CommandResult,
+	type BodyDefinition,
 	type EntityId,
 	type EventBus,
 	type EventMap,
@@ -19,6 +20,7 @@ import {
 	type Rng,
 	type Snapshot,
 	type SystemDefinition,
+	type TerrainField,
 	type World
 } from '@orbital/core';
 import { dispatch } from './commands.ts';
@@ -49,6 +51,13 @@ export interface SimOptions {
 	maxStepsPerCall?: number;
 	/** Id of the root body to simulate; default the first body without a parent. */
 	body?: string;
+	/**
+	 * Heights of the ground above the reference sphere (ADR 0043), body-fixed unit direction in,
+	 * metres out; the host passes the same field to the renderer. A function is called once with
+	 * the root body so the field can take its radius from the registered data. Absent: the ground
+	 * is the flat reference sphere, as before plan 031.
+	 */
+	terrain?: TerrainField | ((body: BodyDefinition) => TerrainField);
 }
 
 export interface Sim {
@@ -105,6 +114,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		dt,
 		rng: createRng(options.seed ?? 0),
 		frames,
+		terrain: typeof options.terrain === 'function' ? options.terrain(bodyDef) : options.terrain,
 		body: {
 			def: bodyDef,
 			mu: GRAVITATIONAL_CONSTANT * bodyDef.mass,

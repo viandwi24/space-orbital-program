@@ -38,6 +38,7 @@ import { AMBIENT_TEMPERATURE, DEFAULT_IMPACT_TOLERANCE } from './constants.ts';
 import type { Overheat } from './thermal.ts';
 import { computeRails, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import { halfExtentsOf } from './parts.ts';
+import { groundPlane } from './terrain.ts';
 import { moduleStateToken, PART, VESSEL, type PartState, type VesselState } from './state.ts';
 
 type Resolved = Extract<ResolvedDesign, { ok: true }>;
@@ -145,20 +146,22 @@ export function placeOnSurface(
 	longitude: number
 ): void {
 	const vessel = vesselOf(core, vesselId);
-	const up = qRotate(qAboutY(core.body.omega * core.t), {
+	const radial = qRotate(qAboutY(core.body.omega * core.t), {
 		x: Math.cos(latitude) * Math.cos(longitude),
 		y: Math.sin(latitude),
 		z: -Math.cos(latitude) * Math.sin(longitude)
 	});
+	// On terrain (ADR 0043) the vessel stands on the ground plane under it, nose along its normal
+	// (a lander on a hillside, not a stack falling over onto it); on the sphere and in the flat
+	// zone around the launch site the normal is the radial and nothing changes.
+	const ground = groundPlane(core, radial);
+	const up = ground.normal;
 	const eastRaw = cross({ x: 0, y: 1, z: 0 }, up);
 	const east =
 		Math.hypot(eastRaw.x, eastRaw.y, eastRaw.z) > 1e-9 ? normalize(eastRaw) : { x: 0, y: 0, z: -1 };
 	vessel.orientation = qFromBasis(east, up, cross(east, up));
 	const rootDesign = partOf(core, vessel.root).designPos;
-	const rootOrigin = add(
-		scale(up, core.body.def.radius),
-		scale(up, rootDesign.y - lowestPoint(core, vessel.parts))
-	);
+	const rootOrigin = add(ground.point, scale(up, rootDesign.y - lowestPoint(core, vessel.parts)));
 	const offset = qRotate(vessel.orientation, sub(designCom(core, vessel.parts), rootDesign));
 	vessel.com = add(rootOrigin, offset);
 	vessel.velocity = cross({ x: 0, y: core.body.omega, z: 0 }, vessel.com);

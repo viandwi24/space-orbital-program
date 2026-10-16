@@ -44,6 +44,12 @@ export interface VesselSnapshot {
 	 * ground (its pose turns with the body's `rotation`) and there is no `orbit`.
 	 */
 	surface?: boolean;
+	/**
+	 * Height, m, of the ground above the body's reference sphere under the root part (ADR 0043).
+	 * Present only when the sim was created with terrain; radar altitude is the vessel's altitude
+	 * minus this.
+	 */
+	terrainHeight?: number;
 }
 
 export interface BodySnapshot {

@@ -2,6 +2,7 @@
 // Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic. Player
 // scripts do not run here: each Run gets its own script Worker, in a sandboxed iframe (ADR 0031,
 // ADR 0038).
+import { createTerrainField } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim } from '@orbital/sim';
@@ -20,7 +21,9 @@ const host = createSimHost({
 	createSim: () =>
 		createSim({
 			plugins: [Stock],
-			backendFactory: () => createRapierBackend({ solverIterations: 16 })
+			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+			// The same procedural terrain the renderer draws (ADR 0043); the launch site is latitude 0, longitude 0.
+			terrain: (body) => createTerrainField({ radius: body.radius })
 		}),
 	spawnScriptWorker: spawnScriptWorker,
 	post: (message) => self.postMessage(message),

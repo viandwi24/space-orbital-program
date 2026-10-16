@@ -118,5 +118,6 @@ export function periapsisRadius(mu: number, r: Vec3, v: Vec3): number {
 /** True when the orbit stays above the atmosphere (above the surface for an airless body). */
 export function isStableOrbit(core: SimCore, r: Vec3, v: Vec3): boolean {
 	const { def, mu } = core.body;
-	return periapsisRadius(mu, r, v) > def.radius + (def.atmosphere?.height ?? 0);
+	const clearance = Math.max(def.atmosphere?.height ?? 0, core.terrain?.maxHeight ?? 0);
+	return periapsisRadius(mu, r, v) > def.radius + clearance;
 }

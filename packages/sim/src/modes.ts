@@ -18,6 +18,7 @@ import { frameOfVessel, isControlled, vesselIds, vesselOf, type SimCore } from '
 import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from './frames.ts';
 import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import type { FlightFrame } from './state.ts';
+import { terrainBelow } from './terrain.ts';
 import { destroyVessel } from './vessel.ts';
 
 /** Put a flight vessel on rails at its current centre-of-mass state. */
@@ -96,11 +97,21 @@ export function railsEligible(
 	);
 }
 
-/** Altitude of the centre of mass above the reference sphere and its radial speed (ADR 0021). */
-function altitudeAndClimb(core: SimCore, id: EntityId): { alt: number; climb: number } {
+/**
+ * Altitude of the centre of mass above the reference sphere, the height of the ground under it
+ * (0 without terrain, ADR 0043) and its radial speed (ADR 0021).
+ */
+function altitudeAndClimb(
+	core: SimCore,
+	id: EntityId
+): { alt: number; ground: number; climb: number } {
 	const motion = motionOf(core, vesselOf(core, id));
 	const r = length(motion.r);
-	return { alt: r - core.body.def.radius, climb: dot(motion.r, motion.v) / r };
+	return {
+		alt: r - core.body.def.radius,
+		ground: terrainBelow(core, motion.r) ?? 0,
+		climb: dot(motion.r, motion.v) / r
+	};
 }
 
 /**
@@ -117,8 +128,10 @@ export function ballisticEligible(
 	const vessel = vesselOf(core, vesselId);
 	if (vessel.mode !== 'flight' || vessel.idle < minIdle || vessel.landed) return false;
 	if (isControlled(core, vessel) || isStableOrbit(core, vessel.com, vessel.velocity)) return false;
-	const { alt, climb } = altitudeAndClimb(core, vesselId);
-	return alt > GROUND_TILE_EXIT && (climb > 0 || alt >= (core.body.def.atmosphere?.height ?? 0));
+	const { alt, ground, climb } = altitudeAndClimb(core, vesselId);
+	return (
+		alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (core.body.def.atmosphere?.height ?? 0))
+	);
 }
 
 /**
@@ -176,8 +189,8 @@ export function reapDebris(core: SimCore): void {
 		if (vessel.mode === 'on-rails') {
 			const motion = motionOf(core, vessel);
 			if (isStableOrbit(core, motion.r, motion.v)) continue;
-			const { alt, climb } = altitudeAndClimb(core, id);
-			if (alt <= 0 || (alt < top && climb < 0)) {
+			const { alt, ground, climb } = altitudeAndClimb(core, id);
+			if (alt <= ground || (alt < top && climb < 0)) {
 				destroyVessel(core, id, 'debris re-entered the atmosphere');
 			}
 		} else if (vessel.landed && vessel.idle >= DEBRIS_REST_TIME) {

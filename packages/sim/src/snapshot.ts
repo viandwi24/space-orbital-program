@@ -21,6 +21,7 @@ import {
 import { partPose, partVelocity } from './frames.ts';
 import { ZERO, qAboutY, qMul, qRotate } from './math.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
+import { terrainUnder } from './terrain.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -82,6 +83,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		orientation,
 		parts
 	};
+	if (core.terrain) snapshot.terrainHeight = terrainUnder(core, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
 	// dip below the surface (ADR 0024).
 	if (vessel.rails?.kind === 'surface') {

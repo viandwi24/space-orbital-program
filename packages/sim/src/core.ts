@@ -12,6 +12,7 @@ import type {
 	ReadonlyRegistries,
 	Rng,
 	SystemDefinition,
+	TerrainField,
 	Vec3,
 	World
 } from '@orbital/core';
@@ -37,6 +38,8 @@ export interface SimCore {
 	readonly dt: number;
 	readonly rng: Rng;
 	readonly frames: FlightFrame[];
+	/** Heights of the ground above the reference sphere (ADR 0043); absent: the ground is the sphere. */
+	readonly terrain: TerrainField | undefined;
 	/** The root body: gravity source, atmosphere, rotation. */
 	readonly body: { def: BodyDefinition; mu: number; omega: number };
 	readonly pre: SystemDefinition[];

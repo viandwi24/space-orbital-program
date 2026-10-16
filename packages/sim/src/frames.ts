@@ -46,6 +46,7 @@ import { ZERO, qAboutY, qConj, qMul, qRotate, uprightRotation } from './math.ts'
 import { massProperties } from './mass.ts';
 import { halfExtentsOf } from './parts.ts';
 import type { FlightBody, FlightFrame } from './state.ts';
+import { groundPlane } from './terrain.ts';
 
 export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 	return {
@@ -421,23 +422,32 @@ function removeTile(frame: FlightFrame, vesselId: EntityId): void {
 }
 
 /**
- * Keep the ground tile of one vessel under it (ADR 0019): created when the centre of mass comes
- * within `GROUND_TILE_ENTER` of the surface, removed above `GROUND_TILE_EXIT`. Its top face is the
- * tangent plane of the reference sphere below the centre of mass, and it moves with the rotating
- * ground (velocity relative to the frame, plus the planet's angular velocity) so friction sees the
- * ground as it is.
+ * Keep the ground tile of one vessel under it (ADR 0019, ADR 0043): created when the centre of mass
+ * comes within `GROUND_TILE_ENTER` of the ground, removed above `GROUND_TILE_EXIT`. The ground is
+ * the terrain under the centre of mass (the reference sphere without terrain): the tile's top face
+ * is the tangent plane of the terrain on the radial of the centre of mass, with its slope, and it
+ * moves with the rotating ground (velocity relative to the frame, plus the planet's angular
+ * velocity) so friction sees the ground as it is.
  */
 function updateTile(core: SimCore, frame: FlightFrame, vesselId: EntityId, centre: Vec3): void {
 	const radius = core.body.def.radius;
 	const d = length(centre);
 	let tile = frame.tiles.get(vesselId);
-	const altitude = d - radius;
+	// Only a vessel low enough to meet the highest ground pays for a height evaluation.
+	const sphereAltitude = d - radius;
+	const reach = GROUND_TILE_EXIT + (core.terrain?.maxHeight ?? 0);
+	if (sphereAltitude > reach) {
+		removeTile(frame, vesselId);
+		return;
+	}
+	const plane = groundPlane(core, centre);
+	const altitude = d - radius - plane.height;
 	if (altitude > GROUND_TILE_EXIT || (!tile && altitude > GROUND_TILE_ENTER)) {
 		removeTile(frame, vesselId);
 		return;
 	}
-	const up = scale(centre, 1 / d);
-	const surface = scale(up, radius);
+	const up = plane.normal;
+	const surface = plane.point;
 	const position = sub(surface, frame.origin);
 	const rotation = uprightRotation(up);
 	const omega = { x: 0, y: core.body.omega, z: 0 };

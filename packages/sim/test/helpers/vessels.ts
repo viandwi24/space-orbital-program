@@ -1,5 +1,5 @@
 /** Test fixtures: the stock reference vessels and sim construction. */
-import { partId, type VesselDesign } from '@orbital/core';
+import { partId, type TerrainField, type VesselDesign } from '@orbital/core';
 import { createRapierBackend } from '@orbital/physics';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../../src/index.ts';
@@ -44,13 +44,14 @@ export const rapier =
 		createRapierBackend({ solverIterations });
 
 export function newSim(
-	options: { solverIterations?: number; maxFlightFrames?: number } = {}
+	options: { solverIterations?: number; maxFlightFrames?: number; terrain?: TerrainField } = {}
 ): Promise<Sim> {
 	return createSim({
 		plugins: [Stock],
 		backendFactory: rapier(options.solverIterations),
 		seed: 1,
-		...(options.maxFlightFrames === undefined ? {} : { maxFlightFrames: options.maxFlightFrames })
+		...(options.maxFlightFrames === undefined ? {} : { maxFlightFrames: options.maxFlightFrames }),
+		...(options.terrain === undefined ? {} : { terrain: options.terrain })
 	});
 }
 

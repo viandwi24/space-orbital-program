@@ -1,6 +1,6 @@
 # 0019 — Ground tile, contact readback and impact damage
 
-**Status:** accepted
+**Status:** accepted (the tile's top face, the tangent plane of the reference sphere, is superseded by [0043](0043-physical-terrain-one-height-function-in-core.md): it is the tangent plane of the terrain; everything else stands)
 **Date:** 2026-10-16
 **Plan:** plans/012-ground-contact-landing.md
 **Supersedes:** the "Ground" point of [0017](0017-flight-model.md) (sphere clamp, pad hold, 10 m/s crash rule); the rest of 0017 stands.
