@@ -64,6 +64,10 @@ export class OrbitLine {
 		this.object.visible = true;
 	}
 
+	setColor(color: number): void {
+		this.material.color.setHex(color);
+	}
+
 	/** `LineMaterial.linewidth` is in pixels and needs the viewport size. */
 	setResolution(width: number, height: number): void {
 		this.material.resolution.set(width, height);

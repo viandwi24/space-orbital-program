@@ -73,6 +73,8 @@ export interface MapPathSegment {
 	/** Position of the body's centre when the stretch starts, system frame, m. */
 	offset: Vec3;
 	points: readonly Vec3[];
+	/** The stretch lies after a maneuver node (plan 045): drawn in its own colour. */
+	planned?: boolean;
 }
 
 export interface SceneConfig {
@@ -441,7 +443,11 @@ export class SceneModel {
 			this.scene.add(line.object);
 			this.pathLines.push(line);
 		}
-		this.pathSegments.forEach((s, i) => this.pathLines[i]!.setPoints(s.points));
+		this.pathSegments.forEach((s, i) => {
+			const line = this.pathLines[i]!;
+			line.setPoints(s.points);
+			line.setColor(s.planned ? 0xc77dff : i === 0 ? 0x4fc3f7 : 0xffa24f);
+		});
 		while (this.pathDots.length < this.pathSegments.length) {
 			const dot = new VesselMarker(0xffa24f);
 			this.scene.add(dot.object);
