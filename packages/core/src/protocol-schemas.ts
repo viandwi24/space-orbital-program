@@ -7,7 +7,7 @@
 import * as z from 'zod';
 import { entityId, partId, bodyId } from './ids.ts';
 import { definitionIdSchema } from './schemas.ts';
-import type { Command, VesselDesign, VesselPlacement } from './protocol.ts';
+import { SAS_MODES, type Command, type VesselDesign, type VesselPlacement } from './protocol.ts';
 
 const entity = z.int().nonnegative().transform(entityId);
 const vec3 = z.object({ x: z.number(), y: z.number(), z: z.number() });
@@ -70,6 +70,12 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		roll: z.number().min(-1).max(1)
 	}),
 	z.object({ type: z.literal('stage'), vessel: entity }),
+	z.object({
+		type: z.literal('sas'),
+		vessel: entity,
+		mode: z.enum(SAS_MODES).optional(),
+		reference: z.enum(['surface', 'orbit']).optional()
+	}),
 	z.object({
 		type: z.literal('action'),
 		vessel: entity,

@@ -8,6 +8,33 @@ import type { Quat, Vec3 } from './math.ts';
 
 export type VesselMode = 'flight' | 'on-rails';
 
+/**
+ * Stability assist modes (plan 042, ADR 0049). `hold` keeps the attitude held when it was chosen
+ * (or released from manual input); the others point the nose at a direction. Plans 044/045 add
+ * `target` and `maneuver`.
+ */
+export const SAS_MODES = [
+	'off',
+	'hold',
+	'prograde',
+	'retrograde',
+	'normal',
+	'antinormal',
+	'radial-in',
+	'radial-out'
+] as const;
+export type SasMode = (typeof SAS_MODES)[number];
+
+/** Which velocity prograde/retrograde follow: relative to the rotating ground, or the inertial one. */
+export type SasReference = 'surface' | 'orbit';
+
+export interface SasSnapshot {
+	mode: SasMode;
+	reference: SasReference;
+	/** Angle between the nose (or, for `hold`, the attitude) and its target, rad; 0 when off or without a direction. */
+	error: number;
+}
+
 export interface PartSnapshot {
 	/** Part instance entity id. */
 	id: EntityId;
@@ -50,6 +77,8 @@ export interface VesselSnapshot {
 	 * minus this.
 	 */
 	terrainHeight?: number;
+	/** Stability assist state (plan 042). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	sas?: SasSnapshot;
 }
 
 export interface BodySnapshot {
@@ -124,6 +153,8 @@ export type Command =
 	| { type: 'throttle'; vessel: EntityId; value: number }
 	| { type: 'attitude'; vessel: EntityId; pitch: number; yaw: number; roll: number }
 	| { type: 'stage'; vessel: EntityId }
+	/** Set the stability assist mode and/or the prograde reference; an omitted field keeps its value (ADR 0049). */
+	| { type: 'sas'; vessel: EntityId; mode?: SasMode; reference?: SasReference }
 	| {
 			type: 'action';
 			vessel: EntityId;

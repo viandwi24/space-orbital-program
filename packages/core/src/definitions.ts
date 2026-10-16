@@ -223,6 +223,13 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 */
 	colliders?: Bivariant<(config: Out, state: State) => readonly ModuleCollider[]>;
 	/**
+	 * The largest torque this module can add about each part axis right now, N·m, all >= 0: `x`
+	 * pitch, `y` roll, `z` yaw (the axes of `VesselApi.torqueDemand`). The stability assist divides
+	 * the vessel's total by its inertia to size its demand (ADR 0049). Return zero on an axis the
+	 * module cannot steer. Flight mode only; pure of side effects.
+	 */
+	controlAuthority?: Bivariant<(ctx: ModuleContext<Out, State>) => Vec3>;
+	/**
 	 * Re-entry heating (plan 014, ADR 0023). Called every flight step in which the airflow puts power
 	 * on the part, before the skin is warmed. Return the power in W the module carries away (an
 	 * ablating shield burning its ablator); it is clamped to `0..heat.power`. The hook may change
