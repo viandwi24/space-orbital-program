@@ -3,7 +3,14 @@
  * view ray with the exact planet sphere and the atmosphere, shades ground / ocean / clouds / stars
  * / sun, and writes a logarithmic depth value so meshes and lines sort against it.
  */
-import { APRONS, PAD_RADIUS, ROADS, SCORCH_RADIUS } from '../site.ts';
+import {
+	APRONS,
+	FLOOD_LIGHT_INTENSITY,
+	PAD_RADIUS,
+	ROADS,
+	SCORCH_RADIUS,
+	floodLightPositions
+} from '../site.ts';
 import { BEACH_WIDTH, HIGHLAND, SEA_LEVEL } from '../planet-map.ts';
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
 
@@ -15,6 +22,11 @@ const float SCORCH_R = ${f(SCORCH_RADIUS)};
 const int ROAD_N = ${ROADS.length};
 const vec4 ROAD_SEG[${ROADS.length}] = vec4[](${ROADS.map((r) => `vec4(${f(r.ax)}, ${f(r.az)}, ${f(r.bx)}, ${f(r.bz)})`).join(', ')});
 const float ROAD_W[${ROADS.length}] = float[](${ROADS.map((r) => f(r.width)).join(', ')});
+const int FLOOD_N = ${floodLightPositions().length};
+const vec3 FLOOD_POS[${floodLightPositions().length}] = vec3[](${floodLightPositions()
+	.map((l) => `vec3(${f(l.x)}, ${f(l.y)}, ${f(l.z)})`)
+	.join(', ')});
+const float FLOOD_I = ${f(FLOOD_LIGHT_INTENSITY)};
 const int APRON_N = ${APRONS.length};
 const vec4 APRON_BOX[${APRONS.length}] = vec4[](${APRONS.map((a) => `vec4(${f(a.x)}, ${f(a.z)}, ${f(a.hx)}, ${f(a.hz)})`).join(', ')});
 `;
@@ -65,6 +77,7 @@ uniform mat4 uShadowMatrix;
 uniform float uShadowBias;
 uniform float uShadowTexel;
 uniform float uSiteRadius;
+uniform float uSiteLamps;  // 0 by day, 1 at night: the mast floodlights are on
 
 const float SEA = ${f(SEA_LEVEL)};
 const float BEACH = ${f(BEACH_WIDTH)};
@@ -158,6 +171,7 @@ struct Surface {
 	vec3 normal;  // body-fixed
 	float spec;   // 0 ground, 1 water
 	float waterDepth;
+	vec3 lampE;   // irradiance from the site floodlights
 };
 
 float distToSeg(vec2 p, vec2 a, vec2 b) {
@@ -220,6 +234,19 @@ float sitePaving(vec2 q, inout vec3 colour, out float dirt, float px) {
 	return pave;
 }
 
+// Hill relief used for shading only (physics and the pad stay on the reference sphere): height in
+// metres from the octaves at or above lamMin, so far hills shade as ridges and valleys.
+float macroRelief(vec3 p, float lamMin) {
+	float h = 0.0;
+	for (int i = 0; i < 6; i++) {
+		float lam = 1024.0 / exp2(float(i));
+		if (lam < lamMin) break;
+		float fade = clamp((lam / lamMin - 1.0) * 1.5, 0.0, 1.0);
+		h += (noiseA(p, lam, 60 + i) - 0.5) * 320.0 * pow(lam / 1024.0, 1.5) * fade;
+	}
+	return h;
+}
+
 Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	Surface s;
 	float lat = asin(clamp(nBF.y, -1.0, 1.0));
@@ -232,6 +259,15 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	float temp = m.b;
 	float rockMap = m.a;
 
+	// Elevation gradient of the biome map per metre: detail displaces the coast by a fraction of
+	// its own wavelength instead of by a fixed elevation, which turned shores into speckle.
+	float tw = uMapTexel / (2.0 * kPI * uR) * exp2(lod);
+	float ex = textureLod(uMap, uv + vec2(tw, 0.0), lod).r - textureLod(uMap, uv - vec2(tw, 0.0), lod).r;
+	float ey = textureLod(uMap, uv + vec2(0.0, 2.0 * tw), lod).r - textureLod(uMap, uv - vec2(0.0, 2.0 * tw), lod).r;
+	float texelM = uMapTexel * exp2(lod);
+	float gTrue = length(vec2(ex, ey)) * 0.5 / texelM;
+	float gPerM = max(gTrue, 0.006 / uMapTexel);
+
 	// Fractal detail: height in metres for relief and shifts of the elevation field for coastlines.
 	float hM = 0.0;
 	float eDetail = 0.0;
@@ -243,15 +279,34 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 		if (lam < lamMin) break;
 		float fade = clamp((lam / lamMin - 1.0) * 1.5, 0.0, 1.0);
 		float n = noiseA(pl, lam, i) - 0.5;
-		eDetail += n * 0.16 * pow(0.58, float(i)) * fade;
+		eDetail += n * 0.7 * gPerM * lam * fade;
 		hM += n * lam * 0.22 * fade;
 		if (lam < 64.0) fine += n * fade * (lam < 8.0 ? 1.0 : 0.6);
 		if (lam > 6.0 && lam < 200.0) colourNoise += n * fade * 0.7;
 	}
 	float e2 = e + eDetail;
-	// coast roughness is meaningful only near the shore: wide features follow the map
-	float landW = smoothstep(SEA - 0.004, SEA + 0.004, e2);
+	float aa = max(footprint * gPerM, 0.0004);
+	float landW = smoothstep(SEA - aa, SEA + aa, e2);
+	float sdCoast = (SEA - e2) / gPerM; // metres into the water (negative on land)
 	float depth = clamp((SEA - e2) / 0.18, 0.0, 1.0);
+	float depthNear = clamp(sdCoast / 60.0, 0.0, 1.0);
+
+	vec3 vS = uCamToSite + viewBF;
+	float siteDist = length(vS);
+
+	// Hill shading: normal from finite differences of a few octaves, away from the launch site.
+	float reliefAmp = smoothstep(500.0, 2500.0, siteDist) * (1.0 - smoothstep(25.0, 160.0, footprint)) * landW * mix(0.45, 1.0, smoothstep(0.45, 0.85, e2 + rockMap * 0.25));
+	vec3 Nr = nBF;
+	if (reliefAmp > 0.01) {
+		float eps = max(footprint * 1.5, 6.0);
+		float lm = max(footprint * 2.5, eps * 3.0);
+		vec3 T1 = normalize(cross(nBF, abs(nBF.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+		vec3 T2 = cross(nBF, T1);
+		float h0 = macroRelief(pl, lm);
+		float h1 = macroRelief(pl + T1 * eps, lm);
+		float h2 = macroRelief(pl + T2 * eps, lm);
+		Nr = normalize(nBF - reliefAmp * ((h1 - h0) / eps * T1 + (h2 - h0) / eps * T2));
+	}
 
 	// slope-based rock needs the bumped normal: build it from the height field's derivatives
 	vec3 N = nBF;
@@ -266,18 +321,62 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
 	vec3 gb = abs(det) * N - grad;
 	vec3 Nb = dot(gb, gb) > 1e-24 ? normalize(gb) : N;
+	Nb = normalize(Nb + (Nr - nBF));
 	float slope = 1.0 - dot(Nb, nBF);
 
-	vec3 grass = mix(vec3(0.085, 0.16, 0.04), vec3(0.13, 0.215, 0.055), clamp(0.5 + colourNoise * 0.45, 0.0, 1.0));
-	grass *= 0.8 + 0.45 * clamp(0.5 + fine, 0.0, 1.0);
-	vec3 forest = vec3(0.035, 0.085, 0.03) * (0.8 + 0.5 * clamp(0.5 + colourNoise, 0.0, 1.0));
+	// --- vegetation colours -------------------------------------------------------------------
+	float lushness = clamp(0.5 + colourNoise * 0.6, 0.0, 1.0);
+	vec3 grass = mix(vec3(0.052, 0.135, 0.028), vec3(0.095, 0.185, 0.042), smoothstep(0.2, 0.6, lushness));
+	grass = mix(grass, vec3(0.2, 0.19, 0.06), smoothstep(0.62, 0.95, lushness) * (1.0 - smoothstep(0.4, 0.7, moist)));
+	// blades, clumps and gaps, resolved only when a pixel is smaller than a clump
+	float fadeMicro = 1.0 - smoothstep(0.35, 3.0, footprint);
+	if (fadeMicro > 0.01) {
+		float b1 = noiseA(pl, 0.5, 31);
+		float b2 = noiseA(pl, 0.125, 32);
+		float b3 = noiseA(pl, 0.0625, 33);
+		float b4 = noiseA(pl, 0.03125, 34);
+		float blades = smoothstep(0.38, 0.78, b3 * 0.6 + b4 * 0.4);
+		float gaps = 1.0 - smoothstep(0.25, 0.6, b2 * 0.7 + b1 * 0.3);
+		vec3 tuft = mix(grass * 0.62, grass * vec3(1.3, 1.34, 1.02), blades);
+		tuft *= 0.82 + 0.38 * b1;
+		tuft = mix(tuft, grass * vec3(0.3, 0.33, 0.2), gaps * 0.5);
+		grass = mix(grass, tuft, fadeMicro);
+	}
+	float fineTone = 0.82 + 0.4 * clamp(0.5 + fine, 0.0, 1.0);
+	grass *= mix(fineTone, 1.0, fadeMicro);
+
+	// forest: crowns seen from above
+	vec3 forest = vec3(0.03, 0.075, 0.026) * (0.8 + 0.5 * clamp(0.5 + colourNoise, 0.0, 1.0));
+	float fadeCrown = 1.0 - smoothstep(6.0, 40.0, footprint);
+	float wForest = smoothstep(0.55, 0.72, moist);
+	if (fadeCrown > 0.01 && wForest > 0.01) {
+		float c1 = noiseA(pl, 8.0, 51) * 0.6 + noiseA(pl, 4.0, 52) * 0.4;
+		float crown = smoothstep(0.34, 0.66, c1);
+		float c2 = noiseA(pl, 1.0, 53);
+		vec3 crownC = vec3(0.045, 0.105, 0.032) * (0.75 + 0.6 * c2);
+		vec3 gapC = vec3(0.012, 0.03, 0.012);
+		forest = mix(forest, mix(gapC, crownC, crown), fadeCrown);
+	}
 	vec3 desert = mix(vec3(0.42, 0.29, 0.15), vec3(0.58, 0.43, 0.25), clamp(0.5 + colourNoise, 0.0, 1.0));
 	vec3 rockc = mix(vec3(0.17, 0.15, 0.135), vec3(0.34, 0.31, 0.27), clamp(0.5 + colourNoise * 1.3 + fine * 0.3, 0.0, 1.0));
 	vec3 snow = vec3(0.78, 0.8, 0.84);
 	vec3 sand = vec3(0.44, 0.38, 0.26) * (0.92 + 0.16 * clamp(0.5 + fine, 0.0, 1.0));
 
-	float wForest = smoothstep(0.55, 0.72, moist);
 	float wDesert = (1.0 - smoothstep(0.26, 0.4, moist)) * smoothstep(0.35, 0.5, temp);
+	// fields: patchwork of tilled plots on low grassland, with hedgerows at the plot boundaries
+	float fieldW = (1.0 - wForest) * (1.0 - wDesert) * (1.0 - smoothstep(120.0, 600.0, footprint)) * smoothstep(400.0, 1400.0, siteDist) * (1.0 - smoothstep(0.5, 0.62, e2));
+	if (fieldW > 0.01) {
+		vec3 cellF = pl / 256.0;
+		vec3 fl = floor(cellF);
+		vec3 hh = hash33i(ivec3(fl) + ivec3(uAnchorCell) * 4);
+		vec3 tint = mix(vec3(0.82, 0.92, 0.68), vec3(1.35, 1.2, 0.62), smoothstep(0.35, 0.9, hh.x)) * (0.8 + 0.4 * hh.y);
+		vec3 fr = fract(cellF);
+		vec3 dEdge = min(fr, 1.0 - fr) * 256.0;
+		float edge = min(dEdge.x, min(dEdge.y, dEdge.z));
+		float hedge = 1.0 - smoothstep(0.6, 1.6 + footprint * 0.7, edge);
+		grass = mix(grass, grass * tint, fieldW);
+		grass = mix(grass, vec3(0.025, 0.06, 0.02), hedge * fieldW * 0.8 * (1.0 - smoothstep(5.0, 30.0, footprint)));
+	}
 	vec3 veg = mix(grass, forest, wForest);
 	veg = mix(veg, desert, wDesert);
 	float wRock = max(smoothstep(HIGH - 0.06, HIGH + 0.05, e2), smoothstep(0.7, 0.9, rockMap + colourNoise * 0.3));
@@ -288,33 +387,71 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 	vec3 land = mix(veg, rockc, wRock);
 	land = mix(land, sand, wBeach);
 	land = mix(land, snow, wSnow * smoothstep(0.0, 1.0, 1.0 - slope * 2.0));
-	float spec = 0.0;
+	// wet sand strip along the shore
+	land *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, -sdCoast)) * (1.0 - wRock);
+
+	// rivers: thin level-set curves of a low-frequency field on lowland, antialiased by distance
+	float riverMask = 0.0;
+	if (landW > 0.5 && siteDist > 900.0 && footprint < 40.0 && e2 < 0.68) {
+		float rn = noiseA(pl, 1024.0, 41) * 0.62 + noiseA(pl, 512.0, 42) * 0.3 + noiseA(pl, 128.0, 43) * 0.08;
+		float rr = abs(rn - 0.5);
+		float fw = max(length(vec2(dFdx(rn), dFdy(rn))), 1e-7);
+		float dist = rr / fw * footprint;
+		float W = 5.0 + 17.0 * noiseA(pl, 1024.0, 44);
+		float vis = smoothstep(0.35, 1.2, W / footprint) * smoothstep(0.68, 0.55, e2);
+		riverMask = (1.0 - smoothstep(W - footprint, W + footprint, dist)) * vis;
+		float bank = (1.0 - smoothstep(W, W * 2.2 + footprint, dist)) * vis;
+		land = mix(land, land * vec3(0.55, 0.7, 0.5), bank * 0.7);
+	}
 
 	// Launch site: paved areas painted onto the ground (flush, so nothing intersects the vessel).
-	vec3 v = uCamToSite + viewBF;
+	vec3 v = vS;
 	float padMask = 0.0;
+	vec3 lampE = vec3(0.0);
 	if (dot(v, v) < uSiteRadius * uSiteRadius) {
 		vec2 q = vec2(dot(v, uSiteEast), -dot(v, uSiteNorth));
+		if (uSiteLamps > 0.001) {
+			for (int i = 0; i < FLOOD_N; i++) {
+				vec3 d = vec3(q.x, 0.0, q.y) - FLOOD_POS[i];
+				float d2 = dot(d, d);
+				lampE += vec3(1.0, 0.82, 0.58) * (FLOOD_I * (-d.y) / (d2 * sqrt(d2)));
+			}
+			lampE *= uSiteLamps;
+		}
 		float dirt;
 		vec3 paved = land;
 		float pave = sitePaving(q, paved, dirt, max(footprint, 0.05));
-		vec3 dirtc = vec3(0.22, 0.165, 0.1) * (0.8 + 0.4 * noiseF(vec3(q * 0.7, 9.0)));
+		vec3 dirtc = vec3(0.2, 0.15, 0.09) * (0.75 + 0.5 * noiseF(vec3(q * 0.7, 9.0))) * (0.85 + 0.3 * noiseF(vec3(q * 3.1, 19.0)));
+		// a trimmed lawn around the site, mown in stripes
+		float lawn = 1.0 - smoothstep(60.0, 180.0, length(q));
+		float stripeFade = 1.0 - smoothstep(0.6, 5.0, footprint);
+		float stripe = smoothstep(-0.25, 0.25, sin(q.x * 0.52 + 0.8 * sin(q.y * 0.02)));
+		land = mix(land, land * vec3(1.06, 1.12, 0.95), lawn * 0.5);
+		land *= 1.0 + lawn * stripeFade * 0.11 * (stripe - 0.5) * 2.0;
 		land = mix(land, dirtc, dirt);
 		land = mix(land, paved, pave);
-		// a trimmed lawn around the site
-		float lawn = 1.0 - smoothstep(60.0, 180.0, length(q));
-		land = mix(land, land * vec3(1.05, 1.1, 0.95), lawn * (1.0 - pave) * 0.5);
 		padMask = max(pave, dirt * 0.5);
 		Nb = normalize(mix(Nb, nBF, padMask));
 	}
 
 	// Ocean
-	vec3 shallow = vec3(0.02, 0.2, 0.2);
+	vec3 shallow = mix(vec3(0.03, 0.26, 0.24), vec3(0.02, 0.2, 0.2), depthNear);
 	vec3 deep = vec3(0.004, 0.035, 0.1);
-	vec3 water = mix(shallow, deep, smoothstep(0.0, 0.7, depth));
-	vec3 col = mix(water, land, landW);
+	vec3 water = mix(shallow, deep, smoothstep(0.0, 0.7, max(depth, depthNear * 0.25)));
+	// breaking foam along the shore, only where a pixel is smaller than the band
+	float foamFade = 1.0 - smoothstep(4.0, 40.0, footprint);
+	if (foamFade > 0.01 && landW < 0.999) {
+		float fn = noiseA(pl, 4.0, 71) * 0.6 + noiseA(pl, 1.0, 72) * 0.4;
+		float band = 1.0 - smoothstep(1.0, 9.0, sdCoast + (fn - 0.5) * 10.0);
+		float lines = smoothstep(0.42, 0.62, fn);
+		water = mix(water, vec3(0.8, 0.84, 0.86), clamp(band * (0.35 + 0.65 * lines), 0.0, 1.0) * foamFade * step(0.0, sdCoast + 1.0));
+	}
+	vec3 riverCol = mix(vec3(0.03, 0.07, 0.06), vec3(0.02, 0.1, 0.1), noiseF(vec3(pl * 0.1)));
+	water = mix(water, riverCol, riverMask);
+	float lw = landW * (1.0 - riverMask);
+	vec3 col = mix(water, land, lw);
 	vec3 Nw = Nb;
-	if (landW < 1.0 && footprint < 400.0) {
+	if (lw < 1.0 && footprint < 400.0) {
 		vec3 wp = pl + vec3(0.0);
 		float f1 = clamp(8.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
 		float f2 = clamp(2.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
@@ -326,10 +463,11 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF) {
 		vec3 gw = abs(dw) * nBF - sign(dw) * (wdx * rw1 + wdy * rw2) * 1.8;
 		Nw = dot(gw, gw) > 1e-24 ? normalize(gw) : nBF;
 	}
-	s.normal = normalize(mix(Nw, Nb, landW));
+	s.normal = normalize(mix(Nw, Nb, lw));
 	s.albedo = col;
-	s.spec = 1.0 - landW;
+	s.spec = (1.0 - landW) + riverMask * 0.3;
 	s.waterDepth = depth;
+	s.lampE = lampE;
 	return s;
 }
 
@@ -389,7 +527,7 @@ void main() {
 #endif
 		float k = max(0.0, 0.02 + smoothstep(-0.2, 0.4, geo)) / max(0.02 + smoothstep(-0.2, 0.4, uAmbientRefMu), 0.02);
 		vec3 amb = uAmbient * k + NIGHT_AMBIENT * kPI;
-		vec3 lit = sf.albedo / kPI * (uSunIrr * sunT * ndl * sh + amb);
+		vec3 lit = sf.albedo / kPI * (uSunIrr * sunT * ndl * sh + amb + sf.lampE);
 		if (sf.spec > 0.0) {
 			vec3 V = -rdBF;
 			vec3 Hh = normalize(Lb + V);

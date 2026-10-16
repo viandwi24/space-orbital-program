@@ -85,6 +85,8 @@ export interface PlanetUpdate {
 	skyColour: RGB;
 	/** Sun elevation sine at the camera (for the ambient scale). */
 	ambientRefMu: number;
+	/** 0 by day to 1 at night: the launch-site floodlights are on. */
+	siteLamps: number;
 	cloudCover: number;
 	cloudAngle: number;
 	starBrightness: number;
@@ -171,6 +173,7 @@ export class PlanetPass {
 				uAmbientRefMu: u(0.5),
 				uSkyColour: u(new Vector3(0.2, 0.3, 0.5)),
 				uCloudCover: u(0.45),
+				uSiteLamps: u(0),
 				uCloudAngle: u(0),
 				uCloudAlt: u(atm.radius + CLOUD_ALTITUDE),
 				uStarBright: u(1),
@@ -267,6 +270,7 @@ export class PlanetPass {
 		set<Vector3>('uSkyColour', (v) => v.set(...p.skyColour));
 		un.uAmbientRefMu!.value = p.ambientRefMu;
 		un.uCloudCover!.value = p.cloudCover;
+		un.uSiteLamps!.value = p.siteLamps;
 		un.uCloudAngle!.value = p.cloudAngle;
 		un.uStarBright!.value = p.starBrightness;
 		un.uShadowOn!.value = p.shadow.on && p.shadow.map ? 1 : 0;

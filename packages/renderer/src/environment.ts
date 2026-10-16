@@ -29,6 +29,11 @@ import { PRESETS, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { LaunchSite } from './site-meshes.ts';
 import { DEG, dot, length, rotate, rotateInverse, sub, vec } from './vec.ts';
+
+const smoothstep = (a: number, b: number, x: number): number => {
+	const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+	return t * t * (3 - 2 * t);
+};
 import { siteAxes, starDirection, sunElevation, sunFromHorizontal } from './sun.ts';
 
 export interface LaunchSiteConfig {
@@ -107,7 +112,7 @@ export class Environment {
 		);
 		const settings = PRESETS[config.preset];
 		this.planet = new PlanetPass(this.atmosphere, settings, config.site);
-		this.site = new LaunchSite(body.radius, config.site, settings.trees);
+		this.site = new LaunchSite(body.radius, config.site, settings.trees, settings.tufts);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
 		this.sunLight.name = 'sun';
 		this.sunLight.shadow.bias = SHADOW_BIAS;
@@ -150,7 +155,7 @@ export class Environment {
 	private applyPreset(): void {
 		const s = PRESETS[this.preset];
 		this.planet.setQuality(s);
-		this.site.setTrees(s.trees);
+		this.site.setTrees(s.trees, s.tufts);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
 		if (shadows) this.sunLight.shadow.mapSize.set(s.shadowMapSize, s.shadowMapSize);
@@ -214,6 +219,9 @@ export class Environment {
 		this.fog.color.setRGB(horizon[0], horizon[1], horizon[2], LinearSRGBColorSpace);
 		this.fog.density = 0.00003 * atmFade;
 
+		// Floodlights come on around dusk (sun below 3 degrees at the camera), full at -6.
+		const siteLamps = 1 - smoothstep(-6, 3, elevDeg);
+
 		// Exposure adapts toward the day/night target.
 		const target = exposureFor(elevDeg);
 		this.exposure = adaptExposure(this.exposure, target, input.dt);
@@ -265,6 +273,7 @@ export class Environment {
 		this.sunLight.target.updateMatrixWorld();
 
 		this.cloudAngle += input.dt * 2.2e-5;
+		this.site.setLamps(siteLamps);
 		const shadowMatrix = new Matrix4().copy(this.sunLight.shadow.matrix);
 		this.planet.update({
 			camera,
@@ -276,6 +285,7 @@ export class Environment {
 			ambient: skyIrr,
 			skyColour: ambient,
 			ambientRefMu: dot(sun, frame.up),
+			siteLamps,
 			cloudCover: this.cloudCover,
 			cloudAngle: this.cloudAngle,
 			starBrightness: 1,

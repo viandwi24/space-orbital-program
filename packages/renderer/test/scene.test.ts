@@ -166,18 +166,27 @@ describe('SceneModel environment (plan 019)', () => {
 		w: Math.cos((2.9089e-4 * t) / 2)
 	});
 
-	test('the first vessel near the ground defines the launch site in body-fixed coordinates', () => {
+	test('a vessel the sim stood at body-fixed (0, 0) is on the pad whatever the body rotation (plan 025)', () => {
 		const m = new SceneModel({ bodies: [{ id: BODY, radius: R }], partShapes: shapes });
-		// the body has turned 0.5 rad since t = 0 and the sim stood the vessel at inertial (R, 0, 0)
-		const q = { x: 0, y: Math.sin(0.25), z: 0, w: Math.cos(0.25) };
-		const s = snap(0, vessel(1, R + 10, 0, 0));
+		// the body has turned 0.5 rad; the sim places at body-fixed coordinates, so the vessel
+		// is at the turned +X axis, 10 m above the ground
+		const angle = 0.5;
+		const q = { x: 0, y: Math.sin(angle / 2), z: 0, w: Math.cos(angle / 2) };
+		// rotation about +Y by `angle`: (x, 0, 0) -> (x cos, 0, -x sin)
+		const at = (h: number) => ({
+			x: (R + h) * Math.cos(angle),
+			y: 0,
+			z: -(R + h) * Math.sin(angle)
+		});
+		const p = at(10);
+		const s = snap(0, vessel(1, p.x, p.y, p.z));
 		s.bodies[0]!.rotation = q;
 		m.sync(s);
 		const pad = m.environment.site.root;
 		m.prepareFrame(0.016);
 		const vesselGroup = m.scene.children.find((c) => c.type === 'Group')!;
 		// the site root is exactly 10 m below the vessel's root origin: right under it
-		expect(pad.position.distanceTo(vesselGroup.position)).toBeCloseTo(10, 6);
+		expect(pad.position.distanceTo(vesselGroup.position)).toBeCloseTo(10, 4);
 	});
 
 	test('an explicit launch site is kept and the environment follows the body rotation', () => {

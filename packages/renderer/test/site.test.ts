@@ -6,7 +6,10 @@ import {
 	TREE_INNER,
 	TREE_OUTER,
 	distanceToSegment,
+	TUFT_RADIUS,
 	isBuilt,
+	isPaved,
+	layoutTufts,
 	layoutVegetation
 } from '../src/site.ts';
 import { fitShadow } from '../src/shadow-fit.ts';
@@ -40,6 +43,38 @@ describe('launch site layout', () => {
 			);
 			expect(near.length).toBe(0);
 		}
+	});
+	test('grass tufts: deterministic, within budget and radius, never on pavement or under buildings', () => {
+		const a = layoutTufts(5000, 11);
+		expect(layoutTufts(5000, 11)).toEqual(a);
+		expect(a.length).toBeGreaterThan(2500);
+		expect(a.length).toBeLessThanOrEqual(5000);
+		expect(layoutTufts(0)).toEqual([]);
+		for (const t of a) {
+			expect(Math.hypot(t.x, t.z)).toBeLessThanOrEqual(TUFT_RADIUS);
+			expect(isPaved(t.x, t.z, 0)).toBe(false);
+			expect(t.tint).toBeGreaterThanOrEqual(0);
+			expect(t.tint).toBeLessThan(1);
+		}
+		// thinner toward the rim than near the pad (per unit area)
+		const near = a.filter((t) => Math.hypot(t.x, t.z) < 25).length / (Math.PI * 25 * 25);
+		const far =
+			a.filter((t) => Math.hypot(t.x, t.z) > 55).length /
+			(Math.PI * (TUFT_RADIUS * TUFT_RADIUS - 55 * 55));
+		expect(near).toBeGreaterThan(far);
+	});
+	test('isPaved covers the pad, roads, buildings and the tower footing but not open lawn', () => {
+		expect(isPaved(0, 0, 0)).toBe(true);
+		expect(isPaved(0, -40, 0)).toBe(true); // the road north of the pad
+		expect(isPaved(BUILDINGS[0]!.x, BUILDINGS[0]!.z, 0)).toBe(true);
+		expect(isPaved(7.5, 0, 0)).toBe(true); // tower
+		expect(isPaved(30, 30, 0)).toBe(false);
+	});
+	test('shrubs stand beside buildings and roads, not on them', () => {
+		const { bushes } = layoutVegetation(100, 7);
+		expect(bushes.length).toBeGreaterThan(60);
+		for (const b of bushes) expect(isPaved(b.x, b.z, 0.5)).toBe(false);
+		expect(layoutVegetation(100, 7).bushes).toEqual(bushes);
 	});
 	test('nothing is built inside the pad and the pad is clear of roads except their start', () => {
 		for (const b of BUILDINGS)

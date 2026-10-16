@@ -26,6 +26,8 @@ export interface PresetSettings {
 	mapWidth: number;
 	/** Instanced trees at the launch site. */
 	trees: number;
+	/** Instanced grass tufts around the pad (plan 025). */
+	tufts: number;
 	/** PMREM cube size for image-based light. */
 	envSize: 64 | 128 | 256;
 	/** Part models (plan 020): radial segments, hardware detail level, procedural texture side. */
@@ -50,6 +52,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 3,
 		mapWidth: 512,
 		trees: 250,
+		tufts: 0,
 		envSize: 64,
 		partSegments: 16,
 		partExtras: 0,
@@ -69,6 +72,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 4,
 		mapWidth: 1024,
 		trees: 900,
+		tufts: 10000,
 		envSize: 128,
 		partSegments: 24,
 		partExtras: 1,
@@ -88,6 +92,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 5,
 		mapWidth: 1024,
 		trees: 2000,
+		tufts: 28000,
 		envSize: 128,
 		partSegments: 32,
 		partExtras: 2,
