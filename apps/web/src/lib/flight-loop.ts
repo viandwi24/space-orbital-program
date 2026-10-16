@@ -30,6 +30,8 @@ import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
+import { bodyNodes, predictMapPath, predictionHorizon } from './map-path';
+import { bodyMu } from './orbit-info';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
@@ -260,6 +262,13 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'KeyM':
 				toggleMap();
 				break;
+			case 'Tab':
+				// In map view Tab looks at the next body (the vessel's own sphere first); elsewhere it is Tab.
+				if (renderer?.isMapView) {
+					e.preventDefault();
+					cycleMapFocus(e.shiftKey ? -1 : 1);
+				}
+				break;
 			case 'KeyV':
 				hudCtl?.cycleSpeedMode();
 				break;
@@ -310,6 +319,36 @@ export function startFlight(options: FlightOptions): Flight {
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
 		hudCtl?.setMapView(hud.map);
+	}
+
+	/** Map view focus: the vessel's own sphere (null), then every body in order (plan 044). */
+	function cycleMapFocus(step: 1 | -1): void {
+		if (!renderer) return;
+		const order: Array<string | null> = [null, ...renderer.bodyIds];
+		const at = order.indexOf(renderer.mapFocus);
+		renderer.setMapFocus(order[(at + step + order.length) % order.length] ?? null);
+	}
+
+	/** The predicted path across spheres of influence, kept up to date while the map is open. */
+	let pathNodes: ReturnType<typeof bodyNodes> | null = null;
+	let pathAt = Number.NEGATIVE_INFINITY;
+	let pathShown = false;
+	function updateMapPath(now: number): void {
+		if (!renderer || !catalog || !snap || vessel === null) return;
+		if (!renderer.isMapView) {
+			if (pathShown) renderer.setMapPath(null);
+			pathShown = false;
+			return;
+		}
+		if (now - pathAt < 750) return;
+		pathAt = now;
+		const v = snap.vessels.find((s) => Number(s.id) === vessel);
+		const body = v && catalog.bodies.find((b) => b.id === v.soi);
+		if (!v || !body) return;
+		pathNodes ??= bodyNodes(catalog.bodies);
+		const path = predictMapPath(snap, vessel, pathNodes, predictionHorizon(v.orbit, bodyMu(body)));
+		renderer.setMapPath(path);
+		pathShown = path.length > 0;
 	}
 
 	async function toggleAutopilot(): Promise<void> {
@@ -370,6 +409,7 @@ export function startFlight(options: FlightOptions): Flight {
 			renderer.update(snap);
 			dirty = false;
 		}
+		updateMapPath(now);
 		renderer?.render();
 		if (hudCtl) {
 			const t0 = performance.now();
@@ -447,7 +487,17 @@ export function startFlight(options: FlightOptions): Flight {
 			});
 			renderer = createRenderer({
 				canvas,
-				bodies: c.bodies.map((b) => ({ id: b.id, radius: b.radius, atmosphere: b.atmosphere })),
+				// The root body first (the renderer treats the first body as the one with the planet pass);
+				// a moon's `parent` and `orbit` let the map view draw its orbit and sphere (plan 044).
+				bodies: [...c.bodies]
+					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
+					.map((b) => ({
+						id: b.id,
+						radius: b.radius,
+						mass: b.mass,
+						atmosphere: b.atmosphere,
+						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
+					})),
 				partShapes: partShapesOf(c),
 				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),

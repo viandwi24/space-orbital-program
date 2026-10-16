@@ -38,7 +38,9 @@ export type SimEvent =
 			temperature?: number;
 	  }
 	| { type: 'mode-changed'; vessel: number; mode: 'flight' | 'on-rails'; reason: string }
-	| { type: 'vessel-destroyed'; vessel: number; reason: string };
+	| { type: 'vessel-destroyed'; vessel: number; reason: string }
+	/** A vessel crossed into another body's sphere of influence (plan 044); `from` and `to` are body ids. */
+	| { type: 'soi-changed'; vessel: number; from: string; to: string };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -101,7 +103,8 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'flameout',
 	'part-damaged',
 	'mode-changed',
-	'vessel-destroyed'
+	'vessel-destroyed',
+	'soi-changed'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

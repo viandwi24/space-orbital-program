@@ -28,6 +28,7 @@
 			title: 'See',
 			rows: [
 				[['M'], 'Map view'],
+				[['Tab'], 'Map view: look at the next body'],
 				[['V'], 'Speed reference: auto, surface, orbit'],
 				[['Drag', 'Wheel'], 'Orbit and zoom the camera']
 			]

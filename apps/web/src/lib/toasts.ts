@@ -35,6 +35,12 @@ export const TOAST_MS: Record<ToastKind, number> = {
 };
 export const MAX_TOASTS = 4;
 
+/** `stock.cinder` -> `Cinder`. */
+const bodyName = (id: string): string => {
+	const name = id.slice(id.lastIndexOf('.') + 1).replace(/-/g, ' ');
+	return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 /** `null` when the event is not worth a toast (another vessel, debris, bookkeeping). */
 export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | null {
 	switch (event.type) {
@@ -79,6 +85,15 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				ctx.isActiveVessel(event.vessel) &&
 				!event.reason.includes('ground')
 				? { kind: 'info', title: 'On rails', detail: 'Time warp is available', key: 'rails' }
+				: null;
+		case 'soi-changed':
+			return ctx.isActiveVessel(event.vessel)
+				? {
+						kind: 'info',
+						title: `Entering the sphere of ${bodyName(event.to)}`,
+						detail: `Time warp returned to 1x`,
+						key: 'soi'
+					}
 				: null;
 		case 'vessel-destroyed':
 			return ctx.isActiveVessel(event.vessel)

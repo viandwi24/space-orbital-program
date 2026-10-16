@@ -128,7 +128,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 
 	const dispatchTracked = (command: Command): CommandResult => {
 		const result = sim!.dispatch(command);
-		if (result.ok && command.type === 'throttle') throttles.set(Number(command.vessel), command.value);
+		if (result.ok && command.type === 'throttle')
+			throttles.set(Number(command.vessel), command.value);
 		return result;
 	};
 	/** Remember the throttle of a page command the sim accepted. */
@@ -203,7 +204,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		const request = pendingWarp;
 		pendingWarp = null;
 		releaseHold();
-		if (waiting && request && sim) request.reply(sim.dispatch({ type: 'warp', factor: request.factor }));
+		if (waiting && request && sim)
+			request.reply(sim.dispatch({ type: 'warp', factor: request.factor }));
 	}
 
 	const postStatus = (status: ScriptState, error?: string, errorLine?: number): void => {
@@ -440,6 +442,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 								mode: e.mode,
 								reason: e.reason
 							}
+						})
+					),
+					created.events.on('vessel:soi-changed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'soi-changed', vessel: Number(e.vessel), from: e.from, to: e.to }
 						})
 					),
 					created.events.on('vessel:destroyed', (e) =>

@@ -18,6 +18,20 @@ const ctx: ToastContext = {
 };
 
 describe('toasts from sim events', () => {
+	it('a change of sphere of influence is announced for the flown vessel only', () => {
+		expect(
+			toastForSimEvent(
+				{ type: 'soi-changed', vessel: 1, from: 'stock.home', to: 'stock.cinder' },
+				ctx
+			)
+		).toMatchObject({ kind: 'info', title: 'Entering the sphere of Cinder', key: 'soi' });
+		expect(
+			toastForSimEvent(
+				{ type: 'soi-changed', vessel: 2, from: 'stock.home', to: 'stock.cinder' },
+				ctx
+			)
+		).toBeNull();
+	});
 	it('stage fired is 1-based and only for the flown vessel', () => {
 		expect(toastForSimEvent({ type: 'stage', vessel: 1, stage: 0 }, ctx)).toMatchObject({
 			kind: 'info',
