@@ -3,7 +3,14 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
-import type { Command, EntityId, SasMode, Snapshot, VesselDesign } from '@orbital/core';
+import {
+	entityId,
+	type Command,
+	type EntityId,
+	type SasMode,
+	type Snapshot,
+	type VesselDesign
+} from '@orbital/core';
 import {
 	QualityGovernor,
 	createRenderer,
@@ -26,6 +33,9 @@ import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
+import { resumeInfo, type GameSave } from './save/game-save';
+import type { SaveRequest } from './save/saves';
+import { captureThumbnail } from './save/thumbnail';
 import { WARP_STEPS } from './warp';
 import {
 	createHudController,
@@ -62,8 +72,10 @@ export interface FlightOptions {
 	onHud(hud: FlightHud): void;
 	/** Every render frame, with what the canvas widgets draw (navball, map markers); no Svelte here. */
 	onFrame?(frame: FrameData): void;
-	/** Esc (pause menu) and `?`/F1 (help overlay) were pressed. */
-	onKey?(key: 'escape' | 'help'): void;
+	/** Esc (pause menu), `?`/F1 (help overlay), F5 (quicksave) and F9 (quickload) were pressed. */
+	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload'): void;
+	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
+	resume?: GameSave;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 	/**
@@ -93,6 +105,8 @@ export interface Flight {
 	setSas(mode: SasMode): void;
 	/** Freeze or resume the sim (pause menu). */
 	setPaused(paused: boolean): void;
+	/** Everything a save needs from the running flight (plan 043); rejects when there is no vessel to save. */
+	collectSave(): Promise<SaveRequest>;
 	/** While a dialog is open the flight keys do nothing. */
 	setModal(open: boolean): void;
 	dispose(): void;
@@ -100,7 +114,7 @@ export interface Flight {
 
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
-	const client: SimClient = startSimWorker();
+	const client: SimClient = startSimWorker(options.resume ? { resume: options.resume.sim } : {});
 	let renderer: Renderer | null = null;
 	let governor: QualityGovernor | null = null;
 	let autoQuality = loadAutoQuality();
@@ -218,6 +232,12 @@ export function startFlight(options: FlightOptions): Flight {
 			return;
 		}
 		if (modal || e.repeat || typingInField(e)) return;
+		if (e.key === 'F5' || e.key === 'F9') {
+			// The browser would reload the page (F5); in flight the keys are quicksave and quickload.
+			e.preventDefault();
+			options.onKey?.(e.key === 'F5' ? 'quicksave' : 'quickload');
+			return;
+		}
 		if (e.key === '?' || e.key === 'F1') {
 			e.preventDefault();
 			options.onKey?.('help');
@@ -415,11 +435,15 @@ export function startFlight(options: FlightOptions): Flight {
 		async (c) => {
 			if (disposed) return;
 			catalog = c;
+			const resumed = options.resume ? resumeInfo(options.resume) : null;
 			hudCtl = createHudController({
 				design,
 				content: options.content,
 				bodies: c.bodies,
-				project: (world) => renderer?.project(world) ?? null
+				project: (world) => renderer?.project(world) ?? null,
+				...(resumed
+					? { resume: { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } }
+					: {})
 			});
 			renderer = createRenderer({
 				canvas,
@@ -434,14 +458,29 @@ export function startFlight(options: FlightOptions): Flight {
 			// compile this preset's programs and the other presets' planet pass off the main thread
 			void renderer.precompile();
 			resize();
-			const result = await client.dispatch({ type: 'load-vessel', design });
-			if (!result.ok || result.vessel === undefined) {
-				hud.status = 'error';
-				hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
-				publish();
-				return;
+			if (resumed && options.resume) {
+				// The sim already holds the flight; the page only takes up the controls where they were.
+				if (resumed.focus === null) {
+					hud.status = 'error';
+					hud.message = 'this save has no vessel to fly';
+					publish();
+					return;
+				}
+				vessel = entityId(resumed.focus);
+				throttle = sentThrottle = resumed.throttle;
+				const warp = options.resume.sim.warp;
+				hud.warp = warp;
+				warpIndex = Math.max(0, (WARP_STEPS as readonly number[]).indexOf(warp));
+			} else {
+				const result = await client.dispatch({ type: 'load-vessel', design });
+				if (!result.ok || result.vessel === undefined) {
+					hud.status = 'error';
+					hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
+					publish();
+					return;
+				}
+				vessel = result.vessel;
 			}
-			vessel = result.vessel;
 			presence.attach(vessel);
 			hudCtl.attach(Number(vessel));
 			renderer.setActiveVessel(vessel);
@@ -537,6 +576,18 @@ export function startFlight(options: FlightOptions): Flight {
 			scriptRun += 1;
 			client.stopScript();
 			options.sandbox?.close();
+		},
+		async collectSave() {
+			if (vessel === null || !catalog || !renderer || hud.status !== 'flying') {
+				throw new Error('There is no flight to save yet.');
+			}
+			const body = catalog.bodies[0];
+			if (!body) throw new Error('The simulation has no body to save.');
+			// Draw a frame and read it in the same task: a WebGL canvas is cleared after it is shown.
+			renderer.render();
+			const thumbnail = captureThumbnail(canvas);
+			const sim = await client.save();
+			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
 		},
 		setGraphicsPreset(preset) {
 			saveGraphicsPreset(preset);

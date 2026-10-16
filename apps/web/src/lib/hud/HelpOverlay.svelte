@@ -36,6 +36,7 @@
 			title: 'Time and menus',
 			rows: [
 				[[',', '.'], 'Time warp down, up'],
+				[['F5', 'F9'], 'Quicksave, quickload'],
 				[['Esc'], 'Pause menu'],
 				[['?'], 'This list']
 			]

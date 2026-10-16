@@ -10,7 +10,9 @@
 		onresume,
 		oncontrols,
 		autoQuality,
-		onautoquality
+		onautoquality,
+		onsave,
+		onload
 	}: {
 		open: boolean;
 		name: string;
@@ -20,6 +22,8 @@
 		/** The quality governor lowers resolution and preset when the view runs slow (plan 039). */
 		autoQuality: boolean;
 		onautoquality: (on: boolean) => void;
+		onsave: () => void;
+		onload: () => void;
 	} = $props();
 </script>
 
@@ -39,6 +43,8 @@
 	</label>
 	<div class="actions">
 		<Button variant="primary" onclick={onresume}>Resume</Button>
+		<Button onclick={onsave}>Save the flight</Button>
+		<Button onclick={onload}>Load a flight</Button>
 		<Button onclick={oncontrols}>Controls</Button>
 		<a class="link" href="/vab">Back to the VAB</a>
 		<a class="link" href="/">Main menu</a>

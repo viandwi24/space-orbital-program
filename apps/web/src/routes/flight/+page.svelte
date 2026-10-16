@@ -16,6 +16,7 @@
 	import Button from '../../lib/ui/Button.svelte';
 	import Toasts from '../../lib/ui/Toasts.svelte';
 	import { loadContent, partLookup } from '../../lib/catalog';
+	import type { VesselDesign } from '@orbital/core';
 	import { parseDesign } from '../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
 	import type { FrameData } from '../../lib/hud-controller';
@@ -25,10 +26,18 @@
 	import { decodeScript, tokenFromHash, type ImportInfo } from '../../lib/script-share';
 	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
 	import { canWarp } from '../../lib/telemetry';
+	import { createAutosaver } from '../../lib/save/autosave';
+	import type { GameSave } from '../../lib/save/game-save';
+	import LoadDialog from '../../lib/save/LoadDialog.svelte';
+	import { bootedMods } from '../../lib/save/mods';
+	import SaveDialog from '../../lib/save/SaveDialog.svelte';
+	import { SaveController } from '../../lib/save/save-controller.svelte';
 
 	let canvas: HTMLCanvasElement;
 	let hud = $state.raw<FlightHud | null>(null);
 	let problem = $state<string | null>(null);
+	/** The problem is a save that would not load, not a missing design. */
+	let loadFailed = $state(false);
 	let flight: Flight | null = null;
 	let scriptOpen = $state(false);
 	let source = $state('');
@@ -48,19 +57,105 @@
 	let markers = $state<MapMarkers>();
 	let tall = $state(true);
 
+	// Save and load (plan 043). A load reloads the page with `?load=<id>`: a fresh Worker and renderer.
+	const saves = new SaveController({
+		loadedMods: bootedMods,
+		collect: () => {
+			if (!flight) throw new Error('There is no flight to save yet.');
+			return flight.collectSave();
+		},
+		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
+	});
+	const autosaver = createAutosaver(() => performance.now());
+	const saveState = () => ({
+		flying: hud?.status === 'flying',
+		paused: pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen,
+		busy: saves.busy
+	});
+	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
+		if (reason === null) return;
+		if (await saves.autosave()) autosaver.saved();
+	}
+	async function quicksave(): Promise<void> {
+		if (await saves.quicksave()) autosaver.saved();
+	}
+
+	// A short confirmation ("Quicksaved.") while no dialog shows the note.
+	let flashTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		if (saves.note === null || saves.loadOpen || saves.saveOpen) return;
+		clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => (saves.note = null), 3500);
+		return () => clearTimeout(flashTimer);
+	});
+
+	// Saves on a stage and on touching down, besides the timer (the autosaver spaces them out).
+	let lastStages = 0;
+	let wasLanded = false;
+	$effect(() => {
+		const stages = model?.stagesFired ?? 0;
+		if (stages > lastStages) void autosave(autosaver.request('stage', saveState()));
+		lastStages = stages;
+		const landed = model?.phase === 'landed';
+		if (landed && !wasLanded) void autosave(autosaver.request('landed', saveState()));
+		wasLanded = landed;
+	});
+
 	onMount(() => {
 		const { catalog, content } = loadContent();
-		const text = loadDraft();
-		if (text === null) {
-			problem = 'No vessel to launch yet.';
-			return;
-		}
-		const parsed = parseDesign(text, partLookup(catalog));
-		if (!parsed.ok) {
-			problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
-			return;
-		}
-		designName = parsed.design.name;
+		const timer = setInterval(() => void autosave(autosaver.tick(saveState())), 1000);
+		const onHidden = (): void => {
+			if (document.visibilityState === 'hidden')
+				void autosave(autosaver.request('hidden', saveState()));
+		};
+		document.addEventListener('visibilitychange', onHidden);
+		let stop: (() => void) | undefined;
+		let gone = false;
+		const loadId = new URLSearchParams(location.search).get('load');
+		void (async () => {
+			let design: VesselDesign;
+			let resume: GameSave | undefined;
+			if (loadId !== null) {
+				try {
+					resume = await saves.read(loadId);
+				} catch (e) {
+					loadFailed = true;
+					problem = e instanceof Error ? e.message : String(e);
+					return;
+				}
+				design = resume.design;
+			} else {
+				const text = loadDraft();
+				if (text === null) {
+					problem = 'No vessel to launch yet.';
+					return;
+				}
+				const parsed = parseDesign(text, partLookup(catalog));
+				if (!parsed.ok) {
+					problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
+					return;
+				}
+				design = parsed.design;
+			}
+			if (gone) return;
+			stop = begin(catalog, content, design, resume);
+		})();
+		return () => {
+			gone = true;
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onHidden);
+			stop?.();
+		};
+	});
+
+	/** Start the flight and return its cleanup. */
+	function begin(
+		catalog: ReturnType<typeof loadContent>['catalog'],
+		content: ReturnType<typeof loadContent>['content'],
+		design: VesselDesign,
+		resume: GameSave | undefined
+	): () => void {
+		designName = design.name;
 		source = loadScript(designName) ?? '';
 		const scriptSandbox = startScriptSandbox();
 		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
@@ -84,7 +179,8 @@
 		small.addEventListener('change', sync);
 		const started: Flight = startFlight({
 			canvas,
-			design: parsed.design,
+			design,
+			...(resume ? { resume } : {}),
 			content,
 			onHud: (h) => (hud = h),
 			onScript: (v) => (script = v),
@@ -95,6 +191,8 @@
 			},
 			onKey: (key) => {
 				if (key === 'escape') pauseOpen = true;
+				else if (key === 'quicksave') void quicksave();
+				else if (key === 'quickload') void saves.quickload();
 				else helpOpen = true;
 			}
 		});
@@ -107,12 +205,13 @@
 			flight = null;
 			started.dispose();
 		};
-	});
+	}
 
 	// The sim freezes and the flight keys go quiet while a dialog is open.
 	$effect(() => {
-		flight?.setPaused(pauseOpen || helpOpen);
-		flight?.setModal(pauseOpen || helpOpen);
+		const modal = pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen;
+		flight?.setPaused(modal);
+		flight?.setModal(modal);
 	});
 
 	/** Edits and "Load sample" both go through here so the text is saved per design. */
@@ -157,12 +256,22 @@
 
 	{#if problem}
 		<div class="center">
-			<StatusCard tone="warning" title="Nothing to fly">
-				<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
-				{#snippet actions()}
-					<a class="cta" href="/vab">Open the VAB</a>
-				{/snippet}
-			</StatusCard>
+			{#if loadFailed}
+				<StatusCard tone="danger" title="That flight could not be loaded">
+					<p>{problem}</p>
+					{#snippet actions()}
+						<a class="cta" href="/">Main menu</a>
+						<a class="cta quiet" href="/vab">Open the VAB</a>
+					{/snippet}
+				</StatusCard>
+			{:else}
+				<StatusCard tone="warning" title="Nothing to fly">
+					<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
+					{#snippet actions()}
+						<a class="cta" href="/vab">Open the VAB</a>
+					{/snippet}
+				</StatusCard>
+			{/if}
 		</div>
 	{:else if hud}
 		{#if hud.status === 'booting'}
@@ -285,7 +394,20 @@
 				autoQuality = on;
 				flight?.setAutoQuality(on);
 			}}
+			onsave={() => {
+				pauseOpen = false;
+				saves.showSave();
+			}}
+			onload={() => {
+				pauseOpen = false;
+				void saves.showLoad();
+			}}
 		/>
+		<SaveDialog {saves} suggestion={model?.name ?? 'Saved flight'} />
+		<LoadDialog {saves} />
+		{#if saves.note && !saves.loadOpen && !saves.saveOpen}
+			<p class="savenote" class:error={saves.noteIsError} role="status">{saves.note}</p>
+		{/if}
 		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
 	{/if}
 </div>
@@ -331,6 +453,23 @@
 	.script {
 		width: min(420px, 46vw);
 		overflow: auto;
+	}
+	.savenote {
+		position: absolute;
+		z-index: 5;
+		top: 64px;
+		left: 50%;
+		transform: translateX(-50%);
+		margin: 0;
+		padding: var(--s-2) var(--s-4);
+		font-size: var(--t-sm);
+		background: var(--panel-solid);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-panel);
+		pointer-events: none;
+	}
+	.savenote.error {
+		border-color: var(--c-danger);
 	}
 	.tc {
 		top: var(--s-3);

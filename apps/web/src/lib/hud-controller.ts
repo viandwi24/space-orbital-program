@@ -109,6 +109,12 @@ export interface HudControllerOptions {
 	project: (world: Vec3) => Point | null;
 	/** Wall clock in ms (the render loop's `now`); toasts expire against it. */
 	now?: () => number;
+	/**
+	 * A loaded flight (plan 043): the part entity to design index map of the vessel in focus, which
+	 * can no longer be derived from a snapshot of a vessel that already lost parts, and the stages
+	 * it had fired.
+	 */
+	resume?: { entityIndex: ReadonlyMap<number, number>; stagesFired: number };
 }
 
 export interface HudController {
@@ -143,7 +149,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	const clearance = groundClearance(design, content.parts);
 	let vessel: number | null = null;
 	let snap: Snapshot | null = null;
-	let entityIndex: Map<number, number> | null = null;
+	let entityIndex: Map<number, number> | null = options.resume
+		? new Map(options.resume.entityIndex)
+		: null;
 	let stages: StageProgress = noStages;
 	let preference: SpeedModePreference = 'auto';
 	let lastMode: SpeedMode = 'surface';
@@ -218,6 +226,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	return {
 		attach(id) {
 			vessel = id;
+			if (options.resume && options.resume.stagesFired > 0) {
+				stages = { ...stages, [id]: options.resume.stagesFired };
+			}
 		},
 		snapshot(s) {
 			snap = s;
