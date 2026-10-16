@@ -17,6 +17,7 @@ import {
 	wrapTwoPi,
 	type OrbitalElements
 } from '@orbital/kepler';
+import { bodyOfVessel, type BodyRuntime } from './bodies.ts';
 import type { SimCore } from './core.ts';
 import { qAboutY, qMul, qNormalize, qRotate } from './math.ts';
 import type { RailsState, VesselState } from './state.ts';
@@ -44,8 +45,13 @@ export function computeRails(mu: number, r: Vec3, v: Vec3, t: number): RailsStat
  * both are stored in the body-fixed frame, which is the inertial frame rotated by `omega * t`
  * about +Y (the same rotation the snapshot reports for the body).
  */
-export function surfaceRails(core: SimCore, com: Vec3, orientation: Quat): RailsState {
-	const inverse = qAboutY(-core.body.omega * core.t);
+export function surfaceRails(
+	core: SimCore,
+	body: BodyRuntime,
+	com: Vec3,
+	orientation: Quat
+): RailsState {
+	const inverse = qAboutY(-body.omega * core.t);
 	return { kind: 'surface', r: qRotate(inverse, com), q: qNormalize(qMul(inverse, orientation)) };
 }
 
@@ -72,13 +78,13 @@ export function rebaseElements(el: OrbitalElements, mu: number, t: number): Orbi
 }
 
 /** Centre-of-mass state of an on-rails vessel at time `t`. */
-export function railsMotion(core: SimCore, rails: RailsState, t: number): Motion {
-	if (rails.kind === 'elements') return propagate(rails.elements, core.body.mu, t);
+export function railsMotion(body: BodyRuntime, rails: RailsState, t: number): Motion {
+	if (rails.kind === 'elements') return propagate(rails.elements, body.mu, t);
 	if (rails.kind === 'surface') {
-		const r = qRotate(qAboutY(core.body.omega * t), rails.r);
-		return { r, v: cross({ x: 0, y: core.body.omega, z: 0 }, r) };
+		const r = qRotate(qAboutY(body.omega * t), rails.r);
+		return { r, v: cross({ x: 0, y: body.omega, z: 0 }, r) };
 	}
-	return propagateUniversal(rails.r, rails.v, core.body.mu, t - rails.t0);
+	return propagateUniversal(rails.r, rails.v, body.mu, t - rails.t0);
 }
 
 /** Advance the stored rails state to `t` in place so later propagations start close by. */
@@ -86,17 +92,18 @@ export function rebaseRails(core: SimCore, vessel: VesselState, t: number): void
 	const rails = vessel.rails;
 	if (!rails) return;
 	if (rails.kind === 'surface') return; // fixed in the body frame: nothing drifts
+	const { mu } = bodyOfVessel(core, vessel);
 	if (rails.kind === 'elements') {
-		vessel.rails = { kind: 'elements', elements: rebaseElements(rails.elements, core.body.mu, t) };
+		vessel.rails = { kind: 'elements', elements: rebaseElements(rails.elements, mu, t) };
 	} else if (t - rails.t0 > STATE_REBASE_INTERVAL) {
-		const s = propagateUniversal(rails.r, rails.v, core.body.mu, t - rails.t0);
+		const s = propagateUniversal(rails.r, rails.v, mu, t - rails.t0);
 		vessel.rails = { kind: 'state', r: s.r, v: s.v, t0: t };
 	}
 }
 
 /** Centre-of-mass position and velocity now: from rails when on rails, else the cached flight pose. */
 export function motionOf(core: SimCore, vessel: VesselState): Motion {
-	if (vessel.rails) return railsMotion(core, vessel.rails, core.t);
+	if (vessel.rails) return railsMotion(bodyOfVessel(core, vessel), vessel.rails, core.t);
 	return { r: vessel.com, v: vessel.velocity };
 }
 
@@ -104,7 +111,7 @@ export function motionOf(core: SimCore, vessel: VesselState): Motion {
 export function orientationOf(core: SimCore, vessel: VesselState): Quat {
 	const rails = vessel.rails;
 	if (rails?.kind !== 'surface') return vessel.orientation;
-	return qMul(qAboutY(core.body.omega * core.t), rails.q);
+	return qMul(qAboutY(bodyOfVessel(core, vessel).omega * core.t), rails.q);
 }
 
 /** Periapsis radius of the conic through (r, v), valid for every eccentricity; 0 for radial states. */
@@ -115,9 +122,9 @@ export function periapsisRadius(mu: number, r: Vec3, v: Vec3): number {
 	return (h * h) / (mu * (1 + length(eVec)));
 }
 
-/** True when the orbit stays above the atmosphere (above the surface for an airless body). */
-export function isStableOrbit(core: SimCore, r: Vec3, v: Vec3): boolean {
-	const { def, mu } = core.body;
-	const clearance = Math.max(def.atmosphere?.height ?? 0, core.terrain?.maxHeight ?? 0);
+/** True when the orbit around `body` stays above the atmosphere (above the surface for an airless body). */
+export function isStableOrbit(body: BodyRuntime, r: Vec3, v: Vec3): boolean {
+	const { def, mu } = body;
+	const clearance = Math.max(def.atmosphere?.height ?? 0, body.terrain?.maxHeight ?? 0);
 	return periapsisRadius(mu, r, v) > def.radius + clearance;
 }

@@ -6,6 +6,7 @@
  */
 import type { Vec3 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale } from '@orbital/kepler';
+import type { BodyRuntime } from './bodies.ts';
 import type { SimCore } from './core.ts';
 import { qAboutY, qRotate } from './math.ts';
 
@@ -13,26 +14,26 @@ import { qAboutY, qRotate } from './math.ts';
 export const SLOPE_BASELINE = 4;
 
 /** `r` (BCI) turned into the body-fixed frame at the current time. */
-export function toBodyFixed(core: SimCore, r: Vec3): Vec3 {
-	return qRotate(qAboutY(-core.body.omega * core.t), r);
+export function toBodyFixed(core: SimCore, body: BodyRuntime, r: Vec3): Vec3 {
+	return qRotate(qAboutY(-body.omega * core.t), r);
 }
 
 /** Height above the reference sphere, m, of the ground under the BCI position `r`; 0 without terrain. */
-export function terrainUnder(core: SimCore, r: Vec3): number {
-	const terrain = core.terrain;
+export function terrainUnder(core: SimCore, body: BodyRuntime, r: Vec3): number {
+	const terrain = body.terrain;
 	if (!terrain) return 0;
-	return terrain.heightAt(normalize(toBodyFixed(core, r)));
+	return terrain.heightAt(normalize(toBodyFixed(core, body, r)));
 }
 
 /**
  * Height of the ground under `r` when the point is low enough to matter: undefined above the
  * highest terrain (so callers skip the evaluation of the noise high up), else `terrainUnder`.
  */
-export function terrainBelow(core: SimCore, r: Vec3): number | undefined {
-	const terrain = core.terrain;
+export function terrainBelow(core: SimCore, body: BodyRuntime, r: Vec3): number | undefined {
+	const terrain = body.terrain;
 	if (!terrain) return 0;
-	if (length(r) - core.body.def.radius > terrain.maxHeight) return undefined;
-	return terrain.heightAt(normalize(toBodyFixed(core, r)));
+	if (length(r) - body.def.radius > terrain.maxHeight) return undefined;
+	return terrain.heightAt(normalize(toBodyFixed(core, body, r)));
 }
 
 export interface GroundPlane {
@@ -49,12 +50,12 @@ export interface GroundPlane {
  * from the central difference of `h` over `SLOPE_BASELINE` metres to each side along the local east
  * and north of the body-fixed frame. A flat sphere (no terrain) gives the radial.
  */
-export function groundPlane(core: SimCore, r: Vec3): GroundPlane {
-	const radius = core.body.def.radius;
+export function groundPlane(core: SimCore, body: BodyRuntime, r: Vec3): GroundPlane {
+	const radius = body.def.radius;
 	const up = scale(r, 1 / length(r));
-	const terrain = core.terrain;
+	const terrain = body.terrain;
 	if (!terrain) return { point: scale(up, radius), normal: up, height: 0 };
-	const spin = qAboutY(-core.body.omega * core.t);
+	const spin = qAboutY(-body.omega * core.t);
 	const n = qRotate(spin, up);
 	const h = terrain.heightAt(n);
 	// East = +Y x n, north = n x east (body-fixed); at the poles any horizontal pair will do.
@@ -72,7 +73,7 @@ export function groundPlane(core: SimCore, r: Vec3): GroundPlane {
 	const tangentEast = add(scale(east, k), scale(n, slopeEast));
 	const tangentNorth = add(scale(north, k), scale(n, slopeNorth));
 	const normalBodyFixed = normalize(cross(tangentEast, tangentNorth));
-	const turn = qAboutY(core.body.omega * core.t);
+	const turn = qAboutY(body.omega * core.t);
 	return {
 		point: scale(up, radius + h),
 		normal: normalize(qRotate(turn, normalBodyFixed)),

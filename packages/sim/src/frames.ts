@@ -15,6 +15,7 @@ import type {
 } from '@orbital/core';
 import { add, cross, dot, length, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
+import { bodyById, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
 import {
 	CONTACT_DISTANCE,
@@ -54,6 +55,7 @@ export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 		id,
 		backend,
 		inUse: false,
+		soi: '',
 		origin: { x: 0, y: 0, z: 0 },
 		velocity: { x: 0, y: 0, z: 0 },
 		vessels: [],
@@ -62,24 +64,39 @@ export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 	};
 }
 
-/** Gravitational acceleration at BCI position `r`, m/s² (point mass, simulation.md). */
-export function gravityAt(core: SimCore, r: Vec3): Vec3 {
+/** Gravitational acceleration at position `r` relative to a body of parameter `mu`, m/s² (point mass, simulation.md). */
+export function gravityAt(mu: number, r: Vec3): Vec3 {
 	const d = length(r);
-	return scale(r, -core.body.mu / (d * d * d));
+	return scale(r, -mu / (d * d * d));
 }
 
+/** The body the frame is centred on (ADR 0051). */
+export const bodyOfFrame = (core: SimCore, frame: FlightFrame): BodyRuntime =>
+	bodyById(core, frame.soi);
+
 /**
- * The frame a vessel at `com` should be simulated in: an active frame whose origin is within
- * `PHYSICS_RANGE`, else a free frame (taken and anchored at `com` / `velocity`), else undefined.
+ * The frame a vessel at `com` (relative to the body `soi`) should be simulated in: an active frame
+ * of the same body whose origin is within `PHYSICS_RANGE`, else a free frame (taken and anchored at
+ * `com` / `velocity`), else undefined.
  */
-export function acquireFrame(core: SimCore, com: Vec3, velocity: Vec3): FlightFrame | undefined {
+export function acquireFrame(
+	core: SimCore,
+	soi: string,
+	com: Vec3,
+	velocity: Vec3
+): FlightFrame | undefined {
 	const near = core.frames.find(
-		(f) => f.inUse && f.vessels.length > 0 && length(sub(com, f.origin)) < PHYSICS_RANGE
+		(f) =>
+			f.inUse &&
+			f.soi === soi &&
+			f.vessels.length > 0 &&
+			length(sub(com, f.origin)) < PHYSICS_RANGE
 	);
 	if (near) return near;
 	const free = core.frames.find((f) => !f.inUse);
 	if (!free) return undefined;
 	free.inUse = true;
+	free.soi = soi;
 	free.origin = { ...com };
 	free.velocity = { ...velocity };
 	return free;
@@ -139,7 +156,7 @@ export function airVelocityAt(
 	const local = add(t.position, qRotate(t.rotation, point));
 	const v = add(add(frame.velocity, m.linear), cross(m.angular, sub(local, m.centre)));
 	const r = add(frame.origin, local);
-	const rel = sub(v, cross({ x: 0, y: core.body.omega, z: 0 }, r));
+	const rel = sub(v, cross({ x: 0, y: bodyOfFrame(core, frame).omega, z: 0 }, r));
 	return qRotate(qConj(t.rotation), rel);
 }
 
@@ -331,6 +348,7 @@ export function refreshPose(core: SimCore, frame: FlightFrame, vesselId: EntityI
 /** Masses, gravity, module updates and drag for every vessel in the frame (forces for the next backend step). */
 export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Overheat[] {
 	const { backend } = frame;
+	const planet = bodyOfFrame(core, frame);
 	const overheated: Overheat[] = [];
 	for (const vesselId of frame.vessels.slice()) {
 		const vessel = vesselOf(core, vesselId);
@@ -340,8 +358,8 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		// Point-mass gravity at the centre of mass (the gradient across a vessel is negligible).
 		const motion = bodyMotion(frame, body);
 		const centre = add(frame.origin, motion.centre);
-		backend.applyForce(body.handle, scale(gravityAt(core, centre), body.mass));
-		updateTile(core, frame, vesselId, centre);
+		backend.applyForce(body.handle, scale(gravityAt(planet.mu, centre), body.mass));
+		updateTile(core, frame, planet, vesselId, centre);
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
 		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));
@@ -385,9 +403,10 @@ function applyDrag(
 	vesselId: EntityId
 ): Map<EntityId, HeatInput> {
 	const heat = new Map<EntityId, HeatInput>();
-	const body = core.body.def;
+	const planet = bodyOfFrame(core, frame);
+	const body = planet.def;
 	if (!body.atmosphere) return heat;
-	const omega = { x: 0, y: core.body.omega, z: 0 };
+	const omega = { x: 0, y: planet.omega, z: 0 };
 	const vessel = vesselOf(core, vesselId);
 	const flight = frame.bodies.get(vesselId)!;
 	const motion = bodyMotion(frame, flight); // one backend read for the whole vessel
@@ -451,18 +470,24 @@ function removeTile(frame: FlightFrame, vesselId: EntityId): void {
  * moves with the rotating ground (velocity relative to the frame, plus the planet's angular
  * velocity) so friction sees the ground as it is.
  */
-function updateTile(core: SimCore, frame: FlightFrame, vesselId: EntityId, centre: Vec3): void {
-	const radius = core.body.def.radius;
+function updateTile(
+	core: SimCore,
+	frame: FlightFrame,
+	planet: BodyRuntime,
+	vesselId: EntityId,
+	centre: Vec3
+): void {
+	const radius = planet.def.radius;
 	const d = length(centre);
 	let tile = frame.tiles.get(vesselId);
 	// Only a vessel low enough to meet the highest ground pays for a height evaluation.
 	const sphereAltitude = d - radius;
-	const reach = GROUND_TILE_EXIT + (core.terrain?.maxHeight ?? 0);
+	const reach = GROUND_TILE_EXIT + (planet.terrain?.maxHeight ?? 0);
 	if (sphereAltitude > reach) {
 		removeTile(frame, vesselId);
 		return;
 	}
-	const plane = groundPlane(core, centre);
+	const plane = groundPlane(core, planet, centre);
 	const altitude = d - radius - plane.height;
 	if (altitude > GROUND_TILE_EXIT || (!tile && altitude > GROUND_TILE_ENTER)) {
 		removeTile(frame, vesselId);
@@ -472,7 +497,7 @@ function updateTile(core: SimCore, frame: FlightFrame, vesselId: EntityId, centr
 	const surface = plane.point;
 	const position = sub(surface, frame.origin);
 	const rotation = uprightRotation(up);
-	const omega = { x: 0, y: core.body.omega, z: 0 };
+	const omega = { x: 0, y: planet.omega, z: 0 };
 	const linear = sub(cross(omega, surface), frame.velocity);
 	if (!tile) {
 		const handle = frame.backend.createBody({
@@ -516,7 +541,7 @@ function groundContacts(
 	before: Map<EntityId, ReturnType<typeof bodyMotion>>
 ): GroundImpact[] {
 	const impacts: GroundImpact[] = [];
-	const omega = { x: 0, y: core.body.omega, z: 0 };
+	const omega = { x: 0, y: bodyOfFrame(core, frame).omega, z: 0 };
 	for (const vesselId of frame.vessels) {
 		const vessel = vesselOf(core, vesselId);
 		vessel.landed = false;

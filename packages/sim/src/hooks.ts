@@ -15,7 +15,7 @@ import type {
 import { add, length } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
-import { airVelocityAt, centreOfMassInPart, partTransform } from './frames.ts';
+import { airVelocityAt, bodyOfFrame, centreOfMassInPart, partTransform } from './frames.ts';
 import { isNonZero, qRotate } from './math.ts';
 import { effectiveControl } from './state.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
@@ -75,7 +75,8 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (!frame) return { pressure: 0, density: 0, altitude: 0 };
 			const { transform } = pose();
 			const r = add(frame.origin, transform.position);
-			return ambientAt(core.body.def, length(r) - core.body.def.radius);
+			const { def } = bodyOfFrame(core, frame);
+			return ambientAt(def, length(r) - def.radius);
 		},
 		applyForce(force, point) {
 			finiteVec(force, 'force');

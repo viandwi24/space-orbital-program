@@ -138,6 +138,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		inUse: frame.inUse,
 		origin: { ...frame.origin },
 		velocity: { ...frame.velocity },
+		soi: frame.inUse ? frame.soi : core.root.def.id,
 		vessels: [...frame.vessels],
 		bodies: [...frame.bodies].map(([vessel, body]) => {
 			const t = frame.backend.getTransform(body.handle);
@@ -161,7 +162,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		formatVersion: SIM_SAVE_VERSION,
 		apiVersion: API_VERSION,
 		mods: mods.map((m) => ({ id: m.id, version: m.version })),
-		body: core.body.def.id,
+		bodies: [...core.bodies.keys()],
 		dt: core.dt,
 		seed,
 		time: core.t,
@@ -242,6 +243,13 @@ export function restoreFrames(core: SimCore, save: SimSave): void {
 		const frame = core.frames[saved.id];
 		if (!frame || frame.id !== saved.id) throw damaged(`unknown physics frame ${saved.id}`);
 		frame.inUse = saved.inUse;
+		if (saved.inUse && !core.bodies.has(saved.soi)) {
+			throw new SaveError(
+				'missing-mod',
+				`This save needs the body "${saved.soi}", which is not loaded.`
+			);
+		}
+		frame.soi = saved.soi;
 		frame.origin = { ...saved.origin };
 		frame.velocity = { ...saved.velocity };
 		frame.bodies.clear();

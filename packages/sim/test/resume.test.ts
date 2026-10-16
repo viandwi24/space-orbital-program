@@ -6,11 +6,13 @@
  * at the end, so the first moment of divergence is reported by name.
  */
 import { describe, expect, test } from 'bun:test';
-import { createTerrainField, type SimSave } from '@orbital/core';
+import { createTerrainField, SIM_SAVE_VERSION, type SimSave } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
+import { length, sub } from '@orbital/kepler';
 import { createSim, type Sim } from '../src/index.ts';
 import { launchInOrbit } from './helpers/sas.ts';
 import { orbitState } from './helpers/measure.ts';
+import { moonState, systemOf, transferState } from './helpers/moon.ts';
 import { lander, rapier, saturn, twoStage } from './helpers/vessels.ts';
 
 const DT = 0.02;
@@ -339,7 +341,7 @@ describe('resume contract', () => {
 		run(sim, 1);
 		const save = sim.save();
 		expect(JSON.parse(JSON.stringify(save))).toEqual(save);
-		expect(save.formatVersion).toBe(1);
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(save.mods.map((m) => m.id)).toEqual(['stock']);
 		expect(save.frames[0]!.bodies).toHaveLength(1);
 	});
@@ -355,5 +357,97 @@ describe('resume contract', () => {
 		expect(resumed.warp).toBe(10);
 		expect(resumed.rng.state()).toBe(sim.rng.state());
 		expect(RADIUS).toBe(600_000);
+	});
+});
+
+describe('resume across bodies (plan 044): the moon, its sphere and its ground', () => {
+	test("on the moon's rails, warped 100x, then woken and burning", async () => {
+		let id = 0;
+		const { sim } = await resumeMatches({
+			rig: flat,
+			prepare: (sim) => {
+				const s = systemOf(sim);
+				const r = s.moon.radius + 50_000;
+				id = load(sim, twoStage(), {
+					kind: 'state',
+					body: s.moon.id,
+					position: { x: r, y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: -Math.sqrt(s.moonMu / r) }
+				});
+				const v = sim.snapshot().vessels[0]!;
+				expect(v.mode).toBe('on-rails');
+				expect(String(v.soi)).toBe(s.moon.id);
+				sim.dispatch({ type: 'warp', factor: 100 });
+				run(sim, 3);
+			},
+			inputs: (sim, step) => {
+				if (step === 400) {
+					sim.dispatch({ type: 'warp', factor: 1 });
+					sim.dispatch({ type: 'throttle', vessel: id as never, value: 0.5 });
+				}
+			},
+			seconds: 14
+		});
+		expect(String(sim.snapshot().vessels[0]!.soi)).toBe('stock.cinder');
+	});
+
+	test("just before the vessel crosses into the moon's sphere, and through the crossing", async () => {
+		const { sim, resumed } = await resumeMatches({
+			rig: flat,
+			prepare: (sim) => {
+				const s = systemOf(sim);
+				const st = transferState(s, 680_000, 800_000);
+				load(sim, twoStage(), { kind: 'state', position: st.r, velocity: st.v });
+				sim.dispatch({ type: 'warp', factor: 1000 });
+				const toMoon = (): number => {
+					const snap = sim.snapshot();
+					return length(sub(snap.vessels[0]!.position, snap.bodies[1]!.position));
+				};
+				for (let i = 0; i < 5_000 && toMoon() > s.soi + 6_000; i++) {
+					sim.step(0.01);
+					if (sim.warp === 1) break;
+				}
+				sim.dispatch({ type: 'warp', factor: 1 });
+				expect(String(sim.snapshot().vessels[0]!.soi)).toBe('stock.home');
+			},
+			seconds: 25
+		});
+		expect(String(sim.snapshot().vessels[0]!.soi)).toBe('stock.cinder');
+		expect(String(resumed.snapshot().vessels[0]!.soi)).toBe('stock.cinder');
+		expect(moonState(systemOf(sim), sim.time).r).toEqual(
+			moonState(systemOf(resumed), resumed.time).r
+		);
+	});
+
+	test('on surface rails on the moon, then woken by the throttle', async () => {
+		let id = 0;
+		const { sim } = await resumeMatches({
+			rig: flat,
+			prepare: (sim) => {
+				id = load(sim, twoStage(), {
+					kind: 'surface',
+					body: 'stock.cinder',
+					latitude: 0.2,
+					longitude: 1
+				});
+				run(sim, 8);
+				const v = sim.snapshot().vessels[0]!;
+				expect(v.mode).toBe('on-rails');
+				expect(v.surface).toBe(true);
+				expect(String(v.soi)).toBe('stock.cinder');
+				sim.dispatch({ type: 'warp', factor: 50 });
+				run(sim, 2);
+			},
+			inputs: (sim, step) => {
+				if (step === 250) {
+					sim.dispatch({ type: 'warp', factor: 1 });
+					sim.dispatch({ type: 'throttle', vessel: id as never, value: 1 });
+					sim.dispatch({ type: 'stage', vessel: id as never });
+				}
+			},
+			tolerance: CONTACT_TOLERANCE,
+			seconds: 12
+		});
+		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 	});
 });

@@ -5,7 +5,6 @@
 import {
 	createRng,
 	createWorld,
-	GRAVITATIONAL_CONSTANT,
 	loadPlugins,
 	readSimSave,
 	SaveError,
@@ -26,6 +25,7 @@ import {
 	type TerrainField,
 	type World
 } from '@orbital/core';
+import { buildBodies } from './bodies.ts';
 import { dispatch } from './commands.ts';
 import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -34,6 +34,7 @@ import { runUpdateHooks } from './hooks.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails } from './sas.ts';
+import { applySoiTransitions } from './soi.ts';
 import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
@@ -59,10 +60,11 @@ export interface SimOptions {
 	/**
 	 * Heights of the ground above the reference sphere (ADR 0043), body-fixed unit direction in,
 	 * metres out; the host passes the same field to the renderer. A function is called once with
-	 * the root body so the field can take its radius from the registered data. Absent: the ground
-	 * is the flat reference sphere, as before plan 031.
+	 * each body so the field can take its radius from the registered data, and may return nothing
+	 * for a body that stays a smooth sphere (a plain field applies to the root body only). Absent:
+	 * the ground is the flat reference sphere, as before plan 031.
 	 */
-	terrain?: TerrainField | ((body: BodyDefinition) => TerrainField);
+	terrain?: TerrainField | ((body: BodyDefinition) => TerrainField | undefined);
 	/**
 	 * Continue a run from `Sim.save()` output (plan 043, ADR 0050): the world, the clock, the PRNG
 	 * and every flight body come from the save, so the run goes on exactly as the saved one would
@@ -125,11 +127,11 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		}
 	}
 	const seed = options.seed ?? resume?.seed ?? 0;
-	const bodies = registries.bodies.list();
-	const wantedBody = options.body ?? resume?.body;
+	const defs = registries.bodies.list();
+	const wantedBody = options.body ?? resume?.bodies[0];
 	const bodyDef = wantedBody
 		? registries.bodies.get(wantedBody)
-		: bodies.find((b) => b.parent === undefined);
+		: defs.find((b) => b.parent === undefined);
 	if (!bodyDef) {
 		throw new Error(
 			wantedBody
@@ -137,6 +139,18 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				: 'createSim: no root body registered (a body without `parent`); load a plugin that defines one'
 		);
 	}
+	if (resume) {
+		const lost = resume.bodies.filter((id) => !registries.bodies.has(id));
+		if (lost.length > 0) {
+			throw new SaveError(
+				'missing-mod',
+				`This save needs bodies that are not loaded: ${lost.join(', ')}.`
+			);
+		}
+	}
+	const bodies = buildBodies(defs, bodyDef.id, options.terrain);
+	const root = bodies.get(bodyDef.id);
+	if (!root) throw new Error(`createSim: body "${bodyDef.id}" is not registered`);
 
 	const frames = [];
 	const frameCount = options.maxFlightFrames ?? DEFAULT_MAX_FLIGHT_FRAMES;
@@ -158,25 +172,22 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		dt,
 		rng: createRng(resume ? resume.rng : seed),
 		frames,
-		terrain: typeof options.terrain === 'function' ? options.terrain(bodyDef) : options.terrain,
-		body: {
-			def: bodyDef,
-			mu: GRAVITATIONAL_CONSTANT * bodyDef.mass,
-			omega: (2 * Math.PI) / bodyDef.rotationPeriod
-		},
+		bodies,
+		root,
 		pre: systems.filter((s) => s.phase === 'pre-physics'),
 		post: systems.filter((s) => s.phase === 'post-physics'),
 		pending: [],
 		active: new Set(),
 		t: resume?.time ?? 0,
 		warp: resume?.warp ?? 1,
-		accumulator: resume?.accumulator ?? 0
+		accumulator: resume?.accumulator ?? 0,
+		warpStopped: false
 	};
 	if (resume) {
-		if (bodyDef.id !== resume.body) {
+		if (bodyDef.id !== resume.bodies[0]) {
 			throw new SaveError(
 				'incompatible',
-				`This save is in the sphere of "${resume.body}"; the sim was asked to simulate "${bodyDef.id}".`
+				`This save is rooted at "${resume.bodies[0]}"; the sim was asked to simulate "${bodyDef.id}".`
 			);
 		}
 		restoreFrames(core, resume);
@@ -210,6 +221,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
+		const tStart = core.t;
 		runSystems(core.pre, dt);
 		const overheated: Overheat[] = [];
 		for (const frame of core.frames) {
@@ -231,6 +243,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		stepRailsVessels(dt);
 		core.t += dt;
 		rebaseAll();
+		applySoiTransitions(core, tStart);
 		reapDebris(core);
 		runSystems(core.post, dt);
 		autoRails(core);
@@ -238,10 +251,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 
 	/** One analytic chunk when nothing is in flight. */
 	function railsStep(h: number): void {
+		const tStart = core.t;
 		runSystems(core.pre, h);
 		stepRailsVessels(h);
 		core.t += h;
 		rebaseAll();
+		applySoiTransitions(core, tStart);
 		reapDebris(core);
 		runSystems(core.post, h);
 	}
@@ -262,6 +277,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 					const h = Math.min(core.accumulator, RAILS_MAX_STEP);
 					railsStep(h);
 					core.accumulator -= h;
+				}
+				if (core.warpStopped) {
+					// An SOI change of a controlled vessel: the rest of the time scaled by the old warp is dropped.
+					core.warpStopped = false;
+					core.accumulator = 0;
+					return;
 				}
 			}
 		},

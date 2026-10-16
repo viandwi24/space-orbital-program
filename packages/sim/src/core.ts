@@ -3,7 +3,6 @@
  * package; `sim.ts` builds one and the other files take it as their first argument.
  */
 import type {
-	BodyDefinition,
 	EntityId,
 	EventBus,
 	EventMap,
@@ -12,10 +11,10 @@ import type {
 	ReadonlyRegistries,
 	Rng,
 	SystemDefinition,
-	TerrainField,
 	Vec3,
 	World
 } from '@orbital/core';
+import type { BodyRuntime } from './bodies.ts';
 import {
 	moduleStateToken,
 	PART,
@@ -38,10 +37,10 @@ export interface SimCore {
 	readonly dt: number;
 	readonly rng: Rng;
 	readonly frames: FlightFrame[];
-	/** Heights of the ground above the reference sphere (ADR 0043); absent: the ground is the sphere. */
-	readonly terrain: TerrainField | undefined;
-	/** The root body: gravity source, atmosphere, rotation. */
-	readonly body: { def: BodyDefinition; mu: number; omega: number };
+	/** Every body, by id (ADR 0051); a body's `terrain` is the height function of ADR 0043. */
+	readonly bodies: ReadonlyMap<string, BodyRuntime>;
+	/** The root body of the tree. */
+	readonly root: BodyRuntime;
 	readonly pre: SystemDefinition[];
 	readonly post: SystemDefinition[];
 	/** Detach requests queued by hooks, applied after the hook returns. */
@@ -51,6 +50,8 @@ export interface SimCore {
 	t: number;
 	warp: number;
 	accumulator: number;
+	/** Set by an SOI change of a controlled vessel; `step` then drops the rest of the accumulator (ADR 0051). */
+	warpStopped: boolean;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

@@ -14,6 +14,7 @@ import {
 	SURFACE_REST_SPIN,
 	SURFACE_REST_TIME
 } from './constants.ts';
+import { bodyOfVessel } from './bodies.ts';
 import { frameOfVessel, isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from './frames.ts';
 import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
@@ -26,7 +27,7 @@ export function toRails(core: SimCore, vesselId: EntityId, reason: string): void
 	const vessel = vesselOf(core, vesselId);
 	const frame = frameOfVessel(core, vesselId);
 	if (frame) refreshPose(core, frame, vesselId);
-	vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
+	vessel.rails = computeRails(bodyOfVessel(core, vessel).mu, vessel.com, vessel.velocity, core.t);
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
 	vessel.idle = 0;
@@ -42,7 +43,7 @@ export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string
 	const vessel = vesselOf(core, vesselId);
 	const frame = frameOfVessel(core, vesselId);
 	if (frame) refreshPose(core, frame, vesselId);
-	vessel.rails = surfaceRails(core, vessel.com, vessel.orientation);
+	vessel.rails = surfaceRails(core, bodyOfVessel(core, vessel), vessel.com, vessel.orientation);
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
 	vessel.idle = 0;
@@ -57,7 +58,11 @@ export function wakeBlocker(core: SimCore, vesselId: EntityId): string | undefin
 	if (core.warp > 1) return `time warp is ${core.warp}x; set warp to 1 first`;
 	const motion = motionOf(core, vessel);
 	const joins = core.frames.some(
-		(f) => f.inUse && f.vessels.length > 0 && length(sub(motion.r, f.origin)) < PHYSICS_RANGE
+		(f) =>
+			f.inUse &&
+			f.soi === vessel.soi &&
+			f.vessels.length > 0 &&
+			length(sub(motion.r, f.origin)) < PHYSICS_RANGE
 	);
 	const free = joins || core.frames.some((f) => !f.inUse);
 	return free ? undefined : 'no free physics frame (another vessel is in flight far away)';
@@ -70,14 +75,19 @@ export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 	const blocker = wakeBlocker(core, vesselId);
 	if (blocker) throw new Error(`cannot put vessel ${vesselId} in flight: ${blocker}`);
 	const motion = motionOf(core, vessel);
-	const frame = acquireFrame(core, motion.r, motion.v);
+	const frame = acquireFrame(core, vessel.soi, motion.r, motion.v);
 	if (!frame) throw new Error(`cannot put vessel ${vesselId} in flight: no free physics frame`);
 	const surface = vessel.rails?.kind === 'surface';
 	vessel.com = motion.r;
 	vessel.velocity = motion.v;
 	vessel.orientation = orientationOf(core, vessel);
 	// From the ground, at rest on it: the body turns with the planet (ADR 0024).
-	enterFlight(core, vesselId, frame, surface ? { x: 0, y: core.body.omega, z: 0 } : undefined);
+	enterFlight(
+		core,
+		vesselId,
+		frame,
+		surface ? { x: 0, y: bodyOfVessel(core, vessel).omega, z: 0 } : undefined
+	);
 	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'flight', reason });
 }
@@ -93,7 +103,7 @@ export function railsEligible(
 		vessel.mode === 'flight' &&
 		vessel.idle >= minIdle &&
 		!vessel.landed &&
-		isStableOrbit(core, vessel.com, vessel.velocity)
+		isStableOrbit(bodyOfVessel(core, vessel), vessel.com, vessel.velocity)
 	);
 }
 
@@ -105,11 +115,13 @@ function altitudeAndClimb(
 	core: SimCore,
 	id: EntityId
 ): { alt: number; ground: number; climb: number } {
-	const motion = motionOf(core, vesselOf(core, id));
+	const vessel = vesselOf(core, id);
+	const body = bodyOfVessel(core, vessel);
+	const motion = motionOf(core, vessel);
 	const r = length(motion.r);
 	return {
-		alt: r - core.body.def.radius,
-		ground: terrainBelow(core, motion.r) ?? 0,
+		alt: r - body.def.radius,
+		ground: terrainBelow(core, body, motion.r) ?? 0,
 		climb: dot(motion.r, motion.v) / r
 	};
 }
@@ -127,11 +139,10 @@ export function ballisticEligible(
 ): boolean {
 	const vessel = vesselOf(core, vesselId);
 	if (vessel.mode !== 'flight' || vessel.idle < minIdle || vessel.landed) return false;
-	if (isControlled(core, vessel) || isStableOrbit(core, vessel.com, vessel.velocity)) return false;
+	const body = bodyOfVessel(core, vessel);
+	if (isControlled(core, vessel) || isStableOrbit(body, vessel.com, vessel.velocity)) return false;
 	const { alt, ground, climb } = altitudeAndClimb(core, vesselId);
-	return (
-		alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (core.body.def.atmosphere?.height ?? 0))
-	);
+	return alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (body.def.atmosphere?.height ?? 0));
 }
 
 /**
@@ -142,7 +153,7 @@ export function ballisticEligible(
 export function trackRest(core: SimCore, frame: FlightFrame, vesselId: EntityId, dt: number): void {
 	const vessel = vesselOf(core, vesselId);
 	const body = frame.bodies.get(vesselId);
-	const omega = { x: 0, y: core.body.omega, z: 0 };
+	const omega = { x: 0, y: bodyOfVessel(core, vessel).omega, z: 0 };
 	const still =
 		body !== undefined &&
 		vessel.landed &&
@@ -181,14 +192,15 @@ export function autoRails(core: SimCore): void {
  * removed. Decided from state and `t` only, so replays agree.
  */
 export function reapDebris(core: SimCore): void {
-	const top = core.body.def.atmosphere?.height ?? 0;
-	const omega = { x: 0, y: core.body.omega, z: 0 };
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
 		if (isControlled(core, vessel)) continue;
+		const body = bodyOfVessel(core, vessel);
+		const top = body.def.atmosphere?.height ?? 0;
+		const omega = { x: 0, y: body.omega, z: 0 };
 		if (vessel.mode === 'on-rails') {
 			const motion = motionOf(core, vessel);
-			if (isStableOrbit(core, motion.r, motion.v)) continue;
+			if (isStableOrbit(body, motion.r, motion.v)) continue;
 			const { alt, ground, climb } = altitudeAndClimb(core, id);
 			if (alt <= ground || (alt < top && climb < 0)) {
 				destroyVessel(core, id, 'debris re-entered the atmosphere');

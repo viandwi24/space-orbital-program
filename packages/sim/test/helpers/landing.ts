@@ -13,6 +13,12 @@ import { clamp, createAttitude, rotate, UP_Y } from './attitude.ts';
 export interface LandingOptions {
 	/** Distance from the root part's origin down to the foot soles with the legs deployed, m. */
 	rootToFoot: number;
+	/** Id of the body to land on (default: the root body). */
+	body?: string;
+	/** Tilt per m/s of horizontal speed in the final descent, rad (default 0.03; capped at 0.3 times the same ratio). */
+	leanGain?: number;
+	/** Share of the available deceleration the final descent plans on (default 1; less leaves margin for a strong engine). */
+	margin?: number;
 	/** Usable fraction of the vacuum thrust used in the guidance law. */
 	thrust: number;
 	/** Height at which the legs are deployed, m. */
@@ -31,7 +37,9 @@ export const defaultLanding: LandingOptions = {
 export type LandingPhase = 'brake' | 'final' | 'touchdown' | 'done';
 
 export function createLanding(sim: Sim, vessel: EntityId, opts: LandingOptions = defaultLanding) {
-	const home = sim.registries.bodies.list().find((b) => b.parent === undefined)!;
+	const home = opts.body
+		? sim.registries.bodies.get(opts.body)!
+		: sim.registries.bodies.list().find((b) => b.parent === undefined)!;
 	const mu = GRAVITATIONAL_CONSTANT * home.mass;
 	const omega = (2 * Math.PI) / home.rotationPeriod;
 	const attitude = createAttitude(sim, vessel);
@@ -101,10 +109,11 @@ export function createLanding(sim: Sim, vessel: EntityId, opts: LandingOptions =
 			// Follow a stopping profile: the speed from which half the net deceleration still brings
 			// the vessel to rest at the ground. Above it the engine is off (free fall); hold the
 			// vertical, damp the horizontal.
-			const net = Math.max(aMax - g, 1);
+			const net = Math.max((aMax - g) * (opts.margin ?? 1), 1);
 			const target = -clamp(Math.sqrt(net * Math.max(height - 1, 0)), 1, 400);
 			const aCmd = g + 3 * (target - vv);
-			const lean = Math.min(0.3, 0.03 * length(vh));
+			const gain = opts.leanGain ?? 0.03;
+			const lean = Math.min(10 * gain, gain * length(vh));
 			heading = normalize(add(up, length(vh) > 1e-6 ? scale(vh, -lean / length(vh)) : up));
 			const tilt = dot(heading, up);
 			throttle = clamp(aCmd / (aMax * Math.max(tilt, 0.5)), 0, 1);

@@ -1,6 +1,12 @@
 /** Plan 043 / ADR 0050: reading saves at the sim boundary - the v1 fixture, damage, missing content. */
 import { describe, expect, test } from 'bun:test';
-import { parseSimSave, SaveError, simSaveChecksum, type SimSave } from '@orbital/core';
+import {
+	parseSimSave,
+	SaveError,
+	SIM_SAVE_VERSION,
+	simSaveChecksum,
+	type SimSave
+} from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
 import fixture from './fixtures/save-v1.json';
@@ -27,9 +33,12 @@ const reason = async (promise: Promise<unknown>): Promise<{ code: string; messag
 };
 
 describe('the frozen format-1 fixture', () => {
-	test('is read as it is (the migration chain has nothing to do yet) and resumes', async () => {
+	test('is migrated to the current format (plan 044) and resumes', async () => {
 		const parsed = parseSimSave(JSON.stringify(fixture));
-		expect(parsed.formatVersion).toBe(1);
+		expect(fixture.formatVersion).toBe(1);
+		expect(parsed.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(parsed.bodies).toEqual(['stock.home']);
+		expect(parsed.frames.every((f) => f.soi === 'stock.home')).toBe(true);
 		const sim = await resume(fixture);
 		const vessels = sim.snapshot().vessels;
 		expect(vessels.map((v) => v.mode).sort()).toEqual(['flight', 'on-rails']);
@@ -39,9 +48,15 @@ describe('the frozen format-1 fixture', () => {
 		expect(sim.snapshot().vessels).toHaveLength(2);
 	});
 
-	test('continues exactly where its writer would have: a sim saved from it saves the same bytes', async () => {
+	test('continues exactly where its writer would have: a sim saved from it saves the migrated data', async () => {
 		const sim = await resume(fixture);
-		expect(JSON.stringify(sim.save())).toBe(JSON.stringify(fixture));
+		const migrated = parseSimSave(JSON.stringify(fixture));
+		const { checksum: _a, apiVersion: _b, bodies: oldBodies, ...expected } = migrated;
+		const { checksum: _c, apiVersion: _d, bodies, ...actual } = sim.save();
+		expect(actual).toEqual(expected);
+		// The old save listed the home planet only; the sim that continues it knows the moon too.
+		expect(oldBodies).toEqual(['stock.home']);
+		expect(bodies).toEqual(['stock.home', 'stock.cinder']);
 	});
 });
 

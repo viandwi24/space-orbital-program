@@ -19,7 +19,8 @@ import {
 	type SimCore
 } from './core.ts';
 import { partPose, partVelocity } from './frames.ts';
-import { ZERO, qAboutY, qMul, qRotate } from './math.ts';
+import { bodyOfVessel, systemPosition } from './bodies.ts';
+import { qAboutY, qMul, qRotate } from './math.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { terrainUnder } from './terrain.ts';
 
@@ -88,19 +89,20 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		reference: vessel.sas.reference,
 		error: vessel.sas.error
 	};
-	if (core.terrain) snapshot.terrainHeight = terrainUnder(core, position);
+	const body = bodyOfVessel(core, vessel);
+	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
 	// dip below the surface (ADR 0024).
 	if (vessel.rails?.kind === 'surface') {
 		// The root part's velocity, like a flight vessel's (the orbital branch reports the COM's).
-		snapshot.velocity = cross({ x: 0, y: core.body.omega, z: 0 }, position);
+		snapshot.velocity = cross({ x: 0, y: body.omega, z: 0 }, position);
 		snapshot.surface = true;
 		return snapshot;
 	}
 	const orbit =
 		vessel.rails?.kind === 'elements'
 			? vessel.rails.elements
-			: elementsOf(core.body.mu, motion.r, motion.v, core.t);
+			: elementsOf(body.mu, motion.r, motion.v, core.t);
 	if (orbit) snapshot.orbit = orbit;
 	return snapshot;
 }
@@ -109,12 +111,10 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
-		bodies: [
-			{
-				id: bodyId(core.body.def.id),
-				position: { ...ZERO },
-				rotation: qAboutY(core.body.omega * core.t)
-			}
-		]
+		bodies: [...core.bodies.values()].map((body) => ({
+			id: bodyId(body.def.id),
+			position: systemPosition(body, core.t),
+			rotation: qAboutY(body.omega * core.t)
+		}))
 	};
 }

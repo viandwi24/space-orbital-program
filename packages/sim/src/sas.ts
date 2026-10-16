@@ -6,6 +6,7 @@
  */
 import type { EntityId, Quat, SasMode, Vec3 } from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
+import { bodyOfVessel } from './bodies.ts';
 import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts';
 import { makeContext } from './hooks.ts';
@@ -52,12 +53,12 @@ export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !==
  * along the reference velocity, normal along `r x v` of the inertial state, radial along `r`.
  */
 export function targetDirection(
-	core: SimCore,
+	omega: number,
 	sas: Pick<SasState, 'mode' | 'reference'>,
 	r: Vec3,
 	v: Vec3
 ): Vec3 | undefined {
-	const surface = sub(v, cross({ x: 0, y: core.body.omega, z: 0 }, r));
+	const surface = sub(v, cross({ x: 0, y: omega, z: 0 }, r));
 	const ref = sas.reference === 'surface' ? surface : v;
 	const along = (d: Vec3, sign: number): Vec3 | undefined =>
 		length(d) < MIN_SPEED ? undefined : scale(normalize(d), sign);
@@ -199,7 +200,7 @@ export function stepSas(
 			if (length(omega) < LATCH_RATE) sas.settling = false;
 		} else error = holdError(orientation, sas.hold);
 	} else {
-		const d = targetDirection(core, sas, vessel.com, vessel.velocity);
+		const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, vessel.com, vessel.velocity);
 		if (d) error = pointError(orientation, d);
 		else settle = true;
 	}
@@ -258,7 +259,7 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	if (!isPointing(sas.mode) || vessel.rails === null || vessel.rails.kind === 'surface') return;
 	if (!isControlled(core, vessel)) return;
 	const { r, v } = motionOf(core, vessel);
-	const d = targetDirection(core, sas, r, v);
+	const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, r, v);
 	if (!d) return;
 	const nose = qRotate(vessel.orientation, NOSE);
 	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));

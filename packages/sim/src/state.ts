@@ -185,6 +185,8 @@ export interface FlightFrame {
 	readonly id: number;
 	readonly backend: PhysicsBackend;
 	inUse: boolean;
+	/** Id of the body whose body-centred frame `origin` and `velocity` are in (ADR 0051). */
+	soi: string;
 	/** BCI position of the local origin, m. */
 	origin: Vec3;
 	/** BCI velocity of the local frame, m/s; local velocities are relative to it. */

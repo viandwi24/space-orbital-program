@@ -12,6 +12,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import { add, cross, normalize, scale, sub } from '@orbital/kepler';
+import { bodyOfVessel } from './bodies.ts';
 import {
 	designCom,
 	frameOfVessel,
@@ -103,7 +104,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 	const state: VesselState = {
 		name: design.name,
 		mode: 'on-rails',
-		soi: core.body.def.id,
+		soi: core.root.def.id,
 		root: byIndex.get(resolved.root)!,
 		parts,
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
@@ -154,7 +155,8 @@ export function placeOnSurface(
 	longitude: number
 ): void {
 	const vessel = vesselOf(core, vesselId);
-	const radial = qRotate(qAboutY(core.body.omega * core.t), {
+	const body = bodyOfVessel(core, vessel);
+	const radial = qRotate(qAboutY(body.omega * core.t), {
 		x: Math.cos(latitude) * Math.cos(longitude),
 		y: Math.sin(latitude),
 		z: -Math.cos(latitude) * Math.sin(longitude)
@@ -162,7 +164,7 @@ export function placeOnSurface(
 	// On terrain (ADR 0043) the vessel stands on the ground plane under it, nose along its normal
 	// (a lander on a hillside, not a stack falling over onto it); on the sphere and in the flat
 	// zone around the launch site the normal is the radial and nothing changes.
-	const ground = groundPlane(core, radial);
+	const ground = groundPlane(core, body, radial);
 	const up = ground.normal;
 	const eastRaw = cross({ x: 0, y: 1, z: 0 }, up);
 	const east =
@@ -172,7 +174,7 @@ export function placeOnSurface(
 	const rootOrigin = add(ground.point, scale(up, rootDesign.y - lowestPoint(core, vessel.parts)));
 	const offset = qRotate(vessel.orientation, sub(designCom(core, vessel.parts), rootDesign));
 	vessel.com = add(rootOrigin, offset);
-	vessel.velocity = cross({ x: 0, y: core.body.omega, z: 0 }, vessel.com);
+	vessel.velocity = cross({ x: 0, y: body.omega, z: 0 }, vessel.com);
 }
 
 export function placeAtState(
@@ -371,9 +373,14 @@ function splitAt(
 	} else {
 		// A piece that stays with a vessel standing on the ground stays on the ground (ADR 0024).
 		vessel.rails = wasOnSurface
-			? surfaceRails(core, vessel.com, vessel.orientation)
-			: computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
-		newState.rails = computeRails(core.body.mu, newState.com, newState.velocity, core.t);
+			? surfaceRails(core, bodyOfVessel(core, vessel), vessel.com, vessel.orientation)
+			: computeRails(bodyOfVessel(core, vessel).mu, vessel.com, vessel.velocity, core.t);
+		newState.rails = computeRails(
+			bodyOfVessel(core, vessel).mu,
+			newState.com,
+			newState.velocity,
+			core.t
+		);
 	}
 	core.events.emit('vessel:created', { vessel: newId, from: vesselId });
 	return newId;
@@ -465,7 +472,12 @@ function applyKicks(core: SimCore, kicks: Array<{ parts: EntityId[]; dv: Vec3 }>
 			vessel.velocity = add(vessel.velocity, dv);
 		} else if (vessel.rails && vessel.rails.kind !== 'surface') {
 			vessel.velocity = add(vessel.velocity, dv);
-			vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
+			vessel.rails = computeRails(
+				bodyOfVessel(core, vessel).mu,
+				vessel.com,
+				vessel.velocity,
+				core.t
+			);
 		}
 	}
 }

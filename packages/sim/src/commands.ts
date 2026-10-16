@@ -10,6 +10,7 @@ import {
 	type CommandResult,
 	type EntityId
 } from '@orbital/core';
+import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
 import {
 	hasFlightVessels,
@@ -78,11 +79,15 @@ function loadVessel(
 	const resolved = resolveVesselDesign(command.design, core.registries.parts);
 	if (!resolved.ok) return refuse(`invalid design: ${resolved.errors.join('; ')}`);
 	const placement = command.placement ?? { kind: 'surface' };
-	if (placement.body !== undefined && placement.body !== core.body.def.id) {
-		return refuse(`unknown body "${placement.body}"; this sim has "${core.body.def.id}"`);
+	if (placement.body !== undefined && !core.bodies.has(placement.body)) {
+		return refuse(
+			`unknown body "${placement.body}"; this sim has ${[...core.bodies.keys()].map((b) => `"${b}"`).join(', ')}`
+		);
 	}
 	const id = spawnVessel(core, command.design, resolved);
 	const vessel = vesselOf(core, id);
+	vessel.soi = placement.body ?? core.root.def.id;
+	const body = bodyOfVessel(core, vessel);
 	if (placement.kind === 'surface') {
 		placeOnSurface(core, id, placement.latitude ?? 0, placement.longitude ?? 0);
 	} else {
@@ -94,11 +99,12 @@ function loadVessel(
 			qNormalize(placement.orientation ?? IDENTITY)
 		);
 	}
-	const onRails = placement.kind === 'state' && isStableOrbit(core, vessel.com, vessel.velocity);
+	const onRails = placement.kind === 'state' && isStableOrbit(body, vessel.com, vessel.velocity);
 	if (onRails) {
-		vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
+		vessel.rails = computeRails(body.mu, vessel.com, vessel.velocity, core.t);
 	} else {
-		const frame = core.warp > 1 ? undefined : acquireFrame(core, vessel.com, vessel.velocity);
+		const frame =
+			core.warp > 1 ? undefined : acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
 		if (!frame) {
 			destroyVessel(core, id, 'could not be placed');
 			return refuse(
