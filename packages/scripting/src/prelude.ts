@@ -6,9 +6,12 @@
  *
  * The source must not contain backticks or `${`: it lives in a template literal.
  */
-export const PRELUDE = String.raw`(function (host, seed) {
+export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	'use strict';
 	let T = null;
+	let refusals = [];
+	// seq -> { kind, resolve }: commands waiting for the host's verdict (plan 032).
+	const sent = new Map();
 	let s = seed >>> 0;
 	let waiters = [];
 	let tickWaiters = [];
@@ -23,6 +26,21 @@ export const PRELUDE = String.raw`(function (host, seed) {
 		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
 		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 	};
+
+	// Date reads the simulation clock, not the wall clock: a replay of a script is the same run.
+	// The native Date stays in this closure; the prototype's constructor points at the replacement.
+	const NativeDate = Date;
+	const simNow = () => (T === null ? 0 : Math.floor(T.t * 1000));
+	function SimDate(...args) {
+		if (!new.target) return new NativeDate(simNow()).toString();
+		return Reflect.construct(NativeDate, args.length === 0 ? [simNow()] : args, new.target === SimDate ? NativeDate : new.target);
+	}
+	SimDate.prototype = NativeDate.prototype;
+	Object.defineProperty(NativeDate.prototype, 'constructor', { value: SimDate, writable: true, configurable: true });
+	SimDate.now = simNow;
+	SimDate.parse = NativeDate.parse;
+	SimDate.UTC = NativeDate.UTC;
+	Object.defineProperty(globalThis, 'Date', { value: SimDate, writable: false, configurable: false });
 
 	const fixed = (name, value) =>
 		Object.defineProperty(globalThis, name, { value, writable: false, configurable: false, enumerable: true });
@@ -40,13 +58,37 @@ export const PRELUDE = String.raw`(function (host, seed) {
 		}
 	};
 
+	const freeze = (o) => {
+		for (const key of Object.keys(o)) if (typeof o[key] === 'object' && o[key] !== null) freeze(o[key]);
+		return Object.freeze(o);
+	};
+	const bodies = freeze(JSON.parse(bodiesJson));
+
+	// Commands whose outcome the script can await. A command that was not sent (a repeated
+	// setpoint) is fine by definition.
+	const request = (kind, payload) => {
+		const seq = host.cmd(kind, payload);
+		if (seq < 0) return Promise.resolve({ ok: true });
+		return new Promise((resolve) => {
+			sent.set(seq, { kind, resolve });
+			if (sent.size > 512) sent.delete(sent.keys().next().value);
+		});
+	};
+
+	// Setters have no result to await; a refusal shows up in ship.refusals on a later tick.
+	const track = (kind, seq) => {
+		if (seq < 0) return;
+		sent.set(seq, { kind, resolve: null });
+		if (sent.size > 512) sent.delete(sent.keys().next().value);
+	};
+
 	const ship = {};
 	Object.defineProperty(ship, 'throttle', {
 		enumerable: true,
 		get: () => throttle,
 		set: (value) => {
 			if (typeof value !== 'number') throw new TypeError('ship.throttle must be a number');
-			host.cmd('throttle', JSON.stringify({ value }));
+			track('throttle', host.cmd('throttle', JSON.stringify({ value })));
 			throttle = value;
 		}
 	});
@@ -56,7 +98,7 @@ export const PRELUDE = String.raw`(function (host, seed) {
 		set: (v) => {
 			if (typeof v !== 'object' || v === null) throw new TypeError('ship.attitude must be { pitch, yaw, roll }');
 			const next = { pitch: v.pitch === undefined ? 0 : v.pitch, yaw: v.yaw === undefined ? 0 : v.yaw, roll: v.roll === undefined ? 0 : v.roll };
-			host.cmd('attitude', JSON.stringify(next));
+			track('attitude', host.cmd('attitude', JSON.stringify(next)));
 			attitude = next;
 		}
 	});
@@ -78,17 +120,29 @@ export const PRELUDE = String.raw`(function (host, seed) {
 	fixed('nextTick', nextTick);
 	fixed('waitUntil', waitUntil);
 	fixed('time', () => needTelemetry().t);
-	fixed('stage', () => host.cmd('stage', '{}'));
+	fixed('stage', () => request('stage', '{}'));
 	fixed('action', (part, module, action, ...args) =>
-		host.cmd('action', JSON.stringify({ part, module, action, args }))
+		request('action', JSON.stringify({ part, module, action, args }))
 	);
+	fixed('warp', (factor) => request('warp', JSON.stringify({ factor })));
+	fixed('bodies', bodies);
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
 
 	return {
-		update(json) {
+		update(json, verdictsJson) {
 			T = JSON.parse(json);
+			refusals = [];
+			for (const v of JSON.parse(verdictsJson)) {
+				const entry = sent.get(v.seq);
+				if (entry === undefined) continue;
+				sent.delete(v.seq);
+				if (!v.ok) refusals.push({ command: entry.kind, reason: String(v.reason || 'refused') });
+				if (entry.resolve) entry.resolve(v.ok ? { ok: true } : { ok: false, reason: String(v.reason || 'refused') });
+			}
+			Object.freeze(refusals);
 			if (!defined) {
 				defined = true;
+				Object.defineProperty(ship, 'refusals', { enumerable: true, get: () => refusals });
 				for (const key of Object.keys(T)) {
 					Object.defineProperty(ship, key, { enumerable: true, get: () => T[key] });
 				}

@@ -4,7 +4,13 @@
  * host dispatches the commands, so the same runner works in-process, in a Worker or over the web
  * protocol.
  */
-import { commandSchema, entityId, type Command, type Snapshot } from '@orbital/core';
+import {
+	GRAVITATIONAL_CONSTANT,
+	commandSchema,
+	entityId,
+	type Command,
+	type Snapshot
+} from '@orbital/core';
 import type {
 	QuickJSContext,
 	QuickJSHandle,
@@ -30,6 +36,13 @@ export interface ScriptRunnerOptions extends ScriptEnvironment {
 	memoryLimitBytes?: number;
 	/** Guest stack limit, bytes. Default 256 KiB. */
 	maxStackBytes?: number;
+	/**
+	 * Deterministic work budget per tick: the number of times the engine polls the interrupt handler
+	 * (about once per 10 000 bytecode operations; plan 032). A tick that polls more is terminated
+	 * with the same error on every machine, however busy, and a replay ends where it ended before.
+	 * The wall-clock `budgetMs` still applies as the backstop. Default: no fuel limit.
+	 */
+	fuelPolls?: number;
 	/** Seed of the guest's `Math.random`. Default 1. */
 	seed?: number;
 	/** Wall clock in ms, used only by the budget. Default `Date.now`. */
@@ -45,9 +58,20 @@ export interface ScriptRunnerOptions extends ScriptEnvironment {
  */
 export type ScriptStatus = 'running' | 'finished' | 'failed' | 'terminated';
 
+/** The host's answer to a command an earlier tick issued (plan 032, ADR 0039). */
+export interface CommandVerdict {
+	/** The `seqs` entry of the command. */
+	seq: number;
+	ok: boolean;
+	/** Why it was refused, when `ok` is false. */
+	reason?: string;
+}
+
 export interface TickResult {
 	/** Validated commands issued during this tick, in order. */
 	commands: Command[];
+	/** Sequence number of each command (same order); `tick` takes the verdicts for them next time. */
+	seqs: number[];
 	status: ScriptStatus;
 	/** Wall time spent in the guest during this tick, ms. */
 	elapsedMs: number;
@@ -61,11 +85,20 @@ export interface ScriptRunner {
 	readonly errorLine: number | undefined;
 	/** `print()` output, oldest first (capped at the last 1000 lines). */
 	readonly logs: readonly string[];
-	/** Advance the script to `snapshot.t`. Call after every `sim.step` and dispatch the commands. */
-	tick(snapshot: Snapshot): TickResult;
+	/**
+	 * Advance the script to `snapshot.t`. Call after every `sim.step` and dispatch the commands.
+	 * `verdicts` answers commands of earlier ticks (by `seqs`): promises of `stage()`, `action()`
+	 * and `warp()` settle and `ship.refusals` lists the refused ones.
+	 */
+	tick(snapshot: Snapshot, verdicts?: readonly CommandVerdict[]): TickResult;
 	/** Free the QuickJS runtime. Idempotent. */
 	dispose(): void;
 }
+
+/** Highest factor a script may ask for: the top step of the HUD (ADR 0039). */
+export const MAX_SCRIPT_WARP = 100_000;
+/** `cmd` result for a command that was not sent (a repeated setpoint). */
+const NOT_SENT = -1;
 
 const MAX_LOG_LINES = 1000;
 const MAX_LOG_CHARS = 1000;
@@ -104,6 +137,24 @@ class GuestError extends Error {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
+/** The `bodies` global: what a script may know about every body in the registry. */
+function bodiesOf(env: ScriptEnvironment): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	for (const b of env.bodies) {
+		out[String(b.id)] = {
+			id: String(b.id),
+			radius: b.radius,
+			mass: b.mass,
+			mu: GRAVITATIONAL_CONSTANT * b.mass,
+			rotationPeriod: b.rotationPeriod,
+			...(b.atmosphere ? { atmosphere: { ...b.atmosphere } } : {}),
+			...(b.parent === undefined ? {} : { parent: String(b.parent) }),
+			...(b.orbit ? { orbit: { ...b.orbit } } : {})
+		};
+	}
+	return out;
+}
+
 /**
  * Build a runner for `source` (the body of an async function, so `await wait(1)` works at top
  * level) in a WASM module the host built itself. A bundled host (the web client's Worker, plan 015
@@ -126,10 +177,19 @@ export async function createScriptRunnerIn(
 	runtime.setMaxStackSize(options.maxStackBytes ?? 256 * 1024);
 	const context: QuickJSContext = runtime.newContext();
 
+	const fuelPolls = options.fuelPolls ?? Infinity;
+	let polls = 0;
+	let fuelOut = false;
 	let deadline = Infinity;
 	/** The budget of the tick in progress (the first tick may have a larger one). */
 	let allowance = firstTickBudgetMs;
-	runtime.setInterruptHandler(() => now() > deadline);
+	runtime.setInterruptHandler(() => {
+		if (++polls > fuelPolls) {
+			fuelOut = true;
+			return true;
+		}
+		return now() > deadline;
+	});
 
 	let status: ScriptStatus = 'running';
 	let error: string | undefined;
@@ -137,6 +197,8 @@ export async function createScriptRunnerIn(
 	let started = false;
 	let disposed = false;
 	let pending: Command[] = [];
+	let pendingSeqs: number[] = [];
+	let nextSeq = 1;
 	let lastThrottle: number | undefined;
 	let lastAttitude: string | undefined;
 	const logs: string[] = [];
@@ -176,7 +238,7 @@ export async function createScriptRunnerIn(
 	 * fixed by the runner) and validates it with core's `commandSchema`; a bad value throws into
 	 * the script, so the script sees a normal exception and nothing invalid reaches the sim.
 	 */
-	function issue(kind: string, payload: string): void {
+	function issue(kind: string, payload: string): number {
 		let p: unknown;
 		try {
 			p = JSON.parse(payload);
@@ -205,6 +267,12 @@ export async function createScriptRunnerIn(
 					args: p.args
 				};
 				break;
+			case 'warp':
+				if (typeof p.factor === 'number' && p.factor > MAX_SCRIPT_WARP) {
+					throw new RangeError(`warp: factor must be 1 to ${MAX_SCRIPT_WARP}`);
+				}
+				candidate = { type: 'warp', factor: p.factor };
+				break;
 			default:
 				throw new Error(`unknown command "${kind}"`);
 		}
@@ -215,14 +283,17 @@ export async function createScriptRunnerIn(
 		const command = parsed.data;
 		// A repeated setpoint is not news: one tick of `ship.throttle = 1` loops costs no commands.
 		if (command.type === 'throttle') {
-			if (command.value === lastThrottle) return;
+			if (command.value === lastThrottle) return NOT_SENT;
 			lastThrottle = command.value;
 		} else if (command.type === 'attitude') {
 			const key = `${command.pitch},${command.yaw},${command.roll}`;
-			if (key === lastAttitude) return;
+			if (key === lastAttitude) return NOT_SENT;
 			lastAttitude = key;
 		}
+		const seq = nextSeq++;
 		pending.push(command);
+		pendingSeqs.push(seq);
+		return seq;
 	}
 
 	function print(line: string): void {
@@ -235,7 +306,12 @@ export async function createScriptRunnerIn(
 	/** Classify a guest error: resource exhaustion terminates, anything else is a script failure. */
 	function settle(e: GuestError): void {
 		if (e.guestName === 'InternalError' && e.message === 'interrupted') {
-			stop('terminated', `time budget exceeded (${allowance} ms per tick)`);
+			stop(
+				'terminated',
+				fuelOut
+					? `work budget exceeded (${fuelPolls} interrupt polls per tick)`
+					: `time budget exceeded (${allowance} ms per tick)`
+			);
 		} else if (e.guestName === 'InternalError' && /out of memory/i.test(e.message)) {
 			stop('terminated', 'memory limit exceeded');
 		} else {
@@ -259,7 +335,11 @@ export async function createScriptRunnerIn(
 		context.setProp(host, name, h);
 		h.dispose();
 	};
-	bind('cmd', (kind, payload) => issue(context.getString(kind), context.getString(payload)));
+	const cmd = context.newFunction('cmd', (kind, payload) =>
+		context.newNumber(issue(context.getString(kind), context.getString(payload)))
+	);
+	context.setProp(host, 'cmd', cmd);
+	cmd.dispose();
 	bind('print', (line) => print(context.getString(line)));
 	bind('done', (ok, name, message, stack) => {
 		if (context.dump(ok) === true) status = 'finished';
@@ -276,8 +356,10 @@ export async function createScriptRunnerIn(
 	const preludeResult = context.evalCode(PRELUDE, 'prelude.js');
 	const prelude = own(context.unwrapResult(preludeResult));
 	const seed = context.newNumber(options.seed ?? 1);
-	const apiResult = context.callFunction(prelude, context.undefined, host, seed);
+	const bodiesJson = context.newString(JSON.stringify(bodiesOf(options)));
+	const apiResult = context.callFunction(prelude, context.undefined, host, seed, bodiesJson);
 	seed.dispose();
+	bodiesJson.dispose();
 	const api = own(context.unwrapResult(apiResult));
 	const update = own(context.getProp(api, 'update'));
 	const start = own(context.getProp(api, 'start'));
@@ -304,13 +386,15 @@ export async function createScriptRunnerIn(
 		}
 	}
 
-	function runTick(snapshot: Snapshot): void {
+	function runTick(snapshot: Snapshot, verdicts: readonly CommandVerdict[]): void {
 		const json = JSON.stringify(buildTelemetry(snapshot, options.vessel, options));
 		const arg = context.newString(json);
+		const answers = context.newString(JSON.stringify(verdicts));
 		try {
-			call(update, arg);
+			call(update, arg, answers);
 		} finally {
 			arg.dispose();
+			answers.dispose();
 		}
 		if (!started) {
 			started = true;
@@ -341,16 +425,18 @@ export async function createScriptRunnerIn(
 		get logs() {
 			return logs;
 		},
-		tick(snapshot) {
+		tick(snapshot, verdicts = []) {
 			if (disposed || status !== 'running') {
-				return { commands: [], status, elapsedMs: 0 };
+				return { commands: [], seqs: [], status, elapsedMs: 0 };
 			}
 			const began = now();
 			allowance = started ? budgetMs : firstTickBudgetMs;
 			deadline = began + allowance;
+			polls = 0;
 			pending = [];
+			pendingSeqs = [];
 			try {
-				runTick(snapshot);
+				runTick(snapshot, verdicts);
 			} catch (e) {
 				if (e instanceof GuestError) {
 					settle(e);
@@ -364,8 +450,10 @@ export async function createScriptRunnerIn(
 			const elapsedMs = now() - began;
 			if (current() !== 'running') dispose();
 			const commands = pending;
+			const seqs = pendingSeqs;
 			pending = [];
-			return { commands, status: current(), elapsedMs };
+			pendingSeqs = [];
+			return { commands, seqs, status: current(), elapsedMs };
 		},
 		dispose
 	};

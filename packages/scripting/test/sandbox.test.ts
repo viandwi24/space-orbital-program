@@ -101,10 +101,10 @@ test('the host bridge is not reachable: ship has only the documented surface', a
 	`);
 	// Lower-case globals: ECMAScript functions plus the documented script API, nothing else.
 	expect(lines[0]).toBe(
-		'action,decodeURI,decodeURIComponent,encodeURI,encodeURIComponent,escape,eval,globalThis,isFinite,isNaN,nextTick,parseFloat,parseInt,print,ship,stage,time,undefined,unescape,wait,waitUntil'
+		'action,bodies,decodeURI,decodeURIComponent,encodeURI,encodeURIComponent,escape,eval,globalThis,isFinite,isNaN,nextTick,parseFloat,parseInt,print,ship,stage,time,undefined,unescape,wait,waitUntil,warp'
 	);
 	expect(lines[1]).toBe(
-		'altitude,apoapsis,attitude,body,bodyRadius,eccentricity,engines,inertia,mass,mode,mu,nose,orbit,orientation,parts,periapsis,position,speed,t,throttle,up,velocity,wheels'
+		'altitude,apoapsis,attitude,body,bodyRadius,eccentricity,engines,inertia,mass,mode,mu,nose,orbit,orientation,parts,periapsis,position,refusals,speed,t,throttle,up,velocity,wheels'
 	);
 	expect(lines[2]).toBe('true');
 });
@@ -118,6 +118,6 @@ test('a script cannot address another vessel or issue sim-wide commands', async 
 	const result = runner.tick(rig.sim.snapshot());
 	const vessel = rig.sim.snapshot().vessels[0]!.id;
 	expect(result.commands.every((c) => 'vessel' in c && c.vessel === vessel)).toBe(true);
-	expect(result.commands.map((c) => c.type)).not.toContain('warp');
+	// `warp(f)` is the one command without a vessel (ADR 0039); the host gates it.
 	expect(result.commands.map((c) => c.type)).not.toContain('load-vessel');
 });

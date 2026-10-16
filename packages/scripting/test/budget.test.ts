@@ -95,7 +95,7 @@ test('firstTickBudgetMs gives only the first tick a larger budget (cold WASM, AD
 	const rig = await newRig();
 	// ~30 ms of work per tick: the first tick (5 s allowance) survives, the second (10 ms) does not.
 	const busy = `
-		const spin = () => { const end = Date.now() + 30; while (Date.now() < end) {} };
+		const spin = () => { for (let i = 0; i < 4e6; i++) {} };
 		spin(); await nextTick(); spin();
 	`;
 	const runner = await rig.runner(busy, { budgetMs: 10, firstTickBudgetMs: 5_000 });
