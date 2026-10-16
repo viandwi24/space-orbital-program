@@ -44,3 +44,18 @@ export const DESTROY_FACTOR = 2;
 export const DEBRIS_REST_TIME = 10;
 /** ... when its speed relative to the rotating ground is below this, m/s. */
 export const DEBRIS_REST_SPEED = 0.1;
+
+/** Stefan-Boltzmann constant, W/(m²·K⁴) (exact since the 2019 SI revision). */
+export const STEFAN_BOLTZMANN = 5.670374419e-8;
+/** Grey-body emissivity of every part's skin (ADR 0023). */
+export const EMISSIVITY = 0.8;
+/** Sutton-Graves constant for air, W·s³/(kg^0.5·m^1.5): `q = k·√(ρ/r_n)·v³` (ADR 0023). */
+export const SUTTON_GRAVES_K = 1.74e-4;
+/** Heat capacity per unit surface area of a part's skin, J/(m²·K): 3 mm of aluminium, 2700·900·0.003. */
+export const SKIN_HEAT_CAPACITY = 2_700 * 900 * 0.003;
+/** Temperature of the surroundings a part starts at and radiates towards, K. */
+export const AMBIENT_TEMPERATURE = AIR_TEMPERATURE;
+/** Temperature above which a part that declares no `maxTemperature` fails, K. */
+export const DEFAULT_MAX_TEMPERATURE = 1_000;
+/** Newton iterations of the implicit temperature update (converges in 4-6 from above). */
+export const THERMAL_ITERATIONS = 12;

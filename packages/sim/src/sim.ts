@@ -9,6 +9,7 @@ import {
 	loadPlugins,
 	type Command,
 	type CommandResult,
+	type EntityId,
 	type EventBus,
 	type EventMap,
 	type LoadReport,
@@ -28,7 +29,10 @@ import { runUpdateHooks } from './hooks.ts';
 import { autoRails, reapDebris } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { takeSnapshot } from './snapshot.ts';
-import { damagePart, processPending } from './vessel.ts';
+import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
+import { burnPart, damagePart, processPending } from './vessel.ts';
+
+const NO_HEAT: ReadonlyMap<EntityId, HeatInput> = new Map();
 
 export interface SimOptions {
 	/** Plugins to boot with `loadPlugins`; must register at least one root body. */
@@ -124,6 +128,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		for (const id of vesselIds(core)) {
 			if (vesselOf(core, id).mode !== 'on-rails') continue;
 			runUpdateHooks(core, id, step);
+			stepThermal(core, id, NO_HEAT, step); // radiation only: nothing hits a vessel on rails
 		}
 		processPending(core);
 	};
@@ -134,7 +139,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
 		runSystems(core.pre, dt);
-		for (const frame of core.frames) if (frame.inUse) prepareFrame(core, frame, dt);
+		const overheated: Overheat[] = [];
+		for (const frame of core.frames) {
+			if (frame.inUse) overheated.push(...prepareFrame(core, frame, dt));
+		}
 		for (const frame of core.frames) {
 			if (!frame.inUse) continue;
 			for (const hit of advanceFrame(core, frame, dt)) damagePart(core, hit);
@@ -143,6 +151,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				vessel.idle = core.active.has(id) ? 0 : vessel.idle + dt;
 			}
 		}
+		for (const hit of overheated) burnPart(core, hit);
 		// Splits requested by `update` hooks are applied after the backend step: rebuilding bodies
 		// earlier would drop the forces already queued for this step (ADR 0018).
 		processPending(core);

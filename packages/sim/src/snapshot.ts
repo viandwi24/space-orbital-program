@@ -51,7 +51,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				definition: partId(partOf(core, partEntity).definition),
 				position: sub(pose.position, root.position),
 				orientation: pose.rotation,
-				modules: moduleViews(core, partEntity)
+				modules: moduleViews(core, partEntity),
+				temperature: partOf(core, partEntity).temperature
 			});
 		}
 	} else {
@@ -67,7 +68,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				definition: partId(p.definition),
 				position: qRotate(orientation, sub(p.designPos, rootDesign)),
 				orientation,
-				modules: moduleViews(core, partEntity)
+				modules: moduleViews(core, partEntity),
+				temperature: p.temperature
 			});
 		}
 	}

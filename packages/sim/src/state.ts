@@ -73,6 +73,8 @@ export interface PartState {
 	/** Origin in the design frame (design root at the origin), m. Never changes. */
 	designPos: Vec3;
 	attachments: Attachment[];
+	/** Skin temperature, K (ADR 0023). */
+	temperature: number;
 	/** Module instances in definition order, with parsed configs. */
 	modules: Array<{ id: string; config: unknown }>;
 }

@@ -21,20 +21,26 @@ async function land() {
 	const start = sim.snapshot().vessels[0]!;
 	sim.dispatch({ type: 'stage', vessel: id }); // light the engine
 	const landing = createLanding(sim, id);
-	while (sim.time < 3_000 && landing.phase !== 'done') {
+	let peak = 0; // hottest part skin over the whole descent, K (plan 014)
+	for (let i = 0; sim.time < 3_000 && landing.phase !== 'done'; i++) {
 		sim.step(0.02);
 		landing.update();
+		if (i % 25 === 0) {
+			for (const v of sim.snapshot().vessels) {
+				for (const p of v.parts) peak = Math.max(peak, p.temperature ?? 0);
+			}
+		}
 	}
-	return { sim, id, start, landing, damaged, wall: performance.now() - started };
+	return { sim, id, start, landing, damaged, peak, wall: performance.now() - started };
 }
 
 test('a lander flown from a stable 100 km orbit ends at rest, upright, on its legs, with every part', async () => {
-	const { sim, id, start, landing, damaged, wall } = await land();
+	const { sim, id, start, landing, damaged, peak, wall } = await land();
 	const v = sim.snapshot().vessels.find((s) => s.id === id)!;
 	console.log(
 		`landing: ${landing.log.map((l) => `${l.t.toFixed(0)} s ${l.note}`).join(' | ')}; ` +
 			`rest speed ${length(groundRelativeVelocity(v)).toExponential(2)} m/s, tilt ${tiltDegrees(v).toFixed(2)} deg, ` +
-			`sim ${sim.time.toFixed(0)} s, wall ${wall.toFixed(0)} ms`
+			`peak skin ${peak.toFixed(0)} K, sim ${sim.time.toFixed(0)} s, wall ${wall.toFixed(0)} ms`
 	);
 	expect(start.mode).toBe('on-rails'); // it started in a stable orbit
 	expect(altitude(start.position)).toBeGreaterThan(99_000);
@@ -43,7 +49,8 @@ test('a lander flown from a stable 100 km orbit ends at rest, upright, on its le
 	expect(length(groundRelativeVelocity(v))).toBeLessThan(0.1);
 	expect(tiltDegrees(v)).toBeLessThan(5);
 	expect(v.parts).toHaveLength(6);
-	expect(damaged).toEqual([]);
+	expect(damaged).toEqual([]); // no impact and, since plan 014, no overheating
+	expect(peak).toBeLessThan(400); // far below every part limit: the braking burn keeps it slow
 	expect(altitude(v.position)).toBeGreaterThan(10); // the root sits about 10.8 m above the ground
 	expect(altitude(v.position)).toBeLessThan(11.5);
 	expect(sim.time).toBeLessThan(3_000);

@@ -41,6 +41,7 @@ import {
 	type SimCore
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
+import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { ZERO, qConj, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf } from './parts.ts';
@@ -273,8 +274,9 @@ export function refreshPose(core: SimCore, frame: FlightFrame, vesselId: EntityI
 }
 
 /** Masses, gravity, module updates and drag for every vessel in the frame (forces for the next backend step). */
-export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): void {
+export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Overheat[] {
 	const { backend } = frame;
+	const overheated: Overheat[] = [];
 	for (const vesselId of frame.vessels.slice()) {
 		const vessel = vesselOf(core, vesselId);
 		core.active.delete(vesselId);
@@ -286,8 +288,9 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): voi
 		backend.applyForce(body.handle, scale(gravityAt(core, centre), body.mass));
 		updateTile(core, frame, vesselId, centre);
 		runUpdateHooks(core, vesselId, dt);
-		applyDrag(core, frame, vesselId);
+		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));
 	}
+	return overheated;
 }
 
 /** Push mass, centre of mass and inertia to the backend when any part's mass changed (propellant flow). */
@@ -317,9 +320,15 @@ function updateMassProperties(
 	for (const id of parts) body.masses.set(id, partMass(core, id));
 }
 
-function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void {
+/** Drag on every part; returns the heat the same airflow puts on each part (ADR 0023). */
+function applyDrag(
+	core: SimCore,
+	frame: FlightFrame,
+	vesselId: EntityId
+): Map<EntityId, HeatInput> {
+	const heat = new Map<EntityId, HeatInput>();
 	const body = core.body.def;
-	if (!body.atmosphere) return;
+	if (!body.atmosphere) return heat;
 	const omega = { x: 0, y: core.body.omega, z: 0 };
 	const vessel = vesselOf(core, vesselId);
 	const flight = frame.bodies.get(vesselId)!;
@@ -355,7 +364,9 @@ function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
 		frame.backend.applyForce(flight.handle, qRotate(pose.rotation, force), pose.position);
+		heat.set(partId, heatInput(density, def.shape, area, local));
 	}
+	return heat;
 }
 
 /** A part that hit the ground harder than its tolerance (ADR 0019). */
