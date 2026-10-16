@@ -142,6 +142,9 @@ export class SceneModel {
 	private readonly primaryBody: string | undefined;
 	private pixelRatio = 1;
 	private vesselRadius = 10;
+	/** Centre of the active vessel's parts relative to its root, inertial axes, m: the flight camera looks here. */
+	private vesselCentre: Vec3 = ZERO;
+	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
 	private readonly bodyRot = new Map<string, Quat>();
 	private cameraDirty = false;
 	private lastView: {
@@ -401,11 +404,26 @@ export class SceneModel {
 		} else this.flightRig = applyRigInput(this.flightRig, FLIGHT_RIG_LIMITS, input);
 		this.cameraDirty = true;
 	}
+	/** Draw the view centred in the area the interface leaves free (plan 023). */
+	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void {
+		this.insets = { ...insets };
+		this.applyViewOffset();
+	}
+	private applyViewOffset(): void {
+		const { width, height } = this.viewport;
+		const { top, right, bottom, left } = this.insets;
+		// The image centre moves from (w/2, h/2) to the centre of the free rectangle.
+		const dx = (left - right) / 2;
+		const dy = (top - bottom) / 2;
+		if (dx === 0 && dy === 0) this.camera.clearViewOffset();
+		else this.camera.setViewOffset(width, height, -dx, -dy, width, height);
+		this.camera.updateProjectionMatrix();
+	}
 	resize(width: number, height: number): void {
 		this.viewport.width = width;
 		this.viewport.height = height;
 		this.camera.aspect = width / Math.max(1, height);
-		this.camera.updateProjectionMatrix();
+		this.applyViewOffset();
 		for (const v of this.vessels.values()) v.line.setResolution(width, height);
 		for (const m of this.bodyMarks.values()) m.orbit.setResolution(width, height);
 		for (const l of this.pathLines) l.setResolution(width, height);
@@ -908,6 +926,14 @@ export class SceneModel {
 					};
 				}
 			}
+			// Look at the middle of the vessel, not at its root part (the capsule at the top).
+			if (!this.focus) {
+				target = {
+					x: target.x + this.vesselCentre.x,
+					y: target.y + this.vesselCentre.y,
+					z: target.z + this.vesselCentre.z
+				};
+			}
 			rig = this.flightRig;
 		}
 		const o = rigOffset(rig);
@@ -1012,7 +1038,10 @@ export class SceneModel {
 				ambientPressure: ambientPressureAt(info?.atmosphere, altitude)
 			});
 		}
-		if (v.id === this.active || this.active === null) this.vesselRadius = extent;
+		if (v.id === this.active || this.active === null) {
+			this.vesselRadius = extent;
+			this.vesselCentre = partCentre(v.parts);
+		}
 		for (const [pid, p] of entry.parts) {
 			if (seen.has(pid)) continue;
 			entry.group.remove(p.model.root);
@@ -1025,3 +1054,15 @@ export class SceneModel {
 const add = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
 
 export const createSceneModel = (config: SceneConfig): SceneModel => new SceneModel(config);
+
+/** Middle of the bounding box of the parts' positions (relative to the vessel root, inertial axes). */
+export function partCentre(parts: readonly { position: Vec3 }[]): Vec3 {
+	if (parts.length === 0) return ZERO;
+	let lo = { x: Infinity, y: Infinity, z: Infinity };
+	let hi = { x: -Infinity, y: -Infinity, z: -Infinity };
+	for (const { position: p } of parts) {
+		lo = { x: Math.min(lo.x, p.x), y: Math.min(lo.y, p.y), z: Math.min(lo.z, p.z) };
+		hi = { x: Math.max(hi.x, p.x), y: Math.max(hi.y, p.y), z: Math.max(hi.z, p.z) };
+	}
+	return { x: (lo.x + hi.x) / 2, y: (lo.y + hi.y) / 2, z: (lo.z + hi.z) / 2 };
+}

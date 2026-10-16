@@ -86,6 +86,13 @@ export interface Renderer {
 	/** Draw the current scene; call from `requestAnimationFrame`. */
 	render(): void;
 	resize(width: number, height: number): void;
+	/**
+	 * Pixels of the canvas that interface panels cover on each side (plan 023). The flight camera keeps
+	 * looking at the vessel but draws it in the middle of what is left, so a panel at the bottom no
+	 * longer hides the lower half of the rocket. Not applied in map view's projection maths: `project`
+	 * reads the same camera, so markers stay on their points.
+	 */
+	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
 	setMapView(on: boolean): void;
 	/**
 	 * The predicted path of the active vessel across spheres of influence, drawn in map view (plan 044):
@@ -335,6 +342,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			applySize();
 			model.resize(w, h);
 		},
+		setViewInsets: (insets) => model.setViewInsets(insets),
 		setMapView: (on) => model.setMapView(on),
 		setMapPath: (segments) => model.setMapPath(segments),
 		setMapFocus: (body) => model.setMapFocus(body),

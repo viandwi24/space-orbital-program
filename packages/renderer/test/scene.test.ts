@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import type { BodyId, EntityId, PartId, Snapshot, VesselSnapshot } from '@orbital/core';
 import { BoxGeometry, CylinderGeometry, Mesh } from 'three';
-import { SceneModel, type PartShape } from '../src/scene.ts';
+import { SceneModel, partCentre, type PartShape } from '../src/scene.ts';
+import { Vector3 } from 'three';
+
+/** Where the flight camera looks: the vessel group plus the middle of its parts. */
+const lookAt = (group: Vector3, v: VesselSnapshot): Vector3 => {
+	const c = partCentre(v.parts);
+	return new Vector3(group.x + c.x, group.y + c.y, group.z + c.z);
+};
 
 const id = (n: number): EntityId => n as EntityId;
 const BODY = 'stock.home' as BodyId;
@@ -68,7 +75,37 @@ describe('SceneModel', () => {
 		// origin snapped to the 1024 m grid near the vessel, so everything is small
 		expect(Math.abs(group.position.x)).toBeLessThan(1024);
 		expect(group.position.x - body.position.x).toBeCloseTo(R + 100, 6);
-		expect(m.camera.position.distanceTo(group.position)).toBeCloseTo(25, 6);
+		// the camera looks at the middle of the vessel's parts, not at its root (plan 023)
+		expect(m.camera.position.distanceTo(lookAt(group.position, s.vessels[0]!))).toBeCloseTo(25, 6);
+	});
+
+	test('view insets draw the vessel in the middle of the free area (plan 023)', () => {
+		const m = make();
+		m.resize(800, 600);
+		const s = snap(0, vessel(1, R + 100, 0, 0));
+		m.sync(s);
+		const c = partCentre(s.vessels[0]!.parts);
+		const world = { x: ROOT.x + R + 100 + c.x, y: ROOT.y + c.y, z: ROOT.z + c.z };
+		const before = m.project(world)!;
+		expect(before.y).toBeCloseTo(300, 0);
+		m.setViewInsets({ top: 0, right: 200, bottom: 200, left: 0 });
+		m.sync(s);
+		const after = m.project(world)!;
+		expect(after.y).toBeCloseTo(200, 0); // centre of the 400 px left free above the bottom panel
+		expect(after.x).toBeCloseTo(300, 0); // centre of the 600 px left of the right panel
+		m.setViewInsets({ top: 0, right: 0, bottom: 0, left: 0 });
+		expect(m.project(world)!.y).toBeCloseTo(300, 0);
+	});
+
+	test('partCentre is the middle of the parts bounding box', () => {
+		expect(partCentre([])).toEqual({ x: 0, y: 0, z: 0 });
+		expect(
+			partCentre([
+				{ position: { x: 0, y: 0, z: 0 } },
+				{ position: { x: 2, y: -8, z: 1 } },
+				{ position: { x: 1, y: -3, z: 0 } }
+			])
+		).toEqual({ x: 1, y: -4, z: 0.5 });
 	});
 
 	test('flight camera is upright relative to the SOI body, map camera keeps +Y up', () => {
@@ -154,7 +191,10 @@ describe('SceneModel', () => {
 		m.setActiveVessel(id(2));
 		m.sync(s);
 		const groups = m.scene.children.filter((c) => c.type === 'Group');
-		expect(m.camera.position.distanceTo(groups[1]!.position)).toBeCloseTo(25, 6);
+		expect(m.camera.position.distanceTo(lookAt(groups[1]!.position, s.vessels[1]!))).toBeCloseTo(
+			25,
+			6
+		);
 	});
 });
 
