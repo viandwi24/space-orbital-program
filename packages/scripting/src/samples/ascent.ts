@@ -3,16 +3,17 @@
  * throttle, vertical to 10 km, pitch-over towards east by 40 km, prograde after, stage when an
  * engine runs dry, cut at an 80 km apoapsis, coast, circularise around apoapsis until the
  * periapsis reaches 76 km. Attitude is a PD loop on the orientation (rate by finite difference)
- * sent as `ship.attitude`. Constants of the stock vessel (reaction wheel torque, engine thrust
- * and Isp) are written out in the script because telemetry does not expose them.
+ * sent as `ship.attitude`. Wheel torque, engine thrust and Isp come from `ship.wheels` and
+ * `ship.engines` (plan 018), so the script has no constants of the stock vessel; the only physical
+ * constant is standard gravity, which defines Isp.
  *
  * Plain JavaScript (an async function body); no backticks or `${` because it is a template literal.
  */
 export const ascentScript = String.raw`
 const TURN_START = 10000, TURN_END = 40000, TURN_PITCH = Math.PI / 4;
 const TARGET_APOAPSIS = 80000, TARGET_PERIAPSIS = 76000;
-const BANDWIDTH = 0.5, TORQUE_MAX = 5000;
-const THRUST = 215000, ISP = 300, G0 = 9.80665;
+const BANDWIDTH = 0.5;
+const G0 = 9.80665; // standard gravity: the definition of specific impulse
 
 const add = (a, b) => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
 const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -47,7 +48,10 @@ function steer(target) {
 	}
 	prev = { q: { x: q.x, y: q.y, z: q.z, w: q.w }, t };
 	const err = rotate(conj(q), cross(ship.nose, unit(target)));
-	const alpha = TORQUE_MAX / ship.inertia;
+	// Torque the enabled wheels can apply per axis; without any the ship cannot be steered.
+	const torque = ship.wheels.reduce((sum, w) => sum + (w.enabled ? w.torque : 0), 0);
+	if (torque <= 0) return;
+	const alpha = torque / ship.inertia;
 	const kp = (BANDWIDTH * BANDWIDTH) / alpha, kd = (2 * BANDWIDTH) / alpha;
 	ship.attitude = {
 		pitch: clamp(kp * err.x - kd * rate.x, -1, 1),
@@ -92,9 +96,14 @@ while (true) {
 	const apoR = o.a * (1 + o.e);
 	const vApo = Math.sqrt(MU * (2 / apoR - 1 / o.a));
 	const dv = Math.sqrt(MU / apoR) - vApo;
-	// Rocket equation for one engine: the burn is shorter than dv*m/F because the ship gets lighter.
-	const ve = ISP * G0;
-	const burn = (ship.mass * ve * (1 - Math.exp(-dv / ve))) / THRUST;
+	// Rocket equation for the engines that can still burn: the burn is shorter than dv*m/F because
+	// the ship gets lighter. Exhaust speed is thrust over mass flow, summed over the engines.
+	const live = ship.engines.filter((e) => !e.flameout);
+	const thrust = live.reduce((sum, e) => sum + e.thrust, 0);
+	const flow = live.reduce((sum, e) => sum + e.thrust / (e.ispVacuum * G0), 0);
+	if (thrust <= 0) throw new Error('no engine left to circularise with');
+	const ve = thrust / flow;
+	const burn = (ship.mass * ve * (1 - Math.exp(-dv / ve))) / thrust;
 	if (toApoapsis <= burn / 2) {
 		print('circularise: dv ' + dv.toFixed(0) + ' m/s, t to apoapsis ' + toApoapsis.toFixed(0) + ' s');
 		break;

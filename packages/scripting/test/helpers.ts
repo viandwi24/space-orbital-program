@@ -78,6 +78,8 @@ export async function newRig(): Promise<Rig> {
 				bodies: sim.registries.bodies.list(),
 				parts: sim.registries.parts.list(),
 				resources: sim.registries.resources.list(),
+				// Tests of behaviour must not depend on machine speed: only budget tests pass a small budget.
+				budgetMs: 1_000,
 				...options
 			}),
 		drive,

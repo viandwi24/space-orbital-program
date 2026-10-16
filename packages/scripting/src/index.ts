@@ -8,5 +8,11 @@ export { createScriptRunnerIn } from './runner.ts';
 export { createScriptRunner } from './default-module.ts';
 export type { ScriptRunner, ScriptRunnerOptions, ScriptStatus, TickResult } from './runner.ts';
 export { buildTelemetry } from './telemetry.ts';
-export type { ScriptEnvironment, Telemetry, TelemetryPart } from './telemetry.ts';
+export type {
+	ScriptEnvironment,
+	Telemetry,
+	TelemetryEngine,
+	TelemetryPart,
+	TelemetryWheel
+} from './telemetry.ts';
 export { ascentScript } from './samples/ascent.ts';

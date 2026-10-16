@@ -104,7 +104,7 @@ test('the host bridge is not reachable: ship has only the documented surface', a
 		'action,decodeURI,decodeURIComponent,encodeURI,encodeURIComponent,escape,eval,globalThis,isFinite,isNaN,nextTick,parseFloat,parseInt,print,ship,stage,time,undefined,unescape,wait,waitUntil'
 	);
 	expect(lines[1]).toBe(
-		'altitude,apoapsis,attitude,body,bodyRadius,eccentricity,inertia,mass,mode,mu,nose,orbit,orientation,parts,periapsis,position,speed,t,throttle,up,velocity'
+		'altitude,apoapsis,attitude,body,bodyRadius,eccentricity,engines,inertia,mass,mode,mu,nose,orbit,orientation,parts,periapsis,position,speed,t,throttle,up,velocity,wheels'
 	);
 	expect(lines[2]).toBe('true');
 });

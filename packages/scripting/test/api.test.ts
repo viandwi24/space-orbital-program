@@ -174,3 +174,67 @@ test('createScriptRunnerIn runs in a host-supplied WASM module', async () => {
 	expect(runner.logs).toEqual(['hi']);
 	rig.sim.dispose();
 });
+
+/** Plan 018: engine and wheel constants come from the part definitions, not from literals. */
+test('ship.engines and ship.wheels equal the stock part definitions and follow staging', async () => {
+	const rig = await newRig();
+	const defs = new Map(rig.sim.registries.parts.list().map((p) => [String(p.id), p]));
+	const engineConfig = defs
+		.get('stock.engine-lv')!
+		.modules!.find(([id]) => id === 'stock.engine')![1] as {
+		thrust: number;
+		ispVacuum: number;
+		ispSeaLevel: number;
+	};
+	const wheelConfig = defs
+		.get('stock.reaction-wheel')!
+		.modules!.find(([id]) => id === 'stock.reaction-wheel')![1] as { torque: number };
+	const runner = await rig.runner(`
+		await nextTick();
+		print(JSON.stringify({ engines: ship.engines, wheels: ship.wheels, masses: ship.parts.map((p) => p.mass) }));
+		stage();
+		await nextTick();
+		await nextTick();
+		print(JSON.stringify({ engines: ship.engines.length, ignited: ship.engines.filter((e) => e.ignited).length }));
+		stage();
+		await nextTick();
+		await nextTick();
+		print(JSON.stringify({ engines: ship.engines.map((e) => e.part), wheels: ship.wheels.length }));
+	`);
+	const parts = rig.sim.snapshot().vessels[0]!.parts; // before any staging
+	rig.drive(runner);
+	while (runner.status === 'running') rig.advance(runner);
+	expect(runner.error).toBeUndefined();
+	const first = JSON.parse(runner.logs[0]!) as {
+		engines: Record<string, unknown>[];
+		wheels: Record<string, unknown>[];
+		masses: number[];
+	};
+	const engineParts = parts.filter((p) => String(p.definition) === 'stock.engine-lv');
+	expect(first.engines).toHaveLength(2);
+	for (const e of first.engines) {
+		expect(e).toMatchObject({
+			module: 'stock.engine',
+			thrust: engineConfig.thrust,
+			ispVacuum: engineConfig.ispVacuum,
+			ispSeaLevel: engineConfig.ispSeaLevel,
+			flameout: false
+		});
+		expect(engineParts.map((p) => Number(p.id))).toContain(e.part as number);
+	}
+	expect(first.wheels).toEqual([
+		{
+			part: Number(parts.find((p) => String(p.definition) === 'stock.reaction-wheel')!.id),
+			module: 'stock.reaction-wheel',
+			torque: wheelConfig.torque,
+			enabled: true
+		}
+	]);
+	expect(first.masses).toEqual(parts.map((p) => defs.get(String(p.definition))!.mass));
+	// Staging changes what the script sees: the lower stage is fired, then the decoupled stage is gone.
+	expect(JSON.parse(runner.logs[1]!)).toEqual({ engines: 2, ignited: 1 });
+	const last = JSON.parse(runner.logs[2]!) as { engines: number[]; wheels: number };
+	expect(last.engines).toHaveLength(1);
+	expect(last.wheels).toBe(1);
+	rig.sim.dispose();
+});

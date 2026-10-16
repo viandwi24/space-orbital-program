@@ -27,8 +27,38 @@ export interface TelemetryPart {
 	definition: string;
 	/** Position relative to the vessel root, BCI axes. */
 	position: Vec3;
+	/** Dry mass from the part definition, kg (resources in tanks come on top). */
+	mass: number;
 	/** Module state keyed by module id, as produced by the module's `snapshot`. */
 	modules: Record<string, unknown>;
+}
+
+/**
+ * An engine on the vessel: a module whose definition config has the shape
+ * `{ thrust, ispVacuum, ispSeaLevel }` (numbers > 0) — the stock engine and any mod engine with
+ * the same shape. `thrust` is the vacuum thrust at full throttle, N; Isp in s. The three flags
+ * come from the module's snapshot (`false`/`0` when it does not report them).
+ */
+export interface TelemetryEngine {
+	part: number;
+	module: string;
+	thrust: number;
+	ispVacuum: number;
+	ispSeaLevel: number;
+	ignited: boolean;
+	throttle: number;
+	flameout: boolean;
+}
+
+/**
+ * A reaction wheel: a module whose config has `{ torque }` (number > 0) and whose snapshot has a
+ * boolean `enabled`. `torque` is the maximum torque per axis, N·m (the `attitude` command scales it).
+ */
+export interface TelemetryWheel {
+	part: number;
+	module: string;
+	torque: number;
+	enabled: boolean;
 }
 
 /** What `ship.*` returns. SI units, BCI axes (see `units-and-frames.md`). */
@@ -61,6 +91,9 @@ export interface Telemetry {
 	periapsis: number | null;
 	eccentricity: number | null;
 	parts: TelemetryPart[];
+	/** Engines and reaction wheels read from the part definitions (plan 018); gone with their part. */
+	engines: TelemetryEngine[];
+	wheels: TelemetryWheel[];
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -118,6 +151,39 @@ function massProperties(
 	return { mass, inertia: Math.max(inertia, 1) };
 }
 
+const positive = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+/** Engines and wheels of `v`, recognised by the shape of their definition config (see the types). */
+function equipment(
+	v: VesselSnapshot,
+	partDefs: Map<string, PartDefinition>
+): { engines: TelemetryEngine[]; wheels: TelemetryWheel[] } {
+	const engines: TelemetryEngine[] = [];
+	const wheels: TelemetryWheel[] = [];
+	for (const p of v.parts) {
+		for (const [module, config] of partDefs.get(String(p.definition))?.modules ?? []) {
+			if (!isRecord(config)) continue;
+			const state = isRecord(p.modules[module]) ? p.modules[module] : {};
+			if (positive(config.thrust) && positive(config.ispVacuum) && positive(config.ispSeaLevel)) {
+				engines.push({
+					part: Number(p.id),
+					module,
+					thrust: config.thrust,
+					ispVacuum: config.ispVacuum,
+					ispSeaLevel: config.ispSeaLevel,
+					ignited: state.ignited === true,
+					throttle: typeof state.throttle === 'number' ? state.throttle : 0,
+					flameout: state.flameout === true
+				});
+			} else if (positive(config.torque) && typeof state.enabled === 'boolean') {
+				wheels.push({ part: Number(p.id), module, torque: config.torque, enabled: state.enabled });
+			}
+		}
+	}
+	return { engines, wheels };
+}
+
 /** Telemetry of `vessel` in `snapshot`; throws when the vessel or its body is unknown. */
 export function buildTelemetry(
 	snapshot: Snapshot,
@@ -136,6 +202,8 @@ export function buildTelemetry(
 	const nose = rotate(v.orientation, { x: 0, y: 1, z: 0 });
 	const { mass, inertia } = massProperties(v, nose, env);
 	const orbit = v.orbit ? { ...v.orbit } : null;
+	const partDefs = new Map(env.parts.map((p) => [String(p.id), p]));
+	const { engines, wheels } = equipment(v, partDefs);
 	return {
 		t: snapshot.t,
 		mode: v.mode,
@@ -159,7 +227,10 @@ export function buildTelemetry(
 			id: Number(p.id),
 			definition: String(p.definition),
 			position: { ...p.position },
+			mass: partDefs.get(String(p.definition))?.mass ?? 0,
 			modules: JSON.parse(JSON.stringify(p.modules)) as Record<string, unknown>
-		}))
+		})),
+		engines,
+		wheels
 	};
 }

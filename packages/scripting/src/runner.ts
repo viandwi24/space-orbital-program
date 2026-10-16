@@ -19,6 +19,13 @@ export interface ScriptRunnerOptions extends ScriptEnvironment {
 	vessel: number;
 	/** Wall-clock budget per tick, ms: all guest work (telemetry update, script, promise jobs). Default 10. */
 	budgetMs?: number;
+	/**
+	 * Budget of the script's first tick only, ms. A cold WASM module (first call of every function)
+	 * can take longer than `budgetMs` for a harmless script on a slow or loaded machine (journal
+	 * 017, 018); the host that has a hard backstop (a Worker it can terminate) allows more. Default
+	 * `budgetMs`.
+	 */
+	firstTickBudgetMs?: number;
 	/** Guest heap limit, bytes. Default 16 MiB. */
 	memoryLimitBytes?: number;
 	/** Guest stack limit, bytes. Default 256 KiB. */
@@ -87,7 +94,9 @@ export async function createScriptRunnerIn(
 	options: ScriptRunnerOptions
 ): Promise<ScriptRunner> {
 	const budgetMs = options.budgetMs ?? 10;
-	if (!(budgetMs > 0)) throw new Error('createScriptRunner: budgetMs must be > 0');
+	const firstTickBudgetMs = options.firstTickBudgetMs ?? budgetMs;
+	if (!(budgetMs > 0) || !(firstTickBudgetMs > 0))
+		throw new Error('createScriptRunner: budgetMs must be > 0');
 	const now = options.now ?? Date.now;
 	const vessel = entityId(options.vessel);
 	const runtime: QuickJSRuntime = QuickJS.newRuntime();
@@ -96,6 +105,8 @@ export async function createScriptRunnerIn(
 	const context: QuickJSContext = runtime.newContext();
 
 	let deadline = Infinity;
+	/** The budget of the tick in progress (the first tick may have a larger one). */
+	let allowance = firstTickBudgetMs;
 	runtime.setInterruptHandler(() => now() > deadline);
 
 	let status: ScriptStatus = 'running';
@@ -201,7 +212,7 @@ export async function createScriptRunnerIn(
 	/** Classify a guest error: resource exhaustion terminates, anything else is a script failure. */
 	function settle(e: GuestError): void {
 		if (e.guestName === 'InternalError' && e.message === 'interrupted') {
-			stop('terminated', `time budget exceeded (${budgetMs} ms per tick)`);
+			stop('terminated', `time budget exceeded (${allowance} ms per tick)`);
 		} else if (e.guestName === 'InternalError' && /out of memory/i.test(e.message)) {
 			stop('terminated', 'memory limit exceeded');
 		} else {
@@ -307,7 +318,8 @@ export async function createScriptRunnerIn(
 				return { commands: [], status, elapsedMs: 0 };
 			}
 			const began = now();
-			deadline = began + budgetMs;
+			allowance = started ? budgetMs : firstTickBudgetMs;
+			deadline = began + allowance;
 			pending = [];
 			try {
 				runTick(snapshot);
