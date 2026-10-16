@@ -1,8 +1,9 @@
 /**
- * Cloud layers (ADR 0037): the altitude table the planet pass reads and the pure twin of its
+ * Cloud layers (ADR 0037, ADR 0059): the altitude table the planet pass reads and the pure twin of its
  * distance-ordered composite. Each layer is a thin shell at a fixed altitude; the atmosphere
  * between the camera, the layers and the surface is integrated once and snapshotted at the
- * layers' distances, so any number of layers costs one march.
+ * layers' distances, so any number of layers costs one march. The cirrus is still a thin shell; the
+ * cumulus is a slab of `CLOUD_THICKNESS` above `CLOUD_ALTITUDE` marched in a few steps (`cloud-volume.ts`).
  */
 import type { RGB } from './atmosphere-model.ts';
 

@@ -23,6 +23,20 @@ import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.t
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
+import {
+	CLOUD_FILL,
+	CLOUD_GAIN_CAP,
+	CLOUD_EXTRA_PATH,
+	EROSION_FADE,
+	EROSION_WEIGHTS,
+	CLOUD_MAX_PATH,
+	CLOUD_PHASE,
+	CLOUD_RADIANCE_KNEE,
+	CLOUD_SIGMA,
+	CLOUD_SUN_BULK,
+	CLOUD_SUN_MU_MIN,
+	CLOUD_THICKNESS
+} from '../cloud-volume.ts';
 import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
 import {
 	MARCH_BLOCK,
@@ -352,6 +366,7 @@ uniform vec3 uSkyColour;   // mean sky radiance at the camera (ocean reflection)
 uniform float uCloudCover;
 uniform float uCloudAngle;
 uniform float uCloudAlt;
+uniform float uCloudTop;
 uniform float uCirrusAlt;
 uniform float uStarBright;
 uniform float uShadowOn;
@@ -436,6 +451,70 @@ float cirrusDensity(vec3 dirBF) {
 	float streak = fbmF(q * vec3(2.2, 8.0, 8.0) + 11.0, 2);
 	float cover = smoothstep(0.3, 0.62, mask) * smoothstep(0.42, 0.7, n);
 	return clamp(cover * (0.2 + 1.0 * streak) * 0.42, 0.0, 1.0);
+}
+
+// --- cumulus slab (plan 037, ADR 0059; the twin of cloud-volume.ts) --------------------------------
+const float CLOUD_SIGMA = ${f(CLOUD_SIGMA)};
+const float CLOUD_THICK = ${f(CLOUD_THICKNESS)};
+const float CLOUD_MAX_PATH = ${f(CLOUD_MAX_PATH)};
+const float CLOUD_EXTRA_PATH = ${f(CLOUD_EXTRA_PATH)};
+const float CLOUD_SUN_BULK = ${f(CLOUD_SUN_BULK)};
+const float CLOUD_SUN_MU_MIN = ${f(CLOUD_SUN_MU_MIN)};
+float cloudProfile(float h, float cover) {
+	float top = 0.4 + 0.6 * clamp(cover, 0.0, 1.0);
+	return smoothstep(0.0, 0.12, h) * (1.0 - smoothstep(top * 0.55, top, h));
+}
+// Dual-lobe phase through three octaves of the multiple-scattering stand-in; tau = optical depth toward the sun.
+float cloudMultiScatter(float tau, float c) {
+	float sum = 0.0;
+	float a = 1.0;
+	float b = 1.0;
+	float k = 1.0;
+	for (int n = 0; n < 3; n++) {
+		float ph = ${f(CLOUD_PHASE.weight)} * miePhase(c, ${f(CLOUD_PHASE.forward)} * b) + ${f(1 - CLOUD_PHASE.weight)} * miePhase(c, ${f(CLOUD_PHASE.back)} * b);
+		sum += a * ph * exp(-tau * k);
+		a *= 0.5;
+		b *= 0.5;
+		k *= 0.5;
+	}
+	return sum;
+}
+float cloudFill(float tau, float h) {
+	return ${f(CLOUD_FILL)} * (0.7 + 0.3 * clamp(h, 0.0, 1.0)) * (0.6 + 0.4 * exp(-0.35 * tau));
+}
+float cloudScatterGain(float tau, float c) {
+	return min(4.0 * kPI * cloudMultiScatter(tau, c), ${f(CLOUD_GAIN_CAP)});
+}
+float cloudBillowShade(float e) {
+	return 0.6 + 0.4 * smoothstep(0.2, 0.8, e);
+}
+float cloudPowder(float localTau, float c) {
+	float p = 1.0 - exp(-2.0 * localTau);
+	return 1.0 + (p - 1.0) * 0.6 * (0.5 - 0.5 * c);
+}
+float cloudSunDepth(float h, float cover, float mu) {
+	float m = max(mu, CLOUD_SUN_MU_MIN);
+	float sum = 0.0;
+	for (int i = 1; i <= 3; i++) sum += cloudProfile(h + (1.0 - h) * float(i) / 3.5, cover);
+	return CLOUD_SUN_BULK * CLOUD_SIGMA * cover * (CLOUD_THICK * (1.0 - h)) * sum / (3.0 * m);
+}
+// Billow erosion: up to three octaves of value noise (cells of 210, 70 and 25 m), each faded out when a pixel is wider
+// than it, the sum stretched around 0.5 (twin: erosion in cloud-volume.ts). oct is the number of octaves taken.
+float cloudErosion(vec3 dirBF, float fp, int oct) {
+	vec3 q = rotY(dirBF, uCloudAngle) * (uR / 16000.0);
+	float e = ${f(EROSION_WEIGHTS[0])} * mix(0.5, noiseF(q * 75.0 + 5.0), 1.0 - smoothstep(${f(EROSION_FADE[0]![0])}, ${f(EROSION_FADE[0]![1])}, fp));
+	float w1 = 1.0 - smoothstep(${f(EROSION_FADE[1]![0])}, ${f(EROSION_FADE[1]![1])}, fp);
+	float w2 = 1.0 - smoothstep(${f(EROSION_FADE[2]![0])}, ${f(EROSION_FADE[2]![1])}, fp);
+	float n1 = 0.5;
+	float n2 = 0.5;
+	if (oct > 1 && w1 > 0.001) n1 = mix(0.5, noiseF(q * 220.0 + 17.0), w1);
+	if (oct > 2 && w2 > 0.001) n2 = mix(0.5, noiseF(q * 610.0 + 29.0), w2);
+	e += ${f(EROSION_WEIGHTS[1])} * n1 + ${f(EROSION_WEIGHTS[2])} * n2;
+	return clamp((e - 0.5) * 2.0 + 0.5, 0.0, 1.0);
+}
+float cloudSlabDensity(float cover, float h, float e) {
+	float base = 1.2 * cover * cloudProfile(h + (e - 0.5) * 0.7, cover);
+	return clamp(base - (1.0 - e) * 0.75, 0.0, 1.0);
 }
 
 // --- stars ------------------------------------------------------------------------------------
@@ -946,35 +1025,94 @@ void main() {
 	vec3 colour = base;
 	float tcA = 1e30;
 	float tcB = 1e30;
-	float alphaA = 0.0;
 	float alphaB = 0.0;
-	vec3 lightA = vec3(0.0);
 	vec3 lightB = vec3(0.0);
 #if CLOUDS
 	// layer 1 = cumulus, layer 2 = cirrus; a layer the ray misses (or finds clear) stays at 1e30
+	vec2 csT = raySphere(r0, d, uCloudTop);
 	vec2 csA = raySphere(r0, d, uCloudAlt);
-	float cloudTA = r0 < uCloudAlt ? csA.y : csA.x;
-	bool hitA = inAtm && csA.y > 0.0 && cloudTA > 0.0 && (!hitG || cloudTA < tG);
+	float cloudTA = 1e30;
+	bool hitA = false;
+	float alphaA = 0.0;
+	vec3 lightA = vec3(0.0);
+	if (inAtm && csT.y > 0.0) {
+		// the stretch of the ray inside the slab (twin: slabInterval in cloud-volume.ts)
+		float a0 = max(csT.x, 0.0);
+		float a1 = csT.y;
+		if (csA.y > 0.0) {
+			if (r0 <= uCloudAlt) a0 = max(csA.y, 0.0);
+			else if (csA.x > a0) a1 = min(a1, csA.x);
+			else a0 = max(a0, csA.y);
+		}
+		if (hitG) a1 = min(a1, tG);
+		hitA = a1 > a0;
+		if (hitA) {
+			float len = a1 - a0;
+			float marchLen = min(len, CLOUD_MAX_PATH);
+			float dt = marchLen / float(CLOUD_STEPS);
+			float tm = a0 + marchLen * 0.5;
+			vec3 nm = normalize(ro + rd * tm);
+			float fp = tm * uPixelAngle / max(abs(dot(nm, rd)), 0.05);
+			float cover = smoothstep(0.08, 0.55, cloudDensity(uBodyInv * nm, false, fp));
+			float mask = clamp(uCloudCover * 2.0, 0.0, 1.0) * (1.0 - smoothstep(45000.0, 120000.0, tm));
+			if (cover * mask < 0.004) {
+				hitA = false;
+			} else {
+				float cj = 0.25 + 0.5 * fract(jitter + 0.381966);
+				float cosS = dot(rd, uSunDir);
+				vec3 sunTc = sunTransmittance(nm * (uCloudAlt + 0.5 * CLOUD_THICK), uSunDir);
+				float trans = 1.0;
+				vec3 acc = vec3(0.0);
+				float densSum = 0.0;
+				for (int i = 0; i < CLOUD_STEPS; i++) {
+					float t = a0 + (float(i) + cj) * dt;
+					vec3 pp = ro + rd * t;
+					float rr = length(pp);
+					vec3 np = pp / rr;
+					float h = clamp((rr - uCloudAlt) / CLOUD_THICK, 0.0, 1.0);
+					float eP = cloudErosion(uBodyInv * np, fp, CLOUD_DETAIL);
+					float dn = cloudSlabDensity(cover, h, eP);
+					densSum += dn;
+					if (dn > 0.002) {
+						float tauL = cloudSunDepth(h, cover, dot(np, uSunDir));
+						vec3 ps = pp + uSunDir * 450.0;
+						float rs = length(ps);
+						float hs = clamp((rs - uCloudAlt) / CLOUD_THICK, 0.0, 1.0);
+						tauL += cloudSlabDensity(cover, hs, cloudErosion(uBodyInv * (ps / rs), fp, 1)) * CLOUD_SIGMA * 450.0;
+						float stepTau = dn * CLOUD_SIGMA * dt;
+						vec3 direct = uSunIrr * sunTc * (cloudScatterGain(tauL, cosS) * cloudPowder(stepTau, cosS) + cloudFill(tauL, h));
+						vec3 amb = uAmbient * (0.65 + 0.55 * h);
+						vec3 Ls = vec3(0.93) / kPI * (direct + amb) * cloudBillowShade(eP) + NIGHT_AMBIENT * 0.6;
+						float stepA = 1.0 - exp(-stepTau);
+						acc += trans * Ls * stepA;
+						trans *= 1.0 - stepA;
+					}
+				}
+				float opacity = 1.0 - trans;
+				if (len > marchLen) {
+					// the rest of a grazing path: the average density, lit like what was marched
+					float eTau = densSum / float(CLOUD_STEPS) * CLOUD_SIGMA * min(len - marchLen, CLOUD_EXTRA_PATH);
+					vec3 Lm = acc / max(opacity, 1e-3);
+					acc += trans * Lm * (1.0 - exp(-eTau));
+					trans *= exp(-eTau);
+					opacity = 1.0 - trans;
+				}
+				alphaA = opacity * mask;
+				vec3 lm = acc / max(opacity, 1e-4);
+				lightA = lm / (1.0 + lm / ${f(CLOUD_RADIANCE_KNEE)});
+				cloudTA = tm;
+				if (alphaA < 0.002) {
+					hitA = false;
+					alphaA = 0.0;
+				}
+			}
+		}
+	}
 	vec2 csB = raySphere(r0, d, uCirrusAlt);
 	float cloudTB = r0 < uCirrusAlt ? csB.y : csB.x;
 	bool hitB = inAtm && csB.y > 0.0 && cloudTB > 0.0 && (!hitG || cloudTB < tG);
-	vec3 dirBFA = vec3(0.0);
 	vec3 dirBFB = vec3(0.0);
-	float densA = 0.0;
 	float densB = 0.0;
-	float fpA = 0.0;
-	if (hitA) {
-		dirBFA = uBodyInv * normalize(ro + rd * cloudTA);
-		float coscA = max(abs(dot(normalize(ro + rd * cloudTA), rd)), 0.05);
-		fpA = cloudTA * uPixelAngle / coscA;
-		densA = cloudDensity(dirBFA, true, fpA);
-		float cosc = max(coscA, 0.12);
-		alphaA = (1.0 - exp(-densA * (1.6 + 0.3 / cosc))) * clamp(uCloudCover * 2.0, 0.0, 1.0) * (1.0 - smoothstep(45000.0, 120000.0, cloudTA));
-		if (alphaA < 0.002) {
-			hitA = false;
-			alphaA = 0.0;
-		}
-	}
 	if (hitB) {
 		dirBFB = uBodyInv * normalize(ro + rd * cloudTB);
 		densB = cirrusDensity(dirBFB);
@@ -1009,24 +1147,6 @@ void main() {
 #if CLOUDS
 		if (hitA || hitB) {
 			// lit radiance of each hit layer
-			if (hitA) {
-				vec3 dirI = normalize(ro + rd * cloudTA);
-				vec3 pc = dirI * uCloudAlt;
-				float muc = dot(dirI, uSunDir);
-				vec3 sunTc = sunTransmittance(pc, uSunDir);
-				vec3 tang = normalize(uSunDir - dirI * muc + 1e-5);
-				float shOff = clamp(fpA * 60.0, 800.0, 10000.0) / uR;
-				float d2 = densA;
-				if (alphaA > 0.02) d2 = mix(densA, cloudDensity(normalize(dirBFA + (uBodyInv * tang) * shOff), true, fpA), smoothstep(0.02, 0.12, alphaA));
-				float shade = clamp(1.0 - (d2 - densA) * 1.3, 0.38, 1.0);
-				float hg = miePhase(dot(rd, uSunDir), 0.55) * 4.0 * kPI;
-				float phase = 0.55 + 0.45 * clamp(hg, 0.0, 4.0);
-				float edge = clamp(1.0 - densA * 1.5, 0.0, 1.0);
-				float below = r0 < uCloudAlt ? 1.0 : 0.0;
-				float body = mix(1.0, 0.55 + 0.45 * shade, below);
-				vec3 direct = uSunIrr * sunTc * max(muc, 0.0) * shade * phase * (0.85 + 0.5 * edge) * body;
-				lightA = vec3(0.93) * mix(0.88, 1.04, clamp(densA, 0.0, 1.0)) / kPI * (direct + uAmbient * (0.45 + 0.4 * shade) * mix(1.0, 0.7, below)) + NIGHT_AMBIENT * 0.6;
-			}
 			if (hitB) {
 				vec3 dirI = normalize(ro + rd * cloudTB);
 				float muc = dot(dirI, uSunDir);

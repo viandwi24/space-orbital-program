@@ -46,6 +46,7 @@ import type { PlanetFrame } from './planet-frame.ts';
 import { normalize, vec } from './vec.ts';
 import type { PresetSettings } from './presets.ts';
 import { CIRRUS_ALTITUDE, CLOUD_ALTITUDE } from './cloud-model.ts';
+import { CLOUD_TOP } from './cloud-volume.ts';
 import { PAD_RADIUS } from './site.ts';
 import { planetFragment, planetVertex } from './shaders/planet.glsl.ts';
 import {
@@ -277,6 +278,7 @@ export class PlanetPass {
 				uSiteLamps: u(0),
 				uCloudAngle: u(0),
 				uCloudAlt: u(atm.radius + CLOUD_ALTITUDE),
+				uCloudTop: u(atm.radius + CLOUD_TOP),
 				uCirrusAlt: u(atm.radius + CIRRUS_ALTITUDE),
 				uStarBright: u(1),
 				uShadowOn: u(0),
@@ -612,6 +614,8 @@ export class PlanetPass {
 			VIEW_SAMPLES: s.viewSamples,
 			GROUND_OCTAVES: s.groundOctaves,
 			CLOUD_OCTAVES: s.cloudOctaves,
+			CLOUD_STEPS: s.cloudSteps,
+			CLOUD_DETAIL: s.cloudDetail,
 			CLOUDS: 1,
 			CLOUD_SHADOWS: s.cloudOctaves >= 4 ? 1 : 0,
 			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
