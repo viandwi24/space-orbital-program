@@ -4,8 +4,11 @@
 	"private": true,
 	"description": "Scripting sandbox: untrusted player scripts run in QuickJS (WASM) with a limited ship API, a per-tick time budget and validated commands. Runs in Bun, a Worker or the main thread.",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./runner": "./src/runner.ts",
+		"./samples/ascent": "./src/samples/ascent.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {
@@ -14,7 +17,8 @@
 	},
 	"dependencies": {
 		"@orbital/core": "workspace:*",
-		"quickjs-emscripten": "^0.32.0"
+		"quickjs-emscripten": "^0.32.0",
+		"quickjs-emscripten-core": "^0.32.0"
 	},
 	"devDependencies": {
 		"@orbital/mod-stock": "workspace:*",

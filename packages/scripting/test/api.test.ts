@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { entityId } from '@orbital/core';
-import { buildTelemetry } from '../src/index.ts';
+import { buildTelemetry, createScriptRunnerIn } from '../src/index.ts';
 import { newRig } from './helpers.ts';
 
 test('ship.* is a copy of the snapshot telemetry', async () => {
@@ -155,5 +155,22 @@ test('a vessel missing from the snapshot is a host error, not a script failure',
 	const rig = await newRig();
 	const runner = await rig.runner(`await wait(1);`, { vessel: 9999 });
 	expect(() => runner.tick(rig.sim.snapshot())).toThrow(/vessel 9999/);
+	rig.sim.dispose();
+});
+
+test('createScriptRunnerIn runs in a host-supplied WASM module', async () => {
+	const { newQuickJSWASMModule } = await import('quickjs-emscripten');
+	const quickjs = await newQuickJSWASMModule();
+	const rig = await newRig();
+	const snapshot = rig.sim.snapshot();
+	const runner = await createScriptRunnerIn(quickjs, 'print("hi"); ship.throttle = 0.5;', {
+		vessel: rig.vessel,
+		bodies: rig.sim.registries.bodies.list(),
+		parts: rig.sim.registries.parts.list(),
+		resources: rig.sim.registries.resources.list()
+	});
+	const result = runner.tick(snapshot);
+	expect(result.commands.map((c) => c.type)).toEqual(['throttle']);
+	expect(runner.logs).toEqual(['hi']);
 	rig.sim.dispose();
 });

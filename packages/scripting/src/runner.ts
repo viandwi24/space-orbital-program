@@ -5,12 +5,12 @@
  * protocol.
  */
 import { commandSchema, entityId, type Command, type Snapshot } from '@orbital/core';
-import {
-	getQuickJS,
-	type QuickJSContext,
-	type QuickJSHandle,
-	type QuickJSRuntime
-} from 'quickjs-emscripten';
+import type {
+	QuickJSContext,
+	QuickJSHandle,
+	QuickJSRuntime,
+	QuickJSWASMModule
+} from 'quickjs-emscripten-core';
 import { PRELUDE } from './prelude.ts';
 import { buildTelemetry, type ScriptEnvironment } from './telemetry.ts';
 
@@ -75,8 +75,14 @@ class GuestError extends Error {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
-/** Build a runner for `source`, the body of an async function (so `await wait(1)` works at top level). */
-export async function createScriptRunner(
+/**
+ * Build a runner for `source` (the body of an async function, so `await wait(1)` works at top
+ * level) in a WASM module the host built itself. A bundled host (the web client's Worker, plan 015
+ * / ADR 0022) loads the `.wasm` from an explicit asset URL; `createScriptRunner` (default-module.ts)
+ * uses the shared `getQuickJS()` module instead.
+ */
+export async function createScriptRunnerIn(
+	QuickJS: QuickJSWASMModule,
 	source: string,
 	options: ScriptRunnerOptions
 ): Promise<ScriptRunner> {
@@ -84,7 +90,6 @@ export async function createScriptRunner(
 	if (!(budgetMs > 0)) throw new Error('createScriptRunner: budgetMs must be > 0');
 	const now = options.now ?? Date.now;
 	const vessel = entityId(options.vessel);
-	const QuickJS = await getQuickJS();
 	const runtime: QuickJSRuntime = QuickJS.newRuntime();
 	runtime.setMemoryLimit(options.memoryLimitBytes ?? 16 * 1024 * 1024);
 	runtime.setMaxStackSize(options.maxStackBytes ?? 256 * 1024);
