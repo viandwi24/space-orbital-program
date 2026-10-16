@@ -30,3 +30,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0009 | [Plan-driven development with executable acceptance criteria](0009-plan-driven-development.md) | accepted | 2026-10-16 |
 | 0010 | [World components are keyed by typed tokens](0010-world-typed-component-tokens.md) | accepted | 2026-10-16 |
 | 0011 | [Core depends on `@orbital/kepler` for types only](0011-core-reuses-kepler-types.md) | accepted | 2026-10-16 |
+| 0012 | [The renderer gets part shapes from the host, not from definitions](0012-renderer-part-shapes-host-supplied.md) | accepted | 2026-10-16 |
+| 0013 | [The define-API and plugin loader shape](0013-define-api-and-plugin-loader.md) | accepted | 2026-10-16 |

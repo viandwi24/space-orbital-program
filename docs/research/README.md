@@ -5,7 +5,9 @@ Facts about the outside world that the code depends on, each with **the source U
 - `stack-versions.md` — the version table and scaffold commands, re-verified whenever a plan touches a tool.
 - `bun-test.md` — the `bun:test` API surface and CLI filtering we rely on (plan 002).
 - `zod.md` — the zod v4 surface `@orbital/core` schemas use (plan 003).
+- `typescript.md` — module augmentation rules the SDK's open interfaces rely on (plan 005).
 - `rapier.md` — the Rapier JS API `@orbital/physics` uses, determinism notes and measured integrator behaviour (plan 004).
-- Topic files (`three.md`, `sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
+- `three.md` — the Three.js surface `@orbital/renderer` uses: renderer options, log depth, `Line2`, camera (plan 008).
+- Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
 
 When an entry is older than ~3 months or a major version behind, re-verify before relying on it.

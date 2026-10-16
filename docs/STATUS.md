@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
-**Current plan:** [`plans/005-sdk-define-api-plugin-loader.md`](plans/005-sdk-define-api-plugin-loader.md) (`in-progress`, sdk session)
+**Current plan:** [`plans/005-sdk-define-api-plugin-loader.md`](plans/005-sdk-define-api-plugin-loader.md) (`in-progress`, sdk session); plan 008 (renderer) is `done`
 **Next plan:** [`plans/006-stock-mod-minimal.md`](plans/006-stock-mod-minimal.md) (`draft`, needs refinement; needs 005)
 
 ## Plan board
@@ -18,7 +18,7 @@
 | 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | in-progress | sdk session | needs 003 |
 | 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | draft | — | needs 005 |
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | draft | — | needs 002, 004, 006 |
-| 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | draft | — | needs 003 |
+| 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | draft | — | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | draft | — | needs 004, 007; follow-up from 004 |
@@ -43,6 +43,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 ## Recent journal entries
 
 - [004 — Physics backend + Rapier adapter](journal/004-physics-backend-rapier.md)
+- [008 — Renderer: floating origin](journal/008-renderer-floating-origin.md)
 - [003 — Core: world, registries, events](journal/003-core-world-registries-events.md)
 - [002 — Kepler orbital mechanics](journal/002-kepler-orbital-mechanics.md)
 - [001 — Repo bootstrap](journal/001-repo-bootstrap.md)

@@ -12,7 +12,7 @@ Decided in ADR 0007. Every package follows this; conversions happen at the edges
 
 - Simulation state uses JavaScript `number` (float64). This is sufficient for positions within a star system at metre precision.
 - The physics backend (Rapier) is float32 internally. Therefore flight-mode physics runs in a **local frame** centred on the active vessel (see below); world-scale positions never enter the physics engine.
-- The GPU is float32. The renderer uses a **floating origin**: render-space origin is re-centred to the camera's reference body or vessel whenever the camera moves more than a threshold (default 10 km) from the current origin.
+- The GPU is float32. The renderer uses a **floating origin**: render-space origin is re-centred to the camera's reference body or vessel whenever the camera moves more than a threshold (default 10 km) from the current origin. `@orbital/renderer` implements it (plan 008): render position = `world − origin` computed in float64 and only then handed to Three; the origin snaps to a 1024 m grid (a power of two, so the subtraction is exact); in map view the anchor is the SOI body instead of the vessel.
 
 ## Frames
 
