@@ -2,7 +2,7 @@
 // Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic. Player
 // scripts do not run here: each Run gets its own script Worker, in a sandboxed iframe (ADR 0031,
 // ADR 0038).
-import { createTerrainField } from '@orbital/core';
+import { createMoonTerrainField, createTerrainField } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
@@ -27,8 +27,12 @@ const host = createSimHost({
 		current = await createSim({
 			plugins: [Stock],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
-			// The same procedural terrain the renderer draws (ADR 0043); the launch site is latitude 0, longitude 0.
-			terrain: (body) => createTerrainField({ radius: body.radius }),
+			// The same procedural terrain the renderer draws (ADR 0043): the home planet's with the launch
+			// site at latitude 0, longitude 0, and the craters of the moon (ADR 0054) for a body with a parent.
+			terrain: (body) =>
+				body.parent
+					? createMoonTerrainField({ radius: body.radius })
+					: createTerrainField({ radius: body.radius }),
 			// `createSim` validates the save (checksum, version, content) and refuses with a readable reason.
 			...(resume === undefined ? {} : { resume })
 		});
