@@ -21,6 +21,10 @@
 
 `apps/web` also depends on `@orbital/physics` and `@orbital/kepler` (`workspace:*`, plan 009); Vite worker, SvelteKit page options and Svelte runes docs are in `web-client.md` (2026-10-16).
 
+## Cross-browser tests (plan 032, 2026-10-17)
+
+`@playwright/test` ^1.64 (installed 1.64.1, `npm view` 2026-10-17) as a devDependency of `apps/web`, added by `bunx sv add playwright="demo:no" --no-git-check --no-install` (sv 1.1.1); engines by `bunx playwright install chromium firefox webkit` into `~/Library/Caches/ms-playwright`. `zod` (`catalog:`) is now a direct dependency of `apps/web` (the script Worker sets it `jitless`). Sources and engine facts: `browser-support.md`.
+
 ## Scaffold commands (copy-paste)
 
 ```sh

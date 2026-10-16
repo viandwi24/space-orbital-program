@@ -34,15 +34,17 @@ print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 | `ship` | read-only telemetry (below) plus the two writable setpoints `ship.throttle` and `ship.attitude` |
 | `ship.throttle = x` | engine throttle, 0 to 1; reading returns the last value you set |
 | `ship.attitude = { pitch, yaw, roll }` | steering demand for the reaction wheels, each -1 to 1, missing keys are 0. This is a torque demand, not a target angle: you need a control loop (the sample has a PD loop) |
-| `stage()` | fire the next stage |
-| `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)` |
+| `stage()` | fire the next stage; returns a promise of `{ ok, reason? }` (see "Command feedback") |
+| `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)`; returns a promise of `{ ok, reason? }` |
+| `warp(factor)` | ask for time warp, 1 to 100 000; returns a promise of `{ ok, reason? }` that settles when the game has answered (see "Time warp") |
+| `bodies` | frozen data of every body in the game, by id: `bodies[ship.body]` is `{ id, radius, mass, mu, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, parent?, orbit? }` (SI) |
 | `wait(s)` | promise that resolves when `s` seconds of **simulation** time have passed (resolution: one tick) |
 | `nextTick()` | resolves on the next tick; use it in every loop |
 | `waitUntil(fn)` | polls `fn` every tick until it returns truthy |
 | `time()` | simulation time, s (same as `ship.t`) |
 | `print(...)` | append a line to the panel log (strings as is, other values as JSON) |
 
-Invalid arguments throw inside the script (`RangeError`, `TypeError`) and issue nothing. A repeated identical throttle or attitude is not sent twice. Standard JavaScript built-ins are available (`Math`, `JSON`, `Date`, `Promise`, typed arrays, ...); `Math.random` is seeded and repeatable. There is no `fetch`, `window`, `document`, `process`, `console` or timers (`setTimeout`): use `wait`.
+Invalid arguments throw inside the script (`RangeError`, `TypeError`) and issue nothing. A repeated identical throttle or attitude is not sent twice. Standard JavaScript built-ins are available (`Math`, `JSON`, `Date`, `Promise`, typed arrays, ...); `Math.random` is seeded and repeatable, and `Date` reads the **simulation** clock: `Date.now()` and `new Date()` are simulation seconds since the start times 1000, so a script behaves the same on every run (`new Date(2000, 0, 1)` and the other forms with arguments work as usual). There is no `fetch`, `window`, `document`, `process`, `console` or timers (`setTimeout`): use `wait`.
 
 ## `ship` telemetry
 
@@ -63,6 +65,7 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 | `parts[]` | `{ id, definition, position, mass, modules }`: every part; `position` relative to the root in the inertial frame, `mass` the dry mass (kg), `modules` the module states by module id (an engine: `{ ignited, throttle, flameout }`, a tank: `{ amounts: { resource: units } }`) |
 | `engines[]` | `{ part, module, thrust, ispVacuum, ispSeaLevel, ignited, throttle, flameout }`: vacuum thrust at full throttle (N), Isp (s), and the engine's state |
 | `wheels[]` | `{ part, module, torque, enabled }`: maximum torque per axis (N m) of each reaction wheel |
+| `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle` and `attitude`, which have no return value) |
 
 `engines` and `wheels` list the parts still attached, so they change when you stage. Any module whose configuration has `thrust`, `ispVacuum` and `ispSeaLevel` counts as an engine, and any with `torque` and an `enabled` state as a wheel, whoever made the mod. Exhaust speed is `ispVacuum * 9.80665`; with the engines that can still burn, `burn time = mass * ve * (1 - exp(-dv / ve)) / thrust` (the sample does this to time its circularisation burn).
 
@@ -70,10 +73,42 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 
 - Your script is called once per simulation tick with the latest data. Work between two `await`s must be short: each tick has a 200 ms budget (the first tick of a run 300 ms, because the engine starts cold; ordinary ticks take well under 1 ms). A script that exceeds it is terminated (`terminated`, "time budget exceeded"). Memory is limited to 16 MiB and the call stack to 256 KiB.
 - The script runs in a separate thread from the simulation. Commands reach the vessel one or two ticks after the data they were based on; a control loop with a bandwidth of about 0.5 rad/s is unaffected, a very fast one will be. If the script thread stops answering for half a second it is killed and the simulation carries on.
+- Each tick also has a **work budget**: 20 000 interrupt polls (the engine polls about once per 10 000 operations; about 200 ms of pure looping on an idle desktop). A runaway ends at the same place on every machine ("work budget exceeded").
 - Under time warp the script sees fewer snapshots per simulation second.
-- One script per flight, controlling the vessel that was active when you pressed Run. It cannot address other vessels, change warp or load vessels.
-- A command the game refuses (for example `stage()` with no stage left) is logged once as `! stage: reason`.
+- One script per flight, controlling the vessel that was active when you pressed Run. It cannot address other vessels or load vessels; it can ask for time warp (below).
+- A command the game refuses (for example `stage()` with no stage left) is logged once as `! stage: reason` and reported back to the script (below).
 - The script text is saved in your browser per vessel design.
+
+## Command feedback
+
+`stage()`, `action(...)` and `warp(...)` return a promise that settles with the game's answer on the **next tick**: `{ ok: true }` or `{ ok: false, reason }`. A refusal is a value, not an exception.
+
+```js
+const fired = await stage();
+if (!fired.ok) print('no stage fired: ' + fired.reason);
+```
+
+`ship.throttle = x` and `ship.attitude = {...}` have no return value; if the game refuses one, it appears in `ship.refusals` on the following tick. A repeated identical setpoint is not sent, so it cannot be refused.
+
+## Time warp
+
+Time warp needs the vessel on rails, and a vessel goes on rails only after two seconds without any engine or wheel force. A script that keeps writing a new `ship.attitude` every tick (any control loop does) would keep the vessel awake forever, so while a script runs the game helps (ADR 0039):
+
+- You can press the warp buttons as usual. The game zeroes the vessel's attitude demand, **holds back** the script's attitude commands (each is answered `ok: false`, "held while time warp is requested or active"), waits for the vessel to settle on the rails (up to 8 seconds, then the button press is refused with the reason) and starts the warp. On rails the attitude is frozen, so nothing is lost.
+- A script can ask the same with `await warp(10)`. It resolves `{ ok: true }` once the warp is on, or `{ ok: false, reason }`. `await warp(1)` goes back to real time; the game then sends the last attitude the script asked for and the vessel wakes into it.
+- A script that is burning (throttle above 0) is refused immediately; cut the throttle first. A `stage()`, `action(...)` or a throttle above 0 while a warp request is waiting cancels the request.
+- Warp never stops by itself at an event: choose a factor that leaves room. One simulation step is `factor` times up to 0.1 s of real time, so a script that must act at time `T` should stop warping while `(T - time()) / factor` is still above about 0.1 s, and re-align the ship after `warp(1)` (the ship does not turn while on rails).
+
+```js
+// coast towards a burn 10 minutes away: warp while there is time, then real time to re-align
+const burnAt = time() + 600;
+while (burnAt - time() > 120) {
+  const factor = Math.max(1, Math.min(100, Math.floor((burnAt - time() - 60) / 2)));
+  await warp(factor);
+  await nextTick();
+}
+await warp(1);
+```
 
 ## Common patterns
 

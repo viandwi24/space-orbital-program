@@ -38,6 +38,7 @@ bun run typecheck      # tsc per package + svelte-check for apps/web
 bun run build          # static build of apps/web
 bun run dev            # apps/web dev server
 bun run docs:check     # validates plan/ADR/STATUS consistency
+bun run e2e            # Playwright smoke suite in Chromium, Firefox, WebKit (needs `bunx playwright install chromium firefox webkit` once in apps/web; E2E_ORBIT=1 adds the real-time ascent; ADR 0040)
 ```
 
 ## 5. Repository map

@@ -26,13 +26,16 @@ The runner is a function of snapshots: it never holds the sim, so untrusted code
 | `ship.<telemetry>` (read-only) | `t`, `mode`, `body`, `bodyRadius`, `mu`, `position`, `velocity`, `altitude`, `speed`, `up`, `orientation` (quaternion), `nose` (+Y axis in BCI), `mass`, `inertia`, `orbit` (elements or `null`), `apoapsis`, `periapsis`, `eccentricity` (altitudes in m, `null` without an orbit), `parts[]` (`id`, `definition`, `position`, `mass`, `modules` state), `engines[]` and `wheels[]` (constants from the part definitions, below). SI, BCI axes. Fresh copy each tick. |
 | `ship.throttle = x` | 0..1. Reading returns the last value set. |
 | `ship.attitude = { pitch, yaw, roll }` | each -1..1, missing keys 0 (the `attitude` command). |
-| `stage()` | the `stage` command. |
-| `action(part, module, action, ...args)` | the `action` command; `part` is a `ship.parts[i].id`. |
+| `stage()` | the `stage` command; returns a promise of the host's verdict `{ ok, reason? }` (plan 032). |
+| `action(part, module, action, ...args)` | the `action` command; `part` is a `ship.parts[i].id`; returns a promise of the verdict. |
+| `warp(factor)` | the vessel-less `warp` command, 1 to `MAX_SCRIPT_WARP` (100 000); promise of the verdict. The host gates it (ADR 0039). |
+| `bodies` | frozen map id -> `{ id, radius, mass, mu, rotationPeriod, atmosphere?, parent?, orbit? }` built from the `ScriptEnvironment`. |
+| `ship.refusals` | `[{ command, reason }]` of the commands refused since the last tick (setters included). |
 | `wait(s)` | promise resolved when simulation time has advanced by `s` (resolution is one tick). |
 | `nextTick()`, `waitUntil(fn)` | resolve on the next `tick`; poll `fn` every tick. |
 | `time()`, `print(...)` | simulation time; append a line to `runner.logs`. |
 
-Invalid arguments throw inside the script (`RangeError`/`TypeError`), so a script sees a normal exception and nothing invalid is issued. A repeated `throttle`/`attitude` setpoint produces no new command. Commands are built from named fields with the vessel fixed by the runner and validated with core's `commandSchema`: a script cannot address another vessel, warp, or load vessels.
+Invalid arguments throw inside the script (`RangeError`/`TypeError`), so a script sees a normal exception and nothing invalid is issued. A repeated `throttle`/`attitude` setpoint produces no new command. Commands are built from named fields with the vessel fixed by the runner and validated with core's `commandSchema`: a script cannot address another vessel or load vessels; `warp` is the one command without a vessel and the host decides (ADR 0039).
 
 ### Engines and wheels (plan 018)
 
@@ -40,7 +43,8 @@ Invalid arguments throw inside the script (`RangeError`/`TypeError`), so a scrip
 
 ## Isolation and budget
 
-- QuickJS is a separate engine instance; its global holds only ECMAScript built-ins plus the API above. `world`, `fetch`, `window`, `document`, `process`, `Bun`, `console`, timers do not exist; `Function('return this')()`, `constructor.constructor`, indirect `eval` only reach that same global. The host bridge (`cmd`, `print`, `done`) is captured in the prelude closure and not reachable. `Math.random` is a seeded PRNG. `Date` is still QuickJS's and reads the host clock (not hidden; out of scope).
+- QuickJS is a separate engine instance; its global holds only ECMAScript built-ins plus the API above. `world`, `fetch`, `window`, `document`, `process`, `Bun`, `console`, timers do not exist; `Function('return this')()`, `constructor.constructor`, indirect `eval` only reach that same global. The host bridge (`cmd`, `print`, `done`) is captured in the prelude closure and not reachable. `Math.random` is a seeded PRNG. `Date` is replaced by a function over the **simulation** clock (`Date.now()` and `new Date()` are `floor(t * 1000)`; forms with arguments are the engine's own, `Date.prototype.constructor` points at the replacement so the native one is not reachable), so a replay is the same run.
+- **Fuel (plan 032):** `fuelPolls` (option; the web client sets 20 000) counts the engine's interrupt-handler polls per tick (about one per 10 000 operations, about 100 per ms on an idle desktop); a tick with more is `terminated` ("work budget exceeded") at the same place on every machine. The wall budget below stays as the backstop (the polls do not bound native builtins either).
 - **Budget:** `budgetMs` of wall time per `tick` covers the telemetry update, the script's synchronous part and all promise jobs (run in batches of 256 with a check between batches). QuickJS's interrupt handler is polled inside loops and calls; a script cannot catch the interrupt. The first overrun terminates the script and frees the runtime. Memory (16 MiB) and stack (256 KiB) are limited; heap exhaustion terminates, stack overflow is an ordinary script error.
 - **Not preemptive across threads:** the runner executes on the caller's thread, so a runaway *loop* delays the host by about `budgetMs` once (measured: a 25 ms budget stops `while (true) {}` in 25 to 27 ms). **The budget is not a hard bound:** QuickJS polls the interrupt inside the interpreter, not inside native builtins; a long `indexOf` needle ran 25 s with a 10 ms budget (`research/scripting.md`, a test pins a 100 ms BigInt case). That is why the web client runs the runner in a Worker it can terminate (ADR 0031), see below. `firstTickBudgetMs` (default `budgetMs`) gives only the first, cold tick a larger budget. QuickJS-WASM is unaudited (upstream README), so treat the boundary as strong but not proven.
 
@@ -52,6 +56,10 @@ Invalid arguments throw inside the script (`RangeError`/`TypeError`), so a scrip
 
 Plan 017 additions: the script text is saved per design name in `localStorage` (`orbital.script.<design name>`, `lib/storage.ts`; failures are silent, the text stays in the panel) and restored when `/flight` opens. The host forwards the sim's `stage:activated` events as a Worker message `{ kind: 'stage', vessel, stage }`; the HUD's "Stage x / y fired" is the highest `stage + 1` seen for the active vessel (`lib/stage-state.ts`), so a script's `stage()` is counted like a key press. The flight HUD shows a status (`landed` for `surface` rails, `orbit`, `suborbital`, `flight`; `lib/telemetry.ts`) and warp buttons enabled while the vessel is on rails.
 
+### Command feedback and warp (plan 032, ADR 0039)
+
+Every command the runner issues gets a sequence number (`TickResult.seqs`, parallel to `commands`; a repeated setpoint gets none). The script Worker's `result` carries `seqs`; the sim host dispatches, records `{ seq, ok, reason }` and sends the batch with the next `tick` (`verdicts`). The runner settles the guest promises of `stage()`/`action()`/`warp()` and fills `ship.refusals` when that tick starts, before `nextTick` waiters resume. `sim-host.ts` also owns the **warp hold**: while a script runs, a `warp` above 1 (from the page or from `warp()`) zeroes the vessel's attitude, holds back the script's non-zero attitude, retries the sim's `warp` every tick until the vessel is on rails (8 s wall limit, then the sim's own reason), and releases the hold, re-sending the last held attitude, on `warp 1` or when the script ends. The HUD's warp buttons are enabled while a script runs (`canWarp(..., scriptRunning)`).
+
 ### The sandbox frame (plan 030, ADR 0038)
 
 Since plan 030 the script Worker is not spawned by the sim Worker any more. Per Run the page (`script-sandbox.ts`, wired to the DOM in `script-sandbox-web.ts`, driven by `flight-loop.ts`):
@@ -61,7 +69,7 @@ Since plan 030 the script Worker is not spawned by the sim Worker any more. Per 
 3. sends `port1` to the sim Worker with `script-start`; `script-port.ts` makes it a `ScriptWorkerLike`, so `script-channel.ts` (watchdog, boot timeout, command filter) is unchanged and ticks travel sim Worker <-> script Worker without the main thread;
 4. removes the iframe when the script's status leaves `starting`/`running`, on Stop and on dispose. Removing the iframe is the hard kill of a Worker stuck in a native builtin.
 
-`script-sandbox-probe.ts` runs in the iframe document and in the Worker and reports what is reachable (same-origin `fetch`, IndexedDB, localStorage, cookies, Cache storage); the panel shows it ("Runs isolated" only when both contexts reported all blocked). What an escaped script can still do is in ADR 0038.
+`script-sandbox-probe.ts` runs in the iframe document and in the Worker and reports what is reachable (same-origin `fetch`, IndexedDB, localStorage, cookies, Cache storage); the panel shows it ("Runs isolated" only when both contexts reported nothing reachable). Cookies and Cache storage are tested against a **sentinel** the page plants in the game origin first (plan 032): an API that works but sees none of the page's data is `isolated` (WebKit answers `document.cookie` with "" and `caches` with an empty store in an opaque origin instead of throwing); one that sees it is `reachable`. The script Worker's bundle sets zod to `jitless` first (`script-sandbox-jitless.ts`), because zod's probe `new Function('')` is a CSP violation Firefox logs as an error. What an escaped script can still do is in ADR 0038.
 
 **Hosting requirements for plan 023.** None for the sandbox on a static host. If a CSP is set on the game page: allow the `srcdoc` iframe (`frame-src about:` / `child-src`), allow the bootstrap's hash in the page's `script-src` (a `srcdoc` document inherits the parent's policy as well as its own: `'sha256-<hash of static/sandbox/script-sandbox-frame-main.js>'`; the hash changes with the bundle, compute it at build time), `worker-src 'self' blob:` for the sim Worker and `connect-src 'self'`; no CORS headers are needed (the page fetches the bundles itself). A failing policy shows as "the script sandbox did not start" and no script runs. Optional headers: `X-Content-Type-Options: nosniff`, a strict `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`. The fallback `static/sandbox/script-sandbox.html` can be served with `Content-Security-Policy: sandbox allow-scripts` but is not loaded by `src` today (a `src` iframe was blocked in the verification browser).
 
@@ -75,4 +83,4 @@ Since plan 030 the script Worker is not spawned by the sim Worker any more. Per 
 
 ## Known limits
 
-Scripts are JavaScript, not TypeScript; one script per vessel per runner; the editor has no completion or auto-indent (Tab still moves focus); refusals by the sim (e.g. `stage` with no stage left) are visible only to the host that dispatches, not to the script; telemetry only covers the controlled vessel.
+Scripts are JavaScript, not TypeScript; one script per vessel per runner; the editor has no completion or auto-indent (Tab still moves focus); telemetry only covers the controlled vessel; no target or maneuver data (the sim has neither, draft plan 035).
