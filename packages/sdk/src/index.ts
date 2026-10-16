@@ -69,6 +69,7 @@ export type {
 	LoadOptions,
 	LoadReport,
 	LoadResult,
+	ModuleCollider,
 	ModuleContext,
 	ModuleDefinition,
 	ModuleId,

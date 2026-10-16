@@ -144,6 +144,16 @@ export interface ResourceStore<Config = unknown, State = unknown> {
 }
 
 /**
+ * An extra collision box a module adds to its part (landing-leg feet), part frame, metres.
+ * Collision only: it carries no mass.
+ */
+export interface ModuleCollider {
+	/** Centre of the box relative to the part origin. */
+	offset: Vec3;
+	halfExtents: Vec3;
+}
+
+/**
  * Module: reusable behaviour with a config schema and serializable state. Behaviour is functions
  * on the definition; state is plain data held in the world (ADR 0010, boundaries.md).
  * `In` is the config as authors write it (z.input), `Out` what hooks receive (z.output).
@@ -175,6 +185,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 		string,
 		Bivariant<(ctx: ModuleContext<Out, State>, ...args: unknown[]) => unknown>
 	>;
+	/**
+	 * Extra collision boxes of the part for the current state (e.g. deployed landing-leg feet).
+	 * Re-read after every dispatched `action` and `stage`; the vessel's physics body is rebuilt
+	 * when the result changed. Must be a pure function of config and state (ADR 0019).
+	 */
+	colliders?: Bivariant<(config: Out, state: State) => readonly ModuleCollider[]>;
 	/** The JSON-compatible view of `state` that snapshots expose to the UI. */
 	snapshot?: Bivariant<(state: State) => unknown>;
 }

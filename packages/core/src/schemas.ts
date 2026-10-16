@@ -81,6 +81,11 @@ export const partDefinitionSchema = z.object({
 	shape: partShapeSchema.optional(),
 	/** Resources may flow through this part (default true); engines and decouplers set false. */
 	crossfeed: z.boolean().optional(),
+	/**
+	 * Ground impact speed (m/s, closing speed along the ground normal) above which the part breaks
+	 * off; above twice this it is destroyed (ADR 0019). The sim assumes 6 when absent.
+	 */
+	impactTolerance: z.number().positive().optional(),
 	attach: z.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple })).optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.

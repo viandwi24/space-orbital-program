@@ -17,6 +17,18 @@ export interface EventMap {
 	'vessel:destroyed': { vessel: EntityId; reason: string };
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
+	/**
+	 * A part hit the ground faster than its `impactTolerance` (plan 012, ADR 0019): `broken` = cut
+	 * off and flying on as debris, `destroyed` = removed from the world. `vessel` is the vessel the
+	 * part belonged to when it hit; `speed` is the closing speed in m/s.
+	 */
+	'part:damaged': {
+		vessel: EntityId;
+		part: EntityId;
+		definition: string;
+		speed: number;
+		outcome: 'broken' | 'destroyed';
+	};
 }
 
 export type EventHandler<P> = (payload: P) => void;

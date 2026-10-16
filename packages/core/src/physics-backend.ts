@@ -63,6 +63,20 @@ export interface BodyDesc extends MassPlacement {
 	/** Velocity of the centre of mass, m/s. */
 	linearVelocity?: Vec3;
 	angularVelocity?: Vec3;
+	/** Coulomb friction coefficient of every collider of the body (plan 012). Rapier's default (0.5) when omitted. */
+	friction?: number;
+	/** Restitution of every collider of the body, 0 (no bounce) to 1. Defaults to 0. */
+	restitution?: number;
+}
+
+/** One contact point between two bodies after a step (`PhysicsBackend.contacts`). */
+export interface ContactPoint {
+	/** Index of the collider within the first body (placement order of a compound shape, 0 otherwise). */
+	shape: number;
+	/** Contact point, local-frame coordinates. */
+	point: Vec3;
+	/** Signed separation, m: negative when the shapes overlap. */
+	distance: number;
 }
 
 export interface Velocity {
@@ -102,6 +116,13 @@ export interface PhysicsBackend {
 	setTransform(handle: BodyHandle, transform: Transform): void;
 	getVelocity(handle: BodyHandle): Velocity;
 	setVelocity(handle: BodyHandle, velocity: Velocity): void;
+
+	/**
+	 * Contact points between bodies `a` and `b` as of the last `step` (the narrow phase result, so
+	 * it includes points slightly before touching: filter on `distance`). Deterministic order.
+	 * The mock backend has no collisions and returns none.
+	 */
+	contacts(a: BodyHandle, b: BodyHandle): ContactPoint[];
 
 	/** Release native resources (WASM memory). The backend is unusable afterwards. */
 	dispose(): void;

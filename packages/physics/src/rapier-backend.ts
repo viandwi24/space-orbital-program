@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import type {
 	BodyDesc,
 	BodyHandle,
+	ContactPoint,
 	JointHandle,
 	MassPlacement,
 	PhysicsBackend,
@@ -25,6 +26,8 @@ interface BodyRecord {
 	body: RAPIER.RigidBody;
 	shape: BodyDesc['shape'];
 	joints: Set<number>;
+	/** Colliders in creation order (index = `ContactPoint.shape`). */
+	colliders: RAPIER.Collider[];
 }
 interface JointRecord {
 	joint: RAPIER.ImpulseJoint;
@@ -53,6 +56,8 @@ export async function createRapierBackend(
 	const joints = new Map<number, JointRecord>();
 	// Bodies with pending forces/torques, in insertion order (deterministic).
 	const loaded = new Set<number>();
+	// Collider handle -> body handle and index within the body (contact readback).
+	const colliderOwner = new Map<number, { body: number; shape: number }>();
 	let nextBody = 1;
 	let nextJoint = 1;
 	let disposed = false;
@@ -85,20 +90,31 @@ export async function createRapierBackend(
 		r.body.recomputeMassPropertiesFromColliders();
 	}
 	// Density 0: all mass comes from setMassProps so mass/inertia are exactly as requested.
-	function colliderOf(s: PrimitiveShape): RAPIER.ColliderDesc {
-		return (
+	function colliderOf(s: PrimitiveShape, desc: BodyDesc): RAPIER.ColliderDesc {
+		const c = (
 			s.type === 'box'
 				? RAPIER.ColliderDesc.cuboid(s.halfExtents.x, s.halfExtents.y, s.halfExtents.z)
 				: s.type === 'sphere'
 					? RAPIER.ColliderDesc.ball(s.radius)
 					: RAPIER.ColliderDesc.capsule(s.halfHeight, s.radius)
 		).setDensity(0);
+		if (desc.friction !== undefined) c.setFriction(desc.friction);
+		if (desc.restitution !== undefined) c.setRestitution(desc.restitution);
+		return c;
 	}
 
 	return {
 		createBody(desc) {
 			live();
 			assertBodyParams(desc.mass, desc.shape, desc.inertia);
+			for (const [name, v] of [
+				['friction', desc.friction],
+				['restitution', desc.restitution]
+			] as const) {
+				if (v !== undefined && (!Number.isFinite(v) || v < 0)) {
+					throw new Error(`physics: ${name} must be a finite number >= 0, got ${v}`);
+				}
+			}
 			const kind = desc.kind ?? 'dynamic';
 			const rbDesc =
 				kind === 'dynamic'
@@ -119,14 +135,21 @@ export async function createRapierBackend(
 				desc.shape.type === 'compound'
 					? desc.shape.shapes
 					: [{ shape: desc.shape, position: ZERO, rotation: IDENTITY }];
-			for (const p of placed) {
-				const c = colliderOf(p.shape).setTranslation(p.position.x, p.position.y, p.position.z);
-				if (p.rotation) c.setRotation(p.rotation);
-				world.createCollider(c, body);
-			}
-			const record: BodyRecord = { body, shape: desc.shape, joints: new Set() };
-			setMassProps(record, desc.mass, desc.inertia, desc);
 			const id = nextBody++;
+			const colliders: RAPIER.Collider[] = [];
+			for (const p of placed) {
+				const c = colliderOf(p.shape, desc).setTranslation(
+					p.position.x,
+					p.position.y,
+					p.position.z
+				);
+				if (p.rotation) c.setRotation(p.rotation);
+				const collider = world.createCollider(c, body);
+				colliderOwner.set(collider.handle, { body: id, shape: colliders.length });
+				colliders.push(collider);
+			}
+			const record: BodyRecord = { body, shape: desc.shape, joints: new Set(), colliders };
+			setMassProps(record, desc.mass, desc.inertia, desc);
 			bodies.set(id, record);
 			// Handles are branded numbers minted only here.
 			return id as BodyHandle;
@@ -142,6 +165,7 @@ export async function createRapierBackend(
 				joints.delete(j); // Rapier drops attached joints with the body
 			}
 			loaded.delete(handle);
+			for (const c of r.colliders) colliderOwner.delete(c.handle);
 			world.removeRigidBody(r.body);
 			bodies.delete(handle);
 		},
@@ -237,6 +261,34 @@ export async function createRapierBackend(
 			body.setAngvel(v.angular, true);
 		},
 
+		contacts(a, b) {
+			rec(a);
+			const rb = rec(b);
+			const out: ContactPoint[] = [];
+			for (const cb of rb.colliders) {
+				// Colliders potentially in contact with `cb`; keep those that belong to `a`.
+				const others: RAPIER.Collider[] = [];
+				world.contactPairsWith(cb, (other) => {
+					if (colliderOwner.get(other.handle)?.body === a) others.push(other);
+				});
+				for (const ca of others) {
+					const shape = colliderOwner.get(ca.handle)!.shape;
+					world.contactPair(ca, cb, (manifold) => {
+						for (let i = 0; i < manifold.numSolverContacts(); i++) {
+							const p = manifold.solverContactPoint(i);
+							if (!p) continue;
+							out.push({
+								shape,
+								point: { x: p.x, y: p.y, z: p.z },
+								distance: manifold.solverContactDist(i)
+							});
+						}
+					});
+				}
+			}
+			return out.sort((x, y) => x.shape - y.shape);
+		},
+
 		dispose() {
 			if (disposed) return;
 			disposed = true;
@@ -244,6 +296,7 @@ export async function createRapierBackend(
 			bodies.clear();
 			joints.clear();
 			loaded.clear();
+			colliderOwner.clear();
 		}
 	};
 }

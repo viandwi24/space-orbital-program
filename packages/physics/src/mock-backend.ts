@@ -153,6 +153,11 @@ export function createMockBackend(): PhysicsBackend {
 			b.linear = { ...v.linear };
 			b.angular = { ...v.angular };
 		},
+		contacts(a, b) {
+			get(a);
+			get(b);
+			return [];
+		},
 		dispose() {
 			bodies.clear();
 			joints.clear();
