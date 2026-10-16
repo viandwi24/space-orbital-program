@@ -27,6 +27,8 @@ export type FromScriptWorker =
 			commands: Command[];
 			status: ScriptStatus;
 			error?: string;
+			/** 1-based script line of `error`, when the engine said. */
+			errorLine?: number;
 			/** Guest time of this tick, ms. */
 			elapsedMs: number;
 			/** `print()` lines produced during this tick. */
@@ -59,7 +61,11 @@ export function parseFromScriptWorker(data: unknown): FromScriptWorker | null {
 		Number.isFinite(data.elapsedMs) &&
 		Array.isArray(data.lines) &&
 		data.lines.every((l) => typeof l === 'string') &&
-		(data.error === undefined || typeof data.error === 'string')
+		(data.error === undefined || typeof data.error === 'string') &&
+		(data.errorLine === undefined ||
+			(typeof data.errorLine === 'number' &&
+				Number.isInteger(data.errorLine) &&
+				data.errorLine >= 1))
 	) {
 		return data as unknown as FromScriptWorker;
 	}

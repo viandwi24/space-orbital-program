@@ -49,4 +49,45 @@ describe('script messages', () => {
 			parseWorkerMessage({ kind: 'script-status', status: 'weird', lastMs: 0, maxMs: 0 })
 		).toBeNull();
 	});
+
+	it('carries the error line of a failed script and clears it with the next run', () => {
+		let v = reduceScript(idleScript(), {
+			kind: 'script-status',
+			status: 'failed',
+			error: 'TypeError: x',
+			errorLine: 5,
+			lastMs: 1,
+			maxMs: 1
+		});
+		expect(v).toMatchObject({ status: 'failed', errorLine: 5 });
+		v = reduceScript(v, { kind: 'script-status', status: 'starting', lastMs: 0, maxMs: 0 });
+		expect(v.errorLine).toBeNull();
+	});
+
+	it('accepts only a positive integer error line from the worker', () => {
+		const base = { kind: 'script-status', status: 'failed', lastMs: 0, maxMs: 0 };
+		expect(parseWorkerMessage({ ...base, errorLine: 3 })).not.toBeNull();
+		for (const bad of [0, -1, 1.5, '3', null]) {
+			expect(parseWorkerMessage({ ...base, errorLine: bad })).toBeNull();
+		}
+	});
+
+	it('script-start carries the channel port when there is one, and refuses a port that is not one', () => {
+		const { port1, port2 } = new MessageChannel();
+		const withPort = parseClientMessage({
+			kind: 'script-start',
+			source: 'x',
+			vessel: 1,
+			port: port1
+		});
+		expect(withPort?.kind === 'script-start' && withPort.port === port1).toBe(true);
+		expect(
+			parseClientMessage({ kind: 'script-start', source: 'x', vessel: 1, port: 7 })
+		).toBeNull();
+		expect(
+			parseClientMessage({ kind: 'script-start', source: 'x', vessel: 1, port: { postMessage: 1 } })
+		).toBeNull();
+		port1.close();
+		port2.close();
+	});
 });

@@ -8,7 +8,8 @@ import { createRenderer, type GraphicsPreset, type Renderer } from '@orbital/ren
 import { partShapesOf } from './catalog';
 import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
 import type { Catalog } from './messages';
-import { idleScript, reduceScript, type ScriptView } from './script-state';
+import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
+import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import type { ContentLookups } from './delta-v';
@@ -52,6 +53,11 @@ export interface FlightOptions {
 	onKey?(key: 'escape' | 'help'): void;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
+	/**
+	 * Where scripts run (ADR 0038): a sandboxed iframe with the script Worker in it. Without one
+	 * (tests, a browser that cannot provide it) Run reports a failed script.
+	 */
+	sandbox?: ScriptSandbox;
 }
 
 export interface Flight {
@@ -113,6 +119,8 @@ export function startFlight(options: FlightOptions): Flight {
 	let modal = false;
 	let script: ScriptView = idleScript();
 	let scriptDirty = false;
+	/** Counts Runs and Stops, so a sandbox that finishes starting after a newer action is dropped. */
+	let scriptRun = 0;
 	const publish = (): void =>
 		options.onHud({ ...hud, telemetry: hud.telemetry && { ...hud.telemetry } });
 
@@ -337,6 +345,9 @@ export function startFlight(options: FlightOptions): Flight {
 	client.onScript((event) => {
 		script = reduceScript(script, event);
 		scriptDirty = true;
+		// The script ended (or never ran): removing the iframe also kills a Worker that is still
+		// spinning inside a native builtin (ADR 0038).
+		if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
 	});
 	client.onError((message) => {
 		hud.status = 'error';
@@ -429,10 +440,41 @@ export function startFlight(options: FlightOptions): Flight {
 	return {
 		runScript(source) {
 			if (vessel === null) return;
-			client.startScript(source, Number(vessel));
+			const target = Number(vessel);
+			const run = ++scriptRun;
+			const show = (status: 'starting' | 'failed', error?: string): void => {
+				script = reduceScript(script, {
+					kind: 'script-status',
+					status,
+					...(error === undefined ? {} : { error }),
+					lastMs: 0,
+					maxMs: 0
+				});
+				scriptDirty = true;
+			};
+			const sandbox = options.sandbox;
+			if (!sandbox) return show('failed', 'scripting is not available here');
+			show('starting');
+			sandbox.open().then(
+				(port) => {
+					if (run === scriptRun && !disposed) client.startScript(source, target, port);
+					else port.close();
+				},
+				(error: unknown) => {
+					// A newer Run (or Stop) closed this sandbox while it started: nothing to report.
+					if (run === scriptRun && !disposed) {
+						show(
+							'failed',
+							`script sandbox: ${error instanceof Error ? error.message : String(error)}`
+						);
+					}
+				}
+			);
 		},
 		stopScript() {
+			scriptRun += 1;
 			client.stopScript();
+			options.sandbox?.close();
 		},
 		setGraphicsPreset(preset) {
 			saveGraphicsPreset(preset);
@@ -468,6 +510,7 @@ export function startFlight(options: FlightOptions): Flight {
 			canvas.removeEventListener('pointermove', onPointerMove);
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();
+			options.sandbox?.close();
 			client.dispose();
 		}
 	};

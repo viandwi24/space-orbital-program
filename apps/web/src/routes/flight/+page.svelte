@@ -20,6 +20,9 @@
 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
 	import type { FrameData } from '../../lib/hud-controller';
 	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
+	import type { SandboxStatus } from '../../lib/script-sandbox';
+	import { startScriptSandbox } from '../../lib/script-sandbox-web';
+	import { decodeScript, tokenFromHash, type ImportInfo } from '../../lib/script-share';
 	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
 	import { canWarp } from '../../lib/telemetry';
 
@@ -29,8 +32,15 @@
 	let flight: Flight | null = null;
 	let scriptOpen = $state(false);
 	let source = $state('');
-	let designName = '';
+	let designName = $state('');
 	let script = $state.raw<ScriptView>(idleScript());
+	let sandbox = $state.raw<SandboxStatus>({ state: 'none', reports: [], contained: false });
+	/** Set while the editor holds text from outside that the player has not confirmed running (plan 030). */
+	let imported = $state<ImportInfo | null>(null);
+	let backup = $state<string | null>(null);
+	let notice = $state<string | null>(null);
+	/** The text of the last Run: its error line only means something while the editor still holds it. */
+	let ranSource = $state<string | null>(null);
 	let pauseOpen = $state(false);
 	let helpOpen = $state(false);
 	let deck = $state<InstrumentDeck>();
@@ -51,6 +61,22 @@
 		}
 		designName = parsed.design.name;
 		source = loadScript(designName) ?? '';
+		const scriptSandbox = startScriptSandbox();
+		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
+		// A shared link (`/flight#script=...`) opens the panel with the script shown, not run. It
+		// is read on load and when the fragment changes in this tab.
+		const importFromHash = (): void => {
+			const token = tokenFromHash(location.hash);
+			if (token === null) return;
+			history.replaceState(null, '', location.pathname + location.search);
+			scriptOpen = true;
+			void decodeScript(token).then((decoded) => {
+				if (decoded.ok) importScript(decoded.source, { from: 'link' });
+				else notice = `The link was not imported: ${decoded.reason}.`;
+			});
+		};
+		importFromHash();
+		window.addEventListener('hashchange', importFromHash);
 		const small = matchMedia('(max-height: 800px)');
 		const sync = (): void => void (tall = !small.matches);
 		sync();
@@ -61,6 +87,7 @@
 			content,
 			onHud: (h) => (hud = h),
 			onScript: (v) => (script = v),
+			sandbox: scriptSandbox,
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
 				markers?.place(f.map);
@@ -72,6 +99,8 @@
 		});
 		flight = started;
 		return () => {
+			offSandbox();
+			window.removeEventListener('hashchange', importFromHash);
 			small.removeEventListener('change', sync);
 			flight = null;
 			started.dispose();
@@ -90,6 +119,27 @@
 		if (designName) saveScript(designName, text);
 	}
 
+	/** Text from a file, a link or the clipboard replaces the editor; it must be confirmed before it runs. */
+	function importScript(text: string, info: ImportInfo): void {
+		if (imported === null) backup = source;
+		imported = info;
+		notice = null;
+		setSource(text);
+	}
+	function undoImport(): void {
+		setSource(backup ?? '');
+		imported = null;
+		backup = null;
+	}
+	function loadSample(): void {
+		imported = null;
+		backup = null;
+		setSource(ascentScript);
+	}
+
+	const shown = $derived(
+		script.errorLine !== null && source !== ranSource ? { ...script, errorLine: null } : script
+	);
 	const model = $derived(hud?.model ?? null);
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
@@ -155,12 +205,25 @@
 					<div class="script">
 						<ScriptPanel
 							{source}
-							{script}
+							script={shown}
 							{canRun}
+							{imported}
+							{sandbox}
+							{notice}
+							vesselName={designName}
 							onchange={setSource}
-							onrun={() => flight?.runScript(source)}
+							onrun={() => {
+								ranSource = source;
+								flight?.runScript(source);
+							}}
 							onstop={() => flight?.stopScript()}
-							onsample={() => setSource(ascentScript)}
+							onsample={loadSample}
+							onimport={importScript}
+							onundo={undoImport}
+							onconfirmed={() => {
+								imported = null;
+								backup = null;
+							}}
 						/>
 					</div>
 				{/if}

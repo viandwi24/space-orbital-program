@@ -37,6 +37,14 @@
 	--c-ink: #04121a;
 	--c-violet: #b9a2ff;
 
+	/* Code in the script editor (plan 030): checked on --field and on the error-line band */
+	--syn-keyword: #c3aeff;
+	--syn-string: #7fe8b3;
+	--syn-number: #ffc866;
+	--syn-comment: #94a8bd;
+	--syn-api: #5ccfff;
+	--syn-error-line: rgb(255 128 128 / 0.2);
+
 	/* Scene colours of the navball */
 	--ball-sky-top: #2f8fd0;
 	--ball-sky-bottom: #7fd0ef;

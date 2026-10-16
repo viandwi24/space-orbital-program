@@ -105,12 +105,14 @@ describe('sim-client', () => {
 		const client = createSimClient(worker);
 		const seen: string[] = [];
 		const off = client.onScript((e) => seen.push(e.kind));
-		client.startScript('print(1)', 4);
+		const { port1, port2 } = new MessageChannel();
+		client.startScript('print(1)', 4, port1);
 		client.stopScript();
 		expect(sent).toEqual([
-			{ kind: 'script-start', source: 'print(1)', vessel: 4 },
+			{ kind: 'script-start', source: 'print(1)', vessel: 4, port: port1 },
 			{ kind: 'script-stop' }
 		]);
+		port2.close();
 		emit({ kind: 'script-status', status: 'running', lastMs: 0, maxMs: 0 });
 		emit({ kind: 'script-log', lines: ['x'] });
 		off();

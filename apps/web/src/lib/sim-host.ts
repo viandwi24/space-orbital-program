@@ -5,7 +5,13 @@
  */
 import type { Command } from '@orbital/core';
 import type { Sim } from '@orbital/sim';
-import { parseClientMessage, type Catalog, type ScriptState, type WorkerMessage } from './messages';
+import {
+	parseClientMessage,
+	type Catalog,
+	type ScriptPortLike,
+	type ScriptState,
+	type WorkerMessage
+} from './messages';
 import { createScriptSession, type ScriptResult, type ScriptSession } from './script-channel';
 import type { ScriptWorkerLike } from './script-protocol';
 
@@ -13,13 +19,19 @@ import type { ScriptWorkerLike } from './script-protocol';
 export const MAX_WALL_DELTA = 0.1;
 /** Loop period, ms (about 60 Hz; browsers may clamp it). */
 export const TICK_MS = 16;
-/** Wall-clock budget of one script tick, ms (the runner terminates the script past it; ADR 0020). */
-export const SCRIPT_BUDGET_MS = 10;
 /**
- * Budget of a script's first tick, ms: a cold QuickJS can overrun 10 ms for a harmless script on a
+ * Wall-clock budget of one script tick, ms (the runner terminates the script past it; ADR 0020).
+ * 10 ms until plan 030. The script no longer runs on the sim's thread (ADR 0031), so the budget
+ * only bounds a runaway, and a wall-clock budget is load-sensitive: a 0.4 ms sample tick spiked
+ * to 23.8, 45.3 and 220.3 ms on a busy machine with software rendering and was killed for it
+ * (journal 030, ADR 0038). Stays below the channel watchdog (500 ms).
+ */
+export const SCRIPT_BUDGET_MS = 200;
+/**
+ * Budget of a script's first tick, ms: a cold QuickJS can overrun the budget for a harmless script on a
  * loaded machine (journal 017/018). Stays below the channel watchdog (500 ms).
  */
-export const SCRIPT_FIRST_TICK_BUDGET_MS = 200;
+export const SCRIPT_FIRST_TICK_BUDGET_MS = 300;
 /** While a script runs, its timing is reported at most this often, ms. */
 export const SCRIPT_STATUS_MS = 500;
 /** Lines of print output and refusals forwarded per tick; the rest of a flood is dropped. */
@@ -33,10 +45,12 @@ export interface SimHostOptions {
 	/** Schedules `tick` repeatedly; returns a canceller. Tests leave it out and call `tick` themselves. */
 	schedule?(tick: () => void, periodMs: number): () => void;
 	/**
-	 * Spawns the script Worker for one Run (ADR 0031; the sim worker wires `script.worker.ts`).
-	 * Without it, `script-start` is answered with a `failed` status.
+	 * The script Worker for one Run (ADR 0031): in the browser, an adapter over the `port` the page
+	 * sent with `script-start`, whose other end is the Worker in the sandbox iframe (ADR 0038).
+	 * Without it, or without a port where one is needed, `script-start` is answered with a
+	 * `failed` status.
 	 */
-	spawnScriptWorker?(): ScriptWorkerLike;
+	spawnScriptWorker?(port: ScriptPortLike | undefined): ScriptWorkerLike;
 	/** Overrides of the per-tick script budgets, ms (tests of plumbing must not depend on machine speed). */
 	scriptBudgetMs?: number;
 	scriptFirstTickBudgetMs?: number;
@@ -82,12 +96,13 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let lines: string[] = [];
 	let lastRefusal = '';
 
-	const postStatus = (status: ScriptState, error?: string): void => {
+	const postStatus = (status: ScriptState, error?: string, errorLine?: number): void => {
 		lastStatusAt = options.now();
 		options.post({
 			kind: 'script-status',
 			status,
 			...(error === undefined ? {} : { error }),
+			...(errorLine === undefined ? {} : { errorLine }),
 			lastMs,
 			maxMs
 		});
@@ -130,29 +145,34 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		flushLines();
 		if (result.status !== 'running') {
 			session = null; // the session closed itself
-			postStatus(result.status, result.error);
+			postStatus(result.status, result.error, result.errorLine);
 		} else if (options.now() - lastStatusAt >= SCRIPT_STATUS_MS) {
 			postStatus('running');
 		}
 	}
 
-	function startScript(source: string, vessel: number): void {
+	function startScript(source: string, vessel: number, port: ScriptPortLike | undefined): void {
 		endScript();
 		lastMs = 0;
 		maxMs = 0;
 		lines = [];
 		lastRefusal = '';
-		if (!sim) return postStatus('failed', 'the simulation is not ready yet');
-		if (!options.spawnScriptWorker) return postStatus('failed', 'scripting is not available');
+		// A port that is not used must not stay open in the sandbox.
+		const refuse = (why: string): void => {
+			port?.close();
+			postStatus('failed', why);
+		};
+		if (!sim) return refuse('the simulation is not ready yet');
+		if (!options.spawnScriptWorker) return refuse('scripting is not available');
 		if (!sim.snapshot().vessels.some((v) => Number(v.id) === vessel)) {
-			return postStatus('failed', `vessel ${vessel} does not exist`);
+			return refuse(`vessel ${vessel} does not exist`);
 		}
 		postStatus('starting');
 		scriptVessel = vessel;
 		let created: ScriptSession;
 		try {
 			created = createScriptSession({
-				worker: options.spawnScriptWorker(),
+				worker: options.spawnScriptWorker(port),
 				now: options.now,
 				source,
 				vessel,
@@ -179,7 +199,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				}
 			});
 		} catch (error) {
-			return postStatus('failed', error instanceof Error ? error.message : String(error));
+			return refuse(error instanceof Error ? error.message : String(error));
 		}
 		session = created;
 	}
@@ -296,7 +316,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				return;
 			}
 			if (message.kind === 'script-start') {
-				startScript(message.source, message.vessel);
+				startScript(message.source, message.vessel, message.port);
 				return;
 			}
 			if (message.kind === 'pause') {

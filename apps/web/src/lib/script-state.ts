@@ -8,6 +8,8 @@ export const MAX_SCRIPT_LOG = 200;
 export interface ScriptView {
 	status: ScriptState | 'idle';
 	error: string | null;
+	/** 1-based line of the script the error points at, or null. */
+	errorLine: number | null;
 	/** Guest time of the last tick and the worst so far, ms. */
 	lastMs: number;
 	maxMs: number;
@@ -17,6 +19,7 @@ export interface ScriptView {
 export const idleScript = (): ScriptView => ({
 	status: 'idle',
 	error: null,
+	errorLine: null,
 	lastMs: 0,
 	maxMs: 0,
 	log: []
@@ -35,6 +38,7 @@ export function reduceScript(view: ScriptView, event: ScriptEvent): ScriptView {
 	return {
 		status: event.status,
 		error: event.error ?? null,
+		errorLine: event.errorLine ?? null,
 		lastMs: event.lastMs,
 		maxMs: event.maxMs,
 		log

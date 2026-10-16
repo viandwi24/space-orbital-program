@@ -9,7 +9,7 @@ import {
 
 /** The slice of `Worker` the client uses, so tests can pass a double. */
 export interface WorkerLike {
-	postMessage(message: ClientMessage): void;
+	postMessage(message: ClientMessage, transfer?: Transferable[]): void;
 	onmessage: ((event: { data: unknown }) => void) | null;
 	onerror: ((event: { message?: string }) => void) | null;
 	terminate(): void;
@@ -33,8 +33,11 @@ export interface SimClient {
 	readonly latest: Snapshot | null;
 	onSnapshot(listener: (snapshot: Snapshot) => void): () => void;
 	onError(listener: (message: string) => void): () => void;
-	/** Run `source` against `vessel` in the sim Worker (replaces a running script). */
-	startScript(source: string, vessel: number): void;
+	/**
+	 * Run `source` against `vessel` (replaces a running script). `port` is the sim Worker's end of
+	 * the channel to the script Worker in the sandbox iframe (ADR 0038); it is transferred.
+	 */
+	startScript(source: string, vessel: number, port: MessagePort): void;
 	stopScript(): void;
 	onScript(listener: (event: ScriptEvent) => void): () => void;
 	onStage(listener: (event: StageEvent) => void): () => void;
@@ -134,8 +137,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			errorListeners.add(listener);
 			return () => errorListeners.delete(listener);
 		},
-		startScript(source, vessel) {
-			if (!disposed) worker.postMessage({ kind: 'script-start', source, vessel });
+		startScript(source, vessel, port) {
+			if (!disposed) worker.postMessage({ kind: 'script-start', source, vessel, port }, [port]);
+			else port.close();
 		},
 		stopScript() {
 			if (!disposed) worker.postMessage({ kind: 'script-stop' });
@@ -179,7 +183,7 @@ export function startSimWorker(): SimClient {
 	let onmessage: WorkerLike['onmessage'] = null;
 	let onerror: WorkerLike['onerror'] = null;
 	return createSimClient({
-		postMessage: (message) => worker.postMessage(message),
+		postMessage: (message, transfer) => worker.postMessage(message, transfer ?? []),
 		get onmessage() {
 			return onmessage;
 		},

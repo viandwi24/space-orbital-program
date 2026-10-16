@@ -62,6 +62,7 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 				commands: result.commands,
 				status: result.status,
 				...(active.error === undefined ? {} : { error: active.error }),
+				...(active.errorLine === undefined ? {} : { errorLine: active.errorLine }),
 				elapsedMs: result.elapsedMs,
 				lines: out
 			});

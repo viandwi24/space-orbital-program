@@ -106,6 +106,40 @@ describe('sim host: scripts (plan 015)', () => {
 		t.host.dispose();
 	});
 
+	it('a script error reaches the page with its script line (plan 030)', async () => {
+		const t = await setup();
+		t.host.handle({
+			kind: 'script-start',
+			source: 'print(1);\nprint(2);\nnull.x;',
+			vessel: t.vessel
+		});
+		await until(() => t.statuses().some((s) => s.status === 'running'));
+		t.tick();
+		const failed = t.statuses().at(-1);
+		expect(failed).toMatchObject({ status: 'failed', errorLine: 3 });
+		expect(failed?.error).toContain('line 3:');
+		t.host.dispose();
+	});
+
+	it('a channel port the page sent is closed when the Run is refused (no vessel, no sim)', async () => {
+		const t = await setup();
+		const { port1, port2 } = new MessageChannel();
+		let closed = false;
+		const spy = {
+			postMessage: port1.postMessage.bind(port1),
+			onmessage: null,
+			close: () => {
+				closed = true;
+				port1.close();
+			}
+		};
+		t.host.handle({ kind: 'script-start', source: 'x', vessel: 999, port: spy });
+		expect(closed).toBe(true);
+		expect(t.statuses().at(-1)).toMatchObject({ status: 'failed' });
+		port2.close();
+		t.host.dispose();
+	});
+
 	it('a finished script posts finished and stops ticking', async () => {
 		const t = await setup();
 		t.host.handle({ kind: 'script-start', source: 'print("done")', vessel: t.vessel });
@@ -198,8 +232,8 @@ describe('sim host: scripts (plan 015)', () => {
 		// arrangement does not (sim-host-script-worker.test.ts). What is asserted is the mechanism
 		// (terminated, the budget named in the message, the sim moving on); the wall bound is a hang
 		// detector far above the allowance, not a performance claim.
-		expect(SCRIPT_BUDGET_MS).toBe(10);
-		expect(SCRIPT_FIRST_TICK_BUDGET_MS).toBe(200);
+		expect(SCRIPT_BUDGET_MS).toBe(200);
+		expect(SCRIPT_FIRST_TICK_BUDGET_MS).toBe(300);
 		expect(stopped?.error).toContain(`${SCRIPT_FIRST_TICK_BUDGET_MS} ms per tick`);
 		expect(wall).toBeLessThan(10_000);
 		const snapshots = t.posted.filter((m) => m.kind === 'snapshot').length;

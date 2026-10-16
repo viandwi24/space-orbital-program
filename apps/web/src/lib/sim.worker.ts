@@ -1,35 +1,19 @@
 /// <reference lib="webworker" />
 // Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic. Player
-// scripts do not run here: each Run gets its own script Worker (ADR 0031).
+// scripts do not run here: each Run gets its own script Worker, in a sandboxed iframe (ADR 0031,
+// ADR 0038).
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim } from '@orbital/sim';
+import type { ScriptPortLike } from './messages';
 import type { ScriptWorkerLike } from './script-protocol';
+import { scriptWorkerOverPort } from './script-port';
 import { createSimHost } from './sim-host';
 
-/** A script Worker for one Run: bundled by Vite (the `new URL` form must stay literal). */
-function spawnScriptWorker(): ScriptWorkerLike {
-	const worker = new Worker(new URL('./script.worker.ts', import.meta.url), { type: 'module' });
-	let onmessage: ScriptWorkerLike['onmessage'] = null;
-	let onerror: ScriptWorkerLike['onerror'] = null;
-	return {
-		postMessage: (message) => worker.postMessage(message),
-		get onmessage() {
-			return onmessage;
-		},
-		set onmessage(handler) {
-			onmessage = handler;
-			worker.onmessage = handler ? (event: MessageEvent) => handler({ data: event.data }) : null;
-		},
-		get onerror() {
-			return onerror;
-		},
-		set onerror(handler) {
-			onerror = handler;
-			worker.onerror = handler ? (event: ErrorEvent) => handler({ message: event.message }) : null;
-		},
-		terminate: () => worker.terminate()
-	};
+/** The script Worker of a Run lives in the page's sandbox iframe; the page sent the port to it (ADR 0038). */
+function spawnScriptWorker(port: ScriptPortLike | undefined): ScriptWorkerLike {
+	if (!port) throw new Error('the script sandbox is not available (no channel from the page)');
+	return scriptWorkerOverPort(port);
 }
 
 const host = createSimHost({

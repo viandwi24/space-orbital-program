@@ -57,6 +57,29 @@ describe('text tokens meet WCAG AA (4.5:1) on every surface, worst-case backdrop
 	});
 });
 
+describe('script editor syntax tokens (plan 030)', () => {
+	const syntax = ['--syn-keyword', '--syn-string', '--syn-number', '--syn-comment', '--syn-api'];
+	/** The error-line band drawn over the editor field. */
+	const errorBand = (): number[] => {
+		const [r, g, b, a] = token('--syn-error-line');
+		const [fr, fg, fb] = token('--field');
+		return [r * a + fr * (1 - a), g * a + fg * (1 - a), b * a + fb * (1 - a)];
+	};
+	for (const t of [...syntax, '--text', '--text-faint']) {
+		it(`${t} on the editor field`, () => {
+			expect(contrast(token(t), token('--field'))).toBeGreaterThanOrEqual(4.5);
+		});
+		it(`${t} on the error-line band`, () => {
+			expect(contrast(token(t), errorBand())).toBeGreaterThanOrEqual(4.5);
+		});
+	}
+	it('the syntax colours are distinguishable from plain text and each other', () => {
+		const seen = new Set(syntax.map((t) => token(t).slice(0, 3).join(',')));
+		expect(seen.size).toBe(syntax.length);
+		expect(seen.has(token('--text').slice(0, 3).join(','))).toBe(false);
+	});
+});
+
 describe('reduced motion', () => {
 	it('tokens.css zeroes durations and animations under prefers-reduced-motion', () => {
 		const block = /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*)\}\s*$/.exec(css);

@@ -39,11 +39,21 @@ export type SimEvent =
 	| { type: 'mode-changed'; vessel: number; mode: 'flight' | 'on-rails'; reason: string }
 	| { type: 'vessel-destroyed'; vessel: number; reason: string };
 
+/**
+ * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
+ * `MessagePort` in the browser (transferred with `script-start`), a double in tests.
+ */
+export interface ScriptPortLike {
+	postMessage(message: unknown): void;
+	onmessage: ((event: MessageEvent) => void) | null;
+	close(): void;
+}
+
 export type ClientMessage =
 	| { kind: 'command'; id: number; command: unknown }
 	/** Freeze or resume the simulation clock (the Esc menu); scripts pause with it. */
 	| { kind: 'pause'; paused: boolean }
-	| { kind: 'script-start'; source: string; vessel: number }
+	| { kind: 'script-start'; source: string; vessel: number; port?: ScriptPortLike }
 	| { kind: 'script-stop' }
 	| { kind: 'dispose' };
 
@@ -56,6 +66,8 @@ export type WorkerMessage =
 			kind: 'script-status';
 			status: ScriptState;
 			error?: string;
+			/** 1-based line of the script where `error` happened, when the engine said. */
+			errorLine?: number;
 			/** Guest time of the last tick and the worst one so far, ms. */
 			lastMs: number;
 			maxMs: number;
@@ -109,7 +121,11 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 			return SCRIPT_STATES.includes(data.status) &&
 				typeof data.lastMs === 'number' &&
 				typeof data.maxMs === 'number' &&
-				(data.error === undefined || typeof data.error === 'string')
+				(data.error === undefined || typeof data.error === 'string') &&
+				(data.errorLine === undefined ||
+					(typeof data.errorLine === 'number' &&
+						Number.isInteger(data.errorLine) &&
+						data.errorLine >= 1))
 				? (data as unknown as WorkerMessage)
 				: null;
 		case 'script-log':
@@ -145,7 +161,22 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 		typeof data.source === 'string' &&
 		typeof data.vessel === 'number'
 	) {
-		return { kind: 'script-start', source: data.source, vessel: data.vessel };
+		if (data.port === undefined) {
+			return { kind: 'script-start', source: data.source, vessel: data.vessel };
+		}
+		if (
+			isRecord(data.port) &&
+			typeof data.port.postMessage === 'function' &&
+			typeof data.port.close === 'function'
+		) {
+			return {
+				kind: 'script-start',
+				source: data.source,
+				vessel: data.vessel,
+				port: data.port as unknown as ScriptPortLike
+			};
+		}
+		return null;
 	}
 	if (data.kind === 'command' && typeof data.id === 'number') {
 		return { kind: 'command', id: data.id, command: data.command };

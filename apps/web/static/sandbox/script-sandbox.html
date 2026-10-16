@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!--
+			Template of the script sandbox document (ADR 0038), turned into the iframe's `srcdoc` by
+			src/lib/script-sandbox-document.ts: the two double-brace markers (the hash in the
+			policy, the bootstrap in the body) are replaced by the bootstrap
+			script (inline) and its SHA-256 hash, so the policy allows exactly that one script. The game
+			embeds the result as <iframe sandbox="allow-scripts"> (no allow-same-origin: an opaque
+			origin) and the bootstrap refuses to run scripts if its origin is not opaque. The policy
+			forbids every network request and every resource; the blob Worker the frame creates
+			inherits it. A `<meta>` policy cannot carry `sandbox` or `frame-ancestors`.
+		-->
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'none'; script-src '{{SCRIPT_HASH}}' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'none'; img-src 'none'; style-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"
+		/>
+		<meta name="referrer" content="no-referrer" />
+		<title>Orbital script sandbox</title>
+	</head>
+	<body>
+		<script>{{BOOTSTRAP}}</script>
+	</body>
+</html>
