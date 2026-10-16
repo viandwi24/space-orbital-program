@@ -30,7 +30,9 @@ async function inOrbit(speedFactor = 1) {
 describe('time warp', () => {
 	test('refused while any vessel is in flight mode, naming it', async () => {
 		const sim = await newSim();
-		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() }); // on the pad: flight
+		// On the pad, just loaded: flight. (Since plan 016 it goes on surface rails after 2 s at rest,
+		// see surface-rails.test.ts; the refusal here holds until then.)
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		expect(r.ok).toBe(true);
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		const w = sim.dispatch({ type: 'warp', factor: 10 });

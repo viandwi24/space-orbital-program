@@ -172,7 +172,10 @@ describe('the pad (standing on the ground tile)', () => {
 			sub(spin(s1.t, s1.vessels[0]!.position), spin(s0.t, s0.vessels[0]!.position))
 		);
 		expect(drift).toBeLessThan(0.5);
-		expect(s1.vessels[0]!.mode).toBe('flight');
+		// After 2 s at rest it is on surface rails (plan 016, ADR 0024); before that this test
+		// asserted 'flight'. The drift above spans the switch.
+		expect(s1.vessels[0]!.mode).toBe('on-rails');
+		expect(s1.vessels[0]!.surface).toBe(true);
 		expect(s1.bodies[0]!.rotation.y).toBeGreaterThan(0); // the body turns
 	});
 
@@ -366,7 +369,7 @@ describe('flight frames', () => {
 		expect(far.ok).toBe(false);
 		if (!far.ok) expect(far.reason).toContain('no free physics frame');
 		expect(sim.snapshot().vessels).toHaveLength(2);
-		run(sim, 2);
+		run(sim, 1); // before the 2 s at rest that put a controlled vessel on surface rails
 		expect(sim.snapshot().vessels.every((v) => v.mode === 'flight')).toBe(true);
 	});
 

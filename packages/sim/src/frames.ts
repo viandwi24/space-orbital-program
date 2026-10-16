@@ -234,8 +234,17 @@ export function refreshColliders(core: SimCore, vesselId: EntityId): void {
 	});
 }
 
-/** Create the vessel's body at its pose (centre of mass `vessel.com`, at rest relative to its velocity). */
-export function enterFlight(core: SimCore, vesselId: EntityId, frame: FlightFrame): void {
+/**
+ * Create the vessel's body at its pose (centre of mass `vessel.com`, at rest relative to its
+ * velocity, turning at `angular` rad/s in the inertial axes: the planet's rotation for a vessel
+ * woken from surface rails, so it does not start rotating against the ground, ADR 0024).
+ */
+export function enterFlight(
+	core: SimCore,
+	vesselId: EntityId,
+	frame: FlightFrame,
+	angular: Vec3 = ZERO
+): void {
 	const vessel = vesselOf(core, vesselId);
 	const comDesign = designCom(core, vessel.parts);
 	const rootDesign = partOf(core, vessel.root).designPos;
@@ -244,7 +253,7 @@ export function enterFlight(core: SimCore, vesselId: EntityId, frame: FlightFram
 		origin: sub(origin, frame.origin),
 		rotation: vessel.orientation,
 		linear: sub(vessel.velocity, frame.velocity),
-		angular: ZERO
+		angular
 	});
 	frame.vessels = [...frame.vessels, vesselId].sort((a, b) => a - b);
 	vessel.mode = 'flight';

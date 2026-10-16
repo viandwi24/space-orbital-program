@@ -35,7 +35,7 @@ import {
 import { fromTuple, qFromBasis, qRotate } from './math.ts';
 import { AMBIENT_TEMPERATURE, DEFAULT_IMPACT_TOLERANCE } from './constants.ts';
 import type { Overheat } from './thermal.ts';
-import { computeRails, motionOf } from './orbit.ts';
+import { computeRails, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import { halfExtentsOf } from './parts.ts';
 import { moduleStateToken, PART, VESSEL, type PartState, type VesselState } from './state.ts';
 
@@ -104,7 +104,8 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		orientation: { x: 0, y: 0, z: 0, w: 1 },
 		rails: null,
 		idle: 0,
-		landed: false
+		landed: false,
+		rest: 0
 	};
 	world.add(vesselId, VESSEL, state);
 	core.events.emit('vessel:created', { vessel: vesselId });
@@ -211,6 +212,8 @@ export function splitVessel(
 	// Pose before the topology changes: per-side centre of mass state, and every part's pose.
 	const all = vessel.parts;
 	const motion = motionOf(core, vessel);
+	const wasOnSurface = vessel.rails?.kind === 'surface';
+	vessel.orientation = orientationOf(core, vessel); // stale on surface rails
 	const comAll = designCom(core, all);
 	const rootPose = frame ? bodyMotion(frame, frame.bodies.get(vesselId)!) : undefined;
 	const partPositions = new Map<EntityId, Vec3>();
@@ -285,7 +288,8 @@ export function splitVessel(
 		orientation: vessel.orientation,
 		rails: null,
 		idle: 0,
-		landed: false
+		landed: false,
+		rest: 0
 	};
 	for (const id of newSide) partOf(core, id).vessel = newId;
 	vessel.parts = keepSide;
@@ -294,6 +298,7 @@ export function splitVessel(
 	vessel.com = stateKeep.com;
 	vessel.velocity = stateKeep.velocity;
 	vessel.idle = 0;
+	vessel.rest = 0;
 	core.world.add(newId, VESSEL, newState);
 	if (frame && rootPose) {
 		// ADR 0018: the one body is replaced by one per side, each continuing the rigid motion
@@ -314,7 +319,10 @@ export function splitVessel(
 			});
 		}
 	} else {
-		vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
+		// A piece that stays with a vessel standing on the ground stays on the ground (ADR 0024).
+		vessel.rails = wasOnSurface
+			? surfaceRails(core, vessel.com, vessel.orientation)
+			: computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
 		newState.rails = computeRails(core.body.mu, newState.com, newState.velocity, core.t);
 	}
 	core.events.emit('vessel:created', { vessel: newId, from: vesselId });

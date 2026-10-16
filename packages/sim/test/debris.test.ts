@@ -82,15 +82,17 @@ describe('debris lifecycle', () => {
 		expect(sim.dispatch({ type: 'warp', factor: 5 }).ok).toBe(true);
 	});
 
-	test('a controlled vessel at rest on the pad is neither removed nor allowed to warp', async () => {
+	test('a controlled vessel at rest on the pad is not removed; it goes on surface rails and warp is accepted (plan 016)', async () => {
+		// Until plan 016 this vessel stayed in flight for ever and warp was refused.
 		const sim = await newSim();
 		const loaded = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		if (!loaded.ok) throw new Error(loaded.reason);
 		for (let i = 0; i < 1_500; i++) sim.step(0.02); // 30 s
 		const v = sim.snapshot().vessels;
 		expect(v).toHaveLength(1);
-		expect(v[0]!.mode).toBe('flight');
-		expect(sim.dispatch({ type: 'warp', factor: 5 }).ok).toBe(false);
+		expect(v[0]!.mode).toBe('on-rails');
+		expect(v[0]!.surface).toBe(true);
+		expect(sim.dispatch({ type: 'warp', factor: 5 }).ok).toBe(true);
 	});
 
 	test('descending debris below the atmosphere top stays in flight and takes impact damage (plan 012)', async () => {

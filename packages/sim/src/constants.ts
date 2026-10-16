@@ -45,6 +45,13 @@ export const DEBRIS_REST_TIME = 10;
 /** ... when its speed relative to the rotating ground is below this, m/s. */
 export const DEBRIS_REST_SPEED = 0.1;
 
+/** A controlled vessel landed, force-free and at rest this long goes on surface rails, s (ADR 0024). */
+export const SURFACE_REST_TIME = 2;
+/** ... "at rest" means slower than this relative to the ground under its centre of mass, m/s ... */
+export const SURFACE_REST_SPEED = 0.05;
+/** ... and turning slower than this relative to the ground, rad/s. */
+export const SURFACE_REST_SPIN = 0.01;
+
 /** Stefan-Boltzmann constant, W/(m²·K⁴) (exact since the 2019 SI revision). */
 export const STEFAN_BOLTZMANN = 5.670374419e-8;
 /** Grey-body emissivity of every part's skin (ADR 0023). */

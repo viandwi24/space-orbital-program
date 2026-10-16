@@ -37,7 +37,9 @@ describe('standing on the ground tile (ADR 0019)', () => {
 		expect(worst).toBeLessThan(0.05);
 		expect(tiltDegrees(v)).toBeLessThan(0.5);
 		expect(hurt).toEqual([]);
-		expect(v.mode).toBe('flight');
+		// Plan 016: after 2 s at rest the stack is on surface rails (this asserted 'flight' before).
+		expect(v.mode).toBe('on-rails');
+		expect(v.surface).toBe(true);
 		expect(altitude(v.position)).toBeGreaterThan(7.4);
 		expect(altitude(v.position)).toBeLessThan(7.6);
 	});

@@ -26,7 +26,7 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
-import { autoRails, reapDebris } from './modes.ts';
+import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
@@ -149,6 +149,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			for (const id of frame.vessels) {
 				const vessel = vesselOf(core, id);
 				vessel.idle = core.active.has(id) ? 0 : vessel.idle + dt;
+				trackRest(core, frame, id, dt);
 			}
 		}
 		for (const hit of overheated) burnPart(core, hit);

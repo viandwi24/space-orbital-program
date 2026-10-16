@@ -42,3 +42,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0021 | [Debris lifecycle: ballistic debris on rails, removed at re-entry or at rest](0021-debris-lifecycle-and-time-warp.md) | accepted | 2026-10-16 |
 | 0022 | [The script runner lives in the sim Worker](0022-script-runner-in-the-sim-worker.md) | accepted | 2026-10-16 |
 | 0023 | [Re-entry heating and part temperature](0023-reentry-heating-and-part-temperature.md) | accepted | 2026-10-16 |
+| 0024 | [Surface-fixed rails for controlled vessels at rest on the ground](0024-surface-fixed-rails.md) | accepted | 2026-10-16 |

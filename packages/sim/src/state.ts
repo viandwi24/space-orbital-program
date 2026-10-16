@@ -25,10 +25,13 @@ export interface ControlState {
 
 /**
  * Motion of the centre of mass while on rails: elements, or the raw state vector at `t0` when the
- * orbit cannot be expressed with elements (near-parabolic).
+ * orbit cannot be expressed with elements (near-parabolic), or fixed to the rotating ground
+ * (`surface`, ADR 0024): the centre of mass `r` and root orientation `q` in the body-fixed frame.
  */
 export type RailsState =
-	{ kind: 'elements'; elements: OrbitalElements } | { kind: 'state'; r: Vec3; v: Vec3; t0: number };
+	| { kind: 'elements'; elements: OrbitalElements }
+	| { kind: 'state'; r: Vec3; v: Vec3; t0: number }
+	| { kind: 'surface'; r: Vec3; q: Quat };
 
 export interface VesselState {
 	name: string;
@@ -47,7 +50,7 @@ export interface VesselState {
 	com: Vec3;
 	/** Centre-of-mass velocity, BCI. */
 	velocity: Vec3;
-	/** Root orientation. Frozen on rails. */
+	/** Root orientation. Frozen on orbital rails; on surface rails it is stale: use `orientationOf`. */
 	orientation: Quat;
 	/** Present exactly when `mode` is `on-rails`. */
 	rails: RailsState | null;
@@ -55,6 +58,8 @@ export interface VesselState {
 	idle: number;
 	/** In contact with the ground tile during the last step (ADR 0019). */
 	landed: boolean;
+	/** Seconds spent landed, force-free and at rest relative to the ground (ADR 0024). */
+	rest: number;
 }
 
 export interface Attachment {

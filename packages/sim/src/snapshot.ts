@@ -7,7 +7,7 @@ import {
 	type EntityId,
 	type VesselSnapshot
 } from '@orbital/core';
-import { add, sub } from '@orbital/kepler';
+import { add, cross, sub } from '@orbital/kepler';
 import {
 	designCom,
 	frameOfVessel,
@@ -20,7 +20,7 @@ import {
 } from './core.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { ZERO, qAboutY, qRotate } from './math.ts';
-import { elementsOf, motionOf } from './orbit.ts';
+import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -56,7 +56,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 			});
 		}
 	} else {
-		orientation = vessel.orientation;
+		orientation = orientationOf(core, vessel);
 		const rootDesign = partOf(core, vessel.root).designPos;
 		const com = designCom(core, vessel.parts);
 		position = sub(motion.r, qRotate(orientation, sub(com, rootDesign)));
@@ -82,6 +82,14 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		orientation,
 		parts
 	};
+	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
+	// dip below the surface (ADR 0024).
+	if (vessel.rails?.kind === 'surface') {
+		// The root part's velocity, like a flight vessel's (the orbital branch reports the COM's).
+		snapshot.velocity = cross({ x: 0, y: core.body.omega, z: 0 }, position);
+		snapshot.surface = true;
+		return snapshot;
+	}
 	const orbit =
 		vessel.rails?.kind === 'elements'
 			? vessel.rails.elements

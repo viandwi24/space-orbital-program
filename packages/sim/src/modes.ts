@@ -9,11 +9,15 @@ import {
 	DEBRIS_REST_TIME,
 	GROUND_TILE_EXIT,
 	PHYSICS_RANGE,
-	RAILS_IDLE_TIME
+	RAILS_IDLE_TIME,
+	SURFACE_REST_SPEED,
+	SURFACE_REST_SPIN,
+	SURFACE_REST_TIME
 } from './constants.ts';
 import { frameOfVessel, isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
-import { acquireFrame, enterFlight, leaveFlight, refreshPose } from './frames.ts';
-import { computeRails, isStableOrbit, motionOf } from './orbit.ts';
+import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from './frames.ts';
+import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
+import type { FlightFrame } from './state.ts';
 import { destroyVessel } from './vessel.ts';
 
 /** Put a flight vessel on rails at its current centre-of-mass state. */
@@ -25,6 +29,23 @@ export function toRails(core: SimCore, vesselId: EntityId, reason: string): void
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
 	vessel.idle = 0;
+	vessel.rest = 0;
+	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'on-rails', reason });
+}
+
+/**
+ * Put a landed flight vessel on surface rails (ADR 0024): its centre of mass and orientation are
+ * stored in the body-fixed frame, so it keeps its place and attitude on the rotating ground.
+ */
+export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string): void {
+	const vessel = vesselOf(core, vesselId);
+	const frame = frameOfVessel(core, vesselId);
+	if (frame) refreshPose(core, frame, vesselId);
+	vessel.rails = surfaceRails(core, vessel.com, vessel.orientation);
+	leaveFlight(core, vesselId);
+	vessel.mode = 'on-rails';
+	vessel.idle = 0;
+	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'on-rails', reason });
 }
 
@@ -50,9 +71,13 @@ export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 	const motion = motionOf(core, vessel);
 	const frame = acquireFrame(core, motion.r, motion.v);
 	if (!frame) throw new Error(`cannot put vessel ${vesselId} in flight: no free physics frame`);
+	const surface = vessel.rails?.kind === 'surface';
 	vessel.com = motion.r;
 	vessel.velocity = motion.v;
-	enterFlight(core, vesselId, frame);
+	vessel.orientation = orientationOf(core, vessel);
+	// From the ground, at rest on it: the body turns with the planet (ADR 0024).
+	enterFlight(core, vesselId, frame, surface ? { x: 0, y: core.body.omega, z: 0 } : undefined);
+	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'flight', reason });
 }
 
@@ -96,13 +121,42 @@ export function ballisticEligible(
 	return alt > GROUND_TILE_EXIT && (climb > 0 || alt >= (core.body.def.atmosphere?.height ?? 0));
 }
 
-/** Go through flight vessels and put the idle ones in stable orbits, and ballistic debris, on rails. */
+/**
+ * Count how long a controlled vessel has been landed, force-free and at rest on the rotating
+ * ground (ADR 0024). "At rest" is relative to the ground under the centre of mass, in both
+ * velocity and spin; any force, any motion, or losing contact restarts the count.
+ */
+export function trackRest(core: SimCore, frame: FlightFrame, vesselId: EntityId, dt: number): void {
+	const vessel = vesselOf(core, vesselId);
+	const body = frame.bodies.get(vesselId);
+	const omega = { x: 0, y: core.body.omega, z: 0 };
+	const still =
+		body !== undefined &&
+		vessel.landed &&
+		vessel.idle > 0 &&
+		isControlled(core, vessel) &&
+		length(sub(vessel.velocity, cross(omega, vessel.com))) < SURFACE_REST_SPEED &&
+		length(sub(bodyMotion(frame, body).angular, omega)) < SURFACE_REST_SPIN;
+	vessel.rest = still ? vessel.rest + dt : 0;
+}
+
+/** Whether a flight vessel has rested on the ground long enough for surface rails. */
+export function surfaceEligible(core: SimCore, vesselId: EntityId): boolean {
+	const vessel = vesselOf(core, vesselId);
+	return vessel.mode === 'flight' && vessel.landed && vessel.rest >= SURFACE_REST_TIME;
+}
+
+/**
+ * Go through flight vessels and put on rails the idle ones in stable orbits, ballistic debris, and
+ * controlled vessels at rest on the ground.
+ */
 export function autoRails(core: SimCore): void {
 	for (const frame of core.frames) {
 		if (!frame.inUse) continue;
 		for (const id of frame.vessels.slice()) {
 			if (railsEligible(core, id)) toRails(core, id, 'idle in a stable orbit');
 			else if (ballisticEligible(core, id)) toRails(core, id, 'ballistic debris');
+			else if (surfaceEligible(core, id)) toSurfaceRails(core, id, 'at rest on the ground');
 		}
 	}
 }

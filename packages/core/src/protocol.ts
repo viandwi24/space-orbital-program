@@ -39,6 +39,11 @@ export interface VesselSnapshot {
 	parts: PartSnapshot[];
 	/** Orbit of the centre of mass; present when expressible with elements (not near-parabolic/radial). */
 	orbit?: OrbitalElements;
+	/**
+	 * True on surface rails (ADR 0024): `mode` is `on-rails`, the vessel is fixed to the rotating
+	 * ground (its pose turns with the body's `rotation`) and there is no `orbit`.
+	 */
+	surface?: boolean;
 }
 
 export interface BodySnapshot {
