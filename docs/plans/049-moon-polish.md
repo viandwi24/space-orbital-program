@@ -35,3 +35,4 @@ Landing on the moon feels as good as launching from the pad: exhaust kicks up du
 ## Log
 
 - 2026-10-17 — Created as draft from plan 044 (found, not done).
+- 2026-10-17 — Orchestrator review of plan 044 screenshots: the vessel on the moon surface renders almost black (`044-moon-surface.png`) — part lighting/environment light on airless bodies is wrong. This is a v1 must-fix (ADR 0048), together with plume light/dust on the moon; the rest of this plan stays polish.
