@@ -45,3 +45,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0024 | [Surface-fixed rails for controlled vessels at rest on the ground](0024-surface-fixed-rails.md) | accepted | 2026-10-16 |
 | 0025 | [Release-quality visual bar, procedural first](0025-release-quality-visual-bar.md) | accepted | 2026-10-16 |
 | 0027 | [Environment rendering pipeline: analytic planet and sky, one sun, post chain, presets](0027-environment-rendering-pipeline.md) | accepted | 2026-10-16 |
+| 0028 | [Part visuals: a mod-supplied descriptor and a model provider interface](0028-part-visuals-and-model-providers.md) | accepted | 2026-10-16 |

@@ -23,6 +23,8 @@ Use these terms consistently in code, docs, and UI.
 | **Time warp** | Simulation time runs faster than wall time. Only on rails (physics warp is out of scope for MVP). |
 | **Floating origin** | Rendering trick: the render world's origin is re-centred near the camera so float32 GPU math stays precise. |
 | **Graphics preset** | `low`, `medium` or `high` (`@orbital/renderer` `presets.ts`): shadow map size, post chain, ray-march samples, noise octaves, vegetation. Chosen from a capability probe, saved by the host, changed with `Renderer.setPreset`. |
+| **Visual descriptor** | `PartDefinition.visual`: generator `kind`, palette, params, engine plume and deploy animation that tell the renderer what a part looks like (ADR 0028). |
+| **Part model provider** | `PartModelProvider` (`@orbital/renderer`): turns a part definition into a Three model; procedural generators are the default provider, asset-backed ones can be put in front (ADR 0028). |
 | **Planet pass** | The renderer's fullscreen shader that draws the home body, its atmosphere, clouds, stars and sun analytically (ADR 0027). |
 | **Fixed timestep** | Sim advances in constant `dt` steps (default 1/50 s) regardless of render frame rate. |
 | **Stage** | Ordered group of parts activated together (engines ignite, decouplers fire). |

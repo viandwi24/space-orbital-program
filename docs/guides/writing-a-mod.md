@@ -96,7 +96,12 @@ export const PartEngineLV = definePart({
 	id: 'stock.engine-lv',
 	title: 'LV-T30 Liquid Engine',
 	mass: kg(1_250),
-	shape: { kind: 'cylinder', radius: 0.625, height: 1.2 }, // placeholder geometry, metres
+	shape: { kind: 'cylinder', radius: 0.625, height: 1.2 }, // physics and heating geometry, metres
+	visual: {
+		kind: 'engine', // which renderer generator draws it
+		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		plume: { module: 'stock.engine', nozzle: [0, -0.6, 0], exitRadius: 0.46, length: 7, exitPressure: 90_000 }
+	},
 	attach: {
 		top: { pos: [0, 0.6, 0], dir: [0, 1, 0] },
 		bottom: { pos: [0, -0.6, 0], dir: [0, -1, 0] }
@@ -120,7 +125,11 @@ export const PartEngineLV = definePart({
 ```
 
 - `modules` entries are `[moduleObject, config]`, or `[moduleObject]` for a module without config. A wrong type, a missing key or an unknown key is a compile error.
-- `shape` is `{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, centred on the part origin with the cylinder along local Y. Until real meshes exist the renderer and the physics body use it.
+- `shape` is `{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, centred on the part origin with the cylinder along local Y. The physics body and the heating model use it; the renderer draws it when a part has no `visual`.
+- `visual` (optional, API 0.1.6, ADR 0028) is what the part looks like. `kind` names a procedural generator in the renderer: `capsule`, `tank`, `engine`, `decoupler`, `reaction-wheel`, `landing-legs`, `heat-shield` (the stock ones) or `plain` (a painted barrel from `shape` and `palette`). `palette` gives `primary`, `secondary` and `accent` paint as `#rrggbb`; `params` is a flat record of numbers read by the generator (for example tanks read `stripe` and `bands`, the legs read `spread`, `drop` and `footSize`; unknown keys are ignored and values are clamped). A part without a `visual`, or with an unknown `kind`, is drawn as a plain box or cylinder from its `shape`. The model always fits inside the cylinder `shape` when retracted, so the physics and the picture agree.
+  - `visual.plume` adds an engine plume: `module` is the id of the module whose snapshot has `ignited`, `throttle` and `flameout` (the stock engine's state), `nozzle` the exit centre in the part frame (thrust is along local +Y, the plume points along -Y), `exitRadius` and `length` in metres (`length` is the plume at full throttle in air), `exitPressure` in Pa (default 60 000; the plume is narrow at pressures above it and wide below it). Smoke and dust at liftoff come from the same data.
+  - `visual.deploy` animates a part from module state: `{ module, flag, seconds? }` reads the boolean `flag` of that module's snapshot (`stock.landing-leg` `deployed`). The stock legs draw four feet where the module's colliders are (a test pins `spread`, `drop` and `footSize` to the module defaults).
+  - Explosions, burn-up, staging puffs and re-entry glow need nothing from the mod: the renderer recognises a part that disappears or a vessel that splits from successive snapshots and draws glow from `PartSnapshot.temperature`.
 - `impactTolerance` (m/s, optional, default 6): ground impact speed above which the part breaks off the vessel; above twice it, the part is destroyed. The sim reports both as the `part:damaged` event (`{ vessel, part, definition, speed, outcome, cause: 'impact' }`). Stock: pod 10, tanks 5, engine 4, legs 12.
 - `maxTemperature` (K, optional, default 1000): skin temperature above which re-entry heating destroys the part (`part:damaged` with `cause: 'overheat'` and `temperature`). Stock: tanks 900, pod/wheel/decoupler/legs 1000, engine 1800, heat shield 3000. Parts carry a `temperature` in the snapshot.
 - Attach nodes: stack parts have `top` (+Y) and `bottom` (-Y) on the axis, `dir` pointing away from the part.

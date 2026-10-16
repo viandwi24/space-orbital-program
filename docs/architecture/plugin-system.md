@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.3; decisions in ADR 0013, 0014, 0015 and 0019). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.6; decisions in ADR 0013, 0014, 0015, 0019 and 0028). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 
@@ -103,7 +103,8 @@ export const PartEngineLV = definePart({
   title: 'LV-T30 Liquid Engine',
   mass: 1250,
   mesh: 'models/engine-lv.glb',
-  shape: { kind: 'cylinder', radius: 0.625, height: 1.2 },   // placeholder geometry, metres (ADR 0014)
+  shape: { kind: 'cylinder', radius: 0.625, height: 1.2 },   // physics/heating geometry, metres (ADR 0014)
+  visual: { kind: 'engine', palette: { primary: '#2d3138' }, plume: { module: 'stock.engine', nozzle: [0, -0.6, 0], exitRadius: 0.46, length: 7 } },   // look (ADR 0028)
   attach: { top: { pos: [0, 0.6, 0], dir: [0, 1, 0] }, bottom: { pos: [0, -0.6, 0], dir: [0, -1, 0] } },
   modules: [
     [ModuleEngine, { thrust: 215_000, propellants: ['stock.liquid-fuel', 'stock.oxidizer'] }],
@@ -113,7 +114,7 @@ export const PartEngineLV = definePart({
 });
 ```
 
-Config literals are checked against the module's schema input type (wrong type, missing required key, unknown key, config given to a config-less module are compile errors). `definePart` returns core's plain-data `PartDefinition`: each module object becomes `[module.id, config]`, config stored as written. String-id entries are accepted when the id is in `ModuleMap` (see augmentation), and a JSON part (`{ "modules": [["acme.reactor", { ... }]] }`) is the same shape; it is validated with `partDefinitionSchema` and then by the loader against the module's schema exactly like a TypeScript part. A part is pure data; it has no functions. `shape` (`{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, metres, cylinder axis = local Y) is the placeholder geometry used by the renderer and the physics body until art exists.
+Config literals are checked against the module's schema input type (wrong type, missing required key, unknown key, config given to a config-less module are compile errors). `definePart` returns core's plain-data `PartDefinition`: each module object becomes `[module.id, config]`, config stored as written. String-id entries are accepted when the id is in `ModuleMap` (see augmentation), and a JSON part (`{ "modules": [["acme.reactor", { ... }]] }`) is the same shape; it is validated with `partDefinitionSchema` and then by the loader against the module's schema exactly like a TypeScript part. A part is pure data; it has no functions. `shape` (`{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, metres, cylinder axis = local Y) is the geometry used by the physics body and the heating model; the renderer draws it when a part has no `visual`. `visual` (`partVisualSchema`, API 0.1.6, ADR 0028) is a declarative look: a generator `kind` the renderer owns, a `palette`, flat `params`, an engine `plume` and a `deploy` animation, each naming the module whose snapshot drives it. It is pure data validated with the rest of the part, so a JSON mod can use it. The renderer turns it into meshes through its `PartModelProvider` chain, which is where asset-backed models plug in later.
 
 ### `defineResource`, `defineBody`, `defineSystem`
 
