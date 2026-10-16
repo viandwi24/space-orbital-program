@@ -47,3 +47,4 @@ What plan 026 (radial parts, boosters, fins) left out on purpose, so that the pa
 ## Log
 
 - 2026-10-17 — Created as draft by the radial session (pushed out of plan 026).
+- 2026-10-17 — Items 6 (stability read-out) and the instancing half of item 7 moved to plan 029 (vab-2 session); M1/M2 measurements stay here.
