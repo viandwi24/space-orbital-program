@@ -11,17 +11,26 @@
 	import type { HudModel } from '../hud-controller';
 	import type { NavballFrame } from './navball-draw';
 	import Navball from './Navball.svelte';
+	import SasButtons from './SasButtons.svelte';
+	import type { SasMode, SasSnapshot } from '@orbital/core';
 
 	let {
 		model,
 		throttle,
 		ballSize,
-		oncyclespeed
+		oncyclespeed,
+		sas,
+		controllable = true,
+		onsas
 	}: {
 		model: HudModel | null;
 		throttle: number;
 		ballSize: number;
 		oncyclespeed: () => void;
+		/** Stability assist of the vessel (plan 042); the strip shows only when `onsas` is given. */
+		sas?: SasSnapshot | undefined;
+		controllable?: boolean;
+		onsas?: (mode: SasMode) => void;
 	} = $props();
 
 	let ball: Navball;
@@ -93,6 +102,7 @@
 				<span>{NO_VALUE}</span>
 			{/if}
 		</div>
+		{#if onsas}<SasButtons {sas} {controllable} onmode={onsas} />{/if}
 	</div>
 
 	<div class="read right">
