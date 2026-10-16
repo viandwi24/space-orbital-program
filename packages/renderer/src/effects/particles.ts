@@ -33,6 +33,11 @@ export interface ParticleSpec {
 	tint?: readonly [number, number, number];
 }
 
+/** A body with no air: particles fly ballistic under the pull of `mu` (m^3/s^2) towards the origin (plan 049). */
+export interface Ballistic {
+	mu: number;
+}
+
 /** Velocity of the air at a body-fixed position, m/s (wind carries smoke, ADR 0047). */
 export type WindField = (x: number, y: number, z: number, out: [number, number, number]) => void;
 
@@ -123,7 +128,7 @@ export class ParticlePool {
 	}
 
 	/** Advance by `dt` seconds; expired particles are removed (swap with the last). */
-	step(dt: number, wind?: WindField): void {
+	step(dt: number, wind?: WindField, ballistic?: Ballistic): void {
 		if (!(dt > 0)) return;
 		const w: [number, number, number] = [0, 0, 0];
 		let i = 0;
@@ -131,6 +136,19 @@ export class ParticlePool {
 			this.age[i]! += dt;
 			if (this.age[i]! >= this.life[i]!) {
 				this.removeAt(i);
+				continue;
+			}
+			if (ballistic) {
+				// no air: no drag and no buoyancy, only gravity
+				const l = Math.hypot(this.px[i]!, this.py[i]!, this.pz[i]!);
+				const g = l > 0 ? (ballistic.mu / (l * l * l)) * dt : 0;
+				this.vx[i]! -= this.px[i]! * g;
+				this.vy[i]! -= this.py[i]! * g;
+				this.vz[i]! -= this.pz[i]! * g;
+				this.px[i]! += this.vx[i]! * dt;
+				this.py[i]! += this.vy[i]! * dt;
+				this.pz[i]! += this.vz[i]! * dt;
+				i++;
 				continue;
 			}
 			const k = this.kind[i]!;
@@ -252,5 +270,16 @@ export function exhaustTrailRate(i: EmissionInput): number {
 		air *
 		(1 - groundProximity(i.nozzleAltitude, i.plumeLength)) *
 		(i.capacity / REFERENCE_CAPACITY)
+	);
+}
+
+/**
+ * Regolith thrown off by a plume in vacuum, particles per second (plan 049): no air to carry smoke,
+ * so the rate depends on the throttle and the closeness of the ground only.
+ */
+export function vacuumDustRate(i: EmissionInput): number {
+	const thr = clamp(i.throttle, 0, 1);
+	return (
+		90 * thr * groundProximity(i.nozzleAltitude, i.plumeLength) * (i.capacity / REFERENCE_CAPACITY)
 	);
 }

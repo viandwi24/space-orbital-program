@@ -181,7 +181,10 @@ export function createRenderer(config: RendererConfig): Renderer {
 		model.bakeMoons(gl);
 		env.planet.marchPrepass(gl);
 		gl.toneMappingExposure = env.state.exposure;
-		const up = env.planet.material.uniforms.uCamUp!.value as Vec3;
+		// at an airless body the light cube is taken around that body's vertical (ADR 0058)
+		const up = env.state.airless
+			? env.state.up
+			: (env.planet.material.uniforms.uCamUp!.value as Vec3);
 		const target = envLight.update(env, up, env.state.sun);
 		if (target) {
 			model.scene.environment = target.texture;

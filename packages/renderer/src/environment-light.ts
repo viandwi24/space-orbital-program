@@ -43,7 +43,10 @@ export class EnvironmentLight {
 				uAlt: { value: 0 },
 				uSunDir: { value: new Vector3(1, 0, 0) },
 				uGroundAlbedo: { value: new Color(0.14, 0.2, 0.07) },
-				uNight: { value: new Vector3(0.0035, 0.0048, 0.0095) }
+				uNight: { value: new Vector3(0.0035, 0.0048, 0.0095) },
+				uAirless: { value: 0 },
+				uAirSky: { value: new Vector3() },
+				uAirGround: { value: new Vector3() }
 			}
 		});
 		const dome = new Mesh(new SphereGeometry(10, 32, 16), this.material);
@@ -65,6 +68,13 @@ export class EnvironmentLight {
 		(u.uUp!.value as Vector3).set(up.x, up.y, up.z);
 		u.uAlt!.value = environment.state.altitude;
 		(u.uSunDir!.value as Vector3).set(sun.x, sun.y, sun.z);
+		const airless = environment.state.airless;
+		u.uAirless!.value = airless ? 1 : 0;
+		if (airless) {
+			const { sky, ground } = airless;
+			(u.uAirSky!.value as Vector3).set(sky[0], sky[1], sky[2]);
+			(u.uAirGround!.value as Vector3).set(ground[0], ground[1], ground[2]);
+		}
 		const size = PRESETS[environment.currentPreset].envSize;
 		this.target?.dispose();
 		this.target = this.pmrem.fromScene(this.scene, 0.02, 0.1, 100, { size });

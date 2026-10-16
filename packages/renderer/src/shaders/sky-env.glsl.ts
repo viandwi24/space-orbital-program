@@ -17,9 +17,17 @@ uniform float uAlt;
 uniform vec3 uSunDir;
 uniform vec3 uGroundAlbedo;
 uniform vec3 uNight;
+uniform float uAirless;
+uniform vec3 uAirSky;
+uniform vec3 uAirGround;
 
 void main() {
 	vec3 rd = normalize(vDir);
+	if (uAirless > 0.5) {
+		// an airless body: black sky with planetshine above the horizon, sunlit regolith below it (plan 049)
+		gl_FragColor = vec4(mix(uAirGround, uAirSky, smoothstep(-0.06, 0.06, dot(uUp, rd))), 1.0);
+		return;
+	}
 	float R = uR;
 	float h = max(uAlt, 0.0);
 	float r0 = R + h;

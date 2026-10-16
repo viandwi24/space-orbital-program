@@ -252,7 +252,10 @@ export class SceneModel {
 			(definition) => config.partVisuals?.get(definition)?.plume,
 			settings,
 			{
-				groundHeight: (direction) => this.environment.groundHeight(direction),
+				groundHeight: (body, direction) =>
+					body === this.primaryBody
+						? this.environment.groundHeight(direction)
+						: this.moons.get(body)?.groundHeight(direction),
 				shardSource: (definition) => this.shardSourceOf(definition)
 			}
 		);
@@ -684,7 +687,7 @@ export class SceneModel {
 							z: activeGroup.position.z
 						}
 					: this.frameState.vesselRender,
-			...(moonUp ? { up: moonUp } : {}),
+			...(moonUp ? { up: moonUp, airless: true } : {}),
 			vesselRadius: this.vesselRadius,
 			mapView: this.map,
 			dt

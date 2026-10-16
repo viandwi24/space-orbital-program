@@ -28,6 +28,7 @@ import {
 	type Atmosphere,
 	type RGB
 } from './atmosphere-model.ts';
+import { AIRLESS_EXPOSURE, airlessLight, type AirlessLight } from './airless-light.ts';
 import { adaptExposure, exposureFor, starVisibility } from './exposure.ts';
 import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
@@ -72,6 +73,8 @@ export interface EnvironmentFrameInput {
 	 * instead of the radial of this body: a camera on a moon (ADR 0054).
 	 */
 	up?: Vec3;
+	/** The camera is in the sphere of an airless body: its light is the sun, regolith bounce and a sky floor (ADR 0058). */
+	airless?: boolean;
 }
 
 export interface EnvironmentState {
@@ -83,6 +86,10 @@ export interface EnvironmentState {
 	/** Sun colour/ambient changed enough since the last environment-map capture to warrant a new one. */
 	envKey: string;
 	shadowActive: boolean;
+	/** Local vertical the light is taken from (inertial, unit). */
+	up: Vec3;
+	/** Light of an airless body when the camera is at one (ADR 0058); null at the home planet. */
+	airless: AirlessLight | null;
 }
 
 const SHADOW_BIAS = -0.00006;
@@ -106,7 +113,9 @@ export class Environment {
 		altitude: 0,
 		exposure: 1,
 		envKey: '',
-		shadowActive: false
+		shadowActive: false,
+		up: vec(0, 1, 0),
+		airless: null
 	};
 
 	private preset: GraphicsPreset;
@@ -276,6 +285,17 @@ export class Environment {
 			0.2 * (this.atmosphere.sunIrradiance * sunT[1] * sinEl + skyIrr[1]),
 			0.1 * (this.atmosphere.sunIrradiance * sunT[2] * sinEl + skyIrr[2])
 		];
+		// On an airless body the sun is white, fades at its horizon and nothing scatters it (ADR 0058).
+		const air = input.airless ? airlessLight(elevDeg, this.atmosphere.sunIrradiance) : null;
+		if (air) {
+			sunT[0] = sunT[1] = sunT[2] = air.sun;
+			skyIrr[0] = air.sky[0] * Math.PI;
+			skyIrr[1] = air.sky[1] * Math.PI;
+			skyIrr[2] = air.sky[2] * Math.PI;
+			bounce[0] = air.ground[0] * Math.PI;
+			bounce[1] = air.ground[1] * Math.PI;
+			bounce[2] = air.ground[2] * Math.PI;
+		}
 		this.sunLight.color.setRGB(sunT[0], sunT[1], sunT[2], LinearSRGBColorSpace);
 		this.sunLight.intensity = this.atmosphere.sunIrradiance;
 		this.hemisphere.color.setRGB(skyIrr[0], skyIrr[1], skyIrr[2], LinearSRGBColorSpace);
@@ -290,7 +310,7 @@ export class Environment {
 		const siteLamps = 1 - smoothstep(-6, 3, elevDeg);
 
 		// Exposure adapts toward the day/night target.
-		const target = exposureFor(elevDeg);
+		const target = exposureFor(elevDeg) * (air ? AIRLESS_EXPOSURE : 1);
 		this.exposure = adaptExposure(this.exposure, target, input.dt);
 
 		// Shadow camera around the casters.
@@ -370,7 +390,7 @@ export class Environment {
 
 		const key = [
 			Math.round(elevDeg / 2),
-			Math.round(Math.log2(Math.max(alt, 1)) * 2),
+			air ? 'airless' : Math.round(Math.log2(Math.max(alt, 1)) * 2),
 			this.preset
 		].join('|');
 		this.state.sun = sun;
@@ -379,6 +399,8 @@ export class Environment {
 		this.state.exposure = this.exposure;
 		this.state.envKey = key;
 		this.state.shadowActive = shadowActive;
+		this.state.up = up;
+		this.state.airless = air;
 	}
 
 	dispose(): void {

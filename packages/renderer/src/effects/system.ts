@@ -5,7 +5,7 @@
  * on the ground while it turns; each frame they are written to render space (float64 to float32
  * after the floating-origin shift, so precision is fine near the vessel).
  */
-import type { BodyDefinition, Quat, Vec3 } from '@orbital/core';
+import { GRAVITATIONAL_CONSTANT, type BodyDefinition, type Quat, type Vec3 } from '@orbital/core';
 import {
 	BufferAttribute,
 	BufferGeometry,
@@ -37,6 +37,7 @@ import {
 	ParticlePool,
 	exhaustTrailRate,
 	groundBlastRate,
+	vacuumDustRate,
 	type WindField
 } from './particles.ts';
 import { PlasmaEffect } from './plasma-mesh.ts';
@@ -53,7 +54,8 @@ import {
 } from './shards.ts';
 import type { FxEvent } from './transitions.ts';
 
-export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
+export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
+	Partial<Pick<BodyDefinition, 'mass'>>;
 
 export interface EffectPart {
 	id: number;
@@ -99,8 +101,11 @@ export interface EffectsFrame {
 
 /** What the scene lends the effects (ADR 0047). */
 export interface EffectsOptions {
-	/** Height of the ground above the reference sphere along a unit body-fixed direction, m. */
-	groundHeight?: (direction: Vec3) => number;
+	/**
+	 * Height of the ground of body `body` above its reference sphere along a unit body-fixed
+	 * direction, m. A body without ground (`undefined`) gets no ground effects.
+	 */
+	groundHeight?: (body: string, direction: Vec3) => number | undefined;
 	/** Mesh triangles of a part definition, for debris pieces. */
 	shardSource?: (definition: string) => ShardSource | undefined;
 }
@@ -127,6 +132,10 @@ const SHARD_COLOURS = [
 ];
 const FALLBACK_SOURCES = SHARD_COLOURS.map((c) => fallbackSource([c.r, c.g, c.b]));
 const GRAVITY = 9.81;
+/** Dust a plume throws up on an airless body: grey regolith, lit like the ground (plan 049). */
+const REGOLITH_DUST: readonly [number, number, number] = [0.5, 0.48, 0.44];
+/** Particles of the dust pool of an airless body, as a share of the smoke pool. */
+const VACUUM_POOL_SHARE = 0.5;
 const KIND_TINT: Record<number, readonly [number, number, number]> = {
 	[ParticleKind.Smoke]: [0.86, 0.86, 0.88],
 	[ParticleKind.Dust]: [1, 1, 1], // the ground's colour comes with the particle (`tint`)
@@ -145,6 +154,8 @@ export class Effects {
 	readonly root = new Object3D();
 	readonly plasma = new PlasmaEffect();
 	private pool: ParticlePool;
+	/** Dust of the airless bodies (no air to carry smoke), one pool per body, made when a plume first meets its ground (plan 049). */
+	private vacuumPools = new Map<string, ParticlePool>();
 	private smoke: BillboardField;
 	private fire: BillboardField;
 	private shardMesh: Mesh;
@@ -230,6 +241,7 @@ export class Effects {
 		this.shardPositions = shards.positions;
 		this.shardColours = shards.colours;
 		this.root.add(this.smoke.mesh, this.shardMesh);
+		this.vacuumPools.clear();
 		this.explosions = [];
 	}
 
@@ -238,6 +250,12 @@ export class Effects {
 	}
 	get particleCount(): number {
 		return this.pool.count;
+	}
+	/** Dust particles of the airless bodies (plan 049). */
+	get vacuumParticleCount(): number {
+		let n = 0;
+		for (const pool of this.vacuumPools.values()) n += pool.count;
+		return n;
 	}
 	get explosionCount(): number {
 		return this.explosions.length;
@@ -250,6 +268,10 @@ export class Effects {
 		if (dt > 0) {
 			this.emitFromEngines(frame, dt);
 			this.pool.step(dt, this.windField(frame));
+			for (const [id, pool] of this.vacuumPools) {
+				const mass = this.bodies.get(id)?.mass;
+				if (mass !== undefined) pool.step(dt, undefined, { mu: GRAVITATIONAL_CONSTANT * mass });
+			}
 			for (const e of this.explosions) e.age += dt;
 			this.explosions = this.explosions.filter((e) => e.age < durationOf(e.kind) + 0.6);
 			for (const f of this.flashes) f.age += dt;
@@ -288,12 +310,15 @@ export class Effects {
 
 	private emitFromEngines(frame: EffectsFrame, dt: number): void {
 		const seen = new Set<string>();
-		const body = this.primary ? frame.bodies.get(this.primary) : undefined;
-		const info = this.primary ? this.bodies.get(this.primary) : undefined;
-		if (!body || !info) return;
-		const pool = this.pool;
 		for (const v of frame.vessels) {
-			if (v.soi !== this.primary || v.mode !== 'flight') continue;
+			if (v.mode !== 'flight') continue;
+			const body = frame.bodies.get(v.soi);
+			const info = this.bodies.get(v.soi);
+			if (!body || !info) continue;
+			// The first body has its air; any other body with a ground and no air gets dust that flies ballistic.
+			const vacuum = v.soi !== this.primary;
+			if (vacuum && (info.atmosphere || info.mass === undefined)) continue;
+			const pool = vacuum ? this.vacuumPool(v.soi) : this.pool;
 			for (const part of v.parts) {
 				const spec = this.plumeOf(part.definition);
 				if (!spec) continue;
@@ -307,7 +332,9 @@ export class Effects {
 				const r = length(nozzle);
 				if (r < 1) continue;
 				const up = scale(nozzle, 1 / r);
-				const ground = this.options.groundHeight?.(rotateInverse(body.rotation, up)) ?? 0;
+				const groundAt = this.options.groundHeight?.(v.soi, rotateInverse(body.rotation, up));
+				if (vacuum && groundAt === undefined) continue;
+				const ground = groundAt ?? 0;
 				const altitude = r - info.radius;
 				const height = altitude - ground;
 				const pa = ambientPressureAt(info.atmosphere, altitude);
@@ -332,22 +359,55 @@ export class Effects {
 				seen.add(key);
 				const acc = this.accumulators.get(key) ?? { blast: 0, trail: 0 };
 				this.accumulators.set(key, acc);
-				acc.blast += groundBlastRate(input) * dt;
+				acc.blast += (vacuum ? vacuumDustRate(input) : groundBlastRate(input)) * dt;
 				acc.trail += exhaustTrailRate(input) * dt;
 				const exhaust = rotate(part.orientation, vec(0, -1, 0));
 				const light = plumeGroundLight(height, throttle, shape.length, spec.exitRadius);
-				if (light.intensity > 0 && pa > 0 && this.glowItems.length < this.glow.capacity) {
+				if (
+					light.intensity > 0 &&
+					(vacuum || pa > 0) &&
+					this.glowItems.length < this.glow.capacity
+				) {
 					const centre = scale(up, info.radius + ground + 0.05);
 					this.glowItems.push({
 						position: toRenderSpace(add(body.world, centre), frame.origin),
 						up,
 						radius: light.radius,
-						intensity: light.intensity * Math.sqrt(pa / (info.atmosphere?.surfacePressure || 1))
+						// in vacuum nothing dims the light of the exhaust
+						intensity: vacuum
+							? light.intensity
+							: light.intensity * Math.sqrt(pa / (info.atmosphere?.surfacePressure || 1))
 					});
 				}
-				const tint = dustColour(ground);
+				const tint = vacuum ? REGOLITH_DUST : dustColour(ground);
 				const [e1, e2] = tangents(up);
 				const toBody = (p: Vec3): Vec3 => rotateInverse(body.rotation, p);
+				if (vacuum) {
+					const mu = GRAVITATIONAL_CONSTANT * info.mass!;
+					const g = mu / (r * r);
+					while (acc.blast >= 1) {
+						acc.blast -= 1;
+						// a low sheet racing outwards along the ground: fast, flat, ballistic, back down in 2 v / g
+						const th = pool.random() * Math.PI * 2;
+						const rho = (spec.exitRadius * 1.2 + shape.maxRadius * 0.8) * pool.random();
+						const dir = add(scale(e1, Math.cos(th)), scale(e2, Math.sin(th)));
+						const speed = (8 + 34 * pool.random()) * (0.5 + 0.5 * Math.sqrt(throttle));
+						const rise = 0.25 + 1.1 * pool.random();
+						const spot = add(scale(up, info.radius + ground + 0.3), scale(dir, rho));
+						pool.emit({
+							position: toBody(spot),
+							velocity: toBody(add(scale(dir, speed), scale(up, rise))),
+							life: Math.min(8, (2 * rise) / g),
+							size0: 0.7,
+							size1: 1.4 + 1.6 * pool.random(),
+							kind: ParticleKind.Dust,
+							opacity: 0.55,
+							heat: 0,
+							tint: [tint[0], tint[1], tint[2]]
+						});
+					}
+					continue;
+				}
 				while (acc.blast >= 1) {
 					acc.blast -= 1;
 					const th = pool.random() * Math.PI * 2;
@@ -390,6 +450,15 @@ export class Effects {
 			}
 		}
 		for (const k of this.accumulators.keys()) if (!seen.has(k)) this.accumulators.delete(k);
+	}
+
+	private vacuumPool(body: string): ParticlePool {
+		let pool = this.vacuumPools.get(body);
+		if (!pool) {
+			pool = new ParticlePool(Math.floor(this.settings.smokeParticles * VACUUM_POOL_SHARE), 17);
+			this.vacuumPools.set(body, pool);
+		}
+		return pool;
 	}
 
 	/** One mesh triangle per shard, area-weighted over the lost parts' real geometry (ADR 0047). */
@@ -490,45 +559,46 @@ export class Effects {
 	}
 
 	private writeSmoke(frame: EffectsFrame): void {
-		const body = this.primary ? frame.bodies.get(this.primary) : undefined;
-		const pool = this.pool;
-		if (!body) {
-			this.smoke.commit(0);
-			return;
-		}
 		const [lr, lg, lb] = frame.light;
 		const sun = frame.sunDirection ?? vec(0, 1, 0);
 		this.smoke.setSun(sun.x, sun.y, sun.z);
-		const q = body.rotation;
-		for (let i = 0; i < pool.count; i++) {
-			const local = vec(pool.px[i]!, pool.py[i]!, pool.pz[i]!);
-			const p = toRenderSpace(add(body.world, rotate(q, local)), frame.origin);
-			const t = pool.age[i]! / pool.life[i]!;
-			const ease = 1 - (1 - t) * (1 - t);
-			const size = pool.size0[i]! + (pool.size1[i]! - pool.size0[i]!) * ease;
-			const fadeIn = Math.min(1, pool.age[i]! / 0.25);
-			const alpha = pool.opacity[i]! * fadeIn * Math.pow(1 - t, 1.3);
-			const base = KIND_TINT[pool.kind[i]!] ?? KIND_TINT[0]!;
-			const tint = [
-				base[0] * pool.tint[i * 3]!,
-				base[1] * pool.tint[i * 3 + 1]!,
-				base[2] * pool.tint[i * 3 + 2]!
-			] as const;
-			const heat = pool.heat[i]! * Math.pow(1 - t, 3);
-			this.smoke.set(
-				i,
-				p.x,
-				p.y,
-				p.z,
-				size,
-				lr * tint[0] + heat * 3.2,
-				lg * tint[1] + heat * 1.5,
-				lb * tint[2] + heat * 0.5,
-				alpha,
-				pool.seed[i]!
-			);
+		let n = 0;
+		const pools: Array<[string | undefined, ParticlePool]> = [[this.primary, this.pool]];
+		for (const [id, pool] of this.vacuumPools) pools.push([id, pool]);
+		for (const [id, pool] of pools) {
+			const body = id ? frame.bodies.get(id) : undefined;
+			if (!body) continue;
+			const q = body.rotation;
+			for (let i = 0; i < pool.count && n < this.smoke.capacity; i++) {
+				const local = vec(pool.px[i]!, pool.py[i]!, pool.pz[i]!);
+				const p = toRenderSpace(add(body.world, rotate(q, local)), frame.origin);
+				const t = pool.age[i]! / pool.life[i]!;
+				const ease = 1 - (1 - t) * (1 - t);
+				const size = pool.size0[i]! + (pool.size1[i]! - pool.size0[i]!) * ease;
+				const fadeIn = Math.min(1, pool.age[i]! / 0.25);
+				const alpha = pool.opacity[i]! * fadeIn * Math.pow(1 - t, 1.3);
+				const base = KIND_TINT[pool.kind[i]!] ?? KIND_TINT[0]!;
+				const tint = [
+					base[0] * pool.tint[i * 3]!,
+					base[1] * pool.tint[i * 3 + 1]!,
+					base[2] * pool.tint[i * 3 + 2]!
+				] as const;
+				const heat = pool.heat[i]! * Math.pow(1 - t, 3);
+				this.smoke.set(
+					n++,
+					p.x,
+					p.y,
+					p.z,
+					size,
+					lr * tint[0] + heat * 3.2,
+					lg * tint[1] + heat * 1.5,
+					lb * tint[2] + heat * 0.5,
+					alpha,
+					pool.seed[i]!
+				);
+			}
 		}
-		this.smoke.commit(pool.count);
+		this.smoke.commit(n);
 	}
 
 	private writeFire(frame: EffectsFrame): void {
