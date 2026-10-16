@@ -18,6 +18,13 @@
 			]
 		},
 		{
+			title: 'Stability assist (SAS)',
+			rows: [
+				[['T'], 'SAS on (hold attitude), off'],
+				[['1', '7'], 'Hold, prograde, retrograde, normal, antinormal, radial out, radial in']
+			]
+		},
+		{
 			title: 'See',
 			rows: [
 				[['M'], 'Map view'],

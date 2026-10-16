@@ -3,10 +3,21 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
-import type { BodyDefinition, Snapshot, Vec3, VesselDesign, VesselSnapshot } from '@orbital/core';
+import {
+	entityId,
+	type BodyDefinition,
+	type Command,
+	type SasMode,
+	type SasSnapshot,
+	type Snapshot,
+	type Vec3,
+	type VesselDesign,
+	type VesselSnapshot
+} from '@orbital/core';
 import type { ScreenPoint } from '@orbital/renderer';
 import { attitudeAngles, markerDirections, type Attitude } from './navball-math';
 import type { NavballFrame } from './hud/navball-draw';
+import { commandForMode, referenceFollowUp } from './hud/sas-model';
 import {
 	entityIndexMap,
 	stageDeltaV,
@@ -68,6 +79,10 @@ export interface HudModel {
 	throttle: number;
 	/** Hottest part as a fraction of its limit. */
 	heat: number;
+	/** Stability assist state from the snapshot (plan 042); undefined before the sim reports it. */
+	sas: SasSnapshot | undefined;
+	/** The vessel has a command part: SAS and attitude commands are accepted. */
+	controllable: boolean;
 	toasts: LiveToast[];
 }
 
@@ -100,6 +115,10 @@ export interface HudController {
 	simEvent(e: SimEventMessage): void;
 	refused(command: string, reason: string): void;
 	cycleSpeedMode(): SpeedModePreference;
+	/** The `sas` command a button or key asks for (plan 042); null before a vessel is attached. */
+	sasCommand(mode: SasMode): Command | null;
+	/** The `sas` command that keeps the prograde reference in step with the speed readout, or null. */
+	sasFollowUp(): Command | null;
 	/** Whether the map view is on: map markers are only computed then. */
 	setMapView(on: boolean): void;
 	frame(): FrameData;
@@ -132,6 +151,12 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	let map = false;
 	let stageCache: { at: number; model: StageStackModel; resources: ResourceRow[] } | null = null;
 
+	const hasControlSource = (v: VesselSnapshot): boolean =>
+		v.parts.some((p) =>
+			(content.parts.get(p.definition)?.modules ?? []).some(
+				([id]) => content.modules.get(id)?.controlSource === true
+			)
+		);
 	const find = (): VesselSnapshot | undefined =>
 		snap && vessel !== null ? snap.vessels.find((v) => Number(v.id) === vessel) : undefined;
 	const bodyOf = (v: VesselSnapshot): BodyDefinition | undefined =>
@@ -209,6 +234,14 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		cycleSpeedMode() {
 			preference = nextSpeedMode(preference);
 			return preference;
+		},
+		sasCommand(mode) {
+			if (vessel === null) return null;
+			return commandForMode(entityId(vessel), mode, find()?.sas, lastMode);
+		},
+		sasFollowUp() {
+			if (vessel === null) return null;
+			return referenceFollowUp(entityId(vessel), find()?.sas, lastMode);
 		},
 		setMapView(on) {
 			map = on;
@@ -306,6 +339,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				resources: cache.resources,
 				throttle: vesselThrottle(v.parts, localThrottle),
 				heat,
+				sas: v.sas,
+				controllable: hasControlSource(v),
 				toasts
 			};
 		}
