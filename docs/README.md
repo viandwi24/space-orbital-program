@@ -5,7 +5,7 @@ This directory is the project's memory. It is designed so that an agent (or huma
 ## Reading order for a newcomer
 
 1. `STATUS.md` — where we are.
-2. `product/spec.md` — what we are building and what we are not.
+2. `product/spec.md` — what we are building and what we are not. `product/visual-direction.md` — the visual/UI bar for anything the player sees (ADR 0025).
 3. `architecture/overview.md` → `boundaries.md` → `plugin-system.md` → `simulation.md`.
 4. `decisions/README.md` — the ADR index; skim titles, read the ones your plan links.
 5. `plans/README.md` — how plans work; then your plan.

@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress; 017 (script panel follow-ups and landed HUD) is done
-**Next plan:** none ready; draft 018 (script sharing container and ship API constants) needs refinement first. 014, 015, 016 and 017 are done
+**Next plan:** visual overhaul requested by the human (2026-10-16): drafts 019 (environment) and 021 (HUD/design system) first, then 020, 022, 023 — target in [`product/visual-direction.md`](product/visual-direction.md). Draft 018 (script sharing) is parked.
 
 ## Plan board
 
@@ -28,6 +28,11 @@
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | done | script-web session | ADR 0022; runner in the sim Worker, script panel in `/flight`; sample ascent from the panel reaches a 76.9 km periapsis, `while (true) {}` is terminated at the 10 ms budget with the page live |
 | 017 | [Script panel follow-ups and landed HUD](plans/017-script-panel-follow-ups.md) | done | panel session | no ADR; script text persists per design, HUD stage counter follows `stage:activated` (a script's `stage()` counts), HUD shows landed/orbit/suborbital/flight with warp buttons; dev autopilot starts from surface rails |
 | 018 | [Script sharing container and ship API constants](plans/018-script-sharing-and-ship-api.md) | draft | — | split from 017: runner in its own Worker when scripts become shareable, engine/wheel constants in `ship` |
+| 019 | [Visual: flight environment](plans/019-flight-environment.md) | draft | — | sky/atmosphere, planet shading, launch site, sun + shadows, clouds, presets; see `product/visual-direction.md` |
+| 020 | [Visual: part models, materials and effects](plans/020-part-models-and-effects.md) | draft | — | procedural part meshes, PBR, plume/smoke/re-entry glow/explosions; needs 019 |
+| 021 | [UI: design system and flight HUD](plans/021-hud-and-ui-design-system.md) | draft | — | navball, gauges, stage stack with Δv, toasts, pause menu, surface speed |
+| 022 | [UI: 3D vehicle assembly building](plans/022-vab-3d.md) | draft | — | 3D hangar, part catalogue with icons, node picking, Δv/TWR, validation; needs 020, 021 |
+| 023 | [Release readiness](plans/023-release-readiness.md) | draft | — | menus, settings, perf budget, polish, release checklist; needs 019–022 |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
