@@ -1,8 +1,8 @@
 ---
 id: 009
 title: "Web client MVP: build, launch, orbit"
-status: draft
-owner: ""
+status: in-progress
+owner: "web session (Claude, 2026-10-16)"
 depends: [007, 008]
 phase: 1
 created: 2026-10-16
@@ -25,19 +25,32 @@ In `apps/web`: a minimal VAB (attach stock parts via a list + attach nodes, assi
 **In:** the above, keyboard controls, basic styling. UI chrome in Svelte; render loop and worker messaging outside Svelte reactivity.
 **Out:** mouse-driven 3D part placement (list + node picker is fine), art, sound, settings.
 
+## Design notes
+
+- **Topology:** the Worker owns the clock. `src/lib/sim-host.ts` is the worker-side message handler (`createSimHost({ post, createSim })`, testable in Node with a mocked `post`); `src/lib/sim.worker.ts` is a thin shell that wires it to `self` and boots `createSim({ plugins: [Stock], backendFactory: () => createRapierBackend({ solverIterations: 16 }) })`. A `setInterval` loop in the host measures wall time, clamps it to 0.1 s and calls `sim.step`, then posts `snapshot` messages at about 30 Hz. `src/lib/sim-client.ts` is the main-thread wrapper over any `{ postMessage, onmessage }` (a real `Worker` or a test double): `ready` promise, `dispatch(command) -> Promise<CommandResult>`, `onSnapshot`, `dispose`.
+- **Messages** (`src/lib/messages.ts`, plain data): client to worker `{ kind: 'command', id, command: unknown }`, `{ kind: 'dispose' }`; worker to client `{ kind: 'ready', plugins, parts, bodies }` (loaded plugin ids, part definitions with shape/attach nodes/title/mass, body definitions: all main-thread data comes from the worker, so the main thread needs no plugin load for the HUD, but the renderer still gets `partShapes`/`bodies` from it), `{ kind: 'snapshot', snapshot }`, `{ kind: 'result', id, result }`, `{ kind: 'error', message }`. Commands cross the wire as `unknown` and are validated by `sim.dispatch`.
+- **Pages:** `/vab` and `/flight` get `+page.ts` with `ssr = false` (prerender shell, ADR 0006). Svelte renders only chrome; the rAF loop, the renderer and the Worker callbacks are plain TypeScript in `src/lib/` and only a ~10 Hz telemetry object is copied into `$state.raw`.
+- **State between pages:** the current design JSON is stored in `localStorage` (`orbital.design`) by the VAB and read by `/flight`, which sends `load-vessel`. Download/upload of `*.json` in the VAB uses `vesselDesignSchema` + `resolveVesselDesign` for validation.
+- **VAB:** `src/lib/design.ts` has pure functions (`emptyDesign`, `addPart`, `removePart` (with its subtree), `setStage`, `serialiseDesign`, `parseDesign`, `defaultTwoStage`) so serialisation is unit-tested. UI: part palette (title, mass), a list of the placed parts with a stage selector per part, attach-node pickers (`parentNode` of the selected parent, `node` of the new part, from the part definitions' `attach`), validation errors from `resolveVesselDesign`, a button that loads the reference two-stage vessel, save/load JSON, Launch.
+- **Flight:** keyboard: Shift/Ctrl throttle up/down, Z full, X cut, W/S pitch, A/D yaw, Q/E roll, Space stage, M map, `,`/`.` warp down/up (1, 2, 5, 10, 50, 100, 1000, 10000, 100000), mouse drag/wheel orbits the camera. HUD: altitude, speed, apoapsis, periapsis, throttle, stage, warp (with refusal reason), time, vessel mode. A dev-only autopilot (toggle `P`, only when `import.meta.env.DEV`) is allowed only if hand-flying through browser tool calls proves infeasible; it must be recorded as such in the journal and must go through the same `dispatch` path.
+- **Renderer in a real browser:** `partShapes` is built from the worker-supplied part definitions (size tuple to `Vec3`). First real-GL run checks `Line2` orbit line and marker sizing; only small fixes in `packages/renderer` are in scope and are logged.
+
 ## Steps
 
-1. `src/lib/sim.worker.ts` hosting `createSim`; `src/lib/sim-client.ts` (typed postMessage wrapper).
-2. Routes `/vab`, `/flight` (+ map toggle); components.
-3. Vitest unit tests for `sim-client` message handling and VAB design serialisation.
-4. `[manual]` checklist executed and recorded in the journal with a screenshot path.
+1. `cd apps/web && bun add @orbital/physics@workspace:* @orbital/kepler@workspace:*` (workspace deps only; check `bun.lock` diff). Add `messages.ts`, `sim-host.ts`, `sim.worker.ts`, `sim-client.ts` and their vitest tests: `sim-client.test.ts` (request/response correlation, snapshot fan-out, error rejection, dispose) and `sim-host.test.ts` (**worker boot**: real `createSim` with Stock and Rapier, host posts `ready` listing `stock`, then `load-vessel` through the command message and a snapshot with that vessel).
+2. `design.ts` + `design.test.ts` (round trip, add/remove subtree, stage assignment, invalid JSON rejected, reference vessel resolves against the stock registries).
+3. `/vab` route and components (Svelte chrome), launch hand-off via `localStorage`.
+4. `flight-loop.ts` (rAF render loop, keyboard to commands, telemetry, camera drag), `/flight` route with HUD and map toggle; `format.ts` helpers reused.
+5. `vite build` check that the worker is emitted; `bun run build`, svelte-check, prettier.
+6. `[manual]` run with the built-in browser (`.claude/launch.json` entry for `bun run dev`): build the 2-stage vessel in `/vab` through the UI, launch, stage, reach periapsis > 70 km, open map view, save at least two screenshots to `docs/journal/assets/009-*.png`, record the run in the journal (times, final Ap/Pe, whether the autopilot was used).
 
 ## Acceptance criteria
 
-- [ ] `bun run build` succeeds; `bun run --filter @orbital/web test` passes.
-- [ ] Worker boot: a vitest test asserts the worker reports `ready` with the stock plugin loaded (use a node-side mock of `postMessage` if browser testing is not set up; otherwise `[manual]`).
-- [ ] `[manual]` From a clean `bun run dev`: build the 2-stage test vessel in `/vab`, launch, reach periapsis > 70 km; map view shows the orbit. Journal records the run.
-- [ ] `bun run typecheck`, `bun run docs:check` pass.
+- [ ] `bun run build` succeeds (static output contains `/vab`, `/flight` pages and the worker chunk); `bun run --filter @orbital/web test` passes.
+- [ ] Worker boot: a vitest test (`sim-host.test.ts`) asserts the host reports `ready` with the stock plugin loaded and then serves a `load-vessel` command and a snapshot, using a node-side `post` mock (real `createSim` + Rapier).
+- [ ] `sim-client` and design serialisation unit tests pass (listed above).
+- [ ] `[manual]` From a clean `bun run dev`: build the 2-stage test vessel in `/vab`, launch, reach periapsis > 70 km; map view shows the orbit line. Journal records the run with screenshots in `docs/journal/assets/009-*.png`.
+- [ ] `bun run typecheck` (0 svelte-check errors), `bun run docs:check` and `bun test` pass.
 
 ## Docs checklist
 
@@ -46,3 +59,4 @@ In `apps/web`: a minimal VAB (attach stock parts via a list + attach nodes, assi
 ## Log
 
 - 2026-10-16 — Created as draft.
+- 2026-10-16 — Refined draft → ready at the human's request (session: web session). Research in `research/web-client.md`.

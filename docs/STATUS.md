@@ -19,7 +19,7 @@
 | 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | done | stock session | ADR 0014 (part shape, `state(config)`); 6 parts, home body, `guides/writing-a-mod.md` |
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | done | sim session | ADRs 0015-0017; capability API, `createSim`, scripted two-stage ascent reaches orbit headlessly |
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
-| 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | draft | — | needs 007, 008 |
+| 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | in-progress | web session | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | draft | — | needs 007; ground is idealised in 007 (ADR 0017) |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | draft | — | needs 004, 007; follow-up from 004 |
