@@ -1,8 +1,8 @@
 ---
 id: 004
 title: Physics backend + Rapier adapter
-status: draft
-owner: ""
+status: in-progress
+owner: "physics session (Claude, 2026-10-16)"
 depends: [003]
 phase: 0
 created: 2026-10-16
@@ -37,8 +37,8 @@ updated: 2026-10-16
 ## Steps
 
 1. Verify Rapier docs online; record.
-2. `src/rapier-backend.ts`, `src/mock-backend.ts`, `src/index.ts`.
-3. Tests: free fall under an applied constant force matches `½at²` within 1e-3 over 2 s at dt = 0.02; two bodies joined by a fixed joint keep their relative transform within 1e-4 after 200 steps under a force on one of them; same inputs twice → identical transforms (determinism).
+2. `src/rapier-backend.ts` (`createRapierBackend(options?): Promise<PhysicsBackend>`: `await RAPIER.init()`, `new RAPIER.World({x:0,y:0,z:0})`, `world.timestep = dt` before each `world.step()`; bodies via `RigidBodyDesc.dynamic()/fixed()/kinematicVelocityBased()` + `createCollider(ColliderDesc.cuboid/ball/capsule, body)` with `setDensity(0)` and mass via `setAdditionalMassProperties(mass, {0,0,0}, inertia, identity)`, inertia derived analytically from the shape when omitted; `JointData.fixed(anchorA, rotA, anchorB, rotB)` + `world.createImpulseJoint(data, bodyA, bodyB, true)` with `setContactsEnabled(false)`; `addForce`/`addForceAtPoint`/`addTorque` tracked per body and `resetForces`/`resetTorques` after every `step`; `dispose()` calls `world.free()`), `src/mock-backend.ts` (`createMockBackend()`: kinematic, no collisions, same one-step force lifetime), `src/index.ts`. Rapier details: `docs/research/rapier.md`.
+3. Tests (`test/*.test.ts`): free fall under an applied constant force matches `½at²` within 1e-3 over 2 s at dt = 0.02; two bodies joined by a fixed joint keep their relative transform within 1e-4 after 200 steps under a force on one of them; same inputs twice → identical transforms (determinism). Plus: forces last one step, torque/angular velocity axes, remove body/joint, mock backend contract.
 4. Journal.
 
 ## Acceptance criteria
@@ -55,3 +55,6 @@ updated: 2026-10-16
 ## Log
 
 - 2026-10-16 — Created as draft; refine Steps 2–3 with the actual Rapier API before setting `ready`.
+- 2026-10-16 — Refined draft → ready at the human's request (session: physics session); Steps 2–3 updated to Rapier 0.21.0 API.
+- 2026-10-16 — Started (in-progress, physics session).
+- 2026-10-16 — **STOPPED before implementing: acceptance criterion 1 / Step 3 test 1 is unachievable as written.** Measured with Rapier 0.21.0 (see `research/rapier.md`): constant 10 N on 2 kg, dt = 0.02, 100 steps, forces re-applied and reset each step: x(2 s) = 10.025013 vs ½at² = 10 (error 2.5e-2, 25x the 1e-3 tolerance; 2.5e-3 relative). Cause: Rapier's integrator has an error of a·dt·t/8 (first-order in dt); velocity is exact (9.99999). Not an adapter bug and not f32 rounding. Criterion left unchanged. Options for the human: (a) relax the tolerance to 3e-2 absolute at dt = 0.02 (documents the integrator error); (b) compare against Rapier's own discrete solution `½at² + a·dt·t/8` within 1e-3 and also assert velocity `at` within 1e-3; (c) keep 1e-3 against `½at²` but require dt <= 0.0008 (about 25 substeps per 0.02 s sim step, not viable). Recommendation: (b). The other two tests and the adapter are unblocked once the criterion is decided; no code was written.

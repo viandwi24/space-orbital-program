@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
-**Current plan:** none in progress
-**Next plan:** [`plans/004-physics-backend-rapier.md`](plans/004-physics-backend-rapier.md) (`draft`, needs refinement before starting)
+**Current plan:** [`plans/004-physics-backend-rapier.md`](plans/004-physics-backend-rapier.md) (`in-progress`, paused: acceptance criterion 1 needs a human decision, see the plan Log)
+**Next plan:** finish 004 (blocked on the criterion decision), then [`plans/005-sdk-define-api-plugin-loader.md`](plans/005-sdk-define-api-plugin-loader.md) (`draft`, needs refinement)
 
 ## Plan board
 
@@ -14,7 +14,7 @@
 | 001 | [Repo bootstrap](plans/001-repo-bootstrap.md) | done | bootstrap session | scaffold, workspaces, docs system |
 | 002 | [Kepler orbital mechanics](plans/002-kepler-orbital-mechanics.md) | done | kepler session | state↔elements, propagation, SOI; one AC value corrected (see plan Log) |
 | 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | done | core session | ADRs 0010, 0011 |
-| 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | draft | — | needs 003 |
+| 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | in-progress | physics session | paused: ½at² tolerance unachievable with Rapier's integrator (error 2.5e-2 at dt 0.02); see plan Log |
 | 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | draft | — | needs 003 |
 | 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | draft | — | needs 005 |
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | draft | — | needs 002, 004, 006 |
