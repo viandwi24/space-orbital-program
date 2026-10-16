@@ -22,6 +22,7 @@ import {
 	warpTo,
 	type Mission
 } from './helpers/mission.ts';
+import { vesselMass } from './helpers/measure.ts';
 import { systemOf } from './helpers/moon.ts';
 import { moonLander, moonShot, newSim } from './helpers/vessels.ts';
 
@@ -59,7 +60,8 @@ async function fly() {
 		sim.step(0.02);
 		ascent.update();
 	}
-	note(m, `orbit reached (${ascent.phase})`);
+	const mass = (): number => vesselMass(sim, snapshotOf(m).v);
+	note(m, `orbit reached (${ascent.phase}), mass ${mass().toFixed(0)} kg`);
 
 	// 2. Transfer burn, centred on the departure time that meets the moon.
 	for (let i = 0; i < 200; i++) sim.step(0.02);
@@ -80,7 +82,7 @@ async function fly() {
 		400,
 		() => taper(gap())
 	);
-	note(m, `transfer burn ${tmi.toFixed(1)} s`);
+	note(m, `transfer burn ${tmi.toFixed(1)} s, mass ${mass().toFixed(0)} kg`);
 
 	// 3. Coast to the moon's sphere at time warp.
 	for (let i = 0; i < 300 && snapshotOf(m).v.mode !== 'on-rails'; i++) sim.step(0.02);
@@ -92,15 +94,15 @@ async function fly() {
 	// 4. Capture at periapsis into a long ellipse, then one orbit later a second small retrograde
 	// burn at periapsis brings the apoapsis down to a low orbit (a burn centred on periapsis keeps it).
 	const capture = retroBurnAtPeriapsis(m, s.moonMu, 1_200_000);
-	note(m, `capture burn ${capture.toFixed(1)} s`);
+	note(m, `capture burn ${capture.toFixed(1)} s, mass ${mass().toFixed(0)} kg`);
 	for (let i = 0; i < 300 && snapshotOf(m).v.mode !== 'on-rails'; i++) sim.step(0.02);
 	const ellipse = snapshotOf(m).v.orbit!;
 	const lowering = retroBurnAtPeriapsis(m, s.moonMu, 300_000);
-	note(m, `lowering burn ${lowering.toFixed(1)} s`);
+	note(m, `lowering burn ${lowering.toFixed(1)} s, mass ${mass().toFixed(0)} kg`);
 	const moonOrbit = snapshotOf(m).v.orbit!;
 	for (let i = 0; i < 300 && snapshotOf(m).v.mode !== 'on-rails'; i++) sim.step(0.02);
 	const descent = lowerPeriapsis(m, s.moonMu, s.moon.radius + 10_000);
-	note(m, `descent burn ${descent.toFixed(1)} s`);
+	note(m, `descent burn ${descent.toFixed(1)} s, mass ${mass().toFixed(0)} kg`);
 	for (let i = 0; i < 300 && snapshotOf(m).v.mode !== 'on-rails'; i++) sim.step(0.02);
 	const low = snapshotOf(m).v.orbit!;
 	warpTo(m, periapsisTime(low, s.moonMu, sim.time) - 60);

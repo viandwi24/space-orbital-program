@@ -6,13 +6,23 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	createMoonTerrainField,
+	GRAVITATIONAL_CONSTANT,
 	MOON_SHAPE,
 	type EntityId,
 	type Snapshot,
 	type Vec3
 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
-import { add, length, propagate, sub, toStateVector, type StateVector } from '@orbital/kepler';
+import {
+	add,
+	length,
+	predictPatchedConics,
+	propagate,
+	soiRadius,
+	sub,
+	toStateVector,
+	type StateVector
+} from '@orbital/kepler';
 import { createSim, type Sim } from '../src/index.ts';
 import { homeFrame, moonState, systemOf, transferState, type System } from './helpers/moon.ts';
 import { newSim, probe, rapier, stack, twoStage } from './helpers/vessels.ts';
@@ -355,4 +365,47 @@ describe('the moon as a place', () => {
 		expect(length(sub(f.r, add({ x: 1, y: 2, z: 3 }, moonState(s, 100).r)))).toBe(0);
 		sim.dispose();
 	});
+});
+
+describe('the prediction agrees with the sim', () => {
+	test('predicted patched conics reproduce the crossings and the periapsis the sim then flies', async () => {
+		const r = await transferProbe();
+		const s = r.s;
+		const bodies = r.sim.registries.bodies.list().map((b) => ({
+			id: b.id,
+			mu: GRAVITATIONAL_CONSTANT * b.mass,
+			soi: b.parent
+				? soiRadius(b.orbit!.a, b.mass, r.sim.registries.bodies.get(b.parent)!.mass)
+				: Infinity,
+			radius: b.radius,
+			...(b.parent ? { parent: b.parent, orbit: b.orbit! } : {})
+		}));
+		const snap = r.sim.snapshot();
+		const v = snap.vessels[0]!;
+		const path = predictPatchedConics(
+			bodies,
+			{ body: s.home.id, r: v.position, v: v.velocity, t: snap.t },
+			60_000
+		);
+		expect(path.map((p) => p.body)).toEqual([s.home.id, s.moon.id, s.home.id]);
+		expect(path[0]!.end).toBe('transition');
+		expect(path[2]!.end).toBe('horizon');
+		warpUntil(r.sim, () => r.crossings.length >= 2);
+		const [enter, leave] = r.crossings;
+		// The sim switches at the end of a rails chunk of at most 10 s, bisected; the prediction is the
+		// same rule, so the times agree to well under a chunk.
+		expect(Math.abs(path[0]!.t1 - enter!.t)).toBeLessThan(10.5);
+		expect(Math.abs(path[1]!.t1 - leave!.t)).toBeLessThan(10.5);
+		// The moon segment's periapsis is the periapsis of the orbit the sim has around the moon.
+		const expected = path[1]!.elements!;
+		const rPredicted = expected.a * (1 - expected.e);
+		const moonSim = await transferProbe();
+		warpUntil(moonSim.sim, () => moonSim.crossings.length >= 1);
+		const o = moonSim.sim.snapshot().vessels[0]!.orbit!;
+		expect(Math.abs(o.a * (1 - o.e) - rPredicted)).toBeLessThan(2_000);
+		// The segment's body offset is the moon's position when the vessel got there.
+		expect(length(sub(path[1]!.bodyOffset, moonState(s, path[1]!.t0).r))).toBeLessThan(1e-6);
+		r.sim.dispose();
+		moonSim.sim.dispose();
+	}, 60_000);
 });

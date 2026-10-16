@@ -10,3 +10,4 @@ export * from './anomaly.ts';
 export * from './convert.ts';
 export * from './propagate.ts';
 export * from './soi.ts';
+export * from './patched.ts';
