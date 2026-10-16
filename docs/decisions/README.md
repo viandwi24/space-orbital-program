@@ -47,3 +47,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0026 | [Design system and flight HUD architecture](0026-design-system-and-hud-architecture.md) | accepted | 2026-10-16 |
 | 0027 | [Environment rendering pipeline: analytic planet and sky, one sun, post chain, presets](0027-environment-rendering-pipeline.md) | accepted | 2026-10-16 |
 | 0028 | [Part visuals: a mod-supplied descriptor and a model provider interface](0028-part-visuals-and-model-providers.md) | accepted | 2026-10-16 |
+| 0030 | [Launch-site coordinates are body-fixed; ground detail without terrain geometry](0030-launch-site-coordinates-and-ground-detail.md) | accepted | 2026-10-16 |

@@ -45,6 +45,7 @@ while accumulator >= dt:
 - on-rails → flight: a `throttle` > 0, non-zero `attitude`, `stage` or `action` command at warp 1 (the state at time `t` is propagated and bodies are created in a frame). Refused when warp > 1 or no frame is available.
 - Elements are re-based (`epoch := t`, `m0` folded) whenever `n·(t − epoch) ≥ 2π`, so long warps keep float64 precision.
 - Both transitions emit `vessel:mode-changed` `{ vessel, mode, reason }`. Other events: `vessel:created` `{ vessel, from? }`, `vessel:destroyed`, `stage:activated`, `part:damaged` (ground impact or overheating, below).
+- **Launch-site coordinates** (plan 025, ADR 0030; `vessel.ts`: `placeOnSurface`): a `surface` placement's latitude and longitude are **body-fixed**: the inertial position is the body-fixed one turned by `omega * t` about +Y, so a vessel loaded at any time stands on the same ground spot (latitude 0, longitude 0 is the body's +X axis turned with the planet) and the renderer's default launch site matches without inference. Before plan 025 the longitude was inertial and a vessel loaded after about 1 s stood roughly 160 m off.
 - **Time warp:** `warp > 1` is refused while any vessel is in flight (the reason names the vessels) and above 1e6; while warping, commands that need flight and `load-vessel` into flight are refused. A controlled vessel idle in a stable orbit reaches rails after two seconds, which is how a player gets to warp. Debris does not hold warp back (ADR 0021, plan 013): see below. A controlled vessel at rest on the ground goes on surface rails after 2 s (ADR 0024, plan 016), so warp works on the pad and after landing.
 
 ## Frames and precision
@@ -102,7 +103,7 @@ type Command =
   | { type: 'stage'; vessel }
   | { type: 'action'; vessel; part; module; action; args? }   // args array is spread; a single value is wrapped
   | { type: 'warp'; factor }                       // 1..1e6
-  | { type: 'load-vessel'; design; placement? };   // surface (default lat 0, lon 0) | state (COM position/velocity, BCI)
+  | { type: 'load-vessel'; design; placement? };   // surface (default lat 0, lon 0) | state (COM position/velocity, BCI)   // surface latitude/longitude are body-fixed (plan 025)
 ```
 
 - **Part frame (precise):** `PartSnapshot.position` = part origin − vessel root origin, **in BCI axes** (already rotated by the vessel's attitude, not in the vessel body frame); `PartSnapshot.orientation` = the part's absolute orientation. This is what the renderer applies today (`scene.ts` `syncParts`), so no renderer change was needed. `VesselSnapshot.position` is the root part's origin, not the centre of mass.
