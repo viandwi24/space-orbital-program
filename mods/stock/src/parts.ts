@@ -26,6 +26,11 @@ function stackNodes(height: number): Record<'top' | 'bottom', { pos: Vec3Tuple; 
 	};
 }
 
+/** Defaults of the landing-leg module; the leg visual must match its colliders (tested). */
+export const LEG_SPREAD = 2;
+export const LEG_DROP = 0.4;
+export const LEG_FOOT_SIZE = 0.3;
+
 const cylinder = (height: number): PartShape => ({ kind: 'cylinder', radius: RADIUS, height });
 
 export const PartCommandPod = definePart({
@@ -35,6 +40,10 @@ export const PartCommandPod = definePart({
 	impactTolerance: 10,
 	maxTemperature: 1000,
 	shape: cylinder(1),
+	visual: {
+		kind: 'capsule',
+		palette: { primary: '#e9ebee', secondary: '#2b2f36', accent: '#e0572b' }
+	},
 	attach: stackNodes(1),
 	modules: [
 		[ModuleCommand],
@@ -50,6 +59,10 @@ export const PartReactionWheel = definePart({
 	impactTolerance: 6,
 	maxTemperature: 1000,
 	shape: cylinder(0.4),
+	visual: {
+		kind: 'reaction-wheel',
+		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#2f8fa3' }
+	},
 	attach: stackNodes(0.4),
 	modules: [[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }]],
 	stagingIcon: 'wheel'
@@ -62,6 +75,11 @@ export const PartTankSmall = definePart({
 	impactTolerance: 5,
 	maxTemperature: 900,
 	shape: cylinder(2),
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#eceee9', secondary: '#23272d', accent: '#e0572b' },
+		params: { stripe: 0.3, bands: 1 }
+	},
 	attach: stackNodes(2),
 	modules: [
 		[
@@ -84,6 +102,11 @@ export const PartTankMedium = definePart({
 	impactTolerance: 5,
 	maxTemperature: 900,
 	shape: cylinder(4),
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#e6e3da', secondary: '#d9602a', accent: '#23272d' },
+		params: { stripe: 0.55, bands: 3 }
+	},
 	attach: stackNodes(4),
 	modules: [
 		[
@@ -106,6 +129,18 @@ export const PartEngineLV = definePart({
 	impactTolerance: 4,
 	maxTemperature: 1800,
 	shape: cylinder(1.2),
+	visual: {
+		kind: 'engine',
+		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		// Thrust along +Y, so the exhaust leaves the bell exit (bottom face) downwards.
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -0.6, 0],
+			exitRadius: 0.46,
+			length: 7,
+			exitPressure: 90_000
+		}
+	},
 	attach: stackNodes(1.2),
 	// An engine draws propellant but does not pass it through to whatever hangs below it.
 	crossfeed: false,
@@ -133,6 +168,10 @@ export const PartDecoupler = definePart({
 	impactTolerance: 8,
 	maxTemperature: 1000,
 	shape: cylinder(0.2),
+	visual: {
+		kind: 'decoupler',
+		palette: { primary: '#3b4047', accent: '#e3a61f' }
+	},
 	attach: stackNodes(0.2),
 	// Stages are separated by decouplers: no propellant crosses them.
 	crossfeed: false,
@@ -151,6 +190,12 @@ export const PartLandingLegs = definePart({
 	impactTolerance: 12,
 	maxTemperature: 1000,
 	shape: cylinder(0.3),
+	visual: {
+		kind: 'landing-legs',
+		palette: { primary: '#d5d8dc', secondary: '#2a2e35' },
+		params: { spread: LEG_SPREAD, drop: LEG_DROP, footSize: LEG_FOOT_SIZE },
+		deploy: { module: ModuleLandingLeg.id, flag: 'deployed', seconds: 1.2 }
+	},
 	attach: stackNodes(0.3),
 	modules: [[ModuleLandingLeg, {}]],
 	stagingIcon: 'legs'
@@ -167,6 +212,7 @@ export const PartHeatShield = definePart({
 	impactTolerance: 8,
 	maxTemperature: 3_000,
 	shape: cylinder(0.2),
+	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 	attach: stackNodes(0.2),
 	crossfeed: false,
 	modules: [[ModuleHeatShield, {}]],
