@@ -109,6 +109,7 @@ const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
 
 interface PartEntry {
 	model: PartModel;
+	definition: string;
 }
 interface VesselEntry {
 	group: Group;
@@ -313,6 +314,31 @@ export class SceneModel {
 		this.shardSources.clear();
 		this.factory = this.makeFactory(preset);
 		this.effects.setPreset(PRESETS[preset]);
+	}
+
+	/** Factories of the models `warmPartScene` built; kept so the programs of their materials stay alive. */
+	private readonly warmFactories: PartModelFactory[] = [];
+
+	/**
+	 * A scene with one throwaway model of each part definition on the vessels, built at the part detail of
+	 * `preset`, for `compileAsync` ahead of a switch to it (plan 048): the part materials differ with the
+	 * detail, and a program that is compiled in the middle of the switching frame is a hitch. The models
+	 * belong to their own factory, so they and their programs outlive the switch.
+	 */
+	warmPartScene(preset: GraphicsPreset): Scene {
+		const factory = this.makeFactory(preset);
+		this.warmFactories.push(factory);
+		const scene = new Scene();
+		const detail = detailOf(PRESETS[preset]);
+		const seen = new Set<string>();
+		for (const entry of this.vessels.values()) {
+			for (const p of entry.parts.values()) {
+				if (seen.has(p.definition)) continue;
+				seen.add(p.definition);
+				scene.add(factory.create(p.definition, { detail }).root);
+			}
+		}
+		return scene;
 	}
 
 	/** Screenshot hook: aim the flight camera at the n-th part of a definition instead of the root part. */
@@ -833,6 +859,7 @@ export class SceneModel {
 			(g.material as MeshBasicMaterial).dispose();
 		}
 		this.factory.dispose();
+		for (const f of this.warmFactories) f.dispose();
 		this.effects.dispose();
 		this.sphere.dispose();
 		this.environment.dispose();
@@ -956,7 +983,7 @@ export class SceneModel {
 			extent = Math.max(extent, Math.hypot(part.position.x, part.position.y, part.position.z) + 2);
 			let p = entry.parts.get(pid);
 			if (!p) {
-				p = { model: this.factory.create(part.definition) };
+				p = { model: this.factory.create(part.definition), definition: part.definition };
 				entry.group.add(p.model.root);
 				entry.parts.set(pid, p);
 			}

@@ -200,6 +200,11 @@ export class PlanetPass {
 	private terrainTarget: WebGLCubeRenderTarget | null = null;
 	private terrainSize: number;
 	private terrainDirty = true;
+	/**
+	 * A cube map of another size being baked one face per frame while `terrainTarget` keeps drawing
+	 * (ADR 0055); swapped in when all six faces are done.
+	 */
+	private cubeJob: { target: WebGLCubeRenderTarget; face: number } | null = null;
 	private readonly bake: { scene: Scene; camera: OrthographicCamera; material: ShaderMaterial };
 	/** Camera-centred patches (ADR 0044): texels per side (0 = off) and the two windows. */
 	private patchSize: number;
@@ -423,9 +428,15 @@ export class PlanetPass {
 		this.invalidateTerrain();
 	}
 
-	/** The baked heights are stale (site, map or resolution changed): bake the cube again and drop the patches. */
+	/** The baked heights are stale (site changed): bake the cube again and drop the patches. */
 	private invalidateTerrain(): void {
 		this.terrainDirty = true;
+		this.cubeJob?.target.dispose();
+		this.cubeJob = null;
+		this.resetPatches();
+	}
+
+	private resetPatches(): void {
 		for (const slot of [this.patches.fine, this.patches.mid]) {
 			slot.frame = null;
 			slot.wanted = null;
@@ -434,46 +445,82 @@ export class PlanetPass {
 	}
 
 	/**
-	 * Renders the terrain cube map when the site, the map or the resolution changed (first frame,
-	 * `setSite`, `setQuality`) and the camera-centred patches that `update` asked for (ADR 0044).
-	 * Needs a context, so the facade calls it at the top of every frame; Bun tests never do.
+	 * Renders the terrain cube map when the site changed or nothing is baked yet (first frame,
+	 * `setSite`), at once; a change of resolution is baked one face per frame beside the map in use and
+	 * swapped in when complete (ADR 0055). Also renders the camera-centred patches that `update` asked for
+	 * (ADR 0044). Needs a context, so the facade calls it at the top of every frame; Bun tests never do.
 	 */
 	bakeTerrain(gl: WebGLRenderer): void {
 		if (this.terrainSize <= 0) return;
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
 		gl.autoClear = false;
-		if (this.terrainDirty) this.bakeCube(gl);
+		let busy = false;
+		if (this.terrainDirty || !this.terrainTarget) this.bakeCube(gl);
+		else busy = this.stepCubeJob(gl);
 		if (this.patchSize > 0) {
-			for (const slot of [this.patches.fine, this.patches.mid]) this.bakePatch(gl, slot);
+			// a patch whose texture has the old size is re-baked one per frame, not in a frame that baked a face
+			let resizing = busy ? 0 : 1;
+			for (const slot of [this.patches.fine, this.patches.mid]) {
+				if (slot.target && slot.target.width !== this.patchSize) {
+					if (resizing-- <= 0) continue;
+				}
+				this.bakePatch(gl, slot);
+			}
 		}
 		gl.setRenderTarget(previous);
 		gl.autoClear = autoClear;
 	}
 
+	private newCubeTarget(size: number): WebGLCubeRenderTarget {
+		return new WebGLCubeRenderTarget(size, {
+			type: HalfFloatType,
+			format: RGBAFormat,
+			generateMipmaps: false,
+			minFilter: LinearFilter,
+			magFilter: LinearFilter,
+			depthBuffer: false
+		});
+	}
+
+	private bakeFace(gl: WebGLRenderer, target: WebGLCubeRenderTarget, face: number): void {
+		const uniforms = this.bake.material.uniforms;
+		uniforms.uMap!.value = this.heightMap();
+		uniforms.uTexel!.value = (1.2 * Math.PI) / 2 / target.width;
+		uniforms.uFace!.value = face;
+		gl.setRenderTarget(target, face);
+		gl.render(this.bake.scene, this.bake.camera);
+	}
+
+	/** All six faces in this frame: the first bake, and after the site moved. */
 	private bakeCube(gl: WebGLRenderer): void {
 		if (!this.terrainTarget || this.terrainTarget.width !== this.terrainSize) {
 			this.terrainTarget?.dispose();
-			this.terrainTarget = new WebGLCubeRenderTarget(this.terrainSize, {
-				type: HalfFloatType,
-				format: RGBAFormat,
-				generateMipmaps: false,
-				minFilter: LinearFilter,
-				magFilter: LinearFilter,
-				depthBuffer: false
-			});
+			this.terrainTarget = this.newCubeTarget(this.terrainSize);
 			this.material.uniforms.uTerrain!.value = this.terrainTarget.texture;
 		}
-		const uniforms = this.bake.material.uniforms;
-		uniforms.uMap!.value = this.heightMap();
-		uniforms.uTexel!.value = (1.2 * Math.PI) / 2 / this.terrainSize;
-		for (let face = 0; face < 6; face++) {
-			uniforms.uFace!.value = face;
-			gl.setRenderTarget(this.terrainTarget, face);
-			gl.render(this.bake.scene, this.bake.camera);
-		}
+		for (let face = 0; face < 6; face++) this.bakeFace(gl, this.terrainTarget, face);
 		this.terrainDirty = false;
 		this.material.uniforms.uTerrainOn!.value = 1;
+	}
+
+	/** One face of the cube map of the new size, when the preset changed it; swaps when all six are done. True when it baked one. */
+	private stepCubeJob(gl: WebGLRenderer): boolean {
+		if (this.cubeJob && this.cubeJob.target.width !== this.terrainSize) {
+			this.cubeJob.target.dispose();
+			this.cubeJob = null;
+		}
+		const current = this.terrainTarget;
+		if (!current || current.width === this.terrainSize) return false;
+		this.cubeJob ??= { target: this.newCubeTarget(this.terrainSize), face: 0 };
+		const job = this.cubeJob;
+		this.bakeFace(gl, job.target, job.face++);
+		if (job.face < 6) return true;
+		current.dispose();
+		this.terrainTarget = job.target;
+		this.material.uniforms.uTerrain!.value = job.target.texture;
+		this.cubeJob = null;
+		return true;
 	}
 
 	/** Bakes the patch frame `update` wanted, then points the planet pass at it. */
@@ -483,20 +530,20 @@ export class PlanetPass {
 		// Float textures filter in hardware only with OES_texture_float_linear; otherwise the shader does it.
 		const linear = gl.extensions.get('OES_texture_float_linear') !== null;
 		this.material.uniforms.uPatchLinear!.value = linear ? 1 : 0;
-		if (!slot.target || slot.target.width !== this.patchSize) {
-			slot.target?.dispose();
-			slot.target = new WebGLRenderTarget(this.patchSize, this.patchSize, {
-				type: FloatType,
-				format: RGBAFormat,
-				generateMipmaps: false,
-				minFilter: linear ? LinearFilter : NearestFilter,
-				magFilter: linear ? LinearFilter : NearestFilter,
-				wrapS: ClampToEdgeWrapping,
-				wrapT: ClampToEdgeWrapping,
-				depthBuffer: false
-			});
-			this.material.uniforms[slot.names.texture]!.value = slot.target.texture;
-		}
+		// A new size is baked into a new target and swapped in below, so the old texture draws until then.
+		const resized = !slot.target || slot.target.width !== this.patchSize;
+		const target = resized
+			? new WebGLRenderTarget(this.patchSize, this.patchSize, {
+					type: FloatType,
+					format: RGBAFormat,
+					generateMipmaps: false,
+					minFilter: linear ? LinearFilter : NearestFilter,
+					magFilter: linear ? LinearFilter : NearestFilter,
+					wrapS: ClampToEdgeWrapping,
+					wrapT: ClampToEdgeWrapping,
+					depthBuffer: false
+				})
+			: slot.target!;
 		const uniforms = this.patchBake.material.uniforms;
 		uniforms.uMap!.value = this.heightMap();
 		uniforms.uPatchC!.value.set(frame.centre.x, frame.centre.y, frame.centre.z);
@@ -504,8 +551,13 @@ export class PlanetPass {
 		uniforms.uPatchF!.value.set(frame.north.x, frame.north.y, frame.north.z);
 		uniforms.uHalfTan!.value = frame.halfTan;
 		uniforms.uTexel!.value = patchTexel(frame, this.patchSize);
-		gl.setRenderTarget(slot.target);
+		gl.setRenderTarget(target);
 		gl.render(this.patchBake.scene, this.bake.camera);
+		if (resized) {
+			slot.target?.dispose();
+			slot.target = target;
+			this.material.uniforms[slot.names.texture]!.value = target.texture;
+		}
 		const m = this.material.uniforms;
 		(m[slot.names.c]!.value as Vector3).set(frame.centre.x, frame.centre.y, frame.centre.z);
 		(m[slot.names.e]!.value as Vector3).set(frame.east.x, frame.east.y, frame.east.z);
@@ -653,6 +705,19 @@ export class PlanetPass {
 		return variant;
 	}
 
+	/** The march prepass compiled for another preset, the same way as `variantFor` (plan 048). */
+	marchVariantFor(settings: PresetSettings): ShaderMaterial {
+		return new ShaderMaterial({
+			name: 'terrain-march-prepass-variant',
+			vertexShader: marchVertex,
+			fragmentShader: marchFragment,
+			defines: this.marchDefines(settings),
+			uniforms: this.marchPass.material.uniforms,
+			depthTest: false,
+			depthWrite: false
+		});
+	}
+
 	/** Moves the painted launch site (pad, roads, aprons) to another surface point. */
 	setSite(latitude: number, longitude: number): void {
 		const moved = latitude !== this.siteLatitude || longitude !== this.siteLongitude;
@@ -711,22 +776,32 @@ export class PlanetPass {
 		this.refineSteps = settings.terrainRefineSteps;
 		this.fullSteps = Math.max(1, settings.terrainSteps);
 		if (settings.mapWidth !== this.mapWidth) {
-			this.map.dispose();
+			// The heights read the canonical-width map whatever the colour map's width is, so the baked
+			// terrain stays valid (ADR 0055). Hand the canonical map over instead of dropping it.
+			if (this.mapWidth === TERRAIN_MAP_WIDTH) {
+				this.terrainMap?.dispose();
+				this.terrainMap = this.map;
+			} else {
+				this.map.dispose();
+				if (settings.mapWidth === TERRAIN_MAP_WIDTH) {
+					this.terrainMap?.dispose();
+					this.terrainMap = null;
+				}
+			}
 			this.mapWidth = settings.mapWidth;
 			this.map = this.buildMap(settings.mapWidth);
 			this.material.uniforms.uMap!.value = this.map;
 			this.material.uniforms.uMapTexel!.value = (2 * Math.PI * this.radius) / settings.mapWidth;
-			this.terrainMap?.dispose();
-			this.terrainMap = null;
-			this.invalidateTerrain();
 		}
-		if (settings.terrainSize !== this.terrainSize) {
-			this.terrainSize = settings.terrainSize;
-			this.invalidateTerrain();
-		}
+		// A new cube size is baked in the background by `bakeTerrain`; it keeps the baked map until then.
+		this.terrainSize = settings.terrainSize;
 		if (settings.terrainPatch !== this.patchSize) {
 			this.patchSize = settings.terrainPatch;
-			this.invalidateTerrain();
+			// Re-bake the frames the patches hold at the new size, one per frame; off clears them.
+			if (this.patchSize <= 0) this.resetPatches();
+			else {
+				for (const slot of [this.patches.fine, this.patches.mid]) slot.wanted ??= slot.frame;
+			}
 		}
 	}
 

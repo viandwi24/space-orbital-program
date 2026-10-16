@@ -196,6 +196,16 @@ function siteMaterials() {
 	};
 }
 
+/** The instanced trees, bushes, rocks and tuft cells of one (trees, tufts) budget (ADR 0055). */
+interface VegetationSet {
+	meshes: InstancedMesh[];
+	tufts: InstancedMesh[];
+	rocks: InstancedMesh[];
+	trees: InstancedMesh[];
+	/** Every mesh is built; before that the set is partial and must not be shown. */
+	ready: boolean;
+}
+
 export class LaunchSite {
 	/** Placed at the pad each frame; children are in site-local metres. */
 	readonly root = new Object3D();
@@ -209,15 +219,12 @@ export class LaunchSite {
 	private readonly bushGeo = bushGeometry();
 	private readonly rockGeo = rockGeometry();
 	private readonly tuftGeo = tuftGeometry();
-	private vegetation: InstancedMesh[] = [];
-	/** Which vegetation meshes are tufts, rocks or trees (the rest of the instanced ones), for the distance cut-off. */
-	private tuftMeshes: InstancedMesh[] = [];
-	private rockMeshes: InstancedMesh[] = [];
-	private treeMeshes: InstancedMesh[] = [];
+	/** The sets that are built or being built, by budget (ADR 0055); `active` is the one in the scene. */
+	private readonly sets = new Map<string, VegetationSet>();
+	private readonly builds = new Map<string, Generator<void, void>>();
+	private active: VegetationSet | null = null;
 	private structureMeshes: Mesh[] = [];
 	private readonly floods: PointLight[] = [];
-	private treeCount = -1;
-	private tuftCount = -1;
 
 	constructor(
 		radius: number,
@@ -302,19 +309,15 @@ export class LaunchSite {
 		for (const l of this.floods) l.intensity = FLOOD_LIGHT_INTENSITY * k;
 	}
 
-	/** (Re)creates the instanced vegetation for a preset's tree and grass-tuft budget. */
-	setTrees(count: number, tufts = 0): void {
-		if (count === this.treeCount && tufts === this.tuftCount) return;
-		this.treeCount = count;
-		this.tuftCount = tufts;
-		for (const v of this.vegetation) {
-			this.root.remove(v);
-			v.dispose();
-		}
-		this.vegetation = [];
-		this.tuftMeshes = [];
-		this.rockMeshes = [];
-		const layout = layoutVegetation(count);
+	private static key(count: number, tufts: number): string {
+		return `${count}:${tufts}`;
+	}
+
+	/**
+	 * Builds one vegetation set, yielding after each layout and each instanced mesh so a caller can spread
+	 * the work over idle periods (ADR 0055). Nothing here touches the scene graph.
+	 */
+	private *buildSet(count: number, tufts: number, set: VegetationSet): Generator<void, void> {
 		const R = this.radius;
 		const drop = (x: number, z: number): number =>
 			R - Math.sqrt(Math.max(R * R - x * x - z * z, 0));
@@ -322,6 +325,8 @@ export class LaunchSite {
 		const q = new Quaternion();
 		const e = new Euler();
 		const colour = new Color();
+		const layout = layoutVegetation(count);
+		yield;
 		const make = (
 			geo: BufferGeometry,
 			material: MeshStandardMaterial,
@@ -331,8 +336,7 @@ export class LaunchSite {
 			const mesh = new InstancedMesh(geo, material, n);
 			mesh.castShadow = cast;
 			mesh.receiveShadow = true;
-			this.root.add(mesh);
-			this.vegetation.push(mesh);
+			set.meshes.push(mesh);
 			return mesh;
 		};
 		const finish = (mesh: InstancedMesh): void => {
@@ -376,6 +380,7 @@ export class LaunchSite {
 				mesh.setColorAt(i, colour);
 			});
 			finish(mesh);
+			yield;
 		}
 		if (layout.bushes.length) {
 			const mesh = make(this.bushGeo, this.materials.bush, layout.bushes.length, true);
@@ -392,9 +397,10 @@ export class LaunchSite {
 				mesh.setColorAt(i, colour);
 			});
 			finish(mesh);
+			yield;
 		}
 		const rocks = make(this.rockGeo, this.materials.rock, layout.rocks.length, true);
-		this.rockMeshes.push(rocks);
+		set.rocks.push(rocks);
 		layout.rocks.forEach((r, i) => {
 			q.setFromEuler(e.set(0, r.yaw, 0));
 			matrix.compose(
@@ -405,13 +411,15 @@ export class LaunchSite {
 			rocks.setMatrixAt(i, matrix);
 		});
 		finish(rocks);
+		yield;
 		const tuftLayout = layoutTufts(tufts);
+		yield;
 		// one mesh per cell of a grid over the tuft disc: frustum culling drops the cells behind the camera
 		for (let cell = 0; cell < TUFT_CELLS * TUFT_CELLS; cell++) {
 			const list = tuftLayout.filter((t) => tuftCell(t.x, t.z) === cell);
 			if (!list.length) continue;
 			const mesh = make(this.tuftGeo, this.materials.tuft, list.length, false);
-			this.tuftMeshes.push(mesh);
+			set.tufts.push(mesh);
 			list.forEach((t, i) => {
 				q.setFromEuler(e.set(0, t.yaw, 0));
 				matrix.compose(
@@ -425,10 +433,63 @@ export class LaunchSite {
 				mesh.setColorAt(i, colour);
 			});
 			finish(mesh);
+			yield;
 		}
-		const notTree = new Set<InstancedMesh>([...this.tuftMeshes, ...this.rockMeshes]);
-		this.treeMeshes = this.vegetation.filter((m) => !notTree.has(m));
+		const notTree = new Set<InstancedMesh>([...set.tufts, ...set.rocks]);
+		set.trees = set.meshes.filter((m) => !notTree.has(m));
+		set.ready = true;
+	}
+
+	/** The finished set for a budget: builds what `warmVegetation` has not got to. */
+	private completeSet(count: number, tufts: number): VegetationSet {
+		const key = LaunchSite.key(count, tufts);
+		let set = this.sets.get(key);
+		if (!set) {
+			set = { meshes: [], tufts: [], rocks: [], trees: [], ready: false };
+			this.sets.set(key, set);
+			this.builds.set(key, this.buildSet(count, tufts, set));
+		}
+		const build = this.builds.get(key);
+		if (build) {
+			while (!build.next().done) {
+				// run to the end (a switch to a budget that was not warmed)
+			}
+			this.builds.delete(key);
+		}
+		return set;
+	}
+
+	/**
+	 * Puts the vegetation of a preset's tree and grass-tuft budget in the scene. The set is built once and
+	 * kept (ADR 0055): a switch to a budget that `warmVegetation` already built only swaps meshes.
+	 */
+	setTrees(count: number, tufts = 0): void {
+		const set = this.completeSet(count, tufts);
+		if (set === this.active) return;
+		for (const m of this.active?.meshes ?? []) this.root.remove(m);
+		for (const m of set.meshes) this.root.add(m);
+		this.active = set;
 		this.setDetail(this.lastDistance);
+	}
+
+	/**
+	 * Builds the vegetation of other budgets ahead of a preset switch, one mesh per call. Returns true while
+	 * there is more to do, so the host calls it again in its next idle period.
+	 */
+	warmVegetation(budgets: readonly { trees: number; tufts: number }[]): boolean {
+		for (const b of budgets) {
+			const key = LaunchSite.key(b.trees, b.tufts);
+			if (this.sets.get(key)?.ready) continue;
+			if (!this.sets.has(key)) {
+				const set: VegetationSet = { meshes: [], tufts: [], rocks: [], trees: [], ready: false };
+				this.sets.set(key, set);
+				this.builds.set(key, this.buildSet(b.trees, b.tufts, set));
+			}
+			const build = this.builds.get(key)!;
+			if (build.next().done) this.builds.delete(key);
+			return true;
+		}
+		return false;
 	}
 
 	private lastDistance = 0;
@@ -440,9 +501,11 @@ export class LaunchSite {
 	setDetail(distance: number): void {
 		this.lastDistance = distance;
 		const d = siteDetail(distance);
-		for (const m of this.tuftMeshes) m.visible = d.tufts;
-		for (const m of this.rockMeshes) m.visible = d.rocks;
-		for (const m of this.treeMeshes) m.visible = d.trees;
+		for (const set of this.sets.values()) {
+			for (const m of set.tufts) m.visible = d.tufts;
+			for (const m of set.rocks) m.visible = d.rocks;
+			for (const m of set.trees) m.visible = d.trees;
+		}
 		for (const m of this.structureMeshes) m.visible = d.structures;
 	}
 
@@ -465,7 +528,7 @@ export class LaunchSite {
 		for (const g of this.geometries) g.dispose();
 		for (const g of [this.pineGeo, this.roundGeo, this.bushGeo, this.rockGeo, this.tuftGeo])
 			g.dispose();
-		for (const v of this.vegetation) v.dispose();
+		for (const set of this.sets.values()) for (const v of set.meshes) v.dispose();
 		const { textures, ...mats } = this.materials;
 		for (const m of Object.values(mats)) m.dispose();
 		for (const t of textures) t.dispose();

@@ -86,6 +86,8 @@ export interface EnvironmentState {
 }
 
 const SHADOW_BIAS = -0.00006;
+/** Frames a preset switch waits before it reallocates the shadow map (ADR 0055). */
+const SHADOW_SETTLE_FRAMES = 3;
 /** The camera is held at least this far above the terrain under it (no hills in the near plane), m. */
 export const CAMERA_CLEARANCE = 0.5;
 
@@ -108,6 +110,9 @@ export class Environment {
 	};
 
 	private preset: GraphicsPreset;
+	/** Side of the sun shadow map as allocated (0 = none), and frames until it follows the preset (ADR 0055). */
+	private shadowSize = 0;
+	private shadowDelay = 0;
 	private sunOverride: { elevation: number; azimuth: number } | null = null;
 	private cloudAngle = 0;
 	private time = 0;
@@ -181,9 +186,29 @@ export class Environment {
 		this.site.setTrees(s.trees, s.tufts);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
-		if (shadows) this.sunLight.shadow.mapSize.set(s.shadowMapSize, s.shadowMapSize);
-		// A new size needs a new map; the renderer reallocates when it sees the size differ.
-		this.sunLight.shadow.map?.setSize(s.shadowMapSize, s.shadowMapSize);
+		if (shadows && this.shadowSize === 0) {
+			// no map is allocated yet: the first render allocates it at this size
+			this.shadowSize = s.shadowMapSize;
+			this.sunLight.shadow.mapSize.set(s.shadowMapSize, s.shadowMapSize);
+		} else {
+			// A new size reallocates the map, 20 to 30 ms for 4096: not in the frame that switches everything else.
+			this.shadowDelay = SHADOW_SETTLE_FRAMES;
+		}
+	}
+
+	/** Moves the shadow map to the preset's size once the frames after a switch have passed. */
+	private settleShadowMap(): void {
+		if (this.shadowDelay === 0 || --this.shadowDelay > 0) return;
+		const size = PRESETS[this.preset].shadowMapSize;
+		this.shadowSize = size;
+		const shadow = this.sunLight.shadow;
+		if (size > 0) {
+			shadow.mapSize.set(size, size);
+			shadow.map?.setSize(size, size);
+		} else {
+			shadow.map?.dispose();
+			shadow.map = null;
+		}
 	}
 
 	/** Moves the camera up along its radial when it is inside the terrain (or closer than `CAMERA_CLEARANCE`). */
@@ -269,7 +294,8 @@ export class Environment {
 		this.exposure = adaptExposure(this.exposure, target, input.dt);
 
 		// Shadow camera around the casters.
-		const mapSize = PRESETS[this.preset].shadowMapSize;
+		this.settleShadowMap();
+		const mapSize = PRESETS[this.preset].shadowMapSize > 0 ? this.shadowSize : 0;
 		const sunUp = sunT[0] + sunT[1] + sunT[2] > 0.01;
 		let shadowActive = false;
 		let shadowMap: DepthTexture | null = null;

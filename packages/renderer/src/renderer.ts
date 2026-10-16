@@ -117,10 +117,11 @@ export interface Renderer {
 	setRenderScale(scale: number): void;
 	readonly renderScale: number;
 	/**
-	 * Compiles the shader programs of this preset's scene and of the other presets' planet pass in the
-	 * background (`compileAsync`), so the first frame and a later `setPreset` do not stall on the
-	 * driver's shader compiler, then builds the biome maps of the other presets one idle period at a time
-	 * (plan 039). Resolves when the programs are ready; safe to ignore.
+	 * Compiles the shader programs of this preset's scene and, after the first frame, of every preset's
+	 * scene state and its planet and march passes in the background (`compileAsync`), so the first frame
+	 * and a later `setPreset` do not stall on the driver's shader compiler, then builds the biome maps and
+	 * the instanced vegetation of the other presets one idle period at a time (plans 039 and 048).
+	 * Resolves when the work is done; safe to ignore.
 	 */
 	precompile(): Promise<void>;
 	/** WebGL capability facts for `selectPreset`. */
@@ -170,6 +171,10 @@ export function createRenderer(config: RendererConfig): Renderer {
 		env.planet.setTargetSize(target.width, target.height);
 	};
 
+	/** Resolves once a frame has been drawn with the sky light in place (`precompile` compiles in that state). */
+	let frameDrawn: () => void = () => {};
+	const firstFrame = new Promise<void>((resolve) => (frameDrawn = resolve));
+
 	function drawFrame(dt: number): void {
 		model.prepareFrame(dt);
 		env.planet.bakeTerrain(gl);
@@ -181,6 +186,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		if (target) {
 			model.scene.environment = target.texture;
 			env.hemisphere.visible = false;
+			frameDrawn();
 		}
 		if (post.active) post.render(dt);
 		else gl.render(model.scene, model.camera);
@@ -194,7 +200,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		});
 
 	/** Programs of the other presets' planet pass, kept alive so three's program cache keeps them. */
-	let variants: ShaderMaterial[] = [];
+	let variants: (ShaderMaterial | Scene)[] = [];
 	let precompiling: Promise<void> | null = null;
 	const precompile = (): Promise<void> => {
 		precompiling ??= (async () => {
@@ -202,20 +208,45 @@ export function createRenderer(config: RendererConfig): Renderer {
 			const previous = gl.getRenderTarget();
 			const waits: Promise<unknown>[] = [];
 			// three keys a program on tone mapping and colour space, which depend on drawing to a target or the canvas
-			const compile = (scene: Scene, toTarget: boolean): void => {
+			const compile = (scene: Scene, toTarget: boolean, lights: Scene = model.scene): void => {
 				gl.setRenderTarget(toTarget ? compileTarget : null);
-				waits.push(gl.compileAsync(scene, model.camera, model.scene));
+				waits.push(gl.compileAsync(scene, model.camera, lights));
 			};
+			// first the way it was: the programs of the first frame compile while the page is still loading
 			compile(model.scene, PRESETS[preset].post);
-			for (const name of GRAPHICS_PRESETS) {
-				if (name === preset) continue;
+			// A program is keyed on the lights, the environment map and the render target it is drawn with, so
+			// compile in the state a frame is drawn in: after the first frame has put the sky light in place.
+			await firstFrame;
+			// Each preset's scene programs (tone mapping in the material or in the output pass, shadows on or
+			// off) and the planet and march passes at its defines, compiled the way that preset draws them.
+			const sunCasts = env.sunLight.castShadow;
+			const states = new Set<string>();
+			for (const name of [preset, ...GRAPHICS_PRESETS.filter((n) => n !== preset)]) {
 				const settings = PRESETS[name];
-				const material = env.planet.variantFor(settings);
-				variants.push(material);
-				const scene = new Scene();
-				scene.add(new Mesh(env.planet.mesh.geometry, material));
-				compile(scene, settings.post);
+				env.sunLight.castShadow = settings.shadowMapSize > 0;
+				const state = `${settings.post}:${settings.shadowMapSize > 0}`;
+				if (!states.has(state)) {
+					states.add(state);
+					compile(model.scene, settings.post);
+				}
+				if (name === preset) continue;
+				// the vessel's part materials at this preset's detail
+				const parts = model.warmPartScene(name);
+				variants.push(parts);
+				compile(parts, settings.post);
+				for (const material of [
+					env.planet.variantFor(settings),
+					env.planet.marchVariantFor(settings)
+				]) {
+					variants.push(material);
+					const scene = new Scene();
+					scene.add(new Mesh(env.planet.mesh.geometry, material));
+					// the march prepass draws into a float target whatever the preset, in a scene without lights
+					const march = material.name.startsWith('terrain-march');
+					compile(scene, settings.post || march, march ? scene : model.scene);
+				}
 			}
+			env.sunLight.castShadow = sunCasts;
 			gl.setRenderTarget(previous);
 			await Promise.all(waits);
 			compileTarget.dispose();
@@ -226,6 +257,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 				await idle();
 				env.planet.warmMaps([width]);
 			}
+			// the instanced vegetation of the other presets, one mesh per idle period (ADR 0055)
+			const budgets = GRAPHICS_PRESETS.map((name) => ({
+				trees: PRESETS[name].trees,
+				tufts: PRESETS[name].tufts
+			}));
+			do await idle();
+			while (env.site.warmVegetation(budgets));
 		})();
 		return precompiling;
 	};
@@ -314,7 +352,6 @@ export function createRenderer(config: RendererConfig): Renderer {
 			preset = next;
 			model.setPreset(next);
 			post.setSettings(PRESETS[next]);
-			envLight.invalidate();
 			applySize();
 		},
 		get preset() {

@@ -56,20 +56,22 @@ export class PostChain {
 	}
 
 	private resizeChain(): void {
+		// A chain the preset does not use stays built but shrinks to a pixel: its programs stay compiled,
+		// so the switch back does not compile the bloom and output passes in the middle of a frame (ADR 0055).
+		const active = this.settings.post;
+		const width = active ? this.width : 1;
+		const height = active ? this.height : 1;
 		this.composer?.setPixelRatio(1);
-		this.composer?.setSize(this.width, this.height);
+		this.composer?.setSize(width, height);
 		this.bloom?.setSize(
-			Math.round(this.width * this.settings.bloomScale),
-			Math.round(this.height * this.settings.bloomScale)
+			Math.max(1, Math.round(width * this.settings.bloomScale)),
+			Math.max(1, Math.round(height * this.settings.bloomScale))
 		);
 	}
 
 	private apply(): void {
-		if (!this.settings.post) {
-			this.disposeChain();
-			return;
-		}
-		if (this.builtSamples !== this.settings.msaa) this.disposeChain();
+		if (!this.settings.post && !this.composer) return;
+		if (this.settings.post && this.builtSamples !== this.settings.msaa) this.disposeChain();
 		if (!this.composer) this.build();
 		this.resizeChain();
 	}
