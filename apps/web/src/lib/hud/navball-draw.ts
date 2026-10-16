@@ -226,7 +226,7 @@ function drawMarker(
 	const color =
 		kind === 'prograde' || kind === 'retrograde'
 			? theme.positive
-			: kind === 'normal' || kind === 'anti-normal'
+			: kind === 'normal' || kind === 'anti-normal' || kind === 'maneuver'
 				? theme.violet
 				: theme.accent;
 	ctx.save();
@@ -270,6 +270,22 @@ function drawMarker(
 			ctx.closePath();
 			if (kind === 'normal') ctx.fill();
 			else ctx.stroke();
+			break;
+		}
+		case 'maneuver': {
+			// The node symbol: a ring with a short tail up and a filled core, larger than the others.
+			const r = s * 1.1;
+			ctx.arc(0, 0, r, 0, Math.PI * 2);
+			ctx.moveTo(0, -r);
+			ctx.lineTo(0, -r * 1.9);
+			ctx.moveTo(-r * 0.9, r * 0.9);
+			ctx.lineTo(-r * 1.5, r * 1.5);
+			ctx.moveTo(r * 0.9, r * 0.9);
+			ctx.lineTo(r * 1.5, r * 1.5);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+			ctx.fill();
 			break;
 		}
 		case 'radial-out':

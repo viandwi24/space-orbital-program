@@ -261,22 +261,33 @@ function frontHalf(pts: readonly BallPoint[]): BallPoint[] {
 }
 
 export type MarkerKind =
-	'prograde' | 'retrograde' | 'radial-out' | 'radial-in' | 'normal' | 'anti-normal';
+	'prograde' | 'retrograde' | 'radial-out' | 'radial-in' | 'normal' | 'anti-normal' | 'maneuver';
 
 export interface Marker {
 	kind: MarkerKind;
 	dir: Vec3;
 }
 
+/** A remaining burn shorter than this (m/s) has no marker. */
+export const MIN_BURN = 0.01;
+
 /** Below this speed (m/s) in the selected mode the velocity-based markers are meaningless. */
 export const MARKER_MIN_SPEED = 0.5;
 
 /**
  * Marker directions (BCI): prograde/retrograde from `velocity` (the speed mode's velocity), and the
- * orbit's radial and normal directions from the inertial state (`h = r x v`). Empty when slow.
+ * orbit's radial and normal directions from the inertial state (`h = r x v`), and the remaining
+ * burn of the earliest maneuver node (`burn`, BCI) when there is one. Empty when slow and no node.
  */
-export function markerDirections(position: Vec3, inertialVelocity: Vec3, velocity: Vec3): Marker[] {
-	if (length(velocity) < MARKER_MIN_SPEED) return [];
+export function markerDirections(
+	position: Vec3,
+	inertialVelocity: Vec3,
+	velocity: Vec3,
+	burn?: Vec3
+): Marker[] {
+	const node: Marker[] =
+		burn && length(burn) > MIN_BURN ? [{ kind: 'maneuver', dir: normalize(burn) }] : [];
+	if (length(velocity) < MARKER_MIN_SPEED) return node;
 	const pro = normalize(velocity);
 	const radial = normalize(position);
 	const h = normalize(cross(position, inertialVelocity));
@@ -293,5 +304,5 @@ export function markerDirections(position: Vec3, inertialVelocity: Vec3, velocit
 			{ kind: 'anti-normal', dir: neg(h) }
 		);
 	}
-	return out;
+	return [...out, ...node];
 }

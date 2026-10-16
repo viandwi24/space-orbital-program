@@ -30,8 +30,7 @@ import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
-import { bodyNodes, predictMapPath, predictionHorizon } from './map-path';
-import { bodyMu } from './orbit-info';
+import { createManeuverController, type ManeuverController } from './maneuver-controller';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
@@ -101,6 +100,12 @@ export interface Flight {
 	setAutoQuality(on: boolean): void;
 	/** Fire the next stage (the button next to the stage stack). */
 	stage(): void;
+	/** The map view's maneuver planner (plan 045); null until the sim has started. */
+	readonly maneuver: ManeuverController | null;
+	/** Time warp to the burn of the earliest maneuver node. */
+	warpToNode(): void;
+	/** Remove the earliest maneuver node. */
+	removeNode(): void;
 	toggleMap(): void;
 	cycleSpeedMode(): void;
 	/** Ask for a stability assist mode (the SAS buttons next to the navball; plan 042). */
@@ -282,6 +287,10 @@ export function startFlight(options: FlightOptions): Flight {
 				if (import.meta.env.DEV) void toggleAutopilot();
 				break;
 			default: {
+				if (maneuverCtl?.key(code, { shift: e.shiftKey, alt: e.altKey })) {
+					e.preventDefault();
+					break;
+				}
 				const sasMode = modeForKey(code, hud.model?.sas?.mode ?? 'off');
 				if (sasMode !== null) setSas(sasMode);
 			}
@@ -294,13 +303,23 @@ export function startFlight(options: FlightOptions): Flight {
 	const onBlur = (): void => held.clear();
 
 	let dragging = false;
+	let pressed = { x: 0, y: 0, moved: 0 };
 	const onPointerDown = (e: PointerEvent): void => {
 		dragging = true;
+		pressed = { x: e.clientX, y: e.clientY, moved: 0 };
 		canvas.setPointerCapture(e.pointerId);
 	};
-	const onPointerUp = (): void => void (dragging = false);
+	const onPointerUp = (e: PointerEvent): void => {
+		dragging = false;
+		// A press that did not move is a click: on the map it places or deselects a maneuver node.
+		if (pressed.moved < 4 && e.type === 'pointerup') {
+			const box = canvas.getBoundingClientRect();
+			maneuverCtl?.click(e.clientX - box.left, e.clientY - box.top);
+		}
+	};
 	const onPointerMove = (e: PointerEvent): void => {
 		if (dragging) {
+			pressed.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
 			const input = { dYaw: -e.movementX * 0.005, dPitch: e.movementY * 0.005 };
 			renderer?.orbitCamera(input);
 		}
@@ -329,26 +348,10 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer.setMapFocus(order[(at + step + order.length) % order.length] ?? null);
 	}
 
-	/** The predicted path across spheres of influence, kept up to date while the map is open. */
-	let pathNodes: ReturnType<typeof bodyNodes> | null = null;
-	let pathAt = Number.NEGATIVE_INFINITY;
-	let pathShown = false;
+	/** The predicted path across spheres of influence and the maneuver nodes, kept up to date while the map is open. */
+	let maneuverCtl: ManeuverController | null = null;
 	function updateMapPath(now: number): void {
-		if (!renderer || !catalog || !snap || vessel === null) return;
-		if (!renderer.isMapView) {
-			if (pathShown) renderer.setMapPath(null);
-			pathShown = false;
-			return;
-		}
-		if (now - pathAt < 750) return;
-		pathAt = now;
-		const v = snap.vessels.find((s) => Number(s.id) === vessel);
-		const body = v && catalog.bodies.find((b) => b.id === v.soi);
-		if (!v || !body) return;
-		pathNodes ??= bodyNodes(catalog.bodies);
-		const path = predictMapPath(snap, vessel, pathNodes, predictionHorizon(v.orbit, bodyMu(body)));
-		renderer.setMapPath(path);
-		pathShown = path.length > 0;
+		maneuverCtl?.update(now);
 	}
 
 	async function toggleAutopilot(): Promise<void> {
@@ -413,7 +416,9 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer?.render();
 		if (hudCtl) {
 			const t0 = performance.now();
-			options.onFrame?.(hudCtl.frame());
+			const frameData = hudCtl.frame();
+			frameData.maneuver = maneuverCtl?.frame() ?? null;
+			options.onFrame?.(frameData);
 			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
 		}
 		if (now - lastHud >= HUD_PERIOD_MS) {
@@ -450,8 +455,16 @@ export function startFlight(options: FlightOptions): Flight {
 	const observer = new ResizeObserver(resize);
 
 	// --- boot --------------------------------------------------------------------------------
-	client.onSnapshot((s) => {
+	client.onSnapshot((s, simWarp) => {
 		snap = s;
+		// The sim changes its own warp (a change of sphere, a finished warp-to): follow it.
+		if (simWarp !== undefined && simWarp !== hud.warp) {
+			hud.warp = simWarp;
+			warpIndex = Math.max(
+				0,
+				WARP_STEPS.reduce((at, step, i) => (step <= simWarp ? i : at), 0)
+			);
+		}
 		presence.snapshot(s);
 		hudCtl?.snapshot(s);
 		dirty = true;
@@ -502,6 +515,19 @@ export function startFlight(options: FlightOptions): Flight {
 				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
 				preset: initialGraphicsPreset()
+			});
+			const draw = renderer;
+			maneuverCtl = createManeuverController({
+				bodies: c.bodies,
+				dispatch: (command) => client.dispatch(command),
+				project: (world) => draw.project(world),
+				setPath: (path) => draw.setMapPath(path),
+				mapOn: () => draw.isMapView,
+				vessel: () => vessel,
+				snapshot: () => snap,
+				burnTime: (dv) => hudCtl?.burnTimeFor(dv) ?? null,
+				notice: (title, detail) =>
+					hudCtl?.notice({ kind: 'warning', title, ...(detail ? { detail } : {}), key: 'maneuver' })
 			});
 			governor = new QualityGovernor(renderer.preset);
 			governor.setEnabled(autoQuality);
@@ -655,6 +681,16 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		stepWarp(delta) {
 			setWarp(warpIndex + delta);
+		},
+		get maneuver() {
+			return maneuverCtl;
+		},
+		warpToNode() {
+			maneuverCtl?.warpToNode();
+		},
+		removeNode() {
+			const first = snap?.vessels.find((v) => Number(v.id) === vessel)?.nodes?.[0];
+			if (first) maneuverCtl?.remove(first.id);
 		},
 		stage() {
 			if (vessel !== null) void send({ type: 'stage', vessel });

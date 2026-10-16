@@ -12,7 +12,11 @@ import {
 } from './sas-model';
 
 const id = entityId(3);
-const sas = (mode: SasSnapshot['mode'], error = 0, reference: SasSnapshot['reference'] = 'surface'): SasSnapshot => ({
+const sas = (
+	mode: SasSnapshot['mode'],
+	error = 0,
+	reference: SasSnapshot['reference'] = 'surface'
+): SasSnapshot => ({
 	mode,
 	reference,
 	error
@@ -27,13 +31,14 @@ describe('buttons', () => {
 			'normal',
 			'antinormal',
 			'radial-out',
-			'radial-in'
+			'radial-in',
+			'maneuver'
 		]);
 		expect(new Set(SAS_BUTTONS.map((b) => b.code)).size).toBe(SAS_BUTTONS.length);
 	});
 
 	it('marks the active mode and enables everything for a controllable vessel', () => {
-		const states = buttonStates(sas('retrograde'), true);
+		const states = buttonStates(sas('retrograde'), true, true);
 		expect(states.filter((b) => b.active).map((b) => b.mode)).toEqual(['retrograde']);
 		expect(states.every((b) => !b.disabled)).toBe(true);
 		expect(states[1]!.title).toBe('Prograde (2)');
@@ -43,6 +48,19 @@ describe('buttons', () => {
 		const states = buttonStates(sas('off'), false);
 		expect(states.every((b) => b.disabled && b.title.endsWith('no command part'))).toBe(true);
 		expect(states.some((b) => b.active)).toBe(false);
+	});
+
+	it('the maneuver button waits for a node, unless it is already the mode', () => {
+		const without = buttonStates(sas('hold'), true, false).find((b) => b.mode === 'maneuver')!;
+		expect(without.disabled).toBe(true);
+		expect(without.title).toBe('Maneuver node: no maneuver node planned');
+		expect(buttonStates(sas('hold'), true, true).find((b) => b.mode === 'maneuver')!.disabled).toBe(
+			false
+		);
+		expect(
+			buttonStates(sas('maneuver'), true, false).find((b) => b.mode === 'maneuver')!.disabled
+		).toBe(false);
+		expect(modeForKey('Digit8', 'off')).toBe('maneuver');
 	});
 
 	it('shows nothing active before the first snapshot', () => {
@@ -76,11 +94,15 @@ describe('commands', () => {
 			mode: 'prograde',
 			reference: 'surface'
 		});
-		expect(commandForMode(id, 'prograde', undefined, 'orbit')).toMatchObject({ reference: 'orbit' });
+		expect(commandForMode(id, 'prograde', undefined, 'orbit')).toMatchObject({
+			reference: 'orbit'
+		});
 	});
 
 	it('pressing the active pointing mode again falls back to hold, hold and off stay', () => {
-		expect(commandForMode(id, 'prograde', sas('prograde'), 'orbit')).toMatchObject({ mode: 'hold' });
+		expect(commandForMode(id, 'prograde', sas('prograde'), 'orbit')).toMatchObject({
+			mode: 'hold'
+		});
 		expect(commandForMode(id, 'hold', sas('hold'), 'orbit')).toMatchObject({ mode: 'hold' });
 		expect(commandForMode(id, 'off', sas('off'), 'orbit')).toMatchObject({ mode: 'off' });
 	});

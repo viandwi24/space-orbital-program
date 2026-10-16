@@ -31,7 +31,8 @@ export interface SimClient {
 	dispatch(command: Command | unknown): Promise<CommandResult>;
 	/** Latest snapshot received, or null before the first one. */
 	readonly latest: Snapshot | null;
-	onSnapshot(listener: (snapshot: Snapshot) => void): () => void;
+	/** `warp` is the sim's current time warp when the worker reports it. */
+	onSnapshot(listener: (snapshot: Snapshot, warp?: number) => void): () => void;
 	onError(listener: (message: string) => void): () => void;
 	/**
 	 * Run `source` against `vessel` (replaces a running script). `port` is the sim Worker's end of
@@ -59,7 +60,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		number,
 		{ resolve: (s: SimSave) => void; reject: (e: Error) => void }
 	>();
-	const snapshotListeners = new Set<(snapshot: Snapshot) => void>();
+	const snapshotListeners = new Set<(snapshot: Snapshot, warp?: number) => void>();
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
 	const stageListeners = new Set<(event: StageEvent) => void>();
@@ -97,7 +98,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			}
 			case 'snapshot':
 				latest = message.snapshot;
-				for (const listener of snapshotListeners) listener(message.snapshot);
+				for (const listener of snapshotListeners) listener(message.snapshot, message.warp);
 				break;
 			case 'result': {
 				const resolve = pending.get(message.id);

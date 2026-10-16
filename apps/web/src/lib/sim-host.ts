@@ -381,7 +381,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				verdicts = [];
 				if (session && !session.tick(snapshot, batch)) verdicts = [...batch, ...verdicts];
 			}
-			options.post({ kind: 'snapshot', snapshot });
+			options.post({ kind: 'snapshot', snapshot, warp: sim.warp });
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
 			cancel?.();
@@ -448,6 +448,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 						options.post({
 							kind: 'sim-event',
 							event: { type: 'soi-changed', vessel: Number(e.vessel), from: e.from, to: e.to }
+						})
+					),
+					created.events.on('vessel:maneuver-complete', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'maneuver-complete', vessel: Number(e.vessel), node: e.node }
 						})
 					),
 					created.events.on('vessel:destroyed', (e) =>

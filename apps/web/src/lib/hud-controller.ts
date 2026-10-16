@@ -22,8 +22,11 @@ import {
 	entityIndexMap,
 	stageDeltaV,
 	stagingModelFromSnapshot,
-	type ContentLookups
+	type ContentLookups,
+	type DeltaVReport
 } from './delta-v';
+import type { ManeuverFrame } from './maneuver-controller';
+import { burnIndicator, burnTime, type BurnState } from './maneuver';
 import {
 	bodyLabel,
 	displayVesselName,
@@ -59,6 +62,25 @@ export interface ResourceRow {
 	unit: string;
 }
 
+/** The earliest maneuver node as the burn panel shows it (plan 045). */
+export interface ManeuverHud {
+	id: number;
+	/** Nodes the vessel has. */
+	count: number;
+	/** Burn left, m/s. */
+	dv: number;
+	/** Full-throttle burn time with the stages now, s; null when no engine is lit or fuelled. */
+	burnTime: number | null;
+	/** The stages cannot deliver `dv`. */
+	short: boolean;
+	/** Seconds until the node (negative once passed) and until the centred burn starts. */
+	toNode: number;
+	toBurn: number | null;
+	state: BurnState;
+	/** The node's body and SAS is pointing at it. */
+	pointing: boolean;
+}
+
 export interface HudModel {
 	name: string;
 	body: string;
@@ -86,6 +108,8 @@ export interface HudModel {
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
 	controllable: boolean;
+	/** The earliest maneuver node, if any (plan 045). */
+	maneuver: ManeuverHud | null;
 	toasts: LiveToast[];
 }
 
@@ -94,6 +118,8 @@ export interface FrameData {
 	navball: NavballFrame | null;
 	/** Screen positions in px inside the canvas box; null when not in map view. */
 	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
+	/** Maneuver nodes and handles in px (plan 045); filled in by the flight loop. */
+	maneuver?: ManeuverFrame | null;
 }
 /** A map marker position in px inside the canvas box; `hidden` when a body is in front of it. */
 export type Point = ScreenPoint;
@@ -135,12 +161,34 @@ export interface HudController {
 	frame(): FrameData;
 	/** `localThrottle`: the page's own setting, used when the vessel has no engine to read it from. */
 	model(now: number, localThrottle: number): HudModel | null;
+	/** Full-throttle burn time of `dv` m/s with the stages as they are now; null before the first stage reading. */
+	burnTimeFor(dv: number): number | null;
 	readonly stagesFired: number;
 }
 
 const STAGE_RECOMPUTE_MS = 250;
 /** Above this the vessel counts as having left the pad, m (the pad vessel settles within a metre). */
 const LIFTOFF_ALTITUDE = 50;
+
+/** The burn panel's numbers for the earliest node of `v`, or null without one. */
+function maneuverHud(v: VesselSnapshot, now: number, report: DeltaVReport): ManeuverHud | null {
+	const node = v.nodes?.[0];
+	if (!node) return null;
+	const burn = burnTime(node.dv, report.stages);
+	const time = burn.time > 0 ? burn.time : null;
+	const indicator = burnIndicator(now, node.time, time ?? 0, node.dv);
+	return {
+		id: node.id,
+		count: v.nodes!.length,
+		dv: node.dv,
+		burnTime: time,
+		short: !burn.enough,
+		toNode: indicator.toNode,
+		toBurn: time === null ? null : indicator.toBurn,
+		state: indicator.state,
+		pointing: v.sas?.mode === 'maneuver'
+	};
+}
 
 export function createHudController(options: HudControllerOptions): HudController {
 	const { design, content, bodies } = options;
@@ -162,7 +210,12 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	/** Highest altitude seen, m: "Landed" only means something after leaving the ground. */
 	let ceiling = 0;
 	let map = false;
-	let stageCache: { at: number; model: StageStackModel; resources: ResourceRow[] } | null = null;
+	let stageCache: {
+		at: number;
+		model: StageStackModel;
+		resources: ResourceRow[];
+		report: DeltaVReport;
+	} | null = null;
 
 	const hasControlSource = (v: VesselSnapshot): boolean =>
 		v.parts.some((p) =>
@@ -219,7 +272,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				totals.set(r, row);
 			}
 		}
-		stageCache = { at: now, model, resources: [...totals.values()] };
+		stageCache = { at: now, model, resources: [...totals.values()], report };
 		return stageCache;
 	}
 
@@ -265,6 +318,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		setMapView(on) {
 			map = on;
 		},
+		burnTimeFor(dv) {
+			return stageCache ? burnTime(dv, stageCache.report.stages).time : null;
+		},
 		get stagesFired() {
 			return stagesFiredBy(stages, vessel);
 		},
@@ -286,7 +342,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				navball = {
 					orientation: v.orientation,
 					position: v.position,
-					markers: markerDirections(v.position, v.velocity, read.velocity),
+					markers: markerDirections(v.position, v.velocity, read.velocity, v.nodes?.[0]?.vector),
 					heading: attitudeAngles(v.orientation, v.position).heading
 				};
 			}
@@ -361,6 +417,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				heat,
 				sas: v.sas,
 				controllable: hasControlSource(v),
+				maneuver: maneuverHud(v, snap.t, cache.report),
 				toasts
 			};
 		}

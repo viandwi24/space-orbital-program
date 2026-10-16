@@ -40,7 +40,9 @@ export type SimEvent =
 	| { type: 'mode-changed'; vessel: number; mode: 'flight' | 'on-rails'; reason: string }
 	| { type: 'vessel-destroyed'; vessel: number; reason: string }
 	/** A vessel crossed into another body's sphere of influence (plan 044); `from` and `to` are body ids. */
-	| { type: 'soi-changed'; vessel: number; from: string; to: string };
+	| { type: 'soi-changed'; vessel: number; from: string; to: string }
+	/** A maneuver node was burned off (plan 045). */
+	| { type: 'maneuver-complete'; vessel: number; node: number };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -69,7 +71,8 @@ export type ClientMessage =
 
 export type WorkerMessage =
 	| ({ kind: 'ready' } & Catalog)
-	| { kind: 'snapshot'; snapshot: Snapshot }
+	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
+	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number }
 	| { kind: 'result'; id: number; result: CommandResult }
 	| { kind: 'saved'; id: number; save: SimSave }
 	| { kind: 'save-error'; id: number; message: string }
@@ -104,7 +107,8 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'part-damaged',
 	'mode-changed',
 	'vessel-destroyed',
-	'soi-changed'
+	'soi-changed',
+	'maneuver-complete'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

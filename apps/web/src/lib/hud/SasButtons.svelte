@@ -5,15 +5,18 @@
 	let {
 		sas,
 		controllable = true,
+		hasNode = false,
 		onmode
 	}: {
 		sas: SasSnapshot | undefined;
 		controllable?: boolean;
+		/** The vessel has a maneuver node to point at. */
+		hasNode?: boolean;
 		/** Called with the mode a press asks for (the caller adds the speed reference and sends it). */
 		onmode: (mode: SasMode) => void;
 	} = $props();
 
-	const buttons = $derived(buttonStates(sas, controllable));
+	const buttons = $derived(buttonStates(sas, controllable, hasNode));
 	const on = $derived(sas !== undefined && sas.mode !== 'off');
 	const err = $derived(errorText(sas));
 </script>
@@ -60,6 +63,10 @@
 						<path d="M0 8l7 -12h-14Z" />
 					{:else if b.glyph === 'radial-out'}
 						<path d="M0 -8l8 8l-8 8l-8 -8Z" class="fill" />
+					{:else if b.glyph === 'maneuver'}
+						<circle r="5.5" />
+						<circle r="2" class="fill" />
+						<path d="M0 -5.5v-5M-4 4l-4 4M4 4l4 4" />
 					{:else}
 						<path d="M0 -8l8 8l-8 8l-8 -8Z" />
 					{/if}

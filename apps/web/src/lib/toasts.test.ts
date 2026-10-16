@@ -32,6 +32,13 @@ describe('toasts from sim events', () => {
 			)
 		).toBeNull();
 	});
+	it('a burned-off maneuver node is announced for the flown vessel only', () => {
+		expect(toastForSimEvent({ type: 'maneuver-complete', vessel: 1, node: 3 }, ctx)).toMatchObject({
+			kind: 'success',
+			title: 'Maneuver complete'
+		});
+		expect(toastForSimEvent({ type: 'maneuver-complete', vessel: 2, node: 3 }, ctx)).toBeNull();
+	});
 	it('stage fired is 1-based and only for the flown vessel', () => {
 		expect(toastForSimEvent({ type: 'stage', vessel: 1, stage: 0 }, ctx)).toMatchObject({
 			kind: 'info',

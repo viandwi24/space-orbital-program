@@ -6,7 +6,7 @@ import {
 } from '@orbital/core';
 import { propagate } from '@orbital/kepler';
 import { describe, expect, it } from 'vitest';
-import { bodyNodes, predictMapPath, predictionHorizon } from './map-path';
+import { bodyNodes, predictManeuvers, predictMapPath, predictionHorizon } from './map-path';
 
 const HOME_MU = 3.5316e12;
 const home = {
@@ -114,5 +114,63 @@ describe('predicted map path', () => {
 			predictionHorizon({ a: -1e6, e: 1.5, i: 0, raan: 0, argp: 0, m0: 0, epoch: 0 }, HOME_MU)
 		).toBe(3 * 86_400);
 		expect(predictionHorizon(undefined, HOME_MU)).toBe(3 * 86_400);
+	});
+});
+
+describe('predicted path with maneuver nodes (plan 045)', () => {
+	const R = 700_000;
+	const v = Math.sqrt(HOME_MU / R);
+	const circular = snapshotOf({ x: R, y: 0, z: 0 }, { x: 0, y: 0, z: -v });
+
+	it('a single orbit is returned, the stretch after the node is planned, and the node sits on the path', () => {
+		const out = predictManeuvers(
+			circular,
+			1,
+			nodes,
+			[{ id: 7, time: 600, prograde: 300, normal: 0, radial: 0 }],
+			6_000
+		);
+		expect(out.unreachable).toEqual([]);
+		expect(out.paths.length).toBeGreaterThanOrEqual(2);
+		expect(out.paths[0]!.planned).toBeUndefined();
+		expect(out.paths[0]!.t1).toBeCloseTo(600, 6);
+		expect(out.paths[1]!.planned).toBe(true);
+		expect(out.paths[1]!.t0).toBeCloseTo(600, 6);
+		const node = out.nodes[0]!;
+		expect(node.id).toBe(7);
+		expect(node.path).toBe(0);
+		// the node is where the first stretch ends
+		const end = out.paths[0]!.points.at(-1)!;
+		expect(node.world.x).toBeCloseTo(end.x, 3);
+		expect(node.world.z).toBeCloseTo(end.z, 3);
+		expect(node.speed).toBeCloseTo(v, 6);
+		// prograde axis is the velocity direction, so the post-burn orbit leaves the circle
+		const after = out.paths[1]!.points.at(-1)!;
+		expect(Math.hypot(after.x, after.z)).toBeGreaterThan(R);
+	});
+
+	it('no nodes, a vessel on the ground, or a node the path never reaches', () => {
+		expect(predictManeuvers(circular, 1, nodes, [], 6_000)).toEqual({
+			paths: [],
+			nodes: [],
+			unreachable: []
+		});
+		const falling = snapshotOf({ x: R, y: 0, z: 0 }, { x: 0, y: 0, z: -1_000 });
+		const out = predictManeuvers(
+			falling,
+			1,
+			nodes,
+			[{ id: 1, time: 5_000, prograde: 10, normal: 0, radial: 0 }],
+			6_000
+		);
+		expect(out.unreachable).toEqual([1]);
+		expect(out.nodes).toEqual([]);
+	});
+
+	it('keepSingle returns the path of an orbit that never leaves its sphere', () => {
+		expect(predictMapPath(circular, 1, nodes, 6_000)).toEqual([]);
+		const single = predictMapPath(circular, 1, nodes, 6_000, true);
+		expect(single).toHaveLength(1);
+		expect(single[0]!.points).toHaveLength(161);
 	});
 });

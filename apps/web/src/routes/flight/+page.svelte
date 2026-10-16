@@ -4,6 +4,8 @@
 	import AppBar from '../../lib/hud/AppBar.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
+	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
+	import ManeuverPanel from '../../lib/hud/ManeuverPanel.svelte';
 	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
 	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
@@ -55,6 +57,9 @@
 	let helpOpen = $state(false);
 	let deck = $state<InstrumentDeck>();
 	let markers = $state<MapMarkers>();
+	let nodeLayer = $state<ManeuverLayer>();
+	/** The map view's maneuver planner, available once the sim has started (plan 045). */
+	let planner = $state.raw<Flight['maneuver']>(null);
 	let tall = $state(true);
 
 	// Save and load (plan 043). A load reloads the page with `?load=<id>`: a fresh Worker and renderer.
@@ -188,6 +193,7 @@
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
 				markers?.place(f.map);
+				nodeLayer?.place(f.maneuver ?? null);
 			},
 			onKey: (key) => {
 				if (key === 'escape') pauseOpen = true;
@@ -197,8 +203,15 @@
 			}
 		});
 		flight = started;
+		const waitForPlanner = setInterval(() => {
+			if (started.maneuver) {
+				planner = started.maneuver;
+				clearInterval(waitForPlanner);
+			}
+		}, 100);
 		autoQuality = started.autoQuality;
 		return () => {
+			clearInterval(waitForPlanner);
 			offSandbox();
 			window.removeEventListener('hashchange', importFromHash);
 			small.removeEventListener('change', sync);
@@ -253,6 +266,7 @@
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
 	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
+	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
 
 	{#if problem}
 		<div class="center">
@@ -356,6 +370,14 @@
 					/>
 				</div>
 				<div class="bl">
+					<ManeuverPanel
+						maneuver={model.maneuver}
+						map={hud.map}
+						{warpUsable}
+						onwarp={() => flight?.warpToNode()}
+						onpoint={() => flight?.setSas('maneuver')}
+						onremove={() => flight?.removeNode()}
+					/>
 					<OrbitStrip orbit={model.orbit} phase={model.phase} />
 				</div>
 			{/if}
@@ -494,6 +516,9 @@
 	.bl {
 		bottom: var(--s-3);
 		left: var(--s-3);
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-2);
 	}
 	.bc {
 		bottom: var(--s-3);

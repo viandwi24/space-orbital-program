@@ -102,7 +102,12 @@
 				<span>{NO_VALUE}</span>
 			{/if}
 		</div>
-		{#if onsas}<SasButtons {sas} {controllable} onmode={onsas} />{/if}
+		{#if onsas}<SasButtons
+				{sas}
+				{controllable}
+				hasNode={model?.maneuver != null}
+				onmode={onsas}
+			/>{/if}
 	</div>
 
 	<div class="read right">

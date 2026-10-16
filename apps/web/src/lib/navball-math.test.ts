@@ -121,6 +121,27 @@ describe('projection and markers', () => {
 		// h = r x v = (6e5,0,0) x (0,100,0) = +Z * 6e7
 		expect(by('normal')).toEqual(v(0, 0, 1));
 	});
+	it('the maneuver marker is the unit burn vector, centred when the nose points along it (plan 045)', () => {
+		const vel = v(0, 100, 0);
+		const burn = v(0, 3, 4);
+		const m = markerDirections(POS, vel, vel, burn).find((x) => x.kind === 'maneuver')!;
+		expect(m.dir.x).toBeCloseTo(0, 12);
+		expect(m.dir.y).toBeCloseTo(0.6, 12);
+		expect(m.dir.z).toBeCloseTo(0.8, 12);
+		// a vessel whose nose is on the burn sees it in the ball centre
+		const q = orient(m.dir, h.up);
+		const p = projectDirection(m.dir, q);
+		expect(Math.hypot(p.x, p.y)).toBeCloseTo(0, 12);
+		expect(p.z).toBeCloseTo(1, 12);
+		// no burn, no marker; a negligible one neither; slow vessels still show the node
+		expect(markerDirections(POS, vel, vel).some((x) => x.kind === 'maneuver')).toBe(false);
+		expect(markerDirections(POS, vel, vel, v(0, 0, 0.001)).some((x) => x.kind === 'maneuver')).toBe(
+			false
+		);
+		expect(markerDirections(POS, v(0, 0.1, 0), v(0, 0.1, 0), burn).map((x) => x.kind)).toEqual([
+			'maneuver'
+		]);
+	});
 	it('has no markers when slow', () => {
 		expect(markerDirections(POS, v(0, 0.1, 0), v(0, 0.1, 0))).toEqual([]);
 	});

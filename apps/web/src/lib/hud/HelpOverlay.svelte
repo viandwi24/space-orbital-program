@@ -21,7 +21,22 @@
 			title: 'Stability assist (SAS)',
 			rows: [
 				[['T'], 'SAS on (hold attitude), off'],
-				[['1', '7'], 'Hold, prograde, retrograde, normal, antinormal, radial out, radial in']
+				[['1', '7'], 'Hold, prograde, retrograde, normal, antinormal, radial out, radial in'],
+				[['8'], 'Point at the maneuver node']
+			]
+		},
+		{
+			title: 'Maneuver nodes (map view)',
+			rows: [
+				[['Click'], 'Click the orbit to add a node; drag a node along the orbit'],
+				[
+					['Drag'],
+					'Drag a handle to add prograde, normal or radial delta-v (Shift coarse, Alt fine)'
+				],
+				[['I', 'K'], 'Selected node: prograde up, down'],
+				[['L', 'J'], 'Normal up, down'],
+				[['O', 'U'], 'Radial out, in'],
+				[['Delete'], 'Remove the selected node']
 			]
 		},
 		{

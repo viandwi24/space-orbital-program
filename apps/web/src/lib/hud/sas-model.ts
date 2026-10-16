@@ -8,12 +8,7 @@ import type { SpeedMode } from '../speed';
 
 export type SasGlyph = 'hold' | MarkerGlyph;
 export type MarkerGlyph =
-	| 'prograde'
-	| 'retrograde'
-	| 'normal'
-	| 'anti-normal'
-	| 'radial-out'
-	| 'radial-in';
+	'prograde' | 'retrograde' | 'normal' | 'anti-normal' | 'radial-out' | 'radial-in' | 'maneuver';
 
 export interface SasButtonSpec {
 	mode: Exclude<SasMode, 'off'>;
@@ -33,7 +28,8 @@ export const SAS_BUTTONS: readonly SasButtonSpec[] = [
 	{ mode: 'normal', label: 'Normal', glyph: 'normal', code: 'Digit4', key: '4' },
 	{ mode: 'antinormal', label: 'Antinormal', glyph: 'anti-normal', code: 'Digit5', key: '5' },
 	{ mode: 'radial-out', label: 'Radial out', glyph: 'radial-out', code: 'Digit6', key: '6' },
-	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', code: 'Digit7', key: '7' }
+	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', code: 'Digit7', key: '7' },
+	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', code: 'Digit8', key: '8' }
 ];
 
 /** The key that switches SAS on (to `hold`) and off. */
@@ -56,18 +52,27 @@ export function modeForKey(code: string, current: SasMode): SasMode | null {
 
 /**
  * Button states for a vessel. `controllable` is false for a vessel without a control source (the
- * sim would refuse); `sas` is undefined before the first snapshot.
+ * sim would refuse); `sas` is undefined before the first snapshot; the maneuver button needs a
+ * node (`hasNode`) unless it is the active mode.
  */
 export function buttonStates(
 	sas: SasSnapshot | undefined,
-	controllable: boolean
+	controllable: boolean,
+	hasNode = false
 ): SasButtonState[] {
-	return SAS_BUTTONS.map((b) => ({
-		...b,
-		active: sas?.mode === b.mode,
-		disabled: !controllable,
-		title: controllable ? `${b.label} (${b.key})` : `${b.label}: no command part`
-	}));
+	return SAS_BUTTONS.map((b) => {
+		const noNode = b.mode === 'maneuver' && !hasNode && sas?.mode !== 'maneuver';
+		return {
+			...b,
+			active: sas?.mode === b.mode,
+			disabled: !controllable || noNode,
+			title: !controllable
+				? `${b.label}: no command part`
+				: noNode
+					? `${b.label}: no maneuver node planned`
+					: `${b.label} (${b.key})`
+		};
+	});
 }
 
 /** Label of the master switch. */
@@ -97,7 +102,8 @@ export function referenceFollowUp(
 	current: SasSnapshot | undefined,
 	speed: SpeedMode
 ): Command | null {
-	if (!current || current.mode === 'off' || current.mode === 'hold') return null;
+	if (!current || current.mode === 'off' || current.mode === 'hold' || current.mode === 'maneuver')
+		return null;
 	const reference = referenceFor(speed);
 	return current.reference === reference ? null : { type: 'sas', vessel, reference };
 }

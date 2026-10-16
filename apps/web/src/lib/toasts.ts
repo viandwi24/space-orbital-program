@@ -95,6 +95,10 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 						key: 'soi'
 					}
 				: null;
+		case 'maneuver-complete':
+			return ctx.isActiveVessel(event.vessel)
+				? { kind: 'success', title: 'Maneuver complete', key: 'maneuver' }
+				: null;
 		case 'vessel-destroyed':
 			return ctx.isActiveVessel(event.vessel)
 				? { kind: 'danger', title: 'Vessel lost', detail: event.reason }
