@@ -62,19 +62,33 @@ export interface Snapshot {
 }
 
 /**
- * Vessel design (`formatVersion` 1, ADR 0016): a flat list of part instances with parent links,
- * plus the staging sequence. Plain JSON, so the VAB can save/load it. `resolveVesselDesign`
- * (design.ts) validates it against the registries.
+ * Vessel design (`formatVersion` 1 or 2, ADR 0016 and 0034): a flat list of part instances with
+ * parent links, plus the staging sequence. Plain JSON, so the VAB can save/load it.
+ * `resolveVesselDesign` (design.ts) validates it against the registries; `migrateVesselDesign`
+ * turns version 1 into version 2 (radial links and symmetry groups need 2).
  */
+export interface DesignLink {
+	index: number;
+	parentNode: string;
+	node: string;
+	radial?: { angle: number; y: number };
+}
+
 export interface VesselDesign {
-	formatVersion: 1;
+	formatVersion: 1 | 2;
 	name: string;
 	parts: Array<{
 		/** Index of this part within the design (unique, any non-negative integer); referenced by `parent` and `stages`. */
 		index: number;
 		part: PartId;
-		/** `null` for the root (exactly one part). `parentNode` is a node of the parent, `node` one of this part. */
-		parent: { index: number; parentNode: string; node: string } | null;
+		/**
+		 * `null` for the root (exactly one part). `parentNode` is a node of the parent, `node` one of
+		 * this part. A radial link (version 2) has `parentNode` `"surface"` and `radial`: the child's
+		 * `node` touches the side of the cylindrical parent at that azimuth and height (ADR 0034).
+		 */
+		parent: DesignLink | null;
+		/** Symmetry group (version 2): parts made together by the editor share the number. The sim ignores it. */
+		symmetry?: number;
 	}>;
 	/** `stages[k]` lists the part indices whose modules' `onStage` runs for the k-th `stage` command. */
 	stages: number[][];

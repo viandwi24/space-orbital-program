@@ -100,6 +100,12 @@ export interface VesselApi {
 	/** Torque in N·m in the part's local frame; same lifetime and mode rules as `applyForce`. */
 	applyTorque(torque: Vec3): void;
 	/**
+	 * Velocity relative to the air (the atmosphere turns with the body) of `point`, a part-frame
+	 * position in metres (the part origin when omitted), expressed in the part frame, m/s. Includes
+	 * the vessel's rotation. Flight mode only: throws on rails (ADR 0035).
+	 */
+	airVelocity(point?: Vec3): Vec3;
+	/**
 	 * Resources reachable from this part according to each resource's `flowMode` (and parts'
 	 * `crossfeed`). Amounts are in the resource's unit; `withdraw`/`deposit` return what moved.
 	 */

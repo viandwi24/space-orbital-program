@@ -130,7 +130,15 @@ export const partDefinitionSchema = z.object({
 	 * assumes 1000 when absent.
 	 */
 	maxTemperature: z.number().positive().optional(),
-	attach: z.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple })).optional(),
+	/**
+	 * Drag coefficient of the part, replacing the default 0.3 (a nose cone has less). The name
+	 * `surface` is reserved for radial attachment (ADR 0034) and cannot be a node.
+	 */
+	dragCoefficient: z.number().positive().optional(),
+	attach: z
+		.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple }))
+		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')
+		.optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.
 	modules: z.array(z.tuple([definitionIdSchema, z.unknown()])).optional(),

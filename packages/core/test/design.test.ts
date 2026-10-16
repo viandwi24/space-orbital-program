@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
 	commandSchema,
 	partId,
+	migrateVesselDesign,
+	partDefinitionSchema,
 	resolveVesselDesign,
 	vesselDesignSchema,
 	type PartDefinition,
@@ -112,7 +114,7 @@ describe('protocol schemas', () => {
 	test('a design survives a JSON round trip through the schema', () => {
 		const d = design();
 		expect(vesselDesignSchema.parse(JSON.parse(JSON.stringify(d)))).toEqual(d);
-		expect(vesselDesignSchema.safeParse({ ...d, formatVersion: 2 }).success).toBe(false);
+		expect(vesselDesignSchema.safeParse({ ...d, formatVersion: 3 }).success).toBe(false);
 		expect(vesselDesignSchema.safeParse({ ...d, stages: undefined }).success).toBe(false);
 		expect(vesselDesignSchema.safeParse({ ...d, parts: [] }).success).toBe(false);
 	});
@@ -142,5 +144,149 @@ describe('protocol schemas', () => {
 			'throttle'
 		];
 		for (const c of bad) expect(commandSchema.safeParse(c).success).toBe(false);
+	});
+});
+
+describe('radial attachment (ADR 0034)', () => {
+	const radialDefs = new Map<string, PartDefinition>([
+		[
+			'test.core',
+			{
+				id: 'test.core',
+				title: 'core',
+				mass: 1,
+				shape: { kind: 'cylinder', radius: 0.5, height: 2 },
+				attach: {
+					top: { pos: [0, 1, 0], dir: [0, 1, 0] },
+					bottom: { pos: [0, -1, 0], dir: [0, -1, 0] }
+				}
+			}
+		],
+		[
+			'test.plate',
+			{
+				id: 'test.plate',
+				title: 'plate',
+				mass: 1,
+				shape: { kind: 'box', size: [0.2, 0.4, 0.4] },
+				attach: {
+					radial: { pos: [-0.1, 0, 0], dir: [-1, 0, 0] },
+					outer: { pos: [0.1, 0, 0], dir: [1, 0, 0] }
+				}
+			}
+		],
+		[
+			'test.booster',
+			{
+				id: 'test.booster',
+				title: 'booster',
+				mass: 1,
+				shape: { kind: 'cylinder', radius: 0.3, height: 3 },
+				attach: {
+					radial: { pos: [-0.3, 0, 0], dir: [-1, 0, 0] },
+					top: { pos: [0, 1.5, 0], dir: [0, 1, 0] }
+				}
+			}
+		]
+	]);
+	const radialLookup = { get: (id: string) => radialDefs.get(id) };
+	const radialLink = (index: number, angle: number, y = 0.5) => ({
+		index,
+		part: partId('test.plate'),
+		parent: { index: 0, parentNode: 'surface', node: 'radial', radial: { angle, y } }
+	});
+	const rd = (parts: VesselDesign['parts'], formatVersion: 1 | 2 = 2): VesselDesign => ({
+		formatVersion,
+		name: 'r',
+		parts: [{ index: 0, part: partId('test.core'), parent: null }, ...parts],
+		stages: []
+	});
+	const ok = (d: VesselDesign) => {
+		const r = resolveVesselDesign(d, radialLookup);
+		if (!r.ok) throw new Error(r.errors.join('; '));
+		return r.parts;
+	};
+	const err = (d: VesselDesign): string => {
+		const r = resolveVesselDesign(d, radialLookup);
+		if (r.ok) throw new Error('expected a refusal');
+		return r.errors.join('; ');
+	};
+
+	test('a radial child sits on the surface at the azimuth, facing the axis (hand values)', () => {
+		const [, a, b] = ok(rd([radialLink(1, 0), radialLink(2, Math.PI / 2)]));
+		expect(a!.position.x).toBeCloseTo(0.6, 12);
+		expect(a!.position.y).toBeCloseTo(0.5, 12);
+		expect(a!.position.z).toBeCloseTo(0, 12);
+		expect(a!.yaw).toBeCloseTo(0, 12);
+		// A quarter turn about +Y sends +X to -Z: outward 0.6 m along -Z.
+		expect(b!.position.x).toBeCloseTo(0, 12);
+		expect(b!.position.z).toBeCloseTo(-0.6, 12);
+		expect(b!.yaw).toBeCloseTo(Math.PI / 2, 12);
+	});
+
+	test('a stack child of a radial part inherits its yaw and offset along the turned node', () => {
+		const d = rd([
+			radialLink(1, Math.PI / 2),
+			{
+				index: 2,
+				part: partId('test.booster'),
+				parent: { index: 1, parentNode: 'outer', node: 'radial' }
+			}
+		]);
+		const booster = ok(d)[2]!;
+		// plate at (0, .5, -.6); outer node 0.1 + booster node 0.3 = 0.4 m further along -Z.
+		expect(booster.position.z).toBeCloseTo(-1.0, 12);
+		expect(booster.position.x).toBeCloseTo(0, 12);
+		expect(booster.yaw).toBeCloseTo(Math.PI / 2, 12);
+	});
+
+	test('refusals: version 1, box parent, duplicate site, vertical node, out of range', () => {
+		expect(err(rd([radialLink(1, 0)], 1))).toContain('formatVersion 2');
+		expect(err(rd([radialLink(1, 0), radialLink(2, 0)]))).toContain('already at that radial site');
+		expect(err(rd([radialLink(1, 0, 1.5)]))).toContain('outside parent');
+		const onBox: VesselDesign = {
+			...rd([]),
+			parts: [
+				{ index: 0, part: partId('test.plate'), parent: null },
+				{
+					index: 1,
+					part: partId('test.plate'),
+					parent: { index: 0, parentNode: 'surface', node: 'radial', radial: { angle: 0, y: 0 } }
+				}
+			]
+		};
+		expect(err(onBox)).toContain('cylindrical parent');
+		const vertical = rd([
+			{
+				index: 1,
+				part: partId('test.booster'),
+				parent: { index: 0, parentNode: 'surface', node: 'top', radial: { angle: 0, y: 0 } }
+			}
+		]);
+		expect(err(vertical)).toContain('horizontal');
+	});
+
+	test('a version 1 design migrates unchanged and resolves identically', () => {
+		const v1 = design();
+		const v2 = migrateVesselDesign(v1);
+		expect(v2.formatVersion).toBe(2);
+		expect({ ...v2, formatVersion: 1 }).toEqual(v1);
+		const a = resolveVesselDesign(v1, lookup);
+		const b = resolveVesselDesign(v2, lookup);
+		expect(JSON.stringify(b)).toBe(JSON.stringify(a));
+		if (a.ok) expect(a.parts.every((p) => p.yaw === 0)).toBe(true);
+	});
+
+	test('the schema carries radial links and symmetry; "surface" cannot be a node name', () => {
+		const d = rd([{ ...radialLink(1, 0.5), symmetry: 3 }]);
+		expect(vesselDesignSchema.parse(JSON.parse(JSON.stringify(d)))).toEqual(d);
+		expect(
+			partDefinitionSchema.safeParse({
+				id: 'a.b',
+				title: 't',
+				mass: 1,
+				attach: { surface: { pos: [0, 0, 0], dir: [1, 0, 0] } }
+			}).success
+		).toBe(false);
 	});
 });

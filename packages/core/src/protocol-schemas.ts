@@ -18,14 +18,22 @@ const nodeName = z.string().min(1);
 const index = z.int().nonnegative();
 
 export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
-	formatVersion: z.literal(1),
+	formatVersion: z.union([z.literal(1), z.literal(2)]),
 	name: z.string().min(1),
 	parts: z
 		.array(
 			z.object({
 				index,
 				part: definitionIdSchema.transform(partId),
-				parent: z.object({ index, parentNode: nodeName, node: nodeName }).nullable()
+				parent: z
+					.object({
+						index,
+						parentNode: nodeName,
+						node: nodeName,
+						radial: z.object({ angle: z.number(), y: z.number() }).optional()
+					})
+					.nullable(),
+				symmetry: index.optional()
 			})
 		)
 		.min(1),
