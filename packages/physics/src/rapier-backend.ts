@@ -3,7 +3,9 @@ import type {
 	BodyDesc,
 	BodyHandle,
 	JointHandle,
+	MassPlacement,
 	PhysicsBackend,
+	PrimitiveShape,
 	Quat,
 	Transform,
 	Vec3,
@@ -64,15 +66,33 @@ export async function createRapierBackend(
 		if (!r) throw new Error(`physics: unknown or removed body handle ${handle}`);
 		return r;
 	}
-	function setMassProps(r: BodyRecord, mass: number, inertia: Vec3 | undefined): void {
+	function setMassProps(
+		r: BodyRecord,
+		mass: number,
+		inertia: Vec3 | undefined,
+		placement: MassPlacement | undefined
+	): void {
 		assertBodyParams(mass, r.shape, inertia);
 		r.body.setAdditionalMassProperties(
 			mass,
-			ZERO,
+			placement?.centerOfMass ?? ZERO,
 			inertia ?? deriveInertia(r.shape, mass),
-			IDENTITY,
+			placement?.inertiaFrame ?? IDENTITY,
 			true
 		);
+		// Rapier applies new mass properties at the next step; forces applied before it (the sim's
+		// per-step forces at a point) would see the stale centre of mass.
+		r.body.recomputeMassPropertiesFromColliders();
+	}
+	// Density 0: all mass comes from setMassProps so mass/inertia are exactly as requested.
+	function colliderOf(s: PrimitiveShape): RAPIER.ColliderDesc {
+		return (
+			s.type === 'box'
+				? RAPIER.ColliderDesc.cuboid(s.halfExtents.x, s.halfExtents.y, s.halfExtents.z)
+				: s.type === 'sphere'
+					? RAPIER.ColliderDesc.ball(s.radius)
+					: RAPIER.ColliderDesc.capsule(s.halfHeight, s.radius)
+		).setDensity(0);
 	}
 
 	return {
@@ -94,17 +114,18 @@ export async function createRapierBackend(
 			const ang = desc.angularVelocity ?? ZERO;
 			rbDesc.setLinvel(lin.x, lin.y, lin.z).setAngvel(ang);
 			const body = world.createRigidBody(rbDesc);
-			const s = desc.shape;
-			const colDesc =
-				s.type === 'box'
-					? RAPIER.ColliderDesc.cuboid(s.halfExtents.x, s.halfExtents.y, s.halfExtents.z)
-					: s.type === 'sphere'
-						? RAPIER.ColliderDesc.ball(s.radius)
-						: RAPIER.ColliderDesc.capsule(s.halfHeight, s.radius);
-			// Density 0: all mass comes from setMassProps so mass/inertia are exactly as requested.
-			world.createCollider(colDesc.setDensity(0), body);
+			// Compound: one collider per placed primitive, in list order (determinism).
+			const placed =
+				desc.shape.type === 'compound'
+					? desc.shape.shapes
+					: [{ shape: desc.shape, position: ZERO, rotation: IDENTITY }];
+			for (const p of placed) {
+				const c = colliderOf(p.shape).setTranslation(p.position.x, p.position.y, p.position.z);
+				if (p.rotation) c.setRotation(p.rotation);
+				world.createCollider(c, body);
+			}
 			const record: BodyRecord = { body, shape: desc.shape, joints: new Set() };
-			setMassProps(record, desc.mass, desc.inertia);
+			setMassProps(record, desc.mass, desc.inertia, desc);
 			const id = nextBody++;
 			bodies.set(id, record);
 			// Handles are branded numbers minted only here.
@@ -167,8 +188,8 @@ export async function createRapierBackend(
 			loaded.add(handle);
 		},
 
-		setMass(handle, mass, inertia) {
-			setMassProps(rec(handle), mass, inertia);
+		setMass(handle, mass, inertia, placement) {
+			setMassProps(rec(handle), mass, inertia, placement);
 		},
 
 		step(dt) {

@@ -22,7 +22,7 @@
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | in-progress | web session | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | draft | — | needs 007; ground is idealised in 007 (ADR 0017) |
-| 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | draft | — | needs 004, 007; follow-up from 004 |
+| 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | in-progress | grouping session | ADR 0018; one compound body per vessel; benchmark 573 µs → ~24 µs at 100 parts |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

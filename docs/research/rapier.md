@@ -41,3 +41,16 @@ Sources:
 
   First steps at dt = 0.02: x = 0.00125, 0.00450, 0.00975 vs exact 0.001, 0.004, 0.009, i.e. error = a·dt·t/8 exactly, growing linearly in t (a first-order integrator). Velocity is exact to f32. Consequence: "position matches ½at² within 1e-3 at dt = 0.02" is not achievable with Rapier's integrator (see plan 004 Log).
 - Coasting with `linvel = 10` for 100 steps at dt = 0.02 gives `x = 19.99998` (exact to f32).
+
+## Compound bodies and mass properties (plan 011)
+
+Checked 2026-10-16 (0.21.0 `.d.ts` plus the pages below).
+
+Sources:
+- https://rapier.rs/docs/user_guides/javascript/colliders — compound bodies: create one body, give each `ColliderDesc` `setTranslation`/`setRotation` (relative to the body when attached), `world.createCollider(desc, body)` once per shape; `Collider.setTranslationWrtParent` for later changes; collider density defaults to 1 and contributes mass, so we set density 0.
+- https://rapier.rs/docs/user_guides/javascript/rigid_bodies — `setAdditionalMassProperties(mass, centerOfMass, principalAngularInertia, principalInertiaFrame)` (3D); "won't prevent the colliders' contributions" (hence density 0); `linvel` is the velocity of the centre of mass.
+
+Measured:
+- The centre of mass passed to `setAdditionalMassProperties` is a *local* offset from the body translation (`localCom()` / `worldCom()` exist in the `.d.ts`); `translation()` stays the body origin; `linvel()` is the COM velocity; free spin turns about the COM (test `compound.test.ts`).
+- Mass properties set on a live body take effect at the next `step`: a force applied at a point before that step uses the old centre of mass (first-step torque of 30 N·m for a 1 m error in the test). `body.recomputeMassPropertiesFromColliders()` applies the additional mass properties immediately; the adapter calls it after every `setMass`.
+- Benchmark (Bun 1.4.2, 16 solver iterations, 500 steps, `packages/physics/bench/grouping.ts`): per-part bodies + fixed joints 150 / 295 / 573 µs per step for 20 / 50 / 100 parts, flex 0.004 / 0.14 / 1.8 m under 5 kN lateral + 20 kN axial; one compound body 20-30 µs, no flex. See ADR 0018.
