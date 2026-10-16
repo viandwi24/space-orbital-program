@@ -53,6 +53,7 @@ packages/scripting/ sandboxed player scripts (QuickJS-WASM): snapshot in, valida
 packages/sdk/      public mod API: definePlugin/defineModule/definePart/…
 packages/renderer/ Three.js rendering, floating origin            — reads sim state only
 mods/stock/        stock parts/modules/resources/bodies            — a mod like any other
+examples/          sample external mods (`mod-sample`), built into installable packages with `bun run tools/mod-build/build-mod.ts <folder>` (plan 046, ADR 0057)
 tools/             repo scripts (docs check, future CLI)
 docs/              everything below
 ```

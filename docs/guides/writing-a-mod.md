@@ -172,8 +172,27 @@ expect(report.registered.part.map((e) => e.id)).toContain('stock.engine-lv');
 
 `loadPlugins` validates schemas and cross-checks every part's module configs, so bad data fails the boot with the part and module named. To unit-test a hook, build a `ModuleContext` from `createWorld()` and `createEventBus()` (both exported by the SDK for this), the loaded `registries`, the module's parsed config, `module.state(config)` and a recording `vessel` stub; see `mods/stock/test/helpers.ts` (`fakeVessel`). To test with a real sim, `@orbital/sim`'s `createSim({ plugins: [Stock, YourMod], backendFactory })` is a test dependency, not something a mod imports in `src`.
 
+## 7. Ship your mod (runtime loading, API 0.1.15, ADR 0057)
+
+A mod outside the repo is a folder with a manifest and a source file; `examples/mod-sample` is a complete one (a part, a module that keeps its state in the world, a script).
+
+```
+my-mod/
+  mod.json      { "id": "acme.mod", "version": "1.0.0", "api": "^0.1", "title": "...", "author": "...", "dependencies": { "stock": "*" } }
+  src/index.ts  default-exports definePlugin({ meta: { id: 'acme.mod', version: '1.0.0', api: '^0.1' }, depends: ['stock'], setup(ctx) { ... } })
+```
+
+- `mod.json` and `meta` must agree on `id`, `version` and `api` (the loader checks and names the mismatch). `dependencies` lists plugin ids with version ranges; `stock` is one. Put the same ids in `depends` (ids are enough: you cannot import another mod's code, only its ids).
+- Import only from `@orbital/sdk`. The build replaces that import by the SDK the game provides, so your bundle has no copy of it and uses the game's one `z`. To use a module of another plugin in a part, name it by id and declare its config shape with `declare module '@orbital/sdk' { interface ModuleMap { 'stock.resource-container': { ... } } }`, as the sample does.
+- Build: `bun run tools/mod-build/build-mod.ts my-mod` writes `my-mod/dist/<id>-<version>.orbital-mod.json`: one JSON file with the manifest, the bundled code and a SHA-256 of the code. (In this repo `bun run build` inside `examples/mod-sample` does the same.)
+- Install: open **Mods** on the start page, choose the file (or paste an https address of the file; the server must allow CORS), read the trust prompt and confirm. Nothing in the package runs before that. A mod is code with the page's own access (saves, storage, network): say plainly in your README what yours does. Enable, disable and remove it in the same list; **Reload to apply** restarts the page with the new set.
+- What can go wrong, and what the player sees: a package that is not valid or was edited (refused with the reason), another API range (not loaded: "requires mod API ..."), a missing dependency, a plugin or part id that another mod or stock already owns (names both), a `setup` that throws (its message). One failing mod never stops the game or the other mods.
+- Looks: a part's `visual.kind` selects one of the game's generators (`tank`, `capsule`, `engine`, ...) with your `palette` and `params`; a mod cannot add geometry code or models yet (draft plan 051).
+- Test it the way the game loads it: `examples/mod-sample/test/sample.test.ts` builds the package, reads it with `parseModPackage`, loads it with `resolveMods(..., { importModule: importModBundle })` after `installModSdk(sdk)` and flies it in a sim.
+- Saves list the mods in use (`id` and `version`). Keep ids stable; a save that needs a mod that is off, failed or removed says which.
+
 ## Open items
 
 - `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`) is supported by the sim but has no stock example yet; this guide will gain a section when one exists.
 - The HUD's throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own throttle display); mod-supplied VAB categories are plan 029.
-- Loading external mods from a folder or URL is Phase 2.
+- Mod-supplied geometry and assets (new generators, glTF in a package) and a hosted mod repository are not built (draft plan 051).

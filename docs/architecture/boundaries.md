@@ -13,7 +13,7 @@ These rules are what make the stack upgradeable later (ADR 0001, 0003). A plan t
 | `@orbital/sdk` | `core` (re-exports) | everything else |
 | `@orbital/scripting` | `core`, `quickjs-emscripten`, `quickjs-emscripten-core` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies) |
 | `@orbital/renderer` | `core`, `three` | `sim` internals (reads snapshots via `core` types), Svelte, Rapier (the stock mod is a test-only devDependency, for the part-model tests) |
-| `mods/*` | `@orbital/sdk` **only** | `core`, `sim`, `physics`, `renderer`, DOM |
+| `mods/*`, `examples/*` (external sample mods, built into packages by `tools/mod-build`) | `@orbital/sdk` **only** in `src` (their tests may also use `core`, `sim`, `mod-stock` and the build tool) | `core`, `sim`, `physics`, `renderer`, DOM in `src` |
 | `apps/web` | anything | — |
 
 Enforcement: each package's `tsconfig.json` sets `lib` to `["ESNext"]` (no DOM) except `renderer` and `apps/web`. Dependency lists in `package.json` are the second line of defence: do not add a dependency that the table forbids. A lint rule will be added when it pays for itself (track in plans).

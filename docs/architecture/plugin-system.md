@@ -148,8 +148,12 @@ declare module '@orbital/sdk' {
 ## Loading
 
 - In-repo plugins are imported statically and passed to the loader.
-- External mods (Phase 2) are loaded with dynamic `import()` from a URL or folder, validated (manifest, `api` range, schemas), then booted in dependency order.
+- External mods are installed as one JSON package and loaded at runtime (below, API 0.1.15, ADR 0057), validated (manifest, `api` range, dependencies, schemas), then booted in dependency order.
 - The loader produces a **report** (see above): boot order, disabled plugins with reasons, what was registered and by whom. A same-id conflict between plugins is a `RegistryError` naming both.
+
+### Mod packages and runtime loading (API 0.1.15, ADR 0057)
+
+Plugins outside the build ship as one JSON package (`*.orbital-mod.json`: `format`, `formatVersion`, `manifest`, `code`, `sha256`). Core (`mods.ts`) owns the format and the loader: `modManifestSchema`, `modPackageSchema`, `parseModPackage(text)` (JSON, shape, manifest, fingerprint; runs nothing), `createModPackage`, `modCodeHash`, `installModSdk(sdk)` (puts the SDK where a built bundle's shim reads it), `importModBundle(code)` (imports code text through a `blob:` URL; page, Worker, Bun, Node) and `resolveMods(bundles, { builtin, importModule })`, which returns `{ plugins, accepted, rejected }`: per bundle it checks duplicate ids (naming both), the API range, manifest dependencies, the import, the default export, the manifest against `meta`, and a trial `loadPlugins` so a throwing `setup` or a duplicate part id rejects that mod only. The web client runs it on the page (root layout `load`, `apps/web/src/lib/mods/runtime.ts`) and in the sim Worker (`init` carries the accepted bundles), so both boot the same set. `tools/mod-build/build-mod.ts` builds a folder into a package. Mods are trusted code (prompt, fingerprint, visible list), not sandboxed; see the ADR.
 
 ## Core runtime pieces (`@orbital/core`, plan 003)
 
