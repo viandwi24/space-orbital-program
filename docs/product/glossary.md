@@ -53,3 +53,7 @@ Use these terms consistently in code, docs, and UI.
 | **Script** | Untrusted player JavaScript (an async function body) run by `@orbital/scripting` against the `ship` API; sees telemetry copies, issues validated commands (ADR 0020). |
 | **Script budget** | Wall-clock ms of guest execution allowed per sim tick (default 10); exceeding it terminates the script. |
 | **Script runner** | `createScriptRunner(source, options)`: one QuickJS runtime per script; `tick(snapshot)` returns the commands to dispatch. |
+| **Loose assembly** | A subtree detached in the VAB: kept next to the design as a one-root `VesselDesign`, drawn on the hangar floor, never launched (ADR 0029). |
+| **Attach target** | A place a part can go in the VAB: a free node of the design with a node of the new part facing the opposite way (`attachTargets`), shown as a ring. |
+| **Ghost** | The translucent preview of the part being placed or moved, drawn at the active attach target. |
+| **Auto-stage** | Editor mode in which engines and decouplers get their stages from decoupler depth; any manual stage edit turns it off until "Auto-stage" is pressed. |
