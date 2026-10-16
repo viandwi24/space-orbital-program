@@ -64,7 +64,7 @@ describe('SceneModel', () => {
 		const s = deepFreeze(snap(0, vessel(1, R + 100, 0, 0)));
 		m.sync(s); // frozen deep: any mutation would throw in strict mode
 		const group = m.scene.children.find((c) => c.type === 'Group')!;
-		const body = m.scene.children.find((c) => c.type === 'Mesh' && c.scale.x === R) as Mesh;
+		const body = m.bodyObject(BODY)!;
 		// origin snapped to the 1024 m grid near the vessel, so everything is small
 		expect(Math.abs(group.position.x)).toBeLessThan(1024);
 		expect(group.position.x - body.position.x).toBeCloseTo(R + 100, 6);
@@ -131,7 +131,7 @@ describe('SceneModel', () => {
 		expect(group().every((g) => !g.visible)).toBe(true);
 		const lines = m.scene.children.filter((c) => c.type === 'Line2');
 		expect(lines.map((l) => l.visible)).toEqual([true, false]); // vessel 2 has no orbit
-		const body = m.scene.children.find((c) => c.type === 'Mesh' && c.scale.x === R)!;
+		const body = m.bodyObject(BODY)!;
 		expect(m.camera.position.distanceTo(body.position)).toBeCloseTo(4 * R, 3); // default map distance
 		m.orbitCamera({ zoomFactor: 2 });
 		m.sync(snap(0, vessel(1, R + 100, 0, 0)));
@@ -155,5 +155,66 @@ describe('SceneModel', () => {
 		m.sync(s);
 		const groups = m.scene.children.filter((c) => c.type === 'Group');
 		expect(m.camera.position.distanceTo(groups[1]!.position)).toBeCloseTo(25, 6);
+	});
+});
+
+describe('SceneModel environment (plan 019)', () => {
+	const rot = (t: number) => ({
+		x: 0,
+		y: Math.sin((2.9089e-4 * t) / 2),
+		z: 0,
+		w: Math.cos((2.9089e-4 * t) / 2)
+	});
+
+	test('the first vessel near the ground defines the launch site in body-fixed coordinates', () => {
+		const m = new SceneModel({ bodies: [{ id: BODY, radius: R }], partShapes: shapes });
+		// the body has turned 0.5 rad since t = 0 and the sim stood the vessel at inertial (R, 0, 0)
+		const q = { x: 0, y: Math.sin(0.25), z: 0, w: Math.cos(0.25) };
+		const s = snap(0, vessel(1, R + 10, 0, 0));
+		s.bodies[0]!.rotation = q;
+		m.sync(s);
+		const pad = m.environment.site.root;
+		m.prepareFrame(0.016);
+		const vesselGroup = m.scene.children.find((c) => c.type === 'Group')!;
+		// the site root is exactly 10 m below the vessel's root origin: right under it
+		expect(pad.position.distanceTo(vesselGroup.position)).toBeCloseTo(10, 6);
+	});
+
+	test('an explicit launch site is kept and the environment follows the body rotation', () => {
+		const m = new SceneModel({
+			bodies: [{ id: BODY, radius: R }],
+			partShapes: shapes,
+			launchSite: { latitude: 0, longitude: 0 }
+		});
+		const s = snap(100, vessel(1, R + 10, 0, 0));
+		s.bodies[0]!.rotation = rot(100);
+		m.sync(s);
+		m.prepareFrame(0.016);
+		const a = m.environment.site.root.position.clone();
+		const s2 = snap(200, vessel(1, R + 10, 0, 0));
+		s2.bodies[0]!.rotation = rot(200);
+		m.sync(s2);
+		m.prepareFrame(0.016);
+		expect(m.environment.site.root.position.distanceTo(a)).toBeGreaterThan(10); // moved with the body
+	});
+
+	test('the camera is kept above the ground', () => {
+		const m = make();
+		m.sync(snap(0, vessel(1, R + 1, 0, 0)));
+		m.orbitCamera({ dPitch: -2, zoomFactor: 0.01 });
+		m.sync(snap(0, vessel(1, R + 1, 0, 0)));
+		const body = m.bodyObject(BODY)!;
+		expect(m.camera.position.distanceTo(body.position) - R).toBeGreaterThanOrEqual(1.19);
+	});
+});
+
+describe('map view camera', () => {
+	test('turning the map camera before its first placement keeps the default distance', () => {
+		const m = make();
+		m.setMapView(true);
+		m.orbitCamera({ dYaw: 0.5, dPitch: 0.3, zoomFactor: 0.2 });
+		m.sync(snap(0, vessel(1, R + 100, 0, 0)));
+		const body = m.bodyObject(BODY)!;
+		expect(m.camera.position.distanceTo(body.position)).toBeCloseTo(4 * R, 3);
 	});
 });

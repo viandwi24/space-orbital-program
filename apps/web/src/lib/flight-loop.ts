@@ -4,7 +4,13 @@
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
 import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
-import { createRenderer, type PartShape, type Renderer } from '@orbital/renderer';
+import {
+	createRenderer,
+	type GraphicsPreset,
+	type PartShape,
+	type Renderer
+} from '@orbital/renderer';
+import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, type ScriptView } from './script-state';
 import { noStages, reduceStages, stagesFiredBy, type StageProgress } from './stage-state';
@@ -46,6 +52,8 @@ export interface Flight {
 	stopScript(): void;
 	/** Step the time warp by `delta` entries of `WARP_STEPS` (the sim refuses it unless every vessel is on rails). */
 	stepWarp(delta: number): void;
+	/** Switch the graphics preset now and remember it (plan 019; the settings screen of plan 023 calls this). */
+	setGraphicsPreset(preset: GraphicsPreset): void;
 	dispose(): void;
 }
 
@@ -303,8 +311,9 @@ export function startFlight(options: FlightOptions): Flight {
 			catalog = c;
 			renderer = createRenderer({
 				canvas,
-				bodies: c.bodies.map((b) => ({ id: b.id, radius: b.radius })),
-				partShapes: partShapesOf(c)
+				bodies: c.bodies.map((b) => ({ id: b.id, radius: b.radius, atmosphere: b.atmosphere })),
+				partShapes: partShapesOf(c),
+				preset: initialGraphicsPreset()
 			});
 			resize();
 			const result = await client.dispatch({ type: 'load-vessel', design });
@@ -343,6 +352,7 @@ export function startFlight(options: FlightOptions): Flight {
 		// Debug hook for the manual run (journal 009): capture the canvas plus a text HUD overlay.
 		(window as unknown as { __orbital: unknown }).__orbital = {
 			hud: () => ({ ...hud }),
+			renderer: () => renderer,
 			snapshot: () => snap,
 			send: (c: Command) => client.dispatch(c),
 			screenshot: (lines: string[]) => {
@@ -369,6 +379,10 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		stopScript() {
 			client.stopScript();
+		},
+		setGraphicsPreset(preset) {
+			saveGraphicsPreset(preset);
+			renderer?.setPreset(preset);
 		},
 		stepWarp(delta) {
 			setWarp(warpIndex + delta);

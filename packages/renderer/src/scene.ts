@@ -5,14 +5,14 @@
  */
 import type { BodyDefinition, EntityId, Quat, Snapshot, Vec3, VesselSnapshot } from '@orbital/core';
 import {
-	AmbientLight,
 	BoxGeometry,
 	BufferGeometry,
 	CylinderGeometry,
-	DirectionalLight,
 	Group,
 	Mesh,
 	MeshLambertMaterial,
+	MeshStandardMaterial,
+	Object3D,
 	PerspectiveCamera,
 	Quaternion,
 	Scene,
@@ -27,8 +27,12 @@ import {
 	type RigLimits,
 	type RigState
 } from './camera-rig.ts';
+import { Environment } from './environment.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
+import { type GraphicsPreset } from './presets.ts';
+import { latLonOf } from './sun.ts';
+import { rotateInverse } from './vec.ts';
 
 /** Placeholder part geometry, supplied by the host from part definitions (ADR 0012). */
 export type PartShape =
@@ -37,7 +41,7 @@ export type PartShape =
 /** Used for part ids the host gave no shape for. */
 export const DEFAULT_PART_SHAPE: PartShape = { kind: 'box', size: { x: 1, y: 1, z: 1 } };
 
-export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius'>;
+export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
 
 export interface SceneConfig {
 	bodies: readonly BodyRenderInfo[];
@@ -45,8 +49,19 @@ export interface SceneConfig {
 	partShapes: ReadonlyMap<string, PartShape>;
 	/** Origin re-centre distance, m. Default 10 km. */
 	originThreshold?: number;
+	/** Graphics preset (ADR 0027). Default `high`. */
+	preset?: GraphicsPreset;
+	/**
+	 * Launch site on the first body: the surface point `load-vessel` uses (the sim defaults to
+	 * latitude 0, longitude 0).
+	 */
+	launchSite?: { latitude: number; longitude: number };
 }
 
+/** Lowest altitude of the orbit camera above the surface sphere, m. */
+export const MIN_CAMERA_ALTITUDE = 1.2;
+/** A vessel this close to the ground when first seen defines the launch site, m. */
+export const LAUNCH_SITE_MAX_ALTITUDE = 150;
 export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 1e13;
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
@@ -65,11 +80,30 @@ export class SceneModel {
 	readonly scene = new Scene();
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
-	private readonly bodies = new Map<string, { mesh: Mesh; radius: number }>();
+	private readonly bodies = new Map<string, { holder: Object3D; radius: number }>();
+	/** Flight environment of the first body: planet pass, sun, sky, launch site (ADR 0027). */
+	readonly environment: Environment;
+	private readonly primaryBody: string | undefined;
+	private pixelRatio = 1;
+	private vesselRadius = 10;
+	private readonly bodyRot = new Map<string, Quat>();
+	private siteLocked: boolean;
+	private cameraDirty = false;
+	private lastView: {
+		active: VesselSnapshot | undefined;
+		anchorBody: string | undefined;
+		bodyWorld: ReadonlyMap<string, Vec3>;
+	} | null = null;
+	private frameState: { bodyRender: Vec3; bodyRotation: Quat; vesselRender: Vec3 | null } | null =
+		null;
 	private readonly vessels = new Map<number, VesselEntry>();
 	private readonly shapes: ReadonlyMap<string, PartShape>;
 	private readonly geometryCache = new Map<string, BufferGeometry>();
-	private readonly partMaterial = new MeshLambertMaterial({ color: 0xcfd8dc });
+	private readonly partMaterial = new MeshStandardMaterial({
+		color: 0xcfd8dc,
+		metalness: 0.35,
+		roughness: 0.5
+	});
 	private readonly threshold: number;
 	private readonly sphere = new SphereGeometry(1, 64, 32);
 	private readonly viewport = { width: 1, height: 1 };
@@ -85,17 +119,39 @@ export class SceneModel {
 		this.shapes = config.partShapes;
 		this.threshold = config.originThreshold ?? DEFAULT_ORIGIN_THRESHOLD;
 		config.bodies.forEach((b, i) => {
-			const mesh = new Mesh(
-				this.sphere,
-				new MeshLambertMaterial({ color: BODY_COLORS[i % BODY_COLORS.length] ?? 0x888888 })
-			);
-			mesh.scale.setScalar(b.radius);
-			this.scene.add(mesh);
-			this.bodies.set(b.id, { mesh, radius: b.radius });
+			const holder = new Object3D();
+			holder.name = `body:${b.id}`;
+			if (i > 0) {
+				// Bodies other than the first stay plain lit spheres (ADR 0027, consequences).
+				const mesh = new Mesh(
+					this.sphere,
+					new MeshLambertMaterial({ color: BODY_COLORS[i % BODY_COLORS.length] ?? 0x888888 })
+				);
+				mesh.scale.setScalar(b.radius);
+				holder.add(mesh);
+			}
+			this.scene.add(holder);
+			this.bodies.set(b.id, { holder, radius: b.radius });
 		});
-		const sun = new DirectionalLight(0xffffff, 2.5);
-		sun.position.set(1, 0.3, 0.5);
-		this.scene.add(sun, new AmbientLight(0xffffff, 0.35));
+		const primary = config.bodies[0];
+		this.primaryBody = primary?.id;
+		this.siteLocked = config.launchSite !== undefined;
+		this.environment = new Environment({
+			body: primary ?? { id: 'none', radius: 1, atmosphere: undefined },
+			preset: config.preset ?? 'high',
+			site: config.launchSite ?? { latitude: 0, longitude: 0 }
+		});
+		this.scene.add(this.environment.root);
+		this.scene.fog = this.environment.fog;
+	}
+
+	/** Transform holder of a body in render space (position = centre, quaternion = rotation). */
+	bodyObject(id: string): Object3D | undefined {
+		return this.bodies.get(id)?.holder;
+	}
+
+	setPixelRatio(ratio: number): void {
+		this.pixelRatio = ratio;
 	}
 
 	/** Current floating origin in root-inertial coordinates (for the host's debug overlay/tests). */
@@ -119,10 +175,21 @@ export class SceneModel {
 	setActiveVessel(id: EntityId | null): void {
 		this.active = id;
 	}
+	/** Set the flight orbit camera directly (screenshot presets). */
+	setFlightRig(rig: RigState): void {
+		this.flightRig = { ...rig };
+		this.cameraDirty = true;
+	}
 	/** Rotate/zoom whichever camera is current (flight rig or map rig). */
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void {
-		if (this.map) this.mapRig = applyRigInput(this.mapRig, this.mapLimits, input);
-		else this.flightRig = applyRigInput(this.flightRig, FLIGHT_RIG_LIMITS, input);
+		if (this.map) {
+			// Before the first map placement the distance is 0 ("not yet set"): turn only, the
+			// default distance is chosen from the body radius in `placeCamera`.
+			const unset = this.mapRig.distance === 0;
+			const next = applyRigInput(this.mapRig, this.mapLimits, input);
+			this.mapRig = unset ? { ...next, distance: 0 } : next;
+		} else this.flightRig = applyRigInput(this.flightRig, FLIGHT_RIG_LIMITS, input);
+		this.cameraDirty = true;
 	}
 	resize(width: number, height: number): void {
 		this.viewport.width = width;
@@ -160,10 +227,12 @@ export class SceneModel {
 			const entry = this.bodies.get(b.id);
 			if (!entry) continue; // body the host gave no render info for: not drawn
 			const p = toRenderSpace(b.position, this.origin);
-			entry.mesh.position.set(p.x, p.y, p.z);
-			setQuat(entry.mesh, b.rotation);
+			entry.holder.position.set(p.x, p.y, p.z);
+			entry.holder.quaternion.set(b.rotation.x, b.rotation.y, b.rotation.z, b.rotation.w);
+			this.bodyRot.set(b.id, b.rotation);
 		}
 
+		this.lockLaunchSite(vessels, bodyWorld);
 		const seen = new Set<number>();
 		for (const v of vessels) {
 			const id = v.id;
@@ -189,7 +258,75 @@ export class SceneModel {
 			this.vessels.delete(id);
 		}
 
+		this.lastView = { active: activeVessel, anchorBody, bodyWorld };
 		this.placeCamera(activeVessel, anchorBody, bodyWorld);
+		this.cameraDirty = false;
+
+		const primaryWorld = this.primaryBody ? bodyWorld.get(this.primaryBody) : undefined;
+		const primaryRot = this.primaryBody ? this.bodyRot.get(this.primaryBody) : undefined;
+		const activeGroup = activeVessel ? this.vessels.get(activeVessel.id)?.group : undefined;
+		this.frameState =
+			primaryWorld && primaryRot
+				? {
+						bodyRender: toRenderSpace(primaryWorld, this.origin),
+						bodyRotation: primaryRot,
+						vesselRender:
+							activeGroup && activeVessel?.soi === this.primaryBody
+								? {
+										x: activeGroup.position.x,
+										y: activeGroup.position.y,
+										z: activeGroup.position.z
+									}
+								: null
+					}
+				: null;
+	}
+
+	/**
+	 * Per-frame environment update (planet uniforms, sun, shadow fit, exposure) from the last
+	 * synced snapshot and the current camera. `dt` is wall-clock seconds since the last call.
+	 */
+	prepareFrame(dt: number): void {
+		if (!this.frameState) return;
+		if (this.cameraDirty && this.lastView) {
+			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);
+			this.cameraDirty = false;
+		}
+		this.camera.updateMatrixWorld();
+		this.environment.update({
+			camera: this.camera,
+			pixelHeight: this.viewport.height * this.pixelRatio,
+			bodyRender: this.frameState.bodyRender,
+			bodyRotation: this.frameState.bodyRotation,
+			vesselRender: this.frameState.vesselRender,
+			vesselRadius: this.vesselRadius,
+			mapView: this.map,
+			dt
+		});
+	}
+
+	/**
+	 * The sim places a vessel at an inertial latitude/longitude at load time, so with the body
+	 * already turning it is not at body-fixed (0, 0) unless loaded at t = 0. When the host gave no
+	 * launch site, the first vessel seen close to the ground of the primary body defines it.
+	 */
+	private lockLaunchSite(
+		vessels: readonly VesselSnapshot[],
+		bodyWorld: ReadonlyMap<string, Vec3>
+	): void {
+		if (this.siteLocked || !this.primaryBody) return;
+		const rotation = this.bodyRot.get(this.primaryBody);
+		const radius = this.bodies.get(this.primaryBody)?.radius;
+		if (!rotation || !radius || !bodyWorld.has(this.primaryBody)) return;
+		for (const v of vessels) {
+			if (v.soi !== this.primaryBody) continue;
+			const altitude = Math.hypot(v.position.x, v.position.y, v.position.z) - radius;
+			if (altitude > LAUNCH_SITE_MAX_ALTITUDE) continue;
+			const { latitude, longitude } = latLonOf(rotateInverse(rotation, v.position));
+			this.environment.setSite(latitude, longitude);
+			this.siteLocked = true;
+			return;
+		}
 	}
 
 	dispose(): void {
@@ -202,7 +339,12 @@ export class SceneModel {
 		this.geometryCache.clear();
 		this.sphere.dispose();
 		this.partMaterial.dispose();
-		for (const b of this.bodies.values()) (b.mesh.material as MeshLambertMaterial).dispose();
+		this.environment.dispose();
+		for (const b of this.bodies.values()) {
+			for (const child of b.holder.children) {
+				if (child instanceof Mesh) (child.material as MeshLambertMaterial).dispose();
+			}
+		}
 	}
 
 	private placeCamera(
@@ -237,6 +379,21 @@ export class SceneModel {
 		);
 		this.camera.up.copy(up);
 		this.camera.position.set(target.x + offset.x, target.y + offset.y, target.z + offset.z);
+		const bodyPos = anchorBody ? bodyWorld.get(anchorBody) : undefined;
+		const bodyRadius = anchorBody ? this.bodies.get(anchorBody)?.radius : undefined;
+		if (!this.map && bodyPos && bodyRadius) {
+			// Keep the orbit camera above the ground: the surface is the reference sphere.
+			const c = toRenderSpace(bodyPos, this.origin);
+			const rel = new Vector3(
+				this.camera.position.x - c.x,
+				this.camera.position.y - c.y,
+				this.camera.position.z - c.z
+			);
+			const alt = rel.length() - bodyRadius;
+			if (alt < MIN_CAMERA_ALTITUDE) {
+				this.camera.position.addScaledVector(rel.normalize(), MIN_CAMERA_ALTITUDE - alt);
+			}
+		}
 		this.camera.lookAt(target.x, target.y, target.z);
 	}
 
@@ -268,12 +425,16 @@ export class SceneModel {
 
 	private syncParts(entry: VesselEntry, v: VesselSnapshot): void {
 		const seen = new Set<number>();
+		let extent = 2;
 		for (const part of v.parts) {
 			const pid = part.id;
 			seen.add(pid);
+			extent = Math.max(extent, Math.hypot(part.position.x, part.position.y, part.position.z) + 2);
 			let p = entry.parts.get(pid);
 			if (!p) {
 				p = { mesh: new Mesh(this.geometryFor(part.definition), this.partMaterial) };
+				p.mesh.castShadow = true;
+				p.mesh.receiveShadow = true;
 				entry.group.add(p.mesh);
 				entry.parts.set(pid, p);
 			}
@@ -282,6 +443,7 @@ export class SceneModel {
 			p.mesh.position.set(part.position.x, part.position.y, part.position.z);
 			setQuat(p.mesh, part.orientation);
 		}
+		if (v.id === this.active || this.active === null) this.vesselRadius = extent;
 		for (const [pid, p] of entry.parts) {
 			if (seen.has(pid)) continue;
 			entry.group.remove(p.mesh);
