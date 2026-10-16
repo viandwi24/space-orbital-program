@@ -3,7 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
-import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
+import type { Command, EntityId, SasMode, Snapshot, VesselDesign } from '@orbital/core';
 import {
 	QualityGovernor,
 	createRenderer,
@@ -18,6 +18,7 @@ import {
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
+import { modeForKey } from './hud/sas-model';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
@@ -88,6 +89,8 @@ export interface Flight {
 	stage(): void;
 	toggleMap(): void;
 	cycleSpeedMode(): void;
+	/** Ask for a stability assist mode (the SAS buttons next to the navball; plan 042). */
+	setSas(mode: SasMode): void;
 	/** Freeze or resume the sim (pause menu). */
 	setPaused(paused: boolean): void;
 	/** While a dialog is open the flight keys do nothing. */
@@ -249,6 +252,10 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'KeyP':
 				if (import.meta.env.DEV) void toggleAutopilot();
 				break;
+			default: {
+				const sasMode = modeForKey(code, hud.model?.sas?.mode ?? 'off');
+				if (sasMode !== null) setSas(sasMode);
+			}
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
@@ -274,6 +281,11 @@ export function startFlight(options: FlightOptions): Flight {
 		const input = { zoomFactor: Math.exp(e.deltaY * 0.001) };
 		renderer?.orbitCamera(input);
 	};
+
+	function setSas(mode: SasMode): void {
+		const command = hudCtl?.sasCommand(mode);
+		if (command) void send(command);
+	}
 
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
@@ -356,6 +368,9 @@ export function startFlight(options: FlightOptions): Flight {
 			hud.throttle = throttle;
 			const t0 = performance.now();
 			hud.model = hudCtl?.model(now, throttle) ?? null;
+			// The prograde reference follows the speed readout (V, or the automatic switch).
+			const follow = hudCtl?.sasFollowUp();
+			if (follow) void send(follow);
 			if (import.meta.env.DEV) stats.add('model', performance.now() - t0);
 			if (auto) hud.autopilot = `${auto.phase}: ${auto.note}`;
 			publish();
@@ -547,6 +562,7 @@ export function startFlight(options: FlightOptions): Flight {
 		cycleSpeedMode() {
 			hudCtl?.cycleSpeedMode();
 		},
+		setSas,
 		setPaused(paused) {
 			hud.paused = paused;
 			client.setPaused(paused);

@@ -265,6 +265,9 @@
 					throttle={model?.throttle ?? hud.throttle}
 					ballSize={tall ? 176 : 144}
 					oncyclespeed={() => flight?.cycleSpeedMode()}
+					sas={model?.sas}
+					controllable={model?.controllable ?? true}
+					onsas={(mode) => flight?.setSas(mode)}
 				/>
 			</div>
 
