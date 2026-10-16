@@ -63,6 +63,7 @@ docs/              everything below
 | `docs/product/` | product spec, glossary | when scope changes (via ADR) |
 | `docs/architecture/` | how the system is built | when a plan changes structure |
 | `docs/decisions/` | ADRs (numbered, immutable once accepted) | any non-trivial choice |
+| `docs/guides/` | how-tos for mod authors, written from stock | when the SDK or stock changes |
 | `docs/plans/` | numbered plans with acceptance criteria | lifecycle: draft → ready → in-progress → done/blocked |
 | `docs/journal/` | one entry per plan execution: what happened, surprises, open questions | end of every plan |
 | `docs/research/` | verified facts from the internet with date checked | whenever you look something up |

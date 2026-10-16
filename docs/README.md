@@ -20,6 +20,7 @@ This directory is the project's memory. It is designed so that an agent (or huma
 | `plans/` | numbered work plans `NNN-slug.md` with acceptance criteria | status field changes; body frozen once `in-progress` |
 | `journal/` | one entry per executed plan: what happened, surprises, open questions | append-only |
 | `research/` | facts verified from the internet, with date and source | updated whenever something is looked up |
+| `guides/` | how-tos for people building on the project (mod authors) | updated when the SDK or stock changes |
 | `conventions/` | how we write code, tests, versions, docs | rarely |
 | `STATUS.md` | the single living summary | every plan |
 

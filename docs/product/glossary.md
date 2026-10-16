@@ -32,3 +32,4 @@ Use these terms consistently in code, docs, and UI.
 | **Contributes** | The typed API a plugin exposes to its dependents: declared with `contributes: {} as {...}`, implemented with `ctx.provide`, visible on a dependent's `ctx` (ADR 0013). |
 | **Load report** | Result of `loadPlugins`: boot order, disabled plugins with reasons, and what each plugin registered (`{ id, by }` per kind). |
 | **Module augmentation** | `declare module '@orbital/sdk' { interface EventMap {…} }`: how a mod adds typed events, resource ids and module config types to the open interfaces. |
+| **Part shape** | Placeholder geometry of a part (`box` or `cylinder`, metres, axis = local Y) used by the renderer and physics body until art exists. `PartDefinition.shape`, ADR 0014. |

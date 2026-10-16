@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
-**Current plan:** none in progress; 005 just completed (004 and 008 are also `done`)
-**Next plan:** [`plans/006-stock-mod-minimal.md`](plans/006-stock-mod-minimal.md) (`draft`, needs refinement; its dependency 005 is done)
+**Current plan:** none in progress; 006 just completed (Phase 0 now needs only plan 007)
+**Next plan:** [`plans/007-sim-loop-flight-onrails.md`](plans/007-sim-loop-flight-onrails.md) (`draft`, needs refinement; dependencies 002, 004, 006 are done)
 
 ## Plan board
 
@@ -16,8 +16,8 @@
 | 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | done | core session | ADRs 0010, 0011 |
 | 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | done | physics session | `createRapierBackend` + `createMockBackend`; free-fall AC corrected to Rapier's discrete solution (see plan Log) |
 | 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | done | sdk session | ADR 0013; `loadPlugins`, `define*`, typed ctx |
-| 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | draft | — | needs 005 |
-| 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | draft | — | needs 002, 004, 006 |
+| 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | done | stock session | ADR 0014 (part shape, `state(config)`); 6 parts, home body, `guides/writing-a-mod.md` |
+| 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | draft | — | needs 002, 004, 006 (all done); see its Log for 006's notes |
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | draft | — | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
@@ -39,10 +39,12 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - `@orbital/kepler` element functions throw `KeplerError` for near-parabolic (|e − 1| < 1e-8) and radial trajectories; plan 007's flight → on-rails switch must handle this (fallback: `propagateUniversal` on the state vector). Noted in `architecture/simulation.md`.
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
 - Rapier fixed-joint chains are soft under heavy load (default 4 solver iterations; see `journal/004`); `createRapierBackend({ solverIterations })` is the knob and plan 011 (rigid grouping) the structural fix. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
+- Stock module hooks cannot apply forces or move resources (`ModuleContext` has no body handle or vessel resource access); plan 007 must either apply the effects from the documented stock config/state or extend `ModuleContext` additively. Contract: `journal/006`.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
 
 ## Recent journal entries
 
+- [006 — Stock mod, minimal](journal/006-stock-mod-minimal.md)
 - [005 — SDK define-API + plugin loader](journal/005-sdk-define-api-plugin-loader.md)
 - [004 — Physics backend + Rapier adapter](journal/004-physics-backend-rapier.md)
 - [008 — Renderer: floating origin](journal/008-renderer-floating-origin.md)

@@ -56,3 +56,4 @@ updated: 2026-10-16
 ## Log
 
 - 2026-10-16 — Created as draft.
+- 2026-10-16 — Note from plan 006 (stock): module hooks cannot apply forces or move resources today (`ModuleContext` has no body handle or vessel resource access), so stock modules define config, state and pure helpers and leave the effect to this plan. Refinement must decide: sim applies effects from documented stock config/state (needs the sim to know stock module ids or a generic capability protocol), or extend `ModuleContext` additively (body handle, vessel resource access) so hooks do it. Contract and ids: journal 006. Also: `state(config)` and `PartDefinition.shape` exist (ADR 0014); the gravitational constant G is not in core (stock uses 6.6743e-11 to turn μ into a body mass).
