@@ -28,7 +28,7 @@ import {
 	type Atmosphere,
 	type RGB
 } from './atmosphere-model.ts';
-import { adaptExposure, exposureFor } from './exposure.ts';
+import { adaptExposure, exposureFor, starVisibility } from './exposure.ts';
 import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
 import { PRESETS, type GraphicsPreset } from './presets.ts';
@@ -222,6 +222,7 @@ export class Environment {
 			siteLongitude: this.config.site.longitude
 		});
 		this.site.place(bodyRender, bodyRotation);
+		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		const sun = this.sunDirection(bodyRotation);
 		const sunBF = rotateInverse(bodyRotation, sun);
 		const elev = sunElevation(sun, frame.up);
@@ -325,7 +326,7 @@ export class Environment {
 			cloudCover: this.cloudCover,
 			cloudAngle: this.cloudAngle,
 			time: this.time,
-			starBrightness: 1,
+			starBrightness: starVisibility(elevDeg, alt, this.atmosphere.height),
 			shadow: {
 				on: shadowActive,
 				map: shadowMap,

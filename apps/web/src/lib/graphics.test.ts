@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePreset } from './graphics';
+import { parseAutoQuality, resolvePreset } from './graphics';
 
 describe('resolvePreset', () => {
 	it('prefers a saved preset over the device default', () => {
@@ -13,5 +13,14 @@ describe('resolvePreset', () => {
 			})
 		).toBe('high');
 		expect(resolvePreset(null, { gpu: 'Google SwiftShader', maxTextureSize: 8192 })).toBe('low');
+	});
+});
+
+describe('parseAutoQuality', () => {
+	it('is on unless the stored value is exactly off', () => {
+		expect(parseAutoQuality(null)).toBe(true);
+		expect(parseAutoQuality('on')).toBe(true);
+		expect(parseAutoQuality('garbage')).toBe(true);
+		expect(parseAutoQuality('off')).toBe(false);
 	});
 });

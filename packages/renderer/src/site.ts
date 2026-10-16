@@ -209,6 +209,47 @@ export function isPaved(x: number, z: number, margin: number): boolean {
 export const TUFT_RADIUS = 70;
 
 /**
+ * Distance from the camera to the site beyond which a kind of site geometry is smaller than about a
+ * pixel and is not drawn (plan 039): grass tufts (0.4 m) at 600 m, rocks at 3 km, trees (6 to 15 m)
+ * at 12 km, buildings and masts (up to 80 m) at 40 km. 1.4 M triangles of the site cost 2 to 4 ms of
+ * every frame seen from the air, for nothing that shows.
+ */
+export const SITE_DETAIL_RANGE = {
+	tufts: 600,
+	rocks: 3_000,
+	trees: 12_000,
+	structures: 40_000
+} as const;
+
+export interface SiteDetail {
+	tufts: boolean;
+	rocks: boolean;
+	trees: boolean;
+	structures: boolean;
+}
+
+/** Which kinds of site geometry to draw for a camera `distance` metres from the site. */
+export const siteDetail = (distance: number): SiteDetail => ({
+	tufts: distance <= SITE_DETAIL_RANGE.tufts,
+	rocks: distance <= SITE_DETAIL_RANGE.rocks,
+	trees: distance <= SITE_DETAIL_RANGE.trees,
+	structures: distance <= SITE_DETAIL_RANGE.structures
+});
+
+/** Tufts are split into this many cells per side so frustum culling can drop the ones behind the camera. */
+export const TUFT_CELLS = 4;
+
+/** Cell of a tuft at site-local (x, z) in the `TUFT_CELLS` x `TUFT_CELLS` grid over the tuft disc. */
+export const tuftCell = (x: number, z: number): number => {
+	const at = (v: number): number =>
+		Math.min(
+			TUFT_CELLS - 1,
+			Math.max(0, Math.floor(((v + TUFT_RADIUS) / (2 * TUFT_RADIUS)) * TUFT_CELLS))
+		);
+	return at(z) * TUFT_CELLS + at(x);
+};
+
+/**
  * Grass tufts around the pad: jittered grid so the density is even, thinned toward the rim, none on
  * pavement or under buildings. Pure and seeded (the same layout every run).
  */

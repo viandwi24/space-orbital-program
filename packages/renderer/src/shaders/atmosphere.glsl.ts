@@ -1,3 +1,5 @@
+import { SUN_DEPTH_H, SUN_DEPTH_MU, SUN_DEPTH_SCALE } from '../sun-depth-table.ts';
+
 /** Integer-hash value noise (pcg3d) shared by the planet pass and the terrain bake. */
 export const hashNoiseGLSL = /* glsl */ `
 // --- hash noise ---------------------------------------------------------------------------------
@@ -45,7 +47,7 @@ float noiseF(vec3 p) {
 /**
  * GLSL shared by the planet pass and the environment-light sky: single-scattering Rayleigh + Mie
  * march (the twin of `atmosphere-model.ts`, ADR 0027) and the hash noise. Positions are relative
- * to the planet centre in the inertial frame. Expects `VIEW_SAMPLES` and `LIGHT_SAMPLES` defines.
+ * to the planet centre in the inertial frame. Expects the `VIEW_SAMPLES` define (the light path is a table lookup since plan 039).
  */
 export const atmosphereGLSL = /* glsl */ `
 uniform float uR;
@@ -58,6 +60,7 @@ uniform float uMieG;
 uniform float uSunIrr;
 uniform float uSkyBoost;
 uniform float uMieBoost;
+uniform sampler2D uSunDepthLUT; // optical depth to the top of the atmosphere, see sun-depth-table.ts
 
 const float kPI = 3.14159265359;
 
@@ -71,23 +74,17 @@ vec2 raySphere(float r0, float mu, float rs) {
 }
 
 // Rayleigh and Mie column density from p toward direction l to the top of the atmosphere; x < 0 when the planet blocks it.
+// One fetch of the baked table (plan 039); the grazing ray under which the planet blocks the sun is the table's own edge.
 vec2 sunDepth(vec3 p, vec3 l) {
 	float r = length(p);
 	float mu = dot(p, l) / r;
-	if (mu < 0.0) {
-		float disc = r * r * (mu * mu - 1.0) + uR * uR;
-		if (disc >= 0.0) return vec2(-1.0);
-	}
-	float len = raySphere(r, mu, uR + uAtmH).y;
-	vec2 od = vec2(0.0);
-	for (int i = 0; i < LIGHT_SAMPLES; i++) {
-		float u = (float(i) + 0.5) / float(LIGHT_SAMPLES);
-		float s = len * u * u;
-		float ds = len * 2.0 * u / float(LIGHT_SAMPLES);
-		float h = max(length(p + l * s) - uR, 0.0);
-		od += vec2(exp(-h / uHR), exp(-h / uHM)) * ds;
-	}
-	return od;
+	float rho = uR / r;
+	float muH = -sqrt(max(1.0 - rho * rho, 0.0));
+	if (mu < muH) return vec2(-1.0);
+	float m = clamp((mu - muH) / (1.0 - muH), 0.0, 1.0);
+	float hn = clamp((r - uR) / uAtmH, 0.0, 1.0);
+	vec2 uv = (vec2(sqrt(m), sqrt(hn)) * vec2(${SUN_DEPTH_MU - 1}.0, ${SUN_DEPTH_H - 1}.0) + 0.5) / vec2(${SUN_DEPTH_MU}.0, ${SUN_DEPTH_H}.0);
+	return texture(uSunDepthLUT, uv).xy * ${SUN_DEPTH_SCALE}.0;
 }
 
 vec3 extinction(vec2 od) {

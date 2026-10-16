@@ -4,9 +4,20 @@
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
 import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
-import { createRenderer, type GraphicsPreset, type Renderer } from '@orbital/renderer';
+import {
+	QualityGovernor,
+	createRenderer,
+	type GovernorLevel,
+	type GraphicsPreset,
+	type Renderer
+} from '@orbital/renderer';
 import { partShapesOf } from './catalog';
-import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
+import {
+	initialGraphicsPreset,
+	loadAutoQuality,
+	saveAutoQuality,
+	saveGraphicsPreset
+} from './graphics';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
@@ -69,6 +80,10 @@ export interface Flight {
 	stepWarp(delta: number): void;
 	/** Switch the graphics preset now and remember it (plan 019; the settings screen of plan 023 calls this). */
 	setGraphicsPreset(preset: GraphicsPreset): void;
+	/** Whether the quality governor may lower resolution and preset when the view runs slow (plan 039, ADR 0053). */
+	readonly autoQuality: boolean;
+	/** Turn the governor on or off and remember it; off restores the player's preset at full resolution. */
+	setAutoQuality(on: boolean): void;
 	/** Fire the next stage (the button next to the stage stack). */
 	stage(): void;
 	toggleMap(): void;
@@ -84,6 +99,8 @@ export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
 	const client: SimClient = startSimWorker();
 	let renderer: Renderer | null = null;
+	let governor: QualityGovernor | null = null;
+	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
 	let vessel: EntityId | null = null;
 	let snap: Snapshot | null = null;
@@ -290,11 +307,32 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	// --- render loop -------------------------------------------------------------------------
+	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
+	function applyLevel(level: GovernorLevel, announce: boolean): void {
+		if (!renderer) return;
+		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
+		renderer.setRenderScale(level.scale);
+		if (announce) {
+			const percent = Math.round(level.scale * 100);
+			hudCtl?.notice({
+				kind: 'info',
+				title: 'Graphics adjusted',
+				detail: `${level.preset} at ${percent}% resolution to keep the frame rate up`,
+				key: 'governor'
+			});
+		}
+	}
+
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
-		const dt = Math.min((now - lastFrame) / 1000, 0.1);
+		const interval = now - lastFrame;
+		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
+		if (governor) {
+			const level = governor.frame(interval);
+			if (level) applyLevel(level, true);
+		}
 		sendInput(dt);
 		if (renderer && snap && dirty) {
 			renderer.update(snap);
@@ -376,6 +414,10 @@ export function startFlight(options: FlightOptions): Flight {
 				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
 				preset: initialGraphicsPreset()
 			});
+			governor = new QualityGovernor(renderer.preset);
+			governor.setEnabled(autoQuality);
+			// compile this preset's programs and the other presets' planet pass off the main thread
+			void renderer.precompile();
 			resize();
 			const result = await client.dispatch({ type: 'load-vessel', design });
 			if (!result.ok || result.vessel === undefined) {
@@ -483,7 +525,17 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		setGraphicsPreset(preset) {
 			saveGraphicsPreset(preset);
-			renderer?.setPreset(preset);
+			// the player's choice is the governor's ceiling and starts it again at full resolution
+			if (governor) applyLevel(governor.setCeiling(preset), false);
+			else renderer?.setPreset(preset);
+		},
+		get autoQuality() {
+			return autoQuality;
+		},
+		setAutoQuality(on) {
+			autoQuality = on;
+			saveAutoQuality(on);
+			if (governor) applyLevel(governor.setEnabled(on), false);
 		},
 		stepWarp(delta) {
 			setWarp(warpIndex + delta);

@@ -15,3 +15,19 @@ export const exposureFor = (sunElevationDeg: number): number =>
 /** Frame-rate independent smoothing toward `target` (time constant `tau`, s). */
 export const adaptExposure = (current: number, target: number, dt: number, tau = 1.2): number =>
 	current + (target - current) * (1 - Math.exp(-Math.max(0, dt) / tau));
+
+/**
+ * How much of the star field is drawn, 0 to 1 (plan 039). Daylight drowns the stars, so a camera in
+ * the lower atmosphere sees none until the sun is well below the horizon; above a quarter of the
+ * atmosphere's height the sky is thin enough that they show whatever the sun does. At 0 the planet
+ * pass skips the star field altogether, which is a large part of its cost over the sky.
+ */
+export function starVisibility(
+	sunElevationDeg: number,
+	altitude: number,
+	atmosphereHeight: number
+): number {
+	const night = 1 - smoothstep(-14, -4, sunElevationDeg);
+	const thin = smoothstep(0.25, 0.65, altitude / Math.max(atmosphereHeight, 1));
+	return Math.max(night, thin);
+}

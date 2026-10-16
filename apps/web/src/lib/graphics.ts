@@ -29,6 +29,30 @@ export function saveGraphicsPreset(preset: GraphicsPreset): void {
 	}
 }
 
+/**
+ * The quality governor (plan 039, ADR 0053) lowers resolution and then the preset when the view runs
+ * under about 55 fps. On unless the player turned it off; only the string `off` is a no.
+ */
+const AUTO_KEY = 'orbital.graphics.auto';
+
+export const parseAutoQuality = (value: unknown): boolean => value !== 'off';
+
+export function loadAutoQuality(): boolean {
+	try {
+		return parseAutoQuality(localStorage.getItem(AUTO_KEY));
+	} catch {
+		return true;
+	}
+}
+
+export function saveAutoQuality(on: boolean): void {
+	try {
+		localStorage.setItem(AUTO_KEY, on ? 'on' : 'off');
+	} catch {
+		// private mode or quota: the choice applies for this session only
+	}
+}
+
 /** Reads GPU facts from a throwaway WebGL2 context; returns conservative values when WebGL is missing. */
 export function probeCapabilities(): DeviceCapabilities {
 	const nav = globalThis.navigator as (Navigator & { deviceMemory?: number }) | undefined;

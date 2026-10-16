@@ -4,14 +4,26 @@
  * exercised by the manual runs in the journals, not by Bun tests.
  */
 import type { EntityId, Snapshot } from '@orbital/core';
-import { ACESFilmicToneMapping, PCFShadowMap, WebGLRenderer, type Scene } from 'three';
+import {
+	ACESFilmicToneMapping,
+	HalfFloatType,
+	Mesh,
+	PCFShadowMap,
+	Scene,
+	WebGLRenderTarget,
+	WebGLRenderer,
+	type ShaderMaterial
+} from 'three';
 import { findPreset } from './camera-presets.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
-import { PRESETS, type GraphicsPreset } from './presets.ts';
+import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 import type { ScreenPoint } from './project.ts';
 import { SceneModel, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
+
+/** Lowest render scale the governor may ask for; below this the picture is too soft to play. */
+export const MIN_RENDER_SCALE = 0.4;
 
 export interface RendererConfig extends SceneConfig {
 	canvas: HTMLCanvasElement;
@@ -77,6 +89,18 @@ export interface Renderer {
 	/** Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation). */
 	setPreset(preset: GraphicsPreset): void;
 	readonly preset: GraphicsPreset;
+	/**
+	 * Fraction (0.4 to 1) of the preset's drawing-buffer size the scene renders at; the browser scales
+	 * the canvas up. The quality governor's cheap knob (plan 039, ADR 0053): no shader recompile.
+	 */
+	setRenderScale(scale: number): void;
+	readonly renderScale: number;
+	/**
+	 * Compiles the shader programs of this preset's scene and of the other presets' planet pass in the
+	 * background (`compileAsync`), so the first frame and a later `setPreset` do not stall on the
+	 * driver's shader compiler (plan 039). Resolves when the programs are ready; safe to ignore.
+	 */
+	precompile(): Promise<void>;
 	/** WebGL capability facts for `selectPreset`. */
 	capabilities(): { gpu?: string; maxTextureSize: number };
 	readonly debug: RendererDebug;
@@ -104,20 +128,30 @@ export function createRenderer(config: RendererConfig): Renderer {
 	const envLight = new EnvironmentLight(gl, env);
 
 	let forcedRatio: number | null = null;
+	let renderScale = 1;
 	const ratio = (): number =>
-		forcedRatio ??
-		Math.min(config.pixelRatio ?? globalThis.devicePixelRatio ?? 1, PRESETS[preset].pixelRatioCap);
+		(forcedRatio ??
+			Math.min(
+				config.pixelRatio ?? globalThis.devicePixelRatio ?? 1,
+				PRESETS[preset].pixelRatioCap
+			)) * renderScale;
 	const applySize = (): void => {
 		pixelRatio = ratio();
 		gl.setPixelRatio(pixelRatio);
 		gl.setSize(width, height, false);
 		model.setPixelRatio(pixelRatio);
 		post.setSize(width, height, pixelRatio);
+		// the planet pass's march prepass matches the pixels of the target the scene is drawn into
+		const target = post.active
+			? post.targetSize
+			: { width: gl.domElement.width, height: gl.domElement.height };
+		env.planet.setTargetSize(target.width, target.height);
 	};
 
 	function drawFrame(dt: number): void {
 		model.prepareFrame(dt);
 		env.planet.bakeTerrain(gl);
+		env.planet.marchPrepass(gl);
 		gl.toneMappingExposure = env.state.exposure;
 		const up = env.planet.material.uniforms.uCamUp!.value as Vec3;
 		const target = envLight.update(env, up, env.state.sun);
@@ -128,6 +162,36 @@ export function createRenderer(config: RendererConfig): Renderer {
 		if (post.active) post.render(dt);
 		else gl.render(model.scene, model.camera);
 	}
+
+	/** Programs of the other presets' planet pass, kept alive so three's program cache keeps them. */
+	let variants: ShaderMaterial[] = [];
+	let precompiling: Promise<void> | null = null;
+	const precompile = (): Promise<void> => {
+		precompiling ??= (async () => {
+			const compileTarget = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
+			const previous = gl.getRenderTarget();
+			const waits: Promise<unknown>[] = [];
+			// three keys a program on tone mapping and colour space, which depend on drawing to a target or the canvas
+			const compile = (scene: Scene, toTarget: boolean): void => {
+				gl.setRenderTarget(toTarget ? compileTarget : null);
+				waits.push(gl.compileAsync(scene, model.camera, model.scene));
+			};
+			compile(model.scene, PRESETS[preset].post);
+			for (const name of GRAPHICS_PRESETS) {
+				if (name === preset) continue;
+				const settings = PRESETS[name];
+				const material = env.planet.variantFor(settings);
+				variants.push(material);
+				const scene = new Scene();
+				scene.add(new Mesh(env.planet.mesh.geometry, material));
+				compile(scene, settings.post);
+			}
+			gl.setRenderTarget(previous);
+			await Promise.all(waits);
+			compileTarget.dispose();
+		})();
+		return precompiling;
+	};
 
 	const gpuName = (): string => {
 		const ctx = gl.getContext();
@@ -209,11 +273,23 @@ export function createRenderer(config: RendererConfig): Renderer {
 		get preset() {
 			return preset;
 		},
+		precompile,
+		setRenderScale(scale) {
+			const next = Math.min(Math.max(Number.isFinite(scale) ? scale : 1, MIN_RENDER_SCALE), 1);
+			if (next === renderScale) return;
+			renderScale = next;
+			applySize();
+		},
+		get renderScale() {
+			return renderScale;
+		},
 		capabilities() {
 			return { gpu: gpuName(), maxTextureSize: gl.capabilities.maxTextureSize };
 		},
 		debug: debugApi,
 		dispose() {
+			for (const v of variants) v.dispose();
+			variants = [];
 			envLight.dispose();
 			post.dispose();
 			model.dispose();

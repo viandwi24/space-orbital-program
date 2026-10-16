@@ -7,7 +7,9 @@ import {
 	luminance,
 	skyAmbient,
 	skyRadiance,
-	sunTransmittance
+	sunTransmittance,
+	TERRAIN_VEIL,
+	terrainVeil
 } from '../src/atmosphere-model.ts';
 import { DEG } from '../src/vec.ts';
 
@@ -142,6 +144,29 @@ describe('aerial perspective (ADR 0037)', () => {
 			expect(luminance(ap.transmittance)).toBeLessThan(lastT);
 			lastVeil = luminance(ap.inscatter);
 			lastT = luminance(ap.transmittance);
+		}
+	});
+});
+
+describe('terrain veil (plan 039)', () => {
+	test('thin up to 20 km, back to the sky at 90 km, monotone and smooth in between', () => {
+		expect(terrainVeil(0)).toBe(TERRAIN_VEIL.near);
+		expect(terrainVeil(TERRAIN_VEIL.fadeFrom)).toBe(TERRAIN_VEIL.near);
+		expect(terrainVeil(TERRAIN_VEIL.fadeTo)).toBe(1);
+		expect(terrainVeil(400_000)).toBe(1);
+		let last: number = TERRAIN_VEIL.near;
+		for (let d = 0; d <= 120_000; d += 1_000) {
+			const v = terrainVeil(d);
+			expect(v).toBeGreaterThanOrEqual(last - 1e-12);
+			expect(v - last).toBeLessThan(0.02);
+			last = v;
+		}
+	});
+	test('the haze of ADR 0037 only gets lighter: at 10 km the veil is at most half of the model veil, which was already under 0.6 of the ground', () => {
+		expect(terrainVeil(10_000)).toBeLessThanOrEqual(0.5);
+		for (const altitude of [3_000, 6_000, 10_000]) {
+			const ap = aerialPerspective(atm, altitude, -0.1, 10_000, 40 * DEG, 1);
+			expect(luminance(ap.inscatter) * terrainVeil(10_000)).toBeLessThan(luminance(ap.inscatter));
 		}
 	});
 });

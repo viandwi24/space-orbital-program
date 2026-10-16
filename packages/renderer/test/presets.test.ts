@@ -1,7 +1,13 @@
 import { ENVIRONMENT_PRESETS, findPreset } from '../src/camera-presets.ts';
 import { describe, expect, test } from 'bun:test';
 import { GRAPHICS_PRESETS, PRESETS, parsePreset, selectPreset } from '../src/presets.ts';
-import { DAY_EXPOSURE, NIGHT_EXPOSURE, adaptExposure, exposureFor } from '../src/exposure.ts';
+import {
+	DAY_EXPOSURE,
+	NIGHT_EXPOSURE,
+	adaptExposure,
+	exposureFor,
+	starVisibility
+} from '../src/exposure.ts';
 
 describe('presets', () => {
 	test('selectPreset: software, phones, small textures and old Intel get low', () => {
@@ -51,6 +57,7 @@ describe('presets', () => {
 			'trees',
 			'terrainSize',
 			'terrainSteps',
+			'terrainRefineSteps',
 			'terrainShadowSteps',
 			'envSize'
 		] as const;
@@ -81,6 +88,38 @@ describe('exposure', () => {
 		expect(a).toBeGreaterThan(1);
 		expect(a).toBeLessThan(5);
 		expect(adaptExposure(1, 5, 1000)).toBeCloseTo(5, 6);
+	});
+});
+
+describe('starVisibility', () => {
+	const atm = 70_000;
+	test('no stars by day near the ground, full at night, never above 1', () => {
+		expect(starVisibility(45, 0, atm)).toBe(0);
+		expect(starVisibility(0, 3_000, atm)).toBe(0);
+		expect(starVisibility(-30, 0, atm)).toBe(1);
+		for (let e = -40; e <= 90; e += 5) {
+			for (const a of [0, 10_000, 40_000, 100_000]) {
+				const v = starVisibility(e, a, atm);
+				expect(v).toBeGreaterThanOrEqual(0);
+				expect(v).toBeLessThanOrEqual(1);
+			}
+		}
+	});
+	test('thin air shows stars whatever the sun does, and it rises with altitude and falls with the sun', () => {
+		expect(starVisibility(60, 100_000, atm)).toBe(1);
+		expect(starVisibility(60, 0.45 * atm, atm)).toBeGreaterThan(0);
+		let last = 0;
+		for (let a = 0; a <= 80_000; a += 4_000) {
+			const v = starVisibility(60, a, atm);
+			expect(v).toBeGreaterThanOrEqual(last - 1e-12);
+			last = v;
+		}
+		let sun = 1;
+		for (let e = -30; e <= 20; e += 2) {
+			const v = starVisibility(e, 0, atm);
+			expect(v).toBeLessThanOrEqual(sun + 1e-12);
+			sun = v;
+		}
 	});
 });
 

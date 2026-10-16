@@ -232,6 +232,27 @@ export function skyAmbient(atm: Atmosphere, altitude: number, sunElevation: numb
 export const horizonColour = (atm: Atmosphere, altitude: number, sunElevation: number): RGB =>
 	skyRadiance(atm, altitude, 2 * DEG, sunElevation, Math.PI / 2);
 
+/**
+ * Terrain seen through the air reads through a thinner veil than the single-scattering model gives
+ * (plan 039, ADR 0053): the model's multiple-scattering stand-in (`skyBoost`) is tuned for the sky, and
+ * over ground paths of 10 to 40 km it left mountains a pale sheet with no relief. The planet pass scales
+ * the in-scattered radiance of a ray that ends on terrain by this factor, `TERRAIN_VEIL.near` up to
+ * `TERRAIN_VEIL.fadeFrom` metres away and back to 1 by `TERRAIN_VEIL.fadeTo`, so the far sea and the
+ * horizon still meet the sky. `aerialPerspective` is the model without it (the ADR 0037 bound holds
+ * for the model; with this factor the on-screen veil is at most `near` of it).
+ */
+export const TERRAIN_VEIL = { near: 0.45, fadeFrom: 20_000, fadeTo: 90_000 } as const;
+
+/** The factor on the in-scattered radiance of a ray that ends on terrain `distance` metres away. */
+export const terrainVeil = (distance: number): number => {
+	const t = clamp(
+		(distance - TERRAIN_VEIL.fadeFrom) / (TERRAIN_VEIL.fadeTo - TERRAIN_VEIL.fadeFrom),
+		0,
+		1
+	);
+	return TERRAIN_VEIL.near + (1 - TERRAIN_VEIL.near) * t * t * (3 - 2 * t);
+};
+
 /** 0 on the ground, 1 above the atmosphere. */
 export const spaceFraction = (atm: Atmosphere, altitude: number): number =>
 	clamp(altitude / atm.height, 0, 1);

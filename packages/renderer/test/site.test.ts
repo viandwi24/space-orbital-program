@@ -10,7 +10,11 @@ import {
 	isBuilt,
 	isPaved,
 	layoutTufts,
-	layoutVegetation
+	layoutVegetation,
+	SITE_DETAIL_RANGE,
+	TUFT_CELLS,
+	siteDetail,
+	tuftCell
 } from '../src/site.ts';
 import { fitShadow } from '../src/shadow-fit.ts';
 import { bodyRotationAt, siteAxes } from '../src/sun.ts';
@@ -94,6 +98,42 @@ describe('launch site layout', () => {
 		const v = scale(sub(at(0.001), p0), 1000);
 		expect(length(v)).toBeCloseTo(omega * R, 1);
 		expect(v.z).toBeLessThan(0);
+	});
+});
+
+describe('site detail by distance (plan 039)', () => {
+	test('everything is drawn at the pad, nothing beyond the last range', () => {
+		expect(siteDetail(30)).toEqual({ tufts: true, rocks: true, trees: true, structures: true });
+		expect(siteDetail(SITE_DETAIL_RANGE.structures + 1)).toEqual({
+			tufts: false,
+			rocks: false,
+			trees: false,
+			structures: false
+		});
+	});
+	test('small things go first, in the order of their size', () => {
+		const d = (m: number) => siteDetail(m);
+		expect(d(SITE_DETAIL_RANGE.tufts + 1).tufts).toBe(false);
+		expect(d(SITE_DETAIL_RANGE.tufts + 1).rocks).toBe(true);
+		expect(d(SITE_DETAIL_RANGE.rocks + 1).rocks).toBe(false);
+		expect(d(SITE_DETAIL_RANGE.rocks + 1).trees).toBe(true);
+		expect(d(SITE_DETAIL_RANGE.trees + 1).trees).toBe(false);
+		expect(d(SITE_DETAIL_RANGE.trees + 1).structures).toBe(true);
+	});
+	test('a tuft is a fraction of a pixel where it is cut: 0.5 m at the range is under 1 mrad', () => {
+		expect(0.5 / SITE_DETAIL_RANGE.tufts).toBeLessThan(0.001);
+	});
+	test('every tuft falls in exactly one cell of the grid', () => {
+		const tufts = layoutTufts(2000);
+		const counts = new Array<number>(TUFT_CELLS * TUFT_CELLS).fill(0);
+		for (const t of tufts) {
+			const c = tuftCell(t.x, t.z);
+			expect(c).toBeGreaterThanOrEqual(0);
+			expect(c).toBeLessThan(counts.length);
+			counts[c]!++;
+		}
+		expect(counts.reduce((a, b) => a + b, 0)).toBe(tufts.length);
+		expect(counts.filter((n) => n > 0).length).toBeGreaterThan(TUFT_CELLS * 2);
 	});
 });
 

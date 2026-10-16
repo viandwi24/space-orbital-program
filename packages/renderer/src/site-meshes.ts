@@ -49,7 +49,10 @@ import {
 	FLOOD_LIGHT_INTENSITY,
 	floodLightPositions,
 	layoutTufts,
-	layoutVegetation
+	layoutVegetation,
+	siteDetail,
+	tuftCell,
+	TUFT_CELLS
 } from './site.ts';
 import { siteAxes } from './sun.ts';
 import { add, rotate, scale } from './vec.ts';
@@ -207,6 +210,11 @@ export class LaunchSite {
 	private readonly rockGeo = rockGeometry();
 	private readonly tuftGeo = tuftGeometry();
 	private vegetation: InstancedMesh[] = [];
+	/** Which vegetation meshes are tufts, rocks or trees (the rest of the instanced ones), for the distance cut-off. */
+	private tuftMeshes: InstancedMesh[] = [];
+	private rockMeshes: InstancedMesh[] = [];
+	private treeMeshes: InstancedMesh[] = [];
+	private structureMeshes: Mesh[] = [];
 	private readonly floods: PointLight[] = [];
 	private treeCount = -1;
 	private tuftCount = -1;
@@ -253,6 +261,7 @@ export class LaunchSite {
 		m.castShadow = shadows;
 		m.receiveShadow = shadows;
 		this.root.add(m);
+		this.structureMeshes.push(m);
 	}
 
 	private buildStructures(): void {
@@ -303,6 +312,8 @@ export class LaunchSite {
 			v.dispose();
 		}
 		this.vegetation = [];
+		this.tuftMeshes = [];
+		this.rockMeshes = [];
 		const layout = layoutVegetation(count);
 		const R = this.radius;
 		const drop = (x: number, z: number): number =>
@@ -338,7 +349,7 @@ export class LaunchSite {
 			['round', false]
 		] as const) {
 			const list = layout.trees.filter(
-				(t) => t.kind === kind && (Math.hypot(t.x, t.z) < SHADOW_TREE_RADIUS) === casting
+				(t) => t.kind === kind && Math.hypot(t.x, t.z) < SHADOW_TREE_RADIUS === casting
 			);
 			if (!list.length) continue;
 			const mesh = make(
@@ -383,6 +394,7 @@ export class LaunchSite {
 			finish(mesh);
 		}
 		const rocks = make(this.rockGeo, this.materials.rock, layout.rocks.length, true);
+		this.rockMeshes.push(rocks);
 		layout.rocks.forEach((r, i) => {
 			q.setFromEuler(e.set(0, r.yaw, 0));
 			matrix.compose(
@@ -394,9 +406,13 @@ export class LaunchSite {
 		});
 		finish(rocks);
 		const tuftLayout = layoutTufts(tufts);
-		if (tuftLayout.length) {
-			const mesh = make(this.tuftGeo, this.materials.tuft, tuftLayout.length, false);
-			tuftLayout.forEach((t, i) => {
+		// one mesh per cell of a grid over the tuft disc: frustum culling drops the cells behind the camera
+		for (let cell = 0; cell < TUFT_CELLS * TUFT_CELLS; cell++) {
+			const list = tuftLayout.filter((t) => tuftCell(t.x, t.z) === cell);
+			if (!list.length) continue;
+			const mesh = make(this.tuftGeo, this.materials.tuft, list.length, false);
+			this.tuftMeshes.push(mesh);
+			list.forEach((t, i) => {
 				q.setFromEuler(e.set(0, t.yaw, 0));
 				matrix.compose(
 					new Vector3(t.x, -drop(t.x, t.z), t.z),
@@ -410,6 +426,24 @@ export class LaunchSite {
 			});
 			finish(mesh);
 		}
+		const notTree = new Set<InstancedMesh>([...this.tuftMeshes, ...this.rockMeshes]);
+		this.treeMeshes = this.vegetation.filter((m) => !notTree.has(m));
+		this.setDetail(this.lastDistance);
+	}
+
+	private lastDistance = 0;
+
+	/**
+	 * Draws only what can be seen from a camera `distance` metres from the site (`siteDetail`,
+	 * plan 039). Cheap to call every frame: it flips `visible` flags.
+	 */
+	setDetail(distance: number): void {
+		this.lastDistance = distance;
+		const d = siteDetail(distance);
+		for (const m of this.tuftMeshes) m.visible = d.tufts;
+		for (const m of this.rockMeshes) m.visible = d.rocks;
+		for (const m of this.treeMeshes) m.visible = d.trees;
+		for (const m of this.structureMeshes) m.visible = d.structures;
 	}
 
 	/** Puts the site on the rotating body: position in float64, orientation = body * site frame. */

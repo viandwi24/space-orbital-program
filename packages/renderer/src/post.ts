@@ -38,6 +38,11 @@ export class PostChain {
 		return this.settings.post;
 	}
 
+	/** Size in pixels of the target the scene is drawn into while the chain is active. */
+	get targetSize(): { width: number; height: number } {
+		return { width: this.width, height: this.height };
+	}
+
 	setSettings(settings: PresetSettings): void {
 		this.settings = settings;
 		this.apply();

@@ -28,6 +28,7 @@ import {
 	Mesh,
 	NoColorSpace,
 	RGBAFormat,
+	RGFormat,
 	RepeatWrapping,
 	ShaderMaterial,
 	Quaternion,
@@ -39,6 +40,7 @@ import {
 } from 'three';
 import { TERRAIN_MAP_WIDTH, cachedPlanetMap } from '@orbital/core';
 import { type Atmosphere, type RGB } from './atmosphere-model.ts';
+import { SUN_DEPTH_H, SUN_DEPTH_MU, sunDepthTable } from './sun-depth-table.ts';
 
 import type { PlanetFrame } from './planet-frame.ts';
 import { normalize, vec } from './vec.ts';
@@ -51,9 +53,10 @@ import {
 	terrainBakeVertex,
 	terrainPatchFragment
 } from './shaders/terrain.glsl.ts';
+import { marchFragment, marchVertex } from './shaders/march.glsl.ts';
 import { siteAxes, surfaceUp } from './sun.ts';
 import { ORIGIN_GRID } from './origin.ts';
-import { flatSkipRadius } from './terrain-model.ts';
+import { MARCH_BLOCK, MARCH_CONE_PIXELS, flatSkipRadius } from './terrain-model.ts';
 import {
 	PATCH_MAX_ALTITUDE,
 	PATCH_SPANS,
@@ -80,6 +83,33 @@ export interface AtmosphereUniforms {
 	uSunIrr: U<number>;
 	uSkyBoost: U<number>;
 	uMieBoost: U<number>;
+	/** Baked optical depth along rays to the top of the atmosphere (plan 039); shared by every material of one atmosphere. */
+	uSunDepthLUT: U<DataTexture>;
+}
+
+const sunDepthTextures = new Map<string, DataTexture>();
+/** The table of an atmosphere as a half-float RG texture, baked once per atmosphere (about 25 ms). */
+function sunDepthTexture(atm: Atmosphere): DataTexture {
+	const key = [atm.radius, atm.height, atm.rayleighHeight, atm.mieHeight].join('|');
+	let texture = sunDepthTextures.get(key);
+	if (!texture) {
+		texture = new DataTexture(
+			sunDepthTable(atm),
+			SUN_DEPTH_MU,
+			SUN_DEPTH_H,
+			RGFormat,
+			HalfFloatType
+		);
+		texture.minFilter = LinearFilter;
+		texture.magFilter = LinearFilter;
+		texture.wrapS = ClampToEdgeWrapping;
+		texture.wrapT = ClampToEdgeWrapping;
+		texture.generateMipmaps = false;
+		texture.colorSpace = NoColorSpace;
+		texture.needsUpdate = true;
+		sunDepthTextures.set(key, texture);
+	}
+	return texture;
 }
 
 export function createAtmosphereUniforms(atm: Atmosphere): AtmosphereUniforms {
@@ -93,7 +123,8 @@ export function createAtmosphereUniforms(atm: Atmosphere): AtmosphereUniforms {
 		uMieG: u(atm.mieG),
 		uSunIrr: u(atm.sunIrradiance),
 		uSkyBoost: u(atm.skyBoost),
-		uMieBoost: u(atm.mieBoost)
+		uMieBoost: u(atm.mieBoost),
+		uSunDepthLUT: u(sunDepthTexture(atm))
 	};
 }
 
@@ -174,6 +205,15 @@ export class PlanetPass {
 	private patchSize: number;
 	private readonly patchBake: { scene: Scene; material: ShaderMaterial };
 	private readonly patches: { fine: PatchSlot; mid: PatchSlot };
+	/** The march prepass (plan 039): the planet pass's per-block start distances, and the size of the target it matches. */
+	private readonly marchPass: { scene: Scene; material: ShaderMaterial };
+	private marchTarget: WebGLRenderTarget | null = null;
+	/** null until the first frame says whether float render targets work. */
+	private marchSupported: boolean | null = null;
+	private targetWidth = 1;
+	private targetHeight = 1;
+	private refineSteps: number;
+	private fullSteps: number;
 	/** The canonical biome map every height is read from (the preset's own when that is the same size). */
 	private terrainMap: DataTexture | null = null;
 	private readonly radius: number;
@@ -193,6 +233,8 @@ export class PlanetPass {
 		this.map = this.buildMap(settings.mapWidth);
 		this.terrainSize = settings.terrainSize;
 		this.patchSize = settings.terrainPatch;
+		this.refineSteps = settings.terrainRefineSteps;
+		this.fullSteps = Math.max(1, settings.terrainSteps);
 		const axes = siteAxes(site.latitude, site.longitude);
 		const geometry = new BufferGeometry();
 		geometry.setAttribute(
@@ -252,6 +294,9 @@ export class PlanetPass {
 				uMidF: u(new Vector3(0, 1, 0)),
 				uMidK: u(new Vector2(1, 0)),
 				uSkipR: u(0),
+				uMarchStart: u<unknown>(null),
+				uMarchOn: u(0),
+				uMarchSteps: u(Math.max(1, settings.terrainSteps)),
 				uTime: u(0),
 				uWaveAnchor: u(WAVES.map(() => 0))
 			},
@@ -310,6 +355,48 @@ export class PlanetPass {
 		patchMesh.frustumCulled = false;
 		patchScene.add(patchMesh);
 		this.patchBake = { scene: patchScene, material: patchMaterial };
+		const shared = this.material.uniforms;
+		const marchMaterial = new ShaderMaterial({
+			name: 'terrain-march-prepass',
+			vertexShader: marchVertex,
+			fragmentShader: marchFragment,
+			defines: this.marchDefines(settings),
+			uniforms: {
+				...this.atmosphere,
+				uBodyInv: shared.uBodyInv!,
+				uPixelAngle: shared.uPixelAngle!,
+				uInvProj: shared.uInvProj!,
+				uCamRot: shared.uCamRot!,
+				uCamUp: shared.uCamUp!,
+				uAlt: shared.uAlt!,
+				uTerrain: shared.uTerrain!,
+				uTerrainOn: shared.uTerrainOn!,
+				uPatchFine: shared.uPatchFine!,
+				uPatchMid: shared.uPatchMid!,
+				uPatchLinear: shared.uPatchLinear!,
+				uFineC: shared.uFineC!,
+				uFineE: shared.uFineE!,
+				uFineF: shared.uFineF!,
+				uFineK: shared.uFineK!,
+				uMidC: shared.uMidC!,
+				uMidE: shared.uMidE!,
+				uMidF: shared.uMidF!,
+				uMidK: shared.uMidK!,
+				uSkipR: shared.uSkipR!,
+				uMarchStart: shared.uMarchStart!,
+				uMarchOn: shared.uMarchOn!,
+				uMarchSteps: shared.uMarchSteps!,
+				uFullSize: u(new Vector2(1, 1)),
+				uConeAngle: u(0.002)
+			},
+			depthTest: false,
+			depthWrite: false
+		});
+		const marchScene = new Scene();
+		const marchMesh = new Mesh(geometry, marchMaterial);
+		marchMesh.frustumCulled = false;
+		marchScene.add(marchMesh);
+		this.marchPass = { scene: marchScene, material: marchMaterial };
 		this.patches = {
 			fine: {
 				spanMetres: PATCH_SPANS.fine,
@@ -478,8 +565,94 @@ export class PlanetPass {
 			CLOUD_SHADOWS: s.cloudOctaves >= 4 ? 1 : 0,
 			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
 			TERRAIN_STEPS: Math.max(1, s.terrainSteps),
+			TERRAIN_PRE_STEPS: Math.max(1, s.terrainSteps),
 			TERRAIN_SHADOW_STEPS: s.terrainShadowSteps
 		};
+	}
+
+	/** The prepass only needs the march; the atmosphere functions it includes still want sample counts to compile. */
+	private marchDefines(s: PresetSettings): Record<string, number> {
+		return {
+			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
+			TERRAIN_STEPS: Math.max(1, s.terrainSteps),
+			TERRAIN_PRE_STEPS: Math.max(1, s.terrainSteps),
+			TERRAIN_SHADOW_STEPS: 0,
+			VIEW_SAMPLES: 1,
+			LIGHT_SAMPLES: 1
+		};
+	}
+
+	/** The size in pixels of the target the planet pass draws into; the prepass has one texel per block. */
+	setTargetSize(width: number, height: number): void {
+		this.targetWidth = Math.max(1, Math.round(width));
+		this.targetHeight = Math.max(1, Math.round(height));
+	}
+
+	/**
+	 * The march prepass (plan 039, ADR 0053): one texel per `MARCH_BLOCK` x `MARCH_BLOCK` pixels holding
+	 * where that block's rays may first meet the ground. Needs a context, so the facade calls it every
+	 * frame after `bakeTerrain`. Without float render targets the planet pass marches from the camera as
+	 * before.
+	 */
+	marchPrepass(gl: WebGLRenderer): void {
+		const u = this.material.uniforms;
+		if (this.terrainSize <= 0 || (u.uTerrainOn!.value as number) < 0.5) {
+			u.uMarchOn!.value = 0;
+			u.uMarchSteps!.value = this.fullSteps;
+			return;
+		}
+		this.marchSupported ??= gl.extensions.has('EXT_color_buffer_float');
+		if (!this.marchSupported) {
+			u.uMarchOn!.value = 0;
+			u.uMarchSteps!.value = this.fullSteps;
+			return;
+		}
+		const w = Math.ceil(this.targetWidth / MARCH_BLOCK);
+		const h = Math.ceil(this.targetHeight / MARCH_BLOCK);
+		if (!this.marchTarget || this.marchTarget.width !== w || this.marchTarget.height !== h) {
+			this.marchTarget?.dispose();
+			this.marchTarget = new WebGLRenderTarget(w, h, {
+				type: FloatType,
+				format: RGBAFormat,
+				generateMipmaps: false,
+				minFilter: NearestFilter,
+				magFilter: NearestFilter,
+				depthBuffer: false
+			});
+			u.uMarchStart!.value = this.marchTarget.texture;
+		}
+		const m = this.marchPass.material.uniforms;
+		(m.uFullSize!.value as Vector2).set(this.targetWidth, this.targetHeight);
+		m.uConeAngle!.value = MARCH_CONE_PIXELS * (u.uPixelAngle!.value as number);
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		gl.setRenderTarget(this.marchTarget);
+		gl.render(this.marchPass.scene, this.bake.camera);
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+		u.uMarchOn!.value = 1;
+		u.uMarchSteps!.value = this.refineSteps;
+	}
+
+	/**
+	 * A material that is the planet pass compiled for another preset: it shares this pass's uniforms and
+	 * is never drawn. Compiling it ahead (`WebGLRenderer.compileAsync`) fills three's program cache, so the
+	 * switch to that preset reuses the program instead of compiling it in the middle of a frame (plan 039).
+	 */
+	variantFor(settings: PresetSettings): ShaderMaterial {
+		const variant = new ShaderMaterial({
+			name: 'planet-pass-variant',
+			vertexShader: planetVertex,
+			fragmentShader: planetFragment,
+			defines: this.definesFor(settings),
+			uniforms: this.material.uniforms,
+			side: this.material.side,
+			depthTest: this.material.depthTest,
+			depthWrite: this.material.depthWrite,
+			depthFunc: this.material.depthFunc
+		});
+		return variant;
 	}
 
 	/** Moves the painted launch site (pad, roads, aprons) to another surface point. */
@@ -525,6 +698,10 @@ export class PlanetPass {
 	setQuality(settings: PresetSettings): void {
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;
+		this.marchPass.material.defines = this.marchDefines(settings);
+		this.marchPass.material.needsUpdate = true;
+		this.refineSteps = settings.terrainRefineSteps;
+		this.fullSteps = Math.max(1, settings.terrainSteps);
 		if (settings.mapWidth !== this.mapWidth) {
 			this.map.dispose();
 			this.mapWidth = settings.mapWidth;
@@ -623,6 +800,8 @@ export class PlanetPass {
 
 	dispose(): void {
 		this.terrainTarget?.dispose();
+		this.marchTarget?.dispose();
+		this.marchPass.material.dispose();
 		this.bake.material.dispose();
 		this.patchBake.material.dispose();
 		this.patches.fine.target?.dispose();

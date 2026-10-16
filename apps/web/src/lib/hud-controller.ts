@@ -114,6 +114,8 @@ export interface HudController {
 	stage(e: StageEvent): void;
 	simEvent(e: SimEventMessage): void;
 	refused(command: string, reason: string): void;
+	/** A notice that is not about a command or the sim (the quality governor changed the graphics, plan 039). */
+	notice(toast: Toast): void;
 	cycleSpeedMode(): SpeedModePreference;
 	/** The `sas` command a button or key asks for (plan 042); null before a vessel is attached. */
 	sasCommand(mode: SasMode): Command | null;
@@ -230,6 +232,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		},
 		refused(command, reason) {
 			push(toastForRefusal(command, reason));
+		},
+		notice(toast) {
+			push(toast);
 		},
 		cycleSpeedMode() {
 			preference = nextSpeedMode(preference);

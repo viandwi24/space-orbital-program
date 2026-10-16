@@ -28,9 +28,14 @@ export interface PresetSettings {
 	trees: number;
 	/** Instanced grass tufts around the pad (plan 025). */
 	tufts: number;
-	/** Terrain (ADR 0036): baked cube face size in texels, march steps (0 = flat planet), sun-shadow march steps. */
+	/**
+	 * Terrain (ADR 0036): baked cube face size in texels, march steps of the prepass that crosses the far
+	 * field once per block of pixels (0 = flat planet; plan 039), sun-shadow march steps.
+	 */
 	terrainSize: 0 | 512 | 768 | 1024;
 	terrainSteps: number;
+	/** Steps the per-pixel march may take after the march prepass (plan 039); `terrainSteps` is the prepass's budget. */
+	terrainRefineSteps: number;
 	terrainShadowSteps: number;
 	/** Camera-centred terrain patches (ADR 0044): texels per side of the fine (4 km) and mid (33 km) windows, 0 = off. */
 	terrainPatch: 0 | 512 | 1024;
@@ -60,7 +65,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 250,
 		tufts: 0,
 		terrainSize: 512,
-		terrainSteps: 20,
+		terrainSteps: 48,
+		terrainRefineSteps: 24,
 		terrainShadowSteps: 0,
 		terrainPatch: 512,
 		envSize: 64,
@@ -84,7 +90,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 900,
 		tufts: 10000,
 		terrainSize: 768,
-		terrainSteps: 32,
+		terrainSteps: 80,
+		terrainRefineSteps: 32,
 		terrainShadowSteps: 5,
 		terrainPatch: 512,
 		envSize: 128,
@@ -108,7 +115,8 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		trees: 2000,
 		tufts: 28000,
 		terrainSize: 1024,
-		terrainSteps: 48,
+		terrainSteps: 128,
+		terrainRefineSteps: 40,
 		terrainShadowSteps: 8,
 		terrainPatch: 1024,
 		envSize: 128,

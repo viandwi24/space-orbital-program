@@ -30,7 +30,7 @@ export const STEP_MIN_FRACTION = 0.05;
  * is 0.1 % of the distance, so far geometry is still sampled 60 times per pixel): a camera lying on
  * the ground reaches the horizon in about 60 steps.
  */
-export const STEP_FAR_FRACTION = 0.15;
+export const STEP_FAR_FRACTION = 0.08;
 export const STEP_MIN_METRES = 3;
 /**
  * Smallest slope bound the shader's step uses: the step is `clearance / (slope + descent)` with
@@ -64,6 +64,85 @@ export const localMarchSlope = (gradient: number): number =>
 		TERRAIN_MAX_SLOPE,
 		Math.max(TERRAIN_MARCH_SLOPE_MIN, 2 * gradient + TERRAIN_MARCH_SLOPE_MIN)
 	);
+
+/**
+ * Distant slopes are drawn this much steeper than they are, in the shading only (plan 039): a pixel
+ * tens of metres wide averages the crags away and mountains read as pale sheets. Full strength from a
+ * pixel footprint of `SLOPE_EXAGGERATION_RANGE[1]` metres, none under `[0]` (a landing view is exact).
+ */
+export const SLOPE_EXAGGERATION = 4;
+export const SLOPE_EXAGGERATION_RANGE = [8, 80] as const;
+
+// --- march prepass (plan 039, ADR 0053) --------------------------------------------------------
+
+/**
+ * The planet pass marches the terrain once per block of this many pixels per side, before the full
+ * march, with a cone wide enough for every ray of the block; the full march then starts where the
+ * cone first came near the ground. Far rays (the expensive ones) are crossed at a sixteenth of the cost.
+ */
+export const MARCH_BLOCK = 4;
+/** Half angle of the prepass cone in pixels: from the block's centre to its farthest pixel centre (2.12) plus margin. */
+export const MARCH_CONE_PIXELS = 2.5;
+/** Start distance written for a ray whose cone never comes near the terrain: the pixel skips the march. */
+export const MARCH_NO_HIT = 1e10;
+
+export interface ConeStart {
+	/** Every ray of the cone is clear of the ground up to here, m; `MARCH_NO_HIT` when the cone never nears it. */
+	start: number;
+	steps: number;
+}
+
+/**
+ * The prepass march of one block (the planet pass does the same in GLSL): sphere-traces the ground
+ * under the block's centre ray with the clearance reduced by the cone's radius `t * coneAngle` (and by
+ * the terrain rising at the global slope bound per metre sideways), and returns the last sample before the cone may touch
+ * the ground. `coneAngle` is `MARCH_CONE_PIXELS * pixelAngle`. Same step rule as `marchTerrain`; the
+ * shader also looks inside steps that are long against the clearance, which only moves the start earlier.
+ */
+export function coneStart(
+	origin: Vec3,
+	dir: Vec3,
+	ctx: TerrainContext,
+	options: { maxSteps?: number; pixelAngle?: number; tMax?: number; coneAngle?: number } = {}
+): ConeStart {
+	const maxSteps = options.maxSteps ?? 400;
+	const pixelAngle = options.pixelAngle ?? 0.0009;
+	const coneAngle = options.coneAngle ?? MARCH_CONE_PIXELS * pixelAngle;
+	const R = ctx.radius;
+	const tMax = options.tMax ?? 400_000;
+	const at = (t: number): Vec3 =>
+		vec(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
+	const heightAt = (t: number): number => {
+		const p = at(t);
+		return Math.hypot(p.x, p.y, p.z) - R - terrainHeight(normalize(p), ctx);
+	};
+	let t = 0;
+	let prev = 0;
+	for (let i = 0; i < maxSteps; i++) {
+		const p = at(t);
+		const r = Math.hypot(p.x, p.y, p.z);
+		const n = scale(p, 1 / r);
+		const e = normalize(vec(-n.z, 0, n.x));
+		const north = vec(n.y * e.z - n.z * e.y, n.z * e.x - n.x * e.z, n.x * e.y - n.y * e.x);
+		const k = 100 / R;
+		const sample = (a: Vec3, sgn: number): number =>
+			terrainHeight(
+				normalize(vec(n.x + a.x * k * sgn, n.y + a.y * k * sgn, n.z + a.z * k * sgn)),
+				ctx
+			);
+		const slope = localMarchSlope(
+			Math.hypot((sample(e, 1) - sample(e, -1)) / 200, (sample(north, 1) - sample(north, -1)) / 200)
+		);
+		// sideways the ground may rise at the global bound, whatever the local gradient says at the centre ray
+		const cone = heightAt(t) - t * coneAngle * (1 + TERRAIN_MAX_SLOPE);
+		if (cone < 0) return { start: prev, steps: i };
+		prev = t;
+		const descent = -dot(dir, n);
+		t += marchStep(cone, descent, t, pixelAngle, slope);
+		if (t > tMax) return { start: MARCH_NO_HIT, steps: i };
+	}
+	return { start: prev, steps: maxSteps };
+}
 
 export interface MarchResult {
 	hit: boolean;

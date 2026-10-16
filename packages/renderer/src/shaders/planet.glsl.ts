@@ -19,10 +19,14 @@ import {
 	TERRAIN_MAX_SLOPE
 } from '@orbital/core';
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
+import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.ts';
+import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
 import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
 import {
+	MARCH_BLOCK,
+	MARCH_NO_HIT,
 	STEP_FAR_FRACTION,
 	STEP_MIN_FRACTION,
 	STEP_MIN_METRES,
@@ -66,84 +70,12 @@ void main() {
 }
 `;
 
-export const planetFragment = /* glsl */ `
-#include <common>
-#include <logdepthbuf_pars_fragment>
-${atmosphereGLSL}
-${siteConstants()}
-${waveConstants()}
-
-varying vec2 vNdc;
-
-uniform mat4 uInvProj;
-uniform mat3 uCamRot;
-uniform vec3 uCamPos;      // camera, render space
-uniform vec3 uCamUp;       // unit radial of the camera (inertial)
-uniform float uAlt;        // camera altitude above the sphere, m (float64 on the CPU)
-uniform float uPixelAngle; // rad per pixel at the screen centre
-uniform vec3 uSunDir;      // toward the sun, inertial
-uniform vec3 uSunBF;       // toward the sun, body-fixed
-uniform mat3 uBodyInv;     // inertial -> body-fixed
-uniform vec3 uCamLocal;    // camera minus anchor, body-fixed, m
-uniform vec3 uAnchorCell;  // anchor / 1024 m, integers
-uniform vec3 uCamToSite;   // camera minus launch site, body-fixed, m
-uniform vec3 uSiteEast;
-uniform vec3 uSiteNorth;
-uniform vec3 uSiteUp;
-uniform sampler2D uMap;
-uniform float uMapTexel;   // metres per map texel at the equator
-uniform vec3 uAmbient;     // sky irradiance at the camera (already times PI)
-uniform float uAmbientRefMu;
-uniform vec3 uSkyColour;   // mean sky radiance at the camera (ocean reflection)
-uniform float uCloudCover;
-uniform float uCloudAngle;
-uniform float uCloudAlt;
-uniform float uCirrusAlt;
-uniform float uStarBright;
-uniform float uShadowOn;
-uniform sampler2DShadow uShadowMap;
-uniform mat4 uShadowMatrix;
-uniform float uShadowBias;
-uniform float uShadowTexel;
-uniform float uSiteRadius;
-uniform float uSiteLamps;
-uniform float uTime;           // seconds, wrapped at the wave period
-uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
-
-const float SEA = ${f(SEA_LEVEL)};
-const float BEACH = ${f(BEACH_WIDTH)};
-const float HIGH = ${f(HIGHLAND)};
-const float SUN_ANGULAR_RADIUS = 0.0055;
-const float SUN_DISC_RADIANCE = 70.0;
-const vec3 NIGHT_AMBIENT = vec3(0.0035, 0.0048, 0.0095);
-
-float ign(vec2 p) { return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
-
-// Value noise whose lattice cell is (floor(pl / lam) + anchorCell * 1024 / lam): exact for lam = 1024 / 2^k.
-float noiseA(vec3 pl, float lam, int salt) {
-	vec3 f = pl / lam;
-	vec3 fl = floor(f);
-	ivec3 c = ivec3(fl) + ivec3(uAnchorCell) * int(1024.0 / lam + 0.5) + ivec3(salt * 131, salt * 71, salt * 17);
-	return valueNoiseCell(c, f - fl);
-}
-
-${terrainNoiseGLSL}
-
-float fbmF(vec3 p, int octaves) {
-	float sum = 0.0;
-	float amp = 1.0;
-	float norm = 0.0;
-	for (int i = 0; i < 6; i++) {
-		if (i >= octaves) break;
-		sum += amp * noiseF(p + float(i) * 7.31);
-		norm += amp;
-		amp *= 0.5;
-		p = OCT_ROT * p * 2.03;
-	}
-	return sum / norm;
-}
-
-
+/**
+ * The terrain sampling and march shared by the planet pass and the march prepass (plan 039, ADR 0053):
+ * baked heights (cube map, mid and fine patches), the sphere-traced march and the sun shadow march.
+ * Expects `uR`, `uBodyInv`, `uPixelAngle` and `raySphere` from the includer.
+ */
+export const terrainMarchGLSL = /* glsl */ `
 // --- terrain (ADR 0036) -------------------------------------------------------------------------
 #if TERRAIN
 uniform samplerCube uTerrain;
@@ -161,6 +93,11 @@ uniform vec3 uMidE;
 uniform vec3 uMidF;
 uniform vec2 uMidK;
 uniform float uSkipR;      // ground distance from the camera inside which terrain is flat, m
+uniform sampler2D uMarchStart; // march prepass: where each block of pixels may first meet the ground (plan 039)
+uniform float uMarchOn;
+uniform float uMarchSteps; // steps the per-pixel march may take (the prepass crossed the rest)
+const int MARCH_BLOCK = ${MARCH_BLOCK};
+const float MARCH_NO_HIT = ${f(MARCH_NO_HIT)};
 const float T_MAX = ${f(TERRAIN_MAX_HEIGHT)};
 const float T_SLOPE = ${f(TERRAIN_MAX_SLOPE)};
 const float T_SLOPE_MIN = ${f(TERRAIN_MARCH_SLOPE_MIN)};
@@ -235,20 +172,31 @@ float terrainH(vec3 pI, out float gmag) {
 			}
 		}
 	}
-	vec4 t = textureLod(uTerrain, nB, 0.0);
-	h = t.r + t.g;
-	gmag = length(t.ba);
+	// The mid patch is read first: well inside it the cube map is not needed at all (one fetch saved per
+	// march step over most of a ground-level view, plan 039).
+	float wMid = 0.0;
+	vec3 qMid = vec3(0.0);
 	if (uMidK.y > 0.5) {
 		float d = dot(nB, uMidC);
 		if (d > 0.5) {
 			vec2 uv = vec2(dot(nB, uMidE), dot(nB, uMidF)) * (uMidK.x / d);
 			float m = max(abs(uv.x), abs(uv.y));
 			if (m < 1.0) {
-				float w = 1.0 - smoothstep(${f(PATCH_BLEND.start)}, ${f(PATCH_BLEND.end)}, m);
-				vec3 q = patchFetch(uPatchMid, uv);
-				h = mix(h, q.x, w);
-				gmag = mix(gmag, length(q.yz), w);
+				wMid = 1.0 - smoothstep(${f(PATCH_BLEND.start)}, ${f(PATCH_BLEND.end)}, m);
+				qMid = patchFetch(uPatchMid, uv);
 			}
+		}
+	}
+	if (wMid >= 1.0) {
+		h = qMid.x;
+		gmag = length(qMid.yz);
+	} else {
+		vec4 t = textureLod(uTerrain, nB, 0.0);
+		h = t.r + t.g;
+		gmag = length(t.ba);
+		if (wMid > 0.0) {
+			h = mix(h, qMid.x, wMid);
+			gmag = mix(gmag, length(qMid.yz), wMid);
 		}
 	}
 	if (wFine > 0.0) {
@@ -266,13 +214,15 @@ float rayAltitude(float r0, float d, float t, vec3 p) {
 }
 
 // Sphere-traces the baked heights from the camera ray; true with the hit distance in tOut.
-bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, out float tOut) {
+// tFrom: where the march prepass proved the terrain cannot be hit before (0 without it).
+bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom, out float tOut) {
 	tOut = 0.0;
 	vec2 shell = raySphere(r0, d, uR + T_MAX);
 	if (shell.y <= 0.0) return false;
 	float t = max(shell.x, 0.0);
 	float tEnd = min(shell.y, tLimit);
 	if (uSkipR > 0.0) t = max(t, uSkipR / sqrt(max(1.0 - d * d, 0.0025)));
+	t = max(t, tFrom);
 	if (t >= tEnd) return false;
 	float tPrev = t;
 	float cPrev = 1.0;
@@ -280,6 +230,7 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, out float t
 	bool hit = false;
 	float gm = 0.0;
 	for (int i = 0; i < TERRAIN_STEPS; i++) {
+		if (float(i) >= uMarchSteps) break;
 		vec3 p = ro + rd * t;
 		float r = length(p);
 		float c = rayAltitude(r0, d, t, p) - terrainH(p, gm);
@@ -367,6 +318,87 @@ float terrainShadow(vec3 pI, vec3 sunI) {
 	return vis;
 }
 #endif
+`;
+
+export const planetFragment = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_fragment>
+${atmosphereGLSL}
+${siteConstants()}
+${waveConstants()}
+
+varying vec2 vNdc;
+
+uniform mat4 uInvProj;
+uniform mat3 uCamRot;
+uniform vec3 uCamPos;      // camera, render space
+uniform vec3 uCamUp;       // unit radial of the camera (inertial)
+uniform float uAlt;        // camera altitude above the sphere, m (float64 on the CPU)
+uniform float uPixelAngle; // rad per pixel at the screen centre
+uniform vec3 uSunDir;      // toward the sun, inertial
+uniform vec3 uSunBF;       // toward the sun, body-fixed
+uniform mat3 uBodyInv;     // inertial -> body-fixed
+uniform vec3 uCamLocal;    // camera minus anchor, body-fixed, m
+uniform vec3 uAnchorCell;  // anchor / 1024 m, integers
+uniform vec3 uCamToSite;   // camera minus launch site, body-fixed, m
+uniform vec3 uSiteEast;
+uniform vec3 uSiteNorth;
+uniform vec3 uSiteUp;
+uniform sampler2D uMap;
+uniform float uMapTexel;   // metres per map texel at the equator
+uniform vec3 uAmbient;     // sky irradiance at the camera (already times PI)
+uniform float uAmbientRefMu;
+uniform vec3 uSkyColour;   // mean sky radiance at the camera (ocean reflection)
+uniform float uCloudCover;
+uniform float uCloudAngle;
+uniform float uCloudAlt;
+uniform float uCirrusAlt;
+uniform float uStarBright;
+uniform float uShadowOn;
+uniform sampler2DShadow uShadowMap;
+uniform mat4 uShadowMatrix;
+uniform float uShadowBias;
+uniform float uShadowTexel;
+uniform float uSiteRadius;
+uniform float uSiteLamps;
+uniform float uTime;           // seconds, wrapped at the wave period
+uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
+
+const float SEA = ${f(SEA_LEVEL)};
+const float BEACH = ${f(BEACH_WIDTH)};
+const float HIGH = ${f(HIGHLAND)};
+const float SUN_ANGULAR_RADIUS = 0.0055;
+const float SUN_DISC_RADIANCE = 70.0;
+const vec3 NIGHT_AMBIENT = vec3(0.0035, 0.0048, 0.0095);
+
+float ign(vec2 p) { return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
+
+// Value noise whose lattice cell is (floor(pl / lam) + anchorCell * 1024 / lam): exact for lam = 1024 / 2^k.
+float noiseA(vec3 pl, float lam, int salt) {
+	vec3 f = pl / lam;
+	vec3 fl = floor(f);
+	ivec3 c = ivec3(fl) + ivec3(uAnchorCell) * int(1024.0 / lam + 0.5) + ivec3(salt * 131, salt * 71, salt * 17);
+	return valueNoiseCell(c, f - fl);
+}
+
+${terrainNoiseGLSL}
+
+float fbmF(vec3 p, int octaves) {
+	float sum = 0.0;
+	float amp = 1.0;
+	float norm = 0.0;
+	for (int i = 0; i < 6; i++) {
+		if (i >= octaves) break;
+		sum += amp * noiseF(p + float(i) * 7.31);
+		norm += amp;
+		amp *= 0.5;
+		p = OCT_ROT * p * 2.03;
+	}
+	return sum / norm;
+}
+
+
+${terrainMarchGLSL}
 
 // --- clouds -----------------------------------------------------------------------------------
 vec3 rotY(vec3 v, float a) {
@@ -629,7 +661,9 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	Nb = normalize(Nb + (Nr - nBF));
 	float slope = 1.0 - dot(Nb, nBF);
 	float tanS = length(gT);
-	Nb = normalize(Nb + (normalize(nBF - gT) - nBF));
+	// distant slopes are drawn steeper than they are (shading only): a pixel tens of metres wide averages the crags away
+	float exag = 1.0 + ${f(SLOPE_EXAGGERATION)} * smoothstep(${f(SLOPE_EXAGGERATION_RANGE[0])}, ${f(SLOPE_EXAGGERATION_RANGE[1])}, footprint);
+	Nb = normalize(Nb + (normalize(nBF - gT * exag) - nBF));
 
 	// --- vegetation colours -------------------------------------------------------------------
 	float lushness = clamp(0.5 + colourNoise * 0.6, 0.0, 1.0);
@@ -818,7 +852,12 @@ void main() {
 	bool hitT = false;
 	float tT = 0.0;
 #if TERRAIN
-	if (uTerrainOn > 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tT);
+	if (uTerrainOn > 0.5) {
+		// the march prepass (a quarter of the pixels in each direction) already crossed the empty air
+		float tFrom = 0.0;
+		if (uMarchOn > 0.5) tFrom = texelFetch(uMarchStart, ivec2(gl_FragCoord.xy) / MARCH_BLOCK, 0).r;
+		if (tFrom < MARCH_NO_HIT * 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tFrom, tT);
+	}
 #endif
 	bool hitG = hitP || hitT;
 	float tG = hitT ? tT : tHit;
@@ -861,17 +900,25 @@ void main() {
 		vec3 posRender = uCamPos + rd * tG;
 		float sh = shadowFactor(posRender);
 #if TERRAIN && TERRAIN_SHADOW_STEPS > 0
-		if (hitT && geo > -0.05) sh *= terrainShadow(posRel + nGeoI * 2.0, uSunDir);
+		// The 8-sample shadow march cannot resolve ridge shadows once a pixel is hundreds of metres wide: it only
+		// blackens isolated pixels along crests (plan 039). Beyond a footprint of 40 m it fades out; past 160 m
+		// it is not run, which also saves its eight height reads for the far half of the screen.
+		if (hitT && geo > -0.05 && footprint < 160.0) {
+			float vis = terrainShadow(posRel + nGeoI * 2.0, uSunDir);
+			sh *= mix(vis, 1.0, smoothstep(40.0, 160.0, footprint));
+		}
 #endif
 #if CLOUD_SHADOWS
 		if (geo > 0.04) {
 			float sc = raySphere(R, geo, uCloudAlt).y;
 			vec3 q = nBF * R + Lb * sc;
-			sh *= 1.0 - 0.45 * cloudDensity(normalize(q), false, 800.0);
+			sh *= 1.0 - 0.45 * cloudDensity(normalize(q), false, 2000.0);
 		}
 #endif
 		float k = max(0.0, 0.02 + smoothstep(-0.2, 0.4, geo)) / max(0.02 + smoothstep(-0.2, 0.4, uAmbientRefMu), 0.02);
-		vec3 amb = uAmbient * k + NIGHT_AMBIENT * kPI;
+		// a slope sees less of the sky than level ground: half of it when it stands on end (plan 039)
+		float skyVis = 0.5 + 0.5 * dot(sf.normal, nBF);
+		vec3 amb = uAmbient * k * skyVis + NIGHT_AMBIENT * kPI;
 		vec3 lit = sf.albedo / kPI * (uSunIrr * sunT * ndl * sh + amb + sf.lampE);
 		if (sf.spec > 0.0) {
 			vec3 V = -rdBF;
@@ -886,7 +933,8 @@ void main() {
 		depthDist = tG;
 	} else {
 		float px = uPixelAngle;
-		base = stars(rd, px);
+		// the star field is skipped (not just dimmed) when daylight hides it: it is ~15 hash lookups and an fbm per sky pixel
+		base = uStarBright > 0.002 ? stars(rd, px) : vec3(0.0);
 		float ang = dot(rd, uSunDir) > 0.0 ? length(cross(rd, uSunDir)) : 2.0;
 		float disc2 = 1.0 - smoothstep(SUN_ANGULAR_RADIUS * 0.8, SUN_ANGULAR_RADIUS * 1.08, ang);
 		float x = clamp(ang / SUN_ANGULAR_RADIUS, 0.0, 1.0);
@@ -950,6 +998,13 @@ void main() {
 	if (inAtm) {
 		float power = h < uAtmH ? 2.0 : 1.0;
 		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tcA, tcB, power);
+		if (hitT) {
+			// terrain reads through a thinner veil than the model gives; it matches the sky's again at the horizon (terrainVeil in atmosphere-model.ts)
+			float vs = mix(${f(TERRAIN_VEIL.near)}, 1.0, smoothstep(${f(TERRAIN_VEIL.fadeFrom)}, ${f(TERRAIN_VEIL.fadeTo)}, tG));
+			sc.inscatter *= vs;
+			sc.insA *= vs;
+			sc.insB *= vs;
+		}
 		colour = base * sc.transmittance + sc.inscatter;
 #if CLOUDS
 		if (hitA || hitB) {
