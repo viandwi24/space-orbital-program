@@ -15,9 +15,9 @@ import {
 const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	format: SIM_SAVE_FORMAT,
 	formatVersion: SIM_SAVE_VERSION,
-	apiVersion: '0.1.12',
+	apiVersion: '0.1.13',
 	mods: [{ id: 'stock', version: '0.1.0' }],
-	body: 'stock.home',
+	bodies: ['stock.home'],
 	dt: 0.02,
 	seed: 1,
 	time: 12.5,
@@ -122,28 +122,54 @@ describe('readSimSave', () => {
 
 describe('migration chain', () => {
 	/** A format-1 save, as an older game wrote it, upgraded by a pretend format 2 (and 3). */
-	const toTwo: SaveMigration = (data) => ({ ...data, formatVersion: 2, renamed: data.body });
+	const toTwo: SaveMigration = (data) => ({ ...data, formatVersion: 2, renamed: data.time });
 	const toThree: SaveMigration = (data) => {
 		const { renamed, ...rest } = data;
-		return { ...rest, formatVersion: 3, body: renamed };
+		return { ...rest, formatVersion: 3, time: renamed };
 	};
 
 	test('a save of an older version is upgraded step by step before it is validated', () => {
-		const old = signed(); // version 1, checksum over its own bytes
+		const old = signed({ ...unsigned(), formatVersion: 1 }); // checksum over its own bytes
 		const upgraded = readSimSave(old, { 1: toTwo, 2: toThree }, 3);
 		expect(upgraded.formatVersion).toBe(3);
-		expect(upgraded.body).toBe('stock.home');
+		expect(upgraded.bodies).toEqual(['stock.home']);
 		expect(upgraded.time).toBe(12.5);
 		// Signed again, so the upgraded save passes a second read.
 		expect(readSimSave(upgraded, {}, 3)).toEqual(upgraded);
 	});
 
 	test('the checksum is verified against the version the file was written in', () => {
-		const tampered = { ...signed(), time: 1 };
+		const tampered = { ...signed({ ...unsigned(), formatVersion: 1 }), time: 1 };
 		expect(code(() => readSimSave(tampered, { 1: toTwo }, 2))).toBe('damaged');
 	});
 
 	test('a missing step is "incompatible", not a crash', () => {
-		expect(code(() => readSimSave(signed(), {}, 2))).toBe('incompatible');
+		expect(code(() => readSimSave(signed({ ...unsigned(), formatVersion: 1 }), {}, 2))).toBe(
+			'incompatible'
+		);
+	});
+
+	test('the shipped 1 to 2 step makes the root body a list and centres every frame on it', () => {
+		const { bodies: _b, ...rest } = unsigned();
+		const v1 = {
+			...rest,
+			formatVersion: 1,
+			body: 'stock.home',
+			frames: [
+				{
+					id: 0,
+					inUse: false,
+					origin: { x: 0, y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: 0 },
+					vessels: [],
+					bodies: []
+				}
+			]
+		};
+		const save = readSimSave({ ...v1, checksum: simSaveChecksum(v1 as never) });
+		expect(save.formatVersion).toBe(2);
+		expect(save.bodies).toEqual(['stock.home']);
+		expect(save.frames[0]!.soi).toBe('stock.home');
+		expect('body' in save).toBe(false);
 	});
 });

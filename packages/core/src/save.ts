@@ -15,7 +15,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 1;
+export const SIM_SAVE_VERSION = 2;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -47,6 +47,8 @@ export interface SaveFrame {
 	inUse: boolean;
 	origin: Vec3;
 	velocity: Vec3;
+	/** Id of the body whose body-centred frame the frame's origin and velocity are in (format 2). */
+	soi: string;
 	vessels: number[];
 	bodies: SaveBody[];
 }
@@ -58,8 +60,8 @@ export interface SimSave {
 	apiVersion: string;
 	/** Booted plugins in boot order. Resume refuses a save whose plugin is not loaded. */
 	mods: SaveMod[];
-	/** Id of the simulated root body. */
-	body: string;
+	/** Ids of every body of the sim, root first (format 2; format 1 had the root only, `body`). */
+	bodies: string[];
 	/** Fixed step the run used; a different step would break determinism. */
 	dt: number;
 	/** Seed the sim started with (informational; `rng` is the live state). */
@@ -100,6 +102,7 @@ const saveFrameSchema = z.object({
 	inUse: z.boolean(),
 	origin: vec3,
 	velocity: vec3,
+	soi: z.string().min(1),
 	vessels: z.array(entity),
 	bodies: z.array(saveBodySchema)
 });
@@ -109,7 +112,7 @@ export const simSaveSchema = z.object({
 	formatVersion: z.int().positive(),
 	apiVersion: z.string(),
 	mods: z.array(z.object({ id: z.string().min(1), version: z.string() })),
-	body: z.string().min(1),
+	bodies: z.array(z.string().min(1)).min(1),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
 	seed: finite,
 	time: finite.refine((t) => t >= 0, 'time must not be negative'),
@@ -147,11 +150,25 @@ export function simSaveChecksum(save: Omit<SimSave, 'checksum'>): string {
 export type SaveMigration = (data: Record<string, unknown>) => Record<string, unknown>;
 
 /**
- * The migration chain (versioning.md). Empty for now: version 1 is the first format. A future
- * format 2 adds `1: (data) => ({ ...data, formatVersion: 2, ... })` here, keeps the version 1
- * fixture under `packages/core/test/fixtures` and extends the test that loads it.
+ * The migration chain (versioning.md), keyed by the version a step upgrades from. 1 to 2 (plan 044,
+ * ADR 0051): the single root `body` becomes the list `bodies`, and every frame says which body it
+ * is centred on (`soi`, the root: a version 1 sim had no other). The version 1 fixture is
+ * `packages/sim/test/fixtures/save-v1.json`.
  */
-export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {};
+export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
+	1: (data) => {
+		const { body, frames, ...rest } = data;
+		if (typeof body !== 'string' || !Array.isArray(frames)) {
+			throw new SaveError('damaged', 'This save is damaged: it has no root body or frames.');
+		}
+		return {
+			...rest,
+			formatVersion: 2,
+			bodies: [body],
+			frames: frames.map((f) => (isRecord(f) ? { ...f, soi: body } : f))
+		};
+	}
+};
 
 export class SaveError extends Error {
 	override readonly name = 'SaveError';

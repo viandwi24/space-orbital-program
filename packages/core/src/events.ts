@@ -15,6 +15,11 @@ export interface EventMap {
 	/** A vessel was loaded, or split off `from` another one. */
 	'vessel:created': { vessel: EntityId; from?: EntityId };
 	'vessel:destroyed': { vessel: EntityId; reason: string };
+	/**
+	 * A vessel crossed a sphere of influence boundary (plan 044, ADR 0051): `from` and `to` are body
+	 * ids. Its state is now relative to `to`.
+	 */
+	'vessel:soi-changed': { vessel: EntityId; from: string; to: string };
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**
