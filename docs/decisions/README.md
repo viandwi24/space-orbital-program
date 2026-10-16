@@ -56,3 +56,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0036 | [Terrain heights are visual: baked on the GPU, ray-marched by the planet pass](0036-visual-terrain-heights-baked-and-ray-marched.md) | accepted | 2026-10-16 |
 | 0037 | [Haze by thicker air, two cloud layers in one march, moving waves](0037-haze-and-cloud-layers.md) | accepted | 2026-10-16 |
 | 0038 | [The script Worker runs in a sandboxed iframe with a no-network CSP](0038-script-sandbox-in-an-opaque-origin-iframe.md) | accepted | 2026-10-16 |
+| 0041 | [Vessel library and sub-assemblies: IndexedDB records of format-2 designs](0041-vessel-library-and-sub-assemblies.md) | accepted | 2026-10-17 |
+| 0042 | [Stability read-out: centre of mass against centre of pressure, from part data](0042-stability-read-out-centre-of-mass-and-pressure.md) | accepted | 2026-10-17 |

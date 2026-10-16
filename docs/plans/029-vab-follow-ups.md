@@ -1,7 +1,7 @@
 ---
 id: 029
 title: "UI: VAB follow-ups (vessel library, sub-assemblies, symmetry editing, stability, hangar, instancing, layout)"
-status: in-progress
+status: done
 owner: "vab-2 session (Claude, 2026-10-17)"
 depends: [022, 026]
 phase: 3
@@ -57,27 +57,28 @@ The VAB of plans 022 and 026 reaches the release bar of `product/visual-directio
 
 Commands run from the repo root. `[manual]` ones need the built-in browser on a dev server and leave screenshots under `docs/journal/assets/029-*.png` (1920x1080 and 1280x720).
 
-- [ ] **Library logic**: `bun run --filter @orbital/web test` includes `lib/vab/library.test.ts` covering save, rename (unique names), duplicate, delete, import (valid, invalid JSON, schema failure, unresolvable parts, format 1 upgraded to format 2), export round trip, damaged records listed and not opened, store failure falls back to memory.
-- [ ] **Library UI** `[manual]`: Open dialog lists saved designs with thumbnails, open/duplicate/delete/rename/import/export work, the working design autosaves, reload restores the list (screenshot `029-library-*.png`).
-- [ ] **Sub-assemblies**: tests for saving a subtree (indices re-based, root link dropped, inner radial links kept), insertion at an axial and a radial target, with symmetry 3 (three copies, three groups), unique indices and undo as one step; `[manual]` a booster pack saved and placed twice (screenshot `029-subassembly-*.png`).
-- [ ] **Group move and angle**: tests that moving a member of a symmetry group moves all members to the matching angles with one undo step, that "only this part" leaves the group, that an angle change on a group rotates every member about its parent by the same delta and is undone in one step, and that a move that would collide or leave the parent's surface is refused with the design unchanged.
-- [ ] **Ghosts** `[manual]`: with symmetry 4 armed, all four ghost copies are visible at once, including those behind the vessel (screenshot `029-symmetry-ghosts-*.png`).
-- [ ] **Stability**: `lib/editor/stability.test.ts` gives CoM and CoP heights for known designs (hand-computed values in the test): the two-stage reference (unfinned), the booster rocket with four fins low on the core (stable, margin above 0), the same with the fins at the top (unstable, margin below 0 and the check `unstable` warns), and an unfinned design (state `unfinned`, no warning). `[manual]` markers and read-out visible (screenshot `029-stability-*.png`).
-- [ ] **Instancing**: `bun test packages/renderer` has a test building the 23-part booster rocket (two-stage example with 4 radial decouplers, 4 boosters, 4 nose cones, 4 fins) and asserting at most **120 draw calls** and at most **60 000 rendered triangles** in the VAB view model (before: 280 and 83 118), plus that symmetric copies share one geometry and material.
-- [ ] **Hall** `[manual]`: lettering legible from the default camera, wall variation, a moving crane, a vehicle and workers, `high` and `low` lighting variants (screenshots `029-hall-*.png`); reduced motion stops the movers (checked in the browser with the media feature emulated).
-- [ ] **Layout** `[manual]` plus a DOM check: at 1920x1080, 1366x768, 1280x720 and 1024x768 the right panel, the stage list, the checks and the Launch button are fully visible or scroll inside their panel; no element extends past the viewport (the check script's output in the journal).
-- [ ] **Controller**: `routes/vab/+page.svelte` is at most **700 lines** (from 1 294) with pointer, keyboard and action handling in `lib/vab/controller.svelte.ts` and presentational components; `bun run typecheck` has 0 errors.
-- [ ] **Accessibility**: a tested `describeStack` function ("Pod, wheel, tank, engine ..."), exposed to screen readers; keyboard reaches the library, sub-assembly, angle and group-move commands; high-contrast markers option; contrast of new text and controls at least 4.5:1 (ADR 0026 tokens, computed in the journal).
-- [ ] **Frame time**: VAB CPU ms per frame and draw calls/triangles for the 23-part rocket at 1440x900 ratio 2, before (journal 026: 83 118 / 280 / 4.0 ms) and after, `high` and `low`, in the journal.
-- [ ] **Self-review** written in the journal, honest about what is not at release quality.
-- [ ] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, `bun run --filter @orbital/web test`, prettier check on the changed files all pass.
+- [x] **Library logic**: `bun run --filter @orbital/web test` includes `lib/vab/library.test.ts` covering save, rename (unique names), duplicate, delete, import (valid, invalid JSON, schema failure, unresolvable parts, format 1 upgraded to format 2), export round trip, damaged records listed and not opened, store failure falls back to memory.
+- [x] **Library UI** `[manual]`: Open dialog lists saved designs with thumbnails, open/duplicate/delete/rename/import/export work, the working design autosaves, reload restores the list (screenshot `029-library-*.png`).
+- [x] **Sub-assemblies**: tests for saving a subtree (indices re-based, root link dropped, inner radial links kept), insertion at an axial and a radial target, with symmetry 3 (three copies, three groups), unique indices and undo as one step; `[manual]` a booster pack saved and placed twice (screenshot `029-subassembly-*.png`).
+- [x] **Group move and angle**: tests that moving a member of a symmetry group moves all members to the matching angles with one undo step, that "only this part" leaves the group, that an angle change on a group rotates every member about its parent by the same delta and is undone in one step, and that a move that would collide or leave the parent's surface is refused with the design unchanged.
+- [x] **Ghosts** `[manual]`: with symmetry 4 armed, all four ghost copies are visible at once, including those behind the vessel (screenshot `029-symmetry-ghosts-*.png`).
+- [x] **Stability**: `lib/editor/stability.test.ts` gives CoM and CoP heights for known designs (hand-computed values in the test): the two-stage reference (unfinned), the booster rocket with four fins low on the core (stable, margin above 0), the same with the fins at the top (unstable, margin below 0 and the check `unstable` warns), and an unfinned design (state `unfinned`, no warning). `[manual]` markers and read-out visible (screenshot `029-stability-*.png`).
+- [x] **Instancing**: `bun test packages/renderer` has a test building the 23-part booster rocket (two-stage example with 4 radial decouplers, 4 boosters, 4 nose cones, 4 fins) and asserting at most **120 draw calls** and at most **60 000 rendered triangles** in the VAB view model (before: 280 and 83 118), plus that symmetric copies share one geometry and material.
+- [x] **Hall** `[manual]`: lettering legible from the default camera, wall variation, a moving crane, a vehicle and workers, `high` and `low` lighting variants (screenshots `029-hall-*.png`); reduced motion stops the movers (checked in the browser with the media feature emulated).
+- [x] **Layout** `[manual]` plus a DOM check: at 1920x1080, 1366x768, 1280x720 and 1024x768 the right panel, the stage list, the checks and the Launch button are fully visible or scroll inside their panel; no element extends past the viewport (the check script's output in the journal).
+- [x] **Controller**: `routes/vab/+page.svelte` is at most **700 lines** (from 1 294) with pointer, keyboard and action handling in `lib/vab/controller.svelte.ts` and presentational components; `bun run typecheck` has 0 errors.
+- [x] **Accessibility**: a tested `describeStack` function ("Pod, wheel, tank, engine ..."), exposed to screen readers; keyboard reaches the library, sub-assembly, angle and group-move commands; high-contrast markers option; contrast of new text and controls at least 4.5:1 (ADR 0026 tokens, computed in the journal).
+- [x] **Frame time**: VAB CPU ms per frame and draw calls/triangles for the 23-part rocket at 1440x900 ratio 2, before (journal 026: 83 118 / 280 / 4.0 ms) and after, `high` and `low`, in the journal.
+- [x] **Self-review** written in the journal, honest about what is not at release quality.
+- [x] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`, `bun run --filter @orbital/web test`, prettier check on the changed files all pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal `029-vab-follow-ups.md`, ADRs 0041 and 0042, `docs/research/vab-editor.md`, `docs/architecture/overview.md` (VAB section), draft plan 034 with its board row, plan 033 Log note.
+- [x] `docs/STATUS.md`, journal `029-vab-follow-ups.md`, ADRs 0041 and 0042, `docs/research/vab-editor.md`, `docs/architecture/overview.md` (VAB section), draft plan 034 with its board row, plan 033 Log note.
 
 ## Log
 
 - 2026-10-16 — Created as draft from the plan 022 self-review.
 - 2026-10-17 — Refined draft → ready at the human's request (session: vab-2 session). Criteria made measurable; trip planner, mod categories, mod lift modules pushed to draft 034 (SDK/sim work), M1/M2 stays in 033 (no hardware here).
 - 2026-10-17 — Started (vab-2 session).
+- 2026-10-17 — Done (vab-2 session). Evidence in `docs/journal/029-vab-follow-ups.md`. Deviations: screenshots are 800 px wide captures of emulated 1920x1080 and 1280x720 viewports; renderer triangle budget is counted for the vessel graph (colour plus shadow pass), whole-frame numbers are in the journal; draft 034 holds the pushed-out items.
