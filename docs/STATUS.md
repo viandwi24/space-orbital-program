@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress by the VAB session; 022 (3D vehicle assembly building) is done
-**Next plan:** 023 (release readiness; builds on the design system, the HUD and the VAB) and the follow-up drafts 024, 026 and 027 (025 is done). Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md). Draft 018 (script sharing) is parked.
+**Next plan:** 023 (release readiness; builds on the design system, the HUD and the VAB) and the follow-up drafts 024, 026 and 027 (025 is done). Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -27,7 +27,7 @@
 | 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | done | heating session | ADR 0023; Sutton-Graves skin heating, radiation, `maxTemperature`, ablative `stock.heat-shield`; API 0.1.4; unshielded deorbit probe loses its tank at 900 K, shielded survives burning 18.75 kg of ablator |
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | done | script-web session | ADR 0022; runner in the sim Worker, script panel in `/flight`; sample ascent from the panel reaches a 76.9 km periapsis, `while (true) {}` is terminated at the 10 ms budget with the page live |
 | 017 | [Script panel follow-ups and landed HUD](plans/017-script-panel-follow-ups.md) | done | panel session | no ADR; script text persists per design, HUD stage counter follows `stage:activated` (a script's `stage()` counts), HUD shows landed/orbit/suborbital/flight with warp buttons; dev autopilot starts from surface rails |
-| 018 | [Script sharing container and ship API constants](plans/018-script-sharing-and-ship-api.md) | draft | — | split from 017: runner in its own Worker when scripts become shareable, engine/wheel constants in `ship` |
+| 018 | [Script sharing container and ship API constants](plans/018-script-sharing-and-ship-api.md) | done | script-api session | ADR 0031: each Run's script in its own killable Worker (a native `indexOf` stalled QuickJS 25 s past the budget), watchdog 500 ms, command filter; `ship.engines`/`wheels`, sample without constants, `guides/scripting.md`; browser run to orbit not repeated (see plan) |
 | 019 | [Visual: flight environment](plans/019-flight-environment.md) | done | environment session | ADR 0027; analytic planet + atmosphere + clouds + stars pass, launch site, sun with shadows, bloom/ACES chain, presets low/medium/high (`Renderer.setPreset`); 1080p high 8-15 ms on an M5, M1/M2 not measured; launch site inferred from the first vessel (sim places at an inertial longitude, see plan 025) |
 | 020 | [Visual: part models, materials and effects](plans/020-part-models-and-effects.md) | done | parts session | ADR 0028 (mod-supplied `visual` descriptor, API 0.1.6, `PartModelProvider` interface); procedural part meshes with PBR and generated textures, plume by throttle and pressure, smoke and dust, separation gas, explosions, re-entry glow and plasma; `high` under 16.7 ms sync on an M5 (M1/M2 not measured); explosion, vacuum and re-entry shots use synthetic snapshots |
 | 021 | [UI: design system and flight HUD](plans/021-hud-and-ui-design-system.md) | done | hud session | ADR 0026; tokens, components, own icons and OFL fonts in `apps/web/src/lib/ui`; canvas navball, surface/orbit speed, stage stack with exact per-stage Δv (`lib/delta-v.ts`, shared with the VAB), toasts from sim events, pause menu, controls overlay, map Ap/Pe markers; sim host `pause` and `sim-event` messages |
@@ -38,6 +38,7 @@
 | 026 | [Visual: part follow-ups](plans/026-part-visual-follow-ups.md) | draft | — | radial parts and fins, glTF asset provider, engine states, volumetric smoke, real debris, plasma shape, M1/M2 tuning; from the 020 self-review |
 | 029 | [UI: VAB follow-ups](plans/029-vab-follow-ups.md) | draft | — | from 022: vessel library, sub-assemblies, radial attach (needs 026), hangar polish, mod-supplied categories, fuller trip planner, M1/M2 measurements |
 | 027 | [Visual: terrain geometry, sky and device follow-ups](plans/027-terrain-and-sky-follow-ups.md) | draft | — | from 025: heightfield terrain with silhouettes, cloud layers and haze, water, animated site, M1/M2 measurements |
+| 030 | [Script hardening and tooling follow-ups](plans/030-script-hardening-and-tooling.md) | draft | — | from 018: CSP/sandboxed iframe for the script Worker, Safari/Firefox nested Workers, share/import UI, API additions |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -62,10 +63,11 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex; parts only break off by ground impact (plan 012, ADR 0019), not by load or collision between vessels. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
 - Sim limits (see `architecture/simulation.md`): flat ground tile on the reference sphere (no terrain heights), no lift/fins, simplified re-entry heating (windward area only, no conduction/wake, ADR 0023), one 2.5 km physics bubble, attitude frozen on rails.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
-- Scripts run on the caller's thread with a per-tick wall-clock budget (ADR 0020, `architecture/scripting.md`): a runaway script delays the host by at most one budget. In the web client the runner runs inside the sim Worker (plan 015, ADR 0022), so it delays a sim tick, never a frame; a healthy script adds its per-tick work to every sim tick. QuickJS-WASM is unaudited upstream. A script's first tick (cold QuickJS) can sit near the 10 ms budget in dev (journal 017).
+- Scripts run in their own Worker per Run (plan 018, ADR 0031): a runaway or wedged script cannot delay a sim tick and is killed after 500 ms without an answer; commands act on data one or more ticks old. The per-tick interrupt budget (10 ms, first tick 200 ms) does not bound native builtins (a long `indexOf` ran 25 s). QuickJS-WASM is unaudited upstream and the script Worker still has same-origin `fetch` and IndexedDB (hosting CSP and a sandboxed iframe are draft 030). Nested Workers verified in the built-in (Chromium) browser only.
 
 ## Recent journal entries
 
+- [018 — Script sharing container and ship API constants](journal/018-script-sharing-and-ship-api.md)
 - [022 — UI: 3D vehicle assembly building](journal/022-vab-3d.md)
 - [025 — Visual: environment follow-ups](journal/025-environment-follow-ups.md)
 - [021 — UI: design system and flight HUD](journal/021-hud-and-ui-design-system.md)

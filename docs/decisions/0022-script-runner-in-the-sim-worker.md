@@ -1,6 +1,6 @@
 # 0022 — The script runner lives in the sim Worker
 
-**Status:** accepted
+**Status:** accepted (placement amended by ADR 0031)
 **Date:** 2026-10-16
 **Plan:** plans/015-scripting-web-integration.md
 
