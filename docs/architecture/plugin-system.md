@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.0; decisions in ADR 0013). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.1; decisions in ADR 0013 and 0014). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 
@@ -67,7 +67,7 @@ Semver (`satisfies(version, range)` in core, no dependency): ranges `*`, `x.y.z`
 export const ModuleEngine = defineModule({
   id: 'stock.engine',
   config: z.object({ thrust: z.number(), isp: z.number().default(300), propellants: z.array(z.string()) }),
-  state: () => ({ throttle: 0, ignited: false }),   // serializable; no methods
+  state: (config) => ({ throttle: 0, ignited: false }),   // serializable; no methods; gets the parsed config
   requires: ['stock.resource-consumer'],            // other modules on the same part
   onStage(ctx) { ctx.state.ignited = true; },
   update(ctx, dt) { /* apply thrust via ctx.physics.applyForce(...) */ },
@@ -77,7 +77,7 @@ export const ModuleEngine = defineModule({
 ```
 
 - `z` is re-exported by the SDK (one zod copy for all mods). `config` is a zod schema: part definitions are type-checked against its **input** type at compile time and validated by the loader; hooks receive the parsed **output** (`ctx.config`, defaults applied). A module without `config` takes none.
-- `state` is created per part instance and lives in the world as a component (plan 007 owns the storage; ADR 0010 tokens). Functions live on the definition.
+- `state(config)` is created per part instance from the parsed config (ADR 0014) and lives in the world as a component (plan 007 owns the storage; ADR 0010 tokens). Functions live on the definition.
 - Hook context (`ModuleContext`): `{ world, events, registries (read-only), physics, entity, config, state }`. `update` runs every fixed step in flight mode; `updateOnRails(ctx, dt)` on rails (must not use `physics`); `onStage(ctx)` when the part's stage fires; `actions` are callable from UI, staging and scripts; `snapshot(state)` returns JSON for the UI.
 - Hooks are typed with a parameter-bivariant function type, which is what lets a typed definition be stored in the erased registry without casts.
 
@@ -89,6 +89,7 @@ export const PartEngineLV = definePart({
   title: 'LV-T30 Liquid Engine',
   mass: 1250,
   mesh: 'models/engine-lv.glb',
+  shape: { kind: 'cylinder', radius: 0.625, height: 1.2 },   // placeholder geometry, metres (ADR 0014)
   attach: { top: { pos: [0, 0.6, 0], dir: [0, 1, 0] }, bottom: { pos: [0, -0.6, 0], dir: [0, -1, 0] } },
   modules: [
     [ModuleEngine, { thrust: 215_000, propellants: ['stock.liquid-fuel', 'stock.oxidizer'] }],
@@ -98,7 +99,7 @@ export const PartEngineLV = definePart({
 });
 ```
 
-Config literals are checked against the module's schema input type (wrong type, missing required key, unknown key, config given to a config-less module are compile errors). `definePart` returns core's plain-data `PartDefinition`: each module object becomes `[module.id, config]`, config stored as written. String-id entries are accepted when the id is in `ModuleMap` (see augmentation), and a JSON part (`{ "modules": [["acme.reactor", { ... }]] }`) is the same shape; it is validated with `partDefinitionSchema` and then by the loader against the module's schema exactly like a TypeScript part. A part is pure data; it has no functions.
+Config literals are checked against the module's schema input type (wrong type, missing required key, unknown key, config given to a config-less module are compile errors). `definePart` returns core's plain-data `PartDefinition`: each module object becomes `[module.id, config]`, config stored as written. String-id entries are accepted when the id is in `ModuleMap` (see augmentation), and a JSON part (`{ "modules": [["acme.reactor", { ... }]] }`) is the same shape; it is validated with `partDefinitionSchema` and then by the loader against the module's schema exactly like a TypeScript part. A part is pure data; it has no functions. `shape` (`{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, metres, cylinder axis = local Y) is the placeholder geometry used by the renderer and the physics body until art exists.
 
 ### `defineResource`, `defineBody`, `defineSystem`
 

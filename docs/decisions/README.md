@@ -32,3 +32,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0011 | [Core depends on `@orbital/kepler` for types only](0011-core-reuses-kepler-types.md) | accepted | 2026-10-16 |
 | 0012 | [The renderer gets part shapes from the host, not from definitions](0012-renderer-part-shapes-host-supplied.md) | accepted | 2026-10-16 |
 | 0013 | [The define-API and plugin loader shape](0013-define-api-and-plugin-loader.md) | accepted | 2026-10-16 |
+| 0014 | [Part shape, `state(config)` and test-support exports](0014-part-shape-and-module-state-from-config.md) | accepted | 2026-10-16 |

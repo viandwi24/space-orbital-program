@@ -1,0 +1,30 @@
+import { defineResource } from '@orbital/sdk';
+
+/**
+ * Amounts are in each resource's own unit: `u` is the KSP-style abstract volume unit, so a
+ * container holding 400 u of liquid fuel carries 400 × 5 = 2 000 kg of it.
+ */
+export const LiquidFuel = defineResource({
+	id: 'stock.liquid-fuel',
+	density: 5,
+	// Drawn from tanks on the engine's side of the stack (plan 007 resolves reachability).
+	flowMode: 'stack',
+	unit: 'u'
+});
+
+export const Oxidizer = defineResource({
+	id: 'stock.oxidizer',
+	density: 5,
+	flowMode: 'stack',
+	unit: 'u'
+});
+
+export const ElectricCharge = defineResource({
+	id: 'stock.electric-charge',
+	// The schema requires a positive density; 1e-6 kg per EC is a microgram-scale stand-in for
+	// "massless" (50 EC weigh 50 mg).
+	density: 1e-6,
+	// Shared by every part on the vessel.
+	flowMode: 'vessel',
+	unit: 'EC'
+});
