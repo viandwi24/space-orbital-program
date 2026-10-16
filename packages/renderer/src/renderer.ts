@@ -9,6 +9,7 @@ import { findPreset } from './camera-presets.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
 import { PRESETS, type GraphicsPreset } from './presets.ts';
+import type { ScreenPoint } from './project.ts';
 import { SceneModel, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
 
@@ -61,6 +62,12 @@ export interface Renderer {
 	readonly isMapView: boolean;
 	setActiveVessel(id: EntityId | null): void;
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void;
+	/**
+	 * Screen position of a point in the sim's inertial frame (a body's `position` plus a vessel's
+	 * SOI-relative `position`) through the camera as drawn, in CSS pixels of the canvas box; `null`
+	 * when behind the camera, `hidden` when a body is in the way (plan 024, ADR 0033).
+	 */
+	project(world: Vec3): ScreenPoint | null;
 	/** Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation). */
 	setPreset(preset: GraphicsPreset): void;
 	readonly preset: GraphicsPreset;
@@ -183,6 +190,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		},
 		setActiveVessel: (id) => model.setActiveVessel(id),
 		orbitCamera: (input) => model.orbitCamera(input),
+		project: (world) => model.project(world),
 		setPreset(next) {
 			preset = next;
 			model.setPreset(next);

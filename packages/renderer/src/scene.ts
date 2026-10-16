@@ -51,6 +51,7 @@ import {
 import { OrbitLine, VesselMarker } from './map.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
+import { projectWorldPoint, type ScreenPoint } from './project.ts';
 import { rotate, rotateInverse } from './vec.ts';
 
 export { DEFAULT_PART_SHAPE };
@@ -274,6 +275,32 @@ export class SceneModel {
 		this.camera.aspect = width / Math.max(1, height);
 		this.camera.updateProjectionMatrix();
 		for (const v of this.vessels.values()) v.line.setResolution(width, height);
+	}
+
+	/**
+	 * Screen position of `world` (the sim's inertial frame, as in snapshots: a body's `position` plus
+	 * a vessel's SOI-relative `position`) through the camera as it is now, in CSS pixels of the
+	 * canvas box; `null` behind the camera. `hidden` when a body lies between the camera and the
+	 * point (plan 024, ADR 0033). A rig change since the last `sync` is applied first, so an orbit
+	 * input is visible to the next call.
+	 */
+	project(world: Vec3): ScreenPoint | null {
+		if (this.cameraDirty && this.lastView) {
+			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);
+			this.cameraDirty = false;
+		}
+		this.camera.updateMatrixWorld();
+		const occluders = [...this.bodies.values()].map((b) => ({
+			center: { x: b.holder.position.x, y: b.holder.position.y, z: b.holder.position.z },
+			radius: b.radius
+		}));
+		return projectWorldPoint(
+			this.camera,
+			toRenderSpace(world, this.origin),
+			this.viewport.width,
+			this.viewport.height,
+			occluders
+		);
 	}
 
 	/** Brings the scene in line with `snapshot`. Call once per received snapshot. */
