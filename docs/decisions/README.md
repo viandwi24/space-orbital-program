@@ -60,3 +60,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0042 | [Stability read-out: centre of mass against centre of pressure, from part data](0042-stability-read-out-centre-of-mass-and-pressure.md) | accepted | 2026-10-17 |
 | 0043 | [Physical terrain: one height function in core, read by the sim and the renderer](0043-physical-terrain-one-height-function-in-core.md) | accepted | 2026-10-17 |
 | 0044 | [The visual terrain follows the physical one: a precise bake and camera-centred patches](0044-terrain-patches-camera-centred-and-hi-lo-bake.md) | accepted | 2026-10-17 |
+| 0045 | [Engine gimbal, control surfaces and the attitude mixer](0045-engine-gimbal-and-control-mixing.md) | accepted | 2026-10-17 |
+| 0046 | [Aerodynamic damping of fins](0046-fin-damping.md) | accepted | 2026-10-17 |
+| 0047 | [glTF asset provider, shard debris, lit smoke, plume ground light, plasma colour](0047-asset-provider-and-effect-techniques.md) | accepted | 2026-10-17 |

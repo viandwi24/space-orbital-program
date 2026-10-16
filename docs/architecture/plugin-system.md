@@ -89,12 +89,14 @@ update(ctx, dt) {
   ctx.vessel.applyForce({ x: 0, y: thrust, z: 0 });          // part-local frame, this step only, flight only
   ctx.vessel.applyTorque({ x: 0, y: 0, z: torque });
   const air = ctx.vessel.airVelocity({ x: 0.2, y: 0, z: 0 }); // velocity of a part-frame point relative to the air, part frame (API 0.1.8, ADR 0035)
+  const com = ctx.vessel.centreOfMass;                       // vessel centre of mass in the part frame, flight only (API 0.1.10, ADR 0045)
+  const demand = ctx.vessel.torqueDemand;                    // attitude demand as a torque direction in the part frame: x pitch, y roll, z yaw
   const got = resources.withdraw('stock.liquid-fuel', 0.1);  // reachable per flowMode / crossfeed; amount() and deposit() too
   ctx.vessel.detach('top', 2_000);                           // sever the attachment at a node; impulse N·s
 }
 ```
 
-Forces, torques and `airVelocity` throw on rails (`updateOnRails` must not use them). `PartDefinition.dragCoefficient` (API 0.1.8) replaces the default `C_d` 0.3 of a part. Attach nodes may not be named `surface` (reserved for radial attachment, ADR 0034); a part with a horizontal node (`dir.y` 0) can hang on the side of a cylindrical part, and `detach(node)` cuts every attachment on the node. Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
+Forces, torques, `airVelocity` and `centreOfMass` throw on rails (`updateOnRails` must not use them). `PartDefinition.dragCoefficient` (API 0.1.8) replaces the default `C_d` 0.3 of a part. Attach nodes may not be named `surface` (reserved for radial attachment, ADR 0034); a part with a horizontal node (`dir.y` 0) can hang on the side of a cylindrical part, and `detach(node)` cuts every attachment on the node. Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
 
 ### `definePart`
 

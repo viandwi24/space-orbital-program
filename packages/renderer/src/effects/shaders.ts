@@ -131,7 +131,7 @@ float hash21(vec2 p) {
 float vnoise(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
+	f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
 	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 `;
@@ -156,7 +156,8 @@ void main() {
 	#include <logdepthbuf_fragment>
 	float d = length(vUv);
 	vec2 q = vUv * 2.2 + vSeed * 31.0;
-	float n = vnoise(q) * 0.6 + vnoise(q * 2.3 + 7.0) * 0.4;
+	mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
+	float n = vnoise(q) * 0.6 + vnoise(rot * q * 2.3 + 7.0) * 0.4;
 	float shape = smoothstep(1.0, 0.2, d + (n - 0.5) * 0.8);
 	// A bumpy sphere normal in view space.
 	vec2 bump = vec2(vnoise(q + 3.1), vnoise(q + 9.7)) - 0.5;
@@ -229,9 +230,9 @@ void main() {
 	float rim = pow(1.0 - facing, 1.4);
 	float windward = smoothstep(-0.55, 0.85, dot(normalize(vWorldN), uForward));
 	float flick = 0.88 + 0.12 * sin(uTime * 41.0 + vWorldN.x * 7.0 + vWorldN.y * 5.0);
-	vec3 hot = mix(uTint, mix(uTint, vec3(1.0), 0.55), smoothstep(0.55, 1.0, uIntensity));
+	vec3 hot = mix(uTint, mix(uTint, vec3(1.0), 0.3), smoothstep(0.55, 1.0, uIntensity));
 	float a = uIntensity * windward * (0.08 + 0.5 * rim) * flick;
-	gl_FragColor = vec4(hot * (1.5 + 3.5 * uIntensity), clamp(a, 0.0, 1.0));
+	gl_FragColor = vec4(hot * (0.9 + 1.9 * uIntensity), clamp(a, 0.0, 1.0));
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }
