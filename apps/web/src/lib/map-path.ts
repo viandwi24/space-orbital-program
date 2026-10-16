@@ -161,10 +161,20 @@ export function predictManeuvers(
 		}
 		after = predictionHorizon(elements, mu);
 	}
-	const result = predictWithManeuvers(bodies, start, maneuvers, ahead + Math.min(after, MAX_AFTER));
+	// A node whose time has passed still has burn left: the path is drawn as if that burn were
+	// finished now, the node itself stays where it was.
+	const past = maneuvers.some((m) => m.time <= snapshot.t);
+	const drawn = past
+		? maneuvers.map((m) => (m.time <= snapshot.t ? { ...m, time: snapshot.t + 0.5 } : m))
+		: maneuvers;
+	const result = predictWithManeuvers(bodies, start, drawn, ahead + Math.min(after, MAX_AFTER));
+	const where = new Map(
+		(past ? predictWithManeuvers(bodies, start, maneuvers, 1).nodes : []).map((n) => [n.id, n])
+	);
 	const firstNode = Math.min(...result.nodes.map((n) => n.segment).filter((i) => i >= 0), Infinity);
 	const paths = result.segments.map((s, i) => mapPathOf(s, bodies, i > firstNode));
-	const nodes: NodePlacement[] = result.nodes.flatMap((n) => {
+	const nodes: NodePlacement[] = result.nodes.flatMap((moved) => {
+		const n = where.get(moved.id) ?? moved;
 		const path = n.segment >= 0 ? paths[n.segment] : undefined;
 		const offset = path?.offset ?? n.bodyOffset;
 		if (n.segment >= 0 && !path) return [];

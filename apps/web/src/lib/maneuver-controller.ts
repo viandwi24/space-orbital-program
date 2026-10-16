@@ -36,6 +36,7 @@ import {
 	type MapPath,
 	type NodeInput
 } from './map-path';
+import { formatDistance } from './format';
 import { bodyMu } from './orbit-info';
 
 export interface HandleDraw {
@@ -52,8 +53,18 @@ export interface NodeDraw {
 	handles: HandleDraw[];
 }
 
+/** The closest approach of the predicted path to a body it is not orbiting now (plan 045). */
+export interface EncounterDraw {
+	/** Index of the path stretch, a stable key. */
+	key: number;
+	text: string;
+	impact: boolean;
+	point: ScreenPoint | null;
+}
+
 export interface ManeuverFrame {
 	nodes: NodeDraw[];
+	encounters: EncounterDraw[];
 }
 
 export interface ManeuverControllerOptions {
@@ -214,12 +225,15 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 	/** Nearest point of the orbit (and of the planned stretches) to a pixel: its time. */
 	function timeAt(x: number, y: number, radius: number): number | null {
 		const planned = (prediction?.paths ?? []).filter((p) => p.planned);
-		let best: { t: number; distance: number } | null = null;
+		const hits: Array<{ t: number; distance: number }> = [];
 		for (const run of samplesOf([...basePaths, ...planned])) {
 			const hit = pickTime(run, x, y, radius);
-			if (hit && (best === null || hit.distance < best.distance)) best = hit;
+			if (hit) hits.push(hit);
 		}
-		return best ? best.t : null;
+		if (hits.length === 0) return null;
+		// Passes of an orbit lie over each other: of the hits within a pixel of the best, the earliest.
+		const nearest = Math.min(...hits.map((h) => h.distance));
+		return Math.min(...hits.filter((h) => h.distance <= nearest + 1).map((h) => h.t));
 	}
 
 	function flush(now: number): void {
@@ -296,6 +310,41 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 			});
 	}
 
+	/** Closest approach in every stretch that lies in another body's sphere than the first. */
+	function encountersOf(paths: readonly MapPath[]): EncounterDraw[] {
+		const first = paths[0]?.body;
+		const out: EncounterDraw[] = [];
+		paths.forEach((p, key) => {
+			if (key === 0 || p.body === first) return;
+			const def = options.bodies.find((b) => b.id === p.body);
+			if (!def) return;
+			let best = p.points[0];
+			for (const pt of p.points) {
+				if (
+					best === undefined ||
+					Math.hypot(pt.x, pt.y, pt.z) < Math.hypot(best.x, best.y, best.z)
+				) {
+					best = pt;
+				}
+			}
+			if (!best) return;
+			const impact = p.end === 'impact';
+			const altitude = Math.hypot(best.x, best.y, best.z) - def.radius;
+			const name = def.id.slice(def.id.lastIndexOf('.') + 1);
+			out.push({
+				key,
+				impact,
+				text: impact ? `${name}: impact` : `${name} Pe ${formatDistance(Math.max(altitude, 0))}`,
+				point: options.project({
+					x: p.offset.x + best.x,
+					y: p.offset.y + best.y,
+					z: p.offset.z + best.z
+				})
+			});
+		});
+		return out;
+	}
+
 	return {
 		update(now) {
 			lastNow = now;
@@ -313,7 +362,9 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				recompute(now);
 		},
 		frame() {
-			if (!options.mapOn() || !prediction || prediction.nodes.length === 0) return null;
+			if (!options.mapOn() || !prediction) return null;
+			const encounters = encountersOf(prediction.paths);
+			if (prediction.nodes.length === 0 && encounters.length === 0) return null;
 			const nodes: NodeDraw[] = prediction.nodes.map((n) => {
 				const point = options.project(n.world);
 				const isSelected = n.id === selected;
@@ -348,7 +399,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				}
 				return { id: n.id, selected: isSelected, point, handles };
 			});
-			return { nodes };
+			return { nodes, encounters };
 		},
 		get selected() {
 			return selected;

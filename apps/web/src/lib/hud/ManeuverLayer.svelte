@@ -7,6 +7,8 @@
 
 	/** Which nodes exist and which one is selected: changes rarely, so Svelte renders the list. */
 	let layout = $state.raw<Array<{ id: number; selected: boolean }>>([]);
+	let encounters = $state.raw<Array<{ key: number; text: string; impact: boolean }>>([]);
+	let encounterKey = '';
 	let key = '';
 	const els = new Map<string, HTMLElement>();
 
@@ -38,6 +40,13 @@
 			key = k;
 			layout = list.map((n) => ({ id: n.id, selected: n.selected }));
 		}
+		const marks = frame?.encounters ?? [];
+		const ek = marks.map((m) => `${m.key}${m.text}`).join('|');
+		if (ek !== encounterKey) {
+			encounterKey = ek;
+			encounters = marks.map((m) => ({ key: m.key, text: m.text, impact: m.impact }));
+		}
+		for (const m of marks) put(els.get(`e${m.key}`), m.point);
 		for (const n of list) {
 			put(els.get(`n${n.id}`), n.point);
 			for (const h of n.handles) put(els.get(`h${n.id}:${h.kind}`), h.point);
@@ -69,6 +78,12 @@
 </script>
 
 <div class="layer">
+	{#each encounters as e (e.key)}
+		<div class="enc" class:impact={e.impact} use:reg={`e${e.key}`} data-testid="encounter">
+			<span class="dot"></span>
+			<span class="label">{e.text}</span>
+		</div>
+	{/each}
 	{#each layout as n (n.id)}
 		<button
 			type="button"
@@ -137,6 +152,42 @@
 	}
 	button:active {
 		cursor: grabbing;
+	}
+	.enc {
+		position: absolute;
+		left: 0;
+		top: 0;
+		visibility: hidden;
+		will-change: transform;
+		pointer-events: none;
+		color: var(--c-warning);
+	}
+	.enc.impact {
+		color: var(--c-danger);
+	}
+	.enc .dot {
+		position: absolute;
+		left: -5px;
+		top: -5px;
+		width: 10px;
+		height: 10px;
+		box-sizing: border-box;
+		border: 2px solid currentColor;
+		border-radius: 50%;
+		background: var(--bg-void);
+	}
+	.enc .label {
+		position: absolute;
+		left: 10px;
+		top: -10px;
+		white-space: nowrap;
+		padding: 1px var(--s-2);
+		font-family: var(--font-num);
+		font-size: var(--t-xs);
+		color: var(--text);
+		background: var(--panel-raised);
+		border: 1px solid currentColor;
+		border-radius: var(--r-control);
 	}
 	.node {
 		width: 30px;

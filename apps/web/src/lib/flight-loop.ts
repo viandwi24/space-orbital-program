@@ -303,16 +303,19 @@ export function startFlight(options: FlightOptions): Flight {
 	const onBlur = (): void => held.clear();
 
 	let dragging = false;
-	let pressed = { x: 0, y: 0, moved: 0 };
+	let pressed = { active: false, moved: 0 };
 	const onPointerDown = (e: PointerEvent): void => {
 		dragging = true;
-		pressed = { x: e.clientX, y: e.clientY, moved: 0 };
+		pressed = { active: true, moved: 0 };
 		canvas.setPointerCapture(e.pointerId);
 	};
 	const onPointerUp = (e: PointerEvent): void => {
 		dragging = false;
 		// A press that did not move is a click: on the map it places or deselects a maneuver node.
-		if (pressed.moved < 4 && e.type === 'pointerup') {
+		// Only a press that began on the canvas counts (not the end of a drag of a node marker).
+		const wasPress = pressed.active;
+		pressed.active = false;
+		if (wasPress && pressed.moved < 4) {
 			const box = canvas.getBoundingClientRect();
 			maneuverCtl?.click(e.clientX - box.left, e.clientY - box.top);
 		}

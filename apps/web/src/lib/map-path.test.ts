@@ -173,4 +173,24 @@ describe('predicted path with maneuver nodes (plan 045)', () => {
 		expect(single).toHaveLength(1);
 		expect(single[0]!.points).toHaveLength(161);
 	});
+
+	it('a node whose time has passed keeps its marker where it was and draws the burn that is left as finished now', () => {
+		const later = { ...circular, t: 1_000 } as unknown as Snapshot;
+		const out = predictManeuvers(
+			later,
+			1,
+			nodes,
+			[{ id: 3, time: 900, prograde: 100, normal: 0, radial: 0 }],
+			6_000
+		);
+		expect(out.nodes).toHaveLength(1);
+		expect(out.nodes[0]!.path).toBe(-1);
+		expect(out.paths.length).toBeGreaterThanOrEqual(2);
+		expect(out.paths[1]!.planned).toBe(true);
+		expect(out.paths[1]!.t0).toBeCloseTo(1_000.5, 6);
+		// the marker is on the old orbit 100 s before now, not at the vessel
+		const at = out.nodes[0]!.world;
+		expect(Math.hypot(at.x, at.z)).toBeCloseTo(R, 3);
+		expect(Math.hypot(at.x - R, at.z)).toBeGreaterThan(1_000);
+	});
 });
