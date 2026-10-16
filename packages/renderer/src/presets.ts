@@ -1,5 +1,7 @@
 /** Graphics presets (ADR 0027): one table, one pure selector. The host persists the choice. */
 
+import type { PartDetail } from './parts/types.ts';
+
 export type GraphicsPreset = 'low' | 'medium' | 'high';
 export const GRAPHICS_PRESETS: readonly GraphicsPreset[] = ['low', 'medium', 'high'];
 
@@ -26,6 +28,13 @@ export interface PresetSettings {
 	trees: number;
 	/** PMREM cube size for image-based light. */
 	envSize: 64 | 128 | 256;
+	/** Part models (plan 020): radial segments, hardware detail level, procedural texture side. */
+	partSegments: 16 | 24 | 32;
+	partExtras: 0 | 1 | 2;
+	partTexture: 128 | 256 | 512;
+	/** Smoke, dust and gas particles alive at once, debris shards per explosion, fireball sprites. */
+	smokeParticles: number;
+	debrisShards: number;
 }
 
 export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
@@ -41,7 +50,12 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 3,
 		mapWidth: 512,
 		trees: 250,
-		envSize: 64
+		envSize: 64,
+		partSegments: 16,
+		partExtras: 0,
+		partTexture: 128,
+		smokeParticles: 56,
+		debrisShards: 0
 	},
 	medium: {
 		pixelRatioCap: 1.5,
@@ -55,7 +69,12 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 4,
 		mapWidth: 1024,
 		trees: 900,
-		envSize: 128
+		envSize: 128,
+		partSegments: 24,
+		partExtras: 1,
+		partTexture: 256,
+		smokeParticles: 160,
+		debrisShards: 24
 	},
 	high: {
 		pixelRatioCap: 2,
@@ -69,7 +88,12 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudOctaves: 5,
 		mapWidth: 1024,
 		trees: 2000,
-		envSize: 128
+		envSize: 128,
+		partSegments: 32,
+		partExtras: 2,
+		partTexture: 512,
+		smokeParticles: 320,
+		debrisShards: 48
 	}
 };
 
@@ -108,4 +132,13 @@ export function parsePreset(value: unknown): GraphicsPreset | null {
 	return typeof value === 'string' && (GRAPHICS_PRESETS as readonly string[]).includes(value)
 		? (value as GraphicsPreset)
 		: null;
+}
+
+/** Part-model detail from a preset (`PartModelFactory`). */
+export function detailOf(settings: PresetSettings): PartDetail {
+	return {
+		segments: settings.partSegments,
+		extras: settings.partExtras,
+		textureSize: settings.partTexture
+	};
 }

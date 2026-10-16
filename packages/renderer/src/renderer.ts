@@ -27,6 +27,12 @@ export interface RendererDebug {
 	applyPreset(name: string): boolean;
 	/** Force the device pixel ratio (frame-time measurements at exactly 1920x1080), or `null` for the default. */
 	setPixelRatio(ratio: number | null): void;
+	/** Force the skin temperature of every part (K) for glow screenshots, or `null` for the snapshot values. */
+	setPartTemperature(kelvin: number | null): void;
+	/** Aim the flight camera at the n-th part with this definition id (`null` = the root part). */
+	focusPart(definition: string | null, occurrence?: number): void;
+	/** Advance particles, explosions and animations by `seconds` in 1/60 s steps without drawing. */
+	stepEffects(seconds: number): void;
 	/** The scene graph, for inspection in the browser console. */
 	readonly scene: Scene;
 	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
@@ -128,6 +134,12 @@ export function createRenderer(config: RendererConfig): Renderer {
 			forcedRatio = ratio;
 			applySize();
 		},
+		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
+		focusPart: (definition, occurrence) => model.setDebugFocus(definition, occurrence),
+		stepEffects(seconds) {
+			const steps = Math.max(1, Math.round(seconds * 60));
+			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);
+		},
 		scene: model.scene,
 		benchmark(frames) {
 			const ctx = gl.getContext();
@@ -173,7 +185,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		orbitCamera: (input) => model.orbitCamera(input),
 		setPreset(next) {
 			preset = next;
-			env.setPreset(next);
+			model.setPreset(next);
 			post.setSettings(PRESETS[next]);
 			envLight.invalidate();
 			applySize();
