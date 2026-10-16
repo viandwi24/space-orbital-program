@@ -5,7 +5,7 @@ import { createRapierBackend } from '@orbital/physics';
 import { createSim } from '@orbital/sim';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { referenceTwoStage } from '../design';
-import { compareMods, exportFileName, parseGameSaveText } from './game-save';
+import { compareMods, exportFileName, parseGameSaveText, resumeInfo } from './game-save';
 import {
 	AUTOSAVE_SLOTS,
 	cleanName,
@@ -18,13 +18,15 @@ import { classifyWriteError, memoryStore, SaveWriteError, type SaveStore } from 
 
 let sim: SimSave;
 let moved: SimSave;
+let vesselId: number;
 beforeAll(async () => {
 	const s = await createSim({
 		plugins: [Stock],
 		backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 		maxFlightFrames: 1
 	});
-	s.dispatch({ type: 'load-vessel', design: referenceTwoStage() });
+	const loaded = s.dispatch({ type: 'load-vessel', design: referenceTwoStage() });
+	vesselId = Number(loaded.ok ? loaded.vessel : -1);
 	for (let i = 0; i < 25; i++) s.step(0.02);
 	sim = s.save();
 	for (let i = 0; i < 25; i++) s.step(0.02);
@@ -34,7 +36,8 @@ beforeAll(async () => {
 
 const request = (save: SimSave = sim): SaveRequest => ({
 	sim: save,
-	focus: null,
+	focus: vesselId,
+	design: referenceTwoStage(),
 	thumbnail: 'data:image/jpeg;base64,AAAA',
 	bodyRadius: 600_000
 });
@@ -251,6 +254,32 @@ describe('files', () => {
 		expect(() => parseGameSaveText(JSON.stringify(referenceTwoStage()))).toThrow(
 			/not an Orbital save/
 		);
+	});
+});
+
+describe('resume info', () => {
+	it('gives the HUD the design, the part-to-index map, stages fired and throttle', async () => {
+		const { manager } = setup();
+		const meta = await manager.quicksave(request());
+		const info = resumeInfo(await manager.load(meta.id));
+		expect(info.design.name).toBe('Two-stage');
+		expect(info.focus).toBe(vesselId);
+		expect(info.entityIndex.size).toBe(referenceTwoStage().parts.length);
+		expect([...info.entityIndex.values()].sort((a, b) => a - b)).toEqual(
+			referenceTwoStage().parts.map((p) => p.index)
+		);
+		expect(info.stagesFired).toBe(0);
+		expect(info.throttle).toBe(0);
+	});
+
+	it('a save without a design is damaged', async () => {
+		const store = memoryStore();
+		const { manager } = setup(store);
+		const meta = await manager.quicksave(request());
+		const stored = (await store.get('quick'))!;
+		const { design: _design, ...rest } = stored.data as Record<string, unknown>;
+		await store.put({ meta, data: rest });
+		await expect(manager.load('quick')).rejects.toThrow(/design/);
 	});
 });
 

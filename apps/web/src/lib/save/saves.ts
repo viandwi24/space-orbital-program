@@ -4,7 +4,7 @@
  * tested with the in-memory store. A failed write leaves every earlier save as it was (the store
  * writes a record atomically), and is reported as a `SaveWriteError` the page shows.
  */
-import { SaveError, type SimSave } from '@orbital/core';
+import { SaveError, type SimSave, type VesselDesign } from '@orbital/core';
 import {
 	buildGameSave,
 	exportFileName,
@@ -37,6 +37,7 @@ export const browserSaveEnv = (): SaveEnv => ({
 export interface SaveRequest {
 	sim: SimSave;
 	focus: number | null;
+	design: VesselDesign;
 	thumbnail: string | null;
 	/** Radius of the body being simulated, m (for the altitude in the summary). */
 	bodyRadius: number;
@@ -104,6 +105,7 @@ export function createSaveManager(store: SaveStore, env: SaveEnv): SaveManager {
 			createdAt: env.now(),
 			sim: request.sim,
 			focus: request.focus,
+			design: request.design,
 			thumbnail: request.thumbnail,
 			bodyRadius: request.bodyRadius
 		});

@@ -3,7 +3,14 @@
  * a name, the kind of slot, a thumbnail and the vessel the player was flying. Everything read from
  * storage or a file is untrusted and goes through `parseGameSave`.
  */
-import { readSimSave, SaveError, type SaveMod, type SimSave } from '@orbital/core';
+import {
+	readSimSave,
+	SaveError,
+	vesselDesignSchema,
+	type SaveMod,
+	type SimSave,
+	type VesselDesign
+} from '@orbital/core';
 
 export const GAME_SAVE_FORMAT = 'orbital-game-save';
 export const GAME_SAVE_VERSION = 1;
@@ -42,6 +49,11 @@ export interface SaveMeta {
 export interface GameSave extends SaveMeta {
 	/** Entity id of the vessel the player was flying, or null. */
 	focus: number | null;
+	/**
+	 * The design the flight was launched with. The HUD's stage read-outs and part names work from
+	 * it (part entities map back to its indices through the sim's `PartState.index`).
+	 */
+	design: VesselDesign;
 	sim: SimSave;
 }
 
@@ -87,6 +99,7 @@ export interface BuildInput {
 	createdAt: number;
 	sim: SimSave;
 	focus: number | null;
+	design: VesselDesign;
 	thumbnail: string | null;
 	bodyRadius: number;
 }
@@ -103,6 +116,7 @@ export function buildGameSave(input: BuildInput): GameSave {
 		thumbnail: input.thumbnail,
 		mods: input.sim.mods.map((m) => ({ ...m })),
 		focus: input.focus,
+		design: input.design,
 		sim: input.sim
 	};
 }
@@ -171,10 +185,13 @@ export function parseGameSave(raw: unknown): GameSave {
 	if (focus !== null && !(typeof focus === 'number' && Number.isInteger(focus) && focus >= 0)) {
 		throw damaged('the vessel it was flying is unreadable');
 	}
+	const design = vesselDesignSchema.safeParse(record.design);
+	if (!design.success) throw damaged('the design it was launched with is unreadable');
 	const sim = readSimSave(record.sim);
 	return {
 		...meta,
 		focus,
+		design: design.data,
 		sim
 	};
 }
@@ -220,4 +237,46 @@ export function exportFileName(name: string): string {
 		.replace(/^-+|-+$/g, '')
 		.slice(0, 40);
 	return `${slug === '' ? 'orbital-save' : slug}.orbital-save.json`;
+}
+
+/** What the flight screen needs to carry on a loaded flight (the HUD and the input state). */
+export interface ResumeInfo {
+	design: VesselDesign;
+	/** The vessel to fly: the saved focus, else the first vessel with a control source is left to the page. */
+	focus: number | null;
+	/** Part entity to design index, for the vessel in focus. */
+	entityIndex: Map<number, number>;
+	/** Stages the focus vessel has fired. */
+	stagesFired: number;
+	/** The throttle it was left at. */
+	throttle: number;
+}
+
+interface PartLike {
+	vessel: number;
+	index: number;
+}
+interface FlyingLike {
+	nextStage: number;
+	control: { throttle: number };
+}
+
+export function resumeInfo(save: GameSave): ResumeInfo {
+	const components = save.sim.world.components as Components;
+	const entityIndex = new Map<number, number>();
+	if (save.focus !== null) {
+		for (const [id, part] of Object.entries(components['sim.part'] ?? {})) {
+			const p = part as PartLike;
+			if (p.vessel === save.focus) entityIndex.set(Number(id), p.index);
+		}
+	}
+	const vessel = save.focus === null ? undefined : components['sim.vessel']?.[String(save.focus)];
+	const flying = vessel as FlyingLike | undefined;
+	return {
+		design: save.design,
+		focus: save.focus,
+		entityIndex,
+		stagesFired: flying?.nextStage ?? 0,
+		throttle: flying?.control.throttle ?? 0
+	};
 }
