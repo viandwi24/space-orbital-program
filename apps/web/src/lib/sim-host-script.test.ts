@@ -6,16 +6,18 @@ import type { Command } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
 import { referenceTwoStage } from './design';
 import type { WorkerMessage } from './messages';
-import { createSimHost, SCRIPT_BUDGET_MS } from './sim-host';
+import { createInProcessScriptWorker } from './script-worker-core';
+import { createSimHost, SCRIPT_BUDGET_MS, SCRIPT_FIRST_TICK_BUDGET_MS } from './sim-host';
 
 type Status = Extract<WorkerMessage, { kind: 'script-status' }>;
 
 /** A host over a real headless sim and the real runner; wall clock plus a skew the test advances per tick. */
-async function setup() {
+async function setup(budgets: { budgetMs?: number; firstTickBudgetMs?: number } = {}) {
 	const posted: WorkerMessage[] = [];
 	const dispatched: Command[] = [];
 	let skew = 0;
 	let sim: Sim | undefined;
+	const hostNow = () => performance.now() + skew;
 	const host = createSimHost({
 		createSim: async () => {
 			sim = await createSim({
@@ -30,9 +32,13 @@ async function setup() {
 			};
 			return sim;
 		},
-		createRunner: createScriptRunner,
+		// Plumbing tests use generous budgets: they must not depend on machine speed. The runaway
+		// test passes none and so gets the shipped ones.
+		scriptBudgetMs: budgets.budgetMs ?? 5_000,
+		scriptFirstTickBudgetMs: budgets.firstTickBudgetMs ?? 5_000,
+		spawnScriptWorker: () => createInProcessScriptWorker(createScriptRunner, hostNow),
 		post: (m) => void posted.push(m),
-		now: () => performance.now() + skew
+		now: hostNow
 	});
 	await host.start();
 	host.handle({
@@ -174,8 +180,11 @@ describe('sim host: scripts (plan 015)', () => {
 		t.host.dispose();
 	});
 
-	it('a runaway script is terminated within the budget and snapshots keep flowing', async () => {
-		const t = await setup();
+	it('a runaway script is terminated within the first-tick budget and snapshots keep flowing', async () => {
+		const t = await setup({
+			budgetMs: SCRIPT_BUDGET_MS,
+			firstTickBudgetMs: SCRIPT_FIRST_TICK_BUDGET_MS
+		});
 		t.host.handle({ kind: 'script-start', source: 'while (true) {}', vessel: t.vessel });
 		await until(() => t.statuses().some((s) => s.status === 'running'));
 		const before = t.sim().time;
@@ -185,9 +194,14 @@ describe('sim host: scripts (plan 015)', () => {
 		const stopped = t.statuses().at(-1);
 		expect(stopped).toMatchObject({ status: 'terminated' });
 		expect(stopped?.error).toContain('time budget exceeded');
-		// documented 10 ms budget plus the sim step itself; 5x leaves room for a loaded CI machine
+		// The in-process double blocks the host for the script's first-tick allowance; the real
+		// arrangement does not (sim-host-script-worker.test.ts). What is asserted is the mechanism
+		// (terminated, the budget named in the message, the sim moving on); the wall bound is a hang
+		// detector far above the allowance, not a performance claim.
 		expect(SCRIPT_BUDGET_MS).toBe(10);
-		expect(wall).toBeLessThan(50);
+		expect(SCRIPT_FIRST_TICK_BUDGET_MS).toBe(200);
+		expect(stopped?.error).toContain(`${SCRIPT_FIRST_TICK_BUDGET_MS} ms per tick`);
+		expect(wall).toBeLessThan(10_000);
 		const snapshots = t.posted.filter((m) => m.kind === 'snapshot').length;
 		for (let i = 0; i < 10; i++) t.tick();
 		expect(t.posted.filter((m) => m.kind === 'snapshot').length).toBe(snapshots + 10);

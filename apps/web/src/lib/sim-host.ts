@@ -3,9 +3,11 @@
  * streams snapshots. Kept free of `self`/`postMessage` so Node tests drive it with a mock `post`;
  * `sim.worker.ts` wires it to the real worker scope.
  */
-import type { ScriptRunner, ScriptRunnerOptions } from '@orbital/scripting';
+import type { Command } from '@orbital/core';
 import type { Sim } from '@orbital/sim';
 import { parseClientMessage, type Catalog, type ScriptState, type WorkerMessage } from './messages';
+import { createScriptSession, type ScriptResult, type ScriptSession } from './script-channel';
+import type { ScriptWorkerLike } from './script-protocol';
 
 /** Largest wall delta handed to `sim.step`, s: a stalled tab must not trigger a burst of steps. */
 export const MAX_WALL_DELTA = 0.1;
@@ -13,6 +15,11 @@ export const MAX_WALL_DELTA = 0.1;
 export const TICK_MS = 16;
 /** Wall-clock budget of one script tick, ms (the runner terminates the script past it; ADR 0020). */
 export const SCRIPT_BUDGET_MS = 10;
+/**
+ * Budget of a script's first tick, ms: a cold QuickJS can overrun 10 ms for a harmless script on a
+ * loaded machine (journal 017/018). Stays below the channel watchdog (500 ms).
+ */
+export const SCRIPT_FIRST_TICK_BUDGET_MS = 200;
 /** While a script runs, its timing is reported at most this often, ms. */
 export const SCRIPT_STATUS_MS = 500;
 /** Lines of print output and refusals forwarded per tick; the rest of a flood is dropped. */
@@ -26,10 +33,16 @@ export interface SimHostOptions {
 	/** Schedules `tick` repeatedly; returns a canceller. Tests leave it out and call `tick` themselves. */
 	schedule?(tick: () => void, periodMs: number): () => void;
 	/**
-	 * Creates the script runner (the worker wires `createScriptRunner` with the bundled WASM).
+	 * Spawns the script Worker for one Run (ADR 0031; the sim worker wires `script.worker.ts`).
 	 * Without it, `script-start` is answered with a `failed` status.
 	 */
-	createRunner?(source: string, options: ScriptRunnerOptions): Promise<ScriptRunner>;
+	spawnScriptWorker?(): ScriptWorkerLike;
+	/** Overrides of the per-tick script budgets, ms (tests of plumbing must not depend on machine speed). */
+	scriptBudgetMs?: number;
+	scriptFirstTickBudgetMs?: number;
+	/** Overrides of the channel deadlines, ms (tests). */
+	scriptWatchdogMs?: number;
+	scriptBootTimeoutMs?: number;
 }
 
 export interface SimHost {
@@ -59,10 +72,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let unsubscribeEvents: (() => void)[] = [];
 	let paused = false;
 
-	// --- script (plan 015, ADR 0022): the runner ticks right after each sim step ------------------
-	let runner: ScriptRunner | null = null;
-	/** Bumped by start/stop so a runner that finishes booting after a stop is discarded. */
-	let scriptEpoch = 0;
+	// --- script (plan 018, ADR 0031): the runner lives in its own Worker, fed after each sim step --
+	let session: ScriptSession | null = null;
+	/** The vessel the running script controls; commands for any other are dropped. */
+	let scriptVessel = -1;
 	let lastMs = 0;
 	let maxMs = 0;
 	let lastStatusAt = 0;
@@ -87,73 +100,26 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		options.post({ kind: 'script-log', lines: out });
 	};
 	const endScript = (): void => {
-		runner?.dispose();
-		runner = null;
+		session?.close();
+		session = null;
 	};
+	/** Commands a script may issue (what the runner builds); the Worker is not trusted to stay within them. */
+	const SCRIPT_COMMANDS: readonly string[] = ['throttle', 'attitude', 'stage', 'action'];
+	const allowed = (command: Command): boolean =>
+		SCRIPT_COMMANDS.includes(command.type) &&
+		'vessel' in command &&
+		Number(command.vessel) === scriptVessel;
 
-	function startScript(source: string, vessel: number): void {
-		endScript();
-		const epoch = ++scriptEpoch;
-		lastMs = 0;
-		maxMs = 0;
-		lines = [];
-		lastRefusal = '';
-		if (!sim) return postStatus('failed', 'the simulation is not ready yet');
-		if (!options.createRunner) return postStatus('failed', 'scripting is not available');
-		if (!sim.snapshot().vessels.some((v) => Number(v.id) === vessel)) {
-			return postStatus('failed', `vessel ${vessel} does not exist`);
-		}
-		postStatus('starting');
-		options
-			.createRunner(source, {
-				vessel,
-				bodies: sim.registries.bodies.list(),
-				parts: sim.registries.parts.list(),
-				resources: sim.registries.resources.list(),
-				budgetMs: SCRIPT_BUDGET_MS,
-				now: options.now,
-				onPrint: (line) => void lines.push(line)
-			})
-			.then(
-				(created) => {
-					if (epoch !== scriptEpoch || disposed) {
-						created.dispose();
-						return;
-					}
-					runner = created;
-					postStatus('running');
-				},
-				(error: unknown) => {
-					if (epoch !== scriptEpoch) return;
-					postStatus('failed', error instanceof Error ? error.message : String(error));
-				}
-			);
-	}
-
-	function stopScript(): void {
-		++scriptEpoch;
-		endScript();
-		lines = [];
-		postStatus('stopped');
-	}
-
-	/** Tick the runner on `snapshot` and dispatch what it issued; ends the script when it is over. */
-	function tickScript(snapshot: ReturnType<Sim['snapshot']>): void {
-		const active = runner;
-		if (!active || !sim) return;
-		let result;
-		try {
-			result = active.tick(snapshot);
-		} catch (error) {
-			// Not the script's fault (the vessel is gone): the runner has disposed itself.
-			runner = null;
-			flushLines();
-			postStatus('failed', error instanceof Error ? error.message : String(error));
-			return;
-		}
+	function onScriptResult(active: ScriptSession, result: ScriptResult): void {
+		if (active !== session || !sim) return;
 		lastMs = result.elapsedMs;
 		maxMs = Math.max(maxMs, result.elapsedMs);
+		lines.push(...result.lines);
 		for (const command of result.commands) {
+			if (!allowed(command)) {
+				lines.push(`! ${String((command as { type?: unknown }).type)}: not allowed for scripts`);
+				continue;
+			}
 			const verdict = sim.dispatch(command);
 			if (!verdict.ok) {
 				const text = `! ${command.type}: ${verdict.reason}`;
@@ -163,12 +129,65 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		}
 		flushLines();
 		if (result.status !== 'running') {
-			const error = active.error;
-			runner = null;
-			postStatus(result.status, error);
+			session = null; // the session closed itself
+			postStatus(result.status, result.error);
 		} else if (options.now() - lastStatusAt >= SCRIPT_STATUS_MS) {
 			postStatus('running');
 		}
+	}
+
+	function startScript(source: string, vessel: number): void {
+		endScript();
+		lastMs = 0;
+		maxMs = 0;
+		lines = [];
+		lastRefusal = '';
+		if (!sim) return postStatus('failed', 'the simulation is not ready yet');
+		if (!options.spawnScriptWorker) return postStatus('failed', 'scripting is not available');
+		if (!sim.snapshot().vessels.some((v) => Number(v.id) === vessel)) {
+			return postStatus('failed', `vessel ${vessel} does not exist`);
+		}
+		postStatus('starting');
+		scriptVessel = vessel;
+		let created: ScriptSession;
+		try {
+			created = createScriptSession({
+				worker: options.spawnScriptWorker(),
+				now: options.now,
+				source,
+				vessel,
+				budgetMs: options.scriptBudgetMs ?? SCRIPT_BUDGET_MS,
+				firstTickBudgetMs: options.scriptFirstTickBudgetMs ?? SCRIPT_FIRST_TICK_BUDGET_MS,
+				env: {
+					bodies: sim.registries.bodies.list(),
+					parts: sim.registries.parts.list(),
+					resources: sim.registries.resources.list()
+				},
+				...(options.scriptWatchdogMs === undefined ? {} : { watchdogMs: options.scriptWatchdogMs }),
+				...(options.scriptBootTimeoutMs === undefined
+					? {}
+					: { bootTimeoutMs: options.scriptBootTimeoutMs }),
+				onReady: () => {
+					if (created === session) postStatus('running');
+				},
+				onResult: (result) => onScriptResult(created, result),
+				onDead: (status, error) => {
+					if (created !== session) return;
+					session = null;
+					flushLines();
+					postStatus(status, error);
+				}
+			});
+		} catch (error) {
+			return postStatus('failed', error instanceof Error ? error.message : String(error));
+		}
+		session = created;
+	}
+
+	function stopScript(): void {
+		endScript();
+		lines = [];
+		postStatus('stopped');
 	}
 
 	const fail = (error: unknown): void => {
@@ -187,7 +206,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
 			if (!paused) sim.step(delta);
 			const snapshot = sim.snapshot();
-			if (!paused) tickScript(snapshot);
+			session?.poll();
+			if (!paused) session?.tick(snapshot);
 			options.post({ kind: 'snapshot', snapshot });
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
@@ -199,7 +219,6 @@ export function createSimHost(options: SimHostOptions): SimHost {
 
 	function dispose(): void {
 		disposed = true;
-		++scriptEpoch;
 		endScript();
 		cancel?.();
 		cancel = null;

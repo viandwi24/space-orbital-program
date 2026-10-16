@@ -1,26 +1,36 @@
 /// <reference lib="webworker" />
-// Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic.
+// Worker entry: the sim runs here, off the main thread. See sim-host.ts for the logic. Player
+// scripts do not run here: each Run gets its own script Worker (ADR 0031).
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
-import { createScriptRunnerIn } from '@orbital/scripting/runner';
 import { createSim } from '@orbital/sim';
-import releaseSync from '@jitl/quickjs-wasmfile-release-sync';
-import { newQuickJSWASMModuleFromVariant, newVariant } from 'quickjs-emscripten-core';
-import quickjsWasmUrl from '@jitl/quickjs-wasmfile-release-sync/wasm?url';
+import type { ScriptWorkerLike } from './script-protocol';
 import { createSimHost } from './sim-host';
 
-// One WASM module for the worker's life, loaded from the bundled asset URL (ADR 0022).
-let quickjs: ReturnType<typeof newQuickJSWASMModuleFromVariant> | null = null;
-const loadQuickJS = () => {
-	if (!quickjs) {
-		const loading = newQuickJSWASMModuleFromVariant(
-			newVariant(releaseSync, { wasmLocation: quickjsWasmUrl })
-		);
-		loading.catch(() => (quickjs = null)); // a failed load may be retried by the next Run
-		quickjs = loading;
-	}
-	return quickjs;
-};
+/** A script Worker for one Run: bundled by Vite (the `new URL` form must stay literal). */
+function spawnScriptWorker(): ScriptWorkerLike {
+	const worker = new Worker(new URL('./script.worker.ts', import.meta.url), { type: 'module' });
+	let onmessage: ScriptWorkerLike['onmessage'] = null;
+	let onerror: ScriptWorkerLike['onerror'] = null;
+	return {
+		postMessage: (message) => worker.postMessage(message),
+		get onmessage() {
+			return onmessage;
+		},
+		set onmessage(handler) {
+			onmessage = handler;
+			worker.onmessage = handler ? (event: MessageEvent) => handler({ data: event.data }) : null;
+		},
+		get onerror() {
+			return onerror;
+		},
+		set onerror(handler) {
+			onerror = handler;
+			worker.onerror = handler ? (event: ErrorEvent) => handler({ message: event.message }) : null;
+		},
+		terminate: () => worker.terminate()
+	};
+}
 
 const host = createSimHost({
 	createSim: () =>
@@ -28,8 +38,7 @@ const host = createSimHost({
 			plugins: [Stock],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 })
 		}),
-	createRunner: async (source, options) =>
-		createScriptRunnerIn(await loadQuickJS(), source, options),
+	spawnScriptWorker: spawnScriptWorker,
 	post: (message) => self.postMessage(message),
 	now: () => performance.now(),
 	schedule: (tick, periodMs) => {
