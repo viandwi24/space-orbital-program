@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress by the VAB session; 022 (3D vehicle assembly building) is done
-**Next plan:** 023 (release readiness; builds on the design system, the HUD and the VAB) and the follow-up drafts 024, 026 and 027 (025 is done). Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** 023 (release readiness; builds on the design system, the HUD and the VAB) and the follow-up drafts 026 and 027 (024 and 025 are done). Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -33,7 +33,7 @@
 | 021 | [UI: design system and flight HUD](plans/021-hud-and-ui-design-system.md) | done | hud session | ADR 0026; tokens, components, own icons and OFL fonts in `apps/web/src/lib/ui`; canvas navball, surface/orbit speed, stage stack with exact per-stage Δv (`lib/delta-v.ts`, shared with the VAB), toasts from sim events, pause menu, controls overlay, map Ap/Pe markers; sim host `pause` and `sim-event` messages |
 | 022 | [UI: 3D vehicle assembly building](plans/022-vab-3d.md) | done | vab session | ADR 0029; procedural hangar view (`VabView`), rendered part thumbnails by category with search, attach by clicking rings with a ghost preview, move/detach/delete with loose assemblies, undo/redo, stage editor with auto-staging and drag between stages, exact Δv/TWR per stage (shared with the HUD) and a trip estimate, eight launch checks, save/load JSON; two-stage vessel built by mouse and by keyboard reached orbit; 4 ms per frame at 1080p ratio 1 and 9 ms at 1.5 on an M5, M1/M2 not measured; follow-ups are draft 029 |
 | 023 | [Release readiness](plans/023-release-readiness.md) | draft | — | menus, settings, perf budget, polish, release checklist; needs 019–022 |
-| 024 | [Tooling hooks: module descriptors for delta-v and Renderer.project](plans/024-tooling-hooks-for-mods-and-renderer.md) | draft | — | from 021: SDK module descriptors so mod engines get stage delta-v; renderer projection API to replace the HUD's map-camera mirror |
+| 024 | [Tooling hooks: module descriptors for delta-v and Renderer.project](plans/024-tooling-hooks-for-mods-and-renderer.md) | done | tooling session | ADR 0033; `ModuleDefinition.describe` (API 0.1.7) so a mod's engines and separators get stage delta-v and auto-staging; `Renderer.project` replaces the HUD's map-camera mirror; stock Δv unchanged (1,161 + 2,844 m/s sea level) |
 | 025 | [Visual: environment follow-ups](plans/025-environment-follow-ups.md) | done | environment-2 session | ADR 0030; sim places at body-fixed coordinates (renderer inference deleted); grass blades/stripes/tufts, hill shading, forest crowns, fields, rivers, clean coasts, hangar/control centre/vehicles/containers/weathering, leafy trees and groves, floodlights at night; `high` pad 11.6 ms thr / 16.5 ms sync on an M5, M1/M2 not measured; terrain geometry, cloud layers etc. are draft 027 |
 | 026 | [Visual: part follow-ups](plans/026-part-visual-follow-ups.md) | draft | — | radial parts and fins, glTF asset provider, engine states, volumetric smoke, real debris, plasma shape, M1/M2 tuning; from the 020 self-review |
 | 029 | [UI: VAB follow-ups](plans/029-vab-follow-ups.md) | draft | — | from 022: vessel library, sub-assemblies, radial attach (needs 026), hangar polish, mod-supplied categories, fuller trip planner, M1/M2 measurements |
@@ -55,7 +55,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - The launch site is body-fixed (0, 0) and the sim places vessels there at any load time (plan 025, ADR 0030). Relief in the ground shader is shading only: no mountain silhouettes, trees and buildings stay on the reference sphere. The first body is drawn by the planet pass; other bodies are plain lit spheres. Frame times are measured on an Apple M5 only (`high` at the pad is at the 16.7 ms limit in the synchronous metric); haze makes land look milky at 3 to 10 km (draft plan 027).
 - Part visuals (plan 020, ADR 0028): only stack parts exist, so there are no fins, boosters or radial hardware; debris is boxes, the re-entry plasma is an ellipsoid shell, smoke is unlit billboards; the explosion, vacuum and re-entry screenshots are synthetic snapshots (a real crash is covered by unit tests and the camera hold, not by a capture); the destroyed vessel's camera holds the wreck for 5 s then jumps to the planet centre (HUD "lost" state). Draft plan 026.
 - Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
-- HUD (plan 021, ADR 0026): stage Δv understands the stock engine, decoupler and store modules only, and the map markers mirror the renderer's map camera (a test pins the mirror); both are draft plan 024. The layout is tuned for 1280x720 and up, the dev autopilot (`P`) is unreliable under software rendering, and the throttle gauge is read-only.
+- HUD (plan 021, ADR 0026): stage Δv reads module descriptors (`describe`, ADR 0033, plan 024), so a mod's engines and separators count, and the map markers use `Renderer.project`. The HUD throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own value). The layout is tuned for 1280x720 and up, the dev autopilot (`P`) is unreliable under software rendering, and the throttle gauge is read-only.
 - VAB (plan 022, ADR 0029): only stack attachment (radial parts and symmetry wait for plan 026); one draft in `localStorage` plus JSON files, no vessel library; the Δv trip estimate is a rule of thumb (1.3 km/s loss allowance); the hangar is dark and static away from the vessel; frame time measured only on an Apple M5 (4 ms at 1080p ratio 1, 9 ms at 1.5); the layout targets 1280x720 and up (the right panel is cut off below about 1000 px). Draft plan 029.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
@@ -67,6 +67,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [024 — Tooling hooks: module descriptors and Renderer.project](journal/024-tooling-hooks-for-mods-and-renderer.md)
 - [018 — Script sharing container and ship API constants](journal/018-script-sharing-and-ship-api.md)
 - [022 — UI: 3D vehicle assembly building](journal/022-vab-3d.md)
 - [025 — Visual: environment follow-ups](journal/025-environment-follow-ups.md)

@@ -50,3 +50,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0030 | [Launch-site coordinates are body-fixed; ground detail without terrain geometry](0030-launch-site-coordinates-and-ground-detail.md) | accepted | 2026-10-16 |
 | 0029 | [VAB editor state model and hangar view](0029-vab-editor-state-and-hangar-view.md) | accepted | 2026-10-16 |
 | 0031 | [The script runner moves to its own Worker; ship API gains engine and wheel constants](0031-script-runner-in-its-own-worker.md) | accepted | 2026-10-16 |
+| 0033 | [Module descriptors for tools, and `Renderer.project`](0033-module-descriptors-and-renderer-project.md) | accepted | 2026-10-16 |
