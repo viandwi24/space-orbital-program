@@ -4,7 +4,16 @@ A script flies your vessel for you. It is plain JavaScript (not TypeScript), run
 
 ## Before you run someone else's script
 
-A script cannot read your files, the page, the network or other vessels, and it cannot issue commands except `throttle`, `attitude`, `stage` and `action` for the vessel it was started on. It runs in its own Worker inside a WebAssembly JavaScript engine (QuickJS), with a time budget per tick, a memory limit and a kill switch. That is strong, but not proven: the engine has not been independently audited, and a flaw in it could in principle let a script reach the browser features a Web Worker has (network requests to the game's own site, the game's browser storage). The game has no accounts or payment data. Read a script before you run it, as you would any code from a stranger. A script cannot harm your saved vessels' designs in any way the Stop button does not end, but a malicious one can fly your vessel into the ground.
+A script cannot read your files, the page, the network or other vessels, and it cannot issue commands except `throttle`, `attitude`, `stage` and `action` for the vessel it was started on. It runs in a WebAssembly JavaScript engine (QuickJS) inside a Web Worker that lives in a hidden, sandboxed frame with no network access and no access to the game's saved data (ADR 0038), with a time budget per tick, a memory limit and a kill switch. That is strong, but not proven: the engine has not been independently audited. If a flaw in it let a script escape the engine, the script would still be inside that frame: no network requests, no browser storage or cookies of the game, no handle on the page. It could still waste your processor until you press Stop, and it could send commands for its own vessel. The panel says "Runs isolated" only after the game has tested this from inside the frame and the Worker; if the test finds anything reachable it says so, and then you should run only scripts you wrote. The game has no accounts or payment data. A script cannot harm your saved vessel designs, but a malicious one can fly your vessel into the ground.
+
+Read a script before you run it, as you would any code from a stranger. Scripts you import (from a file, pasted text or a link) are shown in the editor, marked as imported, and run only after you confirm.
+
+## The script panel
+
+- **Editor:** line numbers, colours for keywords, strings, numbers, comments and the game's own names (`ship`, `stage`, `wait`, ...). When a script fails, the line it failed on is marked and the message starts with `Line N:`.
+- **Share:** *Copy text*, *Copy link* (the script is inside the link after the `#`, so nothing is uploaded; links work up to about 64 KB of script) and *Save file* (`<vessel>.orbital.js`).
+- **Import:** *From file*, *Paste text*, or open a link. The script replaces the editor text (*Put my script back* undoes it), is not run, and the Run button reads *Run imported script*; pressing it asks you to confirm.
+- **What the sandbox checked** (under the status line): the result of the isolation test in each of the two places your script's code lives.
 
 ## Program shape
 
@@ -59,7 +68,7 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 
 ## Timing and limits
 
-- Your script is called once per simulation tick with the latest data. Work between two `await`s must be short: each tick has a 10 ms budget (the first tick of a run 200 ms, because the engine starts cold). A script that exceeds it is terminated (`terminated`, "time budget exceeded"). Memory is limited to 16 MiB and the call stack to 256 KiB.
+- Your script is called once per simulation tick with the latest data. Work between two `await`s must be short: each tick has a 200 ms budget (the first tick of a run 300 ms, because the engine starts cold; ordinary ticks take well under 1 ms). A script that exceeds it is terminated (`terminated`, "time budget exceeded"). Memory is limited to 16 MiB and the call stack to 256 KiB.
 - The script runs in a separate thread from the simulation. Commands reach the vessel one or two ticks after the data they were based on; a control loop with a bandwidth of about 0.5 rad/s is unaffected, a very fast one will be. If the script thread stops answering for half a second it is killed and the simulation carries on.
 - Under time warp the script sees fewer snapshots per simulation second.
 - One script per flight, controlling the vessel that was active when you pressed Run. It cannot address other vessels, change warp or load vessels.
@@ -86,4 +95,4 @@ const burn = (dv) => (ship.mass * ve * (1 - Math.exp(-dv / ve))) / thrust;
 
 ## For mod authors
 
-`ship.engines`/`ship.wheels` are built from the part definitions' module configs by shape, so a mod engine with `thrust`, `ispVacuum`, `ispSeaLevel` numbers in its config and a `snapshot` with `ignited`, `throttle`, `flameout` shows up without any scripting-specific code. Design background: `docs/architecture/scripting.md`, ADR 0020 (engine) and ADR 0031 (Worker).
+`ship.engines`/`ship.wheels` are built from the part definitions' module configs by shape, so a mod engine with `thrust`, `ispVacuum`, `ispSeaLevel` numbers in its config and a `snapshot` with `ignited`, `throttle`, `flameout` shows up without any scripting-specific code. Design background: `docs/architecture/scripting.md`, ADR 0020 (engine), ADR 0031 (Worker) and ADR 0038 (sandbox frame).

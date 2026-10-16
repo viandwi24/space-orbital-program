@@ -53,3 +53,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0033 | [Module descriptors for tools, and `Renderer.project`](0033-module-descriptors-and-renderer-project.md) | accepted | 2026-10-16 |
 | 0036 | [Terrain heights are visual: baked on the GPU, ray-marched by the planet pass](0036-visual-terrain-heights-baked-and-ray-marched.md) | accepted | 2026-10-16 |
 | 0037 | [Haze by thicker air, two cloud layers in one march, moving waves](0037-haze-and-cloud-layers.md) | accepted | 2026-10-16 |
+| 0038 | [The script Worker runs in a sandboxed iframe with a no-network CSP](0038-script-sandbox-in-an-opaque-origin-iframe.md) | accepted | 2026-10-16 |

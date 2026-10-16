@@ -3,7 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-16
 **Plan:** plans/018-script-sharing-and-ship-api.md
-**Amends:** ADR 0022 (runner placement). ADR 0020 (QuickJS, interrupt budget) still holds.
+**Amends:** ADR 0022 (runner placement). ADR 0020 (QuickJS, interrupt budget) still holds. **Amended by:** ADR 0038 (the script Worker now lives in a sandboxed iframe; budgets 200/300 ms).
 
 ## Context
 
