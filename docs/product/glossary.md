@@ -40,6 +40,9 @@ Use these terms consistently in code, docs, and UI.
 | **Pad hold** | Removed by plan 012 (ADR 0019): a stack now stands on the ground tile by friction. Was: the sim pinned a surface-loaded vessel to its pad pose until thrust exceeded weight (ADR 0017). |
 | **Ground tile** | A kinematic slab under each flight vessel near the ground whose top face is the tangent plane of the reference sphere; real contact, friction and the rotating ground's velocity (ADR 0019). |
 | **Impact tolerance** | `PartDefinition.impactTolerance`, m/s: ground impact speed above which a part breaks off (above twice: destroyed). |
+| **Part temperature** | `PartState.temperature` / `PartSnapshot.temperature`, K: the part's skin, heated by the airflow (Sutton-Graves) and cooled by radiation (ADR 0023). |
+| **Max temperature** | `PartDefinition.maxTemperature`, K: above it the part is destroyed (`part:damaged` cause `overheat`). |
+| **Heat shield / ablator** | `stock.heat-shield` part and module: above 700 K it burns `stock.ablator` to absorb all airflow heat (`ModuleDefinition.absorbHeat`). |
 | **Module colliders** | `ModuleDefinition.colliders`: extra collision boxes a module adds to its part for its current state (landing-leg feet). |
 | **Vessel design** | The JSON a VAB saves: flat part list with parent links plus `stages` (`VesselDesign`, ADR 0016). |
 | **Script** | Untrusted player JavaScript (an async function body) run by `@orbital/scripting` against the `ship` API; sees telemetry copies, issues validated commands (ADR 0020). |

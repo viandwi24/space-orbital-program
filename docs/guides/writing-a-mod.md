@@ -71,6 +71,7 @@ update(ctx, dt) {
 - `updateOnRails(ctx, dt)` may use resources but not forces; `dt` can be up to 10 s.
 - **The module owns the schema, the state and the pure arithmetic** (`engineOutput`, `withdraw`, `deposit`), so tests can exercise it without a sim.
 - Actions take `unknown` arguments: validate them (stock uses `z.tuple([...]).parse(args)`).
+- `absorbHeat(ctx, { power, temperature }, dt)` (ADR 0023) is called each flight step in which the airflow puts `power` W on the part, before its skin warms; return the watts you carry away (clamped to `0..power`) and change `ctx.state` accordingly. Stock's heat shield burns `power·dt / heatOfAblation` kg of its `stock.ablator` once its skin is above `ablationTemperature`, and declares a `store` for the ablator so its mass counts.
 - `colliders(config, state)` adds collision boxes to the part for the current state (stock's landing leg returns four feet when `state.deployed`, none when retracted). It must be a pure function of config and state; the vessel body is rebuilt after a dispatched action or stage changes it.
 - Modules that need a sibling on the same part declare `requires: ['stock.resource-container']`; the loader checks it.
 
@@ -120,7 +121,8 @@ export const PartEngineLV = definePart({
 
 - `modules` entries are `[moduleObject, config]`, or `[moduleObject]` for a module without config. A wrong type, a missing key or an unknown key is a compile error.
 - `shape` is `{ kind: 'box', size: [x, y, z] }` or `{ kind: 'cylinder', radius, height }`, centred on the part origin with the cylinder along local Y. Until real meshes exist the renderer and the physics body use it.
-- `impactTolerance` (m/s, optional, default 6): ground impact speed above which the part breaks off the vessel; above twice it, the part is destroyed. The sim reports both as the `part:damaged` event (`{ vessel, part, definition, speed, outcome }`). Stock: pod 10, tanks 5, engine 4, legs 12.
+- `impactTolerance` (m/s, optional, default 6): ground impact speed above which the part breaks off the vessel; above twice it, the part is destroyed. The sim reports both as the `part:damaged` event (`{ vessel, part, definition, speed, outcome, cause: 'impact' }`). Stock: pod 10, tanks 5, engine 4, legs 12.
+- `maxTemperature` (K, optional, default 1000): skin temperature above which re-entry heating destroys the part (`part:damaged` with `cause: 'overheat'` and `temperature`). Stock: tanks 900, pod/wheel/decoupler/legs 1000, engine 1800, heat shield 3000. Parts carry a `temperature` in the snapshot.
 - Attach nodes: stack parts have `top` (+Y) and `bottom` (-Y) on the axis, `dir` pointing away from the part.
 - A part is plain data, so the same thing written as JSON (`modules: [["stock.engine", {...}]]`) is accepted and validated the same way.
 

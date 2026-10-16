@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress for the web client; 012 (ground contact, landing and damage) is done
-**Next plan:** draft [`plans/015-scripting-web-integration.md`](plans/015-scripting-web-integration.md) (scripts in the web client); other drafts: 014 (re-entry heating), 016 (landed vessels on rails)
+**Next plan:** draft [`plans/015-scripting-web-integration.md`](plans/015-scripting-web-integration.md) (scripts in the web client); other drafts: 016 (landed vessels on rails); 014 (re-entry heating) is done
 
 ## Plan board
 
@@ -24,7 +24,7 @@
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 | 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | done | debris session | ADR 0021; ballistic debris goes on rails and is removed at re-entry, resting debris after 10 s; warp works 3 s after reaching orbit |
-| 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | in-progress | heating session (Claude, 2026-10-16) | ADR 0023; Sutton-Graves skin heating, radiation, `maxTemperature`, ablative `stock.heat-shield` |
+| 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | done | heating session | ADR 0023; Sutton-Graves skin heating, radiation, `maxTemperature`, ablative `stock.heat-shield`; API 0.1.4; unshielded deorbit probe loses its tank at 900 K, shielded survives burning 18.75 kg of ablator |
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | in-progress | script-web session | ADR 0022: runner in the sim Worker; script panel in `/flight` |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | draft | — | found by 013: a controlled vessel on the ground still blocks warp |
 
@@ -44,12 +44,13 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
 - Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex; parts only break off by ground impact (plan 012, ADR 0019), not by load or collision between vessels. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
-- Sim limits (see `architecture/simulation.md`): flat ground tile on the reference sphere (no terrain heights), no lift/fins, no heating (draft 014), one 2.5 km physics bubble, attitude frozen on rails.
+- Sim limits (see `architecture/simulation.md`): flat ground tile on the reference sphere (no terrain heights), no lift/fins, simplified re-entry heating (windward area only, no conduction/wake, ADR 0023), one 2.5 km physics bubble, attitude frozen on rails.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
 - Scripts run on the caller's thread with a per-tick wall-clock budget (ADR 0020, `architecture/scripting.md`): a runaway script delays the host by at most one budget; web wiring and Worker hosting are draft plan 015. QuickJS-WASM is unaudited upstream.
 
 ## Recent journal entries
 
+- [014 — Re-entry heating and part temperature](journal/014-reentry-heating.md)
 - [013 — Debris lifecycle and time warp](journal/013-debris-lifecycle.md)
 - [010 — Scripting sandbox](journal/010-scripting-sandbox.md)
 - [012 — Ground contact, landing and damage](journal/012-ground-contact-landing.md)
