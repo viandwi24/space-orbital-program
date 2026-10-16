@@ -2,10 +2,10 @@
  * Pure engine arithmetic shared by the engine module, tests and the sim. No world, no physics:
  * everything is a function of config, state and ambient pressure, in SI.
  */
-import { SEA_LEVEL_PRESSURE } from '@orbital/sdk';
+import { SEA_LEVEL_PRESSURE, STANDARD_GRAVITY } from '@orbital/sdk';
 
 /** Standard gravity, m/s², the conventional definition used to convert Isp (s) to exhaust speed. */
-export const G0 = 9.80665;
+export const G0 = STANDARD_GRAVITY;
 
 /** Surface pressure of the home body, Pa; Isp interpolates between sea level and vacuum (one constant with the SDK's). */
 export { SEA_LEVEL_PRESSURE };

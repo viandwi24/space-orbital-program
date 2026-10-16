@@ -7,6 +7,9 @@ import type { EngineInfo, ModuleDefinition, ModuleInfo } from './definitions.ts'
 import { parseModuleConfig } from './plugin.ts';
 import { moduleInfoSchema } from './schemas.ts';
 
+/** Standard gravity, m/s²: converts Isp (s) to exhaust speed, thrust / (massFlow · G0). */
+export const STANDARD_GRAVITY = 9.80665;
+
 /** Surface pressure of the reference (home) atmosphere, Pa: where tools evaluate "sea level". */
 export const SEA_LEVEL_PRESSURE = 101_325;
 

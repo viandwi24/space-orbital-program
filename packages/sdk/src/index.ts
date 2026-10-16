@@ -18,6 +18,7 @@ export {
 	PluginError,
 	RegistryError,
 	SEA_LEVEL_PRESSURE,
+	STANDARD_GRAVITY,
 	thrustAtPressure
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
