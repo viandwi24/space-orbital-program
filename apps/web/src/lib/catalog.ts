@@ -1,5 +1,6 @@
 import { loadPlugins, type PartLookup } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
+import type { ContentLookups } from './delta-v';
 import type { Catalog } from './messages';
 
 /**
@@ -19,4 +20,22 @@ export function loadCatalog(): Catalog {
 export function partLookup(catalog: Catalog): PartLookup {
 	const byId = new Map(catalog.parts.map((p) => [p.id as string, p]));
 	return { get: (id) => byId.get(id) };
+}
+
+/** Catalog plus the registries the HUD's stage maths needs (module definitions carry the store accessors). */
+export function loadContent(): { catalog: Catalog; content: ContentLookups } {
+	const { registries, report } = loadPlugins([Stock]);
+	return {
+		catalog: {
+			plugins: [...report.order],
+			parts: registries.parts.list(),
+			bodies: registries.bodies.list(),
+			resources: registries.resources.list()
+		},
+		content: {
+			parts: registries.parts,
+			modules: registries.modules,
+			resources: registries.resources
+		}
+	};
 }

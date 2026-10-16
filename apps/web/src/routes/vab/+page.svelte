@@ -246,79 +246,84 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		background: #0d1117;
-		color: #e6edf3;
-		font-family: system-ui, sans-serif;
-	}
 	main {
-		max-width: 60rem;
+		max-width: 62rem;
 		margin: 0 auto;
-		padding: 1rem;
+		padding: var(--s-4) var(--s-4) var(--s-6);
 	}
 	header {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 	}
-	a {
-		color: #8ecbff;
+	h1 {
+		font-size: var(--t-xl);
+		font-weight: 600;
+		margin: var(--s-2) 0;
 	}
 	h2 {
-		font-size: 1rem;
-		margin: 1.2rem 0 0.4rem;
+		font-size: var(--t-md);
+		font-weight: 600;
+		color: var(--text-dim);
+		margin: var(--s-5) 0 var(--s-2);
 	}
 	.row {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.6rem;
+		gap: var(--s-3);
 		align-items: end;
 	}
 	label {
 		display: grid;
 		gap: 2px;
-		font-size: 0.8rem;
-		color: #9fb0c5;
+		font-size: var(--t-sm);
+		color: var(--text-dim);
 	}
 	input,
 	select,
 	button {
-		font: inherit;
-		background: #161b22;
-		color: inherit;
-		border: 1px solid #30363d;
-		border-radius: 4px;
-		padding: 4px 8px;
+		min-height: 32px;
+		padding: 0 var(--s-2);
+		font-size: var(--t-sm);
+		background: var(--panel-raised);
+		color: var(--text);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-control);
 	}
-	button {
-		cursor: pointer;
+	button:hover:not(:disabled) {
+		border-color: var(--c-accent);
 	}
 	button:disabled {
 		opacity: 0.45;
-		cursor: not-allowed;
 	}
 	.go {
-		background: #238636;
-		border-color: #2ea043;
-		padding: 8px 20px;
-		margin-top: 0.6rem;
+		background: var(--c-accent);
+		border-color: var(--c-accent);
+		color: var(--c-ink);
+		font-weight: 600;
+		padding: 0 var(--s-5);
+		margin-top: var(--s-3);
 	}
 	table {
 		width: 100%;
 		border-collapse: collapse;
+		font-size: var(--t-sm);
 	}
 	th,
 	td {
 		text-align: left;
-		padding: 4px 8px;
-		border-bottom: 1px solid #21262d;
+		padding: var(--s-1) var(--s-2);
+		border-bottom: 1px solid var(--line);
+	}
+	th {
+		color: var(--text-dim);
+		font-weight: 500;
 	}
 	.muted {
-		color: #7f8da3;
+		color: var(--text-dim);
 	}
 	.error {
-		color: #ffb4b0;
-		margin: 0.2rem 0;
+		color: var(--c-danger);
+		margin: 2px 0;
 	}
 </style>

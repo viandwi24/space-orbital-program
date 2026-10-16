@@ -13,26 +13,32 @@ import {
 import { initialGraphicsPreset, saveGraphicsPreset } from './graphics';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, type ScriptView } from './script-state';
-import { noStages, reduceStages, stagesFiredBy, type StageProgress } from './stage-state';
 import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
+import type { ContentLookups } from './delta-v';
+import { WARP_STEPS } from './warp';
+import {
+	createHudController,
+	type FrameData,
+	type HudController,
+	type HudModel
+} from './hud-controller';
 
-export const WARP_STEPS = [1, 2, 5, 10, 50, 100, 1_000, 10_000, 100_000] as const;
 /** Throttle change per second while Shift/Ctrl is held. */
 const THROTTLE_RATE = 0.5;
 const HUD_PERIOD_MS = 100;
-const MESSAGE_MS = 4_000;
 
 export interface FlightHud {
 	status: 'booting' | 'flying' | 'lost' | 'error';
-	/** Human-readable detail for `error`/`lost`, or the last refusal/notice. */
+	/** Human-readable detail for `booting`, `error` and `lost`. */
 	message: string;
 	vesselName: string;
 	telemetry: Telemetry | null;
 	throttle: number;
-	/** Stages the sim has fired for the vessel (any sender, plan 017) / stages in the design. */
-	stagesDone: number;
-	stagesTotal: number;
+	/** Everything the HUD panels show (plan 021); null until the first snapshot of the vessel. */
+	model: HudModel | null;
+	/** The sim clock is frozen (pause menu). */
+	paused: boolean;
 	warp: number;
 	map: boolean;
 	autopilot: string | null;
@@ -41,7 +47,13 @@ export interface FlightHud {
 export interface FlightOptions {
 	canvas: HTMLCanvasElement;
 	design: VesselDesign;
+	/** Parts, modules and resources for the HUD's stage maths (plan 021). */
+	content: ContentLookups;
 	onHud(hud: FlightHud): void;
+	/** Every render frame, with what the canvas widgets draw (navball, map markers); no Svelte here. */
+	onFrame?(frame: FrameData): void;
+	/** Esc (pause menu) and `?`/F1 (help overlay) were pressed. */
+	onKey?(key: 'escape' | 'help'): void;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 }
@@ -54,6 +66,14 @@ export interface Flight {
 	stepWarp(delta: number): void;
 	/** Switch the graphics preset now and remember it (plan 019; the settings screen of plan 023 calls this). */
 	setGraphicsPreset(preset: GraphicsPreset): void;
+	/** Fire the next stage (the button next to the stage stack). */
+	stage(): void;
+	toggleMap(): void;
+	cycleSpeedMode(): void;
+	/** Freeze or resume the sim (pause menu). */
+	setPaused(paused: boolean): void;
+	/** While a dialog is open the flight keys do nothing. */
+	setModal(open: boolean): void;
 	dispose(): void;
 }
 
@@ -91,26 +111,33 @@ export function startFlight(options: FlightOptions): Flight {
 		vesselName: design.name,
 		telemetry: null,
 		throttle: 0,
-		stagesDone: 0,
-		stagesTotal: design.stages.length,
+		model: null,
+		paused: false,
 		warp: 1,
 		map: false,
 		autopilot: null
 	};
-	let stages: StageProgress = noStages;
+	// Dev-only cost counters for the HUD (journal 021): per-frame paint and 10 Hz model build.
+	const stats = {
+		n: { paint: 0, model: 0 },
+		total: { paint: 0, model: 0 },
+		max: { paint: 0, model: 0 },
+		add(kind: 'paint' | 'model', ms: number): void {
+			this.n[kind]++;
+			this.total[kind] += ms;
+			this.max[kind] = Math.max(this.max[kind], ms);
+		}
+	};
+	let hudCtl: HudController | null = null;
+	let modal = false;
 	let script: ScriptView = idleScript();
 	let scriptDirty = false;
-	let messageUntil = 0;
-	const notice = (text: string): void => {
-		hud.message = text;
-		messageUntil = performance.now() + MESSAGE_MS;
-	};
 	const publish = (): void =>
 		options.onHud({ ...hud, telemetry: hud.telemetry && { ...hud.telemetry } });
 
 	const send = (command: Command): Promise<boolean> =>
 		client.dispatch(command).then((result) => {
-			if (!result.ok) notice(`${command.type}: ${result.reason}`);
+			if (!result.ok) hudCtl?.refused(command.type, result.reason);
 			return result.ok;
 		});
 
@@ -169,7 +196,21 @@ export function startFlight(options: FlightOptions): Flight {
 	};
 
 	function onKeyDown(e: KeyboardEvent): void {
-		if (e.repeat || typingInField(e)) return;
+		if (e.key === 'Escape' && !e.repeat) {
+			// The dialog closes itself on Escape; this only opens the menu.
+			if (!modal) {
+				// Without this the same keypress would also cancel the dialog it just opened.
+				e.preventDefault();
+				options.onKey?.('escape');
+			}
+			return;
+		}
+		if (modal || e.repeat || typingInField(e)) return;
+		if (e.key === '?' || e.key === 'F1') {
+			e.preventDefault();
+			options.onKey?.('help');
+			return;
+		}
 		// Punctuation by character so it works on any layout; everything else by physical key.
 		const code = e.key === ',' ? 'Comma' : e.key === '.' ? 'Period' : e.code;
 		held.add(code);
@@ -185,7 +226,10 @@ export function startFlight(options: FlightOptions): Flight {
 				if (vessel !== null) void send({ type: 'stage', vessel });
 				break;
 			case 'KeyM':
-				hud.map = renderer?.toggleMapView() ?? false;
+				toggleMap();
+				break;
+			case 'KeyV':
+				hudCtl?.cycleSpeedMode();
 				break;
 			case 'Comma':
 				setWarp(warpIndex - 1);
@@ -211,13 +255,23 @@ export function startFlight(options: FlightOptions): Flight {
 	};
 	const onPointerUp = (): void => void (dragging = false);
 	const onPointerMove = (e: PointerEvent): void => {
-		if (dragging)
-			renderer?.orbitCamera({ dYaw: -e.movementX * 0.005, dPitch: e.movementY * 0.005 });
+		if (dragging) {
+			const input = { dYaw: -e.movementX * 0.005, dPitch: e.movementY * 0.005 };
+			renderer?.orbitCamera(input);
+			hudCtl?.camera.orbit(input);
+		}
 	};
 	const onWheel = (e: WheelEvent): void => {
 		e.preventDefault();
-		renderer?.orbitCamera({ zoomFactor: Math.exp(e.deltaY * 0.001) });
+		const input = { zoomFactor: Math.exp(e.deltaY * 0.001) };
+		renderer?.orbitCamera(input);
+		hudCtl?.camera.orbit(input);
 	};
+
+	function toggleMap(): void {
+		hud.map = renderer?.toggleMapView() ?? false;
+		hudCtl?.camera.setMap(hud.map);
+	}
 
 	async function toggleAutopilot(): Promise<void> {
 		if (auto) {
@@ -257,6 +311,11 @@ export function startFlight(options: FlightOptions): Flight {
 			dirty = false;
 		}
 		renderer?.render();
+		if (hudCtl) {
+			const t0 = performance.now();
+			options.onFrame?.(hudCtl.frame());
+			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
+		}
 		if (now - lastHud >= HUD_PERIOD_MS) {
 			lastHud = now;
 			if (catalog && vessel !== null && snap) {
@@ -267,12 +326,10 @@ export function startFlight(options: FlightOptions): Flight {
 				}
 			}
 			hud.throttle = throttle;
-			hud.stagesDone = stagesFiredBy(stages, vessel === null ? null : Number(vessel));
+			const t0 = performance.now();
+			hud.model = hudCtl?.model(now, throttle) ?? null;
+			if (import.meta.env.DEV) stats.add('model', performance.now() - t0);
 			if (auto) hud.autopilot = `${auto.phase}: ${auto.note}`;
-			if (messageUntil && now > messageUntil && hud.status === 'flying') {
-				hud.message = '';
-				messageUntil = 0;
-			}
 			publish();
 			if (scriptDirty) {
 				scriptDirty = false;
@@ -283,19 +340,22 @@ export function startFlight(options: FlightOptions): Flight {
 
 	function resize(): void {
 		const parent = canvas.parentElement ?? canvas;
-		renderer?.resize(Math.max(1, parent.clientWidth), Math.max(1, parent.clientHeight));
+		const w = Math.max(1, parent.clientWidth);
+		const h = Math.max(1, parent.clientHeight);
+		renderer?.resize(w, h);
+		hudCtl?.camera.resize(w, h);
 	}
 	const observer = new ResizeObserver(resize);
 
 	// --- boot --------------------------------------------------------------------------------
 	client.onSnapshot((s) => {
 		snap = s;
+		hudCtl?.snapshot(s);
 		dirty = true;
 		auto?.update(s);
 	});
-	client.onStage((event) => {
-		stages = reduceStages(stages, event);
-	});
+	client.onStage((event) => hudCtl?.stage(event));
+	client.onSimEvent((event) => hudCtl?.simEvent(event));
 	client.onScript((event) => {
 		script = reduceScript(script, event);
 		scriptDirty = true;
@@ -309,10 +369,13 @@ export function startFlight(options: FlightOptions): Flight {
 		async (c) => {
 			if (disposed) return;
 			catalog = c;
+			hudCtl = createHudController({ design, content: options.content, bodies: c.bodies });
 			renderer = createRenderer({
 				canvas,
 				bodies: c.bodies.map((b) => ({ id: b.id, radius: b.radius, atmosphere: b.atmosphere })),
 				partShapes: partShapesOf(c),
+				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
+				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
 				preset: initialGraphicsPreset()
 			});
 			resize();
@@ -324,6 +387,7 @@ export function startFlight(options: FlightOptions): Flight {
 				return;
 			}
 			vessel = result.vessel;
+			hudCtl.attach(Number(vessel));
 			renderer.setActiveVessel(vessel);
 			hud.status = 'flying';
 			hud.message = '';
@@ -352,6 +416,13 @@ export function startFlight(options: FlightOptions): Flight {
 		// Debug hook for the manual run (journal 009): capture the canvas plus a text HUD overlay.
 		(window as unknown as { __orbital: unknown }).__orbital = {
 			hud: () => ({ ...hud }),
+			hudStats: () => ({
+				paintAvgMs: stats.total.paint / Math.max(1, stats.n.paint),
+				paintMaxMs: stats.max.paint,
+				modelAvgMs: stats.total.model / Math.max(1, stats.n.model),
+				modelMaxMs: stats.max.model,
+				frames: stats.n.paint
+			}),
 			renderer: () => renderer,
 			snapshot: () => snap,
 			send: (c: Command) => client.dispatch(c),
@@ -386,6 +457,21 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		stepWarp(delta) {
 			setWarp(warpIndex + delta);
+		},
+		stage() {
+			if (vessel !== null) void send({ type: 'stage', vessel });
+		},
+		toggleMap,
+		cycleSpeedMode() {
+			hudCtl?.cycleSpeedMode();
+		},
+		setPaused(paused) {
+			hud.paused = paused;
+			client.setPaused(paused);
+		},
+		setModal(open) {
+			modal = open;
+			if (open) held.clear();
 		},
 		dispose() {
 			disposed = true;

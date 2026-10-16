@@ -1,59 +1,87 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { formatDistance, formatSpeed } from '../../lib/format';
-	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
-	import { loadCatalog, partLookup } from '../../lib/catalog';
+	import { ascentScript } from '@orbital/scripting/samples/ascent';
+	import AppBar from '../../lib/hud/AppBar.svelte';
+	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
+	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
+	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
+	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
+	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
+	import ResourcesPanel from '../../lib/hud/ResourcesPanel.svelte';
+	import ScriptPanel from '../../lib/hud/ScriptPanel.svelte';
+	import SituationBar from '../../lib/hud/SituationBar.svelte';
+	import StageStack from '../../lib/hud/StageStack.svelte';
+	import StatusCard from '../../lib/hud/StatusCard.svelte';
+	import WarpControl from '../../lib/hud/WarpControl.svelte';
+	import Button from '../../lib/ui/Button.svelte';
+	import Toasts from '../../lib/ui/Toasts.svelte';
+	import { loadContent, partLookup } from '../../lib/catalog';
 	import { parseDesign } from '../../lib/design';
+	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
+	import type { FrameData } from '../../lib/hud-controller';
+	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
 	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
 	import { canWarp } from '../../lib/telemetry';
-	import { ascentScript } from '@orbital/scripting/samples/ascent';
-	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
 
 	let canvas: HTMLCanvasElement;
 	let hud = $state.raw<FlightHud | null>(null);
 	let problem = $state<string | null>(null);
 	let flight: Flight | null = null;
-	let panelOpen = $state(false);
+	let scriptOpen = $state(false);
 	let source = $state('');
 	let designName = '';
 	let script = $state.raw<ScriptView>(idleScript());
-	let logEl = $state<HTMLPreElement>();
-
-	const clock = (t: number): string => {
-		const s = Math.floor(t);
-		return `T+${Math.floor(s / 60)
-			.toString()
-			.padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-	};
+	let pauseOpen = $state(false);
+	let helpOpen = $state(false);
+	let deck = $state<InstrumentDeck>();
+	let markers = $state<MapMarkers>();
+	let tall = $state(true);
 
 	onMount(() => {
+		const { catalog, content } = loadContent();
 		const text = loadDraft();
 		if (text === null) {
-			problem = 'No design to launch. Build one in the VAB first.';
+			problem = 'No vessel to launch yet.';
 			return;
 		}
-		const parsed = parseDesign(text, partLookup(loadCatalog()));
+		const parsed = parseDesign(text, partLookup(catalog));
 		if (!parsed.ok) {
 			problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
 			return;
 		}
 		designName = parsed.design.name;
 		source = loadScript(designName) ?? '';
+		const small = matchMedia('(max-height: 800px)');
+		const sync = (): void => void (tall = !small.matches);
+		sync();
+		small.addEventListener('change', sync);
 		const started: Flight = startFlight({
 			canvas,
 			design: parsed.design,
+			content,
 			onHud: (h) => (hud = h),
-			onScript: (v) => {
-				script = v;
-				// Keep the newest output in view once the DOM has the new lines.
-				queueMicrotask(() => logEl && (logEl.scrollTop = logEl.scrollHeight));
+			onScript: (v) => (script = v),
+			onFrame: (f: FrameData) => {
+				deck?.paint(f.navball);
+				markers?.place(f.map);
+			},
+			onKey: (key) => {
+				if (key === 'escape') pauseOpen = true;
+				else helpOpen = true;
 			}
 		});
 		flight = started;
 		return () => {
+			small.removeEventListener('change', sync);
 			flight = null;
 			started.dispose();
 		};
+	});
+
+	// The sim freezes and the flight keys go quiet while a dialog is open.
+	$effect(() => {
+		flight?.setPaused(pauseOpen || helpOpen);
+		flight?.setModal(pauseOpen || helpOpen);
 	});
 
 	/** Edits and "Load sample" both go through here so the text is saved per design. */
@@ -62,6 +90,7 @@
 		if (designName) saveScript(designName, text);
 	}
 
+	const model = $derived(hud?.model ?? null);
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
 	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1));
@@ -72,130 +101,127 @@
 
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
-
-	<nav class="top">
-		<a href="/vab">VAB</a>
-		<span>{hud?.vesselName ?? ''}</span>
-		<button type="button" onclick={() => (panelOpen = !panelOpen)} aria-expanded={panelOpen}>
-			Script{running ? ' (running)' : ''}
-		</button>
-	</nav>
-
-	{#if panelOpen}
-		<section class="script" aria-label="Script">
-			<textarea
-				value={source}
-				oninput={(e) => setSource(e.currentTarget.value)}
-				spellcheck="false"
-				rows="12"
-				placeholder="Script body (async function): ship.throttle = 1; stage(); await wait(5); print(ship.altitude)"
-				aria-label="Script source"></textarea>
-			<div class="buttons">
-				<button type="button" disabled={!canRun} onclick={() => flight?.runScript(source)}>
-					Run
-				</button>
-				<button type="button" disabled={!running} onclick={() => flight?.stopScript()}>
-					Stop
-				</button>
-				<button type="button" onclick={() => setSource(ascentScript)}>Load sample</button>
-				<span
-					class="status"
-					class:error={script.status === 'failed' || script.status === 'terminated'}
-					data-testid="script-status"
-				>
-					{script.status}
-				</span>
-			</div>
-			{#if script.status !== 'idle'}
-				<p class="timing">
-					last tick {script.lastMs.toFixed(1)} ms · worst {script.maxMs.toFixed(1)} ms
-				</p>
-			{/if}
-			{#if script.error}
-				<pre class="err">{script.error}</pre>
-			{/if}
-			<pre class="log" bind:this={logEl} aria-label="Script output">{script.log.join('\n')}</pre>
-		</section>
-	{/if}
+	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
 
 	{#if problem}
-		<p class="banner">{problem} <a href="/vab">Open the VAB</a></p>
+		<div class="center">
+			<StatusCard tone="warning" title="Nothing to fly">
+				<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
+				{#snippet actions()}
+					<a class="cta" href="/vab">Open the VAB</a>
+				{/snippet}
+			</StatusCard>
+		</div>
 	{:else if hud}
-		{#if hud.status !== 'flying' || hud.message}
-			<p class="banner" class:error={hud.status === 'error' || hud.status === 'lost'}>
-				{hud.message || hud.status}
-			</p>
+		{#if hud.status === 'booting'}
+			<div class="center">
+				<StatusCard title="Starting the simulation" busy>
+					<p>Loading the sim and the stock parts.</p>
+				</StatusCard>
+			</div>
+		{:else if hud.status === 'error'}
+			<div class="center">
+				<StatusCard tone="danger" title="The simulation stopped">
+					<p>{hud.message}</p>
+					{#snippet actions()}
+						<Button variant="primary" onclick={() => location.reload()}>Reload</Button>
+						<a class="cta quiet" href="/vab">Back to the VAB</a>
+					{/snippet}
+				</StatusCard>
+			</div>
+		{:else if hud.status === 'lost'}
+			<div class="center">
+				<StatusCard tone="danger" title="Vessel lost">
+					<p>{hud.message}. Revert to the VAB to adjust the design and launch again.</p>
+					{#snippet actions()}
+						<a class="cta" href="/vab">Back to the VAB</a>
+					{/snippet}
+				</StatusCard>
+			</div>
 		{/if}
-		<section class="hud" aria-label="Flight data">
-			<dl>
-				<dt>Time</dt>
-				<dd>{t ? clock(t.t) : '-'}</dd>
-				<dt>Altitude</dt>
-				<dd>{t ? formatDistance(t.altitude) : '-'}</dd>
-				<dt>Speed</dt>
-				<dd>{t ? formatSpeed(t.speed) : '-'}</dd>
-				<dt>Apoapsis</dt>
-				<dd>
-					{t?.apoapsis !== undefined ? formatDistance(t.apoapsis) : t?.escape ? 'escape' : '-'}
-				</dd>
-				<dt>Periapsis</dt>
-				<dd>{t?.periapsis !== undefined ? formatDistance(t.periapsis) : '-'}</dd>
-				<dt>Status</dt>
-				<dd data-testid="hud-phase">{t?.phase ?? '-'}</dd>
-				<dt>Mode</dt>
-				<dd>{t?.mode ?? '-'}</dd>
-				<dt>Throttle</dt>
-				<dd>
-					<meter min="0" max="1" value={hud.throttle}></meter>
-					{Math.round(hud.throttle * 100)}%
-				</dd>
-				<dt>Stage</dt>
-				<dd>{hud.stagesDone} / {hud.stagesTotal} fired</dd>
-				<dt>Warp</dt>
-				<dd>
-					<button
-						type="button"
-						class="warp"
-						aria-label="Slower time warp"
-						disabled={!warpUsable}
-						onclick={() => flight?.stepWarp(-1)}>-</button
-					>
-					<span data-testid="hud-warp">{hud.warp}x</span>
-					<button
-						type="button"
-						class="warp"
-						aria-label="Faster time warp"
-						disabled={!warpUsable}
-						onclick={() => flight?.stepWarp(1)}>+</button
-					>
-				</dd>
-				<dt>View</dt>
-				<dd>{hud.map ? 'map' : 'vessel'}</dd>
-				{#if hud.autopilot}
-					<dt>Autopilot</dt>
-					<dd>{hud.autopilot}</dd>
-				{/if}
-			</dl>
-		</section>
-	{/if}
 
-	<aside class="help">
-		<b>Keys</b> Shift/Ctrl throttle up/down · Z full · X cut · W/S pitch · A/D yaw · Q/E roll ·
-		Space stage · M map · , / . warp down/up · drag + wheel camera{#if import.meta.env.DEV}
-			· P autopilot (dev){/if}
-	</aside>
+		<div class="ui">
+			<div class="tl">
+				<AppBar
+					map={hud.map}
+					script={scriptOpen}
+					scriptRunning={running}
+					onmenu={() => (pauseOpen = true)}
+					onmap={() => flight?.toggleMap()}
+					onscript={() => (scriptOpen = !scriptOpen)}
+					onhelp={() => (helpOpen = true)}
+				/>
+				{#if scriptOpen}
+					<div class="script">
+						<ScriptPanel
+							{source}
+							{script}
+							{canRun}
+							onchange={setSource}
+							onrun={() => flight?.runScript(source)}
+							onstop={() => flight?.stopScript()}
+							onsample={() => setSource(ascentScript)}
+						/>
+					</div>
+				{/if}
+			</div>
+
+			<div class="tc">
+				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
+				<Toasts toasts={model?.toasts ?? []} />
+			</div>
+
+			{#if model}
+				<div class="tr">
+					<ResourcesPanel resources={model.resources} />
+					<StageStack
+						stages={model.stages}
+						environment={model.environment}
+						throttle={model?.throttle ?? hud.throttle}
+						onstage={() => flight?.stage()}
+					/>
+				</div>
+				<div class="bl">
+					<OrbitStrip orbit={model.orbit} phase={model.phase} />
+				</div>
+			{/if}
+
+			<div class="bc">
+				<WarpControl
+					warp={hud.warp}
+					usable={warpUsable}
+					met={model?.met ?? 0}
+					onslower={() => flight?.stepWarp(-1)}
+					onfaster={() => flight?.stepWarp(1)}
+				/>
+				<InstrumentDeck
+					bind:this={deck}
+					{model}
+					throttle={model?.throttle ?? hud.throttle}
+					ballSize={tall ? 176 : 144}
+					oncyclespeed={() => flight?.cycleSpeedMode()}
+				/>
+			</div>
+
+			{#if hud.autopilot}<p class="dev num">Dev autopilot: {hud.autopilot}</p>{/if}
+		</div>
+
+		<PauseMenu
+			open={pauseOpen}
+			name={model?.name ?? ''}
+			met={model?.met ?? 0}
+			onresume={() => (pauseOpen = false)}
+			oncontrols={() => (helpOpen = true)}
+		/>
+		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
+	{/if}
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		background: #05070c;
-		color: #e8eef5;
-		font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-	}
 	.stage {
 		position: fixed;
 		inset: 0;
+		overflow: hidden;
 	}
 	canvas {
 		display: block;
@@ -203,146 +229,109 @@
 		height: 100%;
 		touch-action: none;
 	}
-	.top {
+	.ui {
 		position: absolute;
-		top: 8px;
-		right: 12px;
-		display: flex;
-		gap: 12px;
-		font-size: 13px;
+		inset: 0;
+		pointer-events: none;
 	}
-	a {
-		color: #8ecbff;
-	}
-	button {
-		font: inherit;
-		color: inherit;
-		background: #172131;
-		border: 1px solid #263244;
-		border-radius: 4px;
-		padding: 2px 10px;
-		cursor: pointer;
-	}
-	button:disabled {
-		opacity: 0.45;
-		cursor: default;
-	}
-	.script {
+	.ui > * {
 		position: absolute;
-		top: 34px;
-		right: 12px;
-		width: min(440px, 46vw);
+	}
+	.ui :global(button),
+	.ui :global(a),
+	.ui :global(textarea),
+	.ui :global(.panel),
+	.ui :global(.deck),
+	.ui :global(.warp),
+	.ui :global(nav) {
+		pointer-events: auto;
+	}
+	.tl {
+		top: var(--s-3);
+		left: var(--s-3);
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 8px;
-		background: rgba(5, 7, 12, 0.85);
-		border: 1px solid #263244;
-		border-radius: 6px;
-		font-size: 12px;
+		align-items: flex-start;
+		gap: var(--s-2);
+		max-height: calc(100% - 200px);
 	}
-	.script textarea {
-		box-sizing: border-box;
-		width: 100%;
-		resize: vertical;
-		font: inherit;
-		color: #e8eef5;
-		background: #0b1018;
-		border: 1px solid #263244;
-		border-radius: 4px;
-		padding: 6px;
+	.script {
+		width: min(420px, 46vw);
+		overflow: auto;
 	}
-	.buttons {
-		display: flex;
-		gap: 8px;
-		align-items: center;
-	}
-	.status {
-		margin-left: auto;
-		color: #8ecbff;
-	}
-	.status.error,
-	.err {
-		color: #ffb4b0;
-	}
-	.timing {
-		margin: 0;
-		color: #7f8da3;
-	}
-	.script pre {
-		margin: 0;
-		white-space: pre-wrap;
-		overflow-wrap: anywhere;
-	}
-	.log {
-		max-height: 160px;
-		overflow-y: auto;
-		min-height: 3em;
-		background: #0b1018;
-		border: 1px solid #263244;
-		border-radius: 4px;
-		padding: 4px 6px;
-	}
-	.err {
-		max-height: 80px;
-		overflow-y: auto;
-	}
-	.hud {
-		position: absolute;
-		top: 8px;
-		left: 8px;
-		padding: 8px 12px;
-		background: rgba(5, 7, 12, 0.7);
-		border: 1px solid #263244;
-		border-radius: 6px;
-		font-size: 13px;
-	}
-	dl {
-		display: grid;
-		grid-template-columns: auto auto;
-		gap: 2px 14px;
-		margin: 0;
-	}
-	dt {
-		color: #7f8da3;
-	}
-	dd {
-		margin: 0;
-		text-align: right;
-		font-variant-numeric: tabular-nums;
-	}
-	.warp {
-		padding: 0 7px;
-		line-height: 1.3;
-	}
-	meter {
-		width: 70px;
-		vertical-align: middle;
-	}
-	.banner {
-		position: absolute;
-		top: 40%;
+	.tc {
+		top: var(--s-3);
 		left: 50%;
 		transform: translateX(-50%);
-		margin: 0;
-		padding: 8px 14px;
-		background: rgba(5, 7, 12, 0.8);
-		border: 1px solid #263244;
-		border-radius: 6px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--s-3);
+		pointer-events: none;
 	}
-	.banner.error {
-		border-color: #c0504d;
-		color: #ffb4b0;
+	.tr {
+		top: var(--s-3);
+		right: var(--s-3);
+		width: 264px;
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-2);
+		max-height: calc(100% - 24px);
+		overflow: auto;
 	}
-	.help {
+	.bl {
+		bottom: var(--s-3);
+		left: var(--s-3);
+	}
+	.bc {
+		bottom: var(--s-3);
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--s-2);
+	}
+	.center {
 		position: absolute;
-		bottom: 8px;
-		left: 8px;
-		right: 8px;
-		font-size: 12px;
-		color: #9fb0c5;
-		background: rgba(5, 7, 12, 0.6);
-		padding: 6px 10px;
-		border-radius: 6px;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		pointer-events: none;
+	}
+	.center :global(.card) {
+		pointer-events: auto;
+	}
+	.center p {
+		margin: 0;
+	}
+	.cta {
+		display: inline-flex;
+		align-items: center;
+		min-height: 32px;
+		padding: 0 var(--s-4);
+		font-size: var(--t-sm);
+		font-weight: 600;
+		color: var(--c-ink);
+		text-decoration: none;
+		background: var(--c-accent);
+		border-radius: var(--r-control);
+	}
+	.cta.quiet {
+		color: var(--text);
+		background: var(--panel-raised);
+		border: 1px solid var(--line-strong);
+		font-weight: 500;
+	}
+	.dev {
+		bottom: var(--s-3);
+		right: var(--s-3);
+		margin: 0;
+		padding: var(--s-1) var(--s-2);
+		font-size: var(--t-xs);
+		color: var(--text-dim);
+		background: var(--panel);
+		border: 1px solid var(--line);
+		border-radius: var(--r-control);
 	}
 </style>

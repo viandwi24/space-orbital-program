@@ -3,29 +3,64 @@
 	import { SIM_VERSION } from '@orbital/sim';
 </script>
 
+<svelte:head><title>Orbital</title></svelte:head>
+
 <main>
 	<h1>Orbital</h1>
-	<p>Build a rocket, launch it, reach orbit.</p>
-	<ul>
-		<li><a href="/vab">Vehicle Assembly</a>: design a vessel from stock parts and stage it.</li>
-		<li><a href="/flight">Flight</a>: fly the vessel from the VAB (map view with <kbd>M</kbd>).</li>
-	</ul>
-	<p><small>mod API {API_VERSION} · sim {SIM_VERSION}</small></p>
+	<p class="lead">Build a rocket from parts, stage it, and fly it into orbit.</p>
+	<nav aria-label="Start">
+		<a class="primary" href="/vab">Build a vessel</a>
+		<a href="/flight">Fly the last vessel</a>
+	</nav>
+	<p class="meta num">mod API {API_VERSION} · sim {SIM_VERSION}</p>
 </main>
 
 <style>
-	:global(body) {
+	main {
+		max-width: 34rem;
+		margin: 14vh auto 0;
+		padding: 0 var(--s-4);
+	}
+	h1 {
 		margin: 0;
-		background: #0d1117;
-		color: #e6edf3;
+		font-size: 3rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+	}
+	.lead {
+		margin: var(--s-2) 0 var(--s-5);
+		font-size: var(--t-lg);
+		color: var(--text-dim);
+	}
+	nav {
+		display: flex;
+		gap: var(--s-3);
+		flex-wrap: wrap;
 	}
 	a {
-		color: #8ecbff;
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		padding: 0 var(--s-5);
+		font-weight: 500;
+		text-decoration: none;
+		color: var(--text);
+		background: var(--panel-raised);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-control);
 	}
-	main {
-		font-family: system-ui, sans-serif;
-		max-width: 40rem;
-		margin: 4rem auto;
-		padding: 0 1rem;
+	a:hover {
+		border-color: var(--c-accent);
+	}
+	a.primary {
+		color: var(--c-ink);
+		background: var(--c-accent);
+		border-color: var(--c-accent);
+		font-weight: 600;
+	}
+	.meta {
+		margin-top: var(--s-6);
+		font-size: var(--t-xs);
+		color: var(--text-faint);
 	}
 </style>
