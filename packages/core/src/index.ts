@@ -27,3 +27,4 @@ export * from './moon-terrain.ts';
 export * from './semver.ts';
 export * from './plugin.ts';
 export * from './save.ts';
+export * from './mods.ts';

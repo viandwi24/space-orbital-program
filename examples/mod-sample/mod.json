@@ -1,0 +1,9 @@
+{
+	"id": "sample",
+	"version": "1.0.0",
+	"api": "^0.1",
+	"title": "Sample mod",
+	"description": "A telemetry beacon part and a wide tank, with a script that pings the beacon. The reference for modders.",
+	"author": "Orbital",
+	"dependencies": { "stock": "*" }
+}

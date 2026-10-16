@@ -8,6 +8,7 @@
 			"packages/*",
 			"apps/*",
 			"mods/*",
+			"examples/*",
 			"tools/*"
 		],
 		"catalog": {
@@ -21,8 +22,8 @@
 		}
 	},
 	"scripts": {
-		"test": "bun test packages mods",
-		"typecheck": "bun run --filter './packages/*' --filter './mods/*' typecheck && bun run --filter './apps/*' check",
+		"test": "bun test ./packages ./mods ./examples",
+		"typecheck": "bun run --filter './packages/*' --filter './mods/*' --filter './examples/*' --filter './tools/*' typecheck && bun run --filter './apps/*' check",
 		"lint": "prettier --check . && bun run --filter @orbital/web lint",
 		"format": "prettier --write . && bun run --filter @orbital/web format",
 		"dev": "bun run --filter @orbital/web dev",

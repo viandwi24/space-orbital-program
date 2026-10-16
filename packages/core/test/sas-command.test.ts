@@ -1,6 +1,6 @@
 /** Plan 042 / ADR 0049: the `sas` command at the protocol boundary. */
 import { describe, expect, test } from 'bun:test';
-import { API_VERSION, SAS_MODES, commandSchema } from '../src/index.ts';
+import { API_VERSION, SAS_MODES, commandSchema, parseVersion } from '../src/index.ts';
 
 describe('sas command', () => {
 	test('every mode parses; mode and reference are each optional', () => {
@@ -24,6 +24,6 @@ describe('sas command', () => {
 	});
 
 	test('the mod API version carries the control authority hook', () => {
-		expect(API_VERSION).toBe('0.1.14');
+		expect(parseVersion(API_VERSION)![2]).toBeGreaterThanOrEqual(11); // 0.1.11 added the hook; later patches keep it
 	});
 });

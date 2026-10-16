@@ -42,6 +42,22 @@
         "vitest": "catalog:",
       },
     },
+    "examples/mod-sample": {
+      "name": "@orbital/example-mod-sample",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@orbital/core": "workspace:*",
+        "@orbital/mod-stock": "workspace:*",
+        "@orbital/physics": "workspace:*",
+        "@orbital/sdk": "workspace:*",
+        "@orbital/sim": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+    },
     "mods/stock": {
       "name": "@orbital/mod-stock",
       "version": "0.0.0",
@@ -143,6 +159,18 @@
         "typescript": "catalog:",
       },
     },
+    "tools/mod-build": {
+      "name": "@orbital/tool-mod-build",
+      "version": "0.0.0",
+      "dependencies": {
+        "@orbital/core": "workspace:*",
+        "@orbital/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@dimforge/rapier3d-compat": "^0.21.0",
@@ -182,6 +210,8 @@
 
     "@orbital/core": ["@orbital/core@workspace:packages/core"],
 
+    "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
+
     "@orbital/kepler": ["@orbital/kepler@workspace:packages/kepler"],
 
     "@orbital/mod-stock": ["@orbital/mod-stock@workspace:mods/stock"],
@@ -195,6 +225,8 @@
     "@orbital/sdk": ["@orbital/sdk@workspace:packages/sdk"],
 
     "@orbital/sim": ["@orbital/sim@workspace:packages/sim"],
+
+    "@orbital/tool-mod-build": ["@orbital/tool-mod-build@workspace:tools/mod-build"],
 
     "@orbital/web": ["@orbital/web@workspace:apps/web"],
 

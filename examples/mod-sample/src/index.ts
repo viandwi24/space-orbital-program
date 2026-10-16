@@ -1,0 +1,100 @@
+import { defineModule, definePart, definePlugin, kg, z } from '@orbital/sdk';
+
+// A mod cannot import stock's code, so it declares the shape of the stock config it uses; the loader
+// still validates it against stock's real schema.
+declare module '@orbital/sdk' {
+	interface ModuleMap {
+		'stock.resource-container': {
+			contents: Record<string, { capacity: number; amount?: number }>;
+		};
+	}
+}
+
+/**
+ * A module keeps its state in the world (plain data returned by `state`), never in a closure: the
+ * save library stores the world, so a beacon that counts in a variable would forget on load.
+ */
+export const ModuleBeacon = defineModule({
+	id: 'sample.beacon',
+	config: z.object({ period: z.number().positive().default(5) }),
+	state: () => ({ elapsed: 0, beats: 0, pings: 0 }),
+	// Flight steps and on-rails chunks (up to 10 s) both advance the same clock.
+	update(ctx, dt) {
+		advance(ctx.state, ctx.config.period, dt);
+	},
+	updateOnRails(ctx, dt) {
+		advance(ctx.state, ctx.config.period, dt);
+	},
+	// Callable from the UI, staging and scripts: action(part, 'sample.beacon', 'ping').
+	actions: {
+		ping: (ctx) => {
+			ctx.state.pings += 1;
+			return ctx.state.pings;
+		}
+	},
+	snapshot: (state) => ({ beats: state.beats, pings: state.pings })
+});
+
+function advance(state: { elapsed: number; beats: number }, period: number, dt: number): void {
+	state.elapsed += dt;
+	while (state.elapsed >= period) {
+		state.elapsed -= period;
+		state.beats += 1;
+	}
+}
+
+export const PartBeacon = definePart({
+	id: 'sample.beacon',
+	title: 'Sample Telemetry Beacon',
+	mass: kg(60),
+	shape: { kind: 'cylinder', radius: 0.625, height: 0.5 },
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#2f6f73', secondary: '#12262a', accent: '#f2c14e' },
+		params: { stripe: 0.5, bands: 2 }
+	},
+	attach: {
+		top: { pos: [0, 0.25, 0], dir: [0, 1, 0] },
+		bottom: { pos: [0, -0.25, 0], dir: [0, -1, 0] }
+	},
+	modules: [[ModuleBeacon, { period: 5 }]]
+});
+
+export const PartWideTank = definePart({
+	id: 'sample.wide-tank',
+	title: 'Sample Wide Tank',
+	mass: kg(300),
+	shape: { kind: 'cylinder', radius: 0.625, height: 1 },
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#8a5cc2', secondary: '#241a33', accent: '#f2c14e' },
+		params: { stripe: 0.2, bands: 3 }
+	},
+	attach: {
+		top: { pos: [0, 0.5, 0], dir: [0, 1, 0] },
+		bottom: { pos: [0, -0.5, 0], dir: [0, -1, 0] }
+	},
+	// Stock's container, by id: `depends: ['stock']` below guarantees it is registered first.
+	modules: [
+		[
+			'stock.resource-container',
+			{
+				contents: {
+					'stock.liquid-fuel': { capacity: 200 },
+					'stock.oxidizer': { capacity: 245 }
+				}
+			}
+		]
+	],
+	stagingIcon: 'tank'
+});
+
+export default definePlugin({
+	meta: { id: 'sample', version: '1.0.0', api: '^0.1', title: 'Sample mod' },
+	depends: ['stock'],
+	setup(ctx) {
+		ctx.modules.register(ModuleBeacon);
+		ctx.parts.register(PartBeacon);
+		ctx.parts.register(PartWideTank);
+	}
+});
