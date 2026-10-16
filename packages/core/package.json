@@ -13,6 +13,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@orbital/kepler": "workspace:*",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

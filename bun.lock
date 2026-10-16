@@ -48,6 +48,7 @@
       "name": "@orbital/core",
       "version": "0.0.0",
       "dependencies": {
+        "@orbital/kepler": "workspace:*",
         "zod": "catalog:",
       },
       "devDependencies": {
