@@ -58,7 +58,7 @@
 | 049 | [Moon polish](plans/049-moon-polish.md) | draft | — | from 044: ground effects on the moon, terrain shadows, rocks, terrain kind per body |
 | 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | done | node session (Claude, 2026-10-17) | ADR 0056, API 0.1.14, save format 3; nodes are sim state with a remaining-burn model (`kepler.predictWithManeuvers` serves the sim and the map), SAS `maneuver`, `warp-to`, `ship.nodes`/`addNode`/`warpTo`; the predicted moon periapsis equals a sim run to the metre; in the browser a node, warp to the burn, SAS and a manual burn gave a moon encounter (Pe 7 km, planned 60: node 10 s late, hand-cut burn); impulsive prediction only |
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | in-progress | mods session (Claude, 2026-10-17) | v1: install mods from file/URL, spec Phase 2 criterion; ADR 0057 |
-| 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | in-progress | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
+| 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | done | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
 | 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | draft | — | from 048: bilateral upsample, governor rung, `medium` cloud shadows, M1/M2 measurements |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.

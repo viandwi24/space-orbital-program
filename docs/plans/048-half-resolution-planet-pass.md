@@ -1,7 +1,7 @@
 ---
 id: 048
 title: "Cheaper preset switches (the half-resolution planet pass moved to draft 050)"
-status: in-progress
+status: done
 owner: "switch session (Claude, 2026-10-17)"
 depends: [039]
 phase: 3
@@ -41,8 +41,8 @@ Switching the graphics preset, by the player or by the quality governor in the m
 
 ## Acceptance criteria
 
-- [~] **Hitch, manual switch** (DONE in part: 26 of 28 switches within the bound, worst 37 ms against 25.6; before 47 to 350 ms; journal 048): in a production build on the Apple M5 (1920 x 1080, ratio 1, hidden built-in pane, a page loaded at least 20 s earlier so `precompile` has finished), for each of the six ordered switches between `low`, `medium` and `high`, `setPreset` plus the longest frame in the 2 s after it is at most 4x the steady frame time of the target preset (steady = minimum over 30 windows of 8 frames in the same page). Before and after tables in journal 048.
-- [~] **Hitch, governor** (DONE in part: ladder steps run as `setPreset` + `setRenderScale`, 7 of 9 within the bound, worst 44.7 against 38.8; real frame loop not run): a switch made by `QualityGovernor` through the flight loop (`applyLevel`, trace-driven ladder step to the next preset) in the same page shows no frame above the same bound.
+- [x] **Hitch, manual switch** (accepted by the orchestrator review 2026-10-17: worst 37.1–39.7 ms against a 25.6–38.8 ms bound in 2 of 28 switches, down from 47–350 ms; a 2–3 frame stutter at most, rare; recorded, not hidden. Was: DONE in part: 26 of 28 switches within the bound, worst 37 ms against 25.6; before 47 to 350 ms; journal 048): in a production build on the Apple M5 (1920 x 1080, ratio 1, hidden built-in pane, a page loaded at least 20 s earlier so `precompile` has finished), for each of the six ordered switches between `low`, `medium` and `high`, `setPreset` plus the longest frame in the 2 s after it is at most 4x the steady frame time of the target preset (steady = minimum over 30 windows of 8 frames in the same page). Before and after tables in journal 048.
+- [x] **Hitch, governor** (accepted by the orchestrator review 2026-10-17: worst 44.7 ms against 38.8 in 2 of 9 ladder steps; the governor waits ≥ 22 s between steps; live visible-pane run is on plan 023's human checklist. Was: DONE in part: ladder steps run as `setPreset` + `setRenderScale`, 7 of 9 within the bound, worst 44.7 against 38.8; real frame loop not run): a switch made by `QualityGovernor` through the flight loop (`applyLevel`, trace-driven ladder step to the next preset) in the same page shows no frame above the same bound.
 - [x] **No visual regression** (blurred difference 0.7 to 0.9 of 255, mean colour within 0.4, vegetation pinned by a test; the raw difference is dominated by time-animated detail, journal 048): pad screenshots (`pad-morning`) at each preset before and after, same camera, compared by mean absolute pixel difference (at most 1/255 on average outside noise) and by eye; the vegetation layouts are identical (a unit test pins the per-preset instance counts and first instance matrix).
 - [x] The steady frame times at the pad do not rise by more than 0.3 ms on any preset.
 - [x] `bun test packages/renderer`, `bun run test`, web vitest, `bun run typecheck`, `bun run build`, `bun run docs:check` pass.
@@ -57,3 +57,4 @@ Switching the graphics preset, by the player or by the quality governor in the m
 - 2026-10-17 — Orchestrator review of plan 039: the preset-switch hitch (130–290 ms; vegetation rebuild and terrain re-bake) is a v1 must-ship item here, because the quality governor can switch presets mid-flight. The half-resolution planet pass stays optional for v1.
 - 2026-10-17 — Refined draft → ready at the human's request (session: switch session). The half-resolution pass moved to draft 050 (needs a float depth target and softens the pad; not cheap); criteria made measurable (4x steady, before/after, governor-driven).
 - 2026-10-17 — Executed (switch session): vegetation per preset, progressive terrain bake, precompile in the right state (scene, planet, march, part materials), kept post chain, delayed shadow map, `low.envSize` 128 (ADR 0055). Hitch 47 to 350 ms down to 14 to 40 ms; the 4x bound is missed by at most 11 ms in 4 of 37 measured switches, so the two hitch criteria stay open (`[~]`) and the plan stays in-progress for the orchestrator's call. Journal 048.
+- 2026-10-17 — Orchestrator review: both hitch criteria accepted with the two misses recorded (absolute worst 44.7 ms, from up to 350 ms); remaining ideas (post-chain targets over frames, resident shadow map on low) are post-v1. Plan set to done.
