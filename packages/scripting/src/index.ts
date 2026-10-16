@@ -18,6 +18,7 @@ export type {
 	ScriptEnvironment,
 	Telemetry,
 	TelemetryEngine,
+	TelemetryNode,
 	TelemetryPart,
 	TelemetryWheel
 } from './telemetry.ts';

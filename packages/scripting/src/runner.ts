@@ -277,6 +277,26 @@ export async function createScriptRunnerIn(
 				}
 				candidate = { type: 'warp', factor: p.factor };
 				break;
+			case 'node-set':
+				candidate = {
+					type: 'node-set',
+					vessel,
+					...(p.id === undefined ? {} : { id: p.id }),
+					time: p.time,
+					prograde: p.prograde,
+					normal: p.normal,
+					radial: p.radial
+				};
+				break;
+			case 'node-remove':
+				candidate = { type: 'node-remove', vessel, ...(p.id === undefined ? {} : { id: p.id }) };
+				break;
+			case 'warp-to':
+				if (typeof p.factor === 'number' && p.factor > MAX_SCRIPT_WARP) {
+					throw new RangeError(`warpTo: factor must be 1 to ${MAX_SCRIPT_WARP}`);
+				}
+				candidate = { type: 'warp-to', time: p.time, factor: p.factor };
+				break;
 			default:
 				throw new Error(`unknown command "${kind}"`);
 		}

@@ -19,7 +19,7 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	let attitude = { pitch: 0, yaw: 0, roll: 0 };
 	// A mode set this tick reads back at once; the next snapshot carries the sim's own value.
 	let sasPending = null;
-	const SAS_MODES = ['off', 'hold', 'prograde', 'retrograde', 'normal', 'antinormal', 'radial-out', 'radial-in'];
+	const SAS_MODES = ['off', 'hold', 'prograde', 'retrograde', 'normal', 'antinormal', 'radial-out', 'radial-in', 'maneuver'];
 	let defined = false;
 
 	// Seeded PRNG (mulberry32): a script's Math.random must not depend on the host.
@@ -140,6 +140,24 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 		request('action', JSON.stringify({ part, module, action, args }))
 	);
 	fixed('warp', (factor) => request('warp', JSON.stringify({ factor })));
+	// Maneuver nodes (plan 045). The new node shows up in ship.nodes on a later tick.
+	const nodeFields = (spec) => {
+		if (typeof spec !== 'object' || spec === null) throw new TypeError('a node needs { time, prograde, normal, radial }');
+		return {
+			time: spec.time,
+			prograde: spec.prograde === undefined ? 0 : spec.prograde,
+			normal: spec.normal === undefined ? 0 : spec.normal,
+			radial: spec.radial === undefined ? 0 : spec.radial
+		};
+	};
+	fixed('addNode', (spec) => request('node-set', JSON.stringify(nodeFields(spec))));
+	fixed('setNode', (id, spec) => {
+		const old = needTelemetry().nodes.find((n) => n.id === id);
+		const merged = Object.assign({}, old === undefined ? {} : { time: old.time, prograde: old.prograde, normal: old.normal, radial: old.radial }, spec);
+		return request('node-set', JSON.stringify(Object.assign(nodeFields(merged), { id })));
+	});
+	fixed('removeNode', (id) => request('node-remove', JSON.stringify(id === undefined ? {} : { id })));
+	fixed('warpTo', (time, factor) => request('warp-to', JSON.stringify({ time, factor: factor === undefined ? 100000 : factor })));
 	fixed('bodies', bodies);
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
 

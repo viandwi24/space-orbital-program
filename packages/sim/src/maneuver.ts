@@ -25,7 +25,7 @@ import type { ManeuverNodeState, VesselState } from './state.ts';
 /** Furthest ahead a node may be placed, s (ten days). */
 export const MAX_NODE_AHEAD = 10 * 86_400;
 /** A passed node with less burn than this left counts as burned off, m/s. */
-export const NODE_DONE_DV = 0.1;
+export const NODE_DONE_DV = 0.5;
 /** Burns shorter than this have no direction worth pointing at, m/s. */
 export const MIN_BURN = 0.01;
 

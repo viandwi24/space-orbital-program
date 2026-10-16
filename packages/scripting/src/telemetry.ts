@@ -62,6 +62,22 @@ export interface TelemetryWheel {
 	enabled: boolean;
 }
 
+/**
+ * A maneuver node (plan 045): `prograde`, `normal` and `radial` are the burn that is left, m/s, in
+ * the orbital frame at the node; `dv` its magnitude; `vector` the burn in BCI axes (null when the
+ * path never reaches the node). `time` is simulation time, s.
+ */
+export interface TelemetryNode {
+	id: number;
+	time: number;
+	prograde: number;
+	normal: number;
+	radial: number;
+	dv: number;
+	body: string | null;
+	vector: Vec3 | null;
+}
+
 /** What `ship.*` returns. SI units, BCI axes (see `units-and-frames.md`). */
 export interface Telemetry {
 	/** Simulation time, s. */
@@ -97,6 +113,8 @@ export interface Telemetry {
 	wheels: TelemetryWheel[];
 	/** Stability assist mode the sim reports (plan 042); `off` when the sim does not report one. */
 	sas: SasMode;
+	/** Maneuver nodes in time order (plan 045). */
+	nodes: TelemetryNode[];
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -235,6 +253,16 @@ export function buildTelemetry(
 		})),
 		engines,
 		wheels,
-		sas: v.sas?.mode ?? 'off'
+		sas: v.sas?.mode ?? 'off',
+		nodes: (v.nodes ?? []).map((n) => ({
+			id: n.id,
+			time: n.time,
+			prograde: n.prograde,
+			normal: n.normal,
+			radial: n.radial,
+			dv: n.dv,
+			body: n.body === undefined ? null : String(n.body),
+			vector: n.vector ? { ...n.vector } : null
+		}))
 	};
 }
