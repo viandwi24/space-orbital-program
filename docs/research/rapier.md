@@ -54,3 +54,14 @@ Measured:
 - The centre of mass passed to `setAdditionalMassProperties` is a *local* offset from the body translation (`localCom()` / `worldCom()` exist in the `.d.ts`); `translation()` stays the body origin; `linvel()` is the COM velocity; free spin turns about the COM (test `compound.test.ts`).
 - Mass properties set on a live body take effect at the next `step`: a force applied at a point before that step uses the old centre of mass (first-step torque of 30 N·m for a 1 m error in the test). `body.recomputeMassPropertiesFromColliders()` applies the additional mass properties immediately; the adapter calls it after every `setMass`.
 - Benchmark (Bun 1.4.2, 16 solver iterations, 500 steps, `packages/physics/bench/grouping.ts`): per-part bodies + fixed joints 150 / 295 / 573 µs per step for 20 / 50 / 100 parts, flex 0.004 / 0.14 / 1.8 m under 5 kN lateral + 20 kN axial; one compound body 20-30 µs, no flex. See ADR 0018.
+
+## Ground contact, friction and contact readback (plan 012)
+
+Checked 2026-10-16 (0.21.0 `.d.ts` plus the pages below).
+
+Sources:
+- https://rapier.rs/docs/user_guides/javascript/colliders — `ColliderDesc.setFriction` (default 0.5, Coulomb, one coefficient for static and dynamic), `setRestitution` (0 = no bounce), combine rules `Average` (default) / `Min` / `Multiply` / `Max`; `ActiveEvents.COLLISION_EVENTS` for start/stop touching events.
+- https://rapier.rs/docs/user_guides/javascript/advanced_collision_detection_js — `world.contactPairsWith(collider, f)`, `world.contactPair(c1, c2, (manifold, flipped) => ...)` (a pair has several manifolds; each has geometric contacts in local space and solver contacts in world space); contact force events need `new RAPIER.EventQueue(true)`, `world.step(queue)`, `ActiveEvents.CONTACT_FORCE_EVENTS` and `Collider.setContactForceEventThreshold`.
+- `TempContactManifold` methods are not documented on the pages; names taken from `dist/geometry/narrow_phase.d.ts`: `numSolverContacts()`, `solverContactPoint(i)` (world space), `solverContactDist(i)`, `contactImpulse(i)`, `normal()`, `friction()`, `restitution()`.
+
+Decision (ADR 0019): read contacts with `contactPairsWith` + `contactPair` after the step (no event queue); kinematic velocity-based tile as ground.

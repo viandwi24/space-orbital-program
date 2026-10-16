@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 starts with plan 010
-**Current plan:** none in progress for the web client; 012 (ground contact) is in progress in another session
+**Current plan:** none in progress for the web client; 012 (ground contact, landing and damage) is done
 **Next plan:** [`plans/010-scripting-sandbox.md`](plans/010-scripting-sandbox.md) (`draft`, needs refinement); also draft 013 (debris blocks warp)
 
 ## Plan board
@@ -21,9 +21,10 @@
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | done | web session | Worker host + client, VAB, flight HUD, map view; dev-only autopilot used for the manual orbit run; renderer verified in real GL |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
-| 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | in-progress | ground session | ADR 0019; ground tile + legs + impact damage; replaces the 007 ground idealisation |
+| 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 | 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | draft | — | found by 009: debris stays in flight and blocks warp after a normal launch |
+| 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | draft | — | out of scope of 012; hooks: `impactTolerance`, `part:damaged` |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -40,12 +41,13 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
-- Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex, no breakage. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
-- Sim limits (see `architecture/simulation.md`): idealised ground (plan 012), no lift/fins, one 2.5 km physics bubble, attitude frozen on rails.
+- Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex; parts only break off by ground impact (plan 012, ADR 0019), not by load or collision between vessels. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
+- Sim limits (see `architecture/simulation.md`): flat ground tile on the reference sphere (no terrain heights), no lift/fins, no heating (draft 014), one 2.5 km physics bubble, attitude frozen on rails.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
 
 ## Recent journal entries
 
+- [012 — Ground contact, landing and damage](journal/012-ground-contact-landing.md)
 - [009 — Web client MVP](journal/009-web-client-mvp.md)
 - [011 — Physics rigid grouping](journal/011-physics-rigid-grouping.md)
 - [007 — Sim loop: flight + on-rails](journal/007-sim-loop-flight-onrails.md)

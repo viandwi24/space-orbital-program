@@ -1,6 +1,6 @@
 # 0017 — Flight model: frames, ground, atmosphere, rotation, modes
 
-**Status:** accepted (the Bodies and Reaction wheel torque points are superseded by [0018](0018-rigid-grouping-compound-bodies.md))
+**Status:** accepted (the Bodies and Reaction wheel torque points are superseded by [0018](0018-rigid-grouping-compound-bodies.md); the Ground point by [0019](0019-ground-tile-and-impact-damage.md))
 **Date:** 2026-10-16
 **Plan:** plans/007-sim-loop-flight-onrails.md
 

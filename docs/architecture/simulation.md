@@ -1,6 +1,6 @@
 # Simulation
 
-`@orbital/sim` drives the world. It is a library: `await createSim(options)` returns an object with `step(wallDelta)`, `dispatch(command)` and `snapshot()`, and no knowledge of where it runs (Bun, Worker, main thread). Shipped by plan 007; decisions in ADR 0015 (module capability API), 0016 (design format, protocol) and 0017 (flight model). Code: `packages/sim/src` (`sim.ts` loop and API, `commands.ts`, `vessel.ts`, `frames.ts`, `modes.ts`, `orbit.ts`, `resources.ts`, `hooks.ts`, `snapshot.ts`, `aero.ts`, `atmosphere.ts`, `parts.ts`, `mass.ts`, `state.ts`). Rigid grouping: ADR 0018.
+`@orbital/sim` drives the world. It is a library: `await createSim(options)` returns an object with `step(wallDelta)`, `dispatch(command)` and `snapshot()`, and no knowledge of where it runs (Bun, Worker, main thread). Shipped by plan 007; decisions in ADR 0015 (module capability API), 0016 (design format, protocol) and 0017 (flight model). Code: `packages/sim/src` (`sim.ts` loop and API, `commands.ts`, `vessel.ts`, `frames.ts`, `modes.ts`, `orbit.ts`, `resources.ts`, `hooks.ts`, `snapshot.ts`, `aero.ts`, `atmosphere.ts`, `parts.ts`, `mass.ts`, `state.ts`). Rigid grouping: ADR 0018. Ground contact, landing legs and impact damage: ADR 0019.
 
 ## API
 
@@ -30,19 +30,19 @@ while accumulator >= dt:
     else:                      railsStep(min(accumulator, 10 s))
 ```
 
-`flightStep`: run `pre-physics` systems; per active frame: mass properties → backend (when a part mass changed), gravity, every module's `update` (thrust, torque, propellant), drag; `backend.step(dt)`; advance the frame origin; pad hold; ground contact (and destruction of crashed debris); re-anchor; refresh vessel poses; apply queued `detach` requests (splits, after the step so no queued force is lost); then `updateOnRails` for rails vessels, `t += dt`, `post-physics` systems, idle bookkeeping and automatic rails transitions.
+`flightStep`: run `pre-physics` systems; per active frame: mass properties → backend (when a part mass changed), gravity, the ground tile moved under the vessel, every module's `update` (thrust, torque, propellant), drag; `backend.step(dt)`; advance the frame origin; ground contact readback (`landed`, impacts) and damage; re-anchor; refresh vessel poses; apply queued `detach` requests (splits, after the step so no queued force is lost); then `updateOnRails` for rails vessels, `t += dt`, `post-physics` systems, idle bookkeeping and automatic rails transitions.
 
 ## Vessel modes
 
 | Mode | What runs |
 |---|---|
-| **flight** | one compound rigid body per vessel in a flight frame (a box collider per part), gravity at the centre of mass, drag per part, ground contact, modules' `update` |
+| **flight** | one compound rigid body per vessel in a flight frame (a box collider per part, plus module colliders), gravity at the centre of mass, drag per part, real ground contact on a ground tile, modules' `update` |
 | **on-rails** | centre-of-mass state from the stored Kepler elements (or state vector), attitude frozen, modules' `updateOnRails`, no backend |
 
 - flight → on-rails (`modes.ts`): automatically, when no module applied a force or torque for 2 s, the vessel is not in ground contact, and its periapsis radius is above `R + atmosphere.height` (`R` for an airless body). The state is the centre of mass; `kepler.fromStateVector` provides elements, and when it throws `KeplerError` (near-parabolic) the state vector is kept and propagated with `propagateUniversal`. Radial states have periapsis 0 and never go on rails. A `state` placement in a stable orbit is created on rails directly.
 - on-rails → flight: a `throttle` > 0, non-zero `attitude`, `stage` or `action` command at warp 1 (the state at time `t` is propagated and bodies are created in a frame). Refused when warp > 1 or no frame is available.
 - Elements are re-based (`epoch := t`, `m0` folded) whenever `n·(t − epoch) ≥ 2π`, so long warps keep float64 precision.
-- Both transitions emit `vessel:mode-changed` `{ vessel, mode, reason }`. Other events: `vessel:created` `{ vessel, from? }`, `vessel:destroyed`, `stage:activated`.
+- Both transitions emit `vessel:mode-changed` `{ vessel, mode, reason }`. Other events: `vessel:created` `{ vessel, from? }`, `vessel:destroyed`, `stage:activated`, `part:damaged` (ground impact, below).
 - **Time warp:** `warp > 1` is refused while any vessel is in flight (the reason names the vessels) and above 1e6; while warping, commands that need flight and `load-vessel` into flight are refused. A controlled vessel idle in a stable orbit reaches rails after two seconds, which is how a player gets to warp.
 
 ## Frames and precision
@@ -68,7 +68,9 @@ A flat list; `index` is any unique non-negative integer (stable under edits), `p
 - **One rigid body per vessel** (ADR 0018, plan 011): a `compound` shape with one box collider per part (a box `(r, h/2, r)` for cylinder shapes, the shape's box, or 1 m without a shape) at `designPos − root.designPos`; the body origin is the root part's origin, so part poses are `body pose ∘ constant offset`. No joints. Part mass = dry mass + Σ container contents × density; whenever any part mass changed the sim recomputes the vessel's mass, centre of mass and full inertia tensor (parts' own inertia — solid cylinder or box — plus parallel axis; diagonalised by Jacobi into principal moments and a frame, `mass.ts`) and calls `setMass`. A 100-part stack costs one body and about 25 µs of backend time instead of 100 bodies, 99 joints and about 600 µs, and cannot flex.
 - Forces: gravity is one force at the centre of mass, drag is applied per part at its origin, module forces act on the vessel body at the part origin (or the given point); a reaction wheel's torque turns the whole vessel.
 - Gravity: `a = −μ r / |r|³` as a force on each body, `μ = G·M` of the root body (point mass). Rotation: `2π / rotationPeriod` about +Y; the launch site and the atmosphere co-rotate.
-- Ground: the reference sphere. A body below it is pushed out and its velocity relative to the rotating ground zeroed. Surface placements are pad-held until thrust exceeds weight. Uncontrolled vessels hitting the ground faster than 10 m/s are destroyed.
+- Ground (ADR 0019, plan 012): the reference sphere, represented by a **ground tile** per flight vessel whose centre of mass is within 300 m of the surface (dropped again above 400 m): a kinematic 400 x 400 x 200 m slab whose top face is the tangent plane under the centre of mass, re-positioned every step in the local frame and moving with the rotating ground (linear and angular velocity), friction 0.8, restitution 0. A stack stands on it by friction, tips over, slides and rests on legs; no pad hold, no clamp. `landed` is true while the vessel has contact points (distance <= 2 cm) with its tile, which keeps it off rails. `PhysicsBackend.contacts(a, b)` reads the contact points after the step.
+- Damage: a part's impact speed is the closing speed of its contact point against the ground along the tile normal, from the velocities before the step in which the contact appears. Above `impactTolerance` (part data, default 6 m/s) the part breaks off (cut from every neighbour with `splitVessel`; it flies on as debris); above twice the tolerance it is destroyed (removed; an emptied vessel is destroyed). Event `part:damaged { vessel, part, definition, speed, outcome }`. The whole rigid body is stopped by the same contact, so the parts above an impacted one are not damaged by the impact itself. Part-to-part collision damage is not modelled.
+- Landing legs are module colliders (`ModuleDefinition.colliders`): `stock.landing-legs` adds four feet 2 m from the axis when deployed (`deploy`/`retract`/`toggle` actions, deployed by its stage); the body is rebuilt (same pose and motion) after a dispatched action or stage changes the collider set.
 - Atmosphere: `p = p0·exp(−h/H)` below the atmosphere height, `ρ = p / (287.05 · 288.15)`. Drag per part and per body axis `−½ρC_d A_i |v_i| v_i`, `C_d = 0.3` (no lift, no fins).
 
 ## Staging, splitting, resources
@@ -106,7 +108,7 @@ type Command =
 
 ## PhysicsBackend (`packages/core/src/physics-backend.ts`)
 
-Interface in core (additive changes by plan 011: a `compound` `BodyShape`, `MassPlacement` — `centerOfMass`, `inertiaFrame` — in `BodyDesc` and as a fourth `setMass` argument; `getTransform` is the body origin, velocities are the centre of mass's; the sim creates no joints any more but `createFixedJoint` stays in the interface), `@orbital/physics` implements it (`createRapierBackend({ solverIterations? })`, async; `createMockBackend()`). Contract points the sim honours: everything in the local frame; forces last one step, so gravity, thrust, drag and torque are re-applied every step; `Velocity.angular` is about local-frame axes; impulses (decoupler ejection) are applied as direct velocity changes because the backend only has one-step forces. The mock backend ignores joints, collisions and the centre-of-mass offset and is only suitable for hook-level tests.
+Interface in core (additive changes by plan 011: a `compound` `BodyShape`, `MassPlacement` — `centerOfMass`, `inertiaFrame` — in `BodyDesc` and as a fourth `setMass` argument; `getTransform` is the body origin, velocities are the centre of mass's; the sim creates no joints any more but `createFixedJoint` stays in the interface; additive by plan 012: `BodyDesc.friction` / `restitution` and `contacts(a, b)` returning `{ shape, point, distance }` contact points after a step, none in the mock), `@orbital/physics` implements it (`createRapierBackend({ solverIterations? })`, async; `createMockBackend()`). Contract points the sim honours: everything in the local frame; forces last one step, so gravity, thrust, drag and torque are re-applied every step; `Velocity.angular` is about local-frame axes; impulses (decoupler ejection) are applied as direct velocity changes because the backend only has one-step forces. The mock backend ignores joints, collisions and the centre-of-mass offset and is only suitable for hook-level tests.
 
 ## Determinism
 
@@ -114,4 +116,4 @@ Fixed `dt`, seeded PRNG, no clock, entity creation and Map iteration orders fixe
 
 ## Known limits (MVP)
 
-Rigid vessels (no flex, no breakage until plan 012), single root body (no SOI transitions), stack attachments only, no lift/fins/heat, no terrain or landing legs (ground is a sphere), one physics bubble of 2.5 km (second far vessel in flight is refused), attitude is frozen on rails, reaction-wheel torque acts on the wheel's own body.
+Rigid vessels (no flex), single root body (no SOI transitions), stack attachments only, no lift/fins/heat (draft plan 014), no terrain heights (the ground is the reference sphere, flat under the vessel), no collision damage between vessels, one physics bubble of 2.5 km (second far vessel in flight is refused), attitude is frozen on rails, reaction-wheel torque acts on the wheel's own body.

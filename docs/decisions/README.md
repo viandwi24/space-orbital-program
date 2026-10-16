@@ -37,3 +37,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0016 | [Vessel design format and protocol additions](0016-vessel-design-format-and-protocol.md) | accepted | 2026-10-16 |
 | 0017 | [Flight model: frames, ground, atmosphere, rotation, modes](0017-flight-model.md) | accepted | 2026-10-16 |
 | 0018 | [Rigid grouping: one compound body per vessel](0018-rigid-grouping-compound-bodies.md) | accepted | 2026-10-16 |
+| 0019 | [Ground tile, contact readback and impact damage](0019-ground-tile-and-impact-damage.md) | accepted | 2026-10-16 |
