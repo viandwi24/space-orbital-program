@@ -49,6 +49,10 @@ export class GeometryBuilder {
 
 	constructor(private readonly options: RevolveOptions) {}
 
+	get isEmpty(): boolean {
+		return this.bySlot.size === 0;
+	}
+
 	get segments(): number {
 		return this.options.segments;
 	}

@@ -1,9 +1,13 @@
-/** Liquid engine: thrust plate, struts, chamber with dome, flared bell with ribs, turbopumps, plumbing. */
+/**
+ * Liquid engine: the thrust plate is fixed; everything below it (chamber, bell, struts, pumps,
+ * plumbing) hangs on a pivot at the plate so it swings with the thrust vector (ADR 0045).
+ * Parts: thrust plate, struts, chamber with dome, flared bell with ribs, turbopumps, plumbing.
+ */
 import type { ProfilePoint } from '../revolve.ts';
-import type { GenContext } from '../registry.ts';
+import type { GenContext, GeneratedPart } from '../registry.ts';
 
-export function engine(ctx: GenContext): void {
-	const { radius: R, height: H, builder: b, detail } = ctx;
+export function engine(ctx: GenContext): GeneratedPart {
+	const { radius: R, height: H, builder: b, moving: m, detail } = ctx;
 	const h2 = H / 2;
 	const exitR = ctx.param('bellExit', 0.47, 0.15, R * 0.9);
 	const throatR = ctx.param('throat', 0.13, 0.04, exitR * 0.6);
@@ -45,20 +49,20 @@ export function engine(ctx: GenContext): void {
 		[0, chamberTop]
 	];
 	chamber.forEach(([r, y], i) => outer.push({ r, y, smooth: i < chamber.length - 1 }));
-	b.revolve('nozzle', outer);
+	m.revolve('nozzle', outer);
 
 	const inner: ProfilePoint[] = [];
 	for (let i = 0; i <= bellSteps; i++) {
 		const y = throatY - ((throatY + h2) * i) / bellSteps;
 		inner.push({ r: Math.max(0.01, bellR(y)), y, smooth: i > 0 && i < bellSteps });
 	}
-	b.revolve('nozzle-inner', inner);
+	m.revolve('nozzle-inner', inner);
 
 	// Cooling bands on the bell.
 	if (detail.extras >= 1) {
 		for (let k = 1; k <= 5; k++) {
 			const y = throatY - (bellLen * k) / 6.2;
-			b.revolve('metal', [
+			m.revolve('metal', [
 				{ r: bellR(y - 0.025) + wall, y: y - 0.025 },
 				{ r: bellR(y - 0.015) + wall + 0.014, y: y - 0.015 },
 				{ r: bellR(y + 0.015) + wall + 0.014, y: y + 0.015 },
@@ -77,7 +81,7 @@ export function engine(ctx: GenContext): void {
 	const azimuths = detail.extras >= 1 ? 4 : 0;
 	for (let i = 0; i < azimuths; i++) {
 		const a = ((i + 0.5) / azimuths) * Math.PI * 2;
-		b.box(
+		m.box(
 			'dark-metal',
 			[len, 0.035, 0.045],
 			[Math.sin(a) * sx, sy, Math.cos(a) * sx],
@@ -89,7 +93,7 @@ export function engine(ctx: GenContext): void {
 	// Turbopump beside the chamber, with feed and exhaust pipes.
 	const px = 0.34;
 	const py = throatY + 0.12;
-	b.revolveAt(
+	m.revolveAt(
 		'paint-primary',
 		[
 			{ r: 0, y: -0.14 },
@@ -100,7 +104,7 @@ export function engine(ctx: GenContext): void {
 		],
 		[px, py, 0]
 	);
-	b.revolveAt(
+	m.revolveAt(
 		'metal',
 		[
 			{ r: 0.085, y: -0.02 },
@@ -110,20 +114,20 @@ export function engine(ctx: GenContext): void {
 		],
 		[px, py, 0]
 	);
-	b.cylinder('nozzle', 0.016, px - 0.19, [(px + 0.19) / 2, py + 0.06, 0], {
+	m.cylinder('nozzle', 0.016, px - 0.19, [(px + 0.19) / 2, py + 0.06, 0], {
 		tiltZ: Math.PI / 2,
 		segments: 12
 	});
 	if (detail.extras >= 1) {
-		b.cylinder('metal', 0.02, 0.24, [px, throatY - 0.12, 0], { segments: 12 });
-		b.cylinder('metal', 0.02, 0.1, [px - 0.005, throatY - 0.26, 0], {
+		m.cylinder('metal', 0.02, 0.24, [px, throatY - 0.12, 0], { segments: 12 });
+		m.cylinder('metal', 0.02, 0.1, [px - 0.005, throatY - 0.26, 0], {
 			segments: 12,
 			tiltZ: -0.5
 		});
 	}
 	if (detail.extras >= 2) {
 		// A smaller second pump opposite, and feed lines up to the plate.
-		b.revolveAt(
+		m.revolveAt(
 			'paint-secondary',
 			[
 				{ r: 0, y: -0.1 },
@@ -133,9 +137,11 @@ export function engine(ctx: GenContext): void {
 			],
 			[-0.3, py + 0.04, 0]
 		);
-		b.cylinder('nozzle', 0.014, 0.15, [-0.245, py + 0.1, 0], { tiltZ: Math.PI / 2, segments: 10 });
+		m.cylinder('nozzle', 0.014, 0.15, [-0.245, py + 0.1, 0], { tiltZ: Math.PI / 2, segments: 10 });
 		for (const s of [0.23, -0.23]) {
-			b.cylinder('metal', 0.017, 0.28, [0, throatY + 0.2, s], { segments: 10 });
+			m.cylinder('metal', 0.017, 0.28, [0, throatY + 0.2, s], { segments: 10 });
 		}
 	}
+
+	return { pivot: [0, plateBottom, 0] };
 }

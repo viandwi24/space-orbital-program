@@ -133,7 +133,11 @@ export function checkDesign(
 			text: `The fins sit ahead of the centre of mass (margin ${(stability.margin ?? 0).toFixed(1)} calibres): the rocket will tumble in the air.`,
 			hint: 'Move the fins lower on the vessel, or add more behind the centre of mass.',
 			parts: design.parts
-				.filter((p) => content.parts.get(p.part)?.modules?.some((m) => m[0] === 'stock.fin'))
+				.filter((p) =>
+					content.parts
+						.get(p.part)
+						?.modules?.some((m) => m[0] === 'stock.fin' || m[0] === 'stock.control-surface')
+				)
 				.map((p) => p.index)
 		});
 	}

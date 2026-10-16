@@ -16,6 +16,7 @@ import {
 } from 'three';
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
+import { articulationRotation, articulationValue, type ArticulationSpec } from './articulation.ts';
 import { GeometryBuilder, type BuiltGeometry, type SlotName } from './builder.ts';
 import { registerStockGenerators } from './generators/index.ts';
 import { MaterialLibrary, NO_GLOW_SLOTS } from './materials.ts';
@@ -57,6 +58,8 @@ function paramReader(visual: PartVisual): GenContext['param'] {
 
 interface Template {
 	built: BuiltGeometry;
+	/** The geometry that moves, when the generator made some (ADR 0045). */
+	moving?: BuiltGeometry;
 	generated: GeneratedPart;
 	bounds: Box3;
 	triangles: number;
@@ -69,7 +72,10 @@ class ProceduralModel implements PartModel {
 	readonly triangles: number;
 	readonly staticMesh: Mesh;
 	private readonly mesh: Mesh;
+	private movingMesh: Mesh | null = null;
 	private readonly dynamic: DynamicPart | null;
+	private readonly pivot: Object3D | null = null;
+	private readonly articulation: ArticulationSpec | undefined;
 	private readonly plume: PlumeEffect | null;
 	private readonly deploy: PartVisual['deploy'];
 	private progress = 0;
@@ -105,10 +111,35 @@ class ProceduralModel implements PartModel {
 			this.root.add(this.dynamic.object);
 			this.triangles += this.dynamic.triangles;
 		}
+		this.articulation = visual.articulation;
+		const pivotAt = template.generated.pivot ?? [0, 0, 0];
+		if (template.moving) {
+			this.pivot = new Object3D();
+			this.pivot.name = 'pivot';
+			this.pivot.position.set(pivotAt[0], pivotAt[1], pivotAt[2]);
+			const moving = new Mesh(
+				template.moving.geometry,
+				template.moving.slots.map((s) => materials.get(s, visual.palette))
+			);
+			moving.position.set(-pivotAt[0], -pivotAt[1], -pivotAt[2]);
+			moving.castShadow = true;
+			moving.receiveShadow = true;
+			moving.name = 'moving';
+			this.movingMesh = moving;
+			this.pivot.add(moving);
+			this.root.add(this.pivot);
+			this.triangles += template.moving.triangles;
+		}
 		this.plume = visual.plume
 			? new PlumeEffect(visual.plume, shared.plumeGeometry, shared.spriteGeometry)
 			: null;
-		if (this.plume) this.root.add(this.plume.root);
+		if (this.plume) {
+			// The plume belongs to the bell: it leaves along the thrust vector (ADR 0045).
+			if (this.pivot && visual.articulation?.mode === 'gimbal') {
+				this.plume.root.position.sub(this.pivot.position);
+				this.pivot.add(this.plume.root);
+			} else this.root.add(this.plume.root);
+		}
 	}
 
 	setState(state: PartRuntimeState): void {
@@ -128,6 +159,13 @@ class ProceduralModel implements PartModel {
 				ignited: e?.ignited === true,
 				flameout: e?.flameout === true
 			};
+		}
+		if (this.pivot && this.articulation) {
+			const r = articulationRotation(
+				this.articulation.mode,
+				articulationValue(this.articulation, state.modules)
+			);
+			this.pivot.rotation.set(r.x, r.y, r.z);
 		}
 		this.applyGlow(state.temperature);
 		this.dynamic?.animate(this.progress);
@@ -164,6 +202,7 @@ class ProceduralModel implements PartModel {
 
 	private cloneMaterials(): void {
 		const targets: Mesh[] = [this.mesh];
+		if (this.movingMesh) targets.push(this.movingMesh);
 		this.dynamic?.object.traverse((o) => {
 			if (o instanceof Mesh) targets.push(o);
 		});
@@ -212,6 +251,7 @@ export class ProceduralProvider implements PartModelProvider {
 				segments: request.detail.segments,
 				tile: 1
 			});
+			const moving = new GeometryBuilder({ segments: request.detail.segments, tile: 1 });
 			const generated =
 				generator({
 					radius:
@@ -224,14 +264,22 @@ export class ProceduralProvider implements PartModelProvider {
 					visual,
 					detail: request.detail,
 					builder,
+					moving,
 					param: paramReader(visual)
 				}) ?? {};
 			const built = builder.build();
 			built.geometry.computeBoundingBox();
+			const movingBuilt = moving.isEmpty ? undefined : moving.build();
+			const bounds = built.geometry.boundingBox!.clone();
+			if (movingBuilt) {
+				movingBuilt.geometry.computeBoundingBox();
+				bounds.union(movingBuilt.geometry.boundingBox!);
+			}
 			template = {
 				built,
+				...(movingBuilt ? { moving: movingBuilt } : {}),
 				generated,
-				bounds: built.geometry.boundingBox!.clone(),
+				bounds,
 				triangles: built.triangles
 			};
 			this.templates.set(key, template);
@@ -247,7 +295,10 @@ export class ProceduralProvider implements PartModelProvider {
 	}
 
 	dispose(): void {
-		for (const t of this.templates.values()) t.built.geometry.dispose();
+		for (const t of this.templates.values()) {
+			t.built.geometry.dispose();
+			t.moving?.geometry.dispose();
+		}
 		this.templates.clear();
 		this.shared.plumeGeometry.dispose();
 		this.shared.spriteGeometry.dispose();

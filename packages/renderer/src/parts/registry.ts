@@ -13,6 +13,11 @@ export interface GenContext {
 	visual: PartVisual;
 	detail: PartDetail;
 	builder: GeometryBuilder;
+	/**
+	 * Geometry of the piece that moves (engine bell, control-surface plate); it hangs on a pivot at
+	 * `GeneratedPart.pivot` that the model turns by the part's articulation (ADR 0045).
+	 */
+	moving: GeometryBuilder;
 	/** Numeric parameter from `visual.params`, defaulted and clamped. */
 	param(name: string, fallback: number, min: number, max: number): number;
 }
@@ -29,6 +34,8 @@ export interface DynamicPart {
 }
 
 export interface GeneratedPart {
+	/** Pivot of `ctx.moving` in the part frame; required when the generator adds moving geometry. */
+	pivot?: readonly [number, number, number];
 	dynamic?: (material: (slot: SlotName) => Material) => DynamicPart;
 }
 

@@ -6,7 +6,7 @@
  * attack so the centre of pressure is the mean of the normal forces' heights.
  */
 import { rotateY, type PartDefinition, type VesselDesign } from '@orbital/core';
-import { ModuleFin, finConfigSchema } from '@orbital/mod-stock';
+import { ModuleControlSurface, ModuleFin, finConfigSchema } from '@orbital/mod-stock';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { layoutOf } from './state';
 
@@ -106,7 +106,8 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 		nx += body * x;
 		nz += body * z;
 		for (const [id, raw] of part.def.modules ?? []) {
-			if (id !== ModuleFin.id) continue;
+			// A control surface at rest is a fin (its config extends the fin's).
+			if (id !== ModuleFin.id && id !== ModuleControlSurface.id) continue;
 			const fin = finConfigSchema.parse(raw);
 			const force = fin.area * (fin.liftSlope * sin * cos + fin.crossflow * sin * sin);
 			normal += force;
