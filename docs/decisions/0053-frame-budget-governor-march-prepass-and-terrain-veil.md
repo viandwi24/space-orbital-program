@@ -34,3 +34,11 @@ Measuring (journal 039): the machine is shared (stale flight tabs of finished se
 - Frame times: see journal 039. Not measured on M1/M2 or Intel (none here); the governor is what covers them.
 - The draw order, the log depth and the planet pass's fragment depth are untouched.
 - `Renderer` gains `setRenderScale`, `renderScale` and `precompile`; the web client owns the governor (`flight-loop.ts`).
+
+## Amendment 2026-10-17: the reviewed budget (orchestrator review, same day)
+
+The plan's first target (every preset at most 13.3 ms sync at five scenes) was reviewed by the orchestrator and replaced by: **`medium` at most 13.3 ms and `high` at most 16.7 ms sync on the Apple M5** at the pad, 3 km, 12 km, orbit (100 km) and a 1.6 km hillside; the governor (on by default) covers slower GPUs; a half-resolution planet pass is a post-v1 draft (plan 048) unless `medium` cannot meet its target without it. This is a reviewed exception to the plan's text, recorded in the plan's Log, not a silent weakening. `low` has no stated target and measured 5 to 10 ms.
+
+Result (journal 039, 1920 x 1080 at ratio 1, minimum of 30 windows of 8 frames, hidden built-in pane): `high` 6.9 to 14.4 ms at the five scenes (13.7 at the worst of four hillside view directions); `medium` 7.4 to 12.8 ms (13.3 at the worst direction). `medium` first measured 14.2 ms at the hillside looking toward the far massif. Fewer march steps and view samples changed nothing there; **`medium` now uses 3 cloud octaves (was 4) and 9 ground octaves (was 11)**, which also turns the cloud shadows off on `medium` (`CLOUD_SHADOWS` is tied to four cloud octaves). The half-resolution pass was therefore not needed for the budget and is draft plan 048.
+
+Also changed: the preset field `lightSamples` is gone (the sun ray reads the sun-depth table, `LIGHT_SAMPLES` was never used by a shader); `precompile()` builds the biome maps of the other presets' widths in idle periods (the first switch to `low` spent 0.8 to 1 s in `setPreset` building the 512-texel map; now 20 ms). **Not met:** the preset-switch hitch is still 130 to 290 ms (vegetation rebuild and terrain re-bake, not shader compiles; journal 039); the governor was verified trace-driven, because the pane's rAF intervals do not follow the GPU while hidden.
