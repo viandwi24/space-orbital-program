@@ -72,3 +72,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0052 | [The stock moon: data and Δv budget](0052-the-stock-moon.md) | accepted | 2026-10-17 |
 | 0053 | [Frame budget: a quality governor, a march prepass, a thinner terrain veil](0053-frame-budget-governor-march-prepass-and-terrain-veil.md) | accepted | 2026-10-17 |
 | 0054 | [The moon in the renderer: its own light pass, one height function](0054-the-moon-in-the-renderer.md) | accepted | 2026-10-17 |
+| 0056 | [Maneuver nodes: sim-owned, remaining-burn model, shared prediction](0056-maneuver-nodes.md) | accepted | 2026-10-17 |
