@@ -91,3 +91,13 @@ Facts below come from the pages named and, where a page was only an API stub, fr
 | Render scale | `setPixelRatio(r)` with `r` below the device ratio draws into a smaller drawing buffer that the browser scales up; no program or target recompiles except the post chain's targets, which `post.setSize` resizes. `Renderer.setRenderScale` multiplies the device pixel ratio this way. | https://threejs.org/docs/pages/WebGLRenderer.html#setPixelRatio |
 | Hidden pane intervals | In a hidden built-in pane `requestAnimationFrame` runs in bursts and its interval read 8 to 10 ms for a 12.6 Mpx canvas and for a loop that blocked 47 ms per frame: frame intervals there say nothing about the GPU, so the governor cannot be run live in it. | observed, journal 039 |
 
+## Plan 048: preset switches (checked 2026-10-17, three 0.186.1)
+
+| Topic | Fact | Source |
+|---|---|---|
+| `InstancedMesh.count` | Can be lowered after construction; it cannot be raised past the capacity given to the constructor. Not used: the lower presets' layouts are not prefixes of `high`'s (ADR 0055). | https://threejs.org/docs/#api/en/objects/InstancedMesh |
+| `requestIdleCallback` | `timeout` makes required work run even if the page never idles; the API is not Baseline (Safari), so `precompile` falls back to `setTimeout` (existing `idle`). | https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback |
+| Program cache key (`WebGLPrograms.getProgramCacheKey`) | Besides the shader ids and `defines`, the key holds the output colour space, tone mapping, the number of hemisphere/directional lights and directional shadows, the env-map mode and cube-UV size. A program compiled for a scene without the hemisphere light, or before the environment map exists, is not the program a real frame uses. Read from `node_modules/three/src/renderers/webgl/WebGLPrograms.js`. | file in the repo's three 0.186.1 |
+| Programs live as long as a material that compiled them | A material keeps every program it compiled; compiling the same scene in another state (shadows off, canvas instead of a target) therefore keeps both. Materials of a disposed factory release theirs. | observed in journal 048 (program counts) |
+| Shadow map reallocation | `shadow.map.setSize(4096, 4096)` cost 30 to 36 ms in the next frame on an M5 (2048: 10 ms); not splittable, so it is delayed by three frames. | journal 048 |
+
