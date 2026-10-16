@@ -43,3 +43,4 @@ The flight view holds its frame budget on GPUs slower than the Apple M5 the pres
 ## Log
 
 - 2026-10-17 — Created as draft by the plan 039 completion session (the orchestrator review asked for the half-resolution pass as a post-v1 draft unless `medium` could not meet its target without it).
+- 2026-10-17 — Orchestrator review of plan 039: the preset-switch hitch (130–290 ms; vegetation rebuild and terrain re-bake) is a v1 must-ship item here, because the quality governor can switch presets mid-flight. The half-resolution planet pass stays optional for v1.

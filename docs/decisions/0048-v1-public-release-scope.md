@@ -18,6 +18,7 @@ The human asked (2026-10-16/17) that work not stop until the game is "finished a
 - 044 A moon and SOI transitions (second stock body, patched conics, map view and time warp across SOIs).
 - 045 Maneuver nodes (create/edit in map view, Δv vector, burn time, navball marker, predicted orbit incl. SOI encounters).
 - 046 Runtime mod loading (install a mod from a file/URL with a trust prompt, mod manager, mod content in VAB/flight; spec Phase 2 success criterion).
+- 047 pad-loss fix (done) and 048's preset-switch hitch part (added 2026-10-17 after the plan 039 review).
 - 023 release readiness (menus, settings, onboarding/tutorial, performance, review of every screen, release checklist incl. the human's licence decision).
 
 **Should ship if budget allows:** 037 volumetric clouds (the flat cumulus is the most visible remaining look gap).
