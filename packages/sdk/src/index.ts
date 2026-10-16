@@ -33,6 +33,7 @@ export {
 	days,
 	deg,
 	toDegrees,
+	GRAVITATIONAL_CONSTANT,
 	partId,
 	moduleId,
 	resourceId,

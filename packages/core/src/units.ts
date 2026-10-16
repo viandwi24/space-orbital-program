@@ -22,3 +22,6 @@ export const days = (x: number): number => x * 86_400;
 export const deg = (x: number): number => (x * Math.PI) / 180;
 /** Radians → degrees (display only). */
 export const toDegrees = (rad: number): number => (rad * 180) / Math.PI;
+
+/** Newtonian constant of gravitation, m³/(kg·s²) (CODATA 2018). Bodies carry a mass; μ = G·M. */
+export const GRAVITATIONAL_CONSTANT = 6.6743e-11;

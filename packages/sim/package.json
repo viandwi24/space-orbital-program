@@ -18,7 +18,9 @@
 		"@orbital/physics": "workspace:*"
 	},
 	"devDependencies": {
-		"typescript": "catalog:",
-		"@types/bun": "latest"
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/sdk": "workspace:*",
+		"@types/bun": "latest",
+		"typescript": "catalog:"
 	}
 }
