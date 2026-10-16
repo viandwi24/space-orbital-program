@@ -382,7 +382,22 @@ describe('module descriptors (ADR 0033)', () => {
 		expect(
 			describeModule(ModuleDecoupler, { separates: 'bottom' }, { decoupled: true })?.separator
 		).toEqual({ node: 'bottom', done: true });
-		expect(describeModule(ModuleResourceContainer, { contents: {} })).toBeUndefined();
+		// Containers describe only their catalogue category (plan 023).
+		expect(describeModule(ModuleResourceContainer, { contents: {} })).toEqual({ category: 'tanks' });
+	});
+
+	test('the engine reports the throttle of a live view, the fin its lifting plate, others their category (plan 023)', () => {
+		expect(
+			describeModule(ModuleEngine, engine, { ignited: true, throttle: 0.4, flameout: false })?.engine
+				?.throttle
+		).toBe(0.4);
+		expect(describeModule(ModuleEngine, engine)?.category).toBe('propulsion');
+		expect(describeModule(ModuleFin, { area: 2, centre: [0, 1, 0] })).toMatchObject({
+			category: 'aero',
+			lift: { area: 2, liftSlope: 2, crossflow: 1.2, centre: [0, 1, 0] }
+		});
+		expect(describeModule(ModuleCommand, undefined)?.category).toBe('command');
+		expect(describeModule(ModuleReactionWheel, { torque: 100 })?.category).toBe('control');
 	});
 });
 

@@ -156,6 +156,19 @@ export const partDefinitionSchema = z.object({
 	stagingIcon: z.string().optional()
 });
 
+/** Editor catalogue categories a module may name (`ModuleInfo.category`); engines, separators and lifting plates imply theirs. */
+export const MODULE_CATEGORIES = [
+	'command',
+	'propulsion',
+	'tanks',
+	'structural',
+	'aero',
+	'control',
+	'landing',
+	'thermal'
+] as const;
+export type ModuleCategory = (typeof MODULE_CATEGORIES)[number];
+
 /**
  * What a module tells tools about itself (ADR 0033): the result of `ModuleDefinition.describe`.
  * Plain data, validated when a tool reads it. Pressure in Pa, thrust in N, flow in kg/s.
@@ -185,9 +198,26 @@ export const moduleInfoSchema = z.object({
 			/** Burning now (or, for a design, false). */
 			ignited: z.boolean(),
 			/** Shut down because propellant ran short. */
-			flameout: z.boolean()
+			flameout: z.boolean(),
+			/** Commanded throttle now, 0..1, for the HUD gauge; absent for a design (plan 023). */
+			throttle: z.number().min(0).max(1).optional()
 		})
 		.optional(),
+	/**
+	 * The module is a lifting plate (a fin): its planform area, lift-curve slope per radian, normal
+	 * force coefficient broadside to the flow and centre of pressure in the part frame (m). The
+	 * stability read-out of the editor evaluates the same normal-force law as the sim (plan 023).
+	 */
+	lift: z
+		.object({
+			area: z.number().positive(),
+			liftSlope: z.number().positive(),
+			crossflow: z.number().positive(),
+			centre: z.tuple([z.number(), z.number(), z.number()])
+		})
+		.optional(),
+	/** Where the part appears in the editor's catalogue; the first module that names one decides (plan 023). */
+	category: z.enum(MODULE_CATEGORIES).optional(),
 	/** The module severs an attachment when its stage fires. */
 	separator: z
 		.object({

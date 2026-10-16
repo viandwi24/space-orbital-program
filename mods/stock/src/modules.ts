@@ -4,7 +4,14 @@
  * capability API every mod gets (ADR 0015); the arithmetic lives in `engine.ts` and below, so it is
  * written once. See docs/guides/writing-a-mod.md.
  */
-import { defineModule, z, type EntityId, type Vec3, type VesselApi } from '@orbital/sdk';
+import {
+	defineModule,
+	z,
+	type EntityId,
+	type ModuleInfo,
+	type Vec3,
+	type VesselApi
+} from '@orbital/sdk';
 import { G0, SEA_LEVEL_PRESSURE, engineOutput, ispAt, propellantRates } from './engine.ts';
 import { Ablator, ElectricCharge } from './resources.ts';
 import {
@@ -34,7 +41,11 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
-export const ModuleCommand = defineModule({ id: 'stock.command', controlSource: true });
+export const ModuleCommand = defineModule({
+	id: 'stock.command',
+	controlSource: true,
+	describe: () => ({ category: 'command' })
+});
 
 // ---------------------------------------------------------------------------------------------
 // Resource container
@@ -95,6 +106,7 @@ const transferArgs = z.tuple([resourceKey, z.number()]);
 export const ModuleResourceContainer = defineModule({
 	id: 'stock.resource-container',
 	config: containerConfigSchema,
+	describe: () => ({ category: 'tanks' }),
 	state: (config): ContainerState => ({
 		amounts: Object.fromEntries(
 			Object.entries(config.contents).map(([resource, slot]) => [resource, slot.amount])
@@ -196,8 +208,10 @@ export const ModuleEngine = defineModule({
 			],
 			propellants: config.propellants.map((p) => ({ resource: p.resource, ratio: p.ratio })),
 			ignited: state.ignited,
-			flameout: state.flameout
-		}
+			flameout: state.flameout,
+			throttle: Math.min(1, Math.max(0, state.throttle))
+		},
+		category: 'propulsion'
 	}),
 	onStage(ctx) {
 		ctx.state.ignited = true;
@@ -304,7 +318,10 @@ export const ModuleDecoupler = defineModule({
 	id: 'stock.decoupler',
 	config: decouplerConfigSchema,
 	state: (): DecouplerState => ({ decoupled: false }),
-	describe: (config, state) => ({ separator: { node: config.separates, done: state.decoupled } }),
+	describe: (config, state) => ({
+		separator: { node: config.separates, done: state.decoupled },
+		category: 'structural'
+	}),
 	onStage(ctx) {
 		fire(ctx);
 	},
@@ -334,6 +351,7 @@ export interface ReactionWheelState {
 export const ModuleReactionWheel = defineModule({
 	id: 'stock.reaction-wheel',
 	config: reactionWheelConfigSchema,
+	describe: () => ({ category: 'control' }),
 	state: (): ReactionWheelState => ({ enabled: true }),
 	/** `torque` about every axis while enabled and powered (ADR 0049). */
 	controlAuthority({ state, config, vessel }) {
@@ -415,6 +433,7 @@ export function landingLegColliders(
 export const ModuleLandingLeg = defineModule({
 	id: 'stock.landing-leg',
 	config: landingLegConfigSchema,
+	describe: () => ({ category: 'landing' }),
 	state: (config): LandingLegState => ({ deployed: config.deployed }),
 	// Staging deploys the legs, like a decoupler fires.
 	onStage(ctx) {
@@ -462,6 +481,7 @@ export interface HeatShieldState {
 export const ModuleHeatShield = defineModule({
 	id: 'stock.heat-shield',
 	config: heatShieldConfigSchema,
+	describe: () => ({ category: 'thermal' }),
 	state: (config): HeatShieldState => ({ ablator: config.ablator }),
 	store: {
 		resources: () => [Ablator.id],
@@ -511,6 +531,17 @@ export const finConfigSchema = z.object({
 });
 export type FinConfig = z.output<typeof finConfigSchema>;
 
+/** The descriptor of a lifting plate: what the editor's stability read-out and catalogue read. */
+const finInfo = (config: FinConfig): ModuleInfo => ({
+	lift: {
+		area: config.area,
+		liftSlope: config.liftSlope,
+		crossflow: config.crossflow,
+		centre: [config.centre[0], config.centre[1], config.centre[2]]
+	},
+	category: 'aero'
+});
+
 /**
  * Force along the plate normal (local Z) for the air velocity `v` of the plate, part frame, in
  * density `rho` (ADR 0035): `-1/2 rho V² S (liftSlope sin a cos a + crossflow sin a |sin a|)`, `a`
@@ -550,6 +581,7 @@ export const ModuleFin = defineModule({
 	id: 'stock.fin',
 	config: finConfigSchema,
 	state: (): Record<string, never> => ({}),
+	describe: (config) => finInfo(config),
 	update(ctx) {
 		const { config, vessel } = ctx;
 		const rho = vessel.ambient.density;
@@ -610,6 +642,8 @@ export const ModuleControlSurface = defineModule({
 	id: 'stock.control-surface',
 	config: controlSurfaceConfigSchema,
 	state: (): ControlSurfaceState => ({ deflection: 0 }),
+	// At rest a control surface is a fin (the stability read-out of the editor).
+	describe: (config) => finInfo(config),
 	/** The force change over the full range in the present airflow, times the lever (ADR 0049). */
 	controlAuthority({ config, vessel }) {
 		const rho = vessel.ambient.density;
