@@ -1,8 +1,11 @@
 /**
- * The terrain bake (ADR 0036): one fullscreen pass per cube face evaluates the height function of
- * `terrain-model.ts` (this file is its GLSL twin; every constant comes from there) and writes
- * height in metres plus the tangent gradient (rise over run, body-fixed) so the planet pass can
- * march heights with one fetch and shade with smooth normals.
+ * The terrain bake (ADR 0036, ADR 0044): fullscreen passes evaluate the height function of
+ * `@orbital/core` `terrain.ts` (this file is its GLSL twin; every constant comes from there) into
+ * the cube map (far field) and into the camera-centred patches. A texel holds
+ * `(hi, lo, g1, g2)`: the height split in two half floats (`hi` a multiple of 16 m, `lo` the rest,
+ * so heights are exact to 8 mm up to 4.5 km), and the tangent gradient (rise over run) in the basis
+ * `(t1, t2)` of the texel's own direction (`terrainTangentGLSL`), so the planet pass can march
+ * heights with one fetch and shade with smooth normals.
  */
 import {
 	MAP_WARP as W,
@@ -47,6 +50,18 @@ vec2 warpedLatLon(vec3 n, float radius) {
 }
 `;
 
+/** Tangent basis of a body-fixed direction and the decode of a baked texel (shared with the planet pass). */
+export const terrainTangentGLSL = /* glsl */ `
+vec3 terrainTangent1(vec3 n) {
+	return normalize(cross(n, abs(n.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+}
+// Baked (hi, lo, g1, g2) at direction n -> height in x, body-fixed tangent gradient in yzw.
+vec4 decodeTerrain(vec4 t, vec3 n) {
+	vec3 t1 = terrainTangent1(n);
+	return vec4(t.r + t.g, t.b * t1 + t.a * cross(n, t1));
+}
+`;
+
 export const terrainBakeVertex = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -55,13 +70,14 @@ void main() {
 }
 `;
 
-export const terrainBakeFragment = /* glsl */ `
+/** Height function, encoding and uniforms shared by the cube and patch bakes. */
+const terrainBakeCommon = /* glsl */ `
 ${hashNoiseGLSL}
 ${terrainNoiseGLSL}
+${terrainTangentGLSL}
 varying vec2 vUv;
 uniform sampler2D uMap;
-uniform int uFace;
-uniform float uTexel;   // angular size of one texel at the face centre, rad
+uniform float uTexel;   // angular size of one texel at the centre, rad
 uniform float uRadius;
 uniform vec3 uSiteDir;  // unit, body-fixed
 
@@ -115,13 +131,31 @@ float heightAt(vec3 n) {
 	float backdrop = smoothstep(${f(S.backdropRiseMetres[0])}, ${f(S.backdropRiseMetres[1])}, arc)
 		* (1.0 - smoothstep(${f(S.backdropFallMetres[0])}, ${f(S.backdropFallMetres[1])}, arc))
 		* smoothstep(${f(S.backdropLow)}, ${f(S.backdropHigh)}, noiseT(q, 1.0 / ${f(S.backdropWavelengthKm)}, ${S.backdropSalt}));
-	float range = max(smoothstep(${f(S.rangeLow)}, ${f(S.rangeHigh)}, rangeN), backdrop);
+	float rangeA = smoothstep(${f(S.rangeLow)}, ${f(S.rangeHigh)}, rangeN);
+	float rangeH = max(${f(S.rangeBlend)} - abs(rangeA - backdrop), 0.0);
+	float range = max(rangeA, backdrop) + rangeH * rangeH / ${f(4 * S.rangeBlend)};
 	float ridge = ridgedT(q, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31);
 	float upland = smoothstep(${f(S.uplandLow)}, ${f(S.uplandHigh)}, e);
 	float mountains = ${f(S.mountainAmplitude)} * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
 	return land * site * (hills + mountains);
 }
 
+
+// One baked texel for the unit body-fixed direction n; d is the angular size of a texel, rad.
+vec4 terrainTexel(vec3 n, float d) {
+	vec3 t1 = terrainTangent1(n);
+	vec3 t2 = cross(n, t1);
+	float h0 = heightAt(n);
+	float h1 = heightAt(normalize(n + t1 * d));
+	float h2 = heightAt(normalize(n + t2 * d));
+	float hi = floor(h0 / 16.0) * 16.0;
+	return vec4(hi, h0 - hi, (h1 - h0) / (d * uRadius), (h2 - h0) / (d * uRadius));
+}
+`;
+
+export const terrainBakeFragment = /* glsl */ `
+${terrainBakeCommon}
+uniform int uFace;
 // Direction of a texel of a cube face (OpenGL cube map convention: +X, -X, +Y, -Y, +Z, -Z).
 vec3 faceDir(int face, vec2 st) {
 	if (face == 0) return vec3(1.0, -st.y, -st.x);
@@ -133,14 +167,28 @@ vec3 faceDir(int face, vec2 st) {
 }
 
 void main() {
-	vec3 n = normalize(faceDir(uFace, vUv * 2.0 - 1.0));
-	vec3 t1 = normalize(cross(n, abs(n.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
-	vec3 t2 = cross(n, t1);
-	float d = uTexel;
-	float h0 = heightAt(n);
-	float h1 = heightAt(normalize(n + t1 * d));
-	float h2 = heightAt(normalize(n + t2 * d));
-	vec3 g = ((h1 - h0) * t1 + (h2 - h0) * t2) / (d * uRadius);
-	gl_FragColor = vec4(h0, g);
+	gl_FragColor = terrainTexel(normalize(faceDir(uFace, vUv * 2.0 - 1.0)), uTexel);
+}
+`;
+
+/**
+ * A camera-centred patch (ADR 0044): the texel at patch coordinates (u, v) in [-1, 1] is the
+ * direction `normalize(c + halfTan (u e + v f))` (gnomonic projection around the unit direction c
+ * with tangent axes e and f), the pure twin of `patchDirection` in `terrain-patch.ts`.
+ */
+export const terrainPatchFragment = /* glsl */ `
+${terrainBakeCommon}
+uniform vec3 uPatchC;
+uniform vec3 uPatchE;
+uniform vec3 uPatchF;
+uniform float uHalfTan;
+
+void main() {
+	vec2 st = vUv * 2.0 - 1.0;
+	vec3 n = normalize(uPatchC + uHalfTan * (st.x * uPatchE + st.y * uPatchF));
+	// 32-bit floats: height in x (exact to float precision), gradient in the tangent basis in yz.
+	// The planet pass filters these by hand (half floats lose centimetres when filtered).
+	vec4 t = terrainTexel(n, uTexel);
+	gl_FragColor = vec4(t.r + t.g, t.b, t.a, 0.0);
 }
 `;

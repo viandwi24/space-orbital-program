@@ -3,7 +3,13 @@
  * vessel, sky ambient, fog, exposure and the launch site (ADR 0027). Contains no
  * `WebGLRenderer`, so it runs in Bun; the facade adds PMREM and the post chain.
  */
-import type { BodyDefinition, Quat, Vec3 } from '@orbital/core';
+import {
+	createTerrainField,
+	type BodyDefinition,
+	type Quat,
+	type TerrainField,
+	type Vec3
+} from '@orbital/core';
 import {
 	DirectionalLight,
 	FogExp2,
@@ -27,6 +33,7 @@ import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
 import { PRESETS, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
+import { liftAboveTerrain } from './terrain-patch.ts';
 import { LaunchSite } from './site-meshes.ts';
 import { DEG, dot, length, rotate, rotateInverse, sub, vec } from './vec.ts';
 
@@ -74,6 +81,8 @@ export interface EnvironmentState {
 }
 
 const SHADOW_BIAS = -0.00006;
+/** The camera is held at least this far above the terrain under it (no hills in the near plane), m. */
+export const CAMERA_CLEARANCE = 0.5;
 
 export class Environment {
 	readonly atmosphere: Atmosphere;
@@ -100,9 +109,16 @@ export class Environment {
 	private cloudCover = 0.42;
 	private exposure = 1;
 	private config: EnvironmentConfig;
+	/** The same heights the sim's ground uses (ADR 0043): the camera is held above them. */
+	private terrain: TerrainField;
 
 	constructor(config: EnvironmentConfig) {
 		this.config = config;
+		this.terrain = createTerrainField({
+			radius: config.body.radius,
+			latitude: config.site.latitude,
+			longitude: config.site.longitude
+		});
 		this.preset = config.preset;
 		const body = config.body;
 		this.radius = body.radius;
@@ -144,6 +160,7 @@ export class Environment {
 	/** The vessel really launched from here (see `SceneModel.sync`); moves the site meshes and the painted pad. */
 	setSite(latitude: number, longitude: number): void {
 		this.config = { ...this.config, site: { latitude, longitude } };
+		this.terrain = createTerrainField({ radius: this.radius, latitude, longitude });
 		this.planet.setSite(latitude, longitude);
 		this.site.setSite(latitude, longitude);
 	}
@@ -164,6 +181,17 @@ export class Environment {
 		this.sunLight.shadow.map?.setSize(s.shadowMapSize, s.shadowMapSize);
 	}
 
+	/** Moves the camera up along its radial when it is inside the terrain (or closer than `CAMERA_CLEARANCE`). */
+	private holdAboveGround(camera: PerspectiveCamera, bodyRender: Vec3, bodyRotation: Quat): void {
+		const rel = sub(vec(camera.position.x, camera.position.y, camera.position.z), bodyRender);
+		const bodyFixed = rotateInverse(bodyRotation, rel);
+		const lifted = liftAboveTerrain(bodyFixed, this.terrain, this.radius, CAMERA_CLEARANCE);
+		if (lifted === bodyFixed) return;
+		const world = rotate(bodyRotation, lifted);
+		camera.position.set(bodyRender.x + world.x, bodyRender.y + world.y, bodyRender.z + world.z);
+		camera.updateMatrixWorld();
+	}
+
 	/** Sun direction in the inertial/render frame for the current body rotation. */
 	sunDirection(bodyRotation: Quat): Vec3 {
 		if (!this.sunOverride) return starDirection();
@@ -178,6 +206,7 @@ export class Environment {
 
 	update(input: EnvironmentFrameInput): void {
 		const { camera, bodyRender, bodyRotation } = input;
+		this.holdAboveGround(camera, bodyRender, bodyRotation);
 		const cameraRender = vec(camera.position.x, camera.position.y, camera.position.z);
 		const frame = planetFrame({
 			bodyRender,

@@ -19,9 +19,16 @@ import {
 	TERRAIN_MAX_SLOPE
 } from '@orbital/core';
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
-import { terrainNoiseGLSL } from './terrain.glsl.ts';
+import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
+import { PATCH_BLEND } from '../terrain-patch.ts';
 import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
-import { STEP_MIN_FRACTION, STEP_MIN_METRES, STEP_RELAX } from '../terrain-model.ts';
+import {
+	STEP_FAR_FRACTION,
+	STEP_MIN_FRACTION,
+	STEP_MIN_METRES,
+	STEP_RELAX,
+	TERRAIN_MARCH_SLOPE_MIN
+} from '../terrain-model.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 
@@ -141,17 +148,121 @@ float fbmF(vec3 p, int octaves) {
 #if TERRAIN
 uniform samplerCube uTerrain;
 uniform float uTerrainOn;
+uniform sampler2D uPatchFine;
+uniform sampler2D uPatchMid;
+uniform float uPatchLinear; // 1 when the float patches can be filtered by the hardware
+// Camera-centred patches (ADR 0044): centre c, tangent axes e and f (unit, body-fixed), half width tan; on = 0 or 1.
+uniform vec3 uFineC;
+uniform vec3 uFineE;
+uniform vec3 uFineF;
+uniform vec2 uFineK;  // x: 1 / half width tangent, y: on
+uniform vec3 uMidC;
+uniform vec3 uMidE;
+uniform vec3 uMidF;
+uniform vec2 uMidK;
 uniform float uSkipR;      // ground distance from the camera inside which terrain is flat, m
 const float T_MAX = ${f(TERRAIN_MAX_HEIGHT)};
 const float T_SLOPE = ${f(TERRAIN_MAX_SLOPE)};
+const float T_SLOPE_MIN = ${f(TERRAIN_MARCH_SLOPE_MIN)};
 const float T_RELAX = ${f(STEP_RELAX)};
 const float T_MIN_FRAC = ${f(STEP_MIN_FRACTION)};
+const float T_FAR_FRAC = ${f(STEP_FAR_FRACTION)};
 const float T_MIN_M = ${f(STEP_MIN_METRES)};
+${terrainTangentGLSL}
 
-// Height (x, m) and body-fixed tangent gradient (yzw) at a position relative to the planet centre.
+// Bilinear read of a 32-bit patch texel by hand (no float filtering needed): (height, g1, g2).
+vec3 patchFetch(sampler2D tex, vec2 st) {
+	// OES_texture_float_linear (most desktop GPUs): one filtered fetch; otherwise four by hand
+	if (uPatchLinear > 0.5) return textureLod(tex, st * 0.5 + 0.5, 0.0).xyz;
+	ivec2 size = textureSize(tex, 0);
+	vec2 p = st * 0.5 * vec2(size) + 0.5 * vec2(size) - 0.5;
+	vec2 f = fract(p);
+	ivec2 i0 = ivec2(floor(p));
+	ivec2 hi = size - 1;
+	vec3 a = texelFetch(tex, clamp(i0, ivec2(0), hi), 0).xyz;
+	vec3 b = texelFetch(tex, clamp(i0 + ivec2(1, 0), ivec2(0), hi), 0).xyz;
+	vec3 c = texelFetch(tex, clamp(i0 + ivec2(0, 1), ivec2(0), hi), 0).xyz;
+	vec3 d = texelFetch(tex, clamp(i0 + ivec2(1, 1), ivec2(0), hi), 0).xyz;
+	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+// Blends the baked texel of a patch into t (height, body-fixed gradient) where nB is inside its window.
+vec4 blendPatch(vec4 t, sampler2D tex, vec3 nB, vec3 c, vec3 e, vec3 fa, vec2 k) {
+	if (k.y < 0.5) return t;
+	float d = dot(nB, c);
+	if (d < 0.5) return t;
+	vec2 uv = vec2(dot(nB, e), dot(nB, fa)) * (k.x / d);
+	float m = max(abs(uv.x), abs(uv.y));
+	if (m >= 1.0) return t;
+	float w = 1.0 - smoothstep(${f(PATCH_BLEND.start)}, ${f(PATCH_BLEND.end)}, m);
+	vec3 q = patchFetch(tex, uv);
+	vec3 t1 = terrainTangent1(nB);
+	vec4 p = vec4(q.x, q.y * t1 + q.z * cross(nB, t1));
+	return mix(t, p, w);
+}
+
+// Height (x, m) and body-fixed tangent gradient (yzw) at a position relative to the planet centre:
+// the cube map, with the mid and fine patches blended in where the camera has them.
 vec4 terrainAt(vec3 pI) {
-	vec3 nI = pI / length(pI);
-	return textureLod(uTerrain, uBodyInv * nI, 0.0);
+	vec3 nB = uBodyInv * (pI / length(pI));
+	vec4 t = decodeTerrain(textureLod(uTerrain, nB, 0.0), nB);
+	t = blendPatch(t, uPatchMid, nB, uMidC, uMidE, uMidF, uMidK);
+	t = blendPatch(t, uPatchFine, nB, uFineC, uFineE, uFineF, uFineK);
+	return t;
+}
+
+// Height and gradient magnitude only (the march and the shadow need no direction): the tangent basis
+// is orthonormal, so the magnitude is the length of the two stored components.
+float terrainH(vec3 pI, out float gmag) {
+	vec3 nB = uBodyInv * (pI / length(pI));
+	float h = 0.0;
+	gmag = 0.0;
+	float wFine = 0.0;
+	vec3 qFine = vec3(0.0);
+	if (uFineK.y > 0.5) {
+		float d = dot(nB, uFineC);
+		if (d > 0.5) {
+			vec2 uv = vec2(dot(nB, uFineE), dot(nB, uFineF)) * (uFineK.x / d);
+			float m = max(abs(uv.x), abs(uv.y));
+			if (m < 1.0) {
+				wFine = 1.0 - smoothstep(${f(PATCH_BLEND.start)}, ${f(PATCH_BLEND.end)}, m);
+				qFine = patchFetch(uPatchFine, uv);
+				// well inside the fine patch nothing else is read
+				if (wFine >= 1.0) {
+					gmag = length(qFine.yz);
+					return qFine.x;
+				}
+			}
+		}
+	}
+	vec4 t = textureLod(uTerrain, nB, 0.0);
+	h = t.r + t.g;
+	gmag = length(t.ba);
+	if (uMidK.y > 0.5) {
+		float d = dot(nB, uMidC);
+		if (d > 0.5) {
+			vec2 uv = vec2(dot(nB, uMidE), dot(nB, uMidF)) * (uMidK.x / d);
+			float m = max(abs(uv.x), abs(uv.y));
+			if (m < 1.0) {
+				float w = 1.0 - smoothstep(${f(PATCH_BLEND.start)}, ${f(PATCH_BLEND.end)}, m);
+				vec3 q = patchFetch(uPatchMid, uv);
+				h = mix(h, q.x, w);
+				gmag = mix(gmag, length(q.yz), w);
+			}
+		}
+	}
+	if (wFine > 0.0) {
+		h = mix(h, qFine.x, wFine);
+		gmag = mix(gmag, length(qFine.yz), wFine);
+	}
+	return h;
+}
+
+// Height of the ray point at distance t above the sea sphere. length(p) - uR loses 6 cm of float32
+// at 600 km (stair steps on grazing rays); (|p|^2 - R^2) / (|p| + R) expands |p|^2 from the camera.
+float rayAltitude(float r0, float d, float t, vec3 p) {
+	float h0 = r0 - uR;
+	return (h0 * (2.0 * uR + h0) + 2.0 * r0 * t * d + t * t) / (length(p) + uR);
 }
 
 // Sphere-traces the baked heights from the camera ray; true with the hit distance in tOut.
@@ -164,32 +275,44 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, out float t
 	if (uSkipR > 0.0) t = max(t, uSkipR / sqrt(max(1.0 - d * d, 0.0025)));
 	if (t >= tEnd) return false;
 	float tPrev = t;
+	float cPrev = 1.0;
+	float cHit = -1.0;
 	bool hit = false;
+	float gm = 0.0;
 	for (int i = 0; i < TERRAIN_STEPS; i++) {
 		vec3 p = ro + rd * t;
 		float r = length(p);
-		float c = r - uR - terrainAt(p).x;
+		float c = rayAltitude(r0, d, t, p) - terrainH(p, gm);
 		if (c < 0.0) {
 			hit = true;
+			cHit = c;
 			break;
 		}
 		float mu = dot(rd, p / r);
-		float dt = max(max(t * T_MIN_FRAC, t * uPixelAngle * 1.5), T_MIN_M);
-		dt = max(dt, T_RELAX * c / (T_SLOPE + max(-mu, 0.0)));
+		float dt = max(max(t * mix(T_MIN_FRAC, T_FAR_FRAC, smoothstep(50.0, 500.0, t)), t * uPixelAngle * 1.5), T_MIN_M);
+		// Safe step from the local slope (twice the baked gradient plus a margin, at most the global
+		// bound): gentle ground allows steps several times longer, which is what reaches the horizon
+		// from a camera lying close to the ground (48 steps at the global bound reach 240 m).
+		float slope = clamp(2.0 * gm + T_SLOPE_MIN, T_SLOPE_MIN, T_SLOPE);
+		dt = max(dt, T_RELAX * c / (slope + max(-mu, 0.0)));
 		float tStart = t;
 		tPrev = t;
+		cPrev = c;
 		if (c < dt * 0.5) {
 			// the step is longer than the clearance is safe for: look inside it so a thin crest is not skipped
-			for (int j = 1; j < 4; j++) {
-				float ts = tStart + dt * float(j) * 0.25;
+			for (int j = 1; j < 3; j++) {
+				float ts = tStart + dt * float(j) / 3.0;
 				if (ts >= tEnd) break;
 				vec3 ps = ro + rd * ts;
-				if (length(ps) - uR - terrainAt(ps).x < 0.0) {
+				float cs = rayAltitude(r0, d, ts, ps) - terrainH(ps, gm);
+				if (cs < 0.0) {
 					hit = true;
 					t = ts;
+					cHit = cs;
 					break;
 				}
 				tPrev = ts;
+				cPrev = cs;
 			}
 			if (hit) break;
 		}
@@ -197,18 +320,34 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, out float t
 		if (t >= tEnd) {
 			t = tEnd;
 			vec3 pe = ro + rd * t;
-			hit = length(pe) - uR - terrainAt(pe).x < 0.0;
+			cHit = rayAltitude(r0, d, t, pe) - terrainH(pe, gm);
+			hit = cHit < 0.0;
 			break;
 		}
 	}
 	if (!hit) return false;
+	// Illinois (regula falsi): the bracket [tPrev, t] holds one crossing of a smooth height field;
+	// 5 evaluations land within millimetres where 10 bisections would be needed.
 	float lo = tPrev;
 	float hi = t;
-	for (int k = 0; k < 10; k++) {
-		float mid = 0.5 * (lo + hi);
+	float fLo = cPrev;
+	float fHi = cHit;
+	int side = 0;
+	for (int k = 0; k < 5; k++) {
+		float mid = lo + (hi - lo) * fLo / (fLo - fHi);
 		vec3 p = ro + rd * mid;
-		if (length(p) - uR - terrainAt(p).x < 0.0) hi = mid;
-		else lo = mid;
+		float fm = rayAltitude(r0, d, mid, p) - terrainH(p, gm);
+		if (fm < 0.0) {
+			hi = mid;
+			fHi = fm;
+			if (side == -1) fLo *= 0.5;
+			side = -1;
+		} else {
+			lo = mid;
+			fLo = fm;
+			if (side == 1) fHi *= 0.5;
+			side = 1;
+		}
 	}
 	tOut = hi;
 	return true;
@@ -220,7 +359,8 @@ float terrainShadow(vec3 pI, vec3 sunI) {
 	float s = 90.0;
 	for (int i = 0; i < TERRAIN_SHADOW_STEPS; i++) {
 		vec3 q = pI + sunI * s;
-		float c = length(q) - uR - terrainAt(q).x;
+		float gs;
+		float c = length(q) - uR - terrainH(q, gs);
 		vis = min(vis, clamp(c / (0.12 * s) + 0.05, 0.0, 1.0));
 		s *= 2.2;
 	}
@@ -553,7 +693,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	wRock = max(wRock, smoothstep(0.06, 0.22, slope * 3.0));
 	wRock = max(wRock, smoothstep(0.28, 0.55, tanS));
 	wRock = max(wRock, smoothstep(1500.0, 2100.0, hT + 300.0 * colourNoise));
-	float snowLine = 2250.0 + 380.0 * colourNoise;
+	float snowLine = 2800.0 + 420.0 * colourNoise;
 	float wSnow = max(smoothstep(0.22, 0.12, temp), smoothstep(0.9, 0.97, e2));
 	wSnow = max(wSnow, smoothstep(snowLine - 150.0, snowLine + 250.0, hT) * (1.0 - smoothstep(0.55, 0.95, tanS)));
 	float wBeach = (1.0 - smoothstep(SEA + BEACH * 0.5, SEA + BEACH * 1.6, e2)) * (1.0 - wRock) * (1.0 - smoothstep(300.0, 3000.0, footprint));

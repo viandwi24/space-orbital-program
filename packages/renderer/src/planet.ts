@@ -7,10 +7,12 @@ import type { Quat, Vec3 } from '@orbital/core';
 import {
 	AlwaysDepth,
 	BufferAttribute,
+	FloatType,
 	HalfFloatType,
 	OrthographicCamera,
 	Scene,
 	WebGLCubeRenderTarget,
+	WebGLRenderTarget,
 	type WebGLRenderer,
 	BufferGeometry,
 	ClampToEdgeWrapping,
@@ -30,21 +32,37 @@ import {
 	ShaderMaterial,
 	Quaternion,
 	UnsignedByteType,
+	Vector2,
 	Vector3,
 	type PerspectiveCamera,
 	type Uniform
 } from 'three';
-import { cachedPlanetMap } from '@orbital/core';
+import { TERRAIN_MAP_WIDTH, cachedPlanetMap } from '@orbital/core';
 import { type Atmosphere, type RGB } from './atmosphere-model.ts';
 
 import type { PlanetFrame } from './planet-frame.ts';
+import { normalize, vec } from './vec.ts';
 import type { PresetSettings } from './presets.ts';
 import { CIRRUS_ALTITUDE, CLOUD_ALTITUDE } from './cloud-model.ts';
 import { PAD_RADIUS } from './site.ts';
 import { planetFragment, planetVertex } from './shaders/planet.glsl.ts';
-import { terrainBakeFragment, terrainBakeVertex } from './shaders/terrain.glsl.ts';
+import {
+	terrainBakeFragment,
+	terrainBakeVertex,
+	terrainPatchFragment
+} from './shaders/terrain.glsl.ts';
 import { siteAxes, surfaceUp } from './sun.ts';
+import { ORIGIN_GRID } from './origin.ts';
 import { flatSkipRadius } from './terrain-model.ts';
+import {
+	PATCH_MAX_ALTITUDE,
+	PATCH_SPANS,
+	latticeDirection,
+	patchFrame,
+	patchNeedsRecentre,
+	patchTexel,
+	type PatchFrame
+} from './terrain-patch.ts';
 import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
@@ -117,6 +135,18 @@ const qMatrix3 = (q: Quat, inverse: boolean): Matrix3 =>
 		)
 	);
 
+/** One camera-centred terrain patch (ADR 0044): its texture, the frame it was baked for and the one wanted next. */
+interface PatchSlot {
+	spanMetres: number;
+	target: WebGLRenderTarget | null;
+	/** The frame the texture holds (the shader uses it); null until baked. */
+	frame: PatchFrame | null;
+	/** A frame to bake at the top of the next frame. */
+	wanted: PatchFrame | null;
+	/** Uniform names of this slot in the planet pass. */
+	names: { texture: string; c: string; e: string; f: string; k: string };
+}
+
 export class PlanetPass {
 	readonly mesh: Mesh;
 	readonly material: ShaderMaterial;
@@ -140,6 +170,12 @@ export class PlanetPass {
 	private terrainSize: number;
 	private terrainDirty = true;
 	private readonly bake: { scene: Scene; camera: OrthographicCamera; material: ShaderMaterial };
+	/** Camera-centred patches (ADR 0044): texels per side (0 = off) and the two windows. */
+	private patchSize: number;
+	private readonly patchBake: { scene: Scene; material: ShaderMaterial };
+	private readonly patches: { fine: PatchSlot; mid: PatchSlot };
+	/** The canonical biome map every height is read from (the preset's own when that is the same size). */
+	private terrainMap: DataTexture | null = null;
 	private readonly radius: number;
 	private siteLatitude: number;
 	private siteLongitude: number;
@@ -156,6 +192,7 @@ export class PlanetPass {
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
 		this.terrainSize = settings.terrainSize;
+		this.patchSize = settings.terrainPatch;
 		const axes = siteAxes(site.latitude, site.longitude);
 		const geometry = new BufferGeometry();
 		geometry.setAttribute(
@@ -203,6 +240,17 @@ export class PlanetPass {
 				uSiteRadius: u(PAD_RADIUS * 40),
 				uTerrain: u<unknown>(null),
 				uTerrainOn: u(0),
+				uPatchFine: u<unknown>(null),
+				uPatchMid: u<unknown>(null),
+				uPatchLinear: u(0),
+				uFineC: u(new Vector3(1, 0, 0)),
+				uFineE: u(new Vector3(0, 0, 1)),
+				uFineF: u(new Vector3(0, 1, 0)),
+				uFineK: u(new Vector2(1, 0)),
+				uMidC: u(new Vector3(1, 0, 0)),
+				uMidE: u(new Vector3(0, 0, 1)),
+				uMidF: u(new Vector3(0, 1, 0)),
+				uMidK: u(new Vector2(1, 0)),
 				uSkipR: u(0),
 				uTime: u(0),
 				uWaveAnchor: u(WAVES.map(() => 0))
@@ -240,21 +288,83 @@ export class PlanetPass {
 			camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
 			material: bakeMaterial
 		};
+		const patchMaterial = new ShaderMaterial({
+			name: 'terrain-patch-bake',
+			vertexShader: terrainBakeVertex,
+			fragmentShader: terrainPatchFragment,
+			uniforms: {
+				uMap: u(this.map),
+				uTexel: u(0.0001),
+				uRadius: u(atm.radius),
+				uSiteDir: u(new Vector3(1, 0, 0)),
+				uPatchC: u(new Vector3(1, 0, 0)),
+				uPatchE: u(new Vector3(0, 0, 1)),
+				uPatchF: u(new Vector3(0, 1, 0)),
+				uHalfTan: u(0.01)
+			},
+			depthTest: false,
+			depthWrite: false
+		});
+		const patchScene = new Scene();
+		const patchMesh = new Mesh(geometry, patchMaterial);
+		patchMesh.frustumCulled = false;
+		patchScene.add(patchMesh);
+		this.patchBake = { scene: patchScene, material: patchMaterial };
+		this.patches = {
+			fine: {
+				spanMetres: PATCH_SPANS.fine,
+				target: null,
+				frame: null,
+				wanted: null,
+				names: { texture: 'uPatchFine', c: 'uFineC', e: 'uFineE', f: 'uFineF', k: 'uFineK' }
+			},
+			mid: {
+				spanMetres: PATCH_SPANS.mid,
+				target: null,
+				frame: null,
+				wanted: null,
+				names: { texture: 'uPatchMid', c: 'uMidC', e: 'uMidE', f: 'uMidF', k: 'uMidK' }
+			}
+		};
 		this.setSiteDirection(site.latitude, site.longitude);
 	}
 
 	private setSiteDirection(latitude: number, longitude: number): void {
 		const up = surfaceUp(latitude, longitude);
 		(this.bake.material.uniforms.uSiteDir!.value as Vector3).set(up.x, up.y, up.z);
+		(this.patchBake.material.uniforms.uSiteDir!.value as Vector3).set(up.x, up.y, up.z);
+		this.invalidateTerrain();
+	}
+
+	/** The baked heights are stale (site, map or resolution changed): bake the cube again and drop the patches. */
+	private invalidateTerrain(): void {
 		this.terrainDirty = true;
+		for (const slot of [this.patches.fine, this.patches.mid]) {
+			slot.frame = null;
+			slot.wanted = null;
+			(this.material.uniforms[slot.names.k]!.value as Vector2).y = 0;
+		}
 	}
 
 	/**
 	 * Renders the terrain cube map when the site, the map or the resolution changed (first frame,
-	 * `setSite`, `setQuality`). Needs a context, so the facade calls it; Bun tests never do.
+	 * `setSite`, `setQuality`) and the camera-centred patches that `update` asked for (ADR 0044).
+	 * Needs a context, so the facade calls it at the top of every frame; Bun tests never do.
 	 */
 	bakeTerrain(gl: WebGLRenderer): void {
-		if (!this.terrainDirty || this.terrainSize <= 0) return;
+		if (this.terrainSize <= 0) return;
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		if (this.terrainDirty) this.bakeCube(gl);
+		if (this.patchSize > 0) {
+			for (const slot of [this.patches.fine, this.patches.mid]) this.bakePatch(gl, slot);
+		}
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+	}
+
+	private bakeCube(gl: WebGLRenderer): void {
 		if (!this.terrainTarget || this.terrainTarget.width !== this.terrainSize) {
 			this.terrainTarget?.dispose();
 			this.terrainTarget = new WebGLCubeRenderTarget(this.terrainSize, {
@@ -268,20 +378,81 @@ export class PlanetPass {
 			this.material.uniforms.uTerrain!.value = this.terrainTarget.texture;
 		}
 		const uniforms = this.bake.material.uniforms;
-		uniforms.uMap!.value = this.map;
+		uniforms.uMap!.value = this.heightMap();
 		uniforms.uTexel!.value = (1.2 * Math.PI) / 2 / this.terrainSize;
-		const previous = gl.getRenderTarget();
-		const autoClear = gl.autoClear;
-		gl.autoClear = false;
 		for (let face = 0; face < 6; face++) {
 			uniforms.uFace!.value = face;
 			gl.setRenderTarget(this.terrainTarget, face);
 			gl.render(this.bake.scene, this.bake.camera);
 		}
-		gl.setRenderTarget(previous);
-		gl.autoClear = autoClear;
 		this.terrainDirty = false;
 		this.material.uniforms.uTerrainOn!.value = 1;
+	}
+
+	/** Bakes the patch frame `update` wanted, then points the planet pass at it. */
+	private bakePatch(gl: WebGLRenderer, slot: PatchSlot): void {
+		const frame = slot.wanted;
+		if (!frame) return;
+		// Float textures filter in hardware only with OES_texture_float_linear; otherwise the shader does it.
+		const linear = gl.extensions.get('OES_texture_float_linear') !== null;
+		this.material.uniforms.uPatchLinear!.value = linear ? 1 : 0;
+		if (!slot.target || slot.target.width !== this.patchSize) {
+			slot.target?.dispose();
+			slot.target = new WebGLRenderTarget(this.patchSize, this.patchSize, {
+				type: FloatType,
+				format: RGBAFormat,
+				generateMipmaps: false,
+				minFilter: linear ? LinearFilter : NearestFilter,
+				magFilter: linear ? LinearFilter : NearestFilter,
+				wrapS: ClampToEdgeWrapping,
+				wrapT: ClampToEdgeWrapping,
+				depthBuffer: false
+			});
+			this.material.uniforms[slot.names.texture]!.value = slot.target.texture;
+		}
+		const uniforms = this.patchBake.material.uniforms;
+		uniforms.uMap!.value = this.heightMap();
+		uniforms.uPatchC!.value.set(frame.centre.x, frame.centre.y, frame.centre.z);
+		uniforms.uPatchE!.value.set(frame.east.x, frame.east.y, frame.east.z);
+		uniforms.uPatchF!.value.set(frame.north.x, frame.north.y, frame.north.z);
+		uniforms.uHalfTan!.value = frame.halfTan;
+		uniforms.uTexel!.value = patchTexel(frame, this.patchSize);
+		gl.setRenderTarget(slot.target);
+		gl.render(this.patchBake.scene, this.bake.camera);
+		const m = this.material.uniforms;
+		(m[slot.names.c]!.value as Vector3).set(frame.centre.x, frame.centre.y, frame.centre.z);
+		(m[slot.names.e]!.value as Vector3).set(frame.east.x, frame.east.y, frame.east.z);
+		(m[slot.names.f]!.value as Vector3).set(frame.north.x, frame.north.y, frame.north.z);
+		(m[slot.names.k]!.value as Vector2).set(1 / frame.halfTan, 1);
+		slot.frame = frame;
+		slot.wanted = null;
+	}
+
+	/**
+	 * Debug (plan 031 manual run): the baked patch `which` read back from the GPU, decoded to heights
+	 * (m) at the texel centres, row by row, with the frame it was baked for; null when not baked.
+	 */
+	debugReadPatch(
+		gl: WebGLRenderer,
+		which: 'fine' | 'mid'
+	): { frame: PatchFrame; size: number; heights: Float32Array } | null {
+		const slot = this.patches[which];
+		if (!slot.target || !slot.frame) return null;
+		const size = slot.target.width;
+		const raw = new Float32Array(size * size * 4);
+		gl.readRenderTargetPixels(slot.target, 0, 0, size, size, raw);
+		const heights = new Float32Array(size * size);
+		for (let i = 0; i < heights.length; i++) {
+			heights[i] = raw[i * 4]!;
+		}
+		return { frame: slot.frame, size, heights };
+	}
+
+	/** The biome map the heights are read from: the canonical width whatever the preset's colour map is. */
+	private heightMap(): DataTexture {
+		if (this.mapWidth === TERRAIN_MAP_WIDTH) return this.map;
+		this.terrainMap ??= this.buildMap(TERRAIN_MAP_WIDTH);
+		return this.terrainMap;
 	}
 
 	private buildMap(width: number): DataTexture {
@@ -313,8 +484,17 @@ export class PlanetPass {
 
 	/** Moves the painted launch site (pad, roads, aprons) to another surface point. */
 	setSite(latitude: number, longitude: number): void {
+		const moved = latitude !== this.siteLatitude || longitude !== this.siteLongitude;
 		this.siteLatitude = latitude;
 		this.siteLongitude = longitude;
+		if (moved) {
+			// The biome map is flattened around the site, and every height reads it.
+			this.map.dispose();
+			this.map = this.buildMap(this.mapWidth);
+			this.material.uniforms.uMap!.value = this.map;
+			this.terrainMap?.dispose();
+			this.terrainMap = null;
+		}
 		this.setSiteDirection(latitude, longitude);
 		const axes = siteAxes(latitude, longitude);
 		const u = this.material.uniforms;
@@ -351,11 +531,48 @@ export class PlanetPass {
 			this.map = this.buildMap(settings.mapWidth);
 			this.material.uniforms.uMap!.value = this.map;
 			this.material.uniforms.uMapTexel!.value = (2 * Math.PI * this.radius) / settings.mapWidth;
-			this.terrainDirty = true;
+			this.terrainMap?.dispose();
+			this.terrainMap = null;
+			this.invalidateTerrain();
 		}
 		if (settings.terrainSize !== this.terrainSize) {
 			this.terrainSize = settings.terrainSize;
-			this.terrainDirty = true;
+			this.invalidateTerrain();
+		}
+		if (settings.terrainPatch !== this.patchSize) {
+			this.patchSize = settings.terrainPatch;
+			this.invalidateTerrain();
+		}
+	}
+
+	/**
+	 * Decides which patch frames the next `bakeTerrain` renders (ADR 0044): each patch follows the
+	 * camera's ground direction, re-centred on a lattice when the camera leaves its core, and is
+	 * unused above `PATCH_MAX_ALTITUDE`.
+	 */
+	private planPatches(frame: PlanetFrame): void {
+		if (this.patchSize <= 0 || this.terrainSize <= 0) return;
+		const camera = vec(
+			frame.camLocal.x + frame.anchorCell.x * ORIGIN_GRID,
+			frame.camLocal.y + frame.anchorCell.y * ORIGIN_GRID,
+			frame.camLocal.z + frame.anchorCell.z * ORIGIN_GRID
+		);
+		const direction = normalize(camera);
+		const high = frame.altitude > PATCH_MAX_ALTITUDE;
+		for (const slot of [this.patches.fine, this.patches.mid]) {
+			const k = this.material.uniforms[slot.names.k]!.value as Vector2;
+			if (high) {
+				k.y = 0;
+				continue;
+			}
+			if (slot.frame && k.y === 0) k.y = 1;
+			if (patchNeedsRecentre(slot.wanted ?? slot.frame, direction)) {
+				slot.wanted = patchFrame(
+					latticeDirection(direction, this.radius),
+					this.radius,
+					slot.spanMetres
+				);
+			}
 		}
 	}
 
@@ -368,6 +585,7 @@ export class PlanetPass {
 		set<Vector3>('uCamPos', (v) => v.copy(p.camera.position));
 		set<Vector3>('uCamUp', (v) => v.set(p.frame.up.x, p.frame.up.y, p.frame.up.z));
 		un.uAlt!.value = p.frame.altitude;
+		this.planPatches(p.frame);
 		const toSite = p.frame.camToSite;
 		const horizontal = Math.sqrt(
 			Math.max(toSite.x ** 2 + toSite.y ** 2 + toSite.z ** 2 - p.frame.altitude ** 2, 0)
@@ -406,6 +624,10 @@ export class PlanetPass {
 	dispose(): void {
 		this.terrainTarget?.dispose();
 		this.bake.material.dispose();
+		this.patchBake.material.dispose();
+		this.patches.fine.target?.dispose();
+		this.patches.mid.target?.dispose();
+		this.terrainMap?.dispose();
 		this.dummyShadow.dispose();
 		this.map.dispose();
 		this.material.dispose();

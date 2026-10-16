@@ -32,6 +32,8 @@ export interface PresetSettings {
 	terrainSize: 0 | 512 | 768 | 1024;
 	terrainSteps: number;
 	terrainShadowSteps: number;
+	/** Camera-centred terrain patches (ADR 0044): texels per side of the fine (4 km) and mid (33 km) windows, 0 = off. */
+	terrainPatch: 0 | 512 | 1024;
 	/** PMREM cube size for image-based light. */
 	envSize: 64 | 128 | 256;
 	/** Part models (plan 020): radial segments, hardware detail level, procedural texture side. */
@@ -60,6 +62,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		terrainSize: 512,
 		terrainSteps: 20,
 		terrainShadowSteps: 0,
+		terrainPatch: 512,
 		envSize: 64,
 		partSegments: 16,
 		partExtras: 0,
@@ -83,6 +86,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		terrainSize: 768,
 		terrainSteps: 32,
 		terrainShadowSteps: 5,
+		terrainPatch: 512,
 		envSize: 128,
 		partSegments: 24,
 		partExtras: 1,
@@ -106,6 +110,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		terrainSize: 1024,
 		terrainSteps: 48,
 		terrainShadowSteps: 8,
+		terrainPatch: 1024,
 		envSize: 128,
 		partSegments: 32,
 		partExtras: 2,

@@ -10,7 +10,7 @@ import {
 	type TerrainContext,
 	type Vec3
 } from '@orbital/core';
-import { dot, normalize, scale, vec } from './vec.ts';
+import { dot, normalize, scale, smoothstep, vec } from './vec.ts';
 
 /**
  * Ground distance from the camera's ground point inside which the terrain is certainly zero: what
@@ -25,7 +25,19 @@ export const flatSkipRadius = (groundDistanceToSite: number): number =>
 export const STEP_RELAX = 0.8;
 /** Smallest step: a fraction of the distance, a multiple of the pixel footprint, and a minimum, m. */
 export const STEP_MIN_FRACTION = 0.05;
+/**
+ * The floor grows from `STEP_MIN_FRACTION` of the distance up to this fraction beyond 500 m (a pixel
+ * is 0.1 % of the distance, so far geometry is still sampled 60 times per pixel): a camera lying on
+ * the ground reaches the horizon in about 60 steps.
+ */
+export const STEP_FAR_FRACTION = 0.15;
 export const STEP_MIN_METRES = 3;
+/**
+ * Smallest slope bound the shader's step uses: the step is `clearance / (slope + descent)` with
+ * `slope = clamp(2 |gradient| + this, this, TERRAIN_MAX_SLOPE)` (ADR 0044), so gentle ground is
+ * crossed in long steps. Steeper ground, up to the global bound, keeps the safe short ones.
+ */
+export const TERRAIN_MARCH_SLOPE_MIN = 0.25;
 
 /**
  * Length of the next march step for a ray with `clearance` metres of air under it, descending at
@@ -39,10 +51,19 @@ export function marchStep(
 	pixelAngle: number,
 	slope = TERRAIN_MAX_SLOPE
 ): number {
-	const floor = Math.max(t * STEP_MIN_FRACTION, t * pixelAngle * 1.5, STEP_MIN_METRES);
+	const fraction =
+		STEP_MIN_FRACTION + (STEP_FAR_FRACTION - STEP_MIN_FRACTION) * smoothstep(50, 500, t);
+	const floor = Math.max(t * fraction, t * pixelAngle * 1.5, STEP_MIN_METRES);
 	const safe = (STEP_RELAX * Math.max(clearance, 0)) / (slope + Math.max(descent, 0));
 	return Math.max(floor, safe);
 }
+
+/** The slope bound the shader's march uses where the baked gradient has magnitude `gradient`. */
+export const localMarchSlope = (gradient: number): number =>
+	Math.min(
+		TERRAIN_MAX_SLOPE,
+		Math.max(TERRAIN_MARCH_SLOPE_MIN, 2 * gradient + TERRAIN_MARCH_SLOPE_MIN)
+	);
 
 export interface MarchResult {
 	hit: boolean;
@@ -59,7 +80,7 @@ export function marchTerrain(
 	origin: Vec3,
 	dir: Vec3,
 	ctx: TerrainContext,
-	options: { maxSteps?: number; pixelAngle?: number; tMax?: number } = {}
+	options: { maxSteps?: number; pixelAngle?: number; tMax?: number; adaptive?: boolean } = {}
 ): MarchResult {
 	const maxSteps = options.maxSteps ?? 400;
 	const pixelAngle = options.pixelAngle ?? 0.0009;
@@ -88,7 +109,23 @@ export function marchTerrain(
 		const r = Math.hypot(p.x, p.y, p.z);
 		const descent = -dot(dir, scale(p, 1 / r));
 		prevT = t;
-		t += marchStep(c, descent, t, pixelAngle);
+		let slope = TERRAIN_MAX_SLOPE;
+		if (options.adaptive) {
+			// the shader reads the baked gradient; here a central difference over 100 m of the ground under the ray
+			const n = scale(p, 1 / r);
+			const e = normalize(vec(-n.z, 0, n.x));
+			const north = vec(n.y * e.z - n.z * e.y, n.z * e.x - n.x * e.z, n.x * e.y - n.y * e.x);
+			const k = 100 / R;
+			const at = (a: Vec3, sgn: number): number =>
+				terrainHeight(
+					normalize(vec(n.x + a.x * k * sgn, n.y + a.y * k * sgn, n.z + a.z * k * sgn)),
+					ctx
+				);
+			slope = localMarchSlope(
+				Math.hypot((at(e, 1) - at(e, -1)) / 200, (at(north, 1) - at(north, -1)) / 200)
+			);
+		}
+		t += marchStep(c, descent, t, pixelAngle, slope);
 		if (t > tMax) return { hit: false, t: tMax, steps: i };
 		c = heightAt(t);
 	}

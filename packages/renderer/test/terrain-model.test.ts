@@ -9,6 +9,8 @@ import {
 } from '@orbital/core';
 import {
 	STEP_MIN_METRES,
+	TERRAIN_MARCH_SLOPE_MIN,
+	localMarchSlope,
 	flatSkipRadius,
 	marchStep,
 	marchTerrain,
@@ -40,10 +42,10 @@ const fromSite = (metres: number, azimuth: number) => {
 };
 
 describe('skyline from the pad', () => {
-	test('the skyline from the pad rises at least 3 degrees above the horizontal', () => {
-		// 1.0 degree is the plan 027 criterion; the scenic massif of ADR 0036 gives about 6.
+	test('the skyline from the pad rises at least 6 degrees above the horizontal', () => {
+		// 1.0 degree was the plan 027 criterion and the massif of ADR 0036 gave 5.9; plan 031 moved the ring in (12 to 21 km out) for 7.1.
 		const angle = skylineAngle(ctx(), 2, 120, 70_000, 500);
-		expect((angle * 180) / Math.PI).toBeGreaterThan(3);
+		expect((angle * 180) / Math.PI).toBeGreaterThan(6);
 	});
 
 	test('the skyline is varied: some azimuths see mountains, some a low horizon', () => {
@@ -62,6 +64,20 @@ describe('skyline from the pad', () => {
 		}
 		expect(Math.max(...per)).toBeGreaterThan(4);
 		expect(Math.min(...per)).toBeLessThan(2);
+	});
+});
+
+describe('local march slope', () => {
+	test('is the margin on flat ground, grows with the gradient and never exceeds the global bound', () => {
+		expect(localMarchSlope(0)).toBe(TERRAIN_MARCH_SLOPE_MIN);
+		let last = 0;
+		for (let g = 0; g < 2; g += 0.05) {
+			const s = localMarchSlope(g);
+			expect(s).toBeGreaterThanOrEqual(last);
+			expect(s).toBeLessThanOrEqual(TERRAIN_MAX_SLOPE);
+			last = s;
+		}
+		expect(localMarchSlope(1)).toBe(TERRAIN_MAX_SLOPE);
 	});
 });
 
@@ -102,48 +118,54 @@ describe('march step rule', () => {
 		}
 	});
 
-	test('marching the reference terrain finds the brute-force hit on 200 rays from the pad', () => {
-		const c = ctx();
-		const r = rng(7);
-		const eye = scale(SITE, R + 2);
-		const east = vec(0, 0, 1);
-		const north = vec(0, 1, 0);
-		let agree = 0;
-		let compared = 0;
-		let hits = 0;
-		for (let i = 0; i < 200; i++) {
-			const az = r() * 2 * Math.PI;
-			const elev = (r() * 7 - 1.5) * (Math.PI / 180);
-			const h = vec(
-				east.x * Math.cos(az) + north.x * Math.sin(az),
-				east.y * Math.cos(az) + north.y * Math.sin(az),
-				east.z * Math.cos(az) + north.z * Math.sin(az)
-			);
-			const dir = normalize(
-				vec(
-					SITE.x * Math.sin(elev) + h.x * Math.cos(elev),
-					SITE.y * Math.sin(elev) + h.y * Math.cos(elev),
-					SITE.z * Math.sin(elev) + h.z * Math.cos(elev)
-				)
-			);
-			const march = marchTerrain(eye, dir, c, { maxSteps: 600, tMax: 120_000 });
-			// brute force every 25 m
-			let brute: number | null = null;
-			for (let t = 0; t < 120_000; t += 25) {
-				const p = vec(eye.x + dir.x * t, eye.y + dir.y * t, eye.z + dir.z * t);
-				const rr = Math.hypot(p.x, p.y, p.z);
-				if (rr - R - terrainHeight(normalize(p), c) < 0) {
-					brute = t;
-					break;
+	for (const adaptive of [false, true])
+		test(`marching the reference terrain finds the brute-force hit on 200 rays from the pad (${adaptive ? 'local slope bound of ADR 0044' : 'global slope bound'})`, () => {
+			const ADAPTIVE = adaptive;
+			const c = ctx();
+			const r = rng(7);
+			const eye = scale(SITE, R + 2);
+			const east = vec(0, 0, 1);
+			const north = vec(0, 1, 0);
+			let agree = 0;
+			let compared = 0;
+			let hits = 0;
+			for (let i = 0; i < 200; i++) {
+				const az = r() * 2 * Math.PI;
+				const elev = (r() * 7 - 1.5) * (Math.PI / 180);
+				const h = vec(
+					east.x * Math.cos(az) + north.x * Math.sin(az),
+					east.y * Math.cos(az) + north.y * Math.sin(az),
+					east.z * Math.cos(az) + north.z * Math.sin(az)
+				);
+				const dir = normalize(
+					vec(
+						SITE.x * Math.sin(elev) + h.x * Math.cos(elev),
+						SITE.y * Math.sin(elev) + h.y * Math.cos(elev),
+						SITE.z * Math.sin(elev) + h.z * Math.cos(elev)
+					)
+				);
+				const march = marchTerrain(eye, dir, c, {
+					maxSteps: 600,
+					tMax: 120_000,
+					adaptive: ADAPTIVE
+				});
+				// brute force every 25 m
+				let brute: number | null = null;
+				for (let t = 0; t < 120_000; t += 25) {
+					const p = vec(eye.x + dir.x * t, eye.y + dir.y * t, eye.z + dir.z * t);
+					const rr = Math.hypot(p.x, p.y, p.z);
+					if (rr - R - terrainHeight(normalize(p), c) < 0) {
+						brute = t;
+						break;
+					}
+				}
+				if (brute !== null) hits++;
+				compared++;
+				if ((brute === null) === !march.hit) {
+					if (brute === null || Math.abs(march.t - brute) <= Math.max(0.01 * brute, 60)) agree++;
 				}
 			}
-			if (brute !== null) hits++;
-			compared++;
-			if ((brute === null) === !march.hit) {
-				if (brute === null || Math.abs(march.t - brute) <= Math.max(0.01 * brute, 60)) agree++;
-			}
-		}
-		expect(hits).toBeGreaterThan(20);
-		expect(agree / compared).toBeGreaterThanOrEqual(0.97);
-	});
+			expect(hits).toBeGreaterThan(20);
+			expect(agree / compared).toBeGreaterThanOrEqual(0.97);
+		});
 });

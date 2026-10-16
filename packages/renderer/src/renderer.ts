@@ -34,6 +34,12 @@ export interface RendererDebug {
 	focusPart(definition: string | null, occurrence?: number): void;
 	/** Advance particles, explosions and animations by `seconds` in 1/60 s steps without drawing. */
 	stepEffects(seconds: number): void;
+	/** Baked terrain patch read back from the GPU as heights in metres (plan 031's parity check); null before the first bake. */
+	readPatch(which: 'fine' | 'mid'): {
+		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
+		size: number;
+		heights: Float32Array;
+	} | null;
 	/** The scene graph, for inspection in the browser console. */
 	readonly scene: Scene;
 	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
@@ -149,6 +155,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);
 		},
 		scene: model.scene,
+		readPatch: (which) => env.planet.debugReadPatch(gl, which),
 		benchmark(frames) {
 			const ctx = gl.getContext();
 			const pixel = new Uint8Array(4);
