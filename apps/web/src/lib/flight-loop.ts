@@ -12,6 +12,7 @@ import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './scr
 import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
+import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
 import { WARP_STEPS } from './warp';
 import {
@@ -86,6 +87,8 @@ export function startFlight(options: FlightOptions): Flight {
 	let catalog: Catalog | null = null;
 	let vessel: EntityId | null = null;
 	let snap: Snapshot | null = null;
+	/** Whether the vessel is still in the sim; only snapshots taken after the load count (plan 047). */
+	const presence = createVesselPresence();
 	let dirty = false;
 	let disposed = false;
 	let raf = 0;
@@ -307,7 +310,7 @@ export function startFlight(options: FlightOptions): Flight {
 			lastHud = now;
 			if (catalog && vessel !== null && snap) {
 				hud.telemetry = computeTelemetry(snap, vessel, catalog.bodies);
-				if (!hud.telemetry && hud.status === 'flying') {
+				if (presence.lost() && hud.status === 'flying') {
 					hud.status = 'lost';
 					hud.message = 'the vessel was destroyed';
 				}
@@ -336,6 +339,7 @@ export function startFlight(options: FlightOptions): Flight {
 	// --- boot --------------------------------------------------------------------------------
 	client.onSnapshot((s) => {
 		snap = s;
+		presence.snapshot(s);
 		hudCtl?.snapshot(s);
 		dirty = true;
 		auto?.update(s);
@@ -381,6 +385,7 @@ export function startFlight(options: FlightOptions): Flight {
 				return;
 			}
 			vessel = result.vessel;
+			presence.attach(vessel);
 			hudCtl.attach(Number(vessel));
 			renderer.setActiveVessel(vessel);
 			hud.status = 'flying';

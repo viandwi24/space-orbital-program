@@ -11,8 +11,8 @@ export default defineConfig({
 	expect: { timeout: 20_000 },
 	// One page at a time per engine: the flight tests use real time and software-rendered WebGL.
 	workers: Number(process.env.E2E_WORKERS ?? 1),
-	// One retry: Firefox lost the vessel on the pad in about 1 of 12 launches (journal 032, draft
-	// plan 047); a retry that passes is reported as "flaky", not hidden.
+	// One retry: a retry that passes is reported as "flaky", not hidden. (The Firefox "Vessel lost"
+	// on the pad was a page bug, fixed in plan 047; it is not what this is for.)
 	retries: 1,
 	reporter: [['list']],
 	use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
