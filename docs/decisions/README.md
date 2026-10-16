@@ -75,3 +75,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0055 | [Cheaper preset switches: vegetation kept per preset, terrain baked over frames](0055-cheaper-preset-switches.md) | accepted | 2026-10-17 |
 | 0056 | [Maneuver nodes: sim-owned, remaining-burn model, shared prediction](0056-maneuver-nodes.md) | accepted | 2026-10-17 |
 | 0057 | [Mod package format, trust model and runtime loading](0057-mod-package-and-runtime-loading.md) | accepted | 2026-10-17 |
+| 0058 | [Light and dust on an airless body](0058-light-and-dust-on-an-airless-body.md) | accepted | 2026-10-17 |
