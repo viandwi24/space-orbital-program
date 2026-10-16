@@ -66,7 +66,9 @@ test('memory exhaustion terminates the script instead of the host', async () => 
 }, 30_000);
 
 test('runaway recursion is a catchable script error, not a host crash', async () => {
-	const { runner } = await runAgainstSim('const f = () => f() + 1; f();');
+	// A generous budget: what is tested is the classification of a stack overflow, not how fast the
+	// machine unwinds 256 KiB of frames (a 25 ms budget made this flaky under parallel load).
+	const { runner } = await runAgainstSim('const f = () => f() + 1; f();', { budgetMs: 5_000 });
 	expect(runner.status).toBe('failed');
 	expect(runner.error).toMatch(/stack/i);
 });

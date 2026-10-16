@@ -57,6 +57,8 @@ export interface ScriptRunner {
 	readonly status: ScriptStatus;
 	/** Why the script `failed` or was `terminated`. */
 	readonly error: string | undefined;
+	/** 1-based line of `source` where a `failed` script threw (or failed to compile), when known. */
+	readonly errorLine: number | undefined;
 	/** `print()` output, oldest first (capped at the last 1000 lines). */
 	readonly logs: readonly string[];
 	/** Advance the script to `snapshot.t`. Call after every `sim.step` and dispatch the commands. */
@@ -69,6 +71,26 @@ const MAX_LOG_LINES = 1000;
 const MAX_LOG_CHARS = 1000;
 /** Promise jobs run per `executePendingJobs` call, so the budget is checked between batches. */
 const JOB_BATCH = 256;
+
+/** Lines the runner adds before the script in the compiled function (see `runTick`). */
+const SOURCE_LINE_OFFSET = 2;
+const SCRIPT_FRAME = /\bscript\.js:(\d+)/;
+
+/** The script line a guest stack points at: its first frame in `script.js`, minus the wrapper. */
+export function scriptErrorLine(stack: string | undefined): number | undefined {
+	const match = stack === undefined ? null : SCRIPT_FRAME.exec(stack);
+	if (!match) return undefined;
+	const line = Number(match[1]) - SOURCE_LINE_OFFSET;
+	return line >= 1 ? line : undefined;
+}
+
+/** Rewrite the engine's `script.js:7:13` frames to the line numbers of the player's source. */
+function mapFrames(frames: string): string {
+	return frames.replace(/\bscript\.js:(\d+):(\d+)/g, (whole, line: string, column: string) => {
+		const mapped = Number(line) - SOURCE_LINE_OFFSET;
+		return mapped >= 1 ? `line ${mapped}:${column}` : whole;
+	});
+}
 
 /** Raised by guest code, with the guest error's name and message. */
 class GuestError extends Error {
@@ -111,6 +133,7 @@ export async function createScriptRunnerIn(
 
 	let status: ScriptStatus = 'running';
 	let error: string | undefined;
+	let errorLine: number | undefined;
 	let started = false;
 	let disposed = false;
 	let pending: Command[] = [];
@@ -216,8 +239,9 @@ export async function createScriptRunnerIn(
 		} else if (e.guestName === 'InternalError' && /out of memory/i.test(e.message)) {
 			stop('terminated', 'memory limit exceeded');
 		} else {
-			const frames = (e.stack ?? '').split('\n').slice(0, 12).join('\n');
+			const frames = mapFrames((e.stack ?? '').split('\n').slice(0, 12).join('\n'));
 			stop('failed', `${e.guestName}: ${e.message}${frames ? '\n' + frames : ''}`);
+			errorLine = scriptErrorLine(e.stack);
 		}
 	}
 
@@ -290,6 +314,7 @@ export async function createScriptRunnerIn(
 		}
 		if (!started) {
 			started = true;
+			// Two lines come before `source` (SOURCE_LINE_OFFSET): error lines are mapped back.
 			const wrapped = `(async function () {\n'use strict';\n${source}\n})`;
 			const compiled = context.evalCode(wrapped, 'script.js');
 			if (compiled.error) {
@@ -309,6 +334,9 @@ export async function createScriptRunnerIn(
 		},
 		get error() {
 			return error;
+		},
+		get errorLine() {
+			return errorLine;
 		},
 		get logs() {
 			return logs;
