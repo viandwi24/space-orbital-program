@@ -44,6 +44,8 @@ export {
 
 // World access for module state and systems.
 export { defineComponent, createRng } from '@orbital/core';
+// Test support: a mod's tests build a ModuleContext from a real world and event bus (ADR 0014).
+export { createWorld, createEventBus } from '@orbital/core';
 
 // Open interfaces plugins extend by module augmentation (see docs/architecture/plugin-system.md).
 export type { EventMap, ResourceMap, ModuleMap, ResourceKey } from '@orbital/core';
@@ -51,6 +53,7 @@ export type { EventMap, ResourceMap, ModuleMap, ResourceKey } from '@orbital/cor
 // Schemas for data-form definitions (JSON parts etc.).
 export {
 	partDefinitionSchema,
+	partShapeSchema,
 	resourceDefinitionSchema,
 	bodyDefinitionSchema
 } from '@orbital/core';
@@ -69,6 +72,7 @@ export type {
 	ModuleId,
 	PartDefinition,
 	PartId,
+	PartShape,
 	PhysicsBackend,
 	Plugin,
 	PluginId,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as z from 'zod';
-import { RegistryError, createRegistries, createRegistry } from '../src/index.ts';
+import { RegistryError, createRegistries, createRegistry, partShapeSchema } from '../src/index.ts';
 
 describe('registry', () => {
 	test('register / get / has / list / owner', () => {
@@ -78,5 +78,24 @@ describe('registry', () => {
 		expect(() => r.parts.register({ id: 'stock.neg', title: 'x', mass: -1 }, 'stock')).toThrow(
 			/mass/
 		);
+	});
+
+	test('part shapes (ADR 0014): box and cylinder validate; bad ones are rejected', () => {
+		const r = createRegistries();
+		r.parts.register(
+			{ id: 'stock.box', title: 'B', mass: 1, shape: { kind: 'box', size: [1, 2, 3] } },
+			'stock'
+		);
+		r.parts.register(
+			{ id: 'stock.cyl', title: 'C', mass: 1, shape: { kind: 'cylinder', radius: 0.5, height: 2 } },
+			'stock'
+		);
+		const bad = [
+			{ kind: 'sphere', radius: 1 },
+			{ kind: 'box', size: [1, 2] },
+			{ kind: 'box', size: [1, 0, 1] },
+			{ kind: 'cylinder', radius: -1, height: 1 }
+		];
+		for (const shape of bad) expect(partShapeSchema.safeParse(shape).success).toBe(false);
 	});
 });

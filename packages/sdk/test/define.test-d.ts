@@ -155,6 +155,19 @@ const Engine = defineModule({
 });
 const Command = defineModule({ id: 'test.command' });
 
+// state() receives the parsed config (ADR 0014): defaults are applied, state type is inferred
+defineModule({
+	id: 'test.tank',
+	config: z.object({ capacity: z.number(), fill: z.number().default(1) }),
+	state: (config) => {
+		assertType<Equal<typeof config.fill, number>>();
+		return { amount: config.capacity * config.fill };
+	},
+	update(ctx) {
+		assertType<Equal<typeof ctx.state.amount, number>>();
+	}
+});
+
 definePart({
 	id: 'test.engine-lv',
 	title: 'Engine',

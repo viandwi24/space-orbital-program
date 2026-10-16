@@ -12,6 +12,7 @@ import type { World } from './world.ts';
 import type {
 	bodyDefinitionSchema,
 	partDefinitionSchema,
+	partShapeSchema,
 	resourceDefinitionSchema
 } from './schemas.ts';
 
@@ -19,6 +20,7 @@ export type ResourceDefinition = z.infer<typeof resourceDefinitionSchema>;
 export type BodyDefinition = z.infer<typeof bodyDefinitionSchema>;
 /** Part as pure data: modules are referenced by module id plus an (unchecked here) config. */
 export type PartDefinition = z.infer<typeof partDefinitionSchema>;
+export type PartShape = z.infer<typeof partShapeSchema>;
 
 /**
  * Open interface: plugins map a resource id to extra info by module augmentation
@@ -77,8 +79,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	config?: z.ZodType<Out, In>;
 	/** Ids of modules that must also be present on the same part. */
 	requires?: readonly string[];
-	/** Fresh per-instance state. Must return plain serializable data. */
-	state?: () => State;
+	/**
+	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
+	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant
+	 * parameter) rather than `Bivariant<...>` so `State` is still inferred from the return type.
+	 */
+	state?(config: Out): State;
 	/** The part's stage fires (engine ignites, decoupler separates). */
 	onStage?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
 	/** Every fixed step while the owning vessel is in flight mode. */

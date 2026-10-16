@@ -56,11 +56,29 @@ export const bodyDefinitionSchema = z.object({
 
 const vec3Tuple = z.tuple([z.number(), z.number(), z.number()]);
 
+/**
+ * Placeholder geometry for a part, metres, centred on the part origin. A cylinder's axis is the
+ * local Y axis (the same axis the attach nodes use). Mirrors the renderer's `PartShape` (ADR 0012)
+ * so hosts map it 1:1; plan 007 derives the physics body shape from it (ADR 0014).
+ */
+export const partShapeSchema = z.discriminatedUnion('kind', [
+	z.object({
+		kind: z.literal('box'),
+		size: z.tuple([z.number().positive(), z.number().positive(), z.number().positive()])
+	}),
+	z.object({
+		kind: z.literal('cylinder'),
+		radius: z.number().positive(),
+		height: z.number().positive()
+	})
+]);
+
 export const partDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	title: z.string().min(1),
 	mass: z.number().nonnegative(),
 	mesh: z.string().optional(),
+	shape: partShapeSchema.optional(),
 	attach: z.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple })).optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.
