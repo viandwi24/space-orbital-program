@@ -4,7 +4,7 @@
  * load (navigate to `/flight?load=<id>` or restart the sim Worker); everything else is here.
  */
 import { SaveError } from '@orbital/core';
-import { compareMods, type ModReport } from './game-save';
+import { compareMods, type GameSave, type ModReport } from './game-save';
 import { openSaveStore, requestSavePersistence } from './open-store';
 import {
 	browserSaveEnv,
@@ -150,6 +150,11 @@ export class SaveController {
 			this.loadOpen = false;
 			await this.options.startLoad(id);
 		});
+	}
+
+	/** Read and validate one save for the page to resume (throws `SaveError`). */
+	async read(id: string): Promise<GameSave> {
+		return (await this.open()).load(id);
 	}
 
 	async rename(id: string, name: string): Promise<void> {
