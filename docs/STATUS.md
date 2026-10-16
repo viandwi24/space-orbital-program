@@ -3,9 +3,9 @@
 > Living document. Updated at the end of every plan. Keep it short; details go in plans, ADRs and the journal.
 
 **Last updated:** 2026-10-16
-**Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 starts with plan 010
+**Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress for the web client; 012 (ground contact, landing and damage) is done
-**Next plan:** [`plans/010-scripting-sandbox.md`](plans/010-scripting-sandbox.md) (`draft`, needs refinement); also draft 013 (debris blocks warp)
+**Next plan:** draft [`plans/015-scripting-web-integration.md`](plans/015-scripting-web-integration.md) (scripts in the web client); other drafts: 014 (re-entry heating)
 
 ## Plan board
 
@@ -20,7 +20,7 @@
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | done | sim session | ADRs 0015-0017; capability API, `createSim`, scripted two-stage ascent reaches orbit headlessly |
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | done | web session | Worker host + client, VAB, flight HUD, map view; dev-only autopilot used for the manual orbit run; renderer verified in real GL |
-| 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | in-progress | scripting session | ADR 0020; QuickJS-WASM runner, per-tick budget |
+| 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | done | scripting session | ADR 0020; `@orbital/scripting`: QuickJS-WASM runner, ship API, per-tick budget, sample ascent script reaches a 76 km periapsis orbit |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 | 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | draft | — | found by 009: debris stays in flight and blocks warp after a normal launch |
@@ -45,9 +45,11 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex; parts only break off by ground impact (plan 012, ADR 0019), not by load or collision between vessels. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
 - Sim limits (see `architecture/simulation.md`): flat ground tile on the reference sphere (no terrain heights), no lift/fins, no heating (draft 014), one 2.5 km physics bubble, attitude frozen on rails.
 - A plugin's `contributes` keys are type-only: declaring one and never calling `ctx.provide` for it is not detected at load time (dependents see `undefined`). See ADR 0013.
+- Scripts run on the caller's thread with a per-tick wall-clock budget (ADR 0020, `architecture/scripting.md`): a runaway script delays the host by at most one budget; web wiring and Worker hosting are draft plan 015. QuickJS-WASM is unaudited upstream.
 
 ## Recent journal entries
 
+- [010 — Scripting sandbox](journal/010-scripting-sandbox.md)
 - [012 — Ground contact, landing and damage](journal/012-ground-contact-landing.md)
 - [009 — Web client MVP](journal/009-web-client-mvp.md)
 - [011 — Physics rigid grouping](journal/011-physics-rigid-grouping.md)

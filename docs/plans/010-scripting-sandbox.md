@@ -1,8 +1,8 @@
 ---
 id: 010
 title: Scripting sandbox
-status: in-progress
-owner: "scripting session (Claude, 2026-10-16)"
+status: done
+owner: ""
 depends: [009]
 phase: 2
 created: 2026-10-16
@@ -58,3 +58,4 @@ Players (and mods) can run untrusted scripts that read telemetry and issue comma
 - 2026-10-16 — Created as draft.
 - 2026-10-16 — Refined draft → ready at the human's request (session: scripting session). Researched Worker vs QuickJS-WASM vs ShadowRealm (`research/scripting.md`), chose QuickJS-WASM (ADR 0020), defined the budget (ms of guest wall time per tick), made the runner a pure snapshot-to-commands function, moved web wiring out of scope.
 - 2026-10-16 — ready → in-progress.
+- 2026-10-16 — done. Criteria verified: `bun test packages/scripting` 22 pass; infinite loop (25 ms budget) terminated in 25-27 ms and the sim advanced exactly 2 s over 100 steps; sample ascent orbit apoapsis 111.88 km, periapsis 76.24 km, e 0.0257 at 217.5 s sim time (10677 ticks, max tick 2-3 ms); sandbox probes pass. Journal: [010](../journal/010-scripting-sandbox.md). Follow-up: draft plan 015.
