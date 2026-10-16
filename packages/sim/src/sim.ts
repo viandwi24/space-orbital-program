@@ -25,7 +25,7 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
-import { autoRails } from './modes.ts';
+import { autoRails, reapDebris } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { damagePart, processPending } from './vessel.ts';
@@ -149,6 +149,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		stepRailsVessels(dt);
 		core.t += dt;
 		rebaseAll();
+		reapDebris(core);
 		runSystems(core.post, dt);
 		autoRails(core);
 	}
@@ -159,6 +160,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		stepRailsVessels(h);
 		core.t += h;
 		rebaseAll();
+		reapDebris(core);
 		runSystems(core.post, h);
 	}
 

@@ -39,3 +39,8 @@ export const CONTACT_DISTANCE = 0.02;
 export const DEFAULT_IMPACT_TOLERANCE = 6;
 /** Impact speed above `tolerance * DESTROY_FACTOR` destroys a part; between 1x and that it breaks off. */
 export const DESTROY_FACTOR = 2;
+
+/** Uncontrolled debris at rest on the ground for this long is removed, s (ADR 0021). */
+export const DEBRIS_REST_TIME = 10;
+/** ... when its speed relative to the rotating ground is below this, m/s. */
+export const DEBRIS_REST_SPEED = 0.1;
