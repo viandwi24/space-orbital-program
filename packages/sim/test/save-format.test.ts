@@ -10,6 +10,8 @@ import {
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
 import fixture from './fixtures/save-v1.json';
+import fixtureV2 from './fixtures/save-v2.json';
+import fixtureV3 from './fixtures/save-v3.json';
 import { rapier } from './helpers/vessels.ts';
 
 const resume = (save: unknown, extra: { dt?: number; body?: string } = {}) =>
@@ -182,5 +184,46 @@ describe('a save the sim refuses', () => {
 		});
 		const r = await reason(resume(save));
 		expect(r.code).toBe('incompatible');
+	});
+});
+
+describe('the frozen format-2 fixture (plan 045)', () => {
+	test('is migrated to the current format with empty node lists and no warp target, and resumes', async () => {
+		expect(fixtureV2.formatVersion).toBe(2);
+		const parsed = parseSimSave(JSON.stringify(fixtureV2));
+		expect(parsed.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(parsed.warpTarget).toBeNull();
+		const vessels = Object.values(parsed.world.components['sim.vessel']!) as Array<{
+			nodes: unknown[];
+		}>;
+		expect(vessels).toHaveLength(2);
+		expect(vessels.every((v) => Array.isArray(v.nodes) && v.nodes.length === 0)).toBe(true);
+		const sim = await resume(fixtureV2);
+		expect(sim.snapshot().vessels.every((v) => v.nodes!.length === 0)).toBe(true);
+		for (let i = 0; i < 100; i++) sim.step(0.02);
+		expect(sim.snapshot().vessels).toHaveLength(2);
+		sim.dispose();
+	});
+});
+
+describe('the frozen format-3 fixture (plan 045)', () => {
+	test('reads as written, keeps its two nodes with their targets, resumes and saves the same nodes', async () => {
+		expect(fixtureV3.formatVersion).toBe(3);
+		const parsed = parseSimSave(JSON.stringify(fixtureV3));
+		expect(parsed.formatVersion).toBe(3);
+		const sim = await resume(fixtureV3);
+		const orbiting = sim.snapshot().vessels.find((v) => v.mode === 'on-rails')!;
+		expect(orbiting.nodes!.map((n) => [n.id, n.time])).toEqual([
+			[1, 3_000],
+			[2, 5_000]
+		]);
+		expect(orbiting.nodes![0]!.prograde).toBeCloseTo(120, 6);
+		expect(orbiting.nodes![1]!.normal).toBeCloseTo(35, 6);
+		const saved = sim.save();
+		const vessels = Object.values(saved.world.components['sim.vessel']!) as Array<{
+			nodes: Array<{ target: unknown }>;
+		}>;
+		expect(vessels.flatMap((v) => v.nodes).every((n) => n.target !== null)).toBe(true);
+		sim.dispose();
 	});
 });

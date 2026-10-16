@@ -13,7 +13,7 @@ import { createSim, type Sim } from '../src/index.ts';
 import { launchInOrbit } from './helpers/sas.ts';
 import { orbitState } from './helpers/measure.ts';
 import { moonState, systemOf, transferState } from './helpers/moon.ts';
-import { lander, rapier, saturn, twoStage } from './helpers/vessels.ts';
+import { lander, moonLander, rapier, saturn, twoStage } from './helpers/vessels.ts';
 
 const DT = 0.02;
 /**
@@ -449,5 +449,67 @@ describe('resume across bodies (plan 044): the moon, its sphere and its ground',
 			seconds: 12
 		});
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
+	});
+});
+
+describe('resume with maneuver nodes (plan 045)', () => {
+	test('a node with a target, SAS maneuver and a burn in progress', async () => {
+		let id = 0;
+		const { sim } = await resumeMatches({
+			rig: flat,
+			prepare: (sim) => {
+				id = launchInOrbit(sim, moonLander());
+				sim.dispatch({
+					type: 'node-set',
+					vessel: id as never,
+					time: 40,
+					prograde: 300,
+					normal: 20,
+					radial: -10
+				});
+				sim.dispatch({ type: 'sas', vessel: id as never, mode: 'maneuver' });
+				run(sim, 12);
+				expect(sim.snapshot().vessels[0]!.nodes).toHaveLength(1);
+			},
+			inputs: (sim, step) => {
+				if (step === 100) {
+					sim.dispatch({ type: 'stage', vessel: id as never });
+					sim.dispatch({ type: 'throttle', vessel: id as never, value: 1 });
+				}
+				if (step === 500) sim.dispatch({ type: 'throttle', vessel: id as never, value: 0 });
+			},
+			seconds: 14
+		});
+		// the burn shrank the remaining burn (it is the same in the resumed run, compared above)
+		expect(sim.snapshot().vessels[0]!.nodes![0]!.dv).toBeLessThan(300);
+	});
+
+	test('nodes on orbital rails with a warp-to under way', async () => {
+		let id = 0;
+		await resumeMatches({
+			rig: flat,
+			prepare: (sim) => {
+				id = load(sim, moonLander(), { kind: 'state', ...orbitState(sim, 150_000) });
+				sim.dispatch({
+					type: 'node-set',
+					vessel: id as never,
+					time: 3_000,
+					prograde: 50,
+					normal: 0,
+					radial: 0
+				});
+				sim.dispatch({
+					type: 'node-set',
+					vessel: id as never,
+					time: 6_000,
+					prograde: 0,
+					normal: 30,
+					radial: 0
+				});
+				sim.dispatch({ type: 'warp-to', time: 2_900, factor: 100 });
+				run(sim, 3);
+			},
+			seconds: 6
+		});
 	});
 });

@@ -49,6 +49,8 @@ export interface SimCore {
 	readonly active: Set<EntityId>;
 	t: number;
 	warp: number;
+	/** Sim time a `warp-to` is heading for (ADR 0056), or null. */
+	warpTarget: number | null;
 	accumulator: number;
 	/** Set by an SOI change of a controlled vessel; `step` then drops the rest of the accumulator (ADR 0051). */
 	warpStopped: boolean;

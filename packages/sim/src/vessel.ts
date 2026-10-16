@@ -16,6 +16,7 @@ import { bodyOfVessel } from './bodies.ts';
 import {
 	designCom,
 	frameOfVessel,
+	isControlled,
 	moduleDefOf,
 	moduleState,
 	partDefOf,
@@ -109,6 +110,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		parts,
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
 		sas: newSas(),
+		nodes: [],
 		stages: design.stages.map((stage) => stage.map((i) => byIndex.get(i)!)),
 		nextStage: 0,
 		com: { x: 0, y: 0, z: 0 },
@@ -333,6 +335,7 @@ function splitAt(
 		parts: newSide,
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
 		sas: structuredClone(vessel.sas),
+		nodes: [],
 		stages: [],
 		nextStage: 0,
 		com: stateNew.com,
@@ -352,6 +355,11 @@ function splitAt(
 	vessel.idle = 0;
 	vessel.rest = 0;
 	core.world.add(newId, VESSEL, newState);
+	if (vessel.nodes.length > 0 && !isControlled(core, vessel) && isControlled(core, newState)) {
+		// The maneuver nodes belong to the side that can still be flown (plan 045).
+		newState.nodes = vessel.nodes;
+		vessel.nodes = [];
+	}
 	if (frame && rootPose) {
 		// ADR 0018: the one body is replaced by one per side, each continuing the rigid motion
 		// (same angular velocity, the side's mean velocity, which includes the separation impulse).

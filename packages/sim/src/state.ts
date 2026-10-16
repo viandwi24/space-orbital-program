@@ -69,6 +69,21 @@ export const newSas = (): SasState => ({
 	demand: { x: 0, y: 0, z: 0 }
 });
 
+/**
+ * A maneuver node (plan 045, ADR 0056). `prograde`, `normal` and `radial` are the planned burn in
+ * the orbital frame at the node; `target` is the absolute velocity after the burn, relative to the
+ * node's body, which makes the burn that is left shrink while the vessel burns.
+ */
+export interface ManeuverNodeState {
+	id: number;
+	/** Sim time of the burn, s. */
+	time: number;
+	prograde: number;
+	normal: number;
+	radial: number;
+	target: { body: string; v: Vec3 } | null;
+}
+
 export interface VesselState {
 	name: string;
 	mode: VesselMode;
@@ -81,6 +96,8 @@ export interface VesselState {
 	control: ControlState;
 	/** Stability assist (plan 042). */
 	sas: SasState;
+	/** Maneuver nodes in time order, at most `MAX_NODES` (plan 045). */
+	nodes: ManeuverNodeState[];
 	/** Part entities per stage, in firing order. */
 	stages: EntityId[][];
 	nextStage: number;

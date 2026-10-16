@@ -31,6 +31,7 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
+import { completeNodes } from './maneuver.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails } from './sas.ts';
@@ -39,6 +40,32 @@ import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
+
+/** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
+const WARP_TO_TAPER = 1;
+
+/** Simulated seconds this `step` call adds: the warp, tapered and capped while a warp-to is under way. */
+function warpedDelta(core: SimCore, wallDelta: number): number {
+	if (core.warpTarget === null) return wallDelta * core.warp;
+	const remaining = core.warpTarget - core.t - core.accumulator;
+	if (remaining <= 0) return 0;
+	const factor = Math.min(core.warp, Math.max(1, remaining / WARP_TO_TAPER));
+	return Math.min(wallDelta * factor, remaining);
+}
+
+/** Lands the clock exactly on the target (the last piece is shorter than a step) and ends the warp. */
+function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void): void {
+	if (core.warpTarget === null) return;
+	const left = core.warpTarget - core.t;
+	if (left > 1e-9 && left - core.accumulator > 1e-9) return;
+	if (left > 1e-9 && core.accumulator > 0) {
+		const h = core.accumulator;
+		core.accumulator = 0;
+		railsStep(h);
+	}
+	core.warp = 1;
+	core.warpTarget = null;
+}
 
 const NO_HEAT: ReadonlyMap<EntityId, HeatInput> = new Map();
 
@@ -180,6 +207,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		active: new Set(),
 		t: resume?.time ?? 0,
 		warp: resume?.warp ?? 1,
+		warpTarget: resume?.warpTarget ?? null,
 		accumulator: resume?.accumulator ?? 0,
 		warpStopped: false
 	};
@@ -244,6 +272,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		core.t += dt;
 		rebaseAll();
 		applySoiTransitions(core, tStart);
+		completeNodes(core);
 		reapDebris(core);
 		runSystems(core.post, dt);
 		autoRails(core);
@@ -257,6 +286,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		core.t += h;
 		rebaseAll();
 		applySoiTransitions(core, tStart);
+		completeNodes(core);
 		reapDebris(core);
 		runSystems(core.post, h);
 	}
@@ -266,7 +296,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			if (!Number.isFinite(wallDelta) || wallDelta < 0) {
 				throw new RangeError(`Sim.step: wallDelta must be a finite number >= 0, got ${wallDelta}`);
 			}
-			core.accumulator += wallDelta * core.warp;
+			if (core.warpTarget !== null && hasFlightVessels(core)) {
+				// Something woke up: a warp-to needs every vessel on rails.
+				core.warpTarget = null;
+				core.warp = 1;
+			}
+			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;
 			while (core.accumulator >= dt) {
 				if (hasFlightVessels(core)) {
@@ -285,6 +320,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 					return;
 				}
 			}
+			if (core.warpTarget !== null) arriveAtWarpTarget(core, railsStep);
 		},
 		dispatch: (command) => dispatch(core, command),
 		snapshot: () => takeSnapshot(core),

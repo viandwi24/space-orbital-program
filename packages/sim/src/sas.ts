@@ -11,6 +11,7 @@ import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './cor
 import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts';
 import { makeContext } from './hooks.ts';
 import { qConj, qMul, qNormalize, qRotate } from './math.ts';
+import { burnDirection } from './maneuver.ts';
 import { motionOf } from './orbit.ts';
 
 /** Position gain (1/s): desired rate per radian of error near the target. */
@@ -50,13 +51,15 @@ export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !==
 /**
  * Unit direction (BCI) a pointing mode asks the nose to take, or undefined when there is none
  * (too slow, or no orbit plane). Same definitions as the navball markers (ADR 0026): prograde
- * along the reference velocity, normal along `r x v` of the inertial state, radial along `r`.
+ * along the reference velocity, normal along `r x v` of the inertial state, radial along `r`;
+ * `maneuver` along `burn`, the remaining burn of the earliest node (plan 045).
  */
 export function targetDirection(
 	omega: number,
 	sas: Pick<SasState, 'mode' | 'reference'>,
 	r: Vec3,
-	v: Vec3
+	v: Vec3,
+	burn?: Vec3
 ): Vec3 | undefined {
 	const surface = sub(v, cross({ x: 0, y: omega, z: 0 }, r));
 	const ref = sas.reference === 'surface' ? surface : v;
@@ -78,6 +81,8 @@ export function targetDirection(
 			return scale(normalize(r), 1);
 		case 'radial-in':
 			return scale(normalize(r), -1);
+		case 'maneuver':
+			return burn;
 		default:
 			return undefined;
 	}
@@ -200,7 +205,13 @@ export function stepSas(
 			if (length(omega) < LATCH_RATE) sas.settling = false;
 		} else error = holdError(orientation, sas.hold);
 	} else {
-		const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, vessel.com, vessel.velocity);
+		const d = targetDirection(
+			bodyOfVessel(core, vessel).omega,
+			sas,
+			vessel.com,
+			vessel.velocity,
+			sas.mode === 'maneuver' ? burnDirection(core, vessel) : undefined
+		);
 		if (d) error = pointError(orientation, d);
 		else settle = true;
 	}
@@ -259,7 +270,13 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	if (!isPointing(sas.mode) || vessel.rails === null || vessel.rails.kind === 'surface') return;
 	if (!isControlled(core, vessel)) return;
 	const { r, v } = motionOf(core, vessel);
-	const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, r, v);
+	const d = targetDirection(
+		bodyOfVessel(core, vessel).omega,
+		sas,
+		r,
+		v,
+		sas.mode === 'maneuver' ? burnDirection(core, vessel) : undefined
+	);
 	if (!d) return;
 	const nose = qRotate(vessel.orientation, NOSE);
 	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));

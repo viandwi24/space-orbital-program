@@ -25,6 +25,7 @@ import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
 import { makeContext, runStageHooks } from './hooks.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
+import { removeNode, setNode } from './maneuver.ts';
 import { beginHold } from './sas.ts';
 import { IDENTITY, qNormalize } from './math.ts';
 import {
@@ -216,7 +217,32 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 				);
 			}
 			core.warp = command.factor;
+			core.warpTarget = null;
 			return accept();
+		}
+		case 'warp-to': {
+			if (command.factor > MAX_WARP)
+				return refuse(`warp ${command.factor} exceeds the maximum ${MAX_WARP}`);
+			if (command.time <= core.t) return refuse('warp-to needs a time that has not passed');
+			if (hasFlightVessels(core)) {
+				const flying = vesselIds(core).filter((id) => vesselOf(core, id).mode === 'flight');
+				return refuse(
+					`time warp needs every vessel on rails; in flight: ${flying.map((id) => `${id} ("${vesselOf(core, id).name}")`).join(', ')}`
+				);
+			}
+			core.warp = command.factor;
+			core.warpTarget = command.time;
+			return accept();
+		}
+		case 'node-set': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			return setNode(core, v, command);
+		}
+		case 'node-remove': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			return removeNode(core, v, command.id);
 		}
 		case 'load-vessel':
 			return loadVessel(core, command);

@@ -18,6 +18,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
+import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { bodyOfVessel, systemPosition } from './bodies.ts';
 import { qAboutY, qMul, qRotate } from './math.ts';
@@ -89,6 +90,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		reference: vessel.sas.reference,
 		error: vessel.sas.error
 	};
+	snapshot.nodes = nodeSnapshots(core, vessel);
 	const body = bodyOfVessel(core, vessel);
 	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would

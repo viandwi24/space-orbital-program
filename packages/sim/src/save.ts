@@ -102,6 +102,16 @@ export const checkVesselState: Check = shape({
 		active: bool,
 		demand: vec3
 	}),
+	nodes: arrayOf(
+		shape({
+			id: entity,
+			time: num,
+			prograde: num,
+			normal: num,
+			radial: num,
+			target: orNull(shape({ body: str, v: vec3 }))
+		})
+	),
 	stages: arrayOf(arrayOf(entity)),
 	nextStage: entity,
 	com: vec3,
@@ -167,6 +177,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		seed,
 		time: core.t,
 		warp: core.warp,
+		warpTarget: core.warpTarget,
 		accumulator: core.accumulator,
 		rng: core.rng.state(),
 		world: core.world.serialize(),

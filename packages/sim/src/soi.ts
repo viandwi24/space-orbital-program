@@ -58,6 +58,7 @@ function announce(core: SimCore, vesselId: EntityId, from: string, to: string): 
 	// the old rate is dropped (ADR 0051).
 	if (isControlled(core, vesselOf(core, vesselId))) {
 		core.warp = 1;
+		core.warpTarget = null;
 		core.warpStopped = true;
 	}
 }
