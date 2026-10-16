@@ -106,6 +106,16 @@ export interface VesselApi {
 	 */
 	airVelocity(point?: Vec3): Vec3;
 	/**
+	 * The centre of mass of the vessel's body, in the part frame, m (moves as propellant burns).
+	 * Steering parts need it for their lever arm (ADR 0045). Flight mode only: throws on rails.
+	 */
+	readonly centreOfMass: Vec3;
+	/**
+	 * The attitude demand as a torque direction in the part frame: `x` pitch, `y` roll, `z` yaw,
+	 * each -1..1 (`control` rotated by the part's yaw). Available in both modes (ADR 0045).
+	 */
+	readonly torqueDemand: Vec3;
+	/**
 	 * Resources reachable from this part according to each resource's `flowMode` (and parts'
 	 * `crossfeed`). Amounts are in the resource's unit; `withdraw`/`deposit` return what moved.
 	 */

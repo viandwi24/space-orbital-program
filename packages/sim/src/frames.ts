@@ -113,6 +113,13 @@ export function partTransform(core: SimCore, frame: FlightFrame, partId: EntityI
 	};
 }
 
+/** The body's centre of mass in the part frame (ADR 0045): the offset removed, the part's yaw undone. */
+export function centreOfMassInPart(core: SimCore, frame: FlightFrame, partId: EntityId): Vec3 {
+	const rel = sub(bodyOfPart(core, frame, partId).com, partOffset(core, partId));
+	const yaw = partYaw(core, partId);
+	return yaw === 0 ? rel : qRotate(qConj(qAboutY(yaw)), rel);
+}
+
 const partYaw = (core: SimCore, partId: EntityId): number => partOf(core, partId).yaw;
 
 /**

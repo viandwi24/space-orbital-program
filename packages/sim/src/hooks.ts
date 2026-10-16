@@ -15,7 +15,7 @@ import type {
 import { add, length } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
-import { airVelocityAt, partTransform } from './frames.ts';
+import { airVelocityAt, centreOfMassInPart, partTransform } from './frames.ts';
 import { isNonZero, qRotate } from './math.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 
@@ -94,6 +94,17 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (point) finiteVec(point, 'point');
 			if (!frame) return needsFlight(`module "${moduleId}": airVelocity`);
 			return airVelocityAt(core, frame, partId, point ?? { x: 0, y: 0, z: 0 });
+		},
+		get centreOfMass(): Vec3 {
+			if (!frame) return needsFlight(`module "${moduleId}": centreOfMass`);
+			return centreOfMassInPart(core, frame, partId);
+		},
+		get torqueDemand(): Vec3 {
+			// The control is about the vessel axes; a part turned by `yaw` about +Y sees it rotated back.
+			const c = vessel.control;
+			const cos = Math.cos(part.yaw);
+			const sin = Math.sin(part.yaw);
+			return { x: c.pitch * cos - c.yaw * sin, y: c.roll, z: c.pitch * sin + c.yaw * cos };
 		},
 		applyTorque(torque) {
 			finiteVec(torque, 'torque');

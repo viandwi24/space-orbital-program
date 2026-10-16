@@ -107,6 +107,17 @@ export const partVisualSchema = z.object({
 			flag: z.string().min(1),
 			seconds: z.number().positive().optional()
 		})
+		.optional(),
+	/**
+	 * A moving piece of the model driven by a number in a module's snapshot (ADR 0045): `gimbal`
+	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis.
+	 */
+	articulation: z
+		.object({
+			module: definitionIdSchema,
+			field: z.string().min(1),
+			mode: z.enum(['gimbal', 'hinge'])
+		})
 		.optional()
 });
 
