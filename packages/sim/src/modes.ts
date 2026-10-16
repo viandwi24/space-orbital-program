@@ -1,6 +1,6 @@
 /**
  * Flight <-> on-rails transitions (simulation.md "Vessel modes"). On rails the centre of mass
- * follows kepler and attitude is frozen; in flight the vessel's parts are bodies in a flight frame.
+ * follows kepler and attitude is frozen; in flight the vessel is one compound rigid body in a flight frame.
  */
 import type { EntityId } from '@orbital/core';
 import { length, sub } from '@orbital/kepler';

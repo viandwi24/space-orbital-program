@@ -2,10 +2,10 @@
  * Flight frames: one physics backend plus a local frame that moves at constant velocity
  * (`bci = origin + local`, `bciVelocity = frame.velocity + localVelocity`), so Rapier's float32
  * sees small positions and small velocities (units-and-frames.md, ADR 0017). This file creates and
- * removes bodies for vessels, applies gravity, drag and ground contact, advances the backend and
+ * removes the (one, compound) body of each vessel, applies gravity, drag and ground contact, advances the backend and
  * reads poses back.
  */
-import type { BodyHandle, EntityId, PhysicsBackend, Vec3 } from '@orbital/core';
+import type { EntityId, PhysicsBackend, Quat, Transform, Vec3 } from '@orbital/core';
 import { add, cross, dot, length, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { axisAreas } from './aero.ts';
@@ -22,9 +22,10 @@ import {
 	type SimCore
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
-import { IDENTITY, ZERO, fromTuple, qAboutY, qConj, qMul, qRotate } from './math.ts';
-import { halfExtentsOf, inertiaOf } from './parts.ts';
-import { jointKey, type FlightFrame } from './state.ts';
+import { ZERO, qAboutY, qConj, qMul, qRotate } from './math.ts';
+import { massProperties } from './mass.ts';
+import { halfExtentsOf } from './parts.ts';
+import type { FlightBody, FlightFrame } from './state.ts';
 
 export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 	return {
@@ -34,9 +35,7 @@ export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 		origin: { x: 0, y: 0, z: 0 },
 		velocity: { x: 0, y: 0, z: 0 },
 		vessels: [],
-		bodies: new Map(),
-		joints: new Map(),
-		masses: new Map()
+		bodies: new Map()
 	};
 }
 
@@ -67,94 +66,133 @@ function releaseIfEmpty(frame: FlightFrame): void {
 	if (frame.vessels.length > 0) return;
 	frame.inUse = false;
 	frame.bodies.clear();
-	frame.joints.clear();
-	frame.masses.clear();
 }
 
-/** Create one box body per part and one fixed joint per attachment, at the vessel's pose. */
+/** Origin of a part relative to its vessel's root part, vessel body axes (constant while the vessel holds together). */
+export function partOffset(core: SimCore, partId: EntityId): Vec3 {
+	const part = partOf(core, partId);
+	return sub(part.designPos, partOf(core, vesselOf(core, part.vessel).root).designPos);
+}
+
+export function bodyOfPart(core: SimCore, frame: FlightFrame, partId: EntityId): FlightBody {
+	const body = frame.bodies.get(partOf(core, partId).vessel);
+	if (!body) throw new Error(`sim: part ${partId} has no body in frame ${frame.id}`);
+	return body;
+}
+
+/** Pose of a part in the frame's local axes: the body pose composed with the part's offset. */
+export function partTransform(core: SimCore, frame: FlightFrame, partId: EntityId): Transform {
+	const t = frame.backend.getTransform(bodyOfPart(core, frame, partId).handle);
+	return {
+		position: add(t.position, qRotate(t.rotation, partOffset(core, partId))),
+		rotation: t.rotation
+	};
+}
+
+/**
+ * Local-frame position and velocity of a body's centre of mass, and its angular velocity. The
+ * velocity of a point of the rigid body is `linear + angular × (point − centre)`.
+ */
+export function bodyMotion(
+	frame: FlightFrame,
+	body: FlightBody
+): { rotation: Quat; origin: Vec3; centre: Vec3; linear: Vec3; angular: Vec3 } {
+	const t = frame.backend.getTransform(body.handle);
+	const v = frame.backend.getVelocity(body.handle);
+	return {
+		rotation: t.rotation,
+		origin: t.position,
+		centre: add(t.position, qRotate(t.rotation, body.com)),
+		linear: v.linear,
+		angular: v.angular
+	};
+}
+
+/** Velocity of a part's origin relative to the frame (rigid-body kinematics). */
+export function partVelocity(core: SimCore, frame: FlightFrame, partId: EntityId): Vec3 {
+	const m = bodyMotion(frame, bodyOfPart(core, frame, partId));
+	const r = sub(partTransform(core, frame, partId).position, m.centre);
+	return add(m.linear, cross(m.angular, r));
+}
+
+/**
+ * Create the vessel's one rigid body (ADR 0018): a box collider per part, the body origin at the
+ * root part's origin `origin` (frame-local), the given `rotation`, centre-of-mass velocity and
+ * angular velocity.
+ */
+export function createVesselBody(
+	core: SimCore,
+	frame: FlightFrame,
+	vesselId: EntityId,
+	pose: { origin: Vec3; rotation: Quat; linear: Vec3; angular: Vec3 }
+): void {
+	const vessel = vesselOf(core, vesselId);
+	const rootDesign = partOf(core, vessel.root).designPos;
+	const mp = massProperties(core, vessel.parts, rootDesign);
+	const handle = frame.backend.createBody({
+		shape: {
+			type: 'compound',
+			shapes: vessel.parts.map((id) => {
+				const part = partOf(core, id);
+				return {
+					shape: { type: 'box' as const, halfExtents: halfExtentsOf(partDefOf(core, part)) },
+					position: sub(part.designPos, rootDesign)
+				};
+			})
+		},
+		mass: mp.mass,
+		inertia: mp.inertia,
+		centerOfMass: mp.centerOfMass,
+		inertiaFrame: mp.inertiaFrame,
+		position: pose.origin,
+		rotation: pose.rotation,
+		linearVelocity: pose.linear,
+		angularVelocity: pose.angular
+	});
+	frame.bodies.set(vesselId, {
+		handle,
+		mass: mp.mass,
+		com: mp.centerOfMass,
+		masses: new Map(vessel.parts.map((id) => [id, partMass(core, id)]))
+	});
+}
+
+/** Create the vessel's body at its pose (centre of mass `vessel.com`, at rest relative to its velocity). */
 export function enterFlight(core: SimCore, vesselId: EntityId, frame: FlightFrame): void {
 	const vessel = vesselOf(core, vesselId);
-	const { backend } = frame;
 	const comDesign = designCom(core, vessel.parts);
-	for (const partId of vessel.parts) {
-		const part = partOf(core, partId);
-		const def = partDefOf(core, part);
-		const offset = qRotate(vessel.orientation, sub(part.designPos, comDesign));
-		const mass = partMass(core, partId);
-		const handle = backend.createBody({
-			shape: { type: 'box', halfExtents: halfExtentsOf(def) },
-			mass,
-			...optionalInertia(inertiaOf(def, mass)),
-			position: sub(add(vessel.com, offset), frame.origin),
-			rotation: vessel.orientation,
-			linearVelocity: sub(vessel.velocity, frame.velocity)
-		});
-		frame.bodies.set(partId, handle);
-		frame.masses.set(partId, mass);
-	}
-	for (const partId of vessel.parts) {
-		const part = partOf(core, partId);
-		const def = partDefOf(core, part);
-		for (const att of part.attachments) {
-			if (att.peer < partId) continue; // each pair once, from the lower id
-			const peerDef = partDefOf(core, partOf(core, att.peer));
-			const a = frame.bodies.get(partId);
-			const b = frame.bodies.get(att.peer);
-			const na = def.attach?.[att.node];
-			const nb = peerDef.attach?.[att.peerNode];
-			if (a === undefined || b === undefined || !na || !nb) {
-				throw new Error(`sim: cannot join parts ${partId} and ${att.peer}: missing body or node`);
-			}
-			const joint = backend.createFixedJoint(
-				a,
-				b,
-				{ position: fromTuple(na.pos), rotation: IDENTITY },
-				{ position: fromTuple(nb.pos), rotation: IDENTITY }
-			);
-			frame.joints.set(jointKey(partId, att.peer), joint);
-		}
-	}
+	const rootDesign = partOf(core, vessel.root).designPos;
+	const origin = sub(vessel.com, qRotate(vessel.orientation, sub(comDesign, rootDesign)));
+	createVesselBody(core, frame, vesselId, {
+		origin: sub(origin, frame.origin),
+		rotation: vessel.orientation,
+		linear: sub(vessel.velocity, frame.velocity),
+		angular: ZERO
+	});
 	frame.vessels = [...frame.vessels, vesselId].sort((a, b) => a - b);
 	vessel.mode = 'flight';
 	vessel.rails = null;
 	vessel.idle = 0;
 }
 
-const optionalInertia = (i: Vec3 | undefined): { inertia?: Vec3 } => (i ? { inertia: i } : {});
-
-/** Remove the vessel's bodies (and with them their joints) from its frame. */
+/** Remove the vessel's body from its frame. */
 export function leaveFlight(core: SimCore, vesselId: EntityId): void {
 	const frame = frameOfVessel(core, vesselId);
 	if (!frame) return;
-	const vessel = vesselOf(core, vesselId);
-	for (const partId of vessel.parts) {
-		for (const att of partOf(core, partId).attachments)
-			frame.joints.delete(jointKey(partId, att.peer));
-		const handle = frame.bodies.get(partId);
-		if (handle !== undefined) frame.backend.removeBody(handle);
-		frame.bodies.delete(partId);
-		frame.masses.delete(partId);
-	}
+	const body = frame.bodies.get(vesselId);
+	if (body) frame.backend.removeBody(body.handle);
+	frame.bodies.delete(vesselId);
 	frame.vessels = frame.vessels.filter((v) => v !== vesselId);
 	releaseIfEmpty(frame);
 }
 
-/** Refresh the cached centre of mass, velocity and orientation of a flight vessel from its bodies. */
+/** Refresh the cached centre of mass, velocity and orientation of a flight vessel from its body. */
 export function refreshPose(core: SimCore, frame: FlightFrame, vesselId: EntityId): void {
 	const vessel = vesselOf(core, vesselId);
-	let m = 0;
-	let c = { x: 0, y: 0, z: 0 };
-	let v = { x: 0, y: 0, z: 0 };
-	for (const partId of vessel.parts) {
-		const h = frame.bodies.get(partId)!;
-		const mass = frame.masses.get(partId)!;
-		m += mass;
-		c = add(c, scale(add(frame.origin, frame.backend.getTransform(h).position), mass));
-		v = add(v, scale(add(frame.velocity, frame.backend.getVelocity(h).linear), mass));
-	}
-	vessel.com = scale(c, 1 / m);
-	vessel.velocity = scale(v, 1 / m);
-	vessel.orientation = frame.backend.getTransform(frame.bodies.get(vessel.root)!).rotation;
+	const m = bodyMotion(frame, frame.bodies.get(vesselId)!);
+	vessel.com = add(frame.origin, m.centre);
+	vessel.velocity = add(frame.velocity, m.linear);
+	vessel.orientation = m.rotation;
 }
 
 /** Masses, gravity, module updates and drag for every vessel in the frame (forces for the next backend step). */
@@ -164,19 +202,41 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): voi
 		const vessel = vesselOf(core, vesselId);
 		core.active.delete(vesselId);
 		core.forces.delete(vesselId);
-		for (const partId of vessel.parts) {
-			const h = frame.bodies.get(partId)!;
-			const mass = partMass(core, partId);
-			if (mass !== frame.masses.get(partId)) {
-				backend.setMass(h, mass, inertiaOf(partDefOf(core, partOf(core, partId)), mass));
-				frame.masses.set(partId, mass);
-			}
-			const r = add(frame.origin, backend.getTransform(h).position);
-			backend.applyForce(h, scale(gravityAt(core, r), mass));
-		}
+		const body = frame.bodies.get(vesselId)!;
+		updateMassProperties(core, frame, vessel.parts, vesselId, body);
+		// Point-mass gravity at the centre of mass (the gradient across a vessel is negligible).
+		const centre = add(frame.origin, bodyMotion(frame, body).centre);
+		backend.applyForce(body.handle, scale(gravityAt(core, centre), body.mass));
 		runUpdateHooks(core, vesselId, dt);
 		applyDrag(core, frame, vesselId);
 	}
+}
+
+/** Push mass, centre of mass and inertia to the backend when any part's mass changed (propellant flow). */
+function updateMassProperties(
+	core: SimCore,
+	frame: FlightFrame,
+	parts: readonly EntityId[],
+	vesselId: EntityId,
+	body: FlightBody
+): void {
+	let changed = false;
+	for (const id of parts) {
+		if (partMass(core, id) !== body.masses.get(id)) {
+			changed = true;
+			break;
+		}
+	}
+	if (!changed) return;
+	const rootDesign = partOf(core, vesselOf(core, vesselId).root).designPos;
+	const mp = massProperties(core, parts, rootDesign);
+	frame.backend.setMass(body.handle, mp.mass, mp.inertia, {
+		centerOfMass: mp.centerOfMass,
+		inertiaFrame: mp.inertiaFrame
+	});
+	body.mass = mp.mass;
+	body.com = mp.centerOfMass;
+	for (const id of parts) body.masses.set(id, partMass(core, id));
 }
 
 function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void {
@@ -184,16 +244,24 @@ function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 	if (!body.atmosphere) return;
 	const omega = { x: 0, y: core.body.omega, z: 0 };
 	const vessel = vesselOf(core, vesselId);
+	const flight = frame.bodies.get(vesselId)!;
+	const motion = bodyMotion(frame, flight); // one backend read for the whole vessel
+	const rootDesign = partOf(core, vessel.root).designPos;
 	for (const partId of vessel.parts) {
-		const h = frame.bodies.get(partId)!;
-		const pose = frame.backend.getTransform(h);
+		const part = partOf(core, partId);
+		const pose = {
+			position: add(motion.origin, qRotate(motion.rotation, sub(part.designPos, rootDesign))),
+			rotation: motion.rotation
+		};
 		const r = add(frame.origin, pose.position);
 		const { density } = ambientAt(body, length(r) - body.radius);
 		if (density === 0) continue;
-		const v = add(frame.velocity, frame.backend.getVelocity(h).linear);
+		const v = add(
+			add(frame.velocity, motion.linear),
+			cross(motion.angular, sub(pose.position, motion.centre))
+		);
 		const rel = sub(v, cross(omega, r));
 		const local = qRotate(qConj(pose.rotation), rel);
-		const part = partOf(core, partId);
 		const def = partDefOf(core, part);
 		const covered = { top: false, bottom: false };
 		for (const att of part.attachments) {
@@ -208,7 +276,7 @@ function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 			y: k * area.y * Math.abs(local.y) * local.y,
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
-		frame.backend.applyForce(h, qRotate(pose.rotation, force));
+		frame.backend.applyForce(flight.handle, qRotate(pose.rotation, force), pose.position);
 	}
 }
 
@@ -248,25 +316,26 @@ function holdOnPad(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 	// `core.t` is advanced after the frames: the pose to hold is the one at the end of this step.
 	const spin = qAboutY(core.body.omega * (core.t + core.dt));
 	const omega = { x: 0, y: core.body.omega, z: 0 };
-	for (const pose of pad.poses) {
-		const h = frame.bodies.get(pose.part)!;
-		const position = qRotate(spin, pose.position);
-		frame.backend.setTransform(h, {
-			position: sub(position, frame.origin),
-			rotation: qMul(spin, pose.rotation)
-		});
-		frame.backend.setVelocity(h, {
-			linear: sub(cross(omega, position), frame.velocity),
-			angular: omega
-		});
-	}
+	const body = frame.bodies.get(vesselId)!;
+	const origin = qRotate(spin, pad.position);
+	const rotation = qMul(spin, pad.rotation);
+	const centre = add(origin, qRotate(rotation, body.com));
+	frame.backend.setTransform(body.handle, {
+		position: sub(origin, frame.origin),
+		rotation
+	});
+	frame.backend.setVelocity(body.handle, {
+		linear: sub(cross(omega, centre), frame.velocity),
+		angular: omega
+	});
 	vessel.landed = true;
 }
 
 /**
- * The ground is the body's reference sphere. A body whose lowest point is below it is moved out,
- * and if it was moving into the ground (relative to the rotating ground) its velocity becomes the
- * ground's: a completely inelastic, sticky contact. Hard impacts destroy uncontrolled vessels.
+ * The ground is the body's reference sphere. If any part of a vessel is below it, the whole body
+ * is moved out by the deepest penetration, and if a penetrating point was moving into the ground
+ * (relative to the rotating ground) the body takes the ground's motion: a completely inelastic,
+ * sticky contact. Hard impacts destroy uncontrolled vessels. Plan 012 replaces this.
  */
 function applyGround(core: SimCore, frame: FlightFrame): EntityId[] {
 	const { backend } = frame;
@@ -277,15 +346,19 @@ function applyGround(core: SimCore, frame: FlightFrame): EntityId[] {
 		const vessel = vesselOf(core, vesselId);
 		if (vessel.pad) continue;
 		vessel.landed = false;
+		const body = frame.bodies.get(vesselId)!;
+		const m = bodyMotion(frame, body);
+		let deepest = 0;
+		let deepestUp: Vec3 = ZERO;
 		let impact = 0;
+		let closingAny = false;
 		for (const partId of vessel.parts) {
-			const h = frame.bodies.get(partId)!;
-			const t = backend.getTransform(h);
-			const c = add(frame.origin, t.position);
+			const position = add(m.origin, qRotate(m.rotation, partOffset(core, partId)));
+			const c = add(frame.origin, position);
 			const dist = length(c);
 			const up = scale(c, 1 / dist);
 			const he = halfExtentsOf(partDefOf(core, partOf(core, partId)));
-			const q = t.rotation;
+			const q = m.rotation;
 			const extent =
 				Math.abs(dot(qRotate(q, { x: 1, y: 0, z: 0 }), up)) * he.x +
 				Math.abs(dot(qRotate(q, { x: 0, y: 1, z: 0 }), up)) * he.y +
@@ -293,18 +366,29 @@ function applyGround(core: SimCore, frame: FlightFrame): EntityId[] {
 			const penetration = extent - (dist - radius);
 			if (penetration <= 0) continue;
 			vessel.landed = true;
-			backend.setTransform(h, { position: add(t.position, scale(up, penetration)), rotation: q });
-			const vel = backend.getVelocity(h);
-			const ground = cross(omega, c);
-			const rel = sub(add(frame.velocity, vel.linear), ground);
-			const closing = -dot(rel, up);
-			if (closing > 0) {
-				impact = Math.max(impact, closing);
-				backend.setVelocity(h, {
-					linear: sub(ground, frame.velocity),
-					angular: vel.angular
-				});
+			if (penetration > deepest) {
+				deepest = penetration;
+				deepestUp = up;
 			}
+			const velocity = add(
+				frame.velocity,
+				add(m.linear, cross(m.angular, sub(position, m.centre)))
+			);
+			const closing = -dot(sub(velocity, cross(omega, c)), up);
+			if (closing > 0) {
+				closingAny = true;
+				impact = Math.max(impact, closing);
+			}
+		}
+		if (!vessel.landed) continue;
+		const moved = add(m.origin, scale(deepestUp, deepest));
+		backend.setTransform(body.handle, { position: moved, rotation: m.rotation });
+		if (closingAny) {
+			const centre = add(frame.origin, add(moved, qRotate(m.rotation, body.com)));
+			backend.setVelocity(body.handle, {
+				linear: sub(cross(omega, centre), frame.velocity),
+				angular: omega
+			});
 		}
 		if (impact > CRASH_SPEED && !isControlled(core, vessel)) crashed.push(vesselId);
 	}
@@ -317,11 +401,10 @@ function reanchor(core: SimCore, frame: FlightFrame): void {
 		frame.vessels.find((id) => isControlled(core, vesselOf(core, id))) ?? frame.vessels[0];
 	if (focusId === undefined) return;
 	const focus = vesselOf(core, focusId);
-	const rootHandle = frame.bodies.get(focus.root)!;
-	const rootPos = frame.backend.getTransform(rootHandle).position;
+	const rootPos = partTransform(core, frame, focus.root).position;
 	if (length(rootPos) <= REANCHOR_DISTANCE) return;
-	const rootVel = frame.backend.getVelocity(rootHandle).linear;
-	for (const handle of frame.bodies.values()) {
+	const rootVel = partVelocity(core, frame, focus.root);
+	for (const { handle } of frame.bodies.values()) {
 		const t = frame.backend.getTransform(handle);
 		const v = frame.backend.getVelocity(handle);
 		frame.backend.setTransform(handle, {
@@ -339,7 +422,7 @@ export function partPose(
 	core: SimCore,
 	frame: FlightFrame,
 	part: EntityId
-): { position: Vec3; rotation: { x: number; y: number; z: number; w: number } } {
-	const t = frame.backend.getTransform(frame.bodies.get(part)!);
+): { position: Vec3; rotation: Quat } {
+	const t = partTransform(core, frame, part);
 	return { position: add(frame.origin, t.position), rotation: t.rotation };
 }

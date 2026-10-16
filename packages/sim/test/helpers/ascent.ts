@@ -183,7 +183,10 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 				const vApo = Math.sqrt(mu * (2 / apoR - 1 / orbit.a));
 				const dv = Math.sqrt(mu / apoR) - vApo;
 				const { mass } = massProperties(v, rotate(v.orientation, UP_Y));
-				const burn = (dv * mass) / 215_000; // crude: vacuum thrust of one engine
+				// Rocket equation for one engine (vacuum thrust 215 kN, Isp 300 s): the burn is shorter
+				// than dv·m/F because the vessel gets lighter, and centring it on apoapsis matters.
+				const ve = 300 * 9.80665;
+				const burn = (mass * ve * (1 - Math.exp(-dv / ve))) / 215_000;
 				if (toApo <= burn / 2) {
 					phase = 'circularise';
 					sim.dispatch({ type: 'throttle', vessel, value: 1 });

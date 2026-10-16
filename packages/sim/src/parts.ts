@@ -15,13 +15,20 @@ export function halfExtentsOf(def: PartDefinition): Vec3 {
 }
 
 /**
- * Principal inertia for `mass` kg. Cylinders get the solid-cylinder moments (the box the backend
- * would derive is 27 % too stiff about its axis); boxes and shapeless parts let the backend derive
- * it (`undefined`).
+ * Principal inertia of the part about its own centre for `mass` kg. Cylinders get the
+ * solid-cylinder moments (the box the collider uses would be 27 % too stiff about its axis);
+ * boxes and shapeless parts the solid-box moments.
  */
-export function inertiaOf(def: PartDefinition, mass: number): Vec3 | undefined {
+export function inertiaOf(def: PartDefinition, mass: number): Vec3 {
 	const s = def.shape;
-	if (s?.kind !== 'cylinder') return undefined;
-	const side = (mass * (3 * s.radius * s.radius + s.height * s.height)) / 12;
-	return { x: side, y: 0.5 * mass * s.radius * s.radius, z: side };
+	if (s?.kind === 'cylinder') {
+		const side = (mass * (3 * s.radius * s.radius + s.height * s.height)) / 12;
+		return { x: side, y: 0.5 * mass * s.radius * s.radius, z: side };
+	}
+	const h = halfExtentsOf(def);
+	return {
+		x: (mass / 3) * (h.y * h.y + h.z * h.z),
+		y: (mass / 3) * (h.x * h.x + h.z * h.z),
+		z: (mass / 3) * (h.x * h.x + h.y * h.y)
+	};
 }

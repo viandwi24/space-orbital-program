@@ -12,6 +12,8 @@ import { add, length, sub } from '@orbital/kepler';
 import { createSim } from '../src/index.ts';
 
 const RADIUS = 600_000;
+/** Steps run before timing starts (JIT warm-up). */
+const WARMUP = 100;
 
 /** Pod, wheel, (n - 3) small tanks, engine: n parts. */
 function tower(n: number): VesselDesign {
@@ -69,10 +71,16 @@ async function run(n: number, steps: number): Promise<void> {
 	let drift = 0;
 	let wall = 0;
 	for (let i = 0; i < steps; i++) {
-		sim.dispatch({ type: 'attitude', vessel: id, pitch: Math.sin(i * 0.02 * 2) > 0 ? 1 : -1, yaw: 0, roll: 0 });
+		sim.dispatch({
+			type: 'attitude',
+			vessel: id,
+			pitch: Math.sin(i * 0.02 * 2) > 0 ? 1 : -1,
+			yaw: 0,
+			roll: 0
+		});
 		const t0 = performance.now();
 		sim.step(0.02);
-		wall += performance.now() - t0;
+		if (i >= WARMUP) wall += performance.now() - t0;
 		if (i % 10 === 0) {
 			const v = sim.snapshot().vessels[0]!;
 			const root = v.parts[0]!.position;
@@ -83,7 +91,7 @@ async function run(n: number, steps: number): Promise<void> {
 	}
 	const v = sim.snapshot().vessels[0]!;
 	console.log(
-		`${n} parts: ${((wall / steps) * 1000).toFixed(1)} us/step, max length drift ${drift.toFixed(4)} m, mode ${v.mode}, parts ${v.parts.length}, speed ${length(add(v.velocity, { x: 0, y: 0, z: 0 })).toFixed(1)} m/s`
+		`${n} parts: ${((wall / (steps - WARMUP)) * 1000).toFixed(1)} us/step, max length drift ${drift.toFixed(4)} m, mode ${v.mode}, parts ${v.parts.length}, speed ${length(add(v.velocity, { x: 0, y: 0, z: 0 })).toFixed(1)} m/s`
 	);
 	sim.dispose();
 }

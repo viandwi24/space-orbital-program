@@ -27,7 +27,9 @@ interface MockBody {
  * Cheap stand-in for tests that do not need Rapier: semi-implicit Euler for dynamic bodies,
  * velocity-only motion for kinematic ones, no collisions, and joints that are recorded and
  * validated but NOT enforced. Torque ignores body rotation (inertia is applied about world axes),
- * so it is only exact for spherical inertia. Same one-step force lifetime as the real backend.
+ * so it is only exact for spherical inertia. Compound shapes are accepted but only the mass
+ * counts: `centerOfMass` and `inertiaFrame` are ignored (the origin is the centre of mass). Same
+ * one-step force lifetime as the real backend.
  */
 export function createMockBackend(): PhysicsBackend {
 	const bodies = new Map<number, MockBody>();

@@ -15,6 +15,7 @@ import type {
 import { add, length } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
+import { partTransform } from './frames.ts';
 import { ZERO, isNonZero, qRotate } from './math.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 
@@ -54,10 +55,15 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 	if (!instance) throw new Error(`sim: part ${partId} has no module "${moduleId}"`);
 	const frame = vessel.mode === 'flight' ? frameOfPart(core, partId) : undefined;
 
+	/** The vessel's one body and the part's pose (ADR 0018: forces act on the body, at the part). */
 	const pose = (): { backend: PhysicsBackend; transform: Transform; handle: BodyHandle } => {
-		const handle = frame?.bodies.get(partId);
-		if (!frame || handle === undefined) return needsFlight(`module "${moduleId}": force or torque`);
-		return { backend: frame.backend, transform: frame.backend.getTransform(handle), handle };
+		const body = frame?.bodies.get(vesselId);
+		if (!frame || !body) return needsFlight(`module "${moduleId}": force or torque`);
+		return {
+			backend: frame.backend,
+			transform: partTransform(core, frame, partId),
+			handle: body.handle
+		};
 	};
 
 	const api: VesselApi = {
@@ -82,7 +88,7 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 					world,
 					add(transform.position, qRotate(transform.rotation, point))
 				);
-			} else backend.applyForce(handle, world);
+			} else backend.applyForce(handle, world, transform.position);
 		},
 		applyTorque(torque) {
 			finiteVec(torque, 'torque');

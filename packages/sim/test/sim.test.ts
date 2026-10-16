@@ -267,7 +267,10 @@ describe('resource flow and staging', () => {
 		const calls: number[] = [];
 		const spy = {
 			...real,
-			setMass: (h: never, m: number, i?: never) => (calls.push(m), real.setMass(h, m, i))
+			setMass: (...args: Parameters<typeof real.setMass>) => (
+				calls.push(args[1]),
+				real.setMass(...args)
+			)
 		};
 		const sim = await createSim({
 			plugins: [Stock],
@@ -280,11 +283,11 @@ describe('resource flow and staging', () => {
 		sim.dispatch({ type: 'stage', vessel: r.vessel! });
 		run(sim, 2);
 		const v = sim.snapshot().vessels[0]!;
-		const tank = partMasses(sim, v)[5]!;
+		// One body per vessel (ADR 0018): the mass handed to the backend is the vessel's.
 		expect(calls.length).toBeGreaterThan(50);
-		// The last mass handed to the backend is the one before the final step's burn (0.04 kg per step at most).
-		expect(calls.some((m) => Math.abs(m - tank) < 2)).toBe(true);
-		expect(Math.min(...calls)).toBeLessThan(4_700 + 250 - 100);
+		// The last mass handed to the backend is the one before the final step's burn (1.5 kg per step).
+		expect(calls.some((m) => Math.abs(m - vesselMass(sim, v)) < 3)).toBe(true);
+		expect(Math.min(...calls)).toBeLessThan(12_890 - 100);
 	});
 
 	test('an engine that runs dry flames out and the event names the part', async () => {

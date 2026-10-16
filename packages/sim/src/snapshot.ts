@@ -18,7 +18,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { partPose } from './frames.ts';
+import { partPose, partVelocity } from './frames.ts';
 import { ZERO, qAboutY, qRotate } from './math.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 
@@ -43,10 +43,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		const root = partPose(core, frame, vessel.root);
 		position = root.position;
 		orientation = root.rotation;
-		velocity = add(
-			frame.velocity,
-			frame.backend.getVelocity(frame.bodies.get(vessel.root)!).linear
-		);
+		velocity = add(frame.velocity, partVelocity(core, frame, vessel.root));
 		for (const partEntity of vessel.parts) {
 			const pose = partPose(core, frame, partEntity);
 			parts.push({

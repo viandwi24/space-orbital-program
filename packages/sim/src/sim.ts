@@ -136,7 +136,6 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	function flightStep(): void {
 		runSystems(core.pre, dt);
 		for (const frame of core.frames) if (frame.inUse) prepareFrame(core, frame, dt);
-		processPending(core);
 		for (const frame of core.frames) {
 			if (!frame.inUse) continue;
 			for (const crashed of advanceFrame(core, frame, dt)) {
@@ -147,6 +146,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				vessel.idle = core.active.has(id) ? 0 : vessel.idle + dt;
 			}
 		}
+		// Splits requested by `update` hooks are applied after the backend step: rebuilding bodies
+		// earlier would drop the forces already queued for this step (ADR 0018).
+		processPending(core);
 		stepRailsVessels(dt);
 		core.t += dt;
 		rebaseAll();

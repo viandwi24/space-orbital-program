@@ -53,3 +53,20 @@ export function newSim(
 		...(options.maxFlightFrames === undefined ? {} : { maxFlightFrames: options.maxFlightFrames })
 	});
 }
+
+/**
+ * A tall stack of `n` parts: pod, reaction wheel, tanks, (optionally a decoupler at index
+ * `decouplerAt`) and an engine at the bottom. Stage 0 lights the engine, stage 1 fires the
+ * decoupler.
+ */
+export function tower(n: number, decouplerAt?: number): VesselDesign {
+	const parts = ['stock.command-pod', 'stock.reaction-wheel'];
+	while (parts.length < n - 1) parts.push('stock.tank-small');
+	parts.push('stock.engine-lv');
+	if (decouplerAt !== undefined) parts[decouplerAt] = 'stock.decoupler';
+	return stack(
+		`Tower ${n}`,
+		parts,
+		decouplerAt === undefined ? [[n - 1]] : [[n - 1], [decouplerAt]]
+	);
+}

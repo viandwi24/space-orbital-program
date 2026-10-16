@@ -22,18 +22,17 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { leaveFlight } from './frames.ts';
+import {
+	createVesselBody,
+	bodyMotion,
+	leaveFlight,
+	partTransform,
+	partVelocity
+} from './frames.ts';
 import { fromTuple, qAboutY, qFromBasis, qMul, qRotate } from './math.ts';
 import { computeRails, motionOf } from './orbit.ts';
 import { halfExtentsOf } from './parts.ts';
-import {
-	jointKey,
-	moduleStateToken,
-	PART,
-	VESSEL,
-	type PartState,
-	type VesselState
-} from './state.ts';
+import { moduleStateToken, PART, VESSEL, type PartState, type VesselState } from './state.ts';
 
 type Resolved = Extract<ResolvedDesign, { ok: true }>;
 
@@ -148,25 +147,18 @@ export function placeOnSurface(
 }
 
 /**
- * Pin a vessel standing on the surface to the pad: record its current body poses in the rotating
- * ground frame (ADR 0017). Call after the vessel is in flight.
+ * Pin a vessel standing on the surface to the pad: record the pose of its body origin in the
+ * rotating ground frame (ADR 0017). Call after the vessel is in flight.
  */
 export function holdOnPad(core: SimCore, vesselId: EntityId): void {
 	const vessel = vesselOf(core, vesselId);
-	const com = designCom(core, vessel.parts);
+	const frame = frameOfVessel(core, vesselId);
+	if (!frame) throw new Error(`sim: vessel ${vesselId} must be in flight to be held on the pad`);
+	const t = frame.backend.getTransform(frame.bodies.get(vesselId)!.handle);
 	const unspin = qAboutY(-core.body.omega * core.t);
 	vessel.pad = {
-		poses: vessel.parts.map((part) => {
-			const position = add(
-				vessel.com,
-				qRotate(vessel.orientation, sub(partOf(core, part).designPos, com))
-			);
-			return {
-				part,
-				position: qRotate(unspin, position),
-				rotation: qMul(unspin, vessel.orientation)
-			};
-		})
+		position: qRotate(unspin, add(frame.origin, t.position)),
+		rotation: qMul(unspin, t.rotation)
 	};
 }
 
@@ -219,10 +211,13 @@ export function splitVessel(
 	const peerId = att.peer;
 	const frame = frameOfVessel(core, vesselId);
 
-	// Pose before the topology changes: per-side centre of mass state.
+	// Pose before the topology changes: per-side centre of mass state, and every part's pose.
 	const all = vessel.parts;
 	const motion = motionOf(core, vessel);
 	const comAll = designCom(core, all);
+	const rootPose = frame ? bodyMotion(frame, frame.bodies.get(vesselId)!) : undefined;
+	const partPositions = new Map<EntityId, Vec3>();
+	if (frame) for (const id of all) partPositions.set(id, partTransform(core, frame, id).position);
 	const sideState = (parts: readonly EntityId[]): { com: Vec3; velocity: Vec3 } => {
 		if (!frame) {
 			const off = qRotate(vessel.orientation, sub(designCom(core, parts), comAll));
@@ -232,25 +227,18 @@ export function splitVessel(
 		let c: Vec3 = { x: 0, y: 0, z: 0 };
 		let v: Vec3 = { x: 0, y: 0, z: 0 };
 		for (const id of parts) {
-			const h = frame.bodies.get(id)!;
 			const mass = partMass(core, id);
 			m += mass;
-			c = add(c, scale(add(frame.origin, frame.backend.getTransform(h).position), mass));
-			v = add(v, scale(add(frame.velocity, frame.backend.getVelocity(h).linear), mass));
+			c = add(c, scale(add(frame.origin, partPositions.get(id)!), mass));
+			v = add(v, scale(add(frame.velocity, partVelocity(core, frame, id)), mass));
 		}
 		return { com: scale(c, 1 / m), velocity: scale(v, 1 / m) };
 	};
 
-	// Cut the graph (and the joint).
+	// Cut the graph.
 	part.attachments = part.attachments.filter((a) => a !== att);
 	const peer = partOf(core, peerId);
 	peer.attachments = peer.attachments.filter((a) => a.peer !== partId);
-	if (frame) {
-		const key = jointKey(partId, peerId);
-		const joint = frame.joints.get(key);
-		if (joint !== undefined) frame.backend.removeJoint(joint);
-		frame.joints.delete(key);
-	}
 
 	const sideP = component(core, partId);
 	const sideQ = component(core, peerId);
@@ -269,9 +257,7 @@ export function splitVessel(
 
 	// Equal and opposite momentum along the node direction (pointing from `part` towards `peer`).
 	if (impulse > 0) {
-		const q = frame
-			? frame.backend.getTransform(frame.bodies.get(partId)!).rotation
-			: vessel.orientation;
+		const q = rootPose ? rootPose.rotation : vessel.orientation;
 		const dir = qRotate(q, fromTuple(partDefOf(core, part).attach![node]!.dir));
 		const dvPeer = scale(dir, impulse / totalMass(core, sideQ));
 		const dvPart = scale(dir, -impulse / totalMass(core, sideP));
@@ -281,13 +267,6 @@ export function splitVessel(
 		] as const) {
 			const target = side === keepSide ? stateKeep : stateNew;
 			target.velocity = add(target.velocity, dv);
-			if (frame) {
-				for (const id of side) {
-					const h = frame.bodies.get(id)!;
-					const v = frame.backend.getVelocity(h);
-					frame.backend.setVelocity(h, { linear: add(v.linear, dv), angular: v.angular });
-				}
-			}
 		}
 	}
 
@@ -319,11 +298,29 @@ export function splitVessel(
 	vessel.com = stateKeep.com;
 	vessel.velocity = stateKeep.velocity;
 	vessel.idle = 0;
-	if (vessel.pad) vessel.pad = { poses: vessel.pad.poses.filter((p) => keepSet.has(p.part)) };
 	core.world.add(newId, VESSEL, newState);
-	if (frame) {
+	if (frame && rootPose) {
+		// ADR 0018: the one body is replaced by one per side, each continuing the rigid motion
+		// (same angular velocity, the side's mean velocity, which includes the separation impulse).
+		const old = frame.bodies.get(vesselId)!;
+		frame.backend.removeBody(old.handle);
+		frame.bodies.delete(vesselId);
 		frame.vessels = [...frame.vessels, newId].sort((a, b) => a - b);
+		for (const [id, root, state] of [
+			[vesselId, keepRoot, stateKeep],
+			[newId, newRoot, stateNew]
+		] as const) {
+			createVesselBody(core, frame, id, {
+				origin: partPositions.get(root)!,
+				rotation: rootPose.rotation,
+				linear: sub(state.velocity, frame.velocity),
+				angular: rootPose.angular
+			});
+		}
+		// A vessel held on the pad stays held, now by the pose of its new body.
+		if (vessel.pad) holdOnPad(core, vesselId);
 	} else {
+		vessel.pad = null;
 		vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
 		newState.rails = computeRails(core.body.mu, newState.com, newState.velocity, core.t);
 	}

@@ -83,7 +83,7 @@ export const hasFlightVessels = (core: SimCore): boolean =>
 	core.frames.some((f) => f.inUse && f.vessels.length > 0);
 
 export const frameOfPart = (core: SimCore, part: EntityId): FlightFrame | undefined =>
-	core.frames.find((f) => f.inUse && f.bodies.has(part));
+	frameOfVessel(core, partOf(core, part).vessel);
 
 export const frameOfVessel = (core: SimCore, vessel: EntityId): FlightFrame | undefined =>
 	core.frames.find((f) => f.inUse && f.vessels.includes(vessel));

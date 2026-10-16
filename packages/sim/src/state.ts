@@ -8,7 +8,6 @@ import {
 	type BodyHandle,
 	type ComponentType,
 	type EntityId,
-	type JointHandle,
 	type PhysicsBackend,
 	type Quat,
 	type Vec3,
@@ -33,11 +32,13 @@ export type RailsState =
 
 /**
  * Launch-pad hold (ADR 0017): while a vessel loaded on the surface cannot lift off (thrust does not
- * exceed weight) its bodies are pinned to these poses, which are fixed in the rotating ground frame
- * (BCI at body rotation angle 0). Without it a stack standing on one point contact would topple.
+ * exceed weight) its body is pinned to this pose (of the body origin, the root part's origin),
+ * which is fixed in the rotating ground frame (BCI at body rotation angle 0). Without it a stack
+ * standing on one point contact would topple.
  */
 export interface PadHold {
-	poses: Array<{ part: EntityId; position: Vec3; rotation: Quat }>;
+	position: Vec3;
+	rotation: Quat;
 }
 
 export interface VesselState {
@@ -103,6 +104,19 @@ export function moduleStateToken(moduleId: string): ComponentType<unknown> {
 	return token;
 }
 
+/**
+ * The one rigid body of a flight vessel (ADR 0018): a collider per part, the body origin at the
+ * root part's origin. `mass`, `com` (body frame, relative to the origin) and `masses` are what was
+ * last handed to the backend.
+ */
+export interface FlightBody {
+	handle: BodyHandle;
+	mass: number;
+	com: Vec3;
+	/** Mass per part last pushed to the backend. */
+	masses: Map<EntityId, number>;
+}
+
 /** A physics backend with its local frame (runtime only, not serialisable). */
 export interface FlightFrame {
 	readonly id: number;
@@ -114,10 +128,6 @@ export interface FlightFrame {
 	velocity: Vec3;
 	/** Vessels simulated in this frame, ascending ids. */
 	vessels: EntityId[];
-	bodies: Map<EntityId, BodyHandle>;
-	joints: Map<string, JointHandle>;
-	/** Mass last handed to the backend per part. */
-	masses: Map<EntityId, number>;
+	/** Per vessel, in creation order. */
+	bodies: Map<EntityId, FlightBody>;
 }
-
-export const jointKey = (a: EntityId, b: EntityId): string => (a < b ? `${a}-${b}` : `${b}-${a}`);

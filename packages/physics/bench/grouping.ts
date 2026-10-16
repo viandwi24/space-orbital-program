@@ -13,6 +13,8 @@ const HALF = { x: 0.625, y: 0.5, z: 0.625 };
 const MASS = 500;
 const STEPS = 500;
 const DT = 0.02;
+/** Steps run before timing starts (JIT warm-up). */
+const WARMUP = 100;
 const ID = { x: 0, y: 0, z: 0, w: 1 };
 
 /** `point` expressed in the frame of `frame`. */
@@ -65,7 +67,7 @@ async function perPart(
 		backend.applyForce(handles[n - 1]!, { x: 5_000, y: 20_000, z: 0 });
 		const t0 = performance.now();
 		backend.step(DT);
-		wall += performance.now() - t0;
+		if (s >= WARMUP) wall += performance.now() - t0;
 	}
 	// Flex: where each part sits in the frame of part 0, against its design position (0, i, 0).
 	const base = backend.getTransform(handles[0]!);
@@ -75,7 +77,7 @@ async function perPart(
 		drift = Math.max(drift, Math.hypot(local.x, local.y - i, local.z));
 	}
 	backend.dispose();
-	return { us: (wall / STEPS) * 1000, bodies: n, joints: n - 1, drift };
+	return { us: (wall / (STEPS - WARMUP)) * 1000, bodies: n, joints: n - 1, drift };
 }
 
 /** The same tower as one compound body: no joints, so no flex by construction. */
@@ -111,10 +113,10 @@ async function compound(
 		backend.applyForce(h, { x: 5_000, y: 20_000, z: 0 }, at(n - 1));
 		const t0 = performance.now();
 		backend.step(DT);
-		wall += performance.now() - t0;
+		if (s >= WARMUP) wall += performance.now() - t0;
 	}
 	backend.dispose();
-	return { us: (wall / STEPS) * 1000, bodies: 1, joints: 0, drift: 0 };
+	return { us: (wall / (STEPS - WARMUP)) * 1000, bodies: 1, joints: 0, drift: 0 };
 }
 
 const mode = process.argv[2] ?? 'per-part';
