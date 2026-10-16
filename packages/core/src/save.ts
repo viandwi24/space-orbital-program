@@ -15,7 +15,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 2;
+export const SIM_SAVE_VERSION = 3;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -69,6 +69,8 @@ export interface SimSave {
 	/** Simulation time, s. */
 	time: number;
 	warp: number;
+	/** Simulation time a `warp-to` is heading for, or null (format 3, plan 045). */
+	warpTarget: number | null;
 	/** Wall time carried over between `step` calls, simulated s. */
 	accumulator: number;
 	/** 32-bit PRNG state (`Rng.state()`). */
@@ -117,6 +119,7 @@ export const simSaveSchema = z.object({
 	seed: finite,
 	time: finite.refine((t) => t >= 0, 'time must not be negative'),
 	warp: finite.refine((w) => w >= 1, 'warp must be at least 1'),
+	warpTarget: finite.nullable(),
 	accumulator: finite.refine((a) => a >= 0, 'accumulator must not be negative'),
 	rng: z.int().min(0).max(0xffffffff),
 	world: worldDataSchema,
@@ -166,6 +169,28 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 			formatVersion: 2,
 			bodies: [body],
 			frames: frames.map((f) => (isRecord(f) ? { ...f, soi: body } : f))
+		};
+	},
+	2: (data) => {
+		const world = data.world;
+		if (!isRecord(world) || !isRecord(world.components)) {
+			throw new SaveError('damaged', 'This save is damaged: it has no world.');
+		}
+		const vessels = world.components['sim.vessel'];
+		const upgraded: Record<string, unknown> = {};
+		if (isRecord(vessels)) {
+			for (const [id, vessel] of Object.entries(vessels)) {
+				upgraded[id] = isRecord(vessel) ? { ...vessel, nodes: [] } : vessel;
+			}
+		}
+		const components = isRecord(vessels)
+			? { ...world.components, 'sim.vessel': upgraded }
+			: world.components;
+		return {
+			...data,
+			formatVersion: 3,
+			warpTarget: null,
+			world: { ...world, components }
 		};
 	}
 };

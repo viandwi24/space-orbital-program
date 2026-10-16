@@ -7,7 +7,13 @@
 import * as z from 'zod';
 import { entityId, partId, bodyId } from './ids.ts';
 import { definitionIdSchema } from './schemas.ts';
-import { SAS_MODES, type Command, type VesselDesign, type VesselPlacement } from './protocol.ts';
+import {
+	MAX_NODE_DV,
+	SAS_MODES,
+	type Command,
+	type VesselDesign,
+	type VesselPlacement
+} from './protocol.ts';
 
 const entity = z.int().nonnegative().transform(entityId);
 const vec3 = z.object({ x: z.number(), y: z.number(), z: z.number() });
@@ -85,6 +91,21 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		args: z.unknown().optional()
 	}),
 	z.object({ type: z.literal('warp'), factor: z.number().min(1) }),
+	z.object({
+		type: z.literal('warp-to'),
+		time: z.number().refine(Number.isFinite, 'time must be finite'),
+		factor: z.number().min(1)
+	}),
+	z.object({
+		type: z.literal('node-set'),
+		vessel: entity,
+		id: index.optional(),
+		time: z.number().refine(Number.isFinite, 'time must be finite'),
+		prograde: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV),
+		normal: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV),
+		radial: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV)
+	}),
+	z.object({ type: z.literal('node-remove'), vessel: entity, id: index.optional() }),
 	z.object({
 		type: z.literal('load-vessel'),
 		design: vesselDesignSchema,

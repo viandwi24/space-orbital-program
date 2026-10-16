@@ -10,8 +10,8 @@ export type VesselMode = 'flight' | 'on-rails';
 
 /**
  * Stability assist modes (plan 042, ADR 0049). `hold` keeps the attitude held when it was chosen
- * (or released from manual input); the others point the nose at a direction. Plans 044/045 add
- * `target` and `maneuver`.
+ * (or released from manual input); the others point the nose at a direction. `maneuver` points at
+ * the burn vector of the earliest maneuver node (plan 045, ADR 0056); plan 035 may add `target`.
  */
 export const SAS_MODES = [
 	'off',
@@ -21,7 +21,8 @@ export const SAS_MODES = [
 	'normal',
 	'antinormal',
 	'radial-in',
-	'radial-out'
+	'radial-out',
+	'maneuver'
 ] as const;
 export type SasMode = (typeof SAS_MODES)[number];
 
@@ -33,6 +34,32 @@ export interface SasSnapshot {
 	reference: SasReference;
 	/** Angle between the nose (or, for `hold`, the attitude) and its target, rad; 0 when off or without a direction. */
 	error: number;
+}
+
+/** Largest number of maneuver nodes one vessel keeps (ADR 0056). */
+export const MAX_NODES = 8;
+/** Largest magnitude of one node component, m/s. */
+export const MAX_NODE_DV = 100_000;
+
+/**
+ * A maneuver node as the sim resolves it (plan 045, ADR 0056). `prograde`, `normal` and `radial`
+ * are the burn that is left in the orbital frame of the path at the node (prograde = unit velocity,
+ * normal = unit r x v, radial = prograde x normal): the plan while the vessel coasts, what remains
+ * while it burns.
+ */
+export interface ManeuverNodeSnapshot {
+	id: number;
+	/** Sim time of the burn, s. */
+	time: number;
+	prograde: number;
+	normal: number;
+	radial: number;
+	/** Magnitude of the remaining burn, m/s. */
+	dv: number;
+	/** Body whose frame the node lies in; absent when the path never reaches the node. */
+	body?: BodyId;
+	/** The remaining burn as a vector in the shared inertial axes, m/s; absent with `body`. */
+	vector?: Vec3;
 }
 
 export interface PartSnapshot {
@@ -79,6 +106,8 @@ export interface VesselSnapshot {
 	terrainHeight?: number;
 	/** Stability assist state (plan 042). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	sas?: SasSnapshot;
+	/** Maneuver nodes in time order (plan 045). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	nodes?: ManeuverNodeSnapshot[];
 }
 
 export interface BodySnapshot {
@@ -164,9 +193,31 @@ export type Command =
 			args?: unknown;
 	  }
 	| { type: 'warp'; factor: number }
+	/**
+	 * Run the clock up to `time` at about `factor` times real time, slowing down so it stops exactly
+	 * there with warp 1 (plan 045, ADR 0056). Needs every vessel on rails, like `warp`.
+	 */
+	| { type: 'warp-to'; time: number; factor: number }
+	/**
+	 * Create (no `id`; the result carries `node`) or replace a maneuver node of a vessel; the
+	 * components are the burn in the orbital frame at the node, m/s.
+	 */
+	| {
+			type: 'node-set';
+			vessel: EntityId;
+			id?: number;
+			time: number;
+			prograde: number;
+			normal: number;
+			radial: number;
+	  }
+	/** Remove one node, or all of the vessel's nodes without an `id`. */
+	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	| { type: 'load-vessel'; design: VesselDesign; placement?: VesselPlacement };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
-export type CommandResult = { ok: true; vessel?: EntityId } | { ok: false; reason: string };
+export type CommandResult =
+	| { ok: true; vessel?: EntityId; /** The node `node-set` created or replaced. */ node?: number }
+	| { ok: false; reason: string };
 
 export type CommandType = Command['type'];

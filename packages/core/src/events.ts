@@ -20,6 +20,8 @@ export interface EventMap {
 	 * ids. Its state is now relative to `to`.
 	 */
 	'vessel:soi-changed': { vessel: EntityId; from: string; to: string };
+	/** A maneuver node was burned off (its time has passed and under 0.1 m/s remained; plan 045). */
+	'vessel:maneuver-complete': { vessel: EntityId; node: number };
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**

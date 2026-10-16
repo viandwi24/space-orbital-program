@@ -22,6 +22,7 @@ const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	seed: 1,
 	time: 12.5,
 	warp: 1,
+	warpTarget: null,
 	accumulator: 0.005,
 	rng: 123,
 	world: { formatVersion: 1, nextEntity: 0, entities: [], components: {} },
@@ -149,6 +150,25 @@ describe('migration chain', () => {
 		);
 	});
 
+	test('the shipped 2 to 3 step gives every vessel an empty node list and the save no warp target', () => {
+		const v2 = {
+			...unsigned(),
+			formatVersion: 2,
+			warpTarget: undefined,
+			world: {
+				formatVersion: 1 as const,
+				nextEntity: 1,
+				entities: [0],
+				components: { 'sim.vessel': { '0': { name: 'v' } }, other: { '0': 1 } }
+			}
+		};
+		const save = readSimSave({ ...v2, checksum: simSaveChecksum(v2 as never) });
+		expect(save.formatVersion).toBe(3);
+		expect(save.warpTarget).toBeNull();
+		expect(save.world.components['sim.vessel']!['0']).toEqual({ name: 'v', nodes: [] });
+		expect(save.world.components['other']).toEqual({ '0': 1 });
+	});
+
 	test('the shipped 1 to 2 step makes the root body a list and centres every frame on it', () => {
 		const { bodies: _b, ...rest } = unsigned();
 		const v1 = {
@@ -167,7 +187,7 @@ describe('migration chain', () => {
 			]
 		};
 		const save = readSimSave({ ...v1, checksum: simSaveChecksum(v1 as never) });
-		expect(save.formatVersion).toBe(2);
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(save.bodies).toEqual(['stock.home']);
 		expect(save.frames[0]!.soi).toBe('stock.home');
 		expect('body' in save).toBe(false);

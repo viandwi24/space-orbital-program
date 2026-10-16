@@ -24,6 +24,6 @@ describe('sas command', () => {
 	});
 
 	test('the mod API version carries the control authority hook', () => {
-		expect(API_VERSION).toBe('0.1.13');
+		expect(API_VERSION).toBe('0.1.14');
 	});
 });
