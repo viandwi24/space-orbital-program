@@ -83,4 +83,22 @@ describe('sim-client', () => {
 		expect((await client.dispatch({ type: 'stage' })).ok).toBe(false);
 		emit({ kind: 'result', id: 1, result: { ok: true } }); // late message: ignored
 	});
+
+	it('sends script-start/stop and fans out script events until unsubscribed', () => {
+		const { worker, sent, emit } = fakeWorker();
+		const client = createSimClient(worker);
+		const seen: string[] = [];
+		const off = client.onScript((e) => seen.push(e.kind));
+		client.startScript('print(1)', 4);
+		client.stopScript();
+		expect(sent).toEqual([
+			{ kind: 'script-start', source: 'print(1)', vessel: 4 },
+			{ kind: 'script-stop' }
+		]);
+		emit({ kind: 'script-status', status: 'running', lastMs: 0, maxMs: 0 });
+		emit({ kind: 'script-log', lines: ['x'] });
+		off();
+		emit({ kind: 'script-log', lines: ['y'] });
+		expect(seen).toEqual(['script-status', 'script-log']);
+	});
 });

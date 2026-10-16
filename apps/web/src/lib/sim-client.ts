@@ -15,6 +15,9 @@ export interface WorkerLike {
 	terminate(): void;
 }
 
+/** What the script host reports: lifecycle changes and print output. */
+export type ScriptEvent = Extract<WorkerMessage, { kind: 'script-status' | 'script-log' }>;
+
 export interface SimClient {
 	/** Resolves when the worker has booted the sim (rejects on a boot error). */
 	readonly ready: Promise<Catalog>;
@@ -24,6 +27,10 @@ export interface SimClient {
 	readonly latest: Snapshot | null;
 	onSnapshot(listener: (snapshot: Snapshot) => void): () => void;
 	onError(listener: (message: string) => void): () => void;
+	/** Run `source` against `vessel` in the sim Worker (replaces a running script). */
+	startScript(source: string, vessel: number): void;
+	stopScript(): void;
+	onScript(listener: (event: ScriptEvent) => void): () => void;
 	dispose(): void;
 }
 
@@ -35,6 +42,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	const pending = new Map<number, (result: CommandResult) => void>();
 	const snapshotListeners = new Set<(snapshot: Snapshot) => void>();
 	const errorListeners = new Set<(message: string) => void>();
+	const scriptListeners = new Set<(event: ScriptEvent) => void>();
 	let resolveReady!: (catalog: Catalog) => void;
 	let rejectReady!: (error: Error) => void;
 	const ready = new Promise<Catalog>((resolve, reject) => {
@@ -79,6 +87,10 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			case 'error':
 				fail(message.message);
 				break;
+			case 'script-status':
+			case 'script-log':
+				for (const listener of scriptListeners) listener(message);
+				break;
 		}
 	};
 	worker.onerror = (event) => fail(event.message ?? 'sim worker crashed');
@@ -104,6 +116,16 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			errorListeners.add(listener);
 			return () => errorListeners.delete(listener);
 		},
+		startScript(source, vessel) {
+			if (!disposed) worker.postMessage({ kind: 'script-start', source, vessel });
+		},
+		stopScript() {
+			if (!disposed) worker.postMessage({ kind: 'script-stop' });
+		},
+		onScript(listener) {
+			scriptListeners.add(listener);
+			return () => scriptListeners.delete(listener);
+		},
 		dispose() {
 			if (disposed) return;
 			disposed = true;
@@ -115,6 +137,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			pending.clear();
 			snapshotListeners.clear();
 			errorListeners.clear();
+			scriptListeners.clear();
 		}
 	};
 }

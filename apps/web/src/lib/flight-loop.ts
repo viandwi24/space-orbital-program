@@ -6,6 +6,7 @@
 import type { Command, EntityId, Snapshot, VesselDesign } from '@orbital/core';
 import { createRenderer, type PartShape, type Renderer } from '@orbital/renderer';
 import type { Catalog } from './messages';
+import { idleScript, reduceScript, type ScriptView } from './script-state';
 import { startSimWorker, type SimClient } from './sim-client';
 import { computeTelemetry, type Telemetry } from './telemetry';
 
@@ -34,9 +35,14 @@ export interface FlightOptions {
 	canvas: HTMLCanvasElement;
 	design: VesselDesign;
 	onHud(hud: FlightHud): void;
+	/** Script status and print output, at HUD rate and only when something changed. */
+	onScript?(view: ScriptView): void;
 }
 
 export interface Flight {
+	/** Run `source` against the active vessel in the sim Worker (replaces a running script). */
+	runScript(source: string): void;
+	stopScript(): void;
 	dispose(): void;
 }
 
@@ -80,6 +86,8 @@ export function startFlight(options: FlightOptions): Flight {
 		map: false,
 		autopilot: null
 	};
+	let script: ScriptView = idleScript();
+	let scriptDirty = false;
 	let messageUntil = 0;
 	const notice = (text: string): void => {
 		hud.message = text;
@@ -138,8 +146,18 @@ export function startFlight(options: FlightOptions): Flight {
 		});
 	}
 
+	/** Typing in the script panel must not fly the vessel (Space stages, WASD steers). */
+	const typingInField = (e: KeyboardEvent): boolean => {
+		const target = e.target;
+		return (
+			target instanceof HTMLTextAreaElement ||
+			target instanceof HTMLInputElement ||
+			(target instanceof HTMLElement && target.isContentEditable)
+		);
+	};
+
 	function onKeyDown(e: KeyboardEvent): void {
-		if (e.repeat) return;
+		if (e.repeat || typingInField(e)) return;
 		// Punctuation by character so it works on any layout; everything else by physical key.
 		const code = e.key === ',' ? 'Comma' : e.key === '.' ? 'Period' : e.code;
 		held.add(code);
@@ -249,6 +267,10 @@ export function startFlight(options: FlightOptions): Flight {
 				messageUntil = 0;
 			}
 			publish();
+			if (scriptDirty) {
+				scriptDirty = false;
+				options.onScript?.(script);
+			}
 		}
 	}
 
@@ -263,6 +285,10 @@ export function startFlight(options: FlightOptions): Flight {
 		snap = s;
 		dirty = true;
 		auto?.update(s);
+	});
+	client.onScript((event) => {
+		script = reduceScript(script, event);
+		scriptDirty = true;
 	});
 	client.onError((message) => {
 		hud.status = 'error';
@@ -335,6 +361,13 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	return {
+		runScript(source) {
+			if (vessel === null) return;
+			client.startScript(source, Number(vessel));
+		},
+		stopScript() {
+			client.stopScript();
+		},
 		dispose() {
 			disposed = true;
 			cancelAnimationFrame(raf);

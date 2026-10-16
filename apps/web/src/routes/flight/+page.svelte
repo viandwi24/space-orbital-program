@@ -5,10 +5,17 @@
 	import { loadCatalog, partLookup } from '../../lib/catalog';
 	import { parseDesign } from '../../lib/design';
 	import { loadDraft } from '../../lib/storage';
+	import { ascentScript } from '@orbital/scripting/samples/ascent';
+	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
 
 	let canvas: HTMLCanvasElement;
 	let hud = $state.raw<FlightHud | null>(null);
 	let problem = $state<string | null>(null);
+	let flight: Flight | null = null;
+	let panelOpen = $state(false);
+	let source = $state('');
+	let script = $state.raw<ScriptView>(idleScript());
+	let logEl = $state<HTMLPreElement>();
 
 	const clock = (t: number): string => {
 		const s = Math.floor(t);
@@ -28,15 +35,26 @@
 			problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
 			return;
 		}
-		const flight: Flight = startFlight({
+		const started: Flight = startFlight({
 			canvas,
 			design: parsed.design,
-			onHud: (h) => (hud = h)
+			onHud: (h) => (hud = h),
+			onScript: (v) => {
+				script = v;
+				// Keep the newest output in view once the DOM has the new lines.
+				queueMicrotask(() => logEl && (logEl.scrollTop = logEl.scrollHeight));
+			}
 		});
-		return () => flight.dispose();
+		flight = started;
+		return () => {
+			flight = null;
+			started.dispose();
+		};
 	});
 
 	const t = $derived(hud?.telemetry ?? null);
+	const running = $derived(scriptIsActive(script.status));
+	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
 </script>
 
 <svelte:head><title>Flight · Orbital</title></svelte:head>
@@ -47,7 +65,46 @@
 	<nav class="top">
 		<a href="/vab">VAB</a>
 		<span>{hud?.vesselName ?? ''}</span>
+		<button type="button" onclick={() => (panelOpen = !panelOpen)} aria-expanded={panelOpen}>
+			Script{running ? ' (running)' : ''}
+		</button>
 	</nav>
+
+	{#if panelOpen}
+		<section class="script" aria-label="Script">
+			<textarea
+				bind:value={source}
+				spellcheck="false"
+				rows="12"
+				placeholder="Script body (async function): ship.throttle = 1; stage(); await wait(5); print(ship.altitude)"
+				aria-label="Script source"></textarea>
+			<div class="buttons">
+				<button type="button" disabled={!canRun} onclick={() => flight?.runScript(source)}>
+					Run
+				</button>
+				<button type="button" disabled={!running} onclick={() => flight?.stopScript()}>
+					Stop
+				</button>
+				<button type="button" onclick={() => (source = ascentScript)}>Load sample</button>
+				<span
+					class="status"
+					class:error={script.status === 'failed' || script.status === 'terminated'}
+					data-testid="script-status"
+				>
+					{script.status}
+				</span>
+			</div>
+			{#if script.status !== 'idle'}
+				<p class="timing">
+					last tick {script.lastMs.toFixed(1)} ms · worst {script.maxMs.toFixed(1)} ms
+				</p>
+			{/if}
+			{#if script.error}
+				<pre class="err">{script.error}</pre>
+			{/if}
+			<pre class="log" bind:this={logEl} aria-label="Script output">{script.log.join('\n')}</pre>
+		</section>
+	{/if}
 
 	{#if problem}
 		<p class="banner">{problem} <a href="/vab">Open the VAB</a></p>
@@ -126,6 +183,79 @@
 	}
 	a {
 		color: #8ecbff;
+	}
+	button {
+		font: inherit;
+		color: inherit;
+		background: #172131;
+		border: 1px solid #263244;
+		border-radius: 4px;
+		padding: 2px 10px;
+		cursor: pointer;
+	}
+	button:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+	.script {
+		position: absolute;
+		top: 34px;
+		right: 12px;
+		width: min(440px, 46vw);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 8px;
+		background: rgba(5, 7, 12, 0.85);
+		border: 1px solid #263244;
+		border-radius: 6px;
+		font-size: 12px;
+	}
+	.script textarea {
+		box-sizing: border-box;
+		width: 100%;
+		resize: vertical;
+		font: inherit;
+		color: #e8eef5;
+		background: #0b1018;
+		border: 1px solid #263244;
+		border-radius: 4px;
+		padding: 6px;
+	}
+	.buttons {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+	.status {
+		margin-left: auto;
+		color: #8ecbff;
+	}
+	.status.error,
+	.err {
+		color: #ffb4b0;
+	}
+	.timing {
+		margin: 0;
+		color: #7f8da3;
+	}
+	.script pre {
+		margin: 0;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+	.log {
+		max-height: 160px;
+		overflow-y: auto;
+		min-height: 3em;
+		background: #0b1018;
+		border: 1px solid #263244;
+		border-radius: 4px;
+		padding: 4px 6px;
+	}
+	.err {
+		max-height: 80px;
+		overflow-y: auto;
 	}
 	.hud {
 		position: absolute;

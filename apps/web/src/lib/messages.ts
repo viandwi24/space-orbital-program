@@ -19,13 +19,38 @@ export interface Catalog {
 	resources: ResourceDefinition[];
 }
 
-export type ClientMessage = { kind: 'command'; id: number; command: unknown } | { kind: 'dispose' };
+/** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */
+export type ScriptState = 'starting' | 'running' | 'finished' | 'failed' | 'terminated' | 'stopped';
+
+export type ClientMessage =
+	| { kind: 'command'; id: number; command: unknown }
+	| { kind: 'script-start'; source: string; vessel: number }
+	| { kind: 'script-stop' }
+	| { kind: 'dispose' };
 
 export type WorkerMessage =
 	| ({ kind: 'ready' } & Catalog)
 	| { kind: 'snapshot'; snapshot: Snapshot }
 	| { kind: 'result'; id: number; result: CommandResult }
-	| { kind: 'error'; message: string };
+	| { kind: 'error'; message: string }
+	| {
+			kind: 'script-status';
+			status: ScriptState;
+			error?: string;
+			/** Guest time of the last tick and the worst one so far, ms. */
+			lastMs: number;
+			maxMs: number;
+	  }
+	| { kind: 'script-log'; lines: string[] };
+
+const SCRIPT_STATES: readonly unknown[] = [
+	'starting',
+	'running',
+	'finished',
+	'failed',
+	'terminated',
+	'stopped'
+];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
@@ -50,6 +75,17 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 				: null;
 		case 'error':
 			return typeof data.message === 'string' ? (data as unknown as WorkerMessage) : null;
+		case 'script-status':
+			return SCRIPT_STATES.includes(data.status) &&
+				typeof data.lastMs === 'number' &&
+				typeof data.maxMs === 'number' &&
+				(data.error === undefined || typeof data.error === 'string')
+				? (data as unknown as WorkerMessage)
+				: null;
+		case 'script-log':
+			return Array.isArray(data.lines) && data.lines.every((l) => typeof l === 'string')
+				? (data as unknown as WorkerMessage)
+				: null;
 		default:
 			return null;
 	}
@@ -59,6 +95,14 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (!isRecord(data)) return null;
 	if (data.kind === 'dispose') return { kind: 'dispose' };
+	if (data.kind === 'script-stop') return { kind: 'script-stop' };
+	if (
+		data.kind === 'script-start' &&
+		typeof data.source === 'string' &&
+		typeof data.vessel === 'number'
+	) {
+		return { kind: 'script-start', source: data.source, vessel: data.vessel };
+	}
 	if (data.kind === 'command' && typeof data.id === 'number') {
 		return { kind: 'command', id: data.id, command: data.command };
 	}
