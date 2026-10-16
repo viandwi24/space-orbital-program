@@ -35,6 +35,10 @@ Kerbal Space Program proved that realistic orbital mechanics can be fun when the
 - Save/load of a vessel design (JSON).
 - The mod SDK (`definePlugin`, `defineModule`, `definePart`, `defineResource`, `defineBody`) and a loader that boots stock content through it.
 
+### v1 public release (ADR 0048)
+
+Phase 0–1 plus: scripting sandbox, terrain and landing, re-entry heating, boosters/fins/gimbal, a 3D VAB with a vessel library, SAS, save/load game, a moon with SOI transitions, maneuver nodes, runtime mod loading, menus/settings/onboarding. Everything else below is the post-v1 roadmap.
+
 ### Later (Phase 2–3)
 
 - Scripting sandbox (player scripts in a Worker/QuickJS with a limited API).
@@ -68,7 +72,11 @@ Each phase is complete when its plans are `done` and the phase's end-to-end chec
 - **Phase 1:** the same scenario can be done interactively in `apps/web`, and the orbit is visible in map view.
 - **Phase 2:** a mod living outside the repo (an npm package or a folder) adds a part and a script that are usable in the web client.
 
-## 7. Open product questions
+## 7. Browser support
+
+Desktop Chrome and Edge, Firefox and Safari at the versions in [`browser-support.md`](browser-support.md); phones and tablets are not supported yet.
+
+## 8. Open product questions
 
 - Art direction and name (placeholder "Orbital").
 - Whether the home planet is Earth-scale or a smaller Kerbin-scale world (gameplay pacing). Default for MVP: Kerbin-scale (radius ~600 km) so ascent is short. ADR pending when it matters.

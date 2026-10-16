@@ -49,6 +49,11 @@
 | 032 | [Script API additions and the sandbox in other browsers](plans/032-script-api-additions-and-browser-matrix.md) | draft | — | from 030: browser matrix (Firefox, Safari, Chrome, phone), `Date` hidden, other bodies, maneuver data, refusal feedback, warp while a script runs, editor niceties, fuel-count budget |
 | 039 | [Release pass: frame budget, mountain haze, radar altitude](plans/039-performance-and-look-pass.md) | draft | — | from the 031 review: high preset over budget at pad/hillside, pale mountains, no radar altitude |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
+| 042 | [SAS and flight assists](plans/042-sas-and-flight-assists.md) | draft | — | v1 (ADR 0048): attitude hold and pro/retro/normal/radial modes |
+| 043 | [Save and load game](plans/043-save-and-load-game.md) | draft | — | v1: quicksave, autosave, resume flights, versioned format |
+| 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | draft | — | v1: second body, patched conics, landing on the moon |
+| 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | draft | — | v1: plan burns in map view, navball marker, SAS node mode |
+| 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | draft | — | v1: install mods from file/URL, spec Phase 2 criterion |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

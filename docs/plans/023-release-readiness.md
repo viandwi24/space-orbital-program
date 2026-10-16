@@ -3,7 +3,7 @@ id: 023
 title: "Release readiness: menus, settings, performance, polish"
 status: draft
 owner: ""
-depends: [019, 020, 021, 022]
+depends: [019, 020, 021, 022, 039, 042, 043, 044, 045, 046]
 phase: 2
 created: 2026-10-16
 updated: 2026-10-16
@@ -41,3 +41,4 @@ The game can be put in front of the public: main menu, settings (graphics preset
 ## Log
 
 - 2026-10-16 — Created as draft at the human's request (visual overhaul, code-only).
+- 2026-10-17 — Now the final v1 plan (ADR 0048): depends on 039 and 042–046; also owns onboarding/tutorial, the public roadmap page, and re-running every unticked `[manual]` criterion of earlier plans.

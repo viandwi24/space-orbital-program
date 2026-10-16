@@ -63,3 +63,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0045 | [Engine gimbal, control surfaces and the attitude mixer](0045-engine-gimbal-and-control-mixing.md) | accepted | 2026-10-17 |
 | 0046 | [Aerodynamic damping of fins](0046-fin-damping.md) | accepted | 2026-10-17 |
 | 0047 | [glTF asset provider, shard debris, lit smoke, plume ground light, plasma colour](0047-asset-provider-and-effect-techniques.md) | accepted | 2026-10-17 |
+| 0048 | [v1 public release scope](0048-v1-public-release-scope.md) | accepted | 2026-10-17 |
