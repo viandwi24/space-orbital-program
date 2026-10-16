@@ -54,7 +54,7 @@
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 | 042 | [SAS and flight assists](plans/042-sas-and-flight-assists.md) | in-progress | sas session | ADR 0049, API 0.1.11; sim, stock and HUD components done (journal 042); flight-page integration and `ship.sas` wait for plans 032/039;  v1 (ADR 0048): attitude hold and pro/retro/normal/radial modes |
 | 043 | [Save and load game](plans/043-save-and-load-game.md) | in-progress | save session (Claude, 2026-10-17) | ADR 0050, API 0.1.12; `Sim.save()`/`createSim({ resume })`, versioned format, save library and dialogs done; resume is byte-exact except in ground contact (bounded 5e-3); flight-page/main-menu integration waits for plan 039 (`journal/assets/043-integration.patch`) |
-| 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | draft | — | v1: second body, patched conics, landing on the moon |
+| 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | in-progress | moon session (Claude, 2026-10-17) | v1: second body, patched conics, landing on the moon; ADRs 0051, 0052; sim, kepler, core, stock done with the scripted mission; renderer, map view and web wait for plan 039 |
 | 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | draft | — | v1: plan burns in map view, navball marker, SAS node mode |
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | draft | — | v1: install mods from file/URL, spec Phase 2 criterion |
 

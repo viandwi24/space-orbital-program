@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.12; decisions in ADR 0013, 0014, 0015, 0019, 0028, 0033, 0034, 0035, 0045, 0049 and 0050). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.13; decisions in ADR 0013, 0014, 0015, 0019, 0028, 0033, 0034, 0035, 0045, 0049, 0050 and 0051). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 

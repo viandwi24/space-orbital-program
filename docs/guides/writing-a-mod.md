@@ -152,7 +152,7 @@ export const HomeBody = defineBody({
 });
 ```
 
-A body with no `parent`/`orbit` is a root body. Gravity is point-mass; the atmosphere is exponential.
+A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (a registered body id) and `orbit` (Kepler elements around it; `stock.cinder` in `mods/stock/src/bodies.ts` is the example, ADR 0052): the sim moves it on rails, gives it a Laplace sphere of influence and switches vessels between spheres (ADR 0051). Gravity is point-mass (one body at a time); the atmosphere is exponential.
 
 ## 5. The plugin
 
