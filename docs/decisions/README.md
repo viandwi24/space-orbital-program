@@ -47,10 +47,12 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0026 | [Design system and flight HUD architecture](0026-design-system-and-hud-architecture.md) | accepted | 2026-10-16 |
 | 0027 | [Environment rendering pipeline: analytic planet and sky, one sun, post chain, presets](0027-environment-rendering-pipeline.md) | accepted | 2026-10-16 |
 | 0028 | [Part visuals: a mod-supplied descriptor and a model provider interface](0028-part-visuals-and-model-providers.md) | accepted | 2026-10-16 |
-| 0030 | [Launch-site coordinates are body-fixed; ground detail without terrain geometry](0030-launch-site-coordinates-and-ground-detail.md) | accepted | 2026-10-16 |
 | 0029 | [VAB editor state model and hangar view](0029-vab-editor-state-and-hangar-view.md) | accepted | 2026-10-16 |
+| 0030 | [Launch-site coordinates are body-fixed; ground detail without terrain geometry](0030-launch-site-coordinates-and-ground-detail.md) | accepted | 2026-10-16 |
 | 0031 | [The script runner moves to its own Worker; ship API gains engine and wheel constants](0031-script-runner-in-its-own-worker.md) | accepted | 2026-10-16 |
 | 0033 | [Module descriptors for tools, and `Renderer.project`](0033-module-descriptors-and-renderer-project.md) | accepted | 2026-10-16 |
+| 0034 | [Radial attachment, part yaw, symmetry and design format 2](0034-radial-attachment-symmetry-and-design-format-2.md) | accepted | 2026-10-16 |
+| 0035 | [Lifting surfaces: `VesselApi.airVelocity` and the stock fin](0035-lifting-surfaces-air-velocity-capability.md) | accepted | 2026-10-16 |
 | 0036 | [Terrain heights are visual: baked on the GPU, ray-marched by the planet pass](0036-visual-terrain-heights-baked-and-ray-marched.md) | accepted | 2026-10-16 |
 | 0037 | [Haze by thicker air, two cloud layers in one march, moving waves](0037-haze-and-cloud-layers.md) | accepted | 2026-10-16 |
 | 0038 | [The script Worker runs in a sandboxed iframe with a no-network CSP](0038-script-sandbox-in-an-opaque-origin-iframe.md) | accepted | 2026-10-16 |

@@ -8,6 +8,8 @@ Use these terms consistently in code, docs, and UI.
 | **SOI** | Sphere of influence: region where a body's gravity dominates; patched-conics boundary. |
 | **Vessel** | A connected set of parts under one control authority. A vessel can split (staging, breakage) into several vessels. |
 | **Part** | Smallest placeable unit in assembly. Pure data: mass, mesh, attach nodes, list of module configs. Defined with `definePart`. |
+| **Radial attachment** | A part hung on the side of a cylindrical part (booster, fin, radial decoupler) at an azimuth and height instead of end to end; design format 2, ADR 0034. |
+| **Symmetry** | Editing aid: parts placed together (2, 3, 4 or 6 copies around the vessel) share a group number and are deleted, detached and staged together. |
 | **Module** | Reusable behaviour attached to a part with a config: `Engine`, `FuelTank`, `Decoupler`, … Defined with `defineModule`. |
 | **Resource** | A quantity that flows between parts: liquid fuel, oxidizer, electric charge. Defined with `defineResource`. |
 | **Plugin** | Unit of distribution and loading. Registers parts, modules, resources, bodies, systems. Defined with `definePlugin`. Also called **mod** when third-party. |

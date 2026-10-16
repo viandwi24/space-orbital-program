@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.7; decisions in ADR 0013, 0014, 0015, 0019, 0028 and 0033). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.8; decisions in ADR 0013, 0014, 0015, 0019, 0028, 0033, 0034 and 0035). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 
@@ -88,12 +88,13 @@ update(ctx, dt) {
   const { control, ambient, resources } = ctx.vessel;       // throttle/pitch/roll/yaw; pressure/density/altitude
   ctx.vessel.applyForce({ x: 0, y: thrust, z: 0 });          // part-local frame, this step only, flight only
   ctx.vessel.applyTorque({ x: 0, y: 0, z: torque });
+  const air = ctx.vessel.airVelocity({ x: 0.2, y: 0, z: 0 }); // velocity of a part-frame point relative to the air, part frame (API 0.1.8, ADR 0035)
   const got = resources.withdraw('stock.liquid-fuel', 0.1);  // reachable per flowMode / crossfeed; amount() and deposit() too
   ctx.vessel.detach('top', 2_000);                           // sever the attachment at a node; impulse N·s
 }
 ```
 
-Forces and torques throw on rails (`updateOnRails` must not use them). Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
+Forces, torques and `airVelocity` throw on rails (`updateOnRails` must not use them). `PartDefinition.dragCoefficient` (API 0.1.8) replaces the default `C_d` 0.3 of a part. Attach nodes may not be named `surface` (reserved for radial attachment, ADR 0034); a part with a horizontal node (`dir.y` 0) can hang on the side of a cylindrical part, and `detach(node)` cuts every attachment on the node. Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
 
 ### `definePart`
 
