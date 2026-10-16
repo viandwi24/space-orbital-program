@@ -17,6 +17,7 @@ import {
 	propellantRates,
 	withdraw
 } from '../src/index.ts';
+import { SEA_LEVEL_PRESSURE, describeModule, thrustAtPressure } from '@orbital/sdk';
 import { contextFor, fakeVessel, loaded } from './helpers.ts';
 
 const LF = 'stock.liquid-fuel';
@@ -345,5 +346,33 @@ describe('heat shield', () => {
 		expect(taken).toBeCloseTo(1e6, 6); // 1 kg * 1e6 J/kg over 1 s
 		expect(ctx.state.ablator).toBeCloseTo(0, 12);
 		expect(ModuleHeatShield.absorbHeat!(ctx, { power: 1e9, temperature: 800 }, 1)).toBe(0);
+	});
+});
+
+describe('module descriptors (ADR 0033)', () => {
+	test('the engine describes the same thrust and flow as engineOutput, in vacuum and in air', () => {
+		const cfg = engineConfigSchema.parse(engine);
+		const info = describeModule(ModuleEngine, engine);
+		const e = info?.engine;
+		expect(e).toBeDefined();
+		for (const p of [0, 25_000, SEA_LEVEL_PRESSURE, 2e5]) {
+			const want = engineOutput(cfg, burning, p);
+			expect(thrustAtPressure(e!.thrust, p) / want.thrust).toBeCloseTo(1, 12);
+			expect(e!.massFlow / want.massFlow).toBeCloseTo(1, 12);
+		}
+		expect(e!.propellants).toEqual(engine.propellants);
+		expect(e).toMatchObject({ ignited: false, flameout: false });
+	});
+
+	test('a live view supplies ignited and flameout; the decoupler names its node and whether it fired', () => {
+		expect(
+			describeModule(ModuleEngine, engine, { ignited: true, throttle: 1, flameout: false })?.engine
+				?.ignited
+		).toBe(true);
+		expect(describeModule(ModuleDecoupler, {})?.separator).toEqual({ node: 'top', done: false });
+		expect(
+			describeModule(ModuleDecoupler, { separates: 'bottom' }, { decoupled: true })?.separator
+		).toEqual({ node: 'bottom', done: true });
+		expect(describeModule(ModuleResourceContainer, { contents: {} })).toBeUndefined();
 	});
 });

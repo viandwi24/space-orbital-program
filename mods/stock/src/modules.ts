@@ -5,7 +5,7 @@
  * written once. See docs/guides/writing-a-mod.md.
  */
 import { defineModule, z, type EntityId } from '@orbital/sdk';
-import { engineOutput, propellantRates } from './engine.ts';
+import { G0, SEA_LEVEL_PRESSURE, engineOutput, ispAt, propellantRates } from './engine.ts';
 import { Ablator, ElectricCharge } from './resources.ts';
 
 declare module '@orbital/sdk' {
@@ -144,6 +144,23 @@ export const ModuleEngine = defineModule({
 	id: 'stock.engine',
 	config: engineConfigSchema,
 	state: (): EngineState => ({ ignited: false, throttle: 0, flameout: false }),
+	// What tools (stage delta-v) may know without running the sim (ADR 0033): the flow is fixed by
+	// the vacuum rating and thrust follows Isp(p) (`engineOutput`), so two curve points are exact.
+	describe: (config, state) => ({
+		engine: {
+			massFlow: config.thrust / (config.ispVacuum * G0),
+			thrust: [
+				{ pressure: 0, thrust: config.thrust },
+				{
+					pressure: SEA_LEVEL_PRESSURE,
+					thrust: (config.thrust * ispAt(config, SEA_LEVEL_PRESSURE)) / config.ispVacuum
+				}
+			],
+			propellants: config.propellants.map((p) => ({ resource: p.resource, ratio: p.ratio })),
+			ignited: state.ignited,
+			flameout: state.flameout
+		}
+	}),
 	onStage(ctx) {
 		ctx.state.ignited = true;
 		ctx.state.flameout = false;
@@ -235,6 +252,7 @@ export const ModuleDecoupler = defineModule({
 	id: 'stock.decoupler',
 	config: decouplerConfigSchema,
 	state: (): DecouplerState => ({ decoupled: false }),
+	describe: (config, state) => ({ separator: { node: config.separates, done: state.decoupled } }),
 	onStage(ctx) {
 		fire(ctx);
 	},
