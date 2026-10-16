@@ -22,3 +22,4 @@ export * from './effects/reentry.ts';
 export * from './effects/particles.ts';
 export * from './effects/explosion.ts';
 export * from './effects/transitions.ts';
+export * from './vab/index.ts';
