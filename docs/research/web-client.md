@@ -45,3 +45,28 @@ Source: https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_t
 - Keys and values are always strings; storage is per origin and `localStorage` is shared across same-origin tabs. No size limit is stated on the page (browsers commonly allow about 5 MB per origin).
 - `setItem` can throw `QuotaExceededError`; access can throw `SecurityError` when storage is blocked (per the HTML spec; the MDN page shows the try/catch detection pattern). `getItem` returns `null` for a missing key. Hence `saveScript`/`loadScript` wrap every access in try/catch like `saveDraft`.
 - The `storage` event fires only in other same-origin documents, not the one that wrote; not used (one flight tab is assumed).
+
+## Design system and HUD (plan 021)
+
+Checked 2026-10-16.
+
+### Fonts: Barlow Semi Condensed and IBM Plex Mono
+
+Sources: https://fontsource.org/fonts/barlow-semi-condensed and https://fontsource.org/fonts/ibm-plex-mono (licence line "OFL-1.1", i.e. SIL Open Font License 1.1; `npm view` of both packages also reports `OFL-1.1`, version 5.3.0), install and import docs https://fontsource.org/docs/getting-started/install.
+
+- OFL 1.1 allows bundling and redistribution with the app; the fonts must not be sold on their own, and a modified font may not use the reserved name. We ship them unmodified.
+- `@fontsource/<id>` is the static package; each weight is a CSS file (`400.css`, or `latin-400.css` for the Latin subset only, which is what `apps/web` imports so the browser fetches one woff2 per weight; ids and files verified in `node_modules/@fontsource/*/`). Variable fonts (`@fontsource-variable/*`) were not needed: three weights of the sans and two of the mono are about 70 KB of woff2.
+- Neither font is KSP's, and neither is on the "default roster" (Inter, Geist, JetBrains Mono) the antislop guide lists.
+
+### Svelte 5 patterns used
+
+Source: https://svelte.dev/docs/svelte/$state (2026-10-16): `$state.raw` for values that are only reassigned (the 10 Hz HUD object), `$state` on `bind:this` references (the compiler warns `non_reactive_update` otherwise), a component's `export function` is callable through `bind:this` (the navball's `paint`, the map markers' `place`), `.svelte.ts` modules may not export reassigned state. The page keeps per-frame work out of Svelte entirely (ADR 0026).
+
+### Native `<dialog>` for the pause menu and the help overlay
+
+Source: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog (2026-10-16): `showModal()` moves focus into the dialog, makes the rest of the page inert, exposes `role="dialog"` with `aria-modal="true"`, and Esc closes the most recent modal dialog (a `cancel` event, then `close`). Consequences found in the manual run (journal 021): an Esc `keydown` listener on `window` that opens a dialog must call `preventDefault()`, or the same keypress's default action closes the dialog it just opened; and in the headless Chromium used for the run Esc produced a `cancel` event but no `close` event, so the `Dialog` component reacts to `cancel` too.
+
+### Reduced motion and contrast
+
+- https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion (2026-10-16): `reduce` means the user asked for less non-essential motion; baseline widely available since January 2020. `tokens.css` zeroes the motion durations and every animation/transition under it.
+- https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio (2026-10-16): contrast ratio `(L1 + 0.05) / (L2 + 0.05)`, success criterion 1.4.3 requires 4.5:1 for normal text (3:1 for large text). The test in `src/lib/ui/tokens.test.ts` uses the sRGB relative luminance with coefficients 0.2126/0.7152/0.0722 and checks every text token against the worst case of each translucent panel (composited over white).

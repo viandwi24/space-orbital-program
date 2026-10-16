@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
-**Current plan:** none in progress; 017 (script panel follow-ups and landed HUD) is done
-**Next plan:** visual overhaul requested by the human (2026-10-16): drafts 019 (environment) and 021 (HUD/design system) first, then 020, 022, 023 — target in [`product/visual-direction.md`](product/visual-direction.md). Draft 018 (script sharing) is parked.
+**Current plan:** none in progress; 021 (design system and flight HUD) is done
+**Next plan:** 022 (3D vehicle assembly building; builds on `apps/web/src/lib/ui` and `lib/delta-v.ts` from 021), then 023 (release readiness) and the follow-up drafts 024-026. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md). Draft 018 (script sharing) is parked.
 
 ## Plan board
 
@@ -33,9 +33,10 @@
 | 021 | [UI: design system and flight HUD](plans/021-hud-and-ui-design-system.md) | done | hud session | ADR 0026; tokens, components, own icons and OFL fonts in `apps/web/src/lib/ui`; canvas navball, surface/orbit speed, stage stack with exact per-stage Δv (`lib/delta-v.ts`, shared with the VAB), toasts from sim events, pause menu, controls overlay, map Ap/Pe markers; sim host `pause` and `sim-event` messages |
 | 022 | [UI: 3D vehicle assembly building](plans/022-vab-3d.md) | draft | — | 3D hangar, part catalogue with icons, node picking, Δv/TWR, validation; needs 020, 021 |
 | 023 | [Release readiness](plans/023-release-readiness.md) | draft | — | menus, settings, perf budget, polish, release checklist; needs 019–022 |
+| 024 | [Tooling hooks: module descriptors for delta-v and Renderer.project](plans/024-tooling-hooks-for-mods-and-renderer.md) | draft | — | from 021: SDK module descriptors so mod engines get stage delta-v; renderer projection API to replace the HUD's map-camera mirror |
 | 025 | [Visual: environment follow-ups](plans/025-environment-follow-ups.md) | draft | — | terrain heights, vegetation, weather, sim launch-site coordinates, M1/M2 tuning; from the 019 self-review |
-| 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 | 026 | [Visual: part follow-ups](plans/026-part-visual-follow-ups.md) | draft | — | radial parts and fins, glTF asset provider, engine states, volumetric smoke, real debris, plasma shape, M1/M2 tuning; from the 020 self-review |
+| 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -49,8 +50,9 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 ## Known issues / open questions
 
 - Launch site of the renderer is inferred from the first vessel near the ground, because `placeOnSurface` uses an inertial longitude and the body is already turning at load time (ADR 0027, draft plan 025). The first body is drawn by the planet pass; other bodies are plain lit spheres. Frame times are measured on an Apple M5 only.
-- Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
 - Part visuals (plan 020, ADR 0028): only stack parts exist, so there are no fins, boosters or radial hardware; debris is boxes, the re-entry plasma is an ellipsoid shell, smoke is unlit billboards; the explosion, vacuum and re-entry screenshots are synthetic snapshots (a real crash is covered by unit tests and the camera hold, not by a capture); the destroyed vessel's camera holds the wreck for 5 s then jumps to the planet centre (HUD "lost" state). Draft plan 026.
+- Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
+- HUD (plan 021, ADR 0026): stage Δv understands the stock engine, decoupler and store modules only, and the map markers mirror the renderer's map camera (a test pins the mirror); both are draft plan 024. The layout is tuned for 1280x720 and up, the dev autopilot (`P`) is unreliable under software rendering, and the throttle gauge is read-only.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
@@ -61,10 +63,10 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
-- [019 — Visual: flight environment](journal/019-flight-environment.md)
-- [017 — Script panel follow-ups and landed HUD](journal/017-script-panel-follow-ups.md)
 - [021 — UI: design system and flight HUD](journal/021-hud-and-ui-design-system.md)
 - [020 — Visual: part models, materials and effects](journal/020-part-models-and-effects.md)
+- [019 — Visual: flight environment](journal/019-flight-environment.md)
+- [017 — Script panel follow-ups and landed HUD](journal/017-script-panel-follow-ups.md)
 - [016 — Landed vessels on surface-fixed rails](journal/016-landed-vessels-on-rails.md)
 - [015 — Scripting in the web client](journal/015-scripting-web-integration.md)
 - [014 — Re-entry heating and part temperature](journal/014-reentry-heating.md)
