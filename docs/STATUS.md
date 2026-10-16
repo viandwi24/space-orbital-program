@@ -56,7 +56,7 @@
 | 043 | [Save and load game](plans/043-save-and-load-game.md) | done | save session (Claude, 2026-10-17) | ADR 0050, API 0.1.12; `Sim.save()`/`createSim({ resume })`, versioned format, save library, F5/F9, autosave, pause-menu save and load dialogs and "Load a flight" on the main menu; resume is byte-exact except in ground contact (bounded 5e-3); a named save in orbit reloaded with the same Ap/Pe to the digit |
 | 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | done | moon session (Claude, 2026-10-17) | ADRs 0051 (body tree, frames, SOI transitions on rails and in flight, warp stop, save format 2), 0052 (`stock.cinder`, Δv table in the journal), 0054 (moon pass, one height function); API 0.1.13; scripted mission pad to landing at rest on the moon in `bun test` (deterministic); `kepler.predictPatchedConics`; map view with moon orbit, sphere, predicted path and focus (Tab); extras in draft 049 |
 | 049 | [Moon polish](plans/049-moon-polish.md) | draft | — | from 044: ground effects on the moon, terrain shadows, rocks, terrain kind per body |
-| 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | draft | — | v1: plan burns in map view, navball marker, SAS node mode |
+| 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | done | node session (Claude, 2026-10-17) | ADR 0056, API 0.1.14, save format 3; nodes are sim state with a remaining-burn model (`kepler.predictWithManeuvers` serves the sim and the map), SAS `maneuver`, `warp-to`, `ship.nodes`/`addNode`/`warpTo`; the predicted moon periapsis equals a sim run to the metre; in the browser a node, warp to the burn, SAS and a manual burn gave a moon encounter (Pe 7 km, planned 60: node 10 s late, hand-cut burn); impulsive prediction only |
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | draft | — | v1: install mods from file/URL, spec Phase 2 criterion |
 | 048 | [Half-resolution planet pass and cheaper preset switches](plans/048-half-resolution-planet-pass.md) | draft | — | v1: preset-switch hitch (orchestrator review); half-res pass optional. From 039: slower-GPU budget, hitch of 130 to 290 ms on a preset switch (vegetation rebuild, terrain re-bake), M1/M2 and Intel measurements |
 
@@ -89,6 +89,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 ## Recent journal entries
 
 - [032 — Script API additions and the sandbox in other browsers](journal/032-script-api-additions-and-browser-matrix.md)
+- [045 — Maneuver nodes](journal/045-maneuver-nodes.md)
 - [039 — Release pass: frame budget, mountain haze, radar altitude (in progress)](journal/039-performance-and-look-pass.md)
 - [043 — Save and load game](journal/043-save-and-load-game.md)
 - [042 — SAS and flight assists](journal/042-sas-and-flight-assists.md)
