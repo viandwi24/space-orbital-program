@@ -11,7 +11,7 @@ These rules are what make the stack upgradeable later (ADR 0001, 0003). A plan t
 | `@orbital/physics` | `@orbital/core`, `@dimforge/rapier3d-compat` | DOM, Three.js, Svelte, `sim` |
 | `@orbital/sim` | `core`, `kepler`, `physics` | DOM, Three.js, Svelte, `renderer`, `apps/web` |
 | `@orbital/sdk` | `core` (re-exports) | everything else |
-| `@orbital/scripting` | `core`, `quickjs-emscripten` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies) |
+| `@orbital/scripting` | `core`, `quickjs-emscripten`, `quickjs-emscripten-core` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies) |
 | `@orbital/renderer` | `core`, `three` | `sim` internals (reads snapshots via `core` types), Svelte, Rapier |
 | `mods/*` | `@orbital/sdk` **only** | `core`, `sim`, `physics`, `renderer`, DOM |
 | `apps/web` | anything | — |

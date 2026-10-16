@@ -11,6 +11,10 @@ Source: https://vite.dev/guide/features#web-workers (2026-10-16).
 - Worker scripts may `import` (ESM). In the dev server this is native module-worker support, in production Vite bundles the worker. We use the `new URL` form (spec step 1) in `sim-client.ts`; `vite build` output is checked in plan 009 (`.svelte-kit/output/client/_app/immutable/workers/`).
 - `worker.format` lives on the Worker Options page (https://vite.dev/config/worker-options); the default is `iife`. A worker that statically imports bundled code works in `iife`; if the build complains about code splitting, set `worker: { format: 'es' }` in `vite.config.ts`. Outcome is recorded in the journal.
 
+## QuickJS WASM in the sim Worker (plan 015)
+
+Checked 2026-10-16; sources and package details in `research/scripting.md`. Result (journal 015): `import url from '@jitl/quickjs-wasmfile-release-sync/wasm?url'` works in the module Worker in dev and in `vite build` (one 503 KB asset in `build/_app/immutable/workers/assets/`), passed as `wasmLocation` of `newVariant(releaseSync, ...)`. Importing the `quickjs-emscripten` barrel in a bundled app emits all four variants' `.wasm` files (4.3 MB of dead assets) because the bundler follows each variant's `new URL(...)` before tree-shaking; the Worker therefore imports `@orbital/scripting/runner` (only `createScriptRunnerIn`) and the variant package directly. The page imports `ascentScript` from the `@orbital/scripting/samples/ascent` subpath for the same reason.
+
 ## Rapier compat inside a module worker
 
 Source: package contents of `@dimforge/rapier3d-compat@0.21.0` (`dist/rapier.mjs`, 4.1 MB, the 2.9 MB `.wasm` is embedded in the JS rather than fetched; the only `fetch` is the generic wasm-bindgen branch for a URL/Request argument that `RAPIER.init()` does not pass) and https://rapier.rs/docs/user_guides/javascript/getting_started_js. `init()` therefore needs no network or asset path and runs in any context with `WebAssembly`, including a module worker. The README of the compat package does not discuss workers; confirmed empirically by the manual run (journal 009).

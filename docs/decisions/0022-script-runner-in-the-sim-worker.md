@@ -12,7 +12,7 @@ ADR 0020 made the runner a pure function of snapshots (`runner.tick(snapshot) ->
 
 Run the runner **inside the sim Worker**, driven by `sim-host.ts`: after each `sim.step` the host takes the snapshot, calls `runner.tick(snapshot)` with the active vessel, dispatches the returned commands with `sim.dispatch` and posts status and `print` output to the page (`script-start` / `script-stop` in, `script-status` / `script-log` out). The page never hosts QuickJS. The WASM is loaded with `newQuickJSWASMModule(newVariant(RELEASE_SYNC, { wasmLocation }))` where `wasmLocation` is the bundled asset URL (`@jitl/quickjs-wasmfile-release-sync/wasm?url`), because the default loader's `new URL(..., import.meta.url)` sits in a dependency and Vite's dev dependency optimiser moves it.
 
-`@orbital/scripting` gets one additive option, `quickjs?: QuickJSWASMModule`, so the host supplies the module; the default stays `getQuickJS()` (headless tests unchanged).
+`@orbital/scripting` gets one additive function, `createScriptRunnerIn(module, source, options)`, so the host supplies the WASM module; `createScriptRunner` (shared `getQuickJS()`, used by Bun tests) moved to its own file. The split exists because the bundler follows every variant's `.wasm` reference of the `quickjs-emscripten` barrel before tree-shaking: the Worker imports only `@orbital/scripting/runner` and the single variant package, and the build contains one 503 KB `.wasm` (journal 015).
 
 ## Alternatives considered
 
