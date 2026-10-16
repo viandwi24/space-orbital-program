@@ -27,7 +27,7 @@ emit snapshot (throttled to render rate)
 | **on-rails** | otherwise | position/velocity from Kepler elements at time `t`; modules' `updateOnRails`; no physics backend |
 
 Transitions:
-- flight → on-rails: compute orbital elements from state vector (`kepler.fromStateVector`), destroy physics bodies.
+- flight → on-rails: compute orbital elements from state vector (`kepler.fromStateVector`), destroy physics bodies. `fromStateVector` throws `KeplerError` for near-parabolic (`|e − 1| < 1e-8`) and radial trajectories; plan 007 must handle that, e.g. by keeping the state vector and using `kepler.propagateUniversal` for that vessel.
 - on-rails → flight: compute state vector at `t`, create physics bodies in a fresh local frame.
 - Both transitions are events (`vessel:mode-changed`) that modules and UI can observe.
 

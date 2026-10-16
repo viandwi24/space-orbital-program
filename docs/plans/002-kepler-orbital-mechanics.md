@@ -1,8 +1,8 @@
 ---
 id: 002
 title: Kepler orbital mechanics
-status: ready
-owner: ""
+status: done
+owner: "kepler session (Claude, 2026-10-16)"
 depends: [001]
 phase: 0
 created: 2026-10-16
@@ -49,24 +49,28 @@ updated: 2026-10-16
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/kepler` passes with at least these tests:
+- [x] `bun test packages/kepler` passes with at least these tests:
   - `convert.test.ts`: for 1 000 random bound orbits (e ∈ [0, 0.95], i ∈ [0, π]), `toStateVector(fromStateVector(r,v))` reproduces `r` and `v` within relative 1e-9.
-  - `convert.test.ts`: circular equatorial orbit radius 7 000 km around μ = 3.986e14 → `e < 1e-12`, `i < 1e-12`, `period ≈ 5828.5 s` within 0.01 s.
+  - `convert.test.ts`: circular equatorial orbit radius 7 000 km around μ = 3.986e14 → `e < 1e-12`, `i < 1e-12`, `period ≈ 5828.5 s` within 0.01 s. *(Verified as 5828.52 s ± 0.01 s — the exact value is 5828.5199 s; see Log.)*
   - `propagate.test.ts`: propagating any random bound orbit by exactly one period returns to the start `r` within 1e-6 relative.
   - `propagate.test.ts`: specific orbital energy `v²/2 − μ/|r|` is constant within 1e-9 relative across 100 samples over one period.
   - `anomaly.test.ts`: `solveKepler` converges within 20 iterations for e = 0.999 across 360 mean anomalies, and for hyperbolic e = 5.
   - `soi.test.ts`: Earth-Sun values give SOI ≈ 0.924 million km within 1%.
-- [ ] `bun run typecheck` passes.
-- [ ] `packages/kepler/package.json` has no `dependencies`.
-- [ ] `bun run docs:check` passes.
+- [x] `bun run typecheck` passes.
+- [x] `packages/kepler/package.json` has no `dependencies`.
+- [x] `bun run docs:check` passes.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated.
-- [ ] `docs/journal/002-kepler-orbital-mechanics.md` written (include which textbook algorithms were used and any numeric gotchas).
-- [ ] `docs/architecture/units-and-frames.md` updated if conventions were refined.
-- [ ] ADR if any convention changed.
+- [x] `docs/STATUS.md` updated.
+- [x] `docs/journal/002-kepler-orbital-mechanics.md` written (include which textbook algorithms were used and any numeric gotchas).
+- [x] `docs/architecture/units-and-frames.md` updated if conventions were refined.
+- [x] ADR if any convention changed.
 
 ## Log
 
 - 2026-10-16 — Created.
+- 2026-10-16 — Started by kepler session (Claude).
+- 2026-10-16 — **Acceptance-criterion correction (approved by the human in-session):** the criterion "period ≈ 5828.5 s within 0.01 s" for r = 7 000 km, μ = 3.986e14 cannot pass with correct math: 2π√(r³/μ) = 5828.5199 s (0.0199 s from 5828.5; even μ = 3.986004418e14 gives 5828.5167 s). The test asserts 5828.52 s ± 0.01 s instead. Treated as a rounding slip in the plan text, not a convention change.
+- 2026-10-16 — Near-parabolic handling: element-based functions throw `KeplerError` for |e − 1| < 1e-8 (tested); `propagateUniversal` (universal variables, Vallado Alg. 8) covers that case on state vectors and is tested against Barker's equation. No ADR: both options were offered by the plan's design notes.
+- 2026-10-16 — Done. All acceptance criteria verified by command; evidence in `docs/journal/002-kepler-orbital-mechanics.md`.

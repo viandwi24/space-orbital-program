@@ -5,14 +5,14 @@
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
 **Current plan:** none in progress
-**Next plan:** [`plans/002-kepler-orbital-mechanics.md`](plans/002-kepler-orbital-mechanics.md) (`ready`)
+**Next plan:** [`plans/003-core-world-registries-events.md`](plans/003-core-world-registries-events.md) (`ready`)
 
 ## Plan board
 
 | # | Plan | Status | Owner | Notes |
 |---|---|---|---|---|
 | 001 | [Repo bootstrap](plans/001-repo-bootstrap.md) | done | bootstrap session | scaffold, workspaces, docs system |
-| 002 | [Kepler orbital mechanics](plans/002-kepler-orbital-mechanics.md) | ready | — | no deps on other plans |
+| 002 | [Kepler orbital mechanics](plans/002-kepler-orbital-mechanics.md) | done | kepler session | state↔elements, propagation, SOI; one AC value corrected (see plan Log) |
 | 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | ready | — | can run in parallel with 002 |
 | 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | draft | — | needs 003 |
 | 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | draft | — | needs 003 |
@@ -35,8 +35,10 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
+- `@orbital/kepler` element functions throw `KeplerError` for near-parabolic (|e − 1| < 1e-8) and radial trajectories; plan 007's flight → on-rails switch must handle this (fallback: `propagateUniversal` on the state vector). Noted in `architecture/simulation.md`.
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
 
 ## Recent journal entries
 
+- [002 — Kepler orbital mechanics](journal/002-kepler-orbital-mechanics.md)
 - [001 — Repo bootstrap](journal/001-repo-bootstrap.md)

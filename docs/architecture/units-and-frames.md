@@ -25,7 +25,18 @@ Decided in ADR 0007. Every package follows this; conversions happen at the edges
 
 Orientation of all frames is identical; only the origin differs. Converting between them is a translation of the origin, which keeps conversions cheap and exact enough.
 
-Why +Y up: it matches Three.js defaults and avoids a permanent axis-swap in the renderer. `kepler` treats the orbit normal relative to this convention.
+Why +Y up: it matches Three.js defaults and avoids a permanent axis-swap in the renderer. `kepler` treats the orbit normal relative to this convention (see "Orbital elements" below).
+
+## Orbital elements (`@orbital/kepler`, plan 002)
+
+Refinements of the frame convention above, as implemented in `packages/kepler`:
+
+- Angular momentum `h = r × v`. Inclination `i ∈ [0, π]` is the angle between `h` and +Y: a prograde equatorial orbit (counter-clockwise seen from above the north pole) has `i = 0`, a retrograde one `i = π`.
+- RAAN and every longitude-type angle are measured **right-handed about +Y, starting at +X**. A right-handed rotation about +Y turns +X toward **−Z**, so the ascending node at `raan = π/2` lies on −Z.
+- The textbook (Vallado) frame with +K as the pole maps onto ours by the proper rotation `I = x, J = −z, K = y`. The library converts at the edges of `fromStateVector`/`toStateVector` and otherwise uses the textbook formulas unchanged.
+- Hyperbolic orbits have `a < 0`. `raan`, `argp` are wrapped to `[0, 2π)`. Elliptic mean anomaly `m0` is wrapped to `[0, 2π)`; hyperbolic `m0` is unbounded.
+- Degenerate orbits: circular (`e < 1e-11`) → `argp = 0` and the anomaly is measured from the ascending node; equatorial (`sin i < 1e-11`) → `raan = 0` and `argp` is the longitude of periapsis; both → `raan = argp = 0` and the anomaly is the true longitude.
+- Near-parabolic orbits (`|e − 1| < 1e-8`) cannot be expressed with a semi-major axis: the element functions throw `KeplerError`. `propagateUniversal(r, v, μ, dt)` propagates a state vector for any conic, including this case.
 
 ## Rotations
 

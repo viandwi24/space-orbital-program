@@ -17,6 +17,7 @@ Use these terms consistently in code, docs, and UI.
 | **Sim** | `@orbital/sim`: the fixed-timestep simulation loop that drives the world. |
 | **Flight mode** | Vessel simulated as rigid bodies with joints (physics backend active). |
 | **On rails** | Vessel propagated analytically along a Keplerian orbit; no physics backend. Enables time warp. |
+| **Orbital elements** | The classical set `{ a, e, i, raan, argp, m0, epoch }` describing a two-body orbit (`@orbital/kepler`). Conventions in `architecture/units-and-frames.md`. |
 | **Time warp** | Simulation time runs faster than wall time. Only on rails (physics warp is out of scope for MVP). |
 | **Floating origin** | Rendering trick: the render world's origin is re-centred near the camera so float32 GPU math stays precise. |
 | **Fixed timestep** | Sim advances in constant `dt` steps (default 1/50 s) regardless of render frame rate. |
