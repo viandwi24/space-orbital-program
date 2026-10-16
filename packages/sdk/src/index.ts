@@ -55,6 +55,7 @@ export type { EventMap, ResourceMap, ModuleMap, ResourceKey } from '@orbital/cor
 export {
 	partDefinitionSchema,
 	partShapeSchema,
+	partVisualSchema,
 	resourceDefinitionSchema,
 	bodyDefinitionSchema
 } from '@orbital/core';
@@ -77,6 +78,7 @@ export type {
 	PartDefinition,
 	PartId,
 	PartShape,
+	PartVisual,
 	PhysicsBackend,
 	Plugin,
 	PluginId,

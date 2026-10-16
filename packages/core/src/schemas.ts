@@ -73,12 +73,51 @@ export const partShapeSchema = z.discriminatedUnion('kind', [
 	})
 ]);
 
+const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected "#rrggbb"');
+
+/**
+ * What a part looks like (ADR 0028). `kind` names a renderer generator; `params` are read (and
+ * clamped) by that generator. `plume` and `deploy` name the module whose snapshot drives the
+ * effect: `plume` reads `ignited`, `throttle` and `flameout`; `deploy` reads the boolean `flag`.
+ * Lengths in metres, pressure in Pa, in the part frame (thrust along local +Y).
+ */
+export const partVisualSchema = z.object({
+	kind: z.string().min(1),
+	palette: z
+		.object({
+			primary: hexColour.optional(),
+			secondary: hexColour.optional(),
+			accent: hexColour.optional()
+		})
+		.optional(),
+	params: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
+	plume: z
+		.object({
+			module: definitionIdSchema,
+			nozzle: vec3Tuple,
+			exitRadius: z.number().positive(),
+			length: z.number().positive(),
+			exitPressure: z.number().positive().optional(),
+			color: hexColour.optional()
+		})
+		.optional(),
+	deploy: z
+		.object({
+			module: definitionIdSchema,
+			flag: z.string().min(1),
+			seconds: z.number().positive().optional()
+		})
+		.optional()
+});
+
 export const partDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	title: z.string().min(1),
 	mass: z.number().nonnegative(),
 	mesh: z.string().optional(),
 	shape: partShapeSchema.optional(),
+	/** Look of the part (ADR 0028). Optional: parts without one render as their `shape`. */
+	visual: partVisualSchema.optional(),
 	/** Resources may flow through this part (default true); engines and decouplers set false. */
 	crossfeed: z.boolean().optional(),
 	/**

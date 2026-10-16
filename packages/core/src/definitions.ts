@@ -14,6 +14,7 @@ import type {
 	bodyDefinitionSchema,
 	partDefinitionSchema,
 	partShapeSchema,
+	partVisualSchema,
 	resourceDefinitionSchema
 } from './schemas.ts';
 
@@ -22,6 +23,7 @@ export type BodyDefinition = z.infer<typeof bodyDefinitionSchema>;
 /** Part as pure data: modules are referenced by module id plus an (unchecked here) config. */
 export type PartDefinition = z.infer<typeof partDefinitionSchema>;
 export type PartShape = z.infer<typeof partShapeSchema>;
+export type PartVisual = z.infer<typeof partVisualSchema>;
 
 /**
  * Open interface: plugins map a resource id to extra info by module augmentation
