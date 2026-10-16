@@ -21,6 +21,9 @@ export type ScriptEvent = Extract<WorkerMessage, { kind: 'script-status' | 'scri
 /** A stage the sim fired. */
 export type StageEvent = Extract<WorkerMessage, { kind: 'stage' }>;
 
+/** Any other sim event forwarded for toasts. */
+export type SimEventMessage = Extract<WorkerMessage, { kind: 'sim-event' }>['event'];
+
 export interface SimClient {
 	/** Resolves when the worker has booted the sim (rejects on a boot error). */
 	readonly ready: Promise<Catalog>;
@@ -35,6 +38,9 @@ export interface SimClient {
 	stopScript(): void;
 	onScript(listener: (event: ScriptEvent) => void): () => void;
 	onStage(listener: (event: StageEvent) => void): () => void;
+	onSimEvent(listener: (event: SimEventMessage) => void): () => void;
+	/** Freeze or resume the simulation clock. */
+	setPaused(paused: boolean): void;
 	dispose(): void;
 }
 
@@ -48,6 +54,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
 	const stageListeners = new Set<(event: StageEvent) => void>();
+	const simEventListeners = new Set<(event: SimEventMessage) => void>();
 	let resolveReady!: (catalog: Catalog) => void;
 	let rejectReady!: (error: Error) => void;
 	const ready = new Promise<Catalog>((resolve, reject) => {
@@ -99,6 +106,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			case 'stage':
 				for (const listener of stageListeners) listener(message);
 				break;
+			case 'sim-event':
+				for (const listener of simEventListeners) listener(message.event);
+				break;
 		}
 	};
 	worker.onerror = (event) => fail(event.message ?? 'sim worker crashed');
@@ -138,6 +148,13 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			stageListeners.add(listener);
 			return () => stageListeners.delete(listener);
 		},
+		onSimEvent(listener) {
+			simEventListeners.add(listener);
+			return () => simEventListeners.delete(listener);
+		},
+		setPaused(paused) {
+			if (!disposed) worker.postMessage({ kind: 'pause', paused });
+		},
 		dispose() {
 			if (disposed) return;
 			disposed = true;
@@ -151,6 +168,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			errorListeners.clear();
 			scriptListeners.clear();
 			stageListeners.clear();
+			simEventListeners.clear();
 		}
 	};
 }

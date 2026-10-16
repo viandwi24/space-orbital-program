@@ -56,7 +56,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let last = 0;
 	let cancel: (() => void) | null = null;
 	let disposed = false;
-	let unsubscribeStage: (() => void) | null = null;
+	let unsubscribeEvents: (() => void)[] = [];
+	let paused = false;
 
 	// --- script (plan 015, ADR 0022): the runner ticks right after each sim step ------------------
 	let runner: ScriptRunner | null = null;
@@ -183,9 +184,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			const now = options.now();
 			const delta = Math.min(Math.max((now - last) / 1000, 0), MAX_WALL_DELTA);
 			last = now;
-			sim.step(delta);
+			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
+			if (!paused) sim.step(delta);
 			const snapshot = sim.snapshot();
-			tickScript(snapshot);
+			if (!paused) tickScript(snapshot);
 			options.post({ kind: 'snapshot', snapshot });
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
@@ -201,8 +203,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		endScript();
 		cancel?.();
 		cancel = null;
-		unsubscribeStage?.();
-		unsubscribeStage = null;
+		for (const off of unsubscribeEvents) off();
+		unsubscribeEvents = [];
 		sim?.dispose();
 		sim = null;
 	}
@@ -217,9 +219,46 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				}
 				sim = created;
 				// The page's stage counter follows what the sim fired, not what the page asked for.
-				unsubscribeStage = created.events.on('stage:activated', (e) =>
-					options.post({ kind: 'stage', vessel: Number(e.vessel), stage: e.stage })
-				);
+				unsubscribeEvents = [
+					created.events.on('stage:activated', (e) =>
+						options.post({ kind: 'stage', vessel: Number(e.vessel), stage: e.stage })
+					),
+					created.events.on('stock:engine-flameout', (e) =>
+						options.post({ kind: 'sim-event', event: { type: 'flameout', part: Number(e.part) } })
+					),
+					created.events.on('part:damaged', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'part-damaged',
+								vessel: Number(e.vessel),
+								part: Number(e.part),
+								definition: e.definition,
+								speed: e.speed,
+								outcome: e.outcome,
+								...(e.cause === undefined ? {} : { cause: e.cause }),
+								...(e.temperature === undefined ? {} : { temperature: e.temperature })
+							}
+						})
+					),
+					created.events.on('vessel:mode-changed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'mode-changed',
+								vessel: Number(e.vessel),
+								mode: e.mode,
+								reason: e.reason
+							}
+						})
+					),
+					created.events.on('vessel:destroyed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'vessel-destroyed', vessel: Number(e.vessel), reason: e.reason }
+						})
+					)
+				];
 				last = options.now();
 				options.post({ kind: 'ready', ...catalogOf(created) });
 				cancel = options.schedule?.(tick, TICK_MS) ?? null;
@@ -239,6 +278,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			}
 			if (message.kind === 'script-start') {
 				startScript(message.source, message.vessel);
+				return;
+			}
+			if (message.kind === 'pause') {
+				paused = message.paused;
 				return;
 			}
 			if (message.kind === 'script-stop') {

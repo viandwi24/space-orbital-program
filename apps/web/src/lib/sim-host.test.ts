@@ -73,3 +73,57 @@ describe('sim host (worker boot)', () => {
 		expect(posted[0]).toMatchObject({ kind: 'result', id: 3, result: { ok: false } });
 	});
 });
+
+describe('pause and event forwarding (plan 021)', () => {
+	it('paused: the clock is held (no sim step), snapshots keep coming, and resuming does not burst', async () => {
+		const { host, posted, advance } = makeHost();
+		await host.start();
+		host.handle({
+			kind: 'command',
+			id: 1,
+			command: { type: 'load-vessel', design: referenceTwoStage() }
+		});
+		const tOf = (): number => {
+			const s = posted.findLast((m) => m.kind === 'snapshot');
+			return s?.kind === 'snapshot' ? s.snapshot.t : -1;
+		};
+		advance(50);
+		host.tick();
+		const before = tOf();
+		expect(before).toBeGreaterThan(0);
+		host.handle({ kind: 'pause', paused: true });
+		advance(5_000);
+		host.tick();
+		expect(tOf()).toBe(before);
+		host.handle({ kind: 'pause', paused: false });
+		advance(16);
+		host.tick();
+		expect(tOf() - before).toBeLessThan(MAX_WALL_DELTA + 1e-9);
+		expect(tOf()).toBeGreaterThan(before);
+		host.dispose();
+	});
+
+	it('forwards flameout and mode-change events as sim-event messages', async () => {
+		const { host, posted, advance } = makeHost();
+		await host.start();
+		host.handle({
+			kind: 'command',
+			id: 1,
+			command: { type: 'load-vessel', design: referenceTwoStage() }
+		});
+		const loaded = posted.find((m) => m.kind === 'result' && m.id === 1);
+		const vessel = loaded?.kind === 'result' && loaded.result.ok ? loaded.result.vessel : undefined;
+		expect(vessel).toBeDefined();
+		host.handle({ kind: 'command', id: 2, command: { type: 'throttle', vessel, value: 1 } });
+		host.handle({ kind: 'command', id: 3, command: { type: 'stage', vessel } });
+		// Burn the booster dry: 100 ms per tick is the host's cap, 70 s needs 700 ticks.
+		for (let i = 0; i < 720; i++) {
+			advance(100);
+			host.tick();
+		}
+		const types = posted.flatMap((m) => (m.kind === 'sim-event' ? [m.event.type] : []));
+		expect(types).toContain('mode-changed');
+		expect(types).toContain('flameout');
+		host.dispose();
+	}, 60_000);
+});
