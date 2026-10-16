@@ -87,10 +87,7 @@ export function acquireFrame(
 ): FlightFrame | undefined {
 	const near = core.frames.find(
 		(f) =>
-			f.inUse &&
-			f.soi === soi &&
-			f.vessels.length > 0 &&
-			length(sub(com, f.origin)) < PHYSICS_RANGE
+			f.inUse && f.soi === soi && f.vessels.length > 0 && length(sub(com, f.origin)) < PHYSICS_RANGE
 	);
 	if (near) return near;
 	const free = core.frames.find((f) => !f.inUse);

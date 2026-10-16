@@ -58,7 +58,11 @@ export function buildBodies(
 		if (parentId === undefined) {
 			// Only the simulated root receives a plain terrain field; a function is asked for every body.
 			body.terrain =
-				typeof terrain === 'function' ? terrain(body.def) : body.def.id === rootId ? terrain : undefined;
+				typeof terrain === 'function'
+					? terrain(body.def)
+					: body.def.id === rootId
+						? terrain
+						: undefined;
 			continue;
 		}
 		const parent = out.get(parentId);

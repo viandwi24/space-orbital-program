@@ -72,8 +72,7 @@ function transitionRails(core: SimCore, vesselId: EntityId, tPrev: number): void
 	const now = railsMotion(body, rails, t);
 	const target = targetAt(body, now.r, t);
 	if (!target) return;
-	const past = (tau: number): number =>
-		pastBoundary(target, railsMotion(body, rails, tau).r, tau);
+	const past = (tau: number): number => pastBoundary(target, railsMotion(body, rails, tau).r, tau);
 	// A vessel that already was on the far side when the step began (placed there, or its rails
 	// were just made) switches now instead of at a time before it existed.
 	const tc = past(tPrev) > 0 ? t : findCrossing(past, tPrev, t);

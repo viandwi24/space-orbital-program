@@ -142,7 +142,9 @@ export function ballisticEligible(
 	const body = bodyOfVessel(core, vessel);
 	if (isControlled(core, vessel) || isStableOrbit(body, vessel.com, vessel.velocity)) return false;
 	const { alt, ground, climb } = altitudeAndClimb(core, vesselId);
-	return alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (body.def.atmosphere?.height ?? 0));
+	return (
+		alt - ground > GROUND_TILE_EXIT && (climb > 0 || alt >= (body.def.atmosphere?.height ?? 0))
+	);
 }
 
 /**
