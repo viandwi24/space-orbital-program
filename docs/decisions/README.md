@@ -51,3 +51,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0029 | [VAB editor state model and hangar view](0029-vab-editor-state-and-hangar-view.md) | accepted | 2026-10-16 |
 | 0031 | [The script runner moves to its own Worker; ship API gains engine and wheel constants](0031-script-runner-in-its-own-worker.md) | accepted | 2026-10-16 |
 | 0033 | [Module descriptors for tools, and `Renderer.project`](0033-module-descriptors-and-renderer-project.md) | accepted | 2026-10-16 |
+| 0036 | [Terrain heights are visual: baked on the GPU, ray-marched by the planet pass](0036-visual-terrain-heights-baked-and-ray-marched.md) | accepted | 2026-10-16 |
+| 0037 | [Haze by thicker air, two cloud layers in one march, moving waves](0037-haze-and-cloud-layers.md) | accepted | 2026-10-16 |
