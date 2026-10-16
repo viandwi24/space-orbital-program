@@ -1,5 +1,5 @@
 /** Main-thread wrapper over the sim Worker: typed messages, command round trips, snapshot fan-out. */
-import type { Command, CommandResult, Snapshot } from '@orbital/core';
+import type { Command, CommandResult, SimSave, Snapshot } from '@orbital/core';
 import {
 	parseWorkerMessage,
 	type Catalog,
@@ -44,6 +44,8 @@ export interface SimClient {
 	onSimEvent(listener: (event: SimEventMessage) => void): () => void;
 	/** Freeze or resume the simulation clock. */
 	setPaused(paused: boolean): void;
+	/** The whole simulation as plain data (plan 043); rejects with the worker's reason. */
+	save(): Promise<SimSave>;
 	dispose(): void;
 }
 
@@ -53,6 +55,10 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	let isReady = false;
 	let disposed = false;
 	const pending = new Map<number, (result: CommandResult) => void>();
+	const pendingSaves = new Map<
+		number,
+		{ resolve: (s: SimSave) => void; reject: (e: Error) => void }
+	>();
 	const snapshotListeners = new Set<(snapshot: Snapshot) => void>();
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
@@ -71,6 +77,8 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		if (!isReady) rejectReady(new Error(message));
 		for (const resolve of pending.values()) resolve({ ok: false, reason: message });
 		pending.clear();
+		for (const request of pendingSaves.values()) request.reject(new Error(message));
+		pendingSaves.clear();
 		for (const listener of errorListeners) listener(message);
 	};
 
@@ -97,6 +105,18 @@ export function createSimClient(worker: WorkerLike): SimClient {
 					pending.delete(message.id);
 					resolve(message.result);
 				}
+				break;
+			}
+			case 'saved': {
+				const request = pendingSaves.get(message.id);
+				pendingSaves.delete(message.id);
+				request?.resolve(message.save);
+				break;
+			}
+			case 'save-error': {
+				const request = pendingSaves.get(message.id);
+				pendingSaves.delete(message.id);
+				request?.reject(new Error(message.message));
 				break;
 			}
 			case 'error':
@@ -159,6 +179,14 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		setPaused(paused) {
 			if (!disposed) worker.postMessage({ kind: 'pause', paused });
 		},
+		save() {
+			if (disposed) return Promise.reject(new Error('the sim client is disposed'));
+			const id = nextId++;
+			return new Promise<SimSave>((resolve, reject) => {
+				pendingSaves.set(id, { resolve, reject });
+				worker.postMessage({ kind: 'save', id });
+			});
+		},
 		dispose() {
 			if (disposed) return;
 			disposed = true;
@@ -168,6 +196,10 @@ export function createSimClient(worker: WorkerLike): SimClient {
 				resolve({ ok: false, reason: 'the sim client is disposed' });
 			}
 			pending.clear();
+			for (const request of pendingSaves.values()) {
+				request.reject(new Error('the sim client is disposed'));
+			}
+			pendingSaves.clear();
 			snapshotListeners.clear();
 			errorListeners.clear();
 			scriptListeners.clear();
@@ -177,9 +209,17 @@ export function createSimClient(worker: WorkerLike): SimClient {
 	};
 }
 
-/** Starts the real sim Worker (Vite bundles `sim.worker.ts`; the `new URL` form must stay literal). */
-export function startSimWorker(): SimClient {
+/**
+ * Starts the real sim Worker (Vite bundles `sim.worker.ts`; the `new URL` form must stay literal).
+ * With `resume` the sim continues that save instead of starting empty (plan 043); a save that
+ * cannot be resumed makes `ready` reject with the reason.
+ */
+export function startSimWorker(options: { resume?: SimSave } = {}): SimClient {
 	const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
+	// The Worker boots on this first message, so a save is in place before the sim is built.
+	worker.postMessage(
+		options.resume === undefined ? { kind: 'init' } : { kind: 'init', save: options.resume }
+	);
 	let onmessage: WorkerLike['onmessage'] = null;
 	let onerror: WorkerLike['onerror'] = null;
 	return createSimClient({

@@ -5,10 +5,11 @@
 import { createTerrainField } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
-import { createSim } from '@orbital/sim';
+import { createSim, type Sim } from '@orbital/sim';
 import type { ScriptPortLike } from './messages';
 import type { ScriptWorkerLike } from './script-protocol';
 import { scriptWorkerOverPort } from './script-port';
+import { createSaveRouter } from './save/worker-save';
 import { createSimHost } from './sim-host';
 
 /** The script Worker of a Run lives in the page's sandbox iframe; the page sent the port to it (ADR 0038). */
@@ -17,14 +18,22 @@ function spawnScriptWorker(port: ScriptPortLike | undefined): ScriptWorkerLike {
 	return scriptWorkerOverPort(port);
 }
 
+/** The save to continue, from the first message; the sim is built after it arrived. */
+let resume: unknown;
+let current: Sim | undefined;
+
 const host = createSimHost({
-	createSim: () =>
-		createSim({
+	createSim: async () => {
+		current = await createSim({
 			plugins: [Stock],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 			// The same procedural terrain the renderer draws (ADR 0043); the launch site is latitude 0, longitude 0.
-			terrain: (body) => createTerrainField({ radius: body.radius })
-		}),
+			terrain: (body) => createTerrainField({ radius: body.radius }),
+			// `createSim` validates the save (checksum, version, content) and refuses with a readable reason.
+			...(resume === undefined ? {} : { resume })
+		});
+		return current;
+	},
 	spawnScriptWorker: spawnScriptWorker,
 	post: (message) => self.postMessage(message),
 	now: () => performance.now(),
@@ -34,5 +43,16 @@ const host = createSimHost({
 	}
 });
 
-self.onmessage = (event: MessageEvent) => host.handle(event.data);
-void host.start();
+const saves = createSaveRouter({
+	sim: () => current,
+	post: (message) => self.postMessage(message),
+	boot: (save) => {
+		resume = save;
+		void host.start();
+	}
+});
+
+// The page's first message is `init`; the host starts then, from a save when it carries one.
+self.onmessage = (event: MessageEvent) => {
+	if (!saves.handle(event.data)) host.handle(event.data);
+};

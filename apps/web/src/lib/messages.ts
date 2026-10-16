@@ -7,6 +7,7 @@ import type {
 	CommandResult,
 	PartDefinition,
 	ResourceDefinition,
+	SimSave,
 	Snapshot
 } from '@orbital/core';
 
@@ -50,6 +51,13 @@ export interface ScriptPortLike {
 }
 
 export type ClientMessage =
+	/**
+	 * First message to the sim Worker (plan 043): boots the sim, from `save` when the player loads a
+	 * game. `save` is validated by `createSim`, so it travels as `unknown`.
+	 */
+	| { kind: 'init'; save?: unknown }
+	/** Ask for the whole simulation as a `SimSave`; answered with `saved` or `save-error`. */
+	| { kind: 'save'; id: number }
 	| { kind: 'command'; id: number; command: unknown }
 	/** Freeze or resume the simulation clock (the Esc menu); scripts pause with it. */
 	| { kind: 'pause'; paused: boolean }
@@ -61,6 +69,8 @@ export type WorkerMessage =
 	| ({ kind: 'ready' } & Catalog)
 	| { kind: 'snapshot'; snapshot: Snapshot }
 	| { kind: 'result'; id: number; result: CommandResult }
+	| { kind: 'saved'; id: number; save: SimSave }
+	| { kind: 'save-error'; id: number; message: string }
 	| { kind: 'error'; message: string }
 	| {
 			kind: 'script-status';
@@ -115,6 +125,14 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 			return typeof data.id === 'number' && isRecord(data.result) && 'ok' in data.result
 				? (data as unknown as WorkerMessage)
 				: null;
+		case 'saved':
+			return typeof data.id === 'number' && isRecord(data.save)
+				? (data as unknown as WorkerMessage)
+				: null;
+		case 'save-error':
+			return typeof data.id === 'number' && typeof data.message === 'string'
+				? (data as unknown as WorkerMessage)
+				: null;
 		case 'error':
 			return typeof data.message === 'string' ? (data as unknown as WorkerMessage) : null;
 		case 'script-status':
@@ -152,6 +170,10 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (!isRecord(data)) return null;
 	if (data.kind === 'dispose') return { kind: 'dispose' };
+	if (data.kind === 'init') {
+		return data.save === undefined ? { kind: 'init' } : { kind: 'init', save: data.save };
+	}
+	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };
 	if (data.kind === 'script-stop') return { kind: 'script-stop' };
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };

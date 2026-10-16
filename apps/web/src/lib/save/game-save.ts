@@ -1,0 +1,223 @@
+/**
+ * The web client's save record (ADR 0050 point 9): a `SimSave` plus what only the client knows -
+ * a name, the kind of slot, a thumbnail and the vessel the player was flying. Everything read from
+ * storage or a file is untrusted and goes through `parseGameSave`.
+ */
+import { readSimSave, SaveError, type SaveMod, type SimSave } from '@orbital/core';
+
+export const GAME_SAVE_FORMAT = 'orbital-game-save';
+export const GAME_SAVE_VERSION = 1;
+
+/** `quick`: the one F5 slot. `auto`: the rotating autosaves. `manual`: named by the player. */
+export type SaveKind = 'quick' | 'auto' | 'manual';
+
+/** What the list shows without opening the save. */
+export interface SaveSummary {
+	/** Name of the vessel the player was flying. */
+	vessel: string;
+	mode: 'flight' | 'on-rails';
+	/** Metres above the reference sphere, or null when unknown. */
+	altitude: number | null;
+	/** Simulation time, s. */
+	simTime: number;
+	/** Vessels in the save (including debris). */
+	vessels: number;
+	warp: number;
+}
+
+/** Everything but the (large) simulation payload: what the list holds in memory. */
+export interface SaveMeta {
+	format: typeof GAME_SAVE_FORMAT;
+	formatVersion: number;
+	id: string;
+	name: string;
+	kind: SaveKind;
+	createdAt: number;
+	summary: SaveSummary;
+	/** Small JPEG data URL of the flight view, or null. */
+	thumbnail: string | null;
+	mods: SaveMod[];
+}
+
+export interface GameSave extends SaveMeta {
+	/** Entity id of the vessel the player was flying, or null. */
+	focus: number | null;
+	sim: SimSave;
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+	typeof v === 'object' && v !== null && !Array.isArray(v);
+
+type Components = Record<string, Record<string, unknown>>;
+
+interface VesselLike {
+	name: string;
+	mode: 'flight' | 'on-rails';
+	com: { x: number; y: number; z: number };
+}
+
+const vesselsOf = (sim: SimSave): Array<[number, VesselLike]> => {
+	const table = (sim.world.components as Components)['sim.vessel'] ?? {};
+	return Object.entries(table).map(([id, v]) => [Number(id), v as VesselLike]);
+};
+
+/** The list entry text of a save: the focused vessel (or the first), its mode and altitude. */
+export function summarise(sim: SimSave, focus: number | null, bodyRadius: number): SaveSummary {
+	const vessels = vesselsOf(sim);
+	const chosen = vessels.find(([id]) => id === focus) ?? vessels[0];
+	const v = chosen?.[1];
+	// `com` is the cached centre of mass in the inertial frame; on rails it is stale, so the altitude
+	// of a rails vessel is left out rather than guessed (the list shows "on rails").
+	const altitude =
+		v && v.mode === 'flight' ? Math.hypot(v.com.x, v.com.y, v.com.z) - bodyRadius : null;
+	return {
+		vessel: v?.name ?? 'Empty space',
+		mode: v?.mode ?? 'on-rails',
+		altitude,
+		simTime: sim.time,
+		vessels: vessels.length,
+		warp: sim.warp
+	};
+}
+
+export interface BuildInput {
+	id: string;
+	name: string;
+	kind: SaveKind;
+	createdAt: number;
+	sim: SimSave;
+	focus: number | null;
+	thumbnail: string | null;
+	bodyRadius: number;
+}
+
+export function buildGameSave(input: BuildInput): GameSave {
+	return {
+		format: GAME_SAVE_FORMAT,
+		formatVersion: GAME_SAVE_VERSION,
+		id: input.id,
+		name: input.name,
+		kind: input.kind,
+		createdAt: input.createdAt,
+		summary: summarise(input.sim, input.focus, input.bodyRadius),
+		thumbnail: input.thumbnail,
+		mods: input.sim.mods.map((m) => ({ ...m })),
+		focus: input.focus,
+		sim: input.sim
+	};
+}
+
+const damaged = (what: string): SaveError =>
+	new SaveError('damaged', `This save is damaged: ${what}.`);
+
+const summaryOk = (s: unknown): s is SaveSummary =>
+	isRecord(s) &&
+	typeof s.vessel === 'string' &&
+	(s.mode === 'flight' || s.mode === 'on-rails') &&
+	(s.altitude === null || (typeof s.altitude === 'number' && Number.isFinite(s.altitude))) &&
+	typeof s.simTime === 'number' &&
+	typeof s.vessels === 'number' &&
+	typeof s.warp === 'number';
+
+/** Check the envelope fields shared by the list and the loader; returns the meta. */
+export function parseMeta(raw: unknown): SaveMeta {
+	if (!isRecord(raw) || raw.format !== GAME_SAVE_FORMAT) {
+		throw new SaveError('not-a-save', 'This is not an Orbital save file.');
+	}
+	if (typeof raw.formatVersion !== 'number' || !Number.isInteger(raw.formatVersion)) {
+		throw new SaveError('not-a-save', 'This save has no valid format version.');
+	}
+	if (raw.formatVersion > GAME_SAVE_VERSION) {
+		throw new SaveError(
+			'too-new',
+			`This save was made by a newer version of Orbital (file format ${raw.formatVersion}). Update the game to open it.`
+		);
+	}
+	if (typeof raw.id !== 'string' || raw.id === '') throw damaged('it has no id');
+	if (typeof raw.name !== 'string') throw damaged('it has no name');
+	if (raw.kind !== 'quick' && raw.kind !== 'auto' && raw.kind !== 'manual') {
+		throw damaged('its slot kind is unknown');
+	}
+	if (typeof raw.createdAt !== 'number' || !Number.isFinite(raw.createdAt)) {
+		throw damaged('it has no date');
+	}
+	if (!summaryOk(raw.summary)) throw damaged('its summary is unreadable');
+	if (raw.thumbnail !== null && typeof raw.thumbnail !== 'string')
+		throw damaged('its picture is unreadable');
+	if (
+		!Array.isArray(raw.mods) ||
+		!raw.mods.every((m) => isRecord(m) && typeof m.id === 'string' && typeof m.version === 'string')
+	) {
+		throw damaged('its mod list is unreadable');
+	}
+	return {
+		format: GAME_SAVE_FORMAT,
+		formatVersion: raw.formatVersion,
+		id: raw.id,
+		name: raw.name,
+		kind: raw.kind,
+		createdAt: raw.createdAt,
+		summary: raw.summary,
+		thumbnail: raw.thumbnail,
+		mods: raw.mods as SaveMod[]
+	};
+}
+
+/** Validate an envelope read from storage or a file, including the simulation payload. */
+export function parseGameSave(raw: unknown): GameSave {
+	const meta = parseMeta(raw);
+	const record = raw as Record<string, unknown>;
+	const focus = record.focus;
+	if (focus !== null && !(typeof focus === 'number' && Number.isInteger(focus) && focus >= 0)) {
+		throw damaged('the vessel it was flying is unreadable');
+	}
+	const sim = readSimSave(record.sim);
+	return {
+		...meta,
+		focus,
+		sim
+	};
+}
+
+/** Parse the text of a save file. */
+export function parseGameSaveText(text: string): GameSave {
+	let raw: unknown;
+	try {
+		raw = JSON.parse(text);
+	} catch {
+		throw new SaveError('not-json', 'This file is not valid JSON, so it is not an Orbital save.');
+	}
+	return parseGameSave(raw);
+}
+
+export interface ModReport {
+	/** Plugins the save needs that are not loaded. */
+	missing: SaveMod[];
+	/** Plugins loaded in another version than the save was made with. */
+	changed: Array<{ id: string; saved: string; loaded: string }>;
+}
+
+/** Compare the save's mods with the plugins the game booted (`loaded`: id to version). */
+export function compareMods(
+	saved: readonly SaveMod[],
+	loaded: ReadonlyMap<string, string>
+): ModReport {
+	const report: ModReport = { missing: [], changed: [] };
+	for (const mod of saved) {
+		const version = loaded.get(mod.id);
+		if (version === undefined) report.missing.push(mod);
+		else if (version !== mod.version)
+			report.changed.push({ id: mod.id, saved: mod.version, loaded: version });
+	}
+	return report;
+}
+
+/** File name for an exported save: lower-case words from the name. */
+export function exportFileName(name: string): string {
+	const slug = name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 40);
+	return `${slug === '' ? 'orbital-save' : slug}.orbital-save.json`;
+}

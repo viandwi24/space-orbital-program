@@ -478,6 +478,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				stopScript();
 				return;
 			}
+			// `init` and `save` are answered by the Worker entry (save/worker-save.ts), not by the host.
+			if (message.kind === 'init' || message.kind === 'save') return;
 			if (!sim) {
 				options.post({
 					kind: 'result',
