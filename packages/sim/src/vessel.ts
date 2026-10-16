@@ -32,7 +32,7 @@ import {
 	partTransform,
 	partVelocity
 } from './frames.ts';
-import { fromTuple, qFromBasis, qRotate } from './math.ts';
+import { fromTuple, qAboutY, qFromBasis, qRotate } from './math.ts';
 import { AMBIENT_TEMPERATURE, DEFAULT_IMPACT_TOLERANCE } from './constants.ts';
 import type { Overheat } from './thermal.ts';
 import { computeRails, motionOf, orientationOf, surfaceRails } from './orbit.ts';
@@ -131,8 +131,10 @@ function lowestPoint(core: SimCore, parts: readonly EntityId[]): number {
 }
 
 /**
- * Stand the vessel on the ground at (latitude, longitude), nose up, resting on its lowest point,
- * moving with the rotating ground. Local X points east, Y up, Z south.
+ * Stand the vessel on the ground at body-fixed (latitude, longitude), nose up, resting on its
+ * lowest point, moving with the rotating ground. Local X points east, Y up, Z south. The body
+ * has turned `omega * t` about +Y since t = 0, so the inertial position is the body-fixed one
+ * rotated by that angle: a vessel loaded at any time stands on the same ground spot (plan 025).
  */
 export function placeOnSurface(
 	core: SimCore,
@@ -141,11 +143,11 @@ export function placeOnSurface(
 	longitude: number
 ): void {
 	const vessel = vesselOf(core, vesselId);
-	const up: Vec3 = {
+	const up = qRotate(qAboutY(core.body.omega * core.t), {
 		x: Math.cos(latitude) * Math.cos(longitude),
 		y: Math.sin(latitude),
 		z: -Math.cos(latitude) * Math.sin(longitude)
-	};
+	});
 	const eastRaw = cross({ x: 0, y: 1, z: 0 }, up);
 	const east =
 		Math.hypot(eastRaw.x, eastRaw.y, eastRaw.z) > 1e-9 ? normalize(eastRaw) : { x: 0, y: 0, z: -1 };

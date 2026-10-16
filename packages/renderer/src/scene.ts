@@ -51,7 +51,6 @@ import {
 import { OrbitLine, VesselMarker } from './map.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
-import { latLonOf } from './sun.ts';
 import { rotate, rotateInverse } from './vec.ts';
 
 export { DEFAULT_PART_SHAPE };
@@ -82,8 +81,6 @@ export interface SceneConfig {
 
 /** Lowest altitude of the orbit camera above the surface sphere, m. */
 export const MIN_CAMERA_ALTITUDE = 1.2;
-/** A vessel this close to the ground when first seen defines the launch site, m. */
-export const LAUNCH_SITE_MAX_ALTITUDE = 150;
 /** Seconds the camera holds the place of a destroyed active vessel. */
 export const GHOST_HOLD = 5;
 const GHOST_ID = -1;
@@ -112,7 +109,6 @@ export class SceneModel {
 	private pixelRatio = 1;
 	private vesselRadius = 10;
 	private readonly bodyRot = new Map<string, Quat>();
-	private siteLocked: boolean;
 	private cameraDirty = false;
 	private lastView: {
 		active: VesselSnapshot | undefined;
@@ -172,7 +168,6 @@ export class SceneModel {
 		});
 		const primary = config.bodies[0];
 		this.primaryBody = primary?.id;
-		this.siteLocked = config.launchSite !== undefined;
 		this.environment = new Environment({
 			body: primary ?? { id: 'none', radius: 1, atmosphere: undefined },
 			preset: config.preset ?? 'high',
@@ -335,7 +330,6 @@ export class SceneModel {
 			this.bodyRot.set(b.id, b.rotation);
 		}
 
-		this.lockLaunchSite(vessels, bodyWorld);
 		const seen = new Set<number>();
 		for (const v of vessels) {
 			const id = v.id;
@@ -511,30 +505,6 @@ export class SceneModel {
 			velocity: v.velocity,
 			parts: v.parts
 		}));
-	}
-
-	/**
-	 * The sim places a vessel at an inertial latitude/longitude at load time, so with the body
-	 * already turning it is not at body-fixed (0, 0) unless loaded at t = 0. When the host gave no
-	 * launch site, the first vessel seen close to the ground of the primary body defines it.
-	 */
-	private lockLaunchSite(
-		vessels: readonly VesselSnapshot[],
-		bodyWorld: ReadonlyMap<string, Vec3>
-	): void {
-		if (this.siteLocked || !this.primaryBody) return;
-		const rotation = this.bodyRot.get(this.primaryBody);
-		const radius = this.bodies.get(this.primaryBody)?.radius;
-		if (!rotation || !radius || !bodyWorld.has(this.primaryBody)) return;
-		for (const v of vessels) {
-			if (v.soi !== this.primaryBody) continue;
-			const altitude = Math.hypot(v.position.x, v.position.y, v.position.z) - radius;
-			if (altitude > LAUNCH_SITE_MAX_ALTITUDE) continue;
-			const { latitude, longitude } = latLonOf(rotateInverse(rotation, v.position));
-			this.environment.setSite(latitude, longitude);
-			this.siteLocked = true;
-			return;
-		}
 	}
 
 	dispose(): void {
