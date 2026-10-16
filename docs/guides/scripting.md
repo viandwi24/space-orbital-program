@@ -34,9 +34,13 @@ print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 | `ship` | read-only telemetry (below) plus the writable setpoints `ship.throttle`, `ship.attitude` and `ship.sas` |
 | `ship.throttle = x` | engine throttle, 0 to 1; reading returns the last value you set |
 | `ship.attitude = { pitch, yaw, roll }` | steering demand for the reaction wheels, each -1 to 1, missing keys are 0. This is a torque demand, not a target angle: you need a control loop (the sample has a PD loop) |
-| `ship.sas = 'prograde'` | stability assist mode (plan 042): `'off'`, `'hold'`, `'prograde'`, `'retrograde'`, `'normal'`, `'antinormal'`, `'radial-out'` or `'radial-in'`; any other value throws a `TypeError`. The game holds or points the vessel with its reaction wheels, gimbal and control surfaces, so a script can fly a gravity turn with `ship.sas = 'prograde'` instead of a control loop. Reading returns the mode the game reports (the player may switch it with `T` or the buttons) |
+| `ship.sas = 'prograde'` | stability assist mode (plan 042): `'off'`, `'hold'`, `'prograde'`, `'retrograde'`, `'normal'`, `'antinormal'`, `'radial-out'`, `'radial-in'` or `'maneuver'` (points at the burn of the earliest maneuver node); any other value throws a `TypeError`. The game holds or points the vessel with its reaction wheels, gimbal and control surfaces, so a script can fly a gravity turn with `ship.sas = 'prograde'` instead of a control loop. Reading returns the mode the game reports (the player may switch it with `T` or the buttons) |
 | `stage()` | fire the next stage; returns a promise of `{ ok, reason? }` (see "Command feedback") |
 | `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)`; returns a promise of `{ ok, reason? }` |
+| `addNode({ time, prograde, normal, radial })` | plan a maneuver node (plan 045): `time` is simulation time, the three numbers are m/s in the orbital frame at the node (prograde = along the velocity, normal = `r x v`, radial = prograde x normal; missing ones are 0); returns a promise of `{ ok, reason? }`, the new node shows up in `ship.nodes` on a later tick |
+| `setNode(id, { time?, prograde?, normal?, radial? })` | change fields of a node, the others keep their value |
+| `removeNode(id?)` | remove one node, or all of them without an id |
+| `warpTo(time, factor = 100000)` | time warp that slows down by itself and stops at `time` (simulation time) with warp 1; resolves like `warp`, refused while the vessel is in flight; an SOI change ends it |
 | `warp(factor)` | ask for time warp, 1 to 100 000; returns a promise of `{ ok, reason? }` that settles when the game has answered (see "Time warp") |
 | `bodies` | frozen data of every body in the game, by id: `bodies[ship.body]` is `{ id, radius, mass, mu, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, parent?, orbit? }` (SI) |
 | `wait(s)` | promise that resolves when `s` seconds of **simulation** time have passed (resolution: one tick) |
@@ -67,6 +71,7 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 | `engines[]` | `{ part, module, thrust, ispVacuum, ispSeaLevel, ignited, throttle, flameout }`: vacuum thrust at full throttle (N), Isp (s), and the engine's state |
 | `wheels[]` | `{ part, module, torque, enabled }`: maximum torque per axis (N m) of each reaction wheel |
 | `sas` | the stability assist mode the game reports (also the setter above) |
+| `nodes` | maneuver nodes in time order: `[{ id, time, prograde, normal, radial, dv, body, vector }]`; the numbers are the burn that is **left** (the plan until you burn, then what remains), `dv` its size in m/s, `vector` the burn in the inertial `ship.position` axes (`null` if the path never reaches the node). A node whose time has passed and with under 0.5 m/s left disappears |
 | `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle`, `attitude` and `sas`, which have no return value) |
 
 `engines` and `wheels` list the parts still attached, so they change when you stage. Any module whose configuration has `thrust`, `ispVacuum` and `ispSeaLevel` counts as an engine, and any with `torque` and an `enabled` state as a wheel, whoever made the mod. Exhaust speed is `ispVacuum * 9.80665`; with the engines that can still burn, `burn time = mass * ve * (1 - exp(-dv / ve)) / thrust` (the sample does this to time its circularisation burn).
@@ -111,6 +116,29 @@ while (burnAt - time() > 120) {
 }
 await warp(1);
 ```
+
+## Maneuver nodes
+
+Nodes are part of the game state, so the nodes you plan in map view are in `ship.nodes` and the ones a script plans show in the map. A script that executes a node:
+
+```js
+const dv = 250;
+await addNode({ time: time() + 600, prograde: dv });
+await nextTick();                       // the node appears in ship.nodes
+const node = ship.nodes[0];
+ship.sas = 'maneuver';                  // point the nose at the burn
+await warpTo(node.time - 60);           // needs the vessel on rails; stops at warp 1
+await waitUntil(() => time() >= node.time - 60 - 1e-6);
+await wait(40);                         // let the vessel turn
+await stage();
+while (ship.nodes.length > 0) {         // dv shrinks while you burn
+  ship.throttle = ship.nodes[0].dv > 6 ? 1 : ship.nodes[0].dv > 0.4 ? 0.1 : 0;
+  await nextTick();
+}
+ship.throttle = 0;
+```
+
+A burn of `T` seconds is centred on the node: start `T/2` before it (the burn time is `m0 (1 - exp(-dv / (Isp g0))) / mdot`, see ADR 0056). The prediction in the map is the impulsive burn.
 
 ## Common patterns
 

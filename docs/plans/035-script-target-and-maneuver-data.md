@@ -44,3 +44,4 @@ What plan 032 pushed out of the script API because the game has nothing to read 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 032 (the draft 032 listed "target and maneuver information"; the sim has no such concept).
+- 2026-10-17 — The maneuver-node half (`ship.nodes`, `addNode`, `setNode`, `removeNode`, `warpTo`, SAS `maneuver`) shipped with plan 045 (ADR 0056). Left here: `ship.target` and other bodies' state over time (the body-state half needs `kepler` body orbits in the script `bodies`).

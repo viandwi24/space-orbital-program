@@ -6,6 +6,7 @@ Use these terms consistently in code, docs, and UI.
 |---|---|
 | **Body** | A celestial body: planet, moon, star. Has mass, radius, optional atmosphere, and a sphere of influence. |
 | **SOI** | Sphere of influence: region where a body's gravity dominates; patched-conics boundary. |
+| **Maneuver node** | A planned impulsive burn on a vessel's predicted path: a time and prograde/normal/radial delta-v (plan 045, ADR 0056). While the vessel burns, the node shows the burn that is left. |
 | **Vessel** | A connected set of parts under one control authority. A vessel can split (staging, breakage) into several vessels. |
 | **Part** | Smallest placeable unit in assembly. Pure data: mass, mesh, attach nodes, list of module configs. Defined with `definePart`. |
 | **Gimbal** | An engine that tilts its thrust vector by a few degrees to steer the vessel (`stock.engine` `gimbal`, ADR 0045); a control surface does the same with air. |
