@@ -1,10 +1,14 @@
 /** Registers the stock procedural generators (kinds used by `mods/stock`). */
 import { registerPartGenerator, type GenContext } from '../registry.ts';
 import { capsule } from './capsule.ts';
+import { booster } from './booster.ts';
 import { decoupler } from './decoupler.ts';
 import { engine } from './engine.ts';
+import { fin } from './fin.ts';
 import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
+import { noseCone } from './nose-cone.ts';
+import { radialDecoupler } from './radial-decoupler.ts';
 import { tank } from './tank.ts';
 import { reactionWheel } from './wheel.ts';
 
@@ -21,6 +25,10 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('reaction-wheel', reactionWheel);
 	registerPartGenerator('landing-legs', landingLegs);
 	registerPartGenerator('heat-shield', heatShield);
+	registerPartGenerator('radial-decoupler', radialDecoupler);
+	registerPartGenerator('booster', booster);
+	registerPartGenerator('nose-cone', noseCone);
+	registerPartGenerator('fin', fin);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

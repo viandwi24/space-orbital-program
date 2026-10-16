@@ -110,6 +110,9 @@ describe('SceneModel with part visuals (plan 020)', () => {
 				vessel(1, stack({ 'stock.engine': { ignited: false, throttle: 0, flameout: false } }))
 			)
 		);
+		// The plume fades out over the shutdown ramp (plan 026) instead of vanishing at once.
+		expect(plume.visible).toBe(true);
+		for (let i = 0; i < 120; i++) m.prepareFrame(1 / 60, true);
 		expect(plume.visible).toBe(false);
 		m.dispose();
 	});

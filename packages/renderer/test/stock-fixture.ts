@@ -19,6 +19,9 @@ export function stockMaps(): {
 		byId.set(p.id, p);
 		if (p.shape?.kind === 'cylinder') {
 			shapes.set(p.id, { kind: 'cylinder', radius: p.shape.radius, height: p.shape.height });
+		} else if (p.shape?.kind === 'box') {
+			const [x, y, z] = p.shape.size;
+			shapes.set(p.id, { kind: 'box', size: { x, y, z } });
 		}
 		if (p.visual) visuals.set(p.id, p.visual);
 		if (p.attach) attach.set(p.id, p.attach);

@@ -12,7 +12,15 @@ import {
 	ShaderMaterial,
 	Vector3
 } from 'three';
-import { DEFAULT_EXIT_PRESSURE, plumeShape, type PlumeInput, type PlumeShape } from './plume.ts';
+import {
+	DEFAULT_EXIT_PRESSURE,
+	RAMP_START,
+	plumeShape,
+	stepEngineRamp,
+	type EngineRamp,
+	type PlumeInput,
+	type PlumeShape
+} from './plume.ts';
 import { PLUME_FRAG, PLUME_VERT, SPRITE_FRAG, SPRITE_VERT } from './shaders.ts';
 
 export type PlumeSpec = NonNullable<PartVisual['plume']>;
@@ -78,6 +86,8 @@ export class PlumeEffect {
 	private readonly sprite: ShaderMaterial;
 	private readonly meshes: Mesh[] = [];
 	shape: PlumeShape | null = null;
+	private ramp: EngineRamp = RAMP_START;
+	private rampTime: number | null = null;
 
 	constructor(
 		readonly spec: PlumeSpec,
@@ -123,8 +133,17 @@ export class PlumeEffect {
 		pressure: number,
 		time: number
 	): void {
+		// The first call shows the engine as it is (a vessel entering view is not "igniting").
+		const dt = this.rampTime === null ? 0 : Math.max(0, time - this.rampTime);
+		if (this.rampTime === null) {
+			const lit = state.ignited && !state.flameout;
+			this.ramp = { level: lit ? state.throttle : 0, flash: 0, lit };
+		} else this.ramp = stepEngineRamp(this.ramp, state, dt);
+		this.rampTime = time;
 		const input: PlumeInput = {
-			...state,
+			throttle: this.ramp.level,
+			ignited: this.ramp.level > 0,
+			flameout: false,
 			ambientPressure: pressure,
 			exitPressure: this.spec.exitPressure ?? DEFAULT_EXIT_PRESSURE,
 			baseLength: this.spec.length,
@@ -143,10 +162,13 @@ export class PlumeEffect {
 			u.uVacuum!.value = shape.vacuum;
 			u.uDiamonds!.value = shape.diamonds;
 		}
-		this.outer.uniforms.uGain!.value = 1.6 * shape.brightness;
-		this.inner.uniforms.uGain!.value = 4.2 * shape.brightness;
-		this.sprite.uniforms.uSize!.value = Math.max(0.7, shape.maxRadius * (2.6 - 1.5 * shape.vacuum));
-		this.sprite.uniforms.uGain!.value = (1.8 - 0.9 * shape.vacuum) * shape.brightness;
+		// Ignition flash: a brief extra glow and a wider sprite.
+		const boost = 1 + 0.9 * this.ramp.flash;
+		this.outer.uniforms.uGain!.value = 1.6 * shape.brightness * boost;
+		this.inner.uniforms.uGain!.value = 4.2 * shape.brightness * boost;
+		this.sprite.uniforms.uSize!.value =
+			Math.max(0.7, shape.maxRadius * (2.6 - 1.5 * shape.vacuum)) * (1 + 0.35 * this.ramp.flash);
+		this.sprite.uniforms.uGain!.value = (1.8 - 0.9 * shape.vacuum) * shape.brightness * boost;
 	}
 
 	/** Position of the nozzle exit in the part frame. */

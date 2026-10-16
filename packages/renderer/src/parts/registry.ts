@@ -5,9 +5,11 @@ import type { GeometryBuilder, SlotName } from './builder.ts';
 import type { PartDetail } from './types.ts';
 
 export interface GenContext {
-	/** Cylinder shape of the part, metres; the retracted model fits inside it. */
+	/** Cylinder shape of the part, metres; the retracted model fits inside it. For a box shape: half the wider horizontal side and the height. */
 	radius: number;
 	height: number;
+	/** Bounding box of the shape (x, y, z), metres; the model fits inside it. */
+	size: readonly [number, number, number];
 	visual: PartVisual;
 	detail: PartDetail;
 	builder: GeometryBuilder;

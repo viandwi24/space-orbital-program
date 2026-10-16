@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { plumeShape, ambientPressureAt, type PlumeInput } from '../src/effects/plume.ts';
+import {
+	RAMP_START,
+	ambientPressureAt,
+	plumeShape,
+	stepEngineRamp,
+	type PlumeInput
+} from '../src/effects/plume.ts';
 
 const base: PlumeInput = {
 	throttle: 1,
@@ -86,5 +92,48 @@ describe('plume shape (plan 020)', () => {
 		expect(ambientPressureAt(atmo, 5600)).toBeCloseTo(101_325 / Math.E, 6);
 		expect(ambientPressureAt(atmo, 70_000)).toBe(0);
 		expect(ambientPressureAt(undefined, 10)).toBe(0);
+	});
+});
+
+describe('engine ramp (plan 026)', () => {
+	const lit = { throttle: 1, ignited: true, flameout: false };
+	const off = { throttle: 0, ignited: false, flameout: false };
+
+	test('a lit engine ramps up smoothly to full throttle and flashes once at ignition', () => {
+		let s = RAMP_START;
+		const levels: number[] = [];
+		for (let i = 0; i < 60; i++) {
+			s = stepEngineRamp(s, lit, 1 / 60);
+			levels.push(s.level);
+			if (i === 0) expect(s.flash).toBe(1);
+		}
+		for (let i = 1; i < levels.length; i++)
+			expect(levels[i]!).toBeGreaterThanOrEqual(levels[i - 1]!);
+		expect(levels[0]!).toBeLessThan(0.2);
+		expect(levels.at(-1)!).toBeGreaterThan(0.99);
+		expect(s.flash).toBeLessThan(0.02);
+	});
+
+	test('shutdown fades the level to zero and gives no flash; a re-ignition flashes again', () => {
+		let s = { level: 1, flash: 0, lit: true };
+		s = stepEngineRamp(s, off, 0.1);
+		expect(s.level).toBeGreaterThan(0.5);
+		expect(s.level).toBeLessThan(1);
+		for (let i = 0; i < 200; i++) s = stepEngineRamp(s, off, 0.05);
+		expect(s.level).toBe(0);
+		expect(s.flash).toBe(0);
+		expect(stepEngineRamp(s, lit, 0.01).flash).toBe(1);
+	});
+
+	test('the result does not depend on how the time is cut into steps (to 1e-9)', () => {
+		const a = stepEngineRamp(stepEngineRamp(RAMP_START, lit, 0.1), lit, 0.1);
+		const b = stepEngineRamp(RAMP_START, lit, 0.2);
+		expect(a.level).toBeCloseTo(b.level, 9);
+	});
+
+	test('throttle changes follow the commanded level; NaN time is ignored', () => {
+		const s = stepEngineRamp({ level: 1, flash: 0, lit: true }, { ...lit, throttle: 0.4 }, 5);
+		expect(s.level).toBeCloseTo(0.4, 3);
+		expect(stepEngineRamp(RAMP_START, lit, Number.NaN).level).toBe(0);
 	});
 });

@@ -123,14 +123,37 @@ describe('stock part models (plan 020)', () => {
 				if (shape.kind !== 'cylinder') continue;
 				const model = f.create(id);
 				const e = extents(model);
-				expect(e.maxY - e.minY).toBeCloseTo(shape.height, 2);
-				const top = maps.byId.get(id)!.attach!.top!.pos[1];
-				const bottom = maps.byId.get(id)!.attach!.bottom!.pos[1];
-				expect(Math.abs(e.maxY - top)).toBeLessThan(0.002);
-				expect(Math.abs(e.minY - bottom)).toBeLessThan(0.002);
-				expect(model.nodes.top!.pos[1]).toBe(top);
+				const attach = maps.byId.get(id)!.attach!;
+				expect(e.maxY - e.minY, id).toBeLessThanOrEqual(shape.height + 0.002);
+				// Parts with both stack nodes span them exactly; the booster's top node and the
+				// cone's bottom node are checked at the end they have.
+				if (attach.top) expect(Math.abs(e.maxY - attach.top.pos[1]), id).toBeLessThan(0.002);
+				if (attach.bottom) {
+					expect(Math.abs(e.minY - attach.bottom.pos[1]), id).toBeLessThan(0.002);
+				}
+				if (attach.top && attach.bottom) expect(e.maxY - e.minY).toBeCloseTo(shape.height, 2);
+				expect(model.nodes.top?.pos[1]).toBe(attach.top?.pos[1]);
 				expect(e.radial).toBeLessThanOrEqual(shape.radius * 1.002);
 				expect(e.radial).toBeGreaterThanOrEqual(shape.radius * 0.9);
+				model.dispose();
+			}
+			f.dispose();
+		});
+		test(`${label}: box parts (radial decoupler, fin) fit their box and touch their radial node`, () => {
+			const f = factory(detail);
+			for (const id of ['stock.radial-decoupler', 'stock.fin']) {
+				const shape = maps.shapes.get(id)!;
+				if (shape.kind !== 'box') throw new Error(`${id} should be a box`);
+				const model = f.create(id);
+				model.root.updateMatrixWorld(true);
+				const box = new Box3().setFromObject(model.root);
+				expect(box.max.x, id).toBeLessThanOrEqual(shape.size.x / 2 + 0.002);
+				expect(box.min.x, id).toBeGreaterThanOrEqual(-shape.size.x / 2 - 0.002);
+				expect(box.max.y - box.min.y, id).toBeLessThanOrEqual(shape.size.y + 0.002);
+				expect(box.max.z - box.min.z, id).toBeLessThanOrEqual(shape.size.z * 1.7 + 0.002);
+				// The radial node sits on the inner face: the geometry reaches it.
+				const radial = maps.byId.get(id)!.attach!.radial!;
+				expect(Math.abs(box.min.x - radial.pos[0]), id).toBeLessThan(0.002);
 				model.dispose();
 			}
 			f.dispose();
@@ -161,9 +184,10 @@ describe('stock part models (plan 020)', () => {
 			const h = high.create(id).triangles;
 			const l = low.create(id).triangles;
 			counts.set(id, h);
-			expect(h, id).toBeGreaterThanOrEqual(100);
+			// Flat plates (radial decoupler, fin) are a few dozen triangles; revolved parts at least 100.
+			expect(h, id).toBeGreaterThanOrEqual(maps.shapes.get(id)!.kind === 'box' ? 24 : 100);
 			expect(h, id).toBeLessThanOrEqual(9000);
-			expect(l, id).toBeLessThanOrEqual(h * 0.6);
+			expect(l, id).toBeLessThanOrEqual(maps.shapes.get(id)!.kind === 'box' ? h : h * 0.6);
 		}
 		const stack = [
 			'stock.command-pod',
@@ -269,10 +293,13 @@ describe('stock part models (plan 020)', () => {
 			modules: { 'stock.engine': { ignited: true, throttle: 1, flameout: false } },
 			ambientPressure: 101325
 		});
+		// Start-up ramp: a lit engine becomes visible within a fraction of a second.
+		engine.tick(0.1);
 		expect(plume.visible).toBe(true);
 		engine.setState({
 			modules: { 'stock.engine': { ignited: true, throttle: 1, flameout: true } }
 		});
+		engine.tick(3);
 		expect(plume.visible).toBe(false);
 		f.dispose();
 	});

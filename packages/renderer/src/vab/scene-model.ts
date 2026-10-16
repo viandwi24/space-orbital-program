@@ -11,6 +11,8 @@ export interface VabPart {
 	definition: string;
 	/** Origin of the part relative to its group's root origin, metres. */
 	position: V3;
+	/** Turn about the vertical axis, rad (radial parts face their parent; default 0). */
+	yaw?: number;
 	group: string;
 	/** `ghost` is the translucent preview of an attach; it cannot be picked. */
 	role: 'solid' | 'ghost';

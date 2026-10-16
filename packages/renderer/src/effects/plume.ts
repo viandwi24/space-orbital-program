@@ -97,3 +97,38 @@ export function ambientPressureAt(
 	if (!atmosphere || altitude >= atmosphere.height) return 0;
 	return atmosphere.surfacePressure * Math.exp(-Math.max(altitude, 0) / atmosphere.scaleHeight);
 }
+
+/** Time constants of the engine ramp, s: the visible plume follows the commanded state (plan 026). */
+export const RAMP_UP = 0.12;
+export const RAMP_DOWN = 0.2;
+export const FLASH_DECAY = 0.25;
+
+export interface EngineRamp {
+	/** Displayed throttle, 0..1. */
+	level: number;
+	/** Ignition flash, 1 at the moment of ignition, decaying to 0. */
+	flash: number;
+	/** The engine was lit at the previous step. */
+	lit: boolean;
+}
+
+export const RAMP_START: EngineRamp = { level: 0, flash: 0, lit: false };
+
+/**
+ * One step of the start-up ramp and shutdown fade: the displayed throttle rises with `RAMP_UP`
+ * and falls with `RAMP_DOWN` (exponential approach, so any `dt` is stable), an ignition (off to
+ * lit) sets a flash that decays with `FLASH_DECAY`. Pure.
+ */
+export function stepEngineRamp(
+	prev: EngineRamp,
+	engine: { throttle: number; ignited: boolean; flameout: boolean },
+	dt: number
+): EngineRamp {
+	const lit = engine.ignited && !engine.flameout;
+	const goal = lit ? clamp(finite(engine.throttle, 0), 0, 1) : 0;
+	const step = Math.max(0, finite(dt, 0));
+	const tau = goal > prev.level ? RAMP_UP : RAMP_DOWN;
+	const level = prev.level + (goal - prev.level) * (1 - Math.exp(-step / tau));
+	const flash = lit && !prev.lit ? 1 : prev.flash * Math.exp(-step / FLASH_DECAY);
+	return { level: level < 1e-4 ? 0 : level, flash: flash < 1e-3 ? 0 : flash, lit };
+}

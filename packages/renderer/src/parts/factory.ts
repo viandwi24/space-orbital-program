@@ -200,7 +200,7 @@ export class ProceduralProvider implements PartModelProvider {
 
 	create(request: PartModelRequest, context: ProviderContext): PartModel | null {
 		const { visual, shape } = request;
-		if (!visual || shape?.kind !== 'cylinder') return null;
+		if (!visual || !shape) return null;
 		const generator = getPartGenerator(visual.kind);
 		if (!generator) return null;
 		const key = `${request.definition}|${request.detail.segments}|${request.detail.extras}`;
@@ -212,8 +212,13 @@ export class ProceduralProvider implements PartModelProvider {
 			});
 			const generated =
 				generator({
-					radius: shape.radius,
-					height: shape.height,
+					radius:
+						shape.kind === 'cylinder' ? shape.radius : Math.max(shape.size.x, shape.size.z) / 2,
+					height: shape.kind === 'cylinder' ? shape.height : shape.size.y,
+					size:
+						shape.kind === 'cylinder'
+							? [shape.radius * 2, shape.height, shape.radius * 2]
+							: [shape.size.x, shape.size.y, shape.size.z],
 					visual,
 					detail: request.detail,
 					builder,

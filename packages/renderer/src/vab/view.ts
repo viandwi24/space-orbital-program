@@ -86,7 +86,10 @@ export interface VabViewConfig {
 }
 
 export type VabHit =
-	{ kind: 'node'; key: string } | { kind: 'part'; key: string } | { kind: 'ghost' };
+	| { kind: 'node'; key: string }
+	/** `point` is where the ray meets the part, in the design frame of its group (root origin, vessel axes), metres. */
+	| { kind: 'part'; key: string; point: [number, number, number] }
+	| { kind: 'ghost' };
 
 export interface VabStats {
 	/** Milliseconds the last frames spent in `render` on the CPU side (moving average). */
@@ -365,6 +368,7 @@ export class VabView {
 				this.groups.get(p.group)?.object.add(e.model.root);
 			}
 			e.model.root.position.set(...p.position);
+			e.model.root.rotation.y = p.yaw ?? 0;
 		}
 		this.sceneModel = next;
 		this.applyHighlights();
@@ -597,7 +601,7 @@ export class VabView {
 	}
 
 	/** Node markers win over parts when the ray is near one (they sit on the part's end faces). */
-	pick(clientX: number, clientY: number): VabHit | null {
+	pick(clientX: number, clientY: number, options: { ignoreGhost?: boolean } = {}): VabHit | null {
 		const ray = this.rayAt(clientX, clientY);
 		this.vessels.updateMatrixWorld(true);
 		const candidates = [...this.markers.entries()].map(([key, m]) => {
@@ -615,9 +619,13 @@ export class VabView {
 			while (o && o.userData.key === undefined) o = o.parent;
 			if (!o) continue;
 			const entry = this.parts.get(o.userData.key as string);
-			return entry?.slot.role === 'ghost'
-				? { kind: 'ghost' }
-				: { kind: 'part', key: o.userData.key as string };
+			if (entry?.slot.role === 'ghost') {
+				if (options.ignoreGhost) continue;
+				return { kind: 'ghost' };
+			}
+			const group = entry && this.groups.get(entry.group);
+			const local = group ? group.object.worldToLocal(h.point.clone()) : h.point;
+			return { kind: 'part', key: o.userData.key as string, point: [local.x, local.y, local.z] };
 		}
 		return null;
 	}
