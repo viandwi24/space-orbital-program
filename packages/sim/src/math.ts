@@ -74,3 +74,20 @@ export function qFromBasis(x: Vec3, y: Vec3, z: Vec3): Quat {
 }
 
 export const isNonZero = (v: Vec3): boolean => v.x !== 0 || v.y !== 0 || v.z !== 0;
+
+/**
+ * Rotation that stands a body upright on the ground at unit direction `up`: local Y = up, local X
+ * east (the +Y rotation axis crossed with `up`), local Z south. Falls back to X = -Z at the poles.
+ */
+export function uprightRotation(up: Vec3): Quat {
+	const ex = up.z; // (0,1,0) × up = (up.z, 0, -up.x)
+	const ez = -up.x;
+	const len = Math.hypot(ex, ez);
+	const east: Vec3 = len > 1e-9 ? { x: ex / len, y: 0, z: ez / len } : { x: 0, y: 0, z: -1 };
+	const south: Vec3 = {
+		x: east.y * up.z - east.z * up.y,
+		y: east.z * up.x - east.x * up.z,
+		z: east.x * up.y - east.y * up.x
+	};
+	return qFromBasis(east, up, south);
+}

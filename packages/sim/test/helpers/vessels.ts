@@ -4,7 +4,7 @@ import { createRapierBackend } from '@orbital/physics';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../../src/index.ts';
 
-const stack = (name: string, parts: string[], stages: number[][]): VesselDesign => ({
+export const stack = (name: string, parts: string[], stages: number[][]): VesselDesign => ({
 	formatVersion: 1,
 	name,
 	parts: parts.map((part, index) => ({
@@ -70,3 +70,21 @@ export function tower(n: number, decouplerAt?: number): VesselDesign {
 		decouplerAt === undefined ? [[n - 1]] : [[n - 1], [decouplerAt]]
 	);
 }
+
+/**
+ * A lander: pod, wheel, two medium tanks, engine and landing legs (7 parts, top to bottom).
+ * Stage 0 lights the engine; the legs are deployed with an `action`.
+ */
+export const lander = (): VesselDesign =>
+	stack(
+		'Lander',
+		[
+			'stock.command-pod',
+			'stock.reaction-wheel',
+			'stock.tank-medium',
+			'stock.tank-medium',
+			'stock.engine-lv',
+			'stock.landing-legs'
+		],
+		[[4]]
+	);

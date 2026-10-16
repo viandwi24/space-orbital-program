@@ -30,17 +30,6 @@ export interface ControlState {
 export type RailsState =
 	{ kind: 'elements'; elements: OrbitalElements } | { kind: 'state'; r: Vec3; v: Vec3; t0: number };
 
-/**
- * Launch-pad hold (ADR 0017): while a vessel loaded on the surface cannot lift off (thrust does not
- * exceed weight) its body is pinned to this pose (of the body origin, the root part's origin),
- * which is fixed in the rotating ground frame (BCI at body rotation angle 0). Without it a stack
- * standing on one point contact would topple.
- */
-export interface PadHold {
-	position: Vec3;
-	rotation: Quat;
-}
-
 export interface VesselState {
 	name: string;
 	mode: VesselMode;
@@ -64,10 +53,8 @@ export interface VesselState {
 	rails: RailsState | null;
 	/** Seconds in flight without any force or torque applied. */
 	idle: number;
-	/** Touched the ground during the last step. */
+	/** In contact with the ground tile during the last step (ADR 0019). */
 	landed: boolean;
-	/** Set while the vessel is held on the pad; `null` once it lifted off (or never was on one). */
-	pad: PadHold | null;
 }
 
 export interface Attachment {
@@ -115,6 +102,17 @@ export interface FlightBody {
 	com: Vec3;
 	/** Mass per part last pushed to the backend. */
 	masses: Map<EntityId, number>;
+	/** The part each collider belongs to, by collider index (own box first, module colliders after). */
+	shapeParts: EntityId[];
+	/** Identifies the module-contributed colliders the body was built with (see `collectColliders`). */
+	signature: string;
+}
+
+/** The kinematic slab standing in for the ground under one vessel (ADR 0019). */
+export interface GroundTile {
+	handle: BodyHandle;
+	/** Unit normal of the tile's top face (away from the body's centre), BCI axes. */
+	up: Vec3;
 }
 
 /** A physics backend with its local frame (runtime only, not serialisable). */
@@ -130,4 +128,6 @@ export interface FlightFrame {
 	vessels: EntityId[];
 	/** Per vessel, in creation order. */
 	bodies: Map<EntityId, FlightBody>;
+	/** Ground tile per vessel close to the ground. */
+	tiles: Map<EntityId, GroundTile>;
 }

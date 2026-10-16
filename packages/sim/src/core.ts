@@ -45,8 +45,6 @@ export interface SimCore {
 	pending: PendingDetach[];
 	/** Vessels on which a hook applied a non-zero force or torque during the current step. */
 	readonly active: Set<EntityId>;
-	/** Sum of the module-applied forces per vessel this step, N (BCI axes); used by the pad hold. */
-	readonly forces: Map<EntityId, Vec3>;
 	t: number;
 	warp: number;
 	accumulator: number;

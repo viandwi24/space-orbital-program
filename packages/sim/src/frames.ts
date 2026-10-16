@@ -2,27 +2,46 @@
  * Flight frames: one physics backend plus a local frame that moves at constant velocity
  * (`bci = origin + local`, `bciVelocity = frame.velocity + localVelocity`), so Rapier's float32
  * sees small positions and small velocities (units-and-frames.md, ADR 0017). This file creates and
- * removes the (one, compound) body of each vessel, applies gravity, drag and ground contact, advances the backend and
- * reads poses back.
+ * removes the (one, compound) body of each vessel, applies gravity and drag, keeps a ground tile
+ * under every vessel near the ground (ADR 0019), advances the backend, reads contacts and poses back.
  */
-import type { EntityId, PhysicsBackend, Quat, Transform, Vec3 } from '@orbital/core';
+import type {
+	EntityId,
+	PhysicsBackend,
+	Quat,
+	ShapePlacement,
+	Transform,
+	Vec3
+} from '@orbital/core';
 import { add, cross, dot, length, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { axisAreas } from './aero.ts';
-import { CRASH_SPEED, DRAG_COEFFICIENT, PHYSICS_RANGE, REANCHOR_DISTANCE } from './constants.ts';
+import {
+	CONTACT_DISTANCE,
+	DEFAULT_IMPACT_TOLERANCE,
+	DESTROY_FACTOR,
+	DRAG_COEFFICIENT,
+	GROUND_FRICTION,
+	GROUND_TILE_ENTER,
+	GROUND_TILE_EXIT,
+	GROUND_TILE_HALF,
+	PHYSICS_RANGE,
+	REANCHOR_DISTANCE
+} from './constants.ts';
 import {
 	designCom,
 	frameOfVessel,
 	isControlled,
+	moduleDefOf,
+	moduleState,
 	partDefOf,
 	partMass,
 	partOf,
-	totalMass,
 	vesselOf,
 	type SimCore
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
-import { ZERO, qAboutY, qConj, qMul, qRotate } from './math.ts';
+import { ZERO, qConj, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf } from './parts.ts';
 import type { FlightBody, FlightFrame } from './state.ts';
@@ -35,7 +54,8 @@ export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 		origin: { x: 0, y: 0, z: 0 },
 		velocity: { x: 0, y: 0, z: 0 },
 		vessels: [],
-		bodies: new Map()
+		bodies: new Map(),
+		tiles: new Map()
 	};
 }
 
@@ -66,6 +86,7 @@ function releaseIfEmpty(frame: FlightFrame): void {
 	if (frame.vessels.length > 0) return;
 	frame.inUse = false;
 	frame.bodies.clear();
+	frame.tiles.clear();
 }
 
 /** Origin of a part relative to its vessel's root part, vessel body axes (constant while the vessel holds together). */
@@ -116,9 +137,48 @@ export function partVelocity(core: SimCore, frame: FlightFrame, partId: EntityId
 }
 
 /**
- * Create the vessel's one rigid body (ADR 0018): a box collider per part, the body origin at the
- * root part's origin `origin` (frame-local), the given `rotation`, centre-of-mass velocity and
- * angular velocity.
+ * The collision boxes of a vessel in body axes (origin at the root part): each part's own box
+ * first, then the boxes its modules add for their current state (`ModuleDefinition.colliders`,
+ * e.g. deployed landing-leg feet). `shapeParts[i]` is the part collider `i` belongs to;
+ * `signature` identifies the module-contributed boxes so a change can be detected cheaply.
+ */
+export function collectColliders(
+	core: SimCore,
+	vesselId: EntityId
+): { shapes: ShapePlacement[]; shapeParts: EntityId[]; signature: string } {
+	const vessel = vesselOf(core, vesselId);
+	const rootDesign = partOf(core, vessel.root).designPos;
+	const shapes: ShapePlacement[] = [];
+	const shapeParts: EntityId[] = [];
+	const extras: unknown[] = [];
+	for (const id of vessel.parts) {
+		const part = partOf(core, id);
+		const at = sub(part.designPos, rootDesign);
+		shapes.push({
+			shape: { type: 'box', halfExtents: halfExtentsOf(partDefOf(core, part)) },
+			position: at
+		});
+		shapeParts.push(id);
+		for (const m of part.modules) {
+			const colliders = moduleDefOf(core, m.id).colliders;
+			if (!colliders) continue;
+			for (const c of colliders(m.config, moduleState(core, id, m.id))) {
+				shapes.push({
+					shape: { type: 'box', halfExtents: c.halfExtents },
+					position: add(at, c.offset)
+				});
+				shapeParts.push(id);
+				extras.push([id, c.offset, c.halfExtents]);
+			}
+		}
+	}
+	return { shapes, shapeParts, signature: JSON.stringify(extras) };
+}
+
+/**
+ * Create the vessel's one rigid body (ADR 0018): a box collider per part (plus module colliders),
+ * the body origin at the root part's origin `origin` (frame-local), the given `rotation`,
+ * centre-of-mass velocity and angular velocity.
  */
 export function createVesselBody(
 	core: SimCore,
@@ -129,17 +189,9 @@ export function createVesselBody(
 	const vessel = vesselOf(core, vesselId);
 	const rootDesign = partOf(core, vessel.root).designPos;
 	const mp = massProperties(core, vessel.parts, rootDesign);
+	const colliders = collectColliders(core, vesselId);
 	const handle = frame.backend.createBody({
-		shape: {
-			type: 'compound',
-			shapes: vessel.parts.map((id) => {
-				const part = partOf(core, id);
-				return {
-					shape: { type: 'box' as const, halfExtents: halfExtentsOf(partDefOf(core, part)) },
-					position: sub(part.designPos, rootDesign)
-				};
-			})
-		},
+		shape: { type: 'compound', shapes: colliders.shapes },
 		mass: mp.mass,
 		inertia: mp.inertia,
 		centerOfMass: mp.centerOfMass,
@@ -147,13 +199,37 @@ export function createVesselBody(
 		position: pose.origin,
 		rotation: pose.rotation,
 		linearVelocity: pose.linear,
-		angularVelocity: pose.angular
+		angularVelocity: pose.angular,
+		friction: GROUND_FRICTION,
+		restitution: 0
 	});
 	frame.bodies.set(vesselId, {
 		handle,
 		mass: mp.mass,
 		com: mp.centerOfMass,
-		masses: new Map(vessel.parts.map((id) => [id, partMass(core, id)]))
+		masses: new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
+		shapeParts: colliders.shapeParts,
+		signature: colliders.signature
+	});
+}
+
+/**
+ * Rebuild a flight vessel's body when the boxes its modules contribute changed (a landing leg
+ * deployed). Same pose and motion; call between steps, never with forces queued (ADR 0019).
+ */
+export function refreshColliders(core: SimCore, vesselId: EntityId): void {
+	const frame = frameOfVessel(core, vesselId);
+	const body = frame?.bodies.get(vesselId);
+	if (!frame || !body) return;
+	if (collectColliders(core, vesselId).signature === body.signature) return;
+	const m = bodyMotion(frame, body);
+	frame.backend.removeBody(body.handle);
+	frame.bodies.delete(vesselId);
+	createVesselBody(core, frame, vesselId, {
+		origin: m.origin,
+		rotation: m.rotation,
+		linear: m.linear,
+		angular: m.angular
 	});
 }
 
@@ -182,6 +258,7 @@ export function leaveFlight(core: SimCore, vesselId: EntityId): void {
 	const body = frame.bodies.get(vesselId);
 	if (body) frame.backend.removeBody(body.handle);
 	frame.bodies.delete(vesselId);
+	removeTile(frame, vesselId);
 	frame.vessels = frame.vessels.filter((v) => v !== vesselId);
 	releaseIfEmpty(frame);
 }
@@ -201,12 +278,13 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): voi
 	for (const vesselId of frame.vessels.slice()) {
 		const vessel = vesselOf(core, vesselId);
 		core.active.delete(vesselId);
-		core.forces.delete(vesselId);
 		const body = frame.bodies.get(vesselId)!;
 		updateMassProperties(core, frame, vessel.parts, vesselId, body);
 		// Point-mass gravity at the centre of mass (the gradient across a vessel is negligible).
-		const centre = add(frame.origin, bodyMotion(frame, body).centre);
+		const motion = bodyMotion(frame, body);
+		const centre = add(frame.origin, motion.centre);
 		backend.applyForce(body.handle, scale(gravityAt(core, centre), body.mass));
+		updateTile(core, frame, vesselId, centre);
 		runUpdateHooks(core, vesselId, dt);
 		applyDrag(core, frame, vesselId);
 	}
@@ -280,119 +358,141 @@ function applyDrag(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 	}
 }
 
-/**
- * Advance the backend one step, then post-process: the frame origin moves with the frame, bodies
- * below the ground are pushed out (and an uncontrolled vessel that hit it hard is destroyed), the
- * frame re-anchors when the focus vessel has drifted away from the origin, and vessel poses are
- * refreshed. Returns the vessels destroyed by the ground.
- */
-export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): EntityId[] {
-	frame.backend.step(dt);
-	frame.origin = add(frame.origin, scale(frame.velocity, dt));
-	for (const id of frame.vessels) holdOnPad(core, frame, id);
-	const crashed = applyGround(core, frame);
-	for (const id of frame.vessels) {
-		if (!crashed.includes(id)) refreshPose(core, frame, id);
-	}
-	reanchor(core, frame);
-	return crashed;
+/** A part that hit the ground harder than its tolerance (ADR 0019). */
+export interface GroundImpact {
+	vessel: EntityId;
+	part: EntityId;
+	/** Closing speed along the ground normal, m/s. */
+	speed: number;
+}
+
+function removeTile(frame: FlightFrame, vesselId: EntityId): void {
+	const tile = frame.tiles.get(vesselId);
+	if (!tile) return;
+	frame.backend.removeBody(tile.handle);
+	frame.tiles.delete(vesselId);
 }
 
 /**
- * Launch-pad hold (ADR 0017): while thrust does not exceed weight, pin every body to its pad pose
- * (fixed in the rotating ground frame); once it does, let go for good.
+ * Keep the ground tile of one vessel under it (ADR 0019): created when the centre of mass comes
+ * within `GROUND_TILE_ENTER` of the surface, removed above `GROUND_TILE_EXIT`. Its top face is the
+ * tangent plane of the reference sphere below the centre of mass, and it moves with the rotating
+ * ground (velocity relative to the frame, plus the planet's angular velocity) so friction sees the
+ * ground as it is.
  */
-function holdOnPad(core: SimCore, frame: FlightFrame, vesselId: EntityId): void {
-	const vessel = vesselOf(core, vesselId);
-	const pad = vessel.pad;
-	if (!pad) return;
-	const up = scale(vessel.com, 1 / length(vessel.com));
-	const weight = (totalMass(core, vessel.parts) * core.body.mu) / dot(vessel.com, vessel.com);
-	const lift = dot(core.forces.get(vesselId) ?? ZERO, up) - weight;
-	if (lift > 0) {
-		vessel.pad = null;
+function updateTile(core: SimCore, frame: FlightFrame, vesselId: EntityId, centre: Vec3): void {
+	const radius = core.body.def.radius;
+	const d = length(centre);
+	let tile = frame.tiles.get(vesselId);
+	const altitude = d - radius;
+	if (altitude > GROUND_TILE_EXIT || (!tile && altitude > GROUND_TILE_ENTER)) {
+		removeTile(frame, vesselId);
 		return;
 	}
-	// `core.t` is advanced after the frames: the pose to hold is the one at the end of this step.
-	const spin = qAboutY(core.body.omega * (core.t + core.dt));
+	const up = scale(centre, 1 / d);
+	const surface = scale(up, radius);
+	const position = sub(surface, frame.origin);
+	const rotation = uprightRotation(up);
 	const omega = { x: 0, y: core.body.omega, z: 0 };
-	const body = frame.bodies.get(vesselId)!;
-	const origin = qRotate(spin, pad.position);
-	const rotation = qMul(spin, pad.rotation);
-	const centre = add(origin, qRotate(rotation, body.com));
-	frame.backend.setTransform(body.handle, {
-		position: sub(origin, frame.origin),
-		rotation
-	});
-	frame.backend.setVelocity(body.handle, {
-		linear: sub(cross(omega, centre), frame.velocity),
-		angular: omega
-	});
-	vessel.landed = true;
+	const linear = sub(cross(omega, surface), frame.velocity);
+	if (!tile) {
+		const handle = frame.backend.createBody({
+			kind: 'kinematic',
+			shape: {
+				type: 'compound',
+				shapes: [
+					{
+						shape: { type: 'box', halfExtents: GROUND_TILE_HALF },
+						position: { x: 0, y: -GROUND_TILE_HALF.y, z: 0 }
+					}
+				]
+			},
+			mass: 1,
+			inertia: { x: 1, y: 1, z: 1 },
+			position,
+			rotation,
+			linearVelocity: linear,
+			angularVelocity: omega,
+			friction: GROUND_FRICTION,
+			restitution: 0
+		});
+		tile = { handle, up };
+		frame.tiles.set(vesselId, tile);
+	} else {
+		frame.backend.setTransform(tile.handle, { position, rotation });
+		frame.backend.setVelocity(tile.handle, { linear, angular: omega });
+		tile.up = up;
+	}
 }
 
 /**
- * The ground is the body's reference sphere. If any part of a vessel is below it, the whole body
- * is moved out by the deepest penetration, and if a penetrating point was moving into the ground
- * (relative to the rotating ground) the body takes the ground's motion: a completely inelastic,
- * sticky contact. Hard impacts destroy uncontrolled vessels. Plan 012 replaces this.
+ * Read the contacts of every vessel with its ground tile after a step: `landed`, and the parts
+ * whose impact speed exceeds their tolerance. The impact speed is the closing speed of the contact
+ * point against the ground, from the velocities *before* the step (`before`): the step in which
+ * the contact appears is the one that absorbs the approach speed.
  */
-function applyGround(core: SimCore, frame: FlightFrame): EntityId[] {
-	const { backend } = frame;
-	const radius = core.body.def.radius;
+function groundContacts(
+	core: SimCore,
+	frame: FlightFrame,
+	before: Map<EntityId, ReturnType<typeof bodyMotion>>
+): GroundImpact[] {
+	const impacts: GroundImpact[] = [];
 	const omega = { x: 0, y: core.body.omega, z: 0 };
-	const crashed: EntityId[] = [];
 	for (const vesselId of frame.vessels) {
 		const vessel = vesselOf(core, vesselId);
-		if (vessel.pad) continue;
 		vessel.landed = false;
+		const tile = frame.tiles.get(vesselId);
+		const prior = before.get(vesselId);
+		if (!tile || !prior) continue;
 		const body = frame.bodies.get(vesselId)!;
-		const m = bodyMotion(frame, body);
-		let deepest = 0;
-		let deepestUp: Vec3 = ZERO;
-		let impact = 0;
-		let closingAny = false;
-		for (const partId of vessel.parts) {
-			const position = add(m.origin, qRotate(m.rotation, partOffset(core, partId)));
-			const c = add(frame.origin, position);
-			const dist = length(c);
-			const up = scale(c, 1 / dist);
-			const he = halfExtentsOf(partDefOf(core, partOf(core, partId)));
-			const q = m.rotation;
-			const extent =
-				Math.abs(dot(qRotate(q, { x: 1, y: 0, z: 0 }), up)) * he.x +
-				Math.abs(dot(qRotate(q, { x: 0, y: 1, z: 0 }), up)) * he.y +
-				Math.abs(dot(qRotate(q, { x: 0, y: 0, z: 1 }), up)) * he.z;
-			const penetration = extent - (dist - radius);
-			if (penetration <= 0) continue;
-			vessel.landed = true;
-			if (penetration > deepest) {
-				deepest = penetration;
-				deepestUp = up;
-			}
-			const velocity = add(
-				frame.velocity,
-				add(m.linear, cross(m.angular, sub(position, m.centre)))
-			);
-			const closing = -dot(sub(velocity, cross(omega, c)), up);
-			if (closing > 0) {
-				closingAny = true;
-				impact = Math.max(impact, closing);
-			}
+		const touching = frame.backend
+			.contacts(body.handle, tile.handle)
+			.filter((c) => c.distance <= CONTACT_DISTANCE);
+		if (touching.length === 0) continue;
+		vessel.landed = true;
+		const centre = bodyMotion(frame, body).centre;
+		const speeds = new Map<EntityId, number>();
+		for (const c of touching) {
+			const v = add(prior.linear, cross(prior.angular, sub(c.point, centre)));
+			const ground = sub(cross(omega, add(frame.origin, c.point)), frame.velocity);
+			const closing = -dot(sub(v, ground), tile.up);
+			const part = body.shapeParts[c.shape]!;
+			if (closing > (speeds.get(part) ?? 0)) speeds.set(part, closing);
 		}
-		if (!vessel.landed) continue;
-		const moved = add(m.origin, scale(deepestUp, deepest));
-		backend.setTransform(body.handle, { position: moved, rotation: m.rotation });
-		if (closingAny) {
-			const centre = add(frame.origin, add(moved, qRotate(m.rotation, body.com)));
-			backend.setVelocity(body.handle, {
-				linear: sub(cross(omega, centre), frame.velocity),
-				angular: omega
-			});
+		for (const part of [...speeds.keys()].sort((a, b) => a - b)) {
+			const speed = speeds.get(part)!;
+			const tolerance =
+				partDefOf(core, partOf(core, part)).impactTolerance ?? DEFAULT_IMPACT_TOLERANCE;
+			if (speed > tolerance) impacts.push({ vessel: vesselId, part, speed });
 		}
-		if (impact > CRASH_SPEED && !isControlled(core, vessel)) crashed.push(vesselId);
 	}
-	return crashed;
+	return impacts;
+}
+
+/** Outcome of an impact at `speed` for a part with `tolerance`; undefined when it survives. */
+export function impactOutcome(
+	speed: number,
+	tolerance: number
+): 'broken' | 'destroyed' | undefined {
+	if (speed <= tolerance) return undefined;
+	return speed > tolerance * DESTROY_FACTOR ? 'destroyed' : 'broken';
+}
+
+/**
+ * Advance the backend one step, then post-process: ground contacts are read (`landed`, impacts
+ * above a part's tolerance are returned for the caller to apply), the frame origin moves with the
+ * frame, the frame re-anchors when the focus vessel has drifted away from the origin, and vessel
+ * poses are refreshed.
+ */
+export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): GroundImpact[] {
+	const before = new Map<EntityId, ReturnType<typeof bodyMotion>>();
+	for (const id of frame.tiles.keys()) before.set(id, bodyMotion(frame, frame.bodies.get(id)!));
+	frame.backend.step(dt);
+	const impacts = groundContacts(core, frame, before);
+	frame.origin = add(frame.origin, scale(frame.velocity, dt));
+	for (const id of frame.vessels) refreshPose(core, frame, id);
+	reanchor(core, frame);
+	return impacts;
 }
 
 /** Re-centre the frame on its focus vessel when it has drifted more than REANCHOR_DISTANCE. */

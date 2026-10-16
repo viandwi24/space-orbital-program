@@ -20,14 +20,13 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { acquireFrame, enterFlight } from './frames.ts';
+import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
 import { makeContext, runStageHooks } from './hooks.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit } from './orbit.ts';
 import { IDENTITY, qNormalize } from './math.ts';
 import {
 	destroyVessel,
-	holdOnPad,
 	placeAtState,
 	placeOnSurface,
 	processPending,
@@ -66,6 +65,7 @@ function fireStage(core: SimCore, id: EntityId): CommandResult {
 		}
 	}
 	processPending(core);
+	refreshColliders(core, id);
 	core.events.emit('stage:activated', { vessel: id, stage: index });
 	return accept();
 }
@@ -107,7 +107,6 @@ function loadVessel(
 			);
 		}
 		enterFlight(core, id, frame);
-		if (placement.kind === 'surface') holdOnPad(core, id);
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
 	return accept(id);
@@ -183,6 +182,7 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 				);
 			}
 			processPending(core);
+			refreshColliders(core, command.vessel);
 			return accept();
 		}
 		case 'warp': {

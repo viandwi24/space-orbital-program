@@ -16,7 +16,7 @@ import { add, length } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
 import { partTransform } from './frames.ts';
-import { ZERO, isNonZero, qRotate } from './math.ts';
+import { isNonZero, qRotate } from './math.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 
 const needsFlight = (what: string): never => {
@@ -34,6 +34,7 @@ const RAILS_BACKEND: PhysicsBackend = {
 	applyForce: () => needsFlight('physics.applyForce'),
 	applyTorque: () => needsFlight('physics.applyTorque'),
 	setMass: () => needsFlight('physics.setMass'),
+	contacts: () => needsFlight('physics.contacts'),
 	step: () => needsFlight('physics.step'),
 	getTransform: () => needsFlight('physics.getTransform'),
 	setTransform: () => needsFlight('physics.setTransform'),
@@ -80,7 +81,6 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			const { backend, transform, handle } = pose();
 			const world = qRotate(transform.rotation, force);
 			if (isNonZero(force)) core.active.add(vesselId);
-			core.forces.set(vesselId, add(core.forces.get(vesselId) ?? ZERO, world));
 			if (point) {
 				finiteVec(point, 'point');
 				backend.applyForce(

@@ -16,9 +16,9 @@ async function run(): Promise<{ snapshot: string; world: string; time: number }>
 				{ type: 'stage', vessel }
 			]
 		],
-		[500, [{ type: 'attitude', vessel, pitch: 0.2, yaw: -0.1, roll: 0 }]],
+		[500, [{ type: 'attitude', vessel, pitch: 0.02, yaw: -0.01, roll: 0 }]],
 		[1_000, [{ type: 'attitude', vessel, pitch: 0, yaw: 0, roll: 0.3 }]],
-		[2_000, [{ type: 'throttle', vessel, value: 0.6 }]],
+		[2_000, [{ type: 'throttle', vessel, value: 0.9 }]],
 		[3_000, [{ type: 'stage', vessel }]], // fires the decoupler: a second vessel appears
 		[3_500, [{ type: 'throttle', vessel, value: 1 }]]
 	]);

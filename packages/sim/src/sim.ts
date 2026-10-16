@@ -28,7 +28,7 @@ import { runUpdateHooks } from './hooks.ts';
 import { autoRails } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { takeSnapshot } from './snapshot.ts';
-import { destroyVessel, processPending } from './vessel.ts';
+import { damagePart, processPending } from './vessel.ts';
 
 export interface SimOptions {
 	/** Plugins to boot with `loadPlugins`; must register at least one root body. */
@@ -110,7 +110,6 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		post: systems.filter((s) => s.phase === 'post-physics'),
 		pending: [],
 		active: new Set(),
-		forces: new Map(),
 		t: 0,
 		warp: 1,
 		accumulator: 0
@@ -138,9 +137,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		for (const frame of core.frames) if (frame.inUse) prepareFrame(core, frame, dt);
 		for (const frame of core.frames) {
 			if (!frame.inUse) continue;
-			for (const crashed of advanceFrame(core, frame, dt)) {
-				destroyVessel(core, crashed, 'crashed into the ground');
-			}
+			for (const hit of advanceFrame(core, frame, dt)) damagePart(core, hit);
 			for (const id of frame.vessels) {
 				const vessel = vesselOf(core, id);
 				vessel.idle = core.active.has(id) ? 0 : vessel.idle + dt;

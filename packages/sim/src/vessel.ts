@@ -15,6 +15,7 @@ import {
 	designCom,
 	frameOfVessel,
 	moduleDefOf,
+	moduleState,
 	partDefOf,
 	partMass,
 	partOf,
@@ -23,13 +24,16 @@ import {
 	type SimCore
 } from './core.ts';
 import {
-	createVesselBody,
 	bodyMotion,
+	createVesselBody,
+	impactOutcome,
+	type GroundImpact,
 	leaveFlight,
 	partTransform,
 	partVelocity
 } from './frames.ts';
-import { fromTuple, qAboutY, qFromBasis, qMul, qRotate } from './math.ts';
+import { fromTuple, qFromBasis, qRotate } from './math.ts';
+import { DEFAULT_IMPACT_TOLERANCE } from './constants.ts';
 import { computeRails, motionOf } from './orbit.ts';
 import { halfExtentsOf } from './parts.ts';
 import { moduleStateToken, PART, VESSEL, type PartState, type VesselState } from './state.ts';
@@ -98,8 +102,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		orientation: { x: 0, y: 0, z: 0, w: 1 },
 		rails: null,
 		idle: 0,
-		landed: false,
-		pad: null
+		landed: false
 	};
 	world.add(vesselId, VESSEL, state);
 	core.events.emit('vessel:created', { vessel: vesselId });
@@ -112,6 +115,14 @@ function lowestPoint(core: SimCore, parts: readonly EntityId[]): number {
 	for (const id of parts) {
 		const p = partOf(core, id);
 		lowest = Math.min(lowest, p.designPos.y - halfExtentsOf(partDefOf(core, p)).y);
+		// Boxes modules add (deployed feet) stand on the ground too.
+		for (const m of p.modules) {
+			const colliders = moduleDefOf(core, m.id).colliders;
+			if (!colliders) continue;
+			for (const c of colliders(m.config, moduleState(core, id, m.id))) {
+				lowest = Math.min(lowest, p.designPos.y + c.offset.y - c.halfExtents.y);
+			}
+		}
 	}
 	return lowest;
 }
@@ -144,22 +155,6 @@ export function placeOnSurface(
 	const offset = qRotate(vessel.orientation, sub(designCom(core, vessel.parts), rootDesign));
 	vessel.com = add(rootOrigin, offset);
 	vessel.velocity = cross({ x: 0, y: core.body.omega, z: 0 }, vessel.com);
-}
-
-/**
- * Pin a vessel standing on the surface to the pad: record the pose of its body origin in the
- * rotating ground frame (ADR 0017). Call after the vessel is in flight.
- */
-export function holdOnPad(core: SimCore, vesselId: EntityId): void {
-	const vessel = vesselOf(core, vesselId);
-	const frame = frameOfVessel(core, vesselId);
-	if (!frame) throw new Error(`sim: vessel ${vesselId} must be in flight to be held on the pad`);
-	const t = frame.backend.getTransform(frame.bodies.get(vesselId)!.handle);
-	const unspin = qAboutY(-core.body.omega * core.t);
-	vessel.pad = {
-		position: qRotate(unspin, add(frame.origin, t.position)),
-		rotation: qMul(unspin, t.rotation)
-	};
 }
 
 export function placeAtState(
@@ -288,8 +283,7 @@ export function splitVessel(
 		orientation: vessel.orientation,
 		rails: null,
 		idle: 0,
-		landed: false,
-		pad: null
+		landed: false
 	};
 	for (const id of newSide) partOf(core, id).vessel = newId;
 	vessel.parts = keepSide;
@@ -317,10 +311,7 @@ export function splitVessel(
 				angular: rootPose.angular
 			});
 		}
-		// A vessel held on the pad stays held, now by the pose of its new body.
-		if (vessel.pad) holdOnPad(core, vesselId);
 	} else {
-		vessel.pad = null;
 		vessel.rails = computeRails(core.body.mu, vessel.com, vessel.velocity, core.t);
 		newState.rails = computeRails(core.body.mu, newState.com, newState.velocity, core.t);
 	}
@@ -346,4 +337,26 @@ export function destroyVessel(core: SimCore, vesselId: EntityId, reason: string)
 	for (const id of vessel.parts) core.world.destroyEntity(id);
 	core.world.destroyEntity(vesselId);
 	core.events.emit('vessel:destroyed', { vessel: vesselId, reason });
+}
+
+/**
+ * Apply an impact the ground contact reported (ADR 0019): a part above its tolerance is cut from
+ * every neighbour (it becomes debris of its own) and, above twice the tolerance, destroyed. Emits
+ * `part:damaged`. Does nothing for a part that an earlier impact of the same step already removed.
+ */
+export function damagePart(core: SimCore, hit: GroundImpact): void {
+	if (!core.world.hasEntity(hit.part)) return;
+	const part = partOf(core, hit.part);
+	const def = partDefOf(core, part);
+	const outcome = impactOutcome(hit.speed, def.impactTolerance ?? DEFAULT_IMPACT_TOLERANCE);
+	if (!outcome) return;
+	while (part.attachments.length > 0) splitVessel(core, hit.part, part.attachments[0]!.node, 0);
+	core.events.emit('part:damaged', {
+		vessel: hit.vessel,
+		part: hit.part,
+		definition: def.id,
+		speed: hit.speed,
+		outcome
+	});
+	if (outcome === 'destroyed') destroyVessel(core, part.vessel, `${def.id} destroyed by impact`);
 }

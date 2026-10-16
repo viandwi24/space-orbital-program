@@ -153,7 +153,7 @@ describe('commands are validated at the boundary', () => {
 	});
 });
 
-describe('the pad', () => {
+describe('the pad (standing on the ground tile)', () => {
 	test('without thrust the vessel stays where it is on the rotating ground (0.5 m in 10 s)', async () => {
 		const { sim } = await pad();
 		const s0 = sim.snapshot();
@@ -176,7 +176,7 @@ describe('the pad', () => {
 		expect(s1.bodies[0]!.rotation.y).toBeGreaterThan(0); // the body turns
 	});
 
-	test('with thrust above weight it lifts off and the pad hold lets go for good', async () => {
+	test('with thrust above weight it lifts off and stays off the ground', async () => {
 		const { sim, id } = await pad();
 		sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
 		sim.dispatch({ type: 'stage', vessel: id });
@@ -188,7 +188,7 @@ describe('the pad', () => {
 		expect(altitude(sim.snapshot().vessels[0]!.position)).toBeGreaterThan(a5); // coasting up, not re-pinned
 	});
 
-	test('thrust below weight never lifts it: a throttled engine of a heavy stack stays down', async () => {
+	test('thrust below weight never lifts it: a throttled engine of a heavy stack stays down on its tile', async () => {
 		const { sim, id } = await pad();
 		sim.dispatch({ type: 'throttle', vessel: id, value: 0.5 }); // TWR about 0.8
 		sim.dispatch({ type: 'stage', vessel: id });
@@ -396,45 +396,6 @@ describe('flight frames', () => {
 		expect(sim.time).toBeCloseTo(0.2, 9);
 		sim.step(0);
 		expect(sim.time).toBeCloseTo(0.4, 9);
-	});
-
-	test('an uncontrolled vessel that hits the ground hard is destroyed; a controlled one is only stopped', async () => {
-		const sim = await newSim();
-		const lonePod: VesselDesign = {
-			...probe(),
-			parts: probe()
-				.parts.slice(1, 3)
-				.map((p, i) => ({
-					...p,
-					index: i,
-					parent: i === 0 ? null : { index: 0, parentNode: 'bottom', node: 'top' }
-				})),
-			stages: []
-		};
-		const surfaceState = (alt: number, vz: number) => ({
-			kind: 'state' as const,
-			position: { x: 600_000 + alt, y: 0, z: 0 },
-			velocity: { x: -150, y: 0, z: vz }
-		});
-		const dead = sim.dispatch({
-			type: 'load-vessel',
-			design: lonePod,
-			placement: surfaceState(500, -174.5)
-		});
-		const alive = sim.dispatch({
-			type: 'load-vessel',
-			design: probe(),
-			placement: { ...surfaceState(500, -174.5), position: { x: 600_500, y: 0, z: 30 } }
-		});
-		if (!dead.ok || !alive.ok) throw new Error('load failed');
-		const destroyed: unknown[] = [];
-		sim.events.on('vessel:destroyed', (e) => destroyed.push(e));
-		run(sim, 15);
-		expect(destroyed).toEqual([{ vessel: dead.vessel!, reason: 'crashed into the ground' }]);
-		const left = sim.snapshot().vessels;
-		expect(left.map((v) => v.id)).toEqual([alive.vessel!]);
-		expect(altitude(left[0]!.position)).toBeLessThan(10);
-		expect(sim.world.hasEntity(dead.vessel!)).toBe(false);
 	});
 });
 

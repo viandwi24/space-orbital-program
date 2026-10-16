@@ -25,5 +25,17 @@ export const AIR_TEMPERATURE = 288.15;
 /** Box used for a part without a `shape`, edge length in m. */
 export const FALLBACK_PART_SIZE = 1;
 
-/** An uncontrolled vessel hitting the ground faster than this (radial speed relative to the ground) is destroyed, m/s. */
-export const CRASH_SPEED = 10;
+/** Half extents of a ground tile (ADR 0019), m: 400 x 200 x 400, top face on the reference sphere. */
+export const GROUND_TILE_HALF = { x: 200, y: 100, z: 200 };
+/** A vessel whose centre of mass is lower than this above the surface gets a ground tile, m. */
+export const GROUND_TILE_ENTER = 300;
+/** ... and loses it again above this, m (hysteresis). */
+export const GROUND_TILE_EXIT = 400;
+/** Coulomb friction of the ground tile and of every part collider. */
+export const GROUND_FRICTION = 0.8;
+/** Contact points farther apart than this (m) do not count as touching. */
+export const CONTACT_DISTANCE = 0.02;
+/** Impact tolerance of a part that does not declare one, m/s. */
+export const DEFAULT_IMPACT_TOLERANCE = 6;
+/** Impact speed above `tolerance * DESTROY_FACTOR` destroys a part; between 1x and that it breaks off. */
+export const DESTROY_FACTOR = 2;
