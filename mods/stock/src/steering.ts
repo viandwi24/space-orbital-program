@@ -69,3 +69,37 @@ export function surfaceTarget(
 	const t = cross(arm, { x: 0, y: 0, z: 1 });
 	return -maxRad * mixFraction(demand, t) * (forward ? 1 : -1);
 }
+
+/**
+ * Largest torque (N·m, magnitudes about the part axes) a gimbal engine at the part origin can add
+ * with `thrust` N over `rangeRad` (ADR 0049): the lateral force `thrust sin(range)` of each
+ * tilt axis, scaled by the mixer's lever-arm factor, times its lever arm about the centre of mass.
+ */
+export function gimbalAuthority(com: Vec3, thrust: number, rangeRad: number): Vec3 {
+	const r = { x: -com.x, y: -com.y, z: -com.z };
+	const out = { x: 0, y: 0, z: 0 };
+	for (const axis of [
+		{ x: 1, y: 0, z: 0 },
+		{ x: 0, y: 0, z: 1 }
+	]) {
+		const t = cross(r, axis);
+		const f = thrust * Math.sin(rangeRad) * Math.min(1, Math.hypot(t.x, t.y, t.z) / ARM_REFERENCE);
+		out.x += f * Math.abs(t.x);
+		out.y += f * Math.abs(t.y);
+		out.z += f * Math.abs(t.z);
+	}
+	return out;
+}
+
+/**
+ * Largest torque (N·m, magnitudes) of a control surface whose centre of pressure `centre` sits at
+ * the lever `centre - com`, given the force it makes at full deflection relative to neutral
+ * (`delta`, part frame): `|arm x delta|`, scaled by the mixer's lever-arm factor.
+ */
+export function surfaceAuthority(centre: Vec3, com: Vec3, delta: Vec3): Vec3 {
+	const arm = { x: centre.x - com.x, y: centre.y - com.y, z: centre.z - com.z };
+	const t = cross(arm, { x: 0, y: 0, z: 1 });
+	const k = Math.min(1, Math.hypot(t.x, t.y, t.z) / ARM_REFERENCE);
+	const torque = cross(arm, delta);
+	return { x: k * Math.abs(torque.x), y: k * Math.abs(torque.y), z: k * Math.abs(torque.z) };
+}

@@ -7,7 +7,14 @@
 import { defineModule, z, type EntityId, type Vec3, type VesselApi } from '@orbital/sdk';
 import { G0, SEA_LEVEL_PRESSURE, engineOutput, ispAt, propellantRates } from './engine.ts';
 import { Ablator, ElectricCharge } from './resources.ts';
-import { gimbalDirection, gimbalTarget, slew, surfaceTarget } from './steering.ts';
+import {
+	gimbalAuthority,
+	gimbalDirection,
+	gimbalTarget,
+	slew,
+	surfaceAuthority,
+	surfaceTarget
+} from './steering.ts';
 
 declare module '@orbital/sdk' {
 	interface EventMap {
@@ -196,6 +203,14 @@ export const ModuleEngine = defineModule({
 		ctx.state.ignited = true;
 		ctx.state.flameout = false;
 	},
+	/** Thrust times the lever of the bell about the centre of mass (ADR 0049); nothing when cold or fixed. */
+	controlAuthority({ config, state, vessel }) {
+		const range = (config.gimbal.range * Math.PI) / 180;
+		if (range <= 0) return { x: 0, y: 0, z: 0 };
+		const { thrust } = engineOutput(config, state, vessel.ambient.pressure);
+		if (thrust <= 0) return { x: 0, y: 0, z: 0 };
+		return gimbalAuthority(vessel.centreOfMass, thrust, range);
+	},
 	/**
 	 * Each step: take the vessel throttle, work out thrust and mass flow at the ambient pressure,
 	 * draw the propellants from what is reachable, and push along the part's local +Y. If the
@@ -320,6 +335,12 @@ export const ModuleReactionWheel = defineModule({
 	id: 'stock.reaction-wheel',
 	config: reactionWheelConfigSchema,
 	state: (): ReactionWheelState => ({ enabled: true }),
+	/** `torque` about every axis while enabled and powered (ADR 0049). */
+	controlAuthority({ state, config, vessel }) {
+		const powered = config.chargeRate <= 0 || vessel.resources.amount(ElectricCharge.id) > 0;
+		const t = state.enabled && powered ? config.torque : 0;
+		return { x: t, y: t, z: t };
+	},
 	/**
 	 * Torque follows the vessel attitude demand (pitch about +X, roll about +Y, yaw about +Z) up to
 	 * `torque` per axis; electric charge is drawn in proportion to the demand magnitude, and the
@@ -589,6 +610,21 @@ export const ModuleControlSurface = defineModule({
 	id: 'stock.control-surface',
 	config: controlSurfaceConfigSchema,
 	state: (): ControlSurfaceState => ({ deflection: 0 }),
+	/** The force change over the full range in the present airflow, times the lever (ADR 0049). */
+	controlAuthority({ config, vessel }) {
+		const rho = vessel.ambient.density;
+		if (rho === 0) return { x: 0, y: 0, z: 0 };
+		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
+		const v = vessel.airVelocity(at);
+		const max = (config.maxDeflection * Math.PI) / 180;
+		const neutral = controlSurfaceForce(config, v, rho, 0);
+		const full = controlSurfaceForce(config, v, rho, max);
+		return surfaceAuthority(at, vessel.centreOfMass, {
+			x: full.x - neutral.x,
+			y: full.y - neutral.y,
+			z: full.z - neutral.z
+		});
+	},
 	update(ctx, dt) {
 		const { config, state, vessel } = ctx;
 		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
