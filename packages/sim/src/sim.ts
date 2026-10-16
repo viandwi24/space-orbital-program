@@ -7,6 +7,8 @@ import {
 	createWorld,
 	GRAVITATIONAL_CONSTANT,
 	loadPlugins,
+	readSimSave,
+	SaveError,
 	type Command,
 	type CommandResult,
 	type BodyDefinition,
@@ -18,6 +20,7 @@ import {
 	type Plugin,
 	type ReadonlyRegistries,
 	type Rng,
+	type SimSave,
 	type Snapshot,
 	type SystemDefinition,
 	type TerrainField,
@@ -31,6 +34,7 @@ import { runUpdateHooks } from './hooks.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails } from './sas.ts';
+import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
@@ -59,6 +63,14 @@ export interface SimOptions {
 	 * is the flat reference sphere, as before plan 031.
 	 */
 	terrain?: TerrainField | ((body: BodyDefinition) => TerrainField);
+	/**
+	 * Continue a run from `Sim.save()` output (plan 043, ADR 0050): the world, the clock, the PRNG
+	 * and every flight body come from the save, so the run goes on exactly as the saved one would
+	 * have. Read from the outside, so it is validated like a file (`SaveError` with a readable
+	 * message); the plugins must be the ones that wrote it, `seed`, `dt` and `body` default to the
+	 * save's. Mutable behaviour kept in a plugin's own closures, outside the world, is not saved.
+	 */
+	resume?: unknown;
 }
 
 export interface Sim {
@@ -73,6 +85,11 @@ export interface Sim {
 	dispatch(command: unknown): CommandResult;
 	/** Plain-data view of the current state. */
 	snapshot(): Snapshot;
+	/**
+	 * The whole simulation as plain JSON-compatible data, for `createSim({ resume })`. Call between
+	 * `step`s. Never mutates the sim.
+	 */
+	save(): SimSave;
 	readonly world: World;
 	readonly events: EventBus<EventMap>;
 	readonly registries: ReadonlyRegistries;
@@ -86,19 +103,37 @@ export interface Sim {
 }
 
 export async function createSim(options: SimOptions): Promise<Sim> {
-	const dt = options.dt ?? SIM_DT;
+	const resume = options.resume === undefined ? undefined : readSimSave(options.resume);
+	const dt = options.dt ?? resume?.dt ?? SIM_DT;
+	if (resume && dt !== resume.dt) {
+		throw new SaveError(
+			'incompatible',
+			`This save was made with a ${resume.dt} s step; the sim was asked for ${dt} s. A different step would not continue the same run.`
+		);
+	}
 	if (!(dt > 0)) throw new RangeError(`createSim: dt must be positive, got ${dt}`);
 	const maxSteps = options.maxStepsPerCall ?? 5000;
 	const { registries, events, report } = loadPlugins(options.plugins);
 
+	if (resume) {
+		const missing = resume.mods.filter((m) => !report.order.includes(m.id));
+		if (missing.length > 0) {
+			throw new SaveError(
+				'missing-mod',
+				`This save needs mods that are not loaded: ${missing.map((m) => `${m.id} ${m.version}`).join(', ')}.`
+			);
+		}
+	}
+	const seed = options.seed ?? resume?.seed ?? 0;
 	const bodies = registries.bodies.list();
-	const bodyDef = options.body
-		? registries.bodies.get(options.body)
+	const wantedBody = options.body ?? resume?.body;
+	const bodyDef = wantedBody
+		? registries.bodies.get(wantedBody)
 		: bodies.find((b) => b.parent === undefined);
 	if (!bodyDef) {
 		throw new Error(
-			options.body
-				? `createSim: body "${options.body}" is not registered`
+			wantedBody
+				? `createSim: body "${wantedBody}" is not registered`
 				: 'createSim: no root body registered (a body without `parent`); load a plugin that defines one'
 		);
 	}
@@ -109,11 +144,19 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 
 	const systems: SystemDefinition[] = registries.systems.list();
 	const core: SimCore = {
-		world: createWorld({ events }),
+		world: resume
+			? restoreWorld(
+					resume,
+					events,
+					(id) => registries.parts.has(id),
+					(id) => registries.modules.has(id),
+					(id) => registries.bodies.has(id)
+				)
+			: createWorld({ events }),
 		events,
 		registries,
 		dt,
-		rng: createRng(options.seed ?? 0),
+		rng: createRng(resume ? resume.rng : seed),
 		frames,
 		terrain: typeof options.terrain === 'function' ? options.terrain(bodyDef) : options.terrain,
 		body: {
@@ -125,10 +168,24 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		post: systems.filter((s) => s.phase === 'post-physics'),
 		pending: [],
 		active: new Set(),
-		t: 0,
-		warp: 1,
-		accumulator: 0
+		t: resume?.time ?? 0,
+		warp: resume?.warp ?? 1,
+		accumulator: resume?.accumulator ?? 0
 	};
+	if (resume) {
+		if (bodyDef.id !== resume.body) {
+			throw new SaveError(
+				'incompatible',
+				`This save is in the sphere of "${resume.body}"; the sim was asked to simulate "${bodyDef.id}".`
+			);
+		}
+		restoreFrames(core, resume);
+	}
+	/** Plugins that booted, in boot order, with the versions the save should record. */
+	const mods = report.order.flatMap((id) => {
+		const plugin = options.plugins.find((p) => p.meta.id === id);
+		return plugin ? [{ id, version: plugin.meta.version }] : [];
+	});
 
 	const runSystems = (list: SystemDefinition[], step: number): void => {
 		for (const s of list) s.update(core.world, step, { registries, events });
@@ -210,6 +267,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		},
 		dispatch: (command) => dispatch(core, command),
 		snapshot: () => takeSnapshot(core),
+		save: () => writeSave({ core, mods, seed }),
 		world: core.world,
 		events,
 		registries,

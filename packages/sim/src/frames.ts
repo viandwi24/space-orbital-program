@@ -220,11 +220,20 @@ export function createVesselBody(
 	core: SimCore,
 	frame: FlightFrame,
 	vesselId: EntityId,
-	pose: { origin: Vec3; rotation: Quat; linear: Vec3; angular: Vec3 }
+	pose: { origin: Vec3; rotation: Quat; linear: Vec3; angular: Vec3 },
+	restored?: {
+		mass: number;
+		centerOfMass: Vec3;
+		inertia: Vec3;
+		inertiaFrame: Quat;
+		masses: Map<EntityId, number>;
+	}
 ): void {
 	const vessel = vesselOf(core, vesselId);
 	const rootDesign = partOf(core, vessel.root).designPos;
-	const mp = massProperties(core, vessel.parts, rootDesign);
+	// A resumed body gets the mass properties the saved backend body had (`restored`), which can
+	// lag the parts' current masses by one step; `updateMassProperties` pushes the difference.
+	const mp = restored ?? massProperties(core, vessel.parts, rootDesign);
 	const colliders = collectColliders(core, vesselId);
 	const handle = frame.backend.createBody({
 		shape: { type: 'compound', shapes: colliders.shapes },
@@ -245,7 +254,7 @@ export function createVesselBody(
 		com: mp.centerOfMass,
 		inertia: mp.inertia,
 		inertiaFrame: mp.inertiaFrame,
-		masses: new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
+		masses: restored?.masses ?? new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
 		shapeParts: colliders.shapeParts,
 		signature: colliders.signature
 	});

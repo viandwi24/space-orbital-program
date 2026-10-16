@@ -1,0 +1,171 @@
+/** Plan 043 / ADR 0050: reading saves at the sim boundary - the v1 fixture, damage, missing content. */
+import { describe, expect, test } from 'bun:test';
+import { parseSimSave, SaveError, simSaveChecksum, type SimSave } from '@orbital/core';
+import Stock from '@orbital/mod-stock';
+import { createSim } from '../src/index.ts';
+import fixture from './fixtures/save-v1.json';
+import { rapier } from './helpers/vessels.ts';
+
+const resume = (save: unknown, extra: { dt?: number; body?: string } = {}) =>
+	createSim({ plugins: [Stock], backendFactory: rapier(16), resume: save, ...extra });
+
+/** The fixture changed by `edit`, signed again so only the edit is wrong. */
+const edited = (edit: (save: Omit<SimSave, 'checksum'>) => void): SimSave => {
+	const { checksum: _c, ...rest } = structuredClone(fixture) as unknown as SimSave;
+	edit(rest);
+	return { ...rest, checksum: simSaveChecksum(rest) };
+};
+
+const reason = async (promise: Promise<unknown>): Promise<{ code: string; message: string }> => {
+	try {
+		await promise;
+	} catch (e) {
+		if (e instanceof SaveError) return { code: e.code, message: e.message };
+		throw e;
+	}
+	throw new Error('expected a SaveError');
+};
+
+describe('the frozen format-1 fixture', () => {
+	test('is read as it is (the migration chain has nothing to do yet) and resumes', async () => {
+		const parsed = parseSimSave(JSON.stringify(fixture));
+		expect(parsed.formatVersion).toBe(1);
+		const sim = await resume(fixture);
+		const vessels = sim.snapshot().vessels;
+		expect(vessels.map((v) => v.mode).sort()).toEqual(['flight', 'on-rails']);
+		expect(sim.time).toBeCloseTo(1, 9);
+		for (let i = 0; i < 250; i++) sim.step(0.02);
+		expect(sim.time).toBeCloseTo(6, 6);
+		expect(sim.snapshot().vessels).toHaveLength(2);
+	});
+
+	test('continues exactly where its writer would have: a sim saved from it saves the same bytes', async () => {
+		const sim = await resume(fixture);
+		expect(JSON.stringify(sim.save())).toBe(JSON.stringify(fixture));
+	});
+});
+
+describe('a save the sim refuses', () => {
+	test('a foreign JSON document', async () => {
+		const r = await reason(resume({ formatVersion: 1, parts: [] }));
+		expect(r.code).toBe('not-a-save');
+		expect(r.message).toBe('This is not an Orbital save file.');
+	});
+
+	test('edited contents (checksum)', async () => {
+		const r = await reason(resume({ ...fixture, time: 5 }));
+		expect(r.code).toBe('damaged');
+		expect(r.message).toMatch(/checksum/);
+	});
+
+	test('a newer format', async () => {
+		const r = await reason(resume({ ...fixture, formatVersion: 99 }));
+		expect(r.code).toBe('too-new');
+	});
+
+	test('a mod that is not loaded', async () => {
+		const r = await reason(
+			resume(edited((s) => s.mods.push({ id: 'ghost.mod', version: '2.0.0' })))
+		);
+		expect(r.code).toBe('missing-mod');
+		expect(r.message).toContain('ghost.mod 2.0.0');
+	});
+
+	test('a part from content that is gone, named in the message', async () => {
+		const r = await reason(
+			resume(
+				edited((s) => {
+					const parts = s.world.components['sim.part'] as Record<string, { definition: string }>;
+					Object.values(parts)[0]!.definition = 'gone.part';
+				})
+			)
+		);
+		expect(r.code).toBe('missing-mod');
+		expect(r.message).toContain('part "gone.part"');
+	});
+
+	test('a vessel whose mode and rails disagree', async () => {
+		const r = await reason(
+			resume(
+				edited((s) => {
+					const vessels = s.world.components['sim.vessel'] as Record<string, { rails: unknown }>;
+					const first = Object.values(vessels).find((v) => v.rails !== null)!;
+					first.rails = null;
+				})
+			)
+		);
+		expect(r.code).toBe('damaged');
+		expect(r.message).toMatch(/inconsistent rails/);
+	});
+
+	test('a vessel component of the wrong shape', async () => {
+		const r = await reason(
+			resume(
+				edited((s) => {
+					const vessels = s.world.components['sim.vessel'] as Record<
+						string,
+						Record<string, unknown>
+					>;
+					delete Object.values(vessels)[0]!.sas;
+				})
+			)
+		);
+		expect(r.code).toBe('damaged');
+		expect(r.message).toMatch(/sas/);
+	});
+
+	test('a flight vessel without a body in any frame', async () => {
+		const r = await reason(
+			resume(
+				edited((s) => {
+					for (const frame of s.frames) frame.bodies = [];
+				})
+			)
+		);
+		expect(r.code).toBe('damaged');
+	});
+
+	test('a body listed in a frame for a vessel that is not in flight', async () => {
+		const r = await reason(
+			resume(
+				edited((s) => {
+					const frame = s.frames.find((f) => f.bodies.length > 0)!;
+					frame.bodies[0]!.vessel = 0; // a part entity, not a vessel
+				})
+			)
+		);
+		expect(r.code).toBe('damaged');
+	});
+
+	test('a different fixed step', async () => {
+		const r = await reason(resume(fixture, { dt: 0.01 }));
+		expect(r.code).toBe('incompatible');
+		expect(r.message).toMatch(/0\.02 s step/);
+	});
+
+	test('a different body', async () => {
+		// Not registered: createSim's own error, before any save content is touched.
+		await expect(resume(fixture, { body: 'stock.nowhere' })).rejects.toThrow(/not registered/);
+	});
+
+	test('more physics frames than the sim has', async () => {
+		const save = edited((s) => {
+			s.frames.push({
+				...structuredClone(s.frames[0]!),
+				id: 5,
+				inUse: false,
+				vessels: [],
+				bodies: []
+			});
+			s.frames.push({
+				...structuredClone(s.frames[0]!),
+				id: 6,
+				inUse: false,
+				vessels: [],
+				bodies: []
+			});
+		});
+		const r = await reason(resume(save));
+		expect(r.code).toBe('incompatible');
+	});
+});
