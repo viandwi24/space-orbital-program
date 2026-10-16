@@ -1,11 +1,16 @@
 /**
- * Coarse biome map of the home planet: an equirectangular RGBA8 image, generated once from seeded
+ * Coarse biome map of the home planet (moved from the renderer to core by plan 031, ADR 0043: the
+ * terrain height function reads its elevation, so the sim needs it too): an equirectangular RGBA8 image, generated once from seeded
  * noise (no assets, ADR 0025). The ground shader reads it for continents and biomes and adds
  * fine octaves on top. R = elevation, G = moisture, B = temperature, A = rockiness, all 0..1
  * (elevation is histogram-equalised, so `SEA_LEVEL` is also the ocean fraction).
  */
 import { fbm3 } from './noise.ts';
-import { smoothstep } from './vec.ts';
+
+const smoothstep = (e0: number, e1: number, x: number): number => {
+	const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+	return t * t * (3 - 2 * t);
+};
 
 export const SEA_LEVEL = 0.46;
 export const BEACH_WIDTH = 0.018;

@@ -20,5 +20,8 @@ export * from './protocol.ts';
 export * from './protocol-schemas.ts';
 export * from './design.ts';
 export * from './rng.ts';
+export * from './noise.ts';
+export * from './planet-map.ts';
+export * from './terrain.ts';
 export * from './semver.ts';
 export * from './plugin.ts';

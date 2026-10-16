@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { fbm3, hash3, valueNoise3 } from '../src/noise.ts';
+import { fbm3, hash3, valueNoise3 } from '../src/index.ts';
 import {
 	SEA_LEVEL,
 	SITE_CLEAR_RADIUS,
@@ -7,7 +7,7 @@ import {
 	generatePlanetMap,
 	mapUV,
 	sampleMap
-} from '../src/planet-map.ts';
+} from '../src/index.ts';
 
 describe('noise', () => {
 	test('hash and noise are deterministic and in [0, 1)', () => {

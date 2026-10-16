@@ -34,8 +34,9 @@ import {
 	type PerspectiveCamera,
 	type Uniform
 } from 'three';
+import { cachedPlanetMap } from '@orbital/core';
 import { type Atmosphere, type RGB } from './atmosphere-model.ts';
-import { cachedPlanetMap } from './planet-map.ts';
+
 import type { PlanetFrame } from './planet-frame.ts';
 import type { PresetSettings } from './presets.ts';
 import { CIRRUS_ALTITUDE, CLOUD_ALTITUDE } from './cloud-model.ts';
@@ -43,7 +44,7 @@ import { PAD_RADIUS } from './site.ts';
 import { planetFragment, planetVertex } from './shaders/planet.glsl.ts';
 import { terrainBakeFragment, terrainBakeVertex } from './shaders/terrain.glsl.ts';
 import { siteAxes, surfaceUp } from './sun.ts';
-import { bubbleStrength, flatSkipRadius } from './terrain-model.ts';
+import { flatSkipRadius } from './terrain-model.ts';
 import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
@@ -202,7 +203,6 @@ export class PlanetPass {
 				uSiteRadius: u(PAD_RADIUS * 40),
 				uTerrain: u<unknown>(null),
 				uTerrainOn: u(0),
-				uBubbleA: u(1),
 				uSkipR: u(0),
 				uTime: u(0),
 				uWaveAnchor: u(WAVES.map(() => 0))
@@ -368,12 +368,11 @@ export class PlanetPass {
 		set<Vector3>('uCamPos', (v) => v.copy(p.camera.position));
 		set<Vector3>('uCamUp', (v) => v.set(p.frame.up.x, p.frame.up.y, p.frame.up.z));
 		un.uAlt!.value = p.frame.altitude;
-		un.uBubbleA!.value = bubbleStrength(p.frame.altitude);
 		const toSite = p.frame.camToSite;
 		const horizontal = Math.sqrt(
 			Math.max(toSite.x ** 2 + toSite.y ** 2 + toSite.z ** 2 - p.frame.altitude ** 2, 0)
 		);
-		un.uSkipR!.value = flatSkipRadius(p.frame.altitude, horizontal);
+		un.uSkipR!.value = flatSkipRadius(horizontal);
 		un.uPixelAngle!.value =
 			(2 * Math.tan((p.camera.fov * Math.PI) / 360)) / Math.max(1, p.pixelHeight);
 		set<Vector3>('uSunDir', (v) => v.set(p.sun.x, p.sun.y, p.sun.z));

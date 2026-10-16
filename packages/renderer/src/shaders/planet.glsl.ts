@@ -11,19 +11,17 @@ import {
 	SCORCH_RADIUS,
 	floodLightPositions
 } from '../site.ts';
-import { BEACH_WIDTH, HIGHLAND, SEA_LEVEL } from '../planet-map.ts';
-import { atmosphereGLSL } from './atmosphere.glsl.ts';
-import { octaveRotationGLSL } from './terrain.glsl.ts';
-import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
 import {
-	BUBBLE_RADIUS,
-	BUBBLE_RAMP,
-	STEP_MIN_FRACTION,
-	STEP_MIN_METRES,
-	STEP_RELAX,
+	BEACH_WIDTH,
+	HIGHLAND,
+	SEA_LEVEL,
 	TERRAIN_MAX_HEIGHT,
 	TERRAIN_MAX_SLOPE
-} from '../terrain-model.ts';
+} from '@orbital/core';
+import { atmosphereGLSL } from './atmosphere.glsl.ts';
+import { terrainNoiseGLSL } from './terrain.glsl.ts';
+import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
+import { STEP_MIN_FRACTION, STEP_MIN_METRES, STEP_RELAX } from '../terrain-model.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 
@@ -122,7 +120,7 @@ float noiseA(vec3 pl, float lam, int salt) {
 	return valueNoiseCell(c, f - fl);
 }
 
-const mat3 OCT_ROT = ${octaveRotationGLSL};
+${terrainNoiseGLSL}
 
 float fbmF(vec3 p, int octaves) {
 	float sum = 0.0;
@@ -143,22 +141,17 @@ float fbmF(vec3 p, int octaves) {
 #if TERRAIN
 uniform samplerCube uTerrain;
 uniform float uTerrainOn;
-uniform float uBubbleA;    // 1 at low altitude (flat bubble around the camera's ground point), 0 high up
 uniform float uSkipR;      // ground distance from the camera inside which terrain is flat, m
 const float T_MAX = ${f(TERRAIN_MAX_HEIGHT)};
 const float T_SLOPE = ${f(TERRAIN_MAX_SLOPE)};
 const float T_RELAX = ${f(STEP_RELAX)};
 const float T_MIN_FRAC = ${f(STEP_MIN_FRACTION)};
 const float T_MIN_M = ${f(STEP_MIN_METRES)};
-const float BUB_R = ${f(BUBBLE_RADIUS)};
-const float BUB_RAMP = ${f(BUBBLE_RAMP)};
 
 // Height (x, m) and body-fixed tangent gradient (yzw) at a position relative to the planet centre.
 vec4 terrainAt(vec3 pI) {
 	vec3 nI = pI / length(pI);
-	float s = length(nI - uCamUp) * uR;
-	float w = mix(1.0, smoothstep(BUB_R, BUB_R + BUB_RAMP, s), uBubbleA);
-	return textureLod(uTerrain, uBodyInv * nI, 0.0) * w;
+	return textureLod(uTerrain, uBodyInv * nI, 0.0);
 }
 
 // Sphere-traces the baked heights from the camera ray; true with the hit distance in tOut.
@@ -418,9 +411,8 @@ vec3 waveGradient(vec3 p, vec3 n, float footprint, out float crest) {
 
 Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec3 gT) {
 	Surface s;
-	float lat = asin(clamp(nBF.y, -1.0, 1.0));
-	float lon = atan(-nBF.z, nBF.x);
-	vec2 uv = vec2(lon / (2.0 * kPI) + 0.5, lat / kPI + 0.5);
+	vec2 ll = warpedLatLon(nBF, uR); // the biome map is read through the coast warp (core MAP_WARP)
+	vec2 uv = vec2(ll.y / (2.0 * kPI) + 0.5, ll.x / kPI + 0.5);
 	float lod = max(log2(footprint / uMapTexel), 0.0);
 	vec4 m = textureLod(uMap, uv, lod);
 	float e = m.r;

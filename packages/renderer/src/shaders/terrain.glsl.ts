@@ -5,17 +5,47 @@
  * march heights with one fetch and shade with smooth normals.
  */
 import {
+	MAP_WARP as W,
 	OCTAVE_ROTATION,
 	SITE_BLEND_WIDTH,
 	SITE_FLAT_RADIUS,
 	TERRAIN_SHAPE as S
-} from '../terrain-model.ts';
+} from '@orbital/core';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 const m = OCTAVE_ROTATION;
 /** GLSL matrices are built column by column. */
 export const octaveRotationGLSL = `mat3(${[0, 1, 2].map((c) => `vec3(${m[0]![c]}, ${m[1]![c]}, ${m[2]![c]})`).join(', ')})`;
+
+/**
+ * Lattice noise of the terrain (`noiseT`, twin of `terrainNoise` in core), the octave rotation and
+ * the map warp (twin of `warpedLatLon`); shared by the bake and the planet pass. Needs
+ * `valueNoiseCell` from `hashNoiseGLSL`.
+ */
+export const terrainNoiseGLSL = /* glsl */ `
+const mat3 OCT_ROT = ${octaveRotationGLSL};
+
+float noiseT(vec3 q, float freq, int salt) {
+	vec3 p = q * freq;
+	vec3 fl = floor(p);
+	ivec3 c = ivec3(fl) + ivec3(salt * 131, salt * 71, salt * 17);
+	return valueNoiseCell(c, p - fl);
+}
+
+// Latitude/longitude at which the biome map is read for the unit body-fixed direction n.
+vec2 warpedLatLon(vec3 n, float radius) {
+	float lat = asin(clamp(n.y, -1.0, 1.0));
+	float lon = atan(-n.z, n.x);
+	vec3 q = n * (radius / 1000.0);
+	float dLat = ${f(W.weights[0])} * (2.0 * noiseT(q, 1.0 / ${f(W.wavelengthsKm[0])}, ${W.saltsLat[0]}) - 1.0)
+		+ ${f(W.weights[1])} * (2.0 * noiseT(q, 1.0 / ${f(W.wavelengthsKm[1])}, ${W.saltsLat[1]}) - 1.0);
+	float dLon = ${f(W.weights[0])} * (2.0 * noiseT(q, 1.0 / ${f(W.wavelengthsKm[0])}, ${W.saltsLon[0]}) - 1.0)
+		+ ${f(W.weights[1])} * (2.0 * noiseT(q, 1.0 / ${f(W.wavelengthsKm[1])}, ${W.saltsLon[1]}) - 1.0);
+	float k = ${f(W.amplitude)} / ${f(W.weights[0] + W.weights[1])};
+	return vec2(lat + dLat * k, lon + dLon * k / max(cos(lat), 0.2));
+}
+`;
 
 export const terrainBakeVertex = /* glsl */ `
 varying vec2 vUv;
@@ -27,6 +57,7 @@ void main() {
 
 export const terrainBakeFragment = /* glsl */ `
 ${hashNoiseGLSL}
+${terrainNoiseGLSL}
 varying vec2 vUv;
 uniform sampler2D uMap;
 uniform int uFace;
@@ -35,15 +66,6 @@ uniform float uRadius;
 uniform vec3 uSiteDir;  // unit, body-fixed
 
 const float PI_ = 3.14159265359;
-const mat3 OCT_ROT = ${octaveRotationGLSL};
-
-float noiseT(vec3 q, float freq, int salt) {
-	vec3 p = q * freq;
-	vec3 fl = floor(p);
-	ivec3 c = ivec3(fl) + ivec3(salt * 131, salt * 71, salt * 17);
-	return valueNoiseCell(c, p - fl);
-}
-
 float fbmT(vec3 q, float wavelengthKm, int octaves, int salt) {
 	float sum = 0.0;
 	float amp = 1.0;
@@ -67,7 +89,8 @@ float ridgedT(vec3 q, float wavelengthKm, int octaves, int salt) {
 	float freq = 1.0 / wavelengthKm;
 	for (int i = 0; i < 6; i++) {
 		if (i >= octaves) break;
-		float r = 1.0 - abs(2.0 * noiseT(q, freq, salt + i) - 1.0);
+		float rx = 2.0 * noiseT(q, freq, salt + i) - 1.0;
+		float r = 1.0 - (sqrt(rx * rx + ${f(S.ridgeSoftness ** 2)}) - ${f(S.ridgeSoftness)});
 		sum += amp * r;
 		norm += amp;
 		amp *= 0.5;
@@ -78,9 +101,8 @@ float ridgedT(vec3 q, float wavelengthKm, int octaves, int salt) {
 }
 
 float heightAt(vec3 n) {
-	float lat = asin(clamp(n.y, -1.0, 1.0));
-	float lon = atan(-n.z, n.x);
-	float e = textureLod(uMap, vec2(lon / (2.0 * PI_) + 0.5, lat / PI_ + 0.5), 0.0).r;
+	vec2 ll = warpedLatLon(n, uRadius);
+	float e = textureLod(uMap, vec2(ll.y / (2.0 * PI_) + 0.5, ll.x / PI_ + 0.5), 0.0).r;
 	float land = smoothstep(${f(S.landStart)}, ${f(S.landFull)}, e);
 	if (land <= 0.0) return 0.0;
 	float arc = uRadius * acos(clamp(dot(n, uSiteDir), -1.0, 1.0));
