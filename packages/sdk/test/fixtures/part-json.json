@@ -1,0 +1,7 @@
+{
+	"id": "fixture.json-engine",
+	"title": "JSON engine",
+	"mass": 900,
+	"attach": { "top": { "pos": [0, 0.5, 0], "dir": [0, 1, 0] } },
+	"modules": [["fixture.engine", { "thrust": 50000 }]]
+}

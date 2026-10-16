@@ -1,0 +1,6 @@
+{
+	"id": "fixture.json-engine-bad",
+	"title": "JSON engine with a bad config",
+	"mass": 900,
+	"modules": [["fixture.engine", { "thrust": "lots" }]]
+}
