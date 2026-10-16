@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { referenceTwoStage } from './design';
-import { loadPlugins } from '@orbital/core';
+import { loadPlugins, partId } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import {
 	bodyLabel,
@@ -46,12 +46,24 @@ describe('ground clearance', () => {
 });
 
 describe('vessel throttle', () => {
-	const engine = (throttle: number) => ({ modules: { 'stock.engine': { throttle } } });
+	const { registries } = loadPlugins([Stock]);
+	const content = { parts: registries.parts, modules: registries.modules };
+	const engine = (throttle: number) => ({
+		definition: partId('stock.engine-lv'),
+		modules: { 'stock.engine': { throttle, ignited: true, flameout: false, gimbal: [0, 0] } }
+	});
+	const tank = { definition: partId('stock.tank-small'), modules: {} };
 	it('reads the highest engine throttle, so a script or the autopilot shows on the gauge', () => {
-		expect(vesselThrottle([{ modules: {} }, engine(0.25), engine(0.75)], 0)).toBe(0.75);
+		expect(vesselThrottle([tank, engine(0.25), engine(0.75)], 0, content)).toBe(0.75);
 	});
 	it('falls back to the page setting without engines or with malformed state', () => {
-		expect(vesselThrottle([{ modules: {} }], 0.4)).toBe(0.4);
-		expect(vesselThrottle([{ modules: { 'stock.engine': { throttle: 'x' } } }], 0.4)).toBe(0.4);
+		expect(vesselThrottle([tank], 0.4, content)).toBe(0.4);
+		expect(
+			vesselThrottle(
+				[{ definition: partId('stock.engine-lv'), modules: { 'stock.engine': { throttle: 'x' } } }],
+				0.4,
+				content
+			)
+		).toBe(0.4);
 	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
 	import Button from '../../lib/ui/Button.svelte';
@@ -27,7 +28,10 @@
 	}
 </script>
 
-<svelte:head><title>Mods · Orbital</title></svelte:head>
+<PageMeta
+	title="Mods · Orbital"
+	description="Install, turn on, turn off and remove Orbital mods. A mod is one file; the game asks before it runs anything."
+/>
 
 <main>
 	<a class="back" href="/"><Icon name="back" size={16} /> Orbital</a>

@@ -9,8 +9,7 @@
 		met,
 		onresume,
 		oncontrols,
-		autoQuality,
-		onautoquality,
+		onsettings,
 		onsave,
 		onload
 	}: {
@@ -19,9 +18,7 @@
 		met: number;
 		onresume: () => void;
 		oncontrols: () => void;
-		/** The quality governor lowers resolution and preset when the view runs slow (plan 039). */
-		autoQuality: boolean;
-		onautoquality: (on: boolean) => void;
+		onsettings: () => void;
 		onsave: () => void;
 		onload: () => void;
 	} = $props();
@@ -32,21 +29,20 @@
 		<strong>{name}</strong> is frozen at <span class="num">{formatMet(met)}</span>. Nothing moves
 		until you resume.
 	</p>
-	<label class="auto" title="Lowers the resolution, then the preset, when the view runs under about 55 fps">
-		<input
-			type="checkbox"
-			checked={autoQuality}
-			onchange={(e) => onautoquality(e.currentTarget.checked)}
-			data-testid="auto-quality"
-		/>
-		<span>Automatic quality</span>
-	</label>
 	<div class="actions">
 		<Button variant="primary" onclick={onresume}>Resume</Button>
-		<Button onclick={onsave}>Save the flight</Button>
-		<Button onclick={onload}>Load a flight</Button>
-		<Button onclick={oncontrols}>Controls</Button>
-		<a class="link" href="/vab">Back to the VAB</a>
+		<div class="pair">
+			<Button onclick={onsave}>Save the flight</Button>
+			<Button onclick={onload}>Load a flight</Button>
+		</div>
+		<div class="pair">
+			<Button onclick={onsettings} data-testid="pause-settings">Settings</Button>
+			<Button onclick={oncontrols}>Controls</Button>
+		</div>
+		<div class="pair">
+			<a class="link" href="/vab">Back to the hangar</a>
+			<a class="link" href="/vab?library">Vessel library</a>
+		</div>
 		<a class="link" href="/">Main menu</a>
 	</div>
 </Dialog>
@@ -61,19 +57,14 @@
 		color: var(--text);
 		font-weight: 600;
 	}
-	.auto {
-		display: flex;
-		align-items: center;
-		gap: var(--s-2);
-		margin: 0 0 var(--s-4);
-		font-size: var(--t-sm);
-		color: var(--text);
-	}
-	.auto input {
-		accent-color: var(--c-accent);
-	}
 	.actions {
 		display: grid;
+		gap: var(--s-2);
+		min-width: 300px;
+	}
+	.pair {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: var(--s-2);
 	}
 	.link {

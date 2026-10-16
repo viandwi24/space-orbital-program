@@ -2,18 +2,7 @@
  * Catalogue categories, derived from a part's module ids so the part definition stays unchanged
  * (ADR 0029). Unknown mods land in "Other".
  */
-import type { PartDefinition } from '@orbital/core';
-import {
-	ModuleCommand,
-	ModuleDecoupler,
-	ModuleEngine,
-	ModuleControlSurface,
-	ModuleFin,
-	ModuleHeatShield,
-	ModuleLandingLeg,
-	ModuleReactionWheel,
-	ModuleResourceContainer
-} from '@orbital/mod-stock';
+import { describeModule, type ModuleDefinition, type PartDefinition } from '@orbital/core';
 
 export type CategoryId =
 	| 'command'
@@ -46,26 +35,62 @@ export const CATEGORIES: readonly Category[] = [
 	{ id: 'other', label: 'Other', icon: 'part' }
 ];
 
-const BY_MODULE: ReadonlyArray<readonly [string, CategoryId]> = [
-	[ModuleCommand.id, 'command'],
-	[ModuleEngine.id, 'propulsion'],
-	[ModuleDecoupler.id, 'structural'],
-	[ModuleFin.id, 'aero'],
-	[ModuleControlSurface.id, 'aero'],
-	[ModuleReactionWheel.id, 'control'],
-	[ModuleLandingLeg.id, 'landing'],
-	[ModuleHeatShield.id, 'thermal'],
-	[ModuleResourceContainer.id, 'tanks']
+/** The registry `categoryOf` reads module descriptors through. */
+export interface ModuleLookup {
+	get(id: string): ModuleDefinition | undefined;
+}
+
+/** First match wins, in this order (a pod with a battery is still a command part). */
+const PRIORITY: readonly CategoryId[] = [
+	'command',
+	'propulsion',
+	'structural',
+	'aero',
+	'control',
+	'landing',
+	'thermal',
+	'tanks'
 ];
 
-/** First match wins, in the order above (a pod with a battery is still a command part). */
+/**
+ * The categories one module stands for, read from its descriptor (ADR 0033, plan 023): a control
+ * source is a command part; an engine, a separator and a lifting plate imply theirs; otherwise the
+ * descriptor's own `category`. A module without a descriptor, or whose descriptor throws, says nothing.
+ */
+function categoriesOf(mod: ModuleDefinition, raw: unknown): CategoryId[] {
+	const out: CategoryId[] = [];
+	if (mod.controlSource) out.push('command');
+	try {
+		const info = describeModule(mod, raw);
+		if (info?.engine) out.push('propulsion');
+		if (info?.separator) out.push('structural');
+		if (info?.lift) out.push('aero');
+		if (info?.category) out.push(info.category);
+	} catch {
+		// A broken mod descriptor leaves the part in the next best category, not out of the catalogue.
+	}
+	if (mod.store && out.length === 0) out.push('tanks');
+	return out;
+}
+
+const cache = new WeakMap<object, CategoryId>();
+
 export function categoryOf(
-	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number }
+	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number },
+	modules: ModuleLookup
 ): CategoryId {
-	const ids = new Set((def.modules ?? []).map((m) => m[0]));
-	for (const [module, category] of BY_MODULE) if (ids.has(module)) return category;
+	const hit = cache.get(def);
+	if (hit !== undefined) return hit;
+	const found = new Set<CategoryId>();
+	for (const [id, raw] of def.modules ?? []) {
+		const mod = modules.get(id);
+		if (mod) for (const c of categoriesOf(mod, raw)) found.add(c);
+	}
 	// A part with no module that declares its own drag (a nose cone) is aerodynamic hardware.
-	return def.dragCoefficient !== undefined ? 'aero' : 'other';
+	const category =
+		PRIORITY.find((c) => found.has(c)) ?? (def.dragCoefficient !== undefined ? 'aero' : 'other');
+	cache.set(def, category);
+	return category;
 }
 
 /** Case-insensitive match on title and id; an empty query matches everything. */

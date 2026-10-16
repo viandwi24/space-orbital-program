@@ -55,13 +55,23 @@ describe('save router', () => {
 			post: () => {},
 			boot: (_save, m) => void mods.push(m)
 		});
-		const good = { manifest: { id: 'm', version: '1.0.0', api: '^0.1' }, code: 'export default 1;' };
+		const good = {
+			manifest: { id: 'm', version: '1.0.0', api: '^0.1' },
+			code: 'export default 1;'
+		};
 		router.handle({
 			kind: 'init',
-			mods: [good, { manifest: { id: 'Bad Id', version: '1.0.0', api: '^0.1' }, code: 'x' }, 'junk', { manifest: good.manifest }]
+			mods: [
+				good,
+				{ manifest: { id: 'Bad Id', version: '1.0.0', api: '^0.1' }, code: 'x' },
+				'junk',
+				{ manifest: good.manifest }
+			]
 		});
 		expect(mods).toHaveLength(1);
-		expect(mods[0]).toEqual([{ manifest: { ...good.manifest, dependencies: {} }, code: good.code }]);
+		expect(mods[0]).toEqual([
+			{ manifest: { ...good.manifest, dependencies: {} }, code: good.code }
+		]);
 	});
 
 	it('leaves other messages to the host', () => {

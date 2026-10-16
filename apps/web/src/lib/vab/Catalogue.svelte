@@ -1,7 +1,13 @@
 <script lang="ts">
 	import type { PartDefinition } from '@orbital/core';
 	import Icon from '../ui/Icon.svelte';
-	import { CATEGORIES, categoryOf, matchesQuery, type CategoryId } from '../editor/categories';
+	import {
+		CATEGORIES,
+		categoryOf,
+		matchesQuery,
+		type CategoryId,
+		type ModuleLookup
+	} from '../editor/categories';
 	import type { PartFact } from '../editor/part-info';
 	import { formatMass } from '../format';
 	import type { LibraryEntry } from './library';
@@ -11,6 +17,7 @@
 		icons,
 		armed,
 		facts,
+		modules,
 		onarm,
 		assemblies = [],
 		armedAssembly = null,
@@ -22,6 +29,8 @@
 		icons: Readonly<Record<string, string>>;
 		armed: string | null;
 		facts: (def: PartDefinition) => PartFact[];
+		/** Module registry the categories are read through (descriptors, ADR 0033). */
+		modules: ModuleLookup;
 		onarm: (id: string) => void;
 		/** Saved sub-assemblies (ADR 0041), valid and damaged. */
 		assemblies?: readonly LibraryEntry[];
@@ -39,7 +48,7 @@
 		{ id: 'all' as const, label: 'All parts', icon: 'part', count: parts.length },
 		...CATEGORIES.map((c) => ({
 			...c,
-			count: parts.filter((p) => categoryOf(p) === c.id).length
+			count: parts.filter((p) => categoryOf(p, modules) === c.id).length
 		})).filter((c) => c.count > 0),
 		{
 			id: 'assemblies' as const,
@@ -57,7 +66,7 @@
 		parts.filter(
 			(p) =>
 				category !== 'assemblies' &&
-				(category === 'all' || categoryOf(p) === category) &&
+				(category === 'all' || categoryOf(p, modules) === category) &&
 				matchesQuery(p, query)
 		)
 	);

@@ -20,8 +20,11 @@ import {
 } from '@orbital/renderer';
 import { partShapesOf } from './catalog';
 import {
+	clearGraphicsPreset,
 	initialGraphicsPreset,
 	loadAutoQuality,
+	probeCapabilities,
+	resolvePreset,
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
@@ -93,7 +96,7 @@ export interface Flight {
 	/** Step the time warp by `delta` entries of `WARP_STEPS` (the sim refuses it unless every vessel is on rails). */
 	stepWarp(delta: number): void;
 	/** Switch the graphics preset now and remember it (plan 019; the settings screen of plan 023 calls this). */
-	setGraphicsPreset(preset: GraphicsPreset): void;
+	setGraphicsPreset(preset: GraphicsPreset | 'auto'): void;
 	/** Whether the quality governor may lower resolution and preset when the view runs slow (plan 039, ADR 0053). */
 	readonly autoQuality: boolean;
 	/** Turn the governor on or off and remember it; off restores the player's preset at full resolution. */
@@ -116,6 +119,8 @@ export interface Flight {
 	collectSave(): Promise<SaveRequest>;
 	/** While a dialog is open the flight keys do nothing. */
 	setModal(open: boolean): void;
+	/** Pixels of the view the interface panels cover; the camera centres the vessel in the rest (plan 023). */
+	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
 	dispose(): void;
 }
 
@@ -668,8 +673,14 @@ export function startFlight(options: FlightOptions): Flight {
 			const sim = await client.save();
 			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
 		},
-		setGraphicsPreset(preset) {
-			saveGraphicsPreset(preset);
+		setViewInsets(insets) {
+			renderer?.setViewInsets(insets);
+		},
+		setGraphicsPreset(choice) {
+			// `auto` forgets the saved choice and takes the device default again (plan 023)
+			if (choice === 'auto') clearGraphicsPreset();
+			else saveGraphicsPreset(choice);
+			const preset = choice === 'auto' ? resolvePreset(null, probeCapabilities()) : choice;
 			// the player's choice is the governor's ceiling and starts it again at full resolution
 			if (governor) applyLevel(governor.setCeiling(preset), false);
 			else renderer?.setPreset(preset);

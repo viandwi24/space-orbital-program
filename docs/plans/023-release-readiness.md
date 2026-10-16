@@ -29,7 +29,7 @@ The game can be put in front of the public (ADR 0048, the last v1 plan): a main 
 
 ## Steps
 
-1. Refine (this document), ADR 0059.
+1. Refine (this document), ADR 0060.
 2. Settings store (validated, versioned, persisted) with units, graphics, automatic quality, audio placeholder, onboarding state; keybinding data read by the help overlay and the settings dialog.
 3. Menus: main menu, settings dialog, credits, pause menu consistency, loading screen, failure screens, error boundary.
 4. Onboarding: pure step machine + tutorial card in the VAB and flight; skippable; persisted.
@@ -59,7 +59,7 @@ Unit criteria run with `bun run test` (packages) and `bun run --filter @orbital/
 - [ ] `hud-model.ts` `vesselThrottle` reads a module's throttle through data (no `@orbital/mod-stock` import in `hud-model.ts`), `editor/categories.ts` and `editor/stability.ts` take their module knowledge from the module descriptor/data (`describe` of ADR 0033 or a `category`/`aero` hint) with the stock ids not imported; vitest: a test mod's engine reports its throttle, a mod part with a declared category lands in it, a mod fin counts in the stability read-out, and the stock results are unchanged (existing tests untouched and green).
 
 **Public face**
-- [ ] **Metadata**: every page has a `<title>`, a meta description, `theme-color`, a favicon (SVG + PNG fallback), Open Graph and Twitter card tags with an absolute-path-safe image (`static/social-preview.png`, 1200x630, rendered from the game, committed with the capture note in the journal); `/roadmap` is a page (not a doc link) listing ADR 0048's post-v1 items with plan links and what each gives the player; `/credits` lists fonts (OFL), engine libraries and their licences from the lockfile/package metadata, and the licence line reads "to be decided" until the human decides; a vitest/bun test checks the roadmap data against the plan board (every listed plan file exists and is `draft`).
+- [ ] **Metadata**: every page has a `<title>`, a meta description, `theme-color`, a favicon (SVG + PNG fallback), Open Graph and Twitter card tags with an absolute-path-safe image (`static/social-preview.jpg`, 1200x630, rendered from the game, committed with the capture note in the journal); `/roadmap` is a page (not a doc link) listing ADR 0048's post-v1 items with plan links and what each gives the player; `/credits` lists fonts (OFL), engine libraries and their licences from the lockfile/package metadata, and the licence line reads "to be decided" until the human decides; a vitest/bun test checks the roadmap data against the plan board (every listed plan file exists and is `draft`).
 - [ ] **README**: how to play (controls, first flight), how to run (dev, build, preview, e2e), how to mod (build a mod package, install it in the Mods page, guides links), requirements (browsers), status/licence line; docs links resolve (`docs:check`).
 
 **Earlier `[manual]` criteria re-run** (each recorded in the journal with the result; broken things fixed)
@@ -74,7 +74,7 @@ Unit criteria run with `bun run test` (packages) and `bun run --filter @orbital/
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` (phase marker v1 release candidate, board row, current/next plan, known issues), journal `023-release-readiness.md`, ADR 0059, `product/spec.md` v1 list, `product/browser-support.md`, README, `architecture/overview.md` where the app structure changed, new draft plans for pushed-out scope with board rows.
+- [ ] `docs/STATUS.md` (phase marker v1 release candidate, board row, current/next plan, known issues), journal `023-release-readiness.md`, ADR 0060, `product/spec.md` v1 list, `product/browser-support.md`, README, `architecture/overview.md` where the app structure changed, new draft plans for pushed-out scope with board rows.
 
 ## Log
 

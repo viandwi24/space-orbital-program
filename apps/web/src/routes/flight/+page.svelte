@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import AppBar from '../../lib/hud/AppBar.svelte';
@@ -15,7 +16,18 @@
 	import StageStack from '../../lib/hud/StageStack.svelte';
 	import StatusCard from '../../lib/hud/StatusCard.svelte';
 	import WarpControl from '../../lib/hud/WarpControl.svelte';
+	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
 	import Button from '../../lib/ui/Button.svelte';
+	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
+	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
+	import { settings } from '../../lib/settings/settings.svelte';
+	import {
+		advance,
+		currentStep,
+		skip,
+		stepLabel,
+		type Observation
+	} from '../../lib/onboarding/tutorial';
 	import Toasts from '../../lib/ui/Toasts.svelte';
 	import { loadContent, partLookup } from '../../lib/catalog';
 	import type { VesselDesign } from '@orbital/core';
@@ -53,8 +65,10 @@
 	/** The text of the last Run: its error line only means something while the editor still holds it. */
 	let ranSource = $state<string | null>(null);
 	let pauseOpen = $state(false);
-	let autoQuality = $state(true);
 	let helpOpen = $state(false);
+	let settingsOpen = $state(false);
+	/** Settings was opened from the pause menu: closing it goes back there. */
+	let settingsFromPause = false;
 	let deck = $state<InstrumentDeck>();
 	let markers = $state<MapMarkers>();
 	let nodeLayer = $state<ManeuverLayer>();
@@ -75,7 +89,7 @@
 	const autosaver = createAutosaver(() => performance.now());
 	const saveState = () => ({
 		flying: hud?.status === 'flying',
-		paused: pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen,
+		paused: pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen,
 		busy: saves.busy
 	});
 	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
@@ -210,7 +224,6 @@
 				clearInterval(waitForPlanner);
 			}
 		}, 100);
-		autoQuality = started.autoQuality;
 		return () => {
 			clearInterval(waitForPlanner);
 			offSandbox();
@@ -223,7 +236,7 @@
 
 	// The sim freezes and the flight keys go quiet while a dialog is open.
 	$effect(() => {
-		const modal = pauseOpen || helpOpen || saves.loadOpen || saves.saveOpen;
+		const modal = pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen;
 		flight?.setPaused(modal);
 		flight?.setModal(modal);
 	});
@@ -259,10 +272,63 @@
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
 	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1, running));
+	// The camera draws the vessel in the middle of what the panels leave free: the instrument deck at
+	// the bottom no longer hides the lower half of the rocket (plan 023, journal 021).
+	let lastInsets = '';
+	function updateInsets(): void {
+		const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+		const deck = box('.bc .deck');
+		const right = box('.tr');
+		const bar = box('.tc header');
+		const top = bar ? bar.bottom + 8 : 0;
+		const bottom = deck ? Math.max(0, innerHeight - deck.top + 8) : 0;
+		const side = right && right.width > 0 ? Math.max(0, innerWidth - right.left + 8) : 0;
+		const key = [top, side, bottom].map(Math.round).join(',');
+		if (key === lastInsets) return;
+		lastInsets = key;
+		flight?.setViewInsets({ top, right: side, bottom, left: 0 });
+	}
+	$effect(() => {
+		void model?.name;
+		void tall;
+		void hud?.status;
+		queueMicrotask(updateInsets);
+	});
+
+	/** The first-flight guide: what the player has done so far, as the step machine's input. */
+	const observation = $derived.by((): Observation | null => {
+		if (!hud || hud.status !== 'flying' || !model) return null;
+		return {
+			scene: 'flight',
+			flight: {
+				throttle: model.throttle,
+				stagesFired: model.stagesFired,
+				altitude: model.altitude,
+				sasOn: model.sas !== undefined && model.sas.mode !== 'off',
+				sasMode: model.sas?.mode ?? 'off',
+				map: hud.map,
+				apoapsis: model.orbit?.apoapsis ?? null,
+				periapsis: model.orbit && !model.orbit.escape ? model.orbit.periapsis : null
+			}
+		};
+	});
+	$effect(() => {
+		if (observation === null) return;
+		const next = advance(settings.tutorial, observation);
+		if (next !== settings.tutorial) settings.setTutorial(next);
+	});
+	const tutorialStep = $derived(
+		hud?.status === 'flying' && !pauseOpen ? currentStep(settings.tutorial, 'flight') : null
+	);
 	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
 </script>
 
-<svelte:head><title>Flight · Orbital</title></svelte:head>
+<PageMeta
+	title="Flight · Orbital"
+	description="Fly your rocket: throttle, stage, hold attitude with SAS, plan maneuvers on the map and reach orbit."
+/>
+
+<svelte:window onresize={updateInsets} />
 
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
@@ -290,11 +356,7 @@
 		</div>
 	{:else if hud}
 		{#if hud.status === 'booting'}
-			<div class="center">
-				<StatusCard title="Starting the simulation" busy>
-					<p>Loading the sim and the stock parts.</p>
-				</StatusCard>
-			</div>
+			<LoadingScreen overlay step="Starting the simulation and loading the parts" />
 		{:else if hud.status === 'error'}
 			<div class="center">
 				<StatusCard tone="danger" title="The simulation stopped">
@@ -327,6 +389,13 @@
 					onscript={() => (scriptOpen = !scriptOpen)}
 					onhelp={() => (helpOpen = true)}
 				/>
+				{#if tutorialStep}
+					<TutorialCard
+						step={tutorialStep}
+						label={stepLabel(settings.tutorial, 'flight')}
+						onskip={() => settings.setTutorial(skip(settings.tutorial))}
+					/>
+				{/if}
 				{#if scriptOpen}
 					<div class="script">
 						<ScriptPanel
@@ -412,10 +481,10 @@
 			met={model?.met ?? 0}
 			onresume={() => (pauseOpen = false)}
 			oncontrols={() => (helpOpen = true)}
-			{autoQuality}
-			onautoquality={(on) => {
-				autoQuality = on;
-				flight?.setAutoQuality(on);
+			onsettings={() => {
+				pauseOpen = false;
+				settingsFromPause = true;
+				settingsOpen = true;
 			}}
 			onsave={() => {
 				pauseOpen = false;
@@ -432,6 +501,16 @@
 			<p class="savenote" class:error={saves.noteIsError} role="status">{saves.note}</p>
 		{/if}
 		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
+		<SettingsDialog
+			open={settingsOpen}
+			onclose={() => {
+				settingsOpen = false;
+				if (settingsFromPause) pauseOpen = true;
+				settingsFromPause = false;
+			}}
+			onpreset={(choice) => flight?.setGraphicsPreset(choice)}
+			onautoquality={(on) => flight?.setAutoQuality(on)}
+		/>
 	{/if}
 </div>
 

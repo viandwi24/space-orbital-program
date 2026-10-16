@@ -1,12 +1,11 @@
 /**
  * Stability read-out (ADR 0042): centre of mass against centre of pressure, from part data only.
  * The pressure model follows what the sim does: `stock.fin` gives a normal force
- * `S (liftSlope sin a cos a + crossflow sin^2 a)`, every part's drag gives a cross-flow force
+ * `S (liftSlope sin a cos a + crossflow sin^2 a)` (from the module descriptor's `lift`, plan 023), every part's drag gives a cross-flow force
  * `Cd A sin^2 a` at the part (frames.ts, ADR 0035). Both are evaluated at a reference angle of
  * attack so the centre of pressure is the mean of the normal forces' heights.
  */
-import { rotateY, type PartDefinition, type VesselDesign } from '@orbital/core';
-import { ModuleControlSurface, ModuleFin, finConfigSchema } from '@orbital/mod-stock';
+import { describeModule, rotateY, type PartDefinition, type VesselDesign } from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { layoutOf } from './state';
 
@@ -106,9 +105,11 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 		nx += body * x;
 		nz += body * z;
 		for (const [id, raw] of part.def.modules ?? []) {
-			// A control surface at rest is a fin (its config extends the fin's).
-			if (id !== ModuleFin.id && id !== ModuleControlSurface.id) continue;
-			const fin = finConfigSchema.parse(raw);
+			// Any module that describes a lifting plate counts (a stock fin, a control surface at
+			// rest, a mod's wing): the descriptor carries the numbers, no module id is named here.
+			const mod = content.modules.get(id);
+			const fin = mod && describeModule(mod, raw)?.lift;
+			if (!fin) continue;
 			const force = fin.area * (fin.liftSlope * sin * cos + fin.crossflow * sin * sin);
 			normal += force;
 			const c = rotateY([fin.centre[0], fin.centre[1], fin.centre[2]], at?.yaw ?? 0);

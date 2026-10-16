@@ -413,7 +413,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				environment,
 				stagesFired: stagesFiredBy(stages, vessel),
 				resources: cache.resources,
-				throttle: vesselThrottle(v.parts, localThrottle),
+				throttle: vesselThrottle(v.parts, localThrottle, content),
 				heat,
 				sas: v.sas,
 				controllable: hasControlSource(v),

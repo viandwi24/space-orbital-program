@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import Catalogue from '../../lib/vab/Catalogue.svelte';
 	import ChecksList from '../../lib/vab/ChecksList.svelte';
@@ -12,6 +13,10 @@
 	import Dialog from '../../lib/ui/Dialog.svelte';
 	import Icon from '../../lib/ui/Icon.svelte';
 	import Kbd from '../../lib/ui/Kbd.svelte';
+	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
+	import { categoryOf } from '../../lib/editor/categories';
+	import { settings } from '../../lib/settings/settings.svelte';
+	import { advance, currentStep, skip, stepLabel } from '../../lib/onboarding/tutorial';
 
 	const vab = new VabController();
 
@@ -24,8 +29,34 @@
 	onMount(() => {
 		if (!stage || !canvas || !left || !right) return;
 		vab.focusSearch = () => catalogueRef?.focusSearch();
-		return vab.mount({ canvas, stage, left, right });
+		const stop = vab.mount({ canvas, stage, left, right });
+		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
+		if (new URLSearchParams(location.search).has('library')) {
+			history.replaceState(null, '', location.pathname);
+			void vab.openLibrary();
+		}
+		return stop;
 	});
+
+	// The first-flight guide watches what the design contains, by catalogue category (plan 023).
+	$effect(() => {
+		const categories = new Set(
+			vab.editor.design.parts.map((p) => {
+				const def = vab.defOf(p.part);
+				return def ? categoryOf(def, vab.content.modules) : 'other';
+			})
+		);
+		const next = advance(settings.tutorial, {
+			scene: 'vab',
+			vab: {
+				command: categories.has('command'),
+				engine: categories.has('propulsion'),
+				tank: categories.has('tanks')
+			}
+		});
+		if (next !== settings.tutorial) settings.setTutorial(next);
+	});
+	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
 
 	// The drawers (narrow windows) change which panels take room; the view re-centres the vessel.
 	$effect(() => {
@@ -34,7 +65,10 @@
 	});
 </script>
 
-<svelte:head><title>Vehicle assembly · Orbital</title></svelte:head>
+<PageMeta
+	title="Vehicle assembly · Orbital"
+	description="Build a rocket from parts in a 3D hangar: attach, stage, check delta-v and stability, then launch."
+/>
 <svelte:window onkeydown={vab.onKey} />
 
 <div class="vab">
@@ -74,6 +108,7 @@
 				icons={vab.icons}
 				armed={vab.armed?.kind === 'new' ? vab.armed.part : null}
 				facts={vab.facts}
+				modules={vab.content.modules}
 				onarm={(id) => vab.arm(id)}
 				assemblies={vab.assemblyEntries}
 				armedAssembly={vab.armed?.kind === 'assembly' ? vab.armed.id : null}
@@ -139,6 +174,16 @@
 				<span><Kbd>A</Kbd> keep as sub-assembly</span>
 			</p>
 		</div>
+
+		{#if tutorialStep}
+			<div class="guide">
+				<TutorialCard
+					step={tutorialStep}
+					label={stepLabel(settings.tutorial, 'vab')}
+					onskip={() => settings.setTutorial(skip(settings.tutorial))}
+				/>
+			</div>
+		{/if}
 
 		{#if vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0}
 			<div class="welcome">
@@ -296,6 +341,12 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
+	}
+	.guide {
+		grid-column: 2;
+		grid-row: 2;
+		align-self: start;
+		justify-self: center;
 	}
 	.welcome {
 		position: absolute;

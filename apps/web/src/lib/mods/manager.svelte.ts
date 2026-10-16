@@ -169,7 +169,10 @@ export class ModManager {
 			enabled: true,
 			order: pending.replaces?.order ?? Math.max(-1, ...this.records.map((r) => r.order)) + 1
 		};
-		await this.write(async (store) => store.put(record), () => (this.pending = null));
+		await this.write(
+			async (store) => store.put(record),
+			() => (this.pending = null)
+		);
 	}
 
 	async setEnabled(id: string, enabled: boolean): Promise<void> {

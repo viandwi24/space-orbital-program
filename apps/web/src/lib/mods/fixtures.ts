@@ -2,7 +2,11 @@
 import { createModPackage, type ModManifest } from '@orbital/core';
 import type { ModRecord } from './store';
 
-export const pluginSource = (id: string, version = '1.0.0', body = `ctx.parts.register({ id: '${id}.thing', title: 'Thing', mass: 2, shape: { kind: 'cylinder', radius: 0.5, height: 1 } });`): string =>
+export const pluginSource = (
+	id: string,
+	version = '1.0.0',
+	body = `ctx.parts.register({ id: '${id}.thing', title: 'Thing', mass: 2, shape: { kind: 'cylinder', radius: 0.5, height: 1 } });`
+): string =>
 	`export default { meta: { id: ${JSON.stringify(id)}, version: ${JSON.stringify(version)}, api: '^0.1' }, depends: ['stock'], optional: [], setup(ctx) { ${body} } };`;
 
 export async function packageText(
@@ -21,7 +25,9 @@ export async function recordOf(
 	id: string,
 	options: { order?: number; enabled?: boolean; code?: string; trusted?: string } = {}
 ): Promise<ModRecord> {
-	const pkg = JSON.parse(await packageText(id, options.code === undefined ? {} : { code: options.code }));
+	const pkg = JSON.parse(
+		await packageText(id, options.code === undefined ? {} : { code: options.code })
+	);
 	return {
 		id,
 		manifest: pkg.manifest,

@@ -29,6 +29,20 @@ export function saveGraphicsPreset(preset: GraphicsPreset): void {
 	}
 }
 
+/** Forget the saved choice: the device default applies again (the settings dialog's "Automatic"). */
+export function clearGraphicsPreset(): void {
+	try {
+		localStorage.removeItem(KEY);
+	} catch {
+		// private mode: the choice applies for this session only
+	}
+}
+
+/** The player's choice for the settings dialog: a preset, or `auto` for the device default. */
+export type PresetChoice = GraphicsPreset | 'auto';
+
+export const presetChoice = (): PresetChoice => loadGraphicsPreset() ?? 'auto';
+
 /**
  * The quality governor (plan 039, ADR 0053) lowers resolution and then the preset when the view runs
  * under about 55 fps. On unless the player turned it off; only the string `off` is a no.

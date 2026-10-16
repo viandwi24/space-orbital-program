@@ -6,8 +6,10 @@
 		formatDistance,
 		formatPercent,
 		formatSignedAngle,
+		formatSpeed,
 		NO_VALUE
 	} from '../format';
+	import { speedUnit, speedValue } from '../units.svelte';
 	import type { HudModel } from '../hud-controller';
 	import type { NavballFrame } from './navball-draw';
 	import Navball from './Navball.svelte';
@@ -46,8 +48,10 @@
 	};
 	const speedParts = $derived.by(() => {
 		const v = model?.speed;
-		if (v === undefined || !Number.isFinite(v)) return { n: NO_VALUE, u: 'm/s' };
-		return v >= 1e4 ? { n: (v / 1e3).toFixed(2), u: 'km/s' } : { n: v.toFixed(1), u: 'm/s' };
+		if (v === undefined || !Number.isFinite(v)) return { n: NO_VALUE, u: speedUnit() };
+		const s = formatSpeed(v);
+		const i = s.lastIndexOf(' ');
+		return { n: s.slice(0, i), u: s.slice(i + 1) };
 	});
 	const alt = $derived(model ? parts(model.altitude) : { n: NO_VALUE, u: 'm' });
 	const speedLog = $derived(model ? Math.log10(1 + model.speed) / Math.log10(1 + 12_000) : 0);
@@ -85,8 +89,8 @@
 		<Meter value={speedLog} label="Speed on a log scale" />
 		<div class="sub num">
 			<Icon name={vs >= 0 ? 'up' : 'down'} size={14} />
-			<span data-testid="hud-vspeed">{Math.abs(vs).toFixed(1)}</span><span class="unit"
-				>m/s vertical</span
+			<span data-testid="hud-vspeed">{speedValue(Math.abs(vs)).toFixed(1)}</span><span class="unit"
+				>{speedUnit()} vertical</span
 			>
 		</div>
 	</div>

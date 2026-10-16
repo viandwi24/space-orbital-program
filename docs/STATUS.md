@@ -43,7 +43,7 @@
 | 034 | [VAB extras](plans/034-vab-extras-mod-categories-trip-planner.md) | draft | — | from 029: mod-supplied categories, trip planner, mod lift modules in the stability read-out |
 | 027 | [Visual: terrain geometry, sky and device follow-ups](plans/027-terrain-and-sky-follow-ups.md) | done | terrain session | ADRs 0036 and 0037; visual terrain heights (cube-map bake, ray-marched, flat pad zone and camera bubble, snow/rock/forest bands, terrain shadows), thinner haze, cumulus plus cirrus layers, moving waves; `high` pad 12.8 ms thr / 15.9 ms sync on an M5, M1/M2 not measured; physical heights, volumetric clouds, site animation in draft 031 |
 | 031 | [Physical terrain heights, volumetric sky and site animation](plans/031-physical-terrain-and-sky-volumes.md) | done | physical-terrain session | ADRs 0043 (one height function in `core` read by sim and renderer; ground tile follows the terrain; slopes by rigid body and friction; surface rails and placement on hills), 0044 (float patches around the camera, march for ground-level cameras); lander stands on hills, camera bubble deleted, coast warp, closer massif; API 0.1.9; GPU readback within 0.2 m (fine) / 0.8 m (mid) of float64; `high` pad 16.0 ms thr on a slow day (+1.7 ms), hillside +8.9 ms; M1/M2 not measured; clouds in draft 037, water/site/devices in draft 038 |
-| 037 | [Volumetric clouds and light shafts](plans/037-volumetric-clouds-and-light-shafts.md) | draft | — | from 031: half-resolution ray-marched cumulus with a light march, crepuscular rays, aurora |
+| 037 | [Volumetric clouds and light shafts](plans/037-volumetric-clouds-and-light-shafts.md) | done | clouds session (Claude, 2026-10-17) | v1: ADR 0059; the cumulus is a 1.1 km slab marched in 3 to 6 steps (flat ragged base, grey undersides, rims, billow erosion), `cloudSteps`/`cloudDetail` per preset; frame budget held on both presets at five scenes, hitch equal to the baseline build, 12 km contrast unchanged (27.3); light shafts and ozone moved to draft 054 |
 | 038 | [Lakes, rivers, site animation, devices](plans/038-water-site-animation-and-devices.md) | draft | — | from 031: lakes and river flow, breaking shore waves, launch-site animation, M1/M2 and Intel measurements, precompile, mobile |
 | 030 | [Script hardening and tooling follow-ups](plans/030-script-hardening-and-tooling.md) | done | script-hardening session | ADR 0038: script Worker in an opaque-origin sandboxed iframe with a no-network CSP (self-test in the panel), share/import (text, link, file) with a stranger-code confirm, syntax highlighting, error lines, budget 200 ms; sample ascent reached a 76.6 km periapsis and a native runaway was killed in the browser; API additions and Safari/Firefox checks are draft 032 |
 | 032 | [Script API additions and the sandbox in other browsers](plans/032-script-api-additions-and-browser-matrix.md) | done | browser-matrix session (Claude, 2026-10-17) | ADRs 0039 (warp while a script runs: the host holds the script's controls), 0040 (support policy, capability gate, Playwright matrix); `bodies`, `Date` on sim time, command feedback, fuel count; smoke suite and real-time orbit pass in Chromium 156, Firefox 157, WebKit 27.2 (Firefox: intermittent vessel loss, draft 047); phones/tablets not supported; target/maneuver data and editor niceties are drafts 035 and 036 |
@@ -62,6 +62,8 @@
 | 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | done | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
 | 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | draft | — | from 048: bilateral upsample, governor rung, `medium` cloud shadows, M1/M2 measurements |
 | 051 | [Mod-supplied part visuals and assets](plans/051-mod-visuals-and-assets.md) | draft | — | from 046: new generators or glTF inside a mod package (today a mod part reuses the stock generators with its own palette) |
+| 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | draft | — | from 023: binding table, audio, touch/phone layout (roadmap page) |
+| 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | draft | — | from 037: crepuscular rays through the cumulus slab, ozone layer at the golden hour, aurora |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -91,6 +93,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [037 — Volumetric cumulus](journal/037-volumetric-clouds-and-light-shafts.md)
 - [049 — Moon polish](journal/049-moon-polish.md)
 - [032 — Script API additions and the sandbox in other browsers](journal/032-script-api-additions-and-browser-matrix.md)
 - [045 — Maneuver nodes](journal/045-maneuver-nodes.md)

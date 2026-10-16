@@ -3,6 +3,7 @@ import {
 	formatAngle,
 	formatBearing,
 	formatSignedAngle,
+	formatDeltaV,
 	formatDistance,
 	formatDuration,
 	formatForce,
@@ -82,5 +83,34 @@ describe('format', () => {
 			'1Mx'
 		]);
 		expect(resourceLabel('stock.liquid-fuel')).toBe('Liquid fuel');
+	});
+});
+
+describe('imperial units (plan 023)', () => {
+	it('converts distance: feet below 10 000 ft, then miles', () => {
+		expect(formatDistance(1000, 'imperial')).toBe('3,281 ft');
+		expect(formatDistance(10, 'imperial')).toBe('32.8 ft');
+		expect(formatDistance(1000, 'imperial')).not.toContain('km');
+		expect(formatDistance(10_000, 'imperial')).toBe('6.21 mi'); // 1 km = 0.621 mi
+		expect(formatDistance(80_000, 'imperial')).toBe('49.71 mi');
+		expect(formatDistance(1_000_000, 'imperial')).toBe('621.4 mi');
+		expect(formatDistance(2e9, 'imperial')).toBe('1.24 Mmi');
+	});
+	it('converts speed and delta-v: 100 m/s = 328.1 ft/s', () => {
+		expect(formatSpeed(100, 'imperial')).toBe('328.1 ft/s');
+		expect(formatSpeed(11_186, 'imperial')).toBe('6.95 mi/s');
+		expect(formatDeltaV(3808, 'imperial')).toBe('12,493');
+		expect(formatDeltaV(3808, 'metric')).toBe('3,808');
+		expect(formatDeltaV(Number.NaN, 'metric')).toBe(NO_VALUE);
+	});
+	it('converts mass and force: 1 t = 2 204.6 lb', () => {
+		expect(formatMass(1000, 'imperial')).toBe('1.10 tn');
+		expect(formatMass(100, 'imperial')).toBe('220 lb');
+		expect(formatMass(1000, 'metric')).toBe('1.00 t');
+		expect(formatForce(215_000, 'imperial')).toBe('48.3 klbf');
+	});
+	it('the metric results do not change', () => {
+		expect(formatDistance(12_345, 'metric')).toBe('12.3 km');
+		expect(formatSpeed(2301.26, 'metric')).toBe('2301.3 m/s');
 	});
 });

@@ -4,7 +4,8 @@
 	import Icon from '../ui/Icon.svelte';
 	import Kbd from '../ui/Kbd.svelte';
 	import Meter from '../ui/Meter.svelte';
-	import { formatDuration, formatPercent } from '../format';
+	import { formatDeltaV, formatDuration, formatPercent } from '../format';
+	import { speedUnit } from '../units.svelte';
 	import type { StageStackModel } from '../stage-stack';
 
 	let {
@@ -22,7 +23,7 @@
 	// The vessel stands upright on screen: the stage that fires first sits at the bottom.
 	const rows = $derived([...stages.rows].reverse());
 	const canStage = $derived(stages.rows.some((r) => r.next));
-	const dv = (m: number): string => Math.round(m).toLocaleString('en-US');
+	const dv = formatDeltaV;
 </script>
 
 <Panel title="Stages">
@@ -33,7 +34,8 @@
 				? 'in vacuum'
 				: 'at sea level'}"
 		>
-			{dv(stages.total)} <span class="u">m/s {environment === 'vacuum' ? 'vac' : 'asl'}</span>
+			{dv(stages.total)}
+			<span class="u">{speedUnit()} {environment === 'vacuum' ? 'vac' : 'asl'}</span>
 		</span>
 	{/snippet}
 
@@ -56,7 +58,7 @@
 						<span class="icons">
 							{#each r.icons as icon, i (i)}<Icon name={icon} size={16} />{/each}
 						</span>
-						<span class="dv num">{dv(r.dv)}<span class="u"> m/s</span></span>
+						<span class="dv num">{dv(r.dv)}<span class="u"> {speedUnit()}</span></span>
 					</div>
 					<div class="meta num">
 						<span>TWR {r.twr.toFixed(2)}</span>

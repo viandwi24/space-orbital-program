@@ -76,3 +76,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0056 | [Maneuver nodes: sim-owned, remaining-burn model, shared prediction](0056-maneuver-nodes.md) | accepted | 2026-10-17 |
 | 0057 | [Mod package format, trust model and runtime loading](0057-mod-package-and-runtime-loading.md) | accepted | 2026-10-17 |
 | 0058 | [Light and dust on an airless body](0058-light-and-dust-on-an-airless-body.md) | accepted | 2026-10-17 |
+| 0059 | [The cumulus as a short ray-marched slab, inside the old budget](0059-cumulus-slab-march.md) | accepted | 2026-10-17 |
+| 0060 | [Release: settings, onboarding, public pages and the descriptor hooks](0060-release-settings-onboarding-and-descriptor-hooks.md) | accepted | 2026-10-17 |

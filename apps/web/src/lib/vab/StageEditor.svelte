@@ -3,7 +3,8 @@
 	import Icon from '../ui/Icon.svelte';
 	import { nudgeStage } from '../editor/staging';
 	import type { StageEditRow, Environment } from '../editor/stats';
-	import { formatDuration } from '../format';
+	import { formatDeltaV, formatDuration } from '../format';
+	import { speedUnit } from '../units.svelte';
 
 	let {
 		design,
@@ -48,7 +49,7 @@
 	const stageCount = $derived(design.stages.length);
 	const order = $derived(Array.from({ length: stageCount }, (_, k) => stageCount - 1 - k));
 	const rowOf = (k: number): StageEditRow | undefined => rows.find((r) => r.stage === k);
-	const dv = (m: number): string => Math.round(m).toLocaleString('en-US');
+	const dv = formatDeltaV;
 
 	function drop(e: DragEvent, target: number | 'new' | 'tray'): void {
 		e.preventDefault();
@@ -108,7 +109,7 @@
 			class="total num"
 			title="Total delta-v, {environment === 'vacuum' ? 'in vacuum' : 'at sea level'}"
 		>
-			{dv(total)}<span class="u"> m/s</span>
+			{dv(total)}<span class="u"> {speedUnit()}</span>
 		</div>
 	</header>
 
@@ -161,7 +162,7 @@
 					</div>
 					<div class="nums num">
 						{#if r && r.engines > 0}
-							<span class="dv">{dv(r.dv)}<span class="u"> m/s</span></span>
+							<span class="dv">{dv(r.dv)}<span class="u"> {speedUnit()}</span></span>
 							<span class="meta" title="Thrust to weight when the stage ignites"
 								>TWR {r.twr.toFixed(2)}</span
 							>

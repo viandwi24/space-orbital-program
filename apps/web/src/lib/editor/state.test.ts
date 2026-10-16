@@ -390,7 +390,9 @@ describe('preview and categories', () => {
 	});
 
 	it('categories cover all stock parts and search matches title and id', () => {
-		const ids = Object.fromEntries(registries.parts.list().map((p) => [p.id, categoryOf(p)]));
+		const ids = Object.fromEntries(
+			registries.parts.list().map((p) => [p.id, categoryOf(p, registries.modules)])
+		);
 		expect(ids).toMatchObject({
 			'stock.command-pod': 'command',
 			'stock.tank-small': 'tanks',
@@ -410,7 +412,7 @@ describe('preview and categories', () => {
 		expect(matchesQuery(tank, 'small tank')).toBe(true);
 		expect(matchesQuery(tank, 'ENGINE')).toBe(false);
 		expect(matchesQuery(tank, '')).toBe(true);
-		expect(categoryOf({ modules: [] })).toBe('other');
+		expect(categoryOf({ modules: [] }, registries.modules)).toBe('other');
 	});
 });
 

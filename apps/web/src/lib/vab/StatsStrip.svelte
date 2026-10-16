@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Meter from '../ui/Meter.svelte';
-	import { formatMass } from '../format';
+	import { formatDeltaV, formatDistance, formatMass } from '../format';
+	import { speedUnit } from '../units.svelte';
 	import type { DesignStats } from '../editor/stats';
 	import type { Stability } from '../editor/stability';
 
@@ -56,7 +57,7 @@
 						: 'The pressure should sit below the mass.'
 				}`
 	);
-	const n = (v: number): string => Math.round(v).toLocaleString('en-US');
+	const n = formatDeltaV;
 </script>
 
 <section class="strip" aria-label="Vessel summary">
@@ -71,7 +72,7 @@
 		</div>
 		<div>
 			<dt>Height</dt>
-			<dd class="num">{stats.partCount ? `${stats.height.toFixed(1)} m` : '–'}</dd>
+			<dd class="num">{stats.partCount ? formatDistance(stats.height) : '–'}</dd>
 		</div>
 		<div title={stabilityTitle}>
 			<dt>Stability</dt>
@@ -96,7 +97,7 @@
 			<span>{targetLabel}</span>
 			<span class="num">
 				<strong class:short={stats.partCount > 0 && !enough}>{n(ascent)}</strong>
-				<span class="u"> of about {n(needed)} m/s</span>
+				<span class="u"> of about {n(needed)} {speedUnit()}</span>
 			</span>
 		</div>
 		<Meter
@@ -108,9 +109,9 @@
 			{#if stats.partCount === 0}
 				Estimate: orbital speed plus gravity and drag losses.
 			{:else if enough}
-				Enough for the climb, with {n(ascent - needed)} m/s to spare.
+				Enough for the climb, with {n(ascent - needed)} {speedUnit()} to spare.
 			{:else}
-				Short by about {n(needed - ascent)} m/s. Add a stage or more propellant.
+				Short by about {n(needed - ascent)} {speedUnit()}. Add a stage or more propellant.
 			{/if}
 		</p>
 	</div>

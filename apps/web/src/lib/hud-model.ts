@@ -1,11 +1,12 @@
 /** Naming and labels shown by the flight HUD (plan 021). Pure. */
 import {
+	describeModule,
 	resolveVesselDesign,
+	type ModuleDefinition,
 	type PartLookup,
 	type PartSnapshot,
 	type VesselDesign
 } from '@orbital/core';
-import { ModuleEngine } from '@orbital/mod-stock';
 import type { FlightPhase } from './telemetry';
 
 export const DEFAULT_DESIGN_NAME = 'Untitled vessel';
@@ -73,22 +74,43 @@ export function groundClearance(design: VesselDesign, parts: PartLookup): number
 	return -lowest;
 }
 
+/** The registries `vesselThrottle` reads engines through. */
+export interface ThrottleContent {
+	parts: PartLookup;
+	modules: { get(id: string): ModuleDefinition | undefined };
+}
+
 /**
  * The throttle the vessel is actually at, 0..1. The snapshot has no control state, but every engine
  * module copies the vessel throttle into its state each flight step and snapshots it, so scripts,
- * the autopilot and the keyboard all show up. Without engines the page's own setting is returned.
+ * the autopilot and the keyboard all show up. The engine is found by its descriptor
+ * (`ModuleInfo.engine.throttle`, ADR 0033), not by module id, so a mod's engine counts too (plan 023).
+ * Without such an engine the page's own setting is returned.
  */
 export function vesselThrottle(
-	parts: readonly Pick<PartSnapshot, 'modules'>[],
-	fallback: number
+	parts: readonly Pick<PartSnapshot, 'definition' | 'modules'>[],
+	fallback: number,
+	content: ThrottleContent
 ): number {
 	let found = false;
 	let max = 0;
 	for (const p of parts) {
-		const view = p.modules[ModuleEngine.id] as { throttle?: unknown } | undefined;
-		if (typeof view?.throttle === 'number') {
+		const def = content.parts.get(p.definition);
+		for (const [moduleId, raw] of def?.modules ?? []) {
+			const view = p.modules[moduleId];
+			if (view === undefined) continue;
+			const mod = content.modules.get(moduleId);
+			if (!mod?.describe) continue;
+			let throttle: number | undefined;
+			try {
+				throttle = describeModule(mod, raw, view)?.engine?.throttle;
+			} catch {
+				// A mod whose descriptor throws or returns bad data must not take the HUD down.
+				continue;
+			}
+			if (throttle === undefined) continue;
 			found = true;
-			max = Math.max(max, view.throttle);
+			max = Math.max(max, throttle);
 		}
 	}
 	return found ? Math.min(1, Math.max(0, max)) : fallback;

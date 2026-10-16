@@ -1,14 +1,37 @@
 /** Display-unit helpers. Simulation state is SI; conversion happens only here in the UI. */
+import {
+	FEET_PER_METRE,
+	METRES_PER_MILE,
+	POUNDS_FORCE_PER_NEWTON,
+	POUNDS_PER_KG,
+	currentUnits,
+	speedUnit,
+	speedValue,
+	type UnitSystem
+} from './units.svelte';
 
 /** Shown for a value that is not available (no orbit yet, no data). */
 export const NO_VALUE = '–';
 
 const finite = (x: number): boolean => Number.isFinite(x);
 
-/** Distances: m below 10 km, then km, Mm, Gm. Two decimals for the larger units. */
-export function formatDistance(metres: number): string {
+const grouped = (x: number, digits = 0): string =>
+	x.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+/**
+ * Distances. Metric: m below 10 km, then km, Mm, Gm. Imperial: ft below 10 000 ft, then miles
+ * (Mmi from a million). The system defaults to the player's setting (`units.svelte.ts`).
+ */
+export function formatDistance(metres: number, system: UnitSystem = currentUnits()): string {
 	if (!finite(metres)) return NO_VALUE;
 	const abs = Math.abs(metres);
+	if (system === 'imperial') {
+		const feet = metres * FEET_PER_METRE;
+		if (Math.abs(feet) < 1e4) return `${grouped(feet, Math.abs(feet) < 100 ? 1 : 0)} ft`;
+		const miles = metres / METRES_PER_MILE;
+		if (Math.abs(miles) >= 1e6) return `${(miles / 1e6).toFixed(2)} Mmi`;
+		return `${grouped(miles, Math.abs(miles) < 100 ? 2 : Math.abs(miles) < 1e4 ? 1 : 0)} mi`;
+	}
 	if (abs >= 1e9) return `${(metres / 1e9).toFixed(2)} Gm`;
 	if (abs >= 1e6) return `${(metres / 1e6).toFixed(2)} Mm`;
 	if (abs >= 1e4) return `${(metres / 1e3).toFixed(1)} km`;
@@ -16,23 +39,43 @@ export function formatDistance(metres: number): string {
 	return `${metres.toFixed(abs < 100 ? 1 : 0)} m`;
 }
 
-/** Speeds: m/s, km/s from 10 km/s so the number never needs more than 5 digits. */
-export function formatSpeed(mps: number): string {
+/**
+ * Speeds. Metric: m/s, km/s from 10 km/s so the number never needs more than 5 digits. Imperial:
+ * ft/s, mi/s from the same speed.
+ */
+export function formatSpeed(mps: number, system: UnitSystem = currentUnits()): string {
 	if (!finite(mps)) return NO_VALUE;
-	if (Math.abs(mps) >= 1e4) return `${(mps / 1e3).toFixed(2)} km/s`;
-	return `${mps.toFixed(1)} m/s`;
+	if (Math.abs(mps) >= 1e4) {
+		return system === 'imperial'
+			? `${(mps / METRES_PER_MILE).toFixed(2)} mi/s`
+			: `${(mps / 1e3).toFixed(2)} km/s`;
+	}
+	return `${speedValue(mps, system).toFixed(1)} ${speedUnit(system)}`;
 }
 
-/** Mass: kg below one tonne, t above. */
-export function formatMass(kg: number): string {
+/** Delta-v, whole numbers with a thousands separator, no unit (labelled by `speedUnit`). */
+export function formatDeltaV(mps: number, system: UnitSystem = currentUnits()): string {
+	if (!finite(mps)) return NO_VALUE;
+	return grouped(Math.round(speedValue(mps, system)));
+}
+
+/** Mass. Metric: kg below one tonne, t above. Imperial: lb below one short ton (2 000 lb), tn above. */
+export function formatMass(kg: number, system: UnitSystem = currentUnits()): string {
 	if (!finite(kg)) return NO_VALUE;
+	if (system === 'imperial') {
+		const pounds = kg * POUNDS_PER_KG;
+		if (Math.abs(pounds) >= 2000) return `${(pounds / 2000).toFixed(2)} tn`;
+		return `${pounds.toFixed(0)} lb`;
+	}
 	if (Math.abs(kg) >= 1e3) return `${(kg / 1e3).toFixed(2)} t`;
 	return `${kg.toFixed(0)} kg`;
 }
 
-/** Force in kN (thrust). */
-export function formatForce(newtons: number): string {
+/** Force: kN, or klbf in the imperial system (thrust). */
+export function formatForce(newtons: number, system: UnitSystem = currentUnits()): string {
 	if (!finite(newtons)) return NO_VALUE;
+	if (system === 'imperial')
+		return `${((newtons * POUNDS_FORCE_PER_NEWTON) / 1e3).toFixed(1)} klbf`;
 	return `${(newtons / 1e3).toFixed(1)} kN`;
 }
 

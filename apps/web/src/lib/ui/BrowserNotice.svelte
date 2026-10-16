@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { SUPPORTED_BROWSERS } from '../browser-support';
+	import { GAME_NAME } from '../public/about';
 
 	let { missing }: { missing: string[] } = $props();
 </script>
 
 <main role="alert" data-testid="browser-notice">
-	<h1>This browser cannot run Orbital</h1>
+	<h1>This browser cannot run {GAME_NAME}</h1>
 	<p>The game needs features your browser does not offer here:</p>
 	<ul>
 		{#each missing as feature (feature)}
@@ -17,8 +18,9 @@
 		acceleration is turned on in its settings and that the browser is up to date.
 	</p>
 	<p class="meta">
-		Phones and tablets are not supported yet. See the support list in the project documentation
-		(<code>docs/product/browser-support.md</code>).
+		Phones and tablets are not supported yet. See the support list in the project documentation (<code
+			>docs/product/browser-support.md</code
+		>).
 	</p>
 </main>
 

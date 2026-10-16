@@ -46,14 +46,11 @@ describe('browser capability check (plan 032, ADR 0040)', () => {
 		).toBe(false);
 	});
 	// Compiling a .svelte file needs the Vite plugin: vitest has it, a bare `bun test` does not.
-	it.skipIf('Bun' in globalThis)(
-		'the notice names what is missing and who is supported',
-		() => {
-			const { body } = render(BrowserNotice, { props: { missing: ['WebGL 2 (3D graphics)'] } });
-			expect(body).toContain('cannot run Orbital');
-			expect(body).toContain('WebGL 2 (3D graphics)');
-			expect(body).toContain('Firefox 114');
-			expect(body).toContain('Phones and tablets are not supported');
-		}
-	);
+	it.skipIf('Bun' in globalThis)('the notice names what is missing and who is supported', () => {
+		const { body } = render(BrowserNotice, { props: { missing: ['WebGL 2 (3D graphics)'] } });
+		expect(body).toContain('cannot run Orbital');
+		expect(body).toContain('WebGL 2 (3D graphics)');
+		expect(body).toContain('Firefox 114');
+		expect(body).toContain('Phones and tablets are not supported');
+	});
 });

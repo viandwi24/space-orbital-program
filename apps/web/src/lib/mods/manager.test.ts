@@ -79,7 +79,10 @@ describe('ModManager install flow', () => {
 		const ok = make({ fetchText: async () => text });
 		await ok.manager.load();
 		await ok.manager.inspectUrl(' https://example.com/a.orbital-mod.json ');
-		expect(ok.manager.pending?.source).toEqual({ kind: 'url', url: 'https://example.com/a.orbital-mod.json' });
+		expect(ok.manager.pending?.source).toEqual({
+			kind: 'url',
+			url: 'https://example.com/a.orbital-mod.json'
+		});
 		const bad = make({
 			fetchText: async () => {
 				throw new Error('The server answered 404.');
@@ -118,14 +121,19 @@ describe('ModManager list', () => {
 		const a = await recordOf('a');
 		const booted = new Map([
 			['a', { state: { kind: 'loaded' } as const, sha256: a.sha256 }],
-			['f', { state: { kind: 'failed', reason: 'boom' } as const, sha256: (await recordOf('f')).sha256 }]
+			[
+				'f',
+				{ state: { kind: 'failed', reason: 'boom' } as const, sha256: (await recordOf('f')).sha256 }
+			]
 		]);
 		const { manager } = make({ booted: () => booted });
 		expect(manager.statusOf(a)).toEqual({ kind: 'running' });
 		expect(manager.statusOf({ ...a, enabled: false })).toEqual({ kind: 'stops-after-reload' });
 		expect(manager.statusOf(await recordOf('f'))).toEqual({ kind: 'failed', reason: 'boom' });
 		expect(manager.statusOf(await recordOf('z', { enabled: false }))).toEqual({ kind: 'off' });
-		expect(manager.statusOf({ ...a, sha256: '0'.repeat(64) })).toEqual({ kind: 'starts-after-reload' });
+		expect(manager.statusOf({ ...a, sha256: '0'.repeat(64) })).toEqual({
+			kind: 'starts-after-reload'
+		});
 	});
 
 	it('a storage failure is shown and leaves the list as it was', async () => {
@@ -133,7 +141,10 @@ describe('ModManager list', () => {
 		await store.put(await recordOf('a'));
 		const failing: ModStore = {
 			...store,
-			put: () => Promise.reject(new ModStoreError('The browser has no room left to store this mod.', 'quota'))
+			put: () =>
+				Promise.reject(
+					new ModStoreError('The browser has no room left to store this mod.', 'quota')
+				)
 		};
 		const { manager } = make({}, failing);
 		await manager.load();

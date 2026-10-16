@@ -19,7 +19,11 @@ export function radarAltitude(
 	clearance: number,
 	terrainHeight: number | undefined
 ): number | null {
-	if (terrainHeight === undefined || !Number.isFinite(terrainHeight) || !Number.isFinite(altitude)) {
+	if (
+		terrainHeight === undefined ||
+		!Number.isFinite(terrainHeight) ||
+		!Number.isFinite(altitude)
+	) {
 		return null;
 	}
 	return Math.max(0, altitude - clearance - terrainHeight);
