@@ -3,9 +3,17 @@
  * loose assembly as its own group on the floor, the translucent ghost of whatever is being placed,
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
-import type { PartDefinition, PartLookup, VesselDesign } from '@orbital/core';
+import { rotateY, type PartDefinition, type PartLookup, type VesselDesign } from '@orbital/core';
 import type { VabGroup, VabNode, VabPart, VabScene } from '@orbital/renderer';
-import { extract, positionsOf, previewAttach, rootOf, type AttachTarget, type Doc } from './state';
+import {
+	extract,
+	layoutOf,
+	planAttach,
+	previewAttach,
+	rootOf,
+	type AttachTarget,
+	type Doc
+} from './state';
 
 /** Floor positions of loose assemblies: alternate right and left of the platform, nearest first. */
 export const looseX = (i: number): number => (i % 2 === 0 ? 1 : -1) * (7.6 + Math.floor(i / 2) * 3);
@@ -42,6 +50,12 @@ export interface SceneInput {
 	targets: readonly AttachTarget[];
 	/** Index into `targets` shown as the ghost and the active marker. */
 	cursor: number | null;
+	/** A target the pointer is over (a radial site between the listed ones): shown as the ghost instead of `cursor`'s. */
+	pointer?: AttachTarget | null;
+	/** Copies made by a radial placement of a new part (the ghost shows them all). Default 1. */
+	symmetry?: number;
+	/** `held` is a catalogue part not yet in the design (default) or an assembly being moved. */
+	kind?: 'new' | 'carry';
 }
 
 export interface BuiltScene {
@@ -50,7 +64,9 @@ export interface BuiltScene {
 }
 
 export function buildScene(input: SceneInput): BuiltScene {
-	const { design, loose, parts, held, targets, cursor } = input;
+	const { design, loose, parts, held, targets, cursor, pointer } = input;
+	const symmetry = input.symmetry ?? 1;
+	const kind = input.kind ?? 'new';
 	const out: VabPart[] = [];
 	const groups: VabGroup[] = [{ id: 'main', x: 0, z: 0 }];
 	const nodes: VabNode[] = [];
@@ -61,15 +77,16 @@ export function buildScene(input: SceneInput): BuiltScene {
 		role: VabPart['role'],
 		prefix = ''
 	): void => {
-		const at = positionsOf(assembly, parts);
+		const at = layoutOf(assembly, parts);
 		if (!at) return;
 		for (const p of assembly.parts) {
-			const pos = at.get(p.index);
-			if (pos)
+			const l = at.get(p.index);
+			if (l)
 				out.push({
 					key: `${prefix}${partKey(p.index)}`,
 					definition: p.part,
-					position: [pos.x, pos.y, pos.z],
+					position: [l.position.x, l.position.y, l.position.z],
+					yaw: l.yaw,
 					group,
 					role
 				});
@@ -83,19 +100,31 @@ export function buildScene(input: SceneInput): BuiltScene {
 	});
 
 	let ghost: AttachTarget | null = null;
-	if (held && cursor !== null && targets[cursor]) {
-		ghost = targets[cursor]!;
-		const merged = previewAttach(design, held, ghost);
-		const at = positionsOf(merged, parts);
+	const shown = pointer ?? (cursor !== null ? (targets[cursor] ?? null) : null);
+	if (held && shown) {
+		ghost = shown;
+		const heldRoot = rootOf(held);
+		const merged =
+			kind === 'new'
+				? planAttach(
+						{ design, loose: [...loose], nextIndex: heldRoot },
+						held.parts.find((p) => p.index === heldRoot)!.part,
+						ghost,
+						symmetry
+					)
+				: { design: previewAttach(design, held, ghost), added: held.parts.map((p) => p.index) };
+		const at = layoutOf(merged.design, parts);
 		if (at) {
-			const heldIds = new Set(held.parts.map((p) => p.index));
-			for (const p of merged.parts) {
-				const pos = at.get(p.index);
-				if (pos && heldIds.has(p.index)) {
+			const added = new Set(merged.added);
+			const heldIds = kind === 'new' ? added : new Set(held.parts.map((p) => p.index));
+			for (const p of merged.design.parts) {
+				const l = at.get(p.index);
+				if (l && heldIds.has(p.index)) {
 					out.push({
 						key: `g${partKey(p.index)}`,
 						definition: p.part,
-						position: [pos.x, pos.y, pos.z],
+						position: [l.position.x, l.position.y, l.position.z],
+						yaw: l.yaw,
 						group: 'main',
 						role: 'ghost'
 					});
@@ -110,15 +139,28 @@ export function buildScene(input: SceneInput): BuiltScene {
 			const parentDef = t.parent
 				? parts.get(design.parts.find((p) => p.index === t.parent!.index)?.part ?? '')
 				: undefined;
-			const dir = t.parent ? parentDef?.attach?.[t.parent.parentNode]?.dir : undefined;
+			let dir: readonly number[] | undefined = t.parent
+				? parentDef?.attach?.[t.parent.parentNode]?.dir
+				: undefined;
+			if (t.parent && dir) {
+				// A node of a turned part points the way the part is turned.
+				const yaw = layoutOf(design, parts)?.get(t.parent.index)?.yaw ?? 0;
+				const turned = rotateY([dir[0]!, dir[1]!, dir[2]!], yaw);
+				dir = [turned.x, turned.y, turned.z];
+			}
+			if (t.radial && t.parent) {
+				const yaw = layoutOf(design, parts)?.get(t.parent.index)?.yaw ?? 0;
+				const out = rotateY([1, 0, 0], yaw + t.radial.angle);
+				dir = [out.x, out.y, out.z];
+			}
 			nodes.push({
 				key: `t${i}`,
 				group: 'main',
 				// An empty design offers the platform itself: the marker sits at the foot of the future root.
 				position: t.parent ? [t.point.x, t.point.y, t.point.z] : [0, -heightOf(rootDef) / 2, 0],
-				dir: dir ? [dir[0], dir[1], dir[2]] : [0, 1, 0],
-				radius: Math.max(radiusOf(parentDef), radiusOf(rootDef), 0.5),
-				state: i === cursor ? 'active' : 'target'
+				dir: dir ? [dir[0]!, dir[1]!, dir[2]!] : [0, 1, 0],
+				radius: t.radial ? 0.3 : Math.max(radiusOf(parentDef), radiusOf(rootDef), 0.5),
+				state: !pointer && i === cursor ? 'active' : 'target'
 			});
 		});
 	}

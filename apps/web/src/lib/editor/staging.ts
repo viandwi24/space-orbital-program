@@ -2,7 +2,8 @@
  * Automatic staging (ADR 0029). `stages[k]` lists the parts the k-th stage command fires
  * (ADR 0016), so stage 0 fires first. A part with `d` separators between it and the root (itself
  * excluded) fires in stage `maxDepth - d`: the lowest engines first, each decoupler together
- * with the engines of the stack it uncovers.
+ * with the engines of the stack it uncovers. Radial separators (boosters) do not count in `d` and
+ * fire one stage after the engines of their level.
  */
 import {
 	describeModule,
@@ -48,23 +49,36 @@ export function autoStages(design: VesselDesign, content: StagingContent): numbe
 	const byIndex = new Map(design.parts.map((p) => [p.index, p]));
 	const isDecoupler = (index: number): boolean =>
 		stagingRoles(content.parts.get(byIndex.get(index)!.part), content.modules).separator;
+	// A separator hung on the side of its parent (a booster's decoupler) does not put its subtree
+	// one stage deeper: the booster burns with the stage it is attached to (ADR 0034).
+	const isRadial = (index: number): boolean => byIndex.get(index)?.parent?.radial !== undefined;
 	const depth = new Map<number, number>();
 	const depthOf = (index: number): number => {
 		const known = depth.get(index);
 		if (known !== undefined) return known;
 		const parent = byIndex.get(index)?.parent;
-		const d = parent ? depthOf(parent.index) + (isDecoupler(parent.index) ? 1 : 0) : 0;
+		const d = parent
+			? depthOf(parent.index) + (isDecoupler(parent.index) && !isRadial(parent.index) ? 1 : 0)
+			: 0;
 		depth.set(index, d);
 		return d;
 	};
 	const staged = design.parts
 		.filter((p) => isAutoStaged(design, content, p.index))
-		.map((p) => ({ index: p.index, depth: depthOf(p.index) }));
+		.map((p) => ({ index: p.index, depth: depthOf(p.index), radial: isRadial(p.index) }));
 	if (staged.length === 0) return [];
 	const maxDepth = Math.max(...staged.map((s) => s.depth));
-	const stages: number[][] = Array.from({ length: maxDepth + 1 }, () => []);
-	for (const s of staged) stages[maxDepth - s.depth]!.push(s.index);
-	return stages.filter((s) => s.length > 0).map((s) => s.sort((a, b) => a - b));
+	// Within one level the engines and the stack decoupler fire first, the radial separators
+	// after them (the boosters burn out, then leave); then the next level.
+	const rank = (s: (typeof staged)[number]): number =>
+		(maxDepth - s.depth) * 2 + (s.radial && isDecoupler(s.index) ? 1 : 0);
+	const ranks = [...new Set(staged.map(rank))].sort((a, b) => a - b);
+	return ranks.map((r) =>
+		staged
+			.filter((s) => rank(s) === r)
+			.map((s) => s.index)
+			.sort((a, b) => a - b)
+	);
 }
 
 /** Same stage contents, order inside a stage ignored. */

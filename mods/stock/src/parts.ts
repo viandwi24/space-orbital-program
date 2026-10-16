@@ -291,7 +291,7 @@ export const PartBooster = definePart({
 		],
 		[
 			ModuleResourceContainer,
-			{ contents: { [LiquidFuel.id]: { capacity: 220 }, [Oxidizer.id]: { capacity: 270 } } }
+			{ contents: { [LiquidFuel.id]: { capacity: 225 }, [Oxidizer.id]: { capacity: 275 } } }
 		]
 	],
 	stagingIcon: 'engine'
@@ -309,11 +309,11 @@ export const PartNoseCone = definePart({
 	visual: { kind: 'nose-cone', palette: { primary: '#d9552b', secondary: '#23272d' } },
 	attach: { bottom: { pos: [0, -0.45, 0], dir: [0, -1, 0] } },
 	crossfeed: false,
-	stagingIcon: 'part'
+	stagingIcon: 'cone'
 });
 
 /**
- * A fixed fin, 0.9 m span, 1.5 m chord, attached radially (span outwards). Four of them near the
+ * A fixed fin, 1.1 m span, 1.8 m root chord (about 1.5 m² of plate), attached radially (span outwards). Four of them near the
  * bottom of a rocket move its centre of pressure behind the centre of mass (ADR 0035).
  */
 export const PartFin = definePart({
@@ -322,10 +322,10 @@ export const PartFin = definePart({
 	mass: kg(30),
 	impactTolerance: 4,
 	maxTemperature: 1000,
-	shape: { kind: 'box', size: [0.9, 1.5, 0.06] },
+	shape: { kind: 'box', size: [1.1, 1.8, 0.06] },
 	visual: { kind: 'fin', palette: { primary: '#d5d8dc', secondary: '#23272d', accent: '#d9552b' } },
-	attach: { radial: { pos: [-0.45, 0, 0], dir: [-1, 0, 0] } },
+	attach: { radial: { pos: [-0.55, 0, 0], dir: [-1, 0, 0] } },
 	crossfeed: false,
-	modules: [[ModuleFin, { area: 1.6, liftSlope: 2, crossflow: 1.2, centre: [0.25, -0.1, 0] }]],
-	stagingIcon: 'part'
+	modules: [[ModuleFin, { area: 1.5, liftSlope: 2, crossflow: 1.2, centre: [0, -0.15, 0] }]],
+	stagingIcon: 'fin'
 });

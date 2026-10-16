@@ -7,6 +7,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
@@ -14,7 +15,15 @@ import {
 } from '@orbital/mod-stock';
 
 export type CategoryId =
-	'command' | 'propulsion' | 'tanks' | 'structural' | 'control' | 'landing' | 'thermal' | 'other';
+	| 'command'
+	| 'propulsion'
+	| 'tanks'
+	| 'structural'
+	| 'aero'
+	| 'control'
+	| 'landing'
+	| 'thermal'
+	| 'other';
 
 export interface Category {
 	id: CategoryId;
@@ -29,6 +38,7 @@ export const CATEGORIES: readonly Category[] = [
 	{ id: 'tanks', label: 'Fuel tanks', icon: 'tank' },
 	{ id: 'propulsion', label: 'Engines', icon: 'engine' },
 	{ id: 'structural', label: 'Structural', icon: 'decoupler' },
+	{ id: 'aero', label: 'Aerodynamics', icon: 'fin' },
 	{ id: 'control', label: 'Control', icon: 'wheel' },
 	{ id: 'landing', label: 'Landing', icon: 'legs' },
 	{ id: 'thermal', label: 'Thermal', icon: 'shield' },
@@ -39,6 +49,7 @@ const BY_MODULE: ReadonlyArray<readonly [string, CategoryId]> = [
 	[ModuleCommand.id, 'command'],
 	[ModuleEngine.id, 'propulsion'],
 	[ModuleDecoupler.id, 'structural'],
+	[ModuleFin.id, 'aero'],
 	[ModuleReactionWheel.id, 'control'],
 	[ModuleLandingLeg.id, 'landing'],
 	[ModuleHeatShield.id, 'thermal'],
@@ -46,10 +57,13 @@ const BY_MODULE: ReadonlyArray<readonly [string, CategoryId]> = [
 ];
 
 /** First match wins, in the order above (a pod with a battery is still a command part). */
-export function categoryOf(def: Pick<PartDefinition, 'modules'>): CategoryId {
+export function categoryOf(
+	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number }
+): CategoryId {
 	const ids = new Set((def.modules ?? []).map((m) => m[0]));
 	for (const [module, category] of BY_MODULE) if (ids.has(module)) return category;
-	return 'other';
+	// A part with no module that declares its own drag (a nose cone) is aerodynamic hardware.
+	return def.dragCoefficient !== undefined ? 'aero' : 'other';
 }
 
 /** Case-insensitive match on title and id; an empty query matches everything. */

@@ -217,14 +217,15 @@ function massOf(w: Work): number {
 	return m;
 }
 
-/** Connected component of `from` over alive parts, optionally ignoring one edge. */
-function component(w: Work, from: number, cut: [number, number]): Set<number> {
+/** Connected component of `from` over alive parts, not crossing the `cuts` edges. */
+function component(w: Work, from: number, cuts: readonly [number, number][]): Set<number> {
 	const seen = new Set<number>([from]);
 	const queue = [from];
+	const cut = (a: number, b: number): boolean =>
+		cuts.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
 	for (let head = 0; head < queue.length; head++) {
 		for (const l of w.model.parts.get(queue[head]!)!.links) {
-			const a = queue[head]!;
-			if ((a === cut[0] && l.peer === cut[1]) || (a === cut[1] && l.peer === cut[0])) continue;
+			if (cut(queue[head]!, l.peer)) continue;
 			if (!w.alive.has(l.peer) || seen.has(l.peer)) continue;
 			seen.add(l.peer);
 			queue.push(l.peer);
@@ -233,26 +234,47 @@ function component(w: Work, from: number, cut: [number, number]): Set<number> {
 	return seen;
 }
 
-function fireDecoupler(w: Work, index: number): void {
+/**
+ * The parts that leave when the separator `index` fires: every link on its node is cut (a part
+ * can have several on one node, ADR 0034), the side with the root stays unless only another side
+ * has a control source, as in the sim's `splitVessel`. Empty when the separator is spent or has
+ * nothing attached.
+ */
+function separated(w: Work, index: number): Set<number> {
 	const part = w.model.parts.get(index)!;
 	const sep = part.separator;
-	if (!sep || w.decoupled.has(index)) return;
-	w.decoupled.add(index);
-	const link = part.links.find((l) => l.node === sep.node && w.alive.has(l.peer));
-	if (!link) return;
-	const cut: [number, number] = [index, link.peer];
-	const sideP = component(w, index, cut);
-	const sideQ = component(w, link.peer, cut);
-	const rootSide = sideP.has(w.model.root) ? sideP : sideQ;
-	const other = rootSide === sideP ? sideQ : sideP;
+	if (!sep || w.decoupled.has(index)) return new Set();
+	const links = part.links.filter((l) => l.node === sep.node && w.alive.has(l.peer));
+	if (links.length === 0) return new Set();
+	const cuts = links.map((l): [number, number] => [index, l.peer]);
+	const sides = [index, ...links.map((l) => l.peer)].map((from) => component(w, from, cuts));
 	const controlled = (s: Set<number>): boolean =>
 		[...s].some((i) => w.model.parts.get(i)!.controlSource);
-	const keep = !controlled(rootSide) && controlled(other) ? other : rootSide;
-	const gone = keep === sideP ? sideQ : sideP;
+	const rootSide = sides.find((s) => s.has(w.model.root)) ?? sides[0]!;
+	const other = sides.find((s) => s !== rootSide && controlled(s));
+	const keep = !controlled(rootSide) && other ? other : rootSide;
+	const gone = new Set<number>();
+	for (const side of sides) if (side !== keep) for (const i of side) gone.add(i);
+	return gone;
+}
+
+function fireDecoupler(w: Work, index: number): void {
+	const gone = separated(w, index);
+	w.decoupled.add(index);
 	for (const i of gone) {
 		w.alive.delete(i);
 		w.ignited.delete(i);
 	}
+}
+
+/** Parts the separators of stage `k` would drop right now (what a burn must not outlive, see `burn`). */
+function shedBy(w: Work, k: number): Set<number> {
+	const out = new Set<number>();
+	for (const i of w.model.stages[k] ?? []) {
+		if (!w.alive.has(i)) continue;
+		for (const g of separated(w, i)) out.add(g);
+	}
+	return out;
 }
 
 function fireStage(w: Work, k: number): void {
@@ -330,8 +352,13 @@ const EMPTY_BURN: BurnResult = {
 	engines: 0
 };
 
-/** Burn every ignited engine until none has propellant left. */
-function burn(w: Work): BurnResult {
+/**
+ * Burn every ignited engine until none has propellant left, or until an engine that the next stage
+ * is about to drop (`shed`: a booster) runs dry while others still burn: that is where the stage
+ * ends, so booster burnout is a stage boundary (ADR 0034) and the rest of the burn is attributed
+ * to the stage that drops it.
+ */
+function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
 	const out: BurnResult = { ...EMPTY_BURN, massStart: massOf(w), massEnd: massOf(w) };
 	let first = true;
 	for (let guard = 0; guard < 500; guard++) {
@@ -342,6 +369,7 @@ function burn(w: Work): BurnResult {
 			mdot: number;
 		};
 		const active: Active[] = [];
+		let dryShed = false;
 		for (const i of w.ignited) {
 			if (!w.alive.has(i)) continue;
 			const engine = w.model.parts.get(i)!.engine!;
@@ -351,6 +379,10 @@ function burn(w: Work): BurnResult {
 					EPS
 			);
 			if (!supplied) {
+				if (shed.has(i)) {
+					dryShed = true;
+					continue;
+				}
 				w.ignited.delete(i);
 				w.flameout.add(i);
 				continue;
@@ -364,6 +396,7 @@ function burn(w: Work): BurnResult {
 			});
 		}
 		if (active.length === 0) break;
+		if (dryShed) break;
 		// Draw assignment: each (engine, resource) draws from the first reachable store with some left.
 		const draws = new Map<string, number>();
 		const key = (part: number, r: string): string => `${part}|${r}`;
@@ -447,7 +480,7 @@ export function stageDeltaV(model: StagingModel, stagesFired = 0): DeltaVReport 
 	const w = start(model);
 	const stages: StageDeltaV[] = [];
 	if (stagesFired > 0 && w.ignited.size > 0) {
-		const b = burn(w);
+		const b = burn(w, shedBy(w, stagesFired));
 		stages.push({
 			...b,
 			stage: stagesFired - 1,
@@ -457,7 +490,7 @@ export function stageDeltaV(model: StagingModel, stagesFired = 0): DeltaVReport 
 	}
 	for (let k = stagesFired; k < model.stages.length; k++) {
 		fireStage(w, k);
-		const b = burn(w);
+		const b = burn(w, shedBy(w, k + 1));
 		stages.push({
 			...b,
 			stage: k,

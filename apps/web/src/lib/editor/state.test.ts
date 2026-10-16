@@ -399,7 +399,11 @@ describe('preview and categories', () => {
 			'stock.decoupler': 'structural',
 			'stock.reaction-wheel': 'control',
 			'stock.landing-legs': 'landing',
-			'stock.heat-shield': 'thermal'
+			'stock.heat-shield': 'thermal',
+			'stock.radial-decoupler': 'structural',
+			'stock.booster': 'propulsion',
+			'stock.fin': 'aero',
+			'stock.nose-cone': 'aero'
 		});
 		expect(Object.values(ids).every((c) => CATEGORIES.some((x) => x.id === c))).toBe(true);
 		const tank = registries.parts.get('stock.tank-small')!;

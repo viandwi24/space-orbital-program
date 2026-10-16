@@ -4,6 +4,7 @@
  * (semantics). No DOM here, so it is unit-tested in Node.
  */
 import {
+	migrateVesselDesign,
 	partId,
 	resolveVesselDesign,
 	vesselDesignSchema,
@@ -22,7 +23,7 @@ export interface Attachment {
 }
 
 export const emptyDesign = (name = 'Untitled vessel'): VesselDesign => ({
-	formatVersion: 1,
+	formatVersion: 2,
 	name,
 	parts: [],
 	stages: []
@@ -141,8 +142,10 @@ export function parseDesign(text: string, parts: PartLookup): ParseResult {
 			errors: parsed.error.issues.map((i) => `${i.path.join('.') || 'design'}: ${i.message}`)
 		};
 	}
-	const resolved = resolveVesselDesign(parsed.data, parts);
-	return resolved.ok ? { ok: true, design: parsed.data } : { ok: false, errors: resolved.errors };
+	// Older files (version 1) are upgraded here, once; everything downstream edits version 2.
+	const design = migrateVesselDesign(parsed.data);
+	const resolved = resolveVesselDesign(design, parts);
+	return resolved.ok ? { ok: true, design } : { ok: false, errors: resolved.errors };
 }
 
 /** The reference vessel, top to bottom: pod, wheel, tank, engine, decoupler, tank, engine. */
@@ -157,7 +160,7 @@ export function referenceTwoStage(): VesselDesign {
 		'stock.engine-lv'
 	];
 	return {
-		formatVersion: 1,
+		formatVersion: 2,
 		name: 'Two-stage',
 		parts: ids.map((part, index) => ({
 			index,

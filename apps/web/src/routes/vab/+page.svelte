@@ -21,15 +21,23 @@
 		deleteSubtree,
 		detach,
 		enableAutoStage,
+		groupOf,
+		layoutOf,
 		moveSubtree,
 		moveToStage,
 		redo,
+		radialNodeOf,
+		radialTarget,
 		removeEmptyStage,
 		rename,
 		replaceDesign,
 		singlePart,
+		siteOfPoint,
+		snapRadial,
 		stageOf,
+		SYMMETRY_COUNTS,
 		undo,
+		type AttachTarget,
 		type EditorState
 	} from '../../lib/editor/state';
 	import {
@@ -73,6 +81,11 @@
 	let hoverNode = $state<number | null>(null);
 	let hoverPart = $state<string | null>(null);
 	let lastPlaced = $state<number | null>(null);
+	// Radial placement (ADR 0034): copies per placement, the azimuth the keyboard sites use, and the
+	// site under the pointer (any point on a part's side, snapped).
+	let symmetry = $state(1);
+	let radialAngle = $state(0);
+	let pointerTarget = $state.raw<AttachTarget | null>(null);
 	let flagged = $state.raw<number[]>([]);
 	let environment = $state<Environment>('sea-level');
 	let icons = $state.raw<Record<string, string>>({});
@@ -110,7 +123,12 @@
 				? singlePart(armed.part, editor.nextIndex)
 				: shown.assembly
 	);
-	const targets = $derived(held ? attachTargets(shown.design, held, lookup) : []);
+	const heldRootDef = $derived(
+		held ? defOf(held.parts.find((p) => p.parent === null)?.part ?? '') : undefined
+	);
+	const radialCapable = $derived(radialNodeOf(heldRootDef) !== undefined);
+	const copies = $derived(armed?.kind === 'new' ? symmetry : 1);
+	const targets = $derived(held ? attachTargets(shown.design, held, lookup, radialAngle) : []);
 	const active = $derived(
 		targets.length === 0 ? null : Math.min(hoverNode ?? cursor ?? 0, targets.length - 1)
 	);
@@ -121,7 +139,10 @@
 			parts: lookup,
 			held,
 			targets,
-			cursor: held ? active : null
+			cursor: held ? active : null,
+			pointer: pointerTarget,
+			symmetry: copies,
+			kind: armed?.kind === 'carry' ? 'carry' : 'new'
 		})
 	);
 	const stats = $derived(designStats(editor.design, content, environment, gravity));
@@ -144,6 +165,9 @@
 	);
 	const selectedLoose = $derived(
 		selected !== null && !editor.design.parts.some((p) => p.index === selected)
+	);
+	const groupSize = $derived(
+		selected === null || selectedLoose ? 1 : groupOf(editor.design, selected).length
 	);
 	const subtreeSize = $derived.by(() => {
 		if (selected === null) return 0;
@@ -269,17 +293,24 @@
 	function disarm(): void {
 		armed = null;
 		hoverNode = null;
+		pointerTarget = null;
 	}
 
 	function place(i: number): void {
 		const target = targets[i];
-		if (!target || !armed) return;
+		if (target) placeAt(target);
+	}
+
+	function placeAt(target: AttachTarget): void {
+		if (!armed) return;
 		attempt(() => {
 			if (armed!.kind === 'new') {
 				const index = editor.nextIndex;
-				editor = attachNew(editor, editorContent, armed!.part, target);
+				const before = editor.design.parts.length;
+				editor = attachNew(editor, editorContent, armed!.part, target, symmetry);
 				lastPlaced = index;
-				say(`Attached ${defOf(armed!.part)?.title}.`);
+				const n = editor.design.parts.length - before;
+				say(`Attached ${n > 1 ? `${n} ` : ''}${defOf(armed!.part)?.title}.`);
 			} else {
 				const index = armed!.index;
 				editor = moveSubtree(editor, editorContent, index, target);
@@ -289,6 +320,32 @@
 			}
 		});
 		hoverNode = null;
+		pointerTarget = null;
+	}
+
+	/** The radial site under a part hit while a radial part is armed, snapped; null elsewhere. */
+	function radialFromHit(hit: ReturnType<VabView['pick']>, free: boolean): AttachTarget | null {
+		if (!held || !radialCapable || hit?.kind !== 'part') return null;
+		const parentIndex = Number(hit.key);
+		const entry = shown.design.parts.find((p) => p.index === parentIndex);
+		const shape = entry && defOf(entry.part)?.shape;
+		if (shape?.kind !== 'cylinder') return null;
+		const raw = siteOfPoint(shown.design, lookup, parentIndex, {
+			x: hit.point[0],
+			y: hit.point[1],
+			z: hit.point[2]
+		});
+		if (!raw) return null;
+		const childHeight =
+			heldRootDef?.shape?.kind === 'cylinder'
+				? heldRootDef.shape.height
+				: (heldRootDef?.shape?.size[1] ?? 1);
+		const step =
+			symmetry > 1
+				? (2 * Math.PI) / (symmetry * Math.max(1, Math.round(24 / symmetry)))
+				: Math.PI / 12;
+		const site = free ? raw : snapRadial(raw, shape.height, childHeight, { angleStep: step });
+		return radialTarget(shown.design, held, lookup, parentIndex, site.angle, site.y);
 	}
 
 	function doUndo(): void {
@@ -308,13 +365,17 @@
 		if (armed?.kind === 'carry' && !alive.has(armed.index)) armed = null;
 	}
 
-	function removeSelected(): void {
+	function removeSelected(single = false): void {
 		if (selected === null) return;
 		const name = titleOfPart(selected);
-		const n = subtreeSize;
+		const before =
+			editor.design.parts.length + editor.loose.reduce((m, a) => m + a.parts.length, 0);
 		attempt(() => {
-			editor = deleteSubtree(editor, editorContent, selected!);
-			say(n > 1 ? `Deleted ${name} and ${n - 1} attached parts.` : `Deleted ${name}.`);
+			editor = deleteSubtree(editor, editorContent, selected!, { single });
+			const after =
+				editor.design.parts.length + editor.loose.reduce((m, a) => m + a.parts.length, 0);
+			const n = before - after;
+			say(n > 1 ? `Deleted ${name} and ${n - 1} other parts.` : `Deleted ${name}.`);
 			selected = null;
 		});
 	}
@@ -323,7 +384,7 @@
 		attempt(() => {
 			editor = detach(editor, editorContent, selected!);
 			say(
-				`Detached ${titleOfPart(selected!)}. It stays on the floor until you attach or delete it.`
+				`Detached ${titleOfPart(selected!)}${groupSize > 1 ? ` and its ${groupSize - 1} copies` : ''}. It stays on the floor until you attach or delete it.`
 			);
 		});
 	}
@@ -415,11 +476,14 @@
 			else view?.orbitBy(dx, dy);
 			return;
 		}
-		const hit = view?.pick(e.clientX, e.clientY) ?? null;
+		const hit =
+			view?.pick(e.clientX, e.clientY, { ignoreGhost: armed !== null && radialCapable }) ?? null;
 		if (armed) {
 			// Over the ghost itself the current target stays; elsewhere only a ring selects one.
 			hoverNode =
 				hit?.kind === 'node' ? Number(hit.key.slice(1)) : hit?.kind === 'ghost' ? hoverNode : null;
+			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
+			pointerTarget = radialFromHit(hit, e.altKey);
 			hoverPart = null;
 			view?.setHover(null);
 		} else {
@@ -433,9 +497,12 @@
 		drag = null;
 		canvas.releasePointerCapture(e.pointerId);
 		if (!d || d.moved || d.button !== 0) return;
-		const hit = view?.pick(e.clientX, e.clientY) ?? null;
+		const hit =
+			view?.pick(e.clientX, e.clientY, { ignoreGhost: armed !== null && radialCapable }) ?? null;
 		if (armed) {
+			const site = radialFromHit(hit, e.altKey);
 			if (hit?.kind === 'node') place(Number(hit.key.slice(1)));
+			else if (site) placeAt(site);
 			else if (hit?.kind === 'ghost' && active !== null) place(active);
 		} else if (hit?.kind === 'part') {
 			selected = Number(hit.key);
@@ -505,7 +572,24 @@
 			case 'Backspace':
 				if (selected === null || armed) return;
 				e.preventDefault();
-				removeSelected();
+				removeSelected(e.shiftKey);
+				return;
+			case 'x':
+			case 'X':
+				if (armed?.kind !== 'new') return;
+				symmetry =
+					SYMMETRY_COUNTS[(SYMMETRY_COUNTS.indexOf(symmetry as 1) + 1) % SYMMETRY_COUNTS.length]!;
+				say(symmetry === 1 ? 'Symmetry off.' : `${symmetry}-way symmetry.`);
+				return;
+			case 'q':
+			case 'Q':
+			case 'e':
+			case 'E':
+				if (!armed || !radialCapable) return;
+				radialAngle +=
+					((e.key.toLowerCase() === 'e' ? -1 : 1) * 2 * Math.PI) /
+					(symmetry > 1 ? symmetry * 2 : 24);
+				say('Turned the radial sites.');
 				return;
 			case 'd':
 			case 'D':
@@ -571,6 +655,7 @@
 			onpointercancel={() => (drag = null)}
 			onpointerleave={() => {
 				hoverNode = null;
+				pointerTarget = null;
 				view?.setHover(null);
 			}}
 			oncontextmenu={(e) => e.preventDefault()}
@@ -652,9 +737,26 @@
 								Moving <strong>{titleOfPart(armed.index)}</strong>
 							{/if}
 						</span>
+						{#if armed.kind === 'new'}
+							<div class="sym" role="group" aria-label="Symmetry: copies per placement">
+								<span class="dim">Symmetry <Kbd>X</Kbd></span>
+								{#each SYMMETRY_COUNTS as n (n)}
+									<button
+										type="button"
+										class:on={symmetry === n}
+										aria-pressed={symmetry === n}
+										title={n === 1 ? 'One part' : `${n} copies around the vessel`}
+										onclick={() => (symmetry = n)}>{n === 1 ? 'Off' : n}</button
+									>
+								{/each}
+							</div>
+						{/if}
 						<span class="hintline">
 							{#if targets.length === 0}
 								Nowhere to attach this part.
+							{:else if radialCapable}
+								Click the side of a tank or a ring. <Kbd>Alt</Kbd> frees the angle, <Kbd>Q</Kbd>
+								<Kbd>E</Kbd> turn the keyboard sites, <Kbd>Tab</Kbd> and <Kbd>Enter</Kbd> place.
 							{:else}
 								Click a ring, or <Kbd>Tab</Kbd> to choose and <Kbd>Enter</Kbd> to place.
 							{/if}
@@ -664,6 +766,7 @@
 						<span class="chip">
 							<strong>{titleOfPart(selected!)}</strong>
 							{#if subtreeSize > 1}<span class="dim">and {subtreeSize - 1} attached</span>{/if}
+							{#if groupSize > 1}<span class="dim">x{groupSize} symmetric</span>{/if}
 							{#if selectedLoose}<span class="dim">loose</span>{/if}
 						</span>
 						<div class="acts" role="toolbar" aria-label="Selected part">
@@ -681,8 +784,17 @@
 								label="Delete"
 								text="Delete"
 								hint="Del"
-								onclick={removeSelected}
+								onclick={() => removeSelected()}
 							/>
+							{#if groupSize > 1}
+								<IconButton
+									icon="trash"
+									label="Delete only this part, not its copies"
+									text="Only this"
+									hint="Shift+Del"
+									onclick={() => removeSelected(true)}
+								/>
+							{/if}
 							{#if !selectedLoose}
 								<label class="stagepick">
 									<span class="dim">Stage</span>
@@ -962,6 +1074,44 @@
 	}
 	.dim {
 		color: var(--text-dim);
+	}
+	.sym {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		padding: 0 var(--s-2);
+		min-height: 36px;
+		font-size: var(--t-sm);
+		background: var(--panel);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-panel);
+		backdrop-filter: blur(10px);
+	}
+	.sym .dim {
+		margin-right: var(--s-2);
+	}
+	.sym button {
+		min-width: 28px;
+		height: 28px;
+		padding: 0 var(--s-2);
+		color: var(--text);
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: var(--r-control);
+		cursor: pointer;
+		font: inherit;
+	}
+	.sym button:hover {
+		background: var(--field);
+	}
+	.sym button.on {
+		color: var(--text);
+		background: color-mix(in srgb, var(--c-accent) 28%, transparent);
+		border-color: var(--c-accent);
+	}
+	.sym button:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 1px;
 	}
 	.hintline {
 		display: inline-flex;
