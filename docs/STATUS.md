@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress for the web client; 012 (ground contact, landing and damage) is done
-**Next plan:** drafts: 016 (landed vessels on rails), 017 (script panel follow-ups); 014 (re-entry heating) and 015 (scripts in the web client) are done
+**Next plan:** draft 017 (script panel follow-ups); 014 (re-entry heating), 015 (scripts in the web client) and 016 (landed vessels on rails) are done
 
 ## Plan board
 
@@ -27,7 +27,7 @@
 | 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | done | heating session | ADR 0023; Sutton-Graves skin heating, radiation, `maxTemperature`, ablative `stock.heat-shield`; API 0.1.4; unshielded deorbit probe loses its tank at 900 K, shielded survives burning 18.75 kg of ablator |
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | done | script-web session | ADR 0022; runner in the sim Worker, script panel in `/flight`; sample ascent from the panel reaches a 76.9 km periapsis, `while (true) {}` is terminated at the 10 ms budget with the page live |
 | 017 | [Script panel follow-ups](plans/017-script-panel-follow-ups.md) | draft | — | found by 015: script persistence, HUD stage counter ignores script `stage()`, second Worker if scripts become shareable |
-| 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | draft | — | found by 013: a controlled vessel on the ground still blocks warp |
+| 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -40,7 +40,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Known issues / open questions
 
-- A controlled vessel standing on the ground (pad, landed lander) stays in flight and blocks time warp (draft plan 016); debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
+- Vessels on surface rails (ADR 0024) have no colliders: other vessels pass through a parked one. Debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
@@ -51,6 +51,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [016 — Landed vessels on surface-fixed rails](journal/016-landed-vessels-on-rails.md)
 - [015 — Scripting in the web client](journal/015-scripting-web-integration.md)
 - [014 — Re-entry heating and part temperature](journal/014-reentry-heating.md)
 - [013 — Debris lifecycle and time warp](journal/013-debris-lifecycle.md)
