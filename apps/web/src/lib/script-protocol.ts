@@ -5,7 +5,7 @@
  * host validates it (shape here, command policy in `sim-host.ts`, `commandSchema` in the sim).
  */
 import type { Command, Snapshot } from '@orbital/core';
-import type { ScriptEnvironment, ScriptStatus } from '@orbital/scripting';
+import type { CommandVerdict, ScriptEnvironment, ScriptStatus } from '@orbital/scripting';
 
 export type ToScriptWorker =
 	| {
@@ -15,9 +15,16 @@ export type ToScriptWorker =
 			budgetMs: number;
 			/** Budget of the script's first (cold) tick, ms. */
 			firstTickBudgetMs: number;
+			/** Deterministic work budget per tick, interrupt polls (plan 032); absent: wall clock only. */
+			fuelPolls?: number;
 			env: ScriptEnvironment;
 	  }
-	| { kind: 'tick'; snapshot: Snapshot };
+	| {
+			kind: 'tick';
+			snapshot: Snapshot;
+			/** The host's answers to commands of earlier ticks (plan 032, ADR 0039). */
+			verdicts?: CommandVerdict[];
+	  };
 
 export type FromScriptWorker =
 	| { kind: 'ready' }
@@ -25,6 +32,8 @@ export type FromScriptWorker =
 	| {
 			kind: 'result';
 			commands: Command[];
+			/** Sequence number of each command, same order; the host answers them with `verdicts`. */
+			seqs?: number[];
 			status: ScriptStatus;
 			error?: string;
 			/** 1-based script line of `error`, when the engine said. */
@@ -61,6 +70,10 @@ export function parseFromScriptWorker(data: unknown): FromScriptWorker | null {
 		Number.isFinite(data.elapsedMs) &&
 		Array.isArray(data.lines) &&
 		data.lines.every((l) => typeof l === 'string') &&
+		(data.seqs === undefined ||
+			(Array.isArray(data.seqs) &&
+				data.seqs.length === data.commands.length &&
+				data.seqs.every((q) => typeof q === 'number' && Number.isInteger(q)))) &&
 		(data.error === undefined || typeof data.error === 'string') &&
 		(data.errorLine === undefined ||
 			(typeof data.errorLine === 'number' &&
@@ -81,6 +94,7 @@ export function parseToScriptWorker(data: unknown): ToScriptWorker | null {
 		typeof data.vessel === 'number' &&
 		typeof data.budgetMs === 'number' &&
 		typeof data.firstTickBudgetMs === 'number' &&
+		(data.fuelPolls === undefined || typeof data.fuelPolls === 'number') &&
 		isRecord(data.env) &&
 		Array.isArray(data.env.bodies) &&
 		Array.isArray(data.env.parts) &&
@@ -88,7 +102,20 @@ export function parseToScriptWorker(data: unknown): ToScriptWorker | null {
 	) {
 		return data as unknown as ToScriptWorker;
 	}
-	if (data.kind === 'tick' && isRecord(data.snapshot) && typeof data.snapshot.t === 'number') {
+	if (
+		data.kind === 'tick' &&
+		isRecord(data.snapshot) &&
+		typeof data.snapshot.t === 'number' &&
+		(data.verdicts === undefined ||
+			(Array.isArray(data.verdicts) &&
+				data.verdicts.every(
+					(v) =>
+						isRecord(v) &&
+						typeof v.seq === 'number' &&
+						typeof v.ok === 'boolean' &&
+						(v.reason === undefined || typeof v.reason === 'string')
+				)))
+	) {
 		return data as unknown as ToScriptWorker;
 	}
 	return null;

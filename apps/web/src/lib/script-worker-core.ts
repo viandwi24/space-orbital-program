@@ -34,6 +34,7 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 				...message.env,
 				budgetMs: message.budgetMs,
 				firstTickBudgetMs: message.firstTickBudgetMs,
+				...(message.fuelPolls === undefined ? {} : { fuelPolls: message.fuelPolls }),
 				now: options.now,
 				onPrint: (line) => void lines.push(line)
 			})
@@ -54,12 +55,13 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 		const active = runner;
 		if (!active) return;
 		try {
-			const result = active.tick(message.snapshot);
+			const result = active.tick(message.snapshot, message.verdicts);
 			const out = lines;
 			lines = [];
 			options.post({
 				kind: 'result',
 				commands: result.commands,
+				seqs: result.seqs,
 				status: result.status,
 				...(active.error === undefined ? {} : { error: active.error }),
 				...(active.errorLine === undefined ? {} : { errorLine: active.errorLine }),

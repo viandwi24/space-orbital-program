@@ -52,6 +52,13 @@ export function computeTelemetry(
 	return out;
 }
 
-/** Time warp needs every vessel on rails (sim rule); lowering it stays possible whatever the mode. */
-export const canWarp = (telemetry: Pick<Telemetry, 'mode'> | null, warp: number): boolean =>
-	telemetry?.mode === 'on-rails' || warp > 1;
+/**
+ * Time warp needs every vessel on rails (sim rule); lowering it stays possible whatever the mode.
+ * While a script runs the sim host puts the vessel on rails for the player and waits for it
+ * (ADR 0039), so the buttons stay usable and a refusal comes back as a toast.
+ */
+export const canWarp = (
+	telemetry: Pick<Telemetry, 'mode'> | null,
+	warp: number,
+	scriptRunning = false
+): boolean => telemetry?.mode === 'on-rails' || warp > 1 || (scriptRunning && telemetry !== null);

@@ -143,7 +143,7 @@
 	const model = $derived(hud?.model ?? null);
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
-	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1));
+	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1, running));
 	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
 </script>
 

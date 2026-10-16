@@ -7,7 +7,12 @@ import { describe, expect, it } from 'vitest';
 import { referenceTwoStage } from './design';
 import type { WorkerMessage } from './messages';
 import { createInProcessScriptWorker } from './script-worker-core';
-import { createSimHost, SCRIPT_BUDGET_MS, SCRIPT_FIRST_TICK_BUDGET_MS } from './sim-host';
+import {
+	createSimHost,
+	SCRIPT_BUDGET_MS,
+	SCRIPT_FIRST_TICK_BUDGET_MS,
+	SCRIPT_FUEL_POLLS
+} from './sim-host';
 
 type Status = Extract<WorkerMessage, { kind: 'script-status' }>;
 
@@ -227,14 +232,18 @@ describe('sim host: scripts (plan 015)', () => {
 		const wall = performance.now() - began;
 		const stopped = t.statuses().at(-1);
 		expect(stopped).toMatchObject({ status: 'terminated' });
-		expect(stopped?.error).toContain('time budget exceeded');
+		expect(stopped?.error).toMatch(/(time|work) budget exceeded/);
 		// The in-process double blocks the host for the script's first-tick allowance; the real
 		// arrangement does not (sim-host-script-worker.test.ts). What is asserted is the mechanism
 		// (terminated, the budget named in the message, the sim moving on); the wall bound is a hang
 		// detector far above the allowance, not a performance claim.
 		expect(SCRIPT_BUDGET_MS).toBe(200);
 		expect(SCRIPT_FIRST_TICK_BUDGET_MS).toBe(300);
-		expect(stopped?.error).toContain(`${SCRIPT_FIRST_TICK_BUDGET_MS} ms per tick`);
+		expect(stopped?.error).toContain(
+			stopped?.error?.startsWith('work')
+				? `${SCRIPT_FUEL_POLLS} interrupt polls per tick`
+				: `${SCRIPT_FIRST_TICK_BUDGET_MS} ms per tick`
+		);
 		expect(wall).toBeLessThan(10_000);
 		const snapshots = t.posted.filter((m) => m.kind === 'snapshot').length;
 		for (let i = 0; i < 10; i++) t.tick();

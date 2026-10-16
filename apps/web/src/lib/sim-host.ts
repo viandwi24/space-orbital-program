@@ -3,7 +3,8 @@
  * streams snapshots. Kept free of `self`/`postMessage` so Node tests drive it with a mock `post`;
  * `sim.worker.ts` wires it to the real worker scope.
  */
-import type { Command } from '@orbital/core';
+import { entityId, type Command, type CommandResult } from '@orbital/core';
+import type { CommandVerdict } from '@orbital/scripting';
 import type { Sim } from '@orbital/sim';
 import {
 	parseClientMessage,
@@ -32,6 +33,20 @@ export const SCRIPT_BUDGET_MS = 200;
  * loaded machine (journal 017/018). Stays below the channel watchdog (500 ms).
  */
 export const SCRIPT_FIRST_TICK_BUDGET_MS = 300;
+/**
+ * A warp request made while a script runs waits at most this long (wall ms) for the vessel to go
+ * on rails (2 s of idle sim time at 1x plus margin) before it is refused (ADR 0039).
+ */
+export const WARP_PENDING_MS = 8000;
+/**
+ * Deterministic work budget of one script tick, interrupt polls (plan 032). The engine polls about
+ * once per 10 000 operations: 100 polls per ms on an idle desktop, so 20 000 is about the 200 ms
+ * wall budget there, and a runaway ends at the same place on every machine and in every replay.
+ */
+export const SCRIPT_FUEL_POLLS = 20_000;
+/** Why the host does not pass a script's attitude demand to the sim while warp is requested or active. */
+export const HELD_REASON =
+	'held while time warp is requested or active (on rails the attitude is frozen); it is applied again at warp 1';
 /** While a script runs, its timing is reported at most this often, ms. */
 export const SCRIPT_STATUS_MS = 500;
 /** Lines of print output and refusals forwarded per tick; the rest of a flood is dropped. */
@@ -54,6 +69,8 @@ export interface SimHostOptions {
 	/** Overrides of the per-tick script budgets, ms (tests of plumbing must not depend on machine speed). */
 	scriptBudgetMs?: number;
 	scriptFirstTickBudgetMs?: number;
+	/** Override of the deterministic work budget, interrupt polls per tick (`Infinity`: wall clock only). */
+	scriptFuelPolls?: number;
 	/** Overrides of the channel deadlines, ms (tests). */
 	scriptWatchdogMs?: number;
 	scriptBootTimeoutMs?: number;
@@ -68,6 +85,10 @@ export interface SimHost {
 	tick(): void;
 	dispose(): void;
 }
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+const isWarp = (c: unknown): c is { type: 'warp'; factor: number } =>
+	isRecord(c) && c.type === 'warp' && typeof c.factor === 'number' && Number.isFinite(c.factor);
 
 export function catalogOf(sim: Sim): Catalog {
 	return {
@@ -95,6 +116,95 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let lastStatusAt = 0;
 	let lines: string[] = [];
 	let lastRefusal = '';
+	/** Answers to the script's commands, offered with its next snapshot (ADR 0039, plan 032). */
+	let verdicts: CommandVerdict[] = [];
+	/** Last accepted throttle per vessel: a script that burns cannot be put on rails. */
+	const throttles = new Map<number, number>();
+	/** Warp hold (ADR 0039): the script's attitude is not passed on; the latest one waits here. */
+	let holding = false;
+	let heldAttitude: Command | undefined;
+	let pendingWarp: { factor: number; since: number; reply: (r: CommandResult) => void } | null =
+		null;
+
+	const dispatchTracked = (command: Command): CommandResult => {
+		const result = sim!.dispatch(command);
+		if (result.ok && command.type === 'throttle') throttles.set(Number(command.vessel), command.value);
+		return result;
+	};
+	/** Remember the throttle of a page command the sim accepted. */
+	const trackThrottle = (command: unknown, result: CommandResult): CommandResult => {
+		if (result.ok && isRecord(command) && command.type === 'throttle') {
+			throttles.set(Number(command.vessel), Number(command.value));
+		}
+		return result;
+	};
+	/** End the hold and give the vessel the attitude the script last asked for. */
+	const releaseHold = (): void => {
+		holding = false;
+		const attitude = heldAttitude;
+		heldAttitude = undefined;
+		if (attitude && sim) dispatchTracked(attitude);
+	};
+	const cancelPending = (why: string): void => {
+		const request = pendingWarp;
+		pendingWarp = null;
+		request?.reply({ ok: false, reason: why });
+	};
+	/**
+	 * Time warp. Without a script it is the sim's own rule. With one, a vessel still in flight is
+	 * given the chance to go on rails: the script's attitude demand is zeroed and held and the
+	 * request waits for the vessel's idle time (ADR 0039).
+	 */
+	function requestWarp(factor: number, reply: (r: CommandResult) => void): void {
+		if (!sim) return reply({ ok: false, reason: 'the simulation is not ready yet' });
+		cancelPending('superseded by a newer time warp request');
+		const direct = (): void => {
+			const result = sim!.dispatch({ type: 'warp', factor });
+			if (result.ok && factor <= 1) releaseHold();
+			else if (result.ok && session) holding = true;
+			reply(result);
+		};
+		if (factor <= 1 || !session) return direct();
+		const vessel = sim.snapshot().vessels.find((v) => Number(v.id) === scriptVessel);
+		if (!vessel || vessel.mode === 'on-rails') return direct();
+		if ((throttles.get(scriptVessel) ?? 0) > 0) {
+			return reply({
+				ok: false,
+				reason: 'the script is burning (throttle above 0); cut the throttle before time warp'
+			});
+		}
+		holding = true;
+		dispatchTracked({
+			type: 'attitude',
+			vessel: entityId(scriptVessel),
+			pitch: 0,
+			yaw: 0,
+			roll: 0
+		});
+		pendingWarp = { factor, since: options.now(), reply };
+	}
+	/** Retry a waiting request: accepted once the vessel is on rails, refused after `WARP_PENDING_MS`. */
+	function servicePendingWarp(): void {
+		const request = pendingWarp;
+		if (!request || !sim) return;
+		const result = sim.dispatch({ type: 'warp', factor: request.factor });
+		if (result.ok) {
+			pendingWarp = null;
+			request.reply(result);
+		} else if (options.now() - request.since > WARP_PENDING_MS) {
+			pendingWarp = null;
+			releaseHold();
+			request.reply(result);
+		}
+	}
+	/** The script ended (finished, failed, stopped, terminated): nothing holds the vessel any more. */
+	function scriptGone(): void {
+		const waiting = pendingWarp !== null;
+		const request = pendingWarp;
+		pendingWarp = null;
+		releaseHold();
+		if (waiting && request && sim) request.reply(sim.dispatch({ type: 'warp', factor: request.factor }));
+	}
 
 	const postStatus = (status: ScriptState, error?: string, errorLine?: number): void => {
 		lastStatusAt = options.now();
@@ -117,34 +227,63 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	const endScript = (): void => {
 		session?.close();
 		session = null;
+		scriptGone();
 	};
 	/** Commands a script may issue (what the runner builds); the Worker is not trusted to stay within them. */
 	const SCRIPT_COMMANDS: readonly string[] = ['throttle', 'attitude', 'stage', 'action'];
 	const allowed = (command: Command): boolean =>
-		SCRIPT_COMMANDS.includes(command.type) &&
-		'vessel' in command &&
-		Number(command.vessel) === scriptVessel;
+		command.type === 'warp' ||
+		(SCRIPT_COMMANDS.includes(command.type) &&
+			'vessel' in command &&
+			Number(command.vessel) === scriptVessel);
 
 	function onScriptResult(active: ScriptSession, result: ScriptResult): void {
 		if (active !== session || !sim) return;
 		lastMs = result.elapsedMs;
 		maxMs = Math.max(maxMs, result.elapsedMs);
 		lines.push(...result.lines);
-		for (const command of result.commands) {
+		result.commands.forEach((command, index) => {
+			const seq = result.seqs?.[index];
+			const answer = (r: CommandResult): void => {
+				if (!r.ok) {
+					const text = `! ${command.type}: ${r.reason}`;
+					if (text !== lastRefusal) lines.push(text);
+					lastRefusal = text;
+				}
+				if (seq !== undefined) {
+					verdicts.push({ seq, ok: r.ok, ...(r.ok ? {} : { reason: r.reason }) });
+				}
+			};
 			if (!allowed(command)) {
 				lines.push(`! ${String((command as { type?: unknown }).type)}: not allowed for scripts`);
-				continue;
+				if (seq !== undefined) verdicts.push({ seq, ok: false, reason: 'not allowed for scripts' });
+				return;
 			}
-			const verdict = sim.dispatch(command);
-			if (!verdict.ok) {
-				const text = `! ${command.type}: ${verdict.reason}`;
-				if (text !== lastRefusal) lines.push(text);
-				lastRefusal = text;
+			if (command.type === 'warp') return requestWarp(command.factor, answer);
+			if (holding) {
+				if (command.type === 'attitude') {
+					if (command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0) {
+						heldAttitude = command;
+						return answer({ ok: false, reason: HELD_REASON });
+					}
+					heldAttitude = undefined; // a zero demand: nothing to give back later
+				} else if (
+					pendingWarp &&
+					(command.type === 'stage' ||
+						command.type === 'action' ||
+						(command.type === 'throttle' && command.value > 0))
+				) {
+					cancelPending(`the script issued ${command.type} while time warp was pending`);
+					releaseHold();
+				}
 			}
-		}
+			answer(dispatchTracked(command));
+		});
 		flushLines();
 		if (result.status !== 'running') {
 			session = null; // the session closed itself
+			scriptGone();
+			flushLines();
 			postStatus(result.status, result.error, result.errorLine);
 		} else if (options.now() - lastStatusAt >= SCRIPT_STATUS_MS) {
 			postStatus('running');
@@ -157,6 +296,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		maxMs = 0;
 		lines = [];
 		lastRefusal = '';
+		verdicts = [];
 		// A port that is not used must not stay open in the sandbox.
 		const refuse = (why: string): void => {
 			port?.close();
@@ -178,6 +318,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				vessel,
 				budgetMs: options.scriptBudgetMs ?? SCRIPT_BUDGET_MS,
 				firstTickBudgetMs: options.scriptFirstTickBudgetMs ?? SCRIPT_FIRST_TICK_BUDGET_MS,
+				...((options.scriptFuelPolls ?? SCRIPT_FUEL_POLLS) === Infinity
+					? {}
+					: { fuelPolls: options.scriptFuelPolls ?? SCRIPT_FUEL_POLLS }),
 				env: {
 					bodies: sim.registries.bodies.list(),
 					parts: sim.registries.parts.list(),
@@ -194,6 +337,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				onDead: (status, error) => {
 					if (created !== session) return;
 					session = null;
+					scriptGone();
 					flushLines();
 					postStatus(status, error);
 				}
@@ -227,7 +371,14 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			if (!paused) sim.step(delta);
 			const snapshot = sim.snapshot();
 			session?.poll();
-			if (!paused) session?.tick(snapshot);
+			if (!paused) {
+				servicePendingWarp();
+				flushLines();
+				// The script may answer within this call (an in-process double): new verdicts must survive.
+				const batch = verdicts;
+				verdicts = [];
+				if (session && !session.tick(snapshot, batch)) verdicts = [...batch, ...verdicts];
+			}
 			options.post({ kind: 'snapshot', snapshot });
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
@@ -335,7 +486,18 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				});
 				return;
 			}
-			options.post({ kind: 'result', id: message.id, result: sim.dispatch(message.command) });
+			const command = message.command;
+			if (isWarp(command)) {
+				requestWarp(command.factor, (result) =>
+					options.post({ kind: 'result', id: message.id, result })
+				);
+				return;
+			}
+			options.post({
+				kind: 'result',
+				id: message.id,
+				result: trackThrottle(command, sim.dispatch(command))
+			});
 		},
 		tick,
 		dispose

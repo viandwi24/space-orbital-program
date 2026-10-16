@@ -65,6 +65,9 @@ describe('computeTelemetry', () => {
 		expect(canWarp({ mode: 'flight' }, 1)).toBe(false);
 		expect(canWarp({ mode: 'flight' }, 10)).toBe(true);
 		expect(canWarp(null, 1)).toBe(false);
+		// a running script is held by the sim host so the vessel can reach the rails (ADR 0039)
+		expect(canWarp({ mode: 'flight' }, 1, true)).toBe(true);
+		expect(canWarp(null, 1, true)).toBe(false);
 	});
 	it('returns null for an unknown vessel', () => {
 		expect(computeTelemetry(snapshot(), entityId(9), bodies)).toBeNull();

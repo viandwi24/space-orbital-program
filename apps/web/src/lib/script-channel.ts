@@ -5,7 +5,7 @@
  * The channel never blocks: all it does per sim tick is a `postMessage` and two clock reads.
  */
 import type { Snapshot } from '@orbital/core';
-import type { ScriptEnvironment } from '@orbital/scripting';
+import type { CommandVerdict, ScriptEnvironment } from '@orbital/scripting';
 import {
 	parseFromScriptWorker,
 	type FromScriptWorker,
@@ -26,6 +26,8 @@ export interface ScriptSessionOptions {
 	vessel: number;
 	budgetMs: number;
 	firstTickBudgetMs: number;
+	/** Deterministic work budget per tick, interrupt polls; omitted: wall clock only. */
+	fuelPolls?: number;
 	env: ScriptEnvironment;
 	watchdogMs?: number;
 	bootTimeoutMs?: number;
@@ -38,8 +40,11 @@ export interface ScriptSessionOptions {
 }
 
 export interface ScriptSession {
-	/** Offer the current snapshot; sent only when the script Worker is ready and idle. */
-	tick(snapshot: Snapshot): void;
+	/**
+	 * Offer the current snapshot (with the host's answers to earlier commands); sent only when the
+	 * script Worker is ready and idle. Returns whether it was sent: unsent verdicts must be offered again.
+	 */
+	tick(snapshot: Snapshot, verdicts?: readonly CommandVerdict[]): boolean;
 	/** Check the boot and answer deadlines (called every sim tick, also while paused). */
 	poll(): void;
 	/** Terminate the Worker. Idempotent; no callback fires afterwards. */
@@ -92,12 +97,13 @@ export function createScriptSession(options: ScriptSessionOptions): ScriptSessio
 		vessel: options.vessel,
 		budgetMs: options.budgetMs,
 		firstTickBudgetMs: options.firstTickBudgetMs,
+		...(options.fuelPolls === undefined ? {} : { fuelPolls: options.fuelPolls }),
 		env: options.env
 	});
 
 	return {
-		tick(snapshot) {
-			if (closed || !ready || inflightSince !== null) return;
+		tick(snapshot, verdicts = []) {
+			if (closed || !ready || inflightSince !== null) return false;
 			inflightSince = now();
 			// Only the controlled vessel: the script cannot see (and the clone does not pay for) the rest.
 			worker.postMessage({
@@ -106,8 +112,10 @@ export function createScriptSession(options: ScriptSessionOptions): ScriptSessio
 					t: snapshot.t,
 					vessels: snapshot.vessels.filter((v) => Number(v.id) === options.vessel),
 					bodies: []
-				}
+				},
+				...(verdicts.length === 0 ? {} : { verdicts: [...verdicts] })
 			});
+			return true;
 		},
 		poll() {
 			if (closed) return;
