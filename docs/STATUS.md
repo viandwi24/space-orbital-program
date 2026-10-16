@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-16
 **Phase:** 1 — MVP (complete: plan 009's manual run built the two-stage vessel in the browser, reached a 76 km periapsis orbit and drew it in map view). Phase 2 started with plan 010 (scripting sandbox, done)
 **Current plan:** none in progress for the web client; 012 (ground contact, landing and damage) is done
-**Next plan:** draft [`plans/015-scripting-web-integration.md`](plans/015-scripting-web-integration.md) (scripts in the web client); other drafts: 014 (re-entry heating)
+**Next plan:** draft [`plans/015-scripting-web-integration.md`](plans/015-scripting-web-integration.md) (scripts in the web client); other drafts: 014 (re-entry heating), 016 (landed vessels on rails)
 
 ## Plan board
 
@@ -23,9 +23,10 @@
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | done | scripting session | ADR 0020; `@orbital/scripting`: QuickJS-WASM runner, ship API, per-tick budget, sample ascent script reaches a 76 km periapsis orbit |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
-| 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | draft | — | found by 009: debris stays in flight and blocks warp after a normal launch |
+| 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | done | debris session | ADR 0021; ballistic debris goes on rails and is removed at re-entry, resting debris after 10 s; warp works 3 s after reaching orbit |
 | 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | draft | — | out of scope of 012; hooks: `impactTolerance`, `part:damaged` |
 | 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | draft | — | found by 010: Worker-hosted runner, script panel |
+| 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | draft | — | found by 013: a controlled vessel on the ground still blocks warp |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -38,7 +39,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Known issues / open questions
 
-- Debris from staging stays in flight and blocks time warp (draft plan 013); Vite dev reloads the page when a workspace package changes.
+- A controlled vessel standing on the ground (pad, landed lander) stays in flight and blocks time warp (draft plan 016); debris circling inside the atmosphere stays in flight until drag brings it down (ADR 0021). Vite dev reloads the page when a workspace package changes.
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - License undecided (see README).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
@@ -49,6 +50,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [013 — Debris lifecycle and time warp](journal/013-debris-lifecycle.md)
 - [010 — Scripting sandbox](journal/010-scripting-sandbox.md)
 - [012 — Ground contact, landing and damage](journal/012-ground-contact-landing.md)
 - [009 — Web client MVP](journal/009-web-client-mvp.md)

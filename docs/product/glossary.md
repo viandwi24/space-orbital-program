@@ -18,6 +18,7 @@ Use these terms consistently in code, docs, and UI.
 | **Flight mode** | Vessel simulated as one compound rigid body (physics backend active); split into two bodies when a decoupler fires. |
 | **On rails** | Vessel propagated analytically along a Keplerian orbit; no physics backend. Enables time warp. |
 | **Orbital elements** | The classical set `{ a, e, i, raan, argp, m0, epoch }` describing a two-body orbit (`@orbital/kepler`). Conventions in `architecture/units-and-frames.md`. |
+| **Debris** | A vessel without a control source (a discarded stage, a broken-off part). Ballistic debris goes on rails and is removed when it re-enters the atmosphere or lies still on the ground (ADR 0021). |
 | **Time warp** | Simulation time runs faster than wall time. Only on rails (physics warp is out of scope for MVP). |
 | **Floating origin** | Rendering trick: the render world's origin is re-centred near the camera so float32 GPU math stays precise. |
 | **Fixed timestep** | Sim advances in constant `dt` steps (default 1/50 s) regardless of render frame rate. |

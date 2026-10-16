@@ -39,3 +39,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0018 | [Rigid grouping: one compound body per vessel](0018-rigid-grouping-compound-bodies.md) | accepted | 2026-10-16 |
 | 0019 | [Ground tile, contact readback and impact damage](0019-ground-tile-and-impact-damage.md) | accepted | 2026-10-16 |
 | 0020 | [Scripting runtime: QuickJS in WASM with a per-tick interrupt budget](0020-scripting-runtime-quickjs-wasm.md) | accepted | 2026-10-16 |
+| 0021 | [Debris lifecycle: ballistic debris on rails, removed at re-entry or at rest](0021-debris-lifecycle-and-time-warp.md) | accepted | 2026-10-16 |
