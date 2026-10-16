@@ -52,7 +52,7 @@ Main thread                              Worker
 └─────────────────────────┘              └────────────────────────────┘
 ```
 
-Running `sim` in a Worker is the target. Until plan 009 it may run on the main thread; the message protocol is defined in `simulation.md` so the move is mechanical.
+Since plan 009 `sim` runs in a Worker: `apps/web/src/lib/sim.worker.ts` boots `createSim` (Stock plugin, Rapier backend), `sim-host.ts` owns the clock (`setInterval` about 60 Hz, wall delta clamped to 0.1 s, `sim.step`) and posts a snapshot per tick; `sim-client.ts` is the main-thread side (`dispatch` returns a promise, `onSnapshot` fans out). Messages are plain data (`messages.ts`): `command`/`dispose` to the worker; `ready` (plugin ids, parts, bodies, resources), `snapshot`, `result`, `error` back. The render loop (`flight-loop.ts`) is plain TypeScript outside Svelte reactivity; Svelte gets a 10 Hz HUD copy.
 
 ## Key mechanisms (each has its own doc)
 

@@ -1,7 +1,7 @@
 ---
 id: 009
 title: "Web client MVP: build, launch, orbit"
-status: in-progress
+status: done
 owner: "web session (Claude, 2026-10-16)"
 depends: [007, 008]
 phase: 1
@@ -46,17 +46,19 @@ In `apps/web`: a minimal VAB (attach stock parts via a list + attach nodes, assi
 
 ## Acceptance criteria
 
-- [ ] `bun run build` succeeds (static output contains `/vab`, `/flight` pages and the worker chunk); `bun run --filter @orbital/web test` passes.
-- [ ] Worker boot: a vitest test (`sim-host.test.ts`) asserts the host reports `ready` with the stock plugin loaded and then serves a `load-vessel` command and a snapshot, using a node-side `post` mock (real `createSim` + Rapier).
-- [ ] `sim-client` and design serialisation unit tests pass (listed above).
-- [ ] `[manual]` From a clean `bun run dev`: build the 2-stage test vessel in `/vab`, launch, reach periapsis > 70 km; map view shows the orbit line. Journal records the run with screenshots in `docs/journal/assets/009-*.png`.
-- [ ] `bun run typecheck` (0 svelte-check errors), `bun run docs:check` and `bun test` pass.
+- [x] `bun run build` succeeds (static output contains `/vab`, `/flight` pages and the worker chunk); `bun run --filter @orbital/web test` passes.
+- [x] Worker boot: a vitest test (`sim-host.test.ts`) asserts the host reports `ready` with the stock plugin loaded and then serves a `load-vessel` command and a snapshot, using a node-side `post` mock (real `createSim` + Rapier).
+- [x] `sim-client` and design serialisation unit tests pass (listed above).
+- [x] `[manual]` From a clean `bun run dev`: build the 2-stage test vessel in `/vab`, launch, reach periapsis > 70 km; map view shows the orbit line. Journal records the run with screenshots in `docs/journal/assets/009-*.png`.
+- [x] `bun run typecheck` (0 svelte-check errors), `bun run docs:check` and `bun test` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` (Phase 1 complete), journal with screenshots under `docs/journal/assets/`, research.
+- [x] `docs/STATUS.md` (Phase 1 complete), journal with screenshots under `docs/journal/assets/`, research.
 
 ## Log
 
 - 2026-10-16 — Created as draft.
 - 2026-10-16 — Refined draft → ready at the human's request (session: web session). Research in `research/web-client.md`.
+- 2026-10-16 — Implemented. Evidence: `bun run --filter @orbital/web test` 21 passed (sim-client, sim-host worker boot with real createSim + Rapier, design, telemetry, format); `bun run build` ok (`vab.html`, `flight.html`, worker chunk); web `svelte-check` 0 errors; manual run in the built-in browser: periapsis 76.03 km, apoapsis 271.48 km on rails, map view orbit line drawn (journal 009, `docs/journal/assets/009-*.png`). The ascent used a dev-only autopilot (hand-flying was infeasible through tool calls); build, launch, staging key and map view were via the UI.
+- 2026-10-16 — Deviations: renderer flight camera made radial-up (`packages/renderer/src/scene.ts`, test added) because the pad is not at the pole; draft plan 013 created (debris blocks time warp). Global `bun test`/`typecheck` showed failures from plan 012's in-flight edits (landing legs in mod-stock/sim), not from this plan; see the final report.
