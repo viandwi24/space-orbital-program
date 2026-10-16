@@ -8,6 +8,7 @@ import { compareMods, type GameSave, type ModReport } from './game-save';
 import { openSaveStore, requestSavePersistence } from './open-store';
 import {
 	browserSaveEnv,
+	QUICK_ID,
 	createSaveManager,
 	type SaveListEntry,
 	type SaveManager,
@@ -150,6 +151,16 @@ export class SaveController {
 			this.loadOpen = false;
 			await this.options.startLoad(id);
 		});
+	}
+
+	/** F9: load the quicksave, or say there is none. */
+	async quickload(): Promise<void> {
+		const list = await (await this.open()).list();
+		if (!list.some((e) => (e.ok ? e.meta.id : e.id) === QUICK_ID)) {
+			this.tell('There is no quicksave yet. Press F5 to make one.', true);
+			return;
+		}
+		await this.load(QUICK_ID);
 	}
 
 	/** Read and validate one save for the page to resume (throws `SaveError`). */
