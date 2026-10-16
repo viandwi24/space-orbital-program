@@ -27,7 +27,8 @@
 		"format": "prettier --write . && bun run --filter @orbital/web format",
 		"dev": "bun run --filter @orbital/web dev",
 		"build": "bun run --filter @orbital/web build",
-		"docs:check": "bun run tools/docs-check.ts"
+		"docs:check": "bun run tools/docs-check.ts",
+		"e2e": "bun run --filter @orbital/web test:e2e"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.4.3",

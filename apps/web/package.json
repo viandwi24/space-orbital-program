@@ -15,9 +15,11 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"test:e2e": "playwright test"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
@@ -45,6 +47,7 @@
 		"@orbital/scripting": "workspace:*",
 		"@orbital/sdk": "workspace:*",
 		"@orbital/sim": "workspace:*",
-		"quickjs-emscripten-core": "0.32.0"
+		"quickjs-emscripten-core": "0.32.0",
+		"zod": "catalog:"
 	}
 }
