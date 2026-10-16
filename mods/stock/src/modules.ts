@@ -4,9 +4,10 @@
  * capability API every mod gets (ADR 0015); the arithmetic lives in `engine.ts` and below, so it is
  * written once. See docs/guides/writing-a-mod.md.
  */
-import { defineModule, z, type EntityId, type Vec3 } from '@orbital/sdk';
+import { defineModule, z, type EntityId, type Vec3, type VesselApi } from '@orbital/sdk';
 import { G0, SEA_LEVEL_PRESSURE, engineOutput, ispAt, propellantRates } from './engine.ts';
 import { Ablator, ElectricCharge } from './resources.ts';
+import { gimbalDirection, gimbalTarget, slew, surfaceTarget } from './steering.ts';
 
 declare module '@orbital/sdk' {
 	interface EventMap {
@@ -127,7 +128,16 @@ export const engineConfigSchema = z
 		/** Specific impulse at the body's surface pressure, s. */
 		ispSeaLevel: z.number().positive(),
 		/** Consumed resources; `ratio` is relative volume (units), e.g. 0.9 fuel : 1.1 oxidizer. */
-		propellants: z.array(z.object({ resource: resourceKey, ratio: z.number().positive() })).min(1)
+		propellants: z.array(z.object({ resource: resourceKey, ratio: z.number().positive() })).min(1),
+		/** Thrust vector control (ADR 0045): none by default. */
+		gimbal: z
+			.object({
+				/** Largest tilt of the thrust from the part axis, degrees. */
+				range: z.number().nonnegative().max(30),
+				/** Slew rate, degrees per second. */
+				rate: z.number().positive().default(20)
+			})
+			.default({ range: 0, rate: 20 })
 	})
 	.refine((c) => c.ispSeaLevel <= c.ispVacuum, 'ispSeaLevel must not exceed ispVacuum');
 export type EngineConfig = z.output<typeof engineConfigSchema>;
@@ -138,12 +148,33 @@ export interface EngineState {
 	throttle: number;
 	/** The sim sets this (via the `flameout` action) when propellant ran short. */
 	flameout: boolean;
+	/** Thrust tilt towards +X and towards +Z, rad (ADR 0045). */
+	gimbal: [number, number];
+}
+
+/**
+ * Move the thrust vector towards the angles the mixer asks for (ADR 0045); a cold or idle engine,
+ * or one without gimbal, relaxes to the axis at the same rate. Reads the centre of mass only when
+ * there is a range to steer with.
+ */
+function steerGimbal(
+	ctx: { config: EngineConfig; state: EngineState; vessel: VesselApi },
+	dt: number
+): void {
+	const { config, state, vessel } = ctx;
+	const step = (config.gimbal.rate * Math.PI * dt) / 180;
+	const range = (config.gimbal.range * Math.PI) / 180;
+	const live = range > 0 && state.ignited && state.throttle > 0;
+	const [tx, tz] = live
+		? gimbalTarget(vessel.centreOfMass, vessel.torqueDemand, range)
+		: ([0, 0] as const);
+	state.gimbal = [slew(state.gimbal[0], tx, step), slew(state.gimbal[1], tz, step)];
 }
 
 export const ModuleEngine = defineModule({
 	id: 'stock.engine',
 	config: engineConfigSchema,
-	state: (): EngineState => ({ ignited: false, throttle: 0, flameout: false }),
+	state: (): EngineState => ({ ignited: false, throttle: 0, flameout: false, gimbal: [0, 0] }),
 	// What tools (stage delta-v) may know without running the sim (ADR 0033): the flow is fixed by
 	// the vacuum rating and thrust follows Isp(p) (`engineOutput`), so two curve points are exact.
 	describe: (config, state) => ({
@@ -174,6 +205,7 @@ export const ModuleEngine = defineModule({
 	update(ctx, dt) {
 		const { state, config, vessel } = ctx;
 		state.throttle = Math.min(1, Math.max(0, vessel.control.throttle));
+		steerGimbal(ctx, dt);
 		if (!state.ignited) return;
 		const out = engineOutput(config, state, vessel.ambient.pressure);
 		if (out.massFlow <= 0) return;
@@ -189,7 +221,11 @@ export const ModuleEngine = defineModule({
 		for (const { resource, rate } of rates) {
 			vessel.resources.withdraw(resource, rate * dt * satisfied);
 		}
-		if (satisfied > 0) vessel.applyForce({ x: 0, y: out.thrust * satisfied, z: 0 });
+		if (satisfied > 0) {
+			const dir = gimbalDirection(state.gimbal[0], state.gimbal[1]);
+			const f = out.thrust * satisfied;
+			vessel.applyForce({ x: f * dir.x, y: f * dir.y, z: f * dir.z });
+		}
 		if (satisfied < 1) {
 			state.ignited = false;
 			state.flameout = true;
@@ -217,7 +253,8 @@ export const ModuleEngine = defineModule({
 	snapshot: (state) => ({
 		ignited: state.ignited,
 		throttle: state.throttle,
-		flameout: state.flameout
+		flameout: state.flameout,
+		gimbal: [state.gimbal[0], state.gimbal[1]]
 	})
 });
 
@@ -447,7 +484,9 @@ export const finConfigSchema = z.object({
 	/** Normal-force coefficient of the plate broadside to the flow (stall). */
 	crossflow: z.number().positive().default(1.2),
 	/** Centre of pressure in the part frame, m. */
-	centre: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0])
+	centre: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0]),
+	/** Extra damping of the rotational airflow, in multiples of the quasi-steady one (ADR 0046). */
+	damping: z.number().nonnegative().max(100).default(60)
 });
 export type FinConfig = z.output<typeof finConfigSchema>;
 
@@ -466,6 +505,21 @@ export function finNormalForce(config: FinConfig, v: Vec3, rho: number): number 
 }
 
 /**
+ * Extra force along the plate normal against the rotation (ADR 0046): `w` is the normal component
+ * of the airflow at the centre of pressure that comes from the vessel's rotation, `speed` the
+ * airspeed there. `-1/2 rho V S liftSlope damping w`: the quasi-steady damping counted `damping`
+ * more times, standing for downwash lag and body-fin interference (not modelled).
+ */
+export function finDampingForce(config: FinConfig, speed: number, rho: number, w: number): number {
+	return -0.5 * rho * speed * config.area * config.liftSlope * config.damping * w;
+}
+
+/** Rotational part of the airflow along local Z at `at`: the point's air velocity minus the centre of mass's. */
+function rotationalNormalFlow(vessel: VesselApi, at: Vec3): number {
+	return vessel.airVelocity(at).z - vessel.airVelocity(vessel.centreOfMass).z;
+}
+
+/**
  * A fixed fin: a flat plate in the part's X-Y plane (span along X, chord along Y) whose normal
  * force pushes the rocket back towards its velocity vector when the fins sit behind the centre of
  * mass. It reads the airflow at its centre of pressure (`vessel.airVelocity`, which includes the
@@ -480,7 +534,76 @@ export const ModuleFin = defineModule({
 		const rho = vessel.ambient.density;
 		if (rho === 0) return;
 		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
-		const force = finNormalForce(config, vessel.airVelocity(at), rho);
+		const v = vessel.airVelocity(at);
+		let force = finNormalForce(config, v, rho);
+		if (config.damping > 0) {
+			const speed = Math.hypot(v.x, v.y, v.z);
+			force += finDampingForce(config, speed, rho, rotationalNormalFlow(vessel, at));
+		}
 		if (force !== 0) vessel.applyForce({ x: 0, y: 0, z: force }, at);
 	}
+});
+
+// ---------------------------------------------------------------------------------------------
+// Control surface
+// ---------------------------------------------------------------------------------------------
+
+export const controlSurfaceConfigSchema = finConfigSchema.safeExtend({
+	/** Largest deflection of the plate about its span (local X), degrees. */
+	maxDeflection: z.number().positive().max(60).default(25),
+	/** Slew rate, degrees per second. */
+	deflectionRate: z.number().positive().default(60)
+});
+export type ControlSurfaceConfig = z.output<typeof controlSurfaceConfigSchema>;
+export interface ControlSurfaceState {
+	/** Deflection about local X, rad. */
+	deflection: number;
+}
+
+/**
+ * Force of the deflected plate in the part frame (ADR 0045): the plate normal is
+ * `(0, -sin d, cos d)`; the airflow is rotated into the plate's frame and the fin law applies.
+ */
+export function controlSurfaceForce(
+	config: ControlSurfaceConfig,
+	v: Vec3,
+	rho: number,
+	d: number
+): Vec3 {
+	const sin = Math.sin(d);
+	const cos = Math.cos(d);
+	const f = finNormalForce(
+		config,
+		{ x: v.x, y: v.y * cos + v.z * sin, z: -v.y * sin + v.z * cos },
+		rho
+	);
+	return { x: 0, y: -f * sin, z: f * cos };
+}
+
+/**
+ * A fin whose whole plate turns about its span by a commanded deflection. The mixer
+ * (`steering.ts`) picks the deflection from the vessel's attitude demand and the lever arm of the
+ * centre of pressure about the centre of mass; the plate slews at `deflectionRate`.
+ */
+export const ModuleControlSurface = defineModule({
+	id: 'stock.control-surface',
+	config: controlSurfaceConfigSchema,
+	state: (): ControlSurfaceState => ({ deflection: 0 }),
+	update(ctx, dt) {
+		const { config, state, vessel } = ctx;
+		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
+		const v = vessel.airVelocity(at);
+		const rho = vessel.ambient.density;
+		const max = (config.maxDeflection * Math.PI) / 180;
+		const target = surfaceTarget(at, vessel.centreOfMass, vessel.torqueDemand, max, v.y <= 0);
+		state.deflection = slew(state.deflection, target, (config.deflectionRate * Math.PI * dt) / 180);
+		if (rho === 0) return;
+		const force = controlSurfaceForce(config, v, rho, state.deflection);
+		if (config.damping > 0) {
+			const speed = Math.hypot(v.x, v.y, v.z);
+			force.z += finDampingForce(config, speed, rho, rotationalNormalFlow(vessel, at));
+		}
+		vessel.applyForce(force, at);
+	},
+	snapshot: (state) => ({ deflection: state.deflection })
 });

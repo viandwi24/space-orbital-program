@@ -85,7 +85,12 @@ describe('resource container', () => {
 describe('engine', () => {
 	test('state starts cold; onStage ignites; shutdown, flameout and throttle actions', () => {
 		const ctx = contextFor(ModuleEngine, engine);
-		expect(ctx.state).toEqual({ ignited: false, throttle: 0, flameout: false });
+		expect(ctx.state).toEqual({
+			ignited: false,
+			throttle: 0,
+			flameout: false,
+			gimbal: [0, 0]
+		});
 		ModuleEngine.onStage?.(ctx);
 		expect(ctx.state.ignited).toBe(true);
 		ModuleEngine.actions?.setThrottle?.(ctx, 2);
@@ -96,7 +101,8 @@ describe('engine', () => {
 		expect(ModuleEngine.snapshot?.(ctx.state)).toEqual({
 			ignited: false,
 			throttle: 0,
-			flameout: true
+			flameout: true,
+			gimbal: [0, 0]
 		});
 		ModuleEngine.onStage?.(ctx); // re-staging clears the flameout
 		expect(ctx.state.flameout).toBe(false);

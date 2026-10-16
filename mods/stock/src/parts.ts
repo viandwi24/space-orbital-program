@@ -1,6 +1,7 @@
 import { definePart, kg, type PartShape } from '@orbital/sdk';
 import {
 	ModuleCommand,
+	ModuleControlSurface,
 	ModuleDecoupler,
 	ModuleEngine,
 	ModuleFin,
@@ -140,7 +141,9 @@ export const PartEngineLV = definePart({
 			exitRadius: 0.46,
 			length: 7,
 			exitPressure: 90_000
-		}
+		},
+		// The bell and chamber swing with the thrust vector (ADR 0045).
+		articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
 	},
 	attach: stackNodes(1.2),
 	// An engine draws propellant but does not pass it through to whatever hangs below it.
@@ -155,7 +158,8 @@ export const PartEngineLV = definePart({
 				propellants: [
 					{ resource: LiquidFuel.id, ratio: 0.9 },
 					{ resource: Oxidizer.id, ratio: 1.1 }
-				]
+				],
+				gimbal: { range: 3, rate: 20 }
 			}
 		]
 	],
@@ -327,5 +331,40 @@ export const PartFin = definePart({
 	attach: { radial: { pos: [-0.55, 0, 0], dir: [-1, 0, 0] } },
 	crossfeed: false,
 	modules: [[ModuleFin, { area: 1.5, liftSlope: 2, crossflow: 1.2, centre: [0, -0.15, 0] }]],
+	stagingIcon: 'fin'
+});
+
+/**
+ * A control surface: a fin whose plate turns by the attitude demand (ADR 0045), 1 m span, 1.6 m
+ * chord, attached radially. Placed behind the centre of mass like a fin it also stabilises; a pair
+ * on opposite sides steers pitch or yaw, all four roll.
+ */
+export const PartControlSurface = definePart({
+	id: 'stock.control-surface',
+	title: 'Control Surface',
+	mass: kg(45),
+	impactTolerance: 4,
+	maxTemperature: 1000,
+	shape: { kind: 'box', size: [1, 1.6, 0.07] },
+	visual: {
+		kind: 'control-surface',
+		palette: { primary: '#d5d8dc', secondary: '#23272d', accent: '#2f8fa3' },
+		articulation: { module: ModuleControlSurface.id, field: 'deflection', mode: 'hinge' }
+	},
+	attach: { radial: { pos: [-0.5, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [
+		[
+			ModuleControlSurface,
+			{
+				area: 1.2,
+				liftSlope: 2,
+				crossflow: 1.2,
+				centre: [0, -0.1, 0],
+				maxDeflection: 25,
+				deflectionRate: 60
+			}
+		]
+	],
 	stagingIcon: 'fin'
 });

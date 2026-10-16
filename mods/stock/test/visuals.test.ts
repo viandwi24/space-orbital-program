@@ -14,6 +14,7 @@ const KINDS = [
 	'booster',
 	'nose-cone',
 	'fin',
+	'control-surface',
 	'plain'
 ];
 

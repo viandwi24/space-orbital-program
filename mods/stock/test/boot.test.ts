@@ -17,6 +17,7 @@ describe('stock boots through the loader', () => {
 		]);
 		expect(ids('module')).toEqual([
 			'stock.command',
+			'stock.control-surface',
 			'stock.decoupler',
 			'stock.engine',
 			'stock.fin',
@@ -28,6 +29,7 @@ describe('stock boots through the loader', () => {
 		expect(ids('part')).toEqual([
 			'stock.booster',
 			'stock.command-pod',
+			'stock.control-surface',
 			'stock.decoupler',
 			'stock.engine-lv',
 			'stock.fin',
@@ -87,7 +89,8 @@ describe('stock boots through the loader', () => {
 			'stock.radial-decoupler',
 			'stock.booster',
 			'stock.nose-cone',
-			'stock.fin'
+			'stock.fin',
+			'stock.control-surface'
 		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();
@@ -105,7 +108,12 @@ describe('stock boots through the loader', () => {
 
 	test('radial hardware: horizontal radial nodes on the shape face, booster top node, cone bottom', () => {
 		const get = (id: string) => registries.parts.get(id)!;
-		for (const id of ['stock.radial-decoupler', 'stock.booster', 'stock.fin']) {
+		for (const id of [
+			'stock.radial-decoupler',
+			'stock.booster',
+			'stock.fin',
+			'stock.control-surface'
+		]) {
 			const radial = get(id).attach!.radial!;
 			expect(radial.dir, id).toEqual([-1, 0, 0]);
 			expect(radial.pos[1]).toBe(0);

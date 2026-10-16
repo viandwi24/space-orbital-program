@@ -16,7 +16,8 @@ async function run(): Promise<{ snapshot: string; world: string; time: number }>
 				{ type: 'stage', vessel }
 			]
 		],
-		[500, [{ type: 'attitude', vessel, pitch: 0.02, yaw: -0.01, roll: 0 }]],
+		// A small demand: the engine gimbals (ADR 0045), and a held demand turns the rocket over.
+		[500, [{ type: 'attitude', vessel, pitch: 0.002, yaw: -0.001, roll: 0 }]],
 		[1_000, [{ type: 'attitude', vessel, pitch: 0, yaw: 0, roll: 0.3 }]],
 		[2_000, [{ type: 'throttle', vessel, value: 0.9 }]],
 		[3_000, [{ type: 'stage', vessel }]], // fires the decoupler: a second vessel appears

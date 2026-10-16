@@ -7,6 +7,7 @@ import { HomeBody } from './bodies.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
+	ModuleControlSurface,
 	ModuleDecoupler,
 	ModuleEngine,
 	ModuleFin,
@@ -20,6 +21,7 @@ import {
 import {
 	PartBooster,
 	PartCommandPod,
+	PartControlSurface,
 	PartDecoupler,
 	PartEngineLV,
 	PartFin,
@@ -53,6 +55,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleLandingLeg);
 		ctx.modules.register(ModuleHeatShield);
 		ctx.modules.register(ModuleFin);
+		ctx.modules.register(ModuleControlSurface);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -66,6 +69,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartBooster);
 		ctx.parts.register(PartNoseCone);
 		ctx.parts.register(PartFin);
+		ctx.parts.register(PartControlSurface);
 
 		ctx.bodies.register(HomeBody);
 
