@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-10-16
 **Phase:** 0 — Foundation
-**Current plan:** [`plans/004-physics-backend-rapier.md`](plans/004-physics-backend-rapier.md) (`in-progress`, paused: acceptance criterion 1 needs a human decision, see the plan Log)
-**Next plan:** finish 004 (blocked on the criterion decision), then [`plans/005-sdk-define-api-plugin-loader.md`](plans/005-sdk-define-api-plugin-loader.md) (`draft`, needs refinement)
+**Current plan:** [`plans/005-sdk-define-api-plugin-loader.md`](plans/005-sdk-define-api-plugin-loader.md) (`in-progress`, sdk session)
+**Next plan:** [`plans/006-stock-mod-minimal.md`](plans/006-stock-mod-minimal.md) (`draft`, needs refinement; needs 005)
 
 ## Plan board
 
@@ -14,13 +14,14 @@
 | 001 | [Repo bootstrap](plans/001-repo-bootstrap.md) | done | bootstrap session | scaffold, workspaces, docs system |
 | 002 | [Kepler orbital mechanics](plans/002-kepler-orbital-mechanics.md) | done | kepler session | state↔elements, propagation, SOI; one AC value corrected (see plan Log) |
 | 003 | [Core: world, registries, events](plans/003-core-world-registries-events.md) | done | core session | ADRs 0010, 0011 |
-| 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | in-progress | physics session | paused: ½at² tolerance unachievable with Rapier's integrator (error 2.5e-2 at dt 0.02); see plan Log |
-| 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | draft | — | needs 003 |
+| 004 | [Physics backend + Rapier adapter](plans/004-physics-backend-rapier.md) | done | physics session | `createRapierBackend` + `createMockBackend`; free-fall AC corrected to Rapier's discrete solution (see plan Log) |
+| 005 | [SDK define-API + plugin loader](plans/005-sdk-define-api-plugin-loader.md) | in-progress | sdk session | needs 003 |
 | 006 | [Stock mod, minimal](plans/006-stock-mod-minimal.md) | draft | — | needs 005 |
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | draft | — | needs 002, 004, 006 |
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | draft | — | needs 003 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | draft | — | needs 007, 008 |
 | 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
+| 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | draft | — | needs 004, 007; follow-up from 004 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -37,9 +38,11 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - License undecided (see README).
 - `@orbital/kepler` element functions throw `KeplerError` for near-parabolic (|e − 1| < 1e-8) and radial trajectories; plan 007's flight → on-rails switch must handle this (fallback: `propagateUniversal` on the state vector). Noted in `architecture/simulation.md`.
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
+- Rapier fixed-joint chains are soft under heavy load (default 4 solver iterations; see `journal/004`); `createRapierBackend({ solverIterations })` is the knob and plan 011 (rigid grouping) the structural fix. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
 
 ## Recent journal entries
 
+- [004 — Physics backend + Rapier adapter](journal/004-physics-backend-rapier.md)
 - [003 — Core: world, registries, events](journal/003-core-world-registries-events.md)
 - [002 — Kepler orbital mechanics](journal/002-kepler-orbital-mechanics.md)
 - [001 — Repo bootstrap](journal/001-repo-bootstrap.md)

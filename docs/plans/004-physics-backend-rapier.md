@@ -1,8 +1,8 @@
 ---
 id: 004
 title: Physics backend + Rapier adapter
-status: in-progress
-owner: "physics session (Claude, 2026-10-16)"
+status: done
+owner: "physics session"
 depends: [003]
 phase: 0
 created: 2026-10-16
@@ -38,19 +38,19 @@ updated: 2026-10-16
 
 1. Verify Rapier docs online; record.
 2. `src/rapier-backend.ts` (`createRapierBackend(options?): Promise<PhysicsBackend>`: `await RAPIER.init()`, `new RAPIER.World({x:0,y:0,z:0})`, `world.timestep = dt` before each `world.step()`; bodies via `RigidBodyDesc.dynamic()/fixed()/kinematicVelocityBased()` + `createCollider(ColliderDesc.cuboid/ball/capsule, body)` with `setDensity(0)` and mass via `setAdditionalMassProperties(mass, {0,0,0}, inertia, identity)`, inertia derived analytically from the shape when omitted; `JointData.fixed(anchorA, rotA, anchorB, rotB)` + `world.createImpulseJoint(data, bodyA, bodyB, true)` with `setContactsEnabled(false)`; `addForce`/`addForceAtPoint`/`addTorque` tracked per body and `resetForces`/`resetTorques` after every `step`; `dispose()` calls `world.free()`), `src/mock-backend.ts` (`createMockBackend()`: kinematic, no collisions, same one-step force lifetime), `src/index.ts`. Rapier details: `docs/research/rapier.md`.
-3. Tests (`test/*.test.ts`): free fall under an applied constant force matches `½at²` within 1e-3 over 2 s at dt = 0.02; two bodies joined by a fixed joint keep their relative transform within 1e-4 after 200 steps under a force on one of them; same inputs twice → identical transforms (determinism). Plus: forces last one step, torque/angular velocity axes, remove body/joint, mock backend contract.
+3. Tests (`test/*.test.ts`): free fall under an applied constant force matches `½at²` within 1e-3 over 2 s at dt = 0.02 *(corrected: matches `½at² + a·dt·t/8` within 1e-3 and `v = at` within 1e-3, see Log)*; two bodies joined by a fixed joint keep their relative transform within 1e-4 after 200 steps under a force on one of them; same inputs twice → identical transforms (determinism). Plus: forces last one step, torque/angular velocity axes, remove body/joint, mock backend contract.
 4. Journal.
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/physics` passes with the three tests above.
-- [ ] Only `packages/physics/package.json` lists `@dimforge/rapier3d-compat`.
-- [ ] `bun run typecheck` and `bun run docs:check` pass.
+- [x] `bun test packages/physics` passes with the three tests above. *Acceptance-criterion correction (approved by the human): test 1 compares against Rapier's discrete solution `½at² + a·dt·t/8` within 1e-3 and asserts `v = at` within 1e-3; Rapier's first-order integrator deviates from `½at²` by `a·dt·t/8` (2.5e-2 at dt = 0.02). Original wording kept above; see Log and `research/rapier.md`.*
+- [x] Only `packages/physics/package.json` lists `@dimforge/rapier3d-compat`.
+- [x] `bun run typecheck` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal, `docs/research/stack-versions.md`.
-- [ ] `docs/architecture/simulation.md` if the vessel→bodies mapping changed.
+- [x] `docs/STATUS.md`, journal, `docs/research/stack-versions.md`.
+- [x] `docs/architecture/simulation.md` if the vessel→bodies mapping changed.
 
 ## Log
 
@@ -58,3 +58,5 @@ updated: 2026-10-16
 - 2026-10-16 — Refined draft → ready at the human's request (session: physics session); Steps 2–3 updated to Rapier 0.21.0 API.
 - 2026-10-16 — Started (in-progress, physics session).
 - 2026-10-16 — **STOPPED before implementing: acceptance criterion 1 / Step 3 test 1 is unachievable as written.** Measured with Rapier 0.21.0 (see `research/rapier.md`): constant 10 N on 2 kg, dt = 0.02, 100 steps, forces re-applied and reset each step: x(2 s) = 10.025013 vs ½at² = 10 (error 2.5e-2, 25x the 1e-3 tolerance; 2.5e-3 relative). Cause: Rapier's integrator has an error of a·dt·t/8 (first-order in dt); velocity is exact (9.99999). Not an adapter bug and not f32 rounding. Criterion left unchanged. Options for the human: (a) relax the tolerance to 3e-2 absolute at dt = 0.02 (documents the integrator error); (b) compare against Rapier's own discrete solution `½at² + a·dt·t/8` within 1e-3 and also assert velocity `at` within 1e-3; (c) keep 1e-3 against `½at²` but require dt <= 0.0008 (about 25 substeps per 0.02 s sim step, not viable). Recommendation: (b). The other two tests and the adapter are unblocked once the criterion is decided; no code was written.
+- 2026-10-16 — Acceptance-criterion correction approved by the human: free fall compared against Rapier's discrete solution ½at² + a·dt·t/8 within 1e-3 plus v = at within 1e-3, because Rapier's first-order integrator deviates from ½at² by a·dt·t/8 (2.5e-2 at dt = 0.02). Option (b) chosen; resuming implementation.
+- 2026-10-16 — Done. `bun test packages/physics`: 13 pass, 0 fail (3 plan tests + 8 extras + 2 mock). Full `bun test`: 94 pass; typecheck, build, docs:check pass. Only `packages/physics/package.json` lists the dependency (root `package.json` holds the catalog pin). Joint test mutation-checked (removing the joint fails it). Follow-up: draft plan 011 (rigid grouping). Journal: `journal/004-physics-backend-rapier.md`.
