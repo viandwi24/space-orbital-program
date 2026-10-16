@@ -1,0 +1,80 @@
+/*
+ * Design tokens (plan 021, ADR 0026). Components read these and never use colour or size
+ * literals. Text colours are checked for AA contrast on the worst-case panel (tokens.test.ts).
+ */
+:root {
+	color-scheme: dark;
+
+	/* Type */
+	--font-ui: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+	--font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+	--t-xs: 0.75rem;
+	--t-sm: 0.8125rem;
+	--t-md: 0.9375rem;
+	--t-lg: 1.25rem;
+	--t-xl: 1.75rem;
+
+	/* Surfaces: translucent over the scene, solid where text must always read */
+	--bg-void: #04070b;
+	--panel: rgb(8 13 20 / 0.86);
+	--panel-raised: rgb(16 24 35 / 0.9);
+	--panel-solid: #0a1019;
+	--field: #0a1119;
+	--line: rgb(150 180 210 / 0.2);
+	--line-strong: rgb(150 180 210 / 0.38);
+
+	/* Text */
+	--text: #e8eff8;
+	--text-dim: #a9b9cc;
+	--text-faint: #9aacc1;
+
+	/* Semantic colours: one accent, one positive, one warning, one danger */
+	--c-accent: #5ccfff;
+	--c-accent-dim: #2a7aa0;
+	--c-positive: #5fe3a1;
+	--c-warning: #ffbf4a;
+	--c-danger: #ff8080;
+	--c-ink: #04121a;
+	--c-violet: #b9a2ff;
+
+	/* Scene colours of the navball */
+	--ball-sky-top: #2f8fd0;
+	--ball-sky-bottom: #7fd0ef;
+	--ball-ground-top: #7b5a3c;
+	--ball-ground-bottom: #3d2c22;
+
+	/* Space */
+	--s-1: 4px;
+	--s-2: 8px;
+	--s-3: 12px;
+	--s-4: 16px;
+	--s-5: 24px;
+	--s-6: 32px;
+
+	/* Shape: panels and fields share one radius, controls a smaller one */
+	--r-panel: 8px;
+	--r-control: 4px;
+
+	/* Elevation: one level, for overlays that sit over the HUD */
+	--shadow-overlay: 0 12px 40px rgb(0 0 0 / 0.55);
+
+	/* Motion */
+	--dur-fast: 120ms;
+	--dur-med: 220ms;
+	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--dur-fast: 0.01ms;
+		--dur-med: 0.01ms;
+	}
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
