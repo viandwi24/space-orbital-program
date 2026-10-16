@@ -24,3 +24,5 @@ export * from './effects/particles.ts';
 export * from './effects/explosion.ts';
 export * from './effects/transitions.ts';
 export * from './vab/index.ts';
+export * from './effects/look.ts';
+export * from './effects/shards.ts';

@@ -192,6 +192,11 @@ export class Environment {
 		camera.updateMatrixWorld();
 	}
 
+	/** Height of the ground (the same field the sim uses, ADR 0043) along a unit body-fixed direction, m. */
+	groundHeight(direction: Vec3): number {
+		return this.terrain.heightAt(direction);
+	}
+
 	/** Sun direction in the inertial/render frame for the current body rotation. */
 	sunDirection(bodyRotation: Quat): Vec3 {
 		if (!this.sunOverride) return starDirection();

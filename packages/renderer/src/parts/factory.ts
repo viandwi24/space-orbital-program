@@ -242,7 +242,10 @@ export class ProceduralProvider implements PartModelProvider {
 	create(request: PartModelRequest, context: ProviderContext): PartModel | null {
 		const { visual, shape } = request;
 		if (!visual || !shape) return null;
-		const generator = getPartGenerator(visual.kind);
+		// An asset part whose model did not load falls back to the generator it names (ADR 0047).
+		const fallback = visual.params?.fallbackKind;
+		const kind = visual.kind === 'model' && typeof fallback === 'string' ? fallback : visual.kind;
+		const generator = getPartGenerator(kind);
 		if (!generator) return null;
 		const key = `${request.definition}|${request.detail.segments}|${request.detail.extras}`;
 		let template = this.templates.get(key);

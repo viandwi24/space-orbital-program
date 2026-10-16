@@ -7,11 +7,12 @@
  */
 import type { BodyDefinition, Quat, Vec3 } from '@orbital/core';
 import {
-	BoxGeometry,
+	BufferAttribute,
+	BufferGeometry,
 	Color,
+	DoubleSide,
 	DynamicDrawUsage,
-	InstancedMesh,
-	Matrix4,
+	Mesh,
 	MeshStandardMaterial,
 	Object3D,
 	Quaternion,
@@ -29,12 +30,27 @@ import {
 	type ExplosionKind
 } from './explosion.ts';
 import { BillboardField } from './field.ts';
-import { ParticleKind, ParticlePool, exhaustTrailRate, groundBlastRate } from './particles.ts';
+import { GroundGlow, type GroundGlowItem } from './ground-glow.ts';
+import { dustColour, ionisationColour, plumeGroundLight, windAt } from './look.ts';
+import {
+	ParticleKind,
+	ParticlePool,
+	exhaustTrailRate,
+	groundBlastRate,
+	type WindField
+} from './particles.ts';
 import { PlasmaEffect } from './plasma-mesh.ts';
 import { DEFAULT_EXIT_PRESSURE, ambientPressureAt, plumeShape } from './plume.ts';
 import type { PlumeSpec } from './plume-mesh.ts';
 import { airVelocity, plasmaIntensity } from './reentry.ts';
 import { FIRE_FRAG, SMOKE_FRAG } from './shaders.ts';
+import {
+	PIECE_VERTICES,
+	fallbackSource,
+	pickTriangles,
+	writePiece,
+	type ShardSource
+} from './shards.ts';
 import type { FxEvent } from './transitions.ts';
 
 export type EffectBody = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
@@ -77,6 +93,16 @@ export interface EffectsFrame {
 	/** Diffuse radiance of white smoke in the current light, linear RGB. */
 	light: readonly [number, number, number];
 	activeVessel: number | null;
+	/** Direction to the sun in render space (smoke is lit by it); straight up when absent. */
+	sunDirection?: Vec3;
+}
+
+/** What the scene lends the effects (ADR 0047). */
+export interface EffectsOptions {
+	/** Height of the ground above the reference sphere along a unit body-fixed direction, m. */
+	groundHeight?: (direction: Vec3) => number;
+	/** Mesh triangles of a part definition, for debris pieces. */
+	shardSource?: (definition: string) => ShardSource | undefined;
 }
 
 interface Explosion {
@@ -88,6 +114,8 @@ interface Explosion {
 	age: number;
 	seed: number;
 	shards: ReturnType<typeof makeShards>;
+	/** The mesh triangle each shard is cut from, with the source it indexes. */
+	pieces: ReadonlyArray<{ source: ShardSource; triangle: number }>;
 }
 
 const MAX_EXPLOSIONS = 6;
@@ -97,10 +125,11 @@ const SHARD_COLOURS = [
 	new Color(0.75, 0.3, 0.1),
 	new Color(0.15, 0.15, 0.16)
 ];
+const FALLBACK_SOURCES = SHARD_COLOURS.map((c) => fallbackSource([c.r, c.g, c.b]));
 const GRAVITY = 9.81;
 const KIND_TINT: Record<number, readonly [number, number, number]> = {
 	[ParticleKind.Smoke]: [0.86, 0.86, 0.88],
-	[ParticleKind.Dust]: [0.78, 0.66, 0.48],
+	[ParticleKind.Dust]: [1, 1, 1], // the ground's colour comes with the particle (`tint`)
 	[ParticleKind.Gas]: [1, 1, 1],
 	[ParticleKind.Soot]: [0.16, 0.15, 0.15]
 };
@@ -118,13 +147,18 @@ export class Effects {
 	private pool: ParticlePool;
 	private smoke: BillboardField;
 	private fire: BillboardField;
-	private shardMesh: InstancedMesh;
+	private shardMesh: Mesh;
+	private shardPositions: Float32Array;
+	private shardColours: Float32Array;
 	private readonly shardMaterial = new MeshStandardMaterial({
-		color: 0xffffff,
+		vertexColors: true,
 		metalness: 0.3,
-		roughness: 0.65
+		roughness: 0.65,
+		flatShading: true,
+		side: DoubleSide
 	});
-	private readonly shardGeometry = new BoxGeometry(1, 1, 1);
+	private readonly glow = new GroundGlow(4);
+	private readonly glowItems: GroundGlowItem[] = [];
 	private explosions: Explosion[] = [];
 	private flashes: Array<{ soi: string; local: Vec3; size: number; age: number; life: number }> =
 		[];
@@ -136,38 +170,65 @@ export class Effects {
 		private readonly bodies: ReadonlyMap<string, EffectBody>,
 		private readonly primary: string | undefined,
 		private readonly plumeOf: (definition: string) => PlumeSpec | undefined,
-		settings: PresetSettings
+		settings: PresetSettings,
+		private readonly options: EffectsOptions = {}
 	) {
 		this.root.name = 'effects';
 		this.settings = settings;
 		this.pool = new ParticlePool(settings.smokeParticles, 11);
 		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false);
 		this.fire = new BillboardField(96, FIRE_FRAG, true);
-		this.shardMesh = this.makeShards(settings);
+		const shards = this.makeShards(settings);
+		this.shardMesh = shards.mesh;
+		this.shardPositions = shards.positions;
+		this.shardColours = shards.colours;
 		this.smoke.mesh.renderOrder = 8;
 		this.fire.mesh.renderOrder = 9;
-		this.root.add(this.smoke.mesh, this.fire.mesh, this.shardMesh, this.plasma.root);
+		this.root.add(
+			this.smoke.mesh,
+			this.fire.mesh,
+			this.shardMesh,
+			this.plasma.root,
+			this.glow.root
+		);
 	}
 
-	private makeShards(settings: PresetSettings): InstancedMesh {
-		const capacity = Math.max(1, settings.debrisShards * MAX_EXPLOSIONS);
-		const mesh = new InstancedMesh(this.shardGeometry, this.shardMaterial, capacity);
-		mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-		mesh.count = 0;
+	/** One dynamic mesh for every piece of every explosion; positions are rewritten each frame. */
+	private makeShards(settings: PresetSettings): {
+		mesh: Mesh;
+		positions: Float32Array;
+		colours: Float32Array;
+	} {
+		const pieces = Math.max(1, settings.debrisShards * MAX_EXPLOSIONS);
+		const positions = new Float32Array(pieces * PIECE_VERTICES * 3);
+		const colours = new Float32Array(pieces * PIECE_VERTICES * 3);
+		const geometry = new BufferGeometry();
+		const position = new BufferAttribute(positions, 3);
+		position.setUsage(DynamicDrawUsage);
+		const colour = new BufferAttribute(colours, 3);
+		colour.setUsage(DynamicDrawUsage);
+		geometry.setAttribute('position', position);
+		geometry.setAttribute('color', colour);
+		geometry.setDrawRange(0, 0);
+		const mesh = new Mesh(geometry, this.shardMaterial);
 		mesh.frustumCulled = false;
 		mesh.castShadow = false;
-		return mesh;
+		mesh.visible = false;
+		return { mesh, positions, colours };
 	}
 
 	setPreset(settings: PresetSettings): void {
 		this.settings = settings;
 		this.root.remove(this.smoke.mesh, this.shardMesh);
 		this.smoke.dispose();
-		this.shardMesh.dispose();
+		this.shardMesh.geometry.dispose();
 		this.pool = new ParticlePool(settings.smokeParticles, 11);
 		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false);
 		this.smoke.mesh.renderOrder = 8;
-		this.shardMesh = this.makeShards(settings);
+		const shards = this.makeShards(settings);
+		this.shardMesh = shards.mesh;
+		this.shardPositions = shards.positions;
+		this.shardColours = shards.colours;
 		this.root.add(this.smoke.mesh, this.shardMesh);
 		this.explosions = [];
 	}
@@ -185,18 +246,42 @@ export class Effects {
 	update(frame: EffectsFrame): void {
 		const dt = Math.max(0, frame.dt);
 		this.consumeEvents(frame);
+		this.glowItems.length = 0;
 		if (dt > 0) {
 			this.emitFromEngines(frame, dt);
-			this.pool.step(dt);
+			this.pool.step(dt, this.windField(frame));
 			for (const e of this.explosions) e.age += dt;
 			this.explosions = this.explosions.filter((e) => e.age < durationOf(e.kind) + 0.6);
 			for (const f of this.flashes) f.age += dt;
 			this.flashes = this.flashes.filter((f) => f.age < f.life);
 		}
 		this.writeSmoke(frame);
+		this.glow.update(this.glowItems);
 		this.writeFire(frame);
 		this.writeShards(frame);
 		this.updatePlasma(frame);
+	}
+
+	/** Air velocity at a body-fixed position: horizontal wind by altitude (ADR 0047). */
+	private windField(frame: EffectsFrame): WindField | undefined {
+		const info = this.primary ? this.bodies.get(this.primary) : undefined;
+		if (!info) return undefined;
+		const time = frame.time;
+		return (x, y, z, out) => {
+			const r = Math.hypot(x, y, z);
+			if (r < 1) {
+				out[0] = out[1] = out[2] = 0;
+				return;
+			}
+			const up = vec(x / r, y / r, z / r);
+			const [e1, e2] = tangents(up);
+			const { speed, heading } = windAt(r - info.radius, time);
+			const c = Math.cos(heading) * speed;
+			const sn = Math.sin(heading) * speed;
+			out[0] = e1.x * c + e2.x * sn;
+			out[1] = e1.y * c + e2.y * sn;
+			out[2] = e1.z * c + e2.z * sn;
+		};
 	}
 
 	// --- emission -----------------------------------------------------------------------------
@@ -221,7 +306,10 @@ export class Effects {
 				);
 				const r = length(nozzle);
 				if (r < 1) continue;
+				const up = scale(nozzle, 1 / r);
+				const ground = this.options.groundHeight?.(rotateInverse(body.rotation, up)) ?? 0;
 				const altitude = r - info.radius;
+				const height = altitude - ground;
 				const pa = ambientPressureAt(info.atmosphere, altitude);
 				const shape = plumeShape({
 					throttle,
@@ -234,7 +322,7 @@ export class Effects {
 				});
 				const input = {
 					throttle,
-					nozzleAltitude: altitude,
+					nozzleAltitude: height,
 					plumeLength: shape.length,
 					ambientPressure: pa,
 					surfacePressure: info.atmosphere?.surfacePressure ?? 0,
@@ -246,8 +334,18 @@ export class Effects {
 				this.accumulators.set(key, acc);
 				acc.blast += groundBlastRate(input) * dt;
 				acc.trail += exhaustTrailRate(input) * dt;
-				const up = scale(nozzle, 1 / r);
 				const exhaust = rotate(part.orientation, vec(0, -1, 0));
+				const light = plumeGroundLight(height, throttle, shape.length, spec.exitRadius);
+				if (light.intensity > 0 && pa > 0 && this.glowItems.length < this.glow.capacity) {
+					const centre = scale(up, info.radius + ground + 0.05);
+					this.glowItems.push({
+						position: toRenderSpace(add(body.world, centre), frame.origin),
+						up,
+						radius: light.radius,
+						intensity: light.intensity * Math.sqrt(pa / (info.atmosphere?.surfacePressure || 1))
+					});
+				}
+				const tint = dustColour(ground);
 				const [e1, e2] = tangents(up);
 				const toBody = (p: Vec3): Vec3 => rotateInverse(body.rotation, p);
 				while (acc.blast >= 1) {
@@ -256,17 +354,18 @@ export class Effects {
 					const rho = (spec.exitRadius * 1.2 + shape.maxRadius * 0.8) * pool.random();
 					const dir = add(scale(e1, Math.cos(th)), scale(e2, Math.sin(th)));
 					const speed = (4 + 16 * pool.random()) * (0.5 + 0.5 * Math.sqrt(throttle));
-					const ground = add(scale(up, info.radius + 0.3), scale(dir, rho));
+					const spot = add(scale(up, info.radius + ground + 0.3), scale(dir, rho));
 					const dust = pool.random() < 0.55;
 					pool.emit({
-						position: toBody(ground),
+						position: toBody(spot),
 						velocity: toBody(add(scale(dir, speed), scale(up, 1 + 3 * pool.random()))),
 						life: (dust ? 3.5 : 4) + 4 * pool.random(),
 						size0: dust ? 2 : 2.5,
 						size1: dust ? 10 + 9 * pool.random() : 11 + 9 * pool.random(),
 						kind: dust ? ParticleKind.Dust : ParticleKind.Smoke,
 						opacity: dust ? 0.6 : 0.55,
-						heat: dust ? 0 : 0.55
+						heat: dust ? 0 : 0.55,
+						tint: dust ? [tint[0], tint[1], tint[2]] : [1, 1, 1]
 					});
 				}
 				while (acc.trail >= 1) {
@@ -291,6 +390,35 @@ export class Effects {
 			}
 		}
 		for (const k of this.accumulators.keys()) if (!seen.has(k)) this.accumulators.delete(k);
+	}
+
+	/** One mesh triangle per shard, area-weighted over the lost parts' real geometry (ADR 0047). */
+	private cutPieces(
+		definitions: readonly string[],
+		seed: number
+	): Array<{ source: ShardSource; triangle: number }> {
+		const sources = definitions
+			.map((d) => this.options.shardSource?.(d))
+			.filter((x): x is ShardSource => x !== undefined && x.cumulativeArea.length > 0);
+		const count = this.settings.debrisShards;
+		const out: Array<{ source: ShardSource; triangle: number }> = [];
+		if (sources.length === 0) {
+			for (let i = 0; i < count; i++) {
+				const source = FALLBACK_SOURCES[(seed + i) % FALLBACK_SOURCES.length]!;
+				out.push({ source, triangle: i % 2 });
+			}
+			return out;
+		}
+		// Each lost part contributes in proportion to its surface area.
+		const areas = sources.map((s) => s.cumulativeArea[s.cumulativeArea.length - 1]!);
+		const total = areas.reduce((a, b) => a + b, 0);
+		sources.forEach((source, i) => {
+			const share = Math.max(1, Math.round((count * areas[i]!) / total));
+			for (const triangle of pickTriangles(source, share, seed + i * 7919)) {
+				if (out.length < count) out.push({ source, triangle });
+			}
+		});
+		return out;
 	}
 
 	private consumeEvents(frame: EffectsFrame): void {
@@ -330,7 +458,8 @@ export class Effects {
 				age: 0,
 				seed: this.seed,
 				shards:
-					ev.cause === 'impact' ? makeShards(this.seed, this.settings.debrisShards, size, 14) : []
+					ev.cause === 'impact' ? makeShards(this.seed, this.settings.debrisShards, size, 14) : [],
+				pieces: ev.cause === 'impact' ? this.cutPieces(ev.definitions, this.seed) : []
 			});
 			if (this.explosions.length > MAX_EXPLOSIONS) this.explosions.shift();
 			if (ev.soi === this.primary && ev.cause === 'impact') {
@@ -368,6 +497,8 @@ export class Effects {
 			return;
 		}
 		const [lr, lg, lb] = frame.light;
+		const sun = frame.sunDirection ?? vec(0, 1, 0);
+		this.smoke.setSun(sun.x, sun.y, sun.z);
 		const q = body.rotation;
 		for (let i = 0; i < pool.count; i++) {
 			const local = vec(pool.px[i]!, pool.py[i]!, pool.pz[i]!);
@@ -377,7 +508,12 @@ export class Effects {
 			const size = pool.size0[i]! + (pool.size1[i]! - pool.size0[i]!) * ease;
 			const fadeIn = Math.min(1, pool.age[i]! / 0.25);
 			const alpha = pool.opacity[i]! * fadeIn * Math.pow(1 - t, 1.3);
-			const tint = KIND_TINT[pool.kind[i]!] ?? KIND_TINT[0]!;
+			const base = KIND_TINT[pool.kind[i]!] ?? KIND_TINT[0]!;
+			const tint = [
+				base[0] * pool.tint[i * 3]!,
+				base[1] * pool.tint[i * 3 + 1]!,
+				base[2] * pool.tint[i * 3 + 2]!
+			] as const;
 			const heat = pool.heat[i]! * Math.pow(1 - t, 3);
 			this.smoke.set(
 				i,
@@ -466,12 +602,20 @@ export class Effects {
 		field.commit(n);
 	}
 
+	/**
+	 * Pieces of the destroyed parts: each is a thin prism over a triangle of the part's own mesh
+	 * (ADR 0047), thrown on the shard's ballistic path and tumbling. Written to one dynamic mesh.
+	 */
 	private writeShards(frame: EffectsFrame): void {
 		const mesh = this.shardMesh;
+		const capacity = this.shardPositions.length / (PIECE_VERTICES * 3);
 		let n = 0;
-		const m = new Matrix4();
 		const q = new Quaternion();
 		const basis = new Quaternion();
+		const axis = new Vector3();
+		const tmp = new Float32Array(PIECE_VERTICES * 3);
+		const v = new Vector3();
+		const at = new Vector3();
 		for (const e of this.explosions) {
 			const body = frame.bodies.get(e.soi);
 			if (!body || e.shards.length === 0) continue;
@@ -483,27 +627,41 @@ export class Effects {
 			const info = this.bodies.get(e.soi);
 			const altitude = info ? length(e.local) - info.radius : 0;
 			const nearGround = altitude < 300;
-			for (const s of e.shards) {
-				if (n >= mesh.instanceMatrix.count) break;
+			for (let k = 0; k < e.shards.length; k++) {
+				if (n >= capacity) break;
+				const s = e.shards[k]!;
+				const piece = e.pieces[k];
+				if (!piece) continue;
 				const p = shardPosition(s, e.age, GRAVITY);
 				const floor = nearGround ? -altitude : -Infinity;
-				const y = Math.max(p.y, floor + s.size * 0.5);
-				const v = new Vector3(p.x, y, p.z).applyQuaternion(basis);
+				const y = Math.max(p.y, floor + s.size * 0.2);
+				at.set(p.x, y, p.z)
+					.applyQuaternion(basis)
+					.add(v.set(base.x, base.y, base.z));
 				const spin = p.y > floor ? s.spin * e.age : s.spin * 0.2;
-				q.setFromAxisAngle(new Vector3(0.6, 0.3, 0.7).normalize(), spin).premultiply(basis);
-				m.compose(
-					new Vector3(base.x + v.x, base.y + v.y, base.z + v.z),
-					q,
-					new Vector3(s.size, s.size * 0.35, s.size * 0.7)
-				);
-				mesh.setColorAt(n, SHARD_COLOURS[(e.seed + n) % SHARD_COLOURS.length]!);
-				mesh.setMatrixAt(n++, m);
+				axis.set(0.6 + (k % 3) * 0.2, 0.3, 0.7 - (k % 4) * 0.15).normalize();
+				q.setFromAxisAngle(axis, spin).premultiply(basis);
+				writePiece(piece.source, piece.triangle, s.size * 3, s.size * 0.5, tmp, 0);
+				const o = n * PIECE_VERTICES * 3;
+				const rgb = piece.source.colours;
+				for (let i = 0; i < PIECE_VERTICES; i++) {
+					v.set(tmp[i * 3]!, tmp[i * 3 + 1]!, tmp[i * 3 + 2]!)
+						.applyQuaternion(q)
+						.add(at);
+					this.shardPositions[o + i * 3] = v.x;
+					this.shardPositions[o + i * 3 + 1] = v.y;
+					this.shardPositions[o + i * 3 + 2] = v.z;
+					this.shardColours[o + i * 3] = rgb[piece.triangle * 3]!;
+					this.shardColours[o + i * 3 + 1] = rgb[piece.triangle * 3 + 1]!;
+					this.shardColours[o + i * 3 + 2] = rgb[piece.triangle * 3 + 2]!;
+				}
+				n++;
 			}
 		}
-		mesh.count = n;
+		mesh.geometry.setDrawRange(0, n * PIECE_VERTICES);
 		mesh.visible = n > 0;
-		mesh.instanceMatrix.needsUpdate = true;
-		if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+		mesh.geometry.getAttribute('position').needsUpdate = true;
+		mesh.geometry.getAttribute('color').needsUpdate = true;
 	}
 
 	private updatePlasma(frame: EffectsFrame): void {
@@ -549,16 +707,17 @@ export class Effects {
 			),
 			extent: hi - lo + 1.2,
 			radius: side + 0.7,
-			time: frame.time
+			time: frame.time,
+			tint: ionisationColour(speed)
 		});
 	}
 
 	dispose(): void {
 		this.smoke.dispose();
 		this.fire.dispose();
-		this.shardMesh.dispose();
-		this.shardGeometry.dispose();
+		this.shardMesh.geometry.dispose();
 		this.shardMaterial.dispose();
+		this.glow.dispose();
 		this.plasma.dispose();
 	}
 }

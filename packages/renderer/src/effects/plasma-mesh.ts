@@ -27,6 +27,8 @@ export interface PlasmaFrame {
 	/** Lateral radius of the vessel, m. */
 	radius: number;
 	time: number;
+	/** Shock-layer colour (`ionisationColour`); the old orange when absent. */
+	tint?: readonly [number, number, number];
 }
 
 export class PlasmaEffect {
@@ -48,7 +50,8 @@ export class PlasmaEffect {
 			uniforms: {
 				uForward: { value: new Vector3(0, 1, 0) },
 				uIntensity: { value: 0 },
-				uTime: { value: 0 }
+				uTime: { value: 0 },
+				uTint: { value: new Color(1, 0.35, 0.1) }
 			},
 			transparent: true,
 			depthWrite: false,
@@ -101,6 +104,8 @@ export class PlasmaEffect {
 		(u.uForward!.value as Vector3).copy(fwd);
 		u.uIntensity!.value = f.intensity;
 		u.uTime!.value = f.time;
+		const tint = f.tint ?? [1, 0.35, 0.1];
+		(u.uTint!.value as Color).setRGB(tint[0], tint[1], tint[2]);
 
 		// Wake: the plume surface points along local -Y, so turn -Y onto -forward.
 		this.q.setFromUnitVectors(new Vector3(0, -1, 0), fwd.clone().negate());
@@ -112,6 +117,7 @@ export class PlasmaEffect {
 		w.uMaxR!.value = Math.max(0.8, f.radius * 1.1) * (0.6 + 0.5 * f.intensity);
 		w.uTime!.value = f.time;
 		w.uGain!.value = 0.8 * f.intensity;
+		(w.uColor!.value as Color).setRGB(tint[0], tint[1] * 0.9, tint[2] * 1.1);
 	}
 
 	dispose(): void {

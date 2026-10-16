@@ -6,7 +6,8 @@ import {
 	Mesh,
 	NormalBlending,
 	PlaneGeometry,
-	ShaderMaterial
+	ShaderMaterial,
+	Vector3
 } from 'three';
 import { FIELD_VERT } from './shaders.ts';
 
@@ -42,6 +43,7 @@ export class BillboardField {
 		this.material = new ShaderMaterial({
 			vertexShader: FIELD_VERT,
 			fragmentShader,
+			uniforms: { uSunWorld: { value: new Vector3(0, 1, 0) } },
 			transparent: true,
 			depthWrite: false,
 			blending: additive ? AdditiveBlending : NormalBlending
@@ -69,6 +71,11 @@ export class BillboardField {
 		this.size.setX(i, size);
 		this.colour.setXYZW(i, r, g, b, a);
 		this.seed.setX(i, seed);
+	}
+
+	/** Direction to the sun in render space (smoke is lit by it). */
+	setSun(x: number, y: number, z: number): void {
+		(this.material.uniforms.uSunWorld!.value as Vector3).set(x, y, z);
 	}
 
 	/** Draws the first `count` instances. */

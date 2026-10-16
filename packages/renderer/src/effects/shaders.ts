@@ -103,13 +103,16 @@ attribute vec3 iPos;
 attribute float iSize;
 attribute vec4 iColor;
 attribute float iSeed;
+uniform vec3 uSunWorld;
 varying vec2 vUv;
 varying vec4 vColor;
 varying float vSeed;
 varying float vDepth;
+varying vec3 vSun;
 void main() {
 	vec4 mv = viewMatrix * vec4(iPos, 1.0);
 	vDepth = -mv.z;
+	vSun = normalize(mat3(viewMatrix) * uSunWorld);
 	mv.xy += position.xy * iSize;
 	vUv = position.xy * 2.0;
 	vColor = iColor;
@@ -133,7 +136,13 @@ float vnoise(vec2 p) {
 }
 `;
 
-/** Smoke puff: soft noisy disc, `iColor.rgb` is the lit colour (already HDR), `iColor.a` the opacity. */
+/**
+ * Smoke puff (ADR 0047): a lumpy sphere impostor lit by the sun. Two noise octaves lump the outline
+ * and the surface normal; the normal is lit with wrap lighting (the shaded side is not black, it
+ * is the sky), the backlit rim glows when the sun is behind the puff (forward scattering), and
+ * the thick middle is darker than the edge. `iColor.rgb` is the diffuse radiance of white smoke in
+ * the current light times the tint (already HDR), `iColor.a` the opacity.
+ */
 export const SMOKE_FRAG = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_fragment>
@@ -141,15 +150,26 @@ varying vec2 vUv;
 varying vec4 vColor;
 varying float vSeed;
 varying float vDepth;
+varying vec3 vSun;
 ${NOISE}
 void main() {
 	#include <logdepthbuf_fragment>
 	float d = length(vUv);
-	float n = vnoise(vUv * 2.6 + vSeed * 31.0);
-	float shape = smoothstep(1.0, 0.25, d + (n - 0.5) * 0.7);
-	float shade = 0.75 + 0.25 * n;
+	vec2 q = vUv * 2.2 + vSeed * 31.0;
+	float n = vnoise(q) * 0.6 + vnoise(q * 2.3 + 7.0) * 0.4;
+	float shape = smoothstep(1.0, 0.2, d + (n - 0.5) * 0.8);
+	// A bumpy sphere normal in view space.
+	vec2 bump = vec2(vnoise(q + 3.1), vnoise(q + 9.7)) - 0.5;
+	vec3 nrm = normalize(vec3(vUv + bump * 0.7, sqrt(max(1.0 - d * d, 0.05))));
+	float lit = dot(nrm, vSun);
+	float wrap = smoothstep(-0.55, 0.9, lit);
+	float shade = mix(0.5, 1.25, wrap);
+	// Silver lining: sun behind the puff lights the thin edge.
+	float rim = pow(1.0 - clamp(nrm.z, 0.0, 1.0), 2.0) * max(-vSun.z, 0.0) * 0.9;
+	// Thick middle is darker (self shadow), edge lighter.
+	float thick = mix(0.82, 1.0, smoothstep(0.1, 0.9, d));
 	float near = smoothstep(1.0, 9.0, vDepth);
-	gl_FragColor = vec4(vColor.rgb * shade, shape * vColor.a * near);
+	gl_FragColor = vec4(vColor.rgb * (shade * thick + rim), shape * vColor.a * near);
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }
@@ -199,6 +219,7 @@ export const SHELL_FRAG = /* glsl */ `
 uniform vec3 uForward;
 uniform float uIntensity;
 uniform float uTime;
+uniform vec3 uTint;
 varying vec3 vWorldN;
 varying vec3 vN;
 varying vec3 vView;
@@ -208,7 +229,7 @@ void main() {
 	float rim = pow(1.0 - facing, 1.4);
 	float windward = smoothstep(-0.55, 0.85, dot(normalize(vWorldN), uForward));
 	float flick = 0.88 + 0.12 * sin(uTime * 41.0 + vWorldN.x * 7.0 + vWorldN.y * 5.0);
-	vec3 hot = mix(vec3(1.0, 0.35, 0.1), vec3(1.0, 0.85, 0.65), smoothstep(0.55, 1.0, uIntensity));
+	vec3 hot = mix(uTint, mix(uTint, vec3(1.0), 0.55), smoothstep(0.55, 1.0, uIntensity));
 	float a = uIntensity * windward * (0.08 + 0.5 * rim) * flick;
 	gl_FragColor = vec4(hot * (1.5 + 3.5 * uIntensity), clamp(a, 0.0, 1.0));
 	#include <tonemapping_fragment>

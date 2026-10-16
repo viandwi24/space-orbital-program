@@ -16,6 +16,7 @@ import {
 	Group,
 	Mesh,
 	MeshLambertMaterial,
+	MeshStandardMaterial,
 	Object3D,
 	PerspectiveCamera,
 	Quaternion,
@@ -41,12 +42,14 @@ import {
 	type FxVessel
 } from './effects/transitions.ts';
 import { PartModelFactory } from './parts/factory.ts';
+import { mergeShardSources, shardSourceFromGeometry, type ShardSource } from './effects/shards.ts';
 import {
 	DEFAULT_PART_SHAPE,
 	type PartModel,
 	type PartModelProvider,
 	type PartNode,
-	type PartShape
+	type PartShape,
+	repeatedDetail
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
@@ -120,6 +123,7 @@ export class SceneModel {
 		null;
 	private readonly vessels = new Map<number, VesselEntry>();
 	private factory: PartModelFactory;
+	private shardSources = new Map<string, ShardSource | undefined>();
 	private readonly config: SceneConfig;
 	/** Part effects: smoke, dust, separation gas, explosions, plasma (plan 020). */
 	readonly effects: Effects;
@@ -181,9 +185,43 @@ export class SceneModel {
 			this.bodyInfo,
 			this.primaryBody,
 			(definition) => config.partVisuals?.get(definition)?.plume,
-			settings
+			settings,
+			{
+				groundHeight: (direction) => this.environment.groundHeight(direction),
+				shardSource: (definition) => this.shardSourceOf(definition)
+			}
 		);
 		this.scene.add(this.effects.root);
+	}
+
+	/** The mesh triangles of a part, for debris pieces (ADR 0047); built once per preset from the real model. */
+	private shardSourceOf(definition: string): ShardSource | undefined {
+		if (this.shardSources.has(definition)) return this.shardSources.get(definition);
+		let source: ShardSource | undefined;
+		try {
+			const model = this.factory.create(definition, {
+				detail: repeatedDetail(this.factory.currentDetail)
+			});
+			const parts: ShardSource[] = [];
+			model.root.traverse((o) => {
+				if (!(o instanceof Mesh) || !o.geometry.getAttribute('position')) return;
+				// The plume is not a surface that can break.
+				for (let p: Object3D | null = o; p; p = p.parent) if (p.name === 'plume') return;
+				const materials = Array.isArray(o.material) ? o.material : [o.material];
+				parts.push(
+					shardSourceFromGeometry(o.geometry, (i) => {
+						const c = (materials[i] as MeshStandardMaterial | undefined)?.color;
+						return c ? [c.r, c.g, c.b] : [0.6, 0.6, 0.6];
+					})
+				);
+			});
+			if (parts.length > 0) source = mergeShardSources(parts);
+			model.dispose();
+		} catch {
+			source = undefined;
+		}
+		this.shardSources.set(definition, source);
+		return source;
 	}
 
 	private makeFactory(preset: GraphicsPreset): PartModelFactory {
@@ -208,6 +246,7 @@ export class SceneModel {
 			entry.parts.clear();
 		}
 		this.factory.dispose();
+		this.shardSources.clear();
 		this.factory = this.makeFactory(preset);
 		this.effects.setPreset(PRESETS[preset]);
 	}
@@ -450,7 +489,10 @@ export class SceneModel {
 			vessels: this.fxVesselsNow,
 			events,
 			light: this.smokeLight(),
-			activeVessel: this.lastView?.active?.id ?? null
+			activeVessel: this.lastView?.active?.id ?? null,
+			...(this.frameState
+				? { sunDirection: this.environment.sunDirection(this.frameState.bodyRotation) }
+				: {})
 		});
 	}
 

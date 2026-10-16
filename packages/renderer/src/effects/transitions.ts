@@ -34,6 +34,8 @@ export type FxEvent =
 			speed: number;
 			/** Velocity of the wreck in the body's inertial axes, m/s. */
 			velocity: Vec3;
+			/** Definitions of the parts that were lost (their meshes become the debris, ADR 0047). */
+			definitions: readonly string[];
 	  }
 	| { kind: 'separated'; soi: string; position: Vec3; speed: number };
 
@@ -78,7 +80,8 @@ export function detectTransitions(
 					position: centre,
 					size: Math.cbrt(volume),
 					speed,
-					velocity: v.velocity
+					velocity: v.velocity,
+					definitions: lost.map((p) => p.definition)
 				});
 			}
 		}

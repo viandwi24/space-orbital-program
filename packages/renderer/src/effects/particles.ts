@@ -29,7 +29,12 @@ export interface ParticleSpec {
 	opacity: number;
 	/** Initial emissive heat 0..1 (fades with age). */
 	heat: number;
+	/** Multiplies the kind's tint (dust takes the colour of the ground under it, ADR 0047). */
+	tint?: readonly [number, number, number];
 }
+
+/** Velocity of the air at a body-fixed position, m/s (wind carries smoke, ADR 0047). */
+export type WindField = (x: number, y: number, z: number, out: [number, number, number]) => void;
 
 /** Small seeded generator (mulberry32). */
 export function createParticleRng(seed: number): () => number {
@@ -64,6 +69,8 @@ export class ParticlePool {
 	readonly heat: Float64Array;
 	readonly kind: Uint8Array;
 	readonly seed: Float64Array;
+	/** Tint per particle (three numbers each). */
+	readonly tint: Float32Array;
 	private readonly rng: () => number;
 
 	constructor(capacity: number, seed = 1) {
@@ -83,6 +90,7 @@ export class ParticlePool {
 		this.heat = new Float64Array(n);
 		this.kind = new Uint8Array(n);
 		this.seed = new Float64Array(n);
+		this.tint = new Float32Array(n * 3);
 		this.rng = createParticleRng(seed);
 	}
 
@@ -107,13 +115,17 @@ export class ParticlePool {
 		this.opacity[i] = clamp(spec.opacity, 0, 1);
 		this.heat[i] = clamp(spec.heat, 0, 1);
 		this.kind[i] = spec.kind;
+		this.tint[i * 3] = spec.tint?.[0] ?? 1;
+		this.tint[i * 3 + 1] = spec.tint?.[1] ?? 1;
+		this.tint[i * 3 + 2] = spec.tint?.[2] ?? 1;
 		this.seed[i] = this.rng();
 		return true;
 	}
 
 	/** Advance by `dt` seconds; expired particles are removed (swap with the last). */
-	step(dt: number): void {
+	step(dt: number, wind?: WindField): void {
 		if (!(dt > 0)) return;
+		const w: [number, number, number] = [0, 0, 0];
 		let i = 0;
 		while (i < this.count) {
 			this.age[i]! += dt;
@@ -123,9 +135,17 @@ export class ParticlePool {
 			}
 			const k = this.kind[i]!;
 			const damp = Math.exp(-(DRAG[k] ?? 0.5) * dt);
-			this.vx[i]! *= damp;
-			this.vy[i]! *= damp;
-			this.vz[i]! *= damp;
+			if (wind && k !== ParticleKind.Gas) {
+				// Drag pulls the velocity towards the air's, not towards rest.
+				wind(this.px[i]!, this.py[i]!, this.pz[i]!, w);
+				this.vx[i] = w[0] + (this.vx[i]! - w[0]) * damp;
+				this.vy[i] = w[1] + (this.vy[i]! - w[1]) * damp;
+				this.vz[i] = w[2] + (this.vz[i]! - w[2]) * damp;
+			} else {
+				this.vx[i]! *= damp;
+				this.vy[i]! *= damp;
+				this.vz[i]! *= damp;
+			}
 			const l = Math.hypot(this.px[i]!, this.py[i]!, this.pz[i]!);
 			if (l > 0) {
 				const lift = ((LIFT[k] ?? 0) * dt) / l;
@@ -161,6 +181,7 @@ export class ParticlePool {
 			a[i] = a[last]!;
 		}
 		this.kind[i] = this.kind[last]!;
+		for (let c = 0; c < 3; c++) this.tint[i * 3 + c] = this.tint[last * 3 + c]!;
 	}
 
 	clear(): void {
