@@ -70,3 +70,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0050 | [Save format: plain versioned JSON, bodies rebuilt on resume](0050-save-format-and-resume.md) | accepted | 2026-10-17 |
 | 0051 | [Body hierarchy, frames and SOI transitions](0051-body-hierarchy-frames-and-soi-transitions.md) | accepted | 2026-10-17 |
 | 0052 | [The stock moon: data and Δv budget](0052-the-stock-moon.md) | accepted | 2026-10-17 |
+| 0054 | [The moon in the renderer: its own light pass, one height function](0054-the-moon-in-the-renderer.md) | accepted | 2026-10-17 |
