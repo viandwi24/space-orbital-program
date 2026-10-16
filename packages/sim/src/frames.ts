@@ -245,7 +245,8 @@ function holdOnPad(core: SimCore, frame: FlightFrame, vesselId: EntityId): void 
 		vessel.pad = null;
 		return;
 	}
-	const spin = qAboutY(core.body.omega * core.t);
+	// `core.t` is advanced after the frames: the pose to hold is the one at the end of this step.
+	const spin = qAboutY(core.body.omega * (core.t + core.dt));
 	const omega = { x: 0, y: core.body.omega, z: 0 };
 	for (const pose of pad.poses) {
 		const h = frame.bodies.get(pose.part)!;
