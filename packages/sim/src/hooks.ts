@@ -17,6 +17,7 @@ import { ambientAt } from './atmosphere.ts';
 import { frameOfPart, moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
 import { airVelocityAt, centreOfMassInPart, partTransform } from './frames.ts';
 import { isNonZero, qRotate } from './math.ts';
+import { effectiveControl } from './state.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 
 const needsFlight = (what: string): never => {
@@ -69,7 +70,7 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 
 	const api: VesselApi = {
 		time: core.t,
-		control: vessel.control,
+		control: effectiveControl(vessel),
 		get ambient(): Ambient {
 			if (!frame) return { pressure: 0, density: 0, altitude: 0 };
 			const { transform } = pose();
@@ -101,7 +102,7 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 		},
 		get torqueDemand(): Vec3 {
 			// The control is about the vessel axes; a part turned by `yaw` about +Y sees it rotated back.
-			const c = vessel.control;
+			const c = effectiveControl(vessel);
 			const cos = Math.cos(part.yaw);
 			const sin = Math.sin(part.yaw);
 			return { x: c.pitch * cos - c.yaw * sin, y: c.roll, z: c.pitch * sin + c.yaw * cos };

@@ -45,6 +45,7 @@ import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal
 import { ZERO, qAboutY, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf } from './parts.ts';
+import { stepSas } from './sas.ts';
 import type { FlightBody, FlightFrame } from './state.ts';
 import { groundPlane } from './terrain.ts';
 
@@ -242,6 +243,8 @@ export function createVesselBody(
 		handle,
 		mass: mp.mass,
 		com: mp.centerOfMass,
+		inertia: mp.inertia,
+		inertiaFrame: mp.inertiaFrame,
 		masses: new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
 		shapeParts: colliders.shapeParts,
 		signature: colliders.signature
@@ -330,6 +333,7 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		const centre = add(frame.origin, motion.centre);
 		backend.applyForce(body.handle, scale(gravityAt(core, centre), body.mass));
 		updateTile(core, frame, vesselId, centre);
+		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
 		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));
 	}
@@ -360,6 +364,8 @@ function updateMassProperties(
 	});
 	body.mass = mp.mass;
 	body.com = mp.centerOfMass;
+	body.inertia = mp.inertia;
+	body.inertiaFrame = mp.inertiaFrame;
 	for (const id of parts) body.masses.set(id, partMass(core, id));
 }
 

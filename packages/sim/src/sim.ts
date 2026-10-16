@@ -30,6 +30,7 @@ import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
+import { stepSasOnRails } from './sas.ts';
 import { takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
@@ -143,7 +144,11 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		processPending(core);
 	};
 	const rebaseAll = (): void => {
-		for (const id of vesselIds(core)) rebaseRails(core, vesselOf(core, id), core.t);
+		for (const id of vesselIds(core)) {
+			const vessel = vesselOf(core, id);
+			rebaseRails(core, vessel, core.t);
+			if (vessel.mode === 'on-rails') stepSasOnRails(core, vessel);
+		}
 	};
 
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */

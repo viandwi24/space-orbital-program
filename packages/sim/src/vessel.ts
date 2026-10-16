@@ -39,7 +39,14 @@ import type { Overheat } from './thermal.ts';
 import { computeRails, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import { halfExtentsOf } from './parts.ts';
 import { groundPlane } from './terrain.ts';
-import { moduleStateToken, PART, VESSEL, type PartState, type VesselState } from './state.ts';
+import {
+	moduleStateToken,
+	newSas,
+	PART,
+	VESSEL,
+	type PartState,
+	type VesselState
+} from './state.ts';
 
 type Resolved = Extract<ResolvedDesign, { ok: true }>;
 
@@ -100,6 +107,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		root: byIndex.get(resolved.root)!,
 		parts,
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
+		sas: newSas(),
 		stages: design.stages.map((stage) => stage.map((i) => byIndex.get(i)!)),
 		nextStage: 0,
 		com: { x: 0, y: 0, z: 0 },
@@ -322,6 +330,7 @@ function splitAt(
 		root: newRoot,
 		parts: newSide,
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
+		sas: structuredClone(vessel.sas),
 		stages: [],
 		nextStage: 0,
 		com: stateNew.com,

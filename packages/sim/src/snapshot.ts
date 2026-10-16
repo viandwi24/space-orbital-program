@@ -83,6 +83,11 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		orientation,
 		parts
 	};
+	snapshot.sas = {
+		mode: vessel.sas.mode,
+		reference: vessel.sas.reference,
+		error: vessel.sas.error
+	};
 	if (core.terrain) snapshot.terrainHeight = terrainUnder(core, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
 	// dip below the surface (ADR 0024).

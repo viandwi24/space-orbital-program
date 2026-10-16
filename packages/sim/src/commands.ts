@@ -23,7 +23,8 @@ import {
 import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
 import { makeContext, runStageHooks } from './hooks.ts';
 import { wake, wakeBlocker } from './modes.ts';
-import { computeRails, isStableOrbit } from './orbit.ts';
+import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
+import { beginHold } from './sas.ts';
 import { IDENTITY, qNormalize } from './math.ts';
 import {
 	destroyVessel,
@@ -143,6 +144,20 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			v.control.pitch = command.pitch;
 			v.control.yaw = command.yaw;
 			v.control.roll = command.roll;
+			return accept();
+		}
+		case 'sas': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			if (command.reference !== undefined) v.sas.reference = command.reference;
+			if (command.mode !== undefined && command.mode !== v.sas.mode) {
+				v.sas.mode = command.mode;
+				v.sas.integral = { x: 0, y: 0, z: 0 };
+				v.sas.active = false;
+				v.sas.quiet = false;
+				v.sas.error = 0;
+				if (command.mode === 'hold') beginHold(v.sas, orientationOf(core, v));
+			}
 			return accept();
 		}
 		case 'stage': {
