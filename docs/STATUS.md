@@ -49,7 +49,7 @@
 | 032 | [Script API additions and the sandbox in other browsers](plans/032-script-api-additions-and-browser-matrix.md) | draft | — | from 030: browser matrix (Firefox, Safari, Chrome, phone), `Date` hidden, other bodies, maneuver data, refusal feedback, warp while a script runs, editor niceties, fuel-count budget |
 | 039 | [Release pass: frame budget, mountain haze, radar altitude](plans/039-performance-and-look-pass.md) | draft | — | from the 031 review: high preset over budget at pad/hillside, pale mountains, no radar altitude |
 | 016 | [Landed vessels on surface-fixed rails](plans/016-landed-vessels-on-rails.md) | done | surface-rails session | ADR 0024; controlled vessel at rest 2 s on the ground goes on `surface` rails (turns with the planet, no orbit, snapshot `surface`); warp works on the pad and after landing, wake by the usual commands; API 0.1.5 |
-| 042 | [SAS and flight assists](plans/042-sas-and-flight-assists.md) | draft | — | v1 (ADR 0048): attitude hold and pro/retro/normal/radial modes |
+| 042 | [SAS and flight assists](plans/042-sas-and-flight-assists.md) | in-progress | sas session | ADR 0049, API 0.1.11; sim, stock and HUD components done (journal 042); flight-page integration and `ship.sas` wait for plans 032/039;  v1 (ADR 0048): attitude hold and pro/retro/normal/radial modes |
 | 043 | [Save and load game](plans/043-save-and-load-game.md) | draft | — | v1: quicksave, autosave, resume flights, versioned format |
 | 044 | [A moon and SOI transitions](plans/044-moon-and-soi-transitions.md) | draft | — | v1: second body, patched conics, landing on the moon |
 | 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | draft | — | v1: plan burns in map view, navball marker, SAS node mode |
@@ -81,6 +81,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [042 — SAS and flight assists (in progress)](journal/042-sas-and-flight-assists.md)
 - [033 — Gimbal, damping, control surfaces, smoke, debris, plasma, glTF](journal/033-part-assets-effects-and-aero-follow-ups.md)
 - [031 — Physical terrain heights](journal/031-physical-terrain-and-sky-volumes.md)
 - [029 — UI: VAB follow-ups](journal/029-vab-follow-ups.md)

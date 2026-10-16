@@ -1,6 +1,6 @@
 # Plugin system
 
-A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.8; decisions in ADR 0013, 0014, 0015, 0019, 0028, 0033, 0034 and 0035). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
+A modder adds a working engine with one TypeScript file, fully typed, with no change to core. Stock content is built the same way (ADR 0005). This document describes the API as shipped by plan 005 (`API_VERSION` 0.1.11; decisions in ADR 0013, 0014, 0015, 0019, 0028, 0033, 0034, 0035, 0045 and 0049). Code lives in `packages/sdk/src/define.ts` (define functions, inference types) and `packages/core/src/{plugin,definitions,semver}.ts` (loader, runtime shapes).
 
 ## Three levels of definition
 
@@ -95,6 +95,8 @@ update(ctx, dt) {
   ctx.vessel.detach('top', 2_000);                           // sever the attachment at a node; impulse N·s
 }
 ```
+
+`ModuleDefinition.controlAuthority(ctx)` (API 0.1.11, ADR 0049) returns the largest torque per part axis the module can add now (N·m, x pitch, y roll, z yaw); the stability assist sizes its demand with it.
 
 Forces, torques, `airVelocity` and `centreOfMass` throw on rails (`updateOnRails` must not use them). `PartDefinition.dragCoefficient` (API 0.1.8) replaces the default `C_d` 0.3 of a part. Attach nodes may not be named `surface` (reserved for radial attachment, ADR 0034); a part with a horizontal node (`dir.y` 0) can hang on the side of a cylindrical part, and `detach(node)` cuts every attachment on the node. Control demand axes: pitch about +X, roll about +Y (the stack axis), yaw about +Z. Two more optional module fields let the sim stay generic: `store` (`resources/amount/withdraw/deposit`: this module holds resources, so the sim sums its mass and routes flow through it) and `controlSource: true` (the part makes the vessel controllable). `PartDefinition.crossfeed?: boolean` (default true) says whether resources may flow through the part. Events `vessel:mode-changed`, `vessel:created`, `vessel:destroyed`, `stage:activated` are in core's `EventMap`.
 

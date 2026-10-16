@@ -92,6 +92,28 @@ describe('modes', () => {
 	}
 });
 
+describe('large slews', () => {
+	for (const [name, make] of vessels) {
+		test(`${name}: retrograde from 170 degrees off`, async () => {
+			const sim = await newSasSim();
+			const id = launchInOrbit(sim, make(), quatAbout({ x: 1, y: 0, z: 0 }, (-80 * Math.PI) / 180));
+			sim.dispatch({ type: 'sas', vessel: id, mode: 'retrograde', reference: 'orbit' });
+			let hit = -1;
+			for (let i = 0; i < 60 * 50 && hit < 0; i++) {
+				sim.step(0.02);
+				const v = vesselOf(sim, id);
+				const e =
+					pointingError(v.orientation, modeDirection('retrograde', v.position, v.velocity)) * DEG;
+				if (e < 2) hit = sim.time;
+			}
+			console.log(`${name} retrograde from 170 deg: within 2 deg at ${hit.toFixed(1)} s`);
+			expect(hit).toBeGreaterThan(0);
+			expect(hit).toBeLessThan(30);
+			sim.dispose();
+		}, 60_000);
+	}
+});
+
 describe('limit cycle', () => {
 	for (const [name, make] of vessels) {
 		test(`${name}: settled, the error stays below 0.25 degree and the rate below 0.005 rad/s for 60 s`, async () => {
