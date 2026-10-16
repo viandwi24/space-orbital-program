@@ -37,3 +37,11 @@ Source: https://svelte.dev/docs/svelte/$state (2026-10-16).
 ## vitest 4 config from `sv`
 
 `apps/web/vite.config.ts` (generated, 2026-10-16 by `sv@1.1.1`) has `test.projects` with one `server` project (`environment: 'node'`, `include: ['src/**/*.{test,spec}.{js,ts}']`) and `expect.requireAssertions: true`; tests must assert. `bun run --filter @orbital/web test` runs `vitest --run`.
+
+## localStorage (plan 017)
+
+Source: https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API (2026-10-16).
+
+- Keys and values are always strings; storage is per origin and `localStorage` is shared across same-origin tabs. No size limit is stated on the page (browsers commonly allow about 5 MB per origin).
+- `setItem` can throw `QuotaExceededError`; access can throw `SecurityError` when storage is blocked (per the HTML spec; the MDN page shows the try/catch detection pattern). `getItem` returns `null` for a missing key. Hence `saveScript`/`loadScript` wrap every access in try/catch like `saveDraft`.
+- The `storage` event fires only in other same-origin documents, not the one that wrote; not used (one flight tab is assumed).
