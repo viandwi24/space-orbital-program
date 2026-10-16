@@ -7,7 +7,7 @@ import { buildScene, looseGroup, looseX, withoutCarried } from './scene';
 import { attachTargets, createEditor, detach, replaceDesign, singlePart } from './state';
 
 const { registries } = loadPlugins([Stock]);
-const content = { parts: registries.parts };
+const content = { parts: registries.parts, modules: registries.modules };
 const lookups = {
 	parts: registries.parts,
 	modules: registries.modules,

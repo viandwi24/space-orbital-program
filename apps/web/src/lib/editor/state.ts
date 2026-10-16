@@ -12,7 +12,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import { emptyDesign, freeNodes, removePart, subtreeOf } from '../design';
-import { autoStages, sameStages } from './staging';
+import { autoStages, sameStages, type StagingContent } from './staging';
 
 export interface Doc {
 	design: VesselDesign;
@@ -28,9 +28,7 @@ export interface EditorState extends Doc {
 	future: Doc[];
 }
 
-export interface Content {
-	parts: PartLookup;
-}
+export type Content = StagingContent;
 
 /** Where a new part (or a held assembly) goes. */
 export interface AttachTarget {
@@ -50,7 +48,7 @@ const maxIndex = (docs: readonly Pick<VesselDesign, 'parts'>[]): number =>
 	docs.reduce((m, d) => d.parts.reduce((n, p) => Math.max(n, p.index), m), -1);
 
 export function createEditor(design: VesselDesign, content: Content): EditorState {
-	const auto = autoStages(design, content.parts);
+	const auto = autoStages(design, content);
 	return {
 		design,
 		loose: [],
@@ -76,7 +74,7 @@ function commit(state: EditorState, next: Doc, content: Content): EditorState {
 	const design = next.autoStage
 		? {
 				...next.design,
-				stages: next.design.parts.length > 0 ? autoStages(next.design, content.parts) : []
+				stages: next.design.parts.length > 0 ? autoStages(next.design, content) : []
 			}
 		: next.design;
 	const past = [...state.past, snapshotOf(state)].slice(-HISTORY_LIMIT);
@@ -226,7 +224,7 @@ export function replaceDesign(
 	content: Content,
 	design: VesselDesign
 ): EditorState {
-	const keep = sameStages(design.stages, autoStages(design, content.parts));
+	const keep = sameStages(design.stages, autoStages(design, content));
 	return commit(
 		state,
 		{

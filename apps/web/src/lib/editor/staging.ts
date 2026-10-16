@@ -1,29 +1,53 @@
 /**
  * Automatic staging (ADR 0029). `stages[k]` lists the parts the k-th stage command fires
- * (ADR 0016), so stage 0 fires first. A part with `d` decouplers between it and the root (itself
+ * (ADR 0016), so stage 0 fires first. A part with `d` separators between it and the root (itself
  * excluded) fires in stage `maxDepth - d`: the lowest engines first, each decoupler together
  * with the engines of the stack it uncovers.
  */
-import type { PartLookup, VesselDesign } from '@orbital/core';
-import { ModuleDecoupler, ModuleEngine } from '@orbital/mod-stock';
+import {
+	describeModule,
+	type ModuleDefinition,
+	type PartDefinition,
+	type PartLookup,
+	type VesselDesign
+} from '@orbital/core';
 
-/** Engines and decouplers: the parts the Δv model knows how to stage. */
+/** What staging needs to know about the content: parts, and their modules' descriptors (ADR 0033). */
+export interface StagingContent {
+	parts: PartLookup;
+	modules: { get(id: string): ModuleDefinition | undefined };
+}
+
+/** Whether a part holds an engine and whether it holds a separator, by module descriptor. */
+function stagingRoles(
+	def: PartDefinition | undefined,
+	modules: StagingContent['modules']
+): { engine: boolean; separator: boolean } {
+	const roles = { engine: false, separator: false };
+	for (const [id, config] of def?.modules ?? []) {
+		const module = modules.get(id);
+		const info = module && describeModule(module, config);
+		if (info?.engine) roles.engine = true;
+		if (info?.separator) roles.separator = true;
+	}
+	return roles;
+}
+
+/** Engines and separators: the parts the Δv model knows how to stage. */
 export function isAutoStaged(
 	design: Pick<VesselDesign, 'parts'>,
-	parts: PartLookup,
+	content: StagingContent,
 	index: number
 ): boolean {
 	const entry = design.parts.find((p) => p.index === index);
-	const def = entry && parts.get(entry.part);
-	return !!def?.modules?.some((m) => m[0] === ModuleEngine.id || m[0] === ModuleDecoupler.id);
+	const roles = stagingRoles(entry && content.parts.get(entry.part), content.modules);
+	return roles.engine || roles.separator;
 }
 
-export function autoStages(design: VesselDesign, parts: PartLookup): number[][] {
+export function autoStages(design: VesselDesign, content: StagingContent): number[][] {
 	const byIndex = new Map(design.parts.map((p) => [p.index, p]));
-	const isDecoupler = (index: number): boolean => {
-		const def = parts.get(byIndex.get(index)!.part);
-		return !!def?.modules?.some((m) => m[0] === ModuleDecoupler.id);
-	};
+	const isDecoupler = (index: number): boolean =>
+		stagingRoles(content.parts.get(byIndex.get(index)!.part), content.modules).separator;
 	const depth = new Map<number, number>();
 	const depthOf = (index: number): number => {
 		const known = depth.get(index);
@@ -34,7 +58,7 @@ export function autoStages(design: VesselDesign, parts: PartLookup): number[][] 
 		return d;
 	};
 	const staged = design.parts
-		.filter((p) => isAutoStaged(design, parts, p.index))
+		.filter((p) => isAutoStaged(design, content, p.index))
 		.map((p) => ({ index: p.index, depth: depthOf(p.index) }));
 	if (staged.length === 0) return [];
 	const maxDepth = Math.max(...staged.map((s) => s.depth));

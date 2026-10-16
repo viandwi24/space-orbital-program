@@ -52,6 +52,7 @@
 	const DEFAULT_NAME = emptyDesign().name;
 	const { catalog, content } = loadContent();
 	const lookup = partLookup(catalog);
+	const editorContent = { parts: lookup, modules: content.modules };
 	const parts = catalog.parts;
 	const defOf = (id: string): PartDefinition | undefined => lookup.get(id);
 	const body = catalog.bodies[0]!;
@@ -64,7 +65,7 @@
 	);
 
 	// Editor state is an immutable value replaced on every edit (ADR 0029).
-	let editor = $state.raw<EditorState>(createEditor(emptyDesign(), { parts: lookup }));
+	let editor = $state.raw<EditorState>(createEditor(emptyDesign(), editorContent));
 	type Armed = { kind: 'new'; part: string } | { kind: 'carry'; index: number };
 	let armed = $state.raw<Armed | null>(null);
 	let selected = $state<number | null>(null);
@@ -96,7 +97,7 @@
 		const parsed = parseDesign(text, lookup);
 		return parsed.ok ? parsed.design : null;
 	})();
-	if (parsedDraft) editor = createEditor(parsedDraft, { parts: lookup });
+	if (parsedDraft) editor = createEditor(parsedDraft, editorContent);
 
 	// --- derived ---------------------------------------------------------------------------------------------
 
@@ -276,12 +277,12 @@
 		attempt(() => {
 			if (armed!.kind === 'new') {
 				const index = editor.nextIndex;
-				editor = attachNew(editor, { parts: lookup }, armed!.part, target);
+				editor = attachNew(editor, editorContent, armed!.part, target);
 				lastPlaced = index;
 				say(`Attached ${defOf(armed!.part)?.title}.`);
 			} else {
 				const index = armed!.index;
-				editor = moveSubtree(editor, { parts: lookup }, index, target);
+				editor = moveSubtree(editor, editorContent, index, target);
 				selected = index;
 				armed = null;
 				say(`Moved ${titleOfPart(index)}.`);
@@ -312,7 +313,7 @@
 		const name = titleOfPart(selected);
 		const n = subtreeSize;
 		attempt(() => {
-			editor = deleteSubtree(editor, { parts: lookup }, selected!);
+			editor = deleteSubtree(editor, editorContent, selected!);
 			say(n > 1 ? `Deleted ${name} and ${n - 1} attached parts.` : `Deleted ${name}.`);
 			selected = null;
 		});
@@ -320,7 +321,7 @@
 	function detachSelected(): void {
 		if (selected === null || selectedLoose) return;
 		attempt(() => {
-			editor = detach(editor, { parts: lookup }, selected!);
+			editor = detach(editor, editorContent, selected!);
 			say(
 				`Detached ${titleOfPart(selected!)}. It stays on the floor until you attach or delete it.`
 			);
@@ -338,19 +339,19 @@
 
 	function moveStage(index: number, to: number | null): void {
 		attempt(() => {
-			editor = moveToStage(editor, { parts: lookup }, index, to);
+			editor = moveToStage(editor, editorContent, index, to);
 		});
 	}
 	function newVessel(): void {
 		disarm();
 		selected = null;
-		editor = replaceDesign(editor, { parts: lookup }, emptyDesign());
+		editor = replaceDesign(editor, editorContent, emptyDesign());
 		say('Started a new vessel.');
 	}
 	function loadExample(): void {
 		disarm();
 		selected = null;
-		editor = replaceDesign(editor, { parts: lookup }, referenceTwoStage());
+		editor = replaceDesign(editor, editorContent, referenceTwoStage());
 		view?.frame();
 		say('Loaded the two-stage example.');
 	}
@@ -373,7 +374,7 @@
 		if (parsed.ok) {
 			disarm();
 			selected = null;
-			editor = replaceDesign(editor, { parts: lookup }, parsed.design);
+			editor = replaceDesign(editor, editorContent, parsed.design);
 			view?.frame();
 			notice = '';
 			say(`Loaded ${parsed.design.name}.`);
@@ -737,8 +738,8 @@
 				onenv={(e) => (environment = e)}
 				onmove={moveStage}
 				onselect={(i) => (selected = i)}
-				onremove={(k) => attempt(() => (editor = removeEmptyStage(editor, { parts: lookup }, k)))}
-				onauto={() => (editor = enableAutoStage(editor, { parts: lookup }))}
+				onremove={(k) => attempt(() => (editor = removeEmptyStage(editor, editorContent, k)))}
+				onauto={() => (editor = enableAutoStage(editor, editorContent))}
 			/>
 			<div class="grow"></div>
 			<ChecksList {checks} onflag={(p) => (flagged = p)} />

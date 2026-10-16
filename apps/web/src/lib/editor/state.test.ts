@@ -30,7 +30,7 @@ import { autoStages, sameStages } from './staging';
 import { CATEGORIES, categoryOf, matchesQuery } from './categories';
 
 const { registries } = loadPlugins([Stock]);
-const content = { parts: registries.parts };
+const content = { parts: registries.parts, modules: registries.modules };
 
 /** Attach `part` at the first target that hangs on `parentIndex`'s `parentNode` (or the root slot). */
 function place(
@@ -365,7 +365,7 @@ describe('auto-staging', () => {
 				parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
 			}))
 		};
-		const stages = autoStages(design, content.parts);
+		const stages = autoStages(design, content);
 		expect(stages).toEqual([[7], [4, 5], [1, 2]]);
 	});
 

@@ -6,31 +6,28 @@
  * decouplers (the side without the root, or without the control source when only the other side
  * has one, leaves, as in the sim's `detach`); then the ignited engines burn until their propellant
  * is gone. Propellant is drawn with the sim's rule (breadth-first over attachments from the engine,
- * never entering a part with `crossfeed: false`; `flowMode` stack / vessel / none) and engine
- * arithmetic is `@orbital/mod-stock`'s own (`ispAt`, `propellantRates`). Between two events the
- * flows are constant, so each interval's delta-v is the exact `(F / mdot) ln(m0 / m1)`; one engine
- * on one tank reproduces Tsiolkovsky exactly. Thrust is assumed along the flight direction.
+ * never entering a part with `crossfeed: false`; `flowMode` stack / vessel / none). Between two
+ * events the flows are constant, so each interval's delta-v is the exact `(F / mdot) ln(m0 / m1)`;
+ * one engine on one tank reproduces Tsiolkovsky exactly. Thrust is assumed along the flight
+ * direction.
  *
- * It understands the stock engine and decoupler modules and any module that declares a `store`
- * (tanks, ablator); another mod's engine needs SDK module introspection (draft plan 024).
+ * It knows no module by id (plan 024, ADR 0033). What an engine or a separator does comes from the
+ * module's `describe` descriptor (mass flow, thrust curve over pressure, propellants; the node a
+ * separator severs), and what a part holds from its `store`; so a mod's own engines, decouplers and
+ * tanks count the same as stock ones.
  */
-import type {
-	ModuleDefinition,
-	PartDefinition,
-	PartLookup,
-	ResourceDefinition,
-	VesselDesign,
-	VesselSnapshot
-} from '@orbital/core';
 import {
-	G0,
-	ModuleDecoupler,
-	ModuleEngine,
 	SEA_LEVEL_PRESSURE,
-	ispAt,
-	propellantRates,
-	type EngineConfigLike
-} from '@orbital/mod-stock';
+	describeModule,
+	thrustAtPressure,
+	type EngineInfo,
+	type ModuleDefinition,
+	type PartDefinition,
+	type PartLookup,
+	type ResourceDefinition,
+	type VesselDesign,
+	type VesselSnapshot
+} from '@orbital/core';
 
 export interface ContentLookups {
 	parts: PartLookup;
@@ -47,8 +44,8 @@ interface ModelPart {
 	amounts: Record<string, number>;
 	/** Amount per resource when full (design state), for fuel fractions. */
 	full: Record<string, number>;
-	engine?: { config: EngineConfigLike; ignited: boolean; flameout: boolean };
-	decoupler?: { separates: string; decoupled: boolean };
+	engine?: EngineInfo;
+	separator?: { node: string; done: boolean };
 	controlSource: boolean;
 }
 
@@ -88,7 +85,7 @@ function buildPart(
 		if (mod.controlSource) part.controlSource = true;
 		const fresh = mod.state ? mod.state(config as never) : undefined;
 		if (mod.store) {
-			// The snapshot view of a store module equals its state for every stock store (container,
+			// The snapshot view of a store module equals its state for the stores in use (container,
 			// heat shield); the live path hands that view to the same accessor.
 			const live = view(moduleId);
 			for (const r of mod.store.resources(config as never, fresh as never)) {
@@ -97,21 +94,9 @@ function buildPart(
 				part.full[r] = (part.full[r] ?? 0) + mod.store.amount(config as never, fresh as never, r);
 			}
 		}
-		if (moduleId === ModuleEngine.id) {
-			const live = view(moduleId) as { ignited?: boolean; flameout?: boolean } | undefined;
-			part.engine = {
-				config: config as EngineConfigLike,
-				ignited: live?.ignited ?? false,
-				flameout: live?.flameout ?? false
-			};
-		}
-		if (moduleId === ModuleDecoupler.id) {
-			const live = view(moduleId) as { decoupled?: boolean } | undefined;
-			part.decoupler = {
-				separates: (config as { separates: string }).separates,
-				decoupled: live?.decoupled ?? false
-			};
-		}
+		const info = describeModule(mod, raw, view(moduleId));
+		if (info?.engine) part.engine = info.engine;
+		if (info?.separator) part.separator = info.separator;
 	}
 	return part;
 }
@@ -216,7 +201,7 @@ function start(model: StagingModel): Work {
 		amounts.set(i, { ...p.amounts });
 		if (p.engine?.ignited && !p.engine.flameout) ignited.add(i);
 		if (p.engine?.flameout) flameout.add(i);
-		if (p.decoupler?.decoupled) decoupled.add(i);
+		if (p.separator?.done) decoupled.add(i);
 	}
 	return { model, alive: new Set(model.alive), amounts, ignited, flameout, decoupled };
 }
@@ -250,10 +235,10 @@ function component(w: Work, from: number, cut: [number, number]): Set<number> {
 
 function fireDecoupler(w: Work, index: number): void {
 	const part = w.model.parts.get(index)!;
-	const dec = part.decoupler;
-	if (!dec || w.decoupled.has(index)) return;
+	const sep = part.separator;
+	if (!sep || w.decoupled.has(index)) return;
 	w.decoupled.add(index);
-	const link = part.links.find((l) => l.node === dec.separates && w.alive.has(l.peer));
+	const link = part.links.find((l) => l.node === sep.node && w.alive.has(l.peer));
 	if (!link) return;
 	const cut: [number, number] = [index, link.peer];
 	const sideP = component(w, index, cut);
@@ -278,8 +263,23 @@ function fireStage(w: Work, k: number): void {
 			w.ignited.add(i);
 			w.flameout.delete(i);
 		}
-		if (part.decoupler) fireDecoupler(w, i);
+		if (part.separator) fireDecoupler(w, i);
 	}
+}
+
+/** Per-resource volume rates (units/s): the mass flow split by volume ratio, as the sim draws it. */
+function volumeRates(
+	engine: EngineInfo,
+	densityOf: (resource: string) => number
+): { resource: string; rate: number }[] {
+	const massPerUnitMix = engine.propellants.reduce(
+		(sum, p) => sum + p.ratio * densityOf(p.resource),
+		0
+	);
+	return engine.propellants.map((p) => ({
+		resource: p.resource,
+		rate: (engine.massFlow * p.ratio) / massPerUnitMix
+	}));
 }
 
 /** Parts an engine can draw `resource` from, in the sim's draw order. */
@@ -338,14 +338,14 @@ function burn(w: Work): BurnResult {
 		type Active = {
 			index: number;
 			rates: { resource: string; rate: number }[];
-			cfg: EngineConfigLike;
+			engine: EngineInfo;
 			mdot: number;
 		};
 		const active: Active[] = [];
 		for (const i of w.ignited) {
 			if (!w.alive.has(i)) continue;
-			const cfg = w.model.parts.get(i)!.engine!.config;
-			const supplied = cfg.propellants.every(
+			const engine = w.model.parts.get(i)!.engine!;
+			const supplied = engine.propellants.every(
 				(p) =>
 					reach(w, i, p.resource).reduce((s, j) => s + (w.amounts.get(j)![p.resource] ?? 0), 0) >
 					EPS
@@ -355,12 +355,12 @@ function burn(w: Work): BurnResult {
 				w.flameout.add(i);
 				continue;
 			}
-			const mdot = cfg.thrust / (cfg.ispVacuum * G0);
+			const mdot = engine.massFlow;
 			active.push({
 				index: i,
-				cfg,
+				engine,
 				mdot,
-				rates: propellantRates(cfg, mdot, (r) => densityOf(w, r))
+				rates: volumeRates(engine, (r) => densityOf(w, r))
 			});
 		}
 		if (active.length === 0) break;
@@ -382,8 +382,11 @@ function burn(w: Work): BurnResult {
 			dt = Math.min(dt, (w.amounts.get(Number(part))![resource] ?? 0) / rate);
 		}
 		if (!Number.isFinite(dt) || dt <= 0) break;
-		const vac = active.reduce((s, e) => s + e.mdot * ispAt(e.cfg, 0) * G0, 0);
-		const asl = active.reduce((s, e) => s + e.mdot * ispAt(e.cfg, SEA_LEVEL_PRESSURE) * G0, 0);
+		const vac = active.reduce((s, e) => s + thrustAtPressure(e.engine.thrust, 0), 0);
+		const asl = active.reduce(
+			(s, e) => s + thrustAtPressure(e.engine.thrust, SEA_LEVEL_PRESSURE),
+			0
+		);
 		const mdot = active.reduce((s, e) => s + e.mdot, 0);
 		if (first) {
 			first = false;
@@ -393,7 +396,7 @@ function burn(w: Work): BurnResult {
 			const fed = new Set<number>();
 			const resources = new Set<string>();
 			for (const e of active) {
-				for (const p of e.cfg.propellants) {
+				for (const p of e.engine.propellants) {
 					resources.add(p.resource);
 					for (const j of reach(w, e.index, p.resource)) fed.add(j);
 				}

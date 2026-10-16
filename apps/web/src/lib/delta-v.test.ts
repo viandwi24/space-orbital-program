@@ -51,6 +51,11 @@ describe('stage delta-v of the stock two-stage vessel', () => {
 		expect(Math.abs(b!.dvSeaLevel / tsiolkovsky(ISP_SL, m2, m2 - burned) - 1)).toBeLessThan(1e-9);
 		expect(a!.burnTime).toBeCloseTo(burnTime, 9);
 	});
+	it('stays at the figures journal 022 recorded: 1,161 + 2,844 m/s at sea level, 1,244 + 3,047 m/s in vacuum', () => {
+		const [a, b] = report.stages;
+		expect([a!.dvSeaLevel, b!.dvSeaLevel].map(Math.round)).toEqual([1161, 2844]);
+		expect([a!.dvVacuum, b!.dvVacuum].map(Math.round)).toEqual([1244, 3047]);
+	});
 	it('the total is the sum of the stages', () => {
 		const sum = tsiolkovsky(ISP_VAC, m1, m1 - burned) + tsiolkovsky(ISP_VAC, m2, m2 - burned);
 		expect(Math.abs(report.totalVacuum / sum - 1)).toBeLessThan(1e-9);

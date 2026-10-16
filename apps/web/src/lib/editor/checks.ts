@@ -93,7 +93,7 @@ export function checkDesign(
 	}
 	const staged = new Set(design.stages.flat());
 	const unstaged = design.parts
-		.filter((p) => isAutoStaged(design, content.parts, p.index) && !staged.has(p.index))
+		.filter((p) => isAutoStaged(design, content, p.index) && !staged.has(p.index))
 		.map((p) => p.index);
 	if (unstaged.length > 0 && design.stages.length > 0) {
 		out.push({
