@@ -109,4 +109,4 @@ Draft plan 026 collects: radial parts, fins and boosters (needs surface attach i
 
 ## Commits
 
-`76be1e6` (core, API 0.1.6), `7f758ee` (stock descriptors), the renderer work, and this docs commit. The renderer files, the `bun.lock` line, the two `flight-loop.ts` lines and the `boundaries.md` row were staged for a `feat(renderer)` commit when the HUD session's own `git commit` ran on the shared index and took them into `1d9a600` ("feat(web): sim host pause and sim-event messages"). History was not rewritten (the other session is active); read `1d9a600` for the renderer change.
+`76be1e6` (core, API 0.1.6), `7f758ee` (stock descriptors), `c1f0878` (docs), `fcc1be4` (renderer). The HUD session worked in the same tree and its commits swept two shared-index lines of mine: the two `partVisuals`/`partAttach` lines in `apps/web/src/lib/flight-loop.ts` are in `e6931b6` (feat(web): flight HUD) and the `@orbital/mod-stock` line of `bun.lock` is in `d5d6b7c`; the renderer files were staged twice and survived a history rewrite of the other session, so they were committed after the docs.
