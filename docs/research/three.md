@@ -72,3 +72,10 @@ Facts below come from the pages named and, where a page was only an API stub, fr
 | Gerstner-style waves | A sum of sine components with `omega^2 = g k` (deep water) and phase speed `sqrt(g lambda / 2 pi)`; components shorter than about three pixels are faded out to avoid shimmer. The visual sea rounds `omega` to a whole number of cycles per 180 s so time can wrap. | standard linear wave theory; tested in `water-model.test.ts` |
 | One hash, three values | `pcg3d` returns a `uvec3`; hashing a lattice corner once and using all three components makes a value-noise vector (a domain warp) cost one noise instead of three (`noiseF3`). | `shaders/atmosphere.glsl.ts` |
 | Hidden pane and shader cache | In the hidden built-in browser pane a program compiled after the first frame, or the first compile of changed shader text, ran about 3x slower (pad scene 35 ms against 12 ms); loading the page a second time with the same shader text gave the fast program again. Frame times in journal 027 are from the second load. | observed, journal 027 |
+
+## Plan 031: physical terrain patches (checked 2026-10-17, three 0.186.x)
+
+| Topic | Fact | Source |
+|---|---|---|
+| `WebGLRenderTarget` with `FloatType` | `new WebGLRenderTarget(w, h, { type: FloatType, format: RGBAFormat, minFilter, magFilter, depthBuffer: false })`; rendering needs `EXT_color_buffer_float` (three enables it); hardware linear filtering needs `OES_texture_float_linear`, obtained with `renderer.extensions.get(name)` (null when absent), so the planet pass keeps a manual bilinear fallback. `renderer.readRenderTargetPixels(target, x, y, w, h, Float32Array)` reads a float target back (used by the parity check). | https://threejs.org/docs/pages/WebGLRenderTarget.html (2026-10-17); `docs/research/terrain-physical.md` |
+| Hidden pane and program caches | Each load of changed shader text runs slower in the hidden pane: a preset needed three loads before its frame times settled (low: 27, 27, then 9 ms at the pad). Frame times in journal 031 are from the settled loads. | observed |

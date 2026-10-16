@@ -23,3 +23,14 @@ Bilinear interpolation of the height function on a regular grid against the anal
 | 4 m | 0.33 / 0.000 | 0.42 / 0.001 | 0.37 / 0.001 |
 
 The residual at 4 to 16 m is the crease of the ridge `abs` (unbounded curvature); ADR 0043 softens it. These numbers are why the visual surface needs patches (ADR 0044) and why the half-float height of the old bake (2 m steps above 2 048 m) is not enough.
+
+After plan 031's changes to the function (soft ridge, smooth maximum, closer massif) the same measurement gives, maximum error in metres over 3 x 3 000 points: 4 m grid 0.003 to 0.04, 32 m grid 0.07 to 1.8 before the smooth maximum and under 1 afterwards; the GPU bake against float64 (400 texels read back in the built-in browser, journal 031): fine patch 0.03 m mean and 0.20 m worst, mid patch 0.045 m and 0.81 m.
+
+## WebGL facts found in the browser run (2026-10-17, Chromium in the Claude desktop app, ANGLE Metal, Apple M5)
+
+| Topic | Fact |
+|---|---|
+| Filtering `hi` + `lo` half floats | Filtered in half precision: heights near 900 m err by up to 0.5 m at the places where `hi` steps by 16 m (contour-line cracks). Patches therefore use RGBA32F. |
+| `OES_texture_float_linear` | Present here; `gl.extensions.get('OES_texture_float_linear')` enables it in three; without it the shader filters four `texelFetch` by hand. |
+| GLSL reserved words | `patch` is reserved in GLSL ES 3.00 (a parameter named `patch` failed the whole planet pass compile) - already noted in `three.md` for plan 025. |
+| float32 at 600 km | `length(p) - R` quantises to 6 cm; the clearance of a march sample must be expanded from the camera (`(|p|^2 - R^2) / (|p| + R)`). |

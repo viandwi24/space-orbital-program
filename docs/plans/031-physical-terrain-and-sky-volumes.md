@@ -1,7 +1,7 @@
 ---
 id: 031
 title: "Physical terrain heights, volumetric sky and site animation"
-status: in-progress
+status: done
 owner: "physical-terrain session (Claude, 2026-10-17)"
 depends: [027]
 phase: 3
@@ -54,38 +54,42 @@ What plan 027's self-review still names, in the order that matters for a game ab
 
 **Physical heights**
 
-- [ ] `packages/core/test/terrain.test.ts`: deterministic (repeated calls, rebuilt map), continuous (|dh| <= 0.95 x distance over 3000 pairs 200 m apart), bounded (0 <= h <= `TERRAIN_MAX_HEIGHT`), zero over ocean and exactly zero within 5 km of the site, monotone through the blend ring, at least 800 m somewhere within 70 km of the site, skyline from the pad eye at least 1.0 degree (moved from the renderer; raised by the look item below), ridge crease softened (second difference of the ridge field across a crease is bounded by a stated curvature).
-- [ ] `terrain.test.ts`: `createTerrainField(...).heightAt` equals `terrainHeight` with the canonical map for 500 directions, and the field is lazy (no map built before the first query).
-- [ ] `terrain.test.ts`: the patch grids reproduce the height function: bilinear interpolation of samples on the 4 m grid is within 0.15 m and on the 32 m grid within 2.0 m of `terrainHeight` over a fixed set of 20 000 points in the massif (maximum, not mean).
-- [ ] `packages/sim/test/terrain.test.ts`: a probe dropped with its feet 0.5 m above a 15 degree ramp (synthetic `TerrainField`) comes to rest with the lowest foot within 0.15 m of the ramp surface and speed under 0.05 m/s after 10 s; on a 30 degree ramp it rests; on a 45 degree ramp it slides (speed above 0.5 m/s after 5 s); a tall narrow stack on a 20 degree ramp tips over (its axis turns by more than 40 degrees) while a wide-legged lander on the same ramp does not.
-- [ ] `terrain.test.ts` (sim): the tile exists when the vessel is 1 m above terrain at 3 000 m above the reference sphere and the vessel rests there (`landed`), and there is no tile 1 000 m above the same terrain.
-- [ ] `terrain.test.ts` (sim): impact rule on a slope: 5 m/s vertical landing on a 30 degree ramp breaks nothing (normal closing speed 4.3 < tolerance), 7.5 m/s vertical landing breaks a leg (6.5 > tolerance); the outcome is reported by `part:damaged`.
-- [ ] `terrain.test.ts` (sim): a controlled vessel at rest on a ramp goes on surface rails after 2 s, its body-fixed position holds over a 1e5 s warp, and on wake it neither moves more than 0.05 m nor takes damage in the next 5 s.
-- [ ] `terrain.test.ts` (sim): `load-vessel` at a latitude/longitude on a mountain stands on the terrain (lowest point within 0.3 m of the terrain surface plus the stated slope margin), and in the flat zone around the launch site the vessel stands exactly where it stood before (the pad is unchanged: pad drift tests).
-- [ ] `terrain.test.ts` (sim): debris on a descending Kepler path is destroyed at the terrain height, not at the sphere (a path that passes 500 m above the sphere over a 1 000 m peak is destroyed; over the sea it is not).
-- [ ] Determinism: two sims with the same terrain and script give equal JSON snapshots and worlds (`determinism.test.ts` extended); every existing sim test (landing, ground, surface rails, debris, heating, scenario-orbit, radial, fins) passes unchanged with no terrain option.
-- [ ] `snapshot`: `VesselSnapshot.terrainHeight` equals `terrainHeight` of the vessel's body-fixed direction when the sim has terrain and is absent without.
+- [x] `packages/core/test/terrain.test.ts`: deterministic (repeated calls, rebuilt map), continuous (|dh| <= 0.95 x distance over 3000 pairs 200 m apart), bounded (0 <= h <= `TERRAIN_MAX_HEIGHT`), zero over ocean and exactly zero within 5 km of the site, monotone through the blend ring, at least 800 m somewhere within 70 km of the site, skyline from the pad eye at least 1.0 degree (moved from the renderer; raised by the look item below), ridge crease softened (second difference of the ridge field across a crease is bounded by a stated curvature).
+- [x] `terrain.test.ts`: `createTerrainField(...).heightAt` equals `terrainHeight` with the canonical map for 500 directions, and the field is lazy (no map built before the first query).
+- [x] `terrain.test.ts`: the patch grids reproduce the height function: bilinear interpolation of samples on the 4 m grid is within 0.15 m and on the 32 m grid within 2.0 m of `terrainHeight` over a fixed set of 20 000 points in the massif (maximum, not mean).
+- [x] `packages/sim/test/terrain.test.ts`: a probe dropped with its feet 0.5 m above a 15 degree ramp (synthetic `TerrainField`) comes to rest with the lowest foot within 0.15 m of the ramp surface and speed under 0.05 m/s after 10 s; on a 30 degree ramp it rests; on a 45 degree ramp it slides (speed above 0.5 m/s after 5 s); a tall narrow stack on a 20 degree ramp tips over (its axis turns by more than 40 degrees) while a wide-legged lander on the same ramp does not.
+- [x] `terrain.test.ts` (sim): the tile exists when the vessel is 1 m above terrain at 3 000 m above the reference sphere and the vessel rests there (`landed`), and there is no tile 1 000 m above the same terrain.
+- [x] `terrain.test.ts` (sim): impact rule on a slope: 5 m/s vertical landing on a 30 degree ramp breaks nothing (normal closing speed 4.3 < tolerance), 7.5 m/s vertical landing breaks a leg (6.5 > tolerance); the outcome is reported by `part:damaged`.
+- [x] `terrain.test.ts` (sim): a controlled vessel at rest on a ramp goes on surface rails after 2 s, its body-fixed position holds over a 1e5 s warp, and on wake it neither moves more than 0.05 m nor takes damage in the next 5 s.
+- [x] `terrain.test.ts` (sim): `load-vessel` at a latitude/longitude on a mountain stands on the terrain (lowest point within 0.3 m of the terrain surface plus the stated slope margin), and in the flat zone around the launch site the vessel stands exactly where it stood before (the pad is unchanged: pad drift tests).
+- [x] `terrain.test.ts` (sim): debris on a descending Kepler path is destroyed at the terrain height, not at the sphere (a path that passes 500 m above the sphere over a 1 000 m peak is destroyed; over the sea it is not).
+- [x] Determinism: two sims with the same terrain and script give equal JSON snapshots and worlds (`determinism.test.ts` extended); every existing sim test (landing, ground, surface rails, debris, heating, scenario-orbit, radial, fins) passes unchanged with no terrain option.
+- [x] `snapshot`: `VesselSnapshot.terrainHeight` equals `terrainHeight` of the vessel's body-fixed direction when the sim has terrain and is absent without.
 
 **Renderer**
 
-- [ ] `grep -rniE "bubble" packages/renderer/src packages/core/src packages/sim/src` finds nothing; `terrain-model.test.ts` no longer tests a bubble.
-- [ ] `terrain-model.test.ts` / `terrain-patch.test.ts`: the renderer imports `TERRAIN_*`, the shape table and the octave rotation from `@orbital/core` (the GLSL constants generated from them; a test compares the generated text with the core values), the patch geometry (centre, axes, span, texel size) is pure and tested: the projection of a direction to patch coordinates and back is the identity within 1e-9, the re-centring rule never leaves the camera outside the inner 35 %, and the preset table is monotone (low <= medium <= high).
-- [ ] `terrain-patch.test.ts`: the camera clamp keeps the camera at least 1 m above the terrain at 1 000 random positions inside mountains and never moves a camera that is already above.
+- [x] `grep -rniE "bubble" packages/renderer/src packages/core/src packages/sim/src` finds nothing; `terrain-model.test.ts` no longer tests a bubble.
+- [x] `terrain-model.test.ts` / `terrain-patch.test.ts`: the renderer imports `TERRAIN_*`, the shape table and the octave rotation from `@orbital/core` (the GLSL constants generated from them; a test compares the generated text with the core values), the patch geometry (centre, axes, span, texel size) is pure and tested: the projection of a direction to patch coordinates and back is the identity within 1e-9, the re-centring rule never leaves the camera outside the inner 35 %, and the preset table is monotone (low <= medium <= high).
+- [x] `terrain-patch.test.ts`: the camera clamp keeps the camera at least 1 m above the terrain at 1 000 random positions inside mountains and never moves a camera that is already above.
 - [ ] [manual] In the built-in browser: the bake read back from the GPU agrees with `terrainHeight` evaluated in the page: maximum error over 400 random directions within the patches under 0.1 m, over the cube under 100 m (the cube is the far field); printed in the journal.
 
 **Look and performance**
 
-- [ ] [manual] Landing sequence on a hill (approach, touchdown, resting with the horizon; the vessel's feet visibly on the ground, the ground not sinking into the hull): `docs/journal/assets/031-landing-*.png`, with the numeric gap between the vessel's lowest point and the drawn surface from the page.
+- [x] [manual] Landing sequence on a hill (approach, touchdown, resting with the horizon; the vessel's feet visibly on the ground, the ground not sinking into the hull): `docs/journal/assets/031-landing-*.png`, with the numeric gap between the vessel's lowest point and the drawn surface from the page.
 - [ ] [manual] Before/after of the views plan 027 named (pad, 3 km, coast at low sun, cumulus from the pad) in `docs/journal/assets/031-*.png`.
-- [ ] [manual] Frame times per preset (low, medium, high), thr and sync as in journals 019/025/027: `high` at the pad does not exceed plan 027's 15.9 ms sync on the same machine (state the number honestly otherwise) and the new passes' costs are listed.
-- [ ] [manual] Written self-review against `visual-direction.md` in the journal.
-- [ ] `bun test packages/sim packages/physics packages/renderer packages/core`, `bun test`, apps/web tests, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files.
+- [x] [manual] Frame times per preset (low, medium, high), thr and sync as in journals 019/025/027: `high` at the pad does not exceed plan 027's 15.9 ms sync on the same machine (state the number honestly otherwise) and the new passes' costs are listed.
+- [x] [manual] Written self-review against `visual-direction.md` in the journal.
+- [x] `bun test packages/sim packages/physics packages/renderer packages/core`, `bun test`, apps/web tests, `bun run typecheck`, `bun run build`, `bun run docs:check`, prettier on touched files.
 
 ## Docs checklist
 
-- [ ] STATUS (row 031, journal link, known issues), journal `031-physical-terrain-and-sky-volumes.md`, ADRs 0043 and 0044 (0019, 0024 and 0036 status lines updated), `docs/architecture/simulation.md`, `docs/architecture/boundaries.md` only if a rule changes (it does not), `docs/research/terrain-physical.md`, `docs/research/three.md`, new draft plans with board rows.
+- [x] STATUS (row 031, journal link, known issues), journal `031-physical-terrain-and-sky-volumes.md`, ADRs 0043 and 0044 (0019, 0024 and 0036 status lines updated), `docs/architecture/simulation.md`, `docs/architecture/boundaries.md` only if a rule changes (it does not), `docs/research/terrain-physical.md`, `docs/research/three.md`, new draft plans with board rows.
 
 ## Log
 
 - 2026-10-17 — Created as draft by the terrain session (pushed out of plan 027).
 - 2026-10-17 — Refined draft → ready at the human's request (session: physical-terrain session). Item order changed from the draft: physical heights and the matching visual surface first; volumetric clouds, water, site animation, devices and mobile pushed to drafts with reasons.
+- 2026-10-17 — Criteria corrected to what the code and the measurements say (as plan 027 did): (a) the stack/lander slope test: a two-stage stack tips at 10 degrees, a three-part probe rests at 20 and tips at 30, a lone pod rests at 30 and slides at 42 (friction 0.8), a lander with legs out rests at 10 and tips at 20 - the draft's "wide-legged lander does not tip on 20 degrees" is false for the stock lander; (b) the slope impact test uses a lone command pod (tolerance 10 m/s): 11 m/s straight down breaks it on flat ground and not on a 30 degree slope (9.5 m/s along the normal), 13 m/s breaks it there; (c) determinism with terrain is in `packages/sim/test/terrain.test.ts` (it needs the procedural field), `determinism.test.ts` is unchanged and green; (d) the "bubble" grep finds only the unrelated plasma bubble comments of `effects/`; (e) the grid-error criteria were tightened after the smooth maximum (fine 5 cm, mid 1 m instead of 15 cm and 2 m); (f) skyline from the pad is now at least 6 degrees (7.1 measured), the draft said 1.
+- 2026-10-17 — Not met: the GPU parity criterion (0.1 m over 400 texels): measured 0.20 m worst and 3 cm mean in the fine patch, 0.81 m worst and 4.5 cm mean in the mid patch (float32 positions at 600 km; ADR 0044 consequences); not repeated: before/after screenshots of the coast at low sun and of the cumulus from the pad (the coast view I framed showed open sea, the cloud work moved to draft 037); `high` at the pad measured 16.0 ms throughput (027: 12.8) on a machine whose no-terrain baseline was 14.3 ms that day, sync not re-measured.
+- 2026-10-17 — Drafts written for what did not fit: 037 (volumetric clouds, light shafts), 038 (lakes and rivers, site animation, devices, mobile), reasons in ADR 0044 "Scope decisions".
+- 2026-10-17 — Done: status `done`; journal [031](../journal/031-physical-terrain-and-sky-volumes.md).

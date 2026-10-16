@@ -59,3 +59,5 @@ Use these terms consistently in code, docs, and UI.
 | **Attach target** | A place a part can go in the VAB: a free node of the design with a node of the new part facing the opposite way (`attachTargets`), shown as a ring. |
 | **Ghost** | The translucent preview of the part being placed or moved, drawn at the active attach target. |
 | **Auto-stage** | Editor mode in which engines and decouplers get their stages from decoupler depth; any manual stage edit turns it off until "Auto-stage" is pressed. |
+| **Terrain field** | `TerrainField` in `@orbital/core`: `heightAt(body-fixed unit direction)` in metres above the reference sphere, `maxHeight`. The sim's ground and the renderer's drawn ground read the same one (ADR 0043). |
+| **Terrain patch** | A camera-centred square window of 32-bit baked heights (4 km and 33 km wide on `high`) that the planet pass blends over the far-field cube map so the ground a vessel touches is drawn to centimetres (ADR 0044). |
