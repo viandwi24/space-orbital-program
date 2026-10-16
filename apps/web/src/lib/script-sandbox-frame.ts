@@ -8,7 +8,12 @@
  * opaque origin), hands it the MessagePort that leads to the sim Worker, and relays only the
  * Worker's self-test report and errors to the page.
  */
-import { probeContainment, type ContainmentReport, type ProbeScope } from './script-sandbox-probe';
+import {
+	probeContainment,
+	type ContainmentReport,
+	type ProbeScope,
+	type Sentinel
+} from './script-sandbox-probe';
 
 /** Page -> iframe, once per iframe. */
 export interface SandboxInit {
@@ -21,6 +26,8 @@ export interface SandboxInit {
 	port: MessagePort;
 	/** A URL in the game origin, for the containment self-test. */
 	probeUrl: string;
+	/** Names of data the page planted in the game origin for the self-test to look for. */
+	sentinel?: Sentinel;
 }
 
 /** Iframe -> page. */
@@ -55,7 +62,11 @@ export function parseSandboxInit(data: unknown): SandboxInit | null {
 		typeof data.workerSource === 'string' &&
 		data.wasm instanceof ArrayBuffer &&
 		data.port instanceof MessagePort &&
-		typeof data.probeUrl === 'string'
+		typeof data.probeUrl === 'string' &&
+		(data.sentinel === undefined ||
+			(isRecord(data.sentinel) &&
+				(data.sentinel.cookie === undefined || typeof data.sentinel.cookie === 'string') &&
+				(data.sentinel.cache === undefined || typeof data.sentinel.cache === 'string')))
 	) {
 		return data as unknown as SandboxInit;
 	}
@@ -98,13 +109,21 @@ export function createSandboxFrame(env: FrameEnv): SandboxFrame {
 			};
 			worker.onerror = (e) => fail(`script worker crashed: ${e.message ?? 'unknown error'}`);
 			worker.postMessage(
-				{ kind: 'init', port: init.port, wasm: init.wasm, probeUrl: init.probeUrl },
+				{
+					kind: 'init',
+					port: init.port,
+					wasm: init.wasm,
+					probeUrl: init.probeUrl,
+					...(init.sentinel === undefined ? {} : { sentinel: init.sentinel })
+				},
 				[init.port, init.wasm]
 			);
 			env.postToParent({ kind: 'sandbox-started' });
-			void probeContainment(env.probeScope, { context: 'frame', target: init.probeUrl }).then(
-				(report) => env.postToParent({ kind: 'sandbox-report', report })
-			);
+			void probeContainment(env.probeScope, {
+				context: 'frame',
+				target: init.probeUrl,
+				...(init.sentinel === undefined ? {} : { sentinel: init.sentinel })
+			}).then((report) => env.postToParent({ kind: 'sandbox-report', report }));
 		}
 	};
 }

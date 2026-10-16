@@ -133,6 +133,69 @@ describe('containment probe', () => {
 		expect(report.violations).toBe(1);
 	});
 
+	it('with a sentinel: an API that answers but sees none of the page data is isolated, not reachable (WebKit)', async () => {
+		const sentinel = { cookie: 'orbital-probe-1', cache: 'orbital-probe-1' };
+		// WebKit in an opaque origin: document.cookie is "" and the Cache store is empty, nothing throws
+		const webkitLike = patched({
+			document: { cookie: '' },
+			caches: { open: () => Promise.resolve({}), has: () => Promise.resolve(false) }
+		});
+		const report = await probeContainment(webkitLike, {
+			context: 'frame',
+			target,
+			sentinel,
+			timeoutMs: 50
+		});
+		expect(report.probes.cookie).toBe('isolated');
+		expect(report.probes.caches).toBe('isolated');
+		// everything else is blocked in this scope, so a WebKit-like context reads as contained
+		expect(isContained([report])).toBe(true);
+		expect(reachableProbes([report])).not.toContain('frame.cookie');
+		expect(reachableProbes([report])).not.toContain('frame.caches');
+	});
+
+	it('with a sentinel: seeing the page cookie or cache is reachable', async () => {
+		const sentinel = { cookie: 'orbital-probe-1', cache: 'orbital-probe-1' };
+		const sees = patched({
+			document: { cookie: 'a=b; orbital-probe-1=1' },
+			caches: {
+				open: () => Promise.resolve({}),
+				has: (name) => Promise.resolve(name === 'orbital-probe-1')
+			}
+		});
+		const report = await probeContainment(sees, {
+			context: 'frame',
+			target,
+			sentinel,
+			timeoutMs: 50
+		});
+		expect(report.probes.cookie).toBe('reachable');
+		expect(report.probes.caches).toBe('reachable');
+	});
+
+	it('a sentinel name that is only a prefix of a cookie name is not a match', async () => {
+		const scope = patched({ document: { cookie: 'orbital-probe-12=1' } });
+		const report = await probeContainment(scope, {
+			context: 'frame',
+			target,
+			sentinel: { cookie: 'orbital-probe-1' },
+			timeoutMs: 50
+		});
+		expect(report.probes.cookie).toBe('isolated');
+	});
+
+	it('isolated everywhere counts as contained', () => {
+		const report: ContainmentReport = {
+			context: 'frame',
+			origin: 'null',
+			opaque: true,
+			probes: { fetch: 'blocked', cookie: 'isolated', caches: 'isolated' },
+			target,
+			violations: 0
+		};
+		expect(isContained([report])).toBe(true);
+	});
+
 	it('is not contained without a report, or when an origin is not opaque', () => {
 		expect(isContained([])).toBe(false);
 		const report: ContainmentReport = {

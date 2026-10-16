@@ -8,7 +8,7 @@
  * Dependencies (the iframe, the assets) are injected so the lifecycle is testable without a DOM;
  * `script-sandbox-web.ts` wires the real ones.
  */
-import { isContained, type ContainmentReport } from './script-sandbox-probe';
+import { isContained, type ContainmentReport, type Sentinel } from './script-sandbox-probe';
 import type { SandboxEvent, SandboxInit } from './script-sandbox-frame';
 
 /** The `sandbox` attribute of the iframe: scripts only. Never add `allow-same-origin` (ADR 0038). */
@@ -39,6 +39,12 @@ export interface ScriptSandboxDeps {
 	loadAssets(): Promise<SandboxAssets>;
 	/** A URL in the game origin for the containment self-test. */
 	probeUrl: string;
+	/**
+	 * Plant data in the game origin for the self-test to look for (a cookie, a cache); `remove`
+	 * takes it away again once both reports are in. Optional: without it the self-test is stricter
+	 * and, in a browser that answers instead of throwing (WebKit), reports "reachable".
+	 */
+	plantSentinel?(): Promise<{ sentinel: Sentinel; remove(): void }>;
 	startTimeoutMs?: number;
 }
 
@@ -89,6 +95,12 @@ export function createScriptSandbox(deps: ScriptSandboxDeps): ScriptSandbox {
 	let state: SandboxStatus['state'] = 'none';
 	let reports: ContainmentReport[] = [];
 	let error: string | undefined;
+	let planted: { remove(): void } | null = null;
+	const unplant = (): void => {
+		const current = planted;
+		planted = null;
+		current?.remove();
+	};
 
 	const snapshot = (): SandboxStatus => ({
 		state,
@@ -112,6 +124,7 @@ export function createScriptSandbox(deps: ScriptSandboxDeps): ScriptSandbox {
 	};
 
 	function close(): void {
+		unplant();
 		generation += 1;
 		frame?.remove();
 		frame = null;
@@ -155,12 +168,25 @@ export function createScriptSandbox(deps: ScriptSandboxDeps): ScriptSandbox {
 								event.report
 							];
 							publish();
+							if (
+								reports.some((r) => r.context === 'frame') &&
+								reports.some((r) => r.context === 'worker')
+							) {
+								unplant();
+							}
 						}
 					});
 				});
 				// A rejection on a sandbox that was closed meanwhile must not surface as unhandled.
 				started.catch(() => {});
 				await created.loaded;
+				unplant();
+				const plant = await deps.plantSentinel?.().catch(() => undefined);
+				if (mine !== generation) {
+					plant?.remove();
+					throw new Error('the sandbox was closed while starting');
+				}
+				planted = plant ?? null;
 				const wasm = loaded.wasm.slice(0);
 				created.post(
 					{
@@ -168,7 +194,8 @@ export function createScriptSandbox(deps: ScriptSandboxDeps): ScriptSandbox {
 						workerSource: loaded.workerSource,
 						wasm,
 						port: channel.port2,
-						probeUrl: deps.probeUrl
+						probeUrl: deps.probeUrl,
+						...(plant === undefined ? {} : { sentinel: plant.sentinel })
 					},
 					[channel.port2, wasm]
 				);

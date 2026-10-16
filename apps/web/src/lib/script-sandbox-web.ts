@@ -9,6 +9,7 @@ import {
 	type ScriptSandbox
 } from './script-sandbox';
 import { buildSandboxDocument } from './script-sandbox-document';
+import type { Sentinel } from './script-sandbox-probe';
 
 const TEMPLATE_URL = 'sandbox/script-sandbox.html';
 const BOOTSTRAP_URL = 'sandbox/script-sandbox-frame-main.js';
@@ -74,10 +75,43 @@ async function loadAssets(): Promise<SandboxAssets> {
 	return { workerSource, wasm, document: await buildSandboxDocument(template, bootstrap) };
 }
 
+/**
+ * Plant a cookie and a Cache storage entry in this (game) origin for the self-test: a sandbox that
+ * can see either is not isolated. Each is kept only if it can be read back here.
+ */
+async function plantSentinel(): Promise<{ sentinel: Sentinel; remove(): void }> {
+	const name = `orbital-probe-${crypto.randomUUID()}`;
+	const sentinel: Sentinel = {};
+	try {
+		document.cookie = `${name}=1; path=/; SameSite=Strict`;
+		if (document.cookie.split(/;\s*/).some((c) => c.startsWith(`${name}=`))) sentinel.cookie = name;
+	} catch {
+		// cookies unavailable here: the cookie probe falls back to the strict reading
+	}
+	try {
+		await caches.open(name);
+		sentinel.cache = name;
+	} catch {
+		// no Cache storage here either
+	}
+	return {
+		sentinel,
+		remove() {
+			try {
+				document.cookie = `${name}=; path=/; Max-Age=0; SameSite=Strict`;
+			} catch {
+				// nothing to remove
+			}
+			void caches.delete(name).catch(() => {});
+		}
+	};
+}
+
 export function startScriptSandbox(): ScriptSandbox {
 	return createScriptSandbox({
 		createFrame,
 		loadAssets,
+		plantSentinel,
 		probeUrl: new URL(asset('robots.txt'), location.href).href
 	});
 }

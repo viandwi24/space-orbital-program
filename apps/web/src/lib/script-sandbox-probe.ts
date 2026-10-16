@@ -5,11 +5,22 @@
  * worked. The result is shown in the script panel; a reachable probe turns the "isolated" line
  * into a warning. The probe never throws and never blocks longer than `timeoutMs` per item.
  *
- * Only an exception or rejection counts as "blocked"; anything that works counts as "reachable",
- * so an inconclusive result errs on the side of the warning.
+ * An exception or rejection counts as "blocked". Cookies and Cache storage are also tested against
+ * a **sentinel** the game page planted in its own origin before the sandbox started (plan 032): if
+ * the context can read the page's cookie or open its cache, that is "reachable"; if the API works
+ * but sees none of the page's data it is "isolated" (WebKit answers `document.cookie` with an
+ * empty string and `caches` with an empty store in an opaque origin instead of throwing; found by
+ * the WebKit end-to-end run, `research/browser-support.md`). Without a sentinel, anything that
+ * works counts as "reachable", so an inconclusive result errs on the side of the warning.
  */
 
-export type Reach = 'blocked' | 'reachable';
+export type Reach = 'blocked' | 'isolated' | 'reachable';
+
+/** Names of data the game page planted in its own origin for the probe to look for. */
+export interface Sentinel {
+	cookie?: string;
+	cache?: string;
+}
 
 export interface ContainmentReport {
 	context: 'frame' | 'worker';
@@ -36,7 +47,7 @@ export interface ProbeScope {
 		};
 		deleteDatabase(name: string): unknown;
 	};
-	caches?: { open(name: string): Promise<unknown> };
+	caches?: { open(name: string): Promise<unknown>; has?(name: string): Promise<boolean> };
 	document?: { cookie: string };
 	localStorage?: { getItem(key: string): unknown };
 	addEventListener?(type: 'securitypolicyviolation', listener: () => void): void;
@@ -46,6 +57,8 @@ export interface ProbeOptions {
 	context: ContainmentReport['context'];
 	/** A URL in the game's own origin (any existing path). */
 	target: string;
+	/** What the page planted (see `Sentinel`); without it any working API is "reachable". */
+	sentinel?: Sentinel;
 	timeoutMs?: number;
 }
 
@@ -66,6 +79,18 @@ async function attempt(step: () => unknown, timeoutMs: number): Promise<Reach> {
 	} catch {
 		return 'blocked';
 	}
+}
+
+/**
+ * Like `attempt`, but the step says whether it saw the page's data: a normal completion that saw
+ * none is "isolated" (the API answers, with nothing of the game's in it).
+ */
+async function attemptSeen(step: () => unknown, timeoutMs: number): Promise<Reach> {
+	let seen = false;
+	const reach = await attempt(async () => {
+		seen = (await step()) === true;
+	}, timeoutMs);
+	return reach === 'reachable' && !seen ? 'isolated' : reach;
 }
 
 function openIndexedDb(scope: ProbeScope): Promise<void> {
@@ -106,13 +131,21 @@ export async function probeContainment(
 			if (!scope.localStorage) throw new Error('localStorage is not available');
 			return scope.localStorage.getItem('orbital.design');
 		}, timeoutMs),
-		cookie: await attempt(() => {
+		cookie: await attemptSeen(() => {
 			if (!scope.document) throw new Error('document is not available');
-			return scope.document.cookie;
+			const cookies = scope.document.cookie;
+			return options.sentinel?.cookie === undefined
+				? true
+				: cookies.split(/;\s*/).some((c) => c.startsWith(`${options.sentinel!.cookie}=`));
 		}, timeoutMs),
-		caches: await attempt(() => {
+		caches: await attemptSeen(async () => {
 			if (!scope.caches) throw new Error('caches is not available');
-			return scope.caches.open('orbital-sandbox-probe');
+			const name = options.sentinel?.cache;
+			if (name === undefined || !scope.caches.has) {
+				await scope.caches.open('orbital-sandbox-probe');
+				return true;
+			}
+			return scope.caches.has(name);
 		}, timeoutMs)
 	};
 	return {
@@ -129,7 +162,7 @@ export async function probeContainment(
 export function isContained(reports: readonly ContainmentReport[]): boolean {
 	return (
 		reports.length > 0 &&
-		reports.every((r) => r.opaque && Object.values(r.probes).every((p) => p === 'blocked'))
+		reports.every((r) => r.opaque && Object.values(r.probes).every((p) => p !== 'reachable'))
 	);
 }
 

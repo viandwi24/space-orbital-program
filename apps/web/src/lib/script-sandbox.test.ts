@@ -10,7 +10,7 @@ import type { ContainmentReport } from './script-sandbox-probe';
 
 const report = (
 	context: 'frame' | 'worker',
-	reach: 'blocked' | 'reachable'
+	reach: 'blocked' | 'isolated' | 'reachable'
 ): ContainmentReport => ({
 	context,
 	origin: 'null',
@@ -47,7 +47,8 @@ function fakeFrame() {
 	};
 }
 
-function setup(startTimeoutMs = 1000) {
+function setup(startTimeoutMs = 1000, withSentinel = false) {
+	const removals: string[] = [];
 	const frames: ReturnType<typeof fakeFrame>[] = [];
 	let assetLoads = 0;
 	const sandbox = createScriptSandbox({
@@ -61,11 +62,19 @@ function setup(startTimeoutMs = 1000) {
 			return { workerSource: 'worker()', wasm: new ArrayBuffer(16), document: '<html></html>' };
 		},
 		probeUrl: 'https://game.example/robots.txt',
+		...(withSentinel
+			? {
+					plantSentinel: async () => ({
+						sentinel: { cookie: 'orbital-probe-x', cache: 'orbital-probe-x' },
+						remove: () => void removals.push('orbital-probe-x')
+					})
+				}
+			: {}),
 		startTimeoutMs
 	});
 	const seen: SandboxStatus[] = [];
 	sandbox.onStatus((s) => void seen.push(s));
-	return { sandbox, frames, seen, assetLoads: () => assetLoads };
+	return { sandbox, frames, seen, removals, assetLoads: () => assetLoads };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -220,5 +229,41 @@ describe('script sandbox (page side)', () => {
 		(await opening).close();
 		frame.posted[0]!.message.port.close();
 		expect(t.sandbox.status.reports).toEqual([]);
+	});
+
+	it('plants a sentinel before the frame starts, passes its names on and removes it once both reports are in', async () => {
+		const t = setup(1000, true);
+		const opening = t.sandbox.open();
+		await tick();
+		const frame = t.frames[0]!;
+		frame.load();
+		await tick();
+		expect(frame.posted[0]!.message.sentinel).toEqual({
+			cookie: 'orbital-probe-x',
+			cache: 'orbital-probe-x'
+		});
+		frame.emit({ kind: 'sandbox-started' });
+		(await opening).close();
+		expect(t.removals).toEqual([]); // the self-test is still running
+		frame.emit({ kind: 'sandbox-report', report: report('frame', 'blocked') });
+		expect(t.removals).toEqual([]);
+		frame.emit({ kind: 'sandbox-report', report: report('worker', 'blocked') });
+		expect(t.removals).toEqual(['orbital-probe-x']);
+		frame.posted[0]!.message.port.close();
+		t.sandbox.close();
+		expect(t.removals).toEqual(['orbital-probe-x']); // not twice
+	});
+
+	it('removes the sentinel when the sandbox is closed before the reports arrive', async () => {
+		const t = setup(1000, true);
+		const opening = t.sandbox.open();
+		await tick();
+		t.frames[0]!.load();
+		await tick();
+		t.frames[0]!.emit({ kind: 'sandbox-started' });
+		(await opening).close();
+		t.sandbox.close();
+		expect(t.removals).toEqual(['orbital-probe-x']);
+		t.frames[0]!.posted[0]!.message.port.close();
 	});
 });

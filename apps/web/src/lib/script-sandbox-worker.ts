@@ -5,10 +5,11 @@
 // `.wasm` bytes and a MessagePort whose other end is in the sim Worker: from then on this Worker
 // talks to the sim Worker directly. It has no sim, no snapshot beyond the controlled vessel's, and
 // no way to the game origin (opaque origin, CSP `connect-src 'none'`).
+import './script-sandbox-jitless'; // first: it must run before @orbital/core builds its schemas
 import { createScriptRunnerIn } from '@orbital/scripting/runner';
 import releaseSync from '@jitl/quickjs-wasmfile-release-sync';
 import { newQuickJSWASMModuleFromVariant, newVariant } from 'quickjs-emscripten-core';
-import { probeContainment } from './script-sandbox-probe';
+import { probeContainment, type Sentinel } from './script-sandbox-probe';
 import { createScriptWorkerCore } from './script-worker-core';
 
 interface InitMessage {
@@ -17,6 +18,7 @@ interface InitMessage {
 	wasm: ArrayBuffer;
 	/** A URL in the game's origin, for the self-test. */
 	probeUrl: string;
+	sentinel?: Sentinel;
 }
 
 const isInit = (data: unknown): data is InitMessage =>
@@ -31,7 +33,7 @@ let started = false;
 self.onmessage = (event: MessageEvent) => {
 	if (started || !isInit(event.data)) return;
 	started = true;
-	const { port, wasm, probeUrl } = event.data;
+	const { port, wasm, probeUrl, sentinel } = event.data;
 	const core = createScriptWorkerCore({
 		createRunner: async (source, options) =>
 			createScriptRunnerIn(
@@ -44,7 +46,9 @@ self.onmessage = (event: MessageEvent) => {
 	});
 	port.onmessage = (portEvent: MessageEvent) => core.handle(portEvent.data);
 	// What this context can reach, for the page to show (never blocks the script).
-	void probeContainment(self, { context: 'worker', target: probeUrl }).then((report) =>
-		self.postMessage({ kind: 'report', report })
-	);
+	void probeContainment(self, {
+		context: 'worker',
+		target: probeUrl,
+		...(sentinel === undefined ? {} : { sentinel })
+	}).then((report) => self.postMessage({ kind: 'report', report }));
 };
