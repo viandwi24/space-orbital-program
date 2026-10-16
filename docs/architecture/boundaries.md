@@ -11,6 +11,7 @@ These rules are what make the stack upgradeable later (ADR 0001, 0003). A plan t
 | `@orbital/physics` | `@orbital/core`, `@dimforge/rapier3d-compat` | DOM, Three.js, Svelte, `sim` |
 | `@orbital/sim` | `core`, `kepler`, `physics` | DOM, Three.js, Svelte, `renderer`, `apps/web` |
 | `@orbital/sdk` | `core` (re-exports) | everything else |
+| `@orbital/scripting` | `core`, `quickjs-emscripten` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies) |
 | `@orbital/renderer` | `core`, `three` | `sim` internals (reads snapshots via `core` types), Svelte, Rapier |
 | `mods/*` | `@orbital/sdk` **only** | `core`, `sim`, `physics`, `renderer`, DOM |
 | `apps/web` | anything | — |
@@ -19,7 +20,7 @@ Enforcement: each package's `tsconfig.json` sets `lib` to `["ESNext"]` (no DOM) 
 
 ## Environment rules
 
-- `core`, `kepler`, `sim`, `sdk`, `mods/*` must run identically in: Bun (tests), a Web Worker, the browser main thread, Node. Therefore: no `window`, `document`, `Bun.*`, `process.*`, `fs`, `fetch` inside them. I/O happens in `apps/web` or `tools/`.
+- `core`, `kepler`, `sim`, `sdk`, `scripting`, `mods/*` must run identically in: Bun (tests), a Web Worker, the browser main thread, Node. Therefore: no `window`, `document`, `Bun.*`, `process.*`, `fs`, `fetch` inside them. I/O happens in `apps/web` or `tools/`.
 - Nothing in `sim` reads the wall clock. Time is an input (`step(dt)`).
 - Randomness in `sim` goes through a seeded PRNG passed in; never `Math.random()`.
 

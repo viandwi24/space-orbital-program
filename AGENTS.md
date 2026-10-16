@@ -48,6 +48,7 @@ packages/core/     ids, units, world, registries, events, loader  — environmen
 packages/kepler/   orbital mechanics                              — pure math
 packages/physics/  PhysicsBackend interface + Rapier adapter
 packages/sim/      headless fixed-timestep simulation             — runs in Bun and in a Worker
+packages/scripting/ sandboxed player scripts (QuickJS-WASM): snapshot in, validated commands out — environment-neutral
 packages/sdk/      public mod API: definePlugin/defineModule/definePart/…
 packages/renderer/ Three.js rendering, floating origin            — reads sim state only
 mods/stock/        stock parts/modules/resources/bodies            — a mod like any other

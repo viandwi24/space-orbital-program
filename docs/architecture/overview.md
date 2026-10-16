@@ -36,6 +36,7 @@ Arrows point from importer to imported. The full rule set is in `boundaries.md`.
 | **Core** | `core` | any | `kepler` only for types if needed |
 | **Adapters** | `physics` (Rapier), `renderer` (Three) | `physics`: any (WASM); `renderer`: browser | `core` |
 | **Simulation** | `sim` | any (Bun, Worker) | `core`, `kepler`, `physics` |
+| **Scripting** | `scripting` | any (QuickJS-WASM) | `core` only; reads snapshots, returns commands (`scripting.md`) |
 | **Public API** | `sdk` | any | `core` (re-exports a curated subset) |
 | **Content** | `mods/*` | any | `sdk` only |
 | **Client** | `apps/web` | browser | everything |
@@ -64,5 +65,5 @@ Since plan 009 `sim` runs in a Worker: `apps/web/src/lib/sim.worker.ts` boots `c
 ## What is deliberately *not* decided yet
 
 - Terrain representation (Phase 3).
-- Scripting runtime: Worker-isolated JS vs QuickJS-WASM (plan 010 will decide via ADR).
+- Running the scripting runner inside the web client's Worker and a script editor (the runtime itself is decided: QuickJS-WASM, ADR 0020, `scripting.md`).
 - Save format for flights (vessel designs are JSON; in-flight saves come with Phase 2).

@@ -20,11 +20,12 @@
 | 007 | [Sim loop: flight + on-rails](plans/007-sim-loop-flight-onrails.md) | done | sim session | ADRs 0015-0017; capability API, `createSim`, scripted two-stage ascent reaches orbit headlessly |
 | 008 | [Renderer: floating origin](plans/008-renderer-floating-origin.md) | done | renderer session | ADR 0012; WebGL parts verified only in plan 009 |
 | 009 | [Web client MVP: build, launch, orbit](plans/009-web-client-mvp.md) | done | web session | Worker host + client, VAB, flight HUD, map view; dev-only autopilot used for the manual orbit run; renderer verified in real GL |
-| 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | draft | — | after MVP |
+| 010 | [Scripting sandbox](plans/010-scripting-sandbox.md) | in-progress | scripting session | ADR 0020; QuickJS-WASM runner, per-tick budget |
 | 012 | [Ground contact, landing and damage](plans/012-ground-contact-landing.md) | done | ground session | ADR 0019; kinematic ground tile with friction, `stock.landing-legs`, impact damage (`part:damaged`); pad hold and sphere clamp removed; lander from 100 km orbit lands in `bun test` |
 | 011 | [Physics rigid grouping](plans/011-physics-rigid-grouping.md) | done | grouping session | ADR 0018; one compound body per vessel; 100-part step 735 → 140 µs (sim), no flex |
 | 013 | [Debris lifecycle and time warp](plans/013-debris-lifecycle.md) | draft | — | found by 009: debris stays in flight and blocks warp after a normal launch |
 | 014 | [Re-entry heating and part temperature](plans/014-reentry-heating.md) | draft | — | out of scope of 012; hooks: `impactTolerance`, `part:damaged` |
+| 015 | [Scripting in the web client](plans/015-scripting-web-integration.md) | draft | — | found by 010: Worker-hosted runner, script panel |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

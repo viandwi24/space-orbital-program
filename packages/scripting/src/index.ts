@@ -1,0 +1,11 @@
+/**
+ * @orbital/scripting — sandboxed player scripts (ADR 0020).
+ *
+ * RULES (docs/architecture/boundaries.md): imports `core` and `quickjs-emscripten` only; no DOM,
+ * no Bun/Node APIs, no `sim` import. The runner reads snapshots and returns commands.
+ */
+export { createScriptRunner } from './runner.ts';
+export type { ScriptRunner, ScriptRunnerOptions, ScriptStatus, TickResult } from './runner.ts';
+export { buildTelemetry } from './telemetry.ts';
+export type { ScriptEnvironment, Telemetry, TelemetryPart } from './telemetry.ts';
+export { ascentScript } from './samples/ascent.ts';

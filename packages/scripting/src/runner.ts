@@ -1,0 +1,327 @@
+/**
+ * The script runner: one QuickJS runtime per script, stepped once per sim tick with a snapshot,
+ * returning the validated commands the script issued (ADR 0020). It never touches the sim: the
+ * host dispatches the commands, so the same runner works in-process, in a Worker or over the web
+ * protocol.
+ */
+import { commandSchema, entityId, type Command, type Snapshot } from '@orbital/core';
+import {
+	getQuickJS,
+	type QuickJSContext,
+	type QuickJSHandle,
+	type QuickJSRuntime
+} from 'quickjs-emscripten';
+import { PRELUDE } from './prelude.ts';
+import { buildTelemetry, type ScriptEnvironment } from './telemetry.ts';
+
+export interface ScriptRunnerOptions extends ScriptEnvironment {
+	/** The vessel the script controls; scripts cannot address any other. */
+	vessel: number;
+	/** Wall-clock budget per tick, ms: all guest work (telemetry update, script, promise jobs). Default 10. */
+	budgetMs?: number;
+	/** Guest heap limit, bytes. Default 16 MiB. */
+	memoryLimitBytes?: number;
+	/** Guest stack limit, bytes. Default 256 KiB. */
+	maxStackBytes?: number;
+	/** Seed of the guest's `Math.random`. Default 1. */
+	seed?: number;
+	/** Wall clock in ms, used only by the budget. Default `Date.now`. */
+	now?: () => number;
+	/** Receives each `print()` line (also kept in `runner.logs`). */
+	onPrint?: (line: string) => void;
+}
+
+/**
+ * `running`: the script has not returned (it may be waiting). `finished`: it returned.
+ * `failed`: it threw (or did not compile). `terminated`: stopped by the host for exceeding the
+ * budget or the memory limit; the runtime is gone and the script cannot be resumed.
+ */
+export type ScriptStatus = 'running' | 'finished' | 'failed' | 'terminated';
+
+export interface TickResult {
+	/** Validated commands issued during this tick, in order. */
+	commands: Command[];
+	status: ScriptStatus;
+	/** Wall time spent in the guest during this tick, ms. */
+	elapsedMs: number;
+}
+
+export interface ScriptRunner {
+	readonly status: ScriptStatus;
+	/** Why the script `failed` or was `terminated`. */
+	readonly error: string | undefined;
+	/** `print()` output, oldest first (capped at the last 1000 lines). */
+	readonly logs: readonly string[];
+	/** Advance the script to `snapshot.t`. Call after every `sim.step` and dispatch the commands. */
+	tick(snapshot: Snapshot): TickResult;
+	/** Free the QuickJS runtime. Idempotent. */
+	dispose(): void;
+}
+
+const MAX_LOG_LINES = 1000;
+const MAX_LOG_CHARS = 1000;
+/** Promise jobs run per `executePendingJobs` call, so the budget is checked between batches. */
+const JOB_BATCH = 256;
+
+/** Raised by guest code, with the guest error's name and message. */
+class GuestError extends Error {
+	readonly guestName: string;
+	constructor(name: string, message: string, stack?: string) {
+		super(message);
+		this.guestName = name;
+		if (stack) this.stack = stack;
+	}
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+/** Build a runner for `source`, the body of an async function (so `await wait(1)` works at top level). */
+export async function createScriptRunner(
+	source: string,
+	options: ScriptRunnerOptions
+): Promise<ScriptRunner> {
+	const budgetMs = options.budgetMs ?? 10;
+	if (!(budgetMs > 0)) throw new Error('createScriptRunner: budgetMs must be > 0');
+	const now = options.now ?? Date.now;
+	const vessel = entityId(options.vessel);
+	const QuickJS = await getQuickJS();
+	const runtime: QuickJSRuntime = QuickJS.newRuntime();
+	runtime.setMemoryLimit(options.memoryLimitBytes ?? 16 * 1024 * 1024);
+	runtime.setMaxStackSize(options.maxStackBytes ?? 256 * 1024);
+	const context: QuickJSContext = runtime.newContext();
+
+	let deadline = Infinity;
+	runtime.setInterruptHandler(() => now() > deadline);
+
+	let status: ScriptStatus = 'running';
+	let error: string | undefined;
+	let started = false;
+	let disposed = false;
+	let pending: Command[] = [];
+	let lastThrottle: number | undefined;
+	let lastAttitude: string | undefined;
+	const logs: string[] = [];
+	const handles: QuickJSHandle[] = [];
+
+	const own = (h: QuickJSHandle): QuickJSHandle => {
+		handles.push(h);
+		return h;
+	};
+
+	/** Call a guest function; a guest exception becomes a GuestError. Returns the dumped value. */
+	function call(fn: QuickJSHandle, ...args: QuickJSHandle[]): unknown {
+		const result = context.callFunction(fn, context.undefined, ...args);
+		if (result.error) {
+			const e = context.dump(result.error) as unknown;
+			result.error.dispose();
+			throw toGuestError(e);
+		}
+		const value = context.dump(result.value) as unknown;
+		result.value.dispose();
+		return value;
+	}
+
+	function toGuestError(e: unknown): GuestError {
+		if (isRecord(e)) {
+			return new GuestError(
+				String(e.name ?? 'Error'),
+				String(e.message ?? ''),
+				typeof e.stack === 'string' ? e.stack : undefined
+			);
+		}
+		return new GuestError('Error', String(e));
+	}
+
+	/**
+	 * Host side of `cmd(kind, json)`. Builds the command from named fields only (the vessel is
+	 * fixed by the runner) and validates it with core's `commandSchema`; a bad value throws into
+	 * the script, so the script sees a normal exception and nothing invalid reaches the sim.
+	 */
+	function issue(kind: string, payload: string): void {
+		let p: unknown;
+		try {
+			p = JSON.parse(payload);
+		} catch {
+			throw new Error('invalid command payload');
+		}
+		if (!isRecord(p)) throw new Error('invalid command payload');
+		let candidate: unknown;
+		switch (kind) {
+			case 'throttle':
+				candidate = { type: 'throttle', vessel, value: p.value };
+				break;
+			case 'attitude':
+				candidate = { type: 'attitude', vessel, pitch: p.pitch, yaw: p.yaw, roll: p.roll };
+				break;
+			case 'stage':
+				candidate = { type: 'stage', vessel };
+				break;
+			case 'action':
+				candidate = {
+					type: 'action',
+					vessel,
+					part: p.part,
+					module: p.module,
+					action: p.action,
+					args: p.args
+				};
+				break;
+			default:
+				throw new Error(`unknown command "${kind}"`);
+		}
+		const parsed = commandSchema.safeParse(candidate);
+		if (!parsed.success) {
+			throw new RangeError(`${kind}: ${parsed.error.issues.map((i) => i.message).join('; ')}`);
+		}
+		const command = parsed.data;
+		// A repeated setpoint is not news: one tick of `ship.throttle = 1` loops costs no commands.
+		if (command.type === 'throttle') {
+			if (command.value === lastThrottle) return;
+			lastThrottle = command.value;
+		} else if (command.type === 'attitude') {
+			const key = `${command.pitch},${command.yaw},${command.roll}`;
+			if (key === lastAttitude) return;
+			lastAttitude = key;
+		}
+		pending.push(command);
+	}
+
+	function print(line: string): void {
+		const clipped = line.length > MAX_LOG_CHARS ? line.slice(0, MAX_LOG_CHARS) + '...' : line;
+		logs.push(clipped);
+		if (logs.length > MAX_LOG_LINES) logs.shift();
+		options.onPrint?.(clipped);
+	}
+
+	/** Classify a guest error: resource exhaustion terminates, anything else is a script failure. */
+	function settle(e: GuestError): void {
+		if (e.guestName === 'InternalError' && e.message === 'interrupted') {
+			stop('terminated', `time budget exceeded (${budgetMs} ms per tick)`);
+		} else if (e.guestName === 'InternalError' && /out of memory/i.test(e.message)) {
+			stop('terminated', 'memory limit exceeded');
+		} else {
+			const frames = (e.stack ?? '').split('\n').slice(0, 12).join('\n');
+			stop('failed', `${e.guestName}: ${e.message}${frames ? '\n' + frames : ''}`);
+		}
+	}
+
+	const current = (): ScriptStatus => status;
+
+	function stop(next: ScriptStatus, why: string): void {
+		status = next;
+		error = why;
+	}
+
+	// ---- boot: host object, prelude ------------------------------------------------------
+	const host = own(context.newObject());
+	const bind = (name: string, fn: (...args: QuickJSHandle[]) => void): void => {
+		const h = context.newFunction(name, fn);
+		context.setProp(host, name, h);
+		h.dispose();
+	};
+	bind('cmd', (kind, payload) => issue(context.getString(kind), context.getString(payload)));
+	bind('print', (line) => print(context.getString(line)));
+	bind('done', (ok, name, message, stack) => {
+		if (context.dump(ok) === true) status = 'finished';
+		else
+			settle(
+				new GuestError(
+					context.getString(name),
+					context.getString(message),
+					context.getString(stack)
+				)
+			);
+	});
+
+	const preludeResult = context.evalCode(PRELUDE, 'prelude.js');
+	const prelude = own(context.unwrapResult(preludeResult));
+	const seed = context.newNumber(options.seed ?? 1);
+	const apiResult = context.callFunction(prelude, context.undefined, host, seed);
+	seed.dispose();
+	const api = own(context.unwrapResult(apiResult));
+	const update = own(context.getProp(api, 'update'));
+	const start = own(context.getProp(api, 'start'));
+
+	function dispose(): void {
+		if (disposed) return;
+		disposed = true;
+		for (const h of handles) if (h.alive) h.dispose();
+		context.dispose();
+		runtime.dispose();
+	}
+
+	/** Run promise jobs until none are left, checking the budget between batches. */
+	function pump(): void {
+		for (;;) {
+			const result = runtime.executePendingJobs(JOB_BATCH);
+			if (result.error) {
+				const e = context.dump(result.error) as unknown;
+				result.error.dispose();
+				throw toGuestError(e);
+			}
+			if (result.value === 0) return;
+			if (now() > deadline) throw new GuestError('InternalError', 'interrupted');
+		}
+	}
+
+	function runTick(snapshot: Snapshot): void {
+		const json = JSON.stringify(buildTelemetry(snapshot, options.vessel, options));
+		const arg = context.newString(json);
+		try {
+			call(update, arg);
+		} finally {
+			arg.dispose();
+		}
+		if (!started) {
+			started = true;
+			const wrapped = `(async function () {\n'use strict';\n${source}\n})`;
+			const compiled = context.evalCode(wrapped, 'script.js');
+			if (compiled.error) {
+				const e = context.dump(compiled.error) as unknown;
+				compiled.error.dispose();
+				throw toGuestError(e);
+			}
+			const fn = own(compiled.value);
+			call(start, fn);
+		}
+		pump();
+	}
+
+	return {
+		get status() {
+			return status;
+		},
+		get error() {
+			return error;
+		},
+		get logs() {
+			return logs;
+		},
+		tick(snapshot) {
+			if (disposed || status !== 'running') {
+				return { commands: [], status, elapsedMs: 0 };
+			}
+			const began = now();
+			deadline = began + budgetMs;
+			pending = [];
+			try {
+				runTick(snapshot);
+			} catch (e) {
+				if (e instanceof GuestError) {
+					settle(e);
+				} else {
+					// Host-side failure (bad snapshot, vessel gone): not the script's fault, rethrow.
+					dispose();
+					throw e;
+				}
+			}
+			deadline = Infinity;
+			const elapsedMs = now() - began;
+			if (current() !== 'running') dispose();
+			const commands = pending;
+			pending = [];
+			return { commands, status: current(), elapsedMs };
+		},
+		dispose
+	};
+}

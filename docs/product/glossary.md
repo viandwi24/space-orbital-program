@@ -41,3 +41,6 @@ Use these terms consistently in code, docs, and UI.
 | **Impact tolerance** | `PartDefinition.impactTolerance`, m/s: ground impact speed above which a part breaks off (above twice: destroyed). |
 | **Module colliders** | `ModuleDefinition.colliders`: extra collision boxes a module adds to its part for its current state (landing-leg feet). |
 | **Vessel design** | The JSON a VAB saves: flat part list with parent links plus `stages` (`VesselDesign`, ADR 0016). |
+| **Script** | Untrusted player JavaScript (an async function body) run by `@orbital/scripting` against the `ship` API; sees telemetry copies, issues validated commands (ADR 0020). |
+| **Script budget** | Wall-clock ms of guest execution allowed per sim tick (default 10); exceeding it terminates the script. |
+| **Script runner** | `createScriptRunner(source, options)`: one QuickJS runtime per script; `tick(snapshot)` returns the commands to dispatch. |

@@ -1,0 +1,27 @@
+{
+	"name": "@orbital/scripting",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Scripting sandbox: untrusted player scripts run in QuickJS (WASM) with a limited ship API, a per-tick time budget and validated commands. Runs in Bun, a Worker or the main thread.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"quickjs-emscripten": "^0.32.0"
+	},
+	"devDependencies": {
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/physics": "workspace:*",
+		"@orbital/sdk": "workspace:*",
+		"@orbital/sim": "workspace:*",
+		"@types/bun": "latest",
+		"typescript": "catalog:"
+	}
+}

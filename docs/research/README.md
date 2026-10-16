@@ -10,6 +10,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `three.md` — the Three.js surface `@orbital/renderer` uses: renderer options, log depth, `Line2`, camera (plan 008).
 - `atmosphere.md` — ISA sea-level constants behind the sim density, zod 4 number validation (plan 007).
 - `web-client.md` — Vite worker import, Rapier in a module worker, SvelteKit page options, Svelte 5 runes, vitest config (plan 009).
+- `scripting.md` — Worker vs QuickJS-WASM vs ShadowRealm for the scripting sandbox; `quickjs-emscripten` API and measured interrupt latency (plan 010).
 - Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
 
 When an entry is older than ~3 months or a major version behind, re-verify before relying on it.
