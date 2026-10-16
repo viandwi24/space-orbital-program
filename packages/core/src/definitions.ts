@@ -153,6 +153,14 @@ export interface ModuleCollider {
 	halfExtents: Vec3;
 }
 
+/** Heat the airflow delivers to a part this step (what `ModuleDefinition.absorbHeat` receives). */
+export interface HeatLoad {
+	/** Convective power on the part, W. */
+	readonly power: number;
+	/** The part's current skin temperature, K. */
+	readonly temperature: number;
+}
+
 /**
  * Module: reusable behaviour with a config schema and serializable state. Behaviour is functions
  * on the definition; state is plain data held in the world (ADR 0010, boundaries.md).
@@ -191,6 +199,13 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * when the result changed. Must be a pure function of config and state (ADR 0019).
 	 */
 	colliders?: Bivariant<(config: Out, state: State) => readonly ModuleCollider[]>;
+	/**
+	 * Re-entry heating (plan 014, ADR 0023). Called every flight step in which the airflow puts power
+	 * on the part, before the skin is warmed. Return the power in W the module carries away (an
+	 * ablating shield burning its ablator); it is clamped to `0..heat.power`. The hook may change
+	 * `ctx.state`.
+	 */
+	absorbHeat?: Bivariant<(ctx: ModuleContext<Out, State>, heat: HeatLoad, dt: number) => number>;
 	/** The JSON-compatible view of `state` that snapshots expose to the UI. */
 	snapshot?: Bivariant<(state: State) => unknown>;
 }

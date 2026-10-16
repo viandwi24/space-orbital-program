@@ -66,6 +66,7 @@ export type {
 	BodyId,
 	EntityId,
 	EventBus,
+	HeatLoad,
 	LoadOptions,
 	LoadReport,
 	LoadResult,

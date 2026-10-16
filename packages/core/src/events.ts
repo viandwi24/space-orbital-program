@@ -18,9 +18,12 @@ export interface EventMap {
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**
-	 * A part hit the ground faster than its `impactTolerance` (plan 012, ADR 0019): `broken` = cut
-	 * off and flying on as debris, `destroyed` = removed from the world. `vessel` is the vessel the
-	 * part belonged to when it hit; `speed` is the closing speed in m/s.
+	 * A part was lost. `cause: 'impact'` (plan 012, ADR 0019): it hit the ground faster than its
+	 * `impactTolerance`; `speed` is the closing speed in m/s and `broken` = cut off and flying on as
+	 * debris, `destroyed` = removed from the world. `cause: 'overheat'` (plan 014, ADR 0023): its
+	 * skin went above `maxTemperature` (`temperature`, K); `speed` is its airspeed and the outcome is
+	 * always `destroyed`. `vessel` is the vessel the part belonged to at the time. Absent `cause`
+	 * means `impact` (events from before API 0.1.4).
 	 */
 	'part:damaged': {
 		vessel: EntityId;
@@ -28,6 +31,8 @@ export interface EventMap {
 		definition: string;
 		speed: number;
 		outcome: 'broken' | 'destroyed';
+		cause?: 'impact' | 'overheat';
+		temperature?: number;
 	};
 }
 

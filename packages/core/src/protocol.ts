@@ -22,6 +22,8 @@ export interface PartSnapshot {
 	orientation: Quat;
 	/** Per-module UI state keyed by module id (output of each module's `snapshot`). */
 	modules: Record<string, unknown>;
+	/** Skin temperature, K (plan 014). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	temperature?: number;
 }
 
 export interface VesselSnapshot {

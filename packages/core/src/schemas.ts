@@ -86,6 +86,11 @@ export const partDefinitionSchema = z.object({
 	 * off; above twice this it is destroyed (ADR 0019). The sim assumes 6 when absent.
 	 */
 	impactTolerance: z.number().positive().optional(),
+	/**
+	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); the sim
+	 * assumes 1000 when absent.
+	 */
+	maxTemperature: z.number().positive().optional(),
 	attach: z.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple })).optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.
