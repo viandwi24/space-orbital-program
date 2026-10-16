@@ -317,3 +317,36 @@ defineModule({
 		deposit: () => 0
 	}
 });
+
+// ---- module descriptors (ADR 0033) -----------------------------------------------------------
+{
+	const drive = defineModule({
+		id: 'test.drive',
+		config: z.object({ flow: z.number().default(1) }),
+		state: () => ({ lit: false }),
+		// config is the parsed output, state is the module's state; the result is a ModuleInfo.
+		describe(config, state) {
+			assertType<Equal<typeof config, { flow: number }>>();
+			assertType<Equal<typeof state, { lit: boolean }>>();
+			return {
+				engine: {
+					massFlow: config.flow,
+					thrust: [{ pressure: 0, thrust: 1 }],
+					propellants: [{ resource: 'test.uranium', ratio: 1 }],
+					ignited: state.lit,
+					flameout: false
+				}
+			};
+		}
+	});
+	void drive;
+	defineModule({
+		id: 'test.bad-drive',
+		// @ts-expect-error `massFlow` must be a number
+		describe: () => ({ engine: { massFlow: 'fast' } })
+	});
+	defineModule({
+		id: 'test.clamp',
+		describe: () => ({ separator: { node: 'bottom', done: false } })
+	});
+}

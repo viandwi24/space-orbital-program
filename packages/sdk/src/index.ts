@@ -12,10 +12,13 @@ export * as z from 'zod';
 
 export {
 	API_VERSION,
+	describeModule,
 	loadPlugins,
 	parseModuleConfig,
 	PluginError,
-	RegistryError
+	RegistryError,
+	SEA_LEVEL_PRESSURE,
+	thrustAtPressure
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
 
@@ -56,6 +59,7 @@ export {
 	partDefinitionSchema,
 	partShapeSchema,
 	partVisualSchema,
+	moduleInfoSchema,
 	resourceDefinitionSchema,
 	bodyDefinitionSchema
 } from '@orbital/core';
@@ -67,6 +71,7 @@ export type {
 	BodyId,
 	EntityId,
 	EventBus,
+	EngineInfo,
 	HeatLoad,
 	LoadOptions,
 	LoadReport,
@@ -75,6 +80,7 @@ export type {
 	ModuleContext,
 	ModuleDefinition,
 	ModuleId,
+	ModuleInfo,
 	PartDefinition,
 	PartId,
 	PartShape,
@@ -93,6 +99,7 @@ export type {
 	ResourceId,
 	ResourceStore,
 	Rng,
+	SeparatorInfo,
 	SystemContext,
 	SystemDefinition,
 	SystemId,

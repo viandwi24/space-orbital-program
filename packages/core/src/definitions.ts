@@ -12,6 +12,7 @@ import type { Registry } from './registry.ts';
 import type { World } from './world.ts';
 import type {
 	bodyDefinitionSchema,
+	moduleInfoSchema,
 	partDefinitionSchema,
 	partShapeSchema,
 	partVisualSchema,
@@ -24,6 +25,10 @@ export type BodyDefinition = z.infer<typeof bodyDefinitionSchema>;
 export type PartDefinition = z.infer<typeof partDefinitionSchema>;
 export type PartShape = z.infer<typeof partShapeSchema>;
 export type PartVisual = z.infer<typeof partVisualSchema>;
+/** What a module tells tools about itself (`ModuleDefinition.describe`, ADR 0033). */
+export type ModuleInfo = z.infer<typeof moduleInfoSchema>;
+export type EngineInfo = NonNullable<ModuleInfo['engine']>;
+export type SeparatorInfo = NonNullable<ModuleInfo['separator']>;
 
 /**
  * Open interface: plugins map a resource id to extra info by module augmentation
@@ -208,6 +213,14 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * `ctx.state`.
 	 */
 	absorbHeat?: Bivariant<(ctx: ModuleContext<Out, State>, heat: HeatLoad, dt: number) => number>;
+	/**
+	 * What the module does, for tools that predict the sim without running it (stage delta-v in the
+	 * HUD and the VAB; ADR 0033): an engine's mass flow, thrust curve and propellants, or the attach
+	 * node a separator severs. Pure. `state` is the fresh `state(config)` for a design and the
+	 * module's `snapshot` view for a live vessel, so read only fields `snapshot` exposes. Tools call it
+	 * through `describeModule`, which validates the result against `moduleInfoSchema`.
+	 */
+	describe?: Bivariant<(config: Out, state: State) => ModuleInfo>;
 	/** The JSON-compatible view of `state` that snapshots expose to the UI. */
 	snapshot?: Bivariant<(state: State) => unknown>;
 }

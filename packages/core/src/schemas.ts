@@ -136,3 +136,46 @@ export const partDefinitionSchema = z.object({
 	modules: z.array(z.tuple([definitionIdSchema, z.unknown()])).optional(),
 	stagingIcon: z.string().optional()
 });
+
+/**
+ * What a module tells tools about itself (ADR 0033): the result of `ModuleDefinition.describe`.
+ * Plain data, validated when a tool reads it. Pressure in Pa, thrust in N, flow in kg/s.
+ */
+export const moduleInfoSchema = z.object({
+	/** The module is an engine. */
+	engine: z
+		.object({
+			/** Propellant mass flow at full throttle, kg/s. Does not change with ambient pressure. */
+			massFlow: z.number().positive(),
+			/**
+			 * Thrust at full throttle over ambient pressure: piecewise linear, ascending pressure, first
+			 * point at 0 Pa (vacuum), clamped beyond the ends.
+			 */
+			thrust: z
+				.array(z.object({ pressure: z.number().nonnegative(), thrust: z.number().positive() }))
+				.min(1)
+				.refine((c) => c[0]?.pressure === 0, 'the first thrust point must be at 0 Pa (vacuum)')
+				.refine(
+					(c) => c.every((p, i) => i === 0 || p.pressure > c[i - 1]!.pressure),
+					'thrust points must have strictly ascending pressure'
+				),
+			/** Consumed resources; `ratio` is relative volume (units), as in the draw rule of ADR 0015. */
+			propellants: z
+				.array(z.object({ resource: definitionIdSchema, ratio: z.number().positive() }))
+				.min(1),
+			/** Burning now (or, for a design, false). */
+			ignited: z.boolean(),
+			/** Shut down because propellant ran short. */
+			flameout: z.boolean()
+		})
+		.optional(),
+	/** The module severs an attachment when its stage fires. */
+	separator: z
+		.object({
+			/** The attach node of this part the module passes to `vessel.detach`. */
+			node: z.string().min(1),
+			/** Already fired. */
+			done: z.boolean()
+		})
+		.optional()
+});
