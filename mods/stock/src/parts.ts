@@ -3,6 +3,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
@@ -217,4 +218,114 @@ export const PartHeatShield = definePart({
 	crossfeed: false,
 	modules: [[ModuleHeatShield, {}]],
 	stagingIcon: 'shield'
+});
+
+/** Radius of the radial booster and the nose cone that caps it, m. */
+const BOOSTER_RADIUS = 0.4;
+
+/**
+ * A plate that bolts to the side of a stack part (radial attachment, ADR 0034) and carries a
+ * booster on its `outer` face. Staged, it fires the `radial` link: it leaves with the booster.
+ * Boosters are staged with symmetric copies, so the pushes cancel.
+ */
+export const PartRadialDecoupler = definePart({
+	id: 'stock.radial-decoupler',
+	title: 'Radial Decoupler',
+	mass: kg(40),
+	impactTolerance: 8,
+	maxTemperature: 1000,
+	shape: { kind: 'box', size: [0.2, 0.6, 0.45] },
+	visual: {
+		kind: 'radial-decoupler',
+		palette: { primary: '#3b4047', accent: '#e3a61f' }
+	},
+	attach: {
+		radial: { pos: [-0.1, 0, 0], dir: [-1, 0, 0] },
+		outer: { pos: [0.1, 0, 0], dir: [1, 0, 0] }
+	},
+	crossfeed: false,
+	modules: [[ModuleDecoupler, { separates: 'radial', ejectionImpulse: 4_000 }]],
+	stagingIcon: 'decoupler'
+});
+
+/**
+ * A side booster: a tank and an engine in one part, 3.2 m tall. It feeds only its own engine
+ * (`crossfeed: false`), hangs on a radial decoupler's `outer` node or straight on a stack part's
+ * side, and can be capped with a nose cone.
+ */
+export const PartBooster = definePart({
+	id: 'stock.booster',
+	title: 'BST-1 Booster',
+	mass: kg(450),
+	impactTolerance: 5,
+	maxTemperature: 1500,
+	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 3.2 },
+	visual: {
+		kind: 'booster',
+		palette: { primary: '#ecebe6', secondary: '#23272d', accent: '#d9552b' },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -1.6, 0],
+			exitRadius: 0.3,
+			length: 6,
+			exitPressure: 90_000
+		}
+	},
+	attach: {
+		top: { pos: [0, 1.6, 0], dir: [0, 1, 0] },
+		radial: { pos: [-BOOSTER_RADIUS, 0, 0], dir: [-1, 0, 0] }
+	},
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 150_000,
+				ispVacuum: 270,
+				ispSeaLevel: 250,
+				propellants: [
+					{ resource: LiquidFuel.id, ratio: 0.9 },
+					{ resource: Oxidizer.id, ratio: 1.1 }
+				]
+			}
+		],
+		[
+			ModuleResourceContainer,
+			{ contents: { [LiquidFuel.id]: { capacity: 220 }, [Oxidizer.id]: { capacity: 270 } } }
+		]
+	],
+	stagingIcon: 'engine'
+});
+
+/** A cone for the top of a booster. Less drag than a flat cap (`dragCoefficient`). */
+export const PartNoseCone = definePart({
+	id: 'stock.nose-cone',
+	title: 'Nose Cone',
+	mass: kg(25),
+	impactTolerance: 6,
+	maxTemperature: 1200,
+	dragCoefficient: 0.12,
+	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 0.9 },
+	visual: { kind: 'nose-cone', palette: { primary: '#d9552b', secondary: '#23272d' } },
+	attach: { bottom: { pos: [0, -0.45, 0], dir: [0, -1, 0] } },
+	crossfeed: false,
+	stagingIcon: 'part'
+});
+
+/**
+ * A fixed fin, 0.9 m span, 1.5 m chord, attached radially (span outwards). Four of them near the
+ * bottom of a rocket move its centre of pressure behind the centre of mass (ADR 0035).
+ */
+export const PartFin = definePart({
+	id: 'stock.fin',
+	title: 'Fin',
+	mass: kg(30),
+	impactTolerance: 4,
+	maxTemperature: 1000,
+	shape: { kind: 'box', size: [0.9, 1.5, 0.06] },
+	visual: { kind: 'fin', palette: { primary: '#d5d8dc', secondary: '#23272d', accent: '#d9552b' } },
+	attach: { radial: { pos: [-0.45, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [[ModuleFin, { area: 1.6, liftSlope: 2, crossflow: 1.2, centre: [0.25, -0.1, 0] }]],
+	stagingIcon: 'part'
 });

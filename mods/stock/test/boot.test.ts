@@ -19,17 +19,22 @@ describe('stock boots through the loader', () => {
 			'stock.command',
 			'stock.decoupler',
 			'stock.engine',
+			'stock.fin',
 			'stock.heat-shield',
 			'stock.landing-leg',
 			'stock.reaction-wheel',
 			'stock.resource-container'
 		]);
 		expect(ids('part')).toEqual([
+			'stock.booster',
 			'stock.command-pod',
 			'stock.decoupler',
 			'stock.engine-lv',
+			'stock.fin',
 			'stock.heat-shield',
 			'stock.landing-legs',
+			'stock.nose-cone',
+			'stock.radial-decoupler',
 			'stock.reaction-wheel',
 			'stock.tank-medium',
 			'stock.tank-small'
@@ -76,9 +81,17 @@ describe('stock boots through the loader', () => {
 		);
 	});
 
-	test('every part has a shape and stack attach nodes along local Y', () => {
+	test('every part has a shape; stack parts have top and bottom nodes along local Y', () => {
+		// Radial hardware (ADR 0034) and the cone have their own node sets, checked below.
+		const special = new Set([
+			'stock.radial-decoupler',
+			'stock.booster',
+			'stock.nose-cone',
+			'stock.fin'
+		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();
+			if (special.has(part.id)) continue;
 			expect(Object.keys(part.attach ?? {}).sort(), part.id).toEqual(['bottom', 'top']);
 			const { top, bottom } = part.attach ?? {};
 			expect(top?.dir).toEqual([0, 1, 0]);
@@ -88,6 +101,22 @@ describe('stock boots through the loader', () => {
 				expect(bottom?.pos[1], part.id).toBeCloseTo(-part.shape.height / 2, 12);
 			}
 		}
+	});
+
+	test('radial hardware: horizontal radial nodes on the shape face, booster top node, cone bottom', () => {
+		const get = (id: string) => registries.parts.get(id)!;
+		for (const id of ['stock.radial-decoupler', 'stock.booster', 'stock.fin']) {
+			const radial = get(id).attach!.radial!;
+			expect(radial.dir, id).toEqual([-1, 0, 0]);
+			expect(radial.pos[1]).toBe(0);
+			const shape = get(id).shape!;
+			const half = shape.kind === 'box' ? shape.size[0] / 2 : shape.radius;
+			expect(radial.pos[0], id).toBeCloseTo(-half, 12);
+		}
+		expect(get('stock.radial-decoupler').attach!.outer!.dir).toEqual([1, 0, 0]);
+		expect(get('stock.booster').attach!.top!.pos[1]).toBeCloseTo(1.6, 12);
+		expect(Object.keys(get('stock.nose-cone').attach!)).toEqual(['bottom']);
+		expect(get('stock.nose-cone').dragCoefficient).toBeLessThan(0.3);
 	});
 
 	test('home body matches the plan numbers', () => {

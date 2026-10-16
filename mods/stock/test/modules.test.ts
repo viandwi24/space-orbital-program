@@ -4,6 +4,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
@@ -12,6 +13,8 @@ import {
 	deposit,
 	engineConfigSchema,
 	engineOutput,
+	finConfigSchema,
+	finNormalForce,
 	ispAt,
 	landingLegColliders,
 	propellantRates,
@@ -374,5 +377,48 @@ describe('module descriptors (ADR 0033)', () => {
 			describeModule(ModuleDecoupler, { separates: 'bottom' }, { decoupled: true })?.separator
 		).toEqual({ node: 'bottom', done: true });
 		expect(describeModule(ModuleResourceContainer, { contents: {} })).toBeUndefined();
+	});
+});
+
+describe('stock.fin (ADR 0035)', () => {
+	const config = finConfigSchema.parse({ area: 2, liftSlope: 2, crossflow: 1.2 });
+
+	test('small angle: the force is the linear lift slope, -1/2 rho S C_La |v_p| v_n', () => {
+		const rho = 1.2;
+		const v = { x: 0, y: -100, z: 2 }; // 100 m/s along the chord, 2 m/s through the plate
+		const speed = Math.hypot(100, 2);
+		const expected =
+			-0.5 * rho * speed * speed * 2 * (2 * (2 / speed) * (100 / speed) + 1.2 * (2 / speed) ** 2);
+		expect(finNormalForce(config, v, rho)).toBeCloseTo(expected, 9);
+		expect(finNormalForce(config, v, rho) / (-0.5 * rho * 2 * 2 * 100 * 2)).toBeCloseTo(1, 1);
+	});
+
+	test('no flow, no air and a flow in the plate plane give no force; the sign opposes the through-flow', () => {
+		expect(finNormalForce(config, { x: 0, y: 0, z: 0 }, 1)).toBe(0);
+		expect(finNormalForce(config, { x: 0, y: -50, z: 3 }, 0)).toBe(0);
+		expect(finNormalForce(config, { x: 30, y: -50, z: 0 }, 1)).toBeCloseTo(0, 12);
+		expect(finNormalForce(config, { x: 0, y: -50, z: 3 }, 1)).toBeLessThan(0);
+		expect(finNormalForce(config, { x: 0, y: -50, z: -3 }, 1)).toBeGreaterThan(0);
+	});
+
+	test('broadside the plate stalls: the force is the cross-flow coefficient only', () => {
+		const f = finNormalForce(config, { x: 0, y: 0, z: 40 }, 1);
+		expect(f).toBeCloseTo(-0.5 * 1 * 40 * 40 * 2 * 1.2, 9);
+	});
+
+	test('update pushes along local Z at the centre of pressure, and nothing in vacuum', () => {
+		const vessel = fakeVessel();
+		vessel.ambient.density = 1;
+		vessel.air = { x: 0, y: -80, z: 4 };
+		const ctx = contextFor(ModuleFin, { area: 2, centre: [0.25, -0.1, 0] }, vessel);
+		ModuleFin.update!(ctx, 0.02);
+		expect(vessel.forces).toHaveLength(1);
+		expect(vessel.forces[0]!.point).toEqual({ x: 0.25, y: -0.1, z: 0 });
+		expect(vessel.forces[0]!.force.x).toBe(0);
+		expect(vessel.forces[0]!.force.z).toBeLessThan(0);
+		vessel.forces.length = 0;
+		vessel.ambient.density = 0;
+		ModuleFin.update!(ctx, 0.02);
+		expect(vessel.forces).toHaveLength(0);
 	});
 });

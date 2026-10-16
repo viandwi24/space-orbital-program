@@ -9,6 +9,7 @@ import {
 	ModuleCommand,
 	ModuleDecoupler,
 	ModuleEngine,
+	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
@@ -17,11 +18,15 @@ import {
 	withdraw
 } from './modules.ts';
 import {
+	PartBooster,
 	PartCommandPod,
 	PartDecoupler,
 	PartEngineLV,
+	PartFin,
 	PartHeatShield,
 	PartLandingLegs,
+	PartNoseCone,
+	PartRadialDecoupler,
 	PartReactionWheel,
 	PartTankMedium,
 	PartTankSmall
@@ -47,6 +52,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleReactionWheel);
 		ctx.modules.register(ModuleLandingLeg);
 		ctx.modules.register(ModuleHeatShield);
+		ctx.modules.register(ModuleFin);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -56,6 +62,10 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartDecoupler);
 		ctx.parts.register(PartLandingLegs);
 		ctx.parts.register(PartHeatShield);
+		ctx.parts.register(PartRadialDecoupler);
+		ctx.parts.register(PartBooster);
+		ctx.parts.register(PartNoseCone);
+		ctx.parts.register(PartFin);
 
 		ctx.bodies.register(HomeBody);
 

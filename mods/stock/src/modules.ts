@@ -4,7 +4,7 @@
  * capability API every mod gets (ADR 0015); the arithmetic lives in `engine.ts` and below, so it is
  * written once. See docs/guides/writing-a-mod.md.
  */
-import { defineModule, z, type EntityId } from '@orbital/sdk';
+import { defineModule, z, type EntityId, type Vec3 } from '@orbital/sdk';
 import { G0, SEA_LEVEL_PRESSURE, engineOutput, ispAt, propellantRates } from './engine.ts';
 import { Ablator, ElectricCharge } from './resources.ts';
 
@@ -227,7 +227,7 @@ export const ModuleEngine = defineModule({
 
 export const decouplerConfigSchema = z.object({
 	/** Which attach node is severed: the part attached there leaves with its subtree. */
-	separates: z.enum(['top', 'bottom']).default('top'),
+	separates: z.enum(['top', 'bottom', 'radial']).default('top'),
 	/** Total impulse pushing the two halves apart, N·s (split by the sim, equal and opposite). */
 	ejectionImpulse: z.number().nonnegative().default(2_000)
 });
@@ -433,4 +433,54 @@ export const ModuleHeatShield = defineModule({
 		return absorbed;
 	},
 	snapshot: (state) => ({ ablator: state.ablator })
+});
+
+// ---------------------------------------------------------------------------------------------
+// Fin
+// ---------------------------------------------------------------------------------------------
+
+export const finConfigSchema = z.object({
+	/** Planform area of the plate, m². */
+	area: z.number().positive(),
+	/** Lift-curve slope per radian at small angles of attack (thin plate: 2π; a low aspect ratio fin has less). */
+	liftSlope: z.number().positive().default(2),
+	/** Normal-force coefficient of the plate broadside to the flow (stall). */
+	crossflow: z.number().positive().default(1.2),
+	/** Centre of pressure in the part frame, m. */
+	centre: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0])
+});
+export type FinConfig = z.output<typeof finConfigSchema>;
+
+/**
+ * Force along the plate normal (local Z) for the air velocity `v` of the plate, part frame, in
+ * density `rho` (ADR 0035): `-1/2 rho V² S (liftSlope sin a cos a + crossflow sin a |sin a|)`, `a`
+ * being the angle between the flow and the plate plane.
+ */
+export function finNormalForce(config: FinConfig, v: Vec3, rho: number): number {
+	const speed = Math.hypot(v.x, v.y, v.z);
+	if (speed === 0 || rho === 0) return 0;
+	const sinA = v.z / speed;
+	const cosA = Math.hypot(v.x, v.y) / speed;
+	const cn = config.liftSlope * sinA * cosA + config.crossflow * sinA * Math.abs(sinA);
+	return -0.5 * rho * speed * speed * config.area * cn;
+}
+
+/**
+ * A fixed fin: a flat plate in the part's X-Y plane (span along X, chord along Y) whose normal
+ * force pushes the rocket back towards its velocity vector when the fins sit behind the centre of
+ * mass. It reads the airflow at its centre of pressure (`vessel.airVelocity`, which includes the
+ * vessel's rotation, so fins damp rotation too).
+ */
+export const ModuleFin = defineModule({
+	id: 'stock.fin',
+	config: finConfigSchema,
+	state: (): Record<string, never> => ({}),
+	update(ctx) {
+		const { config, vessel } = ctx;
+		const rho = vessel.ambient.density;
+		if (rho === 0) return;
+		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
+		const force = finNormalForce(config, vessel.airVelocity(at), rho);
+		if (force !== 0) vessel.applyForce({ x: 0, y: 0, z: force }, at);
+	}
 });

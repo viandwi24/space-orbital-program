@@ -10,6 +10,10 @@ const KINDS = [
 	'reaction-wheel',
 	'landing-legs',
 	'heat-shield',
+	'radial-decoupler',
+	'booster',
+	'nose-cone',
+	'fin',
 	'plain'
 ];
 
@@ -20,7 +24,7 @@ describe('stock part visuals (ADR 0028)', () => {
 		for (const p of parts()) {
 			expect(p.visual, p.id).toBeDefined();
 			expect(KINDS).toContain(p.visual!.kind);
-			expect(p.shape?.kind, p.id).toBe('cylinder');
+			expect(['cylinder', 'box'], p.id).toContain(p.shape?.kind ?? '');
 		}
 	});
 

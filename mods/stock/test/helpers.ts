@@ -46,6 +46,8 @@ export interface FakeVessel extends VesselApi {
 	forces: Array<{ force: Vec3; point?: Vec3 }>;
 	torques: Vec3[];
 	detached: Array<{ node: string; impulse?: number }>;
+	/** What `airVelocity` returns, part frame. */
+	air: Vec3;
 }
 
 export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
@@ -57,8 +59,12 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		forces: [],
 		torques: [],
 		detached: [],
+		air: { x: 0, y: 0, z: 0 },
 		applyForce(force, point) {
 			v.forces.push(point ? { force, point } : { force });
+		},
+		airVelocity() {
+			return v.air;
 		},
 		applyTorque(torque) {
 			v.torques.push(torque);
