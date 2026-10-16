@@ -48,6 +48,22 @@ export class OrbitLine {
 		this.object.visible = true;
 	}
 
+	/** Draws the given points (relative to the object's position) instead of an orbit; `[]` hides the line. */
+	setPoints(points: readonly Vec3[]): void {
+		this.key = 'points';
+		if (points.length < 2) {
+			this.object.visible = false;
+			return;
+		}
+		const flat: number[] = [];
+		for (const p of points) flat.push(p.x, p.y, p.z);
+		this.object.geometry.dispose();
+		const geometry = new LineGeometry();
+		geometry.setPositions(flat);
+		this.object.geometry = geometry;
+		this.object.visible = true;
+	}
+
 	/** `LineMaterial.linewidth` is in pixels and needs the viewport size. */
 	setResolution(width: number, height: number): void {
 		this.material.resolution.set(width, height);

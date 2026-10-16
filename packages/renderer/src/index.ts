@@ -17,6 +17,8 @@ export * from './sun.ts';
 export * from './atmosphere-model.ts';
 export * from './camera-presets.ts';
 export { Environment } from './environment.ts';
+export * from './moon-model.ts';
+export { MoonPass } from './moon.ts';
 export * from './parts/index.ts';
 export * from './effects/plume.ts';
 export * from './effects/glow.ts';

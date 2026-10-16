@@ -67,6 +67,11 @@ export interface EnvironmentFrameInput {
 	mapView: boolean;
 	/** Wall-clock seconds since the last call (clouds, exposure adaptation). */
 	dt: number;
+	/**
+	 * Local vertical (inertial, unit) to take the sun's elevation, the exposure and the shadow from,
+	 * instead of the radial of this body: a camera on a moon (ADR 0054).
+	 */
+	up?: Vec3;
 }
 
 export interface EnvironmentState {
@@ -225,7 +230,8 @@ export class Environment {
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
 		const sun = this.sunDirection(bodyRotation);
 		const sunBF = rotateInverse(bodyRotation, sun);
-		const elev = sunElevation(sun, frame.up);
+		const up = input.up ?? frame.up;
+		const elev = sunElevation(sun, up);
 		const elevDeg = elev / DEG;
 
 		// Light colours from the same atmosphere model as the shader.
@@ -250,7 +256,7 @@ export class Environment {
 		this.hemisphere.color.setRGB(skyIrr[0], skyIrr[1], skyIrr[2], LinearSRGBColorSpace);
 		this.hemisphere.groundColor.setRGB(bounce[0], bounce[1], bounce[2], LinearSRGBColorSpace);
 		this.hemisphere.intensity = 1;
-		this.hemisphere.position.set(frame.up.x, frame.up.y, frame.up.z);
+		this.hemisphere.position.set(up.x, up.y, up.z);
 		const atmFade = Math.max(0, 1 - alt / this.atmosphere.height);
 		this.fog.color.setRGB(horizon[0], horizon[1], horizon[2], LinearSRGBColorSpace);
 		this.fog.density = 0.00003 * atmFade;
@@ -277,7 +283,7 @@ export class Environment {
 			const nearSite = siteDistance < 300;
 			const radius = nearSite ? 110 : Math.max(12, input.vesselRadius * 1.6);
 			const reach = nearSite ? 45 : input.vesselRadius;
-			const sinSun = Math.max(dot(sun, frame.up), 0.06);
+			const sinSun = Math.max(dot(sun, up), 0.06);
 			const receiverReach = Math.min(2_500, (nearSite ? 45 : input.vesselRadius * 2) / sinSun + 60);
 			const centre = nearSite
 				? vec(this.site.root.position.x, this.site.root.position.y, this.site.root.position.z)

@@ -19,7 +19,7 @@ import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
 import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 import type { ScreenPoint } from './project.ts';
-import { SceneModel, type SceneConfig } from './scene.ts';
+import { SceneModel, type MapPathSegment, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
 
 /** Lowest render scale the governor may ask for; below this the picture is too soft to play. */
@@ -52,6 +52,17 @@ export interface RendererDebug {
 		size: number;
 		heights: Float32Array;
 	} | null;
+	/** Set the regolith colour of the moons (linear RGB), for look development. */
+	setMoonTint(r: number, g: number, b: number): void;
+	/** Baked height patch of a moon read back from the GPU in metres (ADR 0054's parity check); null before the first bake. */
+	readMoonPatch(
+		body: string,
+		which: 'fine' | 'mid'
+	): {
+		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
+		size: number;
+		heights: Float32Array;
+	} | null;
 	/** The scene graph, for inspection in the browser console. */
 	readonly scene: Scene;
 	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
@@ -76,6 +87,16 @@ export interface Renderer {
 	render(): void;
 	resize(width: number, height: number): void;
 	setMapView(on: boolean): void;
+	/**
+	 * The predicted path of the active vessel across spheres of influence, drawn in map view (plan 044):
+	 * one stretch per body, `null` clears it.
+	 */
+	setMapPath(segments: readonly MapPathSegment[] | null): void;
+	/** Map view: look at this body, `null` for the body of the active vessel's sphere. */
+	setMapFocus(body: string | null): void;
+	readonly mapFocus: string | null;
+	/** Ids of the bodies, root first. */
+	readonly bodyIds: readonly string[];
 	toggleMapView(): boolean;
 	readonly isMapView: boolean;
 	setActiveVessel(id: EntityId | null): void;
@@ -152,6 +173,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 	function drawFrame(dt: number): void {
 		model.prepareFrame(dt);
 		env.planet.bakeTerrain(gl);
+		model.bakeMoons(gl);
 		env.planet.marchPrepass(gl);
 		gl.toneMappingExposure = env.state.exposure;
 		const up = env.planet.material.uniforms.uCamUp!.value as Vec3;
@@ -233,6 +255,8 @@ export function createRenderer(config: RendererConfig): Renderer {
 			const steps = Math.max(1, Math.round(seconds * 60));
 			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);
 		},
+		setMoonTint: (r, g, b) => model.setMoonTint(r, g, b),
+		readMoonPatch: (body, which) => model.debugMoonPatch(gl, body, which),
 		scene: model.scene,
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
 		benchmark(frames) {
@@ -271,6 +295,14 @@ export function createRenderer(config: RendererConfig): Renderer {
 			model.resize(w, h);
 		},
 		setMapView: (on) => model.setMapView(on),
+		setMapPath: (segments) => model.setMapPath(segments),
+		setMapFocus: (body) => model.setMapFocus(body),
+		get mapFocus() {
+			return model.mapFocusBody;
+		},
+		get bodyIds() {
+			return model.bodyIds;
+		},
 		toggleMapView: () => model.toggleMapView(),
 		get isMapView() {
 			return model.isMapView;

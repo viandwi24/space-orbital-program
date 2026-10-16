@@ -15,6 +15,7 @@ import type {
 import {
 	Group,
 	Mesh,
+	MeshBasicMaterial,
 	MeshLambertMaterial,
 	MeshStandardMaterial,
 	Object3D,
@@ -22,7 +23,8 @@ import {
 	Quaternion,
 	Scene,
 	SphereGeometry,
-	Vector3
+	Vector3,
+	type WebGLRenderer
 } from 'three';
 import {
 	FLIGHT_RIG_LIMITS,
@@ -52,6 +54,7 @@ import {
 	repeatedDetail
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
+import { MoonPass } from './moon.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
@@ -60,7 +63,17 @@ import { rotate, rotateInverse } from './vec.ts';
 export { DEFAULT_PART_SHAPE };
 export type { PartShape };
 
-export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
+/** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
+export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
+	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass'>>;
+
+/** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
+export interface MapPathSegment {
+	body: string;
+	/** Position of the body's centre when the stretch starts, system frame, m. */
+	offset: Vec3;
+	points: readonly Vec3[];
+}
 
 export interface SceneConfig {
 	bodies: readonly BodyRenderInfo[];
@@ -107,6 +120,20 @@ export class SceneModel {
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
 	private readonly bodies = new Map<string, { holder: Object3D; radius: number }>();
+	/** Airless bodies other than the first, drawn by the moon pass (ADR 0054). */
+	private readonly moons = new Map<string, MoonPass>();
+	/** Map view furniture of a body with a parent: its orbit around the parent and its sphere of influence. */
+	private readonly bodyMarks = new Map<
+		string,
+		{ parent: string; orbit: OrbitLine; sphere: Mesh | undefined; soi: number }
+	>();
+	/** The predicted path across spheres of influence, set by the host (plan 044). */
+	private readonly pathLines: OrbitLine[] = [];
+	private pathSegments: readonly MapPathSegment[] = [];
+	/** Where the path changes sphere: a dot at the end of every stretch but the last, and the sphere it enters. */
+	private readonly pathDots: VesselMarker[] = [];
+	private readonly pathGhosts: Mesh[] = [];
+	private mapFocus: string | null = null;
 	/** Flight environment of the first body: planet pass, sun, sky, launch site (ADR 0027). */
 	readonly environment: Environment;
 	private readonly primaryBody: string | undefined;
@@ -159,8 +186,13 @@ export class SceneModel {
 		config.bodies.forEach((b, i) => {
 			const holder = new Object3D();
 			holder.name = `body:${b.id}`;
-			if (i > 0) {
-				// Bodies other than the first stay plain lit spheres (ADR 0027, consequences).
+			if (i > 0 && !b.atmosphere) {
+				// An airless body other than the first: the moon pass (ADR 0054).
+				const moon = new MoonPass(b.id, b.radius);
+				holder.add(moon.root);
+				this.moons.set(b.id, moon);
+			} else if (i > 0) {
+				// Other bodies stay plain lit spheres (ADR 0027, consequences).
 				const mesh = new Mesh(
 					this.sphere,
 					new MeshLambertMaterial({ color: BODY_COLORS[i % BODY_COLORS.length] ?? 0x888888 })
@@ -171,6 +203,36 @@ export class SceneModel {
 			this.scene.add(holder);
 			this.bodies.set(b.id, { holder, radius: b.radius });
 		});
+		for (const b of config.bodies) {
+			if (b.parent === undefined || !b.orbit) continue;
+			const orbit = new OrbitLine(0x6f8bb0, 1.5);
+			orbit.setOrbit(b.orbit);
+			this.scene.add(orbit.object);
+			const parent = config.bodies.find((x) => x.id === b.parent);
+			let sphere: Mesh | undefined;
+			if (parent?.mass !== undefined && b.mass !== undefined) {
+				// Laplace sphere of influence, the same radius the sim switches at (ADR 0051).
+				const soi = b.orbit.a * Math.pow(b.mass / parent.mass, 0.4);
+				sphere = new Mesh(
+					new SphereGeometry(soi, 32, 16),
+					new MeshBasicMaterial({
+						color: 0x6f8bb0,
+						wireframe: true,
+						transparent: true,
+						opacity: 0.1,
+						depthWrite: false
+					})
+				);
+				sphere.visible = false;
+				this.scene.add(sphere);
+			}
+			this.bodyMarks.set(b.id, {
+				parent: b.parent,
+				orbit,
+				sphere,
+				soi: sphere ? (sphere.geometry as SphereGeometry).parameters.radius : 0
+			});
+		}
 		const primary = config.bodies[0];
 		this.primaryBody = primary?.id;
 		this.environment = new Environment({
@@ -314,6 +376,8 @@ export class SceneModel {
 		this.camera.aspect = width / Math.max(1, height);
 		this.camera.updateProjectionMatrix();
 		for (const v of this.vessels.values()) v.line.setResolution(width, height);
+		for (const m of this.bodyMarks.values()) m.orbit.setResolution(width, height);
+		for (const l of this.pathLines) l.setResolution(width, height);
 	}
 
 	/**
@@ -340,6 +404,111 @@ export class SceneModel {
 			this.viewport.height,
 			occluders
 		);
+	}
+
+	/** Orbit lines and spheres of influence of bodies with a parent: at the parent, map view only. */
+	private placeBodyMarks(bodyWorld: ReadonlyMap<string, Vec3>): void {
+		for (const [id, mark] of this.bodyMarks) {
+			const parent = bodyWorld.get(mark.parent);
+			const self = bodyWorld.get(id);
+			mark.orbit.object.visible = this.map && parent !== undefined;
+			if (parent) {
+				const p = toRenderSpace(parent, this.origin);
+				mark.orbit.object.position.set(p.x, p.y, p.z);
+			}
+			if (mark.sphere) {
+				mark.sphere.visible = this.map && self !== undefined;
+				if (self) {
+					const p = toRenderSpace(self, this.origin);
+					mark.sphere.position.set(p.x, p.y, p.z);
+				}
+			}
+		}
+		this.placePath(bodyWorld);
+	}
+
+	/**
+	 * The predicted path of the active vessel across spheres of influence (plan 044): one line per
+	 * stretch, each at the position its body had when the stretch starts, so the part inside a moon's
+	 * sphere hangs where the moon will be. Cleared with `null`.
+	 */
+	setMapPath(segments: readonly MapPathSegment[] | null): void {
+		this.pathSegments = segments ?? [];
+		for (let i = 0; i < this.pathLines.length; i++) this.pathLines[i]!.object.visible = false;
+		while (this.pathLines.length < this.pathSegments.length) {
+			const line = new OrbitLine(this.pathLines.length === 0 ? 0x4fc3f7 : 0xffa24f, 2.5);
+			line.setResolution(this.viewport.width, this.viewport.height);
+			this.scene.add(line.object);
+			this.pathLines.push(line);
+		}
+		this.pathSegments.forEach((s, i) => this.pathLines[i]!.setPoints(s.points));
+		while (this.pathDots.length < this.pathSegments.length) {
+			const dot = new VesselMarker(0xffa24f);
+			this.scene.add(dot.object);
+			this.pathDots.push(dot);
+		}
+		for (const d of this.pathDots) d.object.visible = false;
+		for (const g of this.pathGhosts) g.visible = false;
+	}
+
+	private placePath(bodyWorld: ReadonlyMap<string, Vec3>): void {
+		let ghosts = 0;
+		this.pathSegments.forEach((s, i) => {
+			const line = this.pathLines[i];
+			if (!line) return;
+			const show = this.map && s.points.length >= 2 && bodyWorld.has(s.body);
+			line.object.visible = show;
+			const p = toRenderSpace(s.offset, this.origin);
+			line.object.position.set(p.x, p.y, p.z);
+			const dot = this.pathDots[i];
+			const last = s.points[s.points.length - 1];
+			if (dot && last) {
+				dot.object.visible = show && i < this.pathSegments.length - 1;
+				const at = toRenderSpace(
+					{ x: s.offset.x + last.x, y: s.offset.y + last.y, z: s.offset.z + last.z },
+					this.origin
+				);
+				dot.place(at, this.markerRadius(at) * 0.7);
+			}
+			// The sphere a stretch lies in, where its body will be when the vessel gets there (a moon's
+			// ghost): only for a body with a sphere of its own.
+			const mark = this.bodyMarks.get(s.body);
+			if (show && mark?.sphere && i > 0) {
+				const ghost = (this.pathGhosts[ghosts] ??= this.makeGhost(mark.soi));
+				ghosts++;
+				ghost.visible = true;
+				ghost.position.set(p.x, p.y, p.z);
+				ghost.scale.setScalar(mark.soi / (ghost.geometry as SphereGeometry).parameters.radius);
+			}
+		});
+	}
+
+	private makeGhost(radius: number): Mesh {
+		const ghost = new Mesh(
+			new SphereGeometry(radius, 24, 12),
+			new MeshBasicMaterial({
+				color: 0xffa24f,
+				wireframe: true,
+				transparent: true,
+				opacity: 0.12,
+				depthWrite: false
+			})
+		);
+		this.scene.add(ghost);
+		return ghost;
+	}
+
+	/** Map view: look at this body (`null`: the body of the active vessel's sphere). */
+	setMapFocus(body: string | null): void {
+		this.mapFocus = body;
+		this.cameraDirty = true;
+	}
+	get mapFocusBody(): string | null {
+		return this.mapFocus;
+	}
+	/** Ids of the bodies of the scene, root first, for cycling the map focus. */
+	get bodyIds(): string[] {
+		return [...this.bodies.keys()];
 	}
 
 	/** Brings the scene in line with `snapshot`. Call once per received snapshot. */
@@ -370,11 +539,17 @@ export class SceneModel {
 
 		// Anchor: the vessel in flight view, the SOI body in map view; no vessel -> first body.
 		let anchor: Vec3 = snapshot.bodies[0]?.position ?? this.origin;
-		let anchorBody = snapshot.bodies[0]?.id;
+		let anchorBody: string | undefined = snapshot.bodies[0]?.id;
 		if (activeVessel) {
 			const base = soiPos(activeVessel);
 			anchorBody = activeVessel.soi;
 			anchor = this.map ? base : add(base, activeVessel.position);
+		}
+		// Map view: the player may look at another body than the vessel's own sphere.
+		const focus = this.map && this.mapFocus && bodyWorld.has(this.mapFocus) ? this.mapFocus : null;
+		if (focus) {
+			anchorBody = focus;
+			anchor = bodyWorld.get(focus)!;
 		}
 		this.origin = updateOrigin(this.origin, anchor, this.threshold).origin;
 
@@ -396,6 +571,7 @@ export class SceneModel {
 			this.bodyRot.set(b.id, b.rotation);
 		}
 
+		this.placeBodyMarks(bodyWorld);
 		const seen = new Set<number>();
 		for (const v of vessels) {
 			const id = v.id;
@@ -458,17 +634,73 @@ export class SceneModel {
 			this.cameraDirty = false;
 		}
 		this.camera.updateMatrixWorld();
+		const moonUp = this.updateMoons();
+		const activeGroup = this.lastView?.active
+			? this.vessels.get(this.lastView.active.id)?.group
+			: undefined;
 		this.environment.update({
 			camera: this.camera,
 			pixelHeight: this.viewport.height * this.pixelRatio,
 			bodyRender: this.frameState.bodyRender,
 			bodyRotation: this.frameState.bodyRotation,
-			vesselRender: this.frameState.vesselRender,
+			// On a moon the light and the shadow follow the vessel's own sphere (ADR 0054).
+			vesselRender:
+				moonUp && activeGroup
+					? {
+							x: activeGroup.position.x,
+							y: activeGroup.position.y,
+							z: activeGroup.position.z
+						}
+					: this.frameState.vesselRender,
+			...(moonUp ? { up: moonUp } : {}),
 			vesselRadius: this.vesselRadius,
 			mapView: this.map,
 			dt
 		});
 		this.updateEffects(dt, force);
+	}
+
+	/**
+	 * Tells every moon pass where the camera is (body-fixed) so it can follow with its height patches.
+	 * Returns the local vertical (inertial, unit) when the active vessel is in a moon's sphere.
+	 */
+	private updateMoons(): Vec3 | undefined {
+		let up: Vec3 | undefined;
+		for (const [id, moon] of this.moons) {
+			const entry = this.bodies.get(id);
+			const rot = this.bodyRot.get(id);
+			if (!entry || !rot) continue;
+			const rel = {
+				x: this.camera.position.x - entry.holder.position.x,
+				y: this.camera.position.y - entry.holder.position.y,
+				z: this.camera.position.z - entry.holder.position.z
+			};
+			moon.update(rotateInverse(rot, rel));
+			if (this.lastView?.active?.soi === id) {
+				const l = Math.hypot(rel.x, rel.y, rel.z);
+				if (l > 0) up = { x: rel.x / l, y: rel.y / l, z: rel.z / l };
+			}
+		}
+		return up;
+	}
+
+	/** Dev/screenshot hook: set the regolith colour of every moon. */
+	setMoonTint(r: number, g: number, b: number): void {
+		for (const moon of this.moons.values()) moon.setTint(r, g, b);
+	}
+
+	/** Bakes what the moon passes asked for this frame (needs a context; the facade calls it). */
+	bakeMoons(gl: WebGLRenderer): void {
+		for (const moon of this.moons.values()) moon.bake(gl);
+	}
+
+	/** Baked moon patch read back as heights (m), for the parity check; null before the first bake. */
+	debugMoonPatch(
+		gl: WebGLRenderer,
+		body: string,
+		which: 'fine' | 'mid'
+	): ReturnType<MoonPass['debugReadPatch']> {
+		return this.moons.get(body)?.debugReadPatch(gl, which) ?? null;
 	}
 
 	private updateEffects(dt: number, force: boolean): void {
@@ -583,10 +815,22 @@ export class SceneModel {
 			v.marker.dispose();
 		}
 		this.vessels.clear();
+		for (const m of this.bodyMarks.values()) {
+			m.orbit.dispose();
+			m.sphere?.geometry.dispose();
+			(m.sphere?.material as MeshBasicMaterial | undefined)?.dispose();
+		}
+		for (const l of this.pathLines) l.dispose();
+		for (const d of this.pathDots) d.dispose();
+		for (const g of this.pathGhosts) {
+			g.geometry.dispose();
+			(g.material as MeshBasicMaterial).dispose();
+		}
 		this.factory.dispose();
 		this.effects.dispose();
 		this.sphere.dispose();
 		this.environment.dispose();
+		for (const moon of this.moons.values()) moon.dispose();
 		for (const b of this.bodies.values()) {
 			for (const child of b.holder.children) {
 				if (child instanceof Mesh) (child.material as MeshLambertMaterial).dispose();
@@ -646,14 +890,23 @@ export class SceneModel {
 		const bodyPos = anchorBody ? bodyWorld.get(anchorBody) : undefined;
 		const bodyRadius = anchorBody ? this.bodies.get(anchorBody)?.radius : undefined;
 		if (!this.map && bodyPos && bodyRadius) {
-			// Keep the orbit camera above the ground: the surface is the reference sphere.
+			// Keep the orbit camera above the ground: the reference sphere, or on a moon the cratered
+			// ground the sim uses (ADR 0054).
 			const c = toRenderSpace(bodyPos, this.origin);
 			const rel = new Vector3(
 				this.camera.position.x - c.x,
 				this.camera.position.y - c.y,
 				this.camera.position.z - c.z
 			);
-			const alt = rel.length() - bodyRadius;
+			const moon = anchorBody ? this.moons.get(anchorBody) : undefined;
+			const rot = anchorBody ? this.bodyRot.get(anchorBody) : undefined;
+			let ground = 0;
+			if (moon && rot && rel.length() < bodyRadius + 12_000) {
+				const dir = rotateInverse(rot, { x: rel.x, y: rel.y, z: rel.z });
+				const l = Math.hypot(dir.x, dir.y, dir.z);
+				ground = l > 0 ? moon.groundHeight({ x: dir.x / l, y: dir.y / l, z: dir.z / l }) : 0;
+			}
+			const alt = rel.length() - bodyRadius - ground;
 			if (alt < MIN_CAMERA_ALTITUDE) {
 				this.camera.position.addScaledVector(rel.normalize(), MIN_CAMERA_ALTITUDE - alt);
 			}
