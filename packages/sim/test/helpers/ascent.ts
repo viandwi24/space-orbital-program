@@ -24,6 +24,10 @@ export interface AscentOptions {
 	periapsis: number;
 	/** Closed-loop natural frequency of the attitude loop, rad/s. */
 	bandwidth: number;
+	/** How many times to stage when an engine runs dry (default 1: the two-stage vessel). */
+	stageCount?: number;
+	/** Fire the next stage when the throttle is cut (jettison spent boosters before the coast). */
+	jettisonAtCut?: boolean;
 }
 
 export const defaultAscent: AscentOptions = {
@@ -85,7 +89,7 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 			const dry = v.parts.some(
 				(p) => (p.modules['stock.engine'] as { flameout?: boolean } | undefined)?.flameout
 			);
-			if (dry && staged < 1) {
+			if (dry && staged < (opts.stageCount ?? 1)) {
 				staged++;
 				const s = sim.dispatch({ type: 'stage', vessel });
 				if (!s.ok) throw new Error(s.reason);
@@ -101,6 +105,11 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 			if (orbit && orbit.a * (1 + orbit.e) - radius >= opts.apoapsis) {
 				phase = 'coast';
 				sim.dispatch({ type: 'throttle', vessel, value: 0 });
+				if (opts.jettisonAtCut) {
+					const s = sim.dispatch({ type: 'stage', vessel });
+					if (!s.ok) throw new Error(s.reason);
+					staged++;
+				}
 				mark(t, `cut: apoapsis ${(orbit.a * (1 + orbit.e) - radius).toFixed(0)} m`);
 			}
 		} else if (phase === 'coast' || phase === 'circularise') {

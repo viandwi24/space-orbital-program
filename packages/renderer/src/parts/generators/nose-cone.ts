@@ -20,7 +20,7 @@ export function noseCone(ctx: GenContext): void {
 	for (let i = 0; i <= steps; i++) {
 		const t = i / steps;
 		const x = bodyH * t;
-		const r = Math.sqrt(Math.max(0, rho * rho - (bodyH - x) ** 2)) - (rho - R);
+		const r = Math.sqrt(Math.max(0, rho * rho - x * x)) - (rho - R);
 		profile.push({ r: Math.max(0.004, r), y: -h2 + collar + x, smooth: i > 0 && i < steps });
 	}
 	profile[0] = { r: R * 0.985, y: -h2 + collar };

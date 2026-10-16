@@ -157,3 +157,78 @@ export function boosted(n: number, finCount = 0, fins = { y: -0.7 }): VesselDesi
 		stages: n > 0 ? [engines, decouplers] : [engines]
 	};
 }
+
+/**
+ * The two-stage vessel with `wheels` reaction wheels under the pod, four boosters (decoupler,
+ * booster, cone) and four fins on the lower tank. Stage 0 lights the lower core engine and the
+ * boosters, stage 1 fires the radial decouplers, stage 2 the stack decoupler and the upper engine.
+ */
+export function saturn(wheels = 3): VesselDesign {
+	const chain = [
+		'stock.command-pod',
+		...Array.from({ length: wheels }, () => 'stock.reaction-wheel'),
+		'stock.tank-small',
+		'stock.engine-lv',
+		'stock.decoupler',
+		'stock.tank-small',
+		'stock.engine-lv'
+	];
+	const upperEngine = wheels + 2;
+	const decoupler = wheels + 3;
+	const lowerTank = wheels + 4;
+	const lowerEngine = wheels + 5;
+	const parts: VesselDesign['parts'] = chain.map((part, index) => ({
+		index,
+		part: partId(part),
+		parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
+	}));
+	const boosters: number[] = [];
+	const decouplers: number[] = [];
+	for (let k = 0; k < 4; k++) {
+		const angle = (k * Math.PI) / 2;
+		parts.push(
+			{
+				index: 10 + 3 * k,
+				part: partId('stock.radial-decoupler'),
+				parent: {
+					index: lowerTank,
+					parentNode: 'surface',
+					node: 'radial',
+					radial: { angle, y: 0 }
+				},
+				symmetry: 1
+			},
+			{
+				index: 11 + 3 * k,
+				part: partId('stock.booster'),
+				parent: { index: 10 + 3 * k, parentNode: 'outer', node: 'radial' },
+				symmetry: 2
+			},
+			{
+				index: 12 + 3 * k,
+				part: partId('stock.nose-cone'),
+				parent: { index: 11 + 3 * k, parentNode: 'top', node: 'bottom' },
+				symmetry: 3
+			},
+			{
+				index: 30 + k,
+				part: partId('stock.fin'),
+				parent: {
+					index: lowerTank,
+					parentNode: 'surface',
+					node: 'radial',
+					radial: { angle: angle + Math.PI / 4, y: -0.7 }
+				},
+				symmetry: 4
+			}
+		);
+		boosters.push(11 + 3 * k);
+		decouplers.push(10 + 3 * k);
+	}
+	return {
+		formatVersion: 2,
+		name: 'Saturn',
+		parts,
+		stages: [[lowerEngine, ...boosters], decouplers, [decoupler, upperEngine]]
+	};
+}

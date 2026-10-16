@@ -1,7 +1,7 @@
 /** Plan 026 / ADR 0034: radial boosters assemble, fly and separate symmetrically. */
 import { describe, expect, test } from 'bun:test';
 import type { EntityId, Vec3, VesselSnapshot } from '@orbital/core';
-import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
+import { add, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import type { Sim } from '../src/index.ts';
 import { VESSEL } from '../src/state.ts';
 import { UP_Y, rotate } from './helpers/attitude.ts';
@@ -62,9 +62,8 @@ describe('radial boosters', () => {
 				expect(dot(outward, normalize(radial))).toBeCloseTo(1, 6);
 			}
 			// Evenly spaced boosters leave the centre of mass on the axis.
-			const com = system(sim).com;
-			const d = sub(com, tank.position);
-			void d;
+			const d = sub(system(sim).com, add(v.position, tank.position));
+			expect(length(sub(d, scale(axis, dot(d, axis))))).toBeLessThan(0.01);
 			sim.dispose();
 		});
 	}
@@ -121,9 +120,6 @@ describe('radial boosters', () => {
 			for (const s of speeds) expect(s).toBeCloseTo(speeds[0]!, 4);
 			// 4000 N s on a booster of about 3.3 t (full) is about 1.2 m/s outwards (minus the core's share).
 			expect(speeds[0]!).toBeGreaterThan(1);
-			// The core's angular rate stays zero: nothing spun it up.
-			const cross0 = length(cross(axis, normalize(core.velocity)));
-			void cross0;
 			sim.dispose();
 		});
 	}
@@ -137,9 +133,9 @@ describe('radial boosters', () => {
 		const amount = (i: number): number =>
 			(v.parts[i]!.modules['stock.resource-container'] as { amounts: Record<string, number> })
 				.amounts['stock.liquid-fuel']!;
-		// Boosters (snapshot slots 6 and 9) burned 150 kN / (270 s g0) for 10 s, about 566 kg of 2750.
+		// Boosters (snapshot slots 6 and 9) burned 150 kN / (270 s g0) for 10 s, about 566 kg of 2500.
 		for (const slot of [6, 9]) {
-			const burned = 220 - amount(slot);
+			const burned = 225 - amount(slot);
 			expect(burned * 5 * (0.9 / 2)).toBeGreaterThan(0); // fuel share of the mix, units
 			expect(burned).toBeGreaterThan(20);
 			expect(burned).toBeLessThan(120);

@@ -54,6 +54,8 @@ export interface SceneInput {
 	pointer?: AttachTarget | null;
 	/** Copies made by a radial placement of a new part (the ghost shows them all). Default 1. */
 	symmetry?: number;
+	/** Draw rings for the keyboard's radial sites (default true); the pointer needs none. */
+	radialMarkers?: boolean;
 	/** `held` is a catalogue part not yet in the design (default) or an assembly being moved. */
 	kind?: 'new' | 'carry';
 }
@@ -100,7 +102,10 @@ export function buildScene(input: SceneInput): BuiltScene {
 	});
 
 	let ghost: AttachTarget | null = null;
-	const shown = pointer ?? (cursor !== null ? (targets[cursor] ?? null) : null);
+	// A radial cursor site is shown only to the keyboard (its rings are on); the pointer has its own.
+	const cursorTarget = cursor !== null ? (targets[cursor] ?? null) : null;
+	const shown =
+		pointer ?? (cursorTarget?.radial && input.radialMarkers === false ? null : cursorTarget);
 	if (held && shown) {
 		ghost = shown;
 		const heldRoot = rootOf(held);
@@ -136,6 +141,7 @@ export function buildScene(input: SceneInput): BuiltScene {
 	if (held) {
 		const rootDef = parts.get(held.parts.find((p) => p.parent === null)?.part ?? '');
 		targets.forEach((t, i) => {
+			if (t.radial && input.radialMarkers === false) return;
 			const parentDef = t.parent
 				? parts.get(design.parts.find((p) => p.index === t.parent!.index)?.part ?? '')
 				: undefined;

@@ -86,6 +86,8 @@
 	let symmetry = $state(1);
 	let radialAngle = $state(0);
 	let pointerTarget = $state.raw<AttachTarget | null>(null);
+	// Rings for the keyboard's radial sites show only after a key press (Tab, Q, E, brackets).
+	let keyboardRadial = $state(false);
 	let flagged = $state.raw<number[]>([]);
 	let environment = $state<Environment>('sea-level');
 	let icons = $state.raw<Record<string, string>>({});
@@ -141,6 +143,7 @@
 			targets,
 			cursor: held ? active : null,
 			pointer: pointerTarget,
+			radialMarkers: keyboardRadial,
 			symmetry: copies,
 			kind: armed?.kind === 'carry' ? 'carry' : 'new'
 		})
@@ -484,6 +487,7 @@
 				hit?.kind === 'node' ? Number(hit.key.slice(1)) : hit?.kind === 'ghost' ? hoverNode : null;
 			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
 			pointerTarget = radialFromHit(hit, e.altKey);
+			keyboardRadial = false;
 			hoverPart = null;
 			view?.setHover(null);
 		} else {
@@ -520,6 +524,7 @@
 
 	function cycle(step: number): void {
 		if (held) {
+			keyboardRadial = true;
 			if (targets.length === 0) return;
 			cursor = ((cursor ?? 0) + step + targets.length) % targets.length;
 			hoverNode = null;
@@ -586,6 +591,7 @@
 			case 'e':
 			case 'E':
 				if (!armed || !radialCapable) return;
+				keyboardRadial = true;
 				radialAngle +=
 					((e.key.toLowerCase() === 'e' ? -1 : 1) * 2 * Math.PI) /
 					(symmetry > 1 ? symmetry * 2 : 24);
