@@ -157,5 +157,10 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
 		id: z.string().min(1)
 	}),
-	z.object({ type: z.literal('remove-building'), site: z.string().min(1), id: z.string().min(1) })
+	z.object({ type: z.literal('remove-building'), site: z.string().min(1), id: z.string().min(1) }),
+	z.object({
+		type: z.literal('objective-start'),
+		source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
+		vessel: entity.optional()
+	})
 ]);

@@ -29,6 +29,12 @@ import type { BuildingDefinition } from './buildings.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
+import {
+	leavesOf,
+	type ContractDefinition,
+	type MissionDefinition,
+	type ObjectiveDefinition
+} from './objectives.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -76,6 +82,10 @@ export interface BasePluginContext {
 	readonly presets: Registrar<PresetDefinition>;
 	/** Scheduled income and costs on the world tick (plan 095, ADR 0113). */
 	readonly charges: Registrar<ChargeDefinition>;
+	/** Objectives, contracts and missions (plan 098, ADR 0175). */
+	readonly objectives: Registrar<ObjectiveDefinition>;
+	readonly contracts: Registrar<ContractDefinition>;
+	readonly missions: Registrar<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
 	/** Buildings (plan 090, ADR 0115). */
@@ -117,7 +127,10 @@ export const REGISTRY_KINDS = [
 	'charge',
 	'data-kind',
 	'action-group',
-	'building'
+	'building',
+	'objective',
+	'contract',
+	'mission'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -160,6 +173,9 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'rules',
 	'presets',
 	'charges',
+	'objectives',
+	'contracts',
+	'missions',
 	'dataKinds',
 	'actionGroups',
 	'buildings',
@@ -337,6 +353,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			rules: registrar(registries.rules),
 			presets: registrar(registries.presets),
 			charges: registrar(registries.charges),
+			objectives: registrar(registries.objectives),
+			contracts: registrar(registries.contracts),
+			missions: registrar(registries.missions),
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
 			buildings: registrar(registries.buildings),
@@ -440,6 +459,34 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 	if (presetProblems.length > 0) {
 		throw new PluginError(`Invalid preset definitions:\n- ${presetProblems.join('\n- ')}`);
 	}
+	// Contract and mission trees against the objectives they use (ADR 0175 point 6).
+	const treeProblems: string[] = [];
+	for (const [kind, registry] of [
+		['contract', registries.contracts],
+		['mission', registries.missions]
+	] as const) {
+		for (const { def, by } of registry.entries()) {
+			for (const leaf of leavesOf(def.objectives)) {
+				const objective = registries.objectives.get(leaf.objective);
+				const where = `${kind} "${def.id}" (plugin "${by}")`;
+				if (!objective) {
+					treeProblems.push(`${where}: unknown objective "${leaf.objective}"`);
+					continue;
+				}
+				const parsed = objective.params.safeParse(leaf.params ?? {});
+				if (!parsed.success) {
+					treeProblems.push(
+						`${where}: params of "${leaf.objective}": ${z.prettifyError(parsed.error)}`
+					);
+				}
+			}
+		}
+	}
+	if (treeProblems.length > 0) {
+		throw new PluginError(
+			`Invalid contract or mission definitions:\n- ${treeProblems.join('\n- ')}`
+		);
+	}
 
 	// 6. Report.
 	const booted = new Set(order.map((p) => p.meta.id));
@@ -469,7 +516,10 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				charge: section(registries.charges),
 				'data-kind': section(registries.dataKinds),
 				'action-group': section(registries.actionGroups),
-				building: section(registries.buildings)
+				building: section(registries.buildings),
+				objective: section(registries.objectives),
+				contract: section(registries.contracts),
+				mission: section(registries.missions)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

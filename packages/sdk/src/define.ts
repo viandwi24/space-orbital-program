@@ -7,6 +7,9 @@ import type {
 	ActionGroupDefinition,
 	AnyPatchDefinition,
 	BuildingDefinition,
+	ContractDefinition,
+	MissionDefinition,
+	ObjectiveDefinition,
 	DataKindDefinition,
 	BasePluginContext,
 	BodyDefinition,
@@ -215,3 +218,20 @@ export const defineDataKind = (def: DataKindDefinition): DataKindDefinition => d
  * `action-group` command applies an action to every part of it. Register with `ctx.actionGroups`.
  */
 export const defineActionGroup = (def: ActionGroupDefinition): ActionGroupDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineObjective / defineContract / defineMission
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A deterministic objective primitive (plan 098, ADR 0175): `evaluate(params, view, prior)` is
+ * pure over the read-only view and its own prior result. Register with `ctx.objectives`.
+ */
+export const defineObjective = <P>(def: ObjectiveDefinition<P>): ObjectiveDefinition =>
+	def as unknown as ObjectiveDefinition;
+
+/** A contract: an objective tree with rewards, penalties, a deadline and prerequisites. */
+export const defineContract = (def: ContractDefinition): ContractDefinition => def;
+
+/** A mission: an objective tree with rewards and prerequisites (the story line, plan 100). */
+export const defineMission = (def: MissionDefinition): MissionDefinition => def;

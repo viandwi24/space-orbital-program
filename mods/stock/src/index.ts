@@ -45,6 +45,7 @@ import { STOCK_CHARGES } from './charges.ts';
 import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
+import { STOCK_OBJECTIVES } from './objectives.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
 export const stockApi = { engineOutput, ispAt, propellantRates, withdraw, deposit };
@@ -72,6 +73,7 @@ export const Stock = definePlugin({
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);
 		for (const group of STOCK_ACTION_GROUPS) ctx.actionGroups.register(group);
+		for (const objective of STOCK_OBJECTIVES) ctx.objectives.register(objective);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -117,3 +119,4 @@ export * from './charges.ts';
 export * from './buildings.ts';
 export * from './data.ts';
 export * from './action-groups.ts';
+export * from './objectives.ts';

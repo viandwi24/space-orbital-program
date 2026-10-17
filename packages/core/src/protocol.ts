@@ -187,6 +187,19 @@ export interface Snapshot {
 	bodies: BodySnapshot[];
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
 	rules?: Readonly<Record<string, boolean | number | string>>;
+	/** Started objectives, active and finished (plan 098, ADR 0175). */
+	objectives?: Array<{
+		id: string;
+		source: { kind: 'contract' | 'mission'; id: string };
+		status: 'active' | 'done' | 'failed';
+		progress: number;
+		leaves: Array<{
+			path: string;
+			objective: string;
+			status: 'active' | 'done' | 'failed';
+			progress: number;
+		}>;
+	}>;
 	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
 	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
 	/** Each site's buildings and road cells (plan 090). */
@@ -363,7 +376,16 @@ export type Command =
 			rotation: 0 | 90 | 180 | 270;
 			id: string;
 	  }
-	| { type: 'remove-building'; site: string; id: string };
+	| { type: 'remove-building'; site: string; id: string }
+	/**
+	 * Start the objectives of a contract or mission (plan 098, ADR 0175), optionally bound to one
+	 * vessel; refused for an unknown source or unmet prerequisites.
+	 */
+	| {
+			type: 'objective-start';
+			source: { kind: 'contract' | 'mission'; id: string };
+			vessel?: EntityId;
+	  };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =
