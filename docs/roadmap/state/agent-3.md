@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 114 comms tier 1 handed over as `ready/114` (branch `devc/114-comms` @ 0fa9dc2); two handovers open, so next in lane (104 regions) waits for a merge and the owner's go.
-**Waiting for:** merges of 103 (`ready/103`) and 114 (`ready/114`).
+**Now:** 103 merged (cp/f3-103-science); 114 handed over as `ready/114`; next in lane 104 regions after the owner's go.
+**Waiting for:** merge of 114 (`ready/114`).
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -17,7 +17,7 @@
 | 092 site-choice | done | `devc/092-site-choice` | 2026-10-17 | merged 5c9efd5, cp/f2-092-site-choice |
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
-| 103 science | done | `devc/103-science` | 2026-10-17 | merged f13f697, cp/f3-103-science |
+| 103 science | done | `devc/103-science` | 2026-10-18 | merged f13f697, cp/f3-103-science |
 | 114 comms-1 | handed-over | `devc/114-comms` | 2026-10-17 | ready/114; API 0.1.40 |
 | 104 regions | todo |  |  |  |
 | 107 crew-sim | todo |  |  |  |
