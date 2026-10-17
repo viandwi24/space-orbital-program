@@ -249,7 +249,9 @@ describe('registration and report', () => {
 			building: [],
 			objective: [],
 			contract: [],
-			mission: []
+			mission: [],
+			'crew-trait': [],
+			'crew-names': []
 		});
 	});
 

@@ -211,6 +211,8 @@ export const partDefinitionSchema = z.object({
 	 * off; above twice this it is destroyed (ADR 0019). The sim assumes 6 when absent.
 	 */
 	impactTolerance: z.number().positive().optional(),
+	/** Seats for crew (plan 106, ADR 0176 point 3); absent: none. */
+	crewCapacity: z.int().min(0).max(32).optional(),
 	/**
 	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); the sim
 	 * assumes 1000 when absent.

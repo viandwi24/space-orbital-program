@@ -5,6 +5,8 @@
  */
 import type {
 	ActionGroupDefinition,
+	CrewNamesDefinition,
+	CrewTraitDefinition,
 	AnyPatchDefinition,
 	BuildingDefinition,
 	ContractDefinition,
@@ -235,3 +237,14 @@ export const defineContract = (def: ContractDefinition): ContractDefinition => d
 
 /** A mission: an objective tree with rewards and prerequisites (the story line, plan 100). */
 export const defineMission = (def: MissionDefinition): MissionDefinition => def;
+// defineCrewTrait / defineCrewNames
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A crew trait (plan 106, ADR 0176): factors on ability keys only, which change quality and never
+ * unlock a tool (ADR 0098). Register with `ctx.crewTraits`.
+ */
+export const defineCrewTrait = (def: CrewTraitDefinition): CrewTraitDefinition => def;
+
+/** Syllables crew names are drawn from (two first, two or three last). Register with `ctx.crewNames`. */
+export const defineCrewNames = (def: CrewNamesDefinition): CrewNamesDefinition => def;

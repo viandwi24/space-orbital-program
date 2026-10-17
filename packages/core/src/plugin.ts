@@ -35,6 +35,7 @@ import {
 	type MissionDefinition,
 	type ObjectiveDefinition
 } from './objectives.ts';
+import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -92,6 +93,9 @@ export interface BasePluginContext {
 	readonly buildings: Registrar<BuildingDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
+	/** Crew traits and name syllables (plan 106, ADR 0176). */
+	readonly crewTraits: Registrar<CrewTraitDefinition>;
+	readonly crewNames: Registrar<CrewNamesDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -130,7 +134,9 @@ export const REGISTRY_KINDS = [
 	'building',
 	'objective',
 	'contract',
-	'mission'
+	'mission',
+	'crew-trait',
+	'crew-names'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -179,6 +185,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'dataKinds',
 	'actionGroups',
 	'buildings',
+	'crewTraits',
+	'crewNames',
 	'patches',
 	'optional',
 	'provide'
@@ -359,6 +367,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
 			buildings: registrar(registries.buildings),
+			crewTraits: registrar(registries.crewTraits),
+			crewNames: registrar(registries.crewNames),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -519,7 +529,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				building: section(registries.buildings),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
-				mission: section(registries.missions)
+				mission: section(registries.missions),
+				'crew-trait': section(registries.crewTraits),
+				'crew-names': section(registries.crewNames)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

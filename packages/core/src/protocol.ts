@@ -160,6 +160,8 @@ export interface VesselSnapshot {
 	nodes?: ManeuverNodeSnapshot[];
 	/** The vessel's target (plan 035); absent without one. */
 	target?: TargetSnapshot;
+	/** Crew aboard (plan 106): who sits in which part, with their ability factors. */
+	crew?: Array<{ member: string; part: EntityId; abilities: Record<string, number> }>;
 	/**
 	 * Part actions of a vessel in flight (plan 110, ADR 0174): group states and the changing part of
 	 * each descriptor as `[part, module, action, value, enabled]`; the rest comes from `describe`.
@@ -199,6 +201,18 @@ export interface Snapshot {
 			status: 'active' | 'done' | 'failed';
 			progress: number;
 		}>;
+	}>;
+	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
+	crew?: Array<{
+		id: string;
+		name: string;
+		profession: 'pilot' | 'engineer' | 'scientist' | 'tourist';
+		traits: string[];
+		xp: number;
+		level: number;
+		status: 'available' | 'assigned' | 'missing' | 'lost';
+		vessel?: EntityId;
+		places: string[];
 	}>;
 	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
 	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
@@ -344,7 +358,13 @@ export type Command =
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */
 	| { type: 'target-set'; vessel: EntityId; target: TargetRef | null }
-	| { type: 'load-vessel'; design: VesselDesign; placement?: VesselPlacement }
+	| {
+			type: 'load-vessel';
+			design: VesselDesign;
+			placement?: VesselPlacement;
+			/** Crew to seat (plan 106, ADR 0176 point 3): roster ids and design part indices. */
+			crew?: Array<{ member: string; part: number }>;
+	  }
 	/**
 	 * Change a world rule (plan 078, ADR 0111). Refused for unknown rules, identity rules (reason
 	 * `identity rule`) and values of the wrong type; takes effect from the next step.
@@ -385,7 +405,11 @@ export type Command =
 			type: 'objective-start';
 			source: { kind: 'contract' | 'mission'; id: string };
 			vessel?: EntityId;
-	  };
+	  }
+	/** Hire a crew member into the roster (plan 106, ADR 0176 point 2). */
+	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
+	/** Move a crew member to another part of the same vessel (capacity checked). */
+	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

@@ -45,6 +45,11 @@ export interface EventMap {
 		time: number;
 		reason: string;
 	};
+	/** Crew (plan 106, ADR 0176): hired, XP booked at a recovery, lost with a vessel, back from missing. */
+	'crew:hired': { member: string; name: string; profession: string };
+	'crew:xp': { member: string; place: string; xp: number; level: number };
+	'crew:lost': { member: string; vessel: EntityId; status: 'lost' | 'missing' | 'available' };
+	'crew:returned': { member: string };
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */
 	'data:stored': { vessel: EntityId; part: EntityId; item: string };
 	/** A data item could not be stored and is lost (`reason: 'full'`: no storage had room). */

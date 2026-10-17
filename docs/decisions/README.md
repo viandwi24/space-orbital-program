@@ -143,3 +143,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0173 | [The trajectory provider: its interface and how consumers reach it](0173-trajectory-provider-interface-and-how-consumers-reach-it.md) | accepted | 2026-10-17 |
 | 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |,
 | 0175 | [Objectives: trees, primitives, scheduling, vessel binding and the save](0175-objective-trees-scheduling-vessel-binding-and-save.md) | accepted | 2026-10-17 |
+| 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |
+| 0176 | [Crew core: roster, places and XP, seats, death and salaries](0176-crew-roster-places-xp-seats-death-salaries.md) | accepted | 2026-10-17 |
