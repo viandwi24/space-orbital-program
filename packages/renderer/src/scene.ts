@@ -15,6 +15,7 @@ import type {
 	VesselSnapshot
 } from '@orbital/core';
 import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
+import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	Group,
@@ -296,9 +297,22 @@ export class SceneModel {
 				const moon = new MoonPass(
 					b.id,
 					b.radius,
-					b.terrain.kind === 'hills'
-						? { kind: 'hills', terrain: hillsTerrain() }
-						: { seed: b.terrain.seed ?? 0 }
+					{
+						...(b.terrain.kind === 'hills'
+							? { kind: 'hills' as const, terrain: hillsTerrain() }
+							: { seed: b.terrain.seed ?? 0 }),
+						// its own air (ADR 0121 point 2)
+						...(b.atmosphere
+							? {
+									atmosphere: atmosphereFor(
+										b.radius,
+										b.atmosphere.height,
+										b.atmosphere.scaleHeight,
+										b.atmosphere.surfacePressure
+									)
+								}
+							: {})
+					}
 				);
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
@@ -884,7 +898,8 @@ export class SceneModel {
 							z: activeGroup.position.z
 						}
 					: this.frameState.vesselRender,
-			...(moonUp ? { up: moonUp, airless: true } : {}),
+			// a moon with air lights the scene through its own atmosphere (ADR 0121 point 2)
+			...(moonUp ? { up: moonUp, ...this.moonAir() } : {}),
 			vesselRadius: this.vesselRadius,
 			mapView: this.map,
 			dt
@@ -901,6 +916,7 @@ export class SceneModel {
 	 */
 	private updateMoons(): Vec3 | undefined {
 		let up: Vec3 | undefined;
+		this.activeMoon = null;
 		this.moonSunScale = 1;
 		const sunInertial = this.frameState
 			? this.environment.sunDirection(this.frameState.bodyRotation)
@@ -921,12 +937,24 @@ export class SceneModel {
 			if (active?.soi === id) {
 				const l = Math.hypot(rel.x, rel.y, rel.z);
 				if (l > 0) up = { x: rel.x / l, y: rel.y / l, z: rel.z / l };
+				this.activeMoon = { moon, altitude: l - moon.radius };
 				lit = this.vesselTerrainLight(moon, rot, active.position, sun);
 				this.moonSunScale = lit;
 			}
 			moon.setSun(sun, lit);
 		}
 		return up;
+	}
+
+	/** The moon the active vessel is at, from the last `updateMoons`. */
+	private activeMoon: { moon: MoonPass; altitude: number } | null = null;
+
+	/** What the environment hears about the active vessel's moon: its air, or that it has none. */
+	private moonAir(): { airless: true } | { air: { atmosphere: Atmosphere; altitude: number } } {
+		const m = this.activeMoon;
+		return m?.moon.atmosphere
+			? { air: { atmosphere: m.moon.atmosphere, altitude: m.altitude } }
+			: { airless: true };
 	}
 
 	/**

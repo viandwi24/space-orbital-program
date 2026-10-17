@@ -94,6 +94,9 @@ import {
 } from './terrain-patch.ts';
 import { length, normalize, scale } from './vec.ts';
 import { LEGACY_TERRAIN, zoneUniforms, type WorldTerrainSpec } from './terrain-zones.ts';
+import { moonAirFragmentCommon, skyShell, skyShellMaterial } from './moon-air.ts';
+import { createAtmosphereUniforms, type AtmosphereUniforms } from './planet.ts';
+import type { Atmosphere } from './atmosphere-model.ts';
 
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
@@ -191,6 +194,8 @@ export class MoonPass {
 	/** The ground the pass draws (ADR 0090). */
 	readonly kind: GroundKind;
 	private readonly spec: GroundSpec;
+	/** The body's air, or null for an airless body (ADR 0121 point 2). */
+	readonly atmosphere: Atmosphere | null;
 	/** A hills body's seed and zones: what the sim's field, the CPU twin and the bakes share. */
 	readonly terrain: WorldTerrainSpec;
 	/** The sim's own height field of a hills body (the same function the GPU bake runs). */
@@ -224,6 +229,8 @@ export class MoonPass {
 			kind?: GroundKind;
 			/** A hills body's seed and flat zones (plan 071, ADR 0121 point 1); default the Legacy terrain. */
 			terrain?: WorldTerrainSpec;
+			/** The body's air (plan 071, ADR 0121 point 2): aerial perspective and a sky shell. */
+			atmosphere?: Atmosphere;
 		} = {}
 	) {
 		this.radius = radius;
@@ -256,7 +263,24 @@ export class MoonPass {
 			// the seed's lattice shift and the flat zones (ADR 0121 point 1): the bakes and the colours
 			...zones
 		};
+		this.atmosphere = options.atmosphere ?? null;
+		if (this.atmosphere) {
+			// the body's own air (ADR 0121 point 2): the ground's aerial perspective and the shell share these
+			Object.assign(this.shared, createAtmosphereUniforms(this.atmosphere), {
+				uCamBody: u(new Vector3(0, 0, radius * 4)),
+				uAirSun: this.shared.uSunBody!
+			});
+		}
 		this.root.name = `moon:${id}`;
+		if (this.atmosphere) {
+			const s = this.shared as unknown as AtmosphereUniforms & Record<string, U<unknown>>;
+			this.root.add(
+				skyShell(
+					skyShellMaterial(s, s.uCamBody as U<Vector3>, s.uSunBody as U<Vector3>, s.uRadius as U<number>),
+					this.atmosphere.radius + this.atmosphere.height
+				)
+			);
+		}
 
 		const corner = new BufferGeometry();
 		corner.setAttribute(
@@ -427,6 +451,7 @@ export class MoonPass {
 						'#include <normal_fragment_maps>',
 						`#include <normal_fragment_maps>\n${hillsFragmentBump}`
 					);
+				if (!stone) this.injectAir(shader);
 				return;
 			}
 			// Terrain shadows on the patches and the stones; the whole-body mesh is seen from too far for them.
@@ -456,9 +481,23 @@ export class MoonPass {
 					LIGHTS_WITH_TERRAIN_SHADOW
 				);
 			}
+			if (!stone) this.injectAir(shader);
 		};
-		material.customProgramCacheKey = () => `moon-${this.kind === 'hills' ? 'hills-' : ''}${kind}`;
+		const air = this.atmosphere && kind !== 'stone' ? '-air' : '';
+		material.customProgramCacheKey = () =>
+			`moon-${this.kind === 'hills' ? 'hills-' : ''}${kind}${air}`;
 		return material;
+	}
+
+	/** Aerial perspective on a ground fragment of a body with air (ADR 0121 point 2). */
+	private injectAir(shader: { fragmentShader: string }): void {
+		if (!this.atmosphere) return;
+		shader.fragmentShader = shader.fragmentShader
+			.replace('#include <common>', `#include <common>\n${moonAirFragmentCommon}`)
+			.replace(
+				'#include <opaque_fragment>',
+				'#include <opaque_fragment>\n\tgl_FragColor.rgb = moonAir(gl_FragColor.rgb, vMoonN * (uRadius + vPatchH));'
+			);
 	}
 
 	/** What the sun's shadow map draws of a stone: the same displacement as its vertex shader. */
@@ -518,6 +557,10 @@ export class MoonPass {
 	 * once the camera is near, the patches that follow the camera below `MOON_PATCH_MAX_ALTITUDE`.
 	 */
 	update(cameraBodyFixed: Vec3): void {
+		if (this.atmosphere) {
+			const c = cameraBodyFixed;
+			(this.shared.uCamBody as U<Vector3>).value.set(c.x, c.y, c.z);
+		}
 		const distance = length(cameraBodyFixed);
 		const bakeAt = this.spec.bakeDistance * this.radius;
 		if (distance < bakeAt) this.cubeWanted = true;

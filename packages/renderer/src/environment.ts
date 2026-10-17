@@ -81,6 +81,11 @@ export interface EnvironmentFrameInput {
 	up?: Vec3;
 	/** The camera is in the sphere of an airless body: its light is the sun, regolith bounce and a sky floor (ADR 0058). */
 	airless?: boolean;
+	/**
+	 * The camera is at a later body with air (plan 071, ADR 0121 point 2): light, fog and exposure
+	 * come from its atmosphere at this altitude, not the home planet's.
+	 */
+	air?: { atmosphere: Atmosphere; altitude: number };
 }
 
 export interface EnvironmentState {
@@ -153,7 +158,8 @@ export class Environment {
 		this.atmosphere = atmosphereFor(
 			body.radius,
 			body.atmosphere?.height ?? 1,
-			body.atmosphere?.scaleHeight
+			body.atmosphere?.scaleHeight,
+			body.atmosphere?.surfacePressure
 		);
 		const settings = PRESETS[config.preset];
 		this.planet = new PlanetPass(
@@ -308,11 +314,13 @@ export class Environment {
 		const elev = sunElevation(sun, up);
 		const elevDeg = elev / DEG;
 
-		// Light colours from the same atmosphere model as the shader.
-		const alt = frame.altitude;
-		const sunT = sunTransmittance(this.atmosphere, alt, elev);
-		const ambient = skyAmbient(this.atmosphere, alt, elev);
-		const horizon = horizonColour(this.atmosphere, alt, elev);
+		// Light colours from the same atmosphere model as the shader: the home planet's, or the air of
+		// the later body the camera is at (ADR 0121 point 2).
+		const atm = input.air?.atmosphere ?? this.atmosphere;
+		const alt = input.air?.altitude ?? frame.altitude;
+		const sunT = sunTransmittance(atm, alt, elev);
+		const ambient = skyAmbient(atm, alt, elev);
+		const horizon = horizonColour(atm, alt, elev);
 		const night: RGB = [0.0035, 0.0048, 0.0095];
 		const skyIrr: RGB = [
 			(ambient[0] + night[0]) * Math.PI,
@@ -342,7 +350,7 @@ export class Environment {
 		this.hemisphere.groundColor.setRGB(bounce[0], bounce[1], bounce[2], LinearSRGBColorSpace);
 		this.hemisphere.intensity = 1;
 		this.hemisphere.position.set(up.x, up.y, up.z);
-		const atmFade = Math.max(0, 1 - alt / this.atmosphere.height);
+		const atmFade = Math.max(0, 1 - alt / atm.height);
 		this.fog.color.setRGB(horizon[0], horizon[1], horizon[2], LinearSRGBColorSpace);
 		this.fog.density = 0.00003 * atmFade;
 
