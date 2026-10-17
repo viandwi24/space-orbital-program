@@ -1,7 +1,7 @@
 ---
 id: 089
 title: "UI stage 3: Home, menus, settings and public pages in the refs style"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [086, 074, 075, 076]
 phase: 5
