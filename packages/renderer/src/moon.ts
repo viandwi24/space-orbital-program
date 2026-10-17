@@ -15,12 +15,15 @@ import {
 	IcosahedronGeometry,
 	LinearFilter,
 	Mesh,
+	MeshDepthMaterial,
 	MeshLambertMaterial,
 	NearestFilter,
 	Object3D,
 	OrthographicCamera,
+	RGBADepthPacking,
 	RGBAFormat,
 	Scene,
+	ShaderChunk,
 	ShaderMaterial,
 	Uniform,
 	Vector3,
@@ -49,8 +52,17 @@ import {
 	moonPatchFragment,
 	moonPatchNormal,
 	moonPatchVertex,
+	moonShadowCommon,
+	moonShadowFragment,
+	moonStoneBegin,
+	moonStoneColor,
+	moonStoneNormal,
+	moonStoneVertex,
 	moonVertexCommon
 } from './shaders/moon.glsl.ts';
+import { MoonStones } from './moon-stones.ts';
+import { STONES } from './stones-model.ts';
+import { SHADOW_STEPS } from './terrain-shadow.ts';
 import {
 	latticeDirection,
 	patchFrame,
@@ -64,6 +76,9 @@ type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
 
 type PatchKind = 'mid' | 'fine';
+
+/** A stone's shadow ray starts this far above the ground under it, m (its body is as high as that). */
+const STONES_LIFT = 0.3;
 
 interface PatchSlot {
 	kind: PatchKind;
@@ -125,9 +140,19 @@ bool covered(vec3 n) {
 }
 `;
 
+/** `MeshLambertMaterial`'s directional light, with the terrain's sun visibility (`moonSunVis`, ADR 0068) on its colour. */
+const LIGHTS_WITH_TERRAIN_SHADOW = ShaderChunk.lights_fragment_begin.replace(
+	'getDirectionalLightInfo( directionalLight, directLight );',
+	'getDirectionalLightInfo( directionalLight, directLight );\n\t\tdirectLight.color *= moonSunVis;'
+);
+
 export class MoonPass {
 	readonly root = new Object3D();
 	readonly radius: number;
+	/** The crater field seed of the body (ADR 0067). */
+	readonly seed: number;
+	/** Stones as instanced geometry round the camera (ADR 0068). */
+	readonly stones: MoonStones;
 	private readonly globe: Mesh;
 	private readonly slots: Record<PatchKind, PatchSlot>;
 	private readonly shared: Record<string, U<unknown>>;
@@ -140,17 +165,27 @@ export class MoonPass {
 	/** Faces of the cube map baked so far; one face per frame keeps the first approach free of a hitch. */
 	private cubeFaces = 0;
 	private patchesOn = false;
+	private readonly stoneCam: U<Vector3>;
+	private readonly stonePosition = new Vector3();
+	private stonesOn = true;
 
 	constructor(
 		readonly id: string,
 		radius: number,
-		options: { tint?: [number, number, number] } = {}
+		options: { tint?: [number, number, number]; seed?: number } = {}
 	) {
 		this.radius = radius;
+		this.seed = options.seed ?? 0;
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
-			uTint: u(new Color().setRGB(tint[0], tint[1], tint[2]))
+			uTint: u(new Color().setRGB(tint[0], tint[1], tint[2])),
+			// unit body-fixed direction to the sun, and the share of the sun light the lit scene gets
+			// (the vessel's own terrain shadow, ADR 0068): the ground divides it out again
+			uSunBody: u(new Vector3(1, 0, 0)),
+			uSunScale: u(1),
+			uShadowOn: u(1),
+			uShadowSteps: u(SHADOW_STEPS.high)
 		};
 		this.root.name = `moon:${id}`;
 
@@ -162,7 +197,7 @@ export class MoonPass {
 		this.cubeMaterial = new ShaderMaterial({
 			vertexShader: moonBakeVertex,
 			fragmentShader: moonCubeFragment,
-			uniforms: { uRadius: this.shared.uRadius!, uFace: u(0) },
+			uniforms: { uRadius: this.shared.uRadius!, uFace: u(0), uSeed: u(this.seed) },
 			depthTest: false,
 			depthWrite: false
 		});
@@ -171,6 +206,7 @@ export class MoonPass {
 			fragmentShader: moonPatchFragment,
 			uniforms: {
 				uRadius: this.shared.uRadius!,
+				uSeed: u(this.seed),
 				uPatchC: u(new Vector3()),
 				uPatchE: u(new Vector3()),
 				uPatchF: u(new Vector3()),
@@ -219,7 +255,15 @@ export class MoonPass {
 				uCoverE: u(new Vector3(0, 1, 0)),
 				uCoverF: u(new Vector3(0, 0, 1)),
 				uCoverK: u(0.01),
-				uCoverOn: u(0)
+				uCoverOn: u(0),
+				// the next coarser patch, which a shadow ray enters when it leaves this one (set below)
+				uSecPatch: u(null),
+				uSecTexels: u(spec.texels),
+				uSecC: u(new Vector3(1, 0, 0)),
+				uSecE: u(new Vector3(0, 1, 0)),
+				uSecF: u(new Vector3(0, 0, 1)),
+				uSecK: u(0.01),
+				uSecOn: u(0)
 			};
 			const mesh = new Mesh(patchGrid(spec.quads), this.material('patch', uniforms));
 			mesh.frustumCulled = false;
@@ -239,35 +283,98 @@ export class MoonPass {
 			};
 		};
 		this.slots = { mid: makeSlot('mid', -4), fine: makeSlot('fine', -3) };
+		// the fine patch's rays continue in the mid patch: the same uniform objects, so a re-bake shows at once
+		const fine = this.slots.fine.uniforms;
+		const mid = this.slots.mid.uniforms;
+		fine.uSecPatch = mid.uPatch!;
+		fine.uSecTexels = mid.uTexels!;
+		fine.uSecC = mid.uC!;
+		fine.uSecE = mid.uE!;
+		fine.uSecF = mid.uF!;
+		fine.uSecK = mid.uK!;
+
+		const stoneUniforms: Record<string, U<unknown>> = {
+			...this.slots.fine.uniforms,
+			uStoneCam: u(new Vector3())
+		};
+		this.stoneCam = stoneUniforms.uStoneCam as U<Vector3>;
+		this.stones = new MoonStones(
+			radius,
+			this.material('stone', stoneUniforms),
+			this.stoneDepthMaterial(stoneUniforms)
+		);
+		this.root.add(this.stones.near, this.stones.far);
 	}
 
 	private bakeQuad: Mesh;
 
 	private material(
-		kind: 'globe' | 'patch',
+		kind: 'globe' | 'patch' | 'stone',
 		uniforms: Record<string, U<unknown>>
 	): MeshLambertMaterial {
 		const material = new MeshLambertMaterial({ color: 0xffffff });
 		material.onBeforeCompile = (shader) => {
 			Object.assign(shader.uniforms, uniforms);
 			const globe = kind === 'globe';
+			const stone = kind === 'stone';
 			shader.vertexShader = shader.vertexShader
 				.replace(
 					'#include <common>',
-					`#include <common>\n${moonVertexCommon}\n${globe ? moonGlobeVertex : moonPatchVertex}`
+					`#include <common>\n${moonVertexCommon}\n${globe ? moonGlobeVertex : moonPatchVertex}${stone ? moonStoneVertex : ''}`
 				)
-				.replace('#include <beginnormal_vertex>', globe ? moonGlobeNormal : moonPatchNormal)
-				.replace('#include <begin_vertex>', globe ? moonGlobeBegin : moonPatchBegin);
+				.replace(
+					'#include <beginnormal_vertex>',
+					globe ? moonGlobeNormal : stone ? moonStoneNormal : moonPatchNormal
+				)
+				.replace(
+					'#include <begin_vertex>',
+					globe ? moonGlobeBegin : stone ? moonStoneBegin : moonPatchBegin
+				);
+			// Terrain shadows on the patches and the stones; the whole-body mesh is seen from too far for them.
+			const shadowed = !globe;
 			shader.fragmentShader = shader.fragmentShader
-				.replace('#include <common>', `#include <common>\n${moonFragmentCommon}\n${FOOTPRINT}`)
-				.replace('void main() {', 'void main() {\n\tif (covered(vMoonN)) discard;')
-				.replace('#include <color_fragment>', `#include <color_fragment>\n${moonFragmentColor}`)
+				.replace(
+					'#include <common>',
+					`#include <common>\n${moonFragmentCommon}\n${FOOTPRINT}${shadowed ? moonShadowCommon : ''}`
+				)
+				.replace(
+					'void main() {',
+					stone ? 'void main() {' : 'void main() {\n\tif (covered(vMoonN)) discard;'
+				)
+				.replace(
+					'#include <color_fragment>',
+					`#include <color_fragment>\n${stone ? moonStoneColor : moonFragmentColor}`
+				)
 				.replace(
 					'#include <normal_fragment_maps>',
-					`#include <normal_fragment_maps>\n${moonFragmentBump}`
+					`#include <normal_fragment_maps>\n${stone ? '' : moonFragmentBump}${
+						shadowed ? moonShadowFragment(stone ? STONES_LIFT : 0) : ''
+					}`
 				);
+			if (shadowed) {
+				shader.fragmentShader = shader.fragmentShader.replace(
+					'#include <lights_fragment_begin>',
+					LIGHTS_WITH_TERRAIN_SHADOW
+				);
+			}
 		};
 		material.customProgramCacheKey = () => `moon-${kind}`;
+		return material;
+	}
+
+	/** What the sun's shadow map draws of a stone: the same displacement as its vertex shader. */
+	private stoneDepthMaterial(uniforms: Record<string, U<unknown>>): MeshDepthMaterial {
+		const material = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
+		material.onBeforeCompile = (shader) => {
+			Object.assign(shader.uniforms, uniforms);
+			shader.vertexShader = shader.vertexShader
+				.replace(
+					'#include <common>',
+					`#include <common>\n${moonVertexCommon}\n${moonPatchVertex}${moonStoneVertex}`
+				)
+				.replace('#include <begin_vertex>', `${moonStoneNormal}\n${moonStoneBegin}`);
+		};
+		material.customProgramCacheKey = () => 'moon-stone-depth';
 		return material;
 	}
 
@@ -278,7 +385,27 @@ export class MoonPass {
 
 	/** Height of the ground (the same field the sim uses) along a unit body-fixed direction, m. */
 	groundHeight(direction: Vec3): number {
-		return moonHeight(direction, this.radius);
+		return moonHeight(direction, this.radius, this.seed);
+	}
+
+	/** Steps of the shadow march (`SHADOW_STEPS` of the graphics preset). */
+	setShadowSteps(steps: number): void {
+		(this.shared.uShadowSteps as U<number>).value = steps;
+	}
+
+	/** Dev/benchmark hook: the terrain shadows and the instanced stones on or off. */
+	setDetail(shadows: boolean, stones: boolean): void {
+		(this.shared.uShadowOn as U<number>).value = shadows ? 1 : 0;
+		this.stonesOn = stones;
+	}
+
+	/**
+	 * The sun for the terrain shadows: the unit body-fixed direction to it, and the share of the sun's
+	 * light the lit scene gets (below 1 while the active vessel is in a terrain shadow, ADR 0068).
+	 */
+	setSun(direction: Vec3, scaleOfLight: number): void {
+		(this.shared.uSunBody as U<Vector3>).value.set(direction.x, direction.y, direction.z);
+		(this.shared.uSunScale as U<number>).value = scaleOfLight;
 	}
 
 	/**
@@ -302,6 +429,20 @@ export class MoonPass {
 		this.slots.fine.mesh.visible = visible(this.slots.fine);
 		this.setCover(this.globe.userData.uniforms as Record<string, U<unknown>>, this.slots.mid);
 		this.setCover(this.slots.mid.uniforms, this.slots.fine);
+		// a ray leaving the fine patch continues in the mid one, when that is baked
+		(this.slots.fine.uniforms.uSecOn as U<number>).value = visible(this.slots.mid) ? 1 : 0;
+		// the camera in the stones' object space: body-fixed position minus the patch centre point
+		const p = this.stonePosition.copy(this.slots.fine.mesh.position);
+		this.stoneCam.value.set(
+			cameraBodyFixed.x - p.x,
+			cameraBodyFixed.y - p.y,
+			cameraBodyFixed.z - p.z
+		);
+		this.stones.update(
+			direction,
+			altitude,
+			this.patchesOn && this.stonesOn ? this.slots.fine.frame : null
+		);
 	}
 
 	private setCover(target: Record<string, U<unknown>>, by: PatchSlot): void {
@@ -381,6 +522,8 @@ export class MoonPass {
 		m.uHc!.value = hc;
 		const centre = scale(frame.centre, this.radius + hc);
 		slot.mesh.position.set(centre.x, centre.y, centre.z);
+		// the stones' vertex shader works in the fine patch's local space, like the patch mesh
+		if (slot.kind === 'fine') this.stones.setOrigin(centre.x, centre.y, centre.z);
 		slot.frame = frame;
 		slot.wanted = null;
 	}
@@ -414,6 +557,8 @@ export class MoonPass {
 			(slot.mesh.material as MeshLambertMaterial).dispose();
 			slot.target?.dispose();
 		}
+		this.stones.dispose();
+		(this.stones.near.material as MeshLambertMaterial).dispose();
 		this.cube?.dispose();
 		this.cubeMaterial.dispose();
 		this.patchMaterial.dispose();

@@ -54,6 +54,8 @@ export interface RendererDebug {
 	} | null;
 	/** Set the regolith colour of the moons (linear RGB), for look development. */
 	setMoonTint(r: number, g: number, b: number): void;
+	/** Terrain shadows and instanced stones on the moons on or off (ADR 0068), for A/B measurements and screenshots. */
+	setMoonDetail(shadows: boolean, stones: boolean): void;
 	/** Baked height patch of a moon read back from the GPU in metres (ADR 0054's parity check); null before the first bake. */
 	readMoonPatch(
 		body: string,
@@ -334,6 +336,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);
 		},
 		setMoonTint: (r, g, b) => model.setMoonTint(r, g, b),
+		setMoonDetail: (shadows, stones) => model.setMoonDetail(shadows, stones),
 		readMoonPatch: (body, which) => model.debugMoonPatch(gl, body, which),
 		scene: model.scene,
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),

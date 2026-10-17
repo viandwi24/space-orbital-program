@@ -1,6 +1,7 @@
 /** Plan 044 / ADR 0054: the moon pass without a GPU - patch geometry, shader twin, the scene with two bodies. */
 import { describe, expect, test } from 'bun:test';
 import {
+	CRATERS_SEED_SALT,
 	MOON_SHAPE,
 	moonHeight,
 	type BodyId,
@@ -15,8 +16,10 @@ import { MOON_PATCHES, MOON_SKIRT_DROP, patchVertex } from '../src/moon-model.ts
 import { MoonPass, patchGrid } from '../src/moon.ts';
 import { moonHeightGLSL } from '../src/shaders/moon.glsl.ts';
 import { SceneModel, type PartShape } from '../src/scene.ts';
+import { starDirection } from '../src/sun.ts';
 import { patchFrame } from '../src/terrain-patch.ts';
-import { length, normalize, scale, sub } from '../src/vec.ts';
+import { terrainSunVisibility } from '../src/terrain-shadow.ts';
+import { length, normalize, rotate, scale, sub } from '../src/vec.ts';
 
 const RADIUS = 190_000;
 const HOME = 'stock.home' as BodyId;
@@ -84,7 +87,7 @@ describe('the GLSL twin carries the constants of the TypeScript height function'
 			expect(moonHeightGLSL).toContain(
 				`craterLayer(q, ${Number.isInteger(s.cellKm) ? `${s.cellKm}.0` : s.cellKm}`
 			);
-			expect(moonHeightGLSL).toContain(`, ${s.salt});`);
+			expect(moonHeightGLSL).toContain(`, ${s.salt} + seedShift);`);
 		}
 		for (const k of [MOON_SHAPE.depth, MOON_SHAPE.rim, MOON_SHAPE.rimWidth, MOON_SHAPE.reach]) {
 			expect(moonHeightGLSL).toContain(String(k));
@@ -99,8 +102,9 @@ describe('MoonPass', () => {
 		const moon = new MoonPass('moon', RADIUS);
 		const far: Vec3 = { x: 5e7, y: 0, z: 0 };
 		moon.update(far);
+		// the globe, the mid and the fine patch, then the near and far stones
 		const meshes = moon.root.children.filter((c): c is Mesh => c instanceof Mesh);
-		expect(meshes).toHaveLength(3);
+		expect(meshes).toHaveLength(5);
 		expect(meshes.slice(1).every((m) => !m.visible)).toBe(true);
 		moon.update({ x: RADIUS + 3_500 + 20, y: 0, z: 0 }); // 20 m above the plain
 		// not baked yet (needs a context), so the meshes stay hidden until `bake`
@@ -125,6 +129,7 @@ describe('a scene with the home planet and a moon', () => {
 				radius: RADIUS,
 				mass: 8.7e22,
 				parent: HOME,
+				terrain: { kind: 'craters' as const },
 				orbit: { a: 11.8e6, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 }
 			}
 		],
@@ -214,5 +219,170 @@ describe('a scene with the home planet and a moon', () => {
 		m.setMapPath(null);
 		m.sync(snapshot({ x: RADIUS + 3_505, y: 0, z: 0 }));
 		expect(visible()).toBe(withPath - 1);
+	});
+});
+
+describe('the terrain kind decides the pass (plan 052, ADR 0067)', () => {
+	const orbit = { a: 11.8e6, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 };
+	const home = {
+		id: HOME,
+		radius: 600_000,
+		mass: 5.9e24,
+		atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: 70_000 }
+	};
+	const body = (id: string, extra: object) => ({
+		id: id as BodyId,
+		radius: 120_000,
+		mass: 1e22,
+		parent: HOME,
+		orbit,
+		...extra
+	});
+	const scene = new SceneModel({
+		bodies: [
+			home,
+			body('test.smooth', {}), // airless, a parent, no terrain: a plain sphere
+			body('test.cratered', { terrain: { kind: 'craters' as const, seed: 7 } }),
+			body('test.hazy', {
+				terrain: { kind: 'craters' as const },
+				atmosphere: { scaleHeight: 4_000, surfacePressure: 5_000, height: 40_000 }
+			}),
+			body('test.hilly', { terrain: { kind: 'hills' as const } })
+		],
+		partShapes: new Map()
+	});
+	const passOf = (id: string): boolean =>
+		scene.bodyObject(id as BodyId)!.children.some((c) => c.name === `moon:${id}`);
+
+	test('only a craters body gets the moon pass: not "airless with a parent", and an atmosphere does not stop it', () => {
+		expect(passOf('test.smooth')).toBe(false);
+		expect(passOf('test.cratered')).toBe(true);
+		expect(passOf('test.hazy')).toBe(true);
+		// a second body whose kind only the first body is drawn with stays a plain sphere
+		expect(passOf('test.hilly')).toBe(false);
+		expect(scene.bodyObject('test.smooth' as BodyId)!.children).toHaveLength(1);
+	});
+
+	test('a seed is its own ground: the pass follows the sim field of the same body', () => {
+		const stock = new MoonPass('a', RADIUS);
+		const seeded = new MoonPass('b', RADIUS, { seed: 7 });
+		const n = normalize({ x: -0.4, y: 0.5, z: 0.77 });
+		expect(seeded.groundHeight(n)).toBe(moonHeight(n, RADIUS, 7));
+		expect(seeded.groundHeight(n)).not.toBe(stock.groundHeight(n));
+		expect(seeded.seed).toBe(7);
+		stock.dispose();
+		seeded.dispose();
+	});
+
+	test('the seed reaches the bake shaders', () => {
+		const pass = new MoonPass('c', RADIUS, { seed: 123 });
+		expect(moonHeightGLSL).toContain('uniform int uSeed;');
+		expect(moonHeightGLSL).toContain(`uSeed * ${CRATERS_SEED_SALT}`);
+		pass.dispose();
+	});
+});
+
+describe("the active vessel in a moon's terrain shadow (plan 052, ADR 0068)", () => {
+	const orbit = { a: 11.8e6, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 };
+	const config = {
+		bodies: [
+			{
+				id: HOME,
+				radius: 600_000,
+				mass: 5.9e24,
+				atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: 70_000 }
+			},
+			{
+				id: MOON,
+				radius: RADIUS,
+				mass: 8.7e22,
+				parent: HOME,
+				terrain: { kind: 'craters' as const },
+				orbit
+			}
+		],
+		partShapes: new Map<string, PartShape>([[POD, { kind: 'box', size: { x: 1, y: 2, z: 3 } }]])
+	};
+	const shortestArc = (from: Vec3, to: Vec3) => {
+		const d = from.x * to.x + from.y * to.y + from.z * to.z;
+		const c = {
+			x: from.y * to.z - from.z * to.y,
+			y: from.z * to.x - from.x * to.z,
+			z: from.x * to.y - from.y * to.x
+		};
+		const l = Math.hypot(c.x, c.y, c.z, 1 + d);
+		return { x: c.x / l, y: c.y / l, z: c.z / l, w: (1 + d) / l };
+	};
+	const intensityAt = (
+		arc: number,
+		azimuth: number,
+		sunElevation: number
+	): { light: number; vis: number } => {
+		const th = arc / RADIUS;
+		const a = (azimuth * Math.PI) / 180;
+		const n = { x: Math.cos(th), y: Math.sin(th) * Math.cos(a), z: Math.sin(th) * Math.sin(a) };
+		const ground = moonHeight(n, RADIUS);
+		const t1 = normalize({ x: -n.y, y: n.x, z: 0 });
+		const e = sunElevation;
+		const sunBF = normalize({
+			x: Math.cos(e) * t1.x + Math.sin(e) * n.x,
+			y: Math.cos(e) * t1.y + Math.sin(e) * n.y,
+			z: Math.cos(e) * t1.z + Math.sin(e) * n.z
+		});
+		const rotation = shortestArc(sunBF, starDirection());
+		const inertial = rotate(rotation, scale(n, RADIUS + ground + 3));
+		const m = new SceneModel(config);
+		const snapshot: Snapshot = {
+			t: 0,
+			bodies: [
+				{ id: HOME, position: { x: 0, y: 0, z: 0 }, rotation: q0 },
+				{ id: MOON, position: { x: 6_372_971, y: 0, z: -9_931_024 }, rotation }
+			],
+			vessels: [{ ...vesselAt(inertial) }]
+		};
+		m.sync(snapshot);
+		m.prepareFrame(1 / 60, true);
+		const full = m.environment.sunLight.intensity;
+		const vis = terrainSunVisibility({
+			groundAt: (d) => moonHeight(d, RADIUS),
+			radius: RADIUS,
+			direction: n,
+			height: ground + 3,
+			sun: sunBF
+		});
+		m.dispose();
+		return { light: full, vis };
+	};
+	const vesselAt = (position: Vec3): VesselSnapshot => ({
+		id: 1 as EntityId,
+		mode: 'flight',
+		soi: MOON,
+		position,
+		velocity: { x: 0, y: 0, z: 0 },
+		orientation: q0,
+		parts: [
+			{
+				id: 2 as EntityId,
+				definition: POD,
+				position: { x: 0, y: 0, z: 0 },
+				orientation: q0,
+				modules: {}
+			}
+		]
+	});
+
+	test('on the plain nothing shades the vessel: the full sun, whatever its height', () => {
+		const lit = intensityAt(0, 0, (3 * Math.PI) / 180);
+		expect(lit.vis).toBe(1);
+		// the same sun a few degrees higher gives the same light: the intensity is the sun's, unscaled
+		expect(intensityAt(0, 0, (30 * Math.PI) / 180).light).toBeCloseTo(lit.light, 6);
+	});
+
+	test('in a crater shadow the vessel keeps only a trace of the sun, as the CPU twin says', () => {
+		const lit = intensityAt(0, 0, (3 * Math.PI) / 180).light;
+		const shaded = intensityAt(52_500, 105, (3 * Math.PI) / 180);
+		expect(shaded.vis).toBeLessThan(0.1);
+		expect(shaded.light).toBeCloseTo(lit * Math.max(shaded.vis, 0.03), 6);
+		expect(shaded.light).toBeLessThan(0.1 * lit);
 	});
 });

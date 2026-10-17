@@ -37,6 +37,7 @@ const config = (preset: 'low' | 'medium' | 'high' = 'high') => ({
 			radius: RADIUS,
 			mass: MASS,
 			parent: HOME,
+			terrain: { kind: 'craters' as const },
 			orbit: { a: 11.8e6, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 }
 		}
 	],

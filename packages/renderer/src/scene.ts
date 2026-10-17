@@ -55,6 +55,7 @@ import {
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { MoonPass } from './moon.ts';
+import { SHADOW_STEPS, terrainSunVisibility } from './terrain-shadow.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
@@ -63,9 +64,14 @@ import { rotate, rotateInverse } from './vec.ts';
 export { DEFAULT_PART_SHAPE };
 export type { PartShape };
 
+/** The vessel's terrain shadow is looked at only below this height above the ground, m. */
+const VESSEL_SHADOW_ALTITUDE = 3_000;
+/** A vessel in a terrain shadow keeps this share of the sun (the shadow is soft, and the regolith bounces light). */
+const MIN_TERRAIN_LIGHT = 0.03;
+
 /** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
 export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
-	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass'>>;
+	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain'>>;
 
 /** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
 export interface MapPathSegment {
@@ -146,6 +152,9 @@ export class SceneModel {
 	private vesselCentre: Vec3 = ZERO;
 	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
 	private readonly bodyRot = new Map<string, Quat>();
+	/** Share of the sun's light the active vessel gets under a moon's terrain shadow (1 elsewhere). */
+	private moonSunScale = 1;
+	private vesselLight: { moon: MoonPass; p: Vec3; sun: Vec3; value: number } | null = null;
 	private cameraDirty = false;
 	private lastView: {
 		active: VesselSnapshot | undefined;
@@ -192,13 +201,14 @@ export class SceneModel {
 		config.bodies.forEach((b, i) => {
 			const holder = new Object3D();
 			holder.name = `body:${b.id}`;
-			if (i > 0 && !b.atmosphere) {
-				// An airless body other than the first: the moon pass (ADR 0054).
-				const moon = new MoonPass(b.id, b.radius);
+			if (i > 0 && b.terrain?.kind === 'craters') {
+				// A body other than the first whose terrain is craters: the moon pass (ADR 0054, 0067).
+				const moon = new MoonPass(b.id, b.radius, { seed: b.terrain.seed ?? 0 });
+				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
 			} else if (i > 0) {
-				// Other bodies stay plain lit spheres (ADR 0027, consequences).
+				// Other bodies (no terrain, or a kind only the first body is drawn with) stay plain lit spheres (ADR 0027, 0067).
 				const mesh = new Mesh(
 					this.sphere,
 					new MeshLambertMaterial({ color: BODY_COLORS[i % BODY_COLORS.length] ?? 0x888888 })
@@ -320,6 +330,7 @@ export class SceneModel {
 		this.shardSources.clear();
 		this.factory = this.makeFactory(preset);
 		this.effects.setPreset(PRESETS[preset]);
+		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 	}
 
 	/** Factories of the models `warmPartScene` built; kept so the programs of their materials stay alive. */
@@ -710,6 +721,9 @@ export class SceneModel {
 			mapView: this.map,
 			dt
 		});
+		// The active vessel in a terrain shadow on a moon gets less of the sun's light (the ground
+		// divides this out in its own shader, ADR 0068).
+		if (this.moonSunScale < 1) this.environment.sunLight.intensity *= this.moonSunScale;
 		this.updateEffects(dt, force);
 	}
 
@@ -719,6 +733,10 @@ export class SceneModel {
 	 */
 	private updateMoons(): Vec3 | undefined {
 		let up: Vec3 | undefined;
+		this.moonSunScale = 1;
+		const sunInertial = this.frameState
+			? this.environment.sunDirection(this.frameState.bodyRotation)
+			: undefined;
 		for (const [id, moon] of this.moons) {
 			const entry = this.bodies.get(id);
 			const rot = this.bodyRot.get(id);
@@ -729,17 +747,67 @@ export class SceneModel {
 				z: this.camera.position.z - entry.holder.position.z
 			};
 			moon.update(rotateInverse(rot, rel));
-			if (this.lastView?.active?.soi === id) {
+			const sun = sunInertial ? rotateInverse(rot, sunInertial) : { x: 1, y: 0, z: 0 };
+			let lit = 1;
+			const active = this.lastView?.active;
+			if (active?.soi === id) {
 				const l = Math.hypot(rel.x, rel.y, rel.z);
 				if (l > 0) up = { x: rel.x / l, y: rel.y / l, z: rel.z / l };
+				lit = this.vesselTerrainLight(moon, rot, active.position, sun);
+				this.moonSunScale = lit;
 			}
+			moon.setSun(sun, lit);
 		}
 		return up;
+	}
+
+	/**
+	 * Share of the sun's light the active vessel gets on a moon: the terrain's sun visibility at its
+	 * place (ADR 0068), at least `MIN_TERRAIN_LIGHT` so a shadowed vessel keeps a trace of sun. Only
+	 * near the ground (the march is for the ground's shadows); recomputed when the vessel or the sun moved.
+	 */
+	private vesselTerrainLight(moon: MoonPass, rot: Quat, position: Vec3, sun: Vec3): number {
+		const p = rotateInverse(rot, position);
+		const r = Math.hypot(p.x, p.y, p.z);
+		const prev = this.vesselLight;
+		if (
+			prev &&
+			prev.moon === moon &&
+			Math.hypot(p.x - prev.p.x, p.y - prev.p.y, p.z - prev.p.z) < 0.5 &&
+			Math.hypot(sun.x - prev.sun.x, sun.y - prev.sun.y, sun.z - prev.sun.z) < 1e-5
+		) {
+			return prev.value;
+		}
+		let value = 1;
+		if (r > 0) {
+			const n = { x: p.x / r, y: p.y / r, z: p.z / r };
+			const ground = moon.groundHeight(n);
+			const height = r - moon.radius;
+			if (height - ground < VESSEL_SHADOW_ALTITUDE) {
+				value = Math.max(
+					MIN_TERRAIN_LIGHT,
+					terrainSunVisibility({
+						groundAt: (d) => moon.groundHeight(d),
+						radius: moon.radius,
+						direction: n,
+						height: Math.max(height, ground + 0.5),
+						sun
+					})
+				);
+			}
+		}
+		this.vesselLight = { moon, p, sun, value };
+		return value;
 	}
 
 	/** Dev/screenshot hook: set the regolith colour of every moon. */
 	setMoonTint(r: number, g: number, b: number): void {
 		for (const moon of this.moons.values()) moon.setTint(r, g, b);
+	}
+
+	/** Dev/benchmark hook: terrain shadows and instanced stones of every moon on or off. */
+	setMoonDetail(shadows: boolean, stones: boolean): void {
+		for (const moon of this.moons.values()) moon.setDetail(shadows, stones);
 	}
 
 	/** Bakes what the moon passes asked for this frame (needs a context; the facade calls it). */
