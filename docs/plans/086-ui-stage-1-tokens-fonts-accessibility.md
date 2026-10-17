@@ -2,7 +2,7 @@
 id: 086
 title: "UI stage 1: refs tokens, Manrope and the accessibility floor"
 status: in-progress
-owner: "Agent 2"
+owner: "Agent 1 (measure)"
 depends: []
 phase: 4
 created: 2026-10-17
@@ -74,4 +74,4 @@ Existing screens may look mixed after this stage; that is accepted (ADR 0107 poi
   - `bunx vitest run` (apps/web) — 881 passed, 2 failed: `sim-host-script-worker.test.ts` (Worker timeouts), failing identically on an `origin/main` worktree on this M2.
   - `bun run typecheck` — 0 errors; `bun run build` — built; `bun run docs:check` — OK (129 plans, 112 ADRs).
   - Open: the M5 blur frame-time row (criterion 3, Agent 1 at merge; method in the journal). The fallback on `low` is verified by e2e.
-- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ ff02a9e-era (ADR index conflict, both rows kept). `bun run test` 1356 pass, 0 fail · web vitest 98 files, 883 passed (the M2's two Worker timeouts do not occur here) · typecheck exit 0 · build exit 0 · docs:check OK · Chromium `smoke.e2e.ts` + `ui-scale.e2e.ts` 8 passed (3.0m). The M5 frame-time criterion (blur on/off, 1920x1080, high and medium) is **not measured yet**: swap was 4.7 GB, over the M5 guard, so a measurement would be discarded (roadmap §8). Merged to unblock dependents; owner `Agent 1 (measure)` until the numbers are in.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ 56706ba (ADR index conflict, both rows kept). `bun run test` 1356 pass, 0 fail · web vitest 98 files, 883 passed (the M2's two Worker timeouts do not occur here) · typecheck exit 0 · build exit 0 · docs:check OK · Chromium `smoke.e2e.ts` + `ui-scale.e2e.ts` 8 passed (3.0m). The M5 frame-time criterion (blur on/off, 1920x1080, high and medium) is **not measured yet**: swap was 4.7 GB, over the M5 guard, so a measurement would be discarded (roadmap §8). Merged to unblock dependents; owner `Agent 1 (measure)` until the numbers are in.

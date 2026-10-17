@@ -18,4 +18,3 @@ Agent 1 updates this table when it notices a new claim and in every completion c
 
 | Plan | Agent | Branch | Claimed | Handed over (`ready/`) | Notes |
 |---|---|---|---|---|---|
-| 086 | A2 | `devb/086-ui-tokens` | 2026-10-17 18:58 | — | pushed progress 2026-10-17 (UI scale, glass, base components) |

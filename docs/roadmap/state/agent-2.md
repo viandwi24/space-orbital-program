@@ -8,7 +8,7 @@
 
 | Plan | Status | Branch | Updated | Note |
 |---|---|---|---|---|
-| 086 tokens | in-progress | `devb/086-ui-tokens` | 2026-10-17 | claim/086 |
+| 086 tokens | done | `devb/086-ui-tokens` | 2026-10-17 | merged a9999b3, cp/f1-086-tokens (M5 frame measurement open, Agent 1) |
 | 074 rename | todo |  |  |  |
 | 081 calendar | todo |  |  |  |
 | 084 sites | todo |  |  |  |
