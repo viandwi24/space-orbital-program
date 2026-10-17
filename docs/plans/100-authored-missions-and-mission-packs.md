@@ -49,17 +49,17 @@ The first-flight guide of plan 023 becomes the first mission.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: completing mission 1 in the headless ascent starts mission 2 (its `next`); a mission whose prerequisites are not done is refused.
-- [ ] vitest: the tracker shows each objective's progress from the snapshot.
-- [ ] A sample mission pack in `examples/` creates a world with its starting vessel in orbit (vitest).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: completing mission 1 in the headless ascent starts mission 2 (its `next`); a mission whose prerequisites are not done is refused.
+- [x] vitest: the tracker shows each objective's progress from the snapshot.
+- [x] A sample mission pack in `examples/` creates a world with its starting vessel in orbit (vitest).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/100-authored-missions-and-mission-packs.md` written.
-- [ ] `guides/writing-a-mod.md` (missions).
-- [ ] ADR 0151.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/100-authored-missions-and-mission-packs.md` written.
+- [x] `guides/writing-a-mod.md` (missions).
+- [x] ADR 0151.
 
 ## Log
 
@@ -67,3 +67,4 @@ The first-flight guide of plan 023 becomes the first mission.
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): a mission pack creates a world and this plan edits `routes/worlds` of plan 087.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 108 in the lane: 108 waits for 094 (handed over, not merged).
 - 2026-10-18 — Refined with ADR 0151: briefing, debriefing, next, line; `next` missions start on completion; stock main line of six; `host.missions` dock panel; scenarios (`defineScenario`) as mission packs from Create World.
+- 2026-10-18 — Done on the branch: mission fields and scenarios (API 0.1.53), next missions in the sim, the stock main line, the Missions dock panel, Create World from a scenario and its first flight, the sample pack. Journal: [100](../journal/100-authored-missions-and-mission-packs.md).
