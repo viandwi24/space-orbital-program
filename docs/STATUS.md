@@ -88,7 +88,7 @@
 | 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | done | Agent 1 | ADR 0110: `WorldInfo` beside the ECS world, `SimSave` 5 with the Legacy world migration, envelope 2 `worldId`, `WorldStore`, client migration; save +179 bytes |
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | done | Agent 1 | ADR 0111: `defineRule`/`definePreset`, 22 stock rules and 4 presets, values in `WorldInfo.rules`, `set-rule` + changelog + `world:rule-changed`, `Snapshot.rules`; API 0.1.27 |
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
-| 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | in-progress | Agent 3 | ADR 0095: one provider, patched only, n-body refused |
+| 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | done | Agent 3 | ADR 0095: one provider, patched only, n-body refused |
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | done | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | done | Agent 3 | ADR 0099/0101: data kinds, storage, items |
@@ -170,6 +170,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Exact float goldens are platform-specific** (080 merge): snapshots recorded on Linux x86-64 differ in the last ulp on Apple arm64. Goldens of floating-point results should round (the 080 helper `golden`: 10 significant digits, noise below 1e-9 to 0) before `toMatchSnapshot`.
 - **084 `high` frame pair open** (Agent 1): retake base vs 084 `debug.benchmark` on `high` with the Claude window and the Browser pane in view (`medium` measured: +0.13 ms). Plan 084 is done (all its criteria passed); this is the Lead's merge check.
 - **Tick epoch** (081 contract request, deferred): the world tick reads the epoch in tick days, ADR 0141 in SI days from J2000; the Lead lands `cp/f1-contract-tick-epoch` (tick.ts, `dayLength` from `calendarOf`) before 087 merges.
 - **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).
@@ -200,6 +201,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [080 — Trajectory provider interface: patched conics behind one API, no behaviour change](journal/080-trajectory-provider-interface.md)
 - [084 — Sites in the world: a terrain seed per world and a list of flat zones](journal/084-sites-in-the-world-terrain-seed-and-flat-zones.md)
 - [083 — Data items: sized data stored on vessels](journal/083-data-items-on-vessels.md)
 - [081 — Calendar and world epoch: dates in the game](journal/081-calendar-and-world-epoch.md)

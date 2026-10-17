@@ -1,7 +1,7 @@
 ---
 id: 080
 title: "Trajectory provider interface: patched conics behind one API, no behaviour change"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [077]
 phase: 4
@@ -52,7 +52,7 @@ Golden tests first: record the outputs of the existing prediction tests and asse
 - [ ] All existing `packages/kepler`, `packages/sim` (`soi.test.ts`, `maneuver` tests) and `apps/web` (`map-path`, `rendezvous-aids`, `maneuver-controller`) tests pass with no test file edited; the golden snapshot tests (recorded before the move, step 1) pass unchanged after it.
 - [ ] `bun test packages/kepler/test/trajectory.test.ts`: each provider method returns exactly (`toEqual`) what the wrapped function returns; `createTrajectoryProvider('n-body', …)` throws "n-body worlds are not available yet".
 - [ ] `packages/sim` test: `createSim` with `gravityModel: "n-body"` throws a `SaveError` with code `incompatible` whose message says n-body is not available yet.
-- [ ] Timing ¹: map path and node prediction within 2 % of before (journal table; M5 by Agent 1, indicative here).
+- [x] Timing ¹: map path and node prediction within 2 % of before (journal table; M5 by Agent 1, indicative here).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist

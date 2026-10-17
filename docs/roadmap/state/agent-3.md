@@ -12,7 +12,7 @@
 | 075 licence | done | `devc/075-licence` | 2026-10-17 | merged, cp/f1-075-licence |
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
-| 080 trajectory | handed-over | `devc/080-trajectory` | 2026-10-17 | ready/080; ADR 0173; API 0.1.33 |
+| 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
 | 110 part-actions | in-progress | `devc/110-part-actions` | 2026-10-17 | claim/110; ADR 0174; API 0.1.34 |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | todo |  |  |  |
