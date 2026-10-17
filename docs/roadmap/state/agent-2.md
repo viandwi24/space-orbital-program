@@ -2,9 +2,9 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 076 handed over (`ready/076`); next in lane: 069 categories.
+**Now:** 069 categories claimed (`devb/069-categories`), ADR 0146; working single-threaded (swap over the guard, agreed with the owner).
 **Waiting for:** merges of 088 (`ready/088`), 085 (`ready/085`) and 076 (`ready/076`).
-**Updated:** 2026-10-17
+**Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
 |---|---|---|---|---|
@@ -15,8 +15,8 @@
 | 087 worlds-screen | done | `devb/087-worlds-screen` | 2026-10-17 | merged 2d7724e, cp/f2-087-worlds-screen |
 | 088 hud | done | `devb/088-hud` | 2026-10-17 | merged d2caaa4, cp/f2-088-hud |
 | 085 orientation | handed-over | `devb/085-orientation` | 2026-10-17 | ready/085; ADR 0145; API 0.1.40 |
-| 076 roadmap-page | handed-over | `devb/076-roadmap-page` | 2026-10-17 | ready/076; labels from plan files at build time; web vitest script-worker env failure noted |
-| 069 categories | todo |  |  |  |
+| 076 roadmap-page | handed-over | `devb/076-roadmap-page` | 2026-10-18 | ready/076 (re-tagged: plan left in-progress for the Lead) |
+| 069 categories | in-progress | `devb/069-categories` | 2026-10-18 | claim/069; ADR 0146 |
 | 089 menus | todo |  |  |  |
 | 093 hangar | todo |  |  |  |
 | 112 dock | todo |  |  |  |
