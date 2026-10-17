@@ -10,6 +10,7 @@
 	import AppBar from '../../lib/hud/AppBar.svelte';
 	import CrewPanel from '../../lib/hud/CrewPanel.svelte';
 	import WorldCapsule from '../../lib/hud/WorldCapsule.svelte';
+	import MapSwitch from '../../lib/hud/MapSwitch.svelte';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
@@ -136,6 +137,11 @@
 		paused: pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen,
 		busy: saves.busy
 	});
+	/** The map's switch (plan 113, ADR 0118 point 6): save the flight, then open it in the Mission Center. */
+	async function openMissionCenter(): Promise<void> {
+		const id = await saves.autosaveId();
+		if (id) location.assign(`/mission-center?load=${encodeURIComponent(id)}`);
+	}
 	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
 		if (reason === null) return;
 		if (await saves.autosave()) autosaver.saved();
@@ -545,6 +551,10 @@
 			</div>
 
 			<div class="tc">
+				{#if hud.map}<MapSwitch
+						busy={saves.busy}
+						onmissioncenter={() => void openMissionCenter()}
+					/>{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
 				<BlackoutBadge level={model?.blackout ?? 0} />

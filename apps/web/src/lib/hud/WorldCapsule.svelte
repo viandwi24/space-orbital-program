@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * The world capsule (refs `Main` top left; plan 088, ADR 0144 point 7): the home button, the
-	 * world's name and `MODE · SYSTEM`. Home leads to the main menu until the Space Center (091) exists.
+	 * world's name and `MODE · SYSTEM`. Home leads to the Space Center (plan 091; wired in plan 113).
 	 */
 	import Icon from '../ui/Icon.svelte';
 
@@ -9,8 +9,11 @@
 </script>
 
 <div class="world" data-testid="world-capsule">
-	<a class="home" href="/" aria-label="Back to the main menu" title="Back to the main menu"
-		><Icon name="home" size={16} /></a
+	<a
+		class="home"
+		href="/space-center"
+		aria-label="Back to the Space Center"
+		title="Back to the Space Center"><Icon name="home" size={16} /></a
 	>
 	<span class="text">
 		<span class="name">{name}</span>

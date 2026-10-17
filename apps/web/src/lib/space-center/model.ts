@@ -45,7 +45,7 @@ export function actionOf(provides: readonly string[]): BuildingAction {
 	if (provides.includes('launch-pad'))
 		return { kind: 'none', reason: 'Build a rocket in the Hangar; it launches from this pad.' };
 	if (provides.includes('mission-control'))
-		return { kind: 'none', reason: 'Mission planning opens here in a later update.' };
+		return { kind: 'link', href: '/mission-center', label: 'Open the Mission Center' };
 	return { kind: 'none', reason: 'Nothing to open here yet.' };
 }
 

@@ -2,14 +2,7 @@ import type { BodyDefinition, BodyId, EntityId, Snapshot, VesselSnapshot } from 
 import { describe, expect, it } from 'vitest';
 import { WARP_LEAD_S } from '../maneuver-controller';
 import { bodyNodes } from '../map-path';
-import {
-	NOT_FLYABLE,
-	fly,
-	objectCard,
-	trackingRows,
-	upcomingEvents,
-	warpToCommand
-} from './model';
+import { NOT_FLYABLE, fly, objectCard, trackingRows, upcomingEvents, warpToCommand } from './model';
 
 const HOME = 'stock.home' as BodyId;
 const MOON = 'stock.cinder' as BodyId;
@@ -44,7 +37,11 @@ const snapshot: Snapshot = {
 		{ id: MOON, position: { x: 12e6, y: 0, z: 0 }, rotation: q0 }
 	],
 	vessels: [
-		vessel(1, { soi: MOON, position: { x: 400_000, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 900 } }),
+		vessel(1, {
+			soi: MOON,
+			position: { x: 400_000, y: 0, z: 0 },
+			velocity: { x: 0, y: 0, z: 900 }
+		}),
 		vessel(2, {
 			nodes: [{ id: 7, time: 6_000, prograde: 120, normal: 0, radial: 0, dv: 120 }]
 		})

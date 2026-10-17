@@ -60,7 +60,12 @@ export function trackingRows(
 			vesselName(a).localeCompare(vesselName(b))
 		);
 		for (const v of vessels) {
-			rows.push({ key: `vessel:${v.id}`, kind: 'vessel', label: vesselName(v), sub: vesselWhere(v) });
+			rows.push({
+				key: `vessel:${v.id}`,
+				kind: 'vessel',
+				label: vesselName(v),
+				sub: vesselWhere(v)
+			});
 		}
 	}
 	return rows;
