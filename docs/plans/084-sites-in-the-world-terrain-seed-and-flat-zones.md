@@ -1,8 +1,8 @@
 ---
 id: 084
 title: "Sites in the world: a terrain seed per world and a list of flat zones"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [077]
 phase: 4
 created: 2026-10-17
