@@ -17,7 +17,7 @@ Placing a building costs funds and takes game time (built on the world tick), ea
 
 ## Context
 
-- ADRs: 0097, 0098
+- ADRs: 0097, 0098, [0123](../decisions/0123-construction-on-the-tick-capacity-keys-upkeep.md) (construction, capacity keys, upkeep)
 - Read: ADR 0098 point 3, ADR 0097 point 5, plan 090 (schema), 095 (ledger).
 
 ## Scope
