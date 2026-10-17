@@ -42,6 +42,7 @@ import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './o
 import { collectCrewPlaces, freshCrew } from './crew.ts';
 import { freshScience } from './science.ts';
 import { freshComms, listenForComms, updateNetwork } from './comms.ts';
+import { freshLife, updateCrewLife } from './life.ts';
 import { createTrajectoryProvider } from '@orbital/kepler';
 import {
 	atBoundary,
@@ -309,6 +310,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),
+		life: freshLife(),
 		milestones: freshMilestones(resume?.milestones)
 	};
 	listenForObjectives(core);
@@ -388,6 +390,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		runSystems(core.post, dt);
 		autoRails(core);
 		collectCrewPlaces(core);
+		updateCrewLife(core, tStart, true);
 		updateNetwork(core);
 		collectMilestones(core);
 		evaluateObjectivesDue(core, 'step');
@@ -431,6 +434,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		pruneTargets(core);
 		runSystems(core.post, h);
 		collectCrewPlaces(core);
+		updateCrewLife(core, tStart, false);
 		updateNetwork(core);
 		collectMilestones(core);
 		evaluateObjectivesDue(core, 'step');

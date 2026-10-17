@@ -27,6 +27,9 @@ import { partDefOf, vesselOf, type SimCore } from './core.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 import { PART } from './state.ts';
+import { conditionSnapshot } from './life.ts';
+
+export { DAY as crewDay };
 
 export const freshCrew = (core: Pick<SimCore, 'info'>): SaveCrew => ({
 	next: 1,
@@ -45,11 +48,11 @@ const DAY = (core: SimCore): number => core.root.def.rotationPeriod;
 const salariesOn = (core: SimCore): boolean =>
 	economyOn(core) && ruleOf(core, RULES.salaries) !== false;
 
-const memberOf = (core: SimCore, id: string): CrewMember | undefined =>
+export const memberOf = (core: SimCore, id: string): CrewMember | undefined =>
 	core.crew.members.find((m) => m.id === id);
 
 /** The vessel a seated member is in now (the part keeps its entity through staging). */
-function vesselOfMember(core: SimCore, m: CrewMember): EntityId | undefined {
+export function vesselOfMember(core: SimCore, m: CrewMember): EntityId | undefined {
 	if (m.status !== 'assigned' || !m.location) return undefined;
 	const part = core.world.get(m.location.part as EntityId, PART);
 	return part ? part.vessel : undefined;
@@ -124,6 +127,7 @@ export function seatCrew(
 		m.status = 'assigned';
 		m.location = { vessel: Number(vessel), part: Number(partOfIndex(part)) };
 		m.places = [];
+		m.boardedAt = core.t;
 	}
 	collectCrewPlaces(core);
 }
@@ -197,6 +201,7 @@ export function recoverCrew(core: SimCore, vesselId: EntityId): void {
 		m.places = [];
 		m.status = 'available';
 		delete m.location;
+		endFlight(m);
 	}
 }
 
@@ -207,20 +212,52 @@ export function loseCrew(core: SimCore, vesselId: EntityId): void {
 	const days = ruleOf(core, RULES.returnDays);
 	for (const m of core.crew.members) {
 		if (vesselOfMember(core, m) !== vesselId) continue;
-		m.places = [];
-		delete m.location;
-		if (death === 'permanent') m.status = 'lost';
-		else if (death === 'off') m.status = 'available';
-		else {
-			m.status = 'missing';
-			m.returnsAt = core.t + (typeof days === 'number' ? days : 14) * DAY(core);
-		}
-		core.events.emit('crew:lost', {
-			member: m.id,
-			vessel: vesselId,
-			status: m.status as 'lost' | 'missing' | 'available'
-		});
+		loseMember(core, m, vesselId, death, typeof days === 'number' ? days : 14);
 	}
+}
+
+/** The death rule for one member (a vessel lost, or a shortage past its grace, plan 107). */
+export function loseMember(
+	core: SimCore,
+	m: CrewMember,
+	vesselId: EntityId,
+	death: 'permanent' | 'return' | 'off' = deathRule(core),
+	days = returnDays(core)
+): void {
+	m.places = [];
+	delete m.location;
+	endFlight(m);
+	if (death === 'permanent') m.status = 'lost';
+	else if (death === 'off') m.status = 'available';
+	else {
+		m.status = 'missing';
+		m.returnsAt = core.t + days * DAY(core);
+	}
+	core.events.emit('crew:lost', {
+		member: m.id,
+		vessel: vesselId,
+		status: m.status as 'lost' | 'missing' | 'available'
+	});
+}
+
+export function deathRule(core: SimCore): 'permanent' | 'return' | 'off' {
+	const rule = ruleOf(core, RULES.death);
+	return rule === 'return' || rule === 'off' ? rule : 'permanent';
+}
+
+const returnDays = (core: SimCore): number => {
+	const days = ruleOf(core, RULES.returnDays);
+	return typeof days === 'number' ? days : 14;
+};
+
+/** A flight ends (recovery or loss): the condition of the flight goes, the dose stays (plan 107). */
+function endFlight(m: CrewMember): void {
+	delete m.morale;
+	delete m.fatigue;
+	delete m.gStress;
+	delete m.glocUntil;
+	delete m.shortages;
+	delete m.boardedAt;
 }
 
 /** World tick (ADR 0176 points 7 and 8): missing members come back; salaries are one entry. */
@@ -262,9 +299,17 @@ export function rosterSnapshot(core: SimCore): Snapshot['crew'] {
 export function vesselCrewSnapshot(core: SimCore, vesselId: EntityId): VesselSnapshot['crew'] {
 	const aboard = core.crew.members.filter((m) => vesselOfMember(core, m) === vesselId);
 	if (aboard.length === 0) return undefined;
-	return aboard.map((m) => ({
-		member: m.id,
-		part: m.location!.part as EntityId,
-		abilities: { ...abilitiesOf(m, core.registries.crewTraits) }
-	}));
+	return aboard.map((m) => {
+		const { performance, fields } = conditionSnapshot(m);
+		const abilities = abilitiesOf(m, core.registries.crewTraits);
+		return {
+			member: m.id,
+			part: m.location!.part as EntityId,
+			// quality factors scaled by morale and fatigue (plan 107, ADR 0181 point 6)
+			abilities: Object.fromEntries(
+				Object.entries(abilities).map(([k, v]) => [k, v * performance])
+			),
+			...(performance === 1 && Object.keys(fields).length === 1 ? {} : fields)
+		};
+	});
 }

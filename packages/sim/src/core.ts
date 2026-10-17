@@ -23,6 +23,7 @@ import type { ObjectivesState } from './objectives.ts';
 import type { SaveCrew } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
+import type { LifeRuntime } from './life.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -80,6 +81,8 @@ export interface SimCore {
 	readonly science: ScienceRuntime;
 	/** The comms network (plan 114, ADR 0179): derived links, never saved. */
 	readonly comms: CommsRuntime;
+	/** Crew simulation run-time state (plan 107): last velocities for g-load; not saved. */
+	readonly life: LifeRuntime;
 	/** Orbit prediction for this world's gravity model (plan 080, ADR 0173). */
 	readonly trajectory: TrajectoryProvider;
 	/** Ledger and balances (plan 095, ADR 0113); saved as `SimSave.economy`. */

@@ -25,6 +25,7 @@ import { dataUse, storagesOf } from './data.ts';
 import { rosterSnapshot, vesselCrewSnapshot } from './crew.ts';
 import { scienceSnapshot, vesselScienceSnapshot } from './science.ts';
 import { networkSnapshot } from './comms.ts';
+import { lifeSupportSnapshot } from './life.ts';
 import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
 import { nodeSnapshots } from './maneuver.ts';
@@ -131,6 +132,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
 	const crew = vesselCrewSnapshot(core, id);
 	if (crew) snapshot.crew = crew;
+	const life = lifeSupportSnapshot(core, id);
+	if (life) snapshot.lifeSupport = life;
 	const science = vesselScienceSnapshot(core, id);
 	if (science) snapshot.science = science;
 	if (vessel.mode === 'flight') {

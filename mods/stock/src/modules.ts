@@ -863,3 +863,22 @@ export const ModuleWing = defineModule({
 		if (force.y !== 0 || force.z !== 0) vessel.applyForce(force, at);
 	}
 });
+
+// ---------------------------------------------------------------------------------------------
+// CO2 scrubber (plan 107, ADR 0181 point 1)
+// ---------------------------------------------------------------------------------------------
+
+export const scrubberConfigSchema = z.object({
+	/** People it serves. */
+	crew: z.number().positive(),
+	/** Electric charge per served person per day, EC. */
+	charge: z.number().nonnegative()
+});
+
+/** Scrubs the CO2 of up to `crew` people while the vessel has electric charge (life support `full`). */
+export const ModuleScrubber = defineModule({
+	id: 'stock.scrubber',
+	config: scrubberConfigSchema,
+	scrubber: (config) => ({ crew: config.crew, charge: config.charge }),
+	describe: () => ({ category: 'command' })
+});
