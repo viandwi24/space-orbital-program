@@ -49,38 +49,44 @@
 
 <style>
 	.what {
-		margin: 0 0 var(--s-5);
+		margin: 0 0 1.25rem;
 		max-width: 36ch;
-		color: var(--text-dim);
+		font-size: var(--t-value);
+		color: var(--text-muted);
 	}
 	strong {
-		color: var(--text);
+		color: var(--text-primary);
 		font-weight: 600;
 	}
 	.actions {
 		display: grid;
-		gap: var(--s-2);
-		min-width: 300px;
+		gap: 0.375rem;
+		min-width: 18.75rem;
 	}
 	.pair {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: var(--s-2);
+		gap: 0.375rem;
 	}
+	/* the links look like the secondary Button next to them */
 	.link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 32px;
-		font-size: var(--t-sm);
-		font-weight: 500;
-		color: var(--text);
+		min-height: var(--round-btn);
+		font-size: var(--t-button);
+		font-weight: 700;
+		color: var(--text-secondary);
 		text-decoration: none;
-		background: var(--panel-raised);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
+		background: var(--surface-button);
+		border-radius: var(--radius-row);
 	}
 	.link:hover {
-		border-color: var(--c-accent);
+		background: var(--surface-hover);
+		color: var(--text-primary);
+	}
+	.link:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 2px;
 	}
 </style>
