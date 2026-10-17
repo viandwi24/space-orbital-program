@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 100 missions claimed (`devb/100-missions`); 108 skipped until 094 merges.
-**Waiting for:** merge of 094 (`ready/094`).
+**Now:** 100 handed over (`ready/100`); next in lane: 108 once 094 merges, else 111.
+**Waiting for:** merges of 094 and 100 (`ready/*`).
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -23,7 +23,7 @@
 | 094 launch | done | `devb/094-launch` | 2026-10-17 | merged 2ac52f7, cp/f2-094-launch |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | todo |  |  |  |
-| 100 missions | in-progress | `devb/100-missions` | 2026-10-18 | claim/100 |
+| 100 missions | handed-over | `devb/100-missions` | 2026-10-18 | ready/100; ADR 0151; API 0.1.53 |
 | 111 vessel-panel | todo |  |  |  |
 | 105 tech-tree | todo |  |  |  |
 | 115 comms-1-ui | todo |  |  |  |
