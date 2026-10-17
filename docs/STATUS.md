@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 041, 051, 055 to 062. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 051, 055 to 063. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -38,7 +38,7 @@
 | 026 | [Radial parts, boosters and fins](plans/026-part-visual-follow-ups.md) | done | radial session | ADRs 0034 (radial attachment, part yaw, symmetry, design format 2) and 0035 (`airVelocity`, fins); stock radial decoupler, booster, nose cone, fin; VAB radial placement with symmetry 2/3/4/6; Δv and auto-staging with boosters; engine start-up ramp; API 0.1.8; a 23-part booster rocket built by mouse reached 214 x 76 km; asset provider, smoke, debris, plasma, gimbal, device tuning are draft 033 |
 | 033 | [Part follow-ups 2](plans/033-part-assets-effects-and-aero-follow-ups.md) | done | control session | ADRs 0045 (engine gimbal, control surfaces, one attitude mixer; API 0.1.10 `centreOfMass`, `torqueDemand`), 0046 (fin damping), 0047 (glTF provider, shard debris, lit smoke, plume light, plasma colour); one wheel plus gimbal swings the finned 25 t rocket 6 times as far as the wheel at max-q (the headless one-wheel ascent reached orbit without gimbal too); `stock.control-surface`; lit drifting smoke, debris from real meshes, plasma colour by speed; no measurable frame cost at the pad; wreckage, plasma shape, KTX2, multi-nozzle in draft 040, struts, tilted parts, wing lift in 041 |
 | 040 | [Effects and assets 3](plans/040-effects-and-assets-3.md) | draft | — | from 033: wreckage, plasma shape, comms blackout, persistent trail, multi-nozzle, KTX2, M1/M2 |
-| 041 | [Aero and structure extras](plans/041-aero-and-structure-extras.md) | draft | — | from 033: struts and fuel lines, tilted parts, non-cylindrical radial parents, wing lift |
+| 041 | [Aero and structure extras](plans/041-aero-and-structure-extras.md) | done | structure session (Claude, 2026-10-17) | ADRs 0071 (format 3: connector parts, tilt, radial on boxes), 0075 (wing lift), API 0.1.19; fuel lines move propellant one way (the core drains its boosters first; Δv and sim agree on the 19.3 s booster burnout), struts are rigid bars cut on separation, tilt about the parent's axes, `stock.wing` with stall and induced drag (5.9 t glider glides 5.13:1 against 4.91 predicted); asparagus rocket built in the VAB reached a 76.9 km periapsis, the glider flew from a save; plane gameplay in draft 063 |
 | 029 | [UI: VAB follow-ups](plans/029-vab-follow-ups.md) | done | vab-2 session | ADRs 0041 (IndexedDB vessel library, sub-assemblies), 0042 (stability read-out); library with thumbnails, sub-assemblies with symmetry, radial group move and angle/height controls, CoM/CoP markers and warning, instancing (booster rocket 82 draw calls / 47 k triangles in the vessel graph, whole frame 280 to 179 calls, 4.0 to 1.0 ms), hall rebuilt with a moving crane, tug and crew, panels never cut off down to 1024x768 and drawers below 900 px, page controller extracted (1 294 to 424 lines); M1/M2 not measured, extras in draft 034 |
 | 034 | [VAB extras](plans/034-vab-extras-mod-categories-trip-planner.md) | draft | — | from 029: mod-supplied categories, trip planner, mod lift modules in the stability read-out |
 | 027 | [Visual: terrain geometry, sky and device follow-ups](plans/027-terrain-and-sky-follow-ups.md) | done | terrain session | ADRs 0036 and 0037; visual terrain heights (cube-map bake, ray-marched, flat pad zone and camera bubble, snow/rock/forest bands, terrain shadows), thinner haze, cumulus plus cirrus layers, moving waves; `high` pad 12.8 ms thr / 15.9 ms sync on an M5, M1/M2 not measured; physical heights, volumetric clouds, site animation in draft 031 |
@@ -72,6 +72,7 @@
 | 058 | [Script editor follow-ups](plans/058-script-editor-follow-ups.md) | draft | — | from 036: a screen-reader and keyboard-only check by a person, Firefox/WebKit key runs, replace, deeper suggestions, a parse for the check |
 | 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | draft | — | from 052: a second planet with `terrain: hills` is drawn as hills, not a sphere |
 | 060 | [Stones you can hit](plans/060-stones-with-collision.md) | draft | — | from 052: collision for scenery stones (lattice into core, colliders in the ground tile) |
+| 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041: wheels and a runway, trim and flaps, angle-of-attack and airspeed read-outs, plane controls |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -103,6 +104,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [041 — Struts, fuel lines, tilted parts, wing lift](journal/041-aero-and-structure-extras.md)
 - [054 — Light shafts and an ozone sky](journal/054-light-shafts-and-ozone-sky.md)
 - [052 — Moon terrain shadows, stones, terrain kind](journal/052-moon-terrain-shadows-stones-and-terrain-kind.md)
 - [050 — Half-resolution planet pass](journal/050-half-resolution-planet-pass.md)
