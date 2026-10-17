@@ -60,14 +60,14 @@ export function dvFromDrag(
 /** Step of the keyboard controls, m/s per press (Shift x10, Alt x0.1). */
 export const KEY_STEP = 1;
 
-/** Keys of the selected node: [axis, sign]. */
+/** Key actions that edit the selected node (`keybindings.ts`): [axis, sign]. */
 export const NODE_KEYS: Readonly<Record<string, readonly [NodeAxis, 1 | -1]>> = {
-	KeyI: ['prograde', 1],
-	KeyK: ['prograde', -1],
-	KeyL: ['normal', 1],
-	KeyJ: ['normal', -1],
-	KeyO: ['radial', 1],
-	KeyU: ['radial', -1]
+	nodePrograde: ['prograde', 1],
+	nodeRetrograde: ['prograde', -1],
+	nodeNormal: ['normal', 1],
+	nodeAntinormal: ['normal', -1],
+	nodeRadialOut: ['radial', 1],
+	nodeRadialIn: ['radial', -1]
 };
 
 export interface TimedPoint {

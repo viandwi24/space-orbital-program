@@ -2,7 +2,8 @@
 	import Button from '../ui/Button.svelte';
 	import Dialog from '../ui/Dialog.svelte';
 	import Kbd from '../ui/Kbd.svelte';
-	import { BINDING_GROUPS } from '../keybindings';
+	import { BINDING_GROUPS, helpKeys } from '../keybindings';
+	import { settings } from '../settings/settings.svelte';
 
 	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
 
@@ -16,13 +17,13 @@
 			<section>
 				<h3>{g.title}</h3>
 				<dl>
-					{#each g.rows as r (r.action)}
+					{#each g.rows as r (r.text)}
+						{@const shown = helpKeys(r, settings.keymap)}
 						<dt>
-							{#each r.show ?? r.keys as k, i (k)}{#if i > 0}<span class="or"
-										>{r.show ? '–' : '/'}</span
+							{#each shown.caps as k, i (i)}{#if i > 0}<span class="or">{shown.joiner}</span
 									>{/if}<Kbd>{k}</Kbd>{/each}
 						</dt>
-						<dd>{r.action}</dd>
+						<dd>{r.text}</dd>
 					{/each}
 				</dl>
 			</section>

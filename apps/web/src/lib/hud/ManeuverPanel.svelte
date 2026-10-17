@@ -2,6 +2,8 @@
 	import Button from '../ui/Button.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import Kbd from '../ui/Kbd.svelte';
+	import { settings } from '../settings/settings.svelte';
+	import type { ActionId } from '../keybindings';
 	import { formatDuration, formatSpeed } from '../format';
 	import type { ManeuverHud } from '../hud-controller';
 
@@ -21,6 +23,7 @@
 		onpoint: () => void;
 		onremove: () => void;
 	} = $props();
+	const key = (id: ActionId): string => settings.keymap.label(id);
 
 	const status = $derived.by(() => {
 		if (!maneuver) return '';
@@ -82,7 +85,9 @@
 	<Panel title="Maneuver">
 		<p class="note">
 			Click the orbit to plan a burn, then drag its handles or use the keys <span class="keys"
-				><Kbd>I</Kbd><Kbd>K</Kbd> <Kbd>L</Kbd><Kbd>J</Kbd> <Kbd>O</Kbd><Kbd>U</Kbd></span
+				><Kbd>{key('nodePrograde')}</Kbd><Kbd>{key('nodeRetrograde')}</Kbd>
+				<Kbd>{key('nodeNormal')}</Kbd><Kbd>{key('nodeAntinormal')}</Kbd>
+				<Kbd>{key('nodeRadialOut')}</Kbd><Kbd>{key('nodeRadialIn')}</Kbd></span
 			>.
 		</p>
 	</Panel>

@@ -4,6 +4,7 @@
 	import Icon from '../ui/Icon.svelte';
 	import Kbd from '../ui/Kbd.svelte';
 	import Meter from '../ui/Meter.svelte';
+	import { settings } from '../settings/settings.svelte';
 	import { formatDeltaV, formatDuration, formatPercent } from '../format';
 	import { speedUnit } from '../units.svelte';
 	import type { StageStackModel } from '../stage-stack';
@@ -80,7 +81,7 @@
 
 	<div class="foot">
 		<Button variant="primary" disabled={!canStage} onclick={onstage}>
-			Stage <Kbd>Space</Kbd>
+			Stage <Kbd>{settings.keymap.label('stage')}</Kbd>
 		</Button>
 	</div>
 </Panel>

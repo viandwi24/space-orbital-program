@@ -212,34 +212,34 @@ describe('editing', () => {
 		const r = rig();
 		r.setNodes([{ id: 1, time: 1_000, normal: 5 }]);
 		r.ctl.select(1);
-		expect(r.ctl.key('KeyL', {})).toBe(true);
+		expect(r.ctl.key('nodeNormal', {})).toBe(true);
 		r.ctl.update(5_000);
 		await settle();
 		let c = r.commands.at(-1)!;
 		expect(c.type === 'node-set' && c.normal).toBeCloseTo(6, 9);
-		expect(r.ctl.key('KeyK', { shift: true })).toBe(true);
+		expect(r.ctl.key('nodeRetrograde', { shift: true })).toBe(true);
 		r.ctl.update(6_000);
 		await settle();
 		c = r.commands.at(-1)!;
 		expect(c.type === 'node-set' && c.prograde).toBeCloseTo(-10, 9);
 		expect(c.type === 'node-set' && c.normal).toBeCloseTo(6, 9);
-		expect(r.ctl.key('KeyO', { alt: true })).toBe(true);
+		expect(r.ctl.key('nodeRadialOut', { alt: true })).toBe(true);
 		r.ctl.update(7_000);
 		await settle();
 		c = r.commands.at(-1)!;
 		expect(c.type === 'node-set' && c.radial).toBeCloseTo(0.1, 9);
-		expect(r.ctl.key('KeyZ', {})).toBe(false);
-		expect(r.ctl.key('Delete', {})).toBe(true);
+		expect(r.ctl.key('throttleFull', {})).toBe(false);
+		expect(r.ctl.key('nodeDelete', {})).toBe(true);
 		expect(r.commands.at(-1)).toMatchObject({ type: 'node-remove', id: 1 });
 		expect(r.ctl.selected).toBeNull();
-		expect(r.ctl.key('KeyI', {})).toBe(false);
+		expect(r.ctl.key('nodePrograde', {})).toBe(false);
 	});
 
 	it('keys do nothing outside the map view', () => {
 		const r = rig({ mapOn: false });
 		r.setNodes([{ id: 1, time: 1_000 }]);
 		r.ctl.select(1);
-		expect(r.ctl.key('KeyI', {})).toBe(false);
+		expect(r.ctl.key('nodePrograde', {})).toBe(false);
 	});
 });
 

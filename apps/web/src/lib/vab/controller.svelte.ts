@@ -11,6 +11,8 @@ import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
 import { initialGraphicsPreset } from '../graphics';
+import { keyIdOf, type ActionId } from '../keybindings';
+import { settings } from '../settings/settings.svelte';
 import { bodyMu } from '../orbit-info';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
 import { boosterRocket } from '../editor/examples';
@@ -990,29 +992,33 @@ export class VabController {
 		}
 		if (typing || mod || e.altKey) return;
 		const onCanvas = t === this.canvas;
-		switch (e.key) {
-			case 'Escape':
+		// Backspace is a fixed second key for Delete (ADR 0061); every other key goes through the table.
+		const action: ActionId | 'escape' | null =
+			e.key === 'Escape'
+				? 'escape'
+				: e.key === 'Backspace'
+					? 'delete'
+					: settings.keymap.actionFor('vab', keyIdOf(e));
+		switch (action) {
+			case 'escape':
 				if (this.armed) this.disarm();
 				else if (this.selected !== null) this.selected = null;
 				else if (this.drawer) this.drawer = null;
 				else return;
 				break;
-			case '/':
+			case 'search':
 				e.preventDefault();
 				this.focusSearch();
 				return;
-			case 'f':
-			case 'F':
+			case 'frame':
 				this.view?.frame();
 				return;
-			case 'Delete':
-			case 'Backspace':
+			case 'delete':
 				if (this.selected === null || this.armed) return;
 				e.preventDefault();
 				this.removeSelected(e.shiftKey);
 				return;
-			case 'x':
-			case 'X':
+			case 'symmetry':
 				if (this.armed?.kind === 'carry' || !this.armed) return;
 				this.symmetry =
 					SYMMETRY_COUNTS[
@@ -1020,11 +1026,9 @@ export class VabController {
 					]!;
 				this.say(this.symmetry === 1 ? 'Symmetry off.' : `${this.symmetry}-way symmetry.`);
 				return;
-			case 'q':
-			case 'Q':
-			case 'e':
-			case 'E': {
-				const dir = e.key.toLowerCase() === 'e' ? -1 : 1;
+			case 'turnPlus':
+			case 'turnMinus': {
+				const dir = action === 'turnMinus' ? -1 : 1;
 				if (this.armed && this.radialCapable) {
 					this.keyboardRadial = true;
 					this.radialAngle += (dir * 2 * Math.PI) / (this.copies > 1 ? this.copies * 2 : 24);
@@ -1036,28 +1040,22 @@ export class VabController {
 				}
 				return;
 			}
-			case 'd':
-			case 'D':
+			case 'detach':
 				if (this.selected !== null && !this.armed) this.detachSelected();
 				return;
-			case 'm':
-			case 'M':
-			case 'g':
-			case 'G':
+			case 'carry':
 				if (this.selected !== null && !this.armed) this.carrySelected(e.shiftKey);
 				return;
-			case 'a':
-			case 'A':
+			case 'subAssembly':
 				if (this.selected !== null && !this.armed) void this.saveSelectedAsAssembly();
 				return;
-			case ']':
+			case 'nextPart':
 				this.cycle(1);
 				return;
-			case '[':
+			case 'prevPart':
 				this.cycle(-1);
 				return;
-			case 'Enter':
-			case ' ':
+			case 'place':
 				if (onCanvas && this.armed && this.active !== null) {
 					e.preventDefault();
 					this.place(this.active);
@@ -1080,7 +1078,7 @@ export class VabController {
 			else this.view?.orbitBy(k[0], k[1]);
 		} else if (e.key === '+' || e.key === '=') this.view?.zoomBy(0.85);
 		else if (e.key === '-' || e.key === '_') this.view?.zoomBy(1.18);
-		else if (e.key === 'Tab' && this.armed && this.targets.length > 1) {
+		else if (action === 'nextSite' && this.armed && this.targets.length > 1) {
 			e.preventDefault();
 			this.cycle(e.shiftKey ? -1 : 1);
 		}

@@ -1,3 +1,4 @@
+import { DEFAULT_KEYMAP, createKeymap, isActionId } from '../keybindings';
 import { describe, expect, it } from 'vitest';
 import type { TutorialProgress } from '../settings/settings';
 import {
@@ -8,6 +9,8 @@ import {
 	currentStep,
 	skip,
 	type FlightObservation,
+	stepKeys,
+	stepText,
 	type Observation
 } from './tutorial';
 
@@ -157,5 +160,28 @@ describe('tutorial steps', () => {
 			step: TUTORIAL_STEPS.length
 		});
 		expect(currentStep({ status: 'active', step: 99 }, 'flight')).toBeNull();
+	});
+});
+
+describe('key placeholders', () => {
+	it('every placeholder names a real action and none is left after resolving', () => {
+		for (const s of TUTORIAL_STEPS) {
+			for (const text of [s.text, s.touchText ?? '']) {
+				for (const m of text.matchAll(/\{key:([A-Za-z]+)\}/g)) expect(isActionId(m[1]!)).toBe(true);
+				expect(stepText(s, DEFAULT_KEYMAP)).not.toMatch(/\{key:/);
+			}
+		}
+	});
+	it('show the default keys, then the rebound ones, and none on touch', () => {
+		const throttle = TUTORIAL_STEPS.find((s) => s.id === 'throttle')!;
+		expect(stepText(throttle, DEFAULT_KEYMAP)).toBe(
+			'Press Z for full throttle. Shift and Ctrl change it gradually; X cuts it.'
+		);
+		expect(stepKeys(throttle, DEFAULT_KEYMAP)).toEqual(['Z']);
+		const moved = createKeymap({ throttleFull: ['KeyH'] });
+		expect(stepText(throttle, moved)).toContain('Press H for full throttle.');
+		expect(stepKeys(throttle, moved)).toEqual(['H']);
+		expect(stepKeys(throttle, moved, true)).toEqual([]);
+		expect(stepText(throttle, moved, true)).toMatch(/slider/);
 	});
 });

@@ -23,9 +23,12 @@ const stubStorage = (initial: Record<string, string> = {}) => {
 describe('settings parsing', () => {
 	it('round trips', () => {
 		const s = {
-			v: 1 as const,
+			v: 2 as const,
 			units: 'imperial' as const,
-			tutorial: { status: 'active' as const, step: 3 }
+			tutorial: { status: 'active' as const, step: 3 },
+			bindings: { stage: ['KeyG'], help: ['F1'] },
+			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
+			touch: 'on' as const
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -35,17 +38,53 @@ describe('settings parsing', () => {
 		expect(parseSettings('{not json')).toEqual(d);
 		expect(parseSettings('[1,2]')).toEqual(d);
 		expect(parseSettings('"metric"')).toEqual(d);
-		expect(parseSettings(JSON.stringify({ v: 2, units: 'imperial' }))).toEqual(d);
+		expect(parseSettings(JSON.stringify({ v: 3, units: 'imperial' }))).toEqual(d);
+		expect(parseSettings(JSON.stringify({ units: 'imperial' }))).toEqual(d);
+	});
+	it('migrates format 1: units and tutorial kept, the new fields at their defaults', () => {
+		const v1 = JSON.stringify({ v: 1, units: 'imperial', tutorial: { status: 'done', step: 5 } });
+		expect(parseSettings(v1)).toEqual({
+			...defaultSettings(),
+			units: 'imperial',
+			tutorial: { status: 'done', step: 5 }
+		});
+		// an invalid field in an old value is repaired like in the new one
+		expect(parseSettings(JSON.stringify({ v: 1, units: 'x', tutorial: 3 })).tutorial).toEqual({
+			status: 'pending',
+			step: 0
+		});
+	});
+	it('repairs bad audio, touch and bindings without losing the good fields', () => {
+		const s = parseSettings(
+			JSON.stringify({
+				v: 2,
+				units: 'imperial',
+				audio: { master: 7, effects: 'loud', ui: 0.25, muted: 'yes' },
+				touch: 'sometimes',
+				bindings: { stage: ['KeyZ'], map: ['KeyB'], nope: ['KeyQ'], warpUp: ['Escape'] }
+			})
+		);
+		expect(s.units).toBe('imperial');
+		expect(s.audio).toEqual({ master: 0.7, effects: 0.8, ui: 0.25, muted: false });
+		expect(s.touch).toBe('auto');
+		// stage clashes with Z (full throttle) and is dropped; map is fine; the rest is unknown or reserved
+		expect(s.bindings).toEqual({ map: ['KeyB'] });
+		expect(parseSettings(JSON.stringify({ v: 2, bindings: [1, 2], audio: null })).audio).toEqual(
+			defaultSettings().audio
+		);
 	});
 	it('keeps the valid fields and repairs the invalid ones; unknown keys are dropped', () => {
 		const text = JSON.stringify({
-			v: 1,
+			v: 2,
 			units: 'furlongs',
 			tutorial: { status: 'done', step: -4 },
 			extra: 'x'
 		});
 		const s = parseSettings(text);
-		expect(s).toEqual({ v: 1, units: 'metric', tutorial: { status: 'done', step: 0 } });
+		expect(s).toEqual({
+			...defaultSettings(),
+			tutorial: { status: 'done', step: 0 }
+		});
 		expect('extra' in s).toBe(false);
 	});
 });
@@ -53,7 +92,11 @@ describe('settings parsing', () => {
 describe('settings storage', () => {
 	it('loads what was saved', () => {
 		const data = stubStorage();
-		saveSettings({ v: 1, units: 'imperial', tutorial: { status: 'skipped', step: 2 } });
+		saveSettings({
+			...defaultSettings(),
+			units: 'imperial',
+			tutorial: { status: 'skipped', step: 2 }
+		});
 		expect(data.has(SETTINGS_KEY)).toBe(true);
 		expect(loadSettings().units).toBe('imperial');
 		expect(loadSettings().tutorial.status).toBe('skipped');

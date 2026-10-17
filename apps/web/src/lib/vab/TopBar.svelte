@@ -3,8 +3,11 @@
 	import IconButton from '../ui/IconButton.svelte';
 	import Kbd from '../ui/Kbd.svelte';
 	import type { VabController } from './controller.svelte';
+	import { settings } from '../settings/settings.svelte';
+	import type { ActionId } from '../keybindings';
 
 	let { vab }: { vab: VabController } = $props();
+	const key = (id: ActionId): string => settings.keymap.label(id);
 </script>
 
 <div class="top">
@@ -82,7 +85,7 @@
 				</span>
 				{#if armed.kind !== 'carry'}
 					<div class="sym" role="group" aria-label="Symmetry: copies per placement">
-						<span class="dim">Symmetry <Kbd>X</Kbd></span>
+						<span class="dim">Symmetry <Kbd>{settings.keymap.label('symmetry')}</Kbd></span>
 						{#each vab.symmetryCounts as n (n)}
 							<button
 								type="button"
@@ -98,10 +101,13 @@
 					{#if vab.targets.length === 0}
 						Nowhere to attach this.
 					{:else if vab.radialCapable}
-						Click the side of a tank or a ring. <Kbd>Alt</Kbd> frees the angle, <Kbd>Q</Kbd>
-						<Kbd>E</Kbd> turn the keyboard sites, <Kbd>Tab</Kbd> and <Kbd>Enter</Kbd> place.
+						Click the side of a tank or a ring. <Kbd>Alt</Kbd> frees the angle, <Kbd
+							>{key('turnPlus')}</Kbd
+						>
+						<Kbd>{key('turnMinus')}</Kbd> turn the keyboard sites, <Kbd>{key('nextSite')}</Kbd> and
+						<Kbd>{key('place')}</Kbd> place.
 					{:else}
-						Click a ring, or <Kbd>Tab</Kbd> to choose and <Kbd>Enter</Kbd> to place.
+						Click a ring, or <Kbd>{key('nextSite')}</Kbd> to choose and <Kbd>{key('place')}</Kbd> to place.
 					{/if}
 					<Kbd>Esc</Kbd> to stop.
 				</span>

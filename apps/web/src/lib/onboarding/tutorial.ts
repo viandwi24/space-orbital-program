@@ -5,6 +5,7 @@
  * (`settings.ts`). Nothing here touches the DOM or the sim.
  */
 import type { TutorialProgress } from '../settings/settings';
+import type { ActionId, Keymap } from '../keybindings';
 
 export type TutorialScene = 'vab' | 'flight';
 
@@ -38,10 +39,28 @@ export interface TutorialStep {
 	id: string;
 	scene: TutorialScene;
 	title: string;
+	/** `{key:action}` stands for the key now bound to that action (`stepText`; ADR 0061). */
 	text: string;
-	/** Keys to show as key caps next to the text. */
-	keys?: readonly string[];
+	/** The same step for touch controls (plan 053); the text above when absent. */
+	touchText?: string;
+	/** Actions whose keys show as key caps next to the text. */
+	actions?: readonly ActionId[];
 	done(o: Observation): boolean;
+}
+
+/** The step's text for the keys in force; unknown placeholders are left as written (a test pins that none exist). */
+export function stepText(step: TutorialStep, keymap: Keymap, touch = false): string {
+	const text = touch ? (step.touchText ?? step.text) : step.text;
+	return text.replace(/\{key:([A-Za-z]+)\}/g, (whole, id: string) => {
+		const label = keymap.label(id as ActionId);
+		return label === '' ? whole : label;
+	});
+}
+
+/** Key caps of a step for the keys in force (none on touch). */
+export function stepKeys(step: TutorialStep, keymap: Keymap, touch = false): string[] {
+	if (touch) return [];
+	return (step.actions ?? []).flatMap((a) => keymap.labels(a).slice(0, 1));
 }
 
 /** Above this height the atmosphere no longer shapes the orbit; the tutorial's orbit target, m. */
@@ -69,56 +88,69 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 		id: 'throttle',
 		scene: 'flight',
 		title: 'Throttle up',
-		text: 'Press Z for full throttle. Shift and Ctrl change it gradually; X cuts it.',
-		keys: ['Z'],
+		text: 'Press {key:throttleFull} for full throttle. {key:throttleUp} and {key:throttleDown} change it gradually; {key:throttleCut} cuts it.',
+		touchText: 'Drag the throttle slider up, or tap Full. Tap Cut to close it again.',
+		actions: ['throttleFull'],
 		done: (o) => (flight(o)?.throttle ?? 0) > 0.5
 	},
 	{
 		id: 'stage',
 		scene: 'flight',
 		title: 'Light the engine',
-		text: 'Press Space to fire the first stage. Space fires the next stage every time; the stage stack on the right shows what is left.',
-		keys: ['Space'],
+		text: 'Press {key:stage} to fire the first stage. It fires the next stage every time; the stage stack on the right shows what is left.',
+		touchText:
+			'Tap Stage to fire the first stage. It fires the next stage every time; the stage stack on the right shows what is left.',
+		actions: ['stage'],
 		done: (o) => (flight(o)?.stagesFired ?? 0) >= 1
 	},
 	{
 		id: 'climb',
 		scene: 'flight',
 		title: 'Hold it steady',
-		text: 'Press T to switch on the stability assist (SAS) so the rocket holds its heading. Climb straight up until about 10 km.',
-		keys: ['T'],
+		text: 'Press {key:sasToggle} to switch on the stability assist (SAS) so the rocket holds its heading. Climb straight up until about 10 km.',
+		touchText:
+			'Tap SAS to switch on the stability assist so the rocket holds its heading. Climb straight up until about 10 km.',
+		actions: ['sasToggle'],
 		done: (o) => flight(o)?.sasOn === true && (flight(o)?.altitude ?? 0) > 8_000
 	},
 	{
 		id: 'turn',
 		scene: 'flight',
 		title: 'Follow the arc',
-		text: 'Tilt the nose a few degrees towards heading 090 (east) with W, S, A and D, then press 2: SAS keeps the nose on the prograde marker (the yellow ring on the navball) and the rocket follows its own arc.',
-		keys: ['2'],
+		text: 'Tilt the nose a few degrees towards heading 090 (east) with {key:pitchPlus}, {key:pitchMinus}, {key:yawMinus} and {key:yawPlus}, then press {key:sasPrograde}: SAS keeps the nose on the prograde marker (the yellow ring on the navball) and the rocket follows its own arc.',
+		touchText:
+			'Tilt the nose a few degrees towards heading 090 (east) with the steering pad, then tap the prograde button beside the navball: SAS keeps the nose on the prograde marker (the yellow ring on the navball) and the rocket follows its own arc.',
+		actions: ['sasPrograde'],
 		done: (o) => flight(o)?.sasMode === 'prograde'
 	},
 	{
 		id: 'apoapsis',
 		scene: 'flight',
 		title: 'Raise the apoapsis',
-		text: 'Burn until Ap (the top of your orbit, in the strip at the bottom left) passes 70 km. Press Space to drop an empty stage. X cuts the engine.',
-		keys: ['X'],
+		text: 'Burn until Ap (the top of your orbit, in the strip at the bottom left) passes 70 km. Press {key:stage} to drop an empty stage. {key:throttleCut} cuts the engine.',
+		touchText:
+			'Burn until Ap (the top of your orbit, in the strip at the bottom left) passes 70 km. Tap Stage to drop an empty stage. Tap Cut to cut the engine.',
+		actions: ['throttleCut'],
 		done: (o) => (flight(o)?.apoapsis ?? 0) >= TARGET_ORBIT
 	},
 	{
 		id: 'map',
 		scene: 'flight',
 		title: 'Open the map',
-		text: 'Press M. The map shows your orbit with Ap and Pe markers. Press M again to come back.',
-		keys: ['M'],
+		text: 'Press {key:map}. The map shows your orbit with Ap and Pe markers. Press {key:map} again to come back.',
+		touchText:
+			'Tap Map. The map shows your orbit with Ap and Pe markers. Tap it again to come back.',
+		actions: ['map'],
 		done: (o) => flight(o)?.map === true
 	},
 	{
 		id: 'circularise',
 		scene: 'flight',
 		title: 'Circularise',
-		text: 'Coast up to the Ap marker (the comma and period keys warp time), then burn with SAS on prograde until Pe is above 70 km too.',
-		keys: [',', '.'],
+		text: 'Coast up to the Ap marker (the {key:warpDown} and {key:warpUp} keys warp time), then burn with SAS on prograde until Pe is above 70 km too.',
+		touchText:
+			'Coast up to the Ap marker (the warp buttons speed up time), then burn with SAS on prograde until Pe is above 70 km too.',
+		actions: ['warpDown', 'warpUp'],
 		done: (o) => (flight(o)?.periapsis ?? -Infinity) >= TARGET_ORBIT
 	}
 ];

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Icon from '../ui/Icon.svelte';
 	import Meter from '../ui/Meter.svelte';
+	import { settings } from '../settings/settings.svelte';
 	import {
 		formatBearing,
 		formatDistance,
@@ -77,7 +78,7 @@
 			type="button"
 			class="chip"
 			onclick={oncyclespeed}
-			title="Speed reference (V): auto, surface or orbit"
+			title="Speed reference ({settings.keymap.label('speedMode')}): auto, surface or orbit"
 		>
 			{modeText || 'Speed'}
 		</button>

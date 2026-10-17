@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Button from './Button.svelte';
 	import Dialog from './Dialog.svelte';
-	import Kbd from './Kbd.svelte';
+	import ControlsEditor from './ControlsEditor.svelte';
 	import Segmented from './Segmented.svelte';
-	import { BINDING_GROUPS, BINDING_MODE_LABEL, type BindingMode } from '../keybindings';
+	import { pageAudio } from '../audio/audio';
+	import type { TouchChoice } from '../settings/settings';
 	import {
 		clearGraphicsPreset,
 		loadAutoQuality,
@@ -33,7 +34,6 @@
 	let tab = $state<Tab>('graphics');
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
-	let controlsMode = $state<BindingMode>('flight');
 
 	// Read the stored choices each time the dialog opens, so two pages never disagree.
 	$effect(() => {
@@ -70,10 +70,16 @@
 		{ value: 'metric', label: 'Metric', hint: 'Metres, kilometres, m/s, kg, tonnes' },
 		{ value: 'imperial', label: 'Imperial', hint: 'Feet, miles, ft/s, pounds, short tons' }
 	] as const;
-	const modeOptions = (Object.keys(BINDING_MODE_LABEL) as BindingMode[]).map((m) => ({
-		value: m,
-		label: BINDING_MODE_LABEL[m]
-	}));
+	const touchOptions = [
+		{ value: 'auto', label: 'Automatic', hint: 'On for touch screens, off with a mouse' },
+		{ value: 'on', label: 'On', hint: 'Always show the on-screen controls' },
+		{ value: 'off', label: 'Off', hint: 'Keyboard and mouse only' }
+	] as const;
+	const volumes = [
+		{ key: 'master', label: 'Master', hint: 'Everything' },
+		{ key: 'effects', label: 'Effects', hint: 'Engines, wind, staging, warnings' },
+		{ key: 'ui', label: 'Interface', hint: 'Button clicks and SAS ticks' }
+	] as const;
 	const tutorialText = $derived(
 		settings.tutorial.status === 'done'
 			? 'You finished the first-flight guide.'
@@ -162,50 +168,65 @@
 					>Start the guide again</Button
 				>
 			</div>
-		{:else if tab === 'controls'}
-			<div class="row modes">
-				<p class="note">These keys are fixed in version 1.0; changing them is on the roadmap.</p>
-				<Segmented
-					label="Which controls"
-					value={controlsMode}
-					options={modeOptions}
-					onchange={(m: BindingMode) => (controlsMode = m)}
-				/>
-			</div>
-			<div class="keys">
-				{#each BINDING_GROUPS.filter((g) => g.mode === controlsMode) as g (g.id)}
-					<section>
-						<h3>{g.title}</h3>
-						<dl>
-							{#each g.rows as r (r.action)}
-								<dt>
-									{#each r.show ?? r.keys as k, i (k)}{#if i > 0}<span class="or"
-												>{r.show ? '–' : '/'}</span
-											>{/if}<Kbd>{k}</Kbd>{/each}
-								</dt>
-								<dd>{r.action}</dd>
-							{/each}
-						</dl>
-					</section>
-				{/each}
-			</div>
-		{:else}
 			<div class="row">
 				<div class="what">
-					<h3>Sound</h3>
+					<h3>Touch controls</h3>
 					<p>
-						Version 1.0 has no sound. Music and engine audio are on the roadmap; until then there is
-						nothing to turn up or down.
+						On-screen throttle, steering and stage buttons in flight, for tablets (landscape, 1024 ×
+						768 or larger).
 					</p>
 				</div>
-				<input
-					type="range"
-					min="0"
-					max="100"
-					value="0"
-					disabled
-					aria-label="Volume (no sound in this version)"
+				<Segmented
+					label="Touch controls"
+					value={settings.touch}
+					options={touchOptions}
+					onchange={(c: TouchChoice) => settings.setTouch(c)}
+					testid="setting-touch"
 				/>
+			</div>
+		{:else if tab === 'controls'}
+			<ControlsEditor />
+		{:else}
+			<p class="note">
+				Every sound is made in your browser as you play; nothing is downloaded. Sound starts after
+				your first click or key press.
+			</p>
+			{#each volumes as v (v.key)}
+				<label class="row">
+					<div class="what">
+						<h3>{v.label}</h3>
+						<p>{v.hint}</p>
+					</div>
+					<input
+						type="range"
+						min="0"
+						max="100"
+						step="1"
+						value={Math.round(settings.audio[v.key] * 100)}
+						oninput={(e) => settings.setAudio({ [v.key]: Number(e.currentTarget.value) / 100 })}
+						aria-label="{v.label} volume"
+						data-testid="volume-{v.key}"
+					/>
+				</label>
+			{/each}
+			<label class="row check">
+				<div class="what">
+					<h3>Mute</h3>
+					<p>Press {settings.keymap.label('mute')} anywhere to switch sound off and on.</p>
+				</div>
+				<input
+					type="checkbox"
+					checked={settings.audio.muted}
+					onchange={(e) => settings.setAudio({ muted: e.currentTarget.checked })}
+					data-testid="audio-mute"
+				/>
+			</label>
+			<div class="row">
+				<div class="what">
+					<h3>Test</h3>
+					<p>Plays a staging thump at the current volume.</p>
+				</div>
+				<Button onclick={() => pageAudio().oneShot('stage')} data-testid="audio-test">Play</Button>
 			</div>
 		{/if}
 	</div>
@@ -253,9 +274,6 @@
 	.row.check {
 		cursor: pointer;
 	}
-	.row.modes {
-		flex-wrap: wrap;
-	}
 	h3 {
 		margin: 0 0 2px;
 		font-size: var(--t-md);
@@ -274,41 +292,8 @@
 		accent-color: var(--c-accent);
 	}
 	input[type='range'] {
-		width: 140px;
-		opacity: 0.5;
-	}
-	.keys {
-		display: grid;
-		gap: var(--s-4);
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		max-height: 340px;
-		overflow: auto;
-		padding-right: var(--s-2);
-	}
-	.keys h3 {
-		font-size: var(--t-sm);
-		color: var(--text-dim);
-		margin-bottom: var(--s-2);
-	}
-	dl {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: var(--s-2) var(--s-3);
-		margin: 0;
-		align-items: center;
-	}
-	dt {
-		display: flex;
-		gap: 3px;
-		align-items: center;
-	}
-	dd {
-		margin: 0;
-		font-size: var(--t-sm);
-	}
-	.or {
-		color: var(--text-faint);
-		font-size: var(--t-xs);
+		width: 160px;
+		accent-color: var(--c-accent);
 	}
 	.foot {
 		display: flex;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SasMode, SasSnapshot } from '@orbital/core';
+	import { settings } from '../settings/settings.svelte';
 	import { buttonStates, errorText, masterLabel, toggledMode } from './sas-model';
 
 	let {
@@ -16,7 +17,7 @@
 		onmode: (mode: SasMode) => void;
 	} = $props();
 
-	const buttons = $derived(buttonStates(sas, controllable, hasNode));
+	const buttons = $derived(buttonStates(sas, controllable, hasNode, settings.keymap));
 	const on = $derived(sas !== undefined && sas.mode !== 'off');
 	const err = $derived(errorText(sas));
 </script>
@@ -28,7 +29,9 @@
 		class:on
 		aria-pressed={on}
 		disabled={!controllable}
-		title={controllable ? 'Stability assist (T)' : 'Stability assist: no command part'}
+		title={controllable
+			? `Stability assist (${settings.keymap.label('sasToggle')})`
+			: 'Stability assist: no command part'}
 		onclick={() => onmode(toggledMode(sas?.mode ?? 'off'))}
 	>
 		{masterLabel(sas)}

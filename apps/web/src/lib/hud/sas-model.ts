@@ -5,6 +5,7 @@
  */
 import type { Command, EntityId, SasMode, SasReference, SasSnapshot } from '@orbital/core';
 import type { SpeedMode } from '../speed';
+import { DEFAULT_KEYMAP, type ActionId, type Keymap } from '../keybindings';
 
 export type SasGlyph = 'hold' | MarkerGlyph;
 export type MarkerGlyph =
@@ -14,26 +15,21 @@ export interface SasButtonSpec {
 	mode: Exclude<SasMode, 'off'>;
 	label: string;
 	glyph: SasGlyph;
-	/** `KeyboardEvent.code` of the shortcut. */
-	code: string;
-	/** Shown in the tooltip. */
-	key: string;
+	/** The key action that asks for this mode (`keybindings.ts`, ADR 0061). */
+	action: ActionId;
 }
 
 /** Left to right in the strip: hold, then the navball markers in the order the ball draws them. */
 export const SAS_BUTTONS: readonly SasButtonSpec[] = [
-	{ mode: 'hold', label: 'Hold', glyph: 'hold', code: 'Digit1', key: '1' },
-	{ mode: 'prograde', label: 'Prograde', glyph: 'prograde', code: 'Digit2', key: '2' },
-	{ mode: 'retrograde', label: 'Retrograde', glyph: 'retrograde', code: 'Digit3', key: '3' },
-	{ mode: 'normal', label: 'Normal', glyph: 'normal', code: 'Digit4', key: '4' },
-	{ mode: 'antinormal', label: 'Antinormal', glyph: 'anti-normal', code: 'Digit5', key: '5' },
-	{ mode: 'radial-out', label: 'Radial out', glyph: 'radial-out', code: 'Digit6', key: '6' },
-	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', code: 'Digit7', key: '7' },
-	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', code: 'Digit8', key: '8' }
+	{ mode: 'hold', label: 'Hold', glyph: 'hold', action: 'sasHold' },
+	{ mode: 'prograde', label: 'Prograde', glyph: 'prograde', action: 'sasPrograde' },
+	{ mode: 'retrograde', label: 'Retrograde', glyph: 'retrograde', action: 'sasRetrograde' },
+	{ mode: 'normal', label: 'Normal', glyph: 'normal', action: 'sasNormal' },
+	{ mode: 'antinormal', label: 'Antinormal', glyph: 'anti-normal', action: 'sasAntinormal' },
+	{ mode: 'radial-out', label: 'Radial out', glyph: 'radial-out', action: 'sasRadialOut' },
+	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', action: 'sasRadialIn' },
+	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', action: 'sasManeuver' }
 ];
-
-/** The key that switches SAS on (to `hold`) and off. */
-export const SAS_TOGGLE_CODE = 'KeyT';
 
 export interface SasButtonState extends SasButtonSpec {
 	active: boolean;
@@ -44,10 +40,10 @@ export interface SasButtonState extends SasButtonSpec {
 /** Mode after the toggle key: off -> hold, anything else -> off. */
 export const toggledMode = (current: SasMode): SasMode => (current === 'off' ? 'hold' : 'off');
 
-/** Mode a key asks for given the current one, or null when the key is not a SAS key. */
-export function modeForKey(code: string, current: SasMode): SasMode | null {
-	if (code === SAS_TOGGLE_CODE) return toggledMode(current);
-	return SAS_BUTTONS.find((b) => b.code === code)?.mode ?? null;
+/** Mode a key action asks for given the current one, or null when the action is not a SAS one. */
+export function modeForAction(action: ActionId | null, current: SasMode): SasMode | null {
+	if (action === 'sasToggle') return toggledMode(current);
+	return SAS_BUTTONS.find((b) => b.action === action)?.mode ?? null;
 }
 
 /**
@@ -58,7 +54,8 @@ export function modeForKey(code: string, current: SasMode): SasMode | null {
 export function buttonStates(
 	sas: SasSnapshot | undefined,
 	controllable: boolean,
-	hasNode = false
+	hasNode = false,
+	keymap: Keymap = DEFAULT_KEYMAP
 ): SasButtonState[] {
 	return SAS_BUTTONS.map((b) => {
 		const noNode = b.mode === 'maneuver' && !hasNode && sas?.mode !== 'maneuver';
@@ -70,7 +67,7 @@ export function buttonStates(
 				? `${b.label}: no command part`
 				: noNode
 					? `${b.label}: no maneuver node planned`
-					: `${b.label} (${b.key})`
+					: `${b.label} (${keymap.label(b.action)})`
 		};
 	});
 }

@@ -18,6 +18,8 @@ import {
 	type GraphicsPreset,
 	type Renderer
 } from '@orbital/renderer';
+import { pageAudio } from './audio/audio';
+import { createDirector, type AudioFlightView } from './audio/director';
 import { partShapesOf } from './catalog';
 import {
 	clearGraphicsPreset,
@@ -28,7 +30,8 @@ import {
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
-import { modeForKey } from './hud/sas-model';
+import { modeForAction } from './hud/sas-model';
+import { DEFAULT_KEYMAP, keyIdOf, type ActionId, type Keymap } from './keybindings';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
@@ -76,7 +79,9 @@ export interface FlightOptions {
 	onHud(hud: FlightHud): void;
 	/** Every render frame, with what the canvas widgets draw (navball, map markers); no Svelte here. */
 	onFrame?(frame: FrameData): void;
-	/** Esc (pause menu), `?`/F1 (help overlay), F5 (quicksave) and F9 (quickload) were pressed. */
+	/** The key map in force (plan 053, ADR 0061); read on every key event, so rebinding applies at once. */
+	keymap?: () => Keymap;
+	/** Esc (pause menu), help, quicksave and quickload were pressed (by their keys now in force). */
 	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload'): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
@@ -165,6 +170,9 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	};
 	let hudCtl: HudController | null = null;
+	/** Sound (plan 053, ADR 0062): the director reads `audioView`, refreshed with the 10 Hz HUD model. */
+	const director = createDirector(pageAudio());
+	let audioView: AudioFlightView | null = null;
 	let modal = false;
 	let script: ScriptView = idleScript();
 	let scriptDirty = false;
@@ -187,13 +195,19 @@ export function startFlight(options: FlightOptions): Flight {
 	let warpIndex = 0;
 	let auto: { update(s: Snapshot): unknown; phase: string; note: string } | null = null;
 
-	const axis = (neg: string, pos: string): number =>
-		(held.has(pos) ? 1 : 0) - (held.has(neg) ? 1 : 0);
+	const keymap = (): Keymap => options.keymap?.() ?? DEFAULT_KEYMAP;
+	/** Any key of the action is down (held keys are key ids, `keybindings.ts`). */
+	const isHeld = (action: ActionId): boolean =>
+		keymap()
+			.keys(action)
+			.some((k) => held.has(k));
+	const axis = (neg: ActionId, pos: ActionId): number =>
+		(isHeld(pos) ? 1 : 0) - (isHeld(neg) ? 1 : 0);
 
 	function sendInput(dt: number): void {
 		if (vessel === null) return;
-		const up = held.has('ShiftLeft') || held.has('ShiftRight');
-		const down = held.has('ControlLeft') || held.has('ControlRight');
+		const up = isHeld('throttleUp');
+		const down = isHeld('throttleDown');
 		throttle = Math.min(
 			1,
 			Math.max(0, throttle + ((up ? 1 : 0) - (down ? 1 : 0)) * THROTTLE_RATE * dt)
@@ -203,7 +217,11 @@ export function startFlight(options: FlightOptions): Flight {
 			void send({ type: 'throttle', vessel, value: throttle });
 		}
 		if (!auto) {
-			const a = [axis('KeyS', 'KeyW'), axis('KeyA', 'KeyD'), axis('KeyQ', 'KeyE')];
+			const a = [
+				axis('pitchMinus', 'pitchPlus'),
+				axis('yawMinus', 'yawPlus'),
+				axis('rollMinus', 'rollPlus')
+			];
 			const key = a.join(',');
 			if (key !== sentAttitude) {
 				sentAttitude = key;
@@ -244,66 +262,73 @@ export function startFlight(options: FlightOptions): Flight {
 			return;
 		}
 		if (modal || e.repeat || typingInField(e)) return;
-		if (e.key === 'F5' || e.key === 'F9') {
-			// The browser would reload the page (F5); in flight the keys are quicksave and quickload.
-			e.preventDefault();
-			options.onKey?.(e.key === 'F5' ? 'quicksave' : 'quickload');
-			return;
-		}
-		if (e.key === '?' || e.key === 'F1') {
-			e.preventDefault();
-			options.onKey?.('help');
-			return;
-		}
-		// Punctuation by character so it works on any layout; everything else by physical key.
-		const code = e.key === ',' ? 'Comma' : e.key === '.' ? 'Period' : e.code;
-		held.add(code);
-		switch (code) {
-			case 'KeyZ':
+		const id = keyIdOf(e);
+		const action = keymap().actionFor('flight', id);
+		held.add(id);
+		switch (action) {
+			case 'quicksave':
+			case 'quickload':
+				// The browser would reload the page (F5); in flight the keys are quicksave and quickload.
+				e.preventDefault();
+				options.onKey?.(action);
+				break;
+			case 'help':
+				e.preventDefault();
+				options.onKey?.('help');
+				break;
+			case 'throttleFull':
 				throttle = 1;
 				break;
-			case 'KeyX':
+			case 'throttleCut':
 				throttle = 0;
 				break;
-			case 'Space':
+			case 'stage':
 				e.preventDefault();
 				if (vessel !== null) void send({ type: 'stage', vessel });
 				break;
-			case 'KeyM':
+			case 'map':
 				toggleMap();
 				break;
-			case 'Tab':
-				// In map view Tab looks at the next body (the vessel's own sphere first); elsewhere it is Tab.
+			case 'mapFocus':
+				// In map view this looks at the next body (the vessel's own sphere first); elsewhere it is Tab.
 				if (renderer?.isMapView) {
 					e.preventDefault();
 					cycleMapFocus(e.shiftKey ? -1 : 1);
 				}
 				break;
-			case 'KeyV':
+			case 'speedMode':
 				hudCtl?.cycleSpeedMode();
 				break;
-			case 'Comma':
+			case 'warpDown':
 				setWarp(warpIndex - 1);
 				break;
-			case 'Period':
+			case 'warpUp':
 				setWarp(warpIndex + 1);
 				break;
-			case 'KeyP':
-				if (import.meta.env.DEV) void toggleAutopilot();
+			case 'nodePrograde':
+			case 'nodeRetrograde':
+			case 'nodeNormal':
+			case 'nodeAntinormal':
+			case 'nodeRadialOut':
+			case 'nodeRadialIn':
+			case 'nodeDelete':
+				if (maneuverCtl?.key(action, { shift: e.shiftKey, alt: e.altKey })) e.preventDefault();
+				break;
+			case null:
+				if (import.meta.env.DEV && id === 'KeyP') void toggleAutopilot();
+				// Backspace is a fixed second key for removing the selected node (ADR 0061).
+				else if (id === 'Backspace' && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
 				break;
 			default: {
-				if (maneuverCtl?.key(code, { shift: e.shiftKey, alt: e.altKey })) {
-					e.preventDefault();
-					break;
-				}
-				const sasMode = modeForKey(code, hud.model?.sas?.mode ?? 'off');
+				const sasMode = modeForAction(action, hud.model?.sas?.mode ?? 'off');
 				if (sasMode !== null) setSas(sasMode);
 			}
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
+		held.delete(keyIdOf(e));
+		// A key released after Shift changed its character (`,` held, Shift pressed, `<` released): drop the code too.
 		held.delete(e.code);
-		held.delete(e.key === ',' ? 'Comma' : e.key === '.' ? 'Period' : e.code);
 	};
 	const onBlur = (): void => held.clear();
 
@@ -340,7 +365,10 @@ export function startFlight(options: FlightOptions): Flight {
 
 	function setSas(mode: SasMode): void {
 		const command = hudCtl?.sasCommand(mode);
-		if (command) void send(command);
+		if (command) {
+			void send(command);
+			director.event(command.type === 'sas' && command.mode === 'off' ? 'sasOff' : 'sasOn');
+		}
 	}
 
 	function toggleMap(): void {
@@ -416,6 +444,7 @@ export function startFlight(options: FlightOptions): Flight {
 			if (level) applyLevel(level, true);
 		}
 		sendInput(dt);
+		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {
 			renderer.update(snap);
 			dirty = false;
@@ -441,6 +470,18 @@ export function startFlight(options: FlightOptions): Flight {
 			hud.throttle = throttle;
 			const t0 = performance.now();
 			hud.model = hudCtl?.model(now, throttle) ?? null;
+			const m = hud.model;
+			const soi = snap?.vessels.find((v) => Number(v.id) === Number(vessel))?.soi;
+			audioView = m
+				? {
+						throttle: m.throttle,
+						engineOn: m.stages.rows.some((r) => r.current),
+						altitude: m.altitude,
+						speed: m.speed,
+						heat: m.heat,
+						atmosphere: catalog?.bodies.find((b) => b.id === soi)?.atmosphere
+					}
+				: null;
 			// The prograde reference follows the speed readout (V, or the automatic switch).
 			const follow = hudCtl?.sasFollowUp();
 			if (follow) void send(follow);
@@ -478,8 +519,14 @@ export function startFlight(options: FlightOptions): Flight {
 		dirty = true;
 		auto?.update(s);
 	});
-	client.onStage((event) => hudCtl?.stage(event));
-	client.onSimEvent((event) => hudCtl?.simEvent(event));
+	client.onStage((event) => {
+		hudCtl?.stage(event);
+		director.event('stage');
+	});
+	client.onSimEvent((event) => {
+		hudCtl?.simEvent(event);
+		if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
+	});
 	client.onScript((event) => {
 		script = reduceScript(script, event);
 		scriptDirty = true;
@@ -724,6 +771,7 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		dispose() {
 			disposed = true;
+			director.stop();
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			window.removeEventListener('keydown', onKeyDown);

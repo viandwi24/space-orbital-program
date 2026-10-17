@@ -173,9 +173,9 @@
 				<span><Kbd>Drag</Kbd> orbit</span>
 				<span><Kbd>Shift</Kbd>+<Kbd>Drag</Kbd> pan</span>
 				<span><Kbd>Wheel</Kbd> zoom</span>
-				<span><Kbd>F</Kbd> frame</span>
-				<span><Kbd>/</Kbd> search</span>
-				<span><Kbd>A</Kbd> keep as sub-assembly</span>
+				<span><Kbd>{settings.keymap.label('frame')}</Kbd> frame</span>
+				<span><Kbd>{settings.keymap.label('search')}</Kbd> search</span>
+				<span><Kbd>{settings.keymap.label('subAssembly')}</Kbd> keep as sub-assembly</span>
 			</p>
 		</div>
 

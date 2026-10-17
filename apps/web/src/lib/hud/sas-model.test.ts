@@ -1,3 +1,4 @@
+import { createKeymap } from '../keybindings';
 import { describe, expect, it } from 'vitest';
 import { entityId, type SasSnapshot } from '@orbital/core';
 import {
@@ -6,7 +7,7 @@ import {
 	commandForMode,
 	errorText,
 	masterLabel,
-	modeForKey,
+	modeForAction,
 	referenceFollowUp,
 	toggledMode
 } from './sas-model';
@@ -34,7 +35,7 @@ describe('buttons', () => {
 			'radial-in',
 			'maneuver'
 		]);
-		expect(new Set(SAS_BUTTONS.map((b) => b.code)).size).toBe(SAS_BUTTONS.length);
+		expect(new Set(SAS_BUTTONS.map((b) => b.action)).size).toBe(SAS_BUTTONS.length);
 	});
 
 	it('marks the active mode and enables everything for a controllable vessel', () => {
@@ -60,7 +61,7 @@ describe('buttons', () => {
 		expect(
 			buttonStates(sas('maneuver'), true, false).find((b) => b.mode === 'maneuver')!.disabled
 		).toBe(false);
-		expect(modeForKey('Digit8', 'off')).toBe('maneuver');
+		expect(modeForAction('sasManeuver', 'off')).toBe('maneuver');
 	});
 
 	it('shows nothing active before the first snapshot', () => {
@@ -70,19 +71,27 @@ describe('buttons', () => {
 	});
 });
 
+describe('tooltips follow the key map', () => {
+	it('names the key now bound to the mode', () => {
+		const states = buttonStates(sas('hold'), true, true, createKeymap({ sasPrograde: ['KeyG'] }));
+		expect(states[1]!.title).toBe('Prograde (G)');
+		expect(states[2]!.title).toBe('Retrograde (3)');
+	});
+});
+
 describe('keys', () => {
 	it('T switches on to hold and off again', () => {
 		expect(toggledMode('off')).toBe('hold');
 		expect(toggledMode('prograde')).toBe('off');
-		expect(modeForKey('KeyT', 'off')).toBe('hold');
-		expect(modeForKey('KeyT', 'hold')).toBe('off');
+		expect(modeForAction('sasToggle', 'off')).toBe('hold');
+		expect(modeForAction('sasToggle', 'hold')).toBe('off');
 	});
 
 	it('the number keys pick a mode; other keys are not SAS keys', () => {
-		expect(modeForKey('Digit2', 'off')).toBe('prograde');
-		expect(modeForKey('Digit7', 'hold')).toBe('radial-in');
-		expect(modeForKey('KeyW', 'off')).toBeNull();
-		expect(modeForKey('Digit9', 'off')).toBeNull();
+		expect(modeForAction('sasPrograde', 'off')).toBe('prograde');
+		expect(modeForAction('sasRadialIn', 'hold')).toBe('radial-in');
+		expect(modeForAction('pitchPlus', 'off')).toBeNull();
+		expect(modeForAction(null, 'off')).toBeNull();
 	});
 });
 

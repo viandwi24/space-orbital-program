@@ -1,19 +1,26 @@
 <script lang="ts">
 	import Button from '../ui/Button.svelte';
 	import Kbd from '../ui/Kbd.svelte';
-	import type { TutorialStep } from '../onboarding/tutorial';
+	import { stepKeys, stepText, type TutorialStep } from '../onboarding/tutorial';
+	import { settings } from '../settings/settings.svelte';
 
 	/** The current first-flight hint (plan 023): one card at a time, skippable. */
-	let { step, label, onskip }: { step: TutorialStep; label: string; onskip: () => void } = $props();
+	let {
+		step,
+		label,
+		touch = false,
+		onskip
+	}: { step: TutorialStep; label: string; touch?: boolean; onskip: () => void } = $props();
+	const keys = $derived(stepKeys(step, settings.keymap, touch));
 </script>
 
 <aside class="card" aria-live="polite" aria-label="First flight guide" data-testid="tutorial-card">
 	<p class="eyebrow"><span>First flight</span><span class="num">{label}</span></p>
 	<h2>{step.title}</h2>
-	<p class="text">{step.text}</p>
-	{#if step.keys}
+	<p class="text">{stepText(step, settings.keymap, touch)}</p>
+	{#if keys.length > 0}
 		<p class="keys" aria-hidden="true">
-			{#each step.keys as k (k)}<Kbd>{k}</Kbd>{/each}
+			{#each keys as k (k)}<Kbd>{k}</Kbd>{/each}
 		</p>
 	{/if}
 	<div class="foot">

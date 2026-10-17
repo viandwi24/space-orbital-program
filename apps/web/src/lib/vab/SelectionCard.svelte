@@ -3,6 +3,7 @@
 	import Kbd from '../ui/Kbd.svelte';
 	import { stageOf } from '../editor/state';
 	import type { VabController } from './controller.svelte';
+	import { settings } from '../settings/settings.svelte';
 
 	let { vab }: { vab: VabController } = $props();
 
@@ -174,8 +175,11 @@
 					</label>
 				{/if}
 				<p class="foot dim">
-					<Kbd>Q</Kbd>
-					<Kbd>E</Kbd> turn the {vab.radialGroupSize > 1 && !vab.onlyThis ? 'group' : 'part'}
+					<Kbd>{settings.keymap.label('turnPlus')}</Kbd>
+					<Kbd>{settings.keymap.label('turnMinus')}</Kbd> turn the {vab.radialGroupSize > 1 &&
+					!vab.onlyThis
+						? 'group'
+						: 'part'}
 				</p>
 			</div>
 		{/if}

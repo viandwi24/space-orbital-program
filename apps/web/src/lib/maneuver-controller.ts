@@ -98,7 +98,7 @@ export interface ManeuverController {
 	endDrag(): void;
 	readonly dragging: boolean;
 	/** Keyboard on the selected node; true when the key was used. */
-	key(code: string, modifiers: Modifiers): boolean;
+	key(action: string, modifiers: Modifiers): boolean;
 	remove(id: number): void;
 	/** Time warp to the burn of the earliest node. */
 	warpToNode(): void;
@@ -466,13 +466,13 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		get dragging() {
 			return dragMode !== null;
 		},
-		key(code, modifiers) {
+		key(action, modifiers) {
 			if (!options.mapOn() || selected === null) return false;
-			if (code === 'Delete' || code === 'Backspace') {
+			if (action === 'nodeDelete') {
 				this.remove(selected);
 				return true;
 			}
-			const k = NODE_KEYS[code];
+			const k = NODE_KEYS[action];
 			if (!k) return false;
 			const node = draft && draft.id === selected ? draft : nodeView(selected);
 			if (!node) return false;
