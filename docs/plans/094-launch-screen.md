@@ -1,12 +1,12 @@
 ---
 id: 094
 title: "Launch screen: site, pad or runway, design, crew"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [091, 093]
 phase: 5
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 094 — Launch screen: site, pad or runway, design, crew
@@ -63,3 +63,4 @@ The VAB launch button goes to this screen; a "quick launch" key keeps today's di
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0107).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
