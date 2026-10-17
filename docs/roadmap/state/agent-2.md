@@ -20,7 +20,7 @@
 | 089 menus | done | `devb/089-menus` | 2026-10-17 | merged 26a4afe, cp/f2-089-menus |
 | 093 hangar | done | `devb/093-hangar` | 2026-10-17 | merged dceae76, cp/f2-093-hangar |
 | 112 dock | done | `devb/112-dock` | 2026-10-17 | merged 49f8d21, cp/f4-112-dock |
-| 094 launch | handed-over | `devb/094-launch` | 2026-10-18 | ready/094; ADR 0150 |
+| 094 launch | done | `devb/094-launch` | 2026-10-17 | merged 2ac52f7, cp/f2-094-launch |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | todo |  |  |  |
 | 100 missions | in-progress | `devb/100-missions` | 2026-10-18 | claim/100 |

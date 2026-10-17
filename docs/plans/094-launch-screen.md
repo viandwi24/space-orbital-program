@@ -1,7 +1,7 @@
 ---
 id: 094
 title: "Launch screen: site, pad or runway, design, crew"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [091, 093]
 phase: 5

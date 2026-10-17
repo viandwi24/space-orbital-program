@@ -102,7 +102,7 @@
 | 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | done | Agent 1 | ADR 0097: 3D site from the building list, refs overlay, build mode |
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | done | Agent 3 | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | done | Agent 2 (Dev B, M2) | ADR 0148: refs Hangar — category rail and two-column cards (mass · cost), Hangar capsule and Launch pill, Vessel/Staging/Pre-flight column with a go/caution/no-go verdict naming the part, tool pill (symmetry, CoM/CoT, undo/redo), CoT marker |
-| 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0150: `/launch` between the Hangar and the flight — the site\'s pads (mass limit) and runway from its buildings, accepted designs from the Hangar and the library, seats until 108, summary; the vessel stands at the facility (surface placement); Shift+Launch keeps the direct path |
+| 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | done | Agent 2 (Dev B, M2) | ADR 0150: `/launch` between the Hangar and the flight — the site\'s pads (mass limit) and runway from its buildings, accepted designs from the Hangar and the library, seats until 108, summary; the vessel stands at the facility (surface placement); Shift+Launch keeps the direct path |
 | 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | done | Agent 1 | ADR 0113: ledger in the save, part costs and prices, charges on the world tick, launch debit, `recover-vessel`, career bot 120 missions in band; HUD dialog in draft 132; API 0.1.30 |
 | 096 | [Buildings with costs, construction time, upkeep and capacity limits](plans/096-building-catalogue-levels-upkeep-capacity.md) | draft | — | ADR 0097/0098: construction, levels, upkeep, capacity-only gates |
 | 097 | [Markets and production: one commodity chain first](plans/097-markets-and-production.md) | draft | — | ADR 0098: commodities, damped prices, one production chain |
@@ -209,6 +209,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [094-launch-screen.md](journal/094-launch-screen.md)
 - [112 — Dock panels, the Panel library and `definePanel`](journal/112-dock-panels-and-define-panel.md)
 - [071 — Atmosphere, sea and variety on a second hills planet](journal/071-atmosphere-and-sea-on-a-second-planet.md)
 - [123 — Body orbits from elements with secular rates and a lunar model](journal/123-orbits-from-elements-and-a-lunar-model.md)
