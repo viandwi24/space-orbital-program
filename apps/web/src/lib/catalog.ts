@@ -7,7 +7,8 @@ import {
 	type PanelDefinition,
 	type PartLookup,
 	type SystemChoice,
-	type TechNodeDefinition
+	type TechNodeDefinition,
+	type Registries
 } from '@orbital/core';
 import type { PartShape } from '@orbital/renderer';
 import { BUILTIN_PLUGINS, STOCK_CHOICE } from './builtins';
@@ -52,6 +53,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	techNodes: TechNodeDefinition[];
 	/** Failure modes for the Hangar's reliability line (plan 130, ADR 0156). */
 	failureModes: FailureModeDefinition[];
+	/** Buildings, rules and presets, for the capacity limits (plan 096, ADR 0123). */
+	world: Pick<Registries, 'buildings' | 'rules' | 'presets'>;
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -68,6 +71,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),
 		failureModes: registries.failureModes.list(),
+		world: { buildings: registries.buildings, rules: registries.rules, presets: registries.presets },
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

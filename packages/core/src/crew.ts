@@ -24,7 +24,10 @@ export const ABILITY_KEYS = [
 export type AbilityKey = (typeof ABILITY_KEYS)[number];
 export type Abilities = Record<AbilityKey, number>;
 
-/** Flight tools that no ability may gate (asserted by a test). */
+/**
+ * Flight tools that no ability, building or level may gate (ADR 0098 point 3; asserted by tests in
+ * crew and buildings).
+ */
 export const FLIGHT_TOOLS = [
 	'sas',
 	'maneuver-nodes',
@@ -33,7 +36,8 @@ export const FLIGHT_TOOLS = [
 	'scripts',
 	'staging',
 	'time-warp',
-	'trajectory'
+	'trajectory',
+	'delta-v'
 ] as const;
 
 export interface CrewTraitDefinition {

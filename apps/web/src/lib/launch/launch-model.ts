@@ -6,6 +6,7 @@ import {
 	CELL_SIZE,
 	footprint,
 	padLatLon,
+	workingLevel,
 	type BuildingDefinition,
 	type PlacedBuilding,
 	type Site,
@@ -28,11 +29,19 @@ export interface BuildingLookup {
 	get(id: string): Pick<BuildingDefinition, 'label' | 'size' | 'provides' | 'levels'> | undefined;
 }
 
-/** The active pads and runways of a site, in the site's order (ADR 0150 point 1). */
-export function facilitiesOf(site: Pick<Site, 'buildings'>, buildings: BuildingLookup): Facility[] {
+/**
+ * The working pads and runways of a site, in the site's order (ADR 0150 point 1); an upgrading pad
+ * works at its level. With `limits` off (Sandbox, the Legacy world) no pad has a mass limit (plan
+ * 096, ADR 0123 point 4).
+ */
+export function facilitiesOf(
+	site: Pick<Site, 'buildings'>,
+	buildings: BuildingLookup,
+	limits = true
+): Facility[] {
 	const out: Facility[] = [];
 	for (const b of (site.buildings ?? []) as PlacedBuilding[]) {
-		if (b.state !== 'active') continue;
+		if (workingLevel(b) === null) continue;
 		const def = buildings.get(b.kind);
 		if (!def) continue;
 		const kind = def.provides.includes('launch-pad')
@@ -49,7 +58,7 @@ export function facilitiesOf(site: Pick<Site, 'buildings'>, buildings: BuildingL
 			id: b.id,
 			label: def.label,
 			kind,
-			massLimit: kind === 'pad' ? (level?.capacity['launch-pad'] ?? null) : null,
+			massLimit: kind === 'pad' && limits ? (level?.capacity['launch-pad'] ?? null) : null,
 			east,
 			north
 		});

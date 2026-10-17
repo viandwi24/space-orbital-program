@@ -181,6 +181,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		rules: rulesView(core),
 		economy: economySnapshot(core),
 		sites: sitesSnapshot(core),
+		day: core.ticks.lastDay,
 		...(objectives ? { objectives } : {}),
 		...(science ? { science } : {}),
 		...(network ? { network } : {}),

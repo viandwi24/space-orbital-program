@@ -8,6 +8,7 @@ import { isAutoStaged } from './staging';
 import type { EditorState } from './state';
 import type { Stability } from './stability';
 import type { DesignStats } from './stats';
+import type { PartsLimit } from '../capacity';
 
 export type CheckId =
 	| 'empty'
@@ -21,7 +22,8 @@ export type CheckId =
 	| 'marginal-twr'
 	| 'unstable'
 	| 'loose'
-	| 'locked';
+	| 'locked'
+	| 'over-capacity';
 
 /** How bad for the flight (ADR 0148 point 1), apart from whether it blocks Launch (`severity`). */
 export type CheckLevel = 'no-go' | 'caution';
@@ -48,7 +50,9 @@ export function checkDesign(
 	stats: Pick<DesignStats, 'liftoffTwr'>,
 	stability?: Pick<Stability, 'state' | 'margin' | 'fins'>,
 	/** Parts the world's tech tree locks (plan 105, ADR 0154 point 4). */
-	locks: readonly { parts: number[]; title: string; node: string }[] = []
+	locks: readonly { parts: number[]; title: string; node: string }[] = [],
+	/** The Hangar's part limit where the world's limits apply (plan 096, ADR 0123 point 4). */
+	partsLimit?: PartsLimit | null
 ): Check[] {
 	const { design, loose } = state;
 	if (design.parts.length === 0) {
@@ -77,6 +81,18 @@ export function checkDesign(
 		];
 	}
 	const out: Check[] = [];
+	if (partsLimit && design.parts.length > partsLimit.limit) {
+		out.push({
+			id: 'over-capacity',
+			severity: 'error',
+			level: 'no-go',
+			text: `${design.parts.length} parts: the Hangar takes ${partsLimit.limit}.`,
+			hint: partsLimit.upgrade
+				? `Upgrade in the Space Center: ${partsLimit.upgrade}.`
+				: 'No building level takes this many parts: remove some.',
+			parts: []
+		});
+	}
 	const model = stagingModelFromDesign(design, content);
 	const parts = [...model.parts.values()];
 	if (!parts.some((p) => p.controlSource)) {

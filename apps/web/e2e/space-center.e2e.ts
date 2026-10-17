@@ -3,7 +3,7 @@ import { watchErrors } from './support';
 
 /**
  * The Space Center (plan 091, ADR 0117): enter a new world, place a building in build mode, and
- * open the Hangar from its label.
+ * open the Hangar from its label. In a Career world the building is under construction (plan 096).
  */
 test('enter a world, place a building, open the Hangar from its label', async ({ page }) => {
 	const errors = watchErrors(page);
@@ -43,6 +43,10 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	}
 	expect(placed).toBe(true);
 	await expect(rows).toHaveCount(5, { timeout: 10_000 });
+	// a Career world pays for it and builds it over game days (plan 096, ADR 0123)
+	await expect(page.getByTestId('sc-attention')).toContainText(
+		/Tracking dish: Under construction · ready in 2 days/
+	);
 	await page.getByTestId('sc-build-stop').click();
 
 	await page.getByTestId('sc-label-stock.hangar').click();

@@ -8,6 +8,7 @@
 		LEGACY_WORLD_ID,
 		loadPlugins,
 		sitesOf,
+		upkeepOf,
 		type Rotation,
 		type Snapshot,
 		type WorldInfo
@@ -29,6 +30,7 @@
 		siteViews,
 		spreadLabels,
 		steadyLabels,
+		upkeepWarning,
 		type GhostCheck,
 		type SiteState
 	} from '../../lib/space-center/model';
@@ -58,11 +60,29 @@
 	let build = $state<{ kind: string; rotation: Rotation } | null>(null);
 	let hover = $state.raw<{ cell: { i: number; j: number }; check: GhostCheck } | null>(null);
 
-	const rows = $derived(buildingRows(site, buildingRegistry));
+	let today = $state<number | undefined>(undefined);
+	let funds = $state<number | undefined>(undefined);
+	/** Construction finished while the page is open (plan 096, ADR 0123 point 6). */
+	let finished = $state.raw<string[]>([]);
+	const rows = $derived(buildingRows(site, buildingRegistry, today));
+	const notes = $derived.by(() => {
+		const upkeep = upkeepOf(site ? [site] : [], buildingRegistry).reduce((t, u) => t + u.amount, 0);
+		const warning = upkeepWarning(funds, upkeep, today);
+		return [...finished, ...(warning ? [warning] : [])];
+	});
 	const siteInfo = $derived(sitesOf(world ?? { sites: [] })[0]!);
 
 	function onSnapshot(s: Snapshot): void {
+		today = s.day;
+		funds = s.economy?.enabled ? s.economy.funds : undefined;
 		const next = s.sites?.[0];
+		for (const b of next?.buildings ?? []) {
+			const was = site?.buildings.find((x) => x.id === b.id);
+			if (was && was.state !== 'active' && was.state !== 'planned' && b.state === 'active') {
+				const label = buildingRegistry.get(b.kind)?.label ?? b.kind;
+				finished = [...finished, `${label} is ready (level ${b.level + 1})`];
+			}
+		}
 		if (JSON.stringify(next) === JSON.stringify(site)) return;
 		site = next;
 		center?.setBuildings(siteViews(next, buildingRegistry), next?.roads ?? []);
@@ -105,6 +125,15 @@
 		else if (r?.ok) {
 			problem = null;
 			// the next snapshot carries the new building; write the record once it has
+			setTimeout(() => void persist(), 300);
+		}
+	}
+
+	async function upgrade(id: string): Promise<void> {
+		const r = await center?.dispatch({ type: 'upgrade-building', site: siteInfo.id, id });
+		if (r && !r.ok) problem = r.reason;
+		else {
+			problem = null;
 			setTimeout(() => void persist(), 300);
 		}
 	}
@@ -190,6 +219,8 @@
 		onbuild={setBuild}
 		onrotate={() => build && (build = { ...build, rotation: nextRotation(build.rotation) })}
 		onremove={(id) => void remove(id)}
+		onupgrade={(id) => void upgrade(id)}
+		{notes}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
 </main>

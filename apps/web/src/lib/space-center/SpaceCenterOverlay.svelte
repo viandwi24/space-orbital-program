@@ -21,7 +21,9 @@
 		build,
 		onbuild,
 		onrotate,
-		onremove
+		onremove,
+		onupgrade = () => {},
+		notes = []
 	}: {
 		worldName: string;
 		rows: readonly BuildingRow[];
@@ -35,6 +37,10 @@
 		onbuild: (kind: string | null) => void;
 		onrotate: () => void;
 		onremove: (id: string) => void;
+		/** Upgrade a building one level (plan 096). */
+		onupgrade?: (id: string) => void;
+		/** More "Needs attention" lines: finished construction, upkeep over the funds (plan 096). */
+		notes?: readonly string[];
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -103,10 +109,13 @@
 			</ul>
 		</Panel>
 		<Panel title="Needs attention">
-			{#if attention.length === 0}
+			{#if attention.length === 0 && notes.length === 0}
 				<p class="calm" data-testid="sc-attention">Every building is running.</p>
 			{:else}
 				<ul class="list" data-testid="sc-attention">
+					{#each notes as note (note)}
+						<li>{note}</li>
+					{/each}
 					{#each attention as row (row.id)}
 						<li>{row.label}: {row.statusText}</li>
 					{/each}
@@ -124,6 +133,13 @@
 					>
 				{:else}
 					<p class="why">{current.action.reason}</p>
+				{/if}
+				{#if current.upgrade}
+					<Button onclick={() => onupgrade(current.id)} data-testid="sc-upgrade"
+						>Upgrade to level {current.upgrade.level + 1} · {current.upgrade.cost.toLocaleString(
+							'en-US'
+						)} funds · {current.upgrade.days} days</Button
+					>
 				{/if}
 				{#if build}
 					<Button variant="danger" onclick={() => onremove(current.id)} data-testid="sc-remove"

@@ -31,7 +31,8 @@ describe('crew abilities (ADR 0098, 0176)', () => {
 			'scripts',
 			'staging',
 			'time-warp',
-			'trajectory'
+			'trajectory',
+			'delta-v'
 		]);
 		expect([...ABILITY_KEYS]).toEqual([
 			'controlSmoothing',

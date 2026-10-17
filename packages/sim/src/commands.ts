@@ -38,7 +38,13 @@ import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
-import { placeBuilding, removeBuilding, foundSite, foundedInThisRun } from './buildings.ts';
+import {
+	placeBuilding,
+	removeBuilding,
+	upgradeBuilding,
+	foundSite,
+	foundedInThisRun
+} from './buildings.ts';
 import {
 	hasFlightVessels,
 	isControlled,
@@ -380,6 +386,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return withStations(core, placeBuilding(core, command));
 		case 'remove-building':
 			return withStations(core, removeBuilding(core, command));
+		case 'upgrade-building':
+			return withStations(core, upgradeBuilding(core, command));
 		case 'found-site':
 			return withStations(core, foundSite(core, command));
 		case 'transmit-data': {

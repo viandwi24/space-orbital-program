@@ -129,7 +129,8 @@ export function stationsOf(core: SimCore): Station[] {
 	for (const site of sitesOf(core.info)) {
 		let tier = 1;
 		for (const b of site.buildings ?? []) {
-			if (b.state !== 'active') continue;
+			// an upgrading dish works at its level (plan 096, ADR 0123 point 2)
+			if (b.state !== 'active' && b.state !== 'upgrading') continue;
 			const level = core.registries.buildings.get(b.kind)?.levels[b.level];
 			tier = Math.max(tier, level?.capacity[COMMS_NODE] ?? 0);
 		}
