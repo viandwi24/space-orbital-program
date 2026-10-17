@@ -17,7 +17,7 @@ The flight and map HUD follow the refs layout: world capsule (home to Space Cent
 
 ## Context
 
-- ADRs: 0107, 0026
+- ADRs: 0107, 0026, [0144](../decisions/0144-flight-hud-refs-layout-what-has-no-data-yet.md) (written here)
 - Read: ADR 0107, 0026 (what stands), `refs/space-orbital-program-ui/docs/SCREENS.md` (Flight, Map) and `CONCEPT.md` §4, `apps/web/src/lib/hud/*`, `routes/flight`, touch layout ADRs 0063 and 0091.
 
 ## Scope
