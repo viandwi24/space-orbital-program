@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 083 handed over as `ready/083` (all checks pass here; the full web vitest is left for Agent 1). Next in the lane: 080 trajectory (WAIT cp/f1-077-world, present).
+**Now:** 083 handed over as `ready/083`, rebased on the 095 and 081 merges (API 0.1.32). Next in the lane: 080 trajectory.
 **Waiting for:** merge of 083 (`ready/083`).
 **Updated:** 2026-10-17
 
