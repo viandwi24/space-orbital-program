@@ -579,7 +579,8 @@
 				</div>
 			{/if}
 			{#if model && stagingOpen}
-				<div class="bl">
+				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
+				<div class="bl" class:stowed={scriptOpen && viewport.width <= 1279}>
 					<StageStack
 						stages={model.stages}
 						environment={model.environment}
@@ -814,6 +815,9 @@
 	.mnv {
 		width: 22.5rem;
 		margin-left: calc(9.625rem * var(--ball-k, 1) - 11.25rem);
+	}
+	.bl.stowed {
+		visibility: hidden;
 	}
 	.navmodule.hidden {
 		display: none;
