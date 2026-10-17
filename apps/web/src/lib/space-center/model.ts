@@ -44,6 +44,8 @@ export function actionOf(provides: readonly string[]): BuildingAction {
 	if (provides.includes('hangar')) return { kind: 'link', href: '/vab', label: 'Open the Hangar' };
 	if (provides.includes('launch-pad'))
 		return { kind: 'none', reason: 'Build a rocket in the Hangar; it launches from this pad.' };
+	if (provides.includes('crew'))
+		return { kind: 'link', href: '/astronauts', label: 'Open the Astronaut Complex' };
 	if (provides.includes('mission-control'))
 		return { kind: 'link', href: '/mission-center', label: 'Open the Mission Center' };
 	return { kind: 'none', reason: 'Nothing to open here yet.' };

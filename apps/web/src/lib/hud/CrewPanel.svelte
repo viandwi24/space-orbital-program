@@ -5,6 +5,7 @@
 	 * EVA (plan 109, ADR 0120): a member steps out; while outside the suit walks, plants a flag and
 	 * boards again.
 	 */
+	import SignalBars from '../ui/SignalBars.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import type { CrewCard } from '../crew-card';
 
@@ -56,6 +57,11 @@
 			<div class="row" data-testid="crew-row">
 				<div class="name">
 					{row.name}
+					<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): no suit radios until plan 121 -->
+					<span class="suit" data-testid="crew-suit">IVA</span>
+					<span class="radio" title="No radio until suit radios come"
+						><SignalBars level={0} offline /><span class="no-radio">no radio</span></span
+					>
 					{#if !eva && oneva}<button
 							type="button"
 							class="step-out"
@@ -73,7 +79,7 @@
 			</div>
 		{/if}
 	{:else}
-		<p>Crew comes with plan 108.</p>
+		<p>No crew aboard. Seat crew on the Launch screen.</p>
 	{/if}
 </Panel>
 
@@ -81,6 +87,27 @@
 	p {
 		margin: 0;
 		font-size: var(--t-small);
+		color: var(--text-muted);
+	}
+	.suit {
+		margin-left: 0.375rem;
+		padding: 0 0.375rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-chip);
+		font-size: var(--t-label);
+		font-weight: 700;
+		letter-spacing: var(--tracking-chip);
+		color: var(--text-secondary);
+	}
+	.radio {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-left: 0.375rem;
+		vertical-align: middle;
+	}
+	.no-radio {
+		font-size: var(--t-label);
 		color: var(--text-muted);
 	}
 	.row + .row {
