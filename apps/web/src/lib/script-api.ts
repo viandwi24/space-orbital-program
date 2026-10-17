@@ -50,6 +50,11 @@ export const GLOBALS: readonly ApiEntry[] = [
 	),
 	fn('nextTick', 'nextTick(): Promise', 'Resolve on the next tick; use it in every loop.'),
 	fn('time', 'time(): number', 'Simulation time in seconds.'),
+	fn(
+		'date',
+		'date(t?): { text, julianDate }',
+		'Game date at simulation time t (default: now) in the world calendar.'
+	),
 	fn('print', 'print(...values)', 'Write a line to the panel log.'),
 	fn('warp', 'warp(factor): Promise<{ ok, reason? }>', 'Ask for time warp, 1 to 100 000.'),
 	fn(

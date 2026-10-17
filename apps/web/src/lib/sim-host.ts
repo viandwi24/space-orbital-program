@@ -349,7 +349,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				env: {
 					bodies: sim.registries.bodies.list(),
 					parts: sim.registries.parts.list(),
-					resources: sim.registries.resources.list()
+					resources: sim.registries.resources.list(),
+					epoch: { ...sim.worldInfo.epoch }
 				},
 				...(options.scriptWatchdogMs === undefined ? {} : { watchdogMs: options.scriptWatchdogMs }),
 				...(options.scriptBootTimeoutMs === undefined
