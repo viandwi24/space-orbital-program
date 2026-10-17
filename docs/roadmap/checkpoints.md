@@ -37,7 +37,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f3-095-economy` | 095 | A1 | A1, A2, A3 (067, 096, 097, 099, 101, 105, 127, 130) | done | a060d06 | 2026-10-17 |
 | `cp/f3-098-objectives` | 098 | A3 | A2, A3 (099, 100) | done | 2b004b4 | 2026-10-17 |
 | `cp/f3-106-crew` | 106 | A3 | A1, A2, A3 (107, 108, 109) | done | 53cd3cf | 2026-10-17 |
-| `cp/f3-103-science` | 103 | A3 | A1, A2, A3 (067, 104, 105, 109) | pending | | |
+| `cp/f3-103-science` | 103 | A3 | A1, A2, A3 (067, 104, 105, 109) | done | f13f697 | 2026-10-17 |
 | `cp/f3-104-regions` | 104 | A3 | A3 (129) | pending | | |
 | `cp/f3-102-milestones` | 102 | A2 | A2, A3 (105, 121) | pending | | |
 | `cp/f3-107-crew-sim` | 107 | A3 | — (none) | pending | | |

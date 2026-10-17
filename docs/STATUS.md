@@ -111,7 +111,7 @@
 | 100 | [Authored missions, the story line and mission packs](plans/100-authored-missions-and-mission-packs.md) | draft | — | ADR 0098: story line, tracker, mission packs |
 | 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
 | 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | draft | — | ADR 0098: firsts, history book, local achievements |
-| 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | in-progress | Agent 3 | ADR 0099/0178: situations, subjects, value curve, data vs samples, transmit and recovery credit; handed over as `ready/103` |
+| 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | done | Agent 3 | ADR 0099/0178: situations, subjects, value curve, data vs samples, transmit and recovery credit; handed over as `ready/103` |
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
@@ -203,6 +203,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [103 — Science core: experiments, situations, subjects, data and samples](journal/103-science-core-experiments-data-samples.md)
 - [088 — UI stage 2: the flight HUD in the refs style](journal/088-ui-stage-2-flight-hud.md)
 - [091 — Space Center in 3D with free grid placement](journal/091-space-center-3d-and-grid-placement.md)
 - [092 — Site choice at world creation and location templates](journal/092-site-choice-and-location-templates.md)

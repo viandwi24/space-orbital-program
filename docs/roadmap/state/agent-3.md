@@ -17,7 +17,7 @@
 | 092 site-choice | done | `devc/092-site-choice` | 2026-10-17 | merged 5c9efd5, cp/f2-092-site-choice |
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
-| 103 science | handed-over | `devc/103-science` | 2026-10-17 | ready/103; API 0.1.40; draft 191 |
+| 103 science | done | `devc/103-science` | 2026-10-17 | merged f13f697, cp/f3-103-science |
 | 114 comms-1 | handed-over | `devc/114-comms` | 2026-10-17 | ready/114; API 0.1.40 |
 | 104 regions | todo |  |  |  |
 | 107 crew-sim | todo |  |  |  |

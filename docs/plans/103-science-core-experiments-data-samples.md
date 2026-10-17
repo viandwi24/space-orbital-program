@@ -1,7 +1,7 @@
 ---
 id: 103
 title: "Science core: experiments, situations, subjects, data and samples"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [083, 078]
 phase: 6
