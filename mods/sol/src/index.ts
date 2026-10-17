@@ -20,3 +20,4 @@ export default Sol;
 export * from './bodies.ts';
 export * from './variants.ts';
 export * from './balance.ts';
+export * from './designs.ts';

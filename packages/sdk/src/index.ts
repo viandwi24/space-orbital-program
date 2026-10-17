@@ -204,6 +204,7 @@ export type {
 	SignalState,
 	SystemChoice,
 	SystemVariantDefinition,
+	VesselDesign,
 	BodyRegions,
 	Dossier,
 	DossierEntry,

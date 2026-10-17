@@ -1,10 +1,10 @@
 /** The plugins this page booted, with versions, for comparing against a save (ADR 0050 point 7). */
-import Stock from '@orbital/mod-stock';
+import { BUILTIN_PLUGINS } from '../builtins';
 import { activePlugins, modRuntime } from '../mods/runtime';
 
-/** Stock plus the mods that booted (plan 046). */
+/** The built-in plugins plus the mods that booted (plan 046). */
 export function bootedMods(): ReadonlyMap<string, string> {
-	return new Map([Stock, ...activePlugins()].map((p) => [p.meta.id, p.meta.version]));
+	return new Map([...BUILTIN_PLUGINS, ...activePlugins()].map((p) => [p.meta.id, p.meta.version]));
 }
 
 /**

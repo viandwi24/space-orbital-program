@@ -318,12 +318,13 @@ export const SolMoon = defineBody({
 	}
 });
 
+/** Registration order: the Earth first after the Sun, so it is the home a site-less tool picks. */
 export const SOL_BODIES = [
 	SolSun,
-	SolMercury,
-	SolVenus,
 	SolEarth,
 	SolMoon,
+	SolMercury,
+	SolVenus,
 	SolMars,
 	SolJupiter,
 	SolSaturn,

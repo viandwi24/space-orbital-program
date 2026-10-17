@@ -15,7 +15,7 @@ import {
 	type Plugin
 } from '@orbital/core';
 import * as sdk from '@orbital/sdk';
-import Stock from '@orbital/mod-stock';
+import { BUILTIN_PLUGINS } from '../builtins';
 import type { ModRecord, ModStore } from './store';
 
 export type ModState =
@@ -85,7 +85,7 @@ export async function evaluateMods(
 		});
 	}
 	const resolved = await resolveMods(candidates, {
-		builtin: options.builtin ?? [Stock],
+		builtin: options.builtin ?? [...BUILTIN_PLUGINS],
 		importModule: options.importModule ?? importModBundle
 	});
 	for (const r of resolved.rejected) states.set(r.id, { kind: 'failed', reason: r.reason });
@@ -98,7 +98,7 @@ export async function evaluateMods(
 	}
 	// The booted set loads once more, headless, for what its patches changed: the same list and
 	// order the sim boots, so the mod manager shows what a flight will use.
-	const builtin = options.builtin ?? [Stock];
+	const builtin = options.builtin ?? [...BUILTIN_PLUGINS];
 	let patches: PatchReport[] = [];
 	try {
 		patches = loadPlugins([...builtin, ...resolved.plugins]).report.patches;

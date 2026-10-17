@@ -12,7 +12,7 @@
 		type Snapshot,
 		type WorldInfo
 	} from '@orbital/core';
-	import Stock from '@orbital/mod-stock';
+	import { BUILTIN_PLUGINS, STOCK_CHOICE } from '../../lib/builtins';
 	import { onMount } from 'svelte';
 	import { GAME_NAME } from '../../lib/public/about';
 	import { bootedMods, modHint } from '../../lib/save/mods';
@@ -40,7 +40,9 @@
 		modHint,
 		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
 	});
-	const { registries } = loadPlugins([Stock, ...activePlugins()]);
+	const { registries } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
+		system: STOCK_CHOICE
+	});
 	const buildingRegistry = registries.buildings;
 	const buildKinds = buildingRegistry.list().map((b) => ({ id: b.id, label: b.label }));
 
