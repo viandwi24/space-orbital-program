@@ -1,12 +1,12 @@
 ---
 id: 093
 title: "UI stage 4: the Hangar in the refs layout"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [086, 069]
 phase: 5
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 093 — UI stage 4: the Hangar in the refs layout
@@ -65,3 +65,4 @@ Keep the editor state model (ADR 0029) and library (ADR 0041) unchanged; this is
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
