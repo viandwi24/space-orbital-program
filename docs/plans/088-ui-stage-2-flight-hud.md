@@ -51,13 +51,13 @@ Keep the 10 Hz `HudModel` and the per-frame canvas and CSS-variable paths of ADR
 ## Acceptance criteria
 
 - [x] Existing HUD vitest tests (`navball-math`, `sas-model`, `hud-model`, `delta-v`) pass unchanged.
-- [ ] `bun run e2e` (Chromium, Firefox, WebKit): flight smoke passes; `e2e/mobile.e2e.ts` passes at 1024x768 and 1180x820 with no overlap between the navball module, staging and the touch throttle.
-- [ ] Screenshots at 1920x1080 (pad, orbit, map) in `docs/journal/assets/088-*.png` with the side-by-side self-review against `refs` Main in the journal; HUD frame cost unchanged within 0.2 ms (M5).
+- [x] `bun run e2e` (Chromium, Firefox, WebKit): flight smoke passes; `e2e/mobile.e2e.ts` passes at 1024x768 and 1180x820 with no overlap between the navball module, staging and the touch throttle.
+- [x] Screenshots at 1920x1080 (pad, orbit, map) in `docs/journal/assets/088-*.png` with the side-by-side self-review against `refs` Main in the journal; HUD frame cost unchanged within 0.2 ms (M5).
 - [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [x] `docs/journal/088-ui-stage-2-flight-hud.md` written.
 - [x] `product/visual-direction.md` if the layout differs from the refs.
 - [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
@@ -72,3 +72,4 @@ Keep the 10 Hz `HudModel` and the per-frame canvas and CSS-variable paths of ADR
   - Screenshots at 1920x1080 (pad, orbit, map) and 1024x768 in `docs/journal/assets/088-*.png` (`scripts/capture-hud.ts`), reviewed side by side against refs `Main` in the journal; the ball centre measures at x 960 on 1920.
   - `bun test ./packages`, `./mods`, `./examples` — 1369, 93, 7 pass; `bun run typecheck` — 0 errors, 0 warnings; build ok; `bun run docs:check` — OK.
   - Open for others: Firefox e2e (Agent 3 / phase gate) and the HUD frame cost within 0.2 ms on the M5 (Agent 1, criterion 3).
+- 2026-10-18 — Merge check (Agent 1, M5): rebased on main after 091 (one conflict in `product/visual-direction.md`, both sentences kept). `bun run test` 1484 pass · web vitest 926 pass · typecheck · build · docs:check OK · Chromium smoke 6 pass; Firefox and WebKit smoke 11 pass (one WebKit cold-run flake, passed on retry). HUD frame cost, journal 054 setup (`NODE_ENV=development` build, `scripts/serve.ts` 5202, pane fronted alone at 826 × 930 DPR 2, `high`, governor off, second load, pad): `__orbital.hudStats()` paint + model 0.340 ms on main and 0.342 ms on 088 (+0.002 ms, within 0.2). Whole-page `frameIntervals(240)` means, alternated: main 26.6 and 27.4 ms, 088 28.1 and 27.7 ms, median 25 ms on both (vsync-quantised; the flight-view budget issue in STATUS).

@@ -54,6 +54,17 @@
 - Firefox e2e (Agent 3, or Agent 1 at the phase gate).
 - Plans 108, 111, 112 replace the crew placeholder, take resources, orbit and target into the vessel panel and the dock, and enable the toolbar's disabled buttons.
 
+## HUD frame cost (M5, Agent 1 at merge, 2026-10-18)
+
+Journal 054 setup: `NODE_ENV=development` production build, `scripts/serve.ts` on 5202, the built-in pane fronted and alone (826 × 930 CSS px, DPR 2), `high`, governor off, second page load, flight view on the pad. Thermal: no warning.
+
+| Build | HUD paint (ms/frame) | HUD model (ms/frame) | Whole-page interval, mean (two runs) | Median |
+| --- | --- | --- | --- | --- |
+| main (before 088) | 0.187 | 0.153 | 26.6, 27.4 ms | 25 ms |
+| 088 | 0.195 | 0.147 | 28.1, 27.7 ms | 25 ms |
+
+The HUD's own cost (`__orbital.hudStats()`) is unchanged: +0.002 ms. The whole-page intervals snap to the 120 Hz display (25 and 33.3 ms), so their means move by the share of long frames and vary by about 1 ms between runs of the same build. Style and layout of the new DOM are not in `hudStats`; no change shows in the medians.
+
 ## Verification output
 
 See the plan's Log.
