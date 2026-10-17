@@ -83,6 +83,38 @@ export const bodyDefinitionSchema = z.object({
 	mass: z.number().positive(),
 	radius: z.number().positive(),
 	rotationPeriod: z.number().positive(),
+	/**
+	 * Orientation as pole times spin (plan 085, ADR 0145): `q_pole · Ry(W(t))`, `W = w0 + wDot t` plus
+	 * periodic terms. Absent: pole +Y and `W = 2 pi t / rotationPeriod`, exactly as before.
+	 */
+	rotation: z
+		.object({
+			/** The north pole: a direction in the system frame (rad), or the pole quaternion itself. */
+			pole: z
+				.union([
+					z.object({
+						ra: z.number(),
+						dec: z
+							.number()
+							.min(-Math.PI / 2)
+							.max(Math.PI / 2)
+					}),
+					z.object({ x: z.number(), y: z.number(), z: z.number(), w: z.number() })
+				])
+				.optional(),
+			/** Spin angle at t = 0, rad. */
+			w0: z.number().optional(),
+			/** Spin rate, rad/s; default `2 pi / rotationPeriod`. Negative spins retrograde. */
+			wDot: z
+				.number()
+				.refine((v) => Number.isFinite(v) && v !== 0, 'expected a non-zero spin rate')
+				.optional(),
+			/** Small periodic terms added to W: `amplitude sin(rate t + phase)` (rad, rad/s, rad). */
+			periodic: z
+				.array(z.object({ amplitude: z.number(), rate: z.number(), phase: z.number() }))
+				.optional()
+		})
+		.optional(),
 	atmosphere: z
 		.object({
 			scaleHeight: z.number().positive(),

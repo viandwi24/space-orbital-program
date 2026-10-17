@@ -5,7 +5,10 @@
  * the body of its sphere of influence (`VesselState.soi`).
  */
 import {
+	bodyAngularVelocity,
+	bodyOrientation,
 	GRAVITATIONAL_CONSTANT,
+	type Quat,
 	sitesOf,
 	terrainSeedOf,
 	zonesOf,
@@ -139,3 +142,12 @@ export function systemPosition(body: BodyRuntime, t: number): Vec3 {
 	}
 	return r;
 }
+
+/**
+ * The body's orientation at `t` (plan 085, ADR 0145): body-fixed to inertial, `q_pole · Ry(W(t))`;
+ * `qAboutY(omega t)` for a body without `rotation`.
+ */
+export const rotationAt = (body: BodyRuntime, t: number): Quat => bodyOrientation(body.def, t);
+
+/** The body's angular velocity at `t` in the inertial frame, rad/s (`(0, omega, 0)` without `rotation`). */
+export const spinAt = (body: BodyRuntime, t: number): Vec3 => bodyAngularVelocity(body.def, t);
