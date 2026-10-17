@@ -21,13 +21,28 @@ const Solar = definePlugin({
 			defineCategory({ id: 'solar.odd', label: 'Odd', icon: 'no-such-icon', order: 550 })
 		);
 		ctx.parts.register(
-			definePart({ id: 'solar.panel', title: 'Panel', mass: 20, catalog: { category: 'solar.panels' } })
+			definePart({
+				id: 'solar.panel',
+				title: 'Panel',
+				mass: 20,
+				catalog: { category: 'solar.panels' }
+			})
 		);
 		ctx.parts.register(
-			definePart({ id: 'solar.gadget', title: 'Gadget', mass: 5, catalog: { category: 'solar.odd' } })
+			definePart({
+				id: 'solar.gadget',
+				title: 'Gadget',
+				mass: 5,
+				catalog: { category: 'solar.odd' }
+			})
 		);
 		ctx.parts.register(
-			definePart({ id: 'solar.lost', title: 'Lost', mass: 5, catalog: { category: 'solar.nowhere' } })
+			definePart({
+				id: 'solar.lost',
+				title: 'Lost',
+				mass: 5,
+				catalog: { category: 'solar.nowhere' }
+			})
 		);
 	}
 });
@@ -64,7 +79,8 @@ describe('catalogue categories from the registry', () => {
 	});
 
 	it('a part sits in the mod category it names; an unregistered one lands in Other', () => {
-		const of = (id: string) => categoryOf(registries.parts.get(id)!, registries.modules, categories);
+		const of = (id: string) =>
+			categoryOf(registries.parts.get(id)!, registries.modules, categories);
 		expect(of('solar.panel')).toBe('solar.panels');
 		expect(of('solar.lost')).toBe('stock.other');
 		expect(of('stock.command-pod')).toBe('stock.command');
@@ -109,5 +125,20 @@ describe('catalogue categories from the registry', () => {
 			'Other',
 			'Sub-assemblies'
 		]);
+	});
+
+	it('plan 093: a vertical rail with the chosen tab marked; a card without a cost shows [—]', () => {
+		expect(html).toContain('aria-orientation="vertical"');
+		const selected = [
+			...html.matchAll(/role="tab"[^>]*aria-selected="true"[^>]*title="([^"(]+) \(/g)
+		];
+		expect(selected.map((m) => m[1])).toEqual(['All parts']);
+		const card = (title: string): string => {
+			const at = html.indexOf(`>${title}<`);
+			expect(at, title).toBeGreaterThan(-1);
+			return html.slice(at, html.indexOf('</button>', at));
+		};
+		expect(card('Panel')).toContain('[—]');
+		expect(card('Command Pod')).not.toContain('[—]');
 	});
 });
