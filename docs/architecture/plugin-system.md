@@ -125,7 +125,8 @@ Config literals are checked against the module's schema input type (wrong type, 
 
 - `defineResource({ id, density, flowMode: 'stack' | 'vessel' | 'none', unit })`
 - `defineBody({ id, mass, radius, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height, aurora? }, terrain?: { kind: 'hills' } | { kind: 'craters', seed? }, parent?, orbit? })` (`terrain`: API 0.1.18, ADR 0067; none = a smooth sphere)
-- `defineSystem({ id, phase: 'pre-physics' | 'post-physics', update(world, dt, ctx) })`: `ctx` is `{ registries (read-only), events }`; extra parameters may be omitted.
+- `defineSystem({ id, phase: 'pre-physics' | 'post-physics' | 'world-tick', order?, update(world, dt, ctx) })`: `ctx` is `{ registries (read-only), events, rules }`; extra parameters may be omitted. A `world-tick` system (API 0.1.29, plan 082, ADR 0171) runs once per game day at the day boundary, in ascending `order` (default 0), then plugin boot order, then id, with `dt` = the day length and `ctx.tick = { day, time, rng }`. `rng` is the system's own PRNG stream from the world seed and its id, saved with the run. The sim emits `world:tick` `{ day, time }` after the systems.
+- A module may declare `background(ctx, dt)` (API 0.1.29): a closed form (rate × `dt`) for a vessel on rails, called on each world tick, when the vessel wakes and before a save. It replaces that module's `updateOnRails`.
 - All three are typed identity functions; the registry validates them with zod (`schemas.ts`) on register.
 
 ## Type sharing between plugins
