@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { GAME_NAME } from '../../lib/public/about';
 	import MenuShell from '../../lib/ui/MenuShell.svelte';
+	import PageHead from '../../lib/ui/PageHead.svelte';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
@@ -39,8 +40,7 @@
 />
 
 <MenuShell wide>
-	<a class="back" href="/"><Icon name="back" size={16} /> Main menu</a>
-	<h1>Mods</h1>
+	<PageHead title="Mods" />
 	<p class="lead">
 		Mods add parts, modules and bodies. A mod is code: it runs with the same access as this page, so
 		install only mods from people you trust. Mod API {API_VERSION}.
@@ -222,23 +222,10 @@
 </Dialog>
 
 <style>
-	.back {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--s-1);
-		color: var(--text-dim);
-		text-decoration: none;
-		font-size: var(--t-sm);
-	}
 	.pick {
 		display: flex;
 		align-items: center;
 		gap: var(--s-3);
-	}
-	h1 {
-		margin: var(--s-3) 0 0;
-		font-size: var(--t-xl);
-		font-weight: 600;
 	}
 	h2 {
 		margin: var(--s-6) 0 var(--s-3);
@@ -267,9 +254,9 @@
 		align-items: center;
 		gap: var(--s-4);
 		padding: var(--s-4);
-		background: var(--panel-raised);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
 	}
 	.main {
 		display: grid;
@@ -282,7 +269,7 @@
 	}
 	.status.bad,
 	.error {
-		color: var(--c-danger, #ff8a7a);
+		color: var(--danger);
 	}
 	.acts {
 		display: flex;
@@ -301,9 +288,9 @@
 		align-items: center;
 		gap: var(--s-3);
 		padding: var(--s-3) var(--s-4);
-		background: var(--panel-raised);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-card);
 	}
 	.banner {
 		justify-content: space-between;
@@ -319,12 +306,12 @@
 	}
 	.install input[type='url'] {
 		flex: 1;
-		min-height: 32px;
+		min-height: var(--round-btn);
 		padding: 0 var(--s-3);
-		color: var(--text);
-		background: var(--field);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
+		color: var(--text-body);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-row);
 	}
 	.prompt {
 		display: grid;

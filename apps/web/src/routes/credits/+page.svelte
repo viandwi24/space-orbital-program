@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import MenuShell from '../../lib/ui/MenuShell.svelte';
+	import PageHead from '../../lib/ui/PageHead.svelte';
 	import { GAME_NAME, GAME_VERSION } from '../../lib/public/about';
 	import { CREDITS, GAME_LICENCE, GAME_LICENCE_URL, OFL_URL } from '../../lib/public/credits';
 </script>
@@ -11,8 +12,7 @@
 />
 
 <MenuShell wide>
-	<a class="back" href="/">Main menu</a>
-	<h1>Credits</h1>
+	<PageHead title="Credits" />
 	<p class="lead">
 		{GAME_NAME} <span class="num">{GAME_VERSION}</span> is made with these open-source projects. Thank
 		you to everyone who built them.
@@ -66,16 +66,6 @@
 		font-size: var(--t-sm);
 		color: var(--text-dim);
 	}
-	.back {
-		display: inline-block;
-		margin-bottom: var(--s-3);
-		font-size: var(--t-sm);
-	}
-	h1 {
-		margin: 0 0 var(--s-2);
-		font-size: 2.2rem;
-		font-weight: 600;
-	}
 	h2 {
 		margin: var(--s-5) 0 var(--s-2);
 		font-size: var(--t-lg);
@@ -93,16 +83,16 @@
 	table {
 		width: 100%;
 		border-collapse: collapse;
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
 		font-size: var(--t-sm);
 	}
 	th,
 	td {
 		padding: var(--s-2) var(--s-4);
 		text-align: left;
-		border-bottom: 1px solid var(--line);
+		border-bottom: 1px solid var(--border-divider);
 	}
 	thead th {
 		color: var(--text-dim);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { GAME_NAME } from '../public/about';
 
-	/** Full-screen loading state (plan 023): the wordmark, what the page is waiting for, a moving bar. */
+	/** Full-screen loading state (plan 023; refs style since plan 089): the wordmark, what the page is waiting for, a moving bar. */
 	let {
 		step,
 		overlay = false
@@ -12,19 +12,18 @@
 </script>
 
 <div class="loading" class:overlay role="status" aria-live="polite" data-testid="loading-screen">
-	<svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true">
+	<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
 		<ellipse
-			cx="24"
-			cy="24"
-			rx="20"
-			ry="8"
-			transform="rotate(-24 24 24)"
+			cx="12"
+			cy="12"
+			rx="10"
+			ry="4"
+			transform="rotate(-24 12 12)"
 			fill="none"
 			stroke="currentColor"
-			stroke-width="2.2"
+			stroke-width="1.4"
 		/>
-		<circle cx="24" cy="24" r="6.5" fill="currentColor" />
-		<circle class="moon" cx="40.5" cy="16.5" r="2.8" fill="var(--c-accent)" />
+		<circle cx="12" cy="12" r="3.2" fill="currentColor" />
 	</svg>
 	<p class="name">{GAME_NAME}</p>
 	<div class="bar" aria-hidden="true"><span></span></div>
@@ -39,8 +38,8 @@
 		gap: var(--s-3);
 		min-height: 100vh;
 		min-height: 100dvh;
-		color: var(--text);
-		background: radial-gradient(ellipse at 50% 42%, #10243a 0%, var(--bg-void) 70%);
+		color: var(--text-primary);
+		background: var(--bg-space);
 	}
 	.overlay {
 		position: absolute;
@@ -50,28 +49,29 @@
 	}
 	.name {
 		margin: 0;
-		font-size: var(--t-lg);
+		font-size: 0.9375rem;
+		line-height: 1;
 		font-weight: 600;
 		letter-spacing: 0.32em;
 		text-transform: uppercase;
 	}
 	.step {
 		margin: 0;
-		font-size: var(--t-sm);
-		color: var(--text-dim);
+		font-size: var(--t-small);
+		color: var(--text-muted);
 	}
 	.bar {
-		width: 180px;
+		width: 11.25rem;
 		height: 3px;
 		overflow: hidden;
-		background: rgb(150 180 210 / 0.18);
-		border-radius: 2px;
+		background: var(--surface-track);
+		border-radius: var(--radius-pill);
 	}
 	.bar span {
 		display: block;
 		width: 40%;
 		height: 100%;
-		background: var(--c-accent);
+		background: var(--selected-bg);
 		animation: slide 1.3s var(--ease) infinite;
 	}
 	@keyframes slide {
