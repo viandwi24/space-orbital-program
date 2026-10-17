@@ -10,9 +10,20 @@ import { API_VERSION } from './version.ts';
 import { pluginIdSchema } from './schemas.ts';
 import { loadPlugins, type Plugin } from './plugin.ts';
 import { parseVersion, satisfies } from './semver.ts';
+import {
+	bytesToBase64,
+	decodeAssets,
+	modAssetSchema,
+	modPackageFingerprint,
+	sha256Hex,
+	MOD_ASSET_TYPE,
+	type DecodedAssets,
+	type ModAsset
+} from './mod-assets.ts';
 
 export const MOD_PACKAGE_FORMAT = 'orbital-mod';
-export const MOD_PACKAGE_VERSION = 1;
+/** Newest package format this game reads: 2 adds `assets` (ADR 0076); 1 packages still load. */
+export const MOD_PACKAGE_VERSION = 2;
 /** Largest `code` a package may carry, characters. */
 export const MAX_MOD_CODE_LENGTH = 8_000_000;
 
@@ -45,10 +56,15 @@ export type ModManifest = z.output<typeof modManifestSchema>;
 
 export const modPackageSchema = z.strictObject({
 	format: z.literal(MOD_PACKAGE_FORMAT),
-	formatVersion: z.literal(MOD_PACKAGE_VERSION),
+	formatVersion: z.union([z.literal(1), z.literal(2)]),
 	manifest: modManifestSchema,
 	code: z.string().min(1).max(MAX_MOD_CODE_LENGTH),
-	/** Hex SHA-256 of `code` (UTF-8). */
+	/** Files the mod ships, by path (format 2). Models are `.glb` (ADR 0076). */
+	assets: z.record(z.string(), modAssetSchema).optional(),
+	/**
+	 * The fingerprint of the package: the hex SHA-256 of `code` (UTF-8); with assets, also of each
+	 * asset's path and hash (`modPackageFingerprint`).
+	 */
 	sha256: z.string().regex(/^[0-9a-f]{64}$/, 'expected 64 lower-case hex digits')
 });
 export type ModPackage = z.output<typeof modPackageSchema>;
@@ -96,25 +112,60 @@ export async function parseModPackage(text: string): Promise<ParsedModPackage> {
 			errors: parsed.error.issues.map((i) => `${i.path.join('.') || 'package'}: ${i.message}`)
 		};
 	}
-	const actual = await modCodeHash(parsed.data.code);
+	const assets = parsed.data.assets;
+	if (assets !== undefined && parsed.data.formatVersion < 2) {
+		return { ok: false, errors: ['assets: a format 1 package cannot carry assets.'] };
+	}
+	if (assets !== undefined) {
+		const decoded = await decodeAssets(assets);
+		if (!decoded.ok) return { ok: false, errors: decoded.errors };
+	}
+	const actual = await modPackageFingerprint(parsed.data.code, assets);
 	if (actual !== parsed.data.sha256) {
 		return {
 			ok: false,
-			errors: ['The code does not match the package fingerprint: the file was edited or damaged.']
+			errors: [
+				'The code and assets do not match the package fingerprint: the file was edited or damaged.'
+			]
 		};
 	}
 	return { ok: true, package: parsed.data };
 }
 
-/** Builds package text from a manifest and the mod's code (used by the build tool). */
-export async function createModPackage(manifest: unknown, code: string): Promise<ModPackage> {
-	return modPackageSchema.parse({
+/**
+ * Builds a package from a manifest, the mod's code and optional asset files (path to bytes), for
+ * the build tool. Without assets the package is format 1, byte-compatible with older games.
+ */
+export async function createModPackage(
+	manifest: unknown,
+	code: string,
+	files: Readonly<Record<string, Uint8Array>> = {}
+): Promise<ModPackage> {
+	const paths = Object.keys(files).sort();
+	const assets: Record<string, ModAsset> = {};
+	for (const path of paths) {
+		const bytes = files[path]!;
+		assets[path] = {
+			type: MOD_ASSET_TYPE,
+			size: bytes.byteLength,
+			sha256: await sha256Hex(bytes),
+			data: bytesToBase64(bytes)
+		};
+	}
+	const withAssets = paths.length > 0;
+	const pkg = modPackageSchema.parse({
 		format: MOD_PACKAGE_FORMAT,
-		formatVersion: MOD_PACKAGE_VERSION,
+		formatVersion: withAssets ? 2 : 1,
 		manifest,
 		code,
-		sha256: await modCodeHash(code)
+		...(withAssets ? { assets } : {}),
+		sha256: await modPackageFingerprint(code, withAssets ? assets : undefined)
 	});
+	if (withAssets) {
+		const decoded = await decodeAssets(assets);
+		if (!decoded.ok) throw new Error(`Invalid assets:\n${decoded.errors.join('\n')}`);
+	}
+	return pkg;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -150,6 +201,15 @@ export async function importModBundle(code: string): Promise<unknown> {
 export interface ModBundle {
 	manifest: ModManifest;
 	code: string;
+	/** The package's assets as parsed (checked again by `resolveMods`); absent for a code-only mod. */
+	assets?: Readonly<Record<string, ModAsset>>;
+}
+
+/** A part whose look is a model the mod ships: which part, which mod, which asset. */
+export interface PartAssetRef {
+	part: string;
+	mod: string;
+	path: string;
 }
 
 export interface RejectedMod {
@@ -173,6 +233,10 @@ export interface ResolvedMods {
 	/** Manifests of the accepted ones, same order. */
 	accepted: ModManifest[];
 	rejected: RejectedMod[];
+	/** Parts of the accepted mods that name an asset (`visual.asset`), all present in their package. */
+	partAssets: PartAssetRef[];
+	/** Decoded assets of the accepted mods, by mod id. */
+	assets: Map<string, DecodedAssets>;
 }
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -208,6 +272,8 @@ export async function resolveMods(
 	const accepted: ModManifest[] = [];
 	const plugins: Plugin[] = [];
 	const versions = new Map<string, string>(options.builtin.map((p) => [p.meta.id, p.meta.version]));
+	const partAssets: PartAssetRef[] = [];
+	const assetsById = new Map<string, DecodedAssets>();
 	const owners = new Map<string, string>(
 		options.builtin.map((p) => [p.meta.id, 'a built-in plugin'])
 	);
@@ -273,6 +339,16 @@ export async function resolveMods(
 			}
 			progress = true;
 
+			let decoded: DecodedAssets = new Map();
+			if (bundle.assets) {
+				const checked = await decodeAssets(bundle.assets);
+				if (!checked.ok) {
+					reject(m, `its assets are not valid: ${checked.errors.join('; ')}`);
+					continue;
+				}
+				decoded = checked.assets;
+			}
+
 			let plugin: Plugin;
 			try {
 				const ns = await options.importModule(bundle.code);
@@ -301,12 +377,31 @@ export async function resolveMods(
 					reject(m, off.reason);
 					continue;
 				}
+				// A part's `visual.asset` must name a file the package ships: a typo is the mod's error,
+				// reported at install time, not a part that silently loses its model.
+				const refs: PartAssetRef[] = [];
+				let missing: string | undefined;
+				for (const { def, by } of trial.registries.parts.entries()) {
+					const path = def.visual?.asset;
+					if (by !== m.id || path === undefined) continue;
+					if (!decoded.has(path)) {
+						missing = `part "${def.id}" names the asset "${path}", which the package does not carry`;
+						break;
+					}
+					refs.push({ part: def.id, mod: m.id, path });
+				}
+				if (missing) {
+					reject(m, missing);
+					continue;
+				}
+				partAssets.push(...refs);
 			} catch (e) {
 				reject(m, message(e));
 				continue;
 			}
 			plugins.push(plugin);
 			accepted.push(m);
+			assetsById.set(m.id, decoded);
 			versions.set(m.id, m.version);
 			owners.set(m.id, `mod "${m.id}" ${m.version}`);
 		}
@@ -319,5 +414,5 @@ export async function resolveMods(
 		);
 		reject(m, `depends on mods that wait for each other: ${cycle.join(', ')}`);
 	}
-	return { plugins, accepted, rejected };
+	return { plugins, accepted, rejected, partAssets, assets: assetsById };
 }

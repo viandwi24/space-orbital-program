@@ -4,6 +4,7 @@
  */
 import * as z from 'zod';
 import { DEFINITION_ID_PATTERN, PLUGIN_ID_PATTERN } from './ids.ts';
+import { assetPathSchema } from './mod-assets.ts';
 
 export const definitionIdSchema = z
 	.string()
@@ -95,7 +96,14 @@ const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected "#rrggbb"');
  * Lengths in metres, pressure in Pa, in the part frame (thrust along local +Y).
  */
 export const partVisualSchema = z.object({
+	/** Generator name; with `asset`, the generator that draws the part when the model cannot load. */
 	kind: z.string().min(1),
+	/**
+	 * A model the mod's package ships (ADR 0076): the path of a `.glb` in the package's assets. The
+	 * model is authored in the part frame (origin at the part's centre, +Y up, metres), fits the
+	 * part's `shape`, and may contain a node named `moving` that the `articulation` turns.
+	 */
+	asset: assetPathSchema.optional(),
 	palette: z
 		.object({
 			primary: hexColour.optional(),
