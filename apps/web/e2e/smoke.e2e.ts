@@ -57,6 +57,16 @@ test('the main menu: settings persist across a reload, roadmap and credits load'
 
 	await page.goto('/roadmap');
 	await expect(page.getByRole('heading', { name: 'Roadmap' })).toBeVisible();
+	// Plan 076: the foundation roadmap by phase, in order (ADR 0108).
+	await expect(page.locator('section.phase > h2')).toHaveText([
+		'Product',
+		'Foundation',
+		'Worlds and Space Center',
+		'Career',
+		'Network and control',
+		'Time and the real sky',
+		'Living world'
+	]);
 	await page.goto('/credits');
 	await expect(page.getByRole('heading', { name: 'Credits' })).toBeVisible();
 	// Plan 075: the game's licence is decided (ADR 0106).

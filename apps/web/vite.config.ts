@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { fileURLToPath } from 'node:url';
+import { planStatus } from './plan-status.ts';
 
 export default defineConfig({
 	plugins: [
@@ -11,7 +13,8 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter({ fallback: '200.html' })
-		})
+		}),
+		planStatus(fileURLToPath(new URL('../../docs/plans', import.meta.url)))
 	],
 	test: {
 		expect: { requireAssertions: true },
