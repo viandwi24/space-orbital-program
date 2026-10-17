@@ -23,11 +23,18 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Platform'
 	},
 	{
-		plan: '038',
-		title: 'Lakes, rivers and a living launch site',
+		plan: '067',
+		title: 'Floating and sinking',
 		gives:
-			'Lakes in the lowlands, rivers that flow, waves that break on shores, and a launch site with moving machinery. Also frame-time measurements on more kinds of laptop.',
+			'Lakes and the sea stop being solid: a capsule that splashes down floats, a heavy rocket sinks, and a hard landing on water hurts less than on rock.',
 		area: 'Flight and look'
+	},
+	{
+		plan: '066',
+		title: 'Frame times on more laptops',
+		gives:
+			'The graphics presets are measured and tuned on Apple M1 and M2 laptops, integrated Intel graphics and a phone, so the game picks the right one for your machine.',
+		area: 'Platform'
 	},
 	{
 		plan: '056',

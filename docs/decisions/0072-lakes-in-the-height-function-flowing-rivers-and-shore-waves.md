@@ -1,0 +1,30 @@
+# 0072 — Lakes in the height function, rivers that flow, shore waves that shoal
+
+**Status:** accepted
+**Date:** 2026-10-17
+**Plan:** plans/038-water-site-animation-and-devices.md
+
+## Context
+
+Rivers were still level-set curves painted on the ground (plan 025), the sea had waves but no motion at the shore beyond a static foam band, and there were no lakes. Plan 031 recorded the question whether lakes must be physical: "needs a water level in the core field, so the sim can float or sink a vessel there". Today the ocean is solid: the height function is exactly zero over water and on a margin around coasts (ADR 0043), the ground tile stands on it, and a vessel rests on the sea like on land (journal 031: "ocean is solid"). Floating or sinking is not implemented even for the sea.
+
+## Decision
+
+1. **Lakes are as physical as the sea, and no more, and they live in the height function, not in the biome map.** A lake is where a basin level reaches a threshold: one octave of value noise (30 km wavelength, so its gradient is bounded) times a gate that opens with distance from the launch site (closed within 30 km, open beyond 80 km, so the scenery of plan 031 around the pad is unchanged). On the lake the height is exactly zero, the ocean's own height, so the ground tile and the surface rails treat a lake as they treat the sea; around it the relief is capped by a cone, `h' = max(0, min(h, slope (to - level) / gradientBound))`. The cap is a Lipschitz function of the position with constant `slope` (0.9) as long as the level's gradient stays under `gradientBound` (7e-5 per metre; measured 5.55e-5 over 800 000 pairs, tested), and the minimum of two functions is no steeper than the steeper one, so `TERRAIN_MAX_SLOPE` (which the march and the cone start rely on, ADR 0053) holds without a new proof for each texture. The first attempt, carving the biome map's elevation so the coast margin did the rest, was measured and dropped: a carve over a texel or two puts a coast with up to 4.5 km of relief on a cliff (slope 2.06). A lake only in the shader would have stood hills in the water: 98 percent of the land has relief. The planet pass reads the same noise (twin in `terrain.glsl.ts`) and draws water where the level is above the threshold, with a shore that is ragged inward only. The GLSL bake and the CPU function agree (the existing parity tests and `lakes.test.ts`). Buoyancy (floating, sinking, boats) is a change of the sim's contact model and is draft 067, for the sea and lakes together: there is no displacement model to float a vessel against, and a lake that sank vessels while the sea did not would be worse than one consistent solid surface.
+2. **River flow by a flow map.** The river's tangent is the direction along its level set: perpendicular to the gradient of the river field (finite differences of the same noise, only where a river is drawn), signed toward lower map elevation. The ripple normal samples its noise at `p - flow * phase * cycle * speed` for two phases half a cycle apart, weighted `1 - |1 - 2 phase|` (Catlike Coding's flow-map construction), so the pattern moves along the river with no visible reset. `water-flow.ts` holds the tested maths; the shader takes its constants from it.
+3. **Shore waves by shoaling.** A wave of period `T` entering depth `d = slope * x` has phase speed `sqrt(g d)` and wavenumber `omega / sqrt(g d)`, so its phase is `2 omega sqrt(x / (g slope)) - omega t`: the crests crowd toward the shore and move shoreward. Breaking is at `H / d = 0.78` (McCowan's breaker index; a first estimate, not a constant), which gives the distance `H / (0.78 slope)` of the surf band from the shore; inside it the crest line is foam, outside it only a faint line. A swash edge oscillates by a fraction of the wave height divided by the slope. The beach slope is an artistic constant (1:30). Lakes get a smaller wave height. `shore-wave.ts` holds the tested maths.
+4. **Not done here:** analytic noise derivatives for the gradient bake and silhouette anti-aliasing of the planet pass (draft 068): the gradient bake is three evaluations of a ten-function height chain (hills, ridges, range, backdrop, rotated octaves, soft ridge, smooth maximum); an analytic version needs a hand-derived gradient of each stage and a float64 twin tested against finite differences, which is a plan of its own, and the bake is not what limits the frame (it runs spread over frames and only on a re-bake); silhouette AA has no edge for MSAA to resolve in a fullscreen analytic pass, and a coverage estimate needs the march's miss distance. Frame times on M1/M2/Intel and mobile: no hardware (draft 068).
+
+## Alternatives considered
+
+- **A water level field in core plus a sim contact change** (the plan's first reading): the surface would be right, but nothing in the sim can float a vessel, so the field would only repeat what the map already gives (zero height).
+- **Lakes in the shader only** (a noise level set in the planet pass): hills and mountains exist on lowland too, so a lake in the shader would have terrain standing in it.
+- **Carving the biome map** (tried first): see point 1.
+- **A flow map texture**: the rivers are not stored anywhere; a baked flow map would need a second map and a bake. Finite differences of the river field cost a few noise evaluations per river pixel and nothing elsewhere.
+- **Gerstner or FFT waves at the shore**: heavier and not needed for a band tens of metres wide.
+
+## Consequences
+
+- The height function changes where a lake's cone reaches: the tallest peaks are lowered on 31 percent of the land (the cap is below 3.7 km), the hills on 3.6 percent, lakes are 1.8 percent (167 basins); API 0.1.21. Saves do not store the terrain. A vessel saved on ground that a lake now covers stands on the water at height zero.
+- The nearest lake on land is 101 km from the pad: seen from altitude on the way up, not from the pad.
+- `water-model.ts` stays the sea's wave table; the shore, the river and the lake factor sit beside it.

@@ -34,6 +34,8 @@ Arrows point from importer to imported. The full rule set is in `boundaries.md`.
 
 Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-model.ts` is the reference height function, `shaders/terrain.glsl.ts` bakes it once into a cube map, and the planet shader sphere-traces it per pixel under a flat zone around the launch site and a bubble around a low camera. The heights are visual only; the sim's ground is still the flat tile on the reference sphere. Clouds are two shells in one atmosphere march (`cloud-model.ts`) and the sea is a sum of dispersive waves (`water-model.ts`, ADR 0037).
 
+Lakes, rivers and shores (plan 038, ADR 0072): `core/terrain.ts` carves lake basins out of the one height function (a flat floor at sea level, relief capped by a cone, so lakes are as solid as the sea), the planet pass draws them as water, moves the ripples of a river along its course by a two-phase flow map (`water-flow.ts`) and runs the swell up the beach with a shoaling phase and a breaker line (`shore-wave.ts`). The launch site's arms, steam, beacons and lit windows are driven by the vessel's height and the clock (`site-animation.ts`, ADR 0073), and `Renderer.precompile(onProgress)` reports its progress to the flight page's badge (ADR 0074).
+
 ## Layers
 
 | Layer | Packages | Environment | Knows about |
