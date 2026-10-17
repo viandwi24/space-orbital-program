@@ -168,7 +168,8 @@ export function abilitiesOf(
 }
 
 /** XP per place kind and body (ADR 0176 point 5). */
-export const PLACE_XP = { flyby: 1, orbit: 1.5, landed: 2.3 } as const;
+/** XP per new place; `eva` since plan 109 (ADR 0120 point 6): a member stepped out at the body. */
+export const PLACE_XP = { flyby: 1, orbit: 1.5, landed: 2.3, eva: 1 } as const;
 export const OTHER_BODY_FACTOR = 2;
 export const LEVEL_THRESHOLDS = [2, 8, 16, 32, 64] as const;
 

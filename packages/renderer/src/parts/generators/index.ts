@@ -7,6 +7,7 @@ import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
 import { engine } from './engine.ts';
 import { engineCluster } from './engine-cluster.ts';
+import { flag, suit } from './eva.ts';
 import { fin } from './fin.ts';
 import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
@@ -38,6 +39,8 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('wing', wing);
 	registerPartGenerator('strut', strut);
 	registerPartGenerator('fuel-line', fuelLine);
+	registerPartGenerator('suit', suit);
+	registerPartGenerator('flag', flag);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

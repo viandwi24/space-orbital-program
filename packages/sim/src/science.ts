@@ -234,6 +234,10 @@ export function recoverScience(core: SimCore, vesselId: EntityId): void {
 			if (hook) hook(makeContext(core, partId, m.id));
 		}
 	}
+	// samples brought aboard by boarding crew (plan 109, ADR 0120 point 2)
+	for (const s of vesselOf(core, vesselId).samples ?? []) {
+		creditScience(core, s.subject, s.value, 'recovered');
+	}
 	core.science.cache.delete(vesselId);
 }
 

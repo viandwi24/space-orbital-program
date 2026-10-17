@@ -265,6 +265,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	requires?: readonly string[];
 	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
 	controlSource?: boolean;
+	/**
+	 * True when a vessel with this module is never removed as resting debris (plan 109, ADR 0120
+	 * point 5): a planted flag stays where it was put.
+	 */
+	keep?: boolean;
 	/** Present when this module holds resources (tanks, batteries); see `ResourceStore`. */
 	store?: ResourceStore<Out, State>;
 	/**

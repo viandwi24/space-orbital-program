@@ -129,6 +129,10 @@ export interface VesselState {
 	rest: number;
 	/** Sim time up to which module `background` closed forms have run (plan 082); on rails only. */
 	backgroundAt?: number;
+	/** Walking target (plan 109, ADR 0120 point 3): heading from north, rad, and ground speed, m/s. */
+	walk?: { heading: number; speed: number };
+	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
+	samples?: Array<{ subject: string; value: number }>;
 }
 
 /**
