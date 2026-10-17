@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 102 milestones claimed (`devb/102-milestones`). 089, 093, 112 and 094 skipped for now: their `depends` (076, 069, 088) are handed over but not merged.
-**Waiting for:** merges of 088, 085, 076 and 069 (`ready/*`).
+**Now:** 102 milestones: full checks before handover (`devb/102-milestones`). Next: 089 menus (076 merged), then 093 (waits for 069) or 112 (088 merged).
+**Waiting for:** merge of 069 (`ready/069`). API_VERSION: 069 and 102 both bump; whichever merges second takes main+1.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
