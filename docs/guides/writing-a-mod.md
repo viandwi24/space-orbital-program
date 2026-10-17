@@ -254,6 +254,25 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **A ground station.** `ctx.groundStations.register(defineGroundStation({ id: 'acme.north-station', label: 'North station', body: 'stock.home', latitude: 1.2, longitude: 0.4, range: 5e10 }))`. Every world site is already a station.
 - **Probes.** A control source on a part without seats (`crewCapacity` 0) makes a probe. Without a link it follows the world's `stock.control-without-signal` rule. Read the state in a module with `ctx.vessel.signal()`.
 
+## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
+
+The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:
+
+```ts
+ctx.categories.register(defineCategory({
+	id: 'acme.solar',
+	label: 'Solar',
+	icon: { path: 'M4 6h16v12H4ZM4 12h16M12 6v12' },
+	order: 450
+}));
+ctx.parts.register(definePart({ id: 'acme.panel', title: 'Solar panel', mass: 20, catalog: { category: 'acme.solar' } }));
+```
+
+- `order` places the tab on the rail, ascending: stock uses 100 (Command) to 800 (Thermal) in steps of 100, and Other is 10 000, always last. 450 sits between Structural and Aerodynamics; ties keep registration order.
+- `icon` is the name of an icon in the game's own set (`'engine'`, `'tank'`, `'part'`, ...) or `{ path }`: SVG path data on a 24 x 24 grid, at most 1 024 characters of commands and numbers. The game draws it with its own stroke (1.7, round caps and joins, no fill), so draw lines, not filled shapes. A name the game does not know shows the plain part icon; your mod still loads.
+- A part joins a category with `catalog: { category }`, and a module descriptor can imply one with `category` in `describe()`. Both take a category id or one of the nine short names (`'control'` means `stock.control`). A part that names a category nobody registered sits in Other.
+- A category with no parts is not shown. Another mod can relabel or reorder yours with `definePatch({ target: 'category', ... })`.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
@@ -345,7 +364,7 @@ expect(report.registered.part.map((e) => e.id)).toContain('stock.engine-lv');
 
 > **API 0.1.16 (plan 023).** Make your engine show on the HUD throttle gauge by returning `throttle` (0..1, from your module state) in `describe().engine`; make a wing count in the editor's stability read-out by returning `lift: { area, liftSlope, crossflow, centre }`; choose the catalogue category of a part with `category` (for example `'control'`). Without them a mod part still works: the gauge shows the page's own throttle, there is no lift and the part lands in the category its engine, separator, store or control source implies, else "Other". See `apps/web/src/lib/mod-awareness.test.ts` for a test mod.
 
-> **API 0.1.22 (plan 034).** Place a part yourself with `catalog: { category, order }` on the part definition: `category` (one of the nine ids above, `'other'` included) beats whatever the modules imply and suits a part with no module; `order` (default 0, ascending) sorts it in the catalogue, so a mod's parts can come first. The trip planner of the VAB lists a trip to every body of your mod that orbits the home planet (a `defineBody` with `parent` and `orbit`) with no extra data.
+> **API 0.1.22 (plan 034).** Place a part yourself with `catalog: { category, order }` on the part definition: `category` (one of the nine ids above, `'other'` included, or since API 0.1.41 a registered category id, see [Catalogue categories](#catalogue-categories-api-0141-plan-069-adr-0146)) beats whatever the modules imply and suits a part with no module; `order` (default 0, ascending) sorts it in the catalogue, so a mod's parts can come first. The trip planner of the VAB lists a trip to every body of your mod that orbits the home planet (a `defineBody` with `parent` and `orbit`) with no extra data.
 
 A mod outside the repo is a folder with a manifest and a source file; `examples/mod-sample` is a complete one (a part, a module that keeps its state in the world, a script).
 
