@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 123 orbit models handed over as `ready/123` (branch `devc/123-elements` @ 97f450e); next lane plans wait for cp/f3-096-building-levels, cp/f4-115-comms-1-ui, or cp/f5-123-elements with cp/f5-071-second-planet.
-**Waiting for:** merge of 123; those checkpoints.
+**Now:** 123 merged (cp/f5-123-elements); no open plans; next lane plans wait for cp/f3-096-building-levels, cp/f4-115-comms-1-ui or cp/f5-071-second-planet.
+**Waiting for:** those checkpoints.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -22,7 +22,7 @@
 | 104 regions | done | `devc/104-regions` | 2026-10-18 | merged f7193f2, cp/f3-104-regions |
 | 107 crew-sim | done | `devc/107-crew-sim` | 2026-10-18 | merged dc5a690, cp/f3-107-crew-sim |
 | 067 buoyancy | done | `devc/067-buoyancy` | 2026-10-18 | merged 201d76e, cp/f3-067-buoyancy |
-| 123 elements | done | `devc/123-elements` | 2026-10-17 | merged 8403dd7, cp/f5-123-elements |
+| 123 elements | done | `devc/123-elements` | 2026-10-18 | merged 8403dd7, cp/f5-123-elements |
 | 099 contracts | todo |  |  |  |
 | 101 strategies | todo |  |  |  |
 | 116 comms-2 | todo |  |  |  |
