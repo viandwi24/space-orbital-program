@@ -82,6 +82,8 @@ export const LAUNCH_KEY = 'orbital.launch';
 export interface LaunchChoice {
 	facility: string;
 	placement: VesselPlacement;
+	/** Crew seated at launch (plan 108, ADR 0152 point 5): member ids by design part index. */
+	crew?: { member: string; part: number }[];
 }
 
 export function saveLaunchChoice(
@@ -104,8 +106,48 @@ export function takeLaunchChoice(
 		storage.removeItem(LAUNCH_KEY);
 		if (!raw) return null;
 		const c = JSON.parse(raw) as LaunchChoice;
-		return c && typeof c.facility === 'string' && c.placement?.kind === 'surface' ? c : null;
+		if (!c || typeof c.facility !== 'string' || c.placement?.kind !== 'surface') return null;
+		const crewOk =
+			c.crew === undefined ||
+			(Array.isArray(c.crew) &&
+				c.crew.every((s) => typeof s?.member === 'string' && Number.isInteger(s?.part)));
+		return crewOk ? c : { facility: c.facility, placement: c.placement };
 	} catch {
 		return null;
 	}
+}
+
+// ---- seats (plan 108, ADR 0152 point 5) ----
+
+export interface SeatPart {
+	/** Design part index. */
+	part: number;
+	title: string;
+	capacity: number;
+}
+
+/** The design's parts with seats, in design order. */
+export function seatsOf(
+	design: { parts: readonly { index: number; part: string }[] },
+	parts: { get(id: string): { title: string; crewCapacity?: number } | undefined }
+): SeatPart[] {
+	return design.parts.flatMap((p) => {
+		const def = parts.get(p.part);
+		const capacity = def?.crewCapacity ?? 0;
+		return capacity > 0 ? [{ part: p.index, title: def!.title, capacity }] : [];
+	});
+}
+
+/**
+ * Puts `member` in the first part with a free seat (or takes them out when already seated).
+ * Returns the new assignment; unchanged when every seat is taken.
+ */
+export function toggleSeat(
+	seated: readonly { member: string; part: number }[],
+	seats: readonly SeatPart[],
+	member: string
+): { member: string; part: number }[] {
+	if (seated.some((s) => s.member === member)) return seated.filter((s) => s.member !== member);
+	const free = seats.find((p) => seated.filter((s) => s.part === p.part).length < p.capacity);
+	return free ? [...seated, { member, part: free.part }] : [...seated];
 }

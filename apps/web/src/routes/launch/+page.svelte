@@ -16,6 +16,8 @@
 		facilitiesOf,
 		placementOf,
 		saveLaunchChoice,
+		seatsOf,
+		toggleSeat,
 		type Facility
 	} from '../../lib/launch/launch-model';
 	import { activePlugins } from '../../lib/mods/runtime';
@@ -49,8 +51,13 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`),
+		world: activeWorldId
 	});
+
+	/** Available crew of the world's newest save (plan 108, ADR 0152 point 5). */
+	let roster = $state.raw<{ id: string; name: string; profession: string }[]>([]);
+	let seated = $state.raw<{ member: string; part: number }[]>([]);
 
 	let site = $state.raw<Site | null>(null);
 	let designs = $state.raw<Choice[]>([]);
@@ -62,6 +69,11 @@
 	const fitting = $derived(facility ? designs.filter((d) => accepts(facility, d.wet)) : []);
 	const chosen = $derived(fitting.find((d) => d.key === designKey) ?? fitting[0] ?? null);
 	const body = $derived(site ? registries.bodies.get(site.body) : undefined);
+	const seats = $derived(chosen ? seatsOf(chosen.design, registries.parts) : []);
+	$effect(() => {
+		void chosen?.key;
+		seated = [];
+	});
 
 	function choiceOf(key: string, design: VesselDesign, from: Choice['from']): Choice {
 		const g = body ? (6.6743e-11 * body.mass) / (body.radius * body.radius) : 9.81;
@@ -100,6 +112,14 @@
 				if (e.ok && !list.some((d) => d.name === e.design.name && d.from === 'hangar'))
 					list.push(choiceOf(e.record.id, e.design, 'library'));
 			designs = list;
+			await saves.refresh();
+			const newest = saves.entries.find((e) => e.ok);
+			if (newest?.ok) {
+				const save = await saves.read(newest.meta.id);
+				roster = (save.sim.crew?.members ?? [])
+					.filter((m) => m.status === 'available')
+					.map((m) => ({ id: m.id, name: m.name, profession: m.profession }));
+			}
 		})();
 	});
 
@@ -108,7 +128,8 @@
 		saveDraft(serialiseDesign(chosen.design));
 		saveLaunchChoice({
 			facility: facility.id,
-			placement: placementOf(site, facility, body.radius)
+			placement: placementOf(site, facility, body.radius),
+			...(seated.length > 0 ? { crew: seated } : {})
 		});
 		void goto('/flight');
 	}
@@ -188,13 +209,40 @@
 				<StatCell label="Cost" value={chosen ? formatFunds(chosen.cost) : null} />
 				<StatCell label="Parts" value={chosen?.parts} />
 			</div>
-			<span class="cap seats-cap">Crew · {chosen?.seats ?? 0} seats</span>
+			<span class="cap seats-cap">Crew · {seated.length} of {chosen?.seats ?? 0} seats</span>
 			<div class="seats">
-				{#each Array.from({ length: Math.min(chosen?.seats ?? 0, 6) }) as _, i (i)}
-					<span class="seat" title="Empty seat">[—]</span>
+				{#each seats as p (p.part)}
+					{#each Array.from({ length: p.capacity }) as _, i (i)}
+						{@const who = seated.filter((s) => s.part === p.part)[i]}
+						<span class="seat" class:on={who} title="{p.title}, seat {i + 1}"
+							>{who
+								? (roster.find((r) => r.id === who.member)?.name ?? who.member).slice(0, 2)
+								: '[—]'}</span
+						>
+					{/each}
 				{/each}
 			</div>
-			<p class="note">Seats are filled in the Astronaut Complex (coming with plan 108).</p>
+			{#if roster.length > 0 && seats.length > 0}
+				<div class="crew" role="group" aria-label="Available crew">
+					{#each roster as m (m.id)}
+						<button
+							type="button"
+							class="member"
+							aria-pressed={seated.some((s) => s.member === m.id)}
+							data-testid="launch-crew-{m.id}"
+							onclick={() => (seated = toggleSeat(seated, seats, m.id))}
+						>
+							<span class="mname">{m.name}</span><span class="sub">{m.profession}</span>
+						</button>
+					{/each}
+				</div>
+			{:else}
+				<p class="note">
+					{seats.length === 0
+						? 'This vessel has no seats.'
+						: 'No crew available: hire in the Astronaut Complex.'}
+				</p>
+			{/if}
 			<button
 				type="button"
 				class="go"
@@ -344,6 +392,36 @@
 		background: var(--surface-inset);
 		font-size: var(--t-label);
 		color: var(--text-muted);
+	}
+	.seat.on {
+		background: var(--selected-bg);
+		color: var(--selected-fg);
+		font-weight: 700;
+	}
+	.crew {
+		display: grid;
+		gap: 2px;
+		margin: 0.5rem 0;
+	}
+	.member {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.375rem 0.5rem;
+		border: 0;
+		border-radius: var(--radius-tile);
+		background: transparent;
+		color: var(--text-primary);
+		font: inherit;
+		font-size: var(--t-small);
+		cursor: pointer;
+	}
+	.member:hover,
+	.member[aria-pressed='true'] {
+		background: var(--surface-tile);
+	}
+	.mname {
+		font-weight: 600;
 	}
 	.go {
 		display: flex;
