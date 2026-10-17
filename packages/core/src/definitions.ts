@@ -9,6 +9,7 @@ import type { EventBus, EventMap } from './events.ts';
 import type { Vec3 } from './math.ts';
 import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
+import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { World } from './world.ts';
 import type {
 	bodyDefinitionSchema,
@@ -60,6 +61,8 @@ export interface ReadonlyRegistries {
 	resources: ReadonlyRegistry<ResourceDefinition>;
 	bodies: ReadonlyRegistry<BodyDefinition>;
 	systems: ReadonlyRegistry<SystemDefinition>;
+	rules: ReadonlyRegistry<RuleDefinition>;
+	presets: ReadonlyRegistry<PresetDefinition>;
 }
 
 /** Vessel-wide control input set by `throttle` and `attitude` commands. */
@@ -254,6 +257,14 @@ export type SystemPhase = 'pre-physics' | 'post-physics';
 export interface SystemContext {
 	readonly registries: ReadonlyRegistries;
 	readonly events: EventBus<EventMap>;
+	/** The world's rule values (plan 078, ADR 0111); a plain map read. */
+	readonly rules: RuleReader;
+}
+
+/** Read access to a world's rule values. */
+export interface RuleReader {
+	/** The value of a rule, or undefined when no loaded mod registers it. */
+	get(id: string): RuleValue | undefined;
 }
 
 export interface SystemDefinition {

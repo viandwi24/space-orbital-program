@@ -144,6 +144,20 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			id: bodyId(body.def.id),
 			position: systemPosition(body, core.t),
 			rotation: qAboutY(body.omega * core.t)
-		}))
+		})),
+		rules: rulesView(core)
 	};
+}
+
+/** Registered rules' values, rebuilt only after a `set-rule` (ADR 0111 point 5). */
+export function rulesView(core: SimCore): Readonly<Record<string, boolean | number | string>> {
+	if (core.rulesView === null) {
+		const view: Record<string, boolean | number | string> = {};
+		for (const rule of core.registries.rules.list()) {
+			const value = core.info.rules[rule.id];
+			if (value !== undefined) view[rule.id] = value;
+		}
+		core.rulesView = Object.freeze(view);
+	}
+	return core.rulesView;
 }

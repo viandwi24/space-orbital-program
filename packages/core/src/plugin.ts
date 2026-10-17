@@ -24,6 +24,7 @@ import {
 	type Provenance
 } from './patch.ts';
 import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
+import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -66,6 +67,9 @@ export interface BasePluginContext {
 	readonly resources: Registrar<ResourceDefinition>;
 	readonly bodies: Registrar<BodyDefinition>;
 	readonly systems: Registrar<SystemDefinition>;
+	/** World rules and presets (plan 078, ADR 0111). */
+	readonly rules: Registrar<RuleDefinition>;
+	readonly presets: Registrar<PresetDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -90,7 +94,15 @@ export interface Plugin<C extends object = object> {
 	readonly setup: Bivariant<(ctx: BasePluginContext) => void>;
 }
 
-export const REGISTRY_KINDS = ['part', 'module', 'resource', 'body', 'system'] as const;
+export const REGISTRY_KINDS = [
+	'part',
+	'module',
+	'resource',
+	'body',
+	'system',
+	'rule',
+	'preset'
+] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
 export interface LoadReport {
@@ -129,6 +141,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'resources',
 	'bodies',
 	'systems',
+	'rules',
+	'presets',
 	'patches',
 	'optional',
 	'provide'
@@ -300,6 +314,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			resources: registrar(registries.resources),
 			bodies: registrar(registries.bodies),
 			systems: registrar(registries.systems),
+			rules: registrar(registries.rules),
+			presets: registrar(registries.presets),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -382,6 +398,19 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 	if (problems.length > 0) {
 		throw new PluginError(`Invalid part definitions:\n- ${problems.join('\n- ')}`);
 	}
+	// Preset values against the rules they name (ADR 0111 point 1); a rule not loaded is ignored.
+	const presetProblems: string[] = [];
+	for (const { def: preset, by } of registries.presets.entries()) {
+		for (const [ruleId, value] of Object.entries(preset.values ?? {})) {
+			const rule = registries.rules.get(ruleId);
+			const why = rule && ruleValueProblem(rule, value);
+			if (why)
+				presetProblems.push(`preset "${preset.id}" (plugin "${by}"): rule "${ruleId}": ${why}`);
+		}
+	}
+	if (presetProblems.length > 0) {
+		throw new PluginError(`Invalid preset definitions:\n- ${presetProblems.join('\n- ')}`);
+	}
 
 	// 6. Report.
 	const booted = new Set(order.map((p) => p.meta.id));
@@ -405,7 +434,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				module: section(registries.modules),
 				resource: section(registries.resources),
 				body: section(registries.bodies),
-				system: section(registries.systems)
+				system: section(registries.systems),
+				rule: section(registries.rules),
+				preset: section(registries.presets)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

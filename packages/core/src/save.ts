@@ -297,13 +297,11 @@ export function readSimSave(
 			`This save is damaged: ${z.prettifyError(parsed.error).split('\n').slice(0, 3).join('; ')}`
 		);
 	}
-	if (data !== raw) {
-		// Re-sign what the migrations produced, in the key order the schema gave it, so reading the
-		// result again (createSim reads what the storage layer already read) checks its own bytes.
-		const { checksum: _old, ...body } = parsed.data;
-		return { ...body, checksum: hashText(JSON.stringify(body)) } as SimSave;
-	}
-	return parsed.data as SimSave;
+	// Re-sign the result over the parsed data: migrations and schema defaults (ADR 0111) change it,
+	// and zod gives the schema's key order, so a second read (createSim reads what the storage
+	// layer already read) checks its own bytes. The raw bytes were verified above.
+	const { checksum: _old, ...body } = parsed.data;
+	return { ...body, checksum: hashText(JSON.stringify(body)) } as SimSave;
 }
 
 /** Parse a JSON string, then `readSimSave`. */

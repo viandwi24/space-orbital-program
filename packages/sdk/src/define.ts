@@ -15,7 +15,9 @@ import type {
 	Plugin,
 	PluginMeta,
 	PluginRef,
+	PresetDefinition,
 	ResourceDefinition,
+	RuleDefinition,
 	SystemDefinition
 } from '@orbital/core';
 
@@ -139,6 +141,20 @@ export function definePart(def: PartInputLoose): PartDefinition {
 export const defineResource = (def: ResourceDefinition): ResourceDefinition => def;
 export const defineBody = (def: BodyDefinition): BodyDefinition => def;
 export const defineSystem = (def: SystemDefinition): SystemDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineRule / definePreset
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A world rule (plan 078, ADRs 0094 and 0111): a typed value per world, with a default and
+ * optional values per preset. Register it with `ctx.rules.register(...)`; systems read the world's
+ * value with `ctx.rules.get(id)`. `changeable: false` makes it an identity rule, fixed at creation.
+ */
+export const defineRule = <const R extends RuleDefinition>(def: R): R => def;
+
+/** A named set of rule values a world is created with (Sandbox, Science, Career, ...). */
+export const definePreset = (def: PresetDefinition): PresetDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // definePatch

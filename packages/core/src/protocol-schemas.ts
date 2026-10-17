@@ -118,5 +118,10 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('load-vessel'),
 		design: vesselDesignSchema,
 		placement: vesselPlacementSchema.optional()
+	}),
+	z.object({
+		type: z.literal('set-rule'),
+		rule: z.string().min(1),
+		value: z.union([z.boolean(), z.number(), z.string()])
 	})
 ]);

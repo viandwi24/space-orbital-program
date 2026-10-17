@@ -175,7 +175,7 @@ Shipped by plan 003; plan 005 added the loader and extended the definition shape
 - **World:** see ADR 0010. `createWorld({ events? })`, `defineComponent<T>(name)` tokens, `createEntity/destroyEntity/add/get/has/remove/query`, `serialize()` → `WorldData`, `deserializeWorld(data: unknown)` (validated with zod).
 - **Ids:** branded `EntityId`, `PluginId`, `PartId`, `ModuleId`, `ResourceId`, `BodyId`, `SystemId` with validating constructors (`partId('stock.engine-lv')`). Registry definitions use plain `string` ids; the brands are for code that handles ids.
 
-## Patching (API 0.1.25, plan 079, ADRs 0104 and 0170)
+## Patching (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 `ctx.patches.register(definePatch({ id, target, select, ops, after?, before?, priority? }))` changes data another plugin registered, without replacing the entry. Targets are the data registries with a schema (`part`, `resource`, `body`); `module` and `system` hold functions and are not patchable. Code: `packages/core/src/patch.ts` (`applyPatches`, `orderPatches`), wired in `loadPlugins` step 5.
 
@@ -184,6 +184,12 @@ Shipped by plan 003; plan 005 added the loader and extended the definition shape
 - **Apply.** Per patch: clone each selected entry (`clonePlain`), apply the ops, validate (`Registry.validate`, plus the module configs of a patched part), and only if every entry passes swap them in with the loader-only `replaceDefinition` (frozen again). Otherwise the patch is disabled with a reason; nothing changes. Paths are dot-separated; under a part's `modules` the segment after `modules` is a module id, matched by the longest run of segments.
 - **Report.** `LoadReport.patches` (apply order; `applied`, `changes` with `from`/`to`, `disabled`) and `LoadReport.provenance[kind][entryId][path]` (registering plugin, then patchers). The web mod runtime keeps `patches` for the booted set and `/mods` shows them per mod (`apps/web/src/lib/mods/ModPatches.svelte`).
 - **Cost.** 1 000 patches over the stock registries: under 50 ms on the M5 (benchmark in `mods/stock/test/patch-bench.test.ts`).
+
+## World rules and presets (API 0.1.27, plan 078, ADR 0111)
+
+`ctx.rules.register(defineRule(...))` and `ctx.presets.register(definePreset(...))` fill the registries `rules` and `presets` (report kinds `rule`, `preset`). Types and pure helpers are in `packages/core/src/rules.ts`: `ruleDefinitionSchema` (a default and every `presets` value must fit the type), `presetDefinitionSchema`, `ruleValueProblem`, `presetValue`, `resolveRules`. After boot, `loadPlugins` checks each preset's `values` against the rules that are loaded and throws a `PluginError` listing the misfits; a value for a rule that is not loaded is ignored.
+
+The values belong to the world, not to the registry: `WorldInfo.rules` in `SimSave.worldInfo` (format 5), with `preset` and `changelog` beside them. `createSim` completes the map with `resolveRules` (own value, preset `values`, rule `presets[preset]`, `default`), keeps ids no loaded rule defines (`Sim.unknownRules`) and refuses values of the wrong type. Systems get `SystemContext.rules.get(id)`; snapshots carry `rules` (rebuilt only after a change). `set-rule` is handled in `packages/sim/src/commands.ts` (`setRule`): identity names (`IDENTITY_RULES`) and `changeable: false` rules are refused with `identity rule`; an accepted change is written at dispatch, logged and emitted as `world:rule-changed`.
 
 ## Non-TypeScript mods
 

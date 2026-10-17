@@ -30,5 +30,6 @@ export * from './semver.ts';
 export * from './patch.ts';
 export * from './plugin.ts';
 export * from './save.ts';
+export * from './rules.ts';
 export * from './mods.ts';
 export * from './mod-assets.ts';

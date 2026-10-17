@@ -167,7 +167,7 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 
 `definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`, and data patches over other plugins' entries with `ctx.patches.register(def)` (see "Patching another mod's data"). `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
 
-## Patching another mod's data (API 0.1.25, plan 079, ADRs 0104 and 0170)
+## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
 
@@ -189,6 +189,43 @@ export const PatchEngineThrust = definePatch({
 - **Validation.** The patched entry is checked again by its schema, and a part's module configs by their modules' own schemas. If the result is invalid for any selected entry, the whole patch is off and every entry keeps the value it had; the reason names the entry. A bad patch never stops the game or your other content.
 - **What the player sees.** `/mods` lists, under each running mod, each field its patches changed: "stock.engine-lv · modules.stock.engine.thrust · 215,000 → 230,000, patched by sample", or why a patch did not apply. In tests, `loadPlugins(...).report.patches` has the same list (`applied`, `changes`, `disabled`) and `report.provenance[kind][entryId][path]` names every plugin that set a field, the registering one first. `examples/mod-sample/test/sample.test.ts` checks the sample's patch from the built package.
 - Patched values are data, not saved: they are applied again at every load from the mods that are on.
+
+## World rules and presets (API 0.1.27, plan 078, ADRs 0094 and 0111)
+
+A world is created from a **preset** (Sandbox, Science, Career, ...) and keeps a value for every **rule**. Stock's rules and presets are in `mods/stock/src/rules.ts`; yours work the same way:
+
+```ts
+import { definePreset, defineRule, definePlugin } from '@orbital/sdk';
+
+export const RuleWeather = defineRule({
+	id: 'acme.weather',
+	label: 'Weather',
+	category: 'environment',
+	type: 'enum', // or 'boolean', or 'number' with min, max and optional integer
+	values: ['calm', 'normal', 'stormy'],
+	default: 'normal',
+	presets: { 'stock.sandbox': 'calm' }, // value per preset id
+	changeable: true // false = identity: fixed when the world is created
+});
+export const PresetStorm = definePreset({
+	id: 'acme.storm-career',
+	label: 'Stormy career',
+	values: { 'stock.economy': true, 'acme.weather': 'stormy' }
+});
+
+definePlugin({
+	meta,
+	setup(ctx) {
+		ctx.rules.register(RuleWeather);
+		ctx.presets.register(PresetStorm);
+	}
+});
+```
+
+- **Values.** A new world stores the value of every loaded rule: its own value if Create World set one, else the preset's `values`, else the rule's `presets[presetId]`, else `default`. A world that predates your rule gets it the same way at its next load. A value that does not fit the type is refused when the mod loads (for defaults and preset values) or when the world loads.
+- **Reading.** A system reads `ctx.rules.get('acme.weather')` in `update` (undefined when no loaded mod defines the id); the HUD reads `snapshot.rules`. It is a map read, so check it every step if you like.
+- **Changing.** The player (or a script) sends `{ type: 'set-rule', rule, value }`; it is refused for identity rules (`identity rule`, also for `system`, `variant`, `gravityModel`, `seed`, `primarySite`), unknown ids and wrong values, and otherwise applies from the next step, appends `{ time, rule, from, to }` to the world's changelog and emits `world:rule-changed`.
+- **Your mod removed.** Its rule values stay in the save (`sim.unknownRules` lists them) and come back when the mod does.
 
 ## Saves (API 0.1.12, ADR 0050)
 
