@@ -1,16 +1,24 @@
 /**
- * Stones on an airless body's ground (plan 052, ADR 0068): where they are and how big, by pure
+ * Stones on an airless body's ground (plan 052, ADR 0068; moved to core by plan 060, ADR 0092, so the
+ * renderer draws them and the sim collides with them from this one function): where they are and how big, by pure
  * hashing of a world-fixed lattice, so the same stone stands in the same place on every visit, in
  * every session and on the GPU. The lattice is a gnomonic cube-face chart of the body (about
  * metres per unit near the middle of a face, which is where the landing plain is): a cell is
  * (face, i, j), holds at most one stone, and its hash decides presence (patches of quiet and busy
  * ground by a coarser region hash), place, size, yaw and shade. `shaders/moon.glsl.ts` carries the
  * GLSL twin that draws the same stones as bumps beyond the instanced radius; the instanced meshes
- * (`moon-stones.ts`) are built from `stonesAround`. Stones are scenery: the sim's ground is the
- * height field and a stone has no collision (ADR 0068).
+ * (`moon-stones.ts`) are built from `stonesAround`, and the sim's stone colliders (`packages/sim`
+ * `stones.ts`) from the same list. A body's `seed` (its craters seed) shifts the lattice salt, so two
+ * bodies do not share a pattern; seed 0 is the pattern every body had before.
  */
-import { pcgX, type Vec3 } from '@orbital/core';
-import { normalize, vec } from './vec.ts';
+import type { Vec3 } from './math.ts';
+import { pcgX } from './terrain.ts';
+
+const vec = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
+function normalize(v: Vec3): Vec3 {
+	const l = Math.hypot(v.x, v.y, v.z);
+	return vec(v.x / l, v.y / l, v.z / l);
+}
 
 export const STONES = {
 	/** Edge of a cell, m. */
@@ -104,25 +112,34 @@ export interface Stone {
 }
 
 /** Hash of a cell and a purpose `k`, in [0, 1]. The GLSL twin calls the same function with the same integers. */
-export const cellHash = (face: number, i: number, j: number, k: number): number =>
-	pcgX(i + k * 7919, j + k * 104729, face * 131 + STONES.salt);
+export const cellHash = (face: number, i: number, j: number, k: number, seed = 0): number =>
+	pcgX(i + k * 7919, j + k * 104729, face * 131 + stoneSalt(seed));
+
+/** The lattice salt of a body's stones: the base salt moved by the body's seed (seed 0 is the base). */
+export const stoneSalt = (seed: number): number => STONES.salt + (seed | 0) * 1009;
 
 /** The density of the region of a cell, the third power of its hash. */
-export function regionRichness(face: number, i: number, j: number): number {
+export function regionRichness(face: number, i: number, j: number, seed = 0): number {
 	const ri = Math.floor(i / STONES.regionCells);
 	const rj = Math.floor(j / STONES.regionCells);
-	const r = pcgX(ri, rj, face * 131 + STONES.salt + 1);
+	const r = pcgX(ri, rj, face * 131 + stoneSalt(seed) + 1);
 	return r * r * r;
 }
 
 /** The stone of a cell, or null when the cell is empty. */
-export function stoneInCell(face: number, i: number, j: number, radius: number): Stone | null {
-	const chance = STONES.quiet + STONES.busy * regionRichness(face, i, j);
-	if (cellHash(face, i, j, 0) >= chance) return null;
-	const x = (i + 0.2 + 0.6 * cellHash(face, i, j, 1)) * STONES.cell;
-	const y = (j + 0.2 + 0.6 * cellHash(face, i, j, 2)) * STONES.cell;
-	const h = cellHash(face, i, j, 3);
-	const boulder = cellHash(face, i, j, 4) > 1 - STONES.boulderChance;
+export function stoneInCell(
+	face: number,
+	i: number,
+	j: number,
+	radius: number,
+	seed = 0
+): Stone | null {
+	const chance = STONES.quiet + STONES.busy * regionRichness(face, i, j, seed);
+	if (cellHash(face, i, j, 0, seed) >= chance) return null;
+	const x = (i + 0.2 + 0.6 * cellHash(face, i, j, 1, seed)) * STONES.cell;
+	const y = (j + 0.2 + 0.6 * cellHash(face, i, j, 2, seed)) * STONES.cell;
+	const h = cellHash(face, i, j, 3, seed);
+	const boulder = cellHash(face, i, j, 4, seed) > 1 - STONES.boulderChance;
 	return {
 		face,
 		i,
@@ -131,20 +148,21 @@ export function stoneInCell(face: number, i: number, j: number, radius: number):
 		y,
 		direction: chartDirection({ face, x, y }, radius),
 		radius: (STONES.radiusMin + STONES.radiusSpan * h * h) * (boulder ? STONES.boulderScale : 1),
-		yaw: cellHash(face, i, j, 5) * Math.PI * 2,
-		shade: cellHash(face, i, j, 6)
+		yaw: cellHash(face, i, j, 5, seed) * Math.PI * 2,
+		shade: cellHash(face, i, j, 6, seed)
 	};
 }
 
 /**
  * The stones within `within` m of the ground point under unit direction `n`, nearest first, at most
- * `max` of them. Pure: the same direction gives the same list.
+ * `max` of them, for a body with craters seed `seed`. Pure: the same direction gives the same list.
  */
 export function stonesAround(
 	n: Vec3,
 	radius: number,
 	within: number = STONES.instanceRadius,
-	max: number = STONES.maxInstances
+	max: number = STONES.maxInstances,
+	seed = 0
 ): Stone[] {
 	const c = chartOf(n, radius);
 	const i0 = Math.floor((c.x - within) / STONES.cell) - 1;
@@ -154,7 +172,7 @@ export function stonesAround(
 	const found: { stone: Stone; d: number }[] = [];
 	for (let j = j0; j <= j1; j++) {
 		for (let i = i0; i <= i1; i++) {
-			const stone = stoneInCell(c.face, i, j, radius);
+			const stone = stoneInCell(c.face, i, j, radius, seed);
 			if (!stone) continue;
 			const d = Math.hypot(stone.x - c.x, stone.y - c.y);
 			if (d <= within) found.push({ stone, d });
@@ -162,4 +180,24 @@ export function stonesAround(
 	}
 	found.sort((a, b) => a.d - b.d || a.stone.j - b.stone.j || a.stone.i - b.stone.i);
 	return found.slice(0, max).map((f) => f.stone);
+}
+
+/** Whether a body has stones: the cratered airless kind (ADR 0067); smooth spheres and hills bodies have none. */
+export const bodyHasStones = (body: { terrain?: { kind: string } }): boolean =>
+	body.terrain?.kind === 'craters';
+
+/**
+ * The collision shape of a stone (plan 060, ADR 0092): a sphere whose cap above the ground has the
+ * height and base radius of the drawn dome (`flatten`, `sink`), so a foot meets the surface the eye
+ * sees. `centreHeight` is the sphere centre's height above the ground under the stone (negative:
+ * most of the sphere is buried).
+ */
+export function stoneCollider(stone: Pick<Stone, 'radius'>): {
+	radius: number;
+	centreHeight: number;
+} {
+	const cap = STONES.flatten * (1 - STONES.sink) * stone.radius;
+	const base = stone.radius;
+	const radius = (base * base + cap * cap) / (2 * cap);
+	return { radius, centreHeight: cap - radius };
 }

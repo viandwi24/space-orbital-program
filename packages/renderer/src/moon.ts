@@ -10,6 +10,7 @@ import {
 	cachedPlanetMap,
 	createTerrainField,
 	moonHeight,
+	stoneSalt,
 	type TerrainField,
 	type Vec3
 } from '@orbital/core';
@@ -82,7 +83,6 @@ import {
 	moonVertexCommon
 } from './shaders/moon.glsl.ts';
 import { MoonStones } from './moon-stones.ts';
-import { STONES } from './stones-model.ts';
 import { SHADOW_STEPS } from './terrain-shadow.ts';
 import {
 	latticeDirection,
@@ -225,6 +225,8 @@ export class MoonPass {
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
+			// the stones' lattice salt (core's `stoneSalt`): the shader hashes the same integers
+			uStoneSalt: u(stoneSalt(this.seed)),
 			uTint: u(new Color().setRGB(tint[0], tint[1], tint[2])),
 			// unit body-fixed direction to the sun, and the share of the sun light the lit scene gets
 			// (the vessel's own terrain shadow, ADR 0068): the ground divides it out again
@@ -362,7 +364,8 @@ export class MoonPass {
 		this.stones = new MoonStones(
 			radius,
 			this.material('stone', stoneUniforms),
-			this.stoneDepthMaterial(stoneUniforms)
+			this.stoneDepthMaterial(stoneUniforms),
+			this.seed
 		);
 		this.root.add(this.stones.near, this.stones.far);
 	}

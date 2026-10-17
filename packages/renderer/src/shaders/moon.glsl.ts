@@ -12,7 +12,7 @@ import {
 	MOON_SHAPE as S,
 	SEA_LEVEL
 } from '@orbital/core';
-import { STONES } from '../stones-model.ts';
+import { STONES } from '@orbital/core';
 import { SHADOW_MARCH as M } from '../terrain-shadow.ts';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
 import { terrainHeightGLSL, terrainNoiseGLSL } from './terrain.glsl.ts';
@@ -267,13 +267,14 @@ vec3 objectNormal = patchNormal(position.xy, patchHeight(position.xy));
 `;
 
 /**
- * Stones as domes of the world-fixed lattice of `stones-model.ts` (its GLSL twin; every constant
+ * Stones as domes of the world-fixed lattice of `@orbital/core`'s `stones.ts` (its GLSL twin; every constant
  * comes from `STONES`): the stones beyond the instanced radius, and the ones the instances replace.
  * Cell hashes are the same integers as the TypeScript side feeds `pcgX`.
  */
 const stoneDomesGLSL = /* glsl */ `
+uniform int uStoneSalt;
 float stoneHash(int face, int i, int j, int k) {
-	return hash13i(ivec3(i + k * 7919, j + k * 104729, face * 131 + ${STONES.salt}));
+	return hash13i(ivec3(i + k * 7919, j + k * 104729, face * 131 + uStoneSalt));
 }
 float stoneDomes(vec3 n) {
 	vec3 an = abs(n);
@@ -289,7 +290,7 @@ float stoneDomes(vec3 n) {
 		for (int di = -1; di <= 1; di++) {
 			int ci = c0.x + di;
 			int cj = c0.y + dj;
-			float r3 = hash13i(ivec3(int(floor(float(ci) / ${f(STONES.regionCells)})), int(floor(float(cj) / ${f(STONES.regionCells)})), face * 131 + ${STONES.salt + 1}));
+			float r3 = hash13i(ivec3(int(floor(float(ci) / ${f(STONES.regionCells)})), int(floor(float(cj) / ${f(STONES.regionCells)})), face * 131 + uStoneSalt + 1));
 			float chance = ${f(STONES.quiet)} + ${f(STONES.busy)} * r3 * r3 * r3;
 			if (stoneHash(face, ci, cj, 0) >= chance) continue;
 			vec2 centre = (vec2(float(ci), float(cj)) + 0.2 + 0.6 * vec2(stoneHash(face, ci, cj, 1), stoneHash(face, ci, cj, 2))) * ${f(STONES.cell)};

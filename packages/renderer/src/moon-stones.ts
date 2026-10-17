@@ -1,6 +1,6 @@
 /**
  * Stones as instanced geometry near the camera (plan 052, ADR 0068). The stones are those of
- * `stones-model.ts` (a world-fixed lattice, pure hashing), so each stands where it stood last time.
+ * `@orbital/core`'s `stones.ts` (a world-fixed lattice, pure hashing; the sim collides with the same list), so each stands where it stood last time.
  * Two meshes share one material and one instance layout: a detailed rock (320 triangles) for stones
  * within `STONES.nearRadius` and a plainer one (80) beyond it. An instance is its place in the fine
  * patch's coordinates (u, v), its radius and yaw; the vertex shader reads the height from the same
@@ -8,7 +8,15 @@
  * rebuilt when the camera has moved `STONES.refreshDistance` or the patch was re-centred; rebuilding
  * is a few thousand hashes and a pass over the list, no GPU read-back.
  */
-import { hash3, type Vec3 } from '@orbital/core';
+import {
+	chartOf,
+	hash3,
+	stonesAround,
+	STONES,
+	type ChartPoint,
+	type Stone,
+	type Vec3
+} from '@orbital/core';
 import {
 	BufferGeometry,
 	IcosahedronGeometry,
@@ -17,7 +25,6 @@ import {
 	Mesh,
 	type Material
 } from 'three';
-import { chartOf, stonesAround, STONES, type ChartPoint, type Stone } from './stones-model.ts';
 import type { PatchFrame } from './terrain-patch.ts';
 import { dot } from './vec.ts';
 
@@ -62,7 +69,8 @@ export class MoonStones {
 	constructor(
 		private readonly radius: number,
 		material: Material,
-		depthMaterial: Material
+		depthMaterial: Material,
+		private readonly seed = 0
 	) {
 		this.nearGeometry = instanced(rockGeometry(2, 11), NEAR_CAPACITY);
 		this.farGeometry = instanced(rockGeometry(1, 12), STONES.maxInstances);
@@ -103,7 +111,13 @@ export class MoonStones {
 	}
 
 	private build(direction: Vec3, frame: PatchFrame): void {
-		const stones = stonesAround(direction, this.radius);
+		const stones = stonesAround(
+			direction,
+			this.radius,
+			STONES.instanceRadius,
+			STONES.maxInstances,
+			this.seed
+		);
 		const place = (g: InstancedBufferGeometry, list: { stone: Stone; u: number; v: number }[]) => {
 			const a = g.getAttribute('aStone') as InstancedBufferAttribute;
 			const s = g.getAttribute('aStoneShade') as InstancedBufferAttribute;

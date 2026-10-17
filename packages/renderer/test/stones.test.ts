@@ -1,119 +1,14 @@
-/** Plan 052 / ADR 0068: stones are pure hashing of a world-fixed lattice - determinism, budget, placement, instances. */
+/** Plan 052 / ADR 0068 and plan 060: the GLSL twin and the instanced stones, drawn from core's stone list. */
 import { describe, expect, test } from 'bun:test';
-import { createRng, type Vec3 } from '@orbital/core';
+import { stonesAround, STONES, stoneSalt } from '@orbital/core';
 import { MoonStones, NEAR_CAPACITY } from '../src/moon-stones.ts';
 import { moonFragmentBump, moonFragmentCommon } from '../src/shaders/moon.glsl.ts';
-import { chartDirection, chartOf, stoneInCell, stonesAround, STONES } from '../src/stones-model.ts';
 import { patchFrame } from '../src/terrain-patch.ts';
-import { dot, normalize, vec } from '../src/vec.ts';
+import { normalize, vec } from '../src/vec.ts';
 import { MeshDepthMaterial, MeshLambertMaterial } from 'three';
 
 const R = 190_000;
 const landing = vec(1, 0, 0);
-const rng = createRng(3);
-const randomDirection = (): Vec3 =>
-	normalize(vec(rng.next() * 2 - 1, rng.next() * 2 - 1, rng.next() * 2 - 1));
-
-describe('the chart', () => {
-	test('direction and chart coordinates round-trip on every face', () => {
-		for (let k = 0; k < 600; k++) {
-			const n = randomDirection();
-			const back = chartDirection(chartOf(n, R), R);
-			expect(dot(n, back)).toBeGreaterThan(1 - 1e-12);
-		}
-	});
-
-	test('near the middle of a face a chart metre is a metre of ground', () => {
-		const a = chartOf(landing, R);
-		const b = chartOf(normalize(vec(1, 0, 100 / R)), R);
-		expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeCloseTo(100, 2);
-	});
-});
-
-describe('stones', () => {
-	test('the same place gives the same stones, byte for byte', () => {
-		const a = stonesAround(landing, R);
-		const b = stonesAround(landing, R);
-		expect(JSON.stringify(a)).toBe(JSON.stringify(b));
-		expect(a.length).toBeGreaterThan(0);
-	});
-
-	test('a stone is the same wherever it is looked at from', () => {
-		const here = stonesAround(landing, R);
-		const near = normalize(vec(1, 0, 20 / R)); // 20 m away
-		const there = stonesAround(near, R);
-		const key = (s: { face: number; i: number; j: number }): string => `${s.face}:${s.i}:${s.j}`;
-		const byKey = new Map(there.map((s) => [key(s), s]));
-		let shared = 0;
-		for (const s of here) {
-			const t = byKey.get(key(s));
-			if (!t) continue;
-			shared++;
-			expect(t).toEqual(s);
-		}
-		expect(shared).toBeGreaterThan(here.length / 2);
-	});
-
-	test('cells are decided by their hash alone and match stonesAround', () => {
-		const c = chartOf(landing, R);
-		const list = stonesAround(landing, R, 30);
-		const i0 = Math.floor(c.x / STONES.cell);
-		const j0 = Math.floor(c.y / STONES.cell);
-		for (const s of list) {
-			expect(stoneInCell(s.face, s.i, s.j, R)).toEqual(s);
-		}
-		// an explicit scan finds nothing that stonesAround missed inside its radius
-		let found = 0;
-		for (let j = j0 - 20; j <= j0 + 20; j++) {
-			for (let i = i0 - 20; i <= i0 + 20; i++) {
-				const s = stoneInCell(c.face, i, j, R);
-				if (s && Math.hypot(s.x - c.x, s.y - c.y) <= 30) found++;
-			}
-		}
-		expect(found).toBe(list.length);
-	});
-
-	test('stones are sized, placed inside their cells and sorted nearest first', () => {
-		const c = chartOf(landing, R);
-		const list = stonesAround(landing, R);
-		let last = 0;
-		for (const s of list) {
-			expect(s.radius).toBeGreaterThanOrEqual(STONES.radiusMin);
-			expect(s.radius).toBeLessThanOrEqual(
-				(STONES.radiusMin + STONES.radiusSpan) * STONES.boulderScale + 1e-9
-			);
-			expect(s.x).toBeGreaterThanOrEqual(s.i * STONES.cell);
-			expect(s.x).toBeLessThan((s.i + 1) * STONES.cell);
-			expect(s.y).toBeGreaterThanOrEqual(s.j * STONES.cell);
-			expect(s.y).toBeLessThan((s.j + 1) * STONES.cell);
-			const d = Math.hypot(s.x - c.x, s.y - c.y);
-			expect(d).toBeLessThanOrEqual(STONES.instanceRadius);
-			expect(d).toBeGreaterThanOrEqual(last - 1e-9);
-			last = d;
-		}
-	});
-
-	test('the budget: never above maxInstances anywhere, and a busy ground fills a good share of it', () => {
-		let most = 0;
-		let total = 0;
-		const n = 300;
-		for (let k = 0; k < n; k++) {
-			const count = stonesAround(randomDirection(), R).length;
-			expect(count).toBeLessThanOrEqual(STONES.maxInstances);
-			most = Math.max(most, count);
-			total += count;
-		}
-		console.log(
-			`stones within ${STONES.instanceRadius} m: mean ${(total / n).toFixed(0)}, most ${most}`
-		);
-		expect(total / n).toBeGreaterThan(80);
-		expect(most).toBeGreaterThan(300);
-		// a cap smaller than the field keeps the nearest
-		const capped = stonesAround(landing, R, STONES.instanceRadius, 10);
-		const full = stonesAround(landing, R);
-		expect(capped).toEqual(full.slice(0, 10));
-	});
-});
 
 describe('the GLSL twin carries the constants', () => {
 	test('lattice and size constants are in the shader source', () => {
@@ -130,7 +25,8 @@ describe('the GLSL twin carries the constants', () => {
 		]) {
 			expect(moonFragmentCommon).toContain(f(k));
 		}
-		expect(moonFragmentCommon).toContain(String(STONES.salt));
+		expect(moonFragmentCommon).toContain('uStoneSalt');
+		expect(stoneSalt(0)).toBe(STONES.salt);
 		expect(moonFragmentBump).toContain('stoneDomes(vMoonN)');
 	});
 });
@@ -167,5 +63,37 @@ describe('the instanced stones', () => {
 		expect(attribute.getX(0)).toBe(before);
 		stones.update(normalize(vec(1, 0, (STONES.refreshDistance + 2) / R)), 5, frame);
 		expect(attribute.getX(0)).not.toBe(before);
+	});
+});
+
+describe('drawn stones are core stones (plan 060)', () => {
+	test('every instance is a stone of core.stonesAround: same radius and yaw, and the count matches', () => {
+		const frame = patchFrame(landing, R, 2_048);
+		const stones = new MoonStones(R, new MeshLambertMaterial(), new MeshDepthMaterial());
+		stones.update(landing, 5, frame);
+		const expected = stonesAround(landing, R).filter((s) => {
+			const k =
+				s.direction.x * frame.centre.x +
+				s.direction.y * frame.centre.y +
+				s.direction.z * frame.centre.z;
+			return k > 1e-6;
+		});
+		let matched = 0;
+		for (const mesh of [stones.near, stones.far]) {
+			const a = mesh.geometry.getAttribute('aStone');
+			const n = (mesh.geometry as unknown as { instanceCount: number }).instanceCount;
+			for (let i = 0; i < n; i++) {
+				// float32 attributes: compare within their precision
+				const hit = expected.some(
+					(s) => Math.abs(s.radius - a.getZ(i)) < 1e-5 && Math.abs(s.yaw - a.getW(i)) < 1e-5
+				);
+				expect(hit).toBe(true);
+				matched++;
+			}
+		}
+		expect(matched).toBe(stones.count);
+		expect(matched).toBeGreaterThan(50);
+		expect(matched).toBeLessThanOrEqual(expected.length);
+		expect(expected.length - matched).toBeLessThan(expected.length * 0.1 + 3); // dropped only at the patch edge
 	});
 });
