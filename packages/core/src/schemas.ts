@@ -116,6 +116,12 @@ export const partVisualSchema = z.object({
 		.object({
 			module: definitionIdSchema,
 			nozzle: vec3Tuple,
+			/**
+			 * The exit centre of each bell of a multi-nozzle engine (2 to 9; ADR 0081). Each draws its
+			 * own plume of `exitRadius`; `nozzle` stays the thrust centre the ground effects (dust,
+			 * ground light, trail) use.
+			 */
+			nozzles: z.array(vec3Tuple).min(2).max(9).optional(),
 			exitRadius: z.number().positive(),
 			length: z.number().positive(),
 			exitPressure: z.number().positive().optional(),
