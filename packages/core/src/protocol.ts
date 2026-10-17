@@ -230,6 +230,20 @@ export interface Snapshot {
 	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
 	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
 	/** Each site's buildings and road cells (plan 090). */
+	/**
+	 * The comms network (plan 114, ADR 0179 point 9): stations (system-relative position, like
+	 * `bodies`) and each vessel's link; absent with `stock.comms` off.
+	 */
+	network?: {
+		stations: Array<{ id: string; label: string; body: string; position: Vec3; range: number }>;
+		vessels: Array<{
+			vessel: EntityId;
+			to: string | null;
+			reason: string | null;
+			control: 'full' | 'partial' | 'none';
+			blackout: number;
+		}>;
+	};
 	sites?: Array<{
 		id: string;
 		buildings: Array<{

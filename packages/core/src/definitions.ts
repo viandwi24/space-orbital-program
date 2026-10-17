@@ -18,6 +18,7 @@ import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
+import type { AntennaDefinition, GroundStationDefinition, SignalState } from './comms.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -87,6 +88,9 @@ export interface ReadonlyRegistries {
 	/** Science (plan 103, ADR 0178). */
 	situations: ReadonlyRegistry<SituationDefinition>;
 	experiments: ReadonlyRegistry<ExperimentDefinition>;
+	/** Comms (plan 114, ADR 0179). */
+	antennas: ReadonlyRegistry<AntennaDefinition>;
+	groundStations: ReadonlyRegistry<GroundStationDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
@@ -176,6 +180,8 @@ export interface VesselApi {
 		/** Bits the vessel's storages hold in all. */
 		capacity(): number;
 	};
+	/** The vessel's link and control state (plan 114, ADR 0179 point 8), as of the last network update. */
+	signal(): SignalState;
 	/**
 	 * Sever the attachment at this part's attach node `node`: whatever hangs off it leaves as its
 	 * own vessel. `impulse` (N·s, default 0) pushes the two halves apart along the node direction,
@@ -256,6 +262,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * `{ items, next }` (`DataStorageState`).
 	 */
 	dataStorage?: DataStorage<Out>;
+	/**
+	 * Present when this module is an antenna (plan 114, ADR 0179): the antenna definition id and
+	 * whether it is switched on now.
+	 */
+	antenna?: Bivariant<(config: Out, state: State) => { antenna: string; enabled: boolean }>;
 	/**
 	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
 	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant

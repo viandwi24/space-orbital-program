@@ -70,6 +70,7 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		demand: { x: 0, y: 0, z: 0 },
 		situation: () => undefined,
 		science: { result: () => undefined, credit: () => {} },
+		signal: () => ({ connected: true, to: null, reason: null, control: 'full' }),
 		get centreOfMass() {
 			return v.centre;
 		},

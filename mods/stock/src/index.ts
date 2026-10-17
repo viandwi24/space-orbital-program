@@ -38,6 +38,7 @@ import {
 	PartTankSmall,
 	PartDataDrive,
 	STOCK_SCIENCE_PARTS,
+	STOCK_COMMS_PARTS,
 	PartWing
 } from './parts.ts';
 import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
@@ -50,6 +51,7 @@ import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { ModuleExperiment, STOCK_EXPERIMENTS, STOCK_SITUATIONS } from './science.ts';
+import { ModuleAntenna, STOCK_ANTENNAS } from './comms.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
 export const stockApi = { engineOutput, ispAt, propellantRates, withdraw, deposit };
@@ -84,6 +86,8 @@ export const Stock = definePlugin({
 		for (const situation of STOCK_SITUATIONS) ctx.situations.register(situation);
 		for (const experiment of STOCK_EXPERIMENTS) ctx.experiments.register(experiment);
 		ctx.modules.register(ModuleExperiment);
+		for (const antenna of STOCK_ANTENNAS) ctx.antennas.register(antenna);
+		ctx.modules.register(ModuleAntenna);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -104,6 +108,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartFuelLine);
 		ctx.parts.register(PartDataDrive);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 
 		ctx.bodies.register(HomeBody);
 		ctx.bodies.register(MoonBody);
@@ -134,3 +139,4 @@ export * from './crew.ts';
 export * from './action-groups.ts';
 export * from './objectives.ts';
 export * from './science.ts';
+export * from './comms.ts';

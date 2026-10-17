@@ -8,6 +8,8 @@ import type {
 	SiteTemplateDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
+	AntennaDefinition,
+	GroundStationDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
 	AnyPatchDefinition,
@@ -273,3 +275,16 @@ export const defineExperiment = (def: ExperimentDefinition): ExperimentDefinitio
 
 /** A science situation: `matches(view)` is pure, the lowest `order` that matches wins. */
 export const defineSituation = (def: SituationDefinition): SituationDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineAntenna / defineGroundStation
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * An antenna (plan 114, ADR 0179): kind, range rating (m) and transmit power (W). Register with
+ * `ctx.antennas`; a part carries it through the `stock.antenna` module.
+ */
+export const defineAntenna = (def: AntennaDefinition): AntennaDefinition => def;
+
+/** A fixed ground station on a body (every world site is one already). Register with `ctx.groundStations`. */
+export const defineGroundStation = (def: GroundStationDefinition): GroundStationDefinition => def;

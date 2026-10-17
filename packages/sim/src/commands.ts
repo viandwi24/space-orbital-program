@@ -20,6 +20,7 @@ import { MAX_WARP } from './constants.ts';
 import { hireCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
+import { resetStations, signalRefusal } from './comms.ts';
 import { applyActionGroup } from './actions.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
@@ -60,6 +61,12 @@ function controllable(core: SimCore, id: EntityId): VesselState | string {
 	if (!vessel) return `unknown vessel ${id}`;
 	if (!isControlled(core, vessel)) return `vessel ${id} ("${vessel.name}") has no control source`;
 	return vessel;
+}
+
+/** A building or site change moves the ground stations (plan 114). */
+function withStations(core: SimCore, result: CommandResult): CommandResult {
+	if (result.ok) resetStations(core);
+	return result;
 }
 
 /** Put the vessel in flight if it is not; returns a refusal reason when that is impossible. */
@@ -186,6 +193,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'throttle': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'throttle');
+			if (noSignal) return refuse(noSignal);
 			if (command.value > 0 && v.mode === 'on-rails') {
 				const why = ensureFlight(core, command.vessel, 'throttle');
 				if (why) return refuse(why);
@@ -196,6 +205,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'attitude': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'attitude');
+			if (noSignal) return refuse(noSignal);
 			const demanded = command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0;
 			if (demanded && v.mode === 'on-rails') {
 				const why = ensureFlight(core, command.vessel, 'attitude');
@@ -209,6 +220,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'sas': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'sas');
+			if (noSignal) return refuse(noSignal);
 			if (command.reference !== undefined) v.sas.reference = command.reference;
 			if (command.mode !== undefined && command.mode !== v.sas.mode) {
 				v.sas.mode = command.mode;
@@ -223,6 +236,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'stage': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'stage');
+			if (noSignal) return refuse(noSignal);
 			if (v.nextStage >= v.stages.length)
 				return refuse(`vessel ${command.vessel} has no stage left to fire`);
 			const why = ensureFlight(core, command.vessel, 'stage');
@@ -240,6 +255,12 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			if (!instance) return refuse(`part ${command.part} has no module "${command.module}"`);
 			const action = moduleDefOf(core, command.module).actions?.[command.action];
 			if (!action) return refuse(`module "${command.module}" has no action "${command.action}"`);
+			// an antenna can always be switched, or a probe could never get its signal back
+			if (!moduleDefOf(core, command.module).antenna) {
+				const noSignal = signalRefusal(core, command.vessel, 'action');
+				if (noSignal) return refuse(noSignal);
+			}
+			core.comms.dirty = true;
 			const why =
 				vessel.mode === 'on-rails' ? ensureFlight(core, command.vessel, 'action') : undefined;
 			if (why) return refuse(why);
@@ -304,8 +325,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		}
 		case 'load-vessel':
 			return loadVessel(core, command);
-		case 'set-rule':
+		case 'set-rule': {
+			core.comms.dirty = true;
 			return setRule(core, command.rule, command.value);
+		}
 		case 'recover-vessel': {
 			const id = command.vessel;
 			if (!core.world.has(id, VESSEL)) return refuse(`no vessel ${id}`);
@@ -318,11 +341,11 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return accept();
 		}
 		case 'place-building':
-			return placeBuilding(core, command);
+			return withStations(core, placeBuilding(core, command));
 		case 'remove-building':
-			return removeBuilding(core, command);
+			return withStations(core, removeBuilding(core, command));
 		case 'found-site':
-			return foundSite(core, command);
+			return withStations(core, foundSite(core, command));
 		case 'transmit-data': {
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return transmitData(core, command.vessel, command.item);
@@ -334,6 +357,9 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'action-group': {
 			const vessel = core.world.get(command.vessel, VESSEL);
 			if (!vessel) return refuse(`unknown vessel ${command.vessel}`);
+			const noSignal = signalRefusal(core, command.vessel, 'action-group');
+			if (noSignal) return refuse(noSignal);
+			core.comms.dirty = true;
 			const why =
 				vessel.mode === 'on-rails' ? ensureFlight(core, command.vessel, 'action group') : undefined;
 			if (why) return refuse(why);
