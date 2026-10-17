@@ -115,6 +115,12 @@ export interface PartSnapshot {
 	modules: Record<string, unknown>;
 	/** Skin temperature, K (plan 014). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	temperature?: number;
+	/**
+	 * Connector parts (ADR 0071) whose far end is still attached: the part it lands on and the
+	 * point on its surface, relative to the vessel root's origin in the inertial (BCI) axes like
+	 * `position`. Absent for other parts and once a split cut the link.
+	 */
+	link?: { peer: EntityId; point: Vec3 };
 }
 
 export interface VesselSnapshot {
@@ -167,10 +173,11 @@ export interface Snapshot {
 }
 
 /**
- * Vessel design (`formatVersion` 1 or 2, ADR 0016 and 0034): a flat list of part instances with
- * parent links, plus the staging sequence. Plain JSON, so the VAB can save/load it.
+ * Vessel design (`formatVersion` 1, 2 or 3, ADR 0016, 0034 and 0071): a flat list of part
+ * instances with parent links, plus the staging sequence. Plain JSON, so the VAB can save/load it.
  * `resolveVesselDesign` (design.ts) validates it against the registries; `migrateVesselDesign`
- * turns version 1 into version 2 (radial links and symmetry groups need 2).
+ * turns older versions into version 3 (radial links and symmetry groups need 2; tilts, links and
+ * radial links to boxes need 3).
  */
 export interface DesignLink {
 	index: number;
@@ -179,8 +186,26 @@ export interface DesignLink {
 	radial?: { angle: number; y: number };
 }
 
+/**
+ * A part's turn about the axes of its parent part, rad (version 3, ADR 0071): the matrix is
+ * `Rx(x) Ry(y) Rz(z)` (a vector is turned about Z first), pivoting about the attach point and
+ * applied before a radial part turns to face its parent's surface.
+ */
+export interface DesignTilt {
+	x: number;
+	y: number;
+	z: number;
+}
+
+/** The far end of a connector part (version 3): the surface of part `index` at the radial site (`angle`, `y`) of ADR 0034. */
+export interface DesignEnd {
+	index: number;
+	angle: number;
+	y: number;
+}
+
 export interface VesselDesign {
-	formatVersion: 1 | 2;
+	formatVersion: 1 | 2 | 3;
 	name: string;
 	parts: Array<{
 		/** Index of this part within the design (unique, any non-negative integer); referenced by `parent` and `stages`. */
@@ -194,6 +219,10 @@ export interface VesselDesign {
 		parent: DesignLink | null;
 		/** Symmetry group (version 2): parts made together by the editor share the number. The sim ignores it. */
 		symmetry?: number;
+		/** Rotation of the part about its parent's axes (version 3). Absent: none. */
+		tilt?: DesignTilt;
+		/** Connector parts only (version 3): where the part's other end lands (struts and fuel lines, ADR 0071). */
+		link?: DesignEnd;
 	}>;
 	/** `stages[k]` lists the part indices whose modules' `onStage` runs for the k-th `stage` command. */
 	stages: number[][];

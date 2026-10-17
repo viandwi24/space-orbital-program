@@ -24,7 +24,7 @@ const nodeName = z.string().min(1);
 const index = z.int().nonnegative();
 
 export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
-	formatVersion: z.union([z.literal(1), z.literal(2)]),
+	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
 	name: z.string().min(1),
 	parts: z
 		.array(
@@ -39,7 +39,9 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 						radial: z.object({ angle: z.number(), y: z.number() }).optional()
 					})
 					.nullable(),
-				symmetry: index.optional()
+				symmetry: index.optional(),
+				tilt: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
+				link: z.object({ index, angle: z.number(), y: z.number() }).optional()
 			})
 		)
 		.min(1),

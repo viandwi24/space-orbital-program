@@ -159,6 +159,12 @@ export const partDefinitionSchema = z.object({
 	 * `surface` is reserved for radial attachment (ADR 0034) and cannot be a node.
 	 */
 	dragCoefficient: z.number().positive().optional(),
+	/**
+	 * The part is a connector (ADR 0071): it hangs on one part like any other and its design entry
+	 * names a second part its far end lands on. `feeds` makes it a fuel line: resources of the
+	 * part it hangs on are available to the part it ends on.
+	 */
+	connector: z.object({ feeds: z.boolean().optional() }).optional(),
 	attach: z
 		.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple }))
 		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')
@@ -208,6 +214,11 @@ export const moduleInfoSchema = z.object({
 			propellants: z
 				.array(z.object({ resource: definitionIdSchema, ratio: z.number().positive() }))
 				.min(1),
+			/**
+			 * Thrust direction in the part frame (a unit vector), default +Y (ADR 0071): a tilted
+			 * engine's useful thrust along the flight direction is its component along the vessel axis.
+			 */
+			axis: z.tuple([z.number(), z.number(), z.number()]).optional(),
 			/** Burning now (or, for a design, false). */
 			ignited: z.boolean(),
 			/** Shut down because propellant ran short. */
