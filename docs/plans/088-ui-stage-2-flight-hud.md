@@ -1,8 +1,8 @@
 ---
 id: 088
 title: "UI stage 2: the flight HUD in the refs style"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [086, 081]
 phase: 5
 created: 2026-10-17
@@ -17,7 +17,7 @@ The flight and map HUD follow the refs layout: world capsule (home to Space Cent
 
 ## Context
 
-- ADRs: 0107, 0026
+- ADRs: 0107, 0026, [0144](../decisions/0144-flight-hud-refs-layout-what-has-no-data-yet.md) (written here)
 - Read: ADR 0107, 0026 (what stands), `refs/space-orbital-program-ui/docs/SCREENS.md` (Flight, Map) and `CONCEPT.md` §4, `apps/web/src/lib/hud/*`, `routes/flight`, touch layout ADRs 0063 and 0091.
 
 ## Scope
@@ -50,18 +50,26 @@ Keep the 10 Hz `HudModel` and the per-frame canvas and CSS-variable paths of ADR
 
 ## Acceptance criteria
 
-- [ ] Existing HUD vitest tests (`navball-math`, `sas-model`, `hud-model`, `delta-v`) pass unchanged.
-- [ ] `bun run e2e` (Chromium, Firefox, WebKit): flight smoke passes; `e2e/mobile.e2e.ts` passes at 1024x768 and 1180x820 with no overlap between the navball module, staging and the touch throttle.
-- [ ] Screenshots at 1920x1080 (pad, orbit, map) in `docs/journal/assets/088-*.png` with the side-by-side self-review against `refs` Main in the journal; HUD frame cost unchanged within 0.2 ms (M5).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Existing HUD vitest tests (`navball-math`, `sas-model`, `hud-model`, `delta-v`) pass unchanged.
+- [x] `bun run e2e` (Chromium, Firefox, WebKit): flight smoke passes; `e2e/mobile.e2e.ts` passes at 1024x768 and 1180x820 with no overlap between the navball module, staging and the touch throttle.
+- [x] Screenshots at 1920x1080 (pad, orbit, map) in `docs/journal/assets/088-*.png` with the side-by-side self-review against `refs` Main in the journal; HUD frame cost unchanged within 0.2 ms (M5).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/088-ui-stage-2-flight-hud.md` written.
-- [ ] `product/visual-direction.md` if the layout differs from the refs.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/088-ui-stage-2-flight-hud.md` written.
+- [x] `product/visual-direction.md` if the layout differs from the refs.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107, 0026).
+- 2026-10-17 — Claimed by Agent 2 (Dev B, M2). ADR 0144; navball module and pod, capsules, toolbar, staging, crew placeholder, page layout, monochrome navball, Manrope numbers, journal with the refs review and screenshots. Verification on the M2, rebased on `origin/main` after the 106 merge:
+  - `bunx vitest run` (apps/web) — `navball-math`, `sas-model`, `hud-model`, `delta-v*` pass unchanged; 913 passed, 2 failed in `sim-host-script-worker.test.ts` (as on `origin/main` on this M2). `target-navball.test.ts` follows the new theme fields; `layout-model.test.ts` follows `EDGE` 24 and the 12 px gap.
+  - `E2E_PORT=5210 bunx playwright test e2e/smoke.e2e.ts e2e/mobile.e2e.ts e2e/touch.e2e.ts e2e/ui-scale.e2e.ts e2e/worlds.e2e.ts --project=chromium` — 23 passed (11.0 m), including mobile at 1024x768 and 1180x820 with no overlap between the module, staging, the script panel and the touch throttle.
+  - `--project=webkit` smoke and ui-scale — 8 passed (the sandbox-isolation smoke failed once on the cold first run, "checked at the first Run", and passed on the rerun; not HUD code).
+  - Screenshots at 1920x1080 (pad, orbit, map) and 1024x768 in `docs/journal/assets/088-*.png` (`scripts/capture-hud.ts`), reviewed side by side against refs `Main` in the journal; the ball centre measures at x 960 on 1920.
+  - `bun test ./packages`, `./mods`, `./examples` — 1369, 93, 7 pass; `bun run typecheck` — 0 errors, 0 warnings; build ok; `bun run docs:check` — OK.
+  - Open for others: Firefox e2e (Agent 3 / phase gate) and the HUD frame cost within 0.2 ms on the M5 (Agent 1, criterion 3).
+- 2026-10-18 — Merge check (Agent 1, M5): rebased on main after 091 (one conflict in `product/visual-direction.md`, both sentences kept). `bun run test` 1484 pass · web vitest 926 pass · typecheck · build · docs:check OK · Chromium smoke 6 pass; Firefox and WebKit smoke 11 pass (one WebKit cold-run flake, passed on retry). HUD frame cost, journal 054 setup (`NODE_ENV=development` build, `scripts/serve.ts` 5202, pane fronted alone at 826 × 930 DPR 2, `high`, governor off, second load, pad): `__orbital.hudStats()` paint + model 0.340 ms on main and 0.342 ms on 088 (+0.002 ms, within 0.2). Whole-page `frameIntervals(240)` means, alternated: main 26.6 and 27.4 ms, 088 28.1 and 27.7 ms, median 25 ms on both (vsync-quantised; the flight-view budget issue in STATUS).

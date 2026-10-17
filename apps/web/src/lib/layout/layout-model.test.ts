@@ -3,6 +3,7 @@ import {
 	aboveDeckHeight,
 	classifyScreen,
 	EDGE,
+	GAP,
 	scriptPanelWidth,
 	smallScreenAdvice,
 	throttleAnchor
@@ -11,13 +12,13 @@ import { isSmallScreen } from '../touch/touch-model';
 
 describe('clearances above the instrument deck', () => {
 	it('a column may take what the deck and two margins leave', () => {
-		expect(aboveDeckHeight(768, 262)).toBe(768 - 262 - 2 * EDGE);
+		expect(aboveDeckHeight(768, 262)).toBe(768 - 262 - 2 * EDGE - GAP);
 	});
 	it('never negative, never NaN', () => {
 		expect(aboveDeckHeight(200, 262)).toBe(0);
 		expect(aboveDeckHeight(Number.NaN, 262)).toBe(0);
 		expect(aboveDeckHeight(768, Number.POSITIVE_INFINITY)).toBe(0);
-		expect(aboveDeckHeight(768, -50)).toBe(768 - 2 * EDGE);
+		expect(aboveDeckHeight(768, -50)).toBe(768 - 2 * EDGE - GAP);
 	});
 	it('the script panel is 420 px, or 46 % on a narrow screen', () => {
 		expect(scriptPanelWidth(1440)).toBe(420);

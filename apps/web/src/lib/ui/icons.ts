@@ -48,7 +48,18 @@ export const ICONS = {
 	download: 'M12 4v11M7 10.5l5 5 5-5M5 20h14',
 	pencil: 'M5 19l1-4L16.5 4.5l3 3L9 18ZM14.5 6.5l3 3',
 	contrast: 'M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17ZM12 3.5v17',
-	rotate: 'M19 12a7 7 0 1 1-2.1-5M19 4.5V8h-3.5'
+	rotate: 'M19 12a7 7 0 1 1-2.1-5M19 4.5V8h-3.5',
+	// the refs flight toolbar and world capsule (plan 088)
+	home: 'M4 11L12 4l8 7v9H4ZM10 20v-6h4v6',
+	orbit: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2ZM9 4v14M15 6v14',
+	hangar: 'M3 21V8l9-5 9 5v13ZM12 9c1.6 1.4 2 3.4 2 6v4h-4v-4c0-2.6.4-4.6 2-6Z',
+	camera: 'M3 8h4l2-3h6l2 3h4v11H3ZM12 9.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7Z',
+	dock: 'M4 4h16v16H4ZM9 4v16',
+	vessel:
+		'M12 2c3 3 4 7 4 11l2 4H6l2-4c0-4 1-8 4-11ZM10 17l-.5 4M14 17l.5 4M12 6.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3Z',
+	staging: 'M4 5h16v3.5H4ZM4 10.5h16V14H4ZM4 16h16v3.5H4Z',
+	navball: 'M12 4a8 8 0 1 0 0 16a8 8 0 0 0 0-16ZM4 12h16M8.5 12l3.5 3 3.5-3',
+	crew: 'M9 2a3 3 0 1 0 0 6a3 3 0 0 0 0-6ZM3 20c0-4 3-6 6-6s6 2 6 6M16 3a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5ZM17 13.5c2.5.5 4 2.5 4 5.5'
 } as const;
 
 export type IconName = keyof typeof ICONS;

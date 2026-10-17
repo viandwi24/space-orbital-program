@@ -226,7 +226,7 @@
 		min-width: 64px;
 		min-height: 28px;
 		padding: 0 var(--s-2);
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: var(--t-xs);
 		color: var(--text);
 		background: rgb(150 180 210 / 0.14);

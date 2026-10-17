@@ -417,7 +417,7 @@
 		box-sizing: border-box;
 		width: 100%;
 		padding: var(--s-2);
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: var(--t-sm);
 		color: var(--text);
 		background: var(--field);

@@ -13,7 +13,8 @@
 		onslower,
 		onfaster,
 		catchUp = { kind: 'none' },
-		oncatchup
+		oncatchup,
+		onpause
 	}: {
 		warp: number;
 		usable: boolean;
@@ -25,18 +26,29 @@
 		/** "Catch up to now" (plan 087, ADR 0143): shown while the world is behind the real date. */
 		catchUp?: CatchUp;
 		oncatchup?: () => void;
+		/** Pause (opens the pause menu, which is what pausing is; ADR 0144 point 3). */
+		onpause?: () => void;
 	} = $props();
 	const index = $derived(Math.max(0, WARP_STEPS.indexOf(warp as (typeof WARP_STEPS)[number])));
 	const reason =
 		'Time warp needs the vessel on rails: shut the engines down and coast or sit still.';
 </script>
 
+<!-- The refs time capsule (plan 088, ADR 0144 point 3): pause, one segment per warp step, MET and date. -->
 <section class="warp" aria-label="Time">
-	<span class="when">
-		{#if date}<span class="date num" data-testid="hud-date">{date}</span>{/if}
-		<span class="met num" data-testid="hud-met">{formatMet(met)}</span>
-	</span>
-	<span class="rule" aria-hidden="true"></span>
+	{#if onpause}
+		<button type="button" class="play" aria-label="Pause" title="Pause (Esc)" onclick={onpause}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"
+				><rect x="6" y="4" width="4" height="16" rx="1" /><rect
+					x="14"
+					y="4"
+					width="4"
+					height="16"
+					rx="1"
+				/></svg
+			>
+		</button>
+	{/if}
 	<IconButton
 		icon="slower"
 		label="Slower time warp"
@@ -45,7 +57,7 @@
 		onclick={onslower}
 	/>
 	<div
-		class="pips"
+		class="segs"
 		role="meter"
 		aria-label="Time warp step"
 		aria-valuemin="1"
@@ -54,7 +66,7 @@
 		aria-valuetext={formatWarp(warp)}
 	>
 		{#each WARP_STEPS as step, i (step)}
-			<span class="pip" class:on={i <= index} class:hot={i === index && i > 0}></span>
+			<span class="seg" class:wide={i >= 4} class:past={i < index} class:now={i === index}></span>
 		{/each}
 	</div>
 	<IconButton
@@ -65,6 +77,11 @@
 		onclick={onfaster}
 	/>
 	<span class="x num" data-testid="hud-warp">{warp}x</span>
+	<span class="rule" aria-hidden="true"></span>
+	<span class="when">
+		<span class="met num" data-testid="hud-met">{formatMet(met)}</span>
+		{#if date}<span class="date num" data-testid="hud-date">{date}</span>{/if}
+	</span>
 	{#if !usable}<span class="sr-only">{reason}</span>{/if}
 	{#if catchUp.kind !== 'none'}
 		<button
@@ -89,17 +106,73 @@
 	.warp {
 		display: flex;
 		align-items: center;
-		gap: var(--s-2);
-		padding: var(--s-1) var(--s-3);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
+		gap: 0.375rem;
+		height: var(--capsule);
+		padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+		box-sizing: border-box;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		background: var(--surface-glass);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+	}
+	.play {
+		display: grid;
+		place-items: center;
+		width: var(--round-btn);
+		height: var(--round-btn);
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: var(--selected-bg);
+		color: var(--selected-fg);
+	}
+	.play svg {
+		width: 1rem;
+		height: 1rem;
+		fill: currentColor;
+	}
+	.segs {
+		display: flex;
+		align-items: center;
+		gap: 0.1875rem;
+	}
+	.seg {
+		width: 0.375rem;
+		height: 1.125rem;
+		border-radius: 3px;
+		background: var(--surface-chip);
+	}
+	.seg.wide {
+		width: 0.625rem;
+	}
+	.seg.past {
+		background: var(--selected-bg);
+	}
+	.seg.now {
+		background: var(--accent);
+	}
+	.x {
+		min-width: 2.75rem;
+		font-size: var(--t-button);
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+	.rule {
+		width: 1px;
+		height: 1.125rem;
+		background: var(--surface-chip);
 	}
 	.when {
 		display: flex;
 		flex-direction: column;
 		line-height: 1.15;
+	}
+	.met {
+		font-size: var(--t-button);
+		font-weight: 500;
+		color: var(--text-primary);
+		min-width: 7.5ch;
 	}
 	.date {
 		font-size: var(--t-label);
@@ -120,37 +193,5 @@
 	.catch-up:disabled {
 		background: var(--surface-button);
 		color: var(--text-muted);
-	}
-	.met {
-		font-size: var(--t-sm);
-		color: var(--text-dim);
-		min-width: 7.5ch;
-	}
-	.rule {
-		width: 1px;
-		height: 20px;
-		background: var(--line-strong);
-	}
-	.pips {
-		display: flex;
-		gap: 3px;
-	}
-	.pip {
-		width: 9px;
-		height: 14px;
-		background: rgb(150 180 210 / 0.2);
-		border-radius: 1px;
-	}
-	.pip.on {
-		background: var(--c-accent-dim);
-	}
-	.pip.hot {
-		background: var(--c-accent);
-	}
-	.x {
-		min-width: 6ch;
-		text-align: right;
-		font-size: var(--t-md);
-		font-weight: 500;
 	}
 </style>
