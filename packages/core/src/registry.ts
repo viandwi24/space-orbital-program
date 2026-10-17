@@ -22,6 +22,7 @@ import {
 	type PresetDefinition,
 	type RuleDefinition
 } from './rules.ts';
+import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 
 export class RegistryError extends Error {
 	constructor(
@@ -178,6 +179,8 @@ export interface Registries {
 	/** World rules and presets (plan 078, ADR 0111). */
 	rules: Registry<RuleDefinition>;
 	presets: Registry<PresetDefinition>;
+	/** Scheduled income and costs (plan 095, ADR 0113). */
+	charges: Registry<ChargeDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -188,6 +191,7 @@ export function createRegistries(): Registries {
 		bodies: createRegistry<BodyDefinition>('body', { schema: bodyDefinitionSchema }),
 		systems: createRegistry<SystemDefinition>('system'),
 		rules: createRegistry<RuleDefinition>('rule', { schema: ruleDefinitionSchema }),
-		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema })
+		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema }),
+		charges: createRegistry<ChargeDefinition>('charge', { schema: chargeDefinitionSchema })
 	};
 }

@@ -172,6 +172,8 @@ export interface Snapshot {
 	bodies: BodySnapshot[];
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
 	rules?: Readonly<Record<string, boolean | number | string>>;
+	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
+	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
 }
 
 /**
@@ -292,7 +294,12 @@ export type Command =
 	 * Change a world rule (plan 078, ADR 0111). Refused for unknown rules, identity rules (reason
 	 * `identity rule`) and values of the wrong type; takes effect from the next step.
 	 */
-	| { type: 'set-rule'; rule: string; value: boolean | number | string };
+	| { type: 'set-rule'; rule: string; value: boolean | number | string }
+	/**
+	 * Recover a vessel that is landed or splashed and at rest (plan 095, ADR 0113): credits its
+	 * value times the distance factor and removes it.
+	 */
+	| { type: 'recover-vessel'; vessel: EntityId };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

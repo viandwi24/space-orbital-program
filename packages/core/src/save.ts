@@ -9,6 +9,7 @@
  */
 import * as z from 'zod';
 import { worldDataSchema, worldInfoSchema } from './schemas.ts';
+import { saveEconomySchema, type SaveEconomy } from './economy.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -88,6 +89,8 @@ export interface SimSave {
 	 * stream. Optional in format 5: without it the day is derived from `time` and streams start fresh.
 	 */
 	worldTick?: SaveWorldTick;
+	/** Ledger and balances (plan 095, ADR 0113); optional in format 5, absent = a fresh ledger. */
+	economy?: SaveEconomy;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -142,6 +145,7 @@ export const simSaveSchema = z.object({
 			streams: z.record(z.string().min(1), z.int().min(0).max(0xffffffff))
 		})
 		.optional(),
+	economy: saveEconomySchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

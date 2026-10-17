@@ -12,6 +12,7 @@ import type {
 	Rng,
 	SystemDefinition,
 	Vec3,
+	SaveEconomy,
 	World,
 	WorldInfo
 } from '@orbital/core';
@@ -65,6 +66,8 @@ export interface SimCore {
 	rulesView: Readonly<Record<string, boolean | number | string>> | null;
 	/** World tick state (plan 082, ADR 0171). */
 	readonly ticks: TickState;
+	/** Ledger and balances (plan 095, ADR 0113); saved as `SimSave.economy`. */
+	readonly economy: SaveEconomy;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

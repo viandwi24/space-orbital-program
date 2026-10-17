@@ -15,6 +15,7 @@ import type {
 	Plugin,
 	PluginMeta,
 	PluginRef,
+	ChargeDefinition,
 	PresetDefinition,
 	ResourceDefinition,
 	RuleDefinition,
@@ -155,6 +156,17 @@ export const defineRule = <const R extends RuleDefinition>(def: R): R => def;
 
 /** A named set of rule values a world is created with (Sandbox, Science, Career, ...). */
 export const definePreset = (def: PresetDefinition): PresetDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineCharge
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A recurring income or cost on the world tick (plan 095, ADR 0113): `amount` every `everyDays`,
+ * optionally only `when` a rule has a value and scaled by numeric rules. Register it with
+ * `ctx.charges.register(...)`; its id is the cause of its ledger entries.
+ */
+export const defineCharge = (def: ChargeDefinition): ChargeDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // definePatch

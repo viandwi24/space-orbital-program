@@ -192,6 +192,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		rng: core.rng.state(),
 		worldInfo: cloneData(core.info),
 		worldTick: saveTickState(core.ticks),
+		economy: cloneData(core.economy),
 		world: core.world.serialize(),
 		frames
 	};

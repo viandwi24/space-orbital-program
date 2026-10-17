@@ -33,6 +33,14 @@ export interface EventMap {
 	};
 	/** A game day began (plan 082, ADR 0171): emitted after the `world-tick` systems ran. */
 	'world:tick': { day: number; time: number };
+	/** A ledger entry was written (plan 095, ADR 0113). */
+	'economy:entry': {
+		time: number;
+		currency: 'funds' | 'science' | 'reputation';
+		amount: number;
+		cause: string;
+		ref?: string;
+	};
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**

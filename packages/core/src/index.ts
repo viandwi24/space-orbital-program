@@ -31,5 +31,6 @@ export * from './patch.ts';
 export * from './plugin.ts';
 export * from './save.ts';
 export * from './rules.ts';
+export * from './economy.ts';
 export * from './mods.ts';
 export * from './mod-assets.ts';

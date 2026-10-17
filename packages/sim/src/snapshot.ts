@@ -28,6 +28,7 @@ import { isTurned, partRotation } from './parts.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { terrainUnder } from './terrain.ts';
+import { economySnapshot } from './economy.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -145,7 +146,8 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			position: systemPosition(body, core.t),
 			rotation: qAboutY(body.omega * core.t)
 		})),
-		rules: rulesView(core)
+		rules: rulesView(core),
+		economy: economySnapshot(core)
 	};
 }
 

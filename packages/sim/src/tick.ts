@@ -15,6 +15,7 @@ import {
 } from '@orbital/core';
 import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { makeContext } from './hooks.ts';
+import { economyTick } from './economy.ts';
 
 export interface TickState {
 	/** The day last entered; the next tick is for `lastDay + 1`. */
@@ -103,6 +104,7 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 				tick: { day, time, rng: core.ticks.streams.get(s.id)! }
 			});
 		}
+		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
 		core.events.emit('world:tick', { day, time });
 	}
 }

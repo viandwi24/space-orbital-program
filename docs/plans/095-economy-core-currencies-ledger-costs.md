@@ -17,7 +17,7 @@ A world keeps a ledger of funds, science and reputation with a cause on every en
 
 ## Context
 
-- ADRs: 0098, 0096, 0110, 0111; ADR 0113 or later from the Agent 1 range (to write at claim: where the ledger lives in the save, below)
+- ADRs: 0098, 0096, 0110, 0111, 0113 (written at claim: ledger in the save, costs, charges, recovery)
 - Read: ADR 0098 points 1 and 3 and the guardrails, ADR 0096 point 5 (agency type selects funding), plan 082 (`world-tick` phase, PRNG streams), `refs/reverse-engineering-ksp2/07-economy-and-career.md` (KSP figures there are unverified and not to be copied).
 - Rules already registered by 078: `stock.economy`, `stock.funds-multiplier`, `stock.cost-multiplier`, `stock.agency-type`.
 

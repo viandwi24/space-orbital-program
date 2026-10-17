@@ -123,5 +123,6 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('set-rule'),
 		rule: z.string().min(1),
 		value: z.union([z.boolean(), z.number(), z.string()])
-	})
+	}),
+	z.object({ type: z.literal('recover-vessel'), vessel: entity })
 ]);
