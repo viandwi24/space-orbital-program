@@ -17,14 +17,14 @@ A world keeps a ledger of funds, science and reputation with a cause on every en
 
 ## Context
 
-- ADRs: 0098, 0096, 0110, 0111; ADR 0112 (to write at claim: where the ledger lives in the save, below)
+- ADRs: 0098, 0096, 0110, 0111; ADR 0113 or later from the Agent 1 range (to write at claim: where the ledger lives in the save, below)
 - Read: ADR 0098 points 1 and 3 and the guardrails, ADR 0096 point 5 (agency type selects funding), plan 082 (`world-tick` phase, PRNG streams), `refs/reverse-engineering-ksp2/07-economy-and-career.md` (KSP figures there are unverified and not to be copied).
 - Rules already registered by 078: `stock.economy`, `stock.funds-multiplier`, `stock.cost-multiplier`, `stock.agency-type`.
 
 ## Scope
 
 **In:**
-- **Ledger** (core types, sim state): `LedgerEntry { time, currency: 'funds' | 'science' | 'reputation', amount, cause, ref? }` (`cause` is a registered id such as `stock.launch`, `stock.recovery`, `stock.budget`, `stock.operations`, `stock.reputation-decay`; `ref` a vessel id or design name); balances are the sum of entries plus the starting values. Stored as `SimSave.economy = { balances, entries }`, an additive field with an empty default (ADR 0112; the `readSimSave` re-sign of ADR 0111 makes the default safe), so no format bump.
+- **Ledger** (core types, sim state): `LedgerEntry { time, currency: 'funds' | 'science' | 'reputation', amount, cause, ref? }` (`cause` is a registered id such as `stock.launch`, `stock.recovery`, `stock.budget`, `stock.operations`, `stock.reputation-decay`; `ref` a vessel id or design name); balances are the sum of entries plus the starting values. Stored as `SimSave.economy = { balances, entries }`, an additive field with an empty default (the claim ADR; the `readSimSave` re-sign of ADR 0111 makes the default safe), so no format bump.
 - **Scheduled charges** (`ScheduledCharge { id, currency, amount, everyDays, cause }`), contributed by stock and later plans; applied on the world tick at day multiples. `projectBalances(state, charges, days)` (pure, core) returns the balance per day for N days.
 - **Part costs:** optional `cost` (funds, dry part) on `PartDefinition` and `price` (funds per unit) on `ResourceDefinition`; a part without `cost` costs 0 and the Hangar says "no cost set". Stock numbers come from one documented rule in `mods/stock/src/costs.ts`: `cost = round(dry mass kg × class rate)` with class rates command and avionics 10, engines 6, landing gear and heat shields 4, structure and aero 2, tanks 1.5; prices liquid fuel 0.8, oxidizer 0.18, ablator 0.5, electric charge 0. `vesselCost(design, registries)` = Σ part cost + Σ contents × price. Expected for `referenceTwoStage`: about 26 000 funds (the exact number is pinned by the test).
 - **Launch:** `load-vessel` with the economy on debits `vesselCost × cost multiplier` (`stock.launch`, `ref` the design name) and is refused with "Not enough funds: needs N, has M" when the balance is short.
@@ -51,7 +51,7 @@ All maths in sim/core as pure functions; the Hangar and the recovery dialog only
 
 ## Steps
 
-1. ADR 0112; ledger types, `projectBalances`, `SimSave.economy` with a resume test.
+1. Claim ADR (0113 or the next free number in 0109–0139); ledger types, `projectBalances`, `SimSave.economy` with a resume test.
 2. Part costs and resource prices: SDK fields, stock rule in `costs.ts`, `vesselCost` pinned for `referenceTwoStage`.
 3. Launch debit and refusal; `recover-vessel` with `recoveryQuote`; HUD dialog.
 4. Tick charges (budget, operations, reputation decay); economy-off path.
@@ -78,4 +78,4 @@ All maths in sim/core as pure functions; the Hangar and the recovery dialog only
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
-- 2026-10-17 — Refined by Agent 1 while waiting for `cp/f1-082-tick` (body only, status stays `draft`): ledger and schedule shapes, the stock cost rule and prices, the recovery formula without a separate speed factor (hard landings already break parts), a flat government budget and an operations placeholder so a 10-year band is possible before contracts exist, `stock.starting-funds`, the career-bot method, measurable criteria. ADR 0112 is to be written at claim (ledger in `SimSave.economy`, additive).
+- 2026-10-17 — Refined by Agent 1 while waiting for `cp/f1-082-tick` (body only, status stays `draft`): ledger and schedule shapes, the stock cost rule and prices, the recovery formula without a separate speed factor (hard landings already break parts), a flat government budget and an operations placeholder so a 10-year band is possible before contracts exist, `stock.starting-funds`, the career-bot method, measurable criteria. The claim ADR (ledger in `SimSave.economy`, additive) takes the next free number of the Agent 1 range; 0112 is the state-file ADR.
