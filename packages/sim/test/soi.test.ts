@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 import {
-	createMoonTerrainField,
+	createBodyTerrainField,
 	GRAVITATIONAL_CONSTANT,
 	MOON_SHAPE,
 	type EntityId,
@@ -338,7 +338,9 @@ describe('the moon as a place', () => {
 			plugins: [Stock],
 			backendFactory: rapier(16),
 			seed: 1,
-			terrain: (body) => (body.parent ? createMoonTerrainField({ radius: body.radius }) : undefined)
+			// only the moon's ground, as this test always did (the home planet stays a smooth sphere)
+			terrain: (body) =>
+				body.terrain?.kind === 'craters' ? createBodyTerrainField(body) : undefined
 		});
 		const s = systemOf(sim);
 		const placed = sim.dispatch({

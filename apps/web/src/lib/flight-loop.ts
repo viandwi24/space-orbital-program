@@ -610,6 +610,8 @@ export function startFlight(options: FlightOptions): Flight {
 						radius: b.radius,
 						mass: b.mass,
 						atmosphere: b.atmosphere,
+						// the kind of ground each body is drawn with (plan 052, ADR 0067)
+						...(b.terrain ? { terrain: b.terrain } : {}),
 						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 					})),
 				partShapes: partShapesOf(c),

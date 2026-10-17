@@ -24,6 +24,7 @@ export * from './noise.ts';
 export * from './planet-map.ts';
 export * from './terrain.ts';
 export * from './moon-terrain.ts';
+export * from './body-terrain.ts';
 export * from './semver.ts';
 export * from './plugin.ts';
 export * from './save.ts';

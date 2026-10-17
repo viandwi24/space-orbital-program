@@ -179,3 +179,10 @@ describe('stock boots through the loader', () => {
 		expect(result.report.disabled.map((d) => d.id)).toEqual(['stock']);
 	});
 });
+
+describe('stock bodies name their terrain (plan 052, ADR 0067)', () => {
+	test('the home planet has hills and the moon craters', () => {
+		expect(registries.bodies.get('stock.home' as never)?.terrain).toEqual({ kind: 'hills' });
+		expect(registries.bodies.get('stock.cinder' as never)?.terrain).toEqual({ kind: 'craters' });
+	});
+});

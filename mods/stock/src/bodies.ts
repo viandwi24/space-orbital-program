@@ -8,7 +8,8 @@ export const HomeBody = defineBody({
 	mass: HOME_MU / GRAVITATIONAL_CONSTANT,
 	radius: km(600),
 	rotationPeriod: 21_600,
-	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) }
+	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
+	terrain: { kind: 'hills' }
 });
 
 /** Semi-major axis of the moon's orbit around the home planet, m. */
@@ -26,5 +27,6 @@ export const MoonBody = defineBody({
 	radius: km(190),
 	rotationPeriod: 2 * Math.PI * Math.sqrt(MOON_ORBIT_RADIUS ** 3 / HOME_MU),
 	parent: 'stock.home',
+	terrain: { kind: 'craters' },
 	orbit: { a: MOON_ORBIT_RADIUS, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 }
 });

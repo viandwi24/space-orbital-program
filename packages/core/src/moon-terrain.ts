@@ -65,9 +65,19 @@ function craterProfile(x: number, radius: number): number {
 const cellHash = (ix: number, iy: number, iz: number, salt: number, k: number): number =>
 	pcgX(ix + salt * 131 + k * 7919, iy + salt * 71 + k * 104729, iz + salt * 17 + k * 1299709);
 
-/** Height in metres above the reference sphere of the unit body-fixed direction `n` on a moon of `radius`. */
-export function moonHeight(n: Vec3, radius: number): number {
+/** Largest `seed` of a craters body (ADR 0067): keeps every salted lattice index inside 32 bits. */
+export const CRATERS_MAX_SEED = 999;
+/** Added to every lattice salt per unit of seed, so each seed is its own crater field (the shader adds the same). */
+export const CRATERS_SEED_SALT = 977;
+
+/**
+ * Height in metres above the reference sphere of the unit body-fixed direction `n` on a cratered body
+ * of `radius`. `seed` (0 = the stock moon) moves every lattice, so a body of another seed has its own
+ * craters and hills on the same shape (ADR 0067).
+ */
+export function moonHeight(n: Vec3, radius: number, seed = 0): number {
 	const s = MOON_SHAPE;
+	const shift = seed * CRATERS_SEED_SALT;
 	const km = radius / 1000;
 	const q = { x: n.x * km, y: n.y * km, z: n.z * km };
 	const arc = radius * Math.acos(clamp(n.x, -1, 1)); // the landing site is latitude 0, longitude 0: +X
@@ -87,13 +97,13 @@ export function moonHeight(n: Vec3, radius: number): number {
 					const ix = x0 + dx;
 					const iy = y0 + dy;
 					const iz = z0 + dz;
-					const cx = (ix + cellHash(ix, iy, iz, scale.salt, 1)) * scale.cellKm;
-					const cy = (iy + cellHash(ix, iy, iz, scale.salt, 2)) * scale.cellKm;
-					const cz = (iz + cellHash(ix, iy, iz, scale.salt, 3)) * scale.cellKm;
+					const cx = (ix + cellHash(ix, iy, iz, scale.salt + shift, 1)) * scale.cellKm;
+					const cy = (iy + cellHash(ix, iy, iz, scale.salt + shift, 2)) * scale.cellKm;
+					const cz = (iz + cellHash(ix, iy, iz, scale.salt + shift, 3)) * scale.cellKm;
 					const r =
 						scale.cellKm *
 						1000 *
-						(scale.radius[0] + scale.radius[1] * cellHash(ix, iy, iz, scale.salt, 4));
+						(scale.radius[0] + scale.radius[1] * cellHash(ix, iy, iz, scale.salt + shift, 4));
 					const d = Math.hypot(q.x - cx, q.y - cy, q.z - cz) * 1000;
 					const x = d / r;
 					if (x < s.reach) h += craterProfile(x, r);
@@ -101,20 +111,23 @@ export function moonHeight(n: Vec3, radius: number): number {
 			}
 		}
 	}
-	const hills = s.hillAmplitude * (terrainNoise(q, 1 / s.hillWavelengthKm, s.hillSalt) - 0.5) * 2;
+	const hills =
+		s.hillAmplitude * (terrainNoise(q, 1 / s.hillWavelengthKm, s.hillSalt + shift) - 0.5) * 2;
 	return s.base + relief * (h + hills);
 }
 
 export interface MoonTerrainOptions {
 	/** Body radius, m. */
 	radius: number;
+	/** Crater field seed, 0 to `CRATERS_MAX_SEED` (default 0: the stock moon). */
+	seed?: number;
 }
 
 /** The terrain field of the stock moon; the landing plain is at latitude 0, longitude 0. */
 export function createMoonTerrainField(options: MoonTerrainOptions): TerrainField {
 	return {
 		maxHeight: MOON_MAX_HEIGHT,
-		heightAt: (direction) => moonHeight(direction, options.radius)
+		heightAt: (direction) => moonHeight(direction, options.radius, options.seed ?? 0)
 	};
 }
 

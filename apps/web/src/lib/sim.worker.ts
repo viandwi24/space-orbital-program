@@ -6,8 +6,7 @@ import {
 	importModBundle,
 	installModSdk,
 	resolveMods,
-	createMoonTerrainField,
-	createTerrainField,
+	createBodyTerrainField,
 	type ModBundle
 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
@@ -42,12 +41,9 @@ const host = createSimHost({
 		current = await createSim({
 			plugins: [Stock, ...mods.plugins],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
-			// The same procedural terrain the renderer draws (ADR 0043): the home planet's with the launch
-			// site at latitude 0, longitude 0, and the craters of the moon (ADR 0054) for a body with a parent.
-			terrain: (body) =>
-				body.parent
-					? createMoonTerrainField({ radius: body.radius })
-					: createTerrainField({ radius: body.radius }),
+			// The same procedural terrain the renderer draws (ADR 0043, 0054), by the kind each body names
+			// (`BodyDefinition.terrain`, ADR 0067): hills, craters with the body's seed, or a smooth sphere.
+			terrain: createBodyTerrainField,
 			// `createSim` validates the save (checksum, version, content) and refuses with a readable reason.
 			...(resume === undefined ? {} : { resume })
 		});

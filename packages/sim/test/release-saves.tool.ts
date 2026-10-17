@@ -20,7 +20,7 @@ import { systemOf } from './helpers/moon.ts';
 import { moonShot, rapier } from './helpers/vessels.ts';
 import { createSim } from '../src/index.ts';
 import Stock from '@orbital/mod-stock';
-import { createMoonTerrainField, createTerrainField } from '@orbital/core';
+import { createBodyTerrainField } from '@orbital/core';
 
 const out = process.argv[2]!;
 const SHIFT = 500_000;
@@ -28,10 +28,7 @@ const sim = await createSim({
 	plugins: [Stock],
 	backendFactory: rapier(16),
 	seed: 1,
-	terrain: (body) =>
-		body.parent
-			? createMoonTerrainField({ radius: body.radius })
-			: createTerrainField({ radius: body.radius })
+	terrain: createBodyTerrainField
 });
 const s = systemOf(sim);
 const design = { ...moonShot(), name: 'Moon shot' };
