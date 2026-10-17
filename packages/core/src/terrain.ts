@@ -5,8 +5,9 @@
  * is its GLSL twin and takes every constant from the tables here.
  *
  * `h(n)` is metres above the sphere for the body-fixed unit direction `n`; `0 <= h <= TERRAIN_MAX_HEIGHT`.
- * It is exactly zero over the ocean, on a margin around coasts and within `SITE_FLAT_RADIUS` of the
- * launch site (the pad stays flat), and its slope never exceeds `TERRAIN_MAX_SLOPE`.
+ * It is exactly zero over the ocean, on a margin around coasts, on the floor of lakes (plan 038) and
+ * within `SITE_FLAT_RADIUS` of the launch site (the pad stays flat), and its slope never exceeds
+ * `TERRAIN_MAX_SLOPE`.
  */
 import type { Vec3 } from './math.ts';
 import { SEA_LEVEL, cachedPlanetMap, sampleMap, type PlanetMap } from './planet-map.ts';
@@ -70,6 +71,33 @@ export const MAP_WARP = {
 	weights: [1, 0.45] as const,
 	saltsLat: [61, 63] as const,
 	saltsLon: [62, 64] as const
+} as const;
+
+/**
+ * Lakes (plan 038, ADR 0072). A lake lies where the basin level `p * siteGate` (one octave of value
+ * noise, so its gradient is bounded) reaches `to`; there the height is exactly zero, the ocean's own
+ * height, so a vessel stands on a lake as on the sea. Around a lake the relief is capped by a cone,
+ * `h' = max(0, min(h, slope * (to - level) / gradientBound))`: the cap is a Lipschitz function of the
+ * position with constant `slope`, so the minimum with the old height keeps the slope bound
+ * `TERRAIN_MAX_SLOPE` by construction (given `gradientBound`, which the tests measure), and the
+ * ground falls to the water over kilometres instead of a cliff. The site gate keeps lakes away from
+ * the launch site, so the scenery around the pad is the terrain of plan 031 unchanged.
+ */
+export const LAKE_SHAPE = {
+	wavelengthKm: 30,
+	salt: 81,
+	/** The level at which the ground is flat water level. */
+	to: 0.9,
+	/** Lipschitz constant of the cap around a lake (a bank this steep or less), rise over run. */
+	slope: 0.9,
+	/** Upper bound of the horizontal gradient of the level, per metre (measured by the tests, with margin). */
+	gradientBound: 7e-5,
+	/** Distance from the launch site (m of arc) where lakes start to be allowed and where they are free. */
+	siteFrom: 30_000,
+	siteTo: 80_000,
+	/** What the planet pass draws: depth (m) at the middle and the distance (m) over which it deepens. */
+	depthMetres: 6,
+	depthRampMetres: 160
 } as const;
 
 // --- noise: the integer-hash lattice noise of the shaders (pcg3d), in float64 -----------------
@@ -257,6 +285,35 @@ export function warpedLatLon(n: Vec3, radius: number): [number, number] {
 export const siteWeight = (arcMetres: number): number =>
 	smoothstep(SITE_FLAT_RADIUS, SITE_FLAT_RADIUS + SITE_BLEND_WIDTH, arcMetres);
 
+/** Raw basin potential in [0, 1] at the position `q` (km, body-fixed) on the sphere. */
+export const lakePotential = (q: Vec3): number =>
+	terrainNoise(q, 1 / LAKE_SHAPE.wavelengthKm, LAKE_SHAPE.salt);
+
+/** The launch-site gate of the lake level: 0 within `siteFrom` m of arc, 1 beyond `siteTo`. */
+export const lakeGate = (arc: number): number =>
+	smoothstep(LAKE_SHAPE.siteFrom, LAKE_SHAPE.siteTo, arc);
+
+/** Gated potential: the ground is under a lake where this reaches `LAKE_SHAPE.to`. */
+export const lakeLevel = (potential: number, gate: number): number => potential * gate;
+
+/** Height cap (m) that a lake level allows: 0 at the lake, rising by `slope` per metre away from it. */
+export const lakeCap = (level: number): number =>
+	Math.max(0, (LAKE_SHAPE.slope * (LAKE_SHAPE.to - level)) / LAKE_SHAPE.gradientBound);
+
+/** Metres of water above the bed `inside` metres in from the shore (negative outside): linear to `depthMetres`. */
+export const lakeDepthAt = (inside: number): number =>
+	LAKE_SHAPE.depthMetres * clamp(inside / LAKE_SHAPE.depthRampMetres, 0, 1);
+
+/** Gated lake level at the unit body-fixed direction `n` (the twin of what the planet pass computes). */
+export function lakeLevelAt(n: Vec3, ctx: TerrainContext): number {
+	const arc = ctx.radius * Math.acos(clamp(dot(n, ctx.siteDirection), -1, 1));
+	return lakeLevel(lakePotential(scale(n, ctx.radius / 1000)), lakeGate(arc));
+}
+
+/** True where the ground at `n` is the flat floor of a lake (its surface is the height function's zero). */
+export const isLake = (n: Vec3, ctx: TerrainContext): boolean =>
+	lakeLevelAt(n, ctx) >= LAKE_SHAPE.to;
+
 /** Height in metres above the reference sphere of the unit body-fixed direction `n`. */
 export function terrainHeight(n: Vec3, ctx: TerrainContext): number {
 	const s = TERRAIN_SHAPE;
@@ -286,7 +343,8 @@ export function terrainHeight(n: Vec3, ctx: TerrainContext): number {
 	const upland = smoothstep(s.uplandLow, s.uplandHigh, e);
 	const mountains =
 		s.mountainAmplitude * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
-	return land * site * (hills + mountains);
+	const relief = land * site * (hills + mountains);
+	return Math.min(relief, lakeCap(lakeLevel(lakePotential(q), lakeGate(arc))));
 }
 
 // --- the field the sim and the host pass around -----------------------------------------------
