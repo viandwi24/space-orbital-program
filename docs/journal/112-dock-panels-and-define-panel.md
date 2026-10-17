@@ -8,7 +8,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core/src/panels.ts` | `PanelDefinition`, `PanelInput`, `PanelNode` (section, readout, meter, switch, button, list, sparkline), `PanelCanvas`, schemas, `sortPanels`; `registries.panels`, `ctx.panels`, report kind `panel`; API_VERSION 0.1.45 |
+| `packages/core/src/panels.ts` | `PanelDefinition`, `PanelInput`, `PanelNode` (section, readout, meter, switch, button, list, sparkline), `PanelCanvas`, schemas, `sortPanels`; `registries.panels`, `ctx.panels`, report kind `panel`; API_VERSION 0.1.52 (071 took 0.1.51) |
 | `packages/sdk` | `definePanel` and the types; `test/panel.test-d.ts` compiles a full panel under `lib: ["ESNext"]` |
 | web `lib/dock/` | `panel-input.ts` (from `computeTelemetry`), `evaluate.ts` (selectors to a plain tree, sparkline memory, errors kept per panel, `commandOf`), `canvas.ts` (real 2D context behind `PanelCanvas`), `dock-model.ts` (rail, add, remove, toggle), `Dock.svelte`, `PanelLibrary.svelte`, `ModPanel.svelte`, `PanelView.svelte`; `ui/Sparkline.svelte` |
 | web flight | the dock in the left stack (at the right below 1280 px); Orbit, Resources, Target and Script are host panels; the AppBar's Dock button works; `Flight.panelInput()` and `Flight.command()`; the touch throttle keeps clear of an open panel |

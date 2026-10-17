@@ -327,7 +327,7 @@ ctx.achievements.register(defineAchievement({
 - **Air:** an `atmosphere` (`scaleHeight`, `surfacePressure`, `height`) now draws a sky from the surface, haze over the ground and a lit limb from orbit, and the light on the planet comes through it. Optical depth follows the surface pressure (101 325 Pa is the home planet's look).
 - **Sea and shadows** come with the hills kind: water reflects the sky and the sun, and the terrain casts shadows near the camera.
 
-## Dock panels (API 0.1.45, plan 112, ADR 0149)
+## Dock panels (API 0.1.52, plan 112, ADR 0149)
 
 A mod can add a panel to the flight dock. The view is data: each value is a pure function of the panel input, and a button or switch returns a command that the sim checks like any other.
 
