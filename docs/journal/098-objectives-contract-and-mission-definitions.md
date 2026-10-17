@@ -33,4 +33,13 @@
 
 ## Verification output
 
-See the `ready/098` tag message.
+```text
+bun test packages/core/test/objectives.test.ts      6 pass
+bun test mods/stock/test/objectives.test.ts         5 pass
+bun test packages/sim/test/objectives.test.ts       5 pass (periapsis over 80 km at 230.48 s; objective done at 230.48 s)
+bun run docs:check                                  docs-check: OK
+bun run test                                        1444 pass, 0 fail (193 s)
+bun run typecheck                                   exit 0 (61 s)
+bun run build                                       exit 0
+bun run --filter @orbital/web test                  881 passed, 1 skipped; 3 env-only import suites here (no Node)
+```
