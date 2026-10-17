@@ -66,3 +66,4 @@ Golden tests first: record the outputs of the existing prediction tests and asse
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0095).
 - 2026-10-17 — Refined and claimed by Agent 3. The web functions keep their `bodies` parameters and reach the provider through a cached `trajectoryFor(bodies)`, so callers do not change. The sim holds one provider on `SimCore`. Goldens are recorded before any move. The interface goes in ADR 0173.
+- 2026-10-17 — Deviation: `railsMotion` and `stateInParent` still call `kepler.propagate`, since a rails state is one conic and they take no `SimCore` (ADR 0173 point 4); SOI crossings on rails go through the provider. Indicative timing: map path 2.55 → 2.50 ms, node prediction 1.35 → 1.35 ms.
