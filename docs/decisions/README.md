@@ -102,6 +102,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0080 | [The persistent exhaust trail is a ribbon of sampled points](0080-exhaust-trail-as-a-ribbon.md) | accepted | 2026-10-17 |
 | 0081 | [Engines with several nozzles: `plume.nozzles`, a cluster generator, a stock cluster engine](0081-multi-nozzle-engines-in-the-part-descriptor.md) | accepted | 2026-10-17 |
 | 0084 | [Target markers and rendezvous aids: page-side, genre conventions, no new command](0084-target-markers-and-rendezvous-aids.md) | accepted | 2026-10-17 |
+| 0085 | [The syntax check before Run compiles in a second sandbox of the same kind](0085-syntax-check-in-a-second-sandbox.md) | accepted | 2026-10-17 |
 | 0086 | [The baked cloud map serves the ground's cloud shadows as well as the light shafts](0086-baked-cloud-map-shared-by-shafts-and-ground-shadows.md) | accepted | 2026-10-17 |
 | 0087 | [The half-resolution rung redraws its edge pixels at full resolution](0087-edge-pass-at-the-half-resolution-rung.md) | accepted | 2026-10-17 |
 | 0088 | [Smoke puffs read their noise from a texture](0088-smoke-noise-in-a-texture.md) | accepted | 2026-10-17 |

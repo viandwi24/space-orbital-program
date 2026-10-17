@@ -37,10 +37,17 @@ The editor knows the script API and the keys you expect from a code editor (plan
 | Enter | new line with the same indentation, one level deeper after `{`, `(` or `[`; between `{` and `}` the closer goes on its own line |
 | `}`, `)`, `]` | on a line that holds only indentation, takes one level off first |
 | Ctrl+Space, or typing | suggestions: `ship.` lists the members of `ship` (a name from the second letter on for the globals); Up and Down choose, Enter or Tab accepts, Escape closes. Each entry shows its signature and a line of what it does |
-| Ctrl/Cmd+F | find in the script (Enter next, Shift+Enter previous, Escape closes) |
+| Ctrl/Cmd+F | find in the script (Enter next, Shift+Enter previous, Escape closes); the **Aa** button matches case, **ab** whole words only; under it a second field and the **Replace** and **Replace all** buttons (Enter in that field replaces the selected match; one undo step undoes Replace all) |
+| Ctrl/Cmd+G | go to a line: type its number, Enter selects that line |
+| Ctrl/Cmd+/ | comment or uncomment the selected lines (the `//` goes at the shallowest indentation) |
+| Alt+Up, Alt+Down | move the selected lines; Shift+Alt+Up or Down copies them |
 | Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, Ctrl+Y | undo and redo; typing runs are one step |
 
-The bracket next to the caret and its partner are highlighted. Under the editor the game lists obvious mistakes without stopping you from running: brackets that do not pair, a string or comment that never ends, `ship.altitud` (with "did you mean `ship.altitude`"), assigning to a read-only member such as `ship.altitude = 5`, and `wait(1)` without `await`. The engine's own error, with its line, still decides when you run. The editor does not close brackets or quotes for you.
+Suggestions go deeper than `ship.` (plan 058): `ship.target.`, `ship.orbit.`, `ship.nodes[0].`, `ship.engines[0].`, `ship.wheels[0].`, `ship.parts[0].`, the vectors (`ship.position.`, `ship.target.velocity.`), `bodies[id].` with its `orbit.` and `atmosphere.`, and the keys of the object you give `addNode(` and `setNode(id,` (the ones you have not written yet; accepting one writes `name: `). They come from the same table as the rest and a test runs a real script to keep them true.
+
+The bracket next to the caret and its partner are highlighted. Under the editor the game lists mistakes without stopping you from running. A moment after you stop typing the script is **compiled by the script engine in the sandbox, without running it**, and a syntax error appears with the engine's words and its line (`Syntax error: unexpected token in expression: ';'`, line button and a marked line number) before you press Run. The editor's own checks list the rest: `ship.altitud` (with "did you mean `ship.altitude`"), assigning to a read-only member such as `ship.altitude = 5`, and `wait(1)` without `await` (and, when the engine cannot be asked, brackets that do not pair or a string or comment that never ends). The engine's own error, with its line, still decides when you run (ADR 0085).
+
+"More editor keys and options" under the editor lists these keys and has one option, **Close brackets and quotes for me**, off by default and remembered in this browser: typing `(`, `[`, `{`, `"`, `'` or a backtick inserts the pair, typing the closer steps over it, Backspace between the two removes both, and nothing is closed inside a string or comment or before a letter. On a touch screen the editor shows buttons for Tab, Shift+Tab, Undo, Redo and Suggest. On a Mac, Ctrl+Space switches input sources: the Suggest button, or typing `ship.` or two letters, opens the list instead. Keys pressed while an input method (IME) is composing text are left alone.
 
 ## Globals
 
