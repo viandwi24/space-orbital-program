@@ -257,7 +257,8 @@ describe('registration and report', () => {
 			'site-template': [],
 			antenna: [],
 			'ground-station': [],
-			category: []
+			category: [],
+			achievement: []
 		});
 	});
 

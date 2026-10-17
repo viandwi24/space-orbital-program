@@ -3,6 +3,7 @@
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
+import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
 import * as z from 'zod';
 import type {
 	BodyDefinition,
@@ -233,6 +234,8 @@ export interface Registries {
 	groundStations: Registry<GroundStationDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
 	categories: Registry<CategoryDefinition>;
+	/** Achievements (plan 102, ADR 0147). */
+	achievements: Registry<AchievementDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -276,6 +279,9 @@ export function createRegistries(): Registries {
 		}),
 		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
+		achievements: createRegistry<AchievementDefinition>('achievement', {
+			schema: achievementDefinitionSchema
+		}),
 		crewTraits: createRegistry<CrewTraitDefinition>('crew-trait', {
 			schema: crewTraitDefinitionSchema
 		}),
