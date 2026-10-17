@@ -141,6 +141,7 @@
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | draft | — | ADR 0094: reliability rule, off by default |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | draft | — | ADR 0098/0094: replays, challenges, ghosts as files |
 | 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | draft | — | Scope pushed out of 095: funds capsule, Recover dialog from `VesselSnapshot.recovery` |
+| 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
