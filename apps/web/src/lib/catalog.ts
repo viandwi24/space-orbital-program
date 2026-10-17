@@ -1,6 +1,7 @@
 import {
 	loadPlugins,
 	type CategoryDefinition,
+	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup
 } from '@orbital/core';
@@ -37,6 +38,9 @@ export function loadContent(): {
 	categories: CategoryDefinition[];
 	/** Dock panels of stock and the enabled mods (plan 112, ADR 0149). */
 	panels: PanelDefinition[];
+	/** Missions and objective labels for the tracker (plan 100, ADR 0151). */
+	missions: MissionDefinition[];
+	objectiveLabels: Record<string, string>;
 } {
 	const { registries, report } = loadPlugins([Stock, ...activePlugins()]);
 	return {
@@ -48,6 +52,8 @@ export function loadContent(): {
 		},
 		categories: registries.categories.list(),
 		panels: registries.panels.list(),
+		missions: registries.missions.list(),
+		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

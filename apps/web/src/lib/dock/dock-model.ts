@@ -8,7 +8,13 @@ export interface DockChoice {
 	open: string | null;
 }
 
-export const HOST_PANELS = ['host.orbit', 'host.resources', 'host.target', 'host.script'] as const;
+export const HOST_PANELS = [
+	'host.orbit',
+	'host.resources',
+	'host.target',
+	'host.missions',
+	'host.script'
+] as const;
 
 export const defaultDock = (): DockChoice => ({ panels: [...HOST_PANELS], open: 'host.orbit' });
 

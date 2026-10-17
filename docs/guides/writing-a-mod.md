@@ -356,6 +356,40 @@ ctx.panels.register(definePanel({
 - A panel that throws shows "This panel stopped" with the message; the game and the other panels go on.
 - The player adds and removes panels with the Panel library (the plus at the foot of the dock); `examples/mod-sample` has a complete panel.
 
+## Missions and mission packs (API 0.1.53, plan 100, ADR 0151)
+
+A mission is a tree of objectives (the stock primitives: `stock.reach-altitude`, `stock.reach-orbit`, `stock.flyby`, `stock.enter-soi`, `stock.land`, `stock.return-home`) with words around it:
+
+```ts
+ctx.missions.register(defineMission({
+	id: 'acme.relay-to-cinder',
+	title: 'Relay to Cinder',
+	briefing: "Take the relay into Cinder's sphere of influence.",
+	debriefing: 'The relay reached Cinder.',
+	objectives: { objective: 'stock.flyby', params: { body: 'stock.cinder' } },
+	prerequisites: ['stock.orbit'],
+	next: ['acme.relay-landing']
+}));
+```
+
+- `prerequisites` must be done before the mission can start; `next` missions start by themselves when this one is done (a story line). Any other mission starts from the Missions panel of the flight dock.
+- The stock main line (`line: 'stock.main'`) runs First launch, Into space, Orbit, To the Moon, Landing on the Moon, Home from the Moon.
+
+A **mission pack** is a scenario: Create World offers it, and the world's first flight starts from it.
+
+```ts
+ctx.scenarios.register(defineScenario({
+	id: 'acme.relay-start',
+	title: 'Relay in orbit',
+	description: 'Start with a probe in a 100 km orbit.',
+	preset: 'stock.career',
+	vessels: [{ name: 'Relay 1', design: relayDesign, orbit: { body: 'stock.home', altitude: 100_000 } }],
+	missions: ['acme.relay-to-cinder']
+}));
+```
+
+- A vessel either has an `orbit` (circular, equatorial, at that altitude) or `site: true` (on the site's pad). The first one is the vessel the player flies. `examples/mod-sample` has a complete pack.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

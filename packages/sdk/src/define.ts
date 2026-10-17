@@ -7,6 +7,7 @@ import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
+	ScenarioDefinition,
 	PanelDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
@@ -336,3 +337,14 @@ export const defineAchievement = (def: AchievementDefinition): AchievementDefini
  * An optional canvas is drawn through `PanelCanvas`. Register with `ctx.panels`.
  */
 export const definePanel = (def: PanelDefinition): PanelDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineScenario
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A mission pack (plan 100, ADR 0151): a preset with rule values, the vessels the first flight
+ * starts with (in a circular orbit, or on the site's pad) and the missions that start with the
+ * world. Create World offers it. Register with `ctx.scenarios`.
+ */
+export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => def;

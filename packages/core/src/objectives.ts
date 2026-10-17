@@ -84,6 +84,14 @@ export interface MissionDefinition {
 	objectives: ObjectiveNode;
 	reward?: RewardEntry[];
 	prerequisites?: string[];
+	/** What the player is asked to do, shown before the start (plan 100, ADR 0151). */
+	briefing?: string;
+	/** Shown when the mission is done. */
+	debriefing?: string;
+	/** Missions that start when this one is done and their prerequisites are met. */
+	next?: string[];
+	/** The story line it belongs to (`stock.main`). */
+	line?: string;
 }
 
 const finite = z.number().refine(Number.isFinite, 'must be finite');
@@ -114,7 +122,11 @@ export const missionDefinitionSchema = z.object({
 	title: z.string().min(1),
 	objectives: objectiveNodeSchema,
 	reward: rewardSchema.optional(),
-	prerequisites: z.array(definitionIdSchema).optional()
+	prerequisites: z.array(definitionIdSchema).optional(),
+	briefing: z.string().min(1).optional(),
+	debriefing: z.string().min(1).optional(),
+	next: z.array(definitionIdSchema).optional(),
+	line: definitionIdSchema.optional()
 });
 
 export const objectiveDefinitionSchema = z.object({

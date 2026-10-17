@@ -1,12 +1,12 @@
 ---
 id: 100
 title: "Authored missions, the story line and mission packs"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [098, 087]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 100 — Authored missions, the story line and mission packs
@@ -49,19 +49,23 @@ The first-flight guide of plan 023 becomes the first mission.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: completing mission 1 in the headless ascent unlocks mission 2.
-- [ ] vitest: the tracker shows each objective's progress from the snapshot.
-- [ ] A sample mission pack in `examples/` creates a world with its starting vessel in orbit (vitest).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: completing mission 1 in the headless ascent starts mission 2 (its `next`); a mission whose prerequisites are not done is refused.
+- [x] vitest: the tracker shows each objective's progress from the snapshot.
+- [x] A sample mission pack in `examples/` creates a world with its starting vessel in orbit (vitest).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/100-authored-missions-and-mission-packs.md` written.
-- [ ] `guides/writing-a-mod.md` (missions).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/100-authored-missions-and-mission-packs.md` written.
+- [x] `guides/writing-a-mod.md` (missions).
+- [x] ADR 0151.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): a mission pack creates a world and this plan edits `routes/worlds` of plan 087.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 108 in the lane: 108 waits for 094 (handed over, not merged).
+- 2026-10-18 — Refined with ADR 0151: briefing, debriefing, next, line; `next` missions start on completion; stock main line of six; `host.missions` dock panel; scenarios (`defineScenario`) as mission packs from Create World.
+- 2026-10-18 — Done on the branch: mission fields and scenarios (API 0.1.53), next missions in the sim, the stock main line, the Missions dock panel, Create World from a scenario and its first flight, the sample pack. Journal: [100](../journal/100-authored-missions-and-mission-packs.md).
+- 2026-10-18 — Merged by Agent 1: rebased on main after 094 (conflicts in the ADR index and the flight page, kept both: the Launch screen's placement and the scenario start; a scenario's own placement wins); the flight page and flight loop are outside Touches, needed for the scenario start; bun test 1577 pass, web vitest 980 pass, typecheck, build, docs:check, smoke e2e 7 passed, launch and worlds e2e pass (Chromium).

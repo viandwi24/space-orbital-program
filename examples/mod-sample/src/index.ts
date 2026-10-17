@@ -1,7 +1,10 @@
 import {
 	defineModule,
 	definePart,
+	defineMission,
 	definePanel,
+	defineScenario,
+	partId,
 	definePatch,
 	definePlugin,
 	kg,
@@ -215,6 +218,50 @@ export const PanelBeacon = definePanel({
 	}
 });
 
+/**
+ * A mission pack (plan 100, ADR 0151): a Career world whose first flight starts with a probe in a
+ * 100 km orbit of Home and the flyby of Cinder already running.
+ */
+export const ScenarioRelay = defineScenario({
+	id: 'sample.relay-start',
+	title: 'Relay in orbit',
+	description: 'Start with a probe in a 100 km orbit of Home and fly it to Cinder.',
+	preset: 'stock.career',
+	vessels: [
+		{
+			name: 'Relay 1',
+			design: {
+				formatVersion: 3,
+				name: 'Relay',
+				parts: [
+					{ index: 0, part: partId('stock.command-pod'), parent: null },
+					{
+						index: 1,
+						part: partId('stock.tank-small'),
+						parent: { index: 0, parentNode: 'bottom', node: 'top' }
+					},
+					{
+						index: 2,
+						part: partId('stock.engine-lv'),
+						parent: { index: 1, parentNode: 'bottom', node: 'top' }
+					}
+				],
+				stages: [[2]]
+			},
+			orbit: { body: 'stock.home', altitude: 100_000 }
+		}
+	],
+	missions: ['sample.to-cinder']
+});
+
+export const MissionToCinder = defineMission({
+	id: 'sample.to-cinder',
+	title: 'Relay to Cinder',
+	briefing: "Take the relay from Home orbit into Cinder's sphere of influence.",
+	debriefing: 'The relay reached Cinder.',
+	objectives: { objective: 'stock.flyby', params: { body: 'stock.cinder' } }
+});
+
 export default definePlugin({
 	meta: { id: 'sample', version: '1.0.0', api: '^0.1', title: 'Sample mod' },
 	depends: ['stock'],
@@ -225,5 +272,7 @@ export default definePlugin({
 		ctx.parts.register(PartSpikeEngine);
 		ctx.patches.register(PatchEngineThrust);
 		ctx.panels.register(PanelBeacon);
+		ctx.missions.register(MissionToCinder);
+		ctx.scenarios.register(ScenarioRelay);
 	}
 });

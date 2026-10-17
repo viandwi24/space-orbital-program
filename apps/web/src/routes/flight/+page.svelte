@@ -1,5 +1,16 @@
 <script lang="ts">
-	import { sortPanels, type PanelDefinition, type PanelInput } from '@orbital/core';
+	import { loadPlugins } from '@orbital/core';
+	import Stock from '@orbital/mod-stock';
+	import { activePlugins } from '../../lib/mods/runtime';
+	import { scenarioStart, type ScenarioStart } from '../../lib/missions/scenario-start';
+	import {
+		sortPanels,
+		type MissionDefinition,
+		type PanelDefinition,
+		type PanelInput
+	} from '@orbital/core';
+	import MissionsPanel from '../../lib/missions/MissionsPanel.svelte';
+	import { trackerView } from '../../lib/missions/tracker';
 	import Dock from '../../lib/dock/Dock.svelte';
 	import ModPanel from '../../lib/dock/ModPanel.svelte';
 	import PanelLibrary from '../../lib/dock/PanelLibrary.svelte';
@@ -92,10 +103,17 @@
 	/** Panels mods registered, read on the main thread with the content. */
 	let modPanels = $state.raw<PanelDefinition[]>([]);
 	let panelInput = $state.raw<PanelInput | null>(null);
+	// the mission tracker (plan 100, ADR 0151 point 3)
+	let missionDefs = $state.raw<MissionDefinition[]>([]);
+	let objectiveNames = $state.raw<Record<string, string>>({});
+	const tracker = $derived(
+		trackerView(missionDefs, panelInput?.snapshot.objectives, (id) => objectiveNames[id] ?? id)
+	);
 	const HOST: { id: string; title: string; icon: string; order: number }[] = [
 		{ id: 'host.orbit', title: 'Orbit', icon: 'orbit', order: 100 },
 		{ id: 'host.resources', title: 'Resources', icon: 'tank', order: 200 },
 		{ id: 'host.target', title: 'Target', icon: 'navball', order: 300 },
+		{ id: 'host.missions', title: 'Missions', icon: 'check', order: 400 },
 		{ id: 'host.script', title: 'Script', icon: 'script', order: 500 }
 	];
 	const allPanels = $derived(
@@ -202,6 +220,16 @@
 		wasLanded = landed;
 	});
 
+	/** The start of a world made from a scenario, while it has no save yet (plan 100). */
+	async function scenarioOfWorld(): Promise<ScenarioStart | null> {
+		const w = await saves.worldsService();
+		const record = await w.get(activeWorldId());
+		if (!record?.scenario || record.summary.saves > 0) return null;
+		const { registries } = loadPlugins([Stock, ...activePlugins()]);
+		const scenario = registries.scenarios.get(record.scenario);
+		return scenario ? scenarioStart(scenario, registries.bodies) : null;
+	}
+
 	onMount(() => {
 		void saves.worldsService().then(async (w) => {
 			const record = await w.get(activeWorldId());
@@ -212,8 +240,10 @@
 				presets.find((p) => p.id === `stock.${record.preset}`);
 			world = { name: record.name, mode: preset?.label ?? record.preset, system: 'Stock system' };
 		});
-		const { catalog, content, panels } = loadContent();
+		const { catalog, content, panels, missions, objectiveLabels } = loadContent();
 		modPanels = panels;
+		missionDefs = missions;
+		objectiveNames = objectiveLabels;
 		const timer = setInterval(() => {
 			void autosave(autosaver.tick(saveState()));
 			if (flight) catchUp = flight.catchUp(Date.now());
@@ -229,6 +259,7 @@
 		void (async () => {
 			let design: VesselDesign;
 			let resume: GameSave | undefined;
+			let start: ScenarioStart | null = null;
 			if (loadId !== null) {
 				try {
 					resume = await saves.read(loadId);
@@ -240,6 +271,9 @@
 				design = resume.design;
 				// a save is flown in its own world (plan 087, ADR 0143)
 				setActiveWorld(resume.worldId ?? 'legacy');
+			} else if ((start = await scenarioOfWorld())) {
+				// a world made from a scenario starts its first flight from it (plan 100, ADR 0151)
+				design = start.design;
 			} else {
 				const text = loadDraft();
 				if (text === null) {
@@ -258,7 +292,7 @@
 			// the Launch screen's facility, once (plan 094, ADR 0150 point 4)
 			const launch = resume ? null : takeLaunchChoice();
 			if (gone) return;
-			stop = begin(catalog, content, design, resume, world, launch?.placement);
+			stop = begin(catalog, content, design, resume, world, launch?.placement, start);
 		})();
 		return () => {
 			gone = true;
@@ -275,7 +309,8 @@
 		design: VesselDesign,
 		resume: GameSave | undefined,
 		world: WorldInfo | undefined,
-		placement?: VesselPlacement
+		placement?: VesselPlacement,
+		start: ScenarioStart | null = null
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -314,7 +349,14 @@
 			design,
 			...(resume ? { resume } : {}),
 			...(world ? { world } : {}),
-			...(placement ? { placement } : {}),
+			...(start
+				? {
+						placement: start.placement,
+						scenario: { others: start.others, missions: start.missions }
+					}
+				: placement
+					? { placement }
+					: {}),
 			content,
 			profile: profileStore(),
 			onHud: (h) => {
@@ -658,7 +700,13 @@
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}
 				<TouchControls
-					anchor={throttleAnchor(viewport, deckHeight, scriptOpen && !narrow, leftStackBottom, dockRight)}
+					anchor={throttleAnchor(
+						viewport,
+						deckHeight,
+						scriptOpen && !narrow,
+						leftStackBottom,
+						dockRight
+					)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
 					onattitude={(a) => flight?.setTouchAttitude(a)}
@@ -707,6 +755,15 @@
 							</div>
 						{:else if !model}
 							<!-- the HUD has not started yet -->
+						{:else if id === 'host.missions'}
+							<MissionsPanel
+								view={tracker}
+								onstart={(mission) =>
+									void flight?.command({
+										type: 'objective-start',
+										source: { kind: 'mission', id: mission }
+									})}
+							/>
 						{:else if id === 'host.orbit'}
 							<OrbitStrip orbit={model.orbit} phase={model.phase} />
 						{:else if id === 'host.resources'}
@@ -717,7 +774,7 @@
 								choices={model.targets}
 								controllable={model.controllable}
 								rendezvous={model.rendezvous}
-					dossier={model.dossier}
+								dossier={model.dossier}
 								onselect={(key) => flight?.setTarget(key)}
 								onplan={(aid) => flight?.planAid(aid)}
 							/>
