@@ -21,6 +21,8 @@ const repo = fileURLToPath(new URL('../../../', import.meta.url));
 test('the start page and the VAB load without errors', async ({ page }) => {
 	const errors = watchErrors(page);
 	await page.goto('/');
+	// the product name (plan 074, ADR 0105)
+	await expect(page).toHaveTitle(/^Space Orbital Program: /);
 	await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
 	await expect(page.getByRole('link', { name: /New flight/ })).toBeVisible();
 	await expect(page.getByTestId('menu-continue')).toBeDisabled();

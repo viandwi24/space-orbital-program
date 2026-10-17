@@ -140,7 +140,7 @@ const summaryOk = (s: unknown): s is SaveSummary =>
 /** Check the envelope fields shared by the list and the loader; returns the meta. */
 export function parseMeta(raw: unknown): SaveMeta {
 	if (!isRecord(raw) || raw.format !== GAME_SAVE_FORMAT) {
-		throw new SaveError('not-a-save', 'This is not an Orbital save file.');
+		throw new SaveError('not-a-save', 'This is not a Space Orbital Program save file.');
 	}
 	if (typeof raw.formatVersion !== 'number' || !Number.isInteger(raw.formatVersion)) {
 		throw new SaveError('not-a-save', 'This save has no valid format version.');
@@ -148,7 +148,7 @@ export function parseMeta(raw: unknown): SaveMeta {
 	if (raw.formatVersion > GAME_SAVE_VERSION) {
 		throw new SaveError(
 			'too-new',
-			`This save was made by a newer version of Orbital (file format ${raw.formatVersion}). Update the game to open it.`
+			`This save was made by a newer version of Space Orbital Program (file format ${raw.formatVersion}). Update the game to open it.`
 		);
 	}
 	if (typeof raw.id !== 'string' || raw.id === '') throw damaged('it has no id');
@@ -214,7 +214,10 @@ export function parseGameSaveText(text: string): GameSave {
 	try {
 		raw = JSON.parse(text);
 	} catch {
-		throw new SaveError('not-json', 'This file is not valid JSON, so it is not an Orbital save.');
+		throw new SaveError(
+			'not-json',
+			'This file is not valid JSON, so it is not a Space Orbital Program save.'
+		);
 	}
 	return parseGameSave(raw);
 }

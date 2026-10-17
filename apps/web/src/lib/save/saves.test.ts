@@ -234,7 +234,11 @@ describe('files', () => {
 
 	it.each([
 		['not JSON', '{"format": "orbital-game-s', 'not valid JSON'],
-		['another JSON file', JSON.stringify({ name: 'Two-stage', parts: [] }), 'not an Orbital save'],
+		[
+			'another JSON file',
+			JSON.stringify({ name: 'Two-stage', parts: [] }),
+			'not a Space Orbital Program save'
+		],
 		['an empty file', '', 'not valid JSON'],
 		[
 			'a newer envelope',
@@ -252,7 +256,7 @@ describe('files', () => {
 
 	it('a design file (a vessel, not a flight) is not mistaken for a save', () => {
 		expect(() => parseGameSaveText(JSON.stringify(referenceTwoStage()))).toThrow(
-			/not an Orbital save/
+			/not a Space Orbital Program save/
 		);
 	});
 });
