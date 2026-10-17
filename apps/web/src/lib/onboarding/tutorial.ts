@@ -140,12 +140,27 @@ export function currentStep(progress: TutorialProgress, scene: TutorialScene): T
 /**
  * The progress after `o`. At most one step completes per observation, so a player always sees each
  * card at least once. Being in flight finishes the VAB steps (a player who loads a save goes straight
- * to the flight hints). Returns the same object when nothing changed.
+ * to the flight hints), and a fresh launch on the pad restarts them. Returns the same object when nothing changed.
  */
 export function advance(progress: TutorialProgress, o: Observation): TutorialProgress {
 	if (progress.status === 'done' || progress.status === 'skipped') return progress;
 	let step = progress.step;
 	if (o.scene === 'flight' && TUTORIAL_STEPS[step]?.scene === 'vab') step = FIRST_FLIGHT;
+	// A vessel standing on the pad with nothing fired is a new launch: the flight hints start over
+	// (after a crash, a revert or a different rocket), but a step the player is on is never undone in flight.
+	if (
+		o.scene === 'flight' &&
+		step > FIRST_FLIGHT &&
+		step < TUTORIAL_STEPS.length &&
+		o.flight.stagesFired === 0 &&
+		o.flight.altitude < 100 &&
+		o.flight.throttle === 0 &&
+		o.flight.sasMode === 'off'
+	)
+		step = FIRST_FLIGHT;
+	// A rocket that already has an orbit above the atmosphere has done what the guide teaches.
+	if (o.scene === 'flight' && (o.flight.periapsis ?? -Infinity) >= TARGET_ORBIT)
+		return { status: 'done', step: TUTORIAL_STEPS.length };
 	const current = TUTORIAL_STEPS[step];
 	if (!current) return { status: 'done', step: TUTORIAL_STEPS.length };
 	if (current.scene === o.scene && current.done(o)) {

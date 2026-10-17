@@ -4,6 +4,9 @@
  * nothing logs an error. One test per concern; each starts a fresh page.
  */
 import { expect, test } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
 import {
 	launchTwoStage,
 	metSeconds,
@@ -13,17 +16,72 @@ import {
 	watchErrors
 } from './support';
 
+const repo = fileURLToPath(new URL('../../../', import.meta.url));
+
 test('the start page and the VAB load without errors', async ({ page }) => {
 	const errors = watchErrors(page);
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Orbital' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Build a vessel' })).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
+	await expect(page.getByRole('link', { name: /New flight/ })).toBeVisible();
+	await expect(page.getByTestId('menu-continue')).toBeDisabled();
 	await expect(page.getByTestId('browser-notice')).toHaveCount(0);
 
 	await page.goto('/vab');
 	await expect(page.getByRole('button', { name: 'Load the two-stage example' })).toBeVisible();
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 	await expect(page.getByRole('button', { name: /^Launch/ })).toBeEnabled();
+	expect(errors).toEqual([]);
+});
+
+test('the main menu: settings persist across a reload, roadmap and credits load', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	await page.goto('/');
+	await page.getByTestId('menu-settings').click();
+	const dialog = page.getByRole('dialog', { name: 'Settings' });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole('tab', { name: 'Game' }).click();
+	await dialog.getByRole('radio', { name: 'Imperial' }).click();
+	await dialog.getByRole('tab', { name: 'Graphics' }).click();
+	await dialog.getByRole('radio', { name: 'Low' }).click();
+	await dialog.getByRole('button', { name: 'Done' }).click();
+	await page.reload();
+	await page.getByTestId('menu-settings').click();
+	await expect(page.getByRole('radio', { name: 'Low' })).toBeChecked();
+	await page.getByRole('tab', { name: 'Game' }).click();
+	await expect(page.getByRole('radio', { name: 'Imperial' })).toBeChecked();
+	await page.keyboard.press('Escape');
+
+	await page.goto('/roadmap');
+	await expect(page.getByRole('heading', { name: 'Roadmap' })).toBeVisible();
+	await page.goto('/credits');
+	await expect(page.getByRole('heading', { name: 'Credits' })).toBeVisible();
+	await expect(page.getByText('To be decided')).toBeVisible();
+	await page.goto('/no-such-page');
+	await expect(page.getByTestId('error-screen')).toBeVisible();
+	expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
+});
+
+test('a mod installs from a file and its part appears in the hangar (plan 046, CSP)', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	// `dist/` is not committed: build the sample package the way the README says.
+	execFileSync('bun', ['run', 'tools/mod-build/build-mod.ts', 'examples/mod-sample'], {
+		cwd: repo
+	});
+	await page.goto('/mods');
+	await page
+		.getByLabel('Mod package file')
+		.setInputFiles(`${repo}examples/mod-sample/dist/sample-1.0.0.orbital-mod.json`);
+	await expect(page.getByRole('dialog', { name: 'Install this mod?' })).toBeVisible();
+	await page.getByRole('button', { name: 'Trust and install' }).click();
+	await page.getByRole('button', { name: 'Reload to apply' }).click();
+	await expect(page.getByText('Sample mod').first()).toBeVisible();
+	await page.goto('/vab');
+	await page.getByPlaceholder('Search parts').fill('beacon');
+	await expect(page.getByText('Sample Telemetry Beacon').first()).toBeVisible();
 	expect(errors).toEqual([]);
 });
 
@@ -119,6 +177,11 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 	expect(gained).toBeGreaterThan(wall * 5);
 	await expect(scriptStatus(page)).toHaveText('running');
 
+	// The keyboard path (plan 023: journal 043 could not exercise it): `,` and `.` step the warp.
+	await page.keyboard.press(',');
+	await expect(page.getByTestId('hud-warp')).toHaveText('5x');
+	await page.keyboard.press('.');
+	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
 	await page.getByRole('button', { name: 'Slower time warp' }).click();
 	await page.getByRole('button', { name: 'Slower time warp' }).click();
 	await page.getByRole('button', { name: 'Slower time warp' }).click();

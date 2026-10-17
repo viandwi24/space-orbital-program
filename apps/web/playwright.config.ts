@@ -31,7 +31,11 @@ export default defineConfig({
 		}
 	],
 	webServer: {
-		command: `bun run build && bun run preview --port ${port} --strictPort`,
+		// E2E_HEADERS=1 serves the build with the production headers and Content-Security-Policy
+		// (`scripts/serve.ts`, plan 023) instead of Vite's preview server.
+		command: process.env.E2E_HEADERS
+			? `bun run build && bun scripts/serve.ts ${port}`
+			: `bun run build && bun run preview --port ${port} --strictPort`,
 		url: `http://localhost:${port}`,
 		reuseExistingServer: !process.env.CI,
 		timeout: 300_000

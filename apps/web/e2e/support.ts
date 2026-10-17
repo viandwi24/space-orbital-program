@@ -49,7 +49,12 @@ export async function runScript(page: Page, source: string | 'sample'): Promise<
 		await expect(run).toBeEnabled({ timeout: 60_000 });
 	} catch (error) {
 		// Say what the page showed: a disabled Run means the flight did not start.
-		const shown = (await page.locator('body').innerText().catch(() => '')).slice(0, 1500);
+		const shown = (
+			await page
+				.locator('body')
+				.innerText()
+				.catch(() => '')
+		).slice(0, 1500);
 		throw new Error(`Run stayed disabled. Page text:\n${shown}\n${String(error)}`);
 	}
 	await run.click();

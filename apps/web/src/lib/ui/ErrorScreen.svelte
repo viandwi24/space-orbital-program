@@ -9,20 +9,27 @@
 	}: { title?: string; message: string; onreload: () => void } = $props();
 </script>
 
-<main role="alert" data-testid="error-screen">
-	<h1>{title}</h1>
-	<p>
-		The game hit a problem it could not recover from. Your saved flights and designs are stored in
-		this browser and are not affected.
-	</p>
-	<pre class="num">{message}</pre>
-	<div class="actions">
-		<Button variant="primary" onclick={onreload}>Reload the page</Button>
-		<a href="/">Main menu</a>
-	</div>
-</main>
+<div class="wrap">
+	<main role="alert" data-testid="error-screen">
+		<h1>{title}</h1>
+		<p>
+			The game hit a problem it could not recover from. Your saved flights and designs are stored in
+			this browser and are not affected.
+		</p>
+		<pre class="num">{message}</pre>
+		<div class="actions">
+			<Button variant="primary" onclick={onreload}>Reload the page</Button>
+			<a href="/">Main menu</a>
+		</div>
+	</main>
+</div>
 
 <style>
+	.wrap {
+		min-height: 100vh;
+		min-height: 100dvh;
+		background: radial-gradient(ellipse at 50% 30%, #10243a 0%, var(--bg-void) 70%);
+	}
 	main {
 		max-width: 36rem;
 		margin: 14vh auto 0;

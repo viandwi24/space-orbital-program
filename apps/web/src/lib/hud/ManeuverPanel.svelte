@@ -81,9 +81,9 @@
 {:else if map}
 	<Panel title="Maneuver">
 		<p class="note">
-			Click the orbit to plan a burn. Drag the handles or use <Kbd>I</Kbd><Kbd>K</Kbd>
-			<Kbd>L</Kbd><Kbd>J</Kbd>
-			<Kbd>O</Kbd><Kbd>U</Kbd>.
+			Click the orbit to plan a burn, then drag its handles or use the keys <span class="keys"
+				><Kbd>I</Kbd><Kbd>K</Kbd> <Kbd>L</Kbd><Kbd>J</Kbd> <Kbd>O</Kbd><Kbd>U</Kbd></span
+			>.
 		</p>
 	</Panel>
 {/if}
@@ -123,8 +123,15 @@
 	}
 	.note {
 		margin: var(--s-2) 0 0;
-		max-width: 34ch;
+		max-width: 38ch;
 		font-size: var(--t-xs);
 		color: var(--text-dim);
+	}
+	.keys {
+		display: inline-flex;
+		flex-wrap: nowrap;
+		gap: 2px;
+		white-space: nowrap;
+		vertical-align: middle;
 	}
 </style>

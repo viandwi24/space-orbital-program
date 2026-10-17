@@ -1,4 +1,5 @@
 <script lang="ts">
+	import MenuShell from '../../lib/ui/MenuShell.svelte';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
@@ -33,8 +34,8 @@
 	description="Install, turn on, turn off and remove Orbital mods. A mod is one file; the game asks before it runs anything."
 />
 
-<main>
-	<a class="back" href="/"><Icon name="back" size={16} /> Orbital</a>
+<MenuShell wide>
+	<a class="back" href="/"><Icon name="back" size={16} /> Main menu</a>
 	<h1>Mods</h1>
 	<p class="lead">
 		Mods add parts, modules and bodies. A mod is code: it runs with the same access as this page, so
@@ -116,8 +117,15 @@
 				type="file"
 				accept=".json,application/json"
 				aria-label="Mod package file"
+				hidden
 				onchange={() => void picked()}
 			/>
+			<div class="pick">
+				<Button onclick={() => fileInput?.click()} disabled={manager.busy}
+					><Icon name="open" size={16} /> Choose a mod file</Button
+				>
+				<span class="dim">or give an address:</span>
+			</div>
 			<form
 				onsubmit={(e) => {
 					e.preventDefault();
@@ -134,12 +142,11 @@
 			</form>
 		</div>
 		<p class="dim">
-			Nothing in a package runs until you confirm. Build your own: see <code
-				>docs/guides/writing-a-mod.md</code
-			>.
+			Nothing in a package runs until you confirm. To build your own, read the modding guide in the
+			project's repository (<code>docs/guides/writing-a-mod.md</code>).
 		</p>
 	</section>
-</main>
+</MenuShell>
 
 <Dialog open={manager.pending !== null} title="Install this mod?" onclose={() => manager.cancel()}>
 	{#if manager.pending}
@@ -188,17 +195,18 @@
 </Dialog>
 
 <style>
-	main {
-		max-width: 44rem;
-		margin: 8vh auto 4rem;
-		padding: 0 var(--s-4);
-	}
 	.back {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--s-1);
 		color: var(--text-dim);
 		text-decoration: none;
+		font-size: var(--t-sm);
+	}
+	.pick {
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
 	}
 	h1 {
 		margin: var(--s-3) 0 0;

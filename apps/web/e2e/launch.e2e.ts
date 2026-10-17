@@ -13,7 +13,12 @@ test('a fresh launch stays on the pad: no "Vessel lost" card', async ({ page }) 
 	for (let i = 0; i < 20; i += 1) {
 		const lost = await page.getByText('Vessel lost').count();
 		if (lost > 0) {
-			const shown = (await page.locator('body').innerText().catch(() => '')).slice(0, 1000);
+			const shown = (
+				await page
+					.locator('body')
+					.innerText()
+					.catch(() => '')
+			).slice(0, 1000);
 			throw new Error(`Vessel lost on the pad. Page text:\n${shown}`);
 		}
 		await page.waitForTimeout(150);

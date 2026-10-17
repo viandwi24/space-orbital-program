@@ -151,9 +151,11 @@
 				accept="application/json,.json"
 				hidden
 				onchange={async (e) => {
-					const f = e.currentTarget.files?.[0];
+					// `currentTarget` is gone after an await: keep the input to clear it.
+					const input = e.currentTarget;
+					const f = input.files?.[0];
 					if (f) await vab.importFile(f);
-					e.currentTarget.value = '';
+					input.value = '';
 				}}
 			/>
 			<Button variant="primary" onclick={() => (vab.libraryOpen = false)}>Close</Button>

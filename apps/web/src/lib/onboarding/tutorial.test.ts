@@ -31,16 +31,18 @@ const vab = (command: boolean, engine: boolean, tank: boolean): Observation => (
 });
 
 /** The observation that completes step `i`. */
+/** A rocket that has left the pad. */
+const up = { stagesFired: 1, altitude: 20_000 };
 const completing: Record<string, Observation> = {
 	build: vab(true, true, true),
 	launch: flight(),
 	throttle: flight({ throttle: 1 }),
 	stage: flight({ stagesFired: 1 }),
-	climb: flight({ sasOn: true, altitude: 9_000 }),
-	turn: flight({ sasMode: 'prograde' }),
-	apoapsis: flight({ apoapsis: TARGET_ORBIT }),
-	map: flight({ map: true }),
-	circularise: flight({ periapsis: TARGET_ORBIT })
+	climb: flight({ ...up, sasOn: true }),
+	turn: flight({ ...up, sasMode: 'prograde' }),
+	apoapsis: flight({ ...up, apoapsis: TARGET_ORBIT }),
+	map: flight({ ...up, map: true }),
+	circularise: flight({ ...up, periapsis: TARGET_ORBIT })
 };
 
 describe('tutorial steps', () => {
@@ -88,7 +90,7 @@ describe('tutorial steps', () => {
 			sasMode: 'prograde',
 			map: true,
 			apoapsis: 80_000,
-			periapsis: 75_000
+			periapsis: 60_000
 		});
 		const p = advance(at('throttle'), everything);
 		expect(p.step).toBe(at('stage').step);
@@ -96,8 +98,12 @@ describe('tutorial steps', () => {
 		expect(advance(at('throttle'), flight({ throttle: 0.5 }))).toEqual(at('throttle'));
 		expect(advance(at('climb'), flight({ sasOn: true, altitude: 5_000 }))).toEqual(at('climb'));
 		expect(advance(at('climb'), flight({ sasOn: false, altitude: 20_000 }))).toEqual(at('climb'));
-		expect(advance(at('apoapsis'), flight({ apoapsis: TARGET_ORBIT - 1 }))).toEqual(at('apoapsis'));
-		expect(advance(at('circularise'), flight({ periapsis: null }))).toEqual(at('circularise'));
+		expect(advance(at('apoapsis'), flight({ ...up, apoapsis: TARGET_ORBIT - 1 }))).toEqual(
+			at('apoapsis')
+		);
+		expect(advance(at('circularise'), flight({ ...up, periapsis: null }))).toEqual(
+			at('circularise')
+		);
 		expect(advance(at('build'), vab(true, true, false))).toEqual(at('build'));
 	});
 
@@ -113,6 +119,25 @@ describe('tutorial steps', () => {
 	it('reaching the flight page finishes the VAB steps (a player who loads a save)', () => {
 		const p = advance(PENDING, flight());
 		expect(TUTORIAL_STEPS[p.step]?.id).toBe('throttle');
+	});
+
+	it('a vessel on the pad with nothing fired restarts the flight hints; one that has flown does not', () => {
+		const late: TutorialProgress = {
+			status: 'active',
+			step: TUTORIAL_STEPS.findIndex((s) => s.id === 'apoapsis')
+		};
+		const rewound = advance(late, flight());
+		expect(TUTORIAL_STEPS[rewound.step]?.id).toBe('throttle');
+		expect(advance(late, flight({ stagesFired: 1, altitude: 30 }))).toEqual(late);
+		expect(advance(late, flight({ altitude: 5_000 }))).toEqual(late);
+	});
+
+	it('a vessel that is already in orbit finishes the guide', () => {
+		const p = advance(
+			{ status: 'active', step: TUTORIAL_STEPS.findIndex((s) => s.id === 'turn') },
+			flight({ ...up, periapsis: TARGET_ORBIT + 5_000 })
+		);
+		expect(p.status).toBe('done');
 	});
 
 	it('skip persists and a skipped or finished tutorial never shows or advances again', () => {

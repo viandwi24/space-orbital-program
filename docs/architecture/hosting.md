@@ -1,0 +1,58 @@
+# Hosting
+
+Orbital is a static site (SvelteKit `adapter-static`, ADR 0006): `bun run build` writes `apps/web/build/`, which any static host can serve. Nothing runs on a server and the game makes no requests of its own beyond its files (and the mod package a player asks to download by address, ADR 0057). This page lists what the host must do so that every feature works; it was checked in plan 023 against `apps/web/scripts/serve.ts`, a small server that does exactly this.
+
+## What the host must do
+
+| Requirement | Why |
+|---|---|
+| Serve `/_app/**`, `/sandbox/**`, `*.wasm` with correct types (`text/javascript`, `application/wasm`, `text/css`) | module scripts and WebAssembly refuse a wrong type |
+| Serve `/flight`, `/vab`, `/mods`, `/credits`, `/roadmap` and `/` as their prerendered `.html`; send unknown paths to `200.html` with status 200 (or 404.html with 404) | SvelteKit's static fallback; the game's own error page handles the rest |
+| `Content-Security-Policy` on HTML as below | the script sandbox (ADR 0038) and the CSP for the page; without it the game still runs, the policy is defence in depth |
+| `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` empty for camera, microphone, geolocation, payment | hardening; the game uses none of them |
+| `Cache-Control: public, max-age=31536000, immutable` for `/_app/immutable/**`; `no-cache` for HTML and `/sandbox/**` | hashed assets never change; HTML must revalidate after a release |
+| gzip or brotli for text and `.wasm` | the physics and script engines are about 2 MB uncompressed |
+| HTTPS | `crypto.subtle`, IndexedDB persistence and service workers need a secure context (localhost counts) |
+
+Optional: `Cross-Origin-Opener-Policy: same-origin` (the reference server sends it; nothing needs it yet, it keeps `SharedArrayBuffer` possible for a later plan).
+
+## The Content-Security-Policy
+
+The pages carry two kinds of inline script: the SvelteKit start-up script (different per page) and, inside the script sandbox's `srcdoc` iframe, its bootstrap. A `srcdoc` document inherits its parent's policy as well as its own, so the page policy must allow the bootstrap's hash too. `apps/web/src/lib/hosting-headers.ts` computes the policy; `scripts/serve.ts` hashes the built files per page. A real host must do the same at build time (a `_headers` file or an edge function), or use `'unsafe-inline'` for `script-src` and give up the hash protection.
+
+```
+default-src 'self';
+script-src 'self' 'wasm-unsafe-eval' blob: 'sha256-<page inline script>' 'sha256-<sandbox bootstrap>';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob:;
+font-src 'self';
+connect-src 'self' https: blob: data:;
+worker-src 'self' blob:;
+frame-src about:;
+object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+```
+
+Why each non-obvious part:
+
+- `'wasm-unsafe-eval'`: Rapier and QuickJS compile WebAssembly (the sandbox document repeats it for its own scope).
+- `blob:` in `script-src`: a mod package is a JavaScript module imported from a blob URL (`importModBundle`, ADR 0057). A game without mods could drop it; the Mods page would then report that a mod failed to load.
+- `worker-src blob:`: the sandbox frame turns the script Worker's text into a blob Worker. The sim Worker is `'self'`.
+- `frame-src about:`: the sandbox iframe is a `srcdoc` document (`about:srcdoc`).
+- `connect-src https:`: the Mods page downloads a package from an address the player types. A host that does not want this can restrict it to `'self'` and the player installs from a file instead.
+- `style-src 'unsafe-inline'`: Svelte and the canvas widgets set inline styles; there is no inline style hash story for those.
+
+A failing policy shows up as "the script sandbox did not start" (scripts fail closed, the rest of the game runs) or "A mod could not be loaded" on the Mods page.
+
+## Reference server and a check
+
+```sh
+bun run build
+bun --cwd apps/web scripts/serve.ts 4173      # the build with the headers above
+E2E_HEADERS=1 bun run e2e                      # the Playwright suite against those headers
+```
+
+Plan 023 ran the smoke suite against `scripts/serve.ts` in Chromium, Firefox and WebKit (journal 023). The unit test `hosting-headers.test.ts` pins the policy's key parts.
+
+## Not decided here
+
+The domain, the CDN and the licence of the game are the human's decisions (`STATUS.md`, known issues); `VITE_SITE_URL=https://example.org bun run build` makes the Open Graph image addresses absolute for that domain.

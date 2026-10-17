@@ -336,7 +336,7 @@
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
 
 	{#if problem}
-		<div class="center">
+		<div class="center cover">
 			{#if loadFailed}
 				<StatusCard tone="danger" title="That flight could not be loaded">
 					<p>{problem}</p>
@@ -358,7 +358,7 @@
 		{#if hud.status === 'booting'}
 			<LoadingScreen overlay step="Starting the simulation and loading the parts" />
 		{:else if hud.status === 'error'}
-			<div class="center">
+			<div class="center cover">
 				<StatusCard tone="danger" title="The simulation stopped">
 					<p>{hud.message}</p>
 					{#snippet actions()}
@@ -615,6 +615,10 @@
 		display: grid;
 		place-items: center;
 		pointer-events: none;
+	}
+	/* No canvas worth showing behind a failure card: the loading screen's backdrop instead of black. */
+	.center.cover {
+		background: radial-gradient(ellipse at 50% 42%, #10243a 0%, var(--bg-void) 70%);
 	}
 	.center :global(.card) {
 		pointer-events: auto;

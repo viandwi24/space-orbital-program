@@ -57,6 +57,10 @@
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
 	const tutorialStep = $derived(currentStep(settings.tutorial, 'vab'));
+	/** The welcome card carries the first step's words; the guide card waits for the first part. */
+	const emptyHangar = $derived(
+		vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0
+	);
 
 	// The drawers (narrow windows) change which panels take room; the view re-centres the vessel.
 	$effect(() => {
@@ -175,7 +179,7 @@
 			</p>
 		</div>
 
-		{#if tutorialStep}
+		{#if tutorialStep && !emptyHangar}
 			<div class="guide">
 				<TutorialCard
 					step={tutorialStep}
@@ -185,7 +189,7 @@
 			</div>
 		{/if}
 
-		{#if vab.editor.design.parts.length === 0 && !vab.armed && vab.editor.loose.length === 0}
+		{#if emptyHangar}
 			<div class="welcome">
 				<h2>Build a vessel</h2>
 				<p>
