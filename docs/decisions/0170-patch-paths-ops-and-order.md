@@ -36,5 +36,5 @@ ADR 0104 fixes what a patch is (select entries, apply operations to typed paths,
 ## Consequences
 
 - **Mod API:** `definePatch`, `ctx.patches`, `PatchDefinition` and the two report fields; an additive `API_VERSION` patch bump.
-- **Core:** `Registry` gains `validate(def)` and `replace(def)` (used by the loader only; plugins still get a `Registrar`).
+- **Core:** `Registry` gains `validate(def)`; entries are swapped by the loader-only `replaceDefinition(registry, def)`, which is not on `Registry` (so the read-only registries handed to modules and systems cannot reach it) and is not exported by the SDK. Plugins still get a `Registrar`.
 - **Performance:** one clone and one schema parse per patched entry per patch; plan 079 measures 1 000 patches.
