@@ -257,6 +257,14 @@ export type VesselPlacement =
 			velocity: Vec3;
 			/** Attitude of the vessel root; identity when omitted. */
 			orientation?: Quat;
+	  }
+	| {
+			/** On a pad of one of the world's sites (plan 084, ADR 0142 point 5), on the site's body. */
+			kind: 'site';
+			/** Site id (`WorldInfo.sites`, or `"legacy"` in a world without sites). */
+			site: string;
+			/** Index into the site's pads; default 0. */
+			pad?: number;
 	  };
 
 export type Command =

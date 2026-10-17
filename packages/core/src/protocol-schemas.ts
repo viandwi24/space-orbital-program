@@ -65,6 +65,11 @@ export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminated
 		position: vec3,
 		velocity: vec3,
 		orientation: quat.optional()
+	}),
+	z.object({
+		kind: z.literal('site'),
+		site: z.string().min(1),
+		pad: z.int().min(0).optional()
 	})
 ]);
 
