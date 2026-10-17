@@ -49,3 +49,23 @@ test('at UI scale 150 % no flight HUD panel extends past a 1024 x 768 viewport',
 	expect(outside.out).toEqual([]);
 	expect(errors).toEqual([]);
 });
+
+test('on the low preset the HUD panels draw the solid surface without blur (ADR 0140)', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	await page.addInitScript(() => {
+		localStorage.setItem('orbital.graphics', 'low');
+		localStorage.setItem('orbital.graphics.auto', 'off');
+	});
+	await launchTwoStage(page);
+	await expect(page.locator('html')).toHaveAttribute('data-glass', 'solid');
+	const panel = await page.evaluate(() => {
+		const el = document.querySelector('.ui section.panel');
+		if (!el) return null;
+		const css = getComputedStyle(el);
+		return { filter: css.backdropFilter, background: css.backgroundColor };
+	});
+	expect(panel).toEqual({ filter: 'none', background: 'rgb(20, 21, 24)' });
+	expect(errors).toEqual([]);
+});
