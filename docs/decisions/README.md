@@ -126,3 +126,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0106 | [Licence: Apache-2.0](0106-licence-apache-2-0.md) | accepted | 2026-10-17 |
 | 0107 | [The interface adopts the refs visual language in full, screen by screen](0107-ui-adopts-the-refs-visual-language-in-stages.md) | accepted | 2026-10-17 |
 | 0108 | [After v1: announce the big roadmap, with guardrails; no Universe mode](0108-release-scope-announce-the-big-roadmap-no-universe-mode.md) | accepted | 2026-10-17 |
+| 0109 | [Control needs a command source (KSP-like), the Career crew preset, and 10 px text](0109-control-needs-a-command-source-like-ksp-career-crew-preset-and-10px-text.md) | accepted | 2026-10-17 |

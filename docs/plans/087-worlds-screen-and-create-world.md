@@ -68,3 +68,4 @@ The dialog is generated from the rule registry (labels, types, presets), so mod 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0094, 0095, 0103, 0107).
+- 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.

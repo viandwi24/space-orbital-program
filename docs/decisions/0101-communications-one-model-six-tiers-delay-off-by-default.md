@@ -1,6 +1,6 @@
 # 0101 — Communications: one physical model in six tiers, signal delay off by default
 
-**Status:** accepted
+**Status:** accepted (point 4 default amended by ADR 0109)
 **Date:** 2026-10-17
 **Plan:** none (owner decisions "comms-ambition", "signal-delay", 2026-10-17); delivered by plans 114 to 121 (index: draft 070)
 **Amends:** ADR 0079 (the plasma blackout becomes a real link loss once tier 1 ships).

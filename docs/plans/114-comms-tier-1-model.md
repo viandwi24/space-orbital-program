@@ -69,3 +69,4 @@ Cost budget: 0.5 ms average per step at 300 nodes and 10 bodies (M5); spatial cu
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101).
+- 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.

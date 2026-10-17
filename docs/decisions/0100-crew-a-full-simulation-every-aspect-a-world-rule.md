@@ -1,6 +1,6 @@
 # 0100 — Crew: a full simulation, every aspect a world rule, Sandbox as free as possible
 
-**Status:** accepted
+**Status:** accepted (point 3 Career preset amended by ADR 0109)
 **Date:** 2026-10-17
 **Plan:** none (owner decision "crew-depth", 2026-10-17); delivered by plans 106 to 109, 121
 **Builds on:** ADR 0094 (rules), 0096 (background operations), 0098 (no locked tools).

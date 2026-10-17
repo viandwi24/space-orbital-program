@@ -19,7 +19,7 @@ A vessel can lose its link, and the network becomes a game: this is the index of
 
 - ADRs: 0101 (model, tiers, defaults), 0079 (blackout display, amended by 0101), 0096 (world tick), 0099 (data and science).
 - Found in plan 040: the blackout badge says "signal lost" and nothing is lost. Tier 1 (plan 114) makes the blackout drop the link.
-- Defaults decided by the owner: signal delay `display` (shown, not enforced), `enforced` and `flight-computer` as world rules; control without signal `full` by default (ADR 0101 point 4).
+- Defaults decided by the owner: signal delay `display` (shown, not enforced), `enforced` and `flight-computer` as world rules; control without signal (ADR 0109: `none` for probes in Career/Science, `full` in Sandbox; crewed vessels always controllable) — formerly `full` by default (ADR 0101 point 4).
 
 ## Scope
 
@@ -55,3 +55,4 @@ A vessel can lose its link, and the network becomes a game: this is the index of
 - 2026-10-17 — Created as draft by plan 040 (found, not done).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0101): the plan becomes the index of the comms tier plans 114 to 121; its earlier scope (link model, delay, loss of control, HUD, SDK hook) is covered and superseded by them.
 - 2026-10-17 — `depends` gains 114, 115, 116, 117, 118, 119, 120, 121 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this index is done only when plans 114 to 121 are done (its own acceptance criterion).
+- 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
