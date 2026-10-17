@@ -80,6 +80,7 @@ export const PartDataDrive = definePart({
 	id: 'stock.data-drive',
 	title: 'Data Drive',
 	mass: kg(20),
+	cost: partCost(20, 'command'),
 	impactTolerance: 8,
 	maxTemperature: 1000,
 	shape: cylinder(0.4),
