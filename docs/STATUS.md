@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 035, 036, 038, 040, 041, 051, 052, 054 to 056. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 036, 038, 040, 041, 051, 052, 054 to 057. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -47,7 +47,7 @@
 | 038 | [Lakes, rivers, site animation, devices](plans/038-water-site-animation-and-devices.md) | draft | — | from 031: lakes and river flow, breaking shore waves, launch-site animation, M1/M2 and Intel measurements, precompile, mobile |
 | 030 | [Script hardening and tooling follow-ups](plans/030-script-hardening-and-tooling.md) | done | script-hardening session | ADR 0038: script Worker in an opaque-origin sandboxed iframe with a no-network CSP (self-test in the panel), share/import (text, link, file) with a stranger-code confirm, syntax highlighting, error lines, budget 200 ms; sample ascent reached a 76.6 km periapsis and a native runaway was killed in the browser; API additions and Safari/Firefox checks are draft 032 |
 | 032 | [Script API additions and the sandbox in other browsers](plans/032-script-api-additions-and-browser-matrix.md) | done | browser-matrix session (Claude, 2026-10-17) | ADRs 0039 (warp while a script runs: the host holds the script's controls), 0040 (support policy, capability gate, Playwright matrix); `bodies`, `Date` on sim time, command feedback, fuel count; smoke suite and real-time orbit pass in Chromium 156, Firefox 157, WebKit 27.2 (Firefox: intermittent vessel loss, draft 047); phones/tablets not supported; target/maneuver data and editor niceties are drafts 035 and 036 |
-| 035 | [Script access to targets and maneuver nodes](plans/035-script-target-and-maneuver-data.md) | draft | — | from 032: after plans 044/045; `ship.target`, `ship.node`, body state over time |
+| 035 | [Script access to targets and body state](plans/035-script-target-and-maneuver-data.md) | done | script session (Claude, 2026-10-17) | ADR 0065: `target-set`, snapshot target with relative state and closest approach, SAS target/anti-target, `ship.target`, `setTarget`, `bodies[id].state`, Target card; markers and cross-sphere approach in draft 057 |
 | 036 | [Script editor niceties](plans/036-script-editor-niceties.md) | draft | — | from 032: Tab indentation, auto-indent, bracket matching, API popover; needs players and a human accessibility check |
 | 047 | [Intermittent "Vessel lost" on the pad](plans/047-intermittent-vessel-loss-on-the-pad.md) | done | pad-loss session | not the sim: the page judged a snapshot taken before the vessel loaded; `vessel-presence.ts`; Firefox 2 of 30 lost before, 0 of 30 after (journal 047) |
 | 039 | [Release pass: frame budget, mountain haze, radar altitude](plans/039-performance-and-look-pass.md) | done | perf + integration sessions | budget met (medium ≤13.3, high ≤14.4 ms sync on M5), governor, radar altitude; hitch moved to 048 (v1) |
@@ -66,6 +66,7 @@
 | 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | draft | — | from 053: compact phone HUD, real iPad/Android runs, mobile audio interruptions |
 | 056 | [Baked cloud-shadow map and sharper edges at the half-resolution rung](plans/056-cloud-shadow-map-and-half-res-edges.md) | draft | — | from 050: `medium` cloud shadows by a baked map, 2 x 2 steps at cloud edges and ridges |
 | 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | draft | — | from 037: crepuscular rays through the cumulus slab, ozone layer at the golden hour, aurora |
+| 057 | [Target markers and rendezvous aids](plans/057-target-markers-and-rendezvous-aids.md) | draft | — | from 035: navball and map target markers, closest approach across spheres, node helpers |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
