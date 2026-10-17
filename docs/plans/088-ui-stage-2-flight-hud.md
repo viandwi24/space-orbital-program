@@ -1,8 +1,8 @@
 ---
 id: 088
 title: "UI stage 2: the flight HUD in the refs style"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [086, 081]
 phase: 5
 created: 2026-10-17
