@@ -4,7 +4,10 @@
  * their own PRNG streams, and emits `world:tick`.
  */
 import {
+	calendarOf,
 	createRng,
+	SECONDS_PER_DAY,
+	type BodyDefinition,
 	streamSeed,
 	type EntityId,
 	type Rng,
@@ -24,19 +27,34 @@ export interface TickState {
 	readonly systems: readonly SystemDefinition[];
 	/** Stream per system id. */
 	readonly streams: ReadonlyMap<string, Rng>;
+	/** Length of a tick day, s (ADR 0114): the calendar's day. */
+	readonly length: number;
 }
 
-/** Length of a tick day, s: the root body's rotation period (ADR 0171 point 1). */
-export const dayLength = (core: Pick<SimCore, 'root'>): number => core.root.def.rotationPeriod;
+/**
+ * Length of a tick day, s (ADR 0114, amending ADR 0171 point 1): the calendar's day,
+ * `calendarOf(bodies)`: a fictional calendar's solar day of the home body, 86 400 s for
+ * `gregorian-utc`. For stock this is still the home body's 21 600 s rotation.
+ */
+export function tickDayLength(bodies: readonly BodyDefinition[]): number {
+	const calendar = calendarOf(bodies);
+	return calendar.kind === 'fictional' ? calendar.dayLength : SECONDS_PER_DAY;
+}
 
-/** The day `t` falls in (ADR 0171 point 2). */
+export const dayLength = (core: Pick<SimCore, 'ticks'>): number => core.ticks.length;
+
+/** Seconds from J2000.0 to `t = 0`: the epoch is in SI days (ADR 0141 point 2, ADR 0114). */
+const epochSeconds = (info: WorldInfo): number =>
+	(info.epoch.day + info.epoch.fraction) * SECONDS_PER_DAY;
+
+/** The day `t` falls in, counted in tick days since J2000.0 (ADR 0114). */
 export function dayAt(info: WorldInfo, length: number, t: number): number {
-	return info.epoch.day + Math.floor(info.epoch.fraction + t / length);
+	return Math.floor((epochSeconds(info) + t) / length);
 }
 
 /** Sim time at which `day` begins; computed from the day number, never accumulated. */
 export function dayStart(info: WorldInfo, length: number, day: number): number {
-	return (day - info.epoch.day - info.epoch.fraction) * length;
+	return day * length - epochSeconds(info);
 }
 
 /**
@@ -70,7 +88,7 @@ export function createTickState(input: {
 		const state = saved?.streams[s.id];
 		streams.set(s.id, createRng(state ?? streamSeed(info.seed, s.id)));
 	}
-	return { lastDay: saved?.lastDay ?? dayAt(info, length, time), systems, streams };
+	return { lastDay: saved?.lastDay ?? dayAt(info, length, time), systems, streams, length };
 }
 
 export const saveTickState = (ticks: TickState): SaveWorldTick => ({
