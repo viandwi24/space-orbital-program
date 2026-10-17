@@ -1,7 +1,7 @@
 ---
 id: 090
 title: "Buildings as data: `defineBuilding` and the placement rules"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [084, 079]
 phase: 5

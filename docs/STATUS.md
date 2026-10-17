@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); Agent 1 next: 090 buildings (waits for `cp/f1-084-sites`); Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); Agent 1 next: 068 terrain-aa, then 091 space-center; Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -98,7 +98,7 @@
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | done | Agent 2 (Dev B, M2) | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
 | 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | draft | — | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
 | 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
-| 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | in-progress | Agent 1 | ADR 0097: defineBuilding, grid rules, stock catalogue data |
+| 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | done | Agent 1 | ADR 0097: defineBuilding, grid rules, stock catalogue data |
 | 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | draft | — | ADR 0097: 3D site from the building list, refs overlay, build mode |
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | draft | — | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
@@ -200,6 +200,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [090 — Buildings as data: `defineBuilding` and the placement rules](journal/090-building-registry-and-placement-rules.md)
 - [087 — Worlds screen and Create World](journal/087-worlds-screen-and-create-world.md)
 - [110 — Part action descriptors and action groups](journal/110-part-action-descriptors-and-groups.md)
 - [080 — Trajectory provider interface: patched conics behind one API, no behaviour change](journal/080-trajectory-provider-interface.md)
