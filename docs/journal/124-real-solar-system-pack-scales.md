@@ -50,5 +50,17 @@
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/sim/test/sol-validation.test.ts  6 pass (both variants; numbers in Measurements)
+bun test packages/sim/test/sol.test.ts             4 pass
+bun test mods/sol                                  5 pass
+vitest src/lib/worlds, src/lib/mods                28 + 27 pass
+bun run docs:check                                 exit 0
+bun run test                                       1588 pass, 2 fail under load (470 s): determinism (5 s timeout,
+                                                   passes alone) and the mod-stock patch benchmark (M5-indicative
+                                                   50 ms; 40-52 ms here before and after this plan)
+bun run typecheck                                  exit 0 (104 s; svelte-check 0 errors)
+bun run build                                      exit 0 (8 s)
+bun run --filter @orbital/web test                 952 passed; 4 env-only import suites (no Node here: editor-options,
+                                                   settings, WarpControl, and 112's dock, which imports settings);
+                                                   runtime.test updated for the built-in Sol plugin
 ```

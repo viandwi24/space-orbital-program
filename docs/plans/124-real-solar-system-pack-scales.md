@@ -65,7 +65,7 @@ A variant whose suite fails is not offered in Create World (ADR 0103 point 7).
 - [x] `bun test mods/sol` and `packages/sim/test/sol.test.ts`: the Sun's declination and the Moon's elongation on stated dates match the reference (Horizons, `docs/research/ephemerides.md`) within the sources' stated accuracy; both variants load and their patches apply.
 - [x] `bun test packages/core` and `packages/sim`: the loader keeps one system's bodies, applies only the chosen variant's patches, and a Sol world starts at its variant's home.
 - [x] vitest: Create World lists Sol's variants with the Δv to orbit and the transfer time from the pack data.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 

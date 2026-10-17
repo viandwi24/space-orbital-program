@@ -72,9 +72,10 @@ describe('the mod runtime', () => {
 		);
 		await initModRuntime(store, { importModule: importCode });
 		const { catalog } = loadContent();
-		expect(catalog.plugins).toEqual(['stock', 'good']);
+		// the built-in plugins (stock, the Sol pack of plan 124) boot before the installed mods
+		expect(catalog.plugins).toEqual(['stock', 'sol', 'good']);
 		expect(catalog.parts.some((p) => p.id === 'good.thing')).toBe(true);
-		expect([...bootedMods().keys()]).toEqual(['stock', 'good']);
+		expect([...bootedMods().keys()]).toEqual(['stock', 'sol', 'good']);
 	});
 
 	it('explains why a mod a save needs is not running', async () => {
@@ -92,12 +93,12 @@ describe('the mod runtime', () => {
 		expect(modHint('nope')).toBe('not installed');
 	});
 
-	it('an unreadable store means stock only', async () => {
+	it('an unreadable store means the built-in plugins only', async () => {
 		await initModRuntime({
 			list: () => Promise.reject(new Error('locked')),
 			put: async () => {},
 			delete: async () => {}
 		});
-		expect([...bootedMods().keys()]).toEqual(['stock']);
+		expect([...bootedMods().keys()]).toEqual(['stock', 'sol']);
 	});
 });
