@@ -145,6 +145,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0143 | [Worlds in the web client: the record carries a new world's info, one active world, slots per world, catch-up only on a real calendar](0143-worlds-screen-active-world-record-world-info-and-catch-up.md) | accepted | 2026-10-17 |
 | 0147 | [Milestones in the sim, history from them, achievements as data in a page profile](0147-milestones-in-the-sim-achievements-in-the-page.md) | accepted | 2026-10-18 |
 | 0148 | [Hangar: pre-flight verdict levels, a tool pill without fake tools, and a centre-of-thrust marker](0148-hangar-verdict-levels-tool-pill-and-centre-of-thrust.md) | accepted | 2026-10-18 |
+| 0150 | [Launch facilities are the site's pad and runway buildings, placed by surface position; the choice travels to the flight](0150-launch-facilities-from-buildings-surface-placement-and-the-launch-choice.md) | accepted | 2026-10-18 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
 | 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
