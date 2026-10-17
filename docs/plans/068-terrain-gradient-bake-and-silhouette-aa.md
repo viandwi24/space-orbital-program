@@ -1,8 +1,8 @@
 ---
 id: 068
 title: "Analytic terrain gradients for the bake and anti-aliased silhouettes of the planet pass"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [038, 084]
 phase: 3
 created: 2026-10-17
