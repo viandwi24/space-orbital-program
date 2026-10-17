@@ -1,7 +1,7 @@
 ---
 id: 109
 title: "EVA: crew as actors outside the vessel"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [106, 103]
 phase: 6

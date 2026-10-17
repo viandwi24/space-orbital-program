@@ -117,7 +117,7 @@
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
 | 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | done | Agent 3 | ADR 0100/0181: exact life support under warp, shortages, morale, fatigue, g-load, dose, crew card; handed over as `ready/107` |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
-| 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | in-progress | Agent 1 | ADR 0100: EVA as a vessel |
+| 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | done | Agent 1 | ADR 0100: EVA as a vessel |
 | 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | done | Agent 3 | ADR 0102: descriptors, groups, custom groups |
 | 111 | [Vessel panel: Overview with group control, Parts with per-part actions](plans/111-vessel-panel-group-and-part-control.md) | draft | — | ADR 0102: Overview group switches, Parts tab |
 | 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | draft | — | ADR 0102: declarative mod panels, SDK canvas, dock |
@@ -208,6 +208,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [109 — EVA: crew as actors outside the vessel](journal/109-eva-crew-outside-the-vessel.md)
 - [122 — The Sun as root, axial tilt and seasons](journal/122-sun-root-axial-tilt-seasons.md)
 - [067 — Floating, sinking and boats: buoyancy on the sea and on lakes](journal/067-buoyancy-floating-and-sinking.md)
 - [093 — UI stage 4: the Hangar in the refs layout](journal/093-ui-stage-4-hangar.md)

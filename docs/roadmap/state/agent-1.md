@@ -17,7 +17,7 @@
 | 113 mission-center | done | `lead/113-mission-center` | 2026-10-17 | merged c21d52b, cp/f4-113-mission-center |
 | 122 sun | done | `lead/122-sun-seasons` | 2026-10-17 | merged b33f76a, cp/f5-122-sun |
 | 096 building-levels | todo |  |  |  |
-| 109 eva | in-progress | `lead/109-eva` | 2026-10-18 | claim/109 |
+| 109 eva | done | `lead/109-eva` | 2026-10-17 | merged 912d3e3, cp/f3-109-eva |
 | 097 markets | todo |  | 2026-10-17 | draft refined |
 | 071 second-planet | todo |  |  |  |
 | 125 n-body | todo |  |  |  |
