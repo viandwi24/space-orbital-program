@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/mod-stock",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Stock content written with the public SDK: resources, modules, parts, home planet. The reference mod.",
 	"type": "module",

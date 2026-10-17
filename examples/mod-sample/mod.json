@@ -5,5 +5,6 @@
 	"title": "Sample mod",
 	"description": "A telemetry beacon, a wide tank and an engine with its own model, with a script that pings the beacon. The reference for modders.",
 	"author": "Orbital",
+	"licence": "Apache-2.0",
 	"dependencies": { "stock": "*" }
 }

@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/sim",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Headless simulation loop: fixed timestep, flight/on-rails modes, staging, vessel assembly. Runs in Bun or a Web Worker.",
 	"type": "module",

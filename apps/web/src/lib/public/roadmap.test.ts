@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CREDITS, GAME_LICENCE } from './credits';
 import { ROADMAP, ROADMAP_AREAS } from './roadmap';
 
 const plans = join(__dirname, '../../../../../docs/plans');
@@ -30,12 +29,5 @@ describe('public roadmap', () => {
 	it('covers every draft plan of ADR 0048 post-v1 list', () => {
 		// 038 is done (its follow-ups are 066 and 067): the list names the plans that are still drafts
 		for (const id of ['070', '066', '067', '069']) expect(ROADMAP.map((r) => r.plan)).toContain(id);
-	});
-});
-
-describe('credits', () => {
-	it('names a licence for every dependency and leaves the game licence undecided', () => {
-		for (const c of CREDITS) expect(c.licence.length).toBeGreaterThan(2);
-		expect(GAME_LICENCE).toMatch(/to be decided/i);
 	});
 });

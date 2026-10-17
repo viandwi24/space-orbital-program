@@ -2,7 +2,7 @@
 
 A free, moddable space-flight game that runs in your browser. Build a rocket from parts in a 3D hangar, launch it, fly it to orbit and on to the Moon, plan maneuvers, save your flight, script your vessel and install mods.
 
-**Status:** version 1.0 release candidate. The game is complete as described in [`docs/decisions/0048-v1-public-release-scope.md`](docs/decisions/0048-v1-public-release-scope.md); what is next is on the in-game Roadmap page and in [`docs/STATUS.md`](docs/STATUS.md). The game's licence has not been decided yet (see [Licence](#licence)).
+**Status:** version 1.0 release candidate. The game is complete as described in [`docs/decisions/0048-v1-public-release-scope.md`](docs/decisions/0048-v1-public-release-scope.md); what is next is on the in-game Roadmap page and in [`docs/STATUS.md`](docs/STATUS.md). It is licensed under Apache-2.0 (see [Licence](#licence)).
 
 ## How to play
 

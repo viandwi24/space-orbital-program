@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/scripting",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Scripting sandbox: untrusted player scripts run in QuickJS (WASM) with a limited ship API, a per-tick time budget and validated commands. Runs in Bun, a Worker or the main thread.",
 	"type": "module",

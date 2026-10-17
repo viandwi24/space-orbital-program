@@ -56,3 +56,8 @@ export function patchValueLabel(value: unknown): string {
 export function patchChangeLabel(change: PatchChange): string {
 	return `${patchValueLabel(change.from)} → ${patchValueLabel(change.to)}`;
 }
+
+/** The licence a mod states in its manifest (plan 075), or "not stated". */
+export function licenceLabel(manifest: { licence?: string }): string {
+	return manifest.licence ?? 'not stated';
+}

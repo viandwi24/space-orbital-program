@@ -39,6 +39,34 @@ const rangeSchema = z.string().refine((r) => {
 	}
 }, 'expected a version range such as "^0.1", "~1.2" or "*"');
 
+const SPDX_OPERATORS: ReadonlySet<string> = new Set(['AND', 'OR', 'WITH']);
+
+/**
+ * An SPDX licence id or expression (`MIT`, `Apache-2.0`, `MIT OR Apache-2.0`, `GPL-2.0+`,
+ * `LicenseRef-acme`, with parentheses). Checks the shape, not the SPDX list: the mod manager shows
+ * what the author wrote (plan 075).
+ */
+export function isSpdxExpression(text: string): boolean {
+	const tokens = text.replace(/[()]/g, ' $& ').trim().split(/\s+/);
+	let depth = 0;
+	let expectId = true;
+	for (const t of tokens) {
+		if (t === '(') {
+			if (!expectId) return false;
+			depth++;
+		} else if (t === ')') {
+			if (expectId || --depth < 0) return false;
+		} else if (SPDX_OPERATORS.has(t)) {
+			if (expectId) return false;
+			expectId = true;
+		} else {
+			if (!expectId || !/^[A-Za-z0-9][A-Za-z0-9.-]*\+?$/.test(t)) return false;
+			expectId = false;
+		}
+	}
+	return depth === 0 && !expectId;
+}
+
 /** What a mod says about itself, readable before any of its code runs. */
 export const modManifestSchema = z.strictObject({
 	id: pluginIdSchema,
@@ -49,6 +77,15 @@ export const modManifestSchema = z.strictObject({
 	description: z.string().max(500).optional(),
 	author: z.string().max(80).optional(),
 	homepage: z.string().max(300).optional(),
+	/** The mod's licence as an SPDX id or expression (plan 075); absent means "not stated". */
+	licence: z
+		.string()
+		.max(64)
+		.refine(
+			isSpdxExpression,
+			'expected an SPDX licence id or expression such as "MIT" or "MIT OR Apache-2.0"'
+		)
+		.optional(),
 	/** Other plugins this one needs: plugin id to version range. Built-ins (`stock`) count. */
 	dependencies: z.record(pluginIdSchema, rangeSchema).default({})
 });

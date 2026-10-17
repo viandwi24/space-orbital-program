@@ -9,6 +9,7 @@
 	import {
 		assetLabel,
 		dependencyList,
+		licenceLabel,
 		shortHash,
 		sizeLabel,
 		sourceLabel,
@@ -78,7 +79,9 @@
 					<li data-state={status.kind}>
 						<div class="main">
 							<strong>{record.manifest.title ?? record.id}</strong>
-							<span class="num dim">{record.id} {record.manifest.version}</span>
+							<span class="num dim"
+								>{record.id} {record.manifest.version} · licence {licenceLabel(record.manifest)}</span
+							>
 							{#if record.manifest.description}<span class="dim">{record.manifest.description}</span
 								>{/if}
 							<span
@@ -172,6 +175,8 @@
 				<dd class="num">{p.package.manifest.id} {p.package.manifest.version}</dd>
 				<dt>Author</dt>
 				<dd>{p.package.manifest.author ?? 'not stated'}</dd>
+				<dt>Licence</dt>
+				<dd class="num">{licenceLabel(p.package.manifest)}</dd>
 				<dt>Mod API</dt>
 				<dd class="num">{p.package.manifest.api}</dd>
 				<dt>Needs</dt>

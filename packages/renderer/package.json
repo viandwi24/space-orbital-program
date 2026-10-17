@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/renderer",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Three.js renderer: floating origin, log depth, vessel/body meshes, map view. Reads sim state only.",
 	"type": "module",
