@@ -29,6 +29,7 @@ export * from './terrain-gradient.ts';
 export * from './sites.ts';
 export * from './site-templates.ts';
 export * from './comms.ts';
+export * from './categories.ts';
 export * from './moon-terrain.ts';
 export * from './body-terrain.ts';
 export * from './stones.ts';
