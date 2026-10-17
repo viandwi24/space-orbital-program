@@ -42,26 +42,31 @@ Achievement criteria are evaluated in the page from sim events (they span worlds
 
 ## Steps
 
-1. Milestones and history in the sim.
-2. Achievements and profile in the page.
-3. Toasts and exports.
+1. ADR 0147.
+2. Core: `MilestoneRecord`, `SaveMilestones` (optional in format 5), `milestone:reached`, `AchievementDefinition` registry; SDK `defineAchievement`; API_VERSION bump.
+3. Sim: `milestones.ts` detector after steps and rails chunks, `return` at recovery, reputation through the ledger, save, resume, snapshot.
+4. Stock: a starter set of achievements.
+5. Web: the worker forwards `milestone:reached`; ceremony toast; achievements evaluated in the page; profile store (IndexedDB) with export and import; history and export on the Worlds screen.
+6. Tests, guide, journal, handover.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: the headless ascent records "first orbit of <home>" exactly once, with the day.
-- [ ] vitest: an achievement unlocked in one world stays unlocked in another; export then import restores the profile.
-- [ ] vitest: the history export contains one line per milestone in day order.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [ ] `packages/sim` test: the headless ascent records "first orbit of <home>" exactly once, with its time; `launch` before it; a save and resume keeps the record and does not record it again.
+- [ ] `packages/sim` test: a first with the economy on pays reputation once, with cause `milestone`.
+- [ ] vitest: an achievement unlocked in one world stays unlocked in another; export then import restores the profile; import merges, keeping the earliest unlock.
+- [ ] vitest: the history export (Markdown) contains one line per milestone in time order with its calendar date; the JSON export parses back to the records.
+- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass; smoke e2e.
 
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/102-milestones-history-and-achievements.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0147; `docs/guides/writing-a-mod.md` (achievements).
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this plan edits `routes/worlds` and the world save of plan 087.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 089/093/112/094 in the lane: those wait for unmerged 076, 069 and 088 (their `depends`); 102 depends only on merged plans.
+- 2026-10-18 — Refined: kinds that exist now (launch, orbit, flyby, landing, return, crewed variants), Steps and measurable criteria, ADR 0147. EVA, docking, station, relay and sample return come with their systems.
