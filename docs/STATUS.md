@@ -92,7 +92,7 @@
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | done | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | done | Agent 3 | ADR 0099/0101: data kinds, storage, items |
-| 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
+| 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
 | 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | done | Agent 2 | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | draft | — | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
