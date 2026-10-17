@@ -7,9 +7,11 @@
 import {
 	importModBundle,
 	installModSdk,
+	loadPlugins,
 	modPackageFingerprint,
 	resolveMods,
 	type ModBundle,
+	type PatchReport,
 	type Plugin
 } from '@orbital/core';
 import * as sdk from '@orbital/sdk';
@@ -37,9 +39,17 @@ export interface ModRuntime {
 	bundles: ModBundle[];
 	/** Checked `.glb` bytes by part definition id, for parts whose `visual.asset` names a file a mod ships (ADR 0076). */
 	partAssets: Map<string, Uint8Array>;
+	/** Every data patch of the booted set, in apply order, with what it changed (plan 079). */
+	patches: PatchReport[];
 }
 
-const EMPTY: ModRuntime = { entries: [], plugins: [], bundles: [], partAssets: new Map() };
+const EMPTY: ModRuntime = {
+	entries: [],
+	plugins: [],
+	bundles: [],
+	partAssets: new Map(),
+	patches: []
+};
 let current: ModRuntime = EMPTY;
 
 export interface EvaluateOptions {
@@ -86,6 +96,15 @@ export async function evaluateMods(
 		const asset = resolved.assets.get(ref.mod)?.get(ref.path);
 		if (asset) partAssets.set(ref.part, asset.bytes);
 	}
+	// The booted set loads once more, headless, for what its patches changed: the same list and
+	// order the sim boots, so the mod manager shows what a flight will use.
+	const builtin = options.builtin ?? [Stock];
+	let patches: PatchReport[] = [];
+	try {
+		patches = loadPlugins([...builtin, ...resolved.plugins]).report.patches;
+	} catch {
+		patches = [];
+	}
 	return {
 		entries: records.map((record) => ({
 			record,
@@ -93,7 +112,8 @@ export async function evaluateMods(
 		})),
 		plugins: resolved.plugins,
 		bundles: candidates.filter((b) => bootedIds.has(b.manifest.id)),
-		partAssets
+		partAssets,
+		patches
 	};
 }
 

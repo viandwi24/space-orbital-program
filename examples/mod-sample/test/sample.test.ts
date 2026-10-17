@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
 	importModBundle,
 	installModSdk,
+	loadPlugins,
 	parseModPackage,
 	partId,
 	resolveMods,
@@ -171,5 +172,34 @@ describe('the sample external mod, built and loaded the way the game does', () =
 		expect(calls).toHaveLength(6);
 		expect(calls[0]).toEqual([7, 'sample.beacon', 'ping']);
 		expect(lines).toHaveLength(6);
+	});
+});
+
+describe('the sample patch (plan 079)', () => {
+	test('the built package raises stock.engine-lv thrust and the report names the sample', async () => {
+		const { plugins } = await resolve();
+		const { registries, report } = loadPlugins([Stock, ...plugins]);
+		const engine = registries.parts.get('stock.engine-lv')!;
+		const config = engine.modules!.find(([id]) => id === 'stock.engine')![1] as { thrust: number };
+		expect(config.thrust).toBe(230_000);
+		expect(report.patches).toEqual([
+			{
+				id: 'sample.engine-lv-thrust',
+				by: 'sample',
+				target: 'part',
+				applied: ['stock.engine-lv'],
+				changes: [
+					{
+						entry: 'stock.engine-lv',
+						path: 'modules.stock.engine.thrust',
+						from: 215_000,
+						to: 230_000
+					}
+				]
+			}
+		]);
+		expect(report.provenance.part['stock.engine-lv']).toEqual({
+			'modules.stock.engine.thrust': ['stock', 'sample']
+		});
 	});
 });

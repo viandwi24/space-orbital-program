@@ -33,6 +33,28 @@ describe('the mod runtime', () => {
 		expect(runtime.bundles.map((b) => b.manifest.id)).toEqual(['good']);
 	});
 
+	it("keeps the booted set's data patches for the mod manager (plan 079)", async () => {
+		const patch = `ctx.patches.register({ id: 'tuner.thrust', target: 'part', select: { id: 'stock.engine-lv' }, ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: 230000 }] });`;
+		const runtime = await evaluateMods(
+			[
+				await recordOf('tuner', { order: 0, code: pluginSource('tuner', '1.0.0', patch) }),
+				await recordOf('off', { order: 1, enabled: false, code: pluginSource('off', '1.0.0', patch.replace('tuner.', 'off.')) })
+			],
+			{ importModule: importCode }
+		);
+		expect(runtime.patches).toEqual([
+			{
+				id: 'tuner.thrust',
+				by: 'tuner',
+				target: 'part',
+				applied: ['stock.engine-lv'],
+				changes: [
+					{ entry: 'stock.engine-lv', path: 'modules.stock.engine.thrust', from: 215_000, to: 230_000 }
+				]
+			}
+		]);
+	});
+
 	it('feeds the catalogue and the list of booted mods; a failing mod does not stop the game', async () => {
 		const store = memoryModStore();
 		await store.put(await recordOf('good'));
