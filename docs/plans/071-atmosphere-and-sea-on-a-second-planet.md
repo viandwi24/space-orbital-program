@@ -48,17 +48,18 @@ A mod's second planet is a place and not only a ground: with an `atmosphere` in 
 
 ## Acceptance criteria
 
-- [ ] Renderer test: a later hills body's CPU height equals the sim's field (`createBodyTerrainField` of the same world) at sample directions, flat zone included; two seeds give different heights; the bake materials carry the zone and shift uniforms.
-- [ ] Renderer test: a later body with `atmosphere` gets the air programs and a sky shell, an airless one neither; the environment's sky ambient over it is not black; optical depth scales with surface pressure (home unchanged).
-- [ ] Browser (M5): a mod planet with an atmosphere shows a sky at its surface and a lit limb from orbit; two seeds differ; sea glint visible; the GPU bake matches the CPU field (patch readback, within 0.5 m); frame time on the body within ADR 0053's budget (`high` 14.4 ms).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Renderer test: a later hills body's CPU height equals the sim's field (`createBodyTerrainField` of the same world) at sample directions, flat zone included; two seeds give different heights; the bake materials carry the zone and shift uniforms.
+- [x] Renderer test: a later body with `atmosphere` gets the air programs and a sky shell, an airless one neither; the environment's sky ambient over it is not black; optical depth scales with surface pressure (home unchanged).
+- [x] Browser (M5): a mod planet with an atmosphere shows a sky at its surface and a lit limb from orbit; two seeds differ; sea glint visible; the GPU bake matches the CPU field (patch readback, within 0.5 m); frame time on the body within ADR 0053's budget (`high` 14.4 ms).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR, `writing-a-mod.md`.
+- [x] STATUS, journal, ADR, `writing-a-mod.md`.
 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 059 (found, not done).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0103, 0097: needed by the Sol pack; sites replace the per-body landing spot).
 - 2026-10-18 — Claimed by Agent 1 and refined: ADR 0121; found while reading that the GPU bake, the CPU twin and the sim of a later hills body use three different seeds and zones (fixed by point 1).
+- 2026-10-18 — Done (Agent 1): terrain spec, air, sea, hills shadows. GPU bake against the float64 field 0.018 m worst (mid); frame times 5 to 8 ms on a scratch mod planet (`high`, budget 14.4 ms). Journal [071](../journal/071-atmosphere-and-sea-on-a-second-planet.md).

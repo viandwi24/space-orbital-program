@@ -321,6 +321,12 @@ ctx.achievements.register(defineAchievement({
 - **A kept vessel** has a module with `keep: true`: it is never removed as resting debris. `plant-flag` spawns the first registered part with such a module beside a standing suit.
 - A module's `onRecover` also runs when its suit boards a vessel: what it credits then goes into that vessel's sample locker and counts at the vessel's recovery.
 
+## A second hills planet (API 0.1.51, plan 071, ADR 0121)
+
+- **Its own continents:** `terrain: { kind: 'hills', seed: 11 }` gives the planet its own biome map and noise. Without a `seed` a later hills body takes the world's terrain seed mixed with its id (`hillsSeedOf`), so two planets never share continents; the home planet keeps the world's seed.
+- **Air:** an `atmosphere` (`scaleHeight`, `surfacePressure`, `height`) now draws a sky from the surface, haze over the ground and a lit limb from orbit, and the light on the planet comes through it. Optical depth follows the surface pressure (101 325 Pa is the home planet's look).
+- **Sea and shadows** come with the hills kind: water reflects the sky and the sun, and the terrain casts shadows near the camera.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
