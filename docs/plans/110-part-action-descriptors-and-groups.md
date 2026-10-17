@@ -72,3 +72,4 @@ Size: descriptors for a 100-part vessel stay under 8 kB in the snapshot (measure
 - 2026-10-17 — Implemented as refined. Measured: snapshot actions of a 100-part vessel are 4 618 bytes. The descriptor and group zod schemas live in `schemas.ts`, which avoids an import cycle with `action-groups.ts`.
 - 2026-10-17 — Rebased after the 084 merge (clean); 084 took `API_VERSION` 0.1.33, so 110 is 0.1.34.
 - 2026-10-17 — Handed over as `ready/110`. The two 084 goldens that fail here also fail on pure `main` on this machine; reported in the handover.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ 77be982 (ADR index and SDK export conflicts with 080, both kept); `API_VERSION` 0.1.35 (080 took 0.1.34). `bun run test` 1425 pass, 0 fail (the two 084 goldens that fail on Linux pass here: fixed separately) · web vitest 102 files, 895 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed (2.9m).
