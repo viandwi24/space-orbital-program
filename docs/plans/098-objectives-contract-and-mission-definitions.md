@@ -71,3 +71,4 @@ Evaluation cost is O(active objectives) per event; primitives subscribe to the e
 - 2026-10-17 — Implemented as refined. The ascent test completes the orbit objective at 230.48 s, the step the snapshot periapsis passes 80 km.
 - 2026-10-17 — Rebased after the 110 merge and the tick-epoch contract change (registries, plugin, protocol, SDK, stock index, sim commands and snapshot: both sides kept). 110 took `API_VERSION` 0.1.35, so 098 is 0.1.36.
 - 2026-10-17 — Handed over as `ready/098`; the handover text is the tag message.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ 109e04e (list-tail conflicts with 090 in the command union and schema, registry kinds, report, SDK imports, loader test and snapshot: both sides kept); `API_VERSION` 0.1.37 (090 took 0.1.36). `bun run test` 1459 pass, 0 fail · web vitest 105 files, 915 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed.
