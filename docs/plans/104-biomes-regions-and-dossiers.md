@@ -50,19 +50,20 @@ Regions must agree with the drawn ground colours on the home body (same map).
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core/test/regions.test.ts`: `regionAt` on the home body returns `classifyBiome` of the planet map at 1 000 sample directions; cells and bands are deterministic and cover the sphere.
-- [ ] `bun test packages/sim/test/science.test.ts`: the same experiment landed in two regions gives two subjects; a space-high result is `global`.
-- [ ] vitest: the body card shows the atmosphere profile entry after a flying-high result on the home body, and shows it locked before.
+- [x] `bun test packages/core/test/regions.test.ts`: `regionAt` on the home body returns `classifyBiome` of the planet map at 1 000 sample directions; cells and bands are deterministic and cover the sphere.
+- [x] `bun test packages/sim/test/science.test.ts`: the same experiment landed in two regions gives two subjects; a space-high result is `global`.
+- [x] vitest: the body card shows the atmosphere profile entry after a flying-high result on the home body, and shows it locked before.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/104-biomes-regions-and-dossiers.md` written.
-- [ ] `guides/writing-a-mod.md` (regions, dossier entries), `architecture/simulation.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/104-biomes-regions-and-dossiers.md` written.
+- [x] `guides/writing-a-mod.md` (regions, dossier entries), `architecture/simulation.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099).
 - 2026-10-18 — Refined and claimed by Agent 3. Dossiers derive from the saved subjects, so the save does not change. The map overlay moves to draft 192, and the body card goes in the Target panel. Design choices go in ADR 0180.
+- 2026-10-18 — Implemented by Agent 3 and handed over as `ready/104`. Biome regions read the map at the shader's warped coordinates. There is no save change. The card could not be checked in a browser here (no WebGL 2), so it is tested by server rendering. `ship.science` has no region yet. Journal: `journal/104-biomes-regions-and-dossiers.md`.
