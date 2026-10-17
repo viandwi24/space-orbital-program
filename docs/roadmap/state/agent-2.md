@@ -12,7 +12,7 @@
 | 074 rename | done | `devb/074-rename` | 2026-10-17 | merged 3eabc11, cp/f1-074-rename |
 | 081 calendar | done | `devb/081-calendar` | 2026-10-17 | merged 92c0c9f, cp/f1-081-calendar |
 | 084 sites | done | `devb/084-sites` | 2026-10-17 | merged ecc3953, cp/f1-084-sites |
-| 087 worlds-screen | in-progress | `devb/087-worlds-screen` | 2026-10-17 | claim/087 |
+| 087 worlds-screen | done | `devb/087-worlds-screen` | 2026-10-17 | merged 2d7724e, cp/f2-087-worlds-screen |
 | 088 hud | todo |  |  |  |
 | 085 orientation | todo |  |  |  |
 | 076 roadmap-page | todo |  |  |  |
