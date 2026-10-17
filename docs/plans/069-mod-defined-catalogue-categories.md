@@ -1,12 +1,12 @@
 ---
 id: 069
 title: "Mod-defined catalogue categories"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [034, 086]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 069 — Mod-defined catalogue categories
@@ -33,15 +33,29 @@ A mod can add a catalogue category of its own (an id, a label, an icon) and put 
 - **Edits:** `packages/sdk`, `packages/core`, `mods/stock`, `apps/web/src/lib/vab`, `apps/web/src/lib/catalog.ts`
 - **Shared contracts:** SDK (`defineCategory`; additive)
 
+## Steps
+
+1. ADR 0146 (done at claim).
+2. Core: `CategoryDefinition` and its schema (`categories.ts`), `registries.categories`, `ctx.categories`, the `category` patch section; part `catalog.category` and `ModuleInfo.category` accept a category id or a short name; `resolveCategoryId`. API_VERSION bump.
+3. SDK: `defineCategory`, re-exports. Stock: the nine categories registered through it.
+4. Web: `lib/editor/categories.ts` reads the registries (`categoriesOf(registries)`, `categoryOf` returns an id); the catalogue rail draws a named icon or path data; the first-flight guide and the existing tests move to ids.
+5. Tests, the mod guide, journal, handover.
+
 ## Acceptance criteria
 
-- [ ] To be made measurable at refinement (schema test, catalogue tab list with a mod category in order, a mod with an unknown icon still loads).
+- [ ] Core schema test: a category with a named icon and one with path data parse; an id that is not `<plugin>.<name>`, an empty label, a non-finite order, path data with other characters or over 1 024 characters are refused; a part names a category id or a short name — `bun test packages/core`.
+- [ ] Stock test: the rail's categories for stock alone are exactly the nine, in the order command, tanks, propulsion, structural, aero, control, landing, thermal, other — `bun test mods/stock` and web vitest.
+- [ ] Mod test (web vitest, `mod-awareness.test.ts`): a mod's category with order 350 appears between structural and aero, its part sits in it, a part naming an unregistered category sits in Other, and a category with an unknown icon name loads and renders the fallback icon.
+- [ ] `definePatch` can relabel a stock category (core test).
+- [ ] Existing catalogue behaviour unchanged for stock parts (the category of every stock part is the same as before, as an id) — `state.test.ts`.
+- [ ] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`; smoke e2e.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR, `docs/guides/writing-a-mod.md`.
+- [ ] STATUS row, journal `docs/journal/069-mod-defined-catalogue-categories.md`, ADR 0146, `docs/guides/writing-a-mod.md`.
 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 034 (found, not done).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0107, 0104: base for the refs Hangar category rail).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2); refined: Steps, measurable criteria, ADR 0146.

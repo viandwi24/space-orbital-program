@@ -139,6 +139,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0141 | [The calendar lives on the root body, the epoch counts SI days from J2000, a fictional year needs an orbit](0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) | accepted | 2026-10-17 |
 | 0142 | [Sites: the terrain seed, flat zones from sites, and placement at a pad](0142-sites-terrain-seed-zones-and-placement.md) | accepted | 2026-10-17 |
 | 0143 | [Worlds in the web client: the record carries a new world's info, one active world, slots per world, catch-up only on a real calendar](0143-worlds-screen-active-world-record-world-info-and-catch-up.md) | accepted | 2026-10-17 |
+| 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |
 | 0172 | [Data items: shape, ids, value curve, and where storage lives](0172-data-items-shape-ids-value-curve-and-storage.md) | accepted | 2026-10-17 |
