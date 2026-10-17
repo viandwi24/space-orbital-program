@@ -42,10 +42,19 @@ export function throttleAnchor(
 	viewport: Viewport,
 	deckHeight: number,
 	scriptOpen: boolean,
-	leftStackBottom: number
+	leftStackBottom: number,
+	/** Right edge of the open dock panel (plan 112), px; 0 when no panel is open. */
+	dockRight = 0
 ): { left: number; centre: number } {
-	const left = scriptOpen ? EDGE + scriptPanelWidth(viewport.width) + EDGE : EDGE - 4;
-	const spanTop = scriptOpen ? EDGE : Math.max(EDGE, leftStackBottom + EDGE);
+	// beside an open panel the throttle has the full height; otherwise it sits under the left stack
+	const beside = dockRight > 0 || scriptOpen;
+	const left =
+		dockRight > 0
+			? dockRight + EDGE
+			: scriptOpen
+				? EDGE + scriptPanelWidth(viewport.width) + EDGE
+				: EDGE - 4;
+	const spanTop = beside ? EDGE : Math.max(EDGE, leftStackBottom + EDGE);
 	const spanBottom = Math.max(spanTop, viewport.height - Math.max(0, deckHeight) - EDGE);
 	return { left, centre: (spanTop + spanBottom) / 2 };
 }

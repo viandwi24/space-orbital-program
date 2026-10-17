@@ -85,6 +85,14 @@ describe('the sample external mod, built and loaded the way the game does', () =
 		);
 	});
 
+	test('its dock panel is registered from the bundle (plan 112, ADR 0149)', async () => {
+		const sim = await flying();
+		const panel = sim.registries.panels.get('sample.beacon')!;
+		expect(panel.title).toBe('Beacon');
+		expect(panel.contexts).toEqual(['flight', 'map']);
+		expect(typeof panel.canvas?.draw).toBe('function');
+	});
+
 	test('the package ships the model the engine part names, hashed inside the fingerprint', async () => {
 		expect(Object.keys(pkg.assets ?? {})).toEqual(['models/spike-engine.glb']);
 		expect(pkg.formatVersion).toBe(2);

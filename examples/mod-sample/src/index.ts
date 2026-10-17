@@ -1,4 +1,13 @@
-import { defineModule, definePart, definePatch, definePlugin, kg, kN, z } from '@orbital/sdk';
+import {
+	defineModule,
+	definePart,
+	definePanel,
+	definePatch,
+	definePlugin,
+	kg,
+	kN,
+	z
+} from '@orbital/sdk';
 
 // A mod cannot import stock's code, so it declares the shape of the stock config it uses; the loader
 // still validates it against stock's real schema.
@@ -156,6 +165,56 @@ export const PatchEngineThrust = definePatch({
 	ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: kN(230) }]
 });
 
+/**
+ * A dock panel (plan 112, ADR 0149): readouts and a sparkline bound to the panel input, a button that
+ * returns a command, and a small canvas drawn through `PanelCanvas`. No DOM: only `@orbital/sdk`.
+ */
+export const PanelBeacon = definePanel({
+	id: 'sample.beacon',
+	title: 'Beacon',
+	icon: { path: 'M12 3v6M8.5 6.5a5 5 0 0 0 7 0M5.5 4a9 9 0 0 0 13 0M12 9l-4 12h8Z' },
+	order: 600,
+	contexts: ['flight', 'map'],
+	view: {
+		kind: 'section',
+		title: 'Flight',
+		children: [
+			{
+				kind: 'readout',
+				label: 'Altitude',
+				value: (i) => (i.altitude === null ? null : Math.round(i.altitude)),
+				unit: 'm'
+			},
+			{
+				kind: 'readout',
+				label: 'Speed',
+				value: (i) => (i.speed === null ? null : Math.round(i.speed)),
+				unit: 'm/s'
+			},
+			{ kind: 'sparkline', label: 'Altitude trend', value: (i) => i.altitude },
+			{
+				kind: 'button',
+				label: 'Next stage',
+				command: (i) => (i.vessel ? { type: 'stage', vessel: i.vessel.id } : null)
+			}
+		]
+	},
+	canvas: {
+		height: 48,
+		draw(c, i) {
+			c.clear();
+			// a beacon light that blinks once a second of sim time
+			const on = Math.floor(i.time) % 2 === 0;
+			c.fillStyle(on ? '#7bd88f' : '#3a3a40');
+			c.beginPath();
+			c.arc(24, c.height / 2, 8, 0, Math.PI * 2);
+			c.fill();
+			c.fillStyle('#a1a1aa');
+			c.fillText(on ? 'Beacon on' : 'Beacon off', 44, c.height / 2 + 4, 11);
+		}
+	}
+});
+
 export default definePlugin({
 	meta: { id: 'sample', version: '1.0.0', api: '^0.1', title: 'Sample mod' },
 	depends: ['stock'],
@@ -165,5 +224,6 @@ export default definePlugin({
 		ctx.parts.register(PartWideTank);
 		ctx.parts.register(PartSpikeEngine);
 		ctx.patches.register(PatchEngineThrust);
+		ctx.panels.register(PanelBeacon);
 	}
 });

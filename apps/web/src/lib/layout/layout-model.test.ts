@@ -43,6 +43,11 @@ describe('the touch throttle never sits under the script panel, the guide or the
 	it('open, the guide is beside it, so the span starts at the top margin', () => {
 		expect(throttleAnchor(vp, 262, true, 215).centre).toBe((EDGE + 768 - 262 - EDGE) / 2);
 	});
+	it('beside any open dock panel (plan 112): past its right edge, the full height', () => {
+		const a = throttleAnchor(vp, 262, false, 600, 300);
+		expect(a.left).toBe(300 + EDGE);
+		expect(a.centre).toBe((EDGE + 768 - 262 - EDGE) / 2);
+	});
 	it('a deck taller than the screen leaves a centre that is still a number', () => {
 		const a = throttleAnchor(vp, 9999, false, 300);
 		expect(Number.isFinite(a.centre)).toBe(true);

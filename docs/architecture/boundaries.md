@@ -16,7 +16,7 @@ These rules are what make the stack upgradeable later (ADR 0001, 0003). A plan t
 | `mods/*`, `examples/*` (external sample mods, built into packages by `tools/mod-build`) | `@orbital/sdk` **only** in `src` (their tests may also use `core`, `sim`, `mod-stock` and the build tool) | `core`, `sim`, `physics`, `renderer`, DOM in `src` |
 | `apps/web` | anything | — |
 
-Enforcement: each package's `tsconfig.json` sets `lib` to `["ESNext"]` (no DOM) except `renderer` and `apps/web`. Dependency lists in `package.json` are the second line of defence: do not add a dependency that the table forbids. A lint rule will be added when it pays for itself (track in plans).
+Enforcement: each package's `tsconfig.json` sets `lib` to `["ESNext"]` (no DOM) except `renderer` and `apps/web`. Dependency lists in `package.json` are the second line of defence: do not add a dependency that the table forbids. A lint rule will be added when it pays for itself (track in plans). Mod panels draw through `PanelCanvas` (plan 112, ADR 0149), an SDK interface the page adapts to a real canvas, so a mod that draws still compiles without the DOM `lib`.
 
 ## Environment rules
 
