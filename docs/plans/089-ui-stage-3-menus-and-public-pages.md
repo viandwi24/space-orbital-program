@@ -48,7 +48,7 @@ Pure restyle: no data or route changes beyond the Home card.
 
 ## Acceptance criteria
 
-- [ ] `bun run e2e` smoke passes in the three engines; keyboard-only test opens Settings and returns focus to the menu.
+- [x] `bun run e2e` smoke passes in the three engines; keyboard-only test opens Settings and returns focus to the menu.
 - [x] vitest: the last-world card renders `[—]` for a world without a flight summary.
 - [x] Screenshots of Home, Settings, Mods, Credits, Roadmap in `docs/journal/assets/089-*.png` with the self-review.
 - [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
