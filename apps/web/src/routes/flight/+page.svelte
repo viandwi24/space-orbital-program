@@ -1,4 +1,10 @@
 <script lang="ts">
+	import { sortPanels, type PanelDefinition, type PanelInput } from '@orbital/core';
+	import Dock from '../../lib/dock/Dock.svelte';
+	import ModPanel from '../../lib/dock/ModPanel.svelte';
+	import PanelLibrary from '../../lib/dock/PanelLibrary.svelte';
+	import { addPanel, railOf, removePanel, togglePanel } from '../../lib/dock/dock-model';
+	import Panel from '../../lib/ui/Panel.svelte';
 	import type { WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
 	import { profileStore } from '../../lib/achievements/store';
@@ -78,7 +84,31 @@
 	/** The problem is a save that would not load, not a missing design. */
 	let loadFailed = $state(false);
 	let flight: Flight | null = null;
-	let scriptOpen = $state(false);
+	// The dock (plan 112, ADR 0149): a rail of panels, one open; the script editor is one of them.
+	let dockShown = $state(true);
+	const scriptOpen = $derived(dockShown && settings.dock.open === 'host.script');
+	let libraryOpen = $state(false);
+	/** Panels mods registered, read on the main thread with the content. */
+	let modPanels = $state.raw<PanelDefinition[]>([]);
+	let panelInput = $state.raw<PanelInput | null>(null);
+	const HOST: { id: string; title: string; icon: string; order: number }[] = [
+		{ id: 'host.orbit', title: 'Orbit', icon: 'orbit', order: 100 },
+		{ id: 'host.resources', title: 'Resources', icon: 'tank', order: 200 },
+		{ id: 'host.target', title: 'Target', icon: 'navball', order: 300 },
+		{ id: 'host.script', title: 'Script', icon: 'script', order: 500 }
+	];
+	const allPanels = $derived(
+		sortPanels([...HOST, ...modPanels.filter((p) => p.contexts.includes('flight'))])
+	);
+	const rail = $derived(railOf(allPanels, settings.dock));
+	function openPanel(id: string): void {
+		dockShown = true;
+		settings.setDock(addPanel(settings.dock, id));
+	}
+	function toggleScript(): void {
+		if (scriptOpen) settings.setDock({ ...settings.dock, open: null });
+		else openPanel('host.script');
+	}
 	/** Compiles the script for the editor's syntax check; null before the flight starts. */
 	let checker: ScriptChecker | null = null;
 	const checkSyntax = (text: string) => checker?.check(text) ?? Promise.resolve(undefined);
@@ -181,7 +211,8 @@
 				presets.find((p) => p.id === `stock.${record.preset}`);
 			world = { name: record.name, mode: preset?.label ?? record.preset, system: 'Stock system' };
 		});
-		const { catalog, content } = loadContent();
+		const { catalog, content, panels } = loadContent();
+		modPanels = panels;
 		const timer = setInterval(() => {
 			void autosave(autosaver.tick(saveState()));
 			if (flight) catchUp = flight.catchUp(Date.now());
@@ -258,7 +289,7 @@
 			const token = tokenFromHash(location.hash);
 			if (token === null) return;
 			history.replaceState(null, '', location.pathname + location.search);
-			scriptOpen = true;
+			openPanel('host.script');
 			void decodeScript(token).then((decoded) => {
 				if (decoded.ok) importScript(decoded.source, { from: 'link' });
 				else notice = `The link was not imported: ${decoded.reason}.`;
@@ -281,7 +312,11 @@
 			...(world ? { world } : {}),
 			content,
 			profile: profileStore(),
-			onHud: (h) => (hud = h),
+			onHud: (h) => {
+				hud = h;
+				// dock panels read the same 10 Hz update (ADR 0149 point 2)
+				if (dockShown) panelInput = flight?.panelInput() ?? null;
+			},
 			onScript: (v) => (script = v),
 			onGraphics: (p) => (graphics = p),
 			sandbox: scriptSandbox,
@@ -521,32 +556,70 @@
 						onskip={() => settings.setTutorial(skip(settings.tutorial))}
 					/>
 				{/if}
-				{#if scriptOpen}
-					<div class="script">
-						<ScriptPanel
-							{source}
-							script={shown}
-							{canRun}
-							{imported}
-							{sandbox}
-							{notice}
-							vesselName={designName}
-							check={checkSyntax}
-							onchange={setSource}
-							onrun={() => {
-								ranSource = source;
-								flight?.runScript(source);
-							}}
-							onstop={() => flight?.stopScript()}
-							onsample={loadSample}
-							onimport={importScript}
-							onundo={undoImport}
-							onconfirmed={() => {
-								imported = null;
-								backup = null;
-							}}
-						/>
-					</div>
+				{#if dockShown}
+					<Dock
+						entries={rail}
+						open={settings.dock.open}
+						ontoggle={(id) => settings.setDock(togglePanel(settings.dock, id))}
+						onlibrary={() => (libraryOpen = true)}
+					>
+						{#snippet body(id: string)}
+							{#if id === 'host.script'}
+								<div class="script">
+									<ScriptPanel
+										{source}
+										script={shown}
+										{canRun}
+										{imported}
+										{sandbox}
+										{notice}
+										vesselName={designName}
+										check={checkSyntax}
+										onchange={setSource}
+										onrun={() => {
+											ranSource = source;
+											flight?.runScript(source);
+										}}
+										onstop={() => flight?.stopScript()}
+										onsample={loadSample}
+										onimport={importScript}
+										onundo={undoImport}
+										onconfirmed={() => {
+											imported = null;
+											backup = null;
+										}}
+									/>
+								</div>
+							{:else if !model}
+								<!-- the HUD has not started yet -->
+							{:else if id === 'host.orbit'}
+								<OrbitStrip orbit={model.orbit} phase={model.phase} />
+							{:else if id === 'host.resources'}
+								<ResourcesPanel resources={model.resources} />
+							{:else if id === 'host.target'}
+								<TargetPanel
+									target={model.target}
+									choices={model.targets}
+									controllable={model.controllable}
+									rendezvous={model.rendezvous}
+									dossier={model.dossier}
+									onselect={(key) => flight?.setTarget(key)}
+									onplan={(aid) => flight?.planAid(aid)}
+								/>
+							{:else}
+								{@const panel = modPanels.find((p) => p.id === id)}
+								{#if panel}
+									<Panel title={panel.title}>
+										<ModPanel
+											{panel}
+											input={panelInput}
+											oncommand={(c) => void flight?.command(c)}
+										/>
+									</Panel>
+								{/if}
+							{/if}
+						{/snippet}
+					</Dock>
 				{/if}
 			</div>
 
@@ -570,27 +643,14 @@
 					nav={navOpen}
 					onmenu={() => (pauseOpen = true)}
 					onmap={() => flight?.toggleMap()}
-					onscript={() => (scriptOpen = !scriptOpen)}
+					onscript={toggleScript}
+					dock={dockShown}
+					ondock={() => (dockShown = !dockShown)}
 					onhelp={() => (helpOpen = true)}
 					onstaging={() => (stagingOpen = !stagingOpen)}
 					onnav={() => (navOpen = !navOpen)}
 				/>
 			</div>
-			{#if model}
-				<div class="tr">
-					<ResourcesPanel resources={model.resources} />
-					<OrbitStrip orbit={model.orbit} phase={model.phase} />
-					<TargetPanel
-						target={model.target}
-						choices={model.targets}
-						controllable={model.controllable}
-						rendezvous={model.rendezvous}
-						dossier={model.dossier}
-						onselect={(key) => flight?.setTarget(key)}
-						onplan={(id) => flight?.planAid(id)}
-					/>
-				</div>
-			{/if}
 			{#if model && stagingOpen}
 				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
 				<div class="bl" class:stowed={scriptOpen && viewport.width <= 1279}>
@@ -656,6 +716,19 @@
 			{#if hud.autopilot}<p class="dev num">Dev autopilot: {hud.autopilot}</p>{/if}
 		</div>
 
+		<PanelLibrary
+			open={libraryOpen}
+			panels={allPanels.map((p) => ({
+				id: p.id,
+				title: p.title,
+				icon: p.icon,
+				by: p.id.startsWith('host.') ? 'The game' : p.id.slice(0, p.id.indexOf('.'))
+			}))}
+			chosen={settings.dock.panels}
+			onset={(id, on) =>
+				settings.setDock(on ? addPanel(settings.dock, id) : removePanel(settings.dock, id))}
+			onclose={() => (libraryOpen = false)}
+		/>
 		<PauseMenu
 			open={pauseOpen}
 			name={model?.name ?? ''}
@@ -792,25 +865,6 @@
 		align-items: center;
 		gap: var(--s-3);
 		pointer-events: none;
-	}
-	.tr {
-		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
-		right: calc(var(--margin-hud) + var(--safe-right));
-		width: 16.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-2);
-		max-height: calc(100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap));
-		overflow: auto;
-		overscroll-behavior: contain;
-	}
-	/* Below this width the instrument deck reaches under the side columns (plan 035 added a target
-	   card to it): the right column scrolls above the measured deck, and the maneuver and orbit
-	   strip stand on top of it, instead of sliding under it (plan 055). */
-	@media (max-width: 1279px) {
-		.tr {
-			max-height: var(--above-deck, calc(100% - 24px - 290px));
-		}
 	}
 	.bl {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));

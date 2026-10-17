@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { panelInputOf } from './dock/panel-input';
 import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
 import type { ProfileStore } from './achievements/store';
 import {
@@ -14,7 +15,13 @@ import {
 	type VesselDesign,
 	type WorldInfo
 } from '@orbital/core';
-import { calendarOf, homeBodyOf, type BodyDefinition, type CommandResult } from '@orbital/core';
+import {
+	calendarOf,
+	homeBodyOf,
+	type BodyDefinition,
+	type CommandResult,
+	type PanelInput
+} from '@orbital/core';
 import {
 	QualityGovernor,
 	createRenderer,
@@ -170,6 +177,10 @@ export interface Flight {
 	setModal(open: boolean): void;
 	/** Pixels of the view the interface panels cover; the camera centres the vessel in the rest (plan 023). */
 	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
+	/** What dock panel selectors read now (plan 112, ADR 0149 point 2); null before the first snapshot. */
+	panelInput(): PanelInput | null;
+	/** A command from a dock panel; the sim validates it, a refusal shows as a toast. */
+	command(command: Command): Promise<boolean>;
 	dispose(): void;
 }
 
@@ -913,6 +924,8 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	return {
+		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
+		command: (command) => send(command),
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);

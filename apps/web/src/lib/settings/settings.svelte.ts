@@ -3,6 +3,7 @@
  * reads the stored value once on the client; every setter persists. Units are applied to the display
  * layer immediately; the key map is derived from the bindings and read by the flight and VAB handlers.
  */
+import { defaultDock, type DockChoice } from '../dock/dock-model';
 import { setUnitSystem, type UnitSystem } from '../units.svelte';
 import { applyInterface } from '../ui/root-theme';
 import {
@@ -36,6 +37,8 @@ class SettingsStore {
 	touch = $state<TouchChoice>('auto');
 	/** UI scale and high contrast (plan 086), applied to the document root. */
 	ui = $state<InterfaceSettings>({ ...DEFAULT_INTERFACE });
+	/** The flight dock's rail and open panel (plan 112). */
+	dock = $state<DockChoice>(defaultDock());
 	/** Handlers read this; it follows `bindings`. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings));
 	#started = false;
@@ -54,6 +57,7 @@ class SettingsStore {
 		this.audio = settings.audio;
 		this.touch = settings.touch;
 		this.ui = settings.interface;
+		this.dock = settings.dock;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -70,7 +74,8 @@ class SettingsStore {
 			bindings: this.bindings,
 			audio: { ...this.audio },
 			touch: this.touch,
-			interface: { ...this.ui }
+			interface: { ...this.ui },
+			dock: { panels: [...this.dock.panels], open: this.dock.open }
 		};
 	}
 
@@ -127,6 +132,12 @@ class SettingsStore {
 
 	setTouch(choice: TouchChoice): void {
 		this.touch = choice;
+		this.#save();
+	}
+
+	/** The dock changed (plan 112): rail and open panel. */
+	setDock(dock: DockChoice): void {
+		this.dock = dock;
 		this.#save();
 	}
 

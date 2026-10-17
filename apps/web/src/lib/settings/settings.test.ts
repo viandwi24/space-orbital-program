@@ -1,3 +1,4 @@
+import { defaultDock } from '../dock/dock-model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	SETTINGS_KEY,
@@ -29,7 +30,8 @@ describe('settings parsing', () => {
 			bindings: { stage: ['KeyG'], help: ['F1'] },
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
 			touch: 'on' as const,
-			interface: { scale: 1.25, highContrast: true }
+			interface: { scale: 1.25, highContrast: true },
+			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' }
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -67,8 +69,19 @@ describe('settings parsing', () => {
 		expect(parseSettings(JSON.stringify(v2))).toEqual({
 			...v2,
 			v: 3,
-			interface: { scale: 1, highContrast: false }
+			interface: { scale: 1, highContrast: false },
+			dock: defaultDock()
 		});
+	});
+	it('a format 3 value without a dock, or with a damaged one, takes the default dock (plan 112)', () => {
+		const { dock: _dock, ...old } = defaultSettings();
+		expect(parseSettings(JSON.stringify({ ...old, units: 'imperial' }))).toEqual({
+			...defaultSettings(),
+			units: 'imperial'
+		});
+		expect(
+			parseSettings(JSON.stringify({ ...defaultSettings(), dock: { panels: 'x' } })).dock
+		).toEqual(defaultDock());
 	});
 	it('repairs the interface: scale outside 80 to 150 % is the default, a value between steps snaps', () => {
 		const at = (iface: unknown) =>
