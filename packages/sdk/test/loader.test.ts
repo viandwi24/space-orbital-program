@@ -259,7 +259,8 @@ describe('registration and report', () => {
 			'ground-station': [],
 			'dossier-entry': [],
 			category: [],
-			achievement: []
+			achievement: [],
+			panel: []
 		});
 	});
 

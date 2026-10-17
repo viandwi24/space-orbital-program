@@ -7,6 +7,7 @@ import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
+	PanelDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
 	AntennaDefinition,
@@ -323,3 +324,15 @@ export const defineCategory = (def: CategoryDefinition): CategoryDefinition => d
  * `ctx.achievements`.
  */
 export const defineAchievement = (def: AchievementDefinition): AchievementDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// definePanel
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A dock panel (plan 112, ADR 0149): a declarative view of sections, readouts, meters, switches,
+ * buttons, lists and sparklines, each reading a `PanelInput` (snapshot, active vessel, altitude,
+ * speed, time) through a pure selector; buttons and switches return a command the sim validates.
+ * An optional canvas is drawn through `PanelCanvas`. Register with `ctx.panels`.
+ */
+export const definePanel = (def: PanelDefinition): PanelDefinition => def;

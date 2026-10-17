@@ -25,6 +25,7 @@ export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
+export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
 export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
@@ -176,6 +177,15 @@ export type {
 	SiteConsequences,
 	SiteTemplateCriteria,
 	SiteTemplateDefinition,
+	AchievementCriteria,
+	AchievementDefinition,
+	MilestoneKind,
+	MilestoneRecord,
+	PanelCanvas,
+	PanelContext,
+	PanelDefinition,
+	PanelInput,
+	PanelNode,
 	ExperimentDefinition,
 	ExperimentStatus,
 	ScienceSubject,

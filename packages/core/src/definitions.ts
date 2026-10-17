@@ -3,6 +3,7 @@
  * `define*` functions on top of these; the data-only kinds (resource, body, part) are validated
  * by the schemas in `schemas.ts`.
  */
+import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type * as z from 'zod';
@@ -101,6 +102,8 @@ export interface ReadonlyRegistries {
 	categories: ReadonlyRegistry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
 	achievements: ReadonlyRegistry<AchievementDefinition>;
+	/** Dock panels (plan 112, ADR 0149). */
+	panels: ReadonlyRegistry<PanelDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
