@@ -66,6 +66,13 @@ After every step (`soi.ts`, `applySoiTransitions`): a vessel leaves a child for 
 
 **Trajectory provider (plan 080, ADR 0173).** Every orbit prediction goes through one `TrajectoryProvider` (`@orbital/kepler`, `trajectory.ts`), bound to the body list: `predict`, `predictWithManeuvers`, `stateAt`, `bodyState`, `propagate`, the track helpers, `closestApproach`, `closestApproachOnTrack`, `conicClosestApproach` and `crossing`. `createSim` builds `SimCore.trajectory` with `createTrajectoryProvider(worldInfo.gravityModel, bodies)`. Only `patched` exists, and an `n-body` world is a `SaveError` (`incompatible`, "n-body worlds are not available yet"). The sim's node prediction, SOI crossings and target approach call it. The web client's map path and rendezvous aids reach it through `trajectoryFor(bodies)`, one cached provider per body list. The patched provider forwards to the existing functions unchanged, and goldens recorded before the move (`packages/sim/test/trajectory-golden.test.ts`, `apps/web/src/lib/trajectory-golden.test.ts`) pin the numbers. A rails state is a single conic by definition, so `railsMotion` and `stateInParent` still propagate it with `kepler.propagate` directly; an n-body world (plan 125) changes the rails representation itself.
 
+**Path models (plan 123, ADR 0183).** `orbit.model` is `kepler` (the default fixed conic on the world's time), `kepler-rates` or `series`:
+
+- `kepler-rates` is elements at `epoch` with SI rates per second and a `meanMotion`. It is JPL Level A, and `levelAElements` converts a Table 1 row.
+- `series` is sine and cosine series of ecliptic longitude, latitude and parallax, as in the Almanac Moon.
+
+The J2000 models run on `τ = t + world epoch offset` (`BodyRuntime.timeOffset`). `stateInParent` dispatches through kepler's `bodyPathState` and caches per time. Code that needs a conic takes `elementsAt(body, t)`, the osculating elements now: the target's approach, and the trajectory provider's body list, refreshed after every step (`refreshPatchedBodies`). SOI crossings bisect on `stateInParent` as before, so an entry follows the real path. The elements in `orbit` stay the mean conic, which sizes the sphere of influence. Scripts, the planner and the renderer read the mean conic until 124.
+
 ## Frames and precision
 
 See `units-and-frames.md`. BCI float64 is authoritative; flight runs in a local frame that moves at constant velocity (`bci = origin + local`, velocities relative to `frame.velocity`) and re-anchors when the focus vessel is 1 km from the origin. One frame holds a cluster of vessels (a decoupled stage stays with its parent); a vessel loaded or woken within 2.5 km joins an active frame, otherwise it needs a free one (`maxFlightFrames`).

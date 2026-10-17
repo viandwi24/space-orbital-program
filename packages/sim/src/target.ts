@@ -24,7 +24,7 @@ import {
 	type OrbitalElements,
 	type StateVector
 } from '@orbital/kepler';
-import { bodyOfVessel, stateInParent, type BodyRuntime } from './bodies.ts';
+import { bodyOfVessel, elementsAt, stateInParent, type BodyRuntime } from './bodies.ts';
 import { vesselIds, vesselOf, type SimCore } from './core.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 import { VESSEL, type TargetState, type VesselState } from './state.ts';
@@ -87,7 +87,7 @@ function approachOf(
 	if (ref.kind === 'body') {
 		const body = core.bodies.get(ref.id);
 		// A moon or planet that orbits the vessel's own primary: the pre-encounter conic (the map shows the encounter itself).
-		if (body?.parent === soi) theirs = body.elements;
+		if (body?.parent === soi) theirs = elementsAt(body, core.t);
 	} else if (other && other.soi === vessel.soi) {
 		theirs = vesselElements(core, other);
 	}

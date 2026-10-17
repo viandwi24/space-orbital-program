@@ -15,9 +15,10 @@ import {
 	normalize,
 	type ManeuverInput,
 	type ManeuverNodeResult,
+	type OrbitalElements,
 	type PatchedBody
 } from '@orbital/kepler';
-import type { BodyRuntime } from './bodies.ts';
+import { elementsAt, type BodyRuntime } from './bodies.ts';
 import { vesselIds, vesselOf, type SimCore } from './core.ts';
 import { motionOf } from './orbit.ts';
 import type { ManeuverNodeState, VesselState } from './state.ts';
@@ -38,6 +39,19 @@ export function patchedBodiesOf(bodies: ReadonlyMap<string, BodyRuntime>): Patch
 		radius: b.def.radius,
 		...(b.parent && b.elements ? { parent: b.parent.def.id, orbit: b.elements } : {})
 	}));
+}
+
+/**
+ * Bodies on a path model are on a conic only for a while (ADR 0183 point 6): after each step their
+ * entries in the provider's list take the osculating elements at the current time.
+ */
+export function refreshPatchedBodies(core: SimCore): void {
+	for (const entry of core.trajectory.bodies) {
+		const body = core.bodies.get(entry.id);
+		if (!body?.path) continue;
+		const orbit = elementsAt(body, core.t);
+		if (orbit) (entry as { orbit?: OrbitalElements }).orbit = orbit;
+	}
 }
 
 /** The bodies of the sim as `kepler` wants them (the provider's list, built once per sim). */

@@ -206,8 +206,39 @@ export const bodyDefinitionSchema = z.object({
 			raan: z.number(),
 			argp: z.number(),
 			m0: z.number(),
-			epoch: z.number()
+			epoch: z.number(),
+			/**
+			 * Path model (plan 123, ADR 0183): `kepler` (default, a fixed conic on the world's time),
+			 * `kepler-rates` (elements at `epoch` s from J2000 with `rates`) or `series` (`series`).
+			 */
+			model: z.enum(['kepler', 'kepler-rates', 'series']).optional(),
+			rates: z
+				.object({
+					a: z.number().optional(),
+					e: z.number().optional(),
+					i: z.number().optional(),
+					raan: z.number().optional(),
+					argp: z.number().optional(),
+					meanMotion: z.number()
+				})
+				.optional(),
+			series: z
+				.object({
+					longitude: z.object({
+						base: z.tuple([z.number(), z.number()]),
+						terms: z.array(z.tuple([z.number(), z.number(), z.number()]))
+					}),
+					latitude: z.object({ terms: z.array(z.tuple([z.number(), z.number(), z.number()])) }),
+					parallax: z.object({
+						base: z.number().positive(),
+						terms: z.array(z.tuple([z.number(), z.number(), z.number()]))
+					}),
+					parentRadius: z.number().positive()
+				})
+				.optional()
 		})
+		.refine((o) => o.model !== 'kepler-rates' || o.rates !== undefined, 'kepler-rates needs rates')
+		.refine((o) => o.model !== 'series' || o.series !== undefined, 'series needs series')
 		.optional()
 });
 
