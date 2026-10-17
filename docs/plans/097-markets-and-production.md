@@ -13,47 +13,55 @@ updated: 2026-10-17
 
 ## Goal
 
-Commodities have prices that respond to supply and demand on the world tick with damping and caps; a production building (propellant plant) turns inputs into a commodity with upkeep and power; the player buys propellant at market price or makes it; services (launch, comms capacity, data, crew seats, insurance) are priced by the same market model when their systems exist. The career bot stays inside its band with markets on.
+Commodities have prices that respond to supply and demand on the world tick with damping and caps; a production building (propellant plant, 090) turns power and upkeep into propellant in site storage; the player buys propellant at market price or makes it, and can sell surplus; services (launch, comms capacity, data, crew seats, insurance) are registered as commodities with fixed prices until their systems exist. The career bot stays inside its band with markets on.
 
 ## Context
 
-- ADRs: 0098
-- Read: ADR 0098 points 1 and 2 and the guardrails, `refs/reverse-engineering-ksp2/beyond/03-world-and-economy-dynamics.md` §2.2 (git-ignored).
-- Start with one commodity (propellant) and one chain; add more only after the first is fun (ADR 0098 guardrail).
+- ADRs: 0098 (points 1 and 2, guardrails), 0096 (world tick), 0110, 0111; an ADR at claim for the market model numbers if they change below
+- Read: plan 095 (ledger, `vesselCost`, resource `price`, career bot), plan 096 (building levels, upkeep, storage capacity), plan 082 (world tick, PRNG streams), `refs/reverse-engineering-ksp2/beyond/03-world-and-economy-dynamics.md` §2.2.
+- Start with one chain (propellant: liquid fuel and oxidizer) and add more only after the first is fun (ADR 0098 guardrail).
 
 ## Scope
 
 **In:**
-- `defineCommodity`, `defineRecipe` (inputs, outputs, time, power, building); stock propellant chain.
-- Market model: price = base × f(stock / target) with a per-tick change cap and saturation for repeated sales; world demand curves as data.
-- Fuel at launch bought at the market price or drawn from site storage.
-- Economy panel data: price history, cause on hover (ledger).
+- **`defineCommodity`** `{ id, label, unit, basePrice, resource?, market: { target, elasticity, cap, floor, ceiling, relaxDays } | 'fixed' }`: a commodity tied to a `resource` sets that resource's price for launches (replacing 095's static `price` while markets are on). Stock: `stock.liquid-fuel` and `stock.oxidizer` (resource-backed, base 0.8 and 0.18 as in 095), and fixed-price services `stock.launch-service`, `stock.comms-capacity`, `stock.data`, `stock.crew-seat`, `stock.insurance` (price only, no trade yet).
+- **`defineRecipe`** `{ id, building, inputs: Record<commodity|'power', perDay>, outputs: Record<commodity, perDay> }`: stock `stock.propellant-synthesis` in `stock.propellant-plant`, 200 liquid fuel and 245 oxidizer per day at level 1 (×2, ×4 at levels 2, 3), power from the building level (096).
+- **Market model** (pure, core `market.ts`), once per world tick for each traded commodity, in this order: (1) world demand relaxes stock toward target, `stock += (target − stock) × (1 − e^(−1/relaxDays))`; (2) the day's player trades and production change `stock`; (3) `raw = base × (target / max(stock, 1))^elasticity`, clamped to `[floor × base, ceiling × base]`; (4) the new price moves from the old one by at most `cap × old`. Stock values: target 50 000 units, elasticity 0.5, cap 0.05 per day, floor 0.4, ceiling 2.5, relaxDays 30. No PRNG (ADR 0098: deterministic unless a recipe declares variance).
+- **Market state** `SimSave.economy.markets = { [commodity]: { price, stock, history } }` (`history`: the last 90 daily prices), additive inside 095's `economy` field.
+- **Site storage** per site and commodity, capacity from the storage-providing building's level (096); production stops at capacity.
+- **Trades:** commands `market-buy` and `market-sell { commodity, amount, site }`, priced at today's price, ledger entries `stock.market-buy` / `stock.market-sell` with the price in `ref`; refused when funds or storage are short. **Launch fuel:** at `load-vessel`, contents are drawn from the launch site's storage first and the rest bought at the market price (two ledger entries: parts at `vesselCost` without contents, fuel at market).
+- **Production:** each tick a powered plant whose upkeep was paid that day (096's charge accepted) adds its outputs to storage; unpaid upkeep or no power means nothing that day, with a "Needs attention" reason for the HUD.
+- **Economy panel data** (snapshot or a query): price, stock, 90-day history and the ledger causes behind today's change.
+- Markets are off with `stock.economy` off (Sandbox): no trades, no production costs, fuel free.
 
-**Out:** agencies as market actors (126); interplanetary logistics (128).
+**Out:** agencies as market actors (126); interplanetary logistics (128); more chains (ore, metals) until the propellant chain is judged fun by a human pass; a market UI beyond the panel data (a later UI plan).
 
 ## Touches
 
 - **Size:** L
-- **Edits:** `packages/core`, `packages/sdk`, `packages/sim`, `mods/stock`, `apps/web/src/routes/space-center`
-- **Shared contracts:** **SDK (`defineCommodity`, `defineRecipe`), save (stocks, prices)**
+- **Edits:** `packages/core` (`market.ts` new, commodity and recipe schemas and registries), `packages/sdk` (`defineCommodity`, `defineRecipe`), `packages/sim` (market tick system, trades, launch fuel, storage), `mods/stock` (commodities, recipe), `apps/web/src/routes/space-center` (panel data only)
+- **Shared contracts:** **SDK (`defineCommodity`, `defineRecipe`), save (`economy.markets`, site storage; additive), protocol (`market-buy`, `market-sell`)**
 
 ## Design notes
 
-Prices and stocks are deterministic tick functions; no PRNG unless a recipe declares variance (from its stream).
+Prices and stocks are deterministic tick functions of the day's inputs, so a resumed world prices the same. The model is the same for every commodity; numbers are data, patchable (079). The career bot of 095 gains a policy: buy fuel at launch, and from year 2 build a propellant plant and sell surplus whenever the price is above base.
 
 ## Steps
 
-1. Commodity and recipe registries.
-2. Market model with tests for damping and caps.
-3. Propellant plant and site storage.
-4. Career-bot band test with markets on.
+1. Commodity and recipe registries; stock data.
+2. `market.ts` with tests for relaxation, damping, caps, floor and ceiling.
+3. Site storage, the propellant plant recipe on the tick, upkeep and power gates.
+4. Trades, launch fuel from storage then market, ledger entries.
+5. Career-bot band test with markets; panel data.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: selling the same commodity every day lowers its price by at most the cap per tick and saturates at the stated floor.
-- [ ] `packages/sim` test: a propellant plant produces exactly rate × days when powered and nothing when upkeep is unpaid.
-- [ ] Career-bot test with markets: funds stay in the band; no income source exceeds the stated share.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [ ] `packages/core` test: selling 10 000 units every day lowers the price by at most 5 % per tick and settles at `0.4 × base`; stopping the sales lets the price return toward base as the stock relaxes (hand-computed table for 10 days).
+- [ ] `packages/sim` test: a level 1 propellant plant with power and paid upkeep adds exactly 200 × days liquid fuel and 245 × days oxidizer to storage, stops at capacity, and adds nothing on a day its upkeep was refused.
+- [ ] `packages/sim` test: a launch draws its fuel from site storage first and buys the rest at today's price; the two ledger entries add up to the debit.
+- [ ] `packages/sim` resume test: markets and storage resume byte for byte after 30 days of trades.
+- [ ] Career-bot test with markets on, 10 game years: funds stay between 25 000 and 500 000; no income source (budget, recovery, sales) exceeds 80 % of income (099 lowers this when contracts exist); under 30 s in Bun on the M5.
+- [ ] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
@@ -65,3 +73,4 @@ Prices and stocks are deterministic tick functions; no PRNG unless a recipe decl
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
+- 2026-10-17 — Refined by Agent 1 while waiting (body only, status stays `draft`): commodity and recipe shapes, a deterministic market model with its stock numbers, storage and upkeep gates, launch fuel from storage then market, trades as commands with ledger entries, measurable criteria tied to 095's career bot and 096's levels.
