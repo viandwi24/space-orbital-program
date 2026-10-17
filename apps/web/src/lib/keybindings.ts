@@ -68,6 +68,17 @@ export const ACTIONS = [
 	flight('Fly', 'stage', 'Fire the next stage', 'Space'),
 	flight('Stability assist (SAS)', 'sasToggle', 'SAS on (hold attitude), off', 'KeyT'),
 	flight('Stability assist (SAS)', 'sasHold', 'Hold attitude', 'Digit1'),
+	// Custom action groups of the design (plan 110, ADR 0174 point 5): the number pad by default.
+	flight('Action groups', 'customGroup1', 'Custom group 1', 'Numpad1'),
+	flight('Action groups', 'customGroup2', 'Custom group 2', 'Numpad2'),
+	flight('Action groups', 'customGroup3', 'Custom group 3', 'Numpad3'),
+	flight('Action groups', 'customGroup4', 'Custom group 4', 'Numpad4'),
+	flight('Action groups', 'customGroup5', 'Custom group 5', 'Numpad5'),
+	flight('Action groups', 'customGroup6', 'Custom group 6', 'Numpad6'),
+	flight('Action groups', 'customGroup7', 'Custom group 7', 'Numpad7'),
+	flight('Action groups', 'customGroup8', 'Custom group 8', 'Numpad8'),
+	flight('Action groups', 'customGroup9', 'Custom group 9', 'Numpad9'),
+	flight('Action groups', 'customGroup10', 'Custom group 10', 'Numpad0'),
 	flight('Stability assist (SAS)', 'sasPrograde', 'Prograde', 'Digit2'),
 	flight('Stability assist (SAS)', 'sasRetrograde', 'Retrograde', 'Digit3'),
 	flight('Stability assist (SAS)', 'sasNormal', 'Normal', 'Digit4'),
@@ -123,6 +134,12 @@ const slotsOf = (a: ActionSpec): BindingScope[] =>
 	a.global ? ['flight', 'vab'] : [scopeOf(a.mode)];
 
 const BY_ID = new Map<string, ActionSpec>(ACTIONS.map((a) => [a.id, a]));
+/** The slot (1..10) of a custom-group action, or undefined (plan 110). */
+export function customGroupSlot(id: string): number | undefined {
+	const m = /^customGroup(\d+)$/.exec(id);
+	return m ? Number(m[1]) : undefined;
+}
+
 export const isActionId = (id: string): id is ActionId => BY_ID.has(id);
 export const actionSpec = (id: ActionId): ActionSpec => BY_ID.get(id)!;
 
@@ -451,6 +468,29 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: [], fixed: ['Ctrl+Z', 'Ctrl+Y'], text: 'Undo, redo' },
 			{ actions: [], fixed: ['Ctrl+S'], text: 'Save to the library' },
 			{ actions: [], fixed: ['Esc'], text: 'Let go of the part, clear the selection' }
+		]
+	},
+	{
+		id: 'groups',
+		title: 'Action groups',
+		mode: 'flight',
+		rows: [
+			{
+				actions: [
+					'customGroup1',
+					'customGroup2',
+					'customGroup3',
+					'customGroup4',
+					'customGroup5',
+					'customGroup6',
+					'customGroup7',
+					'customGroup8',
+					'customGroup9',
+					'customGroup10'
+				],
+				range: true,
+				text: 'Custom action groups 1 to 10 of the design'
+			}
 		]
 	}
 ];

@@ -34,7 +34,9 @@ import {
 	saveGraphicsPreset
 } from './graphics';
 import { modeForAction } from './hud/sas-model';
-import { DEFAULT_KEYMAP, keyIdOf, type ActionId, type Keymap } from './keybindings';
+import { DEFAULT_KEYMAP, keyIdOf, type ActionId, type Keymap,
+	customGroupSlot
+} from './keybindings';
 import type { Catalog } from './messages';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
@@ -304,6 +306,21 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'stage':
 				e.preventDefault();
 				if (vessel !== null) void send({ type: 'stage', vessel });
+				break;
+			case 'customGroup1':
+			case 'customGroup2':
+			case 'customGroup3':
+			case 'customGroup4':
+			case 'customGroup5':
+			case 'customGroup6':
+			case 'customGroup7':
+			case 'customGroup8':
+			case 'customGroup9':
+			case 'customGroup10':
+				// A custom group of the design toggles as a whole (plan 110, ADR 0174 point 5).
+				if (vessel !== null) {
+					void send({ type: 'action-group', vessel, group: `custom.${customGroupSlot(action)}` });
+				}
 				break;
 			case 'map':
 				toggleMap();

@@ -68,3 +68,4 @@ Size: descriptors for a 100-part vessel stay under 8 kB in the snapshot (measure
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102).
 - 2026-10-17 — Refined and claimed by Agent 3. The snapshot carries compact action states and group states, not full descriptors: full descriptors for 100 parts do not fit in 8 kB, and the host already derives the static fields with `describeModule` (ADR 0033). Custom groups use slots 1–10 bound to fixed actions `customGroupN`, as KSP's custom groups do. `flight-loop.ts` is added to Edits for the key switch. Design choices go in ADR 0174.
+- 2026-10-17 — The custom group keys default to Numpad 1–9 and 0, not "no default keys": the binding table requires a default key for every action and a help row for every action (existing tests), and the digit row is taken by the SAS modes. ADR 0174 point 5 says so.
