@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/kepler/src/body-path.ts` (new) | `BodyPath` (`kepler`, `kepler-rates`, `series`), `bodyPathState`, `osculatingElements`, `levelAElements`, `AU`, `SECONDS_PER_CENTURY` |
-| `packages/core/src/schemas.ts` | `orbit.model`, `orbit.rates`, `orbit.series`; `API_VERSION` 0.1.49 |
+| `packages/core/src/schemas.ts` | `orbit.model`, `orbit.rates`, `orbit.series`; `API_VERSION` 0.1.50 (109 took 0.1.49) |
 | `packages/sim` | `BodyRuntime.path` and `timeOffset` (world epoch), `stateInParent` dispatch, `elementsAt`, `refreshPatchedBodies` after every step, the target approach on osculating elements |
 | tests | `packages/kepler/test/body-path.test.ts` (6), `packages/sim/test/body-models.test.ts` (3) |
 | docs | ADR 0183, `research/ephemerides.md`, `simulation.md`, mod guide |
