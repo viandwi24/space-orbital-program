@@ -3,7 +3,7 @@ id: 130
 title: "Part reliability (world rule, off by default)"
 status: draft
 owner: ""
-depends: [078, 095]
+depends: [078, 095, 109, 090]
 phase: 9
 created: 2026-10-17
 updated: 2026-10-17
@@ -60,3 +60,4 @@ Failure draws use a dedicated PRNG stream so enabling reliability does not chang
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0094, 0100).
+- 2026-10-17 — `depends` gains 109, 090 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): repair is by an EVA engineer (plan 109) and the test stand is a building (plan 090).

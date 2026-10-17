@@ -3,7 +3,7 @@ id: 065
 title: "Richer mod models: deploy animations, KTX2, per-model LOD"
 status: draft
 owner: ""
-depends: [051, 079, 090]
+depends: [051, 079, 090, 110, 091]
 phase: 3
 created: 2026-10-17
 updated: 2026-10-17
@@ -52,3 +52,4 @@ A model a mod ships can do what a generated part does and cost what a generated 
 - 2026-10-17 — Created as draft by plan 051 (found, not done).
 - 2026-10-17 — Plan 040 pushed its KTX2 item here with the bundle numbers above (it adds `KTX2Loader` only when an asset needs it).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0104, 0097, 0102: buildings get models too; typed LOD fields; deploy from action state).
+- 2026-10-17 — `depends` gains 110, 091 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): item 1 reads the action state of plan 110 and item 3 covers the building models of plan 091.

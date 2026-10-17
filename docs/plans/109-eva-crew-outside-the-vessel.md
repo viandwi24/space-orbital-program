@@ -3,7 +3,7 @@ id: 109
 title: "EVA: crew as actors outside the vessel"
 status: draft
 owner: ""
-depends: [106]
+depends: [106, 103]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -64,3 +64,4 @@ The suited crew member is a vessel like any other so saves, targets and the map 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0100).
+- 2026-10-17 — `depends` gains 103 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the surface sample action goes through the science core of plan 103.

@@ -3,7 +3,7 @@ id: 116
 title: "Comms tier 2: link budget, bands, data rates, comms scale"
 status: draft
 owner: ""
-depends: [114]
+depends: [114, 115]
 phase: 7
 created: 2026-10-17
 updated: 2026-10-17
@@ -64,3 +64,4 @@ Rate ladder steps keep numbers readable (for example 1 kbit/s to 1 Gbit/s in dec
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101).
+- 2026-10-17 — `depends` gains 115 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the link inspector UI lives in the Comms tab of plan 115.

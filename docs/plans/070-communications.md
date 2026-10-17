@@ -3,7 +3,7 @@ id: 070
 title: "Communications: index of the comms tier plans 114 to 121"
 status: draft
 owner: ""
-depends: [040]
+depends: [040, 114, 115, 116, 117, 118, 119, 120, 121]
 phase: 7
 created: 2026-10-17
 updated: 2026-10-17
@@ -54,3 +54,4 @@ A vessel can lose its link, and the network becomes a game: this is the index of
 
 - 2026-10-17 — Created as draft by plan 040 (found, not done).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0101): the plan becomes the index of the comms tier plans 114 to 121; its earlier scope (link model, delay, loss of control, HUD, SDK hook) is covered and superseded by them.
+- 2026-10-17 — `depends` gains 114, 115, 116, 117, 118, 119, 120, 121 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this index is done only when plans 114 to 121 are done (its own acceptance criterion).

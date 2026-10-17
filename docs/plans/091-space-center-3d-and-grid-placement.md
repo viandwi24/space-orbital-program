@@ -3,7 +3,7 @@ id: 091
 title: "Space Center in 3D with free grid placement"
 status: draft
 owner: ""
-depends: [090, 086]
+depends: [090, 086, 087]
 phase: 5
 created: 2026-10-17
 updated: 2026-10-17
@@ -66,3 +66,4 @@ Performance budget set here: at the default camera with the stock layout, `high`
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0107).
+- 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): entering a world goes to the Space Center and the e2e criterion enters a world from the Worlds screen of plan 087.

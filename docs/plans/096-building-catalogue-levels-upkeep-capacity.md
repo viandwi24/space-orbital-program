@@ -3,7 +3,7 @@ id: 096
 title: "Buildings with costs, construction time, upkeep and capacity limits"
 status: draft
 owner: ""
-depends: [091, 095]
+depends: [091, 095, 094]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -65,3 +65,4 @@ A test enumerates the flight tools (maneuver nodes, Δv read-outs, map, targets,
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0098).
+- 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch screen of plan 094 reads the capacity limits and this plan edits `routes/launch`.

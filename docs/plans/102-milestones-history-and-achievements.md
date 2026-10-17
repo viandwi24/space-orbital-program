@@ -3,7 +3,7 @@ id: 102
 title: "Milestones, world history and local achievements"
 status: draft
 owner: ""
-depends: [082]
+depends: [082, 087]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -63,3 +63,4 @@ Achievement criteria are evaluated in the page from sim events (they span worlds
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
+- 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this plan edits `routes/worlds` and the world save of plan 087.

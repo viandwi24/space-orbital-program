@@ -3,7 +3,7 @@ id: 100
 title: "Authored missions, the story line and mission packs"
 status: draft
 owner: ""
-depends: [098]
+depends: [098, 087]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -64,3 +64,4 @@ The first-flight guide of plan 023 becomes the first mission.
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
+- 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): a mission pack creates a world and this plan edits `routes/worlds` of plan 087.

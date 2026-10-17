@@ -3,7 +3,7 @@ id: 067
 title: "Floating, sinking and boats: buoyancy on the sea and on lakes"
 status: draft
 owner: ""
-depends: [038]
+depends: [038, 095, 103]
 phase: 3
 created: 2026-10-17
 updated: 2026-10-17
@@ -51,3 +51,4 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 
 - 2026-10-17 — Created as draft by plan 038 (ADR 0072: lakes are solid like the sea for now).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0098, 0097: sea recovery and impact classification use it).
+- 2026-10-17 — `depends` gains 095, 103 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the realignment puts the recovery hook (095) and the "splashed" science situation (103) in scope.

@@ -162,6 +162,8 @@ Decided by the owner on 2026-10-17 ("Fondasi Orbital", ADRs 0094 to 0108). Phase
 - **F5 — Time and the real sky** (phase 8): 122 Sun, tilt and seasons (L), 123 elements with rates and a lunar model (M), 124 Sol pack 1:1 and rescaled (L, after draft 071), 125 n-body (XL, exploring).
 - **F6 — Living world and frontier** (phase 9): 126 AI agencies (L), 127 range safety (M), 128 off-world bases (L), 129 discovery science (L, exploring), 130 part reliability (L), 131 replays and challenges (M).
 
+**Team execution:** three developer agents on three machines (Agent 1 Lead M5, Agent 2 M2, Agent 3 Linux), lanes, checkpoints and start prompts in [`roadmap/README.md`](roadmap/README.md) and [`roadmap/team-development-roadmap.md`](roadmap/team-development-roadmap.md) (estimate ≈ 46 h wall-clock vs ≈ 111 h on one machine; `depends` of 18 plans completed on 2026-10-17, see its Notes for the Lead).
+
 Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 068 (after 084), 069 (base of the Hangar rail), 070 (comms index), 071 (needed by the Sol pack), 072 (after 112), 073 (phones still unsupported).
 
 ## Known issues / open questions

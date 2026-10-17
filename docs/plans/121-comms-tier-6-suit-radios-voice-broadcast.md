@@ -3,7 +3,7 @@ id: 121
 title: "Comms tier 6: suit radios, voice and live broadcasts"
 status: draft
 owner: ""
-depends: [120, 109]
+depends: [120, 109, 108, 102]
 phase: 7
 created: 2026-10-17
 updated: 2026-10-17
@@ -61,3 +61,4 @@ Terrain occlusion for the suit uses the tier 1 terrain test at short range.
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101, 0100).
+- 2026-10-17 — `depends` gains 108, 102 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the crew panel bars are those of plan 108 and broadcasts fire on milestones of plan 102.

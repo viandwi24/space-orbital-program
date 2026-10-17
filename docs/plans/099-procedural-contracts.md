@@ -3,7 +3,7 @@ id: 099
 title: "Procedural contracts"
 status: draft
 owner: ""
-depends: [098, 095]
+depends: [098, 095, 096]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -64,3 +64,4 @@ Expected value uses the Hangar's cost of the cheapest library design that meets 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
+- 2026-10-17 — `depends` gains 096 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): contract slots come from the Administration level of plan 096.

@@ -3,7 +3,7 @@ id: 126
 title: "AI agencies and a living world"
 status: draft
 owner: ""
-depends: [082, 099, 114, 097]
+depends: [082, 099, 114, 097, 117]
 phase: 9
 created: 2026-10-17
 updated: 2026-10-17
@@ -66,3 +66,4 @@ Agency count and aggressiveness are world rules; Sandbox has none.
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0096, 0098).
+- 2026-10-17 — `depends` gains 117 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): renting a rival relay routes a link through it (routing is tier 3, plan 117).

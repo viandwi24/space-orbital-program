@@ -3,7 +3,7 @@ id: 101
 title: "Strategies: bounded policies in Administration"
 status: draft
 owner: ""
-depends: [095]
+depends: [095, 096]
 phase: 6
 created: 2026-10-17
 updated: 2026-10-17
@@ -63,3 +63,4 @@ Every multiplier key is declared with min and max; a strategy exceeding them fai
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
+- 2026-10-17 — `depends` gains 096 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): strategy slots come from the Administration level of plan 096.

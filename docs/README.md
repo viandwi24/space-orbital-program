@@ -21,6 +21,7 @@ This directory is the project's memory. It is designed so that an agent (or huma
 | `journal/` | one entry per executed plan: what happened, surprises, open questions | append-only |
 | `research/` | facts verified from the internet, with date and source | updated whenever something is looked up |
 | `guides/` | how-tos for people building on the project (mod authors) | updated when the SDK or stock changes |
+| `roadmap/` | the three-agent team roadmap: machines, lanes, checkpoints, claims, start prompts (`roadmap/README.md`) | Lead updates `checkpoints.md` and `claims.md` at each merge |
 | `conventions/` | how we write code, tests, versions, docs | rarely |
 | `STATUS.md` | the single living summary | every plan |
 

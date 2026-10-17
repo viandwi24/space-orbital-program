@@ -5,7 +5,7 @@ You are an AI agent working on **Orbital**, a web-based, moddable space-flight g
 ## 1. Orient yourself (every session, in this order)
 
 1. `docs/STATUS.md` — where the project is right now: current plan, last completed plan, open issues.
-2. The plan you are assigned: `docs/plans/NNN-*.md`. If none is assigned, take the lowest-numbered plan with `status: ready`.
+2. The plan you are assigned: `docs/plans/NNN-*.md`. If none is assigned, take the lowest-numbered plan with `status: ready`. If the owner's prompt says "you are Agent 1/2/3", follow `docs/roadmap/README.md` instead (three-agent team mode).
 3. `docs/architecture/boundaries.md` — hard rules. Violating them fails the plan.
 4. `docs/decisions/` — ADRs. Do not re-litigate an accepted decision inside a plan; write a new ADR instead.
 5. The journal entries of the previous one or two plans in `docs/journal/` — context that never made it into code.
@@ -67,6 +67,7 @@ docs/              everything below
 | `docs/architecture/` | how the system is built | when a plan changes structure |
 | `docs/decisions/` | ADRs (numbered, immutable once accepted) | any non-trivial choice |
 | `docs/guides/` | how-tos for mod authors, written from stock | when the SDK or stock changes |
+| `docs/roadmap/` | three-agent team roadmap: lanes, checkpoints, claims, start prompts (entry: `docs/roadmap/README.md`) | when told "you are Agent N", follow its self-routing procedure; only the Lead edits `checkpoints.md`/`claims.md` |
 | `docs/plans/` | numbered plans with acceptance criteria | lifecycle: draft → ready → in-progress → done/blocked |
 | `docs/journal/` | one entry per plan execution: what happened, surprises, open questions | end of every plan |
 | `docs/research/` | verified facts from the internet with date checked | whenever you look something up |

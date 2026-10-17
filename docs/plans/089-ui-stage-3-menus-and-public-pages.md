@@ -3,7 +3,7 @@ id: 089
 title: "UI stage 3: Home, menus, settings and public pages in the refs style"
 status: draft
 owner: ""
-depends: [086, 074]
+depends: [086, 074, 075, 076]
 phase: 5
 created: 2026-10-17
 updated: 2026-10-17
@@ -63,3 +63,4 @@ Pure restyle: no data or route changes beyond the Home card.
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107, 0105).
+- 2026-10-17 — `depends` gains 075, 076 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): it restyles the Credits page of plan 075 and the Roadmap page of plan 076, which edit the same files.
