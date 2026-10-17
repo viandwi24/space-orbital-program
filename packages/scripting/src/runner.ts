@@ -123,6 +123,11 @@ const JOB_BATCH = 256;
 
 /** Lines the runner adds before the script in the compiled function (see `runTick`). */
 const SOURCE_LINE_OFFSET = 2;
+
+/** The script as compiled: the body of an async function in strict mode, so top-level `await` works. */
+export function wrapScript(source: string): string {
+	return `(async function () {\n'use strict';\n${source}\n})`;
+}
 const SCRIPT_FRAME = /\bscript\.js:(\d+)/;
 
 /** The script line a guest stack points at: its first frame in `script.js`, minus the wrapper. */
@@ -131,6 +136,16 @@ export function scriptErrorLine(stack: string | undefined): number | undefined {
 	if (!match) return undefined;
 	const line = Number(match[1]) - SOURCE_LINE_OFFSET;
 	return line >= 1 ? line : undefined;
+}
+
+/** The `script.js:LINE:COLUMN` of a guest stack, mapped to the player's source. */
+export function scriptErrorPosition(
+	stack: string | undefined
+): { line: number; column: number } | undefined {
+	const match = stack === undefined ? null : /\bscript\.js:(\d+):(\d+)/.exec(stack);
+	if (!match) return undefined;
+	const line = Number(match[1]) - SOURCE_LINE_OFFSET;
+	return line >= 1 ? { line, column: Number(match[2]) } : undefined;
 }
 
 /** Rewrite the engine's `script.js:7:13` frames to the line numbers of the player's source. */
@@ -363,7 +378,9 @@ export async function createScriptRunnerIn(
 		} else {
 			const frames = mapFrames((e.stack ?? '').split('\n').slice(0, 12).join('\n'));
 			stop('failed', `${e.guestName}: ${e.message}${frames ? '\n' + frames : ''}`);
-			errorLine = scriptErrorLine(e.stack);
+			const line = scriptErrorLine(e.stack);
+			// An error at the end of the input is reported on the wrapper's closing line: keep it on the script.
+			errorLine = line === undefined ? undefined : Math.min(line, source.split('\n').length);
 		}
 	}
 
@@ -463,7 +480,7 @@ export async function createScriptRunnerIn(
 		if (!started) {
 			started = true;
 			// Two lines come before `source` (SOURCE_LINE_OFFSET): error lines are mapped back.
-			const wrapped = `(async function () {\n'use strict';\n${source}\n})`;
+			const wrapped = wrapScript(source);
 			const compiled = context.evalCode(wrapped, 'script.js');
 			if (compiled.error) {
 				const e = context.dump(compiled.error) as unknown;

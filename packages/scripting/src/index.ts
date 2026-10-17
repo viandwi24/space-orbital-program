@@ -6,6 +6,8 @@
  */
 export { createScriptRunnerIn, scriptErrorLine, MAX_SCRIPT_WARP } from './runner.ts';
 export { createScriptRunner } from './default-module.ts';
+export { checkScriptSyntax } from './syntax.ts';
+export type { SyntaxCheck } from './syntax.ts';
 export type {
 	BodyStateProvider,
 	CommandVerdict,
