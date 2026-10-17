@@ -9,7 +9,8 @@ import {
 	terrainSeedOf,
 	zonesOf,
 	type Command,
-	type CommandResult
+	type CommandResult,
+	hillsSeedOf
 } from '@orbital/core';
 import type { CommandVerdict } from '@orbital/scripting';
 import type { Sim } from '@orbital/sim';
@@ -115,6 +116,20 @@ function worldTerrainOf(sim: Sim): Pick<Catalog, 'terrain' | 'launchSite'> {
 	};
 }
 
+/** The seed and zones of every later hills body (plan 071, ADR 0121 point 1), for the renderer's bakes. */
+function bodyTerrainOf(sim: Sim): Catalog['bodyTerrain'] {
+	const out: NonNullable<Catalog['bodyTerrain']> = {};
+	const worldSeed = terrainSeedOf(sim.worldInfo);
+	for (const b of sim.registries.bodies.list()) {
+		if (b.terrain?.kind !== 'hills' || b.id === sim.home) continue;
+		out[b.id] = {
+			seed: hillsSeedOf(b, worldSeed, false),
+			zones: zonesOf(sitesOf(sim.worldInfo), b.id)
+		};
+	}
+	return out;
+}
+
 export function catalogOf(sim: Sim): Catalog {
 	return {
 		plugins: [...sim.report.order],
@@ -125,6 +140,7 @@ export function catalogOf(sim: Sim): Catalog {
 		achievements: sim.registries.achievements.list(),
 		worldId: sim.worldInfo.id,
 		home: sim.home,
+		bodyTerrain: bodyTerrainOf(sim),
 		...worldTerrainOf(sim)
 	};
 }

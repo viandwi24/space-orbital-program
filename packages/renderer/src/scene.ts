@@ -14,6 +14,8 @@ import type {
 	Vec3,
 	VesselSnapshot
 } from '@orbital/core';
+import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
+import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	Group,
@@ -60,7 +62,12 @@ import {
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { MoonPass } from './moon.ts';
-import { SHADOW_STEPS, terrainSunVisibility } from './terrain-shadow.ts';
+import {
+	HILLS_SHADOW_MARCH,
+	SHADOW_MARCH,
+	SHADOW_STEPS,
+	terrainSunVisibility
+} from './terrain-shadow.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
@@ -121,6 +128,11 @@ export interface SceneConfig {
 	launchSite?: { latitude: number; longitude: number };
 	/** The world's home terrain: seed and the flat zones of its sites (plan 084); default Legacy around `launchSite`. */
 	terrain?: WorldTerrainSpec;
+	/**
+	 * Seeds and flat zones of later hills bodies by id (plan 071, ADR 0121 point 1), from the sim;
+	 * a body without an entry takes `hillsSeedOf` of the world seed above and the Legacy zone.
+	 */
+	bodyTerrain?: Readonly<Record<string, WorldTerrainSpec>>;
 	/** Site mode (plan 091, ADR 0117): the site's buildings come from `setSiteBuildings`. */
 	siteBuildings?: boolean;
 }
@@ -281,11 +293,28 @@ export class SceneModel {
 			} else if (!home && (b.terrain?.kind === 'craters' || b.terrain?.kind === 'hills')) {
 				// A body other than the first whose terrain is craters or hills: the ground pass, the moon
 				// pass with that kind's height function (ADR 0054, 0067, 0090).
-				const moon = new MoonPass(
-					b.id,
-					b.radius,
-					b.terrain.kind === 'hills' ? { kind: 'hills' } : { seed: b.terrain.seed ?? 0 }
-				);
+				// a hills body's terrain spec (ADR 0121 point 1): given by the host, else the same rule as the sim's
+				const hillsTerrain = (): WorldTerrainSpec =>
+					config.bodyTerrain?.[b.id] ?? {
+						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
+						zones: []
+					};
+				const moon = new MoonPass(b.id, b.radius, {
+					...(b.terrain.kind === 'hills'
+						? { kind: 'hills' as const, terrain: hillsTerrain() }
+						: { seed: b.terrain.seed ?? 0 }),
+					// its own air (ADR 0121 point 2)
+					...(b.atmosphere
+						? {
+								atmosphere: atmosphereFor(
+									b.radius,
+									b.atmosphere.height,
+									b.atmosphere.scaleHeight,
+									b.atmosphere.surfacePressure
+								)
+							}
+						: {})
+				});
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
@@ -870,7 +899,8 @@ export class SceneModel {
 							z: activeGroup.position.z
 						}
 					: this.frameState.vesselRender,
-			...(moonUp ? { up: moonUp, airless: true } : {}),
+			// a moon with air lights the scene through its own atmosphere (ADR 0121 point 2)
+			...(moonUp ? { up: moonUp, ...this.moonAir() } : {}),
 			vesselRadius: this.vesselRadius,
 			mapView: this.map,
 			dt
@@ -887,6 +917,7 @@ export class SceneModel {
 	 */
 	private updateMoons(): Vec3 | undefined {
 		let up: Vec3 | undefined;
+		this.activeMoon = null;
 		this.moonSunScale = 1;
 		const sunInertial = this.frameState
 			? this.environment.sunDirection(this.frameState.bodyRotation)
@@ -907,6 +938,7 @@ export class SceneModel {
 			if (active?.soi === id) {
 				const l = Math.hypot(rel.x, rel.y, rel.z);
 				if (l > 0) up = { x: rel.x / l, y: rel.y / l, z: rel.z / l };
+				this.activeMoon = { moon, altitude: l - moon.radius };
 				lit = this.vesselTerrainLight(moon, rot, active.position, sun);
 				this.moonSunScale = lit;
 			}
@@ -915,14 +947,25 @@ export class SceneModel {
 		return up;
 	}
 
+	/** The moon the active vessel is at, from the last `updateMoons`. */
+	private activeMoon: { moon: MoonPass; altitude: number } | null = null;
+
+	/** What the environment hears about the active vessel's moon: its air, or that it has none. */
+	private moonAir(): { airless: true } | { air: { atmosphere: Atmosphere; altitude: number } } {
+		const m = this.activeMoon;
+		return m?.moon.atmosphere
+			? { air: { atmosphere: m.moon.atmosphere, altitude: m.altitude } }
+			: { airless: true };
+	}
+
 	/**
 	 * Share of the sun's light the active vessel gets on a moon: the terrain's sun visibility at its
 	 * place (ADR 0068), at least `MIN_TERRAIN_LIGHT` so a shadowed vessel keeps a trace of sun. Only
 	 * near the ground (the march is for the ground's shadows); recomputed when the vessel or the sun moved.
 	 */
 	private vesselTerrainLight(moon: MoonPass, rot: Quat, position: Vec3, sun: Vec3): number {
-		// the march is the craters' (a hills body draws no terrain shadows, ADR 0090)
-		if (moon.kind !== 'craters') return 1;
+		// the march of the body's kind: the craters' or the hills' (plan 071, ADR 0121 point 4)
+		const march = moon.kind === 'hills' ? HILLS_SHADOW_MARCH : SHADOW_MARCH;
 		const p = rotateInverse(rot, position);
 		const r = Math.hypot(p.x, p.y, p.z);
 		const prev = this.vesselLight;
@@ -947,7 +990,8 @@ export class SceneModel {
 						radius: moon.radius,
 						direction: n,
 						height: Math.max(height, ground + 0.5),
-						sun
+						sun,
+						march
 					})
 				);
 			}

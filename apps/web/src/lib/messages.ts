@@ -42,6 +42,8 @@ export interface Catalog {
 	worldId?: string;
 	/** The home body the sim runs on (plan 122, ADR 0119); only the sim's `ready`. */
 	home?: string;
+	/** Seed and flat zones of each later hills body (plan 071, ADR 0121); only the sim's `ready`. */
+	bodyTerrain?: Record<string, { seed: number; zones: TerrainZone[] }>;
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */

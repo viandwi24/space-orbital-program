@@ -21,6 +21,23 @@ export type BodyTerrainKind = NonNullable<BodyDefinition['terrain']>['kind'];
 export const terrainKindOf = (body: Pick<BodyDefinition, 'terrain'>): BodyTerrainKind | undefined =>
 	body.terrain?.kind;
 
+/**
+ * The terrain seed of a hills body (plan 071, ADR 0121 point 1): its own `terrain.seed`; else the
+ * world's terrain seed for the home body; else the world's mixed with the body id, so two planets do
+ * not share continents. The sim, the renderer's CPU field and its GPU bake all take this one.
+ */
+export function hillsSeedOf(
+	body: Pick<BodyDefinition, 'id' | 'terrain'>,
+	worldSeed: number,
+	home: boolean
+): number {
+	if (body.terrain?.kind === 'hills' && body.terrain.seed !== undefined) return body.terrain.seed;
+	if (home) return worldSeed;
+	let h = 0x811c9dc5;
+	for (let i = 0; i < body.id.length; i++) h = Math.imul(h ^ body.id.charCodeAt(i), 0x01000193);
+	return ((h ^ worldSeed) >>> 0) % 2_147_483_647;
+}
+
 /** The craters seed of a body (0 when it names none). */
 export const cratersSeedOf = (body: Pick<BodyDefinition, 'terrain'>): number =>
 	body.terrain?.kind === 'craters' ? (body.terrain.seed ?? 0) : 0;

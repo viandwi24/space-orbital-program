@@ -41,9 +41,23 @@ export const SHADOW_MARCH = {
 	freeSine: 0.46
 } as const;
 
+/** The constants of one march: the craters' (`SHADOW_MARCH`) or the hills' (`HILLS_SHADOW_MARCH`). */
+export type ShadowMarch = { readonly [K in keyof typeof SHADOW_MARCH]: number };
+
+/**
+ * The march for a hills body (plan 071, ADR 0121 point 4): its ground rises at most 1 per metre
+ * (45 degrees, sine 0.707) and its relief is kilometres, so the free sine and the relief are
+ * larger; the ray still ends inside the mid patch.
+ */
+export const HILLS_SHADOW_MARCH: ShadowMarch = {
+	...SHADOW_MARCH,
+	relief: 1_500,
+	minLength: 150,
+	freeSine: 0.72
+};
+
 /** Length of the ray for a sun whose sine over the horizon at the point is `mu`, m. */
-export function shadowRayLength(mu: number): number {
-	const s = SHADOW_MARCH;
+export function shadowRayLength(mu: number, s: ShadowMarch = SHADOW_MARCH): number {
 	return clamp(s.relief / Math.max(mu, s.minSine), s.minLength, s.maxDistance);
 }
 
@@ -54,7 +68,7 @@ export function shadowStepDistance(
 	steps: number = SHADOW_MARCH.steps
 ): number {
 	const f = i / steps;
-	return SHADOW_MARCH.minDistance + (len - SHADOW_MARCH.minDistance) * f * f;
+	return SHADOW_MARCH.minDistance + (len - SHADOW_MARCH.minDistance) * f * f; // the same for both marches
 }
 
 export interface ShadowInput {
@@ -71,11 +85,13 @@ export interface ShadowInput {
 	lift?: number;
 	/** Steps of the march (default `SHADOW_MARCH.steps`). */
 	steps?: number;
+	/** The march's constants (default the craters', `SHADOW_MARCH`). */
+	march?: ShadowMarch;
 }
 
 /** Sun visibility in 0 (fully shadowed) to 1 (fully lit) at a point of the ground or just above it. */
 export function terrainSunVisibility(input: ShadowInput): number {
-	const s = SHADOW_MARCH;
+	const s = input.march ?? SHADOW_MARCH;
 	const n0 = input.direction;
 	const mu = dot(n0, input.sun);
 	if (mu < s.nightSine) return 0;
@@ -83,7 +99,7 @@ export function terrainSunVisibility(input: ShadowInput): number {
 	const R = input.radius;
 	const hh = input.height + (input.lift ?? s.lift);
 	const r0 = R + hh;
-	const len = shadowRayLength(mu);
+	const len = shadowRayLength(mu, s);
 	let vis = 1;
 	const steps = input.steps ?? s.steps;
 	for (let i = 1; i <= steps; i++) {

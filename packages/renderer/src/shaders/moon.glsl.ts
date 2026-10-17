@@ -13,7 +13,12 @@ import {
 	SEA_LEVEL
 } from '@orbital/core';
 import { STONES } from '@orbital/core';
-import { SHADOW_MARCH as M } from '../terrain-shadow.ts';
+import {
+	HILLS_SHADOW_MARCH,
+	SHADOW_MARCH,
+	SHADOW_MARCH as M,
+	type ShadowMarch
+} from '../terrain-shadow.ts';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
 import { terrainHeightGLSL, terrainNoiseGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 
@@ -365,7 +370,7 @@ export const moonFragmentBump = /* glsl */ `
  * through the baked patch (and, beyond it, the next coarser one). The twin of `terrainSunVisibility`
  * in `terrain-shadow.ts`, with the same constants.
  */
-export const moonShadowCommon = /* glsl */ `
+export const moonShadowCommonFor = (M: ShadowMarch): string => /* glsl */ `
 uniform vec3 uSunBody;
 uniform float uSunScale;
 uniform float uShadowOn;
@@ -429,6 +434,10 @@ float moonSunVisibility(vec2 st, float h0, float lift) {
 	return vis;
 }
 `;
+/** The craters' march (ADR 0068). */
+export const moonShadowCommon = moonShadowCommonFor(SHADOW_MARCH);
+/** A hills body's march (plan 071, ADR 0121 point 4). */
+export const hillsShadowCommon = moonShadowCommonFor(HILLS_SHADOW_MARCH);
 
 /** Written after the bump: the fragment's visibility, relative to the scaled sun light the vessel sees (`uSunScale`). */
 export const moonShadowFragment = (lift: number): string => /* glsl */ `

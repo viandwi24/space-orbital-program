@@ -8,6 +8,7 @@ import {
 	createBodyTerrainField,
 	createMoonTerrainField,
 	GRAVITATIONAL_CONSTANT,
+	LEGACY_TERRAIN_SEED,
 	latLonDirection
 } from '@orbital/core';
 import { length } from '@orbital/kepler';
@@ -35,10 +36,12 @@ const Pebbles = definePlugin({
 		ctx.bodies.register(body('test.pebble', { terrain: { kind: 'craters', seed: 7 } }));
 		ctx.bodies.register(body('test.smooth', {}));
 		// Plan 059: a second planet with the home planet's hills, without and with an atmosphere.
-		ctx.bodies.register(body('test.hills', { terrain: { kind: 'hills' } }));
+		ctx.bodies.register(
+			body('test.hills', { terrain: { kind: 'hills', seed: LEGACY_TERRAIN_SEED } })
+		);
 		ctx.bodies.register(
 			body('test.hills-air', {
-				terrain: { kind: 'hills' },
+				terrain: { kind: 'hills', seed: LEGACY_TERRAIN_SEED },
 				atmosphere: { scaleHeight: 4_000, surfacePressure: 20_000, height: 40_000 }
 			})
 		);
@@ -94,10 +97,13 @@ describe('terrain kind per body in the sim', () => {
 		expect(r.altitude).toBeLessThan(15);
 	}, 30_000);
 
-	// Plan 059. 42 km from the site the second planet's field is 130 m high on a 0.6 percent slope; 30 km
+	// Plan 059 (the bodies keep the Legacy seed since plan 071 gave each hills body its own). 42 km from the site the second planet's field is 130 m high on a 0.6 percent slope; 30 km
 	// out it is 451 m high on a 30 degree one, where the lander slides a few decimetres while it settles.
 	for (const id of ['test.hills', 'test.hills-air']) {
-		const field = createBodyTerrainField({ radius: RADIUS, terrain: { kind: 'hills' } })!;
+		const field = createBodyTerrainField({
+			radius: RADIUS,
+			terrain: { kind: 'hills', seed: LEGACY_TERRAIN_SEED }
+		})!;
 		test(`${id}: a lander rests on the gentle hills the renderer now draws`, async () => {
 			const longitude = 42_000 / RADIUS;
 			const own = field.heightAt(latLonDirection(0, longitude));

@@ -125,6 +125,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
 				...(c.home ? { home: c.home } : {}),
+				...(c.bodyTerrain ? { bodyTerrain: c.bodyTerrain } : {}),
 				bodies: [...c.bodies]
 					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
 					.map((b) => ({

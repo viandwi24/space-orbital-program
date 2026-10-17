@@ -72,28 +72,43 @@ export const ozoneDensity = (altitude: number): number =>
  */
 export const RAYLEIGH_THICKNESS = 2;
 
-/** Earth's optical depths (vertical blue depth 0.27) on a layer `RAYLEIGH_THICKNESS` x the home body's 5.6 km scale height. */
-export const atmosphereFor = (radius: number, height: number, scaleHeight = 5_600): Atmosphere => ({
-	radius,
-	height,
-	rayleighHeight: scaleHeight * RAYLEIGH_THICKNESS,
-	mieHeight: scaleHeight * 0.15,
-	betaRayleigh: [
-		(8.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
-		(19.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
-		(47.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS)
-	],
-	betaMie: (18e-6 * 5_600) / scaleHeight,
-	mieG: 0.76,
-	sunIrradiance: 12,
-	skyBoost: 2.2,
-	mieBoost: 2.2,
-	betaOzone: [
-		OZONE_ABSORPTION[0] * OZONE_STRENGTH,
-		OZONE_ABSORPTION[1] * OZONE_STRENGTH,
-		OZONE_ABSORPTION[2] * OZONE_STRENGTH
-	]
-});
+/** The surface pressure the stock optical depths are for, Pa (the home planet's). */
+export const REFERENCE_PRESSURE = 101_325;
+
+/**
+ * Earth's optical depths (vertical blue depth 0.27) on a layer `RAYLEIGH_THICKNESS` x the home
+ * body's 5.6 km scale height, scaled by the surface pressure (plan 071, ADR 0121 point 2: a thin
+ * atmosphere looks thin; the home planet's is unchanged).
+ */
+export const atmosphereFor = (
+	radius: number,
+	height: number,
+	scaleHeight = 5_600,
+	surfacePressure = REFERENCE_PRESSURE
+): Atmosphere => {
+	const k = surfacePressure / REFERENCE_PRESSURE;
+	return {
+		radius,
+		height,
+		rayleighHeight: scaleHeight * RAYLEIGH_THICKNESS,
+		mieHeight: scaleHeight * 0.15,
+		betaRayleigh: [
+			(k * 8.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
+			(k * 19.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS),
+			(k * 47.3e-6 * 5_600) / (scaleHeight * RAYLEIGH_THICKNESS)
+		],
+		betaMie: (k * 18e-6 * 5_600) / scaleHeight,
+		mieG: 0.76,
+		sunIrradiance: 12,
+		skyBoost: 2.2,
+		mieBoost: 2.2,
+		betaOzone: [
+			k * OZONE_ABSORPTION[0] * OZONE_STRENGTH,
+			k * OZONE_ABSORPTION[1] * OZONE_STRENGTH,
+			k * OZONE_ABSORPTION[2] * OZONE_STRENGTH
+		]
+	};
+};
 
 const STEPS = 24;
 

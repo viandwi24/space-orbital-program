@@ -7,6 +7,7 @@
  */
 import {
 	TERRAIN_MAP_WIDTH,
+	LEGACY_ZONE,
 	cachedPlanetMap,
 	createTerrainField,
 	moonHeight,
@@ -80,7 +81,8 @@ import {
 	moonStoneColor,
 	moonStoneNormal,
 	moonStoneVertex,
-	moonVertexCommon
+	moonVertexCommon,
+	hillsShadowCommon
 } from './shaders/moon.glsl.ts';
 import { MoonStones } from './moon-stones.ts';
 import { SHADOW_STEPS } from './terrain-shadow.ts';
@@ -92,15 +94,25 @@ import {
 	type PatchFrame
 } from './terrain-patch.ts';
 import { length, normalize, scale } from './vec.ts';
+import { LEGACY_TERRAIN, zoneUniforms, type WorldTerrainSpec } from './terrain-zones.ts';
+import {
+	moonAirFragmentCommon,
+	moonSeaFragmentCommon,
+	moonViewCommon,
+	skyShell,
+	skyShellMaterial
+} from './moon-air.ts';
+import { createAtmosphereUniforms, type AtmosphereUniforms } from './planet.ts';
+import type { Atmosphere } from './atmosphere-model.ts';
 
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
 
 type PatchKind = 'mid' | 'fine';
 
-/** The canonical biome map (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
-function biomeTexture(): DataTexture {
-	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH);
+/** The biome map of `terrain` (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
+function biomeTexture(terrain: WorldTerrainSpec): DataTexture {
+	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH, terrain);
 	const t = new DataTexture(m.data, m.width, m.height, RGBAFormat, UnsignedByteType);
 	t.colorSpace = NoColorSpace;
 	t.wrapS = RepeatWrapping;
@@ -189,6 +201,10 @@ export class MoonPass {
 	/** The ground the pass draws (ADR 0090). */
 	readonly kind: GroundKind;
 	private readonly spec: GroundSpec;
+	/** The body's air, or null for an airless body (ADR 0121 point 2). */
+	readonly atmosphere: Atmosphere | null;
+	/** A hills body's seed and zones: what the sim's field, the CPU twin and the bakes share. */
+	readonly terrain: WorldTerrainSpec;
 	/** The sim's own height field of a hills body (the same function the GPU bake runs). */
 	private hillsField: TerrainField | null = null;
 	/** The biome map a hills body is baked and coloured from. */
@@ -214,14 +230,29 @@ export class MoonPass {
 	constructor(
 		readonly id: string,
 		radius: number,
-		options: { tint?: [number, number, number]; seed?: number; kind?: GroundKind } = {}
+		options: {
+			tint?: [number, number, number];
+			seed?: number;
+			kind?: GroundKind;
+			/** A hills body's seed and flat zones (plan 071, ADR 0121 point 1); default the Legacy terrain. */
+			terrain?: WorldTerrainSpec;
+			/** The body's air (plan 071, ADR 0121 point 2): aerial perspective and a sky shell. */
+			atmosphere?: Atmosphere;
+		} = {}
 	) {
 		this.radius = radius;
 		this.seed = options.seed ?? 0;
 		this.kind = options.kind ?? 'craters';
 		this.spec = GROUND_SPECS[this.kind];
-		this.biome = this.kind === 'hills' ? biomeTexture() : null;
+		// no zones on the body: the Legacy zone, as core's field does (ADR 0142 point 6)
+		const given = options.terrain ?? LEGACY_TERRAIN;
+		this.terrain = {
+			seed: given.seed,
+			zones: given.zones.length > 0 ? given.zones : [LEGACY_ZONE]
+		};
+		this.biome = this.kind === 'hills' ? biomeTexture(this.terrain) : null;
 		const hills = this.kind === 'hills';
+		const zones = zoneUniforms(this.terrain);
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
@@ -232,12 +263,37 @@ export class MoonPass {
 			// (the vessel's own terrain shadow, ADR 0068): the ground divides it out again
 			uSunBody: u(new Vector3(1, 0, 0)),
 			uSunScale: u(1),
-			// terrain shadows are the craters' (ADR 0090); a hills body's march constants would be wrong
-			uShadowOn: u(hills ? 0 : 1),
+			// terrain shadows: the craters' march, or the hills' (plan 071, ADR 0121 point 4)
+			uShadowOn: u(1),
 			uShadowSteps: u(SHADOW_STEPS.high),
-			uMap: u<unknown>(this.biome)
+			uMap: u<unknown>(this.biome),
+			// the seed's lattice shift and the flat zones (ADR 0121 point 1): the bakes and the colours
+			...zones
 		};
+		this.atmosphere = options.atmosphere ?? null;
+		// the camera and the sun, body-fixed, for the air and the sea (ADR 0121 points 2 and 3)
+		Object.assign(this.shared, {
+			uCamBody: u(new Vector3(0, 0, radius * 4)),
+			uAirSun: this.shared.uSunBody!,
+			uSeaTime: u(0)
+		});
+		// the body's own air (ADR 0121 point 2): the ground's aerial perspective and the shell share these
+		if (this.atmosphere) Object.assign(this.shared, createAtmosphereUniforms(this.atmosphere));
 		this.root.name = `moon:${id}`;
+		if (this.atmosphere) {
+			const s = this.shared as unknown as AtmosphereUniforms & Record<string, U<unknown>>;
+			this.root.add(
+				skyShell(
+					skyShellMaterial(
+						s,
+						s.uCamBody as U<Vector3>,
+						s.uSunBody as U<Vector3>,
+						s.uRadius as U<number>
+					),
+					this.atmosphere.radius + this.atmosphere.height
+				)
+			);
+		}
 
 		const corner = new BufferGeometry();
 		corner.setAttribute(
@@ -252,7 +308,8 @@ export class MoonPass {
 				uFace: u(0),
 				uSeed: u(this.seed),
 				uMap: this.shared.uMap!,
-				uSiteDir: u(new Vector3(1, 0, 0))
+				uSiteDir: u(new Vector3(1, 0, 0)),
+				...zones
 			},
 			depthTest: false,
 			depthWrite: false
@@ -268,7 +325,8 @@ export class MoonPass {
 				uPatchC: u(new Vector3()),
 				uPatchE: u(new Vector3()),
 				uPatchF: u(new Vector3()),
-				uHalfTan: u(0.01)
+				uHalfTan: u(0.01),
+				...zones
 			},
 			depthTest: false,
 			depthWrite: false
@@ -397,15 +455,28 @@ export class MoonPass {
 					`${globe ? moonGlobeBegin : stone ? moonStoneBegin : moonPatchBegin}${tail}`
 				);
 			if (hills) {
-				// A hills body: the biome colours and a grain bump; no terrain shadows and no stones (ADR 0090).
+				// A hills body: the biome colours and a grain bump, terrain shadows on the patches with the
+				// hills' march (plan 071, ADR 0121 point 4); no stones (ADR 0090).
+				const shadowed = !globe && !stone;
 				shader.fragmentShader = shader.fragmentShader
-					.replace('#include <common>', `#include <common>\n${hillsFragmentCommon}\n${FOOTPRINT}`)
+					.replace(
+						'#include <common>',
+						`#include <common>\n${hillsFragmentCommon}\n${FOOTPRINT}${shadowed ? `varying vec2 vPatchSt;\n${hillsShadowCommon}` : ''}`
+					)
 					.replace('void main() {', 'void main() {\n\tif (covered(vMoonN)) discard;')
 					.replace('#include <color_fragment>', `#include <color_fragment>\n${hillsFragmentColor}`)
 					.replace(
 						'#include <normal_fragment_maps>',
-						`#include <normal_fragment_maps>\n${hillsFragmentBump}`
+						`#include <normal_fragment_maps>\n${hillsFragmentBump}${shadowed ? moonShadowFragment(0) : ''}`
 					);
+				if (shadowed) {
+					shader.fragmentShader = shader.fragmentShader.replace(
+						'#include <lights_fragment_begin>',
+						LIGHTS_WITH_TERRAIN_SHADOW
+					);
+				}
+				if (!stone) this.injectSea(shader, globe, shadowed);
+				if (!stone) this.injectAir(shader);
 				return;
 			}
 			// Terrain shadows on the patches and the stones; the whole-body mesh is seen from too far for them.
@@ -435,9 +506,61 @@ export class MoonPass {
 					LIGHTS_WITH_TERRAIN_SHADOW
 				);
 			}
+			if (!stone) this.injectAir(shader);
 		};
-		material.customProgramCacheKey = () => `moon-${this.kind === 'hills' ? 'hills-' : ''}${kind}`;
+		const air = this.atmosphere && kind !== 'stone' ? '-air' : '';
+		material.customProgramCacheKey = () =>
+			`moon-${this.kind === 'hills' ? 'hills-' : ''}${kind}${air}`;
 		return material;
+	}
+
+	/** The sea's reflection, glint and waves on a hills ground fragment (ADR 0121 point 3). */
+	private injectSea(shader: { fragmentShader: string }, globe: boolean, declared: boolean): void {
+		const normal = globe
+			? 'normalize(vMoonN)'
+			: 'seaNormal(normalize(vMoonN), vPatchSt * uK * uRadius, uE, uF)';
+		// the patch frame and coordinates: declared already when the shadow march is in (it reads them)
+		const patchDecls =
+			globe || declared
+				? ''
+				: 'varying vec2 vPatchSt;\nuniform float uK;\nuniform vec3 uE;\nuniform vec3 uF;\n';
+		shader.fragmentShader = shader.fragmentShader
+			.replace(
+				'#include <common>',
+				`#include <common>\n${moonViewCommon}// MOON_AIR_COMMON\n${moonSeaFragmentCommon}${patchDecls}`
+			)
+			.replace(
+				'#include <opaque_fragment>',
+				[
+					'#include <opaque_fragment>',
+					'#if NUM_HEMI_LIGHTS > 0 && NUM_DIR_LIGHTS > 0',
+					`gl_FragColor.rgb = moonSea(gl_FragColor.rgb, vMoonN * (uRadius + vPatchH), ${normal}, hillsWater, hemisphereLights[0].skyColor, directionalLights[0].color);`,
+					'#endif',
+					'// MOON_AIR'
+				].join('\n')
+			);
+	}
+
+	/** Aerial perspective on a ground fragment of a body with air (ADR 0121 point 2). */
+	private injectAir(shader: { fragmentShader: string }): void {
+		if (!this.atmosphere) return;
+		shader.fragmentShader = shader.fragmentShader
+			// after the view uniforms the sea declared, else with them
+			.replace(
+				shader.fragmentShader.includes('// MOON_AIR_COMMON')
+					? '// MOON_AIR_COMMON'
+					: '#include <common>',
+				shader.fragmentShader.includes('// MOON_AIR_COMMON')
+					? moonAirFragmentCommon
+					: `#include <common>\n${moonViewCommon}${moonAirFragmentCommon}`
+			)
+			// after the sea when there is one (its glint is seen through the air too)
+			.replace(
+				shader.fragmentShader.includes('// MOON_AIR')
+					? '// MOON_AIR'
+					: '#include <opaque_fragment>',
+				`${shader.fragmentShader.includes('// MOON_AIR') ? '' : '#include <opaque_fragment>'}\n\tgl_FragColor.rgb = moonAir(gl_FragColor.rgb, vMoonN * (uRadius + vPatchH));`
+			);
 	}
 
 	/** What the sun's shadow map draws of a stone: the same displacement as its vertex shader. */
@@ -464,7 +587,7 @@ export class MoonPass {
 	/** Height of the ground (the same field the sim uses) along a unit body-fixed direction, m. */
 	groundHeight(direction: Vec3): number {
 		if (this.kind === 'hills') {
-			this.hillsField ??= createTerrainField({ radius: this.radius });
+			this.hillsField ??= createTerrainField({ radius: this.radius, ...this.terrain });
 			return this.hillsField.heightAt(direction);
 		}
 		return moonHeight(direction, this.radius, this.seed);
@@ -497,6 +620,10 @@ export class MoonPass {
 	 * once the camera is near, the patches that follow the camera below `MOON_PATCH_MAX_ALTITUDE`.
 	 */
 	update(cameraBodyFixed: Vec3): void {
+		const c = cameraBodyFixed;
+		(this.shared.uCamBody as U<Vector3>).value.set(c.x, c.y, c.z);
+		// the waves' clock (looks only; the sim's sea is still)
+		(this.shared.uSeaTime as U<number>).value = (performance.now() / 1000) % 10_000;
 		const distance = length(cameraBodyFixed);
 		const bakeAt = this.spec.bakeDistance * this.radius;
 		if (distance < bakeAt) this.cubeWanted = true;
