@@ -112,10 +112,11 @@ async function launch(seed: number): Promise<Run> {
 }
 
 describe('a healthy launch is never read as lost (plan 047)', () => {
+	// it boots a real sim: under the parallel full run that takes longer than the 5 s default
 	it('the old rule misreads the gap between the load answer and the first snapshot', async () => {
 		const run = await launch(1);
 		expect(run.oldLost).toBeGreaterThan(0);
-	});
+	}, 30_000);
 
 	it('the presence rule never reports a loss, over 12 timings', async () => {
 		for (let seed = 1; seed <= 12; seed += 1) {

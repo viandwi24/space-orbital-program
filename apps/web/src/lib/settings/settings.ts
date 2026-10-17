@@ -5,6 +5,7 @@
  * and the automatic quality switch keep their own keys (`graphics.ts`, plan 019/039) so a profile
  * from an earlier build keeps its choices. Everything read from storage is parsed, never asserted.
  */
+import { defaultDock, type DockChoice } from '../dock/dock-model';
 import { z } from 'zod';
 import { repairBindings, type Bindings } from '../keybindings';
 
@@ -58,7 +59,20 @@ const v2Fields = {
 const settingsV2 = z.object({ v: z.literal(2), ...v2Fields });
 
 /** Format 3 (plan 086): format 2 plus the interface; format 2 migrates by taking its defaults. */
-const settingsV3 = z.object({ v: z.literal(3), ...v2Fields, interface: interfaceSchema });
+/** The dock's rail and open panel (plan 112, ADR 0149 point 6); absent or damaged = the default. */
+const dockSchema = z
+	.object({
+		panels: z.array(z.string().min(1).max(80)).max(64),
+		open: z.string().min(1).max(80).nullable()
+	})
+	.catch(defaultDock());
+
+const settingsV3 = z.object({
+	v: z.literal(3),
+	...v2Fields,
+	interface: interfaceSchema,
+	dock: dockSchema
+});
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
 const settingsV1 = z.object({ v: z.literal(1), units: unitsSchema, tutorial: tutorialSchema });
@@ -72,6 +86,7 @@ export interface Settings {
 	audio: { master: number; effects: number; ui: number; muted: boolean };
 	touch: TouchChoice;
 	interface: { scale: number; highContrast: boolean };
+	dock: DockChoice;
 }
 export type TutorialProgress = Settings['tutorial'];
 export type AudioSettings = Settings['audio'];
@@ -84,7 +99,8 @@ export const defaultSettings = (): Settings => ({
 	bindings: {},
 	audio: { ...DEFAULT_AUDIO },
 	touch: 'auto',
-	interface: { ...DEFAULT_INTERFACE }
+	interface: { ...DEFAULT_INTERFACE },
+	dock: defaultDock()
 });
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */
@@ -104,7 +120,8 @@ export function parseSettings(text: string | null): Settings {
 			...v2.data,
 			v: 3,
 			bindings: repairBindings(v2.data.bindings),
-			interface: { ...DEFAULT_INTERFACE }
+			interface: { ...DEFAULT_INTERFACE },
+			dock: defaultDock()
 		};
 	const v1 = settingsV1.safeParse(raw);
 	return v1.success

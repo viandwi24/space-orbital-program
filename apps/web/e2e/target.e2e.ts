@@ -9,6 +9,8 @@ import { launchTwoStage, watchErrors } from './support';
 test('a target gets a flight-view indicator, a map marker and the aids list', async ({ page }) => {
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
+	// the Target card is a dock panel (plan 112)
+	await page.getByTestId('dock-tab-host.target').click();
 	await page.getByTestId('target-select').selectOption({ label: 'Cinder' });
 	await expect(page.getByTestId('target-distance')).toBeVisible();
 	// The indicator is a label when the moon is in view and an arrow with a label when it is not.

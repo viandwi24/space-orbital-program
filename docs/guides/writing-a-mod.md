@@ -327,6 +327,35 @@ ctx.achievements.register(defineAchievement({
 - **Air:** an `atmosphere` (`scaleHeight`, `surfacePressure`, `height`) now draws a sky from the surface, haze over the ground and a lit limb from orbit, and the light on the planet comes through it. Optical depth follows the surface pressure (101 325 Pa is the home planet's look).
 - **Sea and shadows** come with the hills kind: water reflects the sky and the sun, and the terrain casts shadows near the camera.
 
+## Dock panels (API 0.1.52, plan 112, ADR 0149)
+
+A mod can add a panel to the flight dock. The view is data: each value is a pure function of the panel input, and a button or switch returns a command that the sim checks like any other.
+
+```ts
+ctx.panels.register(definePanel({
+	id: 'acme.altimeter',
+	title: 'Altimeter',
+	icon: { path: 'M4 20h16M12 4v12' },
+	order: 600,
+	contexts: ['flight', 'map'],
+	view: {
+		kind: 'section',
+		children: [
+			{ kind: 'readout', label: 'Altitude', value: (i) => i.altitude, unit: 'm' },
+			{ kind: 'sparkline', label: 'Speed', value: (i) => i.speed },
+			{ kind: 'button', label: 'Stage', command: (i) => (i.vessel ? { type: 'stage', vessel: i.vessel.id } : null) }
+		]
+	},
+	canvas: { height: 60, draw: (c, i) => { c.clear(); c.fillText(`${Math.round(i.time)} s`, 4, 14); } }
+}));
+```
+
+- The input (`PanelInput`) holds the snapshot, the vessel the player flies, its altitude and speed relative to its body, and the sim time. Selectors run ten times a second; keep them cheap.
+- Nodes: `section`, `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button`, `list`, `sparkline` (the game keeps the last `samples`, default 60).
+- `canvas.draw` gets a `PanelCanvas` (clear, fill and stroke styles, paths, arcs, rectangles, text). It runs only while the panel is open. Mods import only `@orbital/sdk`: no DOM.
+- A panel that throws shows "This panel stopped" with the message; the game and the other panels go on.
+- The player adds and removes panels with the Panel library (the plus at the foot of the dock); `examples/mod-sample` has a complete panel.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
