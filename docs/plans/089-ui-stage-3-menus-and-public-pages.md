@@ -49,19 +49,20 @@ Pure restyle: no data or route changes beyond the Home card.
 ## Acceptance criteria
 
 - [ ] `bun run e2e` smoke passes in the three engines; keyboard-only test opens Settings and returns focus to the menu.
-- [ ] vitest: the last-world card renders `[—]` for a world without a flight summary.
-- [ ] Screenshots of Home, Settings, Mods, Credits, Roadmap in `docs/journal/assets/089-*.png` with the self-review.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: the last-world card renders `[—]` for a world without a flight summary.
+- [x] Screenshots of Home, Settings, Mods, Credits, Roadmap in `docs/journal/assets/089-*.png` with the self-review.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/089-ui-stage-3-menus-and-public-pages.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/089-ui-stage-3-menus-and-public-pages.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107, 0105).
 - 2026-10-17 — `depends` gains 075, 076 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): it restyles the Credits page of plan 075 and the Roadmap page of plan 076, which edit the same files.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Done on the branch: space backdrop, menu shell, Home with the last-world card, dialogs, pause menu, public pages, error and loading screens; keyboard-only e2e; screenshots with self-review. No new ADR (ADR 0107, 0140). Firefox not installed here: the three-engine smoke is for Agent 1. Journal: [089](../journal/089-ui-stage-3-menus-and-public-pages.md).
