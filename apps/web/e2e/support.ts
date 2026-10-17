@@ -31,7 +31,7 @@ export function watchErrors(page: Page): string[] {
 	return errors;
 }
 
-/** /vab -> load the two-stage example -> Launch -> /flight with the vessel flying. */
+/** /vab -> load the two-stage example -> Launch -> the Launch screen -> /flight with the vessel flying. */
 export async function launchTwoStage(page: Page): Promise<void> {
 	await page.goto('/vab');
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
@@ -40,6 +40,9 @@ export async function launchTwoStage(page: Page): Promise<void> {
 	await launch.click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
 	if (await anyway.isVisible().catch(() => false)) await anyway.click();
+	// the Launch screen (plan 094): the default facility and the design from the Hangar
+	await page.waitForURL('**/launch');
+	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 }

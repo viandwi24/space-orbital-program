@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { takeLaunchChoice } from '../../lib/launch/launch-model';
 	import type { WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
 	import { profileStore } from '../../lib/achievements/store';
@@ -52,7 +53,7 @@
 	import PrecompileBadge from '../../lib/ui/PrecompileBadge.svelte';
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../lib/catalog';
-	import type { VesselDesign } from '@orbital/core';
+	import type { VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
 	import type { FrameData } from '../../lib/hud-controller';
@@ -223,8 +224,10 @@
 			}
 			// a new flight in a world without saves starts with the world's own info (ADR 0143 point 1)
 			const world = resume ? undefined : await saves.worldStartInfo(activeWorldId());
+			// the Launch screen's facility, once (plan 094, ADR 0150 point 4)
+			const launch = resume ? null : takeLaunchChoice();
 			if (gone) return;
-			stop = begin(catalog, content, design, resume, world);
+			stop = begin(catalog, content, design, resume, world, launch?.placement);
 		})();
 		return () => {
 			gone = true;
@@ -240,7 +243,8 @@
 		content: ReturnType<typeof loadContent>['content'],
 		design: VesselDesign,
 		resume: GameSave | undefined,
-		world: WorldInfo | undefined
+		world: WorldInfo | undefined,
+		placement?: VesselPlacement
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -279,6 +283,7 @@
 			design,
 			...(resume ? { resume } : {}),
 			...(world ? { world } : {}),
+			...(placement ? { placement } : {}),
 			content,
 			profile: profileStore(),
 			onHud: (h) => (hud = h),

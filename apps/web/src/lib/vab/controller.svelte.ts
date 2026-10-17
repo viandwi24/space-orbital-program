@@ -1086,15 +1086,19 @@ export class VabController {
 		this.say(this.highContrast ? 'High-contrast markers on.' : 'High-contrast markers off.');
 	}
 
-	launch(force = false): void {
+	/** Shift+Launch skips the Launch screen (plan 094, ADR 0150 point 4). */
+	quickLaunch = false;
+
+	launch(force = false, quick = this.quickLaunch): void {
 		if (this.launchBlocked) return;
+		this.quickLaunch = quick;
 		if (this.warnings > 0 && !force) {
 			this.confirmOpen = true;
 			return;
 		}
 		saveDraft(serialiseDesign(this.editor.design));
 		void this.flushSave();
-		void goto('/flight');
+		void goto(quick ? '/flight' : '/launch');
 	}
 
 	// --- pointer ---------------------------------------------------------------------------------------------

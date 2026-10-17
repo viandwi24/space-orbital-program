@@ -25,3 +25,28 @@ test('a fresh launch stays on the pad: no "Vessel lost" card', async ({ page }) 
 	}
 	await expect(page.getByTestId('hud-met')).toBeVisible();
 });
+
+test('Hangar, Launch screen, flight: the vessel stands on the chosen pad (plan 094)', async ({
+	page
+}) => {
+	await page.goto('/vab');
+	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await page.getByRole('button', { name: /^Launch/ }).click();
+	const anyway = page.getByRole('button', { name: 'Launch anyway' });
+	if (await anyway.isVisible().catch(() => false)) await anyway.click();
+	await page.waitForURL('**/launch');
+	const pad = page.getByTestId('launch-facility-legacy-pad');
+	await pad.click();
+	await expect(pad).toHaveAttribute('aria-checked', 'true');
+	await expect(page.getByTestId('launch-design').first()).toContainText('Two-stage');
+	await expect(page.getByTestId('launch-go')).toHaveText(/Launch from pad/);
+	await page.getByTestId('launch-go').click();
+	await page.waitForURL('**/flight');
+	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// standing on the pad: landed on the home planet, and still there a moment later
+	await expect(page.getByText(/landed on home/i).first()).toBeVisible({ timeout: 30_000 });
+	await page.waitForTimeout(2000);
+	await expect(page.getByText('Vessel lost')).toHaveCount(0);
+	// the choice was for this flight only
+	expect(await page.evaluate(() => localStorage.getItem('orbital.launch'))).toBeNull();
+});
