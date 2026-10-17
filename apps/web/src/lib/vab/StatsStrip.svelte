@@ -104,7 +104,9 @@
 				<dt>Cost</dt>
 				<dd class="num" data-testid="vab-cost">
 					{stats.partCount ? formatFunds(cost.total) : '–'}{#if cost.uncosted.length}<span
-							class="u"> · no cost set</span
+							class="u"
+						>
+							· no cost set</span
 						>{/if}
 				</dd>
 			</div>

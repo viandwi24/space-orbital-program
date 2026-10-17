@@ -12,6 +12,7 @@ import {
 import Stock from '@orbital/mod-stock';
 import { createRapierBackend } from '@orbital/physics';
 import * as sdk from '@orbital/sdk';
+import type { WorldInfo } from '@orbital/core';
 import { createSim, type Sim } from '@orbital/sim';
 import type { ScriptPortLike } from './messages';
 import type { ScriptWorkerLike } from './script-protocol';
@@ -27,6 +28,8 @@ function spawnScriptWorker(port: ScriptPortLike | undefined): ScriptWorkerLike {
 
 /** The save to continue, from the first message; the sim is built after it arrived. */
 let resume: unknown;
+/** The world of a flight without a save (plan 087): `createSim` validates it like a save's. */
+let world: unknown;
 /** The mods the page decided to run (ADR 0057); resolved again here, with the same function. */
 let modBundles: ModBundle[] = [];
 let current: Sim | undefined;
@@ -45,7 +48,8 @@ const host = createSimHost({
 			// (`BodyDefinition.terrain`, ADR 0067): hills, craters with the body's seed, or a smooth sphere.
 			terrain: createBodyTerrainField,
 			// `createSim` validates the save (checksum, version, content) and refuses with a readable reason.
-			...(resume === undefined ? {} : { resume })
+			...(resume === undefined ? {} : { resume }),
+			...(world === undefined ? {} : { world: world as WorldInfo })
 		});
 		return current;
 	},
@@ -61,8 +65,9 @@ const host = createSimHost({
 const saves = createSaveRouter({
 	sim: () => current,
 	post: (message) => self.postMessage(message),
-	boot: (save, mods) => {
+	boot: (save, mods, info) => {
 		resume = save;
+		world = info;
 		modBundles = mods;
 		void host.start();
 	}

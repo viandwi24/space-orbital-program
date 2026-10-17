@@ -76,7 +76,8 @@ export type ClientMessage =
 	 * First message to the sim Worker (plan 043): boots the sim, from `save` when the player loads a
 	 * game. `save` is validated by `createSim`, so it travels as `unknown`.
 	 */
-	| { kind: 'init'; save?: unknown; mods?: ModBundle[] }
+	/** `world`: the info of a world without saves (plan 087, ADR 0143), validated by `createSim`. */
+	| { kind: 'init'; save?: unknown; mods?: ModBundle[]; world?: unknown }
 	/** Ask for the whole simulation as a `SimSave`; answered with `saved` or `save-error`. */
 	| { kind: 'save'; id: number }
 	| { kind: 'command'; id: number; command: unknown }
@@ -227,7 +228,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 		return {
 			kind: 'init',
 			...(data.save === undefined ? {} : { save: data.save }),
-			...(mods.length === 0 ? {} : { mods })
+			...(mods.length === 0 ? {} : { mods }),
+			...(data.world === undefined ? {} : { world: data.world })
 		};
 	}
 	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };

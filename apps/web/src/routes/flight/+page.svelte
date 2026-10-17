@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { WorldInfo } from '@orbital/core';
+	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
+	import type { CatchUp } from '../../lib/worlds/world-model';
 	import { GAME_NAME } from '../../lib/public/about';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
@@ -111,8 +114,12 @@
 			if (!flight) throw new Error('There is no flight to save yet.');
 			return flight.collectSave();
 		},
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		// the Load dialog and F9 stay in the world being flown (plan 087)
+		world: activeWorldId
 	});
+	/** "Catch up to now" (plan 087): refreshed with the autosave timer. */
+	let catchUp = $state<CatchUp>({ kind: 'none' });
 	const autosaver = createAutosaver(() => performance.now());
 	const saveState = () => ({
 		flying: hud?.status === 'flying',
@@ -150,7 +157,10 @@
 
 	onMount(() => {
 		const { catalog, content } = loadContent();
-		const timer = setInterval(() => void autosave(autosaver.tick(saveState())), 1000);
+		const timer = setInterval(() => {
+			void autosave(autosaver.tick(saveState()));
+			if (flight) catchUp = flight.catchUp(Date.now());
+		}, 1000);
 		const onHidden = (): void => {
 			if (document.visibilityState === 'hidden')
 				void autosave(autosaver.request('hidden', saveState()));
@@ -171,6 +181,8 @@
 					return;
 				}
 				design = resume.design;
+				// a save is flown in its own world (plan 087, ADR 0143)
+				setActiveWorld(resume.worldId ?? 'legacy');
 			} else {
 				const text = loadDraft();
 				if (text === null) {
@@ -184,8 +196,10 @@
 				}
 				design = parsed.design;
 			}
+			// a new flight in a world without saves starts with the world's own info (ADR 0143 point 1)
+			const world = resume ? undefined : await saves.worldStartInfo(activeWorldId());
 			if (gone) return;
-			stop = begin(catalog, content, design, resume);
+			stop = begin(catalog, content, design, resume, world);
 		})();
 		return () => {
 			gone = true;
@@ -200,7 +214,8 @@
 		catalog: ReturnType<typeof loadContent>['catalog'],
 		content: ReturnType<typeof loadContent>['content'],
 		design: VesselDesign,
-		resume: GameSave | undefined
+		resume: GameSave | undefined,
+		world: WorldInfo | undefined
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -238,6 +253,7 @@
 			canvas,
 			design,
 			...(resume ? { resume } : {}),
+			...(world ? { world } : {}),
 			content,
 			onHud: (h) => (hud = h),
 			onScript: (v) => (script = v),
@@ -544,6 +560,11 @@
 					usable={warpUsable}
 					met={model?.met ?? 0}
 					date={model?.date ?? ''}
+					{catchUp}
+					oncatchup={() =>
+						void flight?.acceptCatchUp(Date.now()).then((r) => {
+							if (r && !r.ok) notice = `Catch up was refused: ${r.reason}`;
+						})}
 					onslower={() => flight?.stepWarp(-1)}
 					onfaster={() => flight?.stepWarp(1)}
 				/>
