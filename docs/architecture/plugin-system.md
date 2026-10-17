@@ -134,7 +134,7 @@ Config literals are checked against the module's schema input type (wrong type, 
 - A module may declare `background(ctx, dt)` (API 0.1.29): a closed form (rate × `dt`) for a vessel on rails, called on each world tick, when the vessel wakes and before a save. It replaces that module's `updateOnRails`.
 - All three are typed identity functions; the registry validates them with zod (`schemas.ts`) on register.
 
-### Objectives, contracts and missions (API 0.1.35, plan 098, ADR 0175)
+### Objectives, contracts and missions (API 0.1.36, plan 098, ADR 0175)
 
 - `defineObjective({ id, label, params, on?, constraint?, evaluate })` (registered with `ctx.objectives`): `evaluate(params, view, prior)` is pure and returns `{ status: 'active' | 'done' | 'failed', progress, data? }`. `view` is the read-only `ObjectiveView` (`time`, `home`, and `vessels` with `body`, `mode`, `landed`, `altitude`, `periapsis`, `apoapsis`). `prior` is the leaf's last result, and `data` is its memory. `on` is `'step'`, `'tick'` or event names (default `['step']`). A `constraint` leaf is re-evaluated every time; other leaves stay done.
 - Trees: `{ objective, params }`, `{ all }`, `{ any }`, `{ sequence }` (a sequence evaluates only its current step). `evaluateObjectives(tree, leaves, lookup, view)` is the pure evaluator.

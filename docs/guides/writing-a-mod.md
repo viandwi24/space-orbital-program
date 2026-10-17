@@ -196,7 +196,7 @@ Data is sized: a `DataItem` has a `kind`, a size in `bits`, a `value` and the si
 - **Hold** data in your own part: declare `dataStorage: { capacity: (config) => config.capacity }` on a module whose `state` returns `{ items: [], next: 0 }`, or reuse `stock.data-storage` (`[['stock.data-storage', { capacity: 1_000_000 }]]`). The items are module state, so they are saved and go with the part when the vessel splits.
 - The player can move items between storages (`move-data`) and delete them (`delete-data`). `packages/sim/test/data.test.ts` has a recorder part that stores through an action.
 
-## Contracts, missions and objectives (API 0.1.35, plan 098, ADR 0175)
+## Contracts, missions and objectives (API 0.1.36, plan 098, ADR 0175)
 
 A contract or mission is data: a tree of objectives with rewards. Use the stock primitives or write your own.
 

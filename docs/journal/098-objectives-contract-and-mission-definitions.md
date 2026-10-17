@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/objectives.ts` (new) | primitive, view, tree, contract and mission types and schemas; `evaluateObjectives`, `currentLeaves`, `nodeStatus`, `leavesOf` |
-| `packages/core` | registries `objectives`, `contracts`, `missions`; `ctx` registrars; load-time check of every contract and mission leaf; `objective-start`; events; `Snapshot.objectives`; optional `SimSave.objectives`; `API_VERSION` 0.1.35 |
+| `packages/core` | registries `objectives`, `contracts`, `missions`; `ctx` registrars; load-time check of every contract and mission leaf; `objective-start`; events; `Snapshot.objectives`; optional `SimSave.objectives`; `API_VERSION` 0.1.36 (110 took 0.1.35) |
 | `packages/sim/src/objectives.ts` (new) | start, view, scheduling after steps, ticks and events, deadline, rewards and penalties, snapshot; wired into `sim.ts`, `commands.ts`, `snapshot.ts`, `save.ts` |
 | `mods/stock/src/objectives.ts` (new) | seven primitives: reach orbit, land, reach altitude, enter SOI, flyby, return home, before |
 | tests | `packages/core/test/objectives.test.ts` (6), `mods/stock/test/objectives.test.ts` (5), `packages/sim/test/objectives.test.ts` (5) |
