@@ -175,7 +175,12 @@ describe('the GLSL of the hills bake', () => {
 	});
 
 	test('the planet pass bake programs are the ones of plan 084 (zones and the seed shift, ADR 0142)', () => {
-		const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
+		// Plan 068 added a measurement-only `#ifdef TERRAIN_NO_GRADIENT` branch; the program without
+		// that define is the one plan 084 pinned, so the pin is taken with the branch removed.
+		const production = (src: string): string =>
+			src.replace(/#ifdef TERRAIN_NO_GRADIENT\n[\s\S]*?#else\n([\s\S]*?)#endif\n/g, '$1');
+		const sha = (s: string): string =>
+			createHash('sha256').update(production(s)).digest('hex');
 		// plan 059 pinned b0287f39… / 90014bca… (HEAD 4de52a7); plan 084 changed both on purpose:
 		// the site's constants became the zone uniforms and noiseT gained uTerrainShift
 		expect(sha(terrainBakeFragment)).toBe(

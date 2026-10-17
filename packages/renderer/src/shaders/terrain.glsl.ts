@@ -184,8 +184,13 @@ vec4 terrainTexel(vec3 n, float d) {
 	vec3 t1 = terrainTangent1(n);
 	vec3 t2 = cross(n, t1);
 	float h0 = heightAt(n);
+#ifdef TERRAIN_NO_GRADIENT
+	float h1 = h0; // plan 068's measurement only: what the two extra evaluations cost
+	float h2 = h0;
+#else
 	float h1 = heightAt(normalize(n + t1 * d));
 	float h2 = heightAt(normalize(n + t2 * d));
+#endif
 	float hi = floor(h0 / 16.0) * 16.0;
 	return vec4(hi, h0 - hi, (h1 - h0) / (d * uRadius), (h2 - h0) / (d * uRadius));
 }

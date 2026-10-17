@@ -62,6 +62,11 @@ export interface RendererDebug {
 	/** Height of the home terrain (m above the sphere) at a body-fixed unit direction, as the camera reads it (parity checks). */
 	terrainHeightAt(direction: Vec3): number;
 	/** Baked terrain patch read back from the GPU as heights in metres (plan 031's parity check); null before the first bake. */
+	/** Plan 068: bake times of the cube and the patches, ms (minimum of `runs`); see `PlanetPass.debugTimeBakes`. */
+	timeBakes(
+		runs?: number,
+		withoutGradient?: boolean
+	): { cube: number; fine: number; mid: number; cubeSize: number; patchSize: number };
 	readPatch(which: 'fine' | 'mid'): {
 		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
 		size: number;
@@ -419,6 +424,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setTerrain: (terrain) => env.setTerrain(terrain),
 		terrainHeightAt: (direction) => env.groundHeight(direction),
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
+		timeBakes: (runs, withoutGradient) => env.planet.debugTimeBakes(gl, runs, withoutGradient),
 		benchmark(frames) {
 			const ctx = gl.getContext();
 			const pixel = new Uint8Array(4);

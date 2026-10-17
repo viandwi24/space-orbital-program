@@ -771,6 +771,66 @@ export class PlanetPass {
 	 * Debug (plan 031 manual run): the baked patch `which` read back from the GPU, decoded to heights
 	 * (m) at the texel centres, row by row, with the frame it was baked for; null when not baked.
 	 */
+	/**
+	 * Bake times, ms (plan 068's measurement): the six cube faces and each patch, every bake waited
+	 * out with a one-pixel read, `runs` times, minimum kept. `withoutGradient` recompiles both bake
+	 * shaders to evaluate the height once per texel instead of three times (the gradient left 0),
+	 * which bounds what an analytic gradient could save. Development and measurement only.
+	 */
+	debugTimeBakes(
+		gl: WebGLRenderer,
+		runs = 5,
+		withoutGradient = false
+	): { cube: number; fine: number; mid: number; cubeSize: number; patchSize: number } {
+		const mats = [this.bake.material, this.patchBake.material];
+		for (const m of mats) {
+			if (withoutGradient) m.defines = { ...m.defines, TERRAIN_NO_GRADIENT: 1 };
+			else if (m.defines?.TERRAIN_NO_GRADIENT !== undefined) {
+				const { TERRAIN_NO_GRADIENT: _off, ...rest } = m.defines;
+				m.defines = rest;
+			}
+			m.needsUpdate = true;
+		}
+		const ctx = gl.getContext();
+		const pixel = new Uint8Array(4);
+		// Commands run in order, so a one-pixel read of the canvas waits for every bake before it.
+		const wait = (): void => {
+			gl.setRenderTarget(null);
+			ctx.readPixels(0, 0, 1, 1, ctx.RGBA, ctx.UNSIGNED_BYTE, pixel);
+		};
+		const time = (fn: () => void): number => {
+			fn(); // compile and warm
+			wait();
+			let best = Infinity;
+			for (let k = 0; k < runs; k++) {
+				const t0 = performance.now();
+				fn();
+				wait();
+				best = Math.min(best, performance.now() - t0);
+			}
+			return best;
+		};
+		const previous = gl.getRenderTarget();
+		const empty = time(() => undefined);
+		const cube =
+			time(() => {
+				for (let face = 0; face < 6; face++) this.bakeFace(gl, this.terrainTarget!, face);
+			}) - empty;
+		const fine = time(() => this.bakePatch(gl, this.patches.fine)) - empty;
+		const mid = time(() => this.bakePatch(gl, this.patches.mid)) - empty;
+		// put the real bakes back
+		for (const m of mats) {
+			if (m.defines?.TERRAIN_NO_GRADIENT !== undefined) {
+				const { TERRAIN_NO_GRADIENT: _off, ...rest } = m.defines;
+				m.defines = rest;
+				m.needsUpdate = true;
+			}
+		}
+		this.terrainDirty = true;
+		gl.setRenderTarget(previous);
+		return { cube, fine, mid, cubeSize: this.terrainSize, patchSize: this.patchSize };
+	}
+
 	debugReadPatch(
 		gl: WebGLRenderer,
 		which: 'fine' | 'mid'
