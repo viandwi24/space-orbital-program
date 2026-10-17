@@ -8,7 +8,7 @@
 
 | Where | What |
 | --- | --- |
-| `packages/core/src/terrain.ts` | `TerrainField.waterAt` (optional), `isWater`, `WATER_DENSITY`, `WATER_DEPTH`, `WATER_IMPACT_FACTOR`; the hills field answers it; `API_VERSION` 0.1.46 (104 took 0.1.45) |
+| `packages/core/src/terrain.ts` | `TerrainField.waterAt` (optional), `isWater`, `WATER_DENSITY`, `WATER_DEPTH`, `WATER_IMPACT_FACTOR`; the hills field answers it; `API_VERSION` 0.1.47 (107 took 0.1.46) (104 took 0.1.45) |
 | `packages/sim/src/water.ts` (new) | `waterUnder`, `stepWater`: sliced buoyancy and water drag, newly wet parts and their entry speed |
 | `packages/sim/src/frames.ts` | seabed tile over water, the water pass after drag, wet vessels landed, water impacts into the damage rule |
 | `packages/sim/src/science.ts` | `splashed` from `waterUnder` |
