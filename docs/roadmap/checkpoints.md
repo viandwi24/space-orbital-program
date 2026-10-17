@@ -88,7 +88,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 
 | Checkpoint | Contract change | Requested by | Status | Commit | Date |
 |---|---|---|---|---|---|
-| `cp/f1-contract-tick-epoch` | the world tick reads `WorldInfo.epoch` as SI days from J2000 (ADR 0141) and takes `dayLength` from `calendarOf(bodies)`; today it reads tick days (ADR 0171) | A2 (plan 081) | deferred: to land before 087 merges (both agree at epoch 0) | | 2026-10-17 |
+| `cp/f1-contract-tick-epoch` | the world tick reads `WorldInfo.epoch` as SI days from J2000 (ADR 0141) and takes `dayLength` from `calendarOf(bodies)`; today it reads tick days (ADR 0171) | A2 (plan 081) | done (ADR 0114) | b28b62f | 2026-10-17 |
 
 ## Reassignments
 
