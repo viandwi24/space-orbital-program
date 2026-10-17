@@ -1,7 +1,7 @@
 ---
 id: 100
 title: "Authored missions, the story line and mission packs"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [098, 087]
 phase: 6

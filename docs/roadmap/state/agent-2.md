@@ -23,7 +23,7 @@
 | 094 launch | done | `devb/094-launch` | 2026-10-17 | merged 2ac52f7, cp/f2-094-launch |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | in-progress | `devb/108-astronauts` | 2026-10-18 | claim/108 |
-| 100 missions | handed-over | `devb/100-missions` | 2026-10-18 | ready/100; ADR 0151; API 0.1.53 |
+| 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | todo |  |  |  |
 | 105 tech-tree | todo |  |  |  |
 | 115 comms-1-ui | todo |  |  |  |
