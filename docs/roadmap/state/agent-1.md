@@ -2,8 +2,8 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** Merge queue empty after 075, 079, 086. Next: 086 M5 frame measurement (blur on/off) once swap is under the guard; drafts 095, 090, 097 refined.
-**Waiting for:** cp/f1-082-tick (095), cp/f1-084-sites (090, 068); a quiet M5 for the 086 measurement
+**Now:** Merge queue empty (075, 079, 086 merged; 086's M5 blur check done). While waiting: drafts 109, 122, 125.
+**Waiting for:** cp/f1-082-tick (095), cp/f1-084-sites (090, 068)
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
