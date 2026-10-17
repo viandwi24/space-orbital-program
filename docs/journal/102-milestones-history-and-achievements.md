@@ -9,7 +9,7 @@
 | Where | What |
 |---|---|
 | `packages/core/src/milestones.ts` | `MILESTONE_KINDS` (launch, orbit, flyby, landing, return), `MilestoneRecord`, `SaveMilestones` and schemas, `milestoneId`, reputation per first (`milestoneReputation`, cause `milestone`), `AchievementDefinition` and its schema, `achievementMatches` |
-| core `save.ts`, `events.ts`, `protocol.ts`, registries | `SimSave.milestones?` (optional in format 5), `milestone:reached`, `Snapshot.milestones`, `registries.achievements`, `ctx.achievements`, report kind `achievement`; API_VERSION 0.1.42 |
+| core `save.ts`, `events.ts`, `protocol.ts`, registries | `SimSave.milestones?` (optional in format 5), `milestone:reached`, `Snapshot.milestones`, `registries.achievements`, `ctx.achievements`, report kind `achievement`; API_VERSION 0.1.44 (0.1.40 to 0.1.43 went to 103, 085, 114 and 069) |
 | `packages/sdk` | `defineAchievement`, `achievementMatches`, `milestoneId`, `MILESTONE_KINDS`, types |
 | `packages/sim/src/milestones.ts` | the detector after each step and rails chunk (controlled vessels only), per-vessel visits that a split vessel inherits, `return` at `recover-vessel`, reputation through the ledger, save, resume, snapshot |
 | `mods/stock/src/achievements.ts` | seven starter achievements (one hidden) |
