@@ -77,6 +77,8 @@ A part definition may carry a `visual` descriptor (core `partVisualSchema`, API 
 
 ## Key mechanisms (each has its own doc)
 
+- World container (plan 077, ADRs 0094, 0110): a run belongs to a world; the sim carries its `WorldInfo` (identity, epoch, rules, sites) in `SimSave.worldInfo` (format 5), the web client keeps an `orbital-world` record per world (`WorldStore`, IndexedDB `orbital-saves` store `worlds`) that owns the saves whose envelope names its id; old saves migrate into the Legacy world → `simulation.md` (save section), ADR 0110
+
 - Plugin system, registries, define-API → `plugin-system.md`
 - Fixed timestep, flight vs on-rails, time warp, snapshots → `simulation.md`
 - Units, frames, precision, floating origin → `units-and-frames.md`
