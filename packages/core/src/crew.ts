@@ -89,6 +89,18 @@ export interface CrewMember {
 	visited: string[];
 	/** Booked XP, oldest first. */
 	log: Array<{ time: number; place: string; xp: number }>;
+	/** Crew simulation (plan 107, ADR 0181); absent until the aspect is on and the member flies. */
+	morale?: number;
+	fatigue?: number;
+	/** Radiation dose, mSv. */
+	dose?: number;
+	/** G-load stress, g·s, and the end of a blackout. */
+	gStress?: number;
+	glocUntil?: number;
+	/** Since when each consumable has been out. */
+	shortages?: Array<{ resource: string; since: number }>;
+	/** Sim time the member was seated on the current flight. */
+	boardedAt?: number;
 }
 
 /** `SimSave.crew` (optional in format 5, ADR 0176 point 1). */
@@ -115,7 +127,14 @@ export const saveCrewSchema = z.object({
 			returnsAt: z.number().optional(),
 			places: z.array(z.string()),
 			visited: z.array(z.string()),
-			log: z.array(z.object({ time: z.number(), place: z.string(), xp: z.number() }))
+			log: z.array(z.object({ time: z.number(), place: z.string(), xp: z.number() })),
+			morale: z.number().min(0).max(1).optional(),
+			fatigue: z.number().min(0).max(1).optional(),
+			dose: z.number().nonnegative().optional(),
+			gStress: z.number().nonnegative().optional(),
+			glocUntil: z.number().optional(),
+			shortages: z.array(z.object({ resource: z.string().min(1), since: z.number() })).optional(),
+			boardedAt: z.number().optional()
 		})
 	)
 });

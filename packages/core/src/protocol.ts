@@ -162,7 +162,25 @@ export interface VesselSnapshot {
 	/** The vessel's target (plan 035); absent without one. */
 	target?: TargetSnapshot;
 	/** Crew aboard (plan 106): who sits in which part, with their ability factors. */
-	crew?: Array<{ member: string; part: EntityId; abilities: Record<string, number> }>;
+	crew?: Array<{
+		member: string;
+		part: EntityId;
+		/** Quality factors, times `performance` (plan 107). */
+		abilities: Record<string, number>;
+		/** Crew simulation (plan 107, ADR 0181): present when the aspect is on. */
+		morale?: number;
+		fatigue?: number;
+		dose?: number;
+		performance?: number;
+		shortages?: Array<{ resource: string; since: number }>;
+		glocUntil?: number;
+	}>;
+	/** Life support prediction (plan 107, ADR 0181 point 8); absent with it off or nobody aboard. */
+	lifeSupport?: {
+		mode: 'simple' | 'full';
+		crew: number;
+		consumables: Array<{ resource: string; amount: number; rate: number; timeLeft: number }>;
+	};
 	/** Experiments aboard (plan 103): state, reason and progress; the vessel's situation. */
 	science?: {
 		situation: string | null;

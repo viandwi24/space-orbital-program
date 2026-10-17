@@ -51,6 +51,10 @@ export interface EventMap {
 	'crew:xp': { member: string; place: string; xp: number; level: number };
 	'crew:lost': { member: string; vessel: EntityId; status: 'lost' | 'missing' | 'available' };
 	'crew:returned': { member: string };
+	/** Crew simulation (plan 107, ADR 0181): a consumable ran out at `time` (exact under warp). */
+	'crew:shortage': { vessel: EntityId; member: string; resource: string; time: number };
+	'crew:resupplied': { vessel: EntityId; member: string; resource: string };
+	'crew:g-loc': { vessel: EntityId; member: string; until: number };
 	/** A site was founded (plan 092, ADR 0177); its flat zone applies from the next load. */
 	'site:founded': { site: string; body: string; latitude: number; longitude: number };
 	/** Science (plan 103, ADR 0178): a result was made, and science was credited. */

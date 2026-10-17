@@ -28,6 +28,7 @@ export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core'
 export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
 export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
+export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
 export { categoryIdOf, sortCategories, STOCK_CATEGORY_NAMES } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
 export { actionArgumentProblem, customGroupId, groupState, MAX_CUSTOM_GROUPS } from '@orbital/core';
@@ -190,6 +191,8 @@ export type {
 	DossierEntryDefinition,
 	DossierFact,
 	RegionInfo,
+	LifeSupportMode,
+	ScrubberInfo,
 	CategoryDefinition,
 	CategoryIcon,
 	ContractDefinition,

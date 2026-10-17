@@ -22,6 +22,7 @@ import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, GroundStationDefinition, SignalState } from './comms.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
+import type { ScrubberInfo } from './life-support.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -276,6 +277,8 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * whether it is switched on now.
 	 */
 	antenna?: Bivariant<(config: Out, state: State) => { antenna: string; enabled: boolean }>;
+	/** Present when this module scrubs CO2 (plan 107, ADR 0181 point 1): people served and EC per person per day. */
+	scrubber?: Bivariant<(config: Out) => ScrubberInfo>;
 	/**
 	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
 	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant
