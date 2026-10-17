@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BackButton from '../ui/BackButton.svelte';
 	import Icon from '../ui/Icon.svelte';
 	import IconButton from '../ui/IconButton.svelte';
 	import Kbd from '../ui/Kbd.svelte';
@@ -6,58 +7,16 @@
 	import { settings } from '../settings/settings.svelte';
 	import type { ActionId } from '../keybindings';
 
+	/** The Hangar's top (plan 093, refs): back and the vessel's name on the left, files and Launch on the right. */
 	let { vab }: { vab: VabController } = $props();
 	const key = (id: ActionId): string => settings.keymap.label(id);
 </script>
 
 <div class="top">
-	<div class="bar tools" role="toolbar" aria-label="Design">
-		<a class="back" href="/" title="Back to the main page"><Icon name="back" /><span>Menu</span></a>
-		<span class="sep"></span>
-		<IconButton
-			icon="undo"
-			label="Undo"
-			hint="Ctrl+Z"
-			disabled={!vab.canUndo}
-			onclick={() => vab.doUndo()}
-		/>
-		<IconButton
-			icon="redo"
-			label="Redo"
-			hint="Ctrl+Shift+Z"
-			disabled={!vab.canRedo}
-			onclick={() => vab.doRedo()}
-		/>
-		<span class="sep"></span>
-		<IconButton
-			icon="plus"
-			label="New vessel"
-			onclick={() => vab.newVessel()}
-			disabled={vab.editor.design.parts.length === 0 && vab.editor.loose.length === 0}
-		/>
-		<IconButton
-			icon="open"
-			label="Open a saved vessel"
-			text="Open"
-			onclick={() => vab.openLibrary()}
-		/>
-		<IconButton
-			icon="save"
-			label="Save to the library"
-			hint="Ctrl+S"
-			disabled={vab.editor.design.parts.length === 0}
-			onclick={() => {
-				vab.saveState = 'saving';
-				void vab.flushSave();
-			}}
-		/>
-		<span class="save dim" role="status">
-			{vab.saveState === 'saving' ? 'Saving…' : vab.saveState === 'saved' ? 'Saved' : ''}
-		</span>
-	</div>
-
-	<div class="center">
-		<label class="name">
+	<div class="left">
+		<BackButton href="/" label="Back to the main menu" />
+		<label class="capsule name">
+			<span class="cap" aria-hidden="true">Hangar</span>
 			<span class="sr-only">Vessel name</span>
 			<input
 				value={vab.editor.design.name === vab.defaultName ? '' : vab.editor.design.name}
@@ -67,6 +26,8 @@
 				oninput={(e) => vab.setName(e.currentTarget.value)}
 			/>
 		</label>
+	</div>
+	<div class="center">
 		<div class="context" aria-live="polite">
 			{#if vab.armed}
 				{@const armed = vab.armed}
@@ -88,20 +49,6 @@
 							>{/if}
 					{/if}
 				</span>
-				{#if armed.kind === 'new' || armed.kind === 'assembly'}
-					<div class="sym" role="group" aria-label="Symmetry: copies per placement">
-						<span class="dim">Symmetry <Kbd>{settings.keymap.label('symmetry')}</Kbd></span>
-						{#each vab.symmetryCounts as n (n)}
-							<button
-								type="button"
-								class:on={vab.symmetry === n}
-								aria-pressed={vab.symmetry === n}
-								title={n === 1 ? 'One part' : `${n} copies around the vessel`}
-								onclick={() => (vab.symmetry = n)}>{n === 1 ? 'Off' : n}</button
-							>
-						{/each}
-					</div>
-				{/if}
 				<span class="hintline">
 					{#if armed.kind === 'connect'}
 						Click a part. <Kbd>Alt</Kbd> frees the angle; <Kbd>{key('nextPart')}</Kbd> selects a part
@@ -125,30 +72,63 @@
 			{/if}
 		</div>
 	</div>
-
-	<div class="bar right">
-		<span class="drawer-btns">
+	<div class="right">
+		<div class="capsule files" role="toolbar" aria-label="Vessel file">
 			<IconButton
-				icon="part"
-				label="Parts and sub-assemblies"
-				text="Parts"
-				pressed={vab.drawer === 'parts'}
-				onclick={() => (vab.drawer = vab.drawer === 'parts' ? null : 'parts')}
+				icon="plus"
+				label="New vessel"
+				onclick={() => vab.newVessel()}
+				disabled={vab.editor.design.parts.length === 0 && vab.editor.loose.length === 0}
 			/>
+			<IconButton icon="open" label="Open a saved vessel" onclick={() => vab.openLibrary()} />
 			<IconButton
-				icon="stage"
-				label="Stages and launch checks"
-				text="Stages"
-				pressed={vab.drawer === 'stages'}
-				onclick={() => (vab.drawer = vab.drawer === 'stages' ? null : 'stages')}
+				icon="save"
+				label="Save to the library"
+				hint="Ctrl+S"
+				disabled={vab.editor.design.parts.length === 0}
+				onclick={() => {
+					vab.saveState = 'saving';
+					void vab.flushSave();
+				}}
 			/>
-		</span>
-		<IconButton
-			icon="contrast"
-			label="High-contrast markers"
-			pressed={vab.highContrast}
-			onclick={() => vab.toggleContrast()}
-		/>
+			<span class="save" role="status">
+				{vab.saveState === 'saving' ? 'Saving…' : vab.saveState === 'saved' ? 'Saved' : ''}
+			</span>
+			<span class="drawer-btns">
+				<IconButton
+					icon="part"
+					label="Parts and sub-assemblies"
+					pressed={vab.drawer === 'parts'}
+					onclick={() => (vab.drawer = vab.drawer === 'parts' ? null : 'parts')}
+				/>
+				<IconButton
+					icon="stage"
+					label="Stages and launch checks"
+					pressed={vab.drawer === 'stages'}
+					onclick={() => (vab.drawer = vab.drawer === 'stages' ? null : 'stages')}
+				/>
+			</span>
+			<IconButton
+				icon="contrast"
+				label="High-contrast markers"
+				pressed={vab.highContrast}
+				onclick={() => vab.toggleContrast()}
+			/>
+		</div>
+		<button
+			type="button"
+			class="launch"
+			disabled={vab.launchBlocked}
+			title={vab.launchBlocked
+				? vab.checks.find((c) => c.severity === 'error')?.text
+				: vab.warnings > 0
+					? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
+					: 'Fly this vessel'}
+			onclick={() => vab.launch()}
+		>
+			<Icon name="launch" size={18} />
+			Launch
+		</button>
 	</div>
 </div>
 
@@ -156,7 +136,7 @@
 	.top {
 		grid-column: 1 / -1;
 		display: grid;
-		grid-template-columns: minmax(0, var(--col-l)) 1fr minmax(0, var(--col-r));
+		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: start;
 		gap: var(--s-3);
 		pointer-events: none;
@@ -164,158 +144,143 @@
 	.top > * {
 		pointer-events: auto;
 	}
-	.bar {
-		display: flex;
-		align-items: center;
-		gap: 2px;
-		padding: 2px var(--s-2);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
-		justify-self: start;
-	}
-	.bar.right {
-		justify-self: end;
-	}
-	.sep {
-		width: 1px;
-		height: 20px;
-		margin: 0 var(--s-1);
-		background: var(--line);
-	}
-	.save {
-		min-width: 3.4em;
-		padding: 0 var(--s-1);
-		font-size: var(--t-xs);
-	}
-	.back {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--s-2);
-		height: 36px;
-		padding: 0 var(--s-2);
-		font-size: var(--t-sm);
-		font-weight: 500;
-		color: var(--text-dim);
-		text-decoration: none;
-		border-radius: var(--r-control);
-	}
-	.back:hover {
-		color: var(--text);
-	}
 	.center {
-		display: grid;
-		justify-items: center;
-		gap: var(--s-2);
 		pointer-events: none;
-		min-width: 0;
 	}
-	.center > * {
+	.center :global(.context > *) {
 		pointer-events: auto;
 	}
+	.left,
+	.right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	/* refs: glass capsules, 44 high */
+	.capsule {
+		display: flex;
+		align-items: center;
+		height: 2.75rem;
+		box-sizing: border-box;
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+	}
+	.name {
+		gap: 0.625rem;
+		padding: 0 0.375rem 0 1rem;
+	}
+	.cap {
+		font-size: var(--t-label);
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
 	.name input {
-		width: min(420px, 42vw);
-		height: 44px;
-		padding: 0 var(--s-3);
-		text-align: center;
-		font-family: var(--font-ui);
-		font-size: var(--t-xl);
+		width: 12.5rem;
+		height: 2rem;
+		box-sizing: border-box;
+		padding: 0 0.625rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-tile);
+		background: var(--surface-inset);
+		color: var(--text-primary);
+		font: inherit;
+		font-size: var(--t-button);
 		font-weight: 600;
-		color: var(--text);
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: var(--r-control);
-		text-shadow: 0 2px 14px var(--bg-void);
+		outline: none;
 	}
 	.name input::placeholder {
-		color: var(--text-dim);
+		color: var(--text-muted);
 		font-weight: 500;
 	}
-	.name input:hover {
-		border-color: var(--line);
+	.name input:focus-visible {
+		border-color: var(--border-strong);
 	}
-	.name input:focus {
-		outline: none;
-		background: var(--panel);
-		border-color: var(--c-accent);
+	.files {
+		gap: 0.25rem;
+		padding: 0 0.25rem;
+	}
+	.save {
+		font-size: var(--t-label);
+		color: var(--text-muted);
+	}
+	.save:empty {
+		display: none;
+	}
+	.launch {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		height: 2.75rem;
+		padding: 0 1.25rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--selected-bg);
+		color: var(--selected-fg);
+		font: inherit;
+		font-size: var(--t-button);
+		font-weight: 700;
+		cursor: pointer;
+	}
+	.launch:hover:not(:disabled) {
+		background: var(--text-primary);
+	}
+	.launch:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 3px;
+	}
+	.launch:disabled {
+		background: var(--surface-button);
+		color: var(--text-disabled);
+		cursor: default;
+	}
+	.center {
+		display: flex;
+		justify-content: center;
+		min-width: 0;
 	}
 	.context {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
 		align-items: center;
-		gap: var(--s-3);
-		min-height: 40px;
+		gap: var(--s-2);
 	}
 	.chip {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--s-2);
-		min-height: 36px;
-		padding: 0 var(--s-3);
-		font-size: var(--t-sm);
-		background: var(--panel);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px);
-	}
-	.chip.live {
-		border-color: var(--c-accent);
+		min-height: 2.25rem;
+		padding: 0 0.875rem;
+		font-size: var(--t-small);
+		color: var(--text-body);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 	}
 	.chip.warn {
-		border-color: var(--c-warning);
+		color: var(--warn);
 	}
 	.dim {
-		color: var(--text-dim);
-	}
-	.sym {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		padding: 0 var(--s-2);
-		min-height: 36px;
-		font-size: var(--t-sm);
-		background: var(--panel);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px);
-	}
-	.sym .dim {
-		margin-right: var(--s-2);
-	}
-	.sym button {
-		min-width: 28px;
-		height: 28px;
-		padding: 0 var(--s-2);
-		color: var(--text);
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: var(--r-control);
-		cursor: pointer;
-		font: inherit;
-	}
-	.sym button:hover {
-		background: var(--field);
-	}
-	.sym button.on {
-		background: color-mix(in srgb, var(--c-accent) 28%, transparent);
-		border-color: var(--c-accent);
-	}
-	.sym button:focus-visible {
-		outline: 2px solid var(--c-accent);
-		outline-offset: 1px;
+		color: var(--text-muted);
 	}
 	.hintline {
 		display: inline-flex;
 		align-items: center;
 		flex-wrap: wrap;
 		gap: var(--s-1);
-		padding: var(--s-1) var(--s-3);
-		font-size: var(--t-sm);
-		color: var(--text-dim);
-		background: var(--panel);
-		border-radius: var(--r-panel);
+		padding: 0.25rem 0.75rem;
+		font-size: var(--t-label);
+		color: var(--text-muted);
+		background: var(--surface-glass);
+		border-radius: var(--radius-pill);
 	}
 	.drawer-btns {
 		display: none;
@@ -324,17 +289,12 @@
 		.drawer-btns {
 			display: inline-flex;
 		}
-		.top {
-			grid-template-columns: auto minmax(0, 1fr) auto;
-			gap: var(--s-2);
-		}
-		.back span,
+		.cap,
 		.save {
 			display: none;
 		}
 		.name input {
-			width: min(300px, 100%);
-			font-size: var(--t-lg);
+			width: 9rem;
 		}
 	}
 </style>

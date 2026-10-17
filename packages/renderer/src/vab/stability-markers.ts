@@ -6,6 +6,7 @@
  * - `com`: the classic quartered disc, two opposite quadrants light, two dark, ringed in cyan.
  * - `cop`: a triangular ring with a dot, orange.
  * - `com-empty`: a smaller hollow white ring (where the mass centre is with the tanks dry).
+ * - `cot`: an accent ring with a dot, the centre of thrust of the first stage (plan 093, ADR 0148).
  * Every glyph sits on a dark halo so it reads over the white paint of a tank too.
  */
 import {
@@ -30,7 +31,8 @@ const scratch = new Vector3();
 export const MARKER_PIXELS: Record<MarkerKind, { normal: number; high: number }> = {
 	com: { normal: 20, high: 26 },
 	cop: { normal: 20, high: 26 },
-	'com-empty': { normal: 9, high: 12 }
+	'com-empty': { normal: 9, high: 12 },
+	cot: { normal: 16, high: 21 }
 };
 
 /** World radius that makes a glyph `pixels` tall at `distance` for a vertical field of view `fovDeg` over `viewHeight` pixels. */
@@ -48,7 +50,9 @@ const COLOURS = {
 	cyan: new Color(0x5ccfff).multiplyScalar(1.5),
 	white: new Color(0xffffff).multiplyScalar(1.6),
 	navy: new Color(0x06202c),
-	orange: new Color(0xff8a2a).multiplyScalar(1.5)
+	orange: new Color(0xff8a2a).multiplyScalar(1.5),
+	// the refs accent (#3e6ae1), lifted like the others so it reads through the bloom
+	accent: new Color(0x3e6ae1).multiplyScalar(1.6)
 };
 
 function paint(g: BufferGeometry, colour: Color): BufferGeometry {
@@ -94,6 +98,14 @@ export function createGlyphGeometry(kind: MarkerKind, thick: boolean): BufferGeo
 			// A triangle ring (3 theta segments) with the apex up, plus a dot at its centroid.
 			paint(new RingGeometry(1 - 0.34 * t, 1.12, 3, 1, Math.PI / 2), COLOURS.orange),
 			paint(new CircleGeometry(0.2 * t, 20), COLOURS.orange)
+		];
+		return merge(pieces);
+	}
+	if (kind === 'cot') {
+		const pieces: BufferGeometry[] = [
+			paint(new RingGeometry(0.55, 1.34, 40), COLOURS.halo),
+			paint(new RingGeometry(1 - 0.24 * t, 1.08, 40), COLOURS.accent),
+			paint(new CircleGeometry(0.22 * t, 20), COLOURS.accent)
 		];
 		return merge(pieces);
 	}

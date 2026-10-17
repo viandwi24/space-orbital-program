@@ -9,11 +9,10 @@
 	import StageEditor from '../../lib/vab/StageEditor.svelte';
 	import StatsStrip from '../../lib/vab/StatsStrip.svelte';
 	import TopBar from '../../lib/vab/TopBar.svelte';
+	import ToolPill from '../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../lib/vab/controller.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import Dialog from '../../lib/ui/Dialog.svelte';
-	import Icon from '../../lib/ui/Icon.svelte';
-	import Kbd from '../../lib/ui/Kbd.svelte';
 	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
 	import { categoryOf } from '../../lib/editor/categories';
 	import { settings } from '../../lib/settings/settings.svelte';
@@ -124,6 +123,15 @@
 		</div>
 
 		<div class="rightcol" class:open={vab.drawer === 'stages'} bind:this={right}>
+			<StatsStrip
+				stats={vab.stats}
+				trip={vab.trip}
+				destinations={vab.destinations}
+				destinationId={vab.trip.destination.id}
+				onpick={(id) => (vab.tripId = id)}
+				stability={vab.stability}
+				cost={vab.cost}
+			/>
 			<SelectionCard {vab} />
 			<StageEditor
 				design={vab.editor.design}
@@ -142,45 +150,11 @@
 				onremove={(k) => vab.removeStage(k)}
 				onauto={() => vab.autoStage()}
 			/>
-			<ChecksList checks={vab.checks} onflag={(p) => (vab.flagged = p)} />
-			<button
-				type="button"
-				class="launch"
-				disabled={vab.launchBlocked}
-				title={vab.launchBlocked
-					? vab.checks.find((c) => c.severity === 'error')?.text
-					: 'Fly this vessel'}
-				onclick={() => vab.launch()}
-			>
-				<Icon name="launch" size={26} />
-				<span class="label">
-					<span class="big">Launch</span>
-					<span class="sub">
-						{#if vab.launchBlocked}Fix the problem above first{:else if vab.warnings > 0}{vab.warnings}
-							warning{vab.warnings === 1 ? '' : 's'}{:else}All checks passed{/if}
-					</span>
-				</span>
-			</button>
+			<ChecksList checks={vab.checks} onflag={(p) => (vab.flagged = p)} titleOf={vab.titleOfPart} />
 		</div>
 
 		<div class="bottom">
-			<StatsStrip
-				stats={vab.stats}
-				trip={vab.trip}
-				destinations={vab.destinations}
-				destinationId={vab.trip.destination.id}
-				onpick={(id) => (vab.tripId = id)}
-				stability={vab.stability}
-				cost={vab.cost}
-			/>
-			<p class="keys">
-				<span><Kbd>Drag</Kbd> orbit</span>
-				<span><Kbd>Shift</Kbd>+<Kbd>Drag</Kbd> pan</span>
-				<span><Kbd>Wheel</Kbd> zoom</span>
-				<span><Kbd>{settings.keymap.label('frame')}</Kbd> frame</span>
-				<span><Kbd>{settings.keymap.label('search')}</Kbd> search</span>
-				<span><Kbd>{settings.keymap.label('subAssembly')}</Kbd> keep as sub-assembly</span>
-			</p>
+			<ToolPill {vab} />
 		</div>
 
 		{#if tutorialStep && !emptyHangar}
@@ -245,8 +219,9 @@
 <style>
 	.vab {
 		/* Side panels: a share of the width, never narrower than they can read. */
-		--col-l: clamp(256px, 22vw, 340px);
-		--col-r: clamp(256px, 21vw, 330px);
+		/* refs: catalogue 340, right column 300 */
+		--col-l: clamp(16rem, 22vw, 21.25rem);
+		--col-r: clamp(16rem, 21vw, 18.75rem);
 		position: fixed;
 		inset: 0;
 		overflow: hidden;
@@ -286,7 +261,7 @@
 		grid-template-columns: var(--col-l) minmax(0, 1fr) var(--col-r);
 		grid-template-rows: auto minmax(0, 1fr) auto;
 		gap: var(--s-3);
-		padding: var(--s-3);
+		padding: var(--margin-hud);
 		pointer-events: none;
 		min-height: 0;
 	}
@@ -338,21 +313,6 @@
 		align-self: end;
 		min-width: 0;
 	}
-	.keys {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: var(--s-1) var(--s-4);
-		margin: 0;
-		font-size: var(--t-xs);
-		color: var(--text-dim);
-		text-shadow: 0 1px 8px var(--bg-void);
-	}
-	.keys span {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-	}
 	.guide {
 		grid-column: 2;
 		grid-row: 2;
@@ -390,47 +350,6 @@
 		justify-content: center;
 		gap: var(--s-2);
 	}
-	.launch {
-		flex: none;
-		position: sticky;
-		bottom: 0;
-		z-index: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--s-3);
-		height: 64px;
-		color: var(--c-ink);
-		background: var(--c-accent);
-		border: 0;
-		border-radius: var(--r-panel);
-		box-shadow: 0 0 28px color-mix(in srgb, var(--c-accent) 38%, transparent);
-		transition:
-			background var(--dur-fast) var(--ease),
-			box-shadow var(--dur-fast) var(--ease);
-	}
-	.launch:hover:not(:disabled) {
-		background: color-mix(in srgb, var(--c-accent) 78%, white);
-	}
-	.launch:disabled {
-		color: var(--text-dim);
-		background: var(--panel-raised);
-		box-shadow: none;
-		border: 1px solid var(--line);
-	}
-	.label {
-		display: grid;
-		text-align: left;
-		line-height: 1.1;
-	}
-	.big {
-		font-size: var(--t-xl);
-		font-weight: 600;
-	}
-	.sub {
-		font-size: var(--t-xs);
-		font-weight: 500;
-	}
 	.fatal {
 		position: absolute;
 		inset: 0;
@@ -454,14 +373,6 @@
 		display: flex;
 		gap: var(--s-3);
 		justify-content: flex-end;
-	}
-	@media (max-height: 800px) {
-		.launch {
-			height: 52px;
-		}
-		.keys {
-			display: none;
-		}
 	}
 	/* Narrow windows: the panels become drawers opened from the top bar, the vessel gets the width. */
 	@media (max-width: 899px) {
