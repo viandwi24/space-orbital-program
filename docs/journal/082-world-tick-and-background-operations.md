@@ -43,4 +43,14 @@
 
 ## Verification output
 
-See the `ready/082` tag message.
+```text
+bun test packages/sim/test/world-tick.test.ts   8 pass, 0 fail (0.9 s)
+  1000 ticks, 50 vessels on rails with background: 0.0565 ms per tick on average
+bun test packages/sim                          288 pass, 0 fail
+bun run docs:check                             docs-check: OK
+bun run test                                   1364 pass, 0 fail (164 s)
+bun run typecheck                              exit 0 (56 s)
+bun run build                                  exit 0
+bun run --filter @orbital/web test             871 passed, 1 skipped; editor-options and settings fail at import on this
+                                               machine only (no Node, vitest under Bun), as in 079 and 075
+```
