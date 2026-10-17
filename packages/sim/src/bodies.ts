@@ -46,6 +46,8 @@ export interface BodyRuntime {
 	elements: OrbitalElements | undefined;
 	/** Heights of the ground above the reference sphere (ADR 0043). */
 	terrain: TerrainField | undefined;
+	/** The last `stateInParent` and its time: a step asks for the same instant many times (plan 122). */
+	cached?: { t: number; state: StateVector };
 }
 
 const ORIGIN: StateVector = { r: { x: 0, y: 0, z: 0 }, v: { x: 0, y: 0, z: 0 } };
@@ -57,8 +59,9 @@ export function buildBodies(
 	terrain: TerrainField | TerrainFactory | undefined,
 	world: Pick<WorldInfo, 'id' | 'seed' | 'sites'>
 ): Map<string, BodyRuntime> {
+	// a star has no surface (ADR 0119 point 3): no terrain field is asked for it
 	const forBody = (def: BodyDefinition): TerrainField | undefined =>
-		typeof terrain === 'function'
+		typeof terrain === 'function' && !def.star
 			? terrain(def, { seed: terrainSeedOf(world), zones: zonesOf(sitesOf(world), def.id) })
 			: undefined;
 	const sorted = [...defs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -77,14 +80,11 @@ export function buildBodies(
 	}
 	for (const body of out.values()) {
 		const parentId = body.def.parent;
+		// Only the simulated home body receives a plain terrain field; a function is asked for every body.
+		const plain =
+			typeof terrain === 'function' ? undefined : body.def.id === rootId ? terrain : undefined;
 		if (parentId === undefined) {
-			// Only the simulated root receives a plain terrain field; a function is asked for every body.
-			body.terrain =
-				typeof terrain === 'function'
-					? forBody(body.def)
-					: body.def.id === rootId
-						? terrain
-						: undefined;
+			body.terrain = typeof terrain === 'function' ? forBody(body.def) : plain;
 			continue;
 		}
 		const parent = out.get(parentId);
@@ -98,7 +98,7 @@ export function buildBodies(
 		parent.children.push(body);
 		body.elements = body.def.orbit;
 		body.soi = soiRadius(body.def.orbit.a, body.def.mass, parent.def.mass);
-		body.terrain = forBody(body.def);
+		body.terrain = plain ?? forBody(body.def);
 	}
 	for (const body of out.values()) {
 		const seen = new Set<string>();
@@ -131,7 +131,10 @@ export const bodyOfVessel = (core: SimCore, vessel: VesselState): BodyRuntime =>
 /** State of `body` relative to its parent at time `t` (zero for the root). */
 export function stateInParent(body: BodyRuntime, t: number): StateVector {
 	if (!body.parent || !body.elements) return ORIGIN;
-	return propagate(body.elements, body.parent.mu, t);
+	if (body.cached?.t === t) return body.cached.state;
+	const state = propagate(body.elements, body.parent.mu, t);
+	body.cached = { t, state };
+	return state;
 }
 
 /** Position of the body's centre in the system frame (the root's centre) at time `t`. */

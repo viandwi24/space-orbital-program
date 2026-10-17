@@ -93,3 +93,21 @@ export function padLatLon(site: Site, pad: SitePad, radius: number): [number, nu
 	const longitude = site.longitude + pad.east / (radius * Math.max(Math.cos(site.latitude), 1e-6));
 	return [latitude, longitude];
 }
+
+/**
+ * The home body among `bodies` (plan 122, ADR 0119 point 1): the primary site's body when it is
+ * one of them, else the first body that is not a star and orbits a star or nothing. Hosts with
+ * the sim's catalog use its `home`; this is the same rule for a catalog loaded without a sim.
+ */
+export function homeBodyOf<
+	T extends { id: string; parent?: string | undefined; star?: boolean | undefined }
+>(bodies: readonly T[], info?: Pick<WorldInfo, 'sites'>): T | undefined {
+	const site = sitesOf(info ?? { sites: [] })[0]?.body;
+	const bySite = site === undefined ? undefined : bodies.find((b) => b.id === site);
+	if (bySite) return bySite;
+	const byId = new Map(bodies.map((b) => [b.id, b]));
+	return (
+		bodies.find((b) => !b.star && (b.parent === undefined || byId.get(b.parent)?.star === true)) ??
+		bodies[0]
+	);
+}

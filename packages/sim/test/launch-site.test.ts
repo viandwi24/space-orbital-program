@@ -11,7 +11,7 @@ const run = (sim: TestSim, seconds: number) => {
 	for (let i = 0; i < Math.round(seconds / 0.02); i++) sim.step(0.02);
 };
 const bodyFixed = (sim: TestSim, position: Vec3): Vec3 =>
-	rotateBy(conj(sim.snapshot().bodies[0]!.rotation), position);
+	rotateBy(conj(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation), position);
 
 /** Horizontal distance, m, of a body-fixed position from the vertical through (lat, lon). */
 const lateralOffset = (

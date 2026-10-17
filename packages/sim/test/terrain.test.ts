@@ -69,7 +69,11 @@ const eastOf = (metres: number) => ({
 /** Unit normal of the ramp's surface at longitude 0 (BCI at the time of the last snapshot). */
 function rampNormal(sim: TestSim, degrees: number): Vec3 {
 	const a = degrees * DEG;
-	return rotateBy(sim.snapshot().bodies[0]!.rotation, { x: Math.cos(a), y: 0, z: Math.sin(a) });
+	return rotateBy(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation, {
+		x: Math.cos(a),
+		y: 0,
+		z: Math.sin(a)
+	});
 }
 
 /** Angle between the vessel's nose and `normal`, degrees. */
@@ -287,7 +291,10 @@ describe('surface rails on terrain (ADR 0024, ADR 0043)', () => {
 		expect(v.surface).toBe(true);
 		const bodyFixed = (s: VesselSnapshot): Vec3 =>
 			rotateBy(
-				{ ...sim.snapshot().bodies[0]!.rotation, y: -sim.snapshot().bodies[0]!.rotation.y },
+				{
+					...sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation,
+					y: -sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation.y
+				},
 				s.position
 			);
 		const before = bodyFixed(v);
@@ -326,7 +333,7 @@ describe('placement on terrain', () => {
 			// the ground normal from the analytic Gaussian: slope = -east/sigma^2 * h
 			const h = 800 * Math.exp(-(east * east) / (2 * 2_000 * 2_000));
 			const slope = (-east / (2_000 * 2_000)) * h; // dh/d(east), negative on the east flank
-			const normal = rotateBy(sim.snapshot().bodies[0]!.rotation, {
+			const normal = rotateBy(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation, {
 				x: 1 / Math.hypot(1, slope),
 				y: 0,
 				z: slope / Math.hypot(1, slope) // normal = up - slope * east, east is -Z at longitude 0

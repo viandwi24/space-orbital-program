@@ -40,6 +40,8 @@ export interface Catalog {
 	/** Achievements of the booted plugins and the world's id (plan 102, ADR 0147); only the sim's `ready`. */
 	achievements?: AchievementDefinition[];
 	worldId?: string;
+	/** The home body the sim runs on (plan 122, ADR 0119); only the sim's `ready`. */
+	home?: string;
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */

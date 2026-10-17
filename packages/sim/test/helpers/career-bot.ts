@@ -9,6 +9,7 @@
  * economy is switched back on and the pod is recovered (the recovery credit). Between missions
  * the clock runs on rails with `warp-to`, so the world tick pays the scheduled charges.
  */
+import { tickDayLength } from '../../src/tick.ts';
 import type { CommandResult, EntityId, LedgerEntry, WorldInfo } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../../src/index.ts';
@@ -47,8 +48,9 @@ export async function runCareerBot(options: {
 		backendFactory: rapier(8),
 		world: options.world
 	});
+	// the calendar's solar day, what `world:tick` counts (plan 122: longer than the rotation)
 	const home = sim.registries.bodies.get('stock.home')!;
-	const dayLength = home.rotationPeriod;
+	const dayLength = tickDayLength(sim.registries.bodies.list());
 	const lastDay = options.days;
 	const daily: number[] = [];
 	sim.events.on('world:tick', () => daily.push(sim.snapshot().economy!.funds));
@@ -76,7 +78,13 @@ export async function runCareerBot(options: {
 		missions++;
 		// Run to the next mission day on rails.
 		must(sim.dispatch({ type: 'warp-to', time: day * dayLength + 1, factor: 1e6 }), 'warp-to');
-		while (sim.time < day * dayLength + 1 - 1e-6) sim.step(10);
+		// until the warp-to has arrived (a day of 21 650.8 s lands between floats of the epsilon)
+		for (
+			let guard = 0;
+			(sim.time < day * dayLength + 1 - 1e-6 || sim.warp !== 1) && guard < 1e5;
+			guard++
+		)
+			sim.step(10);
 	}
 	const entries = sim.save().economy!.entries;
 	return {

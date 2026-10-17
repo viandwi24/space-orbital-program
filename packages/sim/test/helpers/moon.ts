@@ -24,7 +24,7 @@ export interface System {
 
 export function systemOf(sim: Sim): System {
 	const bodies = sim.registries.bodies.list();
-	const home = bodies.find((b) => b.parent === undefined)!;
+	const home = bodies.find((b) => b.id === sim.home)!;
 	const moon = bodies.find((b) => b.parent === home.id)!;
 	const orbit = moon.orbit!;
 	return {

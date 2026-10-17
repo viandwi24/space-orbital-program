@@ -34,7 +34,7 @@ describe('the nested member tables against the real sandbox', () => {
 			seed: 1
 		});
 		try {
-			const mu = 6.6743e-11 * sim.registries.bodies.list()[0]!.mass;
+			const mu = 6.6743e-11 * sim.registries.bodies.get(sim.home)!.mass;
 			const place = (alt: number, phase: number): number => {
 				const r = 600_000 + alt;
 				const speed = Math.sqrt(mu / r);

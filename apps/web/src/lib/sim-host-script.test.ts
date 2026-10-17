@@ -49,7 +49,7 @@ async function setup(
 	});
 	await host.start();
 	// An orbit placement (plans 035, 045: SAS, nodes, targets and warp-to need the vessel on rails).
-	const home = sim!.registries.bodies.list()[0]!;
+	const home = sim!.registries.bodies.get(sim!.home)!;
 	const radius = home.radius + (budgets.orbitAltitude ?? 0);
 	const speed = Math.sqrt((6.6743e-11 * home.mass) / radius);
 	host.handle({
@@ -291,7 +291,7 @@ describe('sim host: scripts (plan 015)', () => {
 	it('a script reaches the sim with SAS, maneuver nodes, the target and warp-to; the hold ends when the warp does (plans 042, 045, 035)', async () => {
 		const t = await setup({ orbitAltitude: 150_000 });
 		// A second vessel ahead on a higher orbit: something to target.
-		const home = t.sim().registries.bodies.list()[0]!;
+		const home = t.sim().registries.bodies.get(t.sim().home)!;
 		const radius = home.radius + 165_000;
 		const speed = Math.sqrt((6.6743e-11 * home.mass) / radius);
 		const phase = 0.4;

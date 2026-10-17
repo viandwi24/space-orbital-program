@@ -49,7 +49,10 @@ export interface SimCore {
 	readonly frames: FlightFrame[];
 	/** Every body, by id (ADR 0051); a body's `terrain` is the height function of ADR 0043. */
 	readonly bodies: ReadonlyMap<string, BodyRuntime>;
-	/** The root body of the tree. */
+	/**
+	 * The home body the sim runs on (ADR 0119 point 1): terrain, the launch site, recovery, crew and
+	 * milestones. Not the root of the tree once a Sun sits there.
+	 */
 	readonly root: BodyRuntime;
 	readonly pre: SystemDefinition[];
 	readonly post: SystemDefinition[];

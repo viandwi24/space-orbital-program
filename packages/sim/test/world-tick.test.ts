@@ -1,13 +1,14 @@
 /** The world tick (plan 082, ADR 0171): day boundaries, order, streams, resume, background work. */
 import { describe, expect, test } from 'bun:test';
 import { legacyWorldInfo, type Plugin, type SystemDefinition, type WorldInfo } from '@orbital/core';
-import Stock from '@orbital/mod-stock';
+import Stock, { HomeBody, MoonBody, SunBody } from '@orbital/mod-stock';
 import { defineModule, definePlugin, GRAVITATIONAL_CONSTANT, z } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
+import { tickDayLength } from '../src/tick.ts';
 import { orbitState } from './helpers/measure.ts';
 import { rapier, stack } from './helpers/vessels.ts';
 
-const DAY = 21_600; // stock home body rotation period, s
+const DAY = tickDayLength([SunBody, HomeBody, MoonBody]); // the stock calendar's solar day (plan 122)
 const BENCH_DAY = 10;
 const HOME_MU = 3.5316e12;
 
@@ -63,11 +64,12 @@ describe('world tick', () => {
 	});
 
 	test('at warp 1 in flight the tick comes at the end of the step that crossed the boundary', async () => {
-		// Epoch half a second before the end of an SI day (ADR 0114: the epoch is in SI days): that is
-		// half a second before the end of stock day 3, so the boundary of day 4 is at t = 0.5 s.
+		// Epoch half a second before the end of stock day 3 (ADR 0114: the epoch is in SI days), so
+		// the boundary of day 4 is at t = 0.5 s.
+		const before = 4 * DAY - 0.5;
 		const world: WorldInfo = {
 			...legacyWorldInfo(7),
-			epoch: { day: 0, fraction: 1 - 0.5 / 86_400 }
+			epoch: { day: Math.floor(before / 86_400), fraction: (before % 86_400) / 86_400 }
 		};
 		const s = await sim([], { world });
 		const r = s.dispatch({ type: 'load-vessel', design: stack('Pod', ['stock.command-pod'], []) });

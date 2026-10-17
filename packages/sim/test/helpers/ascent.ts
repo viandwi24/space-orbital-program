@@ -42,7 +42,7 @@ export const defaultAscent: AscentOptions = {
 export type Phase = 'ascent' | 'coast' | 'circularise' | 'done';
 
 export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = defaultAscent) {
-	const home = sim.registries.bodies.list().find((b) => b.parent === undefined)!;
+	const home = sim.registries.bodies.get(sim.home)!;
 	const mu = GRAVITATIONAL_CONSTANT * home.mass;
 	const radius = home.radius;
 	let phase: Phase = 'ascent';

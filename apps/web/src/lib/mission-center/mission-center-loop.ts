@@ -125,6 +125,8 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			if (disposed) return;
 			renderer = createRenderer({
 				canvas,
+				// the home body has the planet pass (plan 122, ADR 0119)
+				...(c.home ? { home: c.home } : {}),
 				bodies: [...c.bodies]
 					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
 					.map((b) => ({
@@ -133,6 +135,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 						mass: b.mass,
 						atmosphere: b.atmosphere,
 						...(b.terrain ? { terrain: b.terrain } : {}),
+						...(b.star ? { star: true } : {}),
 						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 					})),
 				partShapes: partShapesOf(c),

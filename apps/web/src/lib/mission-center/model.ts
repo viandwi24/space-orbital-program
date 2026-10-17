@@ -29,6 +29,13 @@ export interface TrackRow {
 
 const vesselName = (v: VesselSnapshot): string => v.name ?? `Vessel ${v.id}`;
 
+/** "Star", "Planet" (orbits a star or nothing) or "Moon of X" (plan 122). */
+export function kindOf(b: BodyDefinition, bodies: readonly BodyDefinition[]): string {
+	if (b.star) return 'Star';
+	const parent = b.parent === undefined ? undefined : bodies.find((x) => x.id === b.parent);
+	return !parent || parent.star ? 'Planet' : `Moon of ${bodyLabel(String(parent.id))}`;
+}
+
 /** Where a vessel is, in two words: "Orbit · Home", "Landed · Home", "Flight · Home". */
 export function vesselWhere(v: VesselSnapshot): string {
 	const what = v.surface ? 'Landed' : v.mode === 'on-rails' ? 'Orbit' : 'Flight';
@@ -51,7 +58,7 @@ export function trackingRows(
 				key: `body:${b.id}`,
 				kind: 'body',
 				label: bodyLabel(String(b.id)),
-				sub: b.parent === undefined ? 'Planet' : `Moon of ${bodyLabel(String(b.parent))}`
+				sub: kindOf(b, bodies)
 			});
 		}
 	}
@@ -182,7 +189,7 @@ export function objectCard(
 		return {
 			key,
 			title: bodyLabel(id),
-			sub: b.parent === undefined ? 'Planet' : `Moon of ${bodyLabel(String(b.parent))}`,
+			sub: kindOf(b, bodies),
 			facts: [
 				{ label: 'Radius', value: formatDistance(b.radius) },
 				{ label: 'Gravity', value: `${g.toFixed(2)} m/s²` },

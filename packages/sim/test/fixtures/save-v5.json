@@ -1,0 +1,349 @@
+{
+ "format": "orbital-sim-save",
+ "formatVersion": 5,
+ "apiVersion": "0.1.47",
+ "mods": [
+  {
+   "id": "stock",
+   "version": "0.1.0"
+  }
+ ],
+ "bodies": [
+  "stock.home",
+  "stock.cinder"
+ ],
+ "dt": 0.02,
+ "seed": 12,
+ "time": 1.0000000000000004,
+ "warp": 1,
+ "warpTarget": null,
+ "accumulator": 0,
+ "rng": 12,
+ "worldInfo": {
+  "id": "legacy",
+  "seed": 12,
+  "systemId": "stock",
+  "systemVersion": "0.1.0",
+  "variant": "default",
+  "gravityModel": "patched",
+  "epoch": {
+   "day": 0,
+   "fraction": 0
+  },
+  "rules": {
+   "stock.economy": false,
+   "stock.funds-multiplier": 1,
+   "stock.cost-multiplier": 1,
+   "stock.starting-funds": 100000,
+   "stock.science-depth": "classic",
+   "stock.science-multiplier": 1,
+   "stock.tech-tree": false,
+   "stock.crew-experience": false,
+   "stock.crew-salaries": false,
+   "stock.life-support": "off",
+   "stock.crew-morale": false,
+   "stock.crew-rest": false,
+   "stock.crew-exposure": false,
+   "stock.crew-death": "off",
+   "stock.crew-return-days": 14,
+   "stock.comms": true,
+   "stock.signal-delay": "display",
+   "stock.control-without-signal": "full",
+   "stock.comms-scale": 1,
+   "stock.range-safety": "off",
+   "stock.reliability": false,
+   "stock.agency-type": "government",
+   "stock.agency-count": 0
+  },
+  "sites": [],
+  "preset": "stock.sandbox",
+  "changelog": []
+ },
+ "worldTick": {
+  "lastDay": 0,
+  "streams": {}
+ },
+ "economy": {
+  "balances": {
+   "funds": 100000,
+   "science": 0,
+   "reputation": 0
+  },
+  "entries": []
+ },
+ "milestones": {
+  "records": [
+   {
+    "id": "launch",
+    "kind": "launch",
+    "crewed": false,
+    "vessel": 0,
+    "time": 0.02
+   },
+   {
+    "id": "orbit:stock.home",
+    "kind": "orbit",
+    "body": "stock.home",
+    "crewed": false,
+    "vessel": 0,
+    "time": 0.02
+   }
+  ],
+  "visits": {
+   "0": [
+    "orbit:stock.home"
+   ]
+  }
+ },
+ "world": {
+  "formatVersion": 1,
+  "nextEntity": 4,
+  "entities": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "components": {
+   "sim.module-state:stock.reaction-wheel": {
+    "2": {
+     "enabled": true
+    }
+   },
+   "sim.module-state:stock.resource-container": {
+    "1": {
+     "amounts": {
+      "stock.electric-charge": 50
+     }
+    },
+    "3": {
+     "amounts": {
+      "stock.liquid-fuel": 400,
+      "stock.oxidizer": 490
+     }
+    }
+   },
+   "sim.part": {
+    "1": {
+     "vessel": 0,
+     "index": 0,
+     "definition": "stock.command-pod",
+     "designPos": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [
+      {
+       "node": "bottom",
+       "peer": 2,
+       "peerNode": "top"
+      }
+     ],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.command"
+      },
+      {
+       "id": "stock.resource-container",
+       "config": {
+        "contents": {
+         "stock.electric-charge": {
+          "capacity": 50,
+          "amount": 50
+         }
+        }
+       }
+      }
+     ]
+    },
+    "2": {
+     "vessel": 0,
+     "index": 1,
+     "definition": "stock.reaction-wheel",
+     "designPos": {
+      "x": 0,
+      "y": -0.7,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [
+      {
+       "node": "top",
+       "peer": 1,
+       "peerNode": "bottom"
+      },
+      {
+       "node": "bottom",
+       "peer": 3,
+       "peerNode": "top"
+      }
+     ],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.reaction-wheel",
+       "config": {
+        "torque": 5000,
+        "chargeRate": 0.6
+       }
+      }
+     ]
+    },
+    "3": {
+     "vessel": 0,
+     "index": 2,
+     "definition": "stock.tank-small",
+     "designPos": {
+      "x": 0,
+      "y": -1.9,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [
+      {
+       "node": "top",
+       "peer": 2,
+       "peerNode": "bottom"
+      }
+     ],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.resource-container",
+       "config": {
+        "contents": {
+         "stock.liquid-fuel": {
+          "capacity": 400,
+          "amount": 400
+         },
+         "stock.oxidizer": {
+          "capacity": 490,
+          "amount": 490
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "sim.vessel": {
+    "0": {
+     "name": "Probe",
+     "mode": "on-rails",
+     "soi": "stock.home",
+     "root": 1,
+     "parts": [
+      1,
+      2,
+      3
+     ],
+     "control": {
+      "throttle": 0,
+      "pitch": 0,
+      "roll": 0,
+      "yaw": 0
+     },
+     "sas": {
+      "mode": "off",
+      "reference": "surface",
+      "hold": {
+       "x": 0,
+       "y": 0,
+       "z": 0,
+       "w": 1
+      },
+      "settling": false,
+      "integral": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "error": 0,
+      "quiet": false,
+      "active": false,
+      "demand": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     "nodes": [],
+     "target": null,
+     "stages": [],
+     "nextStage": 0,
+     "com": {
+      "x": 720000,
+      "y": 0,
+      "z": 0
+     },
+     "velocity": {
+      "x": 0,
+      "y": 0,
+      "z": -2214.72345903501
+     },
+     "orientation": {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+     },
+     "rails": {
+      "kind": "elements",
+      "elements": {
+       "a": 719999.9999999999,
+       "e": 1.8987208452914955e-16,
+       "i": 0,
+       "raan": 0,
+       "argp": 0,
+       "m0": 0,
+       "epoch": 0
+      }
+     },
+     "idle": 0,
+     "landed": false,
+     "rest": 0
+    }
+   }
+  }
+ },
+ "frames": [
+  {
+   "id": 0,
+   "inUse": false,
+   "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "velocity": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "soi": "stock.home",
+   "vessels": [],
+   "bodies": []
+  },
+  {
+   "id": 1,
+   "inUse": false,
+   "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "velocity": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "soi": "stock.home",
+   "vessels": [],
+   "bodies": []
+  }
+ ],
+ "checksum": "0497fb530e8566"
+}

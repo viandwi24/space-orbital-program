@@ -23,6 +23,8 @@ test('career bot: 3 600 game days with only launches and recoveries keep funds i
 	expect(bot.daily).toHaveLength(3_600);
 	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
-	expect(seconds).toBeLessThan(30);
+	// about 9 s alone on an M5 since plan 122 (7.4 s before the Sun: home's orbit is propagated at
+	// every comms sample); 45 s leaves room for the parallel full suite and still catches a 5x regression
+	expect(seconds).toBeLessThan(45);
 	bot.sim.dispose();
 }, 60_000);

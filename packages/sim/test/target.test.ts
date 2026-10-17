@@ -130,7 +130,8 @@ describe('relative state', () => {
 		const moon = snap.bodies.find((b) => b.id === 'stock.cinder')!;
 		const t = snap.vessels[0]!.target!;
 		const com = centreOfMass(sim, snap.vessels[0]!);
-		expect(length(sub(t.position, sub(moon.position, com)))).toBeLessThan(1e-3);
+		const home = snap.bodies.find((b) => b.id === 'stock.home')!;
+		expect(length(sub(t.position, sub(sub(moon.position, home.position), com)))).toBeLessThan(1e-3);
 		expect(t.relativeSpeed).toBeGreaterThan(1_000); // the vessel's 2.2 km/s against the moon's motion
 		sim.dispose();
 	});

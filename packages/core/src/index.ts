@@ -13,6 +13,7 @@ export * from './events.ts';
 export * from './world.ts';
 export * from './calendar.ts';
 export * from './body-rotation.ts';
+export * from './seasons.ts';
 export * from './schemas.ts';
 export * from './definitions.ts';
 export * from './module-info.ts';

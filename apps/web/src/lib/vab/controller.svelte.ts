@@ -6,6 +6,7 @@
  */
 import { untrack } from 'svelte';
 import {
+	homeBodyOf,
 	surfaceHalfHeight,
 	surfacePoint,
 	surfaceSite,
@@ -113,7 +114,7 @@ export class VabController {
 	readonly parts = this.catalog.parts;
 	/** The catalogue rail, in order (plan 069). */
 	readonly categories = categoriesOf(this.loaded.categories);
-	readonly body = this.catalog.bodies[0]!;
+	readonly body = homeBodyOf(this.catalog.bodies)!;
 	readonly gravity = bodyMu(this.body) / (this.body.radius * this.body.radius);
 	/** What the loaded bodies offer as a trip (plan 034): mod bodies are in the list without any code. */
 	readonly destinations = destinationsOf(this.catalog.bodies);

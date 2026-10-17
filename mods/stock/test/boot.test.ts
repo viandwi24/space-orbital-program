@@ -66,7 +66,7 @@ describe('stock boots through the loader', () => {
 			'stock.whip-antenna',
 			'stock.wing'
 		]);
-		expect(ids('body')).toEqual(['stock.cinder', 'stock.home']);
+		expect(ids('body')).toEqual(['stock.cinder', 'stock.home', 'stock.sun']);
 		expect(ids('system')).toEqual([]);
 		expect(ids('situation')).toEqual([
 			'stock.flying-high',
@@ -195,7 +195,8 @@ describe('stock boots through the loader', () => {
 			surfacePressure: 101_325,
 			height: 70_000
 		});
-		expect(home?.parent).toBeUndefined();
+		// the home planet orbits the Sun since plan 122 (ADR 0119)
+		expect(home?.parent).toBe('stock.sun');
 		expect(6.6743e-11 * (home?.mass ?? 0)).toBeCloseTo(HOME_MU, -3);
 		expect(HOME_MU).toBe(3.5316e12);
 		const g = HOME_MU / 600_000 ** 2;

@@ -250,11 +250,13 @@ describe('in flight', () => {
 				const snap = sim.snapshot();
 				const v = snap.vessels.find((x) => x.id === id)!;
 				const body = snap.bodies.find((b) => b.id === v.soi)!;
+				// home-centred inertial frame: the home planet orbits the Sun since plan 122
+				const home = snap.bodies.find((b) => b.id === s.home.id)!;
 				const moonV = v.soi === s.moon.id ? moonState(s, snap.t).v : { x: 0, y: 0, z: 0 };
 				return {
 					soi: v.soi,
 					mode: v.mode,
-					r: add(v.position, body.position),
+					r: sub(add(v.position, body.position), home.position),
 					v: add(v.velocity, moonV),
 					t: snap.t
 				};
@@ -310,10 +312,16 @@ describe('the moon as a place', () => {
 		const sim = await newSim();
 		const s = systemOf(sim);
 		const snap0 = sim.snapshot();
-		expect(snap0.bodies.map((b) => String(b.id))).toEqual(['stock.home', 'stock.cinder']);
-		const m = snap0.bodies[1]!;
+		expect(snap0.bodies.map((b) => String(b.id))).toEqual([
+			'stock.sun',
+			'stock.home',
+			'stock.cinder'
+		]);
+		// the moon's place relative to the home planet (the system frame is the Sun's since plan 122)
+		const h = snap0.bodies.find((b) => b.id === s.home.id)!;
+		const m = snap0.bodies.find((b) => b.id === s.moon.id)!;
 		const expected = toStateVector(s.orbit, s.homeMu, 0).r;
-		expect(length(sub(m.position, expected))).toBeLessThan(1e-6);
+		expect(length(sub(sub(m.position, h.position), expected))).toBeLessThan(1e-3);
 		const placed = sim.dispatch({
 			type: 'load-vessel',
 			design: twoStage(),
@@ -406,7 +414,12 @@ describe('the prediction agrees with the sim', () => {
 		const o = moonSim.sim.snapshot().vessels[0]!.orbit!;
 		expect(Math.abs(o.a * (1 - o.e) - rPredicted)).toBeLessThan(2_000);
 		// The segment's body offset is the moon's position when the vessel got there.
-		expect(length(sub(path[1]!.bodyOffset, moonState(s, path[1]!.t0).r))).toBeLessThan(1e-6);
+		// (both relative to the home planet, which orbits the Sun since plan 122)
+		const sun = r.sim.registries.bodies.get(s.home.parent!)!;
+		const homeAt = toStateVector(s.home.orbit!, GRAVITATIONAL_CONSTANT * sun.mass, path[1]!.t0).r;
+		expect(length(sub(sub(path[1]!.bodyOffset, homeAt), moonState(s, path[1]!.t0).r))).toBeLessThan(
+			1e-3
+		);
 		r.sim.dispose();
 		moonSim.sim.dispose();
 	}, 60_000);

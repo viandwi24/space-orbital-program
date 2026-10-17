@@ -25,7 +25,7 @@ async function padSim(options: { maxFlightFrames?: number } = {}) {
 
 /** Position of the vessel's root in the body-fixed frame (undoes the body's rotation). */
 const bodyFixed = (sim: TestSim, v: VesselSnapshot): Vec3 =>
-	rotateBy(conj(sim.snapshot().bodies[0]!.rotation), v.position);
+	rotateBy(conj(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation), v.position);
 
 describe('going on surface rails', () => {
 	test('a pad vessel stays in flight for 2 s at rest, then goes on surface rails; warp is accepted', async () => {
@@ -107,7 +107,7 @@ describe('on surface rails', () => {
 
 /** Orientation of the root relative to the body-fixed frame. */
 function qMulBody(sim: TestSim, v: VesselSnapshot): Quat {
-	const b = conj(sim.snapshot().bodies[0]!.rotation);
+	const b = conj(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation);
 	const o = v.orientation;
 	return {
 		x: b.w * o.x + b.x * o.w + b.y * o.z - b.z * o.y,

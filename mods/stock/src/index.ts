@@ -3,7 +3,7 @@
  * If stock content needs a "back door" into core, the SDK is incomplete: fix the SDK, not this package.
  */
 import { definePlugin } from '@orbital/sdk';
-import { HomeBody, MoonBody } from './bodies.ts';
+import { HomeBody, MoonBody, SunBody } from './bodies.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
@@ -133,6 +133,8 @@ export const Stock = definePlugin({
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
 
+		// the Sun first: hosts list bodies in registration order and the tree's root comes first
+		ctx.bodies.register(SunBody);
 		ctx.bodies.register(HomeBody);
 		ctx.bodies.register(MoonBody);
 

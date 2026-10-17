@@ -306,6 +306,13 @@ ctx.achievements.register(defineAchievement({
 - `hidden: true` keeps an achievement off the list until it is unlocked. Achievements teach and reward; none should be missable for good, and a world loaded later still unlocks what its records match.
 - Unlocks live in the player's local profile (the Worlds screen exports and imports it).
 
+## Stars and the home body (API 0.1.48, plan 122, ADR 0119)
+
+- **A star** is a body with `star: true`: no surface (no terrain is asked for it), drawn emissive, and the renderer lights the system from it. The stock root is `stock.sun`; a system pack puts its own star at the root and its planets as children with an `orbit`.
+- **The calendar** is read on the root (ADR 0141): give the star `calendar: { kind: 'fictional', home: '<your planet>' }` and the year is that planet's orbit, the day its solar day.
+- **The home body** is the world's primary site's body, else the first body that is not a star and orbits a star or nothing (`homeBodyOf` in `@orbital/sdk`). Hosts read it from the sim (`sim.home`); do not take `bodies[0]`, which is the root.
+- **Axial tilt** in the stock system is the inclination of the planet's orbit with the pole on +Y, so the planet's own sphere keeps the frame it always had; a pole of your own (`rotation.pole`, ADR 0145) works too.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

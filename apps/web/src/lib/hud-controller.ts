@@ -7,13 +7,14 @@ import {
 	bodyPole,
 	calendarOf,
 	dossierOf,
-	parseSubjectId,
-	type Dossier,
-	formatDate,
-	type Epoch,
 	entityId,
+	formatDate,
+	homeBodyOf,
+	parseSubjectId,
 	type BodyDefinition,
 	type Command,
+	type Dossier,
+	type Epoch,
 	type SasMode,
 	type SasSnapshot,
 	type Snapshot,
@@ -298,7 +299,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			const i = entityIndex?.get(e);
 			return design.parts.find((p) => p.index === i)?.part;
 		},
-		home: bodies.find((b) => b.parent === undefined)?.id ?? ''
+		home: homeBodyOf(bodies)?.id ?? ''
 	};
 	const clock = options.now ?? (() => performance.now());
 	const push = (t: Toast | null): void => {
@@ -517,7 +518,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				targets: targetChoices(snap, Number(v.id), bodies),
 				rendezvous: v.target ? (options.rendezvous?.() ?? null) : null,
 				dossier: targetDossier(snap, v, bodies, content),
-				crew: crewCard(snap, v, (bodies.find((b) => !b.parent) ?? body).rotationPeriod),
+				crew: crewCard(snap, v, (homeBodyOf(bodies) ?? body).rotationPeriod),
 				toasts
 			};
 		}

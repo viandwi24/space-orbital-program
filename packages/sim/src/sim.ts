@@ -30,6 +30,7 @@ import {
 	type World,
 	type RuleReader,
 	type WorldInfo,
+	sitesOf,
 	worldInfoSchema
 } from '@orbital/core';
 import { buildBodies, type TerrainFactory } from './bodies.ts';
@@ -157,6 +158,8 @@ export interface Sim {
 	readonly worldInfo: Readonly<WorldInfo>;
 	/** Rule ids in the world that no loaded mod registers: kept in the save (ADR 0111 point 3). */
 	readonly unknownRules: readonly string[];
+	/** The home body the sim runs on (ADR 0119 point 1): not the tree's root once a Sun sits there. */
+	readonly home: string;
 	/** Simulation time, s. */
 	readonly time: number;
 	readonly warp: number;
@@ -224,7 +227,13 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	}
 	const seed = options.seed ?? resume?.seed ?? 0;
 	const defs = registries.bodies.list();
-	const wantedBody = options.body ?? resume?.bodies[0];
+	const info = worldOf(options, resume, seed);
+	// The home body (ADR 0119 point 1): asked for, the save's, the primary site's, else the root.
+	const siteBody = sitesOf(info)[0]?.body;
+	const wantedBody =
+		options.body ??
+		resume?.home ??
+		(siteBody !== undefined && registries.bodies.has(siteBody) ? siteBody : undefined);
 	const bodyDef = wantedBody
 		? registries.bodies.get(wantedBody)
 		: defs.find((b) => b.parent === undefined);
@@ -244,7 +253,6 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			);
 		}
 	}
-	const info = worldOf(options, resume, seed);
 	const resolved = resolveRules(info.rules, info.preset, registries.rules, registries.presets);
 	if (resolved.problems.length > 0) {
 		const why = resolved.problems.join('; ');
@@ -317,10 +325,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	listenForComms(core);
 	listenForMilestones(core);
 	if (resume) {
-		if (bodyDef.id !== resume.bodies[0]) {
+		if (bodyDef.id !== resume.home) {
 			throw new SaveError(
 				'incompatible',
-				`This save is rooted at "${resume.bodies[0]}"; the sim was asked to simulate "${bodyDef.id}".`
+				`This save's home is "${resume.home}"; the sim was asked to simulate "${bodyDef.id}".`
 			);
 		}
 		restoreFrames(core, resume);
@@ -479,6 +487,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		registries,
 		report,
 		rng: core.rng,
+		home: core.root.def.id,
 		get worldInfo() {
 			if (frozenInfo === null || frozenFor !== core.rulesView) {
 				frozenInfo = deepFreeze(cloneData(core.info));
