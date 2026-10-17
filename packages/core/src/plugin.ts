@@ -15,7 +15,15 @@ import type {
 } from './definitions.ts';
 import { createEventBus, type EventBus, type EventMap } from './events.ts';
 import { pluginIdSchema } from './schemas.ts';
-import { createRegistries, RegistryError, type Registries } from './registry.ts';
+import {
+	applyPatches,
+	PATCH_TARGETS,
+	type AnyPatchDefinition,
+	type PatchReport,
+	type PatchSource,
+	type Provenance
+} from './patch.ts';
+import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -58,6 +66,11 @@ export interface BasePluginContext {
 	readonly resources: Registrar<ResourceDefinition>;
 	readonly bodies: Registrar<BodyDefinition>;
 	readonly systems: Registrar<SystemDefinition>;
+	/**
+	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
+	 * after every plugin booted.
+	 */
+	readonly patches: Registrar<AnyPatchDefinition>;
 	/** Optional dependencies that are loaded, keyed like their `contributes`. */
 	readonly optional: Readonly<Record<string, unknown>>;
 	/** Supply the implementation of a `contributes` key. Each key can be provided once, by one plugin. */
@@ -87,6 +100,10 @@ export interface LoadReport {
 	disabled: Array<{ id: string; reason: string }>;
 	/** What each kind's registry holds from booted plugins, in registration order. */
 	registered: Record<RegistryKind, Array<{ id: string; by: string }>>;
+	/** Every registered patch in apply order, with what it changed or why it is disabled (ADR 0170). */
+	patches: PatchReport[];
+	/** Who set each patched field: registering plugin first, then patchers in apply order. */
+	provenance: Provenance;
 }
 
 export interface LoadOptions {
@@ -112,6 +129,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'resources',
 	'bodies',
 	'systems',
+	'patches',
 	'optional',
 	'provide'
 ]);
@@ -135,6 +153,40 @@ export function parseModuleConfig(
 }
 
 /**
+ * Problems of a part's module list against the module registry: unknown or repeated modules,
+ * configs that fail their schema, and unmet `requires`. Empty when the part is consistent.
+ */
+export function partModuleProblems(
+	part: PartDefinition,
+	modules: { get(id: string): ModuleDefinition | undefined }
+): string[] {
+	const problems: string[] = [];
+	const used = new Set<string>();
+	for (const [moduleId, config] of part.modules ?? []) {
+		if (used.has(moduleId)) {
+			problems.push(`module "${moduleId}" is listed twice`);
+			continue;
+		}
+		used.add(moduleId);
+		const module = modules.get(moduleId);
+		if (!module) {
+			problems.push(`unknown module "${moduleId}"`);
+			continue;
+		}
+		const parsed = parseModuleConfig(module, config);
+		if (!parsed.ok) problems.push(`config for module "${moduleId}": ${parsed.message}`);
+	}
+	for (const moduleId of used) {
+		for (const required of modules.get(moduleId)?.requires ?? []) {
+			if (!used.has(required)) {
+				problems.push(`module "${moduleId}" requires module "${required}" on the same part`);
+			}
+		}
+	}
+	return problems;
+}
+
+/**
  * Validate, order and boot `plugins`.
  *
  * - Duplicate plugin ids, malformed ids, dependency cycles, setup failures and registry errors
@@ -142,6 +194,8 @@ export function parseModuleConfig(
  * - Unsupported `api`, bad version, or a missing hard dependency disable the plugin (and,
  *   transitively, its dependents) with a reason in the report.
  * - Order is Kahn's algorithm; ties are broken by position in `plugins`, so it is deterministic.
+ * - Patches apply after boot and before the part/module cross-check; a bad patch is disabled with
+ *   a reason in `report.patches`, never thrown (ADR 0170).
  */
 export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {}): LoadResult {
 	const registries = options.registries ?? createRegistries();
@@ -223,6 +277,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 	}
 
 	// 4. Boot.
+	const patchRegistry = createRegistry<AnyPatchDefinition>('patch');
 	const provided = new Map<string, { by: string; impl: unknown }>();
 	const providedBy = new Map<string, Map<string, unknown>>();
 	for (const p of order) {
@@ -245,6 +300,18 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			resources: registrar(registries.resources),
 			bodies: registrar(registries.bodies),
 			systems: registrar(registries.systems),
+			patches: {
+				register(def) {
+					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
+						throw new PluginError(
+							`Plugin "${id}": patch "${def.id}" targets "${String(def.target)}"; ` +
+								`patchable registries are ${PATCH_TARGETS.map((t) => `"${t}"`).join(', ')}`,
+							id
+						);
+					}
+					return patchRegistry.register(def, id);
+				}
+			},
 			optional: Object.freeze(optional),
 			provide(key, impl) {
 				if (RESERVED_KEYS.has(key)) {
@@ -290,33 +357,26 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 		}
 	}
 
-	// 5. Cross-check parts against modules (the only point where both registries are complete).
+	// 5. Patches (ADR 0170), then cross-check parts against modules (the only point where both
+	// registries are complete).
+	const bootIndex = new Map(order.map((p, i) => [p.meta.id, i]));
+	const patchSources: PatchSource[] = patchRegistry
+		.entries()
+		.map(({ def, by }) => ({ def, by, bootIndex: bootIndex.get(by)! }));
+	const patched = applyPatches({
+		patches: patchSources,
+		registries: { part: registries.parts, resource: registries.resources, body: registries.bodies },
+		checkEntry: (target, entry) => {
+			if (target !== 'part') return undefined;
+			const problems = partModuleProblems(entry as PartDefinition, registries.modules);
+			return problems.length > 0 ? problems.join('; ') : undefined;
+		}
+	});
+
 	const problems: string[] = [];
 	for (const { def: part, by } of registries.parts.entries()) {
-		const used = new Set<string>();
-		for (const [moduleId, config] of part.modules ?? []) {
-			const where = `part "${part.id}" (plugin "${by}")`;
-			if (used.has(moduleId)) {
-				problems.push(`${where}: module "${moduleId}" is listed twice`);
-				continue;
-			}
-			used.add(moduleId);
-			const module = registries.modules.get(moduleId);
-			if (!module) {
-				problems.push(`${where}: unknown module "${moduleId}"`);
-				continue;
-			}
-			const parsed = parseModuleConfig(module, config);
-			if (!parsed.ok) problems.push(`${where}: config for module "${moduleId}": ${parsed.message}`);
-		}
-		for (const moduleId of used) {
-			for (const required of registries.modules.get(moduleId)?.requires ?? []) {
-				if (!used.has(required)) {
-					problems.push(
-						`part "${part.id}" (plugin "${by}"): module "${moduleId}" requires module "${required}" on the same part`
-					);
-				}
-			}
+		for (const problem of partModuleProblems(part, registries.modules)) {
+			problems.push(`part "${part.id}" (plugin "${by}"): ${problem}`);
 		}
 	}
 	if (problems.length > 0) {
@@ -346,7 +406,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				resource: section(registries.resources),
 				body: section(registries.bodies),
 				system: section(registries.systems)
-			}
+			},
+			patches: patched.patches,
+			provenance: patched.provenance
 		}
 	};
 }

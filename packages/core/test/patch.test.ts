@@ -4,9 +4,12 @@ import {
 	applyPatches,
 	createRegistries,
 	createRegistry,
+	loadPlugins,
+	PluginError,
 	type AnyPatchDefinition,
 	type PartDefinition,
 	type PatchSource,
+	type Plugin,
 	type Registries
 } from '../src/index.ts';
 
@@ -408,5 +411,109 @@ describe('applyPatches: ops', () => {
 		expect(
 			patchTank([{ op: 'insert', path: 'attach.top.pos', index: 9, value: 1 }]).report.disabled
 		).toContain('out of range');
+	});
+});
+
+describe('loadPlugins with patches', () => {
+	const base: Plugin = {
+		meta: { id: 'stock', version: '1.0.0', api: '^0.1' },
+		depends: [],
+		optional: [],
+		setup(ctx) {
+			ctx.modules.register({
+				id: 'stock.engine',
+				config: z.object({ thrust: z.number().positive(), isp: z.number() })
+			});
+			ctx.parts.register(engine('stock.engine-a'));
+		}
+	};
+	const patcher = (id: string, thrust: number, after: string[] = []): Plugin => ({
+		meta: { id, version: '1.0.0', api: '^0.1' },
+		depends: ['stock'],
+		optional: [],
+		setup(ctx) {
+			ctx.patches.register({
+				id: `${id}.thrust`,
+				target: 'part',
+				select: { id: 'stock.engine-a' },
+				ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: thrust }],
+				after
+			});
+		}
+	});
+
+	test('two plugins patch the same field; "after" wins over the load list', () => {
+		for (const list of [
+			[base, patcher('beta', 230_000, ['alpha']), patcher('alpha', 210_000)],
+			[base, patcher('alpha', 210_000), patcher('beta', 230_000, ['alpha'])]
+		]) {
+			const { registries, report } = loadPlugins(list);
+			expect(thrustOf(registries, 'stock.engine-a')).toBe(230_000);
+			expect(report.patches.map((p) => [p.id, p.applied])).toEqual([
+				['alpha.thrust', ['stock.engine-a']],
+				['beta.thrust', ['stock.engine-a']]
+			]);
+			expect(report.provenance.part['stock.engine-a']!['modules.stock.engine.thrust']).toEqual([
+				'stock',
+				'alpha',
+				'beta'
+			]);
+			expect(report.patches[1]!.changes).toEqual([
+				{ entry: 'stock.engine-a', path: 'modules.stock.engine.thrust', from: 210_000, to: 230_000 }
+			]);
+		}
+	});
+
+	test('a patch that breaks a module config is reported, not thrown; the load still succeeds', () => {
+		const bad: Plugin = {
+			meta: { id: 'bad', version: '1.0.0', api: '^0.1' },
+			depends: ['stock'],
+			optional: [],
+			setup(ctx) {
+				ctx.patches.register({
+					id: 'bad.thrust',
+					target: 'part',
+					select: { id: 'stock.engine-a' },
+					ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: 'x' }]
+				});
+			}
+		};
+		const { registries, report } = loadPlugins([base, bad]);
+		expect(report.patches[0]!.disabled).toContain('module "stock.engine"');
+		expect(thrustOf(registries, 'stock.engine-a')).toBe(200_000);
+	});
+
+	test('no patches: empty report fields', () => {
+		const { report } = loadPlugins([base]);
+		expect(report.patches).toEqual([]);
+		expect(report.provenance).toEqual({ part: {}, resource: {}, body: {} });
+	});
+
+	test('patching a module registry or a duplicate patch id is a load error', () => {
+		const wrongTarget: Plugin = {
+			meta: { id: 'w', version: '1.0.0', api: '^0.1' },
+			depends: [],
+			optional: [],
+			setup(ctx) {
+				ctx.patches.register({
+					id: 'w.m',
+					target: 'module',
+					select: { id: 'x' },
+					ops: []
+				} as unknown as AnyPatchDefinition);
+			}
+		};
+		expect(() => loadPlugins([base, wrongTarget])).toThrow(PluginError);
+		const twice: Plugin = {
+			meta: { id: 't', version: '1.0.0', api: '^0.1' },
+			depends: [],
+			optional: [],
+			setup(ctx) {
+				const p: AnyPatchDefinition = { id: 't.p', target: 'part', select: { id: 'x' }, ops: [] };
+				ctx.patches.register(p);
+				ctx.patches.register({ ...p });
+			}
+		};
+		expect(() => loadPlugins([base, twice])).toThrow(/Duplicate patch id "t.p"/);
 	});
 });

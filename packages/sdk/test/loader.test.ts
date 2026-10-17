@@ -3,6 +3,7 @@ import {
 	defineBody,
 	defineModule,
 	definePart,
+	definePatch,
 	definePlugin,
 	defineResource,
 	defineSystem,
@@ -376,5 +377,42 @@ describe('JSON parts use the same schemas', () => {
 
 	test('a structurally invalid JSON part fails the part schema before the loader', () => {
 		expect(() => loadPlugins([modules, jsonPlugin({ id: 'fixture.x' })])).toThrow(/Plugin "json"/);
+	});
+});
+
+describe('definePatch through definePlugin', () => {
+	test('a mod patches a part of the plugin it depends on; the report names it', () => {
+		const base = definePlugin({
+			meta: { id: 'base', version: '1.0.0', api: '^0.1' },
+			setup(ctx) {
+				ctx.parts.register(definePart({ id: 'base.tank', title: 'Tank', mass: 500 }));
+			}
+		});
+		const balance = definePlugin({
+			meta: { id: 'balance', version: '1.0.0', api: '^0.1' },
+			depends: [base],
+			setup(ctx) {
+				ctx.patches.register(
+					definePatch({
+						id: 'balance.lighter-tanks',
+						target: 'part',
+						select: { where: (part) => part.mass >= 500 },
+						ops: [{ op: 'set', path: 'mass', value: 400 }]
+					})
+				);
+			}
+		});
+		const { registries, report } = loadPlugins([base, balance]);
+		expect(registries.parts.get('base.tank')!.mass).toBe(400);
+		expect(report.patches).toEqual([
+			{
+				id: 'balance.lighter-tanks',
+				by: 'balance',
+				target: 'part',
+				applied: ['base.tank'],
+				changes: [{ entry: 'base.tank', path: 'mass', from: 500, to: 400 }]
+			}
+		]);
+		expect(report.provenance.part).toEqual({ 'base.tank': { mass: ['base', 'balance'] } });
 	});
 });

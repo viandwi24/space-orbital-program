@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -22,6 +22,7 @@ export {
 	thrustAtPressure
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
+export { PATCH_TARGETS } from '@orbital/core';
 
 // Units and ids (SI helpers, validated brands).
 export {
@@ -86,6 +87,14 @@ export type {
 	PartId,
 	PartShape,
 	PartVisual,
+	AnyPatchDefinition,
+	PatchChange,
+	PatchDefinition,
+	PatchOp,
+	PatchReport,
+	PatchSelect,
+	PatchTarget,
+	Provenance,
 	PhysicsBackend,
 	Plugin,
 	PluginId,

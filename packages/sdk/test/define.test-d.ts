@@ -6,6 +6,7 @@ import {
 	defineBody,
 	defineModule,
 	definePart,
+	definePatch,
 	definePlugin,
 	defineResource,
 	defineSystem,
@@ -350,3 +351,38 @@ defineModule({
 		describe: () => ({ separator: { node: 'bottom', done: false } })
 	});
 }
+
+// ---- definePatch: `target` types the `where` predicate ----------------------------------------
+definePatch({
+	id: 'test.heavier',
+	target: 'part',
+	select: { where: (part) => part.mass > 1000 },
+	ops: [{ op: 'set', path: 'mass', value: 2000 }]
+});
+definePatch({
+	id: 'test.denser',
+	target: 'resource',
+	select: { where: (resource) => resource.density > 1 },
+	ops: [{ op: 'set', path: 'density', value: 2 }]
+});
+definePatch({
+	id: 'test.wrong-field',
+	target: 'resource',
+	// @ts-expect-error resources have no mass
+	select: { where: (resource) => resource.mass > 1 },
+	ops: []
+});
+definePatch({
+	id: 'test.wrong-target',
+	// @ts-expect-error modules hold functions and are not patchable
+	target: 'module',
+	select: { id: 'x' },
+	ops: []
+});
+definePatch({
+	id: 'test.bad-op',
+	target: 'part',
+	select: { id: 'x' },
+	// @ts-expect-error unknown op
+	ops: [{ op: 'multiply', path: 'mass', value: 2 }]
+});
