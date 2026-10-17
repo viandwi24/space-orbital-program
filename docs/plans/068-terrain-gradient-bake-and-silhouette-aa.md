@@ -55,3 +55,14 @@ Two cost and quality items from plan 031 that plan 038 did not do, because neith
 
 - 2026-10-17 — Created as draft by plan 038 (analytic derivatives and silhouette anti-aliasing pushed out with reasons in ADR 0072).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0097: per-world seed and flat-zone list first).
+- 2026-10-17 — Claimed by Agent 1 (Lead, M5) on `lead/068-terrain-aa` (claim/068).
+- 2026-10-17 — **Step 1, bake cost on the M5** (dev build on its own port, Browser pane, pad, governor off, second page load; `debug.bakeMode(rebake, withoutGradient)` bakes the cube and both patches again every frame, `debug.benchmark` minimum of 4 × 15 frames; the production bake program is unchanged, its SHA-256 pin is taken with the measurement branch removed):
+
+  | preset (cube, patches) | frame | frame + full re-bake | re-bake without the 2 gradient evaluations | bake | of which gradient |
+  |---|---|---|---|---|---|
+  | `high` (1024, 1024) | 17.06 ms | 35.86 ms | 21.85 ms | 18.8 ms | 14.0 ms (74 %) |
+  | `medium` | 20.46 ms | 29.79 ms | 22.81 ms | 9.3 ms | 7.0 ms (75 %) |
+  | `low` (pane hidden at the end: indicative) | 2.53 ms | 7.27 ms | 3.42 ms | 4.7 ms | 3.9 ms (81 %) |
+
+  The gradient is **the larger share** of every bake (the two extra `heightAt` calls), so the plan's condition to implement `terrainGradient` holds. The frame columns are not a frame table (the pane width changed between presets); the next steps use journal 054's fixed-size method. Reading render targets back through three.js (`readRenderTargetPixels`) after cube bakes broke the patch framebuffers in this page, so the timing goes through the frame benchmark instead.
+
