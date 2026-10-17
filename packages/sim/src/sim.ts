@@ -43,7 +43,8 @@ import {
 	createTickState,
 	nextTickTime,
 	orderTickSystems,
-	runDueTicks
+	runDueTicks,
+	tickDayLength
 } from './tick.ts';
 import { patchedBodiesOf, completeNodes } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
@@ -290,7 +291,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				return index < 0 ? Number.MAX_SAFE_INTEGER : index;
 			}),
 			info,
-			length: root.def.rotationPeriod,
+			// the calendar of the system this sim runs: its root first (ADR 0114)
+			length: tickDayLength([bodyDef, ...defs.filter((b) => b !== bodyDef)]),
 			time: resume?.time ?? 0,
 			...(resume?.worldTick ? { saved: resume.worldTick } : {})
 		}),

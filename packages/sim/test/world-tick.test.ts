@@ -63,8 +63,12 @@ describe('world tick', () => {
 	});
 
 	test('at warp 1 in flight the tick comes at the end of the step that crossed the boundary', async () => {
-		// Epoch half a second before the end of day 0: the boundary is at t = 0.5 s.
-		const world: WorldInfo = { ...legacyWorldInfo(7), epoch: { day: 0, fraction: 1 - 0.5 / DAY } };
+		// Epoch half a second before the end of an SI day (ADR 0114: the epoch is in SI days): that is
+		// half a second before the end of stock day 3, so the boundary of day 4 is at t = 0.5 s.
+		const world: WorldInfo = {
+			...legacyWorldInfo(7),
+			epoch: { day: 0, fraction: 1 - 0.5 / 86_400 }
+		};
 		const s = await sim([], { world });
 		const r = s.dispatch({ type: 'load-vessel', design: stack('Pod', ['stock.command-pod'], []) });
 		expect(r.ok).toBe(true);
@@ -72,7 +76,7 @@ describe('world tick', () => {
 		for (let i = 0; i < 50; i++) s.step(0.02);
 		expect(ticks).toHaveLength(1);
 		const [t] = ticks;
-		expect(t!.day).toBe(1);
+		expect(t!.day).toBe(4);
 		expect(t!.time).toBeCloseTo(0.5, 9);
 		expect(t!.at).toBeGreaterThanOrEqual(0.5);
 		expect(t!.at - 0.5).toBeLessThanOrEqual(0.02 + 1e-9);
