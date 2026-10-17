@@ -20,7 +20,7 @@
 | 103 science | done | `devc/103-science` | 2026-10-18 | merged f13f697, cp/f3-103-science |
 | 114 comms-1 | done | `devc/114-comms` | 2026-10-18 | merged 23e3c4a, cp/f4-114-comms-1 |
 | 104 regions | done | `devc/104-regions` | 2026-10-18 | merged f7193f2, cp/f3-104-regions |
-| 107 crew-sim | handed-over | `devc/107-crew-sim` | 2026-10-18 | ready/107; API 0.1.45 |
+| 107 crew-sim | done | `devc/107-crew-sim` | 2026-10-17 | merged dc5a690, cp/f3-107-crew-sim |
 | 067 buoyancy | in-progress | `devc/067-buoyancy` | 2026-10-18 | claim/067; draft 193 |
 | 123 elements | todo |  |  |  |
 | 099 contracts | todo |  |  |  |

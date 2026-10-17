@@ -1,7 +1,7 @@
 ---
 id: 107
 title: "Crew simulation: life support, morale, rest, g-load"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [106]
 phase: 6

@@ -115,7 +115,7 @@
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | done | Agent 3 | ADR 0099/0180: regions, subjects per region, dossiers, body card; map overlay in 192; handed over as `ready/104` |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
-| 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | in-progress | Agent 3 | ADR 0100/0181: exact life support under warp, shortages, morale, fatigue, g-load, dose, crew card; handed over as `ready/107` |
+| 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | done | Agent 3 | ADR 0100/0181: exact life support under warp, shortages, morale, fatigue, g-load, dose, crew card; handed over as `ready/107` |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
 | 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
 | 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | done | Agent 3 | ADR 0102: descriptors, groups, custom groups |
@@ -205,6 +205,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [107 — Crew simulation: life support, morale, rest, g-load](journal/107-crew-simulation-life-support-morale-rest.md)
 - [089 — UI stage 3: Home, menus, settings and public pages in the refs style](journal/089-ui-stage-3-menus-and-public-pages.md)
 - [104 — Biomes, regions and dossiers](journal/104-biomes-regions-and-dossiers.md)
 - [113 — Mission Center: one place for the whole system](journal/113-mission-center.md)
