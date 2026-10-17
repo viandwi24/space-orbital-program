@@ -4,6 +4,7 @@ export type {
 	VabScene,
 	VabPart,
 	VabGroup,
+	VabLink,
 	VabNode,
 	VabNodeState,
 	VabMarker

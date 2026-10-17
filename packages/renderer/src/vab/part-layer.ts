@@ -26,7 +26,15 @@ import {
 	type HighlightKind,
 	type HighlightMaterials
 } from './highlight.ts';
-import { diffParts, repeatedDefinitions, type PartSlot, type VabScene } from './scene-model.ts';
+import {
+	applyPartTurn,
+	diffParts,
+	repeatedDefinitions,
+	type PartSlot,
+	type VabScene
+} from './scene-model.ts';
+import { ConnectorBars } from '../parts/connector.ts';
+import type { PartVisual } from '@orbital/core';
 
 export interface PartEntry {
 	slot: PartSlot;
@@ -43,6 +51,8 @@ export interface GroupEntry {
 	markers: Group;
 	/** Stability glyphs. */
 	glyphs: Group;
+	/** Bars of the group's struts and fuel lines (ADR 0071). */
+	bars: ConnectorBars;
 	x: number;
 	z: number;
 	y: number;
@@ -114,7 +124,8 @@ export class PartLayer {
 
 	constructor(
 		private readonly factory: PartModelFactory,
-		private readonly highlights: HighlightMaterials
+		private readonly highlights: HighlightMaterials,
+		private readonly visuals: ReadonlyMap<string, PartVisual> = new Map()
 	) {
 		this.root.name = 'vessels';
 	}
@@ -151,6 +162,7 @@ export class PartLayer {
 		for (const g of next.groups) this.ensureGroup(g.id, g.x, g.z);
 		for (const [id, entry] of this.groups) {
 			if (!groupIds.has(id)) {
+				entry.bars.dispose();
 				this.root.remove(entry.object);
 				this.groups.delete(id);
 			}
@@ -164,9 +176,21 @@ export class PartLayer {
 				this.groups.get(p.group)?.object.add(e.model.root);
 			}
 			e.model.root.position.set(...p.position);
-			e.model.root.rotation.y = p.yaw ?? 0;
+			applyPartTurn(e.model.root, p);
 			e.model.root.updateMatrix();
 		}
+		for (const [id, g] of this.groups) {
+			g.bars.sync(
+				(next.links ?? [])
+					.filter((l) => l.group === id)
+					.map((l) => ({ key: l.key, definition: l.definition, from: l.from, to: l.to }))
+			);
+		}
+	}
+
+	/** The bar meshes of every group, for picking. */
+	get barRoots(): Object3D[] {
+		return [...this.groups.values()].map((g) => g.bars.root);
 	}
 
 	private ensureGroup(id: string, x: number, z: number): GroupEntry {
@@ -176,9 +200,10 @@ export class PartLayer {
 			object.name = `group:${id}`;
 			const markers = new Group();
 			const glyphs = new Group();
+			const bars = new ConnectorBars(this.factory, this.visuals, object);
 			object.add(markers, glyphs);
 			this.root.add(object);
-			g = { object, markers, glyphs, x, z, y: 0, goalY: 0, fresh: true };
+			g = { object, markers, glyphs, bars, x, z, y: 0, goalY: 0, fresh: true };
 			this.groups.set(id, g);
 		}
 		g.x = x;
@@ -316,5 +341,6 @@ export class PartLayer {
 	dispose(): void {
 		for (const [k, im] of [...this.instances]) this.dropInstance(k, im);
 		for (const key of [...this.parts.keys()]) this.removePart(key);
+		for (const g of this.groups.values()) g.bars.dispose();
 	}
 }

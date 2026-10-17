@@ -3,6 +3,7 @@ import { registerPartGenerator, type GenContext } from '../registry.ts';
 import { capsule } from './capsule.ts';
 import { booster } from './booster.ts';
 import { controlSurface } from './control-surface.ts';
+import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
 import { engine } from './engine.ts';
 import { fin } from './fin.ts';
@@ -12,6 +13,7 @@ import { noseCone } from './nose-cone.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
 import { tank } from './tank.ts';
 import { reactionWheel } from './wheel.ts';
+import { wing } from './wing.ts';
 
 let registered = false;
 
@@ -31,6 +33,9 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('nose-cone', noseCone);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
+	registerPartGenerator('wing', wing);
+	registerPartGenerator('strut', strut);
+	registerPartGenerator('fuel-line', fuelLine);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

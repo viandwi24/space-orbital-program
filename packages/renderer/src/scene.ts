@@ -43,6 +43,7 @@ import {
 	type FxEvent,
 	type FxVessel
 } from './effects/transitions.ts';
+import { ConnectorBars, type ConnectorBar } from './parts/connector.ts';
 import { PartModelFactory } from './parts/factory.ts';
 import { mergeShardSources, shardSourceFromGeometry, type ShardSource } from './effects/shards.ts';
 import {
@@ -120,6 +121,8 @@ interface PartEntry {
 interface VesselEntry {
 	group: Group;
 	parts: Map<number, PartEntry>;
+	/** Bars of struts and fuel lines, from the parts' links (ADR 0071). */
+	bars: ConnectorBars;
 	line: OrbitLine;
 	marker: VesselMarker;
 }
@@ -316,6 +319,10 @@ export class SceneModel {
 		});
 	}
 
+	private makeBars(group: Group): ConnectorBars {
+		return new ConnectorBars(this.factory, this.config.partVisuals ?? new Map(), group);
+	}
+
 	/** Switch the graphics preset: environment, part detail (models are rebuilt), effect budgets. */
 	setPreset(preset: GraphicsPreset): void {
 		this.environment.setPreset(preset);
@@ -325,10 +332,15 @@ export class SceneModel {
 				p.model.dispose();
 			}
 			entry.parts.clear();
+			// The bars borrow the factory's materials: they are rebuilt with it.
+			entry.bars.dispose();
 		}
 		this.factory.dispose();
 		this.shardSources.clear();
 		this.factory = this.makeFactory(preset);
+		for (const entry of this.vessels.values()) {
+			entry.bars = this.makeBars(entry.group);
+		}
 		this.effects.setPreset(PRESETS[preset]);
 		for (const moon of this.moons.values()) moon.setShadowSteps(SHADOW_STEPS[preset]);
 	}
@@ -657,6 +669,7 @@ export class SceneModel {
 			if (seen.has(id)) continue;
 			this.scene.remove(entry.group, entry.line.object, entry.marker.object);
 			for (const p of entry.parts.values()) p.model.dispose();
+			entry.bars.dispose();
 			entry.line.dispose();
 			entry.marker.dispose();
 			this.vessels.delete(id);
@@ -932,6 +945,7 @@ export class SceneModel {
 	dispose(): void {
 		for (const v of this.vessels.values()) {
 			for (const p of v.parts.values()) p.model.dispose();
+			v.bars.dispose();
 			v.line.dispose();
 			v.marker.dispose();
 		}
@@ -1057,9 +1071,11 @@ export class SceneModel {
 	private vesselEntry(id: number): VesselEntry {
 		let entry = this.vessels.get(id);
 		if (!entry) {
+			const group = new Group();
 			entry = {
-				group: new Group(),
+				group,
 				parts: new Map(),
+				bars: this.makeBars(group),
 				line: new OrbitLine(),
 				marker: new VesselMarker()
 			};
@@ -1072,11 +1088,20 @@ export class SceneModel {
 
 	private syncParts(entry: VesselEntry, v: VesselSnapshot): void {
 		const seen = new Set<number>();
+		const bars: ConnectorBar[] = [];
 		let extent = 2;
 		const info = this.bodyInfo.get(v.soi);
 		for (const part of v.parts) {
 			const pid = part.id;
 			seen.add(pid);
+			if (part.link) {
+				bars.push({
+					key: String(pid),
+					definition: part.definition,
+					from: [part.position.x, part.position.y, part.position.z],
+					to: [part.link.point.x, part.link.point.y, part.link.point.z]
+				});
+			}
 			extent = Math.max(extent, Math.hypot(part.position.x, part.position.y, part.position.z) + 2);
 			let p = entry.parts.get(pid);
 			if (!p) {
@@ -1106,6 +1131,7 @@ export class SceneModel {
 				ambientPressure: ambientPressureAt(info?.atmosphere, altitude)
 			});
 		}
+		entry.bars.sync(bars);
 		if (v.id === this.active || this.active === null) {
 			this.vesselRadius = extent;
 			this.vesselCentre = partCentre(v.parts);

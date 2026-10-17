@@ -8,3 +8,5 @@ export { revolve } from './revolve.ts';
 export { GltfPartProvider } from './gltf-provider.ts';
 export type { AssetReader, GltfProviderOptions } from './gltf-provider.ts';
 export * from './articulation.ts';
+export { ConnectorBars, connectorRadius, placeBar } from './connector.ts';
+export type { ConnectorBar } from './connector.ts';

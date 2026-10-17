@@ -13,9 +13,21 @@ export interface VabPart {
 	position: V3;
 	/** Turn about the vertical axis, rad (radial parts face their parent; default 0). */
 	yaw?: number;
+	/** Full rotation `[x, y, z, w]` of a tilted part (ADR 0071); it replaces `yaw` when present. */
+	rotation?: readonly [number, number, number, number];
 	group: string;
 	/** `ghost` is the translucent preview of an attach; it cannot be picked. */
 	role: 'solid' | 'ghost';
+}
+
+/** A bar from a connector part (strut, fuel line) to the far end of its link, relative to the group's root origin (ADR 0071). */
+export interface VabLink {
+	/** The key of the connector part. */
+	key: string;
+	group: string;
+	definition: string;
+	from: V3;
+	to: V3;
 }
 
 export interface VabGroup {
@@ -56,8 +68,22 @@ export interface VabScene {
 	parts: VabPart[];
 	groups: VabGroup[];
 	nodes: VabNode[];
+	/** Bars of struts and fuel lines; absent means none. */
+	links?: VabLink[];
 	/** Stability glyphs; absent means none. */
 	markers?: VabMarker[];
+}
+
+/** Applies the part's turn: its full rotation when tilted, else its yaw about the vertical. */
+export function applyPartTurn(
+	target: {
+		rotation: { y: number };
+		quaternion: { set(x: number, y: number, z: number, w: number): unknown };
+	},
+	part: Pick<VabPart, 'yaw' | 'rotation'>
+): void {
+	if (part.rotation) target.quaternion.set(...part.rotation);
+	else target.rotation.y = part.yaw ?? 0;
 }
 
 export const EMPTY_SCENE: VabScene = { parts: [], groups: [], nodes: [] };

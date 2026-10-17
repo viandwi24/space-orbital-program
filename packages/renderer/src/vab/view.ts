@@ -36,6 +36,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { PRESETS, detailOf } from '../presets.ts';
+import { ConnectorBars } from '../parts/connector.ts';
 import { PartModelFactory, type PartModelFactoryConfig } from '../parts/factory.ts';
 import { repeatedDetail, type PartModel, type PartNode, type PartShape } from '../parts/types.ts';
 import type { PartVisual } from '@orbital/core';
@@ -66,6 +67,7 @@ import {
 import { pickNode, toNdc, type PickRay } from './picking.ts';
 import {
 	EMPTY_SCENE,
+	applyPartTurn,
 	floorShift,
 	repeatedDefinitions,
 	sameMarkers,
@@ -202,7 +204,7 @@ export class VabView {
 			detail: detailOf(PRESETS[this.quality])
 		};
 		this.factory = new PartModelFactory(factoryConfig);
-		this.layer = new PartLayer(this.factory, this.highlights);
+		this.layer = new PartLayer(this.factory, this.highlights, config.visuals);
 
 		this.scene.background = new Color(0x0b1118);
 		this.scene.fog = new FogExp2(0x172029, 0.006);
@@ -623,7 +625,7 @@ export class VabView {
 		});
 		const node = pickNode(ray, candidates);
 		if (node) return { kind: 'node', key: node.node.key };
-		const roots: Object3D[] = [];
+		const roots: Object3D[] = [...this.layer.barRoots];
 		for (const e of this.layer.parts.values()) roots.push(e.model.root);
 		const hits = this.raycaster.intersectObjects(roots, true);
 		for (const h of hits) {
@@ -631,7 +633,9 @@ export class VabView {
 			while (o && o.userData.key === undefined) o = o.parent;
 			if (!o) continue;
 			const entry = this.layer.parts.get(o.userData.key as string);
-			if (entry?.slot.role === 'ghost') {
+			// A preview bar of a connector being placed belongs to no part: look through it.
+			if (!entry) continue;
+			if (entry.slot.role === 'ghost') {
 				if (options.ignoreGhost) continue;
 				return { kind: 'ghost' };
 			}
@@ -751,10 +755,17 @@ export class VabView {
 			);
 			model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
 			model.root.position.set(...p.position);
-			model.root.rotation.y = p.yaw ?? 0;
+			applyPartTurn(model.root, p);
 			holder.add(model.root);
 			models.push(model);
 		}
+		const bars = new ConnectorBars(this.factory, this.config.visuals ?? new Map());
+		bars.sync(
+			(this.sceneModel.links ?? [])
+				.filter((l) => l.group === 'main')
+				.map((l) => ({ key: l.key, definition: l.definition, from: l.from, to: l.to }))
+		);
+		holder.add(bars.root);
 		scene.add(holder);
 		holder.updateMatrixWorld(true);
 		const box = new Box3().setFromObject(holder);
@@ -763,6 +774,7 @@ export class VabView {
 		const url = this.captureWith(scene, cam, width, height);
 		scene.remove(holder);
 		for (const m of models) m.dispose();
+		bars.dispose();
 		return url;
 	}
 
