@@ -1,12 +1,12 @@
 ---
 id: 102
 title: "Milestones, world history and local achievements"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [082, 087]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 102 — Milestones, world history and local achievements
@@ -64,3 +64,4 @@ Achievement criteria are evaluated in the page from sim events (they span worlds
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this plan edits `routes/worlds` and the world save of plan 087.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 089/093/112/094 in the lane: those wait for unmerged 076, 069 and 088 (their `depends`); 102 depends only on merged plans.
