@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 040, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 040, 069, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -40,7 +40,7 @@
 | 040 | [Effects and assets 3](plans/040-effects-and-assets-3.md) | draft | — | from 033: wreckage, plasma shape, comms blackout, persistent trail, multi-nozzle, KTX2, M1/M2 |
 | 041 | [Aero and structure extras](plans/041-aero-and-structure-extras.md) | done | structure session (Claude, 2026-10-17) | ADRs 0071 (format 3: connector parts, tilt, radial on boxes), 0075 (wing lift), API 0.1.19; fuel lines move propellant one way (the core drains its boosters first; Δv and sim agree on the 19.3 s booster burnout), struts are rigid bars cut on separation, tilt about the parent's axes, `stock.wing` with stall and induced drag (5.9 t glider glides 5.13:1 against 4.91 predicted); asparagus rocket built in the VAB reached a 76.9 km periapsis, the glider flew from a save; plane gameplay in draft 063 |
 | 029 | [UI: VAB follow-ups](plans/029-vab-follow-ups.md) | done | vab-2 session | ADRs 0041 (IndexedDB vessel library, sub-assemblies), 0042 (stability read-out); library with thumbnails, sub-assemblies with symmetry, radial group move and angle/height controls, CoM/CoP markers and warning, instancing (booster rocket 82 draw calls / 47 k triangles in the vessel graph, whole frame 280 to 179 calls, 4.0 to 1.0 ms), hall rebuilt with a moving crane, tug and crew, panels never cut off down to 1024x768 and drawers below 900 px, page controller extracted (1 294 to 424 lines); M1/M2 not measured, extras in draft 034 |
-| 034 | [VAB extras](plans/034-vab-extras-mod-categories-trip-planner.md) | draft | — | from 029: mod-supplied categories, trip planner, mod lift modules in the stability read-out |
+| 034 | [VAB extras](plans/034-vab-extras-mod-categories-trip-planner.md) | done | planner session (Claude, 2026-10-17) | ADRs 0082 (part `catalog.category`/`order`, API 0.1.22), 0083 (trip planner: a delta-v map from body data, vis-viva/Hohmann/hyperbolic burns and a point-mass ascent integration, laid over the stages); the moon shot is covered to the landing with 1 174 m/s to spare; lift in the stability read-out was already done by 023; mod-defined categories in draft 069 |
 | 027 | [Visual: terrain geometry, sky and device follow-ups](plans/027-terrain-and-sky-follow-ups.md) | done | terrain session | ADRs 0036 and 0037; visual terrain heights (cube-map bake, ray-marched, flat pad zone and camera bubble, snow/rock/forest bands, terrain shadows), thinner haze, cumulus plus cirrus layers, moving waves; `high` pad 12.8 ms thr / 15.9 ms sync on an M5, M1/M2 not measured; physical heights, volumetric clouds, site animation in draft 031 |
 | 031 | [Physical terrain heights, volumetric sky and site animation](plans/031-physical-terrain-and-sky-volumes.md) | done | physical-terrain session | ADRs 0043 (one height function in `core` read by sim and renderer; ground tile follows the terrain; slopes by rigid body and friction; surface rails and placement on hills), 0044 (float patches around the camera, march for ground-level cameras); lander stands on hills, camera bubble deleted, coast warp, closer massif; API 0.1.9; GPU readback within 0.2 m (fine) / 0.8 m (mid) of float64; `high` pad 16.0 ms thr on a slow day (+1.7 ms), hillside +8.9 ms; M1/M2 not measured; clouds in draft 037, water/site/devices in draft 038 |
 | 037 | [Volumetric clouds and light shafts](plans/037-volumetric-clouds-and-light-shafts.md) | done | clouds session (Claude, 2026-10-17) | v1: ADR 0059; the cumulus is a 1.1 km slab marched in 3 to 6 steps (flat ragged base, grey undersides, rims, billow erosion), `cloudSteps`/`cloudDetail` per preset; frame budget held on both presets at five scenes, hitch equal to the baseline build, 12 km contrast unchanged (27.3); light shafts and ozone moved to draft 054 |
@@ -76,6 +76,7 @@
 | 058 | [Script editor follow-ups](plans/058-script-editor-follow-ups.md) | draft | — | from 036: a screen-reader and keyboard-only check by a person, Firefox/WebKit key runs, replace, deeper suggestions, a parse for the check |
 | 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | draft | — | from 052: a second planet with `terrain: hills` is drawn as hills, not a sphere |
 | 060 | [Stones you can hit](plans/060-stones-with-collision.md) | draft | — | from 052: collision for scenery stones (lattice into core, colliders in the ground tile) |
+| 069 | [Mod-defined catalogue categories](plans/069-mod-defined-catalogue-categories.md) | draft | — | from 034: a mod adds a catalogue group with its own label and icon |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041: wheels and a runway, trim and flaps, angle-of-attack and airspeed read-outs, plane controls |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -108,6 +109,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [034 — VAB extras: part placement and a trip planner](journal/034-vab-extras-mod-categories-trip-planner.md)
 - [051 — Mod-supplied part visuals and assets](journal/051-mod-visuals-and-assets.md)
 - [041 — Struts, fuel lines, tilted parts, wing lift](journal/041-aero-and-structure-extras.md)
 - [054 — Light shafts and an ozone sky](journal/054-light-shafts-and-ozone-sky.md)

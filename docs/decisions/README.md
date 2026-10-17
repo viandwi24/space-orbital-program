@@ -94,3 +94,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0071 | [Design format 3: connector parts (struts, fuel lines), tilted parts, radial attachment to boxes](0071-format-3-connector-parts-tilt-and-box-radial.md) | accepted | 2026-10-17 |
 | 0076 | [Mod packages carry glTF models; asset parts get plume and gimbal; fit checks warn](0076-mod-packages-carry-glb-models.md) | accepted | 2026-10-17 |
 | 0075 | [Wing lift: finite-wing slope, stall and induced drag in `stock.wing`](0075-wing-lift-and-drag-polar.md) | accepted | 2026-10-17 |
+| 0082 | [A part states its own catalogue placement: `catalog.category` and `catalog.order`](0082-part-catalogue-placement.md) | accepted | 2026-10-17 |
+| 0083 | [The trip planner: a delta-v map from body data, laid over the stages](0083-the-trip-planner-delta-v-map.md) | accepted | 2026-10-17 |
