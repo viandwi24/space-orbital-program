@@ -133,7 +133,7 @@ export function drawNavball(
 	stroke(elevationCircle(h, 0), 2, theme.line, 0.95);
 
 	// Heading ticks and labels on the horizon.
-	ctx.font = `600 ${Math.max(9, Math.round(size / 17))}px "Barlow Semi Condensed", sans-serif`;
+	ctx.font = `600 ${Math.max(9, Math.round(size / 17))}px Manrope, sans-serif`;
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	for (let a = 0; a < 360; a += 10) {

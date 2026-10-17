@@ -53,15 +53,15 @@ export const CREDITS: readonly Credit[] = [
 		url: 'https://zod.dev'
 	},
 	{
-		name: 'Barlow Semi Condensed',
+		name: 'Manrope',
 		what: 'Interface font',
 		licence: 'SIL Open Font License 1.1',
-		url: 'https://github.com/jpt/barlow',
-		copyright: 'Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)'
+		url: 'https://fontsource.org/fonts/manrope',
+		copyright: 'Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)'
 	},
 	{
 		name: 'IBM Plex Mono',
-		what: 'Numbers font',
+		what: 'Code and version numbers font',
 		licence: 'SIL Open Font License 1.1',
 		url: 'https://github.com/IBM/plex',
 		copyright: 'Copyright 2017 IBM Corp. All rights reserved.'
