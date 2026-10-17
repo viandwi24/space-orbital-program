@@ -50,18 +50,25 @@ Precision: never add `t` to a Julian date in one float; keep (days, seconds) and
 
 ## Acceptance criteria
 
-- [ ] `packages/core` test: epoch J2000 (JD 2451545.0 TT) plus 0 s formats as 2000-01-01 11:58:55.816 UTC; a known leap-second boundary (2016-12-31 23:59:60 UTC) formats correctly.
-- [ ] `packages/core` test: the fictional calendar's day and year lengths equal the stock home body's solar day and orbital period.
-- [ ] `apps/web` vitest: the warp control shows the formatted date for a given snapshot time.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/core` test: epoch J2000 (JD 2451545.0 TT) plus 0 s formats as 2000-01-01 11:58:55.816 UTC; a known leap-second boundary (2016-12-31 23:59:60 UTC) formats correctly.
+- [x] `packages/core` test: the fictional calendar's day and year lengths equal the stock home body's solar day and orbital period.
+- [x] `apps/web` vitest: the warp control shows the formatted date for a given snapshot time.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/081-calendar-and-world-epoch.md` written.
-- [ ] `docs/architecture/units-and-frames.md` (time), `guides/scripting.md` (`date()`), `docs/research/time-scales.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/journal/081-calendar-and-world-epoch.md` written.
+- [x] `docs/architecture/units-and-frames.md` (time), `guides/scripting.md` (`date()`), `docs/research/time-scales.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0103).
+- 2026-10-17 — Claimed by Agent 2 (Dev B, M2). Research (`research/time-scales.md`, IERS Bulletin C 72), ADR 0141, core calendar, stock calendar, HUD date, script `date()`, docs. Verification on the M2, rebased on `origin/main` @ 2ff9a9d:
+  - `bun test packages/core/test/calendar.test.ts` — 10 pass: J2000 + 0 s = `2000-01-01 11:58:55.816 UTC`; `2016-12-31 23:59:59`, `23:59:60.000`, `23:59:60.500`, `2017-01-01 00:00:00.000` around the leap second; fictional day = solar day and year = orbital period for a home planet around a star.
+  - `bun test mods/stock/test/calendar.test.ts` — the stock day is the home planet's rotation (21 600 s, its solar day while it is the root); **no year until plan 122** puts it around a Sun (ADR 0141 point 3). Core may not import the stock mod (boundaries.md), so this half of criterion 2 is a stock test.
+  - `bunx vitest run src/lib/hud/WarpControl.test.ts` — 2 passed: the HUD model's date at a snapshot time equals `formatDate`, and `WarpControl` renders it in `hud-date`.
+  - `bun test ./packages`, `./mods`, `./examples` — 1278, 84, 7 pass, 0 fail (after adding `date` to the pinned script globals in `sandbox.test.ts`).
+  - `bunx vitest run` (apps/web) — 884 passed, 2 failed in `sim-host-script-worker.test.ts`, the same on `origin/main` on this M2 (journal 086).
+  - `bun run typecheck` — 0 errors; build — ok; `bun run docs:check` — OK; `playwright test e2e/smoke.e2e.ts --project=chromium` — 6 passed (3.4 m).
