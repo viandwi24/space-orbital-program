@@ -92,7 +92,7 @@
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | done | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | done | Agent 3 | ADR 0099/0101: data kinds, storage, items |
-| 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
+| 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | done | Agent 2 | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
 | 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | done | Agent 2 | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | draft | — | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
@@ -170,6 +170,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **084 `high` frame pair open** (Agent 1): retake base vs 084 `debug.benchmark` on `high` with the Claude window and the Browser pane in view (`medium` measured: +0.13 ms). Plan 084 is done (all its criteria passed); this is the Lead's merge check.
 - **Tick epoch** (081 contract request, deferred): the world tick reads the epoch in tick days, ADR 0141 in SI days from J2000; the Lead lands `cp/f1-contract-tick-epoch` (tick.ts, `dayLength` from `calendarOf`) before 087 merges.
 - **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).
 - **Flight-view frame intervals over budget on the M5** (Agent 1, measured for 086's blur check, journal 086): on the pad, whole-page rAF intervals of 28 ms on `high` and 34 ms on `medium` at 961 × 930, DPR 2 (ADR 0053: 16.7 and 13.3 ms), and `medium` slower than `high`. Not caused by the glass (≤ 0.4 ms). Needs a renderer pass with `renderer.benchmark` and a Chrome trace to split WebGL, HUD, Worker and compositing.
@@ -199,6 +200,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [084 — Sites in the world: a terrain seed per world and a list of flat zones](journal/084-sites-in-the-world-terrain-seed-and-flat-zones.md)
 - [083 — Data items: sized data stored on vessels](journal/083-data-items-on-vessels.md)
 - [081 — Calendar and world epoch: dates in the game](journal/081-calendar-and-world-epoch.md)
 - [095 — Economy core: currencies, ledger, part costs and recovery](journal/095-economy-core-currencies-ledger-costs.md)

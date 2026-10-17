@@ -11,7 +11,7 @@
 | 086 tokens | done | `devb/086-ui-tokens` | 2026-10-17 | merged a9999b3, cp/f1-086-tokens; M5 blur measured by Agent 1 |
 | 074 rename | done | `devb/074-rename` | 2026-10-17 | merged 3eabc11, cp/f1-074-rename |
 | 081 calendar | done | `devb/081-calendar` | 2026-10-17 | merged 92c0c9f, cp/f1-081-calendar |
-| 084 sites | handed-over | `devb/084-sites` | 2026-10-17 | ready/084; ADR 0142; API 0.1.33 |
+| 084 sites | done | `devb/084-sites` | 2026-10-17 | merged ecc3953, cp/f1-084-sites |
 | 087 worlds-screen | in-progress | `devb/087-worlds-screen` | 2026-10-17 | claim/087 |
 | 088 hud | todo |  |  |  |
 | 085 orientation | todo |  |  |  |
