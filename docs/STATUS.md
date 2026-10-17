@@ -82,6 +82,64 @@
 | 072 | [Script editor: the human pass and the panel on small screens](plans/072-script-panel-human-pass-and-small-screens.md) | draft | — | from 058: what a screen-reader, keyboard-only and IME run finds; the panel under the instrument deck and the touch overlay at 1024x768 |
 | 073 | [A compact flight HUD and VAB for phones](plans/073-compact-phone-hud-and-portrait-vab.md) | draft | — | from 055: only with the human's device results |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041: wheels and a runway, trim and flaps, angle-of-attack and airspeed read-outs, plane controls |
+| 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | draft | — | ADR 0105: player-facing name only; identifiers stay `orbital` |
+| 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | draft | — | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
+| 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
+| 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | draft | — | ADR 0094/0050: world fields, SimSave 5, WorldStore, Legacy world |
+| 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | draft | — | ADR 0094: defineRule/definePreset, set-rule, changelog |
+| 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | draft | — | ADR 0104: definePatch, order, provenance |
+| 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
+| 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
+| 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | draft | — | ADR 0096: daily tick, PRNG streams, background closed forms |
+| 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
+| 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
+| 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
+| 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | draft | — | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
+| 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | draft | — | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
+| 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | draft | — | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
+| 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
+| 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | draft | — | ADR 0097: defineBuilding, grid rules, stock catalogue data |
+| 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | draft | — | ADR 0097: 3D site from the building list, refs overlay, build mode |
+| 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | draft | — | ADR 0097: globe pick, templates resolved per seed, second sites |
+| 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
+| 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | draft | — | ADR 0097: facility, filtered designs, seats, launch |
+| 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | draft | — | ADR 0098: ledger with causes, costs, recovery, running costs, career bot |
+| 096 | [Buildings with costs, construction time, upkeep and capacity limits](plans/096-building-catalogue-levels-upkeep-capacity.md) | draft | — | ADR 0097/0098: construction, levels, upkeep, capacity-only gates |
+| 097 | [Markets and production: one commodity chain first](plans/097-markets-and-production.md) | draft | — | ADR 0098: commodities, damped prices, one production chain |
+| 098 | [Objectives: the evaluator behind contracts and missions](plans/098-objectives-contract-and-mission-definitions.md) | draft | — | ADR 0098: one objective evaluator |
+| 099 | [Procedural contracts](plans/099-procedural-contracts.md) | draft | — | ADR 0098: seeded offers, slots, rewards and penalties |
+| 100 | [Authored missions, the story line and mission packs](plans/100-authored-missions-and-mission-packs.md) | draft | — | ADR 0098: story line, tracker, mission packs |
+| 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
+| 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | draft | — | ADR 0098: firsts, history book, local achievements |
+| 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | draft | — | ADR 0099: matrix, data vs samples, states, recovery |
+| 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
+| 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
+| 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | draft | — | ADR 0100: roster, traits, XP, seats, death rule |
+| 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | draft | — | ADR 0100: each aspect a rule; Career full by default |
+| 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
+| 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
+| 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | draft | — | ADR 0102: descriptors, groups, custom groups |
+| 111 | [Vessel panel: Overview with group control, Parts with per-part actions](plans/111-vessel-panel-group-and-part-control.md) | draft | — | ADR 0102: Overview group switches, Parts tab |
+| 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | draft | — | ADR 0102: declarative mod panels, SDK canvas, dock |
+| 113 | [Mission Center: one place for the whole system](plans/113-mission-center.md) | draft | — | ADR 0102: system map, tracking, upcoming, Fly |
+| 114 | [Comms tier 1: antennas, line of sight, ground stations, control states](plans/114-comms-tier-1-model.md) | draft | — | ADR 0101 tier 1: LOS, stations, control states, real blackout |
+| 115 | [Comms tier 1 in the interface: link state, Comms tab, Network layer](plans/115-comms-tier-1-interface.md) | draft | — | ADR 0101: link badge, Comms tab, Network layer |
+| 116 | [Comms tier 2: link budget, bands, data rates, comms scale](plans/116-comms-tier-2-link-budget.md) | draft | — | ADR 0101 tier 2: Friis budget, bands, rates, inspector |
+| 117 | [Comms tier 3: pointing, routing, latency and the signal-delay rule](plans/117-comms-tier-3-routing-latency-delay.md) | draft | — | ADR 0101 tier 3: routing, capacity, latency, delay rule |
+| 118 | [Comms planning tools: contact timeline, coverage map, constellation planner](plans/118-comms-planning-tools.md) | draft | — | ADR 0101 tier 3 tools: timeline, coverage, planner |
+| 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | draft | — | ADR 0101 tier 4: queues, custody, windows |
+| 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | draft | — | ADR 0101 tier 5: channels, licences, interference |
+| 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
+| 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | draft | — | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
+| 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | draft | — | ADR 0103: Level A elements + rates, lunar series |
+| 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | draft | — | ADR 0103: Sol pack, 1:1 and rescaled, per-scale balance and validation |
+| 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
+| 126 | [AI agencies and a living world](plans/126-ai-agencies-living-world.md) | draft | — | ADR 0096: agencies, real objects, rent, news |
+| 127 | [Range safety: safe azimuth fans and stage impact zones](plans/127-range-safety.md) | draft | — | ADR 0097: safe fans, impact zones, rule |
+| 128 | [Off-world bases: base kits and parts left on the surface](plans/128-off-world-bases.md) | draft | — | ADR 0097: base kits and outposts, one chain |
+| 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
+| 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | draft | — | ADR 0094: reliability rule, off by default |
+| 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | draft | — | ADR 0098/0094: replays, challenges, ghosts as files |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
