@@ -99,7 +99,7 @@
 | 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | draft | — | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
 | 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
 | 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | done | Agent 1 | ADR 0097: defineBuilding, grid rules, stock catalogue data |
-| 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | in-progress | Agent 1 | ADR 0097: 3D site from the building list, refs overlay, build mode |
+| 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | done | Agent 1 | ADR 0097: 3D site from the building list, refs overlay, build mode |
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | done | Agent 3 | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
 | 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | draft | — | ADR 0097: facility, filtered designs, seats, launch |
@@ -202,6 +202,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [091 — Space Center in 3D with free grid placement](journal/091-space-center-3d-and-grid-placement.md)
 - [092 — Site choice at world creation and location templates](journal/092-site-choice-and-location-templates.md)
 - [068 — Analytic terrain gradients for the bake (silhouette AA moved to 133)](journal/068-terrain-gradient-bake-and-silhouette-aa.md)
 - [106 — Crew core: roster, professions, traits, XP, seats](journal/106-crew-core.md)

@@ -2,8 +2,8 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 068 merged (cp/f2-068-terrain-aa; bake −56 %, silhouette AA moved to draft 133). Next in lane: 091 space-center.
-**Waiting for:** — (091 can start: 086, 087, 090 done)
+**Now:** 091 merged (cp/f2-091-space-center; Space Center in 3D, build mode, `/space-center` after entering a world). Next in lane: 113 mission-center.
+**Waiting for:** — (113 can start: 080, 081, 086 done)
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -13,7 +13,7 @@
 | 095 economy | done | `lead/095-economy` | 2026-10-17 | merged a060d06, cp/f3-095-economy |
 | 090 buildings | done |  | 2026-10-17 | merged 2ba881b, cp/f2-090-buildings |
 | 068 terrain-aa | done | `lead/068-terrain-aa` | 2026-10-17 | merged b26f673, cp/f2-068-terrain-aa |
-| 091 space-center | todo |  |  |  |
+| 091 space-center | done | `lead/091-space-center` | 2026-10-17 | merged d204a3d, cp/f2-091-space-center |
 | 113 mission-center | todo |  |  |  |
 | 122 sun | todo |  |  |  |
 | 096 building-levels | todo |  |  |  |
