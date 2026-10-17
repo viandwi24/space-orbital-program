@@ -49,20 +49,21 @@ Generated controls must never reorder while the player looks (stable by part ind
 
 ## Acceptance criteria
 
-- [ ] vitest: a mod module with a `value` action (fixture) renders a slider and dispatches `action` with the new value.
-- [ ] vitest: the engines group switch is mixed when one of two engines is on and turns both off on click.
-- [ ] `bun run e2e` (Chromium): toggle the landing legs from the Parts tab in flight.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: a mod module with a `value` action (fixture) renders a slider and dispatches `action` with the new value.
+- [x] vitest: the engines group switch is mixed when one of two engines is on and turns both off on click.
+- [x] `bun run e2e` (Chromium): toggle the landing legs from the Parts tab in flight.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/111-vessel-panel-group-and-part-control.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/111-vessel-panel-group-and-part-control.md` written.
 
-- [ ] ADR 0153.
+- [x] ADR 0153.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0107).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0153: descriptor controls in a stable order, a mixed group click turns it off, placement (top right; the right column below 1280 px), `highlightPart`.
+- 2026-10-18 — Done on the branch: the vessel panel (Overview, Parts, Comms reserved), descriptor controls, group switches with mixed, `Renderer.highlightPart`. Journal: [111](../journal/111-vessel-panel-group-and-part-control.md).
