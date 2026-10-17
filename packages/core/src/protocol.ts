@@ -189,6 +189,19 @@ export interface Snapshot {
 	rules?: Readonly<Record<string, boolean | number | string>>;
 	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
 	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
+	/** Each site's buildings and road cells (plan 090). */
+	sites?: Array<{
+		id: string;
+		buildings: Array<{
+			id: string;
+			kind: string;
+			cell: { i: number; j: number };
+			rotation: 0 | 90 | 180 | 270;
+			level: number;
+			state: 'active' | 'planned';
+		}>;
+		roads: Array<{ i: number; j: number }>;
+	}>;
 }
 
 /**
@@ -337,7 +350,20 @@ export type Command =
 	 * Apply an action to every part of a group on the vessel in one dispatch (plan 110, ADR 0174):
 	 * a registered group id, or `custom.<slot>` for the vessel's custom group.
 	 */
-	| { type: 'action-group'; vessel: EntityId; group: string; value?: boolean | number | string };
+	| { type: 'action-group'; vessel: EntityId; group: string; value?: boolean | number | string }
+	/**
+	 * Place a building on a site (plan 090, ADR 0115), refused with `canPlace`'s reasons; `id` is a
+	 * host UUID. Instant until plan 096 adds construction.
+	 */
+	| {
+			type: 'place-building';
+			site: string;
+			kind: string;
+			cell: { i: number; j: number };
+			rotation: 0 | 90 | 180 | 270;
+			id: string;
+	  }
+	| { type: 'remove-building'; site: string; id: string };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

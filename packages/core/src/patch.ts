@@ -4,10 +4,11 @@
  * part/module cross-check. Patches are plain data plus an optional pure `where` predicate; this file
  * only needs the registries and a per-entry check from the loader.
  */
+import type { BuildingDefinition } from './buildings.ts';
 import type { BodyDefinition, PartDefinition, ResourceDefinition } from './definitions.ts';
 import { replaceDefinition, type Registry } from './registry.ts';
 
-export const PATCH_TARGETS = ['part', 'resource', 'body'] as const;
+export const PATCH_TARGETS = ['part', 'resource', 'body', 'building'] as const;
 export type PatchTarget = (typeof PATCH_TARGETS)[number];
 
 /** Entry type of each patchable registry kind. */
@@ -15,6 +16,8 @@ export interface PatchEntryMap {
 	part: PartDefinition;
 	resource: ResourceDefinition;
 	body: BodyDefinition;
+	/** Plan 090 (ADR 0115). */
+	building: BuildingDefinition;
 }
 
 /**
@@ -381,7 +384,7 @@ export function orderPatches(patches: readonly PatchSource[]): {
 /** Orders and applies `patches` to the registries; never throws for a bad patch (it is disabled). */
 export function applyPatches(input: ApplyPatchesInput): ApplyPatchesResult {
 	const { patches, registries, checkEntry } = input;
-	const provenance: Provenance = { part: {}, resource: {}, body: {} };
+	const provenance: Provenance = { part: {}, resource: {}, body: {}, building: {} };
 	const reports: PatchReport[] = [];
 	const { order, cyclic } = orderPatches(patches);
 

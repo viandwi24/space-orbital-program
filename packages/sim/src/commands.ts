@@ -21,6 +21,7 @@ import { deleteData, moveData } from './data.ts';
 import { applyActionGroup } from './actions.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
+import { placeBuilding, removeBuilding } from './buildings.ts';
 import {
 	hasFlightVessels,
 	isControlled,
@@ -299,6 +300,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			destroyVessel(core, id, 'recovered');
 			return accept();
 		}
+		case 'place-building':
+			return placeBuilding(core, command);
+		case 'remove-building':
+			return removeBuilding(core, command);
 		case 'action-group': {
 			const vessel = core.world.get(command.vessel, VESSEL);
 			if (!vessel) return refuse(`unknown vessel ${command.vessel}`);

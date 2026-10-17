@@ -36,6 +36,7 @@ export * from './plugin.ts';
 export * from './save.ts';
 export * from './rules.ts';
 export * from './economy.ts';
+export * from './buildings.ts';
 export * from './mods.ts';
 export * from './mod-assets.ts';
 // One interface for orbit prediction (plan 080, ADR 0173); the patched provider lives in kepler.
