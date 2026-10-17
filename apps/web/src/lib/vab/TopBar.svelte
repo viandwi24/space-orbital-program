@@ -124,7 +124,7 @@
 				: vab.warnings > 0
 					? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
 					: 'Fly this vessel'}
-			onclick={() => vab.launch()}
+			onclick={(e) => vab.launch(false, e.shiftKey)}
 		>
 			<Icon name="launch" size={18} />
 			Launch
