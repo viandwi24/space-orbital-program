@@ -13,6 +13,22 @@ import { describe, expect, it } from 'vitest';
 import { bodyNodes, predictManeuvers, predictMapPath } from './map-path';
 import { patchedApproach, rendezvousAids } from './rendezvous-aids';
 
+/**
+ * Numbers rounded to 10 significant digits (and rounding noise below 1e-9 to 0) before the snapshot: the goldens were recorded on
+ * Linux x86-64 and Apple arm64 differs in the last ulp of the same maths (merge of plan 080, the
+ * Lead's check: on the M5 the pre-move code and the provider agree exactly).
+ */
+const golden = (value: unknown): unknown =>
+	typeof value === 'number'
+		? Math.abs(value) < 1e-9
+			? 0
+			: Number(value.toPrecision(10))
+		: Array.isArray(value)
+			? value.map(golden)
+			: value !== null && typeof value === 'object'
+				? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, golden(v)]))
+				: value;
+
 const HOME_MU = 3.5316e12;
 const home = { id: 'stock.home', mass: HOME_MU / GRAVITATIONAL_CONSTANT, radius: 600_000, rotationPeriod: 21_600 } as unknown as BodyDefinition;
 const moon = {
@@ -67,7 +83,7 @@ function snapshotOf(): Snapshot {
 
 describe('trajectory goldens (plan 080)', () => {
 	it('map path through the moon sphere', () => {
-		expect(predictMapPath(snapshotOf(), 1, bodies, 400_000)).toMatchSnapshot();
+		expect(golden(predictMapPath(snapshotOf(), 1, bodies, 400_000))).toMatchSnapshot();
 	});
 
 	it('node prediction with two nodes', () => {
@@ -75,7 +91,7 @@ describe('trajectory goldens (plan 080)', () => {
 			{ id: 0, time: 120, prograde: 40, normal: 5, radial: -3 },
 			{ id: 1, time: 3_000, prograde: -25, normal: 0, radial: 10 }
 		];
-		expect(predictManeuvers(snapshotOf(), 1, bodies, maneuvers as never, 400_000)).toMatchSnapshot();
+		expect(golden(predictManeuvers(snapshotOf(), 1, bodies, maneuvers as never, 400_000))).toMatchSnapshot();
 	});
 
 	it('closest approach and aids for the moon as target (snapshot from the sim)', async () => {
@@ -93,8 +109,8 @@ describe('trajectory goldens (plan 080)', () => {
 		const v = snap.vessels.find((x) => x.id === placed.vessel)!;
 		const simBodies = bodyNodes(sim.registries.bodies.list());
 		const approach = patchedApproach(snap, v, simBodies);
-		expect(approach).toMatchSnapshot();
-		expect(rendezvousAids(snap, v, simBodies, approach)).toMatchSnapshot();
+		expect(golden(approach)).toMatchSnapshot();
+		expect(golden(rendezvousAids(snap, v, simBodies, approach))).toMatchSnapshot();
 		sim.dispose();
 	});
 });

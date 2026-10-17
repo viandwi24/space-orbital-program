@@ -8,6 +8,22 @@ import type { Sim } from '../src/index.ts';
 import { systemOf, transferState } from './helpers/moon.ts';
 import { newSim, probe } from './helpers/vessels.ts';
 
+/**
+ * Numbers rounded to 10 significant digits (and rounding noise below 1e-9 to 0) before the snapshot: the goldens were recorded on
+ * Linux x86-64 and Apple arm64 differs in the last ulp of the same maths (merge of plan 080, the
+ * Lead's check: on the M5 the pre-move code and the provider agree exactly).
+ */
+const golden = (value: unknown): unknown =>
+	typeof value === 'number'
+		? Math.abs(value) < 1e-9
+			? 0
+			: Number(value.toPrecision(10))
+		: Array.isArray(value)
+			? value.map(golden)
+			: value !== null && typeof value === 'object'
+				? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, golden(v)]))
+				: value;
+
 function warpUntil(sim: Sim, done: () => boolean, limit = 100_000): void {
 	for (let i = 0; i < 20_000 && !done() && sim.time < limit; i++) {
 		if (sim.warp === 1) sim.dispatch({ type: 'warp', factor: 1000 });
@@ -39,7 +55,7 @@ describe('trajectory goldens (plan 080)', () => {
 		});
 		warpUntil(sim, () => crossings.length >= 2);
 		expect(crossings).toHaveLength(2);
-		expect(crossings).toMatchSnapshot();
+		expect(golden(crossings)).toMatchSnapshot();
 	});
 
 	test('node prediction of the sim (snapshot nodes) for a node on a low orbit', async () => {
@@ -62,7 +78,7 @@ describe('trajectory goldens (plan 080)', () => {
 		}
 		sim.step(0.02);
 		const v = sim.snapshot().vessels.find((x) => x.id === id)!;
-		expect(v.nodes).toMatchSnapshot();
+		expect(golden(v.nodes)).toMatchSnapshot();
 	});
 });
 
