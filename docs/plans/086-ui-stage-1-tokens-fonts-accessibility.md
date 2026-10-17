@@ -17,7 +17,7 @@ The design tokens are the refs tokens (ADR 0107): palette, glass surfaces, singl
 
 ## Context
 
-- ADRs: 0107
+- ADRs: 0107, [0140](../decisions/0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) (written here)
 - Read: ADR 0107, ADR 0026, `refs/space-orbital-program-ui/docs/STYLE.md` and `tokens/tokens.css` (git-ignored; values are restated in ADR 0107 and must be copied into the tokens file with the refs as source), `apps/web/src/lib/ui/tokens.css` and `tokens.test.ts`, `SettingsDialog.svelte`.
 - Check `@fontsource/manrope` on npm (version, licence) and record it in `research/stack-versions.md` before installing.
 

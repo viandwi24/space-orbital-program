@@ -52,6 +52,8 @@ Checked 2026-10-16.
 
 ### Fonts: Barlow Semi Condensed and IBM Plex Mono
 
+> **Since plan 086 (2026-10-17):** the interface font is **Manrope** (`@fontsource/manrope` 5.3.0, OFL-1.1, https://fontsource.org/fonts/manrope; ADR 0107), weights 300 to 700 of the Latin subset, 70,696 bytes of woff2 for the five files (`files/manrope-latin-*-normal.woff2`, measured). Barlow Semi Condensed is removed; IBM Plex Mono stays for code and version numbers (ADR 0140 point 4). The notes below are the plan 021 research.
+
 Sources: https://fontsource.org/fonts/barlow-semi-condensed and https://fontsource.org/fonts/ibm-plex-mono (licence line "OFL-1.1", i.e. SIL Open Font License 1.1; `npm view` of both packages also reports `OFL-1.1`, version 5.3.0), install and import docs https://fontsource.org/docs/getting-started/install.
 
 - OFL 1.1 allows bundling and redistribution with the app; the fonts must not be sold on their own, and a modified font may not use the reserved name. We ship them unmodified.
