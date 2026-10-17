@@ -68,3 +68,4 @@ Evaluation cost is O(active objectives) per event; primitives subscribe to the e
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098, 0104).
 - 2026-10-17 — Refined and claimed by Agent 3. Active objectives live in an optional `SimSave.objectives`, like `economy` (095) and `worldTick` (082), so entity ids do not shift and there is no format bump. Primitives are pure over a read-only view plus their own prior state, and are evaluated after steps, ticks and the events they name. The default ascent ends at a 76 km periapsis, so the test aims at 85 km. Design choices go in ADR 0175.
+- 2026-10-17 — Implemented as refined. The ascent test completes the orbit objective at 230.48 s, the step the snapshot periapsis passes 80 km.

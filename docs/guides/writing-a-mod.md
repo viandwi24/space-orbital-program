@@ -196,6 +196,28 @@ Data is sized: a `DataItem` has a `kind`, a size in `bits`, a `value` and the si
 - **Hold** data in your own part: declare `dataStorage: { capacity: (config) => config.capacity }` on a module whose `state` returns `{ items: [], next: 0 }`, or reuse `stock.data-storage` (`[['stock.data-storage', { capacity: 1_000_000 }]]`). The items are module state, so they are saved and go with the part when the vessel splits.
 - The player can move items between storages (`move-data`) and delete them (`delete-data`). `packages/sim/test/data.test.ts` has a recorder part that stores through an action.
 
+## Contracts, missions and objectives (API 0.1.35, plan 098, ADR 0175)
+
+A contract or mission is data: a tree of objectives with rewards. Use the stock primitives or write your own.
+
+```ts
+ctx.contracts.register(defineContract({
+	id: 'acme.first-orbit',
+	title: 'First orbit',
+	objectives: { sequence: [
+		{ objective: 'stock.reach-orbit', params: { minPeriapsis: 80_000 } },
+		{ objective: 'stock.return-home' }
+	] },
+	reward: [{ currency: 'funds', amount: 20_000 }, { currency: 'reputation', amount: 5 }],
+	deadline: 30 * 21_600 // 30 stock days after the start
+}));
+```
+
+- Trees combine with `all`, `any` and `sequence`. A sequence counts its steps only in order, so landing first and orbiting later does not finish "orbit, then return".
+- Stock primitives: `stock.reach-orbit { body?, minPeriapsis, maxApoapsis? }`, `stock.land { body? }`, `stock.reach-altitude { body?, min }`, `stock.enter-soi { body }`, `stock.flyby { body }`, `stock.return-home`, `stock.before { time }`.
+- Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
+- The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
