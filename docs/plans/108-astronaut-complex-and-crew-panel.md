@@ -48,7 +48,7 @@ Stats shown are the model's real values; unknowns are `[—]`.
 
 ## Acceptance criteria
 
-- [ ] vitest: the roster filters by profession; recruiting adds a member and books the cost.
+- [ ] vitest: the roster filters by profession; recruiting adds a member and books the cost (sim with the economy on).
 - [ ] vitest: the crew panel lists the focused vessel's crew with IVA chips.
 - [ ] `bun run e2e` (Chromium): assign two crew at Launch and see them in flight.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
@@ -58,10 +58,12 @@ Stats shown are the model's real values; unknowns are `[—]`.
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/108-astronaut-complex-and-crew-panel.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0152.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0100, 0107).
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch screen seats of plan 094 become active here.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0152: a launch with a save resumes the world's newest save (crew, ledger, missions carry on); Applicants are the professions; Dismiss waits for the sim.
+- 2026-10-18 — Contract request: `crew-dismiss { member }` (sim protocol, base plan 106) to let a member go; plan 108 shows no Dismiss until it lands.
