@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/life-support.ts` (new) | modes, rules, consumables, rates, grace, morale and fatigue closed forms, performance, g-load and dose constants |
-| `packages/core` | member condition fields (optional in `SimSave.crew`); module hook `scrubber`; events `crew:shortage`, `crew:resupplied`, `crew:g-loc`; `VesselSnapshot.lifeSupport` and crew condition; `API_VERSION` 0.1.45 |
+| `packages/core` | member condition fields (optional in `SimSave.crew`); module hook `scrubber`; events `crew:shortage`, `crew:resupplied`, `crew:g-loc`; `VesselSnapshot.lifeSupport` and crew condition; `API_VERSION` 0.1.46 (104 took 0.1.45) |
 | `packages/sim/src/life.ts` (new) | exact piecewise-linear life support, shortages, grace and death, morale, fatigue, dose, g-load, snapshots |
 | `packages/sim` | `loseMember` (the death rule for one member), the flight condition ends at recovery and loss, `boardedAt` at seating; the pass after each step and rails chunk |
 | `mods/stock` | resources supplies, oxygen, water, food; module `stock.scrubber`; parts life-support pack and CO2 scrubber |

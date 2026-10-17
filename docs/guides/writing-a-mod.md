@@ -224,7 +224,7 @@ ctx.contracts.register(defineContract({
 - **Names.** Add syllables with `defineCrewNames({ id, first: [...], last: [...] })`; hired names are drawn from them with the world's own random stream, so the same world always hires the same people.
 - XP is booked when a vessel is recovered, for each place its crew had not been before (fly by, orbit or land on a body). The world's rules decide death (`stock.crew-death`) and salaries.
 
-### Life support (API 0.1.45, plan 107, ADR 0181)
+### Life support (API 0.1.46, plan 107, ADR 0181)
 
 - **Carry consumables** in any container: `[ModuleResourceContainer, { contents: { 'stock.supplies': { capacity: 9 } } }]` is three crew-days for three people. With life support `simple` the crew draw supplies. With `full` they draw `stock.oxygen`, `stock.water` and `stock.food` instead, one unit each per person per day.
 - **A scrubber.** With `full`, someone must scrub the CO2. Use `['stock.scrubber', { crew: 2, charge: 8 }]` on your part, or give your own module `scrubber: (config) => ({ crew, charge })`. `charge` is EC per served person per day.
