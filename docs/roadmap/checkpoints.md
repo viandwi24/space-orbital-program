@@ -16,7 +16,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f1-075-licence` | 075 | A3 | A2 (089) | pending | | |
 | `cp/f1-081-calendar` | 081 | A2 | A1, A2 (087, 088, 113, 122) | pending | | |
 | `cp/f1-082-tick` | 082 | A3 | A1, A2, A3 (095, 098, 102, 106, 114, 126, 128) | pending | | |
-| `cp/f1-078-rules` | 078 | A1 | A1, A2, A3 (087, 095, 098, 103, 106, 117, 127, 130) | pending | | |
+| `cp/f1-078-rules` | 078 | A1 | A1, A2, A3 (087, 095, 098, 103, 106, 117, 127, 130) | done | 29f5b1a | 2026-10-17 |
 | `cp/f1-084-sites` | 084 | A2 | A1, A3 (068, 090, 092, 114) | pending | | |
 | `cp/f1-083-data` | 083 | A3 | A3 (103, 119) | pending | | |
 | `cp/f1-080-trajectory` | 080 | A3 | A1, A3 (113, 123, 125) | pending | | |

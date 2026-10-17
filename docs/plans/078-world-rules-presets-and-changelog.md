@@ -1,7 +1,7 @@
 ---
 id: 078
 title: "World rules, presets and the rule changelog"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [077]
 phase: 4

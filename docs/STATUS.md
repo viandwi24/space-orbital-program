@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 077 and 079 done (`cp/f1-077-world`, `cp/f1-079-patch`); Agent 1 next: 078 rules; Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 077, 078 and 079 done (`cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -86,7 +86,7 @@
 | 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | draft | — | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
 | 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
 | 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | done | Agent 1 | ADR 0110: `WorldInfo` beside the ECS world, `SimSave` 5 with the Legacy world migration, envelope 2 `worldId`, `WorldStore`, client migration; save +179 bytes |
-| 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | in-progress | Agent 1 | ADR 0094: defineRule/definePreset, set-rule, changelog |
+| 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | done | Agent 1 | ADR 0111: `defineRule`/`definePreset`, 22 stock rules and 4 presets, values in `WorldInfo.rules`, `set-rule` + changelog + `world:rule-changed`, `Snapshot.rules`; API 0.1.27 |
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
@@ -192,6 +192,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [078 — World rules, presets and the rule changelog](journal/078-world-rules-presets-and-changelog.md)
 - [079 — Typed data patches: `definePatch` with provenance](journal/079-typed-data-patches-define-patch.md)
 - [077 — World container: worlds own saves, save format 5](journal/077-world-container-and-save-format-5.md)
 - [061 — Aurora curtains](journal/061-aurora-curtains.md)
