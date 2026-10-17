@@ -5,11 +5,13 @@
  */
 import { SaveError } from '@orbital/core';
 import { compareMods, type GameSave, type ModReport } from './game-save';
+import { browserWorldsEnv, createWorlds, type Worlds } from '../worlds/worlds';
 import { openSaveStore, requestSavePersistence } from './open-store';
 import {
 	browserSaveEnv,
 	QUICK_ID,
 	createSaveManager,
+	slotId,
 	type SaveListEntry,
 	type SaveManager,
 	type SaveRequest
@@ -25,6 +27,11 @@ export interface SaveControllerOptions {
 	collect?: () => Promise<SaveRequest>;
 	/** Start the flight stored under `id`. Called after the checks; may navigate away. */
 	startLoad(id: string): void | Promise<void>;
+	/**
+	 * The world the Load dialog lists and F9 loads from (plan 087, ADR 0143); absent: every save.
+	 * Every save written also updates its world's record (`Worlds.touch`).
+	 */
+	world?: () => string;
 }
 
 export class SaveController {
@@ -44,6 +51,7 @@ export class SaveController {
 
 	private manager: SaveManager | null = null;
 	private ready: Promise<SaveManager> | null = null;
+	private worlds: Worlds | null = null;
 
 	constructor(private readonly options: SaveControllerOptions) {}
 
@@ -52,8 +60,9 @@ export class SaveController {
 	}
 
 	private open(): Promise<SaveManager> {
-		this.ready ??= openSaveStore().then(({ store, volatile }) => {
+		this.ready ??= openSaveStore().then(({ store, worlds, volatile }) => {
 			this.volatile = volatile;
+			this.worlds = createWorlds(worlds, store, browserWorldsEnv());
 			this.manager = createSaveManager(store, browserSaveEnv());
 			return this.manager;
 		});
@@ -73,7 +82,17 @@ export class SaveController {
 
 	async refresh(): Promise<void> {
 		this.now = Date.now();
-		this.entries = await (await this.open()).list();
+		const all = await (await this.open()).list();
+		const world = this.options.world?.();
+		this.entries =
+			world === undefined
+				? all
+				: all.filter((e) => !e.ok || (e.meta.worldId ?? 'legacy') === world);
+	}
+
+	/** The world of a written save was played: its record moves to the top of the Worlds list. */
+	private async touched(worldId: string | null): Promise<void> {
+		await this.worlds?.touch(worldId ?? 'legacy').catch(() => undefined);
 	}
 
 	async showLoad(): Promise<void> {
@@ -111,6 +130,7 @@ export class SaveController {
 	async quicksave(): Promise<boolean> {
 		const meta = await this.guard(async () => (await this.open()).quicksave(await this.collect()));
 		if (meta) {
+			await this.touched(meta.worldId);
 			this.tell('Quicksaved.');
 			void requestSavePersistence();
 		}
@@ -119,6 +139,7 @@ export class SaveController {
 
 	async autosave(): Promise<boolean> {
 		const meta = await this.guard(async () => (await this.open()).autosave(await this.collect()));
+		if (meta) await this.touched(meta.worldId);
 		return meta !== undefined;
 	}
 
@@ -127,6 +148,7 @@ export class SaveController {
 			(await this.open()).saveAs(name, await this.collect())
 		);
 		if (meta) {
+			await this.touched(meta.worldId);
 			this.saveOpen = false;
 			this.tell(`Saved as "${meta.name}".`);
 			void requestSavePersistence();
@@ -163,11 +185,12 @@ export class SaveController {
 	/** F9: load the quicksave, or say there is none. */
 	async quickload(): Promise<void> {
 		const list = await (await this.open()).list();
-		if (!list.some((e) => (e.ok ? e.meta.id : e.id) === QUICK_ID)) {
+		const quick = slotId(this.options.world?.() ?? 'legacy', QUICK_ID);
+		if (!list.some((e) => (e.ok ? e.meta.id : e.id) === quick)) {
 			this.tell('There is no quicksave yet. Press F5 to make one.', true);
 			return;
 		}
-		await this.load(QUICK_ID);
+		await this.load(quick);
 	}
 
 	/** Read and validate one save for the page to resume (throws `SaveError`). */
