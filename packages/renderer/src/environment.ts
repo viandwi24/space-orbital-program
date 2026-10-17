@@ -4,12 +4,14 @@
  * `WebGLRenderer`, so it runs in Bun; the facade adds PMREM and the post chain.
  */
 import {
+	LEGACY_ZONE,
 	createTerrainField,
 	type BodyDefinition,
 	type Quat,
 	type TerrainField,
 	type Vec3
 } from '@orbital/core';
+import { LEGACY_TERRAIN, type WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	DirectionalLight,
 	FogExp2,
@@ -54,6 +56,8 @@ export interface EnvironmentConfig {
 	body: Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'>;
 	preset: GraphicsPreset;
 	site: LaunchSiteConfig;
+	/** The world's home terrain (plan 084, ADR 0142); default the Legacy seed and one zone at `site`. */
+	terrain?: WorldTerrainSpec;
 }
 
 export interface EnvironmentFrameInput {
@@ -130,14 +134,15 @@ export class Environment {
 	private config: EnvironmentConfig;
 	/** The same heights the sim's ground uses (ADR 0043): the camera is held above them. */
 	private terrain: TerrainField;
+	private worldTerrain: WorldTerrainSpec;
 
 	constructor(config: EnvironmentConfig) {
 		this.config = config;
-		this.terrain = createTerrainField({
-			radius: config.body.radius,
-			latitude: config.site.latitude,
-			longitude: config.site.longitude
-		});
+		this.worldTerrain = config.terrain ?? {
+			seed: LEGACY_TERRAIN.seed,
+			zones: [{ ...LEGACY_ZONE, latitude: config.site.latitude, longitude: config.site.longitude }]
+		};
+		this.terrain = createTerrainField({ radius: config.body.radius, ...this.worldTerrain });
 		this.preset = config.preset;
 		const body = config.body;
 		this.radius = body.radius;
@@ -151,7 +156,8 @@ export class Environment {
 			this.atmosphere,
 			settings,
 			config.site,
-			body.atmosphere?.aurora !== false
+			body.atmosphere?.aurora !== false,
+			this.worldTerrain
 		);
 		this.site = new LaunchSite(body.radius, config.site, settings.trees, settings.tufts);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
@@ -185,9 +191,21 @@ export class Environment {
 	/** The vessel really launched from here (see `SceneModel.sync`); moves the site meshes and the painted pad. */
 	setSite(latitude: number, longitude: number): void {
 		this.config = { ...this.config, site: { latitude, longitude } };
-		this.terrain = createTerrainField({ radius: this.radius, latitude, longitude });
+		const [primary, ...rest] = this.worldTerrain.zones;
+		this.worldTerrain = {
+			...this.worldTerrain,
+			zones: [{ ...primary!, latitude, longitude }, ...rest]
+		};
+		this.terrain = createTerrainField({ radius: this.radius, ...this.worldTerrain });
 		this.planet.setSite(latitude, longitude);
 		this.site.setSite(latitude, longitude);
+	}
+
+	/** The world's terrain (seed and site zones) for the CPU field the camera reads and the GPU bakes. */
+	setTerrain(terrain: WorldTerrainSpec): void {
+		this.worldTerrain = terrain;
+		this.terrain = createTerrainField({ radius: this.radius, ...terrain });
+		this.planet.setTerrain(terrain);
 	}
 
 	/** Dev/screenshot override of the sun (elevation, azimuth clockwise from north at the launch site); null restores the real sun. */

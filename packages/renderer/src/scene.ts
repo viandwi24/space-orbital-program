@@ -12,6 +12,7 @@ import type {
 	Vec3,
 	VesselSnapshot
 } from '@orbital/core';
+import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	Group,
 	Mesh,
@@ -111,6 +112,8 @@ export interface SceneConfig {
 	 * latitude 0, longitude 0).
 	 */
 	launchSite?: { latitude: number; longitude: number };
+	/** The world's home terrain: seed and the flat zones of its sites (plan 084); default Legacy around `launchSite`. */
+	terrain?: WorldTerrainSpec;
 }
 
 /** Lowest altitude of the orbit camera above the surface sphere, m. */
@@ -284,7 +287,8 @@ export class SceneModel {
 		this.environment = new Environment({
 			body: primary ?? { id: 'none', radius: 1, atmosphere: undefined },
 			preset: config.preset ?? 'high',
-			site: config.launchSite ?? { latitude: 0, longitude: 0 }
+			site: config.launchSite ?? { latitude: 0, longitude: 0 },
+			...(config.terrain ? { terrain: config.terrain } : {})
 		});
 		this.scene.add(this.environment.root);
 		this.scene.fog = this.environment.fog;

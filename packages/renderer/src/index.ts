@@ -30,3 +30,4 @@ export * from './effects/transitions.ts';
 export * from './vab/index.ts';
 export * from './effects/look.ts';
 export * from './effects/shards.ts';
+export * from './terrain-zones.ts';

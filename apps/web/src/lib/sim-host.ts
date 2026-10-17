@@ -3,7 +3,14 @@
  * streams snapshots. Kept free of `self`/`postMessage` so Node tests drive it with a mock `post`;
  * `sim.worker.ts` wires it to the real worker scope.
  */
-import { entityId, type Command, type CommandResult } from '@orbital/core';
+import {
+	entityId,
+	sitesOf,
+	terrainSeedOf,
+	zonesOf,
+	type Command,
+	type CommandResult
+} from '@orbital/core';
 import type { CommandVerdict } from '@orbital/scripting';
 import type { Sim } from '@orbital/sim';
 import {
@@ -96,13 +103,26 @@ const isWarp = (c: unknown): c is WarpCommand =>
 	Number.isFinite(c.factor) &&
 	(c.type === 'warp' || (typeof c.time === 'number' && Number.isFinite(c.time)));
 
+/** The home terrain and primary site of the sim's world (plan 084, ADR 0142). */
+function worldTerrainOf(sim: Sim): Pick<Catalog, 'terrain' | 'launchSite'> {
+	const root = sim.registries.bodies.list().find((b) => b.parent === undefined);
+	if (!root) return {};
+	const zones = zonesOf(sitesOf(sim.worldInfo), root.id);
+	if (zones.length === 0) return {};
+	return {
+		terrain: { seed: terrainSeedOf(sim.worldInfo), zones },
+		launchSite: { latitude: zones[0]!.latitude, longitude: zones[0]!.longitude }
+	};
+}
+
 export function catalogOf(sim: Sim): Catalog {
 	return {
 		plugins: [...sim.report.order],
 		parts: sim.registries.parts.list(),
 		bodies: sim.registries.bodies.list(),
 		resources: sim.registries.resources.list(),
-		epoch: { ...sim.worldInfo.epoch }
+		epoch: { ...sim.worldInfo.epoch },
+		...worldTerrainOf(sim)
 	};
 }
 

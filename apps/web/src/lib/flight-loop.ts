@@ -660,7 +660,10 @@ export function startFlight(options: FlightOptions): Flight {
 				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
 				partProviders: modelProviders(),
-				preset: initialGraphicsPreset()
+				preset: initialGraphicsPreset(),
+				// the world's terrain and Space Center (plan 084, ADR 0142)
+				...(c.terrain ? { terrain: c.terrain } : {}),
+				...(c.launchSite ? { launchSite: c.launchSite } : {})
 			});
 			const draw = renderer;
 			maneuverCtl = createManeuverController({

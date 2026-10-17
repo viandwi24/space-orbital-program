@@ -22,7 +22,7 @@ import {
 import { atmosphereGLSL } from './atmosphere.glsl.ts';
 import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.ts';
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
-import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
+import { terrainNoiseGLSL, terrainTangentGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
 import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
@@ -461,6 +461,7 @@ float noiseA(vec3 pl, float lam, int salt) {
 }
 
 ${terrainNoiseGLSL}
+${terrainZonesGLSL}
 
 ${cloudFieldGLSL}
 #if AURORA_STEPS > 0
@@ -853,9 +854,8 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float depthNear = clamp(sdCoast / 60.0, 0.0, 1.0);
 
 	// Lakes (plan 038, ADR 0072): basins of the core terrain; the ground is flat water level where the level reaches LAKE_TO.
-	float lakeCos = dot(nBF, uSiteUp);
-	float lakeArc = acos(clamp(lakeCos, -1.0, 1.0)) * uR;
-	float lakeLvl = noiseT(nBF * (uR / 1000.0), 1.0 / LAKE_WL, LAKE_SALT) * smoothstep(LAKE_SITE_FROM, LAKE_SITE_TO, lakeArc);
+	// the lake gate of every site's zone (ADR 0142), the twin of the height function's
+	float lakeLvl = noiseT(nBF * (uR / 1000.0), 1.0 / LAKE_WL, LAKE_SALT) * terrainZones(nBF, uR).z;
 	float lakeGradPx = length(vec2(dFdx(lakeLvl), dFdy(lakeLvl)));
 	float lakeIn = -1.0e5; // metres inside a lake (negative on land)
 	float lakeOnly = 0.0;
