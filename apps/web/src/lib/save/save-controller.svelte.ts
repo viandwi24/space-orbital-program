@@ -143,6 +143,14 @@ export class SaveController {
 		return meta !== undefined;
 	}
 
+	/** An autosave whose id the caller opens next (the Mission Center's hand-over, ADR 0118); null on failure. */
+	async autosaveId(): Promise<string | null> {
+		const meta = await this.guard(async () => (await this.open()).autosave(await this.collect()));
+		if (!meta) return null;
+		await this.touched(meta.worldId);
+		return meta.id;
+	}
+
 	async saveAs(name: string): Promise<boolean> {
 		const meta = await this.guard(async () =>
 			(await this.open()).saveAs(name, await this.collect())

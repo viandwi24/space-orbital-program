@@ -138,6 +138,15 @@ const latLonDir = (s: { latitude: number; longitude: number }, radius: number): 
 	z: -Math.cos(s.latitude) * Math.sin(s.longitude) * radius
 });
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
+/** Map colours: vessel orbit and marker, body orbit, and the highlight (the refs accent text, ADR 0140). */
+const VESSEL_ORBIT_COLOR = 0x4fc3f7;
+const VESSEL_MARKER_COLOR = 0xffd54f;
+const BODY_ORBIT_COLOR = 0x6f8bb0;
+export const MAP_HIGHLIGHT_COLOR = 0x8fa9f0;
+const HIGHLIGHT_COLOR = MAP_HIGHLIGHT_COLOR;
+
+/** What the map view looks at (plan 113, ADR 0118). */
+export type MapScope = 'vessel' | 'system';
 
 interface PartEntry {
 	model: PartModel;
@@ -237,6 +246,13 @@ export class SceneModel {
 	private flightRig: RigState = initialRig(25);
 	private mapRig: RigState = initialRig(0);
 	private mapLimits: RigLimits = { minDistance: 1, maxDistance: 1e12 };
+	/** Map scope (plan 113, ADR 0118): the active vessel's sphere, or the whole system from the root body. */
+	private mapScope: MapScope = 'vessel';
+	/** The map object drawn in the highlight colour: `vessel:<id>` or `body:<id>` (the keys of the web's pick). */
+	private mapHighlight: string | null = null;
+	private mapOrbits = true;
+	/** Largest apoapsis of a body with a parent, m: the system scope frames it. */
+	private systemExtent = 0;
 
 	constructor(config: SceneConfig) {
 		this.config = config;
@@ -271,7 +287,8 @@ export class SceneModel {
 		});
 		for (const b of config.bodies) {
 			if (b.parent === undefined || !b.orbit) continue;
-			const orbit = new OrbitLine(0x6f8bb0, 1.5);
+			this.systemExtent = Math.max(this.systemExtent, b.orbit.a * (1 + b.orbit.e));
+			const orbit = new OrbitLine(BODY_ORBIT_COLOR, 1.5);
 			orbit.setOrbit(b.orbit);
 			this.scene.add(orbit.object);
 			const parent = config.bodies.find((x) => x.id === b.parent);
@@ -468,6 +485,28 @@ export class SceneModel {
 	setActiveVessel(id: EntityId | null): void {
 		this.active = id;
 	}
+
+	/** Map view: `system` looks at the root body and frames the moons' orbits (plan 113, ADR 0118). */
+	setMapScope(scope: MapScope): void {
+		if (scope === this.mapScope) return;
+		this.mapScope = scope;
+		this.mapRig = { ...this.mapRig, distance: 0 };
+		this.cameraDirty = true;
+	}
+	get mapScopeValue(): MapScope {
+		return this.mapScope;
+	}
+	/** Map view: draw this vessel or body (`vessel:<id>`, `body:<id>`) in the highlight colour. */
+	setMapHighlight(key: string | null): void {
+		this.mapHighlight = key;
+	}
+	get mapHighlightKey(): string | null {
+		return this.mapHighlight;
+	}
+	/** Map view layers: `orbits` false hides every orbit line (vessels and bodies). */
+	setMapLayers(layers: { orbits: boolean }): void {
+		this.mapOrbits = layers.orbits;
+	}
 	/** Set the flight orbit camera directly (screenshot presets). */
 	setFlightRig(rig: RigState): void {
 		this.flightRig = { ...rig };
@@ -545,7 +584,8 @@ export class SceneModel {
 		for (const [id, mark] of this.bodyMarks) {
 			const parent = bodyWorld.get(mark.parent);
 			const self = bodyWorld.get(id);
-			mark.orbit.object.visible = this.map && parent !== undefined;
+			mark.orbit.object.visible = this.map && this.mapOrbits && parent !== undefined;
+			mark.orbit.setColor(this.mapHighlight === `body:${id}` ? HIGHLIGHT_COLOR : BODY_ORBIT_COLOR);
 			if (parent) {
 				const p = toRenderSpace(parent, this.origin);
 				mark.orbit.object.position.set(p.x, p.y, p.z);
@@ -689,6 +729,9 @@ export class SceneModel {
 		if (focus) {
 			anchorBody = focus;
 			anchor = bodyWorld.get(focus)!;
+		} else if (this.map && this.mapScope === 'system' && snapshot.bodies[0]) {
+			anchorBody = snapshot.bodies[0].id;
+			anchor = snapshot.bodies[0].position;
 		}
 		this.origin = updateOrigin(this.origin, anchor, this.threshold).origin;
 
@@ -724,9 +767,12 @@ export class SceneModel {
 
 			const bp = toRenderSpace(base, this.origin);
 			entry.line.object.position.set(bp.x, bp.y, bp.z);
-			entry.line.setOrbit(this.map ? v.orbit : undefined);
+			const lit = this.mapHighlight === `vessel:${id}`;
+			entry.line.setOrbit(this.map && this.mapOrbits ? v.orbit : undefined);
+			entry.line.setColor(lit ? HIGHLIGHT_COLOR : VESSEL_ORBIT_COLOR);
 			entry.marker.object.visible = this.map;
-			entry.marker.place(p, this.markerRadius(p));
+			entry.marker.setColor(lit ? HIGHLIGHT_COLOR : VESSEL_MARKER_COLOR);
+			entry.marker.place(p, this.markerRadius(p) * (lit ? 1.6 : 1));
 			this.trackRest(v, snapshot.t);
 		}
 		if (dtSim < 0) this.clearPersistent();
@@ -1239,8 +1285,17 @@ export class SceneModel {
 		let rig: RigState;
 		if (this.map) {
 			const radius = (anchorBody && this.bodies.get(anchorBody)?.radius) || 1;
-			this.mapLimits = { minDistance: radius * 1.1, maxDistance: radius * 1e4 };
-			if (this.mapRig.distance === 0) this.mapRig = { ...this.mapRig, distance: radius * 4 };
+			const system = this.mapScope === 'system' && this.systemExtent > 0 && !this.mapFocus;
+			this.mapLimits = {
+				minDistance: radius * 1.1,
+				maxDistance: system ? Math.max(radius * 1e4, this.systemExtent * 50) : radius * 1e4
+			};
+			if (this.mapRig.distance === 0) {
+				this.mapRig = {
+					...this.mapRig,
+					distance: system ? this.systemExtent * 3 : radius * 4
+				};
+			}
 			const w = anchorBody ? bodyWorld.get(anchorBody) : undefined;
 			target = w ? toRenderSpace(w, this.origin) : ZERO;
 			rig = this.mapRig;

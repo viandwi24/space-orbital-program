@@ -92,6 +92,10 @@ export class VesselMarker {
 		this.object.visible = false;
 	}
 
+	setColor(color: number): void {
+		this.material.color.setHex(color);
+	}
+
 	place(position: Vec3, radius: number): void {
 		this.object.position.set(position.x, position.y, position.z);
 		this.object.scale.setScalar(radius);

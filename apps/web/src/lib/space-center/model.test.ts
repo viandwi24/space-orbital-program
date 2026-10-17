@@ -49,6 +49,12 @@ describe('the overlay', () => {
 			expect(html).toContain(r.statusText);
 		}
 		expect(html).toContain('Every building is running.');
+		// the Mission Center opens since plan 113
+		expect(rows.find((r) => r.label === 'Mission Center')!.action).toEqual({
+			kind: 'link',
+			href: '/mission-center',
+			label: 'Open the Mission Center'
+		});
 		expect(html).toContain('Moon program');
 	});
 
@@ -141,7 +147,12 @@ describe('build mode', () => {
 
 describe('labels', () => {
 	it('labels that would overlap are stacked; distant ones keep their place', () => {
-		const out = spreadLabels({ a: { x: 300, y: 200 }, b: { x: 320, y: 210 }, c: { x: 800, y: 200 }, d: null });
+		const out = spreadLabels({
+			a: { x: 300, y: 200 },
+			b: { x: 320, y: 210 },
+			c: { x: 800, y: 200 },
+			d: null
+		});
 		expect(out.b).toEqual({ x: 320, y: 210 }); // lowest on screen stays
 		expect(out.a!.y).toBeLessThanOrEqual(210 - 40);
 		expect(out.c).toEqual({ x: 800, y: 200 });

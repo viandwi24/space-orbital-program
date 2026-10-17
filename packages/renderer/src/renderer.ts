@@ -22,7 +22,7 @@ import { PostChain } from './post.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
 import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 import type { ScreenPoint } from './project.ts';
-import { SceneModel, type MapPathSegment, type SceneConfig } from './scene.ts';
+import { SceneModel, type MapPathSegment, type MapScope, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (measured), for the progress bar only. */
@@ -125,6 +125,12 @@ export interface Renderer {
 	/** Map view: look at this body, `null` for the body of the active vessel's sphere. */
 	setMapFocus(body: string | null): void;
 	readonly mapFocus: string | null;
+	/** Map view scope (plan 113, ADR 0118): `system` looks at the root body and frames the moons' orbits. */
+	setMapScope(scope: MapScope): void;
+	/** Map view: this vessel or body (`vessel:<id>`, `body:<id>`) in the highlight colour, `null` none. */
+	setMapHighlight(key: string | null): void;
+	/** Map view layers: `orbits` false hides every orbit line. */
+	setMapLayers(layers: { orbits: boolean }): void;
 	/** Ids of the bodies, root first. */
 	readonly bodyIds: readonly string[];
 	toggleMapView(): boolean;
@@ -487,6 +493,9 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setMapView: (on) => model.setMapView(on),
 		setMapPath: (segments) => model.setMapPath(segments),
 		setMapFocus: (body) => model.setMapFocus(body),
+		setMapScope: (scope) => model.setMapScope(scope),
+		setMapHighlight: (key) => model.setMapHighlight(key),
+		setMapLayers: (layers) => model.setMapLayers(layers),
 		get mapFocus() {
 			return model.mapFocusBody;
 		},
