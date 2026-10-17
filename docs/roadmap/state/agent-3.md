@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 092 site choice on `devc/092-site-choice` (claim/092): plan refined; next ADR 0177 and the template resolver.
+**Now:** 092 site choice on `devc/092-site-choice`: core, stock, sim and Create World pushed (API 0.1.39); full checks running, then `ready/092`.
 **Waiting for:** —
 **Updated:** 2026-10-17
 
@@ -14,7 +14,7 @@
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
 | 110 part-actions | done | `devc/110-part-actions` | 2026-10-17 | merged f84365e, cp/f4-110-part-actions |
-| 092 site-choice | in-progress | `devc/092-site-choice` | 2026-10-17 | claim/092 |
+| 092 site-choice | in-progress | `devc/092-site-choice` | 2026-10-17 | claim/092; ADR 0177; API 0.1.39 |
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
 | 103 science | todo |  |  |  |
