@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 070, 071, 069, 055 to 063 (059 and 060 done), 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 070, 071, 069, 055 to 063 (059, 060 and 061 done), 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -67,7 +67,7 @@
 | 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | done | phone session (Claude, 2026-10-17) | ADR 0091: phones stay unsupported (no compact HUD, nothing measurable without a device); tablet layout fixed (panels above the measured deck, touch throttle clear of the script panel), notice by screen class, safe areas, audio `interrupted`; Chromium touch e2e (14 passed) incl. a guard that fails on the old layout; **real devices are the human's** (journal 055 checklist, results to draft 073) |
 | 056 | [Baked cloud-shadow map, sharper half-resolution edges and a cheaper burning pad](plans/056-cloud-shadow-map-and-half-res-edges.md) | done | shadows session (Claude, 2026-10-17) | ADRs 0086 (RG8 cloud map 2048 x 1024: `medium` gets ground cloud shadows, +0.1 ms), 0087 (edge pass redraws ridge and cloud-rim pixels at full resolution on the half rung, 0.9 to 1.5 ms), 0088 (smoke noise in a texture: burning pad 22.6 to 15.8 ms `high`, 16.0 to 12.9 `medium`); `medium`'s absolute 13.3 ms reads over for HEAD itself on this machine today; M1/M2/Intel not available |
 | 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | done | sky session (Claude, 2026-10-17) | ADRs 0069 (ozone layer: Bruneton/Hillaire coefficients scaled for the 600 km body, a third channel in the sun-depth table: twilight olive green to violet), 0070 (shafts: a second march of 4 / 8 samples reading a baked cloud-coverage map; per-sample noise cost +5.8 ms and was replaced); `high` worst 14.27 ms, `medium` 12.26 ms sync on the M5; shafts are modest with the 0.42 cumulus cover; aurora in draft 061, ridge shafts in 062; M1/M2/Intel not available |
-| 061 | [Aurora curtains](plans/061-aurora-curtains.md) | draft | — | from 054: night-side aurora at high latitude |
+| 061 | [Aurora curtains](plans/061-aurora-curtains.md) | done | aurora session (Claude, 2026-10-17) | ADR 0093, API 0.1.24 (`atmosphere.aurora`): a 12 / 8 step march through an 80 to 320 km emission shell (green 557.7, violet fringe, red 630) over an oval about a tilted magnetic pole, folds animated in a 600 s period; a compile-time variant of the planet pass swapped in only when the oval is in reach (precompiled); no measurable cost where it is off, +3.0 ms `high` / +2.4 ms `medium` in the aurora scene (worst 11.45 ms sync); the look is mine, **a person should judge it** (grain, orbit ring, `orbitShare`); M1/M2/Intel/phone not available |
 | 062 | [Terrain shafts and shared cloud-shadow map](plans/062-terrain-shadow-shafts.md) | done | shadows session (Claude, 2026-10-17) | ADR 0089: a ridge between the camera and a low sun shades the haze (per-sample reads of the baked heights along the sun ray, penumbra by the ray's height gain; `high` +0.5 to +0.9 ms, `medium` +0.4 to +0.6 in the scenes that face it); the shared cloud map is plan 056's |
 | 066 | [Environment on real devices](plans/066-environment-devices-and-mobile.md) | draft | — | from 038: M1/M2, Intel and phone frame tables, `selectPreset` tuning, precompile times there |
 | 067 | [Floating and sinking](plans/067-buoyancy-floating-and-sinking.md) | draft | — | from 038: buoyancy on the sea and lakes (until then lakes are solid like the sea) |
@@ -114,6 +114,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [061 — Aurora curtains](journal/061-aurora-curtains.md)
 - [060 — Stones you can hit](journal/060-stones-with-collision.md)
 - [059 — Hills terrain on a body other than the first](journal/059-hills-terrain-on-a-second-body.md)
 - [058 — Script editor follow-ups](journal/058-script-editor-follow-ups.md)
