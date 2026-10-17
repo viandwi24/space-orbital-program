@@ -7,7 +7,8 @@ import {
 	loadPlugins,
 	type BodyDefinition,
 	type Calendar,
-	type SaveMod
+	type SaveMod,
+	type SiteTemplateDefinition
 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { activePlugins } from '../mods/runtime';
@@ -19,6 +20,8 @@ export interface WorldCatalog extends RuleCatalog {
 	/** The star system a new world uses: the stock one (no system registry yet, ADR 0143). */
 	system: { id: string; version: string; label: string; variants: readonly string[] };
 	mods: SaveMod[];
+	/** Quick-start sites (plan 092, ADR 0177). */
+	siteTemplates: readonly SiteTemplateDefinition[];
 }
 
 export function loadWorldCatalog(): WorldCatalog {
@@ -36,6 +39,7 @@ export function loadWorldCatalog(): WorldCatalog {
 			label: 'Stock system',
 			variants: ['default']
 		},
-		mods: plugins.map((p) => ({ id: p.meta.id, version: p.meta.version }))
+		mods: plugins.map((p) => ({ id: p.meta.id, version: p.meta.version })),
+		siteTemplates: registries.siteTemplates.list()
 	};
 }

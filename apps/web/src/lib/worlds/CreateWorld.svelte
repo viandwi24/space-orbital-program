@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
 	 * Create World (plan 087, ADRs 0094, 0111 and 0143): name, preset, star system, start date, gravity
-	 * model and every rule, generated from the registries so a mod's rules appear here too. The form
+	 * model, the primary site (plan 092: Default or a template resolved on the seed, with its
+	 * consequences) and every rule, generated from the registries so a mod's rules appear here too. The form
 	 * hands plain data to `createWorldInfo`, which validates it like a save.
 	 */
 	import type { RuleDefinition, RuleValue, WorldInfo } from '@orbital/core';
@@ -14,9 +15,11 @@
 	import type { WorldCatalog } from './catalog';
 	import {
 		createWorldInfo,
+		formatLatLon,
 		isCustom,
 		isIdentityRule,
 		presetRules,
+		resolveSiteChoice,
 		ruleGroups,
 		startDatesFor,
 		type StartDate
@@ -29,7 +32,8 @@
 		oncreate,
 		now = () => Date.now(),
 		newId,
-		newSeed
+		newSeed,
+		initialSite = 'default'
 	}: {
 		open: boolean;
 		catalog: WorldCatalog;
@@ -38,6 +42,8 @@
 		now?: () => number;
 		newId: () => string;
 		newSeed: () => number;
+		/** The site choice the dialog opens with: `default` or a template id. */
+		initialSite?: string;
 	} = $props();
 
 	// The dialog is mounted when it opens, so its starting values are read once, on purpose.
@@ -59,6 +65,10 @@
 	let start = $state<StartDate['kind']>(starts[0]!);
 	let fixedDate = $state('2000-01-01');
 	let gravity = $state('patched');
+	let siteChoice = $state(untrack(() => initialSite));
+	// Resolving reads the seed's terrain map once (about a second the first time, cached after).
+	const resolved = $derived(siteChoice === 'default' ? null : resolveSiteChoice(catalog, siteChoice, seed));
+	const boundary = (d: string) => (d === 'sea' ? 'over the sea' : d === 'land' ? 'over land' : 'over land and sea');
 	let problem = $state<string | null>(null);
 	let busy = $state(false);
 
@@ -107,7 +117,10 @@
 				gravityModel: gravity,
 				systemId: catalog.system.id,
 				systemVersion: catalog.system.version,
-				variant: catalog.system.variants[0] ?? 'default'
+				variant: catalog.system.variants[0] ?? 'default',
+				...(resolved
+					? { site: { latitude: resolved.latitude, longitude: resolved.longitude, template: resolved.template } }
+					: {})
 			},
 			catalog,
 			catalog.calendar,
@@ -196,6 +209,39 @@
 				{#if start === 'fixed'}
 					<input type="date" bind:value={fixedDate} aria-label="Start date" />
 				{/if}
+			{/if}
+		</fieldset>
+
+		<fieldset class="field" data-testid="site-choice">
+			<legend class="label">Site</legend>
+			<div class="radios">
+				<label>
+					<input type="radio" name="site" value="default" bind:group={siteChoice} />
+					Default (0°, 0°)
+				</label>
+				{#each catalog.siteTemplates as t (t.id)}
+					<label>
+						<input type="radio" name="site" value={t.id} bind:group={siteChoice} />
+						{t.label}
+					</label>
+				{/each}
+			</div>
+			{#if resolved}
+				<dl class="consequences" data-testid="site-consequences">
+					<dt>Place</dt>
+					<dd class="num">{formatLatLon(resolved.latitude, resolved.longitude)}</dd>
+					<dt>Rotation boost</dt>
+					<dd class="num">{resolved.consequences.rotationBoost.toFixed(0)} m/s</dd>
+					<dt>Lowest inclination</dt>
+					<dd class="num">{((resolved.consequences.minInclination * 180) / Math.PI).toFixed(1)}°</dd>
+					<dt>Downrange east</dt>
+					<dd>{boundary(resolved.consequences.downrange)}</dd>
+				</dl>
+				{#if resolved.relaxed.length > 0}
+					<p class="note">No spot on this world meets every wish; dropped: {resolved.relaxed.join(', ')}.</p>
+				{/if}
+			{:else}
+				<p class="note">The Space Center at latitude 0°, longitude 0°: the most rotation boost, every inclination.</p>
 			{/if}
 		</fieldset>
 
@@ -352,6 +398,18 @@
 		flex-basis: 100%;
 		font-size: var(--t-small);
 		color: var(--text-muted);
+	}
+	.consequences {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		gap: var(--s-1) var(--s-3);
+		margin: var(--s-2) 0 0;
+	}
+	.consequences dt {
+		color: var(--text-dim);
+	}
+	.consequences dd {
+		margin: 0;
 	}
 	.note {
 		margin: 0;
