@@ -2,14 +2,14 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 086 UI tokens (claim/086). Seeded by Agent 1; Agent 2 updates from here.
-**Waiting for:** —
+**Now:** 074 rename (claim/074): code and docs pushed, full checks and Chromium smoke running, then `ready/074`.
+**Waiting for:** merge of 086 (`ready/086` pushed; M5 blur row is Agent 1's at merge).
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
 |---|---|---|---|---|
 | 086 tokens | done | `devb/086-ui-tokens` | 2026-10-17 | merged a9999b3, cp/f1-086-tokens (M5 frame measurement open, Agent 1) |
-| 074 rename | todo |  |  |  |
+| 074 rename | in-progress | `devb/074-rename` | 2026-10-17 | claim/074 |
 | 081 calendar | todo |  |  |  |
 | 084 sites | todo |  |  |  |
 | 087 worlds-screen | todo |  |  |  |
