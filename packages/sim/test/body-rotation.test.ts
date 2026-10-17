@@ -87,11 +87,14 @@ describe('a home planet tilted 23.44 degrees', () => {
 		sim.snapshot().vessels[0]!;
 	/** Body-fixed position of the vessel's root (undoes the tilted body's rotation). */
 	const bodyFixed = (sim: Awaited<ReturnType<typeof padSim>>): Vec3 =>
-		rotateBy(conj(sim.snapshot().bodies[0]!.rotation), vesselOf(sim).position);
+		rotateBy(
+			conj(sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation),
+			vesselOf(sim).position
+		);
 
 	test('the patch tilts the sim body: its pole and its spin', async () => {
 		const sim = await padSim();
-		const rotation = sim.snapshot().bodies[0]!.rotation;
+		const rotation = sim.snapshot().bodies.find((b) => b.id === sim.home)!.rotation;
 		const north = rotateBy(rotation, { x: 0, y: 1, z: 0 });
 		expect(north.x).toBeCloseTo(Math.sin(TILT), 9);
 		sim.dispose();

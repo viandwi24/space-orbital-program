@@ -1,6 +1,7 @@
 /** Plan 043 / ADR 0050: reading saves at the sim boundary - the v1 fixture, damage, missing content. */
 import { describe, expect, test } from 'bun:test';
 import {
+	GRAVITATIONAL_CONSTANT,
 	LEGACY_WORLD_ID,
 	legacyWorldInfo,
 	parseSimSave,
@@ -10,12 +11,14 @@ import {
 	type SimSave,
 	type WorldInfo
 } from '@orbital/core';
+import { toStateVector, type OrbitalElements } from '@orbital/kepler';
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
 import fixture from './fixtures/save-v1.json';
 import fixtureV2 from './fixtures/save-v2.json';
 import fixtureV3 from './fixtures/save-v3.json';
 import fixtureV4 from './fixtures/save-v4.json';
+import fixtureV5 from './fixtures/save-v5.json';
 import { rapier } from './helpers/vessels.ts';
 
 const resume = (save: unknown, extra: { dt?: number; body?: string; world?: WorldInfo } = {}) =>
@@ -75,7 +78,7 @@ describe('the frozen format-1 fixture', () => {
 		});
 		// The old save listed the home planet only; the sim that continues it knows the moon too.
 		expect(oldBodies).toEqual(['stock.home']);
-		expect(bodies).toEqual(['stock.home', 'stock.cinder']);
+		expect(bodies).toEqual(['stock.sun', 'stock.home', 'stock.cinder']);
 	});
 });
 
@@ -334,3 +337,55 @@ describe('the world of a run (plan 077, ADR 0110)', () => {
 		).rejects.toThrow(/n-body worlds are not available yet/);
 	});
 });
+
+describe('the frozen format-5 fixture (plan 122, ADR 0119)', () => {
+	test('resumes with the Sun as root and the vessel unchanged relative to the home planet', async () => {
+		expect(fixtureV5.formatVersion).toBe(5);
+		expect(fixtureV5.bodies).toEqual(['stock.home', 'stock.cinder']);
+		const parsed = parseSimSave(JSON.stringify(fixtureV5));
+		expect(parsed.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(parsed.home).toBe('stock.home');
+		const sim = await resume(fixtureV5);
+		expect(sim.home).toBe('stock.home');
+		const snap = sim.snapshot();
+		expect(snap.bodies.map((b) => String(b.id))).toEqual([
+			'stock.sun',
+			'stock.home',
+			'stock.cinder'
+		]);
+		const saved = (fixtureV5.world.components['sim.vessel'] as Record<string, SavedVessel>)['0']!;
+		const v = snap.vessels[0]!;
+		expect(String(v.soi)).toBe('stock.home');
+		expect(v.orbit!.a).toBeCloseTo(saved.rails.elements.a, 6);
+		expect(v.orbit!.e).toBeCloseTo(saved.rails.elements.e, 9);
+		// the saved elements, propagated to the save's time around the home planet, are the state now
+		const home = sim.registries.bodies.get('stock.home')!;
+		const want = toStateVector(
+			saved.rails.elements as OrbitalElements,
+			GRAVITATIONAL_CONSTANT * home.mass,
+			fixtureV5.time
+		);
+		const com = v.orbit ? toStateVector(v.orbit, GRAVITATIONAL_CONSTANT * home.mass, snap.t) : want;
+		expect(Math.hypot(com.r.x - want.r.x, com.r.y - want.r.y, com.r.z - want.r.z)).toBeLessThan(
+			1e-6
+		);
+		expect(Math.hypot(com.v.x - want.v.x, com.v.y - want.v.y, com.v.z - want.v.z)).toBeLessThan(
+			1e-9
+		);
+		expect(snap.t).toBe(fixtureV5.time);
+		// the root part sits within a few metres of the centre of mass
+		expect(
+			Math.hypot(v.position.x - want.r.x, v.position.y - want.r.y, v.position.z - want.r.z)
+		).toBeLessThan(5);
+		// and it saves again as format 6 with its home named
+		const again = sim.save();
+		expect(again.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(again.home).toBe('stock.home');
+		expect(again.bodies).toEqual(['stock.sun', 'stock.home', 'stock.cinder']);
+		sim.dispose();
+	});
+});
+
+interface SavedVessel {
+	rails: { elements: { a: number; e: number } };
+}

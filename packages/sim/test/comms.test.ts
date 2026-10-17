@@ -222,7 +222,7 @@ describe('benchmark', () => {
 		const STEPS = 1_000;
 		const time = async (comms: boolean): Promise<number> => {
 			const sim = await make(undefined, [moons]);
-			expect(sim.registries.bodies.list()).toHaveLength(10);
+			expect(sim.registries.bodies.list()).toHaveLength(11); // the Sun, home, its moon and eight test moons
 			sim.dispatch({ type: 'set-rule', rule: 'stock.comms', value: comms });
 			for (let i = 0; i < 300; i++) {
 				const s = orbitState(sim, 150_000 + 2_000 * i);

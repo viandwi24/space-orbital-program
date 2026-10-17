@@ -78,7 +78,7 @@ describe('placement at a site', () => {
 		expect(r.ok).toBe(true);
 		for (let i = 0; i < 100; i++) sim.step(0.02);
 		const v = sim.snapshot().vessels[0]!;
-		const home = sim.snapshot().bodies[0]!;
+		const home = sim.snapshot().bodies.find((b) => b.id === sim.home)!;
 		// on the ground, upright, at the latitude of the pad (north offset -250 m)
 		const r0 = Math.hypot(v.position.x, v.position.y, v.position.z);
 		const lat = Math.asin(v.position.y / r0);

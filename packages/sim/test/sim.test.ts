@@ -176,7 +176,7 @@ describe('the pad (standing on the ground tile)', () => {
 		// asserted 'flight'. The drift above spans the switch.
 		expect(s1.vessels[0]!.mode).toBe('on-rails');
 		expect(s1.vessels[0]!.surface).toBe(true);
-		expect(s1.bodies[0]!.rotation.y).toBeGreaterThan(0); // the body turns
+		expect(s1.bodies.find((b) => b.id === 'stock.home')!.rotation.y).toBeGreaterThan(0); // the body turns
 	});
 
 	test('with thrust above weight it lifts off and stays off the ground', async () => {

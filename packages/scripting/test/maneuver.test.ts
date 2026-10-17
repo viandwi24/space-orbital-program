@@ -29,7 +29,7 @@ async function rig() {
 		backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 		seed: 1
 	});
-	const mu = 6.6743e-11 * sim.registries.bodies.list()[0]!.mass;
+	const mu = 6.6743e-11 * sim.registries.bodies.get(sim.home)!.mass;
 	const r = 750_000;
 	const loaded = sim.dispatch({
 		type: 'load-vessel',

@@ -158,6 +158,8 @@ export interface Sim {
 	readonly worldInfo: Readonly<WorldInfo>;
 	/** Rule ids in the world that no loaded mod registers: kept in the save (ADR 0111 point 3). */
 	readonly unknownRules: readonly string[];
+	/** The home body the sim runs on (ADR 0119 point 1): not the tree's root once a Sun sits there. */
+	readonly home: string;
 	/** Simulation time, s. */
 	readonly time: number;
 	readonly warp: number;
@@ -485,6 +487,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		registries,
 		report,
 		rng: core.rng,
+		home: core.root.def.id,
 		get worldInfo() {
 			if (frozenInfo === null || frozenFor !== core.rulesView) {
 				frozenInfo = deepFreeze(cloneData(core.info));

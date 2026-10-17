@@ -39,7 +39,7 @@ export type LandingPhase = 'brake' | 'final' | 'touchdown' | 'done';
 export function createLanding(sim: Sim, vessel: EntityId, opts: LandingOptions = defaultLanding) {
 	const home = opts.body
 		? sim.registries.bodies.get(opts.body)!
-		: sim.registries.bodies.list().find((b) => b.parent === undefined)!;
+		: sim.registries.bodies.get(sim.home)!;
 	const mu = GRAVITATIONAL_CONSTANT * home.mass;
 	const omega = (2 * Math.PI) / home.rotationPeriod;
 	const attitude = createAttitude(sim, vessel);

@@ -16,7 +16,7 @@ test('bodies lists every registered body, frozen, with derived mu', async () => 
 	runner.tick(rig.sim.snapshot());
 	const known = rig.sim.registries.bodies.list().map((b) => String(b.id));
 	expect(runner.logs[0]).toBe(known.join(','));
-	expect(runner.logs[1]).toBe(`${rig.sim.registries.bodies.list()[0]!.radius} true true true true`);
+	expect(runner.logs[1]).toBe(`${rig.sim.registries.bodies.get(rig.sim.home)!.radius} true true true true`);
 	expect(runner.logs[2]).toBe('TypeError');
 	expect(runner.status).toBe('finished');
 	rig.sim.dispose();

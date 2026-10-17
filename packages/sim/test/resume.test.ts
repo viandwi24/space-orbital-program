@@ -450,7 +450,9 @@ describe('resume across bodies (plan 044): the moon, its sphere and its ground',
 				sim.dispatch({ type: 'warp', factor: 1000 });
 				const toMoon = (): number => {
 					const snap = sim.snapshot();
-					return length(sub(snap.vessels[0]!.position, snap.bodies[1]!.position));
+					const home = snap.bodies.find((b) => b.id === s.home.id)!.position;
+					const moon = snap.bodies.find((b) => b.id === s.moon.id)!.position;
+					return length(sub(snap.vessels[0]!.position, sub(moon, home)));
 				};
 				for (let i = 0; i < 5_000 && toMoon() > s.soi + 6_000; i++) {
 					sim.step(0.01);
