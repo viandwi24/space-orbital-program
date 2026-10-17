@@ -17,7 +17,7 @@ A body's orientation is `q_pole · Ry(W(t))` everywhere the code assumed a spin 
 
 ## Context
 
-- ADRs: 0103, 0007
+- ADRs: 0103, 0007, [0145](../decisions/0145-body-rotation-pole-convention-and-one-function.md) (written here)
 - Read: ADR 0103 point 4, ADR 0007, 0024, 0026 (navball frame), `docs/architecture/units-and-frames.md`, `packages/sim/src/orbit.ts` (`surfaceRails`, `orientationOf`), `terrain.ts`, `sas.ts`, `apps/web/src/lib/navball-math.ts`, renderer `scene.ts`.
 
 ## Scope

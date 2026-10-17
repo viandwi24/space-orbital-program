@@ -18,10 +18,10 @@ Decided in ADR 0007. Every package follows this; conversions happen at the edges
 
 | Frame | Origin | Axes | Used by |
 |---|---|---|---|
-| **Body-centred inertial (BCI)** | centre of the vessel's current SOI body (ADR 0051; the root rests at the system origin, a moon moves on its Kepler orbit around its parent) | right-handed; +Y is the body's north pole; +X toward the reference direction at epoch | `kepler`, on-rails state, map view |
+| **Body-centred inertial (BCI)** | centre of the vessel's current SOI body (ADR 0051; the root rests at the system origin, a moon moves on its Kepler orbit around its parent) | right-handed; +Y is the system's north (a body without `rotation.pole` has its pole on +Y); +X toward the reference direction at epoch | `kepler`, on-rails state, map view |
 | **Local physics frame** | a point that moves at constant velocity with the frame: `bci = origin + local`, `bciVelocity = frame.velocity + localVelocity`; created at the focus vessel's centre of mass, re-anchored (origin and velocity) when the focus root is > 1 km from the origin (plan 007, ADR 0017) | same orientation as BCI | `physics` (Rapier world), flight mode |
 | **Render frame** | floating origin (see above) | same orientation as BCI | `renderer` |
-| **Body-fixed** | body centre, rotating with the body | derived from BCI by rotation about +Y | surface positions, launch sites, terrain (later) |
+| **Body-fixed** | body centre, rotating with the body | +Y the body's own north pole, longitude 0 on +X; turned into BCI by `bodyOrientation(body, t) = q_pole · Ry(W(t))` (plan 085, ADRs 0103 and 0145; `qAboutY(2 pi t / rotationPeriod)` without `rotation`) | surface positions, sites, terrain, surface rails |
 
 Orientation of all frames is identical; only the origin differs. A change of sphere of influence is a translation of position and velocity by the child body's state (`kepler.intoChildFrame` / `intoParentFrame`, ADR 0051); a flight frame is re-based by translating its origin and velocity, local poses stay. Converting between them is a translation of the origin, which keeps conversions cheap and exact enough.
 
