@@ -10,6 +10,7 @@ import type { Vec3 } from './math.ts';
 import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
+import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
@@ -66,6 +67,8 @@ export interface ReadonlyRegistries {
 	rules: ReadonlyRegistry<RuleDefinition>;
 	presets: ReadonlyRegistry<PresetDefinition>;
 	charges: ReadonlyRegistry<ChargeDefinition>;
+	/** Data kinds (plan 083, ADR 0172). */
+	dataKinds: ReadonlyRegistry<DataKindDefinition>;
 }
 
 /** Vessel-wide control input set by `throttle` and `attitude` commands. */
@@ -129,6 +132,17 @@ export interface VesselApi {
 		amount(resource: string): number;
 		withdraw(resource: string, amount: number): number;
 		deposit(resource: string, amount: number): number;
+	};
+	/**
+	 * Data storage of the whole vessel (plan 083, ADR 0172): `store` puts the item on the first
+	 * storage with room and returns its id, or drops it (`data:dropped`) and returns undefined.
+	 */
+	readonly data: {
+		store(item: NewDataItem): string | undefined;
+		/** Bits stored on the vessel. */
+		used(): number;
+		/** Bits the vessel's storages hold in all. */
+		capacity(): number;
 	};
 	/**
 	 * Sever the attachment at this part's attach node `node`: whatever hangs off it leaves as its
@@ -205,6 +219,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	controlSource?: boolean;
 	/** Present when this module holds resources (tanks, batteries); see `ResourceStore`. */
 	store?: ResourceStore<Out, State>;
+	/**
+	 * Present when this module holds data items (plan 083, ADR 0172); its state must carry
+	 * `{ items, next }` (`DataStorageState`).
+	 */
+	dataStorage?: DataStorage<Out>;
 	/**
 	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
 	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant

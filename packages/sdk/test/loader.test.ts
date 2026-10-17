@@ -243,7 +243,8 @@ describe('registration and report', () => {
 			system: [{ id: 'fixture.gravity', by: 'fixture' }],
 			rule: [],
 			preset: [],
-			charge: []
+			charge: [],
+			'data-kind': []
 		});
 	});
 

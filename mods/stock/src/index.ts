@@ -36,11 +36,13 @@ import {
 	PartStrut,
 	PartTankMedium,
 	PartTankSmall,
+	PartDataDrive,
 	PartWing
 } from './parts.ts';
 import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
+import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
 export const stockApi = { engineOutput, ispAt, propellantRates, withdraw, deposit };
@@ -65,6 +67,9 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleControlSurface);
 		ctx.modules.register(ModuleWing);
 
+		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
+		ctx.modules.register(ModuleDataStorage);
+
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
 		ctx.parts.register(PartTankSmall);
@@ -82,6 +87,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartWing);
 		ctx.parts.register(PartStrut);
 		ctx.parts.register(PartFuelLine);
+		ctx.parts.register(PartDataDrive);
 
 		ctx.bodies.register(HomeBody);
 		ctx.bodies.register(MoonBody);
@@ -104,3 +110,4 @@ export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';
 export * from './charges.ts';
+export * from './data.ts';

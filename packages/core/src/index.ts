@@ -28,6 +28,7 @@ export * from './moon-terrain.ts';
 export * from './body-terrain.ts';
 export * from './stones.ts';
 export * from './semver.ts';
+export * from './data.ts';
 export * from './patch.ts';
 export * from './plugin.ts';
 export * from './save.ts';

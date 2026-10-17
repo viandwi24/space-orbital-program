@@ -20,6 +20,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
+import { dataUse, storagesOf } from './data.ts';
 import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { bodyOfVessel, systemPosition } from './bodies.ts';
@@ -120,6 +121,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const target = resolveTarget(core, vessel);
 	if (target) snapshot.target = target;
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
+	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
 	const body = bodyOfVessel(core, vessel);
 	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would

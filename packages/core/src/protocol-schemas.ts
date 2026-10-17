@@ -124,5 +124,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		rule: z.string().min(1),
 		value: z.union([z.boolean(), z.number(), z.string()])
 	}),
-	z.object({ type: z.literal('recover-vessel'), vessel: entity })
+	z.object({ type: z.literal('recover-vessel'), vessel: entity }),
+	z.object({ type: z.literal('move-data'), vessel: entity, item: z.string().min(1), to: entity }),
+	z.object({ type: z.literal('delete-data'), vessel: entity, item: z.string().min(1) })
 ]);

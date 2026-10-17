@@ -23,6 +23,7 @@ import {
 	type RuleDefinition
 } from './rules.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
+import { dataKindDefinitionSchema, type DataKindDefinition } from './data.ts';
 
 export class RegistryError extends Error {
 	constructor(
@@ -181,6 +182,8 @@ export interface Registries {
 	presets: Registry<PresetDefinition>;
 	/** Scheduled income and costs (plan 095, ADR 0113). */
 	charges: Registry<ChargeDefinition>;
+	/** Data kinds (plan 083, ADR 0172). */
+	dataKinds: Registry<DataKindDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -192,6 +195,7 @@ export function createRegistries(): Registries {
 		systems: createRegistry<SystemDefinition>('system'),
 		rules: createRegistry<RuleDefinition>('rule', { schema: ruleDefinitionSchema }),
 		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema }),
-		charges: createRegistry<ChargeDefinition>('charge', { schema: chargeDefinitionSchema })
+		charges: createRegistry<ChargeDefinition>('charge', { schema: chargeDefinitionSchema }),
+		dataKinds: createRegistry<DataKindDefinition>('data-kind', { schema: dataKindDefinitionSchema })
 	};
 }

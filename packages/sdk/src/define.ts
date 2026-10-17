@@ -5,6 +5,7 @@
  */
 import type {
 	AnyPatchDefinition,
+	DataKindDefinition,
 	BasePluginContext,
 	BodyDefinition,
 	ModuleDefinition,
@@ -182,3 +183,13 @@ export function definePatch<const K extends PatchTarget>(
 ): AnyPatchDefinition {
 	return def as AnyPatchDefinition;
 }
+
+// ---------------------------------------------------------------------------------------------
+// defineDataKind
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A kind of data item (plan 083, ADR 0172): `priority` (integer, lower first) and an optional
+ * `valueCurve` of `[ageSeconds, factor]` points. Register it with `ctx.dataKinds.register(...)`.
+ */
+export const defineDataKind = (def: DataKindDefinition): DataKindDefinition => def;

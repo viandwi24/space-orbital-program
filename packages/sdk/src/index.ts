@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -23,6 +23,12 @@ export {
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
+export {
+	dataItemSchema,
+	dataKindDefinitionSchema,
+	dataValueAt,
+	dataValueFactor
+} from '@orbital/core';
 export { DEFAULT_PRESET, IDENTITY_RULES, ruleValueProblem } from '@orbital/core';
 export {
 	CURRENCIES,
@@ -139,6 +145,11 @@ export type {
 	SystemId,
 	SystemPhase,
 	WorldTick,
+	DataItem,
+	DataKindDefinition,
+	DataStorage,
+	DataStorageState,
+	NewDataItem,
 	Quat,
 	Transform,
 	Vec3,

@@ -4,6 +4,7 @@
  * `on('reactor:meltdown', e => e.part)` is typed and unknown names are type errors. Plan 005
  * settles which module specifier SDK users augment (the SDK re-exports this interface).
  */
+import type { NewDataItem } from './data.ts';
 import type { EntityId } from './ids.ts';
 import type { VesselMode } from './protocol.ts';
 
@@ -30,6 +31,16 @@ export interface EventMap {
 		from: boolean | number | string;
 		to: boolean | number | string;
 		time: number;
+	};
+	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */
+	'data:stored': { vessel: EntityId; part: EntityId; item: string };
+	/** A data item could not be stored and is lost (`reason: 'full'`: no storage had room). */
+	'data:dropped': {
+		vessel: EntityId;
+		item: NewDataItem;
+		kind: string;
+		bits: number;
+		reason: 'full';
 	};
 	/** A game day began (plan 082, ADR 0171): emitted after the `world-tick` systems ran. */
 	'world:tick': { day: number; time: number };
