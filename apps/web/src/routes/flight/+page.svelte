@@ -413,7 +413,11 @@
 	// what it leaves, and the touch throttle centres in the same space (`layout-model.ts`).
 	let deckHeight = $state(DECK_FALLBACK);
 	let leftStackBottom = $state(0);
+	/** Right edge of the open dock panel, 0 when none is open (plan 112). */
+	let dockRight = $state(0);
 	let viewport = $state({ width: 1440, height: 900 });
+	/** Below 1280 px the dock stands at the right, where the left stack has no room (plan 112). */
+	const narrow = $derived(viewport.width <= 1279);
 	function updateInsets(): void {
 		viewport = { width: innerWidth, height: innerHeight };
 		const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
@@ -423,18 +427,23 @@
 		if (deck && deck.height > 0) deckHeight = Math.round(deck.height);
 		const left = box('.tl');
 		leftStackBottom = left ? Math.round(left.bottom) : 0;
+		const open = box('.tl .dock .open');
+		// beside the whole left stack: the capsules can be wider than the open panel
+		dockRight = open && open.width > 0 && left ? Math.round(Math.max(open.right, left.right)) : 0;
 		const top = bar ? bar.bottom + 8 : 0;
 		const bottom = deck ? Math.max(0, innerHeight - deck.top + 8) : 0;
 		const side = right && right.width > 0 ? Math.max(0, innerWidth - right.left + 8) : 0;
-		const key = [top, side, bottom].map(Math.round).join(',');
+		const key = [top, side, bottom, dockRight].map(Math.round).join(',');
 		if (key === lastInsets) return;
 		lastInsets = key;
-		flight?.setViewInsets({ top, right: side, bottom, left: 0 });
+		flight?.setViewInsets({ top, right: side, bottom, left: dockRight });
 	}
 	$effect(() => {
 		void model?.name;
 		void tall;
 		void scriptOpen;
+		void settings.dock.open;
+		void dockShown;
 		void tutorialStep;
 		void hud?.status;
 		queueMicrotask(updateInsets);
@@ -556,71 +565,7 @@
 						onskip={() => settings.setTutorial(skip(settings.tutorial))}
 					/>
 				{/if}
-				{#if dockShown}
-					<Dock
-						entries={rail}
-						open={settings.dock.open}
-						ontoggle={(id) => settings.setDock(togglePanel(settings.dock, id))}
-						onlibrary={() => (libraryOpen = true)}
-					>
-						{#snippet body(id: string)}
-							{#if id === 'host.script'}
-								<div class="script">
-									<ScriptPanel
-										{source}
-										script={shown}
-										{canRun}
-										{imported}
-										{sandbox}
-										{notice}
-										vesselName={designName}
-										check={checkSyntax}
-										onchange={setSource}
-										onrun={() => {
-											ranSource = source;
-											flight?.runScript(source);
-										}}
-										onstop={() => flight?.stopScript()}
-										onsample={loadSample}
-										onimport={importScript}
-										onundo={undoImport}
-										onconfirmed={() => {
-											imported = null;
-											backup = null;
-										}}
-									/>
-								</div>
-							{:else if !model}
-								<!-- the HUD has not started yet -->
-							{:else if id === 'host.orbit'}
-								<OrbitStrip orbit={model.orbit} phase={model.phase} />
-							{:else if id === 'host.resources'}
-								<ResourcesPanel resources={model.resources} />
-							{:else if id === 'host.target'}
-								<TargetPanel
-									target={model.target}
-									choices={model.targets}
-									controllable={model.controllable}
-									rendezvous={model.rendezvous}
-									dossier={model.dossier}
-									onselect={(key) => flight?.setTarget(key)}
-									onplan={(aid) => flight?.planAid(aid)}
-								/>
-							{:else}
-								{@const panel = modPanels.find((p) => p.id === id)}
-								{#if panel}
-									<Panel title={panel.title}>
-										<ModPanel
-											{panel}
-											input={panelInput}
-											oncommand={(c) => void flight?.command(c)}
-										/>
-									</Panel>
-								{/if}
-							{/if}
-						{/snippet}
-					</Dock>
-				{/if}
+				{#if !narrow}{@render dock('left')}{/if}
 			</div>
 
 			<div class="tc">
@@ -651,6 +596,9 @@
 					onnav={() => (navOpen = !navOpen)}
 				/>
 			</div>
+			{#if narrow}
+				<div class="tr">{@render dock('right')}</div>
+			{/if}
 			{#if model && stagingOpen}
 				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
 				<div class="bl" class:stowed={scriptOpen && viewport.width <= 1279}>
@@ -705,7 +653,7 @@
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}
 				<TouchControls
-					anchor={throttleAnchor(viewport, deckHeight, scriptOpen, leftStackBottom)}
+					anchor={throttleAnchor(viewport, deckHeight, scriptOpen && !narrow, leftStackBottom, dockRight)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
 					onattitude={(a) => flight?.setTouchAttitude(a)}
@@ -715,6 +663,71 @@
 
 			{#if hud.autopilot}<p class="dev num">Dev autopilot: {hud.autopilot}</p>{/if}
 		</div>
+
+		{#snippet dock(side: 'left' | 'right')}
+			{#if dockShown}
+				<Dock
+					{side}
+					entries={rail}
+					open={settings.dock.open}
+					ontoggle={(id) => settings.setDock(togglePanel(settings.dock, id))}
+					onlibrary={() => (libraryOpen = true)}
+				>
+					{#snippet body(id: string)}
+						{#if id === 'host.script'}
+							<div class="script">
+								<ScriptPanel
+									{source}
+									script={shown}
+									{canRun}
+									{imported}
+									{sandbox}
+									{notice}
+									vesselName={designName}
+									check={checkSyntax}
+									onchange={setSource}
+									onrun={() => {
+										ranSource = source;
+										flight?.runScript(source);
+									}}
+									onstop={() => flight?.stopScript()}
+									onsample={loadSample}
+									onimport={importScript}
+									onundo={undoImport}
+									onconfirmed={() => {
+										imported = null;
+										backup = null;
+									}}
+								/>
+							</div>
+						{:else if !model}
+							<!-- the HUD has not started yet -->
+						{:else if id === 'host.orbit'}
+							<OrbitStrip orbit={model.orbit} phase={model.phase} />
+						{:else if id === 'host.resources'}
+							<ResourcesPanel resources={model.resources} />
+						{:else if id === 'host.target'}
+							<TargetPanel
+								target={model.target}
+								choices={model.targets}
+								controllable={model.controllable}
+								rendezvous={model.rendezvous}
+					dossier={model.dossier}
+								onselect={(key) => flight?.setTarget(key)}
+								onplan={(aid) => flight?.planAid(aid)}
+							/>
+						{:else}
+							{@const panel = modPanels.find((p) => p.id === id)}
+							{#if panel}
+								<Panel title={panel.title}>
+									<ModPanel {panel} input={panelInput} oncommand={(c) => void flight?.command(c)} />
+								</Panel>
+							{/if}
+						{/if}
+					{/snippet}
+				</Dock>
+			{/if}
+		{/snippet}
 
 		<PanelLibrary
 			open={libraryOpen}
@@ -865,6 +878,13 @@
 		align-items: center;
 		gap: var(--s-3);
 		pointer-events: none;
+	}
+	.tr {
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
+		right: calc(var(--margin-hud) + var(--safe-right));
+		display: flex;
+		/* it starts under the toolbar, so it has the toolbar's height less than the space above the deck */
+		max-height: calc(var(--above-deck, calc(100% - 290px)) - var(--capsule) - var(--panel-gap));
 	}
 	.bl {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));

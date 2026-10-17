@@ -12,19 +12,22 @@
 		open,
 		ontoggle,
 		onlibrary,
-		body
+		body,
+		side = 'left'
 	}: {
 		entries: readonly { id: string; title: string; icon: CategoryIcon }[];
 		open: string | null;
 		ontoggle: (id: string) => void;
 		onlibrary: () => void;
 		body: Snippet<[string]>;
+		/** On narrow screens the dock stands at the right, its rail on the edge (plan 112). */
+		side?: 'left' | 'right';
 	} = $props();
 
 	const shown = $derived(entries.find((e) => e.id === open) ?? null);
 </script>
 
-<div class="dock" data-testid="dock">
+<div class="dock" class:right={side === 'right'} data-testid="dock">
 	<div class="rail" role="tablist" aria-orientation="vertical" aria-label="Panels">
 		{#each entries as e (e.id)}
 			<button
@@ -62,14 +65,20 @@
 </div>
 
 <style>
+	/* the dock shrinks inside the left stack (which stops above the deck); the open panel scrolls */
 	.dock {
 		display: flex;
+		flex: 0 1 auto;
 		align-items: flex-start;
 		gap: 0.5rem;
 		min-height: 0;
-		max-height: 100%;
 	}
+	/* the rail keeps inside the left stack: it takes the dock's height and scrolls when the stack is short */
 	.rail {
+		align-self: stretch;
+		min-height: 0;
+		overflow-y: auto;
+		scrollbar-width: none;
 		display: flex;
 		flex: none;
 		flex-direction: column;
@@ -83,6 +92,7 @@
 	}
 	.tab {
 		position: relative;
+		flex: none;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -124,15 +134,25 @@
 		border-top: 1px solid var(--border-divider);
 		border-radius: 0 0 50% 50%;
 	}
+	.dock.right {
+		flex-direction: row-reverse;
+	}
 	/* host and mod panels keep the width of the old right column (16.5 rem); the script editor sets its own */
+	.open > :global(*) {
+		flex: 0 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+	}
 	.open > :global(.panel) {
 		width: 16.5rem;
 	}
+	/* a column whose child shrinks and scrolls itself, so its box is what shows */
 	.open {
+		align-self: stretch;
+		display: flex;
+		flex-direction: column;
 		min-width: 0;
 		min-height: 0;
-		max-height: 100%;
-		overflow-y: auto;
 		scrollbar-width: thin;
 	}
 </style>

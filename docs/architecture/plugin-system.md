@@ -150,6 +150,10 @@ Config literals are checked against the module's schema input type (wrong type, 
 - Regions (plan 104, ADR 0180): bodies may carry `regions` (`biomes`, `cells` or `bands`), and situations `regional: true`. `defineDossierEntry({ id, label, order, fact, unlock })` (`ctx.dossierEntries`, report kind `dossier-entry`). Core has `regionAt`, `regionsOf`, `dossierOf` and `parseSubjectId`.
 - `defineAntenna({ id, label, kind, range, power })` (`ctx.antennas`) and `defineGroundStation({ id, label, body, latitude, longitude, altitude?, range })` (`ctx.groundStations`), plan 114, ADR 0179. A module is an antenna through its `antenna(config, state)` hook (`{ antenna, enabled }`). Modules read the link with `ctx.vessel.signal()` (`{ connected, to, reason, control }`). Load-report kinds are `antenna` and `ground-station`.
 
+### Dock panels (API 0.1.45, plan 112, ADR 0149)
+
+`ctx.panels.register(definePanel({ id, title, icon, order, contexts, view, canvas? }))` adds a panel to the flight dock. `view` is a tree of plain nodes (`section`, `readout`, `meter`, `switch`, `button`, `list`, `sparkline`) whose functions are pure selectors over a `PanelInput` (snapshot, active vessel, altitude, speed, time) or return a `Command` the sim validates. `canvas.draw` receives a `PanelCanvas`, a declared subset of 2D drawing, so a panel needs no DOM types. The page evaluates panels at the 10 Hz HUD update, draws a canvas only while its panel is open, and shows a panel that throws as failed without stopping anything else. Code: `packages/core/src/panels.ts`, `apps/web/src/lib/dock/`.
+
 ## Type sharing between plugins
 
 1. **`depends` → `contributes`:** typed API injected into `ctx` (above).

@@ -58,8 +58,7 @@ for (const size of [
 		const deck = await boxOf(page, '.deck');
 		for (const [name, selector] of [
 			['script panel', '.script'],
-			['orbit and maneuver strip', '.bl'],
-			['right column', '.tr']
+			['orbit and maneuver strip', '.bl']
 		] as const) {
 			const box = await boxOf(page, selector);
 			expect(overlap(box, deck), `${name} overlaps the instrument deck`).toBe(0);
@@ -96,24 +95,26 @@ for (const size of [
 		expect(overlap(track, await boxOf(page, '.deck'))).toBe(0);
 	});
 
-	test(`${size.name}: the target card is reachable by scrolling the right column`, async ({
+	test(`${size.name}: the target card opens in the dock and is reachable above the deck`, async ({
 		page
 	}) => {
 		await page.setViewportSize({ width: size.width, height: size.height });
 		await launchTwoStage(page);
 		await page.waitForTimeout(400);
-		const column = page.locator('.tr');
-		const reach = await column.evaluate((el) => ({
+		// Orbit, Resources and Target are dock panels since plan 112 (ADR 0149)
+		await page.getByTestId('dock-tab-host.target').click();
+		const open = page.locator('.dock .open');
+		const reach = await open.evaluate((el) => ({
 			scrollable: el.scrollHeight > el.clientHeight,
 			bottom: el.getBoundingClientRect().bottom
 		}));
 		const deck = await boxOf(page, '.deck');
 		expect(reach.bottom).toBeLessThanOrEqual(deck.y);
-		// scroll the column to its end: the Target card is then fully inside the column
-		await column.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+		// scroll the panel to its end: the Target card's last line is then inside it
+		await open.evaluate((el) => el.scrollTo(0, el.scrollHeight));
 		const target = page.getByText('Target', { exact: true }).first();
 		const t = (await target.boundingBox())!;
-		const c = await boxOf(page, '.tr');
+		const c = await boxOf(page, '.dock .open');
 		expect(t.y + t.height).toBeLessThanOrEqual(c.y + c.height + 1);
 		if (reach.scrollable) expect(t.y).toBeGreaterThanOrEqual(c.y - 1);
 	});
