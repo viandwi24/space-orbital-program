@@ -66,3 +66,14 @@ export const AMBIENT_TEMPERATURE = AIR_TEMPERATURE;
 export const DEFAULT_MAX_TEMPERATURE = 1_000;
 /** Newton iterations of the implicit temperature update (converges in 4-6 from above). */
 export const THERMAL_ITERATIONS = 12;
+
+/** Stone colliders (plan 060, ADR 0092): a vessel whose centre of mass is lower than this above the terrain gets the stones round it, m ... */
+export const STONE_ENTER = 60;
+/** ... and loses them again above this, m (hysteresis). */
+export const STONE_EXIT = 80;
+/** Stones within this distance of the centre of mass when the field is built are colliders, m. */
+export const STONE_WINDOW = 24;
+/** The field is rebuilt when the centre of mass is this far from where it was built, m (the window still reaches `STONE_WINDOW - STONE_REFRESH` round the vessel). */
+export const STONE_REFRESH = 8;
+/** Never more than this many stone colliders per vessel (the nearest). */
+export const STONE_MAX = 96;

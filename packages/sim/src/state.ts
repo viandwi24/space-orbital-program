@@ -16,6 +16,7 @@ import {
 	type VesselMode
 } from '@orbital/core';
 import type { OrbitalElements } from '@orbital/kepler';
+import type { StoneField } from './stones.ts';
 
 /** Control input of one vessel, set by commands. */
 export interface ControlState {
@@ -210,6 +211,8 @@ export interface GroundTile {
 	handle: BodyHandle;
 	/** Unit normal of the tile's top face (away from the body's centre), BCI axes. */
 	up: Vec3;
+	/** The stones round the vessel as colliders, on an airless body with stones (plan 060, ADR 0092). */
+	stones?: StoneField;
 }
 
 /** A physics backend with its local frame (runtime only, not serialisable). */

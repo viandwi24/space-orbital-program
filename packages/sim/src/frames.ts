@@ -27,7 +27,9 @@ import {
 	GROUND_TILE_EXIT,
 	GROUND_TILE_HALF,
 	PHYSICS_RANGE,
-	REANCHOR_DISTANCE
+	REANCHOR_DISTANCE,
+	STONE_ENTER,
+	STONE_EXIT
 } from './constants.ts';
 import {
 	designCom,
@@ -47,7 +49,15 @@ import { ZERO, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
-import type { FlightBody, FlightFrame } from './state.ts';
+import type { FlightBody, FlightFrame, GroundTile } from './state.ts';
+import {
+	bodyFixedDirection,
+	bodyHasStoneColliders,
+	createStoneField,
+	needsStones,
+	placeStones,
+	stoneNormalAt
+} from './stones.ts';
 import { groundPlane } from './terrain.ts';
 
 export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
@@ -454,6 +464,7 @@ export interface GroundImpact {
 function removeTile(frame: FlightFrame, vesselId: EntityId): void {
 	const tile = frame.tiles.get(vesselId);
 	if (!tile) return;
+	if (tile.stones) frame.backend.removeBody(tile.stones.handle);
 	frame.backend.removeBody(tile.handle);
 	frame.tiles.delete(vesselId);
 }
@@ -523,6 +534,37 @@ function updateTile(
 		frame.backend.setVelocity(tile.handle, { linear, angular: omega });
 		tile.up = up;
 	}
+	updateStones(core, frame, planet, tile, centre, altitude, plane.height);
+}
+
+/**
+ * Keep the stone colliders of a vessel low over an airless body's ground (plan 060, ADR 0092):
+ * built when the centre of mass is within `STONE_ENTER` of the terrain, rebuilt when it has moved
+ * `STONE_REFRESH` from where they were built, dropped above `STONE_EXIT`.
+ */
+function updateStones(
+	core: SimCore,
+	frame: FlightFrame,
+	planet: BodyRuntime,
+	tile: GroundTile,
+	centre: Vec3,
+	altitude: number,
+	groundHeight: number
+): void {
+	if (!bodyHasStoneColliders(planet)) return;
+	let field = tile.stones;
+	if (altitude > STONE_EXIT || (!field && altitude > STONE_ENTER)) {
+		if (field) frame.backend.removeBody(field.handle);
+		tile.stones = undefined;
+		return;
+	}
+	const dir = bodyFixedDirection(core, planet, centre);
+	if (needsStones(field, dir, planet.def.radius)) {
+		if (field) frame.backend.removeBody(field.handle);
+		field = createStoneField(frame.backend, planet, dir, groundHeight);
+		tile.stones = field;
+	}
+	if (field) placeStones(core, frame, planet, field);
 }
 
 /**
@@ -548,14 +590,24 @@ function groundContacts(
 		const touching = frame.backend
 			.contacts(body.handle, tile.handle)
 			.filter((c) => c.distance <= CONTACT_DISTANCE);
-		if (touching.length === 0) continue;
+		// A stone's surface is not the tile's plane: its contacts close along the sphere's normal there.
+		const onStones = tile.stones
+			? frame.backend
+					.contacts(body.handle, tile.stones.handle)
+					.filter((c) => c.distance <= CONTACT_DISTANCE)
+			: [];
+		if (touching.length === 0 && onStones.length === 0) continue;
 		vessel.landed = true;
 		const centre = bodyMotion(frame, body).centre;
 		const speeds = new Map<EntityId, number>();
-		for (const c of touching) {
+		const points = [
+			...touching.map((c) => ({ c, normal: tile.up })),
+			...onStones.map((c) => ({ c, normal: stoneNormalAt(tile.stones!, c.point) ?? tile.up }))
+		];
+		for (const { c, normal } of points) {
 			const v = add(prior.linear, cross(prior.angular, sub(c.point, centre)));
 			const ground = sub(cross(omega, add(frame.origin, c.point)), frame.velocity);
-			const closing = -dot(sub(v, ground), tile.up);
+			const closing = -dot(sub(v, ground), normal);
 			const part = body.shapeParts[c.shape]!;
 			if (closing > (speeds.get(part) ?? 0)) speeds.set(part, closing);
 		}
