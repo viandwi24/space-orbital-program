@@ -3,6 +3,7 @@
  * one file so the SDK can re-export them. zod v4 API (see docs/research/zod.md).
  */
 import * as z from 'zod';
+import { ACTION_KINDS } from './action-groups.ts';
 import { DEFINITION_ID_PATTERN, PLUGIN_ID_PATTERN } from './ids.ts';
 import { assetPathSchema } from './mod-assets.ts';
 import { siteSchema } from './sites.ts';
@@ -272,11 +273,62 @@ export const MODULE_CATEGORIES = [
 ] as const;
 export type ModuleCategory = (typeof MODULE_CATEGORIES)[number];
 
+// ---- part actions and action groups (plan 110, ADR 0174) ----
+
+const finiteNumber = z.number().refine(Number.isFinite, 'must be finite');
+
+export const partActionDescriptorSchema = z
+	.object({
+		id: z.string().min(1),
+		label: z.string().min(1),
+		kind: z.enum(ACTION_KINDS),
+		value: z.union([z.boolean(), finiteNumber, z.string()]).optional(),
+		min: finiteNumber.optional(),
+		max: finiteNumber.optional(),
+		step: finiteNumber.refine((s) => s > 0, 'step must be positive').optional(),
+		unit: z.string().optional(),
+		options: z
+			.array(z.object({ value: z.string().min(1), label: z.string().min(1) }))
+			.min(1)
+			.optional(),
+		enabled: z.boolean(),
+		reason: z.string().optional(),
+		group: definitionIdSchema.optional(),
+		icon: z.string().optional()
+	})
+	.superRefine((d, ctx) => {
+		const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
+		if (d.kind === 'toggle' && typeof d.value !== 'boolean')
+			issue('a toggle needs a boolean value');
+		if (
+			d.kind === 'value' &&
+			(typeof d.value !== 'number' || d.min === undefined || d.max === undefined)
+		) {
+			issue('a value needs a number value, min and max');
+		}
+		if (
+			d.kind === 'mode' &&
+			(typeof d.value !== 'string' || !d.options?.some((o) => o.value === d.value))
+		) {
+			issue('a mode needs options and a value that is one of them');
+		}
+		if (d.kind === 'trigger' && d.value !== undefined) issue('a trigger has no value');
+	});
+
+export const actionGroupDefinitionSchema = z.object({
+	id: definitionIdSchema,
+	label: z.string().min(1),
+	icon: z.string().optional(),
+	order: finiteNumber.optional()
+});
+
 /**
  * What a module tells tools about itself (ADR 0033): the result of `ModuleDefinition.describe`.
  * Plain data, validated when a tool reads it. Pressure in Pa, thrust in N, flow in kg/s.
  */
 export const moduleInfoSchema = z.object({
+	/** Controls the module offers (plan 110, ADR 0174). */
+	actions: z.array(partActionDescriptorSchema).optional(),
 	/** The module is an engine. */
 	engine: z
 		.object({

@@ -11,6 +11,9 @@ import {
 	keyIdOf,
 	keyLabel,
 	rebind,
+	actionSpec,
+	customGroupSlot,
+	isActionId,
 	repairBindings,
 	resetBinding,
 	resolveBindings,
@@ -194,5 +197,21 @@ describe('the handlers resolve through the table', () => {
 		expect(map.actionFor('vab', 'KeyD')).toBeNull();
 		expect(map.actionFor('flight', 'F10')).toBe('mute');
 		expect(map.actionFor('vab', 'F10')).toBe('mute');
+	});
+});
+
+describe('custom action group keys (plan 110)', () => {
+	it('ten custom group actions exist on the number pad, and bind without clashes', () => {
+		const ids = Array.from({ length: 10 }, (_, i) => `customGroup${i + 1}`);
+		for (const id of ids) {
+			expect(isActionId(id)).toBe(true);
+			const n = Number(id.slice('customGroup'.length));
+			expect(actionSpec(id as ActionId).defaults).toEqual([`Numpad${n % 10}`]);
+			expect(customGroupSlot(id)).toBe(Number(id.slice('customGroup'.length)));
+		}
+		expect(bindingClashes(resolveBindings())).toEqual([]);
+		const r = rebind({}, 'customGroup2' as ActionId, 'KeyB');
+		expect(r.ok).toBe(true);
+		expect(customGroupSlot('stage')).toBeUndefined();
 	});
 });

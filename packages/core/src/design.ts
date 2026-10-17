@@ -424,6 +424,21 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 		}
 	}
 
+	// Custom action groups (plan 110, ADR 0174): one group per slot, members on parts that carry the module.
+	const slots = new Set<number>();
+	for (const g of design.groups ?? []) {
+		if (slots.has(g.slot)) errors.push(`action group slot ${g.slot} is used twice`);
+		slots.add(g.slot);
+		for (const m of g.members) {
+			const def = defs.get(m.part);
+			if (!byIndex.has(m.part)) {
+				errors.push(`action group ${g.slot}: unknown part index ${m.part}`);
+			} else if (def && !(def.modules ?? []).some(([id]) => id === m.module)) {
+				errors.push(`action group ${g.slot}: part #${m.part} has no module "${m.module}"`);
+			}
+		}
+	}
+
 	stages: for (const [k, stage] of design.stages.entries()) {
 		for (const i of stage) {
 			if (!byIndex.has(i)) {

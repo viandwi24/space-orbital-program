@@ -118,7 +118,7 @@
 | 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | draft | — | ADR 0100: each aspect a rule; Career full by default |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
 | 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
-| 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | draft | — | ADR 0102: descriptors, groups, custom groups |
+| 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | in-progress | Agent 3 | ADR 0102: descriptors, groups, custom groups |
 | 111 | [Vessel panel: Overview with group control, Parts with per-part actions](plans/111-vessel-panel-group-and-part-control.md) | draft | — | ADR 0102: Overview group switches, Parts tab |
 | 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | draft | — | ADR 0102: declarative mod panels, SDK canvas, dock |
 | 113 | [Mission Center: one place for the whole system](plans/113-mission-center.md) | draft | — | ADR 0102: system map, tracking, upcoming, Fly |

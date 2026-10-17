@@ -106,6 +106,12 @@ export interface VesselState {
 	target: TargetState | null;
 	/** Part entities per stage, in firing order. */
 	stages: EntityId[][];
+	/** Custom action groups from the design (plan 110, ADR 0174); members by part entity. */
+	groups?: Array<{
+		slot: number;
+		label: string;
+		members: Array<{ part: EntityId; module: string; action: string }>;
+	}>;
 	nextStage: number;
 	/** Centre of mass, BCI. Authoritative on rails; refreshed after every flight step. */
 	com: Vec3;

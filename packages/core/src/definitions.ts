@@ -11,6 +11,7 @@ import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
+import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
@@ -69,6 +70,8 @@ export interface ReadonlyRegistries {
 	charges: ReadonlyRegistry<ChargeDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: ReadonlyRegistry<DataKindDefinition>;
+	/** Action groups (plan 110, ADR 0174). */
+	actionGroups: ReadonlyRegistry<ActionGroupDefinition>;
 }
 
 /** Vessel-wide control input set by `throttle` and `attitude` commands. */

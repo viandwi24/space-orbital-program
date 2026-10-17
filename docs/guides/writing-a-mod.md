@@ -96,6 +96,27 @@ export const Stock = definePlugin({
 // in another mod:  definePlugin({ depends: [Stock], setup(ctx) { ctx.stock.engineOutput(...) } })
 ```
 
+### Part actions (API 0.1.34, plan 110, ADR 0174)
+
+Give the player a switch, slider, choice or button for your module, with no UI code: return `actions` from `describe(config, state)`.
+
+```ts
+describe: (config, state) => ({
+	actions: [
+		{ id: 'setOn', label: 'Floodlight', kind: 'toggle', value: state.on, enabled: true, group: 'stock.lights', icon: 'light' },
+		{ id: 'setPower', label: 'Brightness', kind: 'value', value: state.power, min: 0, max: 1, step: 0.1, enabled: state.on, reason: 'Turn it on first' }
+	]
+}),
+actions: {
+	setOn: (ctx, on) => { ctx.state.on = on as boolean; },
+	setPower: (ctx, power) => { ctx.state.power = power as number; }
+}
+```
+
+- `id` is the name of one of your `actions`. A `toggle` is called with `true` or `false`, a `value` with a number in `min..max`, a `mode` with one of `options[].value`, and a `trigger` with nothing. The sim checks the argument and `enabled` before calling.
+- `group` puts the control in an action group: the Overview tab of the vessel panel (plan 111) shows one switch per group, and `action-group` sets every member in the same tick. Stock groups are `stock.engines`, `stock.batteries`, `stock.solar`, `stock.lights`, `stock.antennas`, `stock.science`, `stock.docking`, `stock.landing-gear` and `stock.parachutes`. Add your own with `ctx.actionGroups.register(defineActionGroup({ id: 'acme.winches', label: 'Winches' }))`.
+- Players can also make custom groups in a design (slots 1 to 10, on the number pad by default); they call your actions the same way.
+
 ## 3. Parts
 
 ```ts

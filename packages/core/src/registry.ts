@@ -12,6 +12,7 @@ import type {
 } from './definitions.ts';
 import {
 	bodyDefinitionSchema,
+	actionGroupDefinitionSchema,
 	definitionIdSchema,
 	partDefinitionSchema,
 	resourceDefinitionSchema
@@ -24,6 +25,7 @@ import {
 } from './rules.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import { dataKindDefinitionSchema, type DataKindDefinition } from './data.ts';
+import type { ActionGroupDefinition } from './action-groups.ts';
 
 export class RegistryError extends Error {
 	constructor(
@@ -184,6 +186,8 @@ export interface Registries {
 	charges: Registry<ChargeDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: Registry<DataKindDefinition>;
+	/** Action groups (plan 110, ADR 0174). */
+	actionGroups: Registry<ActionGroupDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -196,6 +200,11 @@ export function createRegistries(): Registries {
 		rules: createRegistry<RuleDefinition>('rule', { schema: ruleDefinitionSchema }),
 		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema }),
 		charges: createRegistry<ChargeDefinition>('charge', { schema: chargeDefinitionSchema }),
-		dataKinds: createRegistry<DataKindDefinition>('data-kind', { schema: dataKindDefinitionSchema })
+		dataKinds: createRegistry<DataKindDefinition>('data-kind', {
+			schema: dataKindDefinitionSchema
+		}),
+		actionGroups: createRegistry<ActionGroupDefinition>('action-group', {
+			schema: actionGroupDefinitionSchema
+		})
 	};
 }

@@ -211,7 +211,18 @@ export const ModuleEngine = defineModule({
 			flameout: state.flameout,
 			throttle: Math.min(1, Math.max(0, state.throttle))
 		},
-		category: 'propulsion'
+		category: 'propulsion',
+		actions: [
+			{
+				id: 'setActive',
+				label: 'Engine',
+				kind: 'toggle',
+				value: state.ignited,
+				enabled: true,
+				group: 'stock.engines',
+				icon: 'engine'
+			}
+		]
 	}),
 	onStage(ctx) {
 		ctx.state.ignited = true;
@@ -269,6 +280,12 @@ export const ModuleEngine = defineModule({
 		shutdown: (ctx) => {
 			ctx.state.ignited = false;
 		},
+		/** `(on)`: activate or shut down (the part action toggle, plan 110). */
+		setActive: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.ignited = on;
+			if (on) ctx.state.flameout = false;
+		},
 		/** `(value)` clamped to 0..1. */
 		setThrottle: (ctx, ...args) => {
 			const [value] = z.tuple([z.number()]).parse(args);
@@ -320,7 +337,17 @@ export const ModuleDecoupler = defineModule({
 	state: (): DecouplerState => ({ decoupled: false }),
 	describe: (config, state) => ({
 		separator: { node: config.separates, done: state.decoupled },
-		category: 'structural'
+		category: 'structural',
+		actions: [
+			{
+				id: 'decouple',
+				label: 'Decouple',
+				kind: 'trigger',
+				enabled: !state.decoupled,
+				...(state.decoupled ? { reason: 'Already decoupled' } : {}),
+				icon: 'decouple'
+			}
+		]
 	}),
 	onStage(ctx) {
 		fire(ctx);
@@ -351,8 +378,20 @@ export interface ReactionWheelState {
 export const ModuleReactionWheel = defineModule({
 	id: 'stock.reaction-wheel',
 	config: reactionWheelConfigSchema,
-	describe: () => ({ category: 'control' }),
 	state: (): ReactionWheelState => ({ enabled: true }),
+	describe: (_config, state) => ({
+		category: 'control',
+		actions: [
+			{
+				id: 'setEnabled',
+				label: 'Reaction wheel',
+				kind: 'toggle',
+				value: state.enabled,
+				enabled: true,
+				icon: 'wheel'
+			}
+		]
+	}),
 	/** `torque` about every axis while enabled and powered (ADR 0049). */
 	controlAuthority({ state, config, vessel }) {
 		const powered = config.chargeRate <= 0 || vessel.resources.amount(ElectricCharge.id) > 0;
@@ -433,8 +472,21 @@ export function landingLegColliders(
 export const ModuleLandingLeg = defineModule({
 	id: 'stock.landing-leg',
 	config: landingLegConfigSchema,
-	describe: () => ({ category: 'landing' }),
 	state: (config): LandingLegState => ({ deployed: config.deployed }),
+	describe: (_config, state) => ({
+		category: 'landing',
+		actions: [
+			{
+				id: 'setDeployed',
+				label: 'Landing legs',
+				kind: 'toggle',
+				value: state.deployed,
+				enabled: true,
+				group: 'stock.landing-gear',
+				icon: 'legs'
+			}
+		]
+	}),
 	// Staging deploys the legs, like a decoupler fires.
 	onStage(ctx) {
 		ctx.state.deployed = true;
@@ -449,6 +501,11 @@ export const ModuleLandingLeg = defineModule({
 		},
 		toggle: (ctx) => {
 			ctx.state.deployed = !ctx.state.deployed;
+		},
+		/** `(deployed)` (the part action toggle, plan 110). */
+		setDeployed: (ctx, ...args) => {
+			const [deployed] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.deployed = deployed;
 		}
 	},
 	snapshot: (state) => ({ deployed: state.deployed })
