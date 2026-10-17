@@ -1,7 +1,7 @@
 ---
 id: 092
 title: "Site choice at world creation and location templates"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [084, 087, 090]
 phase: 5

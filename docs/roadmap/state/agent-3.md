@@ -14,7 +14,7 @@
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
 | 110 part-actions | done | `devc/110-part-actions` | 2026-10-17 | merged f84365e, cp/f4-110-part-actions |
-| 092 site-choice | handed-over | `devc/092-site-choice` | 2026-10-17 | ready/092; ADR 0177; API 0.1.39 |
+| 092 site-choice | done | `devc/092-site-choice` | 2026-10-17 | merged 5c9efd5, cp/f2-092-site-choice |
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
 | 103 science | in-progress | `devc/103-science` | 2026-10-17 | claim/103; draft 191 |
