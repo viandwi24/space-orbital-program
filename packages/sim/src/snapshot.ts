@@ -26,7 +26,7 @@ import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
 import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
-import { bodyOfVessel, systemPosition } from './bodies.ts';
+import { bodyOfVessel, rotationAt, spinAt, systemPosition } from './bodies.ts';
 import { qAboutY, qMul, qRotate } from './math.ts';
 import { isTurned, partRotation } from './parts.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
@@ -138,7 +138,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	// dip below the surface (ADR 0024).
 	if (vessel.rails?.kind === 'surface') {
 		// The root part's velocity, like a flight vessel's (the orbital branch reports the COM's).
-		snapshot.velocity = cross({ x: 0, y: body.omega, z: 0 }, position);
+		snapshot.velocity = cross(spinAt(body, core.t), position);
 		snapshot.surface = true;
 		return snapshot;
 	}
@@ -159,7 +159,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		bodies: [...core.bodies.values()].map((body) => ({
 			id: bodyId(body.def.id),
 			position: systemPosition(body, core.t),
-			rotation: qAboutY(body.omega * core.t)
+			rotation: rotationAt(body, core.t)
 		})),
 		rules: rulesView(core),
 		economy: economySnapshot(core),

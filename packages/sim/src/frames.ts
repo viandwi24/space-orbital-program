@@ -15,7 +15,7 @@ import type {
 } from '@orbital/core';
 import { add, cross, dot, length, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
-import { bodyById, type BodyRuntime } from './bodies.ts';
+import { bodyById, spinAt, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
 import {
 	CONTACT_DISTANCE,
@@ -162,7 +162,7 @@ export function airVelocityAt(
 	const local = add(t.position, qRotate(t.rotation, point));
 	const v = add(add(frame.velocity, m.linear), cross(m.angular, sub(local, m.centre)));
 	const r = add(frame.origin, local);
-	const rel = sub(v, cross({ x: 0, y: bodyOfFrame(core, frame).omega, z: 0 }, r));
+	const rel = sub(v, cross(spinAt(bodyOfFrame(core, frame), core.t), r));
 	return qRotate(qConj(t.rotation), rel);
 }
 
@@ -412,7 +412,7 @@ function applyDrag(
 	const planet = bodyOfFrame(core, frame);
 	const body = planet.def;
 	if (!body.atmosphere) return heat;
-	const omega = { x: 0, y: planet.omega, z: 0 };
+	const omega = spinAt(planet, core.t);
 	const vessel = vesselOf(core, vesselId);
 	const flight = frame.bodies.get(vesselId)!;
 	const motion = bodyMotion(frame, flight); // one backend read for the whole vessel
@@ -504,7 +504,7 @@ function updateTile(
 	const surface = plane.point;
 	const position = sub(surface, frame.origin);
 	const rotation = uprightRotation(up);
-	const omega = { x: 0, y: planet.omega, z: 0 };
+	const omega = spinAt(planet, core.t);
 	const linear = sub(cross(omega, surface), frame.velocity);
 	if (!tile) {
 		const handle = frame.backend.createBody({
@@ -579,7 +579,7 @@ function groundContacts(
 	before: Map<EntityId, ReturnType<typeof bodyMotion>>
 ): GroundImpact[] {
 	const impacts: GroundImpact[] = [];
-	const omega = { x: 0, y: bodyOfFrame(core, frame).omega, z: 0 };
+	const omega = spinAt(bodyOfFrame(core, frame), core.t);
 	for (const vesselId of frame.vessels) {
 		const vessel = vesselOf(core, vesselId);
 		vessel.landed = false;

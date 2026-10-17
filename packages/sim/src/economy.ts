@@ -24,7 +24,8 @@ import {
 } from '@orbital/core';
 import { moduleDefOf, moduleState, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import { normalize } from '@orbital/kepler';
-import { qAboutY, qRotate } from './math.ts';
+import { rotationAt } from './bodies.ts';
+import { qConj, qRotate } from './math.ts';
 
 /** A registered rule's value, or undefined. */
 export const ruleOf = (core: SimCore, id: string): RuleValue | undefined =>
@@ -127,7 +128,7 @@ function bodyFixedDirection(
 	const vessel = vesselOf(core, vesselId);
 	if (vessel.soi !== core.root.def.id) return null;
 	if (vessel.rails?.kind === 'surface') return normalize(vessel.rails.r);
-	return normalize(qRotate(qAboutY(-core.root.omega * core.t), vessel.com));
+	return normalize(qRotate(qConj(rotationAt(core.root, core.t)), vessel.com));
 }
 
 export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {

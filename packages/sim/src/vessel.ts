@@ -12,7 +12,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import { add, cross, normalize, scale, sub } from '@orbital/kepler';
-import { bodyOfVessel } from './bodies.ts';
+import { bodyOfVessel, rotationAt, spinAt } from './bodies.ts';
 import {
 	designCom,
 	frameOfVessel,
@@ -194,7 +194,7 @@ export function placeOnSurface(
 ): void {
 	const vessel = vesselOf(core, vesselId);
 	const body = bodyOfVessel(core, vessel);
-	const radial = qRotate(qAboutY(body.omega * core.t), {
+	const radial = qRotate(rotationAt(body, core.t), {
 		x: Math.cos(latitude) * Math.cos(longitude),
 		y: Math.sin(latitude),
 		z: -Math.cos(latitude) * Math.sin(longitude)
@@ -212,7 +212,7 @@ export function placeOnSurface(
 	const rootOrigin = add(ground.point, scale(up, rootDesign.y - lowestPoint(core, vessel.parts)));
 	const offset = qRotate(vessel.orientation, sub(designCom(core, vessel.parts), rootDesign));
 	vessel.com = add(rootOrigin, offset);
-	vessel.velocity = cross({ x: 0, y: body.omega, z: 0 }, vessel.com);
+	vessel.velocity = cross(spinAt(body, core.t), vessel.com);
 }
 
 export function placeAtState(
