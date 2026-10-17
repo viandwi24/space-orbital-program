@@ -7,8 +7,14 @@ import {
 	epochFromUnixMs,
 	epochFromUtc,
 	formatDate,
+	LEGACY_SITE,
 	presetValue,
+	resolveSiteTemplate,
+	siteConsequences,
 	worldInfoSchema,
+	type BodyDefinition,
+	type SiteConsequences,
+	type SiteTemplateDefinition,
 	type Calendar,
 	type Command,
 	type Epoch,
@@ -103,6 +109,48 @@ export interface CreateWorldInput {
 	systemId: string;
 	systemVersion: string;
 	variant: string;
+	/** The primary site (plan 092): absent = the Legacy site at 0°, 0°. */
+	site?: { latitude: number; longitude: number; template?: string };
+}
+
+/** A resolved template for Create World (ADR 0177 point 5): the spot, what was relaxed, its consequences. */
+export interface SiteChoice {
+	template: string;
+	latitude: number;
+	longitude: number;
+	relaxed: string[];
+	consequences: SiteConsequences;
+}
+
+/** The home body of a body list: the one without a parent. */
+const homeOf = (bodies: readonly BodyDefinition[]): BodyDefinition | undefined => bodies.find((b) => !b.parent);
+
+/**
+ * Resolves `templateId` on a new world of `seed` (its terrain seed is the world seed, ADR 0142
+ * point 2), or null when the template or the home body is missing.
+ */
+export function resolveSiteChoice(
+	catalog: { siteTemplates: readonly SiteTemplateDefinition[]; bodies: readonly BodyDefinition[] },
+	templateId: string,
+	seed: number
+): SiteChoice | null {
+	const template = catalog.siteTemplates.find((t) => t.id === templateId);
+	const home = homeOf(catalog.bodies);
+	if (!template || !home) return null;
+	const spot = resolveSiteTemplate(template, { seed, radius: home.radius });
+	return {
+		template: template.id,
+		latitude: spot.latitude,
+		longitude: spot.longitude,
+		relaxed: [...spot.relaxed],
+		consequences: siteConsequences(spot, home, seed)
+	};
+}
+
+/** `21.4° N, 3.0° W`: a site's place for people. */
+export function formatLatLon(latitude: number, longitude: number): string {
+	const deg = (x: number) => (Math.abs(x) * 180) / Math.PI;
+	return `${deg(latitude).toFixed(1)}° ${latitude >= 0 ? 'N' : 'S'}, ${deg(longitude).toFixed(1)}° ${longitude >= 0 ? 'E' : 'W'}`;
 }
 
 export type CreateWorldResult = { ok: true; world: WorldInfo } | { ok: false; reason: string };
@@ -133,7 +181,10 @@ export function createWorldInfo(
 		gravityModel: input.gravityModel,
 		epoch: startEpoch(input.start, nowMs),
 		rules,
-		sites: [],
+		// The chosen site becomes the Space Center with the Legacy pad and layout; none = the Legacy site.
+		sites: input.site
+			? [{ ...structuredClone(LEGACY_SITE), id: 'space-center', latitude: input.site.latitude, longitude: input.site.longitude }]
+			: [],
 		preset: input.preset,
 		changelog: []
 	});

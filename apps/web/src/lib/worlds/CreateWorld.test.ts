@@ -5,6 +5,7 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import type { WorldCatalog } from './catalog';
 import CreateWorld from './CreateWorld.svelte';
+import { createWorldInfo, formatLatLon, resolveSiteChoice } from './world-model';
 
 const { registries } = loadPlugins([Stock]);
 const bodies = registries.bodies.list();
@@ -14,11 +15,13 @@ const catalog: WorldCatalog = {
 	bodies,
 	calendar: calendarOf(bodies),
 	system: { id: 'stock', version: '0.1.0', label: 'Stock system', variants: ['default'] },
-	mods: [{ id: 'stock', version: '0.1.0' }]
+	mods: [{ id: 'stock', version: '0.1.0' }],
+	siteTemplates: registries.siteTemplates.list()
 };
-const html = (): string =>
+const html = (initialSite?: string): string =>
 	render(CreateWorld, {
 		props: {
+			...(initialSite ? { initialSite } : {}),
 			open: true,
 			catalog,
 			onclose: () => {},
@@ -53,5 +56,38 @@ describe('Create World form', () => {
 		const h = html();
 		expect(h).toContain('This star system has its own calendar: worlds start on day 1.');
 		expect(h).toMatch(/<input[^>]*value="today"[^>]*disabled/);
+	});
+
+	it('a site template shows its resolved place and consequences; the default shows the Legacy site (plan 092)', () => {
+		const h = html('stock.equatorial-coast');
+		const choice = resolveSiteChoice(catalog, 'stock.equatorial-coast', 42)!;
+		const text = h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+		expect(text).toContain(formatLatLon(choice.latitude, choice.longitude));
+		expect(text).toContain(`${choice.consequences.rotationBoost.toFixed(0)} m/s`);
+		expect(text).toMatch(/Downrange east (over the sea|over land|over land and sea)/);
+		expect(h).toMatch(/<input[^>]*value="stock\.equatorial-coast"[^>]*checked/);
+		expect(html()).not.toContain('data-testid="site-consequences"');
+		for (const t of catalog.siteTemplates) expect(h).toContain(t.label);
+	});
+
+	it('createWorldInfo writes the chosen site as the first site; the default keeps sites empty', () => {
+		const choice = resolveSiteChoice(catalog, 'stock.high-latitude', 42)!;
+		const input = {
+			id: 'w-1',
+			seed: 42,
+			preset: catalog.presets[0]!.id,
+			rules: {},
+			start: { kind: 'day-one' as const },
+			gravityModel: 'patched',
+			systemId: 'stock',
+			systemVersion: '0.1.0',
+			variant: 'default'
+		};
+		const withSite = createWorldInfo({ ...input, site: { latitude: choice.latitude, longitude: choice.longitude } }, catalog, catalog.calendar, 0);
+		expect(withSite.ok).toBe(true);
+		const site = withSite.ok ? withSite.world.sites[0]! : undefined;
+		expect(site).toMatchObject({ id: 'space-center', kind: 'space-center', latitude: choice.latitude, longitude: choice.longitude });
+		const plain = createWorldInfo(input, catalog, catalog.calendar, 0);
+		expect(plain.ok && plain.world.sites).toEqual([]);
 	});
 });

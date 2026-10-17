@@ -5,6 +5,7 @@
  */
 import type {
 	ActionGroupDefinition,
+	SiteTemplateDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
 	AnyPatchDefinition,
@@ -248,3 +249,13 @@ export const defineCrewTrait = (def: CrewTraitDefinition): CrewTraitDefinition =
 
 /** Syllables crew names are drawn from (two first, two or three last). Register with `ctx.crewNames`. */
 export const defineCrewNames = (def: CrewNamesDefinition): CrewNamesDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineSiteTemplate
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A quick-start site (plan 092, ADR 0177): a latitude band and optional coast, inland, island and
+ * elevation criteria, resolved against each world's terrain. Register with `ctx.siteTemplates`.
+ */
+export const defineSiteTemplate = (def: SiteTemplateDefinition): SiteTemplateDefinition => def;

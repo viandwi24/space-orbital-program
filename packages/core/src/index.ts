@@ -26,6 +26,7 @@ export * from './planet-map.ts';
 export * from './terrain.ts';
 export * from './terrain-gradient.ts';
 export * from './sites.ts';
+export * from './site-templates.ts';
 export * from './moon-terrain.ts';
 export * from './body-terrain.ts';
 export * from './stones.ts';

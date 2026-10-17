@@ -23,7 +23,7 @@ import { applyActionGroup } from './actions.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
-import { placeBuilding, removeBuilding } from './buildings.ts';
+import { placeBuilding, removeBuilding, foundSite, foundedInThisRun } from './buildings.ts';
 import {
 	hasFlightVessels,
 	isControlled,
@@ -107,6 +107,11 @@ function loadVessel(
 				.map((s) => `"${s.id}"`)
 				.join(', ');
 			return refuse(`unknown site "${placement.site}"; this world has ${known}`);
+		}
+		if (foundedInThisRun(core, site.id)) {
+			return refuse(
+				`site "${site.id}" was founded in this run; its ground is ready after the world is loaded again`
+			);
 		}
 		const pad = site.pads[placement.pad ?? 0];
 		if (!pad)
@@ -314,6 +319,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return placeBuilding(core, command);
 		case 'remove-building':
 			return removeBuilding(core, command);
+		case 'found-site':
+			return foundSite(core, command);
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
 		case 'crew-transfer':

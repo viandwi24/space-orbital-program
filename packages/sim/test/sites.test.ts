@@ -89,3 +89,56 @@ describe('placement at a site', () => {
 		sim.dispose();
 	});
 });
+
+describe('found-site (plan 092, ADR 0177)', () => {
+	const make = () => createSim({ plugins: [Stock], backendFactory: rapier(), seed: 4 });
+	const found = (
+		sim: Awaited<ReturnType<typeof make>>,
+		id: string,
+		latitude: number,
+		longitude: number
+	) => sim.dispatch({ type: 'found-site', id, name: `Site ${id}`, latitude, longitude });
+
+	test('adds a base with the starter pad after the Legacy site; the event names it', async () => {
+		const sim = await make();
+		const events: string[] = [];
+		sim.events.on('site:founded', (e) => events.push(e.site));
+		expect(found(sim, 'north', 0.5, 0.2).ok).toBe(true);
+		const sites = sim.worldInfo.sites;
+		expect(sites.map((s) => [s.id, s.kind])).toEqual([
+			['legacy', 'space-center'],
+			['north', 'base']
+		]);
+		expect(sites[1]!.buildings!.map((b) => b.kind)).toEqual(['stock.launchpad-s']);
+		expect(events).toEqual(['north']);
+	});
+
+	test('refuses an overlapping zone, a taken id and a ninth site on the body', async () => {
+		const sim = await make();
+		expect(found(sim, 'near', 0, 0.02).ok).toBe(false); // 12 km from the Legacy site
+		expect(found(sim, 'a', 0.6, 0).ok).toBe(true);
+		expect(found(sim, 'a', -0.6, 0).ok).toBe(false);
+		for (let i = 0; i < 6; i++) expect(found(sim, `s${i}`, -1 + i * 0.35, 2).ok).toBe(true);
+		expect(sim.worldInfo.sites).toHaveLength(8);
+		expect(found(sim, 'ninth', -0.6, -2)).toEqual({
+			ok: false,
+			reason: expect.stringContaining('at most 8')
+		});
+	});
+
+	test('a site founded in this run takes vessels only after the world is loaded again', async () => {
+		const sim = await make();
+		expect(found(sim, 'north', 0.5, 0.2).ok).toBe(true);
+		const placement = { kind: 'site' as const, site: 'north' };
+		expect(sim.dispatch({ type: 'load-vessel', design: probe(), placement })).toEqual({
+			ok: false,
+			reason: expect.stringContaining('loaded again')
+		});
+		const again = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(),
+			resume: JSON.parse(JSON.stringify(sim.save()))
+		});
+		expect(again.dispatch({ type: 'load-vessel', design: probe(), placement }).ok).toBe(true);
+	});
+});
