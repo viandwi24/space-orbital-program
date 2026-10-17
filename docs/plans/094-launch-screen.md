@@ -67,3 +67,4 @@ The VAB launch button goes to this screen; a "quick launch" key keeps today's di
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0150: facilities are the site's pad and runway buildings, placed by surface position (no protocol change); seats wait for 108.
 - 2026-10-18 — Done on the branch: `/launch` with facilities from the site's buildings, accepted designs, seats note, summary; placement by surface position; Shift+Launch for the direct path. Journal: [094](../journal/094-launch-screen.md).
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflicts in the ADR index and the flight page imports, both sides kept); bun test 1575 pass, web vitest pass, typecheck, build, docs:check, smoke e2e 7 passed; launch and worlds e2e pass in Chromium, Firefox and WebKit.
