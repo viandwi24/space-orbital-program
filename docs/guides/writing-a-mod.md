@@ -273,6 +273,25 @@ ctx.parts.register(definePart({ id: 'acme.panel', title: 'Solar panel', mass: 20
 - A part joins a category with `catalog: { category }`, and a module descriptor can imply one with `category` in `describe()`. Both take a category id or one of the nine short names (`'control'` means `stock.control`). A part that names a category nobody registered sits in Other.
 - A category with no parts is not shown. Another mod can relabel or reorder yours with `definePatch({ target: 'category', ... })`.
 
+## Achievements and milestones (API 0.1.44, plan 102, ADR 0147)
+
+Each world records its firsts by itself: `launch`, `orbit`, `flyby`, `landing` and `return`, per body, and a crewed record when crew was aboard (`crewed-orbit:stock.home`). A first emits `milestone:reached { id, kind, body?, vessel, crewed, time }` on the sim's event bus, is saved with the world, and pays reputation when the world's economy is on. EVA, docking, stations, relays and sample returns join the list with the plans that bring those systems.
+
+Achievements belong to the player, across worlds. Define one as data; it unlocks when any world records a first that matches:
+
+```ts
+ctx.achievements.register(defineAchievement({
+	id: 'acme.moon-walker',
+	label: 'Moon walker',
+	description: 'Land on another body with crew aboard.',
+	criteria: { milestone: 'landing', body: 'away', crewed: true }
+}));
+```
+
+- `criteria.milestone` is one of the kinds above; `body` is `'home'`, `'away'` (any other body) or a body id; `crewed: true` asks for a crewed record. `achievementMatches(achievement, record, home)` is the same test the game runs.
+- `hidden: true` keeps an achievement off the list until it is unlocked. Achievements teach and reward; none should be missable for good, and a world loaded later still unlocks what its records match.
+- Unlocks live in the player's local profile (the Worlds screen exports and imports it).
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

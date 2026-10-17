@@ -13,6 +13,7 @@ import type {
 	SystemDefinition,
 	Vec3,
 	SaveEconomy,
+	SaveMilestones,
 	World,
 	WorldInfo
 } from '@orbital/core';
@@ -83,6 +84,8 @@ export interface SimCore {
 	readonly trajectory: TrajectoryProvider;
 	/** Ledger and balances (plan 095, ADR 0113); saved as `SimSave.economy`. */
 	readonly economy: SaveEconomy;
+	/** Firsts and per-vessel visits (plan 102, ADR 0147); saved as `SimSave.milestones`. */
+	readonly milestones: SaveMilestones;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

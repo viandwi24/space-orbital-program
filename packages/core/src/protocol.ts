@@ -2,6 +2,7 @@
  * Sim <-> host protocol (simulation.md). Plain data only, so it works in-process and over
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
+import type { MilestoneRecord } from './milestones.ts';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
@@ -215,6 +216,8 @@ export interface Snapshot {
 	}>;
 	/** Science subjects of the world (plan 103, ADR 0178); absent before the first result. */
 	science?: Array<{ id: string; count: number; produced: number; credited: number; cap: number }>;
+	/** The world's firsts (plan 102, ADR 0147); absent while there are none. */
+	milestones?: MilestoneRecord[];
 	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
 	crew?: Array<{
 		id: string;

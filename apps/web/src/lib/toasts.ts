@@ -2,6 +2,7 @@
  * Toasts: short notices for events the player should not miss (plan 021, ADR 0026). The mapping
  * from sim events and HUD transitions is pure; the store keeps at most `MAX_TOASTS`.
  */
+import { bodyName, milestoneTitle } from './achievements/milestone-text';
 import type { SimEvent } from './messages';
 import type { FlightPhase } from './telemetry';
 import { formatDistance, formatSpeed } from './format';
@@ -24,6 +25,8 @@ export interface ToastContext {
 	partTitle(definition: string): string;
 	/** Definition id of a part entity (from the latest snapshot), if known. */
 	definitionOf(entity: number): string | undefined;
+	/** The world's home body id (milestone wording). */
+	home?: string;
 }
 
 /** Milliseconds a toast stays, by kind (danger stays longest). */
@@ -34,12 +37,6 @@ export const TOAST_MS: Record<ToastKind, number> = {
 	danger: 8_000
 };
 export const MAX_TOASTS = 4;
-
-/** `stock.cinder` -> `Cinder`. */
-const bodyName = (id: string): string => {
-	const name = id.slice(id.lastIndexOf('.') + 1).replace(/-/g, ' ');
-	return name.charAt(0).toUpperCase() + name.slice(1);
-};
 
 /** `null` when the event is not worth a toast (another vessel, debris, bookkeeping). */
 export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | null {
@@ -86,6 +83,14 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				!event.reason.includes('ground')
 				? { kind: 'info', title: 'On rails', detail: 'Time warp is available', key: 'rails' }
 				: null;
+		case 'milestone':
+			// a first of the world, whichever vessel made it (plan 102, ADR 0147): the ceremony
+			return {
+				kind: 'success',
+				title: milestoneTitle(event, ctx.home ?? ''),
+				detail: 'A first for this world',
+				key: `milestone:${event.id}`
+			};
 		case 'soi-changed':
 			return ctx.isActiveVessel(event.vessel)
 				? {

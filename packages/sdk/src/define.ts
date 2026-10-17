@@ -6,6 +6,7 @@
 import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
+	AchievementDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
 	AntennaDefinition,
@@ -300,3 +301,14 @@ export const defineGroundStation = (def: GroundStationDefinition): GroundStation
  * 800, Other 10 000). Register with `ctx.categories`; a part joins it with `catalog.category`.
  */
 export const defineCategory = (def: CategoryDefinition): CategoryDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineAchievement
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A local achievement (plan 102, ADR 0147): unlocked in the player's profile, across worlds, when a
+ * world records a matching first (`criteria: { milestone, body?, crewed? }`). Register with
+ * `ctx.achievements`.
+ */
+export const defineAchievement = (def: AchievementDefinition): AchievementDefinition => def;
