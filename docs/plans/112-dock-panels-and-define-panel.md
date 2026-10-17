@@ -62,9 +62,10 @@ Selectors run at the 10 Hz HUD cadence; canvas draws only while visible; measure
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/112-dock-panels-and-define-panel.md` written.
 - [ ] `plugin-system.md`, `guides/writing-a-mod.md` (panels), `architecture/boundaries.md` if the drawing interface needs a note.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0149.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0104).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0149: selectors read a `PanelInput` (snapshot, active vessel, altitude, speed, time); node set and canvas subset fixed; Orbit, Resources, Target and Script move into the dock, Maneuver stays by the navball.
