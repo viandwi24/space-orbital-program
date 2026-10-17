@@ -70,3 +70,4 @@ The suited crew member is a vessel like any other so saves, targets and the map 
 - 2026-10-17 — `depends` gains 103 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the surface sample action goes through the science core of plan 103.
 - 2026-10-18 — Claimed by Agent 1 and refined: ADR 0120 (suit as a vessel, `crew-eva` / `crew-board`, walking and jetpack as modules, a kept flag, the `eva` milestone); a criterion for the flag and the sample added.
 - 2026-10-18 — Done (Agent 1): commands, suit and flag, walking controller with the upright rule, samples aboard, the eva milestone, figures, the crew panel. Journal [109](../journal/109-eva-crew-outside-the-vessel.md).
+- 2026-10-18 — Checks: `bun run test` 1553 pass · web vitest 963 pass · typecheck · build · docs:check OK · Chromium smoke 7 pass.
