@@ -37,6 +37,8 @@ Kerbal Space Program proved that realistic orbital mechanics can be fun when the
 
 ### v1 public release (ADR 0048)
 
+Status (plan 023): the 1.0 release candidate is built; what the player can do is in the root `README.md`, what is left is in the release checklist of `journal/023-release-readiness.md` (the game's licence is the human's decision). The post-v1 roadmap is published in the game (`/roadmap`).
+
 Phase 0–1 plus: scripting sandbox, terrain and landing, re-entry heating, boosters/fins/gimbal, a 3D VAB with a vessel library, SAS, save/load game, a moon with SOI transitions, maneuver nodes, runtime mod loading, menus/settings/onboarding. Everything else below is the post-v1 roadmap.
 
 ### Later (Phase 2–3)

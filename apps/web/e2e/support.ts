@@ -7,12 +7,22 @@ import { expect, type Page } from '@playwright/test';
  */
 const EXPECTED_PROBE_BLOCK = /robots\.txt/;
 
+/**
+ * zod probes whether the page may compile code (`new Function`) when it builds its first schema and
+ * falls back to interpreted parsers when it may not. Under the production Content-Security-Policy
+ * (no `'unsafe-eval'`, `docs/architecture/hosting.md`) Firefox logs that caught probe as a console
+ * error. It is expected and harmless; any other CSP message is not.
+ */
+const EXPECTED_EVAL_PROBE =
+	/Content-Security-Policy: The page.s settings blocked a JavaScript eval/;
+
 /** Everything the page logs as an error, to be asserted empty at the end of a test. */
 export function watchErrors(page: Page): string[] {
 	const errors: string[] = [];
 	page.on('console', (message) => {
 		if (message.type() !== 'error') return;
 		const text = message.text();
+		if (EXPECTED_EVAL_PROBE.test(text)) return;
 		if (EXPECTED_PROBE_BLOCK.test(text) && /Content Security Policy|connect-src/i.test(text))
 			return;
 		errors.push(`console: ${text}`);

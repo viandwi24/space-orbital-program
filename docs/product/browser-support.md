@@ -24,4 +24,6 @@ WebGL2 (renderer), module Web Workers (simulation and script sandbox), WebAssemb
 
 ## How it is checked
 
+Plan 023 added `E2E_HEADERS=1 bun run e2e`, which serves the build with the production Content-Security-Policy and headers (`architecture/hosting.md`); the release run (journal 023) used it in all three engines.
+
 `bun run e2e` (Playwright, `apps/web/e2e/`, projects `chromium`, `firefox`, `webkit`; one-time `bunx playwright install chromium firefox webkit` in `apps/web`) runs the smoke suite against the production build. `E2E_ORBIT=1 bun run e2e -- --grep @orbit` adds the real-time sample ascent to orbit (about four minutes of simulation time per engine). Plan 023 should run both against the real host with its headers.

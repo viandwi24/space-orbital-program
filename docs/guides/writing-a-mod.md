@@ -174,6 +174,8 @@ expect(report.registered.part.map((e) => e.id)).toContain('stock.engine-lv');
 
 ## 7. Ship your mod (runtime loading, API 0.1.15, ADR 0057)
 
+> **API 0.1.16 (plan 023).** Make your engine show on the HUD throttle gauge by returning `throttle` (0..1, from your module state) in `describe().engine`; make a wing count in the editor's stability read-out by returning `lift: { area, liftSlope, crossflow, centre }`; choose the catalogue category of a part with `category` (for example `'control'`). Without them a mod part still works: the gauge shows the page's own throttle, there is no lift and the part lands in the category its engine, separator, store or control source implies, else "Other". See `apps/web/src/lib/mod-awareness.test.ts` for a test mod.
+
 A mod outside the repo is a folder with a manifest and a source file; `examples/mod-sample` is a complete one (a part, a module that keeps its state in the world, a script).
 
 ```
