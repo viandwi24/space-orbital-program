@@ -1,7 +1,7 @@
 ---
 id: 093
 title: "UI stage 4: the Hangar in the refs layout"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [086, 069]
 phase: 5

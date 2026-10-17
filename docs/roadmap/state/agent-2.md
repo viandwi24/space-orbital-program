@@ -18,7 +18,7 @@
 | 076 roadmap-page | done | `devb/076-roadmap-page` | 2026-10-17 | merged c262e53, cp/f1-076-roadmap-page |
 | 069 categories | done | `devb/069-categories` | 2026-10-17 | merged 704a0fc, cp/f2-069-categories |
 | 089 menus | done | `devb/089-menus` | 2026-10-17 | merged 26a4afe, cp/f2-089-menus |
-| 093 hangar | handed-over | `devb/093-hangar` | 2026-10-18 | ready/093; ADR 0148 |
+| 093 hangar | done | `devb/093-hangar` | 2026-10-17 | merged dceae76, cp/f2-093-hangar |
 | 112 dock | in-progress | `devb/112-dock` | 2026-10-18 | claim/112 |
 | 094 launch | todo |  |  |  |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |

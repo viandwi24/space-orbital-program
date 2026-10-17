@@ -31,7 +31,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f2-069-categories` | 069 | A2 | A2 (093) | done | 704a0fc | 2026-10-17 |
 | `cp/f2-089-menus` | 089 | A2 | — (none) | done | 26a4afe | 2026-10-17 |
 | `cp/f2-091-space-center` | 091 | A1 | A1, A2 (063, 065, 066, 094, 096, 105, 108) | done | d204a3d | 2026-10-17 |
-| `cp/f2-093-hangar` | 093 | A2 | A2 (073, 094) | pending | | |
+| `cp/f2-093-hangar` | 093 | A2 | A2 (073, 094) | done | dceae76 | 2026-10-17 |
 | `cp/f2-094-launch` | 094 | A2 | A1, A2 (063, 096, 105, 108, 127) | pending | | |
 | `cp/f2-done` | phase gate F2: all F2 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
 | `cp/f3-095-economy` | 095 | A1 | A1, A2, A3 (067, 096, 097, 099, 101, 105, 127, 130) | done | a060d06 | 2026-10-17 |
