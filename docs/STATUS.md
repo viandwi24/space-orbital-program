@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 070, 069, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 070, 071, 069, 055 to 063 (059 done), 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -74,7 +74,8 @@
 | 068 | [Terrain gradients and silhouette AA](plans/068-terrain-gradient-bake-and-silhouette-aa.md) | draft | — | from 038: analytic noise derivatives for the bake, an anti-aliased planet silhouette |
 | 057 | [Target markers and rendezvous aids](plans/057-target-markers-and-rendezvous-aids.md) | done | rendezvous session (Claude, 2026-10-17) | ADR 0084 (page-side approach and aids, no API change): navball target/anti-target and relative-velocity markers with a `target` speed reference, map marker/orbit/closest-approach pair and click-to-target, flight-view label and edge arrow, `kepler/rendezvous.ts` (closest approach across spheres, match velocity, Hohmann, relative nodes) and five node aids in the Target card; a rendezvous by script came to 35.8 m and 0.057 m/s |
 | 058 | [Script editor follow-ups](plans/058-script-editor-follow-ups.md) | done | editor-2 session (Claude, 2026-10-17) | ADR 0085: replace, whole word, match case, go to line, comment/move/copy lines, optional auto-close, suggestions below `ship.` and the keys of `addNode`, the engine's syntax error before Run (compiled in a second sandbox), on-screen keys on touch, IME guard; Chromium, Firefox and WebKit e2e; the screen-reader/IME pass is a human checklist (journal 058, draft 072) |
-| 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | draft | — | from 052: a second planet with `terrain: hills` is drawn as hills, not a sphere |
+| 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | done | second-planet session (Claude, 2026-10-17) | ADR 0090: a second planet with `terrain: hills` is drawn by the moon pass with the planet pass's `heightAt` (1024 cube within 8 radii, released beyond 16; biome colours; no sky, shadows or stones); readback 0.02 m fine, 0.13 m mid; 5 to 7.5 ms `high` |
+| 071 | [Atmosphere, sea and variety on a second planet](plans/071-atmosphere-and-sea-on-a-second-planet.md) | draft | — | from 059: a sky, water shading, `seed`/`site` on the hills kind and terrain-cast shadows on a later body |
 | 060 | [Stones you can hit](plans/060-stones-with-collision.md) | draft | — | from 052: collision for scenery stones (lattice into core, colliders in the ground tile) |
 | 069 | [Mod-defined catalogue categories](plans/069-mod-defined-catalogue-categories.md) | draft | — | from 034: a mod adds a catalogue group with its own label and icon |
 | 070 | [Communications](plans/070-communications.md) | draft | — | from 040: antennas, signal range and delay, loss of control (the blackout badge has nothing to lose yet) |
@@ -112,6 +113,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [059 — Hills terrain on a body other than the first](journal/059-hills-terrain-on-a-second-body.md)
 - [058 — Script editor follow-ups](journal/058-script-editor-follow-ups.md)
 - [057 — Target markers and rendezvous aids](journal/057-target-markers-and-rendezvous-aids.md)
 - [040 — Effects and assets 3: wreckage, plasma shape, blackout, trails, multi-nozzle engines](journal/040-effects-and-assets-3.md)

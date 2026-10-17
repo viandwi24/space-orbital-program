@@ -107,3 +107,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0087 | [The half-resolution rung redraws its edge pixels at full resolution](0087-edge-pass-at-the-half-resolution-rung.md) | accepted | 2026-10-17 |
 | 0088 | [Smoke puffs read their noise from a texture](0088-smoke-noise-in-a-texture.md) | accepted | 2026-10-17 |
 | 0089 | [Terrain casts light shafts: per-sample reads of the baked heights along the sun ray](0089-terrain-cast-light-shafts.md) | accepted | 2026-10-17 |
+| 0090 | [Hills on a body other than the first are drawn by the ground pass (the moon pass with a second ground kind)](0090-hills-on-a-second-body-in-the-ground-pass.md) | accepted | 2026-10-17 |
