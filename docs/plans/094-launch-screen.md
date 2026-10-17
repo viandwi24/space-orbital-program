@@ -50,7 +50,8 @@ The VAB launch button goes to this screen; a "quick launch" key keeps today's di
 ## Acceptance criteria
 
 - [ ] vitest: a site with a small pad lists only designs under the pad's size limit; the runway lists designs flagged as aircraft (or all designs when no flag exists yet).
-- [ ] `bun run e2e` (Chromium): Hangar to Launch to flight; the vessel stands on the chosen pad.
+- [ ] vitest: a facility's spot is the centre of its footprint as latitude and longitude; the Legacy pad is at the site origin.
+- [ ] `bun run e2e` (Chromium): Hangar to Launch to flight; the vessel stands on the chosen pad (landed, no vessel lost).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
@@ -58,9 +59,10 @@ The VAB launch button goes to this screen; a "quick launch" key keeps today's di
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/094-launch-screen.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0150.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0107).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0150: facilities are the site's pad and runway buildings, placed by surface position (no protocol change); seats wait for 108.
