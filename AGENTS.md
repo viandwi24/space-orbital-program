@@ -1,6 +1,6 @@
 # AGENTS.md — read this first
 
-You are an AI agent working on **Orbital**, a web-based, moddable space-flight game (think Kerbal Space Program in the browser). This file is the entry point. Everything else lives under `docs/`.
+You are an AI agent working on **Space Orbital Program** (code name `orbital` in packages, file formats and storage keys; ADR 0105), a web-based, moddable space-flight game (think Kerbal Space Program in the browser). This file is the entry point. Everything else lives under `docs/`.
 
 ## 1. Orient yourself (every session, in this order)
 
