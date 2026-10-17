@@ -1,7 +1,7 @@
 ---
 id: 085
 title: "Body orientation as pole times spin (no behaviour change)"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: []
 phase: 4
