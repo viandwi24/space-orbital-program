@@ -19,6 +19,7 @@ import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
 import { hireCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
+import { recoverScience, transmitData } from './science.ts';
 import { applyActionGroup } from './actions.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
@@ -311,6 +312,7 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			const why = recoveryBlocker(core, id);
 			if (why) return refuse(why);
 			creditRecovery(core, id);
+			recoverScience(core, id); // science aboard at full value (plan 103, ADR 0178 point 7)
 			recoverCrew(core, id); // XP at a safe return (plan 106, ADR 0176 point 5)
 			destroyVessel(core, id, 'recovered');
 			return accept();
@@ -321,6 +323,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return removeBuilding(core, command);
 		case 'found-site':
 			return foundSite(core, command);
+		case 'transmit-data': {
+			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+			return transmitData(core, command.vessel, command.item);
+		}
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
 		case 'crew-transfer':

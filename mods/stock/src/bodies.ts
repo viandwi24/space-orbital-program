@@ -11,7 +11,9 @@ export const HomeBody = defineBody({
 	// The system's calendar (ADR 0141): days of this planet; years once it orbits a Sun (plan 122).
 	calendar: { kind: 'fictional', home: 'stock.home' },
 	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
-	terrain: { kind: 'hills' }
+	terrain: { kind: 'hills' },
+	// Science thresholds and multiplier (plan 103, ADR 0178 point 2).
+	science: { flyingHigh: km(18), spaceHigh: km(250), multiplier: 1 }
 });
 
 /** Semi-major axis of the moon's orbit around the home planet, m. */
@@ -30,5 +32,6 @@ export const MoonBody = defineBody({
 	rotationPeriod: 2 * Math.PI * Math.sqrt(MOON_ORBIT_RADIUS ** 3 / HOME_MU),
 	parent: 'stock.home',
 	terrain: { kind: 'craters' },
+	science: { spaceHigh: km(60), multiplier: 2 },
 	orbit: { a: MOON_ORBIT_RADIUS, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 }
 });

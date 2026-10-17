@@ -39,6 +39,7 @@ import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
 import { collectCrewPlaces, freshCrew } from './crew.ts';
+import { freshScience } from './science.ts';
 import { createTrajectoryProvider } from '@orbital/kepler';
 import {
 	atBoundary,
@@ -303,7 +304,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			state: resume?.objectives ? cloneData(resume.objectives) : freshObjectives(),
 			dirty: new Set()
 		},
-		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info })
+		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
+		science: freshScience(resume?.science)
 	};
 	listenForObjectives(core);
 	if (resume) {

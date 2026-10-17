@@ -19,7 +19,7 @@ export interface SituationView {
 }
 
 export interface SituationDefinition {
-	/** `<plugin>.<name>` or a plain stock name (`landed`, ...). */
+	/** `<plugin>.<name>` (`stock.landed`, ...). */
 	id: string;
 	label: string;
 	/** Lower first; the first that matches is the situation. */
@@ -107,10 +107,12 @@ export function situationOf(
 	situations: readonly SituationDefinition[],
 	view: SituationView
 ): SituationDefinition | undefined {
-	return [...situations]
-		.sort((a, b) => a.order - b.order || (a.id < b.id ? -1 : 1))
-		.find((s) => s.matches(view));
+	return sortSituations(situations).find((s) => s.matches(view));
 }
+
+/** Situations by `order`, then id. */
+export const sortSituations = (situations: readonly SituationDefinition[]): SituationDefinition[] =>
+	[...situations].sort((a, b) => a.order - b.order || (a.id < b.id ? -1 : 1));
 
 /** Region of every subject until plan 104. */
 export const GLOBAL_REGION = 'global';
@@ -175,3 +177,12 @@ export const saveScienceSchema = z.object({
 
 export const EXPERIMENT_STATES = ['READY', 'RUNNING', 'PAUSED', 'INVALID'] as const;
 export type ExperimentStatus = (typeof EXPERIMENT_STATES)[number];
+
+/** Rules the sim reads for science credit (ADR 0178 point 7). */
+export const SCIENCE_RULES = {
+	techTree: 'stock.tech-tree',
+	multiplier: 'stock.science-multiplier'
+} as const;
+
+/** Data item kind of a science result (ADR 0178 point 5). */
+export const SCIENCE_DATA_KIND = 'stock.science';

@@ -14,6 +14,14 @@ import {
 } from './modules.ts';
 import { ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 import { ModuleDataStorage } from './data.ts';
+import {
+	ExperimentAtmosphereSample,
+	ExperimentPressure,
+	ExperimentSeismic,
+	ExperimentSurfaceSample,
+	ExperimentTemperature,
+	ModuleExperiment
+} from './science.ts';
 
 /** Every stock part is a 1.25 m class cylinder: radius in metres. */
 const RADIUS = 0.625;
@@ -526,3 +534,82 @@ export const PartFuelLine = definePart({
 	attach: connectorNode,
 	crossfeed: false
 });
+
+// ---------------------------------------------------------------------------------------------
+// Science instruments (plan 103, ADR 0178): small stack parts, each running one experiment.
+// ---------------------------------------------------------------------------------------------
+
+function instrument(
+	id: string,
+	title: string,
+	massKg: number,
+	experiment: string,
+	label: string,
+	accent: string
+) {
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'command'),
+		impactTolerance: 8,
+		maxTemperature: 1000,
+		shape: cylinder(0.3),
+		visual: {
+			kind: 'tank',
+			palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent },
+			params: { stripe: 0.3, bands: 1 }
+		},
+		attach: stackNodes(0.3),
+		modules: [[ModuleExperiment, { experiment, label }]]
+	});
+}
+
+export const PartThermometer = instrument(
+	'stock.thermometer',
+	'Thermometer',
+	10,
+	ExperimentTemperature.id,
+	'Log temperature',
+	'#d9552b'
+);
+export const PartBarometer = instrument(
+	'stock.barometer',
+	'Barometer',
+	10,
+	ExperimentPressure.id,
+	'Log pressure',
+	'#2f8fa3'
+);
+export const PartSeismometer = instrument(
+	'stock.seismometer',
+	'Seismometer',
+	20,
+	ExperimentSeismic.id,
+	'Log seismic activity',
+	'#8a6d3b'
+);
+export const PartSurfaceSampler = instrument(
+	'stock.surface-sampler',
+	'Surface Sampler',
+	30,
+	ExperimentSurfaceSample.id,
+	'Take surface sample',
+	'#6b8e23'
+);
+export const PartAtmosphereSampler = instrument(
+	'stock.atmosphere-sampler',
+	'Atmosphere Sampler',
+	15,
+	ExperimentAtmosphereSample.id,
+	'Take air sample',
+	'#7b68ee'
+);
+
+export const STOCK_SCIENCE_PARTS = [
+	PartThermometer,
+	PartBarometer,
+	PartSeismometer,
+	PartSurfaceSampler,
+	PartAtmosphereSampler
+] as const;

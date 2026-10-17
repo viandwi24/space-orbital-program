@@ -21,6 +21,7 @@ import { isTurned, partRotation } from './parts.ts';
 import { effectiveControl } from './state.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
 import { dataUse, storeData } from './data.ts';
+import { creditScience, makeResult, vesselSituation } from './science.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -124,6 +125,11 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			store: (item) => storeData(core, part.vessel, item),
 			used: () => dataUse(core, part.vessel).used,
 			capacity: () => dataUse(core, part.vessel).capacity
+		},
+		situation: () => vesselSituation(core, part.vessel),
+		science: {
+			result: (experiment) => makeResult(core, partId, experiment),
+			credit: (subject, value) => creditScience(core, subject, value, 'recovered')
 		},
 		detach(node, impulse = 0) {
 			if (!Number.isFinite(impulse) || impulse < 0) {

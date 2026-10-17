@@ -21,6 +21,7 @@ describe('stock boots through the loader', () => {
 			'stock.data-storage',
 			'stock.decoupler',
 			'stock.engine',
+			'stock.experiment',
 			'stock.fin',
 			'stock.heat-shield',
 			'stock.landing-leg',
@@ -29,6 +30,8 @@ describe('stock boots through the loader', () => {
 			'stock.wing'
 		]);
 		expect(ids('part')).toEqual([
+			'stock.atmosphere-sampler',
+			'stock.barometer',
 			'stock.booster',
 			'stock.command-pod',
 			'stock.control-surface',
@@ -43,13 +46,31 @@ describe('stock boots through the loader', () => {
 			'stock.nose-cone',
 			'stock.radial-decoupler',
 			'stock.reaction-wheel',
+			'stock.seismometer',
 			'stock.strut',
+			'stock.surface-sampler',
 			'stock.tank-medium',
 			'stock.tank-small',
+			'stock.thermometer',
 			'stock.wing'
 		]);
 		expect(ids('body')).toEqual(['stock.cinder', 'stock.home']);
 		expect(ids('system')).toEqual([]);
+		expect(ids('situation')).toEqual([
+			'stock.flying-high',
+			'stock.flying-low',
+			'stock.landed',
+			'stock.space-high',
+			'stock.space-low',
+			'stock.splashed'
+		]);
+		expect(ids('experiment')).toEqual([
+			'stock.atmosphere-sample',
+			'stock.pressure',
+			'stock.seismic',
+			'stock.surface-sample',
+			'stock.temperature'
+		]);
 		expect(ids('data-kind')).toEqual([
 			'stock.bulk',
 			'stock.image',

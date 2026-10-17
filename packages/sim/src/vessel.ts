@@ -545,6 +545,7 @@ export function destroyVessel(core: SimCore, vesselId: EntityId, reason: string)
 	if (reason !== 'recovered') loseCrew(core, vesselId); // the death rule (plan 106, ADR 0176 point 7)
 	for (const id of vessel.parts) core.world.destroyEntity(id);
 	core.world.destroyEntity(vesselId);
+	core.science.cache.delete(vesselId);
 	core.events.emit('vessel:destroyed', { vessel: vesselId, reason });
 }
 

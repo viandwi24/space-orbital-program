@@ -24,6 +24,7 @@ import {
 } from '@orbital/core';
 import { createVesselBody } from './frames.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { saveScience } from './science.ts';
 import { runAllBackground, saveTickState } from './tick.ts';
 import { PART, VESSEL } from './state.ts';
 
@@ -177,6 +178,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 			};
 		})
 	}));
+	const science = saveScience(core);
 	const unsigned: Omit<SimSave, 'checksum'> = {
 		format: SIM_SAVE_FORMAT,
 		formatVersion: SIM_SAVE_VERSION,
@@ -195,6 +197,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		economy: cloneData(core.economy),
 		...(core.objectives.state.next > 1 ? { objectives: cloneData(core.objectives.state) } : {}),
 		...(core.crew.next > 1 ? { crew: cloneData(core.crew) } : {}),
+		...(science ? { science } : {}),
 		world: core.world.serialize(),
 		frames
 	};
