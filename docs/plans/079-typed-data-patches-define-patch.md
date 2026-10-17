@@ -1,7 +1,7 @@
 ---
 id: 079
 title: "Typed data patches: `definePatch` with provenance"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: []
 phase: 4
