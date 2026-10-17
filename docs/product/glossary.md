@@ -65,3 +65,51 @@ Use these terms consistently in code, docs, and UI.
 | **Auto-stage** | Editor mode in which engines and decouplers get their stages from decoupler depth; any manual stage edit turns it off until "Auto-stage" is pressed. |
 | **Terrain field** | `TerrainField` in `@orbital/core`: `heightAt(body-fixed unit direction)` in metres above the reference sphere, `maxHeight`. The sim's ground and the renderer's drawn ground read the same one (ADR 0043). |
 | **Terrain patch** | A camera-centred square window of 32-bit baked heights (4 km and 33 km wide on `high`) that the planet pass blends over the far-field cube map so the ground a vessel touches is drawn to centimetres (ADR 0044). |
+| **Space Orbital Program** | The product name (ADR 0105). "Orbital" remains the code name in packages, file formats and storage keys. |
+| **World** | A save container: preset, rules, star system and scale variant, seed, epoch, gravity model, sites, progress, crew, vessels and network (ADR 0094). Mods and the vessel library are global. |
+| **Preset** | A named set of rule values (Sandbox, Science, Career, or a mod's); not a code path (ADR 0094). |
+| **World rule** | A typed setting of a world (`defineRule`): economy, science depth, crew aspects, signal delay, range safety, reliability, agency type, and more. Identity rules (system, variant, gravity model, seed, primary site) cannot change after creation. |
+| **Rule changelog** | The world's record of every rule change: game time, rule, old and new value. |
+| **Gravity model** | Per-world choice of how vessels feel gravity: `patched` (patched conics, the only one available) or `n-body` (shown as "Coming soon", ADR 0095). |
+| **Trajectory provider** | The one interface every orbit prediction goes through (sim rails, nodes, map, rendezvous, trip planner, scripts); the patched-conics provider wraps today's functions (ADR 0095). |
+| **Epoch** | The instant of `t = 0` of a world, stored as a day count and a fraction on the system's time scale (ADR 0103). |
+| **Calendar** | How a system shows dates: `gregorian-utc` for real systems, a fictional calendar from the home body's day and year otherwise. |
+| **Catch up to now** | An offer (and a button) to warp a world forward to the real current date when every vessel is on rails; never backwards. |
+| **World tick** | The sim phase that runs once per game day at the day boundary for world-level systems (economy, construction, contracts, crew, agencies) (ADR 0096). |
+| **Background operation** | Work an unloaded vessel keeps doing, computed in closed form (rate × Δt) on world ticks and on demand. |
+| **Site** | A place in a world with a body, latitude, longitude, flat zone, buildings and member vessels: the Space Center, a base or an outpost (ADR 0097). |
+| **Space Center** | The first site of every world, shown in 3D and built by the player on a grid. |
+| **Flat zone** | A circle of levelled ground around a site, applied on top of the world-seeded height function. |
+| **Building** | A placed structure of a site defined with `defineBuilding`: size, levels, costs, upkeep, capacity effects and capabilities (`provides`). |
+| **Location template** | A quick site choice (for example equatorial coast) resolved against the world seed to a concrete spot. |
+| **Base kit / outpost** | The two ways to found an off-world base: a kit that deploys a site, or a landed vessel made a member of a site. |
+| **Range safety** | A world rule (`cost` by default, `hard`, `off`) on launch azimuths and stage impact zones. |
+| **Ledger** | The world's record of every change to funds, science, reputation and commodities, each with its cause (ADR 0098). |
+| **Commodity** | A tradeable good or service with a market price that responds to supply and demand on the world tick. |
+| **Capacity gate** | A limit raised by a building level or tech (part count, launch mass, pad size, crew, contract slots, network power, prediction quality). Flight tools are never gated. |
+| **Objective** | A deterministic primitive (reach orbit, land in a region, return a sample, hold a link, by a date) evaluated on events and ticks; contracts and missions are built from objectives. |
+| **Contract** | A procedurally generated job with advance, reward, penalty and deadline (`defineContract`). |
+| **Mission** | A written job in the story line or a mission pack (`defineMission`), on the same evaluator as contracts. |
+| **Strategy** | A policy that changes economy multipliers within stated bounds, with a projection and upkeep (`defineStrategy`). |
+| **Milestone** | A world first recorded automatically (first orbit, landing, return, ...), written to the world's history book. |
+| **Achievement** | A local, cross-world player award defined as data (`defineAchievement`), kept in an exportable profile. |
+| **Agency** | A rival space programme simulated as a state machine on the world tick whose successes place real objects in the world (ADR 0096); also the player's own type: government, company or hybrid. |
+| **Experiment / subject** | An experiment run in a situation over a region of a body makes a science subject with a cap and diminishing returns (ADR 0099). |
+| **Situation** | Where a vessel is for science: landed, splashed, flying low or high, space low or high (extensible). |
+| **Region** | A named area of a body's surface (biome) used by science; data on the body. |
+| **Data item / sample** | Science results: a data item has a size and can be transmitted or recovered; a sample has mass and must be recovered. |
+| **Dossier** | What the world knows about a body, filled by science results. |
+| **Science depth** | World rule: `classic` points (default) or the optional `discovery` layer. |
+| **Tech node** | A node of the tech tree (`defineTechNode`) that unlocks parts; tiers are gated by milestones as well as points. |
+| **Crew member** | A person of a world's roster with a profession, traits, XP and state; the crew simulation's aspects (life support, morale, rest, g-load, death) are world rules (ADR 0100). |
+| **EVA** | A crew member outside a vessel, simulated as a small vessel of their own. |
+| **Antenna / ground station / link** | Comms building blocks: antenna modules on vessels, stations at sites, links between them with line of sight, rate and latency (ADR 0101). |
+| **Control state** | `full`, `partial` or `none`: what a vessel without a link may still do, per the `controlWithoutSignal` rule. |
+| **Signal delay** | Light time plus queueing on a route; by default shown, not enforced (`display`); `enforced` and `flight-computer` are rules. |
+| **Part action** | An action a module describes (toggle, value, trigger, mode) that the vessel panel turns into a control (ADR 0102). |
+| **Action group / group control** | All parts whose actions share a group (engines, lights, ...) switched together; mixed when some are on. Custom groups are saved with the design. |
+| **Dock / Panel library** | The left rail of HUD panels and the dialog to add or remove them; mods add panels with `definePanel`. |
+| **Mission Center** | The one screen with the whole system, tracking, upcoming events, contracts and crew; replaces KSP's Tracking Station and Mission Control. |
+| **Patch** | A typed change of registered data by another mod (`definePatch`), applied at load with provenance (ADR 0104). |
+| **Scale variant** | A version of a star system at a size and distance scale (the Sol pack's `1:1` and `rescaled`) with its own balance patches (ADR 0103). |
+| **Sol pack** | The real solar system as an in-repo mod package with orbits from JPL elements with secular rates and a lunar model. |
