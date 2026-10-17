@@ -34,4 +34,14 @@
 
 ## Verification output
 
-See the `ready/110` tag message.
+```text
+bun test packages/sim/test/part-actions.test.ts   5 pass (snapshot actions of a 100-part vessel: 4618 bytes)
+bun test packages/core/test/design.test.ts        15 pass
+bunx vitest run src/lib/keybindings.test.ts       20 passed
+bun run docs:check                                docs-check: OK
+bun run test                                      1416 pass, 2 fail: core terrain-legacy and sites goldens from 084, which fail the
+                                                  same way on pure main on this machine (5.7e-12 height difference, another lake hash)
+bun run typecheck                                 exit 0 (61 s)
+bun run build                                     exit 0
+bun run --filter @orbital/web test                877 passed; 3 env-only import suites (no Node), sim-host-warp flaky under load
+```

@@ -71,3 +71,4 @@ Size: descriptors for a 100-part vessel stay under 8 kB in the snapshot (measure
 - 2026-10-17 — The custom group keys default to Numpad 1–9 and 0, not "no default keys": the binding table requires a default key for every action and a help row for every action (existing tests), and the digit row is taken by the SAS modes. ADR 0174 point 5 says so.
 - 2026-10-17 — Implemented as refined. Measured: snapshot actions of a 100-part vessel are 4 618 bytes. The descriptor and group zod schemas live in `schemas.ts`, which avoids an import cycle with `action-groups.ts`.
 - 2026-10-17 — Rebased after the 084 merge (clean); 084 took `API_VERSION` 0.1.33, so 110 is 0.1.34.
+- 2026-10-17 — Handed over as `ready/110`. The two 084 goldens that fail here also fail on pure `main` on this machine; reported in the handover.
