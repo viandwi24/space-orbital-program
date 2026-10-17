@@ -1,7 +1,7 @@
 ---
 id: 075
 title: "Apache-2.0: package metadata, credits and the mod manifest licence field"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: []
 phase: 4

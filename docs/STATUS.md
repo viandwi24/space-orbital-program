@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 077, 078 and 079 done (`cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 075, 077, 078 and 079 done (`cp/f1-075-licence`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -83,7 +83,7 @@
 | 073 | [A compact flight HUD and VAB for phones](plans/073-compact-phone-hud-and-portrait-vab.md) | draft | — | from 055; realigned 2026-10-17 (ADR 0107, 0091): phones stay unsupported; any compact HUD uses the refs components |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041; realigned 2026-10-17 (ADR 0097, 0102): the runway is a Runway building at a site, flaps and gear are part actions; wheels, trim, read-outs, plane controls |
 | 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | draft | — | ADR 0105: player-facing name only; identifiers stay `orbital` |
-| 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | in-progress | Agent 3 | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
+| 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | done | Agent 3 | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
 | 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
 | 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | done | Agent 1 | ADR 0110: `WorldInfo` beside the ECS world, `SimSave` 5 with the Legacy world migration, envelope 2 `worldId`, `WorldStore`, client migration; save +179 bytes |
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | done | Agent 1 | ADR 0111: `defineRule`/`definePreset`, 22 stock rules and 4 presets, values in `WorldInfo.rules`, `set-rule` + changelog + `world:rule-changed`, `Snapshot.rules`; API 0.1.27 |
@@ -168,6 +168,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Credits and new fonts** (Agent 3, plan 075 handover): plan 086 adds Manrope; its OFL copyright line must go into `apps/web/src/lib/public/credits.ts` (`credits.test.ts` enforces it).
 - **Fresh clone typecheck** (Agent 3, plan 079 handover): `bun run typecheck` fails until `apps/web` `build:sandbox` has produced the git-ignored `static/sandbox/*.js`; candidate fix: run `build:sandbox` inside `check`. Machines without Node run vitest under Bun, where two suites fail at import (`{ z }` from zod); they pass with Node (Agent 1, 2026-10-17).
 - The launch site is body-fixed (0, 0) and the sim places vessels there at any load time (plan 025, ADR 0030). Terrain heights are physical since plan 031 (ADRs 0043, 0044): the sim's ground tile, surface rails and debris rules and the drawn ground read one height function in `core`; trees and buildings beyond the flat zone around the pad stay on the reference sphere, and the terrain is flat within 5 km of the pad. The first body is drawn by the planet pass; a later body whose `terrain` is `craters` gets the moon pass (ADR 0067), any other is a plain lit sphere. Frame times are measured on an Apple M5 only (plan 039: `high` 6.9 to 14.4 ms and `medium` 7.4 to 12.8 ms sync at pad, 3 km, 12 km, orbit and a hillside; the quality governor is the answer for slower GPUs and has never run on one; a preset switch hitches for 130 to 290 ms); clouds are two flat shells (no volume), the terrain edge is not anti-aliased, and in the hidden browser pane a shader compiled after the first frame ran 3x slower (journal 027, draft plan 031).
 - Part visuals (plan 020, ADR 0028; radial hardware by plan 026; effects by plan 033, ADR 0047): debris is cut from the destroyed parts' meshes but vanishes, the re-entry plasma is an ellipsoid shell tinted by speed, smoke is lit, drifting billboards without depth fade, the plume ground light is a faint disc, engines gimbal 3 degrees (no HUD read-out yet; the autopilot and scripts keep wheel-tuned gains); the explosion, vacuum and re-entry screenshots are synthetic snapshots (a real crash is covered by unit tests and the camera hold, not by a capture); the destroyed vessel's camera holds the wreck for 5 s then jumps to the planet centre (HUD "lost" state). Draft plan 033 (also gimbal: a finned rocket resists the reaction wheel at high dynamic pressure, journal 026).
@@ -192,6 +193,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [075 — Apache-2.0: package metadata, credits and the mod manifest licence field](journal/075-apache-2-licence-adoption.md)
 - [078 — World rules, presets and the rule changelog](journal/078-world-rules-presets-and-changelog.md)
 - [079 — Typed data patches: `definePatch` with provenance](journal/079-typed-data-patches-define-patch.md)
 - [077 — World container: worlds own saves, save format 5](journal/077-world-container-and-save-format-5.md)
