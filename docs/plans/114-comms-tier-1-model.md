@@ -59,7 +59,7 @@ Cost budget: 0.5 ms average per step at 300 nodes and 10 bodies (M5); spatial cu
 - [x] Same file: with `stock.control-without-signal` `none` a probe without link refuses `throttle` with the reason; with `full` it accepts; a crewed pod is never refused.
 - [x] Same file: during a re-entry whose flux exceeds the badge level the link is down with reason `plasma blackout`.
 - [x] Same file, `-t benchmark`: 300 nodes and 10 bodies, under 0.5 ms average per step (indicative here; M5 by Agent 1).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 

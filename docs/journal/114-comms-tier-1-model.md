@@ -38,5 +38,11 @@
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/sim/test/comms.test.ts          5 pass (benchmark 25 µs/step alone, 34 µs in the full run)
+bun run docs:check                                exit 0
+bun run test                                      1485 pass, 0 fail (288 s)
+bun run typecheck                                 exit 0 (70 s)
+bun run build                                     exit 0 (6 s)
+bun run --filter @orbital/web test                901 passed, 1 skipped; 3 env-only import suites (no Node here);
+                                                  CreateWorld.test.ts timed out once under load, passes 3/3 alone (flaky, plan 092's)
 ```
