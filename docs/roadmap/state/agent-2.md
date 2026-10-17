@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 102 handed over (`ready/102`); next in lane: 089 menus (076 merged).
+**Now:** 089 menus claimed (`devb/089-menus`).
 **Waiting for:** merges of 069 (`ready/069`) and 102 (`ready/102`); whichever merges second takes API main+1.
 **Updated:** 2026-10-18
 
@@ -17,7 +17,7 @@
 | 085 orientation | done | `devb/085-orientation` | 2026-10-17 | merged c8298c8, cp/f1-085-orientation |
 | 076 roadmap-page | done | `devb/076-roadmap-page` | 2026-10-17 | merged c262e53, cp/f1-076-roadmap-page |
 | 069 categories | handed-over | `devb/069-categories` | 2026-10-18 | ready/069; ADR 0146; API 0.1.41 |
-| 089 menus | todo |  |  |  |
+| 089 menus | in-progress | `devb/089-menus` | 2026-10-18 | claim/089 |
 | 093 hangar | todo |  |  |  |
 | 112 dock | todo |  |  |  |
 | 094 launch | todo |  |  |  |
