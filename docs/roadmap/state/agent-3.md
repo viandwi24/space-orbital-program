@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 098 handed over as `ready/098` (API 0.1.36; all checks pass here except the env-only web suites). Next in the lane: 106 crew (WAIT cp/f1-078-rules, cp/f1-082-tick: present).
+**Now:** 106 crew core on `devc/106-crew` (claim/106): plan refined; next ADR 0176 and the core crew types.
 **Waiting for:** merge of 098 (`ready/098`).
 **Updated:** 2026-10-17
 
@@ -16,7 +16,7 @@
 | 110 part-actions | done | `devc/110-part-actions` | 2026-10-17 | merged f84365e, cp/f4-110-part-actions |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | handed-over | `devc/098-objectives` | 2026-10-17 | ready/098; ADR 0175; API 0.1.36 |
-| 106 crew | todo |  |  |  |
+| 106 crew | in-progress | `devc/106-crew` | 2026-10-17 | claim/106 |
 | 103 science | todo |  |  |  |
 | 114 comms-1 | todo |  |  |  |
 | 104 regions | todo |  |  |  |
