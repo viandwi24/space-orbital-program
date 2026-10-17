@@ -23,12 +23,13 @@ const stubStorage = (initial: Record<string, string> = {}) => {
 describe('settings parsing', () => {
 	it('round trips', () => {
 		const s = {
-			v: 2 as const,
+			v: 3 as const,
 			units: 'imperial' as const,
 			tutorial: { status: 'active' as const, step: 3 },
 			bindings: { stage: ['KeyG'], help: ['F1'] },
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
-			touch: 'on' as const
+			touch: 'on' as const,
+			interface: { scale: 1.25, highContrast: true }
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -38,7 +39,7 @@ describe('settings parsing', () => {
 		expect(parseSettings('{not json')).toEqual(d);
 		expect(parseSettings('[1,2]')).toEqual(d);
 		expect(parseSettings('"metric"')).toEqual(d);
-		expect(parseSettings(JSON.stringify({ v: 3, units: 'imperial' }))).toEqual(d);
+		expect(parseSettings(JSON.stringify({ v: 4, units: 'imperial' }))).toEqual(d);
 		expect(parseSettings(JSON.stringify({ units: 'imperial' }))).toEqual(d);
 	});
 	it('migrates format 1: units and tutorial kept, the new fields at their defaults', () => {
@@ -53,6 +54,29 @@ describe('settings parsing', () => {
 			status: 'pending',
 			step: 0
 		});
+	});
+	it('migrates format 2: every field kept, the interface at its defaults', () => {
+		const v2 = {
+			v: 2,
+			units: 'imperial',
+			tutorial: { status: 'done', step: 5 },
+			bindings: { map: ['KeyB'] },
+			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
+			touch: 'off'
+		};
+		expect(parseSettings(JSON.stringify(v2))).toEqual({
+			...v2,
+			v: 3,
+			interface: { scale: 1, highContrast: false }
+		});
+	});
+	it('repairs the interface: scale outside 80 to 150 % is the default, a value between steps snaps', () => {
+		const at = (iface: unknown) =>
+			parseSettings(JSON.stringify({ ...defaultSettings(), interface: iface })).interface;
+		expect(at({ scale: 3, highContrast: true })).toEqual({ scale: 1, highContrast: true });
+		expect(at({ scale: 0.5, highContrast: 'yes' })).toEqual({ scale: 1, highContrast: false });
+		expect(at({ scale: 1.2, highContrast: false }).scale).toBe(1.25);
+		expect(at(null)).toEqual({ scale: 1, highContrast: false });
 	});
 	it('repairs bad audio, touch and bindings without losing the good fields', () => {
 		const s = parseSettings(
