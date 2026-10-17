@@ -43,5 +43,13 @@ Errors against JPL Horizons (Table 1 bounds in brackets):
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/kepler/test/body-path.test.ts  6 pass
+bun test packages/sim/test/body-models.test.ts    3 pass
+bun run docs:check                                exit 0
+bun run test                                      1556 pass, 2 fail under load (404 s): heating and determinism
+                                                  (5 s timeouts); both pass alone
+bun run typecheck                                 exit 0 (89 s; svelte-check 0 errors)
+bun run build                                     exit 0 (8 s)
+bun run --filter @orbital/web test                946 passed; 3 env-only import suites (no Node here);
+                                                  vessel-presence.test.ts timed out under load, 4/4 alone
 ```

@@ -53,7 +53,7 @@ Evaluate each body once per step and cache; a rails chunk of 10 s uses the start
 - [x] Same file: the Almanac lunar series stays within 0.3° in λ, 0.2° in β and 0.5 % in distance of Horizons at the same three dates.
 - [x] `bun test packages/sim/test/body-models.test.ts`: an SOI entry into a `kepler-rates` moon is found within the bisection tolerance of the geometric crossing; `stateInParent` follows the model; stock bodies are unchanged; all existing tests pass.
 - [x] Same file, `-t benchmark`: a step with ten `kepler-rates`/`series` bodies costs under 0.05 ms more than with fixed conics (indicative here).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
