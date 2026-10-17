@@ -19,6 +19,7 @@ import {
 import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { makeContext } from './hooks.ts';
 import { economyTick } from './economy.ts';
+import { crewTick } from './crew.ts';
 
 export interface TickState {
 	/** The day last entered; the next tick is for `lastDay + 1`. */
@@ -123,6 +124,7 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 			});
 		}
 		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
+		crewTick(core); // returns and salaries (plan 106, ADR 0176)
 		core.events.emit('world:tick', { day, time });
 	}
 }

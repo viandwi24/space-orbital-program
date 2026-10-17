@@ -26,6 +26,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
+import { loseCrew } from './crew.ts';
 import {
 	bodyMotion,
 	createVesselBody,
@@ -541,6 +542,7 @@ function applyKicks(core: SimCore, kicks: Array<{ parts: EntityId[]; dv: Vec3 }>
 export function destroyVessel(core: SimCore, vesselId: EntityId, reason: string): void {
 	const vessel = vesselOf(core, vesselId);
 	leaveFlight(core, vesselId);
+	if (reason !== 'recovered') loseCrew(core, vesselId); // the death rule (plan 106, ADR 0176 point 7)
 	for (const id of vessel.parts) core.world.destroyEntity(id);
 	core.world.destroyEntity(vesselId);
 	core.events.emit('vessel:destroyed', { vessel: vesselId, reason });

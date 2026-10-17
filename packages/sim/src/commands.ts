@@ -17,6 +17,7 @@ import {
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
+import { hireCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { applyActionGroup } from './actions.ts';
 import { startObjective } from './objectives.ts';
@@ -91,6 +92,8 @@ function loadVessel(
 ): CommandResult {
 	const resolved = resolveVesselDesign(command.design, core.registries.parts);
 	if (!resolved.ok) return refuse(`invalid design: ${resolved.errors.join('; ')}`);
+	const seats = command.crew && seatProblem(core, command.design, command.crew);
+	if (seats) return refuse(seats);
 	const short = launchRefusal(core, command.design);
 	if (short) return refuse(short);
 	const placement = command.placement ?? { kind: 'surface' };
@@ -153,6 +156,11 @@ function loadVessel(
 			);
 		}
 		enterFlight(core, id, frame);
+	}
+	if (command.crew && command.crew.length > 0) {
+		// Design indices to part entities: the vessel's parts follow the resolved order.
+		const indexOf = new Map(resolved.parts.map((rp, i) => [rp.index, vessel.parts[i]!]));
+		seatCrew(core, id, command.crew, (index) => indexOf.get(index)!);
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
 	chargeLaunch(core, command.design); // only a vessel that was placed is paid for (ADR 0113)
@@ -298,6 +306,7 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			const why = recoveryBlocker(core, id);
 			if (why) return refuse(why);
 			creditRecovery(core, id);
+			recoverCrew(core, id); // XP at a safe return (plan 106, ADR 0176 point 5)
 			destroyVessel(core, id, 'recovered');
 			return accept();
 		}
@@ -305,6 +314,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return placeBuilding(core, command);
 		case 'remove-building':
 			return removeBuilding(core, command);
+		case 'crew-hire':
+			return hireCrew(core, command.profession);
+		case 'crew-transfer':
+			return transferCrew(core, command.vessel, command.member, command.to);
 		case 'action-group': {
 			const vessel = core.world.get(command.vessel, VESSEL);
 			if (!vessel) return refuse(`unknown vessel ${command.vessel}`);
