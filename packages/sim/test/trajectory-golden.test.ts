@@ -65,3 +65,30 @@ describe('trajectory goldens (plan 080)', () => {
 		expect(v.nodes).toMatchSnapshot();
 	});
 });
+
+describe('gravity model (plan 080)', () => {
+	test('createSim with an n-body world throws a SaveError (incompatible): not available yet', async () => {
+		const { createSim } = await import('../src/index.ts');
+		const { legacyWorldInfo, SaveError } = await import('@orbital/core');
+		const Stock = (await import('@orbital/mod-stock')).default;
+		const { rapier } = await import('./helpers/vessels.ts');
+		let err: unknown;
+		try {
+			await createSim({
+				plugins: [Stock],
+				backendFactory: rapier(),
+				world: { ...legacyWorldInfo(0), gravityModel: 'n-body' as never }
+			});
+		} catch (e) {
+			err = e;
+		}
+		expect(err).toBeInstanceOf(SaveError);
+		expect((err as InstanceType<typeof SaveError>).code).toBe('incompatible');
+		expect((err as Error).message).toContain('n-body worlds are not available yet');
+	});
+
+	test('a patched world gets the patched provider', async () => {
+		const sim = await newSim();
+		expect(sim.save().worldInfo.gravityModel).toBe('patched');
+	});
+});
