@@ -247,6 +247,13 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **Your own module** can call `ctx.vessel.situation()` and `ctx.vessel.science.result(id)`, which fixes the value now. It reports itself through `describe().experiment` and credits held results in `onRecover` with `ctx.vessel.science.credit(subject, value)`.
 - **Situations and bodies.** Stock situations are `stock.landed`, `stock.splashed`, `stock.flying-low`, `stock.flying-high`, `stock.space-low` and `stock.space-high`. Set a body's `science: { flyingHigh, spaceHigh, multiplier }` to move the thresholds. A new situation (`defineSituation`, a pure `matches(view)`) slots in by `order`.
 
+## Antennas and ground stations (API 0.1.42, plan 114, ADR 0179)
+
+- **An antenna.** `ctx.antennas.register(defineAntenna({ id: 'acme.relay-dish', label: 'Relay dish', kind: 'dish', range: 5e10, power: 80 }))`, then give a part `modules: [['stock.antenna', { antenna: 'acme.relay-dish' }]]`. Two nodes link under `√(range_a × range_b)` (times the world's `stock.comms-scale`), with a clear line of sight past bodies and terrain. The vessel uses its strongest switched-on antenna; the module's `setEnabled` action toggles it.
+- **Your own antenna module** declares `antenna: (config, state) => ({ antenna, enabled })`.
+- **A ground station.** `ctx.groundStations.register(defineGroundStation({ id: 'acme.north-station', label: 'North station', body: 'stock.home', latitude: 1.2, longitude: 0.4, range: 5e10 }))`. Every world site is already a station.
+- **Probes.** A control source on a part without seats (`crewCapacity` 0) makes a probe. Without a link it follows the world's `stock.control-without-signal` rule. Read the state in a module with `ctx.vessel.signal()`.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

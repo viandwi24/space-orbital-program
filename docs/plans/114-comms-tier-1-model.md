@@ -55,21 +55,22 @@ Cost budget: 0.5 ms average per step at 300 nodes and 10 bodies (M5); spatial cu
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/comms.test.ts`: a probe orbiting the moon loses the link when the moon comes between it and every station, at the time the snapshot geometry gives within 1 s at warp 1, and within 1 s at warp 1e5 (bisection).
-- [ ] Same file: with `stock.control-without-signal` `none` a probe without link refuses `throttle` with the reason; with `full` it accepts; a crewed pod is never refused.
-- [ ] Same file: during a re-entry whose flux exceeds the badge level the link is down with reason `plasma blackout`.
-- [ ] Same file, `-t benchmark`: 300 nodes and 10 bodies, under 0.5 ms average per step (indicative here; M5 by Agent 1).
+- [x] `bun test packages/sim/test/comms.test.ts`: a probe orbiting the moon loses the link when the moon comes between it and every station, at the time the snapshot geometry gives within 1 s at warp 1, and within 1 s at warp 1e5 (bisection).
+- [x] Same file: with `stock.control-without-signal` `none` a probe without link refuses `throttle` with the reason; with `full` it accepts; a crewed pod is never refused.
+- [x] Same file: during a re-entry whose flux exceeds the badge level the link is down with reason `plasma blackout`.
+- [x] Same file, `-t benchmark`: 300 nodes and 10 bodies, under 0.5 ms average per step (indicative here; M5 by Agent 1).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/114-comms-tier-1-model.md` written.
-- [ ] `architecture/simulation.md` (comms), `plugin-system.md`, `guides/writing-a-mod.md` (antennas).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/114-comms-tier-1-model.md` written.
+- [x] `architecture/simulation.md` (comms), `plugin-system.md`, `guides/writing-a-mod.md` (antennas).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
 - 2026-10-17 — Refined and claimed by Agent 3. Tier 1 links are direct (station or crewed vessel); relays wait for 117. Like science (103), the network engine is in the sim and the content (antennas, stations, rules) in stock, because links must refuse commands at the sim boundary; modules read it through `ctx.vessel.signal()`. A crewed command part still counts as crewed without crew until the launch flow seats crew (108). Design choices go in ADR 0179.
+- 2026-10-17 — Implemented by Agent 3 and handed over as `ready/114`. The engine is in the sim, with ADR 0179 point 8. Antenna actions are never refused. The snapshot computes the network fresh while it is dirty. The web badge still computes its own level, with the same law now from core. Benchmark: 25 to 39 µs per step for 300 nodes and 10 bodies here. Journal: `journal/114-comms-tier-1-model.md`.
