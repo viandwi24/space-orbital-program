@@ -30,7 +30,8 @@ import { moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core
 import { deleteData, storagesOf } from './data.ts';
 import { record, ruleOf } from './economy.ts';
 import { motionOf } from './orbit.ts';
-import { terrainUnder, toBodyFixed } from './terrain.ts';
+import { toBodyFixed } from './terrain.ts';
+import { waterUnder } from './water.ts';
 
 /** Sim time a cached situation stays good for, s (ADR 0178 point 6). */
 export const SITUATION_TTL = 1;
@@ -76,12 +77,8 @@ export function situationView(core: SimCore, id: EntityId): SituationView {
 	const { flyingHigh, spaceHigh } = bodyScience(body.def);
 	return {
 		landed,
-		// below sea level on real ground: the reference sphere of a body without terrain is no sea
-		splashed:
-			landed &&
-			atmosphereHeight > 0 &&
-			body.terrain !== undefined &&
-			terrainUnder(core, body, r) < 0,
+		// on water (plan 067, ADR 0182 point 7): a body without water has no splashdown
+		splashed: landed && waterUnder(core, body, r),
 		altitude: length(r) - body.def.radius,
 		atmosphereHeight,
 		flyingHigh,

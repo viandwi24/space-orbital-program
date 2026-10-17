@@ -460,6 +460,25 @@ export interface TerrainField {
 	readonly maxHeight: number;
 	/** Height above the reference sphere, m, of the body-fixed unit direction `direction`. */
 	heightAt(direction: Vec3): number;
+	/**
+	 * True where the ground is water: the sea or a lake (plan 067, ADR 0182); the water plane is
+	 * the reference sphere. Absent: the body has no water.
+	 */
+	waterAt?(direction: Vec3): boolean;
+}
+
+/** Density of water, kg/m³ (ADR 0182 point 4). */
+export const WATER_DENSITY = 1000;
+/** Depth of the seabed under the water plane, m (ADR 0182 point 2). */
+export const WATER_DEPTH = 30;
+/** An entry into water is judged at this fraction of its speed (ADR 0182 point 6). */
+export const WATER_IMPACT_FACTOR = 0.5;
+
+/** Sea (the map under `SEA_LEVEL`, read where the height function reads it) or a lake. */
+export function isWater(n: Vec3, ctx: TerrainContext): boolean {
+	const [lat, lon] = warpedLatLon(n, ctx.radius, ctx.shift ?? 0);
+	if (sampleMap(ctx.map, lat, lon)[0] < SEA_LEVEL) return true;
+	return isLake(n, ctx);
 }
 
 export interface TerrainFieldOptions {
@@ -505,6 +524,15 @@ export function createTerrainField(options: TerrainFieldOptions): TerrainField {
 				shift: terrainShift(seed)
 			};
 			return terrainHeight(direction, ctx);
+		},
+		waterAt(direction) {
+			ctx ??= {
+				radius: options.radius,
+				map: cachedPlanetMap(TERRAIN_MAP_WIDTH, { seed, zones }),
+				zones,
+				shift: terrainShift(seed)
+			};
+			return isWater(direction, ctx);
 		}
 	};
 }

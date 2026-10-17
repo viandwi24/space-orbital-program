@@ -47,6 +47,7 @@ describe('stock boots through the loader', () => {
 			'stock.engine-cluster',
 			'stock.engine-lv',
 			'stock.fin',
+			'stock.flotation-collar',
 			'stock.fuel-line',
 			'stock.heat-shield',
 			'stock.landing-legs',

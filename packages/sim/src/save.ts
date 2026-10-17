@@ -289,6 +289,9 @@ export function restoreFrames(core: SimCore, save: SimSave): void {
 		frame.velocity = { ...saved.velocity };
 		frame.bodies.clear();
 		frame.tiles.clear();
+		frame.wet.clear();
+		frame.wetVessels.clear();
+		frame.waterImpacts = [];
 		for (const body of saved.bodies) {
 			const id = body.vessel as EntityId;
 			if (!core.world.hasEntity(id) || vesselOf(core, id).mode !== 'flight' || placed.has(id)) {

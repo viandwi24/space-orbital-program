@@ -5,6 +5,7 @@
  * removes the (one, compound) body of each vessel, applies gravity and drag, keeps a ground tile
  * under every vessel near the ground (ADR 0019), advances the backend, reads contacts and poses back.
  */
+import { WATER_DEPTH } from '@orbital/core';
 import type {
 	EntityId,
 	PhysicsBackend,
@@ -59,6 +60,7 @@ import {
 	stoneNormalAt
 } from './stones.ts';
 import { groundPlane } from './terrain.ts';
+import { stepWater, waterUnder } from './water.ts';
 
 export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 	return {
@@ -70,7 +72,10 @@ export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
 		velocity: { x: 0, y: 0, z: 0 },
 		vessels: [],
 		bodies: new Map(),
-		tiles: new Map()
+		tiles: new Map(),
+		wet: new Map(),
+		wetVessels: new Set(),
+		waterImpacts: []
 	};
 }
 
@@ -114,6 +119,9 @@ function releaseIfEmpty(frame: FlightFrame): void {
 	frame.inUse = false;
 	frame.bodies.clear();
 	frame.tiles.clear();
+	frame.wet.clear();
+	frame.wetVessels.clear();
+	frame.waterImpacts = [];
 }
 
 /** Origin of a part relative to its vessel's root part, vessel body axes (constant while the vessel holds together). */
@@ -369,6 +377,13 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
 		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));
+		// Buoyancy and water drag (plan 067, ADR 0182)
+		let wasWet = frame.wet.get(vesselId);
+		if (!wasWet) frame.wet.set(vesselId, (wasWet = new Set()));
+		const water = stepWater(core, frame, planet, vesselId, body, bodyMotion(frame, body), wasWet);
+		if (water.wet) frame.wetVessels.add(vesselId);
+		else frame.wetVessels.delete(vesselId);
+		frame.waterImpacts.push(...water.impacts);
 	}
 	return overheated;
 }
@@ -494,7 +509,13 @@ function updateTile(
 		removeTile(frame, vesselId);
 		return;
 	}
-	const plane = groundPlane(core, planet, centre);
+	// Over water the tile is the seabed, WATER_DEPTH under the water plane (ADR 0182 point 2).
+	const plane = waterUnder(core, planet, centre)
+		? (() => {
+				const up = scale(centre, 1 / d);
+				return { point: scale(up, radius - WATER_DEPTH), normal: up, height: -WATER_DEPTH };
+			})()
+		: groundPlane(core, planet, centre);
 	const altitude = d - radius - plane.height;
 	if (altitude > GROUND_TILE_EXIT || (!tile && altitude > GROUND_TILE_ENTER)) {
 		removeTile(frame, vesselId);
@@ -641,6 +662,10 @@ export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): Gro
 	for (const id of frame.tiles.keys()) before.set(id, bodyMotion(frame, frame.bodies.get(id)!));
 	frame.backend.step(dt);
 	const impacts = groundContacts(core, frame, before);
+	// A wet vessel counts as landed (ADR 0182 point 5); entries into water are impacts (point 6).
+	for (const id of frame.vessels) if (frame.wetVessels.has(id)) vesselOf(core, id).landed = true;
+	impacts.push(...frame.waterImpacts);
+	frame.waterImpacts = [];
 	frame.origin = add(frame.origin, scale(frame.velocity, dt));
 	for (const id of frame.vessels) refreshPose(core, frame, id);
 	reanchor(core, frame);
