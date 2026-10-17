@@ -21,7 +21,7 @@ import {
 
 const { registries } = loadPlugins([Stock]);
 const stock = registries.bodies.list();
-const home = stock[0]!;
+const home = stock.find((b) => b.id === 'stock.home')!;
 const moon = stock.find((b) => b.id === 'stock.cinder')!;
 const MU = bodyMu(home);
 const MU_MOON = bodyMu(moon);

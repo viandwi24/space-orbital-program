@@ -59,8 +59,8 @@ describe('time control date', () => {
 			hud.snapshot(snap);
 			const model = hud.model(0, 0)!;
 			const expected = formatDate(calendarOf(bodies), epoch, snap.t).text;
-			// stock: fictional days of 6 h; 2.25 days of 86 400 s after day 1 = day 10, then t
-			expect(expected.startsWith('Day 10, 00:')).toBe(true);
+			// stock: fictional solar days of 21 650.8 s (plan 122); 2.25 SI days is day 9 at about 05:53
+			expect(expected.startsWith('Year 1, day 9, 05:53')).toBe(true);
 			expect(model.date).toBe(expected);
 			expect(warp(model.date, model.met)).toContain(`data-testid="hud-date">${expected}<`);
 		} finally {

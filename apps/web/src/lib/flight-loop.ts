@@ -14,7 +14,7 @@ import {
 	type VesselDesign,
 	type WorldInfo
 } from '@orbital/core';
-import { calendarOf, type CommandResult } from '@orbital/core';
+import { calendarOf, homeBodyOf, type BodyDefinition, type CommandResult } from '@orbital/core';
 import {
 	QualityGovernor,
 	createRenderer,
@@ -165,6 +165,10 @@ export interface Flight {
 	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
 	dispose(): void;
 }
+
+/** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
+const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
+	c.bodies.find((b) => b.id === c.home) ?? homeBodyOf(c.bodies);
 
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
@@ -511,7 +515,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 		if (!catalog || vessel === null) return;
 		const { createAutopilot } = await import('./autopilot');
-		const body = catalog.bodies[0];
+		const body = homeOfCatalog(catalog);
 		if (!body) return;
 		const id = vessel;
 		const ap = createAutopilot({
@@ -678,7 +682,7 @@ export function startFlight(options: FlightOptions): Flight {
 				achievements = createAchievementTracker({
 					store: options.profile,
 					achievements: c.achievements,
-					home: c.bodies.find((b) => b.parent === undefined)?.id ?? '',
+					home: homeOfCatalog(c)?.id ?? '',
 					world: c.worldId ?? 'legacy',
 					onUnlock: (a) =>
 						hudCtl?.notice({
@@ -703,7 +707,9 @@ export function startFlight(options: FlightOptions): Flight {
 			});
 			renderer = createRenderer({
 				canvas,
-				// The root body first (the renderer treats the first body as the one with the planet pass);
+				// the home body has the planet pass (plan 122, ADR 0119)
+				...(c.home ? { home: c.home } : {}),
+				// The root body first (the tree's order; `home` names the body with the planet pass);
 				// a moon's `parent` and `orbit` let the map view draw its orbit and sphere (plan 044).
 				bodies: [...c.bodies]
 					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
@@ -714,6 +720,7 @@ export function startFlight(options: FlightOptions): Flight {
 						atmosphere: b.atmosphere,
 						// the kind of ground each body is drawn with (plan 052, ADR 0067)
 						...(b.terrain ? { terrain: b.terrain } : {}),
+						...(b.star ? { star: true } : {}),
 						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
 					})),
 				partShapes: partShapesOf(c),
@@ -900,7 +907,7 @@ export function startFlight(options: FlightOptions): Flight {
 			if (vessel === null || !catalog || !renderer || hud.status !== 'flying') {
 				throw new Error('There is no flight to save yet.');
 			}
-			const body = catalog.bodies[0];
+			const body = homeOfCatalog(catalog);
 			if (!body) throw new Error('The simulation has no body to save.');
 			// Draw a frame and read it in the same task: a WebGL canvas is cleared after it is shown.
 			renderer.render();

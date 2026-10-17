@@ -7,6 +7,7 @@
 	import {
 		calendarOf,
 		formatDate,
+		homeBodyOf,
 		type BodyDefinition,
 		type Epoch,
 		type Snapshot,
@@ -73,7 +74,7 @@
 				focus: loaded.focus,
 				design: loaded.design,
 				thumbnail: null,
-				bodyRadius: bodies[0]?.radius ?? 0
+				bodyRadius: homeBodyOf(bodies)?.radius ?? 0
 			};
 		}
 	});

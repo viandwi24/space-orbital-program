@@ -5,6 +5,7 @@
 import {
 	calendarOf,
 	formatDate,
+	homeBodyOf,
 	type BodyDefinition,
 	type Epoch,
 	type MilestoneRecord
@@ -22,8 +23,7 @@ export interface HistoryContext {
 	epoch: Epoch;
 }
 
-const homeOf = (bodies: readonly BodyDefinition[]): string =>
-	bodies.find((b) => b.parent === undefined)?.id ?? '';
+const homeOf = (bodies: readonly BodyDefinition[]): string => homeBodyOf(bodies)?.id ?? '';
 
 /** The records in time order (ties in record order), each with its date and sentence. */
 export function historyOf(

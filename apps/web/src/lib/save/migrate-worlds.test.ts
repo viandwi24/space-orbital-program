@@ -86,7 +86,7 @@ describe('migrateLegacySaves on IndexedDB', () => {
 		const manager = createSaveManager(store, { now: () => 3_000, newId: () => 'n1' });
 		const loaded = await manager.load('a');
 		expect(loaded.worldId).toBe(LEGACY_WORLD_ID);
-		expect(loaded.sim.formatVersion).toBe(5);
+		expect(loaded.sim.formatVersion).toBe(6);
 		expect(loaded.sim.worldInfo.id).toBe(loaded.worldId);
 
 		const before = { worlds: await worlds.list(), saves: await store.listMeta() };

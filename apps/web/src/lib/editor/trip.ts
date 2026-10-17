@@ -13,7 +13,7 @@
  * Assumptions, shown in the UI: coplanar circular orbits, no plane change, a moon on a circular
  * orbit of its semi-major axis, impulsive burns.
  */
-import type { BodyDefinition } from '@orbital/core';
+import { homeBodyOf, type BodyDefinition } from '@orbital/core';
 import { bodyMu } from '../orbit-info';
 
 /** Ascent acceleration of the reference rocket, in surface gravities of the home body (every body). */
@@ -218,13 +218,13 @@ function destination(
 const km = (m: number): string => `${Math.round(m / 1000)} km`;
 
 /**
- * Everything the bodies offer from the pad of `bodies[0]`, in order: its low orbit, escape, then per
+ * Everything the bodies offer from the pad of the home body (plan 122: not the root once a Sun is there), in order: its low orbit, escape, then per
  * moon (a body whose `parent` is the home body and that has an `orbit`) the transfer, the orbit,
  * the landing and the way back. A destination whose ascent the reference rocket cannot fly (gravity
  * above its acceleration) or whose orbit lies inside the home body's low orbit is left out.
  */
 export function destinationsOf(bodies: readonly BodyDefinition[]): Destination[] {
-	const home = bodies[0];
+	const home = homeBodyOf(bodies);
 	if (!home) return [];
 	const muH = bodyMu(home);
 	const accel = REFERENCE_ACCELERATION_G * surfaceGravity(home);

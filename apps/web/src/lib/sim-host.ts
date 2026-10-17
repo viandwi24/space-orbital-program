@@ -105,7 +105,7 @@ const isWarp = (c: unknown): c is WarpCommand =>
 
 /** The home terrain and primary site of the sim's world (plan 084, ADR 0142). */
 function worldTerrainOf(sim: Sim): Pick<Catalog, 'terrain' | 'launchSite'> {
-	const root = sim.registries.bodies.list().find((b) => b.parent === undefined);
+	const root = sim.registries.bodies.get(sim.home);
 	if (!root) return {};
 	const zones = zonesOf(sitesOf(sim.worldInfo), root.id);
 	if (zones.length === 0) return {};
@@ -124,6 +124,7 @@ export function catalogOf(sim: Sim): Catalog {
 		epoch: { ...sim.worldInfo.epoch },
 		achievements: sim.registries.achievements.list(),
 		worldId: sim.worldInfo.id,
+		home: sim.home,
 		...worldTerrainOf(sim)
 	};
 }

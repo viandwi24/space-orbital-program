@@ -29,11 +29,12 @@ describe('bodies[id].state for scripts', () => {
 			expect(Math.abs(numeric - Math.hypot(...Object.values(at(40_000).velocity)))).toBeLessThan(
 				1e-3
 			);
-			// The root rests; the moon in its parent's frame is the same as in the system frame here.
-			expect(provider('stock.home', 123, 'system').position).toEqual({ x: 0, y: 0, z: 0 });
-			expect(dist(provider('stock.cinder', 500, 'parent').position, at(500).position)).toBeLessThan(
-				1e-6
-			);
+			// The root (the Sun since plan 122) rests; the moon is given in its parent's frame here.
+			expect(provider('stock.sun', 123, 'system').position).toEqual({ x: 0, y: 0, z: 0 });
+			const home = provider('stock.home', 500, 'system').position;
+			const moon = at(500).position;
+			const relative = { x: moon.x - home.x, y: moon.y - home.y, z: moon.z - home.z };
+			expect(dist(provider('stock.cinder', 500, 'parent').position, relative)).toBeLessThan(1e-3);
 		} finally {
 			sim.dispose();
 		}

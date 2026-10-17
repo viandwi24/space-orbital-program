@@ -7,20 +7,21 @@ import {
 	epochFromUnixMs,
 	epochFromUtc,
 	formatDate,
+	homeBodyOf,
 	LEGACY_SITE,
 	presetValue,
 	resolveSiteTemplate,
 	siteConsequences,
 	worldInfoSchema,
 	type BodyDefinition,
-	type SiteConsequences,
-	type SiteTemplateDefinition,
 	type Calendar,
 	type Command,
 	type Epoch,
 	type PresetDefinition,
 	type RuleDefinition,
 	type RuleValue,
+	type SiteConsequences,
+	type SiteTemplateDefinition,
 	type WorldInfo
 } from '@orbital/core';
 
@@ -122,9 +123,9 @@ export interface SiteChoice {
 	consequences: SiteConsequences;
 }
 
-/** The home body of a body list: the one without a parent. */
+/** The home body of a body list (plan 122: core's rule, not the root once a Sun is there). */
 const homeOf = (bodies: readonly BodyDefinition[]): BodyDefinition | undefined =>
-	bodies.find((b) => !b.parent);
+	homeBodyOf(bodies);
 
 /**
  * Resolves `templateId` on a new world of `seed` (its terrain seed is the world seed, ADR 0142
