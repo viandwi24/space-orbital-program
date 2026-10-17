@@ -165,7 +165,30 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 
 ## 5. The plugin
 
-`definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`. `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
+`definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`, and data patches over other plugins' entries with `ctx.patches.register(def)` (see "Patching another mod's data"). `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
+
+## Patching another mod's data (API 0.1.25, plan 079, ADRs 0104 and 0170)
+
+A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
+
+```ts
+import { definePatch, kN } from '@orbital/sdk';
+
+export const PatchEngineThrust = definePatch({
+	id: 'sample.engine-lv-thrust',
+	target: 'part', // 'part' | 'resource' | 'body'
+	select: { id: 'stock.engine-lv' }, // or { ids: [...] }, { tag: '...' }, { where: (part) => part.mass > 1000 }
+	ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: kN(230) }]
+});
+// in setup: ctx.patches.register(PatchEngineThrust);
+```
+
+- **Paths** are dot-separated: `mass`, `visual.palette.primary`, `attach.top.pos.1` (a number indexes an array). A part's module config is `modules.<moduleId>.<field>`: the module is found by its id, never by its place in the list. `modules.<moduleId>` is the whole config.
+- **Operations:** `set` (makes missing parent objects), `merge` (shallow object merge), `remove` (a key, an array element, or a whole module with `modules.<moduleId>`; a missing path is an error), `append` (to an array; on `modules` it adds a `[moduleId, config]`), `insert` (with an `index`).
+- **Order.** Patches apply once, after every plugin's `setup` and before the parts are checked against their modules. `after: ['other-mod']` / `before: ['other-mod']` put yours after or before every patch of those plugins (unknown ids are ignored); `priority` (default 0, lower first) orders what they leave open; then plugin boot order, then registration order. Constraints that form a cycle switch the patches in it off.
+- **Validation.** The patched entry is checked again by its schema, and a part's module configs by their modules' own schemas. If the result is invalid for any selected entry, the whole patch is off and every entry keeps the value it had; the reason names the entry. A bad patch never stops the game or your other content.
+- **What the player sees.** `/mods` lists, under each running mod, each field its patches changed: "stock.engine-lv · modules.stock.engine.thrust · 215,000 → 230,000, patched by sample", or why a patch did not apply. In tests, `loadPlugins(...).report.patches` has the same list (`applied`, `changes`, `disabled`) and `report.provenance[kind][entryId][path]` names every plugin that set a field, the registering one first. `examples/mod-sample/test/sample.test.ts` checks the sample's patch from the built package.
+- Patched values are data, not saved: they are applied again at every load from the mods that are on.
 
 ## Saves (API 0.1.12, ADR 0050)
 

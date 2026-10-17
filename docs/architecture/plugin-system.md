@@ -175,9 +175,15 @@ Shipped by plan 003; plan 005 added the loader and extended the definition shape
 - **World:** see ADR 0010. `createWorld({ events? })`, `defineComponent<T>(name)` tokens, `createEntity/destroyEntity/add/get/has/remove/query`, `serialize()` → `WorldData`, `deserializeWorld(data: unknown)` (validated with zod).
 - **Ids:** branded `EntityId`, `PluginId`, `PartId`, `ModuleId`, `ResourceId`, `BodyId`, `SystemId` with validating constructors (`partId('stock.engine-lv')`). Registry definitions use plain `string` ids; the brands are for code that handles ids.
 
-## Patching (Phase 2)
+## Patching (API 0.1.25, plan 079, ADRs 0104 and 0170)
 
-A plugin may declare `patches` that modify parts of other plugins (add a module, change a number). Patches apply after all registrations, in load order, and are reported. Modelled on KSP's ModuleManager, but typed.
+`ctx.patches.register(definePatch({ id, target, select, ops, after?, before?, priority? }))` changes data another plugin registered, without replacing the entry. Targets are the data registries with a schema (`part`, `resource`, `body`); `module` and `system` hold functions and are not patchable. Code: `packages/core/src/patch.ts` (`applyPatches`, `orderPatches`), wired in `loadPlugins` step 5.
+
+- **When.** Once per load: after every plugin booted, before the part/module cross-check (`partModuleProblems`). No runtime patching.
+- **Order.** A graph over patches: `after`/`before` name plugins; then `priority` (lower first), boot index of the patching plugin, registration order. Strongly connected components (Tarjan) are cycles: their patches are disabled, the rest apply.
+- **Apply.** Per patch: clone each selected entry (`clonePlain`), apply the ops, validate (`Registry.validate`, plus the module configs of a patched part), and only if every entry passes swap them in with the loader-only `replaceDefinition` (frozen again). Otherwise the patch is disabled with a reason; nothing changes. Paths are dot-separated; under a part's `modules` the segment after `modules` is a module id, matched by the longest run of segments.
+- **Report.** `LoadReport.patches` (apply order; `applied`, `changes` with `from`/`to`, `disabled`) and `LoadReport.provenance[kind][entryId][path]` (registering plugin, then patchers). The web mod runtime keeps `patches` for the booted set and `/mods` shows them per mod (`apps/web/src/lib/mods/ModPatches.svelte`).
+- **Cost.** 1 000 patches over the stock registries: under 50 ms on the M5 (benchmark in `mods/stock/test/patch-bench.test.ts`).
 
 ## Non-TypeScript mods
 

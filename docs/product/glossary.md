@@ -111,5 +111,6 @@ Use these terms consistently in code, docs, and UI.
 | **Dock / Panel library** | The left rail of HUD panels and the dialog to add or remove them; mods add panels with `definePanel`. |
 | **Mission Center** | The one screen with the whole system, tracking, upcoming events, contracts and crew; replaces KSP's Tracking Station and Mission Control. |
 | **Patch** | A typed change of registered data by another mod (`definePatch`), applied at load with provenance (ADR 0104). |
+| **Provenance** | Per patched field, the plugins that set it: the registering one first, then each patching plugin in apply order (`LoadReport.provenance`, shown on `/mods`; ADR 0170). |
 | **Scale variant** | A version of a star system at a size and distance scale (the Sol pack's `1:1` and `rescaled`) with its own balance patches (ADR 0103). |
 | **Sol pack** | The real solar system as an in-repo mod package with orbits from JPL elements with secular rates and a lunar model. |

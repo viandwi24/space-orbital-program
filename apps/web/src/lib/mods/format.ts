@@ -1,4 +1,5 @@
 /** Text for the mod manager (kept apart from the component so it is tested). */
+import type { PatchChange } from '@orbital/core';
 import type { ModStatus } from './manager.svelte';
 import type { ModSource } from './store';
 
@@ -40,4 +41,18 @@ export function assetLabel(asset: { size: number; triangles: number; sha256: str
 export function dependencyList(dependencies: Readonly<Record<string, string>>): string {
 	const entries = Object.entries(dependencies);
 	return entries.length === 0 ? 'none' : entries.map(([id, range]) => `${id} ${range}`).join(', ');
+}
+
+/** A patched value, short: numbers as written, text quoted, data as compact JSON (plan 079). */
+export function patchValueLabel(value: unknown): string {
+	if (value === undefined) return 'none';
+	if (typeof value === 'number') return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	if (typeof value === 'string') return `"${value}"`;
+	const json = JSON.stringify(value) ?? String(value);
+	return json.length > 60 ? `${json.slice(0, 59)}…` : json;
+}
+
+/** `215,000 → 230,000` for one change of a patch. */
+export function patchChangeLabel(change: PatchChange): string {
+	return `${patchValueLabel(change.from)} → ${patchValueLabel(change.to)}`;
 }

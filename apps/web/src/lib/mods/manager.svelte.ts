@@ -3,7 +3,7 @@
  * install flow with its trust prompt, enable, disable and remove. Nothing a package carries runs
  * here: the code is only stored; it runs on the next page load, in `runtime.ts`.
  */
-import { decodeAssets, parseModPackage, type ModPackage } from '@orbital/core';
+import { decodeAssets, parseModPackage, type ModPackage, type PatchReport } from '@orbital/core';
 import { modRuntime, type ModState } from './runtime';
 import { ModStoreError, type ModRecord, type ModSource, type ModStore } from './store';
 
@@ -41,6 +41,8 @@ export interface ModManagerOptions {
 	fetchText?(url: string): Promise<string>;
 	/** Boot state of the running page; defaults to the live runtime. */
 	booted?(): ReadonlyMap<string, { state: ModState; sha256: string }>;
+	/** Data patches of the running page; defaults to the live runtime. */
+	patches?(): readonly PatchReport[];
 	now?(): number;
 	reload(): void;
 }
@@ -102,6 +104,11 @@ export class ModManager {
 		} finally {
 			this.loading = false;
 		}
+	}
+
+	/** Patches `id` registered on the running page, in apply order (plan 079). */
+	patchesOf(id: string): PatchReport[] {
+		return (this.options.patches ?? (() => modRuntime().patches))().filter((p) => p.by === id);
 	}
 
 	/** What the running page does with `record`, and what a reload would change. */

@@ -1,4 +1,4 @@
-import { defineModule, definePart, definePlugin, kg, z } from '@orbital/sdk';
+import { defineModule, definePart, definePatch, definePlugin, kg, kN, z } from '@orbital/sdk';
 
 // A mod cannot import stock's code, so it declares the shape of the stock config it uses; the loader
 // still validates it against stock's real schema.
@@ -144,6 +144,18 @@ export const PartSpikeEngine = definePart({
 	stagingIcon: 'engine'
 });
 
+/**
+ * A patch changes another mod's data without replacing it (ADRs 0104, 0170): while this mod is on,
+ * stock's main engine has 230 kN instead of 215. The loader checks the result against stock's own
+ * engine schema, and the mod manager shows which field changed and who changed it.
+ */
+export const PatchEngineThrust = definePatch({
+	id: 'sample.engine-lv-thrust',
+	target: 'part',
+	select: { id: 'stock.engine-lv' },
+	ops: [{ op: 'set', path: 'modules.stock.engine.thrust', value: kN(230) }]
+});
+
 export default definePlugin({
 	meta: { id: 'sample', version: '1.0.0', api: '^0.1', title: 'Sample mod' },
 	depends: ['stock'],
@@ -152,5 +164,6 @@ export default definePlugin({
 		ctx.parts.register(PartBeacon);
 		ctx.parts.register(PartWideTank);
 		ctx.parts.register(PartSpikeEngine);
+		ctx.patches.register(PatchEngineThrust);
 	}
 });

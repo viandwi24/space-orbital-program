@@ -4,11 +4,14 @@
  * compile-time checks. See docs/architecture/plugin-system.md and ADR 0013.
  */
 import type {
+	AnyPatchDefinition,
 	BasePluginContext,
 	BodyDefinition,
 	ModuleDefinition,
 	ModuleMap,
 	PartDefinition,
+	PatchDefinition,
+	PatchTarget,
 	Plugin,
 	PluginMeta,
 	PluginRef,
@@ -136,3 +139,18 @@ export function definePart(def: PartInputLoose): PartDefinition {
 export const defineResource = (def: ResourceDefinition): ResourceDefinition => def;
 export const defineBody = (def: BodyDefinition): BodyDefinition => def;
 export const defineSystem = (def: SystemDefinition): SystemDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// definePatch
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A typed patch over another plugin's parts, resources or bodies (ADRs 0104, 0170). Register it in
+ * `setup` with `ctx.patches.register(...)`; it applies once at load, after every plugin booted, and
+ * is shown in the load report and the mod manager. `target` types the `where` predicate.
+ */
+export function definePatch<const K extends PatchTarget>(
+	def: PatchDefinition<K>
+): AnyPatchDefinition {
+	return def as AnyPatchDefinition;
+}

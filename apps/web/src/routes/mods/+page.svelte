@@ -15,6 +15,7 @@
 		statusLabel
 	} from '../../lib/mods/format';
 	import { ModManager } from '../../lib/mods/manager.svelte';
+	import ModPatches from '../../lib/mods/ModPatches.svelte';
 	import { openModStore } from '../../lib/mods/store-idb';
 
 	const manager = new ModManager({ open: openModStore, reload: () => location.assign('/mods') });
@@ -86,6 +87,9 @@
 							>
 								{statusLabel(status)}
 							</span>
+							{#if status.kind === 'running'}
+								<ModPatches patches={manager.patchesOf(record.id)} />
+							{/if}
 						</div>
 						<div class="acts">
 							<label class="toggle">

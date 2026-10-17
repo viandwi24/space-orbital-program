@@ -87,7 +87,7 @@
 | 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
 | 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | done | Agent 1 | ADR 0110: `WorldInfo` beside the ECS world, `SimSave` 5 with the Legacy world migration, envelope 2 `worldId`, `WorldStore`, client migration; save +179 bytes |
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | draft | — | ADR 0094: defineRule/definePreset, set-rule, changelog |
-| 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | draft | — | ADR 0104: definePatch, order, provenance |
+| 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | in-progress | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | draft | — | ADR 0096: daily tick, PRNG streams, background closed forms |
