@@ -34,4 +34,12 @@
 
 ## Verification output
 
-See the `ready/083` tag message.
+```text
+bun test packages/sim/test/data.test.ts packages/core/test/data.test.ts mods/stock/test/boot.test.ts   all pass
+bun test packages/renderer/test/parts.test.ts                                                         pass (drive 0.4 m)
+bun run docs:check                                                                                    docs-check: OK
+bun run test                                                                                          1372 pass, 0 fail (165 s)
+bun run typecheck                                                                                     exit 0 (56 s)
+bun run build                                                                                         exit 0
+bun run --filter @orbital/web test        874 passed, 1 skipped; editor-options and settings fail at import here only (no Node)
+```
