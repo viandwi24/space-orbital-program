@@ -67,8 +67,11 @@
 	let gravity = $state('patched');
 	let siteChoice = $state(untrack(() => initialSite));
 	// Resolving reads the seed's terrain map once (about a second the first time, cached after).
-	const resolved = $derived(siteChoice === 'default' ? null : resolveSiteChoice(catalog, siteChoice, seed));
-	const boundary = (d: string) => (d === 'sea' ? 'over the sea' : d === 'land' ? 'over land' : 'over land and sea');
+	const resolved = $derived(
+		siteChoice === 'default' ? null : resolveSiteChoice(catalog, siteChoice, seed)
+	);
+	const boundary = (d: string) =>
+		d === 'sea' ? 'over the sea' : d === 'land' ? 'over land' : 'over land and sea';
 	let problem = $state<string | null>(null);
 	let busy = $state(false);
 
@@ -119,7 +122,13 @@
 				systemVersion: catalog.system.version,
 				variant: catalog.system.variants[0] ?? 'default',
 				...(resolved
-					? { site: { latitude: resolved.latitude, longitude: resolved.longitude, template: resolved.template } }
+					? {
+							site: {
+								latitude: resolved.latitude,
+								longitude: resolved.longitude,
+								template: resolved.template
+							}
+						}
 					: {})
 			},
 			catalog,
@@ -233,15 +242,21 @@
 					<dt>Rotation boost</dt>
 					<dd class="num">{resolved.consequences.rotationBoost.toFixed(0)} m/s</dd>
 					<dt>Lowest inclination</dt>
-					<dd class="num">{((resolved.consequences.minInclination * 180) / Math.PI).toFixed(1)}°</dd>
+					<dd class="num">
+						{((resolved.consequences.minInclination * 180) / Math.PI).toFixed(1)}°
+					</dd>
 					<dt>Downrange east</dt>
 					<dd>{boundary(resolved.consequences.downrange)}</dd>
 				</dl>
 				{#if resolved.relaxed.length > 0}
-					<p class="note">No spot on this world meets every wish; dropped: {resolved.relaxed.join(', ')}.</p>
+					<p class="note">
+						No spot on this world meets every wish; dropped: {resolved.relaxed.join(', ')}.
+					</p>
 				{/if}
 			{:else}
-				<p class="note">The Space Center at latitude 0°, longitude 0°: the most rotation boost, every inclination.</p>
+				<p class="note">
+					The Space Center at latitude 0°, longitude 0°: the most rotation boost, every inclination.
+				</p>
 			{/if}
 		</fieldset>
 

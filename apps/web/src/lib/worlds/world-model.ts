@@ -123,7 +123,8 @@ export interface SiteChoice {
 }
 
 /** The home body of a body list: the one without a parent. */
-const homeOf = (bodies: readonly BodyDefinition[]): BodyDefinition | undefined => bodies.find((b) => !b.parent);
+const homeOf = (bodies: readonly BodyDefinition[]): BodyDefinition | undefined =>
+	bodies.find((b) => !b.parent);
 
 /**
  * Resolves `templateId` on a new world of `seed` (its terrain seed is the world seed, ADR 0142
@@ -183,7 +184,14 @@ export function createWorldInfo(
 		rules,
 		// The chosen site becomes the Space Center with the Legacy pad and layout; none = the Legacy site.
 		sites: input.site
-			? [{ ...structuredClone(LEGACY_SITE), id: 'space-center', latitude: input.site.latitude, longitude: input.site.longitude }]
+			? [
+					{
+						...structuredClone(LEGACY_SITE),
+						id: 'space-center',
+						latitude: input.site.latitude,
+						longitude: input.site.longitude
+					}
+				]
 			: [],
 		preset: input.preset,
 		changelog: []

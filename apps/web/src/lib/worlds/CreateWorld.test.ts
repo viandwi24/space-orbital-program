@@ -83,10 +83,20 @@ describe('Create World form', () => {
 			systemVersion: '0.1.0',
 			variant: 'default'
 		};
-		const withSite = createWorldInfo({ ...input, site: { latitude: choice.latitude, longitude: choice.longitude } }, catalog, catalog.calendar, 0);
+		const withSite = createWorldInfo(
+			{ ...input, site: { latitude: choice.latitude, longitude: choice.longitude } },
+			catalog,
+			catalog.calendar,
+			0
+		);
 		expect(withSite.ok).toBe(true);
 		const site = withSite.ok ? withSite.world.sites[0]! : undefined;
-		expect(site).toMatchObject({ id: 'space-center', kind: 'space-center', latitude: choice.latitude, longitude: choice.longitude });
+		expect(site).toMatchObject({
+			id: 'space-center',
+			kind: 'space-center',
+			latitude: choice.latitude,
+			longitude: choice.longitude
+		});
 		const plain = createWorldInfo(input, catalog, catalog.calendar, 0);
 		expect(plain.ok && plain.world.sites).toEqual([]);
 	});

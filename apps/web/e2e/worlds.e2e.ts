@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { watchErrors } from './support';
 
 /**
- * Worlds (plan 087, ADR 0143): create a Career world, enter it (no saves: the VAB), launch and
+ * Worlds (plan 087, ADR 0143): create a Career world, enter it (the Space Center, then the VAB), launch and
  * quicksave in it, and it is listed first with its save.
  */
 test('create a Career world, enter it, fly and save in it, and it is listed first', async ({
@@ -22,7 +22,10 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	await expect(first).toContainText('Career');
 	await page.getByTestId('world-enter').click();
 
-	// a world without saves opens the hangar; the launch flies in the active world
+	// entering opens the Space Center (plan 091); its Hangar opens the VAB, the launch flies in the world
+	await page.waitForURL('**/space-center');
+	await page.getByTestId('sc-label-stock.hangar').click({ timeout: 60_000 });
+	await page.getByTestId('sc-open').click();
 	await page.waitForURL('**/vab');
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 	const launch = page.getByRole('button', { name: /^Launch/ });
