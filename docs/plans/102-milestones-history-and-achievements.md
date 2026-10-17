@@ -51,18 +51,18 @@ Achievement criteria are evaluated in the page from sim events (they span worlds
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: the headless ascent records "first orbit of <home>" exactly once, with its time; `launch` before it; a save and resume keeps the record and does not record it again.
-- [ ] `packages/sim` test: a first with the economy on pays reputation once, with cause `milestone`.
-- [ ] vitest: an achievement unlocked in one world stays unlocked in another; export then import restores the profile; import merges, keeping the earliest unlock.
-- [ ] vitest: the history export (Markdown) contains one line per milestone in time order with its calendar date; the JSON export parses back to the records.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass; smoke e2e.
+- [x] `packages/sim` test: the headless ascent records "first orbit of <home>" exactly once, with its time; `launch` before it; a save and resume keeps the record and does not record it again.
+- [x] `packages/sim` test: a first with the economy on pays reputation once, with cause `milestone`.
+- [x] vitest: an achievement unlocked in one world stays unlocked in another; export then import restores the profile; import merges, keeping the earliest unlock.
+- [x] vitest: the history export (Markdown) contains one line per milestone in time order with its calendar date; the JSON export parses back to the records.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass; smoke e2e.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/102-milestones-history-and-achievements.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/102-milestones-history-and-achievements.md` written.
 
-- [ ] ADR 0147; `docs/guides/writing-a-mod.md` (achievements).
+- [x] ADR 0147; `docs/guides/writing-a-mod.md` (achievements).
 
 ## Log
 
@@ -70,3 +70,4 @@ Achievement criteria are evaluated in the page from sim events (they span worlds
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this plan edits `routes/worlds` and the world save of plan 087.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 089/093/112/094 in the lane: those wait for unmerged 076, 069 and 088 (their `depends`); 102 depends only on merged plans.
 - 2026-10-18 — Refined: kinds that exist now (launch, orbit, flyby, landing, return, crewed variants), Steps and measurable criteria, ADR 0147. EVA, docking, station, relay and sample return come with their systems.
+- 2026-10-18 — Done on the branch: core records and achievements registry (API 0.1.42), the sim detector with returns and reputation, stock achievements, the web toast, profile, tracker, history and exports on the Worlds screen. Journal: [102](../journal/102-milestones-history-and-achievements.md).
