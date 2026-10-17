@@ -39,6 +39,7 @@ import {
 	type AntennaDefinition,
 	type GroundStationDefinition
 } from './comms.ts';
+import { dossierEntryDefinitionSchema, type DossierEntryDefinition } from './dossier.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import {
 	contractDefinitionSchema,
@@ -232,6 +233,8 @@ export interface Registries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: Registry<AntennaDefinition>;
 	groundStations: Registry<GroundStationDefinition>;
+	/** Body dossier entries (plan 104, ADR 0180). */
+	dossierEntries: Registry<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
 	categories: Registry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
@@ -270,6 +273,9 @@ export function createRegistries(): Registries {
 		antennas: createRegistry<AntennaDefinition>('antenna', { schema: antennaDefinitionSchema }),
 		groundStations: createRegistry<GroundStationDefinition>('ground-station', {
 			schema: groundStationDefinitionSchema
+		}),
+		dossierEntries: createRegistry<DossierEntryDefinition>('dossier-entry', {
+			schema: dossierEntryDefinitionSchema
 		}),
 		categories: createRegistry<CategoryDefinition>('category', {
 			schema: categoryDefinitionSchema

@@ -31,6 +31,7 @@ import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, GroundStationDefinition } from './comms.ts';
+import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -104,6 +105,8 @@ export interface BasePluginContext {
 	/** Comms (plan 114, ADR 0179). */
 	readonly antennas: Registrar<AntennaDefinition>;
 	readonly groundStations: Registrar<GroundStationDefinition>;
+	/** Body dossier entries (plan 104, ADR 0180). */
+	readonly dossierEntries: Registrar<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
 	readonly categories: Registrar<CategoryDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
@@ -154,6 +157,7 @@ export const REGISTRY_KINDS = [
 	'experiment',
 	'antenna',
 	'ground-station',
+	'dossier-entry',
 	'category',
 	'objective',
 	'contract',
@@ -214,6 +218,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'experiments',
 	'antennas',
 	'groundStations',
+	'dossierEntries',
 	'categories',
 	'achievements',
 	'crewTraits',
@@ -403,6 +408,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			experiments: registrar(registries.experiments),
 			antennas: registrar(registries.antennas),
 			groundStations: registrar(registries.groundStations),
+			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
 			achievements: registrar(registries.achievements),
 			crewTraits: registrar(registries.crewTraits),
@@ -571,6 +577,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				experiment: section(registries.experiments),
 				antenna: section(registries.antennas),
 				'ground-station': section(registries.groundStations),
+				'dossier-entry': section(registries.dossierEntries),
 				category: section(registries.categories),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),

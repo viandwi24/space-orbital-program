@@ -155,3 +155,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0177 | [Site templates: criteria, the resolver, consequences and founding a site](0177-site-templates-resolver-consequences-and-founding.md) | accepted | 2026-10-17 |
 | 0178 | [Science core: situations, subjects, the value curve, experiment states and credit](0178-science-situations-subjects-value-curve-states-credit.md) | accepted | 2026-10-17 |
 | 0179 | [Comms tier 1: antennas, stations, the link rule, cadence, probe control and blackout](0179-comms-tier-1-links-stations-control-blackout.md) | accepted | 2026-10-17 |
+| 0180 | [Regions on bodies, regional situations and dossiers](0180-regions-on-bodies-regional-situations-and-dossiers.md) | accepted | 2026-10-18 |

@@ -21,6 +21,7 @@ import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, GroundStationDefinition, SignalState } from './comms.ts';
+import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -93,6 +94,8 @@ export interface ReadonlyRegistries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: ReadonlyRegistry<AntennaDefinition>;
 	groundStations: ReadonlyRegistry<GroundStationDefinition>;
+	/** Body dossier entries (plan 104, ADR 0180). */
+	dossierEntries: ReadonlyRegistry<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
 	categories: ReadonlyRegistry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */

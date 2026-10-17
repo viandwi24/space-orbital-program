@@ -79,6 +79,9 @@ export const bodyTerrainSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('craters'), seed: z.int().min(0).max(999).optional() })
 ]);
 
+/** A region id: lower-case words joined by `-` (it is part of a subject id). */
+export const regionIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, 'region id');
+
 export const bodyDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	mass: z.number().positive(),
@@ -132,6 +135,57 @@ export const bodyDefinitionSchema = z.object({
 			spaceHigh: z.number().positive().optional(),
 			multiplier: z.number().positive().optional()
 		})
+		.optional(),
+	/** Science regions (plan 104, ADR 0180 point 1); absent = one `global` region. */
+	regions: z
+		.discriminatedUnion('kind', [
+			z.object({
+				kind: z.literal('biomes'),
+				regions: z
+					.array(
+						z.object({
+							id: z.enum(['ocean', 'beach', 'grass', 'forest', 'desert', 'rock', 'snow']),
+							label: z.string().min(1).optional(),
+							multiplier: z.number().positive().optional()
+						})
+					)
+					.optional()
+			}),
+			z.object({
+				kind: z.literal('cells'),
+				seed: z.int().nonnegative(),
+				cells: z.int().positive().optional(),
+				regions: z
+					.array(
+						z.object({
+							id: regionIdSchema,
+							label: z.string().min(1),
+							multiplier: z.number().positive().optional()
+						})
+					)
+					.min(1)
+			}),
+			z.object({
+				kind: z.literal('bands'),
+				bands: z
+					.array(
+						z.object({
+							id: regionIdSchema,
+							label: z.string().min(1),
+							from: z
+								.number()
+								.min(-Math.PI / 2)
+								.max(Math.PI / 2),
+							to: z
+								.number()
+								.min(-Math.PI / 2)
+								.max(Math.PI / 2),
+							multiplier: z.number().positive().optional()
+						})
+					)
+					.min(1)
+			})
+		])
 		.optional(),
 	parent: definitionIdSchema.optional(),
 	/** The system's calendar, read on the root body only (plan 081, ADR 0141); absent = fictional from the root. */
