@@ -4,6 +4,7 @@ import {
 	createModPackage,
 	importModBundle,
 	modCodeHash,
+	isSpdxExpression,
 	parseModPackage,
 	resolveMods,
 	type ModBundle,
@@ -81,6 +82,56 @@ describe('mod packages', () => {
 		expect(await errors({ ...good, manifest: { ...good.manifest, extra: 1 } })).toContain('extra');
 		expect(await errors({ ...good, code: '' })).toContain('code');
 		expect(await errors({ ...good, sha256: 'abc' })).toContain('sha256');
+	});
+});
+
+describe('the manifest licence (plan 075)', () => {
+	/** A valid package whose manifest is then edited, as a hand-made file would be. */
+	const parse = async (extra: Record<string, unknown>) => {
+		const pkg = JSON.parse(
+			JSON.stringify(await createModPackage({ id: 'm', version: '1.0.0', api: '^0.1' }, source()))
+		);
+		return parseModPackage(JSON.stringify({ ...pkg, manifest: { ...pkg.manifest, ...extra } }));
+	};
+
+	test('a stated licence is kept; a manifest without one still parses', async () => {
+		const mit = await parse({ licence: 'MIT' });
+		expect(mit.ok && mit.package.manifest.licence).toBe('MIT');
+		const none = await parse({});
+		expect(none.ok).toBe(true);
+		expect(none.ok && none.package.manifest.licence).toBeUndefined();
+	});
+
+	test('a licence that is not an SPDX expression is refused, naming the field', async () => {
+		const bad = await parse({ licence: 'not a licence!' });
+		expect(bad.ok).toBe(false);
+		expect(bad.ok ? '' : bad.errors.join(' | ')).toContain('licence');
+	});
+
+	test('SPDX expression shapes', () => {
+		for (const ok of [
+			'MIT',
+			'Apache-2.0',
+			'MIT OR Apache-2.0',
+			'GPL-2.0+',
+			'LicenseRef-acme',
+			'(MIT AND BSD-3-Clause) OR Apache-2.0',
+			'GPL-2.0-or-later WITH Classpath-exception-2.0'
+		]) {
+			expect(isSpdxExpression(ok)).toBe(true);
+		}
+		for (const bad of [
+			'',
+			'MIT OR',
+			'OR MIT',
+			'MIT Apache-2.0',
+			'(MIT',
+			'MIT)',
+			'not a licence!',
+			'MIT AND AND BSD'
+		]) {
+			expect(isSpdxExpression(bad)).toBe(false);
+		}
 	});
 });
 

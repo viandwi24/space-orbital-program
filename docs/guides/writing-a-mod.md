@@ -251,11 +251,12 @@ A mod outside the repo is a folder with a manifest and a source file; `examples/
 
 ```
 my-mod/
-  mod.json      { "id": "acme.mod", "version": "1.0.0", "api": "^0.1", "title": "...", "author": "...", "dependencies": { "stock": "*" } }
+  mod.json      { "id": "acme.mod", "version": "1.0.0", "api": "^0.1", "title": "...", "author": "...", "licence": "MIT", "dependencies": { "stock": "*" } }
   src/index.ts  default-exports definePlugin({ meta: { id: 'acme.mod', version: '1.0.0', api: '^0.1' }, depends: ['stock'], setup(ctx) { ... } })
 ```
 
 - `mod.json` and `meta` must agree on `id`, `version` and `api` (the loader checks and names the mismatch). `dependencies` lists plugin ids with version ranges; `stock` is one. Put the same ids in `depends` (ids are enough: you cannot import another mod's code, only its ids).
+- `licence` (optional, API 0.1.26, plan 075) states your mod's licence as an SPDX id or expression (`MIT`, `Apache-2.0`, `MIT OR Apache-2.0`, `LicenseRef-…`; at most 64 characters). The mod manager shows it in the installed list and the trust prompt, and "not stated" without one. Text that is not an SPDX expression is refused at install with the field named. The game itself is Apache-2.0 (ADR 0106); your mod may use any licence.
 - Import only from `@orbital/sdk`. The build replaces that import by the SDK the game provides, so your bundle has no copy of it and uses the game's one `z`. To use a module of another plugin in a part, name it by id and declare its config shape with `declare module '@orbital/sdk' { interface ModuleMap { 'stock.resource-container': { ... } } }`, as the sample does.
 - Build: `bun run tools/mod-build/build-mod.ts my-mod` writes `my-mod/dist/<id>-<version>.orbital-mod.json`: one JSON file with the manifest, the bundled code and a SHA-256 of the code. (In this repo `bun run build` inside `examples/mod-sample` does the same.)
 - Install: open **Mods** on the start page, choose the file (or paste an https address of the file; the server must allow CORS), read the trust prompt and confirm. Nothing in the package runs before that. A mod is code with the page's own access (saves, storage, network): say plainly in your README what yours does. Enable, disable and remove it in the same list; **Reload to apply** restarts the page with the new set.
