@@ -368,7 +368,8 @@ describe('save and resume', () => {
 		deployLegs(original.sim, id);
 		run(original.sim, 2); // in flight, a few metres above the ground
 		const text = JSON.stringify(original.sim.save());
-		expect(text).not.toContain('stone');
+		// "milestones" (plan 102) contains the word; no stone data is saved.
+		expect(text.replaceAll('milestone', '')).not.toContain('stone');
 		const resumed = await createSim({
 			plugins: [Stock],
 			backendFactory: rapier(16),
