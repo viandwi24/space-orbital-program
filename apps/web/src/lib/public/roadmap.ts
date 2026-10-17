@@ -30,10 +30,10 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '050',
-		title: 'Smoother on slower graphics hardware',
+		plan: '056',
+		title: 'Cloud shadows on Medium',
 		gives:
-			'A cheaper way to draw the planet so older laptops keep the frame rate on Medium, plus cloud shadows on Medium.',
+			'Cloud shadows on the ground at the Medium preset, and sharper cloud edges and ridges when the game lowers its detail to keep the frame rate.',
 		area: 'Flight and look'
 	},
 	{
