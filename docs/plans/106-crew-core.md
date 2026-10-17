@@ -1,7 +1,7 @@
 ---
 id: 106
 title: "Crew core: roster, professions, traits, XP, seats"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [078, 082]
 phase: 6
