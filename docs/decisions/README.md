@@ -81,3 +81,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0061 | [Remappable keys: one binding table, settings format 2](0061-remappable-keys-binding-table-and-settings-format-2.md) | accepted | 2026-10-17 |
 | 0062 | [Audio is synthesised in code with Web Audio nodes; no audio files](0062-procedural-audio-web-audio-no-assets.md) | accepted | 2026-10-17 |
 | 0063 | [Small screens: tablets in landscape yes, phones no](0063-tablets-supported-phones-not.md) | accepted | 2026-10-17 |
+| 0064 | [The planet pass at half resolution as governor rungs, with a depth-aware upsample](0064-half-resolution-planet-pass.md) | accepted | 2026-10-17 |

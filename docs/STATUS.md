@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 035, 036, 038, 040, 041, 050 to 052, 054, 055. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 035, 036, 038, 040, 041, 051, 052, 054 to 056. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -60,10 +60,11 @@
 | 045 | [Maneuver nodes](plans/045-maneuver-nodes.md) | done | node session (Claude, 2026-10-17) | ADR 0056, API 0.1.14, save format 3; nodes are sim state with a remaining-burn model (`kepler.predictWithManeuvers` serves the sim and the map), SAS `maneuver`, `warp-to`, `ship.nodes`/`addNode`/`warpTo`; the predicted moon periapsis equals a sim run to the metre; in the browser a node, warp to the burn, SAS and a manual burn gave a moon encounter (Pe 7 km, planned 60: node 10 s late, hand-cut burn); impulsive prediction only |
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | done | mods session (Claude, 2026-10-17) | ADR 0057, API 0.1.15: one `.orbital-mod.json` (manifest + bundled code + SHA-256), trust prompt before anything runs, `/mods` manager (enable/disable/remove, reload to apply), same bundles boot in page and sim Worker, a failing mod never stops the game, saves say which mod is off/failed/missing; `examples/mod-sample` (part, module, script) built by `tools/mod-build`; mods are trusted code, not sandboxed; mod geometry is draft 051 |
 | 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | done | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
-| 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | draft | — | from 048: bilateral upsample, governor rung, `medium` cloud shadows, M1/M2 measurements |
+| 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | done | half-res session (Claude, 2026-10-17) | ADR 0064: depth-aware half-resolution planet pass as governor rungs (high pad 15.5 to 8.9 ms, hillside 14.0 to 6.3); `medium` cloud shadows measured and not adopted (+1.0 ms, over budget); M1/M2/Intel not available |
 | 051 | [Mod-supplied part visuals and assets](plans/051-mod-visuals-and-assets.md) | draft | — | from 046: new generators or glTF inside a mod package (today a mod part reuses the stock generators with its own palette) |
 | 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | done | audio session (Claude, 2026-10-17) | ADRs 0061 (binding table of 49 actions, settings format 2), 0062 (code-only Web Audio: engine and rumble by throttle and pressure, wind, thunk, ticks, warnings; locked until a gesture, suspended on a hidden tab), 0063 (tablets in landscape yes with touch controls, phones a notice); manual rebind in flight, analyser levels and 0.005 ms per frame measured, touch e2e in Chromium; **listening is the human's** (journal 053 checklist); phones and real devices in draft 055 |
 | 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | draft | — | from 053: compact phone HUD, real iPad/Android runs, mobile audio interruptions |
+| 056 | [Baked cloud-shadow map and sharper edges at the half-resolution rung](plans/056-cloud-shadow-map-and-half-res-edges.md) | draft | — | from 050: `medium` cloud shadows by a baked map, 2 x 2 steps at cloud edges and ridges |
 | 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | draft | — | from 037: crepuscular rays through the cumulus slab, ozone layer at the golden hour, aurora |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -86,6 +87,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 - Package scope `@orbital/*` is a placeholder; rename before any publish (ADR needed).
 - **License undecided** (README, Credits page, journal 023 release checklist: FAIL). The human decides; an agent must not choose one. Hosting, domain and CDN are also undecided (`architecture/hosting.md`); `VITE_SITE_URL` makes the social image address absolute.
 - Release (plan 023): frame times are measured on an Apple M5 only; the live governor run, the first-playable time on a visible M5 pane, the save export download and a screen-reader pass need a person (journal 023, "How to test manually"). Phones and tablets are unsupported; keys are fixed and there is no sound in 1.0 (draft 053).
+- Governor rungs (plan 050, ADR 0064): the planet pass can draw at half the side (float target, depth-aware upsample); its order in the ladder is by Apple M5 cost only, the look at distance is softer (journal 050), `medium` has no cloud shadows (draft 056).
 - `apps/web` uses TypeScript 6.x (pinned by `svelte-check` compatibility) while Bun ships `bun check` against TS 7. Both pass today; revisit when `svelte-check` supports TS 7. Recorded in `research/stack-versions.md`.
 - Flight vessels are one rigid compound body (plan 011, ADR 0018): no joint flex; parts only break off by ground impact (plan 012, ADR 0019), not by load or collision between vessels. `createRapierBackend({ solverIterations })` still matters for contacts between bodies. Rapier is f32 and first-order (position error `a·dt·t/8` under constant force).
 - Sim limits (see `architecture/simulation.md`): ground tile is a rigid plane fitted to the terrain under the centre of mass (no terrain without a `terrain` option; long vehicles and rovers are not covered; the ocean is solid), lift only from fin-like modules (`stock.fin`, ADR 0035; no control surfaces, no damping term), no tilted parts, simplified re-entry heating (windward area only, no conduction/wake, ADR 0023), one 2.5 km physics bubble, attitude frozen on rails.
@@ -95,6 +97,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [050 — Half-resolution planet pass](journal/050-half-resolution-planet-pass.md)
 - [053 — Remappable keys, audio and small screens](journal/053-remappable-keys-audio-and-small-screens.md)
 - [023 — Release readiness](journal/023-release-readiness.md)
 - [037 — Volumetric cumulus](journal/037-volumetric-clouds-and-light-shafts.md)
