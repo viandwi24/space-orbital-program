@@ -37,6 +37,7 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
+import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
 import { createTrajectoryProvider } from '@orbital/kepler';
 import {
 	atBoundary,
@@ -296,8 +297,13 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			time: resume?.time ?? 0,
 			...(resume?.worldTick ? { saved: resume.worldTick } : {})
 		}),
-		economy: resume?.economy ? cloneData(resume.economy) : freshEconomy({ registries, info })
+		economy: resume?.economy ? cloneData(resume.economy) : freshEconomy({ registries, info }),
+		objectives: {
+			state: resume?.objectives ? cloneData(resume.objectives) : freshObjectives(),
+			dirty: new Set()
+		}
 	};
+	listenForObjectives(core);
 	if (resume) {
 		if (bodyDef.id !== resume.bodies[0]) {
 			throw new SaveError(
@@ -371,6 +377,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		pruneTargets(core);
 		runSystems(core.post, dt);
 		autoRails(core);
+		evaluateObjectivesDue(core, 'step');
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
 	}
@@ -410,6 +417,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		reapDebris(core);
 		pruneTargets(core);
 		runSystems(core.post, h);
+		evaluateObjectivesDue(core, 'step');
 	}
 
 	return {

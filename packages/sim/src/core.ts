@@ -18,6 +18,7 @@ import type {
 } from '@orbital/core';
 import type { BodyRuntime } from './bodies.ts';
 import type { TickState } from './tick.ts';
+import type { ObjectivesState } from './objectives.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -67,6 +68,8 @@ export interface SimCore {
 	rulesView: Readonly<Record<string, boolean | number | string>> | null;
 	/** World tick state (plan 082, ADR 0171). */
 	readonly ticks: TickState;
+	/** Started contracts and missions (plan 098, ADR 0175). */
+	readonly objectives: ObjectivesState;
 	/** Orbit prediction for this world's gravity model (plan 080, ADR 0173). */
 	readonly trajectory: TrajectoryProvider;
 	/** Ledger and balances (plan 095, ADR 0113); saved as `SimSave.economy`. */
