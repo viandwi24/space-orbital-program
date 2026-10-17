@@ -12,7 +12,7 @@
 | `apps/web/src/lib/public/licences.test.ts` | expands the root `workspaces` globs and checks every `license` |
 | `apps/web/src/lib/public/credits.ts`, `credits.test.ts`, `routes/credits` | `GAME_LICENCE = 'Apache-2.0'`, a link to the licence text, the fonts' copyright lines with a link to the OFL. The credits test moved out of `roadmap.test.ts` |
 | `README.md` | status line: "licensed under Apache-2.0" |
-| `packages/core/src/mods.ts` | optional manifest `licence`, checked by `isSpdxExpression` (shape only: ids, `AND`/`OR`/`WITH`, `+`, parentheses, at most 64 characters); `API_VERSION` 0.1.26 |
+| `packages/core/src/mods.ts` | optional manifest `licence`, checked by `isSpdxExpression` (shape only: ids, `AND`/`OR`/`WITH`, `+`, parentheses, at most 64 characters); `API_VERSION` 0.1.27 |
 | `apps/web/src/routes/mods`, `lib/mods/format.ts` | licence in the installed list and the trust prompt ("not stated" without one) |
 | `examples/mod-sample/mod.json`, guide | the sample states Apache-2.0; the guide documents the field |
 
@@ -25,8 +25,8 @@
 
 ## Coordination notes
 
-- `API_VERSION`: `main` is 0.1.25 (077), and this branch takes 0.1.26. 079 (`ready/079`) also takes 0.1.26, so whichever merges second takes `main` + 1 (roadmap §3.6).
-- 079 and 075 both edit `apps/web/src/routes/mods/+page.svelte`, in different blocks: 079 the patches under a running mod, 075 the version line and the trust prompt. If git does not merge them cleanly, I rebase the second one.
+- `API_VERSION`: 077 took 0.1.25 and 079 took 0.1.26 (merged first), so this plan is 0.1.27, set after rebasing on the 079 merge.
+- 079 and 075 both edit `apps/web/src/routes/mods/+page.svelte`, in different blocks: 079 the patches under a running mod, 075 the version line and the trust prompt. The rebase on the 079 merge had one conflict, in `lib/mods/format.ts` (both appended a helper), and kept both.
 - 074 (Agent 2) also edits `README.md`. This plan changed only the status line (line 5).
 
 ## Verification output
