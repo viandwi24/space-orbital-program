@@ -18,7 +18,7 @@
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
 | 103 science | done | `devc/103-science` | 2026-10-18 | merged f13f697, cp/f3-103-science |
-| 114 comms-1 | handed-over | `devc/114-comms` | 2026-10-17 | ready/114; API 0.1.40 |
+| 114 comms-1 | done | `devc/114-comms` | 2026-10-17 | merged 23e3c4a, cp/f4-114-comms-1 |
 | 104 regions | todo |  |  |  |
 | 107 crew-sim | todo |  |  |  |
 | 067 buoyancy | todo |  |  |  |

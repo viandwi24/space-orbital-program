@@ -1,7 +1,7 @@
 ---
 id: 114
 title: "Comms tier 1: antennas, line of sight, ground stations, control states"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [084, 082]
 phase: 7
