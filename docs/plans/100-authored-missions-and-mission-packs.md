@@ -1,12 +1,12 @@
 ---
 id: 100
 title: "Authored missions, the story line and mission packs"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [098, 087]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 100 — Authored missions, the story line and mission packs
@@ -65,3 +65,4 @@ The first-flight guide of plan 023 becomes the first mission.
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): a mission pack creates a world and this plan edits `routes/worlds` of plan 087.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2), ahead of 108 in the lane: 108 waits for 094 (handed over, not merged).
