@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineGroundStation / defineCategory / defineDossierEntry (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -31,6 +31,9 @@ export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
 export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
+// Ephemeris helpers for system packs (plans 123 and 124, ADRs 0183 and 0184).
+export { AU, levelAElements, SECONDS_PER_CENTURY, type LevelARow } from '@orbital/kepler';
+export { poleQuaternion } from '@orbital/core';
 export { categoryIdOf, sortCategories, STOCK_CATEGORY_NAMES } from '@orbital/core';
 export { homeBodyOf, positionFromStar, subSolarLatitude } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
@@ -199,6 +202,8 @@ export type {
 	GroundStationDefinition,
 	LinkReason,
 	SignalState,
+	SystemChoice,
+	SystemVariantDefinition,
 	BodyRegions,
 	Dossier,
 	DossierEntry,

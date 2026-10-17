@@ -59,6 +59,18 @@
         "@orbital/sdk": "workspace:*",
       },
     },
+    "mods/sol": {
+      "name": "@orbital/mod-sol",
+      "version": "0.0.0",
+      "dependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@orbital/mod-stock": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
+      },
+    },
     "mods/stock": {
       "name": "@orbital/mod-stock",
       "version": "0.0.0",
@@ -126,6 +138,7 @@
         "quickjs-emscripten-core": "^0.32.0",
       },
       "devDependencies": {
+        "@orbital/mod-sol": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
         "@orbital/physics": "workspace:*",
         "@orbital/sdk": "workspace:*",
@@ -139,6 +152,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@orbital/core": "workspace:*",
+        "@orbital/kepler": "workspace:*",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -155,6 +169,7 @@
         "@orbital/physics": "workspace:*",
       },
       "devDependencies": {
+        "@orbital/mod-sol": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
         "@orbital/sdk": "workspace:*",
         "@types/bun": "latest",
@@ -215,6 +230,8 @@
     "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
 
     "@orbital/kepler": ["@orbital/kepler@workspace:packages/kepler"],
+
+    "@orbital/mod-sol": ["@orbital/mod-sol@workspace:mods/sol"],
 
     "@orbital/mod-stock": ["@orbital/mod-stock@workspace:mods/stock"],
 

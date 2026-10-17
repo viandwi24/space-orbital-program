@@ -29,6 +29,7 @@ import {
 } from './rules.ts';
 import { buildingDefinitionSchema, type BuildingDefinition } from './buildings.ts';
 import { siteTemplateDefinitionSchema, type SiteTemplateDefinition } from './site-templates.ts';
+import { systemVariantDefinitionSchema, type SystemVariantDefinition } from './systems.ts';
 import {
 	experimentDefinitionSchema,
 	situationDefinitionSchema,
@@ -94,6 +95,18 @@ export interface Registry<T extends { id: string }> {
 }
 
 const replacers = new WeakMap<object, (def: { id: string }) => unknown>();
+const removers = new WeakMap<object, (id: string) => void>();
+
+/** Drop a definition (the loader's system selection, ADR 0184); not on `Registry`, like `replaceDefinition`. */
+export function removeDefinition<T extends { id: string }>(
+	registry: Registry<T>,
+	id: string
+): void {
+	const remove = removers.get(registry);
+	if (!remove)
+		throw new Error(`removeDefinition: registry "${registry.kind}" was not made by createRegistry`);
+	remove(id);
+}
 
 /**
  * Swap the stored definition of `def.id` for `def` (validated, frozen), keeping its owner and
@@ -187,6 +200,9 @@ export function createRegistry<T extends { id: string }>(
 		entries: () => [...items.values()].map((e) => ({ def: e.def, by: e.by })),
 		validate
 	};
+	removers.set(registry, (id) => {
+		items.delete(id);
+	});
 	replacers.set(registry, (def) => {
 		const existing = items.get(def.id);
 		if (!existing) {
@@ -235,6 +251,8 @@ export interface Registries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: Registry<AntennaDefinition>;
 	groundStations: Registry<GroundStationDefinition>;
+	/** Systems and scale variants (plan 124, ADR 0184). */
+	systemVariants: Registry<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
 	dossierEntries: Registry<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
@@ -279,6 +297,9 @@ export function createRegistries(): Registries {
 		antennas: createRegistry<AntennaDefinition>('antenna', { schema: antennaDefinitionSchema }),
 		groundStations: createRegistry<GroundStationDefinition>('ground-station', {
 			schema: groundStationDefinitionSchema
+		}),
+		systemVariants: createRegistry<SystemVariantDefinition>('system-variant', {
+			schema: systemVariantDefinitionSchema
 		}),
 		dossierEntries: createRegistry<DossierEntryDefinition>('dossier-entry', {
 			schema: dossierEntryDefinitionSchema

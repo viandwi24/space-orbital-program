@@ -65,6 +65,26 @@ export interface BodyRuntime {
 
 const ORIGIN: StateVector = { r: { x: 0, y: 0, z: 0 }, v: { x: 0, y: 0, z: 0 } };
 
+/**
+ * A body whose spin is measured at J2000 (`rotation.epoch: 'j2000'`, ADR 0184 point 3) on the
+ * world's time: `w0` and the periodic phases advanced by the world epoch.
+ */
+function onWorldTime(def: BodyDefinition, offset: number): BodyDefinition {
+	const r = def.rotation;
+	if (r?.epoch !== 'j2000' || offset === 0) return def;
+	const rate = r.wDot ?? (2 * Math.PI) / def.rotationPeriod;
+	return {
+		...def,
+		rotation: {
+			...r,
+			w0: (r.w0 ?? 0) + rate * offset,
+			...(r.periodic
+				? { periodic: r.periodic.map((p) => ({ ...p, phase: p.phase + p.rate * offset })) }
+				: {})
+		}
+	};
+}
+
 /** Build the runtime records of every registered body; throws on a dangling parent or a cycle. */
 export function buildBodies(
 	defs: readonly BodyDefinition[],
@@ -85,7 +105,8 @@ export function buildBodies(
 			: undefined;
 	const sorted = [...defs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 	const out = new Map<string, BodyRuntime>();
-	for (const def of sorted) {
+	for (const raw of sorted) {
+		const def = onWorldTime(raw, timeOffset);
 		out.set(def.id, {
 			def,
 			mu: GRAVITATIONAL_CONSTANT * def.mass,

@@ -115,6 +115,11 @@ export const bodyDefinitionSchema = z.object({
 				.number()
 				.refine((v) => Number.isFinite(v) && v !== 0, 'expected a non-zero spin rate')
 				.optional(),
+			/**
+			 * The time `w0` and the periodic phases are measured at (plan 124, ADR 0184 point 3): the
+			 * world's start (default) or J2000 TDB, which the sim shifts by the world's epoch.
+			 */
+			epoch: z.enum(['world', 'j2000']).optional(),
 			/** Small periodic terms added to W: `amplitude sin(rate t + phase)` (rad, rad/s, rad). */
 			periodic: z
 				.array(z.object({ amplitude: z.number(), rate: z.number(), phase: z.number() }))

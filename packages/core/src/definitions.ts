@@ -25,6 +25,7 @@ import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, GroundStationDefinition, SignalState } from './comms.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ScrubberInfo } from './life-support.ts';
+import type { SystemVariantDefinition } from './systems.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -97,6 +98,8 @@ export interface ReadonlyRegistries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: ReadonlyRegistry<AntennaDefinition>;
 	groundStations: ReadonlyRegistry<GroundStationDefinition>;
+	/** Systems and scale variants (plan 124, ADR 0184). */
+	systemVariants: ReadonlyRegistry<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
 	dossierEntries: ReadonlyRegistry<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */

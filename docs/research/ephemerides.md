@@ -61,3 +61,42 @@ Moon (301), observer table, `CENTER='500@399'` (geocentre), quantities 20 (range
   - distance = R⊕ / sin π, with R⊕ = 6 378.14 km.
 - **Accuracy used in the tests:** λ within 0.3°, β within 0.2°. For π the almanac formula's usual figure is about 0.003°; the tests compare the distance within 0.5 %.
 - **Why not ELP-2000/82 (Meeus ch. 47):** it is ten times more accurate but takes about 120 terms, and there was no free primary source to check them against. A body whose game needs better than 0.3° can use a longer series in the same data format (ADR 0183 point 3).
+
+## Body constants and rotation for the Sol pack (plan 124)
+
+Looked up 2026-10-18 by Agent 3.
+
+- **Masses, radii, rotation periods:** JPL Solar System Dynamics, "Planetary Physical Parameters", <https://ssd.jpl.nasa.gov/planets/phys_par.html> (read 2026-10-18; its last change-log entry is 2019-12-12):
+
+  | Planet | Mean radius (km) | Sidereal rotation (d) | Mass (10²⁴ kg) |
+  |---|---|---|---|
+  | Mercury | 2439.4 | 58.6462 | 0.330103 |
+  | Venus | 6051.8 | −243.018 | 4.86731 |
+  | Earth | 6371.0084 | 0.99726968 | 5.97217 |
+  | Mars | 3389.50 | 1.02595676 | 0.641691 |
+  | Jupiter | 69911 | 0.41354 | 1898.125 |
+  | Saturn | 58232 | 0.44401 | 568.317 |
+  | Uranus | 25362 | −0.71833 | 86.8099 |
+  | Neptune | 24622 | 0.67125 | 102.4092 |
+- **Sun and Moon:**
+  - Sun: GM 1.32712440018e20 m³/s² (the IAU value Level A is fitted to), nominal radius 695 700 km (IAU 2015 Resolution B3).
+  - Moon: mean radius 1737.4 km, GM 4.9028e12 m³/s², sidereal rotation 27.321661 d (synchronous).
+
+  These are standard values; JPL's physical parameter page does not list the Sun or the Moon.
+- **Rotation (pole and prime meridian):** NAIF generic PCK `pck00011.tpc`, <https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc> (created 2022-12-27; read 2026-10-18). It follows the IAU WGCCRE report 2015 (Archinal et al., Celest. Mech. Dyn. Astron. 130:22, 2018). Values are α₀ and δ₀ in degrees (+ rate per Julian century), and W in degrees (+ rate per day), in ICRF, from J2000 TDB:
+
+  | Body | α₀ | δ₀ | W |
+  |---|---|---|---|
+  | Sun | 286.13 | 63.87 | 84.176 + 14.1844000 d |
+  | Mercury | 281.0103 − 0.0328 T | 61.4155 − 0.0049 T | 329.5988 + 6.1385108 d |
+  | Venus | 272.76 | 67.16 | 160.20 − 1.4813688 d |
+  | Earth (2009 values, kept by the file) | 0.00 − 0.641 T | 90.00 − 0.557 T | 190.147 + 360.9856235 d |
+  | Moon (2009, without its periodic terms) | 269.9949 + 0.0031 T | 66.5392 + 0.0130 T | 38.3213 + 13.17635815 d |
+  | Mars | 317.269202 − 0.10927547 T | 54.432516 − 0.05827105 T | 176.049863 + 350.891982443297 d |
+  | Jupiter | 268.056595 − 0.006499 T | 64.495303 + 0.002413 T | 284.95 + 870.5360000 d |
+  | Saturn | 40.589 − 0.036 T | 83.537 − 0.004 T | 38.90 + 810.7939024 d |
+  | Uranus | 257.311 | −15.175 | 203.81 − 501.1600928 d |
+  | Neptune (without its periodic terms) | 299.36 | 43.46 | 249.978 + 541.1397757 d |
+
+  The pack uses the J2000 values (no pole drift: under 0.7° per century) and turns them from the ICRF equator into the J2000 ecliptic with the obliquity 23.43928° (the same rotation JPL's Level A page gives).
+- **Moon frame:** the Almanac series is in the ecliptic and equinox of date. In the J2000 ecliptic its longitude rate is less the general precession, 5028.796″ per century (1.396888°), which the pack subtracts from the longitude rate.

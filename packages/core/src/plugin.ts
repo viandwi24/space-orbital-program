@@ -27,12 +27,20 @@ import {
 	type PatchSource,
 	type Provenance
 } from './patch.ts';
-import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
+import {
+	createRegistries,
+	createRegistry,
+	removeDefinition,
+	RegistryError,
+	type Registries,
+	type Registry
+} from './registry.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, GroundStationDefinition } from './comms.ts';
+import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
@@ -107,6 +115,8 @@ export interface BasePluginContext {
 	/** Comms (plan 114, ADR 0179). */
 	readonly antennas: Registrar<AntennaDefinition>;
 	readonly groundStations: Registrar<GroundStationDefinition>;
+	/** Systems and scale variants (plan 124, ADR 0184). */
+	readonly systemVariants: Registrar<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
 	readonly dossierEntries: Registrar<DossierEntryDefinition>;
 	/** Catalogue categories (plan 069, ADR 0146). */
@@ -163,6 +173,7 @@ export const REGISTRY_KINDS = [
 	'experiment',
 	'antenna',
 	'ground-station',
+	'system-variant',
 	'dossier-entry',
 	'category',
 	'objective',
@@ -196,6 +207,11 @@ export interface LoadOptions {
 	events?: EventBus<EventMap>;
 	/** Mod API version plugins are checked against. Defaults to `API_VERSION`. */
 	apiVersion?: string;
+	/**
+	 * The world's system and variant (plan 124, ADR 0184 point 2): only that system's bodies stay,
+	 * and the variant's patches apply. Absent: every body stays.
+	 */
+	system?: SystemChoice;
 }
 
 export interface LoadResult {
@@ -226,6 +242,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'experiments',
 	'antennas',
 	'groundStations',
+	'systemVariants',
 	'dossierEntries',
 	'categories',
 	'achievements',
@@ -418,6 +435,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			experiments: registrar(registries.experiments),
 			antennas: registrar(registries.antennas),
 			groundStations: registrar(registries.groundStations),
+			systemVariants: registrar(registries.systemVariants),
 			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
 			achievements: registrar(registries.achievements),
@@ -481,6 +499,9 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			);
 		}
 	}
+
+	// 4b. The world's system (ADR 0184 point 2): other systems' bodies go, the variant's patches join.
+	if (options.system) selectSystem(registries, patchRegistry, options.system);
 
 	// 5. Patches (ADR 0170), then cross-check parts against modules (the only point where both
 	// registries are complete).
@@ -589,6 +610,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				experiment: section(registries.experiments),
 				antenna: section(registries.antennas),
 				'ground-station': section(registries.groundStations),
+				'system-variant': section(registries.systemVariants),
 				'dossier-entry': section(registries.dossierEntries),
 				category: section(registries.categories),
 				objective: section(registries.objectives),
@@ -621,4 +643,37 @@ function describeCycle(
 		path.push(current);
 		current = depsOf.get(current)!.find(stuck)!;
 	}
+}
+
+/**
+ * Keep only `choice.id`'s bodies: a plugin that registered a variant owns its bodies as a system,
+ * every other plugin's bodies are the stock system's. Then register the chosen variant's patches as
+ * its plugin's (ADR 0184 point 2).
+ */
+function selectSystem(
+	registries: Registries,
+	patches: Registry<AnyPatchDefinition>,
+	choice: SystemChoice
+): void {
+	const declared = new Set(registries.systemVariants.list().map((v) => v.system));
+	const keep = (owner: string | undefined): boolean =>
+		declared.has(choice.id) ? owner === choice.id : !declared.has(owner ?? '');
+	for (const { def, by } of registries.bodies.entries()) {
+		if (!keep(by)) removeDefinition(registries.bodies, def.id);
+	}
+	if (choice.id === STOCK_SYSTEM || !choice.variant) return;
+	const variant = registries.systemVariants
+		.list()
+		.find((v) => v.system === choice.id && v.variant === choice.variant);
+	if (!variant) {
+		throw new PluginError(
+			`System "${choice.id}" has no variant "${choice.variant}"; it has ${registries.systemVariants
+				.list()
+				.filter((v) => v.system === choice.id)
+				.map((v) => `"${v.variant}"`)
+				.join(', ')}`,
+			choice.id
+		);
+	}
+	for (const patch of variant.patches ?? []) patches.register(patch, variant.system);
 }

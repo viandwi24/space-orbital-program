@@ -13,6 +13,7 @@ import type {
 	SituationDefinition,
 	AntennaDefinition,
 	GroundStationDefinition,
+	SystemVariantDefinition,
 	DossierEntryDefinition,
 	CategoryDefinition,
 	CrewNamesDefinition,
@@ -348,3 +349,14 @@ export const definePanel = (def: PanelDefinition): PanelDefinition => def;
  * world. Create World offers it. Register with `ctx.scenarios`.
  */
 export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineSystemVariant
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A scale variant of the plugin's own system (plan 124, ADR 0184): registering one makes the
+ * plugin's bodies a system a world can choose; `patches` apply only in worlds of this variant.
+ * Register with `ctx.systemVariants`.
+ */
+export const defineSystemVariant = (def: SystemVariantDefinition): SystemVariantDefinition => def;
