@@ -1,12 +1,12 @@
 ---
 id: 112
 title: "Dock panels, the Panel library and `definePanel`"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [088]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 112 — Dock panels, the Panel library and `definePanel`
@@ -67,3 +67,4 @@ Selectors run at the 10 Hz HUD cadence; canvas draws only while visible; measure
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0104).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
