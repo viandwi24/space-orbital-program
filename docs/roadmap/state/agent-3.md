@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 110 part actions on `devc/110-part-actions`: descriptors, groups, custom groups and keys pushed, rebased on 084 (API 0.1.34); full checks running, then `ready/110`.
-**Waiting for:** merge of 080 (`ready/080`).
+**Now:** 110 handed over as `ready/110` (rebased on 080, API 0.1.35). Found: 084's terrain-legacy and sites goldens fail on pure main on this Linux machine (bit-exact floats differ by 5.7e-12). Next in the lane: 092 site-choice.
+**Waiting for:** merge of 110; 092 waits for cp/f2-087-worlds-screen and cp/f2-090-buildings.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -13,7 +13,7 @@
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
-| 110 part-actions | in-progress | `devc/110-part-actions` | 2026-10-17 | claim/110; ADR 0174; API 0.1.34 |
+| 110 part-actions | handed-over | `devc/110-part-actions` | 2026-10-17 | ready/110; ADR 0174; API 0.1.35 |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | todo |  |  |  |
 | 106 crew | todo |  |  |  |
