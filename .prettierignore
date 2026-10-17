@@ -5,3 +5,4 @@ bun.lock
 *.md
 apps/web
 packages/sim/test/fixtures
+docs/roadmap/roadmap-graph.html

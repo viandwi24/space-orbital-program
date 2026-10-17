@@ -11,9 +11,9 @@ You are one of three developer agents. Each runs on its own computer, in its own
 ## Every session
 
 1. **Guard:** run your machine's resource check (roadmap §2). If a stop condition holds, clean up first.
-2. **Sync:** `git fetch origin --tags --prune`; `git switch main && git pull --ff-only`. Read `docs/roadmap/checkpoints.md` and your lane (roadmap §4.2).
+2. **Sync:** `git fetch origin --tags --prune`; `git switch main && git pull --ff-only`. Read `docs/roadmap/checkpoints.md`, your state file `docs/roadmap/state/agent-<N>.md` and your lane (roadmap §4.2).
 3. **Pick:** your open claim or `bounce/` first. Otherwise take the first task in your lane whose WAIT checkpoints all exist as tags and that has no `claim/<NNN>` tag.
-4. **Claim:** branch `<prefix>/<NNN>-<slug>` from `origin/main`. The claim commit sets the plan `in-progress`, owner `"Agent N"`, and the same status in its STATUS row. Push the branch, then push the tag `claim/<NNN>`. If the push is refused, pick again.
+4. **Claim:** branch `<prefix>/<NNN>-<slug>` from `origin/main`. The claim commit sets the plan `in-progress`, owner `"Agent N"`, and the same status in its STATUS row. Push the branch, then push the tag `claim/<NNN>`. If the push is refused, pick again. Then update your state file (step 9).
 5. **Blocked:** do your while-waiting work (roadmap §4.4), or stop and report what you wait for.
 6. **Work** by `AGENTS.md`, `CLAUDE.md` and `docs/plans/README.md`:
    - Change only the contracts in your plan's Touches.
@@ -22,12 +22,13 @@ You are one of three developer agents. Each runs on its own computer, in its own
    - Run targeted tests while iterating, and the full suite once at the end.
 7. **Hand over:** rebase on `origin/main`, run the full checks, write the journal entry, then push the annotated tag `ready/<NNN>` with the template of roadmap §7.1. Leave the plan `in-progress`.
 8. **After the merge** (a new `cp/*` tag): delete your branch, clean up, and go back to step 1.
+9. **State file (ADR 0112):** keep `docs/roadmap/state/agent-<N>.md` current: **Now**, **Waiting for**, **Updated** and your plan's row (`in-progress` at claim, `handed-over` at handover, `bounced` on a bounce). Update it at claim, at every pushed step that changes what you do or wait for, at handover and after the merge. Commit it **alone** on `main`: `git switch main && git pull --rebase`, edit, `git add docs/roadmap/state/agent-<N>.md`, commit `docs(roadmap): agent <N> state`, `git push origin main` (on a refusal: `git pull --rebase` and push again), then switch back to your branch. Never put another path in that commit.
 
-Never push `main`. Never create `cp/*` or `bounce/*` tags. Never edit `checkpoints.md`, `claims.md` or STATUS beyond your plan's row. Never use `gh`.
+Never push `main`, except a commit that changes only your own state file (step 9). Never edit another agent's state file. Never create `cp/*` or `bounce/*` tags. Never edit `checkpoints.md`, `claims.md`, `progress.md`, the other roadmap files or STATUS beyond your plan's row. Never use `gh`.
 
 ## If you are Agent 1 (Lead, M5)
 
-- **Merge queue first.** Every session, and at every natural break (at most every 30 minutes), merge the oldest `ready/*` handover with the checklist in roadmap §7.2. Publish its `cp/*` tag and update `checkpoints.md`, `claims.md` and `docs/STATUS.md`. Then continue your own lane: 077, 078, 095, 090, 068, 091, 113, 122, 096, 109, 097, 071, 125, 128, 070.
+- **Merge queue first.** Every session, and at every natural break (at most every 30 minutes), merge the oldest `ready/*` handover with the checklist in roadmap §7.2. Publish its `cp/*` tag and update `checkpoints.md`, `claims.md` and `docs/STATUS.md`; set the plan's row in the dev's state file to `done`, run `bun run roadmap:progress` and commit `progress.md` and `roadmap-graph.html` in the same completion commit. You may also edit the roadmap design files (ADR 0112). Then continue your own lane: 077, 078, 095, 090, 068, 091, 113, 122, 096, 109, 097, 071, 125, 128, 070.
 - **Kickoff, once:** push `main` with `docs/roadmap/` and tag `cp/f0-kickoff`. 077 is yours alone: make `cp/f1-077-world` land fast, because all three lanes wait for it.
 - **M5 criteria:** run every criterion marked ¹ and every renderer frame budget at merge, on a quiet machine, by the journal 054 method.
 - **Coordination:**

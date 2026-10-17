@@ -62,7 +62,7 @@ ps -eo pid,rss,comm --sort=-rss | head -8
 ### 3.1 Remote and branches
 
 - One shared remote `origin` (set up by the owner; README "No shared remote yet" has the bundle fallback). Plain `git`, never `gh`.
-- `main` is written only by Agent 1. Devs never push to `main`, never create `cp/*` or `bounce/*` tags.
+- `main` is written only by Agent 1. Devs never push to `main`, never create `cp/*` or `bounce/*` tags. **One exception (ADR 0112):** each agent commits its own state file `docs/roadmap/state/agent-N.md` alone on `main` and pushes it, so the owner sees its progress on every push. Only Agent 1 edits the other roadmap files (design) and commits the generated `progress.md`.
 - One branch per plan, cut from the latest `origin/main`: `lead/<NNN>-<slug>`, `devb/<NNN>-<slug>`, `devc/<NNN>-<slug>`. Sub-worker branches add `--w2`, `--w3` and are merged by the agent into its plan branch before handover.
 - Agents keep their branch linear. They rebase onto `origin/main` and never merge `main` into the branch. They rebase **(1)** before starting each plan (a new branch), **(2)** when a checkpoint lands that touches a package they edit, and **(3)** right before handover. They push after every step, so a crash or an offline machine loses nothing.
 - Commits use the repo style (`docs/conventions/code-style.md`). Always use explicit `git add <paths>`, never `git add -A`.
