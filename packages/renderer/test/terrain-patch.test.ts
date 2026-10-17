@@ -139,7 +139,7 @@ describe('the baked patches reproduce the height function where a vessel can tou
 	function patchError(span: number, texels: number, centreMetres: number, points: number) {
 		const ctx: TerrainContext = {
 			radius: R,
-			map: cachedPlanetMap(1024, 0, 0),
+			map: cachedPlanetMap(1024),
 			siteDirection: vec(1, 0, 0)
 		};
 		const centre = latLonDirection(0, centreMetres / R);

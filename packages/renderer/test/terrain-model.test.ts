@@ -25,7 +25,7 @@ const R = 600_000;
 const SITE = vec(1, 0, 0);
 const ctx = (): TerrainContext => ({
 	radius: R,
-	map: cachedPlanetMap(1024, 0, 0),
+	map: cachedPlanetMap(1024),
 	siteDirection: SITE
 });
 

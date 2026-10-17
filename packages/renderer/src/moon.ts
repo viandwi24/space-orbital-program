@@ -100,7 +100,7 @@ type PatchKind = 'mid' | 'fine';
 
 /** The canonical biome map (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
 function biomeTexture(): DataTexture {
-	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH, 0, 0);
+	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH);
 	const t = new DataTexture(m.data, m.width, m.height, RGBAFormat, UnsignedByteType);
 	t.colorSpace = NoColorSpace;
 	t.wrapS = RepeatWrapping;

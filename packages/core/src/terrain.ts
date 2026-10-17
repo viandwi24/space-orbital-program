@@ -10,7 +10,13 @@
  * `TERRAIN_MAX_SLOPE`.
  */
 import type { Vec3 } from './math.ts';
-import { SEA_LEVEL, cachedPlanetMap, sampleMap, type PlanetMap } from './planet-map.ts';
+import {
+	LEGACY_TERRAIN_SEED,
+	SEA_LEVEL,
+	cachedPlanetMap,
+	sampleMap,
+	type PlanetMap
+} from './planet-map.ts';
 
 /** Upper bound of every height, m; the ray march only looks inside the shell below this. */
 export const TERRAIN_MAX_HEIGHT = 4_500;
@@ -20,6 +26,35 @@ export const TERRAIN_MAX_SLOPE = 1;
 /** Terrain is exactly zero this far from the launch site, then rises over `SITE_BLEND_WIDTH`. */
 export const SITE_FLAT_RADIUS = 5_000;
 export const SITE_BLEND_WIDTH = 11_000;
+
+/** Most flat zones (sites) on one body: the GLSL twin takes a fixed uniform array (ADR 0142 point 4). */
+export const MAX_TERRAIN_ZONES = 8;
+
+/**
+ * A flat zone of a site (ADR 0142 point 3): exactly zero within `flatRadius` m of arc of its centre,
+ * full relief again `blendWidth` m further out.
+ */
+export interface TerrainZone {
+	latitude: number;
+	longitude: number;
+	flatRadius: number;
+	blendWidth: number;
+}
+
+/** The zone of the Legacy launch site: (0, 0), 5 km flat, 11 km blend. */
+export const LEGACY_ZONE: TerrainZone = {
+	latitude: 0,
+	longitude: 0,
+	flatRadius: SITE_FLAT_RADIUS,
+	blendWidth: SITE_BLEND_WIDTH
+};
+
+/**
+ * Integer shift of the noise lattice for a terrain seed (ADR 0142 point 2): 0 for the Legacy seed,
+ * so every hash of the Legacy world is the hash of before; a world seed moves the whole field.
+ */
+export const terrainShift = (seed: number): number =>
+	(Math.imul((seed - LEGACY_TERRAIN_SEED) | 0, 2654435761 | 0) >>> 0) & 0xffff;
 
 /** Width of the canonical biome map every height is read from, whatever the graphics preset. */
 export const TERRAIN_MAP_WIDTH = 1024;
@@ -133,17 +168,20 @@ export function pcgX(ix: number, iy: number, iz: number): number {
 const fade = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);
 const mix = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-/** Value noise in [0, 1] of `q * freq`, lattice shifted by `salt` (twin of `noiseT` in GLSL). */
-export function terrainNoise(q: Vec3, freq: number, salt: number): number {
+/**
+ * Value noise in [0, 1] of `q * freq`, lattice shifted by `salt` and by the seed's `shift` (twin of
+ * `noiseT` in GLSL).
+ */
+export function terrainNoise(q: Vec3, freq: number, salt: number, shift = 0): number {
 	const fx = q.x * freq;
 	const fy = q.y * freq;
 	const fz = q.z * freq;
 	const x0 = Math.floor(fx);
 	const y0 = Math.floor(fy);
 	const z0 = Math.floor(fz);
-	const cx = x0 + salt * 131;
-	const cy = y0 + salt * 71;
-	const cz = z0 + salt * 17;
+	const cx = x0 + salt * 131 + shift;
+	const cy = y0 + salt * 71 + shift;
+	const cz = z0 + salt * 17 + shift;
 	const tx = fade(fx - x0);
 	const ty = fade(fy - y0);
 	const tz = fade(fz - z0);
@@ -186,14 +224,14 @@ const turn = (q: Vec3): Vec3 => {
 	);
 };
 
-function fbm(q0: Vec3, wavelengthKm: number, octaves: number, salt: number): number {
+function fbm(q0: Vec3, wavelengthKm: number, octaves: number, salt: number, shift: number): number {
 	let q = q0;
 	let sum = 0;
 	let amp = 1;
 	let norm = 0;
 	let freq = 1 / wavelengthKm;
 	for (let i = 0; i < octaves; i++) {
-		sum += amp * terrainNoise(q, freq, salt + i);
+		sum += amp * terrainNoise(q, freq, salt + i, shift);
 		norm += amp;
 		amp *= 0.5;
 		freq *= 2;
@@ -219,14 +257,20 @@ const softRidge = (n: number): number => {
 	return 1 - (Math.sqrt(x * x + e * e) - e);
 };
 
-function ridged(q0: Vec3, wavelengthKm: number, octaves: number, salt: number): number {
+function ridged(
+	q0: Vec3,
+	wavelengthKm: number,
+	octaves: number,
+	salt: number,
+	shift: number
+): number {
 	let q = q0;
 	let sum = 0;
 	let amp = 1;
 	let norm = 0;
 	let freq = 1 / wavelengthKm;
 	for (let i = 0; i < octaves; i++) {
-		sum += amp * softRidge(terrainNoise(q, freq, salt + i));
+		sum += amp * softRidge(terrainNoise(q, freq, salt + i, shift));
 		norm += amp;
 		amp *= 0.5;
 		freq *= 2;
@@ -242,9 +286,51 @@ export interface TerrainContext {
 	radius: number;
 	/** The biome map (elevation drives where land and uplands are). */
 	map: PlanetMap;
-	/** Unit body-fixed direction of the launch site. */
-	siteDirection: Vec3;
+	/**
+	 * Unit body-fixed direction of the launch site: the one Legacy-sized zone when `zones` is absent
+	 * (contexts written before plan 084).
+	 */
+	siteDirection?: Vec3;
+	/** Flat zones, the first being the primary site (ADR 0142 point 3); at most `MAX_TERRAIN_ZONES`. */
+	zones?: readonly TerrainZone[];
+	/** Noise lattice shift of the terrain seed (`terrainShift`); 0 is the Legacy terrain. */
+	shift?: number;
 }
+
+/** A zone with its unit direction, as the height function reads it. */
+interface ZoneAt {
+	direction: Vec3;
+	flatRadius: number;
+	blendWidth: number;
+}
+
+const zoneCache = new WeakMap<TerrainContext, ZoneAt[]>();
+
+/** The zones of a context with their directions (cached per context object). */
+function zonesAt(ctx: TerrainContext): ZoneAt[] {
+	let zones = zoneCache.get(ctx);
+	if (!zones) {
+		zones = ctx.zones
+			? ctx.zones.map((z) => ({
+					direction: latLonDirection(z.latitude, z.longitude),
+					flatRadius: z.flatRadius,
+					blendWidth: z.blendWidth
+				}))
+			: [
+					{
+						direction: ctx.siteDirection ?? latLonDirection(0, 0),
+						flatRadius: SITE_FLAT_RADIUS,
+						blendWidth: SITE_BLEND_WIDTH
+					}
+				];
+		zoneCache.set(ctx, zones);
+	}
+	return zones;
+}
+
+/** Metres of arc from `n` to a zone's centre. */
+const arcTo = (n: Vec3, z: ZoneAt, radius: number): number =>
+	radius * Math.acos(clamp(dot(n, z.direction), -1, 1));
 
 /** Latitude/longitude of a body-fixed unit direction (map convention: +Y north, longitude 0 on +X). */
 export const directionLatLon = (n: Vec3): [number, number] => [
@@ -264,7 +350,7 @@ export const latLonDirection = (latitude: number, longitude: number): Vec3 =>
  * Latitude/longitude at which the biome map is read for the direction `n` of a body of `radius`:
  * the true one displaced by the smooth `MAP_WARP` (GLSL twin: `warpedLatLon` in `terrain.glsl.ts`).
  */
-export function warpedLatLon(n: Vec3, radius: number): [number, number] {
+export function warpedLatLon(n: Vec3, radius: number, shift = 0): [number, number] {
 	const [lat, lon] = directionLatLon(n);
 	const q = scale(n, radius / 1000);
 	const w = MAP_WARP;
@@ -273,8 +359,8 @@ export function warpedLatLon(n: Vec3, radius: number): [number, number] {
 	let norm = 0;
 	for (let i = 0; i < 2; i++) {
 		const freq = 1 / w.wavelengthsKm[i]!;
-		dLat += w.weights[i]! * (2 * terrainNoise(q, freq, w.saltsLat[i]!) - 1);
-		dLon += w.weights[i]! * (2 * terrainNoise(q, freq, w.saltsLon[i]!) - 1);
+		dLat += w.weights[i]! * (2 * terrainNoise(q, freq, w.saltsLat[i]!, shift) - 1);
+		dLon += w.weights[i]! * (2 * terrainNoise(q, freq, w.saltsLon[i]!, shift) - 1);
 		norm += w.weights[i]!;
 	}
 	const k = w.amplitude / norm;
@@ -286,8 +372,8 @@ export const siteWeight = (arcMetres: number): number =>
 	smoothstep(SITE_FLAT_RADIUS, SITE_FLAT_RADIUS + SITE_BLEND_WIDTH, arcMetres);
 
 /** Raw basin potential in [0, 1] at the position `q` (km, body-fixed) on the sphere. */
-export const lakePotential = (q: Vec3): number =>
-	terrainNoise(q, 1 / LAKE_SHAPE.wavelengthKm, LAKE_SHAPE.salt);
+export const lakePotential = (q: Vec3, shift = 0): number =>
+	terrainNoise(q, 1 / LAKE_SHAPE.wavelengthKm, LAKE_SHAPE.salt, shift);
 
 /** The launch-site gate of the lake level: 0 within `siteFrom` m of arc, 1 beyond `siteTo`. */
 export const lakeGate = (arc: number): number =>
@@ -304,10 +390,19 @@ export const lakeCap = (level: number): number =>
 export const lakeDepthAt = (inside: number): number =>
 	LAKE_SHAPE.depthMetres * clamp(inside / LAKE_SHAPE.depthRampMetres, 0, 1);
 
+/** The lake gate of every zone: lakes keep away from each site (ADR 0142 point 3). */
+function zonesLakeGate(n: Vec3, ctx: TerrainContext): number {
+	let gate = 1;
+	for (const z of zonesAt(ctx)) gate = Math.min(gate, lakeGate(arcTo(n, z, ctx.radius)));
+	return gate;
+}
+
 /** Gated lake level at the unit body-fixed direction `n` (the twin of what the planet pass computes). */
 export function lakeLevelAt(n: Vec3, ctx: TerrainContext): number {
-	const arc = ctx.radius * Math.acos(clamp(dot(n, ctx.siteDirection), -1, 1));
-	return lakeLevel(lakePotential(scale(n, ctx.radius / 1000)), lakeGate(arc));
+	return lakeLevel(
+		lakePotential(scale(n, ctx.radius / 1000), ctx.shift ?? 0),
+		zonesLakeGate(n, ctx)
+	);
 }
 
 /** True where the ground at `n` is the flat floor of a lake (its surface is the height function's zero). */
@@ -317,34 +412,44 @@ export const isLake = (n: Vec3, ctx: TerrainContext): boolean =>
 /** Height in metres above the reference sphere of the unit body-fixed direction `n`. */
 export function terrainHeight(n: Vec3, ctx: TerrainContext): number {
 	const s = TERRAIN_SHAPE;
-	const [lat, lon] = warpedLatLon(n, ctx.radius);
+	const shift = ctx.shift ?? 0;
+	const [lat, lon] = warpedLatLon(n, ctx.radius, shift);
 	const e = sampleMap(ctx.map, lat, lon)[0];
 	const land = smoothstep(s.landStart, s.landFull, e);
 	if (land <= 0) return 0;
-	const arc = ctx.radius * Math.acos(clamp(dot(n, ctx.siteDirection), -1, 1));
-	const site = siteWeight(arc);
+	// every zone flattens (product of the weights); the first is the primary site with the massif
+	const zones = zonesAt(ctx);
+	const arc = arcTo(n, zones[0]!, ctx.radius);
+	let site = 1;
+	let gate = 1;
+	for (let i = 0; i < zones.length; i++) {
+		const z = zones[i]!;
+		const a = i === 0 ? arc : arcTo(n, z, ctx.radius);
+		site *= smoothstep(z.flatRadius, z.flatRadius + z.blendWidth, a);
+		gate = Math.min(gate, lakeGate(a));
+	}
 	if (site <= 0) return 0;
 	const q = scale(n, ctx.radius / 1000);
-	const hillN = fbm(q, s.hillWavelengthKm, s.hillOctaves, 11);
+	const hillN = fbm(q, s.hillWavelengthKm, s.hillOctaves, 11, shift);
 	const hills = s.hillAmplitude * smoothstep(s.hillLow, s.hillHigh, hillN);
 	const rangeN =
-		0.65 * terrainNoise(q, 1 / s.rangeWavelengthsKm[0], s.rangeSalts[0]) +
-		0.35 * terrainNoise(q, 1 / s.rangeWavelengthsKm[1], s.rangeSalts[1]);
+		0.65 * terrainNoise(q, 1 / s.rangeWavelengthsKm[0], s.rangeSalts[0], shift) +
+		0.35 * terrainNoise(q, 1 / s.rangeWavelengthsKm[1], s.rangeSalts[1], shift);
 	const backdrop =
 		smoothstep(s.backdropRiseMetres[0], s.backdropRiseMetres[1], arc) *
 		(1 - smoothstep(s.backdropFallMetres[0], s.backdropFallMetres[1], arc)) *
 		smoothstep(
 			s.backdropLow,
 			s.backdropHigh,
-			terrainNoise(q, 1 / s.backdropWavelengthKm, s.backdropSalt)
+			terrainNoise(q, 1 / s.backdropWavelengthKm, s.backdropSalt, shift)
 		);
 	const range = smoothMax(smoothstep(s.rangeLow, s.rangeHigh, rangeN), backdrop);
-	const ridge = ridged(q, s.ridgeWavelengthKm, s.ridgeOctaves, 31);
+	const ridge = ridged(q, s.ridgeWavelengthKm, s.ridgeOctaves, 31, shift);
 	const upland = smoothstep(s.uplandLow, s.uplandHigh, e);
 	const mountains =
 		s.mountainAmplitude * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
 	const relief = land * site * (hills + mountains);
-	return Math.min(relief, lakeCap(lakeLevel(lakePotential(q), lakeGate(arc))));
+	return Math.min(relief, lakeCap(lakeLevel(lakePotential(q, shift), gate)));
 }
 
 // --- the field the sim and the host pass around -----------------------------------------------
@@ -360,26 +465,44 @@ export interface TerrainField {
 export interface TerrainFieldOptions {
 	/** Body radius, m. */
 	radius: number;
-	/** Launch site, rad (body-fixed); the pad stays flat. Default 0, 0 like the sim and the renderer. */
-	latitude?: number;
-	longitude?: number;
+	/** Terrain seed (ADR 0142 point 2); default the Legacy seed. */
+	seed?: number;
+	/** Flat zones, primary site first (ADR 0142 point 3); default the Legacy zone. At most 8. */
+	zones?: readonly TerrainZone[];
+}
+
+/** Checks a zone list: 1 to `MAX_TERRAIN_ZONES` zones with finite coordinates and positive sizes. */
+export function checkTerrainZones(zones: readonly TerrainZone[]): void {
+	if (zones.length < 1 || zones.length > MAX_TERRAIN_ZONES) {
+		throw new RangeError(`terrain: 1 to ${MAX_TERRAIN_ZONES} flat zones, got ${zones.length}`);
+	}
+	for (const z of zones) {
+		const ok =
+			Number.isFinite(z.latitude) &&
+			Number.isFinite(z.longitude) &&
+			z.flatRadius > 0 &&
+			z.blendWidth > 0;
+		if (!ok) throw new RangeError(`terrain: invalid flat zone ${JSON.stringify(z)}`);
+	}
 }
 
 /**
- * The procedural terrain of the home planet (`terrainHeight` on the canonical biome map). The map
- * (0.3 s) is built on the first query and cached per site; creating the field costs nothing.
+ * The procedural terrain of the home planet (`terrainHeight` on the canonical biome map of the seed
+ * and zones). The map (0.3 s) is built on the first query and cached; creating the field costs nothing.
  */
 export function createTerrainField(options: TerrainFieldOptions): TerrainField {
-	const latitude = options.latitude ?? 0;
-	const longitude = options.longitude ?? 0;
+	const seed = options.seed ?? LEGACY_TERRAIN_SEED;
+	const zones = options.zones ?? [LEGACY_ZONE];
+	checkTerrainZones(zones);
 	let ctx: TerrainContext | undefined;
 	return {
 		maxHeight: TERRAIN_MAX_HEIGHT,
 		heightAt(direction) {
 			ctx ??= {
 				radius: options.radius,
-				map: cachedPlanetMap(TERRAIN_MAP_WIDTH, latitude, longitude),
-				siteDirection: latLonDirection(latitude, longitude)
+				map: cachedPlanetMap(TERRAIN_MAP_WIDTH, { seed, zones }),
+				zones,
+				shift: terrainShift(seed)
 			};
 			return terrainHeight(direction, ctx);
 		}

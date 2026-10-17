@@ -5,7 +5,14 @@
  */
 import type { BodyDefinition } from './definitions.ts';
 import { createMoonTerrainField } from './moon-terrain.ts';
-import { createTerrainField, type TerrainField } from './terrain.ts';
+import { createTerrainField, type TerrainField, type TerrainZone } from './terrain.ts';
+
+/** The world's part of a terrain (ADR 0142 point 6): its seed and the flat zones on the body. */
+export interface WorldTerrain {
+	seed: number;
+	/** The sites on this body; empty or absent gives the Legacy zone. */
+	zones?: readonly TerrainZone[];
+}
 
 /** The terrain kinds a body can name. */
 export type BodyTerrainKind = NonNullable<BodyDefinition['terrain']>['kind'];
@@ -24,11 +31,16 @@ export const cratersSeedOf = (body: Pick<BodyDefinition, 'terrain'>): number =>
  * passes bake.
  */
 export function createBodyTerrainField(
-	body: Pick<BodyDefinition, 'radius' | 'terrain'>
+	body: Pick<BodyDefinition, 'radius' | 'terrain'>,
+	world?: WorldTerrain
 ): TerrainField | undefined {
 	switch (body.terrain?.kind) {
 		case 'hills':
-			return createTerrainField({ radius: body.radius });
+			return createTerrainField({
+				radius: body.radius,
+				...(world ? { seed: world.seed } : {}),
+				...(world?.zones && world.zones.length > 0 ? { zones: world.zones } : {})
+			});
 		case 'craters':
 			return createMoonTerrainField({ radius: body.radius, seed: body.terrain.seed ?? 0 });
 		case undefined:
