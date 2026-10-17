@@ -71,18 +71,13 @@ void main() {
 }
 `;
 
-/** Height function, encoding and uniforms shared by the cube and patch bakes. */
-const terrainBakeCommon = /* glsl */ `
-${hashNoiseGLSL}
-${terrainNoiseGLSL}
-${terrainTangentGLSL}
-varying vec2 vUv;
-uniform sampler2D uMap;
-uniform float uTexel;   // angular size of one texel at the centre, rad
-uniform float uRadius;
-uniform vec3 uSiteDir;  // unit, body-fixed
-
-const float PI_ = 3.14159265359;
+/**
+ * The height function of the terrain, `heightAt(n)` (twin of `terrainHeight` in core), with the
+ * noise it needs. It reads the uniforms `uMap` (the biome map), `uRadius` and `uSiteDir`, which the
+ * including shader declares before it. The planet pass's bakes and a later body's ground pass
+ * (ADR 0090) run this one text.
+ */
+export const terrainHeightGLSL = /* glsl */ `const float PI_ = 3.14159265359;
 float fbmT(vec3 q, float wavelengthKm, int octaves, int salt) {
 	float sum = 0.0;
 	float amp = 1.0;
@@ -142,7 +137,20 @@ float heightAt(vec3 n) {
 	float lakeLevel = noiseT(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * smoothstep(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, arc);
 	float lakeCap = max(0.0, ${f(LAKE.slope)} * (${f(LAKE.to)} - lakeLevel) / ${LAKE.gradientBound.toExponential()});
 	return min(land * site * (hills + mountains), lakeCap);
-}
+}`;
+
+/** Height function, encoding and uniforms shared by the cube and patch bakes. */
+const terrainBakeCommon = /* glsl */ `
+${hashNoiseGLSL}
+${terrainNoiseGLSL}
+${terrainTangentGLSL}
+varying vec2 vUv;
+uniform sampler2D uMap;
+uniform float uTexel;   // angular size of one texel at the centre, rad
+uniform float uRadius;
+uniform vec3 uSiteDir;  // unit, body-fixed
+
+${terrainHeightGLSL}
 
 
 // One baked texel for the unit body-fixed direction n; d is the angular size of a texel, rad.

@@ -150,7 +150,7 @@ export class SceneModel {
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
 	private readonly bodies = new Map<string, { holder: Object3D; radius: number }>();
-	/** Airless bodies other than the first, drawn by the moon pass (ADR 0054). */
+	/** Bodies other than the first with a craters or hills ground, drawn by the ground (moon) pass (ADR 0054, 0090). */
 	private readonly moons = new Map<string, MoonPass>();
 	/** Map view furniture of a body with a parent: its orbit around the parent and its sphere of influence. */
 	private readonly bodyMarks = new Map<
@@ -226,14 +226,19 @@ export class SceneModel {
 		config.bodies.forEach((b, i) => {
 			const holder = new Object3D();
 			holder.name = `body:${b.id}`;
-			if (i > 0 && b.terrain?.kind === 'craters') {
-				// A body other than the first whose terrain is craters: the moon pass (ADR 0054, 0067).
-				const moon = new MoonPass(b.id, b.radius, { seed: b.terrain.seed ?? 0 });
+			if (i > 0 && (b.terrain?.kind === 'craters' || b.terrain?.kind === 'hills')) {
+				// A body other than the first whose terrain is craters or hills: the ground pass, the moon
+				// pass with that kind's height function (ADR 0054, 0067, 0090).
+				const moon = new MoonPass(
+					b.id,
+					b.radius,
+					b.terrain.kind === 'hills' ? { kind: 'hills' } : { seed: b.terrain.seed ?? 0 }
+				);
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
 			} else if (i > 0) {
-				// Other bodies (no terrain, or a kind only the first body is drawn with) stay plain lit spheres (ADR 0027, 0067).
+				// A body with no terrain stays a plain lit sphere (ADR 0027, 0067).
 				const mesh = new Mesh(
 					this.sphere,
 					new MeshLambertMaterial({ color: BODY_COLORS[i % BODY_COLORS.length] ?? 0x888888 })
@@ -817,6 +822,8 @@ export class SceneModel {
 	 * near the ground (the march is for the ground's shadows); recomputed when the vessel or the sun moved.
 	 */
 	private vesselTerrainLight(moon: MoonPass, rot: Quat, position: Vec3, sun: Vec3): number {
+		// the march is the craters' (a hills body draws no terrain shadows, ADR 0090)
+		if (moon.kind !== 'craters') return 1;
 		const p = rotateInverse(rot, position);
 		const r = Math.hypot(p.x, p.y, p.z);
 		const prev = this.vesselLight;

@@ -5,41 +5,62 @@
  * three read heights baked from the GLSL twin of `@orbital/core` `moonHeight`, so the ground the
  * camera sees is the ground the sim stands a lander on.
  */
-import { moonHeight, type Vec3 } from '@orbital/core';
+import {
+	TERRAIN_MAP_WIDTH,
+	cachedPlanetMap,
+	createTerrainField,
+	moonHeight,
+	type TerrainField,
+	type Vec3
+} from '@orbital/core';
 import {
 	BufferAttribute,
 	BufferGeometry,
+	ClampToEdgeWrapping,
 	Color,
+	DataTexture,
 	FloatType,
 	HalfFloatType,
 	IcosahedronGeometry,
 	LinearFilter,
+	LinearMipmapLinearFilter,
 	Mesh,
 	MeshDepthMaterial,
 	MeshLambertMaterial,
 	NearestFilter,
+	NoColorSpace,
 	Object3D,
 	OrthographicCamera,
 	RGBADepthPacking,
 	RGBAFormat,
+	RepeatWrapping,
 	Scene,
 	ShaderChunk,
 	ShaderMaterial,
+	Sphere,
 	Uniform,
+	UnsignedByteType,
 	Vector3,
 	WebGLCubeRenderTarget,
 	WebGLRenderTarget,
 	type WebGLRenderer
 } from 'three';
 import {
-	MOON_BAKE_DISTANCE,
-	MOON_CUBE_SIZE,
-	MOON_GLOBE_DETAIL,
+	GROUND_SPECS,
 	MOON_PATCHES,
 	MOON_PATCH_MAX_ALTITUDE,
-	MOON_SKIRT_DROP
+	type GroundKind,
+	type GroundSpec
 } from './moon-model.ts';
 import {
+	hillsCubeFragment,
+	hillsFragmentBump,
+	hillsFragmentColor,
+	hillsFragmentCommon,
+	hillsGlobeTail,
+	hillsPatchFragment,
+	hillsPatchTail,
+	hillsVertexCommon,
 	moonBakeVertex,
 	moonCubeFragment,
 	moonFragmentBump,
@@ -76,6 +97,20 @@ type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
 
 type PatchKind = 'mid' | 'fine';
+
+/** The canonical biome map (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
+function biomeTexture(): DataTexture {
+	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH, 0, 0);
+	const t = new DataTexture(m.data, m.width, m.height, RGBAFormat, UnsignedByteType);
+	t.colorSpace = NoColorSpace;
+	t.wrapS = RepeatWrapping;
+	t.wrapT = ClampToEdgeWrapping;
+	t.magFilter = LinearFilter;
+	t.minFilter = LinearMipmapLinearFilter;
+	t.generateMipmaps = true;
+	t.needsUpdate = true;
+	return t;
+}
 
 /** A stone's shadow ray starts this far above the ground under it, m (its body is as high as that). */
 const STONES_LIFT = 0.3;
@@ -151,6 +186,13 @@ export class MoonPass {
 	readonly radius: number;
 	/** The crater field seed of the body (ADR 0067). */
 	readonly seed: number;
+	/** The ground the pass draws (ADR 0090). */
+	readonly kind: GroundKind;
+	private readonly spec: GroundSpec;
+	/** The sim's own height field of a hills body (the same function the GPU bake runs). */
+	private hillsField: TerrainField | null = null;
+	/** The biome map a hills body is baked and coloured from. */
+	private readonly biome: DataTexture | null;
 	/** Stones as instanced geometry round the camera (ADR 0068). */
 	readonly stones: MoonStones;
 	private readonly globe: Mesh;
@@ -172,10 +214,14 @@ export class MoonPass {
 	constructor(
 		readonly id: string,
 		radius: number,
-		options: { tint?: [number, number, number]; seed?: number } = {}
+		options: { tint?: [number, number, number]; seed?: number; kind?: GroundKind } = {}
 	) {
 		this.radius = radius;
 		this.seed = options.seed ?? 0;
+		this.kind = options.kind ?? 'craters';
+		this.spec = GROUND_SPECS[this.kind];
+		this.biome = this.kind === 'hills' ? biomeTexture() : null;
+		const hills = this.kind === 'hills';
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
@@ -184,8 +230,10 @@ export class MoonPass {
 			// (the vessel's own terrain shadow, ADR 0068): the ground divides it out again
 			uSunBody: u(new Vector3(1, 0, 0)),
 			uSunScale: u(1),
-			uShadowOn: u(1),
-			uShadowSteps: u(SHADOW_STEPS.high)
+			// terrain shadows are the craters' (ADR 0090); a hills body's march constants would be wrong
+			uShadowOn: u(hills ? 0 : 1),
+			uShadowSteps: u(SHADOW_STEPS.high),
+			uMap: u<unknown>(this.biome)
 		};
 		this.root.name = `moon:${id}`;
 
@@ -196,17 +244,25 @@ export class MoonPass {
 		);
 		this.cubeMaterial = new ShaderMaterial({
 			vertexShader: moonBakeVertex,
-			fragmentShader: moonCubeFragment,
-			uniforms: { uRadius: this.shared.uRadius!, uFace: u(0), uSeed: u(this.seed) },
+			fragmentShader: hills ? hillsCubeFragment : moonCubeFragment,
+			uniforms: {
+				uRadius: this.shared.uRadius!,
+				uFace: u(0),
+				uSeed: u(this.seed),
+				uMap: this.shared.uMap!,
+				uSiteDir: u(new Vector3(1, 0, 0))
+			},
 			depthTest: false,
 			depthWrite: false
 		});
 		this.patchMaterial = new ShaderMaterial({
 			vertexShader: moonBakeVertex,
-			fragmentShader: moonPatchFragment,
+			fragmentShader: hills ? hillsPatchFragment : moonPatchFragment,
 			uniforms: {
 				uRadius: this.shared.uRadius!,
 				uSeed: u(this.seed),
+				uMap: this.shared.uMap!,
+				uSiteDir: u(new Vector3(1, 0, 0)),
 				uPatchC: u(new Vector3()),
 				uPatchE: u(new Vector3()),
 				uPatchF: u(new Vector3()),
@@ -221,7 +277,7 @@ export class MoonPass {
 		this.bakeScene.add(quad);
 		this.bakeQuad = quad;
 
-		const globeGeometry = new IcosahedronGeometry(1, MOON_GLOBE_DETAIL);
+		const globeGeometry = new IcosahedronGeometry(1, this.spec.globeDetail);
 		const globeUniforms = {
 			...this.shared,
 			uCube: u<unknown>(null),
@@ -234,6 +290,11 @@ export class MoonPass {
 		};
 		this.globe = new Mesh(globeGeometry, this.material('globe', globeUniforms));
 		this.globe.frustumCulled = false;
+		if (hills) {
+			// the unit sphere is displaced in the vertex shader: tell the culling where the ground really is
+			globeGeometry.boundingSphere = new Sphere(new Vector3(), radius + 6_000);
+			this.globe.frustumCulled = true;
+		}
 		this.globe.receiveShadow = true;
 		this.globe.renderOrder = -5;
 		this.globe.userData.uniforms = globeUniforms;
@@ -250,7 +311,7 @@ export class MoonPass {
 				uF: u(new Vector3(0, 0, 1)),
 				uK: u(spec.span / (2 * radius)),
 				uHc: u(0),
-				uDrop: u(MOON_SKIRT_DROP),
+				uDrop: u(this.spec.skirtDrop),
 				uCoverC: u(new Vector3(1, 0, 0)),
 				uCoverE: u(new Vector3(0, 1, 0)),
 				uCoverF: u(new Vector3(0, 0, 1)),
@@ -313,14 +374,16 @@ export class MoonPass {
 		uniforms: Record<string, U<unknown>>
 	): MeshLambertMaterial {
 		const material = new MeshLambertMaterial({ color: 0xffffff });
+		const hills = this.kind === 'hills';
 		material.onBeforeCompile = (shader) => {
 			Object.assign(shader.uniforms, uniforms);
 			const globe = kind === 'globe';
 			const stone = kind === 'stone';
+			const tail = hills ? (globe ? hillsGlobeTail : hillsPatchTail) : '';
 			shader.vertexShader = shader.vertexShader
 				.replace(
 					'#include <common>',
-					`#include <common>\n${moonVertexCommon}\n${globe ? moonGlobeVertex : moonPatchVertex}${stone ? moonStoneVertex : ''}`
+					`#include <common>\n${moonVertexCommon}\n${hills ? hillsVertexCommon : ''}${globe ? moonGlobeVertex : moonPatchVertex}${stone ? moonStoneVertex : ''}`
 				)
 				.replace(
 					'#include <beginnormal_vertex>',
@@ -328,8 +391,20 @@ export class MoonPass {
 				)
 				.replace(
 					'#include <begin_vertex>',
-					globe ? moonGlobeBegin : stone ? moonStoneBegin : moonPatchBegin
+					`${globe ? moonGlobeBegin : stone ? moonStoneBegin : moonPatchBegin}${tail}`
 				);
+			if (hills) {
+				// A hills body: the biome colours and a grain bump; no terrain shadows and no stones (ADR 0090).
+				shader.fragmentShader = shader.fragmentShader
+					.replace('#include <common>', `#include <common>\n${hillsFragmentCommon}\n${FOOTPRINT}`)
+					.replace('void main() {', 'void main() {\n\tif (covered(vMoonN)) discard;')
+					.replace('#include <color_fragment>', `#include <color_fragment>\n${hillsFragmentColor}`)
+					.replace(
+						'#include <normal_fragment_maps>',
+						`#include <normal_fragment_maps>\n${hillsFragmentBump}`
+					);
+				return;
+			}
 			// Terrain shadows on the patches and the stones; the whole-body mesh is seen from too far for them.
 			const shadowed = !globe;
 			shader.fragmentShader = shader.fragmentShader
@@ -358,7 +433,7 @@ export class MoonPass {
 				);
 			}
 		};
-		material.customProgramCacheKey = () => `moon-${kind}`;
+		material.customProgramCacheKey = () => `moon-${this.kind === 'hills' ? 'hills-' : ''}${kind}`;
 		return material;
 	}
 
@@ -385,6 +460,10 @@ export class MoonPass {
 
 	/** Height of the ground (the same field the sim uses) along a unit body-fixed direction, m. */
 	groundHeight(direction: Vec3): number {
+		if (this.kind === 'hills') {
+			this.hillsField ??= createTerrainField({ radius: this.radius });
+			return this.hillsField.heightAt(direction);
+		}
 		return moonHeight(direction, this.radius, this.seed);
 	}
 
@@ -395,8 +474,10 @@ export class MoonPass {
 
 	/** Dev/benchmark hook: the terrain shadows and the instanced stones on or off. */
 	setDetail(shadows: boolean, stones: boolean): void {
-		(this.shared.uShadowOn as U<number>).value = shadows ? 1 : 0;
-		this.stonesOn = stones;
+		if (this.kind === 'craters') {
+			(this.shared.uShadowOn as U<number>).value = shadows ? 1 : 0;
+			this.stonesOn = stones;
+		}
 	}
 
 	/**
@@ -414,7 +495,9 @@ export class MoonPass {
 	 */
 	update(cameraBodyFixed: Vec3): void {
 		const distance = length(cameraBodyFixed);
-		if (distance < MOON_BAKE_DISTANCE * this.radius) this.cubeWanted = true;
+		const bakeAt = this.spec.bakeDistance * this.radius;
+		if (distance < bakeAt) this.cubeWanted = true;
+		else if (this.spec.releaseCube && distance > 2 * bakeAt) this.releaseCube();
 		const direction = normalize(cameraBodyFixed);
 		const altitude = distance - this.radius - this.groundHeight(direction);
 		this.patchesOn = altitude < MOON_PATCH_MAX_ALTITUDE;
@@ -441,7 +524,7 @@ export class MoonPass {
 		this.stones.update(
 			direction,
 			altitude,
-			this.patchesOn && this.stonesOn ? this.slots.fine.frame : null
+			this.patchesOn && this.stonesOn && this.kind === 'craters' ? this.slots.fine.frame : null
 		);
 	}
 
@@ -471,8 +554,20 @@ export class MoonPass {
 		gl.autoClear = autoClear;
 	}
 
+	/** The camera is far from a hills body: its 50 MB cube map goes and the globe is a plain sphere until the camera returns. */
+	private releaseCube(): void {
+		if (!this.cubeWanted && !this.cube) return;
+		this.cubeWanted = false;
+		this.cubeFaces = 0;
+		this.cube?.dispose();
+		this.cube = null;
+		const uniforms = this.globe.userData.uniforms as Record<string, U<unknown>>;
+		uniforms.uCube!.value = null;
+		(uniforms.uCubeOn as U<number>).value = 0;
+	}
+
 	private bakeCube(gl: WebGLRenderer): void {
-		this.cube ??= new WebGLCubeRenderTarget(MOON_CUBE_SIZE, {
+		this.cube ??= new WebGLCubeRenderTarget(this.spec.cubeSize, {
 			type: HalfFloatType,
 			format: RGBAFormat,
 			generateMipmaps: false,
@@ -560,6 +655,7 @@ export class MoonPass {
 		this.stones.dispose();
 		(this.stones.near.material as MeshLambertMaterial).dispose();
 		this.cube?.dispose();
+		this.biome?.dispose();
 		this.cubeMaterial.dispose();
 		this.patchMaterial.dispose();
 		this.bakeQuad.geometry.dispose();

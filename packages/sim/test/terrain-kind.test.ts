@@ -34,13 +34,21 @@ const Pebbles = definePlugin({
 	setup(ctx) {
 		ctx.bodies.register(body('test.pebble', { terrain: { kind: 'craters', seed: 7 } }));
 		ctx.bodies.register(body('test.smooth', {}));
+		// Plan 059: a second planet with the home planet's hills, without and with an atmosphere.
+		ctx.bodies.register(body('test.hills', { terrain: { kind: 'hills' } }));
+		ctx.bodies.register(
+			body('test.hills-air', {
+				terrain: { kind: 'hills' },
+				atmosphere: { scaleHeight: 4_000, surfacePressure: 20_000, height: 40_000 }
+			})
+		);
 	}
 });
 
 /** 60 km from the landing plain: well into the craters. */
 const LONGITUDE = 60_000 / RADIUS;
 
-async function standOn(bodyId: string) {
+async function standOn(bodyId: string, longitude = LONGITUDE) {
 	const sim = await createSim({
 		plugins: [Stock, Pebbles],
 		backendFactory: rapier(16),
@@ -52,7 +60,7 @@ async function standOn(bodyId: string) {
 	const placed = sim.dispatch({
 		type: 'load-vessel',
 		design: stack('Pod', ['stock.command-pod'], []),
-		placement: { kind: 'surface', body: bodyId as never, latitude: 0, longitude: LONGITUDE }
+		placement: { kind: 'surface', body: bodyId as never, latitude: 0, longitude }
 	});
 	if (!placed.ok) throw new Error(placed.reason);
 	for (let i = 0; i < 500; i++) sim.step(0.02);
@@ -85,4 +93,29 @@ describe('terrain kind per body in the sim', () => {
 		expect(r.altitude).toBeGreaterThan(0);
 		expect(r.altitude).toBeLessThan(15);
 	}, 30_000);
+
+	// Plan 059. 42 km from the site the second planet's field is 130 m high on a 0.6 percent slope; 30 km
+	// out it is 451 m high on a 30 degree one, where the lander slides a few decimetres while it settles.
+	for (const id of ['test.hills', 'test.hills-air']) {
+		const field = createBodyTerrainField({ radius: RADIUS, terrain: { kind: 'hills' } })!;
+		test(`${id}: a lander rests on the gentle hills the renderer now draws`, async () => {
+			const longitude = 42_000 / RADIUS;
+			const own = field.heightAt(latLonDirection(0, longitude));
+			expect(own).toBeGreaterThan(100);
+			const r = await standOn(id, longitude);
+			expect(Math.abs(r.terrainHeight! - own)).toBeLessThan(0.05);
+			expect(r.altitude).toBeGreaterThan(own);
+			expect(r.altitude).toBeLessThan(own + 15);
+		}, 30_000);
+
+		test(`${id}: and stays on a 30 degree hillside`, async () => {
+			const longitude = 30_000 / RADIUS;
+			const own = field.heightAt(latLonDirection(0, longitude));
+			expect(own).toBeGreaterThan(400);
+			const r = await standOn(id, longitude);
+			expect(Math.abs(r.terrainHeight! - own)).toBeLessThan(0.5);
+			expect(r.altitude).toBeGreaterThan(r.terrainHeight!);
+			expect(r.altitude).toBeLessThan(r.terrainHeight! + 15);
+		}, 30_000);
+	}
 });

@@ -4,10 +4,18 @@
  * code injected into a `MeshStandardMaterial` so the moon is lit like every other object (sun,
  * shadows, image-based light, tone mapping) and displaced from the baked heights.
  */
-import { CRATERS_SEED_SALT, MOON_SHAPE as S } from '@orbital/core';
+import {
+	BEACH_WIDTH,
+	CRATERS_SEED_SALT,
+	HIGHLAND,
+	LAKE_SHAPE as LAKE,
+	MOON_SHAPE as S,
+	SEA_LEVEL
+} from '@orbital/core';
 import { STONES } from '../stones-model.ts';
 import { SHADOW_MARCH as M } from '../terrain-shadow.ts';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
+import { terrainHeightGLSL, terrainNoiseGLSL } from './terrain.glsl.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 
@@ -81,11 +89,50 @@ void main() {
 }
 `;
 
+/** The one read of the biome map in `terrainHeightGLSL`: a filtered fetch the ground pass replaces (below). */
+const BIOME_FETCH = 'textureLod(uMap, vec2(ll.y / (2.0 * PI_) + 0.5, ll.x / PI_ + 0.5), 0.0).r';
+if (!terrainHeightGLSL.includes(BIOME_FETCH)) {
+	throw new Error('terrain.glsl.ts changed the biome fetch of heightAt: update moon.glsl.ts');
+}
+
+/**
+ * The height function of a hills body (ADR 0090): the planet pass's own `heightAt` text on the
+ * biome map `uMap`, with the site at `uSiteDir`, behind the same `moonHeight(n, radius)` the bake
+ * fragments call. `uRadius` is declared by the bake fragment before it. One thing differs: the map's
+ * elevation is bilinear by hand in 32-bit floats (the twin of `sampleMap`), because the hardware
+ * filter weighs texels with 8 bits and a coast, where the land mask rises over a few texels of the
+ * map, then shifts a ridge by up to 13 m on a small body (found by the readback of plan 059).
+ */
+export const hillsHeightGLSL = /* glsl */ `
+${hashNoiseGLSL}
+${terrainNoiseGLSL}
+uniform sampler2D uMap;
+uniform vec3 uSiteDir;
+float biomeElevation(vec2 uv) {
+	ivec2 size = textureSize(uMap, 0);
+	vec2 p = vec2(uv.x * float(size.x) - 0.5, clamp(uv.y * float(size.y) - 0.5, 0.0, float(size.y - 1)));
+	vec2 fl = floor(p);
+	vec2 t = p - fl;
+	ivec2 i0 = ivec2(fl);
+	int x0 = ((i0.x % size.x) + size.x) % size.x;
+	int x1 = (((i0.x + 1) % size.x) + size.x) % size.x;
+	int y0 = clamp(i0.y, 0, size.y - 1);
+	int y1 = clamp(i0.y + 1, 0, size.y - 1);
+	float top = mix(texelFetch(uMap, ivec2(x0, y0), 0).r, texelFetch(uMap, ivec2(x1, y0), 0).r, t.x);
+	float bottom = mix(texelFetch(uMap, ivec2(x0, y1), 0).r, texelFetch(uMap, ivec2(x1, y1), 0).r, t.x);
+	return mix(top, bottom, t.y);
+}
+${terrainHeightGLSL.replace(BIOME_FETCH, 'biomeElevation(vec2(ll.y / (2.0 * PI_) + 0.5, ll.x / PI_ + 0.5))')}
+float moonHeight(vec3 n, float radius) {
+	return heightAt(n);
+}
+`;
+
 /** Cube face bake: (hi, lo) of the height, hi a multiple of 16 m, so half floats keep centimetres. */
-export const moonCubeFragment = /* glsl */ `
-${moonHeightGLSL}
-varying vec2 vUv;
+export const cubeFragmentOf = (height: string): string => /* glsl */ `
 uniform float uRadius;
+${height}
+varying vec2 vUv;
 uniform int uFace;
 vec3 faceDir(int face, vec2 st) {
 	if (face == 0) return vec3(1.0, -st.y, -st.x);
@@ -103,10 +150,10 @@ void main() {
 `;
 
 /** Patch bake: the height at the texel's direction, 32-bit float. */
-export const moonPatchFragment = /* glsl */ `
-${moonHeightGLSL}
-varying vec2 vUv;
+export const patchFragmentOf = (height: string): string => /* glsl */ `
 uniform float uRadius;
+${height}
+varying vec2 vUv;
 uniform vec3 uPatchC;
 uniform vec3 uPatchE;
 uniform vec3 uPatchF;
@@ -117,6 +164,11 @@ void main() {
 	gl_FragColor = vec4(moonHeight(n, uRadius), 0.0, 0.0, 0.0);
 }
 `;
+
+export const moonCubeFragment = cubeFragmentOf(moonHeightGLSL);
+export const moonPatchFragment = patchFragmentOf(moonHeightGLSL);
+export const hillsCubeFragment = cubeFragmentOf(hillsHeightGLSL);
+export const hillsPatchFragment = patchFragmentOf(hillsHeightGLSL);
 
 /**
  * Pieces injected into the `MeshStandardMaterial` of a layer. `GLOBE` displaces an icosphere of unit
@@ -412,4 +464,106 @@ vStoneShade = aStoneShade;
 `;
 export const moonStoneColor = /* glsl */ `
 diffuseColor.rgb = uTint * (0.45 + 0.9 * vStoneShade);
+`;
+
+// --- hills bodies (ADR 0090) -----------------------------------------------------------------
+
+/** Vertex: the slope (1 - cos of the angle between the ground normal and the vertical) goes to the fragment. */
+export const hillsVertexCommon = /* glsl */ `
+varying float vSlope;
+`;
+/** Appended to `moonGlobeBegin` (the globe's height is `gH`) and `moonPatchBegin`. */
+export const hillsGlobeTail = /* glsl */ `
+vPatchH = gH;
+vSlope = 1.0 - clamp(dot(objectNormal, gN), 0.0, 1.0);
+`;
+export const hillsPatchTail = /* glsl */ `
+vSlope = 1.0 - clamp(dot(objectNormal, vMoonN), 0.0, 1.0);
+`;
+
+/**
+ * Fragment: the ground's colour from the biome map the sim's height function also reads. The
+ * palette is the planet pass's own, without its blades, crowns, fields and sea (no pixel here is
+ * ever closer than a patch texel of 4 m, and the pass draws no water).
+ */
+export const hillsFragmentCommon = /* glsl */ `
+varying vec3 vMoonN;
+varying float vPatchH;
+varying float vSlope;
+uniform float uRadius;
+uniform sampler2D uMap;
+${hashNoiseGLSL}
+${terrainNoiseGLSL}
+float moonGrain(vec3 p) {
+	vec3 fl = floor(p);
+	return valueNoiseCell(ivec3(fl), p - fl);
+}
+`;
+export const hillsFragmentColor = /* glsl */ `
+float hillsWater = 0.0;
+{
+	vec3 mp = vMoonN * uRadius;
+	vec2 ll = warpedLatLon(vMoonN, uRadius);
+	// the map is read at the mip its texel footprint asks for (the derivative of the longitude jumps at the seam)
+	float lod = max(0.0, log2(length(fwidth(mp)) / 3700.0));
+	vec4 bm = textureLod(uMap, vec2(ll.y / 6.28318530718 + 0.5, ll.x / 3.14159265359 + 0.5), lod);
+	float e = bm.r;
+	float moist = bm.g;
+	float temp = bm.b;
+	float h = vPatchH;
+	float cn = moonGrain(mp * (1.0 / 4000.0)) - 0.5;
+	float mid = moonGrain(mp * (1.0 / 90.0)) - 0.5;
+	float fine = moonGrain(mp * (1.0 / 5.0)) - 0.5;
+	float tone = 0.82 + 0.4 * clamp(0.5 + fine, 0.0, 1.0);
+	float lush = clamp(0.5 + cn * 0.9 + mid * 0.4, 0.0, 1.0);
+	vec3 grass = mix(vec3(0.052, 0.135, 0.028), vec3(0.095, 0.185, 0.042), smoothstep(0.2, 0.6, lush)) * tone;
+	float wForest = smoothstep(0.55, 0.72, moist) * (1.0 - smoothstep(900.0, 1600.0, h));
+	vec3 forest = vec3(0.03, 0.075, 0.026) * (0.8 + 0.5 * clamp(0.5 + cn + mid * 0.6, 0.0, 1.0));
+	float wDesert = (1.0 - smoothstep(0.26, 0.4, moist)) * smoothstep(0.35, 0.5, temp);
+	vec3 desert = mix(vec3(0.42, 0.29, 0.15), vec3(0.58, 0.43, 0.25), clamp(0.5 + cn * 1.2, 0.0, 1.0));
+	vec3 veg = mix(grass, forest, wForest);
+	veg = mix(veg, desert, wDesert);
+	vec3 alpine = mix(vec3(0.13, 0.15, 0.07), vec3(0.2, 0.19, 0.11), clamp(0.5 + cn, 0.0, 1.0));
+	veg = mix(veg, alpine, smoothstep(800.0, 1500.0, h));
+	vec3 rockc = mix(vec3(0.17, 0.15, 0.135), vec3(0.34, 0.31, 0.27), clamp(0.5 + cn * 1.3 + mid * 0.5 + fine * 0.3, 0.0, 1.0));
+	float wRock = max(smoothstep(${f(HIGHLAND - 0.06)}, ${f(HIGHLAND + 0.05)}, e), smoothstep(0.7, 0.9, bm.a + cn * 0.3));
+	wRock = max(wRock, smoothstep(0.06, 0.22, vSlope * 3.0));
+	wRock = max(wRock, smoothstep(1500.0, 2100.0, h + 300.0 * cn));
+	float snowLine = 2800.0 + 420.0 * cn;
+	float wSnow = max(smoothstep(0.22, 0.12, temp), smoothstep(0.9, 0.97, e));
+	wSnow = max(wSnow, smoothstep(snowLine - 150.0, snowLine + 250.0, h));
+	vec3 sand = vec3(0.44, 0.38, 0.26) * (0.92 + 0.16 * clamp(0.5 + fine, 0.0, 1.0));
+	float wBeach = (1.0 - smoothstep(${f(SEA_LEVEL + BEACH_WIDTH * 0.5)}, ${f(SEA_LEVEL + BEACH_WIDTH * 1.6)}, e)) * (1.0 - wRock);
+	vec3 land = mix(veg, rockc, wRock);
+	land = mix(land, sand, wBeach);
+	land = mix(land, vec3(0.78, 0.8, 0.84), wSnow * smoothstep(0.0, 1.0, 1.0 - vSlope * 2.0));
+	// water: the open sea where the map is under sea level, and a lake where the height function's lake level
+	// reaches its flat floor (the same expression the height function caps the relief with)
+	float arc = uRadius * acos(clamp(vMoonN.x, -1.0, 1.0));
+	float lakeLevel = noiseT(vMoonN * (uRadius / 1000.0), 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * smoothstep(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, arc);
+	float lakeW = clamp((lakeLevel - ${f(LAKE.to)}) / max(fwidth(lakeLevel), 1e-7) + 0.5, 0.0, 1.0);
+	float seaW = 1.0 - smoothstep(${f(SEA_LEVEL - 0.004)}, ${f(SEA_LEVEL)}, e);
+	hillsWater = max(seaW, lakeW);
+	vec3 deep = mix(vec3(0.011, 0.034, 0.062), vec3(0.02, 0.07, 0.085), smoothstep(${f(SEA_LEVEL - 0.14)}, ${f(SEA_LEVEL)}, e));
+	diffuseColor.rgb = mix(land, deep, hillsWater);
+}
+`;
+
+/** A grain bump on the shading normal (stones are not drawn here); the finest term is 2.5 m, the coordinates stay float32-safe. */
+export const hillsFragmentBump = /* glsl */ `
+{
+	vec3 bp = vMoonN * uRadius;
+	float viewDist = length(vViewPosition);
+	float nearW = 1.0 - smoothstep(30.0, 220.0, viewDist);
+	float farW = 1.0 - smoothstep(120.0, 900.0, viewDist);
+	float h = (nearW * 0.06 * moonGrain(bp * (1.0 / 2.5)) + farW * 0.3 * moonGrain(bp * (1.0 / 7.0))) * (1.0 - hillsWater);
+	vec2 dH = vec2(dFdx(h), dFdy(h));
+	vec3 sx = dFdx(-vViewPosition);
+	vec3 sy = dFdy(-vViewPosition);
+	vec3 r1 = cross(sy, normal);
+	vec3 r2 = cross(normal, sx);
+	float det = dot(sx, r1);
+	vec3 grad = sign(det) * (dH.x * r1 + dH.y * r2);
+	normal = normalize(abs(det) * normal - grad);
+}
 `;

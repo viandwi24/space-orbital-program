@@ -254,12 +254,12 @@ describe('the terrain kind decides the pass (plan 052, ADR 0067)', () => {
 	const passOf = (id: string): boolean =>
 		scene.bodyObject(id as BodyId)!.children.some((c) => c.name === `moon:${id}`);
 
-	test('only a craters body gets the moon pass: not "airless with a parent", and an atmosphere does not stop it', () => {
+	test('a craters or hills body gets the ground pass: not "airless with a parent", and an atmosphere does not stop it', () => {
 		expect(passOf('test.smooth')).toBe(false);
 		expect(passOf('test.cratered')).toBe(true);
 		expect(passOf('test.hazy')).toBe(true);
-		// a second body whose kind only the first body is drawn with stays a plain sphere
-		expect(passOf('test.hilly')).toBe(false);
+		// a hills body after the first is drawn with its hills (plan 059, ADR 0090)
+		expect(passOf('test.hilly')).toBe(true);
 		expect(scene.bodyObject('test.smooth' as BodyId)!.children).toHaveLength(1);
 	});
 
