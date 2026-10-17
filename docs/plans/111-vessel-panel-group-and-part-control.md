@@ -1,12 +1,12 @@
 ---
 id: 111
 title: "Vessel panel: Overview with group control, Parts with per-part actions"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [110, 088]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 111 — Vessel panel: Overview with group control, Parts with per-part actions
@@ -64,3 +64,4 @@ Generated controls must never reorder while the player looks (stable by part ind
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0107).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
