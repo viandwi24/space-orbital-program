@@ -53,6 +53,9 @@ __orbital.glass(null);    // back to the preset's choice
 - Literal `backdrop-filter: blur(10px)` remains in `MenuButton`, `Toasts` and four VAB components; they keep their blur on `low` until their stage restyles them.
 - The UI scale applies when `settings.start()` runs (layout `onMount`), so the first paint of a page is at 100 %; an inline script in `app.html` could apply it before paint if the flash shows.
 
+- **Seen on the M2, not caused by this plan** (both reproduce on an `origin/main` worktree): the root `bun test ./packages ./mods ./examples` also collects the `apps/web` vitest files and fails them under Bun (41 on main; each directory alone passes), and `sim-host-script-worker.test.ts` times out its two real-Worker tests. Worth an issue in STATUS (Agent 1).
+- Resources: swap stayed over the M2 guard's 2 GB the whole session (6.8 GB at start, 5.6 GB later) with memory free near 50 %; the owner agreed to proceed single-threaded. One Chromium at a time, one build at a time, no sub-workers.
+
 ## Verification output
 
 See the plan's Log.

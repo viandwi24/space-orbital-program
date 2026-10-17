@@ -52,18 +52,25 @@ Existing screens may look mixed after this stage; that is accepted (ADR 0107 poi
 
 ## Acceptance criteria
 
-- [ ] `tokens.test.ts`: every token of ADR 0107 point 1 exists; text on glass meets the contrast pairs; no token below 10 px for text.
-- [ ] Component tests: Switch renders `aria-checked="mixed"` in the mixed state; at UI scale 150 % no HUD panel extends past a 1024x768 viewport (layout test).
+- [x] `tokens.test.ts`: every token of ADR 0107 point 1 exists; text on glass meets the contrast pairs; no token below 10 px for text.
+- [x] Component tests: Switch renders `aria-checked="mixed"` in the mixed state; at UI scale 150 % no HUD panel extends past a 1024x768 viewport (layout test).
 - [ ] Journal: flight-view frame time with blur on and off (M5, journal 054 method); the fallback is active on `low`.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/086-ui-stage-1-tokens-fonts-accessibility.md` written.
-- [ ] `product/visual-direction.md` if a value differs from ADR 0107, `research/stack-versions.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/journal/086-ui-stage-1-tokens-fonts-accessibility.md` written.
+- [x] `product/visual-direction.md` if a value differs from ADR 0107, `research/stack-versions.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107).
+- 2026-10-17 — Claimed by Agent 2 (Dev B, M2). Font, tokens (ADR 0140), components, settings format 3, glass fallback and the layout e2e done; journal written. Verification on the M2, branch rebased on `origin/main` @ 4fc962b:
+  - `bunx vitest run src/lib/ui src/lib/settings` — 108 passed (tokens 82, components 13, root theme 2, settings 11).
+  - `E2E_PORT=5210 bunx playwright test e2e/smoke.e2e.ts e2e/ui-scale.e2e.ts --project=chromium` — 7 passed (3.9 m); then `e2e/ui-scale.e2e.ts` alone with the `low` fallback test — 2 passed (43.1 s).
+  - `bun test ./packages`, `./mods`, `./examples` — 1266, 83, 7 pass, 0 fail. The root `bun test` also collects the `apps/web` vitest files and fails them under Bun (`vi.unstubAllGlobals` and others): 41 fail on `origin/main` itself on this machine, 56 with this branch's new vitest files; not caused by this plan.
+  - `bunx vitest run` (apps/web) — 881 passed, 2 failed: `sim-host-script-worker.test.ts` (Worker timeouts), failing identically on an `origin/main` worktree on this M2.
+  - `bun run typecheck` — 0 errors; `bun run build` — built; `bun run docs:check` — OK (129 plans, 112 ADRs).
+  - Open: the M5 blur frame-time row (criterion 3, Agent 1 at merge; method in the journal). The fallback on `low` is verified by e2e.
