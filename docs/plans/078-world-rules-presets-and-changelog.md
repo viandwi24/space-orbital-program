@@ -1,8 +1,8 @@
 ---
 id: 078
 title: "World rules, presets and the rule changelog"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [077]
 phase: 4
 created: 2026-10-17
