@@ -13,7 +13,7 @@
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
-| 110 part-actions | handed-over | `devc/110-part-actions` | 2026-10-17 | ready/110; ADR 0174; API 0.1.35 |
+| 110 part-actions | done | `devc/110-part-actions` | 2026-10-17 | merged f84365e, cp/f4-110-part-actions |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | in-progress | `devc/098-objectives` | 2026-10-17 | claim/098 |
 | 106 crew | todo |  |  |  |

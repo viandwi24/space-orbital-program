@@ -1,7 +1,7 @@
 ---
 id: 110
 title: "Part action descriptors and action groups"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: []
 phase: 7

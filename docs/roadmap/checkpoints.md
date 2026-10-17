@@ -51,7 +51,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f3-109-eva` | 109 | A1 | A2, A3 (121, 130) | pending | | |
 | `cp/f3-097-markets` | 097 | A1 | A3 (126) | pending | | |
 | `cp/f3-done` | phase gate F3: all F3 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
-| `cp/f4-110-part-actions` | 110 | A3 | A2 (063, 065, 111) | pending | | |
+| `cp/f4-110-part-actions` | 110 | A3 | A2 (063, 065, 111) | done | f84365e | 2026-10-17 |
 | `cp/f4-114-comms-1` | 114 | A3 | A1, A2, A3 (070, 115, 116, 126) | pending | | |
 | `cp/f4-112-dock` | 112 | A2 | A2 (072) | pending | | |
 | `cp/f4-113-mission-center` | 113 | A1 | A2 (115) | pending | | |
