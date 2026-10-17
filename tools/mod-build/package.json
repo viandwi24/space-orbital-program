@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/tool-mod-build",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Builds a mod folder into an installable .orbital-mod.json package (plan 046, ADR 0057).",
 	"type": "module",

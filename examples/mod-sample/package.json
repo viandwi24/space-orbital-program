@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/example-mod-sample",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Sample external mod: a part with its own look, a module that keeps its state in the world, and a script that uses it. Built into a package with tools/mod-build/build-mod.ts.",
 	"type": "module",

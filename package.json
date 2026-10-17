@@ -1,6 +1,7 @@
 {
 	"name": "orbital",
 	"private": true,
+	"license": "Apache-2.0",
 	"type": "module",
 	"description": "Web-based space-flight game (KSP-like) — modular, moddable, TypeScript-first.",
 	"workspaces": {

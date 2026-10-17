@@ -1,6 +1,7 @@
 {
 	"name": "@orbital/core",
 	"version": "0.0.0",
+	"license": "Apache-2.0",
 	"private": true,
 	"description": "Environment-neutral core: ids, units, ECS-style world, registries, event bus, plugin loader, resource graph.",
 	"type": "module",
