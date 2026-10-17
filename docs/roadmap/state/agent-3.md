@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 106 handed over as `ready/106` (API 0.1.37). Two claims open (098, 106) = the machine limit; next in the lane after a merge: 092 site-choice (087, 090 merged) or 103 science.
-**Waiting for:** merge of 098 and 106 (`ready/098`, `ready/106`).
+**Now:** idle. 098 and 106 merged (cp/f3-098-objectives, cp/f3-106-crew). Next in the lane: 092 site-choice (its WAITs are present), then 103 science.
+**Waiting for:** the owner's go for 092.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
