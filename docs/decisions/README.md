@@ -137,3 +137,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |
 | 0172 | [Data items: shape, ids, value curve, and where storage lives](0172-data-items-shape-ids-value-curve-and-storage.md) | accepted | 2026-10-17 |
+| 0173 | [The trajectory provider: its interface and how consumers reach it](0173-trajectory-provider-interface-and-how-consumers-reach-it.md) | accepted | 2026-10-17 |
