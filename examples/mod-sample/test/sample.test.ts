@@ -30,7 +30,7 @@ beforeAll(async () => {
 });
 
 const resolve = () =>
-	resolveMods([{ manifest: pkg.manifest, code: pkg.code }], {
+	resolveMods([{ manifest: pkg.manifest, code: pkg.code, assets: pkg.assets }], {
 		builtin: [Stock],
 		importModule: importModBundle
 	});
@@ -82,6 +82,20 @@ describe('the sample external mod, built and loaded the way the game does', () =
 		expect(sim.registries.parts.get('sample.wide-tank')!.modules?.[0]?.[0]).toBe(
 			'stock.resource-container'
 		);
+	});
+
+	test('the package ships the model the engine part names, hashed inside the fingerprint', async () => {
+		expect(Object.keys(pkg.assets ?? {})).toEqual(['models/spike-engine.glb']);
+		expect(pkg.formatVersion).toBe(2);
+		const r = await resolve();
+		expect(r.partAssets).toEqual([
+			{ part: 'sample.spike-engine', mod: 'sample', path: 'models/spike-engine.glb' }
+		]);
+		const sim = await flying();
+		const engine = sim.registries.parts.get('sample.spike-engine')!;
+		expect(engine.visual?.asset).toBe('models/spike-engine.glb');
+		expect(engine.visual?.kind).toBe('engine'); // the fallback generator if the model cannot load
+		expect(sim.registries.parts.get('sample.spike-engine')!.modules?.[0]?.[0]).toBe('stock.engine');
 	});
 
 	test('flown: the beacon counts on rails, answers a ping, and the state survives a save', async () => {

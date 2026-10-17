@@ -10,3 +10,5 @@ export type { AssetReader, GltfProviderOptions } from './gltf-provider.ts';
 export * from './articulation.ts';
 export { ConnectorBars, connectorRadius, placeBar } from './connector.ts';
 export type { ConnectorBar } from './connector.ts';
+export { assetFit, fitTolerance, shapeHalfExtents } from './asset-fit.ts';
+export type { Extent } from './asset-fit.ts';

@@ -19,6 +19,7 @@
 	},
 	"devDependencies": {
 		"@orbital/mod-stock": "workspace:*",
+		"@orbital/sdk": "workspace:*",
 		"@types/three": "catalog:",
 		"typescript": "catalog:",
 		"@types/bun": "latest"

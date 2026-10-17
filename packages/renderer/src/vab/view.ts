@@ -38,7 +38,13 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { PRESETS, detailOf } from '../presets.ts';
 import { ConnectorBars } from '../parts/connector.ts';
 import { PartModelFactory, type PartModelFactoryConfig } from '../parts/factory.ts';
-import { repeatedDetail, type PartModel, type PartNode, type PartShape } from '../parts/types.ts';
+import {
+	repeatedDetail,
+	type PartModel,
+	type PartModelProvider,
+	type PartNode,
+	type PartShape
+} from '../parts/types.ts';
 import type { PartVisual } from '@orbital/core';
 import { HANGAR, createHangar, type Hangar } from './hangar.ts';
 import { HighlightMaterials, NodeMarkerKit, pulseMarkers } from './highlight.ts';
@@ -81,6 +87,8 @@ export interface VabViewConfig {
 	shapes: ReadonlyMap<string, PartShape>;
 	visuals?: ReadonlyMap<string, PartVisual>;
 	attach?: ReadonlyMap<string, Readonly<Record<string, PartNode>>>;
+	/** Consulted before the procedural generators: asset-backed models of mod parts (ADR 0076). */
+	providers?: readonly PartModelProvider[];
 	/** Definitions shown lying on trestles at the side of the hangar (decor). */
 	props?: readonly string[];
 	/** `high` is the default; `low` drops the post chain, shadows' size and dust. */
@@ -201,6 +209,7 @@ export class VabView {
 			shapes: config.shapes,
 			visuals: config.visuals,
 			attach: config.attach,
+			providers: config.providers,
 			detail: detailOf(PRESETS[this.quality])
 		};
 		this.factory = new PartModelFactory(factoryConfig);
