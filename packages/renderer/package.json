@@ -7,7 +7,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./presets": "./src/presets.ts",
-		"./precompile-progress": "./src/precompile-progress.ts"
+		"./precompile-progress": "./src/precompile-progress.ts",
+		"./reentry": "./src/effects/reentry.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {

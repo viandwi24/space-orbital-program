@@ -2,16 +2,26 @@
 import type { Vec3 } from '@orbital/core';
 import {
 	AdditiveBlending,
+	BufferAttribute,
 	BufferGeometry,
 	Color,
 	DoubleSide,
 	Mesh,
 	Object3D,
+	DynamicDrawUsage,
 	Quaternion,
 	ShaderMaterial,
-	SphereGeometry,
+	Uint16BufferAttribute,
 	Vector3
 } from 'three';
+import {
+	SHELL_RINGS,
+	SHELL_SEGMENTS,
+	shellIndices,
+	shellLength,
+	writeShell,
+	type ShellRing
+} from './plasma-shape.ts';
 import { createPlumeGeometry } from './plume-mesh.ts';
 import { PLUME_FRAG, PLUME_VERT, SHELL_FRAG, SHELL_VERT } from './shaders.ts';
 
@@ -26,6 +36,12 @@ export interface PlasmaFrame {
 	extent: number;
 	/** Lateral radius of the vessel, m. */
 	radius: number;
+	/**
+	 * The shock layer as rings from the nose back (`shellRings`), the axial coordinate of the
+	 * windward end they are measured from, and where that point is in render space (on the stack's
+	 * axis). Without it the shell is a ball sized by `radius`.
+	 */
+	shell?: { rings: readonly ShellRing[]; front: number; origin: Vec3 };
 	time: number;
 	/** Shock-layer colour (`ionisationColour`); the old orange when absent. */
 	tint?: readonly [number, number, number];
@@ -33,7 +49,9 @@ export interface PlasmaFrame {
 
 export class PlasmaEffect {
 	readonly root = new Object3D();
-	private readonly shellGeometry = new SphereGeometry(1, 24, 16);
+	private readonly shellGeometry = new BufferGeometry();
+	private readonly shellPositions = new Float32Array(SHELL_RINGS * (SHELL_SEGMENTS + 1) * 3);
+	private readonly shellNormals = new Float32Array(SHELL_RINGS * (SHELL_SEGMENTS + 1) * 3);
 	private readonly wakeGeometry: BufferGeometry;
 	private readonly shell: Mesh;
 	private readonly wake: Mesh;
@@ -43,6 +61,13 @@ export class PlasmaEffect {
 
 	constructor() {
 		this.root.name = 'plasma';
+		const pos = new BufferAttribute(this.shellPositions, 3);
+		pos.setUsage(DynamicDrawUsage);
+		const nor = new BufferAttribute(this.shellNormals, 3);
+		nor.setUsage(DynamicDrawUsage);
+		this.shellGeometry.setAttribute('position', pos);
+		this.shellGeometry.setAttribute('normal', nor);
+		this.shellGeometry.setIndex(new Uint16BufferAttribute(shellIndices(), 1));
 		this.wakeGeometry = createPlumeGeometry(20, 16);
 		this.shellMaterial = new ShaderMaterial({
 			vertexShader: SHELL_VERT,
@@ -51,7 +76,10 @@ export class PlasmaEffect {
 				uForward: { value: new Vector3(0, 1, 0) },
 				uIntensity: { value: 0 },
 				uTime: { value: 0 },
-				uTint: { value: new Color(1, 0.35, 0.1) }
+				uTint: { value: new Color(1, 0.35, 0.1) },
+				// Axial coordinate of the shell tip and its length: the shell fades towards the tail.
+				uTip: { value: 1 },
+				uLength: { value: 1e9 }
 			},
 			transparent: true,
 			depthWrite: false,
@@ -94,12 +122,28 @@ export class PlasmaEffect {
 		if (!this.root.visible) return;
 		const fwd = new Vector3(f.forward.x, f.forward.y, f.forward.z).normalize();
 		const rw = Math.max(1.6, f.radius * 2.1) * (0.75 + 0.5 * f.intensity);
-		this.shell.position.set(
-			f.front.x - fwd.x * rw * 0.45,
-			f.front.y - fwd.y * rw * 0.45,
-			f.front.z - fwd.z * rw * 0.45
-		);
-		this.shell.scale.setScalar(rw);
+		if (f.shell) {
+			// The shell is built in a frame with +Y along the airflow, origin at the windward end.
+			writeShell(f.shell.rings, f.shell.front, this.shellPositions, this.shellNormals);
+			this.shellGeometry.getAttribute('position').needsUpdate = true;
+			this.shellGeometry.getAttribute('normal').needsUpdate = true;
+			this.shell.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), fwd);
+			this.shell.position.set(f.shell.origin.x, f.shell.origin.y, f.shell.origin.z);
+			this.shell.scale.setScalar(1);
+			this.shellMaterial.uniforms.uTip!.value = f.shell.rings[0]!.s - f.shell.front;
+			this.shellMaterial.uniforms.uLength!.value = shellLength(f.shell.rings);
+		} else {
+			// No part data: a ball ahead of the windward end, as before the silhouette (plan 033).
+			this.shell.quaternion.identity();
+			this.shell.position.set(
+				f.front.x - fwd.x * rw * 0.45,
+				f.front.y - fwd.y * rw * 0.45,
+				f.front.z - fwd.z * rw * 0.45
+			);
+			this.shell.scale.setScalar(rw);
+			this.shellMaterial.uniforms.uLength!.value = 1e9;
+			this.fallbackBall();
+		}
 		const u = this.shellMaterial.uniforms;
 		(u.uForward!.value as Vector3).copy(fwd);
 		u.uIntensity!.value = f.intensity;
@@ -110,14 +154,32 @@ export class PlasmaEffect {
 		// Wake: the plume surface points along local -Y, so turn -Y onto -forward.
 		this.q.setFromUnitVectors(new Vector3(0, -1, 0), fwd.clone().negate());
 		this.wake.quaternion.copy(this.q);
-		this.wake.position.set(f.front.x, f.front.y, f.front.z);
+		// The wake starts inside the stack, behind the shell, so its bright opening is not seen as a tube.
+		const back = f.shell ? f.extent * 0.45 : 0;
+		this.wake.position.set(
+			f.front.x - fwd.x * back,
+			f.front.y - fwd.y * back,
+			f.front.z - fwd.z * back
+		);
 		const w = this.wakeMaterial.uniforms;
-		w.uLength!.value = f.extent + 4 + 12 * f.intensity;
-		w.uExitR!.value = Math.max(0.5, f.radius * 0.7);
+		w.uLength!.value = f.extent + back + 4 + 12 * f.intensity;
+		w.uExitR!.value = Math.max(0.5, f.radius * (f.shell ? 0.4 : 0.7));
 		w.uMaxR!.value = Math.max(0.8, f.radius * 1.1) * (0.6 + 0.5 * f.intensity);
 		w.uTime!.value = f.time;
-		w.uGain!.value = 0.8 * f.intensity;
+		w.uGain!.value = (f.shell ? 0.35 : 0.8) * f.intensity;
 		(w.uColor!.value as Color).setRGB(tint[0], tint[1] * 0.9, tint[2] * 1.1);
+	}
+
+	/** Fills the shell buffers with a unit sphere (rings from the +Y pole down) for the no-parts case. */
+	private fallbackBall(): void {
+		const rings: ShellRing[] = [];
+		for (let i = 0; i < SHELL_RINGS; i++) {
+			const a = (i / (SHELL_RINGS - 1)) * Math.PI;
+			rings.push({ s: Math.cos(a), r: Math.sin(a) });
+		}
+		writeShell(rings, 0, this.shellPositions, this.shellNormals);
+		this.shellGeometry.getAttribute('position').needsUpdate = true;
+		this.shellGeometry.getAttribute('normal').needsUpdate = true;
 	}
 
 	dispose(): void {

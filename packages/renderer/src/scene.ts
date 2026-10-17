@@ -36,6 +36,7 @@ import {
 } from './camera-rig.ts';
 import { Environment } from './environment.ts';
 import { Effects, type BodyFrame, type EffectsFrame } from './effects/system.ts';
+import { silhouetteOfShape } from './effects/plasma-shape.ts';
 import { ambientPressureAt } from './effects/plume.ts';
 import {
 	angularVelocity,
@@ -60,6 +61,13 @@ import { SHADOW_STEPS, terrainSunVisibility } from './terrain-shadow.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
+import {
+	MAX_REMNANTS,
+	REMNANT_LIFETIME,
+	stepRest,
+	staysAsRemnant,
+	type RestState
+} from './remnants.ts';
 import { rotate, rotateInverse } from './vec.ts';
 
 export { DEFAULT_PART_SHAPE };
@@ -118,6 +126,16 @@ interface PartEntry {
 	model: PartModel;
 	definition: string;
 }
+/** A stage that came to rest and was removed by the sim, kept as it lies (plan 040, ADR 0077). */
+interface Remnant {
+	entry: VesselEntry;
+	soi: string;
+	/** Root position, body-fixed, m. */
+	local: Vec3;
+	/** Body orientation when it was frozen: the group turns with the body from there. */
+	frozen: Quaternion;
+	age: number;
+}
 interface VesselEntry {
 	group: Group;
 	parts: Map<number, PartEntry>;
@@ -167,6 +185,10 @@ export class SceneModel {
 	private frameState: { bodyRender: Vec3; bodyRotation: Quat; vesselRender: Vec3 | null } | null =
 		null;
 	private readonly vessels = new Map<number, VesselEntry>();
+	/** How long each vessel has lain still on the ground, and stages kept after the sim removed them (plan 040). */
+	private readonly resting = new Map<number, RestState>();
+	private remnants: Remnant[] = [];
+	private activeBefore: number | null = null;
 	private factory: PartModelFactory;
 	private shardSources = new Map<string, ShardSource | undefined>();
 	private readonly config: SceneConfig;
@@ -272,7 +294,8 @@ export class SceneModel {
 					body === this.primaryBody
 						? this.environment.groundHeight(direction)
 						: this.moons.get(body)?.groundHeight(direction),
-				shardSource: (definition) => this.shardSourceOf(definition)
+				shardSource: (definition) => this.shardSourceOf(definition),
+				partSilhouette: (definition) => silhouetteOfShape(config.partShapes.get(definition))
 			}
 		);
 		this.scene.add(this.effects.root);
@@ -326,6 +349,9 @@ export class SceneModel {
 	/** Switch the graphics preset: environment, part detail (models are rebuilt), effect budgets. */
 	setPreset(preset: GraphicsPreset): void {
 		this.environment.setPreset(preset);
+		// Their models belong to the factory being replaced.
+		for (const r of this.remnants) this.dropRemnant(r);
+		this.remnants = [];
 		for (const entry of this.vessels.values()) {
 			for (const p of entry.parts.values()) {
 				entry.group.remove(p.model.root);
@@ -664,16 +690,27 @@ export class SceneModel {
 			entry.line.setOrbit(this.map ? v.orbit : undefined);
 			entry.marker.object.visible = this.map;
 			entry.marker.place(p, this.markerRadius(p));
+			this.trackRest(v, snapshot.t);
 		}
+		if (dtSim < 0) this.clearPersistent();
 		for (const [id, entry] of this.vessels) {
 			if (seen.has(id)) continue;
-			this.scene.remove(entry.group, entry.line.object, entry.marker.object);
-			for (const p of entry.parts.values()) p.model.dispose();
-			entry.bars.dispose();
-			entry.line.dispose();
-			entry.marker.dispose();
+			const normal = dtSim > 0 && dtSim < 5;
+			const rest = this.resting.get(id);
+			this.resting.delete(id);
+			if (normal && staysAsRemnant(rest, snapshot.t, id === this.activeBefore) && rest) {
+				this.keepRemnant(entry, rest);
+			} else {
+				this.scene.remove(entry.group, entry.line.object, entry.marker.object);
+				for (const p of entry.parts.values()) p.model.dispose();
+				entry.bars.dispose();
+				entry.line.dispose();
+				entry.marker.dispose();
+			}
 			this.vessels.delete(id);
 		}
+		this.activeBefore = activeVessel && activeVessel.id !== GHOST_ID ? activeVessel.id : null;
+		this.placeRemnants(dtSim);
 
 		this.trackTransitions(snapshot, dtSim);
 		this.lastView = { active: activeVessel, anchorBody, bodyWorld };
@@ -900,6 +937,118 @@ export class SceneModel {
 		};
 	}
 
+	private groundHeightOf(body: string, direction: Vec3): number | undefined {
+		return body === this.primaryBody
+			? this.environment.groundHeight(direction)
+			: this.moons.get(body)?.groundHeight(direction);
+	}
+
+	/** Updates how long a vessel has lain still on the ground (the sim removes debris after 10 s). */
+	private trackRest(v: VesselSnapshot, t: number): void {
+		const fx = this.bodyFx.get(v.soi);
+		const info = this.bodyInfo.get(v.soi);
+		if (!fx || !info) {
+			this.resting.delete(v.id);
+			return;
+		}
+		const r = Math.hypot(v.position.x, v.position.y, v.position.z);
+		const spin = fx.omega;
+		const ground = {
+			x: spin.y * v.position.z - spin.z * v.position.y,
+			y: spin.z * v.position.x - spin.x * v.position.z,
+			z: spin.x * v.position.y - spin.y * v.position.x
+		};
+		const local = rotateInverse(fx.rotation, v.position);
+		const height =
+			r - info.radius - (r > 0 ? (this.groundHeightOf(v.soi, scale1(local, 1 / r)) ?? 0) : 0);
+		let hot = 0;
+		for (const p of v.parts) hot = Math.max(hot, p.temperature ?? 0);
+		const next = stepRest(this.resting.get(v.id), t, {
+			groundSpeed: Math.hypot(
+				v.velocity.x - ground.x,
+				v.velocity.y - ground.y,
+				v.velocity.z - ground.z
+			),
+			height,
+			maxTemperature: hot,
+			position: local,
+			soi: v.soi,
+			parts: v.parts.length
+		});
+		if (next) this.resting.set(v.id, next);
+		else this.resting.delete(v.id);
+	}
+
+	/** Freezes a removed stage where it lies: its models stay, turning with the ground. */
+	private keepRemnant(entry: VesselEntry, rest: RestState): void {
+		const rot = this.bodyRot.get(rest.soi);
+		if (!rot) {
+			this.scene.remove(entry.group);
+			for (const p of entry.parts.values()) p.model.dispose();
+			entry.bars.dispose();
+			return;
+		}
+		this.scene.remove(entry.line.object, entry.marker.object);
+		entry.line.dispose();
+		entry.marker.dispose();
+		// Stopped for good: no flame, no gimbal, no glow.
+		for (const p of entry.parts.values()) {
+			p.model.setState({ modules: {}, ambientPressure: 0 });
+			p.model.tick(0);
+		}
+		this.remnants.push({
+			entry,
+			soi: rest.soi,
+			local: rest.position,
+			frozen: new Quaternion(rot.x, rot.y, rot.z, rot.w),
+			age: 0
+		});
+		while (this.remnants.length > MAX_REMNANTS) this.dropRemnant(this.remnants.shift()!);
+	}
+
+	private dropRemnant(r: Remnant): void {
+		this.scene.remove(r.entry.group);
+		for (const p of r.entry.parts.values()) p.model.dispose();
+		r.entry.bars.dispose();
+	}
+
+	/** Moves the remnants with their body and ages them by simulated time. */
+	private placeRemnants(dtSim: number): void {
+		const keep: Remnant[] = [];
+		for (const r of this.remnants) {
+			if (dtSim > 0 && dtSim < 60) r.age += dtSim;
+			if (r.age >= REMNANT_LIFETIME) {
+				this.dropRemnant(r);
+				continue;
+			}
+			keep.push(r);
+			const fx = this.bodyFx.get(r.soi);
+			if (!fx) {
+				r.entry.group.visible = false;
+				continue;
+			}
+			const p = toRenderSpace(add(fx.world, rotate(fx.rotation, r.local)), this.origin);
+			r.entry.group.position.set(p.x, p.y, p.z);
+			const now = new Quaternion(fx.rotation.x, fx.rotation.y, fx.rotation.z, fx.rotation.w);
+			r.entry.group.quaternion.copy(now).multiply(r.frozen.clone().invert());
+			r.entry.group.visible = !this.map;
+		}
+		this.remnants = keep;
+	}
+
+	/** Forgets what stays after a time jump backwards (a new flight or a loaded game). */
+	private clearPersistent(): void {
+		for (const r of this.remnants) this.dropRemnant(r);
+		this.remnants = [];
+		this.resting.clear();
+		this.effects.clearPersistent();
+	}
+
+	/** Remnants kept (tests and the debug read-out). */
+	get remnantCount(): number {
+		return this.remnants.length;
+	}
+
 	/** Compare with the previous snapshot: vanished parts and split vessels become effect events. */
 	private trackTransitions(snapshot: Snapshot, dtSim: number): void {
 		const now: FxVessel[] = snapshot.vessels.map((v) => ({
@@ -943,6 +1092,8 @@ export class SceneModel {
 	}
 
 	dispose(): void {
+		for (const r of this.remnants) this.dropRemnant(r);
+		this.remnants = [];
 		for (const v of this.vessels.values()) {
 			for (const p of v.parts.values()) p.model.dispose();
 			v.bars.dispose();
@@ -1146,6 +1297,7 @@ export class SceneModel {
 }
 
 const add = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
+const scale1 = (a: Vec3, k: number): Vec3 => ({ x: a.x * k, y: a.y * k, z: a.z * k });
 
 export const createSceneModel = (config: SceneConfig): SceneModel => new SceneModel(config);
 

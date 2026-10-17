@@ -15,6 +15,7 @@ import {
 import {
 	DEFAULT_EXIT_PRESSURE,
 	RAMP_START,
+	diamondPeriod,
 	plumeShape,
 	stepEngineRamp,
 	type EngineRamp,
@@ -70,6 +71,7 @@ const layerMaterial = (
 			uGain: { value: 0 },
 			uVacuum: { value: 0 },
 			uDiamonds: { value: 0 },
+			uPeriod: { value: 2.6 },
 			uColor: { value: colour },
 			uCore: { value: core }
 		},
@@ -88,6 +90,8 @@ export class PlumeEffect {
 	shape: PlumeShape | null = null;
 	private ramp: EngineRamp = RAMP_START;
 	private rampTime: number | null = null;
+	/** Bells of the engine (1 without `nozzles`). */
+	private readonly bells: number;
 
 	constructor(
 		readonly spec: PlumeSpec,
@@ -111,18 +115,32 @@ export class PlumeEffect {
 			depthWrite: false,
 			blending: AdditiveBlending
 		});
-		for (const [g, m] of [
-			[geometry, this.outer],
-			[geometry, this.inner],
-			[spriteGeometry, this.sprite]
-		] as const) {
-			const mesh = new Mesh(g, m);
-			mesh.frustumCulled = false;
-			mesh.castShadow = false;
-			mesh.receiveShadow = false;
-			mesh.renderOrder = 10;
-			this.root.add(mesh);
-			this.meshes.push(mesh);
+		// One set of meshes per bell (ADR 0081); they share the materials, so a cluster costs
+		// draw calls and no extra uniforms. `root` sits at the thrust centre.
+		const bells = spec.nozzles ?? [spec.nozzle];
+		this.bells = bells.length;
+		for (const bell of bells) {
+			const holder = new Object3D();
+			holder.name = 'bell';
+			holder.position.set(
+				bell[0] - spec.nozzle[0],
+				bell[1] - spec.nozzle[1],
+				bell[2] - spec.nozzle[2]
+			);
+			for (const [g, m] of [
+				[geometry, this.outer],
+				[geometry, this.inner],
+				[spriteGeometry, this.sprite]
+			] as const) {
+				const mesh = new Mesh(g, m);
+				mesh.frustumCulled = false;
+				mesh.castShadow = false;
+				mesh.receiveShadow = false;
+				mesh.renderOrder = 10;
+				holder.add(mesh);
+				this.meshes.push(mesh);
+			}
+			this.root.add(holder);
 		}
 		this.root.visible = false;
 	}
@@ -161,14 +179,20 @@ export class PlumeEffect {
 			u.uTime!.value = time;
 			u.uVacuum!.value = shape.vacuum;
 			u.uDiamonds!.value = shape.diamonds;
+			u.uPeriod!.value = diamondPeriod(this.spec.exitRadius);
 		}
 		// Ignition flash: a brief extra glow and a wider sprite.
 		const boost = 1 + 0.9 * this.ramp.flash;
-		this.outer.uniforms.uGain!.value = 1.6 * shape.brightness * boost;
-		this.inner.uniforms.uGain!.value = 4.2 * shape.brightness * boost;
+		// The flames of a cluster's bells overlap near the exit: each is dimmer, so four of them add
+		// up to about twice one engine's, which is what their thrust is (ADR 0081).
+		const spread = Math.sqrt(this.bells);
+		this.outer.uniforms.uGain!.value = (1.6 * shape.brightness * boost) / spread;
+		this.inner.uniforms.uGain!.value = (4.2 * shape.brightness * boost) / spread;
 		this.sprite.uniforms.uSize!.value =
-			Math.max(0.7, shape.maxRadius * (2.6 - 1.5 * shape.vacuum)) * (1 + 0.35 * this.ramp.flash);
-		this.sprite.uniforms.uGain!.value = (1.8 - 0.9 * shape.vacuum) * shape.brightness * boost;
+			Math.max(0.7 / spread, shape.maxRadius * (2.6 - 1.5 * shape.vacuum)) *
+			(1 + 0.35 * this.ramp.flash);
+		this.sprite.uniforms.uGain!.value =
+			((1.8 - 0.9 * shape.vacuum) * shape.brightness * boost) / spread;
 	}
 
 	/** Position of the nozzle exit in the part frame. */

@@ -6,6 +6,7 @@ import { controlSurface } from './control-surface.ts';
 import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
 import { engine } from './engine.ts';
+import { engineCluster } from './engine-cluster.ts';
 import { fin } from './fin.ts';
 import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
@@ -24,6 +25,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('capsule', capsule);
 	registerPartGenerator('tank', tank);
 	registerPartGenerator('engine', engine);
+	registerPartGenerator('engine-cluster', engineCluster);
 	registerPartGenerator('decoupler', decoupler);
 	registerPartGenerator('reaction-wheel', reactionWheel);
 	registerPartGenerator('landing-legs', landingLegs);

@@ -16,6 +16,8 @@ const MIN_EXPANSION = 0.8;
 /** Throttle below this is no plume (an engine that is off, or idling at zero). */
 const MIN_THROTTLE = 0.01;
 
+const finite = (v: number, fallback: number): number => (Number.isFinite(v) ? v : fallback);
+
 export interface PlumeInput {
 	throttle: number;
 	ignited: boolean;
@@ -28,6 +30,15 @@ export interface PlumeInput {
 	baseLength: number;
 	/** Nozzle exit radius, m. */
 	exitRadius: number;
+}
+
+/**
+ * Axial period of the shock diamonds, m: proportional to the exit diameter, since the cells of a
+ * jet scale with its width. The constant is a look constant, not a fitted law: it keeps the
+ * LV-T30's former fixed period of 2.6 m (plan 040).
+ */
+export function diamondPeriod(exitRadius: number): number {
+	return Math.max(0.4, 5.7 * finite(exitRadius, 0.46));
 }
 
 export interface PlumeShape {
@@ -46,8 +57,6 @@ export interface PlumeShape {
 	/** Strength of the shock-diamond pattern, 0..1. */
 	diamonds: number;
 }
-
-const finite = (v: number, fallback: number): number => (Number.isFinite(v) ? v : fallback);
 
 const NONE: PlumeShape = {
 	visible: false,

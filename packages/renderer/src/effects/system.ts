@@ -20,7 +20,18 @@ import {
 } from 'three';
 import type { PresetSettings } from '../presets.ts';
 import { toRenderSpace } from '../origin.ts';
-import { add, cross, dot, length, normalize, rotate, rotateInverse, scale, vec } from '../vec.ts';
+import {
+	add,
+	cross,
+	dot,
+	length,
+	normalize,
+	rotate,
+	rotateInverse,
+	scale,
+	sub,
+	vec
+} from '../vec.ts';
 import {
 	EXPLOSION_DURATION,
 	durationOf,
@@ -41,6 +52,18 @@ import {
 	type WindField
 } from './particles.ts';
 import { PlasmaEffect } from './plasma-mesh.ts';
+import { silhouetteProfile, shellRings, type SilhouettePart } from './plasma-shape.ts';
+import { TrailRibbon } from './trail-ribbon.ts';
+import { trailDensity } from './trail.ts';
+import { WreckField } from './wreck-field.ts';
+import {
+	SETTLE_TIME,
+	WRECK_SCORCH,
+	WRECK_SMOULDER,
+	planWreck,
+	settleBlend,
+	type WreckPlan
+} from './wreckage.ts';
 import { DEFAULT_EXIT_PRESSURE, ambientPressureAt, plumeShape } from './plume.ts';
 import type { PlumeSpec } from './plume-mesh.ts';
 import { airVelocity, plasmaIntensity } from './reentry.ts';
@@ -108,6 +131,8 @@ export interface EffectsOptions {
 	groundHeight?: (body: string, direction: Vec3) => number | undefined;
 	/** Mesh triangles of a part definition, for debris pieces. */
 	shardSource?: (definition: string) => ShardSource | undefined;
+	/** Cylinder of a part definition for the plasma silhouette: radius and half length, m (plan 040). */
+	partSilhouette?: (definition: string) => { radius: number; halfLength: number } | undefined;
 }
 
 interface Explosion {
@@ -121,9 +146,24 @@ interface Explosion {
 	shards: ReturnType<typeof makeShards>;
 	/** The mesh triangle each shard is cut from, with the source it indexes. */
 	pieces: ReadonlyArray<{ source: ShardSource; triangle: number }>;
+	/** Tangent frame (+Y up) to body-fixed axes, fixed at the impact so the pieces stay on the ground. */
+	basis: Quaternion;
+	/** Gravity, m/s^2, and the floor under the centre relative to it, m. */
+	gravity: number;
+	floor: number;
+	/** Where each piece comes to rest; null when the impact was not near ground (plan 040). */
+	plan: WreckPlan | null;
 }
 
 const MAX_EXPLOSIONS = 6;
+/** The tail of one firing engine for the vessel's trail: where, how wide, how dense. */
+interface TrailTip {
+	x: number;
+	y: number;
+	z: number;
+	radius: number;
+	density: number;
+}
 const SHARD_COLOURS = [
 	new Color(0.8, 0.8, 0.78),
 	new Color(0.06, 0.055, 0.05),
@@ -132,6 +172,10 @@ const SHARD_COLOURS = [
 ];
 const FALLBACK_SOURCES = SHARD_COLOURS.map((c) => fallbackSource([c.r, c.g, c.b]));
 const GRAVITY = 9.81;
+/** A part the host gave no shape for is a short stock-size cylinder in the plasma silhouette. */
+const DEFAULT_SILHOUETTE = { radius: 0.625, halfLength: 0.5 };
+/** Share of the old particle trail that stays beside the ribbon (the ribbon carries the persistence). */
+const TRAIL_PARTICLE_SHARE = 0.35;
 /** Dust a plume throws up on an airless body: grey regolith, lit like the ground (plan 049). */
 const REGOLITH_DUST: readonly [number, number, number] = [0.5, 0.48, 0.44];
 /** Particles of the dust pool of an airless body, as a share of the smoke pool. */
@@ -153,6 +197,10 @@ function tangents(up: Vec3): [Vec3, Vec3] {
 export class Effects {
 	readonly root = new Object3D();
 	readonly plasma = new PlasmaEffect();
+	/** Wrecks that stay after an impact (plan 040, ADR 0077). */
+	readonly wrecks = new WreckField();
+	/** Exhaust trails in the air column (plan 040, ADR 0080). */
+	readonly trails = new TrailRibbon();
 	private pool: ParticlePool;
 	/** Dust of the airless bodies (no air to carry smoke), one pool per body, made when a plume first meets its ground (plan 049). */
 	private vacuumPools = new Map<string, ParticlePool>();
@@ -200,7 +248,9 @@ export class Effects {
 			this.fire.mesh,
 			this.shardMesh,
 			this.plasma.root,
-			this.glow.root
+			this.glow.root,
+			this.wrecks.root,
+			this.trails.mesh
 		);
 	}
 
@@ -257,6 +307,12 @@ export class Effects {
 		for (const pool of this.vacuumPools.values()) n += pool.count;
 		return n;
 	}
+	/** Forgets the wrecks and trails (a new flight or a loaded game; plan 040). */
+	clearPersistent(): void {
+		this.wrecks.clear();
+		this.trails.clear();
+		this.explosions = [];
+	}
 	get explosionCount(): number {
 		return this.explosions.length;
 	}
@@ -273,7 +329,14 @@ export class Effects {
 				if (mass !== undefined) pool.step(dt, undefined, { mu: GRAVITATIONAL_CONSTANT * mass });
 			}
 			for (const e of this.explosions) e.age += dt;
-			this.explosions = this.explosions.filter((e) => e.age < durationOf(e.kind) + 0.6);
+			this.explosions = this.explosions.filter(
+				(e) =>
+					e.age <
+					Math.max(durationOf(e.kind) + 0.6, e.plan ? e.plan.settled + SETTLE_TIME + 0.05 : 0)
+			);
+			this.wrecks.step(dt);
+			this.smoulder(dt);
+			this.trails.step(dt, this.windField(frame));
 			for (const f of this.flashes) f.age += dt;
 			this.flashes = this.flashes.filter((f) => f.age < f.life);
 		}
@@ -282,6 +345,40 @@ export class Effects {
 		this.writeFire(frame);
 		this.writeShards(frame);
 		this.updatePlasma(frame);
+		this.wrecks.place(frame.bodies, frame.origin);
+		this.trails.write(
+			this.primary ? frame.bodies.get(this.primary) : undefined,
+			frame.origin,
+			frame.light
+		);
+	}
+
+	/** A fresh wreck smoulders: a few dark puffs a second for `WRECK_SMOULDER` s, fewer as it cools. */
+	private smoulder(dt: number): void {
+		for (const w of this.wrecks.wrecks) {
+			if (w.soi !== this.primary || w.age >= WRECK_SMOULDER) continue;
+			w.smoke += 2.5 * (1 - w.age / WRECK_SMOULDER) * dt * (this.pool.capacity / 320);
+			while (w.smoke >= 1) {
+				w.smoke -= 1;
+				const o = new Vector3(
+					(this.pool.random() - 0.5) * 6,
+					0.3,
+					(this.pool.random() - 0.5) * 6
+				).applyQuaternion(w.basis);
+				const at = add(w.local, vec(o.x, o.y, o.z));
+				const up = normalize(w.local);
+				this.pool.emit({
+					position: at,
+					velocity: scale(up, 1 + 1.5 * this.pool.random()),
+					life: 4 + 3 * this.pool.random(),
+					size0: 0.5,
+					size1: 3 + 2 * this.pool.random(),
+					kind: ParticleKind.Soot,
+					opacity: 0.35,
+					heat: 0.1
+				});
+			}
+		}
 	}
 
 	/** Air velocity at a body-fixed position: horizontal wind by altitude (ADR 0047). */
@@ -319,6 +416,7 @@ export class Effects {
 			const vacuum = v.soi !== this.primary;
 			if (vacuum && (info.atmosphere || info.mass === undefined)) continue;
 			const pool = vacuum ? this.vacuumPool(v.soi) : this.pool;
+			const tips: TrailTip[] = [];
 			for (const part of v.parts) {
 				const spec = this.plumeOf(part.definition);
 				if (!spec) continue;
@@ -360,7 +458,7 @@ export class Effects {
 				const acc = this.accumulators.get(key) ?? { blast: 0, trail: 0 };
 				this.accumulators.set(key, acc);
 				acc.blast += (vacuum ? vacuumDustRate(input) : groundBlastRate(input)) * dt;
-				acc.trail += exhaustTrailRate(input) * dt;
+				acc.trail += exhaustTrailRate(input) * dt * TRAIL_PARTICLE_SHARE;
 				const exhaust = rotate(part.orientation, vec(0, -1, 0));
 				const light = plumeGroundLight(height, throttle, shape.length, spec.exitRadius);
 				if (
@@ -447,9 +545,46 @@ export class Effects {
 						heat: 0.8
 					});
 				}
+				// The persistent ribbon: a point behind the flame, only in air thick enough to hold a trail.
+				const density = trailDensity(
+					info.atmosphere ? pa / (info.atmosphere.surfacePressure || 1) : 0
+				);
+				if (density > 0.02 && height > shape.length * 2) {
+					const tip = toBody(add(nozzle, scale(exhaust, shape.length * 0.7)));
+					tips.push({
+						x: tip.x,
+						y: tip.y,
+						z: tip.z,
+						radius: spec.exitRadius * Math.sqrt(spec.nozzles?.length ?? 1),
+						density: density * Math.sqrt(throttle)
+					});
+				}
 			}
+			if (!vacuum && tips.length > 0) this.feedTrail(String(v.id), tips, dt);
 		}
 		for (const k of this.accumulators.keys()) if (!seen.has(k)) this.accumulators.delete(k);
+	}
+
+	/** One trail per vessel: the engines' flames merged into a point and a width (ADR 0080). */
+	private feedTrail(key: string, tips: readonly TrailTip[], dt: number): void {
+		let x = 0;
+		let y = 0;
+		let z = 0;
+		let density = 0;
+		let radius = 0;
+		for (const t of tips) {
+			x += t.x;
+			y += t.y;
+			z += t.z;
+			density = Math.max(density, t.density);
+			radius = Math.max(radius, t.radius);
+		}
+		x /= tips.length;
+		y /= tips.length;
+		z /= tips.length;
+		let spread = 0;
+		for (const t of tips) spread = Math.max(spread, Math.hypot(t.x - x, t.y - y, t.z - z));
+		this.trails.offer(key, x, y, z, Math.max(0.5, 2 * radius + 2 * spread), density, dt);
 	}
 
 	private vacuumPool(body: string): ParticlePool {
@@ -490,6 +625,78 @@ export class Effects {
 		return out;
 	}
 
+	/**
+	 * The tangent frame fixed to the body at a point (+Y up), the gravity there and the floor of the
+	 * ground under it relative to the point, m (negative: the ground is below).
+	 */
+	private groundFrame(
+		frame: EffectsFrame,
+		soi: string,
+		position: Vec3,
+		local: Vec3
+	): Pick<Explosion, 'basis' | 'gravity' | 'floor'> {
+		const body = frame.bodies.get(soi)!;
+		const info = this.bodies.get(soi);
+		const up = normalize(position);
+		const inertial = new Quaternion().setFromUnitVectors(
+			new Vector3(0, 1, 0),
+			new Vector3(up.x, up.y, up.z)
+		);
+		const bodyQ = new Quaternion(
+			body.rotation.x,
+			body.rotation.y,
+			body.rotation.z,
+			body.rotation.w
+		);
+		const basis = bodyQ.clone().invert().multiply(inertial);
+		const r = Math.max(1, length(local));
+		const gravity =
+			info?.mass !== undefined ? (GRAVITATIONAL_CONSTANT * info.mass) / (r * r) : GRAVITY;
+		const ground = info ? (this.options.groundHeight?.(soi, normalize(local)) ?? 0) : 0;
+		return { basis, gravity, floor: info ? ground - (r - info.radius) : -Infinity };
+	}
+
+	/** Lays out where the pieces of an impact near the ground come to rest and keeps them (ADR 0077). */
+	private keepWreck(e: Explosion): void {
+		const info = this.bodies.get(e.soi);
+		if (!info || e.floor < -300) return;
+		const sources: ShardSource[] = [];
+		const indexed = e.pieces.map((p) => {
+			let i = sources.indexOf(p.source);
+			if (i < 0) i = sources.push(p.source) - 1;
+			return { source: i, triangle: p.triangle };
+		});
+		const up = normalize(e.local);
+		const groundOf = this.options.groundHeight;
+		const groundAt = groundOf
+			? (x: number, z: number): number => {
+					const o = new Vector3(x, 0, z).applyQuaternion(e.basis);
+					const dir = normalize(add(e.local, vec(o.x, o.y, o.z)));
+					const g = groundOf(e.soi, dir) ?? 0;
+					return dot(sub(scale(dir, info.radius + g), e.local), up);
+				}
+			: undefined;
+		const plan = planWreck({
+			seed: e.seed,
+			shards: e.shards,
+			pieces: indexed,
+			sources,
+			floor: e.floor,
+			...(groundAt ? { groundAt } : {}),
+			gravity: e.gravity
+		});
+		if (plan.pieces.length === 0) return;
+		e.plan = plan;
+		this.wrecks.add({
+			soi: e.soi,
+			local: e.local,
+			basis: e.basis,
+			plan,
+			sources,
+			age: e.age
+		});
+	}
+
 	private consumeEvents(frame: EffectsFrame): void {
 		for (const ev of frame.events) {
 			const body = frame.bodies.get(ev.soi);
@@ -519,17 +726,23 @@ export class Effects {
 			}
 			this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
 			const size = Math.max(1.2, ev.size * (ev.cause === 'burn' ? 2 : 3.6));
-			this.explosions.push({
+			const impact = ev.cause === 'impact';
+			const shards = impact ? makeShards(this.seed, this.settings.debrisShards, size, 14) : [];
+			const pieces = impact ? this.cutPieces(ev.definitions, this.seed) : [];
+			const explosion: Explosion = {
 				soi: ev.soi,
 				local,
 				size,
 				kind: ev.cause,
 				age: 0,
 				seed: this.seed,
-				shards:
-					ev.cause === 'impact' ? makeShards(this.seed, this.settings.debrisShards, size, 14) : [],
-				pieces: ev.cause === 'impact' ? this.cutPieces(ev.definitions, this.seed) : []
-			});
+				shards,
+				pieces,
+				...this.groundFrame(frame, ev.soi, ev.position, local),
+				plan: null
+			};
+			if (impact && shards.length > 0) this.keepWreck(explosion);
+			this.explosions.push(explosion);
 			if (this.explosions.length > MAX_EXPLOSIONS) this.explosions.shift();
 			if (ev.soi === this.primary && ev.cause === 'impact') {
 				const n = Math.min(16, Math.floor(this.pool.capacity / 12));
@@ -675,13 +888,17 @@ export class Effects {
 	/**
 	 * Pieces of the destroyed parts: each is a thin prism over a triangle of the part's own mesh
 	 * (ADR 0047), thrown on the shard's ballistic path and tumbling. Written to one dynamic mesh.
+	 * A piece that lands settles from its tumble into the pose it will keep (ADR 0077); once the
+	 * last one has, the wreck mesh takes over and the explosion stops drawing them.
 	 */
 	private writeShards(frame: EffectsFrame): void {
 		const mesh = this.shardMesh;
 		const capacity = this.shardPositions.length / (PIECE_VERTICES * 3);
 		let n = 0;
 		const q = new Quaternion();
+		const rest = new Quaternion();
 		const basis = new Quaternion();
+		const bodyQ = new Quaternion();
 		const axis = new Vector3();
 		const tmp = new Float32Array(PIECE_VERTICES * 3);
 		const v = new Vector3();
@@ -689,31 +906,44 @@ export class Effects {
 		for (const e of this.explosions) {
 			const body = frame.bodies.get(e.soi);
 			if (!body || e.shards.length === 0) continue;
+			if (e.plan && e.age >= e.plan.settled + SETTLE_TIME) continue; // the wreck mesh draws it now
 			const centreWorld = add(body.world, rotate(body.rotation, e.local));
-			const up = normalize(rotate(body.rotation, e.local));
-			basis.setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(up.x, up.y, up.z));
+			bodyQ.set(body.rotation.x, body.rotation.y, body.rotation.z, body.rotation.w);
+			basis.copy(bodyQ).multiply(e.basis);
 			const base = toRenderSpace(centreWorld, frame.origin);
-			// Ground below the explosion: shards stop at the surface (altitude of the centre).
-			const info = this.bodies.get(e.soi);
-			const altitude = info ? length(e.local) - info.radius : 0;
-			const nearGround = altitude < 300;
+			const planned = new Map(e.plan?.pieces.map((p) => [p.shard, p]));
 			for (let k = 0; k < e.shards.length; k++) {
 				if (n >= capacity) break;
 				const s = e.shards[k]!;
 				const piece = e.pieces[k];
 				if (!piece) continue;
-				const p = shardPosition(s, e.age, GRAVITY);
-				const floor = nearGround ? -altitude : -Infinity;
-				const y = Math.max(p.y, floor + s.size * 0.2);
+				const land = planned.get(k);
+				// In the air: the ballistic path; once down: the rest pose of the plan.
+				const t = land ? Math.min(e.age, land.landTime) : e.age;
+				const p = shardPosition(s, t, e.gravity);
+				const floor = land ? -Infinity : e.floor;
+				let y = Math.max(p.y, floor + s.size * 0.2);
+				let m = 0;
+				axis.set(0.6 + (k % 3) * 0.2, 0.3, 0.7 - (k % 4) * 0.15).normalize();
+				q.setFromAxisAngle(axis, s.spin * t);
+				if (land) {
+					m = settleBlend(e.age, land.landTime);
+					if (m > 0) {
+						rest.set(land.rest.x, land.rest.y, land.rest.z, land.rest.w);
+						q.slerp(rest, m);
+						y = y + (land.y - y) * m;
+					}
+				} else if (p.y <= floor) {
+					q.setFromAxisAngle(axis, s.spin * 0.2);
+				}
+				q.premultiply(basis);
 				at.set(p.x, y, p.z)
 					.applyQuaternion(basis)
 					.add(v.set(base.x, base.y, base.z));
-				const spin = p.y > floor ? s.spin * e.age : s.spin * 0.2;
-				axis.set(0.6 + (k % 3) * 0.2, 0.3, 0.7 - (k % 4) * 0.15).normalize();
-				q.setFromAxisAngle(axis, spin).premultiply(basis);
 				writePiece(piece.source, piece.triangle, s.size * 3, s.size * 0.5, tmp, 0);
 				const o = n * PIECE_VERTICES * 3;
 				const rgb = piece.source.colours;
+				const char = 1 + (WRECK_SCORCH - 1) * m; // the paint chars as the piece settles
 				for (let i = 0; i < PIECE_VERTICES; i++) {
 					v.set(tmp[i * 3]!, tmp[i * 3 + 1]!, tmp[i * 3 + 2]!)
 						.applyQuaternion(q)
@@ -721,9 +951,9 @@ export class Effects {
 					this.shardPositions[o + i * 3] = v.x;
 					this.shardPositions[o + i * 3 + 1] = v.y;
 					this.shardPositions[o + i * 3 + 2] = v.z;
-					this.shardColours[o + i * 3] = rgb[piece.triangle * 3]!;
-					this.shardColours[o + i * 3 + 1] = rgb[piece.triangle * 3 + 1]!;
-					this.shardColours[o + i * 3 + 2] = rgb[piece.triangle * 3 + 2]!;
+					this.shardColours[o + i * 3] = rgb[piece.triangle * 3]! * char;
+					this.shardColours[o + i * 3 + 1] = rgb[piece.triangle * 3 + 1]! * char;
+					this.shardColours[o + i * 3 + 2] = rgb[piece.triangle * 3 + 2]! * char;
 				}
 				n++;
 			}
@@ -756,27 +986,29 @@ export class Effects {
 		const altitude = length(v.position) - info.radius;
 		const intensity = speed > 1 ? plasmaIntensity(speed, altitude, info.atmosphere) : 0;
 		const fwd = speed > 1 ? scale(air, 1 / speed) : vec(0, 1, 0);
-		let hi = -Infinity;
-		let lo = Infinity;
+		const parts: SilhouettePart[] = v.parts.map((p) => ({
+			position: p.position,
+			orientation: p.orientation,
+			...(this.options.partSilhouette?.(p.definition) ?? DEFAULT_SILHOUETTE)
+		}));
+		const profile = silhouetteProfile(parts, fwd);
+		const rings = shellRings(profile, speed);
 		let side = 0;
-		for (const p of v.parts) {
-			const d = dot(p.position, fwd);
-			hi = Math.max(hi, d);
-			lo = Math.min(lo, d);
-			const lateral = length(add(p.position, scale(fwd, -d)));
-			side = Math.max(side, lateral);
-		}
+		for (const r of profile.radii) side = Math.max(side, r);
 		const root = toRenderSpace(add(body.world, v.position), frame.origin);
+		const at = (s: number): Vec3 => vec(root.x + fwd.x * s, root.y + fwd.y * s, root.z + fwd.z * s);
+		const tip = at(profile.front + 0.6);
 		this.plasma.update({
 			intensity,
 			forward: fwd,
-			front: vec(
-				root.x + fwd.x * (hi + 0.6),
-				root.y + fwd.y * (hi + 0.6),
-				root.z + fwd.z * (hi + 0.6)
-			),
-			extent: hi - lo + 1.2,
+			front: tip,
+			extent: profile.front - profile.back + 1.2,
 			radius: side + 0.7,
+			shell: {
+				rings,
+				front: profile.front,
+				origin: add(at(profile.front), profile.axisPoint)
+			},
 			time: frame.time,
 			tint: ionisationColour(speed)
 		});
@@ -789,6 +1021,8 @@ export class Effects {
 		this.shardMaterial.dispose();
 		this.glow.dispose();
 		this.plasma.dispose();
+		this.wrecks.dispose();
+		this.trails.dispose();
 	}
 }
 
