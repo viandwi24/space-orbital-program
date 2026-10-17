@@ -98,9 +98,9 @@
 		}
 	}
 
-	async function create(world: WorldInfo, name: string): Promise<void> {
+	async function create(world: WorldInfo, name: string, scenario?: string): Promise<void> {
 		await guard(async () => {
-			const record = await worlds!.create(world, name, catalog!.mods);
+			const record = await worlds!.create(world, name, catalog!.mods, scenario);
 			createOpen = false;
 			await refresh(record.id);
 			note = `Created "${record.name}".`;
