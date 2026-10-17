@@ -28,6 +28,7 @@ import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
+import type { AntennaDefinition, GroundStationDefinition } from './comms.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -98,6 +99,9 @@ export interface BasePluginContext {
 	/** Science (plan 103, ADR 0178). */
 	readonly situations: Registrar<SituationDefinition>;
 	readonly experiments: Registrar<ExperimentDefinition>;
+	/** Comms (plan 114, ADR 0179). */
+	readonly antennas: Registrar<AntennaDefinition>;
+	readonly groundStations: Registrar<GroundStationDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -142,6 +146,8 @@ export const REGISTRY_KINDS = [
 	'site-template',
 	'situation',
 	'experiment',
+	'antenna',
+	'ground-station',
 	'objective',
 	'contract',
 	'mission',
@@ -198,6 +204,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'siteTemplates',
 	'situations',
 	'experiments',
+	'antennas',
+	'groundStations',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -383,6 +391,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			siteTemplates: registrar(registries.siteTemplates),
 			situations: registrar(registries.situations),
 			experiments: registrar(registries.experiments),
+			antennas: registrar(registries.antennas),
+			groundStations: registrar(registries.groundStations),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -546,6 +556,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'site-template': section(registries.siteTemplates),
 				situation: section(registries.situations),
 				experiment: section(registries.experiments),
+				antenna: section(registries.antennas),
+				'ground-station': section(registries.groundStations),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),

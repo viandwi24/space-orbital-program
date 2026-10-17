@@ -31,6 +31,11 @@ import {
 	type ExperimentDefinition,
 	type SituationDefinition
 } from './science.ts';
+	antennaDefinitionSchema,
+	groundStationDefinitionSchema,
+	type AntennaDefinition,
+	type GroundStationDefinition
+} from './comms.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import {
 	contractDefinitionSchema,
@@ -221,6 +226,9 @@ export interface Registries {
 	/** Science (plan 103, ADR 0178). */
 	situations: Registry<SituationDefinition>;
 	experiments: Registry<ExperimentDefinition>;
+	/** Comms (plan 114, ADR 0179). */
+	antennas: Registry<AntennaDefinition>;
+	groundStations: Registry<GroundStationDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -251,6 +259,10 @@ export function createRegistries(): Registries {
 		}),
 		experiments: createRegistry<ExperimentDefinition>('experiment', {
 			schema: experimentDefinitionSchema
+		}),
+		antennas: createRegistry<AntennaDefinition>('antenna', { schema: antennaDefinitionSchema }),
+		groundStations: createRegistry<GroundStationDefinition>('ground-station', {
+			schema: groundStationDefinitionSchema
 		}),
 		objectives: createRegistry<ObjectiveDefinition>('objective', {
 			schema: objectiveDefinitionSchema

@@ -4,7 +4,13 @@
  * the player sees starts where the parts really start to heat. The constants repeat the sim's
  * (`packages/sim/src/constants.ts`); the renderer may not import the sim.
  */
-import type { Vec3 } from '@orbital/core';
+import {
+	BLACKOUT_BADGE_LEVEL,
+	BLACKOUT_FLUX_FULL,
+	BLACKOUT_FLUX_START,
+	blackoutLevelFromFlux,
+	type Vec3
+} from '@orbital/core';
 import { clamp, cross, length, sub } from '../vec.ts';
 import { ambientPressureAt } from './plume.ts';
 
@@ -68,16 +74,8 @@ export const speedOf = (v: Vec3): number => length(v);
  * and speed by construction, as the real one does (it ends when the vessel slows and the air
  * thickens enough for collisions to damp the electrons: the flux falls with speed cubed).
  */
-export const BLACKOUT_FLUX_START = 1.5e5;
-export const BLACKOUT_FLUX_FULL = 4e5;
-/** The HUD shows the badge at or above this level. */
-export const BLACKOUT_BADGE_LEVEL = 0.5;
-
-/** 0..1 loss of signal for a stagnation flux (W/m^2). */
-export function blackoutLevelFromFlux(flux: number): number {
-	const t = clamp((flux - BLACKOUT_FLUX_START) / (BLACKOUT_FLUX_FULL - BLACKOUT_FLUX_START), 0, 1);
-	return t * t * (3 - 2 * t);
-}
+// The law itself lives in core since plan 114 (ADR 0179 point 7): the sim drops the link with it.
+export { BLACKOUT_BADGE_LEVEL, BLACKOUT_FLUX_FULL, BLACKOUT_FLUX_START, blackoutLevelFromFlux };
 
 /** Loss of signal for an airspeed (m/s) at an altitude (m) in the given atmosphere. */
 export function blackoutLevel(

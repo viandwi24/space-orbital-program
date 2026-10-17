@@ -61,6 +61,10 @@ export interface EventMap {
 		kind: 'data' | 'sample';
 	};
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
+	/** Comms (plan 114, ADR 0179 point 4): `time` is when the link changed (bisected on rails). */
+	'comms:link-up': { vessel: EntityId; to: string; time: number };
+	'comms:link-down': { vessel: EntityId; reason: string; time: number };
+	'comms:control-changed': { vessel: EntityId; control: 'full' | 'partial' | 'none' };
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */
 	'data:stored': { vessel: EntityId; part: EntityId; item: string };
 	/** A data item could not be stored and is lost (`reason: 'full'`: no storage had room). */
