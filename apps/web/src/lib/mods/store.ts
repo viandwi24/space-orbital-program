@@ -3,7 +3,7 @@
  * `orbital-mods` (its own database, like the saves'), behind a small interface so tests and a
  * browser without IndexedDB use memory.
  */
-import type { ModManifest } from '@orbital/core';
+import type { ModAsset, ModManifest } from '@orbital/core';
 
 /** Where a package came from, shown in the trust prompt and the list. */
 export type ModSource = { kind: 'file'; name: string } | { kind: 'url'; url: string };
@@ -13,7 +13,9 @@ export interface ModRecord {
 	id: string;
 	manifest: ModManifest;
 	code: string;
-	/** Hex SHA-256 of `code`, computed at install. */
+	/** Files the package ships (`.glb` models), as parsed; absent for a code-only mod (ADR 0076). */
+	assets?: Record<string, ModAsset>;
+	/** The package fingerprint (code and assets), computed at install. */
 	sha256: string;
 	/** The fingerprint the player trusted. Differs from `sha256` only if the record was tampered with. */
 	trusted: string;

@@ -3,9 +3,11 @@
  * `unknown`: the sim validates them with `commandSchema` (ADR 0016), the client does not duplicate that.
  */
 import {
+	modAssetSchema,
 	modManifestSchema,
 	type BodyDefinition,
 	type CommandResult,
+	type ModAsset,
 	type ModBundle,
 	type PartDefinition,
 	type ResourceDefinition,
@@ -182,7 +184,23 @@ function parseModBundles(value: unknown): ModBundle[] {
 	for (const item of value) {
 		if (!isRecord(item) || typeof item.code !== 'string') continue;
 		const manifest = modManifestSchema.safeParse(item.manifest);
-		if (manifest.success) bundles.push({ manifest: manifest.data, code: item.code });
+		if (!manifest.success) continue;
+		// Assets are checked again by the Worker's `resolveMods`; a malformed table drops the bundle.
+		let assets: Record<string, ModAsset> | undefined;
+		if (item.assets !== undefined) {
+			if (!isRecord(item.assets)) continue;
+			assets = {};
+			for (const [path, value] of Object.entries(item.assets)) {
+				const asset = modAssetSchema.safeParse(value);
+				if (asset.success) assets[path] = asset.data;
+			}
+			if (Object.keys(assets).length !== Object.keys(item.assets).length) continue;
+		}
+		bundles.push({
+			manifest: manifest.data,
+			code: item.code,
+			...(assets ? { assets } : {})
+		});
 	}
 	return bundles;
 }

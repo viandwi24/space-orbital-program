@@ -16,6 +16,7 @@ import {
 import { VabView, type VabMarker } from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
+import { modelProviders } from '../mods/asset-models';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
 import { initialGraphicsPreset } from '../graphics';
 import { keyIdOf, type ActionId } from '../keybindings';
@@ -433,6 +434,7 @@ export class VabController {
 				shapes: partShapesOf(this.catalog),
 				visuals: new Map(this.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 				attach: new Map(this.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
+				providers: modelProviders(),
 				props: ['stock.tank-medium', 'stock.engine-lv'],
 				quality: initialGraphicsPreset() === 'low' ? 'low' : 'high',
 				reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches

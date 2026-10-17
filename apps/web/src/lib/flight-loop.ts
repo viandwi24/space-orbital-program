@@ -21,6 +21,7 @@ import {
 import { pageAudio } from './audio/audio';
 import { createDirector, type AudioFlightView } from './audio/director';
 import { partShapesOf } from './catalog';
+import { modelProviders } from './mods/asset-models';
 import { pinchZoomFactor } from './touch/touch-model';
 import {
 	clearGraphicsPreset,
@@ -617,6 +618,7 @@ export function startFlight(options: FlightOptions): Flight {
 				partShapes: partShapesOf(c),
 				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
 				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
+				partProviders: modelProviders(),
 				preset: initialGraphicsPreset()
 			});
 			const draw = renderer;

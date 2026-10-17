@@ -7,7 +7,7 @@
 import {
 	importModBundle,
 	installModSdk,
-	modCodeHash,
+	modPackageFingerprint,
 	resolveMods,
 	type ModBundle,
 	type Plugin
@@ -35,9 +35,11 @@ export interface ModRuntime {
 	plugins: Plugin[];
 	/** The same mods as bundles, for the sim Worker. */
 	bundles: ModBundle[];
+	/** Checked `.glb` bytes by part definition id, for parts whose `visual.asset` names a file a mod ships (ADR 0076). */
+	partAssets: Map<string, Uint8Array>;
 }
 
-const EMPTY: ModRuntime = { entries: [], plugins: [], bundles: [] };
+const EMPTY: ModRuntime = { entries: [], plugins: [], bundles: [], partAssets: new Map() };
 let current: ModRuntime = EMPTY;
 
 export interface EvaluateOptions {
@@ -58,7 +60,7 @@ export async function evaluateMods(
 			states.set(record.id, { kind: 'disabled' });
 			continue;
 		}
-		const actual = await modCodeHash(record.code);
+		const actual = await modPackageFingerprint(record.code, record.assets);
 		if (actual !== record.trusted || actual !== record.sha256) {
 			states.set(record.id, {
 				kind: 'untrusted',
@@ -66,7 +68,11 @@ export async function evaluateMods(
 			});
 			continue;
 		}
-		candidates.push({ manifest: record.manifest, code: record.code });
+		candidates.push({
+			manifest: record.manifest,
+			code: record.code,
+			...(record.assets ? { assets: record.assets } : {})
+		});
 	}
 	const resolved = await resolveMods(candidates, {
 		builtin: options.builtin ?? [Stock],
@@ -75,13 +81,19 @@ export async function evaluateMods(
 	for (const r of resolved.rejected) states.set(r.id, { kind: 'failed', reason: r.reason });
 	for (const m of resolved.accepted) states.set(m.id, { kind: 'loaded' });
 	const bootedIds = new Set(resolved.accepted.map((m) => m.id));
+	const partAssets = new Map<string, Uint8Array>();
+	for (const ref of resolved.partAssets) {
+		const asset = resolved.assets.get(ref.mod)?.get(ref.path);
+		if (asset) partAssets.set(ref.part, asset.bytes);
+	}
 	return {
 		entries: records.map((record) => ({
 			record,
 			state: states.get(record.id) ?? { kind: 'failed', reason: 'it was not loaded' }
 		})),
 		plugins: resolved.plugins,
-		bundles: candidates.filter((b) => bootedIds.has(b.manifest.id))
+		bundles: candidates.filter((b) => bootedIds.has(b.manifest.id)),
+		partAssets
 	};
 }
 
@@ -101,6 +113,7 @@ export async function initModRuntime(
 export const modRuntime = (): ModRuntime => current;
 export const activePlugins = (): Plugin[] => current.plugins;
 export const activeBundles = (): ModBundle[] => current.bundles;
+export const activePartAssets = (): ReadonlyMap<string, Uint8Array> => current.partAssets;
 
 /** Test support. */
 export function resetModRuntime(next: ModRuntime = EMPTY): void {

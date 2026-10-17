@@ -7,6 +7,7 @@
 	import Dialog from '../../lib/ui/Dialog.svelte';
 	import Icon from '../../lib/ui/Icon.svelte';
 	import {
+		assetLabel,
 		dependencyList,
 		shortHash,
 		sizeLabel,
@@ -175,6 +176,21 @@
 				<dd class="num">{sourceLabel(p.source)}</dd>
 				<dt>Size</dt>
 				<dd class="num">{sizeLabel(p.size)}</dd>
+				<dt>Also ships</dt>
+				<dd>
+					{#if p.assets.length === 0}
+						no files, only code
+					{:else}
+						<ul class="files" aria-label="Files in the package">
+							{#each p.assets as a (a.path)}
+								<li class="num">
+									{a.path}: {assetLabel(a)}
+								</li>
+							{/each}
+						</ul>
+						<span class="dim">Models are drawn by the game; they cannot run code.</span>
+					{/if}
+				</dd>
 				<dt>Fingerprint</dt>
 				<dd class="num" title={p.package.sha256}>{shortHash(p.package.sha256)}</dd>
 			</dl>
@@ -221,6 +237,11 @@
 	.lead,
 	.dim {
 		color: var(--text-dim);
+	}
+	.files {
+		list-style: none;
+		margin: 0;
+		padding: 0;
 	}
 	.mods {
 		list-style: none;

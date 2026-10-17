@@ -32,6 +32,11 @@ export function shortHash(sha256: string): string {
 	return `${sha256.slice(0, 8)}…${sha256.slice(-8)}`;
 }
 
+/** One shipped model for the trust prompt: size, triangles and a short fingerprint. */
+export function assetLabel(asset: { size: number; triangles: number; sha256: string }): string {
+	return `3D model, ${sizeLabel(asset.size)}, ${asset.triangles.toLocaleString('en-US')} triangles, ${shortHash(asset.sha256)}`;
+}
+
 export function dependencyList(dependencies: Readonly<Record<string, string>>): string {
 	const entries = Object.entries(dependencies);
 	return entries.length === 0 ? 'none' : entries.map(([id, range]) => `${id} ${range}`).join(', ');

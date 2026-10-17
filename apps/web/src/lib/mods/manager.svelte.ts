@@ -3,9 +3,17 @@
  * install flow with its trust prompt, enable, disable and remove. Nothing a package carries runs
  * here: the code is only stored; it runs on the next page load, in `runtime.ts`.
  */
-import { parseModPackage, type ModPackage } from '@orbital/core';
+import { decodeAssets, parseModPackage, type ModPackage } from '@orbital/core';
 import { modRuntime, type ModState } from './runtime';
 import { ModStoreError, type ModRecord, type ModSource, type ModStore } from './store';
+
+export interface PendingAsset {
+	path: string;
+	/** Bytes. */
+	size: number;
+	sha256: string;
+	triangles: number;
+}
 
 /** A package that was read and checked and waits for the player's decision. */
 export interface PendingInstall {
@@ -13,6 +21,8 @@ export interface PendingInstall {
 	source: ModSource;
 	/** Characters of code. */
 	size: number;
+	/** What the package ships besides code, for the trust prompt (ADR 0076). */
+	assets: PendingAsset[];
 	/** The installed mod this would replace, if any. */
 	replaces: ModRecord | null;
 }
@@ -141,10 +151,23 @@ export class ModManager {
 			this.error = parsed.errors.join(' ');
 			return;
 		}
+		// `parseModPackage` already checked the assets; this reads their facts for the prompt.
+		const decoded = parsed.package.assets
+			? await decodeAssets(parsed.package.assets)
+			: { ok: true as const, assets: new Map() };
+		const assets: PendingAsset[] = decoded.ok
+			? [...decoded.assets].map(([path, a]) => ({
+					path,
+					size: a.bytes.byteLength,
+					sha256: a.sha256,
+					triangles: a.info.triangles
+				}))
+			: [];
 		this.pending = {
 			package: parsed.package,
 			source,
 			size: parsed.package.code.length,
+			assets,
 			replaces: this.records.find((r) => r.id === parsed.package.manifest.id) ?? null
 		};
 	}
@@ -157,11 +180,12 @@ export class ModManager {
 	async confirm(): Promise<void> {
 		const pending = this.pending;
 		if (!pending || !this.store) return;
-		const { manifest, code, sha256 } = pending.package;
+		const { manifest, code, sha256, assets } = pending.package;
 		const record: ModRecord = {
 			id: manifest.id,
 			manifest,
 			code,
+			...(assets ? { assets } : {}),
 			sha256,
 			trusted: sha256,
 			source: pending.source,

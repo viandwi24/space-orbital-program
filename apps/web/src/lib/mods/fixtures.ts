@@ -11,27 +11,43 @@ export const pluginSource = (
 
 export async function packageText(
 	id: string,
-	options: { version?: string; code?: string; manifest?: Partial<ModManifest> } = {}
+	options: {
+		version?: string;
+		code?: string;
+		manifest?: Partial<ModManifest>;
+		files?: Record<string, Uint8Array>;
+	} = {}
 ): Promise<string> {
 	const version = options.version ?? '1.0.0';
 	const pkg = await createModPackage(
 		{ id, version, api: '^0.1', title: `Mod ${id}`, ...options.manifest },
-		options.code ?? pluginSource(id, version)
+		options.code ?? pluginSource(id, version),
+		options.files
 	);
 	return JSON.stringify(pkg);
 }
 
 export async function recordOf(
 	id: string,
-	options: { order?: number; enabled?: boolean; code?: string; trusted?: string } = {}
+	options: {
+		order?: number;
+		enabled?: boolean;
+		code?: string;
+		trusted?: string;
+		files?: Record<string, Uint8Array>;
+	} = {}
 ): Promise<ModRecord> {
 	const pkg = JSON.parse(
-		await packageText(id, options.code === undefined ? {} : { code: options.code })
+		await packageText(id, {
+			...(options.code === undefined ? {} : { code: options.code }),
+			...(options.files ? { files: options.files } : {})
+		})
 	);
 	return {
 		id,
 		manifest: pkg.manifest,
 		code: pkg.code,
+		...(pkg.assets ? { assets: pkg.assets } : {}),
 		sha256: pkg.sha256,
 		trusted: options.trusted ?? pkg.sha256,
 		source: { kind: 'file', name: `${id}.orbital-mod.json` },
