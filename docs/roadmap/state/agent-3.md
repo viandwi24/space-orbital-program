@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 103 science core on `devc/103-science` (claim/103): plan refined, draft 191 created; next ADR 0178 and the core science types.
-**Waiting for:** merge of 092 (`ready/092`).
+**Now:** 103 science core handed over as `ready/103` (branch `devc/103-science` @ 4691c0d); next in lane: 114 comms-1, after the owner's go.
+**Waiting for:** merge of 103 (`ready/103`).
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -17,7 +17,7 @@
 | 092 site-choice | done | `devc/092-site-choice` | 2026-10-17 | merged 5c9efd5, cp/f2-092-site-choice |
 | 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
-| 103 science | in-progress | `devc/103-science` | 2026-10-17 | claim/103; draft 191 |
+| 103 science | handed-over | `devc/103-science` | 2026-10-17 | ready/103; API 0.1.40; draft 191 |
 | 114 comms-1 | todo |  |  |  |
 | 104 regions | todo |  |  |  |
 | 107 crew-sim | todo |  |  |  |
