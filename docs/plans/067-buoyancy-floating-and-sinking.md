@@ -48,16 +48,16 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/buoyancy.test.ts`: a command pod dropped on the sea comes to rest floating with its submerged volume within 10 % of its mass over the water density; a 17.6 t two-stage rocket (the test helper's heaviest, denser than water) sinks to the seabed; deterministic end states.
-- [ ] Same file: the same on a lake (`isLake`).
-- [ ] Same file: an entry at 15 m/s leaves a pod whole on water and breaks it on ground; at 50 m/s on water it is damaged.
-- [ ] Same file: a pod floating at rest is `stock.splashed` and can be recovered.
-- [ ] `bun test packages/core/test/terrain.test.ts` (or a new water test): `waterAt` is true where the map is below sea level or `isLake`, false elsewhere.
+- [x] `bun test packages/sim/test/buoyancy.test.ts`: a command pod dropped on the sea comes to rest floating with its submerged volume within 10 % of its mass over the water density; a 17.6 t two-stage rocket (the test helper's heaviest, denser than water) sinks to the seabed; deterministic end states.
+- [x] Same file: the same on a lake (`isLake`).
+- [x] Same file: an entry at 15 m/s leaves a pod whole on water and breaks it on ground; at 50 m/s on water it is damaged.
+- [x] Same file: a pod floating at rest is `stock.splashed` and can be recovered.
+- [x] `bun test packages/core/test/water.test.ts`: `waterAt` is true where the map is below sea level or `isLake`, false elsewhere.
 - [ ] `bun test`, typecheck, build, docs:check pass; the headless ascent still reaches orbit.
 
 ## Docs checklist
 
-- [ ] STATUS, journal (`docs/journal/067-buoyancy-floating-and-sinking.md`), ADR 0182 (the force model), `docs/architecture/simulation.md` physics section.
+- [x] STATUS, journal (`docs/journal/067-buoyancy-floating-and-sinking.md`), ADR 0182 (the force model), `docs/architecture/simulation.md` physics section.
 
 ## Log
 
@@ -65,3 +65,4 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0098, 0097: sea recovery and impact classification use it).
 - 2026-10-17 — `depends` gains 095, 103 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the realignment puts the recovery hook (095) and the "splashed" science situation (103) in scope.
 - 2026-10-18 — Refined and claimed by Agent 3. Volumes come from part shapes, so there are no new part fields. Ripples and the splash effect move to draft 193 (WebGL cannot be checked on this machine). Design choices go in ADR 0182.
+- 2026-10-18 — Implemented by Agent 3 and handed over as `ready/067`. The sinking test uses a 17.6 t two-stage rocket, the helpers' heaviest stack. Buoyancy uses six slices per part. The ripples and splash effect are in draft 193. Journal: `journal/067-buoyancy-floating-and-sinking.md`.
