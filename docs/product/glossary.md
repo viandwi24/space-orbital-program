@@ -7,6 +7,7 @@ Use these terms consistently in code, docs, and UI.
 | **Body** | A celestial body: planet, moon, star. Has mass, radius, optional atmosphere, and a sphere of influence. |
 | **SOI** | Sphere of influence: region where a body's gravity dominates; patched-conics boundary. |
 | **Target** | The body or other vessel a vessel has chosen to aim at (plan 035): the sim reports its position and velocity relative to the vessel, the closest approach of the two orbits, and SAS can point at or away from it. |
+| **Target mode** | The speed reference that reads the vessel's velocity relative to its target (`V` cycles to it while there is a target); the navball's prograde and retrograde markers then show that velocity (square glyphs), next to the target and anti-target markers that always show (plan 057). |
 | **Maneuver node** | A planned impulsive burn on a vessel's predicted path: a time and prograde/normal/radial delta-v (plan 045, ADR 0056). While the vessel burns, the node shows the burn that is left. |
 | **Vessel** | A connected set of parts under one control authority. A vessel can split (staging, breakage) into several vessels. |
 | **Part** | Smallest placeable unit in assembly. Pure data: mass, mesh, attach nodes, list of module configs. Defined with `definePart`. |

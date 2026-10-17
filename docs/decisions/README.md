@@ -101,3 +101,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0079 | [Plasma blackout is a display of the heating flux; there is still no communications system](0079-plasma-blackout-is-a-display-of-the-heating-flux.md) | accepted | 2026-10-17 |
 | 0080 | [The persistent exhaust trail is a ribbon of sampled points](0080-exhaust-trail-as-a-ribbon.md) | accepted | 2026-10-17 |
 | 0081 | [Engines with several nozzles: `plume.nozzles`, a cluster generator, a stock cluster engine](0081-multi-nozzle-engines-in-the-part-descriptor.md) | accepted | 2026-10-17 |
+| 0084 | [Target markers and rendezvous aids: page-side, genre conventions, no new command](0084-target-markers-and-rendezvous-aids.md) | accepted | 2026-10-17 |
