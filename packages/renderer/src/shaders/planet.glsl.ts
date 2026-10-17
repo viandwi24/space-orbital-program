@@ -23,6 +23,8 @@ import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.t
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
+import { SHAFT } from '../light-shaft.ts';
+import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import {
 	CLOUD_FILL,
 	CLOUD_GAIN_CAP,
@@ -399,20 +401,7 @@ float noiseA(vec3 pl, float lam, int salt) {
 
 ${terrainNoiseGLSL}
 
-float fbmF(vec3 p, int octaves) {
-	float sum = 0.0;
-	float amp = 1.0;
-	float norm = 0.0;
-	for (int i = 0; i < 6; i++) {
-		if (i >= octaves) break;
-		sum += amp * noiseF(p + float(i) * 7.31);
-		norm += amp;
-		amp *= 0.5;
-		p = OCT_ROT * p * 2.03;
-	}
-	return sum / norm;
-}
-
+${cloudFieldGLSL}
 
 ${terrainMarchGLSL}
 
@@ -421,28 +410,63 @@ vec3 rotY(vec3 v, float a) {
 	float c = cos(a), s = sin(a);
 	return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
 }
-// Cumulus: billowy puffs with defined edges. full adds the fine detail; ground shadows use the cheap form.
 float cloudDensityO(vec3 dirBF, bool full, float fp, int octaves) {
-	vec3 p = rotY(dirBF, uCloudAngle) * (uR / 16000.0);
-	p += 0.7 * (noiseF3(p * 0.45 + 3.7) - 0.5);
-	float n = fbmF(p, octaves);
-	// detail fades with the footprint of a pixel on the shell (grazing views would alias) and is skipped when faded out
-	float puff = 0.5;
-	float puffW = 1.0 - smoothstep(500.0, 1500.0, fp);
-	if (puffW > 0.001) puff = mix(0.5, smoothstep(0.3, 0.7, fbmF(p * 11.0 + 21.0, 2)), puffW);
-	float t0 = mix(0.66, 0.40, uCloudCover);
-	float body = smoothstep(t0, t0 + mix(0.2, 0.28, smoothstep(300.0, 3000.0, fp)), n + (puff - 0.5) * 0.3);
-	float dens = body * (0.55 + 0.75 * puff);
-	float billowW = 1.0 - smoothstep(120.0, 450.0, fp);
-	if (full && billowW > 0.001) {
-		float billow = mix(0.5, smoothstep(0.28, 0.72, fbmF(p * 48.0 + 5.0, 2)), billowW);
-		dens *= 0.65 + 0.65 * billow;
-	}
-	return clamp(dens - 0.06 * (1.0 - body), 0.0, 1.0);
+	return cloudDensityQ(rotY(dirBF, uCloudAngle) * (uR / 16000.0), full, fp, octaves);
 }
 float cloudDensity(vec3 dirBF, bool full, float fp) {
 	return cloudDensityO(dirBF, full, fp, CLOUD_OCTAVES);
 }
+
+// --- light shafts (plan 054, ADR 0070; the twin of shaftDeficit in light-shaft.ts) --------------------
+#if SHAFT_STEPS > 0
+uniform sampler2D uCloudMap; // baked cloud coverage, equirectangular (planet.ts bakeCloudMap, light-shaft.ts cloudMapUV)
+uniform float uShaft; // 0..1, light-shaft.ts shaftStrength: 0 by a high sun, at night and from orbit
+struct ShaftLoss {
+	vec3 all; // Mie in-scatter (before the boost) the cloud shadows remove from the whole path
+	vec3 toA; // ... from the samples in front of the first snapshot distance tcA
+	vec3 toB; // ... in front of tcB
+};
+// A second, denser march along the ray: a sample under the cumulus slab loses the share of its sun that the slab
+// blocks where its sun ray crosses it (coverage at the middle of the slab, read from the baked map).
+ShaftLoss shaftLoss(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitter, float tcA, float tcB) {
+	ShaftLoss o;
+	o.all = vec3(0.0);
+	o.toA = vec3(0.0);
+	o.toB = vec3(0.0);
+	float len = max(min(t1, t0 + ${f(SHAFT.range)}) - t0, 0.0);
+	float mieK = uBetaM / 1.1 * miePhase(dot(rd, l), uMieG);
+	float mask = clamp(uCloudCover * 2.0, 0.0, 1.0);
+	float midAlt = uCloudAlt + ${f(CLOUD_THICKNESS / 2)};
+	vec3 od = vec3(0.0);
+	for (int i = 0; i < SHAFT_STEPS; i++) {
+		float u = (float(i) + jitter) / float(SHAFT_STEPS);
+		float s = t0 + len * u * u;
+		float ds = len * 2.0 * u / float(SHAFT_STEPS);
+		vec3 p = ro + rd * s;
+		float rr = length(p);
+		float h = max(rr - uR, 0.0);
+		float dM = exp(-h / uHM) * ds;
+		od += vec3(exp(-h / uHR) * ds, dM, ozoneDensity(h) * ds);
+		if (rr > uCloudTop) continue; // over the clouds: nothing above blocks the sun
+		vec3 np = p / rr;
+		float sunMu = dot(np, l);
+		if (sunMu < ${f(SHAFT.minSunMu)}) continue;
+		vec3 sd = sunDepth(p, l);
+		if (sd.x < 0.0) continue;
+		float tq = rr < midAlt ? max(raySphere(rr, sunMu, midAlt).y, 0.0) : 0.0;
+		vec3 q = p + l * tq;
+		vec3 rq = rotY(uBodyInv * (q / length(q)), uCloudAngle);
+		float cover = texture(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5)).r * mask;
+		float occ = (1.0 - smoothstep(uCloudAlt, uCloudTop, rr)) * ${f(1 - SHAFT.leak)} * (1.0 - exp(-${f(SHAFT.tau)} * cover / max(sunMu, ${f(SHAFT.muMin)})))
+			* (1.0 - smoothstep(${f(SHAFT.fadeFrom)}, ${f(SHAFT.fadeTo)}, tq));
+		vec3 loss = extinction(od + sd) * (mieK * dM * occ);
+		o.all += loss;
+		if (s < tcA) o.toA += loss;
+		if (s < tcB) o.toB += loss;
+	}
+	return o;
+}
+#endif
 
 // Cirrus: thin streaks stretched along the wind, high above the cumulus.
 float cirrusDensity(vec3 dirBF) {
@@ -1140,6 +1164,19 @@ void main() {
 	if (inAtm) {
 		float power = h < uAtmH ? 2.0 : 1.0;
 		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tcA, tcB, power);
+#if SHAFT_STEPS > 0
+		if (uShaft > 0.01 && uCloudCover > 0.02 && dot(rd, uSunDir) > ${f(SHAFT.minCosToSun)}) {
+			ShaftLoss sl = shaftLoss(ro, rd, t0, t1, uSunDir, fract(jitter + 0.618034), tcA, tcB);
+			float shaftK = uShaft * uMieBoost * uSunIrr * ${f(SHAFT.gain)};
+			// segment by segment (the composite below subtracts neighbours, so the snapshots must stay ordered), never more than maxShare of a segment
+			vec3 dA = min(sl.toA * shaftK, sc.insA * ${f(SHAFT.maxShare)});
+			vec3 dB = min(max(sl.toB - sl.toA, 0.0) * shaftK, (sc.insB - sc.insA) * ${f(SHAFT.maxShare)});
+			vec3 dC = min(max(sl.all - sl.toB, 0.0) * shaftK, (sc.inscatter - sc.insB) * ${f(SHAFT.maxShare)});
+			sc.insA -= dA;
+			sc.insB -= dA + dB;
+			sc.inscatter -= dA + dB + dC;
+		}
+#endif
 		if (hitT) {
 			// terrain reads through a thinner veil than the model gives; it matches the sky's again at the horizon (terrainVeil in atmosphere-model.ts)
 			float vs = mix(${f(TERRAIN_VEIL.near)}, 1.0, smoothstep(${f(TERRAIN_VEIL.fadeFrom)}, ${f(TERRAIN_VEIL.fadeTo)}, tG));

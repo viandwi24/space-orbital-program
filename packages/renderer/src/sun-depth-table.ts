@@ -10,10 +10,12 @@
  * `sqrt((mu - muHorizon) / (1 - muHorizon))` where `muHorizon` is the grazing ray that just misses
  * the planet from that height (dense where the path through the air changes fastest). Rays under the
  * horizon hit the planet and have no entry. Values are the Rayleigh and Mie optical depths in
- * metres divided by `SUN_DEPTH_SCALE`, stored as half floats (filtered in hardware everywhere).
+ * metres divided by `SUN_DEPTH_SCALE`, stored as half floats (filtered in hardware everywhere). The third
+ * channel is the ozone depth (plan 054, ADR 0069; the fourth is unused: RGB half-float textures are not
+ * renderable-filterable everywhere, RGBA is).
  */
 import { DataUtils } from 'three';
-import type { Atmosphere } from './atmosphere-model.ts';
+import { ozoneDensity, type Atmosphere, type Density3 } from './atmosphere-model.ts';
 
 export const SUN_DEPTH_MU = 128;
 export const SUN_DEPTH_H = 64;
@@ -33,7 +35,7 @@ function farRoot(r: number, mu: number, rs: number): number | null {
 }
 
 /**
- * Rayleigh and Mie optical depth, metres, from radius `r` toward cosine `mu` to the top of the
+ * Rayleigh, Mie and ozone depth, metres, from radius `r` toward cosine `mu` to the top of the
  * atmosphere by quadratic quadrature (`steps` samples); null when the planet blocks the ray.
  */
 export function sunDepthExact(
@@ -41,12 +43,13 @@ export function sunDepthExact(
 	r: number,
 	mu: number,
 	steps = 2000
-): [number, number] | null {
+): Density3 | null {
 	if (mu < horizonMu(atm.radius, r) - 1e-12) return null;
 	const len = farRoot(r, mu, atm.radius + atm.height);
-	if (len === null || len <= 0) return [0, 0];
+	if (len === null || len <= 0) return [0, 0, 0];
 	let rayleigh = 0;
 	let mie = 0;
+	let ozone = 0;
 	for (let i = 0; i < steps; i++) {
 		const u = (i + 0.5) / steps;
 		const s = len * u * u;
@@ -54,8 +57,9 @@ export function sunDepthExact(
 		const h = Math.max(Math.sqrt(r * r + 2 * r * mu * s + s * s) - atm.radius, 0);
 		rayleigh += Math.exp(-h / atm.rayleighHeight) * ds;
 		mie += Math.exp(-h / atm.mieHeight) * ds;
+		ozone += ozoneDensity(h) * ds;
 	}
-	return [rayleigh, mie];
+	return [rayleigh, mie, ozone];
 }
 
 /** The table's coordinates (both in [0, 1]) of a point at height `h` and a ray with cosine `mu`; null when blocked. */
@@ -84,18 +88,19 @@ export function sunDepthTexel(atm: Atmosphere, i: number, j: number): { h: numbe
 }
 
 /**
- * The table as `SUN_DEPTH_MU` x `SUN_DEPTH_H` texels of (Rayleigh, Mie) half floats, row `j` (height)
+ * The table as `SUN_DEPTH_MU` x `SUN_DEPTH_H` texels of (Rayleigh, Mie, ozone, 0) half floats, row `j` (height)
  * major. Blocked rays cannot occur: every texel is on or above its height's horizon.
  */
 export function sunDepthTable(atm: Atmosphere): Uint16Array {
-	const out = new Uint16Array(SUN_DEPTH_MU * SUN_DEPTH_H * 2);
+	const out = new Uint16Array(SUN_DEPTH_MU * SUN_DEPTH_H * 4);
 	for (let j = 0; j < SUN_DEPTH_H; j++) {
 		for (let i = 0; i < SUN_DEPTH_MU; i++) {
 			const { h, mu } = sunDepthTexel(atm, i, j);
-			const od = sunDepthExact(atm, atm.radius + h, mu, BAKE_STEPS) ?? [0, 0];
-			const k = (j * SUN_DEPTH_MU + i) * 2;
+			const od = sunDepthExact(atm, atm.radius + h, mu, BAKE_STEPS) ?? [0, 0, 0];
+			const k = (j * SUN_DEPTH_MU + i) * 4;
 			out[k] = DataUtils.toHalfFloat(od[0] / SUN_DEPTH_SCALE);
 			out[k + 1] = DataUtils.toHalfFloat(od[1] / SUN_DEPTH_SCALE);
+			out[k + 2] = DataUtils.toHalfFloat(od[2] / SUN_DEPTH_SCALE);
 		}
 	}
 	return out;
@@ -107,7 +112,7 @@ export function sunDepthLookup(
 	table: Uint16Array,
 	h: number,
 	mu: number
-): [number, number] | null {
+): Density3 | null {
 	const c = sunDepthCoords(atm, h, mu);
 	if (!c) return null;
 	const x = c.u * (SUN_DEPTH_MU - 1);
@@ -117,9 +122,9 @@ export function sunDepthLookup(
 	const fx = x - i0;
 	const fy = y - j0;
 	const at = (i: number, j: number, c: number): number =>
-		DataUtils.fromHalfFloat(table[(j * SUN_DEPTH_MU + i) * 2 + c]!);
+		DataUtils.fromHalfFloat(table[(j * SUN_DEPTH_MU + i) * 4 + c]!);
 	const read = (c: number): number =>
 		(at(i0, j0, c) * (1 - fx) + at(i0 + 1, j0, c) * fx) * (1 - fy) +
 		(at(i0, j0 + 1, c) * (1 - fx) + at(i0 + 1, j0 + 1, c) * fx) * fy;
-	return [read(0) * SUN_DEPTH_SCALE, read(1) * SUN_DEPTH_SCALE];
+	return [read(0) * SUN_DEPTH_SCALE, read(1) * SUN_DEPTH_SCALE, read(2) * SUN_DEPTH_SCALE];
 }

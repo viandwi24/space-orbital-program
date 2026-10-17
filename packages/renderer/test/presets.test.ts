@@ -53,6 +53,7 @@ describe('presets', () => {
 			'groundOctaves',
 			'cloudOctaves',
 			'cloudShadowOctaves',
+			'shaftSteps',
 			'mapWidth',
 			'trees',
 			'terrainSize',

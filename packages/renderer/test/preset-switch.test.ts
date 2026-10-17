@@ -77,8 +77,9 @@ describe('vegetation per preset', () => {
 });
 
 /** The part of a WebGLRenderer that `PlanetPass.bakeTerrain` touches. */
-const fakeGl = (): { gl: WebGLRenderer; renders: () => number } => {
+const fakeGl = (): { gl: WebGLRenderer; renders: () => number; cloudMapRenders: () => number } => {
 	let renders = 0;
+	let cloudMap = 0;
 	let current: unknown = null;
 	const gl = {
 		autoClear: true,
@@ -87,11 +88,16 @@ const fakeGl = (): { gl: WebGLRenderer; renders: () => number } => {
 		setRenderTarget(target: unknown) {
 			current = target;
 		},
-		render() {
+		render(scene: { children: { material?: { name?: string } }[] }) {
 			renders++;
+			if (scene.children[0]?.material?.name === 'cloud-map-bake') cloudMap++;
 		}
 	};
-	return { gl: gl as unknown as WebGLRenderer, renders: () => renders };
+	return {
+		gl: gl as unknown as WebGLRenderer,
+		renders: () => renders,
+		cloudMapRenders: () => cloudMap
+	};
 };
 
 describe('progressive terrain bake', () => {
@@ -99,11 +105,11 @@ describe('progressive terrain bake', () => {
 		new PlanetPass(atmosphereFor(R, 100_000), PRESETS[preset], SITE);
 	const uTerrain = (p: PlanetPass): unknown => p.material.uniforms.uTerrain!.value;
 
-	test('the first frame bakes all six faces, a size change one face per frame', () => {
+	test('the first frame bakes all six faces and the cloud-coverage map (plan 054), a size change one face per frame', () => {
 		const planet = make('high');
 		const { gl, renders } = fakeGl();
 		planet.bakeTerrain(gl);
-		expect(renders()).toBe(6);
+		expect(renders()).toBe(6 + 1);
 		const baked = uTerrain(planet);
 		planet.setQuality(PRESETS.low);
 		// the baked map keeps drawing until the new one is complete
@@ -119,6 +125,29 @@ describe('progressive terrain bake', () => {
 		const before = renders();
 		planet.bakeTerrain(gl);
 		expect(renders()).toBe(before);
+		planet.dispose();
+	});
+
+	test('the cloud-coverage map is baked once: preset switches and an unchanged cover do not bake it again, a new cover does (plan 054)', () => {
+		const planet = make('high');
+		const { gl, cloudMapRenders } = fakeGl();
+		planet.bakeTerrain(gl);
+		expect(cloudMapRenders()).toBe(1);
+		for (const preset of ['medium', 'high', 'low', 'high'] as const) {
+			planet.setQuality(PRESETS[preset]);
+			for (let i = 0; i < 8; i++) planet.bakeTerrain(gl);
+		}
+		expect(cloudMapRenders()).toBe(1);
+		planet.material.uniforms.uCloudCover!.value = 0.6;
+		planet.bakeTerrain(gl);
+		expect(cloudMapRenders()).toBe(2);
+		planet.bakeTerrain(gl);
+		expect(cloudMapRenders()).toBe(2);
+		// a preset without shafts keeps the map it has and does not follow a cover change
+		planet.setQuality(PRESETS.low);
+		planet.material.uniforms.uCloudCover!.value = 0.3;
+		planet.bakeTerrain(gl);
+		expect(cloudMapRenders()).toBe(2);
 		planet.dispose();
 	});
 

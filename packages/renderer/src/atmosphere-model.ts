@@ -28,7 +28,41 @@ export interface Atmosphere {
 	skyBoost: number;
 	/** The same for Mie in-scatter. Kept apart from `skyBoost` so haze can be tuned alone; ADR 0037 found that Rayleigh, not Mie, veiled distant land, so both are 2.2. */
 	mieBoost: number;
+	/** Ozone absorption at peak density, 1/m, per channel (plan 054, ADR 0069); absorbs and does not scatter. */
+	betaOzone: RGB;
 }
+
+/**
+ * Ozone layer (plan 054, ADR 0069): the density is 0 at `OZONE.base`, rises linearly to 1 at `OZONE.peak`
+ * and falls linearly to 0 at `OZONE.top` metres above the surface (Bruneton 2017 and Hillaire 2020, which
+ * use the same tent; checked 2026-10-17, research `three.md`). The layer is at absolute altitudes: it is
+ * not stretched like the Rayleigh layer, so the home body (70 km of air) holds it whole.
+ */
+export const OZONE = { base: 10_000, peak: 25_000, top: 40_000 } as const;
+
+/**
+ * Ozone absorption per metre at density 1 for about 680, 550 and 440 nm: the Bruneton cross sections
+ * (1.209e-25, 3.5e-25, 1.582e-26 m^2, the Chappuis band, peak near 600 nm) times 300 Dobson units spread over
+ * the tent (5.374e18 per m^3). It matches Hillaire's (0.650, 1.881, 0.085) x 1e-6.
+ */
+export const OZONE_ABSORPTION: RGB = [6.5e-7, 1.881e-6, 8.5e-8];
+
+/**
+ * The home body is 600 km across, a tenth of Earth: a slant path through a layer 15 km thick is about a third
+ * as long, so at sunset its ozone column is a quarter of Earth's. The layer is made this many times denser
+ * so a low sun path loses as much green as on Earth (the same reasoning as `RAYLEIGH_THICKNESS`, with the
+ * density rather than the height scaled); the vertical column is then 0.1 optical depth in green (Earth 0.03).
+ */
+export const OZONE_STRENGTH = 3.5;
+
+/** Ozone density in [0, 1] at `altitude` metres. */
+export const ozoneDensity = (altitude: number): number =>
+	Math.max(
+		0,
+		altitude < OZONE.peak
+			? (altitude - OZONE.base) / (OZONE.peak - OZONE.base)
+			: (OZONE.top - altitude) / (OZONE.top - OZONE.peak)
+	);
 
 /**
  * The scattering layer is this many times thicker than the body's pressure scale height, with
@@ -53,7 +87,12 @@ export const atmosphereFor = (radius: number, height: number, scaleHeight = 5_60
 	mieG: 0.76,
 	sunIrradiance: 12,
 	skyBoost: 2.2,
-	mieBoost: 2.2
+	mieBoost: 2.2,
+	betaOzone: [
+		OZONE_ABSORPTION[0] * OZONE_STRENGTH,
+		OZONE_ABSORPTION[1] * OZONE_STRENGTH,
+		OZONE_ABSORPTION[2] * OZONE_STRENGTH
+	]
 });
 
 const STEPS = 24;
@@ -71,27 +110,33 @@ export function hitsPlanet(atm: Atmosphere, r0: number, mu: number): boolean {
 	return disc >= 0 && -r0 * mu - Math.sqrt(disc) > 0;
 }
 
-/** Rayleigh and Mie optical depth (dimensionless density integrals in metres) to the top of the atmosphere. */
-export function columnDensity(atm: Atmosphere, r0: number, mu: number): [number, number] {
+/** Rayleigh, Mie and ozone column density (density integrals in metres) to the top of the atmosphere. */
+export function columnDensity(atm: Atmosphere, r0: number, mu: number): Density3 {
 	const top = sphereExit(r0, mu, atm.radius + atm.height);
-	if (top === null || top <= 0) return [0, 0];
+	if (top === null || top <= 0) return [0, 0, 0];
 	const ds = top / STEPS;
 	let rayleigh = 0;
 	let mie = 0;
+	let ozone = 0;
 	for (let i = 0; i < STEPS; i++) {
 		const s = (i + 0.5) * ds;
 		const r = Math.sqrt(r0 * r0 + 2 * r0 * mu * s + s * s);
 		const h = Math.max(0, r - atm.radius);
 		rayleigh += Math.exp(-h / atm.rayleighHeight) * ds;
 		mie += Math.exp(-h / atm.mieHeight) * ds;
+		ozone += ozoneDensity(h) * ds;
 	}
-	return [rayleigh, mie];
+	return [rayleigh, mie, ozone];
 }
 
-const extinction = (atm: Atmosphere, [dr, dm]: [number, number]): RGB => [
-	Math.exp(-(atm.betaRayleigh[0] * dr + atm.betaMie * 1.1 * dm)),
-	Math.exp(-(atm.betaRayleigh[1] * dr + atm.betaMie * 1.1 * dm)),
-	Math.exp(-(atm.betaRayleigh[2] * dr + atm.betaMie * 1.1 * dm))
+/** Rayleigh, Mie and ozone density integrals along a path, metres. */
+export type Density3 = [number, number, number];
+
+/** Transmittance of a path with the given density integrals: Rayleigh and Mie scatter, ozone only absorbs. */
+export const extinction = (atm: Atmosphere, [dr, dm, dz]: Density3): RGB => [
+	Math.exp(-(atm.betaRayleigh[0] * dr + atm.betaMie * 1.1 * dm + atm.betaOzone[0] * dz)),
+	Math.exp(-(atm.betaRayleigh[1] * dr + atm.betaMie * 1.1 * dm + atm.betaOzone[1] * dz)),
+	Math.exp(-(atm.betaRayleigh[2] * dr + atm.betaMie * 1.1 * dm + atm.betaOzone[2] * dz))
 ];
 
 /** Fraction of sunlight reaching a point at `altitude` m when the sun is `sunElevation` rad above the horizon; black if the planet blocks it. */
@@ -102,8 +147,8 @@ export function sunTransmittance(atm: Atmosphere, altitude: number, sunElevation
 	return extinction(atm, columnDensity(atm, r0, mu));
 }
 
-const rayleighPhase = (c: number): number => (3 / (16 * Math.PI)) * (1 + c * c);
-const miePhase = (c: number, g: number): number =>
+export const rayleighPhase = (c: number): number => (3 / (16 * Math.PI)) * (1 + c * c);
+export const miePhase = (c: number, g: number): number =>
 	(1 / (4 * Math.PI)) * ((1 - g * g) / Math.pow(1 + g * g - 2 * g * c, 1.5));
 
 interface PathIntegral {
@@ -111,7 +156,7 @@ interface PathIntegral {
 	rayleigh: RGB;
 	mie: RGB;
 	/** Rayleigh and Mie optical depth of the path. */
-	depth: [number, number];
+	depth: Density3;
 }
 
 /** Integrates the single-scattered light along a view path of at most `maxDistance` metres (to the surface or the atmosphere top when omitted). */
@@ -144,6 +189,7 @@ function integratePath(
 	const mie: RGB = [0, 0, 0];
 	let odR = 0;
 	let odM = 0;
+	let odZ = 0;
 	for (let i = 0; i < STEPS; i++) {
 		const s = (i + 0.5) * ds;
 		const r = Math.sqrt(r0 * r0 + 2 * r0 * mu * s + s * s);
@@ -152,6 +198,7 @@ function integratePath(
 		const dM = Math.exp(-h / atm.mieHeight) * ds;
 		odR += dR;
 		odM += dM;
+		odZ += ozoneDensity(h) * ds;
 		// Sun direction against the local vertical at the sample: P = O + v s with O on +y.
 		const px = cv * s;
 		const py = r0 + mu * s;
@@ -159,7 +206,7 @@ function integratePath(
 		const sunDotUp =
 			(px * cs * Math.cos(relAzimuth) + py * sinS + pz * cs * Math.sin(relAzimuth)) / r;
 		if (hitsPlanet(atm, r, sunDotUp)) continue;
-		const viewT = extinction(atm, [odR, odM]);
+		const viewT = extinction(atm, [odR, odM, odZ]);
 		const sunT = extinction(atm, columnDensity(atm, r, sunDotUp));
 		for (let c = 0; c < 3; c++) {
 			const att = viewT[c]! * sunT[c]!;
@@ -167,7 +214,7 @@ function integratePath(
 			mie[c]! += (atm.betaMie / 1.1) * dM * pm * att;
 		}
 	}
-	return { rayleigh, mie, depth: [odR, odM] };
+	return { rayleigh, mie, depth: [odR, odM, odZ] };
 }
 
 const boosted = (atm: Atmosphere, p: PathIntegral): RGB => [
@@ -189,6 +236,24 @@ export function skyRadiance(
 ): RGB {
 	const p = integratePath(atm, altitude, viewElevation, sunElevation, relAzimuth);
 	return p ? boosted(atm, p) : [0, 0, 0];
+}
+
+/** The Mie part of `skyRadiance` along a path of at most `maxDistance` metres: the haze that light shafts modulate (plan 054). */
+export function mieRadiance(
+	atm: Atmosphere,
+	altitude: number,
+	viewElevation: number,
+	sunElevation: number,
+	relAzimuth: number,
+	maxDistance = Number.POSITIVE_INFINITY
+): RGB {
+	const p = integratePath(atm, altitude, viewElevation, sunElevation, relAzimuth, maxDistance);
+	if (!p) return [0, 0, 0];
+	return [
+		p.mie[0] * atm.mieBoost * atm.sunIrradiance,
+		p.mie[1] * atm.mieBoost * atm.sunIrradiance,
+		p.mie[2] * atm.mieBoost * atm.sunIrradiance
+	];
 }
 
 /**

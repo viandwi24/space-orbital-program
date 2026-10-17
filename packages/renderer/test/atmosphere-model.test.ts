@@ -1,10 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	aerialPerspective,
+	columnDensity,
 	atmosphereFor,
 	horizonColour,
 	hitsPlanet,
 	luminance,
+	OZONE,
+	OZONE_ABSORPTION,
+	OZONE_STRENGTH,
+	ozoneDensity,
 	skyAmbient,
 	skyRadiance,
 	sunTransmittance,
@@ -167,6 +172,89 @@ describe('terrain veil (plan 039)', () => {
 		for (const altitude of [3_000, 6_000, 10_000]) {
 			const ap = aerialPerspective(atm, altitude, -0.1, 10_000, 40 * DEG, 1);
 			expect(luminance(ap.inscatter) * terrainVeil(10_000)).toBeLessThan(luminance(ap.inscatter));
+		}
+	});
+});
+
+describe('ozone layer (plan 054, ADR 0069)', () => {
+	const noOzone = { ...atm, betaOzone: [0, 0, 0] as [number, number, number] };
+
+	test('the density is a tent: 0 at 10 km, 1 at 25 km, 0 at 40 km, linear between, 0 outside', () => {
+		expect(ozoneDensity(0)).toBe(0);
+		expect(ozoneDensity(OZONE.base)).toBe(0);
+		expect(ozoneDensity(17_500)).toBeCloseTo(0.5, 12);
+		expect(ozoneDensity(OZONE.peak)).toBe(1);
+		expect(ozoneDensity(32_500)).toBeCloseTo(0.5, 12);
+		expect(ozoneDensity(OZONE.top)).toBe(0);
+		expect(ozoneDensity(70_000)).toBe(0);
+	});
+
+	test("the absorption coefficients are Hillaire's (0.650, 1.881, 0.085) x 1e-6 per metre: green most, blue least (the Chappuis band)", () => {
+		expect(OZONE_ABSORPTION[0]).toBeCloseTo(0.65e-6, 12);
+		expect(OZONE_ABSORPTION[1]).toBeCloseTo(1.881e-6, 12);
+		expect(OZONE_ABSORPTION[2]).toBeCloseTo(0.085e-6, 12);
+		expect(OZONE_ABSORPTION[1]).toBeGreaterThan(OZONE_ABSORPTION[0]);
+		expect(OZONE_ABSORPTION[0]).toBeGreaterThan(OZONE_ABSORPTION[2]);
+		for (let c = 0; c < 3; c++)
+			expect(atm.betaOzone[c]!).toBeCloseTo(OZONE_ABSORPTION[c]! * OZONE_STRENGTH, 15);
+	});
+
+	test('the column straight up is the tent area (15 km) times the absorption: 0.1 optical depth in green', () => {
+		const [, , column] = columnDensity(atm, atm.radius, 1);
+		expect(Math.abs(column / 15_000 - 1)).toBeLessThan(0.01);
+		expect(atm.betaOzone[1]! * column).toBeCloseTo(0.0988, 2);
+	});
+
+	test('a low sun loses green: 0.7 of the no-ozone value at the horizon, red 0.88, blue untouched', () => {
+		const a = sunTransmittance(atm, 0, 0);
+		const b = sunTransmittance(noOzone, 0, 0);
+		expect(a[1] / b[1]).toBeLessThan(0.75);
+		expect(a[1] / b[1]).toBeGreaterThan(0.6);
+		expect(a[0] / b[0]).toBeGreaterThan(0.8);
+		expect(a[2] / b[2]).toBeGreaterThan(0.97);
+	});
+
+	test('at noon the ozone costs the sun less than 12 percent of its green and the sky colour stays blue', () => {
+		const a = sunTransmittance(atm, 0, 60 * DEG);
+		const b = sunTransmittance(noOzone, 0, 60 * DEG);
+		expect(a[1] / b[1]).toBeGreaterThan(0.88);
+		const [r, g, bl] = skyRadiance(atm, 0, 85 * DEG, 60 * DEG, 0);
+		expect(bl).toBeGreaterThan(g);
+		expect(g).toBeGreaterThan(r);
+	});
+
+	test('twilight zenith is bluer-violet with ozone: blue to green is at least 1.4 times the no-ozone ratio with the sun 2 to 8 degrees below the horizon', () => {
+		for (const e of [-2, -4, -6, -8]) {
+			const a = skyRadiance(atm, 0, 80 * DEG, e * DEG, 0);
+			const b = skyRadiance(noOzone, 0, 80 * DEG, e * DEG, 0);
+			expect(a[2] / a[1] / (b[2] / b[1])).toBeGreaterThan(1.4);
+			expect(a[2]).toBeGreaterThan(a[1]);
+		}
+	});
+
+	test('ozone only absorbs: in-scatter along a path never exceeds the no-ozone value, transmittance never rises', () => {
+		for (const [view, sun] of [
+			[10, 5],
+			[40, -3],
+			[80, 20]
+		] as const) {
+			const a = skyRadiance(atm, 0, view * DEG, sun * DEG, 0.4);
+			const b = skyRadiance(noOzone, 0, view * DEG, sun * DEG, 0.4);
+			for (let c = 0; c < 3; c++) expect(a[c]!).toBeLessThanOrEqual(b[c]! * 1.000001);
+		}
+		const ap = aerialPerspective(atm, 3_000, -0.1, 30_000, 20 * DEG, 1);
+		const bp = aerialPerspective(noOzone, 3_000, -0.1, 30_000, 20 * DEG, 1);
+		for (let c = 0; c < 3; c++)
+			expect(ap.transmittance[c]!).toBeLessThanOrEqual(bp.transmittance[c]!);
+	});
+
+	test('a path that never reaches 10 km sees no ozone: aerial perspective over the ground is unchanged', () => {
+		const ap = aerialPerspective(atm, 1_000, -0.02, 8_000, 35 * DEG, 1);
+		const bp = aerialPerspective(noOzone, 1_000, -0.02, 8_000, 35 * DEG, 1);
+		for (let c = 0; c < 3; c++) {
+			expect(ap.transmittance[c]!).toBeCloseTo(bp.transmittance[c]!, 12);
+			// the sun's path to the point still crosses the layer
+			expect(Math.abs(ap.inscatter[c]! / bp.inscatter[c]! - 1)).toBeLessThan(0.15);
 		}
 	});
 });

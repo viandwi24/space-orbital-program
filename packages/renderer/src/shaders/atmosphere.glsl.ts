@@ -1,3 +1,4 @@
+import { OZONE } from '../atmosphere-model.ts';
 import { SUN_DEPTH_H, SUN_DEPTH_MU, SUN_DEPTH_SCALE } from '../sun-depth-table.ts';
 
 /** Integer-hash value noise (pcg3d) shared by the planet pass and the terrain bake. */
@@ -53,6 +54,7 @@ export const atmosphereGLSL = /* glsl */ `
 uniform float uR;
 uniform float uAtmH;
 uniform vec3 uBetaR;
+uniform vec3 uBetaO; // ozone absorption at peak density, 1/m (plan 054)
 uniform float uBetaM;
 uniform float uHR;
 uniform float uHM;
@@ -73,27 +75,32 @@ vec2 raySphere(float r0, float mu, float rs) {
 	return vec2(-b - s, -b + s);
 }
 
-// Rayleigh and Mie column density from p toward direction l to the top of the atmosphere; x < 0 when the planet blocks it.
+// Ozone density in [0, 1] at height h: a tent from OZONE_BASE through OZONE_PEAK to OZONE_TOP (atmosphere-model.ts).
+float ozoneDensity(float h) {
+	return max(h < ${OZONE.peak}.0 ? (h - ${OZONE.base}.0) / ${OZONE.peak - OZONE.base}.0 : (${OZONE.top}.0 - h) / ${OZONE.top - OZONE.peak}.0, 0.0);
+}
+
+// Rayleigh, Mie and ozone column density from p toward direction l to the top of the atmosphere; x < 0 when the planet blocks it.
 // One fetch of the baked table (plan 039); the grazing ray under which the planet blocks the sun is the table's own edge.
-vec2 sunDepth(vec3 p, vec3 l) {
+vec3 sunDepth(vec3 p, vec3 l) {
 	float r = length(p);
 	float mu = dot(p, l) / r;
 	float rho = uR / r;
 	float muH = -sqrt(max(1.0 - rho * rho, 0.0));
-	if (mu < muH) return vec2(-1.0);
+	if (mu < muH) return vec3(-1.0);
 	float m = clamp((mu - muH) / (1.0 - muH), 0.0, 1.0);
 	float hn = clamp((r - uR) / uAtmH, 0.0, 1.0);
 	vec2 uv = (vec2(sqrt(m), sqrt(hn)) * vec2(${SUN_DEPTH_MU - 1}.0, ${SUN_DEPTH_H - 1}.0) + 0.5) / vec2(${SUN_DEPTH_MU}.0, ${SUN_DEPTH_H}.0);
-	return texture(uSunDepthLUT, uv).xy * ${SUN_DEPTH_SCALE}.0;
+	return texture(uSunDepthLUT, uv).xyz * ${SUN_DEPTH_SCALE}.0;
 }
 
-vec3 extinction(vec2 od) {
-	return exp(-(uBetaR * od.x + vec3(uBetaM * 1.1 * od.y)));
+vec3 extinction(vec3 od) {
+	return exp(-(uBetaR * od.x + vec3(uBetaM * 1.1 * od.y) + uBetaO * od.z));
 }
 
 // Transmittance of sunlight to a point (black when blocked).
 vec3 sunTransmittance(vec3 p, vec3 l) {
-	vec2 od = sunDepth(p, l);
+	vec3 od = sunDepth(p, l);
 	return od.x < 0.0 ? vec3(0.0) : extinction(od);
 }
 
@@ -123,7 +130,7 @@ Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitt
 	float cosv = dot(rd, l);
 	float pr = rayleighPhase(cosv);
 	float pm = miePhase(cosv, uMieG);
-	vec2 od = vec2(0.0);
+	vec3 od = vec3(0.0);
 	vec3 insR = vec3(0.0);
 	vec3 insM = vec3(0.0);
 	bool snapA = false;
@@ -146,8 +153,8 @@ Scatter marchAtmosphere(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitt
 		float h = max(length(p) - uR, 0.0);
 		float dR = exp(-h / uHR) * ds;
 		float dM = exp(-h / uHM) * ds;
-		od += vec2(dR, dM);
-		vec2 sd = sunDepth(p, l);
+		od += vec3(dR, dM, ozoneDensity(h) * ds);
+		vec3 sd = sunDepth(p, l);
 		if (sd.x < 0.0) continue;
 		vec3 att = extinction(od + sd);
 		insR += att * uBetaR * dR * pr;

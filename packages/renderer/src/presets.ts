@@ -27,6 +27,11 @@ export interface PresetSettings {
 	cloudSteps: number;
 	/** Octaves of billow detail in the cumulus slab, 1 to 3. */
 	cloudDetail: 1 | 2 | 3;
+	/**
+	 * Light shafts (plan 054, ADR 0070): samples of the second march that puts cloud shadows into the haze (0 = off); each reads
+	 * the baked cloud-coverage map once.
+	 */
+	shaftSteps: number;
 	/** Biome map width in texels (height is half). */
 	mapWidth: number;
 	/** Instanced trees at the launch site. */
@@ -68,6 +73,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudShadowOctaves: 0,
 		cloudSteps: 3,
 		cloudDetail: 1,
+		shaftSteps: 0,
 		mapWidth: 512,
 		trees: 250,
 		tufts: 0,
@@ -95,6 +101,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudShadowOctaves: 0,
 		cloudSteps: 4,
 		cloudDetail: 2,
+		shaftSteps: 4,
 		mapWidth: 1024,
 		trees: 900,
 		tufts: 10000,
@@ -122,6 +129,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudShadowOctaves: 4,
 		cloudSteps: 6,
 		cloudDetail: 3,
+		shaftSteps: 8,
 		mapWidth: 1024,
 		trees: 2000,
 		tufts: 28000,

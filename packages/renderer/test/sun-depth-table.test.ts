@@ -109,8 +109,33 @@ describe('sun depth table', () => {
 		expect(high[0]).toBeLessThan(up[0] * 0.1);
 	});
 
-	test('the table is about 32 kB and finite', () => {
-		expect(table.byteLength).toBe(SUN_DEPTH_MU * SUN_DEPTH_H * 2 * 2);
-		expect(table.length).toBe(SUN_DEPTH_MU * SUN_DEPTH_H * 2);
+	test('the table is about 64 kB and finite', () => {
+		expect(table.byteLength).toBe(SUN_DEPTH_MU * SUN_DEPTH_H * 4 * 2);
+		expect(table.length).toBe(SUN_DEPTH_MU * SUN_DEPTH_H * 4);
+	});
+
+	test('the ozone channel (plan 054): the lookup is within 0.01 of the fine integral in green transmittance (what the eye sees) and 8 % in depth, zero above the layer', () => {
+		const r = rng(11);
+		let worst = 0;
+		let worstT = 0;
+		for (let n = 0; n < 2_000; n++) {
+			const h = Math.pow(r(), 2) * atm.height;
+			const muH = horizonMu(atm.radius, atm.radius + h);
+			const mu = muH + Math.pow(r(), 2) * (1 - muH);
+			const exact = sunDepthExact(atm, atm.radius + h, mu)!;
+			const got = sunDepthLookup(atm, table, h, mu)!;
+			worst = Math.max(worst, Math.abs(got[2] - exact[2]) / Math.max(exact[2], 20_000));
+			worstT = Math.max(
+				worstT,
+				Math.abs(Math.exp(-atm.betaOzone[1] * got[2]) - Math.exp(-atm.betaOzone[1] * exact[2]))
+			);
+		}
+		expect(worstT).toBeLessThan(0.01);
+		expect(worst).toBeLessThan(0.08);
+		// straight up from 45 km, above the layer: nothing; straight up from the ground: the 15 km tent
+		expect(sunDepthLookup(atm, table, 45_000, 1)![2]).toBeLessThan(50);
+		expect(Math.abs(sunDepthLookup(atm, table, 0, 1)![2] / 15_000 - 1)).toBeLessThan(0.02);
+		// the horizon path carries several times the vertical column
+		expect(sunDepthLookup(atm, table, 0, 0)![2]).toBeGreaterThan(3 * 15_000);
 	});
 });

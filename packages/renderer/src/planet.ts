@@ -28,7 +28,7 @@ import {
 	Mesh,
 	NoColorSpace,
 	RGBAFormat,
-	RGFormat,
+	RedFormat,
 	RepeatWrapping,
 	ShaderMaterial,
 	Quaternion,
@@ -69,6 +69,8 @@ import {
 	patchTexel,
 	type PatchFrame
 } from './terrain-patch.ts';
+import { CLOUD_MAP_H, CLOUD_MAP_OCTAVES, CLOUD_MAP_W, shaftStrength } from './light-shaft.ts';
+import { cloudMapFragment } from './shaders/cloud-field.glsl.ts';
 import { WAVES, WAVE_PERIOD, waveNumber } from './water-model.ts';
 
 type U<T> = Uniform<T>;
@@ -79,6 +81,7 @@ export interface AtmosphereUniforms {
 	uR: U<number>;
 	uAtmH: U<number>;
 	uBetaR: U<Vector3>;
+	uBetaO: U<Vector3>;
 	uBetaM: U<number>;
 	uHR: U<number>;
 	uHM: U<number>;
@@ -91,16 +94,18 @@ export interface AtmosphereUniforms {
 }
 
 const sunDepthTextures = new Map<string, DataTexture>();
-/** The table of an atmosphere as a half-float RG texture, baked once per atmosphere (about 25 ms). */
+/** The table of an atmosphere as a half-float RGBA texture (Rayleigh, Mie, ozone), baked once per atmosphere (about 25 ms). */
 function sunDepthTexture(atm: Atmosphere): DataTexture {
-	const key = [atm.radius, atm.height, atm.rayleighHeight, atm.mieHeight].join('|');
+	const key = [atm.radius, atm.height, atm.rayleighHeight, atm.mieHeight, ...atm.betaOzone].join(
+		'|'
+	);
 	let texture = sunDepthTextures.get(key);
 	if (!texture) {
 		texture = new DataTexture(
 			sunDepthTable(atm),
 			SUN_DEPTH_MU,
 			SUN_DEPTH_H,
-			RGFormat,
+			RGBAFormat,
 			HalfFloatType
 		);
 		texture.minFilter = LinearFilter;
@@ -120,6 +125,7 @@ export function createAtmosphereUniforms(atm: Atmosphere): AtmosphereUniforms {
 		uR: u(atm.radius),
 		uAtmH: u(atm.height),
 		uBetaR: u(new Vector3(...atm.betaRayleigh)),
+		uBetaO: u(new Vector3(...atm.betaOzone)),
 		uBetaM: u(atm.betaMie),
 		uHR: u(atm.rayleighHeight),
 		uHM: u(atm.mieHeight),
@@ -212,6 +218,18 @@ export class PlanetPass {
 	/** Camera-centred patches (ADR 0044): texels per side (0 = off) and the two windows. */
 	private patchSize: number;
 	private readonly patchBake: { scene: Scene; material: ShaderMaterial };
+	/**
+	 * Cloud coverage as an equirectangular map (plan 054, ADR 0070): the light shafts read it once per sample instead of
+	 * evaluating the noise. Baked at the first frame and whenever the cover changes; `cover` is the value baked (-1: none).
+	 */
+	private readonly cloudMap: {
+		target: WebGLRenderTarget;
+		scene: Scene;
+		camera: OrthographicCamera;
+		material: ShaderMaterial;
+		cover: number;
+	};
+	private shaftsWanted: boolean;
 	private readonly patches: { fine: PatchSlot; mid: PatchSlot };
 	/** The march prepass (plan 039): the planet pass's per-block start distances, and the size of the target it matches. */
 	private readonly marchPass: { scene: Scene; material: ShaderMaterial };
@@ -253,6 +271,7 @@ export class PlanetPass {
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
 		this.terrainSize = settings.terrainSize;
+		this.shaftsWanted = settings.shaftSteps > 0;
 		this.patchSize = settings.terrainPatch;
 		this.refineSteps = settings.terrainRefineSteps;
 		this.fullSteps = Math.max(1, settings.terrainSteps);
@@ -294,6 +313,7 @@ export class PlanetPass {
 				uCloudAngle: u(0),
 				uCloudAlt: u(atm.radius + CLOUD_ALTITUDE),
 				uCloudTop: u(atm.radius + CLOUD_TOP),
+				uShaft: u(0),
 				uCirrusAlt: u(atm.radius + CIRRUS_ALTITUDE),
 				uStarBright: u(1),
 				uShadowOn: u(0),
@@ -316,6 +336,7 @@ export class PlanetPass {
 				uMidF: u(new Vector3(0, 1, 0)),
 				uMidK: u(new Vector2(1, 0)),
 				uSkipR: u(0),
+				uCloudMap: u<unknown>(null),
 				uMarchStart: u<unknown>(null),
 				uMarchOn: u(0),
 				uMarchSteps: u(Math.max(1, settings.terrainSteps)),
@@ -398,6 +419,37 @@ export class PlanetPass {
 		patchMesh.frustumCulled = false;
 		patchScene.add(patchMesh);
 		this.patchBake = { scene: patchScene, material: patchMaterial };
+		const cloudMapMaterial = new ShaderMaterial({
+			name: 'cloud-map-bake',
+			vertexShader: terrainBakeVertex,
+			fragmentShader: cloudMapFragment,
+			defines: { CLOUD_MAP_OCTAVES },
+			uniforms: { uR: u(atm.radius), uCloudCover: u(0.42) },
+			depthTest: false,
+			depthWrite: false
+		});
+		const cloudMapScene = new Scene();
+		const cloudMapMesh = new Mesh(geometry, cloudMapMaterial);
+		cloudMapMesh.frustumCulled = false;
+		cloudMapScene.add(cloudMapMesh);
+		const cloudMapTarget = new WebGLRenderTarget(CLOUD_MAP_W, CLOUD_MAP_H, {
+			format: RedFormat,
+			type: UnsignedByteType,
+			depthBuffer: false,
+			generateMipmaps: false,
+			minFilter: LinearFilter,
+			magFilter: LinearFilter,
+			wrapS: RepeatWrapping,
+			wrapT: ClampToEdgeWrapping
+		});
+		this.material.uniforms.uCloudMap!.value = cloudMapTarget.texture;
+		this.cloudMap = {
+			target: cloudMapTarget,
+			scene: cloudMapScene,
+			camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
+			material: cloudMapMaterial,
+			cover: -1
+		};
 		const shared = this.material.uniforms;
 		const marchMaterial = new ShaderMaterial({
 			name: 'terrain-march-prepass',
@@ -474,6 +526,22 @@ export class PlanetPass {
 		this.resetPatches();
 	}
 
+	/** Bakes the cloud coverage map on the first frame (so its program compiles with the rest) and when the cover changes while shafts are on. */
+	private bakeCloudMap(gl: WebGLRenderer): void {
+		const cover = this.material.uniforms.uCloudCover!.value as number;
+		const map = this.cloudMap;
+		if (map.cover >= 0 && (!this.shaftsWanted || Math.abs(cover - map.cover) < 1e-4)) return;
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		map.material.uniforms.uCloudCover!.value = cover;
+		gl.setRenderTarget(map.target);
+		gl.render(map.scene, map.camera);
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+		map.cover = cover;
+	}
+
 	private resetPatches(): void {
 		for (const slot of [this.patches.fine, this.patches.mid]) {
 			slot.frame = null;
@@ -489,6 +557,7 @@ export class PlanetPass {
 	 * (ADR 0044). Needs a context, so the facade calls it at the top of every frame; Bun tests never do.
 	 */
 	bakeTerrain(gl: WebGLRenderer): void {
+		this.bakeCloudMap(gl);
 		if (this.terrainSize <= 0) return;
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
@@ -653,6 +722,7 @@ export class PlanetPass {
 			CLOUD_STEPS: s.cloudSteps,
 			CLOUD_DETAIL: s.cloudDetail,
 			CLOUDS: 1,
+			SHAFT_STEPS: s.shaftSteps,
 			CLOUD_SHADOWS: s.cloudShadowOctaves > 0 ? 1 : 0,
 			CLOUD_SHADOW_OCTAVES: Math.max(1, s.cloudShadowOctaves),
 			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
@@ -890,6 +960,7 @@ export class PlanetPass {
 
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
 	setQuality(settings: PresetSettings): void {
+		this.shaftsWanted = settings.shaftSteps > 0;
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;
 		this.marchPass.material.defines = this.marchDefines(settings);
@@ -991,6 +1062,10 @@ export class PlanetPass {
 		set<Vector3>('uSkyColour', (v) => v.set(...p.skyColour));
 		un.uAmbientRefMu!.value = p.ambientRefMu;
 		un.uCloudCover!.value = p.cloudCover;
+		un.uShaft!.value = shaftStrength(
+			Math.asin(Math.max(-1, Math.min(1, p.ambientRefMu))),
+			p.frame.altitude
+		);
 		un.uSiteLamps!.value = p.siteLamps;
 		un.uCloudAngle!.value = p.cloudAngle;
 		un.uTime!.value = p.time % WAVE_PERIOD;
