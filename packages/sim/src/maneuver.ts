@@ -13,11 +13,11 @@ import {
 } from '@orbital/core';
 import {
 	normalize,
-	predictWithManeuvers,
 	type ManeuverInput,
 	type ManeuverNodeResult,
 	type PatchedBody
 } from '@orbital/kepler';
+import type { BodyRuntime } from './bodies.ts';
 import { vesselIds, vesselOf, type SimCore } from './core.ts';
 import { motionOf } from './orbit.ts';
 import type { ManeuverNodeState, VesselState } from './state.ts';
@@ -29,23 +29,19 @@ export const NODE_DONE_DV = 0.5;
 /** Burns shorter than this have no direction worth pointing at, m/s. */
 export const MIN_BURN = 0.01;
 
-const patchedCache = new WeakMap<SimCore, PatchedBody[]>();
-
-/** The bodies of the sim as `kepler` wants them (built once per sim). */
-export function patchedBodies(core: SimCore): PatchedBody[] {
-	let list = patchedCache.get(core);
-	if (!list) {
-		list = [...core.bodies.values()].map((b) => ({
-			id: b.def.id,
-			mu: b.mu,
-			soi: b.soi,
-			radius: b.def.radius,
-			...(b.parent && b.elements ? { parent: b.parent.def.id, orbit: b.elements } : {})
-		}));
-		patchedCache.set(core, list);
-	}
-	return list;
+/** The bodies of a sim as `kepler` wants them; the trajectory provider is built on this list. */
+export function patchedBodiesOf(bodies: ReadonlyMap<string, BodyRuntime>): PatchedBody[] {
+	return [...bodies.values()].map((b) => ({
+		id: b.def.id,
+		mu: b.mu,
+		soi: b.soi,
+		radius: b.def.radius,
+		...(b.parent && b.elements ? { parent: b.parent.def.id, orbit: b.elements } : {})
+	}));
 }
+
+/** The bodies of the sim as `kepler` wants them (the provider's list, built once per sim). */
+export const patchedBodies = (core: SimCore): readonly PatchedBody[] => core.trajectory.bodies;
 
 const asInputs = (nodes: readonly ManeuverNodeState[]): ManeuverInput[] =>
 	nodes.map((n) => ({
@@ -76,8 +72,7 @@ export function resolveNodes(
 	}
 	const { r, v } = motionOf(core, vessel);
 	const last = Math.max(...nodes.map((n) => n.time));
-	const out = predictWithManeuvers(
-		patchedBodies(core),
+	const out = core.trajectory.predictWithManeuvers(
 		{ body: vessel.soi, r, v, t: core.t },
 		asInputs(nodes),
 		Math.max(0, last - core.t),

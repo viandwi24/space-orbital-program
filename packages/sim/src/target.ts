@@ -1,7 +1,7 @@
 /**
  * Targets (plan 035, ADR 0064): a vessel may aim at another body or vessel. The target is plain
  * data on the vessel (`VesselState.target`); this file resolves it to the relative state the
- * snapshot reports and the SAS points at, finds the closest approach with `kepler.closestApproach`,
+ * snapshot reports and the SAS points at, finds the closest approach through the trajectory provider (`conicClosestApproach`, plan 080),
  * applies the command and drops a target that no longer exists. Every result is a function of sim
  * state, so a resumed run resolves exactly as the original would.
  */
@@ -16,12 +16,10 @@ import {
 } from '@orbital/core';
 import {
 	add,
-	closestApproach,
 	length,
 	normalize,
 	period,
 	periapsis,
-	propagate,
 	sub,
 	type OrbitalElements,
 	type StateVector
@@ -96,9 +94,9 @@ function approachOf(
 	if (!theirs) return null;
 	const mu = soi.mu;
 	const span = Math.min(period(own, mu), MAX_APPROACH_WINDOW);
-	const found = closestApproach(
-		(t) => propagate(own, mu, t),
-		(t) => propagate(theirs, mu, t),
+	const found = core.trajectory.conicClosestApproach(
+		(t) => core.trajectory.propagate(own, mu, t),
+		(t) => core.trajectory.propagate(theirs, mu, t),
 		core.t,
 		core.t + span,
 		APPROACH_SAMPLES
