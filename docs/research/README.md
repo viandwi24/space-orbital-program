@@ -13,6 +13,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `scripting.md` — Worker vs QuickJS-WASM vs ShadowRealm for the scripting sandbox; `quickjs-emscripten` API and measured interrupt latency (plan 010).
 - `mod-assets.md` — glTF from bytes, embedded textures under the production CSP, decoders a package cannot carry, IndexedDB quota for mod packages (plan 051).
 - `soi-and-moon.md` — Laplace sphere of influence, patched-conic continuity, reference moon data (plan 044).
+- `ephemerides.md` — JPL Level A planet elements with rates, Horizons reference positions, the Almanac low-precision Moon (plan 123).
 - `reentry-heating.md` — Sutton-Graves stagnation heating, Stefan-Boltzmann radiation, aluminium skin, KSP limits for scale (plan 014).
 - `phones-and-real-devices.md` — mobile Safari `interrupted` audio contexts, safe-area insets, `dvh` (plan 055).
 - `licence.md` — the Apache-2.0 text source and checksum (ADR 0106).

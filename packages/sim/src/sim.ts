@@ -53,7 +53,7 @@ import {
 	runDueTicks,
 	tickDayLength
 } from './tick.ts';
-import { patchedBodiesOf, completeNodes } from './maneuver.ts';
+import { patchedBodiesOf, completeNodes, refreshPatchedBodies } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
@@ -399,6 +399,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		autoRails(core);
 		collectCrewPlaces(core);
 		updateCrewLife(core, tStart, true);
+		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
 		evaluateObjectivesDue(core, 'step');
@@ -443,6 +444,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		runSystems(core.post, h);
 		collectCrewPlaces(core);
 		updateCrewLife(core, tStart, false);
+		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
 		evaluateObjectivesDue(core, 'step');
