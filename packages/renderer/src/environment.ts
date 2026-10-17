@@ -147,7 +147,12 @@ export class Environment {
 			body.atmosphere?.scaleHeight
 		);
 		const settings = PRESETS[config.preset];
-		this.planet = new PlanetPass(this.atmosphere, settings, config.site);
+		this.planet = new PlanetPass(
+			this.atmosphere,
+			settings,
+			config.site,
+			body.atmosphere?.aurora !== false
+		);
 		this.site = new LaunchSite(body.radius, config.site, settings.trees, settings.tufts);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
 		this.sunLight.name = 'sun';

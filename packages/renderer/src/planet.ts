@@ -43,7 +43,8 @@ import { type Atmosphere, type RGB } from './atmosphere-model.ts';
 import { SUN_DEPTH_H, SUN_DEPTH_MU, sunDepthTable } from './sun-depth-table.ts';
 
 import type { PlanetFrame } from './planet-frame.ts';
-import { normalize, vec } from './vec.ts';
+import { normalize, rotateInverse, vec } from './vec.ts';
+import { auroraStrength, auroraTime, magneticAxis, magneticFrame } from './aurora-model.ts';
 import type { PresetSettings } from './presets.ts';
 import { CIRRUS_ALTITUDE, CLOUD_ALTITUDE } from './cloud-model.ts';
 import { CLOUD_TOP } from './cloud-volume.ts';
@@ -260,15 +261,30 @@ export class PlanetPass {
 	/** The canonical biome map every height is read from (the preset's own when that is the same size). */
 	private terrainMap: DataTexture | null = null;
 	private readonly radius: number;
+	private readonly atmosphereHeight: number;
+	/** Steps of the aurora march of the active preset, 0 = none. */
+	private auroraSteps: number;
+	/**
+	 * Whether the pass is drawn with the aurora march compiled in. The march is a compile-time variant
+	 * (`AURORA_STEPS`): the pass uses the program without it (the one of the build before plan 061) until the aurora is
+	 * in reach, so a long branch that is never taken does not lengthen the program that draws the day (ADR 0093).
+	 */
+	private auroraLive = false;
+	private current: PresetSettings;
 	private siteLatitude: number;
 	private siteLongitude: number;
 
 	constructor(
 		atm: Atmosphere,
 		settings: PresetSettings,
-		site: { latitude: number; longitude: number }
+		site: { latitude: number; longitude: number },
+		/** The body has an aurora (its definition, `atmosphere.aurora`, plan 061). */
+		private readonly auroraEnabled = true
 	) {
 		this.radius = atm.radius;
+		this.atmosphereHeight = atm.height;
+		this.auroraSteps = settings.auroraSteps;
+		this.current = settings;
 		this.siteLatitude = site.latitude;
 		this.siteLongitude = site.longitude;
 		this.atmosphere = createAtmosphereUniforms(atm);
@@ -318,6 +334,11 @@ export class PlanetPass {
 				uCloudAlt: u(atm.radius + CLOUD_ALTITUDE),
 				uCloudTop: u(atm.radius + CLOUD_TOP),
 				uShaft: u(0),
+				uAurora: u(0),
+				uAuroraAxis: u(new Vector3(0, 1, 0)),
+				uAuroraMid: u(new Vector3(1, 0, 0)),
+				uAuroraSide: u(new Vector3(0, 0, 1)),
+				uAuroraTime: u(0),
 				uCirrusAlt: u(atm.radius + CIRRUS_ALTITUDE),
 				uStarBright: u(1),
 				uShadowOn: u(0),
@@ -752,7 +773,7 @@ export class PlanetPass {
 		return t;
 	}
 
-	private definesFor(s: PresetSettings): Record<string, number> {
+	private definesFor(s: PresetSettings, aurora = this.auroraLive): Record<string, number> {
 		return {
 			VIEW_SAMPLES: s.viewSamples,
 			GROUND_OCTAVES: s.groundOctaves,
@@ -761,6 +782,7 @@ export class PlanetPass {
 			CLOUD_DETAIL: s.cloudDetail,
 			CLOUDS: 1,
 			SHAFT_STEPS: s.shaftSteps,
+			AURORA_STEPS: aurora && this.auroraEnabled ? s.auroraSteps : 0,
 			SHAFT_TERRAIN: s.terrainSteps > 0 ? s.shaftTerrain : 0,
 			CLOUD_SHADOW_MAP: s.cloudShadowMap ? 1 : 0,
 			CLOUD_SHADOWS: s.cloudShadowOctaves > 0 ? 1 : 0,
@@ -933,7 +955,7 @@ export class PlanetPass {
 			name: 'planet-pass-variant',
 			vertexShader: planetVertex,
 			fragmentShader: planetFragment,
-			defines: this.definesFor(settings),
+			defines: this.definesFor(settings, false),
 			uniforms: this.material.uniforms,
 			side: this.material.side,
 			depthTest: this.material.depthTest,
@@ -941,6 +963,22 @@ export class PlanetPass {
 			depthFunc: this.material.depthFunc
 		});
 		return variant;
+	}
+
+	/** The planet pass of `settings` with the aurora march compiled in, for `compileAsync` ahead of the first time the aurora is in reach; null when there is none to draw. */
+	auroraVariantFor(settings: PresetSettings): ShaderMaterial | null {
+		if (!this.auroraEnabled || settings.auroraSteps <= 0) return null;
+		return new ShaderMaterial({
+			name: 'planet-pass-aurora-variant',
+			vertexShader: planetVertex,
+			fragmentShader: planetFragment,
+			defines: this.definesFor(settings, true),
+			uniforms: this.material.uniforms,
+			side: this.material.side,
+			depthTest: this.material.depthTest,
+			depthWrite: this.material.depthWrite,
+			depthFunc: this.material.depthFunc
+		});
 	}
 
 	/** The march prepass compiled for another preset, the same way as `variantFor` (plan 048). */
@@ -1008,6 +1046,8 @@ export class PlanetPass {
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
 	setQuality(settings: PresetSettings): void {
 		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
+		this.auroraSteps = settings.auroraSteps;
+		this.current = settings;
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;
 		this.edge.defines = this.definesFor(settings);
@@ -1115,6 +1155,7 @@ export class PlanetPass {
 			Math.asin(Math.max(-1, Math.min(1, p.ambientRefMu))),
 			p.frame.altitude
 		);
+		this.updateAurora(un, p);
 		un.uSiteLamps!.value = p.siteLamps;
 		un.uCloudAngle!.value = p.cloudAngle;
 		un.uTime!.value = p.time % WAVE_PERIOD;
@@ -1125,6 +1166,43 @@ export class PlanetPass {
 		set<Matrix4>('uShadowMatrix', (m) => m.copy(p.shadow.matrix));
 		un.uShadowBias!.value = p.shadow.bias;
 		un.uShadowTexel!.value = p.shadow.texel;
+	}
+
+	/** Swaps the planet pass between the program with the aurora march and the one without (three keeps both once compiled). */
+	private setAuroraLive(live: boolean): void {
+		if (live === this.auroraLive) return;
+		this.auroraLive = live;
+		this.material.defines = this.definesFor(this.current);
+		this.material.needsUpdate = true;
+		this.edge.defines = this.definesFor(this.current);
+		this.edge.needsUpdate = true;
+	}
+
+	/** The strength gate and the magnetic frame of the aurora (plan 061); 0 strength means the pass skips the march. */
+	private updateAurora(un: Record<string, U<unknown>>, p: PlanetUpdate): void {
+		if (!this.auroraEnabled || this.auroraSteps <= 0) {
+			(un.uAurora as U<number>).value = 0;
+			this.setAuroraLive(false);
+			return;
+		}
+		const upBodyFixed = rotateInverse(p.bodyRotation, p.frame.up);
+		const strength = auroraStrength({
+			up: upBodyFixed,
+			sunBodyFixed: p.sunBodyFixed,
+			altitude: p.frame.altitude,
+			atmosphereHeight: this.atmosphereHeight,
+			radius: this.radius,
+			darkSky: p.starBrightness,
+			enabled: true
+		});
+		(un.uAurora as U<number>).value = strength;
+		this.setAuroraLive(strength > 0);
+		if (strength <= 0) return;
+		const frame = magneticFrame(p.sunBodyFixed, magneticAxis());
+		(un.uAuroraAxis!.value as Vector3).set(frame.axis.x, frame.axis.y, frame.axis.z);
+		(un.uAuroraMid!.value as Vector3).set(frame.midnight.x, frame.midnight.y, frame.midnight.z);
+		(un.uAuroraSide!.value as Vector3).set(frame.side.x, frame.side.y, frame.side.z);
+		(un.uAuroraTime as U<number>).value = auroraTime(p.time);
 	}
 
 	dispose(): void {

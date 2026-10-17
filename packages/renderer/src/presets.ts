@@ -34,6 +34,8 @@ export interface PresetSettings {
 	 * the baked cloud-coverage map once.
 	 */
 	shaftSteps: number;
+	/** Steps of the aurora march through the shell of emission (plan 061, ADR 0093), 0 = no aurora. */
+	auroraSteps: number;
 	/** Reads of the terrain height per shaft sample for ridge-cast shafts (plan 062, ADR 0089), 0 = clouds only. */
 	shaftTerrain: number;
 	/** Biome map width in texels (height is half). */
@@ -80,6 +82,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudDetail: 1,
 		shaftSteps: 0,
 		shaftTerrain: 0,
+		auroraSteps: 0,
 		mapWidth: 512,
 		trees: 250,
 		tufts: 0,
@@ -110,6 +113,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudDetail: 2,
 		shaftSteps: 4,
 		shaftTerrain: 2,
+		auroraSteps: 8,
 		mapWidth: 1024,
 		trees: 900,
 		tufts: 10000,
@@ -140,6 +144,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		cloudDetail: 3,
 		shaftSteps: 8,
 		shaftTerrain: 4,
+		auroraSteps: 12,
 		mapWidth: 1024,
 		trees: 2000,
 		tufts: 28000,

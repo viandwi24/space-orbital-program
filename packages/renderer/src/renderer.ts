@@ -317,6 +317,17 @@ export function createRenderer(config: RendererConfig): Renderer {
 					jobs.push(() => compile(half, true, half, casts));
 				}
 			}
+			// the planet pass with the aurora march (compiled in only while the aurora is in reach, plan 061), so the first
+			// night at a high latitude does not stall on the driver's compiler
+			for (const name of reachOrder()) {
+				const settings = PRESETS[name];
+				const material = env.planet.auroraVariantFor(settings);
+				if (!material) continue;
+				const scene = new Scene();
+				scene.add(new Mesh(env.planet.mesh.geometry, material));
+				variants.push(material);
+				jobs.push(() => compile(scene, settings.post, model.scene, settings.shadowMapSize > 0));
+			}
 			// the upsample stands in the planet pass's place in both target states
 			if (halfAvailable) {
 				for (const toTarget of [true, false]) {

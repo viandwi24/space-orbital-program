@@ -55,6 +55,7 @@ describe('presets', () => {
 			'cloudShadowOctaves',
 			'shaftSteps',
 			'shaftTerrain',
+			'auroraSteps',
 			'mapWidth',
 			'trees',
 			'terrainSize',
@@ -67,6 +68,7 @@ describe('presets', () => {
 			expect(PRESETS.low[k]).toBeLessThanOrEqual(PRESETS.medium[k]);
 			expect(PRESETS.medium[k]).toBeLessThanOrEqual(PRESETS.high[k]);
 		}
+		expect(PRESETS.low.auroraSteps).toBe(0);
 		expect(PRESETS.low.post).toBe(false);
 		expect(PRESETS.low.shadowMapSize).toBe(0);
 		expect(PRESETS.medium.post && PRESETS.high.post).toBe(true);

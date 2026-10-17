@@ -50,7 +50,9 @@ export const bodyDefinitionSchema = z.object({
 		.object({
 			scaleHeight: z.number().positive(),
 			surfacePressure: z.number().nonnegative(),
-			height: z.number().positive()
+			height: z.number().positive(),
+			/** Whether the night sky shows an aurora around the magnetic pole (plan 061, ADR 0093); on unless `false`. */
+			aurora: z.boolean().optional()
 		})
 		.optional(),
 	parent: definitionIdSchema.optional(),

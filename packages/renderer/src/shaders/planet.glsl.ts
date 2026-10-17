@@ -27,6 +27,7 @@ import { PATCH_BLEND } from '../terrain-patch.ts';
 import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
 import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
+import { auroraGLSL } from './aurora.glsl.ts';
 import {
 	CLOUD_FILL,
 	CLOUD_GAIN_CAP,
@@ -462,6 +463,9 @@ float noiseA(vec3 pl, float lam, int salt) {
 ${terrainNoiseGLSL}
 
 ${cloudFieldGLSL}
+#if AURORA_STEPS > 0
+${auroraGLSL}
+#endif
 
 ${terrainMarchGLSL}
 
@@ -1254,6 +1258,17 @@ void main() {
 		base += vec3(1.0, 0.96, 0.9) * SUN_DISC_RADIANCE * disc2 * limb;
 	}
 
+	// aurora (plan 061, ADR 0093): emission above the air. The stretch of the shell behind the atmosphere is part of the
+	// background (the air and the clouds dim it); the stretch in front of it, seen from orbit, is added at the end.
+	vec3 auroraNear = vec3(0.0);
+#if AURORA_STEPS > 0
+	if (uAurora > 0.001) {
+		vec3 auroraFar;
+		auroraNear = auroraMarch(ro, rd, r0, d, hitG, inAtm ? t0 : 1e30, fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453), auroraFar) * uAurora;
+		base += auroraFar * uAurora;
+	}
+#endif
+
 	// atmosphere and cloud layers (ADR 0037): one march, snapshotted at the layers' distances
 	vec3 colour = base;
 	float tcA = 1e30;
@@ -1427,6 +1442,8 @@ void main() {
 		}
 #endif
 	}
+
+	colour += auroraNear;
 
 	// A single NaN or infinity would smear through the bloom chain over the whole frame.
 	bool bad = any(isnan(colour)) || any(isinf(colour));
