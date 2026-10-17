@@ -3,6 +3,7 @@
  * `define*` functions on top of these; the data-only kinds (resource, body, part) are validated
  * by the schemas in `schemas.ts`.
  */
+import type { CategoryDefinition } from './categories.ts';
 import type * as z from 'zod';
 import type { EntityId } from './ids.ts';
 import type { EventBus, EventMap } from './events.ts';
@@ -83,6 +84,8 @@ export interface ReadonlyRegistries {
 	buildings: ReadonlyRegistry<BuildingDefinition>;
 	/** Site templates (plan 092, ADR 0177). */
 	siteTemplates: ReadonlyRegistry<SiteTemplateDefinition>;
+	/** Catalogue categories (plan 069, ADR 0146). */
+	categories: ReadonlyRegistry<CategoryDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;

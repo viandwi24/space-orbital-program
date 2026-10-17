@@ -3,6 +3,7 @@
  * `Plugin` values with full type inference; this file is what actually validates, orders and boots
  * them, so it only needs the erased shapes.
  */
+import type { CategoryDefinition } from './categories.ts';
 import * as z from 'zod';
 import { API_VERSION } from './version.ts';
 import type {
@@ -94,6 +95,8 @@ export interface BasePluginContext {
 	readonly buildings: Registrar<BuildingDefinition>;
 	/** Site templates (plan 092, ADR 0177). */
 	readonly siteTemplates: Registrar<SiteTemplateDefinition>;
+	/** Catalogue categories (plan 069, ADR 0146). */
+	readonly categories: Registrar<CategoryDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -136,6 +139,7 @@ export const REGISTRY_KINDS = [
 	'action-group',
 	'building',
 	'site-template',
+	'category',
 	'objective',
 	'contract',
 	'mission',
@@ -190,6 +194,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'actionGroups',
 	'buildings',
 	'siteTemplates',
+	'categories',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -373,6 +378,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			actionGroups: registrar(registries.actionGroups),
 			buildings: registrar(registries.buildings),
 			siteTemplates: registrar(registries.siteTemplates),
+			categories: registrar(registries.categories),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -444,7 +450,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			part: registries.parts,
 			resource: registries.resources,
 			body: registries.bodies,
-			building: registries.buildings
+			building: registries.buildings,
+			category: registries.categories
 		},
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
@@ -534,6 +541,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'action-group': section(registries.actionGroups),
 				building: section(registries.buildings),
 				'site-template': section(registries.siteTemplates),
+				category: section(registries.categories),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),

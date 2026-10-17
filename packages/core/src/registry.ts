@@ -2,6 +2,7 @@
  * Typed registry of definitions. Duplicate ids are errors that name both plugins; definitions are
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
+import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import * as z from 'zod';
 import type {
 	BodyDefinition,
@@ -212,6 +213,8 @@ export interface Registries {
 	buildings: Registry<BuildingDefinition>;
 	/** Site templates (plan 092, ADR 0177). */
 	siteTemplates: Registry<SiteTemplateDefinition>;
+	/** Catalogue categories (plan 069, ADR 0146). */
+	categories: Registry<CategoryDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -236,6 +239,9 @@ export function createRegistries(): Registries {
 		buildings: createRegistry<BuildingDefinition>('building', { schema: buildingDefinitionSchema }),
 		siteTemplates: createRegistry<SiteTemplateDefinition>('site-template', {
 			schema: siteTemplateDefinitionSchema
+		}),
+		categories: createRegistry<CategoryDefinition>('category', {
+			schema: categoryDefinitionSchema
 		}),
 		objectives: createRegistry<ObjectiveDefinition>('objective', {
 			schema: objectiveDefinitionSchema

@@ -6,6 +6,7 @@
 import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
+	CategoryDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
 	AnyPatchDefinition,
@@ -259,3 +260,14 @@ export const defineCrewNames = (def: CrewNamesDefinition): CrewNamesDefinition =
  * elevation criteria, resolved against each world's terrain. Register with `ctx.siteTemplates`.
  */
 export const defineSiteTemplate = (def: SiteTemplateDefinition): SiteTemplateDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineCategory
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A group of the editor's part catalogue (plan 069, ADR 0146): id, label, an icon (a name from the
+ * game's icon set, or `{ path }` SVG path data on the 24 x 24 grid) and an order (stock uses 100 to
+ * 800, Other 10 000). Register with `ctx.categories`; a part joins it with `catalog.category`.
+ */
+export const defineCategory = (def: CategoryDefinition): CategoryDefinition => def;

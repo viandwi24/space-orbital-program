@@ -4,6 +4,7 @@
  */
 import * as z from 'zod';
 import { ACTION_KINDS } from './action-groups.ts';
+import { categoryRefSchema } from './categories.ts';
 import { DEFINITION_ID_PATTERN, PLUGIN_ID_PATTERN } from './ids.ts';
 import { assetPathSchema } from './mod-assets.ts';
 import { siteSchema } from './sites.ts';
@@ -244,19 +245,7 @@ export const partDefinitionSchema = z.object({
 	 */
 	catalog: z
 		.object({
-			category: z
-				.enum([
-					'command',
-					'propulsion',
-					'tanks',
-					'structural',
-					'aero',
-					'control',
-					'landing',
-					'thermal',
-					'other'
-				])
-				.optional(),
+			category: categoryRefSchema.optional(),
 			order: z.number().finite().optional()
 		})
 		.optional()
@@ -379,7 +368,7 @@ export const moduleInfoSchema = z.object({
 		})
 		.optional(),
 	/** Where the part appears in the editor's catalogue; the first module that names one decides (plan 023). */
-	category: z.enum(MODULE_CATEGORIES).optional(),
+	category: z.union([z.enum(MODULE_CATEGORIES), definitionIdSchema]).optional(),
 	/** The module severs an attachment when its stage fires. */
 	separator: z
 		.object({
