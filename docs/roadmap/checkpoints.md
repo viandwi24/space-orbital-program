@@ -27,7 +27,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f2-090-buildings` | 090 | A1 | A1, A2, A3 (065, 091, 092, 130) | done | 2ba881b | 2026-10-17 |
 | `cp/f2-088-hud` | 088 | A2 | A2 (066, 073, 108, 111, 112) | pending | | |
 | `cp/f2-092-site-choice` | 092 | A3 | A1, A2, A3 (124, 127, 128) | pending | | |
-| `cp/f2-068-terrain-aa` | 068 | A1 | — (none) | pending | | |
+| `cp/f2-068-terrain-aa` | 068 | A1 | — (none) | done | b26f673 | 2026-10-17 |
 | `cp/f2-069-categories` | 069 | A2 | A2 (093) | pending | | |
 | `cp/f2-089-menus` | 089 | A2 | — (none) | pending | | |
 | `cp/f2-091-space-center` | 091 | A1 | A1, A2 (063, 065, 066, 094, 096, 105, 108) | pending | | |

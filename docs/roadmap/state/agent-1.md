@@ -2,8 +2,8 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 068 terrain-aa (claim/068, `lead/068-terrain-aa`): step 1 measured (gradient = 74–81 % of each bake); next the analytic gradient.
-**Waiting for:** — (068 ready; 091 needs 086, 087, 090: all done)
+**Now:** 068 merged (cp/f2-068-terrain-aa; bake −56 %, silhouette AA moved to draft 133). Next in lane: 091 space-center.
+**Waiting for:** — (091 can start: 086, 087, 090 done)
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -12,7 +12,7 @@
 | 078 rules | done | `lead/078-world-rules` | 2026-10-17 | merged, cp/f1-078-rules |
 | 095 economy | done | `lead/095-economy` | 2026-10-17 | merged a060d06, cp/f3-095-economy |
 | 090 buildings | done |  | 2026-10-17 | merged 2ba881b, cp/f2-090-buildings |
-| 068 terrain-aa | in-progress | `lead/068-terrain-aa` | 2026-10-17 | claim/068 |
+| 068 terrain-aa | done | `lead/068-terrain-aa` | 2026-10-17 | merged b26f673, cp/f2-068-terrain-aa |
 | 091 space-center | todo |  |  |  |
 | 113 mission-center | todo |  |  |  |
 | 122 sun | todo |  |  |  |

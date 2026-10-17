@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); Agent 1 next: 068 terrain-aa, then 091 space-center; Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); 068 done (`cp/f2-068-terrain-aa`); Agent 1 next: 091 space-center; Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -71,7 +71,7 @@
 | 062 | [Terrain shafts and shared cloud-shadow map](plans/062-terrain-shadow-shafts.md) | done | shadows session (Claude, 2026-10-17) | ADR 0089: a ridge between the camera and a low sun shades the haze (per-sample reads of the baked heights along the sun ray, penumbra by the ray's height gain; `high` +0.5 to +0.9 ms, `medium` +0.4 to +0.6 in the scenes that face it); the shared cloud map is plan 056's |
 | 066 | [Environment on real devices](plans/066-environment-devices-and-mobile.md) | draft | — | from 038; realigned 2026-10-17 (ADR 0107): M1/M2, Intel and phone frame tables incl. glass blur and the Space Center view |
 | 067 | [Floating and sinking](plans/067-buoyancy-floating-and-sinking.md) | draft | — | from 038; realigned 2026-10-17 (ADR 0098): buoyancy on the sea and lakes; sea recovery and impact classification use it |
-| 068 | [Terrain gradients and silhouette AA](plans/068-terrain-gradient-bake-and-silhouette-aa.md) | in-progress | Agent 1 | from 038; realigned 2026-10-17 (ADR 0097): analytic gradients incl. the flat-zone blend, an anti-aliased planet silhouette |
+| 068 | [Terrain gradients and silhouette AA](plans/068-terrain-gradient-bake-and-silhouette-aa.md) | done | Agent 1 | from 038; realigned 2026-10-17 (ADR 0097): analytic gradients incl. the flat-zone blend, an anti-aliased planet silhouette |
 | 057 | [Target markers and rendezvous aids](plans/057-target-markers-and-rendezvous-aids.md) | done | rendezvous session (Claude, 2026-10-17) | ADR 0084 (page-side approach and aids, no API change): navball target/anti-target and relative-velocity markers with a `target` speed reference, map marker/orbit/closest-approach pair and click-to-target, flight-view label and edge arrow, `kepler/rendezvous.ts` (closest approach across spheres, match velocity, Hohmann, relative nodes) and five node aids in the Target card; a rendezvous by script came to 35.8 m and 0.057 m/s |
 | 058 | [Script editor follow-ups](plans/058-script-editor-follow-ups.md) | done | editor-2 session (Claude, 2026-10-17) | ADR 0085: replace, whole word, match case, go to line, comment/move/copy lines, optional auto-close, suggestions below `ship.` and the keys of `addNode`, the engine's syntax error before Run (compiled in a second sandbox), on-screen keys on touch, IME guard; Chromium, Firefox and WebKit e2e; the screen-reader/IME pass is a human checklist (journal 058, draft 072) |
 | 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | done | second-planet session (Claude, 2026-10-17) | ADR 0090: a second planet with `terrain: hills` is drawn by the moon pass with the planet pass's `heightAt` (1024 cube within 8 radii, released beyond 16; biome colours; no sky, shadows or stones); readback 0.02 m fine, 0.13 m mid; 5 to 7.5 ms `high` |
@@ -201,6 +201,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [068 — Analytic terrain gradients for the bake (silhouette AA moved to 133)](journal/068-terrain-gradient-bake-and-silhouette-aa.md)
 - [106 — Crew core: roster, professions, traits, XP, seats](journal/106-crew-core.md)
 - [098 — Objectives: the evaluator behind contracts and missions](journal/098-objectives-contract-and-mission-definitions.md)
 - [090 — Buildings as data: `defineBuilding` and the placement rules](journal/090-building-registry-and-placement-rules.md)
