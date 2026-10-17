@@ -8,7 +8,7 @@
 
 | Where | What |
 | --- | --- |
-| `packages/core` | `defineSystemVariant` and the `systemVariants` registry; `loadPlugins(…, { system })` keeps one system's bodies and applies the variant's patches; loader-only `removeDefinition`; `rotation.epoch: 'j2000'`; `API_VERSION` 0.1.52 |
+| `packages/core` | `defineSystemVariant` and the `systemVariants` registry; `loadPlugins(…, { system })` keeps one system's bodies and applies the variant's patches; loader-only `removeDefinition`; `rotation.epoch: 'j2000'`; `API_VERSION` 0.1.53 (0.1.52 was taken on main) |
 | `packages/sim` | `createSim` loads the world's system and variant, falls back to the variant's home; J2000 spin shifted by the world epoch |
 | `packages/sdk` | `defineSystemVariant`, `levelAElements`, `AU`, `poleQuaternion`, `VesselDesign` |
 | `mods/sol` (new) | the Sun, eight planets (Level A), the Moon (Almanac, J2000 ecliptic), IAU poles and prime meridians in the ecliptic; variants `1:1` and `rescaled` (k = 1/4: ×k sizes, ×k² masses, ×k^(2/3) distances, ×½ air); balance patches; reference designs |
