@@ -17,7 +17,7 @@ A world has an epoch (two-part, on its time scale) and a calendar (fictional fro
 
 ## Context
 
-- ADRs: 0103
+- ADRs: 0103, [0141](../decisions/0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) (written here)
 - Read: ADR 0103 points 1 and 2, `docs/architecture/units-and-frames.md`, `apps/web/src/lib/hud/WarpControl.svelte`, `packages/scripting` API docs.
 - Time scales: TDB treated as TT; UTC via a leap-second table at the UI edge (look up and record the table source and date in `docs/research/time-scales.md`).
 
