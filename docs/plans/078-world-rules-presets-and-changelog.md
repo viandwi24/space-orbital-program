@@ -50,19 +50,25 @@ A rule's value lookup is a plain map read; no per-step cost. Identity rules: sys
 
 ## Acceptance criteria
 
-- [ ] `packages/sdk` test: a mod defines a rule and a preset; the load report lists them.
-- [ ] `packages/sim` test: `set-rule` on a changeable rule changes it at the next step and adds one changelog entry; on `gravityModel` it is refused with reason `identity rule`.
-- [ ] `packages/sim` resume test: a save after a rule change resumes with the same value and changelog.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sdk` test: a mod defines a rule and a preset; the load report lists them.
+- [x] `packages/sim` test: `set-rule` on a changeable rule changes it at the next step and adds one changelog entry; on `gravityModel` it is refused with reason `identity rule`.
+- [x] `packages/sim` resume test: a save after a rule change resumes with the same value and changelog.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/078-world-rules-presets-and-changelog.md` written.
-- [ ] `docs/architecture/plugin-system.md`, `guides/writing-a-mod.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/078-world-rules-presets-and-changelog.md` written.
+- [x] `docs/architecture/plugin-system.md`, `guides/writing-a-mod.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0094, 0104).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
+- 2026-10-17 — Claimed by Agent 1 (Lead, M5) on `lead/078-world-rules`. ADR 0111 written first: values resolved once and stored in `WorldInfo.rules`, with `preset` and `changelog` added to the world info (additive in format 5; `readSimSave` now signs every result), `set-rule` written at dispatch, `SystemContext.rules`, `Snapshot.rules`. `API_VERSION` 0.1.27. Contracts (all in Touches): SDK `defineRule`/`definePreset` and registries, protocol `set-rule` and `world:rule-changed`, save (rule values, preset, changelog). Also edited inside those contracts: `apps/web/src/lib/save/world-record.ts` (uses core's `RuleChange`).
+- 2026-10-17 — Acceptance, on the M5:
+  - SDK: `bun test packages/sdk/test/rules.test.ts` — `3 pass, 0 fail` ("a mod defines a rule and a preset; the load report lists them, by plugin").
+  - Sim: `bun test packages/sim/test/rules.test.ts` — `7 pass, 0 fail`: `set-rule` changes `stock.economy` from the next step with one changelog entry and one event; `gravityModel` (and `seed`, `stock.agency-type`) refused with reason `identity rule`; a save after two changes resumes byte for byte with the same values and changelog.
+  - `bun run test` — `1353 pass, 0 fail` · web vitest — `93 passed`, `827 passed` · `bun run typecheck` — exit 0 · `bun run build` — exit 0 · `bun run docs:check` — `OK (129 plans, 111 ADRs)` · Chromium smoke — `6 passed (2.5m)`.
+  - Resources: swap rose to 4.3 GB during the smoke run (stop condition > 4 GB); memory free stayed 60 %. Nothing left running.

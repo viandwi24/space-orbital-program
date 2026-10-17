@@ -59,7 +59,13 @@ describe('the frozen format-1 fixture', () => {
 		const migrated = parseSimSave(JSON.stringify(fixture));
 		const { checksum: _a, apiVersion: _b, bodies: oldBodies, ...expected } = migrated;
 		const { checksum: _c, apiVersion: _d, bodies, ...actual } = sim.save();
-		expect(actual).toEqual(expected);
+		// The Legacy world had no rule values; the sim resolves the stock rules from its preset (078).
+		expect(expected.worldInfo.rules).toEqual({});
+		expect(actual.worldInfo.rules['stock.economy']).toBe(false);
+		expect(actual).toEqual({
+			...expected,
+			worldInfo: { ...expected.worldInfo, rules: actual.worldInfo.rules }
+		});
 		// The old save listed the home planet only; the sim that continues it knows the moon too.
 		expect(oldBodies).toEqual(['stock.home']);
 		expect(bodies).toEqual(['stock.home', 'stock.cinder']);
@@ -293,10 +299,13 @@ describe('the world of a run (plan 077, ADR 0110)', () => {
 		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(16), world });
 		const save = sim.save();
 		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
-		expect(save.worldInfo).toEqual(world);
+		// The world's own value is kept; every other stock rule comes from its preset (Sandbox).
+		expect(save.worldInfo).toEqual({ ...world, rules: save.worldInfo.rules });
+		expect(save.worldInfo.rules['stock.economy']).toBe(false);
+		expect(save.worldInfo.rules['stock.tech-tree']).toBe(false);
 		sim.dispose();
 		const again = await resume(JSON.parse(JSON.stringify(save)));
-		expect(again.worldInfo).toEqual(world);
+		expect(again.worldInfo).toEqual(save.worldInfo);
 		expect(JSON.stringify(again.save())).toBe(JSON.stringify(save));
 		again.dispose();
 		const same = await resume(save, { world });
