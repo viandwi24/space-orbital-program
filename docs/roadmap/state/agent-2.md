@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 087 merged (`cp/f2-087-worlds-screen`); next in lane: 088 hud (its waits, 086 and 081, have landed).
+**Now:** 088 hud (claim/088): navball module and SAS pod first.
 **Waiting for:** — (074, 081, 084, 086, 087 all merged).
 **Updated:** 2026-10-17
 
@@ -13,7 +13,7 @@
 | 081 calendar | done | `devb/081-calendar` | 2026-10-17 | merged 92c0c9f, cp/f1-081-calendar |
 | 084 sites | done | `devb/084-sites` | 2026-10-17 | merged ecc3953, cp/f1-084-sites |
 | 087 worlds-screen | done | `devb/087-worlds-screen` | 2026-10-17 | merged 2d7724e, cp/f2-087-worlds-screen |
-| 088 hud | todo |  |  |  |
+| 088 hud | in-progress | `devb/088-hud` | 2026-10-17 | claim/088 |
 | 085 orientation | todo |  |  |  |
 | 076 roadmap-page | todo |  |  |  |
 | 069 categories | todo |  |  |  |
