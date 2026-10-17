@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/comms.ts` (new) | `AntennaDefinition`, `GroundStationDefinition`, schemas, station ranges and mast, `COMMS_RULES`, control states, `LinkReason`, `SignalState`, `linkRange`; the blackout law moved from the renderer |
-| `packages/core` | registries `antennas`, `groundStations`, `ctx` registrars, report kinds; module hook `antenna`; `VesselApi.signal()`; events `comms:link-up/link-down/control-changed`; `Snapshot.network`; `API_VERSION` 0.1.40 |
+| `packages/core` | registries `antennas`, `groundStations`, `ctx` registrars, report kinds; module hook `antenna`; `VesselApi.signal()`; events `comms:link-up/link-down/control-changed`; `Snapshot.network`; `API_VERSION` 0.1.42 (103 took 0.1.40, 085 0.1.41) |
 | `packages/sim/src/comms.ts` (new) | stations from sites and definitions, nodes, line of sight (spheres, terrain samples), blackout, cadence, sampling and bisection, control states and refusals, the snapshot |
 | `packages/sim` | `SimCore.comms`; the update after each step and rails chunk; refusals in `throttle`, `attitude`, `sas`, `stage`, `action`, `action-group`; stations reset on building and site changes |
 | `packages/renderer` | `reentry.ts` re-exports the blackout law from core |
