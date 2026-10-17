@@ -32,4 +32,5 @@ ADR 0103 point 1 gives a world an epoch (whole days and a fraction on the system
 
 - `packages/core` gains `calendar.ts` (`Epoch`, `calendarOf`, `formatDate`, `julianDate`, `epochFromUtc`); `BodyDefinition` gains the optional `calendar` field (SDK and stock follow).
 - Plan 081's criterion "the fictional calendar's day and year lengths equal the stock home body's solar day and orbital period" is met for the day; the year part is tested with a home body that orbits a parent, and the stock year appears with plan 122.
-- Plan 087 (start date "today") writes the epoch with `epochFromUtc`.
+- Plan 087 (start date "today") writes the epoch with `epochFromUtc` or `epochFromUnixMs`.
+- ADR 0171 (world tick, plan 082) reads the epoch in tick days; the two agree at epoch 0 only. Plan 081 filed a contract request to move the tick to the SI-day reading and the calendar's day length (plan 081 Log).

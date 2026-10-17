@@ -10,7 +10,7 @@
 |---|---|
 | `packages/core/src/calendar.ts` | `Epoch` (= `WorldInfo.epoch`), `instantAt` and `julianDate` on (days, seconds), Hinnant `daysFromCivil`/`civilFromDays`, the IERS `LEAP_SECONDS` table, `utcFields` (23:59:60 during a leap second), `epochFromUtc`, `epochFromUnixMs` (for 087's "today"), `calendarOf(bodies)`, `formatDate` |
 | `packages/core/src/schemas.ts` | `BodyDefinition.calendar` (optional; `gregorian-utc` or `fictional` with `home`), read on the root body |
-| `packages/core/src/version.ts` | `API_VERSION` 0.1.29 (additive) |
+| `packages/core/src/version.ts` | `API_VERSION` 0.1.30 (additive; 082 took 0.1.29) |
 | `packages/sdk/src/index.ts` | re-exports `calendarOf`, `formatDate`, `epochFromUtc` and the types, so a system pack's tests can check its dates (ADR 0103 point 7) |
 | `mods/stock/src/bodies.ts` | the home planet declares `{ kind: 'fictional', home: 'stock.home' }` |
 | `packages/scripting` | `DateProvider` option and `date(t?)` in the prelude (same shape as `bodies.state`); `ScriptEnvironment.epoch` |
@@ -30,6 +30,8 @@
 - [ADR 0141](../decisions/0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md): calendar on the root body; epoch days are SI days from J2000.0 for both calendars; fictional day = solar day, year only with an orbit; the host formats dates for the HUD and `date()`.
 
 ## Open questions / follow-ups
+
+- **Contract request (to Agent 1, sim tick, ADR 0171 vs ADR 0141):** ADR 0171 point 2 reads `epoch.day` and `epoch.fraction` in tick days (`day(t) = epoch.day + floor(epoch.fraction + t / dayLength)`), while ADR 0141 point 2 defines them as SI days of 86 400 s from J2000.0. They agree for the only epoch in use today ({ day: 0, fraction: 0 }) and differ for any other (plan 087 writes "today"). Proposed, in `packages/sim/src/tick.ts`: `E = (epoch.day + epoch.fraction) × 86 400`, `day(t) = floor((E + t) / dayLength)`, `time(n) = n × dayLength − E` (identical at epoch 0), and `dayLength` from `calendarOf(bodies)` (the fictional calendar's solar day; for `gregorian-utc`, 86 400 s) instead of the root's rotation, which ADR 0171 point 1 anticipates. Today both give 21 600 s for stock, so nothing changes until 087 or 122/124. Not changed here: `packages/sim` is not in 081's Touches.
 
 - Plan 122 (Sun as root): when the home planet orbits the Sun, check that `calendarOf` gives the year and the solar day the player expects; the stock test then asserts a year.
 - Plan 087: write the epoch with `epochFromUnixMs` at world creation ("today"), and show the start date.
