@@ -368,7 +368,7 @@ function glassRibbon(
 	}
 }
 
-function buildHangar(b: BoxSpec, p: SiteParts): void {
+export function buildHangar(b: BoxSpec, p: SiteParts): void {
 	const wallH = b.h - 6;
 	const ridge = 7;
 	const base = 0.9;
@@ -494,7 +494,7 @@ function cylinderBody(x: number, z: number, colour: Rgb): BufferGeometry {
 	return cylinder(0.14, 0.14, 1.1, x, 0.55, z, colour, 8);
 }
 
-function buildControl(b: BoxSpec, p: SiteParts): void {
+export function buildControl(b: BoxSpec, p: SiteParts): void {
 	const white = lin(0xe9e6df);
 	const fz = b.z + b.d / 2;
 	const lowH = 4.6;
@@ -537,7 +537,7 @@ function buildControl(b: BoxSpec, p: SiteParts): void {
 	);
 }
 
-function buildOffice(b: BoxSpec, p: SiteParts): void {
+export function buildOffice(b: BoxSpec, p: SiteParts): void {
 	const fz = b.z + b.d / 2;
 	p.painted.push(box(b.w, b.h, b.d, b.x, b.h / 2, b.z, lin(0xe2dfd6)));
 	p.painted.push(box(b.w + 0.6, 0.45, b.d + 0.6, b.x, b.h + 0.22, b.z, lin(0x80888c)));
@@ -553,7 +553,7 @@ function buildOffice(b: BoxSpec, p: SiteParts): void {
 	p.painted.push(box(3.4, 1.8, 3.4, b.x - 8, b.h + 1.4, b.z, lin(0x9da3a7)));
 }
 
-function buildService(b: BoxSpec, p: SiteParts, light: Rgb): void {
+export function buildService(b: BoxSpec, p: SiteParts, light: Rgb): void {
 	const fz = b.z + b.d / 2;
 	p.siding.push(placed(texturedBox(b.w, b.h, b.d, light, 4), b.x, b.h / 2, b.z));
 	p.painted.push(box(b.w + 0.6, 0.45, b.d + 0.6, b.x, b.h + 0.22, b.z, lin(0x80888c)));
@@ -679,8 +679,9 @@ function buildFences(p: SiteParts): void {
 	}
 }
 
-export function buildBuildings(p: SiteParts): void {
-	for (const b of BUILDINGS) {
+/** The hard-coded buildings of the launch site (plan 025); site mode (ADR 0117) leaves them out. */
+export function buildBuildings(p: SiteParts, withBoxes = true): void {
+	for (const b of withBoxes ? BUILDINGS : []) {
 		if (b.kind === 'hangar') buildHangar(b, p);
 		else if (b.kind === 'control') buildControl(b, p);
 		else if (b.kind === 'office') buildOffice(b, p);

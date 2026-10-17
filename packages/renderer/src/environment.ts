@@ -58,6 +58,8 @@ export interface EnvironmentConfig {
 	site: LaunchSiteConfig;
 	/** The world's home terrain (plan 084, ADR 0142); default the Legacy seed and one zone at `site`. */
 	terrain?: WorldTerrainSpec;
+	/** Site mode (ADR 0117): buildings from a list instead of the hard-coded layout. */
+	siteBuildings?: boolean;
 }
 
 export interface EnvironmentFrameInput {
@@ -159,7 +161,13 @@ export class Environment {
 			body.atmosphere?.aurora !== false,
 			this.worldTerrain
 		);
-		this.site = new LaunchSite(body.radius, config.site, settings.trees, settings.tufts);
+		this.site = new LaunchSite(
+			body.radius,
+			config.site,
+			settings.trees,
+			settings.tufts,
+			config.siteBuildings === true
+		);
 		this.sunLight = new DirectionalLight(0xffffff, this.atmosphere.sunIrradiance);
 		this.sunLight.name = 'sun';
 		this.sunLight.shadow.bias = SHADOW_BIAS;

@@ -26,7 +26,8 @@ import {
 	RepeatWrapping,
 	SRGBColorSpace,
 	UnsignedByteType,
-	Vector3
+	Vector3,
+	BoxGeometry
 } from 'three';
 import { hash3 } from './noise.ts';
 import {
@@ -38,6 +39,7 @@ import {
 	buildTower
 } from './site-buildings.ts';
 import { emptyParts, merge, type ArmParts, type Rgb } from './site-geo.ts';
+import { buildSiteList, footprintCentre, SITE_CELL, type SiteBuildingView } from './site-list.ts';
 import {
 	bushGeometry,
 	pineGeometry,
@@ -256,15 +258,26 @@ export class LaunchSite {
 	private detailStructures = true;
 	private lastLamps = 0;
 
+	/** Site mode (ADR 0117): the buildings come from a list, not from the hard-coded layout. */
+	private readonly listMode: boolean;
+	private readonly listGroup = new Object3D();
+	private listGeometries: BufferGeometry[] = [];
+	private listKey = '';
+	private ghost: Mesh | null = null;
+
 	constructor(
 		radius: number,
 		site: { latitude: number; longitude: number },
 		treeBudget: number,
-		tufts = 0
+		tufts = 0,
+		listMode = false
 	) {
 		this.radius = radius;
+		this.listMode = listMode;
 		this.setSite(site.latitude, site.longitude);
 		this.root.name = 'launch-site';
+		this.listGroup.name = 'site-buildings';
+		this.root.add(this.listGroup);
 		this.buildStructures();
 		this.buildFloodLights();
 		this.setTrees(treeBudget, tufts);
@@ -325,7 +338,7 @@ export class LaunchSite {
 		buildTanks(parts);
 		buildProps(parts);
 		buildLightPoles(parts);
-		buildBuildings(parts);
+		buildBuildings(parts, !this.listMode);
 		this.mesh(parts.structure, m.structure);
 		this.mesh(parts.painted, m.painted);
 		this.mesh(parts.siding, m.siding);
@@ -616,6 +629,102 @@ export class LaunchSite {
 		}
 		for (const m of this.structureMeshes) m.visible = d.structures;
 		this.detailStructures = d.structures;
+	}
+
+	/**
+	 * Site mode (ADR 0117): draw these buildings and road cells, one mesh per material; rebuilt only
+	 * when the list changed. Ignored outside site mode.
+	 */
+	setBuildings(
+		list: readonly SiteBuildingView[],
+		roads: readonly { i: number; j: number }[]
+	): void {
+		if (!this.listMode) return;
+		const key = JSON.stringify([list, roads]);
+		if (key === this.listKey) return;
+		this.listKey = key;
+		for (const child of [...this.listGroup.children]) this.listGroup.remove(child);
+		for (const g of this.listGeometries) g.dispose();
+		this.listGeometries = [];
+		const parts = buildSiteList(list, roads);
+		const m = this.materials;
+		const add = (
+			geos: BufferGeometry[],
+			material: MeshStandardMaterial | MeshBasicMaterial,
+			shadows = true
+		) => {
+			if (!geos.length) return;
+			const g = merge(geos);
+			this.listGeometries.push(g);
+			const mesh = new Mesh(g, material);
+			mesh.castShadow = shadows;
+			mesh.receiveShadow = shadows;
+			this.listGroup.add(mesh);
+		};
+		add(parts.structure, m.structure);
+		add(parts.painted, m.painted);
+		add(parts.siding, m.siding);
+		add(parts.door, m.door);
+		add(parts.glass, m.glass);
+		add(parts.glassLit, m.glassLit);
+		add(parts.lamp, m.lamp, false);
+		add(parts.thin, m.structure, false);
+	}
+
+	/** Draw calls of the building group (journal of plan 091). */
+	get buildingMeshes(): number {
+		return this.listGroup.children.length;
+	}
+
+	/** The translucent box of build mode at a footprint, green when it may be placed, red when not. */
+	setGhost(
+		g: {
+			size: { w: number; d: number };
+			cell: { i: number; j: number };
+			rotation: 0 | 90 | 180 | 270;
+			valid: boolean;
+		} | null
+	): void {
+		if (!g) {
+			if (this.ghost) this.ghost.visible = false;
+			return;
+		}
+		if (!this.ghost) {
+			const geo = new BoxGeometry(1, 1, 1);
+			geo.translate(0, 0.5, 0);
+			this.ghost = new Mesh(
+				geo,
+				new MeshBasicMaterial({ transparent: true, opacity: 0.35, depthWrite: false })
+			);
+			this.ghost.name = 'site-ghost';
+			this.ghost.renderOrder = 10;
+			this.root.add(this.ghost);
+			this.geometries.push(geo);
+		}
+		const f = footprintCentre(g);
+		this.ghost.visible = true;
+		this.ghost.position.set(f.x, 0, f.z);
+		this.ghost.scale.set(f.w * SITE_CELL, 12, f.d * SITE_CELL);
+		(this.ghost.material as MeshBasicMaterial).color.set(g.valid ? 0x3ccf6e : 0xe2483d);
+	}
+
+	/**
+	 * Where the ray (`origin`, `direction`, both in the scene's world space) meets the site's ground
+	 * plane, in site metres east and north; null when it does not (looking up, or from below).
+	 */
+	pickPlane(origin: Vector3, direction: Vector3): { east: number; north: number } | null {
+		const inv = new Matrix4().copy(this.root.matrixWorld).invert();
+		const o = origin.clone().applyMatrix4(inv);
+		const d = direction.clone().transformDirection(inv);
+		if (Math.abs(d.y) < 1e-9) return null;
+		const t = -o.y / d.y;
+		if (!(t > 0)) return null;
+		return { east: o.x + d.x * t, north: -(o.z + d.z * t) };
+	}
+
+	/** A site point (metres east, north and up) in the scene's world space. */
+	siteToWorld(p: { east: number; north: number; up?: number }): Vector3 {
+		return new Vector3(p.east, p.up ?? 0, -p.north).applyMatrix4(this.root.matrixWorld);
 	}
 
 	/** Puts the site on the rotating body: position in float64, orientation = body * site frame. */
