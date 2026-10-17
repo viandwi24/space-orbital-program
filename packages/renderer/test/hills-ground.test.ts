@@ -142,8 +142,6 @@ describe('the GLSL of the hills bake', () => {
 		LAKE_SHAPE.slope,
 		LAKE_SHAPE.siteFrom,
 		LAKE_SHAPE.siteTo,
-		SITE_FLAT_RADIUS,
-		SITE_FLAT_RADIUS + SITE_BLEND_WIDTH,
 		MAP_WARP.amplitude,
 		...MAP_WARP.wavelengthsKm
 	];
@@ -156,6 +154,9 @@ describe('the GLSL of the hills bake', () => {
 		}
 		expect(hillsHeightGLSL).toContain(`${LAKE_SHAPE.salt}`);
 		expect(hillsHeightGLSL).toContain('float moonHeight(vec3 n, float radius)');
+		// the site radii are uniforms now (plan 084, ADR 0142): the zone loop reads them
+		expect(hillsHeightGLSL).toContain('uniform vec4 uZones[8];');
+		expect(hillsHeightGLSL).toContain('vec3 zones = terrainZones(n, uRadius);');
 	});
 
 	test('the hills bake is the planet pass bake function and the craters bake is not touched', () => {
@@ -173,14 +174,15 @@ describe('the GLSL of the hills bake', () => {
 		expect(terrainBakeFragment).toContain('textureLod(uMap, vec2(ll.y');
 	});
 
-	test('the planet pass bake programs are byte-identical to the ones before the height function moved (plan 059)', () => {
+	test('the planet pass bake programs are the ones of plan 084 (zones and the seed shift, ADR 0142)', () => {
 		const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
-		// measured on HEAD (4de52a7) before the split of terrain.glsl.ts
+		// plan 059 pinned b0287f39… / 90014bca… (HEAD 4de52a7); plan 084 changed both on purpose:
+		// the site's constants became the zone uniforms and noiseT gained uTerrainShift
 		expect(sha(terrainBakeFragment)).toBe(
-			'b0287f39e9419c63579e6d2c4590eb5edf6eaff7875ccdd75b047649d118f0c2'
+			'e2ab91ab89ccc886abfe533916f1e389c636205c764529b3711f8bc913dbe61d'
 		);
 		expect(sha(terrainPatchFragment)).toBe(
-			'90014bcad15030359851d99a72f3cce3aee99d6813fdf27e1267c6eef626560a'
+			'e4848aa7f82d25b680555a42b2ba601c3636cf66ef591f9e6f16e234c023c0c0'
 		);
 		expect(sha(terrainBakeVertex)).toBe(
 			'227b9f2ac69e37c9d7c7131be39f4cf01eb80ff06ba0fc71f9ed3ab7605b0712'

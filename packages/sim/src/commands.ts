@@ -4,10 +4,13 @@
  * exceptions: commands come from outside the sim.
  */
 import {
+	bodyId,
 	commandSchema,
 	IDENTITY_RULES,
+	padLatLon,
 	resolveVesselDesign,
 	ruleValueProblem,
+	sitesOf,
 	type Command,
 	type CommandResult,
 	type EntityId
@@ -88,18 +91,41 @@ function loadVessel(
 	const short = launchRefusal(core, command.design);
 	if (short) return refuse(short);
 	const placement = command.placement ?? { kind: 'surface' };
-	if (placement.body !== undefined && !core.bodies.has(placement.body)) {
+	// a site placement is a surface placement on the site's body at its pad (ADR 0142 point 5)
+	let surface: { latitude: number; longitude: number } | undefined;
+	let bodyName = placement.kind === 'site' ? undefined : placement.body;
+	if (placement.kind === 'site') {
+		const site = sitesOf(core.info).find((s) => s.id === placement.site);
+		if (!site) {
+			const known = sitesOf(core.info)
+				.map((s) => `"${s.id}"`)
+				.join(', ');
+			return refuse(`unknown site "${placement.site}"; this world has ${known}`);
+		}
+		const pad = site.pads[placement.pad ?? 0];
+		if (!pad)
+			return refuse(`site "${site.id}" has ${site.pads.length} pad(s); no pad ${placement.pad}`);
+		const siteBody = core.bodies.get(site.body);
+		if (!siteBody)
+			return refuse(`site "${site.id}" is on "${site.body}", which this sim does not have`);
+		const [latitude, longitude] = padLatLon(site, pad, siteBody.def.radius);
+		surface = { latitude, longitude };
+		bodyName = bodyId(site.body);
+	} else if (placement.kind === 'surface') {
+		surface = { latitude: placement.latitude ?? 0, longitude: placement.longitude ?? 0 };
+	}
+	if (bodyName !== undefined && !core.bodies.has(bodyName)) {
 		return refuse(
-			`unknown body "${placement.body}"; this sim has ${[...core.bodies.keys()].map((b) => `"${b}"`).join(', ')}`
+			`unknown body "${bodyName}"; this sim has ${[...core.bodies.keys()].map((b) => `"${b}"`).join(', ')}`
 		);
 	}
 	const id = spawnVessel(core, command.design, resolved);
 	const vessel = vesselOf(core, id);
-	vessel.soi = placement.body ?? core.root.def.id;
+	vessel.soi = bodyName ?? core.root.def.id;
 	const body = bodyOfVessel(core, vessel);
-	if (placement.kind === 'surface') {
-		placeOnSurface(core, id, placement.latitude ?? 0, placement.longitude ?? 0);
-	} else {
+	if (surface) {
+		placeOnSurface(core, id, surface.latitude, surface.longitude);
+	} else if (placement.kind === 'state') {
 		placeAtState(
 			core,
 			id,

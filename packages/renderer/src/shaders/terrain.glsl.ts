@@ -10,9 +10,8 @@
 import {
 	LAKE_SHAPE as LAKE,
 	MAP_WARP as W,
+	MAX_TERRAIN_ZONES,
 	OCTAVE_ROTATION,
-	SITE_BLEND_WIDTH,
-	SITE_FLAT_RADIUS,
 	TERRAIN_SHAPE as S
 } from '@orbital/core';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
@@ -25,15 +24,17 @@ export const octaveRotationGLSL = `mat3(${[0, 1, 2].map((c) => `vec3(${m[0]![c]}
 /**
  * Lattice noise of the terrain (`noiseT`, twin of `terrainNoise` in core), the octave rotation and
  * the map warp (twin of `warpedLatLon`); shared by the bake and the planet pass. Needs
- * `valueNoiseCell` from `hashNoiseGLSL`.
+ * `valueNoiseCell` from `hashNoiseGLSL`. `uTerrainShift` is the seed's lattice shift (`terrainShift`,
+ * ADR 0142); a material that never sets it reads 0, the Legacy terrain.
  */
 export const terrainNoiseGLSL = /* glsl */ `
 const mat3 OCT_ROT = ${octaveRotationGLSL};
+uniform int uTerrainShift;
 
 float noiseT(vec3 q, float freq, int salt) {
 	vec3 p = q * freq;
 	vec3 fl = floor(p);
-	ivec3 c = ivec3(fl) + ivec3(salt * 131, salt * 71, salt * 17);
+	ivec3 c = ivec3(fl) + ivec3(salt * 131, salt * 71, salt * 17) + ivec3(uTerrainShift);
 	return valueNoiseCell(c, p - fl);
 }
 
@@ -63,6 +64,30 @@ vec4 decodeTerrain(vec4 t, vec3 n) {
 }
 `;
 
+/**
+ * The flat zones of the sites (ADR 0142 point 3, at most ${MAX_TERRAIN_ZONES}): `uZones[i]` is the unit
+ * body-fixed centre and the flat radius (m), `uZoneBlend[i]` the blend width (m). `terrainZones(n,
+ * radius)` returns (site weight = product over zones, arc to the first zone in m, lake gate = minimum
+ * over zones), the twin of the zone loop in core's `terrainHeight`.
+ */
+export const terrainZonesGLSL = /* glsl */ `
+uniform vec4 uZones[${MAX_TERRAIN_ZONES}];
+uniform float uZoneBlend[${MAX_TERRAIN_ZONES}];
+uniform int uZoneCount;
+vec3 terrainZones(vec3 n, float radius) {
+	float arc0 = radius * acos(clamp(dot(n, uZones[0].xyz), -1.0, 1.0));
+	float site = 1.0;
+	float gate = 1.0;
+	for (int i = 0; i < ${MAX_TERRAIN_ZONES}; i++) {
+		if (i >= uZoneCount) break;
+		float a = i == 0 ? arc0 : radius * acos(clamp(dot(n, uZones[i].xyz), -1.0, 1.0));
+		site *= smoothstep(uZones[i].w, uZones[i].w + uZoneBlend[i], a);
+		gate = min(gate, smoothstep(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, a));
+	}
+	return vec3(site, arc0, gate);
+}
+`;
+
 export const terrainBakeVertex = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -73,8 +98,8 @@ void main() {
 
 /**
  * The height function of the terrain, `heightAt(n)` (twin of `terrainHeight` in core), with the
- * noise it needs. It reads the uniforms `uMap` (the biome map), `uRadius` and `uSiteDir`, which the
- * including shader declares before it. The planet pass's bakes and a later body's ground pass
+ * noise it needs. It reads the uniforms `uMap` (the biome map), `uRadius` and the zones of
+ * `terrainZonesGLSL`, which the including shader declares before it. The planet pass's bakes and a later body's ground pass
  * (ADR 0090) run this one text.
  */
 export const terrainHeightGLSL = /* glsl */ `const float PI_ = 3.14159265359;
@@ -117,8 +142,9 @@ float heightAt(vec3 n) {
 	float e = textureLod(uMap, vec2(ll.y / (2.0 * PI_) + 0.5, ll.x / PI_ + 0.5), 0.0).r;
 	float land = smoothstep(${f(S.landStart)}, ${f(S.landFull)}, e);
 	if (land <= 0.0) return 0.0;
-	float arc = uRadius * acos(clamp(dot(n, uSiteDir), -1.0, 1.0));
-	float site = smoothstep(${f(SITE_FLAT_RADIUS)}, ${f(SITE_FLAT_RADIUS + SITE_BLEND_WIDTH)}, arc);
+	vec3 zones = terrainZones(n, uRadius);
+	float site = zones.x;
+	float arc = zones.y;
 	if (site <= 0.0) return 0.0;
 	vec3 q = n * (uRadius / 1000.0);
 	float hillN = fbmT(q, ${f(S.hillWavelengthKm)}, ${S.hillOctaves}, 11);
@@ -134,7 +160,7 @@ float heightAt(vec3 n) {
 	float upland = smoothstep(${f(S.uplandLow)}, ${f(S.uplandHigh)}, e);
 	float mountains = ${f(S.mountainAmplitude)} * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
 	// lakes (plan 038): the relief is capped by a cone around the basins, zero on their floor (twin of terrainHeight)
-	float lakeLevel = noiseT(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * smoothstep(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, arc);
+	float lakeLevel = noiseT(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * zones.z;
 	float lakeCap = max(0.0, ${f(LAKE.slope)} * (${f(LAKE.to)} - lakeLevel) / ${LAKE.gradientBound.toExponential()});
 	return min(land * site * (hills + mountains), lakeCap);
 }`;
@@ -148,7 +174,7 @@ varying vec2 vUv;
 uniform sampler2D uMap;
 uniform float uTexel;   // angular size of one texel at the centre, rad
 uniform float uRadius;
-uniform vec3 uSiteDir;  // unit, body-fixed
+${terrainZonesGLSL}
 
 ${terrainHeightGLSL}
 

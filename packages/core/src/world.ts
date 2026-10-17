@@ -7,6 +7,7 @@ import * as z from 'zod';
 import type { EventBus, EventMap } from './events.ts';
 import { entityId, type EntityId } from './ids.ts';
 import { worldDataSchema } from './schemas.ts';
+import type { Site } from './sites.ts';
 
 /** Typed component key. `T` is phantom: it only flows into `get`/`add`. Create with `defineComponent`. */
 export type ComponentType<T> = { readonly name: string; readonly __type?: T };
@@ -43,8 +44,8 @@ export interface WorldInfo {
 	epoch: { day: number; fraction: number };
 	/** Rule id to value: every registered rule once the sim resolved them (ADR 0111). */
 	rules: Record<string, boolean | number | string>;
-	/** Sites of the world; empty until plan 084. */
-	sites: Array<{ id: string; [key: string]: unknown }>;
+	/** Sites of the world (plan 084, ADR 0142); empty means the Legacy site (`sitesOf`). */
+	sites: Site[];
 	/** Preset the world was created with (plan 078, ADR 0111). */
 	preset: string;
 	/** Every rule change during play, oldest first (ADR 0094 point 4). */

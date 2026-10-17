@@ -24,7 +24,7 @@ import {
 const R = 600_000;
 const ctx: TerrainContext = {
 	radius: R,
-	map: cachedPlanetMap(1024, 0, 0),
+	map: cachedPlanetMap(1024),
 	siteDirection: { x: 1, y: 0, z: 0 }
 };
 

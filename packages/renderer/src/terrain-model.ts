@@ -6,6 +6,7 @@
 import {
 	SITE_FLAT_RADIUS,
 	TERRAIN_MAX_SLOPE,
+	latLonDirection,
 	terrainHeight,
 	type TerrainContext,
 	type Vec3
@@ -223,7 +224,8 @@ export function skylineAngle(
 	range: number,
 	stepMetres = 500
 ): number {
-	const up = ctx.siteDirection;
+	const z0 = ctx.zones?.[0];
+	const up = ctx.siteDirection ?? (z0 ? latLonDirection(z0.latitude, z0.longitude) : vec(1, 0, 0));
 	const ref = Math.abs(up.y) > 0.99 ? vec(1, 0, 0) : vec(0, 1, 0);
 	const east = normalize(
 		vec(ref.y * up.z - ref.z * up.y, ref.z * up.x - ref.x * up.z, ref.x * up.y - ref.y * up.x)

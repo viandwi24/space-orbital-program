@@ -30,7 +30,7 @@ const R = 600_000;
 const SITE = vec(1, 0, 0);
 const ctx = (): TerrainContext => ({
 	radius: R,
-	map: cachedPlanetMap(1024, 0, 0),
+	map: cachedPlanetMap(1024),
 	siteDirection: SITE
 });
 
@@ -59,7 +59,7 @@ const fromSite = (metres: number, azimuth: number) => {
 describe('terrain height function', () => {
 	test('deterministic: same value on repeated calls and for a rebuilt map', () => {
 		const a = ctx();
-		const b: TerrainContext = { ...a, map: generatePlanetMap(1024, 0, 0) };
+		const b: TerrainContext = { ...a, map: generatePlanetMap(1024) };
 		const r = rng(1);
 		for (let i = 0; i < 200; i++) {
 			const n = i % 2 === 0 ? randomDirection(r) : fromSite(20_000 + r() * 40_000, r() * 6.28);
@@ -213,7 +213,10 @@ describe('the field', () => {
 	test('a field for another site flattens that site, not the origin', () => {
 		const lat = 0.4;
 		const lon = 1.1;
-		const field = createTerrainField({ radius: R, latitude: lat, longitude: lon });
+		const field = createTerrainField({
+			radius: R,
+			zones: [{ latitude: lat, longitude: lon, flatRadius: SITE_FLAT_RADIUS, blendWidth: 11_000 }]
+		});
 		const r = rng(22);
 		const site = latLonDirection(lat, lon);
 		for (let i = 0; i < 100; i++) {

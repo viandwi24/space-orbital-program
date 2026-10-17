@@ -13,6 +13,7 @@ import {
 	type TerrainField
 } from '@orbital/core';
 import { PRESETS } from '../src/presets.ts';
+import { zoneUniforms } from '../src/terrain-zones.ts';
 import {
 	terrainBakeFragment,
 	terrainNoiseGLSL,
@@ -139,7 +140,7 @@ describe('the baked patches reproduce the height function where a vessel can tou
 	function patchError(span: number, texels: number, centreMetres: number, points: number) {
 		const ctx: TerrainContext = {
 			radius: R,
-			map: cachedPlanetMap(1024, 0, 0),
+			map: cachedPlanetMap(1024),
 			siteDirection: vec(1, 0, 0)
 		};
 		const centre = latLonDirection(0, centreMetres / R);
@@ -244,8 +245,14 @@ describe('shader constants come from core', () => {
 		const s = TERRAIN_SHAPE;
 		expect(terrainBakeFragment).toContain(norm(s.mountainAmplitude));
 		expect(terrainBakeFragment).toContain(norm(s.hillAmplitude));
-		expect(terrainBakeFragment).toContain(norm(SITE_FLAT_RADIUS));
-		expect(terrainBakeFragment).toContain(norm(SITE_FLAT_RADIUS + SITE_BLEND_WIDTH));
+		// the site's flat radius and blend come as zone uniforms (plan 084); the Legacy values are core's
+		expect(terrainBakeFragment).toContain('uniform vec4 uZones[8];');
+		expect(terrainNoiseGLSL).toContain('ivec3(uTerrainShift)');
+		const z = zoneUniforms();
+		expect(z.uZones.value[0]!.w).toBe(SITE_FLAT_RADIUS);
+		expect(z.uZoneBlend.value[0]).toBe(SITE_BLEND_WIDTH);
+		expect(z.uZoneCount.value).toBe(1);
+		expect(z.uTerrainShift.value).toBe(0);
 		expect(terrainBakeFragment).toContain(norm(s.ridgeSoftness ** 2));
 		expect(terrainPatchFragment).toContain(norm(s.mountainAmplitude));
 		expect(terrainNoiseGLSL).toContain(norm(MAP_WARP.amplitude));
