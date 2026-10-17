@@ -15,6 +15,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `soi-and-moon.md` — Laplace sphere of influence, patched-conic continuity, reference moon data (plan 044).
 - `reentry-heating.md` — Sutton-Graves stagnation heating, Stefan-Boltzmann radiation, aluminium skin, KSP limits for scale (plan 014).
 - `phones-and-real-devices.md` — mobile Safari `interrupted` audio contexts, safe-area insets, `dvh` (plan 055).
+- `licence.md` — the Apache-2.0 text source and checksum (ADR 0106).
 - Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.
 
 When an entry is older than ~3 months or a major version behind, re-verify before relying on it.

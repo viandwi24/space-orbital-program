@@ -62,4 +62,4 @@ docs/            spec, architecture, decisions, plans, journal
 
 ## Licence
 
-To be decided by the project owner before the public release. Until a licence file is added, no licence is granted. The open-source libraries the game uses are listed with their licences on the in-game Credits page.
+Licensed under the [Apache License, Version 2.0](LICENSE) (decision: [ADR 0106](docs/decisions/0106-licence-apache-2-0.md)). Contributions are accepted under the same licence. The licence grants no rights to the product name. The open-source libraries the game uses are listed with their licences on the in-game Credits page.
