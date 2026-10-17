@@ -63,3 +63,4 @@ A mod's second planet is a place and not only a ground: with an `atmosphere` in 
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0103, 0097: needed by the Sol pack; sites replace the per-body landing spot).
 - 2026-10-18 — Claimed by Agent 1 and refined: ADR 0121; found while reading that the GPU bake, the CPU twin and the sim of a later hills body use three different seeds and zones (fixed by point 1).
 - 2026-10-18 — Done (Agent 1): terrain spec, air, sea, hills shadows. GPU bake against the float64 field 0.018 m worst (mid); frame times 5 to 8 ms on a scratch mod planet (`high`, budget 14.4 ms). Journal [071](../journal/071-atmosphere-and-sea-on-a-second-planet.md).
+- 2026-10-18 — Checks: `bun run test` 1570 pass (after the plan 059 sim test's bodies kept the Legacy seed) · web vitest pass · typecheck · build · docs:check OK · Chromium smoke 7 pass.
