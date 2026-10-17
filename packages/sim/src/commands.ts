@@ -97,13 +97,17 @@ function loadVessel(
 	if (placement.kind === 'site') {
 		const site = sitesOf(core.info).find((s) => s.id === placement.site);
 		if (!site) {
-			const known = sitesOf(core.info).map((s) => `"${s.id}"`).join(', ');
+			const known = sitesOf(core.info)
+				.map((s) => `"${s.id}"`)
+				.join(', ');
 			return refuse(`unknown site "${placement.site}"; this world has ${known}`);
 		}
 		const pad = site.pads[placement.pad ?? 0];
-		if (!pad) return refuse(`site "${site.id}" has ${site.pads.length} pad(s); no pad ${placement.pad}`);
+		if (!pad)
+			return refuse(`site "${site.id}" has ${site.pads.length} pad(s); no pad ${placement.pad}`);
 		const siteBody = core.bodies.get(site.body);
-		if (!siteBody) return refuse(`site "${site.id}" is on "${site.body}", which this sim does not have`);
+		if (!siteBody)
+			return refuse(`site "${site.id}" is on "${site.body}", which this sim does not have`);
 		const [latitude, longitude] = padLatLon(site, pad, siteBody.def.radius);
 		surface = { latitude, longitude };
 		bodyName = bodyId(site.body);

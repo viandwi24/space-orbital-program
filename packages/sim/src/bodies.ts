@@ -20,7 +20,10 @@ import {
  * The terrain of a body in a world (ADR 0142 point 6): called once per body with the world's
  * terrain seed and the flat zones of the sites on that body. One-argument factories still work.
  */
-export type TerrainFactory = (body: BodyDefinition, world: WorldTerrain) => TerrainField | undefined;
+export type TerrainFactory = (
+	body: BodyDefinition,
+	world: WorldTerrain
+) => TerrainField | undefined;
 import { add, propagate, soiRadius, type OrbitalElements, type StateVector } from '@orbital/kepler';
 import type { SimCore } from './core.ts';
 import type { VesselState } from './state.ts';
