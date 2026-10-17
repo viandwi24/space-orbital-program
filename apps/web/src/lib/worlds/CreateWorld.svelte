@@ -38,7 +38,7 @@
 		open: boolean;
 		catalog: WorldCatalog;
 		onclose: () => void;
-		oncreate: (world: WorldInfo, name: string) => void | Promise<void>;
+		oncreate: (world: WorldInfo, name: string, scenario?: string) => void | Promise<void>;
 		now?: () => number;
 		newId: () => string;
 		newSeed: () => number;
@@ -96,6 +96,16 @@
 		preset = id;
 		rules = presetRules(catalog, id);
 	}
+	// a mission pack sets the mode and its rules (plan 100, ADR 0151 point 4)
+	let scenario = $state('');
+	const chosenScenario = $derived(catalog.scenarios.find((s) => s.id === scenario));
+	function chooseScenario(id: string): void {
+		scenario = id;
+		const s = catalog.scenarios.find((x) => x.id === id);
+		if (!s) return;
+		choosePreset(s.preset);
+		rules = { ...rules, ...(s.rules ?? {}) };
+	}
 	const setRule = (id: string, value: RuleValue): void => {
 		rules = { ...rules, [id]: value };
 	};
@@ -142,7 +152,7 @@
 		problem = null;
 		busy = true;
 		try {
-			await oncreate(result.world, name);
+			await oncreate(result.world, name, scenario || undefined);
 		} finally {
 			busy = false;
 		}
@@ -158,6 +168,23 @@
 			<span class="label">Name</span>
 			<input type="text" bind:value={name} maxlength="48" required data-testid="world-name" />
 		</label>
+
+		{#if catalog.scenarios.length > 0}
+			<label class="field">
+				<span class="label">Start</span>
+				<select
+					value={scenario}
+					onchange={(e) => chooseScenario(e.currentTarget.value)}
+					data-testid="world-scenario"
+				>
+					<option value="">In the Hangar</option>
+					{#each catalog.scenarios as s (s.id)}
+						<option value={s.id}>{s.title}</option>
+					{/each}
+				</select>
+				{#if chosenScenario}<p class="note">{chosenScenario.description}</p>{/if}
+			</label>
+		{/if}
 
 		<div class="field">
 			<span class="label">Mode</span>

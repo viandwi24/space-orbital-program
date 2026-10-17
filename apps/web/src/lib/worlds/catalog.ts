@@ -6,6 +6,7 @@ import {
 	calendarOf,
 	loadPlugins,
 	type AchievementDefinition,
+	type ScenarioDefinition,
 	type BodyDefinition,
 	type Calendar,
 	type SaveMod,
@@ -25,6 +26,8 @@ export interface WorldCatalog extends RuleCatalog {
 	siteTemplates: readonly SiteTemplateDefinition[];
 	/** Achievements of stock and the enabled mods (plan 102, ADR 0147). */
 	achievements: readonly AchievementDefinition[];
+	/** Mission packs (plan 100, ADR 0151). */
+	scenarios: readonly ScenarioDefinition[];
 }
 
 export function loadWorldCatalog(): WorldCatalog {
@@ -44,6 +47,7 @@ export function loadWorldCatalog(): WorldCatalog {
 		},
 		mods: plugins.map((p) => ({ id: p.meta.id, version: p.meta.version })),
 		siteTemplates: registries.siteTemplates.list(),
-		achievements: registries.achievements.list()
+		achievements: registries.achievements.list(),
+		scenarios: registries.scenarios.list()
 	};
 }

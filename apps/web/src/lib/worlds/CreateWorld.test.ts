@@ -17,7 +17,8 @@ const catalog: WorldCatalog = {
 	system: { id: 'stock', version: '0.1.0', label: 'Stock system', variants: ['default'] },
 	mods: [{ id: 'stock', version: '0.1.0' }],
 	siteTemplates: registries.siteTemplates.list(),
-	achievements: registries.achievements.list()
+	achievements: registries.achievements.list(),
+	scenarios: registries.scenarios.list()
 };
 const html = (initialSite?: string): string =>
 	render(CreateWorld, {

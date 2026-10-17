@@ -46,6 +46,8 @@ export interface WorldRecord {
 	 * the sim with. Absent for the Legacy world, whose info the sim makes.
 	 */
 	world?: WorldInfo;
+	/** The scenario the world was made from (plan 100, ADR 0151 point 4): its first flight starts from it. */
+	scenario?: string;
 }
 
 export const LEGACY_WORLD_NAME = 'Legacy world';
@@ -125,6 +127,8 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 	) {
 		throw damaged('its summary is unreadable');
 	}
+	if (raw.scenario !== undefined && typeof raw.scenario !== 'string')
+		throw damaged('its scenario is unreadable');
 	let world: WorldInfo | undefined;
 	if (raw.world !== undefined) {
 		const parsed = worldInfoSchema.safeParse(raw.world);
@@ -143,6 +147,7 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 		mods: raw.mods as SaveMod[],
 		changelog: raw.changelog as RuleChange[],
 		summary: { saves: s.saves, vessel: s.vessel, simTime: s.simTime },
-		...(world ? { world } : {})
+		...(world ? { world } : {}),
+		...(typeof raw.scenario === 'string' ? { scenario: raw.scenario } : {})
 	};
 }

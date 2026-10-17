@@ -13,6 +13,7 @@ import {
 	type SasMode,
 	type Snapshot,
 	type VesselDesign,
+	type VesselPlacement,
 	type WorldInfo
 } from '@orbital/core';
 import {
@@ -113,6 +114,10 @@ export interface FlightOptions {
 	resume?: GameSave;
 	/** A new flight in a world without saves (plan 087): its info; ignored when resuming. */
 	world?: WorldInfo;
+	/** Where a new flight's vessel stands, from the Launch screen (plan 094, ADR 0150); default: the site's pad. */
+	placement?: VesselPlacement;
+	/** A scenario's other vessels and its missions, for a world's first flight (plan 100, ADR 0151). */
+	scenario?: { others: { design: VesselDesign; placement: VesselPlacement }[]; missions: string[] };
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 	/** Progress of the renderer's background shader compile (plan 038, ADR 0074), until it is done. */
@@ -832,7 +837,11 @@ export function startFlight(options: FlightOptions): Flight {
 				hud.warp = warp;
 				warpIndex = Math.max(0, (WARP_STEPS as readonly number[]).indexOf(warp));
 			} else {
-				const result = await client.dispatch({ type: 'load-vessel', design });
+				const result = await client.dispatch({
+					type: 'load-vessel',
+					design,
+					...(options.placement ? { placement: options.placement } : {})
+				});
 				if (!result.ok || result.vessel === undefined) {
 					hud.status = 'error';
 					hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
@@ -840,6 +849,11 @@ export function startFlight(options: FlightOptions): Flight {
 					return;
 				}
 				vessel = result.vessel;
+				// a scenario's start (plan 100, ADR 0151 point 4): its other vessels, then its missions
+				for (const v of options.scenario?.others ?? [])
+					await client.dispatch({ type: 'load-vessel', design: v.design, placement: v.placement });
+				for (const id of options.scenario?.missions ?? [])
+					await client.dispatch({ type: 'objective-start', source: { kind: 'mission', id } });
 			}
 			presence.attach(vessel);
 			hudCtl.attach(Number(vessel));

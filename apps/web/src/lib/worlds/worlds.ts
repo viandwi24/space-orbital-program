@@ -71,7 +71,12 @@ export interface Worlds {
 	list(): Promise<WorldEntry[]>;
 	get(id: string): Promise<WorldRecord | undefined>;
 	/** A record for a world made in Create World (its info travels in the record until the first save). */
-	create(world: WorldInfo, name: string, mods: readonly SaveMod[]): Promise<WorldRecord>;
+	create(
+		world: WorldInfo,
+		name: string,
+		mods: readonly SaveMod[],
+		scenario?: string
+	): Promise<WorldRecord>;
 	rename(id: string, name: string): Promise<WorldRecord>;
 	/** A new world with the same rules and start; optionally a new name and seed. No saves are copied. */
 	duplicate(id: string, options?: { name?: string; newSeed?: boolean }): Promise<WorldRecord>;
@@ -156,7 +161,7 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 	return {
 		list,
 		get,
-		async create(world, name, mods) {
+		async create(world, name, mods, scenario) {
 			const now = env.now();
 			const record: WorldRecord = {
 				format: WORLD_FORMAT,
@@ -169,7 +174,8 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 				mods: mods.map((m) => ({ id: m.id, version: m.version })),
 				changelog: [],
 				summary: emptySummary(),
-				world
+				world,
+				...(scenario ? { scenario } : {})
 			};
 			await worlds.put(record);
 			return record;
