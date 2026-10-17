@@ -4,6 +4,9 @@
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
 import {
+	calendarOf,
+	formatDate,
+	type Epoch,
 	entityId,
 	type BodyDefinition,
 	type Command,
@@ -97,6 +100,8 @@ export interface HudModel {
 	situation: string;
 	phase: FlightPhase | null;
 	met: number;
+	/** The game date at `met` in the world's calendar (plan 081, ADR 0141). */
+	date: string;
 	altitude: number;
 	/** Height of the vessel's lowest point above the ground under it, m; null without terrain data or above 20 km (plan 039). */
 	radar: number | null;
@@ -148,6 +153,8 @@ export interface HudControllerOptions {
 	design: VesselDesign;
 	content: ContentLookups;
 	bodies: readonly BodyDefinition[];
+	/** The world's epoch (`t = 0`); J2000 / day 0 when absent (plan 081). */
+	epoch?: Epoch;
 	/**
 	 * `Renderer.project` (plan 024, ADR 0033): a point in the sim's inertial frame to canvas pixels
 	 * through the camera that is drawn; `null` behind the camera or while there is no renderer.
@@ -219,6 +226,8 @@ function maneuverHud(v: VesselSnapshot, now: number, report: DeltaVReport): Mane
 
 export function createHudController(options: HudControllerOptions): HudController {
 	const { design, content, bodies } = options;
+	const calendar = calendarOf(bodies);
+	const epoch: Epoch = options.epoch ?? { day: 0, fraction: 0 };
 	const name = displayVesselName(design);
 	/** The snapshot's altitude is the root part's; the HUD shows the height of the vessel's base. */
 	const clearance = groundClearance(design, content.parts);
@@ -457,6 +466,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				situation: situationLabel(tele.phase, tele.escape, bodyLabel(body.id)),
 				phase: tele.phase,
 				met: snap.t,
+				date: formatDate(calendar, epoch, snap.t).text,
 				altitude: Math.max(0, tele.altitude - clearance),
 				radar: radarReading(tele.altitude, clearance, v.terrainHeight),
 				speed: read.speed,

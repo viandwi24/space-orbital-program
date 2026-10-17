@@ -145,6 +145,8 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	fixed('nextTick', nextTick);
 	fixed('waitUntil', waitUntil);
 	fixed('time', () => needTelemetry().t);
+	// date(t = now): { text, julianDate } in the world's calendar, from the host (plan 081).
+	fixed('date', (t) => JSON.parse(host.date(t === undefined ? needTelemetry().t : t)));
 	fixed('stage', () => request('stage', '{}'));
 	fixed('action', (part, module, action, ...args) =>
 		request('action', JSON.stringify({ part, module, action, args }))

@@ -7,6 +7,7 @@ import {
 	modManifestSchema,
 	type BodyDefinition,
 	type CommandResult,
+	type Epoch,
 	type ModAsset,
 	type ModBundle,
 	type PartDefinition,
@@ -22,6 +23,11 @@ export interface Catalog {
 	parts: PartDefinition[];
 	bodies: BodyDefinition[];
 	resources: ResourceDefinition[];
+	/**
+	 * The world's epoch, the instant of `t = 0` (plan 081, ADR 0141); dates are formatted on the page.
+	 * Only the sim's `ready` has one: a catalog loaded on the main thread (the VAB) belongs to no world.
+	 */
+	epoch?: Epoch;
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */

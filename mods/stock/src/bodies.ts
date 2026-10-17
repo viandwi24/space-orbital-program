@@ -8,6 +8,8 @@ export const HomeBody = defineBody({
 	mass: HOME_MU / GRAVITATIONAL_CONSTANT,
 	radius: km(600),
 	rotationPeriod: 21_600,
+	// The system's calendar (ADR 0141): days of this planet; years once it orbits a Sun (plan 122).
+	calendar: { kind: 'fictional', home: 'stock.home' },
 	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
 	terrain: { kind: 'hills' }
 });

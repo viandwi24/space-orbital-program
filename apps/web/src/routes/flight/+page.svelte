@@ -543,6 +543,7 @@
 					warp={hud.warp}
 					usable={warpUsable}
 					met={model?.met ?? 0}
+					date={model?.date ?? ''}
 					onslower={() => flight?.stepWarp(-1)}
 					onfaster={() => flight?.stepWarp(1)}
 				/>

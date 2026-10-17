@@ -33,6 +33,9 @@ export {
 	projectBalances,
 	recoveryFactor
 } from '@orbital/core';
+// Calendars (plan 081, ADR 0141): a system pack's tests check the date its root body's calendar shows.
+export { calendarOf, formatDate, epochFromUtc } from '@orbital/core';
+export type { Calendar, CalendarDate, CalendarSpec, Epoch } from '@orbital/core';
 
 // Units and ids (SI helpers, validated brands).
 export {

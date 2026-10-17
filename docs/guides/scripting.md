@@ -71,6 +71,7 @@ The bracket next to the caret and its partner are highlighted. Under the editor 
 | `nextTick()` | resolves on the next tick; use it in every loop |
 | `waitUntil(fn)` | polls `fn` every tick until it returns truthy |
 | `time()` | simulation time, s (same as `ship.t`) |
+| `date(t?)` | `{ text, julianDate }`: the game date at simulation time `t` (default: now) in the world's calendar, e.g. `"Day 3, 04:12:09"` in the stock system or `"2026-10-17 06:01:30.000 UTC"` in a real-calendar system (plan 081). The host formats it; the sandbox's own `Date` still has no clock. |
 | `print(...)` | append a line to the panel log (strings as is, other values as JSON) |
 
 Invalid arguments throw inside the script (`RangeError`, `TypeError`) and issue nothing. A repeated identical throttle, attitude or SAS mode is not sent twice. Standard JavaScript built-ins are available (`Math`, `JSON`, `Date`, `Promise`, typed arrays, ...); `Math.random` is seeded and repeatable, and `Date` reads the **simulation** clock: `Date.now()` and `new Date()` are simulation seconds since the start times 1000, so a script behaves the same on every run (`new Date(2000, 0, 1)` and the other forms with arguments work as usual). There is no `fetch`, `window`, `document`, `process`, `console` or timers (`setTimeout`): use `wait`.

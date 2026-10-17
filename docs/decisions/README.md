@@ -132,5 +132,6 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0112 | [Roadmap state lives in docs, one file per agent](0112-roadmap-state-per-agent-in-docs.md) | accepted | 2026-10-17 |
 | 0113 | [Economy core: the ledger in the save, part costs, scheduled charges and recovery](0113-economy-core-ledger-costs-charges-recovery.md) | accepted | 2026-10-17 |
 | 0140 | [Refs tokens: glass that keeps text readable, UI scale through rem, legacy names as aliases](0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) | accepted | 2026-10-17 |
+| 0141 | [The calendar lives on the root body, the epoch counts SI days from J2000, a fictional year needs an orbit](0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) | accepted | 2026-10-17 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |

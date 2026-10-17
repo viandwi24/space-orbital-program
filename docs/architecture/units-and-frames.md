@@ -47,7 +47,8 @@ Refinements of the frame convention above, as implemented in `packages/kepler`:
 
 ## Time
 
-- Simulation time `t` is seconds since epoch (float64).
+- Simulation time `t` is seconds since the world's start (float64). The world's **epoch** (`WorldInfo.epoch`, `packages/core/src/calendar.ts`, ADRs 0103 and 0141) says which instant `t = 0` is: whole SI days plus a fraction from J2000.0 (2000-01-01 12:00:00 TT, JD 2451545.0) on the system's time scale (TT for a Gregorian system, plain SI seconds for a fictional one). Conversions carry (days, seconds) and normalise; never add `t` to a Julian date in one float.
+- Calendars: the root body's `calendar` is `gregorian-utc` (UTC through the IERS leap-second table at the display edge, `research/time-scales.md`) or `fictional` from a home body (its solar day; its orbital period as the year, none while it orbits nothing). The sim never reads a clock; the page (HUD date) and the script host (`date()`) format dates.
 - Fixed step `dt = 0.02 s` (50 Hz) in flight mode. On rails, propagation is analytic and `dt` may be large (time warp).
 - No wall-clock access inside `sim`.
 
