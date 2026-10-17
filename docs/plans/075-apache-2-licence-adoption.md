@@ -1,8 +1,8 @@
 ---
 id: 075
 title: "Apache-2.0: package metadata, credits and the mod manifest licence field"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: []
 phase: 4
 created: 2026-10-17
@@ -19,24 +19,25 @@ The licence decision of ADR 0106 is visible everywhere it should be: every works
 
 - ADRs: 0106
 - The root `LICENSE` and the README Licence section were added with ADR 0106 (2026-10-17).
-- Read: `apps/web/src/lib/public/credits.ts` and its test (asserts "to be decided" today), ADR 0057 (manifest), `docs/research/licence.md`.
+- Read: `apps/web/src/lib/public/credits.ts` and its test (the `credits` block of `apps/web/src/lib/public/roadmap.test.ts`, which asserts "to be decided" today), `apps/web/src/routes/credits/+page.svelte`, `modManifestSchema` in `packages/core/src/mods.ts` (ADR 0057), the installed list and trust prompt in `apps/web/src/routes/mods/+page.svelte`, `docs/research/licence.md`.
 
 ## Scope
 
 **In:**
 - `"license": "Apache-2.0"` in the root and every workspace `package.json` (`packages/*`, `mods/stock`, `apps/web`, `examples/*`, `tools/*` if they have one).
-- `GAME_LICENCE` in `credits.ts` set to Apache-2.0 with a link to `LICENSE`; the credits test updated to assert it.
+- `GAME_LICENCE` in `credits.ts` set to `Apache-2.0`, shown on the Credits page as a link to the licence text (the static site does not serve the repository's `LICENSE` file, so the link goes to https://www.apache.org/licenses/LICENSE-2.0). The credits test moves to its own file `credits.test.ts` and asserts it.
+- Font credits carry their copyright line (OFL 1.1 condition 2: the notice and licence must accompany the fonts; the Credits page that ships with them is where a player sees them).
 - README status line (line 5) updated.
 - Dependency licence review: list which licences on the Credits page require attribution in a NOTICE (Apache-2.0 dependencies with NOTICE files, OFL fonts); add `NOTICE` only if required.
-- Mod manifest: optional `licence` (SPDX id) field, shown in the mod manager and the trust prompt (additive).
+- Mod manifest: optional `licence` field, an SPDX licence id or expression (`MIT`, `Apache-2.0`, `MIT OR Apache-2.0`, `LicenseRef-…`; at most 64 characters), shown in the mod manager's installed list and in the trust prompt ("not stated" when absent). Additive: `API_VERSION` patch bump. The sample mod states `"licence": "Apache-2.0"`.
 
 **Out:** per-file licence headers (ADR 0106 point 3: not required); a contributor licence agreement.
 
 ## Touches
 
 - **Size:** S
-- **Edits:** `package.json`, `packages/*/package.json`, `mods/stock/package.json`, `apps/web/package.json`, `examples`, `apps/web/src/lib/public/credits.ts`, `apps/web/src/routes/mods`, `packages/core/src/mods.ts`, `README.md`
-- **Shared contracts:** mod manifest schema (optional `licence` field; additive, API minor bump)
+- **Edits:** `package.json`, `packages/*/package.json`, `mods/stock/package.json`, `apps/web/package.json`, `tools/mod-build/package.json`, `examples` (package.json, `mod.json`), `apps/web/src/lib/public/credits.ts` and `credits.test.ts` (new; the credits block leaves `roadmap.test.ts`), `apps/web/src/lib/public/licences.test.ts` (new), `apps/web/src/routes/credits`, `apps/web/src/routes/mods`, `apps/web/src/lib/mods/format.ts`, `packages/core/src/mods.ts` and `packages/core/test/mods.test.ts`, `packages/core/src/version.ts`, `README.md`, `docs/guides/writing-a-mod.md`, `docs/research/licence.md`
+- **Shared contracts:** mod manifest schema (optional `licence` field; additive, `API_VERSION` patch bump)
 
 ## Design notes
 
@@ -44,16 +45,18 @@ Keep the SPDX id as the single source; the Credits page and the mod manager rend
 
 ## Steps
 
-1. Add the `license` field to every package.json; run `bun install` to confirm the lockfile is unaffected.
-2. Update `credits.ts`, its test and the README status line.
-3. Review dependency licences, decide NOTICE, record in `docs/research/licence.md`.
-4. Add the optional manifest field with a schema test and mod manager display.
+1. Add the `license` field to every workspace package.json (root, `packages/*`, `apps/web`, `mods/stock`, `examples/mod-sample`, `tools/mod-build`) and the test that reads them; run `bun install` and confirm `bun.lock` is unchanged.
+2. `credits.ts` (game licence, font copyright lines), the Credits page, `credits.test.ts`, the README status line.
+3. Dependency review for NOTICE (Apache-2.0 dependencies that ship a NOTICE; OFL fonts), recorded in `docs/research/licence.md` with sources and dates; add `NOTICE` only if a dependency requires it.
+4. The optional manifest `licence` field: schema, `API_VERSION`, core test, the mod manager (installed list and trust prompt) with a vitest test, the sample's `mod.json`, the guide.
 
 ## Acceptance criteria
 
-- [ ] A test in `tools/` or `apps/web` reads every workspace `package.json` and asserts `license === "Apache-2.0"`.
-- [ ] `credits.test.ts` asserts `GAME_LICENCE` is "Apache-2.0" (the old "to be decided" assertion is gone).
-- [ ] `packages/core` schema test: a manifest with `licence: "MIT"` loads and one without it loads; the mod manager shows the field (vitest).
+- [ ] `bunx vitest run src/lib/public/licences.test.ts` (apps/web): the test expands the root `workspaces` globs, reads the root and every workspace `package.json`, and asserts `license === "Apache-2.0"` for each (and that it found at least 11 packages).
+- [ ] `bunx vitest run src/lib/public/credits.test.ts`: `GAME_LICENCE` is `"Apache-2.0"`, every OFL font credit has a copyright line, and no "to be decided" text is left (`grep -ri "to be decided" apps/web/src README.md` finds nothing about the licence).
+- [ ] `bun test packages/core/test/mods.test.ts`: a manifest with `licence: "MIT"` parses and keeps the field, one without it parses, and one with `licence: "not a licence!"` is refused with a message naming the field.
+- [ ] `bunx vitest run src/lib/mods`: the installed list and the trust prompt text show the stated licence and "not stated" without one (format helper test).
+- [ ] `bun.lock` unchanged by step 1 (`git diff --exit-code origin/main -- bun.lock`).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
@@ -67,3 +70,4 @@ Keep the SPDX id as the single source; the Credits page and the mod manager rend
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0106).
+- 2026-10-17 — Refined and claimed by Agent 3. The credits test moves to its own `credits.test.ts`, as the criterion names it. The licence link goes to apache.org, because the static build does not serve `LICENSE`. Font copyright lines are added for OFL condition 2. The manifest field accepts SPDX expressions. `API_VERSION`: patch bump from `main`'s value; 079 (`ready/079`) also bumps it, so whichever merges second takes `main` + 1 (roadmap §3.6). 075 and 079 both edit `apps/web/src/routes/mods/+page.svelte` in different blocks; I rebase whichever merges second.
