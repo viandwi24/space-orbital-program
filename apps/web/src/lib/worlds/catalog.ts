@@ -5,6 +5,7 @@
 import {
 	calendarOf,
 	loadPlugins,
+	type AchievementDefinition,
 	type BodyDefinition,
 	type Calendar,
 	type SaveMod,
@@ -22,6 +23,8 @@ export interface WorldCatalog extends RuleCatalog {
 	mods: SaveMod[];
 	/** Quick-start sites (plan 092, ADR 0177). */
 	siteTemplates: readonly SiteTemplateDefinition[];
+	/** Achievements of stock and the enabled mods (plan 102, ADR 0147). */
+	achievements: readonly AchievementDefinition[];
 }
 
 export function loadWorldCatalog(): WorldCatalog {
@@ -40,6 +43,7 @@ export function loadWorldCatalog(): WorldCatalog {
 			variants: ['default']
 		},
 		mods: plugins.map((p) => ({ id: p.meta.id, version: p.meta.version })),
-		siteTemplates: registries.siteTemplates.list()
+		siteTemplates: registries.siteTemplates.list(),
+		achievements: registries.achievements.list()
 	};
 }
