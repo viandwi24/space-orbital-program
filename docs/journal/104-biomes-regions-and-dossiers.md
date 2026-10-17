@@ -10,7 +10,7 @@
 | --- | --- |
 | `packages/core/src/regions.ts` (new) | `regionAt` (biomes at the shader's warped coordinates, seeded cells, latitude bands), `regionsOf`, `regionMultiplier`, `cellPoints` |
 | `packages/core/src/dossier.ts` (new) | `DossierEntryDefinition`, schema, facts, `dossierOf` |
-| `packages/core` | body `regions` schema; situation `regional`; registry `dossierEntries`, `ctx.dossierEntries`, report kind `dossier-entry`; `parseSubjectId`; `VesselSnapshot.science.region`; `API_VERSION` 0.1.44 |
+| `packages/core` | body `regions` schema; situation `regional`; registry `dossierEntries`, `ctx.dossierEntries`, report kind `dossier-entry`; `parseSubjectId`; `VesselSnapshot.science.region`; `API_VERSION` 0.1.45 (102 took 0.1.44) |
 | `packages/sim/src/science.ts` | `regionUnder`; results in regional situations get the region and its multiplier; the snapshot's region |
 | `mods/stock` | home biomes (desert, rock, snow ×1.5), moon cells (highlands, maria ×1.2, crater fields ×1.5), five situations regional, five dossier entries |
 | `apps/web` | `BodyCard.svelte` in the Target panel when the target is a body; `targetDossier` in the HUD controller; science content in `loadContent` |

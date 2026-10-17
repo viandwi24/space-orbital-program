@@ -247,7 +247,7 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **Your own module** can call `ctx.vessel.situation()` and `ctx.vessel.science.result(id)`, which fixes the value now. It reports itself through `describe().experiment` and credits held results in `onRecover` with `ctx.vessel.science.credit(subject, value)`.
 - **Situations and bodies.** Stock situations are `stock.landed`, `stock.splashed`, `stock.flying-low`, `stock.flying-high`, `stock.space-low` and `stock.space-high`. Set a body's `science: { flyingHigh, spaceHigh, multiplier }` to move the thresholds. A new situation (`defineSituation`, a pure `matches(view)`) slots in by `order`.
 
-### Regions and dossiers (API 0.1.44, plan 104, ADR 0180)
+### Regions and dossiers (API 0.1.45, plan 104, ADR 0180)
 
 - **Regions on your body.** Use latitude bands, `regions: { kind: 'bands', bands: [{ id: 'tropics', label: 'Tropics', from: -0.4, to: 0.4 }, { id: 'poles', label: 'Poles', from: 0.4, to: 1.5708, multiplier: 2 }] }`, or seeded cells, `regions: { kind: 'cells', seed: 3, regions: [{ id: 'plains', label: 'Plains' }, { id: 'ridges', label: 'Ridges', multiplier: 1.5 }] }`. A body with the home planet's `hills` terrain can use `{ kind: 'biomes' }`, the biomes its ground is drawn with. Region ids are lower-case words joined by `-`.
 - **Which results depend on the region.** A situation with `regional: true` (all stock ones except `stock.space-high`) gives each region its own subject, so a result there is worth its region's multiplier.
