@@ -50,20 +50,21 @@ Budget: the Mission Center at 1920x1080 with 50 vessels draws within the map vie
 
 ## Acceptance criteria
 
-- [ ] vitest: Upcoming lists a maneuver node and an SOI change in time order; warp-to dispatches `warp-to` with the event time (a node: its time minus the maneuver lead).
-- [ ] vitest: Fly on the save's focus vessel writes an autosave and opens the flight with that save (the vessel in focus); another vessel's card says why it cannot be flown.
-- [ ] Renderer test: the system scope anchors at the root body and frames the moon's orbit; the highlight colours the chosen vessel's orbit.
-- [ ] Journal: frame time with 50 vessels against the map view (M5), screenshots with the self-review against refs Mission Center.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: Upcoming lists a maneuver node and an SOI change in time order; warp-to dispatches `warp-to` with the event time (a node: its time minus the maneuver lead).
+- [x] vitest: Fly on the save's focus vessel writes an autosave and opens the flight with that save (the vessel in focus); another vessel's card says why it cannot be flown.
+- [x] Renderer test: the system scope anchors at the root body and frames the moon's orbit; the highlight colours the chosen vessel's orbit.
+- [x] Journal: frame time with 50 vessels against the map view (M5), screenshots with the self-review against refs Mission Center.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/113-mission-center.md` written.
-- [ ] `architecture/overview.md` (Mission Center).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/113-mission-center.md` written.
+- [x] `architecture/overview.md` (Mission Center).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0107).
 - 2026-10-18 — Claimed by Agent 1 and refined: ADR 0118 (own sim from the world's save, system scope, Fly only for the save's focus vessel); the Fly criterion narrowed to that; a renderer criterion added; Touches list the flight route, the save controller and the Space Center model.
+- 2026-10-18 — Done (Agent 1). Renderer scope, highlight and layer; the route, model and overlay; the map switch, Fly through an autosave, the Space Center's building; labels cluster a fleet. M5 (1920 x 1080, DPR 2, `high`): Mission Center with 50 vessels 8.97 ms per frame (`renderer.debug.benchmark`), with 2 vessels 9.18 ms, the flight map view on the same save 16.88 ms. Journal [113](../journal/113-mission-center.md). Also fixed here: the world capsule's home goes to the Space Center (091 scope).

@@ -23,3 +23,4 @@ Plan 113 shows the whole system with every tracked object, the upcoming events w
 - Plan 115 adds relays and the link budget to the same Network layer; plan 099 adds contract deadlines to Upcoming; 096 adds construction done.
 - Changing the vessel in focus waits for per-vessel designs (follow-up draft).
 - The Mission Center costs a sim start each time it opens (about the flight's load time).
+- At the system scope a fleet in low orbit is a few pixels across: vessels within 24 px of each other share one "N vessels" label (the page's `clusterLabels`), and zooming in splits it.

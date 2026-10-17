@@ -40,6 +40,10 @@ Lakes, rivers and shores (plan 038, ADR 0072): `core/terrain.ts` carves lake bas
 
 `/space-center` runs a sim Worker with no vessel and the renderer in site mode: `createRenderer({ siteBuildings: true })` draws the site's buildings from a list (`setSiteBuildings`, one generator per `visual.generator`, merged per material) instead of the hard-coded layout, and `setSiteView(true)` puts a virtual vessel at the site centre so the floating origin, camera target and ground clamp work as on the pad. `pickSite` and `projectSite` convert between CSS pixels and site metres (east, north) for build mode and the labels. The page checks a ghost with core's `canPlace` (the sim's rule for `place-building`) and writes the sites into the world record (`Worlds.setSites`) so new flights start from them. Entering a world opens this screen; the Hangar's label opens the VAB.
 
+### Mission Center (plan 113, ADR 0118)
+
+`/mission-center` runs its own sim Worker from the world's save (`?load=`, else the newest save, else the start info) with the renderer in map view and `setMapScope('system')`: the root body in the middle, framed by the moons' orbits. `setMapHighlight` marks the selected vessel or body, `setMapLayers` hides the orbit lines; labels, clusters of close vessels and the comms links are HTML and SVG placed with `Renderer.project`. Upcoming comes from the vessels' maneuver nodes and the trajectory provider's next sphere change; warp-to acts on this sim. Fly writes the sim as the world's autosave and opens `/flight?load=` with it; the flight's map view has the `Map | Mission Center` switch that does the reverse.
+
 ## Layers
 
 | Layer | Packages | Environment | Knows about |
