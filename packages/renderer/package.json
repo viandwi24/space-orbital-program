@@ -5,7 +5,8 @@
 	"description": "Three.js renderer: floating origin, log depth, vessel/body meshes, map view. Reads sim state only.",
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./presets": "./src/presets.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {

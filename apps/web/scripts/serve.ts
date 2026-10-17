@@ -7,7 +7,7 @@
  *
  *   bun scripts/serve.ts [port]          (after `bun run build`)
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import {
 	cacheControl,
@@ -37,16 +37,17 @@ const compressible = new Set(['.html', '.js', '.css', '.json', '.svg', '.wasm', 
 // The script sandbox's bootstrap is inlined into the iframe's srcdoc; the page policy must allow its hash.
 const bootstrap = readFileSync(join(root, 'sandbox/script-sandbox-frame-main.js'), 'utf8');
 const bootstrapHash = await sha256Source(bootstrap);
-const policyCache = new Map<string, string>();
+const policyCache = new Map<string, { mtime: number; policy: string }>();
 async function policyFor(file: string): Promise<string> {
-	let policy = policyCache.get(file);
-	if (policy === undefined) {
-		const hashes = await Promise.all(
-			inlineScripts(readFileSync(file, 'utf8')).map((s) => sha256Source(s))
-		);
-		policy = contentSecurityPolicy([...hashes, bootstrapHash]);
-		policyCache.set(file, policy);
-	}
+	// Keyed by modification time: a rebuild changes the start-up script and with it the hash.
+	const mtime = statSync(file).mtimeMs;
+	const hit = policyCache.get(file);
+	if (hit && hit.mtime === mtime) return hit.policy;
+	const hashes = await Promise.all(
+		inlineScripts(readFileSync(file, 'utf8')).map((s) => sha256Source(s))
+	);
+	const policy = contentSecurityPolicy([...hashes, bootstrapHash]);
+	policyCache.set(file, { mtime, policy });
 	return policy;
 }
 

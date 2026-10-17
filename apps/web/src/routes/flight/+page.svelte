@@ -272,6 +272,21 @@
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
 	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1, running));
+	// User Timing mark for the release measurements (plan 023): time from navigation start to the
+	// first HUD model, i.e. the vessel is on the pad and the player can act.
+	let booted = false;
+	let marked = false;
+	$effect(() => {
+		// `flight-booted`: the sim Worker has loaded the vessel (no GPU work needed to know that).
+		if (!booted && hud?.status === 'flying') {
+			booted = true;
+			performance.mark('orbital:flight-booted');
+		}
+		if (marked || model === null) return;
+		marked = true;
+		performance.mark('orbital:flight-playable');
+	});
+
 	// The camera draws the vessel in the middle of what the panels leave free: the instrument deck at
 	// the bottom no longer hides the lower half of the rocket (plan 023, journal 021).
 	let lastInsets = '';

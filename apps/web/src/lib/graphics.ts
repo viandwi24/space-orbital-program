@@ -4,12 +4,14 @@
  * else the device default from a quick capability probe. The settings screen (plan 023) calls
  * `saveGraphicsPreset` and `Flight.setGraphicsPreset`.
  */
+// The preset table has no Three.js in it: the main menu reads the saved choice through this subpath
+// without loading the renderer (plan 023, bundle budget).
 import {
 	parsePreset,
 	selectPreset,
 	type DeviceCapabilities,
 	type GraphicsPreset
-} from '@orbital/renderer';
+} from '@orbital/renderer/presets';
 
 const KEY = 'orbital.graphics';
 
