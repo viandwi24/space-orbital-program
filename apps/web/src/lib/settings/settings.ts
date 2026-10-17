@@ -1,7 +1,7 @@
 /**
- * Player settings that are not graphics (plan 023, ADR 0060; format 2 by plan 053, ADR 0061):
- * display units, the first-flight tutorial, key bindings, audio volumes and the touch-controls
- * choice, as one versioned, validated JSON value in localStorage. The graphics preset
+ * Player settings that are not graphics (plan 023, ADR 0060; format 2 by plan 053, ADR 0061; format 3
+ * by plan 086): display units, the first-flight tutorial, key bindings, audio volumes, the touch-controls
+ * choice and the interface (UI scale, high contrast), as one versioned, validated JSON value in localStorage. The graphics preset
  * and the automatic quality switch keep their own keys (`graphics.ts`, plan 019/039) so a profile
  * from an earlier build keeps its choices. Everything read from storage is parsed, never asserted.
  */
@@ -34,38 +34,57 @@ const audioSchema = z
 	})
 	.catch({ ...DEFAULT_AUDIO });
 
+/** The UI scale choices, as fractions of the default size (ADR 0107 point 5: 80 to 150 %). */
+export const UI_SCALES = [0.8, 0.9, 1, 1.1, 1.25, 1.5] as const;
+export const DEFAULT_INTERFACE = { scale: 1, highContrast: false } as const;
+/** The nearest offered scale, so a hand-edited value still lands on one the dialog shows. */
+export const nearestUiScale = (v: number): number =>
+	UI_SCALES.reduce((best, s) => (Math.abs(s - v) < Math.abs(best - v) ? s : best), 1);
+const interfaceSchema = z
+	.object({
+		scale: z.number().min(0.8).max(1.5).transform(nearestUiScale).catch(DEFAULT_INTERFACE.scale),
+		highContrast: z.boolean().catch(false)
+	})
+	.catch({ ...DEFAULT_INTERFACE });
+
 /** Format 2. The bindings are repaired after parsing (`repairBindings`), so here they are opaque. */
-const settingsV2 = z.object({
-	v: z.literal(2),
+const v2Fields = {
 	units: unitsSchema,
 	tutorial: tutorialSchema,
 	bindings: z.record(z.string(), z.unknown()).catch({}),
 	audio: audioSchema,
 	touch: z.enum(TOUCH_CHOICES).catch('auto')
-});
+};
+const settingsV2 = z.object({ v: z.literal(2), ...v2Fields });
+
+/** Format 3 (plan 086): format 2 plus the interface; format 2 migrates by taking its defaults. */
+const settingsV3 = z.object({ v: z.literal(3), ...v2Fields, interface: interfaceSchema });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
 const settingsV1 = z.object({ v: z.literal(1), units: unitsSchema, tutorial: tutorialSchema });
 
 export interface Settings {
-	v: 2;
+	v: 3;
 	units: 'metric' | 'imperial';
 	tutorial: { status: (typeof TUTORIAL_STATUS)[number]; step: number };
 	/** Only what the player changed (ADR 0061). */
 	bindings: Bindings;
 	audio: { master: number; effects: number; ui: number; muted: boolean };
 	touch: TouchChoice;
+	interface: { scale: number; highContrast: boolean };
 }
 export type TutorialProgress = Settings['tutorial'];
 export type AudioSettings = Settings['audio'];
+export type InterfaceSettings = Settings['interface'];
 
 export const defaultSettings = (): Settings => ({
-	v: 2,
+	v: 3,
 	units: 'metric',
 	tutorial: { status: 'pending', step: 0 },
 	bindings: {},
 	audio: { ...DEFAULT_AUDIO },
-	touch: 'auto'
+	touch: 'auto',
+	interface: { ...DEFAULT_INTERFACE }
 });
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */
@@ -77,8 +96,16 @@ export function parseSettings(text: string | null): Settings {
 	} catch {
 		return defaultSettings();
 	}
+	const v3 = settingsV3.safeParse(raw);
+	if (v3.success) return { ...v3.data, bindings: repairBindings(v3.data.bindings) };
 	const v2 = settingsV2.safeParse(raw);
-	if (v2.success) return { ...v2.data, bindings: repairBindings(v2.data.bindings) };
+	if (v2.success)
+		return {
+			...v2.data,
+			v: 3,
+			bindings: repairBindings(v2.data.bindings),
+			interface: { ...DEFAULT_INTERFACE }
+		};
 	const v1 = settingsV1.safeParse(raw);
 	return v1.success
 		? { ...defaultSettings(), units: v1.data.units, tutorial: v1.data.tutorial }

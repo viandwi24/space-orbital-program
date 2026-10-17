@@ -50,32 +50,35 @@
 </div>
 
 <style>
+	/* Refs segmented control: a pill track with padding 4; the chosen item is the selected white. */
 	.seg {
 		display: inline-flex;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
-		overflow: hidden;
+		gap: 0.125rem;
+		padding: 0.25rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-button);
 	}
 	button {
-		min-height: 32px;
-		padding: 0 var(--s-3);
-		font-size: var(--t-sm);
-		font-weight: 500;
-		color: var(--text-dim);
-		background: var(--panel-raised);
+		min-height: 2.125rem;
+		padding: 0 0.875rem;
+		font-size: var(--t-small);
+		font-weight: 700;
+		color: var(--text-muted);
+		background: transparent;
 		border: 0;
-		border-right: 1px solid var(--line);
+		border-radius: var(--radius-pill);
 	}
-	button:last-child {
-		border-right: 0;
+	@media (pointer: coarse) {
+		button {
+			min-height: var(--touch-min);
+		}
 	}
 	button:hover {
-		color: var(--text);
+		color: var(--text-primary);
 	}
 	button.on {
-		color: var(--c-ink);
-		background: var(--c-accent);
-		font-weight: 600;
+		color: var(--selected-fg);
+		background: var(--selected-bg);
 	}
 	button:focus-visible {
 		outline-offset: -2px;

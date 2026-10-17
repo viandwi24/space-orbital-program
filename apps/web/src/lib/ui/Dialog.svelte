@@ -33,19 +33,19 @@
 		max-height: calc(100dvh - 48px);
 		overflow: auto;
 		padding: var(--s-5);
-		color: var(--text);
-		background: var(--panel-solid);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
+		color: var(--text-body);
+		background: var(--surface-dialog);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-panel);
 		box-shadow: var(--shadow-overlay);
 	}
 	dialog::backdrop {
-		background: rgb(2 5 9 / 0.62);
-		backdrop-filter: blur(3px);
+		background: var(--surface-scrim);
 	}
 	h2 {
 		margin: 0 0 var(--s-4);
 		font-size: var(--t-lg);
 		font-weight: 600;
+		color: var(--text-primary);
 	}
 </style>

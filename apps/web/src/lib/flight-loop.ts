@@ -49,6 +49,7 @@ import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
 import { WARP_STEPS } from './warp';
+import { setGlassFallback } from './ui/root-theme';
 import {
 	createHudController,
 	type FrameData,
@@ -490,10 +491,19 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	// --- render loop -------------------------------------------------------------------------
+	/** Forced by the debug hook for the blur measurement (plan 086); null follows the preset. */
+	let glassOverride: 'blur' | 'solid' | null = null;
+	/** Panels drop the glass blur on `low`, which the governor's lowest rungs use too (ADR 0140). */
+	function syncGlass(): void {
+		const solid = glassOverride ? glassOverride === 'solid' : renderer?.preset === 'low';
+		setGlassFallback(document.documentElement, solid);
+	}
+
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
 	function applyLevel(level: GovernorLevel, announce: boolean): void {
 		if (!renderer) return;
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
+		syncGlass();
 		renderer.setRenderScale(level.scale);
 		renderer.setPlanetScale(level.planetScale);
 		if (announce) {
@@ -674,6 +684,7 @@ export function startFlight(options: FlightOptions): Flight {
 			});
 			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
+			syncGlass();
 			// compile this preset's programs and the other presets' planet pass off the main thread
 			void renderer.precompile(options.onGraphics);
 			resize();
@@ -744,6 +755,27 @@ export function startFlight(options: FlightOptions): Flight {
 			audioCost: () => ({ ...director.cost }),
 			snapshot: () => snap,
 			send: (c: Command) => client.dispatch(c),
+			// Blur cost (plan 086): force the glass on or off (`null` follows the preset), then sample
+			// whole-page frame intervals, compositor included (the renderer's `benchmark` is WebGL only).
+			glass: (mode: 'blur' | 'solid' | null) => {
+				glassOverride = mode;
+				syncGlass();
+			},
+			frameIntervals: (frames = 300) =>
+				new Promise<{ meanMs: number; p50Ms: number; p95Ms: number }>((resolve) => {
+					const out: number[] = [];
+					let last = performance.now();
+					const tick = (now: number): void => {
+						out.push(now - last);
+						last = now;
+						if (out.length < frames) return void requestAnimationFrame(tick);
+						const sorted = out.slice(1).sort((a, b) => a - b);
+						const at = (q: number): number => sorted[Math.floor(q * (sorted.length - 1))]!;
+						const meanMs = sorted.reduce((a, b) => a + b, 0) / sorted.length;
+						resolve({ meanMs, p50Ms: at(0.5), p95Ms: at(0.95) });
+					};
+					requestAnimationFrame(tick);
+				}),
 			screenshot: (lines: string[]) => {
 				renderer?.render();
 				const out = document.createElement('canvas');
@@ -823,7 +855,10 @@ export function startFlight(options: FlightOptions): Flight {
 			const preset = choice === 'auto' ? resolvePreset(null, probeCapabilities()) : choice;
 			// the player's choice is the governor's ceiling and starts it again at full resolution
 			if (governor) applyLevel(governor.setCeiling(preset), false);
-			else renderer?.setPreset(preset);
+			else {
+				renderer?.setPreset(preset);
+				syncGlass();
+			}
 		},
 		get autoQuality() {
 			return autoQuality;
@@ -890,6 +925,7 @@ export function startFlight(options: FlightOptions): Flight {
 			canvas.removeEventListener('pointermove', onPointerMove);
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();
+			setGlassFallback(document.documentElement, false);
 			options.sandbox?.close();
 			client.dispose();
 		}
