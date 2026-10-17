@@ -1,12 +1,12 @@
 ---
 id: 108
 title: "Astronaut Complex and the crew panel"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [106, 088, 091, 094]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 108 — Astronaut Complex and the crew panel
@@ -64,3 +64,4 @@ Stats shown are the model's real values; unknowns are `[—]`.
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0100, 0107).
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch screen seats of plan 094 become active here.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
