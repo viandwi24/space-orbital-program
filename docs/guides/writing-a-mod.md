@@ -96,7 +96,7 @@ export const Stock = definePlugin({
 // in another mod:  definePlugin({ depends: [Stock], setup(ctx) { ctx.stock.engineOutput(...) } })
 ```
 
-### Part actions (API 0.1.33, plan 110, ADR 0174)
+### Part actions (API 0.1.34, plan 110, ADR 0174)
 
 Give the player a switch, slider, choice or button for your module, with no UI code: return `actions` from `describe(config, state)`.
 

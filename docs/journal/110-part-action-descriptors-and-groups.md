@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/action-groups.ts` (new) | `PartActionDescriptor`, `ActionGroupDefinition`, `groupState`, `actionArgumentProblem`, `DesignActionGroup`, `customGroupId`; schemas in `schemas.ts` (`ModuleInfo.actions`, `partActionDescriptorSchema`, `actionGroupDefinitionSchema`) |
-| `packages/core` | registry `actionGroups` (kind `action-group`), `ctx.actionGroups`, command `action-group`, `VesselSnapshot.actions`, design `groups` and their validation; `API_VERSION` 0.1.33 |
+| `packages/core` | registry `actionGroups` (kind `action-group`), `ctx.actionGroups`, command `action-group`, `VesselSnapshot.actions`, design `groups` and their validation; `API_VERSION` 0.1.34 (084 took 0.1.33) |
 | `packages/sim/src/actions.ts` (new) | `partActions`, `actionsSnapshot`, `applyActionGroup`; wired into `commands.ts`, `snapshot.ts`, `vessel.ts` (custom groups on the vessel) |
 | `mods/stock` | descriptors for engine, reaction wheel, landing legs and decoupler; actions `setActive` and `setDeployed`; nine groups |
 | `apps/web/src/lib` | `customGroup1..10` (Numpad 1–9, 0) with a help row; the flight key switch sends `action-group custom.<n>` |
