@@ -260,7 +260,8 @@ describe('registration and report', () => {
 			'dossier-entry': [],
 			category: [],
 			achievement: [],
-			panel: []
+			panel: [],
+			scenario: []
 		});
 	});
 

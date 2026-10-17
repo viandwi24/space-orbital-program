@@ -133,6 +133,13 @@ function finish(
 			source: { ...inst.source },
 			time: core.t
 		});
+		// a story line flows on (plan 100, ADR 0151 point 1): its next missions start, unbound
+		if (inst.source.kind === 'mission' && def && 'next' in def) {
+			for (const next of def.next ?? []) {
+				const done = s.finished.some((f) => f.source.id === next && f.status === 'done');
+				if (!done) startObjective(core, { kind: 'mission', id: next }, undefined);
+			}
+		}
 	} else {
 		pay(core, def && 'penalty' in def ? def.penalty : undefined, inst.source.id, inst.id);
 		core.events.emit('objective:failed', {
