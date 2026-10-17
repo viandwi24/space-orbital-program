@@ -103,3 +103,6 @@ Save-format versions (`SimSave.formatVersion`) and other single-sequence numbers
 | Number | What | Plan | Agent | Date |
 |---|---|---|---|---|
 | save format 5 | world container (ADR 0110) | 077 | A1 | 2026-10-17, merged |
+| save format 6 | Sun as root: the old root becomes the Sun's child (ADR 0103) | 122 | A1 | 2026-10-17, reserved |
+| save format 7 | comms tier 3: pinned routes and policies | 117 | A3 | 2026-10-17, reserved |
+| save format 8 | comms tier 4: data queues and stored bundles | 119 | A3 | 2026-10-17, reserved |
