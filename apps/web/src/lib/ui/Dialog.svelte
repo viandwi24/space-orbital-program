@@ -30,6 +30,7 @@
 		min-width: min(420px, calc(100vw - 32px));
 		max-width: min(640px, calc(100vw - 32px));
 		max-height: calc(100vh - 48px);
+		max-height: calc(100dvh - 48px);
 		overflow: auto;
 		padding: var(--s-5);
 		color: var(--text);

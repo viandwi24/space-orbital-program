@@ -21,6 +21,12 @@
 	import WarpControl from '../../lib/hud/WarpControl.svelte';
 	import TouchControls from '../../lib/hud/TouchControls.svelte';
 	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
+	import {
+		aboveDeckHeight,
+		DECK_FALLBACK,
+		scriptPanelWidth,
+		throttleAnchor
+	} from '../../lib/layout/layout-model';
 	import { touchControlsOn } from '../../lib/touch/touch-model';
 	import Button from '../../lib/ui/Button.svelte';
 	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
@@ -325,11 +331,20 @@
 	// The camera draws the vessel in the middle of what the panels leave free: the instrument deck at
 	// the bottom no longer hides the lower half of the rocket (plan 023, journal 021).
 	let lastInsets = '';
+	// The measured height of the instrument deck (plan 055): columns above it limit themselves to
+	// what it leaves, and the touch throttle centres in the same space (`layout-model.ts`).
+	let deckHeight = $state(DECK_FALLBACK);
+	let leftStackBottom = $state(0);
+	let viewport = $state({ width: 1440, height: 900 });
 	function updateInsets(): void {
+		viewport = { width: innerWidth, height: innerHeight };
 		const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
 		const deck = box('.bc .deck');
 		const right = box('.tr');
 		const bar = box('.tc header');
+		if (deck && deck.height > 0) deckHeight = Math.round(deck.height);
+		const left = box('.tl');
+		leftStackBottom = left ? Math.round(left.bottom) : 0;
 		const top = bar ? bar.bottom + 8 : 0;
 		const bottom = deck ? Math.max(0, innerHeight - deck.top + 8) : 0;
 		const side = right && right.width > 0 ? Math.max(0, innerWidth - right.left + 8) : 0;
@@ -341,6 +356,8 @@
 	$effect(() => {
 		void model?.name;
 		void tall;
+		void scriptOpen;
+		void tutorialStep;
 		void hud?.status;
 		queueMicrotask(updateInsets);
 	});
@@ -429,7 +446,12 @@
 			</div>
 		{/if}
 
-		<div class="ui">
+		<div
+			class="ui"
+			style:--deck-h="{deckHeight}px"
+			style:--above-deck="{aboveDeckHeight(viewport.height, deckHeight)}px"
+			style:--script-w="{scriptPanelWidth(viewport.width)}px"
+		>
 			<div class="tl">
 				<AppBar
 					map={hud.map}
@@ -537,6 +559,7 @@
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}
 				<TouchControls
+					anchor={throttleAnchor(viewport, deckHeight, scriptOpen, leftStackBottom)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
 					onattitude={(a) => flight?.setTouchAttitude(a)}
@@ -616,16 +639,17 @@
 		pointer-events: auto;
 	}
 	.tl {
-		top: var(--s-3);
-		left: var(--s-3);
+		top: calc(var(--s-3) + var(--safe-top));
+		left: calc(var(--s-3) + var(--safe-left));
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--s-2);
-		max-height: calc(100% - 200px);
+		/* The script panel and the guide scroll above the instrument deck, never under it (plan 055). */
+		max-height: var(--above-deck, calc(100% - 200px));
 	}
 	.script {
-		width: min(420px, 46vw);
+		width: var(--script-w, min(420px, 46vw));
 		overflow: auto;
 	}
 	.savenote {
@@ -646,7 +670,7 @@
 		border-color: var(--c-danger);
 	}
 	.tc {
-		top: var(--s-3);
+		top: calc(var(--s-3) + var(--safe-top));
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
@@ -656,31 +680,38 @@
 		pointer-events: none;
 	}
 	.tr {
-		top: var(--s-3);
-		right: var(--s-3);
+		top: calc(var(--s-3) + var(--safe-top));
+		right: calc(var(--s-3) + var(--safe-right));
 		width: 264px;
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
 		max-height: calc(100% - 24px);
 		overflow: auto;
+		overscroll-behavior: contain;
 	}
-	/* Below this width the instrument deck reaches under the right column (plan 035 added a target
-	   card to it): the column scrolls above the deck instead of sliding under it. */
+	/* Below this width the instrument deck reaches under the side columns (plan 035 added a target
+	   card to it): the right column scrolls above the measured deck, and the maneuver and orbit
+	   strip stand on top of it, instead of sliding under it (plan 055). */
 	@media (max-width: 1279px) {
 		.tr {
-			max-height: calc(100% - 24px - 290px);
+			max-height: var(--above-deck, calc(100% - 24px - 290px));
 		}
 	}
 	.bl {
-		bottom: var(--s-3);
-		left: var(--s-3);
+		bottom: calc(var(--s-3) + var(--safe-bottom));
+		left: calc(var(--s-3) + var(--safe-left));
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
 	}
+	@media (max-width: 1279px) {
+		.bl {
+			bottom: calc(var(--deck-h, 262px) + var(--s-3) * 2 + var(--safe-bottom));
+		}
+	}
 	.bc {
-		bottom: var(--s-3);
+		bottom: calc(var(--s-3) + var(--safe-bottom));
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
@@ -724,8 +755,8 @@
 		font-weight: 500;
 	}
 	.dev {
-		bottom: var(--s-3);
-		right: var(--s-3);
+		bottom: calc(var(--s-3) + var(--safe-bottom));
+		right: calc(var(--s-3) + var(--safe-right));
 		margin: 0;
 		padding: var(--s-1) var(--s-2);
 		font-size: var(--t-xs);

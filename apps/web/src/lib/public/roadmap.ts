@@ -16,10 +16,10 @@ export interface RoadmapItem {
 
 export const ROADMAP: readonly RoadmapItem[] = [
 	{
-		plan: '055',
-		title: 'Phones and real-device testing',
+		plan: '073',
+		title: 'Phones',
 		gives:
-			'A compact layout for phones, and runs on real tablets and phones. Tablets in landscape work today with on-screen controls; phones show a notice.',
+			'A compact flight screen and hangar for phones, once the game has been tried on real phones. Tablets in landscape work today with on-screen controls; phones show a notice that says what to do.',
 		area: 'Platform'
 	},
 	{

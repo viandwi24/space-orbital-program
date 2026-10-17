@@ -51,7 +51,8 @@ class FakeNode {
 }
 class FakeContext {
 	static created = 0;
-	state: 'suspended' | 'running' | 'closed' = 'suspended';
+	state: 'suspended' | 'running' | 'closed' | 'interrupted' = 'suspended';
+	onstatechange: (() => void) | null = null;
 	currentTime = 0;
 	sampleRate = 8000;
 	destination = new FakeNode('destination', this);
@@ -190,6 +191,41 @@ describe('the gesture gate', () => {
 			publish: () => {}
 		};
 		expect(createAudioEngine(env).state).toBe('locked');
+	});
+});
+
+describe('an interruption (a call, Siri, the lock screen on mobile Safari)', () => {
+	it('shows as suspended in the page state and the next gesture resumes it', async () => {
+		const r = rig();
+		r.gesture();
+		await tick();
+		expect(r.engine.state).toBe('running');
+		// the system takes the audio: the context reports it through statechange
+		r.ctx.state = 'interrupted';
+		r.ctx.onstatechange?.();
+		expect(r.engine.state).toBe('suspended');
+		expect(r.states.at(-1)).toBe('suspended');
+		expect(r.ctx.resumes).toBe(1);
+		r.gesture();
+		await tick();
+		expect(r.ctx.resumes).toBe(2);
+		expect(r.engine.state).toBe('running');
+	});
+	it('does not try to resume a closed context, and waits while the page is hidden', async () => {
+		const r = rig();
+		r.gesture();
+		await tick();
+		r.hide();
+		await tick();
+		r.ctx.state = 'interrupted';
+		r.gesture();
+		expect(r.ctx.resumes).toBe(1);
+		r.show();
+		await tick();
+		expect(r.ctx.resumes).toBe(2);
+		r.ctx.state = 'closed';
+		r.gesture();
+		expect(r.ctx.resumes).toBe(2);
 	});
 });
 

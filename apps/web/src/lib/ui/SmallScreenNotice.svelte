@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { isSmallScreen, MIN_VIEWPORT } from '../touch/touch-model';
+	import { classifyScreen, smallScreenAdvice, type ScreenClass } from '../layout/layout-model';
 	import Button from './Button.svelte';
 
 	/**
 	 * A screen below 900 x 500 CSS px (a phone, a tablet in portrait) is not supported (plan 053,
-	 * ADR 0063): the game still loads, this says so once per session and offers to carry on.
+	 * ADR 0063, ADR 0091): the game still loads, this says what to do about it once per session and
+	 * offers to carry on. The wording follows the kind of screen (`layout-model.ts`).
 	 */
 	const KEY = 'orbital.small-screen-ok';
-	let small = $state(false);
+	let screen = $state<ScreenClass>('ok');
 	let dismissed = $state(false);
 
 	function remembered(): boolean {
@@ -29,19 +30,18 @@
 	onMount(() => {
 		dismissed = remembered();
 		const sync = (): void =>
-			void (small = isSmallScreen({ width: innerWidth, height: innerHeight }));
+			void (screen = classifyScreen({ width: innerWidth, height: innerHeight }));
 		sync();
 		addEventListener('resize', sync);
 		return () => removeEventListener('resize', sync);
 	});
 </script>
 
-{#if small && !dismissed}
-	<div class="notice" role="status" data-testid="small-screen-notice">
+{#if screen !== 'ok' && !dismissed}
+	<div class="notice" role="status" data-testid="small-screen-notice" data-screen={screen}>
 		<p>
 			<strong>Orbital is made for larger screens.</strong>
-			It needs a tablet in landscape or a computer, at least {MIN_VIEWPORT.width} × {MIN_VIEWPORT.height}
-			pixels. On this screen the game may be hard or impossible to use.
+			{smallScreenAdvice(screen)}
 		</p>
 		<Button onclick={dismiss} data-testid="small-screen-continue">Continue anyway</Button>
 	</div>
@@ -51,9 +51,9 @@
 	.notice {
 		position: fixed;
 		z-index: 60;
-		top: var(--s-3);
-		left: var(--s-3);
-		right: var(--s-3);
+		top: calc(var(--s-3) + var(--safe-top));
+		left: calc(var(--s-3) + var(--safe-left));
+		right: calc(var(--s-3) + var(--safe-right));
 		display: grid;
 		gap: var(--s-3);
 		padding: var(--s-4);

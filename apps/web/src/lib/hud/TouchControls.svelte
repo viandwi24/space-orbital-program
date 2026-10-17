@@ -10,12 +10,15 @@
 		throttle,
 		onthrottle,
 		onattitude,
-		onstage
+		onstage,
+		anchor
 	}: {
 		throttle: number;
 		onthrottle: (value: number) => void;
 		onattitude: (input: { pitch: number; yaw: number; roll: number }) => void;
 		onstage: () => void;
+		/** Left edge and vertical centre of the throttle, px: clear of the script panel and the deck (plan 055). */
+		anchor?: { left: number; centre: number };
 	} = $props();
 
 	let track: HTMLDivElement;
@@ -71,7 +74,13 @@
 </script>
 
 <div class="touch" data-testid="touch-controls" data-silent>
-	<div class="throttle" role="group" aria-label="Throttle">
+	<div
+		class="throttle"
+		role="group"
+		aria-label="Throttle"
+		style:left={anchor ? `calc(${anchor.left}px + var(--safe-left))` : undefined}
+		style:top={anchor ? `${anchor.centre}px` : undefined}
+	>
 		<button type="button" class="chip" onclick={() => onthrottle(1)} data-testid="touch-full"
 			>Full</button
 		>
@@ -151,7 +160,7 @@
 	}
 	.throttle {
 		position: absolute;
-		left: var(--s-2);
+		left: calc(var(--s-2) + var(--safe-left));
 		top: 50%;
 		transform: translateY(-50%);
 		display: flex;
@@ -211,8 +220,8 @@
 	}
 	.right {
 		position: absolute;
-		right: var(--s-2);
-		bottom: var(--s-2);
+		right: calc(var(--s-2) + var(--safe-right));
+		bottom: calc(var(--s-2) + var(--safe-bottom));
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;

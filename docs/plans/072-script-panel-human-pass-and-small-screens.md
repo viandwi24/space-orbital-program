@@ -40,4 +40,5 @@ Act on what a person finds with a screen reader, a keyboard only, a real input m
 
 ## Log
 
+- 2026-10-17 — Plan 055 (phone session) fixed item 2 for tablets at 1024x768 and 1180x820 (the script panel and guide scroll above the measured instrument deck; the touch throttle sits beside the open panel; panels are above the touch overlay; `e2e/mobile.e2e.ts` guards it). What remains here is the human pass (item 1) and item 3.
 - 2026-10-17 — Created as draft by plan 058.

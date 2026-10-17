@@ -192,11 +192,18 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 			}
 			if (made === null) return;
 			ctx = made;
+			// A phone call, Siri or a lock screen moves Safari's context to `interrupted` with no event
+			// of ours; the page state follows it, and the next gesture resumes it (plan 055).
+			ctx.onstatechange = publish;
 			g = build(ctx);
 			applyVolumes();
 			applyFlight();
 		}
-		if (env.visible() && ctx.state === 'suspended') void ctx.resume().then(publish, publish);
+		// `suspended` is ours (hidden tab) or the autoplay lock; `interrupted` is the system's (Safari,
+		// MDN BaseAudioContext.state). Either way a gesture is the moment to ask for sound again.
+		const state: string = ctx.state;
+		if (env.visible() && (state === 'suspended' || state === 'interrupted'))
+			void ctx.resume().then(publish, publish);
 		publish();
 	}
 
