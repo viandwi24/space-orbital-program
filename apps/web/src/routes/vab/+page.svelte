@@ -44,15 +44,15 @@
 		const categories = new Set(
 			vab.editor.design.parts.map((p) => {
 				const def = vab.defOf(p.part);
-				return def ? categoryOf(def, vab.content.modules) : 'other';
+				return def ? categoryOf(def, vab.content.modules) : 'stock.other';
 			})
 		);
 		const next = advance(settings.tutorial, {
 			scene: 'vab',
 			vab: {
-				command: categories.has('command'),
-				engine: categories.has('propulsion'),
-				tank: categories.has('tanks')
+				command: categories.has('stock.command'),
+				engine: categories.has('stock.propulsion'),
+				tank: categories.has('stock.tanks')
 			}
 		});
 		if (next !== settings.tutorial) settings.setTutorial(next);
@@ -114,6 +114,7 @@
 				armed={vab.armed?.kind === 'new' || vab.armed?.kind === 'connect' ? vab.armed.part : null}
 				facts={vab.facts}
 				modules={vab.content.modules}
+				categories={vab.categories}
 				onarm={(id) => vab.arm(id)}
 				assemblies={vab.assemblyEntries}
 				armedAssembly={vab.armed?.kind === 'assembly' ? vab.armed.id : null}

@@ -1,4 +1,4 @@
-import { loadPlugins, type PartLookup } from '@orbital/core';
+import { loadPlugins, type CategoryDefinition, type PartLookup } from '@orbital/core';
 import type { PartShape } from '@orbital/renderer';
 import Stock from '@orbital/mod-stock';
 import type { ContentLookups } from './delta-v';
@@ -25,7 +25,12 @@ export function partLookup(catalog: Catalog): PartLookup {
 }
 
 /** Catalog plus the registries the HUD's stage maths needs (module definitions carry the store accessors). */
-export function loadContent(): { catalog: Catalog; content: ContentLookups } {
+export function loadContent(): {
+	catalog: Catalog;
+	content: ContentLookups;
+	/** Catalogue categories (plan 069, ADR 0146), in registration order. */
+	categories: CategoryDefinition[];
+} {
 	const { registries, report } = loadPlugins([Stock, ...activePlugins()]);
 	return {
 		catalog: {
@@ -34,6 +39,7 @@ export function loadContent(): { catalog: Catalog; content: ContentLookups } {
 			bodies: registries.bodies.list(),
 			resources: registries.resources.list()
 		},
+		categories: registries.categories.list(),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

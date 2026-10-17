@@ -1,39 +1,34 @@
 /**
- * Catalogue categories, derived from a part's module ids so the part definition stays unchanged
- * (ADR 0029). Unknown mods land in "Other".
+ * Catalogue categories (plan 069, ADR 0146): read from the loaded `categories` registry, where stock
+ * registers its nine and a mod may add its own. A part's category comes from its own
+ * `catalog.category`, else from its modules (ADR 0029); a name that resolves to no registered
+ * category lands in Other.
  */
-import { describeModule, type ModuleDefinition, type PartDefinition } from '@orbital/core';
+import {
+	categoryIdOf,
+	describeModule,
+	FALLBACK_CATEGORY,
+	sortCategories,
+	type CategoryDefinition,
+	type CategoryIcon,
+	type ModuleDefinition,
+	type PartDefinition
+} from '@orbital/core';
 
-export type CategoryId =
-	| 'command'
-	| 'propulsion'
-	| 'tanks'
-	| 'structural'
-	| 'aero'
-	| 'control'
-	| 'landing'
-	| 'thermal'
-	| 'other';
+/** A category id (`stock.command`, `mymod.solar`). */
+export type CategoryId = string;
 
 export interface Category {
 	id: CategoryId;
 	label: string;
-	/** Icon name from `ui/icons.ts`. */
-	icon: string;
+	/** A name from `ui/icons.ts`, or path data on its 24 x 24 grid. */
+	icon: CategoryIcon;
 }
 
-/** In display order. */
-export const CATEGORIES: readonly Category[] = [
-	{ id: 'command', label: 'Command', icon: 'command' },
-	{ id: 'tanks', label: 'Fuel tanks', icon: 'tank' },
-	{ id: 'propulsion', label: 'Engines', icon: 'engine' },
-	{ id: 'structural', label: 'Structural', icon: 'decoupler' },
-	{ id: 'aero', label: 'Aerodynamics', icon: 'fin' },
-	{ id: 'control', label: 'Control', icon: 'wheel' },
-	{ id: 'landing', label: 'Landing', icon: 'legs' },
-	{ id: 'thermal', label: 'Thermal', icon: 'shield' },
-	{ id: 'other', label: 'Other', icon: 'part' }
-];
+/** The rail's categories in display order (`order` ascending, ties in registration order). */
+export function categoriesOf(list: readonly CategoryDefinition[]): Category[] {
+	return sortCategories(list).map(({ id, label, icon }) => ({ id, label, icon }));
+}
 
 /** The registry `categoryOf` reads module descriptors through. */
 export interface ModuleLookup {
@@ -42,14 +37,14 @@ export interface ModuleLookup {
 
 /** First match wins, in this order (a pod with a battery is still a command part). */
 const PRIORITY: readonly CategoryId[] = [
-	'command',
-	'propulsion',
-	'structural',
-	'aero',
-	'control',
-	'landing',
-	'thermal',
-	'tanks'
+	'stock.command',
+	'stock.propulsion',
+	'stock.structural',
+	'stock.aero',
+	'stock.control',
+	'stock.landing',
+	'stock.thermal',
+	'stock.tanks'
 ];
 
 /**
@@ -57,25 +52,26 @@ const PRIORITY: readonly CategoryId[] = [
  * source is a command part; an engine, a separator and a lifting plate imply theirs; otherwise the
  * descriptor's own `category`. A module without a descriptor, or whose descriptor throws, says nothing.
  */
-function categoriesOf(mod: ModuleDefinition, raw: unknown): CategoryId[] {
+function moduleCategories(mod: ModuleDefinition, raw: unknown): CategoryId[] {
 	const out: CategoryId[] = [];
-	if (mod.controlSource) out.push('command');
+	if (mod.controlSource) out.push('stock.command');
 	try {
 		const info = describeModule(mod, raw);
-		if (info?.engine) out.push('propulsion');
-		if (info?.separator) out.push('structural');
-		if (info?.lift) out.push('aero');
-		if (info?.category) out.push(info.category);
+		if (info?.engine) out.push('stock.propulsion');
+		if (info?.separator) out.push('stock.structural');
+		if (info?.lift) out.push('stock.aero');
+		if (info?.category) out.push(categoryIdOf(info.category));
 	} catch {
 		// A broken mod descriptor leaves the part in the next best category, not out of the catalogue.
 	}
-	if (mod.store && out.length === 0) out.push('tanks');
+	if (mod.store && out.length === 0) out.push('stock.tanks');
 	return out;
 }
 
 const cache = new WeakMap<object, CategoryId>();
 
-export function categoryOf(
+/** The category a part names or implies, before checking it is registered. */
+function namedCategory(
 	def: Pick<PartDefinition, 'modules' | 'catalog'> & {
 		dragCoefficient?: number;
 		connector?: object;
@@ -87,25 +83,48 @@ export function categoryOf(
 	// The part's own placement wins over everything its modules imply (ADR 0082).
 	const own = def.catalog?.category;
 	if (own !== undefined) {
-		cache.set(def, own);
-		return own;
+		const id = categoryIdOf(own);
+		cache.set(def, id);
+		return id;
 	}
 	const found = new Set<CategoryId>();
 	for (const [id, raw] of def.modules ?? []) {
 		const mod = modules.get(id);
-		if (mod) for (const c of categoriesOf(mod, raw)) found.add(c);
+		if (mod) for (const c of moduleCategories(mod, raw)) found.add(c);
 	}
+	// A module that names a mod category: the first one wins after the stock priority list.
+	const custom = [...found].find((c) => !PRIORITY.includes(c));
 	// A part with no module that declares its own drag (a nose cone) is aerodynamic hardware.
 	// A strut or fuel line has no module: it is structure (ADR 0071).
 	const category =
 		PRIORITY.find((c) => found.has(c)) ??
+		custom ??
 		(def.connector !== undefined
-			? 'structural'
+			? 'stock.structural'
 			: def.dragCoefficient !== undefined
-				? 'aero'
-				: 'other');
+				? 'stock.aero'
+				: FALLBACK_CATEGORY);
 	cache.set(def, category);
 	return category;
+}
+
+/**
+ * The part's catalogue category. With `categories` (the rail), an id that is not registered lands in
+ * Other, or in the last category when no Other is loaded (ADR 0146 point 5).
+ */
+export function categoryOf(
+	def: Pick<PartDefinition, 'modules' | 'catalog'> & {
+		dragCoefficient?: number;
+		connector?: object;
+	},
+	modules: ModuleLookup,
+	categories?: readonly Pick<Category, 'id'>[]
+): CategoryId {
+	const id = namedCategory(def, modules);
+	if (!categories || categories.length === 0 || categories.some((c) => c.id === id)) return id;
+	return categories.some((c) => c.id === FALLBACK_CATEGORY)
+		? FALLBACK_CATEGORY
+		: categories[categories.length - 1]!.id;
 }
 
 /**

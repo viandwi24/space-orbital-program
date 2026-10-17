@@ -64,4 +64,4 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-export const isIconName = (name: string): name is IconName => name in ICONS;
+export const isIconName = (name: string): name is IconName => Object.hasOwn(ICONS, name);
