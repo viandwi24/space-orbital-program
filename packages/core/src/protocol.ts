@@ -160,6 +160,14 @@ export interface VesselSnapshot {
 	nodes?: ManeuverNodeSnapshot[];
 	/** The vessel's target (plan 035); absent without one. */
 	target?: TargetSnapshot;
+	/**
+	 * Part actions of a vessel in flight (plan 110, ADR 0174): group states and the changing part of
+	 * each descriptor as `[part, module, action, value, enabled]`; the rest comes from `describe`.
+	 */
+	actions?: {
+		groups: Array<{ id: string; state: 'on' | 'off' | 'mixed' | 'none'; parts: number }>;
+		states: Array<[EntityId, string, string, boolean | number | string | null, boolean]>;
+	};
 	/** Data storage use (plan 083): bits used and in all, and the item count; only with storage. */
 	data?: { used: number; capacity: number; items: number };
 }
@@ -237,6 +245,12 @@ export interface VesselDesign {
 	}>;
 	/** `stages[k]` lists the part indices whose modules' `onStage` runs for the k-th `stage` command. */
 	stages: number[][];
+	/** Custom action groups (plan 110, ADR 0174): slot 1..10, members by part index. Any version. */
+	groups?: Array<{
+		slot: number;
+		label: string;
+		members: Array<{ part: number; module: string; action: string }>;
+	}>;
 }
 
 /** Where `load-vessel` puts the vessel. Defaults to the surface of the root body at latitude 0, longitude 0. */
@@ -318,7 +332,12 @@ export type Command =
 	/** Move a data item to the storage of part `to` on the same vessel (plan 083, ADR 0172). */
 	| { type: 'move-data'; vessel: EntityId; item: string; to: EntityId }
 	/** Delete a data item from the vessel. */
-	| { type: 'delete-data'; vessel: EntityId; item: string };
+	| { type: 'delete-data'; vessel: EntityId; item: string }
+	/**
+	 * Apply an action to every part of a group on the vessel in one dispatch (plan 110, ADR 0174):
+	 * a registered group id, or `custom.<slot>` for the vessel's custom group.
+	 */
+	| { type: 'action-group'; vessel: EntityId; group: string; value?: boolean | number | string };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

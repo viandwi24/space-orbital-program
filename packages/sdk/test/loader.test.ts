@@ -244,7 +244,8 @@ describe('registration and report', () => {
 			rule: [],
 			preset: [],
 			charge: [],
-			'data-kind': []
+			'data-kind': [],
+			'action-group': []
 		});
 	});
 

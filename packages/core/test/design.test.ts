@@ -290,3 +290,52 @@ describe('radial attachment (ADR 0034)', () => {
 		).toBe(false);
 	});
 });
+
+describe('custom action groups in a design (plan 110)', () => {
+	const withModule = new Map(defs);
+	withModule.set('test.engine', { ...stack('test.engine', 1), modules: [['test.motor', {}]] });
+	const lookupM = { get: (id: string) => withModule.get(id) };
+	const grouped = (
+		members: Array<{ part: number; module: string; action: string }>,
+		slot = 1
+	): VesselDesign =>
+		design({
+			parts: [
+				{ index: 0, part: partId('test.pod'), parent: null },
+				{
+					index: 1,
+					part: partId('test.engine'),
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				}
+			],
+			stages: [],
+			groups: [{ slot, label: 'Motor', members }]
+		});
+
+	test('a design with custom groups round-trips; one without the field still loads', () => {
+		const d = grouped([{ part: 1, module: 'test.motor', action: 'setActive' }]);
+		const parsed = vesselDesignSchema.parse(JSON.parse(JSON.stringify(d)));
+		expect(parsed.groups).toEqual(d.groups);
+		expect(resolveVesselDesign(parsed, lookupM).ok).toBe(true);
+		const old = vesselDesignSchema.parse(JSON.parse(JSON.stringify(design())));
+		expect(old.groups).toBeUndefined();
+		expect(resolveVesselDesign(old, lookup).ok).toBe(true);
+	});
+
+	test('a member on a missing part or a module the part lacks is an error; slots are 1..10 and unique', () => {
+		const errors = (d: VesselDesign) => {
+			const r = resolveVesselDesign(d, lookupM);
+			return r.ok ? [] : r.errors;
+		};
+		expect(errors(grouped([{ part: 9, module: 'test.motor', action: 'x' }]))).toEqual([
+			'action group 1: unknown part index 9'
+		]);
+		expect(errors(grouped([{ part: 1, module: 'test.other', action: 'x' }]))).toEqual([
+			'action group 1: part #1 has no module "test.other"'
+		]);
+		const twice = grouped([]);
+		twice.groups = [twice.groups![0]!, { ...twice.groups![0]! }];
+		expect(errors(twice)).toEqual(['action group slot 1 is used twice']);
+		expect(vesselDesignSchema.safeParse(grouped([], 11)).success).toBe(false);
+	});
+});

@@ -121,6 +121,19 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		nodes: [],
 		target: null,
 		stages: design.stages.map((stage) => stage.map((i) => byIndex.get(i)!)),
+		...(design.groups && design.groups.length > 0
+			? {
+					groups: design.groups.map((g) => ({
+						slot: g.slot,
+						label: g.label,
+						members: g.members.map((m) => ({
+							part: byIndex.get(m.part)!,
+							module: m.module,
+							action: m.action
+						}))
+					}))
+				}
+			: {}),
 		nextStage: 0,
 		com: { x: 0, y: 0, z: 0 },
 		velocity: { x: 0, y: 0, z: 0 },

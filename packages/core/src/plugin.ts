@@ -27,6 +27,7 @@ import { createRegistries, createRegistry, RegistryError, type Registries } from
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
+import type { ActionGroupDefinition } from './action-groups.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -76,6 +77,8 @@ export interface BasePluginContext {
 	readonly charges: Registrar<ChargeDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
+	/** Action groups (plan 110, ADR 0174). */
+	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -109,7 +112,8 @@ export const REGISTRY_KINDS = [
 	'rule',
 	'preset',
 	'charge',
-	'data-kind'
+	'data-kind',
+	'action-group'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -153,6 +157,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'presets',
 	'charges',
 	'dataKinds',
+	'actionGroups',
 	'patches',
 	'optional',
 	'provide'
@@ -328,6 +333,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			presets: registrar(registries.presets),
 			charges: registrar(registries.charges),
 			dataKinds: registrar(registries.dataKinds),
+			actionGroups: registrar(registries.actionGroups),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -450,7 +456,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				rule: section(registries.rules),
 				preset: section(registries.presets),
 				charge: section(registries.charges),
-				'data-kind': section(registries.dataKinds)
+				'data-kind': section(registries.dataKinds),
+				'action-group': section(registries.actionGroups)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

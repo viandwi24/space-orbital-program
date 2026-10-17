@@ -4,6 +4,7 @@
  * compile-time checks. See docs/architecture/plugin-system.md and ADR 0013.
  */
 import type {
+	ActionGroupDefinition,
 	AnyPatchDefinition,
 	DataKindDefinition,
 	BasePluginContext,
@@ -193,3 +194,13 @@ export function definePatch<const K extends PatchTarget>(
  * `valueCurve` of `[ageSeconds, factor]` points. Register it with `ctx.dataKinds.register(...)`.
  */
 export const defineDataKind = (def: DataKindDefinition): DataKindDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineActionGroup
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A group of part actions (plan 110, ADR 0174): a descriptor joins it by `group`, and one
+ * `action-group` command applies an action to every part of it. Register with `ctx.actionGroups`.
+ */
+export const defineActionGroup = (def: ActionGroupDefinition): ActionGroupDefinition => def;

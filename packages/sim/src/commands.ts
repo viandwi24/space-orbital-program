@@ -18,6 +18,7 @@ import {
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
 import { deleteData, moveData } from './data.ts';
+import { applyActionGroup } from './actions.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
 import {
@@ -297,6 +298,17 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			creditRecovery(core, id);
 			destroyVessel(core, id, 'recovered');
 			return accept();
+		}
+		case 'action-group': {
+			const vessel = core.world.get(command.vessel, VESSEL);
+			if (!vessel) return refuse(`unknown vessel ${command.vessel}`);
+			const why =
+				vessel.mode === 'on-rails' ? ensureFlight(core, command.vessel, 'action group') : undefined;
+			if (why) return refuse(why);
+			const result = applyActionGroup(core, command.vessel, command.group, command.value);
+			processPending(core);
+			refreshColliders(core, command.vessel);
+			return result;
 		}
 		case 'move-data':
 		case 'delete-data': {

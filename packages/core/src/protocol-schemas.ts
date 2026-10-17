@@ -45,7 +45,18 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 			})
 		)
 		.min(1),
-	stages: z.array(z.array(index))
+	stages: z.array(z.array(index)),
+	groups: z
+		.array(
+			z.object({
+				slot: z.int().min(1).max(10),
+				label: z.string().min(1).max(40),
+				members: z.array(
+					z.object({ part: index, module: z.string().min(1), action: z.string().min(1) })
+				)
+			})
+		)
+		.optional()
 });
 
 export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminatedUnion('kind', [
@@ -131,5 +142,11 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('recover-vessel'), vessel: entity }),
 	z.object({ type: z.literal('move-data'), vessel: entity, item: z.string().min(1), to: entity }),
-	z.object({ type: z.literal('delete-data'), vessel: entity, item: z.string().min(1) })
+	z.object({ type: z.literal('delete-data'), vessel: entity, item: z.string().min(1) }),
+	z.object({
+		type: z.literal('action-group'),
+		vessel: entity,
+		group: z.string().min(1),
+		value: z.union([z.boolean(), z.number(), z.string()]).optional()
+	})
 ]);
