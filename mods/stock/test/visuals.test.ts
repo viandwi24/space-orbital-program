@@ -6,6 +6,7 @@ const KINDS = [
 	'capsule',
 	'tank',
 	'engine',
+	'engine-cluster',
 	'decoupler',
 	'reaction-wheel',
 	'landing-legs',

@@ -24,6 +24,7 @@ import {
 	PartCommandPod,
 	PartControlSurface,
 	PartDecoupler,
+	PartEngineCluster,
 	PartEngineLV,
 	PartFin,
 	PartFuelLine,
@@ -67,6 +68,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartTankSmall);
 		ctx.parts.register(PartTankMedium);
 		ctx.parts.register(PartEngineLV);
+		ctx.parts.register(PartEngineCluster);
 		ctx.parts.register(PartDecoupler);
 		ctx.parts.register(PartLandingLegs);
 		ctx.parts.register(PartHeatShield);

@@ -32,6 +32,7 @@ describe('stock boots through the loader', () => {
 			'stock.command-pod',
 			'stock.control-surface',
 			'stock.decoupler',
+			'stock.engine-cluster',
 			'stock.engine-lv',
 			'stock.fin',
 			'stock.fuel-line',

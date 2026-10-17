@@ -167,6 +167,57 @@ export const PartEngineLV = definePart({
 	stagingIcon: 'engine'
 });
 
+/**
+ * A cluster of four small bells on one thrust plate (plan 040, ADR 0081): more thrust than the
+ * LV-T30 for a little more mass, and each bell has its own plume. The bells swing together.
+ * `visual.plume.nozzles` must equal the renderer's `clusterLayout(4, 0.31, -0.6)` (a test pins it).
+ */
+export const PartEngineCluster = definePart({
+	id: 'stock.engine-cluster',
+	title: 'KR-4 Cluster Engine',
+	mass: kg(1_850),
+	impactTolerance: 4,
+	maxTemperature: 1800,
+	shape: cylinder(1.2),
+	visual: {
+		kind: 'engine-cluster',
+		palette: { primary: '#2d3138', secondary: '#9aa1aa', accent: '#b0642e' },
+		params: { bells: 4, ring: 0.31, bellExit: 0.2 },
+		plume: {
+			module: ModuleEngine.id,
+			nozzle: [0, -0.6, 0],
+			nozzles: [
+				[0.219203, -0.6, 0.219203],
+				[-0.219203, -0.6, 0.219203],
+				[-0.219203, -0.6, -0.219203],
+				[0.219203, -0.6, -0.219203]
+			],
+			exitRadius: 0.2,
+			length: 5.5,
+			exitPressure: 90_000
+		},
+		articulation: { module: ModuleEngine.id, field: 'gimbal', mode: 'gimbal' }
+	},
+	attach: stackNodes(1.2),
+	crossfeed: false,
+	modules: [
+		[
+			ModuleEngine,
+			{
+				thrust: 340_000,
+				ispVacuum: 295,
+				ispSeaLevel: 272,
+				propellants: [
+					{ resource: LiquidFuel.id, ratio: 0.9 },
+					{ resource: Oxidizer.id, ratio: 1.1 }
+				],
+				gimbal: { range: 2, rate: 16 }
+			}
+		]
+	],
+	stagingIcon: 'engine'
+});
+
 export const PartDecoupler = definePart({
 	id: 'stock.decoupler',
 	title: 'Stack Decoupler',
