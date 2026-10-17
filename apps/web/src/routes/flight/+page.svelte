@@ -291,8 +291,6 @@
 			const world = resume ? undefined : await saves.worldStartInfo(activeWorldId());
 			// the Launch screen's facility, once (plan 094, ADR 0150 point 4)
 			const launch = resume ? null : takeLaunchChoice();
-			if (gone) return;
-			stop = begin(catalog, content, design, resume, world, launch?.placement, start);
 			// a launch into a world with a save flies in that save (plan 108, ADR 0152 point 1)
 			let into: SimSave | undefined;
 			if (launch) {
@@ -301,7 +299,17 @@
 				if (newest?.ok) into = (await saves.read(newest.meta.id)).sim;
 			}
 			if (gone) return;
-			stop = begin(catalog, content, design, resume, world, launch?.placement, into, launch?.crew);
+			stop = begin(
+				catalog,
+				content,
+				design,
+				resume,
+				world,
+				launch?.placement,
+				start,
+				into,
+				launch?.crew
+			);
 		})();
 		return () => {
 			gone = true;
@@ -319,7 +327,7 @@
 		resume: GameSave | undefined,
 		world: WorldInfo | undefined,
 		placement?: VesselPlacement,
-		start: ScenarioStart | null = null
+		start: ScenarioStart | null = null,
 		into?: SimSave,
 		crew?: { member: string; part: number }[]
 	): () => void {
@@ -368,7 +376,6 @@
 				: placement
 					? { placement }
 					: {}),
-			...(placement ? { placement } : {}),
 			...(into ? { into } : {}),
 			...(crew?.length ? { crew } : {}),
 			content,
