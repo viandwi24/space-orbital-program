@@ -631,7 +631,16 @@
 			</div>
 
 			{#if !touchOn}
-				<div class="br"><CrewPanel card={model?.crew ?? null} /></div>
+				<div class="br">
+					<CrewPanel
+						card={model?.crew ?? null}
+						eva={hud.eva}
+						oneva={(m) => flight?.eva(m)}
+						onwalk={(h) => flight?.walk(h)}
+						onflag={() => flight?.plantFlag()}
+						onboard={() => flight?.board()}
+					/>
+				</div>
 			{/if}
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}

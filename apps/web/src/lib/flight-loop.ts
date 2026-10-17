@@ -86,6 +86,8 @@ export interface FlightHud {
 	warp: number;
 	map: boolean;
 	autopilot: string | null;
+	/** A crew member outside in a suit (plan 109, ADR 0120): the camera follows the suit. */
+	eva: { suit: number; name: string; walking: boolean } | null;
 }
 
 export interface FlightOptions {
@@ -147,6 +149,11 @@ export interface Flight {
 	setSas(mode: SasMode): void;
 	/** Select the target with this key (`TargetChoice.key`), or clear it with null (plan 035). */
 	setTarget(key: string | null): void;
+	/** EVA (plan 109, ADR 0120): step out, walk (heading from north, rad; null stops), plant a flag, board again. */
+	eva(member: string): void;
+	walk(heading: number | null): void;
+	plantFlag(): void;
+	board(): void;
 	/** Select the next entry of the target list; the one after the last is none. */
 	cycleTarget(): void;
 	/** Place the node of a rendezvous aid of the Target card (plan 057). */
@@ -202,7 +209,8 @@ export function startFlight(options: FlightOptions): Flight {
 		paused: false,
 		warp: 1,
 		map: false,
-		autopilot: null
+		autopilot: null,
+		eva: null
 	};
 	// Dev-only cost counters for the HUD (journal 021): per-frame paint and 10 Hz model build.
 	const stats = {
@@ -472,6 +480,45 @@ export function startFlight(options: FlightOptions): Flight {
 	function setTarget(key: string | null): void {
 		const command = hudCtl?.targetCommand(key);
 		if (command) void send(command);
+	}
+
+	// ---- EVA (plan 109, ADR 0120): the flight stays on its vessel; the camera follows the suit ----
+	async function eva(member: string): Promise<void> {
+		if (vessel === null || hud.eva) return;
+		const name = client.latest?.crew?.find((m) => m.id === member)?.name ?? member;
+		const result = await client.dispatch({ type: 'crew-eva', vessel, member });
+		if (!result.ok) return void hudCtl?.refused('crew-eva', result.reason);
+		hud.eva = { suit: Number(result.vessel), name, walking: false };
+		renderer?.setActiveVessel(result.vessel as EntityId);
+		publish();
+	}
+	function walk(heading: number | null): void {
+		const e = hud.eva;
+		if (!e) return;
+		void send({
+			type: 'crew-walk',
+			vessel: e.suit as EntityId,
+			heading: heading ?? 0,
+			speed: heading === null ? 0 : 1.5
+		});
+		hud.eva = { ...e, walking: heading !== null };
+		publish();
+	}
+	function plantFlag(): void {
+		if (hud.eva) void send({ type: 'plant-flag', vessel: hud.eva.suit as EntityId });
+	}
+	async function board(): Promise<void> {
+		const e = hud.eva;
+		if (!e || vessel === null) return;
+		const result = await client.dispatch({
+			type: 'crew-board',
+			suit: e.suit as EntityId,
+			vessel
+		});
+		if (!result.ok) return void hudCtl?.refused('crew-board', result.reason);
+		hud.eva = null;
+		renderer?.setActiveVessel(vessel);
+		publish();
 	}
 
 	function planAid(id: AidId): void {
@@ -981,6 +1028,10 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		setSas,
 		setTarget,
+		eva: (member) => void eva(member),
+		walk,
+		plantFlag,
+		board: () => void board(),
 		cycleTarget,
 		planAid,
 		setPaused(paused) {
