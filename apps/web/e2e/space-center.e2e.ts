@@ -11,6 +11,7 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	await page.getByTestId('worlds-create').click();
 	const form = page.getByTestId('create-world');
 	await form.getByTestId('world-name').fill('Builders');
+	await form.getByRole('radio', { name: 'Career', exact: true }).click();
 	await form.getByTestId('world-create').click();
 	await page.getByTestId('world-enter').click();
 	await page.waitForURL('**/space-center');
