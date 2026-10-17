@@ -129,6 +129,8 @@ export class Environment {
 	private shadowSize = 0;
 	private shadowDelay = 0;
 	private sunOverride: { elevation: number; azimuth: number } | null = null;
+	/** Toward the system's star from the home body (plan 122, ADR 0119); null: the fixed direction. */
+	private star: Vec3 | null = null;
 	private cloudAngle = 0;
 	private time = 0;
 	private cloudCover = 0.42;
@@ -268,9 +270,14 @@ export class Environment {
 		return this.terrain.heightAt(direction);
 	}
 
+	/** The direction to the system's star, from the snapshot each sync; null keeps the fixed one. */
+	setStarDirection(direction: Vec3 | null): void {
+		this.star = direction;
+	}
+
 	/** Sun direction in the inertial/render frame for the current body rotation. */
 	sunDirection(bodyRotation: Quat): Vec3 {
-		if (!this.sunOverride) return starDirection();
+		if (!this.sunOverride) return this.star ?? starDirection();
 		const axes = siteAxes(this.config.site.latitude, this.config.site.longitude);
 		const frame = {
 			up: rotate(bodyRotation, axes.up),

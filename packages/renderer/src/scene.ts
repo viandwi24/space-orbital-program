@@ -71,7 +71,7 @@ import {
 	staysAsRemnant,
 	type RestState
 } from './remnants.ts';
-import { rotate, rotateInverse } from './vec.ts';
+import { normalize, rotate, rotateInverse, sub as sub3 } from './vec.ts';
 
 export { DEFAULT_PART_SHAPE };
 export type { PartShape };
@@ -83,7 +83,7 @@ const MIN_TERRAIN_LIGHT = 0.03;
 
 /** What the renderer needs of a body; `parent` and `orbit` let the map view draw a moon's orbit and sphere. */
 export type BodyRenderInfo = Pick<BodyDefinition, 'id' | 'radius' | 'atmosphere'> &
-	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain'>>;
+	Partial<Pick<BodyDefinition, 'parent' | 'orbit' | 'mass' | 'terrain' | 'star'>>;
 
 /** One stretch of a predicted path (plan 044): points relative to `body`, which sits at `offset` in the system frame. */
 export interface MapPathSegment {
@@ -97,6 +97,11 @@ export interface MapPathSegment {
 
 export interface SceneConfig {
 	bodies: readonly BodyRenderInfo[];
+	/**
+	 * The home body (plan 122, ADR 0119): the planet pass, the environment, the site and the terrain
+	 * bake. Default the first body (before plan 122 the root was home).
+	 */
+	home?: string;
 	/** Keyed by part definition id (`PartSnapshot.definition`). */
 	partShapes: ReadonlyMap<string, PartShape>;
 	/** Visual descriptors by part definition id (`PartDefinition.visual`, ADR 0028). */
@@ -138,6 +143,8 @@ const latLonDir = (s: { latitude: number; longitude: number }, radius: number): 
 	z: -Math.cos(s.latitude) * Math.sin(s.longitude) * radius
 });
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
+/** A star's disc (it is unlit: the colour is what the camera sees). */
+const STAR_COLOR = 0xfff1c9;
 /** Map colours: vessel orbit and marker, body orbit, and the highlight (the refs accent text, ADR 0140). */
 const VESSEL_ORBIT_COLOR = 0x4fc3f7;
 const VESSEL_MARKER_COLOR = 0xffd54f;
@@ -193,6 +200,8 @@ export class SceneModel {
 	/** Flight environment of the first body: planet pass, sun, sky, launch site (ADR 0027). */
 	readonly environment: Environment;
 	private readonly primaryBody: string | undefined;
+	/** The system's star, when there is one: the sun direction is from the home body to it (ADR 0119). */
+	private readonly starBody: string | undefined;
 	private pixelRatio = 1;
 	private vesselRadius = 10;
 	/** Centre of the active vessel's parts relative to its root, inertial axes, m: the flight camera looks here. */
@@ -259,10 +268,17 @@ export class SceneModel {
 		const settings = PRESETS[config.preset ?? 'high'];
 		this.factory = this.makeFactory(config.preset ?? 'high');
 		this.threshold = config.originThreshold ?? DEFAULT_ORIGIN_THRESHOLD;
+		const primary = config.bodies.find((b) => b.id === config.home) ?? config.bodies[0];
 		config.bodies.forEach((b, i) => {
 			const holder = new Object3D();
 			holder.name = `body:${b.id}`;
-			if (i > 0 && (b.terrain?.kind === 'craters' || b.terrain?.kind === 'hills')) {
+			const home = b === primary;
+			if (b.star) {
+				// A star (ADR 0119 point 6): an emissive sphere; the sun direction comes from its position.
+				const mesh = new Mesh(this.sphere, new MeshBasicMaterial({ color: STAR_COLOR }));
+				mesh.scale.setScalar(b.radius);
+				holder.add(mesh);
+			} else if (!home && (b.terrain?.kind === 'craters' || b.terrain?.kind === 'hills')) {
 				// A body other than the first whose terrain is craters or hills: the ground pass, the moon
 				// pass with that kind's height function (ADR 0054, 0067, 0090).
 				const moon = new MoonPass(
@@ -273,7 +289,7 @@ export class SceneModel {
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
-			} else if (i > 0) {
+			} else if (!home) {
 				// A body with no terrain stays a plain lit sphere (ADR 0027, 0067).
 				const mesh = new Mesh(
 					this.sphere,
@@ -316,8 +332,8 @@ export class SceneModel {
 				soi: sphere ? (sphere.geometry as SphereGeometry).parameters.radius : 0
 			});
 		}
-		const primary = config.bodies[0];
 		this.primaryBody = primary?.id;
+		this.starBody = config.bodies.find((b) => b.star)?.id;
 		this.environment = new Environment({
 			body: primary ?? { id: 'none', radius: 1, atmosphere: undefined },
 			preset: config.preset ?? 'high',
@@ -716,9 +732,10 @@ export class SceneModel {
 			return p;
 		};
 
-		// Anchor: the vessel in flight view, the SOI body in map view; no vessel -> first body.
-		let anchor: Vec3 = snapshot.bodies[0]?.position ?? this.origin;
-		let anchorBody: string | undefined = snapshot.bodies[0]?.id;
+		// Anchor: the vessel in flight view, the SOI body in map view; no vessel -> the home body.
+		const homeSnap = snapshot.bodies.find((b) => b.id === this.primaryBody) ?? snapshot.bodies[0];
+		let anchor: Vec3 = homeSnap?.position ?? this.origin;
+		let anchorBody: string | undefined = homeSnap?.id;
 		if (activeVessel) {
 			const base = soiPos(activeVessel);
 			anchorBody = activeVessel.soi;
@@ -802,6 +819,10 @@ export class SceneModel {
 
 		const primaryWorld = this.primaryBody ? bodyWorld.get(this.primaryBody) : undefined;
 		const primaryRot = this.primaryBody ? this.bodyRot.get(this.primaryBody) : undefined;
+		const starWorld = this.starBody ? bodyWorld.get(this.starBody) : undefined;
+		this.environment.setStarDirection(
+			starWorld && primaryWorld ? normalize(sub3(starWorld, primaryWorld)) : null
+		);
 		const activeGroup = activeVessel ? this.vessels.get(activeVessel.id)?.group : undefined;
 		this.frameState =
 			primaryWorld && primaryRot
