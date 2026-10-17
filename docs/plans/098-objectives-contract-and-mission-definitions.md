@@ -1,7 +1,7 @@
 ---
 id: 098
 title: "Objectives: the evaluator behind contracts and missions"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [078, 082]
 phase: 6

@@ -106,7 +106,7 @@
 | 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | done | Agent 1 | ADR 0113: ledger in the save, part costs and prices, charges on the world tick, launch debit, `recover-vessel`, career bot 120 missions in band; HUD dialog in draft 132; API 0.1.30 |
 | 096 | [Buildings with costs, construction time, upkeep and capacity limits](plans/096-building-catalogue-levels-upkeep-capacity.md) | draft | — | ADR 0097/0098: construction, levels, upkeep, capacity-only gates |
 | 097 | [Markets and production: one commodity chain first](plans/097-markets-and-production.md) | draft | — | ADR 0098: commodities, damped prices, one production chain |
-| 098 | [Objectives: the evaluator behind contracts and missions](plans/098-objectives-contract-and-mission-definitions.md) | in-progress | Agent 3 | ADR 0098: one objective evaluator |
+| 098 | [Objectives: the evaluator behind contracts and missions](plans/098-objectives-contract-and-mission-definitions.md) | done | Agent 3 | ADR 0098: one objective evaluator |
 | 099 | [Procedural contracts](plans/099-procedural-contracts.md) | draft | — | ADR 0098: seeded offers, slots, rewards and penalties |
 | 100 | [Authored missions, the story line and mission packs](plans/100-authored-missions-and-mission-packs.md) | draft | — | ADR 0098: story line, tracker, mission packs |
 | 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
@@ -200,6 +200,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [098 — Objectives: the evaluator behind contracts and missions](journal/098-objectives-contract-and-mission-definitions.md)
 - [090 — Buildings as data: `defineBuilding` and the placement rules](journal/090-building-registry-and-placement-rules.md)
 - [087 — Worlds screen and Create World](journal/087-worlds-screen-and-create-world.md)
 - [110 — Part action descriptors and action groups](journal/110-part-action-descriptors-and-groups.md)

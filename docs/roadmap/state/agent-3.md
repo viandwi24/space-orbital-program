@@ -15,7 +15,7 @@
 | 080 trajectory | done | `devc/080-trajectory` | 2026-10-17 | merged 0354289, cp/f1-080-trajectory |
 | 110 part-actions | done | `devc/110-part-actions` | 2026-10-17 | merged f84365e, cp/f4-110-part-actions |
 | 092 site-choice | todo |  |  |  |
-| 098 objectives | handed-over | `devc/098-objectives` | 2026-10-17 | ready/098; ADR 0175; API 0.1.36 |
+| 098 objectives | done | `devc/098-objectives` | 2026-10-17 | merged 2b004b4, cp/f3-098-objectives |
 | 106 crew | handed-over | `devc/106-crew` | 2026-10-17 | ready/106; ADR 0176; API 0.1.37 |
 | 103 science | todo |  |  |  |
 | 114 comms-1 | todo |  |  |  |
