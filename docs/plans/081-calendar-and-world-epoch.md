@@ -1,8 +1,8 @@
 ---
 id: 081
 title: "Calendar and world epoch: dates in the game"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [077]
 phase: 4
 created: 2026-10-17

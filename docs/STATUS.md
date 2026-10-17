@@ -89,7 +89,7 @@
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | done | Agent 1 | ADR 0111: `defineRule`/`definePreset`, 22 stock rules and 4 presets, values in `WorldInfo.rules`, `set-rule` + changelog + `world:rule-changed`, `Snapshot.rules`; API 0.1.27 |
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
-| 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
+| 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
