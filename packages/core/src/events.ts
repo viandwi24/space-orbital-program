@@ -4,6 +4,7 @@
  * `on('reactor:meltdown', e => e.part)` is typed and unknown names are type errors. Plan 005
  * settles which module specifier SDK users augment (the SDK re-exports this interface).
  */
+import type { MilestoneKind } from './milestones.ts';
 import type { NewDataItem } from './data.ts';
 import type { EntityId } from './ids.ts';
 import type { VesselMode } from './protocol.ts';
@@ -59,6 +60,15 @@ export interface EventMap {
 		subject: string;
 		value: number;
 		kind: 'data' | 'sample';
+	};
+	/** A world's first (plan 102, ADR 0147 point 2). */
+	'milestone:reached': {
+		id: string;
+		kind: MilestoneKind;
+		body?: string;
+		vessel: EntityId;
+		crewed: boolean;
+		time: number;
 	};
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */

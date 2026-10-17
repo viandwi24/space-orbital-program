@@ -2,6 +2,7 @@
  * Typed registry of definitions. Duplicate ids are errors that name both plugins; definitions are
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
+import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
 import * as z from 'zod';
 import type {
 	BodyDefinition,
@@ -221,6 +222,8 @@ export interface Registries {
 	/** Science (plan 103, ADR 0178). */
 	situations: Registry<SituationDefinition>;
 	experiments: Registry<ExperimentDefinition>;
+	/** Achievements (plan 102, ADR 0147). */
+	achievements: Registry<AchievementDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -257,6 +260,9 @@ export function createRegistries(): Registries {
 		}),
 		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
+		achievements: createRegistry<AchievementDefinition>('achievement', {
+			schema: achievementDefinitionSchema
+		}),
 		crewTraits: createRegistry<CrewTraitDefinition>('crew-trait', {
 			schema: crewTraitDefinitionSchema
 		}),

@@ -3,6 +3,7 @@
  * `define*` functions on top of these; the data-only kinds (resource, body, part) are validated
  * by the schemas in `schemas.ts`.
  */
+import type { AchievementDefinition } from './milestones.ts';
 import type * as z from 'zod';
 import type { EntityId } from './ids.ts';
 import type { EventBus, EventMap } from './events.ts';
@@ -87,6 +88,8 @@ export interface ReadonlyRegistries {
 	/** Science (plan 103, ADR 0178). */
 	situations: ReadonlyRegistry<SituationDefinition>;
 	experiments: ReadonlyRegistry<ExperimentDefinition>;
+	/** Achievements (plan 102, ADR 0147). */
+	achievements: ReadonlyRegistry<AchievementDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;

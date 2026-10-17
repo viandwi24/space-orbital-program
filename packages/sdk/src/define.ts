@@ -6,6 +6,7 @@
 import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
+	AchievementDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
 	CrewNamesDefinition,
@@ -273,3 +274,14 @@ export const defineExperiment = (def: ExperimentDefinition): ExperimentDefinitio
 
 /** A science situation: `matches(view)` is pure, the lowest `order` that matches wins. */
 export const defineSituation = (def: SituationDefinition): SituationDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineAchievement
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A local achievement (plan 102, ADR 0147): unlocked in the player's profile, across worlds, when a
+ * world records a matching first (`criteria: { milestone, body?, crewed? }`). Register with
+ * `ctx.achievements`.
+ */
+export const defineAchievement = (def: AchievementDefinition): AchievementDefinition => def;

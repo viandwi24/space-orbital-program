@@ -24,6 +24,7 @@ export {
 export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
+export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
 export { actionArgumentProblem, customGroupId, groupState, MAX_CUSTOM_GROUPS } from '@orbital/core';

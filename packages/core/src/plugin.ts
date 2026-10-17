@@ -3,6 +3,7 @@
  * `Plugin` values with full type inference; this file is what actually validates, orders and boots
  * them, so it only needs the erased shapes.
  */
+import type { AchievementDefinition } from './milestones.ts';
 import * as z from 'zod';
 import { API_VERSION } from './version.ts';
 import type {
@@ -100,6 +101,8 @@ export interface BasePluginContext {
 	readonly experiments: Registrar<ExperimentDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
+	/** Achievements (plan 102, ADR 0147). */
+	readonly achievements: Registrar<AchievementDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	readonly crewTraits: Registrar<CrewTraitDefinition>;
 	readonly crewNames: Registrar<CrewNamesDefinition>;
@@ -145,6 +148,7 @@ export const REGISTRY_KINDS = [
 	'objective',
 	'contract',
 	'mission',
+	'achievement',
 	'crew-trait',
 	'crew-names'
 ] as const;
@@ -198,6 +202,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'siteTemplates',
 	'situations',
 	'experiments',
+	'achievements',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -383,6 +388,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			siteTemplates: registrar(registries.siteTemplates),
 			situations: registrar(registries.situations),
 			experiments: registrar(registries.experiments),
+			achievements: registrar(registries.achievements),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -549,6 +555,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),
+				achievement: section(registries.achievements),
 				'crew-trait': section(registries.crewTraits),
 				'crew-names': section(registries.crewNames)
 			},
