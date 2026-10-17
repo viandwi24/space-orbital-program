@@ -96,7 +96,10 @@ export async function decodeScript(token: string): Promise<Decoded> {
 		return { ok: false, reason: 'the link is too long to be a script' };
 	const dot = token.indexOf('.');
 	if (dot === -1 || token.slice(0, dot) !== VERSION) {
-		return { ok: false, reason: 'the link is not a script link from this version of Orbital' };
+		return {
+			ok: false,
+			reason: 'the link is not a script link from this version of Space Orbital Program'
+		};
 	}
 	const packed = fromBase64Url(token.slice(dot + 1));
 	if (!packed) return { ok: false, reason: 'the link is damaged (not valid base64)' };

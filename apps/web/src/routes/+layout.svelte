@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GAME_NAME } from '../lib/public/about';
 	import '@fontsource/manrope/latin-300.css';
 	import '@fontsource/manrope/latin-400.css';
 	import '@fontsource/manrope/latin-500.css';
@@ -81,7 +82,7 @@
 
 {#if missing === null}
 	<LoadingScreen step="Checking your browser" />
-	<noscript><p class="nojs">Orbital needs JavaScript to run.</p></noscript>
+	<noscript><p class="nojs">{GAME_NAME} needs JavaScript to run.</p></noscript>
 {:else if missing.length > 0}
 	<BrowserNotice {missing} />
 {:else}

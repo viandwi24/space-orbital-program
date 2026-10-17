@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GAME_NAME } from '../../lib/public/about';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
@@ -391,7 +392,7 @@
 </script>
 
 <PageMeta
-	title="Flight · Orbital"
+	title="Flight · {GAME_NAME}"
 	description="Fly your rocket: throttle, stage, hold attitude with SAS, plan maneuvers on the map and reach orbit."
 />
 

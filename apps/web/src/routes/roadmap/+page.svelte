@@ -7,7 +7,7 @@
 
 <PageMeta
 	title="Roadmap · {GAME_NAME}"
-	description="What is in Orbital 1.0 and what comes next: lakes and rivers, wreckage, wings, remappable keys, sound and more."
+	description="What is in {GAME_NAME} 1.0 and what comes next: lakes and rivers, wreckage, wings, remappable keys, sound and more."
 />
 
 <MenuShell wide>

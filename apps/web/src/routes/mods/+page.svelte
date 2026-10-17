@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GAME_NAME } from '../../lib/public/about';
 	import MenuShell from '../../lib/ui/MenuShell.svelte';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
@@ -33,8 +34,8 @@
 </script>
 
 <PageMeta
-	title="Mods · Orbital"
-	description="Install, turn on, turn off and remove Orbital mods. A mod is one file; the game asks before it runs anything."
+	title="Mods · {GAME_NAME}"
+	description="Install, turn on, turn off and remove {GAME_NAME} mods. A mod is one file; the game asks before it runs anything."
 />
 
 <MenuShell wide>
@@ -80,7 +81,8 @@
 						<div class="main">
 							<strong>{record.manifest.title ?? record.id}</strong>
 							<span class="num dim"
-								>{record.id} {record.manifest.version} · licence {licenceLabel(record.manifest)}</span
+								>{record.id}
+								{record.manifest.version} · licence {licenceLabel(record.manifest)}</span
 							>
 							{#if record.manifest.description}<span class="dim">{record.manifest.description}</span
 								>{/if}

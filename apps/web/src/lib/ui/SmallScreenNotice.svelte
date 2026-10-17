@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GAME_NAME } from '../public/about';
 	import { onMount } from 'svelte';
 	import { classifyScreen, smallScreenAdvice, type ScreenClass } from '../layout/layout-model';
 	import Button from './Button.svelte';
@@ -40,7 +41,7 @@
 {#if screen !== 'ok' && !dismissed}
 	<div class="notice" role="status" data-testid="small-screen-notice" data-screen={screen}>
 		<p>
-			<strong>Orbital is made for larger screens.</strong>
+			<strong>{GAME_NAME} is made for larger screens.</strong>
 			{smallScreenAdvice(screen)}
 		</p>
 		<Button onclick={dismiss} data-testid="small-screen-continue">Continue anyway</Button>

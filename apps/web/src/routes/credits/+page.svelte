@@ -7,7 +7,7 @@
 
 <PageMeta
 	title="Credits · {GAME_NAME}"
-	description="The open-source software and fonts Orbital is built on, and the licence of the game itself (Apache-2.0)."
+	description="The open-source software and fonts {GAME_NAME} is built on, and the licence of the game itself (Apache-2.0)."
 />
 
 <MenuShell wide>
