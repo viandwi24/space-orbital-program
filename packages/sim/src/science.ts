@@ -70,7 +70,12 @@ export function situationView(core: SimCore, id: EntityId): SituationView {
 	const { flyingHigh, spaceHigh } = bodyScience(body.def);
 	return {
 		landed,
-		splashed: landed && atmosphereHeight > 0 && terrainUnder(core, body, r) <= 0,
+		// below sea level on real ground: the reference sphere of a body without terrain is no sea
+		splashed:
+			landed &&
+			atmosphereHeight > 0 &&
+			body.terrain !== undefined &&
+			terrainUnder(core, body, r) < 0,
 		altitude: length(r) - body.def.radius,
 		atmosphereHeight,
 		flyingHigh,

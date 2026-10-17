@@ -8,7 +8,7 @@ import { definitionIdSchema } from './schemas.ts';
 /** What a situation is decided from (ADR 0178 point 1). */
 export interface SituationView {
 	landed: boolean;
-	/** Landed where the ground is at or below sea level, on a body with an atmosphere. */
+	/** Landed where the terrain is below sea level, on a body with an atmosphere and terrain. */
 	splashed: boolean;
 	/** Height above the body's radius, m. */
 	altitude: number;
