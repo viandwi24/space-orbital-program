@@ -31,6 +31,7 @@ import {
 	type ExperimentDefinition,
 	type SituationDefinition
 } from './science.ts';
+import {
 	antennaDefinitionSchema,
 	groundStationDefinitionSchema,
 	type AntennaDefinition,
