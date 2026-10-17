@@ -106,6 +106,21 @@ export interface TelemetryTargetChoice {
 	name: string;
 }
 
+/**
+ * Science aboard (plan 103, ADR 0178): the ship's situation (null when none matches or the ship
+ * has no experiments) and each experiment module with its state, reason and progress (0..1).
+ */
+export interface TelemetryScience {
+	situation: string | null;
+	experiments: Array<{
+		part: number;
+		experiment: string;
+		state: 'READY' | 'RUNNING' | 'PAUSED' | 'INVALID';
+		reason: string | null;
+		progress: number;
+	}>;
+}
+
 /** What `ship.*` returns. SI units, BCI axes (see `units-and-frames.md`). */
 export interface Telemetry {
 	/** Simulation time, s. */
@@ -147,6 +162,8 @@ export interface Telemetry {
 	target: TelemetryTarget | null;
 	/** Every body and every other vessel (debris included) the ship could target, bodies first. */
 	targets: TelemetryTargetChoice[];
+	/** Science aboard (plan 103). */
+	science: TelemetryScience;
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -317,6 +334,16 @@ export function buildTelemetry(
 					id: Number(o.id),
 					name: o.name ?? `vessel ${Number(o.id)}`
 				}))
-		]
+		],
+		science: {
+			situation: v.science?.situation ?? null,
+			experiments: (v.science?.experiments ?? []).map((e) => ({
+				part: Number(e.part),
+				experiment: e.experiment,
+				state: e.state,
+				reason: e.reason ?? null,
+				progress: e.progress
+			}))
+		}
 	};
 }

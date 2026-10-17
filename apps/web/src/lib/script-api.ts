@@ -42,6 +42,11 @@ export const GLOBALS: readonly ApiEntry[] = [
 		'action(part, module, action, ...args)',
 		'Call a module action of a part, e.g. deploy landing legs.'
 	),
+	fn(
+		'runExperiment',
+		'runExperiment(partOrExperimentId): Promise<{ ok, reason? }>',
+		'Start an experiment: by part id, or the first one of that experiment id.'
+	),
 	fn('wait', 'wait(seconds): Promise', 'Resolve after that much simulation time. Use with await.'),
 	fn(
 		'waitUntil',
@@ -136,6 +141,11 @@ export const SHIP: readonly ApiEntry[] = [
 		'The target and where it is relative to you.'
 	),
 	value('targets', '[{ kind, id, name }]', 'Every body and other vessel you could target.'),
+	value(
+		'science',
+		'{ situation, experiments: [{ part, experiment, state, reason, progress }] }',
+		'The science situation and each experiment aboard: READY, RUNNING, PAUSED or INVALID.'
+	),
 	value('refusals', '[{ command, reason }]', 'Commands the game refused since the last tick.')
 ];
 
@@ -211,6 +221,17 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 		field('ignited', 'boolean', 'The engine is burning.'),
 		field('throttle', 'number', 'Throttle the engine reports, 0..1.'),
 		field('flameout', 'boolean', 'The engine stopped for lack of propellant.')
+	],
+	'ship.science': [
+		field('situation', 'string | null', 'Science situation, e.g. stock.landed; null without experiments.'),
+		field('experiments', 'array', 'Each experiment module aboard.')
+	],
+	'ship.science.experiments[]': [
+		field('part', 'number', 'Part instance id, the argument of runExperiment().'),
+		field('experiment', 'string', 'Experiment id, e.g. stock.temperature.'),
+		field('state', 'string', 'READY, RUNNING, PAUSED or INVALID.'),
+		field('reason', 'string | null', 'Why it is PAUSED or INVALID.'),
+		field('progress', 'number', 'Run progress, 0..1.')
 	],
 	'ship.wheels[]': [
 		field('part', 'number', 'Part instance id.'),

@@ -152,6 +152,15 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 		request('action', JSON.stringify({ part, module, action, args }))
 	);
 	fixed('warp', (factor) => request('warp', JSON.stringify({ factor })));
+	// Science (plan 103): run the experiment on a part, or the first one of that experiment id.
+	fixed('runExperiment', (which) => {
+		const list = needTelemetry().science.experiments;
+		const found = typeof which === 'number'
+			? list.find((e) => e.part === which)
+			: list.find((e) => e.experiment === which && e.state !== 'RUNNING');
+		if (!found) throw new TypeError('runExperiment: no experiment ' + JSON.stringify(which) + ' aboard');
+		return request('action', JSON.stringify({ part: found.part, module: 'stock.experiment', action: 'run', args: [] }));
+	});
 	// Maneuver nodes (plan 045). The new node shows up in ship.nodes on a later tick.
 	const nodeFields = (spec) => {
 		if (typeof spec !== 'object' || spec === null) throw new TypeError('a node needs { time, prograde, normal, radial }');

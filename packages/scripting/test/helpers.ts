@@ -10,7 +10,7 @@ import {
 	type TickResult
 } from '../src/index.ts';
 
-const stack = (name: string, parts: string[], stages: number[][]): VesselDesign => ({
+export const stack = (name: string, parts: string[], stages: number[][]): VesselDesign => ({
 	formatVersion: 1,
 	name,
 	parts: parts.map((part, index) => ({
@@ -49,13 +49,13 @@ export interface Rig {
 	dispatched: Command[];
 }
 
-export async function newRig(): Promise<Rig> {
+export async function newRig(design: VesselDesign = twoStage()): Promise<Rig> {
 	const sim = await createSim({
 		plugins: [Stock],
 		backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 		seed: 1
 	});
-	const loaded = sim.dispatch({ type: 'load-vessel', design: twoStage() });
+	const loaded = sim.dispatch({ type: 'load-vessel', design });
 	if (!loaded.ok) throw new Error(loaded.reason);
 	const vessel = Number(loaded.vessel);
 	const dispatched: Command[] = [];

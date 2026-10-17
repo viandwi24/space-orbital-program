@@ -30,6 +30,7 @@ describe('script highlight', () => {
 			'setNode',
 			'removeNode',
 			'setTarget',
+			'runExperiment',
 			'bodies'
 		]) {
 			expect(flat(`${name}(1)`)[0]![0]).toBe(`api:${name}`);

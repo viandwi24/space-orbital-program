@@ -6,18 +6,24 @@ import { createSim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import { MEMBERS } from './script-api';
 
-/** Top to bottom: pod, wheel, tank, engine: every kind of part the nested tables describe. */
+/** Top to bottom: pod, thermometer, wheel, tank, engine: every kind of part the nested tables describe. */
 const craft: VesselDesign = {
 	formatVersion: 1,
 	name: 'Probe',
-	parts: ['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-small', 'stock.engine-lv'].map(
+	parts: [
+		'stock.command-pod',
+		'stock.thermometer',
+		'stock.reaction-wheel',
+		'stock.tank-small',
+		'stock.engine-lv'
+	].map(
 		(part, index) => ({
 			index,
 			part: partId(part),
 			parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
 		})
 	),
-	stages: [[3]]
+	stages: [[4]]
 };
 
 describe('the nested member tables against the real sandbox', () => {
@@ -71,6 +77,8 @@ describe('the nested member tables against the real sandbox', () => {
 					'ship.parts[].position': keys(ship.parts[0].position),
 					'ship.engines[]': keys(ship.engines[0]),
 					'ship.wheels[]': keys(ship.wheels[0]),
+					'ship.science': keys(ship.science),
+					'ship.science.experiments[]': keys(ship.science.experiments[0]),
 					'ship.nodes[]': keys(ship.nodes[0]),
 					'ship.nodes[].vector': keys(ship.nodes[0].vector),
 					'ship.target': keys(ship.target),
