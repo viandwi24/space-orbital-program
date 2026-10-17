@@ -68,4 +68,4 @@ Search for every `Ry(` / `omega` use and `+Y`-as-north assumption; list them in 
   - `bun test packages/sim/test/body-rotation.test.ts` — 6 pass: identity default equals `qAboutY(2 pi t / P)` exactly; a 23.44 degree pole maps +Y onto the pole and the angular velocity lies along it; on the tilted home planet a pad vessel moves under 0.05 m body-fixed in 10 s and stands within 1 degree of vertical; after `warp-to` 10 game days on surface rails it is within 1e-6 m of its body-fixed place.
   - `bunx vitest run src/lib/tilted-navball.test.ts` — the navball pitch on the tilted pad is 90.00 degrees (to 0.005), and north follows the pole.
   - `bun test ./packages`, `./mods`, `./examples` — 1386, 93, 7 pass; `bunx vitest run` (apps/web) — 916 passed, 2 failed in `sim-host-script-worker.test.ts` (as on `origin/main` on this M2); `bun run typecheck` — 0 errors; build ok; `bun run docs:check` — OK; `playwright test e2e/smoke.e2e.ts e2e/launch.e2e.ts --project=chromium` — 7 passed (4.8 m).
-  - `API_VERSION` 0.1.40 (additive `BodyDefinition.rotation`).
+  - `API_VERSION` 0.1.41 (0.1.40 went to 103; additive `BodyDefinition.rotation`).

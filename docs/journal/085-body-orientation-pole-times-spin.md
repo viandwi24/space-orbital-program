@@ -8,7 +8,7 @@
 
 - `packages/core/src/body-rotation.ts`: `bodyOrientation`, `bodyPole`, `bodyAngularVelocity`, `poleQuaternion`, `spinAngle`, `spinRate`, `spinRateAt`.
 - `BodyDefinition.rotation`, which is optional: `{ pole?: { ra, dec } | quaternion, w0?, wDot?, periodic?[] }`.
-- `API_VERSION` 0.1.40.
+- `API_VERSION` 0.1.41 (0.1.40 went to 103, merged first).
 - The sim reads the orientation through `rotationAt(body, t)` and `spinAt(body, t)` in `bodies.ts`.
 - The web reads `bodyPole` for the navball horizon and `spinVector` for surface speed and blackout.
 - Tests:
