@@ -2,15 +2,15 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 095 economy (claim/095, `lead/095-economy`), step 1: ledger and save field.
-**Waiting for:** — for 095; cp/f1-084-sites for 090 and 068
+**Now:** 095 merged (cp/f3-095-economy). Merge queue: ready/081. Next in lane: 090 (waits cp/f1-084-sites).
+**Waiting for:** cp/f1-084-sites (090, 068)
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
 |---|---|---|---|---|
 | 077 world | done | `lead/077-world-container` | 2026-10-17 | merged, cp/f1-077-world |
 | 078 rules | done | `lead/078-world-rules` | 2026-10-17 | merged, cp/f1-078-rules |
-| 095 economy | in-progress | `lead/095-economy` | 2026-10-17 | claim/095 |
+| 095 economy | done | `lead/095-economy` | 2026-10-17 | merged a060d06, cp/f3-095-economy |
 | 090 buildings | todo |  | 2026-10-17 | draft refined; waits cp/f1-084-sites |
 | 068 terrain-aa | todo |  |  |  |
 | 091 space-center | todo |  |  |  |

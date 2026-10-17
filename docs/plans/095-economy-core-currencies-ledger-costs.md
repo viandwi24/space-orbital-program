@@ -1,7 +1,7 @@
 ---
 id: 095
 title: "Economy core: currencies, ledger, part costs and recovery"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [078, 082]
 phase: 6

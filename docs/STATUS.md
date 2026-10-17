@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy; Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); Agent 1 next: 090 buildings (waits for `cp/f1-084-sites`); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -103,7 +103,7 @@
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | draft | — | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
 | 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | draft | — | ADR 0097: facility, filtered designs, seats, launch |
-| 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | in-progress | Agent 1 | ADR 0098: ledger with causes, costs, recovery, running costs, career bot |
+| 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | done | Agent 1 | ADR 0113: ledger in the save, part costs and prices, charges on the world tick, launch debit, `recover-vessel`, career bot 120 missions in band; HUD dialog in draft 132; API 0.1.30 |
 | 096 | [Buildings with costs, construction time, upkeep and capacity limits](plans/096-building-catalogue-levels-upkeep-capacity.md) | draft | — | ADR 0097/0098: construction, levels, upkeep, capacity-only gates |
 | 097 | [Markets and production: one commodity chain first](plans/097-markets-and-production.md) | draft | — | ADR 0098: commodities, damped prices, one production chain |
 | 098 | [Objectives: the evaluator behind contracts and missions](plans/098-objectives-contract-and-mission-definitions.md) | draft | — | ADR 0098: one objective evaluator |
@@ -199,6 +199,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [095 — Economy core: currencies, ledger, part costs and recovery](journal/095-economy-core-currencies-ledger-costs.md)
 - [082 — World tick and background operations](journal/082-world-tick-and-background-operations.md)
 - [074 — Rename the product to Space Orbital Program](journal/074-rename-space-orbital-program.md)
 - [086 — UI stage 1: refs tokens, Manrope and the accessibility floor](journal/086-ui-stage-1-tokens-fonts-accessibility.md)
