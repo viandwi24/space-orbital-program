@@ -1,8 +1,8 @@
 ---
 id: 087
 title: "Worlds screen and Create World"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [077, 078, 081, 086]
 phase: 5
 created: 2026-10-17
