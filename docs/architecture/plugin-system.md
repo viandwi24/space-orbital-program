@@ -140,6 +140,10 @@ Config literals are checked against the module's schema input type (wrong type, 
 - Trees: `{ objective, params }`, `{ all }`, `{ any }`, `{ sequence }` (a sequence evaluates only its current step). `evaluateObjectives(tree, leaves, lookup, view)` is the pure evaluator.
 - `defineContract({ id, title, objectives, reward?, penalty?, deadline?, prerequisites? })` and `defineMission({ id, title, objectives, reward?, prerequisites? })` (`ctx.contracts`, `ctx.missions`). Their leaves are checked at load: the objective must be registered and its params must parse. Rewards and penalties are `{ currency, amount }` ledger entries.
 - Stock primitives: `stock.reach-orbit`, `stock.land`, `stock.reach-altitude`, `stock.enter-soi`, `stock.flyby`, `stock.return-home`, `stock.before`.
+### Crew (API 0.1.36, plan 106, ADR 0176)
+- `defineCrewTrait({ id, label, abilities, weight? })` (`ctx.crewTraits`): `abilities` are factors on the quality keys `controlSmoothing`, `scriptBudget`, `repairRate`, `dataQuality`, `gTolerance` and `panicResistance` (`ABILITY_KEYS`), never a tool (ADR 0098). `abilitiesOf(member, traits)` gives profession × level × traits.
+- `defineCrewNames({ id, first, last })` (`ctx.crewNames`): syllables that hired crew names are drawn from, with the world's `crew` stream.
+- Parts declare seats with `crewCapacity`.
 
 ## Type sharing between plugins
 
