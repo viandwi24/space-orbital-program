@@ -14,3 +14,4 @@ export * from './patched.ts';
 export * from './maneuver.ts';
 export * from './approach.ts';
 export * from './body-state.ts';
+export * from './rendezvous.ts';
