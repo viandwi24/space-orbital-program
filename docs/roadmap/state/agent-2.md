@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 074 handed over (`ready/074`); next in lane: 081 calendar (its wait, `cp/f1-077-world`, has landed).
+**Now:** 081 calendar (claim/081): research time scales, then core `Epoch` and calendars.
 **Waiting for:** merge of 074 (`ready/074`).
 **Updated:** 2026-10-17
 
@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | 086 tokens | done | `devb/086-ui-tokens` | 2026-10-17 | merged a9999b3, cp/f1-086-tokens (M5 frame measurement open, Agent 1) |
 | 074 rename | handed-over | `devb/074-rename` | 2026-10-17 | ready/074 |
-| 081 calendar | todo |  |  |  |
+| 081 calendar | in-progress | `devb/081-calendar` | 2026-10-17 | claim/081 |
 | 084 sites | todo |  |  |  |
 | 087 worlds-screen | todo |  |  |  |
 | 088 hud | todo |  |  |  |
