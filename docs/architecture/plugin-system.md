@@ -145,6 +145,7 @@ Config literals are checked against the module's schema input type (wrong type, 
 - `defineCrewTrait({ id, label, abilities, weight? })` (`ctx.crewTraits`): `abilities` are factors on the quality keys `controlSmoothing`, `scriptBudget`, `repairRate`, `dataQuality`, `gTolerance` and `panicResistance` (`ABILITY_KEYS`), never a tool (ADR 0098). `abilitiesOf(member, traits)` gives profession × level × traits.
 - `defineCrewNames({ id, first, last })` (`ctx.crewNames`): syllables that hired crew names are drawn from, with the world's `crew` stream.
 - Parts declare seats with `crewCapacity`.
+- `defineSituation({ id, label, order, matches })` (`ctx.situations`) and `defineExperiment({ id, label, kind, situations, baseValue, repeatFactor, capFactor?, duration, power?, bits?, mass?, transmitFactor })` (`ctx.experiments`), plan 103, ADR 0178. Bodies may carry `science: { flyingHigh?, spaceHigh?, multiplier? }`. Modules get `ctx.vessel.situation()`, `ctx.vessel.science.result(experiment)` and `.credit(subject, value)`, the hook `onRecover`, and `ModuleInfo.experiment` for the snapshot. Load-report kinds are `situation` and `experiment`.
 
 ## Type sharing between plugins
 
