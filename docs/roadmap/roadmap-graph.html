@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="id">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Visual view of team-development-roadmap.md §4.3–§6 (flow graph, stages, swimlanes). Open in a browser. The schedule data is copied from §4.3/§4.5; update both together. -->
+<title>Roadmap Tiga Agen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: mission-control board. Header strip, swimlane timeline (agent-hours 0–46), detail panel, then reference cards. Visual language = project ADR 0107 (dark glass, one blue accent). */
+:root {
+  --bg: #eef0f4; --surface: #ffffff; --surface-2: #f5f6f9; --line: rgba(20,24,36,.10);
+  --fg: #14171f; --muted: #5b6274; --faint: #8a90a0;
+  --accent: #3E6AE1; --accent-soft: rgba(62,106,225,.14);
+  --ok: #1f9d4c; --warn: #b8670f; --danger: #c43c42;
+  --p1: #6b8fd6; --p2: #4fa5a0; --p3: #c08a3e; --p4: #9a6bd0; --p5: #d0776b; --p6: #7c8a99;
+  --bar-fg: #ffffff; --band: rgba(20,24,36,.035);
+  --sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d0e11; --surface: rgba(22,23,26,.92); --surface-2: #17181c; --line: rgba(255,255,255,.08);
+  --fg: #eceef3; --muted: #9aa0ad; --faint: #6c717d;
+  --accent: #5b82ee; --accent-soft: rgba(62,106,225,.22);
+  --ok: #7BD88F; --warn: #FFB86B; --danger: #FF8A8E;
+  --p1: #4d6fb8; --p2: #3b8580; --p3: #9c6f30; --p4: #7a52ad; --p5: #a85a50; --p6: #5d6875;
+  --bar-fg: #f4f6fa; --band: rgba(255,255,255,.025); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d0e11; --surface: rgba(22,23,26,.92); --surface-2: #17181c; --line: rgba(255,255,255,.08);
+  --fg: #eceef3; --muted: #9aa0ad; --faint: #6c717d;
+  --accent: #5b82ee; --accent-soft: rgba(62,106,225,.22);
+  --ok: #7BD88F; --warn: #FFB86B; --danger: #FF8A8E;
+  --p1: #4d6fb8; --p2: #3b8580; --p3: #9c6f30; --p4: #7a52ad; --p5: #a85a50; --p6: #5d6875;
+  --bar-fg: #f4f6fa; --band: rgba(255,255,255,.025); color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px }
+h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.01em }
+h1 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 800 }
+h2 { font-size: 18px; font-weight: 700 }
+h3 { font-size: 14px; font-weight: 700 }
+p { margin: 0 }
+.label { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
+.num { font-variant-numeric: tabular-nums }
+.mono { font-family: var(--mono); font-size: 12px }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; min-width: 0 }
+
+header.top { display: grid; gap: 14px }
+.sub { color: var(--muted); max-width: 70ch }
+.stats { display: flex; flex-wrap: wrap; gap: 10px }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: grid; gap: 2px; min-width: 120px }
+.stat b { font-size: 22px; font-weight: 800 }
+.stat.hl b { color: var(--accent) }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.chip { font: inherit; font-size: 12px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 32px }
+.chip:hover { border-color: var(--muted) }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.chip:focus-visible, .bar:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block }
+
+/* timeline */
+.tl-scroll { overflow-x: auto; border-radius: 12px }
+.tl { position: relative; min-width: 1120px; --lab: 150px }
+.axis, .lane { display: grid; grid-template-columns: var(--lab) 1fr }
+.axis .track { position: relative; height: 44px }
+.tick { position: absolute; top: 24px; font-size: 10px; color: var(--faint); transform: translateX(-50%) }
+.win { position: absolute; top: 2px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-left: 6px }
+.lane { border-top: 1px solid var(--line) }
+.lane-head { padding: 10px 10px 10px 0; display: grid; gap: 2px; align-content: center }
+.lane-head b { font-size: 13px }
+.lane-head span { font-size: 11px; color: var(--muted) }
+.lane .track { position: relative; height: 92px }
+.band { position: absolute; top: 0; bottom: 0; background: var(--band); pointer-events: none }
+.gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); pointer-events: none }
+.bar { position: absolute; height: 34px; border-radius: 8px; border: 0; padding: 0 6px; cursor: pointer;
+  color: var(--bar-fg); font: inherit; font-size: 11px; font-weight: 700; text-align: left; overflow: hidden; white-space: nowrap;
+  display: flex; flex-direction: column; justify-content: center; line-height: 1.15; transition: opacity .15s, box-shadow .15s }
+.bar small { font-weight: 500; opacity: .85; font-size: 10px; overflow: hidden; text-overflow: ellipsis }
+.bar.row0 { top: 8px } .bar.row1 { top: 50px }
+.bar.human { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 4px, transparent 4px 9px) }
+.tl.dim .bar { opacity: .22 }
+.tl.dim .bar.on { opacity: 1 }
+.bar.sel { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent) }
+.bar.dep { box-shadow: 0 0 0 2px var(--warn) }
+.bar.child { box-shadow: 0 0 0 2px var(--ok) }
+.bar.crit { box-shadow: 0 0 0 2px var(--fg) }
+.cp-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--fg); transform: translate(-50%, 0); top: 84px; pointer-events: none; opacity: .5 }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); align-items: center }
+.legend i { display: inline-block; width: 18px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
+
+/* detail */
+.detail { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 18px }
+.detail .big { font-size: 26px; font-weight: 800 }
+.tags { display: flex; flex-wrap: wrap; gap: 6px }
+.tag { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; color: var(--fg) }
+.tag.wait { border-color: var(--warn) } .tag.next { border-color: var(--ok) }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px }
+.kv dt { color: var(--muted) } .kv dd { margin: 0 }
+
+/* reference grid */
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px }
+.agent { display: grid; gap: 10px }
+.agent .who { display: flex; align-items: baseline; justify-content: space-between; gap: 8px }
+ul.clean { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--muted) }
+ul.clean b { color: var(--fg); font-weight: 600 }
+.prompt { display: flex; gap: 8px; align-items: stretch; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 8px 12px }
+.prompt code { font-family: var(--mono); font-size: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; align-self: center }
+.copy { font: inherit; font-size: 11px; font-weight: 700; border: 0; border-radius: 8px; padding: 6px 10px; background: var(--fg); color: var(--bg); cursor: pointer; white-space: nowrap }
+table.cp { width: 100%; border-collapse: collapse; font-size: 13px }
+table.cp th { text-align: left; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line) }
+table.cp td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top }
+.tbl { overflow-x: auto }
+ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 10px }
+ol.steps li::marker { font-weight: 800; color: var(--accent) }
+pre.cmd { margin: 6px 0 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 12px; overflow-x: auto; white-space: pre }
+.crit-path { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-family: var(--mono); font-size: 12px }
+.crit-path span.n { padding: 3px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); cursor: pointer }
+.crit-path span.a { color: var(--faint) }
+.note { font-size: 12px; color: var(--muted) }
+
+/* git-graph */
+.gg { display: grid; grid-template-columns: 112px minmax(0, 1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface-2) }
+.gg-labels { position: relative; border-right: 1px solid var(--line); background: var(--surface) }
+.gg-labels div { position: absolute; left: 12px; right: 8px; transform: translateY(-50%); display: grid; line-height: 1.2 }
+.gg-labels b { font-size: 13px } .gg-labels span { font-size: 10px; color: var(--muted) }
+.gg-scroll { overflow-x: auto }
+.gg svg { display: block }
+.gg text { font-family: var(--sans); fill: var(--fg) }
+.gg .hr { font-size: 10px; fill: var(--faint) }
+.gg .wl { font-size: 10px; font-weight: 700; letter-spacing: .1em; fill: var(--muted) }
+.gg .lab { font-size: 11px; font-weight: 700 }
+.gg .lab tspan.s { font-weight: 500; fill: var(--muted) }
+.gg .node { cursor: pointer }
+.gg .node:focus-visible circle.dot { stroke: var(--accent); stroke-width: 4 }
+.gg .edge { fill: none; stroke: var(--faint); stroke-width: 1.6; stroke-dasharray: 0 }
+.gg .edge.extra { display: none }
+.gg .edge.hd { display: inline; stroke: var(--warn); stroke-width: 2.4 }
+.gg .edge.hk { display: inline; stroke: var(--ok); stroke-width: 2.4 }
+.gg.focus .node { opacity: .3 } .gg.focus .node.on { opacity: 1 }
+.gg.focus .edge:not(.hd):not(.hk) { opacity: .25 }
+.gg .node.sel circle.dot { stroke: var(--accent); stroke-width: 4 }
+.gg-help { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted) }
+
+/* stages */
+.stages { display: grid; gap: 0; border-top: 1px solid var(--line) }
+.stage { display: grid; grid-template-columns: 130px repeat(3, minmax(0, 1fr)); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line) }
+.stage-h b { display: block; font-size: 14px } .stage-h span { font-size: 11px; color: var(--muted) }
+.cell { display: grid; gap: 6px; align-content: start; min-width: 0 }
+.cell .who { display: none; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.job { display: grid; gap: 2px; border: 1px solid var(--line); border-left: 4px solid; border-radius: 8px; padding: 6px 8px; background: var(--surface-2); cursor: pointer; text-align: left; font: inherit; color: var(--fg) }
+.job b { font-size: 12px } .job span { font-size: 11px; color: var(--muted) }
+.job .w { color: var(--warn) }
+.idle { font-size: 11px; color: var(--faint) }
+.stage-head { display: grid; grid-template-columns: 130px repeat(3, minmax(0, 1fr)); gap: 12px; padding-bottom: 8px }
+
+@media (max-width: 900px) {
+  .detail, .grid3, .grid2 { grid-template-columns: 1fr }
+  .stage, .stage-head { grid-template-columns: 1fr } .stage-head { display: none } .cell .who { display: block }
+}
+@media (prefers-reduced-motion: reduce) { .bar { transition: none } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="label">Space Orbital Program · docs/roadmap</span>
+    <h1>Roadmap tiga agen, 68 plan, ±46 jam</h1>
+    <p class="sub">Peta jadwal dari <span class="mono">team-development-roadmap.md</span> §4.3. Sumbu waktu = jam kerja agen sejak kickoff. Klik sebuah plan untuk melihat apa yang harus ditunggu (oranye) dan apa yang dibukanya (hijau). Angka adalah perkiraan, bukan janji.</p>
+    <div class="stats">
+      <div class="stat hl"><span class="label">3 mesin</span><b class="num">≈46 j</b></div>
+      <div class="stat"><span class="label">1 mesin</span><b class="num">≈111 j</b></div>
+      <div class="stat"><span class="label">Percepatan</span><b class="num">2,4×</b></div>
+      <div class="stat"><span class="label">Plan</span><b class="num">68</b></div>
+      <div class="stat"><span class="label">Jalur kritis</span><b class="num">≈17 j</b></div>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="gg-h" style="display:grid;gap:12px">
+    <h2 id="gg-h">Graf alur: siapa jalan duluan, siapa paralel</h2>
+    <p class="sub">Dibaca seperti git graph, dari kiri ke kanan. Setiap garis horizontal adalah satu agen. Titik adalah plan yang mulai dikerjakan. Plan yang berada di posisi vertikal sama berjalan paralel di mesin berbeda. Garis lengkung antar-agen artinya "tunggu checkpoint dari agen lain dulu" (yang ditampilkan hanya yang paling akhir selesai). Klik titik untuk melihat semua yang ditunggu dan yang dibukanya.</p>
+    <div class="gg" id="gg"><div class="gg-labels" id="ggLabels"></div><div class="gg-scroll"><svg id="ggSvg" role="img" aria-label="Graf alur tiga agen"></svg></div></div>
+    <div class="gg-help">
+      <span><b style="color:var(--fg)">init</b> = Lead push + tag cp/f0-kickoff, lalu dua dev clone</span>
+      <span style="color:var(--warn)">oranye = ditunggu plan terpilih</span>
+      <span style="color:var(--ok)">hijau = dibuka plan terpilih</span>
+      <span>geser ke kanan untuk jam berikutnya</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="st-h" style="display:grid;gap:12px">
+    <h2 id="st-h">Urutan per tahap</h2>
+    <p class="sub">Versi daftar dari graf di atas, dipotong per 4 jam kerja. Satu baris = yang dimulai bersamaan di tiga mesin. Tulisan oranye = harus menunggu tag checkpoint dari agen lain sebelum boleh mulai.</p>
+    <div>
+      <div class="stage-head label"><span>Tahap</span><span>Agent 1 · Lead</span><span>Agent 2 · Dev B</span><span>Agent 3 · Dev C</span></div>
+      <div class="stages" id="stages"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="tl-h">
+    <div style="display:grid;gap:12px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center">
+        <h2 id="tl-h">Swimlane per agen</h2>
+        <div class="controls" id="filters"></div>
+      </div>
+      <div class="tl-scroll"><div class="tl" id="tl"></div></div>
+      <div class="legend">
+        <span><i style="box-shadow:0 0 0 2px var(--warn) inset"></i>harus ditunggu (WAIT)</span>
+        <span><i style="box-shadow:0 0 0 2px var(--ok) inset"></i>dibuka oleh plan ini</span>
+        <span><i style="box-shadow:0 0 0 2px var(--fg) inset"></i>jalur kritis</span>
+        <span><i style="background:var(--p6);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.3) 0 4px,transparent 4px 9px)"></i>butuh manusia/perangkat</span>
+        <span>Bar = mulai → checkpoint ter-merge</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel detail" id="detail" aria-live="polite"></section>
+
+  <section class="grid3" aria-label="Agen">
+    <div class="panel agent">
+      <div class="who"><h2>Agent 1 · Lead</h2><span class="label">M5</span></div>
+      <ul class="clean">
+        <li>Branch <b class="mono">lead/</b> · port <b>5200–5209</b></li>
+        <li>ADR <b>0109–0139</b> · plan baru <b>132–159</b></li>
+        <li>Fondasi dulu: <b>077 world</b>, lalu <b>078 rules</b></li>
+        <li>Merge semua <span class="mono">ready/*</span>, tag <span class="mono">cp/*</span>, ukur frame time M5</li>
+        <li>Sub-worker maks <b>3</b> · berhenti jika swap &gt; 4 GB atau load &gt; 12</li>
+      </ul>
+      <div class="prompt"><code>Baca docs/roadmap/README.md. Kamu adalah Agent 1 (Lead).</code><button class="copy" type="button">Salin</button></div>
+    </div>
+    <div class="panel agent">
+      <div class="who"><h2>Agent 2 · Dev B</h2><span class="label">M2 13″</span></div>
+      <ul class="clean">
+        <li>Branch <b class="mono">devb/</b> · port <b>5210–5219</b></li>
+        <li>ADR <b>0140–0169</b> · plan baru <b>160–189</b></li>
+        <li>Lane UI: tokens, HUD, hangar, panel, comms UI</li>
+        <li>Lane terpanjang, tidak pernah idle; dijadwalkan 10 % lebih lambat (panas)</li>
+        <li>Sub-worker maks <b>2</b> · berhenti jika swap &gt; 2 GB atau speed limit &lt; 80</li>
+      </ul>
+      <div class="prompt"><code>Baca docs/roadmap/README.md. Kamu adalah Agent 2 (Dev B).</code><button class="copy" type="button">Salin</button></div>
+    </div>
+    <div class="panel agent">
+      <div class="who"><h2>Agent 3 · Dev C</h2><span class="label">Linux Mint · 6 CPU · 8 GB</span></div>
+      <ul class="clean">
+        <li>Branch <b class="mono">devc/</b> · port <b>5220–5229</b></li>
+        <li>ADR <b>0170–0199</b> · plan baru <b>190–219</b></li>
+        <li>Lane sim: patch, tick, sains, kru, rantai comms 114→121</li>
+        <li>Menjalankan e2e Firefox di setiap gerbang fase</li>
+        <li>Sub-worker maks <b>2</b> · berhenti jika RAM tersedia &lt; 1 GB, load &gt; 6, atau core &gt; 90 °C</li>
+      </ul>
+      <div class="prompt"><code>Baca docs/roadmap/README.md. Kamu adalah Agent 3 (Dev C).</code><button class="copy" type="button">Salin</button></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel" style="display:grid;gap:12px">
+      <h2>Checkpoint yang membuka paling banyak kerja</h2>
+      <div class="tbl"><table class="cp">
+        <thead><tr><th>Checkpoint</th><th>Oleh</th><th>Membuka</th></tr></thead>
+        <tbody id="cpBody"></tbody>
+      </table></div>
+      <p class="note">Setiap plan yang di-merge memberi satu tag <span class="mono">cp/f&lt;fase&gt;-&lt;NNN&gt;-&lt;slug&gt;</span>. Daftar lengkap ada di <span class="mono">checkpoints.md</span>.</p>
+    </div>
+    <div class="panel" style="display:grid;gap:12px">
+      <h2>Jalur kritis</h2>
+      <div class="crit-path" id="critPath"></div>
+      <p class="note">Rantai comms, ±17 jam walau mesinnya tak terbatas. Saingan terdekat: karier 077 → 078 → 087 → 091 → 094 → 096 → 097 → 126 (±16,5 j). Yang paling menentukan sebenarnya lane Agent 2: kalau tertinggal, pindahkan 131 lalu 065 ke Agent 3.</p>
+      <h3>Protokol tag git</h3>
+      <ul class="clean">
+        <li><b class="mono">claim/NNN</b> sebelum mulai plan</li>
+        <li><b class="mono">ready/NNN</b> saat siap diserahkan ke Lead</li>
+        <li><b class="mono">bounce/NNN</b> jika Lead mengembalikan</li>
+        <li><b class="mono">cp/…</b> hanya dibuat Lead setelah merge ke <span class="mono">main</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="panel" style="display:grid;gap:14px">
+    <h2>Kickoff: dari komputer ini ke dua dev lain</h2>
+    <ol class="steps">
+      <li><b>Push dari terminal kamu sendiri</b> (shell Claude tidak punya kunci SSH kamu). Ada 8 commit dokumen yang belum di-push.
+        <pre class="cmd">git push origin main
+git tag cp/f0-kickoff
+git push origin cp/f0-kickoff</pre></li>
+      <li><b>Beri akses push</b> ke repo <span class="mono">viandwi24/space-orbital-program</span> untuk akun GitHub di mesin M2 dan Linux.</li>
+      <li><b>Di M2 dan Linux:</b> clone, pasang dependensi, lalu jalankan baseline dan catat durasi serta memori puncaknya.
+        <pre class="cmd">git clone git@github.com:viandwi24/space-orbital-program.git
+cd space-orbital-program && bun install
+bun test && bun run typecheck && bun run docs:check</pre></li>
+      <li><b>Tempel prompt agen</b> di sesi Claude Code masing-masing mesin (tombol Salin di kartu agen di atas). Untuk melanjutkan sesi berikutnya: <span class="mono">Lanjutkan pekerjaanmu sesuai docs/roadmap/README.md. Kamu adalah Agent 2.</span></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const PH = { F1:'--p1', F2:'--p2', F3:'--p3', F4:'--p4', F5:'--p5', F6:'--p6' };
+const PH_NAME = { F1:'F1 Kontrak', F2:'F2 Dunia & Space Center', F3:'F3 Karier', F4:'F4 Kontrol & Comms', F5:'F5 Langit nyata', F6:'F6 Frontier' };
+// [plan, slug, size, agent, start, end, phase, title, deps]
+const P = [
+ ['077','world','M',1,0.5,2.5,'F1','World container: worlds own saves, save format 5',[]],
+ ['078','rules','M',1,2.5,5.0,'F1','World rules, presets and the rule changelog',['077']],
+ ['095','economy','M',1,5.0,7.0,'F3','Economy core: currencies, ledger, part costs and recovery',['078','082']],
+ ['090','buildings','S',1,7.0,8.5,'F2','Buildings as data: defineBuilding and placement rules',['084','079']],
+ ['068','terrain-aa','M',1,9.0,11.0,'F2','Analytic terrain gradients and anti-aliased silhouettes',['084']],
+ ['091','space-center','L',1,11.2,14.8,'F2','Space Center in 3D with free grid placement',['090','086','087']],
+ ['113','mission-center','M',1,14.8,17.5,'F4','Mission Center: one place for the whole system',['080','081','086']],
+ ['122','sun','L',1,17.5,21.2,'F5','The Sun as root, axial tilt and seasons',['085','081']],
+ ['096','building-levels','M',1,21.2,23.5,'F3','Buildings with costs, construction time, upkeep and capacity',['091','095','094']],
+ ['109','eva','L',1,23.8,27.2,'F3','EVA: crew as actors outside the vessel',['106','103']],
+ ['097','markets','L',1,27.2,30.5,'F3','Markets and production: one commodity chain first',['095','096']],
+ ['071','second-planet','L',1,30.5,34.0,'F5','Atmosphere, sea and variety on a second hills planet',['122']],
+ ['125','n-body','XL',1,34.0,40.5,'F5','N-body gravity model (future; DE440)',['080','123']],
+ ['128','bases','L',1,40.5,44.5,'F6','Off-world bases: base kits and parts left on the surface',['096','092','082']],
+ ['070','comms-index','S',1,44.5,44.8,'F4','Communications: index of the comms tier plans 114 to 121',['114','115','116','117','118','119','120','121']],
+
+ ['086','tokens','S',2,0.5,1.9,'F1','UI stage 1: refs tokens, Manrope and the accessibility floor',[]],
+ ['074','rename','S',2,1.6,3.0,'F1','Rename the product to Space Orbital Program',[]],
+ ['081','calendar','S',2,2.7,4.0,'F1','Calendar and world epoch: dates in the game',['077']],
+ ['084','sites','M',2,3.8,5.7,'F1','Sites in the world: terrain seed and flat zones',['077']],
+ ['087','worlds-screen','M',2,5.5,7.3,'F2','Worlds screen and Create World',['077','078','081','086']],
+ ['088','hud','M',2,7.1,9.0,'F2','UI stage 2: the flight HUD in the refs style',['086','081']],
+ ['085','orientation','M',2,8.8,10.7,'F1','Body orientation as pole times spin',[]],
+ ['076','roadmap-page','S',2,10.4,11.8,'F1','Public roadmap page by phase, without dates',[]],
+ ['069','categories','S',2,11.5,13.0,'F2','Mod-defined catalogue categories',['086']],
+ ['089','menus','S',2,12.6,13.9,'F2','UI stage 3: Home, menus, settings and public pages',['086','074','075','076']],
+ ['093','hangar','M',2,13.7,15.8,'F2','UI stage 4: the Hangar in the refs layout',['086','069']],
+ ['112','dock','M',2,15.3,17.2,'F4','Dock panels, the Panel library and definePanel',['088']],
+ ['094','launch','S',2,17.0,18.5,'F2','Launch screen: site, pad or runway, design, crew',['091','093']],
+ ['102','milestones','M',2,18.1,20.0,'F3','Milestones, world history and local achievements',['082','087']],
+ ['108','astronauts','M',2,19.8,21.6,'F3','Astronaut Complex and the crew panel',['106','088','091','094']],
+ ['100','missions','M',2,21.4,23.3,'F3','Authored missions, story line and mission packs',['098','087']],
+ ['111','vessel-panel','M',2,23.1,24.9,'F4','Vessel panel: group control and per-part actions',['110','088']],
+ ['105','tech-tree','M',2,24.7,26.6,'F3','Tech tree and R&D',['103','095','102','091','094']],
+ ['115','comms-1-ui','M',2,26.4,28.2,'F4','Comms tier 1 in the interface: link state, Network layer',['114','111','113']],
+ ['127','range-safety','M',2,28.0,29.9,'F6','Range safety: azimuth fans and stage impact zones',['092','095','078','094','067']],
+ ['130','reliability','L',2,29.6,32.9,'F6','Part reliability (world rule, off by default)',['078','095','109','090']],
+ ['118','comms-tools','M',2,32.4,34.3,'F4','Comms planning tools: timeline, coverage, constellations',['117']],
+ ['066','devices','M',2,34.0,36.0,'F6','Environment on real devices: M1/M2, Intel, phones',['088','091'],1],
+ ['131','replays','M',2,35.7,37.6,'F6','Replays and challenges as files',['077']],
+ ['065','mod-models','M',2,37.4,39.2,'F6','Richer mod models: deploy animations, KTX2, LOD',['079','090','110','091']],
+ ['063','aeroplane','L',2,39.0,42.2,'F6','Aeroplane gameplay: gear, runway, trim, flaps',['091','094','110']],
+ ['072','script-panel','S',2,41.8,43.1,'F6','Script editor: human pass and small screens',['112'],1],
+ ['073','phone','L',2,42.9,46.1,'F6','Compact flight HUD and VAB for phones',['088','093','066'],1],
+
+ ['079','patch','M',3,0.5,2.2,'F1','Typed data patches: definePatch with provenance',[]],
+ ['075','licence','S',3,2.0,3.2,'F1','Apache-2.0: package metadata, credits, mod licence field',[]],
+ ['082','tick','M',3,3.0,4.8,'F1','World tick and background operations',['077']],
+ ['083','data','M',3,4.5,6.2,'F1','Data items: sized data stored on vessels',['077']],
+ ['080','trajectory','M',3,6.0,7.8,'F1','Trajectory provider interface (patched conics)',['077']],
+ ['110','part-actions','S',3,7.5,8.8,'F4','Part action descriptors and action groups',[]],
+ ['092','site-choice','M',3,8.5,10.2,'F2','Site choice at world creation and location templates',['084','087','090']],
+ ['098','objectives','S',3,10.0,11.2,'F3','Objectives: the evaluator behind contracts and missions',['078','082']],
+ ['106','crew','M',3,11.0,12.8,'F3','Crew core: roster, professions, traits, XP, seats',['078','082']],
+ ['103','science','L',3,12.5,15.5,'F3','Science core: experiments, situations, data, samples',['083','078']],
+ ['114','comms-1','M',3,15.0,16.8,'F4','Comms tier 1: antennas, line of sight, control states',['084','082']],
+ ['104','regions','M',3,16.5,18.2,'F3','Regions on bodies and body dossiers',['103']],
+ ['107','crew-sim','L',3,18.0,21.0,'F3','Crew simulation: life support, morale, rest, g-load',['106']],
+ ['067','buoyancy','M',3,20.5,22.2,'F3','Floating, sinking and boats',['095','103']],
+ ['123','elements','M',3,22.0,23.8,'F5','Body orbits from elements with secular rates, lunar model',['080','122']],
+ ['099','contracts','M',3,23.5,25.2,'F3','Procedural contracts',['098','095','096']],
+ ['101','strategies','M',3,25.0,26.9,'F3','Strategies: bounded policies in Administration',['095','096']],
+ ['116','comms-2','M',3,28.2,30.1,'F4','Comms tier 2: link budget, bands, data rates',['114','115']],
+ ['117','comms-3','M',3,30.1,31.9,'F4','Comms tier 3: pointing, routing, latency, signal delay',['116','078']],
+ ['119','comms-4','M',3,31.9,33.6,'F4','Comms tier 4: queues, store-and-forward, contact windows',['117','083']],
+ ['126','agencies','L',3,33.4,36.5,'F6','AI agencies and a living world',['082','099','114','097','117']],
+ ['120','comms-5','M',3,35.9,37.9,'F4','Comms tier 5: channels, licences, interference, encryption',['119']],
+ ['124','sol','L',3,37.4,40.4,'F5','Real solar system pack "Sol": 1:1 and rescaled',['123','092','071']],
+ ['121','comms-6','S',3,39.9,41.1,'F4','Comms tier 6: suit radios, voice, live broadcasts',['120','109','108','102']],
+ ['129','discovery','L',3,40.9,43.9,'F6','Discovery science (optional world rule)',['104','119']],
+].map(r => ({ n:r[0], slug:r[1], size:r[2], agent:r[3], s:r[4], e:r[5], ph:r[6], title:r[7], deps:r[8], human:!!r[9] }));
+const BY = Object.fromEntries(P.map(p => [p.n, p]));
+P.forEach(p => p.kids = []);
+P.forEach(p => p.deps.forEach(d => BY[d] && BY[d].kids.push(p.n)));
+const CRIT = ['077','081','088','111','115','116','117','119','120','121','070'];
+const AG = { 1:['Agent 1 · Lead','MacBook Pro M5'], 2:['Agent 2 · Dev B','MacBook Pro M2 13″'], 3:['Agent 3 · Dev C','Linux Mint · 8 GB'] };
+const WINS = [[0,9,'W1 · F1'],[9,18,'W2 · F2'],[18,30,'W3 · F3'],[30,41,'W4 · F4'],[41,47,'W5 · F6']];
+const MAX = 47;
+const pct = h => (h / MAX * 100) + '%';
+const cpTag = p => `cp/${p.ph.toLowerCase()}-${p.n}-${p.slug}`;
+
+const state = { sel: '077', crit: false, phase: null };
+try { const s = localStorage.getItem('rm-sel'); if (s && BY[s]) state.sel = s; } catch (e) {}
+
+function buildTimeline() {
+  const tl = document.getElementById('tl');
+  let html = '<div class="axis"><div></div><div class="track">';
+  WINS.forEach(([a,b,l]) => html += `<span class="win" style="left:${pct(a)}">${l}</span>`);
+  for (let h = 0; h <= 46; h += 2) html += `<span class="tick num" style="left:${pct(h)}">${h} j</span>`;
+  html += '</div></div>';
+  [1,2,3].forEach(a => {
+    html += `<div class="lane"><div class="lane-head"><b>${AG[a][0]}</b><span>${AG[a][1]}</span></div><div class="track">`;
+    WINS.forEach(([s,e],i) => { if (i % 2 === 0) html += `<div class="band" style="left:${pct(s)};width:${pct(e-s)}"></div>`; });
+    for (let h = 0; h <= 46; h += 2) html += `<div class="gridline" style="left:${pct(h)}"></div>`;
+    P.filter(p => p.agent === a).forEach((p, i) => {
+      html += `<button type="button" class="bar row${i%2}${p.human?' human':''}" data-n="${p.n}" style="left:${pct(p.s)};width:calc(${pct(p.e-p.s)} - 2px);background-color:var(${PH[p.ph]})" title="${p.n} ${p.slug} · ${p.s}→${p.e} j"><span class="num">${p.n}</span><small>${p.slug}</small></button>`;
+    });
+    html += '</div></div>';
+  });
+  tl.innerHTML = html;
+  tl.addEventListener('click', ev => { const b = ev.target.closest('.bar'); if (b) select(b.dataset.n); });
+}
+
+function buildFilters() {
+  const f = document.getElementById('filters');
+  let h = `<button type="button" class="chip" id="critBtn" aria-pressed="false">Jalur kritis</button>`;
+  Object.keys(PH).forEach(k => h += `<button type="button" class="chip" data-ph="${k}" aria-pressed="false"><span class="sw" style="background:var(${PH[k]})"></span>${PH_NAME[k]}</button>`);
+  f.innerHTML = h;
+  f.addEventListener('click', ev => {
+    const c = ev.target.closest('.chip'); if (!c) return;
+    if (c.id === 'critBtn') { state.crit = !state.crit; if (state.crit) state.phase = null; }
+    else { state.phase = state.phase === c.dataset.ph ? null : c.dataset.ph; if (state.phase) state.crit = false; }
+    render();
+  });
+}
+
+function select(n) { state.sel = n; state.crit = false; state.phase = null; try { localStorage.setItem('rm-sel', n); } catch (e) {} render(); }
+
+function render() {
+  const tl = document.getElementById('tl');
+  const p = BY[state.sel];
+  const filtering = state.crit || state.phase;
+  tl.classList.toggle('dim', true);
+  tl.querySelectorAll('.bar').forEach(b => {
+    const n = b.dataset.n, q = BY[n];
+    b.classList.remove('sel','dep','child','crit','on');
+    if (state.crit) { if (CRIT.includes(n)) b.classList.add('crit','on'); }
+    else if (state.phase) { if (q.ph === state.phase) b.classList.add('on'); }
+    else {
+      if (n === p.n) b.classList.add('sel','on');
+      if (p.deps.includes(n)) b.classList.add('dep','on');
+      if (p.kids.includes(n)) b.classList.add('child','on');
+    }
+    b.setAttribute('aria-pressed', n === state.sel && !filtering ? 'true' : 'false');
+  });
+  if (!filtering && !p.deps.length && !p.kids.length) tl.classList.remove('dim');
+  document.getElementById('critBtn').setAttribute('aria-pressed', state.crit);
+  document.querySelectorAll('[data-ph]').forEach(c => c.setAttribute('aria-pressed', c.dataset.ph === state.phase));
+
+  renderGraph();
+  const waitCross = p.deps.filter(d => BY[d].agent !== p.agent);
+  const tagList = (arr, cls) => arr.length ? arr.map(d => `<button type="button" class="tag ${cls}" data-go="${d}">${d} ${BY[d].slug}</button>`).join('') : '<span class="note">—</span>';
+  document.getElementById('detail').innerHTML = `
+    <div style="display:grid;gap:8px;align-content:start">
+      <span class="label">Plan terpilih</span>
+      <div class="big num">${p.n} <span style="font-weight:600;color:var(--muted)">${p.slug}</span></div>
+      <p>${p.title}</p>
+      <dl class="kv">
+        <dt>Agen</dt><dd>${AG[p.agent][0]}</dd>
+        <dt>Fase</dt><dd>${PH_NAME[p.ph]}</dd>
+        <dt>Ukuran</dt><dd>${p.size}</dd>
+        <dt>Jendela</dt><dd class="num">≈${p.s} → ${p.e} jam</dd>
+        <dt>Checkpoint</dt><dd class="mono">${cpTag(p)}</dd>
+        ${CRIT.includes(p.n) ? '<dt>Catatan</dt><dd>Di jalur kritis</dd>' : ''}
+        ${p.human ? '<dt>Catatan</dt><dd>Berhenti di langkah manusia/perangkat, lalu lapor</dd>' : ''}
+      </dl>
+    </div>
+    <div style="display:grid;gap:8px;align-content:start">
+      <span class="label">Tunggu dulu (${p.deps.length})</span>
+      <div class="tags">${tagList(p.deps,'wait')}</div>
+      <p class="note">${waitCross.length ? `${waitCross.length} dari agen lain: tunggu tag <span class="mono">cp/…</span>-nya muncul di remote.` : 'Tidak menunggu agen lain.'}</p>
+    </div>
+    <div style="display:grid;gap:8px;align-content:start">
+      <span class="label">Membuka (${p.kids.length})</span>
+      <div class="tags">${tagList(p.kids,'next')}</div>
+    </div>`;
+}
+
+// ---- git graph ----
+const GX = 58, GTOP = 40, GLANE = 118;
+const gx = h => 20 + h * GX;
+const gy = a => GTOP + 46 + (a - 1) * GLANE;
+const SHORT = { 1:['Lead','M5'], 2:['Dev B','M2'], 3:['Dev C','Linux'] };
+P.forEach(p => { const cross = p.deps.filter(d => BY[d].agent !== p.agent); p.bind = cross.length ? cross.reduce((a, b) => BY[a].e >= BY[b].e ? a : b) : null; });
+function edgePath(from, to) {
+  let x1 = gx(from.e), x2 = gx(to.s); const y1 = gy(from.agent), y2 = gy(to.agent);
+  if (x2 - x1 < 28) x1 = x2 - 28;
+  const m = (x1 + x2) / 2;
+  return `M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}`;
+}
+function buildGraph() {
+  const W = gx(47) + 20, H = gy(3) + 56;
+  const svg = document.getElementById('ggSvg');
+  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  let s = '';
+  WINS.forEach(([a,b,l], i) => { if (i % 2 === 0) s += `<rect x="${gx(a)}" y="0" width="${gx(b)-gx(a)}" height="${H}" fill="var(--band)"/>`; s += `<text class="wl" x="${gx(a)+6}" y="14">${l}</text>`; });
+  for (let h = 0; h <= 46; h += 2) s += `<line x1="${gx(h)}" x2="${gx(h)}" y1="22" y2="${H}" stroke="var(--line)"/><text class="hr" x="${gx(h)+3}" y="32">${h} j</text>`;
+  [1,2,3].forEach(a => s += `<line x1="${gx(0)}" x2="${gx(46.5)}" y1="${gy(a)}" y2="${gy(a)}" stroke="var(--line)" stroke-width="2"/>`);
+  // init + fork
+  s += `<g><rect x="${gx(0)-12}" y="${gy(1)-11}" width="34" height="22" rx="11" fill="var(--fg)"/><text x="${gx(0)+5}" y="${gy(1)+4}" text-anchor="middle" style="fill:var(--bg);font-size:10px;font-weight:800">init</text></g>`;
+  [2,3].forEach(a => s += `<path class="edge" d="M${gx(0)+20},${gy(1)} C${gx(0.4)},${gy(1)} ${gx(0.1)},${gy(a)} ${gx(0.5)},${gy(a)}"/>`);
+  s += `<text class="hr" x="${gx(0)-8}" y="${gy(3)+28}">clone + baseline</text>`;
+  // edges
+  P.forEach(p => p.deps.forEach(d => { if (BY[d].agent === p.agent) return;
+    s += `<path class="edge ${d === p.bind ? 'bind' : 'extra'}" data-from="${d}" data-to="${p.n}" d="${edgePath(BY[d], p)}"/>`; }));
+  // nodes
+  [1,2,3].forEach(a => P.filter(p => p.agent === a).forEach((p, i) => {
+    const y = gy(a), x = gx(p.s), up = i % 2 === 0, ty = up ? y - 15 : y + 25;
+    s += `<g class="node" data-n="${p.n}" tabindex="0" role="button" aria-label="Plan ${p.n} ${p.slug}">
+      <line x1="${x}" x2="${gx(p.e)}" y1="${y}" y2="${y}" stroke="var(${PH[p.ph]})" stroke-width="6" stroke-linecap="round"/>
+      <rect x="${gx(p.e)-4}" y="${y-4}" width="8" height="8" transform="rotate(45 ${gx(p.e)} ${y})" fill="var(--fg)" opacity=".55"/>
+      <circle class="dot" cx="${x}" cy="${y}" r="8" fill="var(${PH[p.ph]})" stroke="var(--surface-2)" stroke-width="2.5"/>
+      <text class="lab" x="${x-6}" y="${ty}">${p.n}<tspan class="s"> ${p.slug}</tspan></text>
+      <rect x="${x-10}" y="${up ? y-28 : y-10}" width="${Math.max(gx(p.e)-x+14, 60)}" height="40" fill="transparent"/>
+    </g>`;
+  }));
+  svg.innerHTML = s;
+  document.getElementById('ggLabels').innerHTML = [1,2,3].map(a => `<div style="top:${gy(a)}px"><b>${SHORT[a][0]}</b><span>Agent ${a} · ${SHORT[a][1]}</span></div>`).join('');
+  document.getElementById('ggLabels').style.height = H + 'px';
+  svg.addEventListener('click', ev => { const g = ev.target.closest('.node'); if (g) select(g.dataset.n); });
+  svg.addEventListener('keydown', ev => { const g = ev.target.closest('.node'); if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); select(g.dataset.n); } });
+}
+function renderGraph() {
+  const p = BY[state.sel], gg = document.getElementById('gg');
+  gg.classList.toggle('focus', !!(p.deps.length || p.kids.length));
+  gg.querySelectorAll('.node').forEach(g => { const n = g.dataset.n;
+    g.classList.toggle('sel', n === p.n);
+    g.classList.toggle('on', n === p.n || p.deps.includes(n) || p.kids.includes(n)); });
+  gg.querySelectorAll('.edge[data-to]').forEach(e => {
+    e.classList.toggle('hd', e.dataset.to === p.n);
+    e.classList.toggle('hk', e.dataset.from === p.n); });
+}
+
+// ---- stages ----
+function buildStages() {
+  const SL = 4; let h = '';
+  for (let k = 0; k * SL < 46; k++) {
+    const a = k * SL, b = a + SL;
+    h += `<div class="stage"><div class="stage-h"><b>Tahap ${k + 1}</b><span class="num">jam ${a}–${b}</span></div>`;
+    [1,2,3].forEach(ag => {
+      const jobs = P.filter(p => p.agent === ag && p.s >= a && p.s < b);
+      h += `<div class="cell"><span class="who">${AG[ag][0]}</span>`;
+      if (k === 0) h += ag === 1 ? `<div class="job" style="border-left-color:var(--fg)"><b>init</b><span>push main + tag cp/f0-kickoff</span></div>` : `<div class="job" style="border-left-color:var(--fg)"><b>clone + baseline</b><span class="w">tunggu cp/f0-kickoff</span></div>`;
+      jobs.forEach(p => {
+        const cross = p.deps.filter(d => BY[d].agent !== p.agent);
+        h += `<button type="button" class="job" data-go="${p.n}" style="border-left-color:var(${PH[p.ph]})"><b class="num">${p.n} ${p.slug}</b>` +
+          (cross.length ? `<span class="w">tunggu ${cross.map(d => `${d} (A${BY[d].agent})`).join(', ')}</span>` : `<span>langsung jalan</span>`) + `</button>`;
+      });
+      if (!jobs.length && k > 0) h += `<span class="idle">${P.some(p => p.agent === ag && p.s < a && p.e > a) ? 'melanjutkan plan sebelumnya' : 'selesai / review'}</span>`;
+      h += `</div>`;
+    });
+    h += `</div>`;
+  }
+  const el = document.getElementById('stages'); el.innerHTML = h;
+  el.addEventListener('click', ev => { const t = ev.target.closest('[data-go]'); if (t) { select(t.dataset.go); document.getElementById('gg').scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
+}
+
+document.getElementById('detail').addEventListener('click', ev => { const t = ev.target.closest('[data-go]'); if (t) select(t.dataset.go); });
+
+// checkpoints table + critical path
+const KEY = [['077','A1'],['078','A1'],['082','A3'],['086','A2'],['091','A1'],['095','A1'],['117','A3']];
+document.getElementById('cpBody').innerHTML = KEY.map(([n,by]) => `<tr><td class="mono">${cpTag(BY[n])}</td><td>${by}</td><td class="num">${BY[n].kids.join(', ')}</td></tr>`).join('');
+document.getElementById('critPath').innerHTML = CRIT.map((n,i) => `${i?'<span class="a">→</span>':''}<span class="n" data-go="${n}">${n}</span>`).join('');
+document.getElementById('critPath').addEventListener('click', ev => { const t = ev.target.closest('[data-go]'); if (t) { select(t.dataset.go); document.getElementById('tl').scrollIntoView({behavior:'smooth', block:'center'}); } });
+
+document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', () => {
+  const code = btn.previousElementSibling, txt = code.textContent;
+  const done = () => { btn.textContent = 'Tersalin'; setTimeout(() => btn.textContent = 'Salin', 1500); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(code); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Tekan ⌘C'; };
+  try { navigator.clipboard.writeText(txt).then(done, fallback); } catch (e) { fallback(); }
+}));
+
+buildTimeline(); buildFilters(); buildGraph(); buildStages(); render();
+</script>

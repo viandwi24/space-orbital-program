@@ -8,6 +8,7 @@ This folder holds the plan for building the foundation roadmap (plans 063, 065 t
 | [`agent-brief.md`](agent-brief.md) | the short brief each agent rereads at every session start |
 | [`checkpoints.md`](checkpoints.md) | the checkpoint register (which plans are merged, as tags `cp/*`) |
 | [`claims.md`](claims.md) | how a task is claimed (tags `claim/*`) and the Lead's mirror of open claims |
+| [`roadmap-graph.html`](roadmap-graph.html) | visual view for the owner (open in a browser): flow graph of who runs first and what runs in parallel, stages, swimlanes, critical path. Its data is copied from §4.3 and §4.5 of the roadmap; when the schedule changes, update both |
 
 ## The three agents
 
