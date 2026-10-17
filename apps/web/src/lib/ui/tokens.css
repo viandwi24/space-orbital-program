@@ -1,67 +1,103 @@
 /*
- * Design tokens (plan 021, ADR 0026). Components read these and never use colour or size
- * literals. Text colours are checked for AA contrast on the worst-case panel (tokens.test.ts).
+ * Design tokens (plan 086, ADRs 0107 and 0140; architecture of plan 021, ADR 0026). Source of the
+ * values: refs/space-orbital-program-ui/tokens/tokens.css, names without its `--sop-` prefix.
+ * Components read these and never use colour or size literals. Sizes are in rem so the UI scale
+ * setting (the root font size) scales them; no text token is below 10 px at 100 % (ADR 0109).
+ * Text colours are contrast-tested on the worst-case surface (tokens.test.ts).
  */
 :root {
 	color-scheme: dark;
 
-	/* Type */
-	--font-ui: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
-	--font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-	--t-xs: 0.75rem;
-	--t-sm: 0.8125rem;
-	--t-md: 0.9375rem;
-	--t-lg: 1.25rem;
-	--t-xl: 1.75rem;
+	/* Background */
+	--bg-space: #000000;
+	--bg-ground: #05070a;
+	--bg-hangar: #0a0c0f;
 
-	/* Surfaces: translucent over the scene, solid where text must always read */
-	--bg-void: #04070b;
-	--panel: rgb(8 13 20 / 0.86);
-	--panel-raised: rgb(16 24 35 / 0.9);
-	--panel-solid: #0a1019;
-	--field: #0a1119;
-	--line: rgb(150 180 210 / 0.2);
-	--line-strong: rgb(150 180 210 / 0.38);
+	/* Surfaces: glass over the scene, solid where blur is off (low preset, high contrast) */
+	--surface-glass: rgb(22 23 26 / 0.6);
+	--surface-solid: #141518;
+	--surface-dialog: #16171a;
+	--surface-inset: rgb(255 255 255 / 0.05);
+	--surface-tile: rgb(255 255 255 / 0.06);
+	--surface-hover: rgb(255 255 255 / 0.07);
+	--surface-button: rgb(255 255 255 / 0.08);
+	--surface-chip: rgb(255 255 255 / 0.12);
+	--surface-track: rgb(255 255 255 / 0.14);
+	--surface-scrim: rgb(0 0 0 / 0.6);
+	/* The backdrop dimming keeps text readable over a white cloud (ADR 0140) */
+	--glass-filter: blur(28px) saturate(160%) brightness(0.4);
+
+	/* Borders */
+	--border-subtle: rgb(255 255 255 / 0.08);
+	--border-divider: rgb(255 255 255 / 0.07);
+	--border-strong: rgb(255 255 255 / 0.18);
 
 	/* Text */
-	--text: #e8eff8;
-	--text-dim: #a9b9cc;
-	--text-faint: #9aacc1;
+	--text-primary: #ffffff;
+	--text-body: #f4f4f5;
+	--text-secondary: #e4e4e7;
+	--text-muted: #a1a1aa;
+	/* icons and large text only (3:1) */
+	--text-subtle: #8b8b93;
+	--text-disabled: #6b6b73;
 
-	/* Semantic colours: one accent, one positive, one warning, one danger */
-	--c-accent: #5ccfff;
-	--c-accent-dim: #2a7aa0;
-	--c-positive: #5fe3a1;
-	--c-warning: #ffbf4a;
-	--c-danger: #ff8080;
-	--c-ink: #04121a;
-	--c-violet: #b9a2ff;
+	/* Accent and state: the accent is a fill for what is active or controlled; text in accent colour uses --accent-text */
+	--accent: #3e6ae1;
+	--accent-mixed: rgb(62 106 225 / 0.45);
+	--accent-text: #8fa9f0;
+	--on-accent: #ffffff;
+	--selected-bg: #f4f4f5;
+	--selected-fg: #0b0b0c;
+	--ok: #7bd88f;
+	--warn: #ffb86b;
+	--danger: #ff8a8e;
+	/* status marks with a label, never text alone (3:1) */
+	--offline: #ff5a5f;
+	--mnv-prograde: #7bd88f;
+	--mnv-normal: #c792ea;
+	--mnv-radial: #7fd4f5;
+
+	/* Type: Manrope with tabular figures; refs labels of 7 to 9 px become 10 px (ADR 0107 point 5) */
+	--font-ui: 'Manrope', system-ui, sans-serif;
+	--font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+	--tracking-label: 0.14em;
+	--tracking-chip: 0.08em;
+	--t-label: 0.625rem;
+	--t-small: 0.6875rem;
+	--t-button: 0.75rem;
+	--t-value: 0.8125rem;
+	--t-display: 1.75rem;
+
+	/* Shape and space */
+	--radius-pill: 999px;
+	--radius-panel: 1rem;
+	--radius-card: 0.75rem;
+	--radius-row: 0.625rem;
+	--radius-tile: 0.5rem;
+	--radius-icon: 0.4375rem;
+	--margin-hud: 1.5rem;
+	--margin-menu: 5rem;
+	--panel-pad: 0.625rem;
+	--panel-gap: 0.75rem;
+	--capsule: 2.75rem;
+	--round-btn: 2.25rem;
+	--dot: 0.25rem;
+	/* touch targets on touch screens (ADR 0063) */
+	--touch-min: 2.75rem;
 
 	/* Code in the script editor (plan 030): checked on --field and on the error-line band */
 	--syn-keyword: #c3aeff;
 	--syn-string: #7fe8b3;
 	--syn-number: #ffc866;
-	--syn-comment: #94a8bd;
-	--syn-api: #5ccfff;
-	--syn-error-line: rgb(255 128 128 / 0.2);
+	--syn-comment: #a1a1aa;
+	--syn-api: #8fa9f0;
+	--syn-error-line: rgb(255 138 142 / 0.2);
 
-	/* Scene colours of the navball */
+	/* Scene colours of the navball, read by navball-draw.ts (restyled monochrome in stage 2, ADR 0107 point 4) */
 	--ball-sky-top: #2f8fd0;
 	--ball-sky-bottom: #7fd0ef;
 	--ball-ground-top: #7b5a3c;
 	--ball-ground-bottom: #3d2c22;
-
-	/* Space */
-	--s-1: 4px;
-	--s-2: 8px;
-	--s-3: 12px;
-	--s-4: 16px;
-	--s-5: 24px;
-	--s-6: 32px;
-
-	/* Shape: panels and fields share one radius, controls a smaller one */
-	--r-panel: 8px;
-	--r-control: 4px;
 
 	/* Elevation: one level, for overlays that sit over the HUD */
 	--shadow-overlay: 0 12px 40px rgb(0 0 0 / 0.55);
@@ -76,6 +112,61 @@
 	--dur-fast: 120ms;
 	--dur-med: 220ms;
 	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+	/*
+	 * Legacy names (ADR 0026), kept as aliases so every screen takes the new palette at once (ADR 0140
+	 * point 3). Stages 2 to 5 move screens to the names above and delete an alias with its last use.
+	 */
+	--font-num: var(--font-mono);
+	--t-xs: 0.75rem;
+	--t-sm: 0.8125rem;
+	--t-md: 0.9375rem;
+	--t-lg: 1.25rem;
+	--t-xl: 1.75rem;
+	--bg-void: var(--bg-space);
+	--panel: var(--surface-glass);
+	--panel-raised: var(--surface-dialog);
+	--panel-solid: var(--surface-solid);
+	--field: var(--surface-solid);
+	--line: var(--border-subtle);
+	--line-strong: var(--border-strong);
+	--text: var(--text-body);
+	--text-dim: var(--text-muted);
+	--text-faint: var(--text-muted);
+	--c-accent: var(--accent-text);
+	--c-accent-dim: var(--accent);
+	--c-positive: var(--ok);
+	--c-warning: var(--warn);
+	--c-danger: var(--danger);
+	--c-ink: var(--selected-fg);
+	--c-violet: var(--mnv-normal);
+	--s-1: 0.25rem;
+	--s-2: 0.5rem;
+	--s-3: 0.75rem;
+	--s-4: 1rem;
+	--s-5: 1.5rem;
+	--s-6: 2rem;
+	--r-panel: var(--radius-panel);
+	--r-control: var(--radius-tile);
+}
+
+/* Blur off: the `low` preset and the governor's lowest rungs (ADR 0107 point 5, ADR 0140 point 5) */
+:root[data-glass='solid'] {
+	--surface-glass: var(--surface-solid);
+	--glass-filter: none;
+}
+
+/* High contrast (settings): solid surfaces, lighter greys, visible borders */
+:root[data-contrast='more'] {
+	--surface-glass: var(--surface-solid);
+	--glass-filter: none;
+	--text-muted: #d4d4d8;
+	--text-subtle: #b4b4bc;
+	--text-disabled: #8b8b93;
+	--border-subtle: rgb(255 255 255 / 0.32);
+	--border-divider: rgb(255 255 255 / 0.24);
+	--border-strong: rgb(255 255 255 / 0.5);
+	--accent-text: #b4c6f7;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,22 +1,32 @@
 /* Global element defaults on top of tokens.css. */
+/* The UI scale setting (80 to 150 %) is the root font size: every rem token follows it (ADR 0140). */
+html {
+	font-size: calc(var(--ui-scale, 1) * 100%);
+}
+
+/* Only body sets the text size: on html it would change the rem itself (it was 15 px before plan 086). */
 html,
 body {
 	margin: 0;
-	background: var(--bg-void);
-	color: var(--text);
+	background: var(--bg-space);
+	color: var(--text-body);
 	font-family: var(--font-ui);
-	font-size: var(--t-md);
+	font-variant-numeric: tabular-nums;
 	line-height: 1.35;
 	-webkit-font-smoothing: antialiased;
 }
 
+body {
+	font-size: var(--t-md);
+}
+
 a {
-	color: var(--c-accent);
+	color: var(--accent-text);
 	text-underline-offset: 3px;
 }
 
 :focus-visible {
-	outline: 2px solid var(--c-accent);
+	outline: 2px solid var(--accent-text);
 	outline-offset: 2px;
 }
 
