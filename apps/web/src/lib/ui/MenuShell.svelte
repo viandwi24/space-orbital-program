@@ -53,8 +53,8 @@
 		grid-template-rows: auto 1fr auto;
 		grid-template-areas:
 			'head head head'
-			'main . .'
-			'foot . aside';
+			'main . aside'
+			'foot foot foot';
 		column-gap: var(--s-6);
 		min-height: 100vh;
 		min-height: 100dvh;
@@ -91,7 +91,8 @@
 	main {
 		grid-area: main;
 		align-self: start;
-		padding-top: clamp(2rem, 16vh, 10.5rem);
+		/* refs: the title at 250 of 1080 */
+		padding-top: clamp(1.5rem, 23vh - 5rem, 10.5rem);
 	}
 	.wide main {
 		align-self: start;
@@ -106,7 +107,6 @@
 	aside {
 		grid-area: aside;
 		align-self: end;
-		margin-bottom: 3rem;
 	}
 	footer {
 		grid-area: foot;
@@ -122,7 +122,12 @@
 	footer :global(.mono) {
 		font-family: var(--font-mono);
 	}
-	@media (max-width: 1100px) {
+	@media (max-width: 1280px) {
+		.page {
+			padding-inline: 3rem;
+		}
+	}
+	@media (max-width: 940px) {
 		.page,
 		.page.wide {
 			grid-template-columns: minmax(0, 1fr);
@@ -130,7 +135,11 @@
 			padding: 2rem clamp(1rem, 5vw, 3rem) 1.5rem;
 		}
 		main {
+			max-width: 25rem;
 			padding-top: 2rem;
+		}
+		.wide main {
+			max-width: none;
 		}
 		aside {
 			margin: var(--s-5) 0 0;

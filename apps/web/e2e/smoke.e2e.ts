@@ -35,6 +35,24 @@ test('the start page and the VAB load without errors', async ({ page }) => {
 	expect(errors).toEqual([]);
 });
 
+test('keyboard only (plan 089): Tab to Settings, open it, Escape returns focus to the menu', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	await page.goto('/');
+	await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
+	const settings = page.getByTestId('menu-settings');
+	for (let i = 0; i < 20 && !(await settings.evaluate((el) => el === document.activeElement)); i++)
+		await page.keyboard.press('Tab');
+	await expect(settings).toBeFocused();
+	await page.keyboard.press('Enter');
+	await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog', { name: 'Settings' })).toBeHidden();
+	await expect(settings).toBeFocused();
+	expect(errors).toEqual([]);
+});
+
 test('the main menu: settings persist across a reload, roadmap and credits load', async ({
 	page
 }) => {
