@@ -1,12 +1,12 @@
 ---
 id: 067
 title: "Floating, sinking and boats: buoyancy on the sea and on lakes"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [038, 095, 103]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 067 — Floating, sinking and boats
@@ -24,31 +24,44 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 
 ## Scope
 
-**In (to be ordered at refinement):** water level in core (one function for sea and lakes); buoyancy and water drag in the sim's force sum; part volumes; the damage rule for an impact on water (a hard splashdown destroys parts as a hard landing does); a stock floating part (a flotation collar) so a capsule can bob; renderer: the vessel drawn at its waterline, ripples at the contact.
+**In:**
+- Core: `waterAt(direction)` on a terrain field (sea where the warped map elevation is below `SEA_LEVEL`, and lakes); the hills field implements it, other fields have no water. Range safety (127) reads the same function.
+- Sim: over water the ground tile drops to a seabed `WATER_DEPTH` (30 m) below the water plane; buoyancy and water drag per part from slices of its shape volume (cylinder or box), applied at the slices, so a vessel rights itself or tips by its shape; a wet vessel counts as landed, so it can rest, go to surface rails and be recovered.
+- Water impacts: a part that enters the water is damaged by the ground rule with its entry speed × `WATER_IMPACT_FACTOR` (0.5).
+- Science (103): `splashed` is a landed vessel on water (`waterAt`), replacing "terrain below sea level".
+- Stock: a flotation collar (large volume, low mass) so a capsule floats upright with margin.
 
-**Out:** waves that move the vessel (a sea state), boats with propellers, swimming kerbals.
-
-**Realignment (2026-10-17):** add a "splashed" situation for science (plan 103) and a recovery hook (plan 095) to the in-scope list; the water level function in core is the one range safety (plan 127) uses to classify impact points.
+**Out:** waves that move the vessel, boats with propellers, swimming crew; ripples and the splash effect (draft 193).
 
 ## Touches
 
 - **Size:** M
-- **Edits:** `packages/core/src/terrain.ts`, `packages/sim`, `mods/stock`, `packages/renderer/src`
-- **Shared contracts:** core (`isWater`), SDK (part volume or flotation fields; additive)
+- **Edits:** `packages/core/src/terrain.ts`, `packages/sim`, `mods/stock`
+- **Shared contracts:** core (`TerrainField.waterAt`, water constants); no new part fields (the volume comes from `shape`)
+
+## Steps
+
+1. ADR 0182; `waterAt` in core with tests.
+2. Seabed tile, buoyancy and water drag, wet counts as landed.
+3. Water impacts, splashed situation, flotation collar.
+4. Tests, docs.
 
 ## Acceptance criteria
 
-- [ ] A capsule dropped on the sea floats with its CoM above the waterline at the ratio its mean density gives; a 25 t two-stage rocket sinks; a test in `packages/sim` per case with deterministic end state.
-- [ ] The same on a lake (the home body's lakes: `isLake`).
-- [ ] Impact damage on water follows the same rule as on ground with a lower factor; a test.
-- [ ] `bun test`, typecheck, build, docs:check pass; the headless ascent still reaches orbit (no regression in flight).
+- [ ] `bun test packages/sim/test/buoyancy.test.ts`: a command pod dropped on the sea comes to rest floating with its submerged volume within 10 % of its mass over the water density; a 25 t two-stage rocket sinks to the seabed; deterministic end states.
+- [ ] Same file: the same on a lake (`isLake`).
+- [ ] Same file: an entry at 15 m/s leaves a pod whole on water and breaks it on ground; at 50 m/s on water it is damaged.
+- [ ] Same file: a pod floating at rest is `stock.splashed` and can be recovered.
+- [ ] `bun test packages/core/test/terrain.test.ts` (or a new water test): `waterAt` is true where the map is below sea level or `isLake`, false elsewhere.
+- [ ] `bun test`, typecheck, build, docs:check pass; the headless ascent still reaches orbit.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR (the force model), `docs/architecture` physics section.
+- [ ] STATUS, journal (`docs/journal/067-buoyancy-floating-and-sinking.md`), ADR 0182 (the force model), `docs/architecture/simulation.md` physics section.
 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 038 (ADR 0072: lakes are solid like the sea for now).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0098, 0097: sea recovery and impact classification use it).
 - 2026-10-17 — `depends` gains 095, 103 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the realignment puts the recovery hook (095) and the "splashed" science situation (103) in scope.
+- 2026-10-18 — Refined and claimed by Agent 3. Volumes come from part shapes, so there are no new part fields. Ripples and the splash effect move to draft 193 (WebGL cannot be checked on this machine). Design choices go in ADR 0182.
