@@ -1,12 +1,12 @@
 ---
 id: 122
 title: "The Sun as root, axial tilt and seasons in the stock system"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [085, 081]
 phase: 8
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 122 — The Sun as root, axial tilt and seasons in the stock system

@@ -2,7 +2,7 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 113 mission-center on `lead/113-mission-center` (claim/113). Merge queue empty after 088, 103, 085, 076, 114, 069 and 102 (2026-10-18).
+**Now:** 122 sun on `lead/122-sun-seasons` (claim/122). 113 merged (cp/f4-113-mission-center); merge queue empty after 104, 089, 107, 093 and 067.
 **Waiting for:** —
 **Updated:** 2026-10-18
 
@@ -15,7 +15,7 @@
 | 068 terrain-aa | done | `lead/068-terrain-aa` | 2026-10-17 | merged b26f673, cp/f2-068-terrain-aa |
 | 091 space-center | done | `lead/091-space-center` | 2026-10-17 | merged d204a3d, cp/f2-091-space-center |
 | 113 mission-center | done | `lead/113-mission-center` | 2026-10-17 | merged c21d52b, cp/f4-113-mission-center |
-| 122 sun | todo |  |  |  |
+| 122 sun | in-progress | `lead/122-sun-seasons` | 2026-10-18 | claim/122 |
 | 096 building-levels | todo |  |  |  |
 | 109 eva | todo |  |  |  |
 | 097 markets | todo |  | 2026-10-17 | draft refined |

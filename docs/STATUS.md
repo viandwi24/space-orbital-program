@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-18
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); 068 done (`cp/f2-068-terrain-aa`); 091 done (`cp/f2-091-space-center`); merged 2026-10-18: 088, 103, 085, 076, 114, 069, 102; 113 done (`cp/f4-113-mission-center`); Agent 1 next: 122 sun; Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); 068 done (`cp/f2-068-terrain-aa`); 091 done (`cp/f2-091-space-center`); merged 2026-10-18: 088, 103, 085, 076, 114, 069, 102; 113 done (`cp/f4-113-mission-center`); merged 2026-10-18: 104, 089, 107, 093, 067; 122 sun in progress (Agent 1); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -130,7 +130,7 @@
 | 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | draft | — | ADR 0101 tier 4: queues, custody, windows |
 | 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | draft | — | ADR 0101 tier 5: channels, licences, interference |
 | 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
-| 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | draft | — | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
+| 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | in-progress | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
 | 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | draft | — | ADR 0103: Level A elements + rates, lunar series |
 | 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | draft | — | ADR 0103: Sol pack, 1:1 and rescaled, per-scale balance and validation |
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
