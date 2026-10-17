@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import MenuShell from '../../lib/ui/MenuShell.svelte';
+	import PageHead from '../../lib/ui/PageHead.svelte';
 	import { GAME_NAME } from '../../lib/public/about';
 	import {
 		ROADMAP,
@@ -20,8 +21,7 @@
 />
 
 <MenuShell wide>
-	<a class="back" href="/">Main menu</a>
-	<h1>Roadmap</h1>
+	<PageHead title="Roadmap" />
 	<p class="lead">
 		Version 1.0 is a complete game: build, launch, fly to orbit and the Moon, plan maneuvers, save
 		your flight, script your vessel and install mods. This is everything we plan after it, phase by
@@ -86,16 +86,6 @@
 </MenuShell>
 
 <style>
-	.back {
-		display: inline-block;
-		margin-bottom: var(--s-3);
-		font-size: var(--t-sm);
-	}
-	h1 {
-		margin: 0 0 var(--s-2);
-		font-size: 2.2rem;
-		font-weight: 600;
-	}
 	.lead {
 		max-width: 62ch;
 		margin: 0 0 var(--s-5);
@@ -109,13 +99,13 @@
 	}
 	.now {
 		padding: var(--s-4) var(--s-5);
-		background: var(--panel);
-		border: 1px solid var(--c-accent-dim);
-		border-radius: var(--r-panel);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
 	}
 	.now h2 {
 		margin-top: 0;
-		color: var(--c-accent);
+		color: var(--text-primary);
 	}
 	.now ul {
 		margin: 0;
@@ -138,9 +128,9 @@
 	}
 	.cards li {
 		padding: var(--s-3) var(--s-4);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
 	}
 	h3 {
 		margin: 0 0 var(--s-1);
@@ -164,13 +154,13 @@
 		padding: 0 var(--s-2);
 		font-size: var(--t-xs);
 		color: var(--text-dim);
-		border: 1px solid var(--line);
+		border: 1px solid var(--border-subtle);
 		border-radius: 999px;
 	}
 	.label.shipped,
 	.label.in-progress {
-		color: var(--c-accent);
-		border-color: var(--c-accent-dim);
+		color: var(--accent-text);
+		border-color: var(--border-strong);
 	}
 	.label.exploring {
 		font-style: italic;
