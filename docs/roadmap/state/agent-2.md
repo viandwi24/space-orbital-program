@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 084 handed over (`ready/084`); next in lane: 087 worlds-screen (all its waits have landed: 077, 078, 081, 086).
+**Now:** 087 worlds-screen (claim/087): worlds list and details first, then Create World.
 **Waiting for:** merge of 084 (`ready/084`).
 **Updated:** 2026-10-17
 
@@ -12,7 +12,7 @@
 | 074 rename | done | `devb/074-rename` | 2026-10-17 | merged 3eabc11, cp/f1-074-rename |
 | 081 calendar | done | `devb/081-calendar` | 2026-10-17 | merged 92c0c9f, cp/f1-081-calendar |
 | 084 sites | handed-over | `devb/084-sites` | 2026-10-17 | ready/084; ADR 0142; API 0.1.33 |
-| 087 worlds-screen | todo |  |  |  |
+| 087 worlds-screen | in-progress | `devb/087-worlds-screen` | 2026-10-17 | claim/087 |
 | 088 hud | todo |  |  |  |
 | 085 orientation | todo |  |  |  |
 | 076 roadmap-page | todo |  |  |  |
