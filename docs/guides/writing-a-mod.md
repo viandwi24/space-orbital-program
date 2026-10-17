@@ -167,7 +167,7 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 
 `definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`, and data patches over other plugins' entries with `ctx.patches.register(def)` (see "Patching another mod's data"). `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
 
-## Data items (API 0.1.30, plan 083, ADR 0172)
+## Data items (API 0.1.31, plan 083, ADR 0172)
 
 Data is sized: a `DataItem` has a `kind`, a size in `bits`, a `value` and the sim `time` it was made. A mod adds kinds with `ctx.dataKinds.register(defineDataKind({ id: 'acme.radar', label: 'Radar', priority: 3, valueCurve: [[0, 1], [86_400, 0.2]] }))`: a lower `priority` goes first when data is sent (plan 119), and the curve says what fraction of the value is left at an age. Stock has `stock.telemetry`, `stock.voice`, `stock.science`, `stock.image` and `stock.bulk`.
 

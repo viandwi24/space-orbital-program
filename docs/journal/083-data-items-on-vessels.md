@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/data.ts` (new) | `DataItem`, `NewDataItem`, `DataKindDefinition`, schemas, `dataValueFactor`, `dataValueAt`, `DataStorage`, `DataStorageState` |
-| `packages/core` | registry `dataKinds` (kind `data-kind`), `ctx.dataKinds`, `ModuleDefinition.dataStorage`, `VesselApi.data`, events `data:stored` / `data:dropped`, commands `move-data` / `delete-data`, `VesselSnapshot.data`; `API_VERSION` 0.1.30 |
+| `packages/core` | registry `dataKinds` (kind `data-kind`), `ctx.dataKinds`, `ModuleDefinition.dataStorage`, `VesselApi.data`, events `data:stored` / `data:dropped`, commands `move-data` / `delete-data`, `VesselSnapshot.data`; `API_VERSION` 0.1.31 (095 took 0.1.30) |
 | `packages/sim/src/data.ts` (new) | `storagesOf`, `dataUse`, `storeData`, `moveData`, `deleteData`; wired into `hooks.ts` (`ctx.vessel.data`), `commands.ts`, `snapshot.ts` |
 | `mods/stock` | five data kinds, `stock.data-storage`, part `stock.data-drive` (64 Mbit, 0.4 m; catalogue "Other", as stock places no part explicitly) |
 | tests | `packages/sim/test/data.test.ts` (5), `packages/core/test/data.test.ts` (2), stock boot test ids and kinds |
