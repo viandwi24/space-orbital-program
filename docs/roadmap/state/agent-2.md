@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 069 handed over (`ready/069`); next in lane: 089 menus (waits for cp/f1-075-licence, present).
+**Now:** 102 milestones claimed (`devb/102-milestones`). 089, 093, 112 and 094 skipped for now: their `depends` (076, 069, 088) are handed over but not merged.
 **Waiting for:** merges of 088, 085, 076 and 069 (`ready/*`).
 **Updated:** 2026-10-18
 
@@ -21,7 +21,7 @@
 | 093 hangar | todo |  |  |  |
 | 112 dock | todo |  |  |  |
 | 094 launch | todo |  |  |  |
-| 102 milestones | todo |  |  |  |
+| 102 milestones | in-progress | `devb/102-milestones` | 2026-10-18 | claim/102 |
 | 108 astronauts | todo |  |  |  |
 | 100 missions | todo |  |  |  |
 | 111 vessel-panel | todo |  |  |  |
