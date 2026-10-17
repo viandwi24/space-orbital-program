@@ -778,14 +778,19 @@ export class PlanetPass {
 	/**
 	 * Plan 068's measurement (development only): with `rebake` on, every frame bakes the cube and
 	 * both patches again, so a frame benchmark with and without it gives the bake cost.
-	 * `withoutGradient` recompiles both bake shaders to evaluate the height once per texel instead
-	 * of three times (the gradient left 0), which bounds what an analytic gradient could save.
+	 * `gradient` picks the bake program: `analytic` (the shipped one, ADR 0116), `fd` (the forward
+	 * differences of before plan 068, two extra heights per texel) or `none` (one height, no gradient).
 	 */
-	debugBakeMode(rebake: boolean, withoutGradient: boolean): void {
+	debugBakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void {
 		this.debugRebake = rebake;
 		for (const m of [this.bake.material, this.patchBake.material]) {
-			const { TERRAIN_NO_GRADIENT: _off, ...rest } = m.defines ?? {};
-			m.defines = withoutGradient ? { ...rest, TERRAIN_NO_GRADIENT: 1 } : rest;
+			const { TERRAIN_NO_GRADIENT: _a, TERRAIN_FD_GRADIENT: _b, ...rest } = m.defines ?? {};
+			m.defines =
+				gradient === 'none'
+					? { ...rest, TERRAIN_NO_GRADIENT: 1 }
+					: gradient === 'fd'
+						? { ...rest, TERRAIN_FD_GRADIENT: 1 }
+						: rest;
 			m.needsUpdate = true;
 		}
 		this.terrainDirty = true;

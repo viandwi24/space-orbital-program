@@ -64,9 +64,9 @@ export interface RendererDebug {
 	/** Baked terrain patch read back from the GPU as heights in metres (plan 031's parity check); null before the first bake. */
 	/**
 	 * Plan 068: `rebake` bakes the cube and both patches every frame (benchmark it against off for the
-	 * bake cost); `withoutGradient` evaluates the height once per texel. Development only.
+	 * bake cost); `gradient` picks the bake program (`analytic`, the old `fd`, or `none`). Development only.
 	 */
-	bakeMode(rebake: boolean, withoutGradient: boolean): void;
+	bakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void;
 	readPatch(which: 'fine' | 'mid'): {
 		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
 		size: number;
@@ -424,7 +424,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setTerrain: (terrain) => env.setTerrain(terrain),
 		terrainHeightAt: (direction) => env.groundHeight(direction),
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
-		bakeMode: (rebake, withoutGradient) => env.planet.debugBakeMode(rebake, withoutGradient),
+		bakeMode: (rebake, gradient) => env.planet.debugBakeMode(rebake, gradient),
 		benchmark(frames) {
 			const ctx = gl.getContext();
 			const pixel = new Uint8Array(4);
