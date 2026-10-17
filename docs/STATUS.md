@@ -97,7 +97,7 @@
 | 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | done | Agent 2 | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | done | Agent 2 (Dev B, M2) | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
 | 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | done | Agent 2 (Dev B, M2) | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
-| 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0107 stage 3: Home, menus, pages |
+| 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0107: Home (Continue capsule, glass menu, last-world card with `[—]`), space backdrop, menu shell, dialogs as the refs sheet, pause menu, Mods/Credits/Roadmap in one glass sheet, error and loading screens |
 | 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | done | Agent 1 | ADR 0097: defineBuilding, grid rules, stock catalogue data |
 | 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | done | Agent 1 | ADR 0097: 3D site from the building list, refs overlay, build mode |
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | done | Agent 3 | ADR 0097: globe pick, templates resolved per seed, second sites |
