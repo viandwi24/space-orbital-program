@@ -71,3 +71,4 @@ One constant for the name, read by `PageMeta` and the menu; the e2e smoke test t
   - `bun test ./packages`, `./mods`, `./examples` — 1266, 83, 7 pass, 0 fail (the root `bun test` also collects `apps/web` vitest files under Bun, as on `origin/main`; journal 086).
   - `bunx vitest run` (apps/web) — 834 passed, 2 failed in `sim-host-script-worker.test.ts`, the same on `origin/main` on this M2.
   - `bun run typecheck` — 0 errors; build — ok (inside the e2e run); `bun run docs:check` — OK.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ 270b537 (clean). `bun run test` 1356 pass, 0 fail · web vitest 99 files, 886 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed (2.6m). Left for later (outside Touches): `packages/core/src/save.ts` still says "not an Orbital save" in two player-facing `SaveError` messages (STATUS issue).
