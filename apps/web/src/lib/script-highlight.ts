@@ -6,6 +6,8 @@
  * (docs/research/scripting.md).
  */
 
+import { GLOBAL_NAMES } from './script-api';
+
 export type TokenKind = 'plain' | 'keyword' | 'api' | 'string' | 'number' | 'comment';
 
 export interface Token {
@@ -21,29 +23,24 @@ const KEYWORDS = new Set(
 	).split(' ')
 );
 
-/** The names the script API adds to the QuickJS global (docs/architecture/scripting.md). */
-const API = new Set(['ship', 'stage', 'action', 'wait', 'waitUntil', 'nextTick', 'time', 'print']);
+/** The names the script API adds to the QuickJS global: one table with the editor's completions. */
+const API = GLOBAL_NAMES;
 
 const IDENT_START = /[A-Za-z_$]/;
 const IDENT_PART = /[A-Za-z0-9_$]/;
 const DIGIT = /[0-9]/;
 
-/** Tokenize `source` and split the result at newlines: one token list per line. */
-export function highlight(source: string): Token[][] {
-	const lines: Token[][] = [[]];
-	const push = (kind: TokenKind, text: string): void => {
-		// A token that spans lines (block comment, template string) is cut at each newline.
-		const parts = text.split('\n');
-		parts.forEach((part, i) => {
-			if (i > 0) lines.push([]);
-			if (part === '') return;
-			const line = lines[lines.length - 1]!;
-			const last = line[line.length - 1];
-			if (last && last.kind === kind) last.text += part;
-			else line.push({ kind, text: part });
-		});
-	};
+/** A token of the whole source (not yet split at newlines). `closed` is false for a string or block comment that never ends. */
+export interface RawToken extends Token {
+	closed: boolean;
+}
 
+/** Tokenize `source` into one flat list; the pieces concatenate back to the source. */
+export function scan(source: string): RawToken[] {
+	const out: RawToken[] = [];
+	const push = (kind: TokenKind, text: string, closed = true): void => {
+		out.push({ kind, text, closed });
+	};
 	let i = 0;
 	const n = source.length;
 	while (i < n) {
@@ -57,7 +54,7 @@ export function highlight(source: string): Token[][] {
 		} else if (c === '/' && next === '*') {
 			const end = source.indexOf('*/', i + 2);
 			const j = end === -1 ? n : end + 2;
-			push('comment', source.slice(i, j));
+			push('comment', source.slice(i, j), end !== -1);
 			i = j;
 		} else if (c === '"' || c === "'" || c === '`') {
 			let j = i + 1;
@@ -66,9 +63,10 @@ export function highlight(source: string): Token[][] {
 				else if (source[j] === '\n' && c !== '`') break; // unterminated: stop at the line end
 				j += 1;
 			}
+			const closed = j < n && source[j] === c;
 			j = Math.min(j + 1, n);
 			if (source[j - 1] === '\n') j -= 1;
-			push('string', source.slice(i, j));
+			push('string', source.slice(i, j), closed);
 			i = j;
 		} else if (DIGIT.test(c) || (c === '.' && next !== undefined && DIGIT.test(next))) {
 			let j = i + 1;
@@ -100,6 +98,23 @@ export function highlight(source: string): Token[][] {
 			push('plain', c);
 			i += 1;
 		}
+	}
+	return out;
+}
+
+/** Tokenize `source` and split the result at newlines: one token list per line. */
+export function highlight(source: string): Token[][] {
+	const lines: Token[][] = [[]];
+	for (const raw of scan(source)) {
+		// A token that spans lines (block comment, template string) is cut at each newline.
+		raw.text.split('\n').forEach((part, i) => {
+			if (i > 0) lines.push([]);
+			if (part === '') return;
+			const line = lines[lines.length - 1]!;
+			const last = line[line.length - 1];
+			if (last && last.kind === raw.kind) last.text += part;
+			else line.push({ kind: raw.kind, text: part });
+		});
 	}
 	return lines;
 }

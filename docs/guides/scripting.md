@@ -27,6 +27,21 @@ ship.throttle = 0;
 print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 ```
 
+## The editor
+
+The editor knows the script API and the keys you expect from a code editor (plan 036, ADR 0066):
+
+| Key | What it does |
+|---|---|
+| Tab, Shift+Tab | indent or outdent the line, or every selected line. **Escape, then Tab, moves focus out of the editor** (so the keyboard is never stuck in it) |
+| Enter | new line with the same indentation, one level deeper after `{`, `(` or `[`; between `{` and `}` the closer goes on its own line |
+| `}`, `)`, `]` | on a line that holds only indentation, takes one level off first |
+| Ctrl+Space, or typing | suggestions: `ship.` lists the members of `ship` (a name from the second letter on for the globals); Up and Down choose, Enter or Tab accepts, Escape closes. Each entry shows its signature and a line of what it does |
+| Ctrl/Cmd+F | find in the script (Enter next, Shift+Enter previous, Escape closes) |
+| Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, Ctrl+Y | undo and redo; typing runs are one step |
+
+The bracket next to the caret and its partner are highlighted. Under the editor the game lists obvious mistakes without stopping you from running: brackets that do not pair, a string or comment that never ends, `ship.altitud` (with "did you mean `ship.altitude`"), assigning to a read-only member such as `ship.altitude = 5`, and `wait(1)` without `await`. The engine's own error, with its line, still decides when you run. The editor does not close brackets or quotes for you.
+
 ## Globals
 
 | Name | What it does |

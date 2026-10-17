@@ -28,7 +28,7 @@ describe('public roadmap', () => {
 		}
 	});
 	it('covers every draft plan of ADR 0048 post-v1 list', () => {
-		for (const id of ['034', '036', '038', '040', '041'])
+		for (const id of ['034', '038', '040', '041'])
 			expect(ROADMAP.map((r) => r.plan)).toContain(id);
 	});
 });

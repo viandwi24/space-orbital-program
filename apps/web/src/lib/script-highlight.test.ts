@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlight } from './script-highlight';
+import { highlight, scan } from './script-highlight';
 
 const flat = (source: string) =>
 	highlight(source).map((line) => line.map((t) => `${t.kind}:${t.text}`));
@@ -20,6 +20,31 @@ describe('script highlight', () => {
 				'plain:);'
 			]
 		]);
+	});
+
+	it('colours every global of the typed API table, the newer ones included', () => {
+		for (const name of [
+			'warp',
+			'warpTo',
+			'addNode',
+			'setNode',
+			'removeNode',
+			'setTarget',
+			'bodies'
+		]) {
+			expect(flat(`${name}(1)`)[0]![0]).toBe(`api:${name}`);
+		}
+	});
+
+	it('scan marks a string or block comment that never ends', () => {
+		const open = (text: string) =>
+			scan(text)
+				.filter((t) => !t.closed)
+				.map((t) => t.kind);
+		expect(open("a = 'x")).toEqual(['string']);
+		expect(open('a = `x\ny')).toEqual(['string']);
+		expect(open('/* x')).toEqual(['comment']);
+		expect(open("a = 'x' + `y` /* z */ // w")).toEqual([]);
 	});
 
 	it('splits block comments and template strings at newlines', () => {
