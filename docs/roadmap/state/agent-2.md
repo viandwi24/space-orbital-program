@@ -13,7 +13,7 @@
 | 081 calendar | done | `devb/081-calendar` | 2026-10-17 | merged 92c0c9f, cp/f1-081-calendar |
 | 084 sites | done | `devb/084-sites` | 2026-10-17 | merged ecc3953, cp/f1-084-sites |
 | 087 worlds-screen | done | `devb/087-worlds-screen` | 2026-10-17 | merged 2d7724e, cp/f2-087-worlds-screen |
-| 088 hud | handed-over | `devb/088-hud` | 2026-10-17 | ready/088; ADR 0144 |
+| 088 hud | done | `devb/088-hud` | 2026-10-17 | merged d2caaa4, cp/f2-088-hud |
 | 085 orientation | handed-over | `devb/085-orientation` | 2026-10-17 | ready/085; ADR 0145; API 0.1.40 |
 | 076 roadmap-page | handed-over | `devb/076-roadmap-page` | 2026-10-17 | ready/076; labels from plan files at build time; web vitest script-worker env failure noted |
 | 069 categories | todo |  |  |  |

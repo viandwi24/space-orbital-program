@@ -25,7 +25,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f1-done` | phase gate F1: all F1 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
 | `cp/f2-087-worlds-screen` | 087 | A2 | A1, A2, A3 (091, 092, 100, 102) | done | 2d7724e | 2026-10-17 |
 | `cp/f2-090-buildings` | 090 | A1 | A1, A2, A3 (065, 091, 092, 130) | done | 2ba881b | 2026-10-17 |
-| `cp/f2-088-hud` | 088 | A2 | A2 (066, 073, 108, 111, 112) | pending | | |
+| `cp/f2-088-hud` | 088 | A2 | A2 (066, 073, 108, 111, 112) | done | d2caaa4 | 2026-10-17 |
 | `cp/f2-092-site-choice` | 092 | A3 | A1, A2, A3 (124, 127, 128) | done | 5c9efd5 | 2026-10-17 |
 | `cp/f2-068-terrain-aa` | 068 | A1 | — (none) | done | b26f673 | 2026-10-17 |
 | `cp/f2-069-categories` | 069 | A2 | A2 (093) | pending | | |

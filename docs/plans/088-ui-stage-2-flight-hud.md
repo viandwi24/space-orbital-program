@@ -1,7 +1,7 @@
 ---
 id: 088
 title: "UI stage 2: the flight HUD in the refs style"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [086, 081]
 phase: 5
