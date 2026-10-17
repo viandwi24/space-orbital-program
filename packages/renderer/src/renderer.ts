@@ -124,6 +124,16 @@ export interface Renderer {
 	setRenderScale(scale: number): void;
 	readonly renderScale: number;
 	/**
+	 * `0.5` draws the planet pass (sky, ground, sea, clouds) at half the side of the scene target and
+	 * upsamples it with a depth-aware filter, so the vessel and the HUD stay at full resolution; `1` is the
+	 * ordinary pass (plan 050, ADR 0061). No shader recompiles. Without float render targets the request is
+	 * ignored: `planetScale` reads what was drawn.
+	 */
+	setPlanetScale(scale: number): void;
+	readonly planetScale: number;
+	/** Whether this context can draw the half-resolution planet pass (the governor skips the rung when not). */
+	readonly halfPlanetAvailable: boolean;
+	/**
 	 * Compiles the shader programs of this preset's scene and, after the first frame, of every preset's
 	 * scene state and its planet and march passes in the background (`compileAsync`), so the first frame
 	 * and a later `setPreset` do not stall on the driver's shader compiler, then builds the biome maps and
@@ -184,9 +194,11 @@ export function createRenderer(config: RendererConfig): Renderer {
 
 	function drawFrame(dt: number): void {
 		model.prepareFrame(dt);
+		env.planet.beginFrame(gl);
 		env.planet.bakeTerrain(gl);
 		model.bakeMoons(gl);
 		env.planet.marchPrepass(gl);
+		env.planet.drawHalf(gl, model.camera);
 		gl.toneMappingExposure = env.state.exposure;
 		// at an airless body the light cube is taken around that body's vertical (ADR 0058)
 		const up = env.state.airless
@@ -254,6 +266,24 @@ export function createRenderer(config: RendererConfig): Renderer {
 					// the march prepass draws into a float target whatever the preset, in a scene without lights
 					const march = material.name.startsWith('terrain-march');
 					compile(scene, settings.post || march, march ? scene : model.scene);
+				}
+			}
+			// The half-resolution rung (plan 050): the planet pass drawn into a float target compiles in the
+			// target's state, which a preset that draws to the canvas (tone mapping in the program) does not
+			// share; the upsample stands in the scene's place in both states.
+			if (env.planet.halfAvailable(gl)) {
+				for (const name of GRAPHICS_PRESETS) {
+					if (PRESETS[name].post) continue;
+					const half = new Scene();
+					const material = env.planet.variantFor(PRESETS[name]);
+					half.add(new Mesh(env.planet.mesh.geometry, material));
+					variants.push(material);
+					compile(half, true, half);
+				}
+				for (const toTarget of [true, false]) {
+					const scene = new Scene();
+					scene.add(new Mesh(env.planet.mesh.geometry, env.planet.upsampleMaterial));
+					compile(scene, toTarget, scene);
 				}
 			}
 			env.sunLight.castShadow = sunCasts;
@@ -377,6 +407,15 @@ export function createRenderer(config: RendererConfig): Renderer {
 		},
 		get renderScale() {
 			return renderScale;
+		},
+		setPlanetScale(scale) {
+			env.planet.setPlanetScale(scale);
+		},
+		get planetScale() {
+			return env.planet.planetScale;
+		},
+		get halfPlanetAvailable() {
+			return env.planet.halfAvailable(gl);
 		},
 		capabilities() {
 			return { gpu: gpuName(), maxTextureSize: gl.capabilities.maxTextureSize };

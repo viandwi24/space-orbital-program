@@ -55,6 +55,8 @@ import {
 	terrainPatchFragment
 } from './shaders/terrain.glsl.ts';
 import { marchFragment, marchVertex } from './shaders/march.glsl.ts';
+import { upsampleFragment, upsampleVertex } from './shaders/upsample.glsl.ts';
+import { HALF_PLANET_SCALE } from './half-res.ts';
 import { siteAxes, surfaceUp } from './sun.ts';
 import { ORIGIN_GRID } from './origin.ts';
 import { MARCH_BLOCK, MARCH_CONE_PIXELS, flatSkipRadius } from './terrain-model.ts';
@@ -216,8 +218,21 @@ export class PlanetPass {
 	private marchTarget: WebGLRenderTarget | null = null;
 	/** null until the first frame says whether float render targets work. */
 	private marchSupported: boolean | null = null;
+	/** Size in pixels of the scene target the planet pass is drawn into (`passSize` is the pass's own). */
 	private targetWidth = 1;
 	private targetHeight = 1;
+	/**
+	 * The half-resolution rung (plan 050, ADR 0061): the planet pass draws into `halfTarget` (rgb radiance,
+	 * alpha the fragment depth) and `upsample` stands in its place in the scene. `wantedScale` is what the
+	 * host asked for, `activeScale` what the last frame did (1 without float render targets).
+	 */
+	private readonly half: { scene: Scene; mesh: Mesh; upsample: ShaderMaterial };
+	private halfTarget: WebGLRenderTarget | null = null;
+	private wantedScale = 1;
+	private activeScale = 1;
+	private halfSupported: boolean | null = null;
+	/** The pixel angle at the scene target's resolution (the pass's is that over `activeScale`). */
+	private fullPixelAngle = 0.001;
 	private refineSteps: number;
 	private fullSteps: number;
 	/** The canonical biome map every height is read from (the preset's own when that is the same size). */
@@ -305,6 +320,7 @@ export class PlanetPass {
 				uMarchOn: u(0),
 				uMarchSteps: u(Math.max(1, settings.terrainSteps)),
 				uTime: u(0),
+				uPackDepth: u(0),
 				uWaveAnchor: u(WAVES.map(() => 0))
 			},
 			side: DoubleSide,
@@ -316,6 +332,26 @@ export class PlanetPass {
 		this.mesh.frustumCulled = false;
 		this.mesh.renderOrder = -10;
 		this.mesh.name = 'planet-pass';
+		const upsample = new ShaderMaterial({
+			name: 'planet-upsample',
+			vertexShader: upsampleVertex,
+			fragmentShader: upsampleFragment,
+			uniforms: {
+				uHalf: u<unknown>(null),
+				uFullSize: u(new Vector2(1, 1)),
+				uHalfSize: u(new Vector2(1, 1)),
+				uOctaves: u(32)
+			},
+			side: DoubleSide,
+			depthTest: true,
+			depthWrite: true,
+			depthFunc: AlwaysDepth
+		});
+		const halfScene = new Scene();
+		const halfMesh = new Mesh(geometry, this.material);
+		halfMesh.frustumCulled = false;
+		halfScene.add(halfMesh);
+		this.half = { scene: halfScene, mesh: halfMesh, upsample };
 
 		const bakeMaterial = new ShaderMaterial({
 			name: 'terrain-bake',
@@ -617,7 +653,8 @@ export class PlanetPass {
 			CLOUD_STEPS: s.cloudSteps,
 			CLOUD_DETAIL: s.cloudDetail,
 			CLOUDS: 1,
-			CLOUD_SHADOWS: s.cloudOctaves >= 4 ? 1 : 0,
+			CLOUD_SHADOWS: s.cloudShadowOctaves > 0 ? 1 : 0,
+			CLOUD_SHADOW_OCTAVES: Math.max(1, s.cloudShadowOctaves),
 			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
 			TERRAIN_STEPS: Math.max(1, s.terrainSteps),
 			TERRAIN_PRE_STEPS: Math.max(1, s.terrainSteps),
@@ -642,6 +679,85 @@ export class PlanetPass {
 		this.targetHeight = Math.max(1, Math.round(height));
 	}
 
+	/** Size in pixels of what the planet pass draws into: the scene target, or half of it on the half rung. */
+	private passSize(): { width: number; height: number } {
+		return {
+			width: Math.max(1, Math.round(this.targetWidth * this.activeScale)),
+			height: Math.max(1, Math.round(this.targetHeight * this.activeScale))
+		};
+	}
+
+	/**
+	 * Asks for the planet pass at `HALF_PLANET_SCALE` of the scene target's side (plan 050) or at full
+	 * size (1). Takes effect at the next `beginFrame`; no program is compiled by the switch.
+	 */
+	setPlanetScale(scale: number): void {
+		this.wantedScale = scale < 1 ? HALF_PLANET_SCALE : 1;
+	}
+
+	/** The material of the full-resolution upsample, for `precompile`. */
+	get upsampleMaterial(): ShaderMaterial {
+		return this.half.upsample;
+	}
+
+	get planetScale(): number {
+		return this.activeScale;
+	}
+
+	/** Whether the context can render the half-resolution pass (float colour attachments). */
+	halfAvailable(gl: WebGLRenderer): boolean {
+		this.halfSupported ??= gl.extensions.has('EXT_color_buffer_float');
+		return this.halfSupported;
+	}
+
+	/**
+	 * Top of every frame, before the march prepass: settles which resolution the planet pass runs at and
+	 * puts the matching mesh material in the scene (the pass itself, or the upsample that replaces it).
+	 */
+	beginFrame(gl: WebGLRenderer): void {
+		this.activeScale = this.wantedScale < 1 && this.halfAvailable(gl) ? HALF_PLANET_SCALE : 1;
+		const half = this.activeScale < 1;
+		this.mesh.material = half ? this.half.upsample : this.material;
+		this.material.uniforms.uPackDepth!.value = half ? 1 : 0;
+		this.material.uniforms.uPixelAngle!.value = this.fullPixelAngle / this.activeScale;
+	}
+
+	/**
+	 * The half-resolution planet pass itself, after `marchPrepass`: draws the planet material into the
+	 * float target; the scene's upsample reads it. Does nothing on the full-resolution rung.
+	 */
+	drawHalf(gl: WebGLRenderer, camera: PerspectiveCamera): void {
+		if (this.activeScale >= 1) {
+			this.halfTarget?.dispose();
+			this.halfTarget = null;
+			return;
+		}
+		const { width, height } = this.passSize();
+		if (!this.halfTarget || this.halfTarget.width !== width || this.halfTarget.height !== height) {
+			this.halfTarget?.dispose();
+			this.halfTarget = new WebGLRenderTarget(width, height, {
+				type: FloatType,
+				format: RGBAFormat,
+				generateMipmaps: false,
+				minFilter: NearestFilter,
+				magFilter: NearestFilter,
+				depthBuffer: false
+			});
+		}
+		const up = this.half.upsample.uniforms;
+		up.uHalf!.value = this.halfTarget.texture;
+		(up.uFullSize!.value as Vector2).set(this.targetWidth, this.targetHeight);
+		(up.uHalfSize!.value as Vector2).set(width, height);
+		up.uOctaves!.value = Math.log2(camera.far + 1);
+		const previous = gl.getRenderTarget();
+		const autoClear = gl.autoClear;
+		gl.autoClear = false;
+		gl.setRenderTarget(this.halfTarget);
+		gl.render(this.half.scene, camera);
+		gl.setRenderTarget(previous);
+		gl.autoClear = autoClear;
+	}
+
 	/**
 	 * The march prepass (plan 039, ADR 0053): one texel per `MARCH_BLOCK` x `MARCH_BLOCK` pixels holding
 	 * where that block's rays may first meet the ground. Needs a context, so the facade calls it every
@@ -661,8 +777,9 @@ export class PlanetPass {
 			u.uMarchSteps!.value = this.fullSteps;
 			return;
 		}
-		const w = Math.ceil(this.targetWidth / MARCH_BLOCK);
-		const h = Math.ceil(this.targetHeight / MARCH_BLOCK);
+		const pass = this.passSize();
+		const w = Math.ceil(pass.width / MARCH_BLOCK);
+		const h = Math.ceil(pass.height / MARCH_BLOCK);
 		if (!this.marchTarget || this.marchTarget.width !== w || this.marchTarget.height !== h) {
 			this.marchTarget?.dispose();
 			this.marchTarget = new WebGLRenderTarget(w, h, {
@@ -676,7 +793,7 @@ export class PlanetPass {
 			u.uMarchStart!.value = this.marchTarget.texture;
 		}
 		const m = this.marchPass.material.uniforms;
-		(m.uFullSize!.value as Vector2).set(this.targetWidth, this.targetHeight);
+		(m.uFullSize!.value as Vector2).set(pass.width, pass.height);
 		m.uConeAngle!.value = MARCH_CONE_PIXELS * (u.uPixelAngle!.value as number);
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
@@ -855,8 +972,9 @@ export class PlanetPass {
 			Math.max(toSite.x ** 2 + toSite.y ** 2 + toSite.z ** 2 - p.frame.altitude ** 2, 0)
 		);
 		un.uSkipR!.value = flatSkipRadius(horizontal);
-		un.uPixelAngle!.value =
+		this.fullPixelAngle =
 			(2 * Math.tan((p.camera.fov * Math.PI) / 360)) / Math.max(1, p.pixelHeight);
+		un.uPixelAngle!.value = this.fullPixelAngle / this.activeScale;
 		set<Vector3>('uSunDir', (v) => v.set(p.sun.x, p.sun.y, p.sun.z));
 		set<Vector3>('uSunBF', (v) => v.set(p.sunBodyFixed.x, p.sunBodyFixed.y, p.sunBodyFixed.z));
 		set<Matrix3>('uBodyInv', (m) => m.copy(qMatrix3(p.bodyRotation, true)));
@@ -888,6 +1006,8 @@ export class PlanetPass {
 	dispose(): void {
 		this.terrainTarget?.dispose();
 		this.marchTarget?.dispose();
+		this.halfTarget?.dispose();
+		this.half.upsample.dispose();
 		this.marchPass.material.dispose();
 		this.bake.material.dispose();
 		this.patchBake.material.dispose();

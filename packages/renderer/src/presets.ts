@@ -21,6 +21,8 @@ export interface PresetSettings {
 	/** Noise octaves for the ground detail and the clouds. */
 	groundOctaves: number;
 	cloudOctaves: number;
+	/** Octaves of the cloud density the sun's shadow of the cloud deck on the ground reads, 0 = no cloud shadows (plan 050). */
+	cloudShadowOctaves: number;
 	/** Ray-march steps through the cumulus slab (plan 037, ADR 0059). */
 	cloudSteps: number;
 	/** Octaves of billow detail in the cumulus slab, 1 to 3. */
@@ -63,6 +65,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		viewSamples: 8,
 		groundOctaves: 8,
 		cloudOctaves: 3,
+		cloudShadowOctaves: 0,
 		cloudSteps: 3,
 		cloudDetail: 1,
 		mapWidth: 512,
@@ -89,6 +92,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		viewSamples: 12,
 		groundOctaves: 9,
 		cloudOctaves: 3,
+		cloudShadowOctaves: 0,
 		cloudSteps: 4,
 		cloudDetail: 2,
 		mapWidth: 1024,
@@ -115,6 +119,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		viewSamples: 12,
 		groundOctaves: 11,
 		cloudOctaves: 4,
+		cloudShadowOctaves: 4,
 		cloudSteps: 6,
 		cloudDetail: 3,
 		mapWidth: 1024,

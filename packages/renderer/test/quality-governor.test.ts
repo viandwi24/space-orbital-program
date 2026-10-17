@@ -5,6 +5,7 @@ import {
 	governorLadder,
 	type GovernorLevel
 } from '../src/quality-governor.ts';
+import { GRAPHICS_PRESETS } from '../src/presets.ts';
 
 /** Feeds `seconds` of frames of `ms` each; returns every level change in order. */
 function run(g: QualityGovernor, seconds: number, ms: number): GovernorLevel[] {
@@ -28,24 +29,57 @@ function untilChange(g: QualityGovernor, ms: number, maxSeconds = 120): Governor
 }
 
 describe('governorLadder', () => {
-	test('resolution first, then the next preset at full resolution, ending at low', () => {
-		expect(governorLadder('high').map((l) => `${l.preset}@${l.scale}`)).toEqual([
+	test('resolution first, then the half-resolution planet pass, then the next preset, ending at low', () => {
+		const name = (l: GovernorLevel): string =>
+			`${l.preset}@${l.scale}${l.planetScale < 1 ? '+half' : ''}`;
+		expect(governorLadder('high').map(name)).toEqual([
 			'high@1',
 			'high@0.85',
-			'high@0.7',
+			'high@1+half',
+			'high@0.7+half',
 			'medium@1',
 			'medium@0.85',
-			'medium@0.7',
+			'medium@1+half',
+			'medium@0.7+half',
 			'low@1',
 			'low@0.85',
-			'low@0.7',
-			'low@0.55'
+			'low@1+half',
+			'low@0.7+half',
+			'low@0.55+half'
 		]);
 	});
+	test('without float render targets the ladder has no half-resolution rung', () => {
+		const ladder = governorLadder('high', false);
+		expect(ladder.every((l) => l.planetScale === 1)).toBe(true);
+		expect(ladder.map((l) => `${l.preset}@${l.scale}`)).toEqual([
+			'high@1',
+			'high@0.85',
+			'medium@1',
+			'medium@0.85',
+			'low@1',
+			'low@0.85'
+		]);
+		const g = new QualityGovernor('high', DEFAULT_GOVERNOR, false);
+		run(g, 900, 60);
+		expect(g.level).toEqual({ preset: 'low', scale: 0.85, planetScale: 1 });
+	});
+	test('the planet pass goes to half size before the frame drops to 0.7 and before the preset falls', () => {
+		const ladder = governorLadder('high');
+		const firstHalf = ladder.findIndex((l) => l.planetScale < 1);
+		expect(ladder[firstHalf]).toEqual({ preset: 'high', scale: 1, planetScale: 0.5 });
+		expect(ladder.findIndex((l) => l.preset === 'medium')).toBeGreaterThan(firstHalf);
+		// within a preset the resolution never rises while the planet pass is at half size
+		for (const preset of GRAPHICS_PRESETS) {
+			const rungs = ladder.filter((l) => l.preset === preset && l.planetScale < 1);
+			for (let i = 1; i < rungs.length; i++) {
+				expect(rungs[i]!.scale).toBeLessThan(rungs[i - 1]!.scale);
+			}
+		}
+	});
 	test('the ceiling is the first rung and nothing above it appears', () => {
-		expect(governorLadder('medium')[0]).toEqual({ preset: 'medium', scale: 1 });
+		expect(governorLadder('medium')[0]).toEqual({ preset: 'medium', scale: 1, planetScale: 1 });
 		expect(governorLadder('medium').some((l) => l.preset === 'high')).toBe(false);
-		expect(governorLadder('low')).toHaveLength(4);
+		expect(governorLadder('low')).toHaveLength(5);
 	});
 });
 
@@ -53,7 +87,7 @@ describe('QualityGovernor', () => {
 	test('a machine inside the budget never changes level', () => {
 		const g = new QualityGovernor('high');
 		expect(run(g, 120, 16.7)).toEqual([]);
-		expect(g.level).toEqual({ preset: 'high', scale: 1 });
+		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 	});
 
 	test('steps down after the smoothed interval stays over budget, not on a short spike', () => {
@@ -64,13 +98,13 @@ describe('QualityGovernor', () => {
 		expect(run(g, 5, 16.7)).toEqual([]);
 		// sustained 25 ms (40 fps) is
 		const changes = run(g, 6, 25);
-		expect(changes[0]).toEqual({ preset: 'high', scale: 0.85 });
+		expect(changes[0]).toEqual({ preset: 'high', scale: 0.85, planetScale: 1 });
 	});
 
 	test('keeps stepping down while the machine stays slow and stops at the floor', () => {
 		const g = new QualityGovernor('high');
 		run(g, 600, 40);
-		expect(g.level).toEqual({ preset: 'low', scale: 0.55 });
+		expect(g.level).toEqual({ preset: 'low', scale: 0.55, planetScale: 0.5 });
 		expect(run(g, 60, 40)).toEqual([]);
 	});
 
@@ -93,9 +127,9 @@ describe('QualityGovernor', () => {
 	test('steps back up after a calm spell and stays up when the trial holds', () => {
 		const g = new QualityGovernor('high');
 		const lowered = untilChange(g, 25)!;
-		expect(lowered).toEqual({ preset: 'high', scale: 0.85 });
+		expect(lowered).toEqual({ preset: 'high', scale: 0.85, planetScale: 1 });
 		const up = untilChange(g, 15, DEFAULT_GOVERNOR.probationSeconds + 10)!;
-		expect(up).toEqual({ preset: 'high', scale: 1 });
+		expect(up).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 		// the trial held for longer than the probe window: nothing changes and the wait is the base again
 		expect(run(g, DEFAULT_GOVERNOR.probeSeconds + 2, 15)).toEqual([]);
 		expect(g.nextProbationSeconds).toBe(DEFAULT_GOVERNOR.probationSeconds);
@@ -121,16 +155,16 @@ describe('QualityGovernor', () => {
 	test('never goes above the ceiling', () => {
 		const g = new QualityGovernor('medium');
 		run(g, 400, 15);
-		expect(g.level).toEqual({ preset: 'medium', scale: 1 });
+		expect(g.level).toEqual({ preset: 'medium', scale: 1, planetScale: 1 });
 	});
 
 	test('disabled: always the ceiling at full resolution, whatever the interval', () => {
 		const g = new QualityGovernor('high');
 		run(g, 30, 25);
 		expect(g.level.scale).toBeLessThan(1);
-		expect(g.setEnabled(false)).toEqual({ preset: 'high', scale: 1 });
+		expect(g.setEnabled(false)).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 		expect(run(g, 200, 50)).toEqual([]);
-		expect(g.level).toEqual({ preset: 'high', scale: 1 });
+		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 		expect(g.isEnabled).toBe(false);
 		g.setEnabled(true);
 		expect(run(g, 20, 25).length).toBeGreaterThan(0);
@@ -140,7 +174,7 @@ describe('QualityGovernor', () => {
 		const g = new QualityGovernor('high');
 		run(g, 60, 40);
 		expect(g.level.preset).not.toBe('high');
-		expect(g.setCeiling('medium')).toEqual({ preset: 'medium', scale: 1 });
+		expect(g.setCeiling('medium')).toEqual({ preset: 'medium', scale: 1, planetScale: 1 });
 		expect(governorLadder('medium')[0]).toEqual(g.level);
 	});
 });

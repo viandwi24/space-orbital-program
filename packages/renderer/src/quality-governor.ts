@@ -8,29 +8,49 @@
  * trial: after a calm spell it tries the next level up, and if that falls over budget again within
  * the probe window the calm spell required for the next trial doubles (up to a cap).
  */
+import { HALF_PLANET_SCALE } from './half-res.ts';
 import { GRAPHICS_PRESETS, type GraphicsPreset } from './presets.ts';
 
-/** One rung of the ladder: a preset and the fraction of the drawing buffer's side it renders at. */
+/**
+ * One rung of the ladder: a preset, the fraction of the drawing buffer's side it renders at, and the
+ * side of the planet pass relative to that (1, or `HALF_PLANET_SCALE`; plan 050, ADR 0061).
+ */
 export interface GovernorLevel {
 	preset: GraphicsPreset;
 	scale: number;
+	planetScale: number;
 }
 
-/** Resolution steps tried inside each preset before the next preset down (the last preset goes lower). */
-export const GOVERNOR_SCALES: readonly number[] = [1, 0.85, 0.7];
-export const GOVERNOR_FLOOR_SCALES: readonly number[] = [1, 0.85, 0.7, 0.55];
+/**
+ * The steps tried inside each preset before the next preset down (the last preset goes lower): the
+ * whole frame at full size, at 0.85, then the planet pass at half size (measured on the M5 at the pad:
+ * about as cheap as drawing everything at 0.7, with the vessel and the HUD still sharp), then that at 0.7.
+ */
+export const GOVERNOR_STEPS: readonly { scale: number; planetScale: number }[] = [
+	{ scale: 1, planetScale: 1 },
+	{ scale: 0.85, planetScale: 1 },
+	{ scale: 1, planetScale: HALF_PLANET_SCALE },
+	{ scale: 0.7, planetScale: HALF_PLANET_SCALE }
+];
+export const GOVERNOR_FLOOR_STEPS: readonly { scale: number; planetScale: number }[] = [
+	...GOVERNOR_STEPS,
+	{ scale: 0.55, planetScale: HALF_PLANET_SCALE }
+];
 
 /**
  * The rungs from the player's preset down: resolution first (cheap, no recompile), then the next
  * preset at full resolution. The player's choice is the ceiling; the governor never goes above it.
+ * `halfPlanet: false` (no float render targets) leaves out the rungs that need the half-resolution pass.
  */
-export function governorLadder(ceiling: GraphicsPreset): GovernorLevel[] {
+export function governorLadder(ceiling: GraphicsPreset, halfPlanet = true): GovernorLevel[] {
 	const from = GRAPHICS_PRESETS.indexOf(ceiling);
 	const presets = GRAPHICS_PRESETS.slice(0, from + 1).reverse();
 	const out: GovernorLevel[] = [];
 	presets.forEach((preset, i) => {
 		const last = i === presets.length - 1;
-		for (const scale of last ? GOVERNOR_FLOOR_SCALES : GOVERNOR_SCALES) out.push({ preset, scale });
+		for (const step of last ? GOVERNOR_FLOOR_STEPS : GOVERNOR_STEPS) {
+			if (halfPlanet || step.planetScale === 1) out.push({ preset, ...step });
+		}
 	});
 	return out;
 }
@@ -79,9 +99,10 @@ export class QualityGovernor {
 
 	constructor(
 		ceiling: GraphicsPreset,
-		private readonly config: GovernorConfig = DEFAULT_GOVERNOR
+		private readonly config: GovernorConfig = DEFAULT_GOVERNOR,
+		private readonly halfPlanet = true
 	) {
-		this.ladder = governorLadder(ceiling);
+		this.ladder = governorLadder(ceiling, halfPlanet);
 		this.smoothed = config.budgetMs * 0.5;
 		this.settle = config.settleSeconds;
 		this.probation = config.probationSeconds;
@@ -103,7 +124,7 @@ export class QualityGovernor {
 
 	/** The player picked a preset: it is the new ceiling and the governor starts again from it. Returns the level to draw. */
 	setCeiling(ceiling: GraphicsPreset): GovernorLevel {
-		this.ladder = governorLadder(ceiling);
+		this.ladder = governorLadder(ceiling, this.halfPlanet);
 		this.restart();
 		return this.level;
 	}

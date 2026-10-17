@@ -377,6 +377,7 @@ uniform float uShadowTexel;
 uniform float uSiteRadius;
 uniform float uSiteLamps;
 uniform float uTime;           // seconds, wrapped at the wave period
+uniform float uPackDepth;      // 1 on the half-resolution rung: alpha carries the fragment depth (plan 050)
 uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
 
 const float SEA = ${f(SEA_LEVEL)};
@@ -421,10 +422,10 @@ vec3 rotY(vec3 v, float a) {
 	return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
 }
 // Cumulus: billowy puffs with defined edges. full adds the fine detail; ground shadows use the cheap form.
-float cloudDensity(vec3 dirBF, bool full, float fp) {
+float cloudDensityO(vec3 dirBF, bool full, float fp, int octaves) {
 	vec3 p = rotY(dirBF, uCloudAngle) * (uR / 16000.0);
 	p += 0.7 * (noiseF3(p * 0.45 + 3.7) - 0.5);
-	float n = fbmF(p, CLOUD_OCTAVES);
+	float n = fbmF(p, octaves);
 	// detail fades with the footprint of a pixel on the shell (grazing views would alias) and is skipped when faded out
 	float puff = 0.5;
 	float puffW = 1.0 - smoothstep(500.0, 1500.0, fp);
@@ -438,6 +439,9 @@ float cloudDensity(vec3 dirBF, bool full, float fp) {
 		dens *= 0.65 + 0.65 * billow;
 	}
 	return clamp(dens - 0.06 * (1.0 - body), 0.0, 1.0);
+}
+float cloudDensity(vec3 dirBF, bool full, float fp) {
+	return cloudDensityO(dirBF, full, fp, CLOUD_OCTAVES);
 }
 
 // Cirrus: thin streaks stretched along the wind, high above the cumulus.
@@ -991,7 +995,7 @@ void main() {
 		if (geo > 0.04) {
 			float sc = raySphere(R, geo, uCloudAlt).y;
 			vec3 q = nBF * R + Lb * sc;
-			sh *= 1.0 - 0.45 * cloudDensity(normalize(q), false, 2000.0);
+			sh *= 1.0 - 0.45 * cloudDensityO(normalize(q), false, 2000.0, CLOUD_SHADOW_OCTAVES);
 		}
 #endif
 		float k = max(0.0, 0.02 + smoothstep(-0.2, 0.4, geo)) / max(0.02 + smoothstep(-0.2, 0.4, uAmbientRefMu), 0.02);
@@ -1214,6 +1218,7 @@ void main() {
 #else
 	gl_FragDepth = depthDist > 0.0 ? 0.5 : 1.0;
 #endif
+	gl_FragColor.a = mix(1.0, gl_FragDepth, uPackDepth);
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }
