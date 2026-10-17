@@ -1,7 +1,7 @@
 ---
 id: 112
 title: "Dock panels, the Panel library and `definePanel`"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [088]
 phase: 7

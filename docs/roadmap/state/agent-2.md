@@ -19,7 +19,7 @@
 | 069 categories | done | `devb/069-categories` | 2026-10-17 | merged 704a0fc, cp/f2-069-categories |
 | 089 menus | done | `devb/089-menus` | 2026-10-17 | merged 26a4afe, cp/f2-089-menus |
 | 093 hangar | done | `devb/093-hangar` | 2026-10-17 | merged dceae76, cp/f2-093-hangar |
-| 112 dock | handed-over | `devb/112-dock` | 2026-10-18 | ready/112; ADR 0149; API 0.1.51 |
+| 112 dock | done | `devb/112-dock` | 2026-10-17 | merged 49f8d21, cp/f4-112-dock |
 | 094 launch | in-progress | `devb/094-launch` | 2026-10-18 | claim/094 |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | todo |  |  |  |
