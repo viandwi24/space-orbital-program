@@ -263,6 +263,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 */
 	dataStorage?: DataStorage<Out>;
 	/**
+	 * Present when this module is an antenna (plan 114, ADR 0179): the antenna definition id and
+	 * whether it is switched on now.
+	 */
+	antenna?: Bivariant<(config: Out, state: State) => { antenna: string; enabled: boolean }>;
+	/**
 	 * Fresh per-instance state, created from the part's parsed config (ADR 0014). Must return plain
 	 * serializable data. A factory that ignores the argument is valid. Method syntax (bivariant
 	 * parameter) rather than `Bivariant<...>` so `State` is still inferred from the return type.

@@ -23,6 +23,7 @@ import {
 import { dataUse, storagesOf } from './data.ts';
 import { rosterSnapshot, vesselCrewSnapshot } from './crew.ts';
 import { scienceSnapshot, vesselScienceSnapshot } from './science.ts';
+import { networkSnapshot } from './comms.ts';
 import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
 import { nodeSnapshots } from './maneuver.ts';
@@ -157,6 +158,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const objectives = objectivesSnapshot(core);
 	const roster = rosterSnapshot(core);
 	const science = scienceSnapshot(core);
+	const network = networkSnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -170,6 +172,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		sites: sitesSnapshot(core),
 		...(objectives ? { objectives } : {}),
 		...(science ? { science } : {}),
+		...(network ? { network } : {}),
 		...(roster ? { crew: roster } : {})
 	};
 }

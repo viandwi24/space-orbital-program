@@ -21,6 +21,7 @@ import type { TickState } from './tick.ts';
 import type { ObjectivesState } from './objectives.ts';
 import type { SaveCrew } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
+import type { CommsRuntime } from './comms.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -76,6 +77,8 @@ export interface SimCore {
 	readonly crew: SaveCrew;
 	/** Science subjects and the situation cache (plan 103, ADR 0178); saved as `SimSave.science`. */
 	readonly science: ScienceRuntime;
+	/** The comms network (plan 114, ADR 0179): derived links, never saved. */
+	readonly comms: CommsRuntime;
 	/** Orbit prediction for this world's gravity model (plan 080, ADR 0173). */
 	readonly trajectory: TrajectoryProvider;
 	/** Ledger and balances (plan 095, ADR 0113); saved as `SimSave.economy`. */

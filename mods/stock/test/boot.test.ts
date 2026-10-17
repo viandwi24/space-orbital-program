@@ -16,6 +16,7 @@ describe('stock boots through the loader', () => {
 			'stock.oxidizer'
 		]);
 		expect(ids('module')).toEqual([
+			'stock.antenna',
 			'stock.command',
 			'stock.control-surface',
 			'stock.data-storage',
@@ -37,6 +38,7 @@ describe('stock boots through the loader', () => {
 			'stock.control-surface',
 			'stock.data-drive',
 			'stock.decoupler',
+			'stock.dish-antenna',
 			'stock.engine-cluster',
 			'stock.engine-lv',
 			'stock.fin',
@@ -44,6 +46,7 @@ describe('stock boots through the loader', () => {
 			'stock.heat-shield',
 			'stock.landing-legs',
 			'stock.nose-cone',
+			'stock.probe-core',
 			'stock.radial-decoupler',
 			'stock.reaction-wheel',
 			'stock.seismometer',
@@ -52,6 +55,7 @@ describe('stock boots through the loader', () => {
 			'stock.tank-medium',
 			'stock.tank-small',
 			'stock.thermometer',
+			'stock.whip-antenna',
 			'stock.wing'
 		]);
 		expect(ids('body')).toEqual(['stock.cinder', 'stock.home']);
@@ -71,6 +75,7 @@ describe('stock boots through the loader', () => {
 			'stock.surface-sample',
 			'stock.temperature'
 		]);
+		expect(ids('antenna')).toEqual(['stock.dish', 'stock.whip']);
 		expect(ids('data-kind')).toEqual([
 			'stock.bulk',
 			'stock.image',
