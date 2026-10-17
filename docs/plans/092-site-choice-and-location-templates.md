@@ -70,3 +70,4 @@ The resolver is deterministic from the seed so the same world gets the same spot
 - 2026-10-17 — Deviation: the 20-seed test is `packages/sim/test/site-templates.test.ts`, not under `mods/stock/test`, because `mods/stock` has no dependency on `@orbital/core` (the terrain field), as in 079.
 - 2026-10-17 — Implemented as refined. The inland plateau relaxes `inland` on 6 of the 20 test seeds; the slowest first resolve (map build included) is 1.2 s.
 - 2026-10-17 — Handed over as `ready/092`; the handover text is the tag message.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ b557b4c (clean, after 068); `API_VERSION` 0.1.39 is `main` + 1. `bun run test` 1480 pass, 0 fail · web vitest 105 files, 917 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium `smoke.e2e.ts` + `worlds.e2e.ts` 7 passed (2.9m).
