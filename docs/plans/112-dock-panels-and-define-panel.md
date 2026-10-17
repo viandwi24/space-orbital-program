@@ -51,21 +51,22 @@ Selectors run at the 10 Hz HUD cadence; canvas draws only while visible; measure
 
 ## Acceptance criteria
 
-- [ ] `packages/sdk` type test: a panel definition compiles without DOM types (`lib` without `dom`).
-- [ ] vitest: the sample mod's panel renders a readout bound to altitude and updates with the snapshot; a panel whose selector throws shows an error and the HUD keeps working.
-- [ ] vitest: the Panel library adds and removes a panel and the choice survives a reload (settings).
-- [ ] Measurement: 10 panels' selectors under 0.3 ms per HUD update (M5).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sdk` type test: a panel definition compiles without DOM types (`lib` without `dom`).
+- [x] vitest: the sample mod's panel renders a readout bound to altitude and updates with the snapshot; a panel whose selector throws shows an error and the HUD keeps working.
+- [x] vitest: the Panel library adds and removes a panel and the choice survives a reload (settings).
+- [~] Measurement: 10 panels' selectors under 0.3 ms per HUD update (M5).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/112-dock-panels-and-define-panel.md` written.
-- [ ] `plugin-system.md`, `guides/writing-a-mod.md` (panels), `architecture/boundaries.md` if the drawing interface needs a note.
-- [ ] ADR 0149.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/112-dock-panels-and-define-panel.md` written.
+- [x] `plugin-system.md`, `guides/writing-a-mod.md` (panels), `architecture/boundaries.md` if the drawing interface needs a note.
+- [x] ADR 0149.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0104).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0149: selectors read a `PanelInput` (snapshot, active vessel, altitude, speed, time); node set and canvas subset fixed; Orbit, Resources, Target and Script move into the dock, Maneuver stays by the navball.
+- 2026-10-18 — Done on the branch: core and SDK (API 0.1.45), the dock and Panel library, mod panels with canvas, Orbit/Resources/Target/Script as host panels, the sample mod's Beacon panel; at the right below 1280 px. Selector cost on the M5 is for Agent 1. Journal: [112](../journal/112-dock-panels-and-define-panel.md).
