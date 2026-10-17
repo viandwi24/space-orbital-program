@@ -48,7 +48,7 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/buoyancy.test.ts`: a command pod dropped on the sea comes to rest floating with its submerged volume within 10 % of its mass over the water density; a 25 t two-stage rocket sinks to the seabed; deterministic end states.
+- [ ] `bun test packages/sim/test/buoyancy.test.ts`: a command pod dropped on the sea comes to rest floating with its submerged volume within 10 % of its mass over the water density; a 17.6 t two-stage rocket (the test helper's heaviest, denser than water) sinks to the seabed; deterministic end states.
 - [ ] Same file: the same on a lake (`isLake`).
 - [ ] Same file: an entry at 15 m/s leaves a pod whole on water and breaks it on ground; at 50 m/s on water it is damaged.
 - [ ] Same file: a pod floating at rest is `stock.splashed` and can be recovered.

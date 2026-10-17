@@ -240,4 +240,8 @@ export interface FlightFrame {
 	bodies: Map<EntityId, FlightBody>;
 	/** Ground tile per vessel close to the ground. */
 	tiles: Map<EntityId, GroundTile>;
+	/** Water (plan 067, ADR 0182): wet parts per vessel last step, wet vessels, impacts to apply. */
+	wet: Map<EntityId, Set<EntityId>>;
+	wetVessels: Set<EntityId>;
+	waterImpacts: Array<{ vessel: EntityId; part: EntityId; speed: number }>;
 }

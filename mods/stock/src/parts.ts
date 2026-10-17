@@ -738,3 +738,23 @@ export const PartScrubber = definePart({
 });
 
 export const STOCK_LIFE_SUPPORT_PARTS = [PartLifeSupportPack, PartScrubber] as const;
+
+/**
+ * A flotation collar (plan 067, ADR 0182 point 8): a wide, light ring of about 2.9 m³ that keeps a
+ * capsule afloat and upright.
+ */
+export const PartFlotationCollar = definePart({
+	id: 'stock.flotation-collar',
+	title: 'Flotation Collar',
+	mass: kg(40),
+	cost: partCost(40, 'gear'),
+	impactTolerance: 12,
+	maxTemperature: 900,
+	shape: { kind: 'cylinder', radius: 1.25, height: 0.6 },
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#f2a03d', secondary: '#2a2e35', accent: '#e9ebee' },
+		params: { stripe: 0.5, bands: 1 }
+	},
+	attach: stackNodes(0.6)
+});

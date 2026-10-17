@@ -38,6 +38,7 @@ import {
 	PartTankMedium,
 	PartTankSmall,
 	PartDataDrive,
+	PartFlotationCollar,
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
 	STOCK_LIFE_SUPPORT_PARTS,
@@ -127,6 +128,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartStrut);
 		ctx.parts.register(PartFuelLine);
 		ctx.parts.register(PartDataDrive);
+		ctx.parts.register(PartFlotationCollar);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
