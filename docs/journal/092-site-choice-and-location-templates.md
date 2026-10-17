@@ -29,6 +29,10 @@
 - **Founded sites** shape the terrain from the next load; a `site` placement there is refused until then.
 - The 20-seed test lives in `packages/sim/test` (`mods/stock` cannot import `@orbital/core`).
 
+## What surprised me
+
+- The first version of the 20-seed test built a terrain field for each seed and template (100 fields of a 1 024 px map) and added two minutes to `bun run test`. One field per seed with all five zones checks the same thing: each zone is flattened on its own (ADR 0142 point 3).
+
 ## Follow-ups
 
 - The resolver runs on the page thread when a template is chosen (about a second the first time for a seed). A Worker or a smaller map could hide that if the menus plan (089) asks for it.
@@ -36,4 +40,14 @@
 
 ## Verification output
 
-See the `ready/092` tag message.
+```text
+bun test packages/sim/test/site-templates.test.ts   2 pass (20 seeds × 5 templates; 52 s, one terrain field per seed)
+bun test packages/core/test/site-templates.test.ts  pass
+bun test packages/sim/test/sites.test.ts            6 pass (3 new for found-site)
+bunx vitest run src/lib/worlds                      Tests 20 passed
+bun run docs:check                                  docs-check: OK
+bun run test                                        1476 pass, 0 fail (325 s before the per-seed field change; the 20-seed test went from ~125 s to 52 s)
+bun run typecheck                                   exit 0 (65 s)
+bun run build                                       exit 0
+bun run --filter @orbital/web test                  902 passed; 3 env-only import suites here (no Node)
+```

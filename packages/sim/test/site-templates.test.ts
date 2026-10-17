@@ -14,13 +14,15 @@ const loaded = loadPlugins([Stock]);
 const RADIUS = 600_000;
 const SEEDS = Array.from({ length: 20 }, (_, i) => 1_000 + i * 7_919);
 
-/** Height variance (m²) of 64 points inside the flat radius, on the terrain of `seed` with the site's zone. */
-function flatVariance(seed: number, latitude: number, longitude: number): number {
-	const field = createTerrainField({
-		radius: RADIUS,
-		seed,
-		zones: [{ latitude, longitude, flatRadius: SITE_FLAT_RADIUS, blendWidth: SITE_BLEND_WIDTH }]
-	});
+/**
+ * Height variance (m²) of 64 points inside the flat radius of `spot`, on the terrain of `seed` with
+ * every spot's zone (one field per seed: each zone is flattened on its own, ADR 0142 point 3).
+ */
+function flatVariance(
+	field: ReturnType<typeof createTerrainField>,
+	latitude: number,
+	longitude: number
+): number {
 	const heights: number[] = [];
 	for (let k = 0; k < 64; k++) {
 		const r = (SITE_FLAT_RADIUS * 0.95 * ((k % 8) + 1)) / 8;
@@ -33,6 +35,13 @@ function flatVariance(seed: number, latitude: number, longitude: number): number
 	return heights.reduce((a, h) => a + (h - mean) ** 2, 0) / heights.length;
 }
 
+const zoneOf = (r: { latitude: number; longitude: number }) => ({
+	latitude: r.latitude,
+	longitude: r.longitude,
+	flatRadius: SITE_FLAT_RADIUS,
+	blendWidth: SITE_BLEND_WIDTH
+});
+
 describe('stock site templates', () => {
 	test('stock registers five templates', () => {
 		expect(loaded.report.registered['site-template'].map((e) => e.id)).toEqual(
@@ -44,6 +53,7 @@ describe('stock site templates', () => {
 		const times: Record<string, number> = {};
 		const relaxed: string[] = [];
 		for (const seed of SEEDS) {
+			const spots: Array<{ latitude: number; longitude: number }> = [];
 			for (const t of STOCK_SITE_TEMPLATES) {
 				const t0 = performance.now();
 				const r = resolveSiteTemplate(t, { seed, radius: RADIUS });
@@ -51,9 +61,11 @@ describe('stock site templates', () => {
 				const [lo, hi] = t.criteria.absLatitude;
 				expect(Math.abs(r.latitude)).toBeGreaterThanOrEqual(lo - 1e-12);
 				expect(Math.abs(r.latitude)).toBeLessThanOrEqual(hi + 1e-12);
-				expect(flatVariance(seed, r.latitude, r.longitude)).toBeLessThan(1);
+				spots.push(r);
 				if (r.relaxed.length > 0) relaxed.push(`${seed} ${t.id}: ${r.relaxed.join(',')}`);
 			}
+			const field = createTerrainField({ radius: RADIUS, seed, zones: spots.map(zoneOf) });
+			for (const r of spots) expect(flatVariance(field, r.latitude, r.longitude)).toBeLessThan(1);
 		}
 		const again = resolveSiteTemplate(STOCK_SITE_TEMPLATES[0], { seed: SEEDS[3]!, radius: RADIUS });
 		expect(again).toEqual(
