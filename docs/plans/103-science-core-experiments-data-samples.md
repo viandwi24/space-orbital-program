@@ -58,21 +58,22 @@ Situation is computed on events and at most once per second of sim time per vess
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/science.test.ts`: running the same experiment in the same situation three times yields `base × r^0, base × r^1, base × r^2` (the declared curve) and a fourth run never takes the subject past its cap.
-- [ ] Same file: a sample is credited only on recovery (no ledger entry before); transmitting data credits value × factor and removes the item.
-- [ ] Same file: an experiment started in a wrong situation is `INVALID` with the current situation in the reason; without power it is `PAUSED`.
-- [ ] Same file, `-t benchmark`: situation checks add under 0.05 ms per step for 10 vessels ¹ (M5 by Agent 1; indicative here).
-- [ ] `bun test packages/scripting`: `ship.science` lists the experiments and `runExperiment` sends the `run` action.
+- [x] `bun test packages/sim/test/science.test.ts`: running the same experiment in the same situation three times yields `base × r^0, base × r^1, base × r^2` (the declared curve) and a fourth run never takes the subject past its cap.
+- [x] Same file: a sample is credited only on recovery (no ledger entry before); transmitting data credits value × factor and removes the item.
+- [x] Same file: an experiment started in a wrong situation is `INVALID` with the current situation in the reason; without power it is `PAUSED`.
+- [x] Same file, `-t benchmark`: situation checks add under 0.05 ms per step for 10 vessels ¹ (M5 by Agent 1; indicative here).
+- [x] `bun test packages/scripting`: `ship.science` lists the experiments and `runExperiment` sends the `run` action.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/103-science-core-experiments-data-samples.md` written.
-- [ ] `architecture/simulation.md`, `guides/writing-a-mod.md`, `guides/scripting.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/103-science-core-experiments-data-samples.md` written.
+- [x] `architecture/simulation.md`, `guides/writing-a-mod.md`, `guides/scripting.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099).
 - 2026-10-17 — Refined and claimed by Agent 3. Science credit is gated by `stock.tech-tree`, not by the economy rule, which is Career only: ADR 0099 point 6 gives the Science preset science without money. The HUD card moves to draft 191, after the dock of 112. Sample mass is data only. Design choices go in ADR 0178.
+- 2026-10-17 — Implemented by Agent 3 and handed over as `ready/103`. Stock situation ids are `stock.*` because registry ids need a plugin prefix. Splashed needs terrain below sea level. A new module hook, `onRecover`, credits held samples. The snapshot classifies the situation without the cache. Benchmark: 6 to 14 µs per step for 10 vessels here. Journal: `journal/103-science-core-experiments-data-samples.md`.

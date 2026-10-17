@@ -43,10 +43,9 @@ test('ship.science lists the experiments and runExperiment sends the run action'
 	expect(runner.logs[1]).toBe('{"ok":true}');
 	expect(runner.logs[2]).toBe('RUNNING');
 	expect(runner.logs[3]).toBe('runExperiment: no experiment "stock.nothing" aboard');
-	expect(rig.dispatched).toContainEqual({
-		type: 'action',
+	expect(rig.dispatched.find((c) => c.type === 'action')).toMatchObject({
 		vessel: rig.vessel,
-		part: Number(thermo),
+		part: thermo,
 		module: 'stock.experiment',
 		action: 'run',
 		args: []

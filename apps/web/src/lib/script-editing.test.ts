@@ -201,7 +201,7 @@ describe('completions', () => {
 		expect(c.from).toBe(5);
 		expect(names('ship.ta')).toEqual(['target', 'targets']);
 		expect(names('ship.', 5)).toContain('altitude');
-		expect(names('ship.', 5)).toHaveLength(28);
+		expect(names('ship.', 5)).toHaveLength(29);
 		expect(names('ship. t')).toEqual(expect.arrayContaining(['t', 'throttle']));
 	});
 

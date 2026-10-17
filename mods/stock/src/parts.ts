@@ -554,13 +554,13 @@ function instrument(
 		cost: partCost(massKg, 'command'),
 		impactTolerance: 8,
 		maxTemperature: 1000,
-		shape: cylinder(0.3),
+		shape: cylinder(0.4),
 		visual: {
 			kind: 'tank',
 			palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent },
-			params: { stripe: 0.3, bands: 1 }
+			params: { stripe: 0.5, bands: 1 }
 		},
-		attach: stackNodes(0.3),
+		attach: stackNodes(0.4),
 		modules: [[ModuleExperiment, { experiment, label }]]
 	});
 }
