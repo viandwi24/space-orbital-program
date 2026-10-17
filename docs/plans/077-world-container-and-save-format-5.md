@@ -1,7 +1,7 @@
 ---
 id: 077
 title: "World container: worlds own saves, save format 5"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: []
 phase: 4
@@ -73,4 +73,5 @@ Follow ADR 0050 point 6 exactly: bump, pure migration keyed by 4, re-sign, froze
   - web: `bunx vitest run src/lib/save/migrate-worlds.test.ts` in the suite — two version 1 saves in a version 1 `fake-indexeddb` database → one Legacy world owning both; a second run and a reload change nothing; an interrupted run finishes without a second world.
   - `bun run test` — `1316 pass, 0 fail` · `bun run --filter @orbital/web test` — `824 passed (824)` · `bun run typecheck` — every package `Exited with code 0` · `bun run build` — `✔ done` · `bun run docs:check` — `OK (129 plans, 109 ADRs)`.
   - Save size: format 4 fixture 4,486 → 4,665 bytes (+179, +4.0 %), journal.
+  - Merge (Lead, M5): `merge 9531685` on `main`; Chromium smoke `E2E_PORT=5201 E2E_WORKERS=1 bunx playwright test --project=chromium e2e/smoke.e2e.ts` — `6 passed (2.5m)`. No renderer or flight-view change, so no frame budget run.
   - Note: plain `bun test` at the root also collects `apps/web` vitest files and fails on `$state` (runes need the Svelte compiler); that is unchanged from `main`. The checks are `bun run test` (packages, mods, examples) and the web vitest.
