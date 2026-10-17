@@ -149,3 +149,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0174 | [Part action descriptors: how they call actions, the compact snapshot, and custom groups](0174-part-action-descriptors-calls-compact-snapshot-and-custom-groups.md) | accepted | 2026-10-17 |
 | 0176 | [Crew core: roster, places and XP, seats, death and salaries](0176-crew-roster-places-xp-seats-death-salaries.md) | accepted | 2026-10-17 |
 | 0177 | [Site templates: criteria, the resolver, consequences and founding a site](0177-site-templates-resolver-consequences-and-founding.md) | accepted | 2026-10-17 |
+| 0178 | [Science core: situations, subjects, the value curve, experiment states and credit](0178-science-situations-subjects-value-curve-states-credit.md) | accepted | 2026-10-17 |

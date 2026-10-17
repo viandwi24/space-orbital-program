@@ -27,6 +27,7 @@ import { createRegistries, createRegistry, RegistryError, type Registries } from
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
+import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -94,6 +95,9 @@ export interface BasePluginContext {
 	readonly buildings: Registrar<BuildingDefinition>;
 	/** Site templates (plan 092, ADR 0177). */
 	readonly siteTemplates: Registrar<SiteTemplateDefinition>;
+	/** Science (plan 103, ADR 0178). */
+	readonly situations: Registrar<SituationDefinition>;
+	readonly experiments: Registrar<ExperimentDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -136,6 +140,8 @@ export const REGISTRY_KINDS = [
 	'action-group',
 	'building',
 	'site-template',
+	'situation',
+	'experiment',
 	'objective',
 	'contract',
 	'mission',
@@ -190,6 +196,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'actionGroups',
 	'buildings',
 	'siteTemplates',
+	'situations',
+	'experiments',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -373,6 +381,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			actionGroups: registrar(registries.actionGroups),
 			buildings: registrar(registries.buildings),
 			siteTemplates: registrar(registries.siteTemplates),
+			situations: registrar(registries.situations),
+			experiments: registrar(registries.experiments),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -534,6 +544,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'action-group': section(registries.actionGroups),
 				building: section(registries.buildings),
 				'site-template': section(registries.siteTemplates),
+				situation: section(registries.situations),
+				experiment: section(registries.experiments),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),

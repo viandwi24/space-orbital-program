@@ -6,6 +6,8 @@
 import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
+	ExperimentDefinition,
+	SituationDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
 	AnyPatchDefinition,
@@ -259,3 +261,15 @@ export const defineCrewNames = (def: CrewNamesDefinition): CrewNamesDefinition =
  * elevation criteria, resolved against each world's terrain. Register with `ctx.siteTemplates`.
  */
 export const defineSiteTemplate = (def: SiteTemplateDefinition): SiteTemplateDefinition => def;
+// defineExperiment / defineSituation
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A science experiment (plan 103, ADR 0178): data or a sample, the situations it runs in, its base
+ * value and diminishing repeats. Register with `ctx.experiments`; a part runs it through the
+ * `stock.experiment` module.
+ */
+export const defineExperiment = (def: ExperimentDefinition): ExperimentDefinition => def;
+
+/** A science situation: `matches(view)` is pure, the lowest `order` that matches wins. */
+export const defineSituation = (def: SituationDefinition): SituationDefinition => def;

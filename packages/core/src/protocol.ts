@@ -162,6 +162,17 @@ export interface VesselSnapshot {
 	target?: TargetSnapshot;
 	/** Crew aboard (plan 106): who sits in which part, with their ability factors. */
 	crew?: Array<{ member: string; part: EntityId; abilities: Record<string, number> }>;
+	/** Experiments aboard (plan 103): state, reason and progress; the vessel's situation. */
+	science?: {
+		situation: string | null;
+		experiments: Array<{
+			part: EntityId;
+			experiment: string;
+			state: 'READY' | 'RUNNING' | 'PAUSED' | 'INVALID';
+			reason?: string;
+			progress: number;
+		}>;
+	};
 	/**
 	 * Part actions of a vessel in flight (plan 110, ADR 0174): group states and the changing part of
 	 * each descriptor as `[part, module, action, value, enabled]`; the rest comes from `describe`.
@@ -202,6 +213,8 @@ export interface Snapshot {
 			progress: number;
 		}>;
 	}>;
+	/** Science subjects of the world (plan 103, ADR 0178); absent before the first result. */
+	science?: Array<{ id: string; count: number; produced: number; credited: number; cap: number }>;
 	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
 	crew?: Array<{
 		id: string;
@@ -421,7 +434,9 @@ export type Command =
 	/** Hire a crew member into the roster (plan 106, ADR 0176 point 2). */
 	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
 	/** Move a crew member to another part of the same vessel (capacity checked). */
-	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId };
+	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId }
+	/** Transmit a science data item (plan 103, ADR 0178 point 7): value × its factor, then it is gone. */
+	| { type: 'transmit-data'; vessel: EntityId; item: string };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

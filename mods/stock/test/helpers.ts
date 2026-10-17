@@ -68,6 +68,8 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		air: { x: 0, y: 0, z: 0 },
 		centre: { x: 0, y: 0, z: 0 },
 		demand: { x: 0, y: 0, z: 0 },
+		situation: () => undefined,
+		science: { result: () => undefined, credit: () => {} },
 		get centreOfMass() {
 			return v.centre;
 		},

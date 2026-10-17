@@ -184,5 +184,6 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		vessel: entity,
 		member: z.string().min(1),
 		to: entity
-	})
+	}),
+	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) })
 ]);

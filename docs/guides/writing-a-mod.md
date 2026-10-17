@@ -240,6 +240,13 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - `absLatitude` is a band of |latitude| in radians (both hemispheres). `seaEast`, `inland`, `island` and `minElevation` (biome map elevation, sea level 0.46) narrow it. When a world has no spot that meets them all, they are dropped in that order and Create World says so.
 - `resolveSiteTemplate(template, { seed, radius })` and `siteConsequences(site, body, seed)` are pure; use them to show a template's result in your own screens.
 
+## Science (API 0.1.40, plan 103, ADR 0178)
+
+- **An experiment.** `ctx.experiments.register(defineExperiment({ id: 'acme.magnetometer', label: 'Magnetometer', kind: 'data', situations: ['stock.space-low', 'stock.space-high'], baseValue: 12, repeatFactor: 0.5, duration: 10, power: 0.1, bits: 16_384, transmitFactor: 0.8 }))`. The first result in a subject (experiment × body × situation) is worth `baseValue` × the body's multiplier, and each later one `repeatFactor` times the last. The total stops at `capFactor` (default 3) × `baseValue` × multiplier.
+- **A part that runs it.** Use the stock module: `modules: [['stock.experiment', { experiment: 'acme.magnetometer', label: 'Log field' }]]`. Its `run` action starts the experiment. A finished data run stores a `stock.science` data item, which the player transmits (`transmit-data`) or brings home. A sample (`kind: 'sample'`, with a `mass`) stays in the part until the vessel is recovered.
+- **Your own module** can call `ctx.vessel.situation()` and `ctx.vessel.science.result(id)`, which fixes the value now. It reports itself through `describe().experiment` and credits held results in `onRecover` with `ctx.vessel.science.credit(subject, value)`.
+- **Situations and bodies.** Stock situations are `stock.landed`, `stock.splashed`, `stock.flying-low`, `stock.flying-high`, `stock.space-low` and `stock.space-high`. Set a body's `science: { flyingHigh, spaceHigh, multiplier }` to move the thresholds. A new situation (`defineSituation`, a pure `matches(view)`) slots in by `order`.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

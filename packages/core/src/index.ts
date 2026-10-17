@@ -45,3 +45,4 @@ export * from './mods.ts';
 export * from './mod-assets.ts';
 // One interface for orbit prediction (plan 080, ADR 0173); the patched provider lives in kepler.
 export type { TrajectoryCapabilities, TrajectoryModel, TrajectoryProvider } from '@orbital/kepler';
+export * from './science.ts';

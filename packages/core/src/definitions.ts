@@ -17,6 +17,7 @@ import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
+import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -83,6 +84,9 @@ export interface ReadonlyRegistries {
 	buildings: ReadonlyRegistry<BuildingDefinition>;
 	/** Site templates (plan 092, ADR 0177). */
 	siteTemplates: ReadonlyRegistry<SiteTemplateDefinition>;
+	/** Science (plan 103, ADR 0178). */
+	situations: ReadonlyRegistry<SituationDefinition>;
+	experiments: ReadonlyRegistry<ExperimentDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
@@ -154,6 +158,17 @@ export interface VesselApi {
 	 * Data storage of the whole vessel (plan 083, ADR 0172): `store` puts the item on the first
 	 * storage with room and returns its id, or drops it (`data:dropped`) and returns undefined.
 	 */
+	/** The vessel's science situation (plan 103, ADR 0178 point 6), or undefined when none matches. */
+	situation(): string | undefined;
+	/**
+	 * Science (plan 103, ADR 0178): `result` makes a result of `experiment` in the current situation
+	 * and returns its subject and value (undefined when no situation matches); `credit` credits a
+	 * subject (a recovered sample).
+	 */
+	readonly science: {
+		result(experiment: string): { subject: string; value: number } | undefined;
+		credit(subject: string, value: number): void;
+	};
 	readonly data: {
 		store(item: NewDataItem): string | undefined;
 		/** Bits stored on the vessel. */
@@ -247,6 +262,8 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * parameter) rather than `Bivariant<...>` so `State` is still inferred from the return type.
 	 */
 	state?(config: Out): State;
+	/** The vessel is recovered (plan 103): credit what the module holds before it is removed. */
+	onRecover?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
 	/** The part's stage fires (engine ignites, decoupler separates). */
 	onStage?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
 	/** Every fixed step while the owning vessel is in flight mode. */

@@ -92,6 +92,14 @@ export const bodyDefinitionSchema = z.object({
 			aurora: z.boolean().optional()
 		})
 		.optional(),
+	/** Science thresholds and multiplier (plan 103, ADR 0178 point 2); defaults from the atmosphere and radius. */
+	science: z
+		.object({
+			flyingHigh: z.number().nonnegative().optional(),
+			spaceHigh: z.number().positive().optional(),
+			multiplier: z.number().positive().optional()
+		})
+		.optional(),
 	parent: definitionIdSchema.optional(),
 	/** The system's calendar, read on the root body only (plan 081, ADR 0141); absent = fictional from the root. */
 	calendar: z
@@ -331,6 +339,15 @@ export const actionGroupDefinitionSchema = z.object({
 export const moduleInfoSchema = z.object({
 	/** Controls the module offers (plan 110, ADR 0174). */
 	actions: z.array(partActionDescriptorSchema).optional(),
+	/** The module is a science experiment (plan 103, ADR 0178 point 5): its id and state. */
+	experiment: z
+		.object({
+			id: z.string().min(1),
+			state: z.enum(['READY', 'RUNNING', 'PAUSED', 'INVALID']),
+			reason: z.string().optional(),
+			progress: z.number().min(0).max(1)
+		})
+		.optional(),
 	/** The module is an engine. */
 	engine: z
 		.object({
