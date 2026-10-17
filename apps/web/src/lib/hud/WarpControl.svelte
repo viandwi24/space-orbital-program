@@ -3,6 +3,7 @@
 	import IconButton from '../ui/IconButton.svelte';
 	import { formatMet, formatWarp } from '../format';
 	import { WARP_STEPS } from '../warp';
+	import { behindText, type CatchUp } from '../worlds/world-model';
 
 	let {
 		warp,
@@ -10,7 +11,9 @@
 		met,
 		date = '',
 		onslower,
-		onfaster
+		onfaster,
+		catchUp = { kind: 'none' },
+		oncatchup
 	}: {
 		warp: number;
 		usable: boolean;
@@ -19,6 +22,9 @@
 		date?: string;
 		onslower: () => void;
 		onfaster: () => void;
+		/** "Catch up to now" (plan 087, ADR 0143): shown while the world is behind the real date. */
+		catchUp?: CatchUp;
+		oncatchup?: () => void;
 	} = $props();
 	const index = $derived(Math.max(0, WARP_STEPS.indexOf(warp as (typeof WARP_STEPS)[number])));
 	const reason =
@@ -60,6 +66,23 @@
 	/>
 	<span class="x num" data-testid="hud-warp">{warp}x</span>
 	{#if !usable}<span class="sr-only">{reason}</span>{/if}
+	{#if catchUp.kind !== 'none'}
+		<button
+			type="button"
+			class="catch-up"
+			data-testid="catch-up"
+			disabled={catchUp.kind === 'unavailable'}
+			title={catchUp.kind === 'offer'
+				? `The world is ${behindText(catchUp.behindSeconds)} behind the real date: warp to ${catchUp.date}`
+				: catchUp.reason}
+			onclick={() => oncatchup?.()}>Catch up to now</button
+		>
+		<span class="sr-only" data-testid="catch-up-why"
+			>{catchUp.kind === 'offer'
+				? `${behindText(catchUp.behindSeconds)} behind the real date`
+				: `Catch up is unavailable: ${catchUp.reason}`}</span
+		>
+	{/if}
 </section>
 
 <style>
@@ -82,6 +105,21 @@
 		font-size: var(--t-label);
 		color: var(--text-muted);
 		white-space: nowrap;
+	}
+	.catch-up {
+		min-height: 1.75rem;
+		padding: 0 0.625rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: var(--t-small);
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.catch-up:disabled {
+		background: var(--surface-button);
+		color: var(--text-muted);
 	}
 	.met {
 		font-size: var(--t-sm);

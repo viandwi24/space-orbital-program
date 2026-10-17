@@ -38,7 +38,11 @@ describe('the mod runtime', () => {
 		const runtime = await evaluateMods(
 			[
 				await recordOf('tuner', { order: 0, code: pluginSource('tuner', '1.0.0', patch) }),
-				await recordOf('off', { order: 1, enabled: false, code: pluginSource('off', '1.0.0', patch.replace('tuner.', 'off.')) })
+				await recordOf('off', {
+					order: 1,
+					enabled: false,
+					code: pluginSource('off', '1.0.0', patch.replace('tuner.', 'off.'))
+				})
 			],
 			{ importModule: importCode }
 		);
@@ -49,7 +53,12 @@ describe('the mod runtime', () => {
 				target: 'part',
 				applied: ['stock.engine-lv'],
 				changes: [
-					{ entry: 'stock.engine-lv', path: 'modules.stock.engine.thrust', from: 215_000, to: 230_000 }
+					{
+						entry: 'stock.engine-lv',
+						path: 'modules.stock.engine.thrust',
+						from: 215_000,
+						to: 230_000
+					}
 				]
 			}
 		]);

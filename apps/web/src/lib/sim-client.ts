@@ -1,5 +1,5 @@
 /** Main-thread wrapper over the sim Worker: typed messages, command round trips, snapshot fan-out. */
-import type { Command, CommandResult, SimSave, Snapshot } from '@orbital/core';
+import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
 import {
 	parseWorkerMessage,
 	type Catalog,
@@ -216,7 +216,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
  * With `resume` the sim continues that save instead of starting empty (plan 043); a save that
  * cannot be resumed makes `ready` reject with the reason.
  */
-export function startSimWorker(options: { resume?: SimSave } = {}): SimClient {
+export function startSimWorker(options: { resume?: SimSave; world?: WorldInfo } = {}): SimClient {
 	const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
 	// The Worker boots on this first message, so a save is in place before the sim is built.
 	// It also carries the mods the page decided to run, so both sides load the same set (ADR 0057).
@@ -224,6 +224,7 @@ export function startSimWorker(options: { resume?: SimSave } = {}): SimClient {
 	worker.postMessage({
 		kind: 'init',
 		...(options.resume === undefined ? {} : { save: options.resume }),
+		...(options.world === undefined ? {} : { world: options.world }),
 		...(mods.length === 0 ? {} : { mods })
 	});
 	let onmessage: WorkerLike['onmessage'] = null;

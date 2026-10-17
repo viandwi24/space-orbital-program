@@ -4,7 +4,7 @@
  * tested with the in-memory store. A failed write leaves every earlier save as it was (the store
  * writes a record atomically), and is reported as a `SaveWriteError` the page shows.
  */
-import { SaveError, type SimSave, type VesselDesign } from '@orbital/core';
+import { LEGACY_WORLD_ID, SaveError, type SimSave, type VesselDesign } from '@orbital/core';
 import {
 	buildGameSave,
 	exportFileName,
@@ -19,6 +19,13 @@ import { classifyWriteError, SaveWriteError, type SaveStore } from './store';
 
 export const QUICK_ID = 'quick';
 export const AUTO_PREFIX = 'auto-';
+
+/**
+ * The id of a world's slot (ADR 0143 point 3): `<world>:quick`, `<world>:auto-`; the Legacy world
+ * keeps the plain ids so the saves it has stay in their slots.
+ */
+export const slotId = (worldId: string, base: string): string =>
+	worldId === LEGACY_WORLD_ID ? base : `${worldId}:${base}`;
 /** How many autosaves are kept; the oldest is overwritten. */
 export const AUTOSAVE_SLOTS = 3;
 export const MAX_NAME_LENGTH = 48;
@@ -122,16 +129,18 @@ export function createSaveManager(store: SaveStore, env: SaveEnv): SaveManager {
 	return {
 		list: entries,
 
-		quicksave: (request) => write(build(QUICK_ID, 'Quicksave', 'quick', request)),
+		quicksave: (request) =>
+			write(build(slotId(request.sim.worldInfo.id, QUICK_ID), 'Quicksave', 'quick', request)),
 
 		async autosave(request) {
+			const prefix = slotId(request.sim.worldInfo.id, AUTO_PREFIX);
 			const autos = (await entries()).flatMap((e) =>
-				e.ok && e.meta.id.startsWith(AUTO_PREFIX) ? [e.meta] : []
+				e.ok && e.meta.id.startsWith(prefix) ? [e.meta] : []
 			);
 			const used = new Set(autos.map((m) => m.id));
 			let slot: string | undefined;
 			for (let n = 1; n <= AUTOSAVE_SLOTS && !slot; n++) {
-				if (!used.has(`${AUTO_PREFIX}${n}`)) slot = `${AUTO_PREFIX}${n}`;
+				if (!used.has(`${prefix}${n}`)) slot = `${prefix}${n}`;
 			}
 			// All slots taken: the oldest one is overwritten, so the newest AUTOSAVE_SLOTS stay.
 			slot ??= [...autos].sort((a, b) => a.createdAt - b.createdAt)[0]!.id;

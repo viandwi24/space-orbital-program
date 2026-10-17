@@ -11,7 +11,8 @@ export interface SaveRouterOptions {
 	sim(): { save(): SimSave } | undefined;
 	post(message: WorkerMessage): void;
 	/** Boot the host; `resume` is the save from `init`, unvalidated (the sim checks it). */
-	boot(resume: unknown, mods: ModBundle[]): void;
+	/** `world`: the info of a world without saves (plan 087); `createSim` validates it. */
+	boot(resume: unknown, mods: ModBundle[], world?: unknown): void;
 }
 
 export interface SaveRouter {
@@ -27,7 +28,7 @@ export function createSaveRouter(options: SaveRouterOptions): SaveRouter {
 			if (message?.kind === 'init') {
 				if (!booted) {
 					booted = true;
-					options.boot(message.save, message.mods ?? []);
+					options.boot(message.save, message.mods ?? [], message.world);
 				}
 				return true;
 			}

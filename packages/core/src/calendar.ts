@@ -244,8 +244,8 @@ export function formatDate(calendar: Calendar, epoch: Epoch, t: number): Calenda
 		const leap = f.second >= 60;
 		let [s, ms] = splitSeconds(f.second, leap ? 60 : 59);
 		if (!leap && Math.round(f.second * 1000) >= 60_000) {
-			// rounding reached the next minute: format the instant a millisecond later instead
-			f = utcFields(epoch, t + 0.001);
+			// rounding reached the next minute: format the start of that minute (a hair past the boundary)
+			f = utcFields(epoch, t + (60 - f.second) + 1e-6);
 			[s, ms] = splitSeconds(f.second, 59);
 		}
 		const text = `${f.year}-${pad(f.month)}-${pad(f.day)} ${pad(f.hour)}:${pad(f.minute)}:${pad(s)}.${pad(ms, 3)} UTC`;
