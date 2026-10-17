@@ -1,15 +1,23 @@
 /** Instanced camera-facing quads with per-instance position, size, colour and seed (plan 020). */
 import {
 	AdditiveBlending,
+	DataTexture,
 	InstancedBufferAttribute,
 	InstancedBufferGeometry,
+	LinearFilter,
+	LinearMipmapLinearFilter,
 	Mesh,
+	NoColorSpace,
 	NormalBlending,
 	PlaneGeometry,
+	RGBAFormat,
+	RepeatWrapping,
 	ShaderMaterial,
+	UnsignedByteType,
 	Vector3
 } from 'three';
 import { FIELD_VERT } from './shaders.ts';
+import { SMOKE_NOISE_SIZE, bakeSmokeNoise } from './smoke-noise.ts';
 
 export class BillboardField {
 	readonly mesh: Mesh;
@@ -20,9 +28,11 @@ export class BillboardField {
 	private readonly size: InstancedBufferAttribute;
 	private readonly colour: InstancedBufferAttribute;
 	private readonly seed: InstancedBufferAttribute;
+	private noise: DataTexture | null = null;
 	count = 0;
 
-	constructor(capacity: number, fragmentShader: string, additive: boolean) {
+	/** `noisy` gives the fragment shader the tiling noise texture of `smoke-noise.ts` as `uNoise`. */
+	constructor(capacity: number, fragmentShader: string, additive: boolean, noisy = false) {
 		this.capacity = Math.max(1, capacity);
 		const quad = new PlaneGeometry(1, 1);
 		this.geometry.index = quad.index;
@@ -43,7 +53,10 @@ export class BillboardField {
 		this.material = new ShaderMaterial({
 			vertexShader: FIELD_VERT,
 			fragmentShader,
-			uniforms: { uSunWorld: { value: new Vector3(0, 1, 0) } },
+			uniforms: {
+				uSunWorld: { value: new Vector3(0, 1, 0) },
+				...(noisy ? { uNoise: { value: this.makeNoise() } } : {})
+			},
 			transparent: true,
 			depthWrite: false,
 			blending: additive ? AdditiveBlending : NormalBlending
@@ -52,6 +65,25 @@ export class BillboardField {
 		this.mesh.frustumCulled = false;
 		this.mesh.castShadow = false;
 		this.mesh.receiveShadow = false;
+	}
+
+	private makeNoise(): DataTexture {
+		const t = new DataTexture(
+			bakeSmokeNoise(),
+			SMOKE_NOISE_SIZE,
+			SMOKE_NOISE_SIZE,
+			RGBAFormat,
+			UnsignedByteType
+		);
+		t.colorSpace = NoColorSpace;
+		t.wrapS = RepeatWrapping;
+		t.wrapT = RepeatWrapping;
+		t.magFilter = LinearFilter;
+		t.minFilter = LinearMipmapLinearFilter;
+		t.generateMipmaps = true;
+		t.needsUpdate = true;
+		this.noise = t;
+		return t;
 	}
 
 	/** Writes instance `i` (must be below `capacity`). */
@@ -92,5 +124,6 @@ export class BillboardField {
 	dispose(): void {
 		this.geometry.dispose();
 		this.material.dispose();
+		this.noise?.dispose();
 	}
 }

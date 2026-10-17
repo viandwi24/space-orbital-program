@@ -24,7 +24,8 @@ import { SLOPE_EXAGGERATION, SLOPE_EXAGGERATION_RANGE } from '../terrain-model.t
 import { TERRAIN_VEIL } from '../atmosphere-model.ts';
 import { terrainNoiseGLSL, terrainTangentGLSL } from './terrain.glsl.ts';
 import { PATCH_BLEND } from '../terrain-patch.ts';
-import { SHAFT } from '../light-shaft.ts';
+import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
+import { EDGE_CHROMA, EDGE_DEPTH_OCTAVES, SKY_DEPTH } from '../half-res.ts';
 import { cloudFieldGLSL } from './cloud-field.glsl.ts';
 import {
 	CLOUD_FILL,
@@ -414,6 +415,31 @@ uniform float uSiteRadius;
 uniform float uSiteLamps;
 uniform float uTime;           // seconds, wrapped at the wave period
 uniform float uPackDepth;      // 1 on the half-resolution rung: alpha carries the fragment depth (plan 050)
+uniform float uEdgeOnly;       // 1 in the edge pass of the half rung: only pixels whose half-resolution texels disagree are drawn (plan 056)
+uniform sampler2D uEdgeHalf;   // the half-resolution target (rgb radiance, a depth)
+uniform vec2 uEdgeFullSize;
+uniform vec2 uEdgeHalfSize;
+uniform float uEdgeOctaves;    // log2(far + 1)
+uniform float uMarchScale;     // march prepass texels per pixel of this draw, relative to the pass's own size (0.5 in the edge pass)
+// half-res.ts isEdgePixel
+bool halfEdge(vec2 fragCoord) {
+	vec2 p = fragCoord / uEdgeFullSize * uEdgeHalfSize - 0.5;
+	vec2 base = floor(p);
+	vec2 f = p - base;
+	ivec2 hi = ivec2(uEdgeHalfSize) - 1;
+	ivec2 i0 = clamp(ivec2(base), ivec2(0), hi);
+	ivec2 i1 = clamp(ivec2(base) + 1, ivec2(0), hi);
+	vec4 t0 = texelFetch(uEdgeHalf, ivec2(i0.x, i0.y), 0);
+	vec4 t1 = texelFetch(uEdgeHalf, ivec2(i1.x, i0.y), 0);
+	vec4 t2 = texelFetch(uEdgeHalf, ivec2(i0.x, i1.y), 0);
+	vec4 t3 = texelFetch(uEdgeHalf, ivec2(i1.x, i1.y), 0);
+	float ref = (f.y >= 0.5) ? ((f.x >= 0.5) ? t3.a : t2.a) : ((f.x >= 0.5) ? t1.a : t0.a);
+	vec4 d = abs(vec4(t0.a, t1.a, t2.a, t3.a) - ref) * uEdgeOctaves;
+	if (max(max(d.x, d.y), max(d.z, d.w)) > ${f(EDGE_DEPTH_OCTAVES)}) return true;
+	if (min(min(t0.a, t1.a), min(t2.a, t3.a)) < ${f(SKY_DEPTH)}) return false;
+	vec4 c = vec4(t0.b - t0.r, t1.b - t1.r, t2.b - t2.r, t3.b - t3.r) / max(vec4(t0.b + t0.r, t1.b + t1.r, t2.b + t2.r, t3.b + t3.r), vec4(1e-6));
+	return max(max(c.x, c.y), max(c.z, c.w)) - min(min(c.x, c.y), min(c.z, c.w)) > ${f(EDGE_CHROMA)};
+}
 uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
 
 const float SEA = ${f(SEA_LEVEL)};
@@ -452,14 +478,38 @@ float cloudDensity(vec3 dirBF, bool full, float fp) {
 }
 
 // --- light shafts (plan 054, ADR 0070; the twin of shaftDeficit in light-shaft.ts) --------------------
+#if SHAFT_STEPS > 0 || CLOUD_SHADOW_MAP
+uniform sampler2D uCloudMap; // baked cloud map, equirectangular: r coverage (shafts), g density (ground shadows) (planet.ts bakeCloudMap, light-shaft.ts cloudMapUV)
+vec2 cloudMapAt(vec3 rq) {
+	return texture(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5)).rg;
+}
+#endif
 #if SHAFT_STEPS > 0
-uniform sampler2D uCloudMap; // baked cloud coverage, equirectangular (planet.ts bakeCloudMap, light-shaft.ts cloudMapUV)
 uniform float uShaft; // 0..1, light-shaft.ts shaftStrength: 0 by a high sun, at night and from orbit
 struct ShaftLoss {
 	vec3 all; // Mie in-scatter (before the boost) the cloud shadows remove from the whole path
 	vec3 toA; // ... from the samples in front of the first snapshot distance tcA
 	vec3 toB; // ... in front of tcB
 };
+#if SHAFT_TERRAIN > 0 && TERRAIN
+// Share of the sun the ground blocks at sample p (position from the planet centre, altitude h above the sea sphere, sun height sunMu):
+// the smallest clearance of the sun ray over the baked heights at SHAFT_TERRAIN points (terrainReach and terrainVisibility in light-shaft.ts).
+float terrainShaftOcc(vec3 p, vec3 l, float h, float sunMu) {
+	float reach = min(${f(SHAFT_TERRAIN.maxReach)}, (${f(SHAFT_TERRAIN.topHeight)} - h) / max(sunMu, ${f(SHAFT_TERRAIN.minMu)}));
+	if (reach <= 0.0) return 0.0;
+	float vis = 1.0;
+	for (int k = 0; k < SHAFT_TERRAIN; k++) {
+		float fk = float(k + 1) / float(SHAFT_TERRAIN);
+		float s = reach * fk * fk;
+		vec3 q = p + l * s;
+		// the baked cube alone: a kilometre-scale shadow needs none of the camera-centred patches (their windows are 4 and 33 km)
+		vec4 tq = textureLod(uTerrain, uBodyInv * (q / length(q)), 0.0);
+		float c = length(q) - uR - (tq.r + tq.g);
+		vis = min(vis, clamp(c / (${f(SHAFT_TERRAIN.penumbra)} * max(sunMu, ${f(SHAFT_TERRAIN.minPenumbraMu)}) * s), 0.0, 1.0));
+	}
+	return 1.0 - vis;
+}
+#endif
 // A second, denser march along the ray: a sample under the cumulus slab loses the share of its sun that the slab
 // blocks where its sun ray crosses it (coverage at the middle of the slab, read from the baked map).
 ShaftLoss shaftLoss(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitter, float tcA, float tcB) {
@@ -481,18 +531,24 @@ ShaftLoss shaftLoss(vec3 ro, vec3 rd, float t0, float t1, vec3 l, float jitter, 
 		float h = max(rr - uR, 0.0);
 		float dM = exp(-h / uHM) * ds;
 		od += vec3(exp(-h / uHR) * ds, dM, ozoneDensity(h) * ds);
-		if (rr > uCloudTop) continue; // over the clouds: nothing above blocks the sun
 		vec3 np = p / rr;
 		float sunMu = dot(np, l);
 		if (sunMu < ${f(SHAFT.minSunMu)}) continue;
 		vec3 sd = sunDepth(p, l);
 		if (sd.x < 0.0) continue;
-		float tq = rr < midAlt ? max(raySphere(rr, sunMu, midAlt).y, 0.0) : 0.0;
-		vec3 q = p + l * tq;
-		vec3 rq = rotY(uBodyInv * (q / length(q)), uCloudAngle);
-		float cover = texture(uCloudMap, vec2(atan(rq.z, rq.x) * 0.15915494 + 0.5, asin(clamp(rq.y, -1.0, 1.0)) * 0.31830989 + 0.5)).r * mask;
-		float occ = (1.0 - smoothstep(uCloudAlt, uCloudTop, rr)) * ${f(1 - SHAFT.leak)} * (1.0 - exp(-${f(SHAFT.tau)} * cover / max(sunMu, ${f(SHAFT.muMin)})))
-			* (1.0 - smoothstep(${f(SHAFT.fadeFrom)}, ${f(SHAFT.fadeTo)}, tq));
+		float occ = 0.0;
+		if (rr < uCloudTop) { // under the top of the clouds: the slab can block the sun
+			float tq = rr < midAlt ? max(raySphere(rr, sunMu, midAlt).y, 0.0) : 0.0;
+			vec3 q = p + l * tq;
+			vec3 rq = rotY(uBodyInv * (q / length(q)), uCloudAngle);
+			float cover = cloudMapAt(rq).r * mask;
+			occ = (1.0 - smoothstep(uCloudAlt, uCloudTop, rr)) * ${f(1 - SHAFT.leak)} * (1.0 - exp(-${f(SHAFT.tau)} * cover / max(sunMu, ${f(SHAFT.muMin)})))
+				* (1.0 - smoothstep(${f(SHAFT.fadeFrom)}, ${f(SHAFT.fadeTo)}, tq));
+		}
+#if SHAFT_TERRAIN > 0 && TERRAIN
+		if (uTerrainOn > 0.5) occ = 1.0 - (1.0 - occ) * (1.0 - terrainShaftOcc(p, l, h, sunMu));
+#endif
+		if (occ <= 0.0) continue;
 		vec3 loss = extinction(od + sd) * (mieK * dM * occ);
 		o.all += loss;
 		if (s < tcA) o.toA += loss;
@@ -1077,6 +1133,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 }
 
 void main() {
+	if (uEdgeOnly > 0.5 && !halfEdge(gl_FragCoord.xy)) discard;
 	vec4 vp = uInvProj * vec4(vNdc, 0.0, 1.0);
 	vec3 rdView = normalize(vp.xyz / vp.w);
 	vec3 rd = normalize(uCamRot * rdView);
@@ -1103,7 +1160,7 @@ void main() {
 	if (uTerrainOn > 0.5) {
 		// the march prepass (a quarter of the pixels in each direction) already crossed the empty air
 		float tFrom = 0.0;
-		if (uMarchOn > 0.5) tFrom = texelFetch(uMarchStart, ivec2(gl_FragCoord.xy) / MARCH_BLOCK, 0).r;
+		if (uMarchOn > 0.5) tFrom = texelFetch(uMarchStart, ivec2(gl_FragCoord.xy * uMarchScale) / MARCH_BLOCK, 0).r;
 		if (tFrom < MARCH_NO_HIT * 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tFrom, tT);
 	}
 #endif
@@ -1156,7 +1213,14 @@ void main() {
 			sh *= mix(vis, 1.0, smoothstep(40.0, 160.0, footprint));
 		}
 #endif
-#if CLOUD_SHADOWS
+#if CLOUD_SHADOW_MAP
+		if (geo > 0.04) {
+			// one fetch of the baked density instead of the noise (plan 056): the same sun ray as below
+			float sc = raySphere(R, geo, uCloudAlt).y;
+			vec3 q = nBF * R + Lb * sc;
+			sh *= 1.0 - 0.45 * cloudMapAt(rotY(normalize(q), uCloudAngle)).g;
+		}
+#elif CLOUD_SHADOWS
 		if (geo > 0.04) {
 			float sc = raySphere(R, geo, uCloudAlt).y;
 			vec3 q = nBF * R + Lb * sc;
@@ -1306,7 +1370,7 @@ void main() {
 		float power = h < uAtmH ? 2.0 : 1.0;
 		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tcA, tcB, power);
 #if SHAFT_STEPS > 0
-		if (uShaft > 0.01 && uCloudCover > 0.02 && dot(rd, uSunDir) > ${f(SHAFT.minCosToSun)}) {
+		if (uShaft > 0.01 && (uCloudCover > 0.02 || SHAFT_TERRAIN > 0) && dot(rd, uSunDir) > ${f(SHAFT.minCosToSun)}) {
 			ShaftLoss sl = shaftLoss(ro, rd, t0, t1, uSunDir, fract(jitter + 0.618034), tcA, tcB);
 			float shaftK = uShaft * uMieBoost * uSunIrr * ${f(SHAFT.gain)};
 			// segment by segment (the composite below subtracts neighbours, so the snapshots must stay ordered), never more than maxShare of a segment

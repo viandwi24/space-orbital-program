@@ -28,7 +28,7 @@ import {
 	Mesh,
 	NoColorSpace,
 	RGBAFormat,
-	RedFormat,
+	RGFormat,
 	RepeatWrapping,
 	ShaderMaterial,
 	Quaternion,
@@ -229,6 +229,7 @@ export class PlanetPass {
 		material: ShaderMaterial;
 		cover: number;
 	};
+	/** The cloud map is kept up to date (shafts or map shadows on); otherwise it is baked once. */
 	private shaftsWanted: boolean;
 	private readonly patches: { fine: PatchSlot; mid: PatchSlot };
 	/** The march prepass (plan 039): the planet pass's per-block start distances, and the size of the target it matches. */
@@ -245,6 +246,9 @@ export class PlanetPass {
 	 * host asked for, `activeScale` what the last frame did (1 without float render targets).
 	 */
 	private readonly half: { scene: Scene; mesh: Mesh; upsample: ShaderMaterial };
+	/** The full-resolution redraw of the edge pixels over the upsample (plan 056); visible on the half rung only. */
+	private readonly edge: ShaderMaterial;
+	readonly edgeMesh: Mesh;
 	private halfTarget: WebGLRenderTarget | null = null;
 	private wantedScale = 1;
 	private activeScale = 1;
@@ -271,7 +275,7 @@ export class PlanetPass {
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
 		this.terrainSize = settings.terrainSize;
-		this.shaftsWanted = settings.shaftSteps > 0;
+		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.patchSize = settings.terrainPatch;
 		this.refineSteps = settings.terrainRefineSteps;
 		this.fullSteps = Math.max(1, settings.terrainSteps);
@@ -342,6 +346,12 @@ export class PlanetPass {
 				uMarchSteps: u(Math.max(1, settings.terrainSteps)),
 				uTime: u(0),
 				uPackDepth: u(0),
+				uEdgeOnly: u(0),
+				uEdgeHalf: u<unknown>(null),
+				uEdgeFullSize: u(new Vector2(1, 1)),
+				uEdgeHalfSize: u(new Vector2(1, 1)),
+				uEdgeOctaves: u(32),
+				uMarchScale: u(1),
 				uWaveAnchor: u(WAVES.map(() => 0))
 			},
 			side: DoubleSide,
@@ -353,6 +363,34 @@ export class PlanetPass {
 		this.mesh.frustumCulled = false;
 		this.mesh.renderOrder = -10;
 		this.mesh.name = 'planet-pass';
+		// The edge pass of the half rung (plan 056, ADR 0087): the same program drawn again at full resolution, over the
+		// upsample, for the pixels whose half-resolution texels disagree (`uEdgeOnly`); it shares every uniform but these.
+		this.edge = new ShaderMaterial({
+			name: 'planet-edge',
+			vertexShader: planetVertex,
+			fragmentShader: planetFragment,
+			defines: this.definesFor(settings),
+			uniforms: {
+				...this.material.uniforms,
+				uPackDepth: u(0),
+				uPixelAngle: u(0.001),
+				uEdgeOnly: u(1),
+				uEdgeHalf: u<unknown>(null),
+				uEdgeFullSize: u(new Vector2(1, 1)),
+				uEdgeHalfSize: u(new Vector2(1, 1)),
+				uEdgeOctaves: u(32),
+				uMarchScale: u(HALF_PLANET_SCALE)
+			},
+			side: DoubleSide,
+			depthTest: true,
+			depthWrite: true,
+			depthFunc: AlwaysDepth
+		});
+		this.edgeMesh = new Mesh(geometry, this.edge);
+		this.edgeMesh.frustumCulled = false;
+		this.edgeMesh.renderOrder = -9;
+		this.edgeMesh.name = 'planet-edge-pass';
+		this.edgeMesh.visible = false;
 		const upsample = new ShaderMaterial({
 			name: 'planet-upsample',
 			vertexShader: upsampleVertex,
@@ -433,7 +471,7 @@ export class PlanetPass {
 		cloudMapMesh.frustumCulled = false;
 		cloudMapScene.add(cloudMapMesh);
 		const cloudMapTarget = new WebGLRenderTarget(CLOUD_MAP_W, CLOUD_MAP_H, {
-			format: RedFormat,
+			format: RGFormat,
 			type: UnsignedByteType,
 			depthBuffer: false,
 			generateMipmaps: false,
@@ -723,6 +761,8 @@ export class PlanetPass {
 			CLOUD_DETAIL: s.cloudDetail,
 			CLOUDS: 1,
 			SHAFT_STEPS: s.shaftSteps,
+			SHAFT_TERRAIN: s.terrainSteps > 0 ? s.shaftTerrain : 0,
+			CLOUD_SHADOW_MAP: s.cloudShadowMap ? 1 : 0,
 			CLOUD_SHADOWS: s.cloudShadowOctaves > 0 ? 1 : 0,
 			CLOUD_SHADOW_OCTAVES: Math.max(1, s.cloudShadowOctaves),
 			TERRAIN: s.terrainSteps > 0 ? 1 : 0,
@@ -788,6 +828,8 @@ export class PlanetPass {
 		this.activeScale = this.wantedScale < 1 && this.halfAvailable(gl) ? HALF_PLANET_SCALE : 1;
 		const half = this.activeScale < 1;
 		this.mesh.material = half ? this.half.upsample : this.material;
+		this.edgeMesh.visible = half;
+		this.edge.uniforms.uPixelAngle!.value = this.fullPixelAngle;
 		this.material.uniforms.uPackDepth!.value = half ? 1 : 0;
 		this.material.uniforms.uPixelAngle!.value = this.fullPixelAngle / this.activeScale;
 	}
@@ -819,6 +861,11 @@ export class PlanetPass {
 		(up.uFullSize!.value as Vector2).set(this.targetWidth, this.targetHeight);
 		(up.uHalfSize!.value as Vector2).set(width, height);
 		up.uOctaves!.value = Math.log2(camera.far + 1);
+		const ed = this.edge.uniforms;
+		ed.uEdgeHalf!.value = this.halfTarget.texture;
+		(ed.uEdgeFullSize!.value as Vector2).set(this.targetWidth, this.targetHeight);
+		(ed.uEdgeHalfSize!.value as Vector2).set(width, height);
+		ed.uEdgeOctaves!.value = Math.log2(camera.far + 1);
 		const previous = gl.getRenderTarget();
 		const autoClear = gl.autoClear;
 		gl.autoClear = false;
@@ -960,9 +1007,11 @@ export class PlanetPass {
 
 	/** Applies a preset: recompiles for new sample counts, rebuilds the biome map at a new size. */
 	setQuality(settings: PresetSettings): void {
-		this.shaftsWanted = settings.shaftSteps > 0;
+		this.shaftsWanted = settings.shaftSteps > 0 || settings.cloudShadowMap;
 		this.material.defines = this.definesFor(settings);
 		this.material.needsUpdate = true;
+		this.edge.defines = this.definesFor(settings);
+		this.edge.needsUpdate = true;
 		this.marchPass.material.defines = this.marchDefines(settings);
 		this.marchPass.material.needsUpdate = true;
 		this.refineSteps = settings.terrainRefineSteps;

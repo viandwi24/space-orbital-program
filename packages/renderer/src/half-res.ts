@@ -54,3 +54,50 @@ export function upsampleWeights(
 	const sum = w[0]! + w[1]! + w[2]! + w[3]!;
 	return [w[0]! / sum, w[1]! / sum, w[2]! / sum, w[3]! / sum];
 }
+
+/**
+ * Edge pixels (plan 056, ADR 0087): where the four half-resolution texels around a full-resolution pixel disagree, the planet
+ * pass is drawn again at full resolution for that pixel alone, so a ridge line and the rim of a cloud keep the sharpness of the
+ * full-resolution picture instead of the 2 x 2 steps of the half-resolution one. A pixel is an edge when
+ * (a) the depths of the four texels are not all within `EDGE_DEPTH_OCTAVES` octaves of the nearest texel's (ground against sky, a ridge
+ * against its valley), or (b) all four are sky and their chroma (`edgeChroma`: how blue) differs by more than `EDGE_CHROMA` (the rim of a cloud:
+ * sky has no depth edge; the brightness inside a cloud varies with the jitter of its march and would mark the whole cloud, and ground texture
+ * would mark the whole ground, so neither is tested).
+ */
+export const EDGE_DEPTH_OCTAVES = 0.3;
+/** Fragment depth at and above which a texel is sky (the pass writes exactly 1 there). */
+export const SKY_DEPTH = 0.9999;
+export const EDGE_CHROMA = 0.12;
+
+export interface HalfTexel {
+	/** The fragment depth the pass wrote (alpha of the half-resolution target). */
+	depth: number;
+	/** `edgeChroma` of the texel's radiance. */
+	chroma: number;
+}
+
+/** How blue a radiance is, `(b - r) / (b + r)`: about 0.2 to 0.4 for the sky, near 0 for a white cloud, negative for one lit orange at sunset. */
+export function edgeChroma(r: number, b: number): number {
+	return (b - r) / Math.max(b + r, 1e-6);
+}
+
+/** `texels` ordered (x0 y0), (x1 y0), (x0 y1), (x1 y1) as for `upsampleWeights`; `fx`, `fy` pick the nearest as there. */
+export function isEdgePixel(
+	fx: number,
+	fy: number,
+	texels: readonly [HalfTexel, HalfTexel, HalfTexel, HalfTexel],
+	far: number
+): boolean {
+	const nearest = (fx >= 0.5 ? 1 : 0) + (fy >= 0.5 ? 2 : 0);
+	const reference = texels[nearest]!.depth;
+	let allSky = true;
+	let lo = Infinity;
+	let hi = -Infinity;
+	for (const t of texels) {
+		if (depthOctaves(t.depth, reference, far) > EDGE_DEPTH_OCTAVES) return true;
+		if (t.depth < SKY_DEPTH) allSky = false;
+		lo = Math.min(lo, t.chroma);
+		hi = Math.max(hi, t.chroma);
+	}
+	return allSky && hi - lo > EDGE_CHROMA;
+}

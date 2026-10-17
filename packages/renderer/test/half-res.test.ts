@@ -1,9 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	EDGE_CHROMA,
+	EDGE_DEPTH_OCTAVES,
 	HALF_PLANET_SCALE,
+	SKY_DEPTH,
 	UPSAMPLE_TOLERANCE_OCTAVES,
 	depthOctaves,
 	depthSimilarity,
+	edgeChroma,
+	isEdgePixel,
 	upsampleWeights
 } from '../src/half-res.ts';
 
@@ -90,5 +95,48 @@ describe('upsample weights (plan 050)', () => {
 		const w = upsampleWeights(0.3, 0.6, [ground, 1, ground, 1], FAR);
 		const depth = w[0]! * ground + w[1]! * 1 + w[2]! * ground + w[3]! * 1;
 		expect(Math.abs(depth - ground)).toBeLessThan(1e-6);
+	});
+});
+
+describe('edge pixels of the half rung (plan 056)', () => {
+	const ground = (z: number, chroma = 0.1) => ({ depth: depthOf(z), chroma });
+	const sky = (chroma: number) => ({ depth: 1, chroma });
+
+	test('chroma: blue sky positive, white cloud about zero, orange cloud negative', () => {
+		expect(edgeChroma(0.3, 0.6)).toBeCloseTo(1 / 3, 12);
+		expect(edgeChroma(1, 1)).toBe(0);
+		expect(edgeChroma(2, 1)).toBeLessThan(0);
+		expect(edgeChroma(0, 0)).toBe(0);
+	});
+
+	test('a smooth ground plane is not an edge, whatever its texture', () => {
+		const t = [ground(300, 0.2), ground(310, -0.3), ground(305, 0.5), ground(312, 0)] as const;
+		expect(isEdgePixel(0.2, 0.7, t, FAR)).toBe(false);
+	});
+
+	test('ground against sky, and a ridge against its valley, are edges; a step below the threshold is not', () => {
+		expect(isEdgePixel(0.1, 0.1, [ground(300), ground(300), sky(0.3), sky(0.3)], FAR)).toBe(true);
+		expect(
+			isEdgePixel(0.9, 0.9, [ground(3000), ground(9000), ground(3000), ground(9000)], FAR)
+		).toBe(true);
+		const near = 300;
+		const t = [
+			ground(near),
+			ground(near * 2 ** (EDGE_DEPTH_OCTAVES * 0.5)),
+			ground(near),
+			ground(near)
+		] as const;
+		expect(isEdgePixel(0.1, 0.1, t, FAR)).toBe(false);
+	});
+
+	test('sky is an edge only where the hue jumps (the rim of a cloud), not along its gradient or inside a cloud', () => {
+		expect(isEdgePixel(0.3, 0.3, [sky(0.2), sky(0.21), sky(0.22), sky(0.24)], FAR)).toBe(false);
+		expect(
+			isEdgePixel(0.3, 0.3, [sky(0.2), sky(0.2), sky(0.2), sky(0.2 - 2 * EDGE_CHROMA)], FAR)
+		).toBe(true);
+		expect(isEdgePixel(0.3, 0.3, [sky(0.25), sky(0.0), sky(0.25), sky(0.0)], FAR)).toBe(true);
+		// the inside of a cloud is bright and dark by turns but one hue
+		expect(isEdgePixel(0.3, 0.3, [sky(0.01), sky(0.0), sky(0.02), sky(0.0)], FAR)).toBe(false);
+		expect(SKY_DEPTH).toBeLessThan(1);
 	});
 });

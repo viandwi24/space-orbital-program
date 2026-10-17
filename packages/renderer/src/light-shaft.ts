@@ -20,9 +20,12 @@ import { CLOUD_ALTITUDE } from './cloud-model.ts';
 import { CLOUD_THICKNESS } from './cloud-volume.ts';
 import { DEG } from './vec.ts';
 
-/** Size of the cloud-coverage map the shafts read (equirectangular, one byte per texel: 3.7 km per texel at the equator of the home body) and the octaves it bakes. */
-export const CLOUD_MAP_W = 1024;
-export const CLOUD_MAP_H = 512;
+/**
+ * Size of the cloud map (equirectangular, two bytes per texel: 1.8 km per texel at the equator of the home body) and the octaves it bakes.
+ * Red is the coverage the light shafts read (plan 054, ADR 0070), green the cloud density the ground's cloud shadows read (plan 056, ADR 0086).
+ */
+export const CLOUD_MAP_W = 2048;
+export const CLOUD_MAP_H = 1024;
 export const CLOUD_MAP_OCTAVES = 3;
 
 /**
@@ -66,6 +69,60 @@ export const SHAFT = {
 	/** Only rays within this cosine of the sun are marched: the Mie lobe (g = 0.76) is 1 % of its peak beyond it. */
 	minCosToSun: 0.25
 } as const;
+
+/**
+ * Terrain-cast shafts (plan 062, ADR 0089): a sample of the second march is also in shadow where the ground between it and the sun
+ * rises above its sun ray. The planet pass reads the baked terrain height at `shaftTerrain` points of the sun ray (the same height
+ * the march and `terrainShadow` read) and takes the smallest clearance, softened like `terrainShadow`.
+ */
+export const SHAFT_TERRAIN = {
+	/** Longest stretch of a sun ray the reads cover, m (the ray of a sample under the massif's top at a grazing sun is longer than the baked field matters). */
+	maxReach: 60_000,
+	/** Floor of the sun height (sine) in the reach, so a sun on the horizon does not make the reads span the whole planet. */
+	minMu: 0.04,
+	/**
+	 * Soft edge: the visibility is the clearance of the sun ray over the ground divided by this share of the ray's own height gain
+	 * (`sunMu * distance`), so flat ground, which the ray clears by all of that gain, is never shadowed at any sun height, and a
+	 * ridge that rises above half of the gain starts to shade (the sun disc is far smaller; the shafts want soft edges).
+	 */
+	penumbra: 0.5,
+	/** Floor of the sun height (sine) in the penumbra, only so that a sun on the horizon does not divide by zero. */
+	minPenumbraMu: 0.002,
+	/** Tallest terrain, m (`TERRAIN_MAX_HEIGHT` of core, repeated here so the twin has no GPU imports): a sun ray above it is never blocked. */
+	topHeight: 4_500
+} as const;
+
+/** How far along the sun ray (m) the terrain can still block it, for a sample `altitude` m above the sea sphere and a sun whose sine at the sample is `sunMu`; 0 when the sample is above every summit. */
+export function terrainReach(altitude: number, sunMu: number): number {
+	const up = SHAFT_TERRAIN.topHeight - altitude;
+	if (up <= 0) return 0;
+	return Math.min(SHAFT_TERRAIN.maxReach, up / Math.max(sunMu, SHAFT_TERRAIN.minMu));
+}
+
+/** Distance (m) of read `k` (0-based) of `reads` along a sun ray of length `reach`: quadratic, so most reads are near the sample. */
+export function terrainReadDistance(k: number, reads: number, reach: number): number {
+	const f = (k + 1) / reads;
+	return reach * f * f;
+}
+
+/** Visibility of the sun, 0 to 1, from the clearances (m, ray altitude minus ground height) at the read distances, for a sun of height (sine) `sunMu`. */
+export function terrainVisibility(
+	clearances: readonly number[],
+	distances: readonly number[],
+	sunMu: number
+): number {
+	const gain = SHAFT_TERRAIN.penumbra * Math.max(sunMu, SHAFT_TERRAIN.minPenumbraMu);
+	let vis = 1;
+	for (let i = 0; i < clearances.length; i++) {
+		const v = clamp01(clearances[i]! / (gain * distances[i]!));
+		vis = Math.min(vis, v);
+	}
+	return vis;
+}
+
+/** The share of the sun a sample loses when a cloud (`cloud`) and the ground (`terrain`) each block a share of it. */
+export const combineOcclusion = (cloud: number, terrain: number): number =>
+	1 - (1 - cloud) * (1 - terrain);
 
 const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
 const smoothstep = (a: number, b: number, x: number): number => {

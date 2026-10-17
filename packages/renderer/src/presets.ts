@@ -23,6 +23,8 @@ export interface PresetSettings {
 	cloudOctaves: number;
 	/** Octaves of the cloud density the sun's shadow of the cloud deck on the ground reads, 0 = no cloud shadows (plan 050). */
 	cloudShadowOctaves: number;
+	/** The ground's cloud shadows read the baked cloud map (plan 056, ADR 0086) instead of evaluating the noise; for presets with `cloudShadowOctaves` 0. */
+	cloudShadowMap: boolean;
 	/** Ray-march steps through the cumulus slab (plan 037, ADR 0059). */
 	cloudSteps: number;
 	/** Octaves of billow detail in the cumulus slab, 1 to 3. */
@@ -32,6 +34,8 @@ export interface PresetSettings {
 	 * the baked cloud-coverage map once.
 	 */
 	shaftSteps: number;
+	/** Reads of the terrain height per shaft sample for ridge-cast shafts (plan 062, ADR 0089), 0 = clouds only. */
+	shaftTerrain: number;
 	/** Biome map width in texels (height is half). */
 	mapWidth: number;
 	/** Instanced trees at the launch site. */
@@ -71,9 +75,11 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		groundOctaves: 8,
 		cloudOctaves: 3,
 		cloudShadowOctaves: 0,
+		cloudShadowMap: false,
 		cloudSteps: 3,
 		cloudDetail: 1,
 		shaftSteps: 0,
+		shaftTerrain: 0,
 		mapWidth: 512,
 		trees: 250,
 		tufts: 0,
@@ -99,9 +105,11 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		groundOctaves: 9,
 		cloudOctaves: 3,
 		cloudShadowOctaves: 0,
+		cloudShadowMap: true,
 		cloudSteps: 4,
 		cloudDetail: 2,
 		shaftSteps: 4,
+		shaftTerrain: 2,
 		mapWidth: 1024,
 		trees: 900,
 		tufts: 10000,
@@ -127,9 +135,11 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		groundOctaves: 11,
 		cloudOctaves: 4,
 		cloudShadowOctaves: 4,
+		cloudShadowMap: false,
 		cloudSteps: 6,
 		cloudDetail: 3,
 		shaftSteps: 8,
+		shaftTerrain: 4,
 		mapWidth: 1024,
 		trees: 2000,
 		tufts: 28000,

@@ -159,6 +159,7 @@ export class Environment {
 		this.fog = new FogExp2(0xaabbdd, 0.00003);
 		this.root.add(
 			this.planet.mesh,
+			this.planet.edgeMesh,
 			this.site.root,
 			this.sunLight,
 			this.sunLight.target,

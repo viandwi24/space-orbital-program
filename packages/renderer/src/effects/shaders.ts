@@ -4,6 +4,8 @@
  * chunks like the planet pass (ADR 0027).
  */
 
+import { SMOKE_NOISE_CELLS } from './smoke-noise.ts';
+
 export const PLUME_VERT = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
@@ -152,16 +154,23 @@ varying vec4 vColor;
 varying float vSeed;
 varying float vDepth;
 varying vec3 vSun;
-${NOISE}
+uniform sampler2D uNoise; // smoke-noise.ts: value noise at the point and at two offsets, tiling every NOISE_CELLS cells
+const float NOISE_CELLS = ${SMOKE_NOISE_CELLS.toFixed(1)};
 void main() {
 	#include <logdepthbuf_fragment>
 	float d = length(vUv);
 	vec2 q = vUv * 2.2 + vSeed * 31.0;
 	mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
-	float n = vnoise(q) * 0.6 + vnoise(rot * q * 2.3 + 7.0) * 0.4;
+	vec3 t0 = texture2D(uNoise, q / NOISE_CELLS).rgb;
+	vec3 t1 = texture2D(uNoise, (rot * q * 2.3 + 7.0) / NOISE_CELLS).rgb;
+	float n = t0.r * 0.6 + t1.r * 0.4;
 	float shape = smoothstep(1.0, 0.2, d + (n - 0.5) * 0.8);
+	float near = smoothstep(1.0, 9.0, vDepth);
+	// Nothing visible here: skip the lighting and, above all, the blend into the multisampled target (plan 056).
+	float alpha = shape * vColor.a * near;
+	if (alpha < 0.004) discard;
 	// A bumpy sphere normal in view space.
-	vec2 bump = vec2(vnoise(q + 3.1), vnoise(q + 9.7)) - 0.5;
+	vec2 bump = t0.gb - 0.5;
 	vec3 nrm = normalize(vec3(vUv + bump * 0.7, sqrt(max(1.0 - d * d, 0.05))));
 	float lit = dot(nrm, vSun);
 	float wrap = smoothstep(-0.55, 0.9, lit);
@@ -170,8 +179,7 @@ void main() {
 	float rim = pow(1.0 - clamp(nrm.z, 0.0, 1.0), 2.0) * max(-vSun.z, 0.0) * 0.9;
 	// Thick middle is darker (self shadow), edge lighter.
 	float thick = mix(0.82, 1.0, smoothstep(0.1, 0.9, d));
-	float near = smoothstep(1.0, 9.0, vDepth);
-	gl_FragColor = vec4(vColor.rgb * (shade * thick + rim), shape * vColor.a * near);
+	gl_FragColor = vec4(vColor.rgb * (shade * thick + rim), alpha);
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 }

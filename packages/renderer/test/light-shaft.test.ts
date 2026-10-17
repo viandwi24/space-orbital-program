@@ -6,6 +6,11 @@ import {
 	CLOUD_MAP_H,
 	CLOUD_MAP_W,
 	SHAFT,
+	SHAFT_TERRAIN,
+	combineOcclusion,
+	terrainReach,
+	terrainReadDistance,
+	terrainVisibility,
 	cloudMapDirection,
 	cloudMapUV,
 	applyShaftLoss,
@@ -195,5 +200,97 @@ describe('cloud map addressing (plan 054)', () => {
 
 	test('the map has a texel finer than the shadows it serves (under 4 km at the equator of the 600 km home body)', () => {
 		expect((2 * Math.PI * 600_000) / CLOUD_MAP_W).toBeLessThan(4_000);
+	});
+});
+
+describe('terrain-cast shafts (plan 062)', () => {
+	test('reach: none above the highest summit, longer for a lower sun, capped', () => {
+		expect(terrainReach(SHAFT_TERRAIN.topHeight, 0.3)).toBe(0);
+		expect(terrainReach(10_000, 0.3)).toBe(0);
+		// 3 km of climb at sun height 0.1: 30 km
+		expect(terrainReach(1_500, 0.1)).toBeCloseTo(30_000, 6);
+		expect(terrainReach(1_500, 0.3)).toBeLessThan(terrainReach(1_500, 0.1));
+		// a grazing sun is floored and capped
+		expect(terrainReach(0, 0.001)).toBe(SHAFT_TERRAIN.maxReach);
+		expect(terrainReach(0, 0.0001)).toBe(terrainReach(0, 0.0002));
+	});
+
+	test('read distances: the last read is at the reach, spacing grows (most reads are near the sample)', () => {
+		for (const n of [2, 3, 4]) {
+			expect(terrainReadDistance(n - 1, n, 40_000)).toBe(40_000);
+			let last = 0;
+			let lastGap = 0;
+			for (let k = 0; k < n; k++) {
+				const d = terrainReadDistance(k, n, 40_000);
+				expect(d - last).toBeGreaterThanOrEqual(lastGap);
+				lastGap = d - last;
+				last = d;
+			}
+		}
+	});
+
+	// A wall of height `top` m whose foot is `wallAt` m from the sample along the sun ray, on flat sea-level ground.
+	const wallVisibility = (
+		altitude: number,
+		sunMu: number,
+		wallAt: number,
+		top: number,
+		reads: number
+	): number => {
+		const reach = terrainReach(altitude, sunMu);
+		const distances: number[] = [];
+		const clearances: number[] = [];
+		for (let k = 0; k < reads; k++) {
+			const s = terrainReadDistance(k, reads, reach);
+			distances.push(s);
+			const ray = altitude + sunMu * s;
+			clearances.push(ray - (s >= wallAt ? top : 0));
+		}
+		return terrainVisibility(clearances, distances, sunMu);
+	};
+
+	test('visibility: a ridge above the sun ray blocks the sun, flat ground never does, a ridge under half the ray gain is clear', () => {
+		// sample at 200 m, sun 5 degrees up (mu 0.0872): the ray is at 200 + 0.0872 s; a 2 km wall 12 km away is above it (1.25 km)
+		expect(wallVisibility(200, 0.0872, 12_000, 2_000, 4)).toBe(0);
+		// flat sea-level ground is cleared by the whole gain, at any sun height, even a grazing one
+		for (const mu of [0.01, 0.0872, 0.5]) expect(wallVisibility(200, mu, 1e9, 2_000, 4)).toBe(1);
+		// a wall that reaches 600 m of the 1 km of gain at 12 km is cleared by more than half of it
+		expect(wallVisibility(200, 0.0872, 12_000, 600, 4)).toBe(1);
+		// one that reaches 900 m is in the penumbra
+		const partial = wallVisibility(200, 0.0872, 12_000, 900, 4);
+		expect(partial).toBeGreaterThan(0.3);
+		expect(partial).toBeLessThan(0.9);
+	});
+
+	test('visibility is soft: it rises with the clearance, 0 at a grazing ray, 1 from the penumbra on', () => {
+		const d = [10_000];
+		const mu = 0.1;
+		const full = SHAFT_TERRAIN.penumbra * mu * 10_000;
+		const at = (c: number): number => terrainVisibility([c], d, mu);
+		expect(at(-100)).toBe(0);
+		expect(at(0)).toBe(0);
+		expect(at(full / 2)).toBeCloseTo(0.5, 12);
+		expect(at(full)).toBe(1);
+		expect(at(100)).toBeGreaterThan(at(50));
+		// the smallest clearance of the reads decides
+		expect(terrainVisibility([5_000, -3_000, 5_000], [1_000, 5_000, 9_000], mu)).toBe(0);
+	});
+
+	test('a shadowed shaft sample loses the Mie in-scatter through the same deficit as a cloud shadow', () => {
+		// the CPU twin of the planet pass: one occlusion function, here the terrain's
+		const sunEl = 4 * DEG;
+		const terrain = (s: number): number =>
+			s > 8_000 ? 1 - wallVisibility(200, Math.sin(sunEl), 12_000, 2_000, 3) : 0;
+		const lit = shaftDeficit(atm, 100, 2 * DEG, sunEl, 0.1, () => 0, 8);
+		const shaded = shaftDeficit(atm, 100, 2 * DEG, sunEl, 0.1, (s) => terrain(s), 8);
+		expect(radiance(lit)).toBe(0);
+		expect(radiance(shaded)).toBeGreaterThan(0);
+	});
+
+	test('combining: either blocker blocks, both block more, the result stays in 0 to 1', () => {
+		expect(combineOcclusion(0, 0)).toBe(0);
+		expect(combineOcclusion(0.4, 0)).toBeCloseTo(0.4, 12);
+		expect(combineOcclusion(0, 1)).toBe(1);
+		expect(combineOcclusion(0.5, 0.5)).toBeCloseTo(0.75, 12);
 	});
 });

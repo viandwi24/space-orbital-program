@@ -37,13 +37,6 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Platform'
 	},
 	{
-		plan: '056',
-		title: 'Cloud shadows on Medium',
-		gives:
-			'Cloud shadows on the ground at the Medium preset, and sharper cloud edges and ridges when the game lowers its detail to keep the frame rate.',
-		area: 'Flight and look'
-	},
-	{
 		plan: '070',
 		title: 'Communications',
 		gives:

@@ -54,6 +54,7 @@ describe('presets', () => {
 			'cloudOctaves',
 			'cloudShadowOctaves',
 			'shaftSteps',
+			'shaftTerrain',
 			'mapWidth',
 			'trees',
 			'terrainSize',
@@ -69,6 +70,19 @@ describe('presets', () => {
 		expect(PRESETS.low.post).toBe(false);
 		expect(PRESETS.low.shadowMapSize).toBe(0);
 		expect(PRESETS.medium.post && PRESETS.high.post).toBe(true);
+	});
+	test('every preset that draws cloud shadows gets them from the noise or from the baked map, never both (plan 056)', () => {
+		for (const name of GRAPHICS_PRESETS) {
+			const p = PRESETS[name];
+			expect(p.cloudShadowMap && p.cloudShadowOctaves > 0).toBe(false);
+		}
+		// medium has them since the map made them cheap (journal 050 measured +1.0 ms for the noise)
+		expect(PRESETS.medium.cloudShadowMap).toBe(true);
+		expect(PRESETS.low.cloudShadowMap).toBe(false);
+		// terrain-cast shafts need the clouds-free march to exist
+		for (const name of GRAPHICS_PRESETS) {
+			if (PRESETS[name].shaftSteps === 0) expect(PRESETS[name].shaftTerrain).toBe(0);
+		}
 	});
 });
 

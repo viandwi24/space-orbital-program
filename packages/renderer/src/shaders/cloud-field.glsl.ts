@@ -42,7 +42,10 @@ float cloudDensityQ(vec3 p, bool full, float fp, int octaves) {
 }
 `;
 
-/** The bake: one fullscreen pass writes the coverage the shafts read, equirectangular (`cloudMapUV` in light-shaft.ts is the lookup). */
+/**
+ * The bake: one fullscreen pass writes, equirectangular (`cloudMapUV` in light-shaft.ts is the lookup), the coverage the light
+ * shafts read (red) and the cloud density the ground's cloud shadows read on the presets that do not evaluate the noise (green, plan 056).
+ */
 export const cloudMapFragment = /* glsl */ `
 varying vec2 vUv;
 uniform float uR;
@@ -55,6 +58,6 @@ void main() {
 	float lat = (vUv.y - 0.5) * 3.14159265359;
 	vec3 dir = vec3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon));
 	float d = cloudDensityQ(dir * (uR / 16000.0), false, 2000.0, CLOUD_MAP_OCTAVES);
-	gl_FragColor = vec4(smoothstep(0.08, 0.55, d), 0.0, 0.0, 1.0);
+	gl_FragColor = vec4(smoothstep(0.08, 0.55, d), d, 0.0, 1.0);
 }
 `;

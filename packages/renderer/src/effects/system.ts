@@ -235,7 +235,7 @@ export class Effects {
 		this.root.name = 'effects';
 		this.settings = settings;
 		this.pool = new ParticlePool(settings.smokeParticles, 11);
-		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false);
+		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false, true);
 		this.fire = new BillboardField(96, FIRE_FRAG, true);
 		const shards = this.makeShards(settings);
 		this.shardMesh = shards.mesh;
@@ -284,7 +284,7 @@ export class Effects {
 		this.smoke.dispose();
 		this.shardMesh.geometry.dispose();
 		this.pool = new ParticlePool(settings.smokeParticles, 11);
-		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false);
+		this.smoke = new BillboardField(Math.max(1, settings.smokeParticles), SMOKE_FRAG, false, true);
 		this.smoke.mesh.renderOrder = 8;
 		const shards = this.makeShards(settings);
 		this.shardMesh = shards.mesh;
