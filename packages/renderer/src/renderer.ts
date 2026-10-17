@@ -4,6 +4,7 @@
  * exercised by the manual runs in the journals, not by Bun tests.
  */
 import type { EntityId, Snapshot } from '@orbital/core';
+import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	ACESFilmicToneMapping,
 	HalfFloatType,
@@ -53,6 +54,13 @@ export interface RendererDebug {
 	focusPart(definition: string | null, occurrence?: number): void;
 	/** Advance particles, explosions and animations by `seconds` in 1/60 s steps without drawing. */
 	stepEffects(seconds: number): void;
+	/**
+	 * The world's home terrain (plan 084, ADR 0142): its seed and the flat zones of its sites. The bakes,
+	 * the biome map and the camera's ground follow; usually given once as `RendererConfig.terrain`.
+	 */
+	setTerrain(terrain: WorldTerrainSpec): void;
+	/** Height of the home terrain (m above the sphere) at a body-fixed unit direction, as the camera reads it (parity checks). */
+	terrainHeightAt(direction: Vec3): number;
 	/** Baked terrain patch read back from the GPU as heights in metres (plan 031's parity check); null before the first bake. */
 	readPatch(which: 'fine' | 'mid'): {
 		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
@@ -408,6 +416,8 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setMoonDetail: (shadows, stones) => model.setMoonDetail(shadows, stones),
 		readMoonPatch: (body, which) => model.debugMoonPatch(gl, body, which),
 		scene: model.scene,
+		setTerrain: (terrain) => env.setTerrain(terrain),
+		terrainHeightAt: (direction) => env.groundHeight(direction),
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
 		benchmark(frames) {
 			const ctx = gl.getContext();

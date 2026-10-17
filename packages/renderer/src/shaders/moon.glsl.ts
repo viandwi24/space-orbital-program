@@ -15,7 +15,7 @@ import {
 import { STONES } from '@orbital/core';
 import { SHADOW_MARCH as M } from '../terrain-shadow.ts';
 import { hashNoiseGLSL } from './atmosphere.glsl.ts';
-import { terrainHeightGLSL, terrainNoiseGLSL } from './terrain.glsl.ts';
+import { terrainHeightGLSL, terrainNoiseGLSL, terrainZonesGLSL } from './terrain.glsl.ts';
 
 const f = (n: number): string => (Number.isInteger(n) ? `${n}.0` : String(n));
 
@@ -97,7 +97,7 @@ if (!terrainHeightGLSL.includes(BIOME_FETCH)) {
 
 /**
  * The height function of a hills body (ADR 0090): the planet pass's own `heightAt` text on the
- * biome map `uMap`, with the site at `uSiteDir`, behind the same `moonHeight(n, radius)` the bake
+ * biome map `uMap`, with the zones of `terrainZonesGLSL` (the Legacy zone), behind the same `moonHeight(n, radius)` the bake
  * fragments call. `uRadius` is declared by the bake fragment before it. One thing differs: the map's
  * elevation is bilinear by hand in 32-bit floats (the twin of `sampleMap`), because the hardware
  * filter weighs texels with 8 bits and a coast, where the land mask rises over a few texels of the
@@ -107,7 +107,7 @@ export const hillsHeightGLSL = /* glsl */ `
 ${hashNoiseGLSL}
 ${terrainNoiseGLSL}
 uniform sampler2D uMap;
-uniform vec3 uSiteDir;
+${terrainZonesGLSL}
 float biomeElevation(vec2 uv) {
 	ivec2 size = textureSize(uMap, 0);
 	vec2 p = vec2(uv.x * float(size.x) - 0.5, clamp(uv.y * float(size.y) - 0.5, 0.0, float(size.y - 1)));

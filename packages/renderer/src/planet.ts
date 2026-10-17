@@ -38,7 +38,14 @@ import {
 	type PerspectiveCamera,
 	type Uniform
 } from 'three';
-import { TERRAIN_MAP_WIDTH, cachedPlanetMap } from '@orbital/core';
+import { LEGACY_ZONE, TERRAIN_MAP_WIDTH, cachedPlanetMap } from '@orbital/core';
+import {
+	LEGACY_TERRAIN,
+	setZoneUniforms,
+	zoneUniforms,
+	type WorldTerrainSpec,
+	type ZoneUniforms
+} from './terrain-zones.ts';
 import { type Atmosphere, type RGB } from './atmosphere-model.ts';
 import { SUN_DEPTH_H, SUN_DEPTH_MU, sunDepthTable } from './sun-depth-table.ts';
 
@@ -273,13 +280,19 @@ export class PlanetPass {
 	private current: PresetSettings;
 	private siteLatitude: number;
 	private siteLongitude: number;
+	/** The world's terrain: seed and flat zones (ADR 0142); the bakes, the map and the lakes read it. */
+	private terrain: WorldTerrainSpec;
+	/** Zone and seed uniforms, one set shared by the planet pass and both bakes. */
+	private readonly zones: ZoneUniforms;
 
 	constructor(
 		atm: Atmosphere,
 		settings: PresetSettings,
 		site: { latitude: number; longitude: number },
 		/** The body has an aurora (its definition, `atmosphere.aurora`, plan 061). */
-		private readonly auroraEnabled = true
+		private readonly auroraEnabled = true,
+		/** The world's terrain; default the Legacy seed with one Legacy-sized zone at `site`. */
+		terrain?: WorldTerrainSpec
 	) {
 		this.radius = atm.radius;
 		this.atmosphereHeight = atm.height;
@@ -287,6 +300,11 @@ export class PlanetPass {
 		this.current = settings;
 		this.siteLatitude = site.latitude;
 		this.siteLongitude = site.longitude;
+		this.terrain = terrain ?? {
+			seed: LEGACY_TERRAIN.seed,
+			zones: [{ ...LEGACY_ZONE, latitude: site.latitude, longitude: site.longitude }]
+		};
+		this.zones = zoneUniforms(this.terrain);
 		this.atmosphere = createAtmosphereUniforms(atm);
 		this.mapWidth = settings.mapWidth;
 		this.map = this.buildMap(settings.mapWidth);
@@ -323,6 +341,7 @@ export class PlanetPass {
 				uSiteEast: u(new Vector3(axes.east.x, axes.east.y, axes.east.z)),
 				uSiteNorth: u(new Vector3(axes.north.x, axes.north.y, axes.north.z)),
 				uSiteUp: u(new Vector3(axes.up.x, axes.up.y, axes.up.z)),
+				...this.zones,
 				uMap: u(this.map),
 				uMapTexel: u((2 * Math.PI * atm.radius) / settings.mapWidth),
 				uAmbient: u(new Vector3(0.2, 0.3, 0.5)),
@@ -442,7 +461,7 @@ export class PlanetPass {
 				uFace: u(0),
 				uTexel: u(0.001),
 				uRadius: u(atm.radius),
-				uSiteDir: u(new Vector3(1, 0, 0))
+				...this.zones
 			},
 			depthTest: false,
 			depthWrite: false
@@ -464,7 +483,7 @@ export class PlanetPass {
 				uMap: u(this.map),
 				uTexel: u(0.0001),
 				uRadius: u(atm.radius),
-				uSiteDir: u(new Vector3(1, 0, 0)),
+				...this.zones,
 				uPatchC: u(new Vector3(1, 0, 0)),
 				uPatchE: u(new Vector3(0, 0, 1)),
 				uPatchF: u(new Vector3(0, 1, 0)),
@@ -567,13 +586,28 @@ export class PlanetPass {
 				names: { texture: 'uPatchMid', c: 'uMidC', e: 'uMidE', f: 'uMidF', k: 'uMidK' }
 			}
 		};
-		this.setSiteDirection(site.latitude, site.longitude);
+		this.invalidateTerrain();
 	}
 
-	private setSiteDirection(latitude: number, longitude: number): void {
-		const up = surfaceUp(latitude, longitude);
-		(this.bake.material.uniforms.uSiteDir!.value as Vector3).set(up.x, up.y, up.z);
-		(this.patchBake.material.uniforms.uSiteDir!.value as Vector3).set(up.x, up.y, up.z);
+	/**
+	 * The world's terrain changed (another world, or the primary site moved): new uniforms, a new
+	 * biome map, and every bake again.
+	 */
+	setTerrain(terrain: WorldTerrainSpec): void {
+		setZoneUniforms(this.zones, terrain);
+		const mapChanged =
+			cachedPlanetMap(this.mapWidth, terrain) !== cachedPlanetMap(this.mapWidth, this.terrain);
+		this.terrain = terrain;
+		if (mapChanged) {
+			// The biome map is flattened around the sites, and every height reads it.
+			this.map.dispose();
+			this.map = this.buildMap(this.mapWidth);
+			this.material.uniforms.uMap!.value = this.map;
+			this.bake.material.uniforms.uMap!.value = this.heightMap();
+			this.patchBake.material.uniforms.uMap!.value = this.heightMap();
+			this.terrainMap?.dispose();
+			this.terrainMap = null;
+		}
 		this.invalidateTerrain();
 	}
 
@@ -761,7 +795,7 @@ export class PlanetPass {
 	}
 
 	private buildMap(width: number): DataTexture {
-		const m = cachedPlanetMap(width, this.siteLatitude, this.siteLongitude);
+		const m = cachedPlanetMap(width, this.terrain);
 		const t = new DataTexture(m.data, m.width, m.height, RGBAFormat, UnsignedByteType);
 		t.colorSpace = NoColorSpace;
 		t.wrapS = RepeatWrapping;
@@ -999,15 +1033,11 @@ export class PlanetPass {
 		const moved = latitude !== this.siteLatitude || longitude !== this.siteLongitude;
 		this.siteLatitude = latitude;
 		this.siteLongitude = longitude;
+		// the primary zone follows the painted site
 		if (moved) {
-			// The biome map is flattened around the site, and every height reads it.
-			this.map.dispose();
-			this.map = this.buildMap(this.mapWidth);
-			this.material.uniforms.uMap!.value = this.map;
-			this.terrainMap?.dispose();
-			this.terrainMap = null;
+			const [primary, ...rest] = this.terrain.zones;
+			this.setTerrain({ ...this.terrain, zones: [{ ...primary!, latitude, longitude }, ...rest] });
 		}
-		this.setSiteDirection(latitude, longitude);
 		const axes = siteAxes(latitude, longitude);
 		const u = this.material.uniforms;
 		(u.uSiteEast!.value as Vector3).set(axes.east.x, axes.east.y, axes.east.z);
@@ -1039,7 +1069,7 @@ export class PlanetPass {
 	 */
 	warmMaps(widths: readonly number[]): void {
 		for (const width of widths) {
-			if (width !== this.mapWidth) cachedPlanetMap(width, this.siteLatitude, this.siteLongitude);
+			if (width !== this.mapWidth) cachedPlanetMap(width, this.terrain);
 		}
 	}
 

@@ -8,6 +8,7 @@ import {
 	type BodyDefinition,
 	type CommandResult,
 	type Epoch,
+	type TerrainZone,
 	type ModAsset,
 	type ModBundle,
 	type PartDefinition,
@@ -28,6 +29,12 @@ export interface Catalog {
 	 * Only the sim's `ready` has one: a catalog loaded on the main thread (the VAB) belongs to no world.
 	 */
 	epoch?: Epoch;
+	/**
+	 * The world's home terrain and primary site (plan 084, ADR 0142): what the renderer bakes and where
+	 * it paints the Space Center. Only the sim's `ready` has them; a main-thread catalog belongs to no world.
+	 */
+	terrain?: { seed: number; zones: TerrainZone[] };
+	launchSite?: { latitude: number; longitude: number };
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */
