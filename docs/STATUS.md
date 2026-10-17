@@ -94,7 +94,7 @@
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
-| 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | draft | — | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
+| 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | draft | — | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
 | 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | draft | — | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
 | 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
