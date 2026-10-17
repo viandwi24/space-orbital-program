@@ -6,10 +6,21 @@
  */
 import {
 	GRAVITATIONAL_CONSTANT,
+	sitesOf,
+	terrainSeedOf,
+	zonesOf,
 	type BodyDefinition,
 	type TerrainField,
-	type Vec3
+	type Vec3,
+	type WorldInfo,
+	type WorldTerrain
 } from '@orbital/core';
+
+/**
+ * The terrain of a body in a world (ADR 0142 point 6): called once per body with the world's
+ * terrain seed and the flat zones of the sites on that body. One-argument factories still work.
+ */
+export type TerrainFactory = (body: BodyDefinition, world: WorldTerrain) => TerrainField | undefined;
 import { add, propagate, soiRadius, type OrbitalElements, type StateVector } from '@orbital/kepler';
 import type { SimCore } from './core.ts';
 import type { VesselState } from './state.ts';
@@ -37,8 +48,13 @@ const ORIGIN: StateVector = { r: { x: 0, y: 0, z: 0 }, v: { x: 0, y: 0, z: 0 } }
 export function buildBodies(
 	defs: readonly BodyDefinition[],
 	rootId: string,
-	terrain: TerrainField | ((body: BodyDefinition) => TerrainField | undefined) | undefined
+	terrain: TerrainField | TerrainFactory | undefined,
+	world: Pick<WorldInfo, 'id' | 'seed' | 'sites'>
 ): Map<string, BodyRuntime> {
+	const forBody = (def: BodyDefinition): TerrainField | undefined =>
+		typeof terrain === 'function'
+			? terrain(def, { seed: terrainSeedOf(world), zones: zonesOf(sitesOf(world), def.id) })
+			: undefined;
 	const sorted = [...defs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 	const out = new Map<string, BodyRuntime>();
 	for (const def of sorted) {
@@ -59,7 +75,7 @@ export function buildBodies(
 			// Only the simulated root receives a plain terrain field; a function is asked for every body.
 			body.terrain =
 				typeof terrain === 'function'
-					? terrain(body.def)
+					? forBody(body.def)
 					: body.def.id === rootId
 						? terrain
 						: undefined;
@@ -76,7 +92,7 @@ export function buildBodies(
 		parent.children.push(body);
 		body.elements = body.def.orbit;
 		body.soi = soiRadius(body.def.orbit.a, body.def.mass, parent.def.mass);
-		body.terrain = typeof terrain === 'function' ? terrain(body.def) : undefined;
+		body.terrain = forBody(body.def);
 	}
 	for (const body of out.values()) {
 		const seen = new Set<string>();

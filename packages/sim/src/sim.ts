@@ -31,7 +31,7 @@ import {
 	type WorldInfo,
 	worldInfoSchema
 } from '@orbital/core';
-import { buildBodies } from './bodies.ts';
+import { buildBodies, type TerrainFactory } from './bodies.ts';
 import { dispatch } from './commands.ts';
 import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -106,7 +106,7 @@ export interface SimOptions {
 	 * for a body that stays a smooth sphere (a plain field applies to the root body only). Absent:
 	 * the ground is the flat reference sphere, as before plan 031.
 	 */
-	terrain?: TerrainField | ((body: BodyDefinition) => TerrainField | undefined);
+	terrain?: TerrainField | TerrainFactory;
 	/**
 	 * Continue a run from `Sim.save()` output (plan 043, ADR 0050): the world, the clock, the PRNG
 	 * and every flight body come from the save, so the run goes on exactly as the saved one would
@@ -238,7 +238,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	}
 	info.rules = resolved.values;
 	const unknownRules = Object.freeze([...resolved.unknown]);
-	const bodies = buildBodies(defs, bodyDef.id, options.terrain);
+	const bodies = buildBodies(defs, bodyDef.id, options.terrain, info);
 	const root = bodies.get(bodyDef.id);
 	if (!root) throw new Error(`createSim: body "${bodyDef.id}" is not registered`);
 
