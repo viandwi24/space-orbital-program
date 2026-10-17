@@ -1,8 +1,8 @@
 ---
 id: 077
 title: "World container: worlds own saves, save format 5"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: []
 phase: 4
 created: 2026-10-17
