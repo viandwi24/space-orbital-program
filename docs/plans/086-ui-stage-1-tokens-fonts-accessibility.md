@@ -1,8 +1,8 @@
 ---
 id: 086
 title: "UI stage 1: refs tokens, Manrope and the accessibility floor"
-status: in-progress
-owner: "Agent 1 (measure)"
+status: done
+owner: "Agent 2"
 depends: []
 phase: 4
 created: 2026-10-17
@@ -75,3 +75,4 @@ Existing screens may look mixed after this stage; that is accepted (ADR 0107 poi
   - `bun run typecheck` — 0 errors; `bun run build` — built; `bun run docs:check` — OK (129 plans, 112 ADRs).
   - Open: the M5 blur frame-time row (criterion 3, Agent 1 at merge; method in the journal). The fallback on `low` is verified by e2e.
 - 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ 56706ba (ADR index conflict, both rows kept). `bun run test` 1356 pass, 0 fail · web vitest 98 files, 883 passed (the M2's two Worker timeouts do not occur here) · typecheck exit 0 · build exit 0 · docs:check OK · Chromium `smoke.e2e.ts` + `ui-scale.e2e.ts` 8 passed (3.0m). The M5 frame-time criterion (blur on/off, 1920x1080, high and medium) is **not measured yet**: swap was 4.7 GB, over the M5 guard, so a measurement would be discarded (roadmap §8). Merged to unblock dependents; owner `Agent 1 (measure)` until the numbers are in.
+- 2026-10-17 — M5 blur measurement by Agent 1 (journal 086, "Blur measurement (M5)"): blur vs solid on the pad, `high` 28.5 / 28.4 against 28.1 / 28.0 ms mean, `medium` 35.1 / 34.4 against 35.4 / 33.7 ms: the blur costs at most 0.4 ms. Measured at the pane's own 961 × 930 (DPR 2) because an emulated 1920 × 1080 was unstable in the pane (deviation, journal). The absolute frame intervals are over ADR 0053's budgets for another reason: STATUS issue. Criterion met; plan done.

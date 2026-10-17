@@ -9,7 +9,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | Checkpoint | Plan | Produced by | Waited on by | Status | Commit | Date |
 |---|---|---|---|---|---|---|
 | `cp/f0-kickoff` | lanes assigned, shared remote set up, baselines recorded | A1 | A2, A3 | done | 844b482 | 2026-10-17 |
-| `cp/f1-086-tokens` | 086 | A2 | A1, A2 (069, 087, 088, 089, 091, 093, 113) | measure | a9999b3 | 2026-10-17 |
+| `cp/f1-086-tokens` | 086 | A2 | A1, A2 (069, 087, 088, 089, 091, 093, 113) | done | a9999b3 | 2026-10-17 |
 | `cp/f1-079-patch` | 079 | A3 | A1, A2 (065, 090) | done | 18e4b9e | 2026-10-17 |
 | `cp/f1-077-world` | 077 | A1 | A1, A2, A3 (078, 080, 081, 082, 083, 084, 087, 131) | done | 9531685 | 2026-10-17 |
 | `cp/f1-074-rename` | 074 | A2 | A2 (089) | pending | | |

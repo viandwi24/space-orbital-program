@@ -94,7 +94,7 @@
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
-| 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | in-progress | Agent 1 (measure) | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
+| 086 | [UI stage 1: refs tokens, Manrope and the accessibility floor](plans/086-ui-stage-1-tokens-fonts-accessibility.md) | done | Agent 2 | ADR 0107 stage 1: tokens, fonts, floor, blur fallback |
 | 087 | [Worlds screen and Create World](plans/087-worlds-screen-and-create-world.md) | draft | — | ADR 0094/0095/0103: worlds list, Create World, Coming soon n-body, catch-up offer |
 | 088 | [UI stage 2: the flight HUD in the refs style](plans/088-ui-stage-2-flight-hud.md) | draft | — | ADR 0107 stage 2: capsule, toolbar, navball module, staging |
 | 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
@@ -168,7 +168,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
-- **086 frame measurement open** (Agent 1): blur on/off frame time at 1920x1080, `high` and `medium`, on a quiet M5 (journal 086 has the method). Merged as `cp/f1-086-tokens` with status `measure`.
+- **Flight-view frame intervals over budget on the M5** (Agent 1, measured for 086's blur check, journal 086): on the pad, whole-page rAF intervals of 28 ms on `high` and 34 ms on `medium` at 961 × 930, DPR 2 (ADR 0053: 16.7 and 13.3 ms), and `medium` slower than `high`. Not caused by the glass (≤ 0.4 ms). Needs a renderer pass with `renderer.benchmark` and a Chrome trace to split WebGL, HUD, Worker and compositing.
 - **Root `bun test` collects `apps/web` vitest files** and fails them under Bun (`$state`, zod named imports); the checks are `bun run test` plus the web vitest. Candidate fix: a root `bunfig.toml` test root or a `bun test` guard script.
 - **Credits and new fonts** (Agent 3, plan 075 handover): plan 086 adds Manrope; its OFL copyright line must go into `apps/web/src/lib/public/credits.ts` (`credits.test.ts` enforces it).
 - **Fresh clone typecheck** (Agent 3, plan 079 handover): `bun run typecheck` fails until `apps/web` `build:sandbox` has produced the git-ignored `static/sandbox/*.js`; candidate fix: run `build:sandbox` inside `check`. Machines without Node run vitest under Bun, where two suites fail at import (`{ z }` from zod); they pass with Node (Agent 1, 2026-10-17).

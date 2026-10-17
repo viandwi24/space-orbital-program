@@ -47,6 +47,19 @@ __orbital.glass(null);    // back to the preset's choice
 
 `frameIntervals` samples whole-page rAF intervals (the compositor's blur included; `renderer.benchmark` measures WebGL only), so the difference shows only when a frame misses vsync: if both read the display interval, take the GPU process time from a Chrome performance trace instead. The fallback itself is verified: on `low` the root carries `data-glass="solid"` and panels draw `--surface-solid` with no backdrop filter (e2e below).
 
+## Blur measurement (M5, Agent 1, 2026-10-17)
+
+Production build (`NODE_ENV=development bun run build`), `scripts/serve.ts` on port 5202, the built-in browser pane fronted and alone (no other server; Brave idle in the background), governor off, second page load, flight view on the pad with the HUD, `__orbital.glass` then `__orbital.frameIntervals(240)` after 2 s settling, blur and solid alternated twice per preset. Thermal: no warning recorded; memory free 60 %, swap 4.5 GB left over from earlier with no paging during the run (swapouts 0 in 10 s).
+
+**Deviation:** the pane cannot hold an emulated 1920 × 1080 steadily (it renders a 3840 × 2160 canvas scaled down, frames alternated between 8 ms and 58 to 67 ms, and the size was reset once when the pane width changed), so those runs were discarded. The numbers are at the pane's own size, 961 × 930 CSS px at device pixel ratio 2.
+
+| Preset (canvas) | blur, mean / p50 / p95 ms | solid, mean / p50 / p95 ms |
+|---|---|---|
+| `high` (1922 × 1860) | 28.52 / 25.8 / 33.4 · 28.38 / 25.2 / 33.4 | 28.12 / 25.2 / 33.4 · 28.00 / 25.1 / 33.5 |
+| `medium` (1441 × 1395) | 35.11 / 33.4 / 41.8 · 34.41 / 33.3 / 41.7 | 35.41 / 33.4 / 42.1 · 33.70 / 33.3 / 41.6 |
+
+**Result:** the blur costs 0.3 to 0.4 ms on `high` and is within noise on `medium` (the order of the runs moves the mean by more than the mode does). Frames are GPU-bound on both (no vsync hit at 120 Hz), so a blur cost would show. **It is not the glass that costs time:** these whole-page intervals are far above ADR 0053's budgets (`high` ≤ 16.7, `medium` ≤ 13.3 ms) even on the pad, and `medium` reads slower than `high` here. That is outside this plan (rAF intervals include the HUD, the Worker and compositing, and `renderer.benchmark` was not run), and is filed as a STATUS issue for a renderer measurement pass.
+
 ## Open questions / follow-ups
 
 - Most HUD and screen widgets still size themselves with `px` literals, so at 150 % their text grows and their boxes do not. Stages 2 to 5 (088, 089, 093 and the screens of 087, 091, 113) replace the literals with rem tokens and move each screen to the new names; ADR 0140 point 3 says an alias goes with its last use.
