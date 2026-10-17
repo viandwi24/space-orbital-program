@@ -160,6 +160,17 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('remove-building'), site: z.string().min(1), id: z.string().min(1) }),
 	z.object({
+		type: z.literal('found-site'),
+		id: z.string().min(1),
+		name: z.string().min(1).max(60),
+		latitude: z
+			.number()
+			.min(-Math.PI / 2)
+			.max(Math.PI / 2),
+		longitude: z.number().refine(Number.isFinite, 'must be finite'),
+		body: z.string().min(1).optional()
+	}),
+	z.object({
 		type: z.literal('objective-start'),
 		source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
 		vessel: entity.optional()

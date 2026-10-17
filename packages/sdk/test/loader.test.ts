@@ -251,7 +251,8 @@ describe('registration and report', () => {
 			contract: [],
 			mission: [],
 			'crew-trait': [],
-			'crew-names': []
+			'crew-names': [],
+			'site-template': []
 		});
 	});
 

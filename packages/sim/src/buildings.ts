@@ -5,7 +5,12 @@
 import {
 	canPlace,
 	cloneData,
+	LEGACY_LAYOUT,
 	LEGACY_SITE,
+	MAX_TERRAIN_ZONES,
+	SITE_BLEND_WIDTH,
+	SITE_FLAT_RADIUS,
+	siteDistance,
 	sitesOf,
 	type CommandResult,
 	type Rotation,
@@ -75,6 +80,68 @@ export function removeBuilding(
 	site.buildings = (site.buildings ?? []).filter((b) => b.id !== command.id);
 	return { ok: true };
 }
+
+/** Sites founded during this run: their flat zone shapes the terrain only from the next load (ADR 0177 point 6). */
+const foundedThisRun = new WeakMap<SimCore, Set<string>>();
+
+export const foundedInThisRun = (core: SimCore, site: string): boolean =>
+	foundedThisRun.get(core)?.has(site) ?? false;
+
+/** `found-site` (ADR 0177 point 6): a base with the starter pad, refused when its zone would overlap. */
+export function foundSite(
+	core: SimCore,
+	command: { id: string; name: string; latitude: number; longitude: number; body?: string }
+): CommandResult {
+	const body = command.body ?? core.root.def.id;
+	const runtime = core.bodies.get(body);
+	if (!runtime) return refuse(`unknown body "${body}"`);
+	const sites = sitesOf(core.info);
+	if (sites.some((s) => s.id === command.id)) return refuse(`site id "${command.id}" is taken`);
+	const onBody = sites.filter((s) => s.body === body);
+	if (onBody.length >= MAX_TERRAIN_ZONES) {
+		return refuse(`body ${body} already has ${onBody.length} sites; at most ${MAX_TERRAIN_ZONES}`);
+	}
+	const reach = SITE_FLAT_RADIUS + SITE_BLEND_WIDTH;
+	for (const s of onBody) {
+		const d = siteDistance(s, command, runtime.def.radius);
+		if (d < reach + s.flatRadius + s.blendWidth) {
+			return refuse(
+				`too close to site "${s.id}" (${Math.round(d / 1000)} km): flat zones would overlap`
+			);
+		}
+	}
+	// The implicit Legacy site is written first, so it stays the primary site.
+	if (core.info.sites.length === 0) writableSite(core, LEGACY_SITE.id);
+	(core.info.sites as Site[]).push({
+		id: command.id,
+		name: command.name,
+		body,
+		kind: 'base',
+		latitude: command.latitude,
+		longitude: command.longitude,
+		flatRadius: SITE_FLAT_RADIUS,
+		blendWidth: SITE_BLEND_WIDTH,
+		pads: [{ east: 0, north: 0 }],
+		buildings: cloneData(STARTER_LAYOUT.buildings),
+		roads: cloneData(STARTER_LAYOUT.roads)
+	});
+	let set = foundedThisRun.get(core);
+	if (!set) foundedThisRun.set(core, (set = new Set()));
+	set.add(command.id);
+	core.events.emit('site:founded', {
+		site: command.id,
+		body,
+		latitude: command.latitude,
+		longitude: command.longitude
+	});
+	return { ok: true };
+}
+
+/** The starter layout of a founded site: the Legacy pad and its roads, nothing else. */
+const STARTER_LAYOUT = {
+	buildings: LEGACY_LAYOUT.buildings.filter((b) => b.id === 'legacy-pad'),
+	roads: [] as typeof LEGACY_LAYOUT.roads
+};
 
 export const sitesSnapshot = (core: SimCore) =>
 	sitesOf(core.info).map((s) => ({

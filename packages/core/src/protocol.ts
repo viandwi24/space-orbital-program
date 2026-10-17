@@ -398,6 +398,18 @@ export type Command =
 	  }
 	| { type: 'remove-building'; site: string; id: string }
 	/**
+	 * Found a site (plan 092, ADR 0177 point 6): a base with the starter pad; its flat zone shapes the
+	 * terrain from the next load. `id` is a host UUID.
+	 */
+	| {
+			type: 'found-site';
+			id: string;
+			name: string;
+			latitude: number;
+			longitude: number;
+			body?: string;
+	  }
+	/**
 	 * Start the objectives of a contract or mission (plan 098, ADR 0175), optionally bound to one
 	 * vessel; refused for an unknown source or unmet prerequisites.
 	 */

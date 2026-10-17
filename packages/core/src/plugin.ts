@@ -26,6 +26,7 @@ import {
 import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
+import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -91,6 +92,8 @@ export interface BasePluginContext {
 	readonly dataKinds: Registrar<DataKindDefinition>;
 	/** Buildings (plan 090, ADR 0115). */
 	readonly buildings: Registrar<BuildingDefinition>;
+	/** Site templates (plan 092, ADR 0177). */
+	readonly siteTemplates: Registrar<SiteTemplateDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -132,6 +135,7 @@ export const REGISTRY_KINDS = [
 	'data-kind',
 	'action-group',
 	'building',
+	'site-template',
 	'objective',
 	'contract',
 	'mission',
@@ -185,6 +189,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'dataKinds',
 	'actionGroups',
 	'buildings',
+	'siteTemplates',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -367,6 +372,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
 			buildings: registrar(registries.buildings),
+			siteTemplates: registrar(registries.siteTemplates),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -527,6 +533,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'data-kind': section(registries.dataKinds),
 				'action-group': section(registries.actionGroups),
 				building: section(registries.buildings),
+				'site-template': section(registries.siteTemplates),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),
