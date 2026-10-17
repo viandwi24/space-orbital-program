@@ -29,4 +29,13 @@
 
 ## Verification output
 
-See the `ready/106` tag message.
+```text
+bun test packages/core/test/crew.test.ts   4 pass
+bun test packages/sim/test/crew.test.ts    6 pass
+bun run docs:check                         docs-check: OK
+bun run test                               1453 pass, 0 fail (199 s)
+bun run typecheck                          exit 0 (60 s)
+bun run build                              exit 0
+bun run --filter @orbital/web test         899 passed; 3 env-only import suites (no Node); vessel-presence.test.ts timed out once
+                                           under load and passes 3/3 alone (flaky)
+```
