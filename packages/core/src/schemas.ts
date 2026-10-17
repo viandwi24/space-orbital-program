@@ -59,7 +59,9 @@ export const resourceDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	density: z.number().positive(),
 	flowMode: z.enum(['stack', 'vessel', 'none']),
-	unit: z.string().min(1)
+	unit: z.string().min(1),
+	/** Funds per unit (plan 095, ADR 0113); absent = 0. */
+	price: z.number().nonnegative().optional()
 });
 
 /**
@@ -187,6 +189,8 @@ export const partDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	title: z.string().min(1),
 	mass: z.number().nonnegative(),
+	/** Funds for the dry part (plan 095, ADR 0113); contents are priced by their resource. */
+	cost: z.number().nonnegative().optional(),
 	mesh: z.string().optional(),
 	shape: partShapeSchema.optional(),
 	/** Look of the part (ADR 0028). Optional: parts without one render as their `shape`. */

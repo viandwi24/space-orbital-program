@@ -242,7 +242,8 @@ describe('registration and report', () => {
 			body: [{ id: 'fixture.home', by: 'fixture' }],
 			system: [{ id: 'fixture.gravity', by: 'fixture' }],
 			rule: [],
-			preset: []
+			preset: [],
+			charge: []
 		});
 	});
 

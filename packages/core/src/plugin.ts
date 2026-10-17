@@ -25,6 +25,7 @@ import {
 } from './patch.ts';
 import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
+import type { ChargeDefinition } from './economy.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -70,6 +71,8 @@ export interface BasePluginContext {
 	/** World rules and presets (plan 078, ADR 0111). */
 	readonly rules: Registrar<RuleDefinition>;
 	readonly presets: Registrar<PresetDefinition>;
+	/** Scheduled income and costs on the world tick (plan 095, ADR 0113). */
+	readonly charges: Registrar<ChargeDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -101,7 +104,8 @@ export const REGISTRY_KINDS = [
 	'body',
 	'system',
 	'rule',
-	'preset'
+	'preset',
+	'charge'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -143,6 +147,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'systems',
 	'rules',
 	'presets',
+	'charges',
 	'patches',
 	'optional',
 	'provide'
@@ -316,6 +321,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			systems: registrar(registries.systems),
 			rules: registrar(registries.rules),
 			presets: registrar(registries.presets),
+			charges: registrar(registries.charges),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -436,7 +442,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				body: section(registries.bodies),
 				system: section(registries.systems),
 				rule: section(registries.rules),
-				preset: section(registries.presets)
+				preset: section(registries.presets),
+				charge: section(registries.charges)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

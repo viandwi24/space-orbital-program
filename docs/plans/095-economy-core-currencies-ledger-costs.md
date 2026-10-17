@@ -1,8 +1,8 @@
 ---
 id: 095
 title: "Economy core: currencies, ledger, part costs and recovery"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [078, 082]
 phase: 6
 created: 2026-10-17
@@ -17,7 +17,7 @@ A world keeps a ledger of funds, science and reputation with a cause on every en
 
 ## Context
 
-- ADRs: 0098, 0096, 0110, 0111; ADR 0113 or later from the Agent 1 range (to write at claim: where the ledger lives in the save, below)
+- ADRs: 0098, 0096, 0110, 0111, 0113 (written at claim: ledger in the save, costs, charges, recovery)
 - Read: ADR 0098 points 1 and 3 and the guardrails, ADR 0096 point 5 (agency type selects funding), plan 082 (`world-tick` phase, PRNG streams), `refs/reverse-engineering-ksp2/07-economy-and-career.md` (KSP figures there are unverified and not to be copied).
 - Rules already registered by 078: `stock.economy`, `stock.funds-multiplier`, `stock.cost-multiplier`, `stock.agency-type`.
 
@@ -59,23 +59,31 @@ All maths in sim/core as pure functions; the Hangar and the recovery dialog only
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: launching `referenceTwoStage` debits exactly `vesselCost` (pinned number); recovering its pod landed at the launch site credits `0.98 ×` the pod stage's value; recovering it 40 km away credits `f(40 km)` as given by the formula; one ledger entry with its cause for each.
-- [ ] `packages/sim` test: with `stock.economy` off no entry is written, a launch with zero funds is accepted, and the snapshot still shows the vessel cost through `vesselCost`.
-- [ ] `packages/sim` test: a launch with too little money is refused with "Not enough funds".
-- [ ] `packages/core` test: `projectBalances` over 90 days with the budget and operations schedule matches a hand-computed table.
-- [ ] `packages/sim` resume test: a save with ledger entries resumes byte for byte.
-- [ ] Career-bot test: 10 game years (120 missions) keep funds between 25 000 and 500 000 at every day; the run takes under 30 s in Bun on the M5 (indicative elsewhere).
-- [ ] `apps/web` vitest: the Hangar shows the total cost of `referenceTwoStage` and "no cost set" for a mod part without `cost`.
-- [ ] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: launching `referenceTwoStage` debits exactly `vesselCost` (pinned number); recovering its pod landed at the launch site credits `0.98 ×` the pod stage's value; recovering it 40 km away credits `f(40 km)` as given by the formula; one ledger entry with its cause for each.
+- [x] `packages/sim` test: with `stock.economy` off no entry is written, a launch with zero funds is accepted, and the snapshot still shows the vessel cost through `vesselCost`.
+- [x] `packages/sim` test: a launch with too little money is refused with "Not enough funds".
+- [x] `packages/core` test: `projectBalances` over 90 days with the budget and operations schedule matches a hand-computed table.
+- [x] `packages/sim` resume test: a save with ledger entries resumes byte for byte.
+- [x] Career-bot test: 10 game years (120 missions) keep funds between 25 000 and 500 000 at every day; the run takes under 30 s in Bun on the M5 (indicative elsewhere).
+- [x] `apps/web` vitest: the Hangar shows the total cost of `referenceTwoStage` and "no cost set" for a mod part without `cost`.
+- [x] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/095-economy-core-currencies-ledger-costs.md` written.
-- [ ] `architecture/simulation.md` (economy), `guides/writing-a-mod.md` (costs).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/095-economy-core-currencies-ledger-costs.md` written.
+- [x] `architecture/simulation.md` (economy), `guides/writing-a-mod.md` (costs).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — Refined by Agent 1 while waiting for `cp/f1-082-tick` (body only, status stays `draft`): ledger and schedule shapes, the stock cost rule and prices, the recovery formula without a separate speed factor (hard landings already break parts), a flat government budget and an operations placeholder so a 10-year band is possible before contracts exist, `stock.starting-funds`, the career-bot method, measurable criteria. The claim ADR (ledger in `SimSave.economy`, additive) takes the next free number of the Agent 1 range; 0112 is the state-file ADR.
+- 2026-10-17 — Claimed by Agent 1 (Lead, M5) on `lead/095-economy` (claim/095). ADR 0113 written first. Causes the sim writes are `economy.launch`, `economy.recovery`, `economy.reputation-decay` (the draft said `stock.*`); stock charges are `stock.budget-government`, `stock.budget-hybrid`, `stock.operations`. `API_VERSION` 0.1.30.
+- 2026-10-17 — Acceptance, on the M5:
+  - `bun test packages/sim/test/economy.test.ts` — `7 pass, 0 fail`: launch debits exactly 26 066.4 with cause `economy.launch`; pod on the pad credits 0.98 × 8 400 and the snapshot quote says the same; 40 km away credits `recoveryFactor(40 km)`; economy off writes nothing and accepts a launch with 0 funds; too little money is refused with "Not enough funds: needs 26067, has 1000"; a save with entries resumes byte for byte.
+  - `bun test packages/core/test/economy.test.ts` — `4 pass`: 90-day projection matches the hand table (132 000, 164 000, 196 000 with a 1.5 multiplier; reputation × e^(−30/365) per 30 days).
+  - `bun test packages/sim/test/career-bot.test.ts` — "career bot: 120 missions, 3600 days, funds min 82009 max 341048 end 341048, 3.1 s".
+  - `apps/web` `StatsStrip.test.ts` — 8 passed (cost 26,066 and "no cost set" for a mod part without `cost`).
+  - `bun run test` 1376 pass, 0 fail · web vitest 99 files, 888 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed (2.5m).
+- 2026-10-17 — Deviations: (1) the HUD recovery dialog is not built; the sim side (`recover-vessel`, `VesselSnapshot.recovery`) is, and the dialog moved to draft 132. (2) The Hangar shows the total and the parts/contents split in the cell's title, not a per-part column. (3) The draft's "10 game years" is 3 600 tick days (120 missions); the income-share limit is left to 099 (journal).

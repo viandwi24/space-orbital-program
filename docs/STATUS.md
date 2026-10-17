@@ -103,7 +103,7 @@
 | 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | draft | — | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
 | 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | draft | — | ADR 0097: facility, filtered designs, seats, launch |
-| 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | draft | — | ADR 0098: ledger with causes, costs, recovery, running costs, career bot |
+| 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | in-progress | Agent 1 | ADR 0098: ledger with causes, costs, recovery, running costs, career bot |
 | 096 | [Buildings with costs, construction time, upkeep and capacity limits](plans/096-building-catalogue-levels-upkeep-capacity.md) | draft | — | ADR 0097/0098: construction, levels, upkeep, capacity-only gates |
 | 097 | [Markets and production: one commodity chain first](plans/097-markets-and-production.md) | draft | — | ADR 0098: commodities, damped prices, one production chain |
 | 098 | [Objectives: the evaluator behind contracts and missions](plans/098-objectives-contract-and-mission-definitions.md) | draft | — | ADR 0098: one objective evaluator |
@@ -140,6 +140,7 @@
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | draft | — | ADR 0094: reliability rule, off by default |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | draft | — | ADR 0098/0094: replays, challenges, ghosts as files |
+| 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | draft | — | Scope pushed out of 095: funds capsule, Recover dialog from `VesselSnapshot.recovery` |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.

@@ -192,6 +192,10 @@ Shipped by plan 003; plan 005 added the loader and extended the definition shape
 
 The values belong to the world, not to the registry: `WorldInfo.rules` in `SimSave.worldInfo` (format 5), with `preset` and `changelog` beside them. `createSim` completes the map with `resolveRules` (own value, preset `values`, rule `presets[preset]`, `default`), keeps ids no loaded rule defines (`Sim.unknownRules`) and refuses values of the wrong type. Systems get `SystemContext.rules.get(id)`; snapshots carry `rules` (rebuilt only after a change). `set-rule` is handled in `packages/sim/src/commands.ts` (`setRule`): identity names (`IDENTITY_RULES`) and `changeable: false` rules are refused with `identity rule`; an accepted change is written at dispatch, logged and emitted as `world:rule-changed`.
 
+## Economy data (API 0.1.30, plan 095, ADR 0113)
+
+`PartDefinition.cost` and `ResourceDefinition.price` are optional schema fields; `ctx.charges` fills the `charges` registry (report kind `charge`, `chargeDefinitionSchema`). The pure functions are in `packages/core/src/economy.ts`: `designCost` (part costs plus the initial contents found through each module's `store` and `state(config)`), `contentsValue`, `chargeOn`, `projectBalances`, `recoveryFactor`, `recoveryQuote`. The sim reads the rule ids in `ECONOMY_RULES` and writes its own causes from `ECONOMY_CAUSES`.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

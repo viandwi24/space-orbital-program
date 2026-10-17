@@ -24,6 +24,15 @@ export {
 export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
 export { DEFAULT_PRESET, IDENTITY_RULES, ruleValueProblem } from '@orbital/core';
+export {
+	CURRENCIES,
+	ECONOMY_CAUSES,
+	ECONOMY_RULES,
+	chargeDefinitionSchema,
+	designCost,
+	projectBalances,
+	recoveryFactor
+} from '@orbital/core';
 
 // Units and ids (SI helpers, validated brands).
 export {
@@ -113,6 +122,11 @@ export type {
 	ResourceId,
 	ResourceStore,
 	Rng,
+	Balances,
+	ChargeDefinition,
+	Currency,
+	DesignCost,
+	LedgerEntry,
 	RuleDefinition,
 	RuleReader,
 	RuleValue,

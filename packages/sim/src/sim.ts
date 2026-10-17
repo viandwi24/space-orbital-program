@@ -52,6 +52,7 @@ import { stepSasOnRails } from './sas.ts';
 import { applySoiTransitions } from './soi.ts';
 import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { rulesView, takeSnapshot } from './snapshot.ts';
+import { freshEconomy } from './economy.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 
@@ -283,7 +284,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			length: root.def.rotationPeriod,
 			time: resume?.time ?? 0,
 			...(resume?.worldTick ? { saved: resume.worldTick } : {})
-		})
+		}),
+		economy: resume?.economy ? cloneData(resume.economy) : freshEconomy({ registries, info })
 	};
 	if (resume) {
 		if (bodyDef.id !== resume.bodies[0]) {

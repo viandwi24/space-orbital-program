@@ -15,6 +15,7 @@ import {
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
 import { hasBackground } from './tick.ts';
+import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
 import {
 	hasFlightVessels,
 	isControlled,
@@ -83,6 +84,8 @@ function loadVessel(
 ): CommandResult {
 	const resolved = resolveVesselDesign(command.design, core.registries.parts);
 	if (!resolved.ok) return refuse(`invalid design: ${resolved.errors.join('; ')}`);
+	const short = launchRefusal(core, command.design);
+	if (short) return refuse(short);
 	const placement = command.placement ?? { kind: 'surface' };
 	if (placement.body !== undefined && !core.bodies.has(placement.body)) {
 		return refuse(
@@ -122,6 +125,7 @@ function loadVessel(
 		enterFlight(core, id, frame);
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
+	chargeLaunch(core, command.design); // only a vessel that was placed is paid for (ADR 0113)
 	return accept(id);
 }
 
@@ -258,6 +262,15 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return loadVessel(core, command);
 		case 'set-rule':
 			return setRule(core, command.rule, command.value);
+		case 'recover-vessel': {
+			const id = command.vessel;
+			if (!core.world.has(id, VESSEL)) return refuse(`no vessel ${id}`);
+			const why = recoveryBlocker(core, id);
+			if (why) return refuse(why);
+			creditRecovery(core, id);
+			destroyVessel(core, id, 'recovered');
+			return accept();
+		}
 	}
 }
 

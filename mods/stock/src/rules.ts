@@ -243,10 +243,23 @@ export const RuleAgencyCount = defineRule({
 	changeable: true
 });
 
+export const RuleStartingFunds = defineRule({
+	id: 'stock.starting-funds',
+	label: 'Starting funds',
+	category: 'economy',
+	type: 'number',
+	min: 0,
+	max: 10_000_000,
+	integer: true,
+	default: 100_000,
+	changeable: false
+});
+
 export const STOCK_RULES = [
 	RuleEconomy,
 	RuleFundsMultiplier,
 	RuleCostMultiplier,
+	RuleStartingFunds,
 	RuleScienceDepth,
 	RuleScienceMultiplier,
 	RuleTechTree,

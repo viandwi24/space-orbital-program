@@ -130,6 +130,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0110 | [Save format 5: the world info travels beside the ECS world; world records own saves](0110-save-format-5-world-info-and-world-records.md) | accepted | 2026-10-17 |
 | 0111 | [World rules: typed definitions, values in the world info, `set-rule` and the changelog](0111-world-rules-values-in-world-info-set-rule-and-changelog.md) | accepted | 2026-10-17 |
 | 0112 | [Roadmap state lives in docs, one file per agent](0112-roadmap-state-per-agent-in-docs.md) | accepted | 2026-10-17 |
+| 0113 | [Economy core: the ledger in the save, part costs, scheduled charges and recovery](0113-economy-core-ledger-costs-charges-recovery.md) | accepted | 2026-10-17 |
 | 0140 | [Refs tokens: glass that keeps text readable, UI scale through rem, legacy names as aliases](0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) | accepted | 2026-10-17 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |

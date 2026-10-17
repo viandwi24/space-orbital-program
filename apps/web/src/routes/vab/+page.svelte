@@ -170,6 +170,7 @@
 				destinationId={vab.trip.destination.id}
 				onpick={(id) => (vab.tripId = id)}
 				stability={vab.stability}
+				cost={vab.cost}
 			/>
 			<p class="keys">
 				<span><Kbd>Drag</Kbd> orbit</span>
