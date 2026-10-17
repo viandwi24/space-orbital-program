@@ -33,6 +33,9 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	await launch.click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
 	if (await anyway.isVisible().catch(() => false)) await anyway.click();
+	// the Launch screen (plan 094)
+	await page.waitForURL('**/launch');
+	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 	// F5 until the flight can be saved (SwiftShader prepares the scenery for a while)

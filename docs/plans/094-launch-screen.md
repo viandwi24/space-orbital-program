@@ -1,12 +1,12 @@
 ---
 id: 094
 title: "Launch screen: site, pad or runway, design, crew"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [091, 093]
 phase: 5
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 094 — Launch screen: site, pad or runway, design, crew
@@ -49,17 +49,22 @@ The VAB launch button goes to this screen; a "quick launch" key keeps today's di
 
 ## Acceptance criteria
 
-- [ ] vitest: a site with a small pad lists only designs under the pad's size limit; the runway lists designs flagged as aircraft (or all designs when no flag exists yet).
-- [ ] `bun run e2e` (Chromium): Hangar to Launch to flight; the vessel stands on the chosen pad.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: a site with a small pad lists only designs under the pad's size limit; the runway lists designs flagged as aircraft (or all designs when no flag exists yet).
+- [x] vitest: a facility's spot is the centre of its footprint as latitude and longitude; the Legacy pad is at the site origin.
+- [x] `bun run e2e` (Chromium): Hangar to Launch to flight; the vessel stands on the chosen pad (landed, no vessel lost).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/094-launch-screen.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/094-launch-screen.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] ADR 0150.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0107).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0150: facilities are the site's pad and runway buildings, placed by surface position (no protocol change); seats wait for 108.
+- 2026-10-18 — Done on the branch: `/launch` with facilities from the site's buildings, accepted designs, seats note, summary; placement by surface position; Shift+Launch for the direct path. Journal: [094](../journal/094-launch-screen.md).
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflicts in the ADR index and the flight page imports, both sides kept); bun test 1575 pass, web vitest pass, typecheck, build, docs:check, smoke e2e 7 passed; launch and worlds e2e pass in Chromium, Firefox and WebKit.
