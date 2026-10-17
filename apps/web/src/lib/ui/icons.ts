@@ -50,6 +50,12 @@ export const ICONS = {
 	contrast: 'M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17ZM12 3.5v17',
 	rotate: 'M19 12a7 7 0 1 1-2.1-5M19 4.5V8h-3.5',
 	// the refs flight toolbar and world capsule (plan 088)
+	// menus (plan 089, refs Home)
+	globe: 'M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0-18ZM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
+	cube: 'M12 3l8 4.5v9L12 21l-8-4.5v-9ZM4 7.5l8 4.5 8-4.5M12 12v9',
+	mods: 'M4 4h6v6H4ZM14 4h6v6h-6ZM4 14h6v6H4ZM17 14v6M14 17h6',
+	gear: 'M12 9a3 3 0 1 1 0 6a3 3 0 0 1 0-6ZM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
+	chevron: 'M9.5 6l6 6-6 6',
 	home: 'M4 11L12 4l8 7v9H4ZM10 20v-6h4v6',
 	orbit: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2ZM9 4v14M15 6v14',
 	hangar: 'M3 21V8l9-5 9 5v13ZM12 9c1.6 1.4 2 3.4 2 6v4h-4v-4c0-2.6.4-4.6 2-6Z',

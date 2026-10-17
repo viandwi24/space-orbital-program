@@ -1,97 +1,145 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { GAME_NAME, GAME_VERSION } from '../public/about';
+	import SpaceBackdrop from './SpaceBackdrop.svelte';
 
-	/** The page frame of the menu and the public pages: backdrop image, wordmark, a column of content. */
+	/**
+	 * The page frame of the menu and the public pages (plan 089, refs Home): space backdrop, the
+	 * letter-spaced wordmark, a column of content (a glass sheet on the wide public pages), an
+	 * optional card at the bottom right, and the version footer.
+	 */
 	let {
 		children,
 		footer,
+		aside,
 		wide = false
-	}: { children: Snippet; footer?: Snippet; wide?: boolean } = $props();
+	}: { children: Snippet; footer?: Snippet; aside?: Snippet; wide?: boolean } = $props();
 </script>
 
-<div class="backdrop" aria-hidden="true"></div>
-<div class="shade" aria-hidden="true"></div>
-<div class="page">
+<SpaceBackdrop />
+<div class="page" class:wide>
 	<header>
 		<a class="mark" href="/" aria-label="{GAME_NAME}, main menu">
-			<svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
 				<ellipse
-					cx="24"
-					cy="24"
-					rx="20"
-					ry="8"
-					transform="rotate(-24 24 24)"
+					cx="12"
+					cy="12"
+					rx="10"
+					ry="4"
+					transform="rotate(-24 12 12)"
 					fill="none"
 					stroke="currentColor"
-					stroke-width="2.4"
+					stroke-width="1.7"
 				/>
-				<circle cx="24" cy="24" r="6.5" fill="currentColor" />
-				<circle cx="40.5" cy="16.5" r="2.8" fill="var(--c-accent)" />
+				<circle cx="12" cy="12" r="3.2" fill="currentColor" />
 			</svg>
 			<span>{GAME_NAME}</span>
 		</a>
 	</header>
-	<main class:wide>
+	<main>
 		{@render children()}
 	</main>
+	{#if aside}<aside>{@render aside()}</aside>{/if}
 	<footer>
-		{#if footer}{@render footer()}{:else}<span class="num">{GAME_NAME} {GAME_VERSION}</span>{/if}
+		{#if footer}{@render footer()}{:else}<span class="mono">{GAME_NAME} {GAME_VERSION}</span>{/if}
 	</footer>
 </div>
 
 <style>
-	.backdrop {
-		position: fixed;
-		inset: 0;
-		background:
-			radial-gradient(ellipse at 78% 62%, #1d4a6b 0%, #0b1a2a 38%, var(--bg-void) 72%),
-			var(--bg-void);
-		background-image: url('/menu-orbit.jpg');
-		background-size: cover;
-		background-position: center;
-	}
-	.shade {
-		position: fixed;
-		inset: 0;
-		background:
-			linear-gradient(90deg, rgb(4 7 11 / 0.92) 0%, rgb(4 7 11 / 0.7) 34%, rgb(4 7 11 / 0.05) 70%),
-			linear-gradient(0deg, rgb(4 7 11 / 0.7) 0%, transparent 28%);
-	}
 	.page {
 		position: relative;
 		display: grid;
+		grid-template-columns: minmax(0, 25rem) 1fr auto;
 		grid-template-rows: auto 1fr auto;
+		grid-template-areas:
+			'head head head'
+			'main . .'
+			'foot . aside';
+		column-gap: var(--s-6);
 		min-height: 100vh;
 		min-height: 100dvh;
-		padding: var(--s-5) clamp(var(--s-4), 5vw, 80px);
+		padding: 2.5rem var(--margin-menu) 2rem;
 		box-sizing: border-box;
+	}
+	.page.wide {
+		grid-template-columns: minmax(0, 54rem) 1fr;
+		grid-template-areas:
+			'head head'
+			'main .'
+			'foot .';
+	}
+	header {
+		grid-area: head;
 	}
 	.mark {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--s-3);
-		color: var(--text);
+		gap: 0.75rem;
+		color: var(--text-primary);
 		text-decoration: none;
-		font-size: var(--t-lg);
+		font-size: 0.9375rem;
+		line-height: 1;
 		font-weight: 600;
 		letter-spacing: 0.32em;
 		text-transform: uppercase;
 	}
-	main {
-		align-self: center;
-		width: min(400px, 100%);
-		padding: var(--s-5) 0;
+	.mark:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 6px;
+		border-radius: var(--radius-tile);
 	}
-	main.wide {
-		width: min(860px, 100%);
+	main {
+		grid-area: main;
 		align-self: start;
+		padding-top: clamp(2rem, 16vh, 10.5rem);
+	}
+	.wide main {
+		align-self: start;
+		margin: 2.5rem 0 var(--s-5);
+		padding: var(--s-5) var(--s-6);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-panel);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+	}
+	aside {
+		grid-area: aside;
+		align-self: end;
+		margin-bottom: 3rem;
 	}
 	footer {
-		font-size: var(--t-xs);
-		color: var(--text-dim);
+		grid-area: foot;
+		align-self: end;
 		display: flex;
-		gap: var(--s-4);
 		flex-wrap: wrap;
+		gap: var(--s-4);
+		margin-top: var(--s-5);
+		font-size: var(--t-label);
+		line-height: 1;
+		color: var(--text-subtle);
+	}
+	footer :global(.mono) {
+		font-family: var(--font-mono);
+	}
+	@media (max-width: 1100px) {
+		.page,
+		.page.wide {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-areas: 'head' 'main' 'aside' 'foot';
+			padding: 2rem clamp(1rem, 5vw, 3rem) 1.5rem;
+		}
+		main {
+			padding-top: 2rem;
+		}
+		aside {
+			margin: var(--s-5) 0 0;
+			justify-self: start;
+		}
+	}
+	@media (max-width: 760px) {
+		.wide main {
+			padding: var(--s-4);
+		}
 	}
 </style>
