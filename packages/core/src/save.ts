@@ -53,6 +53,12 @@ export interface SaveFrame {
 	bodies: SaveBody[];
 }
 
+export interface SaveWorldTick {
+	lastDay: number;
+	/** System id to 32-bit stream state. */
+	streams: Record<string, number>;
+}
+
 export interface SimSave {
 	format: typeof SIM_SAVE_FORMAT;
 	formatVersion: number;
@@ -77,6 +83,11 @@ export interface SimSave {
 	rng: number;
 	/** The world this run belongs to (format 5, plan 077, ADR 0110). */
 	worldInfo: WorldInfo;
+	/**
+	 * World tick state (plan 082, ADR 0171): the last day entered and each world-tick system's
+	 * stream. Optional in format 5: without it the day is derived from `time` and streams start fresh.
+	 */
+	worldTick?: SaveWorldTick;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -125,6 +136,12 @@ export const simSaveSchema = z.object({
 	accumulator: finite.refine((a) => a >= 0, 'accumulator must not be negative'),
 	rng: z.int().min(0).max(0xffffffff),
 	worldInfo: worldInfoSchema,
+	worldTick: z
+		.object({
+			lastDay: z.int(),
+			streams: z.record(z.string().min(1), z.int().min(0).max(0xffffffff))
+		})
+		.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

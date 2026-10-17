@@ -14,6 +14,22 @@ export interface Rng {
 	state(): number;
 }
 
+/**
+ * Seed of a named stream (ADR 0171 point 6): 32-bit FNV-1a over the seed's decimal text, a
+ * separator and `id`. A stream depends on nothing but these two, so adding another stream never
+ * changes it.
+ */
+export function streamSeed(seed: number, id: string): number {
+	if (!Number.isFinite(seed)) throw new RangeError(`streamSeed: seed must be finite, got ${seed}`);
+	const text = `${seed}\u0000${id}`;
+	let h = 0x811c9dc5;
+	for (let i = 0; i < text.length; i++) {
+		h ^= text.charCodeAt(i);
+		h = Math.imul(h, 0x01000193) >>> 0;
+	}
+	return h >>> 0;
+}
+
 export function createRng(seed: number): Rng {
 	if (!Number.isFinite(seed)) throw new RangeError(`createRng: seed must be finite, got ${seed}`);
 	let s = seed >>> 0;

@@ -132,3 +132,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0112 | [Roadmap state lives in docs, one file per agent](0112-roadmap-state-per-agent-in-docs.md) | accepted | 2026-10-17 |
 | 0140 | [Refs tokens: glass that keeps text readable, UI scale through rem, legacy names as aliases](0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) | accepted | 2026-10-17 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
+| 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |

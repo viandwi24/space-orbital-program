@@ -16,6 +16,7 @@ import type {
 	WorldInfo
 } from '@orbital/core';
 import type { BodyRuntime } from './bodies.ts';
+import type { TickState } from './tick.ts';
 import {
 	moduleStateToken,
 	PART,
@@ -62,6 +63,8 @@ export interface SimCore {
 	readonly info: WorldInfo;
 	/** Cached snapshot view of the registered rules' values; null after a change. */
 	rulesView: Readonly<Record<string, boolean | number | string>> | null;
+	/** World tick state (plan 082, ADR 0171). */
+	readonly ticks: TickState;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

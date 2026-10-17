@@ -37,6 +37,13 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
+import {
+	atBoundary,
+	createTickState,
+	nextTickTime,
+	orderTickSystems,
+	runDueTicks
+} from './tick.ts';
 import { completeNodes } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
@@ -266,7 +273,17 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		accumulator: resume?.accumulator ?? 0,
 		warpStopped: false,
 		info,
-		rulesView: null
+		rulesView: null,
+		ticks: createTickState({
+			systems: orderTickSystems(systems, (id) => {
+				const index = report.order.indexOf(registries.systems.owner(id) ?? '');
+				return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+			}),
+			info,
+			length: root.def.rotationPeriod,
+			time: resume?.time ?? 0,
+			...(resume?.worldTick ? { saved: resume.worldTick } : {})
+		})
 	};
 	if (resume) {
 		if (bodyDef.id !== resume.bodies[0]) {
@@ -341,10 +358,35 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		pruneTargets(core);
 		runSystems(core.post, dt);
 		autoRails(core);
+		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
+		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
 	}
 
-	/** One analytic chunk when nothing is in flight. */
+	/**
+	 * Analytic chunks when nothing is in flight: `h` is cut at each day boundary, where the world
+	 * ticks run (ADR 0171 point 3).
+	 */
 	function railsStep(h: number): void {
+		let left = h;
+		while (left > 0) {
+			const boundary = nextTickTime(core);
+			const toBoundary = boundary - core.t;
+			if (toBoundary <= left) {
+				if (toBoundary > 0) {
+					railsChunk(toBoundary);
+					core.t = boundary; // the boundary from its day number, not the sum of chunks
+					left -= toBoundary;
+				}
+				runDueTicks(core, { registries, events, rules }); // also a tick that is already due
+			} else {
+				railsChunk(left);
+				left = 0;
+			}
+		}
+	}
+
+	function railsChunk(h: number): void {
+		if (h <= 0) return;
 		const tStart = core.t;
 		runSystems(core.pre, h);
 		stepRailsVessels(h);

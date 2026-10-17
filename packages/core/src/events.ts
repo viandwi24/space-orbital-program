@@ -31,6 +31,8 @@ export interface EventMap {
 		to: boolean | number | string;
 		time: number;
 	};
+	/** A game day began (plan 082, ADR 0171): emitted after the `world-tick` systems ran. */
+	'world:tick': { day: number; time: number };
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**

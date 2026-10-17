@@ -24,6 +24,7 @@ import {
 } from '@orbital/core';
 import { createVesselBody } from './frames.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { runAllBackground, saveTickState } from './tick.ts';
 import { PART, VESSEL } from './state.ts';
 
 type Check = (value: unknown) => string | undefined;
@@ -151,6 +152,7 @@ export interface WriteSaveInput {
 
 /** Plain-data copy of the whole simulation, taken between steps. */
 export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
+	runAllBackground(core); // background closed forms are saved up to date (ADR 0171 point 7)
 	const frames: SaveFrame[] = core.frames.map((frame) => ({
 		id: frame.id,
 		inUse: frame.inUse,
@@ -189,6 +191,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		accumulator: core.accumulator,
 		rng: core.rng.state(),
 		worldInfo: cloneData(core.info),
+		worldTick: saveTickState(core.ticks),
 		world: core.world.serialize(),
 		frames
 	};

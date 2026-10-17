@@ -121,6 +121,7 @@ export type {
 	SystemDefinition,
 	SystemId,
 	SystemPhase,
+	WorldTick,
 	Quat,
 	Transform,
 	Vec3,

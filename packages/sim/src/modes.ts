@@ -20,6 +20,7 @@ import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from 
 import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import type { FlightFrame } from './state.ts';
 import { terrainBelow } from './terrain.ts';
+import { hasBackground, runBackground } from './tick.ts';
 import { destroyVessel } from './vessel.ts';
 
 /** Put a flight vessel on rails at its current centre-of-mass state. */
@@ -30,6 +31,7 @@ export function toRails(core: SimCore, vesselId: EntityId, reason: string): void
 	vessel.rails = computeRails(bodyOfVessel(core, vessel).mu, vessel.com, vessel.velocity, core.t);
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
+	if (hasBackground(core, vesselId)) vessel.backgroundAt = core.t;
 	vessel.idle = 0;
 	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'on-rails', reason });
@@ -46,6 +48,7 @@ export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string
 	vessel.rails = surfaceRails(core, bodyOfVessel(core, vessel), vessel.com, vessel.orientation);
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
+	if (hasBackground(core, vesselId)) vessel.backgroundAt = core.t;
 	vessel.idle = 0;
 	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'on-rails', reason });
@@ -77,6 +80,8 @@ export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 	const motion = motionOf(core, vessel);
 	const frame = acquireFrame(core, vessel.soi, motion.r, motion.v);
 	if (!frame) throw new Error(`cannot put vessel ${vesselId} in flight: no free physics frame`);
+	runBackground(core, vesselId); // closed forms catch up to now before the vessel is stepped (ADR 0171)
+	delete vessel.backgroundAt;
 	const surface = vessel.rails?.kind === 'surface';
 	vessel.com = motion.r;
 	vessel.velocity = motion.v;

@@ -14,6 +14,7 @@ import {
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
+import { hasBackground } from './tick.ts';
 import {
 	hasFlightVessels,
 	isControlled,
@@ -106,6 +107,7 @@ function loadVessel(
 	const onRails = placement.kind === 'state' && isStableOrbit(body, vessel.com, vessel.velocity);
 	if (onRails) {
 		vessel.rails = computeRails(body.mu, vessel.com, vessel.velocity, core.t);
+		if (hasBackground(core, id)) vessel.backgroundAt = core.t; // background counts from the load (ADR 0171)
 	} else {
 		const frame =
 			core.warp > 1 ? undefined : acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
