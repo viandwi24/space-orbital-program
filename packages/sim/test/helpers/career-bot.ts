@@ -9,7 +9,7 @@
  * economy is switched back on and the pod is recovered (the recovery credit). Between missions
  * the clock runs on rails with `warp-to`, so the world tick pays the scheduled charges.
  */
-import type { LedgerEntry, WorldInfo } from '@orbital/core';
+import type { CommandResult, EntityId, LedgerEntry, WorldInfo } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../../src/index.ts';
 import { rapier, stack, twoStage } from './vessels.ts';
@@ -24,8 +24,9 @@ export interface BotResult {
 	entries: LedgerEntry[];
 }
 
-const must = (r: { ok: boolean; reason?: string }, what: string): void => {
+const must = (r: CommandResult, what: string): EntityId | undefined => {
 	if (!r.ok) throw new Error(`career bot: ${what}: ${r.reason}`);
+	return r.vessel;
 };
 
 function settle(sim: Sim, seconds = 6): void {
@@ -41,7 +42,11 @@ export async function runCareerBot(options: {
 }): Promise<BotResult> {
 	const everyDays = options.everyDays ?? 30;
 	const downrange = options.downrange ?? 40_000;
-	const sim = await createSim({ plugins: [Stock], backendFactory: rapier(8), world: options.world });
+	const sim = await createSim({
+		plugins: [Stock],
+		backendFactory: rapier(8),
+		world: options.world
+	});
 	const home = sim.registries.bodies.get('stock.home')!;
 	const dayLength = home.rotationPeriod;
 	const lastDay = options.days;
@@ -53,20 +58,21 @@ export async function runCareerBot(options: {
 	let missions = 0;
 	for (let day = everyDays; day <= lastDay; day += everyDays) {
 		// The rocket: paid for at launch.
-		const rocket = sim.dispatch({ type: 'load-vessel', design: twoStage() });
-		must(rocket, 'launch');
+		const rocket = must(sim.dispatch({ type: 'load-vessel', design: twoStage() }), 'launch')!;
 		settle(sim, 3);
 		economy(false);
-		must(sim.dispatch({ type: 'recover-vessel', vessel: rocket.vessel! }), 'clear the pad');
-		const pod = sim.dispatch({
-			type: 'load-vessel',
-			design: stack('Pod', ['stock.command-pod'], []),
-			placement: { kind: 'surface', latitude: 0, longitude: downrange / home.radius }
-		});
-		must(pod, 'place the pod');
+		must(sim.dispatch({ type: 'recover-vessel', vessel: rocket }), 'clear the pad');
+		const pod = must(
+			sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Pod', ['stock.command-pod'], []),
+				placement: { kind: 'surface', latitude: 0, longitude: downrange / home.radius }
+			}),
+			'place the pod'
+		)!;
 		economy(true);
 		settle(sim);
-		must(sim.dispatch({ type: 'recover-vessel', vessel: pod.vessel! }), 'recover the pod');
+		must(sim.dispatch({ type: 'recover-vessel', vessel: pod }), 'recover the pod');
 		missions++;
 		// Run to the next mission day on rails.
 		must(sim.dispatch({ type: 'warp-to', time: day * dayLength + 1, factor: 1e6 }), 'warp-to');

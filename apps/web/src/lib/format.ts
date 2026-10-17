@@ -80,6 +80,11 @@ export function formatForce(newtons: number, system: UnitSystem = currentUnits()
 }
 
 /** Angle in degrees from radians, no sign handling (callers wrap first). */
+/** Funds as whole numbers with thousands separators (plan 095). */
+export function formatFunds(funds: number): string {
+	return Math.round(funds).toLocaleString('en-US');
+}
+
 export function formatAngle(radians: number, digits = 1): string {
 	if (!finite(radians)) return NO_VALUE;
 	return `${((radians * 180) / Math.PI).toFixed(digits)}°`;

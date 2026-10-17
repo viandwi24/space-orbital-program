@@ -28,7 +28,7 @@ import { isTurned, partRotation } from './parts.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { terrainUnder } from './terrain.ts';
-import { economySnapshot } from './economy.ts';
+import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -119,6 +119,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	snapshot.nodes = nodeSnapshots(core, vessel);
 	const target = resolveTarget(core, vessel);
 	if (target) snapshot.target = target;
+	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
 	const body = bodyOfVessel(core, vessel);
 	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would

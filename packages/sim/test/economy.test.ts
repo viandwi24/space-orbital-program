@@ -83,6 +83,9 @@ describe('recover-vessel', () => {
 		const podValue = designCost(pod(), sim.registries).total;
 		const events: string[] = [];
 		sim.events.on('vessel:destroyed', (e) => events.push(e.reason));
+		const quote = sim.snapshot().vessels[0]!.recovery!;
+		expect(quote.factor).toBe(0.98);
+		expect(quote.credit).toBeCloseTo(podValue * 0.98, 6);
 		expect(sim.dispatch({ type: 'recover-vessel', vessel: id as never })).toEqual({ ok: true });
 		expect(podValue).toBe(8_400);
 		expect(funds(sim) - before).toBeCloseTo(podValue * 0.98, 6);
@@ -109,7 +112,10 @@ describe('recover-vessel', () => {
 		sim.dispatch({ type: 'throttle', vessel: r.ok ? r.vessel! : (0 as never), value: 1 });
 		sim.dispatch({ type: 'stage', vessel: r.ok ? r.vessel! : (0 as never) });
 		for (let i = 0; i < 100; i++) sim.step(0.02);
-		const refused = sim.dispatch({ type: 'recover-vessel', vessel: r.ok ? r.vessel! : (0 as never) });
+		const refused = sim.dispatch({
+			type: 'recover-vessel',
+			vessel: r.ok ? r.vessel! : (0 as never)
+		});
 		expect(refused.ok).toBe(false);
 		sim.dispose();
 	});

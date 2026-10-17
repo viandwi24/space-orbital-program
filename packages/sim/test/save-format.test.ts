@@ -62,7 +62,10 @@ describe('the frozen format-1 fixture', () => {
 		// The world tick (plan 082) is new state: the fixture's day, no world-tick systems in stock.
 		expect(worldTick).toEqual({ lastDay: 0, streams: {} });
 		// No ledger in the old save: a fresh one (Sandbox world, starting funds from the rule, plan 095).
-		expect(economy).toEqual({ balances: { funds: 100_000, science: 0, reputation: 0 }, entries: [] });
+		expect(economy).toEqual({
+			balances: { funds: 100_000, science: 0, reputation: 0 },
+			entries: []
+		});
 		// The Legacy world had no rule values; the sim resolves the stock rules from its preset (078).
 		expect(expected.worldInfo.rules).toEqual({});
 		expect(actual.worldInfo.rules['stock.economy']).toBe(false);

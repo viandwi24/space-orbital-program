@@ -227,6 +227,13 @@ definePlugin({
 - **Changing.** The player (or a script) sends `{ type: 'set-rule', rule, value }`; it is refused for identity rules (`identity rule`, also for `system`, `variant`, `gravityModel`, `seed`, `primarySite`), unknown ids and wrong values, and otherwise applies from the next step, appends `{ time, rule, from, to }` to the world's changelog and emits `world:rule-changed`.
 - **Your mod removed.** Its rule values stay in the save (`sim.unknownRules` lists them) and come back when the mod does.
 
+## Costs, prices and charges (API 0.1.30, plan 095, ADR 0113)
+
+- **A part's cost** is `cost` on the part (funds for the dry part); a resource's `price` is funds per unit, and a part's contents are paid at launch from it. Stock computes its numbers from one rule in `mods/stock/src/costs.ts` (dry mass × class rate); a part without `cost` costs 0, and the Hangar says "no cost set". Both are data, so another mod can patch them (`definePatch`).
+- **Recurring income and costs** are charges: `ctx.charges.register(defineCharge({ id, label, currency: 'funds', amount: -1_500, everyDays: 30, when?: { rule, equals }, scaleBy?: ['stock.cost-multiplier'] }))`. On every world tick whose day is a multiple of `everyDays` the sim writes `amount` (times the numeric rules in `scaleBy`) to the ledger with your charge id as the cause, while `when` holds. Nothing is written while `stock.economy` is off.
+- **Reading the ledger:** listen to `economy:entry` (`{ time, currency, amount, cause, ref? }`); the HUD reads `snapshot.economy`. `designCost(design, registries)` gives a design's launch cost, and `projectBalances(...)` projects the charges over N days.
+- Launching (`load-vessel`) pays the design's cost and is refused when funds are short; `recover-vessel` pays back the value of what is left of a landed vessel at rest, times a distance factor (`recoveryFactor`), and removes it.
+
 ## Saves (API 0.1.12, ADR 0050)
 
 A flight is saved as plain JSON: the world (every module's `state`) plus the sim's clock and bodies. So a module's `state` must be plain, JSON-compatible data (numbers that are finite, strings, booleans, arrays, plain objects; no `undefined` meaning something, no `Map`/`Set`/typed arrays, no functions), and anything a module needs between steps belongs in `state`, never in a closure or a module-level variable: it would be lost on load. A save lists the plugins that were loaded; loading refuses it when a plugin is missing (or a part or module id it uses is gone) and says which. Keep ids stable across releases, and when a new version changes the shape of a module's `state`, read the old shape in `update`/`snapshot` defensively or ask for a save-format migration (an ADR and a bump of `SIM_SAVE_VERSION`).

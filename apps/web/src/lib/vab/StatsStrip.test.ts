@@ -1,5 +1,5 @@
 /** The planner in the stats strip (plan 034): each state renders from the view model, server-side. */
-import { loadPlugins } from '@orbital/core';
+import { designCost, loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
@@ -88,5 +88,43 @@ describe('StatsStrip trip planner', () => {
 		const out = html(dest.id, true);
 		expect(out.match(/<li class="/g)?.length).toBe(dest.legs.length);
 		expect(out).toContain(`Legs (${dest.legs.length})`);
+	});
+});
+
+describe('StatsStrip cost (plan 095)', () => {
+	const props = (cost: ReturnType<typeof designCost>) => ({
+		stats,
+		trip: tripView(destinations[0]!, stats.report, stats.partCount),
+		destinations,
+		destinationId: destinations[0]!.id,
+		onpick: () => {},
+		stability,
+		cost
+	});
+
+	it('shows the launch cost of the reference two-stage', () => {
+		const cost = designCost(design, content);
+		expect(cost.total).toBeCloseTo(26_066.4, 6);
+		const out = render(StatsStrip, { props: props(cost) }).body;
+		expect(out).toContain('Cost');
+		expect(out).toContain('26,066');
+		expect(out).not.toContain('no cost set');
+	});
+
+	it('says "no cost set" for a part a mod registered without a cost', () => {
+		const base = registries.parts.get('stock.tank-small')!;
+		const parts = {
+			get: (id: string) =>
+				id === 'acme.tank' ? { ...base, id: 'acme.tank', cost: undefined } : registries.parts.get(id)
+		};
+		const modded = {
+			...design,
+			parts: design.parts.map((p, i) => (i === 2 ? { ...p, part: 'acme.tank' as never } : p))
+		};
+		const cost = designCost(modded, { ...content, parts });
+		expect(cost.uncosted).toEqual(['acme.tank']);
+		const out = render(StatsStrip, { props: props(cost) }).body;
+		expect(out).toContain('no cost set');
+		expect(out).toContain('No cost set for acme.tank');
 	});
 });

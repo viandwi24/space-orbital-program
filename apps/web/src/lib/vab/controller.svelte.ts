@@ -31,6 +31,7 @@ import { describeStack } from '../editor/describe';
 import { partFacts } from '../editor/part-info';
 import { buildScene, defaultCursor, partKey, withoutCarried } from '../editor/scene';
 import { stabilityOf } from '../editor/stability';
+import { designCost } from '@orbital/core';
 import { isStageable } from '../editor/staging';
 import {
 	attachAssembly,
@@ -210,6 +211,8 @@ export class VabController {
 		designStats(this.current.design, this.content, this.environment, this.gravity)
 	);
 	readonly stability = $derived(stabilityOf(this.current.design, this.content));
+	/** Launch cost of the design with full tanks (plan 095, ADR 0113). */
+	readonly cost = $derived(designCost(this.current.design, this.content));
 	readonly markers = $derived.by((): VabMarker[] => {
 		const s = this.stability;
 		if (s.com === null || s.cop === null || s.comEmpty === null) return [];

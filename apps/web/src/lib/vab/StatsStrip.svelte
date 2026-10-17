@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Meter from '../ui/Meter.svelte';
-	import { formatDeltaV, formatDistance, formatMass } from '../format';
+	import { formatDeltaV, formatDistance, formatFunds, formatMass } from '../format';
+	import type { DesignCost } from '@orbital/core';
 	import { speedUnit } from '../units.svelte';
 	import type { DesignStats } from '../editor/stats';
 	import type { Stability } from '../editor/stability';
@@ -13,7 +14,8 @@
 		destinations,
 		destinationId,
 		onpick,
-		stability
+		stability,
+		cost
 	}: {
 		stats: DesignStats;
 		/** The chosen destination laid over the stages (plan 034). */
@@ -23,6 +25,8 @@
 		destinationId: string;
 		onpick: (id: string) => void;
 		stability: Stability;
+		/** Launch cost (plan 095); absent hides the cell. */
+		cost?: DesignCost;
 	} = $props();
 
 	const targetLabel = $derived(trip.destination.label);
@@ -91,6 +95,20 @@
 				<span class="legend" aria-hidden="true"><b>◉</b> mass <b class="cop">△</b> pressure</span>
 			{/if}
 		</div>
+		{#if cost}
+			<div
+				title={cost.uncosted.length
+					? `No cost set for ${cost.uncosted.join(', ')}; they count as 0.`
+					: `Parts ${formatFunds(cost.parts)}, contents ${formatFunds(cost.contents)}`}
+			>
+				<dt>Cost</dt>
+				<dd class="num" data-testid="vab-cost">
+					{stats.partCount ? formatFunds(cost.total) : '–'}{#if cost.uncosted.length}<span
+							class="u"> · no cost set</span
+						>{/if}
+				</dd>
+			</div>
+		{/if}
 		<div>
 			<dt title="Thrust to weight at liftoff, sea level">Liftoff TWR</dt>
 			<dd class="num {twrTone}">{stats.liftoffTwr === null ? '–' : stats.liftoffTwr.toFixed(2)}</dd>

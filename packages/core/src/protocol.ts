@@ -125,6 +125,11 @@ export interface PartSnapshot {
 
 export interface VesselSnapshot {
 	id: EntityId;
+	/**
+	 * Present while the vessel can be recovered (landed or splashed and at rest; plan 095): what
+	 * `recover-vessel` would credit, for the HUD to show before the player confirms.
+	 */
+	recovery?: { value: number; factor: number; distance: number | null; credit: number };
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;
