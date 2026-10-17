@@ -188,6 +188,8 @@ export const bodyDefinitionSchema = z.object({
 		])
 		.optional(),
 	parent: definitionIdSchema.optional(),
+	/** A star (plan 122, ADR 0119): no surface; the renderer draws it emissive and lights the system from it. */
+	star: z.boolean().optional(),
 	/** The system's calendar, read on the root body only (plan 081, ADR 0141); absent = fictional from the root. */
 	calendar: z
 		.discriminatedUnion('kind', [

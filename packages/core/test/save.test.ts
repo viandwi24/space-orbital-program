@@ -21,6 +21,7 @@ const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	apiVersion: '0.1.13',
 	mods: [{ id: 'stock', version: '0.1.0' }],
 	bodies: ['stock.home'],
+	home: 'stock.home',
 	dt: 0.02,
 	seed: 1,
 	time: 12.5,
@@ -206,7 +207,8 @@ describe('format 5: the world info (plan 077, ADR 0110)', () => {
 	test('the frozen format-4 fixture migrates to the Legacy world: patched, fictional day 0, no rules', () => {
 		expect(fixtureV4.formatVersion).toBe(4);
 		const save = readSimSave(fixtureV4);
-		expect(save.formatVersion).toBe(5);
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(save.home).toBe('stock.home');
 		expect(save.worldInfo).toEqual({
 			id: LEGACY_WORLD_ID,
 			seed: fixtureV4.seed,

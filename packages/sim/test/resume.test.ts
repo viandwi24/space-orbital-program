@@ -377,7 +377,7 @@ describe('format 5 saves of a world (plan 077)', () => {
 		});
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		const save = resumed.save();
-		expect(save.formatVersion).toBe(5);
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(save.worldInfo).toEqual({ ...WORLD, rules: save.worldInfo.rules });
 		expect(JSON.stringify(save)).toBe(JSON.stringify(sim.save()));
 	});

@@ -19,7 +19,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 5;
+export const SIM_SAVE_VERSION = 6;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -125,6 +125,11 @@ export interface SimSave {
 	mods: SaveMod[];
 	/** Ids of every body of the sim, root first (format 2; format 1 had the root only, `body`). */
 	bodies: string[];
+	/**
+	 * The home body the sim ran on (format 6, plan 122, ADR 0119): the tree's root is no longer
+	 * home once a Sun sits there. Earlier saves were rooted at home, so the migration takes `bodies[0]`.
+	 */
+	home: string;
 	/** Fixed step the run used; a different step would break determinism. */
 	dt: number;
 	/** Seed the sim started with (informational; `rng` is the live state). */
@@ -195,6 +200,7 @@ export const simSaveSchema = z.object({
 	apiVersion: z.string(),
 	mods: z.array(z.object({ id: z.string().min(1), version: z.string() })),
 	bodies: z.array(z.string().min(1)).min(1),
+	home: z.string().min(1),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
 	seed: finite,
 	time: finite.refine((t) => t >= 0, 'time must not be negative'),
@@ -249,7 +255,8 @@ export type SaveMigration = (data: Record<string, unknown>) => Record<string, un
  * ADR 0051): the single root `body` becomes the list `bodies`, and every frame says which body it
  * is centred on (`soi`, the root: a version 1 sim had no other). The version 1 fixture is
  * `packages/sim/test/fixtures/save-v1.json`. 4 to 5 (plan 077, ADR 0110): the save gets the Legacy
- * world's `worldInfo`, with its own seed and the stock plugin version it lists.
+ * world's `worldInfo`, with its own seed and the stock plugin version it lists. 5 to 6 (plan 122,
+ * ADR 0119): the save names its `home`, which was `bodies[0]` (the root) in every earlier save.
  */
 export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 	1: (data) => {
@@ -310,6 +317,13 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 		const version =
 			isRecord(stock) && typeof stock.version === 'string' ? stock.version : undefined;
 		return { ...data, formatVersion: 5, worldInfo: legacyWorldInfo(seed, version) };
+	},
+	5: (data) => {
+		const bodies = data.bodies;
+		if (!Array.isArray(bodies) || typeof bodies[0] !== 'string') {
+			throw new SaveError('damaged', 'This save is damaged: it lists no bodies.');
+		}
+		return { ...data, formatVersion: 6, home: bodies[0] };
 	}
 };
 

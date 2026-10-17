@@ -77,14 +77,10 @@ export function buildBodies(
 	}
 	for (const body of out.values()) {
 		const parentId = body.def.parent;
+		// Only the simulated home body receives a plain terrain field; a function is asked for every body.
+		const plain = typeof terrain === 'function' ? undefined : body.def.id === rootId ? terrain : undefined;
 		if (parentId === undefined) {
-			// Only the simulated root receives a plain terrain field; a function is asked for every body.
-			body.terrain =
-				typeof terrain === 'function'
-					? forBody(body.def)
-					: body.def.id === rootId
-						? terrain
-						: undefined;
+			body.terrain = typeof terrain === 'function' ? forBody(body.def) : plain;
 			continue;
 		}
 		const parent = out.get(parentId);
@@ -98,7 +94,7 @@ export function buildBodies(
 		parent.children.push(body);
 		body.elements = body.def.orbit;
 		body.soi = soiRadius(body.def.orbit.a, body.def.mass, parent.def.mass);
-		body.terrain = forBody(body.def);
+		body.terrain = plain ?? forBody(body.def);
 	}
 	for (const body of out.values()) {
 		const seen = new Set<string>();

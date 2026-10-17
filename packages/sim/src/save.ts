@@ -187,6 +187,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		apiVersion: API_VERSION,
 		mods: mods.map((m) => ({ id: m.id, version: m.version })),
 		bodies: [...core.bodies.keys()],
+		home: core.root.def.id,
 		dt: core.dt,
 		seed,
 		time: core.t,

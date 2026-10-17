@@ -249,7 +249,7 @@ describe('the frozen format-4 fixture (plan 035)', () => {
 	test('reads as written, keeps the target of its probe and resumes with it', async () => {
 		expect(fixtureV4.formatVersion).toBe(4);
 		const parsed = parseSimSave(JSON.stringify(fixtureV4));
-		expect(parsed.formatVersion).toBe(5);
+		expect(parsed.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(parsed.worldInfo.id).toBe(LEGACY_WORLD_ID);
 		const sim = await resume(fixtureV4);
 		const aimed = sim.snapshot().vessels.filter((v) => v.target !== undefined);
