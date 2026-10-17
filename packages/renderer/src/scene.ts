@@ -14,6 +14,7 @@ import type {
 	Vec3,
 	VesselSnapshot
 } from '@orbital/core';
+import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	Group,
@@ -121,6 +122,11 @@ export interface SceneConfig {
 	launchSite?: { latitude: number; longitude: number };
 	/** The world's home terrain: seed and the flat zones of its sites (plan 084); default Legacy around `launchSite`. */
 	terrain?: WorldTerrainSpec;
+	/**
+	 * Seeds and flat zones of later hills bodies by id (plan 071, ADR 0121 point 1), from the sim;
+	 * a body without an entry takes `hillsSeedOf` of the world seed above and the Legacy zone.
+	 */
+	bodyTerrain?: Readonly<Record<string, WorldTerrainSpec>>;
 	/** Site mode (plan 091, ADR 0117): the site's buildings come from `setSiteBuildings`. */
 	siteBuildings?: boolean;
 }
@@ -281,10 +287,18 @@ export class SceneModel {
 			} else if (!home && (b.terrain?.kind === 'craters' || b.terrain?.kind === 'hills')) {
 				// A body other than the first whose terrain is craters or hills: the ground pass, the moon
 				// pass with that kind's height function (ADR 0054, 0067, 0090).
+				// a hills body's terrain spec (ADR 0121 point 1): given by the host, else the same rule as the sim's
+				const hillsTerrain = (): WorldTerrainSpec =>
+					config.bodyTerrain?.[b.id] ?? {
+						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
+						zones: []
+					};
 				const moon = new MoonPass(
 					b.id,
 					b.radius,
-					b.terrain.kind === 'hills' ? { kind: 'hills' } : { seed: b.terrain.seed ?? 0 }
+					b.terrain.kind === 'hills'
+						? { kind: 'hills', terrain: hillsTerrain() }
+						: { seed: b.terrain.seed ?? 0 }
 				);
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);

@@ -7,6 +7,7 @@
  */
 import {
 	TERRAIN_MAP_WIDTH,
+	LEGACY_ZONE,
 	cachedPlanetMap,
 	createTerrainField,
 	moonHeight,
@@ -92,15 +93,16 @@ import {
 	type PatchFrame
 } from './terrain-patch.ts';
 import { length, normalize, scale } from './vec.ts';
+import { LEGACY_TERRAIN, zoneUniforms, type WorldTerrainSpec } from './terrain-zones.ts';
 
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
 
 type PatchKind = 'mid' | 'fine';
 
-/** The canonical biome map (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
-function biomeTexture(): DataTexture {
-	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH);
+/** The biome map of `terrain` (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
+function biomeTexture(terrain: WorldTerrainSpec): DataTexture {
+	const m = cachedPlanetMap(TERRAIN_MAP_WIDTH, terrain);
 	const t = new DataTexture(m.data, m.width, m.height, RGBAFormat, UnsignedByteType);
 	t.colorSpace = NoColorSpace;
 	t.wrapS = RepeatWrapping;
@@ -189,6 +191,8 @@ export class MoonPass {
 	/** The ground the pass draws (ADR 0090). */
 	readonly kind: GroundKind;
 	private readonly spec: GroundSpec;
+	/** A hills body's seed and zones: what the sim's field, the CPU twin and the bakes share. */
+	readonly terrain: WorldTerrainSpec;
 	/** The sim's own height field of a hills body (the same function the GPU bake runs). */
 	private hillsField: TerrainField | null = null;
 	/** The biome map a hills body is baked and coloured from. */
@@ -214,14 +218,27 @@ export class MoonPass {
 	constructor(
 		readonly id: string,
 		radius: number,
-		options: { tint?: [number, number, number]; seed?: number; kind?: GroundKind } = {}
+		options: {
+			tint?: [number, number, number];
+			seed?: number;
+			kind?: GroundKind;
+			/** A hills body's seed and flat zones (plan 071, ADR 0121 point 1); default the Legacy terrain. */
+			terrain?: WorldTerrainSpec;
+		} = {}
 	) {
 		this.radius = radius;
 		this.seed = options.seed ?? 0;
 		this.kind = options.kind ?? 'craters';
 		this.spec = GROUND_SPECS[this.kind];
-		this.biome = this.kind === 'hills' ? biomeTexture() : null;
+		// no zones on the body: the Legacy zone, as core's field does (ADR 0142 point 6)
+		const given = options.terrain ?? LEGACY_TERRAIN;
+		this.terrain = {
+			seed: given.seed,
+			zones: given.zones.length > 0 ? given.zones : [LEGACY_ZONE]
+		};
+		this.biome = this.kind === 'hills' ? biomeTexture(this.terrain) : null;
 		const hills = this.kind === 'hills';
+		const zones = zoneUniforms(this.terrain);
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
@@ -235,7 +252,9 @@ export class MoonPass {
 			// terrain shadows are the craters' (ADR 0090); a hills body's march constants would be wrong
 			uShadowOn: u(hills ? 0 : 1),
 			uShadowSteps: u(SHADOW_STEPS.high),
-			uMap: u<unknown>(this.biome)
+			uMap: u<unknown>(this.biome),
+			// the seed's lattice shift and the flat zones (ADR 0121 point 1): the bakes and the colours
+			...zones
 		};
 		this.root.name = `moon:${id}`;
 
@@ -252,7 +271,8 @@ export class MoonPass {
 				uFace: u(0),
 				uSeed: u(this.seed),
 				uMap: this.shared.uMap!,
-				uSiteDir: u(new Vector3(1, 0, 0))
+				uSiteDir: u(new Vector3(1, 0, 0)),
+				...zones
 			},
 			depthTest: false,
 			depthWrite: false
@@ -268,7 +288,8 @@ export class MoonPass {
 				uPatchC: u(new Vector3()),
 				uPatchE: u(new Vector3()),
 				uPatchF: u(new Vector3()),
-				uHalfTan: u(0.01)
+				uHalfTan: u(0.01),
+				...zones
 			},
 			depthTest: false,
 			depthWrite: false
@@ -464,7 +485,7 @@ export class MoonPass {
 	/** Height of the ground (the same field the sim uses) along a unit body-fixed direction, m. */
 	groundHeight(direction: Vec3): number {
 		if (this.kind === 'hills') {
-			this.hillsField ??= createTerrainField({ radius: this.radius });
+			this.hillsField ??= createTerrainField({ radius: this.radius, ...this.terrain });
 			return this.hillsField.heightAt(direction);
 		}
 		return moonHeight(direction, this.radius, this.seed);

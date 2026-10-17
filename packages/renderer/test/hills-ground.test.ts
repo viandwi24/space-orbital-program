@@ -12,7 +12,9 @@ import {
 	type EntityId,
 	type PartId,
 	type Snapshot,
-	type Vec3
+	type Vec3,
+	LEGACY_TERRAIN_SEED,
+	hillsSeedOf
 } from '@orbital/core';
 import { Mesh, Object3D, type WebGLRenderer } from 'three';
 import { GROUND_SPECS, MOON_BAKE_DISTANCE } from '../src/moon-model.ts';
@@ -269,7 +271,10 @@ describe('the cube map follows the camera (ADR 0090)', () => {
 describe('a lander on the second planet', () => {
 	test('the camera stays above the hills the pass draws (the same ground the sim stands on)', () => {
 		const scene = new SceneModel({ bodies: [home, airless, aired], partShapes: shapes });
-		const field = createBodyTerrainField(airless)!;
+		// the sim's field of this body: its own seed from the world's (plan 071, ADR 0121 point 1)
+		const field = createBodyTerrainField(airless, {
+			seed: hillsSeedOf(airless, LEGACY_TERRAIN_SEED, false)
+		})!;
 		// the highest of a few hundred directions: a hill the camera could start inside
 		let best = directions(400).reduce((a, d) => (field.heightAt(d) > field.heightAt(a) ? d : a));
 		best = normalize(best);

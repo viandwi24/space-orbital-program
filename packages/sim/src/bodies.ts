@@ -16,7 +16,8 @@ import {
 	type TerrainField,
 	type Vec3,
 	type WorldInfo,
-	type WorldTerrain
+	type WorldTerrain,
+	hillsSeedOf
 } from '@orbital/core';
 
 /**
@@ -76,7 +77,11 @@ export function buildBodies(
 	// a star has no surface (ADR 0119 point 3): no terrain field is asked for it
 	const forBody = (def: BodyDefinition): TerrainField | undefined =>
 		typeof terrain === 'function' && !def.star
-			? terrain(def, { seed: terrainSeedOf(world), zones: zonesOf(sitesOf(world), def.id) })
+			? terrain(def, {
+					// one seed per hills body (ADR 0121 point 1): the renderer's bake takes the same
+					seed: hillsSeedOf(def, terrainSeedOf(world), def.id === rootId),
+					zones: zonesOf(sitesOf(world), def.id)
+				})
 			: undefined;
 	const sorted = [...defs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 	const out = new Map<string, BodyRuntime>();

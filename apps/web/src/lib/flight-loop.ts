@@ -756,6 +756,7 @@ export function startFlight(options: FlightOptions): Flight {
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
 				...(c.home ? { home: c.home } : {}),
+				...(c.bodyTerrain ? { bodyTerrain: c.bodyTerrain } : {}),
 				// The root body first (the tree's order; `home` names the body with the planet pass);
 				// a moon's `parent` and `orbit` let the map view draw its orbit and sphere (plan 044).
 				bodies: [...c.bodies]

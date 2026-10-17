@@ -70,12 +70,14 @@ export const resourceDefinitionSchema = z.object({
 /**
  * The shape of a body's ground, by data (ADR 0067): `hills` is the home planet's ridged terrain
  * (launch site at latitude 0, longitude 0), `craters` is the stock moon's cratered regolith with its
- * landing plain at the same place; `seed` gives another craters body its own field. A body without
+ * landing plain at the same place; `seed` gives another craters body its own field, and another hills
+ * body its own continents (plan 071, ADR 0121; without it a later hills body mixes the world's seed
+ * with its id). A body without
  * `terrain` is a smooth sphere. A kind is implemented in `@orbital/core` and drawn by the renderer's
  * own pass, so a mod picks a kind and a seed rather than supplying a function.
  */
 export const bodyTerrainSchema = z.discriminatedUnion('kind', [
-	z.object({ kind: z.literal('hills') }),
+	z.object({ kind: z.literal('hills'), seed: z.int().min(0).max(2_147_483_647).optional() }),
 	z.object({ kind: z.literal('craters'), seed: z.int().min(0).max(999).optional() })
 ]);
 
