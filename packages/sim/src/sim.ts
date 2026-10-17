@@ -38,6 +38,7 @@ import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
+import { collectCrewPlaces, freshCrew } from './crew.ts';
 import { createTrajectoryProvider } from '@orbital/kepler';
 import {
 	atBoundary,
@@ -301,7 +302,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		objectives: {
 			state: resume?.objectives ? cloneData(resume.objectives) : freshObjectives(),
 			dirty: new Set()
-		}
+		},
+		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info })
 	};
 	listenForObjectives(core);
 	if (resume) {
@@ -377,6 +379,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		pruneTargets(core);
 		runSystems(core.post, dt);
 		autoRails(core);
+		collectCrewPlaces(core);
 		evaluateObjectivesDue(core, 'step');
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
@@ -417,6 +420,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		reapDebris(core);
 		pruneTargets(core);
 		runSystems(core.post, h);
+		collectCrewPlaces(core);
 		evaluateObjectivesDue(core, 'step');
 	}
 

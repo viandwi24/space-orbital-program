@@ -21,6 +21,7 @@ import {
 	type SimCore
 } from './core.ts';
 import { dataUse, storagesOf } from './data.ts';
+import { rosterSnapshot, vesselCrewSnapshot } from './crew.ts';
 import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
 import { nodeSnapshots } from './maneuver.ts';
@@ -125,6 +126,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	if (target) snapshot.target = target;
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
+	const crew = vesselCrewSnapshot(core, id);
+	if (crew) snapshot.crew = crew;
 	if (vessel.mode === 'flight') {
 		const actions = actionsSnapshot(core, id);
 		if (actions) snapshot.actions = actions;
@@ -149,6 +152,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 
 export function takeSnapshot(core: SimCore): Snapshot {
 	const objectives = objectivesSnapshot(core);
+	const roster = rosterSnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -160,7 +164,8 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		rules: rulesView(core),
 		economy: economySnapshot(core),
 		sites: sitesSnapshot(core),
-		...(objectives ? { objectives } : {})
+		...(objectives ? { objectives } : {}),
+		...(roster ? { crew: roster } : {})
 	};
 }
 

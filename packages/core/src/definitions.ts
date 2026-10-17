@@ -11,6 +11,7 @@ import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
 import type { ContractDefinition, MissionDefinition, ObjectiveDefinition } from './objectives.ts';
+import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
@@ -79,6 +80,9 @@ export interface ReadonlyRegistries {
 	/** Action groups (plan 110, ADR 0174). */
 	actionGroups: ReadonlyRegistry<ActionGroupDefinition>;
 	buildings: ReadonlyRegistry<BuildingDefinition>;
+	/** Crew traits and name syllables (plan 106, ADR 0176). */
+	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
+	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
 }
 
 /** Vessel-wide control input set by `throttle` and `attitude` commands. */

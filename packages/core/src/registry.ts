@@ -35,6 +35,12 @@ import {
 } from './objectives.ts';
 import { dataKindDefinitionSchema, type DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
+import {
+	crewNamesDefinitionSchema,
+	crewTraitDefinitionSchema,
+	type CrewNamesDefinition,
+	type CrewTraitDefinition
+} from './crew.ts';
 
 export class RegistryError extends Error {
 	constructor(
@@ -203,6 +209,9 @@ export interface Registries {
 	actionGroups: Registry<ActionGroupDefinition>;
 	/** Buildings (plan 090, ADR 0115). */
 	buildings: Registry<BuildingDefinition>;
+	/** Crew traits and name syllables (plan 106, ADR 0176). */
+	crewTraits: Registry<CrewTraitDefinition>;
+	crewNames: Registry<CrewNamesDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -226,6 +235,12 @@ export function createRegistries(): Registries {
 			schema: objectiveDefinitionSchema
 		}),
 		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
-		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema })
+		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
+		crewTraits: createRegistry<CrewTraitDefinition>('crew-trait', {
+			schema: crewTraitDefinitionSchema
+		}),
+		crewNames: createRegistry<CrewNamesDefinition>('crew-names', {
+			schema: crewNamesDefinitionSchema
+		})
 	};
 }

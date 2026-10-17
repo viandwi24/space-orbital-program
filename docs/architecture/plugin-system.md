@@ -134,12 +134,17 @@ Config literals are checked against the module's schema input type (wrong type, 
 - A module may declare `background(ctx, dt)` (API 0.1.29): a closed form (rate × `dt`) for a vessel on rails, called on each world tick, when the vessel wakes and before a save. It replaces that module's `updateOnRails`.
 - All three are typed identity functions; the registry validates them with zod (`schemas.ts`) on register.
 
-### Objectives, contracts and missions (API 0.1.36, plan 098, ADR 0175)
+### Objectives, contracts and missions (API 0.1.37, plan 098, ADR 0175)
 
 - `defineObjective({ id, label, params, on?, constraint?, evaluate })` (registered with `ctx.objectives`): `evaluate(params, view, prior)` is pure and returns `{ status: 'active' | 'done' | 'failed', progress, data? }`. `view` is the read-only `ObjectiveView` (`time`, `home`, and `vessels` with `body`, `mode`, `landed`, `altitude`, `periapsis`, `apoapsis`). `prior` is the leaf's last result, and `data` is its memory. `on` is `'step'`, `'tick'` or event names (default `['step']`). A `constraint` leaf is re-evaluated every time; other leaves stay done.
 - Trees: `{ objective, params }`, `{ all }`, `{ any }`, `{ sequence }` (a sequence evaluates only its current step). `evaluateObjectives(tree, leaves, lookup, view)` is the pure evaluator.
 - `defineContract({ id, title, objectives, reward?, penalty?, deadline?, prerequisites? })` and `defineMission({ id, title, objectives, reward?, prerequisites? })` (`ctx.contracts`, `ctx.missions`). Their leaves are checked at load: the objective must be registered and its params must parse. Rewards and penalties are `{ currency, amount }` ledger entries.
 - Stock primitives: `stock.reach-orbit`, `stock.land`, `stock.reach-altitude`, `stock.enter-soi`, `stock.flyby`, `stock.return-home`, `stock.before`.
+
+### Crew (API 0.1.38, plan 106, ADR 0176)
+- `defineCrewTrait({ id, label, abilities, weight? })` (`ctx.crewTraits`): `abilities` are factors on the quality keys `controlSmoothing`, `scriptBudget`, `repairRate`, `dataQuality`, `gTolerance` and `panicResistance` (`ABILITY_KEYS`), never a tool (ADR 0098). `abilitiesOf(member, traits)` gives profession × level × traits.
+- `defineCrewNames({ id, first, last })` (`ctx.crewNames`): syllables that hired crew names are drawn from, with the world's `crew` stream.
+- Parts declare seats with `crewCapacity`.
 
 ## Type sharing between plugins
 

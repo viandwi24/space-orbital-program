@@ -42,6 +42,7 @@ export const PartCommandPod = definePart({
 	id: 'stock.command-pod',
 	title: 'Command Pod',
 	mass: kg(840),
+	crewCapacity: 1,
 	cost: partCost(840, 'command'),
 	impactTolerance: 10,
 	maxTemperature: 1000,

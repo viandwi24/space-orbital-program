@@ -133,7 +133,8 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({
 		type: z.literal('load-vessel'),
 		design: vesselDesignSchema,
-		placement: vesselPlacementSchema.optional()
+		placement: vesselPlacementSchema.optional(),
+		crew: z.array(z.object({ member: z.string().min(1), part: index })).optional()
 	}),
 	z.object({
 		type: z.literal('set-rule'),
@@ -162,5 +163,15 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('objective-start'),
 		source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
 		vessel: entity.optional()
+	}),
+	z.object({
+		type: z.literal('crew-hire'),
+		profession: z.enum(['pilot', 'engineer', 'scientist', 'tourist'])
+	}),
+	z.object({
+		type: z.literal('crew-transfer'),
+		vessel: entity,
+		member: z.string().min(1),
+		to: entity
 	})
 ]);

@@ -196,7 +196,7 @@ Data is sized: a `DataItem` has a `kind`, a size in `bits`, a `value` and the si
 - **Hold** data in your own part: declare `dataStorage: { capacity: (config) => config.capacity }` on a module whose `state` returns `{ items: [], next: 0 }`, or reuse `stock.data-storage` (`[['stock.data-storage', { capacity: 1_000_000 }]]`). The items are module state, so they are saved and go with the part when the vessel splits.
 - The player can move items between storages (`move-data`) and delete them (`delete-data`). `packages/sim/test/data.test.ts` has a recorder part that stores through an action.
 
-## Contracts, missions and objectives (API 0.1.36, plan 098, ADR 0175)
+## Contracts, missions and objectives (API 0.1.37, plan 098, ADR 0175)
 
 A contract or mission is data: a tree of objectives with rewards. Use the stock primitives or write your own.
 
@@ -217,6 +217,12 @@ ctx.contracts.register(defineContract({
 - Stock primitives: `stock.reach-orbit { body?, minPeriapsis, maxApoapsis? }`, `stock.land { body? }`, `stock.reach-altitude { body?, min }`, `stock.enter-soi { body }`, `stock.flyby { body }`, `stock.return-home`, `stock.before { time }`.
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
+
+## Crew (API 0.1.38, plan 106, ADR 0176)
+- **Seats.** Give a crewed part seats with `crewCapacity: 2`. The launch (`load-vessel`) seats roster members by design part index, and `crew-transfer` moves them between parts of one vessel.
+- **Traits.** `ctx.crewTraits.register(defineCrewTrait({ id: 'acme.calm', label: 'Calm', abilities: { panicResistance: 1.3 } }))`. A trait can only scale quality factors (`controlSmoothing`, `scriptBudget`, `repairRate`, `dataQuality`, `gTolerance`, `panicResistance`); no trait or level ever turns a tool on or off.
+- **Names.** Add syllables with `defineCrewNames({ id, first: [...], last: [...] })`; hired names are drawn from them with the world's own random stream, so the same world always hires the same people.
+- XP is booked when a vessel is recovered, for each place its crew had not been before (fly by, orbit or land on a body). The world's rules decide death (`stock.crew-death`) and salaries.
 
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
