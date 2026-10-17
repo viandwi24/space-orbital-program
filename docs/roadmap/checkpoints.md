@@ -67,7 +67,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f4-done` | phase gate F4: all F4 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
 | `cp/f5-122-sun` | 122 | A1 | A1, A3 (071, 123) | done | b33f76a | 2026-10-17 |
 | `cp/f5-123-elements` | 123 | A3 | A1, A3 (124, 125) | done | 8403dd7 | 2026-10-17 |
-| `cp/f5-071-second-planet` | 071 | A1 | A3 (124) | pending | | |
+| `cp/f5-071-second-planet` | 071 | A1 | A3 (124) | done | 5ba6b20 | 2026-10-17 |
 | `cp/f5-124-sol` | 124 | A3 | — (none) | pending | | |
 | `cp/f5-125-n-body` | 125 | A1 | — (none) | pending | | |
 | `cp/f5-done` | phase gate F5: all F5 plans merged, phase review (ADR 0108) | A1 | all | pending | | |

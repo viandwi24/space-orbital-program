@@ -19,7 +19,7 @@
 | 096 building-levels | todo |  |  |  |
 | 109 eva | done | `lead/109-eva` | 2026-10-17 | merged 912d3e3, cp/f3-109-eva |
 | 097 markets | todo |  | 2026-10-17 | draft refined |
-| 071 second-planet | in-progress | `lead/071-second-planet` | 2026-10-18 | claim/071 |
+| 071 second-planet | done | `lead/071-second-planet` | 2026-10-17 | merged 5ba6b20, cp/f5-071-second-planet |
 | 125 n-body | todo |  |  |  |
 | 128 bases | todo |  |  |  |
 | 070 comms-index | todo |  |  |  |
