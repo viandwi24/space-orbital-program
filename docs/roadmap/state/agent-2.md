@@ -15,7 +15,7 @@
 | 087 worlds-screen | done | `devb/087-worlds-screen` | 2026-10-17 | merged 2d7724e, cp/f2-087-worlds-screen |
 | 088 hud | done | `devb/088-hud` | 2026-10-17 | merged d2caaa4, cp/f2-088-hud |
 | 085 orientation | done | `devb/085-orientation` | 2026-10-17 | merged c8298c8, cp/f1-085-orientation |
-| 076 roadmap-page | handed-over | `devb/076-roadmap-page` | 2026-10-18 | ready/076 (re-tagged: plan left in-progress for the Lead) |
+| 076 roadmap-page | done | `devb/076-roadmap-page` | 2026-10-17 | merged c262e53, cp/f1-076-roadmap-page |
 | 069 categories | handed-over | `devb/069-categories` | 2026-10-18 | ready/069; ADR 0146; API 0.1.41 |
 | 089 menus | todo |  |  |  |
 | 093 hangar | todo |  |  |  |
