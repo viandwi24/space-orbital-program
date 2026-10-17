@@ -69,53 +69,58 @@
 </script>
 
 <section class="strip" aria-label="Vessel summary">
-	<dl>
-		<div>
-			<dt>Parts</dt>
-			<dd class="num">{stats.partCount}</dd>
+	<h2>Vessel</h2>
+	<div class="grid">
+		<div class="tile">
+			<span class="k">Mass</span>
+			<span class="v num">{stats.partCount ? formatMass(stats.wetMass) : '[—]'}</span>
 		</div>
-		<div>
-			<dt>Mass</dt>
-			<dd class="num">{stats.partCount ? formatMass(stats.wetMass) : '–'}</dd>
+		<div class="tile">
+			<span class="k">Parts</span>
+			<span class="v num">{stats.partCount}</span>
 		</div>
-		<div>
-			<dt>Height</dt>
-			<dd class="num">{stats.partCount ? formatDistance(stats.height) : '–'}</dd>
+		<div class="tile">
+			<span class="k">Height</span>
+			<span class="v num">{stats.partCount ? formatDistance(stats.height) : '[—]'}</span>
 		</div>
-		<div title={stabilityTitle}>
-			<dt>Stability</dt>
-			<dd class="num {stabilityTone}">
-				{STABILITY_LABEL[
-					stability.state
-				]}{#if stability.state !== 'none' && stability.state !== 'unfinned'}<span class="u">
-						{stability.margin! >= 0 ? '+' : ''}{stability.margin!.toFixed(1)} cal</span
-					>{/if}
-			</dd>
-			{#if stability.state !== 'none'}
-				<span class="legend" aria-hidden="true"><b>◉</b> mass <b class="cop">△</b> pressure</span>
-			{/if}
+		<div class="tile">
+			<span class="k">Δv</span>
+			<span class="v num">{stats.partCount ? `${n(stats.totalDv)} ${speedUnit()}` : '[—]'}</span>
 		</div>
-		{#if cost}
-			<div
-				title={cost.uncosted.length
-					? `No cost set for ${cost.uncosted.join(', ')}; they count as 0.`
-					: `Parts ${formatFunds(cost.parts)}, contents ${formatFunds(cost.contents)}`}
+		<div class="tile">
+			<span class="k" title="Thrust to weight at liftoff, sea level">TWR</span>
+			<span class="v num {twrTone}"
+				>{stats.liftoffTwr === null ? '[—]' : stats.liftoffTwr.toFixed(2)}</span
 			>
-				<dt>Cost</dt>
-				<dd class="num" data-testid="vab-cost">
-					{stats.partCount ? formatFunds(cost.total) : '–'}{#if cost.uncosted.length}<span
-							class="u"
-						>
-							· no cost set</span
-						>{/if}
-				</dd>
-			</div>
-		{/if}
-		<div>
-			<dt title="Thrust to weight at liftoff, sea level">Liftoff TWR</dt>
-			<dd class="num {twrTone}">{stats.liftoffTwr === null ? '–' : stats.liftoffTwr.toFixed(2)}</dd>
 		</div>
-	</dl>
+		<div
+			class="tile"
+			title={cost
+				? cost.uncosted.length
+					? `No cost set for ${cost.uncosted.join(', ')}; they count as 0.`
+					: `Parts ${formatFunds(cost.parts)}, contents ${formatFunds(cost.contents)}`
+				: 'Costs need the economy'}
+		>
+			<span class="k">Cost</span>
+			<span class="v num" data-testid="vab-cost"
+				>{cost && stats.partCount ? formatFunds(cost.total) : '[—]'}</span
+			>
+			{#if cost?.uncosted.length}<span class="u">no cost set</span>{/if}
+		</div>
+	</div>
+	<div class="stability" title={stabilityTitle}>
+		<span class="k">Stability</span>
+		<span class="num {stabilityTone}"
+			>{STABILITY_LABEL[
+				stability.state
+			]}{#if stability.state !== 'none' && stability.state !== 'unfinned'}<span class="u">
+					{stability.margin! >= 0 ? '+' : ''}{stability.margin!.toFixed(1)} cal</span
+				>{/if}</span
+		>
+		{#if stability.state !== 'none'}
+			<span class="legend" aria-hidden="true"><b>◉</b> mass <b class="cop">△</b> pressure</span>
+		{/if}
+	</div>
 	<div class="trip">
 		<label class="pick">
 			<span class="u">Trip</span>
@@ -185,64 +190,89 @@
 </section>
 
 <style>
+	/* refs Vessel panel: a capital header, six tiles in three columns, then stability and the trip */
 	.strip {
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		align-items: center;
-		gap: var(--s-2) var(--s-5);
-		max-width: 100%;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: var(--panel-pad);
 		box-sizing: border-box;
-		padding: var(--s-2) var(--s-4);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-panel);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 	}
-	dl {
+	h2,
+	.k {
+		margin: 0;
+		font-size: var(--t-label);
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	h2 {
+		padding: 0.25rem 0.375rem 0;
+	}
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.25rem;
+	}
+	.tile {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.4375rem 0.5rem;
+		border-radius: var(--radius-tile);
+		background: var(--surface-inset);
+		min-width: 0;
+	}
+	.v {
+		font-size: var(--t-small);
+		line-height: 1;
+		font-weight: 600;
+		color: var(--text-primary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.stability {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: center;
-		gap: var(--s-2) var(--s-4);
-		margin: 0;
-	}
-	dt {
-		white-space: nowrap;
-		font-size: var(--t-xs);
-		color: var(--text-dim);
-	}
-	dd {
-		margin: 0;
-		white-space: nowrap;
-		font-size: var(--t-lg);
-		font-weight: 500;
+		align-items: baseline;
+		gap: 0.25rem 0.5rem;
+		padding: 0 0.375rem;
+		font-size: var(--t-small);
 	}
 	.legend {
 		display: block;
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 		white-space: nowrap;
 	}
 	.legend b {
-		color: var(--c-accent);
+		color: var(--text-primary);
 	}
 	.legend b.cop {
-		color: var(--c-warning);
+		color: var(--warn);
 	}
 	.good {
-		color: var(--c-positive);
+		color: var(--ok);
 	}
 	.warn {
-		color: var(--c-warning);
+		color: var(--warn);
 	}
 	.bad {
-		color: var(--c-danger);
+		color: var(--danger);
 	}
 	.trip {
 		display: grid;
-		flex: 1 1 250px;
-		max-width: 340px;
 		gap: 4px;
+		padding: 0.375rem 0.375rem 0;
+		border-top: 1px solid var(--border-divider);
 	}
 	.line {
 		display: flex;
@@ -251,15 +281,15 @@
 		font-size: var(--t-sm);
 	}
 	.u {
-		color: var(--text-dim);
+		color: var(--text-muted);
 		font-size: var(--t-xs);
 	}
 	strong {
 		font-weight: 500;
-		color: var(--c-positive);
+		color: var(--ok);
 	}
 	strong.short {
-		color: var(--c-warning);
+		color: var(--warn);
 	}
 	.pick {
 		display: flex;
@@ -272,20 +302,20 @@
 		font: inherit;
 		font-size: var(--t-sm);
 		color: var(--text);
-		background: var(--field);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-tile);
 		padding: 2px var(--s-2);
 	}
 	select:focus-visible,
 	summary:focus-visible {
-		outline: 2px solid var(--c-accent);
+		outline: 2px solid var(--text-primary);
 		outline-offset: 1px;
 	}
 	.legs summary {
 		cursor: pointer;
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 	}
 	.legs ol {
 		list-style: none;
@@ -304,11 +334,11 @@
 		grid-column: 1 / -1;
 	}
 	.legs li.covered .num {
-		color: var(--c-positive);
+		color: var(--ok);
 	}
 	.legs li.partial .num,
 	.legs li.short .num {
-		color: var(--c-warning);
+		color: var(--warn);
 	}
 	.assumptions {
 		margin: var(--s-1) 0 0;
@@ -316,6 +346,6 @@
 	.note {
 		margin: 0;
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 	}
 </style>

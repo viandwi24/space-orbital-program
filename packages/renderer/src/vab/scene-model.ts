@@ -58,7 +58,7 @@ export interface VabNode {
  */
 export interface VabMarker {
 	key: string;
-	kind: 'com' | 'cop' | 'com-empty';
+	kind: 'com' | 'cop' | 'com-empty' | 'cot';
 	group: string;
 	/** Position relative to the group's root origin, like parts and nodes (the floor shift is applied by the view). */
 	position: V3;

@@ -104,7 +104,7 @@
 
 <section class="stages" aria-label="Stages">
 	<header>
-		<h2>Stages</h2>
+		<h2>Staging · Δv</h2>
 		<div
 			class="total num"
 			title="Total delta-v, {environment === 'vacuum' ? 'in vacuum' : 'at sea level'}"
@@ -219,11 +219,12 @@
 		flex-direction: column;
 		gap: var(--s-2);
 		min-height: 0;
-		padding: var(--s-3);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
+		padding: var(--panel-pad);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-panel);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 	}
 	header {
 		display: flex;
@@ -231,43 +232,50 @@
 		justify-content: space-between;
 		gap: var(--s-3);
 	}
+	header {
+		padding: 0.25rem 0.375rem 0;
+	}
 	h2 {
 		margin: 0;
-		font-size: var(--t-lg);
-		font-weight: 600;
+		font-size: var(--t-label);
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 	.total {
-		font-size: var(--t-lg);
-		font-weight: 500;
-		color: var(--c-accent);
+		font-size: var(--t-value);
+		font-weight: 600;
+		color: var(--text-primary);
 	}
 	.u {
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 	}
 	.env {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 2px;
 		padding: 2px;
-		background: var(--field);
-		border-radius: var(--r-control);
+		background: var(--surface-inset);
+		border-radius: var(--radius-tile);
 	}
 	.env button {
 		height: 28px;
 		font-size: var(--t-sm);
-		color: var(--text-dim);
+		color: var(--text-muted);
 		background: transparent;
 		border: 0;
-		border-radius: var(--r-control);
+		border-radius: var(--radius-tile);
 	}
 	.env button[aria-pressed='true'] {
 		color: var(--text);
-		background: color-mix(in srgb, var(--c-accent) 18%, transparent);
+		background: color-mix(in srgb, var(--accent) 18%, transparent);
 	}
 	.empty {
 		margin: var(--s-2) 0;
-		color: var(--text-dim);
+		color: var(--text-muted);
 		font-size: var(--t-sm);
 	}
 	.list {
@@ -288,22 +296,22 @@
 		gap: var(--s-2);
 		min-height: 46px;
 		padding: 4px var(--s-2);
-		background: var(--panel-raised);
+		background: var(--surface-inset);
 		border: 1px dashed transparent;
-		border-radius: var(--r-control);
+		border-radius: var(--radius-tile);
 	}
 	.row.over {
-		border-color: var(--c-accent);
-		background: color-mix(in srgb, var(--c-accent) 12%, var(--panel-raised));
+		border-color: var(--accent-text);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface-inset));
 	}
 	.row.new,
 	.row.tray {
 		min-height: 36px;
 		background: transparent;
-		border-color: var(--line);
+		border-color: var(--border-subtle);
 	}
 	.row.empty {
-		border-color: var(--line);
+		border-color: var(--border-subtle);
 		background: transparent;
 	}
 	.badge {
@@ -315,13 +323,13 @@
 		font-weight: 500;
 		color: var(--c-ink);
 		background: var(--text-dim);
-		border-radius: var(--r-control);
+		border-radius: var(--radius-tile);
 	}
 	.new .badge,
 	.tray .badge {
-		color: var(--text-dim);
+		color: var(--text-muted);
 		background: transparent;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--border-strong);
 	}
 	.chips {
 		display: flex;
@@ -339,18 +347,18 @@
 		width: 32px;
 		height: 32px;
 		color: var(--text);
-		background: var(--field);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-tile);
 		cursor: grab;
 	}
 	.chip:hover {
-		border-color: var(--c-accent);
+		border-color: var(--accent-text);
 	}
 	.chip.sel {
-		border-color: var(--c-accent);
-		background: color-mix(in srgb, var(--c-accent) 20%, var(--field));
-		color: var(--c-accent);
+		border-color: var(--accent-text);
+		background: color-mix(in srgb, var(--accent) 20%, var(--field));
+		color: var(--accent-text);
 	}
 	.nums {
 		display: grid;
@@ -363,17 +371,17 @@
 	}
 	.meta {
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 	}
 	.x {
 		display: grid;
 		place-items: center;
 		width: 26px;
 		height: 26px;
-		color: var(--text-dim);
+		color: var(--text-muted);
 		background: transparent;
-		border: 1px solid var(--line);
-		border-radius: var(--r-control);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-tile);
 	}
 	.x:hover {
 		color: var(--c-danger);
@@ -387,17 +395,17 @@
 		height: 28px;
 		padding: 0 var(--s-3);
 		font-size: var(--t-xs);
-		color: var(--text-dim);
+		color: var(--text-muted);
 		background: transparent;
-		border: 1px solid var(--line);
-		border-radius: var(--r-control);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-tile);
 	}
 	.auto:not(:disabled) {
 		color: var(--text);
-		border-color: var(--line-strong);
+		border-color: var(--border-strong);
 	}
 	.auto:not(:disabled):hover {
-		border-color: var(--c-accent);
+		border-color: var(--accent-text);
 	}
 	.auto:disabled {
 		cursor: default;
