@@ -55,7 +55,7 @@ Search for every `Ry(` / `omega` use and `+Y`-as-north assumption; list them in 
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [x] `docs/journal/085-body-orientation-pole-times-spin.md` written.
 - [x] `docs/architecture/units-and-frames.md`, `simulation.md`.
 - [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
@@ -69,3 +69,4 @@ Search for every `Ry(` / `omega` use and `+Y`-as-north assumption; list them in 
   - `bunx vitest run src/lib/tilted-navball.test.ts` — the navball pitch on the tilted pad is 90.00 degrees (to 0.005), and north follows the pole.
   - `bun test ./packages`, `./mods`, `./examples` — 1386, 93, 7 pass; `bunx vitest run` (apps/web) — 916 passed, 2 failed in `sim-host-script-worker.test.ts` (as on `origin/main` on this M2); `bun run typecheck` — 0 errors; build ok; `bun run docs:check` — OK; `playwright test e2e/smoke.e2e.ts e2e/launch.e2e.ts --project=chromium` — 7 passed (4.8 m).
   - `API_VERSION` 0.1.41 (0.1.40 went to 103; additive `BodyDefinition.rotation`).
+- 2026-10-18 — Merge check (Agent 1, M5): rebased on main after 088 and 103 (ADR index rows kept from both sides); API_VERSION 0.1.41 because 103 merged first with 0.1.40. `bun run test` 1503 pass · web vitest 927 pass · typecheck · build · docs:check OK · Chromium smoke 6 pass. No renderer change, so no frame measurement.
