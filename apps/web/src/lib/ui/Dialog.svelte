@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	let {
 		open,
@@ -21,31 +22,66 @@
 
 <!-- `cancel` is the Escape key; a Chromium build was seen closing the dialog without a following `close`, so both tell the page. -->
 <dialog bind:this={el} aria-labelledby="{uid}-title" oncancel={onclose} {onclose}>
-	<h2 id="{uid}-title">{title}</h2>
+	<header>
+		<h2 id="{uid}-title">{title}</h2>
+		<button type="button" class="x" aria-label="Close dialog" onclick={onclose}
+			><Icon name="close" size={16} /></button
+		>
+	</header>
 	{@render children()}
 </dialog>
 
 <style>
+	/* refs sheet (Worlds, Create world): radius 20, padding 20, a light title and a round close */
 	dialog {
-		min-width: min(420px, calc(100vw - 32px));
-		max-width: min(640px, calc(100vw - 32px));
-		max-height: calc(100vh - 48px);
-		max-height: calc(100dvh - 48px);
+		min-width: min(26rem, calc(100vw - 2rem));
+		max-width: min(40rem, calc(100vw - 2rem));
+		max-height: calc(100vh - 3rem);
+		max-height: calc(100dvh - 3rem);
 		overflow: auto;
-		padding: var(--s-5);
+		padding: 1.25rem;
 		color: var(--text-body);
 		background: var(--surface-dialog);
 		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-panel);
+		border-radius: 1.25rem;
 		box-shadow: var(--shadow-overlay);
 	}
 	dialog::backdrop {
 		background: var(--surface-scrim);
 	}
+	header {
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		margin-bottom: 1rem;
+	}
 	h2 {
-		margin: 0 0 var(--s-4);
-		font-size: var(--t-lg);
-		font-weight: 600;
+		margin: 0;
+		font-size: 1.25rem;
+		line-height: 1;
+		font-weight: 300;
 		color: var(--text-primary);
+	}
+	.x {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.875rem;
+		height: 1.875rem;
+		margin-left: auto;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: var(--surface-tile);
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.x:hover {
+		color: var(--text-primary);
+		background: var(--surface-hover);
+	}
+	.x:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 2px;
 	}
 </style>
