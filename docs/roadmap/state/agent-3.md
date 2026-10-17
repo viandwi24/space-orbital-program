@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 103 and 114 merged; nothing claimed. Next in lane: 104 regions, after the owner's go.
-**Waiting for:** nothing (no open handovers).
+**Now:** 104 regions and dossiers on `devc/104-regions` (claim/104): plan refined, draft 192 created; next ADR 0180 and the core region types.
+**Waiting for:** nothing.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -19,7 +19,7 @@
 | 106 crew | done | `devc/106-crew` | 2026-10-17 | merged 53cd3cf, cp/f3-106-crew |
 | 103 science | done | `devc/103-science` | 2026-10-18 | merged f13f697, cp/f3-103-science |
 | 114 comms-1 | done | `devc/114-comms` | 2026-10-18 | merged 23e3c4a, cp/f4-114-comms-1 |
-| 104 regions | todo |  |  |  |
+| 104 regions | in-progress | `devc/104-regions` | 2026-10-18 | claim/104; draft 192 |
 | 107 crew-sim | todo |  |  |  |
 | 067 buoyancy | todo |  |  |  |
 | 123 elements | todo |  |  |  |
