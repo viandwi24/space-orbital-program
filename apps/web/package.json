@@ -23,6 +23,7 @@
 		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"fake-indexeddb": "6.2.5",
 		"prettier": "catalog:",
 		"prettier-plugin-svelte": "^4.1.0",
 		"svelte": "^5.57.1",
