@@ -146,7 +146,8 @@ export function runUpdateHooks(core: SimCore, vesselId: EntityId, dt: number): v
 	for (const partId of vessel.parts.slice()) {
 		for (const m of partOf(core, partId).modules) {
 			const def = moduleDefOf(core, m.id);
-			const hook = rails ? def.updateOnRails : def.update;
+			// On rails a module with a `background` closed form is worked by the tick instead (ADR 0171).
+			const hook = rails ? (def.background ? undefined : def.updateOnRails) : def.update;
 			if (hook) hook(makeContext(core, partId, m.id), dt);
 		}
 	}

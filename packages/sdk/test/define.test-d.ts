@@ -386,3 +386,22 @@ definePatch({
 	// @ts-expect-error unknown op
 	ops: [{ op: 'multiply', path: 'mass', value: 2 }]
 });
+
+// ---- world-tick systems (plan 082): ctx.tick is typed, modules may declare `background` --------
+defineSystem({
+	id: 'test.daily',
+	phase: 'world-tick',
+	order: 1,
+	update(_world, dt, ctx) {
+		const day: number | undefined = ctx.tick?.day;
+		const draw: number | undefined = ctx.tick?.rng.next();
+		void [day, draw, dt];
+	}
+});
+defineModule({
+	id: 'test.battery',
+	state: () => ({ charge: 0 }),
+	background(ctx, dt) {
+		ctx.state.charge += dt;
+	}
+});

@@ -121,6 +121,8 @@ export interface VesselState {
 	landed: boolean;
 	/** Seconds spent landed, force-free and at rest relative to the ground (ADR 0024). */
 	rest: number;
+	/** Sim time up to which module `background` closed forms have run (plan 082); on rails only. */
+	backgroundAt?: number;
 }
 
 /**

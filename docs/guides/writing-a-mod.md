@@ -288,6 +288,6 @@ visual: {
 
 ## Open items
 
-- `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`) is supported by the sim but has no stock example yet; this guide will gain a section when one exists.
+- `defineSystem` (per-step logic over the world, phases `pre-physics`/`post-physics`, and once per game day `world-tick`, API 0.1.29, plan 082) is supported by the sim but has no stock example yet; this guide will gain a section when one exists. A world-tick system reads `ctx.tick.day` and draws only from `ctx.tick.rng`: it gets its own stream, which no other mod's system can disturb, and it reads no clock. A module that keeps working while its vessel is on rails can declare `background(ctx, dt)`: one closed form over the elapsed time (for example `state.charge += rate * dt`), run on each tick, at wake and before a save, in place of `updateOnRails`. See `packages/sim/test/world-tick.test.ts` for a battery and a world system. A stock producer of electric charge is draft plan 190.
 - The HUD's throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own throttle display); mod-supplied VAB categories are plan 029.
 - New renderer generators from a mod (executable render code), KTX2 textures, deploy animations in models and a hosted mod repository are not built (drafts 040 and 065).

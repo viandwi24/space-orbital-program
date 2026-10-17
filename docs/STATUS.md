@@ -90,7 +90,7 @@
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
-| 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | draft | — | ADR 0096: daily tick, PRNG streams, background closed forms |
+| 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | in-progress | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
@@ -140,6 +140,7 @@
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | draft | — | ADR 0094: reliability rule, off by default |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | draft | — | ADR 0098/0094: replays, challenges, ghosts as files |
+| 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

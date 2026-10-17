@@ -1,8 +1,8 @@
 ---
 id: 082
 title: "World tick and background operations"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [077]
 phase: 4
 created: 2026-10-17
@@ -17,25 +17,26 @@ The sim runs a `world-tick` phase once per game day at the exact day boundary (a
 
 ## Context
 
-- ADRs: 0096
-- Read: ADR 0096, `docs/architecture/simulation.md` (loop, rails chunks of 10 s, SOI bisection), `packages/core/src/rng.ts`.
+- ADRs: 0096 (the decision), 0103 (calendar, epoch), 0110 (world info, save format 5), 0111 (rules in the system context), 0171 (written in step 1: day length, tick timing in flight, save fields).
+- Read: ADR 0096, `docs/architecture/simulation.md` (loop, rails chunks of 10 s, SOI bisection), `packages/sim/src/sim.ts` (`flightStep`, `railsStep`, `step`), `packages/sim/src/core.ts`, `packages/sim/src/hooks.ts` (`runUpdateHooks`), `packages/sim/src/modes.ts`, `packages/sim/src/save.ts`, `packages/core/src/rng.ts`, `packages/core/src/save.ts` (`simSaveSchema`), `SystemDefinition` in `packages/core/src/definitions.ts`.
 
 ## Scope
 
 **In:**
-- System phase `world-tick` in `defineSystem`; ordering rule; `world:tick` event with the day number.
-- Chunk splitting at day boundaries in both the fixed-step and the rails path.
-- PRNG streams derived from (world seed, system id).
-- Background-operation helper: a module may declare `background(rate, state, dt)` closed forms; the sim calls them on ticks, wake and save.
-- Last processed tick saved.
+- System phase `world-tick` in `defineSystem`, with an optional `order` (lower first; then plugin boot order; ties by id). A world-tick system's `update(world, dt, ctx)` gets `dt` = the day length and `ctx.tick` = `{ day, time, rng }`. The `world:tick` event carries `{ day, time }` and is emitted after the world systems ran.
+- **Day length** (until plan 081 supplies the calendar): the root body's `rotationPeriod` (stock: 21 600 s). Day number at time `t` = `epoch.day + floor(epoch.fraction + t / dayLength)`. A tick fires on entering each new day; there is no tick at `t = 0`.
+- Rails path: a chunk that crosses a boundary is split there (the boundary time is computed from the day number, not accumulated), and a long warp runs every tick in order. Flight path: the fixed 20 ms step is not split; the tick runs at the end of the step that crosses the boundary, with `time` = the exact boundary (ADR 0171).
+- PRNG streams: `createRng(streamSeed(world seed, system id))` per world-tick system, independent of registration order and of other systems.
+- Background operations: a module may declare `background(ctx, dt)`, a closed form over the elapsed time. For a vessel on rails the sim calls it on every world tick, when the vessel wakes into flight, and before a save, with `dt` = time since its last call (per vessel `backgroundAt`). It does not call that module's `updateOnRails`. Modules without `background` keep today's per-chunk `updateOnRails`.
+- Save: optional `worldTick: { lastDay, streams: { [systemId]: rngState } }` in `SimSave` format 5 (additive; a save without it derives `lastDay` from its time and starts fresh streams); `backgroundAt` on the vessel component.
 
-**Out:** economy, crew, contracts themselves (they register on this tick in their plans).
+**Out:** economy, crew, contracts themselves (they register on this tick in their plans); a stock solar panel or other generator (stock has electric charge but no producer: draft 190); the calendar and dates (081); spreading a burst of ticks across frames at maximum warp (measured here, built when a system needs it).
 
 ## Touches
 
 - **Size:** M
-- **Edits:** `packages/sim/src/sim.ts`, `packages/sim/src/core.ts`, `packages/core/src/rng.ts`, `packages/sdk`, `mods/stock`
-- **Shared contracts:** **SDK (system phase, module `background`), save (last tick, per-system PRNG state)**
+- **Edits:** `packages/sim/src/sim.ts`, `packages/sim/src/core.ts`, `packages/sim/src/hooks.ts`, `packages/sim/src/modes.ts`, `packages/sim/src/save.ts`, `packages/sim/src/state.ts`, `packages/sim/src/tick.ts` (new), `packages/sim/test/world-tick.test.ts` (new), `packages/core/src/rng.ts`, `packages/core/src/definitions.ts` (`SystemPhase`, `SystemDefinition.order`, `SystemContext.tick`, module `background`), `packages/core/src/events.ts` (`world:tick`), `packages/core/src/save.ts` (optional `worldTick`), `packages/core/src/version.ts`, `packages/sdk`, `docs/architecture/simulation.md`, `docs/architecture/plugin-system.md`, `docs/guides/writing-a-mod.md`
+- **Shared contracts:** **SDK (system phase `world-tick`, `order`, `ctx.tick`, module `background`, event `world:tick`; `API_VERSION` patch bump), save (optional `worldTick` in format 5, vessel `backgroundAt`; no format bump)**
 
 ## Design notes
 
@@ -43,17 +44,19 @@ At warp 1e6 a 10 s chunk covers about 116 game days of the stock calendar: the l
 
 ## Steps
 
-1. Phase and event; boundary splitting with tests at warp 1 and 1e6.
-2. PRNG streams; determinism test with two systems registered in different orders.
-3. Background helper and a stock example (a battery charging from a solar panel while unloaded).
-4. Resume test across a tick.
+1. ADR 0171; phase, `order`, context and event; rails splitting and the flight-step rule; tests at warp 1 and 1e6.
+2. PRNG streams; determinism test with two systems registered in both orders.
+3. Background helper with a test-fixture module (a battery charged by a panel while on rails); draft 190 for a stock generator.
+4. Save fields and the resume test across a tick; benchmark.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: warping 100 game days from day 0 fires exactly 100 `world:tick` events with consecutive day numbers, each at the boundary time to 1e-6 s.
-- [ ] `packages/sim` test: adding a second world system does not change the first system's random draws.
-- [ ] `packages/sim` resume test: a save taken mid-day resumes and fires the next tick at the same time as the uninterrupted run.
-- [ ] Benchmark: 1 000 ticks with stock systems under 0.5 ms each on average (M5, journal).
+- [ ] `bun test packages/sim/test/world-tick.test.ts`: warping 100 game days from day 0 (warp 1e6, rails) fires exactly 100 `world:tick` events with days 1..100, each `time` within 1e-6 s of `day × 21 600`; at warp 1 in flight a tick fires within one 20 ms step of the boundary with the exact boundary `time`.
+- [ ] Same file: a world system's draws are the same with and without a second world system, registered before or after it.
+- [ ] Same file: world-tick systems run in `order`, then boot order, then id.
+- [ ] Same file: a save taken mid-day resumes and fires the next tick at the same `time` and day, with the same draws, as the uninterrupted run; a save without `worldTick` (format 5 from 077) loads and fires no duplicate tick.
+- [ ] Same file: a fixture battery on a vessel on rails charges by rate × elapsed time on ticks, on wake and before a save; its `updateOnRails` is not called; a module without `background` is unchanged.
+- [ ] Same file, `-t benchmark`: 1 000 ticks with stock loaded and 50 vessels on rails average under 0.5 ms each ¹ (M5, run by Agent 1; indicative here).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
@@ -66,3 +69,7 @@ At warp 1e6 a 10 s chunk covers about 116 game days of the stock calendar: the l
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0096).
+- 2026-10-17 — Refined and claimed by Agent 3. Day length is the root body's `rotationPeriod` until 081 supplies the calendar. The flight step is not split; its tick carries the exact boundary time. `background` replaces `updateOnRails` for the modules that declare it. The save gets an optional `worldTick` in format 5, with no format bump (ADR 0171). Stock has no electric-charge producer, so the background example is a test fixture, and a stock solar panel is draft 190.
+- 2026-10-17 — Deviations: `packages/sim/src/commands.ts` sets `backgroundAt` for a vessel loaded straight onto rails (not named in Touches; no contract change). The benchmark uses a root body with stock's mass and radius and a 10 s day (stock days would need 2.16 million rails chunks, about 255 s, for 1 000 ticks). Indicative here: 0.0565 ms per tick with 50 vessels.
+- 2026-10-17 — Handed over as `ready/082`; the handover text is the tag message.
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ c0d2be8 (clean). ¹ benchmark on the M5: `bun test packages/sim/test/world-tick.test.ts -t benchmark` — "0.0131 ms per tick on average" (three runs 0.0131 to 0.0149 ms, < 0.5 ms). `bun run test` 1364 pass, 0 fail · web vitest 99 files, 886 passed (the Bun-only suites pass with Node) · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed (2.5m). `API_VERSION` 0.1.29 is `main` + 1, no renumber.

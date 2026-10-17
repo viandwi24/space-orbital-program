@@ -9,6 +9,7 @@ import type { EventBus, EventMap } from './events.ts';
 import type { Vec3 } from './math.ts';
 import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
+import type { Rng } from './rng.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { World } from './world.ts';
 import type {
@@ -214,6 +215,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	update?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => void>;
 	/** Every step while on rails (e.g. resource generation). Must not use the physics backend. */
 	updateOnRails?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => void>;
+	/**
+	 * Closed form over `dt` seconds for a vessel that is not in flight (plan 082, ADR 0171): rate ×
+	 * elapsed time. Called on every world tick, when the vessel wakes into flight and before a save,
+	 * with the time since the last call. A module with `background` gets no `updateOnRails` calls.
+	 */
+	background?: Bivariant<(ctx: ModuleContext<Out, State>, dt: number) => void>;
 	/** Named operations callable from UI, staging and scripts. */
 	actions?: Record<
 		string,
@@ -251,7 +258,21 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	snapshot?: Bivariant<(state: State) => unknown>;
 }
 
-export type SystemPhase = 'pre-physics' | 'post-physics';
+/**
+ * `pre-physics` / `post-physics` run every step; `world-tick` once per game day at the day
+ * boundary (plan 082, ADR 0171).
+ */
+export type SystemPhase = 'pre-physics' | 'post-physics' | 'world-tick';
+
+/** What a `world-tick` system learns about the tick (`SystemContext.tick`). */
+export interface WorldTick {
+	/** The day being entered (epoch day plus whole days elapsed). */
+	readonly day: number;
+	/** Sim time of the day boundary, s (exact, also when a flight step ran past it). */
+	readonly time: number;
+	/** This system's own stream, from the world seed and the system id (ADR 0171 point 6). */
+	readonly rng: Rng;
+}
 
 /** Third argument of `SystemDefinition.update`: what a system may read besides the world. */
 export interface SystemContext {
@@ -259,6 +280,8 @@ export interface SystemContext {
 	readonly events: EventBus<EventMap>;
 	/** The world's rule values (plan 078, ADR 0111); a plain map read. */
 	readonly rules: RuleReader;
+	/** Set for `world-tick` systems only (plan 082). */
+	readonly tick?: WorldTick;
 }
 
 /** Read access to a world's rule values. */
@@ -270,5 +293,7 @@ export interface RuleReader {
 export interface SystemDefinition {
 	id: string;
 	phase: SystemPhase;
+	/** `world-tick` order: lower first (default 0), then plugin boot order, then id. */
+	order?: number;
 	update(world: World, dt: number, ctx: SystemContext): void;
 }
