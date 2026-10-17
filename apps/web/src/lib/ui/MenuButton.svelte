@@ -1,14 +1,18 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 
-	/** One entry of the main menu: a link when it has an `href`, else a button. */
+	/**
+	 * One entry of the main menu (plan 089, refs Home): a link when it has an `href`, else a button.
+	 * `primary` is the light Continue capsule, `row` a line of the glass menu (icon tile, title, hint,
+	 * a dot when hovered or focused), `compact` a small glass pill (Roadmap, Credits).
+	 */
 	let {
 		label,
 		hint,
 		icon,
 		href,
 		onclick,
-		primary = false,
+		variant = 'row',
 		disabled = false,
 		testid
 	}: {
@@ -17,86 +21,160 @@
 		icon: string;
 		href?: string;
 		onclick?: () => void;
-		primary?: boolean;
+		variant?: 'primary' | 'row' | 'compact';
 		disabled?: boolean;
 		testid?: string;
 	} = $props();
 </script>
 
+{#snippet body()}
+	{#if variant === 'row'}
+		<span class="tile"><Icon name={icon} size={16} /></span>
+	{:else}
+		<Icon name={icon} size={variant === 'primary' ? 20 : 16} />
+	{/if}
+	{#if variant === 'compact'}
+		<span class="label">{label}</span>
+	{:else}
+		<span class="text"
+			><span class="label">{label}</span>{#if hint}<span class="hint">{hint}</span>{/if}</span
+		>
+	{/if}
+	{#if variant === 'primary'}<span class="end"><Icon name="chevron" size={18} /></span>{/if}
+	{#if variant === 'row'}<span class="dot" aria-hidden="true"></span>{/if}
+{/snippet}
+
 {#if href && !disabled}
-	<a class="item" class:primary {href} data-testid={testid}>
-		<Icon name={icon} size={22} />
-		<span class="text"
-			><span class="label">{label}</span>{#if hint}<span class="hint">{hint}</span>{/if}</span
-		>
-	</a>
+	<a class="item {variant}" {href} data-testid={testid}>{@render body()}</a>
 {:else}
-	<button class="item" class:primary type="button" {disabled} {onclick} data-testid={testid}>
-		<Icon name={icon} size={22} />
-		<span class="text"
-			><span class="label">{label}</span>{#if hint}<span class="hint">{hint}</span>{/if}</span
-		>
-	</button>
+	<button class="item {variant}" type="button" {disabled} {onclick} data-testid={testid}
+		>{@render body()}</button
+	>
 {/if}
 
 <style>
 	.item {
 		display: flex;
 		align-items: center;
-		gap: var(--s-3);
 		width: 100%;
-		min-height: 52px;
-		padding: 0 var(--s-4);
 		box-sizing: border-box;
 		text-align: left;
 		text-decoration: none;
-		color: var(--text);
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
-		transition:
-			border-color var(--dur-fast) var(--ease),
-			background var(--dur-fast) var(--ease),
-			transform var(--dur-fast) var(--ease);
-	}
-	.item:hover:not(:disabled),
-	.item:focus-visible {
-		border-color: var(--c-accent);
-		background: rgb(92 207 255 / 0.12);
-		transform: translateX(3px);
+		font: inherit;
+		color: var(--text-primary);
+		border: 0;
+		cursor: pointer;
+		transition: background var(--dur-fast) var(--ease);
 	}
 	.item:disabled {
-		opacity: 0.55;
+		cursor: default;
+		opacity: 0.5;
 	}
-	.primary {
-		color: var(--c-ink);
-		background: var(--c-accent);
-		border-color: var(--c-accent);
-	}
-	.primary:hover:not(:disabled),
-	.primary:focus-visible {
-		background: #8be0ff;
-		border-color: #8be0ff;
+	.item:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 2px;
 	}
 	.text {
 		display: grid;
-		gap: 1px;
+		gap: 0.25rem;
 		min-width: 0;
 	}
 	.label {
-		font-size: var(--t-md);
+		line-height: 1;
 		font-weight: 600;
-		letter-spacing: 0.01em;
 	}
 	.hint {
-		font-size: var(--t-sm);
-		color: var(--text-dim);
+		font-size: var(--t-label);
+		line-height: 1.1;
+		color: var(--text-muted);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+
+	/* Continue: the light capsule, 56 px, radius 14 */
+	.primary {
+		gap: 0.875rem;
+		height: 3.5rem;
+		padding: 0 1rem;
+		border-radius: 0.875rem;
+		background: var(--selected-bg);
+		color: var(--selected-fg);
+	}
+	.primary .label {
+		font-size: var(--t-value);
+		font-weight: 700;
+	}
 	.primary .hint {
-		color: rgb(4 18 26 / 0.78);
+		color: var(--selected-muted);
+	}
+	.primary:hover:not(:disabled) {
+		background: var(--text-primary);
+	}
+	.primary:focus-visible {
+		outline-offset: 3px;
+	}
+	.end {
+		margin-left: auto;
+		display: flex;
+	}
+
+	/* A row of the glass menu: 52 px, icon tile 30, dot on the right when hovered */
+	.row {
+		gap: 0.75rem;
+		height: 3.25rem;
+		padding: 0 0.75rem 0 0.5rem;
+		border-radius: 0.6875rem;
+		background: transparent;
+	}
+	.row .label {
+		font-size: var(--t-button);
+	}
+	.tile {
+		display: flex;
+		flex: none;
+		align-items: center;
+		justify-content: center;
+		width: 1.875rem;
+		height: 1.875rem;
+		border-radius: 0.5625rem;
+		background: var(--surface-tile);
+		color: var(--text-secondary);
+	}
+	.dot {
+		flex: none;
+		width: 4px;
+		height: 4px;
+		margin-left: auto;
+		border-radius: 50%;
+		background: transparent;
+	}
+	.row:hover:not(:disabled),
+	.row:focus-visible {
+		background: var(--surface-tile);
+	}
+	.row:hover:not(:disabled) .dot,
+	.row:focus-visible .dot {
+		background: var(--text-primary);
+	}
+
+	/* Roadmap, Credits: a 40 px glass pill */
+	.compact {
+		justify-content: center;
+		gap: 0.5rem;
+		height: 2.5rem;
+		border-radius: 0.75rem;
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+		color: var(--text-secondary);
+	}
+	.compact .label {
+		font-size: var(--t-small);
+	}
+	.compact:hover:not(:disabled) {
+		background: var(--surface-hover);
+		color: var(--text-primary);
 	}
 </style>
