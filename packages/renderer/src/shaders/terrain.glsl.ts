@@ -8,6 +8,7 @@
  * heights with one fetch and shade with smooth normals.
  */
 import {
+	LAKE_SHAPE as LAKE,
 	MAP_WARP as W,
 	OCTAVE_ROTATION,
 	SITE_BLEND_WIDTH,
@@ -137,7 +138,10 @@ float heightAt(vec3 n) {
 	float ridge = ridgedT(q, ${f(S.ridgeWavelengthKm)}, ${S.ridgeOctaves}, 31);
 	float upland = smoothstep(${f(S.uplandLow)}, ${f(S.uplandHigh)}, e);
 	float mountains = ${f(S.mountainAmplitude)} * range * smoothstep(0.25, 0.8, ridge) * (0.7 + 0.3 * upland);
-	return land * site * (hills + mountains);
+	// lakes (plan 038): the relief is capped by a cone around the basins, zero on their floor (twin of terrainHeight)
+	float lakeLevel = noiseT(q, 1.0 / ${f(LAKE.wavelengthKm)}, ${LAKE.salt}) * smoothstep(${f(LAKE.siteFrom)}, ${f(LAKE.siteTo)}, arc);
+	float lakeCap = max(0.0, ${f(LAKE.slope)} * (${f(LAKE.to)} - lakeLevel) / ${LAKE.gradientBound.toExponential()});
+	return min(land * site * (hills + mountains), lakeCap);
 }
 
 

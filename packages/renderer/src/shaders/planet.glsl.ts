@@ -14,6 +14,7 @@ import {
 import {
 	BEACH_WIDTH,
 	HIGHLAND,
+	LAKE_SHAPE,
 	SEA_LEVEL,
 	TERRAIN_MAX_HEIGHT,
 	TERRAIN_MAX_SLOPE
@@ -39,7 +40,17 @@ import {
 	CLOUD_SUN_MU_MIN,
 	CLOUD_THICKNESS
 } from '../cloud-volume.ts';
-import { WAVES, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
+import { WAVES, WAVE_GRAVITY, WAVE_PERIOD, waveNumber, waveOmega } from '../water-model.ts';
+import { FLOW_CYCLE, FLOW_SPEED } from '../water-flow.ts';
+import {
+	BEACH_SLOPE,
+	BREAKER_INDEX,
+	LAKE_WAVE_SHARE,
+	SHORE_MIN_DISTANCE,
+	SHORE_PERIOD,
+	SHORE_WAVE_HEIGHT,
+	shoreOmega
+} from '../shore-wave.ts';
 import {
 	MARCH_BLOCK,
 	MARCH_NO_HIT,
@@ -65,6 +76,28 @@ const vec3 FLOOD_POS[${floodLightPositions().length}] = vec3[](${floodLightPosit
 const float FLOOD_I = ${f(FLOOD_LIGHT_INTENSITY)};
 const int APRON_N = ${APRONS.length};
 const vec4 APRON_BOX[${APRONS.length}] = vec4[](${APRONS.map((a) => `vec4(${f(a.x)}, ${f(a.z)}, ${f(a.hx)}, ${f(a.hz)})`).join(', ')});
+`;
+
+/** Lakes, river flow and shore waves (plan 038): constants from the tested twins in core and the renderer. */
+const waterConstants = (): string => /* glsl */ `
+const float LAKE_WL = ${f(LAKE_SHAPE.wavelengthKm)};
+const int LAKE_SALT = ${LAKE_SHAPE.salt};
+const float LAKE_TO = ${f(LAKE_SHAPE.to)};
+const float LAKE_SITE_FROM = ${f(LAKE_SHAPE.siteFrom)};
+const float LAKE_SITE_TO = ${f(LAKE_SHAPE.siteTo)};
+const float LAKE_GRAD = ${LAKE_SHAPE.gradientBound.toExponential()};
+const float LAKE_DEPTH = ${f(LAKE_SHAPE.depthMetres)};
+const float LAKE_RAMP = ${f(LAKE_SHAPE.depthRampMetres)};
+const float LAKE_WAVE_SHARE = ${f(LAKE_WAVE_SHARE)};
+const float FLOW_CYCLE = ${f(FLOW_CYCLE)};
+const float FLOW_SPEED = ${f(FLOW_SPEED)};
+const float SHORE_W = ${shoreOmega()};
+const float SHORE_PERIOD = ${f(SHORE_PERIOD)};
+const float SHORE_H = ${f(SHORE_WAVE_HEIGHT)};
+const float SHORE_SLOPE = ${BEACH_SLOPE};
+const float SHORE_XMIN = ${f(SHORE_MIN_DISTANCE)};
+const float SHORE_GS = ${WAVE_GRAVITY * BEACH_SLOPE};
+const float SHORE_BREAK = ${BREAKER_INDEX};
 `;
 
 const waveConstants = (): string => /* glsl */ `
@@ -342,6 +375,7 @@ export const planetFragment = /* glsl */ `
 ${atmosphereGLSL}
 ${siteConstants()}
 ${waveConstants()}
+${waterConstants()}
 
 varying vec2 vNdc;
 
@@ -688,6 +722,33 @@ vec3 waveGradient(vec3 p, vec3 n, float footprint, out float crest) {
 	return g - n * dot(g, n);
 }
 
+// Shore waves (plan 038, twin of shore-wave.ts): x is metres from the shoreline into the water.
+float swashOffsetG(float t, float H) {
+	float a = 0.12 * H / SHORE_SLOPE;
+	return a * (sin(SHORE_W * t) + 0.35 * sin(2.0 * SHORE_W * t + 1.1));
+}
+float surfPhaseG(float x, float t) {
+	return 2.0 * SHORE_W * sqrt(max(x, SHORE_XMIN) / SHORE_GS) + SHORE_W * t;
+}
+float surfFoamG(float x, float t, float H) {
+	float xb = H / (SHORE_BREAK * SHORE_SLOPE);
+	float c = 0.5 + 0.5 * cos(surfPhaseG(x - swashOffsetG(t, H) * 0.5, t));
+	float crest = c * c * c * c;
+	float breaking = 1.0 - smoothstep(xb * 0.9, xb * 1.6, x);
+	float reach = 1.0 - smoothstep(xb * 2.5, xb * 5.0, x);
+	return min(1.0, smoothstep(-2.0, 1.0, x) * (0.12 * crest * reach + breaking * (0.25 + 0.75 * crest)));
+}
+
+// Ripples of a river or lake surface at the position p (three scales, faded by the pixel footprint).
+float rippleAt(vec3 p, float f1, float f2, float f3) {
+	return f1 * noiseA(p, 8.0, 21) + 0.5 * f2 * noiseA(p, 2.0, 22) + 0.25 * f3 * noiseA(p, 0.5, 23);
+}
+
+// The river field whose level set is the river (plan 025), and its tangent-plane gradient by differences.
+float riverField(vec3 p) {
+	return noiseA(p, 1024.0, 41) * 0.62 + noiseA(p, 512.0, 42) * 0.3 + noiseA(p, 128.0, 43) * 0.08;
+}
+
 Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec3 gT) {
 	Surface s;
 	vec2 ll = warpedLatLon(nBF, uR); // the biome map is read through the coast warp (core MAP_WARP)
@@ -730,6 +791,39 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float sdCoast = (SEA - e2) / gPerM; // metres into the water (negative on land)
 	float depth = clamp((SEA - e2) / 0.18, 0.0, 1.0);
 	float depthNear = clamp(sdCoast / 60.0, 0.0, 1.0);
+
+	// Lakes (plan 038, ADR 0072): basins of the core terrain; the ground is flat water level where the level reaches LAKE_TO.
+	float lakeCos = dot(nBF, uSiteUp);
+	float lakeArc = acos(clamp(lakeCos, -1.0, 1.0)) * uR;
+	float lakeLvl = noiseT(nBF * (uR / 1000.0), 1.0 / LAKE_WL, LAKE_SALT) * smoothstep(LAKE_SITE_FROM, LAKE_SITE_TO, lakeArc);
+	float lakeGradPx = length(vec2(dFdx(lakeLvl), dFdy(lakeLvl)));
+	float lakeIn = -1.0e5; // metres inside a lake (negative on land)
+	float lakeOnly = 0.0;
+	float depthSea = depth;
+	if (footprint < 2500.0 && lakeLvl > LAKE_TO - 0.1) {
+		float gl = clamp(lakeGradPx / max(footprint, 0.05), 0.3 * LAKE_GRAD, 1.1 * LAKE_GRAD);
+		lakeIn = (lakeLvl - LAKE_TO) / gl;
+		// the shore is ragged inward only, so it never moves onto ground above the water
+		lakeIn -= 7.0 * noiseA(pl, 32.0, 77) * (1.0 - smoothstep(30.0, 160.0, footprint));
+		landW *= 1.0 - smoothstep(-footprint, footprint, lakeIn);
+		sdCoast = max(sdCoast, lakeIn);
+		depth = max(depth, 0.3 * clamp(lakeIn / LAKE_RAMP, 0.0, 1.0));
+		depthNear = clamp(sdCoast / 60.0, 0.0, 1.0);
+		lakeOnly = smoothstep(0.0, 6.0, lakeIn) * (1.0 - smoothstep(0.0, 0.05, depthSea));
+	}
+
+	// Shore waves (plan 038, ADR 0072): the waterline runs up and down the beach with the swell, and the surf lines are
+	// spaced in metres from the shore: the coast distance is divided by its own gradient (the fractal coast displacement
+	// makes it change 3 to 5 metres per metre), so the bands are parallel to the shoreline and as wide as the model says.
+	float sdGrad = length(vec2(dFdx(sdCoast), dFdy(sdCoast))) / max(footprint, 0.02);
+	float sdM = sdCoast / clamp(sdGrad, 1.0, 12.0);
+	float shoreH = SHORE_H * mix(1.0, LAKE_WAVE_SHARE, lakeOnly);
+	float swash = 0.0;
+	float nearShore = (1.0 - smoothstep(12.0, 50.0, footprint)) * (1.0 - smoothstep(14.0, 30.0, abs(sdM)));
+	if (nearShore > 0.0) {
+		swash = swashOffsetG(uTime, shoreH) * 0.5;
+		landW = mix(landW, 1.0 - smoothstep(-footprint, footprint, sdM + swash), nearShore);
+	}
 
 	vec3 vS = uCamToSite + viewBF;
 	float siteDist = length(vS);
@@ -838,15 +932,17 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float wSnow = max(smoothstep(0.22, 0.12, temp), smoothstep(0.9, 0.97, e2));
 	wSnow = max(wSnow, smoothstep(snowLine - 150.0, snowLine + 250.0, hT) * (1.0 - smoothstep(0.55, 0.95, tanS)));
 	float wBeach = (1.0 - smoothstep(SEA + BEACH * 0.5, SEA + BEACH * 1.6, e2)) * (1.0 - wRock) * (1.0 - smoothstep(300.0, 3000.0, footprint));
+	if (lakeIn > -60.0 && lakeIn <= 0.0) wBeach = max(wBeach, (1.0 - smoothstep(1.0, 22.0, -lakeIn)) * (1.0 - wRock) * (1.0 - smoothstep(300.0, 3000.0, footprint)));
 
 	vec3 land = mix(veg, rockc, wRock);
 	land = mix(land, sand, wBeach);
 	land = mix(land, snow, wSnow * smoothstep(0.0, 1.0, 1.0 - slope * 2.0));
 	// wet sand strip along the shore
-	land *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, -sdCoast)) * (1.0 - wRock);
+	land *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, -(sdM + swash))) * (1.0 - wRock);
 
 	// rivers: thin level-set curves of a low-frequency field on lowland, antialiased by distance
 	float riverMask = 0.0;
+	vec3 riverFlow3 = vec3(0.0); // unit-or-less flow of the river at this point, body-fixed tangent (plan 038)
 	if (landW > 0.5 && siteDist > 900.0 && footprint < 40.0 && e2 < 0.68 && wDesert < 0.5) {
 		float rn = noiseA(pl, 1024.0, 41) * 0.62 + noiseA(pl, 512.0, 42) * 0.3 + noiseA(pl, 128.0, 43) * 0.08;
 		float rr = abs(rn - 0.5);
@@ -857,6 +953,30 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		riverMask = (1.0 - smoothstep(W - footprint, W + footprint, dist)) * vis;
 		float bank = (1.0 - smoothstep(W, W * 2.2 + footprint, dist)) * vis;
 		land = mix(land, land * vec3(0.55, 0.7, 0.5), bank * 0.7);
+		if (riverMask > 0.02) {
+			// flow along the level set, signed toward lower ground (twin: flowVector in water-flow.ts)
+			vec3 T1b = normalize(cross(nBF, abs(nBF.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+			vec3 T2b = cross(nBF, T1b);
+			float eps = 14.0;
+			float r1 = riverField(pl + T1b * eps);
+			float r2 = riverField(pl + T2b * eps);
+			vec3 gR = ((r1 - rn) * T1b + (r2 - rn) * T2b) / eps;
+			vec3 tang = cross(nBF, gR);
+			float tl = length(tang);
+			// elevation gradient of the biome map, smoothed over a few texels so the flow does not flip at texel borders
+			float lod2 = max(lod, 2.0);
+			float tw2 = uMapTexel / (2.0 * kPI * uR) * exp2(lod2);
+			float ex2 = textureLod(uMap, uv + vec2(tw2, 0.0), lod2).r - textureLod(uMap, uv - vec2(tw2, 0.0), lod2).r;
+			float ey2 = textureLod(uMap, uv + vec2(0.0, 2.0 * tw2), lod2).r - textureLod(uMap, uv - vec2(0.0, 2.0 * tw2), lod2).r;
+			float texel2 = uMapTexel * exp2(lod2);
+			vec3 eastV = normalize(cross(vec3(0.0, 1.0, 0.0), nBF));
+			vec3 northV = cross(nBF, eastV);
+			vec3 gE = eastV * (ex2 / (2.0 * texel2 * max(cos(ll.x), 0.2))) + northV * (ey2 / (2.0 * texel2));
+			float downhill = -dot(tang, gE) / max(tl, 1e-9);
+			float el = length(gE);
+			float along = downhill / sqrt(downhill * downhill + 0.1225 * el * el + 1e-30);
+			riverFlow3 = tang / max(tl, 1e-9) * along;
+		}
 	}
 
 	// Launch site: paved areas painted onto the ground (flush, so nothing intersects the vessel).
@@ -893,18 +1013,25 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	vec3 shallow = mix(vec3(0.03, 0.26, 0.24), vec3(0.02, 0.2, 0.2), depthNear);
 	vec3 deep = vec3(0.004, 0.035, 0.1);
 	vec3 water = mix(shallow, deep, smoothstep(0.0, 0.7, max(depth, depthNear * 0.25)));
+	// lake water is greener and murkier than the sea and darkens toward the middle
+	water = mix(water, mix(vec3(0.045, 0.17, 0.15), vec3(0.012, 0.075, 0.085), smoothstep(0.0, 90.0, lakeIn)), lakeOnly);
 	// breaking foam along the shore, only where a pixel is smaller than the band
 	float foamFade = 1.0 - smoothstep(4.0, 40.0, footprint);
 	if (foamFade > 0.01 && landW < 0.999) {
 		float fn = noiseA(pl, 4.0, 71) * 0.6 + noiseA(pl, 1.0, 72) * 0.4;
 		float band = 1.0 - smoothstep(1.0, 9.0, sdCoast + (fn - 0.5) * 10.0);
-		float lines = smoothstep(0.42, 0.62, fn);
-		water = mix(water, vec3(0.8, 0.84, 0.86), clamp(band * (0.35 + 0.65 * lines), 0.0, 1.0) * foamFade * step(0.0, sdCoast + 1.0));
+		float lines = smoothstep(0.34, 0.6, fn);
+		float surf = surfFoamG(sdM + swash + (fn - 0.5) * 3.0, uTime, shoreH);
+		float foam = clamp(max(surf * (0.55 + 0.45 * lines), band * (0.15 + 0.2 * lines)), 0.0, 1.0);
+		water = mix(water, vec3(0.8, 0.84, 0.86), foam * foamFade * step(0.0, sdM + 1.0 + swash));
 	}
 	float crest = 0.0;
 	vec3 gWave = vec3(0.0);
 	if (landW < 0.999 && footprint < 120.0) {
 		gWave = waveGradient(pl, nBF, footprint, crest);
+		float calm = 1.0 - 0.8 * lakeOnly; // a lake has no swell
+		gWave *= calm;
+		crest *= calm;
 		float capFade = 1.0 - smoothstep(6.0, 40.0, footprint);
 		float cap = smoothstep(0.85, 1.35, crest / 2.4 + (noiseA(pl, 1.5, 73) - 0.5) * 0.55 + length(gWave) * 0.8);
 		water = mix(water * (1.0 + 0.08 * crest), vec3(0.8, 0.85, 0.87), cap * capFade * smoothstep(0.1, 0.5, depth + depthNear));
@@ -914,12 +1041,24 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float lw = landW * (1.0 - riverMask);
 	vec3 col = mix(water, land, lw);
 	vec3 Nw = Nb;
+	float wRip = 0.5;
 	if (lw < 1.0 && footprint < 400.0) {
 		vec3 wp = pl + vec3(0.0);
 		float f1 = clamp(8.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
 		float f2 = clamp(2.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
 		float f3 = clamp(0.5 / (footprint * 1.6) - 1.0, 0.0, 1.0);
-		float w = f1 * noiseA(wp, 8.0, 21) + 0.5 * f2 * noiseA(wp, 2.0, 22) + 0.25 * f3 * noiseA(wp, 0.5, 23);
+		float w;
+		if (riverMask > 0.02 && dot(riverFlow3, riverFlow3) > 0.0004) {
+			// two phases half a cycle apart, each invisible at its own reset (water-flow.ts)
+			float pa = fract(uTime / FLOW_CYCLE);
+			float pb = fract(uTime / FLOW_CYCLE + 0.5);
+			float sh = FLOW_SPEED * FLOW_CYCLE;
+			w = (1.0 - abs(1.0 - 2.0 * pa)) * rippleAt(wp - riverFlow3 * (sh * pa), f1, f2, f3)
+				+ (1.0 - abs(1.0 - 2.0 * pb)) * rippleAt(wp - riverFlow3 * (sh * pb), f1, f2, f3);
+		} else {
+			w = rippleAt(wp, f1, f2, f3);
+		}
+		wRip = w;
 		float wdx = dFdx(w), wdy = dFdy(w);
 		vec3 rw1 = cross(dpdy, nBF), rw2 = cross(nBF, dpdx);
 		float dw = dot(dpdx, rw1);
@@ -928,6 +1067,8 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		Nw = normalize(Nw + (normalize(nBF - gWave) - nBF));
 	}
 	s.normal = normalize(mix(Nw, Nb, lw));
+	// the ripples of a river pass over its dark surface (moving brightness along the flow)
+	col *= 1.0 + riverMask * (1.0 - lw) * 1.6 * (wRip - 0.4);
 	s.albedo = col;
 	s.spec = (1.0 - landW) + riverMask * 0.3;
 	s.waterDepth = depth;
