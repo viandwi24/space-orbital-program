@@ -11,7 +11,7 @@
 | `packages/core/src/data.ts` (new) | `DataItem`, `NewDataItem`, `DataKindDefinition`, schemas, `dataValueFactor`, `dataValueAt`, `DataStorage`, `DataStorageState` |
 | `packages/core` | registry `dataKinds` (kind `data-kind`), `ctx.dataKinds`, `ModuleDefinition.dataStorage`, `VesselApi.data`, events `data:stored` / `data:dropped`, commands `move-data` / `delete-data`, `VesselSnapshot.data`; `API_VERSION` 0.1.30 |
 | `packages/sim/src/data.ts` (new) | `storagesOf`, `dataUse`, `storeData`, `moveData`, `deleteData`; wired into `hooks.ts` (`ctx.vessel.data`), `commands.ts`, `snapshot.ts` |
-| `mods/stock` | five data kinds, `stock.data-storage`, part `stock.data-drive` (64 Mbit, catalogue category `control`) |
+| `mods/stock` | five data kinds, `stock.data-storage`, part `stock.data-drive` (64 Mbit, 0.4 m; catalogue "Other", as stock places no part explicitly) |
 | tests | `packages/sim/test/data.test.ts` (5), `packages/core/test/data.test.ts` (2), stock boot test ids and kinds |
 | docs | ADR 0172, `simulation.md` "Data items", `plugin-system.md`, guide section "Data items" |
 
@@ -24,6 +24,7 @@
 
 ## What surprised me
 
+- The `tank` generator is at least 0.36 m tall: a 0.2 m drive failed the renderer's "model fits its physics cylinder" test, so the drive is 0.4 m. Stock also places no part in the catalogue explicitly (a web test checks it), so the drive has no `catalog` entry and lands in "Other".
 - `definePart` with module ids as strings needs the `ModuleMap` augmentation for type checking. The sim test registers its fixture parts as plain data instead.
 
 ## Follow-ups

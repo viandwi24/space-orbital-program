@@ -82,15 +82,14 @@ export const PartDataDrive = definePart({
 	mass: kg(20),
 	impactTolerance: 8,
 	maxTemperature: 1000,
-	shape: cylinder(0.2),
+	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',
 		palette: { primary: '#2a2e35', secondary: '#d5d8dc', accent: '#2f8fa3' },
 		params: { stripe: 0.5, bands: 1 }
 	},
-	attach: stackNodes(0.2),
-	modules: [[ModuleDataStorage, { capacity: 64 * 1024 * 1024 }]],
-	catalog: { category: 'control' }
+	attach: stackNodes(0.4),
+	modules: [[ModuleDataStorage, { capacity: 64 * 1024 * 1024 }]]
 });
 
 export const PartTankSmall = definePart({
