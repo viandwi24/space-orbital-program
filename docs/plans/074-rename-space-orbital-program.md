@@ -1,7 +1,7 @@
 ---
 id: 074
 title: "Rename the product to Space Orbital Program"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: []
 phase: 4

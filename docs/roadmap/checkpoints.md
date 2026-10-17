@@ -12,7 +12,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f1-086-tokens` | 086 | A2 | A1, A2 (069, 087, 088, 089, 091, 093, 113) | done | a9999b3 | 2026-10-17 |
 | `cp/f1-079-patch` | 079 | A3 | A1, A2 (065, 090) | done | 18e4b9e | 2026-10-17 |
 | `cp/f1-077-world` | 077 | A1 | A1, A2, A3 (078, 080, 081, 082, 083, 084, 087, 131) | done | 9531685 | 2026-10-17 |
-| `cp/f1-074-rename` | 074 | A2 | A2 (089) | pending | | |
+| `cp/f1-074-rename` | 074 | A2 | A2 (089) | done | 3eabc11 | 2026-10-17 |
 | `cp/f1-075-licence` | 075 | A3 | A2 (089) | done | 01b64d7 | 2026-10-17 |
 | `cp/f1-081-calendar` | 081 | A2 | A1, A2 (087, 088, 113, 122) | pending | | |
 | `cp/f1-082-tick` | 082 | A3 | A1, A2, A3 (095, 098, 102, 106, 114, 126, 128) | pending | | |

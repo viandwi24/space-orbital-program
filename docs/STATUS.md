@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 075, 077, 078 and 079 done (`cp/f1-075-licence`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079 and 086 done (`cp/f1-074-rename`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -82,7 +82,7 @@
 | 072 | [Script editor: the human pass and the panel on small screens](plans/072-script-panel-human-pass-and-small-screens.md) | draft | — | from 058; realigned 2026-10-17 (ADR 0102): the human pass after the script panel moves into the dock (112) |
 | 073 | [A compact flight HUD and VAB for phones](plans/073-compact-phone-hud-and-portrait-vab.md) | draft | — | from 055; realigned 2026-10-17 (ADR 0107, 0091): phones stay unsupported; any compact HUD uses the refs components |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041; realigned 2026-10-17 (ADR 0097, 0102): the runway is a Runway building at a site, flaps and gear are part actions; wheels, trim, read-outs, plane controls |
-| 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0105: player-facing name only; identifiers stay `orbital` |
+| 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | done | Agent 2 (Dev B, M2) | ADR 0105: player-facing name only; identifiers stay `orbital` |
 | 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | done | Agent 3 | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
 | 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
 | 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | done | Agent 1 | ADR 0110: `WorldInfo` beside the ECS world, `SimSave` 5 with the Legacy world migration, envelope 2 `worldId`, `WorldStore`, client migration; save +179 bytes |
@@ -168,6 +168,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).
 - **Flight-view frame intervals over budget on the M5** (Agent 1, measured for 086's blur check, journal 086): on the pad, whole-page rAF intervals of 28 ms on `high` and 34 ms on `medium` at 961 × 930, DPR 2 (ADR 0053: 16.7 and 13.3 ms), and `medium` slower than `high`. Not caused by the glass (≤ 0.4 ms). Needs a renderer pass with `renderer.benchmark` and a Chrome trace to split WebGL, HUD, Worker and compositing.
 - **Root `bun test` collects `apps/web` vitest files** and fails them under Bun (`$state`, zod named imports); the checks are `bun run test` plus the web vitest. Candidate fix: a root `bunfig.toml` test root or a `bun test` guard script.
 - **Credits and new fonts** (Agent 3, plan 075 handover): plan 086 adds Manrope; its OFL copyright line must go into `apps/web/src/lib/public/credits.ts` (`credits.test.ts` enforces it).
@@ -195,6 +196,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [074 — Rename the product to Space Orbital Program](journal/074-rename-space-orbital-program.md)
 - [086 — UI stage 1: refs tokens, Manrope and the accessibility floor](journal/086-ui-stage-1-tokens-fonts-accessibility.md)
 - [075 — Apache-2.0: package metadata, credits and the mod manifest licence field](journal/075-apache-2-licence-adoption.md)
 - [078 — World rules, presets and the rule changelog](journal/078-world-rules-presets-and-changelog.md)
