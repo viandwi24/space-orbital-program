@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 041, 051, 054 to 060. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 041, 051, 055 to 062. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -65,7 +65,9 @@
 | 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | done | audio session (Claude, 2026-10-17) | ADRs 0061 (binding table of 49 actions, settings format 2), 0062 (code-only Web Audio: engine and rumble by throttle and pressure, wind, thunk, ticks, warnings; locked until a gesture, suspended on a hidden tab), 0063 (tablets in landscape yes with touch controls, phones a notice); manual rebind in flight, analyser levels and 0.005 ms per frame measured, touch e2e in Chromium; **listening is the human's** (journal 053 checklist); phones and real devices in draft 055 |
 | 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | draft | — | from 053: compact phone HUD, real iPad/Android runs, mobile audio interruptions |
 | 056 | [Baked cloud-shadow map and sharper edges at the half-resolution rung](plans/056-cloud-shadow-map-and-half-res-edges.md) | draft | — | from 050: `medium` cloud shadows by a baked map, 2 x 2 steps at cloud edges and ridges |
-| 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | draft | — | from 037: crepuscular rays through the cumulus slab, ozone layer at the golden hour, aurora |
+| 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | done | sky session (Claude, 2026-10-17) | ADRs 0069 (ozone layer: Bruneton/Hillaire coefficients scaled for the 600 km body, a third channel in the sun-depth table: twilight olive green to violet), 0070 (shafts: a second march of 4 / 8 samples reading a baked cloud-coverage map; per-sample noise cost +5.8 ms and was replaced); `high` worst 14.27 ms, `medium` 12.26 ms sync on the M5; shafts are modest with the 0.42 cumulus cover; aurora in draft 061, ridge shafts in 062; M1/M2/Intel not available |
+| 061 | [Aurora curtains](plans/061-aurora-curtains.md) | draft | — | from 054: night-side aurora at high latitude |
+| 062 | [Terrain shafts and shared cloud-shadow map](plans/062-terrain-shadow-shafts.md) | draft | — | from 054: ridge-cast shafts, the baked coverage map for `medium`'s ground cloud shadows |
 | 057 | [Target markers and rendezvous aids](plans/057-target-markers-and-rendezvous-aids.md) | draft | — | from 035: navball and map target markers, closest approach across spheres, node helpers |
 | 058 | [Script editor follow-ups](plans/058-script-editor-follow-ups.md) | draft | — | from 036: a screen-reader and keyboard-only check by a person, Firefox/WebKit key runs, replace, deeper suggestions, a parse for the check |
 | 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | draft | — | from 052: a second planet with `terrain: hills` is drawn as hills, not a sphere |
@@ -101,6 +103,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [054 — Light shafts and an ozone sky](journal/054-light-shafts-and-ozone-sky.md)
 - [052 — Moon terrain shadows, stones, terrain kind](journal/052-moon-terrain-shadows-stones-and-terrain-kind.md)
 - [050 — Half-resolution planet pass](journal/050-half-resolution-planet-pass.md)
 - [053 — Remappable keys, audio and small screens](journal/053-remappable-keys-audio-and-small-screens.md)

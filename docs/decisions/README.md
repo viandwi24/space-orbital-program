@@ -86,3 +86,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0066 | [The script editor stays a textarea; its keyboard behaviour is our own code](0066-script-editor-without-a-library.md) | accepted | 2026-10-17 |
 | 0067 | [The ground of a body is data on the body: a terrain kind and a seed](0067-terrain-kind-per-body.md) | accepted | 2026-10-17 |
 | 0068 | [Terrain-cast shadows and stones as instanced geometry on an airless body](0068-terrain-shadows-and-stones-on-the-moon.md) | accepted | 2026-10-17 |
+| 0069 | [An ozone absorption layer in the atmosphere model, the sun-depth table and the shaders](0069-ozone-layer-in-the-atmosphere-model.md) | accepted | 2026-10-17 |
+| 0070 | [Light shafts: a second march that reads a baked cloud-coverage map](0070-light-shafts-from-baked-cloud-coverage.md) | accepted | 2026-10-17 |
