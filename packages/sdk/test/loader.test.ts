@@ -256,7 +256,8 @@ describe('registration and report', () => {
 			'crew-names': [],
 			'site-template': [],
 			antenna: [],
-			'ground-station': []
+			'ground-station': [],
+			category: []
 		});
 	});
 

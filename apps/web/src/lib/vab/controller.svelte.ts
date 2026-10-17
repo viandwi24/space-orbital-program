@@ -16,6 +16,7 @@ import {
 import { VabView, type VabMarker } from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
+import { categoriesOf } from '../editor/categories';
 import { modelProviders } from '../mods/asset-models';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
 import { initialGraphicsPreset } from '../graphics';
@@ -109,6 +110,8 @@ export class VabController {
 	readonly lookup = partLookup(this.catalog);
 	readonly editorContent = { parts: this.lookup, modules: this.content.modules };
 	readonly parts = this.catalog.parts;
+	/** The catalogue rail, in order (plan 069). */
+	readonly categories = categoriesOf(this.loaded.categories);
 	readonly body = this.catalog.bodies[0]!;
 	readonly gravity = bodyMu(this.body) / (this.body.radius * this.body.radius);
 	/** What the loaded bodies offer as a trip (plan 034): mod bodies are in the list without any code. */

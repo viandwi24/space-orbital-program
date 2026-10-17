@@ -141,6 +141,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0143 | [Worlds in the web client: the record carries a new world's info, one active world, slots per world, catch-up only on a real calendar](0143-worlds-screen-active-world-record-world-info-and-catch-up.md) | accepted | 2026-10-17 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
+| 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
 | 0170 | [`definePatch`: targets, paths, operations, order and failure](0170-patch-paths-ops-and-order.md) | accepted | 2026-10-17 |
 | 0171 | [World tick: day length, timing in flight and on rails, order, streams, background and save fields](0171-world-tick-day-length-timing-and-save-fields.md) | accepted | 2026-10-17 |
 | 0172 | [Data items: shape, ids, value curve, and where storage lives](0172-data-items-shape-ids-value-curve-and-storage.md) | accepted | 2026-10-17 |

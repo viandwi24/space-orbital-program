@@ -2,10 +2,10 @@
 	import type { PartDefinition } from '@orbital/core';
 	import Icon from '../ui/Icon.svelte';
 	import {
-		CATEGORIES,
 		categoryOf,
 		sortParts,
 		matchesQuery,
+		type Category,
 		type CategoryId,
 		type ModuleLookup
 	} from '../editor/categories';
@@ -19,6 +19,7 @@
 		armed,
 		facts,
 		modules,
+		categories,
 		onarm,
 		assemblies = [],
 		armedAssembly = null,
@@ -32,6 +33,8 @@
 		facts: (def: PartDefinition) => PartFact[];
 		/** Module registry the categories are read through (descriptors, ADR 0033). */
 		modules: ModuleLookup;
+		/** The rail's categories in order (plan 069, ADR 0146). */
+		categories: readonly Category[];
 		onarm: (id: string) => void;
 		/** Saved sub-assemblies (ADR 0041), valid and damaged. */
 		assemblies?: readonly LibraryEntry[];
@@ -46,11 +49,13 @@
 	let search: HTMLInputElement;
 
 	const tabs = $derived([
-		{ id: 'all' as const, label: 'All parts', icon: 'part', count: parts.length },
-		...CATEGORIES.map((c) => ({
-			...c,
-			count: parts.filter((p) => categoryOf(p, modules) === c.id).length
-		})).filter((c) => c.count > 0),
+		{ id: 'all' as const, label: 'All parts', icon: 'part' as Category['icon'], count: parts.length },
+		...categories
+			.map((c) => ({
+				...c,
+				count: parts.filter((p) => categoryOf(p, modules, categories) === c.id).length
+			}))
+			.filter((c) => c.count > 0),
 		{
 			id: 'assemblies' as const,
 			label: 'Sub-assemblies',
@@ -67,7 +72,7 @@
 		sortParts(parts).filter(
 			(p) =>
 				category !== 'assemblies' &&
-				(category === 'all' || categoryOf(p, modules) === category) &&
+				(category === 'all' || categoryOf(p, modules, categories) === category) &&
 				matchesQuery(p, query)
 		)
 	);
@@ -147,7 +152,11 @@
 				onclick={() => (category = t.id)}
 				onkeydown={(e) => tabKey(e, i)}
 			>
-				<Icon name={t.icon} size={20} />
+				<Icon
+					name={typeof t.icon === 'string' ? t.icon : undefined}
+					path={typeof t.icon === 'string' ? undefined : t.icon.path}
+					size={20}
+				/>
 				<span class="sr-only">{t.label}</span>
 			</button>
 		{/each}

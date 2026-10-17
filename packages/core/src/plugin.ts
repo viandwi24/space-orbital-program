@@ -3,6 +3,7 @@
  * `Plugin` values with full type inference; this file is what actually validates, orders and boots
  * them, so it only needs the erased shapes.
  */
+import type { CategoryDefinition } from './categories.ts';
 import * as z from 'zod';
 import { API_VERSION } from './version.ts';
 import type {
@@ -102,6 +103,8 @@ export interface BasePluginContext {
 	/** Comms (plan 114, ADR 0179). */
 	readonly antennas: Registrar<AntennaDefinition>;
 	readonly groundStations: Registrar<GroundStationDefinition>;
+	/** Catalogue categories (plan 069, ADR 0146). */
+	readonly categories: Registrar<CategoryDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -148,6 +151,7 @@ export const REGISTRY_KINDS = [
 	'experiment',
 	'antenna',
 	'ground-station',
+	'category',
 	'objective',
 	'contract',
 	'mission',
@@ -206,6 +210,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'experiments',
 	'antennas',
 	'groundStations',
+	'categories',
 	'crewTraits',
 	'crewNames',
 	'patches',
@@ -393,6 +398,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			experiments: registrar(registries.experiments),
 			antennas: registrar(registries.antennas),
 			groundStations: registrar(registries.groundStations),
+			categories: registrar(registries.categories),
 			crewTraits: registrar(registries.crewTraits),
 			crewNames: registrar(registries.crewNames),
 			patches: {
@@ -464,7 +470,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			part: registries.parts,
 			resource: registries.resources,
 			body: registries.bodies,
-			building: registries.buildings
+			building: registries.buildings,
+			category: registries.categories
 		},
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
@@ -558,6 +565,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				experiment: section(registries.experiments),
 				antenna: section(registries.antennas),
 				'ground-station': section(registries.groundStations),
+				category: section(registries.categories),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
 				mission: section(registries.missions),

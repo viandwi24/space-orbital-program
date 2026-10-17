@@ -10,6 +10,7 @@ import type {
 	SituationDefinition,
 	AntennaDefinition,
 	GroundStationDefinition,
+	CategoryDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
 	AnyPatchDefinition,
@@ -288,3 +289,14 @@ export const defineAntenna = (def: AntennaDefinition): AntennaDefinition => def;
 
 /** A fixed ground station on a body (every world site is one already). Register with `ctx.groundStations`. */
 export const defineGroundStation = (def: GroundStationDefinition): GroundStationDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineCategory
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A group of the editor's part catalogue (plan 069, ADR 0146): id, label, an icon (a name from the
+ * game's icon set, or `{ path }` SVG path data on the 24 x 24 grid) and an order (stock uses 100 to
+ * 800, Other 10 000). Register with `ctx.categories`; a part joins it with `catalog.category`.
+ */
+export const defineCategory = (def: CategoryDefinition): CategoryDefinition => def;
