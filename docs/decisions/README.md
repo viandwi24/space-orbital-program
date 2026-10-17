@@ -111,3 +111,18 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0091 | [Phones stay unsupported in v1.x; the tablet layout is fixed and the notice says what to do](0091-phones-stay-unsupported-tablet-layout-fixed.md) | accepted | 2026-10-17 |
 | 0092 | [Stones are colliders: one lattice in core, spheres in a second kinematic body](0092-stones-are-colliders-from-one-core-lattice.md) | accepted | 2026-10-17 |
 | 0093 | [Aurora curtains: a few steps through an emission shell, a compile-time variant of the planet pass](0093-aurora-curtains-as-a-compile-time-march-variant.md) | accepted | 2026-10-17 |
+| 0094 | [Worlds are saves; modes are presets over per-world rules; offline-first and generic](0094-worlds-are-saves-modes-are-presets-over-rules.md) | accepted | 2026-10-17 |
+| 0095 | [Gravity model per world: patched conics now, n-body "Coming soon", one trajectory provider](0095-gravity-model-per-world-and-a-trajectory-provider.md) | accepted | 2026-10-17 |
+| 0096 | [A world tick, background operations, and a living world of AI agencies](0096-world-tick-background-operations-and-a-living-world.md) | accepted | 2026-10-17 |
+| 0097 | [Sites: the Space Center is the first site, built in 3D on a free grid; site choice, bases and range safety](0097-sites-space-center-in-3d-free-grid-bases-and-range-safety.md) | accepted | 2026-10-17 |
+| 0098 | [Progression: a full resource economy, capacity-only gates, contracts and missions on one evaluator, strategies, milestones and achievements](0098-progression-economy-career-and-milestones.md) | accepted | 2026-10-17 |
+| 0099 | [Science: an experiment matrix, data and samples, body dossiers, a tech tree; classic points by default, discovery optional](0099-science-matrix-data-samples-dossiers-and-tech-tree.md) | accepted | 2026-10-17 |
+| 0100 | [Crew: a full simulation, every aspect a world rule, Sandbox as free as possible](0100-crew-a-full-simulation-every-aspect-a-world-rule.md) | accepted | 2026-10-17 |
+| 0101 | [Communications: one physical model in six tiers, signal delay off by default](0101-communications-one-model-six-tiers-delay-off-by-default.md) | accepted | 2026-10-17 |
+| 0102 | [Vessel control and HUD: part actions and group control, dock panels by `definePanel`, one Mission Center](0102-vessel-panel-part-actions-dock-panels-and-the-mission-center.md) | accepted | 2026-10-17 |
+| 0103 | [Time and the sky: a world epoch and calendar, the Sun as root with tilt and seasons, a real solar system pack at 1:1 and rescaled](0103-time-calendar-sun-and-the-real-solar-system.md) | accepted | 2026-10-17 |
+| 0104 | [Every new system ships its `define*` point and stock uses it; typed data patches with `definePatch`](0104-every-system-ships-a-define-point-and-typed-patches.md) | accepted | 2026-10-17 |
+| 0105 | [Product name: Space Orbital Program](0105-product-name-space-orbital-program.md) | accepted | 2026-10-17 |
+| 0106 | [Licence: Apache-2.0](0106-licence-apache-2-0.md) | accepted | 2026-10-17 |
+| 0107 | [The interface adopts the refs visual language in full, screen by screen](0107-ui-adopts-the-refs-visual-language-in-stages.md) | accepted | 2026-10-17 |
+| 0108 | [After v1: announce the big roadmap, with guardrails; no Universe mode](0108-release-scope-announce-the-big-roadmap-no-universe-mode.md) | accepted | 2026-10-17 |

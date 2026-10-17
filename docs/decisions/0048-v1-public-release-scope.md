@@ -1,6 +1,6 @@
 # 0048 — v1 public release scope
 
-**Status:** accepted
+**Status:** accepted (the post-v1 roadmap list is superseded by [0108](0108-release-scope-announce-the-big-roadmap-no-universe-mode.md); the v1 must-ship scope stands)
 **Date:** 2026-10-17
 **Plan:** plans/023-release-readiness.md
 

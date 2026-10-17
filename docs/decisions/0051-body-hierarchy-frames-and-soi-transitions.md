@@ -1,6 +1,6 @@
 # 0051 — Body hierarchy, frames and SOI transitions
 
-**Status:** accepted
+**Status:** accepted (amended by [0095](0095-gravity-model-per-world-and-a-trajectory-provider.md): predictions go through a trajectory provider; and by [0103](0103-time-calendar-sun-and-the-real-solar-system.md): the root is a star and a body may follow a path that is not a fixed conic; the transition rule stands)
 **Date:** 2026-10-17
 **Plan:** plans/044-moon-and-soi-transitions.md
 **Builds on:** ADR 0007 (units and frames), 0017 (flight frames), 0024 (surface rails), 0043 (terrain), 0050 (save format). Research: `research/soi-and-moon.md`.

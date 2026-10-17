@@ -1,6 +1,6 @@
 # 0043 — Physical terrain: one height function in core, read by the sim and the renderer
 
-**Status:** accepted
+**Status:** accepted (the terrain built around one launch site is amended by [0097](0097-sites-space-center-in-3d-free-grid-bases-and-range-safety.md): a seed per world and a list of flat zones; one height function in core stands)
 **Date:** 2026-10-17
 **Plan:** plans/031-physical-terrain-and-sky-volumes.md
 **Supersedes in part:** [0036](0036-visual-terrain-heights-baked-and-ray-marched.md) points 1 and 3 (heights are visual only; the camera bubble); [0019](0019-ground-tile-and-impact-damage.md) (the tile's top face is the tangent plane of the reference sphere); the "no terrain" notes of [0024](0024-surface-rails-for-controlled-vessels-at-rest.md).

@@ -1,6 +1,6 @@
 # 0079 — Plasma blackout is a display of the heating flux; there is still no communications system
 
-**Status:** accepted
+**Status:** accepted (the "no communications system" part is amended by [0101](0101-communications-one-model-six-tiers-delay-off-by-default.md): with comms tier 1 the blackout drops the link; the display stands)
 **Date:** 2026-10-17
 **Plan:** plans/040-effects-and-assets-3.md
 

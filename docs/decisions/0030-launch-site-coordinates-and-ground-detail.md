@@ -1,6 +1,6 @@
 # 0030 — Launch-site coordinates are body-fixed; ground detail without terrain geometry
 
-**Status:** accepted
+**Status:** accepted (the one launch site at body-fixed (0, 0) becomes the Legacy world's first site under [0097](0097-sites-space-center-in-3d-free-grid-bases-and-range-safety.md); body-fixed site coordinates stand)
 **Date:** 2026-10-16
 **Plan:** plans/025-environment-follow-ups.md
 

@@ -1,6 +1,6 @@
 # 0007 — SI units, float64 state, floating origin, +Y up
 
-**Status:** accepted
+**Status:** accepted (the rule that +Y is every body's north is amended by [0103](0103-time-calendar-sun-and-the-real-solar-system.md): +Y is the system's north and a body's pole is data; everything else stands)
 **Date:** 2026-10-16
 **Plan:** plans/001-repo-bootstrap.md
 

@@ -1,6 +1,6 @@
 # 0026 — Design system and flight HUD architecture
 
-**Status:** accepted
+**Status:** accepted (its visual language, the tokens, palette, fonts and panel look, is superseded in stages by [0107](0107-ui-adopts-the-refs-visual-language-in-stages.md); the update cadence, navball, speed modes, stage Δv, toasts and pause stand)
 **Date:** 2026-10-16
 **Plan:** plans/021-hud-and-ui-design-system.md
 
