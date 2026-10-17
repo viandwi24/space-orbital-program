@@ -229,3 +229,48 @@ export async function fly(deps: {
 	deps.go(`/flight?load=${encodeURIComponent(id)}`);
 	return null;
 }
+
+/** A label over the map: an object's, or a cluster's (`members` keys, its label "N vessels"). */
+export interface MapLabel {
+	key: string;
+	label: string;
+	kind: 'vessel' | 'body' | 'cluster';
+	x: number;
+	y: number;
+	members?: string[];
+}
+
+/**
+ * Vessels whose screen points lie within `radius` px of each other share one label when there are
+ * at least `min` of them (a fleet in low orbit seen from the system scope). Bodies keep their own.
+ */
+export function clusterLabels(labels: readonly MapLabel[], radius = 24, min = 3): MapLabel[] {
+	const out: MapLabel[] = labels.filter((l) => l.kind !== 'vessel');
+	const left = labels.filter((l) => l.kind === 'vessel');
+	while (left.length) {
+		const seed = left.shift()!;
+		const group = [seed];
+		for (let i = 0; i < left.length;) {
+			const l = left[i]!;
+			if (group.some((g) => Math.hypot(g.x - l.x, g.y - l.y) <= radius)) {
+				group.push(l);
+				left.splice(i, 1);
+				i = 0;
+			} else i++;
+		}
+		if (group.length < min) out.push(...group);
+		else {
+			const x = group.reduce((a, g) => a + g.x, 0) / group.length;
+			const y = Math.min(...group.map((g) => g.y));
+			out.push({
+				key: `cluster:${seed.key}`,
+				label: `${group.length} vessels`,
+				kind: 'cluster',
+				x: Math.round(x),
+				y: Math.round(y),
+				members: group.map((g) => g.key)
+			});
+		}
+	}
+	return out;
+}

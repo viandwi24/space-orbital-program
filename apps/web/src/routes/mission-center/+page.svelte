@@ -21,11 +21,13 @@
 		type Layers
 	} from '../../lib/mission-center/MissionCenterOverlay.svelte';
 	import {
+		clusterLabels,
 		fly,
 		objectCard,
 		trackingRows,
 		upcomingEvents,
 		warpToCommand,
+		type MapLabel,
 		type TrackFilter,
 		type UpcomingEvent
 	} from '../../lib/mission-center/model';
@@ -54,9 +56,7 @@
 	let selected = $state<string | null>(null);
 	let layers = $state<Layers>({ orbits: true, network: true, labels: true });
 	let upcoming = $state.raw<UpcomingEvent[]>([]);
-	let labels = $state.raw<
-		{ key: string; label: string; x: number; y: number; kind: 'vessel' | 'body' }[]
-	>([]);
+	let labels = $state.raw<MapLabel[]>([]);
 	let links = $state.raw<{ key: string; x1: number; y1: number; x2: number; y2: number }[]>([]);
 	let note = $state<string | null>(null);
 	let upcomingAt = -Infinity;
@@ -143,20 +143,19 @@
 			// a body hides its own centre; a vessel behind a body has no label
 			points[r.key] = p && (r.kind === 'body' || !p.hidden) ? p : null;
 		}
-		// labels of objects close on screen stack upwards (the Space Center's rule)
-		const spread = spreadLabels(points, 96, 26);
-		const nextLabels: typeof labels = [];
+		// a fleet close together shares one label; the rest stack upwards (the Space Center's rule)
+		const raw: MapLabel[] = [];
 		for (const r of all) {
-			const p = spread[r.key];
-			if (p)
-				nextLabels.push({
-					key: r.key,
-					label: r.label,
-					kind: r.kind,
-					x: Math.round(p.x),
-					y: Math.round(p.y)
-				});
+			const p = points[r.key];
+			if (p) raw.push({ key: r.key, label: r.label, kind: r.kind, x: p.x, y: p.y });
 		}
+		const grouped = clusterLabels(raw);
+		const spread = spreadLabels(Object.fromEntries(grouped.map((l) => [l.key, l])), 96, 26);
+		const nextLabels: MapLabel[] = grouped.map((l) => ({
+			...l,
+			x: Math.round(spread[l.key]!.x),
+			y: Math.round(spread[l.key]!.y)
+		}));
 		const nextLinks: typeof links = [];
 		for (const n of s.network?.vessels ?? []) {
 			const station = n.to ? s.network!.stations.find((st) => st.id === n.to) : undefined;
@@ -172,7 +171,7 @@
 
 	function onClick(x: number, y: number): void {
 		const candidates: PickCandidate[] = labels.map((l) => ({
-			key: l.key,
+			key: l.members?.[0] ?? l.key,
 			marks: [{ x: l.x, y: l.y, radius: l.kind === 'body' ? 22 : 14 }],
 			lines: []
 		}));

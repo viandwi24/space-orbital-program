@@ -2,7 +2,15 @@ import type { BodyDefinition, BodyId, EntityId, Snapshot, VesselSnapshot } from 
 import { describe, expect, it } from 'vitest';
 import { WARP_LEAD_S } from '../maneuver-controller';
 import { bodyNodes } from '../map-path';
-import { NOT_FLYABLE, fly, objectCard, trackingRows, upcomingEvents, warpToCommand } from './model';
+import {
+	NOT_FLYABLE,
+	clusterLabels,
+	fly,
+	objectCard,
+	trackingRows,
+	upcomingEvents,
+	warpToCommand
+} from './model';
 
 const HOME = 'stock.home' as BodyId;
 const MOON = 'stock.cinder' as BodyId;
@@ -123,5 +131,30 @@ describe('Fly (ADR 0118 point 5)', () => {
 		const error = await fly({ autosave: async () => null, go: (href) => went.push(href) });
 		expect(error).toMatch(/could not be saved/);
 		expect(went).toEqual([]);
+	});
+});
+
+describe('map labels', () => {
+	it('a fleet close together shares one label; a lone vessel and the bodies keep theirs', () => {
+		const v = (n: number, x: number, y: number) => ({
+			key: `vessel:${n}`,
+			label: `Ship ${n}`,
+			kind: 'vessel' as const,
+			x,
+			y
+		});
+		const out = clusterLabels([
+			{ key: 'body:stock.home', label: 'Home', kind: 'body', x: 500, y: 300 },
+			v(1, 500, 300),
+			v(2, 510, 305),
+			v(3, 520, 296),
+			v(4, 900, 100)
+		]);
+		expect(out.map((l) => [l.key, l.label])).toEqual([
+			['body:stock.home', 'Home'],
+			['cluster:vessel:1', '3 vessels'],
+			['vessel:4', 'Ship 4']
+		]);
+		expect(out[1]!.members).toEqual(['vessel:1', 'vessel:2', 'vessel:3']);
 	});
 });

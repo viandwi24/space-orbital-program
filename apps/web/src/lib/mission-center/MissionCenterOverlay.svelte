@@ -15,6 +15,7 @@
 	import {
 		TRACK_FILTERS,
 		timeUntil,
+		type MapLabel,
 		type ObjectCard,
 		type TrackFilter,
 		type TrackRow,
@@ -71,14 +72,8 @@
 		canFly: boolean;
 		layers: Layers;
 		onlayers: (l: Layers) => void;
-		/** CSS pixel of each object's label, null when off screen. */
-		labels: readonly {
-			key: string;
-			label: string;
-			x: number;
-			y: number;
-			kind: 'vessel' | 'body';
-		}[];
+		/** Labels in CSS pixels: objects on screen and clusters of close vessels. */
+		labels: readonly MapLabel[];
 		/** Comms links in CSS pixels. */
 		links: readonly { key: string; x1: number; y1: number; x2: number; y2: number }[];
 		note: string | null;
@@ -98,10 +93,11 @@
 			<button
 				type="button"
 				class="label {l.kind}"
-				class:selected={l.key === selected}
+				class:selected={l.key === selected ||
+					(selected !== null && l.members?.includes(selected) === true)}
 				style:left="{l.x}px"
 				style:top="{l.y}px"
-				onclick={() => onselect(l.key)}
+				onclick={() => onselect(l.members?.[0] ?? l.key)}
 				data-testid="mc-label-{l.key}">{l.label}</button
 			>
 		{/each}
