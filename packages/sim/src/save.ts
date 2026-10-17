@@ -61,6 +61,10 @@ const shape =
 	};
 const vec3 = shape({ x: num, y: num, z: num });
 const quat = shape({ x: num, y: num, z: num, w: num });
+const optional =
+	(check: Check): Check =>
+	(v) =>
+		v === undefined ? undefined : check(v);
 const orNull =
 	(check: Check): Check =>
 	(v) =>
@@ -131,6 +135,8 @@ export const checkPartState: Check = shape({
 	definition: str,
 	designPos: vec3,
 	yaw: num,
+	rotation: optional(quat),
+	link: optional(shape({ peer: entity, point: vec3 })),
 	attachments: arrayOf(shape({ node: str, peer: entity, peerNode: str })),
 	temperature: num,
 	modules: arrayOf(shape({ id: str }))
@@ -230,6 +236,9 @@ export function restoreWorld(
 		const why = checkPartState(world.get(id, PART));
 		if (why) throw damaged(`part ${id}: ${why}`);
 		const part = world.get(id, PART)!;
+		if (part.link && !world.hasEntity(part.link.peer)) {
+			throw damaged(`part ${id} is linked to missing part ${part.link.peer}`);
+		}
 		if (!hasPart(part.definition)) missing.add(`part "${part.definition}"`);
 		for (const m of part.modules) if (!hasModule(m.id)) missing.add(`module "${m.id}"`);
 	}

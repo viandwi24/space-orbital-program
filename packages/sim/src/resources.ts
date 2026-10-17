@@ -4,27 +4,62 @@
  * `PartDefinition.crossfeed`; it does not know what any resource or container is.
  */
 import type { EntityId } from '@orbital/core';
-import { moduleDefOf, moduleState, partDefOf, partOf, type SimCore } from './core.ts';
+import { moduleDefOf, moduleState, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import type { VesselState } from './state.ts';
+
+/**
+ * Fuel lines of the vessel (ADR 0071): for each part a line ends on, the parts the line draws
+ * from (the part the line hangs on), ascending by line id. Empty for a vessel without a feeding
+ * connector, so the common case costs one pass over the parts.
+ */
+function feeders(core: SimCore, vessel: VesselState): Map<EntityId, EntityId[]> {
+	const out = new Map<EntityId, EntityId[]>();
+	for (const id of vessel.parts.slice().sort((a, b) => a - b)) {
+		const part = partOf(core, id);
+		if (!part.link || !partDefOf(core, part).connector?.feeds) continue;
+		const source = part.attachments[0]?.peer;
+		if (source === undefined || source === part.link.peer) continue;
+		const list = out.get(part.link.peer) ?? [];
+		list.push(source);
+		out.set(part.link.peer, list);
+	}
+	return out;
+}
 
 /**
  * Parts a request from `from` may draw on, in draw order. `stack`: breadth-first over attachments
  * from `from` (neighbours by ascending id), never entering a part with `crossfeed: false`, so a
- * decoupler or engine is a barrier; the requester itself is always the origin.
+ * decoupler or engine is a barrier; the requester itself is always the origin. A fuel line that
+ * ends on a visited part adds the part it hangs on (even a `crossfeed: false` one: the line is the
+ * explicit connection) and what that part reaches, ahead of the visited part, so the outer tanks
+ * of an asparagus build empty first. Lines are one way (ADR 0071).
  */
 export function reachableParts(core: SimCore, from: EntityId): EntityId[] {
+	const feeds = feeders(core, vesselOf(core, partOf(core, from).vessel));
 	const seen = new Set<EntityId>([from]);
-	const order: EntityId[] = [from];
-	for (let head = 0; head < order.length; head++) {
-		const part = partOf(core, order[head]!);
-		const peers = part.attachments.map((a) => a.peer).sort((a, b) => a - b);
-		for (const peer of peers) {
-			if (seen.has(peer)) continue;
-			seen.add(peer);
-			if (partDefOf(core, partOf(core, peer)).crossfeed === false) continue;
-			order.push(peer);
+	const order: EntityId[] = [];
+	const walk = (origin: EntityId): void => {
+		const queue: EntityId[] = [origin];
+		for (let head = 0; head < queue.length; head++) {
+			const here = queue[head]!;
+			for (const source of feeds.get(here) ?? []) {
+				if (seen.has(source)) continue;
+				seen.add(source);
+				walk(source);
+			}
+			order.push(here);
+			const peers = partOf(core, here)
+				.attachments.map((a) => a.peer)
+				.sort((a, b) => a - b);
+			for (const peer of peers) {
+				if (seen.has(peer)) continue;
+				seen.add(peer);
+				if (partDefOf(core, partOf(core, peer)).crossfeed === false) continue;
+				queue.push(peer);
+			}
 		}
-	}
+	};
+	walk(from);
 	return order;
 }
 

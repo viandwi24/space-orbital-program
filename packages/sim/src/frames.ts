@@ -43,9 +43,9 @@ import {
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
-import { ZERO, qAboutY, qConj, qMul, qRotate, uprightRotation } from './math.ts';
+import { ZERO, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { massProperties } from './mass.ts';
-import { halfExtentsOf } from './parts.ts';
+import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
 import type { FlightBody, FlightFrame } from './state.ts';
 import { groundPlane } from './terrain.ts';
@@ -123,19 +123,18 @@ export function partTransform(core: SimCore, frame: FlightFrame, partId: EntityI
 	const t = frame.backend.getTransform(bodyOfPart(core, frame, partId).handle);
 	return {
 		position: add(t.position, qRotate(t.rotation, partOffset(core, partId))),
-		rotation:
-			partYaw(core, partId) === 0 ? t.rotation : qMul(t.rotation, qAboutY(partYaw(core, partId)))
+		rotation: isTurned(partOf(core, partId))
+			? qMul(t.rotation, partRotation(partOf(core, partId)))
+			: t.rotation
 	};
 }
 
-/** The body's centre of mass in the part frame (ADR 0045): the offset removed, the part's yaw undone. */
+/** The body's centre of mass in the part frame (ADR 0045): the offset removed, the part's rotation undone. */
 export function centreOfMassInPart(core: SimCore, frame: FlightFrame, partId: EntityId): Vec3 {
 	const rel = sub(bodyOfPart(core, frame, partId).com, partOffset(core, partId));
-	const yaw = partYaw(core, partId);
-	return yaw === 0 ? rel : qRotate(qConj(qAboutY(yaw)), rel);
+	const part = partOf(core, partId);
+	return isTurned(part) ? qRotate(qConj(partRotation(part)), rel) : rel;
 }
-
-const partYaw = (core: SimCore, partId: EntityId): number => partOf(core, partId).yaw;
 
 /**
  * Velocity of `point` (part frame) relative to the air, in the part frame (ADR 0035): the point's
@@ -201,7 +200,7 @@ export function collectColliders(
 	for (const id of vessel.parts) {
 		const part = partOf(core, id);
 		const at = sub(part.designPos, rootDesign);
-		const turn = part.yaw === 0 ? undefined : qAboutY(part.yaw);
+		const turn = isTurned(part) ? partRotation(part) : undefined;
 		shapes.push({
 			shape: { type: 'box', halfExtents: halfExtentsOf(partDefOf(core, part)) },
 			position: at,
@@ -422,7 +421,7 @@ function applyDrag(
 			cross(motion.angular, sub(pose.position, motion.centre))
 		);
 		const rel = sub(v, cross(omega, r));
-		const turned = part.yaw === 0 ? pose.rotation : qMul(pose.rotation, qAboutY(part.yaw));
+		const turned = isTurned(part) ? qMul(pose.rotation, partRotation(part)) : pose.rotation;
 		const local = qRotate(qConj(turned), rel);
 		const def = partDefOf(core, part);
 		const covered = { top: false, bottom: false };

@@ -5,6 +5,8 @@ import {
 	type PartSnapshot,
 	type Snapshot,
 	type EntityId,
+	type Quat,
+	type Vec3,
 	type VesselSnapshot
 } from '@orbital/core';
 import { add, cross, sub } from '@orbital/kepler';
@@ -22,6 +24,7 @@ import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { bodyOfVessel, systemPosition } from './bodies.ts';
 import { qAboutY, qMul, qRotate } from './math.ts';
+import { isTurned, partRotation } from './parts.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { terrainUnder } from './terrain.ts';
@@ -33,6 +36,24 @@ function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 		if (view) out[m.id] = view(moduleState(core, part, m.id));
 	}
 	return out;
+}
+
+/**
+ * A connector's far end for the snapshot (ADR 0071): the peer part and the point on its surface,
+ * relative to the vessel's root origin in the inertial axes like `PartSnapshot.position`.
+ */
+function linkOf(
+	core: SimCore,
+	partEntity: EntityId,
+	rootRotation: Quat
+): { link?: { peer: EntityId; point: Vec3 } } {
+	const part = partOf(core, partEntity);
+	if (!part.link) return {};
+	const vessel = vesselOf(core, part.vessel);
+	const rootDesign = partOf(core, vessel.root).designPos;
+	return {
+		link: { peer: part.link.peer, point: qRotate(rootRotation, sub(part.link.point, rootDesign)) }
+	};
 }
 
 function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
@@ -56,7 +77,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				position: sub(pose.position, root.position),
 				orientation: pose.rotation,
 				modules: moduleViews(core, partEntity),
-				temperature: partOf(core, partEntity).temperature
+				temperature: partOf(core, partEntity).temperature,
+				...linkOf(core, partEntity, root.rotation)
 			});
 		}
 	} else {
@@ -71,9 +93,10 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				id: partEntity,
 				definition: partId(p.definition),
 				position: qRotate(orientation, sub(p.designPos, rootDesign)),
-				orientation: p.yaw === 0 ? orientation : qMul(orientation, qAboutY(p.yaw)),
+				orientation: isTurned(p) ? qMul(orientation, partRotation(p)) : orientation,
 				modules: moduleViews(core, partEntity),
-				temperature: p.temperature
+				temperature: p.temperature,
+				...linkOf(core, partEntity, orientation)
 			});
 		}
 	}

@@ -154,6 +154,16 @@ export interface PartState {
 	designPos: Vec3;
 	/** Turn about the design +Y axis, rad (radial parts face their parent, ADR 0034). */
 	yaw: number;
+	/**
+	 * Full rotation relative to the vessel axes, present only for a tilted part or a descendant of
+	 * one (ADR 0071); absent means `qAboutY(yaw)`, which is every part of an older design or save.
+	 */
+	rotation?: Quat;
+	/**
+	 * Connector parts (ADR 0071): the part the far end lands on and that point in the design frame.
+	 * Cleared when a split puts the two ends on different vessels.
+	 */
+	link?: { peer: EntityId; point: Vec3 };
 	attachments: Attachment[];
 	/** Skin temperature, K (ADR 0023). */
 	temperature: number;

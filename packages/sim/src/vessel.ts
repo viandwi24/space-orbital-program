@@ -39,7 +39,7 @@ import { fromTuple, qAboutY, qFromBasis, qRotate } from './math.ts';
 import { AMBIENT_TEMPERATURE, DEFAULT_IMPACT_TOLERANCE } from './constants.ts';
 import type { Overheat } from './thermal.ts';
 import { computeRails, motionOf, orientationOf, surfaceRails } from './orbit.ts';
-import { halfExtentsOf } from './parts.ts';
+import { halfExtentsOf, partRotation } from './parts.ts';
 import { groundPlane } from './terrain.ts';
 import {
 	moduleStateToken,
@@ -81,6 +81,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 			definition: rp.definition.id,
 			designPos: rp.position,
 			yaw: rp.yaw,
+			...(rp.tilted ? { rotation: rp.rotation } : {}),
 			attachments: [],
 			temperature: AMBIENT_TEMPERATURE,
 			modules
@@ -100,6 +101,13 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 			peer: byIndex.get(rp.parent.index)!,
 			peerNode: rp.parent.parentNode
 		});
+	}
+	for (const rp of resolved.parts) {
+		if (!rp.link) continue;
+		partOf(core, byIndex.get(rp.index)!).link = {
+			peer: byIndex.get(rp.link.index)!,
+			point: rp.link.point
+		};
 	}
 	const parts = resolved.parts.map((rp) => byIndex.get(rp.index)!);
 	const state: VesselState = {
@@ -127,12 +135,25 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 	return vesselId;
 }
 
+/** Half the extent of the part's collision box along the vessel's Y axis (its own y half extent unless tilted). */
+function verticalExtent(core: SimCore, part: PartState): number {
+	const h = halfExtentsOf(partDefOf(core, part));
+	if (!part.rotation) return h.y;
+	// Row 1 of the rotation matrix of the part's quaternion.
+	const { x, y, z, w } = part.rotation;
+	return (
+		Math.abs(2 * (x * y + z * w)) * h.x +
+		Math.abs(1 - 2 * (x * x + z * z)) * h.y +
+		Math.abs(2 * (y * z - x * w)) * h.z
+	);
+}
+
 /** Lowest design-frame point of the vessel along its +Y axis (negative or zero for a standing stack). */
 function lowestPoint(core: SimCore, parts: readonly EntityId[]): number {
 	let lowest = Infinity;
 	for (const id of parts) {
 		const p = partOf(core, id);
-		lowest = Math.min(lowest, p.designPos.y - halfExtentsOf(partDefOf(core, p)).y);
+		lowest = Math.min(lowest, p.designPos.y - verticalExtent(core, p));
 		// Boxes modules add (deployed feet) stand on the ground too.
 		for (const m of p.modules) {
 			const colliders = moduleDefOf(core, m.id).colliders;
@@ -207,7 +228,7 @@ function separationDirection(core: SimCore, part: PartState, node: string, peer:
 		return normalize(d);
 	}
 	const dir = fromTuple(partDefOf(core, part).attach![node]!.dir);
-	return qRotate(qAboutY(part.yaw), dir);
+	return qRotate(partRotation(part), dir);
 }
 
 /** Entities reachable from `start` through attachments. */
@@ -308,6 +329,14 @@ function splitAt(
 
 	const stateKeep = sideState(keepSide);
 	const stateNew = sideState(newSide);
+
+	// A strut or fuel line whose two ends end up on different sides is cut (ADR 0071).
+	for (const side of [keepSide, newSide]) {
+		for (const id of side) {
+			const link = partOf(core, id).link;
+			if (link && !side.includes(link.peer)) delete partOf(core, id).link;
+		}
+	}
 
 	// Equal and opposite momentum along the node direction (pointing from `part` towards `peer`).
 	if (impulse > 0) {

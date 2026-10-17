@@ -19,6 +19,22 @@ export interface MassProperties {
 
 type Mat3 = [number, number, number, number, number, number, number, number, number];
 
+/** Row-major rotation matrix of a unit quaternion. */
+function rotationMatrix(q: Quat): Mat3 {
+	const { x, y, z, w } = q;
+	return [
+		1 - 2 * (y * y + z * z),
+		2 * (x * y - z * w),
+		2 * (x * z + y * w),
+		2 * (x * y + z * w),
+		1 - 2 * (x * x + z * z),
+		2 * (y * z - x * w),
+		2 * (x * z - y * w),
+		2 * (y * z + x * w),
+		1 - 2 * (x * x + y * y)
+	];
+}
+
 /**
  * Eigen-decomposition of a symmetric 3x3 matrix by cyclic Jacobi rotations. Fixed sweep count and
  * order, so it is deterministic; an already diagonal matrix (the symmetric stacks of today) comes
@@ -107,14 +123,31 @@ export function massProperties(
 		const own = inertiaOf(partDefOf(core, partOf(core, id)), m);
 		const r = { x: d.x - com.x, y: d.y - com.y, z: d.z - com.z };
 		const r2 = r.x * r.x + r.y * r.y + r.z * r.z;
-		// The part's principal axes are turned about Y by its yaw (identity for cylinders' x = z).
-		const yaw = partOf(core, id).yaw;
-		const c = Math.cos(yaw);
-		const s = Math.sin(yaw);
-		t[0] += own.x * c * c + own.z * s * s + m * (r2 - r.x * r.x);
-		t[4] += own.y + m * (r2 - r.y * r.y);
-		t[8] += own.x * s * s + own.z * c * c + m * (r2 - r.z * r.z);
-		t[2] += (own.z - own.x) * s * c;
+		const tilt = partOf(core, id).rotation;
+		if (tilt) {
+			// A tilted part (ADR 0071): its tensor is R diag(own) R^T about its own centre.
+			const R = rotationMatrix(tilt);
+			const d = [own.x, own.y, own.z];
+			const entry = (i: number, j: number): number =>
+				d[0]! * R[i * 3]! * R[j * 3]! +
+				d[1]! * R[i * 3 + 1]! * R[j * 3 + 1]! +
+				d[2]! * R[i * 3 + 2]! * R[j * 3 + 2]!;
+			t[0] += entry(0, 0) + m * (r2 - r.x * r.x);
+			t[4] += entry(1, 1) + m * (r2 - r.y * r.y);
+			t[8] += entry(2, 2) + m * (r2 - r.z * r.z);
+			t[1] += entry(0, 1);
+			t[2] += entry(0, 2);
+			t[5] += entry(1, 2);
+		} else {
+			// The part's principal axes are turned about Y by its yaw (identity for cylinders' x = z).
+			const yaw = partOf(core, id).yaw;
+			const c = Math.cos(yaw);
+			const s = Math.sin(yaw);
+			t[0] += own.x * c * c + own.z * s * s + m * (r2 - r.x * r.x);
+			t[4] += own.y + m * (r2 - r.y * r.y);
+			t[8] += own.x * s * s + own.z * c * c + m * (r2 - r.z * r.z);
+			t[2] += (own.z - own.x) * s * c;
+		}
 		t[1] -= m * r.x * r.y;
 		t[2] -= m * r.x * r.z;
 		t[5] -= m * r.y * r.z;

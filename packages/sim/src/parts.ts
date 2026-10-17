@@ -1,6 +1,16 @@
 /** Physics shape and inertia of a part, from its placeholder `shape` (ADR 0014, ADR 0017). */
-import type { PartDefinition, Vec3 } from '@orbital/core';
+import type { PartDefinition, Quat, Vec3 } from '@orbital/core';
 import { FALLBACK_PART_SIZE } from './constants.ts';
+import { qAboutY } from './math.ts';
+import type { PartState } from './state.ts';
+
+/** The part's rotation relative to the vessel axes: its full `rotation`, or its yaw about +Y. */
+export const partRotation = (part: Pick<PartState, 'yaw' | 'rotation'>): Quat =>
+	part.rotation ?? qAboutY(part.yaw);
+
+/** True when the part is turned at all (so a caller can skip the rotation of the common case). */
+export const isTurned = (part: Pick<PartState, 'yaw' | 'rotation'>): boolean =>
+	part.rotation !== undefined || part.yaw !== 0;
 
 /**
  * Half extents of the part's collision box. Cylinders use the box `(r, h/2, r)`: exact along the
