@@ -1,4 +1,5 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
+import { milestonesSnapshot } from './milestones.ts';
 import {
 	bodyId,
 	partId,
@@ -157,6 +158,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const objectives = objectivesSnapshot(core);
 	const roster = rosterSnapshot(core);
 	const science = scienceSnapshot(core);
+	const milestones = milestonesSnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -170,6 +172,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		sites: sitesSnapshot(core),
 		...(objectives ? { objectives } : {}),
 		...(science ? { science } : {}),
+		...(milestones ? { milestones } : {}),
 		...(roster ? { crew: roster } : {})
 	};
 }

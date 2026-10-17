@@ -3,6 +3,7 @@
  * core, then semantic checks against the world) and applies them. Refusals are results, not
  * exceptions: commands come from outside the sim.
  */
+import { recoverMilestones } from './milestones.ts';
 import {
 	bodyId,
 	commandSchema,
@@ -313,6 +314,7 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			if (why) return refuse(why);
 			creditRecovery(core, id);
 			recoverScience(core, id); // science aboard at full value (plan 103, ADR 0178 point 7)
+			recoverMilestones(core, id); // first returns, crew still aboard (plan 102, ADR 0147)
 			recoverCrew(core, id); // XP at a safe return (plan 106, ADR 0176 point 5)
 			destroyVessel(core, id, 'recovered');
 			return accept();
