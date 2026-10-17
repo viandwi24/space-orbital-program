@@ -37,7 +37,7 @@ import {
 	buildTanks,
 	buildTower
 } from './site-buildings.ts';
-import { emptyParts, merge, type Rgb } from './site-geo.ts';
+import { emptyParts, merge, type ArmParts, type Rgb } from './site-geo.ts';
 import {
 	bushGeometry,
 	pineGeometry,
@@ -52,8 +52,19 @@ import {
 	layoutVegetation,
 	siteDetail,
 	tuftCell,
-	TUFT_CELLS
+	TUFT_CELLS,
+	VENTS
 } from './site.ts';
+import {
+	armStep,
+	armTarget,
+	beaconLevel,
+	newPadTracker,
+	padHeight,
+	steamVisibility,
+	windowGlow
+} from './site-animation.ts';
+import { SiteSteam } from './site-steam.ts';
 import { siteAxes } from './sun.ts';
 import { add, rotate, scale } from './vec.ts';
 import { siteTime, weatherMaterial, windMaterial } from './weathering.ts';
@@ -181,7 +192,18 @@ function siteMaterials() {
 			roughness: 0.07,
 			envMapIntensity: 1.3
 		}),
+		// the panes that glow at night: the same glass whose emissive follows the floodlight level (ADR 0073)
+		glassLit: new MeshStandardMaterial({
+			vertexColors: true,
+			metalness: 0.9,
+			roughness: 0.07,
+			envMapIntensity: 1.3,
+			emissive: new Color(1, 0.5, 0.2),
+			emissiveIntensity: 0
+		}),
 		lamp: new MeshBasicMaterial({ vertexColors: true }),
+		beaconA: new MeshBasicMaterial({ vertexColors: true }),
+		beaconB: new MeshBasicMaterial({ vertexColors: true }),
 		pine,
 		round,
 		bush,
@@ -225,6 +247,14 @@ export class LaunchSite {
 	private active: VegetationSet | null = null;
 	private structureMeshes: Mesh[] = [];
 	private readonly floods: PointLight[] = [];
+	/** The swing arms (ADR 0073): each pivot turns about its vertical hinge; `armAngle` is the shared angle. */
+	private readonly arms: Object3D[] = [];
+	private armAngle: number | null = null;
+	private seen = false;
+	private readonly pad = newPadTracker();
+	private readonly steam = new SiteSteam(VENTS);
+	private detailStructures = true;
+	private lastLamps = 0;
 
 	constructor(
 		radius: number,
@@ -259,16 +289,32 @@ export class LaunchSite {
 	private mesh(
 		parts: BufferGeometry[],
 		material: MeshStandardMaterial | MeshBasicMaterial,
-		shadows = true
-	): void {
-		if (!parts.length) return;
+		shadows = true,
+		parent: Object3D = this.root,
+		shift?: { x: number; y: number; z: number }
+	): Mesh | undefined {
+		if (!parts.length) return undefined;
 		const g = merge(parts);
+		if (shift) g.translate(-shift.x, -shift.y, -shift.z);
 		this.geometries.push(g);
 		const m = new Mesh(g, material);
 		m.castShadow = shadows;
 		m.receiveShadow = shadows;
-		this.root.add(m);
+		parent.add(m);
 		this.structureMeshes.push(m);
+		return m;
+	}
+
+	/** One swing arm as a pivot at its hinge with its steel and hoses below it, in the hinge's frame. */
+	private buildArm(arm: ArmParts): void {
+		const pivot = new Object3D();
+		pivot.name = 'site-arm';
+		pivot.position.set(arm.hinge.x, arm.hinge.y, arm.hinge.z);
+		this.root.add(pivot);
+		this.mesh(arm.structure, this.materials.structure, true, pivot, arm.hinge);
+		const thin = this.mesh(arm.thin, this.materials.structure, true, pivot, arm.hinge);
+		if (thin) thin.castShadow = false;
+		this.arms.push(pivot);
 	}
 
 	private buildStructures(): void {
@@ -285,7 +331,23 @@ export class LaunchSite {
 		this.mesh(parts.siding, m.siding);
 		this.mesh(parts.door, m.door);
 		this.mesh(parts.glass, m.glass);
+		this.mesh(parts.glassLit, m.glassLit);
 		this.mesh(parts.lamp, m.lamp, false);
+		this.mesh(
+			parts.beacon.filter((_, i) => i % 2 === 0),
+			m.beaconA,
+			false
+		);
+		this.mesh(
+			parts.beacon.filter((_, i) => i % 2 === 1),
+			m.beaconB,
+			false
+		);
+		for (const arm of parts.arms) this.buildArm(arm);
+		const steamRoot = new Object3D();
+		steamRoot.name = 'site-steam-root';
+		steamRoot.add(this.steam.mesh);
+		this.root.add(steamRoot);
 		// Thin steel receives light but never casts: a 10 cm mast would paint a hairline across the grass.
 		this.mesh(parts.thin, m.structure);
 		const thin = this.root.children[this.root.children.length - 1] as Mesh | undefined;
@@ -307,6 +369,52 @@ export class LaunchSite {
 	setLamps(level: number): void {
 		const k = Math.min(Math.max(level, 0), 1);
 		for (const l of this.floods) l.intensity = FLOOD_LIGHT_INTENSITY * k;
+		this.lastLamps = k;
+	}
+
+	/**
+	 * The moving parts (ADR 0073). `vesselRender` is the active vessel's root origin in render space (null
+	 * without one), `time` seconds of wall clock, `dt` the last frame's seconds. The arms follow the vessel's
+	 * height above where it stood on the pad, slewed in wall time; steam vents while it stands there; the
+	 * beacons blink; the lit windows glow with the floodlights.
+	 */
+	animate(input: { dt: number; time: number; vesselRender: Vec3 | null }): void {
+		const m = this.materials;
+		// the vessel's place in the pad's frame: height along the pad's vertical and distance off its axis
+		let up: number | null = null;
+		let off = 0;
+		if (input.vesselRender) {
+			const q = this.root.quaternion;
+			const v = new Vector3(0, 1, 0).applyQuaternion(q);
+			const rel = new Vector3(
+				input.vesselRender.x - this.root.position.x,
+				input.vesselRender.y - this.root.position.y,
+				input.vesselRender.z - this.root.position.z
+			);
+			up = rel.dot(v);
+			off = rel.addScaledVector(v, -up).length();
+		}
+		const height = padHeight(this.pad, up, off);
+		const target = armTarget(height);
+		// The first vessel seen finds the arms where they belong (a save loaded in the air: folded, never a swing).
+		if (height === null) this.seen = false;
+		else if (!this.seen) {
+			this.seen = true;
+			this.armAngle = target;
+		}
+		this.armAngle = armStep(this.armAngle ?? 0, target, Math.min(input.dt, 0.1));
+		for (const arm of this.arms) arm.rotation.y = -this.armAngle;
+		const day = 1 - this.lastLamps;
+		const tint: readonly [number, number, number] = [
+			0.07 + 0.83 * day,
+			0.062 + 0.86 * day,
+			0.055 + 0.9 * day
+		];
+		this.steam.update(input.time, steamVisibility(height), tint);
+		this.steam.mesh.visible = this.steam.mesh.visible && this.detailStructures;
+		m.beaconA.color.setScalar(beaconLevel(input.time, 0));
+		m.beaconB.color.setScalar(beaconLevel(input.time, 0.5));
+		m.glassLit.emissiveIntensity = 0.9 * windowGlow(this.lastLamps);
 	}
 
 	private static key(count: number, tufts: number): string {
@@ -507,6 +615,7 @@ export class LaunchSite {
 			for (const m of set.trees) m.visible = d.trees;
 		}
 		for (const m of this.structureMeshes) m.visible = d.structures;
+		this.detailStructures = d.structures;
 	}
 
 	/** Puts the site on the rotating body: position in float64, orientation = body * site frame. */
@@ -529,6 +638,7 @@ export class LaunchSite {
 		for (const g of [this.pineGeo, this.roundGeo, this.bushGeo, this.rockGeo, this.tuftGeo])
 			g.dispose();
 		for (const set of this.sets.values()) for (const v of set.meshes) v.dispose();
+		this.steam.dispose();
 		const { textures, ...mats } = this.materials;
 		for (const m of Object.values(mats)) m.dispose();
 		for (const t of textures) t.dispose();

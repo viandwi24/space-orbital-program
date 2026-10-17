@@ -262,6 +262,7 @@ export class Environment {
 		});
 		this.site.place(bodyRender, bodyRotation);
 		this.site.setDetail(Math.hypot(frame.camToSite.x, frame.camToSite.y, frame.camToSite.z));
+		this.site.animate({ dt: input.dt, time: this.time, vesselRender: input.vesselRender });
 		const sun = this.sunDirection(bodyRotation);
 		const sunBF = rotateInverse(bodyRotation, sun);
 		const up = input.up ?? frame.up;

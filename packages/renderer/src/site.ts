@@ -108,6 +108,13 @@ export const TANKS: readonly TankSpec[] = [
 	{ x: -70, z: 44, radius: 5.5, kind: 'sphere', height: 0 },
 	{ x: -62, z: 62, radius: 3.5, kind: 'cylinder', height: 16 }
 ];
+/** Where steam vents (ADR 0073): the top valves of the two sphere tanks and a vent beside the tower's foot. */
+export const VENTS: readonly { x: number; y: number; z: number }[] = [
+	{ x: TANKS[0]!.x, y: TANKS[0]!.radius * 2 + 3, z: TANKS[0]!.z },
+	{ x: TANKS[1]!.x, y: TANKS[1]!.radius * 2 + 3, z: TANKS[1]!.z },
+	{ x: TOWER.x - 2.6, y: 1.1, z: TOWER.z + 2.4 }
+];
+
 export const ROADS: readonly RoadSpec[] = [
 	{ ax: 0, az: -PAD_RADIUS + 2, bx: 0, bz: -82, width: 8 },
 	{ ax: -95, az: -82, bx: 135, bz: -82, width: 8 },

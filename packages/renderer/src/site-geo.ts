@@ -162,6 +162,19 @@ export interface SiteParts {
 	lamp: BufferGeometry[];
 	/** Thin steel (masts, fences, cables): never casts a shadow, so no hairline shadows cross the grass. */
 	thin: BufferGeometry[];
+	/** Window panes that glow at night (a fixed share of the panes, `windowIsLit`); the rest is `glass`. */
+	glassLit: BufferGeometry[];
+	/** Blinking red beacons (emissive, one material whose brightness follows the clock). */
+	beacon: BufferGeometry[];
+	/** The swing arms of the tower: each folds about its own vertical hinge (ADR 0073). */
+	arms: ArmParts[];
+}
+
+/** One swing arm in site-local coordinates; `hinge` is the point it turns about (vertical axis). */
+export interface ArmParts {
+	hinge: { x: number; y: number; z: number };
+	structure: BufferGeometry[];
+	thin: BufferGeometry[];
 }
 
 export const emptyParts = (): SiteParts => ({
@@ -171,5 +184,8 @@ export const emptyParts = (): SiteParts => ({
 	glass: [],
 	door: [],
 	lamp: [],
-	thin: []
+	thin: [],
+	glassLit: [],
+	beacon: [],
+	arms: []
 });

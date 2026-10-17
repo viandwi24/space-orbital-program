@@ -27,9 +27,11 @@ import {
 	lin,
 	placed,
 	texturedBox,
+	type ArmParts,
 	type Rgb,
 	type SiteParts
 } from './site-geo.ts';
+import { windowIsLit } from './site-animation.ts';
 import {
 	BUILDINGS,
 	CONTAINERS,
@@ -95,7 +97,8 @@ export function buildTower(p: SiteParts): void {
 		p.thin.push(box(0.05, height, 0.05, x - h - 0.12, height / 2, z + dz, steel));
 	for (let y = 0.6; y < height; y += 0.6)
 		p.thin.push(box(0.04, 0.04, 0.5, x - h - 0.12, y, z, steel));
-	// swing arms reaching toward the vessel, with umbilical hoses
+	// swing arms reaching toward the vessel, with umbilical hoses; each turns about a vertical hinge half a metre
+	// off the tower face and folds against it (site-animation.ts, ADR 0073)
 	for (const [ay, len] of [
 		[19, 4.0],
 		[12.5, 4.0],
@@ -103,11 +106,13 @@ export function buildTower(p: SiteParts): void {
 	] as const) {
 		const x0 = x - h;
 		const x1 = x0 - len;
-		p.structure.push(
-			box(len, 0.35, 1.0, (x0 + x1) / 2, ay, z, red),
-			box(len, 0.15, 0.15, (x0 + x1) / 2, ay + 0.9, z - 0.45, steel),
-			box(len, 0.15, 0.15, (x0 + x1) / 2, ay + 0.9, z + 0.45, steel),
-			beam(x0, ay, z, x1, ay + 0.9, z, 0.1, steel),
+		const arm: ArmParts = { hinge: { x: x0 - 0.5, y: ay, z }, structure: [], thin: [] };
+		p.structure.push(box(0.6, 0.5, 1.0, x0 - 0.25, ay, z, steel)); // the fixed bracket on the tower
+		arm.structure.push(
+			box(len - 0.5, 0.35, 1.0, (x0 - 0.5 + x1) / 2, ay, z, red),
+			box(len - 0.5, 0.15, 0.15, (x0 - 0.5 + x1) / 2, ay + 0.9, z - 0.45, steel),
+			box(len - 0.5, 0.15, 0.15, (x0 - 0.5 + x1) / 2, ay + 0.9, z + 0.45, steel),
+			beam(x0 - 0.5, ay, z, x1, ay + 0.9, z, 0.1, steel),
 			box(0.9, 1.0, 1.3, x1 - 0.2, ay + 0.5, z, steel)
 		);
 		for (const [dz, sag] of [
@@ -120,10 +125,11 @@ export function buildTower(p: SiteParts): void {
 				new Vector3(x0 - 0.2, ay - sag * 0.55, z + dz * 1.2),
 				new Vector3(x0 + 0.1, ay + 0.15, z + dz)
 			]);
-			p.thin.push(
+			arm.thin.push(
 				coloured(new TubeGeometry(curve, 14, 0.06, 6), dz < 0 ? lin(0x1d1f21) : lin(0xdcdcd4))
 			);
 		}
+		p.arms.push(arm);
 	}
 	p.structure.push(
 		box(size + 0.6, 0.5, size + 0.6, x, height + 0.25, z, red),
@@ -171,11 +177,11 @@ export function buildMasts(p: SiteParts): void {
 				);
 			}
 		}
-		p.lamp.push(
+		p.beacon.push(
 			coloured(new SphereGeometry(0.35, 8, 6).translate(m.x, m.height + 0.2, m.z), LAMP_RED)
 		);
 	}
-	p.lamp.push(
+	p.beacon.push(
 		coloured(
 			new SphereGeometry(0.35, 8, 6).translate(TOWER.x + 5.6, TOWER.height + 4.4, TOWER.z),
 			LAMP_RED
@@ -337,15 +343,23 @@ function glassRibbon(
 	mullion = 3
 ): void {
 	const white = lin(0xeceae4);
+	// one pane between each pair of mullions; a fixed share of the panes glows at night (ADR 0073)
+	const panes = Math.max(1, Math.round(width / mullion));
+	for (let i = 0; i < panes; i++) {
+		const offset = -width / 2 + (width / panes) * (i + 0.5);
+		const lit = windowIsLit(Math.round(cx * 3.1 + cy * 17.3 + cz * 5.7) * 64 + i);
+		const pane = alongX
+			? gbox(width / panes - 0.04, height, 0.12, cx + offset, cy, cz)
+			: gbox(0.12, height, width / panes - 0.04, cx, cy, cz + offset);
+		(lit ? p.glassLit : p.glass).push(pane);
+	}
 	if (alongX) {
-		p.glass.push(gbox(width, height, 0.12, cx, cy, cz));
 		for (let m = -width / 2; m <= width / 2 + 0.01; m += mullion) {
 			p.painted.push(box(0.16, height + 0.1, 0.22, cx + m, cy, cz, white));
 		}
 		p.painted.push(box(width, 0.14, 0.24, cx, cy + height / 2, cz, white));
 		p.painted.push(box(width, 0.14, 0.24, cx, cy - height / 2, cz, white));
 	} else {
-		p.glass.push(gbox(0.12, height, width, cx, cy, cz));
 		for (let m = -width / 2; m <= width / 2 + 0.01; m += mullion) {
 			p.painted.push(box(0.22, height + 0.1, 0.16, cx, cy, cz + m, white));
 		}
