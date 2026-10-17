@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import AppBar from '../../lib/hud/AppBar.svelte';
+	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
@@ -459,6 +460,7 @@
 			<div class="tc">
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
+				<BlackoutBadge level={model?.blackout ?? 0} />
 				<PrecompileBadge progress={graphics} />
 			</div>
 

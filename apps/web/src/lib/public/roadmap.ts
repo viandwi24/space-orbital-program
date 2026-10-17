@@ -44,10 +44,10 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '040',
-		title: 'Wreckage, plasma and trails',
+		plan: '070',
+		title: 'Communications',
 		gives:
-			'Debris that stays on the ground after a crash, re-entry plasma that wraps your vessel, a trail that hangs in the air and engines with more than one nozzle.',
+			'Antennas and a signal that can be lost: out of range, behind a planet or inside the glow of a re-entry, when a vessel without a link stops answering commands.',
 		area: 'Flight and look'
 	},
 	{

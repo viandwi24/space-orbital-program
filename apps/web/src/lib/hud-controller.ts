@@ -34,6 +34,7 @@ import {
 	situationLabel,
 	vesselThrottle
 } from './hud-model';
+import { vesselBlackout } from './blackout';
 import { radarReading } from './radar';
 import {
 	nextTarget,
@@ -112,6 +113,8 @@ export interface HudModel {
 	throttle: number;
 	/** Hottest part as a fraction of its limit. */
 	heat: number;
+	/** Loss of signal to the plasma around the vessel, 0..1 (plan 040, ADR 0079). */
+	blackout: number;
 	/** Stability assist state from the snapshot (plan 042); undefined before the sim reports it. */
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
@@ -444,6 +447,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				resources: cache.resources,
 				throttle: vesselThrottle(v.parts, localThrottle, content),
 				heat,
+				blackout: vesselBlackout(v.position, v.velocity, tele.altitude, body),
 				sas: v.sas,
 				controllable: hasControlSource(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),
