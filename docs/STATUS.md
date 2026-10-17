@@ -121,7 +121,7 @@
 | 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | done | Agent 3 | ADR 0102: descriptors, groups, custom groups |
 | 111 | [Vessel panel: Overview with group control, Parts with per-part actions](plans/111-vessel-panel-group-and-part-control.md) | draft | — | ADR 0102: Overview group switches, Parts tab |
 | 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | draft | — | ADR 0102: declarative mod panels, SDK canvas, dock |
-| 113 | [Mission Center: one place for the whole system](plans/113-mission-center.md) | in-progress | Agent 1 | ADR 0102: system map, tracking, upcoming, Fly |
+| 113 | [Mission Center: one place for the whole system](plans/113-mission-center.md) | done | Agent 1 | ADR 0102: system map, tracking, upcoming, Fly |
 | 114 | [Comms tier 1: antennas, line of sight, ground stations, control states](plans/114-comms-tier-1-model.md) | done | Agent 3 | ADR 0101/0179 tier 1: LOS, stations, probe control states, real blackout; handed over as `ready/114` |
 | 115 | [Comms tier 1 in the interface: link state, Comms tab, Network layer](plans/115-comms-tier-1-interface.md) | draft | — | ADR 0101: link badge, Comms tab, Network layer |
 | 116 | [Comms tier 2: link budget, bands, data rates, comms scale](plans/116-comms-tier-2-link-budget.md) | draft | — | ADR 0101 tier 2: Friis budget, bands, rates, inspector |
@@ -204,6 +204,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [113 — Mission Center: one place for the whole system](journal/113-mission-center.md)
 - [102 — Milestones, world history and local achievements](journal/102-milestones-history-and-achievements.md)
 - [069 — Mod-defined catalogue categories](journal/069-mod-defined-catalogue-categories.md)
 - [114 — Comms tier 1: antennas, line of sight, ground stations, control states](journal/114-comms-tier-1-model.md)

@@ -14,7 +14,7 @@
 | 090 buildings | done |  | 2026-10-17 | merged 2ba881b, cp/f2-090-buildings |
 | 068 terrain-aa | done | `lead/068-terrain-aa` | 2026-10-17 | merged b26f673, cp/f2-068-terrain-aa |
 | 091 space-center | done | `lead/091-space-center` | 2026-10-17 | merged d204a3d, cp/f2-091-space-center |
-| 113 mission-center | in-progress | `lead/113-mission-center` | 2026-10-18 | claim/113 |
+| 113 mission-center | done | `lead/113-mission-center` | 2026-10-17 | merged c21d52b, cp/f4-113-mission-center |
 | 122 sun | todo |  |  |  |
 | 096 building-levels | todo |  |  |  |
 | 109 eva | todo |  |  |  |

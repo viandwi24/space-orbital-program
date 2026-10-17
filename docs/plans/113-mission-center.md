@@ -1,7 +1,7 @@
 ---
 id: 113
 title: "Mission Center: one place for the whole system"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [080, 081, 086]
 phase: 7
