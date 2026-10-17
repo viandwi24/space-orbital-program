@@ -85,7 +85,7 @@ describe('placement at a site', () => {
 		expect(lat).toBeCloseTo(30 * DEG - 250 / 600_000, 5);
 		expect(v.terrainHeight).toBe(0);
 		expect(r0 - 600_000).toBeLessThan(5);
-		expect(home.id).toBe('stock.home');
+		expect(String(home.id)).toBe('stock.home');
 		sim.dispose();
 	});
 });
