@@ -153,7 +153,8 @@ describe('text floor (ADR 0109): no text token below 10 px at 100 %', () => {
 	}
 	it('size tokens are in rem (the UI scale is the root font size, ADR 0140)', () => {
 		const px = [...root.entries()].filter(
-			([n, v]) => /^--(s-\d|margin-|panel-|capsule$|round-|dot$|touch-|radius-)/.test(n) && /\dpx/.test(v)
+			([n, v]) =>
+				/^--(s-\d|margin-|panel-|capsule$|round-|dot$|touch-|radius-)/.test(n) && /\dpx/.test(v)
 		);
 		expect(px.map(([n]) => n)).toEqual(['--radius-pill']);
 	});
@@ -211,7 +212,14 @@ describe('contrast on glass, worst-case backdrop (4.5:1 body text, 3:1 large tex
 });
 
 describe('legacy names (ADR 0026) still pass their old pairs', () => {
-	const legacy = ['--text', '--text-dim', '--text-faint', '--c-accent', '--c-positive', '--c-warning'];
+	const legacy = [
+		'--text',
+		'--text-dim',
+		'--text-faint',
+		'--c-accent',
+		'--c-positive',
+		'--c-warning'
+	];
 	for (const t of [...legacy, '--c-danger', '--c-violet']) {
 		it(`${t} on the panel over white`, () => {
 			expect(contrast(rgb(t), glassOverWhite())).toBeGreaterThanOrEqual(4.5);

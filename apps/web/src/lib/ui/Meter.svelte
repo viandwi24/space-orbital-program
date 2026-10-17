@@ -29,14 +29,14 @@
 <style>
 	.meter {
 		position: relative;
-		height: 6px;
-		background: rgb(150 180 210 / 0.16);
-		border-radius: 2px;
+		height: 0.375rem;
+		background: var(--surface-track);
+		border-radius: var(--radius-pill);
 		overflow: hidden;
 	}
 	.vertical {
 		height: 100%;
-		width: 8px;
+		width: 0.5rem;
 	}
 	.fill {
 		position: absolute;
@@ -50,15 +50,15 @@
 		transform: scaleY(var(--v));
 	}
 	.accent {
-		--tone: var(--c-accent);
+		--tone: var(--accent);
 	}
 	.positive {
-		--tone: var(--c-positive);
+		--tone: var(--ok);
 	}
 	.warning {
-		--tone: var(--c-warning);
+		--tone: var(--warn);
 	}
 	.danger {
-		--tone: var(--c-danger);
+		--tone: var(--danger);
 	}
 </style>

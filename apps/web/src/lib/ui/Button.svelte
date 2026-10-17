@@ -12,57 +12,47 @@
 <button type="button" class="btn {variant}" {...rest}>{@render children()}</button>
 
 <style>
+	/* Refs buttons: secondary by default, primary in the selected white, destructive as danger text. */
 	.btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: var(--s-2);
-		min-height: 32px;
-		padding: 0 var(--s-3);
-		font-size: var(--t-sm);
-		font-weight: 500;
-		background: var(--panel-raised);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
-		transition:
-			background var(--dur-fast) var(--ease),
-			border-color var(--dur-fast) var(--ease);
+		min-height: var(--round-btn);
+		padding: 0 0.875rem;
+		font-size: var(--t-button);
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-button);
+		border: 0;
+		border-radius: var(--radius-row);
+		transition: background var(--dur-fast) var(--ease);
 	}
 	@media (pointer: coarse) {
 		.btn {
-			min-height: 44px;
+			min-height: var(--touch-min);
 		}
 	}
 	.btn:hover:not(:disabled) {
-		border-color: var(--c-accent);
-		background: rgb(92 207 255 / 0.12);
-	}
-	.btn:active:not(:disabled) {
-		background: rgb(92 207 255 / 0.22);
+		background: var(--surface-track);
 	}
 	.btn:disabled {
 		opacity: 0.45;
 	}
 	.primary {
-		background: var(--c-accent);
-		border-color: var(--c-accent);
-		color: var(--c-ink);
-		font-weight: 600;
+		background: var(--selected-bg);
+		color: var(--selected-fg);
 	}
 	.primary:hover:not(:disabled) {
-		background: #8be0ff;
-		border-color: #8be0ff;
+		background: var(--text-primary);
 	}
 	.danger {
-		border-color: var(--c-danger);
-		color: var(--c-danger);
-	}
-	.danger:hover:not(:disabled) {
-		background: rgb(255 114 114 / 0.14);
-		border-color: var(--c-danger);
+		color: var(--danger);
 	}
 	.ghost {
 		background: transparent;
-		border-color: transparent;
+	}
+	.ghost:hover:not(:disabled) {
+		background: var(--surface-hover);
 	}
 </style>
