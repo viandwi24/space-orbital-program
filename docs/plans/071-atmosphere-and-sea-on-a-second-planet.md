@@ -1,12 +1,12 @@
 ---
 id: 071
 title: "Atmosphere, sea and variety on a second hills planet"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [059, 122]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 071 — Atmosphere, sea and variety on a second hills planet
