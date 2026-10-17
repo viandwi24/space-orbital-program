@@ -59,9 +59,10 @@ Generated controls must never reorder while the player looks (stable by part ind
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/111-vessel-panel-group-and-part-control.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0153.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0102, 0107).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0153: descriptor controls in a stable order, a mixed group click turns it off, placement (top right; the right column below 1280 px), `highlightPart`.
