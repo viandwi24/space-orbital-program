@@ -36,14 +36,17 @@ test('the start page and the VAB load without errors', async ({ page }) => {
 });
 
 test('keyboard only (plan 089): Tab to Settings, open it, Escape returns focus to the menu', async ({
-	page
+	page,
+	browserName
 }) => {
+	// WebKit on macOS moves to buttons and links with Alt+Tab, as Safari does by default
+	const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
 	const errors = watchErrors(page);
 	await page.goto('/');
 	await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
 	const settings = page.getByTestId('menu-settings');
 	for (let i = 0; i < 20 && !(await settings.evaluate((el) => el === document.activeElement)); i++)
-		await page.keyboard.press('Tab');
+		await page.keyboard.press(tab);
 	await expect(settings).toBeFocused();
 	await page.keyboard.press('Enter');
 	await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
