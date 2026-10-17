@@ -85,7 +85,7 @@
 | 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | draft | — | ADR 0105: player-facing name only; identifiers stay `orbital` |
 | 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | draft | — | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
 | 076 | [Public roadmap page: the foundation roadmap by phase, without dates](plans/076-public-roadmap-foundation.md) | draft | — | ADR 0108: phases, labels, no dates |
-| 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | draft | — | ADR 0094/0050: world fields, SimSave 5, WorldStore, Legacy world |
+| 077 | [World container: worlds own saves, save format 5](plans/077-world-container-and-save-format-5.md) | in-progress | Agent 1 | ADR 0094/0050: world fields, SimSave 5, WorldStore, Legacy world |
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | draft | — | ADR 0094: defineRule/definePreset, set-rule, changelog |
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | draft | — | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |

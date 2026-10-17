@@ -8,14 +8,14 @@
  * thumbnails and names (the web client's envelope, `apps/web/src/lib/save`).
  */
 import * as z from 'zod';
-import { worldDataSchema } from './schemas.ts';
-import type { WorldData } from './world.ts';
+import { worldDataSchema, worldInfoSchema } from './schemas.ts';
+import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 4;
+export const SIM_SAVE_VERSION = 5;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -75,6 +75,8 @@ export interface SimSave {
 	accumulator: number;
 	/** 32-bit PRNG state (`Rng.state()`). */
 	rng: number;
+	/** The world this run belongs to (format 5, plan 077, ADR 0110). */
+	worldInfo: WorldInfo;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -122,6 +124,7 @@ export const simSaveSchema = z.object({
 	warpTarget: finite.nullable(),
 	accumulator: finite.refine((a) => a >= 0, 'accumulator must not be negative'),
 	rng: z.int().min(0).max(0xffffffff),
+	worldInfo: worldInfoSchema,
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)
@@ -156,7 +159,8 @@ export type SaveMigration = (data: Record<string, unknown>) => Record<string, un
  * The migration chain (versioning.md), keyed by the version a step upgrades from. 1 to 2 (plan 044,
  * ADR 0051): the single root `body` becomes the list `bodies`, and every frame says which body it
  * is centred on (`soi`, the root: a version 1 sim had no other). The version 1 fixture is
- * `packages/sim/test/fixtures/save-v1.json`.
+ * `packages/sim/test/fixtures/save-v1.json`. 4 to 5 (plan 077, ADR 0110): the save gets the Legacy
+ * world's `worldInfo`, with its own seed and the stock plugin version it lists.
  */
 export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 	1: (data) => {
@@ -209,6 +213,14 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 			? { ...world.components, 'sim.vessel': upgraded }
 			: world.components;
 		return { ...data, formatVersion: 4, world: { ...world, components } };
+	},
+	4: (data) => {
+		const seed = typeof data.seed === 'number' ? data.seed : 0;
+		const mods = Array.isArray(data.mods) ? data.mods : [];
+		const stock = mods.find((m) => isRecord(m) && m.id === 'stock');
+		const version =
+			isRecord(stock) && typeof stock.version === 'string' ? stock.version : undefined;
+		return { ...data, formatVersion: 5, worldInfo: legacyWorldInfo(seed, version) };
 	}
 };
 
@@ -272,11 +284,11 @@ export function readSimSave(
 		data = step(data);
 		version = data.formatVersion as number;
 	}
-	if (data !== raw) {
-		// Re-sign what the migrations produced, so reading the result again (createSim reads what the
-		// storage layer already read) checks it against its own bytes.
-		const { checksum: _old, ...body } = data;
-		data = { ...body, checksum: hashText(JSON.stringify(body)) };
+	if (isRecord(data.worldInfo) && data.worldInfo.gravityModel === 'n-body') {
+		throw new SaveError(
+			'incompatible',
+			'This save uses n-body gravity; n-body worlds are not available yet.'
+		);
 	}
 	const parsed = simSaveSchema.safeParse(data);
 	if (!parsed.success) {
@@ -284,6 +296,12 @@ export function readSimSave(
 			'damaged',
 			`This save is damaged: ${z.prettifyError(parsed.error).split('\n').slice(0, 3).join('; ')}`
 		);
+	}
+	if (data !== raw) {
+		// Re-sign what the migrations produced, in the key order the schema gave it, so reading the
+		// result again (createSim reads what the storage layer already read) checks its own bytes.
+		const { checksum: _old, ...body } = parsed.data;
+		return { ...body, checksum: hashText(JSON.stringify(body)) } as SimSave;
 	}
 	return parsed.data as SimSave;
 }

@@ -7,6 +7,7 @@
  * is created again, so the saved data is independent of the backend.
  */
 import {
+	cloneData,
 	SIM_SAVE_FORMAT,
 	SIM_SAVE_VERSION,
 	API_VERSION,
@@ -187,6 +188,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		warpTarget: core.warpTarget,
 		accumulator: core.accumulator,
 		rng: core.rng.state(),
+		worldInfo: cloneData(core.info),
 		world: core.world.serialize(),
 		frames
 	};

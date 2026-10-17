@@ -1,7 +1,8 @@
 /**
  * The web client's save record (ADR 0050 point 9): a `SimSave` plus what only the client knows -
- * a name, the kind of slot, a thumbnail and the vessel the player was flying. Everything read from
- * storage or a file is untrusted and goes through `parseGameSave`.
+ * a name, the kind of slot, a thumbnail and the vessel the player was flying. Version 2 (plan 077,
+ * ADR 0110) adds the world that owns the save. Everything read from storage or a file is untrusted
+ * and goes through `parseGameSave`.
  */
 import {
 	readSimSave,
@@ -13,7 +14,7 @@ import {
 } from '@orbital/core';
 
 export const GAME_SAVE_FORMAT = 'orbital-game-save';
-export const GAME_SAVE_VERSION = 1;
+export const GAME_SAVE_VERSION = 2;
 
 /** `quick`: the one F5 slot. `auto`: the rotating autosaves. `manual`: named by the player. */
 export type SaveKind = 'quick' | 'auto' | 'manual';
@@ -39,6 +40,8 @@ export interface SaveMeta {
 	id: string;
 	name: string;
 	kind: SaveKind;
+	/** The world record that owns the save (`sim.worldInfo.id`); null for a version 1 save not yet attached. */
+	worldId: string | null;
 	createdAt: number;
 	summary: SaveSummary;
 	/** Small JPEG data URL of the flight view, or null. */
@@ -111,6 +114,7 @@ export function buildGameSave(input: BuildInput): GameSave {
 		id: input.id,
 		name: input.name,
 		kind: input.kind,
+		worldId: input.sim.worldInfo.id,
 		createdAt: input.createdAt,
 		summary: summarise(input.sim, input.focus, input.bodyRadius),
 		thumbnail: input.thumbnail,
@@ -152,6 +156,11 @@ export function parseMeta(raw: unknown): SaveMeta {
 	if (raw.kind !== 'quick' && raw.kind !== 'auto' && raw.kind !== 'manual') {
 		throw damaged('its slot kind is unknown');
 	}
+	// Version 1 had no world: such a save is unassigned until the client migration attaches it.
+	const worldId = raw.worldId ?? null;
+	if (worldId !== null && (typeof worldId !== 'string' || worldId === '')) {
+		throw damaged('the world it belongs to is unreadable');
+	}
 	if (typeof raw.createdAt !== 'number' || !Number.isFinite(raw.createdAt)) {
 		throw damaged('it has no date');
 	}
@@ -170,6 +179,7 @@ export function parseMeta(raw: unknown): SaveMeta {
 		id: raw.id,
 		name: raw.name,
 		kind: raw.kind,
+		worldId,
 		createdAt: raw.createdAt,
 		summary: raw.summary,
 		thumbnail: raw.thumbnail,
@@ -190,6 +200,8 @@ export function parseGameSave(raw: unknown): GameSave {
 	const sim = readSimSave(record.sim);
 	return {
 		...meta,
+		// A version 1 envelope: its payload migrated into the Legacy world (ADR 0110), so it is that world's.
+		worldId: meta.worldId ?? sim.worldInfo.id,
 		focus,
 		design: design.data,
 		sim
