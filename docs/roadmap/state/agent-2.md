@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 087 worlds-screen (claim/087): worlds list and details first, then Create World.
-**Waiting for:** merge of 084 (`ready/084`).
+**Now:** 087 merged (`cp/f2-087-worlds-screen`); next in lane: 088 hud (its waits, 086 and 081, have landed).
+**Waiting for:** — (074, 081, 084, 086, 087 all merged).
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
