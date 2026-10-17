@@ -54,6 +54,59 @@ export interface SaveFrame {
 	bodies: SaveBody[];
 }
 
+/** One started contract or mission (plan 098). */
+export interface SaveActiveObjective {
+	id: string;
+	source: { kind: 'contract' | 'mission'; id: string };
+	vessel?: number;
+	startedAt: number;
+	deadline?: number;
+	status: 'active' | 'done' | 'failed';
+	progress: number;
+	/** Leaf results by tree path. */
+	leaves: Record<
+		string,
+		{
+			status: 'active' | 'done' | 'failed';
+			progress: number;
+			data?: Record<string, boolean | number | string>;
+		}
+	>;
+	finishedAt?: number;
+}
+
+export interface SaveObjectives {
+	/** Counter for instance ids (`o1`, `o2`, ...). */
+	next: number;
+	active: SaveActiveObjective[];
+	finished: SaveActiveObjective[];
+}
+
+const objectiveStatus = z.enum(['active', 'done', 'failed']);
+const saveActiveObjectiveSchema = z.object({
+	id: z.string().min(1),
+	source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
+	vessel: z.int().optional(),
+	startedAt: z.number(),
+	deadline: z.number().optional(),
+	status: objectiveStatus,
+	progress: z.number().min(0).max(1),
+	leaves: z.record(
+		z.string(),
+		z.object({
+			status: objectiveStatus,
+			progress: z.number().min(0).max(1),
+			data: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])).optional()
+		})
+	),
+	finishedAt: z.number().optional()
+});
+export const saveObjectivesSchema = z.object({
+	next: z.int().min(1),
+	active: z.array(saveActiveObjectiveSchema),
+	finished: z.array(saveActiveObjectiveSchema)
+});
+
 export interface SaveWorldTick {
 	lastDay: number;
 	/** System id to 32-bit stream state. */
@@ -91,6 +144,8 @@ export interface SimSave {
 	worldTick?: SaveWorldTick;
 	/** Ledger and balances (plan 095, ADR 0113); optional in format 5, absent = a fresh ledger. */
 	economy?: SaveEconomy;
+	/** Started objectives (plan 098, ADR 0175 point 8); optional in format 5, absent = none. */
+	objectives?: SaveObjectives;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -146,6 +201,7 @@ export const simSaveSchema = z.object({
 		})
 		.optional(),
 	economy: saveEconomySchema.optional(),
+	objectives: saveObjectivesSchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

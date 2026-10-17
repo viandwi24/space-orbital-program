@@ -246,7 +246,10 @@ describe('registration and report', () => {
 			charge: [],
 			'data-kind': [],
 			'action-group': [],
-			building: []
+			building: [],
+			objective: [],
+			contract: [],
+			mission: []
 		});
 	});
 

@@ -25,6 +25,14 @@ import {
 } from './rules.ts';
 import { buildingDefinitionSchema, type BuildingDefinition } from './buildings.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
+import {
+	contractDefinitionSchema,
+	missionDefinitionSchema,
+	objectiveDefinitionSchema,
+	type ContractDefinition,
+	type MissionDefinition,
+	type ObjectiveDefinition
+} from './objectives.ts';
 import { dataKindDefinitionSchema, type DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 
@@ -185,6 +193,10 @@ export interface Registries {
 	presets: Registry<PresetDefinition>;
 	/** Scheduled income and costs (plan 095, ADR 0113). */
 	charges: Registry<ChargeDefinition>;
+	/** Objectives, contracts and missions (plan 098, ADR 0175). */
+	objectives: Registry<ObjectiveDefinition>;
+	contracts: Registry<ContractDefinition>;
+	missions: Registry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: Registry<DataKindDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
@@ -209,6 +221,11 @@ export function createRegistries(): Registries {
 		actionGroups: createRegistry<ActionGroupDefinition>('action-group', {
 			schema: actionGroupDefinitionSchema
 		}),
-		buildings: createRegistry<BuildingDefinition>('building', { schema: buildingDefinitionSchema })
+		buildings: createRegistry<BuildingDefinition>('building', { schema: buildingDefinitionSchema }),
+		objectives: createRegistry<ObjectiveDefinition>('objective', {
+			schema: objectiveDefinitionSchema
+		}),
+		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
+		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema })
 	};
 }

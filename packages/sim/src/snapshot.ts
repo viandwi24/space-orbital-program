@@ -22,6 +22,7 @@ import {
 } from './core.ts';
 import { dataUse, storagesOf } from './data.ts';
 import { actionsSnapshot } from './actions.ts';
+import { objectivesSnapshot } from './objectives.ts';
 import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { bodyOfVessel, systemPosition } from './bodies.ts';
@@ -147,6 +148,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 }
 
 export function takeSnapshot(core: SimCore): Snapshot {
+	const objectives = objectivesSnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -157,7 +159,8 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		})),
 		rules: rulesView(core),
 		economy: economySnapshot(core),
-		sites: sitesSnapshot(core)
+		sites: sitesSnapshot(core),
+		...(objectives ? { objectives } : {})
 	};
 }
 

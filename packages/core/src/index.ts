@@ -31,6 +31,7 @@ export * from './stones.ts';
 export * from './semver.ts';
 export * from './data.ts';
 export * from './action-groups.ts';
+export * from './objectives.ts';
 export * from './patch.ts';
 export * from './plugin.ts';
 export * from './save.ts';

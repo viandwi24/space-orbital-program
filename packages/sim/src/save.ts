@@ -193,6 +193,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		worldInfo: cloneData(core.info),
 		worldTick: saveTickState(core.ticks),
 		economy: cloneData(core.economy),
+		...(core.objectives.state.next > 1 ? { objectives: cloneData(core.objectives.state) } : {}),
 		world: core.world.serialize(),
 		frames
 	};

@@ -10,6 +10,7 @@ import type { Vec3 } from './math.ts';
 import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
+import type { ContractDefinition, MissionDefinition, ObjectiveDefinition } from './objectives.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
@@ -69,6 +70,10 @@ export interface ReadonlyRegistries {
 	rules: ReadonlyRegistry<RuleDefinition>;
 	presets: ReadonlyRegistry<PresetDefinition>;
 	charges: ReadonlyRegistry<ChargeDefinition>;
+	/** Objectives, contracts and missions (plan 098, ADR 0175). */
+	objectives: ReadonlyRegistry<ObjectiveDefinition>;
+	contracts: ReadonlyRegistry<ContractDefinition>;
+	missions: ReadonlyRegistry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: ReadonlyRegistry<DataKindDefinition>;
 	/** Action groups (plan 110, ADR 0174). */

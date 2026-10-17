@@ -32,6 +32,19 @@ export interface EventMap {
 		to: boolean | number | string;
 		time: number;
 	};
+	/** A started contract or mission finished its objectives (plan 098, ADR 0175). */
+	'objective:completed': {
+		id: string;
+		source: { kind: 'contract' | 'mission'; id: string };
+		time: number;
+	};
+	/** A started contract or mission failed (a failed leaf or a passed deadline). */
+	'objective:failed': {
+		id: string;
+		source: { kind: 'contract' | 'mission'; id: string };
+		time: number;
+		reason: string;
+	};
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */
 	'data:stored': { vessel: EntityId; part: EntityId; item: string };
 	/** A data item could not be stored and is lost (`reason: 'full'`: no storage had room). */

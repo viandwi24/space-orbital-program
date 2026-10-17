@@ -19,6 +19,7 @@ import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
 import { deleteData, moveData } from './data.ts';
 import { applyActionGroup } from './actions.ts';
+import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
 import { placeBuilding, removeBuilding } from './buildings.ts';
@@ -315,6 +316,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			refreshColliders(core, command.vessel);
 			return result;
 		}
+		case 'objective-start':
+			return startObjective(core, command.source, command.vessel);
 		case 'move-data':
 		case 'delete-data': {
 			if (!core.world.get(command.vessel, VESSEL))
