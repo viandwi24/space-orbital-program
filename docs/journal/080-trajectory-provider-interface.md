@@ -41,4 +41,15 @@ Neither got slower; the differences are within the run-to-run noise.
 
 ## Verification output
 
-See the `ready/080` tag message.
+```text
+bun test packages/kepler                                   84 pass, 0 fail (incl. trajectory.test.ts)
+bun test packages/sim                                      all pass; goldens: 2 snapshots unchanged
+bunx vitest run src/lib/trajectory-golden.test.ts src/lib/map-path.test.ts src/lib/rendezvous-aids.test.ts src/lib/maneuver-controller.test.ts src/lib/script-api.test.ts
+                                                           Test Files 5 passed, Tests 33 passed
+bun run docs:check                                         docs-check: OK
+bun run test                                               1404 pass, 0 fail (178 s)
+bun run typecheck                                          exit 0 (60 s)
+bun run build                                              exit 0
+bun run --filter @orbital/web test                         880 passed, 1 skipped; editor-options, settings and WarpControl
+                                                           (imports settings since 081) fail at import here only (no Node)
+```
