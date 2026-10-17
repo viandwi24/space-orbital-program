@@ -50,21 +50,22 @@ Every effect has a visible cause in the crew card.
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/life-support.test.ts`: a 3-crew cabin with N days of supplies reports a time left within 1 % of `N × day / 3`, and `crew:shortage` comes at that time, at warp 1 and at warp 1e5.
-- [ ] Same file: with life support `off` nothing is consumed; with `full`, too few scrubbers give a `co2` shortage.
-- [ ] Same file: a save taken mid-shortage resumes with the same `since`, and the member is lost at `since + grace`.
-- [ ] Same file: morale and fatigue follow the stated closed forms; a hard burn above the tolerance gives `crew:g-loc`.
+- [x] `bun test packages/sim/test/life-support.test.ts`: a 3-crew cabin with N days of supplies reports a time left within 1 % of `N × day / 3`, and `crew:shortage` comes at that time, at warp 1 and at warp 1e5.
+- [x] Same file: with life support `off` nothing is consumed; with `full`, too few scrubbers give a `co2` shortage.
+- [x] Same file: a save taken mid-shortage resumes with the same `since`, and the member is lost at `since + grace`.
+- [x] Same file: morale and fatigue follow the stated closed forms; a hard burn above the tolerance gives `crew:g-loc`.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/107-crew-simulation-life-support-morale-rest.md` written.
-- [ ] `architecture/simulation.md`, `guides/writing-a-mod.md` (scrubbers, consumables).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/107-crew-simulation-life-support-morale-rest.md` written.
+- [x] `architecture/simulation.md`, `guides/writing-a-mod.md` (scrubbers, consumables).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0100).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
 - 2026-10-18 — Refined and claimed by Agent 3. The rules and presets already exist (078/109). Consumption is exact piecewise-linear integration, not per-step, so warp dates a run-out correctly. CO2 is a scrubbing check, not a stored gas. The stock pod is unchanged, because the launch flow seats nobody until 108. Design choices go in ADR 0181.
+- 2026-10-18 — Implemented by Agent 3 and handed over as `ready/107`. Exact integration under warp. The pod is unchanged until 108 seats crew. The crew card shows condition and causes only when crew is aboard. Journal: `journal/107-crew-simulation-life-support-morale-rest.md`.

@@ -115,7 +115,7 @@
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | done | Agent 3 | ADR 0099/0180: regions, subjects per region, dossiers, body card; map overlay in 192; handed over as `ready/104` |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
-| 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | in-progress | Agent 3 | ADR 0100: each aspect a rule; Career full by default |
+| 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | in-progress | Agent 3 | ADR 0100/0181: exact life support under warp, shortages, morale, fatigue, g-load, dose, crew card; handed over as `ready/107` |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
 | 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
 | 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | done | Agent 3 | ADR 0102: descriptors, groups, custom groups |
