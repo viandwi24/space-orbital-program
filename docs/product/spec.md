@@ -23,6 +23,7 @@ After 1.0 the game grows from a flight simulator into a space programme (the fou
 
 ## 3. Core loop (MVP)
 
+0. **Choose or create a world** (plan 087, ADR 0143): the Worlds screen lists the player's worlds, the one played last first; Create World picks a mode (a preset), the star system, the start date, the gravity model (n-body "Coming soon") and every rule. Entering a world opens its newest save, or the hangar when it has none; every launch and save then belongs to that world. Continue on the main menu enters the world played last.
 1. In the **Vehicle Assembly** view, attach stock parts (tank, engine, decoupler, command pod, …) into a vessel. Stages are assigned.
 2. **Launch** from the surface of the home planet. Throttle, pitch/yaw/roll, stage.
 3. Physics is simulated as one rigid vessel (a compound body, split when a decoupler fires, ADR 0018) while under thrust or in atmosphere; once coasting in vacuum the vessel goes **on rails** (Keplerian orbit) and **time warp** becomes available.
