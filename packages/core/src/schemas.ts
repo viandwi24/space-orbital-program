@@ -5,6 +5,7 @@
 import * as z from 'zod';
 import { DEFINITION_ID_PATTERN, PLUGIN_ID_PATTERN } from './ids.ts';
 import { assetPathSchema } from './mod-assets.ts';
+import { siteSchema } from './sites.ts';
 
 export const definitionIdSchema = z
 	.string()
@@ -40,7 +41,7 @@ export const worldInfoSchema = z.object({
 		fraction: z.number().min(0).lt(1)
 	}),
 	rules: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
-	sites: z.array(z.looseObject({ id: z.string().min(1) })),
+	sites: z.array(siteSchema),
 	/** Plan 078 (ADR 0111): additive in format 5, so a save without them reads with the defaults. */
 	preset: z.string().min(1).default('stock.sandbox'),
 	changelog: z

@@ -16,7 +16,8 @@ export const SEA_LEVEL = 0.46;
 export const BEACH_WIDTH = 0.018;
 /** Elevation above which rock and snow take over. */
 export const HIGHLAND = 0.82;
-const SEED = 20261016;
+/** Seed of the map and terrain of the Legacy world (ADR 0142 point 2); other worlds use their seed. */
+export const LEGACY_TERRAIN_SEED = 20261016;
 
 export type Biome = 'ocean' | 'beach' | 'grass' | 'forest' | 'desert' | 'rock' | 'snow';
 
@@ -58,18 +59,29 @@ const direction = (lat: number, lon: number): [number, number, number] => [
 	-Math.cos(lat) * Math.sin(lon)
 ];
 
+/** What a map is generated from: the terrain seed and the sites cleared to grassland (rad). */
+export interface PlanetMapOptions {
+	/** Default the Legacy seed. */
+	seed?: number;
+	/** Sites to clear, default one at (0, 0); only their latitude and longitude matter. */
+	zones?: readonly { latitude: number; longitude: number }[];
+}
+
 /**
- * Generates the map. `siteLatitude/Longitude` is flattened to grass so the pad is never on a
- * coast, a desert or a mountain.
+ * Generates the map. Each zone is flattened to grass so a pad is never on a coast, a desert or a
+ * mountain (the strongest clearing wins where two overlap).
  */
-export function generatePlanetMap(width: number, siteLatitude = 0, siteLongitude = 0): PlanetMap {
+export function generatePlanetMap(width: number, options: PlanetMapOptions = {}): PlanetMap {
+	const seed = options.seed ?? LEGACY_TERRAIN_SEED;
+	const zones = options.zones ?? [{ latitude: 0, longitude: 0 }];
 	const height = Math.max(1, Math.floor(width / 2));
 	const n = width * height;
 	const elev = new Float32Array(n);
 	const moist = new Float32Array(n);
 	const temp = new Float32Array(n);
 	const rock = new Float32Array(n);
-	const site = direction(siteLatitude, siteLongitude);
+	const sites = zones.map((z) => direction(z.latitude, z.longitude));
+	/** Angle to the nearest site, rad (the clearing falls with it). */
 	const siteAngle = new Float32Array(n);
 	for (let j = 0; j < height; j++) {
 		const lat = ((j + 0.5) / height - 0.5) * Math.PI;
@@ -78,16 +90,21 @@ export function generatePlanetMap(width: number, siteLatitude = 0, siteLongitude
 			const [x, y, z] = direction(lat, lon);
 			const k = j * width + i;
 			elev[k] =
-				0.8 * fbm3(x * 1.7, y * 1.7, z * 1.7, 6, SEED) +
-				0.2 * fbm3(x * 7, y * 7, z * 7, 4, SEED + 3);
-			moist[k] = fbm3(x * 2.3 + 11, y * 2.3, z * 2.3, 5, SEED + 7);
+				0.8 * fbm3(x * 1.7, y * 1.7, z * 1.7, 6, seed) +
+				0.2 * fbm3(x * 7, y * 7, z * 7, 4, seed + 3);
+			moist[k] = fbm3(x * 2.3 + 11, y * 2.3, z * 2.3, 5, seed + 7);
 			const climate = 1 - Math.abs(lat) / (Math.PI / 2);
 			temp[k] = Math.min(
 				1,
-				Math.max(0, climate * 1.15 - 0.1 + (fbm3(x * 3, y * 3, z * 3, 3, SEED + 11) - 0.5) * 0.25)
+				Math.max(0, climate * 1.15 - 0.1 + (fbm3(x * 3, y * 3, z * 3, 3, seed + 11) - 0.5) * 0.25)
 			);
-			rock[k] = fbm3(x * 5 + 3, y * 5, z * 5, 4, SEED + 13);
-			siteAngle[k] = Math.acos(Math.min(1, Math.max(-1, x * site[0] + y * site[1] + z * site[2])));
+			rock[k] = fbm3(x * 5 + 3, y * 5, z * 5, 4, seed + 13);
+			let near = Infinity;
+			for (const site of sites) {
+				const angle = Math.acos(Math.min(1, Math.max(-1, x * site[0] + y * site[1] + z * site[2])));
+				if (angle < near) near = angle;
+			}
+			siteAngle[k] = near;
 		}
 	}
 	// Histogram equalisation (area weighted) so that elevation < SEA_LEVEL is exactly the ocean share.
@@ -149,12 +166,16 @@ export function sampleMap(
 
 const cache = new Map<string, PlanetMap>();
 
-/** `generatePlanetMap` memoised per size and site (the map is deterministic and treated as read-only). */
-export function cachedPlanetMap(width: number, siteLatitude = 0, siteLongitude = 0): PlanetMap {
-	const key = `${width}|${siteLatitude}|${siteLongitude}`;
+/** `generatePlanetMap` memoised per size, seed and sites (deterministic, treated as read-only). */
+export function cachedPlanetMap(width: number, options: PlanetMapOptions = {}): PlanetMap {
+	const seed = options.seed ?? LEGACY_TERRAIN_SEED;
+	const sites = (options.zones ?? [{ latitude: 0, longitude: 0 }])
+		.map((z) => `${z.latitude},${z.longitude}`)
+		.join(';');
+	const key = `${width}|${seed}|${sites}`;
 	let map = cache.get(key);
 	if (!map) {
-		map = generatePlanetMap(width, siteLatitude, siteLongitude);
+		map = generatePlanetMap(width, options);
 		cache.set(key, map);
 	}
 	return map;
