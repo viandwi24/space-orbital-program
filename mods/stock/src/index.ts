@@ -44,6 +44,7 @@ import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
 import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
+import { STOCK_SITE_TEMPLATES } from './site-templates.ts';
 import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
@@ -73,6 +74,7 @@ export const Stock = definePlugin({
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);
+		for (const template of STOCK_SITE_TEMPLATES) ctx.siteTemplates.register(template);
 		for (const trait of STOCK_CREW_TRAITS) ctx.crewTraits.register(trait);
 		ctx.crewNames.register(STOCK_CREW_NAMES);
 		for (const group of STOCK_ACTION_GROUPS) ctx.actionGroups.register(group);
@@ -121,6 +123,7 @@ export * from './costs.ts';
 export * from './charges.ts';
 export * from './buildings.ts';
 export * from './data.ts';
+export * from './site-templates.ts';
 export * from './crew.ts';
 export * from './action-groups.ts';
 export * from './objectives.ts';

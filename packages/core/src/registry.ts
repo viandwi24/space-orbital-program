@@ -24,6 +24,7 @@ import {
 	type RuleDefinition
 } from './rules.ts';
 import { buildingDefinitionSchema, type BuildingDefinition } from './buildings.ts';
+import { siteTemplateDefinitionSchema, type SiteTemplateDefinition } from './site-templates.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import {
 	contractDefinitionSchema,
@@ -209,6 +210,8 @@ export interface Registries {
 	actionGroups: Registry<ActionGroupDefinition>;
 	/** Buildings (plan 090, ADR 0115). */
 	buildings: Registry<BuildingDefinition>;
+	/** Site templates (plan 092, ADR 0177). */
+	siteTemplates: Registry<SiteTemplateDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: Registry<CrewTraitDefinition>;
 	crewNames: Registry<CrewNamesDefinition>;
@@ -231,6 +234,9 @@ export function createRegistries(): Registries {
 			schema: actionGroupDefinitionSchema
 		}),
 		buildings: createRegistry<BuildingDefinition>('building', { schema: buildingDefinitionSchema }),
+		siteTemplates: createRegistry<SiteTemplateDefinition>('site-template', {
+			schema: siteTemplateDefinitionSchema
+		}),
 		objectives: createRegistry<ObjectiveDefinition>('objective', {
 			schema: objectiveDefinitionSchema
 		}),

@@ -67,3 +67,4 @@ The resolver is deterministic from the seed so the same world gets the same spot
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097).
 - 2026-10-17 — Refined and claimed by Agent 3. The globe picker is a template list plus latitude and longitude fields with the consequences panel (a map preview is left to the menu and Space Center plans). The abstract transfer between sites moves to 128, which brings site membership. The resolver reads the biome map without zones, because zones clear the map to grass. A founded site's flat zone applies from the next load, because terrain is built at `createSim`. Design choices go in ADR 0177.
+- 2026-10-17 — Deviation: the 20-seed test is `packages/sim/test/site-templates.test.ts`, not under `mods/stock/test`, because `mods/stock` has no dependency on `@orbital/core` (the terrain field), as in 079.

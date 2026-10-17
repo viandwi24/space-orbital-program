@@ -16,6 +16,7 @@ import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
 import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
+import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { World } from './world.ts';
 import type {
@@ -80,6 +81,8 @@ export interface ReadonlyRegistries {
 	/** Action groups (plan 110, ADR 0174). */
 	actionGroups: ReadonlyRegistry<ActionGroupDefinition>;
 	buildings: ReadonlyRegistry<BuildingDefinition>;
+	/** Site templates (plan 092, ADR 0177). */
+	siteTemplates: ReadonlyRegistry<SiteTemplateDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;
