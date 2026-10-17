@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 107 crew simulation handed over as `ready/107` (branch `devc/107-crew-sim` @ 826a267); two handovers open (104, 107), so the next plan waits for a merge and the owner's go.
+**Now:** 067 buoyancy on `devc/067-buoyancy` (claim/067): plan refined, draft 193 created; next ADR 0182 and waterAt in core.
 **Waiting for:** merges of 104 (`ready/104`) and 107 (`ready/107`).
 **Updated:** 2026-10-17
 
@@ -21,7 +21,7 @@
 | 114 comms-1 | done | `devc/114-comms` | 2026-10-18 | merged 23e3c4a, cp/f4-114-comms-1 |
 | 104 regions | handed-over | `devc/104-regions` | 2026-10-18 | ready/104; API 0.1.45; draft 192 |
 | 107 crew-sim | handed-over | `devc/107-crew-sim` | 2026-10-18 | ready/107; API 0.1.45 |
-| 067 buoyancy | todo |  |  |  |
+| 067 buoyancy | in-progress | `devc/067-buoyancy` | 2026-10-18 | claim/067; draft 193 |
 | 123 elements | todo |  |  |  |
 | 099 contracts | todo |  |  |  |
 | 101 strategies | todo |  |  |  |
