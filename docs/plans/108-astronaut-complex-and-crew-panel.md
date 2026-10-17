@@ -48,17 +48,17 @@ Stats shown are the model's real values; unknowns are `[—]`.
 
 ## Acceptance criteria
 
-- [ ] vitest: the roster filters by profession; recruiting adds a member and books the cost (sim with the economy on).
-- [ ] vitest: the crew panel lists the focused vessel's crew with IVA chips.
-- [ ] `bun run e2e` (Chromium): assign two crew at Launch and see them in flight.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: the roster filters by profession; recruiting adds a member and books the cost (sim with the economy on).
+- [x] vitest: the crew panel lists the focused vessel's crew with IVA chips.
+- [x] `bun run e2e` (Chromium): assign two crew at Launch and see them in flight.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/108-astronaut-complex-and-crew-panel.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/108-astronaut-complex-and-crew-panel.md` written.
 
-- [ ] ADR 0152.
+- [x] ADR 0152.
 
 ## Log
 
@@ -67,3 +67,4 @@ Stats shown are the model's real values; unknowns are `[—]`.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0152: a launch with a save resumes the world's newest save (crew, ledger, missions carry on); Applicants are the professions; Dismiss waits for the sim.
 - 2026-10-18 — Contract request: `crew-dismiss { member }` (sim protocol, base plan 106) to let a member go; plan 108 shows no Dismiss until it lands.
+- 2026-10-18 — Done on the branch: `/astronauts`, launch into the world's newest save with crew, seats at Launch, crew panel chips, the Space Center link. Dismiss waits for the contract request. Journal: [108](../journal/108-astronaut-complex-and-crew-panel.md).
