@@ -89,7 +89,7 @@
 | 078 | [World rules, presets and the rule changelog](plans/078-world-rules-presets-and-changelog.md) | done | Agent 1 | ADR 0111: `defineRule`/`definePreset`, 22 stock rules and 4 presets, values in `WorldInfo.rules`, `set-rule` + changelog + `world:rule-changed`, `Snapshot.rules`; API 0.1.27 |
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
-| 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
+| 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | done | Agent 2 (Dev B, M2) | ADR 0103: epoch, calendar, date in HUD and scripts |
 | 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
@@ -170,7 +170,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
-- **Day length** (Agent 3, plan 082 handover): plan 081 (calendar) should use or replace `dayLength` in `packages/sim/src/tick.ts` so dates and world ticks agree.
+- **Tick epoch** (081 contract request, deferred): the world tick reads the epoch in tick days, ADR 0141 in SI days from J2000; the Lead lands `cp/f1-contract-tick-epoch` (tick.ts, `dayLength` from `calendarOf`) before 087 merges.
 - **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).
 - **Flight-view frame intervals over budget on the M5** (Agent 1, measured for 086's blur check, journal 086): on the pad, whole-page rAF intervals of 28 ms on `high` and 34 ms on `medium` at 961 × 930, DPR 2 (ADR 0053: 16.7 and 13.3 ms), and `medium` slower than `high`. Not caused by the glass (≤ 0.4 ms). Needs a renderer pass with `renderer.benchmark` and a Chrome trace to split WebGL, HUD, Worker and compositing.
 - **Root `bun test` collects `apps/web` vitest files** and fails them under Bun (`$state`, zod named imports); the checks are `bun run test` plus the web vitest. Candidate fix: a root `bunfig.toml` test root or a `bun test` guard script.
@@ -199,6 +199,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [081 — Calendar and world epoch: dates in the game](journal/081-calendar-and-world-epoch.md)
 - [095 — Economy core: currencies, ledger, part costs and recovery](journal/095-economy-core-currencies-ledger-costs.md)
 - [082 — World tick and background operations](journal/082-world-tick-and-background-operations.md)
 - [074 — Rename the product to Space Orbital Program](journal/074-rename-space-orbital-program.md)
