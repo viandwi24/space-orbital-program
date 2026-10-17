@@ -89,4 +89,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0069 | [An ozone absorption layer in the atmosphere model, the sun-depth table and the shaders](0069-ozone-layer-in-the-atmosphere-model.md) | accepted | 2026-10-17 |
 | 0070 | [Light shafts: a second march that reads a baked cloud-coverage map](0070-light-shafts-from-baked-cloud-coverage.md) | accepted | 2026-10-17 |
 | 0071 | [Design format 3: connector parts (struts, fuel lines), tilted parts, radial attachment to boxes](0071-format-3-connector-parts-tilt-and-box-radial.md) | accepted | 2026-10-17 |
+| 0076 | [Mod packages carry glTF models; asset parts get plume and gimbal; fit checks warn](0076-mod-packages-carry-glb-models.md) | accepted | 2026-10-17 |
 | 0075 | [Wing lift: finite-wing slope, stall and induced drag in `stock.wing`](0075-wing-lift-and-drag-polar.md) | accepted | 2026-10-17 |

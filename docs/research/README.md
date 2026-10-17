@@ -11,6 +11,7 @@ Facts about the outside world that the code depends on, each with **the source U
 - `atmosphere.md` — ISA sea-level constants behind the sim density, zod 4 number validation (plan 007).
 - `web-client.md` — Vite worker import, Rapier in a module worker, SvelteKit page options, Svelte 5 runes, vitest config (plan 009).
 - `scripting.md` — Worker vs QuickJS-WASM vs ShadowRealm for the scripting sandbox; `quickjs-emscripten` API and measured interrupt latency (plan 010).
+- `mod-assets.md` — glTF from bytes, embedded textures under the production CSP, decoders a package cannot carry, IndexedDB quota for mod packages (plan 051).
 - `soi-and-moon.md` — Laplace sphere of influence, patched-conic continuity, reference moon data (plan 044).
 - `reentry-heating.md` — Sutton-Graves stagnation heating, Stefan-Boltzmann radiation, aluminium skin, KSP limits for scale (plan 014).
 - Topic files (`sveltekit.md`, …) — created by the plan that first needs them; keep each to what we actually use.

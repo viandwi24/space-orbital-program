@@ -79,10 +79,10 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Scripting and mods'
 	},
 	{
-		plan: '051',
-		title: 'Mods with their own models',
+		plan: '065',
+		title: 'Richer mod models',
 		gives:
-			'A mod can ship new part shapes or glTF models inside its package instead of reusing the stock shapes with new colours.',
+			'Mod models that fold out like landing legs, and compressed textures so bigger models stay light.',
 		area: 'Scripting and mods'
 	}
 ];

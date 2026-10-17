@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 051, 055 to 063. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 038, 040, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -61,7 +61,8 @@
 | 046 | [Runtime mod loading and mod manager](plans/046-runtime-mod-loading.md) | done | mods session (Claude, 2026-10-17) | ADR 0057, API 0.1.15: one `.orbital-mod.json` (manifest + bundled code + SHA-256), trust prompt before anything runs, `/mods` manager (enable/disable/remove, reload to apply), same bundles boot in page and sim Worker, a failing mod never stops the game, saves say which mod is off/failed/missing; `examples/mod-sample` (part, module, script) built by `tools/mod-build`; mods are trusted code, not sandboxed; mod geometry is draft 051 |
 | 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | done | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
 | 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | done | half-res session (Claude, 2026-10-17) | ADR 0064: depth-aware half-resolution planet pass as governor rungs (high pad 15.5 to 8.9 ms, hillside 14.0 to 6.3); `medium` cloud shadows measured and not adopted (+1.0 ms, over budget); M1/M2/Intel not available |
-| 051 | [Mod-supplied part visuals and assets](plans/051-mod-visuals-and-assets.md) | draft | — | from 046: new generators or glTF inside a mod package (today a mod part reuses the stock generators with its own palette) |
+| 051 | [Mod-supplied part visuals and assets](plans/051-mod-visuals-and-assets.md) | done | mod-assets session (Claude, 2026-10-17) | ADR 0076, API 0.1.20: a package (format 2, still one JSON file) carries `.glb` models as hashed base64, capped (2 MiB each, 6 MiB, 50 000 triangles), checked before the trust prompt, which lists them; `visual.asset` with `kind` as fallback; asset parts get plume, gimbal pivot, glow and fit warnings; sample spike engine generated in code; installed and flown in the browser under the production CSP; deploy animations, KTX2, LOD in draft 065 |
+| 065 | [Richer mod models](plans/065-richer-mod-models.md) | draft | — | from 051: deploy animations, KTX2, LOD and instancing for mod models |
 | 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | done | audio session (Claude, 2026-10-17) | ADRs 0061 (binding table of 49 actions, settings format 2), 0062 (code-only Web Audio: engine and rumble by throttle and pressure, wind, thunk, ticks, warnings; locked until a gesture, suspended on a hidden tab), 0063 (tablets in landscape yes with touch controls, phones a notice); manual rebind in flight, analyser levels and 0.005 ms per frame measured, touch e2e in Chromium; **listening is the human's** (journal 053 checklist); phones and real devices in draft 055 |
 | 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | draft | — | from 053: compact phone HUD, real iPad/Android runs, mobile audio interruptions |
 | 056 | [Baked cloud-shadow map and sharper edges at the half-resolution rung](plans/056-cloud-shadow-map-and-half-res-edges.md) | draft | — | from 050: `medium` cloud shadows by a baked map, 2 x 2 steps at cloud edges and ridges |
@@ -104,6 +105,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [051 — Mod-supplied part visuals and assets](journal/051-mod-visuals-and-assets.md)
 - [041 — Struts, fuel lines, tilted parts, wing lift](journal/041-aero-and-structure-extras.md)
 - [054 — Light shafts and an ozone sky](journal/054-light-shafts-and-ozone-sky.md)
 - [052 — Moon terrain shadows, stones, terrain kind](journal/052-moon-terrain-shadows-stones-and-terrain-kind.md)
