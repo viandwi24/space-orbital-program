@@ -3,7 +3,7 @@ id: 068
 title: "Analytic terrain gradients for the bake and anti-aliased silhouettes of the planet pass"
 status: draft
 owner: ""
-depends: [038]
+depends: [038, 084]
 phase: 3
 created: 2026-10-17
 updated: 2026-10-17
@@ -24,12 +24,21 @@ Two cost and quality items from plan 031 that plan 038 did not do, because neith
 - Value noise has an analytic gradient from the same lattice values (Quilez, `docs/research/three.md`, plan 038); the rotation between octaves is a linear map (the gradient is rotated back); `smoothstep` and the soft ridge have closed-form derivatives; the smooth maximum and `min(relief, cap)` need subgradients.
 - For the silhouette: the march knows the miss distance of a ray that leaves the terrain's shell; a coverage estimate from the closest approach of the ray to the surface gives an alpha at the edge, blended into the sky. Sub-pixel shimmer on far ridges (ADR 0053's footprint exaggeration) is related.
 - Read: ADR 0036, 0043, 0044, 0053, 0064, 0072; journals 031, 039, 050.
+- Foundation (ADR 0097): the height function becomes per-world seeded with a list of flat zones (plan 084). The analytic gradient must cover the zone blend and the measurements must be taken after plan 084 so they are not stale.
 
 ## Scope
 
 **In (to be ordered at refinement):** measure the cube and patch bake times (`gl.finish` around the passes) at the three presets; if the gradient is a measurable share, implement `terrainGradient` in core with a finite-difference test (error bound per stage) and its GLSL twin; measure the silhouette aliasing (a ridge at 30 km against the sky, an edge-detect count of stair steps) and try the coverage estimate; both with the frame table of journal 054 as the baseline.
 
 **Out:** a temporal anti-aliasing pass (no history buffer, ADR 0059).
+
+**Realignment (2026-10-17):** the gradient stages include the flat-zone blend of plan 084 (closed-form derivative of the blend), and the bake timings are taken with two zones present.
+
+## Touches
+
+- **Size:** M
+- **Edits:** `packages/core/src/terrain.ts`, `packages/renderer/src/shaders`, `packages/renderer/src`
+- **Shared contracts:** core (`terrainGradient`, additive)
 
 ## Acceptance criteria
 
@@ -45,3 +54,4 @@ Two cost and quality items from plan 031 that plan 038 did not do, because neith
 ## Log
 
 - 2026-10-17 — Created as draft by plan 038 (analytic derivatives and silhouette anti-aliasing pushed out with reasons in ADR 0072).
+- 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0097: per-world seed and flat-zone list first).

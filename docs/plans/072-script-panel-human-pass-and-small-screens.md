@@ -3,7 +3,7 @@ id: 072
 title: "Script editor: the human pass and the panel on small screens"
 status: draft
 owner: ""
-depends: [058]
+depends: [058, 112]
 phase: 3
 created: 2026-10-17
 updated: 2026-10-17
@@ -20,6 +20,7 @@ Act on what a person finds with a screen reader, a keyboard only, a real input m
 - Journal 058 has the human checklist. Findings are added to this plan's Log by the person who ran it.
 - Found in plan 058 (not done): at 1024x768 the instrument deck covers the lower part of the script panel (the touch bar, the Run button and the problems list are partly behind it), and the flight's touch overlay (throttle track, Cut and Full chips) intercepts taps on the panel's lower right when touch controls are on (Playwright reported the intercepting elements). The editor itself works.
 - macOS: Ctrl+Space switches input sources, so the explicit "suggest" key is unusable there; the Suggest button exists only on touch screens.
+- Foundation (ADR 0102, 0107): the script panel moves into the dock (plan 112) and the HUD is re-laid out in the refs style (plan 088). A human pass on the old layout would be stale; run it after plan 112.
 
 ## Scope
 
@@ -29,6 +30,14 @@ Act on what a person finds with a screen reader, a keyboard only, a real input m
 3. A second key for "suggest" on macOS, and the Suggest button for every pointer if the person finds it useful.
 
 **Out:** an editor library (ADR 0066).
+
+**Realignment (2026-10-17):** item 2 is re-checked in the dock layout of plan 112 at 1024x768 and 1180x820; item 1's findings also cover the refs components (switches, segmented controls) the panel now uses.
+
+## Touches
+
+- **Size:** S
+- **Edits:** `apps/web/src/lib/hud/ScriptPanel.svelte`, `apps/web/src/lib/hud/CodeEditor.svelte`, `apps/web/src/lib/keybindings.ts`, `docs/guides/scripting.md`
+- **Shared contracts:** none
 
 ## Acceptance criteria
 
@@ -42,3 +51,4 @@ Act on what a person finds with a screen reader, a keyboard only, a real input m
 
 - 2026-10-17 — Plan 055 (phone session) fixed item 2 for tablets at 1024x768 and 1180x820 (the script panel and guide scroll above the measured instrument deck; the touch throttle sits beside the open panel; panels are above the touch overlay; `e2e/mobile.e2e.ts` guards it). What remains here is the human pass (item 1) and item 3.
 - 2026-10-17 — Created as draft by plan 058.
+- 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0102, 0107: run after the script panel moves into the dock).

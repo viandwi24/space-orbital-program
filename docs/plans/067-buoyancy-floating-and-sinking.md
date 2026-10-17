@@ -20,12 +20,21 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 - Pushed out of plan 038 (ADR 0072): the sim has no water at all (journal 031: "ocean is solid"; ADR 0019 puts a kinematic ground tile on the terrain height), so lakes needed no sim change, and a lake that sank vessels while the sea did not would have been inconsistent.
 - Needed: where the water is (`isLake` in `packages/core/src/terrain.ts` and the biome map's sea level are the data; an `isWater(direction)` in core), a buoyancy force per part from its displaced volume (a part's `shape` gives the volume), drag in water, a "splashed down" event, and a landing-gear interaction with floating (`stock.landing-legs`).
 - Read: ADR 0019, ADR 0043, ADR 0072, `docs/architecture/units-and-frames.md`, journal 012 and 031.
+- Foundation (ADR 0098, 0097): recovery is paid by a visible formula that distinguishes sea and land (plan 095), and coastal sites and range safety (plans 092, 127) assume stages fall into the sea. A floating capsule makes sea recovery physical; until this plan lands, recovery treats a splashdown as a landing on water at rest.
 
 ## Scope
 
 **In (to be ordered at refinement):** water level in core (one function for sea and lakes); buoyancy and water drag in the sim's force sum; part volumes; the damage rule for an impact on water (a hard splashdown destroys parts as a hard landing does); a stock floating part (a flotation collar) so a capsule can bob; renderer: the vessel drawn at its waterline, ripples at the contact.
 
 **Out:** waves that move the vessel (a sea state), boats with propellers, swimming kerbals.
+
+**Realignment (2026-10-17):** add a "splashed" situation for science (plan 103) and a recovery hook (plan 095) to the in-scope list; the water level function in core is the one range safety (plan 127) uses to classify impact points.
+
+## Touches
+
+- **Size:** M
+- **Edits:** `packages/core/src/terrain.ts`, `packages/sim`, `mods/stock`, `packages/renderer/src`
+- **Shared contracts:** core (`isWater`), SDK (part volume or flotation fields; additive)
 
 ## Acceptance criteria
 
@@ -41,3 +50,4 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 ## Log
 
 - 2026-10-17 — Created as draft by plan 038 (ADR 0072: lakes are solid like the sea for now).
+- 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0098, 0097: sea recovery and impact classification use it).

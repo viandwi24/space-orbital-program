@@ -3,7 +3,7 @@ id: 065
 title: "Richer mod models: deploy animations, KTX2, per-model LOD"
 status: draft
 owner: ""
-depends: [051]
+depends: [051, 079, 090]
 phase: 3
 created: 2026-10-17
 updated: 2026-10-17
@@ -19,6 +19,7 @@ A model a mod ships can do what a generated part does and cost what a generated 
 
 - Found, not done, in plan 051 (ADR 0076): models get plume, gimbal/hinge pivot (node `moving`), glow and shadows, but not `visual.deploy`; textures are PNG or JPEG only (no decoders in a package); one level of detail; no instancing of the static mesh in the VAB (a model has no `staticMesh`).
 - Read: ADRs 0028, 0045, 0047, 0076; `research/mod-assets.md`; draft 040 (KTX2 on the stock side).
+- Foundation (ADR 0104): models are data on parts and, now, on buildings (`defineBuilding` visual, plan 090); a mod's model choices are patchable through `definePatch` (plan 079), so LOD lists and palettes are typed fields, not conventions. Deploy animations are driven by the part action state of ADR 0102 (plan 110) as well as `deploy.flag`.
 
 ## Scope
 
@@ -29,6 +30,14 @@ A model a mod ships can do what a generated part does and cost what a generated 
 4. Several materials per palette: let `palette` recolour named materials of a model.
 
 **Out:** executable renderer hooks, a hosted mod repository.
+
+**Realignment (2026-10-17):** item 3 (LOD) applies to building models in the 3D Space Center (plan 091) as well as parts; a `_lod1` naming convention is replaced by a typed `visual.asset` list so patches can target it. Item 1 reads the action state of plan 110.
+
+## Touches
+
+- **Size:** M
+- **Edits:** `packages/renderer/src/parts`, `packages/renderer/src`, `packages/core/src/mod-assets.ts`, `packages/sdk`, `apps/web/static`
+- **Shared contracts:** SDK (`visual.asset` list, animation fields; additive), mod package format (KTX2 accepted)
 
 ## Acceptance criteria
 
@@ -42,3 +51,4 @@ A model a mod ships can do what a generated part does and cost what a generated 
 
 - 2026-10-17 — Created as draft by plan 051 (found, not done).
 - 2026-10-17 — Plan 040 pushed its KTX2 item here with the bundle numbers above (it adds `KTX2Loader` only when an asset needs it).
+- 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0104, 0097, 0102: buildings get models too; typed LOD fields; deploy from action state).

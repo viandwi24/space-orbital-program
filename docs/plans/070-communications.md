@@ -1,44 +1,56 @@
 ---
 id: 070
-title: "Communications: antennas, signal range and delay, loss of control in a blackout"
+title: "Communications: index of the comms tier plans 114 to 121"
 status: draft
 owner: ""
 depends: [040]
-phase: 3
+phase: 7
 created: 2026-10-17
 updated: 2026-10-17
 ---
 
-# 070 — Communications
+# 070 — Communications (index)
 
 ## Goal
 
-A vessel can lose its link: out of range of the home body, behind a body, or inside the plasma of a re-entry. Plan 040 made the plasma blackout a display (ADR 0079); this plan gives the signal something to lose.
+A vessel can lose its link, and the network becomes a game: this is the index of the communications programme of ADR 0101 (tiers 1 to 6, chosen by the owner as one programme). The work itself is in plans 114 to 121; this file holds no steps of its own and is kept so the public roadmap (which links it) and older references stay valid.
 
 ## Context
 
-- Found, not done, in plan 040: the game has no communications system, so the blackout badge says "signal lost" and nothing is lost. `blackoutLevel` (renderer, `effects/reentry.ts`) is the level a system would read.
-- Read: ADRs 0023 (heating), 0079 (blackout display), 0039 (scripts and warp), `docs/product/spec.md` on remote control.
+- ADRs: 0101 (model, tiers, defaults), 0079 (blackout display, amended by 0101), 0096 (world tick), 0099 (data and science).
+- Found in plan 040: the blackout badge says "signal lost" and nothing is lost. Tier 1 (plan 114) makes the blackout drop the link.
+- Defaults decided by the owner: signal delay `display` (shown, not enforced), `enforced` and `flight-computer` as world rules; control without signal `full` by default (ADR 0101 point 4).
 
 ## Scope
 
-**In (to be ordered at refinement):**
-1. **A link model in the sim**: a module (`antenna` with range and power) and a rule for when a vessel is connected (line of sight to a ground station on the home body, range, no occlusion by the body).
-2. **Delay** at long range (a command arrives later), kept deterministic.
-3. **Loss of control**: a vessel without a link accepts no attitude or throttle commands from the player and scripts unless it has a probe core with its own autonomy; blackout drops the link while `blackoutLevel` is over the badge level.
-4. **HUD**: link state and signal strength next to the badge of plan 040.
-5. **Mods**: an SDK hook so a mod defines antennas.
+| Tier | Plan | What |
+|---|---|---|
+| 1 | [114](114-comms-tier-1-model.md) | antennas, line of sight, ground stations, control states, real blackout |
+| 1 | [115](115-comms-tier-1-interface.md) | link badge, Comms tab, Network layer |
+| 2 | [116](116-comms-tier-2-link-budget.md) | link budget, bands, data rates, comms scale, inspector |
+| 3 | [117](117-comms-tier-3-routing-latency-delay.md) | pointing, routing, capacity, latency, the delay rule |
+| 3 | [118](118-comms-planning-tools.md) | contact timeline, coverage map, constellation planner |
+| 4 | [119](119-comms-tier-4-queues-store-and-forward.md) | queues, store-and-forward, contact windows |
+| 5 | [120](120-comms-tier-5-channels-licences-interference.md) | channels, licences, interference, encryption |
+| 6 | [121](121-comms-tier-6-suit-radios-voice-broadcast.md) | suit radios, voice, broadcasts |
 
-**Out:** relay networks, bandwidth and science transmission.
+**Out:** nothing here; scope lives in the tier plans.
+
+## Touches
+
+- **Size:** XL (sum of the tier plans); this index edits nothing.
+- **Edits:** none (see the tier plans: mostly `mods/stock`, `packages/sim`, `packages/sdk`, `packages/renderer/src/map.ts`, `apps/web/src/lib/hud`).
+- **Shared contracts:** see the tier plans (SDK comms define points, snapshot `network`, save bumps at tiers 3 and 4).
 
 ## Acceptance criteria
 
-- [ ] To be made measurable at refinement.
+- [ ] Plans 114 to 121 are `done`; then this index is set to `done` with a short journal entry that links them, and the public roadmap item moves to the tier plans (plan 076).
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR, `plugin-system.md`, `guides/writing-a-mod.md`.
+- [ ] STATUS, journal (index closure), roadmap item (plan 076).
 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 040 (found, not done).
+- 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0101): the plan becomes the index of the comms tier plans 114 to 121; its earlier scope (link model, delay, loss of control, HUD, SDK hook) is covered and superseded by them.
