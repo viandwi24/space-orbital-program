@@ -1,8 +1,8 @@
 ---
 id: 086
 title: "UI stage 1: refs tokens, Manrope and the accessibility floor"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: []
 phase: 4
 created: 2026-10-17
