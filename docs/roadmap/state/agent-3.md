@@ -22,7 +22,7 @@
 | 104 regions | done | `devc/104-regions` | 2026-10-18 | merged f7193f2, cp/f3-104-regions |
 | 107 crew-sim | done | `devc/107-crew-sim` | 2026-10-18 | merged dc5a690, cp/f3-107-crew-sim |
 | 067 buoyancy | done | `devc/067-buoyancy` | 2026-10-18 | merged 201d76e, cp/f3-067-buoyancy |
-| 123 elements | handed-over | `devc/123-elements` | 2026-10-18 | ready/123; API 0.1.49 |
+| 123 elements | done | `devc/123-elements` | 2026-10-17 | merged 8403dd7, cp/f5-123-elements |
 | 099 contracts | todo |  |  |  |
 | 101 strategies | todo |  |  |  |
 | 116 comms-2 | todo |  |  |  |
