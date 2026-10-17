@@ -52,20 +52,21 @@ The Sun's SOI is infinite; the home planet's SOI is now finite (Laplace, about 8
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: the headless ascent and moon transfer scenarios give the same results within 1e-6 relative in the home SOI after the change.
-- [ ] `packages/core` test: the sub-solar latitude oscillates between +tilt and -tilt over one year within 0.01 degree.
-- [ ] Migration test: a frozen previous-format save resumes with the Sun as root and the vessel's state relative to the home body unchanged.
-- [ ] Screenshots of the same site at solstice and equinox (sun elevation at noon differs by 2 × tilt within 0.5 degree) with frame times unchanged (M5).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: the headless ascent and moon transfer scenarios give the same results within 1e-6 relative in the home SOI after the change.
+- [x] `packages/core` test: the sub-solar latitude oscillates between +tilt and -tilt over one year within 0.01 degree.
+- [x] Migration test: a frozen previous-format save resumes with the Sun as root and the vessel's state relative to the home body unchanged.
+- [x] Screenshots of the same site at solstice and equinox (sun elevation at noon differs by 2 × tilt within 0.5 degree) with frame times unchanged (M5).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/122-sun-root-axial-tilt-seasons.md` written.
-- [ ] `architecture/units-and-frames.md`, `simulation.md`, `overview.md` (environment), ADR if the planet-pass keying needs one.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/122-sun-root-axial-tilt-seasons.md` written.
+- [x] `architecture/units-and-frames.md`, `simulation.md`, `overview.md` (environment), ADR if the planet-pass keying needs one.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0103, 0051).
 - 2026-10-18 — Claimed by Agent 1 and refined: ADR 0119 (named home, save format 6, tilt as the home orbit's inclination so the home sphere is untouched, calendar on the Sun, sun direction from the star body). Inventory of first-body assumptions: about 70 sites (sim 22, core 7, renderer 14, web 20, stock 3, save 6), in the journal.
+- 2026-10-18 — Done (Agent 1): Sun, tilted orbit, format 6, home named in sim, renderer and client. Parity within 1e-6 (frozen flight); seasons ±23.44° within 0.01°; the frozen v5 save resumes unchanged; noon at 40° on the solstices 26.56° and 73.44° (2 × 23.44°), renderer within 0.002° of the prediction; pad frame time +0.17 ms (noise). Journal [122](../journal/122-sun-root-axial-tilt-seasons.md).

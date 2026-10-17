@@ -18,7 +18,7 @@ Decided in ADR 0007. Every package follows this; conversions happen at the edges
 
 | Frame | Origin | Axes | Used by |
 |---|---|---|---|
-| **Body-centred inertial (BCI)** | centre of the vessel's current SOI body (ADR 0051; the root rests at the system origin, a moon moves on its Kepler orbit around its parent) | right-handed; +Y is the system's north (a body without `rotation.pole` has its pole on +Y); +X toward the reference direction at epoch | `kepler`, on-rails state, map view |
+| **Body-centred inertial (BCI)** | centre of the vessel's current SOI body (ADR 0051; the root rests at the system origin, a child moves on its Kepler orbit around its parent; the stock root is the Sun since plan 122, ADR 0119) | right-handed; +Y is the system's north (a body without `rotation.pole` has its pole on +Y); +X toward the reference direction at epoch | `kepler`, on-rails state, map view |
 | **Local physics frame** | a point that moves at constant velocity with the frame: `bci = origin + local`, `bciVelocity = frame.velocity + localVelocity`; created at the focus vessel's centre of mass, re-anchored (origin and velocity) when the focus root is > 1 km from the origin (plan 007, ADR 0017) | same orientation as BCI | `physics` (Rapier world), flight mode |
 | **Render frame** | floating origin (see above) | same orientation as BCI | `renderer` |
 | **Body-fixed** | body centre, rotating with the body | +Y the body's own north pole, longitude 0 on +X; turned into BCI by `bodyOrientation(body, t) = q_pole · Ry(W(t))` (plan 085, ADRs 0103 and 0145; `qAboutY(2 pi t / rotationPeriod)` without `rotation`) | surface positions, sites, terrain, surface rails |
@@ -48,6 +48,7 @@ Refinements of the frame convention above, as implemented in `packages/kepler`:
 ## Time
 
 - Simulation time `t` is seconds since the world's start (float64). The world's **epoch** (`WorldInfo.epoch`, `packages/core/src/calendar.ts`, ADRs 0103 and 0141) says which instant `t = 0` is: whole SI days plus a fraction from J2000.0 (2000-01-01 12:00:00 TT, JD 2451545.0) on the system's time scale (TT for a Gregorian system, plain SI seconds for a fictional one). Conversions carry (days, seconds) and normalise; never add `t` to a Julian date in one float.
+- Seasons (plan 122, ADR 0119): the stock home planet's tilt is the inclination of its orbit (its pole stays +Y), so the sun's declination over its equator (`subSolarLatitude`, core) swings between +23.44° and -23.44° over the year of 9.2 Ms.
 - Calendars: the root body's `calendar` is `gregorian-utc` (UTC through the IERS leap-second table at the display edge, `research/time-scales.md`) or `fictional` from a home body (its solar day; its orbital period as the year, none while it orbits nothing). The sim never reads a clock; the page (HUD date) and the script host (`date()`) format dates.
 - Fixed step `dt = 0.02 s` (50 Hz) in flight mode. On rails, propagation is analytic and `dt` may be large (time warp).
 - No wall-clock access inside `sim`.
