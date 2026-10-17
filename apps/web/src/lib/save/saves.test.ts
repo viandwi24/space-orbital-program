@@ -304,3 +304,19 @@ describe('mods', () => {
 		expect(report.changed).toEqual([{ id: 'tweaks', saved: '2.0.0', loaded: '2.1.0' }]);
 	});
 });
+
+describe('slots per world (plan 087, ADR 0143)', () => {
+	it('a world has its own quick and autosave slots; the Legacy world keeps the plain ids', async () => {
+		const { manager, e } = setup();
+		const other: SimSave = { ...sim, worldInfo: { ...sim.worldInfo, id: 'w-9' } };
+		const legacy = await manager.quicksave(request());
+		const mine = await manager.quicksave(request(other));
+		expect([legacy.id, mine.id]).toEqual(['quick', 'w-9:quick']);
+		const auto = await manager.autosave(request(other));
+		e.tick();
+		const auto2 = await manager.autosave(request(other));
+		const legacyAuto = await manager.autosave(request());
+		expect([auto.id, auto2.id, legacyAuto.id]).toEqual(['w-9:auto-1', 'w-9:auto-2', 'auto-1']);
+		expect(mine.worldId).toBe('w-9');
+	});
+});
