@@ -1,7 +1,7 @@
 ---
 id: 122
 title: "The Sun as root, axial tilt and seasons in the stock system"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [085, 081]
 phase: 8

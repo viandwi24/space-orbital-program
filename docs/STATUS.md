@@ -130,7 +130,7 @@
 | 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | draft | — | ADR 0101 tier 4: queues, custody, windows |
 | 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | draft | — | ADR 0101 tier 5: channels, licences, interference |
 | 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
-| 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | in-progress | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
+| 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | done | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
 | 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | draft | — | ADR 0103: Level A elements + rates, lunar series |
 | 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | draft | — | ADR 0103: Sol pack, 1:1 and rescaled, per-scale balance and validation |
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
@@ -207,6 +207,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [122 — The Sun as root, axial tilt and seasons](journal/122-sun-root-axial-tilt-seasons.md)
 - [067 — Floating, sinking and boats: buoyancy on the sea and on lakes](journal/067-buoyancy-floating-and-sinking.md)
 - [093 — UI stage 4: the Hangar in the refs layout](journal/093-ui-stage-4-hangar.md)
 - [107 — Crew simulation: life support, morale, rest, g-load](journal/107-crew-simulation-life-support-morale-rest.md)

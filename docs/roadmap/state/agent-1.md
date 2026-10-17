@@ -15,7 +15,7 @@
 | 068 terrain-aa | done | `lead/068-terrain-aa` | 2026-10-17 | merged b26f673, cp/f2-068-terrain-aa |
 | 091 space-center | done | `lead/091-space-center` | 2026-10-17 | merged d204a3d, cp/f2-091-space-center |
 | 113 mission-center | done | `lead/113-mission-center` | 2026-10-17 | merged c21d52b, cp/f4-113-mission-center |
-| 122 sun | in-progress | `lead/122-sun-seasons` | 2026-10-18 | claim/122 |
+| 122 sun | done | `lead/122-sun-seasons` | 2026-10-17 | merged b33f76a, cp/f5-122-sun |
 | 096 building-levels | todo |  |  |  |
 | 109 eva | todo |  |  |  |
 | 097 markets | todo |  | 2026-10-17 | draft refined |
