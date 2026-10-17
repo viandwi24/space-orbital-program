@@ -3,7 +3,14 @@
  * opening a save. The sim's own world fields travel in `SimSave.worldInfo`; this record holds the
  * metadata and owns the saves whose envelope names its `id`. Read from storage, so untrusted.
  */
-import { LEGACY_WORLD_ID, SaveError, type RuleChange, type SaveMod } from '@orbital/core';
+import {
+	LEGACY_WORLD_ID,
+	SaveError,
+	worldInfoSchema,
+	type RuleChange,
+	type SaveMod,
+	type WorldInfo
+} from '@orbital/core';
 
 export type { RuleChange };
 
@@ -34,6 +41,11 @@ export interface WorldRecord {
 	mods: SaveMod[];
 	changelog: RuleChange[];
 	summary: WorldSummary;
+	/**
+	 * The world's info as created (plan 087, ADR 0143): what a flight in a world without saves starts
+	 * the sim with. Absent for the Legacy world, whose info the sim makes.
+	 */
+	world?: WorldInfo;
 }
 
 export const LEGACY_WORLD_NAME = 'Legacy world';
@@ -113,6 +125,13 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 	) {
 		throw damaged('its summary is unreadable');
 	}
+	let world: WorldInfo | undefined;
+	if (raw.world !== undefined) {
+		const parsed = worldInfoSchema.safeParse(raw.world);
+		if (!parsed.success || parsed.data.id !== raw.id)
+			throw damaged('its world settings are unreadable');
+		world = parsed.data;
+	}
 	return {
 		format: WORLD_FORMAT,
 		formatVersion: raw.formatVersion,
@@ -123,6 +142,7 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 		preset: raw.preset,
 		mods: raw.mods as SaveMod[],
 		changelog: raw.changelog as RuleChange[],
-		summary: { saves: s.saves, vessel: s.vessel, simTime: s.simTime }
+		summary: { saves: s.saves, vessel: s.vessel, simTime: s.simTime },
+		...(world ? { world } : {})
 	};
 }
