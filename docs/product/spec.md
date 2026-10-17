@@ -5,7 +5,7 @@
 
 ## 1. Vision
 
-Kerbal Space Program proved that realistic orbital mechanics can be fun when the feedback loop is tight: build, launch, fail, learn, iterate. Orbital brings that loop to the browser with no install, and treats **moddability as a first-class product feature**, not an afterthought. The stock game is itself a mod built on the public SDK.
+Kerbal Space Program proved that realistic orbital mechanics can be fun when the feedback loop is tight: build, launch, fail, learn, iterate. Space Orbital Program brings that loop to the browser with no install, and treats **moddability as a first-class product feature**, not an afterthought. The stock game is itself a mod built on the public SDK.
 
 After 1.0 the game grows from a flight simulator into a space programme (the foundation decisions of 2026-10-17, ADRs 0094 to 0108). A **world** is a save with its own rules, sites, crew, money, science and network. The player can take any of five roles, alone or mixed, and each must be worth playing for its own sake:
 

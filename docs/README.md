@@ -1,6 +1,6 @@
 # docs/
 
-This directory is the project's memory. It is designed so that an agent (or human) with no prior context can pick up the next plan and continue, and so that it never goes stale: every plan ends by updating it (see `conventions/docs-maintenance.md`).
+This directory is the memory of Space Orbital Program (code name `orbital`, ADR 0105). It is designed so that an agent (or human) with no prior context can pick up the next plan and continue, and so that it never goes stale: every plan ends by updating it (see `conventions/docs-maintenance.md`).
 
 ## Reading order for a newcomer
 

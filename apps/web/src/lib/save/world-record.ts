@@ -70,7 +70,7 @@ const damaged = (what: string): SaveError =>
 /** Validate a world record read from storage. */
 export function parseWorldRecord(raw: unknown): WorldRecord {
 	if (!isRecord(raw) || raw.format !== WORLD_FORMAT) {
-		throw new SaveError('not-a-save', 'This is not an Orbital world.');
+		throw new SaveError('not-a-save', 'This is not a Space Orbital Program world.');
 	}
 	if (typeof raw.formatVersion !== 'number' || !Number.isInteger(raw.formatVersion)) {
 		throw new SaveError('not-a-save', 'This world has no valid format version.');
@@ -78,7 +78,7 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 	if (raw.formatVersion > WORLD_VERSION) {
 		throw new SaveError(
 			'too-new',
-			`This world was made by a newer version of Orbital (world format ${raw.formatVersion}). Update the game to open it.`
+			`This world was made by a newer version of Space Orbital Program (world format ${raw.formatVersion}). Update the game to open it.`
 		);
 	}
 	if (typeof raw.id !== 'string' || raw.id === '') throw damaged('it has no id');

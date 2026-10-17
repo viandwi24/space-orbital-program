@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { GAME_NAME } from '../../lib/public/about';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import Catalogue from '../../lib/vab/Catalogue.svelte';
@@ -70,7 +71,7 @@
 </script>
 
 <PageMeta
-	title="Vehicle assembly · Orbital"
+	title="Vehicle assembly · {GAME_NAME}"
 	description="Build a rocket from parts in a 3D hangar: attach, stage, check delta-v and stability, then launch."
 />
 <svelte:window onkeydown={vab.onKey} />
@@ -97,7 +98,7 @@
 		<div class="fatal" role="alert">
 			<h1>The 3D view could not start</h1>
 			<p>{vab.loadFailed}</p>
-			<p>Orbital needs WebGL 2. Try another browser or enable hardware acceleration.</p>
+			<p>{GAME_NAME} needs WebGL 2. Try another browser or enable hardware acceleration.</p>
 			<a href="/">Back to the main page</a>
 		</div>
 	{/if}
