@@ -31,7 +31,7 @@ A Sol mod package (in the repo, SDK only) offers the real solar system in two sc
   - variants `1:1` and `rescaled`. Rescaled has sizes ×1/4, masses ×1/16 (surface gravity kept) and distances ×(1/4)^(2/3), so every period, date and angle stays real; its scale patches are computed by the pack;
   - per-variant balance patches on stock parts (engine efficiency, tank dry mass, heat shield, a long-range probe antenna);
   - a reference rocket and a capsule design per variant.
-- Validation suite per variant (headless, `packages/scripting/test/sol-validation.test.ts`, since it needs the sim and the ascent script):
+- Validation suite per variant (headless, `packages/sim/test/sol-validation.test.ts`, since it needs the sim and its mission helpers):
   - the reference rocket reaches a stable orbit above the atmosphere;
   - a transfer reaches the Moon's sphere;
   - a capsule from orbit comes down with no part over its temperature limit;
@@ -61,20 +61,21 @@ A variant whose suite fails is not offered in Create World (ADR 0103 point 7).
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/scripting/test/sol-validation.test.ts`, per variant: the reference rocket under the ascent script reaches a stable orbit above the atmosphere; a transfer from that orbit enters the Moon's sphere; a capsule from orbit lands with no part over its limit; the home station links to a lunar orbiter for at least the share stated in the pack.
-- [ ] `bun test mods/sol`: the Sun's declination and the Moon's elongation on stated dates match the reference (Horizons, `docs/research/ephemerides.md`) within the sources' stated accuracy; both variants load and their patches apply.
-- [ ] `bun test packages/core` and `packages/sim`: the loader keeps one system's bodies, applies only the chosen variant's patches, and a Sol world starts at its variant's home.
-- [ ] vitest: Create World lists Sol's variants with the Δv to orbit and the transfer time from the pack data.
+- [x] `bun test packages/sim/test/sol-validation.test.ts`, per variant: the reference rocket under the ascent script reaches a stable orbit above the atmosphere; a transfer from that orbit enters the Moon's sphere; a capsule from orbit lands with no part over its limit; the home station links to a lunar orbiter for at least the share stated in the pack.
+- [x] `bun test mods/sol` and `packages/sim/test/sol.test.ts`: the Sun's declination and the Moon's elongation on stated dates match the reference (Horizons, `docs/research/ephemerides.md`) within the sources' stated accuracy; both variants load and their patches apply.
+- [x] `bun test packages/core` and `packages/sim`: the loader keeps one system's bodies, applies only the chosen variant's patches, and a Sol world starts at its variant's home.
+- [x] vitest: Create World lists Sol's variants with the Δv to orbit and the transfer time from the pack data.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/124-real-solar-system-pack-scales.md` written.
-- [ ] `guides/writing-a-mod.md` (systems and variants), `product/spec.md` scope line, `architecture/plugin-system.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/124-real-solar-system-pack-scales.md` written.
+- [x] `guides/writing-a-mod.md` (systems and variants), `product/spec.md` scope line, `architecture/plugin-system.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0103, 0104).
 - 2026-10-18 — Refined and claimed by Agent 3. The loader picks one system per world. The rescaled variant keeps surface gravity and every period real (sizes ×1/4, masses ×1/16, distances ×(1/4)^(2/3)). The balance is patches on stock parts. The validation suite lives in `packages/scripting/test` because it needs the sim and the ascent script. Planet atmospheres other than the Earth's are out. Sources are in `docs/research/ephemerides.md`. Design choices go in ADR 0184.
+- 2026-10-18 — Implemented by Agent 3 and handed over as `ready/124`. The validation suite moved to `packages/sim/test` (it needs the sim's mission helpers). The balance values come from its runs (journal). The date checks run in `packages/sim/test/sol.test.ts`, with Horizons references. Journal: `journal/124-real-solar-system-pack-scales.md`.

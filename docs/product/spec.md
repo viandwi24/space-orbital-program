@@ -105,7 +105,7 @@ Desktop Chrome and Edge, Firefox and Safari at the versions in [`browser-support
 ## 8. Open product questions
 
 - Name: decided, Space Orbital Program (ADR 0105). Art direction for UI: the refs visual language (ADR 0107).
-- Scale: the stock system stays small (home planet radius about 600 km, short ascent); the real solar system pack offers 1:1 and rescaled variants (ADR 0103).
+- Scale: the stock system stays small (home planet radius about 600 km, short ascent); the real solar system pack (`mods/sol`, plan 124) offers 1:1 and rescaled (bodies ×1/4, real dates and periods) variants, each with a balance profile and a validation suite (ADRs 0103, 0184).
 - Licence: decided, Apache-2.0 (ADR 0106).
 - Pricing and distribution: open (ADR 0108 records the research recommendation; the owner decides).
 - npm package scope for publishing: open (ADR 0105 point 2).
