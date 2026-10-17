@@ -17,7 +17,7 @@ The game starts from worlds: a Worlds screen (cards with planet thumbnail, prese
 
 ## Context
 
-- ADRs: 0094, 0095, 0103, 0107
+- ADRs: 0094, 0095, 0103, 0107, [0143](../decisions/0143-worlds-screen-active-world-record-world-info-and-catch-up.md) (written here)
 - Read: ADR 0094, 0095 point 2, 0103 points 2 and 3, 0107, `refs/space-orbital-program-ui/docs/SCREENS.md` (Worlds), `apps/web/src/routes/+page.svelte` (main menu), `lib/save`.
 - The site template list is "Default site" only until plan 092 adds templates.
 
