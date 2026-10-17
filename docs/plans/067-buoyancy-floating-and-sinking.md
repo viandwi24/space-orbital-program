@@ -53,7 +53,7 @@ A vessel that comes down on water (the sea, a lake) floats, tips or sinks accord
 - [x] Same file: an entry at 15 m/s leaves a pod whole on water and breaks it on ground; at 50 m/s on water it is damaged.
 - [x] Same file: a pod floating at rest is `stock.splashed` and can be recovered.
 - [x] `bun test packages/core/test/water.test.ts`: `waterAt` is true where the map is below sea level or `isLake`, false elsewhere.
-- [ ] `bun test`, typecheck, build, docs:check pass; the headless ascent still reaches orbit.
+- [x] `bun test`, typecheck, build, docs:check pass; the headless ascent still reaches orbit.
 
 ## Docs checklist
 

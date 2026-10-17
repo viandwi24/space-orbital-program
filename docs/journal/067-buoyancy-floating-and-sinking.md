@@ -26,7 +26,7 @@
 
 ## Measurements
 
-- The patch benchmark of `mods/stock` (M5-indicative, 50 ms) measures 49 ms here with the new parts. Under the full suite, `stones.test.ts` (cost budget) and `determinism.test.ts` (5 s timeout) each failed once and pass alone.
+- The patch benchmark of `mods/stock` (M5-indicative, 50 ms) measures 49 ms here with the new parts. Under the full suite, `stones.test.ts` (cost budget), `determinism.test.ts` (5 s timeout) and `career-bot.test.ts` (30 s wall budget, 28.8 s alone on this machine, the same on `main`) failed once each and pass alone.
 
 ## Follow-ups
 
@@ -35,5 +35,14 @@
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/core/test/water.test.ts         1 pass
+bun test packages/sim/test/buoyancy.test.ts       4 pass
+bun run docs:check                                exit 0
+bun run test                                      1533 pass, 3 fail under load (392 s): determinism (5 s timeout),
+                                                  career-bot (30 s wall budget; 28.8 s alone here, on main too),
+                                                  patch-bench (50 ms, M5-indicative); all three pass alone
+bun run typecheck                                 exit 0 (93 s; svelte-check 0 errors)
+bun run build                                     exit 0 (8 s)
+bun run --filter @orbital/web test                940 passed; 3 env-only import suites (no Node here);
+                                                  vessel-presence.test.ts timed out once under load (known flaky)
 ```
