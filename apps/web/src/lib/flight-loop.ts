@@ -21,6 +21,7 @@ import {
 import { pageAudio } from './audio/audio';
 import { createDirector, type AudioFlightView } from './audio/director';
 import { partShapesOf } from './catalog';
+import { pinchZoomFactor } from './touch/touch-model';
 import {
 	clearGraphicsPreset,
 	initialGraphicsPreset,
@@ -120,6 +121,10 @@ export interface Flight {
 	setSas(mode: SasMode): void;
 	/** Freeze or resume the sim (pause menu). */
 	setPaused(paused: boolean): void;
+	/** The on-screen steering pad and roll buttons (plan 053): added to what the keys send, each -1..1. */
+	setTouchAttitude(input: { pitch: number; yaw: number; roll: number }): void;
+	/** The on-screen throttle slider: sets the throttle outright, 0..1. */
+	setThrottle(value: number): void;
 	/** Everything a save needs from the running flight (plan 043); rejects when there is no vessel to save. */
 	collectSave(): Promise<SaveRequest>;
 	/** While a dialog is open the flight keys do nothing. */
@@ -192,6 +197,7 @@ export function startFlight(options: FlightOptions): Flight {
 	let throttle = 0;
 	let sentThrottle = 0;
 	let sentAttitude = '0,0,0';
+	const touchAttitude = { pitch: 0, yaw: 0, roll: 0 };
 	let warpIndex = 0;
 	let auto: { update(s: Snapshot): unknown; phase: string; note: string } | null = null;
 
@@ -218,9 +224,9 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 		if (!auto) {
 			const a = [
-				axis('pitchMinus', 'pitchPlus'),
-				axis('yawMinus', 'yawPlus'),
-				axis('rollMinus', 'rollPlus')
+				Math.max(-1, Math.min(1, axis('pitchMinus', 'pitchPlus') + touchAttitude.pitch)),
+				Math.max(-1, Math.min(1, axis('yawMinus', 'yawPlus') + touchAttitude.yaw)),
+				Math.max(-1, Math.min(1, axis('rollMinus', 'rollPlus') + touchAttitude.roll))
 			];
 			const key = a.join(',');
 			if (key !== sentAttitude) {
@@ -332,29 +338,51 @@ export function startFlight(options: FlightOptions): Flight {
 	};
 	const onBlur = (): void => held.clear();
 
-	let dragging = false;
+	// One finger or the mouse orbits the camera; two fingers pinch to zoom (plan 053, ADR 0063).
+	const pointers = new Map<number, { x: number; y: number }>();
+	let pinchDistance = 0;
 	let pressed = { active: false, moved: 0 };
+	const pinchNow = (): number => {
+		const [a, b] = [...pointers.values()];
+		return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+	};
 	const onPointerDown = (e: PointerEvent): void => {
-		dragging = true;
-		pressed = { active: true, moved: 0 };
+		pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 		canvas.setPointerCapture(e.pointerId);
+		if (pointers.size === 1) pressed = { active: true, moved: 0 };
+		else {
+			// A second finger makes it a pinch, never a click.
+			pressed.active = false;
+			pinchDistance = pinchNow();
+		}
 	};
 	const onPointerUp = (e: PointerEvent): void => {
-		dragging = false;
+		if (!pointers.delete(e.pointerId)) return;
+		pinchDistance = 0;
 		// A press that did not move is a click: on the map it places or deselects a maneuver node.
 		// Only a press that began on the canvas counts (not the end of a drag of a node marker).
-		const wasPress = pressed.active;
+		const wasPress = pressed.active && pointers.size === 0;
 		pressed.active = false;
-		if (wasPress && pressed.moved < 4) {
+		if (wasPress && pressed.moved < 4 && e.type === 'pointerup') {
 			const box = canvas.getBoundingClientRect();
 			maneuverCtl?.click(e.clientX - box.left, e.clientY - box.top);
 		}
 	};
 	const onPointerMove = (e: PointerEvent): void => {
-		if (dragging) {
-			pressed.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
-			const input = { dYaw: -e.movementX * 0.005, dPitch: e.movementY * 0.005 };
-			renderer?.orbitCamera(input);
+		const at = pointers.get(e.pointerId);
+		if (!at) return;
+		const dx = e.clientX - at.x;
+		const dy = e.clientY - at.y;
+		at.x = e.clientX;
+		at.y = e.clientY;
+		if (pointers.size === 1) {
+			pressed.moved += Math.abs(dx) + Math.abs(dy);
+			renderer?.orbitCamera({ dYaw: -dx * 0.005, dPitch: dy * 0.005 });
+		} else if (pointers.size === 2) {
+			const now = pinchNow();
+			if (pinchDistance > 0)
+				renderer?.orbitCamera({ zoomFactor: pinchZoomFactor(pinchDistance, now) });
+			pinchDistance = now;
 		}
 	};
 	const onWheel = (e: WheelEvent): void => {
@@ -422,12 +450,13 @@ export function startFlight(options: FlightOptions): Flight {
 		if (!renderer) return;
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
 		renderer.setRenderScale(level.scale);
+		renderer.setPlanetScale(level.planetScale);
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
 			hudCtl?.notice({
 				kind: 'info',
 				title: 'Graphics adjusted',
-				detail: `${level.preset} at ${percent}% resolution to keep the frame rate up`,
+				detail: `${level.preset} at ${percent}% resolution${level.planetScale < 1 ? ', sky and ground at half detail' : ''} to keep the frame rate up`,
 				key: 'governor'
 			});
 		}
@@ -584,7 +613,7 @@ export function startFlight(options: FlightOptions): Flight {
 				notice: (title, detail) =>
 					hudCtl?.notice({ kind: 'warning', title, ...(detail ? { detail } : {}), key: 'maneuver' })
 			});
-			governor = new QualityGovernor(renderer.preset);
+			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
 			// compile this preset's programs and the other presets' planet pass off the main thread
 			void renderer.precompile();
@@ -631,6 +660,7 @@ export function startFlight(options: FlightOptions): Flight {
 	window.addEventListener('blur', onBlur);
 	canvas.addEventListener('pointerdown', onPointerDown);
 	canvas.addEventListener('pointerup', onPointerUp);
+	canvas.addEventListener('pointercancel', onPointerUp);
 	canvas.addEventListener('pointermove', onPointerMove);
 	canvas.addEventListener('wheel', onWheel, { passive: false });
 	observer.observe(canvas.parentElement ?? canvas);
@@ -650,6 +680,9 @@ export function startFlight(options: FlightOptions): Flight {
 				frames: stats.n.paint
 			}),
 			renderer: () => renderer,
+			// Sound checks (plan 053): the engine (state, `level()`) and the director's cost counters.
+			audio: () => pageAudio(),
+			audioCost: () => ({ ...director.cost }),
 			snapshot: () => snap,
 			send: (c: Command) => client.dispatch(c),
 			screenshot: (lines: string[]) => {
@@ -765,9 +798,20 @@ export function startFlight(options: FlightOptions): Flight {
 			hud.paused = paused;
 			client.setPaused(paused);
 		},
+		setTouchAttitude(input) {
+			touchAttitude.pitch = input.pitch;
+			touchAttitude.yaw = input.yaw;
+			touchAttitude.roll = input.roll;
+		},
+		setThrottle(value) {
+			throttle = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+		},
 		setModal(open) {
 			modal = open;
-			if (open) held.clear();
+			if (open) {
+				held.clear();
+				touchAttitude.pitch = touchAttitude.yaw = touchAttitude.roll = 0;
+			}
 		},
 		dispose() {
 			disposed = true;
@@ -779,6 +823,7 @@ export function startFlight(options: FlightOptions): Flight {
 			window.removeEventListener('blur', onBlur);
 			canvas.removeEventListener('pointerdown', onPointerDown);
 			canvas.removeEventListener('pointerup', onPointerUp);
+			canvas.removeEventListener('pointercancel', onPointerUp);
 			canvas.removeEventListener('pointermove', onPointerMove);
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();

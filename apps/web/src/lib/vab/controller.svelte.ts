@@ -12,6 +12,7 @@ import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
 import { initialGraphicsPreset } from '../graphics';
 import { keyIdOf, type ActionId } from '../keybindings';
+import { pinchZoomFactor } from '../touch/touch-model';
 import { settings } from '../settings/settings.svelte';
 import { bodyMu } from '../orbit-info';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
@@ -882,12 +883,38 @@ export class VabController {
 		);
 	}
 
+	/** Fingers on the canvas, for the two-finger pinch (plan 053); the mouse is one pointer. */
+	private pointers = new Map<number, { x: number; y: number }>();
+	private pinch = 0;
+	private pinchNow(): number {
+		const [a, b] = [...this.pointers.values()];
+		return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+	}
+
 	pointerDown = (e: PointerEvent): void => {
+		this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 		this.canvas?.setPointerCapture(e.pointerId);
+		if (this.pointers.size === 2) {
+			// A second finger turns the gesture into a pinch: no click, no orbit.
+			this.drag = null;
+			this.pinch = this.pinchNow();
+			return;
+		}
 		this.canvas?.focus({ preventScroll: true });
 		this.drag = { x: e.clientX, y: e.clientY, moved: false, button: e.button, shift: e.shiftKey };
 	};
 	pointerMove = (e: PointerEvent): void => {
+		const tracked = this.pointers.get(e.pointerId);
+		if (tracked) {
+			tracked.x = e.clientX;
+			tracked.y = e.clientY;
+		}
+		if (this.pointers.size >= 2) {
+			const now = this.pinchNow();
+			if (this.pinch > 0) this.view?.zoomBy(pinchZoomFactor(this.pinch, now));
+			this.pinch = now;
+			return;
+		}
 		const d = this.drag;
 		if (d) {
 			const dx = e.clientX - d.x;
@@ -919,9 +946,13 @@ export class VabController {
 		if (this.canvas) this.canvas.style.cursor = hit ? 'pointer' : '';
 	};
 	pointerUp = (e: PointerEvent): void => {
+		const wasPinch = this.pointers.size >= 2;
+		this.pointers.delete(e.pointerId);
+		this.pinch = 0;
 		const d = this.drag;
 		this.drag = null;
 		this.canvas?.releasePointerCapture(e.pointerId);
+		if (wasPinch) return;
 		if (!d || d.moved || d.button !== 0) return;
 		const hit = this.pick(e);
 		if (this.armed) {
@@ -936,7 +967,11 @@ export class VabController {
 			this.selected = null;
 		}
 	};
-	pointerCancel = (): void => void (this.drag = null);
+	pointerCancel = (e: PointerEvent): void => {
+		this.pointers.delete(e.pointerId);
+		this.pinch = 0;
+		this.drag = null;
+	};
 	pointerLeave = (): void => {
 		this.hoverNode = null;
 		this.pointerTarget = null;

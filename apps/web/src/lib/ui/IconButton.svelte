@@ -31,6 +31,12 @@
 </button>
 
 <style>
+	@media (pointer: coarse) {
+		.ib {
+			min-width: 44px;
+			height: 44px;
+		}
+	}
 	.ib {
 		display: inline-flex;
 		align-items: center;

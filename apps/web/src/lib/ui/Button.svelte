@@ -28,6 +28,11 @@
 			background var(--dur-fast) var(--ease),
 			border-color var(--dur-fast) var(--ease);
 	}
+	@media (pointer: coarse) {
+		.btn {
+			min-height: 44px;
+		}
+	}
 	.btn:hover:not(:disabled) {
 		border-color: var(--c-accent);
 		background: rgb(92 207 255 / 0.12);

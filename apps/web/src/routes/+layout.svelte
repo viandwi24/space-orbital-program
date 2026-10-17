@@ -7,6 +7,7 @@
 	import '#lib/ui/tokens.css';
 	import '#lib/ui/base.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { applyAudioSettings, pageAudio } from '../lib/audio/audio';
 	import { detectInBrowser, missingFeatures } from '../lib/browser-support';
@@ -14,6 +15,7 @@
 	import { settings } from '../lib/settings/settings.svelte';
 	import BrowserNotice from '../lib/ui/BrowserNotice.svelte';
 	import ErrorScreen from '../lib/ui/ErrorScreen.svelte';
+	import SmallScreenNotice from '../lib/ui/SmallScreenNotice.svelte';
 	import LoadingScreen from '../lib/ui/LoadingScreen.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -92,6 +94,9 @@
 		{/snippet}
 	</svelte:boundary>
 {/if}
+
+{#if missing?.length === 0 && !['/roadmap', '/credits'].includes(page.url.pathname)}<SmallScreenNotice
+	/>{/if}
 
 {#if note}<p class="note" role="status" data-testid="audio-note">{note}</p>{/if}
 

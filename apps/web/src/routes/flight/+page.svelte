@@ -16,7 +16,9 @@
 	import StageStack from '../../lib/hud/StageStack.svelte';
 	import StatusCard from '../../lib/hud/StatusCard.svelte';
 	import WarpControl from '../../lib/hud/WarpControl.svelte';
+	import TouchControls from '../../lib/hud/TouchControls.svelte';
 	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
+	import { touchControlsOn } from '../../lib/touch/touch-model';
 	import Button from '../../lib/ui/Button.svelte';
 	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
@@ -75,6 +77,9 @@
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
 	let tall = $state(true);
+	/** The primary pointer is a finger (plan 053): the on-screen controls show for Automatic. */
+	let coarse = $state(false);
+	const touchOn = $derived(touchControlsOn(settings.touch, coarse));
 
 	// Save and load (plan 043). A load reloads the page with `?load=<id>`: a fresh Worker and renderer.
 	const saves = new SaveController({
@@ -193,6 +198,10 @@
 		};
 		importFromHash();
 		window.addEventListener('hashchange', importFromHash);
+		const pointer = matchMedia('(pointer: coarse)');
+		const syncPointer = (): void => void (coarse = pointer.matches);
+		syncPointer();
+		pointer.addEventListener('change', syncPointer);
 		const small = matchMedia('(max-height: 800px)');
 		const sync = (): void => void (tall = !small.matches);
 		sync();
@@ -229,6 +238,7 @@
 			offSandbox();
 			window.removeEventListener('hashchange', importFromHash);
 			small.removeEventListener('change', sync);
+			pointer.removeEventListener('change', syncPointer);
 			flight = null;
 			started.dispose();
 		};
@@ -408,6 +418,7 @@
 					<TutorialCard
 						step={tutorialStep}
 						label={stepLabel(settings.tutorial, 'flight')}
+						touch={touchOn}
 						onskip={() => settings.setTutorial(skip(settings.tutorial))}
 					/>
 				{/if}
@@ -486,6 +497,15 @@
 					onsas={(mode) => flight?.setSas(mode)}
 				/>
 			</div>
+
+			{#if touchOn && hud.status === 'flying' && !pauseOpen}
+				<TouchControls
+					throttle={model?.throttle ?? hud.throttle}
+					onthrottle={(v) => flight?.setThrottle(v)}
+					onattitude={(a) => flight?.setTouchAttitude(a)}
+					onstage={() => flight?.stage()}
+				/>
+			{/if}
 
 			{#if hud.autopilot}<p class="dev num">Dev autopilot: {hud.autopilot}</p>{/if}
 		</div>

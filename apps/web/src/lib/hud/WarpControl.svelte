@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { settings } from '../settings/settings.svelte';
 	import IconButton from '../ui/IconButton.svelte';
 	import { formatMet, formatWarp } from '../format';
 	import { WARP_STEPS } from '../warp';
@@ -27,7 +28,7 @@
 	<IconButton
 		icon="slower"
 		label="Slower time warp"
-		hint=","
+		hint={settings.keymap.label('warpDown')}
 		disabled={!usable && warp === 1}
 		onclick={onslower}
 	/>
@@ -47,7 +48,7 @@
 	<IconButton
 		icon="faster"
 		label="Faster time warp"
-		hint="."
+		hint={settings.keymap.label('warpUp')}
 		disabled={!usable}
 		onclick={onfaster}
 	/>

@@ -16,10 +16,10 @@ export interface RoadmapItem {
 
 export const ROADMAP: readonly RoadmapItem[] = [
 	{
-		plan: '053',
-		title: 'Remappable keys, sound and more screens',
+		plan: '055',
+		title: 'Phones and real-device testing',
 		gives:
-			'Choose your own keys, engine and ambient sound, and a layout for tablets and phones. Version 1.0 has fixed keys, no audio and is built for desktop browsers.',
+			'A compact layout for phones, and runs on real tablets and phones. Tablets in landscape work today with on-screen controls; phones show a notice.',
 		area: 'Platform'
 	},
 	{

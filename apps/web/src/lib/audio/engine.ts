@@ -158,12 +158,14 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		rumbleGain.connect(effects);
 
 		const windFilter = c.createBiquadFilter();
-		windFilter.type = 'bandpass';
+		windFilter.type = 'lowpass';
 		windFilter.frequency.value = 400;
-		windFilter.Q.value = 0.7;
+		// Brown noise is dark; a lowpass that opens with speed passes enough of it to read as a rush.
+		const windBoost = c.createGain();
+		windBoost.gain.value = 3;
 		const windGain = c.createGain();
 		windGain.gain.value = 0;
-		noiseSource(1.3).connect(windFilter).connect(windGain).connect(effects);
+		noiseSource(1.3).connect(windFilter).connect(windBoost).connect(windGain).connect(effects);
 
 		return {
 			master,

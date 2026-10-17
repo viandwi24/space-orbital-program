@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { settings } from '../settings/settings.svelte';
 	import Icon from '../ui/Icon.svelte';
 	import IconButton from '../ui/IconButton.svelte';
 
@@ -23,7 +24,14 @@
 
 <nav class="bar" aria-label="Flight tools">
 	<IconButton icon="menu" label="Pause menu" hint="Esc" text="Menu" onclick={onmenu} />
-	<IconButton icon="map" label="Map view" hint="M" text="Map" pressed={map} onclick={onmap} />
+	<IconButton
+		icon="map"
+		label="Map view"
+		hint={settings.keymap.label('map')}
+		text="Map"
+		pressed={map}
+		onclick={onmap}
+	/>
 	<IconButton
 		icon="script"
 		label="Script panel"
@@ -31,7 +39,13 @@
 		pressed={script}
 		onclick={onscript}
 	/>
-	<IconButton icon="help" label="Controls" hint="?" text="Controls" onclick={onhelp} />
+	<IconButton
+		icon="help"
+		label="Controls"
+		hint={settings.keymap.label('help')}
+		text="Controls"
+		onclick={onhelp}
+	/>
 	<a class="back" href="/vab" title="Back to the vehicle assembly">
 		<Icon name="back" /> <span>VAB</span>
 	</a>

@@ -51,6 +51,6 @@ describe('browser capability check (plan 032, ADR 0040)', () => {
 		expect(body).toContain('cannot run Orbital');
 		expect(body).toContain('WebGL 2 (3D graphics)');
 		expect(body).toContain('Firefox 114');
-		expect(body).toContain('Phones and tablets are not supported');
+		expect(body).toContain('phones are not');
 	});
 });

@@ -66,7 +66,7 @@ export const SILENCE: FlightSound = {
 };
 
 /** Peak rumble level against a full-throttle sea-level roar of 1. */
-export const RUMBLE_MAX = 0.3;
+export const RUMBLE_MAX = 0.12;
 /** Below this speed through the air there is no wind to hear, m/s. */
 export const WIND_MIN_SPEED = 30;
 

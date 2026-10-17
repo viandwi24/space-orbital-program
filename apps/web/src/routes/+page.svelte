@@ -112,7 +112,7 @@
 	{#snippet footer()}
 		<span class="num">{GAME_NAME} {GAME_VERSION}</span>
 		<span class="num">mod API {API_VERSION}</span>
-		<span>Desktop browsers only</span>
+		<span>Computers and tablets</span>
 	{/snippet}
 </MenuShell>
 

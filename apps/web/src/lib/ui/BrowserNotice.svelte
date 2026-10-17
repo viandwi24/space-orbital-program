@@ -18,9 +18,8 @@
 		acceleration is turned on in its settings and that the browser is up to date.
 	</p>
 	<p class="meta">
-		Phones and tablets are not supported yet. See the support list in the project documentation (<code
-			>docs/product/browser-support.md</code
-		>).
+		Tablets in landscape (1024 × 768 or larger) are supported; phones are not. See the support list
+		in the project documentation (<code>docs/product/browser-support.md</code>).
 	</p>
 </main>
 
