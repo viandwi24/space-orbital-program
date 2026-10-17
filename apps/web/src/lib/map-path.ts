@@ -13,8 +13,7 @@ import {
 	fromStateVector,
 	KeplerError,
 	orbitalAxes,
-	predictPatchedConics,
-	predictWithManeuvers,
+	trajectoryFor,
 	propagateUniversal,
 	soiRadius,
 	type ManeuverInput,
@@ -71,8 +70,7 @@ export function predictMapPath(
 	const v = snapshot.vessels.find((s) => Number(s.id) === vessel);
 	if (!v || v.surface) return [];
 	// The root part's origin, not the centre of mass: metres of difference at the scale of a map.
-	const segments = predictPatchedConics(
-		nodes,
+	const segments = trajectoryFor(nodes).predict(
 		{ body: String(v.soi), r: v.position, v: v.velocity, t: snapshot.t },
 		horizon
 	);
@@ -142,7 +140,7 @@ export function maneuverReach(
 	const last = Math.max(...maneuvers.map((m) => m.time));
 	const ahead = Math.max(0, last - start.t);
 	// Look past the last node by what its new orbit needs.
-	const probe = predictWithManeuvers(bodies, start, maneuvers, ahead + 1);
+	const probe = trajectoryFor(bodies).predictWithManeuvers(start, maneuvers, ahead + 1);
 	const post = probe.nodes.at(-1)?.post;
 	const postBody = probe.nodes.at(-1)?.body;
 	let after = horizon;
@@ -181,9 +179,10 @@ export function predictManeuvers(
 	const drawn = past
 		? maneuvers.map((m) => (m.time <= snapshot.t ? { ...m, time: snapshot.t + 0.5 } : m))
 		: maneuvers;
-	const result = predictWithManeuvers(bodies, start, drawn, reach);
+	const trajectory = trajectoryFor(bodies);
+	const result = trajectory.predictWithManeuvers(start, drawn, reach);
 	const where = new Map(
-		(past ? predictWithManeuvers(bodies, start, maneuvers, 1).nodes : []).map((n) => [n.id, n])
+		(past ? trajectory.predictWithManeuvers(start, maneuvers, 1).nodes : []).map((n) => [n.id, n])
 	);
 	const firstNode = Math.min(...result.nodes.map((n) => n.segment).filter((i) => i >= 0), Infinity);
 	const paths = result.segments.map((s, i) => mapPathOf(s, bodies, i > firstNode));

@@ -12,15 +12,10 @@ import {
 	type VesselSnapshot
 } from '@orbital/core';
 import {
-	bodyTrack,
-	closestApproachOnTrack,
-	conicTrack,
 	hohmannToTarget,
 	matchVelocityBurn,
-	predictPatchedConics,
-	predictWithManeuvers,
 	relativeNodes,
-	trackOfSegments,
+	trajectoryFor,
 	type PatchedBody,
 	type StateVector
 } from '@orbital/kepler';
@@ -51,12 +46,17 @@ export function targetMotion(
 		const id = String(ref.id);
 		const body = bodies.find((b) => b.id === id);
 		if (!body) return null;
-		return { at: bodyTrack(bodies, id), primary: body.parent ?? null };
+		return { at: trajectoryFor(bodies).bodyTrack(id), primary: body.parent ?? null };
 	}
 	const other = snapshot.vessels.find((x) => x.id === ref.id);
 	if (!other || other.surface) return null;
 	return {
-		at: conicTrack(bodies, String(other.soi), other.position, other.velocity, snapshot.t),
+		at: trajectoryFor(bodies).conicTrack(
+			String(other.soi),
+			other.position,
+			other.velocity,
+			snapshot.t
+		),
 		primary: String(other.soi)
 	};
 }
@@ -110,20 +110,20 @@ export function patchedApproach(
 	const start = { body: String(v.soi), r: v.position, v: v.velocity, t: snapshot.t };
 	const horizon = options.window ?? predictionHorizon(v.orbit, soi.mu);
 	const nodes = futureNodes(v, snapshot.t);
+	const trajectory = trajectoryFor(bodies);
 	let segments;
 	if (nodes.length === 0) {
-		segments = predictPatchedConics(bodies, start, horizon);
+		segments = trajectory.predict(start, horizon);
 	} else {
-		segments = predictWithManeuvers(
-			bodies,
+		segments = trajectory.predictWithManeuvers(
 			start,
 			nodes,
 			maneuverReach(start, bodies, nodes, horizon)
 		).segments;
 	}
 	if (segments.length === 0) return null;
-	const found = closestApproachOnTrack(
-		trackOfSegments(bodies, segments, snapshot.t),
+	const found = trajectory.closestApproachOnTrack(
+		trajectory.trackOfSegments(segments, snapshot.t),
 		motion.at,
 		options.samples ?? 480
 	);
