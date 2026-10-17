@@ -1,8 +1,8 @@
 ---
 id: 095
 title: "Economy core: currencies, ledger, part costs and recovery"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [078, 082]
 phase: 6
 created: 2026-10-17
