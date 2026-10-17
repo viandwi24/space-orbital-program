@@ -42,16 +42,18 @@ Keep the editor state model (ADR 0029) and library (ADR 0041) unchanged; this is
 
 ## Steps
 
-1. Category rail and part cards.
-2. Stats and staging panels.
-3. Tool bar and symmetry.
-4. Pre-flight verdict.
-5. Screenshots and e2e.
+1. ADR 0148.
+2. Pre-flight verdict: `Check.level`, `verdictOf`, `marginal-twr`, the root part for `no-control`; tests.
+3. Category rail and part cards (mass · cost).
+4. Top bar (back, Hangar capsule, file actions, Launch) and the right column (Vessel, Staging, Pre-flight).
+5. Tool pill (symmetry, CoM and CoT toggles, undo, redo) and the CoT marker.
+6. Screenshots and e2e.
 
 ## Acceptance criteria
 
 - [ ] Existing VAB vitest and e2e tests pass.
 - [ ] vitest: the pre-flight verdict is no-go for a design without a control source and names the root part; caution for TWR under 1.2 on the first stage.
+- [ ] vitest: the rail lists the registry's categories in order with a dot on the chosen one; a part card shows `[—]` for a part without a cost.
 - [ ] Screenshots at 1920x1080 and 1024x768 in `docs/journal/assets/093-*.png` with the self-review against refs Hangar; VAB CPU time per frame within 0.2 ms of before (M5).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
@@ -60,9 +62,10 @@ Keep the editor state model (ADR 0029) and library (ADR 0041) unchanged; this is
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/093-ui-stage-4-hangar.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [ ] ADR 0148.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined: Steps, a rail/card criterion, ADR 0148 (verdict levels beside severity, no fake tool modes, a CoT marker).
