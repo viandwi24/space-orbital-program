@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-18
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); 068 done (`cp/f2-068-terrain-aa`); 091 done (`cp/f2-091-space-center`); merged 2026-10-18: 088, 103, 085, 076, 114, 069, 102; 113 done (`cp/f4-113-mission-center`); merged 2026-10-18: 104, 089, 107, 093, 067; 122 done (`cp/f5-122-sun`); Agent 1 next: 096 building levels; Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); 095 done (`cp/f3-095-economy`); 090 done (`cp/f2-090-buildings`); 068 done (`cp/f2-068-terrain-aa`); 091 done (`cp/f2-091-space-center`); merged 2026-10-18: 088, 103, 085, 076, 114, 069, 102; 113 done (`cp/f4-113-mission-center`); merged 2026-10-18: 104, 089, 107, 093, 067; 122 done (`cp/f5-122-sun`); 109 EVA in progress (Agent 1; 096 waits for 094); Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -117,7 +117,7 @@
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
 | 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | done | Agent 3 | ADR 0100/0181: exact life support under warp, shortages, morale, fatigue, g-load, dose, crew card; handed over as `ready/107` |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
-| 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
+| 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | in-progress | Agent 1 | ADR 0100: EVA as a vessel |
 | 110 | [Part action descriptors and action groups](plans/110-part-action-descriptors-and-groups.md) | done | Agent 3 | ADR 0102: descriptors, groups, custom groups |
 | 111 | [Vessel panel: Overview with group control, Parts with per-part actions](plans/111-vessel-panel-group-and-part-control.md) | draft | — | ADR 0102: Overview group switches, Parts tab |
 | 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | draft | — | ADR 0102: declarative mod panels, SDK canvas, dock |

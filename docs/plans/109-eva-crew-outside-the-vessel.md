@@ -1,12 +1,12 @@
 ---
 id: 109
 title: "EVA: crew as actors outside the vessel"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [106, 103]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 109 — EVA: crew as actors outside the vessel
