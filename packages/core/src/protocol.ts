@@ -472,6 +472,14 @@ export type Command =
 	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
 	/** Move a crew member to another part of the same vessel (capacity checked). */
 	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId }
+	/** EVA (plan 109, ADR 0120): the member steps out into a suit, a vessel of its own beside the part. */
+	| { type: 'crew-eva'; vessel: EntityId; member: string }
+	/** The member in `suit` boards `vessel` (a free seat within 50 m); the suit's samples come aboard. */
+	| { type: 'crew-board'; suit: EntityId; vessel: EntityId }
+	/** Walk a landed vessel that can (its part declares `walk`): heading from north, rad; speed 0 stops. */
+	| { type: 'crew-walk'; vessel: EntityId; heading: number; speed: number }
+	/** A suit on the ground plants a flag beside it: a kept one-part vessel (ADR 0120 point 5). */
+	| { type: 'plant-flag'; vessel: EntityId }
 	/** Transmit a science data item (plan 103, ADR 0178 point 7): value × its factor, then it is gone. */
 	| { type: 'transmit-data'; vessel: EntityId; item: string };
 

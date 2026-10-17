@@ -4,6 +4,7 @@
  */
 import { definePlugin } from '@orbital/sdk';
 import { HomeBody, MoonBody, SunBody } from './bodies.ts';
+import { EvaPropellant, ModuleFlag, STOCK_EVA_PARTS } from './eva.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
@@ -81,6 +82,7 @@ export const Stock = definePlugin({
 		ctx.resources.register(ElectricCharge);
 		ctx.resources.register(Ablator);
 		for (const resource of LIFE_SUPPORT_RESOURCES) ctx.resources.register(resource);
+		ctx.resources.register(EvaPropellant);
 
 		ctx.modules.register(ModuleCommand);
 		ctx.modules.register(ModuleResourceContainer);
@@ -93,6 +95,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleControlSurface);
 		ctx.modules.register(ModuleWing);
 		ctx.modules.register(ModuleScrubber);
+		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);
@@ -131,6 +134,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartFlotationCollar);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_EVA_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
 
 		// the Sun first: hosts list bodies in registration order and the tree's root comes first
@@ -153,6 +157,7 @@ export * from './resources.ts';
 export * from './modules.ts';
 export * from './parts.ts';
 export * from './bodies.ts';
+export * from './eva.ts';
 export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';

@@ -23,6 +23,7 @@ import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
 import { resetStations, signalRefusal } from './comms.ts';
 import { applyActionGroup } from './actions.ts';
+import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
@@ -354,6 +355,16 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		}
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
+		case 'crew-eva':
+			return crewEva(core, command.vessel, command.member);
+		case 'crew-board':
+			return crewBoard(core, command.suit, command.vessel);
+		case 'crew-walk':
+			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+			return crewWalk(core, command.vessel, command.heading, command.speed);
+		case 'plant-flag':
+			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+			return plantFlag(core, command.vessel);
 		case 'crew-transfer':
 			return transferCrew(core, command.vessel, command.member, command.to);
 		case 'action-group': {

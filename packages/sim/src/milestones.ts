@@ -136,3 +136,11 @@ export function listenForMilestones(core: SimCore): void {
 /** The records for the snapshot, or undefined while there are none. */
 export const milestonesSnapshot = (core: SimCore): MilestoneRecord[] | undefined =>
 	core.milestones.records.length > 0 ? core.milestones.records.map((r) => ({ ...r })) : undefined;
+
+/** Records a first from outside this file (EVA, plan 109). */
+export const reachMilestone = (
+	core: SimCore,
+	kind: MilestoneKind,
+	body: string | undefined,
+	vessel: EntityId
+): void => reach(core, kind, body, vessel);

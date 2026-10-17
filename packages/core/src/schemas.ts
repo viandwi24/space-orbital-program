@@ -310,6 +310,8 @@ export const partDefinitionSchema = z.object({
 	impactTolerance: z.number().positive().optional(),
 	/** Seats for crew (plan 106, ADR 0176 point 3); absent: none. */
 	crewCapacity: z.int().min(0).max(32).optional(),
+	/** The vessel can walk on the ground at up to `speed` m/s (plan 109, ADR 0120 point 3: the EVA suit). */
+	walk: z.object({ speed: z.number().positive() }).optional(),
 	/**
 	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); the sim
 	 * assumes 1000 when absent.

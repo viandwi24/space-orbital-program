@@ -25,5 +25,8 @@ export function milestoneTitle(
 			return `${first} landing on ${body}`;
 		case 'return':
 			return r.body === home ? `${first} return from orbit` : `${first} return from ${body}`;
+		case 'eva':
+			// the first step outside (plan 109): crewed by nature, so no "crewed" variant in the words
+			return `First EVA ${r.body === home ? 'at home' : `on ${body}`}`;
 	}
 }

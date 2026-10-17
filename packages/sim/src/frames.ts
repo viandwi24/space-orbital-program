@@ -47,6 +47,7 @@ import {
 import { runUpdateHooks } from './hooks.ts';
 import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { ZERO, qConj, qMul, qRotate, uprightRotation } from './math.ts';
+import { stepWalking } from './eva.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
@@ -374,6 +375,7 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		const centre = add(frame.origin, motion.centre);
 		backend.applyForce(body.handle, scale(gravityAt(planet.mu, centre), body.mass));
 		updateTile(core, frame, planet, vesselId, centre);
+		stepWalking(core, frame, vesselId, body);
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
 		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));

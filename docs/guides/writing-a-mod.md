@@ -313,6 +313,12 @@ ctx.achievements.register(defineAchievement({
 - **The home body** is the world's primary site's body, else the first body that is not a star and orbits a star or nothing (`homeBodyOf` in `@orbital/sdk`). Hosts read it from the sim (`sim.home`); do not take `bodies[0]`, which is the root.
 - **Axial tilt** in the stock system is the inclination of the planet's orbit with the pole on +Y, so the planet's own sphere keeps the frame it always had; a pole of your own (`rotation.pole`, ADR 0145) works too.
 
+## EVA parts (API 0.1.49, plan 109, ADR 0120)
+
+- **A suit** is any part with a seat and `walk: { speed }`: `crew-eva` puts the member in a vessel of that one part, `crew-walk` walks it up to that speed. Give it a command module (so it rests on surface rails), stores for the crew (ADR 0181) and, if it flies, an engine on its own propellant.
+- **A kept vessel** has a module with `keep: true`: it is never removed as resting debris. `plant-flag` spawns the first registered part with such a module beside a standing suit.
+- A module's `onRecover` also runs when its suit boards a vessel: what it credits then goes into that vessel's sample locker and counts at the vessel's recovery.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

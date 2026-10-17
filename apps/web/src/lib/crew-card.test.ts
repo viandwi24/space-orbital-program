@@ -54,4 +54,19 @@ describe('crew card', () => {
 		expect(html).toContain('Out of supplies: 17:50:00 to live');
 		expect(render(CrewPanel, { props: {} }).body).toContain('Crew comes with plan 108.');
 	});
+
+	it('offers EVA per member, and while outside the walk, flag and board buttons (plan 109)', () => {
+		const card = crewCard(snap, vessel, DAY);
+		const inside = render(CrewPanel, { props: { card, oneva: () => {} } }).body;
+		expect(inside).toContain('data-testid="crew-eva-');
+		const outside = render(CrewPanel, {
+			props: { card, eva: { suit: 9, name: 'Ada Vega', walking: false }, oneva: () => {} }
+		}).body;
+		expect(outside).toContain('Ada Vega is outside');
+		for (const id of ['eva-walk-N', 'eva-walk-E', 'eva-flag', 'eva-board']) {
+			expect(outside).toContain(`data-testid="${id}"`);
+		}
+		// one member outside at a time: no EVA buttons on the rows meanwhile
+		expect(outside).not.toContain('data-testid="crew-eva-');
+	});
 });

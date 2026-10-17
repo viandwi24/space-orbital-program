@@ -140,6 +140,13 @@ export function isControlled(core: SimCore, vessel: VesselState): boolean {
 	);
 }
 
+/** A vessel with a `keep` module (a planted flag, ADR 0120 point 5): never reaped as debris. */
+export function isKept(core: SimCore, vessel: VesselState): boolean {
+	return vessel.parts.some((id) =>
+		partOf(core, id).modules.some((m) => moduleDefOf(core, m.id).keep === true)
+	);
+}
+
 /** Mass of the resources in the part's stores, kg. */
 export function contentsMass(core: SimCore, part: EntityId): number {
 	const p = partOf(core, part);

@@ -15,7 +15,7 @@ import {
 	SURFACE_REST_TIME
 } from './constants.ts';
 import { bodyOfVessel, spinAt } from './bodies.ts';
-import { frameOfVessel, isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { frameOfVessel, isControlled, isKept, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from './frames.ts';
 import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
 import type { FlightFrame } from './state.ts';
@@ -165,7 +165,8 @@ export function trackRest(core: SimCore, frame: FlightFrame, vesselId: EntityId,
 		body !== undefined &&
 		vessel.landed &&
 		vessel.idle > 0 &&
-		isControlled(core, vessel) &&
+		// a kept vessel (a flag) rests on surface rails too, so it does not hold a physics frame
+		(isControlled(core, vessel) || isKept(core, vessel)) &&
 		length(sub(vessel.velocity, cross(omega, vessel.com))) < SURFACE_REST_SPEED &&
 		length(sub(bodyMotion(frame, body).angular, omega)) < SURFACE_REST_SPIN;
 	vessel.rest = still ? vessel.rest + dt : 0;
@@ -201,7 +202,7 @@ export function autoRails(core: SimCore): void {
 export function reapDebris(core: SimCore): void {
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
-		if (isControlled(core, vessel)) continue;
+		if (isControlled(core, vessel) || isKept(core, vessel)) continue;
 		const body = bodyOfVessel(core, vessel);
 		const top = body.def.atmosphere?.height ?? 0;
 		const omega = spinAt(body, core.t);
