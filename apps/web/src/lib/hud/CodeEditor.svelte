@@ -828,7 +828,7 @@
 		max-height: 240px;
 		overflow: auto;
 		--lh: 1.45em;
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: var(--t-sm);
 		line-height: 1.45;
 		background: var(--field);
@@ -986,7 +986,7 @@
 		padding-left: var(--s-4);
 	}
 	.keys kbd {
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		color: var(--text);
 	}
 	.option {

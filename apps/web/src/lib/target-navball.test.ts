@@ -123,12 +123,13 @@ describe('navball painter', () => {
 			groundTop: '#000',
 			groundBottom: '#000',
 			line: '#fff',
+			horizon: '#fff',
 			text: '#fff',
+			marker: '#eee',
 			accent: '#0ff',
-			positive: '#0f0',
-			violet: '#f0f',
-			warning: '#ff0',
-			target: '#f88'
+			target: '#f88',
+			reticle: '#fff',
+			reticleOutline: '#000'
 		};
 		const target = { position: v(0, 600, 800), velocity: v(0, 3, 4), relative: true };
 		const markers = markerDirections(POS, VEL, v(0, -3, -4), v(0, 0, 5), target);

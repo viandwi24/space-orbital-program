@@ -11,7 +11,7 @@
 		min-width: 1.6em;
 		padding: 1px 6px;
 		text-align: center;
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: var(--t-xs);
 		color: var(--text);
 		background: rgb(150 180 210 / 0.14);

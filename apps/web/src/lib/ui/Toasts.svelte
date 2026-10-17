@@ -34,10 +34,11 @@
 		min-width: 240px;
 		max-width: 420px;
 		padding: var(--s-2) var(--s-4) var(--s-2) var(--s-3);
-		background: var(--panel-raised);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 		animation: in var(--dur-med) var(--ease);
 	}
 	.ico {

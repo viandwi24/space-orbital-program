@@ -93,11 +93,18 @@
 	--syn-api: #8fa9f0;
 	--syn-error-line: rgb(255 138 142 / 0.2);
 
-	/* Scene colours of the navball, read by navball-draw.ts (restyled monochrome in stage 2, ADR 0107 point 4) */
-	--ball-sky-top: #2f8fd0;
-	--ball-sky-bottom: #7fd0ef;
-	--ball-ground-top: #7b5a3c;
-	--ball-ground-bottom: #3d2c22;
+	/* The navball, monochrome as the refs (plan 088, ADR 0144), read by navball-draw.ts */
+	--ball-sky-top: #e6e8ec;
+	--ball-sky-bottom: #cfd3d9;
+	--ball-ground-top: #2c2e33;
+	--ball-ground-bottom: #1e2023;
+	--ball-line: #7a7f88;
+	--ball-horizon: #ffffff;
+	--ball-text: #6b7078;
+	/* markers without the accent: light grey with a dark halo */
+	--ball-marker: #e4e4e7;
+	--ball-reticle: #ffffff;
+	--ball-reticle-outline: #0b0b0c;
 
 	/* Elevation: one level, for overlays that sit over the HUD */
 	--shadow-overlay: 0 12px 40px rgb(0 0 0 / 0.55);
@@ -117,7 +124,8 @@
 	 * Legacy names (ADR 0026), kept as aliases so every screen takes the new palette at once (ADR 0140
 	 * point 3). Stages 2 to 5 move screens to the names above and delete an alias with its last use.
 	 */
-	--font-num: var(--font-mono);
+	/* numbers in Manrope with tabular figures since stage 2 (plan 088, ADR 0140 point 4); code keeps --font-mono */
+	--font-num: var(--font-ui);
 	--t-xs: 0.75rem;
 	--t-sm: 0.8125rem;
 	--t-md: 0.9375rem;

@@ -31,13 +31,16 @@ export interface NavballTheme {
 	groundTop: string;
 	groundBottom: string;
 	line: string;
+	horizon: string;
 	text: string;
+	/** Markers without the accent (normal, radial). */
+	marker: string;
+	/** Prograde, retrograde and the maneuver node: the one accent (ADR 0144 point 6). */
 	accent: string;
-	positive: string;
-	violet: string;
-	warning: string;
 	/** Target markers (plan 057). */
 	target: string;
+	reticle: string;
+	reticleOutline: string;
 }
 
 /** Reads the colour tokens from the element so the painter follows tokens.css. */
@@ -49,13 +52,14 @@ export function themeFrom(el: Element): NavballTheme {
 		skyBottom: v('--ball-sky-bottom'),
 		groundTop: v('--ball-ground-top'),
 		groundBottom: v('--ball-ground-bottom'),
-		line: 'rgba(255,255,255,0.85)',
-		text: v('--text'),
-		accent: v('--c-accent'),
-		positive: v('--c-positive'),
-		violet: v('--c-violet'),
-		warning: v('--c-warning'),
-		target: v('--c-danger')
+		line: v('--ball-line'),
+		horizon: v('--ball-horizon'),
+		text: v('--ball-text'),
+		marker: v('--ball-marker'),
+		accent: v('--accent'),
+		target: v('--danger'),
+		reticle: v('--ball-reticle'),
+		reticleOutline: v('--ball-reticle-outline')
 	};
 }
 
@@ -126,11 +130,11 @@ export function drawNavball(
 
 	// Graticule: parallels every 15 degrees, meridians every 30.
 	for (let e = -75; e <= 75; e += 15) {
-		if (e !== 0) stroke(elevationCircle(h, e * DEG), 1, theme.line, 0.28);
+		if (e !== 0) stroke(elevationCircle(h, e * DEG), 1, theme.line, 0.55);
 	}
 	for (let a = 0; a < 360; a += 30)
-		stroke(meridian(h, a * DEG, -75 * DEG, 75 * DEG), 1, theme.line, 0.16);
-	stroke(elevationCircle(h, 0), 2, theme.line, 0.95);
+		stroke(meridian(h, a * DEG, -75 * DEG, 75 * DEG), 1, theme.line, 0.35);
+	stroke(elevationCircle(h, 0), 2.5, theme.horizon, 1);
 
 	// Heading ticks and labels on the horizon.
 	ctx.font = `600 ${Math.max(9, Math.round(size / 17))}px Manrope, sans-serif`;
@@ -142,7 +146,7 @@ export function drawNavball(
 		stroke(
 			[horizonDirection(h, a * DEG, -t), horizonDirection(h, a * DEG, t)],
 			long ? 2 : 1,
-			theme.line,
+			theme.horizon,
 			0.9
 		);
 		if (long) {
@@ -159,7 +163,7 @@ export function drawNavball(
 		}
 	}
 	// Pitch labels along the nose heading.
-	ctx.font = `500 ${Math.max(8, Math.round(size / 19))}px "IBM Plex Mono", monospace`;
+	ctx.font = `700 ${Math.max(8, Math.round(size / 19))}px Manrope, sans-serif`;
 	for (const e of [-60, -30, 30, 60]) {
 		const p = projectDirection(horizonDirection(h, frame.heading, e * DEG), q);
 		if (p.z > 0.25) {
@@ -177,37 +181,48 @@ export function drawNavball(
 
 	// Sphere shading: a soft highlight and a darker rim.
 	const shade = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
-	shade.addColorStop(0, 'rgba(255,255,255,0.16)');
-	shade.addColorStop(0.55, 'rgba(255,255,255,0)');
-	shade.addColorStop(1, 'rgba(0,0,0,0.5)');
+	shade.addColorStop(0, 'rgba(255,255,255,0.18)');
+	shade.addColorStop(0.6, 'rgba(255,255,255,0)');
+	shade.addColorStop(1, 'rgba(0,0,0,0.55)');
 	ctx.fillStyle = shade;
 	ctx.fillRect(0, 0, size, size);
 	ctx.restore();
 
 	// Rim.
 	ctx.lineWidth = 2;
-	ctx.strokeStyle = 'rgba(150,180,210,0.55)';
+	ctx.strokeStyle = theme.reticleOutline;
 	ctx.beginPath();
 	ctx.arc(cx, cy, R, 0, Math.PI * 2);
 	ctx.stroke();
 
-	// Vessel reticle: fixed at the centre, the nose points through it.
-	ctx.lineWidth = 2.5;
-	ctx.strokeStyle = theme.warning;
+	// Vessel reticle (refs): fixed at the centre, white over a dark outline so it reads on both halves.
 	ctx.lineCap = 'round';
 	ctx.lineJoin = 'round';
-	const w = R * 0.34;
+	const w = R * 0.37;
+	const reticle = (): void => {
+		ctx.beginPath();
+		ctx.moveTo(cx - w, cy);
+		ctx.lineTo(cx - w * 0.38, cy);
+		ctx.lineTo(cx - w * 0.19, cy + R * 0.086);
+		ctx.lineTo(cx, cy);
+		ctx.lineTo(cx + w * 0.19, cy + R * 0.086);
+		ctx.lineTo(cx + w * 0.38, cy);
+		ctx.lineTo(cx + w, cy);
+		ctx.stroke();
+	};
+	ctx.lineWidth = Math.max(5, R * 0.07);
+	ctx.strokeStyle = theme.reticleOutline;
+	reticle();
+	ctx.lineWidth = Math.max(2.5, R * 0.032);
+	ctx.strokeStyle = theme.reticle;
+	reticle();
 	ctx.beginPath();
-	ctx.moveTo(cx - w, cy + 3);
-	ctx.lineTo(cx - w * 0.38, cy + 3);
-	ctx.lineTo(cx, cy - R * 0.06);
-	ctx.lineTo(cx + w * 0.38, cy + 3);
-	ctx.lineTo(cx + w, cy + 3);
-	ctx.stroke();
-	ctx.beginPath();
-	ctx.arc(cx, cy, 2.2, 0, Math.PI * 2);
-	ctx.fillStyle = theme.warning;
+	ctx.arc(cx, cy, Math.max(2.5, R * 0.029), 0, Math.PI * 2);
+	ctx.fillStyle = theme.reticle;
 	ctx.fill();
+	ctx.lineWidth = 1.5;
+	ctx.strokeStyle = theme.reticleOutline;
+	ctx.stroke();
 }
 
 function drawMarker(
@@ -232,11 +247,9 @@ function drawMarker(
 		kind === 'target-prograde' ||
 		kind === 'target-retrograde'
 			? theme.target
-			: kind === 'prograde' || kind === 'retrograde'
-				? theme.positive
-				: kind === 'normal' || kind === 'anti-normal' || kind === 'maneuver'
-					? theme.violet
-					: theme.accent;
+			: kind === 'prograde' || kind === 'retrograde' || kind === 'maneuver'
+				? theme.accent
+				: theme.marker;
 	ctx.save();
 	ctx.globalAlpha = behind ? 0.55 : 1;
 	ctx.translate(x, y);

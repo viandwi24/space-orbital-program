@@ -49,11 +49,11 @@
 		color: var(--c-danger, #ff8a7a);
 	}
 	.num {
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		color: var(--text);
 	}
 	code {
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
 </style>

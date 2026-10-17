@@ -7,6 +7,9 @@
 	import { onMount } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import AppBar from '../../lib/hud/AppBar.svelte';
+	import CrewPanel from '../../lib/hud/CrewPanel.svelte';
+	import WorldCapsule from '../../lib/hud/WorldCapsule.svelte';
+	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
@@ -102,6 +105,12 @@
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
 	let tall = $state(true);
+	const ballSize = $derived(tall ? 176 : 144);
+	// The toolbar's Staging and Nav buttons (plan 088, ADR 0144 point 5).
+	let stagingOpen = $state(true);
+	let navOpen = $state(true);
+	/** The world capsule: the active world's name, mode and system (ADR 0144 point 7). */
+	let world = $state({ name: 'Legacy world', mode: 'Sandbox', system: 'Stock system' });
 	/** The primary pointer is a finger (plan 053): the on-screen controls show for Automatic. */
 	let coarse = $state(false);
 	const touchOn = $derived(touchControlsOn(settings.touch, coarse));
@@ -156,6 +165,15 @@
 	});
 
 	onMount(() => {
+		void saves.worldsService().then(async (w) => {
+			const record = await w.get(activeWorldId());
+			if (!record) return;
+			const presets = loadWorldCatalog().presets;
+			const preset =
+				presets.find((p) => p.id === record.preset) ??
+				presets.find((p) => p.id === `stock.${record.preset}`);
+			world = { name: record.name, mode: preset?.label ?? record.preset, system: 'Stock system' };
+		});
 		const { catalog, content } = loadContent();
 		const timer = setInterval(() => {
 			void autosave(autosaver.tick(saveState()));
@@ -470,15 +488,23 @@
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
 		>
 			<div class="tl">
-				<AppBar
-					map={hud.map}
-					script={scriptOpen}
-					scriptRunning={running}
-					onmenu={() => (pauseOpen = true)}
-					onmap={() => flight?.toggleMap()}
-					onscript={() => (scriptOpen = !scriptOpen)}
-					onhelp={() => (helpOpen = true)}
-				/>
+				<div class="capsules">
+					<WorldCapsule name={world.name} mode={world.mode} system={world.system} />
+					<WarpControl
+						warp={hud.warp}
+						usable={warpUsable}
+						met={model?.met ?? 0}
+						date={model?.date ?? ''}
+						{catchUp}
+						oncatchup={() =>
+							void flight?.acceptCatchUp(Date.now()).then((r) => {
+								if (r && !r.ok) notice = `Catch up was refused: ${r.reason}`;
+							})}
+						onpause={() => (pauseOpen = true)}
+						onslower={() => flight?.stepWarp(-1)}
+						onfaster={() => flight?.stepWarp(1)}
+					/>
+				</div>
 				{#if tutorialStep}
 					<TutorialCard
 						step={tutorialStep}
@@ -523,15 +549,25 @@
 				<PrecompileBadge progress={graphics} />
 			</div>
 
+			<div class="tb">
+				<AppBar
+					map={hud.map}
+					script={scriptOpen}
+					scriptRunning={running}
+					staging={stagingOpen}
+					nav={navOpen}
+					onmenu={() => (pauseOpen = true)}
+					onmap={() => flight?.toggleMap()}
+					onscript={() => (scriptOpen = !scriptOpen)}
+					onhelp={() => (helpOpen = true)}
+					onstaging={() => (stagingOpen = !stagingOpen)}
+					onnav={() => (navOpen = !navOpen)}
+				/>
+			</div>
 			{#if model}
 				<div class="tr">
 					<ResourcesPanel resources={model.resources} />
-					<StageStack
-						stages={model.stages}
-						environment={model.environment}
-						throttle={model?.throttle ?? hud.throttle}
-						onstage={() => flight?.stage()}
-					/>
+					<OrbitStrip orbit={model.orbit} phase={model.phase} />
 					<TargetPanel
 						target={model.target}
 						choices={model.targets}
@@ -541,44 +577,48 @@
 						onplan={(id) => flight?.planAid(id)}
 					/>
 				</div>
+			{/if}
+			{#if model && stagingOpen}
 				<div class="bl">
-					<ManeuverPanel
-						maneuver={model.maneuver}
-						map={hud.map}
-						{warpUsable}
-						onwarp={() => flight?.warpToNode()}
-						onpoint={() => flight?.setSas('maneuver')}
-						onremove={() => flight?.removeNode()}
+					<StageStack
+						stages={model.stages}
+						environment={model.environment}
+						throttle={model?.throttle ?? hud.throttle}
+						onstage={() => flight?.stage()}
 					/>
-					<OrbitStrip orbit={model.orbit} phase={model.phase} />
 				</div>
 			{/if}
 
-			<div class="bc">
-				<WarpControl
-					warp={hud.warp}
-					usable={warpUsable}
-					met={model?.met ?? 0}
-					date={model?.date ?? ''}
-					{catchUp}
-					oncatchup={() =>
-						void flight?.acceptCatchUp(Date.now()).then((r) => {
-							if (r && !r.ok) notice = `Catch up was refused: ${r.reason}`;
-						})}
-					onslower={() => flight?.stepWarp(-1)}
-					onfaster={() => flight?.stepWarp(1)}
-				/>
-				<InstrumentDeck
-					bind:this={deck}
-					{model}
-					throttle={model?.throttle ?? hud.throttle}
-					ballSize={tall ? 176 : 144}
-					oncyclespeed={() => flight?.cycleSpeedMode()}
-					sas={model?.sas}
-					controllable={model?.controllable ?? true}
-					onsas={(mode) => flight?.setSas(mode)}
-				/>
+			<div class="bc" style:--ball-k={ballSize / 176}>
+				{#if model && (model.maneuver || hud.map)}
+					<div class="mnv">
+						<ManeuverPanel
+							maneuver={model.maneuver}
+							map={hud.map}
+							{warpUsable}
+							onwarp={() => flight?.warpToNode()}
+							onpoint={() => flight?.setSas('maneuver')}
+							onremove={() => flight?.removeNode()}
+						/>
+					</div>
+				{/if}
+				<div class="navmodule" class:hidden={!navOpen}>
+					<InstrumentDeck
+						bind:this={deck}
+						{model}
+						throttle={model?.throttle ?? hud.throttle}
+						{ballSize}
+						oncyclespeed={() => flight?.cycleSpeedMode()}
+						sas={model?.sas}
+						controllable={model?.controllable ?? true}
+						onsas={(mode) => flight?.setSas(mode)}
+					/>
+				</div>
 			</div>
+
+			{#if !touchOn}
+				<div class="br"><CrewPanel /></div>
+			{/if}
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}
 				<TouchControls
@@ -658,18 +698,46 @@
 	.ui :global(.panel),
 	.ui :global(.deck),
 	.ui :global(.warp),
+	.ui :global(.world),
 	.ui :global(nav) {
 		pointer-events: auto;
 	}
+	/* refs layout (plan 088, ADR 0144): 24 px margins, capsules top left, toolbar top right */
 	.tl {
-		top: calc(var(--s-3) + var(--safe-top));
-		left: calc(var(--s-3) + var(--safe-left));
+		top: calc(var(--margin-hud) + var(--safe-top));
+		left: calc(var(--margin-hud) + var(--safe-left));
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--s-2);
 		/* The script panel and the guide scroll above the instrument deck, never under it (plan 055). */
 		max-height: var(--above-deck, calc(100% - 200px));
+	}
+	.capsules {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+	@media (max-width: 1279px) {
+		.capsules {
+			flex-direction: column;
+		}
+		/* the capsules stack: the vessel's name goes below both (more specific than the base rule below) */
+		.ui > .tc {
+			top: calc(
+				var(--margin-hud) + var(--capsule) * 2 + var(--panel-gap) + 0.5rem + var(--safe-top)
+			);
+		}
+	}
+	.tb {
+		top: calc(var(--margin-hud) + var(--safe-top));
+		right: calc(var(--margin-hud) + var(--safe-right));
+	}
+	.br {
+		bottom: calc(var(--margin-hud) + var(--safe-bottom));
+		right: calc(var(--margin-hud) + var(--safe-right));
+		width: 13.75rem;
 	}
 	.script {
 		width: var(--script-w, min(420px, 46vw));
@@ -693,7 +761,7 @@
 		border-color: var(--c-danger);
 	}
 	.tc {
-		top: calc(var(--s-3) + var(--safe-top));
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
@@ -703,13 +771,13 @@
 		pointer-events: none;
 	}
 	.tr {
-		top: calc(var(--s-3) + var(--safe-top));
-		right: calc(var(--s-3) + var(--safe-right));
-		width: 264px;
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
+		right: calc(var(--margin-hud) + var(--safe-right));
+		width: 16.5rem;
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
-		max-height: calc(100% - 24px);
+		max-height: calc(100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap));
 		overflow: auto;
 		overscroll-behavior: contain;
 	}
@@ -722,25 +790,33 @@
 		}
 	}
 	.bl {
-		bottom: calc(var(--s-3) + var(--safe-bottom));
-		left: calc(var(--s-3) + var(--safe-left));
+		bottom: calc(var(--margin-hud) + var(--safe-bottom));
+		left: calc(var(--margin-hud) + var(--safe-left));
+		width: 13.75rem;
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
 	}
 	@media (max-width: 1279px) {
 		.bl {
-			bottom: calc(var(--deck-h, 262px) + var(--s-3) * 2 + var(--safe-bottom));
+			bottom: calc(var(--deck-h, 262px) + var(--margin-hud) * 2 + var(--safe-bottom));
 		}
 	}
+	/* the ball, not the module, is centred (refs): its centre is 154 mock px from the module's left */
 	.bc {
-		bottom: calc(var(--s-3) + var(--safe-bottom));
-		left: 50%;
-		transform: translateX(-50%);
+		bottom: calc(var(--margin-hud) + var(--safe-bottom));
+		left: calc(50% - 9.625rem * var(--ball-k, 1));
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: var(--s-2);
+		align-items: flex-start;
+		gap: var(--panel-gap);
+	}
+	.mnv {
+		width: 22.5rem;
+		margin-left: calc(9.625rem * var(--ball-k, 1) - 11.25rem);
+	}
+	.navmodule.hidden {
+		display: none;
 	}
 	.center {
 		position: absolute;

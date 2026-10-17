@@ -8,24 +8,34 @@
 </header>
 
 <style>
+	/* a glass capsule (refs): the vessel's name over its situation, a capital label */
 	.bar {
-		min-width: 200px;
-		padding: var(--s-1) var(--s-5);
-		text-align: center;
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
+		display: grid;
+		justify-items: center;
+		gap: 0.25rem;
+		min-width: 12.5rem;
+		padding: 0.4375rem 1.25rem;
+		box-sizing: border-box;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		background: var(--surface-glass);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 	}
 	h1 {
 		margin: 0;
-		font-size: var(--t-lg);
+		font-size: var(--t-value);
 		font-weight: 600;
-		line-height: 1.1;
+		line-height: 1;
+		color: var(--text-primary);
 	}
 	p {
-		margin: 2px 0 0;
-		font-size: var(--t-sm);
-		color: var(--text);
+		margin: 0;
+		font-size: var(--t-label);
+		font-weight: 700;
+		line-height: 1;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 </style>

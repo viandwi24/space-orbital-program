@@ -25,25 +25,28 @@
 	const err = $derived(errorText(sas));
 </script>
 
+<!-- The refs SAS pod (ADR 0144 point 2): seven modes around hold, our three extra in a column beside. -->
 <div class="sas" role="group" aria-label="Stability assist">
-	<button
-		type="button"
-		class="master"
-		class:on
-		aria-pressed={on}
-		disabled={!controllable}
-		title={controllable
-			? `Stability assist (${settings.keymap.label('sasToggle')})`
-			: 'Stability assist: no command part'}
-		onclick={() => onmode(toggledMode(sas?.mode ?? 'off'))}
-	>
-		{masterLabel(sas)}
-	</button>
+	<div class="pills">
+		<button
+			type="button"
+			class="master"
+			class:on
+			aria-pressed={on}
+			aria-label={masterLabel(sas)}
+			disabled={!controllable}
+			title={controllable
+				? `Stability assist (${settings.keymap.label('sasToggle')})`
+				: 'Stability assist: no command part'}
+			onclick={() => onmode(toggledMode(sas?.mode ?? 'off'))}>SAS</button
+		>
+		<button type="button" class="master" disabled title="No RCS yet">RCS</button>
+	</div>
 	<div class="modes" class:dim={!on}>
 		{#each buttons as b (b.mode)}
 			<button
 				type="button"
-				class="mode"
+				class="mode m-{b.mode}"
 				class:active={b.active}
 				aria-pressed={b.active}
 				aria-label={b.label}
@@ -52,7 +55,7 @@
 				data-testid="sas-{b.mode}"
 				onclick={() => onmode(b.mode)}
 			>
-				<svg viewBox="-12 -12 24 24" width="20" height="20" aria-hidden="true">
+				<svg viewBox="-12 -12 24 24" aria-hidden="true">
 					{#if b.glyph === 'hold'}
 						<rect x="-6" y="-6" width="12" height="12" rx="2" />
 						<path d="M0 -10v4M0 6v4M-10 0h4M6 0h4" />
@@ -91,65 +94,128 @@
 </div>
 
 <style>
+	/* positions in the mock's pod box (132 x 132 mock px, `--u` from the deck) */
 	.sas {
-		display: flex;
-		align-items: center;
-		gap: var(--s-2);
+		position: absolute;
+		inset: 0;
 	}
 	button {
 		font: inherit;
-		color: var(--text);
 		cursor: pointer;
 	}
 	button:disabled {
 		cursor: not-allowed;
-		opacity: 0.4;
+	}
+	.pills {
+		position: absolute;
+		left: calc(16 * var(--u));
+		top: calc(-48 * var(--u));
+		display: flex;
+		gap: 0.25rem;
+		padding: 0.25rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-solid);
 	}
 	.master {
-		padding: 2px var(--s-3);
-		font-size: var(--t-xs);
-		font-weight: 600;
-		background: rgb(150 180 210 / 0.12);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--r-control);
+		height: calc(26 * var(--u));
+		min-height: 1.25rem;
+		padding: 0 0.625rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--surface-chip);
+		color: var(--text-muted);
+		font-size: var(--t-label);
+		font-weight: 700;
+		letter-spacing: 0.1em;
 	}
 	.master.on {
-		color: var(--c-positive);
-		border-color: var(--c-positive);
+		background: var(--accent);
+		color: var(--on-accent);
 	}
-	.modes {
-		display: flex;
-		gap: 2px;
-	}
-	.modes.dim .mode:not(.active) {
+	.master:disabled {
 		opacity: 0.55;
 	}
 	.mode {
+		position: absolute;
 		display: grid;
 		place-items: center;
-		width: 28px;
-		height: 28px;
+		width: calc(34 * var(--u));
+		height: calc(34 * var(--u));
 		padding: 0;
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: var(--r-control);
+		border: 0;
+		border-radius: 50%;
+		background: var(--surface-tile);
+		color: var(--text-secondary);
+	}
+	.modes.dim .mode:not(.active) {
+		color: var(--text-disabled);
 	}
 	.mode:hover:not(:disabled) {
-		background: rgb(150 180 210 / 0.14);
+		background: var(--surface-track);
 	}
 	.mode.active {
-		border-color: var(--c-positive);
-		background: rgb(95 227 161 / 0.16);
+		background: var(--accent);
+		color: var(--on-accent);
+	}
+	.mode:disabled {
+		opacity: 0.4;
+	}
+	.m-hold {
+		left: calc(49 * var(--u));
+		top: calc(49 * var(--u));
+	}
+	.m-prograde {
+		left: calc(49 * var(--u));
+		top: calc(5 * var(--u));
+	}
+	.m-retrograde {
+		left: calc(49 * var(--u));
+		top: calc(93 * var(--u));
+	}
+	.m-normal {
+		left: calc(87 * var(--u));
+		top: calc(27 * var(--u));
+	}
+	.m-radial-out {
+		left: calc(87 * var(--u));
+		top: calc(71 * var(--u));
+	}
+	.m-radial-in {
+		left: calc(11 * var(--u));
+		top: calc(71 * var(--u));
+	}
+	.m-antinormal {
+		left: calc(11 * var(--u));
+		top: calc(27 * var(--u));
+	}
+	/* the three modes the mock has no slot for, in the column beside the pod */
+	.m-maneuver,
+	.m-target,
+	.m-anti-target {
+		left: calc(137 * var(--u));
+		width: calc(30 * var(--u));
+		height: calc(30 * var(--u));
+	}
+	.m-maneuver {
+		top: calc(-6 * var(--u));
+	}
+	.m-target {
+		top: calc(30 * var(--u));
+	}
+	.m-anti-target {
+		top: calc(66 * var(--u));
 	}
 	.mode:focus-visible,
 	.master:focus-visible {
-		outline: 2px solid var(--c-accent);
+		outline: 2px solid var(--accent-text);
 		outline-offset: 1px;
 	}
 	svg {
+		width: 62%;
+		height: 62%;
 		fill: none;
 		stroke: currentColor;
-		stroke-width: 1.6;
+		stroke-width: 1.8;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
@@ -157,8 +223,12 @@
 		fill: currentColor;
 	}
 	.err {
-		min-width: 3em;
-		font-size: var(--t-xs);
-		color: var(--text-dim);
+		position: absolute;
+		left: calc(132 * var(--u));
+		top: calc(100 * var(--u));
+		width: calc(40 * var(--u));
+		font-size: var(--t-label);
+		text-align: center;
+		color: var(--text-muted);
 	}
 </style>
