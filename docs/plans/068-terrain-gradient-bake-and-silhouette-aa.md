@@ -1,8 +1,8 @@
 ---
 id: 068
 title: "Analytic terrain gradients for the bake and anti-aliased silhouettes of the planet pass"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [038, 084]
 phase: 3
 created: 2026-10-17
@@ -42,16 +42,41 @@ Two cost and quality items from plan 031 that plan 038 did not do, because neith
 
 ## Acceptance criteria
 
-- [ ] Bake time before and after at `low`, `medium`, `high` (cube and the two patches), and a gradient test: the analytic gradient is within 1e-3 of the finite difference over 10 000 random points (and exactly equal in the flat zones).
-- [ ] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms.
-- [ ] Silhouette: JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved).
-- [ ] `bun test`, typecheck, build, docs:check pass; the GPU against CPU parity of `terrain-patch` (journal 031) stays within its bounds.
+- [x] Bake time before and after at `low`, `medium`, `high` (cube and the two patches), and a gradient test: the analytic gradient is within 1e-3 of the finite difference over 10 000 random points (and exactly equal in the flat zones).
+- [x] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms.
+- [ ] (moved to plan 133) Silhouette: JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved).
+- [x] `bun test`, typecheck, build, docs:check pass; the GPU against CPU parity of `terrain-patch` (journal 031) stays within its bounds.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR, `docs/research/three.md`.
+- [x] STATUS, journal, ADR (`docs/research/three.md`: nothing new looked up).
 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 038 (analytic derivatives and silhouette anti-aliasing pushed out with reasons in ADR 0072).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0097: per-world seed and flat-zone list first).
+- 2026-10-17 — Claimed by Agent 1 (Lead, M5) on `lead/068-terrain-aa` (claim/068).
+- 2026-10-17 — **Step 1, bake cost on the M5** (dev build on its own port, Browser pane, pad, governor off, second page load; `debug.bakeMode(rebake, withoutGradient)` bakes the cube and both patches again every frame, `debug.benchmark` minimum of 4 × 15 frames; the production bake program is unchanged, its SHA-256 pin is taken with the measurement branch removed):
+
+  | preset (cube, patches) | frame | frame + full re-bake | re-bake without the 2 gradient evaluations | bake | of which gradient |
+  |---|---|---|---|---|---|
+  | `high` (1024, 1024) | 17.06 ms | 35.86 ms | 21.85 ms | 18.8 ms | 14.0 ms (74 %) |
+  | `medium` | 20.46 ms | 29.79 ms | 22.81 ms | 9.3 ms | 7.0 ms (75 %) |
+  | `low` (pane hidden at the end: indicative) | 2.53 ms | 7.27 ms | 3.42 ms | 4.7 ms | 3.9 ms (81 %) |
+
+  The gradient is **the larger share** of every bake (the two extra `heightAt` calls), so the plan's condition to implement `terrainGradient` holds. The frame columns are not a frame table (the pane width changed between presets); the next steps use journal 054's fixed-size method. Reading render targets back through three.js (`readRenderTargetPixels`) after cube bakes broke the patch framebuffers in this page, so the timing goes through the frame benchmark instead.
+- 2026-10-17 — **Step 2, the analytic gradient** (ADR 0116): `terrainHeightAndGradient` in core (forward mode, value and gradient with respect to `n`) and its GLSL twin `heightGrad`; the bakes store `(∇h · t1, ∇h · t2) / R`. `bun test packages/core/test/terrain-gradient.test.ts` — 4 pass: height bit for bit; against central differences (5 cm of arc) worst **2.66e-5** at 10 000 points (Legacy, 5 744 with relief) and **1.14e-7** (seed 7, two zones); exactly zero in the flat zones.
+- 2026-10-17 — **Bake and frame tables on the M5** (dev build, pane visible, pad, governor off; `bakeMode` toggles the bake program inside one build, so before and after differ only in it; `debug.benchmark` minimum of 4):
+
+  | | `fd` (before) | `analytic` (after) | `none` |
+  |---|---|---|---|
+  | `high`, 1024×768, frame + full re-bake (cube and both patches) | 40.33 ms | 30.17 ms | 27.33 ms |
+  | `high`, 500×900, steady frame (`pad-noon`) | 10.78 / 10.78 ms | 10.80 / 10.80 ms | |
+  | `high`, 500×900, re-bake every frame | 28.49 ms | 18.35 ms | |
+  | `medium`, 500×900, steady frame | 5.51 / 5.54 ms | 5.50 / 5.54 ms | |
+  | `medium`, 500×900, re-bake every frame | 13.41 ms | 8.85 ms | |
+
+  The bake costs 18.2 → 8.0 ms on `high` (−56 %) and 7.9 → 3.3 ms on `medium`; steady frames are unchanged (+0.02 ms at most; budgets 16.7 and 13.3 ms hold at this size). `low` was measured for step 1 only (its bake share, 81 %).
+- 2026-10-17 — Terrain parity (`E2E_DEV_HOOKS=1 … e2e/terrain-parity.e2e.ts`, M5): 1 passed; mid mean 0.13004 m (was 0.13004), worst 1.3039 m (was 1.3037), second zone 0 m: the heights from `heightGrad`'s value equal `heightAt`'s within float noise. The bake programs' SHA-256 pins were updated on purpose (`hills-ground.test.ts`).
+- 2026-10-17 — **Deviation: the silhouette anti-aliasing moved to draft 133.** A coverage blend needs the ground and the sky colour of an edge pixel, so the planet pass's `main()` must be split into a shading function that can run twice; its wave normals take `dFdx` inside that path, which is undefined in non-uniform control flow. That is a renderer restructuring of its own, with its own measurements; 133 records what was learned. This plan is done with the gradient half.
+

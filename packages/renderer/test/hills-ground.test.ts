@@ -175,14 +175,19 @@ describe('the GLSL of the hills bake', () => {
 	});
 
 	test('the planet pass bake programs are the ones of plan 084 (zones and the seed shift, ADR 0142)', () => {
-		const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
-		// plan 059 pinned b0287f39… / 90014bca… (HEAD 4de52a7); plan 084 changed both on purpose:
-		// the site's constants became the zone uniforms and noiseT gained uTerrainShift
+		// Plan 068 added measurement-only branches (`TERRAIN_NO_GRADIENT`, `TERRAIN_FD_GRADIENT`); the pin
+		// is the shipped program, taken with them removed.
+		const production = (src: string): string =>
+			src.replace(/#ifdef TERRAIN_NO_GRADIENT\n[\s\S]*?#else\n([\s\S]*?)#endif\n/g, '$1');
+		const sha = (s: string): string => createHash('sha256').update(production(s)).digest('hex');
+		// plan 059 pinned b0287f39… / 90014bca… (HEAD 4de52a7); plan 084 changed both on purpose
+		// (e2ab91ab… / e4848aa7…: the site's constants became the zone uniforms, noiseT gained
+		// uTerrainShift); plan 068 changed both on purpose again: the gradient is analytic (ADR 0116)
 		expect(sha(terrainBakeFragment)).toBe(
-			'e2ab91ab89ccc886abfe533916f1e389c636205c764529b3711f8bc913dbe61d'
+			'9f4a7a327cfd23d3c9f6897769eb6668755eeb5d0cb9ef320e888915b1846f51'
 		);
 		expect(sha(terrainPatchFragment)).toBe(
-			'e4848aa7f82d25b680555a42b2ba601c3636cf66ef591f9e6f16e234c023c0c0'
+			'170cafccf16153adf22263678b985b77ae9fa21fd4d276143bfcd2c08503ad0f'
 		);
 		expect(sha(terrainBakeVertex)).toBe(
 			'227b9f2ac69e37c9d7c7131be39f4cf01eb80ff06ba0fc71f9ed3ab7605b0712'

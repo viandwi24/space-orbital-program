@@ -656,6 +656,10 @@ export class PlanetPass {
 		const autoClear = gl.autoClear;
 		gl.autoClear = false;
 		let busy = false;
+		if (this.debugRebake) {
+			this.terrainDirty = true;
+			for (const slot of [this.patches.fine, this.patches.mid]) slot.wanted ??= slot.frame;
+		}
 		if (this.terrainDirty || !this.terrainTarget) this.bakeCube(gl);
 		else busy = this.stepCubeJob(gl);
 		if (this.patchSize > 0) {
@@ -771,6 +775,28 @@ export class PlanetPass {
 	 * Debug (plan 031 manual run): the baked patch `which` read back from the GPU, decoded to heights
 	 * (m) at the texel centres, row by row, with the frame it was baked for; null when not baked.
 	 */
+	/**
+	 * Plan 068's measurement (development only): with `rebake` on, every frame bakes the cube and
+	 * both patches again, so a frame benchmark with and without it gives the bake cost.
+	 * `gradient` picks the bake program: `analytic` (the shipped one, ADR 0116), `fd` (the forward
+	 * differences of before plan 068, two extra heights per texel) or `none` (one height, no gradient).
+	 */
+	debugBakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void {
+		this.debugRebake = rebake;
+		for (const m of [this.bake.material, this.patchBake.material]) {
+			const { TERRAIN_NO_GRADIENT: _a, TERRAIN_FD_GRADIENT: _b, ...rest } = m.defines ?? {};
+			m.defines =
+				gradient === 'none'
+					? { ...rest, TERRAIN_NO_GRADIENT: 1 }
+					: gradient === 'fd'
+						? { ...rest, TERRAIN_FD_GRADIENT: 1 }
+						: rest;
+			m.needsUpdate = true;
+		}
+		this.terrainDirty = true;
+	}
+	private debugRebake = false;
+
 	debugReadPatch(
 		gl: WebGLRenderer,
 		which: 'fine' | 'mid'
