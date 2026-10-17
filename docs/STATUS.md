@@ -100,7 +100,7 @@
 | 089 | [UI stage 3: Home, menus, settings and public pages in the refs style](plans/089-ui-stage-3-menus-and-public-pages.md) | draft | — | ADR 0107 stage 3: Home, menus, pages |
 | 090 | [Buildings as data: `defineBuilding` and the placement rules](plans/090-building-registry-and-placement-rules.md) | done | Agent 1 | ADR 0097: defineBuilding, grid rules, stock catalogue data |
 | 091 | [Space Center in 3D with free grid placement](plans/091-space-center-3d-and-grid-placement.md) | draft | — | ADR 0097: 3D site from the building list, refs overlay, build mode |
-| 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | draft | — | ADR 0097: globe pick, templates resolved per seed, second sites |
+| 092 | [Site choice at world creation and location templates](plans/092-site-choice-and-location-templates.md) | in-progress | Agent 3 | ADR 0097: globe pick, templates resolved per seed, second sites |
 | 093 | [UI stage 4: the Hangar in the refs layout](plans/093-ui-stage-4-hangar.md) | draft | — | ADR 0107 stage 4: category rail, cards, stats, pre-flight verdict |
 | 094 | [Launch screen: site, pad or runway, design, crew](plans/094-launch-screen.md) | draft | — | ADR 0097: facility, filtered designs, seats, launch |
 | 095 | [Economy core: currencies, ledger, part costs and recovery](plans/095-economy-core-currencies-ledger-costs.md) | done | Agent 1 | ADR 0113: ledger in the save, part costs and prices, charges on the world tick, launch debit, `recover-vessel`, career bot 120 missions in band; HUD dialog in draft 132; API 0.1.30 |
