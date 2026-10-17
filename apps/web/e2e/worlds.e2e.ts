@@ -1,0 +1,54 @@
+import { expect, test } from '@playwright/test';
+import { watchErrors } from './support';
+
+/**
+ * Worlds (plan 087, ADR 0143): create a Career world, enter it (no saves: the VAB), launch and
+ * quicksave in it, and it is listed first with its save.
+ */
+test('create a Career world, enter it, fly and save in it, and it is listed first', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	await page.goto('/worlds');
+	await page.getByTestId('worlds-create').click();
+	const form = page.getByTestId('create-world');
+	await form.getByTestId('world-name').fill('Moon program');
+	await form.getByRole('radio', { name: 'Career', exact: true }).click();
+	await expect(form.getByTestId('gravity-n-body')).toBeDisabled();
+	await form.getByTestId('world-create').click();
+
+	const first = page.getByTestId('world-card').first();
+	await expect(first).toContainText('Moon program');
+	await expect(first).toContainText('Career');
+	await page.getByTestId('world-enter').click();
+
+	// a world without saves opens the hangar; the launch flies in the active world
+	await page.waitForURL('**/vab');
+	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	const launch = page.getByRole('button', { name: /^Launch/ });
+	await expect(launch).toBeEnabled();
+	await launch.click();
+	const anyway = page.getByRole('button', { name: 'Launch anyway' });
+	if (await anyway.isVisible().catch(() => false)) await anyway.click();
+	await page.waitForURL('**/flight');
+	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// F5 until the flight can be saved (SwiftShader prepares the scenery for a while)
+	await expect
+		.poll(
+			async () => {
+				await page.keyboard.press('F5');
+				return (await page.getByRole('status').allTextContents()).some((t) =>
+					t.includes('Quicksaved.')
+				);
+			},
+			{ timeout: 90_000, intervals: [2000] }
+		)
+		.toBe(true);
+
+	await page.goto('/worlds');
+	const top = page.getByTestId('world-card').first();
+	await expect(top).toContainText('Moon program');
+	await expect(top).toContainText('1 save');
+	await expect(top).toContainText('Last played');
+	expect(errors).toEqual([]);
+});
