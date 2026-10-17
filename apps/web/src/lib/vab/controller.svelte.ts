@@ -24,7 +24,7 @@ import { pinchZoomFactor } from '../touch/touch-model';
 import { settings } from '../settings/settings.svelte';
 import { bodyMu } from '../orbit-info';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
-import { asparagusRocket, boosterRocket, glider } from '../editor/examples';
+import { asparagusRocket, boosterRocket, glider, moonShot } from '../editor/examples';
 import { assemblyFromSubtree } from '../editor/assembly';
 import { blocksLaunch, checkDesign } from '../editor/checks';
 import { describeStack } from '../editor/describe';
@@ -70,13 +70,9 @@ import {
 	type ConnectorEnd,
 	type EditorState
 } from '../editor/state';
-import {
-	ascentDeltaV,
-	designStats,
-	TRIP_TARGETS,
-	tripDeltaV,
-	type Environment
-} from '../editor/stats';
+import { designStats, type Environment } from '../editor/stats';
+import { destinationsOf } from '../editor/trip';
+import { tripView } from '../editor/trip-view';
 import {
 	browserEnv,
 	deleteEntry,
@@ -114,11 +110,8 @@ export class VabController {
 	readonly parts = this.catalog.parts;
 	readonly body = this.catalog.bodies[0]!;
 	readonly gravity = bodyMu(this.body) / (this.body.radius * this.body.radius);
-	readonly trip = TRIP_TARGETS[0]!;
-	readonly needed = tripDeltaV(
-		{ radius: this.body.radius, mu: bodyMu(this.body), rotationPeriod: this.body.rotationPeriod },
-		this.trip.altitude
-	);
+	/** What the loaded bodies offer as a trip (plan 034): mod bodies are in the list without any code. */
+	readonly destinations = destinationsOf(this.catalog.bodies);
 	readonly defaultName = emptyDesign().name;
 	readonly symmetryCounts = SYMMETRY_COUNTS;
 
@@ -266,7 +259,14 @@ export class VabController {
 		})
 	);
 	readonly checks = $derived(checkDesign(this.current, this.content, this.stats, this.stability));
-	readonly ascent = $derived(ascentDeltaV(this.stats.report));
+	tripId = $state('low-orbit');
+	readonly trip = $derived(
+		tripView(
+			this.destinations.find((d) => d.id === this.tripId) ?? this.destinations[0]!,
+			this.stats.report,
+			this.stats.partCount
+		)
+	);
 	readonly unstaged = $derived(
 		this.editor.design.parts
 			.filter(
@@ -1009,6 +1009,15 @@ export class VabController {
 		this.editor = replaceDesign(this.editor, this.editorContent, boosterRocket(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the booster rocket: 23 parts with four boosters and four fins.');
+	}
+	loadMoonExample(): void {
+		this.disarm();
+		this.selected = null;
+		this.libraryId = null;
+		saveLibraryId(null);
+		this.editor = replaceDesign(this.editor, this.editorContent, moonShot());
+		this.view?.frame();
+		this.say('Loaded the moon shot: a core with four boosters under a lander. Pick a trip below.');
 	}
 	loadAsparagusExample(): void {
 		this.disarm();

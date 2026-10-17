@@ -4,6 +4,7 @@
 	import {
 		CATEGORIES,
 		categoryOf,
+		sortParts,
 		matchesQuery,
 		type CategoryId,
 		type ModuleLookup
@@ -63,7 +64,7 @@
 		)
 	);
 	const shown = $derived(
-		parts.filter(
+		sortParts(parts).filter(
 			(p) =>
 				category !== 'assemblies' &&
 				(category === 'all' || categoryOf(p, modules) === category) &&

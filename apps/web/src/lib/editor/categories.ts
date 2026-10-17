@@ -76,11 +76,20 @@ function categoriesOf(mod: ModuleDefinition, raw: unknown): CategoryId[] {
 const cache = new WeakMap<object, CategoryId>();
 
 export function categoryOf(
-	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number; connector?: object },
+	def: Pick<PartDefinition, 'modules' | 'catalog'> & {
+		dragCoefficient?: number;
+		connector?: object;
+	},
 	modules: ModuleLookup
 ): CategoryId {
 	const hit = cache.get(def);
 	if (hit !== undefined) return hit;
+	// The part's own placement wins over everything its modules imply (ADR 0082).
+	const own = def.catalog?.category;
+	if (own !== undefined) {
+		cache.set(def, own);
+		return own;
+	}
 	const found = new Set<CategoryId>();
 	for (const [id, raw] of def.modules ?? []) {
 		const mod = modules.get(id);
@@ -97,6 +106,17 @@ export function categoryOf(
 				: 'other');
 	cache.set(def, category);
 	return category;
+}
+
+/**
+ * Catalogue order (ADR 0082): by `catalog.order` ascending (default 0); parts with the same order
+ * keep the order they were given in, which is registration order. Returns a new array.
+ */
+export function sortParts<T extends Pick<PartDefinition, 'catalog'>>(parts: readonly T[]): T[] {
+	return parts
+		.map((p, i) => [p, i] as const)
+		.sort((a, b) => (a[0].catalog?.order ?? 0) - (b[0].catalog?.order ?? 0) || a[1] - b[1])
+		.map(([p]) => p);
 }
 
 /** Case-insensitive match on title and id; an empty query matches everything. */

@@ -180,7 +180,30 @@ export const partDefinitionSchema = z.object({
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the
 	// loader (plan 005), which is the only place both registries are visible.
 	modules: z.array(z.tuple([definitionIdSchema, z.unknown()])).optional(),
-	stagingIcon: z.string().optional()
+	stagingIcon: z.string().optional(),
+	/**
+	 * Where the part sits in the editor's catalogue (ADR 0082). `category` overrides the one the
+	 * part's modules imply (`ModuleInfo.category`, an engine, a separator, ...); `order` sorts the
+	 * part within its category, ascending, default 0, ties in registration order.
+	 */
+	catalog: z
+		.object({
+			category: z
+				.enum([
+					'command',
+					'propulsion',
+					'tanks',
+					'structural',
+					'aero',
+					'control',
+					'landing',
+					'thermal',
+					'other'
+				])
+				.optional(),
+			order: z.number().finite().optional()
+		})
+		.optional()
 });
 
 /** Editor catalogue categories a module may name (`ModuleInfo.category`); engines, separators and lifting plates imply theirs. */

@@ -8,7 +8,7 @@ import Stock from '@orbital/mod-stock';
 import { defineModule, definePart, definePlugin, z } from '@orbital/sdk';
 import { describe, expect, it } from 'vitest';
 import { referenceTwoStage } from './design';
-import { categoryOf } from './editor/categories';
+import { categoryOf, sortParts } from './editor/categories';
 import {
 	attachNew,
 	createEditor,
@@ -87,6 +87,19 @@ const Acme = definePlugin({
 		);
 		ctx.parts.register(part('acme.thing', [[Gadget, undefined]]));
 		ctx.parts.register(part('acme.faulty', [[Broken, undefined]]));
+		// Placement of the part itself (ADR 0082): no modules, an override of what the modules say.
+		ctx.parts.register({
+			...part('acme.plate', undefined),
+			catalog: { category: 'structural', order: -5 }
+		});
+		ctx.parts.register({
+			...part('acme.cowl', undefined),
+			catalog: { category: 'aero', order: 3 }
+		});
+		ctx.parts.register({
+			...part('acme.quiet-motor', [[Thruster, {}]]),
+			catalog: { category: 'other', order: -1 }
+		});
 	}
 });
 
@@ -136,6 +149,27 @@ describe('catalogue categories through descriptors', () => {
 		expect(of('stock.command-pod')).toBe('command');
 		expect(of('stock.tank-small')).toBe('tanks');
 	});
+	it("a part's own catalogue entry beats what its modules imply, and orders the list", () => {
+		const of = (id: string) => categoryOf(registries.parts.get(id)!, registries.modules);
+		expect(of('acme.plate')).toBe('structural');
+		expect(of('acme.cowl')).toBe('aero');
+		expect(of('acme.motor')).toBe('propulsion');
+		expect(of('acme.quiet-motor')).toBe('other');
+		const ids = sortParts(registries.parts.list()).map((p) => p.id);
+		expect(ids.indexOf('acme.plate')).toBeLessThan(ids.indexOf('acme.quiet-motor'));
+		expect(ids.indexOf('acme.quiet-motor')).toBeLessThan(ids.indexOf('stock.command-pod'));
+		expect(ids.indexOf('stock.command-pod')).toBeLessThan(ids.indexOf('acme.cowl'));
+		// stock keeps the grouping its modules imply: no explicit placement anywhere
+		expect(registries.parts.list().filter((p) => p.id.startsWith('stock.') && p.catalog)).toEqual(
+			[]
+		);
+		// parts without an order keep registration order
+		const stockIds = registries.parts
+			.list()
+			.filter((p) => p.id.startsWith('stock.'))
+			.map((p) => p.id);
+		expect(ids.filter((i) => i.startsWith('stock.'))).toEqual(stockIds);
+	});
 });
 
 describe('stability through descriptors', () => {
@@ -150,5 +184,12 @@ describe('stability through descriptors', () => {
 		expect(stabilityOf(referenceTwoStage(), content).fins).toBe(0);
 		expect(stabilityOf(withFin('stock.fin').design, content).fins).toBe(1);
 		expect(stabilityOf(withFin('acme.blade').design, content).fins).toBe(1);
+	});
+	it("a mod wing moves the centre of pressure by the numbers of its descriptor's lift", () => {
+		const bare = stabilityOf(referenceTwoStage(), content);
+		const winged = stabilityOf(withFin('acme.blade').design, content);
+		expect(winged.cop).not.toBeCloseTo(bare.cop!, 3);
+		// the plate sits below the middle of the stack, so the pressure moves down
+		expect(winged.cop!).toBeLessThan(bare.cop!);
 	});
 });

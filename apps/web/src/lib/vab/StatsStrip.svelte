@@ -4,25 +4,29 @@
 	import { speedUnit } from '../units.svelte';
 	import type { DesignStats } from '../editor/stats';
 	import type { Stability } from '../editor/stability';
+	import type { Destination } from '../editor/trip';
+	import type { TripView } from '../editor/trip-view';
 
 	let {
 		stats,
-		ascent,
-		needed,
-		targetLabel,
+		trip,
+		destinations,
+		destinationId,
+		onpick,
 		stability
 	}: {
 		stats: DesignStats;
-		/** Delta-v available for the launch (first stage at sea level, the rest in vacuum), m/s. */
-		ascent: number;
-		/** Estimated delta-v to reach the target orbit, m/s. */
-		needed: number;
-		targetLabel: string;
+		/** The chosen destination laid over the stages (plan 034). */
+		trip: TripView;
+		/** Every destination the loaded bodies offer. */
+		destinations: readonly Destination[];
+		destinationId: string;
+		onpick: (id: string) => void;
 		stability: Stability;
 	} = $props();
 
-	const enough = $derived(ascent >= needed);
-	const share = $derived(needed > 0 ? ascent / needed : 0);
+	const targetLabel = $derived(trip.destination.label);
+	const idle = $derived(trip.state === 'empty' || trip.state === 'no-propulsion');
 	const twrTone = $derived(
 		stats.liftoffTwr === null
 			? 'idle'
@@ -93,27 +97,70 @@
 		</div>
 	</dl>
 	<div class="trip">
+		<label class="pick">
+			<span class="u">Trip</span>
+			<select
+				value={destinationId}
+				onchange={(e) => onpick(e.currentTarget.value)}
+				aria-label="Destination for the trip plan"
+			>
+				{#each destinations as d (d.id)}
+					<option value={d.id}>{d.label}</option>
+				{/each}
+			</select>
+		</label>
 		<div class="line">
 			<span>{targetLabel}</span>
 			<span class="num">
-				<strong class:short={stats.partCount > 0 && !enough}>{n(ascent)}</strong>
-				<span class="u"> of about {n(needed)} {speedUnit()}</span>
+				<strong class:short={trip.state === 'short'}>{n(trip.covered)}</strong>
+				<span class="u"> of about {n(trip.needed)} {speedUnit()}</span>
 			</span>
 		</div>
 		<Meter
-			value={share}
-			tone={stats.partCount === 0 ? 'accent' : enough ? 'positive' : 'warning'}
-			label="Delta-v for the launch against what {targetLabel} needs"
+			value={trip.share}
+			tone={idle ? 'accent' : trip.state === 'covered' ? 'positive' : 'warning'}
+			label="Delta-v of the stages for the trip to {targetLabel}"
 		/>
-		<p class="note">
-			{#if stats.partCount === 0}
-				Estimate: orbital speed plus gravity and drag losses.
-			{:else if enough}
-				Enough for the climb, with {n(ascent - needed)} {speedUnit()} to spare.
+		<p class="note" data-state={trip.state}>
+			{#if trip.state === 'empty'}
+				Add parts to see which stages cover the trip.
+			{:else if trip.state === 'no-propulsion'}
+				No stage gives delta-v yet: add an engine and propellant, and put the engine in a stage.
+			{:else if trip.state === 'covered'}
+				Enough for the trip, with {n(trip.spare)}
+				{speedUnit()} to spare.
 			{:else}
-				Short by about {n(needed - ascent)} {speedUnit()}. Add a stage or more propellant.
+				Short by about {n(trip.short)}
+				{speedUnit()}. Add a stage or more propellant.
 			{/if}
 		</p>
+		<details class="legs">
+			<summary>Legs ({trip.rows.length})</summary>
+			<ol>
+				{#each trip.rows as row (row.id)}
+					<li class={row.status}>
+						<span class="what">{row.label}</span>
+						<span class="num">{n(row.dv)}</span>
+						<span class="who u">
+							{#if row.status === 'idle'}
+								–
+							{:else}
+								{#each row.covers as c, k (k)}{k > 0 ? ', ' : ''}{c.label}{c.seaLevel
+										? ' (sea level)'
+										: ''}
+									{n(c.dv)}{/each}{#if row.short > 0.5}{row.covers.length > 0 ? ', ' : ''}short by {n(
+										row.short
+									)}{/if}
+							{/if}
+						</span>
+					</li>
+				{/each}
+			</ol>
+			<p class="u assumptions">
+				Coplanar circular orbits, burns at once, a reference rocket of 1.5 g at launch. Moons come
+				from the loaded bodies.
+			</p>
+		</details>
 	</div>
 </section>
 
@@ -193,6 +240,58 @@
 	}
 	strong.short {
 		color: var(--c-warning);
+	}
+	.pick {
+		display: flex;
+		align-items: center;
+		gap: var(--s-2);
+	}
+	select {
+		flex: 1;
+		min-width: 0;
+		font: inherit;
+		font-size: var(--t-sm);
+		color: var(--text);
+		background: var(--field);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-control);
+		padding: 2px var(--s-2);
+	}
+	select:focus-visible,
+	summary:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 1px;
+	}
+	.legs summary {
+		cursor: pointer;
+		font-size: var(--t-xs);
+		color: var(--text-dim);
+	}
+	.legs ol {
+		list-style: none;
+		margin: var(--s-1) 0 0;
+		padding: 0;
+		display: grid;
+		gap: 2px;
+	}
+	.legs li {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 0 var(--s-3);
+		font-size: var(--t-xs);
+	}
+	.legs li .who {
+		grid-column: 1 / -1;
+	}
+	.legs li.covered .num {
+		color: var(--c-positive);
+	}
+	.legs li.partial .num,
+	.legs li.short .num {
+		color: var(--c-warning);
+	}
+	.assumptions {
+		margin: var(--s-1) 0 0;
 	}
 	.note {
 		margin: 0;

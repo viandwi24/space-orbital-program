@@ -15,7 +15,9 @@ import {
 	singlePart,
 	type EditorState
 } from './state';
-import { ascentDeltaV, designStats, heightOfDesign, tripDeltaV, TRIP_TARGETS } from './stats';
+import { designStats, heightOfDesign } from './stats';
+import { planTrip } from './trip';
+import { budgetsOf } from './trip-view';
 
 const { registries } = loadPlugins([Stock]);
 const content: ContentLookups = {
@@ -72,11 +74,25 @@ describe('readouts equal the shared delta-v function (the flight HUD uses the sa
 		expect(asl).toBeLessThan(vac);
 	});
 
-	it('ascent delta-v: first stage at sea level, the rest in vacuum', () => {
+	it('the planner takes the first stage at sea level on the climb and the rest in vacuum', () => {
 		const stats = designStats(design, content, 'vacuum', g);
 		const [a, b] = report.stages;
-		expect(ascentDeltaV(stats.report)).toBeCloseTo(a!.dvSeaLevel + b!.dvVacuum, 9);
-		expect(ascentDeltaV(null)).toBe(0);
+		const climb = a!.dvSeaLevel + b!.dvVacuum;
+		const plan = planTrip(
+			{
+				id: 't',
+				label: 't',
+				body: 'b',
+				kind: 'low-orbit',
+				total: climb,
+				legs: [{ id: 'ascent', label: 'Launch', dv: climb, atmospheric: true }]
+			},
+			budgetsOf(stats.report)
+		);
+		expect(plan.enough).toBe(true);
+		expect(plan.legs[0]!.covers).toHaveLength(2);
+		expect(plan.legs[0]!.covers[0]).toMatchObject({ stage: 0, seaLevel: true });
+		expect(plan.spare).toBeCloseTo(0, 6);
 	});
 
 	it('an empty design has no readouts', () => {
@@ -188,19 +204,5 @@ describe('checks', () => {
 		const stats = designStats(s.design, content, 'vacuum', g);
 		expect(stats.rows).toHaveLength(2);
 		expect(stats.rows[0]!.empty).toBe(true);
-	});
-});
-
-describe('trip estimate', () => {
-	it('orbit speed plus losses minus the rotation bonus', () => {
-		const body = { radius: home.radius, mu: MU, rotationPeriod: home.rotationPeriod };
-		const target = TRIP_TARGETS[0]!;
-		const dv = tripDeltaV(body, target.altitude);
-		const v = Math.sqrt(MU / (home.radius + target.altitude));
-		expect(v).toBeGreaterThan(2200);
-		expect(v).toBeLessThan(2350);
-		expect(dv).toBeGreaterThan(v);
-		expect(dv).toBeGreaterThan(3300);
-		expect(dv).toBeLessThan(3500); // journal 006: about 3 400 m/s to reach 80 km
 	});
 });

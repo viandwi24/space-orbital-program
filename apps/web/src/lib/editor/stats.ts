@@ -105,15 +105,6 @@ export function designStats(
 	};
 }
 
-/**
- * Delta-v available for a launch from the pad: the first stage burns through the atmosphere (sea
- * level figure), later stages in near vacuum. Compared with `tripDeltaV` in the stats strip.
- */
-export function ascentDeltaV(report: DeltaVReport | null): number {
-	if (!report) return 0;
-	return report.stages.reduce((sum, s, k) => sum + (k === 0 ? s.dvSeaLevel : s.dvVacuum), 0);
-}
-
 export function heightOfDesign(design: VesselDesign, parts: PartLookup): number {
 	const placed = positionsOf(design, parts);
 	if (!placed || placed.size === 0) return 0;
@@ -126,34 +117,4 @@ export function heightOfDesign(design: VesselDesign, parts: PartLookup): number 
 		hi = Math.max(hi, y + h / 2);
 	}
 	return hi - lo;
-}
-
-// --- trip estimate -------------------------------------------------------------------------------
-
-export interface TripTarget {
-	id: string;
-	label: string;
-	/** Altitude of the circular orbit to reach, m. */
-	altitude: number;
-}
-
-export const TRIP_TARGETS: readonly TripTarget[] = [
-	{ id: 'low-orbit', label: 'Low orbit (80 km)', altitude: 80_000 }
-];
-
-/**
- * Delta-v from the pad to a circular orbit, as an estimate: the orbital speed at `altitude`, plus
- * an allowance for gravity and drag losses, minus the speed the launch site already has from the
- * body's rotation (equator, eastward). The allowance is a rule of thumb for a one-body launch
- * with this atmosphere (about 1.3 km/s: the roughly 3.4 km/s that journal 006 budgets for this body), not a solver result.
- */
-export const LOSS_ALLOWANCE = 1_300;
-
-export function tripDeltaV(
-	body: { radius: number; mu: number; rotationPeriod: number },
-	altitude: number
-): number {
-	const speed = Math.sqrt(body.mu / (body.radius + altitude));
-	const rotation = (2 * Math.PI * body.radius) / body.rotationPeriod;
-	return speed + LOSS_ALLOWANCE - rotation;
 }

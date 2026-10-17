@@ -58,10 +58,10 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '034',
-		title: 'More help while building',
+		plan: '069',
+		title: 'Catalogue groups of your own',
 		gives:
-			'Mods can add their own part categories, a real trip planner replaces the rule-of-thumb delta-v estimate, and the stability read-out counts mod wings from the first day.',
+			'A mod can add a group to the parts catalogue with its own name and icon, next to the stock ones, instead of choosing one of the nine that exist.',
 		area: 'Building'
 	},
 	{

@@ -3,7 +3,7 @@
  * what the tools can do. The booster rocket is the 23-part vessel of plan 026 (journal 026) and
  * the budget vessel of plan 029's renderer test.
  */
-import type { VesselDesign } from '@orbital/core';
+import { partId, type VesselDesign } from '@orbital/core';
 import { referenceTwoStage } from '../design';
 import {
 	attachConnector,
@@ -116,4 +116,79 @@ export function glider(content: Content): VesselDesign {
 	pair(0, 0.15);
 	pair(-0.8, 0);
 	return { ...s.design, name: 'Glider' };
+}
+
+/**
+ * The two-stage stock rocket that reaches the moon in `packages/sim/test/moon-mission.test.ts`
+ * (plan 044), top to bottom: pod, two wheels, a medium tank, the lander engine and legs, a
+ * decoupler, a medium tank and an engine (the core), and four boosters with nose cones and four
+ * fins on the core tank. Stage 1 lights the core and the boosters, stage 2 drops the boosters,
+ * stage 3 drops the core and lights the lander. The trip planner of the stats strip measures it
+ * against the moon (plan 034).
+ */
+export function moonShot(): VesselDesign {
+	const chain = [
+		'stock.command-pod',
+		'stock.reaction-wheel',
+		'stock.reaction-wheel',
+		'stock.tank-medium',
+		'stock.engine-lv',
+		'stock.landing-legs',
+		'stock.decoupler',
+		'stock.tank-medium',
+		'stock.engine-lv'
+	];
+	const landerEngine = 4;
+	const decoupler = 6;
+	const coreTank = 7;
+	const coreEngine = 8;
+	const parts: VesselDesign['parts'] = chain.map((part, index) => ({
+		index,
+		part: partId(part),
+		parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
+	}));
+	const boosters: number[] = [];
+	const decouplers: number[] = [];
+	for (let k = 0; k < 4; k++) {
+		const angle = (k * Math.PI) / 2;
+		parts.push(
+			{
+				index: 20 + 3 * k,
+				part: partId('stock.radial-decoupler'),
+				parent: { index: coreTank, parentNode: 'surface', node: 'radial', radial: { angle, y: 0 } },
+				symmetry: 1
+			},
+			{
+				index: 21 + 3 * k,
+				part: partId('stock.booster'),
+				parent: { index: 20 + 3 * k, parentNode: 'outer', node: 'radial' },
+				symmetry: 2
+			},
+			{
+				index: 22 + 3 * k,
+				part: partId('stock.nose-cone'),
+				parent: { index: 21 + 3 * k, parentNode: 'top', node: 'bottom' },
+				symmetry: 3
+			},
+			{
+				index: 40 + k,
+				part: partId('stock.fin'),
+				parent: {
+					index: coreTank,
+					parentNode: 'surface',
+					node: 'radial',
+					radial: { angle: angle + Math.PI / 4, y: -0.7 }
+				},
+				symmetry: 4
+			}
+		);
+		boosters.push(21 + 3 * k);
+		decouplers.push(20 + 3 * k);
+	}
+	return {
+		formatVersion: 3,
+		name: 'Moon shot',
+		parts,
+		stages: [[coreEngine, ...boosters], decouplers, [decoupler, landerEngine]]
+	};
 }

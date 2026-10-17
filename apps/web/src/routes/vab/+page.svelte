@@ -164,9 +164,10 @@
 		<div class="bottom">
 			<StatsStrip
 				stats={vab.stats}
-				ascent={vab.ascent}
-				needed={vab.needed}
-				targetLabel={vab.trip.label}
+				trip={vab.trip}
+				destinations={vab.destinations}
+				destinationId={vab.trip.destination.id}
+				onpick={(id) => (vab.tripId = id)}
 				stability={vab.stability}
 			/>
 			<p class="keys">
@@ -201,6 +202,7 @@
 					<Button onclick={() => vab.loadBoosterExample()}>Load the booster rocket</Button>
 					<Button onclick={() => vab.loadAsparagusExample()}>Load the asparagus rocket</Button>
 					<Button onclick={() => vab.loadGliderExample()}>Load the glider</Button>
+					<Button onclick={() => vab.loadMoonExample()}>Load the moon shot</Button>
 					{#if vab.vesselEntries.length > 0}
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}

@@ -2,7 +2,10 @@ import { loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { resolveVesselDesign } from '@orbital/core';
-import { asparagusRocket, boosterRocket, glider } from './examples';
+import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
+import { designStats } from './stats';
+import { destinationsOf } from './trip';
+import { tripView } from './trip-view';
 import { stabilityOf } from './stability';
 import { createEditor } from './state';
 
@@ -53,5 +56,30 @@ describe('asparagus rocket and glider examples (plan 041)', () => {
 		const s = stabilityOf(d, full);
 		expect(s.fins).toBe(4);
 		expect(s.state).not.toBe('unstable');
+	});
+});
+
+describe('moon shot example (plan 034)', () => {
+	const full = { ...content, resources: registries.resources };
+
+	it('is a valid design and the trip planner covers the landing and says what is left', () => {
+		const d = moonShot();
+		expect(resolveVesselDesign(d, content.parts).ok).toBe(true);
+		const stats = designStats(d, full, 'vacuum', 9.81);
+		const view = (id: string) =>
+			tripView(
+				destinationsOf(registries.bodies.list()).find((x) => x.id === id)!,
+				stats.report,
+				stats.partCount
+			);
+		expect(view('low-orbit').state).toBe('covered');
+		const landing = view('stock.cinder:landing');
+		expect(landing.state).toBe('covered');
+		// the lander stage is the one that covers the transfer, the capture and the descent
+		expect(
+			landing.rows
+				.filter((r) => r.id !== 'ascent')
+				.every((r) => r.covers.every((c) => c.label === 'Stage 3'))
+		).toBe(true);
 	});
 });
