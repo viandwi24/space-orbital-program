@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 094 launch claimed (`devb/094-launch`).
-**Waiting for:** merge of 112 (`ready/112`).
+**Now:** 100 missions claimed (`devb/100-missions`); 108 skipped until 094 merges.
+**Waiting for:** merge of 094 (`ready/094`).
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -20,10 +20,10 @@
 | 089 menus | done | `devb/089-menus` | 2026-10-17 | merged 26a4afe, cp/f2-089-menus |
 | 093 hangar | done | `devb/093-hangar` | 2026-10-17 | merged dceae76, cp/f2-093-hangar |
 | 112 dock | done | `devb/112-dock` | 2026-10-17 | merged 49f8d21, cp/f4-112-dock |
-| 094 launch | in-progress | `devb/094-launch` | 2026-10-18 | claim/094 |
+| 094 launch | handed-over | `devb/094-launch` | 2026-10-18 | ready/094; ADR 0150 |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | todo |  |  |  |
-| 100 missions | todo |  |  |  |
+| 100 missions | in-progress | `devb/100-missions` | 2026-10-18 | claim/100 |
 | 111 vessel-panel | todo |  |  |  |
 | 105 tech-tree | todo |  |  |  |
 | 115 comms-1-ui | todo |  |  |  |
