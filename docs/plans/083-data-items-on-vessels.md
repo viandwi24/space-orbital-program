@@ -67,3 +67,4 @@ Items are plain data in the world; sizes in bits as numbers (float64 exact up to
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099, 0101).
 - 2026-10-17 — Refined and claimed by Agent 3. Items live in the storage module's state, so saves, resume and staging come with the world, and the save format does not change. Storage is declared like `ResourceStore`. A new stock part `stock.data-drive` carries the storage, so existing stock parts and the frozen save fixtures are unchanged. Design choices go in ADR 0172.
+- 2026-10-17 — Implemented as refined. `data:dropped` also carries the dropped `item` (without an id), as the refined scope says. The sim test registers its fixture parts as plain data (`definePart` with string module ids needs a `ModuleMap` augmentation).
