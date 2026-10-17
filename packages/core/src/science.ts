@@ -24,6 +24,8 @@ export interface SituationDefinition {
 	label: string;
 	/** Lower first; the first that matches is the situation. */
 	order: number;
+	/** Results here depend on the region under the vessel (plan 104, ADR 0180 point 3); default false. */
+	regional?: boolean;
 	matches(view: SituationView): boolean;
 }
 
@@ -57,6 +59,7 @@ export const situationDefinitionSchema = z.object({
 	id: z.string().min(1),
 	label: z.string().min(1),
 	order: z.number(),
+	regional: z.boolean().optional(),
 	matches: z.custom<(v: SituationView) => boolean>(
 		(v) => typeof v === 'function',
 		'matches must be a function'
@@ -186,3 +189,11 @@ export const SCIENCE_RULES = {
 
 /** Data item kind of a science result (ADR 0178 point 5). */
 export const SCIENCE_DATA_KIND = 'stock.science';
+
+/** The parts of a subject id (`<experiment>@<body>:<situation>:<region>`), or undefined. */
+export function parseSubjectId(
+	id: string
+): { experiment: string; body: string; situation: string; region: string } | undefined {
+	const m = /^([^@]+)@([^:]+):([^:]+):([^:]+)$/.exec(id);
+	return m ? { experiment: m[1]!, body: m[2]!, situation: m[3]!, region: m[4]! } : undefined;
+}

@@ -166,6 +166,8 @@ export interface VesselSnapshot {
 	/** Experiments aboard (plan 103): state, reason and progress; the vessel's situation. */
 	science?: {
 		situation: string | null;
+		/** The region under the vessel (plan 104, ADR 0180 point 3). */
+		region: string;
 		experiments: Array<{
 			part: EntityId;
 			experiment: string;

@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineGroundStation / defineCategory (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineGroundStation / defineCategory / defineDossierEntry (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -27,6 +27,7 @@ export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/co
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
 export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
+export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { categoryIdOf, sortCategories, STOCK_CATEGORY_NAMES } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
 export { actionArgumentProblem, customGroupId, groupState, MAX_CUSTOM_GROUPS } from '@orbital/core';
@@ -183,6 +184,12 @@ export type {
 	GroundStationDefinition,
 	LinkReason,
 	SignalState,
+	BodyRegions,
+	Dossier,
+	DossierEntry,
+	DossierEntryDefinition,
+	DossierFact,
+	RegionInfo,
 	CategoryDefinition,
 	CategoryIcon,
 	ContractDefinition,

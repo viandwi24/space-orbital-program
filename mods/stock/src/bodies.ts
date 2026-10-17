@@ -13,7 +13,16 @@ export const HomeBody = defineBody({
 	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
 	terrain: { kind: 'hills' },
 	// Science thresholds and multiplier (plan 103, ADR 0178 point 2).
-	science: { flyingHigh: km(18), spaceHigh: km(250), multiplier: 1 }
+	science: { flyingHigh: km(18), spaceHigh: km(250), multiplier: 1 },
+	// Science regions (plan 104, ADR 0180 point 2): the biomes the ground is drawn with.
+	regions: {
+		kind: 'biomes',
+		regions: [
+			{ id: 'desert', multiplier: 1.5 },
+			{ id: 'rock', multiplier: 1.5 },
+			{ id: 'snow', multiplier: 1.5 }
+		]
+	}
 });
 
 /** Semi-major axis of the moon's orbit around the home planet, m. */
@@ -33,5 +42,14 @@ export const MoonBody = defineBody({
 	parent: 'stock.home',
 	terrain: { kind: 'craters' },
 	science: { spaceHigh: km(60), multiplier: 2 },
+	regions: {
+		kind: 'cells',
+		seed: 7,
+		regions: [
+			{ id: 'highlands', label: 'Highlands' },
+			{ id: 'maria', label: 'Maria', multiplier: 1.2 },
+			{ id: 'crater-fields', label: 'Crater fields', multiplier: 1.5 }
+		]
+	},
 	orbit: { a: MOON_ORBIT_RADIUS, e: 0, i: 0, raan: 0, argp: 0, m0: 1, epoch: 0 }
 });

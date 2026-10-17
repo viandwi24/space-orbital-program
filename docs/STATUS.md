@@ -112,7 +112,7 @@
 | 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
 | 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | done | Agent 2 (Dev B, M2) | ADR 0147, API 0.1.42: firsts per world (launch, orbit, flyby, landing, return, crewed) detected in the sim, saved (optional in format 5), reputation when the economy is on; history with Markdown/JSON export on the Worlds screen; `defineAchievement`, stock starter set, local profile with export/import |
 | 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | done | Agent 3 | ADR 0099/0178: situations, subjects, value curve, data vs samples, transmit and recovery credit; handed over as `ready/103` |
-| 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
+| 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | in-progress | Agent 3 | ADR 0099/0180: regions, subjects per region, dossiers, body card; map overlay in 192; handed over as `ready/104` |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
 | 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | draft | — | ADR 0100: each aspect a rule; Career full by default |
@@ -144,6 +144,7 @@
 | 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
 | 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | draft | — | Scope pushed out of 103: the science panel after the dock of 112 |
+| 192 | [Region overlay on the map view](plans/192-region-overlay-on-the-map.md) | draft | — | Scope pushed out of 104: the region tint and hover in map view |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

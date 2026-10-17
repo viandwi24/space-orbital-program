@@ -3,6 +3,7 @@
  * `stock.experiment` module that runs one of them on a part.
  */
 import {
+	defineDossierEntry,
 	defineExperiment,
 	defineModule,
 	defineSituation,
@@ -20,30 +21,35 @@ export const SituationLanded = defineSituation({
 	id: 'stock.landed',
 	label: 'Landed',
 	order: 0,
+	regional: true,
 	matches: (v) => v.landed && !v.splashed
 });
 export const SituationSplashed = defineSituation({
 	id: 'stock.splashed',
 	label: 'Splashed down',
 	order: 1,
+	regional: true,
 	matches: (v) => v.splashed
 });
 export const SituationFlyingLow = defineSituation({
 	id: 'stock.flying-low',
 	label: 'Flying low',
 	order: 2,
+	regional: true,
 	matches: (v) => v.altitude < v.atmosphereHeight && v.altitude < v.flyingHigh
 });
 export const SituationFlyingHigh = defineSituation({
 	id: 'stock.flying-high',
 	label: 'Flying high',
 	order: 3,
+	regional: true,
 	matches: (v) => v.altitude < v.atmosphereHeight
 });
 export const SituationSpaceLow = defineSituation({
 	id: 'stock.space-low',
 	label: 'In space near',
 	order: 4,
+	regional: true,
 	matches: (v) => v.altitude < v.spaceHigh
 });
 export const SituationSpaceHigh = defineSituation({
@@ -266,3 +272,49 @@ export const ModuleExperiment = defineModule({
 		holdsSample: state.sample !== null
 	})
 });
+
+// ---- dossier entries (plan 104, ADR 0180 point 7) ----
+
+export const DossierAtmosphere = defineDossierEntry({
+	id: 'stock.atmosphere-profile',
+	label: 'Atmosphere profile',
+	order: 0,
+	fact: 'atmosphere',
+	unlock: { situations: [SituationFlyingLow.id, SituationFlyingHigh.id, SituationSpaceLow.id] }
+});
+export const DossierGravity = defineDossierEntry({
+	id: 'stock.gravity',
+	label: 'Gravity',
+	order: 1,
+	fact: 'gravity',
+	unlock: { situations: [SituationSpaceLow.id, SituationSpaceHigh.id] }
+});
+export const DossierSurface = defineDossierEntry({
+	id: 'stock.surface',
+	label: 'Surface',
+	order: 2,
+	fact: 'surface',
+	unlock: { situations: [SituationLanded.id, SituationSplashed.id] }
+});
+export const DossierRegions = defineDossierEntry({
+	id: 'stock.regions-found',
+	label: 'Regions found',
+	order: 3,
+	fact: 'regions',
+	unlock: {}
+});
+export const DossierResources = defineDossierEntry({
+	id: 'stock.resource-hints',
+	label: 'Resource hints',
+	order: 4,
+	fact: 'resources',
+	unlock: { experiments: [ExperimentSurfaceSample.id] }
+});
+
+export const STOCK_DOSSIER_ENTRIES = [
+	DossierAtmosphere,
+	DossierGravity,
+	DossierSurface,
+	DossierRegions,
+	DossierResources
+] as const;

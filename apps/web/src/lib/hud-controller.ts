@@ -6,6 +6,9 @@
 import {
 	bodyPole,
 	calendarOf,
+	dossierOf,
+	parseSubjectId,
+	type Dossier,
 	formatDate,
 	type Epoch,
 	entityId,
@@ -134,7 +137,26 @@ export interface HudModel {
 	targets: TargetChoice[];
 	/** Closest approach across spheres and the rendezvous aids for the target (plan 057); null without a target. */
 	rendezvous: RendezvousInfo | null;
+	/** The target body's dossier from the world's subjects (plan 104); null otherwise. */
+	dossier: Dossier | null;
 	toasts: LiveToast[];
+}
+
+/** The dossier of the body `v` targets, from the world's subjects (plan 104, ADR 0180). */
+function targetDossier(
+	snap: Snapshot,
+	v: VesselSnapshot,
+	bodies: readonly BodyDefinition[],
+	content: ContentLookups
+): Dossier | null {
+	if (v.target?.kind !== 'body' || !content.science) return null;
+	const body = bodies.find((b) => String(b.id) === String(v.target!.id));
+	if (!body) return null;
+	const subjects = (snap.science ?? []).flatMap((s) => {
+		const parts = parseSubjectId(s.id);
+		return parts ? [{ ...parts, count: s.count }] : [];
+	});
+	return dossierOf(body, subjects, content.science.dossierEntries, content.science.labelOf);
 }
 
 /** What the render loop needs every frame (small, no Svelte). */
@@ -491,6 +513,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				target: targetHud(v, snap.t),
 				targets: targetChoices(snap, Number(v.id), bodies),
 				rendezvous: v.target ? (options.rendezvous?.() ?? null) : null,
+				dossier: targetDossier(snap, v, bodies, content),
 				toasts
 			};
 		}

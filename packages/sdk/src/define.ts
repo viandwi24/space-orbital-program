@@ -11,6 +11,7 @@ import type {
 	SituationDefinition,
 	AntennaDefinition,
 	GroundStationDefinition,
+	DossierEntryDefinition,
 	CategoryDefinition,
 	CrewNamesDefinition,
 	CrewTraitDefinition,
@@ -290,6 +291,16 @@ export const defineAntenna = (def: AntennaDefinition): AntennaDefinition => def;
 
 /** A fixed ground station on a body (every world site is one already). Register with `ctx.groundStations`. */
 export const defineGroundStation = (def: GroundStationDefinition): GroundStationDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineDossierEntry
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A body dossier entry (plan 104, ADR 0180): a fact about a body that science results unlock.
+ * Register with `ctx.dossierEntries`.
+ */
+export const defineDossierEntry = (def: DossierEntryDefinition): DossierEntryDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineCategory

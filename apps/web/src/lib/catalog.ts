@@ -43,7 +43,13 @@ export function loadContent(): {
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,
-			resources: registries.resources
+			resources: registries.resources,
+			science: {
+				dossierEntries: registries.dossierEntries.list(),
+				labelOf: (id) =>
+					(registries.situations.get(id) ?? registries.experiments.get(id))?.label.toLowerCase() ??
+					id
+			}
 		}
 	};
 }

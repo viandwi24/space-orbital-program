@@ -4,7 +4,13 @@
  */
 import {
 	bodyScience,
+	GLOBAL_REGION,
 	nextValue,
+	regionAt,
+	regionMultiplier,
+	sitesOf,
+	terrainSeedOf,
+	zonesOf,
 	SCIENCE_RULES,
 	sortSituations,
 	subjectCap,
@@ -17,14 +23,14 @@ import {
 	type SituationView,
 	type VesselSnapshot
 } from '@orbital/core';
-import { length } from '@orbital/kepler';
+import { length, normalize } from '@orbital/kepler';
 import { bodyOfVessel } from './bodies.ts';
 import { makeContext } from './hooks.ts';
 import { moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core.ts';
 import { deleteData, storagesOf } from './data.ts';
 import { record, ruleOf } from './economy.ts';
 import { motionOf } from './orbit.ts';
-import { terrainUnder } from './terrain.ts';
+import { terrainUnder, toBodyFixed } from './terrain.ts';
 
 /** Sim time a cached situation stays good for, s (ADR 0178 point 6). */
 export const SITUATION_TTL = 1;
@@ -108,6 +114,24 @@ export function vesselSituation(core: SimCore, id: EntityId, fresh = false): str
 	return situation;
 }
 
+/** The region under the vessel now (plan 104, ADR 0180 point 3). */
+export function regionUnder(core: SimCore, id: EntityId): string {
+	const vessel = vesselOf(core, id);
+	const body = bodyOfVessel(core, vessel);
+	if (!body.def.regions) return GLOBAL_REGION;
+	const { r } = motionOf(core, vessel);
+	return regionAt(body.def, normalize(toBodyFixed(core, body, r)), {
+		seed: terrainSeedOf(core.info),
+		zones: zonesOf(sitesOf(core.info), body.def.id)
+	});
+}
+
+/** The region a result in `situation` belongs to: the one under the vessel when it is regional. */
+const resultRegion = (core: SimCore, id: EntityId, situation: string): string =>
+	core.registries.situations.get(situation)?.regional === true
+		? regionUnder(core, id)
+		: GLOBAL_REGION;
+
 /**
  * Makes a result of `experiment` on `part` in the vessel's current situation (ADR 0178 point 4):
  * the value is fixed now. Undefined when the experiment may not run in this situation.
@@ -123,8 +147,10 @@ export function makeResult(
 	const situation = vesselSituation(core, vesselId);
 	if (situation === undefined || !def.situations.includes(situation)) return undefined;
 	const vessel = vesselOf(core, vesselId);
-	const { multiplier } = bodyScience(bodyOfVessel(core, vessel).def);
-	const id = subjectId(experiment, vessel.soi, situation);
+	const bodyDef = bodyOfVessel(core, vessel).def;
+	const region = resultRegion(core, vesselId, situation);
+	const multiplier = bodyScience(bodyDef).multiplier * regionMultiplier(bodyDef, region);
+	const id = subjectId(experiment, vessel.soi, situation, region);
 	let subject = core.science.subjects.get(id);
 	if (!subject) {
 		subject = {
@@ -132,7 +158,7 @@ export function makeResult(
 			experiment,
 			body: vessel.soi,
 			situation,
-			region: id.slice(id.lastIndexOf(':') + 1),
+			region,
 			count: 0,
 			produced: 0,
 			credited: 0,
@@ -236,7 +262,11 @@ export function vesselScienceSnapshot(
 		}
 	}
 	if (experiments.length === 0) return undefined;
-	return { situation: vesselSituation(core, vesselId, true) ?? null, experiments };
+	return {
+		situation: vesselSituation(core, vesselId, true) ?? null,
+		region: regionUnder(core, vesselId),
+		experiments
+	};
 }
 
 export const scienceSnapshot = (core: SimCore) =>
