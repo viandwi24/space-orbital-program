@@ -16,6 +16,7 @@ import {
 	createRenderer,
 	type GovernorLevel,
 	type GraphicsPreset,
+	type PrecompileProgress,
 	type Renderer
 } from '@orbital/renderer';
 import { pageAudio } from './audio/audio';
@@ -89,6 +90,8 @@ export interface FlightOptions {
 	resume?: GameSave;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
+	/** Progress of the renderer's background shader compile (plan 038, ADR 0074), until it is done. */
+	onGraphics?(progress: PrecompileProgress): void;
 	/**
 	 * Where scripts run (ADR 0038): a sandboxed iframe with the script Worker in it. Without one
 	 * (tests, a browser that cannot provide it) Run reports a failed script.
@@ -637,7 +640,7 @@ export function startFlight(options: FlightOptions): Flight {
 			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
 			// compile this preset's programs and the other presets' planet pass off the main thread
-			void renderer.precompile();
+			void renderer.precompile(options.onGraphics);
 			resize();
 			if (resumed && options.resume) {
 				// The sim already holds the flight; the page only takes up the controls where they were.

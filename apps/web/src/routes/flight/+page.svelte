@@ -32,6 +32,8 @@
 		type Observation
 	} from '../../lib/onboarding/tutorial';
 	import Toasts from '../../lib/ui/Toasts.svelte';
+	import PrecompileBadge from '../../lib/ui/PrecompileBadge.svelte';
+	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../lib/catalog';
 	import type { VesselDesign } from '@orbital/core';
 	import { parseDesign } from '../../lib/design';
@@ -52,6 +54,8 @@
 
 	let canvas: HTMLCanvasElement;
 	let hud = $state.raw<FlightHud | null>(null);
+	/** Progress of the renderer's background shader compile (plan 038), null until it reports. */
+	let graphics = $state.raw<PrecompileProgress | null>(null);
 	let problem = $state<string | null>(null);
 	/** The problem is a save that would not load, not a missing design. */
 	let loadFailed = $state(false);
@@ -214,6 +218,7 @@
 			content,
 			onHud: (h) => (hud = h),
 			onScript: (v) => (script = v),
+			onGraphics: (p) => (graphics = p),
 			sandbox: scriptSandbox,
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
@@ -454,6 +459,7 @@
 			<div class="tc">
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
+				<PrecompileBadge progress={graphics} />
 			</div>
 
 			{#if model}

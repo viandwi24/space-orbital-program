@@ -17,10 +17,17 @@ import {
 import { findPreset } from './camera-presets.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
+import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
 import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 import type { ScreenPoint } from './project.ts';
 import { SceneModel, type MapPathSegment, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
+
+/** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (measured), for the progress bar only. */
+const VEGETATION_STEPS = 34;
+/** Time one idle period spends on vegetation steps before it hands the thread back: at least, at most, ms. */
+const VEGETATION_SLICE_MS = 6;
+const VEGETATION_SLICE_MAX_MS = 12;
 
 /** Lowest render scale the governor may ask for; below this the picture is too soft to play. */
 export const MIN_RENDER_SCALE = 0.4;
@@ -142,7 +149,7 @@ export interface Renderer {
 	 * the instanced vegetation of the other presets one idle period at a time (plans 039 and 048).
 	 * Resolves when the work is done; safe to ignore.
 	 */
-	precompile(): Promise<void>;
+	precompile(onProgress?: (progress: PrecompileProgress) => void): Promise<void>;
 	/** WebGL capability facts for `selectPreset`. */
 	capabilities(): { gpu?: string; maxTextureSize: number };
 	readonly debug: RendererDebug;
@@ -216,96 +223,147 @@ export function createRenderer(config: RendererConfig): Renderer {
 		else gl.render(model.scene, model.camera);
 	}
 
-	const idle = (): Promise<void> =>
+	/** Resolves in the next idle period with the milliseconds that period has left (0 when it only came by its timeout). */
+	const idle = (): Promise<number> =>
 		new Promise((resolve) => {
 			if (typeof requestIdleCallback === 'function')
-				requestIdleCallback(() => resolve(), { timeout: 2000 });
-			else setTimeout(resolve, 50);
+				requestIdleCallback((deadline) => resolve(deadline.timeRemaining()), { timeout: 2000 });
+			else setTimeout(() => resolve(8), 50);
 		});
 
 	/** Programs of the other presets' planet pass, kept alive so three's program cache keeps them. */
 	let variants: (ShaderMaterial | Scene)[] = [];
+	const tracker = new PrecompileTracker();
 	let precompiling: Promise<void> | null = null;
-	const precompile = (): Promise<void> => {
+	/** The presets in the order a quality change can reach them: this one, then downward, then upward. */
+	const reachOrder = (): GraphicsPreset[] => {
+		const at = GRAPHICS_PRESETS.indexOf(preset);
+		return [preset, ...GRAPHICS_PRESETS.slice(0, at).reverse(), ...GRAPHICS_PRESETS.slice(at + 1)];
+	};
+	const precompile = (onProgress?: (p: PrecompileProgress) => void): Promise<void> => {
+		if (onProgress) tracker.subscribe(onProgress);
 		precompiling ??= (async () => {
 			const compileTarget = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
-			const previous = gl.getRenderTarget();
-			const waits: Promise<unknown>[] = [];
-			// three keys a program on tone mapping and colour space, which depend on drawing to a target or the canvas
-			const compile = (scene: Scene, toTarget: boolean, lights: Scene = model.scene): void => {
+			// One compile: sets the state the program is keyed on (render target, shadow casting), starts
+			// `compileAsync` (its program creation is synchronous) and puts the state back in the same turn,
+			// so the frames drawn between jobs are not disturbed. three keys a program on tone mapping and
+			// colour space, which depend on drawing to a target or to the canvas.
+			const compile = (
+				scene: Scene,
+				toTarget: boolean,
+				lights: Scene = model.scene,
+				casts?: boolean,
+				counted = true
+			): Promise<unknown> => {
+				const previousTarget = gl.getRenderTarget();
+				const sunCasts = env.sunLight.castShadow;
+				if (casts !== undefined) env.sunLight.castShadow = casts;
 				gl.setRenderTarget(toTarget ? compileTarget : null);
-				waits.push(gl.compileAsync(scene, model.camera, lights));
+				try {
+					if (counted) tracker.expect(1);
+					return gl.compileAsync(scene, model.camera, lights).finally(() => {
+						if (counted) tracker.finish();
+					});
+				} finally {
+					gl.setRenderTarget(previousTarget);
+					env.sunLight.castShadow = sunCasts;
+				}
 			};
 			// first the way it was: the programs of the first frame compile while the page is still loading
-			compile(model.scene, PRESETS[preset].post);
+			// (not counted until the rest is planned: the badge would stand at 100 % until the first frame)
+			const first = compile(model.scene, PRESETS[preset].post, model.scene, undefined, false);
 			// A program is keyed on the lights, the environment map and the render target it is drawn with, so
 			// compile in the state a frame is drawn in: after the first frame has put the sky light in place.
 			await firstFrame;
-			// Each preset's scene programs (tone mapping in the material or in the output pass, shadows on or
-			// off) and the planet and march passes at its defines, compiled the way that preset draws them.
-			const sunCasts = env.sunLight.castShadow;
+			const jobs: (() => Promise<unknown>)[] = [];
 			const states = new Set<string>();
-			for (const name of [preset, ...GRAPHICS_PRESETS.filter((n) => n !== preset)]) {
+			const halfAvailable = env.planet.halfAvailable(gl);
+			for (const name of reachOrder()) {
 				const settings = PRESETS[name];
-				env.sunLight.castShadow = settings.shadowMapSize > 0;
-				const state = `${settings.post}:${settings.shadowMapSize > 0}`;
+				// Each preset's scene programs (tone mapping in the material or in the output pass, shadows on or
+				// off) and the planet and march passes at its defines, compiled the way that preset draws them.
+				const casts = settings.shadowMapSize > 0;
+				const state = `${settings.post}:${casts}`;
 				if (!states.has(state)) {
 					states.add(state);
-					compile(model.scene, settings.post);
+					jobs.push(() => compile(model.scene, settings.post, model.scene, casts));
 				}
-				if (name === preset) continue;
-				// the vessel's part materials at this preset's detail
-				const parts = model.warmPartScene(name);
-				variants.push(parts);
-				compile(parts, settings.post);
-				for (const material of [
-					env.planet.variantFor(settings),
-					env.planet.marchVariantFor(settings)
-				]) {
-					variants.push(material);
-					const scene = new Scene();
-					scene.add(new Mesh(env.planet.mesh.geometry, material));
-					// the march prepass draws into a float target whatever the preset, in a scene without lights
-					const march = material.name.startsWith('terrain-march');
-					compile(scene, settings.post || march, march ? scene : model.scene);
+				if (name !== preset) {
+					// the vessel's part materials at this preset's detail
+					const parts = model.warmPartScene(name);
+					variants.push(parts);
+					jobs.push(() => compile(parts, settings.post, model.scene, casts));
+					for (const material of [
+						env.planet.variantFor(settings),
+						env.planet.marchVariantFor(settings)
+					]) {
+						variants.push(material);
+						const scene = new Scene();
+						scene.add(new Mesh(env.planet.mesh.geometry, material));
+						// the march prepass draws into a float target whatever the preset, in a scene without lights
+						const march = material.name.startsWith('terrain-march');
+						jobs.push(() =>
+							compile(scene, settings.post || march, march ? scene : model.scene, casts)
+						);
+					}
 				}
-			}
-			// The half-resolution rung (plan 050): the planet pass drawn into a float target compiles in the
-			// target's state, which a preset that draws to the canvas (tone mapping in the program) does not
-			// share; the upsample stands in the scene's place in both states.
-			if (env.planet.halfAvailable(gl)) {
-				for (const name of GRAPHICS_PRESETS) {
-					if (PRESETS[name].post) continue;
+				// The half-resolution rung (plan 050): the planet pass drawn into a float target compiles in the
+				// target's state, which a preset that draws to the canvas (tone mapping in the program) does not share.
+				if (halfAvailable && !settings.post) {
 					const half = new Scene();
-					const material = env.planet.variantFor(PRESETS[name]);
+					const material = env.planet.variantFor(settings);
 					half.add(new Mesh(env.planet.mesh.geometry, material));
 					variants.push(material);
-					compile(half, true, half);
+					jobs.push(() => compile(half, true, half, casts));
 				}
+			}
+			// the upsample stands in the planet pass's place in both target states
+			if (halfAvailable) {
 				for (const toTarget of [true, false]) {
 					const scene = new Scene();
 					scene.add(new Mesh(env.planet.mesh.geometry, env.planet.upsampleMaterial));
-					compile(scene, toTarget, scene);
+					variants.push(scene);
+					jobs.push(() => compile(scene, toTarget, scene));
 				}
 			}
-			env.sunLight.castShadow = sunCasts;
-			gl.setRenderTarget(previous);
-			await Promise.all(waits);
+			// the first compile counts now that the whole plan is known
+			tracker.expect(1);
+			void first.finally(() => tracker.finish());
+			// every job starts in this turn: the driver compiles the programs side by side (they all finish within
+			// about 10 s of the first frame on the M5, journal 038), and each job's state is put back at once
+			await Promise.all([first, ...jobs.map((job) => job())]);
 			compileTarget.dispose();
 			// the biome maps of the other presets, one per idle period: each takes up to a second to build
+			tracker.setStage('maps');
 			const widths = new Set(GRAPHICS_PRESETS.map((name) => PRESETS[name].mapWidth));
 			widths.delete(PRESETS[preset].mapWidth);
 			for (const width of widths) {
+				tracker.expect(1);
 				await idle();
 				env.planet.warmMaps([width]);
+				tracker.finish();
 			}
 			// the instanced vegetation of the other presets, one mesh per idle period (ADR 0055)
+			tracker.setStage('vegetation');
 			const budgets = GRAPHICS_PRESETS.map((name) => ({
 				trees: PRESETS[name].trees,
 				tufts: PRESETS[name].tufts
 			}));
-			do await idle();
-			while (env.site.warmVegetation(budgets));
+			tracker.expect(VEGETATION_STEPS);
+			// A step is a few tenths of a millisecond; the sets of all presets are 34 of them. One step per idle
+			// period (the first version) took 70 s on a page whose idle periods come every 2 s (a hidden tab), so
+			// run steps for a few milliseconds per period instead (plan 038, ADR 0074).
+			for (let more = true; more;) {
+				const left = await idle();
+				// the idle period's own allowance, within bounds (a period that came by its timeout has none)
+				const slice = Math.min(Math.max(left - 1, VEGETATION_SLICE_MS), VEGETATION_SLICE_MAX_MS);
+				const start = performance.now();
+				do {
+					more = env.site.warmVegetation(budgets);
+					tracker.finish();
+				} while (more && performance.now() - start < slice);
+			}
+			tracker.complete();
 		})();
 		return precompiling;
 	};

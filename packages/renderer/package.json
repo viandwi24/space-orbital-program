@@ -6,7 +6,8 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./presets": "./src/presets.ts"
+		"./presets": "./src/presets.ts",
+		"./precompile-progress": "./src/precompile-progress.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {
