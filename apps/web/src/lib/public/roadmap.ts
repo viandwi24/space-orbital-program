@@ -44,10 +44,10 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '052',
-		title: 'Moon shadows and stones',
+		plan: '060',
+		title: 'Stones you can land on',
 		gives:
-			'Long shadows from crater rims, stones you can land next to, and room for more airless bodies.',
+			'Boulders on the moon become solid: a landing leg that comes down on one rests on it, or the lander tips.',
 		area: 'Flight and look'
 	},
 	{
