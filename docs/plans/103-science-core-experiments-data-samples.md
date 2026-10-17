@@ -63,7 +63,7 @@ Situation is computed on events and at most once per second of sim time per vess
 - [x] Same file: an experiment started in a wrong situation is `INVALID` with the current situation in the reason; without power it is `PAUSED`.
 - [x] Same file, `-t benchmark`: situation checks add under 0.05 ms per step for 10 vessels ¹ (M5 by Agent 1; indicative here).
 - [x] `bun test packages/scripting`: `ship.science` lists the experiments and `runExperiment` sends the `run` action.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 

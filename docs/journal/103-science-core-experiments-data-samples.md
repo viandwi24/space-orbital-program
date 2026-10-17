@@ -27,7 +27,7 @@
 
 ## Measurements
 
-- Benchmark (`-t benchmark`): 10 vessels on rails, each with a module that asks for the situation every step, against the same vessels without the call: 5.9 to 13.6 µs per step on this machine. The budget is 50 µs (indicative here; Agent 1 measures on the M5).
+- Benchmark (`-t benchmark`): 10 vessels on rails, each with a module that asks for the situation every step, against the same vessels without the call: 5.9 to 13.6 µs per step alone on this machine, within noise under the full run. The budget is 50 µs (indicative here; Agent 1 measures on the M5).
 
 ## Follow-ups
 
@@ -36,5 +36,12 @@
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/core/test/science.test.ts       pass
+bun test packages/sim/test/science.test.ts        9 pass (benchmark alone: 5.9 µs/step for 10 vessels; under the full run: noise, -0.6 µs)
+bun test packages/scripting                       60 pass
+bun run docs:check                                exit 0
+bun run test                                      1493 pass, 0 fail (274 s)
+bun run typecheck                                 exit 0 (72 s)
+bun run build                                     exit 0 (6 s)
+bun run --filter @orbital/web test                902 passed, 1 skipped; 3 env-only import suites (no Node here)
 ```
