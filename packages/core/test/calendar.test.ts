@@ -45,6 +45,11 @@ describe('Gregorian UTC', () => {
 		expect(utc(epochFromUnixMs(ms), 0)).toBe('2026-10-17 06:00:00.125 UTC');
 	});
 
+	test('a time a hair before a whole minute reads as that minute, not a millisecond past it', () => {
+		const e = epochFromUtc({ year: 2026, month: 9, day: 7, hour: 12, minute: 0, second: 0 });
+		expect(utc(e, 40 * 86_400)).toBe('2026-10-17 12:00:00.000 UTC');
+	});
+
 	test('ten years of t keep millisecond precision (days and seconds, never one float)', () => {
 		const e = epochFromUtc({ year: 2030, month: 1, day: 1, hour: 0, minute: 0, second: 0 });
 		const tenYears = (daysFromCivil(2040, 1, 1) - daysFromCivil(2030, 1, 1)) * 86_400;
