@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 124 Sol pack on `devc/124-sol` (claim/124): plan refined, constants researched; next ADR 0184 and the loader's system selection.
-**Waiting for:** nothing (124 in progress).
+**Now:** 124 Sol pack handed over as `ready/124` (branch `devc/124-sol` @ 6a78abe); next lane plans wait for cp/f3-096-building-levels or cp/f4-115-comms-1-ui.
+**Waiting for:** merge of 124; those checkpoints.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -30,6 +30,6 @@
 | 119 comms-4 | todo |  |  |  |
 | 126 agencies | todo |  |  |  |
 | 120 comms-5 | todo |  |  |  |
-| 124 sol | in-progress | `devc/124-sol` | 2026-10-18 | claim/124 |
+| 124 sol | handed-over | `devc/124-sol` | 2026-10-18 | ready/124; API 0.1.53 |
 | 121 comms-6 | todo |  |  |  |
 | 129 discovery | todo |  |  |  |
