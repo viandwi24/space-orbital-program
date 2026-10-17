@@ -57,7 +57,9 @@ test('the main menu: settings persist across a reload, roadmap and credits load'
 	await expect(page.getByRole('heading', { name: 'Roadmap' })).toBeVisible();
 	await page.goto('/credits');
 	await expect(page.getByRole('heading', { name: 'Credits' })).toBeVisible();
-	await expect(page.getByText('To be decided')).toBeVisible();
+	// Plan 075: the game's licence is decided (ADR 0106).
+	await expect(page.getByText('Apache License, Version 2.0')).toBeVisible();
+	await expect(page.getByText('To be decided')).toHaveCount(0);
 	await page.goto('/no-such-page');
 	await expect(page.getByTestId('error-screen')).toBeVisible();
 	expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
