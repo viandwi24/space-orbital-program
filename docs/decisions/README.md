@@ -109,3 +109,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0089 | [Terrain casts light shafts: per-sample reads of the baked heights along the sun ray](0089-terrain-cast-light-shafts.md) | accepted | 2026-10-17 |
 | 0090 | [Hills on a body other than the first are drawn by the ground pass (the moon pass with a second ground kind)](0090-hills-on-a-second-body-in-the-ground-pass.md) | accepted | 2026-10-17 |
 | 0091 | [Phones stay unsupported in v1.x; the tablet layout is fixed and the notice says what to do](0091-phones-stay-unsupported-tablet-layout-fixed.md) | accepted | 2026-10-17 |
+| 0092 | [Stones are colliders: one lattice in core, spheres in a second kinematic body](0092-stones-are-colliders-from-one-core-lattice.md) | accepted | 2026-10-17 |

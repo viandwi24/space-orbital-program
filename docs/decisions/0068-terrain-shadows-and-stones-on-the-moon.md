@@ -1,6 +1,6 @@
 # 0068 — Terrain-cast shadows and stones as instanced geometry on an airless body
 
-**Status:** accepted
+**Status:** accepted (point 9, "no collision", is superseded by [0092](0092-stones-are-colliders-from-one-core-lattice.md); the lattice now lives in `@orbital/core`)
 **Date:** 2026-10-17
 **Plan:** plans/052-moon-terrain-shadows-stones-and-terrain-kind.md
 **Builds on:** ADR 0054 (the moon pass), 0058 (light and dust on an airless body), 0044 (patches), 0053 (frame budget), 0067 (terrain kind).

@@ -44,13 +44,6 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '060',
-		title: 'Stones you can land on',
-		gives:
-			'Boulders on the moon become solid: a landing leg that comes down on one rests on it, or the lander tips.',
-		area: 'Flight and look'
-	},
-	{
 		plan: '069',
 		title: 'Catalogue groups of your own',
 		gives:
