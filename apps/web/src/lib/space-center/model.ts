@@ -193,3 +193,46 @@ export function moveSelection(count: number, current: number, key: string): numb
 			return current;
 	}
 }
+
+/**
+ * Labels that would overlap on screen are stacked upwards, nearest the camera (lowest on screen)
+ * kept in place; `w` and `h` are a label's box in CSS pixels.
+ */
+export function spreadLabels(
+	points: Readonly<Record<string, { x: number; y: number } | null>>,
+	w = 132,
+	h = 40
+): Record<string, { x: number; y: number } | null> {
+	const out: Record<string, { x: number; y: number } | null> = {};
+	const placed: Array<{ x: number; y: number }> = [];
+	const order = Object.entries(points)
+		.filter((e): e is [string, { x: number; y: number }] => e[1] !== null)
+		.sort((a, b) => b[1].y - a[1].y);
+	for (const [id, p] of order) {
+		let y = p.y;
+		for (let guard = 0; guard < 8; guard++) {
+			const hit = placed.find((q) => Math.abs(q.x - p.x) < w && Math.abs(q.y - y) < h);
+			if (!hit) break;
+			y = hit.y - h;
+		}
+		placed.push({ x: p.x, y });
+		out[id] = { x: p.x, y };
+	}
+	for (const [id, p] of Object.entries(points)) if (p === null) out[id] = null;
+	return out;
+}
+
+/** Whole pixels, and the previous position kept while a label moves less than a pixel (no shimmer). */
+export function steadyLabels(
+	next: Readonly<Record<string, { x: number; y: number } | null>>,
+	prev: Readonly<Record<string, { x: number; y: number } | null>>
+): Record<string, { x: number; y: number } | null> {
+	const out: Record<string, { x: number; y: number } | null> = {};
+	for (const [id, p] of Object.entries(next)) {
+		const q = prev[id];
+		if (!p) out[id] = null;
+		else if (q && Math.abs(q.x - p.x) < 1 && Math.abs(q.y - p.y) < 1) out[id] = q;
+		else out[id] = { x: Math.round(p.x), y: Math.round(p.y) };
+	}
+	return out;
+}

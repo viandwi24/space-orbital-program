@@ -10,7 +10,9 @@ import {
 	ghostCell,
 	moveSelection,
 	nextRotation,
-	siteViews
+	siteViews,
+	spreadLabels,
+	steadyLabels
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
 
@@ -134,5 +136,21 @@ describe('build mode', () => {
 			'control',
 			'office'
 		]);
+	});
+});
+
+describe('labels', () => {
+	it('labels that would overlap are stacked; distant ones keep their place', () => {
+		const out = spreadLabels({ a: { x: 300, y: 200 }, b: { x: 320, y: 210 }, c: { x: 800, y: 200 }, d: null });
+		expect(out.b).toEqual({ x: 320, y: 210 }); // lowest on screen stays
+		expect(out.a!.y).toBeLessThanOrEqual(210 - 40);
+		expect(out.c).toEqual({ x: 800, y: 200 });
+		expect(out.d).toBeNull();
+	});
+
+	it('a label moving less than a pixel stays put; a real move lands on whole pixels', () => {
+		const prev = { a: { x: 100, y: 50 } };
+		expect(steadyLabels({ a: { x: 100.4, y: 49.7 } }, prev).a).toBe(prev.a);
+		expect(steadyLabels({ a: { x: 103.6, y: 50.2 } }, prev).a).toEqual({ x: 104, y: 50 });
 	});
 });

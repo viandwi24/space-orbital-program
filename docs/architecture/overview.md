@@ -36,6 +36,10 @@ Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-mod
 
 Lakes, rivers and shores (plan 038, ADR 0072): `core/terrain.ts` carves lake basins out of the one height function (a flat floor at sea level, relief capped by a cone, so lakes are as solid as the sea), the planet pass draws them as water, moves the ripples of a river along its course by a two-phase flow map (`water-flow.ts`) and runs the swell up the beach with a shoaling phase and a breaker line (`shore-wave.ts`). The launch site's arms, steam, beacons and lit windows are driven by the vessel's height and the clock (`site-animation.ts`, ADR 0073), and `Renderer.precompile(onProgress)` reports its progress to the flight page's badge (ADR 0074).
 
+### Space Center (plan 091, ADR 0117)
+
+`/space-center` runs a sim Worker with no vessel and the renderer in site mode: `createRenderer({ siteBuildings: true })` draws the site's buildings from a list (`setSiteBuildings`, one generator per `visual.generator`, merged per material) instead of the hard-coded layout, and `setSiteView(true)` puts a virtual vessel at the site centre so the floating origin, camera target and ground clamp work as on the pad. `pickSite` and `projectSite` convert between CSS pixels and site metres (east, north) for build mode and the labels. The page checks a ghost with core's `canPlace` (the sim's rule for `place-building`) and writes the sites into the world record (`Worlds.setSites`) so new flights start from them. Entering a world opens this screen; the Hangar's label opens the VAB.
+
 ## Layers
 
 | Layer | Packages | Environment | Knows about |

@@ -27,6 +27,8 @@
 		ghostCell,
 		nextRotation,
 		siteViews,
+		spreadLabels,
+		steadyLabels,
 		type GhostCheck,
 		type SiteState
 	} from '../../lib/space-center/model';
@@ -145,7 +147,8 @@
 				onFrame: (project) => {
 					const next: Record<string, { x: number; y: number } | null> = {};
 					for (const r of rows) next[r.id] = project(r.anchor);
-					labels = next;
+					const steady = steadyLabels(spreadLabels(next), labels);
+					if (JSON.stringify(steady) !== JSON.stringify(labels)) labels = steady;
 				},
 				onClick: (at) => void onClick(at),
 				onHover: ghostAt,
