@@ -32,6 +32,7 @@ import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { completeNodes } from './maneuver.ts';
+import { pruneTargets } from './target.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails } from './sas.ts';
@@ -274,6 +275,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		applySoiTransitions(core, tStart);
 		completeNodes(core);
 		reapDebris(core);
+		pruneTargets(core);
 		runSystems(core.post, dt);
 		autoRails(core);
 	}
@@ -288,6 +290,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		applySoiTransitions(core, tStart);
 		completeNodes(core);
 		reapDebris(core);
+		pruneTargets(core);
 		runSystems(core.post, h);
 	}
 

@@ -12,6 +12,7 @@ import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts'
 import { makeContext } from './hooks.ts';
 import { qConj, qMul, qNormalize, qRotate } from './math.ts';
 import { burnDirection } from './maneuver.ts';
+import { targetDirection as directionToTarget } from './target.ts';
 import { motionOf } from './orbit.ts';
 
 /** Position gain (1/s): desired rate per radian of error near the target. */
@@ -45,6 +46,19 @@ const NOSE: Vec3 = { x: 0, y: 1, z: 0 };
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
 
+/** The direction the modes that aim at something (not at the velocity) ask for: the node's burn or the target. */
+function aimOf(core: SimCore, vessel: VesselState): Vec3 | undefined {
+	switch (vessel.sas.mode) {
+		case 'maneuver':
+			return burnDirection(core, vessel);
+		case 'target':
+		case 'anti-target':
+			return directionToTarget(core, vessel);
+		default:
+			return undefined;
+	}
+}
+
 /** Pointing modes (the ones with a direction). */
 export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !== 'hold';
 
@@ -52,7 +66,9 @@ export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !==
  * Unit direction (BCI) a pointing mode asks the nose to take, or undefined when there is none
  * (too slow, or no orbit plane). Same definitions as the navball markers (ADR 0026): prograde
  * along the reference velocity, normal along `r x v` of the inertial state, radial along `r`;
- * `maneuver` along `burn`, the remaining burn of the earliest node (plan 045).
+ * `maneuver` along `burn`, the remaining burn of the earliest node (plan 045); `target` along
+ * `burn` too and `anti-target` against it, where the caller passes the unit direction to the
+ * vessel's target (plan 035).
  */
 export function targetDirection(
 	omega: number,
@@ -82,7 +98,10 @@ export function targetDirection(
 		case 'radial-in':
 			return scale(normalize(r), -1);
 		case 'maneuver':
+		case 'target':
 			return burn;
+		case 'anti-target':
+			return burn && scale(burn, -1);
 		default:
 			return undefined;
 	}
@@ -210,7 +229,7 @@ export function stepSas(
 			sas,
 			vessel.com,
 			vessel.velocity,
-			sas.mode === 'maneuver' ? burnDirection(core, vessel) : undefined
+			aimOf(core, vessel)
 		);
 		if (d) error = pointError(orientation, d);
 		else settle = true;
@@ -270,13 +289,7 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	if (!isPointing(sas.mode) || vessel.rails === null || vessel.rails.kind === 'surface') return;
 	if (!isControlled(core, vessel)) return;
 	const { r, v } = motionOf(core, vessel);
-	const d = targetDirection(
-		bodyOfVessel(core, vessel).omega,
-		sas,
-		r,
-		v,
-		sas.mode === 'maneuver' ? burnDirection(core, vessel) : undefined
-	);
+	const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, r, v, aimOf(core, vessel));
 	if (!d) return;
 	const nose = qRotate(vessel.orientation, NOSE);
 	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));

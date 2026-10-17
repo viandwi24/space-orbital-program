@@ -78,6 +78,31 @@ export interface TelemetryNode {
 	vector: Vec3 | null;
 }
 
+/**
+ * The vessel's target (plan 035, ADR 0064). `position` and `velocity` are the target's minus the
+ * ship's, in the shared inertial axes (the same in every body's frame), m and m/s. `approach` is
+ * the closest approach of the ship's orbit to the target's within the next orbit (or ten days),
+ * `null` when they do not orbit the same body or the ship is not on an orbit that clears the ground.
+ */
+export interface TelemetryTarget {
+	kind: 'body' | 'vessel';
+	/** Body definition id, or vessel entity id. */
+	id: string | number;
+	name: string;
+	position: Vec3;
+	velocity: Vec3;
+	distance: number;
+	relativeSpeed: number;
+	approach: { time: number; distance: number; relativeSpeed: number } | null;
+}
+
+/** One entry of `ship.targets`: something the ship could aim at. */
+export interface TelemetryTargetChoice {
+	kind: 'body' | 'vessel';
+	id: string | number;
+	name: string;
+}
+
 /** What `ship.*` returns. SI units, BCI axes (see `units-and-frames.md`). */
 export interface Telemetry {
 	/** Simulation time, s. */
@@ -115,6 +140,10 @@ export interface Telemetry {
 	sas: SasMode;
 	/** Maneuver nodes in time order (plan 045). */
 	nodes: TelemetryNode[];
+	/** The ship's target, or null (plan 035). */
+	target: TelemetryTarget | null;
+	/** Every body and every other vessel (debris included) the ship could target, bodies first. */
+	targets: TelemetryTargetChoice[];
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -263,6 +292,28 @@ export function buildTelemetry(
 			dv: n.dv,
 			body: n.body === undefined ? null : String(n.body),
 			vector: n.vector ? { ...n.vector } : null
-		}))
+		})),
+		target: v.target
+			? {
+					kind: v.target.kind,
+					id: v.target.id as string | number,
+					name: v.target.name,
+					position: { ...v.target.position },
+					velocity: { ...v.target.velocity },
+					distance: v.target.distance,
+					relativeSpeed: v.target.relativeSpeed,
+					approach: v.target.approach ? { ...v.target.approach } : null
+				}
+			: null,
+		targets: [
+			...env.bodies.map((b) => ({ kind: 'body' as const, id: String(b.id), name: String(b.id) })),
+			...snapshot.vessels
+				.filter((o) => Number(o.id) !== vessel)
+				.map((o) => ({
+					kind: 'vessel' as const,
+					id: Number(o.id),
+					name: o.name ?? `vessel ${Number(o.id)}`
+				}))
+		]
 	};
 }

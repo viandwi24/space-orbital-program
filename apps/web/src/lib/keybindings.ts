@@ -75,8 +75,11 @@ export const ACTIONS = [
 	flight('Stability assist (SAS)', 'sasRadialOut', 'Radial out', 'Digit6'),
 	flight('Stability assist (SAS)', 'sasRadialIn', 'Radial in', 'Digit7'),
 	flight('Stability assist (SAS)', 'sasManeuver', 'Point at the maneuver node', 'Digit8'),
+	flight('Stability assist (SAS)', 'sasTarget', 'Point at the target', 'Digit9'),
+	flight('Stability assist (SAS)', 'sasAntiTarget', 'Point away from the target', 'Digit0'),
 	flight('See', 'map', 'Map view', 'KeyM'),
 	flight('See', 'speedMode', 'Speed reference: auto, surface, orbit', 'KeyV'),
+	flight('See', 'targetNext', 'Next target: each body, each other vessel, none', 'KeyY'),
 	flight('Time and menus', 'warpDown', 'Time warp down', ','),
 	flight('Time and menus', 'warpUp', 'Time warp up', '.'),
 	flight('Time and menus', 'quicksave', 'Quicksave', 'F5'),
@@ -376,7 +379,8 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 				range: true,
 				text: 'Hold, prograde, retrograde, normal, antinormal, radial out, radial in'
 			},
-			{ actions: ['sasManeuver'], text: 'Point at the maneuver node' }
+			{ actions: ['sasManeuver'], text: 'Point at the maneuver node' },
+			{ actions: ['sasTarget', 'sasAntiTarget'], text: 'Point at the target, away from it' }
 		]
 	},
 	{
@@ -386,6 +390,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 		rows: [
 			{ actions: ['map'], text: 'Map view' },
 			{ actions: ['speedMode'], text: 'Speed reference: auto, surface, orbit' },
+			{ actions: ['targetNext'], text: 'Next target: each body, each other vessel, none' },
 			{ actions: [], fixed: ['Drag', 'Wheel'], text: 'Orbit and zoom the camera' }
 		]
 	},

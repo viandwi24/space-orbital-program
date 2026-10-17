@@ -66,6 +66,11 @@ export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminated
 	})
 ]);
 
+const targetRefSchema = z.discriminatedUnion('kind', [
+	z.object({ kind: z.literal('body'), id: definitionIdSchema.transform(bodyId) }),
+	z.object({ kind: z.literal('vessel'), id: entity })
+]);
+
 export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('throttle'), vessel: entity, value: z.number().min(0).max(1) }),
 	z.object({
@@ -106,6 +111,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		radial: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV)
 	}),
 	z.object({ type: z.literal('node-remove'), vessel: entity, id: index.optional() }),
+	z.object({ type: z.literal('target-set'), vessel: entity, target: targetRefSchema.nullable() }),
 	z.object({
 		type: z.literal('load-vessel'),
 		design: vesselDesignSchema,

@@ -9,7 +9,15 @@ import { DEFAULT_KEYMAP, type ActionId, type Keymap } from '../keybindings';
 
 export type SasGlyph = 'hold' | MarkerGlyph;
 export type MarkerGlyph =
-	'prograde' | 'retrograde' | 'normal' | 'anti-normal' | 'radial-out' | 'radial-in' | 'maneuver';
+	| 'prograde'
+	| 'retrograde'
+	| 'normal'
+	| 'anti-normal'
+	| 'radial-out'
+	| 'radial-in'
+	| 'maneuver'
+	| 'target'
+	| 'anti-target';
 
 export interface SasButtonSpec {
 	mode: Exclude<SasMode, 'off'>;
@@ -28,7 +36,9 @@ export const SAS_BUTTONS: readonly SasButtonSpec[] = [
 	{ mode: 'antinormal', label: 'Antinormal', glyph: 'anti-normal', action: 'sasAntinormal' },
 	{ mode: 'radial-out', label: 'Radial out', glyph: 'radial-out', action: 'sasRadialOut' },
 	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', action: 'sasRadialIn' },
-	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', action: 'sasManeuver' }
+	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', action: 'sasManeuver' },
+	{ mode: 'target', label: 'Target', glyph: 'target', action: 'sasTarget' },
+	{ mode: 'anti-target', label: 'Anti-target', glyph: 'anti-target', action: 'sasAntiTarget' }
 ];
 
 export interface SasButtonState extends SasButtonSpec {
@@ -49,25 +59,30 @@ export function modeForAction(action: ActionId | null, current: SasMode): SasMod
 /**
  * Button states for a vessel. `controllable` is false for a vessel without a control source (the
  * sim would refuse); `sas` is undefined before the first snapshot; the maneuver button needs a
- * node (`hasNode`) unless it is the active mode.
+ * node (`hasNode`) and the two target buttons a target (`hasTarget`), unless it is the active mode.
  */
 export function buttonStates(
 	sas: SasSnapshot | undefined,
 	controllable: boolean,
 	hasNode = false,
-	keymap: Keymap = DEFAULT_KEYMAP
+	keymap: Keymap = DEFAULT_KEYMAP,
+	hasTarget = false
 ): SasButtonState[] {
 	return SAS_BUTTONS.map((b) => {
 		const noNode = b.mode === 'maneuver' && !hasNode && sas?.mode !== 'maneuver';
+		const aimsAtTarget = b.mode === 'target' || b.mode === 'anti-target';
+		const noTarget = aimsAtTarget && !hasTarget && sas?.mode !== b.mode;
 		return {
 			...b,
 			active: sas?.mode === b.mode,
-			disabled: !controllable || noNode,
+			disabled: !controllable || noNode || noTarget,
 			title: !controllable
 				? `${b.label}: no command part`
 				: noNode
 					? `${b.label}: no maneuver node planned`
-					: `${b.label} (${keymap.label(b.action)})`
+					: noTarget
+						? `${b.label}: no target selected`
+						: `${b.label} (${keymap.label(b.action)})`
 		};
 	});
 }
@@ -99,7 +114,15 @@ export function referenceFollowUp(
 	current: SasSnapshot | undefined,
 	speed: SpeedMode
 ): Command | null {
-	if (!current || current.mode === 'off' || current.mode === 'hold' || current.mode === 'maneuver')
+	// The modes that aim at a node or a target do not depend on the speed reference.
+	if (
+		!current ||
+		current.mode === 'off' ||
+		current.mode === 'hold' ||
+		current.mode === 'maneuver' ||
+		current.mode === 'target' ||
+		current.mode === 'anti-target'
+	)
 		return null;
 	const reference = referenceFor(speed);
 	return current.reference === reference ? null : { type: 'sas', vessel, reference };

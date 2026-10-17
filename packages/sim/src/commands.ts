@@ -26,6 +26,7 @@ import { makeContext, runStageHooks } from './hooks.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
+import { setTarget } from './target.ts';
 import { beginHold } from './sas.ts';
 import { IDENTITY, qNormalize } from './math.ts';
 import {
@@ -243,6 +244,11 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
 			return removeNode(core, v, command.id);
+		}
+		case 'target-set': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			return setTarget(core, command.vessel, v, command.target);
 		}
 		case 'load-vessel':
 			return loadVessel(core, command);

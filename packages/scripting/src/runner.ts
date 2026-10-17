@@ -9,7 +9,8 @@ import {
 	commandSchema,
 	entityId,
 	type Command,
-	type Snapshot
+	type Snapshot,
+	type Vec3
 } from '@orbital/core';
 import type {
 	QuickJSContext,
@@ -20,7 +21,22 @@ import type {
 import { PRELUDE } from './prelude.ts';
 import { buildTelemetry, type ScriptEnvironment } from './telemetry.ts';
 
+/**
+ * Answers `bodies[id].state(t, frame)` (plan 035): position and velocity of a body at simulation
+ * time `t`, relative to its parent (`parent`) or to the root body's centre (`system`). The host
+ * supplies it (it owns the orbital mechanics: `kepler.bodyStateAt`), so the runner has no `kepler`
+ * dependency (boundaries.md). It may throw `RangeError` for arguments it refuses; the script sees
+ * the exception.
+ */
+export type BodyStateProvider = (
+	id: string,
+	t: number,
+	frame: 'parent' | 'system'
+) => { position: Vec3; velocity: Vec3 };
+
 export interface ScriptRunnerOptions extends ScriptEnvironment {
+	/** Source of `bodies[id].state(t)`; without it that call throws "not available in this host". */
+	bodyState?: BodyStateProvider;
 	/** The vessel the script controls; scripts cannot address any other. */
 	vessel: number;
 	/** Wall-clock budget per tick, ms: all guest work (telemetry update, script, promise jobs). Default 10. */
@@ -297,6 +313,9 @@ export async function createScriptRunnerIn(
 				}
 				candidate = { type: 'warp-to', time: p.time, factor: p.factor };
 				break;
+			case 'target-set':
+				candidate = { type: 'target-set', vessel, target: p.target };
+				break;
 			default:
 				throw new Error(`unknown command "${kind}"`);
 		}
@@ -368,6 +387,24 @@ export async function createScriptRunnerIn(
 	context.setProp(host, 'cmd', cmd);
 	cmd.dispose();
 	bind('print', (line) => print(context.getString(line)));
+	// A pure lookup: validates its arguments and returns the answer as a JSON string (plan 035).
+	const bodyState = context.newFunction('bodyState', (id, t, frame) => {
+		if (!options.bodyState) throw new Error('bodies.state is not available in this host');
+		const when = context.dump(t) as unknown;
+		const where = context.getString(frame);
+		if (typeof when !== 'number' || !Number.isFinite(when)) {
+			throw new RangeError('bodies.state: t must be a finite number (simulation time, s)');
+		}
+		if (where !== 'parent' && where !== 'system') {
+			throw new RangeError("bodies.state: frame must be 'parent' or 'system'");
+		}
+		const state = options.bodyState(context.getString(id), when, where);
+		return context.newString(
+			JSON.stringify({ position: state.position, velocity: state.velocity })
+		);
+	});
+	context.setProp(host, 'bodyState', bodyState);
+	bodyState.dispose();
 	bind('done', (ok, name, message, stack) => {
 		if (context.dump(ok) === true) status = 'finished';
 		else

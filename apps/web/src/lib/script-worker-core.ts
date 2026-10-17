@@ -3,6 +3,7 @@
  * with a double. `script.worker.ts` wires it to the real worker scope.
  */
 import type { ScriptRunner, ScriptRunnerOptions } from '@orbital/scripting';
+import { scriptBodyState } from './script-body-state.ts';
 import {
 	parseToScriptWorker,
 	type FromScriptWorker,
@@ -32,6 +33,7 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 			.createRunner(message.source, {
 				vessel: message.vessel,
 				...message.env,
+				bodyState: scriptBodyState(message.env.bodies),
 				budgetMs: message.budgetMs,
 				firstTickBudgetMs: message.firstTickBudgetMs,
 				...(message.fuelPolls === undefined ? {} : { fuelPolls: message.fuelPolls }),

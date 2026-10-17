@@ -65,11 +65,11 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Building'
 	},
 	{
-		plan: '035',
-		title: 'Scripts that see targets and maneuver nodes',
+		plan: '057',
+		title: 'Target markers and rendezvous aids',
 		gives:
-			'Your scripts can read the planned maneuver and a selected target, and other bodies’ positions over time, so a script can fly a transfer.',
-		area: 'Scripting and mods'
+			'The target shown on the navball and the map, a closest approach that follows you across spheres of influence, and helpers to plan the burn that meets it.',
+		area: 'Flight and look'
 	},
 	{
 		plan: '036',

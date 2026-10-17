@@ -119,6 +119,10 @@ export interface Flight {
 	cycleSpeedMode(): void;
 	/** Ask for a stability assist mode (the SAS buttons next to the navball; plan 042). */
 	setSas(mode: SasMode): void;
+	/** Select the target with this key (`TargetChoice.key`), or clear it with null (plan 035). */
+	setTarget(key: string | null): void;
+	/** Select the next entry of the target list; the one after the last is none. */
+	cycleTarget(): void;
 	/** Freeze or resume the sim (pause menu). */
 	setPaused(paused: boolean): void;
 	/** The on-screen steering pad and roll buttons (plan 053): added to what the keys send, each -1..1. */
@@ -305,6 +309,9 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'speedMode':
 				hudCtl?.cycleSpeedMode();
 				break;
+			case 'targetNext':
+				cycleTarget();
+				break;
 			case 'warpDown':
 				setWarp(warpIndex - 1);
 				break;
@@ -397,6 +404,16 @@ export function startFlight(options: FlightOptions): Flight {
 			void send(command);
 			director.event(command.type === 'sas' && command.mode === 'off' ? 'sasOff' : 'sasOn');
 		}
+	}
+
+	function setTarget(key: string | null): void {
+		const command = hudCtl?.targetCommand(key);
+		if (command) void send(command);
+	}
+
+	function cycleTarget(): void {
+		const command = hudCtl?.nextTargetCommand();
+		if (command) void send(command);
 	}
 
 	function toggleMap(): void {
@@ -794,6 +811,8 @@ export function startFlight(options: FlightOptions): Flight {
 			hudCtl?.cycleSpeedMode();
 		},
 		setSas,
+		setTarget,
+		cycleTarget,
 		setPaused(paused) {
 			hud.paused = paused;
 			client.setPaused(paused);

@@ -7,17 +7,20 @@
 		sas,
 		controllable = true,
 		hasNode = false,
+		hasTarget = false,
 		onmode
 	}: {
 		sas: SasSnapshot | undefined;
 		controllable?: boolean;
 		/** The vessel has a maneuver node to point at. */
 		hasNode?: boolean;
+		/** The vessel has a target to point at or away from. */
+		hasTarget?: boolean;
 		/** Called with the mode a press asks for (the caller adds the speed reference and sends it). */
 		onmode: (mode: SasMode) => void;
 	} = $props();
 
-	const buttons = $derived(buttonStates(sas, controllable, hasNode, settings.keymap));
+	const buttons = $derived(buttonStates(sas, controllable, hasNode, settings.keymap, hasTarget));
 	const on = $derived(sas !== undefined && sas.mode !== 'off');
 	const err = $derived(errorText(sas));
 </script>
@@ -70,6 +73,13 @@
 						<circle r="5.5" />
 						<circle r="2" class="fill" />
 						<path d="M0 -5.5v-5M-4 4l-4 4M4 4l4 4" />
+					{:else if b.glyph === 'target'}
+						<circle r="6" />
+						<circle r="1.6" class="fill" />
+						<path d="M0 -11v5M0 6v5M-11 0h5M6 0h5" />
+					{:else if b.glyph === 'anti-target'}
+						<circle r="6" />
+						<path d="M-2.8 -2.8l5.6 5.6M2.8 -2.8l-5.6 5.6M0 -11v5M0 6v5M-11 0h5M6 0h5" />
 					{:else}
 						<path d="M0 -8l8 8l-8 8l-8 -8Z" />
 					{/if}

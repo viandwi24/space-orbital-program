@@ -11,7 +11,7 @@ These rules are what make the stack upgradeable later (ADR 0001, 0003). A plan t
 | `@orbital/physics` | `@orbital/core`, `@dimforge/rapier3d-compat` | DOM, Three.js, Svelte, `sim` |
 | `@orbital/sim` | `core`, `kepler`, `physics` | DOM, Three.js, Svelte, `renderer`, `apps/web` |
 | `@orbital/sdk` | `core` (re-exports) | everything else |
-| `@orbital/scripting` | `core`, `quickjs-emscripten`, `quickjs-emscripten-core` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies) |
+| `@orbital/scripting` | `core`, `quickjs-emscripten`, `quickjs-emscripten-core` | DOM, Bun/Node APIs, Three.js, Svelte, Rapier, `sim`, `physics`, `kepler` (`sim` and the stock mod are test-only devDependencies); what needs orbital mechanics (`bodies[id].state`) comes in as an option from the host (plan 035) |
 | `@orbital/renderer` | `core`, `three` | `sim` internals (reads snapshots via `core` types), Svelte, Rapier (the stock mod is a test-only devDependency, for the part-model tests) |
 | `mods/*`, `examples/*` (external sample mods, built into packages by `tools/mod-build`) | `@orbital/sdk` **only** in `src` (their tests may also use `core`, `sim`, `mod-stock` and the build tool) | `core`, `sim`, `physics`, `renderer`, DOM in `src` |
 | `apps/web` | anything | — |

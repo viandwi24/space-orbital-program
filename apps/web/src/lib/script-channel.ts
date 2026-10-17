@@ -51,6 +51,19 @@ export interface ScriptSession {
 	close(): void;
 }
 
+/**
+ * What a script's Worker is sent each tick: the controlled vessel in full, and the others without
+ * their parts, so the script can list what it may target (`ship.targets`: id and name, plan 035)
+ * without the clone paying for part data it never reads. No bodies: their data is static.
+ */
+export function scriptView(snapshot: Snapshot, vessel: number): Snapshot {
+	return {
+		t: snapshot.t,
+		vessels: snapshot.vessels.map((v) => (Number(v.id) === vessel ? v : { ...v, parts: [] })),
+		bodies: []
+	};
+}
+
 export function createScriptSession(options: ScriptSessionOptions): ScriptSession {
 	const { worker, now } = options;
 	const watchdogMs = options.watchdogMs ?? SCRIPT_WATCHDOG_MS;
@@ -105,14 +118,9 @@ export function createScriptSession(options: ScriptSessionOptions): ScriptSessio
 		tick(snapshot, verdicts = []) {
 			if (closed || !ready || inflightSince !== null) return false;
 			inflightSince = now();
-			// Only the controlled vessel: the script cannot see (and the clone does not pay for) the rest.
 			worker.postMessage({
 				kind: 'tick',
-				snapshot: {
-					t: snapshot.t,
-					vessels: snapshot.vessels.filter((v) => Number(v.id) === options.vessel),
-					bodies: []
-				},
+				snapshot: scriptView(snapshot, options.vessel),
 				...(verdicts.length === 0 ? {} : { verdicts: [...verdicts] })
 			});
 			return true;

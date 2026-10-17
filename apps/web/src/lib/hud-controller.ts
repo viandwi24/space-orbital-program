@@ -35,6 +35,14 @@ import {
 	vesselThrottle
 } from './hud-model';
 import { radarReading } from './radar';
+import {
+	nextTarget,
+	targetChoices,
+	targetCommand,
+	targetHud,
+	type TargetChoice,
+	type TargetHud
+} from './target-model';
 import { bodyMu, orbitInfo, type OrbitInfo } from './orbit-info';
 import type { SimEventMessage, StageEvent } from './sim-client';
 import { nextSpeedMode, speedReadout, type SpeedMode, type SpeedModePreference } from './speed';
@@ -110,6 +118,10 @@ export interface HudModel {
 	controllable: boolean;
 	/** The earliest maneuver node, if any (plan 045). */
 	maneuver: ManeuverHud | null;
+	/** The vessel's target and what to show about it (plan 035); null without one. */
+	target: TargetHud | null;
+	/** What the vessel may aim at: bodies, then other vessels (plan 035). */
+	targets: TargetChoice[];
 	toasts: LiveToast[];
 }
 
@@ -154,6 +166,10 @@ export interface HudController {
 	cycleSpeedMode(): SpeedModePreference;
 	/** The `sas` command a button or key asks for (plan 042); null before a vessel is attached. */
 	sasCommand(mode: SasMode): Command | null;
+	/** `target-set` for the choice with this key (`body:stock.cinder`), or for none with `null`; null when it is not in the list or there is no vessel (plan 035). */
+	targetCommand(key: string | null): Command | null;
+	/** `target-set` for the next entry of the list (bodies, other vessels, then none). */
+	nextTargetCommand(): Command | null;
 	/** The `sas` command that keeps the prograde reference in step with the speed readout, or null. */
 	sasFollowUp(): Command | null;
 	/** Whether the map view is on: map markers are only computed then. */
@@ -311,6 +327,19 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			if (vessel === null) return null;
 			return commandForMode(entityId(vessel), mode, find()?.sas, lastMode);
 		},
+		targetCommand(key) {
+			if (vessel === null) return null;
+			if (key === null) return targetCommand(vessel, null);
+			const choice = snap
+				? targetChoices(snap, vessel, bodies).find((c) => c.key === key)
+				: undefined;
+			return choice ? targetCommand(vessel, choice.ref) : null;
+		},
+		nextTargetCommand() {
+			if (vessel === null || !snap) return null;
+			// The snapshot's target is a `TargetRef` with its readout on top.
+			return targetCommand(vessel, nextTarget(targetChoices(snap, vessel, bodies), find()?.target));
+		},
 		sasFollowUp() {
 			if (vessel === null) return null;
 			return referenceFollowUp(entityId(vessel), find()?.sas, lastMode);
@@ -418,6 +447,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				sas: v.sas,
 				controllable: hasControlSource(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),
+				target: targetHud(v, snap.t),
+				targets: targetChoices(snap, Number(v.id), bodies),
 				toasts
 			};
 		}

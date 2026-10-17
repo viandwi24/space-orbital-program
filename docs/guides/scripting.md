@@ -4,7 +4,7 @@ A script flies your vessel for you. It is plain JavaScript (not TypeScript), run
 
 ## Before you run someone else's script
 
-A script cannot read your files, the page, the network or other vessels, and it cannot issue commands except `throttle`, `attitude`, `stage` and `action` for the vessel it was started on. It runs in a WebAssembly JavaScript engine (QuickJS) inside a Web Worker that lives in a hidden, sandboxed frame with no network access and no access to the game's saved data (ADR 0038), with a time budget per tick, a memory limit and a kill switch. That is strong, but not proven: the engine has not been independently audited. If a flaw in it let a script escape the engine, the script would still be inside that frame: no network requests, no browser storage or cookies of the game, no handle on the page. It could still waste your processor until you press Stop, and it could send commands for its own vessel. The panel says "Runs isolated" only after the game has tested this from inside the frame and the Worker; if the test finds anything reachable it says so, and then you should run only scripts you wrote. The game has no accounts or payment data. A script cannot harm your saved vessel designs, but a malicious one can fly your vessel into the ground.
+A script cannot read your files, the page, the network or other vessels, and it cannot issue commands except `throttle`, `attitude`, `stage`, `action`, `sas`, maneuver-node and target commands for the vessel it was started on, and time warp. It runs in a WebAssembly JavaScript engine (QuickJS) inside a Web Worker that lives in a hidden, sandboxed frame with no network access and no access to the game's saved data (ADR 0038), with a time budget per tick, a memory limit and a kill switch. That is strong, but not proven: the engine has not been independently audited. If a flaw in it let a script escape the engine, the script would still be inside that frame: no network requests, no browser storage or cookies of the game, no handle on the page. It could still waste your processor until you press Stop, and it could send commands for its own vessel. The panel says "Runs isolated" only after the game has tested this from inside the frame and the Worker; if the test finds anything reachable it says so, and then you should run only scripts you wrote. The game has no accounts or payment data. A script cannot harm your saved vessel designs, but a malicious one can fly your vessel into the ground.
 
 Read a script before you run it, as you would any code from a stranger. Scripts you import (from a file, pasted text or a link) are shown in the editor, marked as imported, and run only after you confirm.
 
@@ -34,15 +34,17 @@ print('apoapsis ' + ship.apoapsis.toFixed(0) + ' m');
 | `ship` | read-only telemetry (below) plus the writable setpoints `ship.throttle`, `ship.attitude` and `ship.sas` |
 | `ship.throttle = x` | engine throttle, 0 to 1; reading returns the last value you set |
 | `ship.attitude = { pitch, yaw, roll }` | steering demand for the reaction wheels, each -1 to 1, missing keys are 0. This is a torque demand, not a target angle: you need a control loop (the sample has a PD loop) |
-| `ship.sas = 'prograde'` | stability assist mode (plan 042): `'off'`, `'hold'`, `'prograde'`, `'retrograde'`, `'normal'`, `'antinormal'`, `'radial-out'`, `'radial-in'` or `'maneuver'` (points at the burn of the earliest maneuver node); any other value throws a `TypeError`. The game holds or points the vessel with its reaction wheels, gimbal and control surfaces, so a script can fly a gravity turn with `ship.sas = 'prograde'` instead of a control loop. Reading returns the mode the game reports (the player may switch it with `T` or the buttons) |
+| `ship.sas = 'prograde'` | stability assist mode (plan 042): `'off'`, `'hold'`, `'prograde'`, `'retrograde'`, `'normal'`, `'antinormal'`, `'radial-out'`, `'radial-in'` `'maneuver'` (points at the burn of the earliest maneuver node), `'target'` or `'anti-target'` (points at, or away from, the target; plan 035); any other value throws a `TypeError`. The game holds or points the vessel with its reaction wheels, gimbal and control surfaces, so a script can fly a gravity turn with `ship.sas = 'prograde'` instead of a control loop. Reading returns the mode the game reports (the player may switch it with `T` or the buttons) |
 | `stage()` | fire the next stage; returns a promise of `{ ok, reason? }` (see "Command feedback") |
 | `action(part, module, action, ...args)` | call a module action; `part` is a `ship.parts[i].id`, e.g. `action(id, 'stock.landing-leg', 'deploy')` or `action(id, 'stock.reaction-wheel', 'setEnabled', false)`; returns a promise of `{ ok, reason? }` |
+| `setTarget(spec)` | choose the target (plan 035, ADR 0065): a body id (`'stock.cinder'`), a vessel id, an entry of `ship.targets`, or `null` to clear it; returns a promise of `{ ok, reason? }`, `ship.target` shows it on a later tick |
 | `addNode({ time, prograde, normal, radial })` | plan a maneuver node (plan 045): `time` is simulation time, the three numbers are m/s in the orbital frame at the node (prograde = along the velocity, normal = `r x v`, radial = prograde x normal; missing ones are 0); returns a promise of `{ ok, reason? }`, the new node shows up in `ship.nodes` on a later tick |
 | `setNode(id, { time?, prograde?, normal?, radial? })` | change fields of a node, the others keep their value |
 | `removeNode(id?)` | remove one node, or all of them without an id |
 | `warpTo(time, factor = 100000)` | time warp that slows down by itself and stops at `time` (simulation time) with warp 1; resolves like `warp`, refused while the vessel is in flight; an SOI change ends it |
 | `warp(factor)` | ask for time warp, 1 to 100 000; returns a promise of `{ ok, reason? }` that settles when the game has answered (see "Time warp") |
 | `bodies` | frozen data of every body in the game, by id: `bodies[ship.body]` is `{ id, radius, mass, mu, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, parent?, orbit? }` (SI) |
+| `bodies[id].state(t, frame = 'parent')` | where the body is at simulation time `t`, from its orbit: `{ position, velocity }` (m, m/s) relative to its parent (`'parent'`) or to the centre of the root body (`'system'`, the frame `ship.target.position` is measured in too). The root body rests at the origin. Not listed when you print a body; throws `RangeError` for a time that is not a finite number |
 | `wait(s)` | promise that resolves when `s` seconds of **simulation** time have passed (resolution: one tick) |
 | `nextTick()` | resolves on the next tick; use it in every loop |
 | `waitUntil(fn)` | polls `fn` every tick until it returns truthy |
@@ -72,6 +74,8 @@ SI units. Axes are the body-centred inertial frame (+Y is north). A fresh copy e
 | `wheels[]` | `{ part, module, torque, enabled }`: maximum torque per axis (N m) of each reaction wheel |
 | `sas` | the stability assist mode the game reports (also the setter above) |
 | `nodes` | maneuver nodes in time order: `[{ id, time, prograde, normal, radial, dv, body, vector }]`; the numbers are the burn that is **left** (the plan until you burn, then what remains), `dv` its size in m/s, `vector` the burn in the inertial `ship.position` axes (`null` if the path never reaches the node). A node whose time has passed and with under 0.5 m/s left disappears |
+| `target` | the target or `null` (plan 035): `{ kind: 'body' \| 'vessel', id, name, position, velocity, distance, relativeSpeed, approach }`; `position` and `velocity` are the target's **minus yours** in the inertial axes (the same axes in every body's frame, so they mean the same in any sphere of influence), `distance` and `relativeSpeed` their lengths, `approach` is `{ time, distance, relativeSpeed }` for the closest approach of your current orbit to the target's within your next revolution (at most ten days) or `null` when the two do not orbit the same body or you are not on an orbit that clears the ground |
+| `targets` | what you can aim at: `[{ kind, id, name }]`, every body, then every other vessel (debris included, named "... (debris)") |
 | `refusals` | `[{ command, reason }]`: the commands the game refused since the last tick (including `throttle`, `attitude` and `sas`, which have no return value) |
 
 `engines` and `wheels` list the parts still attached, so they change when you stage. Any module whose configuration has `thrust`, `ispVacuum` and `ispSeaLevel` counts as an engine, and any with `torque` and an `enabled` state as a wheel, whoever made the mod. Exhaust speed is `ispVacuum * 9.80665`; with the engines that can still burn, `burn time = mass * ve * (1 - exp(-dv / ve)) / thrust` (the sample does this to time its circularisation burn).
@@ -139,6 +143,27 @@ ship.throttle = 0;
 ```
 
 A burn of `T` seconds is centred on the node: start `T/2` before it (the burn time is `m0 (1 - exp(-dv / (Isp g0))) / mdot`, see ADR 0056). The prediction in the map is the impulsive burn.
+
+## Targets
+
+The target is part of the game state like a node: the one you choose in the Target card of the flight HUD (or `Y` to step through the list) is `ship.target`, and the one a script sets shows in the card. A target is another body or another vessel; the closest approach is a prediction of two orbits around the same body, so from low orbit the moon's "closest approach" is just its distance next orbit, and a piece of debris on a neighbouring orbit gets a real one.
+
+```js
+// target the nearest piece of debris, point at it and warp to the closest approach
+const debris = ship.targets.filter((t) => t.kind === 'vessel');
+await setTarget(debris[0]);
+await nextTick();
+const ap = ship.target.approach;
+if (ap === null) throw new Error('not on a shared orbit');
+ship.sas = 'target';
+print('closest approach ' + Math.round(ap.distance) + ' m in ' + Math.round(ap.time - time()) + ' s');
+await warpTo(ap.time - 30);
+
+// where is the moon an hour from now (relative to its planet)?
+const moon = bodies['stock.cinder'].state(time() + 3600);
+```
+
+SAS `target` and `anti-target` point the nose at, or away from, the target (buttons next to the navball, keys `9` and `0`); with no target they hold still.
 
 ## Common patterns
 

@@ -12,3 +12,5 @@ export * from './propagate.ts';
 export * from './soi.ts';
 export * from './patched.ts';
 export * from './maneuver.ts';
+export * from './approach.ts';
+export * from './body-state.ts';

@@ -15,7 +15,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 3;
+export const SIM_SAVE_VERSION = 4;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -192,6 +192,23 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 			warpTarget: null,
 			world: { ...world, components }
 		};
+	},
+	3: (data) => {
+		const world = data.world;
+		if (!isRecord(world) || !isRecord(world.components)) {
+			throw new SaveError('damaged', 'This save is damaged: it has no world.');
+		}
+		const vessels = world.components['sim.vessel'];
+		const upgraded: Record<string, unknown> = {};
+		if (isRecord(vessels)) {
+			for (const [id, vessel] of Object.entries(vessels)) {
+				upgraded[id] = isRecord(vessel) ? { ...vessel, target: null } : vessel;
+			}
+		}
+		const components = isRecord(vessels)
+			? { ...world.components, 'sim.vessel': upgraded }
+			: world.components;
+		return { ...data, formatVersion: 4, world: { ...world, components } };
 	}
 };
 

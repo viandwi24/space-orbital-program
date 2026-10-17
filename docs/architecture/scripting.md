@@ -24,6 +24,8 @@ The runner is a function of snapshots: it never holds the sim, so untrusted code
 | Name | Meaning |
 |---|---|
 | `ship.<telemetry>` (read-only) | `t`, `mode`, `body`, `bodyRadius`, `mu`, `position`, `velocity`, `altitude`, `speed`, `up`, `orientation` (quaternion), `nose` (+Y axis in BCI), `mass`, `inertia`, `orbit` (elements or `null`), `apoapsis`, `periapsis`, `eccentricity` (altitudes in m, `null` without an orbit), `parts[]` (`id`, `definition`, `position`, `mass`, `modules` state), `engines[]` and `wheels[]` (constants from the part definitions, below). SI, BCI axes. Fresh copy each tick. |
+| `ship.target`, `ship.targets` | the vessel's target and what it could aim at (plan 035, ADR 0065); `setTarget(spec)` chooses it (returns a verdict promise), `ship.sas` takes `'target'` and `'anti-target'`. |
+| `bodies[id].state(t, frame)` | position and velocity of a body at simulation time `t` from its orbit. The runner has no `kepler` import (boundaries.md): the host passes a `bodyState` provider (the web client's script Worker builds it from `kepler.bodyStateAt`); without one the call throws. |
 | `ship.throttle = x` | 0..1. Reading returns the last value set. |
 | `ship.attitude = { pitch, yaw, roll }` | each -1..1, missing keys 0 (the `attitude` command). |
 | `stage()` | the `stage` command; returns a promise of the host's verdict `{ ok, reason? }` (plan 032). |

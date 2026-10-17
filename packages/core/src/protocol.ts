@@ -11,7 +11,8 @@ export type VesselMode = 'flight' | 'on-rails';
 /**
  * Stability assist modes (plan 042, ADR 0049). `hold` keeps the attitude held when it was chosen
  * (or released from manual input); the others point the nose at a direction. `maneuver` points at
- * the burn vector of the earliest maneuver node (plan 045, ADR 0056); plan 035 may add `target`.
+ * the burn vector of the earliest maneuver node (plan 045, ADR 0056); `target` and `anti-target`
+ * point at the vessel's target and away from it (plan 035, ADR 0064).
  */
 export const SAS_MODES = [
 	'off',
@@ -22,7 +23,9 @@ export const SAS_MODES = [
 	'antinormal',
 	'radial-in',
 	'radial-out',
-	'maneuver'
+	'maneuver',
+	'target',
+	'anti-target'
 ] as const;
 export type SasMode = (typeof SAS_MODES)[number];
 
@@ -62,6 +65,40 @@ export interface ManeuverNodeSnapshot {
 	vector?: Vec3;
 }
 
+/**
+ * What a vessel can aim at (plan 035, ADR 0064): another body, or another vessel (debris included).
+ * Vessel ids are entity ids, body ids are definition ids.
+ */
+export type TargetRef = { kind: 'body'; id: BodyId } | { kind: 'vessel'; id: EntityId };
+
+/** Closest approach of the vessel's current orbit to its target within the next revolution (or 10 days). */
+export interface TargetApproach {
+	/** Sim time of the closest approach, s. */
+	time: number;
+	/** Distance between the two centres of mass (a body's centre) then, m. */
+	distance: number;
+	/** Speed of the target relative to the vessel then, m/s. */
+	relativeSpeed: number;
+}
+
+/**
+ * The vessel's target as the sim resolves it. `position` and `velocity` are the target's minus the
+ * vessel's centre of mass, in the shared inertial axes (the same axes in every body's frame, ADR
+ * 0051), so they mean the same whichever sphere of influence either is in. `approach` is null when
+ * the two do not orbit the same body (or the orbit is not a conic).
+ */
+export type TargetSnapshot = TargetRef & {
+	/** Display name: the vessel's name, or the body's definition id. */
+	name: string;
+	position: Vec3;
+	velocity: Vec3;
+	/** Length of `position`, m. */
+	distance: number;
+	/** Length of `velocity`, m/s. */
+	relativeSpeed: number;
+	approach: TargetApproach | null;
+};
+
 export interface PartSnapshot {
 	/** Part instance entity id. */
 	id: EntityId;
@@ -82,6 +119,8 @@ export interface PartSnapshot {
 
 export interface VesselSnapshot {
 	id: EntityId;
+	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	name?: string;
 	mode: VesselMode;
 	/** Body whose sphere of influence the vessel is in; `position`/`velocity` are relative to it (BCI). */
 	soi: BodyId;
@@ -108,6 +147,8 @@ export interface VesselSnapshot {
 	sas?: SasSnapshot;
 	/** Maneuver nodes in time order (plan 045). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	nodes?: ManeuverNodeSnapshot[];
+	/** The vessel's target (plan 035); absent without one. */
+	target?: TargetSnapshot;
 }
 
 export interface BodySnapshot {
@@ -213,6 +254,8 @@ export type Command =
 	  }
 	/** Remove one node, or all of the vessel's nodes without an `id`. */
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
+	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */
+	| { type: 'target-set'; vessel: EntityId; target: TargetRef | null }
 	| { type: 'load-vessel'; design: VesselDesign; placement?: VesselPlacement };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */

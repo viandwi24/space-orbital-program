@@ -12,6 +12,7 @@ import { createSim } from '../src/index.ts';
 import fixture from './fixtures/save-v1.json';
 import fixtureV2 from './fixtures/save-v2.json';
 import fixtureV3 from './fixtures/save-v3.json';
+import fixtureV4 from './fixtures/save-v4.json';
 import { rapier } from './helpers/vessels.ts';
 
 const resume = (save: unknown, extra: { dt?: number; body?: string } = {}) =>
@@ -210,7 +211,7 @@ describe('the frozen format-3 fixture (plan 045)', () => {
 	test('reads as written, keeps its two nodes with their targets, resumes and saves the same nodes', async () => {
 		expect(fixtureV3.formatVersion).toBe(3);
 		const parsed = parseSimSave(JSON.stringify(fixtureV3));
-		expect(parsed.formatVersion).toBe(3);
+		expect(parsed.formatVersion).toBe(SIM_SAVE_VERSION);
 		const sim = await resume(fixtureV3);
 		const orbiting = sim.snapshot().vessels.find((v) => v.mode === 'on-rails')!;
 		expect(orbiting.nodes!.map((n) => [n.id, n.time])).toEqual([
@@ -224,6 +225,44 @@ describe('the frozen format-3 fixture (plan 045)', () => {
 			nodes: Array<{ target: unknown }>;
 		}>;
 		expect(vessels.flatMap((v) => v.nodes).every((n) => n.target !== null)).toBe(true);
+		sim.dispose();
+	});
+});
+
+describe('the frozen format-4 fixture (plan 035)', () => {
+	test('reads as written, keeps the target of its probe and resumes with it', async () => {
+		expect(fixtureV4.formatVersion).toBe(4);
+		const parsed = parseSimSave(JSON.stringify(fixtureV4));
+		expect(parsed.formatVersion).toBe(4);
+		const sim = await resume(fixtureV4);
+		const aimed = sim.snapshot().vessels.filter((v) => v.target !== undefined);
+		expect(aimed).toHaveLength(2);
+		const onVessel = aimed.find((v) => v.target!.kind === 'vessel')!;
+		const onBody = aimed.find((v) => v.target!.kind === 'body')!;
+		expect(String(onBody.target!.id)).toBe('stock.cinder');
+		expect(onVessel.target!.distance).toBeGreaterThan(0);
+		expect(onVessel.target!.approach).not.toBeNull();
+		const before = onVessel.target!.distance;
+		for (let i = 0; i < 50; i++) sim.step(0.02);
+		const saved = sim.save();
+		const vessels = Object.values(saved.world.components['sim.vessel']!) as Array<{
+			target: { kind: string } | null;
+		}>;
+		expect(
+			vessels
+				.filter((v) => v.target !== null)
+				.map((v) => v.target!.kind)
+				.sort()
+		).toEqual(['body', 'vessel']);
+		expect(sim.snapshot().vessels.find((v) => v.id === onVessel.id)!.target!.distance).not.toBe(
+			before
+		);
+		sim.dispose();
+	});
+
+	test('a format-3 fixture migrates to vessels without a target', async () => {
+		const sim = await resume(fixtureV3);
+		expect(sim.snapshot().vessels.every((v) => v.target === undefined)).toBe(true);
 		sim.dispose();
 	});
 });

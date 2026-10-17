@@ -111,6 +111,7 @@
 				{sas}
 				{controllable}
 				hasNode={model?.maneuver != null}
+				hasTarget={model?.target != null}
 				onmode={onsas}
 			/>{/if}
 	</div>

@@ -7,6 +7,7 @@
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
 	import ManeuverPanel from '../../lib/hud/ManeuverPanel.svelte';
+	import TargetPanel from '../../lib/hud/TargetPanel.svelte';
 	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
 	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
@@ -464,6 +465,12 @@
 						throttle={model?.throttle ?? hud.throttle}
 						onstage={() => flight?.stage()}
 					/>
+					<TargetPanel
+						target={model.target}
+						choices={model.targets}
+						controllable={model.controllable}
+						onselect={(key) => flight?.setTarget(key)}
+					/>
 				</div>
 				<div class="bl">
 					<ManeuverPanel
@@ -627,6 +634,13 @@
 		gap: var(--s-2);
 		max-height: calc(100% - 24px);
 		overflow: auto;
+	}
+	/* Below this width the instrument deck reaches under the right column (plan 035 added a target
+	   card to it): the column scrolls above the deck instead of sliding under it. */
+	@media (max-width: 1279px) {
+		.tr {
+			max-height: calc(100% - 24px - 290px);
+		}
 	}
 	.bl {
 		bottom: var(--s-3);

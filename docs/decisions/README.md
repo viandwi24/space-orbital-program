@@ -82,3 +82,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0062 | [Audio is synthesised in code with Web Audio nodes; no audio files](0062-procedural-audio-web-audio-no-assets.md) | accepted | 2026-10-17 |
 | 0063 | [Small screens: tablets in landscape yes, phones no](0063-tablets-supported-phones-not.md) | accepted | 2026-10-17 |
 | 0064 | [The planet pass at half resolution as governor rungs, with a depth-aware upsample](0064-half-resolution-planet-pass.md) | accepted | 2026-10-17 |
+| 0065 | [Targets: sim-owned, one relative state, closest approach from conics, scripts read and set them](0065-targets-in-the-sim-and-script-access.md) | accepted | 2026-10-17 |

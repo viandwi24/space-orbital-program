@@ -84,6 +84,9 @@ export interface ManeuverNodeState {
 	target: { body: string; v: Vec3 } | null;
 }
 
+/** What a vessel aims at (plan 035, ADR 0064): a body by definition id, or a vessel by entity id. */
+export type TargetState = { kind: 'body'; id: string } | { kind: 'vessel'; id: EntityId };
+
 export interface VesselState {
 	name: string;
 	mode: VesselMode;
@@ -98,6 +101,8 @@ export interface VesselState {
 	sas: SasState;
 	/** Maneuver nodes in time order, at most `MAX_NODES` (plan 045). */
 	nodes: ManeuverNodeState[];
+	/** The vessel's target, if any (plan 035). */
+	target: TargetState | null;
 	/** Part entities per stage, in firing order. */
 	stages: EntityId[][];
 	nextStage: number;

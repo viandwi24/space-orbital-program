@@ -7,6 +7,7 @@
 export { createScriptRunnerIn, scriptErrorLine, MAX_SCRIPT_WARP } from './runner.ts';
 export { createScriptRunner } from './default-module.ts';
 export type {
+	BodyStateProvider,
 	CommandVerdict,
 	ScriptRunner,
 	ScriptRunnerOptions,
@@ -20,6 +21,8 @@ export type {
 	TelemetryEngine,
 	TelemetryNode,
 	TelemetryPart,
+	TelemetryTarget,
+	TelemetryTargetChoice,
 	TelemetryWheel
 } from './telemetry.ts';
 export { ascentScript } from './samples/ascent.ts';

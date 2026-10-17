@@ -87,8 +87,14 @@ export interface SimHost {
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const isWarp = (c: unknown): c is { type: 'warp'; factor: number } =>
-	isRecord(c) && c.type === 'warp' && typeof c.factor === 'number' && Number.isFinite(c.factor);
+/** A request to run the clock faster: `warp` to a factor, or `warp-to` a time (plan 045). */
+type WarpCommand = Extract<Command, { type: 'warp' | 'warp-to' }>;
+const isWarp = (c: unknown): c is WarpCommand =>
+	isRecord(c) &&
+	(c.type === 'warp' || c.type === 'warp-to') &&
+	typeof c.factor === 'number' &&
+	Number.isFinite(c.factor) &&
+	(c.type === 'warp' || (typeof c.time === 'number' && Number.isFinite(c.time)));
 
 export function catalogOf(sim: Sim): Catalog {
 	return {
@@ -123,8 +129,11 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	/** Warp hold (ADR 0039): the script's attitude is not passed on; the latest one waits here. */
 	let holding = false;
 	let heldAttitude: Command | undefined;
-	let pendingWarp: { factor: number; since: number; reply: (r: CommandResult) => void } | null =
-		null;
+	let pendingWarp: {
+		command: WarpCommand;
+		since: number;
+		reply: (r: CommandResult) => void;
+	} | null = null;
 
 	const dispatchTracked = (command: Command): CommandResult => {
 		const result = sim!.dispatch(command);
@@ -156,11 +165,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	 * given the chance to go on rails: the script's attitude demand is zeroed and held and the
 	 * request waits for the vessel's idle time (ADR 0039).
 	 */
-	function requestWarp(factor: number, reply: (r: CommandResult) => void): void {
+	function requestWarp(command: WarpCommand, reply: (r: CommandResult) => void): void {
 		if (!sim) return reply({ ok: false, reason: 'the simulation is not ready yet' });
+		const { factor } = command;
 		cancelPending('superseded by a newer time warp request');
 		const direct = (): void => {
-			const result = sim!.dispatch({ type: 'warp', factor });
+			const result = sim!.dispatch(command);
 			if (result.ok && factor <= 1) releaseHold();
 			else if (result.ok && session) holding = true;
 			reply(result);
@@ -182,13 +192,13 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			yaw: 0,
 			roll: 0
 		});
-		pendingWarp = { factor, since: options.now(), reply };
+		pendingWarp = { command, since: options.now(), reply };
 	}
 	/** Retry a waiting request: accepted once the vessel is on rails, refused after `WARP_PENDING_MS`. */
 	function servicePendingWarp(): void {
 		const request = pendingWarp;
 		if (!request || !sim) return;
-		const result = sim.dispatch({ type: 'warp', factor: request.factor });
+		const result = sim.dispatch(request.command);
 		if (result.ok) {
 			pendingWarp = null;
 			request.reply(result);
@@ -204,8 +214,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		const request = pendingWarp;
 		pendingWarp = null;
 		releaseHold();
-		if (waiting && request && sim)
-			request.reply(sim.dispatch({ type: 'warp', factor: request.factor }));
+		if (waiting && request && sim) request.reply(sim.dispatch(request.command));
 	}
 
 	const postStatus = (status: ScriptState, error?: string, errorLine?: number): void => {
@@ -232,9 +241,21 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		scriptGone();
 	};
 	/** Commands a script may issue (what the runner builds); the Worker is not trusted to stay within them. */
-	const SCRIPT_COMMANDS: readonly string[] = ['throttle', 'attitude', 'stage', 'action'];
+	const SCRIPT_COMMANDS: readonly string[] = [
+		'throttle',
+		'attitude',
+		'stage',
+		'action',
+		// Plans 042, 045 and 035: stability assist, maneuver nodes and the target (the runner builds them
+		// with the script's own vessel; the host checks it again like the others).
+		'sas',
+		'node-set',
+		'node-remove',
+		'target-set'
+	];
 	const allowed = (command: Command): boolean =>
 		command.type === 'warp' ||
+		command.type === 'warp-to' ||
 		(SCRIPT_COMMANDS.includes(command.type) &&
 			'vessel' in command &&
 			Number(command.vessel) === scriptVessel);
@@ -261,7 +282,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				if (seq !== undefined) verdicts.push({ seq, ok: false, reason: 'not allowed for scripts' });
 				return;
 			}
-			if (command.type === 'warp') return requestWarp(command.factor, answer);
+			if (command.type === 'warp' || command.type === 'warp-to')
+				return requestWarp(command, answer);
 			if (holding) {
 				if (command.type === 'attitude') {
 					if (command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0) {
@@ -371,6 +393,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			last = now;
 			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
 			if (!paused) sim.step(delta);
+			// The sim ends a warp itself (a finished `warp-to`, a change of sphere): the script's
+			// attitude must not stay held after that (ADR 0039).
+			if (holding && !pendingWarp && sim.warp <= 1) releaseHold();
 			const snapshot = sim.snapshot();
 			session?.poll();
 			if (!paused) {
@@ -504,9 +529,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			}
 			const command = message.command;
 			if (isWarp(command)) {
-				requestWarp(command.factor, (result) =>
-					options.post({ kind: 'result', id: message.id, result })
-				);
+				requestWarp(command, (result) => options.post({ kind: 'result', id: message.id, result }));
 				return;
 			}
 			options.post({

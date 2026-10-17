@@ -17,7 +17,9 @@ import {
 type Status = Extract<WorkerMessage, { kind: 'script-status' }>;
 
 /** A host over a real headless sim and the real runner; wall clock plus a skew the test advances per tick. */
-async function setup(budgets: { budgetMs?: number; firstTickBudgetMs?: number } = {}) {
+async function setup(
+	budgets: { budgetMs?: number; firstTickBudgetMs?: number; orbitAltitude?: number } = {}
+) {
 	const posted: WorkerMessage[] = [];
 	const dispatched: Command[] = [];
 	let skew = 0;
@@ -46,10 +48,26 @@ async function setup(budgets: { budgetMs?: number; firstTickBudgetMs?: number } 
 		now: hostNow
 	});
 	await host.start();
+	// An orbit placement (plans 035, 045: SAS, nodes, targets and warp-to need the vessel on rails).
+	const home = sim!.registries.bodies.list()[0]!;
+	const radius = home.radius + (budgets.orbitAltitude ?? 0);
+	const speed = Math.sqrt((6.6743e-11 * home.mass) / radius);
 	host.handle({
 		kind: 'command',
 		id: 1,
-		command: { type: 'load-vessel', design: referenceTwoStage() }
+		command: {
+			type: 'load-vessel',
+			design: referenceTwoStage(),
+			...(budgets.orbitAltitude === undefined
+				? {}
+				: {
+						placement: {
+							kind: 'state' as const,
+							position: { x: radius, y: 0, z: 0 },
+							velocity: { x: 0, y: 0, z: -speed }
+						}
+					})
+		}
 	});
 	const loaded = posted.find((m) => m.kind === 'result');
 	const vessel = loaded?.kind === 'result' && loaded.result.ok ? loaded.result.vessel : undefined;
@@ -268,5 +286,68 @@ describe('sim host: scripts (plan 015)', () => {
 		host.handle({ kind: 'script-start', source: '', vessel: 0 });
 		expect(posted.at(-1)).toMatchObject({ kind: 'script-status', status: 'failed' });
 		host.dispose();
+	});
+
+	it('a script reaches the sim with SAS, maneuver nodes, the target and warp-to; the hold ends when the warp does (plans 042, 045, 035)', async () => {
+		const t = await setup({ orbitAltitude: 150_000 });
+		// A second vessel ahead on a higher orbit: something to target.
+		const home = t.sim().registries.bodies.list()[0]!;
+		const radius = home.radius + 165_000;
+		const speed = Math.sqrt((6.6743e-11 * home.mass) / radius);
+		const phase = 0.4;
+		t.host.handle({
+			kind: 'command',
+			id: 2,
+			command: {
+				type: 'load-vessel',
+				design: referenceTwoStage(),
+				placement: {
+					kind: 'state',
+					position: { x: radius * Math.cos(phase), y: 0, z: -radius * Math.sin(phase) },
+					velocity: { x: -speed * Math.sin(phase), y: 0, z: -speed * Math.cos(phase) }
+				}
+			}
+		});
+		t.host.handle({
+			kind: 'script-start',
+			source: `
+				const other = ship.targets.find((t) => t.kind === 'vessel');
+				print('target ' + JSON.stringify(await setTarget(other)));
+				await nextTick();
+				ship.sas = 'target';
+				print('node ' + JSON.stringify(await addNode({ time: time() + 600, prograde: 50 })));
+				await nextTick();
+				print('seen ' + ship.nodes.length + ' ' + (ship.target !== null) + ' ' + (ship.target.approach !== null));
+				const goal = time() + 300;
+				print('warp ' + JSON.stringify(await warpTo(goal, 1000)));
+				await waitUntil(() => time() >= goal);
+				print('arrived');
+				ship.attitude = { pitch: 0.2, yaw: 0, roll: 0 };
+			`,
+			vessel: t.vessel
+		});
+		await until(() => t.statuses().some((s) => s.status === 'running'));
+		// A warp-to closes on its time by a fixed fraction of what is left per frame: a few hundred ticks.
+		for (let i = 0; i < 900 && !t.lines().includes('arrived'); i++) t.tick();
+		t.tick();
+		t.tick();
+		const lines = t.lines();
+		expect(lines.filter((l) => l.startsWith('!'))).toEqual([]);
+		expect(lines).toContain('target {"ok":true}');
+		expect(lines.find((l) => l.startsWith('node '))).toContain('"ok":true');
+		expect(lines).toContain('seen 1 true true');
+		expect(lines).toContain('warp {"ok":true}');
+		expect(lines).toContain('arrived');
+		const self = t
+			.sim()
+			.snapshot()
+			.vessels.find((v) => Number(v.id) === t.vessel)!;
+		expect(self.sas!.mode).toBe('target');
+		expect(self.target?.kind).toBe('vessel');
+		expect(t.sim().warp).toBe(1);
+		// The warp is over, so the script's attitude demand is no longer held back from the sim.
+		expect(t.dispatched.some((c) => c.type === 'attitude' && c.pitch === 0.2)).toBe(true);
+		expect(lines.some((l) => l.includes('held while time warp'))).toBe(false);
+		t.host.dispose();
 	});
 });

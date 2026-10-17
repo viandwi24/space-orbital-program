@@ -111,6 +111,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
 		sas: newSas(),
 		nodes: [],
+		target: null,
 		stages: design.stages.map((stage) => stage.map((i) => byIndex.get(i)!)),
 		nextStage: 0,
 		com: { x: 0, y: 0, z: 0 },
@@ -336,6 +337,7 @@ function splitAt(
 		control: { throttle: 0, pitch: 0, roll: 0, yaw: 0 },
 		sas: structuredClone(vessel.sas),
 		nodes: [],
+		target: null,
 		stages: [],
 		nextStage: 0,
 		com: stateNew.com,
@@ -359,6 +361,9 @@ function splitAt(
 		// The maneuver nodes belong to the side that can still be flown (plan 045).
 		newState.nodes = vessel.nodes;
 		vessel.nodes = [];
+		// The target goes with them: it is the flyable side that rendezvouses (plan 035).
+		newState.target = vessel.target;
+		vessel.target = null;
 	}
 	if (frame && rootPose) {
 		// ADR 0018: the one body is replaced by one per side, each continuing the rigid motion

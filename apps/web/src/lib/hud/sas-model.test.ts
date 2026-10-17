@@ -33,13 +33,15 @@ describe('buttons', () => {
 			'antinormal',
 			'radial-out',
 			'radial-in',
-			'maneuver'
+			'maneuver',
+			'target',
+			'anti-target'
 		]);
 		expect(new Set(SAS_BUTTONS.map((b) => b.action)).size).toBe(SAS_BUTTONS.length);
 	});
 
 	it('marks the active mode and enables everything for a controllable vessel', () => {
-		const states = buttonStates(sas('retrograde'), true, true);
+		const states = buttonStates(sas('retrograde'), true, true, undefined, true);
 		expect(states.filter((b) => b.active).map((b) => b.mode)).toEqual(['retrograde']);
 		expect(states.every((b) => !b.disabled)).toBe(true);
 		expect(states[1]!.title).toBe('Prograde (2)');
@@ -62,6 +64,29 @@ describe('buttons', () => {
 			buttonStates(sas('maneuver'), true, false).find((b) => b.mode === 'maneuver')!.disabled
 		).toBe(false);
 		expect(modeForAction('sasManeuver', 'off')).toBe('maneuver');
+	});
+
+	it('the two target buttons wait for a target, unless one of them is already the mode', () => {
+		const find = (states: ReturnType<typeof buttonStates>, mode: string) =>
+			states.find((b) => b.mode === mode)!;
+		const without = buttonStates(sas('hold'), true, true);
+		for (const mode of ['target', 'anti-target']) {
+			expect(find(without, mode).disabled).toBe(true);
+			expect(find(without, mode).title).toContain('no target selected');
+		}
+		const aimed = buttonStates(sas('hold'), true, true, undefined, true);
+		expect(find(aimed, 'target').disabled).toBe(false);
+		expect(find(aimed, 'target').title).toBe('Target (9)');
+		expect(find(aimed, 'anti-target').title).toBe('Anti-target (0)');
+		expect(find(buttonStates(sas('target'), true, true), 'target').disabled).toBe(false);
+		expect(modeForAction('sasTarget', 'off')).toBe('target');
+		expect(modeForAction('sasAntiTarget', 'off')).toBe('anti-target');
+	});
+
+	it('the speed reference does not touch the target modes', () => {
+		expect(referenceFollowUp(id, sas('target', 0, 'surface'), 'orbit')).toBeNull();
+		expect(referenceFollowUp(id, sas('anti-target', 0, 'surface'), 'orbit')).toBeNull();
+		expect(referenceFollowUp(id, sas('prograde', 0, 'surface'), 'orbit')).not.toBeNull();
 	});
 
 	it('shows nothing active before the first snapshot', () => {

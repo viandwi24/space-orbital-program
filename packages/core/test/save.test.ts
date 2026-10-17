@@ -150,7 +150,7 @@ describe('migration chain', () => {
 		);
 	});
 
-	test('the shipped 2 to 3 step gives every vessel an empty node list and the save no warp target', () => {
+	test('the shipped 2 to 3 and 3 to 4 steps give every vessel an empty node list and no target, and the save no warp target', () => {
 		const v2 = {
 			...unsigned(),
 			formatVersion: 2,
@@ -163,9 +163,13 @@ describe('migration chain', () => {
 			}
 		};
 		const save = readSimSave({ ...v2, checksum: simSaveChecksum(v2 as never) });
-		expect(save.formatVersion).toBe(3);
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
 		expect(save.warpTarget).toBeNull();
-		expect(save.world.components['sim.vessel']!['0']).toEqual({ name: 'v', nodes: [] });
+		expect(save.world.components['sim.vessel']!['0']).toEqual({
+			name: 'v',
+			nodes: [],
+			target: null
+		});
 		expect(save.world.components['other']).toEqual({ '0': 1 });
 	});
 

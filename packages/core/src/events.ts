@@ -22,6 +22,8 @@ export interface EventMap {
 	'vessel:soi-changed': { vessel: EntityId; from: string; to: string };
 	/** A maneuver node was burned off (its time has passed and under 0.5 m/s remained; plan 045). */
 	'vessel:maneuver-complete': { vessel: EntityId; node: number };
+	/** The vessel's target no longer exists (it was destroyed or removed); the target is cleared (plan 035). */
+	'vessel:target-lost': { vessel: EntityId; target: number };
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**

@@ -112,6 +112,7 @@ export const checkVesselState: Check = shape({
 			target: orNull(shape({ body: str, v: vec3 }))
 		})
 	),
+	target: orNull(either('kind', { body: shape({ id: str }), vessel: shape({ id: entity }) })),
 	stages: arrayOf(arrayOf(entity)),
 	nextStage: entity,
 	com: vec3,

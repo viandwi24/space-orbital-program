@@ -19,7 +19,7 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	let attitude = { pitch: 0, yaw: 0, roll: 0 };
 	// A mode set this tick reads back at once; the next snapshot carries the sim's own value.
 	let sasPending = null;
-	const SAS_MODES = ['off', 'hold', 'prograde', 'retrograde', 'normal', 'antinormal', 'radial-out', 'radial-in', 'maneuver'];
+	const SAS_MODES = ['off', 'hold', 'prograde', 'retrograde', 'normal', 'antinormal', 'radial-out', 'radial-in', 'maneuver', 'target', 'anti-target'];
 	let defined = false;
 
 	// Seeded PRNG (mulberry32): a script's Math.random must not depend on the host.
@@ -65,7 +65,17 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 		for (const key of Object.keys(o)) if (typeof o[key] === 'object' && o[key] !== null) freeze(o[key]);
 		return Object.freeze(o);
 	};
-	const bodies = freeze(JSON.parse(bodiesJson));
+	const bodies = JSON.parse(bodiesJson);
+	// bodies[id].state(t, frame): position and velocity at simulation time t from the body's orbit
+	// (plan 035). The host computes it; frame is 'parent' (default) or 'system'. Not enumerable, so
+	// printing a body still shows its data only.
+	for (const id of Object.keys(bodies)) {
+		Object.defineProperty(bodies[id], 'state', {
+			value: (t, frame) => JSON.parse(host.bodyState(id, t, frame === undefined ? 'parent' : frame)),
+			enumerable: false
+		});
+	}
+	freeze(bodies);
 
 	// Commands whose outcome the script can await. A command that was not sent (a repeated
 	// setpoint) is fine by definition.
@@ -158,6 +168,17 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	});
 	fixed('removeNode', (id) => request('node-remove', JSON.stringify(id === undefined ? {} : { id })));
 	fixed('warpTo', (time, factor) => request('warp-to', JSON.stringify({ time, factor: factor === undefined ? 100000 : factor })));
+	// Targets (plan 035, ADR 0064): a body id, a vessel id, an entry of ship.targets, or null to clear.
+	const targetRef = (spec) => {
+		if (spec === null) return null;
+		if (typeof spec === 'string') return { kind: 'body', id: spec };
+		if (typeof spec === 'number') return { kind: 'vessel', id: spec };
+		if (typeof spec === 'object' && (spec.kind === 'body' || spec.kind === 'vessel')) {
+			return { kind: spec.kind, id: spec.id };
+		}
+		throw new TypeError('setTarget needs a body id, a vessel id, an entry of ship.targets, or null');
+	};
+	fixed('setTarget', (spec) => request('target-set', JSON.stringify({ target: targetRef(spec) })));
 	fixed('bodies', bodies);
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
 
