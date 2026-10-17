@@ -2,6 +2,7 @@
  * Typed registry of definitions. Duplicate ids are errors that name both plugins; definitions are
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
+import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
@@ -240,6 +241,8 @@ export interface Registries {
 	categories: Registry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
 	achievements: Registry<AchievementDefinition>;
+	/** Scenarios, the mission packs (plan 100, ADR 0151). */
+	scenarios: Registry<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: Registry<PanelDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -289,6 +292,7 @@ export function createRegistries(): Registries {
 		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
 		panels: createRegistry<PanelDefinition>('panel', { schema: panelDefinitionSchema }),
+		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),
 		achievements: createRegistry<AchievementDefinition>('achievement', {
 			schema: achievementDefinitionSchema
 		}),
