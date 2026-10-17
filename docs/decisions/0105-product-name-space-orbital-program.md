@@ -6,7 +6,7 @@
 
 ## Context
 
-"Orbital" was a working title (`product/spec.md` §8). The name appears in menus, the credits page, page metadata and, later, a hosting domain. The refs UI concept uses **Space Orbital Program**. The research noted that the name follows the pattern of "Kerbal Space Program"; KSP's trademarks must not be used (`product/visual-direction.md`, ADR 0025).
+"Orbital" was a working title (`product/spec.md` §8). The name appears in menus, the credits page, page metadata and, later, a hosting domain. The refs UI concept uses **Space Orbital Program**. The research noted that the name follows the pattern of KSP's full title; KSP's trademarks must not be used (`product/visual-direction.md`, ADR 0025).
 
 ## Decision
 
@@ -21,5 +21,5 @@
 
 ## Consequences
 
-- Risk: the name resembles "Kerbal Space Program". No trademark search was done by this project; the owner should check before registering a domain or publishing (STATUS known issues).
+- Risk: the name follows the pattern of KSP's full title. No trademark search was done by this project; the owner should check before registering a domain or publishing (STATUS known issues).
 - Follow-up: plan 074 (rename in the client and the docs that describe the product).

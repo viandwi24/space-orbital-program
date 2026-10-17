@@ -8,7 +8,7 @@
 
 ## Context
 
-Orbital 1.0 has saves (quick, auto, named) of one flight, and no idea of a game that lasts: no mode, no rules, no progress, no place that owns crew, sites or a network. Every system the owner decided on 2026-10-17 (economy, science, crew, comms, sites, agencies) needs a container that says which systems are on and with which settings. Kerbal Space Program 1 used three fixed modes chosen at creation; a wrong setting meant starting over. The owner chose presets over rules, and a fully client-side game with no backend for now, designed so that one can be added later.
+Orbital 1.0 has saves (quick, auto, named) of one flight, and no idea of a game that lasts: no mode, no rules, no progress, no place that owns crew, sites or a network. Every system the owner decided on 2026-10-17 (economy, science, crew, comms, sites, agencies) needs a container that says which systems are on and with which settings. KSP1 used three fixed modes chosen at creation; a wrong setting meant starting over. The owner chose presets over rules, and a fully client-side game with no backend for now, designed so that one can be added later.
 
 ## Decision
 
