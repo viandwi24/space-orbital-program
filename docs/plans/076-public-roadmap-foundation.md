@@ -1,8 +1,8 @@
 ---
 id: 076
 title: "Public roadmap page: the foundation roadmap by phase, without dates"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: []
 phase: 4
 created: 2026-10-17
