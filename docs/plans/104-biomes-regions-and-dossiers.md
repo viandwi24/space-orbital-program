@@ -53,7 +53,7 @@ Regions must agree with the drawn ground colours on the home body (same map).
 - [x] `bun test packages/core/test/regions.test.ts`: `regionAt` on the home body returns `classifyBiome` of the planet map at 1 000 sample directions; cells and bands are deterministic and cover the sphere.
 - [x] `bun test packages/sim/test/science.test.ts`: the same experiment landed in two regions gives two subjects; a space-high result is `global`.
 - [x] vitest: the body card shows the atmosphere profile entry after a flying-high result on the home body, and shows it locked before.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 

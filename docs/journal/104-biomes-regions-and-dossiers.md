@@ -33,5 +33,12 @@
 ## Verification output
 
 ```text
-VERIFY
+bun test packages/core/test/regions.test.ts       3 pass
+bun test packages/sim/test/science.test.ts        11 pass
+vitest src/lib/hud/BodyCard.test.ts               1 pass
+bun run docs:check                                exit 0
+bun run test                                      1529 pass, 0 fail (307 s)
+bun run typecheck                                 exit 0 (73 s; svelte-check 0 errors)
+bun run build                                     exit 0 (6 s)
+bun run --filter @orbital/web test                932 passed, 1 skipped; 3 env-only import suites (no Node here)
 ```
