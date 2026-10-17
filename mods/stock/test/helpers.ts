@@ -83,6 +83,7 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		applyTorque(torque) {
 			v.torques.push(torque);
 		},
+		data: { store: () => undefined, used: () => 0, capacity: () => 0 },
 		resources: {
 			amount: (r) => v.stock[r] ?? 0,
 			withdraw(r, amount) {

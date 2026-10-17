@@ -26,6 +26,7 @@ import {
 import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
 import type { ChargeDefinition } from './economy.ts';
+import type { DataKindDefinition } from './data.ts';
 import { parseVersion, satisfies } from './semver.ts';
 
 export class PluginError extends Error {
@@ -73,6 +74,8 @@ export interface BasePluginContext {
 	readonly presets: Registrar<PresetDefinition>;
 	/** Scheduled income and costs on the world tick (plan 095, ADR 0113). */
 	readonly charges: Registrar<ChargeDefinition>;
+	/** Data kinds (plan 083, ADR 0172). */
+	readonly dataKinds: Registrar<DataKindDefinition>;
 	/**
 	 * Typed data patches over other plugins' parts, resources and bodies (ADR 0170), applied once
 	 * after every plugin booted.
@@ -105,7 +108,8 @@ export const REGISTRY_KINDS = [
 	'system',
 	'rule',
 	'preset',
-	'charge'
+	'charge',
+	'data-kind'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -148,6 +152,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'rules',
 	'presets',
 	'charges',
+	'dataKinds',
 	'patches',
 	'optional',
 	'provide'
@@ -322,6 +327,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			rules: registrar(registries.rules),
 			presets: registrar(registries.presets),
 			charges: registrar(registries.charges),
+			dataKinds: registrar(registries.dataKinds),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -443,7 +449,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				system: section(registries.systems),
 				rule: section(registries.rules),
 				preset: section(registries.presets),
-				charge: section(registries.charges)
+				charge: section(registries.charges),
+				'data-kind': section(registries.dataKinds)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

@@ -160,6 +160,8 @@ export interface VesselSnapshot {
 	nodes?: ManeuverNodeSnapshot[];
 	/** The vessel's target (plan 035); absent without one. */
 	target?: TargetSnapshot;
+	/** Data storage use (plan 083): bits used and in all, and the item count; only with storage. */
+	data?: { used: number; capacity: number; items: number };
 }
 
 export interface BodySnapshot {
@@ -304,7 +306,11 @@ export type Command =
 	 * Recover a vessel that is landed or splashed and at rest (plan 095, ADR 0113): credits its
 	 * value times the distance factor and removes it.
 	 */
-	| { type: 'recover-vessel'; vessel: EntityId };
+	| { type: 'recover-vessel'; vessel: EntityId }
+	/** Move a data item to the storage of part `to` on the same vessel (plan 083, ADR 0172). */
+	| { type: 'move-data'; vessel: EntityId; item: string; to: EntityId }
+	/** Delete a data item from the vessel. */
+	| { type: 'delete-data'; vessel: EntityId; item: string };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

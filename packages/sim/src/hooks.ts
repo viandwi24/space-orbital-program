@@ -20,6 +20,7 @@ import { isNonZero, qConj, qRotate } from './math.ts';
 import { isTurned, partRotation } from './parts.ts';
 import { effectiveControl } from './state.ts';
 import { amountAvailable, depositResource, withdrawResource } from './resources.ts';
+import { dataUse, storeData } from './data.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -118,6 +119,11 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			amount: (resource) => amountAvailable(core, vessel, partId, resource),
 			withdraw: (resource, amount) => withdrawResource(core, vessel, partId, resource, amount),
 			deposit: (resource, amount) => depositResource(core, vessel, partId, resource, amount)
+		},
+		data: {
+			store: (item) => storeData(core, part.vessel, item),
+			used: () => dataUse(core, part.vessel).used,
+			capacity: () => dataUse(core, part.vessel).capacity
 		},
 		detach(node, impulse = 0) {
 			if (!Number.isFinite(impulse) || impulse < 0) {

@@ -14,6 +14,7 @@ import {
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
+import { deleteData, moveData } from './data.ts';
 import { hasBackground } from './tick.ts';
 import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
 import {
@@ -270,6 +271,14 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			creditRecovery(core, id);
 			destroyVessel(core, id, 'recovered');
 			return accept();
+		}
+		case 'move-data':
+		case 'delete-data': {
+			if (!core.world.get(command.vessel, VESSEL))
+				return refuse(`unknown vessel ${command.vessel}`);
+			return command.type === 'move-data'
+				? moveData(core, command.vessel, command.item, command.to)
+				: deleteData(core, command.vessel, command.item);
 		}
 	}
 }

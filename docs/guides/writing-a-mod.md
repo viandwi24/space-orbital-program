@@ -167,6 +167,14 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 
 `definePlugin({ meta: { id, version, api: '^0.1' }, depends, optional, contributes, setup(ctx) })`. `setup` is synchronous and registers with `ctx.resources/modules/parts/bodies/systems.register(def)`, and data patches over other plugins' entries with `ctx.patches.register(def)` (see "Patching another mod's data"). `api` is a range on the mod API version; a mismatch disables your plugin with a reason in the load report.
 
+## Data items (API 0.1.31, plan 083, ADR 0172)
+
+Data is sized: a `DataItem` has a `kind`, a size in `bits`, a `value` and the sim `time` it was made. A mod adds kinds with `ctx.dataKinds.register(defineDataKind({ id: 'acme.radar', label: 'Radar', priority: 3, valueCurve: [[0, 1], [86_400, 0.2]] }))`: a lower `priority` goes first when data is sent (plan 119), and the curve says what fraction of the value is left at an age. Stock has `stock.telemetry`, `stock.voice`, `stock.science`, `stock.image` and `stock.bulk`.
+
+- **Store** from any module hook or action: `ctx.vessel.data.store({ kind: 'stock.science', bits: 8_000, value: 5, time: ctx.vessel.time, subject: 'acme.radar@home' })`. It returns the new item's id, or `undefined` when no storage on the vessel had room: then the item is lost and the sim emits `data:dropped`. Storages are filled in part order. Stored items are never pushed out by new ones.
+- **Hold** data in your own part: declare `dataStorage: { capacity: (config) => config.capacity }` on a module whose `state` returns `{ items: [], next: 0 }`, or reuse `stock.data-storage` (`[['stock.data-storage', { capacity: 1_000_000 }]]`). The items are module state, so they are saved and go with the part when the vessel splits.
+- The player can move items between storages (`move-data`) and delete them (`delete-data`). `packages/sim/test/data.test.ts` has a recorder part that stores through an action.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

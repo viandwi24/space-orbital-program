@@ -18,6 +18,7 @@ describe('stock boots through the loader', () => {
 		expect(ids('module')).toEqual([
 			'stock.command',
 			'stock.control-surface',
+			'stock.data-storage',
 			'stock.decoupler',
 			'stock.engine',
 			'stock.fin',
@@ -31,6 +32,7 @@ describe('stock boots through the loader', () => {
 			'stock.booster',
 			'stock.command-pod',
 			'stock.control-surface',
+			'stock.data-drive',
 			'stock.decoupler',
 			'stock.engine-cluster',
 			'stock.engine-lv',
@@ -48,6 +50,13 @@ describe('stock boots through the loader', () => {
 		]);
 		expect(ids('body')).toEqual(['stock.cinder', 'stock.home']);
 		expect(ids('system')).toEqual([]);
+		expect(ids('data-kind')).toEqual([
+			'stock.bulk',
+			'stock.image',
+			'stock.science',
+			'stock.telemetry',
+			'stock.voice'
+		]);
 		for (const kind of Object.keys(report.registered) as (keyof typeof report.registered)[]) {
 			expect(report.registered[kind].every((e) => e.by === 'stock')).toBe(true);
 		}
@@ -193,5 +202,18 @@ describe('stock bodies name their terrain (plan 052, ADR 0067)', () => {
 	test('the home planet has hills and the moon craters', () => {
 		expect(registries.bodies.get('stock.home' as never)?.terrain).toEqual({ kind: 'hills' });
 		expect(registries.bodies.get('stock.cinder' as never)?.terrain).toEqual({ kind: 'craters' });
+	});
+});
+
+describe('stock data kinds (plan 083)', () => {
+	test('five kinds in ADR 0101 priority order', () => {
+		const kinds = registries.dataKinds.list().sort((a, b) => a.priority - b.priority);
+		expect(kinds.map((k) => k.id)).toEqual([
+			'stock.telemetry',
+			'stock.voice',
+			'stock.science',
+			'stock.image',
+			'stock.bulk'
+		]);
 	});
 });

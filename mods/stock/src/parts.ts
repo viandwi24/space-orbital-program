@@ -13,6 +13,7 @@ import {
 	ModuleWing
 } from './modules.ts';
 import { ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
+import { ModuleDataStorage } from './data.ts';
 
 /** Every stock part is a 1.25 m class cylinder: radius in metres. */
 const RADIUS = 0.625;
@@ -72,6 +73,24 @@ export const PartReactionWheel = definePart({
 	attach: stackNodes(0.4),
 	modules: [[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }]],
 	stagingIcon: 'wheel'
+});
+
+/** A data drive: 64 Mbit of storage for data items (plan 083). */
+export const PartDataDrive = definePart({
+	id: 'stock.data-drive',
+	title: 'Data Drive',
+	mass: kg(20),
+	cost: partCost(20, 'command'),
+	impactTolerance: 8,
+	maxTemperature: 1000,
+	shape: cylinder(0.4),
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#2a2e35', secondary: '#d5d8dc', accent: '#2f8fa3' },
+		params: { stripe: 0.5, bands: 1 }
+	},
+	attach: stackNodes(0.4),
+	modules: [[ModuleDataStorage, { capacity: 64 * 1024 * 1024 }]]
 });
 
 export const PartTankSmall = definePart({
