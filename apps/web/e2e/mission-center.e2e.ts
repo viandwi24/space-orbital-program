@@ -19,7 +19,8 @@ test('open the Mission Center from its building and select a body', async ({ pag
 	await page.waitForURL('**/mission-center');
 	await expect(page.getByTestId('world-capsule')).toContainText('Planners');
 	const rows = page.locator('[data-testid^="mc-row-body:"]');
-	await expect(rows).toHaveCount(2, { timeout: 60_000 });
+	// the Sun, the home planet and its moon (plan 122)
+	await expect(rows).toHaveCount(3, { timeout: 60_000 });
 	// a world without a flight: nothing to fly, nothing scheduled
 	await expect(page.getByTestId('mc-tab-map')).toBeDisabled();
 	await page.getByTestId('mc-row-body:stock.cinder').click();
