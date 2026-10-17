@@ -3,14 +3,7 @@
  * the crossing time is bisected inside the step and the conic is replaced at that instant; in
  * flight the physics frame is re-based (origin and velocity translated, local poses untouched).
  */
-import {
-	findCrossing,
-	intoChildFrame,
-	intoParentFrame,
-	length,
-	sub,
-	type StateVector
-} from '@orbital/kepler';
+import { intoChildFrame, intoParentFrame, length, sub, type StateVector } from '@orbital/kepler';
 import type { EntityId } from '@orbital/core';
 import { bodyById, stateInParent, type BodyRuntime } from './bodies.ts';
 import { isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -76,7 +69,7 @@ function transitionRails(core: SimCore, vesselId: EntityId, tPrev: number): void
 	const past = (tau: number): number => pastBoundary(target, railsMotion(body, rails, tau).r, tau);
 	// A vessel that already was on the far side when the step began (placed there, or its rails
 	// were just made) switches now instead of at a time before it existed.
-	const tc = past(tPrev) > 0 ? t : findCrossing(past, tPrev, t);
+	const tc = past(tPrev) > 0 ? t : core.trajectory.crossing(past, tPrev, t);
 	const state = convert(target, railsMotion(body, rails, tc), tc);
 	const next = bodyById(core, target.to.def.id);
 	vessel.soi = next.def.id;

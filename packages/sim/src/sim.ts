@@ -37,6 +37,7 @@ import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.t
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
+import { createTrajectoryProvider } from '@orbital/kepler';
 import {
 	atBoundary,
 	createTickState,
@@ -44,7 +45,7 @@ import {
 	orderTickSystems,
 	runDueTicks
 } from './tick.ts';
-import { completeNodes } from './maneuver.ts';
+import { patchedBodiesOf, completeNodes } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
@@ -163,6 +164,13 @@ function worldOf(options: SimOptions, resume: SimSave | undefined, seed: number)
 		const stock = options.plugins.find((p) => p.meta.id === 'stock');
 		return legacyWorldInfo(seed, stock?.meta.version);
 	}
+	if ((options.world as { gravityModel?: unknown }).gravityModel === 'n-body') {
+		// ADR 0095, 0173: there is no n-body trajectory provider yet.
+		throw new SaveError(
+			'incompatible',
+			'This world uses n-body gravity; n-body worlds are not available yet.'
+		);
+	}
 	const parsed = worldInfoSchema.safeParse(options.world);
 	if (!parsed.success) {
 		const why = parsed.error.issues[0]?.message ?? 'invalid';
@@ -275,6 +283,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		warpStopped: false,
 		info,
 		rulesView: null,
+		trajectory: createTrajectoryProvider(info.gravityModel, patchedBodiesOf(bodies)),
 		ticks: createTickState({
 			systems: orderTickSystems(systems, (id) => {
 				const index = report.order.indexOf(registries.systems.owner(id) ?? '');
