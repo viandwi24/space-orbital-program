@@ -12,12 +12,14 @@
 		script,
 		scriptRunning,
 		staging = true,
+		dock = true,
 		nav = true,
 		onmenu,
 		onmap,
 		onscript,
 		onhelp,
 		onstaging,
+		ondock,
 		onnav
 	}: {
 		map: boolean;
@@ -25,6 +27,8 @@
 		scriptRunning: boolean;
 		/** The staging panel is shown. */
 		staging?: boolean;
+		/** The panel dock is shown (plan 112). */
+		dock?: boolean;
 		/** The navball module is shown. */
 		nav?: boolean;
 		onmenu: () => void;
@@ -32,6 +36,7 @@
 		onscript: () => void;
 		onhelp: () => void;
 		onstaging?: () => void;
+		ondock?: () => void;
 		onnav?: () => void;
 	} = $props();
 
@@ -62,9 +67,11 @@
 	<button
 		type="button"
 		class="tb"
+		class:on={dock}
 		aria-label="Panel dock"
-		title={later('The panel dock', 112)}
-		disabled><Icon name="dock" size={18} /></button
+		aria-pressed={dock}
+		title="Panel dock"
+		onclick={ondock}><Icon name="dock" size={18} /></button
 	>
 	<button
 		type="button"

@@ -1,4 +1,9 @@
-import { loadPlugins, type CategoryDefinition, type PartLookup } from '@orbital/core';
+import {
+	loadPlugins,
+	type CategoryDefinition,
+	type PanelDefinition,
+	type PartLookup
+} from '@orbital/core';
 import type { PartShape } from '@orbital/renderer';
 import Stock from '@orbital/mod-stock';
 import type { ContentLookups } from './delta-v';
@@ -30,6 +35,8 @@ export function loadContent(): {
 	content: ContentLookups;
 	/** Catalogue categories (plan 069, ADR 0146), in registration order. */
 	categories: CategoryDefinition[];
+	/** Dock panels of stock and the enabled mods (plan 112, ADR 0149). */
+	panels: PanelDefinition[];
 } {
 	const { registries, report } = loadPlugins([Stock, ...activePlugins()]);
 	return {
@@ -40,6 +47,7 @@ export function loadContent(): {
 			resources: registries.resources.list()
 		},
 		categories: registries.categories.list(),
+		panels: registries.panels.list(),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,
