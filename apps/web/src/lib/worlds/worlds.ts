@@ -3,7 +3,14 @@
  * the `SaveStore`, and the one active world the VAB and the flight use. Storage is untrusted: every
  * record is parsed, and one that does not parse is listed with its error instead of hiding the rest.
  */
-import { LEGACY_WORLD_ID, legacyWorldInfo, type SaveMod, type WorldInfo } from '@orbital/core';
+import {
+	LEGACY_WORLD_ID,
+	legacyWorldInfo,
+	type Epoch,
+	type MilestoneRecord,
+	type SaveMod,
+	type WorldInfo
+} from '@orbital/core';
 import { parseGameSave, parseMeta, type SaveMeta } from '../save/game-save';
 import type { SaveStore } from '../save/store';
 import {
@@ -81,6 +88,11 @@ export interface Worlds {
 	 * these sites, and new flights start with them. The Legacy world gets a world info here.
 	 */
 	setSites(id: string, sites: WorldInfo['sites']): Promise<void>;
+	/**
+	 * The world's firsts from its newest save that loads (plan 102, ADR 0147), and the epoch to date
+	 * them; none before the first save.
+	 */
+	milestones(id: string): Promise<{ records: MilestoneRecord[]; epoch: Epoch }>;
 }
 
 export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEnv): Worlds {
@@ -221,6 +233,20 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 			const world = record.world ?? legacyWorldInfo(0);
 			await worlds.put({ ...record, world: { ...world, sites: structuredClone(sites) } });
 		},
-		saves: savesOf
+		saves: savesOf,
+		async milestones(id) {
+			for (const meta of await savesOf(id)) {
+				const stored = await saves.get(meta.id);
+				if (!stored) continue;
+				try {
+					const { sim } = parseGameSave(stored.data);
+					return { records: sim.milestones?.records ?? [], epoch: sim.worldInfo.epoch };
+				} catch {
+					// a damaged save: the next older one
+				}
+			}
+			const record = await get(id);
+			return { records: [], epoch: record?.world?.epoch ?? { day: 0, fraction: 0 } };
+		}
 	};
 }

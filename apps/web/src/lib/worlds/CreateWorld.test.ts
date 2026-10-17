@@ -16,7 +16,8 @@ const catalog: WorldCatalog = {
 	calendar: calendarOf(bodies),
 	system: { id: 'stock', version: '0.1.0', label: 'Stock system', variants: ['default'] },
 	mods: [{ id: 'stock', version: '0.1.0' }],
-	siteTemplates: registries.siteTemplates.list()
+	siteTemplates: registries.siteTemplates.list(),
+	achievements: registries.achievements.list()
 };
 const html = (initialSite?: string): string =>
 	render(CreateWorld, {

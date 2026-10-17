@@ -19,6 +19,10 @@
 	import StatCell from '../../lib/ui/StatCell.svelte';
 	import { loadWorldCatalog, type WorldCatalog } from '../../lib/worlds/catalog';
 	import CreateWorld from '../../lib/worlds/CreateWorld.svelte';
+	import WorldHistory from '../../lib/worlds/WorldHistory.svelte';
+	import AchievementsPanel from '../../lib/achievements/AchievementsPanel.svelte';
+	import { profileStore } from '../../lib/achievements/store';
+	import type { Epoch, MilestoneRecord } from '@orbital/core';
 	import { enterWorld } from '../../lib/worlds/enter';
 	import {
 		activeWorldId,
@@ -48,6 +52,16 @@
 	const records = $derived(entries.flatMap((e) => (e.ok ? [e.record] : [])));
 	const chosen = $derived(records.find((r) => r.id === selected) ?? records[0] ?? null);
 	const loaded = bootedMods();
+
+	// the chosen world's firsts (plan 102, ADR 0147), read from its newest save
+	let history = $state.raw<{ id: string; records: MilestoneRecord[]; epoch: Epoch } | null>(null);
+	$effect(() => {
+		const id = chosen?.id;
+		if (!worlds || id === undefined) return;
+		void worlds.milestones(id).then((h) => {
+			if (chosen?.id === id) history = { id, ...h };
+		});
+	});
 
 	async function refresh(select?: string): Promise<void> {
 		if (!worlds) return;
@@ -203,6 +217,14 @@
 					<StatCell label="Created" value={ago(chosen.createdAt, now)} />
 					<StatCell label="Seed" value={chosen.world?.seed} />
 				</div>
+				{#if catalog && history?.id === chosen.id}
+					<WorldHistory
+						world={chosen.name}
+						records={history.records}
+						bodies={catalog.bodies}
+						epoch={history.epoch}
+					/>
+				{/if}
 				<div class="actions">
 					<Button variant="primary" onclick={() => void enter(chosen.id)} data-testid="world-enter"
 						>Enter world</Button
@@ -224,6 +246,10 @@
 			</section>
 		{/if}
 	</div>
+
+	{#if catalog}
+		<AchievementsPanel achievements={catalog.achievements} store={profileStore()} />
+	{/if}
 </main>
 
 {#if catalog && createOpen}

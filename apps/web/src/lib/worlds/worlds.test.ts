@@ -1,6 +1,14 @@
 /** Worlds storage (plan 087, ADR 0143): create, rename, duplicate, delete with its saves, touch. */
 import { LEGACY_SITE } from '@orbital/core';
-import { LEGACY_WORLD_ID, loadPlugins, readSimSave, type WorldInfo } from '@orbital/core';
+import {
+	LEGACY_WORLD_ID,
+	loadPlugins,
+	readSimSave,
+	simSaveChecksum,
+	type MilestoneRecord,
+	type SimSave,
+	type WorldInfo
+} from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import fixtureV4 from '../../../../../packages/sim/test/fixtures/save-v4.json';
@@ -42,8 +50,15 @@ function career(id: string): WorldInfo {
 }
 
 /** A save of `worldId` written as the save manager writes it. */
-async function putSave(store: SaveStore, id: string, worldId: string, createdAt: number) {
-	const sim = readSimSave(fixtureV4);
+async function putSave(
+	store: SaveStore,
+	id: string,
+	worldId: string,
+	createdAt: number,
+	extra: Partial<SimSave> = {}
+) {
+	const { checksum: _c, ...base } = { ...readSimSave(fixtureV4), ...extra };
+	const sim: SimSave = { ...base, checksum: simSaveChecksum(base) };
 	const save = buildGameSave({
 		id,
 		name: id,
@@ -145,5 +160,28 @@ describe('worlds', () => {
 		expect(first!.ok && first!.record.summary.saves).toBe(1);
 		await w.touch(LEGACY_WORLD_ID);
 		expect((await w.get(LEGACY_WORLD_ID))?.name).toBe('Legacy world');
+	});
+
+	it("milestones (plan 102): the newest save's firsts and epoch; none before a save", async () => {
+		const store = memoryStore();
+		const w = createWorlds(memoryWorldStore(), store, env());
+		expect(await w.milestones(LEGACY_WORLD_ID)).toEqual({
+			records: [],
+			epoch: { day: 0, fraction: 0 }
+		});
+		const orbit: MilestoneRecord = {
+			id: 'orbit:stock.home',
+			kind: 'orbit',
+			body: 'stock.home',
+			crewed: false,
+			vessel: 0,
+			time: 230
+		};
+		await putSave(store, 'old', LEGACY_WORLD_ID, 1_000);
+		await putSave(store, 'new', LEGACY_WORLD_ID, 2_000, {
+			milestones: { records: [orbit], visits: {} }
+		});
+		const m = await w.milestones(LEGACY_WORLD_ID);
+		expect(m.records).toEqual([orbit]);
 	});
 });
