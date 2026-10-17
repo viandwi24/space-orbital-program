@@ -17,7 +17,7 @@ Sites are world data and the terrain no longer depends on one launch site: the h
 
 ## Context
 
-- ADRs: 0097, 0043
+- ADRs: 0097, 0043, [0142](../decisions/0142-sites-terrain-seed-zones-and-placement.md) (written here)
 - Read: ADR 0097 points 1 and 2, ADR 0043, 0030, 0067, `packages/core/src/terrain.ts` (`createTerrainField({ radius, latitude, longitude })`, biome map cache per site), `planet-map.ts`, renderer site placement (`SceneModel.lockLaunchSite`).
 
 ## Scope
