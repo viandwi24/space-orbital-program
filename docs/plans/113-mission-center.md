@@ -1,12 +1,12 @@
 ---
 id: 113
 title: "Mission Center: one place for the whole system"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [080, 081, 086]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 113 — Mission Center: one place for the whole system
