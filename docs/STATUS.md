@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
-**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079 and 086 done (`cp/f1-074-rename`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy (waits for `cp/f1-082-tick`); Agents 2 and 3 on their lanes (`claim/*` tags)
+**Current plan:** three-agent team mode (`docs/roadmap/`): 074, 075, 077, 078, 079, 082 and 086 done (`cp/f1-074-rename`, `cp/f1-082-tick`, `cp/f1-075-licence`, `cp/f1-086-tokens`, `cp/f1-077-world`, `cp/f1-078-rules`, `cp/f1-079-patch`); Agent 1 next: 095 economy; Agents 2 and 3 on their lanes (`claim/*` tags)
 **Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
@@ -90,7 +90,7 @@
 | 079 | [Typed data patches: `definePatch` with provenance](plans/079-typed-data-patches-define-patch.md) | done | Agent 3 | ADR 0104: definePatch, order, provenance |
 | 080 | [Trajectory provider interface: patched conics behind one API, no behaviour change](plans/080-trajectory-provider-interface.md) | draft | — | ADR 0095: one provider, patched only, n-body refused |
 | 081 | [Calendar and world epoch: dates in the game](plans/081-calendar-and-world-epoch.md) | draft | — | ADR 0103: epoch, calendar, date in HUD and scripts |
-| 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | in-progress | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
+| 082 | [World tick and background operations](plans/082-world-tick-and-background-operations.md) | done | Agent 3 | ADR 0096: daily tick, PRNG streams, background closed forms |
 | 083 | [Data items: sized data stored on vessels](plans/083-data-items-on-vessels.md) | draft | — | ADR 0099/0101: data kinds, storage, items |
 | 084 | [Sites in the world: a terrain seed per world and a list of flat zones](plans/084-sites-in-the-world-terrain-seed-and-flat-zones.md) | draft | — | ADR 0097: world seed, flat-zone list, Legacy site reproduced |
 | 085 | [Body orientation as pole times spin (no behaviour change)](plans/085-body-orientation-pole-times-spin.md) | draft | — | ADR 0103: q_pole · Ry(W(t)); identity reproduces today |
@@ -169,6 +169,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Day length** (Agent 3, plan 082 handover): plan 081 (calendar) should use or replace `dayLength` in `packages/sim/src/tick.ts` so dates and world ticks agree.
 - **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).
 - **Flight-view frame intervals over budget on the M5** (Agent 1, measured for 086's blur check, journal 086): on the pad, whole-page rAF intervals of 28 ms on `high` and 34 ms on `medium` at 961 × 930, DPR 2 (ADR 0053: 16.7 and 13.3 ms), and `medium` slower than `high`. Not caused by the glass (≤ 0.4 ms). Needs a renderer pass with `renderer.benchmark` and a Chrome trace to split WebGL, HUD, Worker and compositing.
 - **Root `bun test` collects `apps/web` vitest files** and fails them under Bun (`$state`, zod named imports); the checks are `bun run test` plus the web vitest. Candidate fix: a root `bunfig.toml` test root or a `bun test` guard script.
@@ -197,6 +198,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [082 — World tick and background operations](journal/082-world-tick-and-background-operations.md)
 - [074 — Rename the product to Space Orbital Program](journal/074-rename-space-orbital-program.md)
 - [086 — UI stage 1: refs tokens, Manrope and the accessibility floor](journal/086-ui-stage-1-tokens-fonts-accessibility.md)
 - [075 — Apache-2.0: package metadata, credits and the mod manifest licence field](journal/075-apache-2-licence-adoption.md)

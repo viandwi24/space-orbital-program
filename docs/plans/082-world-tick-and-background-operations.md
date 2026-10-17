@@ -1,7 +1,7 @@
 ---
 id: 082
 title: "World tick and background operations"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [077]
 phase: 4
