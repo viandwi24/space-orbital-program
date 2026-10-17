@@ -353,7 +353,7 @@
 		flex-shrink: 0;
 	}
 	code {
-		font-family: var(--font-num);
+		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
 </style>
