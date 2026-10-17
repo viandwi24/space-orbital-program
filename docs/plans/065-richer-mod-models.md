@@ -24,7 +24,7 @@ A model a mod ships can do what a generated part does and cost what a generated 
 
 **In (to be ordered at refinement):**
 1. `deploy` for models: glTF animations (or named nodes) driven by the `deploy.flag` progress, with a size cap on animation data.
-2. KTX2/Basis: ship the transcoder with the game (a static file, CSP `worker-src`/`wasm-unsafe-eval` already allow it) and let `inspectGlb` accept `KHR_texture_basisu`; measure memory and bundle cost against PNG on the sample.
+2. KTX2/Basis (plan 040 measured the cost in three 0.186.1: `basis_transcoder.wasm` 515 kB, 245 kB gzipped, plus `basis_transcoder.js` 56 kB, 15 kB gzipped; stock parts use procedural `DataTexture`s, so there was no textured asset to size a VRAM saving against and nothing to justify the bundle cost): ship the transcoder with the game (a static file, CSP `worker-src`/`wasm-unsafe-eval` already allow it) and let `inspectGlb` accept `KHR_texture_basisu`; measure memory and bundle cost against PNG on the sample.
 3. LOD: a lower-detail model per distance or per graphics preset (`visual.asset` list or a `_lod1` convention) and instancing of identical static meshes in the VAB.
 4. Several materials per palette: let `palette` recolour named materials of a model.
 
@@ -41,3 +41,4 @@ A model a mod ships can do what a generated part does and cost what a generated 
 ## Log
 
 - 2026-10-17 — Created as draft by plan 051 (found, not done).
+- 2026-10-17 — Plan 040 pushed its KTX2 item here with the bundle numbers above (it adds `KTX2Loader` only when an asset needs it).

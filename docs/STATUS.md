@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 040, 069, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 070, 069, 055 to 063, 065. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -37,7 +37,7 @@
 | 025 | [Visual: environment follow-ups](plans/025-environment-follow-ups.md) | done | environment-2 session | ADR 0030; sim places at body-fixed coordinates (renderer inference deleted); grass blades/stripes/tufts, hill shading, forest crowns, fields, rivers, clean coasts, hangar/control centre/vehicles/containers/weathering, leafy trees and groves, floodlights at night; `high` pad 11.6 ms thr / 16.5 ms sync on an M5, M1/M2 not measured; terrain geometry, cloud layers etc. are draft 027 |
 | 026 | [Radial parts, boosters and fins](plans/026-part-visual-follow-ups.md) | done | radial session | ADRs 0034 (radial attachment, part yaw, symmetry, design format 2) and 0035 (`airVelocity`, fins); stock radial decoupler, booster, nose cone, fin; VAB radial placement with symmetry 2/3/4/6; Δv and auto-staging with boosters; engine start-up ramp; API 0.1.8; a 23-part booster rocket built by mouse reached 214 x 76 km; asset provider, smoke, debris, plasma, gimbal, device tuning are draft 033 |
 | 033 | [Part follow-ups 2](plans/033-part-assets-effects-and-aero-follow-ups.md) | done | control session | ADRs 0045 (engine gimbal, control surfaces, one attitude mixer; API 0.1.10 `centreOfMass`, `torqueDemand`), 0046 (fin damping), 0047 (glTF provider, shard debris, lit smoke, plume light, plasma colour); one wheel plus gimbal swings the finned 25 t rocket 6 times as far as the wheel at max-q (the headless one-wheel ascent reached orbit without gimbal too); `stock.control-surface`; lit drifting smoke, debris from real meshes, plasma colour by speed; no measurable frame cost at the pad; wreckage, plasma shape, KTX2, multi-nozzle in draft 040, struts, tilted parts, wing lift in 041 |
-| 040 | [Effects and assets 3](plans/040-effects-and-assets-3.md) | draft | — | from 033: wreckage, plasma shape, comms blackout, persistent trail, multi-nozzle, KTX2, M1/M2 |
+| 040 | [Effects and assets 3](plans/040-effects-and-assets-3.md) | done | effects-3 session (Claude, 2026-10-17) | ADRs 0077 to 0081, API 0.1.23: wreckage and resting stages kept by the renderer, a plasma shell from the silhouette (and visible glow thresholds for the home body), a blackout badge, a ribbon trail, `plume.nozzles` and `stock.engine-cluster`; the burning pad is over budget on HEAD too; KTX2 in 065, devices in 066, communications draft 070 |
 | 041 | [Aero and structure extras](plans/041-aero-and-structure-extras.md) | done | structure session (Claude, 2026-10-17) | ADRs 0071 (format 3: connector parts, tilt, radial on boxes), 0075 (wing lift), API 0.1.19; fuel lines move propellant one way (the core drains its boosters first; Δv and sim agree on the 19.3 s booster burnout), struts are rigid bars cut on separation, tilt about the parent's axes, `stock.wing` with stall and induced drag (5.9 t glider glides 5.13:1 against 4.91 predicted); asparagus rocket built in the VAB reached a 76.9 km periapsis, the glider flew from a save; plane gameplay in draft 063 |
 | 029 | [UI: VAB follow-ups](plans/029-vab-follow-ups.md) | done | vab-2 session | ADRs 0041 (IndexedDB vessel library, sub-assemblies), 0042 (stability read-out); library with thumbnails, sub-assemblies with symmetry, radial group move and angle/height controls, CoM/CoP markers and warning, instancing (booster rocket 82 draw calls / 47 k triangles in the vessel graph, whole frame 280 to 179 calls, 4.0 to 1.0 ms), hall rebuilt with a moving crane, tug and crew, panels never cut off down to 1024x768 and drawers below 900 px, page controller extracted (1 294 to 424 lines); M1/M2 not measured, extras in draft 034 |
 | 034 | [VAB extras](plans/034-vab-extras-mod-categories-trip-planner.md) | done | planner session (Claude, 2026-10-17) | ADRs 0082 (part `catalog.category`/`order`, API 0.1.22), 0083 (trip planner: a delta-v map from body data, vis-viva/Hohmann/hyperbolic burns and a point-mass ascent integration, laid over the stages); the moon shot is covered to the landing with 1 174 m/s to spare; lift in the stability read-out was already done by 023; mod-defined categories in draft 069 |
@@ -77,6 +77,7 @@
 | 059 | [Hills terrain on a body other than the first](plans/059-hills-terrain-on-a-second-body.md) | draft | — | from 052: a second planet with `terrain: hills` is drawn as hills, not a sphere |
 | 060 | [Stones you can hit](plans/060-stones-with-collision.md) | draft | — | from 052: collision for scenery stones (lattice into core, colliders in the ground tile) |
 | 069 | [Mod-defined catalogue categories](plans/069-mod-defined-catalogue-categories.md) | draft | — | from 034: a mod adds a catalogue group with its own label and icon |
+| 070 | [Communications](plans/070-communications.md) | draft | — | from 040: antennas, signal range and delay, loss of control (the blackout badge has nothing to lose yet) |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | draft | — | from 041: wheels and a runway, trim and flaps, angle-of-attack and airspeed read-outs, plane controls |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -109,6 +110,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [040 — Effects and assets 3: wreckage, plasma shape, blackout, trails, multi-nozzle engines](journal/040-effects-and-assets-3.md)
 - [034 — VAB extras: part placement and a trip planner](journal/034-vab-extras-mod-categories-trip-planner.md)
 - [051 — Mod-supplied part visuals and assets](journal/051-mod-visuals-and-assets.md)
 - [041 — Struts, fuel lines, tilted parts, wing lift](journal/041-aero-and-structure-extras.md)

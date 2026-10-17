@@ -96,3 +96,8 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0075 | [Wing lift: finite-wing slope, stall and induced drag in `stock.wing`](0075-wing-lift-and-drag-polar.md) | accepted | 2026-10-17 |
 | 0082 | [A part states its own catalogue placement: `catalog.category` and `catalog.order`](0082-part-catalogue-placement.md) | accepted | 2026-10-17 |
 | 0083 | [The trip planner: a delta-v map from body data, laid over the stages](0083-the-trip-planner-delta-v-map.md) | accepted | 2026-10-17 |
+| 0077 | [Wreckage and stages that came to rest are kept by the renderer, not the sim](0077-wreckage-and-stages-are-kept-by-the-renderer.md) | accepted | 2026-10-17 |
+| 0078 | [The re-entry plasma shell follows the vessel's silhouette; the thresholds follow the home body's speeds](0078-plasma-shell-from-the-vessel-silhouette.md) | accepted | 2026-10-17 |
+| 0079 | [Plasma blackout is a display of the heating flux; there is still no communications system](0079-plasma-blackout-is-a-display-of-the-heating-flux.md) | accepted | 2026-10-17 |
+| 0080 | [The persistent exhaust trail is a ribbon of sampled points](0080-exhaust-trail-as-a-ribbon.md) | accepted | 2026-10-17 |
+| 0081 | [Engines with several nozzles: `plume.nozzles`, a cluster generator, a stock cluster engine](0081-multi-nozzle-engines-in-the-part-descriptor.md) | accepted | 2026-10-17 |
