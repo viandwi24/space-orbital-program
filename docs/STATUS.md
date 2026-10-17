@@ -170,7 +170,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
-- **Exact float goldens are platform-specific** (080 merge): snapshots recorded on Linux x86-64 differ in the last ulp on Apple arm64. Goldens of floating-point results should round (the 080 helper `golden`: 10 significant digits, noise below 1e-9 to 0) before `toMatchSnapshot`.
+- **Exact float goldens are platform-specific** (080 merge; also 084's terrain and lake digests, fixed to a 1e-9 m tolerance with the SHA-256 kept for arm64, to be confirmed on Linux by Agent 3): snapshots recorded on Linux x86-64 differ in the last ulp on Apple arm64. Goldens of floating-point results should round (the 080 helper `golden`: 10 significant digits, noise below 1e-9 to 0) before `toMatchSnapshot`.
 - **084 `high` frame pair open** (Agent 1): retake base vs 084 `debug.benchmark` on `high` with the Claude window and the Browser pane in view (`medium` measured: +0.13 ms). Plan 084 is done (all its criteria passed); this is the Lead's merge check.
 - **Tick epoch** (081 contract request, deferred): the world tick reads the epoch in tick days, ADR 0141 in SI days from J2000; the Lead lands `cp/f1-contract-tick-epoch` (tick.ts, `dayLength` from `calendarOf`) before 087 merges.
 - **Old name in core save messages** (Agent 1, at the 074 merge): `packages/core/src/save.ts` says "This is not an Orbital save file." and "…so it is not an Orbital save."; the load dialog shows them. A one-line fix for the next plan that touches core save (or a contract-free cleanup commit).

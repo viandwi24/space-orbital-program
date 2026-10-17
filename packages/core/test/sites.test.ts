@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import golden from './fixtures/terrain-legacy.json';
-import { goldenDirections } from './terrain-legacy.test.ts';
+import { goldenDirections, HEIGHT_TOLERANCE, RECORDED_HERE } from './terrain-legacy.test.ts';
 import {
 	LEGACY_SITE,
 	LEGACY_TERRAIN_SEED,
@@ -119,8 +119,12 @@ describe('seed', () => {
 	test('the Legacy lake levels equal the pre-084 ones', () => {
 		const ctx = { radius: R, map: cachedPlanetMap(1024) };
 		const lakes = new Float64Array(goldenDirections().map((n) => lakeLevelAt(n, ctx)));
+		const every = Array.from(lakes).filter((_, i) => i % 5 === 0);
+		const worst = Math.max(...every.map((v, i) => Math.abs(v - golden.lakesEvery5[i]!)));
+		expect(worst).toBeLessThanOrEqual(HEIGHT_TOLERANCE);
+		// Bit for bit only on the machine kind that wrote the digest (see terrain-legacy.test.ts).
 		const sha = createHash('sha256').update(new Uint8Array(lakes.buffer)).digest('hex');
-		expect(sha).toBe(golden.lakesSha256);
+		if (RECORDED_HERE) expect(sha).toBe(golden.lakesSha256);
 	});
 
 	test('more than 8 zones are refused', () => {
