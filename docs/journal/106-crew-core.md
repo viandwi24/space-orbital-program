@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/crew.ts` (new) | professions, `ABILITY_KEYS` and `FLIGHT_TOOLS`, `CrewTraitDefinition`, `CrewNamesDefinition`, `CrewMember`, `SaveCrew`; `abilitiesOf`, `placeXp`, `levelOf`, `salaryOf`, `generateCrewName`, `drawTraits` |
-| `packages/core` | part `crewCapacity`; registries `crewTraits` and `crewNames`; `ctx` registrars; commands `crew-hire`, `crew-transfer`, `load-vessel` `crew`; events; `Snapshot.crew`, `VesselSnapshot.crew`; optional `SimSave.crew`; `API_VERSION` 0.1.36 |
+| `packages/core` | part `crewCapacity`; registries `crewTraits` and `crewNames`; `ctx` registrars; commands `crew-hire`, `crew-transfer`, `load-vessel` `crew`; events; `Snapshot.crew`, `VesselSnapshot.crew`; optional `SimSave.crew`; `API_VERSION` 0.1.37 (090 took 0.1.36) |
 | `packages/sim/src/crew.ts` (new) | hire, seats, transfer, places after each step, XP at recovery, death rule in `destroyVessel`, returns and salaries on the world tick, snapshots |
 | `mods/stock` | six traits, a syllable set, a seat in the command pod |
 | tests | `packages/core/test/crew.test.ts` (4), `packages/sim/test/crew.test.ts` (6) |
