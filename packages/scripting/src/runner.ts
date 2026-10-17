@@ -34,9 +34,17 @@ export type BodyStateProvider = (
 	frame: 'parent' | 'system'
 ) => { position: Vec3; velocity: Vec3 };
 
+/**
+ * Answers `date(t)` (plan 081, ADR 0141): the game date at simulation time `t` in the world's
+ * calendar, formatted by the host from the world epoch, so the sandbox never reads a clock (ADR 0039).
+ */
+export type DateProvider = (t: number) => { text: string; julianDate: number };
+
 export interface ScriptRunnerOptions extends ScriptEnvironment {
 	/** Source of `bodies[id].state(t)`; without it that call throws "not available in this host". */
 	bodyState?: BodyStateProvider;
+	/** Source of `date(t)`; without it that call throws "not available in this host". */
+	date?: DateProvider;
 	/** The vessel the script controls; scripts cannot address any other. */
 	vessel: number;
 	/** Wall-clock budget per tick, ms: all guest work (telemetry update, script, promise jobs). Default 10. */
@@ -422,6 +430,18 @@ export async function createScriptRunnerIn(
 	});
 	context.setProp(host, 'bodyState', bodyState);
 	bodyState.dispose();
+	// The same shape for the calendar (plan 081): the host formats, the script gets JSON.
+	const date = context.newFunction('date', (t) => {
+		if (!options.date) throw new Error('date is not available in this host');
+		const when = context.dump(t) as unknown;
+		if (typeof when !== 'number' || !Number.isFinite(when)) {
+			throw new RangeError('date: t must be a finite number (simulation time, s)');
+		}
+		const d = options.date(when);
+		return context.newString(JSON.stringify({ text: d.text, julianDate: d.julianDate }));
+	});
+	context.setProp(host, 'date', date);
+	date.dispose();
 	bind('done', (ok, name, message, stack) => {
 		if (context.dump(ok) === true) status = 'finished';
 		else

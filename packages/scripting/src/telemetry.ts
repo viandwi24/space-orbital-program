@@ -6,6 +6,7 @@
 import {
 	GRAVITATIONAL_CONSTANT,
 	type BodyDefinition,
+	type Epoch,
 	type PartDefinition,
 	type SasMode,
 	type ResourceDefinition,
@@ -19,6 +20,8 @@ export interface ScriptEnvironment {
 	bodies: readonly BodyDefinition[];
 	parts: readonly PartDefinition[];
 	resources: readonly ResourceDefinition[];
+	/** The world's epoch (plan 081): what a host's `date` provider formats from; day 0 when absent. */
+	epoch?: Epoch;
 }
 
 export interface TelemetryPart {

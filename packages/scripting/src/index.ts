@@ -10,6 +10,7 @@ export { checkScriptSyntax } from './syntax.ts';
 export type { SyntaxCheck } from './syntax.ts';
 export type {
 	BodyStateProvider,
+	DateProvider,
 	CommandVerdict,
 	ScriptRunner,
 	ScriptRunnerOptions,

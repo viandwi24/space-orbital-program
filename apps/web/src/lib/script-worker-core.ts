@@ -4,6 +4,7 @@
  */
 import type { ScriptRunner, ScriptRunnerOptions, SyntaxCheck } from '@orbital/scripting';
 import { scriptBodyState } from './script-body-state.ts';
+import { scriptDate } from './script-date.ts';
 import {
 	parseToScriptWorker,
 	type FromScriptWorker,
@@ -36,6 +37,7 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 				vessel: message.vessel,
 				...message.env,
 				bodyState: scriptBodyState(message.env.bodies),
+				date: scriptDate(message.env),
 				budgetMs: message.budgetMs,
 				firstTickBudgetMs: message.firstTickBudgetMs,
 				...(message.fuelPolls === undefined ? {} : { fuelPolls: message.fuelPolls }),
