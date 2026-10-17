@@ -193,6 +193,12 @@ export class SaveController {
 		await this.load(quick);
 	}
 
+	/** The worlds over the same stores (plan 087): the Worlds screen and the menu use it. */
+	async worldsService(): Promise<Worlds> {
+		await this.open();
+		return this.worlds!;
+	}
+
 	/** The info a new flight in `worldId` starts with (plan 087): the record's, or none for the Legacy world. */
 	async worldStartInfo(worldId: string): Promise<WorldInfo | undefined> {
 		await this.open();

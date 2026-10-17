@@ -12,24 +12,36 @@
 	import { bootedMods, modHint } from '../lib/save/mods';
 	import { SaveController } from '../lib/save/save-controller.svelte';
 	import { loadDraft } from '../lib/storage';
+	import type { WorldRecord } from '../lib/save/world-record';
+	import { enterWorld } from '../lib/worlds/enter';
+	import { activeWorldId, type Worlds } from '../lib/worlds/worlds';
 
 	// Load a saved flight (plan 043): the flight page resumes it from `?load=<id>`.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`),
+		// Load a flight lists the active world's saves (plan 087)
+		world: activeWorldId
 	});
 
 	let settingsOpen = $state(false);
 	let ready = $state(false);
 	let hasDraft = $state(false);
 
-	/** The newest readable save of any kind: what Continue opens. */
-	const latest = $derived(saves.entries.find((e) => e.ok) ?? null);
+	/** The world played last (plan 087, ADR 0143): Continue enters it. */
+	let lastWorld = $state<WorldRecord | null>(null);
+	let worlds: Worlds | null = null;
 
 	onMount(() => {
 		hasDraft = loadDraft() !== null;
-		void saves.refresh().finally(() => (ready = true));
+		void saves
+			.worldsService()
+			.then(async (w) => {
+				worlds = w;
+				lastWorld = (await w.list()).flatMap((e) => (e.ok ? [e.record] : []))[0] ?? null;
+			})
+			.finally(() => (ready = true));
 	});
 </script>
 
@@ -39,26 +51,34 @@
 	<h1 class="sr-only">{GAME_NAME}</h1>
 	<p class="lead">{GAME_TAGLINE}</p>
 	<nav aria-label="Main menu">
-		{#if latest?.ok}
+		{#if lastWorld}
+			{@const last = lastWorld}
 			<MenuButton
 				primary
 				icon="play"
 				label="Continue"
-				hint="{latest.meta.name} · {ago(latest.meta.createdAt, saves.now)}"
+				hint="{last.name} · {ago(last.lastPlayedAt, saves.now)}"
 				testid="menu-continue"
-				onclick={() => void saves.load(latest.meta.id)}
+				onclick={() => void (worlds && enterWorld(worlds, last.id, (url) => goto(url)))}
 			/>
 		{:else}
 			<MenuButton
 				icon="play"
 				label="Continue"
-				hint={ready ? 'No saved flight yet' : 'Looking for saved flights'}
+				hint={ready ? 'No world yet' : 'Looking for your worlds'}
 				disabled
 				testid="menu-continue"
 			/>
 		{/if}
 		<MenuButton
-			primary={!latest?.ok}
+			icon="map"
+			label="Worlds"
+			hint="Choose or create a world"
+			href="/worlds"
+			testid="menu-worlds"
+		/>
+		<MenuButton
+			primary={!lastWorld}
 			icon="launch"
 			label="New flight"
 			hint="Build a rocket in the hangar"
@@ -77,7 +97,7 @@
 		<MenuButton
 			icon="open"
 			label="Load a flight"
-			hint="Quicksaves, autosaves and named saves"
+			hint="The saves of the world you are in"
 			testid="menu-load"
 			onclick={() => void saves.showLoad()}
 		/>
