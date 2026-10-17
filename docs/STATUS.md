@@ -111,7 +111,7 @@
 | 100 | [Authored missions, the story line and mission packs](plans/100-authored-missions-and-mission-packs.md) | draft | — | ADR 0098: story line, tracker, mission packs |
 | 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
 | 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | draft | — | ADR 0098: firsts, history book, local achievements |
-| 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | draft | — | ADR 0099: matrix, data vs samples, states, recovery |
+| 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | in-progress | Agent 3 | ADR 0099: matrix, data vs samples, states, recovery |
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
 | 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | done | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
@@ -143,6 +143,7 @@
 | 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | draft | — | Scope pushed out of 095: funds capsule, Recover dialog from `VesselSnapshot.recovery` |
 | 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
+| 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | draft | — | Scope pushed out of 103: the science panel after the dock of 112 |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
