@@ -51,21 +51,22 @@ Keep the editor state model (ADR 0029) and library (ADR 0041) unchanged; this is
 
 ## Acceptance criteria
 
-- [ ] Existing VAB vitest and e2e tests pass.
-- [ ] vitest: the pre-flight verdict is no-go for a design without a control source and names the root part; caution for TWR under 1.2 on the first stage.
-- [ ] vitest: the rail lists the registry's categories in order with a dot on the chosen one; a part card shows `[—]` for a part without a cost.
-- [ ] Screenshots at 1920x1080 and 1024x768 in `docs/journal/assets/093-*.png` with the self-review against refs Hangar; VAB CPU time per frame within 0.2 ms of before (M5).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] Existing VAB vitest and e2e tests pass.
+- [x] vitest: the pre-flight verdict is no-go for a design without a control source and names the root part; caution for TWR under 1.2 on the first stage.
+- [x] vitest: the rail lists the registry's categories in order with a dot on the chosen one; a part card shows `[—]` for a part without a cost.
+- [~] Screenshots at 1920x1080 and 1024x768 in `docs/journal/assets/093-*.png` with the self-review against refs Hangar; VAB CPU time per frame within 0.2 ms of before (M5).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/093-ui-stage-4-hangar.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/093-ui-stage-4-hangar.md` written.
 
-- [ ] ADR 0148.
+- [x] ADR 0148.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0107).
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined: Steps, a rail/card criterion, ADR 0148 (verdict levels beside severity, no fake tool modes, a CoT marker).
+- 2026-10-18 — Done on the branch: verdict levels, catalogue rail and cards, top capsules and Launch, Vessel/Staging/Pre-flight column, tool pill, CoT marker; screenshots with self-review. Frame time on the M5 and Firefox are for Agent 1. Journal: [093](../journal/093-ui-stage-4-hangar.md).
