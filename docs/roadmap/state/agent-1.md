@@ -2,7 +2,7 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 095 merged (cp/f3-095-economy). Merge queue: ready/081. Next in lane: 090 (waits cp/f1-084-sites).
+**Now:** Merged 095 (own), 081, 083; queue empty. Lane blocked: 090 and 068 wait for cp/f1-084-sites (claim/084, Agent 2).
 **Waiting for:** cp/f1-084-sites (090, 068)
 **Updated:** 2026-10-17
 
