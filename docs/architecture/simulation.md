@@ -12,7 +12,7 @@ const sim = await createSim({
   dt: 0.02,                // fixed flight step
   maxFlightFrames: 2,      // physics backends created up front
   maxStepsPerCall: 5000,   // fixed steps per step() call; the rest stays in the accumulator
-  terrain: createTerrainField({ radius: 600_000 }),  // optional (ADR 0043): heights of the ground, the root body's; absent = the flat sphere. May be (body) => field | undefined, asked for every body
+  terrain: createBodyTerrainField,  // optional (ADR 0043, 0067): heights of the ground; absent = the flat sphere. A field for the root body's, or (body) => field | undefined asked for every body; `createBodyTerrainField` follows each body's `terrain` kind (hills, craters with a seed, none)
 });
 sim.step(wallDelta);       // host time in seconds; scaled by warp
 sim.dispatch(command);     // -> { ok: true, vessel? } | { ok: false, reason }; never throws on bad input

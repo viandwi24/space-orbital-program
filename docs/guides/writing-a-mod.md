@@ -148,11 +148,14 @@ export const HomeBody = defineBody({
 	mass: 3.5316e12 / 6.6743e-11, // from mu = G·M
 	radius: km(600),
 	rotationPeriod: 21_600,
-	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) }
+	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
+	terrain: { kind: 'hills' }
 });
 ```
 
 A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (a registered body id) and `orbit` (Kepler elements around it; `stock.cinder` in `mods/stock/src/bodies.ts` is the example, ADR 0052): the sim moves it on rails, gives it a Laplace sphere of influence and switches vessels between spheres (ADR 0051). Gravity is point-mass (one body at a time); the atmosphere is exponential.
+
+**The ground of a body (API 0.1.18, ADR 0067).** `terrain` names the kind of ground the body has: `{ kind: 'hills' }` (the home planet's ridged terrain, for the first body: the launch site stands on its flat zone at latitude 0, longitude 0) or `{ kind: 'craters', seed?: 0..999 }` (the stock moon's cratered regolith with its landing plain at latitude 0, longitude 0; another `seed` is another set of craters, rims and hills, so a third airless body with its own look is one line of data). A body without `terrain` is a smooth sphere, whatever its parent or atmosphere. The kind decides the sim's ground (`createBodyTerrainField`) and what the renderer draws; a kind is code in core and the renderer, so a mod picks one and does not supply a height function. Today `craters` is drawn on any body after the first, `hills` only on the first (a later body with `hills` is a sphere to the renderer while the sim stands vessels on its hills: draft plan 059). On a craters body the sun casts the craters' shadows and stones lie about the ground (ADR 0068); a stone has no collision (draft plan 060).
 
 ## 5. The plugin
 

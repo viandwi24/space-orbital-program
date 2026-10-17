@@ -1,0 +1,16 @@
+# Terrain shadows and stones on an airless body
+
+Checked 2026-10-17 (plan 052).
+
+## Terrain self-shadowing on a height field
+
+- Snyder and Nowrouzezahrai, "Fast Soft Self-Shadowing on Dynamic Height Fields" (Eurographics 2008, Computer Graphics Forum 27(4)): a horizon map over a set of azimuths, visibility summed over the wedges between horizon angles, a multi-resolution pyramid over the height field; real time for fields up to 1024 x 1024 on the GPUs of the time. Source: https://diglib.eg.org/handle/10.2312/CGF.v27i4pp1275-1283 (abstract at https://www.microsoft.com/en-us/research/?p=363284). It fits a *moving* light only through precomputation per azimuth and a large light; here the sun is a single direction, so a per-fragment march is simpler.
+- CryEngine's terrain "ray traced shadows" march the height map toward the sun for far shadows (up to 8 km in its documentation) as the cheap alternative to a shadow map for mountains; its penumbra is a side effect of the resolution. Source: https://cryengine.com/docs/static/engines/cryengine-5/categories/23756816/pages/36339974. This is the method the moon pass follows: a short march through the baked height patch, with the penumbra taken from the sun's angular size instead of the resolution (ADR 0068).
+- The sun seen from the Moon has the angular diameter it has from Earth, about 0.5332 degrees (range 0.524 to 0.542 over the year), so an angular radius of 0.2666 degrees, tangent 0.00466 (`SHADOW_MARCH.sunRadius`). Source: https://www.physics.unlv.edu/~jeffery/astro/moon/sun_moon_angular.html (the Earth-based value; the Moon is at the same distance from the sun to well under 0.2 percent).
+- The bound that lets the march be skipped at a high sun is the repo's own: `MOON_MAX_SLOPE` (0.5, measured 0.447 by the core tests), not an outside fact.
+
+## Instanced stones
+
+- three.js (r186): `InstancedBufferGeometry` renders many copies of one shape with per-instance `InstancedBufferAttribute`s and an `instanceCount`. Source: https://threejs.org/docs/pages/InstancedBufferGeometry.html. `InstancedMesh` (per-instance matrices, `frustumCulled`, bounding volumes not computed automatically) is the other route: https://threejs.org/docs/api/en/objects/InstancedMesh.html. The stones use `InstancedBufferGeometry` on a plain `Mesh`: the instance data is (patch u, v, radius, yaw) and the vertex shader reads the ground height from the baked patch, so a matrix per instance would only be rebuilt on the CPU for nothing.
+- `Object3D.customDepthMaterial`: "a custom material used when rendering the object into the depth map ... needed for correct shadows ... from a mesh whose vertex positions are modified in the vertex shader". Source: https://threejs.org/docs/pages/Object3D.html. The stones' depth material repeats the vertex displacement.
+- Level of detail for scattered rocks: the usual approach is one instanced mesh per detail level with the instances split by distance (three.js has no single official example combining instancing and LOD; the `webgl_instancing_scatter` example is the scatter half). Source: the three.js docs index and example list, https://threejs.org/docs/api/en/objects/InstancedMesh.html. The moon pass uses two meshes (320 and 80 triangles) split at 18 m, rebuilt when the camera has moved 8 m.

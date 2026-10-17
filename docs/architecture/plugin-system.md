@@ -124,7 +124,7 @@ Config literals are checked against the module's schema input type (wrong type, 
 ### `defineResource`, `defineBody`, `defineSystem`
 
 - `defineResource({ id, density, flowMode: 'stack' | 'vessel' | 'none', unit })`
-- `defineBody({ id, mass, radius, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, parent?, orbit? })`
+- `defineBody({ id, mass, radius, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, terrain?: { kind: 'hills' } | { kind: 'craters', seed? }, parent?, orbit? })` (`terrain`: API 0.1.18, ADR 0067; none = a smooth sphere)
 - `defineSystem({ id, phase: 'pre-physics' | 'post-physics', update(world, dt, ctx) })`: `ctx` is `{ registries (read-only), events }`; extra parameters may be omitted.
 - All three are typed identity functions; the registry validates them with zod (`schemas.ts`) on register.
 

@@ -84,3 +84,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0064 | [The planet pass at half resolution as governor rungs, with a depth-aware upsample](0064-half-resolution-planet-pass.md) | accepted | 2026-10-17 |
 | 0065 | [Targets: sim-owned, one relative state, closest approach from conics, scripts read and set them](0065-targets-in-the-sim-and-script-access.md) | accepted | 2026-10-17 |
 | 0066 | [The script editor stays a textarea; its keyboard behaviour is our own code](0066-script-editor-without-a-library.md) | accepted | 2026-10-17 |
+| 0067 | [The ground of a body is data on the body: a terrain kind and a seed](0067-terrain-kind-per-body.md) | accepted | 2026-10-17 |
+| 0068 | [Terrain-cast shadows and stones as instanced geometry on an airless body](0068-terrain-shadows-and-stones-on-the-moon.md) | accepted | 2026-10-17 |
