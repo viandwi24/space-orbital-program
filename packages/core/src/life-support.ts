@@ -23,6 +23,8 @@ export const CONSUMABLES = {
 	food: 'stock.food'
 } as const;
 export const CO2 = 'co2';
+/** What scrubbers run on. */
+export const CHARGE_RESOURCE = 'stock.electric-charge';
 
 /** Units per crew member per day, by mode. */
 export const LIFE_SUPPORT_RATES: Record<Exclude<LifeSupportMode, 'off'>, Record<string, number>> = {

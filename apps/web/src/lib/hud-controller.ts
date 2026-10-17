@@ -42,6 +42,7 @@ import {
 	vesselThrottle
 } from './hud-model';
 import { vesselBlackout } from './blackout';
+import { crewCard, type CrewCard } from './crew-card';
 import { radarReading } from './radar';
 import {
 	nextTarget,
@@ -139,6 +140,8 @@ export interface HudModel {
 	rendezvous: RendezvousInfo | null;
 	/** The target body's dossier from the world's subjects (plan 104); null otherwise. */
 	dossier: Dossier | null;
+	/** The crew card (plan 107); null without crew aboard. */
+	crew: CrewCard | null;
 	toasts: LiveToast[];
 }
 
@@ -514,6 +517,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				targets: targetChoices(snap, Number(v.id), bodies),
 				rendezvous: v.target ? (options.rendezvous?.() ?? null) : null,
 				dossier: targetDossier(snap, v, bodies, content),
+				crew: crewCard(snap, v, (bodies.find((b) => !b.parent) ?? body).rotationPeriod),
 				toasts
 			};
 		}

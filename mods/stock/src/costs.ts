@@ -23,5 +23,9 @@ export const RESOURCE_PRICES = {
 	liquidFuel: 0.8,
 	oxidizer: 0.18,
 	ablator: 0.5,
-	electricCharge: 0
+	electricCharge: 0,
+	supplies: 2,
+	oxygen: 1,
+	water: 0.2,
+	food: 1.5
 } as const;

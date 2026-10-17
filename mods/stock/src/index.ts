@@ -16,6 +16,7 @@ import {
 	ModuleReactionWheel,
 	ModuleResourceContainer,
 	ModuleWing,
+	ModuleScrubber,
 	deposit,
 	withdraw
 } from './modules.ts';
@@ -39,9 +40,16 @@ import {
 	PartDataDrive,
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
+	STOCK_LIFE_SUPPORT_PARTS,
 	PartWing
 } from './parts.ts';
-import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
+import {
+	Ablator,
+	ElectricCharge,
+	LIFE_SUPPORT_RESOURCES,
+	LiquidFuel,
+	Oxidizer
+} from './resources.ts';
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
 import { STOCK_BUILDINGS } from './buildings.ts';
@@ -71,6 +79,7 @@ export const Stock = definePlugin({
 		ctx.resources.register(Oxidizer);
 		ctx.resources.register(ElectricCharge);
 		ctx.resources.register(Ablator);
+		for (const resource of LIFE_SUPPORT_RESOURCES) ctx.resources.register(resource);
 
 		ctx.modules.register(ModuleCommand);
 		ctx.modules.register(ModuleResourceContainer);
@@ -82,6 +91,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleFin);
 		ctx.modules.register(ModuleControlSurface);
 		ctx.modules.register(ModuleWing);
+		ctx.modules.register(ModuleScrubber);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);
@@ -119,6 +129,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartDataDrive);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
 
 		ctx.bodies.register(HomeBody);
 		ctx.bodies.register(MoonBody);

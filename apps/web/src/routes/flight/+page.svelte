@@ -631,7 +631,7 @@
 			</div>
 
 			{#if !touchOn}
-				<div class="br"><CrewPanel /></div>
+				<div class="br"><CrewPanel card={model?.crew ?? null} /></div>
 			{/if}
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}

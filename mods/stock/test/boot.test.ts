@@ -12,8 +12,12 @@ describe('stock boots through the loader', () => {
 		expect(ids('resource')).toEqual([
 			'stock.ablator',
 			'stock.electric-charge',
+			'stock.food',
 			'stock.liquid-fuel',
-			'stock.oxidizer'
+			'stock.oxidizer',
+			'stock.oxygen',
+			'stock.supplies',
+			'stock.water'
 		]);
 		expect(ids('module')).toEqual([
 			'stock.antenna',
@@ -28,6 +32,7 @@ describe('stock boots through the loader', () => {
 			'stock.landing-leg',
 			'stock.reaction-wheel',
 			'stock.resource-container',
+			'stock.scrubber',
 			'stock.wing'
 		]);
 		expect(ids('part')).toEqual([
@@ -45,10 +50,12 @@ describe('stock boots through the loader', () => {
 			'stock.fuel-line',
 			'stock.heat-shield',
 			'stock.landing-legs',
+			'stock.life-support-pack',
 			'stock.nose-cone',
 			'stock.probe-core',
 			'stock.radial-decoupler',
 			'stock.reaction-wheel',
+			'stock.scrubber',
 			'stock.seismometer',
 			'stock.strut',
 			'stock.surface-sampler',

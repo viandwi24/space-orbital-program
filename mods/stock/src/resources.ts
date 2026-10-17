@@ -42,3 +42,36 @@ export const Ablator = defineResource({
 	unit: 'u',
 	price: RESOURCE_PRICES.ablator
 });
+
+// Life support (plan 107, ADR 0181): drawn by the crew from anywhere on the vessel. One unit is
+// one crew member's need for one day.
+export const Supplies = defineResource({
+	id: 'stock.supplies',
+	density: 5,
+	flowMode: 'vessel',
+	unit: 'u',
+	price: RESOURCE_PRICES.supplies
+});
+export const Oxygen = defineResource({
+	id: 'stock.oxygen',
+	density: 1,
+	flowMode: 'vessel',
+	unit: 'u',
+	price: RESOURCE_PRICES.oxygen
+});
+export const Water = defineResource({
+	id: 'stock.water',
+	density: 3,
+	flowMode: 'vessel',
+	unit: 'u',
+	price: RESOURCE_PRICES.water
+});
+export const Food = defineResource({
+	id: 'stock.food',
+	density: 1,
+	flowMode: 'vessel',
+	unit: 'u',
+	price: RESOURCE_PRICES.food
+});
+
+export const LIFE_SUPPORT_RESOURCES = [Supplies, Oxygen, Water, Food] as const;
