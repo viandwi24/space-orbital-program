@@ -189,3 +189,11 @@ export const SCIENCE_RULES = {
 
 /** Data item kind of a science result (ADR 0178 point 5). */
 export const SCIENCE_DATA_KIND = 'stock.science';
+
+/** The parts of a subject id (`<experiment>@<body>:<situation>:<region>`), or undefined. */
+export function parseSubjectId(
+	id: string
+): { experiment: string; body: string; situation: string; region: string } | undefined {
+	const m = /^([^@]+)@([^:]+):([^:]+):([^:]+)$/.exec(id);
+	return m ? { experiment: m[1]!, body: m[2]!, situation: m[3]!, region: m[4]! } : undefined;
+}

@@ -29,13 +29,16 @@ import {
 	type PartLookup,
 	type ResourceDefinition,
 	type VesselDesign,
-	type VesselSnapshot
+	type VesselSnapshot,
+	type DossierEntryDefinition
 } from '@orbital/core';
 
 export interface ContentLookups {
 	parts: PartLookup;
 	modules: { get(id: string): ModuleDefinition | undefined };
 	resources: { get(id: string): ResourceDefinition | undefined };
+	/** Science content for the dossier (plan 104): entries, and labels of situations and experiments. */
+	science?: { dossierEntries: readonly DossierEntryDefinition[]; labelOf(id: string): string };
 }
 
 interface ModelPart {

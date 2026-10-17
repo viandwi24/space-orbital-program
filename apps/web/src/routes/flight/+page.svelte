@@ -585,6 +585,7 @@
 						choices={model.targets}
 						controllable={model.controllable}
 						rendezvous={model.rendezvous}
+						dossier={model.dossier}
 						onselect={(key) => flight?.setTarget(key)}
 						onplan={(id) => flight?.planAid(id)}
 					/>

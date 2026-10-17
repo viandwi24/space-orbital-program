@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Panel from '../ui/Panel.svelte';
+	import BodyCard from './BodyCard.svelte';
+	import type { Dossier } from '@orbital/core';
 	import { settings } from '../settings/settings.svelte';
 	import { formatDistance, formatDuration, formatSpeed } from '../format';
 	import type { TargetChoice, TargetHud } from '../target-model';
@@ -11,6 +13,7 @@
 		choices,
 		controllable = true,
 		rendezvous = null,
+		dossier = null,
 		onselect,
 		onplan
 	}: {
@@ -20,6 +23,8 @@
 		controllable?: boolean;
 		/** Closest approach across spheres and the aids (plan 057). */
 		rendezvous?: RendezvousInfo | null;
+		/** The target body's dossier (plan 104); null for a vessel or without one. */
+		dossier?: Dossier | null;
 		/** Called with a choice key, or null for "no target". */
 		onselect: (key: string | null) => void;
 		/** Place the node of an aid (a `node-set` command). */
@@ -103,6 +108,9 @@
 				{/each}
 			</details>
 		{/if}
+	{/if}
+	{#if dossier}
+		<BodyCard {dossier} />
 	{/if}
 </Panel>
 
