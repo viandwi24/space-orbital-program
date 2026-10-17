@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 104 regions and dossiers handed over as `ready/104` (branch `devc/104-regions` @ a57e84b); next in lane after the owner's go.
+**Now:** 107 crew simulation on `devc/107-crew-sim` (claim/107): plan refined; next ADR 0181 and the core life-support constants.
 **Waiting for:** merge of 104 (`ready/104`).
 **Updated:** 2026-10-17
 
@@ -20,7 +20,7 @@
 | 103 science | done | `devc/103-science` | 2026-10-18 | merged f13f697, cp/f3-103-science |
 | 114 comms-1 | done | `devc/114-comms` | 2026-10-18 | merged 23e3c4a, cp/f4-114-comms-1 |
 | 104 regions | handed-over | `devc/104-regions` | 2026-10-18 | ready/104; API 0.1.45; draft 192 |
-| 107 crew-sim | todo |  |  |  |
+| 107 crew-sim | in-progress | `devc/107-crew-sim` | 2026-10-18 | claim/107 |
 | 067 buoyancy | todo |  |  |  |
 | 123 elements | todo |  |  |  |
 | 099 contracts | todo |  |  |  |
