@@ -1,12 +1,12 @@
 ---
 id: 123
 title: "Body orbits from elements with secular rates and a lunar model"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [080, 122]
 phase: 8
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 123 — Body orbits from elements with secular rates and a lunar model
@@ -24,16 +24,16 @@ A body's path may be Keplerian elements plus secular rates (JPL approximate posi
 ## Scope
 
 **In:**
-- `orbit.model`: `kepler` (today), `kepler-rates`, `series`; schema and evaluators in kepler/core.
-- Osculating elements helper; consumers that need a conic take it at the current time.
-- Accuracy tests against reference positions from the research sources (a handful of dates).
+- `orbit.model`: `kepler` (default, today's fixed conic on the world's time), `kepler-rates` (elements at J2000 with linear rates per second, a mean-motion rate for M, on the J2000 time axis) and `series` (sine and cosine series of ecliptic longitude, latitude and parallax, as the Almanac's Moon); schema in core, evaluators in kepler (`bodyPathState`, `osculatingElements`), with `levelAElements` to turn a JPL Table 1 row into the model's SI form.
+- The sim evaluates a body's path at `t + world epoch offset` for the J2000 models, caches it per step, and gives conic consumers (patched-conic predictions, the target's approach) the osculating elements at the current time.
+- Accuracy tests against JPL Horizons positions at three dates (`docs/research/ephemerides.md`).
 
-**Out:** the Sol pack content (124), DE440 (125).
+**Out:** the Sol pack content (124), DE440 (125), Table 2's long-span terms, `bodies[].state` for scripts on non-kepler bodies (124 brings the first such bodies), the VAB trip planner (it reads stock bodies, which stay `kepler`).
 
 ## Touches
 
 - **Size:** M
-- **Edits:** `packages/kepler`, `packages/core`, `packages/sim`, `apps/web/src/lib/vab`
+- **Edits:** `packages/kepler`, `packages/core`, `packages/sim`
 - **Shared contracts:** **core types (`orbit.model`, rates, series)**
 
 ## Design notes
@@ -49,9 +49,10 @@ Evaluate each body once per step and cache; a rails chunk of 10 s uses the start
 
 ## Acceptance criteria
 
-- [ ] `packages/kepler` test: the Level A evaluator reproduces the published example positions within the stated accuracy at three dates.
-- [ ] `packages/kepler` test: the lunar series stays within the source's stated error against reference positions at three dates.
-- [ ] `packages/sim` test: SOI crossings with a `kepler-rates` moon are found within the bisection tolerance; all existing tests pass.
+- [ ] `bun test packages/kepler/test/body-path.test.ts`: the Level A evaluator puts Mars, the Earth-Moon barycentre and Jupiter within Table 1's nominal errors (λ, φ, ρ) of JPL Horizons at three dates (2000, 2020, 2040).
+- [ ] Same file: the Almanac lunar series stays within 0.3° in λ, 0.2° in β and 0.5 % in distance of Horizons at the same three dates.
+- [ ] `bun test packages/sim/test/body-models.test.ts`: an SOI entry into a `kepler-rates` moon is found within the bisection tolerance of the geometric crossing; `stateInParent` follows the model; stock bodies are unchanged; all existing tests pass.
+- [ ] Same file, `-t benchmark`: a step with ten `kepler-rates`/`series` bodies costs under 0.05 ms more than with fixed conics (indicative here).
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
@@ -64,3 +65,4 @@ Evaluate each body once per step and cache; a rails chunk of 10 s uses the start
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0103, 0095).
+- 2026-10-18 — Refined and claimed by Agent 3. Sources are recorded in `docs/research/ephemerides.md`: JPL Level A Table 1, Horizons reference vectors, and the Almanac low-precision Moon. The new models run on the J2000 axis, and the sim adds the world epoch. The web planner and scripts keep the fixed conic until 124 brings such bodies. Design choices go in ADR 0183.
