@@ -2,7 +2,7 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 110 part actions on `devc/110-part-actions` (claim/110): plan refined; next ADR 0174 and the descriptor schema.
+**Now:** 110 part actions on `devc/110-part-actions`: descriptors, groups, custom groups and keys pushed, rebased on 084 (API 0.1.34); full checks running, then `ready/110`.
 **Waiting for:** merge of 080 (`ready/080`).
 **Updated:** 2026-10-17
 
@@ -13,7 +13,7 @@
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | handed-over | `devc/080-trajectory` | 2026-10-17 | ready/080; ADR 0173; API 0.1.33 |
-| 110 part-actions | in-progress | `devc/110-part-actions` | 2026-10-17 | claim/110 |
+| 110 part-actions | in-progress | `devc/110-part-actions` | 2026-10-17 | claim/110; ADR 0174; API 0.1.34 |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | todo |  |  |  |
 | 106 crew | todo |  |  |  |
