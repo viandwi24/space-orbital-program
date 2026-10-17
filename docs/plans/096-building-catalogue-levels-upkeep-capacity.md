@@ -1,12 +1,12 @@
 ---
 id: 096
 title: "Buildings with costs, construction time, upkeep and capacity limits"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [091, 095, 094]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 096 — Buildings with costs, construction time, upkeep and capacity limits
