@@ -73,6 +73,7 @@ import {
 	type EditorState
 } from '../editor/state';
 import { designStats, type Environment } from '../editor/stats';
+import { stagingModelFromDesign } from '../delta-v';
 import { destinationsOf } from '../editor/trip';
 import { tripView } from '../editor/trip-view';
 import {
@@ -216,10 +217,41 @@ export class VabController {
 	readonly stability = $derived(stabilityOf(this.current.design, this.content));
 	/** Launch cost of the design with full tanks (plan 095, ADR 0113). */
 	readonly cost = $derived(designCost(this.current.design, this.content));
+	/** The tool pill's marker toggles (plan 093, ADR 0148 point 4). */
+	showCom = $state(true);
+	showCot = $state(true);
+	/**
+	 * Centre of thrust of the first stage to fire: its engines' origins weighted by peak thrust along
+	 * the vessel axis, in the main group's frame; null without an engine in that stage.
+	 */
+	readonly cot = $derived.by((): [number, number, number] | null => {
+		const design = this.current.design;
+		const first = new Set(design.stages[0] ?? []);
+		if (first.size === 0) return null;
+		const layout = layoutOf(design, this.lookup);
+		if (!layout) return null;
+		let w = 0;
+		const sum = [0, 0, 0];
+		for (const p of stagingModelFromDesign(design, this.content).parts.values()) {
+			const at = layout.get(p.index);
+			if (!p.engine || !first.has(p.index) || !at) continue;
+			const thrust = Math.max(0, ...p.engine.thrust.map((t) => t.thrust)) * p.thrustFactor;
+			w += thrust;
+			sum[0] += at.position.x * thrust;
+			sum[1] += at.position.y * thrust;
+			sum[2] += at.position.z * thrust;
+		}
+		return w > 0 ? [sum[0] / w, sum[1] / w, sum[2] / w] : null;
+	});
 	readonly markers = $derived.by((): VabMarker[] => {
 		const s = this.stability;
-		if (s.com === null || s.cop === null || s.comEmpty === null) return [];
+		const cot: VabMarker[] =
+			this.showCot && this.cot
+				? [{ key: 'cot', kind: 'cot', group: 'main', position: this.cot }]
+				: [];
+		if (!this.showCom || s.com === null || s.cop === null || s.comEmpty === null) return cot;
 		return [
+			...cot,
 			{ key: 'com', kind: 'com', group: 'main', position: [s.comSide[0], s.com, s.comSide[1]] },
 			{ key: 'cop', kind: 'cop', group: 'main', position: [s.copSide[0], s.cop, s.copSide[1]] },
 			{
