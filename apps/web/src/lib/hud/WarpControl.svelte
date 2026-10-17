@@ -8,12 +8,15 @@
 		warp,
 		usable,
 		met,
+		date = '',
 		onslower,
 		onfaster
 	}: {
 		warp: number;
 		usable: boolean;
 		met: number;
+		/** The game date in the world's calendar (plan 081); empty before the first model. */
+		date?: string;
 		onslower: () => void;
 		onfaster: () => void;
 	} = $props();
@@ -23,7 +26,10 @@
 </script>
 
 <section class="warp" aria-label="Time">
-	<span class="met num" data-testid="hud-met">{formatMet(met)}</span>
+	<span class="when">
+		{#if date}<span class="date num" data-testid="hud-date">{date}</span>{/if}
+		<span class="met num" data-testid="hud-met">{formatMet(met)}</span>
+	</span>
 	<span class="rule" aria-hidden="true"></span>
 	<IconButton
 		icon="slower"
@@ -66,6 +72,16 @@
 		border: 1px solid var(--line);
 		border-radius: var(--r-panel);
 		backdrop-filter: blur(10px) saturate(1.2);
+	}
+	.when {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.15;
+	}
+	.date {
+		font-size: var(--t-label);
+		color: var(--text-muted);
+		white-space: nowrap;
 	}
 	.met {
 		font-size: var(--t-sm);

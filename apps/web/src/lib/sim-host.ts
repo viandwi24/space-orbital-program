@@ -101,7 +101,8 @@ export function catalogOf(sim: Sim): Catalog {
 		plugins: [...sim.report.order],
 		parts: sim.registries.parts.list(),
 		bodies: sim.registries.bodies.list(),
-		resources: sim.registries.resources.list()
+		resources: sim.registries.resources.list(),
+		epoch: { ...sim.worldInfo.epoch }
 	};
 }
 

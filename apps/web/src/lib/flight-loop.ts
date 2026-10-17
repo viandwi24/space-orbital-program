@@ -634,6 +634,7 @@ export function startFlight(options: FlightOptions): Flight {
 				design,
 				content: options.content,
 				bodies: c.bodies,
+				...(c.epoch ? { epoch: c.epoch } : {}),
 				project: (world) => renderer?.project(world) ?? null,
 				rendezvous: () => targetView?.info ?? null,
 				...(resumed
