@@ -1,7 +1,7 @@
 ---
 id: 069
 title: "Mod-defined catalogue categories"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [034, 086]
 phase: 3

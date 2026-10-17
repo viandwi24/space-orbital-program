@@ -16,7 +16,7 @@
 | 088 hud | done | `devb/088-hud` | 2026-10-17 | merged d2caaa4, cp/f2-088-hud |
 | 085 orientation | done | `devb/085-orientation` | 2026-10-17 | merged c8298c8, cp/f1-085-orientation |
 | 076 roadmap-page | done | `devb/076-roadmap-page` | 2026-10-17 | merged c262e53, cp/f1-076-roadmap-page |
-| 069 categories | handed-over | `devb/069-categories` | 2026-10-18 | ready/069; ADR 0146; API 0.1.41 |
+| 069 categories | done | `devb/069-categories` | 2026-10-17 | merged 704a0fc, cp/f2-069-categories |
 | 089 menus | in-progress | `devb/089-menus` | 2026-10-18 | claim/089 |
 | 093 hangar | todo |  |  |  |
 | 112 dock | todo |  |  |  |
