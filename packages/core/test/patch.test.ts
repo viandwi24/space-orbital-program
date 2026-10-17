@@ -42,7 +42,7 @@ const source = (def: AnyPatchDefinition, by: string, bootIndex: number): PatchSo
 function run(r: Registries, patches: PatchSource[]) {
 	return applyPatches({
 		patches,
-		registries: { part: r.parts, resource: r.resources, body: r.bodies },
+		registries: { part: r.parts, resource: r.resources, body: r.bodies, building: r.buildings },
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
 			for (const [moduleId, config] of (entry as PartDefinition).modules ?? []) {
@@ -313,7 +313,12 @@ describe('applyPatches: select', () => {
 					0
 				)
 			],
-			registries: { part: r.parts, resource: r.resources, body: reg as never }
+			registries: {
+				part: r.parts,
+				resource: r.resources,
+				body: reg as never,
+				building: r.buildings
+			}
 		});
 		return patches[0]!.applied;
 	};
@@ -486,7 +491,7 @@ describe('loadPlugins with patches', () => {
 	test('no patches: empty report fields', () => {
 		const { report } = loadPlugins([base]);
 		expect(report.patches).toEqual([]);
-		expect(report.provenance).toEqual({ part: {}, resource: {}, body: {} });
+		expect(report.provenance).toEqual({ part: {}, resource: {}, body: {}, building: {} });
 	});
 
 	test('patching a module registry or a duplicate patch id is a load error', () => {

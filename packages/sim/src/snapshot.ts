@@ -31,6 +31,7 @@ import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { terrainUnder } from './terrain.ts';
 import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
+import { sitesSnapshot } from './buildings.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -155,7 +156,8 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			rotation: qAboutY(body.omega * core.t)
 		})),
 		rules: rulesView(core),
-		economy: economySnapshot(core)
+		economy: economySnapshot(core),
+		sites: sitesSnapshot(core)
 	};
 }
 

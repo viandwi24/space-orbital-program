@@ -10,6 +10,7 @@ import {
 	SITE_FLAT_RADIUS,
 	type TerrainZone
 } from './terrain.ts';
+import { LEGACY_LAYOUT, placedBuildingSchema, roadsSchema } from './buildings.ts';
 import type { WorldInfo } from './world.ts';
 
 export const SITE_KINDS = ['space-center', 'base', 'outpost'] as const;
@@ -32,7 +33,10 @@ export const siteSchema = z.object({
 	/** Exactly flat within this many metres of arc, then blended to the terrain over `blendWidth`. */
 	flatRadius: z.number().positive(),
 	blendWidth: z.number().positive(),
-	pads: z.array(sitePadSchema).min(1)
+	pads: z.array(sitePadSchema).min(1),
+	/** Placed buildings and road cells (plan 090, ADR 0115); absent = none. */
+	buildings: z.array(placedBuildingSchema).optional(),
+	roads: roadsSchema.optional()
 });
 
 export type Site = z.infer<typeof siteSchema>;
@@ -48,7 +52,9 @@ export const LEGACY_SITE: Site = {
 	longitude: 0,
 	flatRadius: SITE_FLAT_RADIUS,
 	blendWidth: SITE_BLEND_WIDTH,
-	pads: [{ east: 0, north: 0 }]
+	pads: [{ east: 0, north: 0 }],
+	buildings: LEGACY_LAYOUT.buildings,
+	roads: LEGACY_LAYOUT.roads
 };
 
 /** A world's sites; a world without any (format-5 saves from before plan 084) has the Legacy site. */

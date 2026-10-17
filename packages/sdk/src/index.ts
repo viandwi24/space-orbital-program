@@ -32,6 +32,15 @@ export {
 } from '@orbital/core';
 export { DEFAULT_PRESET, IDENTITY_RULES, ruleValueProblem } from '@orbital/core';
 export {
+	buildingDefinitionSchema,
+	canPlace,
+	CELL_SIZE,
+	footprint,
+	LEGACY_LAYOUT,
+	LEGACY_SITE,
+	sitesOf
+} from '@orbital/core';
+export {
 	CURRENCIES,
 	ECONOMY_CAUSES,
 	ECONOMY_RULES,
@@ -133,6 +142,13 @@ export type {
 	ResourceStore,
 	Rng,
 	Balances,
+	BuildingDefinition,
+	BuildingLevel,
+	Cell,
+	PlacedBuilding,
+	PlaceReason,
+	PlaceResult,
+	Rotation,
 	ChargeDefinition,
 	Currency,
 	DesignCost,

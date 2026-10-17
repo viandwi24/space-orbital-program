@@ -6,6 +6,7 @@
 import type {
 	ActionGroupDefinition,
 	AnyPatchDefinition,
+	BuildingDefinition,
 	DataKindDefinition,
 	BasePluginContext,
 	BodyDefinition,
@@ -158,6 +159,16 @@ export const defineRule = <const R extends RuleDefinition>(def: R): R => def;
 
 /** A named set of rule values a world is created with (Sandbox, Science, Career, ...). */
 export const definePreset = (def: PresetDefinition): PresetDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineBuilding
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A building kind (plan 090, ADRs 0097 and 0115): footprint in 10 m cells, entrances, levels,
+ * capabilities. Register it with `ctx.buildings.register(...)`; `canPlace` decides where it fits.
+ */
+export const defineBuilding = (def: BuildingDefinition): BuildingDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineCharge

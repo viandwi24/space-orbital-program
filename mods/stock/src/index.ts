@@ -42,6 +42,7 @@ import {
 import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
+import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 
@@ -97,6 +98,7 @@ export const Stock = definePlugin({
 		for (const rule of STOCK_RULES) ctx.rules.register(rule);
 		for (const preset of STOCK_PRESETS) ctx.presets.register(preset);
 		for (const charge of STOCK_CHARGES) ctx.charges.register(charge);
+		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);
 
 		ctx.provide('stock', stockApi);
 	}
@@ -112,5 +114,6 @@ export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';
 export * from './charges.ts';
+export * from './buildings.ts';
 export * from './data.ts';
 export * from './action-groups.ts';

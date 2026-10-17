@@ -23,6 +23,7 @@ import {
 	type PresetDefinition,
 	type RuleDefinition
 } from './rules.ts';
+import { buildingDefinitionSchema, type BuildingDefinition } from './buildings.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import { dataKindDefinitionSchema, type DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -188,6 +189,8 @@ export interface Registries {
 	dataKinds: Registry<DataKindDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	actionGroups: Registry<ActionGroupDefinition>;
+	/** Buildings (plan 090, ADR 0115). */
+	buildings: Registry<BuildingDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -205,6 +208,7 @@ export function createRegistries(): Registries {
 		}),
 		actionGroups: createRegistry<ActionGroupDefinition>('action-group', {
 			schema: actionGroupDefinitionSchema
-		})
+		}),
+		buildings: createRegistry<BuildingDefinition>('building', { schema: buildingDefinitionSchema })
 	};
 }

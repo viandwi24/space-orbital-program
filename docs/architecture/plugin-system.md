@@ -201,6 +201,10 @@ The values belong to the world, not to the registry: `WorldInfo.rules` in `SimSa
 
 `PartDefinition.cost` and `ResourceDefinition.price` are optional schema fields; `ctx.charges` fills the `charges` registry (report kind `charge`, `chargeDefinitionSchema`). The pure functions are in `packages/core/src/economy.ts`: `designCost` (part costs plus the initial contents found through each module's `store` and `state(config)`), `contentsValue`, `chargeOn`, `projectBalances`, `recoveryFactor`, `recoveryQuote`. The sim reads the rule ids in `ECONOMY_RULES` and writes its own causes from `ECONOMY_CAUSES`.
 
+## Buildings (API 0.1.36, plan 090, ADR 0115)
+
+`ctx.buildings` fills the `buildings` registry (`buildingDefinitionSchema`; report kind `building`; patch target `building`). `packages/core/src/buildings.ts` holds the grid (10 m cells centred on multiples of 10 m, east and north of the site centre), `footprint`, `entranceFronts`, `canPlace` with its reasons, `pathToRoad` (BFS over free cells) and `LEGACY_LAYOUT`, today's launch site on the grid, which `LEGACY_SITE` carries. It does not import `schemas.ts` (that module imports `sites.ts`, which imports this one).
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

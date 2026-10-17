@@ -25,6 +25,7 @@ import {
 } from './patch.ts';
 import { createRegistries, createRegistry, RegistryError, type Registries } from './registry.ts';
 import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './rules.ts';
+import type { BuildingDefinition } from './buildings.ts';
 import type { ChargeDefinition } from './economy.ts';
 import type { DataKindDefinition } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -77,6 +78,8 @@ export interface BasePluginContext {
 	readonly charges: Registrar<ChargeDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
+	/** Buildings (plan 090, ADR 0115). */
+	readonly buildings: Registrar<BuildingDefinition>;
 	/** Action groups (plan 110, ADR 0174). */
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/**
@@ -113,7 +116,8 @@ export const REGISTRY_KINDS = [
 	'preset',
 	'charge',
 	'data-kind',
-	'action-group'
+	'action-group',
+	'building'
 ] as const;
 export type RegistryKind = (typeof REGISTRY_KINDS)[number];
 
@@ -158,6 +162,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'charges',
 	'dataKinds',
 	'actionGroups',
+	'buildings',
 	'patches',
 	'optional',
 	'provide'
@@ -334,6 +339,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			charges: registrar(registries.charges),
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
+			buildings: registrar(registries.buildings),
 			patches: {
 				register(def) {
 					if (!(PATCH_TARGETS as readonly string[]).includes(def.target)) {
@@ -399,7 +405,12 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 		.map(({ def, by }) => ({ def, by, bootIndex: bootIndex.get(by)! }));
 	const patched = applyPatches({
 		patches: patchSources,
-		registries: { part: registries.parts, resource: registries.resources, body: registries.bodies },
+		registries: {
+			part: registries.parts,
+			resource: registries.resources,
+			body: registries.bodies,
+			building: registries.buildings
+		},
 		checkEntry: (target, entry) => {
 			if (target !== 'part') return undefined;
 			const problems = partModuleProblems(entry as PartDefinition, registries.modules);
@@ -457,7 +468,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				preset: section(registries.presets),
 				charge: section(registries.charges),
 				'data-kind': section(registries.dataKinds),
-				'action-group': section(registries.actionGroups)
+				'action-group': section(registries.actionGroups),
+				building: section(registries.buildings)
 			},
 			patches: patched.patches,
 			provenance: patched.provenance

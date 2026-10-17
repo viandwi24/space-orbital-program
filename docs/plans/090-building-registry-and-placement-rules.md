@@ -1,8 +1,8 @@
 ---
 id: 090
 title: "Buildings as data: `defineBuilding` and the placement rules"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [084, 079]
 phase: 5
 created: 2026-10-17
@@ -17,7 +17,7 @@ updated: 2026-10-17
 
 ## Context
 
-- ADRs: 0097 (points 1, 4, 5), 0104, 0110, 0170; an ADR addendum at claim fixes the grid (below)
+- ADRs: 0097 (points 1, 4, 5), 0104, 0110, 0170, 0115 (written at claim: grid, rules, Legacy layout)
 - Read: ADR 0097, plan 084 (the `Site` type in `WorldInfo.sites`, flat zones), plan 079 (`definePatch`, `PATCH_TARGETS`), `packages/renderer/src/site.ts` (today's layout: `PAD_RADIUS`, `BUILDINGS`, `ROADS`, site metres with +x east, +z south, origin at the pad centre), `refs/reverse-engineering-ksp2/beyond/08-space-center-building-and-colonies.md` §3 and §7 (summarised in ADR 0097).
 
 ## Scope
@@ -55,20 +55,23 @@ Rules are pure so the UI previews them and the sim validates the same. The grid 
 
 ## Acceptance criteria
 
-- [ ] `packages/core` tests: overlap, outside-zone, pad hazard, body and missing-road cases each return their reason; a valid placement returns ok and the completed road cells; rotation 90 swaps the footprint.
-- [ ] `packages/sim` test: `place-building` with an invalid cell is refused with the same reason text; a valid one appears in `Snapshot.sites` with its roads and survives a save and resume byte for byte; `remove-building` removes it.
-- [ ] `mods/stock` test: every stock building validates, and every building of the Legacy layout passes `canPlace` against the others.
-- [ ] `packages/core` test: a patch on `stock.launchpad-s` (`levels.0.capacity.launch-pad`) applies and shows in the load report.
-- [ ] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/core` tests: overlap, outside-zone, pad hazard, body and missing-road cases each return their reason; a valid placement returns ok and the completed road cells; rotation 90 swaps the footprint.
+- [x] `packages/sim` test: `place-building` with an invalid cell is refused with the same reason text; a valid one appears in `Snapshot.sites` with its roads and survives a save and resume byte for byte; `remove-building` removes it.
+- [x] `mods/stock` test: every stock building validates, and every building of the Legacy layout passes `canPlace` against the others.
+- [x] `packages/core` test: a patch on `stock.launchpad-s` (`levels.0.capacity.launch-pad`) applies and shows in the load report.
+- [x] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/090-building-registry-and-placement-rules.md` written.
-- [ ] `plugin-system.md`, `guides/writing-a-mod.md` (buildings).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/090-building-registry-and-placement-rules.md` written.
+- [x] `plugin-system.md`, `guides/writing-a-mod.md` (buildings).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0104).
 - 2026-10-17 — Refined by Agent 1 while waiting for `cp/f1-084-sites` (body only, status stays `draft`): 10 m grid and 90-degree rotations, the definition and site shapes, reason codes, BFS road completion, stock sizes and hazard radii chosen so today's site is a valid Legacy layout, `building` as a patch target, measurable criteria. Depends on 084's `Site` type; if 084 names fields differently, follow 084.
+- 2026-10-17 — Claimed by Agent 1 (Lead, M5) on `lead/090-buildings` (claim/090). ADR 0115 written first. Deviations from the refined draft: cells are centred on multiples of 10 m (so the pad is centred); hazard is measured from the footprint centre to the other's cell centres; `Site.buildings`/`roads` are optional, not defaulted (other code builds `Site` objects); the Legacy layout lives in core next to `LEGACY_SITE` and the garages, sheds, containers and masts stay renderer scenery. The patch criterion sits in `mods/stock/test/buildings.test.ts` (core may not import stock). `API_VERSION` 0.1.36.
+- 2026-10-17 — Acceptance, on the M5: `bun test packages/core/test/buildings.test.ts` 8 pass (each reason, completed road cells `(1,-1)…(1,-4)`, rotation 90, entrance schema) · `bun test mods/stock/test/buildings.test.ts` 3 pass (11 kinds validate and are registered; every Legacy building passes `canPlace` against the others; the `stock.launchpad-s` capacity patch applies) · `bun test packages/sim/test/buildings.test.ts` 3 pass (refusal text "overlaps building legacy-pad"; a dish at (10, −2) in `Snapshot.sites`, save and resume byte for byte, removal) · `bun run test` 1443 pass, 0 fail · web vitest 105 files, 915 passed · typecheck exit 0 · build exit 0 · docs:check OK.
+
