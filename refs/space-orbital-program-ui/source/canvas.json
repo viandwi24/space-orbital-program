@@ -1,0 +1,38 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Docked.dc.html": { "h": 451, "title": "Flight deck — docked close-up", "w": 1154, "x": 2000, "y": 0 },
+    "Home.dc.html": { "h": 1080, "is_interactive": true, "title": "0 · Home", "w": 1920, "x": -5, "y": -1200 },
+    "Worlds.dc.html": { "h": 1080, "is_interactive": true, "title": "0b · Worlds", "w": 1920, "x": 2000, "y": -1200 },
+    "SpaceCenter.dc.html": { "h": 1080, "is_interactive": true, "title": "W · Space Center", "w": 1920, "x": 4005, "y": -1200 },
+    "Hangar.dc.html": { "h": 1080, "is_interactive": true, "title": "W1 · Hangar", "w": 1920, "x": 4005, "y": 0 },
+    "Launch.dc.html": { "h": 1080, "is_interactive": true, "title": "W2 · Launch sites", "w": 1920, "x": 4005, "y": 1200 },
+    "Astronauts.dc.html": { "h": 1080, "is_interactive": true, "title": "W3 · Astronaut Complex", "w": 1920, "x": 4005, "y": 2400 },
+    "Research.dc.html": { "h": 1080, "is_interactive": true, "title": "W4 · R&D", "w": 1920, "x": 4005, "y": 3600 },
+    "Admin.dc.html": { "h": 1080, "is_interactive": true, "title": "W5 · Administration", "w": 1920, "x": 4005, "y": 4800 },
+    "Main.dc.html": { "h": 1080, "is_interactive": true, "title": "1 · Flight", "w": 1920, "x": -5, "y": 0 },
+    "Map.dc.html": { "h": 1080, "is_interactive": true, "title": "3 · Mission Center", "w": 1920, "x": -5, "y": 2400 },
+    "MapView.dc.html": { "h": 1080, "is_interactive": true, "title": "2 · Map", "w": 1920, "x": -5, "y": 1200 }
+  },
+  "createdOnFiles": { "at": "2026-10-17T09:00:00Z", "v": 1 },
+  "designSystems": [],
+  "launch": { "view": "canvas" },
+  "notes": {},
+  "order": [
+    "Home.dc.html",
+    "Worlds.dc.html",
+    "SpaceCenter.dc.html",
+    "Hangar.dc.html",
+    "Launch.dc.html",
+    "Astronauts.dc.html",
+    "Research.dc.html",
+    "Admin.dc.html",
+    "Main.dc.html",
+    "Docked.dc.html",
+    "MapView.dc.html",
+    "Map.dc.html"
+  ],
+  "pages": [],
+  "title": "Flight HUD — Tesla-style refine"
+}

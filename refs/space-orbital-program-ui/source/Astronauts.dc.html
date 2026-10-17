@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Astronaut Complex — crew roster</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- ===== Top ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Back to Space Center" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <div style="font-size: 12px; line-height: 1; font-weight: 700; color: #FFFFFF;">Astronaut Complex</div>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">[WORLD NAME 1]</div>
+    </div>
+  </div>
+  <div role="tablist" aria-label="Crew lists" style="position: absolute; left: 50%; top: 24px; transform: translateX(-50%); display: flex; gap: 2px; height: 44px; box-sizing: border-box; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+      <button role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}<span style="{{t.countStyle}}">{{t.count}}</span></button>
+    </sc-for>
+  </div>
+  <div style="position: absolute; right: 24px; top: 24px; height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; font-size: 10px; line-height: 1; color: #A1A1AA;">
+    <span>Capacity <b style="color: #FFFFFF;">[—]</b></span>
+    <span>Hire cost <b style="color: #FFFFFF;">[—]</b></span>
+    <span>Funds <b style="color: #FFFFFF;">[—]</b></span>
+  </div>
+
+  <!-- ===== Left · list ===== -->
+  <div style="position: absolute; left: 24px; top: 92px; bottom: 24px; width: 420px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+    <div style="display: flex; gap: 4px;">
+      <sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+        <button aria-pressed="{{r.on}}" onClick="{{r.pick}}" style="{{r.style}}">{{r.label}}</button>
+      </sc-for>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; overflow-y: auto;">
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="5">
+        <button aria-pressed="{{p.on}}" onClick="{{p.pick}}" style="{{p.style}}">
+          <div style="{{p.avatar}}">{{p.initials}}</div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+            <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{p.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{p.role}} · Level {{p.level}}</div>
+          </div>
+          <div style="{{p.chipStyle}}">{{p.status}}</div>
+        </button>
+      </sc-for>
+      <sc-if value="{{emptyList}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 24px 8px; text-align: center; font-size: 10px; line-height: 1.5; color: #8B8B93;">Nobody here yet.</div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- ===== Right · profile ===== -->
+  <div style="position: absolute; left: 468px; right: 24px; top: 92px; bottom: 24px; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 88px; height: 88px; flex: none; border-radius: 50%; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 1; font-weight: 600;">{{sel.initials}}</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 28px; line-height: 1; font-weight: 300; color: #FFFFFF;">{{sel.full}}</div>
+          <div style="display: flex; gap: 4px;">
+            <sc-for list="{{sel.chips}}" as="c" hint-placeholder-count="3">
+              <div style="height: 20px; padding: 0 8px; display: flex; align-items: center; border-radius: 999px; font-size: 9px; line-height: 1; font-weight: 700; background: rgba(255,255,255,0.08); color: #E4E4E7;">{{c}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; line-height: 1;"><span style="color: #A1A1AA;">Experience · level {{sel.level}}</span><span style="color: #FFFFFF; font-weight: 600;">[—] / [—] XP</span></div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.1);"></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+        <sc-for list="{{sel.stats}}" as="s" hint-placeholder-count="6">
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 9px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+            <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+            <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.v}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">ROLE SKILLS</div>
+        <sc-for list="{{sel.skills}}" as="s" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 8px; height: 26px; font-size: 11px; line-height: 1; color: #E4E4E7;">
+            <div style="{{s.dot}}"></div>{{s.text}}
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: auto; display: flex; gap: 6px;">
+        <sc-for list="{{sel.actions}}" as="a" hint-placeholder-count="3">
+          <button style="{{a.style}}">{{a.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">FLIGHT LOG</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">this world only</div>
+      </div>
+      <sc-for list="{{sel.log}}" as="l" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px; border-radius: 8px;">
+          <div style="width: 26px; height: 26px; flex: none; border-radius: 8px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{l.d}}"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{l.title}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{l.sub}}</div>
+          </div>
+          <div style="margin-left: auto; font-size: 9px; line-height: 1; color: #8B8B93;">{{l.t}}</div>
+        </div>
+      </sc-for>
+      <sc-if value="{{sel.noLog}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 24px 8px; text-align: center; font-size: 10px; line-height: 1.5; color: #8B8B93;">No flights yet.</div>
+      </sc-if>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'roster', role: 'all', sel: 'valentina' };
+  }
+  renderVals() {
+    const st = this.state;
+    const ROCKET = 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21';
+    const FLAG = 'M5 21 V4 M5 4 H17 L14 8 L17 12 H5';
+    const EVA = 'M12 3 A8 8 0 1 1 11.99 3 Z M7 10 H17 V12 Q12 15.5 7 12 Z';
+    const K = [
+      { id: 'valentina', list: 'roster', initials: 'VK', name: 'Valentina', full: 'Valentina Kerman', role: 'Pilot', level: '[—]', status: 'EVA', busy: true,
+        where: 'On EVA · [VESSEL NAME]', suit: 'EVA suit', radio: 'Suit radio · on' },
+      { id: 'jebediah', list: 'roster', initials: 'JK', name: 'Jebediah', full: 'Jebediah Kerman', role: 'Pilot', level: '[—]', status: 'ON BOARD', busy: true,
+        where: 'On board · [VESSEL NAME]', suit: 'Flight suit', radio: 'Suit radio · weak' },
+      { id: 'bob', list: 'roster', initials: 'BK', name: 'Bob', full: 'Bob Kerman', role: 'Scientist', level: '[—]', status: 'ON BOARD', busy: true,
+        where: 'On board · [VESSEL NAME]', suit: 'Flight suit', radio: 'No transmitter' },
+      { id: 'k4', list: 'roster', initials: '—', name: '[KERBAL]', full: '[KERBAL NAME]', role: 'Engineer', level: '[—]', status: 'AVAILABLE', busy: false,
+        where: 'At the Space Center', suit: 'Flight suit', radio: 'Suit radio · on' },
+      { id: 'a1', list: 'applicants', initials: '—', name: '[APPLICANT 1]', full: '[APPLICANT NAME]', role: 'Pilot', level: '0', status: 'HIRE', busy: false, where: 'Applicant', suit: '—', radio: '—' },
+      { id: 'a2', list: 'applicants', initials: '—', name: '[APPLICANT 2]', full: '[APPLICANT NAME]', role: 'Scientist', level: '0', status: 'HIRE', busy: false, where: 'Applicant', suit: '—', radio: '—' }
+    ];
+    const TABS = [['roster', 'Roster'], ['applicants', 'Applicants'], ['lost', 'Lost']];
+    const tabs = TABS.map(([k, label]) => {
+      const on = st.tab === k;
+      const n = K.filter((x) => x.list === k).length;
+      return {
+        label, on, count: String(n), pick: () => this.setState({ tab: k, sel: (K.find((x) => x.list === k) || {}).id || st.sel }),
+        style: 'height:34px;padding:0 14px;border:none;border-radius:999px;display:flex;align-items:center;gap:6px;font-size:11px;line-height:1;font-weight:700;background:' + (on ? '#F4F4F5' : 'transparent') + ';color:' + (on ? '#0B0B0C' : '#A1A1AA'),
+        countStyle: 'font-size:9px;font-weight:700;color:' + (on ? '#52525B' : '#8B8B93')
+      };
+    });
+    const ROLES = [['all', 'All'], ['Pilot', 'Pilots'], ['Engineer', 'Engineers'], ['Scientist', 'Scientists']];
+    const roles = ROLES.map(([k, label]) => ({
+      label, on: st.role === k, pick: () => this.setState({ role: k }),
+      style: 'height:24px;padding:0 10px;border-radius:999px;font-size:9px;line-height:1;font-weight:700;border:none;background:' + (st.role === k ? '#F4F4F5' : 'rgba(255,255,255,0.06)') + ';color:' + (st.role === k ? '#0B0B0C' : '#A1A1AA')
+    }));
+    const list = K.filter((x) => x.list === st.tab && (st.role === 'all' || x.role === st.role));
+    const chip = (busy, hire) => 'margin-left:auto;flex:none;height:18px;padding:0 7px;display:flex;align-items:center;box-sizing:border-box;border-radius:999px;font-size:8px;line-height:1;font-weight:700;letter-spacing:0.08em;background:' + (hire ? '#F4F4F5' : (busy ? 'rgba(255,255,255,0.12)' : 'transparent')) + ';color:' + (hire ? '#0B0B0C' : (busy ? '#FFFFFF' : '#C4C4CC')) + ';border:1px solid ' + (busy || hire ? 'transparent' : 'rgba(255,255,255,0.18)');
+    const people = list.map((x) => {
+      const on = st.sel === x.id;
+      return {
+        initials: x.initials, name: x.name, role: x.role, level: x.level, status: x.status, on,
+        pick: () => this.setState({ sel: x.id }),
+        style: 'width:100%;height:52px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:10px;border:none;text-align:left;color:#E4E4E7;background:' + (on ? 'rgba(255,255,255,0.07)' : 'transparent'),
+        avatar: 'width:32px;height:32px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;font-weight:700;background:' + (x.list === 'applicants' ? 'rgba(255,255,255,0.12)' : '#F4F4F5') + ';color:' + (x.list === 'applicants' ? '#FFFFFF' : '#0B0B0C'),
+        chipStyle: chip(x.busy, x.status === 'HIRE')
+      };
+    });
+    const s = K.find((x) => x.id === st.sel) || K[0];
+    const ok = 'width:6px;height:6px;flex:none;border-radius:50%;background:#7BD88F';
+    const off = 'width:6px;height:6px;flex:none;border-radius:50%;background:rgba(255,255,255,0.25)';
+    const SK = {
+      Pilot: [['SAS hold: stability, prograde, retrograde', true], ['SAS hold: normal, radial', true], ['SAS hold: target, maneuver', false]],
+      Scientist: [['Reset experiments', true], ['Science bonus on data', true], ['Field lab operation', false]],
+      Engineer: [['Repair parts', true], ['Repack parachutes', true], ['Mine & refine resources', false]]
+    };
+    const btn = (primary) => 'flex:1;height:44px;border:none;border-radius:12px;font-size:12px;line-height:1;font-weight:700;background:' + (primary ? '#F4F4F5' : 'rgba(255,255,255,0.08)') + ';color:' + (primary ? '#0B0B0C' : '#E4E4E7');
+    const isApplicant = s.list === 'applicants';
+    const sel = {
+      initials: s.initials, full: s.full, level: s.level,
+      chips: [s.role, s.where, s.suit],
+      stats: [{ k: 'COURAGE', v: '[—]' }, { k: 'STUPIDITY', v: '[—]' }, { k: 'MISSIONS', v: isApplicant ? '0' : '[—]' },
+              { k: 'RADIO', v: s.radio }, { k: 'TIME IN SPACE', v: isApplicant ? '0' : '[—]' }, { k: 'EVA TIME', v: isApplicant ? '0' : '[—]' }],
+      skills: (SK[s.role] || []).map(([text, have]) => ({ text, dot: have ? ok : off })),
+      actions: isApplicant
+        ? [{ label: 'Hire · [—] funds', style: btn(true) }, { label: 'Dismiss', style: btn(false) }]
+        : s.busy
+          ? [{ label: 'Go to vessel', style: btn(true) }, { label: 'Equip radio', style: btn(false) }, { label: 'Train', style: btn(false) }]
+          : [{ label: 'Assign to vessel', style: btn(true) }, { label: 'Train', style: btn(false) }, { label: 'Retire', style: btn(false) }],
+      log: isApplicant || s.id === 'k4' ? [] : [
+        { title: '[VESSEL NAME]', sub: 'Orbiting Kerbin · current mission', t: 'T+ 2y 70d', d: ROCKET },
+        { title: s.id === 'valentina' ? 'EVA' : 'Orbit reached', sub: 'Kerbin', t: '[—]', d: s.id === 'valentina' ? EVA : FLAG },
+        { title: '[PREVIOUS MISSION]', sub: '[—]', t: '[—]', d: FLAG }
+      ]
+    };
+    sel.noLog = sel.log.length === 0;
+    return { tabs, roles, people, emptyList: people.length === 0, sel };
+  }
+}
+</script>
+</body>
+</html>

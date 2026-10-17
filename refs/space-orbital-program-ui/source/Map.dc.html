@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mission Center</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #000000; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- Starfield -->
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="40">
+      <div style="{{s.style}}"></div>
+    </sc-for>
+  </div>
+
+  <!-- ===== System map (full-bleed canvas) ===== -->
+  <svg role="img" aria-label="System map of Kerbin, its moons, relays and vessels" width="1920" height="1080" viewBox="0 0 1920 1080" style="position: absolute; left: 0; top: 0;">
+    <defs>
+      <radialGradient id="kerbinG" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#4C7FAE"></stop>
+        <stop offset="55%" stop-color="#1D4468"></stop>
+        <stop offset="100%" stop-color="#0A1D30"></stop>
+      </radialGradient>
+    </defs>
+    <g transform="translate(960 520) scale(0.92) translate(-960 -560)" font-family="Manrope, sans-serif">
+      <g style="{{layerOrbits}}">
+        <circle cx="960" cy="560" r="400" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="2 6"></circle>
+        <circle cx="960" cy="560" r="500" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2 6"></circle>
+        <circle cx="960" cy="560" r="230" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"></circle>
+        <ellipse cx="960" cy="560" rx="300" ry="260" transform="rotate(25 960 560)" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"></ellipse>
+        <ellipse cx="975" cy="560" rx="150" ry="128" transform="rotate(-15 975 560)" fill="none" stroke="{{selfOrbit}}" stroke-width="1.6"></ellipse>
+      </g>
+
+      <circle cx="960" cy="560" r="96" fill="none" stroke="rgba(130,175,255,0.3)" stroke-width="6"></circle>
+      <circle cx="960" cy="560" r="90" fill="url(#kerbinG)"></circle>
+      <circle cx="960" cy="560" r="{{selRing.kerbin}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+      <circle cx="1266" cy="303" r="22" fill="#8F9399"></circle>
+      <circle cx="1266" cy="303" r="{{selRing.mun}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+      <circle cx="490" cy="389" r="10" fill="#B7D8C8"></circle>
+      <circle cx="490" cy="389" r="{{selRing.minmus}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+
+      <g style="{{layerComms}}">
+        <polyline points="1018.7,433.5 1176.1,481.3 1023.6,496.4" fill="none" stroke="{{accent}}" stroke-width="1.4" stroke-dasharray="4 4"></polyline>
+        <line x1="1176.1" y1="481.3" x2="743.9" y2="638.7" stroke="rgba(255,255,255,0.25)" stroke-width="1"></line>
+        <line x1="743.9" y1="638.7" x2="1023.6" y2="496.4" stroke="rgba(255,255,255,0.25)" stroke-width="1"></line>
+        <line x1="1238.9" y1="507" x2="1176.1" y2="481.3" stroke="rgba(255,255,255,0.25)" stroke-width="1"></line>
+        <circle cx="1023.6" cy="496.4" r="3.5" fill="#FFFFFF"></circle>
+      </g>
+
+      <rect x="1171.1" y="476.3" width="10" height="10" fill="{{mk.relay1}}" transform="rotate(45 1176.1 481.3)"></rect>
+      <circle cx="1176.1" cy="481.3" r="{{selRing.relay1}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+      <rect x="738.9" y="633.7" width="10" height="10" fill="{{mk.relay2}}" transform="rotate(45 743.9 638.7)"></rect>
+      <circle cx="743.9" cy="638.7" r="{{selRing.relay2}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+      <path d="M1238.9 498.7 L1245.9 512.7 H1231.9 Z" fill="{{mk.vesselB}}"></path>
+      <circle cx="1238.9" cy="507" r="{{selRing.vesselB}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+      <circle cx="1018.7" cy="433.5" r="6" fill="{{mk.self}}" stroke="#000000" stroke-width="2"></circle>
+      <circle cx="1018.7" cy="433.5" r="{{selRing.self}}" fill="none" stroke="{{accent}}" stroke-width="1.5"></circle>
+
+      <g style="{{layerLabels}}">
+        <text x="1032" y="424" font-size="12" font-weight="700" fill="#FFFFFF">[VESSEL NAME]</text>
+        <text x="960" y="564" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Kerbin</text>
+        <text x="1296" y="300" font-size="12" font-weight="700" fill="#FFFFFF">Mun</text>
+        <text x="506" y="386" font-size="12" font-weight="700" fill="#FFFFFF">Minmus</text>
+        <text x="1190" y="476" font-size="9" font-weight="700" fill="#C4C4CC">[RELAY 1]</text>
+        <text x="756" y="652" font-size="9" font-weight="700" fill="#C4C4CC">[RELAY 2]</text>
+        <text x="1252" y="512" font-size="9" font-weight="700" fill="#C4C4CC">[VESSEL B]</text>
+        <text x="1030" y="510" font-size="8" font-weight="700" fill="#A1A1AA">KSC</text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- ===== LEFT · Tracking ===== -->
+  <sc-if value="{{show.tracking}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 24px; top: 80px; width: 260px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 16px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">TRACKING</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">{{trackCount}}</div>
+      </div>
+      <div style="display: flex; gap: 4px;">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+          <button aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <sc-for list="{{tracked}}" as="o" hint-placeholder-count="7">
+          <button aria-pressed="{{o.on}}" onClick="{{o.pick}}" style="{{o.style}}">
+            <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{o.d}}"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{o.name}}</div>
+              <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{o.sub}}</div>
+            </div>
+            <div style="{{o.dot}}"></div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== LEFT BOTTOM · Crew roster + agency ===== -->
+  <sc-if value="{{show.crew}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 24px; bottom: 80px; width: 260px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">CREW ROSTER</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">3 assigned</div>
+      </div>
+      <sc-for list="{{roster}}" as="k" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px; border-radius: 8px;">
+          <div style="width: 22px; height: 22px; flex: none; border-radius: 50%; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; font-weight: 700;">{{k.initials}}</div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{k.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{k.role}}</div>
+          </div>
+          <div style="{{k.chipStyle}}">{{k.status}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <div style="position: absolute; left: 24px; bottom: 24px; width: 260px; height: 44px; box-sizing: border-box; display: flex; align-items: center; padding: 0 6px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{agency}}" as="s" hint-placeholder-count="3">
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+        <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.v}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ===== RIGHT · Upcoming + Contracts ===== -->
+  <div style="position: absolute; right: 24px; top: 80px; width: 300px; display: flex; flex-direction: column; gap: 12px;">
+    <sc-if value="{{show.events}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">UPCOMING</div>
+          <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">all vessels</div>
+        </div>
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px; border-radius: 8px;">
+            <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{e.d}}"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{e.name}}</div>
+              <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{e.sub}} · {{e.t}}</div>
+            </div>
+            <button aria-label="{{e.warpLabel}}" title="Warp to event" style="margin-left: auto; width: 26px; height: 26px; flex: none; border: none; border-radius: 7px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 6 L11 12 L4 18 Z M13 6 L20 12 L13 18 Z"></path></svg>
+            </button>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{show.contracts}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+          <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">CONTRACTS</div>
+          <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">[—] active</div>
+        </div>
+        <sc-for list="{{contracts}}" as="c" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 9px 8px; border-radius: 8px; background: rgba(255,255,255,0.04);">
+            <div style="display: flex; justify-content: space-between; gap: 8px;">
+              <div style="font-size: 11px; line-height: 1.2; font-weight: 600; color: #FFFFFF;">{{c.name}}</div>
+              <div style="font-size: 9px; line-height: 1.2; font-weight: 600; color: #A1A1AA; white-space: nowrap;">{{c.due}}</div>
+            </div>
+            <div style="display: flex; gap: 10px; font-size: 9px; line-height: 1; color: #A1A1AA;">
+              <span>Funds <b style="color: #E4E4E7;">[—]</b></span><span>Science <b style="color: #E4E4E7;">[—]</b></span><span>Rep <b style="color: #E4E4E7;">[—]</b></span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- ===== BOTTOM CENTER · Selected object ===== -->
+  <div style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); width: 560px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+    <div style="width: 32px; height: 32px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{sel.d}}"></path></svg>
+    </div>
+    <div style="width: 120px; flex: none; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sel.name}}</div>
+      <div style="font-size: 9px; line-height: 1; color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sel.sub}}</div>
+    </div>
+    <div style="flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+      <sc-for list="{{sel.stats}}" as="s" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+          <div style="font-size: 7px; line-height: 1; letter-spacing: 0.12em; font-weight: 700; color: #8B8B93;">{{s.k}}</div>
+          <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF; white-space: nowrap;">{{s.v}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: flex; gap: 4px;">
+      <sc-for list="{{sel.acts}}" as="a" hint-placeholder-count="3">
+        <sc-if value="{{a.isLink}}" hint-placeholder-val="{{ false }}">
+          <a href="Main.dc.html" aria-label="{{a.label}}" title="{{a.label}}" style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #F4F4F5; color: #0B0B0C;">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="{{a.d}}"></path></svg>
+          </a>
+        </sc-if>
+        <sc-if value="{{a.isButton}}" hint-placeholder-val="{{ true }}">
+          <button aria-label="{{a.label}}" title="{{a.label}}" style="width: 32px; height: 32px; border: none; border-radius: 8px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{a.d}}"></path></svg>
+          </button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM RIGHT · Map layers ===== -->
+  <div style="position: absolute; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 2px; height: 44px; box-sizing: border-box; padding: 4px 6px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+      <button aria-pressed="{{l.on}}" onClick="{{l.toggle}}" style="{{l.style}}">{{l.label}}<div aria-hidden="true" style="{{l.dot}}"></div></button>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Zoom out" title="Zoom out" style="width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #E4E4E7;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12 H19"></path></svg>
+    </button>
+    <button aria-label="Zoom in" title="Zoom in" style="width: 32px; height: 32px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #E4E4E7;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5 V19 M5 12 H19"></path></svg>
+    </button>
+  </div>
+
+  <!-- ===== TOP · world, time, mode switch, toolbar ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+  <div style="display: flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 4px 14px 4px 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Space Center" style="width: 36px; height: 36px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #E4E4E7; background: rgba(255,255,255,0.06);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 11 L12 4 L20 11 V20 H4 Z M10 20 V14 H14 V20"></path></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">[WORLD NAME 1]</div>
+      <div style="font-size: 8px; line-height: 1; letter-spacing: 0.1em; font-weight: 700; color: #A1A1AA;">CAREER · KERBIN SYSTEM</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 10px; height: 44px; box-sizing: border-box; padding: 4px 12px 4px 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <button aria-label="Pause" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"></rect></svg>
+    </button>
+    <div style="display: flex; align-items: center; gap: 3px;">
+      <sc-for list="{{warps}}" as="w" hint-placeholder-count="8">
+        <button aria-label="{{w.label}}" onClick="{{w.pick}}" style="{{w.style}}"></button>
+      </sc-for>
+    </div>
+    <div style="min-width: 34px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{warpLabel}}</div>
+    <div aria-hidden="true" style="width: 1px; height: 18px; background: rgba(255,255,255,0.12);"></div>
+    <div style="font-size: 12px; line-height: 1; font-weight: 500; color: #FFFFFF;">T+ 2y 70d 26:32</div>
+  </div>
+
+  </div>
+
+  <div style="position: absolute; left: 50%; top: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;">
+  <a href="Main.dc.html" aria-label="Back to flight" title="Back to flight" style="width: 44px; height: 44px; box-sizing: border-box; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+  </a>
+  <div role="tablist" aria-label="Map mode" style="display: flex; gap: 2px; height: 44px; box-sizing: border-box; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <a href="MapView.dc.html" role="tab" aria-selected="false" style="height: 34px; padding: 0 14px; border-radius: 999px; display: flex; align-items: center; gap: 6px; font-size: 11px; line-height: 1; font-weight: 700; text-decoration: none; color: #A1A1AA;">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z M9 4 V18 M15 6 V20"></path></svg>
+      <span>Map</span>
+    </a>
+    <button role="tab" aria-selected="true" style="height: 34px; padding: 0 14px; border: none; border-radius: 999px; display: flex; align-items: center; gap: 6px; font-size: 11px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z"></path></svg>
+      <span>Mission Center</span>
+    </button>
+  </div>
+  </div>
+
+  <div style="position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <button aria-label="Vehicle Assembly Building" title="VAB" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 21 V8 L12 3 L21 8 V21 Z"></path><path d="M12 9 C13.6 10.4 14 12.4 14 15 V19 H10 V15 C10 12.4 10.4 10.4 12 9 Z"></path></svg>
+    </button>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <sc-for list="{{panelToggles}}" as="pt" hint-placeholder-count="4">
+      <button aria-label="{{pt.label}}" aria-pressed="{{pt.on}}" title="{{pt.label}}" onClick="{{pt.toggle}}" style="{{pt.style}}">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{pt.d}}"></path></svg>
+        <div aria-hidden="true" style="{{pt.dotStyle}}"></div>
+      </button>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Menu" title="Menu" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7 H20 M4 12 H20 M4 17 H20"></path></svg>
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      sel: 'self', filter: 'all', warp: 0,
+      layers: { orbits: true, comms: true, labels: true },
+      show: { tracking: true, events: true, contracts: true, crew: true }
+    };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+
+    let seed = 13;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 170; i++) {
+      const s = rnd() < 0.85 ? 1 : 2;
+      stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1920) + 'px;top:' + Math.round(rnd() * 1080) + 'px;width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:#FFFFFF;opacity:' + (0.2 + rnd() * 0.5).toFixed(2) });
+    }
+    const rates = [1, 2, 4, 10, 50, 100, 1000, 10000];
+    const warps = rates.map((r, i) => ({
+      label: 'Time warp ' + r + '×', pick: () => this.setState({ warp: i }),
+      style: 'width:' + (i < 4 ? 6 : 10) + 'px;height:18px;border:none;padding:0;border-radius:3px;background:' + (i <= st.warp ? (i === st.warp ? accent : '#F4F4F5') : 'rgba(255,255,255,0.12)')
+    }));
+    const fmt = (r) => r >= 1000 ? (r / 1000) + 'k×' : r + '×';
+
+    const I = {
+      rocket: 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21',
+      relay: 'M10 10 H14 V14 H10 Z M3 9 H8 V15 H3 Z M16 9 H21 V15 H16 Z M8 12 H10 M14 12 H16',
+      planet: 'M12 4 A8 8 0 1 1 11.99 4 Z M2 14 C6 17 18 17 22 14',
+      moon: 'M12 4 A8 8 0 1 1 11.99 4 Z M9 10 A1.5 1.5 0 1 1 8.99 10 Z M14 15 A1 1 0 1 1 13.99 15 Z',
+      focus: 'M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15 M12 10 A2 2 0 1 1 11.99 10 Z',
+      target: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 8 A4 4 0 1 1 11.99 8 Z',
+      fly: 'M5 12 H19 M13 6 L19 12 L13 18',
+      node: 'M12 4 L20 12 L12 20 L4 12 Z M12 9 V15 M9 12 H15',
+      flag: 'M5 21 V4 M5 4 H17 L14 8 L17 12 H5',
+      ap: 'M12 20 V4 M6 10 L12 4 L18 10',
+      tracking: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 9 A3 3 0 1 1 11.99 9 Z M12 1 V4 M12 20 V23',
+      events: 'M4 6 H20 V20 H4 Z M4 10 H20 M8 3 V7 M16 3 V7',
+      contracts: 'M6 3 H18 V21 H6 Z M9 8 H15 M9 12 H15 M9 16 H13',
+      crew: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19'
+    };
+
+    const OBJ = [
+      { id: 'self', kind: 'vessel', name: '[VESSEL NAME]', sub: 'Active · Orbiting Kerbin', d: I.rocket, stats: [['ALTITUDE', '72,081 m'], ['VELOCITY', '2,616 m/s'], ['CREW', '3']] },
+      { id: 'relay1', kind: 'relay', name: '[RELAY 1]', sub: 'Relay · Orbiting Kerbin', d: I.relay, stats: [['ALTITUDE', '[—] km'], ['LINKS', '[—]'], ['STATUS', 'Online']] },
+      { id: 'relay2', kind: 'relay', name: '[RELAY 2]', sub: 'Relay · Orbiting Kerbin', d: I.relay, stats: [['ALTITUDE', '[—] km'], ['LINKS', '[—]'], ['STATUS', 'Online']] },
+      { id: 'vesselB', kind: 'vessel', name: '[VESSEL B]', sub: 'Vessel · Orbiting Kerbin', d: I.rocket, stats: [['ALTITUDE', '[—] km'], ['VELOCITY', '[—] m/s'], ['CREW', '[—]']] },
+      { id: 'kerbin', kind: 'body', name: 'Kerbin', sub: 'Home planet', d: I.planet, stats: [['RADIUS', '[—] km'], ['SOI', '[—] km'], ['MOONS', '2']] },
+      { id: 'mun', kind: 'body', name: 'Mun', sub: 'Moon of Kerbin', d: I.moon, stats: [['RADIUS', '[—] km'], ['SOI', '[—] km'], ['ATMOS.', 'None']] },
+      { id: 'minmus', kind: 'body', name: 'Minmus', sub: 'Moon of Kerbin', d: I.moon, stats: [['RADIUS', '[—] km'], ['SOI', '[—] km'], ['ATMOS.', 'None']] }
+    ];
+    const FILTERS = [['all', 'All'], ['vessel', 'Vessels'], ['relay', 'Relays'], ['body', 'Bodies']];
+    const filters = FILTERS.map(([k, label]) => ({
+      label, on: st.filter === k, pick: () => this.setState({ filter: k }),
+      style: 'height:22px;padding:0 9px;border-radius:999px;font-size:9px;line-height:1;font-weight:700;border:none;background:' + (st.filter === k ? '#F4F4F5' : 'rgba(255,255,255,0.06)') + ';color:' + (st.filter === k ? '#0B0B0C' : '#A1A1AA')
+    }));
+    const list = OBJ.filter((o) => st.filter === 'all' || o.kind === st.filter);
+    const tracked = list.map((o) => {
+      const on = st.sel === o.id;
+      return {
+        name: o.name, sub: o.sub, d: o.d, on, pick: () => this.setState({ sel: o.id }),
+        style: 'width:100%;height:38px;display:flex;align-items:center;gap:8px;padding:0 10px 0 6px;border-radius:8px;border:none;text-align:left;color:#E4E4E7;background:' + (on ? 'rgba(255,255,255,0.07)' : 'transparent'),
+        dot: 'margin-left:auto;width:4px;height:4px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const so = OBJ.find((o) => o.id === st.sel) || OBJ[0];
+    const btnAct = (label, d) => ({ label, d, isLink: false, isButton: true });
+    const acts = so.kind === 'body'
+      ? [btnAct('Focus camera', I.focus), btnAct('Set as target', I.target)]
+      : [btnAct('Focus camera', I.focus), btnAct('Set as target', I.target),
+         { label: so.id === 'self' ? 'Fly this vessel' : 'Switch to and fly', d: I.fly, isLink: true, isButton: false }];
+    const sel = { name: so.name, sub: so.sub, d: so.d, stats: so.stats.map(([k, v]) => ({ k, v })), acts };
+
+    const R = { self: 11, relay1: 11, relay2: 11, vesselB: 13, kerbin: 104, mun: 30, minmus: 17 };
+    const selRing = {};
+    Object.keys(R).forEach((id) => { selRing[id] = st.sel === id ? R[id] : 0; });
+    const mk = {
+      self: st.sel === 'self' ? accent : '#FFFFFF',
+      relay1: st.sel === 'relay1' ? accent : '#C4C4CC',
+      relay2: st.sel === 'relay2' ? accent : '#C4C4CC',
+      vesselB: st.sel === 'vesselB' ? accent : '#C4C4CC'
+    };
+
+    const LAYERS = [['orbits', 'Orbits'], ['comms', 'Network'], ['labels', 'Labels']];
+    const layers = LAYERS.map(([k, label]) => {
+      const on = !!st.layers[k];
+      return {
+        label, on, toggle: () => this.setState({ layers: Object.assign({}, st.layers, { [k]: !on }) }),
+        style: 'position:relative;height:32px;padding:0 10px;border:none;border-radius:999px;font-size:10px;line-height:1;font-weight:600;background:transparent;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;left:50%;bottom:2px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const showL = (k) => st.layers[k] ? '' : 'display:none';
+
+    const PT = [['tracking', 'Tracking', I.tracking], ['events', 'Upcoming', I.events], ['contracts', 'Contracts', I.contracts], ['crew', 'Crew roster', I.crew]];
+    const panelToggles = PT.map(([k, label, d]) => {
+      const on = !!st.show[k];
+      return {
+        label, d, on, toggle: () => this.setState({ show: Object.assign({}, st.show, { [k]: !on }) }),
+        style: 'position:relative;width:36px;height:36px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;padding:0;background:transparent;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dotStyle: 'position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+
+    const agency = [{ k: 'FUNDS', v: '[—]' }, { k: 'SCIENCE', v: '[—]' }, { k: 'REPUTATION', v: '[—]' }];
+    const events = [
+      { t: 'T− [—]', name: 'Apoapsis', sub: '[VESSEL NAME]', d: I.ap },
+      { t: 'T− [—]', name: 'Maneuver node', sub: '[VESSEL]', d: I.node },
+      { t: 'T− [—]', name: 'Relay handover', sub: '[RELAY 1] → [RELAY 2]', d: I.relay },
+      { t: 'T− [—]', name: 'Contract deadline', sub: '[CONTRACT]', d: I.flag }
+    ].map((e) => Object.assign(e, { warpLabel: 'Warp to ' + e.name }));
+    const contracts = [{ name: '[CONTRACT NAME]', due: 'Due [—]' }, { name: '[CONTRACT NAME]', due: 'Due [—]' }, { name: '[CONTRACT NAME]', due: 'Due [—]' }];
+    const chip = (on) => 'margin-left:auto;flex:none;height:18px;padding:0 7px;display:flex;align-items:center;border-radius:999px;font-size:8px;line-height:1;font-weight:700;letter-spacing:0.08em;box-sizing:border-box;background:' + (on ? 'rgba(255,255,255,0.12)' : 'transparent') + ';color:' + (on ? '#FFFFFF' : '#8B8B93') + ';border:1px solid ' + (on ? 'transparent' : 'rgba(255,255,255,0.14)');
+    const roster = [
+      { initials: 'VK', name: 'Valentina', role: 'Pilot · [VESSEL NAME]', status: 'EVA', chipStyle: chip(true) },
+      { initials: 'JK', name: 'Jebediah', role: 'Pilot · [VESSEL NAME]', status: 'ON BOARD', chipStyle: chip(true) },
+      { initials: 'BK', name: 'Bob', role: 'Scientist · [VESSEL NAME]', status: 'ON BOARD', chipStyle: chip(true) },
+      { initials: '—', name: '[KERBAL]', role: '[ROLE] · KSC', status: 'AVAILABLE', chipStyle: chip(false) }
+    ];
+
+    return {
+      accent, stars, warps, warpLabel: fmt(rates[st.warp]),
+      filters, tracked, trackCount: String(list.length), sel, selRing, mk,
+      selfOrbit: st.sel === 'self' ? accent : 'rgba(255,255,255,0.75)',
+      layers, layerOrbits: showL('orbits'), layerComms: showL('comms'), layerLabels: showL('labels'),
+      show: st.show, panelToggles,
+      agency, events, contracts, roster
+    };
+  }
+}
+</script>
+</body>
+</html>

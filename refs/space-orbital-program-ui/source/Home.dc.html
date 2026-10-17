@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Space Orbital Program — home screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #000000; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- Starfield -->
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="40">
+      <div style="{{s.style}}"></div>
+    </sc-for>
+  </div>
+
+  <!-- Planet limb, low on the right -->
+  <div aria-hidden="true" style="position: absolute; left: 560px; top: 820px; width: 2600px; height: 2600px; border-radius: 50%; background: radial-gradient(circle at 40% 6%, #5F8FBD 0%, #2C5A86 10%, #143656 24%, #08182A 40%, #03080F 60%); box-shadow: 0 0 0 2px rgba(150,190,255,0.35), 0 0 120px 24px rgba(70,130,255,0.25);"></div>
+
+  <!-- Vessel line-art, small and upright -->
+  <svg aria-hidden="true" width="860" height="520" viewBox="0 0 860 520" style="position: absolute; left: 1060px; top: 160px; overflow: visible; transform: scale(0.55); transform-origin: 430px 260px;">
+    <g transform="rotate(-78 430 260)">
+      <rect x="150" y="150" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+      <path d="M340 150 Q382 152 386 168 Q382 184 340 186 Z" fill="#C9CDD3"></path>
+      <rect x="150" y="334" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+      <path d="M340 334 Q382 336 386 352 Q382 368 340 370 Z" fill="#C9CDD3"></path>
+      <path d="M58 236 L82 228 L82 292 L58 284 Z" fill="#2B2D31"></path>
+      <rect x="80" y="222" width="440" height="76" rx="6" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <rect x="196" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+      <rect x="330" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+      <rect x="520" y="228" width="44" height="64" fill="#D9DCE1" stroke="#B9BEC5" stroke-width="1.5"></rect>
+      <rect x="564" y="230" width="126" height="60" rx="4" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M690 230 L742 240 Q770 248 774 260 Q770 272 742 280 L690 290 Z" fill="#E7E9EC" stroke="#B9BEC5" stroke-width="1.5"></path>
+      <circle cx="776" cy="260" r="11" fill="#141518" stroke="#C3C7CD" stroke-width="2"></circle>
+      <rect x="110" y="168" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M330 168 Q382 170 388 190 Q382 210 330 212 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+      <rect x="110" y="308" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M330 308 Q382 310 388 330 Q382 350 330 352 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+    </g>
+  </svg>
+
+  <!-- Brand -->
+  <div style="position: absolute; left: 80px; top: 40px; display: flex; align-items: center; gap: 12px;">
+    <svg role="img" aria-label="Space Orbital Program logo" width="30" height="20" viewBox="0 0 30 20"><ellipse cx="15" cy="10" rx="13" ry="6.5" transform="rotate(-18 15 10)" fill="none" stroke="#FFFFFF" stroke-width="2"></ellipse><circle cx="15" cy="10" r="3.5" fill="#FFFFFF"></circle></svg>
+    <div style="font-size: 15px; line-height: 1; font-weight: 600; letter-spacing: 0.32em; color: #FFFFFF;">SPACE ORBITAL PROGRAM</div>
+  </div>
+
+  <!-- Menu column -->
+  <div style="position: absolute; left: 80px; top: 250px; width: 400px; display: flex; flex-direction: column; gap: 20px;">
+    <h1 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 300; letter-spacing: -0.01em; color: #FFFFFF;">Build a rocket in your browser. Fly it to orbit. Mod everything.</h1>
+
+    <a href="Main.dc.html" style="height: 56px; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 16px; border-radius: 14px; background: #F4F4F5; color: #0B0B0C; text-decoration: none;">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5 L19 12 L8 19 Z"></path></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 13px; line-height: 1; font-weight: 700;">Continue · [WORLD NAME 1]</div>
+        <div style="font-size: 10px; line-height: 1; color: #52525B;">Career · Autosave 2 h ago</div>
+      </div>
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left: auto;"><path d="M9 6 L15 12 L9 18"></path></svg>
+    </a>
+
+    <nav aria-label="Main menu" style="display: flex; flex-direction: column; gap: 2px; padding: 6px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="4">
+        <a href="{{m.href}}" onMouseEnter="{{m.hover}}" style="{{m.style}}">
+          <div style="width: 30px; height: 30px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{m.d}}"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+            <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{m.title}}</div>
+            <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">{{m.sub}}</div>
+          </div>
+          <div aria-hidden="true" style="{{m.dot}}"></div>
+        </a>
+      </sc-for>
+    </nav>
+
+    <div style="display: flex; gap: 4px;">
+      <a href="#roadmap" style="flex: 1; height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; text-decoration: none; font-size: 11px; font-weight: 600; color: #E4E4E7; background: rgba(22,23,26,0.6); border: 1px solid rgba(255,255,255,0.08);">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M5 21 V4 M5 4 H17 L14 8 L17 12 H5"></path></svg>
+        Roadmap
+      </a>
+      <a href="#credits" style="flex: 1; height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; text-decoration: none; font-size: 11px; font-weight: 600; color: #E4E4E7; background: rgba(22,23,26,0.6); border: 1px solid rgba(255,255,255,0.08);">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4 A8 8 0 1 1 11.99 4 Z M12 11 V16 M12 8 V8.5"></path></svg>
+        Credits
+      </a>
+    </div>
+  </div>
+
+  <!-- Last world card -->
+  <div style="position: absolute; right: 80px; bottom: 80px; width: 340px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 14px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; height: 14px;">
+      <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">LAST WORLD</div>
+      <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">Autosave · 2 h ago</div>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 8px;">
+      <div style="font-size: 18px; line-height: 1; font-weight: 300; color: #FFFFFF;">[WORLD NAME 1]</div>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">Career · Kerbin system · 4 vessels</div>
+    </div>
+    <div style="height: 1px; background: rgba(255,255,255,0.07);"></div>
+    <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #8B8B93;">ACTIVE VESSEL</div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 32px; height: 32px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21"></path></svg>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 13px; line-height: 1; font-weight: 600; color: #FFFFFF;">[VESSEL NAME]</div>
+        <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">Orbiting Kerbin · Stage 02</div>
+      </div>
+      <div style="margin-left: auto; display: flex;">
+        <div style="width: 22px; height: 22px; border-radius: 50%; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; border: 2px solid #16171A;">VK</div>
+        <div style="width: 22px; height: 22px; margin-left: -6px; border-radius: 50%; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; border: 2px solid #16171A;">JK</div>
+        <div style="width: 22px; height: 22px; margin-left: -6px; border-radius: 50%; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; border: 2px solid #16171A;">BK</div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">ALTITUDE</div>
+        <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">72,081 m</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">VELOCITY</div>
+        <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">2,616 m/s</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+        <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">TOTAL Δv</div>
+        <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">6,354 m/s</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; line-height: 1; color: #A1A1AA;">
+      <span>Mission time</span><span style="color: #FFFFFF; font-weight: 600;">T+ 2y 70d 26:32</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="position: absolute; left: 80px; bottom: 32px; display: flex; align-items: center; gap: 16px; font-size: 10px; line-height: 1; color: #8B8B93;">
+    <span style="font-family: 'JetBrains Mono', ui-monospace, monospace;">Space Orbital Program 1.0.0-rc.1</span>
+    <span style="font-family: 'JetBrains Mono', ui-monospace, monospace;">mod API 0.1.19</span>
+    <span>Computers and tablets</span>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { hover: 'worlds' };
+  }
+  renderVals() {
+    const st = this.state;
+    let seed = 21;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 160; i++) {
+      const s = rnd() < 0.88 ? 1 : 2;
+      stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1920) + 'px;top:' + Math.round(rnd() * 820) + 'px;width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:#FFFFFF;opacity:' + (0.2 + rnd() * 0.5).toFixed(2) });
+    }
+    const ITEMS = [
+      { id: 'worlds', title: 'Worlds', sub: 'Open, create or manage your worlds', href: 'Worlds.dc.html', d: 'M12 3 A9 9 0 1 1 11.99 3 Z M3 12 H21 M12 3 C15 6 15 18 12 21 M12 3 C9 6 9 18 12 21' },
+      { id: 'library', title: 'Vessel library', sub: 'Designs you can launch in any world', href: '#library', d: 'M12 3 L20 7.5 V16.5 L12 21 L4 16.5 V7.5 Z M4 7.5 L12 12 L20 7.5 M12 12 V21' },
+      { id: 'mods', title: 'Mods', sub: 'Add-ons active in every world', href: '#mods', d: 'M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20' },
+      { id: 'settings', title: 'Settings', sub: 'Graphics, units, controls', href: '#settings', d: 'M12 9 A3 3 0 1 1 11.99 9 Z M12 2 V5 M12 19 V22 M2 12 H5 M19 12 H22 M4.9 4.9 L7 7 M17 17 L19.1 19.1 M4.9 19.1 L7 17 M17 7 L19.1 4.9' }
+    ];
+    const menu = ITEMS.map((m) => {
+      const on = st.hover === m.id;
+      return {
+        title: m.title, sub: m.sub, href: m.href, d: m.d,
+        hover: () => this.setState({ hover: m.id }),
+        style: 'height:52px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 12px 0 8px;border-radius:11px;text-decoration:none;background:' + (on ? 'rgba(255,255,255,0.06)' : 'transparent'),
+        dot: 'margin-left:auto;width:4px;height:4px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    return { stars, menu };
+  }
+}
+</script>
+</body>
+</html>

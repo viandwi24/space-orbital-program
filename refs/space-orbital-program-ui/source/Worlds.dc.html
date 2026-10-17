@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Worlds — choose or create a world</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #000000; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="40">
+      <div style="{{s.style}}"></div>
+    </sc-for>
+  </div>
+  <div aria-hidden="true" style="position: absolute; left: 260px; top: 960px; width: 2400px; height: 2400px; border-radius: 50%; background: radial-gradient(circle at 40% 4%, #2C5A86 0%, #143656 12%, #08182A 30%, #03080F 50%); box-shadow: 0 0 0 1px rgba(150,190,255,0.25), 0 0 100px 18px rgba(70,130,255,0.18);"></div>
+
+  <!-- Header -->
+  <div style="position: absolute; left: 80px; top: 40px; right: 80px; display: flex; align-items: center; gap: 16px;">
+    <a href="Home.dc.html" aria-label="Back to home" title="Back to home" style="width: 44px; height: 44px; box-sizing: border-box; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <h1 style="margin: 0; font-size: 28px; line-height: 1; font-weight: 300; color: #FFFFFF;">Worlds</h1>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">{{worldCount}} worlds · each keeps its own vessels, crew and progress · mods apply to every world</div>
+    </div>
+    <button onClick="{{openCreate}}" style="margin-left: auto; height: 44px; padding: 0 18px; border: none; border-radius: 999px; display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5 V19 M5 12 H19"></path></svg>
+      Create world
+    </button>
+  </div>
+
+  <!-- World cards -->
+  <div style="position: absolute; left: 80px; top: 140px; width: 1080px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+    <sc-for list="{{worlds}}" as="w" hint-placeholder-count="3">
+      <button aria-pressed="{{w.on}}" onClick="{{w.pick}}" style="{{w.cardStyle}}">
+        <div style="{{w.thumb}}">
+          <div style="{{w.planet}}"></div>
+          <sc-if value="{{w.current}}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: 10px; top: 10px; height: 18px; padding: 0 7px; display: flex; align-items: center; border-radius: 999px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.1em; background: rgba(0,0,0,0.55); color: #FFFFFF;">LAST PLAYED</div>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 13px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{w.name}}</div>
+            <div style="margin-left: auto; height: 18px; padding: 0 7px; display: flex; align-items: center; border-radius: 999px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; background: rgba(255,255,255,0.1); color: #E4E4E7;">{{w.mode}}</div>
+          </div>
+          <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">{{w.system}} · {{w.last}}</div>
+          <div style="display: flex; gap: 12px; font-size: 10px; line-height: 1; color: #A1A1AA;">
+            <span><b style="color: #FFFFFF;">{{w.vessels}}</b> vessels</span>
+            <span><b style="color: #FFFFFF;">{{w.crew}}</b> crew</span>
+          </div>
+          <sc-if value="{{w.warn}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 9px; line-height: 1; font-weight: 600; color: #FFB86B;">
+              <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 L22 20 H2 Z M12 10 V14 M12 17 V17.5"></path></svg>
+              {{w.warnText}}
+            </div>
+          </sc-if>
+        </div>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- Selected world detail -->
+  <div style="position: absolute; right: 80px; top: 140px; width: 520px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">SELECTED WORLD</div>
+      <div style="font-size: 22px; line-height: 1.1; font-weight: 300; color: #FFFFFF;">{{sel.name}}</div>
+      <div style="display: flex; gap: 4px;">
+        <sc-for list="{{sel.chips}}" as="c" hint-placeholder-count="3">
+          <div style="height: 20px; padding: 0 8px; display: flex; align-items: center; border-radius: 999px; font-size: 9px; line-height: 1; font-weight: 700; background: rgba(255,255,255,0.08); color: #E4E4E7;">{{c}}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+      <sc-for list="{{sel.stats}}" as="s" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+          <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+          <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.v}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 20px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">VESSELS IN THIS WORLD</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">{{sel.vesselCount}}</div>
+      </div>
+      <sc-for list="{{sel.vesselList}}" as="v" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px; border-radius: 8px;">
+          <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{v.d}}"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{v.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{v.sub}}</div>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{sel.empty}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 14px 6px; font-size: 10px; line-height: 1.4; color: #8B8B93;">No vessels yet — build one in the hangar after you enter this world.</div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <a href="SpaceCenter.dc.html" style="flex: 1; height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; text-decoration: none; font-size: 13px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5 L19 12 L8 19 Z"></path></svg>
+        Enter world
+      </a>
+      <button aria-label="Duplicate world" title="Duplicate" style="width: 48px; height: 48px; border: none; border-radius: 12px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 8 H20 V20 H8 Z M4 16 V4 H16"></path></svg>
+      </button>
+      <button aria-label="Rename world" title="Rename" style="width: 48px; height: 48px; border: none; border-radius: 12px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #E4E4E7;">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20 L5 15 L15 5 L19 9 L9 19 Z M13 7 L17 11"></path></svg>
+      </button>
+      <button aria-label="Delete world" title="Delete" style="width: 48px; height: 48px; border: none; border-radius: 12px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); color: #FF8A8E;">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M4 7 H20 M9 7 V4 H15 V7 M6 7 L7 20 H17 L18 7 M10 11 V16 M14 11 V16"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Create world sheet -->
+  <sc-if value="{{creating}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.6);"></div>
+    <div role="dialog" aria-label="Create world" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 520px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #16171A; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;">
+      <div style="display: flex; align-items: center;">
+        <div style="font-size: 20px; line-height: 1; font-weight: 300; color: #FFFFFF;">Create world</div>
+        <button aria-label="Close" onClick="{{closeCreate}}" style="margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); color: #A1A1AA;">
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"></path></svg>
+        </button>
+      </div>
+
+      <label style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">NAME</span>
+        <input type="text" value="{{draftName}}" onChange="{{setName}}" placeholder="My world" style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #FFFFFF; font-size: 13px; outline: none;">
+      </label>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">MODE</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+          <sc-for list="{{modeOpts}}" as="o" hint-placeholder-count="3">
+            <button aria-pressed="{{o.on}}" onClick="{{o.pick}}" style="{{o.style}}">
+              <span style="font-size: 12px; line-height: 1; font-weight: 700;">{{o.label}}</span>
+              <span style="{{o.subStyle}}">{{o.sub}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">STAR SYSTEM</div>
+        <div style="display: flex; gap: 4px;">
+          <sc-for list="{{systemOpts}}" as="o" hint-placeholder-count="2">
+            <button aria-pressed="{{o.on}}" onClick="{{o.pick}}" style="{{o.chip}}">{{o.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">DIFFICULTY</div>
+        <div style="display: flex; gap: 4px;">
+          <sc-for list="{{diffOpts}}" as="o" hint-placeholder-count="4">
+            <button aria-pressed="{{o.on}}" onClick="{{o.pick}}" style="{{o.chip}}">{{o.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <sc-for list="{{rules}}" as="r" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 8px; height: 34px;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{r.label}}</div>
+            <button aria-label="{{r.label}}" aria-pressed="{{r.on}}" onClick="{{r.toggle}}" style="{{r.track}}"><div style="{{r.knob}}"></div></button>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.04); font-size: 10px; line-height: 1.4; color: #A1A1AA;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" style="flex: none;"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20"></path></svg>
+        All installed mods ([—]) are active in every world. Manage them from Mods on the home screen.
+      </div>
+
+      <div style="display: flex; gap: 6px;">
+        <button onClick="{{closeCreate}}" style="flex: 1; height: 44px; border: none; border-radius: 12px; font-size: 12px; line-height: 1; font-weight: 700; background: rgba(255,255,255,0.08); color: #E4E4E7;">Cancel</button>
+        <button onClick="{{createWorld}}" style="flex: 2; height: 44px; border: none; border-radius: 12px; font-size: 12px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">Create world</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      sel: 'w1', creating: false,
+      draft: { name: '', mode: 'Career', system: 'Kerbin system', diff: 'Normal', comms: true, death: false },
+      extra: []
+    };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    let seed = 31;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 150; i++) {
+      const s = rnd() < 0.88 ? 1 : 2;
+      stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1920) + 'px;top:' + Math.round(rnd() * 960) + 'px;width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:#FFFFFF;opacity:' + (0.2 + rnd() * 0.5).toFixed(2) });
+    }
+    const ROCKET = 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21';
+    const RELAY = 'M10 10 H14 V14 H10 Z M3 9 H8 V15 H3 Z M16 9 H21 V15 H16 Z M8 12 H10 M14 12 H16';
+    const BASE = [
+      { id: 'w1', name: '[WORLD NAME 1]', mode: 'Career', system: 'Kerbin system', diff: 'Normal', last: 'Autosave · 2 h ago', vessels: '4', crew: '3', hue: ['#5F8FBD', '#1D4468'], current: true,
+        stats: [['FUNDS', '[—]'], ['SCIENCE', '[—]'], ['REPUTATION', '[—]'], ['PLAY TIME', '[—]'], ['CONTRACTS', '[—]'], ['CREATED', '[—]']],
+        vesselList: [{ name: '[VESSEL NAME]', sub: 'Orbiting Kerbin · 3 crew', d: ROCKET }, { name: '[RELAY 1]', sub: 'Relay · Orbiting Kerbin', d: RELAY }, { name: '[RELAY 2]', sub: 'Relay · Orbiting Kerbin', d: RELAY }, { name: '[VESSEL B]', sub: 'Orbiting Kerbin', d: ROCKET }] },
+      { id: 'w2', name: '[WORLD NAME 2]', mode: 'Sandbox', system: 'Kerbin system', diff: 'Easy', last: 'Played [—]', vessels: '[—]', crew: '[—]', hue: ['#6FC2B0', '#1F5A55'],
+        stats: [['VESSELS', '[—]'], ['CREW', '[—]'], ['PLAY TIME', '[—]'], ['PARTS', 'All unlocked'], ['FUNDS', 'Unlimited'], ['CREATED', '[—]']], vesselList: [] },
+      { id: 'w3', name: '[WORLD NAME 3]', mode: 'Science', system: '[CUSTOM SYSTEM]', diff: 'Hard', last: 'Played [—]', vessels: '[—]', crew: '[—]', hue: ['#D9A066', '#6A3E1E'], warn: 'Uses a mod that is no longer installed',
+        stats: [['SCIENCE', '[—]'], ['TECH', '[—] nodes'], ['PLAY TIME', '[—]'], ['VESSELS', '[—]'], ['CREW', '[—]'], ['CREATED', '[—]']], vesselList: [] }
+    ];
+    const ALL = BASE.concat(st.extra);
+    const worlds = ALL.map((w) => {
+      const on = st.sel === w.id;
+      return {
+        name: w.name, mode: w.mode.toUpperCase(), system: w.system, last: w.last, vessels: w.vessels, crew: w.crew,
+        current: !!w.current, warn: !!w.warn, warnText: w.warn || '', on,
+        pick: () => this.setState({ sel: w.id }),
+        cardStyle: 'padding:0;text-align:left;overflow:hidden;border-radius:16px;color:#E4E4E7;background:rgba(22,23,26,0.6);border:1px solid ' + (on ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.08)'),
+        thumb: 'position:relative;height:120px;overflow:hidden;background:#05080D',
+        planet: 'position:absolute;left:-20%;top:58px;width:140%;height:300px;border-radius:50%;background:radial-gradient(circle at 50% 6%,' + w.hue[0] + ' 0%,' + w.hue[1] + ' 22%,#06101B 46%);box-shadow:0 0 30px 4px ' + w.hue[0] + '44'
+      };
+    });
+    const sw = ALL.find((w) => w.id === st.sel) || ALL[0];
+    const sel = {
+      name: sw.name, chips: [sw.mode, sw.system, sw.diff],
+      stats: sw.stats.map(([k, v]) => ({ k, v })),
+      vesselList: sw.vesselList, vesselCount: String(sw.vesselList.length), empty: sw.vesselList.length === 0
+    };
+
+    const d = st.draft;
+    const setD = (patch) => this.setState({ draft: Object.assign({}, d, patch) });
+    const chip = (on) => 'height:30px;padding:0 12px;border-radius:999px;font-size:10px;line-height:1;font-weight:700;border:1px solid ' + (on ? '#F4F4F5' : 'rgba(255,255,255,0.12)') + ';background:' + (on ? '#F4F4F5' : 'transparent') + ';color:' + (on ? '#0B0B0C' : '#C4C4CC');
+    const MODES = [['Sandbox', 'Everything unlocked'], ['Science', 'Unlock tech with science'], ['Career', 'Funds, contracts, reputation']];
+    const modeOpts = MODES.map(([label, sub]) => ({
+      label, sub, on: d.mode === label, pick: () => setD({ mode: label }),
+      style: 'height:58px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:0 12px;border-radius:12px;text-align:left;border:1px solid ' + (d.mode === label ? '#F4F4F5' : 'rgba(255,255,255,0.12)') + ';background:' + (d.mode === label ? '#F4F4F5' : 'transparent') + ';color:' + (d.mode === label ? '#0B0B0C' : '#FFFFFF'),
+      subStyle: 'font-size:9px;line-height:1.2;color:' + (d.mode === label ? '#52525B' : '#A1A1AA')
+    }));
+    const systemOpts = ['Kerbin system', '[CUSTOM SYSTEM]'].map((label) => ({ label, on: d.system === label, pick: () => setD({ system: label }), chip: chip(d.system === label) }));
+    const diffOpts = ['Easy', 'Normal', 'Hard', 'Custom'].map((label) => ({ label, on: d.diff === label, pick: () => setD({ diff: label }), chip: chip(d.diff === label) }));
+    const track = (on) => 'margin-left:auto;width:30px;height:18px;flex:none;border:none;padding:2px;border-radius:999px;display:flex;align-items:center;justify-content:' + (on ? 'flex-end' : 'flex-start') + ';background:' + (on ? accent : 'rgba(255,255,255,0.14)');
+    const rules = [['comms', 'Require a comm link to control probes'], ['death', 'Crew can be lost permanently']].map(([k, label]) => ({
+      label, on: !!d[k], toggle: () => setD({ [k]: !d[k] }), track: track(!!d[k]), knob: 'width:14px;height:14px;border-radius:50%;background:#FFFFFF'
+    }));
+
+    return {
+      stars, worlds, sel, worldCount: String(ALL.length),
+      creating: st.creating,
+      openCreate: () => this.setState({ creating: true, draft: Object.assign({}, d, { name: '' }) }),
+      closeCreate: () => this.setState({ creating: false }),
+      draftName: d.name, setName: (e) => setD({ name: e.target.value }),
+      modeOpts, systemOpts, diffOpts, rules,
+      createWorld: () => {
+        const id = 'n' + (st.extra.length + 1);
+        const w = { id, name: d.name.trim() || 'New world', mode: d.mode, system: d.system, diff: d.diff, last: 'Just created', vessels: '0', crew: '0', hue: ['#9AA3B5', '#3A4150'],
+          stats: [['VESSELS', '0'], ['CREW', '0'], ['PLAY TIME', '0 m'], ['MODE', d.mode], ['DIFFICULTY', d.diff], ['CREATED', 'Now']], vesselList: [] };
+        this.setState({ extra: st.extra.concat([w]), sel: id, creating: false });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

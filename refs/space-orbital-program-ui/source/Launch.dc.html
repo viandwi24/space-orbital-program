@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launch sites — pick site, vessel and crew</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="30"><div style="{{s.style}}"></div></sc-for>
+  </div>
+  <!-- horizon -->
+  <div aria-hidden="true" style="position: absolute; left: -200px; right: -200px; top: 860px; height: 400px; background: #0B0E12; border-top: 1px solid rgba(255,255,255,0.12);"></div>
+
+  <!-- pad / runway preview -->
+  <sc-if value="{{isPad}}" hint-placeholder-val="{{ true }}">
+    <svg aria-hidden="true" width="600" height="760" viewBox="0 0 600 760" style="position: absolute; left: 660px; top: 110px;">
+      <rect x="150" y="736" width="300" height="14" fill="#262A30" stroke="rgba(255,255,255,0.3)"></rect>
+      <rect x="400" y="160" width="18" height="576" fill="#1E2126" stroke="rgba(255,255,255,0.25)"></rect>
+      <line x1="400" y1="260" x2="330" y2="260" stroke="rgba(255,255,255,0.35)" stroke-width="3"></line>
+      <line x1="400" y1="420" x2="330" y2="420" stroke="rgba(255,255,255,0.35)" stroke-width="3"></line>
+    </svg>
+    <svg role="img" aria-label="{{vesselAria}}" width="860" height="520" viewBox="0 0 860 520" style="position: absolute; left: 530px; top: 210px; overflow: visible; transform: scale(0.82); transform-origin: 430px 260px;">
+      <g transform="rotate(-90 430 260)">
+        <rect x="150" y="150" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+        <path d="M340 150 Q382 152 386 168 Q382 184 340 186 Z" fill="#C9CDD3"></path>
+        <rect x="150" y="334" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+        <path d="M340 334 Q382 336 386 352 Q382 368 340 370 Z" fill="#C9CDD3"></path>
+        <path d="M58 236 L82 228 L82 292 L58 284 Z" fill="#2B2D31"></path>
+        <rect x="80" y="222" width="440" height="76" rx="6" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+        <rect x="196" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+        <rect x="330" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+        <rect x="520" y="228" width="44" height="64" fill="#D9DCE1" stroke="#B9BEC5" stroke-width="1.5"></rect>
+        <rect x="564" y="230" width="126" height="60" rx="4" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+        <path d="M690 230 L742 240 Q770 248 774 260 Q770 272 742 280 L690 290 Z" fill="#E7E9EC" stroke="#B9BEC5" stroke-width="1.5"></path>
+        <circle cx="776" cy="260" r="11" fill="#141518" stroke="#C3C7CD" stroke-width="2"></circle>
+        <rect x="110" y="168" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+        <path d="M330 168 Q382 170 388 190 Q382 210 330 212 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+        <rect x="110" y="308" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+        <path d="M330 308 Q382 310 388 330 Q382 350 330 352 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+      </g>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isRunway}}" hint-placeholder-val="{{ false }}">
+    <svg role="img" aria-label="Runway — no plane selected" width="1000" height="300" viewBox="0 0 1000 300" style="position: absolute; left: 460px; top: 640px;">
+      <polygon points="380,20 620,20 960,280 40,280" fill="#1A1D21" stroke="rgba(255,255,255,0.25)"></polygon>
+      <line x1="500" y1="30" x2="500" y2="270" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-dasharray="20 18"></line>
+    </svg>
+    <div style="position: absolute; left: 50%; top: 520px; transform: translateX(-50%); text-align: center; font-size: 12px; line-height: 1.5; color: #A1A1AA;">Planes take off from the runway.<br>Pick a design with wings and landing gear.</div>
+  </sc-if>
+
+  <!-- ===== Top ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Back to Space Center" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <div style="font-size: 12px; line-height: 1; font-weight: 700; color: #FFFFFF;">Launch</div>
+      <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">[WORLD NAME 1] · Space Center</div>
+    </div>
+  </div>
+
+  <!-- ===== Left · site + vessel ===== -->
+  <div style="position: absolute; left: 24px; top: 80px; width: 340px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">LAUNCH SITE</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;">
+        <sc-for list="{{sites}}" as="s" hint-placeholder-count="2">
+          <button aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="{{s.style}}">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{s.d}}"></path></svg>
+            <span style="font-size: 12px; line-height: 1; font-weight: 700;">{{s.name}}</span>
+            <span style="{{s.subStyle}}">{{s.sub}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">VESSEL · FROM LIBRARY</div>
+        <a href="Hangar.dc.html" style="font-size: 9px; line-height: 1; font-weight: 700; color: #C4C4CC; text-decoration: none;">Edit in Hangar</a>
+      </div>
+      <sc-for list="{{vessels}}" as="v" hint-placeholder-count="4">
+        <button aria-pressed="{{v.on}}" onClick="{{v.pick}}" style="{{v.style}}">
+          <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{v.d}}"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{v.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{v.sub}}</div>
+          </div>
+          <div style="{{v.dot}}"></div>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ===== Right · crew + summary + launch ===== -->
+  <div style="position: absolute; right: 24px; top: 80px; width: 340px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">CREW · COMMAND POD</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">{{seatCount}} / 3 seats</div>
+      </div>
+      <sc-for list="{{seats}}" as="s" hint-placeholder-count="3">
+        <button aria-label="{{s.aria}}" onClick="{{s.clear}}" style="{{s.style}}">
+          <div style="{{s.avatar}}">{{s.initials}}</div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{s.role}}</div>
+          </div>
+          <div style="margin-left: auto; font-size: 9px; line-height: 1; font-weight: 700; color: #8B8B93;">{{s.hint}}</div>
+        </button>
+      </sc-for>
+      <div style="display: flex; align-items: center; height: 22px; padding: 4px 6px 0; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">AVAILABLE</div>
+      <sc-for list="{{available}}" as="k" hint-placeholder-count="2">
+        <button aria-label="{{k.aria}}" onClick="{{k.add}}" style="width: 100%; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 8px; border: none; text-align: left; background: transparent; color: #E4E4E7;">
+          <div style="width: 22px; height: 22px; flex: none; border-radius: 50%; background: rgba(255,255,255,0.12); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700;">{{k.initials}}</div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{k.name}}</div>
+            <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{k.role}}</div>
+          </div>
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4C4CC" stroke-width="2.2" stroke-linecap="round" style="margin-left: auto;"><path d="M12 5 V19 M5 12 H19"></path></svg>
+        </button>
+      </sc-for>
+      <sc-if value="{{noneAvailable}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 8px; font-size: 10px; color: #8B8B93;">Everyone is seated. Hire more in the Astronaut Complex.</div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+        <sc-for list="{{summary}}" as="s" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+            <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{s.v}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <a href="Main.dc.html" style="height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; text-decoration: none; font-size: 14px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21"></path></svg>
+        {{launchLabel}}
+      </a>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { site: 'pad', vessel: 'v1', seats: ['valentina', 'jebediah', null] };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    let seed = 51;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 120; i++) stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1920) + 'px;top:' + Math.round(rnd() * 850) + 'px;width:1px;height:1px;border-radius:50%;background:#FFFFFF;opacity:' + (0.2 + rnd() * 0.5).toFixed(2) });
+
+    const ROCKET = 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21';
+    const PLANE = 'M12 3 V21 M4 13 L12 10 L20 13 M8 20 L12 18 L16 20';
+    const SITES = [
+      { id: 'pad', name: 'Launchpad', sub: 'Ready · pad clear', d: ROCKET },
+      { id: 'runway', name: 'Runway', sub: 'Ready', d: 'M8 21 L10 3 M16 21 L14 3 M12 5 V7 M12 10 V12 M12 15 V17' }
+    ];
+    const sites = SITES.map((s) => {
+      const on = st.site === s.id;
+      return {
+        name: s.name, sub: s.sub, d: s.d, on, pick: () => this.setState({ site: s.id }),
+        style: 'height:84px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;padding:0 12px;border-radius:12px;text-align:left;border:1px solid ' + (on ? '#F4F4F5' : 'rgba(255,255,255,0.1)') + ';background:' + (on ? '#F4F4F5' : 'transparent') + ';color:' + (on ? '#0B0B0C' : '#FFFFFF'),
+        subStyle: 'font-size:9px;line-height:1;color:' + (on ? '#52525B' : '#A1A1AA')
+      };
+    });
+    const V = [
+      { id: 'v1', name: '[VESSEL NAME]', sub: 'Rocket · 3 seats · 6,354 m/s Δv', d: ROCKET, kind: 'pad' },
+      { id: 'v2', name: '[DESIGN 2]', sub: 'Rocket · [—] seats · [—] m/s', d: ROCKET, kind: 'pad' },
+      { id: 'v3', name: '[RELAY DESIGN]', sub: 'Probe · uncrewed · [—] m/s', d: 'M10 10 H14 V14 H10 Z M3 9 H8 V15 H3 Z M16 9 H21 V15 H16 Z M8 12 H10 M14 12 H16', kind: 'pad' },
+      { id: 'v4', name: '[PLANE DESIGN]', sub: 'Plane · [—] seats', d: PLANE, kind: 'runway' }
+    ];
+    const vessels = V.filter((v) => v.kind === st.site).map((v) => {
+      const on = st.vessel === v.id;
+      return {
+        name: v.name, sub: v.sub, d: v.d, on, pick: () => this.setState({ vessel: v.id }),
+        style: 'width:100%;height:40px;display:flex;align-items:center;gap:8px;padding:0 10px 0 6px;border-radius:8px;border:none;text-align:left;color:#E4E4E7;background:' + (on ? 'rgba(255,255,255,0.07)' : 'transparent'),
+        dot: 'margin-left:auto;width:4px;height:4px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+
+    const CREW = { valentina: ['VK', 'Valentina', 'Pilot'], jebediah: ['JK', 'Jebediah', 'Pilot'], bob: ['BK', 'Bob', 'Scientist'], k4: ['—', '[KERBAL]', '[ROLE]'] };
+    const seats = st.seats.map((id, i) => {
+      const c = id ? CREW[id] : null;
+      return {
+        initials: c ? c[0] : '+', name: c ? c[1] : 'Empty seat ' + (i + 1), role: c ? c[2] : 'Pick from available crew', hint: c ? 'Remove' : '',
+        aria: c ? 'Remove ' + c[1] + ' from seat ' + (i + 1) : 'Seat ' + (i + 1) + ' is empty',
+        clear: () => { const s = st.seats.slice(); s[i] = null; this.setState({ seats: s }); },
+        style: 'width:100%;height:40px;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:8px;text-align:left;color:#E4E4E7;border:1px ' + (c ? 'solid transparent' : 'dashed rgba(255,255,255,0.2)') + ';background:' + (c ? 'rgba(255,255,255,0.05)' : 'transparent'),
+        avatar: 'width:22px;height:22px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1;font-weight:700;background:' + (c ? '#F4F4F5' : 'transparent') + ';color:' + (c ? '#0B0B0C' : '#8B8B93') + ';border:' + (c ? 'none' : '1px dashed rgba(255,255,255,0.3)')
+      };
+    });
+    const seated = st.seats.filter(Boolean);
+    const available = Object.keys(CREW).filter((id) => seated.indexOf(id) < 0).map((id) => ({
+      initials: CREW[id][0], name: CREW[id][1], role: CREW[id][2] + ' · KSC', aria: 'Seat ' + CREW[id][1],
+      add: () => { const s = st.seats.slice(); const i = s.indexOf(null); if (i >= 0) { s[i] = id; this.setState({ seats: s }); } }
+    }));
+    const vsel = V.find((v) => v.id === st.vessel);
+    const summary = [{ k: 'COST', v: '[—]' }, { k: 'MASS', v: '[—] t' }, { k: 'CREW', v: String(seated.length) }];
+
+    return {
+      stars, sites, vessels, seats, available, summary,
+      isPad: st.site === 'pad', isRunway: st.site === 'runway',
+      seatCount: String(seated.length), noneAvailable: available.length === 0 || seated.length === 3 && false,
+      vesselAria: (vsel ? vsel.name : 'Vessel') + ' on the launchpad',
+      launchLabel: st.site === 'pad' ? 'Launch from pad' : 'Roll out to runway'
+    };
+  }
+}
+</script>
+</body>
+</html>
