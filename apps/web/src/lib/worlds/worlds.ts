@@ -76,6 +76,11 @@ export interface Worlds {
 	startInfo(id: string): Promise<WorldInfo | undefined>;
 	/** The world's saves, newest first. */
 	saves(id: string): Promise<SaveMeta[]>;
+	/**
+	 * The Space Center changed the buildings (plan 091, ADR 0117 point 5): the record's world takes
+	 * these sites, and new flights start with them. The Legacy world gets a world info here.
+	 */
+	setSites(id: string, sites: WorldInfo['sites']): Promise<void>;
 }
 
 export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEnv): Worlds {
@@ -204,8 +209,17 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 			await worlds.put({ ...record, lastPlayedAt: env.now(), summary: await summaryOf(id) });
 		},
 		async startInfo(id) {
-			if (id === LEGACY_WORLD_ID) return undefined;
+			// the Legacy world starts as the sim's default until the Space Center gave it buildings
 			return (await get(id))?.world;
+		},
+		async setSites(id, sites) {
+			let record = await get(id);
+			if (!record) {
+				if (id !== LEGACY_WORLD_ID) throw new Error(`no world ${id}`);
+				record = legacyWorldRecord(env.now(), [], emptySummary());
+			}
+			const world = record.world ?? legacyWorldInfo(0);
+			await worlds.put({ ...record, world: { ...world, sites: structuredClone(sites) } });
 		},
 		saves: savesOf
 	};

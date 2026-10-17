@@ -1,4 +1,5 @@
 /** Worlds storage (plan 087, ADR 0143): create, rename, duplicate, delete with its saves, touch. */
+import { LEGACY_SITE } from '@orbital/core';
 import { LEGACY_WORLD_ID, loadPlugins, readSimSave, type WorldInfo } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
@@ -68,6 +69,33 @@ describe('worlds', () => {
 		expect(list.map((e) => (e.ok ? e.record.id : '?'))).toEqual(['b', 'a']);
 		expect(await w.startInfo('a')).toEqual(career('a'));
 		expect(await w.startInfo(LEGACY_WORLD_ID)).toBeUndefined();
+	});
+
+	it("setSites (plan 091): new flights start with the Space Center's buildings, the Legacy world too", async () => {
+		const w = createWorlds(memoryWorldStore(), memoryStore(), env());
+		await w.create(career('a'), 'Moon program', []);
+		const sites = [
+			{
+				...LEGACY_SITE,
+				buildings: [
+					{
+						id: 'd',
+						kind: 'stock.tracking-dish',
+						cell: { i: 10, j: -2 },
+						rotation: 0 as const,
+						level: 0,
+						state: 'active' as const
+					}
+				]
+			}
+		];
+		await w.setSites('a', sites);
+		expect((await w.startInfo('a'))!.sites).toEqual(sites);
+		expect((await w.startInfo('a'))!.id).toBe('a');
+		await w.setSites(LEGACY_WORLD_ID, sites);
+		const legacy = (await w.startInfo(LEGACY_WORLD_ID))!;
+		expect(legacy.id).toBe(LEGACY_WORLD_ID);
+		expect(legacy.sites).toEqual(sites);
 	});
 
 	it('rename keeps the id; an empty name is refused', async () => {

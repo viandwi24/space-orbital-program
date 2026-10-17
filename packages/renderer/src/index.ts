@@ -31,3 +31,5 @@ export * from './vab/index.ts';
 export * from './effects/look.ts';
 export * from './effects/shards.ts';
 export * from './terrain-zones.ts';
+export type { SiteBuildingView } from './site-list.ts';
+export { SITE_RIG_LIMITS } from './scene.ts';

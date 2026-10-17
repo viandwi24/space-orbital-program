@@ -3,6 +3,7 @@
  * `SceneModel`, the post chain and image-based light (ADR 0027). Needs a canvas, so it is
  * exercised by the manual runs in the journals, not by Bun tests.
  */
+import type { SiteBuildingView } from './site-list.ts';
 import type { EntityId, Snapshot } from '@orbital/core';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
@@ -136,6 +137,28 @@ export interface Renderer {
 	 * when behind the camera, `hidden` when a body is in the way (plan 024, ADR 0033).
 	 */
 	project(world: Vec3): ScreenPoint | null;
+	/**
+	 * Site view (plan 091, ADR 0117): the orbit camera looks at the site centre instead of a vessel.
+	 * With `siteBuildings: true` in the config, the site's buildings come from `setSiteBuildings`.
+	 */
+	setSiteView(on: boolean): void;
+	setSiteBuildings(
+		list: readonly SiteBuildingView[],
+		roads: readonly { i: number; j: number }[]
+	): void;
+	/** The translucent footprint of build mode, or null to hide it. */
+	setSiteGhost(
+		ghost: {
+			size: { w: number; d: number };
+			cell: { i: number; j: number };
+			rotation: 0 | 90 | 180 | 270;
+			valid: boolean;
+		} | null
+	): void;
+	/** The site point (m east and north of the centre) under a CSS pixel, or null. */
+	pickSite(x: number, y: number): { east: number; north: number } | null;
+	/** CSS pixel of a site point (m east, north, up), or null behind the camera. */
+	projectSite(p: { east: number; north: number; up?: number }): ScreenPoint | null;
 	/** Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation). */
 	setPreset(preset: GraphicsPreset): void;
 	readonly preset: GraphicsPreset;
@@ -477,6 +500,11 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setActiveVessel: (id) => model.setActiveVessel(id),
 		orbitCamera: (input) => model.orbitCamera(input),
 		project: (world) => model.project(world),
+		setSiteView: (on) => model.setSiteView(on),
+		setSiteBuildings: (list, roads) => model.setSiteBuildings(list, roads),
+		setSiteGhost: (g) => model.setSiteGhost(g),
+		pickSite: (x, y) => model.pickSite(x, y),
+		projectSite: (p) => model.projectSite(p),
 		setPreset(next) {
 			preset = next;
 			model.setPreset(next);

@@ -1,6 +1,6 @@
 /**
- * Enter a world (plan 087, ADR 0143 point 2): it becomes the active world and moves to the top of the
- * list, then its newest save opens, or the VAB when it has none (its first launch flies in it).
+ * Enter a world (plan 087, ADR 0143 point 2; plan 091, ADR 0117): it becomes the active world and
+ * moves to the top of the list, then its Space Center opens (saves load from the Load dialog).
  */
 import type { Worlds } from './worlds';
 import { setActiveWorld } from './worlds';
@@ -12,6 +12,5 @@ export async function enterWorld(
 ): Promise<void> {
 	setActiveWorld(id);
 	await worlds.touch(id);
-	const newest = (await worlds.saves(id))[0];
-	await go(newest ? `/flight?load=${encodeURIComponent(newest.id)}` : '/vab');
+	await go('/space-center');
 }

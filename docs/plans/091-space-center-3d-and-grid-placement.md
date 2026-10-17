@@ -1,8 +1,8 @@
 ---
 id: 091
 title: "Space Center in 3D with free grid placement"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [090, 086, 087]
 phase: 5
 created: 2026-10-17
@@ -50,20 +50,22 @@ Performance budget set here: at the default camera with the stock layout, `high`
 
 ## Acceptance criteria
 
-- [ ] vitest: the overlay lists every building of the snapshot's site with its status; keyboard navigation reaches each and opens its detail.
-- [ ] vitest: build mode shows the `canPlace` reasons for an invalid ghost; confirming a valid one dispatches `place-building`.
-- [ ] Journal: frame times at the default camera (`high`, `medium`, M5) and draw calls; screenshots in `docs/journal/assets/091-*.png` with the self-review against the refs Space Center and ADR 0025.
-- [ ] `bun run e2e` (Chromium): enter a world, place a building, open the Hangar from its label.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: the overlay lists every building of the snapshot's site with its status; keyboard navigation reaches each and opens its detail.
+- [x] vitest: build mode shows the `canPlace` reasons for an invalid ghost; confirming a valid one dispatches `place-building`.
+- [x] Journal: frame times at the default camera (`high`, `medium`, M5) and draw calls; screenshots in `docs/journal/assets/091-*.jpg` with the self-review against the refs Space Center and ADR 0025.
+- [x] `bun run e2e` (Chromium): enter a world, place a building, open the Hangar from its label.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/091-space-center-3d-and-grid-placement.md` written.
-- [ ] `architecture/overview.md` (Space Center view), `product/visual-direction.md` (Space Center).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/091-space-center-3d-and-grid-placement.md` written.
+- [x] `architecture/overview.md` (Space Center view), `product/visual-direction.md` (Space Center).
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0107).
 - 2026-10-17 — `depends` gains 087 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): entering a world goes to the Space Center and the e2e criterion enters a world from the Worlds screen of plan 087.
+- 2026-10-17 — Claimed by Agent 1. ADR 0117 (site mode, site view camera, picking, persistence in the world record). The renderer API is `setSiteView`, `setSiteBuildings`, `setSiteGhost`, `pickSite`, `projectSite` (not one `setSite`). Moving a building is remove then place; drawing roads by hand is left to 096 (roads come from `canPlace`'s connection). Screenshots are JPEG like the other journal assets.
+- 2026-10-17 — Done. Journal [091](../journal/091-space-center-3d-and-grid-placement.md).

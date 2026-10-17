@@ -3,6 +3,8 @@
  * rig and the map-view overlay. Contains no `WebGLRenderer`, so it runs (and is tested) in Bun.
  * It only reads snapshots; it never mutates them.
  */
+import type { SiteBuildingView } from './site-list.ts';
+import type { LaunchSite } from './site-meshes.ts';
 import type {
 	BodyDefinition,
 	EntityId,
@@ -114,7 +116,13 @@ export interface SceneConfig {
 	launchSite?: { latitude: number; longitude: number };
 	/** The world's home terrain: seed and the flat zones of its sites (plan 084); default Legacy around `launchSite`. */
 	terrain?: WorldTerrainSpec;
+	/** Site mode (plan 091, ADR 0117): the site's buildings come from `setSiteBuildings`. */
+	siteBuildings?: boolean;
 }
+
+/** Orbit limits of the site view (ADR 0117 point 2), m. */
+export const SITE_RIG_LIMITS = { minDistance: 40, maxDistance: 2_500 };
+const SITE_ID = -2;
 
 /** Lowest altitude of the orbit camera above the surface sphere, m. */
 export const MIN_CAMERA_ALTITUDE = 1.2;
@@ -123,6 +131,12 @@ export const GHOST_HOLD = 5;
 const GHOST_ID = -1;
 export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 1e13;
+/** Body-fixed point of a latitude/longitude at `radius` (the map convention of core). */
+const latLonDir = (s: { latitude: number; longitude: number }, radius: number): Vec3 => ({
+	x: Math.cos(s.latitude) * Math.cos(s.longitude) * radius,
+	y: Math.sin(s.latitude) * radius,
+	z: -Math.cos(s.latitude) * Math.sin(s.longitude) * radius
+});
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
 
 interface PartEntry {
@@ -210,6 +224,9 @@ export class SceneModel {
 	private focus: { definition: string; occurrence: number } | null = null;
 	/** Where the active vessel was (body-fixed), so the camera stays at a wreck while it burns. */
 	private lastActive: { soi: string; local: Vec3; t: number } | null = null;
+	/** Site view (ADR 0117): the camera orbits the site centre, a virtual vessel without parts. */
+	private siteView = false;
+	private siteLocal: Vec3 = { x: 0, y: 0, z: 0 };
 	private readonly threshold: number;
 	private readonly sphere = new SphereGeometry(1, 64, 32);
 	private readonly viewport = { width: 1, height: 1 };
@@ -288,8 +305,13 @@ export class SceneModel {
 			body: primary ?? { id: 'none', radius: 1, atmosphere: undefined },
 			preset: config.preset ?? 'high',
 			site: config.launchSite ?? { latitude: 0, longitude: 0 },
-			...(config.terrain ? { terrain: config.terrain } : {})
+			...(config.terrain ? { terrain: config.terrain } : {}),
+			siteBuildings: config.siteBuildings === true
 		});
+		this.siteLocal = latLonDir(
+			config.launchSite ?? { latitude: 0, longitude: 0 },
+			primary?.radius ?? 1
+		);
 		this.scene.add(this.environment.root);
 		this.scene.fog = this.environment.fog;
 		for (const b of config.bodies) this.bodyInfo.set(b.id, b);
@@ -459,7 +481,12 @@ export class SceneModel {
 			const unset = this.mapRig.distance === 0;
 			const next = applyRigInput(this.mapRig, this.mapLimits, input);
 			this.mapRig = unset ? { ...next, distance: 0 } : next;
-		} else this.flightRig = applyRigInput(this.flightRig, FLIGHT_RIG_LIMITS, input);
+		} else
+			this.flightRig = applyRigInput(
+				this.flightRig,
+				this.siteView ? SITE_RIG_LIMITS : FLIGHT_RIG_LIMITS,
+				input
+			);
 		this.cameraDirty = true;
 	}
 	/** Draw the view centred in the area the interface leaves free (plan 023). */
@@ -642,6 +669,7 @@ export class SceneModel {
 		} else {
 			activeVessel = this.ghostVessel(snapshot);
 		}
+		if (this.siteView && !this.map) activeVessel = this.siteVessel(snapshot) ?? activeVessel;
 		const soiPos = (v: VesselSnapshot): Vec3 => {
 			const p = bodyWorld.get(v.soi);
 			if (!p) throw new Error(`Snapshot vessel ${v.id} is in unknown SOI body "${v.soi}"`);
@@ -932,6 +960,72 @@ export class SceneModel {
 	 * body-fixed position: the camera and the floating origin stay there instead of jumping to the
 	 * planet centre, so the explosion is seen.
 	 */
+	/** The site centre as a vessel without parts, for the anchor and the camera (ADR 0117 point 2). */
+	private siteVessel(snapshot: Snapshot): VesselSnapshot | undefined {
+		const soi = this.primaryBody;
+		if (!soi) return undefined;
+		const rot = this.bodyRotOf(snapshot, soi);
+		if (!rot) return undefined;
+		return {
+			id: SITE_ID as EntityId,
+			mode: 'flight',
+			soi: soi as VesselSnapshot['soi'],
+			position: rotate(rot, this.siteLocal),
+			velocity: { x: 0, y: 0, z: 0 },
+			orientation: { x: 0, y: 0, z: 0, w: 1 },
+			parts: []
+		};
+	}
+
+	/** Site view on or off (ADR 0117): the orbit camera looks at the site centre. */
+	setSiteView(on: boolean): void {
+		if (on && !this.siteView) {
+			this.flightRig = { yaw: 0.7, pitch: 0.45, distance: 420 };
+			this.vesselCentre = { x: 0, y: 0, z: 0 };
+		}
+		this.siteView = on;
+		this.cameraDirty = true;
+	}
+	get siteViewOn(): boolean {
+		return this.siteView;
+	}
+
+	/** Site mode: the buildings and road cells to draw. */
+	setSiteBuildings(
+		list: readonly SiteBuildingView[],
+		roads: readonly { i: number; j: number }[]
+	): void {
+		this.environment.site.setBuildings(list, roads);
+	}
+	setSiteGhost(g: Parameters<LaunchSite['setGhost']>[0]): void {
+		this.environment.site.setGhost(g);
+	}
+
+	/** The site point (m east and north) under a CSS pixel of the viewport, or null. */
+	pickSite(x: number, y: number): { east: number; north: number } | null {
+		this.camera.updateMatrixWorld();
+		const ndc = new Vector3(
+			(x / this.viewport.width) * 2 - 1,
+			-(y / this.viewport.height) * 2 + 1,
+			0.5
+		);
+		const dir = ndc.unproject(this.camera).sub(this.camera.position).normalize();
+		return this.environment.site.pickPlane(this.camera.position.clone(), dir);
+	}
+
+	/** CSS pixel of a site point (m east, north and up), or null behind the camera or a body. */
+	projectSite(p: { east: number; north: number; up?: number }): ScreenPoint | null {
+		this.camera.updateMatrixWorld();
+		const w = this.environment.site.siteToWorld(p);
+		return projectWorldPoint(
+			this.camera,
+			{ x: w.x, y: w.y, z: w.z },
+			this.viewport.width,
+			this.viewport.height,
+			[]
+		);
+	}
+
 	private ghostVessel(snapshot: Snapshot): VesselSnapshot | undefined {
 		const last = this.lastActive;
 		if (!last || snapshot.t - last.t > GHOST_HOLD) return undefined;
