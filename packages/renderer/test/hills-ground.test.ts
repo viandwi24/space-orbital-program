@@ -184,12 +184,13 @@ describe('the GLSL of the hills bake', () => {
 		const sha = (s: string): string => createHash('sha256').update(production(s)).digest('hex');
 		// plan 059 pinned b0287f39… / 90014bca… (HEAD 4de52a7); plan 084 changed both on purpose
 		// (e2ab91ab… / e4848aa7…: the site's constants became the zone uniforms, noiseT gained
-		// uTerrainShift); plan 068 changed both on purpose again: the gradient is analytic (ADR 0116)
+		// uTerrainShift); plan 068 changed both on purpose again: the gradient is analytic (ADR 0116);
+		// plan 071 only wrapped the hash noise in an include guard (the same code, ADR 0121)
 		expect(sha(terrainBakeFragment)).toBe(
-			'9f4a7a327cfd23d3c9f6897769eb6668755eeb5d0cb9ef320e888915b1846f51'
+			'15163885dd9790c76045d2d7ff8e6e9daa175a81505913f748e88ce1e2ddc6de'
 		);
 		expect(sha(terrainPatchFragment)).toBe(
-			'170cafccf16153adf22263678b985b77ae9fa21fd4d276143bfcd2c08503ad0f'
+			'1eaa686e72e6c14e6d7305c164fda99b0344de41f6d19e91f04ee47333c37758'
 		);
 		expect(sha(terrainBakeVertex)).toBe(
 			'227b9f2ac69e37c9d7c7131be39f4cf01eb80ff06ba0fc71f9ed3ab7605b0712'

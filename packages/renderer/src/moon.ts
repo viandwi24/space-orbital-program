@@ -527,7 +527,7 @@ export class MoonPass {
 		shader.fragmentShader = shader.fragmentShader
 			.replace(
 				'#include <common>',
-				`#include <common>\n${moonViewCommon}${moonSeaFragmentCommon}${patchDecls}`
+				`#include <common>\n${moonViewCommon}// MOON_AIR_COMMON\n${moonSeaFragmentCommon}${patchDecls}`
 			)
 			.replace(
 				'#include <opaque_fragment>',
@@ -545,9 +545,14 @@ export class MoonPass {
 	private injectAir(shader: { fragmentShader: string }): void {
 		if (!this.atmosphere) return;
 		shader.fragmentShader = shader.fragmentShader
+			// after the view uniforms the sea declared, else with them
 			.replace(
-				'#include <common>',
-				`#include <common>\n${this.kind === 'hills' ? '' : moonViewCommon}${moonAirFragmentCommon}`
+				shader.fragmentShader.includes('// MOON_AIR_COMMON')
+					? '// MOON_AIR_COMMON'
+					: '#include <common>',
+				shader.fragmentShader.includes('// MOON_AIR_COMMON')
+					? moonAirFragmentCommon
+					: `#include <common>\n${moonViewCommon}${moonAirFragmentCommon}`
 			)
 			// after the sea when there is one (its glint is seen through the air too)
 			.replace(

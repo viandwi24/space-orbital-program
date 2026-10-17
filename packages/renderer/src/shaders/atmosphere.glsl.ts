@@ -3,6 +3,9 @@ import { SUN_DEPTH_H, SUN_DEPTH_MU, SUN_DEPTH_SCALE } from '../sun-depth-table.t
 
 /** Integer-hash value noise (pcg3d) shared by the planet pass and the terrain bake. */
 export const hashNoiseGLSL = /* glsl */ `
+// included by several chunks of one program (the moon pass's air and its hills ground): once
+#ifndef ORBITAL_HASH_NOISE
+#define ORBITAL_HASH_NOISE
 // --- hash noise ---------------------------------------------------------------------------------
 uvec3 pcg3d(uvec3 v) {
 	v = v * 1664525u + 1013904223u;
@@ -43,6 +46,7 @@ float noiseF(vec3 p) {
 	vec3 fl = floor(p);
 	return valueNoiseCell(ivec3(fl), p - fl);
 }
+#endif
 `;
 
 /**
