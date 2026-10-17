@@ -1,7 +1,7 @@
 ---
 id: 083
 title: "Data items: sized data stored on vessels"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [077]
 phase: 4

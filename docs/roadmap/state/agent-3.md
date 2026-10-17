@@ -11,7 +11,7 @@
 | 079 patch | done | `devc/079-define-patch` | 2026-10-17 | merged, cp/f1-079-patch |
 | 075 licence | done | `devc/075-licence` | 2026-10-17 | merged, cp/f1-075-licence |
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
-| 083 data | handed-over | `devc/083-data-items` | 2026-10-17 | ready/083; ADR 0172; API 0.1.30 |
+| 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
 | 080 trajectory | todo |  |  |  |
 | 110 part-actions | todo |  |  |  |
 | 092 site-choice | todo |  |  |  |
