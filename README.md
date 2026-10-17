@@ -20,7 +20,7 @@ Settings (graphics quality, units, controls) are on the main menu and in the pau
 
 ### Requirements
 
-A desktop browser with WebGL 2, Web Workers and WebAssembly: Chrome or Edge 97+, Firefox 114+, Safari 16+. Tested engines and the matrix: [`docs/product/browser-support.md`](docs/product/browser-support.md). Phones and tablets are not supported yet. A graphics card from the last several years is advised; the game lowers its quality by itself if the frame rate drops (Settings, Graphics).
+A browser (desktop, or a tablet in landscape) with WebGL 2, Web Workers and WebAssembly: Chrome or Edge 97+, Firefox 114+, Safari 16+. Tested engines and the matrix: [`docs/product/browser-support.md`](docs/product/browser-support.md). Tablets in landscape (1024 × 768 or larger) work with on-screen controls, tested in emulation only; phones are not supported (they get a notice). A graphics card from the last several years is advised; the game lowers its quality by itself if the frame rate drops (Settings, Graphics).
 
 ## How to run it from source
 

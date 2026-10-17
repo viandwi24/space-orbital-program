@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-17
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the game has a menu, settings, a first-flight guide, a roadmap page and a hosting guide. What stands between it and a public release is the licence, which is the human's decision (journal 023 release checklist)
 **Current plan:** none in progress
-**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 035, 036, 038, 040, 041, 050 to 053. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
+**Next plan:** none is required for v1. The human decides the licence, then tests by hand (journal 023, "How to test manually"). Post-v1 drafts: 034, 035, 036, 038, 040, 041, 050 to 052, 054, 055. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md).
 
 ## Plan board
 
@@ -62,7 +62,8 @@
 | 048 | [Cheaper preset switches](plans/048-half-resolution-planet-pass.md) | done | switch session (Claude, 2026-10-17) | v1: vegetation kept per preset, terrain baked over frames, programs and shadow map spread (ADR 0055); the half-resolution pass is draft 050 |
 | 050 | [Half-resolution planet pass and cloud shadows on medium](plans/050-half-resolution-planet-pass.md) | draft | — | from 048: bilateral upsample, governor rung, `medium` cloud shadows, M1/M2 measurements |
 | 051 | [Mod-supplied part visuals and assets](plans/051-mod-visuals-and-assets.md) | draft | — | from 046: new generators or glTF inside a mod package (today a mod part reuses the stock generators with its own palette) |
-| 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | in-progress | audio session (Claude, 2026-10-17) | ADRs 0061 (binding table, settings v2), 0062 (code-only Web Audio), 0063 (tablets yes, phones no) |
+| 053 | [Remappable keys, audio and small screens](plans/053-remappable-keys-audio-and-small-screens.md) | done | audio session (Claude, 2026-10-17) | ADRs 0061 (binding table of 49 actions, settings format 2), 0062 (code-only Web Audio: engine and rumble by throttle and pressure, wind, thunk, ticks, warnings; locked until a gesture, suspended on a hidden tab), 0063 (tablets in landscape yes with touch controls, phones a notice); manual rebind in flight, analyser levels and 0.005 ms per frame measured, touch e2e in Chromium; **listening is the human's** (journal 053 checklist); phones and real devices in draft 055 |
+| 055 | [Phone layout and real-device passes](plans/055-phone-layout-and-real-device-passes.md) | draft | — | from 053: compact phone HUD, real iPad/Android runs, mobile audio interruptions |
 | 054 | [Light shafts and an ozone sky](plans/054-light-shafts-and-ozone-sky.md) | draft | — | from 037: crepuscular rays through the cumulus slab, ozone layer at the golden hour, aurora |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -94,6 +95,7 @@ Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-
 
 ## Recent journal entries
 
+- [053 — Remappable keys, audio and small screens](journal/053-remappable-keys-audio-and-small-screens.md)
 - [023 — Release readiness](journal/023-release-readiness.md)
 - [037 — Volumetric cumulus](journal/037-volumetric-clouds-and-light-shafts.md)
 - [049 — Moon polish](journal/049-moon-polish.md)

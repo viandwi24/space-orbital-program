@@ -1,6 +1,6 @@
 # 0040 — Browser support policy and the cross-browser end-to-end suite
 
-**Status:** accepted
+**Status:** accepted (point 2, no phones or tablets, amended by ADR 0063: tablets in landscape are supported)
 **Date:** 2026-10-17
 **Plan:** plans/032-script-api-additions-and-browser-matrix.md
 **Amends:** `product/spec.md` (adds a support statement; no scope change). ADR 0008 applies to the scaffolding.

@@ -16,13 +16,19 @@ WebGL2 (renderer), module Web Workers (simulation and script sandbox), WebAssemb
 
 "Minimum version" is the platform floor from the feature tables, not a tested version: only the three engines in the fourth column are run by the suite. A player on an older release of the same browser may hit a bug nobody has seen; the notice and this table are the whole promise. The detailed per-engine results and the bugs the matrix found are in the journal.
 
+## Tablets (plan 053, [ADR 0063](../decisions/0063-tablets-supported-phones-not.md))
+
+Tablets in **landscape at 1024x768 CSS px or larger** are supported, in the same engines as the table above (Chrome, Safari, Firefox on a tablet). On a coarse primary pointer, or when Settings, Game, Touch controls is On, the flight screen shows a throttle slider (Full, Cut), a steering pad (pitch and yaw), roll buttons and Stage; one finger drags the camera and two fingers pinch to zoom, in flight and in the VAB; buttons grow to 44 px. **Tested in emulation only** (Playwright Chromium with touch events at 1024x768, the built-in browser at 1024x768 and 390x844; journal 053): no real tablet was available, so frame times, thermals and browser chrome on real devices are not claimed.
+
 ## Not supported (stated, not hidden)
 
-- **Phones and tablets.** The interface is laid out for 1280x720 and up and takes keyboard and mouse only. No device was available to run the suite, so nothing is claimed. A phone browser that has WebGL2, Workers and WebAssembly loads the game and will probably be unusable; one that lacks them shows the notice.
+- **Phones, and tablets in portrait.** A screen under 900x500 CSS px gets a notice ("made for larger screens") with Continue anyway; the game still loads and may be hard or impossible to use. A phone browser that lacks WebGL2, Workers or WebAssembly shows the capability notice instead. Roadmap: draft plan 055.
 - Browsers without WebGL2, Workers or WebAssembly (the notice appears), and any browser older than the minimum versions above.
 - Embedded web views that block sandboxed `srcdoc` iframes or blob Workers: scripts fail closed with "the script sandbox did not start" (ADR 0038); the rest of the game runs.
 
 ## How it is checked
+
+`apps/web/e2e/touch.e2e.ts` (plan 053) runs in Chromium only: a touch tablet context flies the two-stage example with the on-screen controls, and a phone-sized context shows and dismisses the notice.
 
 Plan 023 added `E2E_HEADERS=1 bun run e2e`, which serves the build with the production Content-Security-Policy and headers (`architecture/hosting.md`); the release run (journal 023) used it in all three engines.
 

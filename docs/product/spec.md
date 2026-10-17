@@ -76,7 +76,7 @@ Each phase is complete when its plans are `done` and the phase's end-to-end chec
 
 ## 7. Browser support
 
-Desktop Chrome and Edge, Firefox and Safari at the versions in [`browser-support.md`](browser-support.md); phones and tablets are not supported yet.
+Desktop Chrome and Edge, Firefox and Safari at the versions in [`browser-support.md`](browser-support.md); tablets in landscape (1024x768 and up) are supported with on-screen controls (ADR 0063), phones are not.
 
 ## 8. Open product questions
 

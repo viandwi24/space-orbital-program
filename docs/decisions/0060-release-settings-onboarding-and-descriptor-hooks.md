@@ -1,6 +1,6 @@
 # 0060 — Release: settings, onboarding, public pages and the descriptor hooks
 
-**Status:** accepted
+**Status:** accepted (point 3, the read-only key list, amended by ADR 0061; point 4, no sound, amended by ADR 0062)
 **Date:** 2026-10-17
 **Plan:** plans/023-release-readiness.md
 **Amends:** ADR 0033 (module descriptors gain three optional fields; API 0.1.15 to 0.1.16).
