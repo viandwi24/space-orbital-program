@@ -59,7 +59,13 @@ describe('patches over the stock registries', () => {
 	test('stock alone registers no patches', () => {
 		const { report } = loadPlugins([Stock]);
 		expect(report.patches).toEqual([]);
-		expect(report.provenance).toEqual({ part: {}, resource: {}, body: {}, building: {} });
+		expect(report.provenance).toEqual({
+			part: {},
+			resource: {},
+			body: {},
+			building: {},
+			category: {}
+		});
 	});
 
 	test('benchmark: 1 000 patches apply in under 50 ms (M5; indicative elsewhere)', () => {
