@@ -9,7 +9,7 @@
 | Where | What |
 |---|---|
 | `packages/core/src/categories.ts` | `CategoryDefinition` (id, label, icon, order, description), `categoryDefinitionSchema` (icon: a kebab-case name or `{ path }` path data, commands and numbers only, ≤ 1 024 characters), `categoryRefSchema`, `categoryIdOf` (short name → `stock.<name>`), `sortCategories`, `FALLBACK_CATEGORY` |
-| core `registry.ts`, `plugin.ts`, `definitions.ts`, `patch.ts`, `schemas.ts` | `registries.categories`, `ctx.categories`, report kind `category`, patch target `category`; a part's `catalog.category` and a module's `category` take a short name or a category id; API_VERSION 0.1.41 |
+| core `registry.ts`, `plugin.ts`, `definitions.ts`, `patch.ts`, `schemas.ts` | `registries.categories`, `ctx.categories`, report kind `category`, patch target `category`; a part's `catalog.category` and a module's `category` take a short name or a category id; API_VERSION 0.1.43 (0.1.40 to 0.1.42 went to 103, 085 and 114) |
 | `packages/sdk` | `defineCategory`, `CategoryDefinition`, `CategoryIcon`, `categoryIdOf`, `sortCategories`, `STOCK_CATEGORY_NAMES` |
 | `mods/stock/src/categories.ts` | the nine stock categories through `defineCategory`, orders 100 to 800 and Other 10 000 |
 | web `editor/categories.ts`, `catalog.ts`, `vab/controller.svelte.ts`, `vab/Catalogue.svelte`, `ui/Icon.svelte`, `routes/vab` | the rail from the registry; `categoryOf` returns an id and, given the rail, sends an unregistered id to Other; `Icon` takes path data; the first-flight guide reads ids |
