@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 083 handed over as `ready/083`, rebased on the 095 and 081 merges (API 0.1.32). Next in the lane: 080 trajectory.
-**Waiting for:** merge of 083 (`ready/083`).
+**Now:** 080 trajectory provider on `devc/080-trajectory` (claim/080): plan refined; next the golden outputs before any move.
+**Waiting for:** —
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -12,7 +12,7 @@
 | 075 licence | done | `devc/075-licence` | 2026-10-17 | merged, cp/f1-075-licence |
 | 082 tick | done | `devc/082-world-tick` | 2026-10-17 | merged 59b7dd9, cp/f1-082-tick |
 | 083 data | done | `devc/083-data-items` | 2026-10-17 | merged 36ac6df, cp/f1-083-data |
-| 080 trajectory | todo |  |  |  |
+| 080 trajectory | in-progress | `devc/080-trajectory` | 2026-10-17 | claim/080 |
 | 110 part-actions | todo |  |  |  |
 | 092 site-choice | todo |  |  |  |
 | 098 objectives | todo |  |  |  |
