@@ -1,7 +1,7 @@
 ---
 id: 104
 title: "Regions on bodies and body dossiers"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [103]
 phase: 6
