@@ -66,3 +66,4 @@ Pure restyle: no data or route changes beyond the Home card.
 - 2026-10-17 — `depends` gains 075, 076 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): it restyles the Credits page of plan 075 and the Roadmap page of plan 076, which edit the same files.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Done on the branch: space backdrop, menu shell, Home with the last-world card, dialogs, pause menu, public pages, error and loading screens; keyboard-only e2e; screenshots with self-review. No new ADR (ADR 0107, 0140). Firefox not installed here: the three-engine smoke is for Agent 1. Journal: [089](../journal/089-ui-stage-3-menus-and-public-pages.md).
+- 2026-10-18 — Merge check (Agent 1, M5): rebased on main after 113 and 104 without conflicts. `bun run test` 1531 pass · web vitest 956 pass · typecheck · build · docs:check OK · Chromium smoke 7 pass · Firefox smoke 7 pass (the engine Agent 2 could not run).
