@@ -3,8 +3,10 @@
  * loop (simulation.md). No clock, no I/O: time is an input to `step`.
  */
 import {
+	cloneData,
 	createRng,
 	createWorld,
+	legacyWorldInfo,
 	loadPlugins,
 	readSimSave,
 	SaveError,
@@ -23,7 +25,9 @@ import {
 	type Snapshot,
 	type SystemDefinition,
 	type TerrainField,
-	type World
+	type World,
+	type WorldInfo,
+	worldInfoSchema
 } from '@orbital/core';
 import { buildBodies } from './bodies.ts';
 import { dispatch } from './commands.ts';
@@ -101,6 +105,12 @@ export interface SimOptions {
 	 * save's. Mutable behaviour kept in a plugin's own closures, outside the world, is not saved.
 	 */
 	resume?: unknown;
+	/**
+	 * The world this run belongs to (plan 077, ADR 0110), validated like a save. Absent: the save's
+	 * world on resume, else the Legacy world with this run's seed. On resume it must name the
+	 * save's world.
+	 */
+	world?: WorldInfo;
 }
 
 export interface Sim {
@@ -125,11 +135,42 @@ export interface Sim {
 	readonly registries: ReadonlyRegistries;
 	readonly report: LoadReport;
 	readonly rng: Rng;
+	/** The world this run belongs to (a frozen copy; ADR 0110). */
+	readonly worldInfo: Readonly<WorldInfo>;
 	/** Simulation time, s. */
 	readonly time: number;
 	readonly warp: number;
 	/** Release the physics backends. */
 	dispose(): void;
+}
+
+/** The run's world: the option (checked), the save's, or the Legacy world. */
+function worldOf(options: SimOptions, resume: SimSave | undefined, seed: number): WorldInfo {
+	if (options.world === undefined) {
+		if (resume) return cloneData(resume.worldInfo);
+		const stock = options.plugins.find((p) => p.meta.id === 'stock');
+		return legacyWorldInfo(seed, stock?.meta.version);
+	}
+	const parsed = worldInfoSchema.safeParse(options.world);
+	if (!parsed.success) {
+		const why = parsed.error.issues[0]?.message ?? 'invalid';
+		throw new RangeError(`createSim: world is invalid: ${why}`);
+	}
+	if (resume && parsed.data.id !== resume.worldInfo.id) {
+		throw new SaveError(
+			'incompatible',
+			`This save belongs to world "${resume.worldInfo.id}", not "${parsed.data.id}".`
+		);
+	}
+	return cloneData(parsed.data as WorldInfo);
+}
+
+function deepFreeze<T>(value: T): T {
+	if (value !== null && typeof value === 'object') {
+		for (const v of Object.values(value)) deepFreeze(v);
+		Object.freeze(value);
+	}
+	return value;
 }
 
 export async function createSim(options: SimOptions): Promise<Sim> {
@@ -176,6 +217,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			);
 		}
 	}
+	const info = worldOf(options, resume, seed);
 	const bodies = buildBodies(defs, bodyDef.id, options.terrain);
 	const root = bodies.get(bodyDef.id);
 	if (!root) throw new Error(`createSim: body "${bodyDef.id}" is not registered`);
@@ -210,7 +252,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		warp: resume?.warp ?? 1,
 		warpTarget: resume?.warpTarget ?? null,
 		accumulator: resume?.accumulator ?? 0,
-		warpStopped: false
+		warpStopped: false,
+		info
 	};
 	if (resume) {
 		if (bodyDef.id !== resume.bodies[0]) {
@@ -333,6 +376,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		registries,
 		report,
 		rng: core.rng,
+		worldInfo: deepFreeze(cloneData(info)),
 		get time() {
 			return core.t;
 		},

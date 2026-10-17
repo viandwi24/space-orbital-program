@@ -1,11 +1,14 @@
 /** Plan 043 / ADR 0050: reading saves at the sim boundary - the v1 fixture, damage, missing content. */
 import { describe, expect, test } from 'bun:test';
 import {
+	LEGACY_WORLD_ID,
+	legacyWorldInfo,
 	parseSimSave,
 	SaveError,
 	SIM_SAVE_VERSION,
 	simSaveChecksum,
-	type SimSave
+	type SimSave,
+	type WorldInfo
 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
@@ -15,7 +18,7 @@ import fixtureV3 from './fixtures/save-v3.json';
 import fixtureV4 from './fixtures/save-v4.json';
 import { rapier } from './helpers/vessels.ts';
 
-const resume = (save: unknown, extra: { dt?: number; body?: string } = {}) =>
+const resume = (save: unknown, extra: { dt?: number; body?: string; world?: WorldInfo } = {}) =>
 	createSim({ plugins: [Stock], backendFactory: rapier(16), resume: save, ...extra });
 
 /** The fixture changed by `edit`, signed again so only the edit is wrong. */
@@ -233,7 +236,8 @@ describe('the frozen format-4 fixture (plan 035)', () => {
 	test('reads as written, keeps the target of its probe and resumes with it', async () => {
 		expect(fixtureV4.formatVersion).toBe(4);
 		const parsed = parseSimSave(JSON.stringify(fixtureV4));
-		expect(parsed.formatVersion).toBe(4);
+		expect(parsed.formatVersion).toBe(5);
+		expect(parsed.worldInfo.id).toBe(LEGACY_WORLD_ID);
 		const sim = await resume(fixtureV4);
 		const aimed = sim.snapshot().vessels.filter((v) => v.target !== undefined);
 		expect(aimed).toHaveLength(2);
@@ -264,5 +268,53 @@ describe('the frozen format-4 fixture (plan 035)', () => {
 		const sim = await resume(fixtureV3);
 		expect(sim.snapshot().vessels.every((v) => v.target === undefined)).toBe(true);
 		sim.dispose();
+	});
+});
+
+describe('the world of a run (plan 077, ADR 0110)', () => {
+	const world: WorldInfo = {
+		...legacyWorldInfo(7),
+		id: '3f1c2a9e-6b1d-4c55-9a8e-2f0d6c1b7a10',
+		epoch: { day: 9_000, fraction: 0.25 },
+		rules: { 'stock.economy': false }
+	};
+
+	test('a new sim without a world runs in the Legacy world with its seed', async () => {
+		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(16), seed: 3 });
+		expect(sim.worldInfo.id).toBe(LEGACY_WORLD_ID);
+		expect(sim.worldInfo.seed).toBe(3);
+		expect(sim.worldInfo.systemVersion).toBe(Stock.meta.version);
+		expect(sim.save().worldInfo).toEqual({ ...sim.worldInfo });
+		expect(Object.isFrozen(sim.worldInfo.epoch)).toBe(true);
+		sim.dispose();
+	});
+
+	test('createSim({ world }) is saved, and resumes with the same world', async () => {
+		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(16), world });
+		const save = sim.save();
+		expect(save.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(save.worldInfo).toEqual(world);
+		sim.dispose();
+		const again = await resume(JSON.parse(JSON.stringify(save)));
+		expect(again.worldInfo).toEqual(world);
+		expect(JSON.stringify(again.save())).toBe(JSON.stringify(save));
+		again.dispose();
+		const same = await resume(save, { world });
+		same.dispose();
+	});
+
+	test('a resume into another world, or an invalid world, is refused', async () => {
+		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(16), world });
+		const save = sim.save();
+		sim.dispose();
+		const r = await reason(resume(save, { world: legacyWorldInfo(0) }));
+		expect(r.code).toBe('incompatible');
+		await expect(
+			createSim({
+				plugins: [Stock],
+				backendFactory: rapier(16),
+				world: { ...world, gravityModel: 'n-body' as never }
+			})
+		).rejects.toThrow(/n-body worlds are not available yet/);
 	});
 });

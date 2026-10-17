@@ -22,6 +22,27 @@ export const worldDataSchema = z.object({
 	components: z.record(z.string(), z.record(z.string(), z.unknown()))
 });
 
+/**
+ * The world fields of a run (plan 077, ADRs 0094, 0095, 0110). `gravityModel` names `n-body` so
+ * the refusal can say why: no build accepts it until draft 125 ships.
+ */
+export const worldInfoSchema = z.object({
+	id: z.string().min(1),
+	seed: z.number().refine(Number.isFinite, 'expected a finite number'),
+	systemId: z.string().min(1),
+	systemVersion: z.string(),
+	variant: z.string().min(1),
+	gravityModel: z
+		.enum(['patched', 'n-body'])
+		.refine((g) => g === 'patched', 'n-body worlds are not available yet'),
+	epoch: z.object({
+		day: z.int(),
+		fraction: z.number().min(0).lt(1)
+	}),
+	rules: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
+	sites: z.array(z.looseObject({ id: z.string().min(1) }))
+});
+
 export const resourceDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	density: z.number().positive(),

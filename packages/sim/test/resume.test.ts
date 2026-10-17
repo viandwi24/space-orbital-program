@@ -6,7 +6,13 @@
  * at the end, so the first moment of divergence is reported by name.
  */
 import { describe, expect, test } from 'bun:test';
-import { createTerrainField, SIM_SAVE_VERSION, type SimSave } from '@orbital/core';
+import {
+	createTerrainField,
+	legacyWorldInfo,
+	SIM_SAVE_VERSION,
+	type SimSave,
+	type WorldInfo
+} from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { length, sub } from '@orbital/kepler';
 import { createSim, type Sim } from '../src/index.ts';
@@ -44,6 +50,22 @@ const terrain: Rig = {
 			seed: 1,
 			terrain: (body) => createTerrainField({ radius: body.radius }),
 			...(resume ? { resume } : {})
+		})
+};
+
+/** A world of its own (format 5, plan 077): the rig passes it on a fresh start only. */
+const WORLD: WorldInfo = {
+	...legacyWorldInfo(1),
+	id: '0b6e8c2d-1f4a-4e7b-9c3d-5a2f8e6b1c90',
+	epoch: { day: 12_345, fraction: 0.5 }
+};
+const inWorld: Rig = {
+	make: (resume) =>
+		createSim({
+			plugins: [Stock],
+			backendFactory: rapier(16),
+			seed: 1,
+			...(resume ? { resume } : { world: WORLD })
 		})
 };
 
@@ -331,6 +353,33 @@ describe('resume determinism: the resumed run equals the uninterrupted one', () 
 			},
 			seconds: 12
 		});
+	});
+});
+
+describe('format 5 saves of a world (plan 077)', () => {
+	test('on orbital rails, warped, then woken and burning in free space: byte for byte, world kept', async () => {
+		let id = 0;
+		const { sim, resumed } = await resumeMatches({
+			rig: inWorld,
+			prepare: (sim) => {
+				id = load(sim, twoStage(), { kind: 'state', ...orbitState(sim, 200_000) });
+				sim.dispatch({ type: 'warp', factor: 100 });
+				run(sim, 2);
+			},
+			inputs: (sim, step) => {
+				if (step === 200) {
+					sim.dispatch({ type: 'warp', factor: 1 });
+					sim.dispatch({ type: 'throttle', vessel: id as never, value: 1 });
+					sim.dispatch({ type: 'stage', vessel: id as never });
+				}
+			},
+			seconds: 10
+		});
+		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
+		const save = resumed.save();
+		expect(save.formatVersion).toBe(5);
+		expect(save.worldInfo).toEqual(WORLD);
+		expect(JSON.stringify(save)).toBe(JSON.stringify(sim.save()));
 	});
 });
 

@@ -2,6 +2,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	hashText,
+	LEGACY_WORLD_ID,
+	legacyWorldInfo,
 	parseSimSave,
 	readSimSave,
 	SaveError,
@@ -11,6 +13,7 @@ import {
 	type SaveMigration,
 	type SimSave
 } from '../src/index.ts';
+import fixtureV4 from '../../sim/test/fixtures/save-v4.json';
 
 const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	format: SIM_SAVE_FORMAT,
@@ -25,6 +28,7 @@ const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	warpTarget: null,
 	accumulator: 0.005,
 	rng: 123,
+	worldInfo: legacyWorldInfo(1, '0.1.0'),
 	world: { formatVersion: 1, nextEntity: 0, entities: [], components: {} },
 	frames: []
 });
@@ -195,5 +199,50 @@ describe('migration chain', () => {
 		expect(save.bodies).toEqual(['stock.home']);
 		expect(save.frames[0]!.soi).toBe('stock.home');
 		expect('body' in save).toBe(false);
+	});
+});
+
+describe('format 5: the world info (plan 077, ADR 0110)', () => {
+	test('the frozen format-4 fixture migrates to the Legacy world: patched, fictional day 0, no rules', () => {
+		expect(fixtureV4.formatVersion).toBe(4);
+		const save = readSimSave(fixtureV4);
+		expect(save.formatVersion).toBe(5);
+		expect(save.worldInfo).toEqual({
+			id: LEGACY_WORLD_ID,
+			seed: fixtureV4.seed,
+			systemId: 'stock',
+			systemVersion: fixtureV4.mods.find((m) => m.id === 'stock')!.version,
+			variant: 'default',
+			gravityModel: 'patched',
+			epoch: { day: 0, fraction: 0 },
+			rules: {},
+			sites: []
+		});
+		// Re-signed: the migrated save reads again unchanged.
+		expect(readSimSave(save)).toEqual(save);
+	});
+
+	test('an n-body world is refused with its reason', () => {
+		const u = unsigned();
+		const nBody = { ...u, worldInfo: { ...u.worldInfo, gravityModel: 'n-body' } };
+		const save = { ...nBody, checksum: simSaveChecksum(nBody as never) };
+		expect(code(() => readSimSave(save))).toBe('incompatible');
+		expect(() => readSimSave(save)).toThrow(/n-body worlds are not available yet/);
+	});
+
+	test('a damaged world info is "damaged"', () => {
+		for (const worldInfo of [
+			undefined,
+			{ ...legacyWorldInfo(1), id: '' },
+			{ ...legacyWorldInfo(1), epoch: { day: 0.5, fraction: 0 } },
+			{ ...legacyWorldInfo(1), epoch: { day: 0, fraction: 1 } },
+			{ ...legacyWorldInfo(1), rules: { a: null } },
+			{ ...legacyWorldInfo(1), sites: [{ name: 'no id' }] }
+		]) {
+			const u = { ...unsigned(), worldInfo } as never;
+			expect(code(() => readSimSave({ ...(u as object), checksum: simSaveChecksum(u) }))).toBe(
+				'damaged'
+			);
+		}
 	});
 });

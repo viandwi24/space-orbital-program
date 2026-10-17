@@ -17,7 +17,7 @@ A world exists as data: the sim's world carries the world fields (rules placehol
 
 ## Context
 
-- ADRs: 0094, 0050
+- ADRs: 0094, 0050, 0110
 - Read: ADR 0050 (format, migration policy), ADR 0094, `packages/core/src/save.ts` (`SIM_SAVE_VERSION = 4`), `apps/web/src/lib/save`.
 - This is the first contract of the foundation; keep it small: fields and storage, no rules logic (078), no epoch maths (081), no terrain (084).
 

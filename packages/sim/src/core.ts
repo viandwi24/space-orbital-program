@@ -12,7 +12,8 @@ import type {
 	Rng,
 	SystemDefinition,
 	Vec3,
-	World
+	World,
+	WorldInfo
 } from '@orbital/core';
 import type { BodyRuntime } from './bodies.ts';
 import {
@@ -54,6 +55,8 @@ export interface SimCore {
 	accumulator: number;
 	/** Set by an SOI change of a controlled vessel; `step` then drops the rest of the accumulator (ADR 0051). */
 	warpStopped: boolean;
+	/** The world this run belongs to (plan 077, ADR 0110); identity data, not changed by steps. */
+	readonly info: WorldInfo;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

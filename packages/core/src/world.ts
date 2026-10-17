@@ -21,6 +21,50 @@ export type WorldData = {
 	components: Record<string, Record<string, unknown>>;
 };
 
+/** How a world computes gravity (ADR 0095). Only patched conics exist so far. */
+export type GravityModel = 'patched';
+
+/**
+ * The world a run belongs to (plan 077, ADRs 0094 and 0110): its identity fields and the
+ * placeholders later plans fill (`rules` 078, `epoch` maths 081, `sites` 084). Held by the sim
+ * beside the entity world and saved as `SimSave.worldInfo`.
+ */
+export interface WorldInfo {
+	/** Random UUID from the host; `"legacy"` for the world old saves migrate into. */
+	id: string;
+	seed: number;
+	/** Plugin whose bodies the world uses, and its version at creation. */
+	systemId: string;
+	systemVersion: string;
+	/** Scale variant of the system (ADR 0103); `"default"` for the stock system. */
+	variant: string;
+	gravityModel: GravityModel;
+	/** The instant of `t = 0`: whole days and a fraction on the system's time scale (ADR 0103). */
+	epoch: { day: number; fraction: number };
+	/** Rule id to value; empty until plan 078. */
+	rules: Record<string, boolean | number | string>;
+	/** Sites of the world; empty until plan 084. */
+	sites: Array<{ id: string; [key: string]: unknown }>;
+}
+
+/** Id of the world that saves from before worlds existed migrate into (ADR 0094 point 6). */
+export const LEGACY_WORLD_ID = 'legacy';
+
+/** The Legacy world (ADR 0110 point 3): stock system, patched conics, fictional day 0. */
+export function legacyWorldInfo(seed: number, stockVersion = '0.0.0'): WorldInfo {
+	return {
+		id: LEGACY_WORLD_ID,
+		seed,
+		systemId: 'stock',
+		systemVersion: stockVersion,
+		variant: 'default',
+		gravityModel: 'patched',
+		epoch: { day: 0, fraction: 0 },
+		rules: {},
+		sites: []
+	};
+}
+
 export interface World {
 	createEntity(): EntityId;
 	/** Removes the entity and all its components. Returns false if it did not exist. */
