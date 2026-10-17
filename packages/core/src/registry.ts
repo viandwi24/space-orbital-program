@@ -46,6 +46,25 @@ export interface Registry<T extends { id: string }> {
 	list(): T[];
 	/** Definitions with their registering plugin, in registration order. */
 	entries(): RegistryEntry<T>[];
+	/** Schema check without storing: the error message, or undefined when `def` is valid. */
+	validate(def: T): string | undefined;
+}
+
+const replacers = new WeakMap<object, (def: { id: string }) => unknown>();
+
+/**
+ * Swap the stored definition of `def.id` for `def` (validated, frozen), keeping its owner and
+ * position. Loader-only (patches, ADR 0170): it is not on `Registry`, so the read-only views handed
+ * to modules and systems cannot reach it, and the SDK does not export it.
+ */
+export function replaceDefinition<T extends { id: string }>(registry: Registry<T>, def: T): T {
+	const replace = replacers.get(registry);
+	if (!replace)
+		throw new Error(
+			`replaceDefinition: registry "${registry.kind}" was not made by createRegistry`
+		);
+	replace(def);
+	return def;
 }
 
 export type RegistryOptions = {
@@ -71,8 +90,13 @@ export function createRegistry<T extends { id: string }>(
 	options: RegistryOptions = {}
 ): Registry<T> {
 	const items = new Map<string, RegistryEntry<T>>();
+	const validate = (def: T): string | undefined => {
+		if (!options.schema) return undefined;
+		const parsed = options.schema.safeParse(def);
+		return parsed.success ? undefined : z.prettifyError(parsed.error);
+	};
 
-	return {
+	const registry: Registry<T> = {
 		kind,
 		register(def, byPlugin) {
 			const id = def.id;
@@ -117,8 +141,25 @@ export function createRegistry<T extends { id: string }>(
 		has: (id) => items.has(id),
 		owner: (id) => items.get(id)?.by,
 		list: () => [...items.values()].map((e) => e.def),
-		entries: () => [...items.values()].map((e) => ({ def: e.def, by: e.by }))
+		entries: () => [...items.values()].map((e) => ({ def: e.def, by: e.by })),
+		validate
 	};
+	replacers.set(registry, (def) => {
+		const existing = items.get(def.id);
+		if (!existing) {
+			throw new RegistryError(
+				`Cannot replace ${kind} "${def.id}": it is not registered`,
+				kind,
+				def.id
+			);
+		}
+		const problem = validate(def as T);
+		if (problem) {
+			throw new RegistryError(`Invalid ${kind} "${def.id}": ${problem}`, kind, def.id, existing.by);
+		}
+		existing.def = deepFreeze(def as T);
+	});
+	return registry;
 }
 
 /** The set of registries a world/loader uses. Plugins register into these (plan 005). */
