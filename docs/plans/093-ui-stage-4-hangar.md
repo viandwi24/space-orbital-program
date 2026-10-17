@@ -54,7 +54,7 @@ Keep the editor state model (ADR 0029) and library (ADR 0041) unchanged; this is
 - [x] Existing VAB vitest and e2e tests pass.
 - [x] vitest: the pre-flight verdict is no-go for a design without a control source and names the root part; caution for TWR under 1.2 on the first stage.
 - [x] vitest: the rail lists the registry's categories in order with a dot on the chosen one; a part card shows `[—]` for a part without a cost.
-- [~] Screenshots at 1920x1080 and 1024x768 in `docs/journal/assets/093-*.png` with the self-review against refs Hangar; VAB CPU time per frame within 0.2 ms of before (M5).
+- [x] Screenshots at 1920x1080 and 1024x768 in `docs/journal/assets/093-*.png` with the self-review against refs Hangar; VAB CPU time per frame within 0.2 ms of before (M5).
 - [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
