@@ -110,7 +110,7 @@
 | 099 | [Procedural contracts](plans/099-procedural-contracts.md) | draft | — | ADR 0098: seeded offers, slots, rewards and penalties |
 | 100 | [Authored missions, the story line and mission packs](plans/100-authored-missions-and-mission-packs.md) | draft | — | ADR 0098: story line, tracker, mission packs |
 | 101 | [Strategies: bounded policies in Administration](plans/101-strategies.md) | draft | — | ADR 0098: bounded multipliers with projections |
-| 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0147, API 0.1.42: firsts per world (launch, orbit, flyby, landing, return, crewed) detected in the sim, saved (optional in format 5), reputation when the economy is on; history with Markdown/JSON export on the Worlds screen; `defineAchievement`, stock starter set, local profile with export/import |
+| 102 | [Milestones, world history and local achievements](plans/102-milestones-history-and-achievements.md) | done | Agent 2 (Dev B, M2) | ADR 0147, API 0.1.42: firsts per world (launch, orbit, flyby, landing, return, crewed) detected in the sim, saved (optional in format 5), reputation when the economy is on; history with Markdown/JSON export on the Worlds screen; `defineAchievement`, stock starter set, local profile with export/import |
 | 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | done | Agent 3 | ADR 0099/0178: situations, subjects, value curve, data vs samples, transmit and recovery credit; handed over as `ready/103` |
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
@@ -203,6 +203,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [102 — Milestones, world history and local achievements](journal/102-milestones-history-and-achievements.md)
 - [069 — Mod-defined catalogue categories](journal/069-mod-defined-catalogue-categories.md)
 - [114 — Comms tier 1: antennas, line of sight, ground stations, control states](journal/114-comms-tier-1-model.md)
 - [076 — Public roadmap page: the foundation roadmap by phase](journal/076-public-roadmap-foundation.md)

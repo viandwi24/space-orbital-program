@@ -1,7 +1,7 @@
 ---
 id: 102
 title: "Milestones, world history and local achievements"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [082, 087]
 phase: 6

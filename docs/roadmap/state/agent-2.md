@@ -21,7 +21,7 @@
 | 093 hangar | todo |  |  |  |
 | 112 dock | todo |  |  |  |
 | 094 launch | todo |  |  |  |
-| 102 milestones | handed-over | `devb/102-milestones` | 2026-10-18 | ready/102; ADR 0147; API 0.1.42 |
+| 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
 | 108 astronauts | todo |  |  |  |
 | 100 missions | todo |  |  |  |
 | 111 vessel-panel | todo |  |  |  |
