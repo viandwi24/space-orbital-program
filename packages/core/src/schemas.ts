@@ -91,6 +91,13 @@ export const bodyDefinitionSchema = z.object({
 		})
 		.optional(),
 	parent: definitionIdSchema.optional(),
+	/** The system's calendar, read on the root body only (plan 081, ADR 0141); absent = fictional from the root. */
+	calendar: z
+		.discriminatedUnion('kind', [
+			z.object({ kind: z.literal('gregorian-utc') }),
+			z.object({ kind: z.literal('fictional'), home: definitionIdSchema })
+		])
+		.optional(),
 	terrain: bodyTerrainSchema.optional(),
 	orbit: z
 		.object({

@@ -11,6 +11,7 @@ export * from './ids.ts';
 export * from './units.ts';
 export * from './events.ts';
 export * from './world.ts';
+export * from './calendar.ts';
 export * from './schemas.ts';
 export * from './definitions.ts';
 export * from './module-info.ts';
