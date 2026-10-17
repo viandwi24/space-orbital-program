@@ -2,7 +2,7 @@
  * The logic of the script Worker (ADR 0031), free of `self`/`postMessage` so tests can drive it
  * with a double. `script.worker.ts` wires it to the real worker scope.
  */
-import type { ScriptRunner, ScriptRunnerOptions } from '@orbital/scripting';
+import type { ScriptRunner, ScriptRunnerOptions, SyntaxCheck } from '@orbital/scripting';
 import { scriptBodyState } from './script-body-state.ts';
 import {
 	parseToScriptWorker,
@@ -13,6 +13,8 @@ import {
 
 export interface ScriptWorkerCoreOptions {
 	createRunner(source: string, options: ScriptRunnerOptions): Promise<ScriptRunner>;
+	/** Compile `source` without running it (plan 058). Absent: checks are not answered. */
+	checkSyntax?(source: string): Promise<SyntaxCheck>;
 	post(message: FromScriptWorker): void;
 	/** Wall clock in ms for the budget (`performance.now`). */
 	now(): number;
@@ -91,6 +93,21 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 		handle(data) {
 			const message = parseToScriptWorker(data);
 			if (!message) return;
+			if (message.kind === 'check') {
+				const { id } = message;
+				// A check never touches the running script (its runner, its status, its output).
+				options.checkSyntax?.(message.source).then(
+					(result) => options.post({ kind: 'checked', id, ...result }),
+					(error: unknown) =>
+						options.post({
+							kind: 'checked',
+							id,
+							ok: false,
+							message: `could not check: ${error instanceof Error ? error.message : String(error)}`
+						})
+				);
+				return;
+			}
 			if (message.kind === 'start') {
 				if (!started) startRunner(message); // one script per Worker: a second start is ignored
 				return;

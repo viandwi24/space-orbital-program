@@ -65,13 +65,6 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '058',
-		title: 'Even friendlier script editing',
-		gives:
-			'Replace in find, suggestions for the fields of a target or an orbit, a syntax check before you press Run, and a pass with screen readers.',
-		area: 'Scripting and mods'
-	},
-	{
 		plan: '065',
 		title: 'Richer mod models',
 		gives:

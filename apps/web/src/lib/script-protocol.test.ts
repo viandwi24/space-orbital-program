@@ -48,3 +48,52 @@ describe('script protocol: command feedback (plan 032)', () => {
 		expect(parseToScriptWorker({ ...start, fuelPolls: 'x' })).toBeNull();
 	});
 });
+
+describe('script protocol: the syntax check (plan 058)', () => {
+	it('accepts a check request and rejects malformed ones', () => {
+		expect(parseToScriptWorker({ kind: 'check', id: 3, source: 'print(1)' })).toEqual({
+			kind: 'check',
+			id: 3,
+			source: 'print(1)'
+		});
+		expect(parseToScriptWorker({ kind: 'check', id: 1.5, source: '' })).toBeNull();
+		expect(parseToScriptWorker({ kind: 'check', id: 1 })).toBeNull();
+		expect(parseToScriptWorker({ kind: 'check', id: 1, source: 3 })).toBeNull();
+		expect(parseToScriptWorker({ kind: 'check', id: 1, source: 'a'.repeat(200_001) })).toBeNull();
+	});
+	it('accepts an answer with or without an error and rejects malformed ones', () => {
+		expect(parseFromScriptWorker({ kind: 'checked', id: 1, ok: true })).toEqual({
+			kind: 'checked',
+			id: 1,
+			ok: true
+		});
+		expect(
+			parseFromScriptWorker({ kind: 'checked', id: 1, ok: false, message: 'x', line: 2, column: 5 })
+		).toEqual({ kind: 'checked', id: 1, ok: false, message: 'x', line: 2, column: 5 });
+		expect(parseFromScriptWorker({ kind: 'checked', id: 1, ok: false, message: 'x' })).toEqual({
+			kind: 'checked',
+			id: 1,
+			ok: false,
+			message: 'x'
+		});
+		for (const bad of [
+			{ kind: 'checked', id: 1 },
+			{ kind: 'checked', id: 1, ok: false },
+			{ kind: 'checked', id: 1, ok: false, message: 'x', line: 0 },
+			{ kind: 'checked', id: 1, ok: false, message: 'x', line: 1.5 },
+			{ kind: 'checked', id: 1, ok: false, message: 'x', column: 'a' },
+			{ kind: 'checked', id: 'a', ok: true }
+		]) {
+			expect(parseFromScriptWorker(bad)).toBeNull();
+		}
+	});
+	it('bounds the length of an error message', () => {
+		const m = parseFromScriptWorker({
+			kind: 'checked',
+			id: 1,
+			ok: false,
+			message: 'e'.repeat(5000)
+		});
+		expect(m && m.kind === 'checked' && !m.ok && m.message.length).toBe(500);
+	});
+});

@@ -7,8 +7,13 @@
 // no way to the game origin (opaque origin, CSP `connect-src 'none'`).
 import './script-sandbox-jitless'; // first: it must run before @orbital/core builds its schemas
 import { createScriptRunnerIn } from '@orbital/scripting/runner';
+import { checkScriptSyntax } from '@orbital/scripting/syntax';
 import releaseSync from '@jitl/quickjs-wasmfile-release-sync';
-import { newQuickJSWASMModuleFromVariant, newVariant } from 'quickjs-emscripten-core';
+import {
+	newQuickJSWASMModuleFromVariant,
+	newVariant,
+	type QuickJSWASMModule
+} from 'quickjs-emscripten-core';
 import { probeContainment, type Sentinel } from './script-sandbox-probe';
 import { createScriptWorkerCore } from './script-worker-core';
 
@@ -34,6 +39,8 @@ self.onmessage = (event: MessageEvent) => {
 	if (started || !isInit(event.data)) return;
 	started = true;
 	const { port, wasm, probeUrl, sentinel } = event.data;
+	// The module a syntax check compiles in: built on the first check and kept for the next ones.
+	let checkModule: Promise<QuickJSWASMModule> | null = null;
 	const core = createScriptWorkerCore({
 		createRunner: async (source, options) =>
 			createScriptRunnerIn(
@@ -41,6 +48,12 @@ self.onmessage = (event: MessageEvent) => {
 				source,
 				options
 			),
+		checkSyntax: async (source) => {
+			checkModule ??= newQuickJSWASMModuleFromVariant(
+				newVariant(releaseSync, { wasmBinary: wasm })
+			);
+			return checkScriptSyntax(await checkModule, source);
+		},
 		post: (message) => port.postMessage(message),
 		now: () => performance.now()
 	});

@@ -13,6 +13,7 @@
 		MAX_SCRIPT_BYTES,
 		type ImportInfo
 	} from '../script-share';
+	import type { SyntaxProblem } from '../script-checker';
 	import CodeEditor from './CodeEditor.svelte';
 
 	let {
@@ -23,6 +24,7 @@
 		sandbox,
 		notice,
 		vesselName,
+		check,
 		onchange,
 		onrun,
 		onstop,
@@ -39,6 +41,8 @@
 		/** A problem to show from outside the panel (a bad share link). */
 		notice: string | null;
 		vesselName: string;
+		/** Compile the script in the sandbox for the editor's syntax check (plan 058). */
+		check?: (text: string) => Promise<SyntaxProblem | null | undefined>;
 		onchange: (text: string) => void;
 		onrun: () => void;
 		onstop: () => void;
@@ -197,6 +201,7 @@
 		value={source}
 		errorLine={script.errorLine}
 		label="Script source"
+		{check}
 		placeholder={'Write the flight in JavaScript, for example:\nship.throttle = 1;\nstage();\nawait wait(5);\nprint(ship.altitude);'}
 		{onchange}
 	/>

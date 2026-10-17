@@ -167,7 +167,7 @@ describe('marks on the painted layer', () => {
 describe('find', () => {
 	it('lists non-overlapping matches, case-insensitive unless asked', () => {
 		expect(findAll('Ship ship SHIP', 'ship')).toEqual([0, 5, 10]);
-		expect(findAll('Ship ship SHIP', 'ship', true)).toEqual([5]);
+		expect(findAll('Ship ship SHIP', 'ship', { matchCase: true })).toEqual([5]);
 		expect(findAll('aaaa', 'aa')).toEqual([0, 2]);
 		expect(findAll('abc', '')).toEqual([]);
 	});
@@ -372,5 +372,16 @@ describe('codeOnly', () => {
 		expect(out).toHaveLength(v.length);
 		expect(out.split('\n')).toHaveLength(3);
 		expect(out.replace(/\s/g, '')).toBe('a();f');
+	});
+});
+
+describe('lint: which problems the engine check replaces (plan 058)', () => {
+	it('tags the structural guesses and nothing else', () => {
+		const structural = [...lint('f(1,\n'), ...lint('print("open);'), ...lint('/* never')];
+		expect(structural.length).toBeGreaterThan(2);
+		expect(structural.every((p) => p.syntax === true)).toBe(true);
+		const api = [...lint('ship.altitud;'), ...lint('ship.altitude = 5;'), ...lint('wait(1);')];
+		expect(api).toHaveLength(3);
+		expect(api.every((p) => p.syntax === undefined)).toBe(true);
 	});
 });

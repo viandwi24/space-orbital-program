@@ -5,7 +5,15 @@
  * applies what these return. No dependency; the editor library that was weighed instead is in
  * `docs/research/scripting.md`.
  */
-import { GLOBALS, SHIP, SHIP_NAMES, SHIP_WRITABLE, type ApiEntry } from './script-api';
+import {
+	GLOBALS,
+	MEMBERS,
+	NODE_FIELDS,
+	SHIP,
+	SHIP_NAMES,
+	SHIP_WRITABLE,
+	type ApiEntry
+} from './script-api';
 import { highlight, scan, type Token, type TokenKind } from './script-highlight';
 
 /** The text and the selection (`start <= end`; a caret has `start === end`). */
@@ -24,8 +32,9 @@ const OPEN = '([{';
 const CLOSE = ')]}';
 const CLOSER_OF: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
 
-const lineStartOf = (value: string, at: number): number => value.lastIndexOf('\n', at - 1) + 1;
-const lineEndOf = (value: string, at: number): number => {
+export const lineStartOf = (value: string, at: number): number =>
+	value.lastIndexOf('\n', at - 1) + 1;
+export const lineEndOf = (value: string, at: number): number => {
 	const i = value.indexOf('\n', at);
 	return i === -1 ? value.length : i;
 };
@@ -49,7 +58,7 @@ export function codeOnly(value: string): string {
 // ---- Tab, Shift+Tab, Enter, closing brackets ------------------------------------------------
 
 /** Lines (start offsets) a selection touches; a selection ending at the start of a line leaves that line out. */
-function touchedLines(value: string, start: number, end: number): number[] {
+export function touchedLines(value: string, start: number, end: number): number[] {
 	const starts: number[] = [];
 	let at = lineStartOf(value, start);
 	const last = end > start && value[end - 1] === '\n' ? end - 1 : end;
@@ -106,7 +115,8 @@ export function outdent(edit: Edit): Edit {
 	return { value: out, start: start - shift(start), end: end - shift(end) };
 }
 
-const isCodeAt = (mask: string, i: number): boolean => i >= 0 && i < mask.length && mask[i] !== ' ';
+export const isCodeAt = (mask: string, i: number): boolean =>
+	i >= 0 && i < mask.length && mask[i] !== ' ';
 
 /**
  * Enter: a new line with the indentation of the current one, one level deeper after an opening
@@ -227,14 +237,33 @@ export function applyMarks(
 
 // ---- Find --------------------------------------------------------------------------------------
 
+export interface FindOptions {
+	matchCase?: boolean;
+	/** Only count a match not touching an identifier character on a side where the query has one. */
+	wholeWord?: boolean;
+}
+
+const WORD = /[A-Za-z0-9_$]/;
+
 /** Start offsets of every non-overlapping occurrence of `query` (case-insensitive unless asked). */
-export function findAll(value: string, query: string, matchCase = false): number[] {
+export function findAll(value: string, query: string, options: FindOptions = {}): number[] {
 	if (query === '') return [];
-	const hay = matchCase ? value : value.toLowerCase();
-	const needle = matchCase ? query : query.toLowerCase();
+	const hay = options.matchCase ? value : value.toLowerCase();
+	const needle = options.matchCase ? query : query.toLowerCase();
 	const out: number[] = [];
-	for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + needle.length))
+	const edgeBefore = WORD.test(query[0]!);
+	const edgeAfter = WORD.test(query[query.length - 1]!);
+	for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1)) {
+		if (options.wholeWord) {
+			const before = i > 0 && edgeBefore && WORD.test(value[i - 1]!);
+			const after =
+				edgeAfter && i + needle.length < value.length && WORD.test(value[i + needle.length]!);
+			if (before || after) continue;
+		}
+		// Non-overlapping: the next candidate must start after this one ends.
+		if (out.length > 0 && i < out[out.length - 1]! + needle.length) continue;
 		out.push(i);
+	}
 	return out;
 }
 
@@ -292,14 +321,16 @@ export function completionsAt(value: string, caret: number, explicit = false): C
 	let dot = from - 1;
 	while (dot >= 0 && (value[dot] === ' ' || value[dot] === '\t')) dot -= 1;
 	if (dot >= 0 && value[dot] === '.' && isCodeAt(mask, dot)) {
-		let r = dot - 1;
-		while (r >= 0 && (value[r] === ' ' || value[r] === '\t')) r -= 1;
-		let rs = r + 1;
-		while (rs > 0 && IDENT.test(value[rs - 1]!)) rs -= 1;
-		const receiver = value.slice(rs, r + 1);
-		const beforeReceiver = rs > 0 ? value[rs - 1] : '';
-		if (receiver !== 'ship' || beforeReceiver === '.') return null;
-		const items = pick(SHIP);
+		const path = receiverPath(value, mask, dot);
+		const table = path === 'ship' ? SHIP : path === null ? undefined : MEMBERS[path];
+		if (!table) return null;
+		const items = pick(table);
+		return items.length === 0 ? null : { from, to: caret, items };
+	}
+	// The keys of the object given to addNode / setNode, minus the ones already written.
+	const keys = nodeKeysAt(value, mask, from);
+	if (keys && (prefix.length >= 1 || explicit)) {
+		const items = pick(keys);
 		return items.length === 0 ? null : { from, to: caret, items };
 	}
 	// A word starts offering at its second letter: one letter would pop up on every identifier.
@@ -308,10 +339,99 @@ export function completionsAt(value: string, caret: number, explicit = false): C
 	return items.length === 0 ? null : { from, to: caret, items };
 }
 
+/** Index of the `[` that matches the `]` at `close` in `mask`, or -1. */
+function openOf(mask: string, close: number): number {
+	let depth = 0;
+	for (let i = close; i >= 0; i--) {
+		if (mask[i] === ']') depth += 1;
+		else if (mask[i] === '[' && --depth === 0) return i;
+	}
+	return -1;
+}
+
+/**
+ * The chain before the dot at `dot` as the key of `MEMBERS`: `ship`, `ship.nodes[]`,
+ * `bodies[].orbit`. Null when it does not start at `ship` or `bodies`, or has a call or anything else in it.
+ */
+function receiverPath(value: string, mask: string, dot: number): string | null {
+	const parts: string[] = [];
+	let pos = dot - 1;
+	const skip = (): void => {
+		while (pos >= 0 && (value[pos] === ' ' || value[pos] === '\t' || value[pos] === '\n')) pos -= 1;
+	};
+	for (;;) {
+		skip();
+		if (pos < 0) return null;
+		if (mask[pos] === ']') {
+			const open = openOf(mask, pos);
+			if (open < 0) return null;
+			parts.push('[]');
+			pos = open - 1;
+			continue;
+		}
+		if (!IDENT.test(value[pos]!) || !isCodeAt(mask, pos)) return null;
+		let start = pos;
+		while (start > 0 && IDENT.test(value[start - 1]!)) start -= 1;
+		parts.push(value.slice(start, pos + 1));
+		pos = start - 1;
+		skip();
+		if (pos >= 0 && value[pos] === '.' && isCodeAt(mask, pos)) {
+			pos -= 1;
+			continue;
+		}
+		break;
+	}
+	parts.reverse();
+	const root = parts[0]!;
+	if (root !== 'ship' && root !== 'bodies') return null;
+	let path = '';
+	for (const part of parts) path += part === '[]' || path === '' ? part : `.${part}`;
+	return path;
+}
+
+/**
+ * When `from` is a key position of the object literal that is the argument of `addNode(` (or the
+ * second of `setNode(id,`): the keys not written in it yet. Null elsewhere.
+ */
+function nodeKeysAt(value: string, mask: string, from: number): ApiEntry[] | null {
+	let i = from - 1;
+	while (i >= 0 && /\s/.test(value[i]!)) i -= 1;
+	if (i < 0 || (value[i] !== '{' && value[i] !== ',')) return null;
+	let depth = 0;
+	let open = -1;
+	for (let k = i; k >= 0; k--) {
+		const ch = mask[k];
+		if (ch !== undefined && ')]}'.includes(ch)) depth += 1;
+		else if (ch !== undefined && '([{'.includes(ch)) {
+			if (depth === 0) {
+				open = k;
+				break;
+			}
+			depth -= 1;
+		}
+	}
+	if (open < 0 || mask[open] !== '{') return null;
+	const before = mask.slice(0, open);
+	if (!/\baddNode\s*\(\s*$/.test(before) && !/\bsetNode\s*\(\s*[^(){},]*,\s*$/.test(before))
+		return null;
+	let close = open;
+	for (let d = 0; close < mask.length; close++) {
+		if (mask[close] === '{') d += 1;
+		else if (mask[close] === '}' && --d === 0) break;
+	}
+	const literal = mask.slice(open + 1, close);
+	const written = new Set<string>();
+	// Only keys at the literal's own depth count; the word being typed has no colon yet.
+	const key = /(?:^|,)\s*([A-Za-z_$][\w$]*)\s*:/g;
+	for (let m = key.exec(literal); m; m = key.exec(literal)) written.add(m[1]!);
+	return NODE_FIELDS.filter((f) => !written.has(f.name));
+}
+
 /** The text after choosing `entry`. */
 export function acceptCompletion(value: string, c: Completions, entry: ApiEntry): Edit {
-	const at = c.from + entry.name.length;
-	return { value: value.slice(0, c.from) + entry.name + value.slice(c.to), start: at, end: at };
+	const text = entry.insert ?? entry.name;
+	const at = c.from + text.length;
+	return { value: value.slice(0, c.from) + text + value.slice(c.to), start: at, end: at };
 }
 
 // ---- Undo and redo -----------------------------------------------------------------------------
@@ -396,6 +516,8 @@ export interface Problem {
 	/** 1-based. */
 	line: number;
 	severity: 'error' | 'warning';
+	/** A structural mistake the engine's own syntax check reports better (unpaired brackets, unfinished strings). */
+	syntax?: true;
 	message: string;
 }
 
@@ -451,12 +573,14 @@ export function lint(value: string): Problem[] {
 				problems.push({
 					line,
 					severity: 'error',
+					syntax: true,
 					message: `This string is never closed (missing ${q}).`
 				});
 			} else {
 				problems.push({
 					line,
 					severity: 'warning',
+					syntax: true,
 					message: 'This comment is never closed (missing */).'
 				});
 			}
@@ -475,12 +599,14 @@ export function lint(value: string): Problem[] {
 				problems.push({
 					line: lineOf(value, i),
 					severity: 'error',
+					syntax: true,
 					message: `Unexpected ${ch}: nothing is open.`
 				});
 			else if (CLOSER_OF[top.ch] !== ch) {
 				problems.push({
 					line: lineOf(value, i),
 					severity: 'error',
+					syntax: true,
 					message: `Found ${ch} where ${CLOSER_OF[top.ch]} was expected to close the ${top.ch} on line ${lineOf(value, top.at)}.`
 				});
 			}
@@ -490,6 +616,7 @@ export function lint(value: string): Problem[] {
 		problems.push({
 			line: lineOf(value, open.at),
 			severity: 'error',
+			syntax: true,
 			message: `The ${open.ch} on this line is never closed.`
 		});
 	}

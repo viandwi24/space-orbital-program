@@ -96,6 +96,8 @@ export function createScriptSession(options: ScriptSessionOptions): ScriptSessio
 			options.onReady();
 		} else if (message.kind === 'boot-failed') {
 			die('failed', message.error);
+		} else if (message.kind === 'checked') {
+			// Answers to syntax checks go to the page's checker, never to a running script's channel.
 		} else {
 			inflightSince = null;
 			options.onResult(message);

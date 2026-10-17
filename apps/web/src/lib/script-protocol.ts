@@ -5,9 +5,19 @@
  * host validates it (shape here, command policy in `sim-host.ts`, `commandSchema` in the sim).
  */
 import type { Command, Snapshot } from '@orbital/core';
-import type { CommandVerdict, ScriptEnvironment, ScriptStatus } from '@orbital/scripting';
+import type {
+	CommandVerdict,
+	ScriptEnvironment,
+	ScriptStatus,
+	SyntaxCheck
+} from '@orbital/scripting';
+
+/** Longest source the page asks the engine to check, characters (the share limit is 64 KB). */
+export const MAX_CHECK_CHARS = 200_000;
 
 export type ToScriptWorker =
+	/** Plan 058: compile `source` and answer with its syntax error, if any; nothing runs. */
+	| { kind: 'check'; id: number; source: string }
 	| {
 			kind: 'start';
 			source: string;
@@ -27,6 +37,7 @@ export type ToScriptWorker =
 	  };
 
 export type FromScriptWorker =
+	| ({ kind: 'checked'; id: number } & SyntaxCheck)
 	| { kind: 'ready' }
 	| { kind: 'boot-failed'; error: string }
 	| {
@@ -59,6 +70,27 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 export function parseFromScriptWorker(data: unknown): FromScriptWorker | null {
 	if (!isRecord(data)) return null;
 	if (data.kind === 'ready') return { kind: 'ready' };
+	if (data.kind === 'checked' && typeof data.id === 'number' && Number.isInteger(data.id)) {
+		if (data.ok === true) return { kind: 'checked', id: data.id, ok: true };
+		if (
+			data.ok === false &&
+			typeof data.message === 'string' &&
+			(data.line === undefined ||
+				(typeof data.line === 'number' && Number.isInteger(data.line) && data.line >= 1)) &&
+			(data.column === undefined ||
+				(typeof data.column === 'number' && Number.isInteger(data.column) && data.column >= 1))
+		) {
+			return {
+				kind: 'checked',
+				id: data.id,
+				ok: false,
+				message: data.message.slice(0, 500),
+				...(data.line === undefined ? {} : { line: data.line }),
+				...(data.column === undefined ? {} : { column: data.column })
+			};
+		}
+		return null;
+	}
 	if (data.kind === 'boot-failed' && typeof data.error === 'string') {
 		return { kind: 'boot-failed', error: data.error };
 	}
@@ -88,6 +120,15 @@ export function parseFromScriptWorker(data: unknown): FromScriptWorker | null {
 /** Shallow shape check of a message from the sim Worker (script Worker side). */
 export function parseToScriptWorker(data: unknown): ToScriptWorker | null {
 	if (!isRecord(data)) return null;
+	if (
+		data.kind === 'check' &&
+		typeof data.id === 'number' &&
+		Number.isInteger(data.id) &&
+		typeof data.source === 'string' &&
+		data.source.length <= MAX_CHECK_CHARS
+	) {
+		return { kind: 'check', id: data.id, source: data.source };
+	}
 	if (
 		data.kind === 'start' &&
 		typeof data.source === 'string' &&

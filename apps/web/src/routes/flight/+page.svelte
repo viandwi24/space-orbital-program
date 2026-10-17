@@ -44,6 +44,7 @@
 	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
 	import type { SandboxStatus } from '../../lib/script-sandbox';
 	import { startScriptSandbox } from '../../lib/script-sandbox-web';
+	import { createScriptChecker, type ScriptChecker } from '../../lib/script-checker';
 	import { decodeScript, tokenFromHash, type ImportInfo } from '../../lib/script-share';
 	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
 	import { canWarp } from '../../lib/telemetry';
@@ -63,6 +64,12 @@
 	let loadFailed = $state(false);
 	let flight: Flight | null = null;
 	let scriptOpen = $state(false);
+	/** Compiles the script for the editor's syntax check; null before the flight starts. */
+	let checker: ScriptChecker | null = null;
+	const checkSyntax = (text: string) => checker?.check(text) ?? Promise.resolve(undefined);
+	$effect(() => {
+		if (!scriptOpen) checker?.close();
+	});
 	let source = $state('');
 	let designName = $state('');
 	let script = $state.raw<ScriptView>(idleScript());
@@ -192,6 +199,12 @@
 		source = loadScript(designName) ?? '';
 		const scriptSandbox = startScriptSandbox();
 		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
+		// The syntax check uses a sandbox of its own, opened on the first check (plan 058, ADR 0085).
+		const checkSandbox = startScriptSandbox();
+		checker = createScriptChecker({
+			open: () => checkSandbox.open(),
+			close: () => checkSandbox.close()
+		});
 		// A shared link (`/flight#script=...`) opens the panel with the script shown, not run. It
 		// is read on load and when the fragment changes in this tab.
 		const importFromHash = (): void => {
@@ -246,6 +259,8 @@
 		return () => {
 			clearInterval(waitForPlanner);
 			offSandbox();
+			checker?.close();
+			checker = null;
 			window.removeEventListener('hashchange', importFromHash);
 			small.removeEventListener('change', sync);
 			pointer.removeEventListener('change', syncPointer);
@@ -443,6 +458,7 @@
 							{sandbox}
 							{notice}
 							vesselName={designName}
+							check={checkSyntax}
 							onchange={setSource}
 							onrun={() => {
 								ranSource = source;
