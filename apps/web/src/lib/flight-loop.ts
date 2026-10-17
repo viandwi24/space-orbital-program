@@ -40,6 +40,8 @@ import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './scr
 import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
 import { createManeuverController, type ManeuverController } from './maneuver-controller';
+import type { AidId } from './rendezvous-aids';
+import { createTargetView, type TargetView } from './target-view';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
@@ -127,6 +129,8 @@ export interface Flight {
 	setTarget(key: string | null): void;
 	/** Select the next entry of the target list; the one after the last is none. */
 	cycleTarget(): void;
+	/** Place the node of a rendezvous aid of the Target card (plan 057). */
+	planAid(id: AidId): void;
 	/** Freeze or resume the sim (pause menu). */
 	setPaused(paused: boolean): void;
 	/** The on-screen steering pad and roll buttons (plan 053): added to what the keys send, each -1..1. */
@@ -376,7 +380,18 @@ export function startFlight(options: FlightOptions): Flight {
 		pressed.active = false;
 		if (wasPress && pressed.moved < 4 && e.type === 'pointerup') {
 			const box = canvas.getBoundingClientRect();
-			maneuverCtl?.click(e.clientX - box.left, e.clientY - box.top);
+			const x = e.clientX - box.left;
+			const y = e.clientY - box.top;
+			if (renderer?.isMapView) {
+				// A body disc or a vessel dot first, then the vessel's own path (a node), then an orbit line.
+				const mark = targetView?.pick(x, y, false);
+				if (mark) return setTarget(mark);
+				if (!maneuverCtl?.onPath(x, y)) {
+					const line = targetView?.pick(x, y);
+					if (line) return setTarget(line);
+				}
+			}
+			maneuverCtl?.click(x, y);
 		}
 	};
 	const onPointerMove = (e: PointerEvent): void => {
@@ -415,6 +430,11 @@ export function startFlight(options: FlightOptions): Flight {
 		if (command) void send(command);
 	}
 
+	function planAid(id: AidId): void {
+		const command = targetView?.aidCommand(id);
+		if (command) void send(command);
+	}
+
 	function cycleTarget(): void {
 		const command = hudCtl?.nextTargetCommand();
 		if (command) void send(command);
@@ -435,6 +455,10 @@ export function startFlight(options: FlightOptions): Flight {
 
 	/** The predicted path across spheres of influence and the maneuver nodes, kept up to date while the map is open. */
 	let maneuverCtl: ManeuverController | null = null;
+	/** The target's markers, the closest approach across spheres and the rendezvous aids (plan 057). */
+	let targetView: TargetView | null = null;
+	/** What the interface panels cover of the view (the target arrow keeps out of it). */
+	let viewInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 	function updateMapPath(now: number): void {
 		maneuverCtl?.update(now);
 	}
@@ -500,11 +524,13 @@ export function startFlight(options: FlightOptions): Flight {
 			dirty = false;
 		}
 		updateMapPath(now);
+		targetView?.update(now);
 		renderer?.render();
 		if (hudCtl) {
 			const t0 = performance.now();
 			const frameData = hudCtl.frame();
 			frameData.maneuver = maneuverCtl?.frame() ?? null;
+			frameData.target = targetView?.frame() ?? null;
 			options.onFrame?.(frameData);
 			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
 		}
@@ -599,6 +625,7 @@ export function startFlight(options: FlightOptions): Flight {
 				content: options.content,
 				bodies: c.bodies,
 				project: (world) => renderer?.project(world) ?? null,
+				rendezvous: () => targetView?.info ?? null,
 				...(resumed
 					? { resume: { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } }
 					: {})
@@ -636,6 +663,14 @@ export function startFlight(options: FlightOptions): Flight {
 				burnTime: (dv) => hudCtl?.burnTimeFor(dv) ?? null,
 				notice: (title, detail) =>
 					hudCtl?.notice({ kind: 'warning', title, ...(detail ? { detail } : {}), key: 'maneuver' })
+			});
+			targetView = createTargetView({
+				bodies: c.bodies,
+				project: (world) => draw.project(world),
+				snapshot: () => snap,
+				vessel: () => vessel,
+				mapOn: () => draw.isMapView,
+				size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight, insets: viewInsets })
 			});
 			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
@@ -778,6 +813,7 @@ export function startFlight(options: FlightOptions): Flight {
 			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
 		},
 		setViewInsets(insets) {
+			viewInsets = insets;
 			renderer?.setViewInsets(insets);
 		},
 		setGraphicsPreset(choice) {
@@ -820,6 +856,7 @@ export function startFlight(options: FlightOptions): Flight {
 		setSas,
 		setTarget,
 		cycleTarget,
+		planAid,
 		setPaused(paused) {
 			hud.paused = paused;
 			client.setPaused(paused);

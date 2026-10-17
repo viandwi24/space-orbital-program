@@ -36,6 +36,8 @@ export interface NavballTheme {
 	positive: string;
 	violet: string;
 	warning: string;
+	/** Target markers (plan 057). */
+	target: string;
 }
 
 /** Reads the colour tokens from the element so the painter follows tokens.css. */
@@ -52,7 +54,8 @@ export function themeFrom(el: Element): NavballTheme {
 		accent: v('--c-accent'),
 		positive: v('--c-positive'),
 		violet: v('--c-violet'),
-		warning: v('--c-warning')
+		warning: v('--c-warning'),
+		target: v('--c-danger')
 	};
 }
 
@@ -224,11 +227,16 @@ function drawMarker(
 	const [x, y] = px(at);
 	const s = size * (behind ? 0.035 : 0.055);
 	const color =
-		kind === 'prograde' || kind === 'retrograde'
-			? theme.positive
-			: kind === 'normal' || kind === 'anti-normal' || kind === 'maneuver'
-				? theme.violet
-				: theme.accent;
+		kind === 'target' ||
+		kind === 'anti-target' ||
+		kind === 'target-prograde' ||
+		kind === 'target-retrograde'
+			? theme.target
+			: kind === 'prograde' || kind === 'retrograde'
+				? theme.positive
+				: kind === 'normal' || kind === 'anti-normal' || kind === 'maneuver'
+					? theme.violet
+					: theme.accent;
 	ctx.save();
 	ctx.globalAlpha = behind ? 0.55 : 1;
 	ctx.translate(x, y);
@@ -286,6 +294,57 @@ function drawMarker(
 			ctx.beginPath();
 			ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
 			ctx.fill();
+			break;
+		}
+		case 'target':
+		case 'anti-target': {
+			// A ring with four short ticks outside; the target is filled at the core, the anti-target crossed.
+			ctx.arc(0, 0, s, 0, Math.PI * 2);
+			for (const [dx, dy] of [
+				[0, -1],
+				[1, 0],
+				[0, 1],
+				[-1, 0]
+			] as const) {
+				ctx.moveTo(dx * s * 1.2, dy * s * 1.2);
+				ctx.lineTo(dx * s * 1.8, dy * s * 1.8);
+			}
+			if (kind === 'anti-target') {
+				ctx.moveTo(-s * 0.6, -s * 0.6);
+				ctx.lineTo(s * 0.6, s * 0.6);
+				ctx.moveTo(s * 0.6, -s * 0.6);
+				ctx.lineTo(-s * 0.6, s * 0.6);
+			}
+			ctx.stroke();
+			if (kind === 'target') {
+				ctx.beginPath();
+				ctx.arc(0, 0, s * 0.4, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			break;
+		}
+		case 'target-prograde':
+		case 'target-retrograde': {
+			// The prograde pair's glyphs on a square, so the reference in force can be read off the ball.
+			ctx.rect(-s, -s, 2 * s, 2 * s);
+			if (kind === 'target-prograde') {
+				ctx.moveTo(0, -s);
+				ctx.lineTo(0, -s * 1.7);
+				ctx.moveTo(-s, 0);
+				ctx.lineTo(-s * 1.7, 0);
+				ctx.moveTo(s, 0);
+				ctx.lineTo(s * 1.7, 0);
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+				ctx.fill();
+			} else {
+				ctx.moveTo(-s * 0.7, -s * 0.7);
+				ctx.lineTo(s * 0.7, s * 0.7);
+				ctx.moveTo(s * 0.7, -s * 0.7);
+				ctx.lineTo(-s * 0.7, s * 0.7);
+				ctx.stroke();
+			}
 			break;
 		}
 		case 'radial-out':

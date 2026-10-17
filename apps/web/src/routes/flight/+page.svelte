@@ -8,6 +8,7 @@
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
 	import ManeuverPanel from '../../lib/hud/ManeuverPanel.svelte';
+	import TargetMarkers from '../../lib/hud/TargetMarkers.svelte';
 	import TargetPanel from '../../lib/hud/TargetPanel.svelte';
 	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
 	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
@@ -79,6 +80,7 @@
 	let settingsFromPause = false;
 	let deck = $state<InstrumentDeck>();
 	let markers = $state<MapMarkers>();
+	let targetMarks = $state<TargetMarkers>();
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
@@ -224,6 +226,7 @@
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
 				markers?.place(f.map);
+				targetMarks?.place(f.target ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
 			onKey: (key) => {
@@ -365,6 +368,7 @@
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
 	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
+	<TargetMarkers bind:this={targetMarks} />
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
 
 	{#if problem}
@@ -477,7 +481,9 @@
 						target={model.target}
 						choices={model.targets}
 						controllable={model.controllable}
+						rendezvous={model.rendezvous}
 						onselect={(key) => flight?.setTarget(key)}
+						onplan={(id) => flight?.planAid(id)}
 					/>
 				</div>
 				<div class="bl">

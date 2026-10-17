@@ -130,22 +130,17 @@ export interface ManeuverPrediction {
 const MAX_AFTER = 10 * 86_400;
 
 /**
- * Predicted path of `vessel` with the impulsive burns of `maneuvers` applied (plan 045). Unlike
- * `predictMapPath` this returns the path also when it stays in one sphere, because the stretch
- * after a node is the point of the exercise; stretches after the first node are `planned`.
+ * How far to predict past `start` with `maneuvers` applied: up to the last node, then what its new
+ * orbit needs (`horizon` when no node is reached), at most ten days after it.
  */
-export function predictManeuvers(
-	snapshot: Snapshot,
-	vessel: number,
+export function maneuverReach(
+	start: { body: string; r: Vec3; v: Vec3; t: number },
 	bodies: readonly PatchedBody[],
 	maneuvers: readonly NodeInput[],
 	horizon: number
-): ManeuverPrediction {
-	const v = snapshot.vessels.find((s) => Number(s.id) === vessel);
-	if (!v || v.surface || maneuvers.length === 0) return { paths: [], nodes: [], unreachable: [] };
-	const start = { body: String(v.soi), r: v.position, v: v.velocity, t: snapshot.t };
+): number {
 	const last = Math.max(...maneuvers.map((m) => m.time));
-	const ahead = Math.max(0, last - snapshot.t);
+	const ahead = Math.max(0, last - start.t);
 	// Look past the last node by what its new orbit needs.
 	const probe = predictWithManeuvers(bodies, start, maneuvers, ahead + 1);
 	const post = probe.nodes.at(-1)?.post;
@@ -161,13 +156,32 @@ export function predictManeuvers(
 		}
 		after = predictionHorizon(elements, mu);
 	}
+	return ahead + Math.min(after, MAX_AFTER);
+}
+
+/**
+ * Predicted path of `vessel` with the impulsive burns of `maneuvers` applied (plan 045). Unlike
+ * `predictMapPath` this returns the path also when it stays in one sphere, because the stretch
+ * after a node is the point of the exercise; stretches after the first node are `planned`.
+ */
+export function predictManeuvers(
+	snapshot: Snapshot,
+	vessel: number,
+	bodies: readonly PatchedBody[],
+	maneuvers: readonly NodeInput[],
+	horizon: number
+): ManeuverPrediction {
+	const v = snapshot.vessels.find((s) => Number(s.id) === vessel);
+	if (!v || v.surface || maneuvers.length === 0) return { paths: [], nodes: [], unreachable: [] };
+	const start = { body: String(v.soi), r: v.position, v: v.velocity, t: snapshot.t };
+	const reach = maneuverReach(start, bodies, maneuvers, horizon);
 	// A node whose time has passed still has burn left: the path is drawn as if that burn were
 	// finished now, the node itself stays where it was.
 	const past = maneuvers.some((m) => m.time <= snapshot.t);
 	const drawn = past
 		? maneuvers.map((m) => (m.time <= snapshot.t ? { ...m, time: snapshot.t + 0.5 } : m))
 		: maneuvers;
-	const result = predictWithManeuvers(bodies, start, drawn, ahead + Math.min(after, MAX_AFTER));
+	const result = predictWithManeuvers(bodies, start, drawn, reach);
 	const where = new Map(
 		(past ? predictWithManeuvers(bodies, start, maneuvers, 1).nodes : []).map((n) => [n.id, n])
 	);

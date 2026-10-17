@@ -92,6 +92,8 @@ export interface ManeuverController {
 	select(id: number | null): void;
 	/** A click on the map canvas at (x, y) px: add a node on the path under it, or deselect. */
 	click(x: number, y: number): void;
+	/** Whether the predicted path passes within the click radius of (x, y) px (a click there places a node). */
+	onPath(x: number, y: number): boolean;
 	/** Start dragging a handle (or the node's own marker when `handle` is null) from (x, y). */
 	beginDrag(id: number, handle: HandleSpec['kind'] | null, x: number, y: number): void;
 	drag(x: number, y: number, modifiers: Modifiers): void;
@@ -406,6 +408,11 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		},
 		select(id) {
 			selected = id;
+		},
+		onPath(x, y) {
+			if (!options.mapOn()) return false;
+			refreshBase();
+			return timeAt(x, y, PICK_RADIUS) !== null;
 		},
 		click(x, y) {
 			if (!options.mapOn()) return;

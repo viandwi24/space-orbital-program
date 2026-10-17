@@ -261,7 +261,27 @@ function frontHalf(pts: readonly BallPoint[]): BallPoint[] {
 }
 
 export type MarkerKind =
-	'prograde' | 'retrograde' | 'radial-out' | 'radial-in' | 'normal' | 'anti-normal' | 'maneuver';
+	| 'prograde'
+	| 'retrograde'
+	| 'radial-out'
+	| 'radial-in'
+	| 'normal'
+	| 'anti-normal'
+	| 'maneuver'
+	| 'target'
+	| 'anti-target'
+	| 'target-prograde'
+	| 'target-retrograde';
+
+/** The target as the markers need it (plan 057): relative to the vessel, BCI axes. */
+export interface MarkerTarget {
+	/** Position of the target relative to the vessel, m. */
+	position: Vec3;
+	/** Velocity of the target relative to the vessel, m/s. */
+	velocity: Vec3;
+	/** The speed readout is in `target` mode: its prograde pair is relative to the target. */
+	relative: boolean;
+}
 
 export interface Marker {
 	kind: MarkerKind;
@@ -277,24 +297,36 @@ export const MARKER_MIN_SPEED = 0.5;
 /**
  * Marker directions (BCI): prograde/retrograde from `velocity` (the speed mode's velocity), and the
  * orbit's radial and normal directions from the inertial state (`h = r x v`), and the remaining
- * burn of the earliest maneuver node (`burn`, BCI) when there is one. Empty when slow and no node.
+ * burn of the earliest maneuver node (`burn`, BCI) when there is one, and with a `target` its
+ * direction and the opposite (plan 057); in target mode the prograde pair is relative to the target
+ * (`velocity` is then the vessel's velocity relative to it). Empty when slow, no node, no target.
  */
 export function markerDirections(
 	position: Vec3,
 	inertialVelocity: Vec3,
 	velocity: Vec3,
-	burn?: Vec3
+	burn?: Vec3,
+	target?: MarkerTarget | null
 ): Marker[] {
 	const node: Marker[] =
 		burn && length(burn) > MIN_BURN ? [{ kind: 'maneuver', dir: normalize(burn) }] : [];
-	if (length(velocity) < MARKER_MIN_SPEED) return node;
+	const neg = (v: Vec3): Vec3 => ({ x: 0 - v.x, y: 0 - v.y, z: 0 - v.z });
+	// The target and its opposite, whenever there is a target further than a metre away.
+	const aim: Marker[] =
+		target && length(target.position) > 1
+			? [
+					{ kind: 'target', dir: normalize(target.position) },
+					{ kind: 'anti-target', dir: neg(normalize(target.position)) }
+				]
+			: [];
+	if (length(velocity) < MARKER_MIN_SPEED) return [...aim, ...node];
 	const pro = normalize(velocity);
 	const radial = normalize(position);
 	const h = normalize(cross(position, inertialVelocity));
-	const neg = (v: Vec3): Vec3 => ({ x: 0 - v.x, y: 0 - v.y, z: 0 - v.z });
+	const relative = target?.relative === true;
 	const out: Marker[] = [
-		{ kind: 'prograde', dir: pro },
-		{ kind: 'retrograde', dir: neg(pro) }
+		{ kind: relative ? 'target-prograde' : 'prograde', dir: pro },
+		{ kind: relative ? 'target-retrograde' : 'retrograde', dir: neg(pro) }
 	];
 	if (length(h) > 0) {
 		out.push(
@@ -304,5 +336,5 @@ export function markerDirections(
 			{ kind: 'anti-normal', dir: neg(h) }
 		);
 	}
-	return [...out, ...node];
+	return [...out, ...aim, ...node];
 }

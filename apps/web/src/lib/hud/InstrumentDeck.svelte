@@ -60,7 +60,7 @@
 	const vs = $derived(model?.vertical ?? 0);
 	const modeText = $derived(
 		model
-			? `${model.speedMode === 'surface' ? 'Surface' : 'Orbit'}${model.speedPreference === 'auto' ? ' (auto)' : ''}`
+			? `${model.speedMode === 'surface' ? 'Surface' : model.speedMode === 'target' ? 'Target' : 'Orbit'}${model.speedPreference === 'auto' ? ' (auto)' : ''}`
 			: ''
 	);
 	const att = $derived(model?.attitude);
@@ -78,7 +78,9 @@
 			type="button"
 			class="chip"
 			onclick={oncyclespeed}
-			title="Speed reference ({settings.keymap.label('speedMode')}): auto, surface or orbit"
+			title="Speed reference ({settings.keymap.label(
+				'speedMode'
+			)}): auto, surface, orbit or, with a target, target"
 		>
 			{modeText || 'Speed'}
 		</button>
@@ -91,7 +93,7 @@
 		<div class="sub num">
 			<Icon name={vs >= 0 ? 'up' : 'down'} size={14} />
 			<span data-testid="hud-vspeed">{speedValue(Math.abs(vs)).toFixed(1)}</span><span class="unit"
-				>{speedUnit()} vertical</span
+				>{speedUnit()} {model?.speedMode === 'target' ? 'range rate' : 'vertical'}</span
 			>
 		</div>
 	</div>

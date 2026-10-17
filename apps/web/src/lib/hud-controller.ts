@@ -45,6 +45,7 @@ import {
 	type TargetHud
 } from './target-model';
 import { bodyMu, orbitInfo, type OrbitInfo } from './orbit-info';
+import type { RendezvousInfo, TargetViewFrame } from './target-view';
 import type { SimEventMessage, StageEvent } from './sim-client';
 import { nextSpeedMode, speedReadout, type SpeedMode, type SpeedModePreference } from './speed';
 import { stageStackModel, type StageStackModel } from './stage-stack';
@@ -125,6 +126,8 @@ export interface HudModel {
 	target: TargetHud | null;
 	/** What the vessel may aim at: bodies, then other vessels (plan 035). */
 	targets: TargetChoice[];
+	/** Closest approach across spheres and the rendezvous aids for the target (plan 057); null without a target. */
+	rendezvous: RendezvousInfo | null;
 	toasts: LiveToast[];
 }
 
@@ -135,6 +138,8 @@ export interface FrameData {
 	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
 	/** Maneuver nodes and handles in px (plan 045); filled in by the flight loop. */
 	maneuver?: ManeuverFrame | null;
+	/** The target's markers in the map, or its label and arrow in the flight view (plan 057). */
+	target?: TargetViewFrame | null;
 }
 /** A map marker position in px inside the canvas box; `hidden` when a body is in front of it. */
 export type Point = ScreenPoint;
@@ -156,6 +161,8 @@ export interface HudControllerOptions {
 	 * it had fired.
 	 */
 	resume?: { entityIndex: ReadonlyMap<number, number>; stagesFired: number };
+	/** The target view's approach and aids (plan 057); read at the model's rate. */
+	rendezvous?: () => RendezvousInfo | null;
 }
 
 export interface HudController {
@@ -166,6 +173,7 @@ export interface HudController {
 	refused(command: string, reason: string): void;
 	/** A notice that is not about a command or the sim (the quality governor changed the graphics, plan 039). */
 	notice(toast: Toast): void;
+	/** Cycles the speed reference; `target` joins the cycle while the vessel has a target (plan 057). */
 	cycleSpeedMode(): SpeedModePreference;
 	/** The `sas` command a button or key asks for (plan 042); null before a vessel is attached. */
 	sasCommand(mode: SasMode): Command | null;
@@ -323,7 +331,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			push(toast);
 		},
 		cycleSpeedMode() {
-			preference = nextSpeedMode(preference);
+			preference = nextSpeedMode(preference, find()?.target !== undefined);
 			return preference;
 		},
 		sasCommand(mode) {
@@ -369,12 +377,25 @@ export function createHudController(options: HudControllerOptions): HudControlle
 					altitude: r - body.radius,
 					body,
 					preference,
-					previous: lastMode
+					previous: lastMode,
+					target: v.target ?? null
 				});
 				navball = {
 					orientation: v.orientation,
 					position: v.position,
-					markers: markerDirections(v.position, v.velocity, read.velocity, v.nodes?.[0]?.vector),
+					markers: markerDirections(
+						v.position,
+						v.velocity,
+						read.velocity,
+						v.nodes?.[0]?.vector,
+						v.target
+							? {
+									position: v.target.position,
+									velocity: v.target.velocity,
+									relative: read.mode === 'target'
+								}
+							: null
+					),
 					heading: attitudeAngles(v.orientation, v.position).heading
 				};
 			}
@@ -402,13 +423,16 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			const body = bodyOf(v);
 			const tele: Telemetry | null = computeTelemetry(snap, v.id, bodies);
 			if (!body || !tele) return null;
+			// A `target` reference without a target (it was cleared or lost) goes back to auto.
+			if (preference === 'target' && !v.target) preference = 'auto';
 			const read = speedReadout({
 				position: v.position,
 				velocity: v.velocity,
 				altitude: tele.altitude,
 				body,
 				preference,
-				previous: lastMode
+				previous: lastMode,
+				target: v.target ?? null
 			});
 			lastMode = read.mode;
 			ceiling = Math.max(ceiling, tele.altitude);
@@ -453,6 +477,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				maneuver: maneuverHud(v, snap.t, cache.report),
 				target: targetHud(v, snap.t),
 				targets: targetChoices(snap, Number(v.id), bodies),
+				rendezvous: v.target ? (options.rendezvous?.() ?? null) : null,
 				toasts
 			};
 		}

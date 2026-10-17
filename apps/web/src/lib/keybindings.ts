@@ -78,7 +78,7 @@ export const ACTIONS = [
 	flight('Stability assist (SAS)', 'sasTarget', 'Point at the target', 'Digit9'),
 	flight('Stability assist (SAS)', 'sasAntiTarget', 'Point away from the target', 'Digit0'),
 	flight('See', 'map', 'Map view', 'KeyM'),
-	flight('See', 'speedMode', 'Speed reference: auto, surface, orbit', 'KeyV'),
+	flight('See', 'speedMode', 'Speed reference: auto, surface, orbit, target', 'KeyV'),
 	flight('See', 'targetNext', 'Next target: each body, each other vessel, none', 'KeyY'),
 	flight('Time and menus', 'warpDown', 'Time warp down', ','),
 	flight('Time and menus', 'warpUp', 'Time warp up', '.'),
@@ -389,7 +389,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 		mode: 'flight',
 		rows: [
 			{ actions: ['map'], text: 'Map view' },
-			{ actions: ['speedMode'], text: 'Speed reference: auto, surface, orbit' },
+			{ actions: ['speedMode'], text: 'Speed reference: auto, surface, orbit, target' },
 			{ actions: ['targetNext'], text: 'Next target: each body, each other vessel, none' },
 			{ actions: [], fixed: ['Drag', 'Wheel'], text: 'Orbit and zoom the camera' }
 		]

@@ -72,13 +72,6 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Flight and look'
 	},
 	{
-		plan: '057',
-		title: 'Target markers and rendezvous aids',
-		gives:
-			'The target shown on the navball and the map, a closest approach that follows you across spheres of influence, and helpers to plan the burn that meets it.',
-		area: 'Flight and look'
-	},
-	{
 		plan: '058',
 		title: 'Even friendlier script editing',
 		gives:

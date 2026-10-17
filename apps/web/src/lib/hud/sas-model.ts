@@ -92,7 +92,9 @@ export const masterLabel = (sas: SasSnapshot | undefined): string =>
 	sas && sas.mode !== 'off' ? 'SAS on' : 'SAS off';
 
 /** What prograde and retrograde follow, from the speed readout's mode (the navball marker's). */
-export const referenceFor = (speed: SpeedMode): SasReference => speed;
+/** The `target` speed reference has no SAS counterpart: prograde and retrograde stay on the orbit. */
+export const referenceFor = (speed: SpeedMode): SasReference =>
+	speed === 'target' ? 'orbit' : speed;
 
 /** The command a button or key press sends. Pressing the active mode returns to `hold`. */
 export function commandForMode(
