@@ -122,6 +122,8 @@ export function catalogOf(sim: Sim): Catalog {
 		bodies: sim.registries.bodies.list(),
 		resources: sim.registries.resources.list(),
 		epoch: { ...sim.worldInfo.epoch },
+		achievements: sim.registries.achievements.list(),
+		worldId: sim.worldInfo.id,
 		...worldTerrainOf(sim)
 	};
 }
@@ -488,6 +490,20 @@ export function createSimHost(options: SimHostOptions): SimHost {
 								vessel: Number(e.vessel),
 								mode: e.mode,
 								reason: e.reason
+							}
+						})
+					),
+					created.events.on('milestone:reached', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'milestone',
+								id: e.id,
+								kind: e.kind,
+								...(e.body === undefined ? {} : { body: e.body }),
+								vessel: Number(e.vessel),
+								crewed: e.crewed,
+								time: e.time
 							}
 						})
 					),

@@ -3,6 +3,8 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
+import type { ProfileStore } from './achievements/store';
 import {
 	entityId,
 	type Command,
@@ -36,7 +38,11 @@ import {
 	saveGraphicsPreset
 } from './graphics';
 import { modeForAction } from './hud/sas-model';
-import { DEFAULT_KEYMAP, keyIdOf, type ActionId, type Keymap,
+import {
+	DEFAULT_KEYMAP,
+	keyIdOf,
+	type ActionId,
+	type Keymap,
 	customGroupSlot
 } from './keybindings';
 import type { Catalog } from './messages';
@@ -107,6 +113,8 @@ export interface FlightOptions {
 	 * (tests, a browser that cannot provide it) Run reports a failed script.
 	 */
 	sandbox?: ScriptSandbox;
+	/** The achievements profile (plan 102, ADR 0147); without one nothing unlocks (tests). */
+	profile?: ProfileStore;
 }
 
 export interface Flight {
@@ -167,6 +175,9 @@ export function startFlight(options: FlightOptions): Flight {
 	let governor: QualityGovernor | null = null;
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
+	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
+	let achievements: AchievementTracker | null = null;
+	let caughtUp = false;
 	let vessel: EntityId | null = null;
 	let snap: Snapshot | null = null;
 	/** Whether the vessel is still in the sim; only snapshots taken after the load count (plan 047). */
@@ -620,6 +631,11 @@ export function startFlight(options: FlightOptions): Flight {
 	// --- boot --------------------------------------------------------------------------------
 	client.onSnapshot((s, simWarp) => {
 		snap = s;
+		// the loaded world's firsts, once: an achievement added since, or earned elsewhere, is not missed
+		if (achievements && !caughtUp) {
+			caughtUp = true;
+			if (s.milestones) void achievements.check(s.milestones);
+		}
 		// The sim changes its own warp (a change of sphere, a finished warp-to): follow it.
 		if (simWarp !== undefined && simWarp !== hud.warp) {
 			hud.warp = simWarp;
@@ -639,6 +655,7 @@ export function startFlight(options: FlightOptions): Flight {
 	});
 	client.onSimEvent((event) => {
 		hudCtl?.simEvent(event);
+		if (event.type === 'milestone') void achievements?.check([event]);
 		if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
 	});
 	client.onScript((event) => {
@@ -657,6 +674,21 @@ export function startFlight(options: FlightOptions): Flight {
 		async (c) => {
 			if (disposed) return;
 			catalog = c;
+			if (options.profile && c.achievements) {
+				achievements = createAchievementTracker({
+					store: options.profile,
+					achievements: c.achievements,
+					home: c.bodies.find((b) => b.parent === undefined)?.id ?? '',
+					world: c.worldId ?? 'legacy',
+					onUnlock: (a) =>
+						hudCtl?.notice({
+							kind: 'success',
+							title: `Achievement: ${a.label}`,
+							detail: a.description,
+							key: `achievement:${a.id}`
+						})
+				});
+			}
 			const resumed = options.resume ? resumeInfo(options.resume) : null;
 			hudCtl = createHudController({
 				design,

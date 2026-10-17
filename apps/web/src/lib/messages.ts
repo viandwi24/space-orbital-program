@@ -5,9 +5,11 @@
 import {
 	modAssetSchema,
 	modManifestSchema,
+	type AchievementDefinition,
 	type BodyDefinition,
 	type CommandResult,
 	type Epoch,
+	type MilestoneKind,
 	type TerrainZone,
 	type ModAsset,
 	type ModBundle,
@@ -35,6 +37,9 @@ export interface Catalog {
 	 */
 	terrain?: { seed: number; zones: TerrainZone[] };
 	launchSite?: { latitude: number; longitude: number };
+	/** Achievements of the booted plugins and the world's id (plan 102, ADR 0147); only the sim's `ready`. */
+	achievements?: AchievementDefinition[];
+	worldId?: string;
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */
@@ -58,6 +63,16 @@ export type SimEvent =
 	| { type: 'vessel-destroyed'; vessel: number; reason: string }
 	/** A vessel crossed into another body's sphere of influence (plan 044); `from` and `to` are body ids. */
 	| { type: 'soi-changed'; vessel: number; from: string; to: string }
+	/** A first of the world (plan 102, ADR 0147). */
+	| {
+			type: 'milestone';
+			id: string;
+			kind: MilestoneKind;
+			body?: string;
+			vessel: number;
+			crewed: boolean;
+			time: number;
+	  }
 	/** A maneuver node was burned off (plan 045). */
 	| { type: 'maneuver-complete'; vessel: number; node: number };
 
@@ -126,7 +141,8 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'mode-changed',
 	'vessel-destroyed',
 	'soi-changed',
-	'maneuver-complete'
+	'maneuver-complete',
+	'milestone'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
