@@ -45,7 +45,7 @@ A mod can add a catalogue category of its own (an id, a label, an icon) and put 
 
 - [ ] Core schema test: a category with a named icon and one with path data parse; an id that is not `<plugin>.<name>`, an empty label, a non-finite order, path data with other characters or over 1 024 characters are refused; a part names a category id or a short name — `bun test packages/core`.
 - [ ] Stock test: the rail's categories for stock alone are exactly the nine, in the order command, tanks, propulsion, structural, aero, control, landing, thermal, other — `bun test mods/stock` and web vitest.
-- [ ] Mod test (web vitest, `mod-awareness.test.ts`): a mod's category with order 350 appears between structural and aero, its part sits in it, a part naming an unregistered category sits in Other, and a category with an unknown icon name loads and renders the fallback icon.
+- [ ] Mod test (web vitest, `mod-awareness.test.ts`): a mod's category with order 450 appears between structural and aero, its part sits in it, a part naming an unregistered category sits in Other, and a category with an unknown icon name loads and renders the fallback icon.
 - [ ] `definePatch` can relabel a stock category (core test).
 - [ ] Existing catalogue behaviour unchanged for stock parts (the category of every stock part is the same as before, as an id) — `state.test.ts`.
 - [ ] `bun test`, `bun run typecheck`, `bun run build`, `bun run docs:check`; smoke e2e.

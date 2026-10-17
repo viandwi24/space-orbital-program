@@ -1,8 +1,18 @@
 <script lang="ts">
 	import { ICONS, isIconName } from './icons';
 
-	let { name, size = 20 }: { name: string; size?: number } = $props();
-	const d = $derived(isIconName(name) ? ICONS[name] : ICONS.part);
+	let {
+		name,
+		path,
+		size = 20
+	}: {
+		name?: string;
+		/** Path data on the 24 x 24 grid instead of a named icon (a mod's category, plan 069). */
+		path?: string;
+		size?: number;
+	} = $props();
+	// An unknown name draws the part icon (ADR 0146 point 4).
+	const d = $derived(path ?? (name !== undefined && isIconName(name) ? ICONS[name] : ICONS.part));
 </script>
 
 <svg

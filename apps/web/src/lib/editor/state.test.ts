@@ -27,7 +27,7 @@ import {
 	type EditorState
 } from './state';
 import { autoStages, sameStages } from './staging';
-import { CATEGORIES, categoryOf, matchesQuery } from './categories';
+import { categoriesOf, categoryOf, matchesQuery } from './categories';
 
 const { registries } = loadPlugins([Stock]);
 const content = { parts: registries.parts, modules: registries.modules };
@@ -394,25 +394,25 @@ describe('preview and categories', () => {
 			registries.parts.list().map((p) => [p.id, categoryOf(p, registries.modules)])
 		);
 		expect(ids).toMatchObject({
-			'stock.command-pod': 'command',
-			'stock.tank-small': 'tanks',
-			'stock.tank-medium': 'tanks',
-			'stock.engine-lv': 'propulsion',
-			'stock.decoupler': 'structural',
-			'stock.reaction-wheel': 'control',
-			'stock.landing-legs': 'landing',
-			'stock.heat-shield': 'thermal',
-			'stock.radial-decoupler': 'structural',
-			'stock.booster': 'propulsion',
-			'stock.fin': 'aero',
-			'stock.nose-cone': 'aero'
+			'stock.command-pod': 'stock.command',
+			'stock.tank-small': 'stock.tanks',
+			'stock.tank-medium': 'stock.tanks',
+			'stock.engine-lv': 'stock.propulsion',
+			'stock.decoupler': 'stock.structural',
+			'stock.reaction-wheel': 'stock.control',
+			'stock.landing-legs': 'stock.landing',
+			'stock.heat-shield': 'stock.thermal',
+			'stock.radial-decoupler': 'stock.structural',
+			'stock.booster': 'stock.propulsion',
+			'stock.fin': 'stock.aero',
+			'stock.nose-cone': 'stock.aero'
 		});
-		expect(Object.values(ids).every((c) => CATEGORIES.some((x) => x.id === c))).toBe(true);
+		expect(Object.values(ids).every((c) => categoriesOf(registries.categories.list()).some((x) => x.id === c))).toBe(true);
 		const tank = registries.parts.get('stock.tank-small')!;
 		expect(matchesQuery(tank, 'small tank')).toBe(true);
 		expect(matchesQuery(tank, 'ENGINE')).toBe(false);
 		expect(matchesQuery(tank, '')).toBe(true);
-		expect(categoryOf({ modules: [] }, registries.modules)).toBe('other');
+		expect(categoryOf({ modules: [] }, registries.modules)).toBe('stock.other');
 	});
 });
 

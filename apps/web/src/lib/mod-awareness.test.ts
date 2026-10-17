@@ -142,19 +142,19 @@ describe('vessel throttle through descriptors', () => {
 describe('catalogue categories through descriptors', () => {
 	it('puts a mod part where its module says; the stock parts keep theirs', () => {
 		const of = (id: string) => categoryOf(registries.parts.get(id)!, registries.modules);
-		expect(of('acme.motor')).toBe('propulsion');
-		expect(of('acme.blade')).toBe('aero');
-		expect(of('acme.thing')).toBe('landing');
-		expect(of('acme.faulty')).toBe('other');
-		expect(of('stock.command-pod')).toBe('command');
-		expect(of('stock.tank-small')).toBe('tanks');
+		expect(of('acme.motor')).toBe('stock.propulsion');
+		expect(of('acme.blade')).toBe('stock.aero');
+		expect(of('acme.thing')).toBe('stock.landing');
+		expect(of('acme.faulty')).toBe('stock.other');
+		expect(of('stock.command-pod')).toBe('stock.command');
+		expect(of('stock.tank-small')).toBe('stock.tanks');
 	});
 	it("a part's own catalogue entry beats what its modules imply, and orders the list", () => {
 		const of = (id: string) => categoryOf(registries.parts.get(id)!, registries.modules);
-		expect(of('acme.plate')).toBe('structural');
-		expect(of('acme.cowl')).toBe('aero');
-		expect(of('acme.motor')).toBe('propulsion');
-		expect(of('acme.quiet-motor')).toBe('other');
+		expect(of('acme.plate')).toBe('stock.structural');
+		expect(of('acme.cowl')).toBe('stock.aero');
+		expect(of('acme.motor')).toBe('stock.propulsion');
+		expect(of('acme.quiet-motor')).toBe('stock.other');
 		const ids = sortParts(registries.parts.list()).map((p) => p.id);
 		expect(ids.indexOf('acme.plate')).toBeLessThan(ids.indexOf('acme.quiet-motor'));
 		expect(ids.indexOf('acme.quiet-motor')).toBeLessThan(ids.indexOf('stock.command-pod'));
