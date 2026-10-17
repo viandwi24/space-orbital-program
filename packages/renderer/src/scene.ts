@@ -3,6 +3,7 @@
  * rig and the map-view overlay. Contains no `WebGLRenderer`, so it runs (and is tested) in Bun.
  * It only reads snapshots; it never mutates them.
  */
+import { addOverlay, HighlightMaterials, removeOverlay } from './vab/highlight.ts';
 import type { SiteBuildingView } from './site-list.ts';
 import type { LaunchSite } from './site-meshes.ts';
 import type {
@@ -529,6 +530,40 @@ export class SceneModel {
 	}
 	setActiveVessel(id: EntityId | null): void {
 		this.active = id;
+	}
+
+	// --- part highlight (plan 111, ADR 0153 point 5): the VAB's select rim on one part --------------
+	private readonly highlightMaterials = new HighlightMaterials();
+	private highlight: { id: number | null; root: Object3D | null; meshes: Mesh[] } = {
+		id: null,
+		root: null,
+		meshes: []
+	};
+
+	highlightPart(id: EntityId | null): void {
+		const next = id === null ? null : Number(id);
+		if (next === this.highlight.id) return;
+		removeOverlay(this.highlight.meshes);
+		this.highlight = { id: next, root: null, meshes: [] };
+		this.applyHighlight();
+	}
+
+	/** Puts the overlay on the highlighted part's current model (parts are rebuilt as they change). */
+	private applyHighlight(): void {
+		const h = this.highlight;
+		if (h.id === null) return;
+		let root: Object3D | null = null;
+		for (const v of this.vessels.values()) {
+			const p = v.parts.get(h.id);
+			if (p) {
+				root = p.model.root;
+				break;
+			}
+		}
+		if (root === h.root) return;
+		removeOverlay(h.meshes);
+		h.root = root;
+		h.meshes = root ? addOverlay(root, this.highlightMaterials.get('select')) : [];
 	}
 
 	/** Map view: `system` looks at the root body and frames the moons' orbits (plan 113, ADR 0118). */
@@ -1308,6 +1343,8 @@ export class SceneModel {
 	}
 
 	dispose(): void {
+		removeOverlay(this.highlight.meshes);
+		this.highlightMaterials.dispose();
 		for (const r of this.remnants) this.dropRemnant(r);
 		this.remnants = [];
 		for (const v of this.vessels.values()) {
@@ -1518,6 +1555,7 @@ export class SceneModel {
 			p.model.dispose();
 			entry.parts.delete(pid);
 		}
+		if (this.highlight.id !== null) this.applyHighlight();
 	}
 }
 

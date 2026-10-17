@@ -1,5 +1,6 @@
 import {
 	loadPlugins,
+	type ActionGroupDefinition,
 	type CategoryDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
@@ -38,6 +39,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	content: ContentLookups;
 	/** Catalogue categories (plan 069, ADR 0146), in registration order. */
 	categories: CategoryDefinition[];
+	/** Action groups for the vessel panel (plan 111, ADR 0153). */
+	actionGroups: ActionGroupDefinition[];
 	/** Dock panels of stock and the enabled mods (plan 112, ADR 0149). */
 	panels: PanelDefinition[];
 	/** Missions and objective labels for the tracker (plan 100, ADR 0151). */
@@ -53,6 +56,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 			resources: registries.resources.list()
 		},
 		categories: registries.categories.list(),
+		actionGroups: registries.actionGroups.list(),
 		panels: registries.panels.list(),
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
