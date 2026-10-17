@@ -1,4 +1,7 @@
 <script lang="ts">
+	import VesselPanel from '../../lib/vessel-panel/VesselPanel.svelte';
+	import { vesselView, type PanelContent } from '../../lib/vessel-panel/vessel-model';
+	import { categoriesOf } from '../../lib/editor/categories';
 	import { loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { activePlugins } from '../../lib/mods/runtime';
@@ -103,6 +106,14 @@
 	/** Panels mods registered, read on the main thread with the content. */
 	let modPanels = $state.raw<PanelDefinition[]>([]);
 	let panelInput = $state.raw<PanelInput | null>(null);
+	// the vessel panel (plan 111, ADR 0153)
+	let vesselOpen = $state(false);
+	let vesselContent = $state.raw<PanelContent | null>(null);
+	let vesselCategories = $state.raw<ReturnType<typeof categoriesOf>>([]);
+	const vesselShown = $derived(panelInput?.vessel ?? null);
+	const vesselShownView = $derived(
+		vesselShown && vesselContent ? vesselView(vesselShown, vesselContent, vesselCategories) : null
+	);
 	// the mission tracker (plan 100, ADR 0151 point 3)
 	let missionDefs = $state.raw<MissionDefinition[]>([]);
 	let objectiveNames = $state.raw<Record<string, string>>({});
@@ -240,7 +251,14 @@
 				presets.find((p) => p.id === `stock.${record.preset}`);
 			world = { name: record.name, mode: preset?.label ?? record.preset, system: 'Stock system' };
 		});
-		const { catalog, content, panels, missions, objectiveLabels } = loadContent();
+		const { catalog, content, panels, missions, objectiveLabels, actionGroups, categories } =
+			loadContent();
+		vesselContent = {
+			parts: content.parts,
+			modules: content.modules,
+			groups: actionGroups
+		};
+		vesselCategories = categoriesOf(categories);
 		modPanels = panels;
 		missionDefs = missions;
 		objectiveNames = objectiveLabels;
@@ -362,7 +380,7 @@
 			onHud: (h) => {
 				hud = h;
 				// dock panels read the same 10 Hz update (ADR 0149 point 2)
-				if (dockShown) panelInput = flight?.panelInput() ?? null;
+				if (dockShown || vesselOpen) panelInput = flight?.panelInput() ?? null;
 			},
 			onScript: (v) => (script = v),
 			onGraphics: (p) => (graphics = p),
@@ -638,12 +656,29 @@
 					onscript={toggleScript}
 					dock={dockShown}
 					ondock={() => (dockShown = !dockShown)}
+					vessel={vesselOpen}
+					onvessel={() => {
+						vesselOpen = !vesselOpen;
+						if (!vesselOpen) flight?.highlightPart(null);
+						else panelInput = flight?.panelInput() ?? null;
+					}}
 					onhelp={() => (helpOpen = true)}
 					onstaging={() => (stagingOpen = !stagingOpen)}
 					onnav={() => (navOpen = !navOpen)}
 				/>
 			</div>
-			{#if narrow}
+			{#if vesselOpen && vesselShown}
+				<!-- the vessel panel (plan 111, ADR 0153 point 4): top right; below 1280 px in place of the dock -->
+				<div class="tr vr">
+					<VesselPanel
+						vessel={vesselShown.id}
+						name={vesselShown.name ?? designName}
+						view={vesselShownView!}
+						oncommand={(c) => void flight?.command(c)}
+						onhighlight={(part) => flight?.highlightPart(part)}
+					/>
+				</div>
+			{:else if narrow}
 				<div class="tr">{@render dock('right')}</div>
 			{/if}
 			{#if model && stagingOpen}
@@ -940,6 +975,10 @@
 		align-items: center;
 		gap: var(--s-3);
 		pointer-events: none;
+	}
+	.vr {
+		width: 18.75rem;
+		overflow-y: auto;
 	}
 	.tr {
 		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));

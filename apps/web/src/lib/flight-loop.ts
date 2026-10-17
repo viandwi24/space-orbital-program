@@ -184,6 +184,8 @@ export interface Flight {
 	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
 	/** What dock panel selectors read now (plan 112, ADR 0149 point 2); null before the first snapshot. */
 	panelInput(): PanelInput | null;
+	/** Rim-light one part in the view, or none (plan 111, ADR 0153 point 5). */
+	highlightPart(part: EntityId | null): void;
 	/** A command from a dock panel; the sim validates it, a refusal shows as a toast. */
 	command(command: Command): Promise<boolean>;
 	dispose(): void;
@@ -939,6 +941,7 @@ export function startFlight(options: FlightOptions): Flight {
 
 	return {
 		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
+		highlightPart: (part) => renderer?.highlightPart(part),
 		command: (command) => send(command),
 		runScript(source) {
 			if (vessel === null) return;
