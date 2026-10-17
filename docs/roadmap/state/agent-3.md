@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 104 merged (cp/f3-104-regions); 067 buoyancy on `devc/067-buoyancy`: code and docs done, running the full checks for handover.
-**Waiting for:** merge of 107 (`ready/107`).
+**Now:** 067 buoyancy handed over as `ready/067` (branch `devc/067-buoyancy` @ eafd20e); next in lane: 123 elements (waits for cp/f5-122-sun), then 099 (waits for cp/f3-096-building-levels).
+**Waiting for:** merges of 107 and 067; checkpoints cp/f5-122-sun or cp/f3-096-building-levels for the next plan.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -21,7 +21,7 @@
 | 114 comms-1 | done | `devc/114-comms` | 2026-10-18 | merged 23e3c4a, cp/f4-114-comms-1 |
 | 104 regions | done | `devc/104-regions` | 2026-10-18 | merged f7193f2, cp/f3-104-regions |
 | 107 crew-sim | done | `devc/107-crew-sim` | 2026-10-17 | merged dc5a690, cp/f3-107-crew-sim |
-| 067 buoyancy | in-progress | `devc/067-buoyancy` | 2026-10-18 | claim/067; draft 193 |
+| 067 buoyancy | handed-over | `devc/067-buoyancy` | 2026-10-18 | ready/067; API 0.1.46; draft 193 |
 | 123 elements | todo |  |  |  |
 | 099 contracts | todo |  |  |  |
 | 101 strategies | todo |  |  |  |
