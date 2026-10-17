@@ -131,7 +131,7 @@
 | 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | draft | — | ADR 0101 tier 5: channels, licences, interference |
 | 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
 | 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | done | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
-| 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | in-progress | Agent 3 | ADR 0103: Level A elements + rates, lunar series |
+| 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | in-progress | Agent 3 | ADR 0183: kepler-rates (JPL Level A) and series (Almanac Moon) paths, osculating conics for consumers; handed over as `ready/123` |
 | 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | draft | — | ADR 0103: Sol pack, 1:1 and rescaled, per-scale balance and validation |
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
 | 126 | [AI agencies and a living world](plans/126-ai-agencies-living-world.md) | draft | — | ADR 0096: agencies, real objects, rent, news |
