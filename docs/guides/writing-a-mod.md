@@ -224,6 +224,22 @@ ctx.contracts.register(defineContract({
 - **Names.** Add syllables with `defineCrewNames({ id, first: [...], last: [...] })`; hired names are drawn from them with the world's own random stream, so the same world always hires the same people.
 - XP is booked when a vessel is recovered, for each place its crew had not been before (fly by, orbit or land on a body). The world's rules decide death (`stock.crew-death`) and salaries.
 
+## Site templates (API 0.1.39, plan 092, ADR 0177)
+
+A template is a quick start for Create World, resolved on each world's own terrain:
+
+```ts
+ctx.siteTemplates.register(defineSiteTemplate({
+	id: 'acme.desert-coast',
+	label: 'Desert coast',
+	description: 'Dry, on the sea, launches go east over water.',
+	criteria: { absLatitude: [0.2, 0.5], seaEast: true, seaDistance: 200_000 }
+}));
+```
+
+- `absLatitude` is a band of |latitude| in radians (both hemispheres). `seaEast`, `inland`, `island` and `minElevation` (biome map elevation, sea level 0.46) narrow it. When a world has no spot that meets them all, they are dropped in that order and Create World says so.
+- `resolveSiteTemplate(template, { seed, radius })` and `siteConsequences(site, body, seed)` are pure; use them to show a template's result in your own screens.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:
