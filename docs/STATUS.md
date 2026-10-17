@@ -114,7 +114,7 @@
 | 103 | [Science core: experiments, situations, subjects, data and samples](plans/103-science-core-experiments-data-samples.md) | draft | — | ADR 0099: matrix, data vs samples, states, recovery |
 | 104 | [Regions on bodies and body dossiers](plans/104-biomes-regions-and-dossiers.md) | draft | — | ADR 0099: regions, map overlay, dossiers |
 | 105 | [Tech tree and R&D](plans/105-tech-tree-and-rnd.md) | draft | — | ADR 0099: nodes, milestone gates, pacing by measurement |
-| 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | draft | — | ADR 0100: roster, traits, XP, seats, death rule |
+| 106 | [Crew core: roster, professions, traits, XP, seats](plans/106-crew-core.md) | in-progress | Agent 3 | ADR 0100: roster, traits, XP, seats, death rule |
 | 107 | [Crew simulation: life support, morale, rest, g-load](plans/107-crew-simulation-life-support-morale-rest.md) | draft | — | ADR 0100: each aspect a rule; Career full by default |
 | 108 | [Astronaut Complex and the crew panel](plans/108-astronaut-complex-and-crew-panel.md) | draft | — | ADR 0100: roster screen, crew panel, seats |
 | 109 | [EVA: crew as actors outside the vessel](plans/109-eva-crew-outside-the-vessel.md) | draft | — | ADR 0100: EVA as a vessel |
