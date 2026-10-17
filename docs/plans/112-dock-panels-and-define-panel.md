@@ -54,7 +54,7 @@ Selectors run at the 10 Hz HUD cadence; canvas draws only while visible; measure
 - [x] `packages/sdk` type test: a panel definition compiles without DOM types (`lib` without `dom`).
 - [x] vitest: the sample mod's panel renders a readout bound to altitude and updates with the snapshot; a panel whose selector throws shows an error and the HUD keeps working.
 - [x] vitest: the Panel library adds and removes a panel and the choice survives a reload (settings).
-- [~] Measurement: 10 panels' selectors under 0.3 ms per HUD update (M5).
+- [x] Measurement: 10 panels' selectors under 0.3 ms per HUD update (M5).
 - [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
