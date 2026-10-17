@@ -1,7 +1,7 @@
 ---
 id: 067
 title: "Floating, sinking and boats: buoyancy on the sea and on lakes"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [038, 095, 103]
 phase: 3
