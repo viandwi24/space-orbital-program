@@ -4,6 +4,7 @@
  * layer immediately; the key map is derived from the bindings and read by the flight and VAB handlers.
  */
 import { setUnitSystem, type UnitSystem } from '../units.svelte';
+import { applyInterface } from '../ui/root-theme';
 import {
 	createKeymap,
 	rebind,
@@ -16,10 +17,12 @@ import {
 } from '../keybindings';
 import {
 	DEFAULT_AUDIO,
+	DEFAULT_INTERFACE,
 	defaultSettings,
 	loadSettings,
 	saveSettings,
 	type AudioSettings,
+	type InterfaceSettings,
 	type Settings,
 	type TouchChoice,
 	type TutorialProgress
@@ -31,6 +34,8 @@ class SettingsStore {
 	bindings = $state.raw<Bindings>({});
 	audio = $state<AudioSettings>({ ...DEFAULT_AUDIO });
 	touch = $state<TouchChoice>('auto');
+	/** UI scale and high contrast (plan 086), applied to the document root. */
+	ui = $state<InterfaceSettings>({ ...DEFAULT_INTERFACE });
 	/** Handlers read this; it follows `bindings`. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings));
 	#started = false;
@@ -48,17 +53,24 @@ class SettingsStore {
 		this.bindings = settings.bindings;
 		this.audio = settings.audio;
 		this.touch = settings.touch;
+		this.ui = settings.interface;
 		setUnitSystem(settings.units);
+		this.#applyInterface();
+	}
+
+	#applyInterface(): void {
+		if (typeof document !== 'undefined') applyInterface(document.documentElement, this.ui);
 	}
 
 	snapshot(): Settings {
 		return {
-			v: 2,
+			v: 3,
 			units: this.units,
 			tutorial: { ...this.tutorial },
 			bindings: this.bindings,
 			audio: { ...this.audio },
-			touch: this.touch
+			touch: this.touch,
+			interface: { ...this.ui }
 		};
 	}
 
@@ -115,6 +127,12 @@ class SettingsStore {
 
 	setTouch(choice: TouchChoice): void {
 		this.touch = choice;
+		this.#save();
+	}
+
+	setInterface(patch: Partial<InterfaceSettings>): void {
+		this.ui = { ...this.ui, ...patch };
+		this.#applyInterface();
 		this.#save();
 	}
 }

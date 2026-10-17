@@ -3,8 +3,9 @@
 	import Dialog from './Dialog.svelte';
 	import ControlsEditor from './ControlsEditor.svelte';
 	import Segmented from './Segmented.svelte';
+	import Switch from './Switch.svelte';
 	import { pageAudio } from '../audio/audio';
-	import type { TouchChoice } from '../settings/settings';
+	import { UI_SCALES, type TouchChoice } from '../settings/settings';
 	import {
 		clearGraphicsPreset,
 		loadAutoQuality,
@@ -30,7 +31,7 @@
 		onautoquality?: (on: boolean) => void;
 	} = $props();
 
-	type Tab = 'graphics' | 'game' | 'controls' | 'audio';
+	type Tab = 'graphics' | 'interface' | 'game' | 'controls' | 'audio';
 	let tab = $state<Tab>('graphics');
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
@@ -56,6 +57,7 @@
 
 	const tabs: { id: Tab; label: string }[] = [
 		{ id: 'graphics', label: 'Graphics' },
+		{ id: 'interface', label: 'Interface' },
 		{ id: 'game', label: 'Game' },
 		{ id: 'controls', label: 'Controls' },
 		{ id: 'audio', label: 'Audio' }
@@ -75,6 +77,11 @@
 		{ value: 'on', label: 'On', hint: 'Always show the on-screen controls' },
 		{ value: 'off', label: 'Off', hint: 'Keyboard and mouse only' }
 	] as const;
+	const scaleOptions = UI_SCALES.map((s) => ({
+		value: String(s),
+		label: `${Math.round(s * 100)} %`,
+		hint: s === 1 ? 'Default size' : `Text and panels at ${Math.round(s * 100)} %`
+	}));
 	const volumes = [
 		{ key: 'master', label: 'Master', hint: 'Everything' },
 		{ key: 'effects', label: 'Effects', hint: 'Engines, wind, staging, warnings' },
@@ -145,6 +152,32 @@
 					data-testid="auto-quality"
 				/>
 			</label>
+		{:else if tab === 'interface'}
+			<div class="row">
+				<div class="what">
+					<h3>Interface size</h3>
+					<p>Text, panels and buttons; the 3D view is not scaled.</p>
+				</div>
+				<Segmented
+					label="Interface size"
+					value={String(settings.ui.scale)}
+					options={scaleOptions}
+					onchange={(v: string) => settings.setInterface({ scale: Number(v) })}
+					testid="setting-ui-scale"
+				/>
+			</div>
+			<div class="row">
+				<div class="what">
+					<h3>High contrast</h3>
+					<p>Solid panels, brighter secondary text and stronger outlines.</p>
+				</div>
+				<Switch
+					checked={settings.ui.highContrast}
+					label="High contrast"
+					onchange={(on) => settings.setInterface({ highContrast: on })}
+					testid="setting-high-contrast"
+				/>
+			</div>
 		{:else if tab === 'game'}
 			<div class="row">
 				<div class="what">
@@ -267,9 +300,10 @@
 	}
 	.row {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--s-5);
+		gap: var(--s-3) var(--s-5);
 	}
 	.row.check {
 		cursor: pointer;
