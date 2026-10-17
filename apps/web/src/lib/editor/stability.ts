@@ -5,7 +5,13 @@
  * `Cd A sin^2 a` at the part (frames.ts, ADR 0035). Both are evaluated at a reference angle of
  * attack so the centre of pressure is the mean of the normal forces' heights.
  */
-import { describeModule, rotateY, type PartDefinition, type VesselDesign } from '@orbital/core';
+import {
+	describeModule,
+	mat3Apply,
+	mat3OfQuat,
+	type PartDefinition,
+	type VesselDesign
+} from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { layoutOf } from './state';
 
@@ -66,6 +72,10 @@ const widthOf = (def: PartDefinition): number =>
 			? def.shape.radius * 2
 			: Math.max(def.shape.size[0], def.shape.size[2]);
 
+/** A body diameter counts only for cylinders: a wing's span is not a calibre (ADR 0075). */
+const calibreOf = (def: PartDefinition): number =>
+	def.shape?.kind === 'cylinder' ? widthOf(def) : 0;
+
 export function stabilityOf(design: VesselDesign, content: ContentLookups): Stability {
 	if (design.parts.length === 0) return NONE;
 	const placed = layoutOf(design, content.parts);
@@ -81,6 +91,7 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 	let dry = 0;
 	let dryMoment = 0;
 	let calibre = 0;
+	let widest = 0;
 	let normal = 0;
 	let normalMoment = 0;
 	let fins = 0;
@@ -98,7 +109,8 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 		mz += wet * z;
 		dry += part.def.mass;
 		dryMoment += part.def.mass * y;
-		calibre = Math.max(calibre, widthOf(part.def));
+		calibre = Math.max(calibre, calibreOf(part.def));
+		widest = Math.max(widest, widthOf(part.def));
 		const body = (part.def.dragCoefficient ?? DEFAULT_DRAG) * lateralArea(part.def) * sin * sin;
 		normal += body;
 		normalMoment += body * y;
@@ -112,7 +124,9 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 			if (!fin) continue;
 			const force = fin.area * (fin.liftSlope * sin * cos + fin.crossflow * sin * sin);
 			normal += force;
-			const c = rotateY([fin.centre[0], fin.centre[1], fin.centre[2]], at?.yaw ?? 0);
+			const c = at
+				? mat3Apply(mat3OfQuat(at.rotation), [fin.centre[0], fin.centre[1], fin.centre[2]])
+				: { x: fin.centre[0], y: fin.centre[1], z: fin.centre[2] };
 			normalMoment += force * (y + c.y);
 			nx += force * (x + c.x);
 			nz += force * (z + c.z);
@@ -122,7 +136,7 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 	const com = moment / mass;
 	const comEmpty = dry > 0 ? dryMoment / dry : com;
 	const cop = normal > 0 ? normalMoment / normal : com;
-	const d = calibre || 1;
+	const d = calibre || widest || 1;
 	const marginFull = (com - cop) / d;
 	const marginEmpty = (comEmpty - cop) / d;
 	const margin = Math.min(marginFull, marginEmpty);

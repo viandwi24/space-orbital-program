@@ -58,11 +58,11 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		area: 'Building'
 	},
 	{
-		plan: '041',
-		title: 'Struts, fuel lines, wings',
+		plan: '063',
+		title: 'Aeroplanes you can fly',
 		gives:
-			'Struts to stiffen a rocket, fuel lines between side boosters, tilted parts and wings with lift for aircraft.',
-		area: 'Building'
+			'Wheels and a runway, trim and flaps, and read-outs for angle of attack and airspeed, so a craft built with wings takes off, flies and lands.',
+		area: 'Flight and look'
 	},
 	{
 		plan: '057',

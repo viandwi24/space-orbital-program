@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { surfaceHalfHeight, type DesignTilt } from '@orbital/core';
 	import Icon from '../ui/Icon.svelte';
 	import Kbd from '../ui/Kbd.svelte';
 	import { stageOf } from '../editor/state';
@@ -13,11 +14,18 @@
 		if (!radial) return 0;
 		const parent = vab.current.design.parts.find((p) => p.index === radial.parent);
 		const shape = parent && vab.defOf(parent.part)?.shape;
-		return shape?.kind === 'cylinder' ? shape.height : 0;
+		return shape ? surfaceHalfHeight(shape) * 2 : 0;
 	});
 	const degrees = (rad: number): number =>
 		Math.round(((((rad * 180) / Math.PI) % 360) + 360) % 360);
 	const toRad = (deg: number): number => (deg * Math.PI) / 180;
+	const tilt = $derived(vab.selectedTilt);
+	const signed = (rad: number): number => Math.round((rad * 180) / Math.PI);
+	const AXES: { axis: keyof DesignTilt; label: string; hint: string }[] = [
+		{ axis: 'x', label: 'Tilt X', hint: 'about the parent X axis (incidence of a wing)' },
+		{ axis: 'y', label: 'Tilt Y', hint: 'about the parent vertical axis' },
+		{ axis: 'z', label: 'Tilt Z', hint: 'about the parent Z axis (cant of an engine)' }
+	];
 </script>
 
 {#snippet act(
@@ -183,10 +191,62 @@
 				</p>
 			</div>
 		{/if}
+		{#if tilt}
+			<div class="turn" role="group" aria-label="Tilt of {vab.titleOfPart(sel)}">
+				{#each AXES as a (a.axis)}
+					<label class="row" title={a.hint}>
+						<span class="dim">{a.label}</span>
+						<input
+							type="range"
+							min="-90"
+							max="90"
+							step="1"
+							value={signed(tilt[a.axis])}
+							aria-valuetext="{signed(tilt[a.axis])} degrees"
+							oninput={(e) =>
+								vab.tiltSelected(
+									{ [a.axis]: toRad(Number(e.currentTarget.value)) },
+									{ single: vab.onlyThis, commit: false }
+								)}
+							onchange={(e) =>
+								vab.tiltSelected(
+									{ [a.axis]: toRad(Number(e.currentTarget.value)) },
+									{ single: vab.onlyThis, commit: true }
+								)}
+						/>
+						<span class="num val">{signed(tilt[a.axis])}°</span>
+					</label>
+				{/each}
+				<button
+					type="button"
+					class="reset"
+					disabled={tilt.x === 0 && tilt.y === 0 && tilt.z === 0}
+					onclick={() =>
+						vab.tiltSelected({ x: 0, y: 0, z: 0 }, { single: vab.onlyThis, commit: true })}
+				>
+					Reset tilt
+				</button>
+			</div>
+		{/if}
 	</section>
 {/if}
 
 <style>
+	.reset {
+		justify-self: end;
+		padding: 2px var(--s-2);
+		font-size: var(--t-xs);
+		color: var(--text);
+		background: var(--field);
+		border: 1px solid var(--line);
+		border-radius: var(--r-control);
+		cursor: pointer;
+	}
+	.reset:disabled {
+		color: var(--text-faint);
+		cursor: default;
+		opacity: 0.6;
+	}
 	.card {
 		flex: none;
 		display: grid;

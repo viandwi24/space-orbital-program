@@ -23,10 +23,30 @@ export function partFacts(def: PartDefinition, content: ContentLookups): PartFac
 			value: `${(s.radius * 2).toFixed(2)} m wide, ${s.height.toFixed(1)} m tall`
 		});
 	}
+	if (s?.kind === 'box') {
+		facts.push({
+			label: 'Size',
+			value: `${s.size[0].toFixed(1)} m span, ${s.size[1].toFixed(1)} m chord`
+		});
+	}
+	if (def.connector) {
+		facts.push({
+			label: 'Joins',
+			value: def.connector.feeds
+				? 'Click the part it hangs on, then the part it ends on: propellant flows one way, towards the second'
+				: 'Click two parts: a rigid bar, cut when a stage separates them'
+		});
+	}
 	for (const [id, raw] of def.modules ?? []) {
 		const mod = content.modules.get(id);
 		if (!mod) continue;
 		const info = describeModule(mod, raw);
+		if (info?.lift) {
+			facts.push({
+				label: 'Lift',
+				value: `${info.lift.area.toFixed(1)} m², ${info.lift.liftSlope.toFixed(1)} per radian`
+			});
+		}
 		const engine = info?.engine;
 		if (engine) {
 			const vacuum = thrustAtPressure(engine.thrust, 0);

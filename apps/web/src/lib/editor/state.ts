@@ -7,15 +7,24 @@
 import {
 	SURFACE_NODE,
 	azimuthOf,
+	mat3Apply,
+	mat3OfQuat,
 	partId,
+	placeRadial,
+	placeStack,
 	resolveVesselDesign,
-	rotateY,
+	surfaceHalfHeight,
+	surfacePoint,
+	surfaceSite,
+	type DesignTilt,
 	type PartDefinition,
 	type PartLookup,
+	type Placement,
+	type Quat,
 	type Vec3,
 	type VesselDesign
 } from '@orbital/core';
-import { emptyDesign, freeNodes, removePart, subtreeOf } from '../design';
+import { emptyDesign, freeNodes, removePart, subtreeOf, withDanglingLinks } from '../design';
 import { autoStages, sameStages, type StagingContent } from './staging';
 
 export interface Doc {
@@ -305,14 +314,24 @@ export function extract(
 	const from = inDesign ? state.design : state.loose[looseAt];
 	if (!from) return null;
 	const gone = subtreeOf(from, index);
+	// A strut or fuel line with one end inside the subtree and one outside is cut, like on separation
+	// in flight (ADR 0071): it goes with neither (the part it hangs on keeps no stub, and a moved
+	// subtree leaves its connectors to the outside behind).
+	const cut = new Set<number>();
+	for (const p of from.parts) {
+		if (gone.has(p.index) && p.link && !gone.has(p.link.index)) {
+			for (const i of subtreeOf(from, p.index)) cut.add(i);
+		}
+	}
 	const assembly: VesselDesign = {
 		...emptyDesign('loose'),
 		parts: from.parts
-			.filter((p) => gone.has(p.index))
+			.filter((p) => gone.has(p.index) && !cut.has(p.index))
 			.map((p) => (p.index === index ? { ...p, parent: null } : p))
 	};
 	if (inDesign) return { design: removePart(from, index), loose: state.loose, assembly };
-	const rest = { ...from, parts: from.parts.filter((p) => !gone.has(p.index)) };
+	const away = withDanglingLinks(from, gone);
+	const rest = { ...from, parts: from.parts.filter((p) => !away.has(p.index)) };
 	const loose = state.loose.flatMap((a, k) =>
 		k !== looseAt ? [a] : rest.parts.length > 0 ? [rest] : []
 	);
@@ -576,6 +595,168 @@ export function moveGroup(
 	return commit(state, { ...state, design, loose: plan.loose }, content);
 }
 
+// --- tilt (ADR 0071) ---------------------------------------------------------------------------------
+
+export const NO_TILT: DesignTilt = { x: 0, y: 0, z: 0 };
+
+/** The tilt of a part of the design (none when it has none). */
+export const tiltOf = (design: Pick<VesselDesign, 'parts'>, index: number): DesignTilt =>
+	design.parts.find((p) => p.index === index)?.tilt ?? NO_TILT;
+
+/**
+ * Sets the tilt of a part about its parent's axes (rad). The whole symmetry group takes the same
+ * tilt (two wings with the same tilt are mirror images, ADR 0071); with `single` only this part
+ * changes and it leaves the group. A zero tilt removes the field. One undo step; throws (design
+ * unchanged) when the design would not resolve.
+ */
+export function setTilt(
+	state: EditorState,
+	content: Content,
+	index: number,
+	tilt: DesignTilt,
+	options: { single?: boolean } = {}
+): EditorState {
+	if (!state.design.parts.some((p) => p.index === index)) {
+		throw new Error(`no part ${index} in the design`);
+	}
+	if (state.design.parts.find((p) => p.index === index)?.parent === null) {
+		throw new Error('the root part cannot be tilted');
+	}
+	const members = options.single ? [index] : groupOf(state.design, index);
+	const zero = tilt.x === 0 && tilt.y === 0 && tilt.z === 0;
+	const parts = state.design.parts.map((p) => {
+		if (!members.includes(p.index) || p.parent === null) return p;
+		const { tilt: _old, symmetry: _group, ...rest } = p;
+		const kept = options.single
+			? rest
+			: { ...rest, ...(p.symmetry === undefined ? {} : { symmetry: p.symmetry }) };
+		return zero ? kept : { ...kept, tilt: { ...tilt } };
+	});
+	const design = { ...state.design, parts };
+	assertResolves(design, content);
+	return commit(state, { ...state, design }, content);
+}
+
+// --- struts and fuel lines (ADR 0071) ------------------------------------------------------------------
+
+/** One end of a connector: a point on the surface of part `index` at azimuth `angle` and height `y` (its own frame). */
+export interface ConnectorEnd {
+	index: number;
+	angle: number;
+	y: number;
+}
+
+/** Whether `index` of `design` is a part a connector may hang on or end on (it has a surface and is not a connector). */
+export function connectable(design: VesselDesign, content: Content, index: number): boolean {
+	const entry = design.parts.find((p) => p.index === index);
+	const def = entry && content.parts.get(entry.part);
+	return def?.shape !== undefined && def.connector === undefined;
+}
+
+/** The azimuth at which `index`, or the nearest part above it that hangs on a side, sits on part `target`; null when none does. */
+function angleOnTarget(design: VesselDesign, index: number, target: number): number | null {
+	let at: number | null = index;
+	while (at !== null) {
+		const entry = design.parts.find((p) => p.index === at);
+		if (entry?.parent?.radial && entry.parent.index === target) return entry.parent.radial.angle;
+		at = entry?.parent?.index ?? null;
+	}
+	return null;
+}
+
+/**
+ * The connectors one pick makes. A single pair, unless `from` is in a symmetry group of more than
+ * one member: then every member gets a connector, to the single part `to` (the angle on it turns by
+ * the member's own angle on it when the member hangs on it), or, when `to`'s group has as many
+ * members, to the matching member in order (starting from the picked pair).
+ */
+export function connectorPairs(
+	design: VesselDesign,
+	from: ConnectorEnd,
+	to: ConnectorEnd
+): { from: ConnectorEnd; to: ConnectorEnd }[] {
+	const sources = groupOf(design, from.index);
+	const targets = groupOf(design, to.index);
+	if (sources.length <= 1) return [{ from, to }];
+	if (targets.length === 1) {
+		const base = angleOnTarget(design, from.index, to.index);
+		return sources.map((s) => {
+			const own = angleOnTarget(design, s, to.index);
+			const turn = base !== null && own !== null ? wrapAngle(own - base) : 0;
+			return { from: { ...from, index: s }, to: { ...to, angle: wrapAngle(to.angle + turn) } };
+		});
+	}
+	if (targets.length === sources.length) {
+		const i = sources.indexOf(from.index);
+		const j = targets.indexOf(to.index);
+		return sources.map((s, k) => ({
+			from: { ...from, index: s },
+			to: {
+				...to,
+				index: targets[(j + ((k - i + sources.length) % sources.length)) % targets.length]!
+			}
+		}));
+	}
+	return [{ from, to }];
+}
+
+/**
+ * The design with a connector part (`part` must have `connector` set) hanging on the surface of
+ * `from.index` and ending on `to`, with the copies `connectorPairs` adds. Copies share a new
+ * symmetry group. Throws when a part is not connectable or the design would not resolve.
+ */
+export function planConnector(
+	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
+	content: Content,
+	part: string,
+	from: ConnectorEnd,
+	to: ConnectorEnd
+): { design: VesselDesign; added: number[] } {
+	const def = content.parts.get(part);
+	if (!def?.connector) throw new Error(`"${part}" is not a connector part`);
+	const node = radialNodeOf(def);
+	if (!node) throw new Error(`"${part}" has no node to hang on`);
+	for (const e of [from, to]) {
+		if (!connectable(state.design, content, e.index)) {
+			throw new Error('a strut or fuel line joins two ordinary parts, not another connector');
+		}
+	}
+	if (from.index === to.index) throw new Error('pick two different parts');
+	const pairs = connectorPairs(state.design, from, to);
+	const group = pairs.length > 1 ? maxSymmetry([state.design, ...state.loose]) + 1 : undefined;
+	const added: number[] = [];
+	const parts = pairs.map((pair, k) => {
+		const index = state.nextIndex + k;
+		added.push(index);
+		return {
+			index,
+			part: partId(part),
+			parent: {
+				index: pair.from.index,
+				parentNode: SURFACE_NODE,
+				node,
+				radial: { angle: pair.from.angle, y: pair.from.y }
+			},
+			link: { index: pair.to.index, angle: pair.to.angle, y: pair.to.y },
+			...(group === undefined ? {} : { symmetry: group })
+		};
+	});
+	return { design: { ...state.design, parts: [...state.design.parts, ...parts] }, added };
+}
+
+/** Adds the connectors of `planConnector`; one undo step. */
+export function attachConnector(
+	state: EditorState,
+	content: Content,
+	part: string,
+	from: ConnectorEnd,
+	to: ConnectorEnd
+): EditorState {
+	const { design, added } = planConnector(state, content, part, from, to);
+	assertResolves(design, content);
+	return commit(state, { ...state, design, nextIndex: state.nextIndex + added.length }, content);
+}
+
 /** Replaces everything (load, new vessel, example); one undo step. */
 export function replaceDesign(
 	state: EditorState,
@@ -670,16 +851,43 @@ const unit = (v: readonly number[]): [number, number, number] => {
 
 export interface PartLayout {
 	position: Vec3;
-	/** Turn about the vertical axis, rad. */
+	/** Turn about the vertical axis, rad (a tilt is not in it: see `rotation`). */
 	yaw: number;
+	/** The part's full rotation relative to the design root's axes. */
+	rotation: Quat;
+	/** The part or an ancestor is tilted (ADR 0071), so `rotation` is more than `yaw`. */
+	tilted: boolean;
+	/** Where the part's strut or fuel line ends (connector parts), relative to the design root's origin. */
+	link?: { index: number; point: Vec3 };
 }
 
-/** Position and yaw of every part of a resolvable design relative to its root, or null when it does not resolve. */
+/** Position, turn and link of every part of a resolvable design relative to its root, or null when it does not resolve. */
 export function layoutOf(design: VesselDesign, parts: PartLookup): Map<number, PartLayout> | null {
 	if (design.parts.length === 0) return new Map();
 	const r = resolveVesselDesign(design, parts);
-	return r.ok ? new Map(r.parts.map((p) => [p.index, { position: p.position, yaw: p.yaw }])) : null;
+	return r.ok
+		? new Map(
+				r.parts.map((p) => [
+					p.index,
+					{
+						position: p.position,
+						yaw: p.yaw,
+						rotation: p.rotation,
+						tilted: p.tilted,
+						...(p.link ? { link: p.link } : {})
+					}
+				])
+			)
+		: null;
 }
+
+/** The placement a layout entry stands for, for the core's geometry functions. */
+export const placementOf = (l: PartLayout): Placement => ({
+	position: l.position,
+	yaw: l.yaw,
+	rotation: mat3OfQuat(l.rotation),
+	tilted: l.tilted
+});
 
 /** Positions of every part of a resolvable design relative to its root, or null when it does not resolve. */
 export function positionsOf(design: VesselDesign, parts: PartLookup): Map<number, Vec3> | null {
@@ -698,11 +906,14 @@ export function radialNodeOf(def: PartDefinition | undefined): string | undefine
 const rootDefOf = (assembly: VesselDesign, parts: PartLookup): PartDefinition | undefined =>
 	parts.get(assembly.parts.find((p) => p.parent === null)?.part ?? '');
 
+const rootTiltOf = (assembly: VesselDesign): DesignTilt | undefined =>
+	assembly.parts.find((p) => p.parent === null)?.tilt;
+
 /**
  * The radial target for `assembly` on the side of part `parentIndex` at `angle` (rad, in the
- * parent's frame) and `y` (m from the parent's origin), or null when the parent is not a cylinder,
- * the assembly has no horizontal node, or the spot is outside the parent. Geometry is exactly
- * `resolveVesselDesign`'s (ADR 0034).
+ * parent's frame) and `y` (m from the parent's origin), or null when the parent is neither a
+ * cylinder nor a box, the assembly has no horizontal node, or the spot is outside the parent.
+ * Geometry is exactly `resolveVesselDesign`'s (ADR 0034, 0071).
  */
 export function radialTarget(
 	design: VesselDesign,
@@ -718,23 +929,17 @@ export function radialTarget(
 	const parentDef = entry && parts.get(entry.part);
 	const layout = layoutOf(design, parts)?.get(parentIndex);
 	const shape = parentDef?.shape;
-	if (!childDef || !node || !layout || shape?.kind !== 'cylinder') return null;
-	if (Math.abs(y) > shape.height / 2 + 1e-9) return null;
-	const cn = childDef.attach![node]!;
-	const yaw = layout.yaw + angle + Math.PI - azimuthOf(cn.dir);
-	const side = rotateY([shape.radius, 0, 0], angle);
-	const on = rotateY([side.x, side.y + y, side.z], layout.yaw);
-	const own = rotateY(cn.pos, yaw);
-	const point = {
-		x: layout.position.x + on.x,
-		y: layout.position.y + on.y,
-		z: layout.position.z + on.z
-	};
+	if (!childDef || !node || !layout || !surfaceSite(shape, angle)) return null;
+	if (Math.abs(y) > surfaceHalfHeight(shape) + 1e-9) return null;
+	const here = placementOf(layout);
+	const at = placeRadial(here, shape, { angle, y }, childDef.attach![node]!, rootTiltOf(assembly));
+	const point = surfacePoint(here, shape, { angle, y });
+	if (!at || !point) return null;
 	return {
 		parent: { index: parentIndex, parentNode: SURFACE_NODE },
 		node,
 		radial: { angle, y },
-		position: { x: point.x - own.x, y: point.y - own.y, z: point.z - own.z },
+		position: at.position,
 		point
 	};
 }
@@ -766,10 +971,14 @@ export function siteOfPoint(
 ): { angle: number; y: number } | null {
 	const layout = layoutOf(design, parts)?.get(parentIndex);
 	if (!layout) return null;
-	const d = rotateY(
-		[point.x - layout.position.x, point.y - layout.position.y, point.z - layout.position.z],
-		-layout.yaw
-	);
+	// The point in the part's own frame: the offset turned back by the part's rotation.
+	const r = mat3OfQuat(layout.rotation);
+	const o = [point.x - layout.position.x, point.y - layout.position.y, point.z - layout.position.z];
+	const d = {
+		x: r[0] * o[0]! + r[3] * o[1]! + r[6] * o[2]!,
+		y: r[1] * o[0]! + r[4] * o[1]! + r[7] * o[2]!,
+		z: r[2] * o[0]! + r[5] * o[1]! + r[8] * o[2]!
+	};
 	return { angle: azimuthOf([d.x, 0, d.z]), y: d.y };
 }
 
@@ -807,19 +1016,12 @@ export function attachTargets(
 			for (const cn of mine) {
 				const child = rootDef.attach?.[cn];
 				if (!child || dot(unit(parentNode.dir), unit(child.dir)) > -1 + 1e-6) continue;
-				const d = rotateY(
-					[
-						parentNode.pos[0] - child.pos[0],
-						parentNode.pos[1] - child.pos[1],
-						parentNode.pos[2] - child.pos[2]
-					],
-					at.yaw
-				);
-				const on = rotateY(parentNode.pos, at.yaw);
+				const here = placementOf(at);
+				const on = mat3Apply(here.rotation, parentNode.pos);
 				out.push({
 					parent: { index: p.index, parentNode: pn },
 					node: cn,
-					position: { x: at.position.x + d.x, y: at.position.y + d.y, z: at.position.z + d.z },
+					position: placeStack(here, parentNode.pos, child.pos, rootTiltOf(assembly)).position,
 					point: { x: at.position.x + on.x, y: at.position.y + on.y, z: at.position.z + on.z }
 				});
 			}
@@ -828,11 +1030,15 @@ export function attachTargets(
 	if (radialNodeOf(rootDef)) {
 		const childHeight = rootDef.shape?.kind === 'cylinder' ? rootDef.shape.height : 1;
 		for (const p of design.parts) {
-			const shape = parts.get(p.part)?.shape;
-			if (shape?.kind !== 'cylinder' || shape.height < 0.5) continue;
-			const stops = [0, shape.height / 2 - childHeight / 2, -shape.height / 2 + childHeight / 2];
+			const def = parts.get(p.part);
+			const shape = def?.shape;
+			// Connectors hang on parts, not on each other, and a stub is no place for a wing.
+			if (!shape || def?.connector) continue;
+			const height = surfaceHalfHeight(shape) * 2;
+			if (height < 0.5) continue;
+			const stops = [0, height / 2 - childHeight / 2, -height / 2 + childHeight / 2];
 			for (const y of new Set(stops.map((v) => Math.round(v * 1000) / 1000))) {
-				if (Math.abs(y) > shape.height / 2) continue;
+				if (Math.abs(y) > height / 2) continue;
 				const t = radialTarget(design, assembly, parts, p.index, radialAngle, y);
 				if (t) out.push(t);
 			}

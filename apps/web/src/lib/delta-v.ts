@@ -6,7 +6,8 @@
  * decouplers (the side without the root, or without the control source when only the other side
  * has one, leaves, as in the sim's `detach`); then the ignited engines burn until their propellant
  * is gone. Propellant is drawn with the sim's rule (breadth-first over attachments from the engine,
- * never entering a part with `crossfeed: false`; `flowMode` stack / vessel / none). Between two
+ * never entering a part with `crossfeed: false`; `flowMode` stack / vessel / none; a fuel line adds
+ * the part it hangs on, and what that reaches, ahead of the part it ends on, ADR 0071). Between two
  * events the flows are constant, so each interval's delta-v is the exact `(F / mdot) ln(m0 / m1)`;
  * one engine on one tank reproduces Tsiolkovsky exactly. Thrust is assumed along the flight
  * direction.
@@ -19,6 +20,8 @@
 import {
 	SEA_LEVEL_PRESSURE,
 	describeModule,
+	mat3OfQuat,
+	resolveVesselDesign,
 	thrustAtPressure,
 	type EngineInfo,
 	type ModuleDefinition,
@@ -45,6 +48,10 @@ interface ModelPart {
 	/** Amount per resource when full (design state), for fuel fractions. */
 	full: Record<string, number>;
 	engine?: EngineInfo;
+	/** Share of the engine's thrust that acts along the vessel's axis: the cosine of a tilted engine (ADR 0071). */
+	thrustFactor: number;
+	/** Fuel lines that end on this part: the part each hangs on and the line itself, by ascending line index. */
+	feeders: { source: number; line: number }[];
 	separator?: { node: string; done: boolean };
 	controlSource: boolean;
 }
@@ -74,6 +81,8 @@ function buildPart(
 		index,
 		def,
 		links: [],
+		thrustFactor: 1,
+		feeders: [],
 		amounts: {},
 		full: {},
 		controlSource: false
@@ -126,6 +135,25 @@ function assemble(
 		parts.get(p.parent.index)!.links.push({ peer: p.index, node: p.parent.parentNode });
 	}
 	for (const part of parts.values()) part.links.sort((a, b) => a.peer - b.peer);
+	// Fuel lines (ADR 0071): the line hangs on its source and ends on the part that draws through it.
+	for (const p of [...design.parts].sort((a, b) => a.index - b.index)) {
+		if (!p.link || !p.parent || !parts.get(p.index)?.def.connector?.feeds) continue;
+		parts.get(p.link.index)?.feeders.push({ source: p.parent.index, line: p.index });
+	}
+	// A tilted engine pushes along its tilted axis: only its component along the vessel counts.
+	if (design.parts.some((p) => p.tilt !== undefined)) {
+		const resolved = resolveVesselDesign(design, content.parts);
+		if (resolved.ok) {
+			for (const r of resolved.parts) {
+				const part = parts.get(r.index);
+				if (!part?.engine || !r.tilted) continue;
+				const m = mat3OfQuat(r.rotation);
+				const [ax, ay, az] = part.engine.axis ?? [0, 1, 0];
+				const length = Math.hypot(ax, ay, az) || 1;
+				part.thrustFactor = Math.max(0, (m[3] * ax + m[4] * ay + m[5] * az) / length);
+			}
+		}
+	}
 	return {
 		root,
 		parts,
@@ -310,15 +338,29 @@ function reach(w: Work, engine: number, resource: string): number[] {
 	if (mode === 'none') return [];
 	if (mode === 'vessel') return [...w.alive].sort((a, b) => a - b);
 	const seen = new Set<number>([engine]);
-	const order = [engine];
-	for (let head = 0; head < order.length; head++) {
-		for (const l of w.model.parts.get(order[head]!)!.links) {
-			if (!w.alive.has(l.peer) || seen.has(l.peer)) continue;
-			seen.add(l.peer);
-			if (w.model.parts.get(l.peer)!.def.crossfeed === false) continue;
-			order.push(l.peer);
+	const order: number[] = [];
+	// The sim's `reachableParts`: breadth-first from an origin over the attachments, the sources of
+	// the fuel lines that end on a part walked first (each as its own origin, whatever its crossfeed).
+	const walk = (origin: number): void => {
+		const queue = [origin];
+		for (let head = 0; head < queue.length; head++) {
+			const here = queue[head]!;
+			const part = w.model.parts.get(here)!;
+			for (const f of part.feeders) {
+				if (!w.alive.has(f.source) || !w.alive.has(f.line) || seen.has(f.source)) continue;
+				seen.add(f.source);
+				walk(f.source);
+			}
+			order.push(here);
+			for (const l of part.links) {
+				if (!w.alive.has(l.peer) || seen.has(l.peer)) continue;
+				seen.add(l.peer);
+				if (w.model.parts.get(l.peer)!.def.crossfeed === false) continue;
+				queue.push(l.peer);
+			}
 		}
-	}
+	};
+	walk(engine);
 	return order;
 }
 
@@ -367,6 +409,7 @@ function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
 			rates: { resource: string; rate: number }[];
 			engine: EngineInfo;
 			mdot: number;
+			factor: number;
 		};
 		const active: Active[] = [];
 		let dryShed = false;
@@ -391,6 +434,7 @@ function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
 			active.push({
 				index: i,
 				engine,
+				factor: w.model.parts.get(i)!.thrustFactor,
 				mdot,
 				rates: volumeRates(engine, (r) => densityOf(w, r))
 			});
@@ -415,9 +459,9 @@ function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
 			dt = Math.min(dt, (w.amounts.get(Number(part))![resource] ?? 0) / rate);
 		}
 		if (!Number.isFinite(dt) || dt <= 0) break;
-		const vac = active.reduce((s, e) => s + thrustAtPressure(e.engine.thrust, 0), 0);
+		const vac = active.reduce((s, e) => s + thrustAtPressure(e.engine.thrust, 0) * e.factor, 0);
 		const asl = active.reduce(
-			(s, e) => s + thrustAtPressure(e.engine.thrust, SEA_LEVEL_PRESSURE),
+			(s, e) => s + thrustAtPressure(e.engine.thrust, SEA_LEVEL_PRESSURE) * e.factor,
 			0
 		);
 		const mdot = active.reduce((s, e) => s + e.mdot, 0);

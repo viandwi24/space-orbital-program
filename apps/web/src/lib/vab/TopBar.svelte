@@ -76,6 +76,11 @@
 						Placing <strong>{vab.defOf(armed.part)?.title}</strong>
 					{:else if armed.kind === 'assembly'}
 						Placing <strong>{vab.assemblyOf(armed.id)?.name}</strong>
+					{:else if armed.kind === 'connect'}
+						<strong>{vab.defOf(armed.part)?.title}</strong>:
+						{armed.from
+							? `now click the part it ends on (from ${vab.titleOfPart(armed.from.index)})`
+							: 'click the part it hangs on'}
 					{:else}
 						Moving <strong>{vab.titleOfPart(armed.index)}</strong>
 						{#if vab.shown.followers.length > 0}<span class="dim"
@@ -83,7 +88,7 @@
 							>{/if}
 					{/if}
 				</span>
-				{#if armed.kind !== 'carry'}
+				{#if armed.kind === 'new' || armed.kind === 'assembly'}
 					<div class="sym" role="group" aria-label="Symmetry: copies per placement">
 						<span class="dim">Symmetry <Kbd>{settings.keymap.label('symmetry')}</Kbd></span>
 						{#each vab.symmetryCounts as n (n)}
@@ -98,7 +103,10 @@
 					</div>
 				{/if}
 				<span class="hintline">
-					{#if vab.targets.length === 0}
+					{#if armed.kind === 'connect'}
+						Click a part. <Kbd>Alt</Kbd> frees the angle; <Kbd>{key('nextPart')}</Kbd> selects a part
+						and <Kbd>{key('place')}</Kbd> picks it. Copies follow a symmetric group.
+					{:else if vab.targets.length === 0}
 						Nowhere to attach this.
 					{:else if vab.radialCapable}
 						Click the side of a tank or a ring. <Kbd>Alt</Kbd> frees the angle, <Kbd

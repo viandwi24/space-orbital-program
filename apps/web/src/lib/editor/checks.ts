@@ -130,13 +130,16 @@ export function checkDesign(
 		out.push({
 			id: 'unstable',
 			severity: 'warning',
-			text: `The fins sit ahead of the centre of mass (margin ${(stability.margin ?? 0).toFixed(1)} calibres): the rocket will tumble in the air.`,
-			hint: 'Move the fins lower on the vessel, or add more behind the centre of mass.',
+			text: `The fins or wings sit ahead of the centre of mass (margin ${(stability.margin ?? 0).toFixed(1)} calibres): the vessel will tumble in the air.`,
+			hint: 'Move the fins or the tail lower on the vessel, or add more behind the centre of mass.',
 			parts: design.parts
 				.filter((p) =>
 					content.parts
 						.get(p.part)
-						?.modules?.some((m) => m[0] === 'stock.fin' || m[0] === 'stock.control-surface')
+						?.modules?.some(
+							(m) =>
+								m[0] === 'stock.fin' || m[0] === 'stock.control-surface' || m[0] === 'stock.wing'
+						)
 				)
 				.map((p) => p.index)
 		});

@@ -6,10 +6,12 @@
 import type { VesselDesign } from '@orbital/core';
 import { referenceTwoStage } from '../design';
 import {
+	attachConnector,
 	attachNew,
 	attachTargets,
 	createEditor,
 	radialTarget,
+	setTilt,
 	singlePart,
 	type Content,
 	type EditorState
@@ -48,4 +50,70 @@ export function boosterRocket(content: Content): VesselDesign {
 	if (!fin) throw new Error('no radial site for the fins');
 	s = attachNew(s, content, 'stock.fin', fin, 4);
 	return { ...s.design, name: 'Booster rocket' };
+}
+
+/**
+ * The booster rocket with an asparagus feed (ADR 0071): a fuel line from each booster to the core
+ * tank, so the core engine drains the boosters first, and a strut from each booster's foot to the
+ * tank. The lines and struts are made by one pick each with the boosters' symmetry.
+ */
+export function asparagusRocket(content: Content): VesselDesign {
+	let s: EditorState = createEditor(boosterRocket(content), content);
+	const lowerTank = 5;
+	const booster = s.design.parts.find((p) => p.part === 'stock.booster')!.index;
+	s = attachConnector(
+		s,
+		content,
+		'stock.fuel-line',
+		{ index: booster, angle: Math.PI, y: 0.5 },
+		{ index: lowerTank, angle: 0, y: 0.5 }
+	);
+	s = attachConnector(
+		s,
+		content,
+		'stock.strut',
+		{ index: booster, angle: Math.PI, y: -0.5 },
+		{ index: lowerTank, angle: 0, y: -0.5 }
+	);
+	return { ...s.design, name: 'Asparagus rocket' };
+}
+
+/**
+ * A winged craft that glides (ADR 0075): a pod on a tank, two wings at the tank's middle with 0.15
+ * rad of incidence (a tilt about the parent's X axis) and two tail wings at its foot with none.
+ * About 4.9:1 at 190 m/s; it has no engine, so it is for the glide test and the editor.
+ */
+export function glider(content: Content): VesselDesign {
+	const reference = referenceTwoStage();
+	// The pod alone: the reference vessel is a rocket.
+	let s: EditorState = createEditor(
+		{ ...reference, parts: reference.parts.slice(0, 1), stages: [] },
+		content
+	);
+	const stack = (part: string, parent: number): void => {
+		const t = attachTargets(s.design, singlePart(part, s.nextIndex), content.parts).find(
+			(x) => x.parent?.index === parent && x.parent.parentNode === 'bottom'
+		);
+		if (!t) throw new Error(`no bottom node on part ${parent} for ${part}`);
+		s = attachNew(s, content, part, t);
+	};
+	stack('stock.tank-small', 0);
+	const tank = 1;
+	const pair = (y: number, incidence: number): void => {
+		const t = radialTarget(
+			s.design,
+			singlePart('stock.wing', s.nextIndex),
+			content.parts,
+			tank,
+			0,
+			y
+		);
+		if (!t) throw new Error('no radial site for the wings');
+		s = attachNew(s, content, 'stock.wing', t, 2);
+		const first = s.design.parts.at(-1)!.index;
+		if (incidence !== 0) s = setTilt(s, content, first, { x: incidence, y: 0, z: 0 });
+	};
+	pair(0, 0.15);
+	pair(-0.8, 0);
+	return { ...s.design, name: 'Glider' };
 }

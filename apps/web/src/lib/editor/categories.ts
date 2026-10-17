@@ -76,7 +76,7 @@ function categoriesOf(mod: ModuleDefinition, raw: unknown): CategoryId[] {
 const cache = new WeakMap<object, CategoryId>();
 
 export function categoryOf(
-	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number },
+	def: Pick<PartDefinition, 'modules'> & { dragCoefficient?: number; connector?: object },
 	modules: ModuleLookup
 ): CategoryId {
 	const hit = cache.get(def);
@@ -87,8 +87,14 @@ export function categoryOf(
 		if (mod) for (const c of categoriesOf(mod, raw)) found.add(c);
 	}
 	// A part with no module that declares its own drag (a nose cone) is aerodynamic hardware.
+	// A strut or fuel line has no module: it is structure (ADR 0071).
 	const category =
-		PRIORITY.find((c) => found.has(c)) ?? (def.dragCoefficient !== undefined ? 'aero' : 'other');
+		PRIORITY.find((c) => found.has(c)) ??
+		(def.connector !== undefined
+			? 'structural'
+			: def.dragCoefficient !== undefined
+				? 'aero'
+				: 'other');
 	cache.set(def, category);
 	return category;
 }

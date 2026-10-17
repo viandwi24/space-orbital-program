@@ -110,7 +110,7 @@
 				bind:this={catalogueRef}
 				parts={vab.parts}
 				icons={vab.icons}
-				armed={vab.armed?.kind === 'new' ? vab.armed.part : null}
+				armed={vab.armed?.kind === 'new' || vab.armed?.kind === 'connect' ? vab.armed.part : null}
 				facts={vab.facts}
 				modules={vab.content.modules}
 				onarm={(id) => vab.arm(id)}
@@ -199,6 +199,8 @@
 				<div class="row">
 					<Button onclick={() => vab.loadExample()}>Load the two-stage example</Button>
 					<Button onclick={() => vab.loadBoosterExample()}>Load the booster rocket</Button>
+					<Button onclick={() => vab.loadAsparagusExample()}>Load the asparagus rocket</Button>
+					<Button onclick={() => vab.loadGliderExample()}>Load the glider</Button>
 					{#if vab.vesselEntries.length > 0}
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}

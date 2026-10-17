@@ -3,8 +3,15 @@
  * loose assembly as its own group on the floor, the translucent ghost of whatever is being placed,
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
-import { rotateY, type PartDefinition, type PartLookup, type VesselDesign } from '@orbital/core';
-import type { VabGroup, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
+import {
+	mat3Apply,
+	mat3OfQuat,
+	surfaceSite,
+	type PartDefinition,
+	type PartLookup,
+	type VesselDesign
+} from '@orbital/core';
+import type { VabGroup, VabLink, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
 import {
 	layoutOf,
 	planCarry,
@@ -22,6 +29,16 @@ export const looseX = (i: number): number => (i % 2 === 0 ? 1 : -1) * (7.6 + Mat
 
 export const looseGroup = (root: number): string => `loose:${root}`;
 export const partKey = (index: number): string => `${index}`;
+
+/** What the view needs to turn a part: its yaw, and the full rotation only when it is tilted (ADR 0071). */
+const turnOf = (l: {
+	yaw: number;
+	tilted: boolean;
+	rotation: { x: number; y: number; z: number; w: number };
+}) =>
+	l.tilted
+		? { yaw: l.yaw, rotation: [l.rotation.x, l.rotation.y, l.rotation.z, l.rotation.w] as const }
+		: { yaw: l.yaw };
 
 const heightOf = (def: PartDefinition | undefined): number =>
 	!def?.shape ? 1 : def.shape.kind === 'cylinder' ? def.shape.height : def.shape.size[1];
@@ -71,6 +88,12 @@ export interface SceneInput {
 	markers?: VabMarker[];
 	/** `held` is a catalogue part not yet in the design (default) or an assembly being moved. */
 	kind?: 'new' | 'carry';
+	/** A strut or fuel line being placed: the bar from the first end to the pointer (ADR 0071). */
+	preview?: {
+		definition: string;
+		from: readonly [number, number, number];
+		to: readonly [number, number, number];
+	} | null;
 }
 
 export interface BuiltScene {
@@ -111,6 +134,7 @@ export function buildScene(input: SceneInput): BuiltScene {
 	const symmetry = input.symmetry ?? 1;
 	const kind = input.kind ?? 'new';
 	const out: VabPart[] = [];
+	const links: VabLink[] = [];
 	const groups: VabGroup[] = [{ id: 'main', x: 0, z: 0 }];
 	const nodes: VabNode[] = [];
 
@@ -124,15 +148,24 @@ export function buildScene(input: SceneInput): BuiltScene {
 		if (!at) return;
 		for (const p of assembly.parts) {
 			const l = at.get(p.index);
-			if (l)
-				out.push({
+			if (!l) continue;
+			out.push({
+				key: `${prefix}${partKey(p.index)}`,
+				definition: p.part,
+				position: [l.position.x, l.position.y, l.position.z],
+				...turnOf(l),
+				group,
+				role
+			});
+			if (l.link && role === 'solid') {
+				links.push({
 					key: `${prefix}${partKey(p.index)}`,
-					definition: p.part,
-					position: [l.position.x, l.position.y, l.position.z],
-					yaw: l.yaw,
 					group,
-					role
+					definition: p.part,
+					from: [l.position.x, l.position.y, l.position.z],
+					to: [l.link.point.x, l.link.point.y, l.link.point.z]
 				});
+			}
 		}
 	};
 	place(design, 'main', 'solid');
@@ -141,6 +174,16 @@ export function buildScene(input: SceneInput): BuiltScene {
 		groups.push({ id, x: looseX(i), z: 0 });
 		place(a, id, 'solid');
 	});
+
+	if (input.preview) {
+		links.push({
+			key: 'preview',
+			group: 'main',
+			definition: input.preview.definition,
+			from: [...input.preview.from],
+			to: [...input.preview.to]
+		});
+	}
 
 	let ghost: AttachTarget | null = null;
 	// A radial cursor site is shown only to the keyboard (its rings are on); the pointer has its own.
@@ -168,7 +211,7 @@ export function buildScene(input: SceneInput): BuiltScene {
 						key: `g${partKey(p.index)}`,
 						definition: p.part,
 						position: [l.position.x, l.position.y, l.position.z],
-						yaw: l.yaw,
+						...turnOf(l),
 						group: 'main',
 						role: 'ghost'
 					});
@@ -187,15 +230,17 @@ export function buildScene(input: SceneInput): BuiltScene {
 			let dir: readonly number[] | undefined = t.parent
 				? parentDef?.attach?.[t.parent.parentNode]?.dir
 				: undefined;
-			if (t.parent && dir) {
-				// A node of a turned part points the way the part is turned.
-				const yaw = layoutOf(design, parts)?.get(t.parent.index)?.yaw ?? 0;
-				const turned = rotateY([dir[0]!, dir[1]!, dir[2]!], yaw);
+			const parentLayout = t.parent ? layoutOf(design, parts)?.get(t.parent.index) : undefined;
+			const turn = parentLayout ? mat3OfQuat(parentLayout.rotation) : undefined;
+			if (t.parent && dir && turn) {
+				// A node of a turned or tilted part points the way the part is turned.
+				const turned = mat3Apply(turn, [dir[0]!, dir[1]!, dir[2]!]);
 				dir = [turned.x, turned.y, turned.z];
 			}
-			if (t.radial && t.parent) {
-				const yaw = layoutOf(design, parts)?.get(t.parent.index)?.yaw ?? 0;
-				const out = rotateY([1, 0, 0], yaw + t.radial.angle);
+			if (t.radial && t.parent && turn) {
+				// Outward normal of the parent's side at the site (a box has flat faces).
+				const normal = surfaceSite(parentDef?.shape, t.radial.angle)?.normal ?? t.radial.angle;
+				const out = mat3Apply(turn, [Math.cos(normal), 0, -Math.sin(normal)]);
 				dir = [out.x, out.y, out.z];
 			}
 			nodes.push({
@@ -209,7 +254,10 @@ export function buildScene(input: SceneInput): BuiltScene {
 			});
 		});
 	}
-	return { scene: { parts: out, groups, nodes, markers: input.markers ?? [] }, ghost };
+	return {
+		scene: { parts: out, groups, nodes, links, markers: input.markers ?? [] },
+		ghost
+	};
 }
 
 /**

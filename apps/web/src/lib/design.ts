@@ -23,7 +23,7 @@ export interface Attachment {
 }
 
 export const emptyDesign = (name = 'Untitled vessel'): VesselDesign => ({
-	formatVersion: 2,
+	formatVersion: 3,
 	name,
 	parts: [],
 	stages: []
@@ -69,9 +69,29 @@ export function subtreeOf(design: VesselDesign, index: number): Set<number> {
 	return out;
 }
 
-/** Removes a part together with the parts hanging off it, and drops them from the staging. */
+/**
+ * The set `gone` plus every strut or fuel line elsewhere that ends on one of its parts, with what
+ * hangs off it: a link has no far end once that part is removed (ADR 0071).
+ */
+export function withDanglingLinks(design: VesselDesign, gone: ReadonlySet<number>): Set<number> {
+	const out = new Set(gone);
+	for (let grew = true; grew;) {
+		grew = false;
+		for (const p of design.parts) {
+			if (out.has(p.index) || !p.link || !out.has(p.link.index)) continue;
+			for (const i of subtreeOf(design, p.index)) out.add(i);
+			grew = true;
+		}
+	}
+	return out;
+}
+
+/**
+ * Removes a part together with the parts hanging off it and the struts and fuel lines that end on
+ * any of them, and drops them from the staging.
+ */
 export function removePart(design: VesselDesign, index: number): VesselDesign {
-	const gone = subtreeOf(design, index);
+	const gone = withDanglingLinks(design, subtreeOf(design, index));
 	return trimStages({
 		...design,
 		parts: design.parts.filter((p) => !gone.has(p.index)),
@@ -165,7 +185,7 @@ export function referenceTwoStage(): VesselDesign {
 		'stock.engine-lv'
 	];
 	return {
-		formatVersion: 2,
+		formatVersion: 3,
 		name: 'Two-stage',
 		parts: ids.map((part, index) => ({
 			index,

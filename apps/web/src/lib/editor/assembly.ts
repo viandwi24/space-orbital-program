@@ -23,7 +23,7 @@ export function assemblyFromSubtree(
 	const renumber = new Map(kept.map((g, i) => [g, i]));
 	return {
 		...flat,
-		formatVersion: 2,
+		formatVersion: 3,
 		parts: flat.parts.map((p) => {
 			const { symmetry, ...rest } = p;
 			return symmetry !== undefined && renumber.has(symmetry)

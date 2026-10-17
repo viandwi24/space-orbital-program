@@ -5,7 +5,14 @@
  * handling, the vessel library (ADR 0041) and the derived read-outs.
  */
 import { untrack } from 'svelte';
-import type { PartDefinition, VesselDesign } from '@orbital/core';
+import {
+	surfaceHalfHeight,
+	surfacePoint,
+	surfaceSite,
+	type DesignTilt,
+	type PartDefinition,
+	type VesselDesign
+} from '@orbital/core';
 import { VabView, type VabMarker } from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
@@ -16,7 +23,7 @@ import { pinchZoomFactor } from '../touch/touch-model';
 import { settings } from '../settings/settings.svelte';
 import { bodyMu } from '../orbit-info';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
-import { boosterRocket } from '../editor/examples';
+import { asparagusRocket, boosterRocket, glider } from '../editor/examples';
 import { assemblyFromSubtree } from '../editor/assembly';
 import { blocksLaunch, checkDesign } from '../editor/checks';
 import { describeStack } from '../editor/describe';
@@ -26,16 +33,20 @@ import { stabilityOf } from '../editor/stability';
 import { isStageable } from '../editor/staging';
 import {
 	attachAssembly,
+	attachConnector,
 	attachNew,
 	attachTargets,
 	canRedo,
 	canUndo,
 	createEditor,
+	connectable,
 	deleteSubtree,
 	detach,
 	enableAutoStage,
 	groupOf,
+	layoutOf,
 	moveGroup,
+	placementOf,
 	moveToStage,
 	radialNodeOf,
 	radialOf,
@@ -46,13 +57,16 @@ import {
 	rename,
 	replaceDesign,
 	setRadial,
+	setTilt,
 	singlePart,
 	siteOfPoint,
 	snapRadial,
 	stageOf,
 	SYMMETRY_COUNTS,
+	tiltOf,
 	undo,
 	type AttachTarget,
+	type ConnectorEnd,
 	type EditorState
 } from '../editor/state';
 import {
@@ -80,6 +94,8 @@ import { indexedDbStore, requestPersistence } from './library-idb';
 
 export type Armed =
 	| { kind: 'new'; part: string }
+	/** A strut or fuel line: the first end once it is picked, then the second (ADR 0071). */
+	| { kind: 'connect'; part: string; from: ConnectorEnd | null }
 	| { kind: 'assembly'; id: string }
 	| { kind: 'carry'; index: number; single: boolean };
 
@@ -119,6 +135,10 @@ export class VabController {
 	symmetry = $state(1);
 	radialAngle = $state(0);
 	pointerTarget = $state.raw<AttachTarget | null>(null);
+	/** While a connector is armed: the spot under the pointer, as a point of the main group and as an end of a link. */
+	connectPointer = $state.raw<{ point: [number, number, number]; end: ConnectorEnd | null } | null>(
+		null
+	);
 	keyboardRadial = $state(false);
 	flagged = $state.raw<number[]>([]);
 	environment = $state<Environment>('sea-level');
@@ -169,7 +189,7 @@ export class VabController {
 	};
 	readonly held = $derived.by((): VesselDesign | null => {
 		const a = this.armed;
-		if (!a) return null;
+		if (!a || a.kind === 'connect') return null;
 		if (a.kind === 'new') return singlePart(a.part, this.editor.nextIndex);
 		if (a.kind === 'assembly') {
 			const d = this.assemblyOf(a.id);
@@ -210,6 +230,23 @@ export class VabController {
 			}
 		];
 	});
+	/** Where the first end of the connector being placed is, in the main group's frame. */
+	readonly connectFrom = $derived.by((): [number, number, number] | null => {
+		const a = this.armed;
+		if (a?.kind !== 'connect' || !a.from) return null;
+		const entry = this.shown.design.parts.find((p) => p.index === a.from!.index);
+		const layout = layoutOf(this.shown.design, this.lookup)?.get(a.from.index);
+		const shape = entry && this.defOf(entry.part)?.shape;
+		const point = layout && surfacePoint(placementOf(layout), shape, a.from);
+		return point ? [point.x, point.y, point.z] : null;
+	});
+	readonly connectPreview = $derived.by(() => {
+		const a = this.armed;
+		const to = this.connectPointer?.point;
+		return a?.kind === 'connect' && this.connectFrom && to
+			? { definition: a.part, from: this.connectFrom, to }
+			: null;
+	});
 	readonly built = $derived(
 		buildScene({
 			design: this.shown.design,
@@ -223,7 +260,8 @@ export class VabController {
 			symmetry: this.copies,
 			followers: this.shown.followers,
 			markers: this.armed ? [] : this.markers,
-			kind: this.armed?.kind === 'carry' ? 'carry' : 'new'
+			kind: this.armed?.kind === 'carry' ? 'carry' : 'new',
+			preview: this.connectPreview
 		})
 	);
 	readonly checks = $derived(checkDesign(this.current, this.content, this.stats, this.stability));
@@ -264,6 +302,20 @@ export class VabController {
 		}
 		return null;
 	});
+	/** The tilt of the selected part of the design (zero for the root and for loose parts). */
+	readonly selectedTilt = $derived<DesignTilt | null>(
+		this.selected === null ||
+			this.selectedLoose ||
+			this.current.design.parts.find((p) => p.index === this.selected)?.parent === null
+			? null
+			: tiltOf(this.current.design, this.selected)
+	);
+	/** The connector the selected part is, and its far end: for the info card. */
+	readonly selectedLink = $derived(
+		this.selected === null
+			? null
+			: (this.editor.design.parts.find((p) => p.index === this.selected)?.link ?? null)
+	);
 	readonly radialGroupSize = $derived(
 		this.selectedRadial ? groupOf(this.editor.design, this.selectedRadial.index).length : 1
 	);
@@ -637,6 +689,15 @@ export class VabController {
 	// --- placing ---------------------------------------------------------------------------------------------
 
 	arm(part: string): void {
+		if (this.defOf(part)?.connector) {
+			this.armed =
+				this.armed?.kind === 'connect' && this.armed.part === part
+					? null
+					: { kind: 'connect', part, from: null };
+			this.connectPointer = null;
+			this.afterArm(`Placing ${this.defOf(part)?.title}.`, true);
+			return;
+		}
 		this.armed =
 			this.armed?.kind === 'new' && this.armed.part === part ? null : { kind: 'new', part };
 		this.afterArm(`Placing ${this.defOf(part)?.title}.`);
@@ -650,10 +711,14 @@ export class VabController {
 		this.afterArm(`Placing the sub-assembly ${d.name}.`);
 	}
 
-	private afterArm(text: string): void {
+	private afterArm(text: string, connect = false): void {
 		this.selected = null;
 		this.hoverNode = null;
-		if (this.armed) {
+		if (this.armed && connect) {
+			this.say(
+				`${text} Click the part it hangs on, then the part it ends on; or select a part and press Enter.`
+			);
+		} else if (this.armed) {
 			this.say(`${text} Click a highlighted ring, or press Enter to place at the marked one.`);
 		}
 		this.drawer = null;
@@ -664,6 +729,68 @@ export class VabController {
 		this.armed = null;
 		this.hoverNode = null;
 		this.pointerTarget = null;
+		this.connectPointer = null;
+	}
+
+	/** The end of a connector on part `index` at the point `hit` (main group frame), snapped; null when it has no surface. */
+	private endAt(
+		index: number,
+		hit: readonly [number, number, number],
+		free: boolean
+	): ConnectorEnd | null {
+		const design = this.shown.design;
+		if (!connectable(design, this.editorContent, index)) return null;
+		const entry = design.parts.find((p) => p.index === index);
+		const shape = entry && this.defOf(entry.part)?.shape;
+		const raw = siteOfPoint(design, this.lookup, index, { x: hit[0], y: hit[1], z: hit[2] });
+		if (!raw || !surfaceSite(shape, raw.angle)) return null;
+		const half = surfaceHalfHeight(shape);
+		const site = free ? raw : snapRadial(raw, half * 2, 0.2, { angleStep: Math.PI / 12 });
+		return { index, angle: site.angle, y: Math.max(-half, Math.min(half, site.y)) };
+	}
+
+	/** One pick of a connector: the first end, then the second, which makes the connector(s). */
+	private pickConnectorEnd(end: ConnectorEnd): void {
+		const armed = this.armed;
+		if (armed?.kind !== 'connect') return;
+		if (!armed.from) {
+			this.armed = { ...armed, from: end };
+			this.say(`Hangs on ${this.titleOfPart(end.index)}. Now click the part it ends on.`);
+			return;
+		}
+		const from = armed.from;
+		const title = this.defOf(armed.part)?.title;
+		this.attempt(() => {
+			const before = this.editor.design.parts.length;
+			this.editor = attachConnector(this.editor, this.editorContent, armed.part, from, end);
+			const n = this.editor.design.parts.length - before;
+			this.say(
+				`Added ${n > 1 ? `${n} ` : 'a '}${title}${n > 1 ? 's' : ''} from ${this.titleOfPart(from.index)} to ${this.titleOfPart(end.index)}.`
+			);
+		});
+		// Ready for the next one; a failed pick keeps the first end so the player can pick another.
+		if (!this.notice) this.armed = { ...armed, from: null };
+		this.connectPointer = null;
+	}
+
+	/** Keyboard: the selected part is the next end of the connector, at the marked angle and the middle. */
+	private pickConnectorSelected(): void {
+		const sel = this.selected;
+		if (sel === null || this.armed?.kind !== 'connect') return;
+		const shape = this.defOf(this.partIdOf(sel) ?? '')?.shape;
+		const end = shape ? this.endAt(sel, this.pointOnSide(sel, this.radialAngle), false) : null;
+		if (end) this.pickConnectorEnd(end);
+		else this.notice = 'Pick a part of the vessel, not a loose one or another connector.';
+	}
+
+	/** A point on the side of part `index` at `angle`, middle height, in the main group's frame (for keyboard picks). */
+	private pointOnSide(index: number, angle: number): [number, number, number] {
+		const layout = layoutOf(this.shown.design, this.lookup)?.get(index);
+		const entry = this.shown.design.parts.find((p) => p.index === index);
+		const point =
+			layout &&
+			surfacePoint(placementOf(layout), this.defOf(entry?.part ?? '')?.shape, { angle, y: 0 });
+		return point ? [point.x, point.y, point.z] : [0, 0, 0];
 	}
 
 	place(i: number): void {
@@ -690,7 +817,7 @@ export class VabController {
 				this.editor = attachAssembly(this.editor, this.editorContent, d, target, this.symmetry);
 				this.lastPlaced = index;
 				this.say(`Attached ${d.name}: ${this.editor.design.parts.length - before} parts.`);
-			} else {
+			} else if (armed.kind === 'carry') {
 				const before = groupOf(this.editor.design, armed.index).length;
 				this.editor = moveGroup(this.editor, this.editorContent, armed.index, target, {
 					single: armed.single
@@ -713,7 +840,7 @@ export class VabController {
 		const parentIndex = Number(hit.key);
 		const entry = this.shown.design.parts.find((p) => p.index === parentIndex);
 		const shape = entry && this.defOf(entry.part)?.shape;
-		if (shape?.kind !== 'cylinder') return null;
+		if (!shape || this.defOf(entry.part)?.connector) return null;
 		const raw = siteOfPoint(this.shown.design, this.lookup, parentIndex, {
 			x: hit.point[0],
 			y: hit.point[1],
@@ -725,7 +852,9 @@ export class VabController {
 			def?.shape?.kind === 'cylinder' ? def.shape.height : (def?.shape?.size[1] ?? 1);
 		const n = this.copies;
 		const step = n > 1 ? (2 * Math.PI) / (n * Math.max(1, Math.round(24 / n))) : Math.PI / 12;
-		const site = free ? raw : snapRadial(raw, shape.height, childHeight, { angleStep: step });
+		const site = free
+			? raw
+			: snapRadial(raw, surfaceHalfHeight(shape) * 2, childHeight, { angleStep: step });
 		return radialTarget(this.shown.design, held, this.lookup, parentIndex, site.angle, site.y);
 	}
 
@@ -815,6 +944,29 @@ export class VabController {
 		this.say(`Turned ${this.titleOfPart(r.index)}.`);
 	}
 
+	/** Live tilt change from a slider about the parent's axes (ADR 0071); one undo step when `commit` is true. */
+	tiltSelected(change: Partial<DesignTilt>, options: { single?: boolean; commit: boolean }): void {
+		const sel = this.selected;
+		const now = this.selectedTilt;
+		if (sel === null || !now) return;
+		this.attempt(() => {
+			const next = setTilt(
+				this.editor,
+				this.editorContent,
+				sel,
+				{ ...now, ...change },
+				{ single: options.single }
+			);
+			if (options.commit) {
+				this.editor = next;
+				this.preview = null;
+			} else {
+				this.preview = next;
+			}
+		});
+		if (this.notice) this.preview = null;
+	}
+
 	moveStage(index: number, to: number | null): void {
 		this.attempt(() => {
 			this.editor = moveToStage(this.editor, this.editorContent, index, to);
@@ -855,6 +1007,28 @@ export class VabController {
 		this.editor = replaceDesign(this.editor, this.editorContent, boosterRocket(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the booster rocket: 23 parts with four boosters and four fins.');
+	}
+	loadAsparagusExample(): void {
+		this.disarm();
+		this.selected = null;
+		this.libraryId = null;
+		saveLibraryId(null);
+		this.editor = replaceDesign(
+			this.editor,
+			this.editorContent,
+			asparagusRocket(this.editorContent)
+		);
+		this.view?.frame();
+		this.say('Loaded the asparagus rocket: four boosters with fuel lines and struts.');
+	}
+	loadGliderExample(): void {
+		this.disarm();
+		this.selected = null;
+		this.libraryId = null;
+		saveLibraryId(null);
+		this.editor = replaceDesign(this.editor, this.editorContent, glider(this.editorContent));
+		this.view?.frame();
+		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
 	}
 	toggleContrast(): void {
 		this.highContrast = !this.highContrast;
@@ -928,7 +1102,19 @@ export class VabController {
 			return;
 		}
 		const hit = this.pick(e);
-		if (this.armed) {
+		if (this.armed?.kind === 'connect') {
+			// A connector follows the pointer over any ordinary part: its end is the snapped spot under it.
+			this.hoverNode = null;
+			this.pointerTarget = null;
+			this.connectPointer =
+				hit?.kind === 'part'
+					? {
+							point: [hit.point[0], hit.point[1], hit.point[2]],
+							end: this.endAt(Number(hit.key), hit.point, e.altKey)
+						}
+					: null;
+			this.view?.setHover(null);
+		} else if (this.armed) {
 			// Over the ghost itself the current target stays; elsewhere only a ring selects one.
 			this.hoverNode =
 				hit?.kind === 'node'
@@ -955,7 +1141,11 @@ export class VabController {
 		if (wasPinch) return;
 		if (!d || d.moved || d.button !== 0) return;
 		const hit = this.pick(e);
-		if (this.armed) {
+		if (this.armed?.kind === 'connect') {
+			const end = hit?.kind === 'part' ? this.endAt(Number(hit.key), hit.point, e.altKey) : null;
+			if (end) this.pickConnectorEnd(end);
+			else if (hit?.kind === 'part') this.notice = 'A strut or fuel line joins two ordinary parts.';
+		} else if (this.armed) {
 			const site = this.radialFromHit(hit, e.altKey);
 			if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
 			else if (site) this.placeAt(site);
@@ -1064,7 +1254,10 @@ export class VabController {
 			case 'turnPlus':
 			case 'turnMinus': {
 				const dir = action === 'turnMinus' ? -1 : 1;
-				if (this.armed && this.radialCapable) {
+				if (this.armed?.kind === 'connect') {
+					this.radialAngle += (dir * 2 * Math.PI) / 24;
+					this.say('Turned the pick point.');
+				} else if (this.armed && this.radialCapable) {
 					this.keyboardRadial = true;
 					this.radialAngle += (dir * 2 * Math.PI) / (this.copies > 1 ? this.copies * 2 : 24);
 					this.say('Turned the radial sites.');
@@ -1091,7 +1284,10 @@ export class VabController {
 				this.cycle(-1);
 				return;
 			case 'place':
-				if (onCanvas && this.armed && this.active !== null) {
+				if (onCanvas && this.armed?.kind === 'connect') {
+					e.preventDefault();
+					this.pickConnectorSelected();
+				} else if (onCanvas && this.armed && this.active !== null) {
 					e.preventDefault();
 					this.place(this.active);
 				}
