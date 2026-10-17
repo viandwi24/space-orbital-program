@@ -10,8 +10,10 @@ export interface Viewport {
 	height: number;
 }
 
-/** Margin between the screen edge and a panel (`--s-3`). */
-export const EDGE = 12;
+/** Margin between the screen edge and a panel: the refs HUD margin (`--margin-hud`, 24 px; plan 088). */
+export const EDGE = 24;
+/** Gap between a column and the deck under it (`--panel-gap`). */
+export const GAP = 12;
 
 /** The deck's height before it is measured (the compact deck with a target line, plan 035). */
 export const DECK_FALLBACK = 262;
@@ -27,7 +29,7 @@ export function scriptPanelWidth(viewportWidth: number): number {
  */
 export function aboveDeckHeight(viewportHeight: number, deckHeight: number): number {
 	if (!Number.isFinite(viewportHeight) || !Number.isFinite(deckHeight)) return 0;
-	return Math.max(0, viewportHeight - Math.max(0, deckHeight) - 2 * EDGE);
+	return Math.max(0, viewportHeight - Math.max(0, deckHeight) - 2 * EDGE - GAP);
 }
 
 /**
