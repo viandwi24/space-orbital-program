@@ -54,7 +54,7 @@ Every effect has a visible cause in the crew card.
 - [x] Same file: with life support `off` nothing is consumed; with `full`, too few scrubbers give a `co2` shortage.
 - [x] Same file: a save taken mid-shortage resumes with the same `since`, and the member is lost at `since + grace`.
 - [x] Same file: morale and fatigue follow the stated closed forms; a hard burn above the tolerance gives `crew:g-loc`.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
