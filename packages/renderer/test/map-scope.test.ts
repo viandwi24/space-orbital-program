@@ -26,7 +26,7 @@ const config = {
 };
 const vessel = (id: number, x: number): VesselSnapshot => ({
 	id: id as EntityId,
-	mode: 'orbit',
+	mode: 'on-rails',
 	soi: HOME,
 	position: { x, y: 0, z: 0 },
 	velocity: { x: 0, y: 0, z: 2_300 },
