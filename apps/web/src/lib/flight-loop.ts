@@ -9,8 +9,10 @@ import {
 	type EntityId,
 	type SasMode,
 	type Snapshot,
-	type VesselDesign
+	type VesselDesign,
+	type WorldInfo
 } from '@orbital/core';
+import { calendarOf, type CommandResult } from '@orbital/core';
 import {
 	QualityGovernor,
 	createRenderer,
@@ -51,6 +53,7 @@ import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
 import { WARP_STEPS } from './warp';
+import { catchUpCommand, catchUpOffer, type CatchUp } from './worlds/world-model';
 import { setGlassFallback } from './ui/root-theme';
 import {
 	createHudController,
@@ -93,6 +96,8 @@ export interface FlightOptions {
 	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload'): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
+	/** A new flight in a world without saves (plan 087): its info; ignored when resuming. */
+	world?: WorldInfo;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 	/** Progress of the renderer's background shader compile (plan 038, ADR 0074), until it is done. */
@@ -122,6 +127,10 @@ export interface Flight {
 	readonly maneuver: ManeuverController | null;
 	/** Time warp to the burn of the earliest maneuver node. */
 	warpToNode(): void;
+	/** Whether the world is behind the real date `nowMs` (plan 087, ADR 0143): offer, unavailable or none. */
+	catchUp(nowMs: number): CatchUp;
+	/** Accept the catch-up: `warp-to` the real date; resolves with the sim's answer (null when nothing to do). */
+	acceptCatchUp(nowMs: number): Promise<CommandResult | null>;
 	/** Remove the earliest maneuver node. */
 	removeNode(): void;
 	toggleMap(): void;
@@ -151,7 +160,9 @@ export interface Flight {
 
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
-	const client: SimClient = startSimWorker(options.resume ? { resume: options.resume.sim } : {});
+	const client: SimClient = startSimWorker(
+		options.resume ? { resume: options.resume.sim } : options.world ? { world: options.world } : {}
+	);
 	let renderer: Renderer | null = null;
 	let governor: QualityGovernor | null = null;
 	let autoQuality = loadAutoQuality();
@@ -897,6 +908,26 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		warpToNode() {
 			maneuverCtl?.warpToNode();
+		},
+		catchUp(nowMs) {
+			if (!catalog || !snap) return { kind: 'none' };
+			const vessels = snap.vessels.map((v) => ({ name: v.name ?? `vessel ${v.id}`, mode: v.mode }));
+			return catchUpOffer(
+				catalog.epoch ?? { day: 0, fraction: 0 },
+				calendarOf(catalog.bodies),
+				{ t: snap.t, vessels },
+				nowMs
+			);
+		},
+		async acceptCatchUp(nowMs) {
+			const offer = this.catchUp(nowMs);
+			if (offer.kind !== 'offer') return null;
+			const result = await client.dispatch(catchUpCommand(offer));
+			if (result.ok) {
+				hud.warp = 1_000_000;
+				publish();
+			}
+			return result;
 		},
 		removeNode() {
 			const first = snap?.vessels.find((v) => Number(v.id) === vessel)?.nodes?.[0];

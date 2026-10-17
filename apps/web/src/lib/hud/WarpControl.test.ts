@@ -75,4 +75,42 @@ describe('time control date', () => {
 		expect(warp(text, 90)).toContain(text);
 		expect(warp('', 0)).not.toContain('hud-date');
 	});
+
+	it('offers "Catch up to now" when behind the real date, and says why when it cannot', () => {
+		const props = {
+			warp: 1,
+			usable: true,
+			met: 0,
+			date: '',
+			onslower: () => {},
+			onfaster: () => {}
+		};
+		const offer = render(WarpControl, {
+			props: {
+				...props,
+				catchUp: {
+					kind: 'offer',
+					time: 3_456_000,
+					behindSeconds: 3_456_000,
+					date: '2026-10-17 12:00:00.000 UTC'
+				}
+			}
+		}).body;
+		expect(offer).toMatch(/<button[^>]*data-testid="catch-up"[^>]*>Catch up to now<\/button>/);
+		expect(offer).not.toMatch(/data-testid="catch-up"[^>]*disabled/);
+		expect(offer).toContain('40 days behind the real date');
+		const flying = render(WarpControl, {
+			props: {
+				...props,
+				catchUp: {
+					kind: 'unavailable',
+					behindSeconds: 3_456_000,
+					reason: '"Lander" is in flight; time warp needs every vessel on rails.'
+				}
+			}
+		}).body;
+		expect(flying).toMatch(/data-testid="catch-up"[^>]*disabled/);
+		expect(flying).toContain('Catch up is unavailable: "Lander" is in flight');
+		expect(render(WarpControl, { props }).body).not.toContain('catch-up');
+	});
 });

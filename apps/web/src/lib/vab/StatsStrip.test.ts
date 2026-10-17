@@ -115,7 +115,9 @@ describe('StatsStrip cost (plan 095)', () => {
 		const base = registries.parts.get('stock.tank-small')!;
 		const parts = {
 			get: (id: string) =>
-				id === 'acme.tank' ? { ...base, id: 'acme.tank', cost: undefined } : registries.parts.get(id)
+				id === 'acme.tank'
+					? { ...base, id: 'acme.tank', cost: undefined }
+					: registries.parts.get(id)
 		};
 		const modded = {
 			...design,

@@ -3,7 +3,7 @@
  * flight page. The pages give it a way to collect a `SaveRequest` (flight only) and to start a
  * load (navigate to `/flight?load=<id>` or restart the sim Worker); everything else is here.
  */
-import { SaveError } from '@orbital/core';
+import { SaveError, type WorldInfo } from '@orbital/core';
 import { compareMods, type GameSave, type ModReport } from './game-save';
 import { browserWorldsEnv, createWorlds, type Worlds } from '../worlds/worlds';
 import { openSaveStore, requestSavePersistence } from './open-store';
@@ -191,6 +191,12 @@ export class SaveController {
 			return;
 		}
 		await this.load(quick);
+	}
+
+	/** The info a new flight in `worldId` starts with (plan 087): the record's, or none for the Legacy world. */
+	async worldStartInfo(worldId: string): Promise<WorldInfo | undefined> {
+		await this.open();
+		return this.worlds?.startInfo(worldId);
 	}
 
 	/** Read and validate one save for the page to resume (throws `SaveError`). */

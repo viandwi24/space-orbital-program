@@ -25,7 +25,9 @@ export async function prepareModelProviders(
 		});
 		await provider.preload([...assets.keys()]);
 		for (const [part, reason] of provider.failures) {
-			log(`Mod model for "${part}" could not be loaded (${reason}); the part is drawn with its fallback look.`);
+			log(
+				`Mod model for "${part}" could not be loaded (${reason}); the part is drawn with its fallback look.`
+			);
 		}
 		providers = [provider];
 	} catch (e) {
