@@ -2,7 +2,7 @@
 id: 084
 title: "Sites in the world: a terrain seed per world and a list of flat zones"
 status: in-progress
-owner: "Agent 2"
+owner: "Agent 1 (measure)"
 depends: [077]
 phase: 4
 created: 2026-10-17
@@ -73,3 +73,6 @@ Keep the Legacy path bit-identical: same noise salts, same zone; a regression te
   - Renderer parity (`e2e/terrain-parity.e2e.ts`, dev build on port 5211, Chromium/SwiftShader): mid patch mean 0.130 m and worst 1.304 m for Legacy, 0.132 and 1.304 m with a second zone (same 1 000 texels); fine patch 0 (inside the pad's zone); the second zone flat on the GPU (0 m over 10 texels, 45.7 m of relief there before). SwiftShader's worst is above the M5's 0.806 m of journal 031 for both terrains alike; Agent 1 may rerun the test on the M5.
   - `bun test ./packages`, `./mods`, `./examples` — 1312, 84, 7 pass, 0 fail (1319, 85, 7 after rebasing onto the 083 merge); `bunx vitest run` (apps/web) — 889 passed, 2 failed in `sim-host-script-worker.test.ts` (as on `origin/main` on this M2); `bun run typecheck` — 0 errors (after a branded-id fix in the sim test); build ok; `bun run docs:check` — OK; smoke Chromium — 6 passed (3.6 m).
   - `API_VERSION` 0.1.33 (095, 081 and 083 took 0.1.30 to 0.1.32).
+- 2026-10-17 — Merge by Agent 1 (M5): rebased on `main` @ c385dcb (clean). `bun run test` 1411 pass, 0 fail · web vitest 101 files, 891 passed · typecheck exit 0 · build exit 0 · docs:check OK · Chromium smoke 6 passed (2.6m). Terrain parity on the M5 (dev build served on 5202, `E2E_DEV_HOOKS=1`): 1 passed (1.3m), the same numbers as the M2 (Legacy mid mean 0.1300 m, two zones 0.1324 m, worst 1.304 m both, second zone 0 m on the GPU).
+- 2026-10-17 — Frame budget (checklist step 6, renderer changed), `debug.benchmark(120)` minimum of 5, production-like dev builds of `main` (base) and this branch (after), pad, 500 × 900 at DPR 2, governor off, second page load: **`medium` 7.21 → 7.34 ms** (+0.13 ms, both runs with the pane visible). **`high`: after 14.92 ms with the pane visible; the base `high` runs were taken with the pane hidden (13.03 / 15.53 ms, discarded by the journal 039 rule)**. Merged to unblock 090, 068 and 092; owner `Agent 1 (measure)` until the `high` pair is retaken with the window in view.
+
