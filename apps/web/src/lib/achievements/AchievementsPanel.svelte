@@ -82,6 +82,9 @@
 	.achievements {
 		display: grid;
 		gap: var(--s-3);
+		margin-top: var(--s-6);
+		padding-top: var(--s-4);
+		border-top: 1px solid var(--line);
 	}
 	header {
 		display: flex;
