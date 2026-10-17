@@ -62,7 +62,12 @@ import {
 } from './parts/types.ts';
 import { OrbitLine, VesselMarker } from './map.ts';
 import { MoonPass } from './moon.ts';
-import { SHADOW_STEPS, terrainSunVisibility } from './terrain-shadow.ts';
+import {
+	HILLS_SHADOW_MARCH,
+	SHADOW_MARCH,
+	SHADOW_STEPS,
+	terrainSunVisibility
+} from './terrain-shadow.ts';
 import { DEFAULT_ORIGIN_THRESHOLD, ZERO, toRenderSpace, updateOrigin } from './origin.ts';
 import { PRESETS, detailOf, type GraphicsPreset } from './presets.ts';
 import { projectWorldPoint, type ScreenPoint } from './project.ts';
@@ -294,26 +299,22 @@ export class SceneModel {
 						seed: hillsSeedOf(b, config.terrain?.seed ?? LEGACY_TERRAIN_SEED, false),
 						zones: []
 					};
-				const moon = new MoonPass(
-					b.id,
-					b.radius,
-					{
-						...(b.terrain.kind === 'hills'
-							? { kind: 'hills' as const, terrain: hillsTerrain() }
-							: { seed: b.terrain.seed ?? 0 }),
-						// its own air (ADR 0121 point 2)
-						...(b.atmosphere
-							? {
-									atmosphere: atmosphereFor(
-										b.radius,
-										b.atmosphere.height,
-										b.atmosphere.scaleHeight,
-										b.atmosphere.surfacePressure
-									)
-								}
-							: {})
-					}
-				);
+				const moon = new MoonPass(b.id, b.radius, {
+					...(b.terrain.kind === 'hills'
+						? { kind: 'hills' as const, terrain: hillsTerrain() }
+						: { seed: b.terrain.seed ?? 0 }),
+					// its own air (ADR 0121 point 2)
+					...(b.atmosphere
+						? {
+								atmosphere: atmosphereFor(
+									b.radius,
+									b.atmosphere.height,
+									b.atmosphere.scaleHeight,
+									b.atmosphere.surfacePressure
+								)
+							}
+						: {})
+				});
 				moon.setShadowSteps(SHADOW_STEPS[config.preset ?? 'high']);
 				holder.add(moon.root);
 				this.moons.set(b.id, moon);
@@ -963,8 +964,8 @@ export class SceneModel {
 	 * near the ground (the march is for the ground's shadows); recomputed when the vessel or the sun moved.
 	 */
 	private vesselTerrainLight(moon: MoonPass, rot: Quat, position: Vec3, sun: Vec3): number {
-		// the march is the craters' (a hills body draws no terrain shadows, ADR 0090)
-		if (moon.kind !== 'craters') return 1;
+		// the march of the body's kind: the craters' or the hills' (plan 071, ADR 0121 point 4)
+		const march = moon.kind === 'hills' ? HILLS_SHADOW_MARCH : SHADOW_MARCH;
 		const p = rotateInverse(rot, position);
 		const r = Math.hypot(p.x, p.y, p.z);
 		const prev = this.vesselLight;
@@ -989,7 +990,8 @@ export class SceneModel {
 						radius: moon.radius,
 						direction: n,
 						height: Math.max(height, ground + 0.5),
-						sun
+						sun,
+						march
 					})
 				);
 			}

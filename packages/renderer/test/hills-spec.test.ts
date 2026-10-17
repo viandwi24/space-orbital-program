@@ -97,3 +97,47 @@ describe('the terrain spec of a later hills body (plan 071)', () => {
 		}
 	});
 });
+
+describe('terrain shadows on a hills body (plan 071, ADR 0121 point 4)', () => {
+	test("the hills march frees a higher sun and clears more relief than the craters'", async () => {
+		const { HILLS_SHADOW_MARCH, SHADOW_MARCH, shadowRayLength, terrainSunVisibility } =
+			await import('../src/terrain-shadow.ts');
+		expect(HILLS_SHADOW_MARCH.freeSine).toBeGreaterThan(Math.SQRT1_2);
+		expect(shadowRayLength(0.3, HILLS_SHADOW_MARCH)).toBeGreaterThan(
+			shadowRayLength(0.3, SHADOW_MARCH)
+		);
+		// a ridge 200 m high from 300 to 600 m east of the point hides a sun 20 degrees up in the east
+		const R = 420_000;
+		const wall = (d: Vec3) =>
+			d.x > 0 &&
+			Math.abs(d.z) < 0.01 &&
+			d.y > 0 &&
+			Math.atan2(d.y, d.x) < Math.PI / 2 - 300 / R &&
+			Math.atan2(d.y, d.x) > Math.PI / 2 - 600 / R
+				? 200
+				: 0;
+		const n = { x: 0, y: 1, z: 0 };
+		const e = 20 * (Math.PI / 180);
+		const sun = { x: Math.cos(e), y: Math.sin(e), z: 0 };
+		expect(
+			terrainSunVisibility({
+				groundAt: wall,
+				radius: R,
+				direction: n,
+				height: 0,
+				sun,
+				march: HILLS_SHADOW_MARCH
+			})
+		).toBeLessThan(0.1);
+		expect(
+			terrainSunVisibility({
+				groundAt: () => 0,
+				radius: R,
+				direction: n,
+				height: 0,
+				sun,
+				march: HILLS_SHADOW_MARCH
+			})
+		).toBe(1);
+	});
+});

@@ -13,12 +13,41 @@ import type { AtmosphereUniforms } from './planet.ts';
 /** View samples of the march: fewer than the planet pass's, a later body is seen smaller. */
 export const MOON_AIR_SAMPLES = 6;
 
+/** The camera and the sun, body-fixed, for every ground fragment of the moon pass (the air and the sea read them). */
+export const moonViewCommon = /* glsl */ `
+uniform vec3 uCamBody;
+uniform vec3 uAirSun;
+`;
+
+/**
+ * The sea of a hills body (ADR 0121 point 3): Fresnel reflection of the sky and the sun's glint on
+ * the water the colour chunk found (\`hillsWater\`), with small waves on the patches in patch-local
+ * metres (float32 stays exact). Body-fixed vectors throughout.
+ */
+export const moonSeaFragmentCommon = /* glsl */ `
+uniform float uSeaTime;
+vec3 seaNormal(vec3 n, vec2 metres, vec3 e, vec3 f) {
+	vec2 g = vec2(0.0);
+	g += 0.045 * vec2(0.031, 0.017) * cos(dot(metres, vec2(0.031, 0.017)) * 6.2832 + uSeaTime * 1.3);
+	g += 0.035 * vec2(-0.023, 0.041) * cos(dot(metres, vec2(-0.023, 0.041)) * 6.2832 + uSeaTime * 1.7);
+	g += 0.02 * vec2(0.091, -0.067) * cos(dot(metres, vec2(0.091, -0.067)) * 6.2832 + uSeaTime * 2.9);
+	return normalize(n - 6.2832 * (g.x * e + g.y * f));
+}
+vec3 moonSea(vec3 colour, vec3 p, vec3 n, float water, vec3 sky, vec3 sun) {
+	if (water <= 0.0) return colour;
+	vec3 v = normalize(uCamBody - p);
+	float nv = max(dot(n, v), 0.0);
+	float fres = 0.02 + 0.98 * pow(1.0 - nv, 5.0);
+	vec3 r = reflect(-uAirSun, n);
+	float glint = pow(max(dot(r, v), 0.0), 700.0) * step(0.0, dot(n, uAirSun));
+	return colour + water * (fres * sky * 0.35 + glint * sun * 3.0);
+}
+`;
+
 /** For the moon pass's Lambert fragment: the march, the camera, and `moonAir(colour, position)`. */
 export const moonAirFragmentCommon = /* glsl */ `
 #define VIEW_SAMPLES ${MOON_AIR_SAMPLES}
 ${atmosphereGLSL}
-uniform vec3 uCamBody;
-uniform vec3 uAirSun;
 vec3 moonAir(vec3 colour, vec3 p) {
 	vec3 ro = uCamBody;
 	vec3 seg = p - ro;

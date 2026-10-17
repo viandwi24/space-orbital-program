@@ -252,12 +252,12 @@ describe('the cube map follows the camera (ADR 0090)', () => {
 		pass.dispose();
 	});
 
-	test('on a hills body the stones, the terrain shadows and the vessel terrain light are off', () => {
+	test('on a hills body the stones are off; the terrain shadows are on with the hills march (plan 071)', () => {
 		const pass = new MoonPass('h2', R_AIRLESS, { kind: 'hills' });
 		pass.setDetail(true, true);
 		const globe = pass.root.children[0] as Mesh;
 		expect((globe.userData.uniforms as Record<string, { value: unknown }>).uShadowOn!.value).toBe(
-			0
+			1
 		);
 		// the stone meshes stay hidden whatever the camera does
 		pass.update({ x: R_AIRLESS + 30, y: 0, z: 0 });
