@@ -1,6 +1,13 @@
 /** Science core (plan 103, ADR 0178): the value curve, credit by transmission and recovery, states. */
 import { describe, expect, test } from 'bun:test';
-import { legacyWorldInfo, type EntityId, type Plugin, type WorldInfo } from '@orbital/core';
+import {
+	legacyWorldInfo,
+	regionAt,
+	terrainSeedOf,
+	type EntityId,
+	type Plugin,
+	type WorldInfo
+} from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { defineExperiment, defineModule, definePlugin, z } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
@@ -26,6 +33,26 @@ const fixture: Plugin = definePlugin({
 				transmitFactor: 1
 			})
 		);
+		ctx.experiments.register(
+			defineExperiment({
+				id: 'fix.anywhere',
+				label: 'Anywhere',
+				kind: 'data',
+				situations: [
+					'stock.landed',
+					'stock.splashed',
+					'stock.flying-low',
+					'stock.flying-high',
+					'stock.space-low',
+					'stock.space-high'
+				],
+				baseValue: 10,
+				repeatFactor: 0.5,
+				duration: 0,
+				bits: 8,
+				transmitFactor: 1
+			})
+		);
 		const shape = { kind: 'cylinder' as const, radius: 0.625, height: 0.2 };
 		const attach = {
 			top: {
@@ -37,6 +64,14 @@ const fixture: Plugin = definePlugin({
 				dir: [0, -1, 0] as [number, number, number]
 			}
 		};
+		ctx.parts.register({
+			id: 'fix.anywhere',
+			title: 'Anywhere',
+			mass: 10,
+			shape,
+			attach,
+			modules: [['stock.experiment', { experiment: 'fix.anywhere' }]]
+		});
 		ctx.parts.register({
 			id: 'fix.capped',
 			title: 'Capped',
@@ -149,7 +184,7 @@ describe('the value curve (ADR 0178 point 4)', () => {
 		const thermo = partOf(sim, id, 'stock.thermometer');
 		expect(vessel(sim, id).science!.situation).toBe('stock.landed');
 		for (let n = 0; n < 3; n++) runFor(sim, id, thermo);
-		const subject = 'stock.temperature@stock.home:stock.landed:global';
+		const subject = 'stock.temperature@stock.home:stock.landed:grass';
 		expect(items(sim, id).map((i) => i.value)).toEqual([8, 4, 2]);
 		expect(items(sim, id).every((i) => i.subject === subject)).toBe(true);
 		expect(sim.snapshot().science).toEqual([
@@ -168,6 +203,66 @@ describe('the value curve (ADR 0178 point 4)', () => {
 		const s = sim.snapshot().science!.find((x) => x.id.startsWith('fix.capped@'))!;
 		expect(s.produced).toBe(12);
 		expect(s.produced).toBeLessThanOrEqual(s.cap);
+		sim.dispose();
+	});
+});
+
+describe('regions (plan 104, ADR 0180 point 3)', () => {
+	test('the same experiment landed in two regions gives two subjects', async () => {
+		const sim = await make();
+		const home = sim.registries.bodies.get('stock.home')!;
+		// a dry spot in another biome than the site's grass, far from it
+		let spot: { latitude: number; longitude: number; region: string } | undefined;
+		for (let k = 0; k < 400 && !spot; k++) {
+			const latitude = -0.6 + (k % 20) * 0.06;
+			const longitude = 0.8 + Math.floor(k / 20) * 0.11;
+			const d = {
+				x: Math.cos(latitude) * Math.cos(longitude),
+				y: Math.sin(latitude),
+				z: -Math.cos(latitude) * Math.sin(longitude)
+			};
+			const region = regionAt(home, d, { seed: terrainSeedOf(world()) });
+			if (region === 'forest' || region === 'desert') spot = { latitude, longitude, region };
+		}
+		expect(spot).toBeDefined();
+		const a = landed(sim, ['stock.command-pod', 'fix.anywhere']);
+		const b = load(sim, ['stock.command-pod', 'fix.anywhere'], {
+			kind: 'surface',
+			latitude: spot!.latitude,
+			longitude: spot!.longitude
+		});
+		for (let i = 0; i < 300; i++) sim.step(0.02);
+		expect(vessel(sim, a).science!.region).toBe('grass');
+		expect(vessel(sim, b).science).toMatchObject({
+			situation: 'stock.landed',
+			region: spot!.region
+		});
+		runFor(sim, a, partOf(sim, a, 'fix.anywhere'));
+		runFor(sim, b, partOf(sim, b, 'fix.anywhere'));
+		const subjects = sim.snapshot().science!.map((x) => x.id);
+		expect(subjects).toEqual([
+			'fix.anywhere@stock.home:stock.landed:grass',
+			`fix.anywhere@stock.home:stock.landed:${spot!.region}`
+		]);
+		// a desert result is worth 1.5 times: its cap is too
+		const capOf = (id: string) => sim.snapshot().science!.find((x) => x.id === id)!.cap;
+		if (spot!.region === 'desert') expect(capOf(subjects[1]!)).toBe(45);
+		expect(capOf(subjects[0]!)).toBe(30);
+		sim.dispose();
+	});
+
+	test('a space-high result is global', async () => {
+		const sim = await make();
+		const id = load(sim, ['stock.command-pod', 'fix.anywhere'], {
+			kind: 'state',
+			...orbitState(sim, 400_000)
+		});
+		sim.step(0.02);
+		expect(vessel(sim, id).science!.situation).toBe('stock.space-high');
+		runFor(sim, id, partOf(sim, id, 'fix.anywhere'));
+		expect(sim.snapshot().science!.map((x) => x.id)).toEqual([
+			'fix.anywhere@stock.home:stock.space-high:global'
+		]);
 		sim.dispose();
 	});
 });

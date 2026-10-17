@@ -68,6 +68,13 @@ describe('stock boots through the loader', () => {
 			'stock.space-low',
 			'stock.splashed'
 		]);
+		expect(ids('dossier-entry')).toEqual([
+			'stock.atmosphere-profile',
+			'stock.gravity',
+			'stock.regions-found',
+			'stock.resource-hints',
+			'stock.surface'
+		]);
 		expect(ids('experiment')).toEqual([
 			'stock.atmosphere-sample',
 			'stock.pressure',
