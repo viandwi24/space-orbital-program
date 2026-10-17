@@ -19,10 +19,10 @@ import {
 	type Vec3
 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
-import type { BodyRuntime } from './bodies.ts';
+import { rotationAt, spinAt, type BodyRuntime } from './bodies.ts';
 import { GROUND_FRICTION, STONE_MAX, STONE_REFRESH, STONE_WINDOW } from './constants.ts';
 import type { SimCore } from './core.ts';
-import { qAboutY, qRotate } from './math.ts';
+import { qRotate } from './math.ts';
 import { toBodyFixed } from './terrain.ts';
 
 /** The stone body of one vessel. */
@@ -113,9 +113,9 @@ export function placeStones(
 	planet: BodyRuntime,
 	field: StoneField
 ): void {
-	const turn = qAboutY(planet.omega * core.t);
+	const turn = rotationAt(planet, core.t);
 	const surface = qRotate(turn, field.anchorPoint);
-	const omega = { x: 0, y: planet.omega, z: 0 };
+	const omega = spinAt(planet, core.t);
 	const position = sub(surface, frame.origin);
 	frame.backend.setTransform(field.handle, { position, rotation: turn });
 	frame.backend.setVelocity(field.handle, {

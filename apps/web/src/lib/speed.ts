@@ -3,7 +3,7 @@
  * (the atmosphere co-rotates), `orbit` the snapshot's inertial velocity. A vessel on surface rails
  * has `v = omega x r` in its snapshot (ADR 0024), so its surface speed is zero.
  */
-import type { BodyDefinition, Vec3 } from '@orbital/core';
+import { bodyAngularVelocity, type BodyDefinition, type Vec3 } from '@orbital/core';
 
 export type SpeedModePreference = 'auto' | 'surface' | 'orbit' | 'target';
 /** `target` is the velocity relative to the target (plan 057, ADR 0084); `auto` never picks it. */
@@ -42,9 +42,13 @@ const cross = (a: Vec3, b: Vec3): Vec3 => ({
 	z: a.x * b.y - a.y * b.x
 });
 
-/** Velocity relative to the ground under `position`: `v - omega x r`, omega about +Y. */
-export function surfaceVelocity(position: Vec3, velocity: Vec3, omega: number): Vec3 {
-	const w = cross({ x: 0, y: omega, z: 0 }, position);
+/** The body's angular velocity vector (inertial, rad/s): its pole times the spin rate (plan 085). */
+export const spinVector = (body: Pick<BodyDefinition, 'rotationPeriod' | 'rotation'>): Vec3 =>
+	bodyAngularVelocity(body, 0);
+
+/** Velocity relative to the ground under `position`: `v - omega x r`; a number spins about +Y. */
+export function surfaceVelocity(position: Vec3, velocity: Vec3, omega: number | Vec3): Vec3 {
+	const w = cross(typeof omega === 'number' ? { x: 0, y: omega, z: 0 } : omega, position);
 	return { x: velocity.x - w.x, y: velocity.y - w.y, z: velocity.z - w.z };
 }
 
@@ -77,7 +81,7 @@ export function speedReadout(input: {
 	position: Vec3;
 	velocity: Vec3;
 	altitude: number;
-	body: Pick<BodyDefinition, 'rotationPeriod' | 'atmosphere'>;
+	body: Pick<BodyDefinition, 'rotationPeriod' | 'rotation' | 'atmosphere'>;
 	preference: SpeedModePreference;
 	previous?: SpeedMode;
 	/**
@@ -107,7 +111,7 @@ export function speedReadout(input: {
 		wanted === 'auto'
 			? autoSpeedMode(altitude, body, input.previous === 'orbit' ? 'orbit' : 'surface')
 			: wanted;
-	const v = mode === 'surface' ? surfaceVelocity(p, velocity, spin(body)) : velocity;
+	const v = mode === 'surface' ? surfaceVelocity(p, velocity, spinVector(body)) : velocity;
 	const r = Math.hypot(p.x, p.y, p.z) || 1;
 	return {
 		mode,

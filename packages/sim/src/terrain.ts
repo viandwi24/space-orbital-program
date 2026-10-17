@@ -6,16 +6,16 @@
  */
 import type { Vec3 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale } from '@orbital/kepler';
-import type { BodyRuntime } from './bodies.ts';
+import { rotationAt, type BodyRuntime } from './bodies.ts';
 import type { SimCore } from './core.ts';
-import { qAboutY, qRotate } from './math.ts';
+import { qConj, qRotate } from './math.ts';
 
 /** Half the baseline of the central difference that gives the slope, m. */
 export const SLOPE_BASELINE = 4;
 
 /** `r` (BCI) turned into the body-fixed frame at the current time. */
 export function toBodyFixed(core: SimCore, body: BodyRuntime, r: Vec3): Vec3 {
-	return qRotate(qAboutY(-body.omega * core.t), r);
+	return qRotate(qConj(rotationAt(body, core.t)), r);
 }
 
 /** Height above the reference sphere, m, of the ground under the BCI position `r`; 0 without terrain. */
@@ -55,7 +55,7 @@ export function groundPlane(core: SimCore, body: BodyRuntime, r: Vec3): GroundPl
 	const up = scale(r, 1 / length(r));
 	const terrain = body.terrain;
 	if (!terrain) return { point: scale(up, radius), normal: up, height: 0 };
-	const spin = qAboutY(-body.omega * core.t);
+	const spin = qConj(rotationAt(body, core.t));
 	const n = qRotate(spin, up);
 	const h = terrain.heightAt(n);
 	// East = +Y x n, north = n x east (body-fixed); at the poles any horizontal pair will do.
@@ -73,7 +73,7 @@ export function groundPlane(core: SimCore, body: BodyRuntime, r: Vec3): GroundPl
 	const tangentEast = add(scale(east, k), scale(n, slopeEast));
 	const tangentNorth = add(scale(north, k), scale(n, slopeNorth));
 	const normalBodyFixed = normalize(cross(tangentEast, tangentNorth));
-	const turn = qAboutY(body.omega * core.t);
+	const turn = rotationAt(body, core.t);
 	return {
 		point: scale(up, radius + h),
 		normal: normalize(qRotate(turn, normalBodyFixed)),

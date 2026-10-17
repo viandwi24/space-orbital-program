@@ -4,6 +4,7 @@
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
 import {
+	bodyPole,
 	calendarOf,
 	formatDate,
 	type Epoch,
@@ -405,7 +406,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 								}
 							: null
 					),
-					heading: attitudeAngles(v.orientation, v.position).heading
+					heading: attitudeAngles(v.orientation, v.position, bodyPole(body)).heading,
+					pole: bodyPole(body)
 				};
 			}
 			let marks: FrameData['map'] = null;
@@ -473,7 +475,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				speedMode: read.mode,
 				speedPreference: preference,
 				vertical: read.vertical,
-				attitude: attitudeAngles(v.orientation, v.position),
+				attitude: attitudeAngles(v.orientation, v.position, bodyPole(body)),
 				orbit: v.orbit ? orbitInfo(v.orbit, bodyMu(body), snap.t, body.radius) : null,
 				stages: cache.model,
 				environment,

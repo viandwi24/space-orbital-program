@@ -14,7 +14,7 @@ import {
 	SURFACE_REST_SPIN,
 	SURFACE_REST_TIME
 } from './constants.ts';
-import { bodyOfVessel } from './bodies.ts';
+import { bodyOfVessel, spinAt } from './bodies.ts';
 import { frameOfVessel, isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { acquireFrame, bodyMotion, enterFlight, leaveFlight, refreshPose } from './frames.ts';
 import { computeRails, isStableOrbit, motionOf, orientationOf, surfaceRails } from './orbit.ts';
@@ -91,7 +91,7 @@ export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 		core,
 		vesselId,
 		frame,
-		surface ? { x: 0, y: bodyOfVessel(core, vessel).omega, z: 0 } : undefined
+		surface ? spinAt(bodyOfVessel(core, vessel), core.t) : undefined
 	);
 	vessel.rest = 0;
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'flight', reason });
@@ -160,7 +160,7 @@ export function ballisticEligible(
 export function trackRest(core: SimCore, frame: FlightFrame, vesselId: EntityId, dt: number): void {
 	const vessel = vesselOf(core, vesselId);
 	const body = frame.bodies.get(vesselId);
-	const omega = { x: 0, y: bodyOfVessel(core, vessel).omega, z: 0 };
+	const omega = spinAt(bodyOfVessel(core, vessel), core.t);
 	const still =
 		body !== undefined &&
 		vessel.landed &&
@@ -204,7 +204,7 @@ export function reapDebris(core: SimCore): void {
 		if (isControlled(core, vessel)) continue;
 		const body = bodyOfVessel(core, vessel);
 		const top = body.def.atmosphere?.height ?? 0;
-		const omega = { x: 0, y: body.omega, z: 0 };
+		const omega = spinAt(body, core.t);
 		if (vessel.mode === 'on-rails') {
 			const motion = motionOf(core, vessel);
 			if (isStableOrbit(body, motion.r, motion.v)) continue;

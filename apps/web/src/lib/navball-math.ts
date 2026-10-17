@@ -43,10 +43,15 @@ export interface Horizon {
 	up: Vec3;
 }
 
-/** Local horizon frame at `position` (BCI). At the poles north falls back to -Z (arbitrary but stable). */
-export function localHorizon(position: Vec3): Horizon {
+/** The body's north pole when it has no tilt: +Y (units-and-frames.md). */
+const PLUS_Y: Vec3 = { x: 0, y: 1, z: 0 };
+
+/**
+ * Local horizon frame at `position` (BCI); north is towards the body's `pole` (inertial, unit;
+ * `bodyPole` of core, plan 085). At the poles north falls back to -Z (arbitrary but stable).
+ */
+export function localHorizon(position: Vec3, pole: Vec3 = PLUS_Y): Horizon {
 	const up = normalize(position);
-	const pole = { x: 0, y: 1, z: 0 };
 	let north = normalize({
 		x: pole.x - dot(pole, up) * up.x,
 		y: pole.y - dot(pole, up) * up.y,
@@ -77,8 +82,8 @@ export function vesselAxes(q: Quat): { nose: Vec3; up: Vec3; right: Vec3 } {
 /** Near-vertical band (rad) where the heading is taken from the vessel's up axis. */
 const VERTICAL_BAND = 0.1 * DEG;
 
-export function attitudeAngles(q: Quat, position: Vec3): Attitude {
-	const h = localHorizon(position);
+export function attitudeAngles(q: Quat, position: Vec3, pole: Vec3 = PLUS_Y): Attitude {
+	const h = localHorizon(position, pole);
 	const { nose, up: bodyUp, right } = vesselAxes(q);
 	const sinPitch = Math.max(-1, Math.min(1, dot(nose, h.up)));
 	const pitch = Math.asin(sinPitch);

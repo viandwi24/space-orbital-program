@@ -5,7 +5,7 @@
  */
 import type { BodyDefinition, Vec3 } from '@orbital/core';
 import { BLACKOUT_BADGE_LEVEL, blackoutLevel } from '@orbital/renderer/reentry';
-import { spin, surfaceVelocity } from './speed';
+import { spinVector, surfaceVelocity } from './speed';
 
 export { BLACKOUT_BADGE_LEVEL };
 
@@ -14,10 +14,10 @@ export function vesselBlackout(
 	position: Vec3,
 	velocity: Vec3,
 	altitude: number,
-	body: Pick<BodyDefinition, 'rotationPeriod' | 'atmosphere'>
+	body: Pick<BodyDefinition, 'rotationPeriod' | 'rotation' | 'atmosphere'>
 ): number {
 	if (!body.atmosphere) return 0;
-	const air = surfaceVelocity(position, velocity, spin(body));
+	const air = surfaceVelocity(position, velocity, spinVector(body));
 	return blackoutLevel(Math.hypot(air.x, air.y, air.z), altitude, body.atmosphere);
 }
 

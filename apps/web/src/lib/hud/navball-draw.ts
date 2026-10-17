@@ -20,6 +20,8 @@ export interface NavballFrame {
 	orientation: Quat;
 	/** Position of the vessel in BCI (defines the local horizon). */
 	position: Vec3;
+	/** The body's north pole (inertial, unit) when it is tilted (plan 085); +Y when absent. */
+	pole?: Vec3;
 	markers: Marker[];
 	/** Nose heading, rad, to place the pitch labels in front of the nose. */
 	heading: number;
@@ -76,7 +78,7 @@ export function drawNavball(
 	const cx = size / 2;
 	const cy = size / 2;
 	const px = (p: BallPoint): [number, number] => [cx + p.x * R, cy - p.y * R];
-	const h = localHorizon(frame.position);
+	const h = localHorizon(frame.position, frame.pole);
 	const q = frame.orientation;
 
 	ctx.clearRect(0, 0, size, size);

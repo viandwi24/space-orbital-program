@@ -6,7 +6,7 @@
  */
 import type { EntityId, Quat, SasMode, Vec3 } from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
-import { bodyOfVessel } from './bodies.ts';
+import { bodyOfVessel, spinAt } from './bodies.ts';
 import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts';
 import { makeContext } from './hooks.ts';
@@ -71,13 +71,15 @@ export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !==
  * vessel's target (plan 035).
  */
 export function targetDirection(
-	omega: number,
+	/** The body's angular velocity (inertial, rad/s), or its rate about +Y (plan 085 kept the number form). */
+	omega: number | Vec3,
 	sas: Pick<SasState, 'mode' | 'reference'>,
 	r: Vec3,
 	v: Vec3,
 	burn?: Vec3
 ): Vec3 | undefined {
-	const surface = sub(v, cross({ x: 0, y: omega, z: 0 }, r));
+	const spin = typeof omega === 'number' ? { x: 0, y: omega, z: 0 } : omega;
+	const surface = sub(v, cross(spin, r));
 	const ref = sas.reference === 'surface' ? surface : v;
 	const along = (d: Vec3, sign: number): Vec3 | undefined =>
 		length(d) < MIN_SPEED ? undefined : scale(normalize(d), sign);
@@ -225,7 +227,7 @@ export function stepSas(
 		} else error = holdError(orientation, sas.hold);
 	} else {
 		const d = targetDirection(
-			bodyOfVessel(core, vessel).omega,
+			spinAt(bodyOfVessel(core, vessel), core.t),
 			sas,
 			vessel.com,
 			vessel.velocity,
@@ -289,7 +291,13 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	if (!isPointing(sas.mode) || vessel.rails === null || vessel.rails.kind === 'surface') return;
 	if (!isControlled(core, vessel)) return;
 	const { r, v } = motionOf(core, vessel);
-	const d = targetDirection(bodyOfVessel(core, vessel).omega, sas, r, v, aimOf(core, vessel));
+	const d = targetDirection(
+		spinAt(bodyOfVessel(core, vessel), core.t),
+		sas,
+		r,
+		v,
+		aimOf(core, vessel)
+	);
 	if (!d) return;
 	const nose = qRotate(vessel.orientation, NOSE);
 	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));

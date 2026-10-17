@@ -17,9 +17,9 @@ import {
 	wrapTwoPi,
 	type OrbitalElements
 } from '@orbital/kepler';
-import { bodyOfVessel, type BodyRuntime } from './bodies.ts';
+import { bodyOfVessel, rotationAt, spinAt, type BodyRuntime } from './bodies.ts';
 import type { SimCore } from './core.ts';
-import { qAboutY, qMul, qNormalize, qRotate } from './math.ts';
+import { qConj, qMul, qNormalize, qRotate } from './math.ts';
 import type { RailsState, VesselState } from './state.ts';
 
 /** Seconds after which a state-vector rails record is advanced (it is exact either way; this keeps dt small). */
@@ -51,7 +51,7 @@ export function surfaceRails(
 	com: Vec3,
 	orientation: Quat
 ): RailsState {
-	const inverse = qAboutY(-body.omega * core.t);
+	const inverse = qConj(rotationAt(body, core.t));
 	return { kind: 'surface', r: qRotate(inverse, com), q: qNormalize(qMul(inverse, orientation)) };
 }
 
@@ -81,8 +81,8 @@ export function rebaseElements(el: OrbitalElements, mu: number, t: number): Orbi
 export function railsMotion(body: BodyRuntime, rails: RailsState, t: number): Motion {
 	if (rails.kind === 'elements') return propagate(rails.elements, body.mu, t);
 	if (rails.kind === 'surface') {
-		const r = qRotate(qAboutY(body.omega * t), rails.r);
-		return { r, v: cross({ x: 0, y: body.omega, z: 0 }, r) };
+		const r = qRotate(rotationAt(body, t), rails.r);
+		return { r, v: cross(spinAt(body, t), r) };
 	}
 	return propagateUniversal(rails.r, rails.v, body.mu, t - rails.t0);
 }
@@ -111,7 +111,7 @@ export function motionOf(core: SimCore, vessel: VesselState): Motion {
 export function orientationOf(core: SimCore, vessel: VesselState): Quat {
 	const rails = vessel.rails;
 	if (rails?.kind !== 'surface') return vessel.orientation;
-	return qMul(qAboutY(bodyOfVessel(core, vessel).omega * core.t), rails.q);
+	return qMul(rotationAt(bodyOfVessel(core, vessel), core.t), rails.q);
 }
 
 /** Periapsis radius of the conic through (r, v), valid for every eccentricity; 0 for radial states. */
