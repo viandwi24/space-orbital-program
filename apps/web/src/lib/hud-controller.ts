@@ -272,7 +272,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		definitionOf: (e) => {
 			const i = entityIndex?.get(e);
 			return design.parts.find((p) => p.index === i)?.part;
-		}
+		},
+		home: bodies.find((b) => b.parent === undefined)?.id ?? ''
 	};
 	const clock = options.now ?? (() => performance.now());
 	const push = (t: Toast | null): void => {

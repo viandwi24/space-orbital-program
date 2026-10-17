@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
+	import { profileStore } from '../../lib/achievements/store';
 	import type { CatchUp } from '../../lib/worlds/world-model';
 	import { GAME_NAME } from '../../lib/public/about';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
@@ -273,6 +274,7 @@
 			...(resume ? { resume } : {}),
 			...(world ? { world } : {}),
 			content,
+			profile: profileStore(),
 			onHud: (h) => (hud = h),
 			onScript: (v) => (script = v),
 			onGraphics: (p) => (graphics = p),
