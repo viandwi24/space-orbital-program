@@ -52,6 +52,15 @@ export interface EventMap {
 	'crew:returned': { member: string };
 	/** A site was founded (plan 092, ADR 0177); its flat zone applies from the next load. */
 	'site:founded': { site: string; body: string; latitude: number; longitude: number };
+	/** Science (plan 103, ADR 0178): a result was made, and science was credited. */
+	'science:result': {
+		vessel: EntityId;
+		part: EntityId;
+		subject: string;
+		value: number;
+		kind: 'data' | 'sample';
+	};
+	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */
 	'data:stored': { vessel: EntityId; part: EntityId; item: string };
 	/** A data item could not be stored and is lost (`reason: 'full'`: no storage had room). */

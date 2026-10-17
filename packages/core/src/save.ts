@@ -11,6 +11,7 @@ import * as z from 'zod';
 import { worldDataSchema, worldInfoSchema } from './schemas.ts';
 import { saveEconomySchema, type SaveEconomy } from './economy.ts';
 import { saveCrewSchema, type SaveCrew } from './crew.ts';
+import { saveScienceSchema, type SaveScience } from './science.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -149,6 +150,8 @@ export interface SimSave {
 	objectives?: SaveObjectives;
 	/** The crew roster (plan 106, ADR 0176 point 1); optional in format 5, absent = nobody hired. */
 	crew?: SaveCrew;
+	/** Science subjects (plan 103, ADR 0178 point 8); optional in format 5, absent = none yet. */
+	science?: SaveScience;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -206,6 +209,7 @@ export const simSaveSchema = z.object({
 	economy: saveEconomySchema.optional(),
 	objectives: saveObjectivesSchema.optional(),
 	crew: saveCrewSchema.optional(),
+	science: saveScienceSchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

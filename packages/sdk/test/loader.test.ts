@@ -247,6 +247,8 @@ describe('registration and report', () => {
 			'data-kind': [],
 			'action-group': [],
 			building: [],
+			situation: [],
+			experiment: [],
 			objective: [],
 			contract: [],
 			mission: [],
