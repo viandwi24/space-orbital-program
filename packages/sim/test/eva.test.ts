@@ -1,6 +1,6 @@
 /** EVA (plan 109, ADR 0120): stepping out, walking, the jetpack, the flag and the sample. */
 import { describe, expect, test } from 'bun:test';
-import type { EntityId, VesselSnapshot } from '@orbital/core';
+import type { CommandResult, EntityId, VesselSnapshot } from '@orbital/core';
 import { JETPACK } from '@orbital/mod-stock';
 import type { Sim } from '../src/index.ts';
 import { vesselMass } from './helpers/measure.ts';
@@ -8,6 +8,11 @@ import { orbitState } from './helpers/measure.ts';
 import { newSim, stack } from './helpers/vessels.ts';
 
 const pod = () => stack('Pod', ['stock.command-pod'], []);
+/** The vessel a command made; throws with its reason when it was refused. */
+const made = (r: CommandResult): EntityId => {
+	if (!r.ok) throw new Error(r.reason);
+	return r.vessel as EntityId;
+};
 const G0 = 9.80665;
 
 async function crewed(placement: unknown) {
@@ -40,7 +45,7 @@ describe('EVA (plan 109)', () => {
 		const before = vesselMass(sim, vessel(sim, ship)!);
 		const out = sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' });
 		expect(out.ok).toBe(true);
-		const suit = out.vessel as EntityId;
+		const suit = made(out);
 		expect(memberVessel(sim)).toBe(suit);
 		expect(vessel(sim, suit)!.crew!.map((c) => c.member)).toEqual(['c1']);
 		expect(vessel(sim, ship)!.crew ?? []).toEqual([]);
@@ -58,7 +63,7 @@ describe('EVA (plan 109)', () => {
 	test('a suit on the moon walks 10 m and stays on the ground', async () => {
 		const { sim, ship } = await crewed(moon);
 		run(sim, 3);
-		const suit = sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' }).vessel as EntityId;
+		const suit = made(sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' }));
 		run(sim, 3);
 		const start = vessel(sim, suit)!.position;
 		expect(sim.dispatch({ type: 'crew-walk', vessel: suit, heading: 0, speed: 1 }).ok).toBe(true);
@@ -94,7 +99,7 @@ describe('EVA (plan 109)', () => {
 		});
 		const out = sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' });
 		expect(out.ok).toBe(true);
-		const suit = out.vessel as EntityId;
+		const suit = made(out);
 		sim.step(0.02);
 		const s0 = vessel(sim, suit)!;
 		const m0 = vesselMass(sim, s0);
@@ -134,7 +139,7 @@ describe('EVA (plan 109)', () => {
 	test('a planted flag is still there after 60 s; a sample from the suit is credited when its vessel is recovered', async () => {
 		const { sim, ship } = await crewed(moon);
 		run(sim, 3);
-		const suit = sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' }).vessel as EntityId;
+		const suit = made(sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' }));
 		run(sim, 3);
 		const flag = sim.dispatch({ type: 'plant-flag', vessel: suit });
 		expect(flag.ok).toBe(true);
@@ -150,7 +155,7 @@ describe('EVA (plan 109)', () => {
 			}).ok
 		).toBe(true);
 		run(sim, 60);
-		expect(vessel(sim, flag.vessel as EntityId)).toBeDefined();
+		expect(vessel(sim, made(flag))).toBeDefined();
 		const held = vessel(sim, suit)!.science!.experiments[0]!;
 		expect(held.reason).toBe('holds a sample'); // the run finished and the suit carries it
 		expect(sim.dispatch({ type: 'crew-board', suit, vessel: ship }).ok).toBe(true);

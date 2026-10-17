@@ -137,7 +137,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0117 | [The Space Center view: the renderer's site mode, picking on the site plane, and where buildings persist](0117-space-center-view-site-mode-picking-and-where-buildings-persist.md) | accepted | 2026-10-17 |
 | 0118 | [The Mission Center: the map's system scope, its own sim from the world's save, and what Fly can fly](0118-mission-center-system-scope-own-sim-and-fly.md) | accepted | 2026-10-18 |
 | 0119 | [The Sun at the root: the home body is named, the tilt is the home orbit's inclination, and saves carry their home](0119-sun-at-the-root-home-body-tilt-as-orbit-inclination.md) | accepted | 2026-10-18 |
-| 0120 | [EVA: the suit is a vessel, two crew commands, walking and the jetpack as modules, a flag that stays](0120-eva-the-suit-is-a-vessel-commands-walking-jetpack-flag.md) | accepted | 2026-10-18 |
+| 0120 | [EVA: the suit is a vessel, crew commands for stepping out, walking and the flag, the jetpack as an engine](0120-eva-the-suit-is-a-vessel-commands-walking-jetpack-flag.md) | accepted | 2026-10-18 |
 | 0140 | [Refs tokens: glass that keeps text readable, UI scale through rem, legacy names as aliases](0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) | accepted | 2026-10-17 |
 | 0141 | [The calendar lives on the root body, the epoch counts SI days from J2000, a fictional year needs an orbit](0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) | accepted | 2026-10-17 |
 | 0142 | [Sites: the terrain seed, flat zones from sites, and placement at a pad](0142-sites-terrain-seed-zones-and-placement.md) | accepted | 2026-10-17 |

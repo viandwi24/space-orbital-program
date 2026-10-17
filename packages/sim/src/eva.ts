@@ -246,8 +246,9 @@ export function plantFlag(core: SimCore, suitId: EntityId): CommandResult {
 }
 
 /**
- * Before each step: a landed walker's body gets the ground speed it walks at, keeping its vertical
- * motion and spin (ADR 0120 point 3). Off the ground nothing changes.
+ * Before each step, for a landed vessel that can walk (ADR 0120 point 3): it keeps upright (its
+ * spin is the ground's, as a person keeps balance) and, while walking, its body gets the ground
+ * speed it walks at, keeping its vertical motion. Off the ground nothing changes.
  */
 export function stepWalking(
 	core: SimCore,
@@ -256,24 +257,26 @@ export function stepWalking(
 	body: FlightBody
 ): void {
 	const vessel = vesselOf(core, vesselId);
-	const walk = vessel.walk;
-	if (!walk || !vessel.landed) return;
+	if (!vessel.landed) return;
+	if (!vessel.walk && !vessel.parts.some((id) => partDefOf(core, id).walk !== undefined)) return;
 	const motion = bodyMotion(frame, body);
-	const r = add(frame.origin, motion.centre);
-	const { up, east, north } = horizon(core, vesselId, r);
-	const groundBci = cross(spinAt(bodyOfVessel(core, vessel), core.t), r);
-	const ground = sub(groundBci, frame.velocity);
-	const relative = sub(motion.linear, ground);
-	const vertical = scale(up, dot(relative, up));
-	const target = add(
-		scale(north, Math.cos(walk.heading) * walk.speed),
-		scale(east, Math.sin(walk.heading) * walk.speed)
-	);
-	frame.backend.setVelocity(body.handle, {
-		linear: add(add(ground, vertical), target),
-		angular: motion.angular
-	});
-	core.active.add(vesselId);
+	const spin = spinAt(bodyOfVessel(core, vessel), core.t);
+	let linear = motion.linear;
+	const walk = vessel.walk;
+	if (walk) {
+		const r = add(frame.origin, motion.centre);
+		const { up, east, north } = horizon(core, vesselId, r);
+		const ground = sub(cross(spin, r), frame.velocity);
+		const relative = sub(motion.linear, ground);
+		const vertical = scale(up, dot(relative, up));
+		const target = add(
+			scale(north, Math.cos(walk.heading) * walk.speed),
+			scale(east, Math.sin(walk.heading) * walk.speed)
+		);
+		linear = add(add(ground, vertical), target);
+		core.active.add(vesselId);
+	}
+	frame.backend.setVelocity(body.handle, { linear, angular: spin });
 }
 
 const seatedIn = (core: SimCore, part: EntityId): number =>
