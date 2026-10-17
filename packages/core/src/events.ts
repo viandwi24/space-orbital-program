@@ -24,6 +24,13 @@ export interface EventMap {
 	'vessel:maneuver-complete': { vessel: EntityId; node: number };
 	/** The vessel's target no longer exists (it was destroyed or removed); the target is cleared (plan 035). */
 	'vessel:target-lost': { vessel: EntityId; target: number };
+	/** A world rule changed by `set-rule` (plan 078); `time` is the sim time of the change. */
+	'world:rule-changed': {
+		rule: string;
+		from: boolean | number | string;
+		to: boolean | number | string;
+		time: number;
+	};
 	/** A stage fired (`stage` is the index into the design's `stages`). */
 	'stage:activated': { vessel: EntityId; stage: number };
 	/**

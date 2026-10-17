@@ -41,10 +41,22 @@ export interface WorldInfo {
 	gravityModel: GravityModel;
 	/** The instant of `t = 0`: whole days and a fraction on the system's time scale (ADR 0103). */
 	epoch: { day: number; fraction: number };
-	/** Rule id to value; empty until plan 078. */
+	/** Rule id to value: every registered rule once the sim resolved them (ADR 0111). */
 	rules: Record<string, boolean | number | string>;
 	/** Sites of the world; empty until plan 084. */
 	sites: Array<{ id: string; [key: string]: unknown }>;
+	/** Preset the world was created with (plan 078, ADR 0111). */
+	preset: string;
+	/** Every rule change during play, oldest first (ADR 0094 point 4). */
+	changelog: RuleChange[];
+}
+
+/** One `set-rule` change: sim time, rule id, old and new value. */
+export interface RuleChange {
+	time: number;
+	rule: string;
+	from: boolean | number | string;
+	to: boolean | number | string;
 }
 
 /** Id of the world that saves from before worlds existed migrate into (ADR 0094 point 6). */
@@ -61,7 +73,9 @@ export function legacyWorldInfo(seed: number, stockVersion = '0.0.0'): WorldInfo
 		gravityModel: 'patched',
 		epoch: { day: 0, fraction: 0 },
 		rules: {},
-		sites: []
+		sites: [],
+		preset: 'stock.sandbox',
+		changelog: []
 	};
 }
 

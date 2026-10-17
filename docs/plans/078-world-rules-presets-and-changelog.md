@@ -17,7 +17,7 @@ updated: 2026-10-17
 
 ## Context
 
-- ADRs: 0094, 0104
+- ADRs: 0094, 0104, 0111
 - Read: ADR 0094 point 3 and 4, ADR 0013 (define API), `packages/sdk`, `mods/stock/src/index.ts`.
 - Rule list to register (values from ADRs 0095 to 0101): economy, science depth, tech tree, crew aspects, crew death, signal delay, control without signal, comms scale, range safety, reliability, agency type, agency count. Rules whose system is not built yet are registered but inert.
 

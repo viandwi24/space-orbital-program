@@ -8,6 +8,7 @@ import {
 	createWorld,
 	legacyWorldInfo,
 	loadPlugins,
+	resolveRules,
 	readSimSave,
 	SaveError,
 	type Command,
@@ -26,6 +27,7 @@ import {
 	type SystemDefinition,
 	type TerrainField,
 	type World,
+	type RuleReader,
 	type WorldInfo,
 	worldInfoSchema
 } from '@orbital/core';
@@ -42,7 +44,7 @@ import { rebaseRails } from './orbit.ts';
 import { stepSasOnRails } from './sas.ts';
 import { applySoiTransitions } from './soi.ts';
 import { restoreFrames, restoreWorld, writeSave } from './save.ts';
-import { takeSnapshot } from './snapshot.ts';
+import { rulesView, takeSnapshot } from './snapshot.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 
@@ -135,8 +137,10 @@ export interface Sim {
 	readonly registries: ReadonlyRegistries;
 	readonly report: LoadReport;
 	readonly rng: Rng;
-	/** The world this run belongs to (a frozen copy; ADR 0110). */
+	/** The world this run belongs to (a frozen copy, new after each `set-rule`; ADR 0110, 0111). */
 	readonly worldInfo: Readonly<WorldInfo>;
+	/** Rule ids in the world that no loaded mod registers: kept in the save (ADR 0111 point 3). */
+	readonly unknownRules: readonly string[];
 	/** Simulation time, s. */
 	readonly time: number;
 	readonly warp: number;
@@ -218,6 +222,14 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		}
 	}
 	const info = worldOf(options, resume, seed);
+	const resolved = resolveRules(info.rules, info.preset, registries.rules, registries.presets);
+	if (resolved.problems.length > 0) {
+		const why = resolved.problems.join('; ');
+		if (resume) throw new SaveError('damaged', `This save is damaged: rule values: ${why}.`);
+		throw new RangeError(`createSim: world rules are invalid: ${why}`);
+	}
+	info.rules = resolved.values;
+	const unknownRules = Object.freeze([...resolved.unknown]);
 	const bodies = buildBodies(defs, bodyDef.id, options.terrain);
 	const root = bodies.get(bodyDef.id);
 	if (!root) throw new Error(`createSim: body "${bodyDef.id}" is not registered`);
@@ -253,7 +265,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		warpTarget: resume?.warpTarget ?? null,
 		accumulator: resume?.accumulator ?? 0,
 		warpStopped: false,
-		info
+		info,
+		rulesView: null
 	};
 	if (resume) {
 		if (bodyDef.id !== resume.bodies[0]) {
@@ -270,8 +283,15 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		return plugin ? [{ id, version: plugin.meta.version }] : [];
 	});
 
+	/** Rules of registered ids only; a plain map read (ADR 0111 point 5). */
+	const rules: RuleReader = {
+		get: (id) => (registries.rules.has(id) ? core.info.rules[id] : undefined)
+	};
+	let frozenInfo: Readonly<WorldInfo> | null = null;
+	let frozenFor: unknown = null;
+
 	const runSystems = (list: SystemDefinition[], step: number): void => {
-		for (const s of list) s.update(core.world, step, { registries, events });
+		for (const s of list) s.update(core.world, step, { registries, events, rules });
 	};
 
 	/** Rails vessels: module `updateOnRails` hooks and a conditioning rebase of their elements. */
@@ -376,7 +396,14 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		registries,
 		report,
 		rng: core.rng,
-		worldInfo: deepFreeze(cloneData(info)),
+		get worldInfo() {
+			if (frozenInfo === null || frozenFor !== core.rulesView) {
+				frozenInfo = deepFreeze(cloneData(core.info));
+				frozenFor = rulesView(core);
+			}
+			return frozenInfo;
+		},
+		unknownRules,
 		get time() {
 			return core.t;
 		},

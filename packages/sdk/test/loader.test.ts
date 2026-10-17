@@ -240,7 +240,9 @@ describe('registration and report', () => {
 			],
 			resource: [{ id: 'fixture.fuel', by: 'fixture' }],
 			body: [{ id: 'fixture.home', by: 'fixture' }],
-			system: [{ id: 'fixture.gravity', by: 'fixture' }]
+			system: [{ id: 'fixture.gravity', by: 'fixture' }],
+			rule: [],
+			preset: []
 		});
 	});
 

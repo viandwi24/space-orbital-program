@@ -3,19 +3,12 @@
  * opening a save. The sim's own world fields travel in `SimSave.worldInfo`; this record holds the
  * metadata and owns the saves whose envelope names its `id`. Read from storage, so untrusted.
  */
-import { LEGACY_WORLD_ID, SaveError, type SaveMod } from '@orbital/core';
+import { LEGACY_WORLD_ID, SaveError, type RuleChange, type SaveMod } from '@orbital/core';
+
+export type { RuleChange };
 
 export const WORLD_FORMAT = 'orbital-world';
 export const WORLD_VERSION = 1;
-
-/** One change of a rule during play (ADR 0094 point 4); empty until plan 078. */
-export interface RuleChange {
-	/** Simulation time of the change, s. */
-	time: number;
-	rule: string;
-	from: boolean | number | string;
-	to: boolean | number | string;
-}
 
 /** What a world card shows. */
 export interface WorldSummary {

@@ -16,6 +16,12 @@ import {
 	partDefinitionSchema,
 	resourceDefinitionSchema
 } from './schemas.ts';
+import {
+	presetDefinitionSchema,
+	ruleDefinitionSchema,
+	type PresetDefinition,
+	type RuleDefinition
+} from './rules.ts';
 
 export class RegistryError extends Error {
 	constructor(
@@ -169,6 +175,9 @@ export interface Registries {
 	resources: Registry<ResourceDefinition>;
 	bodies: Registry<BodyDefinition>;
 	systems: Registry<SystemDefinition>;
+	/** World rules and presets (plan 078, ADR 0111). */
+	rules: Registry<RuleDefinition>;
+	presets: Registry<PresetDefinition>;
 }
 
 export function createRegistries(): Registries {
@@ -177,6 +186,8 @@ export function createRegistries(): Registries {
 		modules: createRegistry<ModuleDefinition>('module'),
 		resources: createRegistry<ResourceDefinition>('resource', { schema: resourceDefinitionSchema }),
 		bodies: createRegistry<BodyDefinition>('body', { schema: bodyDefinitionSchema }),
-		systems: createRegistry<SystemDefinition>('system')
+		systems: createRegistry<SystemDefinition>('system'),
+		rules: createRegistry<RuleDefinition>('rule', { schema: ruleDefinitionSchema }),
+		presets: createRegistry<PresetDefinition>('preset', { schema: presetDefinitionSchema })
 	};
 }

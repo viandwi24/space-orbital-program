@@ -170,6 +170,8 @@ export interface Snapshot {
 	t: number;
 	vessels: VesselSnapshot[];
 	bodies: BodySnapshot[];
+	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
+	rules?: Readonly<Record<string, boolean | number | string>>;
 }
 
 /**
@@ -285,7 +287,12 @@ export type Command =
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */
 	| { type: 'target-set'; vessel: EntityId; target: TargetRef | null }
-	| { type: 'load-vessel'; design: VesselDesign; placement?: VesselPlacement };
+	| { type: 'load-vessel'; design: VesselDesign; placement?: VesselPlacement }
+	/**
+	 * Change a world rule (plan 078, ADR 0111). Refused for unknown rules, identity rules (reason
+	 * `identity rule`) and values of the wrong type; takes effect from the next step.
+	 */
+	| { type: 'set-rule'; rule: string; value: boolean | number | string };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

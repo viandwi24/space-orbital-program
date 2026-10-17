@@ -40,7 +40,19 @@ export const worldInfoSchema = z.object({
 		fraction: z.number().min(0).lt(1)
 	}),
 	rules: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
-	sites: z.array(z.looseObject({ id: z.string().min(1) }))
+	sites: z.array(z.looseObject({ id: z.string().min(1) })),
+	/** Plan 078 (ADR 0111): additive in format 5, so a save without them reads with the defaults. */
+	preset: z.string().min(1).default('stock.sandbox'),
+	changelog: z
+		.array(
+			z.object({
+				time: z.number().refine(Number.isFinite, 'expected a finite number'),
+				rule: z.string().min(1),
+				from: z.union([z.boolean(), z.number(), z.string()]),
+				to: z.union([z.boolean(), z.number(), z.string()])
+			})
+		)
+		.default([])
 });
 
 export const resourceDefinitionSchema = z.object({

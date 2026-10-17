@@ -216,7 +216,9 @@ describe('format 5: the world info (plan 077, ADR 0110)', () => {
 			gravityModel: 'patched',
 			epoch: { day: 0, fraction: 0 },
 			rules: {},
-			sites: []
+			sites: [],
+			preset: 'stock.sandbox',
+			changelog: []
 		});
 		// Re-signed: the migrated save reads again unchanged.
 		expect(readSimSave(save)).toEqual(save);

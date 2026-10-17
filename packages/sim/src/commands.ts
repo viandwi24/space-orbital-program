@@ -5,7 +5,9 @@
  */
 import {
 	commandSchema,
+	IDENTITY_RULES,
 	resolveVesselDesign,
+	ruleValueProblem,
 	type Command,
 	type CommandResult,
 	type EntityId
@@ -252,5 +254,24 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		}
 		case 'load-vessel':
 			return loadVessel(core, command);
+		case 'set-rule':
+			return setRule(core, command.rule, command.value);
 	}
+}
+
+/** ADR 0111 point 4: validated, written at once (effective from the next step), logged. */
+function setRule(core: SimCore, id: string, value: boolean | number | string): CommandResult {
+	if (IDENTITY_RULES.includes(id)) return refuse('identity rule');
+	const rule = core.registries.rules.get(id);
+	if (!rule) return refuse(`unknown rule "${id}"`);
+	if (!rule.changeable) return refuse('identity rule');
+	const why = ruleValueProblem(rule, value);
+	if (why) return refuse(`invalid value for rule "${id}": ${why}`);
+	const from = core.info.rules[id] ?? rule.default;
+	if (from === value) return accept();
+	core.info.rules[id] = value;
+	core.info.changelog.push({ time: core.t, rule: id, from, to: value });
+	core.rulesView = null;
+	core.events.emit('world:rule-changed', { rule: id, from, to: value, time: core.t });
+	return accept();
 }
