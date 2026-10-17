@@ -15,6 +15,9 @@ const KINDS = [
 	'nose-cone',
 	'fin',
 	'control-surface',
+	'wing',
+	'strut',
+	'fuel-line',
 	'plain'
 ];
 

@@ -562,7 +562,12 @@ export function finNormalForce(config: FinConfig, v: Vec3, rho: number): number 
  * airspeed there. `-1/2 rho V S liftSlope damping w`: the quasi-steady damping counted `damping`
  * more times, standing for downwash lag and body-fin interference (not modelled).
  */
-export function finDampingForce(config: FinConfig, speed: number, rho: number, w: number): number {
+export function finDampingForce(
+	config: Pick<FinConfig, 'area' | 'liftSlope' | 'damping'>,
+	speed: number,
+	rho: number,
+	w: number
+): number {
 	return -0.5 * rho * speed * config.area * config.liftSlope * config.damping * w;
 }
 
@@ -676,4 +681,128 @@ export const ModuleControlSurface = defineModule({
 		vessel.applyForce(force, at);
 	},
 	snapshot: (state) => ({ deflection: state.deflection })
+});
+
+// ---------------------------------------------------------------------------------------------
+// Wing
+// ---------------------------------------------------------------------------------------------
+
+export const wingConfigSchema = z.object({
+	/** Planform area of the part, m². */
+	area: z.number().positive(),
+	/**
+	 * Aspect ratio of the wing this part is half of when mounted as a pair, `b² / S` over both
+	 * halves; with the area it sets the lift slope and the induced drag (ADR 0075).
+	 */
+	aspectRatio: z.number().positive().max(40),
+	/** Span efficiency `e` of the lift distribution (1 for an ellipse). */
+	efficiency: z.number().positive().max(1).default(0.85),
+	/** Angle of attack where the lift stops growing, degrees. */
+	stallAngle: z.number().positive().max(40).default(15),
+	/** Zero-lift drag coefficient (skin friction and form of the section). */
+	parasiteDrag: z.number().nonnegative().default(0.02),
+	/** Normal-force coefficient broadside to the flow (stalled plate), as the fin's. */
+	crossflow: z.number().positive().default(1.2),
+	/** Aerodynamic centre in the part frame, m (a quarter chord behind the leading edge). */
+	centre: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0]),
+	/**
+	 * Extra damping of the rotational airflow in multiples of the quasi-steady one (ADR 0046). Zero
+	 * by default: the wings of a craft sit metres from its roll axis, where the explicit step is
+	 * unstable above `(1 + damping) dt c / I < 1` (ADR 0075); the quasi-steady damping is always on.
+	 */
+	damping: z.number().nonnegative().max(100).default(0)
+});
+export type WingConfig = z.output<typeof wingConfigSchema>;
+
+/** Thin-airfoil slope of a flat plate, per radian (`a0 = 2 pi`). */
+const THIN_AIRFOIL_SLOPE = 2 * Math.PI;
+
+/** Lift-curve slope of the finite wing per radian: `a0 / (1 + a0 / (pi e AR))` (research wings-struts-fuel-lines). */
+export const wingLiftSlope = (config: WingConfig): number =>
+	THIN_AIRFOIL_SLOPE /
+	(1 + THIN_AIRFOIL_SLOPE / (Math.PI * config.efficiency * config.aspectRatio));
+
+/**
+ * Lift and drag coefficients at angle of attack `alpha` (rad, -pi/2..pi/2; positive when the plate
+ * moves towards its +Z face, so the lift acts towards -Z): `C_L = a alpha` up to the stall angle, then it
+ * falls to zero broadside along `(1 + cos(pi t)) / 2`; `C_D = C_D0 + C_L² / (pi e AR)` plus the
+ * broadside plate drag `crossflow sin² alpha`, blended in over 0.1 rad past the stall (ADR 0075).
+ */
+export function wingCoefficients(config: WingConfig, alpha: number): { cl: number; cd: number } {
+	const a = wingLiftSlope(config);
+	const stall = (config.stallAngle * Math.PI) / 180;
+	const abs = Math.abs(alpha);
+	let cl: number;
+	if (abs <= stall) cl = a * alpha;
+	else {
+		const t = Math.min(1, (abs - stall) / (Math.PI / 2 - stall));
+		cl = Math.sign(alpha) * a * stall * 0.5 * (1 + Math.cos(Math.PI * t));
+	}
+	const blend = Math.min(1, Math.max(0, (abs - stall) / 0.1));
+	const smooth = blend * blend * (3 - 2 * blend);
+	const induced = (cl * cl) / (Math.PI * config.efficiency * config.aspectRatio);
+	const plate = config.crossflow * Math.sin(alpha) * Math.sin(alpha) * smooth;
+	return { cl, cd: config.parasiteDrag + induced + plate };
+}
+
+/**
+ * Force of the wing in the part frame for the air velocity `v` of its aerodynamic centre in
+ * density `rho` (ADR 0075). The plate lies in the X-Y plane like a fin (span along X, chord along
+ * Y, normal Z); only the flow in the Y-Z section counts, so a spanwise flow makes neither lift nor
+ * drag. `alpha` is the angle of the section flow to the chord, lift is perpendicular to the flow
+ * and drag along it.
+ */
+export function wingForce(config: WingConfig, v: Vec3, rho: number): Vec3 {
+	const section = Math.hypot(v.y, v.z);
+	if (section === 0 || rho === 0) return { x: 0, y: 0, z: 0 };
+	const alpha = Math.atan2(v.z, Math.abs(v.y));
+	const { cl, cd } = wingCoefficients(config, alpha);
+	const q = 0.5 * rho * section * section * config.area;
+	const ey = v.y / section;
+	const ez = v.z / section;
+	const side = v.y < 0 ? -1 : 1;
+	// Lift direction: perpendicular to the flow, towards -Z for a positive angle of attack.
+	const ly = side * ez;
+	const lz = -Math.abs(ey);
+	return { x: 0, y: q * (cl * ly - cd * ey), z: q * (cl * lz - cd * ez) };
+}
+
+const wingInfo = (config: WingConfig): ModuleInfo => ({
+	lift: {
+		area: config.area,
+		liftSlope: wingLiftSlope(config),
+		crossflow: config.crossflow,
+		centre: [config.centre[0], config.centre[1], config.centre[2]]
+	},
+	category: 'aero'
+});
+
+/**
+ * A lifting wing (ADR 0075): the fin's geometry with a finite-wing lift slope from its aspect
+ * ratio, a stall and an induced drag, so a craft with wings glides. Turn the part about its span
+ * (a tilt, ADR 0071) for incidence.
+ */
+export const ModuleWing = defineModule({
+	id: 'stock.wing',
+	config: wingConfigSchema,
+	state: (): Record<string, never> => ({}),
+	describe: (config) => wingInfo(config),
+	update(ctx) {
+		const { config, vessel } = ctx;
+		const rho = vessel.ambient.density;
+		if (rho === 0) return;
+		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
+		const v = vessel.airVelocity(at);
+		const force = wingForce(config, v, rho);
+		if (config.damping > 0) {
+			const speed = Math.hypot(v.x, v.y, v.z);
+			force.z += finDampingForce(
+				{ area: config.area, liftSlope: wingLiftSlope(config), damping: config.damping },
+				speed,
+				rho,
+				rotationalNormalFlow(vessel, at)
+			);
+		}
+		if (force.y !== 0 || force.z !== 0) vessel.applyForce(force, at);
+	}
 });

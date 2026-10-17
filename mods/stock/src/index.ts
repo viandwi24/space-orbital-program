@@ -15,6 +15,7 @@ import {
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
+	ModuleWing,
 	deposit,
 	withdraw
 } from './modules.ts';
@@ -25,13 +26,16 @@ import {
 	PartDecoupler,
 	PartEngineLV,
 	PartFin,
+	PartFuelLine,
 	PartHeatShield,
 	PartLandingLegs,
 	PartNoseCone,
 	PartRadialDecoupler,
 	PartReactionWheel,
+	PartStrut,
 	PartTankMedium,
-	PartTankSmall
+	PartTankSmall,
+	PartWing
 } from './parts.ts';
 import { Ablator, ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 
@@ -56,6 +60,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleHeatShield);
 		ctx.modules.register(ModuleFin);
 		ctx.modules.register(ModuleControlSurface);
+		ctx.modules.register(ModuleWing);
 
 		ctx.parts.register(PartCommandPod);
 		ctx.parts.register(PartReactionWheel);
@@ -70,6 +75,9 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartNoseCone);
 		ctx.parts.register(PartFin);
 		ctx.parts.register(PartControlSurface);
+		ctx.parts.register(PartWing);
+		ctx.parts.register(PartStrut);
+		ctx.parts.register(PartFuelLine);
 
 		ctx.bodies.register(HomeBody);
 		ctx.bodies.register(MoonBody);

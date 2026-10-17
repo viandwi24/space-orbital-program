@@ -8,7 +8,8 @@ import {
 	ModuleHeatShield,
 	ModuleLandingLeg,
 	ModuleReactionWheel,
-	ModuleResourceContainer
+	ModuleResourceContainer,
+	ModuleWing
 } from './modules.ts';
 import { ElectricCharge, LiquidFuel, Oxidizer } from './resources.ts';
 
@@ -367,4 +368,72 @@ export const PartControlSurface = definePart({
 		]
 	],
 	stagingIcon: 'fin'
+});
+
+/**
+ * A wing half, 3 m span and 1 m chord (3 m² of plate), attached radially (span outwards). A pair
+ * on opposite sides is a 6 m wing of aspect ratio 6: lift slope 4.5 per radian, `(L/D)max` of the
+ * wing alone about 14 (ADR 0075). The aerodynamic centre sits a quarter chord behind the leading
+ * edge (+Y is the nose). Tilt it about its span for incidence; control surfaces hang on its
+ * trailing edge.
+ */
+export const PartWing = definePart({
+	id: 'stock.wing',
+	title: 'Wing',
+	mass: kg(90),
+	impactTolerance: 4,
+	maxTemperature: 1000,
+	// A thin section: the part drag of its faces is small (the module has its own parasite drag).
+	dragCoefficient: 0.05,
+	shape: { kind: 'box', size: [3, 1, 0.08] },
+	visual: {
+		kind: 'wing',
+		palette: { primary: '#e4e6e8', secondary: '#23272d', accent: '#d9552b' }
+	},
+	attach: { radial: { pos: [-1.5, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [[ModuleWing, { area: 3, aspectRatio: 6, centre: [0, 0.25, 0] }]],
+	stagingIcon: 'fin'
+});
+
+/** Radius of the connector parts' stubs, m. */
+const CONNECTOR_RADIUS = 0.04;
+
+const connectorNode = {
+	end: { pos: [-CONNECTOR_RADIUS, 0, 0] as Vec3Tuple, dir: [-1, 0, 0] as Vec3Tuple }
+};
+
+/**
+ * A strut: a rigid bar from the part it hangs on to a second part (ADR 0071). The vessel is one
+ * rigid body (ADR 0018), so it adds no stiffness; it adds its mass and drag and is cut when a
+ * separation puts its two ends on different vessels.
+ */
+export const PartStrut = definePart({
+	id: 'stock.strut',
+	title: 'Strut',
+	mass: kg(20),
+	impactTolerance: 3,
+	maxTemperature: 1000,
+	connector: {},
+	shape: { kind: 'cylinder', radius: CONNECTOR_RADIUS, height: 0.1 },
+	visual: { kind: 'strut', palette: { primary: '#aeb4bc', secondary: '#23272d' } },
+	attach: connectorNode,
+	crossfeed: false
+});
+
+/**
+ * A fuel line: propellant of the part it hangs on is drawn by whatever draws on the part its far
+ * end lands on, ahead of that part's own (ADR 0071). One way: it does not carry fuel back.
+ */
+export const PartFuelLine = definePart({
+	id: 'stock.fuel-line',
+	title: 'Fuel Line',
+	mass: kg(10),
+	impactTolerance: 3,
+	maxTemperature: 1000,
+	connector: { feeds: true },
+	shape: { kind: 'cylinder', radius: CONNECTOR_RADIUS, height: 0.1 },
+	visual: { kind: 'fuel-line', palette: { primary: '#d9552b', secondary: '#23272d' } },
+	attach: connectorNode,
+	crossfeed: false
 });
