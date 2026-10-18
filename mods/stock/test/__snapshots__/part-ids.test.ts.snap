@@ -1,0 +1,647 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
+[
+  {
+    "cost": 8400,
+    "id": "stock.command-pod",
+    "mass": 840,
+    "modules": [
+      [
+        "stock.command",
+        undefined,
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 50,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1000,
+    "id": "stock.reaction-wheel",
+    "mass": 100,
+    "modules": [
+      [
+        "stock.reaction-wheel",
+        {
+          "chargeRate": 0.6,
+          "torque": 5000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 375,
+    "id": "stock.tank-small",
+    "mass": 250,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 400,
+            },
+            "stock.oxidizer": {
+              "capacity": 490,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 750,
+    "id": "stock.tank-medium",
+    "mass": 500,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 800,
+            },
+            "stock.oxidizer": {
+              "capacity": 980,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 7500,
+    "id": "stock.engine-lv",
+    "mass": 1250,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 3,
+            "rate": 20,
+          },
+          "ispSeaLevel": 280,
+          "ispVacuum": 300,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 215000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 11100,
+    "id": "stock.engine-cluster",
+    "mass": 1850,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 2,
+            "rate": 16,
+          },
+          "ispSeaLevel": 272,
+          "ispVacuum": 295,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 340000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.decoupler",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 2000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.landing-legs",
+    "mass": 150,
+    "modules": [
+      [
+        "stock.landing-leg",
+        {},
+      ],
+    ],
+  },
+  {
+    "cost": 80,
+    "id": "stock.wheel",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.3,
+          "steer": 0,
+          "width": 0.15,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 80,
+    "id": "stock.wheel-steer",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.3,
+          "steer": 20,
+          "width": 0.15,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 320,
+    "id": "stock.heat-shield",
+    "mass": 80,
+    "modules": [
+      [
+        "stock.heat-shield",
+        {},
+      ],
+    ],
+  },
+  {
+    "cost": 80,
+    "id": "stock.radial-decoupler",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 4000,
+          "separates": "radial",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2700,
+    "id": "stock.booster",
+    "mass": 450,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 250,
+          "ispVacuum": 270,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 150000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 225,
+            },
+            "stock.oxidizer": {
+              "capacity": 275,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.nose-cone",
+    "mass": 25,
+    "modules": [],
+  },
+  {
+    "cost": 60,
+    "id": "stock.fin",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.fin",
+        {
+          "area": 1.5,
+          "centre": [
+            0,
+            -0.15,
+            0,
+          ],
+          "crossflow": 1.2,
+          "liftSlope": 2,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 90,
+    "id": "stock.control-surface",
+    "mass": 45,
+    "modules": [
+      [
+        "stock.control-surface",
+        {
+          "area": 1.2,
+          "centre": [
+            0,
+            -0.1,
+            0,
+          ],
+          "crossflow": 1.2,
+          "deflectionRate": 60,
+          "liftSlope": 2,
+          "maxDeflection": 25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 180,
+    "id": "stock.wing",
+    "mass": 90,
+    "modules": [
+      [
+        "stock.wing",
+        {
+          "area": 3,
+          "aspectRatio": 6,
+          "centre": [
+            0,
+            0.25,
+            0,
+          ],
+          "flapDrag": 0.05,
+          "flapLift": 0.6,
+          "flapStall": 3,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 40,
+    "id": "stock.strut",
+    "mass": 20,
+    "modules": [],
+  },
+  {
+    "cost": 20,
+    "id": "stock.fuel-line",
+    "mass": 10,
+    "modules": [],
+  },
+  {
+    "cost": 200,
+    "id": "stock.data-drive",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.data-storage",
+        {
+          "capacity": 67108864,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 160,
+    "id": "stock.flotation-collar",
+    "mass": 40,
+    "modules": [],
+  },
+  {
+    "cost": 100,
+    "id": "stock.thermometer",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.temperature",
+          "label": "Log temperature",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.barometer",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.pressure",
+          "label": "Log pressure",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 200,
+    "id": "stock.seismometer",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.seismic",
+          "label": "Log seismic activity",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.surface-sampler",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.surface-sample",
+          "label": "Take surface sample",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 150,
+    "id": "stock.atmosphere-sampler",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.atmosphere-sample",
+          "label": "Take air sample",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.probe-core",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.command",
+        undefined,
+      ],
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.whip",
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 20,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.whip-antenna",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.whip",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.dish-antenna",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.dish",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.solar-panel",
+    "mass": 30,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {},
+      ],
+    ],
+  },
+  {
+    "cost": 850,
+    "id": "stock.eva-suit",
+    "mass": 85,
+    "modules": [
+      [
+        "stock.command",
+        undefined,
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 20,
+            },
+            "stock.eva-propellant": {
+              "capacity": 5,
+            },
+            "stock.food": {
+              "capacity": 0.5,
+            },
+            "stock.oxygen": {
+              "capacity": 0.5,
+            },
+            "stock.supplies": {
+              "capacity": 0.5,
+            },
+            "stock.water": {
+              "capacity": 0.5,
+            },
+          },
+        },
+      ],
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 60,
+          "ispVacuum": 60,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.eva-propellant",
+            },
+          ],
+          "thrust": 50,
+        },
+      ],
+      [
+        "stock.reaction-wheel",
+        {
+          "chargeRate": 0.01,
+          "torque": 20,
+        },
+      ],
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.surface-sample",
+          "label": "Take surface sample",
+        },
+      ],
+      [
+        "stock.antenna",
+        {
+          "antenna": "stock.suit-radio",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 20,
+    "id": "stock.flag",
+    "mass": 10,
+    "modules": [
+      [
+        "stock.flag",
+        undefined,
+      ],
+    ],
+  },
+  {
+    "cost": 90,
+    "id": "stock.life-support-pack",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.food": {
+              "capacity": 6,
+            },
+            "stock.oxygen": {
+              "capacity": 6,
+            },
+            "stock.supplies": {
+              "capacity": 6,
+            },
+            "stock.water": {
+              "capacity": 6,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.scrubber",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.scrubber",
+        {
+          "charge": 10,
+          "crew": 3,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 12000,
+    "id": "stock.base-kit",
+    "mass": 1200,
+    "modules": [
+      [
+        "stock.base-kit",
+        undefined,
+      ],
+    ],
+  },
+  {
+    "cost": 1500,
+    "id": "stock.drill",
+    "mass": 250,
+    "modules": [
+      [
+        "stock.drill",
+        {
+          "perDay": 50,
+        },
+      ],
+    ],
+  },
+]
+`;

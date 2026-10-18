@@ -1,12 +1,12 @@
 ---
 id: 207
 title: "Part size classes, seam tests, auto shrouds, adapters and cones"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 207 — Part size classes, seam tests, auto shrouds, adapters and cones

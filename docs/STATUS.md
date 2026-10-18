@@ -153,7 +153,7 @@
 | 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
 | 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
-| 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | in-progress | Worker A | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 208 | [Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost](plans/208-power-and-resources.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
 | 209 | [Parachutes](plans/209-parachutes.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
 | 210 | [SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts](plans/210-propulsion-and-structure-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207, 208]. |

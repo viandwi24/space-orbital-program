@@ -1,0 +1,28 @@
+import type { PartShape } from '@orbital/sdk';
+
+/** Every stack part is a 1.25 m class cylinder unless it says otherwise: radius in metres. */
+export const RADIUS = 0.625;
+
+export type Vec3Tuple = [number, number, number];
+
+/**
+ * Stack parts attach end to end along local Y: `top` faces +Y, `bottom` faces -Y, both on the
+ * axis at half the part height. `dir` points away from the part.
+ */
+export function stackNodes(
+	height: number
+): Record<'top' | 'bottom', { pos: Vec3Tuple; dir: Vec3Tuple }> {
+	return {
+		top: { pos: [0, height / 2, 0], dir: [0, 1, 0] },
+		bottom: { pos: [0, -height / 2, 0], dir: [0, -1, 0] }
+	};
+}
+
+export const cylinder = (height: number): PartShape => ({
+	kind: 'cylinder',
+	radius: RADIUS,
+	height
+});
+
+/** Radius of the radial booster and the nose cone that caps it, m. */
+export const BOOSTER_RADIUS = 0.4;

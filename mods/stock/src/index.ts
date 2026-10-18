@@ -48,7 +48,7 @@ import {
 	STOCK_POWER_PARTS,
 	STOCK_LIFE_SUPPORT_PARTS,
 	PartWing
-} from './parts.ts';
+} from './parts/index.ts';
 import {
 	Ablator,
 	ElectricCharge,
@@ -200,7 +200,7 @@ export default Stock;
 export { API_VERSION } from '@orbital/sdk';
 export * from './resources.ts';
 export * from './modules.ts';
-export * from './parts.ts';
+export * from './parts/index.ts';
 export * from './bodies.ts';
 export * from './eva.ts';
 export * from './panels.ts';
