@@ -150,6 +150,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0150 | [Launch facilities are the site's pad and runway buildings, placed by surface position; the choice travels to the flight](0150-launch-facilities-from-buildings-surface-placement-and-the-launch-choice.md) | accepted | 2026-10-18 |
 | 0151 | [Missions: briefings and next missions, a stock main line, scenarios as mission packs, the tracker panel](0151-missions-briefings-next-missions-scenarios-and-the-tracker.md) | accepted | 2026-10-18 |
 | 0152 | [Astronaut Complex: applicants by profession, crew kept by launching into the world's newest save](0152-astronaut-complex-applicants-by-profession-and-launching-into-the-world.md) | accepted | 2026-10-18 |
+| 0155 | [Range safety: the safe fan from the water map, the drop predicted at staging, penalties once](0155-range-safety-fans-impacts-at-staging-and-penalties.md) | accepted | 2026-10-18 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
 | 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |

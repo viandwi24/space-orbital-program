@@ -17,7 +17,7 @@ Each site has a safe launch fan computed from its geography; before launch, the 
 
 ## Context
 
-- ADRs: 0097
+- ADRs: 0097, [0155](../decisions/0155-range-safety-fans-impacts-at-staging-and-penalties.md) (this plan)
 - Read: ADR 0097 point 8, ADR 0021 (debris rails), plan 092 (site consequences).
 
 ## Scope
@@ -50,7 +50,7 @@ Prediction uses the same debris ballistic model as the sim so the warning and th
 ## Acceptance criteria
 
 - [ ] `packages/core` test: a coastal site's fan points over the sea; an inland site has a narrower fan.
-- [ ] `packages/sim` test: with `hard`, a launch whose first stage is predicted onto another site is refused with the reason; with `cost`, it proceeds and books the penalty once.
+- [ ] `packages/sim` test: with `hard`, a launch whose first stage is predicted onto another site is refused with the reason (at the staging that drops it, ADR 0155 point 3); with `cost`, it proceeds and books the penalty once.
 - [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
@@ -65,3 +65,4 @@ Prediction uses the same debris ballistic model as the sim so the warning and th
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097).
 - 2026-10-17 — `depends` gains 094, 067 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the pre-launch panel is on the Launch screen of plan 094 and impact points use the water level of plan 067.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0155: the fan from the water map; the drop judged at staging from the vessel's real state on the debris conic (the sim has no Δv model, so a pre-launch prediction is the page's estimate only); the azimuth measured at 2 km; penalties once through the ledger.
