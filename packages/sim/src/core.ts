@@ -179,8 +179,8 @@ export function vesselAmount(core: SimCore, vessel: VesselState, resource: strin
 
 /**
  * Why the vessel takes no control commands (ADR 0109; plan 208, ADR 0213), or undefined when it
- * does: `no-source` without any control source, `no-power` when every source needs a resource
- * (`ModuleDefinition.needs`) the vessel has run out of.
+ * does: `no-source` without any control source, `no-power` when every source part has a module
+ * that needs a resource (`ModuleDefinition.needs`) the vessel has run out of.
  */
 export function controlProblem(
 	core: SimCore,
@@ -189,16 +189,18 @@ export function controlProblem(
 	let sources = 0;
 	const short = new Map<string, boolean>();
 	for (const id of vessel.parts) {
-		for (const m of partOf(core, id).modules) {
-			const def = moduleDefOf(core, m.id);
-			if (def.controlSource !== true) continue;
-			sources += 1;
-			const need = def.needs?.(m.config);
-			if (need === undefined) return undefined;
+		const modules = partOf(core, id).modules;
+		if (!modules.some((m) => moduleDefOf(core, m.id).controlSource === true)) continue;
+		sources += 1;
+		let powered = true;
+		for (const m of modules) {
+			const need = moduleDefOf(core, m.id).needs?.(m.config);
+			if (need === undefined) continue;
 			let out = short.get(need);
 			if (out === undefined) short.set(need, (out = vesselAmount(core, vessel, need) <= 0));
-			if (!out) return undefined;
+			if (out) powered = false;
 		}
+		if (powered) return undefined;
 	}
 	return sources === 0 ? 'no-source' : 'no-power';
 }

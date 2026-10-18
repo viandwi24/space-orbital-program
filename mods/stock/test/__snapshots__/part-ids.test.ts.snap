@@ -9,7 +9,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        {},
+        undefined,
       ],
       [
         "stock.resource-container",
@@ -489,9 +489,11 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        {
-          "drain": 0.025,
-        },
+        undefined,
+      ],
+      [
+        "stock.probe-computer",
+        {},
       ],
       [
         "stock.antenna",
@@ -645,7 +647,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        {},
+        undefined,
       ],
       [
         "stock.resource-container",

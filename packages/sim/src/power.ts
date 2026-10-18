@@ -11,10 +11,7 @@ const depleted = new WeakMap<SimCore, Set<EntityId>>();
 /** Whether any control source of the vessel needs a resource (a probe core). */
 function needsPower(core: SimCore, vesselId: EntityId): boolean {
 	return vesselOf(core, vesselId).parts.some((id) =>
-		partOf(core, id).modules.some((m) => {
-			const def = moduleDefOf(core, m.id);
-			return def.controlSource === true && def.needs?.(m.config) !== undefined;
-		})
+		partOf(core, id).modules.some((m) => moduleDefOf(core, m.id).needs?.(m.config) !== undefined)
 	);
 }
 

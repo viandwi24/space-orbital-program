@@ -1,6 +1,6 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
-import { ModuleCommand, ModuleResourceContainer } from '../modules.ts';
+import { ModuleCommand, ModuleProbeComputer, ModuleResourceContainer } from '../modules.ts';
 import { ElectricCharge } from '../resources.ts';
 import { AntennaDish, AntennaWhip, ModuleAntenna } from '../comms.ts';
 import { cylinder, stackNodes } from './shared.ts';
@@ -23,8 +23,9 @@ export const PartProbeCore = definePart({
 	},
 	attach: stackNodes(0.4),
 	modules: [
-		// the core's computer draws 0.025 EC/s: 20 EC last about 13 minutes without a panel (plan 208)
-		[ModuleCommand, { drain: 0.025 }],
+		[ModuleCommand],
+		// the computer draws 0.025 EC/s: 20 EC last about 13 minutes without a panel (plan 208)
+		[ModuleProbeComputer, {}],
 		[ModuleAntenna, { antenna: AntennaWhip.id }],
 		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 20 } } }]
 	],

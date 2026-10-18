@@ -8,6 +8,7 @@ import { ColdGas, ModuleFlag, STOCK_EVA_PARTS } from './eva.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
+	ModuleProbeComputer,
 	ModuleControlSurface,
 	ModuleDecoupler,
 	ModuleEngine,
@@ -112,6 +113,7 @@ export const Stock = definePlugin({
 		ctx.resources.register(SolidFuel);
 
 		ctx.modules.register(ModuleCommand);
+		ctx.modules.register(ModuleProbeComputer);
 		ctx.modules.register(ModuleResourceContainer);
 		ctx.modules.register(ModuleEngine);
 		ctx.modules.register(ModuleDecoupler);

@@ -35,7 +35,7 @@ const PartGenerator = (id: string, push: boolean) =>
 			bottom: { pos: [0, -0.5, 0], dir: [0, -1, 0] }
 		},
 		modules: [
-			[ModuleCommand, {}],
+			[ModuleCommand],
 			[
 				ModuleResourceContainer,
 				{ contents: { 'stock.electric-charge': { capacity: 100, amount: 0 } } }
