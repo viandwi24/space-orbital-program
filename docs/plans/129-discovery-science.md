@@ -68,3 +68,4 @@ Classic points stay available beside it (ADR 0099).
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099).
 - 2026-10-18 — Claimed by Agent 3, refined. Implemented per ADR 0192: seeded facts, measurements on data results, lab levels, claims reviewed by a scaled Brier score with priority, the dossier's Discovery entry and reviews in Upcoming. `discovery.test.ts` (4), `BodyCard.test.ts` (+3) and `model.test.ts` (+1) pass; `check:affected` passed (journal 129). Handed over as `ready/129`.
+- 2026-10-18 — Merged by Agent 1 (ADR 0126): CI refs/ci/pass/5f194fc for the handed-over commit; on the rebased result check:affected passed (11 affected workspaces, bun test, related vitest), the build and the Chromium smoke; the Mission Center e2e passes. API_VERSION 0.1.72 set on the branch.
