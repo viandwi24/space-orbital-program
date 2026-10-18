@@ -1,12 +1,12 @@
 ---
 id: 105
 title: "Tech tree and R&D"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [103, 095, 102, 091, 094]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 105 — Tech tree and R&D
@@ -66,3 +66,4 @@ No idle lab (ADR 0099). The tree is data, patchable.
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099, 0098).
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch refusal edits `routes/launch` of plan 094.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
