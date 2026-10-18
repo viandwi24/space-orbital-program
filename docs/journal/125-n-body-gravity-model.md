@@ -12,7 +12,7 @@
 | `kepler/nbody-path.ts`, `trajectory.ts` | `predictNBody` (frame switches at the patched boundaries, segments cut every `maxStep` with the end `sample`), `createNBodyProvider`, `createTrajectoryProvider('n-body')`, `trajectoryFor(list, model)` and `tagTrajectoryModel`; `predictWithManeuvers` takes the path function |
 | `kepler/chebyshev.ts`, `ephemeris.ts` | Chebyshev records (evaluate, fit, find); the `ORBEPH01` asset (read, write), the SPK segment state, barycentric states (Earth from the Moon over EMRAT), ICRF to the game frame, `ephemerisPath` |
 | `tools/pack-de440.ts` | NAIF's SPK to the asset for a span of years, size and SHA-256 printed |
-| core | `GravityModel` `'n-body'` accepted by the world schema and the save reader; `BodyDefinition.naif`; event `warp:limited`; API_VERSION 0.1.66 |
+| core | `GravityModel` `'n-body'` accepted by the world schema and the save reader; `BodyDefinition.naif`; event `warp:limited`; API_VERSION 0.1.68 (0.1.66 and 0.1.67 went to 063 and 117 at their merges) |
 | sim | `nbody.ts` (the field of a frame, numeric rails with cached steps and dense output, the third-body pull); rails `numeric` from every place that makes rails; the flight bubble's uniform perturbation; the warp cap (1e5×) and the frame budget (5 000 evaluations); `createSim({ ephemeris })` and the `table` path for bodies with a NAIF id |
 | `mods/sol` | NAIF ids of the Sun, the planets and the Moon |
 | web | Create World's n-body option; the map and the aids predict with the world's provider (`Catalog.gravityModel`); `ephemeris-asset.ts` (fetch once, size and SHA-256, IndexedDB, gunzip) and the asset in `static/ephemeris/`; the flight passes it to the Worker; the Launch screen loads the world's own system |
