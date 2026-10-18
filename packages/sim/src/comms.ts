@@ -482,6 +482,41 @@ type Key = ReturnType<typeof routeKey>;
 const better = (a: Key, b: Key): boolean =>
 	a.width !== b.width ? a.width > b.width : a.hops !== b.hops ? a.hops < b.hops : a.dist < b.dist;
 
+/** A binary heap; `first(a, b)` is true when `a` comes out before `b`. */
+class Heap<T> {
+	private readonly items: T[] = [];
+	constructor(private readonly first: (a: T, b: T) => boolean) {}
+	push(x: T): void {
+		const a = this.items;
+		a.push(x);
+		for (let i = a.length - 1; i > 0;) {
+			const p = (i - 1) >> 1;
+			if (!this.first(a[i]!, a[p]!)) break;
+			[a[i], a[p]] = [a[p]!, a[i]!];
+			i = p;
+		}
+	}
+	pop(): T | undefined {
+		const a = this.items;
+		if (a.length === 0) return undefined;
+		const top = a[0]!;
+		const last = a.pop()!;
+		if (a.length === 0) return top;
+		a[0] = last;
+		for (let i = 0; ;) {
+			const l = 2 * i + 1;
+			const r = l + 1;
+			let m = i;
+			if (l < a.length && this.first(a[l]!, a[m]!)) m = l;
+			if (r < a.length && this.first(a[r]!, a[m]!)) m = r;
+			if (m === i) break;
+			[a[i], a[m]] = [a[m]!, a[i]!];
+			i = m;
+		}
+		return top;
+	}
+}
+
 /**
  * Links of every vessel at `frame` through the routing graph (ADR 0188 points 1 to 5): the edges,
  * each vessel's route by its mode, the shared capacity and the latency. `withBudget` computes the
@@ -522,30 +557,41 @@ function routeNetwork(
 		(v) => !!v.node?.pointing.some((p) => p.antenna.kind === 'dish' && p.target !== null)
 	);
 	const f2 = factor * factor;
-	for (let i = 0; i < vertices.length; i++) {
+	const tryPair = (i: number, j: number): void => {
 		const a = vertices[i]!;
-		for (let j = i + 1; j < vertices.length; j++) {
-			const b = vertices[j]!;
-			if (a.station && b.station) continue;
-			const dx = b.at.x - a.at.x;
-			const dy = b.at.y - a.at.y;
-			const dz = b.at.z - a.at.z;
-			const d2 = dx * dx + dy * dy + dz * dz;
-			// a cheap reject before the pointing and line-of-sight checks
-			if (d2 > maxRange[i]! * maxRange[j]! * f2) continue;
-			const d = Math.sqrt(d2);
-			const ra = pointed[i]
-				? rangeToward(core, frame, stations, a.node!, a.at, b.at)
-				: maxRange[i]!;
-			const rb = pointed[j]
-				? rangeToward(core, frame, stations, b.node!, b.at, a.at)
-				: maxRange[j]!;
-			if (ra <= 0 || rb <= 0 || d > linkRange(ra, rb, factor)) continue;
-			if (blocker(frame, a.at, b.at)) continue;
-			edges[i]!.push({ to: j, d });
-			edges[j]!.push({ to: i, d });
-			across[i]!.set(j, d);
-			across[j]!.set(i, d);
+		const b = vertices[j]!;
+		const dx = b.at.x - a.at.x;
+		const dy = b.at.y - a.at.y;
+		const dz = b.at.z - a.at.z;
+		const d2 = dx * dx + dy * dy + dz * dz;
+		// a cheap reject before the pointing and line-of-sight checks
+		if (d2 > maxRange[i]! * maxRange[j]! * f2) return;
+		const d = Math.sqrt(d2);
+		const ra = pointed[i] ? rangeToward(core, frame, stations, a.node!, a.at, b.at) : maxRange[i]!;
+		const rb = pointed[j] ? rangeToward(core, frame, stations, b.node!, b.at, a.at) : maxRange[j]!;
+		if (ra <= 0 || rb <= 0 || d > linkRange(ra, rb, factor)) return;
+		if (blocker(frame, a.at, b.at)) return;
+		edges[i]!.push({ to: j, d });
+		edges[j]!.push({ to: i, d });
+		across[i]!.set(j, d);
+		across[j]!.set(i, d);
+	};
+	// stations with every vessel; vessels with each other by sweep and prune along x: two vessels
+	// never link farther apart than the largest vessel rating times the scale
+	const ns = stations.length;
+	for (let i = 0; i < ns; i++) for (let j = ns; j < vertices.length; j++) tryPair(i, j);
+	const sweep = vertices
+		.map((_, i) => i)
+		.slice(ns)
+		.sort((p, q) => vertices[p]!.at.x - vertices[q]!.at.x || p - q);
+	let reach = 0;
+	for (let i = ns; i < vertices.length; i++) reach = Math.max(reach, maxRange[i]! * factor);
+	for (let a = 0; a < sweep.length; a++) {
+		const i = sweep[a]!;
+		for (let b = a + 1; b < sweep.length; b++) {
+			const j = sweep[b]!;
+			if (vertices[j]!.at.x - vertices[i]!.at.x > reach) break;
+			tryPair(Math.min(i, j), Math.max(i, j));
 		}
 	}
 	// capacity of u transmitting to v, memoized (tier-2 budget; 0 is commands only)
@@ -587,18 +633,16 @@ function routeNetwork(
 	const key: Array<Key | null> = vertices.map((v) => (v.control ? routeKey(Infinity, 0, 0) : null));
 	const next: Array<number | null> = vertices.map(() => null);
 	const done = new Array<boolean>(n).fill(false);
+	// each entry keeps the key it was pushed with: a later, better key pushes a new entry
+	const heap = new Heap<{ v: number; k: Key }>(
+		(a, b) => better(a.k, b.k) || (!better(b.k, a.k) && vertices[a.v]!.id < vertices[b.v]!.id)
+	);
+	for (let v = 0; v < n; v++) if (key[v]) heap.push({ v, k: key[v]! });
 	for (;;) {
-		let pick = -1;
-		for (let i = 0; i < n; i++) {
-			if (done[i] || !key[i]) continue;
-			if (
-				pick < 0 ||
-				better(key[i]!, key[pick]!) ||
-				(!better(key[pick]!, key[i]!) && vertices[i]!.id < vertices[pick]!.id)
-			)
-				pick = i;
-		}
-		if (pick < 0) break;
+		const entry = heap.pop();
+		if (entry === undefined) break;
+		const pick = entry.v;
+		if (done[pick]) continue; // a stale entry: settled already with a better key
 		done[pick] = true;
 		const kp = key[pick]!;
 		for (const e of edges[pick]!) {
@@ -613,6 +657,7 @@ function routeNetwork(
 			) {
 				key[u] = k;
 				next[u] = pick;
+				heap.push({ v: u, k });
 			}
 		}
 	}

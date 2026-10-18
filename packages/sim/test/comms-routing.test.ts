@@ -114,9 +114,7 @@ describe('the signal-delay rule', () => {
 		sim.step(0.02);
 		expect(throttleOf(sim, id)).toBe(0.5);
 		expect(link(sim.snapshot(), id).latency).toBeCloseTo(3, 6);
-		expect(sim.snapshot().network!.vessels.find((v) => v.vessel === id)!.route).toEqual([
-			link(sim.snapshot(), id).to
-		]);
+		expect(link(sim.snapshot(), id).route).toEqual([link(sim.snapshot(), id).to!]);
 		sim.dispose();
 	});
 

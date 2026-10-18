@@ -216,6 +216,27 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 
 `Snapshot.network.vessels` carries `rate` and `margin`, and `ctx.vessel.signal().rate` gives the rate. The command `comms-inspect { vessel | null }` is view state, never saved. Its vessel's full budget is in `Snapshot.network.inspector`.
 
+
+## Comms tier 3 (plan 117, ADR 0188)
+
+`routeNetwork` in `packages/sim/src/comms.ts` replaces the direct link at every network sample. The tier-1 `linkOf` remains for the bisection and for the reason a vessel without a route gives.
+
+- **Vertices:** the stations, and every vessel with a working antenna and no blackout. Stations and vessels with a crewed command part are control points.
+- **Edges:** pairs that pass the tier-1 range, line-of-sight and terrain checks. A cheap squared-distance reject comes first.
+  - A dish whose module state has a `target` (`antenna-point`) only reaches what lies within half its beam (`beamWidthOf`) of that target's direction.
+  - A capacity is the tier-2 rate from the far end. It comes from a reference margin per pair of antenna sets, less 20·log10 of the distance, so there is one budget per kind of pair.
+- **Routes:**
+  - **Auto** is the vessel's branch of a multi-source widest-path tree from the control points (O(V²)). Ties go to fewer hops, then shorter, then the ids.
+  - **Manual** follows `SaveComms.routes`' pinned hops. It fails as `route broken at <id>`.
+  - **Policy** asks a registered `choose` among the best route through each neighbour.
+- **Capacity sharing:** three proportional rounds over the used edges give each route its rate.
+- **Network vessels** carry the first hop as `to`, plus `route`, `latency` (length / c), `rate` (shared) and `mode`.
+
+**Signal delay** (`packages/sim/src/delay.ts`):
+- `dispatch(core, command, source)` queues `throttle`, `attitude`, `sas`, `stage`, `action` and `action-group` for a linked probe under `stock.signal-delay` `enforced` (and `flight-computer` unless `source` is `script`). The delay is the route's latency, and the command returns `{ ok, queued: at }`.
+- The queue (`SimCore.commsState.queue`, `{ at, seq, command }`) drains at the start of each flight step and rails chunk, through `dispatch(…, 'queued')`, so every check runs again.
+- **Save format 7:** `SimSave.comms = { seq, routes, queue }`. Migration 6 → 7 adds an empty one; `save-v6.json` is the frozen fixture.
+
 ## Range safety (plan 127, ADR 0155)
 
 `packages/core/src/range-safety.ts` and `packages/sim/src/range.ts`; rule `stock.range-safety` (`cost` default in Career, `hard`, `off`). A site's safe fan (`safeFan`, cached per run in `SimCore.range.fans`) is every 5° azimuth whose track from 20 to 200 km is water (`TerrainField.waterAt`, plan 067) at 75 % of its 10 km samples and passes 50 km clear of other sites; a body without `waterAt` has none and is not judged. A `stage` command that fires a separator (a module whose `describe` has an unfinished `separator`) on a controlled vessel more than 100 m above the ground takes the vessel's state as the spent stage's: `conicImpact` follows the drag-free conic (the debris rails model) to the reference radius, the body turns for the flight time, and `dropProblem` names a site within 50 km or land. `hard` refuses the command with the reason; `cost` fires it and books `RANGE_PENALTIES` once through the ledger (cause `range-safety`, ref `<kind>:<vessel>`, funds times the cost multiplier, only with `stock.economy` on). A vessel loaded at a site is watched (`SimSave.range.pending`, optional in format 5) until it climbs through 2 km above the ground; the heading of its velocity over the turning ground is then compared with the site's fan (`azimuth` violation, booked under `cost` and `hard`). Each violation emits `range:violation { vessel, kind, site?, latitude?, longitude?, azimuth?, penalised }`. `Snapshot.range` (absent when off) carries the mode, the fan of the latest watched ascent's site (else the primary site) and, per controlled vessel in flight, the predicted drop of its next separating stage when that is a violation.
