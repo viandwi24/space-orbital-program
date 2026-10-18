@@ -77,6 +77,8 @@ Run these first, and **wait 2 minutes and check again** while any limit is excee
 
 ## Doing a plan
 
+**One plan at a time (owner's rule):** finish a plan, merge it into main, then start the next. Never keep two of your own plans open at once, and never leave a finished plan unmerged.
+
 1. **Branch and refine.** Create the branch `rel/NNN-<slug>` from `origin/main` in your worktree. Refine the draft to `ready`: check Steps and Acceptance criteria against the code. Then set it to `in-progress` with `owner: "Worker X"`.
 2. **Implement.** Follow `AGENTS.md`, `CLAUDE.md` and `docs/plans/README.md`. Commit with explicit `git add <paths>`, in the style of `docs/conventions/code-style.md`. Push the branch after every step.
 3. **Check.** Run targeted tests while iterating. Before handover, run `bun run check:affected` under the lock, plus the plan's own e2e file on Chromium (ADR 0126).
