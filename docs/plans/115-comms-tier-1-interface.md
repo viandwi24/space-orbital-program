@@ -66,3 +66,4 @@ Every broken link names its cause (occluded by <body>, out of range, blackout, a
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — ADR 0158: one link badge with every reason (blackout one of them), bars 4/2/0 until plan 116, the Comms tab with transmitters from descriptors, the Network layer as a page overlay shared by the map and the Mission Center (`renderer/src/map.ts` unchanged).
 - 2026-10-18 — Built: the link badge, the Comms tab (with visible switch labels, also in plan 111's tabs), the Network layer in the map and the Mission Center; screenshots in the journal. The crew panel's suit radio waits for plan 121. Handed over as `ready/115`.
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflict in the ADR index, both kept); bun test 1620 pass, web vitest 1003 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center and vessel-panel e2e pass (Chromium).
