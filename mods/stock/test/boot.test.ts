@@ -37,6 +37,7 @@ describe('stock boots through the loader', () => {
 			'stock.reaction-wheel',
 			'stock.resource-container',
 			'stock.scrubber',
+			'stock.wheel',
 			'stock.wing'
 		]);
 		expect(ids('part')).toEqual([
@@ -71,6 +72,8 @@ describe('stock boots through the loader', () => {
 			'stock.tank-medium',
 			'stock.tank-small',
 			'stock.thermometer',
+			'stock.wheel',
+			'stock.wheel-steer',
 			'stock.whip-antenna',
 			'stock.wing'
 		]);
@@ -156,7 +159,9 @@ describe('stock boots through the loader', () => {
 			'stock.control-surface',
 			'stock.wing',
 			'stock.strut',
-			'stock.fuel-line'
+			'stock.fuel-line',
+			'stock.wheel',
+			'stock.wheel-steer'
 		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();
@@ -179,7 +184,9 @@ describe('stock boots through the loader', () => {
 			'stock.booster',
 			'stock.fin',
 			'stock.control-surface',
-			'stock.wing'
+			'stock.wing',
+			'stock.wheel',
+			'stock.wheel-steer'
 		]) {
 			const radial = get(id).attach!.radial!;
 			expect(radial.dir, id).toEqual([-1, 0, 0]);

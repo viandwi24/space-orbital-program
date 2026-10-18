@@ -41,6 +41,7 @@
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import RangeBadge from '../../lib/hud/RangeBadge.svelte';
+	import AeroStrip from '../../lib/hud/AeroStrip.svelte';
 	import LinkBadge from '../../lib/hud/LinkBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
@@ -730,6 +731,7 @@
 						{ghostNote}
 					</p>{/if}
 				<RangeBadge warning={model?.range ?? null} />
+				{#if model?.aero}<AeroStrip aero={model.aero} />{/if}
 				<PrecompileBadge progress={graphics} />
 			</div>
 

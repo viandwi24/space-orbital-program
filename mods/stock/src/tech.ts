@@ -69,7 +69,7 @@ export const STOCK_TECH = [
 		requires: ['stock.structures'],
 		milestone: 'orbit:stock.home',
 		description: 'Wings and control surfaces.',
-		unlocks: ['stock.wing', 'stock.control-surface']
+		unlocks: ['stock.wing', 'stock.control-surface', 'stock.wheel', 'stock.wheel-steer']
 	}),
 	defineTechNode({
 		id: 'stock.landing',

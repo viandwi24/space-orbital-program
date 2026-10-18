@@ -144,6 +144,9 @@ export async function createRapierBackend(
 					p.position.z
 				);
 				if (p.rotation) c.setRotation(p.rotation);
+				// a shape's own friction wins by the minimum (a wheel against the ground, ADR 0161)
+				if ('friction' in p && p.friction !== undefined)
+					c.setFriction(p.friction).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
 				const collider = world.createCollider(c, body);
 				colliderOwner.set(collider.handle, { body: id, shape: colliders.length });
 				colliders.push(collider);

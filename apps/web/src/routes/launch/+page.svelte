@@ -77,8 +77,19 @@
 
 	let limits = $state(false);
 	const facilities = $derived(site ? facilitiesOf(site, registries.buildings, limits) : []);
-	const facility = $derived(facilities.find((f) => f.id === facilityId) ?? facilities[0] ?? null);
-	const fitting = $derived(facility ? designs.filter((d) => accepts(facility, d.wet)) : []);
+	// an aircraft from the Hangar starts on a runway by default (plan 063, ADR 0161 point 3)
+	const preferred = $derived(designs[0]?.design.aircraft === true ? 'runway' : 'pad');
+	const facility = $derived(
+		facilities.find((f) => f.id === facilityId) ??
+			facilities.find((f) => f.kind === preferred) ??
+			facilities[0] ??
+			null
+	);
+	// an aircraft rolls out to a runway, anything else stands on a pad (plan 063, ADR 0161 point 3)
+	const aircraftOf = (d: Choice): boolean => d.design.aircraft === true;
+	const fitting = $derived(
+		facility ? designs.filter((d) => accepts(facility, d.wet, aircraftOf(d))) : []
+	);
 	const tooHeavy = $derived(facility ? designs.filter((d) => !accepts(facility, d.wet)) : []);
 	const chosen = $derived(fitting.find((d) => d.key === designKey) ?? fitting[0] ?? null);
 	const body = $derived(site ? registries.bodies.get(site.body) : undefined);

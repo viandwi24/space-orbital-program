@@ -14,7 +14,7 @@ import type {
 	Transform,
 	Vec3
 } from '@orbital/core';
-import { add, cross, dot, length, scale, sub } from '@orbital/kepler';
+import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
 import { bodyById, spinAt, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
@@ -51,7 +51,7 @@ import { stepWalking } from './eva.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
-import type { FlightBody, FlightFrame, GroundTile } from './state.ts';
+import { effectiveControl, type FlightBody, type FlightFrame, type GroundTile } from './state.ts';
 import {
 	bodyFixedDirection,
 	bodyHasStoneColliders,
@@ -210,12 +210,18 @@ export function partVelocity(core: SimCore, frame: FlightFrame, partId: EntityId
 export function collectColliders(
 	core: SimCore,
 	vesselId: EntityId
-): { shapes: ShapePlacement[]; shapeParts: EntityId[]; signature: string } {
+): {
+	shapes: ShapePlacement[];
+	shapeParts: EntityId[];
+	signature: string;
+	wheels: Map<number, { part: EntityId; module: string; k: number }>;
+} {
 	const vessel = vesselOf(core, vesselId);
 	const rootDesign = partOf(core, vessel.root).designPos;
 	const shapes: ShapePlacement[] = [];
 	const shapeParts: EntityId[] = [];
 	const extras: unknown[] = [];
+	const wheels = new Map<number, { part: EntityId; module: string; k: number }>();
 	for (const id of vessel.parts) {
 		const part = partOf(core, id);
 		const at = sub(part.designPos, rootDesign);
@@ -229,18 +235,21 @@ export function collectColliders(
 		for (const m of part.modules) {
 			const colliders = moduleDefOf(core, m.id).colliders;
 			if (!colliders) continue;
-			for (const c of colliders(m.config, moduleState(core, id, m.id))) {
+			for (const [k, c] of colliders(m.config, moduleState(core, id, m.id)).entries()) {
+				// a wheel is frictionless: the sim applies its tyre forces (plan 063, ADR 0161)
+				if (c.wheel) wheels.set(shapes.length, { part: id, module: m.id, k });
 				shapes.push({
 					shape: { type: 'box', halfExtents: c.halfExtents },
 					position: add(at, turn ? qRotate(turn, c.offset) : c.offset),
-					...(turn ? { rotation: turn } : {})
+					...(turn ? { rotation: turn } : {}),
+					...(c.wheel ? { friction: 0 } : {})
 				});
 				shapeParts.push(id);
-				extras.push([id, c.offset, c.halfExtents]);
+				extras.push([id, c.offset, c.halfExtents, c.wheel ? 1 : 0]);
 			}
 		}
 	}
-	return { shapes, shapeParts, signature: JSON.stringify(extras) };
+	return { shapes, shapeParts, signature: JSON.stringify(extras), wheels };
 }
 
 /**
@@ -288,6 +297,7 @@ export function createVesselBody(
 		inertiaFrame: mp.inertiaFrame,
 		masses: restored?.masses ?? new Map(vessel.parts.map((id) => [id, partMass(core, id)])),
 		shapeParts: colliders.shapeParts,
+		...(colliders.wheels.size > 0 ? { wheels: colliders.wheels } : {}),
 		signature: colliders.signature
 	});
 }
@@ -375,6 +385,7 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		const centre = add(frame.origin, motion.centre);
 		backend.applyForce(body.handle, scale(gravityAt(planet.mu, centre), body.mass));
 		updateTile(core, frame, planet, vesselId, centre);
+		stepWheels(core, frame, vesselId, body, centre, dt);
 		stepWalking(core, frame, vesselId, body);
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
@@ -388,6 +399,77 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		frame.waterImpacts.push(...water.impacts);
 	}
 	return overheated;
+}
+
+/**
+ * Tyre forces (plan 063, ADR 0161 point 1) at the wheels that touched the ground in the last step:
+ * rolling resistance and brakes along each wheel's rolling direction (the part's +Y, steered about
+ * the ground normal by the yaw demand), side grip across it, each limited by its coefficient times
+ * the wheel's share of the weight and by what stops the motion in one step.
+ */
+/** Share of a wheel's slip speed the tyre takes out per step (see `stepWheels`). */
+const WHEEL_SETTLE = 0.25;
+
+function stepWheels(
+	core: SimCore,
+	frame: FlightFrame,
+	vesselId: EntityId,
+	body: FlightBody,
+	centreWorld: Vec3,
+	dt: number
+): void {
+	const contacts = frame.wheelContacts?.get(vesselId);
+	const tile = frame.tiles.get(vesselId);
+	if (!body.wheels || !contacts || contacts.size === 0 || !tile) return;
+	const vessel = vesselOf(core, vesselId);
+	const planet = bodyOfFrame(core, frame);
+	const weight = body.mass * length(gravityAt(planet.mu, centreWorld));
+	const n = tile.up;
+	const load = weight / contacts.size;
+	const share = body.mass / contacts.size;
+	const motion = bodyMotion(frame, body);
+	const omega = spinAt(planet, core.t);
+	const yaw = effectiveControl(vessel).yaw;
+	for (const [shape, local] of [...contacts].sort((a, b) => a[0] - b[0])) {
+		const point = add(motion.origin, qRotate(motion.rotation, local));
+		const ref = body.wheels.get(shape);
+		if (!ref || !core.world.hasEntity(ref.part)) continue;
+		const part = partOf(core, ref.part);
+		const instance = part.modules.find((m) => m.id === ref.module);
+		const spec = instance
+			? moduleDefOf(core, ref.module).colliders?.(
+					instance.config,
+					moduleState(core, ref.part, ref.module)
+				)[ref.k]?.wheel
+			: undefined;
+		if (!spec) continue;
+		const v = add(motion.linear, cross(motion.angular, sub(point, motion.centre)));
+		const ground = sub(cross(omega, add(frame.origin, point)), frame.velocity);
+		const rel = sub(v, ground);
+		const tangential = sub(rel, scale(n, dot(rel, n)));
+		const turn = isTurned(part) ? partRotation(part) : undefined;
+		const along = qRotate(
+			motion.rotation,
+			turn ? qRotate(turn, { x: 0, y: 1, z: 0 }) : { x: 0, y: 1, z: 0 }
+		);
+		const flat = sub(along, scale(n, dot(along, n)));
+		if (length(flat) < 1e-6) continue;
+		let roll = normalize(flat);
+		const steer = spec.steer * yaw;
+		if (steer !== 0) {
+			const side0 = cross(n, roll);
+			roll = add(scale(roll, Math.cos(steer)), scale(side0, Math.sin(steer)));
+		}
+		const side = cross(n, roll);
+		// A push at the contact also turns the craft (the point sits below the centre of mass), so the
+		// effective mass there is well under the share: take a quarter of the speed out per step, which
+		// settles in a few steps where the whole of it overshoots and shimmies.
+		const stop = (speed: number, limit: number): number =>
+			-Math.max(-limit, Math.min(limit, (WHEEL_SETTLE * speed * share) / dt));
+		const fRoll = stop(dot(tangential, roll), (spec.rolling + spec.brake * spec.grip) * load);
+		const fSide = stop(dot(tangential, side), spec.grip * load);
+		frame.backend.applyForce(body.handle, add(scale(roll, fRoll), scale(side, fSide)), point);
+	}
 }
 
 /** Push mass, centre of mass and inertia to the backend when any part's mass changed (propellant flow). */
@@ -619,6 +701,20 @@ function groundContacts(
 					.contacts(body.handle, tile.stones.handle)
 					.filter((c) => c.distance <= CONTACT_DISTANCE)
 			: [];
+		// wheels in contact, for the tyre forces of the next step (plan 063, ADR 0161)
+		if (body.wheels) {
+			// kept in the body's own axes: the frame may re-anchor before the next step uses them
+			const pose = frame.backend.getTransform(body.handle);
+			const toBody = (p: Vec3): Vec3 => qRotate(qConj(pose.rotation), sub(p, pose.position));
+			const wheelPoints = new Map<number, Vec3>();
+			for (const c of touching) {
+				if (!body.wheels.has(c.shape)) continue;
+				const local = toBody(c.point);
+				const seen = wheelPoints.get(c.shape);
+				wheelPoints.set(c.shape, seen ? scale(add(seen, local), 0.5) : local);
+			}
+			(frame.wheelContacts ??= new Map()).set(vesselId, wheelPoints);
+		}
 		if (touching.length === 0 && onStones.length === 0) continue;
 		vessel.landed = true;
 		const centre = bodyMotion(frame, body).centre;

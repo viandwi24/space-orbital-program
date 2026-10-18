@@ -46,6 +46,7 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 		)
 		.min(1),
 	stages: z.array(z.array(index)),
+	aircraft: z.boolean().optional(),
 	groups: z
 		.array(
 			z.object({
@@ -99,6 +100,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		roll: z.number().min(-1).max(1)
 	}),
 	z.object({ type: z.literal('stage'), vessel: entity }),
+	z.object({ type: z.literal('trim'), vessel: entity, pitch: z.number().min(-1).max(1) }),
 	z.object({
 		type: z.literal('sas'),
 		vessel: entity,

@@ -67,8 +67,19 @@ export function facilitiesOf(
 }
 
 /** Whether a facility takes a design of this wet mass, kg (ADR 0150 point 3). */
-export const accepts = (facility: Pick<Facility, 'massLimit'>, wetMassKg: number): boolean =>
-	facility.massLimit === null || wetMassKg <= facility.massLimit * 1000;
+/**
+ * Whether the facility takes a design: under its mass limit and, when the design says whether it is
+ * an aircraft (plan 063, ADR 0161 point 3), an aircraft on a runway and anything else on a pad.
+ */
+export const accepts = (
+	facility: Pick<Facility, 'massLimit'> & Partial<Pick<Facility, 'kind'>>,
+	wetMassKg: number,
+	aircraft?: boolean
+): boolean =>
+	(facility.massLimit === null || wetMassKg <= facility.massLimit * 1000) &&
+	(aircraft === undefined ||
+		facility.kind === undefined ||
+		(facility.kind === 'runway') === aircraft);
 
 /** Where the vessel stands: the facility's centre on the site's body (ADR 0150 point 2). */
 export function placementOf(
