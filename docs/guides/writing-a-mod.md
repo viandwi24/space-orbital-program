@@ -425,6 +425,11 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **A suit radio:** `defineAntenna({ ..., band: 'stock.uhf', range: 1_500, suit: true })` on your suit part. A crewed vessel in sight relays it, within its own range rating. A crew member's `radio` ability stretches that range (a trait may scale it: `abilities: { radio: 1.2 }`).
 - **Broadcasts:** a world first may be broadcast live with `comms-broadcast { milestone }` for an hour after it, when its vessel reaches the ground at 100 kbit/s or more. It pays half the milestone's reputation.
 
+**Stored science and the science panel (API 0.1.74, plan 191, ADR 0194).**
+
+- **`VesselSnapshot.science.stored`:** each science result aboard, as `{ item, subject, value, factor }`. Transmitting it credits `value × factor`.
+- **The stock panel `stock.science`:** lists the experiments and the stored results. It runs the next experiment that may run and transmits the best result. A panel of your own can read the same fields.
+
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 
 The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:

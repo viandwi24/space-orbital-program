@@ -270,10 +270,24 @@ export function vesselScienceSnapshot(
 		}
 	}
 	if (experiments.length === 0) return undefined;
+	const stored: NonNullable<NonNullable<VesselSnapshot['science']>['stored']> = [];
+	for (const storage of storagesOf(core, vesselId)) {
+		for (const item of storage.state.items) {
+			if (item.subject === undefined || !core.science.subjects.has(item.subject)) continue;
+			const factor = item.meta?.['transmitFactor'];
+			stored.push({
+				item: item.id,
+				subject: item.subject,
+				value: item.value,
+				factor: typeof factor === 'number' ? factor : 1
+			});
+		}
+	}
 	return {
 		situation: vesselSituation(core, vesselId, true) ?? null,
 		region: regionUnder(core, vesselId),
-		experiments
+		experiments,
+		...(stored.length > 0 ? { stored } : {})
 	};
 }
 

@@ -204,6 +204,11 @@ export interface VesselSnapshot {
 			reason?: string;
 			progress: number;
 		}>;
+		/**
+		 * Science results stored aboard (plan 191, ADR 0194): the item, its subject, the value made and
+		 * the transmit factor; transmitting credits `value × factor`.
+		 */
+		stored?: Array<{ item: string; subject: string; value: number; factor: number }>;
 	};
 	/**
 	 * Part actions of a vessel in flight (plan 110, ADR 0174): group states and the changing part of

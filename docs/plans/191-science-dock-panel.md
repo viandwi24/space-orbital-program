@@ -1,12 +1,12 @@
 ---
 id: 191
 title: "Science dock panel: experiments, results and transmit in flight"
-status: draft
-owner: ""
+status: done
+owner: "Agent 1 (Lead)"
 depends: [103, 112]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 191 — Science dock panel: experiments, results and transmit in flight
@@ -17,7 +17,7 @@ In flight the player sees the vessel's experiments with their state (READY, RUNN
 
 ## Context
 
-- ADRs: 0099, 0178, 0102 point 4 (dock panels).
+- ADRs: 0099, 0178, 0102 point 4 (dock panels), [0194](../decisions/0194-science-dock-panel-stored-results.md) (new: stored results in the snapshot, the two buttons).
 - Plan 103 built the model: `VesselSnapshot.science`, data items (083), `transmit-data`, the `run` action.
 
 ## Scope
@@ -39,14 +39,15 @@ In flight the player sees the vessel's experiments with their state (READY, RUNN
 
 ## Acceptance criteria
 
-- [ ] vitest: the panel shows an INVALID experiment with its reason and a stored item with its transmit value; the Run and Transmit buttons send `action run` and `transmit-data`.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: the panel shows an INVALID experiment with its reason and a stored item with its transmit value; the Run and Transmit buttons send `action run` and `transmit-data`.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated.
-- [ ] `docs/journal/191-science-dock-panel.md` written.
+- [x] `docs/STATUS.md` updated.
+- [x] `docs/journal/191-science-dock-panel.md` written.
 
 ## Log
 
 - 2026-10-17 — Created as a draft by Agent 3 while refining plan 103: the HUD card left out of 103.
+- 2026-10-18 — Done by Agent 1 (Lead) on lead/followups. ADR 0194: the dock view is fixed, so one Run button picks the next experiment and one Transmit button picks the best stored result; the snapshot gains `science.stored` (API 0.1.74). Vitest `dock/science-panel.test.ts` (3) and sim `science.test.ts` (the stored list before and after a transmit) pass.

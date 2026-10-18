@@ -193,3 +193,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0191 | [Comms tier 5: channels, frequency licences, interference and encryption](0191-comms-channels-licences-interference-encryption.md) | accepted | 2026-10-18 |
 | 0192 | [Discovery science: seeded facts, noisy measurements, data levels in the lab, claims judged by a proper scoring rule](0192-discovery-science-facts-measurements-levels-claims-review.md) | accepted | 2026-10-18 |
 | 0193 | [Comms tier 6: suit radios relayed by crewed vessels, the radio ability, fine terrain sampling, live broadcasts of firsts](0193-comms-tier-6-suit-radios-broadcasts.md) | accepted | 2026-10-18 |
+| 0194 | [The science dock panel: stored results in the snapshot, Run and Transmit over a fixed view](0194-science-dock-panel-stored-results.md) | accepted | 2026-10-18 |
