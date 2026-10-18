@@ -2,7 +2,7 @@
 
 > Living document. Updated at the end of every plan. Keep it short; details go in plans, ADRs and the journal.
 
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-19
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
 **Current plan:** none: the three-agent foundation roadmap (`docs/roadmap/`) is complete, 68 of 68 plans done and the phase gates `cp/f1-done` to `cp/f6-done` passed on 2026-10-18 (full suite and 85 e2e on Chromium, Firefox and WebKit on the M5); 072 and 073 were closed on the owner's instruction with their human passes waived
 **Next plan:** the release roadmap (`docs/roadmap/release-roadmap.md`, plans 200–232, ADRs 0200–0210): take the lowest draft whose depends are done, starting with wave 1 (200, 201, 202, 203, 204, 207, 212, 216, 217, 220, 227). Earlier note: none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
@@ -153,7 +153,7 @@
 | 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
 | 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
-| 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | in-progress | Worker A | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | done | Worker A | ADR 0212: stock parts split into `mods/stock/src/parts/<family>.ts`; node `size` (API 0.1.75); booster ring and bell winding fixed; seam test for every generator; auto shrouds; adapters and nose/tail cones per size; Hangar size-mismatch check |
 | 208 | [Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost](plans/208-power-and-resources.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
 | 209 | [Parachutes](plans/209-parachutes.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
 | 210 | [SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts](plans/210-propulsion-and-structure-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207, 208]. |

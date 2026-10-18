@@ -1,7 +1,7 @@
 ---
 id: 207
 title: "Part size classes, seam tests, auto shrouds, adapters and cones"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: []
 phase: 7
@@ -68,24 +68,26 @@ Stock parts live in one file per part family, so the parallel parts plans do not
 
 ## Acceptance criteria
 
-- [ ] After step 1: `bun test mods/stock` passes, including `test/part-ids.test.ts`, whose snapshot of every stock part id, mass, cost and module list is identical to the one taken before the split.
-- [ ] After step 1: `bun run check:affected` passes and shows no change to part ids (the `part-ids` snapshot file is unchanged in the diff).
-- [ ] `bun test packages/renderer` passes, including `test/part-seams.test.ts`: every generator's revolved profiles run bottom to top, and every attach rim matches its node radius within 1 mm; the test fails on the pre-fix booster profile.
-- [ ] `bun test packages/renderer` passes `test/shrouds.test.ts`: an engine with a 1.25 m tank below gets a 1.25 m shroud; with nothing below it has none.
-- [ ] `bun test packages/core` passes the schema test for node `size` (defaults for older mod parts).
-- [ ] `apps/web` vitest `editor/checks.test.ts` (extended): a 2.5 m part on a 1.25 m node gives a "size mismatch" check with text.
-- [ ] Chromium e2e `e2e/editor.e2e.ts` (extended): placing a nose cone on the booster in the Hangar shows no mismatch; a 0.625 cone on a 1.25 tank shows the mark.
-- [ ] `bun run check:affected --e2e e2e/editor.e2e.ts` passes.
-- [ ] CI green on the `ready/207` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] After step 1: `bun test mods/stock` passes, including `test/part-ids.test.ts`, whose snapshot of every stock part id, mass, cost and module list is identical to the one taken before the split.
+- [x] After step 1: `bun run check:affected` passes and shows no change to part ids (the `part-ids` snapshot file is unchanged in the diff).
+- [x] `bun test packages/renderer` passes, including `test/part-seams.test.ts`: every generator's revolved profiles run bottom to top, and every attach rim matches its node radius within 1 mm; the test fails on the pre-fix booster profile.
+- [x] `bun test packages/renderer` passes `test/shrouds.test.ts`: an engine with a 1.25 m tank below gets a 1.25 m shroud; with nothing below it has none.
+- [x] `bun test packages/core` passes the schema test for node `size` (defaults for older mod parts).
+- [x] `apps/web` vitest `editor/checks.test.ts` (extended): a 2.5 m part on a 1.25 m node gives a "size mismatch" check with text.
+- [x] Chromium e2e `e2e/editor.e2e.ts` (extended): placing a nose cone on the booster in the Hangar shows no mismatch; a 0.625 cone on a 1.25 tank shows the mark.
+- [x] `bun run check:affected --e2e e2e/editor.e2e.ts` passes.
+- [x] CI green on the `ready/207` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/207-part-sizes-shrouds-adapters.md` written.
-- [ ] `docs/architecture/plugin-system.md` updated (node `size`, stock parts layout).
-- [ ] ADR 0203 linked.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/207-part-sizes-shrouds-adapters.md` written.
+- [x] `docs/architecture/plugin-system.md` updated (node `size`, stock parts layout).
+- [x] ADR 0203 linked.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-18 — Coordinator: the parts.ts split added as step 1 (plans 208–211, 222 and 225 run in parallel and add parts); the booster ring fix moved here from plan 200; `depends` set to none.
+- 2026-10-19 — Worker A: refined against the code and implemented on `rel/207-part-sizes`. The split landed in its own commit first; the `part-ids` snapshot was taken before the split and passed unchanged after it. Step 6 adds parts on purpose, so the snapshot grows by 8 parts only. ADR 0212 settles what the plan left open: a node size is any joint diameter (the BST-1 line is 0.8 m until plan 210), parts without a size default to their class, the seam band is 5 cm, and a list of faces that are not flat joints. The seam test also found the booster bell's inside and the 0.4 m tank stripe inverted; both are fixed. New parts sit in the Structures tech node until plan 231 (default noted, not asked). The Hangar mark is an icon and text in the pre-flight list; the e2e is in `e2e/editor.e2e.ts` as the AC says.
+- 2026-10-19 — Checks: `bun run check:affected --e2e e2e/editor.e2e.ts` all passed in 724 s (prettier, docs:check, typecheck 11 workspaces and web, bun test 10 workspaces, web vitest 565/565, Chromium e2e 5/5 including the Hangar test).
