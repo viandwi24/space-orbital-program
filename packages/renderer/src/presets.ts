@@ -186,8 +186,11 @@ export function selectPreset(caps: DeviceCapabilities): GraphicsPreset {
 	if (caps.maxTextureSize < 8192) return 'low';
 	if ((caps.deviceMemoryGb ?? 8) < 4) return 'low';
 	if (/intel/.test(gpu) && !/iris.*xe|arc |iris pro|apple/.test(gpu)) return 'low';
-	// Measured only on an Apple M5 (journal 019): M1/M2 are the budget machine, not yet measured, so they get medium.
-	if (/apple m[12]\b/.test(gpu)) return 'medium';
+	// The base M1/M2 GPU (plan 066, ADR 0157): `medium` read 33 ms at the pad at 1080p on an M2 (budget
+	// 13.3), `low` 21.6, so they start on `low` and the governor's rungs take it from there. Their Pro, Max
+	// and Ultra GPUs are two to four times larger and not measured: `medium` until they are.
+	if (/apple m[12] (pro|max|ultra)\b/.test(gpu)) return 'medium';
+	if (/apple m[12]\b/.test(gpu)) return 'low';
 	if (/apple m\d|nvidia|geforce|rtx|radeon rx|radeon pro|arc/.test(gpu)) return 'high';
 	return 'medium';
 }

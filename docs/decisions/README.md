@@ -154,6 +154,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0154 | [Tech tree: nodes, research, locks at the Hangar and at launch, pacing by science yield](0154-tech-tree-nodes-research-locks-and-pacing-by-science-yield.md) | accepted | 2026-10-18 |
 | 0155 | [Range safety: the safe fan from the water map, the drop predicted at staging, penalties once](0155-range-safety-fans-impacts-at-staging-and-penalties.md) | accepted | 2026-10-18 |
 | 0156 | [Part reliability: failure modes as data, experience per part model, grades, the test stand, repair](0156-part-reliability-failure-modes-experience-grades-test-stand.md) | accepted | 2026-10-18 |
+| 0157 | [The base M1 and M2 start on `low`; the renderer misses ADR 0025's budget on its budget machine](0157-the-base-m1-and-m2-start-on-low.md) | accepted | 2026-10-18 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
 | 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
