@@ -1,7 +1,7 @@
 /** Stack decoupler: separation ring with a hazard-yellow band and pyro bolts. */
-import type { GenContext } from '../registry.ts';
+import type { GenContext, GeneratedPart } from '../registry.ts';
 
-export function decoupler(ctx: GenContext): void {
+export function decoupler(ctx: GenContext): GeneratedPart {
 	const { radius: R, height: H, builder: b, detail } = ctx;
 	const h2 = H / 2;
 	const groove = R * 0.95;
@@ -31,4 +31,6 @@ export function decoupler(ctx: GenContext): void {
 			});
 		}
 	}
+	// On a wider part the ring flares out to it from its top rim (plan 207).
+	return { shroud: { top: h2 - 0.02, bottom: -h2, radius: R, when: 'wider' } };
 }

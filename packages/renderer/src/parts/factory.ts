@@ -19,6 +19,8 @@ import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effec
 import { articulationRotation, articulationValue, type ArticulationSpec } from './articulation.ts';
 import { GeometryBuilder, type BuiltGeometry, type SlotName } from './builder.ts';
 import { registerStockGenerators } from './generators/index.ts';
+import { revolve } from './revolve.ts';
+import { shroudProfile } from './shroud.ts';
 import { MaterialLibrary, NO_GLOW_SLOTS } from './materials.ts';
 import {
 	getPartGenerator,
@@ -56,6 +58,13 @@ function paramReader(visual: PartVisual): GenContext['param'] {
 	};
 }
 
+/** Geometry every model of one provider shares; shrouds are keyed by part, segments and size. */
+interface SharedGeometry {
+	plumeGeometry: BufferGeometry;
+	spriteGeometry: BufferGeometry;
+	shrouds: Map<string, BufferGeometry>;
+}
+
 interface Template {
 	built: BuiltGeometry;
 	/** The geometry that moves, when the generator made some (ADR 0045). */
@@ -86,14 +95,17 @@ class ProceduralModel implements PartModel {
 	private engine = { throttle: 0, ignited: false, flameout: false };
 	private owned: Material[] = [];
 	private hot = false;
+	private shroudMesh: Mesh | null = null;
+	private shroudSize: number | null = null;
 
 	constructor(
 		readonly definition: string,
-		visual: PartVisual,
-		template: Template,
+		private readonly visual: PartVisual,
+		private readonly template: Template,
 		readonly nodes: Readonly<Record<string, PartNode>>,
-		materials: MaterialLibrary,
-		shared: { plumeGeometry: BufferGeometry; spriteGeometry: BufferGeometry }
+		private readonly materials: MaterialLibrary,
+		private readonly shared: SharedGeometry,
+		private readonly segments: number
 	) {
 		this.root.name = `part:${definition}`;
 		const mats = template.built.slots.map((s) => materials.get(s, visual.palette));
@@ -140,6 +152,34 @@ class ProceduralModel implements PartModel {
 				this.pivot.add(this.plume.root);
 			} else this.root.add(this.plume.root);
 		}
+	}
+
+	get shroud(): number | null {
+		return this.shroudSize;
+	}
+
+	setShroud(size: number | null): void {
+		const spec = this.template.generated.shroud;
+		if (!spec) return;
+		const profile = shroudProfile(spec, size);
+		const wanted = profile ? size : null;
+		if (wanted === this.shroudSize) return;
+		this.shroudMesh?.removeFromParent();
+		this.shroudMesh = null;
+		this.shroudSize = wanted;
+		if (!profile || wanted === null) return;
+		const key = `${this.definition}|${this.segments}|${wanted}`;
+		let geometry = this.shared.shrouds.get(key);
+		if (!geometry) {
+			geometry = revolve(profile, { segments: this.segments, tile: 1 });
+			this.shared.shrouds.set(key, geometry);
+		}
+		const mesh = new Mesh(geometry, this.materials.get('paint-primary', this.visual.palette));
+		mesh.name = 'shroud';
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		this.shroudMesh = mesh;
+		this.root.add(mesh);
 	}
 
 	setState(state: PartRuntimeState): void {
@@ -203,6 +243,7 @@ class ProceduralModel implements PartModel {
 	private cloneMaterials(): void {
 		const targets: Mesh[] = [this.mesh];
 		if (this.movingMesh) targets.push(this.movingMesh);
+		if (this.shroudMesh) targets.push(this.shroudMesh);
 		this.dynamic?.object.traverse((o) => {
 			if (o instanceof Mesh) targets.push(o);
 		});
@@ -230,9 +271,10 @@ class ProceduralModel implements PartModel {
 export class ProceduralProvider implements PartModelProvider {
 	readonly id = 'procedural';
 	private readonly templates = new Map<string, Template>();
-	private readonly shared = {
+	private readonly shared: SharedGeometry = {
 		plumeGeometry: createPlumeGeometry(24),
-		spriteGeometry: createSpriteGeometry()
+		spriteGeometry: createSpriteGeometry(),
+		shrouds: new Map()
 	};
 
 	constructor() {
@@ -293,7 +335,8 @@ export class ProceduralProvider implements PartModelProvider {
 			template,
 			request.attach ?? defaultNodes(shape),
 			context.materials,
-			this.shared
+			this.shared,
+			request.detail.segments
 		);
 	}
 
@@ -305,6 +348,8 @@ export class ProceduralProvider implements PartModelProvider {
 		this.templates.clear();
 		this.shared.plumeGeometry.dispose();
 		this.shared.spriteGeometry.dispose();
+		for (const g of this.shared.shrouds.values()) g.dispose();
+		this.shared.shrouds.clear();
 	}
 }
 

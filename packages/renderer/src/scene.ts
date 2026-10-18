@@ -59,6 +59,7 @@ import {
 } from './effects/transitions.ts';
 import { ConnectorBars, type ConnectorBar } from './parts/connector.ts';
 import { PartModelFactory } from './parts/factory.ts';
+import { applyShrouds, shroudCandidates } from './parts/shroud.ts';
 import { mergeShardSources, shardSourceFromGeometry, type ShardSource } from './effects/shards.ts';
 import {
 	DEFAULT_PART_SHAPE,
@@ -1665,6 +1666,7 @@ export class SceneModel {
 		const bars: ConnectorBar[] = [];
 		let extent = 2;
 		const info = this.bodyInfo.get(v.soi);
+		let changed = false;
 		for (const part of v.parts) {
 			const pid = part.id;
 			seen.add(pid);
@@ -1682,6 +1684,7 @@ export class SceneModel {
 				p = { model: this.factory.create(part.definition), definition: part.definition };
 				entry.group.add(p.model.root);
 				entry.parts.set(pid, p);
+				changed = true;
 			}
 			// Part transforms are expressed in the frame's orientation, relative to the vessel root
 			// (protocol.ts PartSnapshot), so they are applied as given.
@@ -1715,7 +1718,10 @@ export class SceneModel {
 			entry.group.remove(p.model.root);
 			p.model.dispose();
 			entry.parts.delete(pid);
+			changed = true;
 		}
+		// The parts of a vessel are rigid, so shrouds change only when a part joins or leaves.
+		if (changed) applyShrouds(shroudCandidates(entry.parts));
 		if (this.highlight.id !== null) this.applyHighlight();
 	}
 }

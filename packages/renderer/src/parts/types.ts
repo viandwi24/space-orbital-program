@@ -69,6 +69,13 @@ export interface PartModel {
 	 * geometry and materials as an `InstancedMesh`; pieces that animate stay on `root`.
 	 */
 	readonly staticMesh?: Mesh;
+	/**
+	 * Size (m) of the node of the part on this part's bottom node, or null for none: an engine or
+	 * decoupler grows or drops its auto shroud (plan 207). Absent on models without one.
+	 */
+	setShroud?(size: number | null): void;
+	/** The size the shroud was last built for, null without one. */
+	readonly shroud?: number | null;
 	/** Apply a snapshot (targets for animation, glow, plume). */
 	setState(state: PartRuntimeState): void;
 	/** Advance animations by `dt` seconds of wall-clock time. */

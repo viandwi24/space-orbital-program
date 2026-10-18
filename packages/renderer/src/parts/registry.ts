@@ -2,6 +2,7 @@
 import type { PartVisual } from '@orbital/core';
 import type { Material, Object3D } from 'three';
 import type { GeometryBuilder, SlotName } from './builder.ts';
+import type { ShroudSpec } from './shroud.ts';
 import type { PartDetail } from './types.ts';
 
 export interface GenContext {
@@ -34,6 +35,8 @@ export interface DynamicPart {
 }
 
 export interface GeneratedPart {
+	/** Where the auto shroud hangs when a part sits on the bottom node (plan 207, ADR 0212). */
+	shroud?: ShroudSpec;
 	/** Pivot of `ctx.moving` in the part frame; required when the generator adds moving geometry. */
 	pivot?: readonly [number, number, number];
 	dynamic?: (material: (slot: SlotName) => Material) => DynamicPart;

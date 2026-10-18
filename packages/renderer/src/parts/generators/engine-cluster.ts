@@ -77,5 +77,9 @@ export function engineCluster(ctx: GenContext): GeneratedPart {
 		{ r: Math.max(0.02, ring - exitR * 0.5), y: plateBottom }
 	]);
 
-	return { pivot: [0, plateBottom, 0] };
+	// A skirt from the plate's rim to the part below covers the bells (plan 207).
+	return {
+		pivot: [0, plateBottom, 0],
+		shroud: { top: plateBottom + 0.02, bottom: -h2, radius: R, when: 'always' }
+	};
 }

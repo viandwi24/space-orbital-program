@@ -143,5 +143,9 @@ export function engine(ctx: GenContext): GeneratedPart {
 		}
 	}
 
-	return { pivot: [0, plateBottom, 0] };
+	// A skirt from the plate's rim to the part below covers the bell (plan 207).
+	return {
+		pivot: [0, plateBottom, 0],
+		shroud: { top: plateBottom + 0.02, bottom: -h2, radius: R, when: 'always' }
+	};
 }

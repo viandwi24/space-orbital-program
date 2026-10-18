@@ -34,6 +34,7 @@ import {
 	type VabScene
 } from './scene-model.ts';
 import { ConnectorBars } from '../parts/connector.ts';
+import { applyShrouds, shroudCandidates } from '../parts/shroud.ts';
 import type { PartVisual } from '@orbital/core';
 
 export interface PartEntry {
@@ -178,6 +179,11 @@ export class PartLayer {
 			e.model.root.position.set(...p.position);
 			applyPartTurn(e.model.root, p);
 			e.model.root.updateMatrix();
+		}
+		// Auto shrouds (plan 207): per group, from where the parts' nodes meet.
+		for (const id of this.groups.keys()) {
+			const inGroup = new Map([...this.parts].filter(([, e]) => e.group === id));
+			applyShrouds(shroudCandidates(inGroup));
 		}
 		for (const [id, g] of this.groups) {
 			g.bars.sync(
