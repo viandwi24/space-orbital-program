@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 117 comms-3 claimed (claim/117) on devc/117-comms-routing; 101 handed over (ready/101).
-**Waiting for:** the merge of 101; nothing for 117.
+**Now:** 117 comms-3 in progress on devc/117-comms-routing; 101 merged (cp/f3-101-strategies).
+**Waiting for:** nothing; 117 heading for handover.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -24,7 +24,7 @@
 | 067 buoyancy | done | `devc/067-buoyancy` | 2026-10-18 | merged 201d76e, cp/f3-067-buoyancy |
 | 123 elements | done | `devc/123-elements` | 2026-10-18 | merged 8403dd7, cp/f5-123-elements |
 | 099 contracts | done | `devc/099-contracts` | 2026-10-18 | merged 5bbe137, cp/f3-099-contracts |
-| 101 strategies | done | `devc/101-strategies` | 2026-10-17 | merged 3608196, cp/f3-101-strategies |
+| 101 strategies | done | `devc/101-strategies` | 2026-10-18 | merged 3608196, cp/f3-101-strategies |
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | in-progress | `devc/117-comms-routing` | 2026-10-18 | claimed |
 | 119 comms-4 | todo |  |  |  |
