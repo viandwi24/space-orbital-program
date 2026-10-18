@@ -1,12 +1,12 @@
 ---
 id: 070
 title: "Communications: index of the comms tier plans 114 to 121"
-status: draft
-owner: ""
+status: done
+owner: "Agent 1"
 depends: [040, 114, 115, 116, 117, 118, 119, 120, 121]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 070 — Communications (index)
@@ -44,11 +44,11 @@ A vessel can lose its link, and the network becomes a game: this is the index of
 
 ## Acceptance criteria
 
-- [ ] Plans 114 to 121 are `done`; then this index is set to `done` with a short journal entry that links them, and the public roadmap item moves to the tier plans (plan 076).
+- [x] Plans 114 to 121 are `done`; then this index is set to `done` with a short journal entry that links them, and the public roadmap item moves to the tier plans (plan 076).
 
 ## Docs checklist
 
-- [ ] STATUS, journal (index closure), roadmap item (plan 076).
+- [x] STATUS, journal (index closure), roadmap item (plan 076).
 
 ## Log
 
@@ -56,3 +56,4 @@ A vessel can lose its link, and the network becomes a game: this is the index of
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0101): the plan becomes the index of the comms tier plans 114 to 121; its earlier scope (link model, delay, loss of control, HUD, SDK hook) is covered and superseded by them.
 - 2026-10-17 — `depends` gains 114, 115, 116, 117, 118, 119, 120, 121 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): this index is done only when plans 114 to 121 are done (its own acceptance criterion).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
+- 2026-10-18 — Closed by Agent 1: plans 114 to 121 are all `done` (checkpoints `cp/f4-114-comms-1` to `cp/f4-121-comms-6`; 121 merged last). The public roadmap already lists each tier as its own item (plan 076); this index's item stays, labelled shipped. Journal: [070](../journal/070-communications-index.md).
