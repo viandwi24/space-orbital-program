@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** lane done: 118 handed over as `ready/118`; 072 and 073 merged, both blocked on the owner's passes.
-**Waiting for:** the merge of 118 (`ready/118`) and its CI result; the owner's decision on 072 and 073.
+**Now:** lane done: every task merged (118 at 8ef33384); 072 and 073 merged and blocked on the owner's passes. Idle; polling the remote for a bounce or a reassignment.
+**Waiting for:** the owner's decision on 072 and 073; any reassignment in `checkpoints.md`.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
