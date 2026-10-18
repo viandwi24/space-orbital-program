@@ -14,6 +14,7 @@ import type {
 	ExperimentDefinition,
 	SituationDefinition,
 	AntennaDefinition,
+	BandDefinition,
 	GroundStationDefinition,
 	SystemVariantDefinition,
 	DossierEntryDefinition,
@@ -293,6 +294,13 @@ export const defineSituation = (def: SituationDefinition): SituationDefinition =
  * `ctx.antennas`; a part carries it through the `stock.antenna` module.
  */
 export const defineAntenna = (def: AntennaDefinition): AntennaDefinition => def;
+
+/**
+ * A radio band (plan 116, ADR 0185): frequency (Hz) and the receivers' noise temperature (K). An
+ * antenna names its band (`band`) and gives a `gain` (dBi) or a dish `aperture` (m). Register with
+ * `ctx.bands`.
+ */
+export const defineBand = (def: BandDefinition): BandDefinition => def;
 
 /** A fixed ground station on a body (every world site is one already). Register with `ctx.groundStations`. */
 export const defineGroundStation = (def: GroundStationDefinition): GroundStationDefinition => def;

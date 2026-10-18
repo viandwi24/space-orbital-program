@@ -40,8 +40,10 @@ import {
 } from './science.ts';
 import {
 	antennaDefinitionSchema,
+	bandDefinitionSchema,
 	groundStationDefinitionSchema,
 	type AntennaDefinition,
+	type BandDefinition,
 	type GroundStationDefinition
 } from './comms.ts';
 import { dossierEntryDefinitionSchema, type DossierEntryDefinition } from './dossier.ts';
@@ -253,6 +255,8 @@ export interface Registries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: Registry<AntennaDefinition>;
 	groundStations: Registry<GroundStationDefinition>;
+	/** Radio bands (plan 116, ADR 0185). */
+	bands: Registry<BandDefinition>;
 	/** Systems and scale variants (plan 124, ADR 0184). */
 	systemVariants: Registry<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
@@ -304,6 +308,7 @@ export function createRegistries(): Registries {
 		groundStations: createRegistry<GroundStationDefinition>('ground-station', {
 			schema: groundStationDefinitionSchema
 		}),
+		bands: createRegistry<BandDefinition>('band', { schema: bandDefinitionSchema }),
 		systemVariants: createRegistry<SystemVariantDefinition>('system-variant', {
 			schema: systemVariantDefinitionSchema
 		}),

@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -30,7 +30,17 @@ export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
 export { scenarioPlacement } from '@orbital/core';
 export { isResearched, lockedParts, nodeOfParts, researchProblem } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectCap, subjectId } from '@orbital/core';
-export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
+export {
+	blackoutLevelFromFlux,
+	linkRange,
+	linkBudget,
+	antennaGain,
+	dishGain,
+	freeSpaceLoss,
+	rateForMargin,
+	RATE_LADDER,
+	BLACKOUT_BADGE_LEVEL
+} from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
 // Ephemeris helpers for system packs (plans 123 and 124, ADRs 0183 and 0184).
@@ -204,8 +214,10 @@ export type {
 	SituationDefinition,
 	SituationView,
 	AntennaDefinition,
+	BandDefinition,
 	ControlState,
 	GroundStationDefinition,
+	LinkBudget,
 	LinkReason,
 	SignalState,
 	SystemChoice,

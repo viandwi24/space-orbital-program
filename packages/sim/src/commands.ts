@@ -394,6 +394,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return transmitData(core, command.vessel, command.item);
 		}
+		case 'comms-inspect':
+			// view state (ADR 0185 point 9): never saved, never refused
+			core.comms.inspect = command.vessel;
+			return accept();
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

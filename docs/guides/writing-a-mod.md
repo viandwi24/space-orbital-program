@@ -287,6 +287,16 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **A ground station.** `ctx.groundStations.register(defineGroundStation({ id: 'acme.north-station', label: 'North station', body: 'stock.home', latitude: 1.2, longitude: 0.4, range: 5e10 }))`. Every world site is already a station.
 - **Probes.** A control source on a part without seats (`crewCapacity` 0) makes a probe. Without a link it follows the world's `stock.control-without-signal` rule. Read the state in a module with `ctx.vessel.signal()`.
 
+**Bands and data rates (API 0.1.60, plan 116, ADR 0185).**
+
+- **A band.** `ctx.bands.register(defineBand({ id: 'acme.c', label: 'C band', frequency: 5e9, noiseTemperature: 120 }))`. Stock registers `stock.uhf`, `stock.s`, `stock.x`, `stock.ka` and `stock.optical`.
+- **An antenna's band.** Add `band` and either a fixed `gain` (dBi) or a dish `aperture` (m) to the antenna, for example `defineAntenna({ ..., band: 'stock.x', aperture: 2 })`. Without a known band, the antenna links as in tier 1 and has no data rate.
+- **What the link carries.** The range rule above still decides whether a vessel is linked. The link's rate comes from a Friis budget on the best band the two ends share:
+  - stations receive on every band, with a 10, 34 or 70 m dish by tier, or the station's own `aperture`;
+  - `stock.comms-scale` divides the distance in the budget;
+  - the rate steps through decades from 1 kbit/s to 1 Gbit/s, every 10 dB of margin.
+- **Reading it.** `ctx.vessel.signal().rate` gives the rate in bit/s. The pure functions `linkBudget`, `freeSpaceLoss`, `dishGain`, `antennaGain` and `rateForMargin` are exported from `@orbital/sdk`.
+
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 
 The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:
