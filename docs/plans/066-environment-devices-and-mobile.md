@@ -1,12 +1,12 @@
 ---
 id: 066
 title: "Environment on real devices: M1/M2, integrated Intel, phones"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [038]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 066 — Environment on real devices
@@ -55,3 +55,4 @@ The flight view's frame budget, shader compile times and preset choice are measu
 
 - 2026-10-17 — Created as draft by plan 038 (devices cannot be measured without hardware).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0107, 0097: glass blur and the Space Center view join the device table).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, MacBook Pro M2 13"): the M2 row can be measured here; an integrated Intel GPU and a phone are not available on this machine.
