@@ -1,12 +1,12 @@
 ---
 id: 116
 title: "Comms tier 2: link budget, bands, data rates, comms scale"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [114, 115]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 116 — Comms tier 2: link budget, bands, data rates, comms scale
