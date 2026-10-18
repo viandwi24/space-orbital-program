@@ -73,7 +73,13 @@ export const STOCK_TECH = [
 		requires: ['stock.instruments'],
 		milestone: 'orbit:stock.home',
 		description: 'Fly without crew: a probe core and a whip antenna.',
-		unlocks: ['stock.probe-core', 'stock.whip-antenna', 'stock.solar-panel']
+		unlocks: [
+			'stock.probe-core',
+			'stock.whip-antenna',
+			'stock.solar-panel',
+			'stock.battery-small',
+			'stock.battery-medium'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.aerodynamics',
@@ -103,7 +109,7 @@ export const STOCK_TECH = [
 		requires: ['stock.probes'],
 		milestone: 'flyby:stock.cinder',
 		description: 'A dish for long links and an air sampler.',
-		unlocks: ['stock.dish-antenna', 'stock.atmosphere-sampler']
+		unlocks: ['stock.dish-antenna', 'stock.atmosphere-sampler', 'stock.battery-large']
 	}),
 	defineTechNode({
 		id: 'stock.life-support',

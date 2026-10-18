@@ -1,5 +1,7 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
+import { ModuleResourceContainer } from '../modules.ts';
+import { ElectricCharge } from '../resources.ts';
 import { ModuleSolarPanel } from '../solar.ts';
 import { cylinder, stackNodes } from './shared.ts';
 
@@ -21,5 +23,36 @@ export const PartSolarPanel = definePart({
 	modules: [[ModuleSolarPanel, {}]]
 });
 
-/** Power producers (plan 190). */
-export const STOCK_POWER_PARTS = [PartSolarPanel] as const;
+/**
+ * A battery: a store of electric charge at 5 kg per 100 EC (plan 208, ADR 0203 point 3, the KSP
+ * reference). The three sizes differ in capacity and joint size.
+ */
+const battery = (id: string, title: string, ec: number, size: number, height: number) =>
+	definePart({
+		id,
+		title,
+		mass: kg((ec / 100) * 5),
+		cost: partCost((ec / 100) * 5, 'command'),
+		impactTolerance: 8,
+		maxTemperature: 1000,
+		shape: { kind: 'cylinder', radius: size / 2, height },
+		visual: {
+			kind: 'tank',
+			palette: { primary: '#2b2f36', secondary: '#d5d8dc', accent: '#e3a61f' },
+			params: { stripe: 0.5, bands: 1 }
+		},
+		attach: stackNodes(height, size),
+		modules: [[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: ec } } }]]
+	});
+
+export const PartBatterySmall = battery('stock.battery-small', 'Battery 100', 100, 0.625, 0.3);
+export const PartBatteryMedium = battery('stock.battery-medium', 'Battery 400', 400, 1.25, 0.3);
+export const PartBatteryLarge = battery('stock.battery-large', 'Battery 1000', 1000, 1.25, 0.5);
+
+/** Power producers and stores (plans 190, 208). */
+export const STOCK_POWER_PARTS = [
+	PartSolarPanel,
+	PartBatterySmall,
+	PartBatteryMedium,
+	PartBatteryLarge
+] as const;

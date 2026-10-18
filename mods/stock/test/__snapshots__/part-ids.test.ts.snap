@@ -547,6 +547,57 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 50,
+    "id": "stock.battery-small",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 100,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 200,
+    "id": "stock.battery-medium",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 400,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.battery-large",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 1000,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
     "cost": 850,
     "id": "stock.eva-suit",
     "mass": 85,

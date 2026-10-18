@@ -49,6 +49,9 @@ describe('stock boots through the loader', () => {
 			'stock.atmosphere-sampler',
 			'stock.barometer',
 			'stock.base-kit',
+			'stock.battery-large',
+			'stock.battery-medium',
+			'stock.battery-small',
 			'stock.booster',
 			'stock.command-pod',
 			'stock.control-surface',
@@ -154,10 +157,13 @@ describe('stock boots through the loader', () => {
 				}
 			}
 		}
+		// monopropellant and solid fuel wait for their parts (plans 210 and 211)
+		const later = new Set(['stock.monopropellant', 'stock.solid-fuel']);
 		expect([...used].sort()).toEqual(
 			registries.resources
 				.list()
 				.map((r) => r.id)
+				.filter((id) => !later.has(id))
 				.sort()
 		);
 	});
