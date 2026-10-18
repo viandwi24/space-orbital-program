@@ -42,7 +42,9 @@ describe('key table', () => {
 		['Alt+Down', key('ArrowDown', { altKey: true }), 'move-down'],
 		['Shift+Alt+Up', key('ArrowUp', { altKey: true, shiftKey: true }), 'duplicate-up'],
 		['Shift+Alt+Down', key('ArrowDown', { altKey: true, shiftKey: true }), 'duplicate-down'],
-		['Ctrl+Space', key(' ', { ctrlKey: true }), 'suggest']
+		['Ctrl+Space', key(' ', { ctrlKey: true }), 'suggest'],
+		['Ctrl+I', key('i', { ctrlKey: true }), 'suggest'],
+		['Cmd+I', key('i', { metaKey: true }), 'suggest']
 	];
 	for (const [name, e, action] of table) {
 		it(`${name} is ${action}`, () => {
@@ -52,6 +54,9 @@ describe('key table', () => {
 	it('leaves other keys and chords to the browser', () => {
 		for (const e of [
 			key('a'),
+			key('i'),
+			key('i', { altKey: true }),
+			key('I', { ctrlKey: true, shiftKey: true }),
 			key('ArrowUp'),
 			key('Enter', { shiftKey: true }),
 			key('Enter', { ctrlKey: true }),

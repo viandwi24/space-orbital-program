@@ -183,3 +183,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0185 | [Comms tier 2: bands, the link budget, the rate ladder, the comms scale and the inspector](0185-comms-link-budget-bands-rate-ladder-inspector.md) | accepted | 2026-10-18 |
 | 0186 | [Procedural contracts: templates, the offer generator, slots, expected value and the save](0186-procedural-contracts-templates-offers-slots-value.md) | accepted | 2026-10-18 |
 | 0187 | [Strategies: declared multiplier keys with bounds, upkeep as a charge, slots, cooldown and the projection](0187-strategies-bounded-multipliers-upkeep-slots-projection.md) | accepted | 2026-10-18 |
+| 0162 | [Script editor: Ctrl/Cmd+I as the second "suggest" key; the human pass stays with the owner](0162-script-editor-second-suggest-key-and-human-pass.md) | accepted | 2026-10-18 |

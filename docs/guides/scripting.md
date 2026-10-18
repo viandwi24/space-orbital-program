@@ -36,7 +36,7 @@ The editor knows the script API and the keys you expect from a code editor (plan
 | Tab, Shift+Tab | indent or outdent the line, or every selected line. **Escape, then Tab, moves focus out of the editor** (so the keyboard is never stuck in it) |
 | Enter | new line with the same indentation, one level deeper after `{`, `(` or `[`; between `{` and `}` the closer goes on its own line |
 | `}`, `)`, `]` | on a line that holds only indentation, takes one level off first |
-| Ctrl+Space, or typing | suggestions: `ship.` lists the members of `ship` (a name from the second letter on for the globals); Up and Down choose, Enter or Tab accepts, Escape closes. Each entry shows its signature and a line of what it does |
+| Ctrl+Space (Cmd+I on a Mac, Ctrl+I anywhere), or typing | suggestions: `ship.` lists the members of `ship` (a name from the second letter on for the globals); Up and Down choose, Enter or Tab accepts, Escape closes. Each entry shows its signature and a line of what it does |
 | Ctrl/Cmd+F | find in the script (Enter next, Shift+Enter previous, Escape closes); the **Aa** button matches case, **ab** whole words only; under it a second field and the **Replace** and **Replace all** buttons (Enter in that field replaces the selected match; one undo step undoes Replace all) |
 | Ctrl/Cmd+G | go to a line: type its number, Enter selects that line |
 | Ctrl/Cmd+/ | comment or uncomment the selected lines (the `//` goes at the shallowest indentation) |
