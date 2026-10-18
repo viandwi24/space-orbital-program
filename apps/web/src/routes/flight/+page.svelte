@@ -1,6 +1,8 @@
 <script lang="ts">
 	import VesselPanel from '../../lib/vessel-panel/VesselPanel.svelte';
-	import { vesselView, type PanelContent } from '../../lib/vessel-panel/vessel-model';
+	import { transmitters, vesselView, type PanelContent } from '../../lib/vessel-panel/vessel-model';
+	import { commsTab, type ScreenNetwork } from '../../lib/comms/network-model';
+	import NetworkLayer from '../../lib/comms/NetworkLayer.svelte';
 	import { categoriesOf } from '../../lib/editor/categories';
 	import { loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
@@ -35,6 +37,7 @@
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import RangeBadge from '../../lib/hud/RangeBadge.svelte';
+	import LinkBadge from '../../lib/hud/LinkBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
@@ -148,6 +151,15 @@
 	});
 	let source = $state('');
 	let designName = $state('');
+	// the Comms tab (plan 115, ADR 0158)
+	const vesselComms = $derived(
+		vesselShown && panelInput
+			? commsTab(panelInput.snapshot, Number(vesselShown.id), vesselShown.name ?? designName)
+			: null
+	);
+	const vesselTransmitters = $derived(
+		vesselShownView && vesselContent ? transmitters(vesselShownView, vesselContent) : []
+	);
 	let script = $state.raw<ScriptView>(idleScript());
 	let sandbox = $state.raw<SandboxStatus>({ state: 'none', reports: [], contained: false });
 	/** Set while the editor holds text from outside that the player has not confirmed running (plan 030). */
@@ -163,6 +175,8 @@
 	let settingsFromPause = false;
 	let deck = $state<InstrumentDeck>();
 	let markers = $state<MapMarkers>();
+	/** The Network layer in map view (plan 115, ADR 0158). */
+	let mapNetwork = $state.raw<ScreenNetwork | null>(null);
 	let targetMarks = $state<TargetMarkers>();
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
@@ -413,6 +427,8 @@
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
 				markers?.place(f.map);
+				const net = f.network ?? null;
+				if (JSON.stringify(net) !== JSON.stringify(mapNetwork)) mapNetwork = net;
 				targetMarks?.place(f.target ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
@@ -576,6 +592,7 @@
 
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
+	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
 	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
 	<TargetMarkers bind:this={targetMarks} />
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
@@ -665,7 +682,9 @@
 					/>{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
-				<BlackoutBadge level={model?.blackout ?? 0} />
+				{#if model?.link}<LinkBadge link={model.link} />{:else}<BlackoutBadge
+						level={model?.blackout ?? 0}
+					/>{/if}
 				<RangeBadge warning={model?.range ?? null} />
 				<PrecompileBadge progress={graphics} />
 			</div>
@@ -700,6 +719,8 @@
 						vessel={vesselShown.id}
 						name={vesselShown.name ?? designName}
 						view={vesselShownView!}
+						comms={vesselComms}
+						transmitters={vesselTransmitters}
 						oncommand={(c) => void flight?.command(c)}
 						onhighlight={(part) => flight?.highlightPart(part)}
 					/>

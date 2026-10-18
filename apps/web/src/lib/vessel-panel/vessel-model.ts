@@ -119,3 +119,11 @@ export function controlCommand(
 		}
 	};
 }
+
+/** The vessel's transmitters for the Comms tab (plan 115): parts with an antenna module and its controls. */
+export function transmitters(view: VesselView, content: Pick<PanelContent, 'modules'>): PartRow[] {
+	return view.parts.flatMap((p) => {
+		const controls = p.controls.filter((c) => content.modules.get(c.module)?.antenna !== undefined);
+		return controls.length > 0 ? [{ ...p, controls }] : [];
+	});
+}
