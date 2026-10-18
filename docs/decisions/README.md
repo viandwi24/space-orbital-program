@@ -143,6 +143,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0123 | [Construction on the world tick, typed capacity keys, upkeep every 30 days](0123-construction-on-the-tick-capacity-keys-upkeep.md) | accepted | 2026-10-18 |
 | 0124 | [Markets: one propellant chain, site storage, launch fuel from storage then market](0124-markets-one-propellant-chain-site-storage-launch-fuel.md) | accepted | 2026-10-18 |
 | 0125 | [Off-world bases: a kit that founds a site, outposts as members, one ISRU step, supply routes on transfer windows](0125-off-world-bases-kits-outposts-isru-supply-routes.md) | accepted | 2026-10-18 |
+| 0126 | [Full checks run in CI; laptops run the checks for what changed](0126-full-checks-in-ci-affected-checks-on-laptops.md) | accepted | 2026-10-18 |
 | 0140 | [Refs tokens: glass that keeps text readable, UI scale through rem, legacy names as aliases](0140-refs-tokens-glass-contrast-ui-scale-and-legacy-names.md) | accepted | 2026-10-17 |
 | 0141 | [The calendar lives on the root body, the epoch counts SI days from J2000, a fictional year needs an orbit](0141-calendar-on-the-root-body-epoch-from-j2000-and-a-year-only-with-an-orbit.md) | accepted | 2026-10-17 |
 | 0142 | [Sites: the terrain seed, flat zones from sites, and placement at a pad](0142-sites-terrain-seed-zones-and-placement.md) | accepted | 2026-10-17 |
