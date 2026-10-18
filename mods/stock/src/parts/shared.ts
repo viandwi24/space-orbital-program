@@ -5,16 +5,26 @@ export const RADIUS = 0.625;
 
 export type Vec3Tuple = [number, number, number];
 
+/** A stack node: position, outward direction and joint diameter, m (plan 207, ADR 0212). */
+export interface StackNode {
+	pos: Vec3Tuple;
+	dir: Vec3Tuple;
+	size: number;
+}
+
 /**
  * Stack parts attach end to end along local Y: `top` faces +Y, `bottom` faces -Y, both on the
- * axis at half the part height. `dir` points away from the part.
+ * axis at half the part height. `dir` points away from the part. Both faces are `size` across
+ * unless `bottomSize` says otherwise (an adapter).
  */
 export function stackNodes(
-	height: number
-): Record<'top' | 'bottom', { pos: Vec3Tuple; dir: Vec3Tuple }> {
+	height: number,
+	size = 1.25,
+	bottomSize = size
+): Record<'top' | 'bottom', StackNode> {
 	return {
-		top: { pos: [0, height / 2, 0], dir: [0, 1, 0] },
-		bottom: { pos: [0, -height / 2, 0], dir: [0, -1, 0] }
+		top: { pos: [0, height / 2, 0], dir: [0, 1, 0], size },
+		bottom: { pos: [0, -height / 2, 0], dir: [0, -1, 0], size: bottomSize }
 	};
 }
 

@@ -23,7 +23,7 @@ Stock parts live in one file per part family, so the parallel parts plans do not
   - `mods/stock/src/parts.ts` is one 816-line file with every stock part; plans 208, 209, 210, 211, 222 and 225 all add parts.
   - `packages/renderer/src/parts/generators/booster.ts:14-20`: the top-ring profile runs top to bottom; `packages/renderer/src/parts/revolve.ts` needs bottom to top for outward normals. Tank, engine, decoupler and capsule generators are correct (rancangan §8b).
   - Generators: `packages/renderer/src/parts/generators/` (`index.ts` registry); renderer part tests in `packages/renderer/test/parts.test.ts`.
-- ADRs: 0203 (KSP-grade parts pack: node sizes and adapters).
+- ADRs: 0203 (KSP-grade parts pack: node sizes and adapters), 0212 (node size is a joint diameter; seam rule).
 
 ## Scope
 

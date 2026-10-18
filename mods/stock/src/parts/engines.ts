@@ -124,7 +124,7 @@ export const PartBooster = definePart({
 		}
 	},
 	attach: {
-		top: { pos: [0, 1.6, 0], dir: [0, 1, 0] },
+		top: { pos: [0, 1.6, 0], dir: [0, 1, 0], size: BOOSTER_RADIUS * 2 },
 		radial: { pos: [-BOOSTER_RADIUS, 0, 0], dir: [-1, 0, 0] }
 	},
 	crossfeed: false,

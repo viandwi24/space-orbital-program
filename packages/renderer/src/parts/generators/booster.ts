@@ -10,13 +10,13 @@ export function booster(ctx: GenContext): void {
 	const exitR = ctx.param('bellExit', 0.3, 0.1, R * 0.9);
 	const throatR = 0.09;
 
-	// Top ring (the attach face for a cone).
+	// Top ring (the attach face for a cone), walked bottom to top so its faces point out (plan 207).
 	b.revolve('dark-metal', [
-		{ r: 0, y: h2 },
-		{ r: R * 0.94, y: h2 },
-		{ r: R, y: h2 - 0.025 },
+		{ r: rb, y: h2 - 0.155 },
 		{ r: R, y: h2 - 0.14 },
-		{ r: rb, y: h2 - 0.155 }
+		{ r: R, y: h2 - 0.025 },
+		{ r: R * 0.94, y: h2 },
+		{ r: 0, y: h2 }
 	]);
 	// Body.
 	b.revolve('paint-primary', [
@@ -77,6 +77,8 @@ export function booster(ctx: GenContext): void {
 		outer.unshift({ r: r + 0.012, y, smooth: i > 0 && i < steps });
 		inner.push({ r: Math.max(0.01, r), y, smooth: i > 0 && i < steps });
 	}
-	b.revolve('nozzle', [{ r: 0, y: topY + 0.05 }, ...outer.reverse().reverse()]);
-	b.revolve('nozzle-inner', inner.reverse());
+	// The outside walks from the exit lip up to a dome over the throat; the inside walks down, so
+	// its faces point at the axis (plan 207).
+	b.revolve('nozzle', [...outer, { r: 0, y: topY + 0.05 }]);
+	b.revolve('nozzle-inner', inner);
 }

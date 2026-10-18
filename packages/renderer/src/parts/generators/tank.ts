@@ -35,10 +35,14 @@ export function tank(ctx: GenContext): void {
 		const top = h2 - collar - 0.12;
 		const bottom = Math.max(-h2 + collar + 0.2, top - stripe * Math.min(1.2, H * 0.4));
 		stripeBottom = bottom - 0.08;
-		b.revolve('paint-secondary', [
-			{ r: rb + 0.004, y: bottom },
-			{ r: rb + 0.004, y: top }
-		]);
+		// A part too short for the band gets only the accent line: a band from `bottom` down to
+		// `top` would run top to bottom and face inward (plan 207).
+		if (bottom < top) {
+			b.revolve('paint-secondary', [
+				{ r: rb + 0.004, y: bottom },
+				{ r: rb + 0.004, y: top }
+			]);
+		}
 		b.revolve('paint-accent', [
 			{ r: rb + 0.006, y: bottom - 0.05 },
 			{ r: rb + 0.006, y: bottom - 0.02 }

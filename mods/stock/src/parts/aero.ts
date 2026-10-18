@@ -14,7 +14,7 @@ export const PartNoseCone = definePart({
 	dragCoefficient: 0.12,
 	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 0.9 },
 	visual: { kind: 'nose-cone', palette: { primary: '#d9552b', secondary: '#23272d' } },
-	attach: { bottom: { pos: [0, -0.45, 0], dir: [0, -1, 0] } },
+	attach: { bottom: { pos: [0, -0.45, 0], dir: [0, -1, 0], size: BOOSTER_RADIUS * 2 } },
 	crossfeed: false,
 	stagingIcon: 'cone'
 });

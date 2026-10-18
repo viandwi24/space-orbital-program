@@ -14,3 +14,15 @@ test('stock part ids, masses, costs and modules match the snapshot', () => {
 	}));
 	expect(parts).toMatchSnapshot();
 });
+
+test('every stack node of a stock part declares its size (plan 207, ADR 0212)', () => {
+	const missing: string[] = [];
+	for (const part of loaded.registries.parts.list()) {
+		if (part.shape?.kind !== 'cylinder') continue;
+		for (const [name, node] of Object.entries(part.attach ?? {})) {
+			const axial = Math.abs(node.dir[1]) > 0.999;
+			if (axial && node.size === undefined) missing.push(`${part.id}/${name}`);
+		}
+	}
+	expect(missing).toEqual([]);
+});

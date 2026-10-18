@@ -122,3 +122,16 @@ export function cylinderProfile(r: number, y0: number, y1: number): ProfilePoint
 		{ r: 0, y: y1 }
 	];
 }
+
+/**
+ * Whether a profile follows the winding rule above: an outer surface walks from the bottom to the
+ * top (`up`), an inner one from the top down (`down`). A profile whose first and last points are
+ * at one height is `level` (a flat ring). The seam test applies it to every generator (plan 207).
+ */
+export function profileDirection(profile: readonly ProfilePoint[]): 'up' | 'down' | 'level' {
+	const first = profile[0];
+	const last = profile[profile.length - 1];
+	if (!first || !last) return 'level';
+	const dy = last.y - first.y;
+	return dy > EPS ? 'up' : dy < -EPS ? 'down' : 'level';
+}

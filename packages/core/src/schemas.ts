@@ -382,8 +382,16 @@ export const partDefinitionSchema = z.object({
 	 * part it hangs on are available to the part it ends on.
 	 */
 	connector: z.object({ feeds: z.boolean().optional() }).optional(),
+	/**
+	 * Attach nodes. `size` is the diameter of the joint face, m (plan 207, ADR 0212): the stock
+	 * classes are 0.625, 1.25 and 2.5 (`NODE_SIZES`). A stack node without one takes the part's
+	 * class (`nodeSize`); radial and connector nodes have none.
+	 */
 	attach: z
-		.record(z.string(), z.object({ pos: vec3Tuple, dir: vec3Tuple }))
+		.record(
+			z.string(),
+			z.object({ pos: vec3Tuple, dir: vec3Tuple, size: z.number().positive().optional() })
+		)
 		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')
 		.optional(),
 	// Entries are [moduleId, config]; the config is validated against the module's schema by the

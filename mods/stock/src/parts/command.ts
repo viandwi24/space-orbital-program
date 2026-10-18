@@ -18,7 +18,8 @@ export const PartCommandPod = definePart({
 		kind: 'capsule',
 		palette: { primary: '#e9ebee', secondary: '#2b2f36', accent: '#e0572b' }
 	},
-	attach: stackNodes(1),
+	// The docking collar on top is 0.625 m across (a parachute's size), the drum below 1.25 m.
+	attach: stackNodes(1, 0.625, 1.25),
 	modules: [
 		[ModuleCommand],
 		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 50 } } }]

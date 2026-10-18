@@ -27,11 +27,13 @@ const cylinder = (height: number) => ({ kind: 'cylinder' as const, radius: 0.625
 const nodes = (height: number) => ({
 	top: {
 		pos: [0, height / 2, 0] as [number, number, number],
-		dir: [0, 1, 0] as [number, number, number]
+		dir: [0, 1, 0] as [number, number, number],
+		size: 1.25
 	},
 	bottom: {
 		pos: [0, -height / 2, 0] as [number, number, number],
-		dir: [0, -1, 0] as [number, number, number]
+		dir: [0, -1, 0] as [number, number, number],
+		size: 1.25
 	}
 });
 

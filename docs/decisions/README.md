@@ -207,3 +207,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0209 | [EVA v2](0209-eva-v2.md) | accepted | 2026-10-18 |
 | 0210 | [Audio additions and music](0210-audio-additions-and-music.md) | proposed | 2026-10-18 |
 | 0211 | [The silhouette coverage blend is deferred to a resolve pass; the planet pass keeps one shading](0211-silhouette-coverage-blend-deferred-to-a-resolve-pass.md) | accepted | 2026-10-19 |
+| 0212 | [Attach-node size is a joint diameter; the seam rule and its band](0212-attach-node-size-and-seam-rule.md) | accepted | 2026-10-19 |

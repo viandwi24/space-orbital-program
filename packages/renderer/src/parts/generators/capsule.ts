@@ -26,10 +26,13 @@ const coneRadius = (R: number, noseR: number, t: number): number =>
 export function capsule(ctx: GenContext): void {
 	const { radius: R, height: H, builder: b, detail } = ctx;
 	const h2 = H / 2;
-	const shieldH = Math.min(0.07, H * 0.08);
+	// The retaining ring reaches the full radius within the joint band of the bottom face (plan 207).
+	const shieldH = Math.min(0.045, H * 0.08);
 	const rd = R * 0.975; // the drum; collars and jets use the full radius
 	const drumTop = ctx.param('drumTop', -0.1, -h2 + 0.2, h2 - 0.3);
-	const noseR = ctx.param('noseRadius', 0.26, 0.1, R * 0.7);
+	// The docking collar is the top joint: 0.625 m across by default, the size of the pod's top node.
+	const collarR = ctx.param('collarRadius', 0.3125, 0.09, R * 0.65);
+	const noseR = collarR / 0.92;
 	const collarH = ctx.param('collarHeight', 0.1, 0.04, 0.3);
 	const coneTop = h2 - collarH;
 

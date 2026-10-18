@@ -24,6 +24,7 @@ export {
 } from '@orbital/core';
 export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
+export { NODE_SIZES, nodeSize, nodeSizeClass, nodeSizesMatch } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { GRADES, GRADE_FACTORS, modelReliability, trialChance } from '@orbital/core';

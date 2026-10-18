@@ -17,6 +17,8 @@ export type Vec3Tuple = readonly [number, number, number];
 export interface PartNode {
 	pos: Vec3Tuple;
 	dir: Vec3Tuple;
+	/** Diameter of the joint face, m (plan 207); absent on radial and connector nodes. */
+	size?: number;
 }
 
 /** What a provider is asked to build. */
