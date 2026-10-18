@@ -67,3 +67,4 @@ Generated controls must never reorder while the player looks (stable by part ind
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0153: descriptor controls in a stable order, a mixed group click turns it off, placement (top right; the right column below 1280 px), `highlightPart`.
 - 2026-10-18 — Done on the branch: the vessel panel (Overview, Parts, Comms reserved), descriptor controls, group switches with mixed, `Renderer.highlightPart`. Journal: [111](../journal/111-vessel-panel-group-and-part-control.md).
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflict in the ADR index, both kept); bun test 1592 pass, web vitest 987 pass, typecheck, build, docs:check, smoke e2e 7 passed; vessel-panel and launch e2e pass (Chromium).
