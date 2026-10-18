@@ -175,4 +175,36 @@ describe('comms on the page (plan 115)', () => {
 		expect(tab.endpoints[0]!.current).toBe(true);
 		expect(linkText('route broken at vessel:1')).toBe('Pinned route broken at vessel 1');
 	});
+
+	it('the radio queue shows each item sent, its arrival and the next contact (plan 119)', () => {
+		const s = snap([
+			{ vessel: 2 as never, to: null, reason: 'out of range', control: 'full', blackout: 0 }
+		]) as Snapshot;
+		(s as { t: number }).t = 100;
+		s.network!.queues = [
+			{
+				vessel: 2 as never,
+				custody: null,
+				nextContact: 820,
+				items: [
+					{
+						id: '7:0',
+						kind: 'stock.science',
+						bits: 1e7,
+						sent: 2.5e6,
+						origin: 2 as never,
+						eta: 8_320
+					},
+					{ id: '7:1', kind: 'stock.bulk', bits: 5e5, sent: 0, origin: 2 as never, eta: null }
+				]
+			}
+		];
+		const tab = commsTab(s, 2, 'Probe')!;
+		expect(tab.contact).toBe('Next contact in 12 min 0 s');
+		expect(tab.queue.map((q) => [q.label, q.progress, q.eta])).toEqual([
+			['Science · 10 Mbit', 0.25, 'Arrives in 137 min 0 s'],
+			['Bulk · 500 kbit', 0, 'Waits for a contact']
+		]);
+		expect(tab.queue[0]!.cancel).toEqual({ type: 'transmission-cancel', vessel: 2, item: '7:0' });
+	});
 });

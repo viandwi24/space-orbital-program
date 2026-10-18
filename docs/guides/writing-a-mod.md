@@ -364,6 +364,13 @@ ctx.siteTemplates.register(defineSiteTemplate({
   `choose` is pure, and gets the best route through each neighbour as `{ hops, width, latency }`.
 - **Reading it:** `ctx.vessel.signal().latency` gives the light time in seconds.
 
+**Data over the network (API 0.1.69, plan 119, ADR 0189).**
+
+- With comms on, transmitted data waits in the vessel's radio. It goes out at the route's rate in kind priority order: `stock.command` (−1) first, then telemetry, voice, science, image and bulk.
+- A data kind with a negative priority is a command kind: it still moves at 1 kbit/s over a commands-only link.
+- Listen for `comms:data-delivered { vessel, item, kind, bits, time }` to react when your data arrives.
+- A vessel with data storage can carry other vessels' data (store-and-forward) when it will reach a station first.
+
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 
 The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:

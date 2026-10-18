@@ -5,6 +5,7 @@
  * Links are derived: they live beside the world, are never saved, and are recomputed on resume.
  */
 import { isFailed } from './reliability.ts';
+import { queuesSnapshot, stepTransmissions } from './transmission.ts';
 import {
 	BLACKOUT_BADGE_LEVEL,
 	BLACKOUT_NOSE_RADIUS,
@@ -29,6 +30,7 @@ import {
 	type LinkBudget,
 	type LinkReason,
 	type RouteMode,
+	CONTACT_SCAN_STEP,
 	type SignalState,
 	type Snapshot,
 	type Vec3
@@ -85,6 +87,8 @@ export interface VesselLink {
 	latency: number | null;
 	/** The shared rate along the route, bit/s (ADR 0188 point 4); null without a budget. */
 	rate: number | null;
+	/** Without a route: vessels it still reaches and those edges' rates (ADR 0189 point 4). */
+	neighbors: Array<{ vessel: EntityId; rate: number }>;
 }
 
 export interface CommsRuntime {
@@ -427,6 +431,8 @@ export interface Routed {
 	route: string[];
 	latency: number | null;
 	rate: number | null;
+	/** Without a route: the vessels it still has an edge to, and that edge's rate (ADR 0189 point 4). */
+	neighbors: Array<{ vessel: EntityId; rate: number }>;
 }
 
 /** The direction a pointing target names, from `here`; null for an unknown target. */
@@ -704,6 +710,13 @@ function routeNetwork(
 		[];
 	for (const node of nodes) {
 		const i = index.get(`vessel:${node.id}`);
+		const neighbours = (): Routed['neighbors'] =>
+			i === undefined
+				? []
+				: edges[i]!.filter((e) => vertices[e.to]!.node).map((e) => ({
+						vessel: vertices[e.to]!.node!.id,
+						rate: capacity(i, e.to, e.d)
+					}));
 		const unlinked = (reason: LinkReason | null): Routed => ({
 			to: null,
 			reason:
@@ -720,7 +733,8 @@ function routeNetwork(
 			budget: null,
 			route: [],
 			latency: null,
-			rate: null
+			rate: null,
+			neighbors: neighbours()
 		});
 		if (i === undefined) {
 			out.set(node.id, unlinked(null));
@@ -789,7 +803,8 @@ function routeNetwork(
 			budget: withBudget ? budgetOf(i, first, firstD) : null,
 			route: choice.hops.map((h) => vertices[h]!.id),
 			latency: choice.dist / SPEED_OF_LIGHT,
-			rate: null
+			rate: null,
+			neighbors: []
 		});
 	}
 	if (withBudget) {
@@ -851,8 +866,10 @@ export function updateNetwork(core: SimCore): void {
 	for (const t of times) {
 		const frame = frameAt(core, t, stations);
 		const last = t === times[times.length - 1];
-		// the budget only at the update's last sample (ADR 0185 point 8); routes at every sample
-		const routed = routeNetwork(core, frame, nodes, stations, blackout, last);
+		// the budget only at the update's last sample (ADR 0185 point 8), or at every one while data
+		// is being sent (ADR 0189 point 3); routes at every sample
+		const sending = core.commsState.transmissions.length > 0;
+		const routed = routeNetwork(core, frame, nodes, stations, blackout, last || sending);
 		for (const node of nodes) {
 			seen.add(node.id);
 			const now = routed.get(node.id)!;
@@ -874,9 +891,31 @@ export function updateNetwork(core: SimCore): void {
 				core.events.emit('comms:control-changed', { vessel: node.id, control });
 			}
 		}
+		// the data moves for the time since the last sample (ADR 0189 point 3)
+		if (sending && !silent) stepTransmissions(core, routed, t - prevT, t);
 		prevT = t;
 	}
 	for (const id of [...comms.links.keys()]) if (!seen.has(id)) comms.links.delete(id);
+}
+
+/**
+ * The next time `vessel` links directly (tier-1 rule) to a station or a crewed vessel, scanning its
+ * rails motion every `CONTACT_SCAN_STEP` s up to one home day; null without one (ADR 0189 point 6).
+ */
+export function nextDirectContact(core: SimCore, vessel: EntityId): number | null {
+	if (!commsOn(core)) return null;
+	const stations = stationsOf(core);
+	const node = nodeOf(core, vessel);
+	const points = vesselIds(core)
+		.map((id) => nodeOf(core, id))
+		.filter((n) => n.crewed);
+	const horizon = core.root.def.rotationPeriod;
+	for (let dt = CONTACT_SCAN_STEP; dt <= horizon; dt += CONTACT_SCAN_STEP) {
+		const t = core.t + dt;
+		if (linkOf(core, frameAt(core, t, stations), node, points, stations, 0, false).to !== null)
+			return t;
+	}
+	return null;
 }
 
 /** The time in (lo, hi] at which the link of `node` stops being `wasLinked`. */
@@ -920,6 +959,9 @@ export function signalOf(core: SimCore, id: EntityId): SignalState {
 		latency: link.latency
 	};
 }
+
+/** Whether a vessel has an antenna at all, on or off (plan 119). */
+export const hasAntenna = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).range >= 0;
 
 /** A vessel whose control sources all sit on parts without seats (ADR 0179 point 5). */
 export const isProbe = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).probe;
@@ -977,6 +1019,7 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 		}
 	}
 	const inspected = core.comms.inspect === null ? undefined : links.get(core.comms.inspect);
+	const queues = queuesSnapshot(core);
 	return {
 		stations: stations.map((s, i) => ({
 			id: s.id,
@@ -999,6 +1042,7 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 				latency: l.latency,
 				mode: modeOf(core, vessel)
 			})),
+		...(queues ? { queues } : {}),
 		...(inspected
 			? {
 					inspector: {

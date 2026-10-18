@@ -320,6 +320,15 @@ export const DELAYED_COMMANDS: ReadonlySet<string> = new Set([
 /** Rounds of the proportional capacity sharing (ADR 0188 point 4). */
 export const CAPACITY_ROUNDS = 3;
 
+// ---- transmission (plan 119, ADR 0189) ----
+
+/** Rate at which command items still move over a "commands only" link, bit/s. */
+export const COMMAND_RATE = 1e3;
+/** Custody hand-overs an item may take before it stays where it is. */
+export const MAX_CUSTODY_HOPS = 8;
+/** Step and horizon of the next-contact scan, s (the horizon is one home day). */
+export const CONTACT_SCAN_STEP = 60;
+
 // ---- plasma blackout (ADR 0079, moved here by ADR 0179 point 7) ----
 
 /** The signal starts to go at this stagnation flux, W/m². */

@@ -96,6 +96,17 @@ function find(
 	return undefined;
 }
 
+/**
+ * Puts `item` back, keeping its id, into the first storage of the vessel with room (a cancelled
+ * transmission, plan 119); false when none has room.
+ */
+export function restoreData(core: SimCore, vesselId: EntityId, item: DataItem): boolean {
+	const target = storagesOf(core, vesselId).find((s) => fits(s, item.bits));
+	if (!target) return false;
+	target.state.items.push({ ...item });
+	return true;
+}
+
 /** `move-data` (ADR 0172 point 6). */
 export function moveData(
 	core: SimCore,

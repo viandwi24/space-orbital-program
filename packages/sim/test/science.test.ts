@@ -280,6 +280,8 @@ describe('credit (ADR 0178 point 7)', () => {
 		const [item] = items(sim, id);
 		const credited: unknown[] = [];
 		sim.events.on('science:credited', (e) => credited.push(e));
+		// comms off: transmitted directly at the factor (ADR 0099 point 2); through queues is plan 119's
+		sim.dispatch({ type: 'set-rule', rule: 'stock.comms', value: false });
 		expect(sim.dispatch({ type: 'transmit-data', vessel: id, item: item!.id })).toEqual({
 			ok: true
 		});
@@ -329,6 +331,7 @@ describe('credit (ADR 0178 point 7)', () => {
 		const sim = await make('stock.sandbox');
 		const id = landed(sim);
 		runFor(sim, id, partOf(sim, id, 'stock.thermometer'));
+		sim.dispatch({ type: 'set-rule', rule: 'stock.comms', value: false });
 		sim.dispatch({ type: 'transmit-data', vessel: id, item: items(sim, id)[0]!.id });
 		expect(scienceEntries(sim)).toEqual([]);
 		expect(sim.snapshot().science![0]!.credited).toBe(4);

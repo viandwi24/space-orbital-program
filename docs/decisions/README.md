@@ -186,3 +186,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0161 | [Aeroplanes: wheels as frictionless colliders with sim-side tyre forces, a level runway start, trim, flaps, level-wings, flight read-outs](0161-aeroplanes-wheels-level-runway-trim-flaps-readouts.md) | accepted | 2026-10-18 |
 | 0188 | [Comms tier 3: relays and the routing graph, dish pointing, route modes, shared capacity, latency and the signal-delay rule](0188-comms-routing-pointing-capacity-latency-signal-delay.md) | accepted | 2026-10-18 |
 | 0162 | [Script editor: Ctrl/Cmd+I as the second "suggest" key; the human pass stays with the owner](0162-script-editor-second-suggest-key-and-human-pass.md) | accepted | 2026-10-18 |
+| 0189 | [Comms tier 4: transmission queues, store-and-forward custody, delivery and contact windows](0189-comms-transmission-queues-store-and-forward-contact-windows.md) | accepted | 2026-10-18 |

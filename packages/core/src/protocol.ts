@@ -325,6 +325,25 @@ export interface Snapshot {
 		 * without a link, or when no antenna pair has a known common band.
 		 */
 		inspector?: { vessel: EntityId; to: string | null; budget: LinkBudget | null };
+		/**
+		 * Radios with queued data (plan 119, ADR 0189 point 6): each item with its sent bits and an
+		 * estimated delivery time; `nextContact` for a holder without a route (null: none in a day).
+		 */
+		queues?: Array<{
+			vessel: EntityId;
+			/** A relay holding it for another vessel (store-and-forward), else null. */
+			custody: string | null;
+			nextContact: number | null;
+			items: Array<{
+				id: string;
+				kind: string;
+				bits: number;
+				sent: number;
+				origin: EntityId;
+				/** Sim time it should be delivered at the current rate; null when unknown. */
+				eta: number | null;
+			}>;
+		}>;
 	};
 	/** The world tick's day (the day last entered, ADR 0171), for construction ready days (plan 096). */
 	day?: number;
@@ -584,6 +603,8 @@ export type Command =
 	| { type: 'strategy-end'; strategy: string }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
+	/** Take a queued data item back into storage (plan 119, ADR 0189 point 1); sent bits are lost. */
+	| { type: 'transmission-cancel'; vessel: EntityId; item: string }
 	/** A vessel's route mode (plan 117, ADR 0188 point 3): Auto, a pinned Manual route, or a policy. */
 	| { type: 'comms-route'; vessel: EntityId; mode: RouteMode }
 	/** Point a dish (null: Auto). Never refused for lack of signal. */

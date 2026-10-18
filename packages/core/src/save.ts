@@ -7,6 +7,7 @@
  * What is NOT here by design: Rapier state (rebuilt from plain pose data), scripts, renderer state,
  * thumbnails and names (the web client's envelope, `apps/web/src/lib/save`).
  */
+import { dataItemSchema, type DataItem } from './data.ts';
 import { saveTechSchema, type SaveTech } from './tech-tree.ts';
 import * as z from 'zod';
 import { worldDataSchema, worldInfoSchema } from './schemas.ts';
@@ -25,7 +26,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 7;
+export const SIM_SAVE_VERSION = 8;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -133,6 +134,22 @@ export interface SaveComms {
 	routes: Array<{ vessel: number; mode: RouteMode }>;
 	/** Commands waiting for their light time under `enforced` or `flight-computer`. */
 	queue: Array<{ at: number; seq: number; command: Record<string, unknown> }>;
+	/** Data items being sent (format 8, plan 119, ADR 0189 point 2), in order of `seq`. */
+	transmissions: SaveTransmission[];
+}
+
+/** One data item in a radio's queue (ADR 0189 point 2). */
+export interface SaveTransmission {
+	seq: number;
+	/** The vessel that has it now (a relay after a custody hand-over). */
+	holder: number;
+	/** The vessel that sent it first. */
+	origin: number;
+	item: DataItem;
+	/** Bits already gone from the holder. */
+	sent: number;
+	/** Custody hand-overs so far. */
+	hops: number;
 }
 
 export interface SimSave {
@@ -240,6 +257,16 @@ export const simSaveSchema = z.object({
 		routes: z.array(z.object({ vessel: z.int(), mode: routeModeSchema })),
 		queue: z.array(
 			z.object({ at: z.number(), seq: z.int().min(0), command: z.record(z.string(), z.unknown()) })
+		),
+		transmissions: z.array(
+			z.object({
+				seq: z.int().min(0),
+				holder: z.int(),
+				origin: z.int(),
+				item: dataItemSchema,
+				sent: z.number().min(0),
+				hops: z.int().min(0)
+			})
 		)
 	}),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
@@ -372,7 +399,12 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 		return { ...data, formatVersion: 6, home: bodies[0] };
 	},
 	// format 7 (plan 117, ADR 0188 point 7): routes and the delay queue start empty
-	6: (data) => ({ ...data, formatVersion: 7, comms: { seq: 0, routes: [], queue: [] } })
+	6: (data) => ({ ...data, formatVersion: 7, comms: { seq: 0, routes: [], queue: [] } }),
+	// format 8 (plan 119, ADR 0189 point 7): the radios' queues start empty
+	7: (data) => {
+		const comms = isRecord(data.comms) ? data.comms : { seq: 0, routes: [], queue: [] };
+		return { ...data, formatVersion: 8, comms: { ...comms, transmissions: [] } };
+	}
 };
 
 export class SaveError extends Error {

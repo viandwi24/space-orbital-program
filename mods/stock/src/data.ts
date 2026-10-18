@@ -17,12 +17,15 @@ export const DataTelemetry = defineDataKind({
 		[10 * DAY, 0]
 	]
 });
+/** Commands for a vessel: first in every queue, and moving even over a commands-only link (plan 119). */
+export const DataCommand = defineDataKind({ id: 'stock.command', label: 'Command', priority: -1 });
 export const DataVoice = defineDataKind({ id: 'stock.voice', label: 'Voice', priority: 1 });
 export const DataScience = defineDataKind({ id: 'stock.science', label: 'Science', priority: 2 });
 export const DataImage = defineDataKind({ id: 'stock.image', label: 'Image', priority: 3 });
 export const DataBulk = defineDataKind({ id: 'stock.bulk', label: 'Bulk', priority: 4 });
 
 export const STOCK_DATA_KINDS = [
+	DataCommand,
 	DataTelemetry,
 	DataVoice,
 	DataScience,

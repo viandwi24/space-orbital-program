@@ -105,6 +105,14 @@ export interface EventMap {
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
 	/** Comms (plan 114, ADR 0179 point 4): `time` is when the link changed (bisected on rails). */
 	'comms:link-up': { vessel: EntityId; to: string; time: number };
+	/** A data item reached a station or a crewed vessel (plan 119, ADR 0189 point 5). */
+	'comms:data-delivered': {
+		vessel: EntityId;
+		item: string;
+		kind: string;
+		bits: number;
+		time: number;
+	};
 	'comms:link-down': { vessel: EntityId; reason: string; time: number };
 	'comms:control-changed': { vessel: EntityId; control: 'full' | 'partial' | 'none' };
 	/** A data item was stored on `part` of `vessel` (plan 083, ADR 0172). */

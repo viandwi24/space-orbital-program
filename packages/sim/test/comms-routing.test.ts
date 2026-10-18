@@ -1,6 +1,7 @@
 /** Comms tier 3 (plan 117, ADR 0188): relays and routes, pointing, the signal-delay rule, format 7. */
 import { describe, expect, test } from 'bun:test';
 import {
+	SIM_SAVE_VERSION,
 	SPEED_OF_LIGHT,
 	legacyWorldInfo,
 	readSimSave,
@@ -231,18 +232,18 @@ describe('routes', () => {
 });
 
 describe('save format 7', () => {
-	test('a frozen format-6 save migrates: empty routes and queue, then saves as 7', async () => {
+	test('a frozen format-6 save migrates: empty routes and queue, then saves as the current format', async () => {
 		const read = readSimSave(fixtureV6);
-		expect(read.formatVersion).toBe(7);
-		expect(read.comms).toEqual({ seq: 0, routes: [], queue: [] });
+		expect(read.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(read.comms).toEqual({ seq: 0, routes: [], queue: [], transmissions: [] });
 		const sim = await createSim({
 			plugins: [Stock, openTree],
 			backendFactory: rapier(16),
 			resume: fixtureV6
 		});
 		const saved = sim.save();
-		expect(saved.formatVersion).toBe(7);
-		expect(saved.comms).toEqual({ seq: 0, routes: [], queue: [] });
+		expect(saved.formatVersion).toBe(SIM_SAVE_VERSION);
+		expect(saved.comms).toEqual({ seq: 0, routes: [], queue: [], transmissions: [] });
 		sim.dispose();
 	});
 });
