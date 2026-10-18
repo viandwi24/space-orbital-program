@@ -17,6 +17,7 @@ const KINDS = [
 	'fin',
 	'control-surface',
 	'wing',
+	'gear',
 	'strut',
 	'fuel-line',
 	'plain',

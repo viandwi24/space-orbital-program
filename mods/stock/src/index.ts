@@ -14,6 +14,7 @@ import {
 	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
+	ModuleWheel,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
 	ModuleWing,
@@ -32,6 +33,8 @@ import {
 	PartFuelLine,
 	PartHeatShield,
 	PartLandingLegs,
+	PartWheel,
+	PartWheelSteer,
 	PartNoseCone,
 	PartRadialDecoupler,
 	PartReactionWheel,
@@ -103,6 +106,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleDecoupler);
 		ctx.modules.register(ModuleReactionWheel);
 		ctx.modules.register(ModuleLandingLeg);
+		ctx.modules.register(ModuleWheel);
 		ctx.modules.register(ModuleHeatShield);
 		ctx.modules.register(ModuleFin);
 		ctx.modules.register(ModuleControlSurface);
@@ -140,6 +144,8 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartEngineCluster);
 		ctx.parts.register(PartDecoupler);
 		ctx.parts.register(PartLandingLegs);
+		ctx.parts.register(PartWheel);
+		ctx.parts.register(PartWheelSteer);
 		ctx.parts.register(PartHeatShield);
 		ctx.parts.register(PartRadialDecoupler);
 		ctx.parts.register(PartBooster);

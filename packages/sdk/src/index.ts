@@ -152,6 +152,7 @@ export type {
 	LoadReport,
 	LoadResult,
 	ModuleCollider,
+	WheelSpec,
 	ModuleContext,
 	ModuleDefinition,
 	ModuleId,

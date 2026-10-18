@@ -120,6 +120,12 @@ export const rename = (s: EditorState, name: string): EditorState => ({
 	design: { ...s.design, name: name.trim() === '' ? 'Untitled vessel' : name }
 });
 
+/** An aircraft starts level on a runway (plan 063, ADR 0161 point 3); like the name, not an undo step. */
+export function setAircraft(s: EditorState, on: boolean): EditorState {
+	const { aircraft: _drop, ...rest } = s.design;
+	return { ...s, design: on ? { ...rest, aircraft: true } : rest };
+}
+
 // --- building -------------------------------------------------------------------------------------
 
 /** A one-part assembly for a catalogue part. */

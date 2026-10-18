@@ -767,9 +767,20 @@ export const wingConfigSchema = z.object({
 	 * by default: the wings of a craft sit metres from its roll axis, where the explicit step is
 	 * unstable above `(1 + damping) dt c / I < 1` (ADR 0075); the quasi-steady damping is always on.
 	 */
-	damping: z.number().nonnegative().max(100).default(0)
+	damping: z.number().nonnegative().max(100).default(0),
+	/**
+	 * Flaps (plan 063, ADR 0161 point 4): at full flap, lift coefficient added, drag coefficient
+	 * added and stall angle lost (degrees). Zero lift: the part has no flaps.
+	 */
+	flapLift: z.number().nonnegative().default(0),
+	flapDrag: z.number().nonnegative().default(0),
+	flapStall: z.number().nonnegative().max(20).default(0)
 });
 export type WingConfig = z.output<typeof wingConfigSchema>;
+export interface WingState {
+	/** 0, 0.5 or 1 of full flap. */
+	flap: number;
+}
 
 /** Thin-airfoil slope of a flat plate, per radian (`a0 = 2 pi`). */
 const THIN_AIRFOIL_SLOPE = 2 * Math.PI;
@@ -785,21 +796,27 @@ export const wingLiftSlope = (config: WingConfig): number =>
  * falls to zero broadside along `(1 + cos(pi t)) / 2`; `C_D = C_D0 + C_L² / (pi e AR)` plus the
  * broadside plate drag `crossflow sin² alpha`, blended in over 0.1 rad past the stall (ADR 0075).
  */
-export function wingCoefficients(config: WingConfig, alpha: number): { cl: number; cd: number } {
+export function wingCoefficients(
+	config: WingConfig,
+	alpha: number,
+	flap = 0
+): { cl: number; cd: number } {
 	const a = wingLiftSlope(config);
-	const stall = (config.stallAngle * Math.PI) / 180;
+	const stall = ((config.stallAngle - config.flapStall * flap) * Math.PI) / 180;
 	const abs = Math.abs(alpha);
 	let cl: number;
-	if (abs <= stall) cl = a * alpha;
+	// flaps add camber: a lift offset that follows the curve up to the stall and fades with it
+	const camber = config.flapLift * flap;
+	if (abs <= stall) cl = a * alpha + camber;
 	else {
 		const t = Math.min(1, (abs - stall) / (Math.PI / 2 - stall));
-		cl = Math.sign(alpha) * a * stall * 0.5 * (1 + Math.cos(Math.PI * t));
+		cl = (Math.sign(alpha) * a * stall + camber) * 0.5 * (1 + Math.cos(Math.PI * t));
 	}
 	const blend = Math.min(1, Math.max(0, (abs - stall) / 0.1));
 	const smooth = blend * blend * (3 - 2 * blend);
 	const induced = (cl * cl) / (Math.PI * config.efficiency * config.aspectRatio);
 	const plate = config.crossflow * Math.sin(alpha) * Math.sin(alpha) * smooth;
-	return { cl, cd: config.parasiteDrag + induced + plate };
+	return { cl, cd: config.parasiteDrag + config.flapDrag * flap + induced + plate };
 }
 
 /**
@@ -809,11 +826,11 @@ export function wingCoefficients(config: WingConfig, alpha: number): { cl: numbe
  * drag. `alpha` is the angle of the section flow to the chord, lift is perpendicular to the flow
  * and drag along it.
  */
-export function wingForce(config: WingConfig, v: Vec3, rho: number): Vec3 {
+export function wingForce(config: WingConfig, v: Vec3, rho: number, flap = 0): Vec3 {
 	const section = Math.hypot(v.y, v.z);
 	if (section === 0 || rho === 0) return { x: 0, y: 0, z: 0 };
 	const alpha = Math.atan2(v.z, Math.abs(v.y));
-	const { cl, cd } = wingCoefficients(config, alpha);
+	const { cl, cd } = wingCoefficients(config, alpha, flap);
 	const q = 0.5 * rho * section * section * config.area;
 	const ey = v.y / section;
 	const ez = v.z / section;
@@ -842,15 +859,44 @@ const wingInfo = (config: WingConfig): ModuleInfo => ({
 export const ModuleWing = defineModule({
 	id: 'stock.wing',
 	config: wingConfigSchema,
-	state: (): Record<string, never> => ({}),
-	describe: (config) => wingInfo(config),
+	state: (): WingState => ({ flap: 0 }),
+	describe: (config, state) => ({
+		...wingInfo(config),
+		...(config.flapLift > 0
+			? {
+					actions: [
+						{
+							id: 'setFlaps',
+							label: 'Flaps',
+							kind: 'mode' as const,
+							value: String(state.flap ?? 0),
+							options: [
+								{ value: '0', label: 'Up' },
+								{ value: '0.5', label: 'Half' },
+								{ value: '1', label: 'Full' }
+							],
+							enabled: true,
+							group: 'stock.flaps',
+							icon: 'wing'
+						}
+					]
+				}
+			: {})
+	}),
+	actions: {
+		/** `('0' | '0.5' | '1')`: the flap setting (plan 063, ADR 0161 point 4). */
+		setFlaps: (ctx, ...args) => {
+			const [value] = z.tuple([z.enum(['0', '0.5', '1'])]).parse(args);
+			if (ctx.config.flapLift > 0) ctx.state.flap = Number(value);
+		}
+	},
 	update(ctx) {
 		const { config, vessel } = ctx;
 		const rho = vessel.ambient.density;
 		if (rho === 0) return;
 		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
 		const v = vessel.airVelocity(at);
-		const force = wingForce(config, v, rho);
+		const force = wingForce(config, v, rho, ctx.state.flap ?? 0);
 		if (config.damping > 0) {
 			const speed = Math.hypot(v.x, v.y, v.z);
 			force.z += finDampingForce(
@@ -881,4 +927,72 @@ export const ModuleScrubber = defineModule({
 	config: scrubberConfigSchema,
 	scrubber: (config) => ({ crew: config.crew, charge: config.charge }),
 	describe: () => ({ category: 'command' })
+});
+
+// ---------------------------------------------------------------------------------------------
+// Wheel (plan 063, ADR 0161 points 1 and 2)
+// ---------------------------------------------------------------------------------------------
+
+export const wheelConfigSchema = z.object({
+	/** Wheel radius, m. */
+	radius: z.number().positive().default(0.3),
+	/** Tyre width, m. */
+	width: z.number().positive().default(0.15),
+	/** Centre of the wheel in the part frame, m (out along the part's +X on a radial part). */
+	offset: z.tuple([z.number(), z.number(), z.number()]).default([0.45, 0, 0]),
+	/** Rolling resistance coefficient. */
+	rolling: z.number().nonnegative().default(0.02),
+	/** Side grip coefficient (and the brakes' friction). */
+	grip: z.number().positive().default(0.8),
+	/** Steering angle at full yaw demand, degrees (0: a fixed wheel). */
+	steer: z.number().min(0).max(45).default(0)
+});
+export type WheelConfig = z.output<typeof wheelConfigSchema>;
+export interface WheelState {
+	brakes: boolean;
+}
+
+/**
+ * A wheel (ADR 0161): one frictionless box at `offset`, rolling along the part's +Y; the sim applies
+ * the rolling resistance, the side grip and the brakes at its ground contact.
+ */
+export const ModuleWheel = defineModule({
+	id: 'stock.wheel',
+	config: wheelConfigSchema,
+	state: (): WheelState => ({ brakes: false }),
+	describe: (config, state) => ({
+		category: 'landing',
+		actions: [
+			{
+				id: 'setBrakes',
+				label: config.steer > 0 ? 'Brakes (steering wheel)' : 'Brakes',
+				kind: 'toggle',
+				value: state.brakes,
+				enabled: true,
+				group: 'stock.brakes',
+				icon: 'legs'
+			}
+		]
+	}),
+	colliders: (config, state) => [
+		{
+			offset: { x: config.offset[0], y: config.offset[1], z: config.offset[2] },
+			// the rolling direction (+Y) and out (+X) span the wheel's disc; its width is along Z
+			halfExtents: { x: config.radius, y: config.radius, z: config.width / 2 },
+			wheel: {
+				rolling: config.rolling,
+				grip: config.grip,
+				brake: state.brakes ? 1 : 0,
+				steer: (config.steer * Math.PI) / 180
+			}
+		}
+	],
+	actions: {
+		/** `(on)`: the brakes. */
+		setBrakes: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.brakes = on;
+		}
+	},
+	snapshot: (state) => ({ brakes: state.brakes })
 });

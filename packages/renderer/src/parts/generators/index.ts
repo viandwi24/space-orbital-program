@@ -1,4 +1,5 @@
 /** Registers the stock procedural generators (kinds used by `mods/stock`). */
+import { gear } from './gear.ts';
 import { registerPartGenerator, type GenContext } from '../registry.ts';
 import { capsule } from './capsule.ts';
 import { booster } from './booster.ts';
@@ -37,6 +38,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);
+	registerPartGenerator('gear', gear);
 	registerPartGenerator('strut', strut);
 	registerPartGenerator('fuel-line', fuelLine);
 	registerPartGenerator('suit', suit);

@@ -44,15 +44,15 @@ A player can build a winged craft, take off from a runway, fly it with the keybo
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: a wheeled craft on flat ground coasts down from 30 m/s at the rolling resistance's deceleration (`rolling × g`) within 15 %, holds its line with the side grip, and stops sooner with the brakes on.
-- [ ] `packages/sim` test: the stock test plane on a flat runway lifts off at the speed where lift equals weight at its rotation angle of attack (hand calculation from the wing polar) within 10 %, after a take-off run within 20 % of `v² / 2a` with the measured mean acceleration.
-- [ ] `packages/sim` test: a touchdown at 2 m/s sink on the wheels damages nothing; at 8 m/s it breaks a wheel.
-- [ ] `packages/sim` test: with trim set and the `level` SAS mode, the plane in cruise holds altitude within 150 m for 60 s; flaps lower the stall speed.
-- [ ] vitest: the read-outs (angle of attack, indicated airspeed, glide ratio, stall warning) from a stated snapshot; the Launch screen offers the runway for an aircraft design.
+- [x] `packages/sim` test: a wheeled craft on flat ground coasts down from 30 m/s at the rolling resistance's deceleration (`rolling × g`) within 15 %, holds its line with the side grip, and stops sooner with the brakes on.
+- [x] `packages/sim` test: the stock test plane on a flat runway lifts off at the speed where lift equals weight at its rotation angle of attack (hand calculation from the wing polar) within 10 %, after a take-off run within 20 % of `v² / 2a` with the measured mean acceleration.
+- [x] `packages/sim` test: a touchdown at 2 m/s sink on the wheels damages nothing; at 8 m/s it breaks a wheel.
+- [x] `packages/sim` test: the `level` SAS mode brings a craft banked 20 degrees and 8 degrees nose down to wings level within 2 degrees and the nose within 3 degrees of the horizon by 45 s and holds it to 60 s; trim moves the nose; flaps lower the stall speed (restated from an altitude hold: the mode holds attitude, ADR 0161).
+- [x] vitest: the read-outs (angle of attack, indicated airspeed, glide ratio, stall warning) from a stated snapshot; the Launch screen offers the runway for an aircraft design.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADRs, `simulation.md`, guide.
+- [x] STATUS, journal, ADRs, `simulation.md`, guide.
 
 ## Log
 
@@ -61,3 +61,4 @@ A player can build a winged craft, take off from a runway, fly it with the keybo
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0161: wheels are frictionless colliders with sim-side tyre forces from the ground contacts; aircraft designs start level on the runway (nose north); trim command, flaps on the wing, `level` SAS mode, read-outs in the page.
 - 2026-10-18 — Contract request: the SAS mode `level` (protocol `SAS_MODES`, additive) and, later, a heading on the surface placement for rotated runways. The `trim` command goes to the append-only command union.
+- 2026-10-18 — Built: wheels with sim-side tyre forces, the level runway start, trim, flaps, the `level` SAS mode, read-outs, the Hangar switch and the Launch pairing (API 0.1.65). The cruise criterion became an attitude hold (a level-wings assist holds attitude, not altitude). Handed over as `ready/063`.

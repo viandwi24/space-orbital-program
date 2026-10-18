@@ -286,6 +286,8 @@ export function startFlight(options: FlightOptions): Flight {
 	// --- input state -------------------------------------------------------------------------
 	const held = new Set<string>();
 	let throttle = 0;
+	/** The pitch trim sent last (plan 063): R and F step it. */
+	let trim = 0;
 	let sentThrottle = 0;
 	let sentAttitude = '0,0,0';
 	const touchAttitude = { pitch: 0, yaw: 0, roll: 0 };
@@ -397,6 +399,20 @@ export function startFlight(options: FlightOptions): Flight {
 				if (vessel !== null) {
 					void send({ type: 'action-group', vessel, group: `custom.${customGroupSlot(action)}` });
 				}
+				break;
+			case 'trimUp':
+			case 'trimDown':
+				// pitch trim in steps of 0.05 (plan 063, ADR 0161 point 4)
+				if (vessel !== null) {
+					trim = Math.max(
+						-1,
+						Math.min(1, Math.round((trim + (action === 'trimUp' ? 0.05 : -0.05)) * 100) / 100)
+					);
+					void send({ type: 'trim', vessel, pitch: trim });
+				}
+				break;
+			case 'brakes':
+				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.brakes' });
 				break;
 			case 'map':
 				toggleMap();

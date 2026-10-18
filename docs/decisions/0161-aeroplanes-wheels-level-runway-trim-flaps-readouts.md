@@ -18,6 +18,12 @@ Plan 041 made wings fly: lift with stall, induced and flat-plate drag, control s
 5. **Level wings** is an SAS mode (`level`): it drives the bank to zero and the pitch toward the horizon (the nose's angle above the local horizontal to zero), with the same controller as `hold`.
 6. **Read-outs in the page**, from the snapshot: angle of attack (the nose against the air velocity, the air turning with the body), indicated airspeed (true airspeed × √(ρ/ρ₀) from the body's atmosphere), glide ratio (horizontal over vertical speed, descending only) and a stall warning when the angle of attack is within 2 degrees of the wing's stall angle. Shown by the flight HUD when the vessel has wings and is in air.
 
+## Found while building (plan 063)
+
+- **A tyre takes a quarter of its slip out per step** (`WHEEL_SETTLE`): the contact sits below the centre of mass, so a push there also rolls the craft and the effective mass is well under the wheel's share; cancelling the whole slip in one step overshot and shimmied at ±0.7 m/s.
+- **Wheel contacts are kept in the body's own axes**: the flight frame re-anchors on a vessel that has run about a kilometre, and contacts kept in frame coordinates then put the next step's tyre forces 950 m away.
+- **`level` may use the whole authority as integral** (`LEVEL_INTEGRAL_LIMIT` 1, other modes 0.5): a craft holds its own steady aerodynamic moment, which left a standing error of 0.1 rad at the shared limit.
+
 ## Alternatives considered
 
 - **Per-shape anisotropic friction in the physics backend** — Rapier has no anisotropic Coulomb friction; a cylinder collider that really rolls would need a joint per wheel (a vessel is one rigid body, ADR 0018).
