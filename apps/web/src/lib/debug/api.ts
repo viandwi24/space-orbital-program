@@ -14,7 +14,8 @@ import type {
 	DebugSnapshot,
 	EntityId,
 	Snapshot,
-	VesselDesign
+	VesselDesign,
+	VesselSnapshot
 } from '@orbital/core';
 import { logBuffer, type LogEntry } from '../log-buffer';
 import { fromApsides } from './model';
@@ -46,6 +47,8 @@ export type OrbitSpec =
 
 export interface DebugApi {
 	state(): DebugSnapshot | null;
+	/** The focused vessel as the last snapshot shows it (tests read tanks and orbits here). */
+	vessel(): VesselSnapshot | null;
 	setDebugMode(on: boolean): Promise<CommandResult>;
 	setCheat(cheat: DebugCheat, on?: boolean): Promise<CommandResult>;
 	grant(what: { funds?: number; science?: number; reputation?: number; tech?: boolean }): Promise<CommandResult>;
@@ -125,6 +128,10 @@ export function createDebugApi(host: DebugHost): DebugApi {
 
 	return {
 		state: () => host.snapshot()?.debug ?? null,
+		vessel: () => {
+			const id = host.vessel();
+			return host.snapshot()?.vessels.find((v) => v.id === id) ?? null;
+		},
 		setDebugMode: (on) => apply({ type: 'debug-mode', on }),
 		setCheat: (cheat, on = true) => apply({ type: 'debug-cheat', cheat, on }),
 		grant: (what) => apply({ type: 'debug-grant', ...what }),

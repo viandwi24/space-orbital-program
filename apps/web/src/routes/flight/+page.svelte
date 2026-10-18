@@ -58,7 +58,7 @@
 	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../lib/debug/DebugPanel.svelte';
-	import { createDebugApi, exposeDebugApi } from '../../lib/debug/api';
+	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../lib/debug/api';
 	import { captureErrors } from '../../lib/log-buffer';
 	import { listEntries, withFallback } from '../../lib/vab/library';
 	import { indexedDbStore } from '../../lib/vab/library-idb';
@@ -186,6 +186,8 @@
 	let pauseOpen = $state(false);
 	/** The Debug panel (plan 203, Alt+F12 or the pause menu). */
 	let debugOpen = $state(false);
+	/** The running flight's debug host (`flight` itself is not reactive). */
+	let debugHost = $state.raw<DebugHost | null>(null);
 	/** The flight's design and parts, for the panel's "spawn a design" list. */
 	let debugDesigns: () => Promise<Array<{ name: string; design: VesselDesign }>> = async () => [];
 	let helpOpen = $state(false);
@@ -531,6 +533,7 @@
 		flight = started;
 		// the debug API (plan 203): `window.__orbitalDebug` while the world allows it, the log of
 		// uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
+		debugHost = started.debug;
 		const offDebug = exposeDebugApi(window, createDebugApi(started.debug), started.debug);
 		const offErrors = captureErrors(window);
 		let modeSent: boolean | null = null;
@@ -572,6 +575,7 @@
 			clearInterval(waitForPlanner);
 			offDebugWatch();
 			offDebug();
+			debugHost = null;
 			offErrors();
 			offSandbox();
 			checker?.close();
@@ -1083,7 +1087,7 @@
 		<DebugPanel
 			open={debugOpen}
 			onclose={() => (debugOpen = false)}
-			host={flight?.debug ?? null}
+			host={debugHost}
 			info={() => flight?.debugInfo() ?? null}
 			world={world.name}
 			designs={() => debugDesigns()}

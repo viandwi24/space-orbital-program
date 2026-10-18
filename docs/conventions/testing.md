@@ -7,3 +7,7 @@
 - **Determinism:** tests that run the sim twice and compare JSON snapshots are mandatory for any plan touching `sim` or `physics`.
 - **Speed:** the whole suite should stay under a minute in Bun. Long scenarios get a `test.skipIf(process.env.FAST)` guard only in `tools/` harnesses, never inside environment-neutral packages (they must not read `process`).
 - **No browser in Phase 0.** Browser-only behaviour (Three, Worker) is tested in `apps/web` with vitest or marked `[manual]` in the plan with a journal record.
+
+## Setting up a state with the debug helpers (plan 203)
+
+An e2e test that needs a vessel in orbit, in the air, with an empty tank or with a cheat on sets it up through the debug API instead of flying there. `apps/web/e2e/support.ts` has `debugSetOrbit(page, { apoapsis, periapsis })`, `debugSetLocation(page, { kind: 'air', latitude, longitude, altitude, speed })`, `debugSetResource(page, { resource, fraction })`, `debugCheat(page, 'infinite-fuel')` and `debugAmount(page, resource)`. They need a flight on screen in a world that allows the tools: the Legacy and every Sandbox world do; a Science or Career world needs Debug mode on in Settings first. Each helper waits for `window.__orbitalDebug`, calls it, waits for a snapshot that shows the change and throws with the sim's reason on a refusal. In `bun test`, dispatch the `debug-*` commands to a Sandbox sim directly (`packages/sim/test/debug.test.ts`).
