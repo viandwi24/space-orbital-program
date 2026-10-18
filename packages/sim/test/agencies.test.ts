@@ -128,7 +128,7 @@ describe('agencies', () => {
 				velocity: { x: speed * Math.sin(phi), y: 0, z: speed * Math.cos(phi) }
 			}
 		});
-		expect(placed.ok).toBe(true);
+		if (!placed.ok) throw new Error(placed.reason);
 		const probe = placed.vessel!;
 		sim.step(0.02);
 		const route = sim.snapshot().network!.vessels.find((v) => v.vessel === probe)!.route;
