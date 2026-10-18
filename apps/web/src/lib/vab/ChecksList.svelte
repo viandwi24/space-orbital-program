@@ -49,6 +49,20 @@
 							: ''} {c.hint}"
 					>
 						<span class="dot {c.level}" aria-hidden="true"></span>
+						{#if c.id === 'size-mismatch'}
+							<!-- a wide block on a narrow one: the mark of a joint whose sizes differ (plan 207) -->
+							<svg
+								class="icon"
+								data-testid="size-mismatch-mark"
+								viewBox="0 0 16 16"
+								width="16"
+								height="16"
+								aria-hidden="true"
+							>
+								<rect x="1" y="2" width="14" height="5" rx="1" />
+								<rect x="5" y="9" width="6" height="5" rx="1" />
+							</svg>
+						{/if}
 						<span class="text">
 							<span class="what">{c.text}</span>
 							{#if at}<span class="at">{at}</span>{/if}
@@ -62,6 +76,13 @@
 </section>
 
 <style>
+	.icon {
+		flex: none;
+		margin-top: 1px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.5;
+	}
 	/* refs: a glass panel, a capital header, rows with a status dot */
 	.checks {
 		display: flex;

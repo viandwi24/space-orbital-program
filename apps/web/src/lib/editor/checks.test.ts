@@ -4,7 +4,8 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { emptyDesign, referenceTwoStage } from '../design';
 import type { ContentLookups } from '../delta-v';
-import { blocksLaunch, checkDesign, MARGINAL_TWR, verdictOf } from './checks';
+import { blocksLaunch, checkDesign, MARGINAL_TWR, sizeMismatches, verdictOf } from './checks';
+import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
 import { attachNew, attachTargets, createEditor, replaceDesign, singlePart } from './state';
 import { designStats } from './stats';
 
@@ -64,5 +65,52 @@ describe('pre-flight verdict', () => {
 		const stats = designStats(s.design, content, 'sea-level', g);
 		expect(verdictOf(checkDesign(s, content, stats))).toBe('go');
 		expect(verdictOf(checkDesign(s, content, { ...stats, liftoffTwr: 0.8 }))).toBe('no-go');
+	});
+});
+
+describe('size mismatch (plan 207, ADR 0212)', () => {
+	const stack = (top: string) => {
+		const s = createEditor(emptyDesign(), content);
+		const t = attachNew(
+			s,
+			content,
+			'stock.tank-small',
+			attachTargets(s.design, singlePart('stock.tank-small', 0), content.parts)[0]!
+		);
+		return attachNew(
+			t,
+			content,
+			top,
+			attachTargets(t.design, singlePart(top, 1), content.parts).find(
+				(x) => x.parent!.parentNode === 'top'
+			)!
+		);
+	};
+
+	it('a 2.5 m part on a 1.25 m node gives a "size mismatch" check with text', () => {
+		const t = stack('stock.nose-cone-large');
+		const checks = checkDesign(t, content, designStats(t.design, content, 'sea-level', g));
+		const mismatch = checks.find((c) => c.id === 'size-mismatch')!;
+		expect(mismatch.level).toBe('caution');
+		expect(mismatch.text).toBe('Size mismatch: a 2.5 m part sits on a 1.25 m joint.');
+		expect(mismatch.hint).toContain('adapter');
+		expect(mismatch.parts.sort()).toEqual(t.design.parts.map((p) => p.index).sort());
+	});
+
+	it('a part of the same size fits, and the reference rockets have no mismatch', () => {
+		const t = stack('stock.nose-cone-medium');
+		const ok = checkDesign(t, content, designStats(t.design, content, 'sea-level', g));
+		expect(ok.some((c) => c.id === 'size-mismatch')).toBe(false);
+		const ref = replaceDesign(createEditor(emptyDesign(), content), content, referenceTwoStage());
+		const refChecks = checkDesign(ref, content, designStats(ref.design, content, 'sea-level', g));
+		expect(refChecks.some((c) => c.id === 'size-mismatch')).toBe(false);
+		for (const design of [
+			boosterRocket(content),
+			asparagusRocket(content),
+			glider(content),
+			moonShot()
+		]) {
+			expect(sizeMismatches(design, content.parts), design.name).toEqual([]);
+		}
 	});
 });

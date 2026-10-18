@@ -2,7 +2,7 @@
  * Warnings and errors shown in the VAB before launch (ADR 0029). Errors block Launch; warnings ask
  * for a confirmation. Pure: the page passes the readouts it already computed.
  */
-import { resolveVesselDesign, type PartLookup } from '@orbital/core';
+import { nodeSize, nodeSizesMatch, resolveVesselDesign, type PartLookup } from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { isAutoStaged } from './staging';
 import type { EditorState } from './state';
@@ -23,7 +23,8 @@ export type CheckId =
 	| 'unstable'
 	| 'loose'
 	| 'locked'
-	| 'over-capacity';
+	| 'over-capacity'
+	| 'size-mismatch';
 
 /** How bad for the flight (ADR 0148 point 1), apart from whether it blocks Launch (`severity`). */
 export type CheckLevel = 'no-go' | 'caution';
@@ -195,6 +196,21 @@ export function checkDesign(
 				.map((p) => p.index)
 		});
 	}
+	const mismatched = sizeMismatches(design, content.parts as PartLookup);
+	if (mismatched.length > 0) {
+		const first = mismatched[0]!;
+		out.push({
+			id: 'size-mismatch',
+			severity: 'warning',
+			level: 'caution',
+			text:
+				mismatched.length === 1
+					? `Size mismatch: a ${metres(first.child)} part sits on a ${metres(first.parent)} joint.`
+					: `Size mismatch at ${mismatched.length} joints, such as a ${metres(first.child)} part on a ${metres(first.parent)} joint.`,
+			hint: 'Put an adapter between the two sizes, or pick a part of the same size.',
+			parts: mismatched.flatMap((m) => [m.index, m.parentIndex])
+		});
+	}
 	if (loose.length > 0) {
 		const n = loose.reduce((m, a) => m + a.parts.length, 0);
 		out.push({
@@ -218,6 +234,39 @@ export function checkDesign(
 			hint: `Research ${nodes} in R&D, or take ${locks.length === 1 ? 'the part' : 'them'} off.`,
 			parts: locks.flatMap((l) => l.parts)
 		});
+	}
+	return out;
+}
+
+const metres = (size: number): string => `${size} m`;
+
+/** A stack joint whose two nodes have different sizes (plan 207, ADR 0212). */
+export interface SizeMismatch {
+	/** Design index of the child part and of its parent. */
+	index: number;
+	parentIndex: number;
+	/** Node sizes, m. */
+	child: number;
+	parent: number;
+}
+
+/** Every stack joint of `design` whose node sizes differ; radial joints have no size. */
+export function sizeMismatches(
+	design: Pick<EditorState['design'], 'parts'>,
+	parts: PartLookup
+): SizeMismatch[] {
+	const byIndex = new Map(design.parts.map((p) => [p.index, p]));
+	const out: SizeMismatch[] = [];
+	for (const p of design.parts) {
+		if (!p.parent) continue;
+		const parent = byIndex.get(p.parent.index);
+		const childDef = parts.get(p.part);
+		const parentDef = parent && parts.get(parent.part);
+		if (!childDef || !parentDef) continue;
+		const child = nodeSize(childDef, p.parent.node);
+		const at = nodeSize(parentDef, p.parent.parentNode);
+		if (child === undefined || at === undefined || nodeSizesMatch(child, at)) continue;
+		out.push({ index: p.index, parentIndex: p.parent.index, child, parent: at });
 	}
 	return out;
 }

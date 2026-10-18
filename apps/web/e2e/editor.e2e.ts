@@ -3,7 +3,7 @@
  * problem reported, find, undo, and Escape then Tab leaving the field without opening the pause menu;
  * then replace, go to line, comments, moving lines, the engine's syntax error before Run, input-method
  * keys left alone, the second suggest key (plan 072), and the on-screen keys on a touch screen. Run in
- * Chromium, Firefox and WebKit.
+ * Chromium, Firefox and WebKit. Also the Hangar's mark on a joint whose sizes differ (plan 207).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { launchTwoStage, watchErrors } from './support';
@@ -239,4 +239,48 @@ test('the on-screen keys appear on a touch screen and indent, undo and suggest',
 	} finally {
 		await context.close();
 	}
+});
+
+test('the Hangar marks a joint whose sizes differ, and not a cone on the booster (plan 207)', async ({
+	page
+}) => {
+	const errors = watchErrors(page);
+	await page.goto('/vab');
+	await page.getByRole('button', { name: 'Load the booster rocket' }).click();
+	const checks = page.getByRole('region', { name: 'Pre-flight checks' });
+	await expect(checks).toBeVisible();
+	await expect(checks.getByTestId('size-mismatch-mark')).toHaveCount(0);
+	await expect(checks).not.toContainText('Size mismatch');
+
+	// A 0.625 m nose cone straight on a 1.25 m tank, imported as a design file.
+	const design = {
+		formatVersion: 3,
+		name: 'Cone mismatch',
+		parts: [
+			{ index: 0, part: 'stock.tank-small', parent: null },
+			{
+				index: 1,
+				part: 'stock.nose-cone-small',
+				parent: { index: 0, parentNode: 'top', node: 'bottom' }
+			}
+		],
+		stages: []
+	};
+	await page.goto('/vab?library');
+	const library = page.getByRole('dialog', { name: 'Vessel library' });
+	await expect(library).toBeVisible();
+	await library.locator('input[type=file]').setInputFiles({
+		name: 'cone-mismatch.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify(design))
+	});
+	await expect(library.getByRole('status')).toHaveText('Imported Cone mismatch.');
+	await library
+		.getByRole('listitem')
+		.filter({ hasText: 'Cone mismatch' })
+		.getByRole('button', { name: 'Open' })
+		.click();
+	await expect(checks.getByTestId('size-mismatch-mark')).toBeVisible();
+	await expect(checks).toContainText('Size mismatch: a 0.625 m part sits on a 1.25 m joint.');
+	expect(errors).toEqual([]);
 });
