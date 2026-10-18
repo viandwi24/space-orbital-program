@@ -1,12 +1,12 @@
 ---
 id: 118
 title: "Comms planning tools: contact timeline, coverage map, constellation planner"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [117]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 118 — Comms planning tools: contact timeline, coverage map, constellation planner
