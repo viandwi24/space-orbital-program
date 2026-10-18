@@ -104,6 +104,7 @@ describe('stock boots through the loader', () => {
 		expect(ids('antenna')).toEqual(['stock.dish', 'stock.whip']);
 		expect(ids('data-kind')).toEqual([
 			'stock.bulk',
+			'stock.command',
 			'stock.image',
 			'stock.science',
 			'stock.telemetry',
@@ -263,9 +264,10 @@ describe('stock bodies name their terrain (plan 052, ADR 0067)', () => {
 });
 
 describe('stock data kinds (plan 083)', () => {
-	test('five kinds in ADR 0101 priority order', () => {
+	test('six kinds in ADR 0101 priority order: command first (plan 119)', () => {
 		const kinds = registries.dataKinds.list().sort((a, b) => a.priority - b.priority);
 		expect(kinds.map((k) => k.id)).toEqual([
+			'stock.command',
 			'stock.telemetry',
 			'stock.voice',
 			'stock.science',
