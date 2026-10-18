@@ -116,7 +116,11 @@ export function orbitPresets(bodies: readonly BodyDefinition[], home: string): O
 		{ id: 'low', label: 'Low orbit', orbit: circular(base, lowAltitude(base)) }
 	];
 	for (const moon of moons) {
-		out.push({ id: `moon:${moon.id}`, label: `${title(moon)} orbit`, orbit: circular(moon, lowAltitude(moon)) });
+		out.push({
+			id: `moon:${moon.id}`,
+			label: `${title(moon)} orbit`,
+			orbit: circular(moon, lowAltitude(moon))
+		});
 	}
 	for (const moon of moons) {
 		const rp = base.radius + lowAltitude(base);
@@ -160,7 +164,10 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 				message: `vessel ${event.vessel} ${event.mode === 'flight' ? 'in flight' : 'on rails'} (${event.reason})`
 			};
 		case 'soi-changed':
-			return { level: 'info', message: `vessel ${event.vessel} left ${event.from} for ${event.to}` };
+			return {
+				level: 'info',
+				message: `vessel ${event.vessel} left ${event.from} for ${event.to}`
+			};
 		case 'maneuver-complete':
 			return { level: 'info', message: `node ${event.node} of vessel ${event.vessel} burned` };
 		case 'milestone':

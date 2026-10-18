@@ -113,7 +113,7 @@ export const DEBUG: readonly ApiEntry[] = [
 	),
 	fn(
 		'setCheat',
-		"debug.setCheat(cheat, on = true): Promise",
+		'debug.setCheat(cheat, on = true): Promise',
 		"Switch a cheat such as 'infinite-fuel' or 'no-crash-damage'."
 	),
 	fn('log', 'debug.log(...values)', 'Write a line marked [debug] to the panel log.')

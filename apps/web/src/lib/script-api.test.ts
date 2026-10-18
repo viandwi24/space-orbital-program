@@ -82,7 +82,11 @@ describe('the typed script API table against the real sandbox', () => {
 			off.dispose();
 			const on = await createScriptRunner(source, { ...env, debug: true });
 			on.tick(sim.snapshot());
-			expect(on.logs[0]).toBe(`object ${DEBUG.map((e) => e.name).sort().join(',')}`);
+			expect(on.logs[0]).toBe(
+				`object ${DEBUG.map((e) => e.name)
+					.sort()
+					.join(',')}`
+			);
 			expect(on.logs[1]).toBe('function');
 			on.dispose();
 		} finally {

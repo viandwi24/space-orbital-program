@@ -51,7 +51,12 @@ export interface DebugApi {
 	vessel(): VesselSnapshot | null;
 	setDebugMode(on: boolean): Promise<CommandResult>;
 	setCheat(cheat: DebugCheat, on?: boolean): Promise<CommandResult>;
-	grant(what: { funds?: number; science?: number; reputation?: number; tech?: boolean }): Promise<CommandResult>;
+	grant(what: {
+		funds?: number;
+		science?: number;
+		reputation?: number;
+		tech?: boolean;
+	}): Promise<CommandResult>;
 	/** The focused vessel (or `vessel`) on rails in `orbit`; with `design`, a new vessel there. */
 	setOrbit(
 		orbit: OrbitSpec,
@@ -65,7 +70,11 @@ export interface DebugApi {
 		amount?: number;
 		vessel?: EntityId;
 	}): Promise<CommandResult>;
-	setTemperature(spec: { part?: EntityId; temperature: number; vessel?: EntityId }): Promise<CommandResult>;
+	setTemperature(spec: {
+		part?: EntityId;
+		temperature: number;
+		vessel?: EntityId;
+	}): Promise<CommandResult>;
 	setCrewLevel(member: string, level: number): Promise<CommandResult>;
 	/** The log's entries, oldest first. */
 	log(): readonly LogEntry[];
@@ -77,7 +86,11 @@ const SNAPSHOT_WAIT_MS = 3000;
 const noVessel: CommandResult = { ok: false, reason: 'no vessel in focus' };
 
 /** Elements for `spec` around its body (the focused vessel's, else home). */
-export function orbitOf(spec: OrbitSpec, bodies: readonly BodyDefinition[], fallback: string): DebugOrbit | string {
+export function orbitOf(
+	spec: OrbitSpec,
+	bodies: readonly BodyDefinition[],
+	fallback: string
+): DebugOrbit | string {
 	const body = bodies.find((b) => b.id === (spec.body ?? fallback));
 	if (!body) return `unknown body "${spec.body ?? fallback}"`;
 	const shape =

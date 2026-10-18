@@ -12,7 +12,9 @@ export const DEBUG_RULE = 'stock.debug-tools';
  * The world's debug access from its record: the rule as created, else the preset's default (a
  * world made before the rule existed). The Legacy world is a Sandbox world.
  */
-export function accessOfRecord(record: Pick<WorldRecord, 'preset' | 'world'> | undefined): DebugAccess {
+export function accessOfRecord(
+	record: Pick<WorldRecord, 'preset' | 'world'> | undefined
+): DebugAccess {
 	const value = record?.world?.rules[DEBUG_RULE];
 	if (value === 'always' || value === 'opt-in' || value === 'locked') return value;
 	const preset = record?.preset ?? 'sandbox';
