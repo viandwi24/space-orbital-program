@@ -8,7 +8,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core` | `PartVisual.deploy.clip`, `lods` (1 to 3, increasing distances), `materials` (palette slots by material name); `inspectGlb` counts animations (at most 4) and keyframes (at most 20 000) and accepts `KHR_texture_basisu` with `image/ktx2`; the resolver checks every LOD asset and lists it with its level; API_VERSION 0.1.61 (116 took 0.1.60) |
+| `packages/core` | `PartVisual.deploy.clip`, `lods` (1 to 3, increasing distances), `materials` (palette slots by material name); `inspectGlb` counts animations (at most 4) and keyframes (at most 20 000) and accepts `KHR_texture_basisu` with `image/ktx2`; the resolver checks every LOD asset and lists it with its level; API_VERSION 0.1.62 (116 and 097 took 0.1.60 and 0.1.61) |
 | `packages/renderer/src/parts/gltf-provider.ts` | the deploy clip posed by the generated parts' progress, a three `LOD` for `lods` (assets keyed `lodAssetKey`), palette slots on named materials, a `KTX2Loader` attached only for a model that uses KTX2 (`usesBasisu`, `createKtx2Loader`) |
 | `tools/mod-build/glb.ts` | animations and KTX2 images in the GLB writer |
 | web | the mod runtime keys LOD bytes by level; the provider gets `createKtx2Loader('/basis/')`; `scripts/copy-basis.ts` copies three's transcoder into `static/basis/` before `dev` and `build` (gitignored) |
