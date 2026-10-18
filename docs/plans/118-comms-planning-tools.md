@@ -69,3 +69,4 @@ The planning Worker reuses pure functions; results are cached by snapshot time.
 - 2026-10-18 — Agent 2: built. The planning Worker with a cached client, the timeline, the coverage grid, `resonantDeployment`, the Mission Center's Planning panel (Timeline, Coverage, Constellation), and `antennas` in the `ready` catalog. The coverage criterion is restated with a relay (see the criterion). e2e: `mission-center.e2e.ts` drives the three tools.
 - 2026-10-18 — Agent 2: refined (Steps, ADR 0163). Contract request: `network.vessels[].range` in the snapshot would replace the page-side range heuristic (ADR 0163 point 3).
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101).
+- 2026-10-18 — Merged by Agent 1 (ADR 0126): CI refs/ci/pass/8490159 for the handed-over commit; on the rebased result check:affected passed (13 affected workspaces, bun test, related vitest), the build and the Chromium smoke; the Mission Center e2e passes.
