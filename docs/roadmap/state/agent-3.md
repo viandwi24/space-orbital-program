@@ -25,7 +25,7 @@
 | 123 elements | done | `devc/123-elements` | 2026-10-18 | merged 8403dd7, cp/f5-123-elements |
 | 099 contracts | in-progress | `devc/099-contracts` | 2026-10-18 | claimed |
 | 101 strategies | todo |  |  |  |
-| 116 comms-2 | handed-over | `devc/116-link-budget` | 2026-10-18 | ready/116 |
+| 116 comms-2 | done | `devc/116-link-budget` | 2026-10-17 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | todo |  |  |  |
 | 119 comms-4 | todo |  |  |  |
 | 126 agencies | todo |  |  |  |

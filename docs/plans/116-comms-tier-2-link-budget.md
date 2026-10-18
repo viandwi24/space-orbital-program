@@ -1,7 +1,7 @@
 ---
 id: 116
 title: "Comms tier 2: link budget, bands, data rates, comms scale"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [114, 115]
 phase: 7
