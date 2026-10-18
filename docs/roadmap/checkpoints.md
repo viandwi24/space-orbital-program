@@ -89,7 +89,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | Checkpoint | Contract change | Requested by | Status | Commit | Date |
 |---|---|---|---|---|---|
 | `cp/f1-contract-tick-epoch` | the world tick reads `WorldInfo.epoch` as SI days from J2000 (ADR 0141) and takes `dayLength` from `calendarOf(bodies)`; today it reads tick days (ADR 0171) | A2 (plan 081) | done (ADR 0114) | b28b62f | 2026-10-17 |
-| `cp/f3-contract-crew-dismiss` | sim command `crew-dismiss { member }` and event `crew:dismissed`: an available member leaves the roster; seated, missing or lost ones are refused (ADR 0152 point 4); API_VERSION 0.1.59 | A2 (plan 108) | done | | 2026-10-18 |
+| `cp/f3-contract-crew-dismiss` | sim command `crew-dismiss { member }` and event `crew:dismissed`: an available member leaves the roster; seated, missing or lost ones are refused (ADR 0152 point 4); API_VERSION 0.1.59 | A2 (plan 108) | done | da7d262 | 2026-10-18 |
 
 ## Reassignments
 
