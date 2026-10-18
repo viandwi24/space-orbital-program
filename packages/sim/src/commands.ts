@@ -3,6 +3,7 @@
  * core, then semantic checks against the world) and applies them. Refusals are results, not
  * exceptions: commands come from outside the sim.
  */
+import { endRent, ownedRefusal, rentRelay } from './agencies.ts';
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import { stageRefusal, violation, watchAscent } from './range.ts';
@@ -246,6 +247,13 @@ function pointAntenna(
 	return refuse(`part ${partId} has no antenna`);
 }
 
+/** Commands that may name an agency's vessel (renting, inspecting it). */
+const OWNED_ALLOWED: ReadonlySet<string> = new Set([
+	'relay-rent',
+	'relay-end-rent',
+	'comms-inspect'
+]);
+
 /**
  * Validate and apply a command. `source` says who sent it (plan 117, ADR 0188 point 6): the
  * signal-delay rule may queue a player's (or, under `enforced`, a script's) vessel control
@@ -264,6 +272,11 @@ export function dispatch(
 		return refuse(`invalid command: ${issues.join('; ')}`);
 	}
 	const command = parsed.data;
+	// an agency's vessel takes no orders from the player (plan 126, ADR 0190 point 3)
+	if ('vessel' in command && !OWNED_ALLOWED.has(command.type)) {
+		const owned = ownedRefusal(core, command.vessel as EntityId);
+		if (owned) return refuse(owned);
+	}
 	if (source !== 'queued' && DELAYED_COMMANDS.has(command.type)) {
 		const vessel = (command as { vessel: EntityId }).vessel;
 		if (core.world.has(vessel, VESSEL)) {
@@ -496,6 +509,10 @@ export function dispatch(
 			return activateStrategy(core, command.strategy);
 		case 'strategy-end':
 			return endStrategy(core, command.strategy);
+		case 'relay-rent':
+			return rentRelay(core, command.vessel);
+		case 'relay-end-rent':
+			return endRent(core, command.vessel);
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

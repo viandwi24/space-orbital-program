@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineAgency / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineRoutePolicy / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
@@ -264,6 +264,9 @@ export type {
 	ContractTemplateDefinition,
 	ContractsSnapshot,
 	StrategyDefinition,
+	AgencyDefinition,
+	AgencyMission,
+	AgenciesSnapshot,
 	StrategyKey,
 	StrategiesSnapshot,
 	MissionDefinition,

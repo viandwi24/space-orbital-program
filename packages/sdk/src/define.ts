@@ -29,6 +29,7 @@ import type {
 	ContractDefinition,
 	ContractTemplateDefinition,
 	StrategyDefinition,
+	AgencyDefinition,
 	MissionDefinition,
 	ObjectiveDefinition,
 	DataKindDefinition,
@@ -211,6 +212,12 @@ export const defineCharge = (def: ChargeDefinition): ChargeDefinition => def;
  * Register with `ctx.strategies`.
  */
 export const defineStrategy = (def: StrategyDefinition): StrategyDefinition => def;
+
+/**
+ * A rival agency (plan 126, ADR 0190): a temper, a budget and a programme of satellites and relays
+ * it launches over the home world. Register with `ctx.agencies`.
+ */
+export const defineAgency = (def: AgencyDefinition): AgencyDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // definePatch

@@ -14,6 +14,7 @@
 		type Snapshot,
 		type Vec3
 	} from '@orbital/core';
+	import { newsRows, rivalRows } from '../../lib/mission-center/agencies-model';
 	import { objectiveLabel } from '../../lib/administration/contracts-model';
 	import { onMount } from 'svelte';
 	import { formatFunds } from '../../lib/format';
@@ -91,6 +92,14 @@
 	const clock = $derived(
 		snapshot && epoch && bodies.length ? formatDate(calendarOf(bodies), epoch, snapshot.t).text : ''
 	);
+	// rival agencies and their news (plan 126, ADR 0190)
+	const rivals = $derived(rivalRows(snapshot));
+	const dayLength = $derived.by(() => {
+		if (!bodies.length) return 86_400;
+		const c = calendarOf(bodies);
+		return c.kind === 'fictional' ? c.dayLength : 86_400;
+	});
+	const news = $derived(newsRows(snapshot, dayLength));
 	const agency = $derived(
 		snapshot?.economy?.enabled
 			? {
@@ -267,6 +276,8 @@
 		{upcoming}
 		onwarp={(e) => void warpTo(e)}
 		{contracts}
+		{rivals}
+		{news}
 		{crew}
 		{agency}
 		{card}

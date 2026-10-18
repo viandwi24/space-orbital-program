@@ -169,6 +169,30 @@ function build(data: WorldData | undefined, options: WorldOptions): World {
 		}
 	}
 
+	// Membership revision: bumped whenever an entity joins or leaves a component (not on a value
+	// update), so a query's answer can be reused until then (plan 126: rails chunks ask for the
+	// vessels many times each).
+	let revision = 0;
+	const answers = new Map<string, { revision: number; ids: EntityId[] }>();
+
+	function compute(types: readonly ComponentType<unknown>[]): EntityId[] {
+		const maps: Map<EntityId, unknown>[] = [];
+		for (const t of types) {
+			const m = store.get(t.name);
+			if (!m) return [];
+			maps.push(m);
+		}
+		// walk the smallest component's entities, not every live one (plan 126: rails chunks call
+		// this for vessels many times, and parts outnumber vessels)
+		let smallest = maps[0]!;
+		for (const m of maps) if (m.size < smallest.size) smallest = m;
+		const result: EntityId[] = [];
+		for (const id of smallest.keys()) {
+			if (live.has(id) && maps.every((m) => m.has(id))) result.push(id);
+		}
+		return result.sort((a, b) => a - b);
+	}
+
 	const requireEntity = (id: EntityId, op: string): void => {
 		if (!live.has(id)) throw new Error(`world.${op}: entity ${id} does not exist`);
 	};
@@ -183,6 +207,7 @@ function build(data: WorldData | undefined, options: WorldOptions): World {
 		destroyEntity(id) {
 			if (!live.delete(id)) return false;
 			for (const m of store.values()) m.delete(id);
+			revision++;
 			events?.emit('world:entity-removed', { id });
 			return true;
 		},
@@ -192,6 +217,7 @@ function build(data: WorldData | undefined, options: WorldOptions): World {
 			requireEntity(id, 'add');
 			let m = store.get(type.name);
 			if (!m) store.set(type.name, (m = new Map()));
+			if (!m.has(id)) revision++;
 			m.set(id, value);
 		},
 		get<T>(id: EntityId, type: ComponentType<T>): T | undefined {
@@ -201,17 +227,17 @@ function build(data: WorldData | undefined, options: WorldOptions): World {
 		},
 		has: (id, type) => store.get(type.name)?.has(id) ?? false,
 		remove(id, type) {
-			return store.get(type.name)?.delete(id) ?? false;
+			const removed = store.get(type.name)?.delete(id) ?? false;
+			if (removed) revision++;
+			return removed;
 		},
 		query(types) {
-			const maps: Map<EntityId, unknown>[] = [];
-			for (const t of types) {
-				const m = store.get(t.name);
-				if (!m) return [];
-				maps.push(m);
-			}
-			const result = [...live].filter((id) => maps.every((m) => m.has(id)));
-			return result.sort((a, b) => a - b);
+			const key = types.map((t) => t.name).join('|');
+			const hit = answers.get(key);
+			if (hit && hit.revision === revision) return hit.ids.slice();
+			const ids = compute(types);
+			answers.set(key, { revision, ids });
+			return ids.slice();
 		},
 		serialize() {
 			const components: WorldData['components'] = {};

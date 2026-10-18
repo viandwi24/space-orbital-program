@@ -46,6 +46,8 @@
 		contracts,
 		crew,
 		agency,
+		rivals = [],
+		news = [],
 		card,
 		onfly,
 		canFly,
@@ -72,6 +74,10 @@
 		contracts: readonly { id: string; label: string; progress: number; status: string }[];
 		crew: readonly { id: string; name: string; sub: string }[];
 		agency: { funds: string; science: string; reputation: string } | null;
+		/** Rival agencies (plan 126, ADR 0190). */
+		rivals?: readonly { id: string; name: string; sub: string }[];
+		/** Their news, newest first. */
+		news?: readonly { key: string; text: string; when: string }[];
 		card: ObjectCard | null;
 		onfly: () => void;
 		/** The `Map` tab flies the save's vessel; false when there is none. */
@@ -212,6 +218,26 @@
 				</ul>
 			{/if}
 		</Panel>
+		{#if rivals.length > 0}
+			<Panel title="Rivals">
+				<ul class="list" data-testid="mc-rivals">
+					{#each rivals as r (r.id)}
+						<li><ListRow name={r.name} sub={r.sub} /></li>
+					{/each}
+				</ul>
+			</Panel>
+			<Panel title="News">
+				{#if news.length === 0}
+					<p class="calm">No news yet.</p>
+				{:else}
+					<ul class="list" data-testid="mc-news">
+						{#each news as n (n.key)}
+							<li><ListRow name={n.text} sub={n.when} /></li>
+						{/each}
+					</ul>
+				{/if}
+			</Panel>
+		{/if}
 	</aside>
 
 	{#if planningOpen && planning}

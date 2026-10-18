@@ -110,6 +110,8 @@ export function applySoiTransitions(core: SimCore, tPrev: number): void {
 	if (core.bodies.size < 2) return;
 	for (let i = 0; i < core.frames.length; i++) transitionFrame(core, i);
 	for (const id of vesselIds(core)) {
-		if (vesselOf(core, id).mode === 'on-rails') transitionRails(core, id, tPrev);
+		const v = vesselOf(core, id);
+		// agency objects circle home far below its moons (plan 126, ADR 0190 point 3)
+		if (v.mode === 'on-rails' && v.owner === undefined) transitionRails(core, id, tPrev);
 	}
 }

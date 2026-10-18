@@ -83,7 +83,8 @@ export function collectMilestones(core: SimCore): void {
 	const home = core.root.def.id;
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
-		if (!isControlled(core, vessel)) continue;
+		// an agency's object earns the player nothing (plan 126, ADR 0190 point 3)
+		if (vessel.owner !== undefined || !isControlled(core, vessel)) continue;
 		const body = bodyOfVessel(core, vessel);
 		const b = body.def.id;
 		const landed = vessel.rails?.kind === 'surface' || vessel.landed;

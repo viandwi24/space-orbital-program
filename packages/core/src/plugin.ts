@@ -50,6 +50,7 @@ import type {
 } from './comms.ts';
 import type { ContractTemplateDefinition } from './contracts.ts';
 import type { StrategyDefinition } from './strategies.ts';
+import type { AgencyDefinition } from './agencies.ts';
 import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
@@ -116,6 +117,8 @@ export interface BasePluginContext {
 	readonly contractTemplates: Registrar<ContractTemplateDefinition>;
 	/** Strategies (plan 101, ADR 0187). */
 	readonly strategies: Registrar<StrategyDefinition>;
+	/** Rival agencies (plan 126, ADR 0190). */
+	readonly agencies: Registrar<AgencyDefinition>;
 	readonly missions: Registrar<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
@@ -207,6 +210,7 @@ export const REGISTRY_KINDS = [
 	'contract',
 	'contract-template',
 	'strategy',
+	'agency',
 	'mission',
 	'achievement',
 	'tech-node',
@@ -268,6 +272,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'contracts',
 	'contractTemplates',
 	'strategies',
+	'agencies',
 	'missions',
 	'dataKinds',
 	'actionGroups',
@@ -469,6 +474,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			contracts: registrar(registries.contracts),
 			contractTemplates: registrar(registries.contractTemplates),
 			strategies: registrar(registries.strategies),
+			agencies: registrar(registries.agencies),
 			missions: registrar(registries.missions),
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
@@ -668,6 +674,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				contract: section(registries.contracts),
 				'contract-template': section(registries.contractTemplates),
 				strategy: section(registries.strategies),
+				agency: section(registries.agencies),
 				mission: section(registries.missions),
 				achievement: section(registries.achievements),
 				'tech-node': section(registries.techNodes),

@@ -40,6 +40,7 @@ import { buildBodies, type TerrainFactory } from './bodies.ts';
 import type { Ephemeris } from '@orbital/kepler';
 import { NBODY_FRAME_EVALUATIONS, nBodyOn, takeEvaluations } from './nbody.ts';
 import { dispatch } from './commands.ts';
+import { freshAgencies } from './agencies.ts';
 import { drainQueue, type CommandSource } from './delay.ts';
 import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
@@ -338,6 +339,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),
+		agencies: resume?.agencies ? cloneData(resume.agencies) : freshAgencies(),
 		commsState: resume
 			? cloneData(resume.comms)
 			: { seq: 0, routes: [], queue: [], transmissions: [] },
@@ -377,9 +379,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	};
 
 	/** Rails vessels: module `updateOnRails` hooks and a conditioning rebase of their elements. */
+	// An agency's object is passive (plan 126, ADR 0190 point 3): a fixed circular orbit read from
+	// its rails when needed, so the per-chunk hooks, heat, rebasing and SOI checks skip it.
 	const stepRailsVessels = (step: number): void => {
 		for (const id of vesselIds(core)) {
-			if (vesselOf(core, id).mode !== 'on-rails') continue;
+			const v = vesselOf(core, id);
+			if (v.mode !== 'on-rails' || v.owner !== undefined) continue;
 			runUpdateHooks(core, id, step);
 			stepThermal(core, id, NO_HEAT, step); // radiation only: nothing hits a vessel on rails
 		}
@@ -388,6 +393,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	const rebaseAll = (): void => {
 		for (const id of vesselIds(core)) {
 			const vessel = vesselOf(core, id);
+			if (vessel.owner !== undefined) continue;
 			rebaseRails(core, vessel, core.t);
 			if (vessel.mode === 'on-rails') stepSasOnRails(core, vessel);
 		}
