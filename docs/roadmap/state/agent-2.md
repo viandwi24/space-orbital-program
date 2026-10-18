@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 131 replays claimed (`devb/131-replays`); 115 handed over as `ready/115`.
-**Waiting for:** the merge of 115 (`ready/115`); 118 waits for `cp/f4-117-comms-3`; the Lead on contract request `crew-dismiss`.
+**Now:** 065 mod models claimed (`devb/065-mod-models`); 131 handed over as `ready/131` (the tag was re-pointed at the branch head after a rebase conflict; it now names 1154f14).
+**Waiting for:** the merge of 131 (`ready/131`); 118 waits for `cp/f4-117-comms-3`.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -31,8 +31,8 @@
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
 | 118 comms-tools | todo |  |  |  |
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
-| 131 replays | in-progress | `devb/131-replays` | 2026-10-18 | claim/131 |
-| 065 mod-models | todo |  |  |  |
+| 131 replays | handed-over | `devb/131-replays` | 2026-10-18 | ready/131 (1154f14); ADR 0159 |
+| 065 mod-models | in-progress | `devb/065-mod-models` | 2026-10-18 | claim/065 |
 | 063 aeroplane | todo |  |  |  |
 | 072 script-panel | todo |  |  |  |
 | 073 phone | todo |  |  |  |
