@@ -24,7 +24,7 @@
 | 067 buoyancy | done | `devc/067-buoyancy` | 2026-10-18 | merged 201d76e, cp/f3-067-buoyancy |
 | 123 elements | done | `devc/123-elements` | 2026-10-18 | merged 8403dd7, cp/f5-123-elements |
 | 099 contracts | done | `devc/099-contracts` | 2026-10-18 | merged 5bbe137, cp/f3-099-contracts |
-| 101 strategies | handed-over | `devc/101-strategies` | 2026-10-18 | ready/101 |
+| 101 strategies | done | `devc/101-strategies` | 2026-10-17 | merged 3608196, cp/f3-101-strategies |
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | in-progress | `devc/117-comms-routing` | 2026-10-18 | claimed |
 | 119 comms-4 | todo |  |  |  |

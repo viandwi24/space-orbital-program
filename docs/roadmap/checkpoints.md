@@ -47,7 +47,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f3-096-building-levels` | 096 | A1 | A1, A3 (097, 099, 101, 128) | done | 279abc5 | 2026-10-17 |
 | `cp/f3-099-contracts` | 099 | A3 | A3 (126) | done | 5bbe137 | 2026-10-17 |
 | `cp/f3-105-tech-tree` | 105 | A2 | — (none) | done | 047ab15 | 2026-10-17 |
-| `cp/f3-101-strategies` | 101 | A3 | — (none) | pending | | |
+| `cp/f3-101-strategies` | 101 | A3 | — (none) | done | 3608196 | 2026-10-17 |
 | `cp/f3-109-eva` | 109 | A1 | A2, A3 (121, 130) | done | 912d3e3 | 2026-10-17 |
 | `cp/f3-097-markets` | 097 | A1 | A3 (126) | done | 4f791b9 | 2026-10-17 |
 | `cp/f3-done` | phase gate F3: all F3 plans merged, phase review (ADR 0108) | A1 | all | pending | | |

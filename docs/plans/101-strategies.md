@@ -1,7 +1,7 @@
 ---
 id: 101
 title: "Strategies: bounded policies in Administration"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [095, 096]
 phase: 6
