@@ -1,12 +1,12 @@
 ---
 id: 203
 title: "Debug panel, cheats, set orbit/location/resources, log"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 203 — Debug panel, cheats, set orbit/location/resources, log
@@ -22,7 +22,7 @@ A Debug panel (`Alt+F12` and the ☰ menu) lets a player or a test jump straight
 - Script API to extend: `apps/web/src/lib/script-api.ts` (addNode, removeNode, warpTo, nodes at `:66-72`).
 - Sim command entry: `packages/sim/src/commands.ts`; rules: `packages/core/src/rules.ts`, `mods/stock/src/rules.ts`.
 - Log source: the in-memory log buffer from plan 202 (`apps/web/src/lib/log-buffer.ts`). If 202 has not merged, this plan adds the buffer with the same API and 202 rebases onto it.
-- ADRs: 0200 (debug panel, cheats, set-state tools and the debug API).
+- ADRs: 0200 (debug panel, cheats, set-state tools and the debug API), 0212 (access as the world rule `stock.debug-tools`, debug state in `WorldInfo.debug`).
 - Access rule: Sandbox always; other modes need "Debug mode" in Settings, which marks the save "used cheats" and blocks achievements; Career Hardcore locked. Default per owner review (rancangan §15 #14); may change.
 
 ## Scope
@@ -44,7 +44,7 @@ A Debug panel (`Alt+F12` and the ☰ menu) lets a player or a test jump straight
 
 - **Size:** L
 - **Edits:** `packages/core/src/protocol.ts` (debug commands), `packages/core/src/protocol-schemas.ts`, `packages/core/src/save.ts` (`usedCheats`), `packages/sim/src/commands.ts`, `packages/sim/src/debug.ts` (new), `apps/web/src/lib/debug/` (new: panel, model, API), `apps/web/src/lib/script-api.ts`, `apps/web/src/lib/keybindings.ts` (`Alt+F12`), `apps/web/src/lib/settings/settings.ts` (Debug mode), `apps/web/src/lib/achievements/`, `apps/web/src/lib/worlds/`, `apps/web/e2e/support.ts`
-- **Shared contracts:** **protocol** (`debug-*` commands), **save** (`usedCheats`, save version bump with migration), **script API** (`debug.*`), **e2e support** (`debugSetOrbit`, `debugSetLocation`, `debugSetResource`, `debugCheat` helpers used by plans 205–231).
+- **Shared contracts:** **protocol** (`debug-*` commands), **save** (`WorldInfo.debug` with `usedCheats`; additive, no version bump, ADR 0200 and 0212), **script API** (`debug.*`), **e2e support** (`debugSetOrbit`, `debugSetLocation`, `debugSetResource`, `debugCheat` helpers used by plans 205–231).
 
 ## Design notes
 
@@ -67,7 +67,7 @@ A Debug panel (`Alt+F12` and the ☰ menu) lets a player or a test jump straight
 ## Acceptance criteria
 
 - [ ] `bun test packages/sim` passes, including `test/debug.test.ts`: set-orbit to Ap 100 km / Pe 100 km around the home body gives those apsides within 1 m; set-location in the atmosphere at 5 km and 200 m/s gives that altitude and surface speed after one step; a debug command in a Career world without Debug mode is rejected with a reason; in Hardcore it is always rejected.
-- [ ] `bun test packages/core` passes, including the save migration test for `usedCheats`.
+- [ ] `bun test packages/core` passes, including the save test that a format-8 save without `debug` reads as never used, and one with it round-trips.
 - [ ] `apps/web` vitest `debug/model.test.ts`: the Log tab filters by level, copy returns the visible lines, download names the file with the world and date.
 - [ ] `apps/web` vitest `script-api.test.ts` (extended): `debug.setResource` is absent when Debug mode is off.
 - [ ] Chromium e2e `e2e/debug.e2e.ts`: in a Sandbox world, `debugSetOrbit` puts the vessel in a 100 km orbit and the HUD shows it; turning on infinite fuel keeps the tank full during a burn; in a Career world with Debug mode on, the world card on Worlds shows "Used cheats".
@@ -85,3 +85,4 @@ A Debug panel (`Alt+F12` and the ☰ menu) lets a player or a test jump straight
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Refined to ready and claimed by Worker B (`claim/203`). Checked against the code: commands go through `commandSchema` (core) and `dispatch` (sim `commands.ts`); world rules resolve in `createSim`; resource draws all pass `withdrawResource`; damage is `damagePart`/`burnPart`; control without signal is `controlFor`/`signalRefusal`. Decisions (ADR 0212, default per owner review): access is the stock rule `stock.debug-tools` (`always`/`opt-in`/`locked`); debug state is `WorldInfo.debug` (additive, so no save version bump: the plan's "bump with migration" follows ADR 0200's "additive, no version bump" instead); "unlock all tech" is a one-shot grant, not a switch; plan 202's log buffer is not merged, so this plan adds `log-buffer.ts` with 202's API.

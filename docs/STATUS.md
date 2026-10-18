@@ -149,7 +149,7 @@
 | 200 | [Quick fixes from the owner review](plans/200-quick-fixes-from-the-review.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 201 | [Shadow flicker on the high preset](plans/201-shadow-flicker.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 202 | [Release operations: error handling, deploy job, hosting headers](plans/202-release-operations.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
-| 203 | [Debug panel, cheats, set orbit/location/resources, log](plans/203-debug-panel-and-cheats.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 203 | [Debug panel, cheats, set orbit/location/resources, log](plans/203-debug-panel-and-cheats.md) | in-progress | Worker B | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
 | 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
