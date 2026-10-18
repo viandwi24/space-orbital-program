@@ -148,6 +148,7 @@ export function catalogOf(sim: Sim): Catalog {
 		gravityModel: sim.worldInfo.gravityModel,
 		home: sim.home,
 		bodyTerrain: bodyTerrainOf(sim),
+		antennas: sim.registries.antennas.list().map(({ id, label, range }) => ({ id, label, range })),
 		...worldTerrainOf(sim)
 	};
 }

@@ -21,3 +21,4 @@ export * from './nbody.ts';
 export * from './chebyshev.ts';
 export * from './nbody-path.ts';
 export * from './ephemeris.ts';
+export * from './constellation.ts';
