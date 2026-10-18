@@ -407,7 +407,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		if (!nBodyOn(core) || core.warp <= 1 || used <= NBODY_FRAME_EVALUATIONS) return;
 		const factor = Math.max(1, Math.floor(core.warp / 2));
 		core.warp = factor;
-		core.events.emit('warp:limited', { factor, reason: `n-body integration limits warp to ${factor}x` });
+		core.events.emit('warp:limited', {
+			factor,
+			reason: `n-body integration limits warp to ${factor}x`
+		});
 	};
 
 	/** Commands whose light time has passed apply first (signal delay, plan 117, ADR 0188 point 6). */

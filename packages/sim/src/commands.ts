@@ -190,7 +190,13 @@ function loadVessel(
 	}
 	const onRails = placement.kind === 'state' && isStableOrbit(body, vessel.com, vessel.velocity);
 	if (onRails) {
-		vessel.rails = computeRails(body.mu, vessel.com, vessel.velocity, core.t, core.info.gravityModel);
+		vessel.rails = computeRails(
+			body.mu,
+			vessel.com,
+			vessel.velocity,
+			core.t,
+			core.info.gravityModel
+		);
 		if (hasBackground(core, id)) vessel.backgroundAt = core.t; // background counts from the load (ADR 0171)
 	} else {
 		const frame =

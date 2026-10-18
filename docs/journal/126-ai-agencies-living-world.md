@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/agencies.ts` (new) | `AgencyDefinition`, `AgencyMission` and the schemas; `SaveAgencies`; `AgenciesSnapshot`; the constants (2 objects, 50 news items, 30-day contracts, the rent cause, the count rule) |
-| `packages/core` | the `agencies` registry, `ctx.agencies`, report kind `agency`; `relay-rent` and `relay-end-rent`; `Snapshot.agencies`, `VesselSnapshot.owner`; `SimSave.agencies` (optional). `world.query` walks the smallest component and reuses its answer until membership changes. `API_VERSION` 0.1.69 (119 holds 0.1.68) |
+| `packages/core` | the `agencies` registry, `ctx.agencies`, report kind `agency`; `relay-rent` and `relay-end-rent`; `Snapshot.agencies`, `VesselSnapshot.owner`; `SimSave.agencies` (optional). `world.query` walks the smallest component and reuses its answer until membership changes. `API_VERSION` 0.1.70 (119 took 0.1.68, main is at 0.1.69) |
 | `packages/sim/src/agencies.ts` (new) | the daily machine, `placeObject` (a probe core and dish on a circular orbit, on rails), `retire`, `offerReplacement`, rentals and their daily rent, `ownedRefusal`, `routable`, the snapshot |
 | `packages/sim` | the tick after the economy; owned objects skip rails hooks, heat, rebasing, SOI checks, debris and milestones; commands for an owned vessel are refused; the comms network takes only the player's vessels and rented relays, and returns at once when it has none; save, init and the owner in the snapshot |
 | `mods/stock` | six fictional agencies (Meridian Space Authority, Aurora Orbital, Kestrel Launch Works, Tidewater Aerospace, Halcyon Institute, Basalt Dynamics) with satellites at 900 to 1 600 km and relays at 1 800 to 3 000 km |
