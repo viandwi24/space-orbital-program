@@ -115,6 +115,16 @@ export const BuildingPropellantPlant = defineBuilding({
 	hazardRadius: 30,
 	visual: gen('tanks')
 });
+export const BuildingTestStand = defineBuilding({
+	id: 'stock.test-stand',
+	label: 'Test stand',
+	size: { w: 3, d: 3 },
+	entrances: southDoor(3),
+	levels: levels({ 'test-stand': [1, 2, 3] }),
+	provides: ['test-stand'],
+	hazardRadius: 40,
+	visual: gen('tanks')
+});
 
 export const STOCK_BUILDINGS = [
 	BuildingHangar,
@@ -127,5 +137,6 @@ export const STOCK_BUILDINGS = [
 	BuildingResearch,
 	BuildingAdministration,
 	BuildingTrackingDish,
-	BuildingPropellantPlant
+	BuildingPropellantPlant,
+	BuildingTestStand
 ] as const;

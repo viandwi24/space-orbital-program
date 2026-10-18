@@ -9,6 +9,7 @@
 import { saveTech } from './tech.ts';
 import { saveMilestones } from './milestones.ts';
 import { saveRange } from './range.ts';
+import { saveReliability } from './reliability.ts';
 import {
 	cloneData,
 	SIM_SAVE_FORMAT,
@@ -185,6 +186,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 	const milestones = saveMilestones(core);
 	const tech = saveTech(core);
 	const range = saveRange(core);
+	const reliability = saveReliability(core);
 	const unsigned: Omit<SimSave, 'checksum'> = {
 		format: SIM_SAVE_FORMAT,
 		formatVersion: SIM_SAVE_VERSION,
@@ -208,6 +210,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		...(milestones ? { milestones } : {}),
 		...(tech ? { tech } : {}),
 		...(range ? { range } : {}),
+		...(reliability ? { reliability } : {}),
 		world: core.world.serialize(),
 		frames
 	};

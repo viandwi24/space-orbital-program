@@ -49,6 +49,8 @@ export function actionOf(provides: readonly string[]): BuildingAction {
 	if (provides.includes('mission-control'))
 		return { kind: 'link', href: '/mission-center', label: 'Open the Mission Center' };
 	if (provides.includes('lab')) return { kind: 'link', href: '/rnd', label: 'Open R&D' };
+	if (provides.includes('test-stand'))
+		return { kind: 'link', href: '/test-stand', label: 'Open the test stand' };
 	return { kind: 'none', reason: 'Nothing to open here yet.' };
 }
 

@@ -54,6 +54,21 @@ describe('toasts from sim events', () => {
 		});
 		expect(toastForSimEvent({ type: 'flameout', part: 99 }, ctx)).toBeNull();
 	});
+	it('a failed part names the failure and the part (plan 130)', () => {
+		const e = {
+			type: 'part-failed',
+			vessel: 1,
+			part: 7,
+			mode: 'stock.engine-shutdown',
+			label: 'Engine shutdown'
+		} as const;
+		expect(toastForSimEvent(e, ctx)).toMatchObject({
+			kind: 'warning',
+			title: 'Engine shutdown',
+			detail: 'LV-T30 Liquid Engine failed: see the anomaly report'
+		});
+		expect(toastForSimEvent({ ...e, vessel: 2 }, ctx)).toBeNull();
+	});
 	it('impact: broken is a warning, destroyed a danger; overheat is a danger with the temperature', () => {
 		const base = {
 			type: 'part-damaged',

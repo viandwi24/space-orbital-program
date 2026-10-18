@@ -2,6 +2,7 @@
  * Part actions and action groups in the sim (plan 110, ADRs 0102 and 0174): descriptors from each
  * module's `describe(config, state)`, the compact snapshot, and `action-group`.
  */
+import { failureOf } from './reliability.ts';
 import {
 	actionArgumentProblem,
 	customGroupId,
@@ -31,7 +32,14 @@ export function partActions(core: SimCore, vesselId: EntityId): PartAction[] {
 				m.config as never,
 				moduleState(core, part, m.id) as never
 			).actions;
-			for (const d of actions ?? []) out.push({ part, module: m.id, d });
+			// a failed module's actions are disabled with the failure as the reason (ADR 0156 point 2)
+			const failure = failureOf(core, part, m.id);
+			for (const d of actions ?? [])
+				out.push({
+					part,
+					module: m.id,
+					d: failure ? { ...d, enabled: false, reason: `Failed: ${failure.label}` } : d
+				});
 		}
 	}
 	return out;

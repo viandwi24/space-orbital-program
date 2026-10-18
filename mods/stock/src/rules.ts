@@ -3,7 +3,7 @@
  * the foundation ADRs: economy 0098, science 0099, crew 0100 and 0109, comms 0101 and 0109, range
  * safety 0097, agencies 0096, reliability 0094. Every rule is inert until its system ships.
  */
-import { definePreset, defineRule } from '@orbital/sdk';
+import { definePreset, defineRule, type RuleDefinition } from '@orbital/sdk';
 
 const SANDBOX = 'stock.sandbox';
 const SCIENCE = 'stock.science';
@@ -302,9 +302,26 @@ export const PresetCareerHardcore = definePreset({
 	description: 'Career with every crew aspect at full simulation.'
 });
 
+/** Career with part reliability on (plan 130, ADR 0156 point 8): every other rule as in Career. */
+export const PresetCareerEngineering = definePreset({
+	id: 'stock.career-engineering',
+	label: 'Career (engineering)',
+	description: 'Career where parts can fail: test them, fix what fails, fly engineers.',
+	values: {
+		...Object.fromEntries(
+			(STOCK_RULES as readonly RuleDefinition[]).map((r) => [
+				r.id,
+				r.presets?.[CAREER] ?? r.default
+			])
+		),
+		[RuleReliability.id]: true
+	} as Record<string, boolean | number | string>
+});
+
 export const STOCK_PRESETS = [
 	PresetSandbox,
 	PresetScience,
 	PresetCareer,
-	PresetCareerHardcore
+	PresetCareerHardcore,
+	PresetCareerEngineering
 ] as const;

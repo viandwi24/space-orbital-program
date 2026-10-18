@@ -18,6 +18,11 @@ import { VabView, type VabMarker } from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { categoriesOf } from '../editor/categories';
+import {
+	NO_RELIABILITY,
+	partReliabilityLine,
+	type WorldReliability
+} from '../reliability/reliability-model';
 import { modelProviders } from '../mods/asset-models';
 import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
 import { initialGraphicsPreset } from '../graphics';
@@ -442,6 +447,13 @@ export class VabController {
 			this.editor.design.parts.find((p) => p.index === index) ??
 			this.editor.loose.flatMap((a) => a.parts).find((p) => p.index === index);
 		return (e && this.defOf(e.part)?.title) ?? `Part ${index}`;
+	};
+	/** The active world's part reliability (plan 130, ADR 0156 point 8); set by the page. */
+	reliability = $state.raw<WorldReliability>(NO_RELIABILITY);
+	reliabilityOfPart = (index: number): string | null => {
+		const id = this.partIdOf(index);
+		const def = id === undefined ? undefined : this.defOf(id);
+		return def ? partReliabilityLine(this.reliability, def, this.loaded.failureModes) : null;
 	};
 	private partIdOf = (index: number): string | undefined =>
 		this.editor.design.parts.find((p) => p.index === index)?.part;

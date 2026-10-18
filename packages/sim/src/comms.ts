@@ -3,6 +3,7 @@
  * and terrain, plasma blackout, the update cadence with bisection under warp, and probe control.
  * Links are derived: they live beside the world, are never saved, and are recomputed on resume.
  */
+import { isFailed } from './reliability.ts';
 import {
 	BLACKOUT_BADGE_LEVEL,
 	BLACKOUT_NOSE_RADIUS,
@@ -189,7 +190,9 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 			if (def.antenna) {
 				const a = def.antenna(m.config, moduleState(core, partId, m.id));
 				const rating = core.registries.antennas.get(a.antenna)?.range ?? 0;
-				range = Math.max(range, a.enabled ? rating : 0);
+				// a failed antenna is dead (plan 130, ADR 0156 point 2)
+				const on = a.enabled && !isFailed(core, partId, m.id);
+				range = Math.max(range, on ? rating : 0);
 			}
 		}
 	}

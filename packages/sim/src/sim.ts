@@ -5,6 +5,7 @@
 import { freshTech } from './tech.ts';
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
 import { collectRange, freshRange } from './range.ts';
+import { freshReliability } from './reliability.ts';
 import {
 	cloneData,
 	createRng,
@@ -330,7 +331,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		life: freshLife(),
 		milestones: freshMilestones(resume?.milestones),
 		tech: freshTech(resume?.tech),
-		range: freshRange(resume?.range)
+		range: freshRange(resume?.range),
+		reliability: freshReliability({ info }, resume?.reliability)
 	};
 	listenForObjectives(core);
 	listenForComms(core);
