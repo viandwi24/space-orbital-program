@@ -398,6 +398,12 @@ export const ROADMAP_NOTES: readonly { date: string; item: string; change: strin
 		item: 'The roadmap',
 		change:
 			'The plans after 1.0 are now the foundation roadmap, announced in full by phase; the old areas became phases.'
+	},
+	{
+		date: '2026-10-18',
+		item: 'The foundation roadmap',
+		change:
+			'Every plan of the six phases has shipped, the explored ones too (n-body gravity, bases, agencies, the comms tiers). Phones stay unsupported: the compact phone layout was closed without the device pass it needs.'
 	}
 ];
 
