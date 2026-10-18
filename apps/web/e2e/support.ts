@@ -122,8 +122,9 @@ export const debugSetResource = (
 export const debugCheat = (page: Page, cheat: string, on = true) => debugCall(page, 'setCheat', cheat, on);
 
 /** Units of `resource` aboard the focused vessel, from the last snapshot. */
-export const debugAmount = (page: Page, resource: string): Promise<number> =>
-	page.evaluate((id) => {
+export async function debugAmount(page: Page, resource: string): Promise<number> {
+	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
+	return page.evaluate((id) => {
 		const api = (window as unknown as {
 			__orbitalDebug: { vessel(): { parts: Array<{ modules: Record<string, unknown> }> } | null };
 		}).__orbitalDebug;
@@ -134,3 +135,4 @@ export const debugAmount = (page: Page, resource: string): Promise<number> =>
 		}
 		return total;
 	}, resource);
+}

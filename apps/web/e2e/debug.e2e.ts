@@ -30,8 +30,8 @@ test('in a Sandbox world debugSetOrbit puts the vessel in a 100 km orbit and the
 test('infinite fuel keeps the tanks full during a burn', async ({ page }) => {
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
+	await expect.poll(() => debugAmount(page, 'stock.liquid-fuel')).toBeGreaterThan(0);
 	const full = await debugAmount(page, 'stock.liquid-fuel');
-	expect(full).toBeGreaterThan(0);
 	await debugCheat(page, 'infinite-fuel');
 	await page.locator('canvas').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
 	await page.keyboard.press('KeyZ');
@@ -60,12 +60,10 @@ test('in a Career world with Debug mode on, the world card shows "Used cheats"',
 	await page.getByRole('tab', { name: 'Game' }).click();
 	await page.getByTestId('setting-debug').click();
 	await expect(page.getByTestId('setting-debug')).toHaveAttribute('aria-checked', 'true');
+	await expect(page.getByTestId('debug-marked')).toBeVisible();
 
-	// the mark is written in the background: the Worlds list shows it once it is stored
+	await page.goto('/worlds');
 	const card = page.getByTestId('world-card').filter({ hasText: 'Cheat career' });
-	await expect(async () => {
-		await page.goto('/worlds');
-		await expect(card.getByTestId('used-cheats')).toHaveText('Used cheats', { timeout: 2000 });
-	}).toPass({ timeout: 20_000 });
+	await expect(card.getByTestId('used-cheats')).toHaveText('Used cheats');
 	expect(errors).toEqual([]);
 });
