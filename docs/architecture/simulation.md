@@ -210,6 +210,18 @@ A data item (`DataItem`: `id`, `kind`, `bits`, `value`, `time`, optional `source
 
 **Regions and dossiers (plan 104, ADR 0180).** A body's `regions` are the biomes of the world's planet map, seeded cells, or latitude bands. `regionAt(body, direction, world)` (core) reads them. For biomes it uses the map and warped coordinates the ground shader draws with. A result in a `regional` situation takes the region under the vessel (`regionUnder`, body-fixed at the time of the result), and other situations take `global`. The value uses `body multiplier × region multiplier`. `VesselSnapshot.science.region` shows the region now. Dossiers are not sim state: `dossierOf(body, subjects, entries)` derives them from the subjects (the web parses `Snapshot.science` ids with `parseSubjectId`). An entry unlocks once a subject on the body with a result matches its `unlock` situations and experiments.
 
+**Discovery science (plan 129, ADR 0192).** `packages/sim/src/discovery.ts`. It runs only with `stock.science-depth` `discovery`; with `classic` every function returns at once and classic points are credited the same in both depths.
+
+- **Facts.** Every body that is not a star has one of each registered fact kind, from `factValue(seed, body, kind)` (core). It is drawn on its own stream (`discovery.fact:<body>:<kind>`), is 0 when absent, and is never saved.
+- **Measurements.** `makeResult` of a data experiment listed in a kind's `instruments` returns `meta['discovery:<kind>']`. Its value is the truth plus `resolution × N(0, 1)`, floored at 0, from the `discovery` stream (`SimCore.discovery.rng`). The stock experiment module copies the meta onto the item.
+- **Datasets.** `transmit-data`, a comms delivery and `recover-vessel` call `intakeData`: each measurement on a credited item becomes a raw dataset `{ id, body, fact, level, value, sigma }`.
+- **Lab.** `discovery-process { dataset }` starts the next level. It is refused when the dataset is already derived or in the lab, or when the primary site's `lab` capacity is in use (null means no limit). `discoveryTick` finishes it on the first world tick at or after `DISCOVERY_PROCESS_DAYS` (calibrated 2, derived 5). The error then scales by `LEVEL_ERROR` (1, 0.5, 0.25), exactly, without a new draw.
+- **Claims.** `discovery-claim { body, fact, value, confidence }` takes a confidence in [0.5, 1], one open claim per fact. It is reviewed on the first tick at or after `DISCOVERY_REVIEW_DAYS` (3) days.
+  - It is accepted when within the kind's `tolerance`.
+  - The reputation change is `reviewScore`: `20 × (1 − 4(o − c)²)`, and a quarter of a positive score when the fact's priority is already taken.
+  - The change is booked as `discovery.review` with the economy on, and `discovery:reviewed` is emitted.
+- **Snapshot and save.** `Snapshot.discovery` holds the fact views (never the truth of an open fact), the datasets, the claims and the lab slots. `SimSave.discovery` (optional) holds the stream, the datasets and the claims once anything happened.
+
 ## Comms tier 1 (plan 114, ADR 0179)
 
 `packages/sim/src/comms.ts`. Ground stations are every world site and every registered `defineGroundStation`, 10 m above the ground and turning with their body. A site's range comes from the tier of its active `comms-node` buildings (2e9, 5e10 or 2.5e11 m; tier 1 without one). A vessel's range is its strongest enabled antenna (a module with an `antenna` hook). It links directly to the nearest station, or vessel with a crewed command part and an antenna, when four checks pass:

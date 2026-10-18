@@ -1,7 +1,7 @@
 ---
 id: 129
 title: "Discovery science (optional world rule)"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [104, 119]
 phase: 9
@@ -17,7 +17,7 @@ With `scienceDepth: discovery`, bodies hide facts generated from the world seed 
 
 ## Context
 
-- ADRs: 0099
+- ADRs: 0099, [0192](../decisions/0192-discovery-science-facts-measurements-levels-claims-review.md) (new)
 - Read: ADR 0099 point 5, `refs/reverse-engineering-ksp2/beyond/04-science-beyond-ksp.md` (git-ignored).
 
 ## Scope
@@ -50,20 +50,21 @@ Classic points stay available beside it (ADR 0099).
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: the same world seed gives the same hidden facts on every body; another seed gives others.
-- [ ] `packages/sim` test: a measurement's error shrinks as the data goes raw → calibrated → derived, and processing takes the stated time.
-- [ ] `packages/sim` test: an overclaim (wrong at high confidence) loses reputation; a correct claim at high confidence gains more than the same claim at low confidence; a second correct claim of a fact gains less than the first (priority).
-- [ ] `packages/sim` test: with `stock.science-depth` `classic`, nothing of this runs and classic points are unchanged.
-- [ ] vitest: the dossier shows a body's open facts, the player's claims and their verdicts.
-- [ ] `bun run check:affected` passes (CI runs the full suite).
+- [x] `packages/sim` test: the same world seed gives the same hidden facts on every body; another seed gives others.
+- [x] `packages/sim` test: a measurement's error shrinks as the data goes raw → calibrated → derived, and processing takes the stated time.
+- [x] `packages/sim` test: an overclaim (wrong at high confidence) loses reputation; a correct claim at high confidence gains more than the same claim at low confidence; a second correct claim of a fact gains less than the first (priority).
+- [x] `packages/sim` test: with `stock.science-depth` `classic`, nothing of this runs and classic points are unchanged.
+- [x] vitest: the dossier shows a body's open facts, the player's claims and their verdicts.
+- [x] `bun run check:affected` passes (CI runs the full suite).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/129-discovery-science.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/129-discovery-science.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099).
+- 2026-10-18 — Claimed by Agent 3, refined. Implemented per ADR 0192: seeded facts, measurements on data results, lab levels, claims reviewed by a scaled Brier score with priority, the dossier's Discovery entry and reviews in Upcoming. `discovery.test.ts` (4), `BodyCard.test.ts` (+3) and `model.test.ts` (+1) pass; `check:affected` passed (journal 129). Handed over as `ready/129`.
