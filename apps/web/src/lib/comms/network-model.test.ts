@@ -11,7 +11,13 @@ import {
 	rateText
 } from './network-model';
 
-const snap = (vessels: NonNullable<Snapshot['network']>['vessels']) =>
+type NetworkVessel = NonNullable<Snapshot['network']>['vessels'][number];
+/** Network vessels; `rate` and `margin` (plan 116) default to null. */
+const snap = (list: Array<Omit<NetworkVessel, 'rate' | 'margin'> & Partial<NetworkVessel>>) => {
+	const vessels = list.map((v) => ({ rate: null, margin: null, ...v }));
+	return withNetwork(vessels);
+};
+const withNetwork = (vessels: NetworkVessel[]) =>
 	({
 		t: 0,
 		bodies: [

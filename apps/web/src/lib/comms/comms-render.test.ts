@@ -6,7 +6,7 @@ import VesselPanel from '../vessel-panel/VesselPanel.svelte';
 import { linkBudget } from '@orbital/core';
 import { commsTab, linkBadge } from './network-model';
 
-const snap = {
+const snap: Record<string, unknown> = {
 	t: 0,
 	bodies: [],
 	vessels: [{ id: 2, name: 'Probe', soi: 'stock.cinder', position: { x: 0, y: 0, z: 0 } }],
@@ -24,11 +24,11 @@ const snap = {
 			{ vessel: 2, to: null, reason: 'blocked by stock.cinder', control: 'none', blackout: 0 }
 		]
 	}
-} as never;
+};
 
 describe('the comms interface rendered (plan 115)', () => {
 	it('the badge and the Comms tab name the occluding moon', () => {
-		const badge = render(LinkBadge, { props: { link: linkBadge(snap, 2)! } }).body;
+		const badge = render(LinkBadge, { props: { link: linkBadge(snap as never, 2)! } }).body;
 		expect(badge).toContain('Occluded by Cinder');
 		expect(badge).toContain('data-state="lost"');
 		const panel = render(VesselPanel, {
@@ -36,7 +36,7 @@ describe('the comms interface rendered (plan 115)', () => {
 				vessel: 2 as never,
 				name: 'Probe',
 				view: { groups: [], parts: [] },
-				comms: commsTab(snap, 2, 'Probe'),
+				comms: commsTab(snap as never, 2, 'Probe'),
 				transmitters: [],
 				initialTab: 'comms',
 				oncommand: () => {},
@@ -59,7 +59,7 @@ describe('the comms interface rendered (plan 115)', () => {
 		const linked = {
 			...snap,
 			network: {
-				...(snap as { network: object }).network,
+				...(snap.network as object),
 				vessels: [
 					{
 						vessel: 2,
