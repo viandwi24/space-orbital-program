@@ -17,7 +17,9 @@ describe('Astronaut Complex', () => {
 	it('recruiting adds a member and books the cost; the roster filters by profession', async () => {
 		const sim = await newSim();
 		expect(sim.dispatch({ type: 'set-rule', rule: 'stock.economy', value: true }).ok).toBe(true);
-		expect(sim.dispatch({ type: 'set-rule', rule: 'stock.crew-salaries', value: true }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'set-rule', rule: 'stock.crew-salaries', value: true }).ok).toBe(
+			true
+		);
 		sim.step(0.02);
 		const before = sim.snapshot().economy?.funds ?? 0;
 		const rules = sim.snapshot().rules;

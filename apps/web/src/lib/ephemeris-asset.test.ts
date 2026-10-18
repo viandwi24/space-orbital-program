@@ -11,7 +11,8 @@ const asset = {
 	bytes: gz.length,
 	sha256: createHash('sha256').update(gz).digest('hex')
 };
-const buf = (b: Uint8Array): ArrayBuffer => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+const buf = (b: Uint8Array): ArrayBuffer =>
+	b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
 
 function deps(body: Uint8Array = gz) {
 	const stored = new Map<string, ArrayBuffer>();
@@ -33,15 +34,25 @@ describe('the DE440 asset', () => {
 		expect(fetches()).toBe(1);
 	});
 	it('a wrong file is refused by its size, then by its checksum', async () => {
-		await expect(loadEphemeris(deps(gzipSync(new TextEncoder().encode('x'))).d, asset)).rejects.toThrow(/bytes, expected/);
+		await expect(
+			loadEphemeris(deps(gzipSync(new TextEncoder().encode('x'))).d, asset)
+		).rejects.toThrow(/bytes, expected/);
 		const same = new Uint8Array(gz);
 		same[same.length - 1] ^= 1;
-		await expect(loadEphemeris(deps(same).d, asset)).rejects.toThrow('the ephemeris failed its checksum');
+		await expect(loadEphemeris(deps(same).d, asset)).rejects.toThrow(
+			'the ephemeris failed its checksum'
+		);
 	});
 	it('only an n-body world of the 1:1 Sol system needs it', () => {
 		expect(needsEphemeris({ gravityModel: 'n-body', systemId: 'sol', variant: '1:1' })).toBe(true);
-		expect(needsEphemeris({ gravityModel: 'n-body', systemId: 'sol', variant: 'rescaled' })).toBe(false);
-		expect(needsEphemeris({ gravityModel: 'patched', systemId: 'sol', variant: '1:1' })).toBe(false);
-		expect(needsEphemeris({ gravityModel: 'n-body', systemId: 'stock', variant: 'default' })).toBe(false);
+		expect(needsEphemeris({ gravityModel: 'n-body', systemId: 'sol', variant: 'rescaled' })).toBe(
+			false
+		);
+		expect(needsEphemeris({ gravityModel: 'patched', systemId: 'sol', variant: '1:1' })).toBe(
+			false
+		);
+		expect(needsEphemeris({ gravityModel: 'n-body', systemId: 'stock', variant: 'default' })).toBe(
+			false
+		);
 	});
 });

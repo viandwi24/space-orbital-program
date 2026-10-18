@@ -42,7 +42,8 @@ function bodyFixed(core: SimCore, id: EntityId): { body: BodyRuntime; dir: Vec3 
 	return { body, dir };
 }
 
-const landedAtRest = (core: SimCore, id: EntityId): boolean => recoveryBlocker(core, id) === undefined;
+const landedAtRest = (core: SimCore, id: EntityId): boolean =>
+	recoveryBlocker(core, id) === undefined;
 
 const hasModule = (core: SimCore, id: EntityId, module: string): boolean =>
 	vesselOf(core, id).parts.some((p) => partOf(core, p).modules.some((m) => m.id === module));
@@ -101,16 +102,22 @@ function arcToSite(site: Site, dir: Vec3, radius: number): number {
 }
 
 /** `join-site` (ADR 0125 point 4): a landed vessel within the flat zone becomes an outpost. */
-export function joinSite(core: SimCore, command: { vessel: EntityId; site: string }): CommandResult {
+export function joinSite(
+	core: SimCore,
+	command: { vessel: EntityId; site: string }
+): CommandResult {
 	if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 	const known = sitesOf(core.info).find((s) => s.id === command.site);
 	if (!known) return refuse(`unknown site "${command.site}"`);
-	if (!landedAtRest(core, command.vessel)) return refuse('only a landed vessel at rest can join a site');
+	if (!landedAtRest(core, command.vessel))
+		return refuse('only a landed vessel at rest can join a site');
 	const { body, dir } = bodyFixed(core, command.vessel);
 	if (body.def.id !== known.body) return refuse(`the vessel is not on ${known.body}`);
 	const arc = arcToSite(known, dir, body.def.radius);
 	if (arc > known.flatRadius) {
-		return refuse(`the vessel is ${Math.round(arc / 100) / 10} km from the site; join within ${known.flatRadius / 1000} km`);
+		return refuse(
+			`the vessel is ${Math.round(arc / 100) / 10} km from the site; join within ${known.flatRadius / 1000} km`
+		);
 	}
 	const site = writable(core, command.site);
 	if (!site) return refuse(`site "${command.site}" cannot take members`);
@@ -195,7 +202,8 @@ export function windowDays(core: SimCore, from: string, to: string): number {
 	const ca = a[a.indexOf(common) - 1];
 	const cb = b[b.indexOf(common) - 1];
 	let seconds: number;
-	if (!ca || !cb) seconds = periodOf((ca ?? cb)!); // one is the other's ancestor
+	if (!ca || !cb)
+		seconds = periodOf((ca ?? cb)!); // one is the other's ancestor
 	else {
 		const ta = periodOf(ca);
 		const tb = periodOf(cb);
@@ -270,7 +278,8 @@ export function routesTick(
 		src[route.commodity] = (src[route.commodity] ?? 0) - fromStore;
 		const moved = fromStore + bought;
 		dst[route.commodity] = (dst[route.commodity] ?? 0) + moved;
-		const service = (core.registries.commodities.get(LAUNCH_SERVICE)?.basePrice ?? 0) * costMultiplier(core);
+		const service =
+			(core.registries.commodities.get(LAUNCH_SERVICE)?.basePrice ?? 0) * costMultiplier(core);
 		const cost = service + bought * (price ?? 0);
 		if (cost > 0) record(core, 'funds', -cost, ROUTE_CAUSE, `${route.id} ×${Math.round(moved)}`);
 		core.events.emit('route:delivered', { route: route.id, amount: moved, cost });

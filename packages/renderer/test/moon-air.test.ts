@@ -25,7 +25,12 @@ const mist = {
 	terrain: { kind: 'hills' as const },
 	atmosphere: { scaleHeight: 4_000, surfacePressure: 20_000, height: 40_000 }
 };
-const rock = { ...mist, id: 'test.rock' as BodyId, atmosphere: undefined, orbit: { ...orbit, a: 30e6 } };
+const rock = {
+	...mist,
+	id: 'test.rock' as BodyId,
+	atmosphere: undefined,
+	orbit: { ...orbit, a: 30e6 }
+};
 const shapes = new Map<string, PartShape>([[POD, { kind: 'box', size: { x: 1, y: 2, z: 3 } }]]);
 
 const snapshot = (soi: BodyId, radius: number): Snapshot => ({
@@ -44,7 +49,13 @@ const snapshot = (soi: BodyId, radius: number): Snapshot => ({
 			velocity: { x: 0, y: 0, z: 0 },
 			orientation: q0,
 			parts: [
-				{ id: 2 as EntityId, definition: POD, position: { x: 0, y: 0, z: 0 }, orientation: q0, modules: {} }
+				{
+					id: 2 as EntityId,
+					definition: POD,
+					position: { x: 0, y: 0, z: 0 },
+					orientation: q0,
+					modules: {}
+				}
 			]
 		}
 	]
@@ -62,8 +73,10 @@ describe('air on a later body (plan 071)', () => {
 		expect(shellOf(aired)).toBeInstanceOf(Mesh);
 		expect(shellOf(bare)).toBeUndefined();
 		const key = (pass: MoonPass) =>
-			((pass.root.children.find((c) => c instanceof Mesh && c.name !== 'sky-shell') as Mesh)
-				.material as MeshLambertMaterial).customProgramCacheKey();
+			(
+				(pass.root.children.find((c) => c instanceof Mesh && c.name !== 'sky-shell') as Mesh)
+					.material as MeshLambertMaterial
+			).customProgramCacheKey();
 		expect(key(aired)).toContain('-air');
 		expect(key(bare)).not.toContain('-air');
 	});

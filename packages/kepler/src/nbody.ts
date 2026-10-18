@@ -91,7 +91,8 @@ export function integrateNBody(
 		return [s[3], s[4], s[5], a.x, a.y, a.z];
 	};
 	const span = t1 - t0;
-	if (span === 0) return { r: { ...state.r }, v: { ...state.v }, h: options.step ?? 0, evaluations };
+	if (span === 0)
+		return { r: { ...state.r }, v: { ...state.v }, h: options.step ?? 0, evaluations };
 	const dir = Math.sign(span);
 	const period = (s: Y): number => {
 		const d = Math.hypot(s[0], s[1], s[2]);
@@ -188,8 +189,19 @@ export function hermiteState(
 	const d4 = -12 * s2 + 28 * s3 - 15 * s4;
 	const d5 = 30 * s2 - 60 * s3 + 30 * s4;
 	const axis = (k: 'x' | 'y' | 'z'): [number, number] => [
-		h0 * a.r[k] + h1 * h * a.v[k] + h2 * h * h * a.acc[k] + h3 * h * h * b.acc[k] + h4 * h * b.v[k] + h5 * b.r[k],
-		(d0 * a.r[k] + d1 * h * a.v[k] + d2 * h * h * a.acc[k] + d3 * h * h * b.acc[k] + d4 * h * b.v[k] + d5 * b.r[k]) / h
+		h0 * a.r[k] +
+			h1 * h * a.v[k] +
+			h2 * h * h * a.acc[k] +
+			h3 * h * h * b.acc[k] +
+			h4 * h * b.v[k] +
+			h5 * b.r[k],
+		(d0 * a.r[k] +
+			d1 * h * a.v[k] +
+			d2 * h * h * a.acc[k] +
+			d3 * h * h * b.acc[k] +
+			d4 * h * b.v[k] +
+			d5 * b.r[k]) /
+			h
 	];
 	const [rx, vx] = axis('x');
 	const [ry, vy] = axis('y');

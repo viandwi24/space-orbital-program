@@ -95,6 +95,8 @@ describe('planning panel model', () => {
 		const rows = deploymentRows(plan, 600_000);
 		expect(rows.find((r) => r.label === 'Period')!.value).toContain('4/3');
 		expect(rows.find((r) => r.label === 'Spacing')!.value).toBe('120°');
-		expect(rows.find((r) => r.label === 'Each satellite circularises')!.value).toMatch(/^\d[\d,]* \S+/);
+		expect(rows.find((r) => r.label === 'Each satellite circularises')!.value).toMatch(
+			/^\d[\d,]* \S+/
+		);
 	});
 });

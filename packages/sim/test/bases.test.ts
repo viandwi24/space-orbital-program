@@ -30,7 +30,11 @@ const world = (rules: WorldInfo['rules'] = {}): WorldInfo => ({
 });
 const make = () => createSim({ plugins: [Stock], backendFactory: rapier(8), world: world() });
 const resume = async (sim: Sim) =>
-	createSim({ plugins: [Stock], backendFactory: rapier(8), resume: JSON.parse(JSON.stringify(sim.save())) });
+	createSim({
+		plugins: [Stock],
+		backendFactory: rapier(8),
+		resume: JSON.parse(JSON.stringify(sim.save()))
+	});
 
 /** Land `parts` on the moon at (lat, lon) and wait until it is at rest. */
 function landOnMoon(
@@ -63,7 +67,12 @@ describe('the base kit (ADR 0125 points 1 and 2)', () => {
 	test("a deployed kit on the moon founds a base whose flat zone is in the moon's height function", async () => {
 		const sim = await make();
 		const kit = landOnMoon(sim, ['stock.command-pod', 'stock.base-kit']);
-		const r = sim.dispatch({ type: 'deploy-base', vessel: kit, id: 'tranquility', name: 'Tranquility' });
+		const r = sim.dispatch({
+			type: 'deploy-base',
+			vessel: kit,
+			id: 'tranquility',
+			name: 'Tranquility'
+		});
 		expect(r.ok ? '' : r.reason).toBe('');
 		const site = sim.worldInfo.sites.find((s) => s.id === 'tranquility')!;
 		expect(site).toMatchObject({ body: MOON, kind: 'base' });
@@ -79,7 +88,11 @@ describe('the base kit (ADR 0125 points 1 and 2)', () => {
 		);
 		const moon = bodies.get(MOON)!;
 		const centre = latLonDirection(site.latitude, site.longitude);
-		const h0 = moonHeight(centre, MoonBody.radius, MoonBody.terrain?.kind === 'craters' ? (MoonBody.terrain.seed ?? 0) : 0);
+		const h0 = moonHeight(
+			centre,
+			MoonBody.radius,
+			MoonBody.terrain?.kind === 'craters' ? (MoonBody.terrain.seed ?? 0) : 0
+		);
 		for (const arc of [0, 1_000, 3_000, 4_900]) {
 			const d = latLonDirection(site.latitude + arc / MoonBody.radius, site.longitude);
 			expect(moon.terrain!.heightAt(d)).toBeCloseTo(h0, 9);
@@ -169,7 +182,12 @@ describe('outposts (ADR 0125 points 4 and 5)', () => {
 			id: 'isru'
 		});
 		expect(r.ok ? '' : r.reason).toBe('');
-		const rig = landOnMoon(sim, ['stock.command-pod', 'stock.drill', 'stock.drill'], site.latitude, site.longitude + 400 / MoonBody.radius);
+		const rig = landOnMoon(
+			sim,
+			['stock.command-pod', 'stock.drill', 'stock.drill'],
+			site.latitude,
+			site.longitude + 400 / MoonBody.radius
+		);
 		expect(sim.dispatch({ type: 'join-site', vessel: rig, site: 'b' }).ok).toBe(true);
 		days(sim, 8); // the plant is built in 8 days; the drills fill the hub with 100 u a day
 		const ice = held(sim, 'b', 'stock.ice');
@@ -187,8 +205,17 @@ describe('supply routes (ADR 0125 point 6)', () => {
 		expect(first.dispatch({ type: 'deploy-base', vessel: kit, id: 'b', name: 'B' }).ok).toBe(true);
 		const sim = await resume(first);
 		first.dispose();
-		const route = { type: 'create-route', id: 'r1', from: 'legacy', to: 'b', commodity: 'stock.liquid-fuel', amount: 1_000 } as const;
-		const proven = sim.save().milestones?.records.some((r) => r.kind === 'landing' && r.body === MOON);
+		const route = {
+			type: 'create-route',
+			id: 'r1',
+			from: 'legacy',
+			to: 'b',
+			commodity: 'stock.liquid-fuel',
+			amount: 1_000
+		} as const;
+		const proven = sim
+			.save()
+			.milestones?.records.some((r) => r.kind === 'landing' && r.body === MOON);
 		expect(proven).toBe(true);
 		const r = sim.dispatch(route);
 		expect(r.ok ? '' : r.reason).toBe('');

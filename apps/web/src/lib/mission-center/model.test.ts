@@ -81,7 +81,13 @@ describe('Upcoming (plan 113)', () => {
 	});
 
 	it('lists a claim in peer review, not one already judged (plan 129)', () => {
-		const claim = { body: 'stock.home', fact: 'stock.polar-ice', value: 20, confidence: 0.8, made: 0 };
+		const claim = {
+			body: 'stock.home',
+			fact: 'stock.polar-ice',
+			value: 20,
+			confidence: 0.8,
+			made: 0
+		};
 		const withReview: Snapshot = {
 			...snapshot,
 			vessels: [],

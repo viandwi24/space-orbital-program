@@ -120,7 +120,8 @@
 			note = r.reason;
 			return;
 		}
-		const done = action === 'activate' ? 'Strategy activated.' : 'Strategy ended; its cooldown starts.';
+		const done =
+			action === 'activate' ? 'Strategy activated.' : 'Strategy ended; its cooldown starts.';
 		note = (await saves.autosave()) ? done : `${done} The world could not be saved.`;
 	}
 

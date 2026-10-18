@@ -1,9 +1,28 @@
 /** Plan 097 / ADR 0124 point 3: the market model, against a table worked out by hand. */
 import { describe, expect, test } from 'bun:test';
-import { freshMarket, marketTick, rawPrice, type CommodityDefinition, type MarketParams } from '../src/index.ts';
+import {
+	freshMarket,
+	marketTick,
+	rawPrice,
+	type CommodityDefinition,
+	type MarketParams
+} from '../src/index.ts';
 
-const m: MarketParams = { target: 50_000, elasticity: 0.5, cap: 0.05, floor: 0.4, ceiling: 2.5, relaxDays: 30 };
-const fuel = { id: 't.fuel', label: 'Fuel', unit: 'u', basePrice: 0.8, market: m } as CommodityDefinition & {
+const m: MarketParams = {
+	target: 50_000,
+	elasticity: 0.5,
+	cap: 0.05,
+	floor: 0.4,
+	ceiling: 2.5,
+	relaxDays: 30
+};
+const fuel = {
+	id: 't.fuel',
+	label: 'Fuel',
+	unit: 'u',
+	basePrice: 0.8,
+	market: m
+} as CommodityDefinition & {
 	market: MarketParams;
 };
 const k = 1 - Math.exp(-1 / 30); // 0.032780…
@@ -42,7 +61,8 @@ describe('the market model', () => {
 			s = marketTick(s, 0.8, m);
 			prices.push(s.price);
 		}
-		for (let i = 1; i < prices.length; i++) expect(prices[i]!).toBeGreaterThanOrEqual(prices[i - 1]!);
+		for (let i = 1; i < prices.length; i++)
+			expect(prices[i]!).toBeGreaterThanOrEqual(prices[i - 1]!);
 		// the stock relaxes: 50 000 + 305 000 e^(−120/30)
 		expect(s.stock).toBeCloseTo(50_000 + 305_000 * Math.exp(-4), 0);
 		expect(s.price).toBeCloseTo(rawPrice(0.8, m, s.stock), 12);

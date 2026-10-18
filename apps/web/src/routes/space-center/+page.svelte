@@ -107,7 +107,11 @@
 	);
 	let vessels = $state.raw<Snapshot['vessels']>([]);
 	const label = (id: string): string =>
-		(registries.commodities.get(id)?.label ?? allSites.find((s) => s.id === id)?.name ?? id).toLowerCase();
+		(
+			registries.commodities.get(id)?.label ??
+			allSites.find((s) => s.id === id)?.name ??
+			id
+		).toLowerCase();
 	const flows = $derived(
 		flowRows(site, {
 			buildings: buildingRegistry,
@@ -124,7 +128,8 @@
 		today = s.day;
 		funds = s.economy?.enabled ? s.economy.funds : undefined;
 		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
-		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length)) vessels = s.vessels;
+		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length))
+			vessels = s.vessels;
 		// the 3D view is the primary site's (ADR 0125 point 7); the overlay shows the chosen site
 		const primary = s.sites?.[0];
 		if (JSON.stringify(primary) !== JSON.stringify(shown)) {
@@ -152,7 +157,15 @@
 		}
 		const def = buildingRegistry.get(build.kind)!;
 		const cell = ghostCell(at, def, build.rotation);
-		const check = checkGhost(siteInfo, site, buildingRegistry, build.kind, cell, build.rotation, homeSelected);
+		const check = checkGhost(
+			siteInfo,
+			site,
+			buildingRegistry,
+			build.kind,
+			cell,
+			build.rotation,
+			homeSelected
+		);
 		hover = { cell, check };
 		center?.setGhost({ size: def.size, cell, rotation: build.rotation, valid: check.valid });
 	}
@@ -226,7 +239,14 @@
 				return;
 			}
 			void center
-				?.dispatch({ type: 'place-building', site: siteInfo.id, kind, cell, rotation: 0, id: crypto.randomUUID() })
+				?.dispatch({
+					type: 'place-building',
+					site: siteInfo.id,
+					kind,
+					cell,
+					rotation: 0,
+					id: crypto.randomUUID()
+				})
 				.then((r) => {
 					if (!r.ok) problem = r.reason;
 					else {
@@ -314,7 +334,10 @@
 		onremove={(id) => void remove(id)}
 		onupgrade={(id) => void upgrade(id)}
 		{notes}
-		sites={allSites.map((s) => ({ id: s.id, label: s.body === homeId ? s.name : `${s.name} (${s.body.replace(/^stock\./, '')})` }))}
+		sites={allSites.map((s) => ({
+			id: s.id,
+			label: s.body === homeId ? s.name : `${s.name} (${s.body.replace(/^stock\./, '')})`
+		}))}
 		siteId={siteInfo.id}
 		onsite={(id) => {
 			siteId = id;

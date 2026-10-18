@@ -14,11 +14,15 @@ const MU_HOME = 3.5316e12;
 const MU_MOON = 6.5138398e10;
 const A = 12_000_000;
 
-const rel = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) / Math.hypot(b.x, b.y, b.z);
+const rel = (a: Vec3, b: Vec3) =>
+	Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) / Math.hypot(b.x, b.y, b.z);
 
 describe('the Kepler limit', () => {
 	test('with every perturber at μ = 0 the path is the conic to 1e-6 after 10 orbits', () => {
-		const field: NBodyField = { mu: MU_HOME, perturbers: [{ mu: 0, at: () => ({ x: A, y: 0, z: 0 }) }] };
+		const field: NBodyField = {
+			mu: MU_HOME,
+			perturbers: [{ mu: 0, at: () => ({ x: A, y: 0, z: 0 }) }]
+		};
 		const start: StateVector = { r: { x: 700_000, y: 0, z: 0 }, v: { x: 0, y: 0, z: 2_400 } };
 		const el = fromStateVector(start.r, start.v, MU_HOME, 0);
 		const period = 2 * Math.PI * Math.sqrt(el.a ** 3 / MU_HOME);
@@ -44,7 +48,11 @@ function jacobi(s: StateVector, t: number): number {
 	const v = { x: s.v.x - bary * mv.x, y: s.v.y - bary * mv.y, z: s.v.z - bary * mv.z };
 	// the rotation is about +Y with angular velocity ω = (0, n, 0): moon at (cos nt, 0, −sin nt)
 	const w = { x: 0, y: n, z: 0 };
-	const vr = { x: v.x - (w.y * r.z - w.z * r.y), y: v.y - (w.z * r.x - w.x * r.z), z: v.z - (w.x * r.y - w.y * r.x) };
+	const vr = {
+		x: v.x - (w.y * r.z - w.z * r.y),
+		y: v.y - (w.z * r.x - w.x * r.z),
+		z: v.z - (w.x * r.y - w.y * r.x)
+	};
 	const r1 = Math.hypot(s.r.x, s.r.y, s.r.z);
 	const r2 = Math.hypot(s.r.x - m.x, s.r.y - m.y, s.r.z - m.z);
 	const planar = r.x * r.x + r.z * r.z;
@@ -53,7 +61,10 @@ function jacobi(s: StateVector, t: number): number {
 
 describe('the circular restricted three-body problem', () => {
 	test('the Jacobi constant stays within 1e-8 over 100 days', () => {
-		const start: StateVector = { r: { x: 2_500_000, y: 300_000, z: 0 }, v: { x: 0, y: 0, z: -1_250 } };
+		const start: StateVector = {
+			r: { x: 2_500_000, y: 300_000, z: 0 },
+			v: { x: 0, y: 0, z: -1_250 }
+		};
 		const c0 = jacobi(start, 0);
 		let s = start;
 		let h: number | undefined;
@@ -94,12 +105,19 @@ describe('dense output', () => {
 		const start: StateVector = { r: { x: 700_000, y: 0, z: 0 }, v: { x: 0, y: 0, z: -2_246 } };
 		const step = nBodyStep(field, start, 0, 120);
 		const a = { ...start, acc: nBodyAcceleration(field, 0, start.r), t: 0 };
-		const b = { r: step.r, v: step.v, acc: nBodyAcceleration(field, step.step, step.r), t: step.step };
+		const b = {
+			r: step.r,
+			v: step.v,
+			acc: nBodyAcceleration(field, step.step, step.r),
+			t: step.step
+		};
 		for (const f of [0.1, 0.37, 0.5, 0.9]) {
 			const t = f * step.step;
 			const exact = integrateNBody(field, start, 0, t);
 			const dense = hermiteState(a, b, t);
-			expect(Math.hypot(dense.r.x - exact.r.x, dense.r.y - exact.r.y, dense.r.z - exact.r.z)).toBeLessThan(0.05);
+			expect(
+				Math.hypot(dense.r.x - exact.r.x, dense.r.y - exact.r.y, dense.r.z - exact.r.z)
+			).toBeLessThan(0.05);
 		}
 	});
 });

@@ -50,7 +50,9 @@ export function readEphemeris(bytes: Uint8Array): Ephemeris {
 	};
 	// the doubles start on the next multiple of 8 after the header
 	const at = Math.ceil((16 + headerLength) / 8) * 8;
-	const data = new Float64Array(bytes.buffer.slice(bytes.byteOffset + at, bytes.byteOffset + bytes.byteLength));
+	const data = new Float64Array(
+		bytes.buffer.slice(bytes.byteOffset + at, bytes.byteOffset + bytes.byteLength)
+	);
 	return { start: header.start, end: header.end, segments: header.segments, data };
 }
 
@@ -79,7 +81,13 @@ export function segmentState(e: Ephemeris, target: number, t: number): StateVect
 	const n = (seg.rsize - 2) / 3;
 	const coeffs = (axis: number) => e.data.subarray(base + 2 + axis * n, base + 2 + (axis + 1) * n);
 	const s = chebyshevState(
-		{ start: mid - radius, end: mid + radius, x: coeffs(0) as never, y: coeffs(1) as never, z: coeffs(2) as never },
+		{
+			start: mid - radius,
+			end: mid + radius,
+			x: coeffs(0) as never,
+			y: coeffs(1) as never,
+			z: coeffs(2) as never
+		},
 		t
 	);
 	return {
@@ -97,7 +105,11 @@ const SIN_E = Math.sin(OBLIQUITY);
  * A vector of DE440's frame (ICRF, the J2000 equator) in the game frame: to the ecliptic, then
  * ecliptic (x, y, z) to game (x, z, −y), as the series paths do (ADR 0183 point 4).
  */
-export function icrfToGame(v: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+export function icrfToGame(v: { x: number; y: number; z: number }): {
+	x: number;
+	y: number;
+	z: number;
+} {
 	const ey = COS_E * v.y + SIN_E * v.z;
 	const ez = -SIN_E * v.y + COS_E * v.z;
 	return { x: v.x, y: ez, z: -ey };

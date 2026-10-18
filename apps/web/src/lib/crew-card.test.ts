@@ -128,18 +128,28 @@ describe('crew radios and broadcasts (plan 121, ADR 0193)', () => {
 			}
 		}) as unknown as Snapshot;
 	const inside = { ...vessel, id: 4 } as unknown as VesselSnapshot;
-	const eva = (s: Snapshot) => ({ suit: 9, name: 'Ada Vega', walking: false, radio: suitRadio(s, 9) });
+	const eva = (s: Snapshot) => ({
+		suit: 9,
+		name: 'Ada Vega',
+		walking: false,
+		radio: suitRadio(s, 9)
+	});
 
 	it('shows the suit radio relayed through the lander, then cut behind a ridge with the reason', () => {
 		const relayed = net(link(9, 'vessel:4', null, 1e9));
-		let html = render(CrewPanel, { props: { card: crewCard(relayed, inside, DAY), eva: eva(relayed) } })
-			.body;
-		expect(html).toMatch(/data-testid="suit-radio"[\s\S]*?data-level="4"[\s\S]*?Suit radio · via Lander/);
+		let html = render(CrewPanel, {
+			props: { card: crewCard(relayed, inside, DAY), eva: eva(relayed) }
+		}).body;
+		expect(html).toMatch(
+			/data-testid="suit-radio"[\s\S]*?data-level="4"[\s\S]*?Suit radio · via Lander/
+		);
 		// the crew rows inside show the lander's own link
 		expect(html).toMatch(/<span[^>]*title="via Home station"[^>]*data-testid="crew-radio"/);
 		const cut = net(link(9, null, 'blocked by terrain', null));
 		html = render(CrewPanel, { props: { card: crewCard(cut, inside, DAY), eva: eva(cut) } }).body;
-		expect(html).toMatch(/data-testid="suit-radio"[\s\S]*?No signal[\s\S]*?Suit radio · Blocked by terrain/);
+		expect(html).toMatch(
+			/data-testid="suit-radio"[\s\S]*?No signal[\s\S]*?Suit radio · Blocked by terrain/
+		);
 	});
 
 	it('offers a live broadcast when the route has the rate, and says what is missing otherwise', () => {
@@ -160,7 +170,11 @@ describe('crew radios and broadcasts (plan 121, ADR 0193)', () => {
 			}
 		]);
 		const html = render(CrewPanel, { props: { broadcasts: offers, onbroadcast: () => {} } }).body;
-		expect(html).toMatch(/<button[^>]*data-testid="broadcast-crewed-landing:stock.cinder"[^>]*>Broadcast live/);
-		expect(html).toMatch(/<button[^>]*disabled[^>]*data-testid="broadcast-crewed-eva:stock.cinder"/);
+		expect(html).toMatch(
+			/<button[^>]*data-testid="broadcast-crewed-landing:stock.cinder"[^>]*>Broadcast live/
+		);
+		expect(html).toMatch(
+			/<button[^>]*disabled[^>]*data-testid="broadcast-crewed-eva:stock.cinder"/
+		);
 	});
 });

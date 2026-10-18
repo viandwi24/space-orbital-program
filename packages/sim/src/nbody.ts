@@ -26,7 +26,8 @@ export const NBODY_BUDGET_MS = 2;
  */
 export const NBODY_FRAME_EVALUATIONS = 5_000;
 
-export const nBodyOn = (core: Pick<SimCore, 'info'>): boolean => core.info.gravityModel === 'n-body';
+export const nBodyOn = (core: Pick<SimCore, 'info'>): boolean =>
+	core.info.gravityModel === 'n-body';
 
 const fields = new WeakMap<BodyRuntime, NBodyField>();
 
@@ -131,7 +132,11 @@ export function advanceNumeric(body: BodyRuntime, rails: NumericRails, t: number
 }
 
 /** The numeric rails' state at `t`: the anchor, the dense output of its step, or further steps. */
-export function numericMotion(body: BodyRuntime, rails: NumericRails, t: number): { r: Vec3; v: Vec3 } {
+export function numericMotion(
+	body: BodyRuntime,
+	rails: NumericRails,
+	t: number
+): { r: Vec3; v: Vec3 } {
 	if (t === rails.t0) return { r: rails.r, v: rails.v };
 	if (t < rails.t0) {
 		// before the anchor (an SOI bisection never asks this; a read of the past might)

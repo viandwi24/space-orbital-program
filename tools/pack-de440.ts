@@ -23,14 +23,15 @@ const to = yearStart(Number(toArg ?? 2100));
 
 const bytes = new Uint8Array(await Bun.file(bsp).arrayBuffer());
 const dv = new DataView(bytes.buffer);
-if (new TextDecoder().decode(bytes.subarray(0, 7)) !== 'DAF/SPK') throw new Error('not an SPK file');
+if (new TextDecoder().decode(bytes.subarray(0, 7)) !== 'DAF/SPK')
+	throw new Error('not an SPK file');
 const nd = dv.getInt32(8, true);
 const ni = dv.getInt32(12, true);
 const stride = nd + Math.floor((ni + 1) / 2);
 const segments: EphemerisSegment[] = [];
 const chunks: Float64Array[] = [];
 let offset = 0;
-for (let rec = dv.getInt32(76, true); rec > 0; ) {
+for (let rec = dv.getInt32(76, true); rec > 0;) {
 	const base = (rec - 1) * 1024;
 	const next = dv.getFloat64(base, true);
 	const count = dv.getFloat64(base + 16, true);
@@ -51,9 +52,18 @@ for (let rec = dv.getInt32(76, true); rec > 0; ) {
 		const start = dv.getInt32(o + 32, true); // first double of the segment, 1-based
 		const n = last - first;
 		const data = new Float64Array(n * rsize);
-		for (let i = 0; i < n * rsize; i++) data[i] = dv.getFloat64((start - 1 + first * rsize + i) * 8, true);
+		for (let i = 0; i < n * rsize; i++)
+			data[i] = dv.getFloat64((start - 1 + first * rsize + i) * 8, true);
 		chunks.push(data);
-		segments.push({ target, center, init: init + first * intlen, intlen, rsize, records: n, offset });
+		segments.push({
+			target,
+			center,
+			init: init + first * intlen,
+			intlen,
+			rsize,
+			records: n,
+			offset
+		});
 		offset += data.length;
 	}
 	rec = next;
@@ -73,4 +83,6 @@ console.log(
 	`${outPath}: ${segments.length} segments, ${(raw.length / 1e6).toFixed(2)} MB raw, ${(gz.length / 1e6).toFixed(2)} MB gzipped, sha256 ${sha}`
 );
 for (const s of segments)
-	console.log(`  ${s.target} about ${s.center}: ${s.records} records of ${s.intlen / 86_400} days, ${(s.rsize - 2) / 3} coefficients`);
+	console.log(
+		`  ${s.target} about ${s.center}: ${s.records} records of ${s.intlen / 86_400} days, ${(s.rsize - 2) / 3} coefficients`
+	);

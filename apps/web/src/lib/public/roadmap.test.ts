@@ -31,7 +31,10 @@ describe('public roadmap', () => {
 			expect(item.gives.length).toBeGreaterThan(40);
 		}
 		for (const phase of ROADMAP_PHASES)
-			expect(ROADMAP.some((r) => r.phase === phase), phase).toBe(true);
+			expect(
+				ROADMAP.some((r) => r.phase === phase),
+				phase
+			).toBe(true);
 	});
 	it('marks exactly the items ADR 0108 names as exploring', () => {
 		const exploring = ROADMAP.filter((r) => r.exploring).map((r) => r.plan);

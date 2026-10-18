@@ -220,14 +220,28 @@ describe('the Market panel (plan 097, ADR 0124 point 8)', () => {
 		science: 0,
 		reputation: 0,
 		markets: [
-			{ id: 'stock.liquid-fuel', label: 'Liquid fuel', unit: 'u', base: 0.8, price: 0.76, stock: 6e4, history: [0.76] },
+			{
+				id: 'stock.liquid-fuel',
+				label: 'Liquid fuel',
+				unit: 'u',
+				base: 0.8,
+				price: 0.76,
+				stock: 6e4,
+				history: [0.76]
+			},
 			{ id: 'stock.data', label: 'Data', unit: 'Mbit', base: 5, price: 5, stock: 0, history: [] }
 		],
 		storage: [{ site: 'legacy', capacity: 20_000, items: { 'stock.liquid-fuel': 1234.6 } }]
 	};
 	it('lists price, trend against base and what the site holds', () => {
 		expect(marketRows(economy, 'legacy')).toEqual([
-			{ id: 'stock.liquid-fuel', label: 'Liquid fuel', price: '0.76 / u', trend: '−5 %', held: 1234 },
+			{
+				id: 'stock.liquid-fuel',
+				label: 'Liquid fuel',
+				price: '0.76 / u',
+				trend: '−5 %',
+				held: 1234
+			},
 			{ id: 'stock.data', label: 'Data', price: '5.00 / Mbit', trend: null, held: null }
 		]);
 		expect(marketRows({ ...economy, enabled: false }, 'legacy')).toEqual([]);
@@ -237,11 +251,20 @@ describe('the Market panel (plan 097, ADR 0124 point 8)', () => {
 			id: 'legacy',
 			roads: [],
 			buildings: [
-				{ id: 'p', kind: 'stock.propellant-plant', cell: { i: 0, j: 0 }, rotation: 0 as const, level: 0, state: 'active' as const }
+				{
+					id: 'p',
+					kind: 'stock.propellant-plant',
+					cell: { i: 0, j: 0 },
+					rotation: 0 as const,
+					level: 0,
+					state: 'active' as const
+				}
 			]
 		};
 		const producers = new Set(['stock.propellant-plant']);
-		expect(productionNote(economy, site, producers)).toBe('Production stopped: funds are below zero');
+		expect(productionNote(economy, site, producers)).toBe(
+			'Production stopped: funds are below zero'
+		);
 		expect(productionNote({ ...economy, funds: 5 }, site, producers)).toBeNull();
 	});
 });
@@ -252,16 +275,33 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 		roads: [],
 		members: [7 as never],
 		buildings: [
-			{ id: 'hub', kind: 'stock.base-hub', cell: { i: -1, j: -1 }, rotation: 0 as const, level: 0, state: 'active' as const },
-			{ id: 'isru', kind: 'stock.isru-plant', cell: { i: 5, j: -2 }, rotation: 0 as const, level: 0, state: 'active' as const }
+			{
+				id: 'hub',
+				kind: 'stock.base-hub',
+				cell: { i: -1, j: -1 },
+				rotation: 0 as const,
+				level: 0,
+				state: 'active' as const
+			},
+			{
+				id: 'isru',
+				kind: 'stock.isru-plant',
+				cell: { i: 5, j: -2 },
+				rotation: 0 as const,
+				level: 0,
+				state: 'active' as const
+			}
 		]
 	};
-	const label = (id: string) => (id === 'legacy' ? 'space center' : id.replace('stock.', '').replace('-', ' '));
+	const label = (id: string) =>
+		id === 'legacy' ? 'space center' : id.replace('stock.', '').replace('-', ' ');
 	it('the Flows panel lists the recipe, the drills, the routes and the storage', () => {
 		const rows = flowRows(base, {
 			buildings: reg,
 			recipes: registries.recipes.list(),
-			vessels: [{ id: 7, parts: [{ definition: 'stock.drill' }, { definition: 'stock.drill' }] }] as never,
+			vessels: [
+				{ id: 7, parts: [{ definition: 'stock.drill' }, { definition: 'stock.drill' }] }
+			] as never,
 			drillPerDay: 50,
 			economy: {
 				enabled: true,
@@ -269,7 +309,16 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 				science: 0,
 				reputation: 0,
 				storage: [{ site: 'b', capacity: 5_000, items: { 'stock.ice': 300 } }],
-				routes: [{ id: 'r1', from: 'legacy', to: 'b', commodity: 'stock.liquid-fuel', amount: 1_000, nextDay: 12 }]
+				routes: [
+					{
+						id: 'r1',
+						from: 'legacy',
+						to: 'b',
+						commodity: 'stock.liquid-fuel',
+						amount: 1_000,
+						nextDay: 12
+					}
+				]
 			},
 			today: 10,
 			label
@@ -285,7 +334,13 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 		const off = kindsFor(reg.list(), false).map((k) => k.id);
 		expect(off).toEqual(['stock.base-hub', 'stock.isru-plant', 'stock.storage-module']);
 		expect(kindsFor(reg.list(), true).map((k) => k.id)).not.toContain('stock.isru-plant');
-		const cell = firstFreeCell({ body: 'stock.cinder', flatRadius: 5_000 }, base, reg, 'stock.storage-module', false);
+		const cell = firstFreeCell(
+			{ body: 'stock.cinder', flatRadius: 5_000 },
+			base,
+			reg,
+			'stock.storage-module',
+			false
+		);
 		expect(cell).not.toBeNull();
 	});
 });

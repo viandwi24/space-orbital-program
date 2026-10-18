@@ -311,7 +311,10 @@ export interface MarketRow {
 type EconomyView = NonNullable<Snapshot['economy']>;
 
 /** The read-only Market panel (plan 097, ADR 0124 point 8): price, trend against base, site stock. */
-export function marketRows(economy: EconomyView | undefined, site: string | undefined): MarketRow[] {
+export function marketRows(
+	economy: EconomyView | undefined,
+	site: string | undefined
+): MarketRow[] {
 	if (!economy?.enabled || !economy.markets) return [];
 	const held = economy.storage?.find((s) => s.site === site)?.items ?? {};
 	return economy.markets.map((m) => {
@@ -321,7 +324,10 @@ export function marketRows(economy: EconomyView | undefined, site: string | unde
 			id: m.id,
 			label: m.label,
 			price: `${m.price.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })} / ${m.unit}`,
-			trend: Math.abs(change) < 0.005 ? null : `${change > 0 ? '+' : '−'}${Math.round(Math.abs(change) * 100)} %`,
+			trend:
+				Math.abs(change) < 0.005
+					? null
+					: `${change > 0 ? '+' : '−'}${Math.round(Math.abs(change) * 100)} %`,
 			held: held[m.id] === undefined ? null : Math.floor(held[m.id]!)
 		};
 	});
@@ -374,7 +380,8 @@ export function flowRows(
 	for (const b of site.buildings) {
 		if (b.state !== 'active' && b.state !== 'upgrading') continue;
 		const def = buildings.get(b.kind);
-		const factor = def?.levels[Math.min(b.level, (def?.levels.length ?? 1) - 1)]?.capacity.production ?? 1;
+		const factor =
+			def?.levels[Math.min(b.level, (def?.levels.length ?? 1) - 1)]?.capacity.production ?? 1;
 		for (const r of recipes) {
 			if (r.building !== b.kind) continue;
 			const side = (m: Record<string, number>) =>
@@ -397,7 +404,8 @@ export function flowRows(
 	for (const r of options.economy?.routes ?? []) {
 		if (r.from !== site.id && r.to !== site.id) continue;
 		const inbound = r.to === site.id;
-		const days = options.today === undefined ? '' : ` in ${Math.max(0, r.nextDay - options.today)} days`;
+		const days =
+			options.today === undefined ? '' : ` in ${Math.max(0, r.nextDay - options.today)} days`;
 		out.push(
 			`Route ${r.id}: ${amountText(r.amount)} ${label(r.commodity)} ${inbound ? `from ${label(r.from)}` : `to ${label(r.to)}`}, next${days}`
 		);
@@ -414,8 +422,7 @@ export function flowRows(
 export const kindsFor = (
 	kinds: readonly BuildingDefinition[],
 	home: boolean
-): BuildingDefinition[] =>
-	kinds.filter((k) => !k.placement || (k.placement === 'home') === home);
+): BuildingDefinition[] => kinds.filter((k) => !k.placement || (k.placement === 'home') === home);
 
 /**
  * The first valid cell for `kind` near a site's centre (a base has no 3D view yet, ADR 0125 point 7):

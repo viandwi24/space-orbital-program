@@ -782,8 +782,8 @@
 	{/if}
 
 	<p class="hint" id="{uid}-hint">
-		Tab indents. Press Esc, then Tab, to leave the editor. Ctrl+F finds, Ctrl+Space or Ctrl+I suggests, Ctrl+Z
-		undoes.
+		Tab indents. Press Esc, then Tab, to leave the editor. Ctrl+F finds, Ctrl+Space or Ctrl+I
+		suggests, Ctrl+Z undoes.
 	</p>
 	<details class="keys">
 		<summary>More editor keys and options</summary>
@@ -792,7 +792,11 @@
 			<li><kbd>Ctrl+/</kbd> comment or uncomment the lines</li>
 			<li><kbd>Alt+Up</kbd> / <kbd>Alt+Down</kbd> move the lines</li>
 			<li><kbd>Shift+Alt+Up</kbd> / <kbd>Shift+Alt+Down</kbd> copy the lines</li>
-			<li>On a Mac, Cmd works in place of Ctrl; Ctrl+Space switches input sources there, so use <kbd>Cmd+I</kbd> to suggest.</li>
+			<li>
+				On a Mac, Cmd works in place of Ctrl; Ctrl+Space switches input sources there, so use <kbd
+					>Cmd+I</kbd
+				> to suggest.
+			</li>
 		</ul>
 		<label class="option">
 			<input

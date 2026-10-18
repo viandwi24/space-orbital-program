@@ -354,9 +354,9 @@
 				</label>
 			</div>
 			<p class="note">
-				N-body: every body pulls on every vessel, so Lagrange points and perturbed orbits are real; time
-				warp is held lower to keep the integration fast. In the 1:1 Sol system the planets follow JPL's
-				DE440, downloaded once (7.5 MB).
+				N-body: every body pulls on every vessel, so Lagrange points and perturbed orbits are real;
+				time warp is held lower to keep the integration fast. In the 1:1 Sol system the planets
+				follow JPL's DE440, downloaded once (7.5 MB).
 			</p>
 		</fieldset>
 

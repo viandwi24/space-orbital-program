@@ -437,7 +437,6 @@ export const CAPACITY = {
 export type CapacityKey = keyof typeof CAPACITY;
 export const CAPACITY_KEYS = Object.keys(CAPACITY) as CapacityKey[];
 
-
 /** Whether a placed building works, and at which level index; null while it provides nothing. */
 export function workingLevel(b: Pick<PlacedBuilding, 'state' | 'level'>): number | null {
 	return b.state === 'active' || b.state === 'upgrading' ? b.level : null;

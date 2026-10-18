@@ -52,7 +52,9 @@ export function crewCard(snap: Snapshot, v: VesselSnapshot, day: number): CrewCa
 		if (c.fatigue !== undefined && c.fatigue > 0.005) causes.push('Tired from working in flight');
 		for (const s of c.shortages ?? []) {
 			const left = s.since + graceSeconds(s.resource, day) - snap.t;
-			causes.push(`Out of ${label(s.resource).toLowerCase()}: ${formatDuration(Math.max(0, left))} to live`);
+			causes.push(
+				`Out of ${label(s.resource).toLowerCase()}: ${formatDuration(Math.max(0, left))} to live`
+			);
 		}
 		if (c.glocUntil !== undefined && c.glocUntil > snap.t) causes.push('Blacked out by g-load');
 		return { member: c.member, name, stats, causes };

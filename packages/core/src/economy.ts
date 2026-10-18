@@ -7,7 +7,12 @@ import type { ModuleDefinition, PartDefinition, ResourceDefinition } from './def
 import { definitionIdSchema } from './schemas.ts';
 import type { VesselDesign } from './protocol.ts';
 import type { RuleValue } from './rules.ts';
-import { marketStateSchema, siteStorageSchema, type MarketState, type SiteStorage } from './market.ts';
+import {
+	marketStateSchema,
+	siteStorageSchema,
+	type MarketState,
+	type SiteStorage
+} from './market.ts';
 
 export const CURRENCIES = ['funds', 'science', 'reputation'] as const;
 export type Currency = (typeof CURRENCIES)[number];

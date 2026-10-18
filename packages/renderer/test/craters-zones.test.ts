@@ -20,7 +20,8 @@ describe('base zones on a craters body', () => {
 			cubeMaterial: { uniforms: Record<string, { value: unknown }> };
 			patchMaterial: { uniforms: Record<string, { value: unknown }> };
 		};
-		for (const m of [mats.cubeMaterial, mats.patchMaterial]) expect(m.uniforms.uCraterZoneCount!.value).toBe(1);
+		for (const m of [mats.cubeMaterial, mats.patchMaterial])
+			expect(m.uniforms.uCraterZoneCount!.value).toBe(1);
 		const bare = new MoonPass('test.bare', 200_000, { seed: 3 }) as unknown as typeof mats;
 		expect(bare.cubeMaterial.uniforms.uCraterZoneCount!.value).toBe(0);
 	});

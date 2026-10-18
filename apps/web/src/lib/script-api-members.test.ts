@@ -16,13 +16,11 @@ const craft: VesselDesign = {
 		'stock.reaction-wheel',
 		'stock.tank-small',
 		'stock.engine-lv'
-	].map(
-		(part, index) => ({
-			index,
-			part: partId(part),
-			parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
-		})
-	),
+	].map((part, index) => ({
+		index,
+		part: partId(part),
+		parent: index === 0 ? null : { index: index - 1, parentNode: 'bottom', node: 'top' }
+	})),
 	stages: [[4]]
 };
 

@@ -42,11 +42,7 @@ export interface SpaceCenter {
 export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	const { canvas } = options;
 	const client = startSimWorker(
-		options.resume
-			? { resume: options.resume }
-			: options.world
-				? { world: options.world }
-				: {}
+		options.resume ? { resume: options.resume } : options.world ? { world: options.world } : {}
 	);
 	let renderer: Renderer | null = null;
 	let snap: Snapshot | null = null;

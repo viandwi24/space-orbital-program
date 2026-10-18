@@ -70,7 +70,14 @@ describe('body card: discovery (plan 129, ADR 0192 point 10)', () => {
 			{ ...fact('stock.polar-ice', 'Polar ice', '%'), body: 'stock.moon', status: 'open' }
 		],
 		data: [
-			{ id: 'd1', body: 'stock.home', fact: 'stock.magnetic-field', level: 'raw', value: 40, sigma: 12 },
+			{
+				id: 'd1',
+				body: 'stock.home',
+				fact: 'stock.magnetic-field',
+				level: 'raw',
+				value: 40,
+				sigma: 12
+			},
 			{
 				id: 'd2',
 				body: 'stock.home',

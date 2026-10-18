@@ -13,8 +13,12 @@ describe('Chebyshev records', () => {
 			const t = (k / 64) * 32 * DAY;
 			const want = propagate(el, MU, t);
 			const got = chebyshevState(rec, t);
-			expect(Math.hypot(got.r.x - want.r.x, got.r.y - want.r.y, got.r.z - want.r.z)).toBeLessThan(1);
-			expect(Math.hypot(got.v.x - want.v.x, got.v.y - want.v.y, got.v.z - want.v.z)).toBeLessThan(1e-6);
+			expect(Math.hypot(got.r.x - want.r.x, got.r.y - want.r.y, got.r.z - want.r.z)).toBeLessThan(
+				1
+			);
+			expect(Math.hypot(got.v.x - want.v.x, got.v.y - want.v.y, got.v.z - want.v.z)).toBeLessThan(
+				1e-6
+			);
 		}
 	});
 	test('the record of a time is found by binary search', () => {

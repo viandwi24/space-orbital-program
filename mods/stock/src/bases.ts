@@ -2,7 +2,16 @@
  * Off-world bases (plan 128, ADR 0125): the base kit that founds a site, the drill an outpost runs,
  * the buildings a base may hold, ice and the one ISRU step.
  */
-import { defineBuilding, defineCommodity, defineModule, definePart, defineRecipe, kg, z, type BuildingLevel } from '@orbital/sdk';
+import {
+	defineBuilding,
+	defineCommodity,
+	defineModule,
+	definePart,
+	defineRecipe,
+	kg,
+	z,
+	type BuildingLevel
+} from '@orbital/sdk';
 import { partCost } from './costs.ts';
 
 /** A landed vessel with this module can found a base with `deploy-base` (ADR 0125 point 2). */
@@ -16,8 +25,14 @@ export const ModuleDrill = defineModule({
 
 const cylinder = (height: number) => ({ kind: 'cylinder' as const, radius: 0.625, height });
 const nodes = (height: number) => ({
-	top: { pos: [0, height / 2, 0] as [number, number, number], dir: [0, 1, 0] as [number, number, number] },
-	bottom: { pos: [0, -height / 2, 0] as [number, number, number], dir: [0, -1, 0] as [number, number, number] }
+	top: {
+		pos: [0, height / 2, 0] as [number, number, number],
+		dir: [0, 1, 0] as [number, number, number]
+	},
+	bottom: {
+		pos: [0, -height / 2, 0] as [number, number, number],
+		dir: [0, -1, 0] as [number, number, number]
+	}
 });
 
 export const PartBaseKit = definePart({
@@ -121,4 +136,8 @@ export const RecipeIceElectrolysis = defineRecipe({
 });
 
 export const STOCK_BASE_PARTS = [PartBaseKit, PartDrill] as const;
-export const STOCK_BASE_BUILDINGS = [BuildingBaseHub, BuildingIsruPlant, BuildingStorageModule] as const;
+export const STOCK_BASE_BUILDINGS = [
+	BuildingBaseHub,
+	BuildingIsruPlant,
+	BuildingStorageModule
+] as const;

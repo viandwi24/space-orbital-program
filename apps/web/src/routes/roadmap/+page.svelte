@@ -74,7 +74,9 @@
 		<h2 id="notes-h">What changed</h2>
 		<ul class="notes">
 			{#each ROADMAP_NOTES as note (note.date + note.item)}
-				<li><time datetime={note.date}>{note.date}</time> <strong>{note.item}</strong>: {note.change}</li>
+				<li>
+					<time datetime={note.date}>{note.date}</time> <strong>{note.item}</strong>: {note.change}
+				</li>
 			{/each}
 		</ul>
 	</section>

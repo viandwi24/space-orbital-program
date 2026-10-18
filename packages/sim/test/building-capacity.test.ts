@@ -58,7 +58,9 @@ describe('a site capacity', () => {
 		});
 		expect(siteCapacity({ buildings: [more('building', 0)] }, buildings, 'hangar')).toBeNull();
 		expect(siteCapacity({ buildings: [more('upgrading', 1)] }, buildings, 'hangar')).toBe(120);
-		expect(siteCapacity({ buildings: [...site.buildings, more('active', 2)] }, buildings, 'hangar')).toBe(255);
+		expect(
+			siteCapacity({ buildings: [...site.buildings, more('active', 2)] }, buildings, 'hangar')
+		).toBe(255);
 		expect(upkeepOf([{ buildings: [more('building', 0)] }], buildings)).toEqual([]);
 	});
 	test('the upgrade that lifts a need is the cheapest level that meets it', () => {

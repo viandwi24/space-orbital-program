@@ -5,19 +5,32 @@
  */
 import { describe, expect, test } from 'bun:test';
 import { gunzipSync } from 'node:zlib';
-import {
-	barycentricState,
-	DE440_AU,
-	readEphemeris,
-	writeEphemeris
-} from '../src/index.ts';
+import { barycentricState, DE440_AU, readEphemeris, writeEphemeris } from '../src/index.ts';
 
 const here = new URL('./fixtures/', import.meta.url);
 const asset = readEphemeris(
-	new Uint8Array(gunzipSync(new Uint8Array(await Bun.file(new URL('de440-2025-2026.bin.gz', here)).arrayBuffer())))
+	new Uint8Array(
+		gunzipSync(
+			new Uint8Array(await Bun.file(new URL('de440-2025-2026.bin.gz', here)).arrayBuffer())
+		)
+	)
 );
 /** testpo's body numbers to NAIF ids (3 the Earth, 10 the Moon, 11 the Sun, 12 the barycentre, 13 the Earth–Moon barycentre). */
-const NAIF: Record<number, number> = { 1: 1, 2: 2, 3: 399, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 301, 11: 10, 12: 0, 13: 3 };
+const NAIF: Record<number, number> = {
+	1: 1,
+	2: 2,
+	3: 399,
+	4: 4,
+	5: 5,
+	6: 6,
+	7: 7,
+	8: 8,
+	9: 9,
+	10: 301,
+	11: 10,
+	12: 0,
+	13: 3
+};
 
 describe('the DE440 asset', () => {
 	test("JPL's test points for 2025 and 2026 within 1e-12 AU (and 1e-14 AU/day)", async () => {

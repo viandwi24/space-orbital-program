@@ -835,7 +835,8 @@
 						card={model?.crew ?? null}
 						eva={hud.eva}
 						broadcasts={hud.broadcasts}
-						onbroadcast={(milestone) => void flight?.command({ type: 'comms-broadcast', milestone })}
+						onbroadcast={(milestone) =>
+							void flight?.command({ type: 'comms-broadcast', milestone })}
 						oneva={(m) => flight?.eva(m)}
 						onwalk={(h) => flight?.walk(h)}
 						onflag={() => flight?.plantFlag()}

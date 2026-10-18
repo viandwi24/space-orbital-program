@@ -38,14 +38,7 @@ export const BuildingHangar = defineBuilding({
 	visual: gen('hangar')
 });
 
-const pad = (
-	id: string,
-	label: string,
-	n: number,
-	hazard: number,
-	mass: Three,
-	cost: Three
-) =>
+const pad = (id: string, label: string, n: number, hazard: number, mass: Three, cost: Three) =>
 	defineBuilding({
 		id,
 		label,
@@ -57,9 +50,30 @@ const pad = (
 		hazardRadius: hazard,
 		visual: gen('launch-pad')
 	});
-export const BuildingLaunchpadS = pad('stock.launchpad-s', 'Launchpad S', 3, 40, [18, 30, 45], [20_000, 60_000, 150_000]);
-export const BuildingLaunchpadM = pad('stock.launchpad-m', 'Launchpad M', 5, 80, [60, 100, 150], [80_000, 160_000, 300_000]);
-export const BuildingLaunchpadL = pad('stock.launchpad-l', 'Launchpad L', 7, 140, [180, 300, 500], [200_000, 300_000, 400_000]);
+export const BuildingLaunchpadS = pad(
+	'stock.launchpad-s',
+	'Launchpad S',
+	3,
+	40,
+	[18, 30, 45],
+	[20_000, 60_000, 150_000]
+);
+export const BuildingLaunchpadM = pad(
+	'stock.launchpad-m',
+	'Launchpad M',
+	5,
+	80,
+	[60, 100, 150],
+	[80_000, 160_000, 300_000]
+);
+export const BuildingLaunchpadL = pad(
+	'stock.launchpad-l',
+	'Launchpad L',
+	7,
+	140,
+	[180, 300, 500],
+	[200_000, 300_000, 400_000]
+);
 
 export const BuildingRunway = defineBuilding({
 	id: 'stock.runway',

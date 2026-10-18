@@ -9,7 +9,9 @@ import { createSim } from '../src/index.ts';
 import { rapier } from './helpers/vessels.ts';
 
 const fixture = new URL('../../kepler/test/fixtures/de440-2025-2026.bin.gz', import.meta.url);
-const ephemeris = readEphemeris(new Uint8Array(gunzipSync(new Uint8Array(await Bun.file(fixture).arrayBuffer()))));
+const ephemeris = readEphemeris(
+	new Uint8Array(gunzipSync(new Uint8Array(await Bun.file(fixture).arrayBuffer())))
+);
 // 2025-07-01, inside the fixture's span
 const world = (gravityModel: 'patched' | 'n-body'): WorldInfo => ({
 	...legacyWorldInfo(7),
@@ -20,8 +22,10 @@ const world = (gravityModel: 'patched' | 'n-body'): WorldInfo => ({
 	gravityModel,
 	epoch: { day: 9_313, fraction: 0 }
 });
-const bodyAt = (snap: { bodies: { id: string; position: { x: number; y: number; z: number } }[] }, id: string) =>
-	snap.bodies.find((b) => b.id === id)!.position;
+const bodyAt = (
+	snap: { bodies: { id: string; position: { x: number; y: number; z: number } }[] },
+	id: string
+) => snap.bodies.find((b) => b.id === id)!.position;
 const dist = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) =>
 	Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const rel = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => ({
@@ -32,8 +36,17 @@ const rel = (a: { x: number; y: number; z: number }, b: { x: number; y: number; 
 
 describe('DE440 in a Sol world', () => {
 	test('with the asset the Moon and the Earth follow JPL, close to their own series and Level A paths', async () => {
-		const own = await createSim({ plugins: [Stock, Sol], backendFactory: rapier(8), world: world('patched') });
-		const jpl = await createSim({ plugins: [Stock, Sol], backendFactory: rapier(8), world: world('n-body'), ephemeris });
+		const own = await createSim({
+			plugins: [Stock, Sol],
+			backendFactory: rapier(8),
+			world: world('patched')
+		});
+		const jpl = await createSim({
+			plugins: [Stock, Sol],
+			backendFactory: rapier(8),
+			world: world('n-body'),
+			ephemeris
+		});
 		const a = own.snapshot();
 		const b = jpl.snapshot();
 		const moonOwn = rel(bodyAt(a, 'sol.moon'), bodyAt(a, 'sol.earth'));

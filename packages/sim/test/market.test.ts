@@ -92,7 +92,11 @@ describe('launch fuel (ADR 0124 point 6)', () => {
 		const count = sim.save().economy!.entries.length;
 		expect(sim.dispatch({ type: 'load-vessel', design: twoStage() }).ok).toBe(true);
 		const entries = sim.save().economy!.entries.slice(count);
-		expect(entries.map((e) => e.cause)).toEqual(['economy.launch', 'stock.market-buy', 'stock.market-buy']);
+		expect(entries.map((e) => e.cause)).toEqual([
+			'economy.launch',
+			'stock.market-buy',
+			'stock.market-buy'
+		]);
 		const fuel = entries.find((e) => e.ref?.startsWith(LF))!;
 		expect(fuel.amount).toBeCloseTo(-(need.get(LF)! - lfHeld) * price, 9);
 		expect(stored(sim, LF)).toBe(0);
@@ -107,13 +111,27 @@ describe('trades (ADR 0124 point 7)', () => {
 		const noRoom = sim.dispatch({ type: 'market-buy', commodity: LF, amount: 10, site: 'legacy' });
 		expect(noRoom.ok ? '' : noRoom.reason).toBe('not enough storage at the site: room for 0 u');
 		plant(sim);
-		expect(sim.dispatch({ type: 'market-buy', commodity: LF, amount: 1_000, site: 'legacy' }).ok).toBe(true);
-		const tooMuch = sim.dispatch({ type: 'market-sell', commodity: OX, amount: 1e6, site: 'legacy' });
+		expect(
+			sim.dispatch({ type: 'market-buy', commodity: LF, amount: 1_000, site: 'legacy' }).ok
+		).toBe(true);
+		const tooMuch = sim.dispatch({
+			type: 'market-sell',
+			commodity: OX,
+			amount: 1e6,
+			site: 'legacy'
+		});
 		expect(tooMuch.ok ? '' : tooMuch.reason).toMatch(/^the site holds \d+ u of Oxidizer$/);
-		const fixed = sim.dispatch({ type: 'market-buy', commodity: 'stock.data', amount: 1, site: 'legacy' });
+		const fixed = sim.dispatch({
+			type: 'market-buy',
+			commodity: 'stock.data',
+			amount: 1,
+			site: 'legacy'
+		});
 		expect(fixed.ok ? '' : fixed.reason).toBe('Data has a fixed price and is not traded yet');
 		const before = funds(sim);
-		expect(sim.dispatch({ type: 'market-sell', commodity: LF, amount: 500, site: 'legacy' }).ok).toBe(true);
+		expect(
+			sim.dispatch({ type: 'market-sell', commodity: LF, amount: 500, site: 'legacy' }).ok
+		).toBe(true);
 		expect(funds(sim)).toBeGreaterThan(before);
 		sim.dispose();
 	});

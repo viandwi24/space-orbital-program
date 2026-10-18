@@ -167,7 +167,10 @@ const models = new WeakMap<readonly PatchedBody[], TrajectoryModel>();
  * Name the gravity model of a body list (plan 125): `trajectoryFor(list)` then gives that model's
  * provider, so callers that pass the list around need not carry the model too.
  */
-export function tagTrajectoryModel<T extends readonly PatchedBody[]>(bodies: T, model: TrajectoryModel): T {
+export function tagTrajectoryModel<T extends readonly PatchedBody[]>(
+	bodies: T,
+	model: TrajectoryModel
+): T {
 	models.set(bodies, model);
 	return bodies;
 }

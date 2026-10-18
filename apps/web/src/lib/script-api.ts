@@ -223,7 +223,11 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 		field('flameout', 'boolean', 'The engine stopped for lack of propellant.')
 	],
 	'ship.science': [
-		field('situation', 'string | null', 'Science situation, e.g. stock.landed; null without experiments.'),
+		field(
+			'situation',
+			'string | null',
+			'Science situation, e.g. stock.landed; null without experiments.'
+		),
 		field('experiments', 'array', 'Each experiment module aboard.')
 	],
 	'ship.science.experiments[]': [

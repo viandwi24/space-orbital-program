@@ -32,16 +32,20 @@ export function bodyNodes(
 	gravityModel: 'patched' | 'n-body' = 'patched'
 ): PatchedBody[] {
 	const byId = new Map(bodies.map((b) => [b.id, b]));
-	return tagTrajectoryModel(bodies.map((b) => {
-		const parent = b.parent === undefined ? undefined : byId.get(b.parent);
-		return {
-			id: b.id,
-			mu: GRAVITATIONAL_CONSTANT * b.mass,
-			soi: parent && b.orbit ? soiRadius(b.orbit.a, b.mass, parent.mass) : Number.POSITIVE_INFINITY,
-			radius: b.radius,
-			...(parent && b.orbit ? { parent: parent.id, orbit: b.orbit } : {})
-		};
-	}), gravityModel);
+	return tagTrajectoryModel(
+		bodies.map((b) => {
+			const parent = b.parent === undefined ? undefined : byId.get(b.parent);
+			return {
+				id: b.id,
+				mu: GRAVITATIONAL_CONSTANT * b.mass,
+				soi:
+					parent && b.orbit ? soiRadius(b.orbit.a, b.mass, parent.mass) : Number.POSITIVE_INFINITY,
+				radius: b.radius,
+				...(parent && b.orbit ? { parent: parent.id, orbit: b.orbit } : {})
+			};
+		}),
+		gravityModel
+	);
 }
 
 export interface MapPath {

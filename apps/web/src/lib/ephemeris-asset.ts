@@ -23,7 +23,9 @@ export interface EphemerisCache {
 }
 
 export interface EphemerisDeps {
-	fetch(path: string): Promise<{ ok: boolean; status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
+	fetch(
+		path: string
+	): Promise<{ ok: boolean; status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
 	cache: EphemerisCache;
 	digest(data: ArrayBuffer): Promise<string>;
 	gunzip(gz: ArrayBuffer): Promise<ArrayBuffer>;
@@ -42,7 +44,8 @@ export async function loadEphemeris(
 		if (gz.byteLength !== asset.bytes) {
 			throw new Error(`the ephemeris has ${gz.byteLength} bytes, expected ${asset.bytes}`);
 		}
-		if ((await deps.digest(gz)) !== asset.sha256) throw new Error('the ephemeris failed its checksum');
+		if ((await deps.digest(gz)) !== asset.sha256)
+			throw new Error('the ephemeris failed its checksum');
 		await deps.cache.put(asset.sha256, gz).catch(() => undefined);
 	}
 	return deps.gunzip(gz);
@@ -77,6 +80,8 @@ export function browserEphemerisDeps(): EphemerisDeps {
 		},
 		digest: async (data) => hex(await crypto.subtle.digest('SHA-256', data)),
 		gunzip: (gz) =>
-			new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+			new Response(
+				new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))
+			).arrayBuffer()
 	};
 }

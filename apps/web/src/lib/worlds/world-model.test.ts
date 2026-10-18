@@ -80,7 +80,9 @@ describe('Create World from the registries', () => {
 	it('an n-body world is accepted since plan 125; an unknown model is refused', () => {
 		const r = createWorldInfo(input({ gravityModel: 'n-body' }), catalog, FICTIONAL, NOW);
 		expect(r.ok && r.world.gravityModel).toBe('n-body');
-		expect(createWorldInfo(input({ gravityModel: 'orbits' }), catalog, FICTIONAL, NOW).ok).toBe(false);
+		expect(createWorldInfo(input({ gravityModel: 'orbits' }), catalog, FICTIONAL, NOW).ok).toBe(
+			false
+		);
 		expect(createWorldInfo(input({ gravityModel: 'teleport' }), catalog, FICTIONAL, NOW).ok).toBe(
 			false
 		);

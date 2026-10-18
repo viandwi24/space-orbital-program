@@ -108,7 +108,8 @@ export const STOCK_TECH = [
 		cost: 320,
 		requires: ['stock.life-support'],
 		milestone: 'landing:stock.cinder',
-		description: 'A base kit to found a site on another body, and a drill for its outposts (plan 128).',
+		description:
+			'A base kit to found a site on another body, and a drill for its outposts (plan 128).',
 		unlocks: ['stock.base-kit', 'stock.drill']
 	})
 ];

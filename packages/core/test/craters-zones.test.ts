@@ -15,7 +15,8 @@ describe('flat zones on craters ground', () => {
 	test('inside the flat radius the ground is the centre height; beyond the blend it is raw', () => {
 		const field = createBodyTerrainField(moon, { seed: 1, zones: [zone] })!;
 		const centre = moonHeight(latLonDirection(zone.latitude, zone.longitude), moon.radius, 0);
-		for (const arc of [0, 500, 1_500, 1_990]) expect(field.heightAt(offset(arc))).toBeCloseTo(centre, 9);
+		for (const arc of [0, 500, 1_500, 1_990])
+			expect(field.heightAt(offset(arc))).toBeCloseTo(centre, 9);
 		for (const arc of [5_001, 8_000, 30_000])
 			expect(field.heightAt(offset(arc))).toBe(moonHeight(offset(arc), moon.radius, 0));
 		// in the blend it lies between the two

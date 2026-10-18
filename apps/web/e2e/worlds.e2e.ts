@@ -63,7 +63,9 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	await page.waitForURL('**/space-center');
 	await page.getByTestId('sc-label-stock.launchpad-s').click({ timeout: 60_000 });
 	await page.getByTestId('sc-upgrade').click();
-	await expect(page.getByTestId('sc-attention')).toContainText(/Launchpad S: Level 1 · upgrading to 2/);
+	await expect(page.getByTestId('sc-attention')).toContainText(
+		/Launchpad S: Level 1 · upgrading to 2/
+	);
 	await page.waitForTimeout(1500); // the autosave is written in the background
 	await expect
 		.poll(

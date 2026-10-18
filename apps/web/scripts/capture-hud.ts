@@ -46,7 +46,11 @@ async function openSave(page: Page, file: string): Promise<void> {
 		buffer: Buffer.from(readFileSync(join(saves, `${file}.json`), 'utf8'))
 	});
 	await page.getByText(/^Imported/).waitFor();
-	await page.locator('dialog[open]').getByRole('button', { name: 'Load', exact: true }).first().click();
+	await page
+		.locator('dialog[open]')
+		.getByRole('button', { name: 'Load', exact: true })
+		.first()
+		.click();
 	await page.waitForURL('**/flight?load=*');
 	await page.getByTestId('hud-met').waitFor({ timeout: 90_000 });
 	await page.waitForTimeout(6000);

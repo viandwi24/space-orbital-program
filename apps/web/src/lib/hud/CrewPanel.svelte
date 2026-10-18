@@ -74,8 +74,10 @@
 					<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
 					<span class="suit" data-testid="crew-suit">IVA</span>
 					<span class="radio" title={card.radio.text} data-testid="crew-radio"
-						><SignalBars level={card.radio.level} offline={card.radio.offline} />{#if card.radio
-							.offline}<span class="no-radio">{card.radio.text}</span>{/if}</span
+						><SignalBars
+							level={card.radio.level}
+							offline={card.radio.offline}
+						/>{#if card.radio.offline}<span class="no-radio">{card.radio.text}</span>{/if}</span
 					>
 					{#if !eva && oneva}<button
 							type="button"

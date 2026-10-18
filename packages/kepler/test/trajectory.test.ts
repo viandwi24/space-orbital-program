@@ -125,7 +125,9 @@ describe('the n-body provider (plan 125, ADR 0122 point 6)', () => {
 		expect(segments.slice(0, -1).every((s) => s.end === 'sample')).toBe(true);
 		const direct = integrateNBody(nBodyFieldOf(bodies, 'home'), start, 0, day);
 		const at = provider.stateAt(start, day)!;
-		expect(Math.hypot(at.r.x - direct.r.x, at.r.y - direct.r.y, at.r.z - direct.r.z)).toBeLessThan(1);
+		expect(Math.hypot(at.r.x - direct.r.x, at.r.y - direct.r.y, at.r.z - direct.r.z)).toBeLessThan(
+			1
+		);
 		// a consumer that propagates each segment's entry conic stays within metres of the path
 		const track = provider.track(start, day);
 		const mid = segments[5]!;

@@ -42,8 +42,10 @@ function marketOf(core: SimCore, def: CommodityDefinition & { market: MarketPara
 }
 
 /** Today's price of a traded commodity, funds per unit, after the cost multiplier. */
-export const priceOf = (core: SimCore, def: CommodityDefinition & { market: MarketParams }): number =>
-	marketOf(core, def).price * costMultiplier(core);
+export const priceOf = (
+	core: SimCore,
+	def: CommodityDefinition & { market: MarketParams }
+): number => marketOf(core, def).price * costMultiplier(core);
 
 const storageOf = (core: SimCore, site: string): Record<string, number> => {
 	const storage = (core.economy.storage ??= {});
@@ -64,7 +66,11 @@ export interface LaunchQuote {
 }
 
 /** What a launch of `design` from `site` costs with markets open (ADR 0124 point 6). */
-export function launchQuote(core: SimCore, design: VesselDesign, site: string | undefined): LaunchQuote {
+export function launchQuote(
+	core: SimCore,
+	design: VesselDesign,
+	site: string | undefined
+): LaunchQuote {
 	const k = costMultiplier(core);
 	const contents = designContents(design, core.registries);
 	const held = site ? (core.economy.storage?.[site] ?? {}) : {};
@@ -96,7 +102,9 @@ export function refuseLaunch(
 	if (!marketsOpen(core)) return launchRefusal(core, design);
 	const cost = launchQuote(core, design, site).total;
 	const funds = core.economy.balances.funds;
-	return cost > funds ? `Not enough funds: needs ${Math.ceil(cost)}, has ${Math.floor(funds)}` : undefined;
+	return cost > funds
+		? `Not enough funds: needs ${Math.ceil(cost)}, has ${Math.floor(funds)}`
+		: undefined;
 }
 
 /** Pay a launch: through the markets when they are open, else as plan 095 does. */
@@ -125,7 +133,13 @@ export function chargeLaunchWithMarkets(
 		if (f.buy <= 0) continue;
 		const def = core.registries.commodities.get(f.commodity)!;
 		if (isTraded(def)) marketOf(core, def).stock -= f.buy;
-		record(core, 'funds', -f.buy * f.price, MARKET_CAUSES.buy, tradeRef(f.commodity, f.buy, f.price));
+		record(
+			core,
+			'funds',
+			-f.buy * f.price,
+			MARKET_CAUSES.buy,
+			tradeRef(f.commodity, f.buy, f.price)
+		);
 	}
 }
 
@@ -157,7 +171,8 @@ export function marketBuy(
 	const price = priceOf(core, check.def);
 	const cost = price * command.amount;
 	const funds = core.economy.balances.funds;
-	if (cost > funds) return refuse(`Not enough funds: needs ${Math.ceil(cost)}, has ${Math.floor(funds)}`);
+	if (cost > funds)
+		return refuse(`Not enough funds: needs ${Math.ceil(cost)}, has ${Math.floor(funds)}`);
 	const held = storageOf(core, command.site);
 	const room = capacityOf(core, command.site) - storedUnits(held);
 	if (command.amount > room) {
@@ -184,7 +199,13 @@ export function marketSell(
 	const price = priceOf(core, check.def);
 	marketOf(core, check.def).stock += command.amount;
 	held[check.def.id] = have - command.amount;
-	record(core, 'funds', price * command.amount, MARKET_CAUSES.sell, tradeRef(check.def.id, command.amount, price));
+	record(
+		core,
+		'funds',
+		price * command.amount,
+		MARKET_CAUSES.sell,
+		tradeRef(check.def.id, command.amount, price)
+	);
 	return { ok: true };
 }
 

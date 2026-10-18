@@ -4,15 +4,7 @@
 		{
 			"name": "web-dev",
 			"runtimeExecutable": "bun",
-			"runtimeArgs": [
-				"run",
-				"--filter",
-				"@orbital/web",
-				"dev",
-				"--port",
-				"5173",
-				"--strictPort"
-			],
+			"runtimeArgs": ["run", "--filter", "@orbital/web", "dev", "--port", "5173", "--strictPort"],
 			"port": 5173
 		}
 	]

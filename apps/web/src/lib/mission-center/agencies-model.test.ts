@@ -21,8 +21,18 @@ const snap = {
 			}
 		],
 		news: [
-			{ time: 10 * DAY - 10, agency: 'stock.meridian', name: 'Meridian Space Authority', text: 'Meridian Space Authority placed a relay at 2400 km.' },
-			{ time: 7 * DAY, agency: 'stock.meridian', name: 'Meridian Space Authority', text: "Meridian Space Authority's satellite launch failed." }
+			{
+				time: 10 * DAY - 10,
+				agency: 'stock.meridian',
+				name: 'Meridian Space Authority',
+				text: 'Meridian Space Authority placed a relay at 2400 km.'
+			},
+			{
+				time: 7 * DAY,
+				agency: 'stock.meridian',
+				name: 'Meridian Space Authority',
+				text: "Meridian Space Authority's satellite launch failed."
+			}
 		]
 	}
 } as unknown as Snapshot;

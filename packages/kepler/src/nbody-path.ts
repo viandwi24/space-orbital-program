@@ -43,7 +43,8 @@ export function predictNBody(
 	};
 	const kids = (id: string): PatchedBody[] =>
 		[...bodies].filter((b) => b.parent === id).sort((x, y) => (x.id < y.id ? -1 : 1));
-	const stateIn = (b: PatchedBody, t: number): StateVector => bodyStateAt(bodies, b.id, t, 'parent');
+	const stateIn = (b: PatchedBody, t: number): StateVector =>
+		bodyStateAt(bodies, b.id, t, 'parent');
 	const maxStep = options.maxStep ?? 600;
 	const end = start.t + horizon;
 	const maxSegments = options.maxSegments ?? Math.ceil(horizon / maxStep) + 64;

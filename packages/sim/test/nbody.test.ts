@@ -45,10 +45,16 @@ describe('n-body worlds (ADR 0122)', () => {
 		const id = orbiter(sim);
 		warpTo(sim, 3_000);
 		const save = sim.save();
-		const again = await createSim({ plugins: [Stock], backendFactory: rapier(8), resume: JSON.parse(JSON.stringify(save)) });
+		const again = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(8),
+			resume: JSON.parse(JSON.stringify(save))
+		});
 		warpTo(sim, 9_000);
 		warpTo(again, 9_000);
-		expect(JSON.stringify(stateOf(again, id).position)).toBe(JSON.stringify(stateOf(sim, id).position));
+		expect(JSON.stringify(stateOf(again, id).position)).toBe(
+			JSON.stringify(stateOf(sim, id).position)
+		);
 		expect(JSON.stringify(again.save().world)).toBe(JSON.stringify(sim.save().world));
 		sim.dispose();
 		again.dispose();

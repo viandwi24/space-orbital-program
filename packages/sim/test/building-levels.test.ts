@@ -157,7 +157,8 @@ describe('the crew roster limit (ADR 0123 point 4)', () => {
 		});
 		expect(r.ok ? '' : r.reason).toBe('');
 		days(sim, sim.registries.buildings.get('stock.astronaut-complex')!.levels[0]!.buildDays);
-		for (let k = 0; k < 5; k++) expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
+		for (let k = 0; k < 5; k++)
+			expect(sim.dispatch({ type: 'crew-hire', profession: 'pilot' }).ok).toBe(true);
 		const sixth = sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
 		expect(sixth.ok ? '' : sixth.reason).toBe(
 			'The roster is full (5 crew); Astronaut Complex level 2: 12 crew'

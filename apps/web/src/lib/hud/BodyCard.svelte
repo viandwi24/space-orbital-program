@@ -38,7 +38,8 @@
 				{#each dossier.discovery.facts as f (f.fact)}
 					<dt>{f.label}</dt>
 					<dd data-testid="discovery-fact-{f.fact}">
-						{f.status === 'settled' ? f.value : 'open'}{#if f.best}<small>{f.best}</small>{/if}{#if f.processing > 0}<small>{f.processing} in the lab</small>{/if}
+						{f.status === 'settled' ? f.value : 'open'}{#if f.best}<small>{f.best}</small
+							>{/if}{#if f.processing > 0}<small>{f.processing} in the lab</small>{/if}
 					</dd>
 					{#if oncommand && f.status === 'open'}
 						{@const d = draft(f.fact)}
@@ -50,7 +51,13 @@
 									>Process</Button
 								>
 							{/if}
-							<input type="number" min="0" step="any" aria-label="{f.label} value" bind:value={d.value} />
+							<input
+								type="number"
+								min="0"
+								step="any"
+								aria-label="{f.label} value"
+								bind:value={d.value}
+							/>
 							<select aria-label="{f.label} confidence" bind:value={d.confidence}>
 								{#each [50, 60, 70, 80, 90, 95] as p (p)}
 									<option value={p}>{p}%</option>

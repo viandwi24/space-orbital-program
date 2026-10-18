@@ -27,7 +27,9 @@ test('create an n-body world, launch from the Hangar and fly without errors', as
 	expect(errors).toEqual([]);
 });
 
-test('an n-body world of the 1:1 Sol system fetches DE440 once and flies on it', async ({ page }) => {
+test('an n-body world of the 1:1 Sol system fetches DE440 once and flies on it', async ({
+	page
+}) => {
 	const errors = watchErrors(page);
 	const fetched: number[] = [];
 	page.on('response', (r) => {

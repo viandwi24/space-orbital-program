@@ -174,8 +174,7 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '105',
 		title: 'Tech tree and R&D',
-		gives:
-			'Unlock parts with science in a research building, with the tree shown as it grows.',
+		gives: 'Unlock parts with science in a research building, with the tree shown as it grows.',
 		phase: 'Career'
 	},
 	{
@@ -202,7 +201,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '109',
 		title: 'Spacewalks',
-		gives: 'Crew step outside: climb, float with a jetpack, plant a flag and collect samples by hand.',
+		gives:
+			'Crew step outside: climb, float with a jetpack, plant a flag and collect samples by hand.',
 		phase: 'Career'
 	},
 	// Network and control
@@ -223,7 +223,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '113',
 		title: 'Mission Center',
-		gives: 'One screen for the whole system: every vessel, its orbit, what is coming up and what needs you.',
+		gives:
+			'One screen for the whole system: every vessel, its orbit, what is coming up and what needs you.',
 		phase: 'Network and control'
 	},
 	{
@@ -243,7 +244,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '116',
 		title: 'Signal strength and data rates',
-		gives: 'Bigger antennas reach further and send data faster; distance and bands decide what gets through.',
+		gives:
+			'Bigger antennas reach further and send data faster; distance and bands decide what gets through.',
 		phase: 'Network and control'
 	},
 	{
@@ -256,7 +258,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '118',
 		title: 'Planning a network',
-		gives: 'A contact timeline, a coverage map and a constellation planner, to place relays before you launch them.',
+		gives:
+			'A contact timeline, a coverage map and a constellation planner, to place relays before you launch them.',
 		phase: 'Network and control'
 	},
 	{
@@ -290,7 +293,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '123',
 		title: 'Orbits that drift',
-		gives: 'Planets and moons follow their real slow changes over the years, and the Moon its own wobbles.',
+		gives:
+			'Planets and moons follow their real slow changes over the years, and the Moon its own wobbles.',
 		phase: 'Time and the real sky'
 	},
 	{
@@ -312,7 +316,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '126',
 		title: 'Other agencies',
-		gives: 'Other space programmes that launch real vessels, race you to firsts and compete for contracts.',
+		gives:
+			'Other space programmes that launch real vessels, race you to firsts and compete for contracts.',
 		phase: 'Living world',
 		exploring: true
 	},
@@ -326,7 +331,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '128',
 		title: 'Bases on other worlds',
-		gives: 'Land a base kit and build on another body, or leave parts on the surface as an outpost.',
+		gives:
+			'Land a base kit and build on another body, or leave parts on the surface as an outpost.',
 		phase: 'Living world',
 		exploring: true
 	},
@@ -372,11 +378,16 @@ export const SHIPPED: readonly { plan: string; title: string; gives: string }[] 
 		gives:
 			'Create worlds with their own rules and start date; each keeps its own saves, and Continue takes you back to the last one.'
 	},
-	{ plan: '081', title: 'Dates', gives: 'The time control shows the date in your world, and scripts can read it.' },
+	{
+		plan: '081',
+		title: 'Dates',
+		gives: 'The time control shows the date in your world, and scripts can read it.'
+	},
 	{
 		plan: '092',
 		title: 'Choose where to build',
-		gives: 'Pick the Space Center site when you create a world, from templates with their trade-offs shown.'
+		gives:
+			'Pick the Space Center site when you create a world, from templates with their trade-offs shown.'
 	}
 ];
 
@@ -391,7 +402,10 @@ export const ROADMAP_NOTES: readonly { date: string; item: string; change: strin
 ];
 
 /** The label shown for an item, from its plan file's status (`virtual:plan-status`). */
-export function labelOf(item: Pick<RoadmapItem, 'plan' | 'exploring'>, status: string | undefined): RoadmapLabel {
+export function labelOf(
+	item: Pick<RoadmapItem, 'plan' | 'exploring'>,
+	status: string | undefined
+): RoadmapLabel {
 	if (status === 'done') return 'shipped';
 	// a blocked plan has its work done and waits for a human step (roadmap §8): in progress to a reader
 	if (status === 'in-progress' || status === 'blocked') return 'in progress';
