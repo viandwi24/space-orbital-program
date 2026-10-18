@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 066 devices claimed (`devb/066-devices`, the M2 row); 130 handed over as `ready/130`.
-**Waiting for:** merges of 111, 105, 127 and 130 (`ready/*`); 115 waits for the 111 merge, 118 for `cp/f4-117-comms-3`; the Lead on contract requests `crew-dismiss` and 130's `Snapshot.reliability`/`part:failed`.
+**Now:** 115 comms UI claimed (`devb/115-comms-ui`); 066 handed over as `ready/066` (the M2 row).
+**Waiting for:** merges of 105, 127, 130 and 066 (`ready/*`); 118 waits for `cp/f4-117-comms-3`; the Lead on contract requests `crew-dismiss` and 130's `Snapshot.reliability`/`part:failed`.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -26,11 +26,11 @@
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | done | `devb/111-vessel-panel` | 2026-10-17 | merged 47c55ad, cp/f4-111-vessel-panel |
 | 105 tech-tree | handed-over | `devb/105-tech-tree` | 2026-10-18 | ready/105; ADR 0154; API 0.1.55 |
-| 115 comms-1-ui | todo |  |  |  |
+| 115 comms-1-ui | in-progress | `devb/115-comms-ui` | 2026-10-18 | claim/115 |
 | 127 range-safety | handed-over | `devb/127-range-safety` | 2026-10-18 | ready/127; ADR 0155; API 0.1.55 |
 | 130 reliability | handed-over | `devb/130-reliability` | 2026-10-18 | ready/130; ADR 0156; API 0.1.55 |
 | 118 comms-tools | todo |  |  |  |
-| 066 devices | in-progress | `devb/066-devices` | 2026-10-18 | claim/066 |
+| 066 devices | handed-over | `devb/066-devices` | 2026-10-18 | ready/066; ADR 0157 (M2 row only) |
 | 131 replays | todo |  |  |  |
 | 065 mod-models | todo |  |  |  |
 | 063 aeroplane | todo |  |  |  |
