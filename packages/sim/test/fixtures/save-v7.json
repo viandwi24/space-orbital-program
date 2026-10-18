@@ -1,0 +1,471 @@
+{
+ "format": "orbital-sim-save",
+ "formatVersion": 7,
+ "apiVersion": "0.1.67",
+ "mods": [
+  {
+   "id": "stock",
+   "version": "0.1.0"
+  },
+  {
+   "id": "test-open-tree",
+   "version": "1.0.0"
+  }
+ ],
+ "bodies": [
+  "stock.sun",
+  "stock.home",
+  "stock.cinder"
+ ],
+ "home": "stock.home",
+ "comms": {
+  "seq": 0,
+  "routes": [],
+  "queue": []
+ },
+ "dt": 0.02,
+ "seed": 0,
+ "time": 1.0000000000000004,
+ "warp": 1,
+ "warpTarget": null,
+ "accumulator": 0,
+ "rng": 0,
+ "worldInfo": {
+  "id": "save-v7",
+  "seed": 12,
+  "systemId": "stock",
+  "systemVersion": "0.0.0",
+  "variant": "default",
+  "gravityModel": "patched",
+  "epoch": {
+   "day": 0,
+   "fraction": 0
+  },
+  "rules": {
+   "stock.economy": true,
+   "stock.contracts": true,
+   "stock.funds-multiplier": 1,
+   "stock.cost-multiplier": 1,
+   "stock.starting-funds": 100000,
+   "stock.science-depth": "classic",
+   "stock.science-multiplier": 1,
+   "stock.tech-tree": true,
+   "stock.crew-experience": true,
+   "stock.crew-salaries": true,
+   "stock.life-support": "simple",
+   "stock.crew-morale": true,
+   "stock.crew-rest": false,
+   "stock.crew-exposure": true,
+   "stock.crew-death": "permanent",
+   "stock.crew-return-days": 14,
+   "stock.comms": true,
+   "stock.signal-delay": "display",
+   "stock.control-without-signal": "none",
+   "stock.comms-scale": 1,
+   "stock.range-safety": "cost",
+   "stock.reliability": false,
+   "stock.agency-type": "government",
+   "stock.agency-count": 3
+  },
+  "sites": [],
+  "preset": "stock.career",
+  "changelog": []
+ },
+ "worldTick": {
+  "lastDay": 0,
+  "streams": {}
+ },
+ "economy": {
+  "balances": {
+   "funds": 98400,
+   "science": 0,
+   "reputation": 15
+  },
+  "entries": [
+   {
+    "time": 0,
+    "currency": "funds",
+    "amount": -1100,
+    "cause": "economy.launch",
+    "ref": "Probe"
+   },
+   {
+    "time": 0,
+    "currency": "funds",
+    "amount": -500,
+    "cause": "economy.launch",
+    "ref": "Probe"
+   },
+   {
+    "time": 0.02,
+    "currency": "reputation",
+    "amount": 5,
+    "cause": "milestone",
+    "ref": "launch"
+   },
+   {
+    "time": 0.02,
+    "currency": "reputation",
+    "amount": 10,
+    "cause": "milestone",
+    "ref": "orbit:stock.home"
+   }
+  ]
+ },
+ "milestones": {
+  "records": [
+   {
+    "id": "launch",
+    "kind": "launch",
+    "crewed": false,
+    "vessel": 0,
+    "time": 0.02
+   },
+   {
+    "id": "orbit:stock.home",
+    "kind": "orbit",
+    "body": "stock.home",
+    "crewed": false,
+    "vessel": 0,
+    "time": 0.02
+   }
+  ],
+  "visits": {
+   "0": [
+    "orbit:stock.home"
+   ],
+   "3": [
+    "orbit:stock.home"
+   ]
+  }
+ },
+ "world": {
+  "formatVersion": 1,
+  "nextEntity": 5,
+  "entities": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "components": {
+   "sim.module-state:stock.antenna": {
+    "1": {
+     "enabled": true
+    },
+    "2": {
+     "enabled": true
+    },
+    "4": {
+     "enabled": true
+    }
+   },
+   "sim.module-state:stock.resource-container": {
+    "1": {
+     "amounts": {
+      "stock.electric-charge": 20
+     }
+    },
+    "4": {
+     "amounts": {
+      "stock.electric-charge": 20
+     }
+    }
+   },
+   "sim.part": {
+    "1": {
+     "vessel": 0,
+     "index": 0,
+     "definition": "stock.probe-core",
+     "designPos": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [
+      {
+       "node": "bottom",
+       "peer": 2,
+       "peerNode": "top"
+      }
+     ],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.command"
+      },
+      {
+       "id": "stock.antenna",
+       "config": {
+        "antenna": "stock.whip"
+       }
+      },
+      {
+       "id": "stock.resource-container",
+       "config": {
+        "contents": {
+         "stock.electric-charge": {
+          "capacity": 20,
+          "amount": 20
+         }
+        }
+       }
+      }
+     ]
+    },
+    "2": {
+     "vessel": 0,
+     "index": 1,
+     "definition": "stock.dish-antenna",
+     "designPos": {
+      "x": 0,
+      "y": -0.4,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [
+      {
+       "node": "top",
+       "peer": 1,
+       "peerNode": "bottom"
+      }
+     ],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.antenna",
+       "config": {
+        "antenna": "stock.dish"
+       }
+      }
+     ]
+    },
+    "4": {
+     "vessel": 3,
+     "index": 0,
+     "definition": "stock.probe-core",
+     "designPos": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "yaw": 0,
+     "attachments": [],
+     "temperature": 288.15,
+     "modules": [
+      {
+       "id": "stock.command"
+      },
+      {
+       "id": "stock.antenna",
+       "config": {
+        "antenna": "stock.whip"
+       }
+      },
+      {
+       "id": "stock.resource-container",
+       "config": {
+        "contents": {
+         "stock.electric-charge": {
+          "capacity": 20,
+          "amount": 20
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "sim.vessel": {
+    "0": {
+     "name": "Probe",
+     "mode": "on-rails",
+     "soi": "stock.home",
+     "root": 1,
+     "parts": [
+      1,
+      2
+     ],
+     "control": {
+      "throttle": 0,
+      "pitch": 0,
+      "roll": 0,
+      "yaw": 0
+     },
+     "sas": {
+      "mode": "off",
+      "reference": "surface",
+      "hold": {
+       "x": 0,
+       "y": 0,
+       "z": 0,
+       "w": 1
+      },
+      "settling": false,
+      "integral": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "error": 0,
+      "quiet": false,
+      "active": false,
+      "demand": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     "nodes": [],
+     "target": null,
+     "stages": [],
+     "nextStage": 0,
+     "com": {
+      "x": 720000,
+      "y": 0,
+      "z": 0
+     },
+     "velocity": {
+      "x": 0,
+      "y": 0,
+      "z": -2214.72345903501
+     },
+     "orientation": {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+     },
+     "rails": {
+      "kind": "elements",
+      "elements": {
+       "a": 719999.9999999999,
+       "e": 1.8987208452914955e-16,
+       "i": 0,
+       "raan": 0,
+       "argp": 0,
+       "m0": 0,
+       "epoch": 0
+      }
+     },
+     "idle": 0,
+     "landed": false,
+     "rest": 0
+    },
+    "3": {
+     "name": "Probe",
+     "mode": "on-rails",
+     "soi": "stock.home",
+     "root": 4,
+     "parts": [
+      4
+     ],
+     "control": {
+      "throttle": 0,
+      "pitch": 0,
+      "roll": 0,
+      "yaw": 0
+     },
+     "sas": {
+      "mode": "off",
+      "reference": "surface",
+      "hold": {
+       "x": 0,
+       "y": 0,
+       "z": 0,
+       "w": 1
+      },
+      "settling": false,
+      "integral": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "error": 0,
+      "quiet": false,
+      "active": false,
+      "demand": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     "nodes": [],
+     "target": null,
+     "stages": [],
+     "nextStage": 0,
+     "com": {
+      "x": 900000,
+      "y": 0,
+      "z": 0
+     },
+     "velocity": {
+      "x": 0,
+      "y": 0,
+      "z": -1980.9088823063014
+     },
+     "orientation": {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+     },
+     "rails": {
+      "kind": "elements",
+      "elements": {
+       "a": 900000,
+       "e": 0,
+       "i": 0,
+       "raan": 0,
+       "argp": 0,
+       "m0": 0,
+       "epoch": 0
+      }
+     },
+     "idle": 0,
+     "landed": false,
+     "rest": 0
+    }
+   }
+  }
+ },
+ "frames": [
+  {
+   "id": 0,
+   "inUse": false,
+   "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "velocity": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "soi": "stock.home",
+   "vessels": [],
+   "bodies": []
+  },
+  {
+   "id": 1,
+   "inUse": false,
+   "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "velocity": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   "soi": "stock.home",
+   "vessels": [],
+   "bodies": []
+  }
+ ],
+ "checksum": "1e8efeabb75f23"
+}
