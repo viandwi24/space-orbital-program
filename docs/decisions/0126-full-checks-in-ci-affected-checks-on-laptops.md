@@ -11,7 +11,7 @@ The owner reported that the full suite gets heavier every day, takes long and he
 
 ## Decision
 
-1. **CI runs the full suite** (`.github/workflows/ci.yml`): typecheck, `bun run test`, web vitest, build and the Chromium smoke e2e.
+1. **CI runs the full suite** (`.github/workflows/ci.yml`): typecheck, `bun run test`, web vitest and build. It also runs the Chromium smoke e2e as information only. The runner has no GPU, and software WebGL on 4 vCPU failed the smoke in the first runs. Its result and Playwright report are kept, but it does not decide pass or fail.
    - It runs on every handover tag `ready/*`, on every push to `main` and on pull requests.
    - A push that changes only docs runs `docs:check` alone.
    - A newer push to `main` cancels the older run.
@@ -23,7 +23,7 @@ The owner reported that the full suite gets heavier every day, takes long and he
    - a build or one e2e file only when asked (`--build`, `--e2e <file>`).
    A root config change (`package.json`, `bun.lock`, `tsconfig*`, prettier config) runs everything. `--full` is the local fallback when CI is unavailable.
 4. **Handover:** the dev runs `check:affected` (plus the plan's own e2e file on one engine if it names one), pushes `ready/<NNN>` and moves on to its next task while CI runs. A `refs/ci/fail/<sha>` is a bounce.
-5. **Merge:** Agent 1 merges a handover only when `refs/ci/pass/<sha>` exists for the handed-over commit. On the rebased result it runs `check:affected` and the M5-only criteria (¹, frame budgets). The push to `main` runs the full suite in CI. A red `main` is fixed first, before the next merge. Agent 1 deletes the plan's `refs/ci/*` refs with its `claim` and `ready` tags.
+5. **Merge:** Agent 1 merges a handover only when `refs/ci/pass/<sha>` exists for the handed-over commit. On the rebased result it runs `check:affected` and the M5-only criteria (¹, frame budgets). For a plan that touches `apps/web` or `packages/renderer`, it also runs the Chromium smoke (`--e2e e2e/smoke.e2e.ts`, one engine, about two minutes). The push to `main` runs the full suite in CI. A red `main` is fixed first, before the next merge. Agent 1 deletes the plan's `refs/ci/*` refs with its `claim` and `ready` tags.
 6. **Lint until the one-time format:** CI and `check:affected` check formatting of the changed files only. A file you change must be formatted. At the next phase gate with no open claim, Agent 1 runs `prettier --write .` once in its own commit and CI switches back to the whole tree.
 7. **Phase gates keep the full local run** on the M5 with the three-engine e2e (unchanged).
 8. **Fallback:** when no CI result exists 30 minutes after a handover tag, or GitHub Actions is down, Agent 1 merges with `bun run check:affected --full --e2e e2e/smoke.e2e.ts` as before.
