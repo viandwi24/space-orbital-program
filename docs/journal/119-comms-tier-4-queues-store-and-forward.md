@@ -8,7 +8,7 @@
 
 | Where | What |
 | --- | --- |
-| `packages/core` | `SaveTransmission`, and `SaveComms.transmissions` in save format 8 with the 7 → 8 migration; `COMMAND_RATE`, `MAX_CUSTODY_HOPS`, `CONTACT_SCAN_STEP`; the `comms:data-delivered` event; the command `transmission-cancel`; `Snapshot.network.queues`; `API_VERSION` 0.1.68 (main is at 0.1.67) |
+| `packages/core` | `SaveTransmission`, and `SaveComms.transmissions` in save format 8 with the 7 → 8 migration; `COMMAND_RATE`, `MAX_CUSTODY_HOPS`, `CONTACT_SCAN_STEP`; the `comms:data-delivered` event; the command `transmission-cancel`; `Snapshot.network.queues`; `API_VERSION 0.1.69 (0.1.68 went to 125 at its merge) (main is at 0.1.67) |
 | `packages/sim/src/transmission.ts` (new) | `enqueueTransmission`, `cancelTransmission`, `stepTransmissions` (priority order, shared rate, the command rate, delivery, custody), `recoverQueued`, `queuesSnapshot` with arrival estimates, and the cached next contact |
 | `packages/sim` | `routeNetwork` reports the neighbours of a vessel without a route; budgets at every sample while data is queued; transmissions step at each network sample; `nextDirectContact`, `hasAntenna`; `transmit-data` queues with comms on; `restoreData` |
 | `mods/stock` | the data kind `stock.command` (priority −1) |
