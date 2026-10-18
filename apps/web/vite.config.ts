@@ -14,7 +14,7 @@ export default defineConfig({
 			},
 			adapter: adapter({ fallback: '200.html' }),
 			// GitHub Pages serves the site under /<repo> (`.github/workflows/pages.yml`); empty everywhere else
-			paths: { base: process.env.BASE_PATH ?? '' }
+			paths: { base: (process.env.BASE_PATH ?? '') as '' | `/${string}` }
 		}),
 		planStatus(fileURLToPath(new URL('../../docs/plans', import.meta.url)))
 	],
