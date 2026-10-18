@@ -184,7 +184,7 @@ A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (
 
 **Paths that drift (API 0.1.50, plan 123, ADR 0183).** A body whose orbit is not a fixed conic says so with `orbit.model`. For a real planet, take its JPL Level A row: `const { elements, rates } = levelAElements({ a: [1.52371034, 0.00001847], e: [...], I: [...], L: [...], peri: [...], node: [...] })` (from `@orbital/sdk`), then `orbit: { ...elements, model: 'kepler-rates', rates }`. A moon with a periodic theory uses `model: 'series'` with `series: { longitude, latitude, parallax, parentRadius }`, in degrees and Julian centuries, as in the Astronomical Almanac. Keep the six elements as the mean conic: they size the sphere of influence. These models run on J2000 time, and the world's epoch puts the body at the right date. `docs/research/ephemerides.md` lists the sources.
 
-**A system of your own, and its scales (API 0.1.53, plan 124, ADR 0184).** Register a variant and your bodies become a system a world can choose instead of stock:
+**A system of your own, and its scales (API 0.1.54, plan 124, ADR 0184).** Register a variant and your bodies become a system a world can choose instead of stock:
 
 ```ts
 ctx.systemVariants.register(defineSystemVariant({
