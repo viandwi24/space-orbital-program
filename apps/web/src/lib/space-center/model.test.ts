@@ -69,6 +69,12 @@ describe('the overlay', () => {
 			href: '/test-stand',
 			label: 'Open the test stand'
 		});
+		// Administration opens since plan 099 (its Contracts tab)
+		expect(actionOf(['admin'])).toEqual({
+			kind: 'link',
+			href: '/administration',
+			label: 'Open Administration'
+		});
 	});
 
 	it('keyboard: arrows reach every building in turn and wrap; the selected one opens its detail', () => {
@@ -196,7 +202,9 @@ describe('construction and upkeep (plan 096, ADR 0123 point 6)', () => {
 		expect(hangar.upgrade).toEqual({ level: 1, cost: next.cost, days: next.buildDays });
 	});
 	it('the next upkeep over the funds needs attention', () => {
-		expect(upkeepWarning(1_000, 2_400, 25)).toBe('Upkeep of 2,400 due in 5 days is more than the funds');
+		expect(upkeepWarning(1_000, 2_400, 25)).toBe(
+			'Upkeep of 2,400 due in 5 days is more than the funds'
+		);
 		expect(upkeepWarning(5_000, 2_400, 25)).toBeNull();
 		expect(upkeepWarning(undefined, 2_400, 25)).toBeNull();
 	});
