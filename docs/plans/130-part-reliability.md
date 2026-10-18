@@ -1,7 +1,7 @@
 ---
 id: 130
 title: "Part reliability (world rule, off by default)"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [078, 095, 109, 090]
 phase: 9

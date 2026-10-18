@@ -28,7 +28,7 @@
 | 105 tech-tree | done | `devb/105-tech-tree` | 2026-10-17 | merged 047ab15, cp/f3-105-tech-tree |
 | 115 comms-1-ui | in-progress | `devb/115-comms-ui` | 2026-10-18 | claim/115 |
 | 127 range-safety | done | `devb/127-range-safety` | 2026-10-17 | merged aaa9f4c, cp/f6-127-range-safety |
-| 130 reliability | handed-over | `devb/130-reliability` | 2026-10-18 | ready/130; ADR 0156; API 0.1.55 |
+| 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
 | 118 comms-tools | todo |  |  |  |
 | 066 devices | handed-over | `devb/066-devices` | 2026-10-18 | ready/066; ADR 0157 (M2 row only) |
 | 131 replays | todo |  |  |  |
