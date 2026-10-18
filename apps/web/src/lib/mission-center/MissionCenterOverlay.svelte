@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	/**
 	 * The Mission Center's overlay (plan 113, refs `Map.dc.html`): the world capsule and the
 	 * `Map | Mission Center` switch on top, Tracking with its filters and the crew and agency on the
@@ -52,7 +53,10 @@
 		onlayers,
 		labels,
 		network,
-		note
+		note,
+		planningOpen = false,
+		onplanning,
+		planning
 	}: {
 		worldName: string;
 		clock: string;
@@ -79,6 +83,10 @@
 		/** The Network layer in CSS pixels (plan 115, ADR 0158). */
 		network: ScreenNetwork;
 		note: string | null;
+		/** The comms planning panel (plan 118, ADR 0163 point 6), drawn in place of the card while open. */
+		planningOpen?: boolean;
+		onplanning?: () => void;
+		planning?: Snippet;
 	} = $props();
 
 	const toggle = (name: keyof Layers) => onlayers({ ...layers, [name]: !layers[name] });
@@ -206,7 +214,9 @@
 		</Panel>
 	</aside>
 
-	{#if card}
+	{#if planningOpen && planning}
+		{@render planning()}
+	{:else if card}
 		<section class="card" aria-label="{card.title} details" data-testid="mc-card">
 			<header>
 				<div>
@@ -238,6 +248,15 @@
 				data-testid="mc-layer-{name}">{name.charAt(0).toUpperCase() + name.slice(1)}</button
 			>
 		{/each}
+		{#if onplanning}
+			<button
+				type="button"
+				aria-pressed={planningOpen}
+				class:on={planningOpen}
+				onclick={onplanning}
+				data-testid="mc-planning-toggle">Planning</button
+			>
+		{/if}
 	</div>
 
 	{#if note}<p class="note" role="alert" data-testid="mc-note">{note}</p>{/if}

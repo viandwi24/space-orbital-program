@@ -268,6 +268,15 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 
 A module collider may carry `wheel: { rolling, grip, brake, steer }`: `collectColliders` gives its box `friction: 0` (combined with the ground by the minimum) and records it in `FlightBody.wheels`. `groundContacts` keeps each wheel's contact point with the tile, in the body's own axes; the next `prepareFrame` runs `stepWheels`: at each wheel in contact, along its rolling direction (the part's +Y turned about the ground normal by `steer` times the yaw demand) a force against the slip limited by `(rolling + brake × grip) × load`, across it one limited by `grip × load`, each taking a quarter of the slip out per step; the load is the weight shared over the wheels in contact. A design with `aircraft: true` is placed on the surface lying level, nose north and +Z up, on its lowest point along -Z (`placeOnSurface(…, level)`). `trim { vessel, pitch }` sets `VesselState.trim`, added to the pitch demand in `effectiveControl`. SAS mode `level` holds the attitude with the nose on the horizon along its heading and +Z up (`levelAttitude`), its integral allowed the whole authority.
 
+## Comms planning (plan 118, ADR 0163)
+
+Off the sim Worker (ADR 0101 point 2): `apps/web/src/lib/comms-planning/` and its own module Worker (`planning.worker.ts`), started by the Mission Center's Planning panel on first use and answering from snapshot data. It runs the link rule of tier 1 on conics:
+- a vessel follows its conic in its current SOI;
+- a station turns with its body;
+- two nodes link under `√(range_a × range_b) × scale` when no body sphere crosses the segment.
+
+Terrain, burns, SOI changes and routing are left out. The contact timeline samples every 10 s and bisects each change to 0.01 s, as `updateNetwork` does; for a vessel on rails over spherical bodies it gives the sim's link events. The coverage grid (72 × 36, equirectangular) holds the fraction of samples at which a ground receiver links to some node. `resonantDeployment` (`packages/kepler`) gives the deploy orbit of period `T (N±1)/N` with an apsis on the target orbit, the drops a deploy period apart (360°/N spacing) and the burns. A vessel's range on the page comes from its parts' `{ antenna }` configs and the `antennas` of the `ready` catalog. `boundary.test.ts` keeps the two Workers' import graphs apart.
+
 ## Snapshots and commands (sim ↔ host protocol)
 
 Types and zod schemas are in `packages/core/src/protocol.ts` and `protocol-schemas.ts`; plain data, so the same protocol works in-process and over `postMessage`.
