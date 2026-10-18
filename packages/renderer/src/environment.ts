@@ -276,6 +276,11 @@ export class Environment {
 		return this.terrain.heightAt(direction);
 	}
 
+	/** Whether the ground along a unit body-fixed direction is water (the sim's `waterUnder`, plan 193). */
+	waterAt(direction: Vec3): boolean {
+		return this.terrain.waterAt?.(direction) ?? false;
+	}
+
 	/** The direction to the system's star, from the snapshot each sync; null keeps the fixed one. */
 	setStarDirection(direction: Vec3 | null): void {
 		this.star = direction;

@@ -38,6 +38,7 @@ import {
 	type WebGLRenderer
 } from 'three';
 import { regionTexture, type RegionBody } from './region-overlay.ts';
+import { WaterlineEffects, waterlineCrossings, type WaterlinePart } from './effects/waterline.ts';
 import {
 	FLIGHT_RIG_LIMITS,
 	applyRigInput,
@@ -386,6 +387,7 @@ export class SceneModel {
 			primary?.radius ?? 1
 		);
 		this.scene.add(this.environment.root);
+		this.scene.add(this.waterline.root);
 		this.scene.fog = this.environment.fog;
 		for (const b of config.bodies) this.bodyInfo.set(b.id, b);
 		this.effects = new Effects(
@@ -597,6 +599,68 @@ export class SceneModel {
 	/** Map view layers: `orbits` false hides every orbit line (vessels and bodies). */
 	setMapLayers(layers: { orbits: boolean }): void {
 		this.mapOrbits = layers.orbits;
+	}
+
+	// --- ripples and splashes at the waterline (plan 193, ADR 0182) -------------------------------
+	readonly waterline = new WaterlineEffects();
+
+	/** The parts of vessels near the home body's water plane, for the waterline effects. */
+	private placeWaterline(
+		vessels: readonly VesselSnapshot[],
+		bodyWorld: ReadonlyMap<string, Vec3>,
+		dt: number
+	): void {
+		const id = this.primaryBody;
+		const radius = id ? this.bodies.get(id)?.radius : undefined;
+		const rot = id ? this.bodyRot.get(id) : undefined;
+		const centre = id ? bodyWorld.get(id) : undefined;
+		const parts: WaterlinePart[] = [];
+		const down = new Map<string, number>();
+		if (!this.map && id && radius && rot && centre) {
+			for (const v of vessels) {
+				if (v.soi !== id) continue;
+				const r = Math.hypot(v.position.x, v.position.y, v.position.z);
+				if (Math.abs(r - radius) > 300) continue;
+				const radial =
+					(v.velocity.x * v.position.x +
+						v.velocity.y * v.position.y +
+						v.velocity.z * v.position.z) /
+					r;
+				for (const part of v.parts) {
+					const shape = this.config.partShapes.get(part.definition);
+					const reach =
+						shape?.kind === 'cylinder'
+							? Math.hypot(shape.radius, shape.height / 2)
+							: shape
+								? Math.hypot(shape.size.x, shape.size.y, shape.size.z) / 2
+								: 0.5;
+					const width =
+						shape?.kind === 'cylinder'
+							? 2 * shape.radius
+							: shape
+								? Math.max(shape.size.x, shape.size.z)
+								: 1;
+					const key = `${v.id}:${part.id}`;
+					parts.push({
+						key,
+						centre: add(v.position, part.position),
+						reach,
+						width
+					});
+					down.set(key, -radial);
+				}
+			}
+		}
+		const crossings =
+			radius && rot
+				? waterlineCrossings(parts, rot, radius, (d) => this.environment.waterAt(d))
+				: [];
+		this.waterline.update(
+			crossings,
+			dt,
+			(p) => toRenderSpace(add(centre ?? { x: 0, y: 0, z: 0 }, p), this.origin),
+			(key) => down.get(key) ?? 0
+		);
 	}
 
 	// --- science regions (plan 192, ADR 0180): a tinted sphere per body in map view ------------------
@@ -967,6 +1031,11 @@ export class SceneModel {
 		this.placeRemnants(dtSim);
 
 		this.trackTransitions(snapshot, dtSim);
+		this.placeWaterline(
+			vessels,
+			bodyWorld,
+			Number.isFinite(dtSim) && dtSim > 0 && dtSim < 5 ? dtSim : 0
+		);
 		this.lastView = { active: activeVessel, anchorBody, bodyWorld };
 		this.placeCamera(activeVessel, anchorBody, bodyWorld);
 		this.cameraDirty = false;
@@ -1434,6 +1503,7 @@ export class SceneModel {
 
 	dispose(): void {
 		this.setRegionOverlay(null);
+		this.waterline.dispose();
 		removeOverlay(this.highlight.meshes);
 		this.highlightMaterials.dispose();
 		for (const r of this.remnants) this.dropRemnant(r);
