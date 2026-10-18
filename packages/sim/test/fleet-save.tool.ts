@@ -51,9 +51,7 @@ for (let attempt = 1; launched < count && attempt <= count * 2; attempt++) {
 			ascent.update();
 		}
 	} catch (e) {
-		console.log(
-			`launch ${attempt} lost after ${(sim.time - start).toFixed(1)} s: ${e instanceof Error ? e.message : e}`
-		);
+		console.log(`launch ${attempt} lost after ${(sim.time - start).toFixed(1)} s: ${e instanceof Error ? e.message : e}`);
 		// clear the pad's surroundings with the last vessel in orbit as the warp's anchor
 		if (vessel !== null) warpTo({ sim, vessel, log: [] }, sim.time + 600);
 		continue;
