@@ -8,7 +8,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core/src/tech-tree.ts` | `TechNodeDefinition` and schema, `SaveTech`, `isFreeNode`, `isResearched`, `nodeOfParts`, `lockedParts`, `researchProblem`; part `techNode`; `registries.techNodes`, report kind `tech-node`; `SimSave.tech?` (optional in format 5); command `research`; `Snapshot.tech`; API_VERSION 0.1.54 |
+| `packages/core/src/tech-tree.ts` | `TechNodeDefinition` and schema, `SaveTech`, `isFreeNode`, `isResearched`, `nodeOfParts`, `lockedParts`, `researchProblem`; part `techNode`; `registries.techNodes`, report kind `tech-node`; `SimSave.tech?` (optional in format 5); command `research`; `Snapshot.tech`; API_VERSION 0.1.55 (0.1.54 went to 124) |
 | `packages/sdk` | `defineTechNode`, the tree helpers, `subjectCap` |
 | `packages/sim/src/tech.ts` | research spends science through the ledger (`tech.research`), the lock refusal at `load-vessel`, save, resume, snapshot; Sandbox refuses with "this world has no tech tree" |
 | `mods/stock/src/tech.ts` | nine nodes over five tiers, the tier-0 Basics free; tiers 2 to 4 gated by the home orbit, the Cinder flyby and the Cinder landing |

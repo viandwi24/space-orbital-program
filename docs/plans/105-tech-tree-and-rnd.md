@@ -68,4 +68,4 @@ No idle lab (ADR 0099). The tree is data, patchable.
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch refusal edits `routes/launch` of plan 094.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0154: nodes and part `techNode`, `research`, locks at load-vessel, the Hangar and Launch; five stock tiers; pacing measured on the science model because the career bot earns no science (criterion relaxed); not patchable yet.
-- 2026-10-18 — Built: core, SDK, sim and stock tree (API 0.1.54); the Hangar verdict, the Launch refusal and `/rnd` with the lab link in the Space Center. Criteria met; handed over as `ready/105`.
+- 2026-10-18 — Built: core, SDK, sim and stock tree (API 0.1.55 at rebase; 124 took 0.1.54); the Hangar verdict, the Launch refusal and `/rnd` with the lab link in the Space Center. Criteria met; handed over as `ready/105`.
