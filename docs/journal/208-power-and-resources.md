@@ -29,7 +29,7 @@
 
   The drain is now a separate module that only the probe core has.
 - On rails a panel used to charge only at the day tick, six game hours apart, so at 1× nothing moved for hours. Hence the 5 s refresh.
-- The "bell" that the plan names does not exist yet; plan 205 builds it. Until then the notice is a toast keyed `power`.
+- The bell that the plan names arrived with plan 205 during this plan: "Out of power" is a toast (key `power`) and a bell entry.
 - Plan 203 (debug API) also bumps the save format. Whichever plan merges second renumbers its migration.
 
 ## Decisions made (link ADRs)
@@ -43,4 +43,7 @@
 
 ## Verification output
 
-See the plan's Log for the commands and their results.
+- `CI=true bun run check:affected --e2e e2e/power.e2e.ts`: all passed in 300 s (bun test 10 workspaces, web vitest 591/591, Chromium `power.e2e.ts` 1/1).
+- `CI=true bun run check:affected --full`: all passed in 377 s.
+- GitHub CI was red three times for a reason the public page does not show (see the plan's Log).
+- Found on the way: the solar module's descriptor category `'other'` was invalid on main, so any design with a panel failed to open in the Hangar.

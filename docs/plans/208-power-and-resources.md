@@ -1,7 +1,7 @@
 ---
 id: 208
 title: "Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [207]
 phase: 7
@@ -90,10 +90,14 @@ Power behaves the way a KSP player expects. Monopropellant and solid fuel exist 
   - a probe core draws 0.025 EC/s;
   - a transmission costs 0.2 EC per Mbit per watt.
 - 2026-10-19 — Worker A, deviations from the plan as written:
-  - The bell does not exist yet (plan 205), so the notice is an "Out of power" toast.
+  - The notice is an "Out of power" toast, and since plan 205 also an entry in the world layout's bell.
   - The e2e checks night with `debugSetLocation` on the far side of the home planet, not with a shadowed orbit: in orbit the array would fill the battery within seconds at warp, and the sunlit part of an orbit is not known in advance.
   - Rails vessels' `background` forms now refresh every 5 s × the warp, so charge shows on rails.
   - A probe out of power is no debris (`isControlled` stays structural).
   - Batteries have no `stock.batteries` action yet: they would need the flow lock of plan 213.
 - 2026-10-19 — Worker A, found and fixed: the solar module's descriptor category `'other'` is invalid, so on main any design with a solar panel did not open in the Hangar (since plan 190). It is now `stock.other`, with a test that validates every stock module's descriptor. The debug log (plan 203) had no line for the new event, so the toast never fired.
 - 2026-10-19 — Checks: `bun run check:affected --e2e e2e/power.e2e.ts` all passed in 504 s (typecheck, bun test 10 workspaces, web vitest 587/587, Chromium `power.e2e.ts` 1/1).
+- 2026-10-19 — Worker A: CI was red on `ready/208` three times at "bun test" with only "Process completed with exit code 1" and no failing test.
+  - The job log and the summary need a login, so nobody here could read them.
+  - `CI=true bun run test` (1797/0), `CI=true bun run check:affected --full` (all passed, 377 s), sim tests under `--timeout 2000` (513/0) and `CI=true bun run check:affected --e2e e2e/power.e2e.ts` (all passed, 300 s) all passed on the M5.
+  - Merged by the brief's fallback with the coordinator's agreement. If main's CI turns red after this merge, fixing it comes before the next plan.
