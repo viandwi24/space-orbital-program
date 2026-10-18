@@ -1,5 +1,5 @@
 /**
- * Debug tools in the sim (plan 203, ADRs 0200 and 0212): who may use them, the cheat switches the
+ * Debug tools in the sim (plan 203, ADRs 0200 and 0213): who may use them, the cheat switches the
  * other files read, and the set-state commands. Every change is a command, so it saves and replays
  * like any other; the state lives in `WorldInfo.debug`.
  */
@@ -30,7 +30,7 @@ import { VESSEL, PART } from './state.ts';
 import { hasBackground } from './tick.ts';
 import { placeOnSurface, spawnVessel } from './vessel.ts';
 
-/** The rule that says who may use the debug tools (ADR 0212 point 1). */
+/** The rule that says who may use the debug tools (ADR 0213 point 1). */
 export const DEBUG_RULE = 'stock.debug-tools';
 
 /** More than any store holds: depositing it fills a store to capacity. */
@@ -72,7 +72,7 @@ export function debugRefusal(core: SimCore): string | undefined {
 	}
 }
 
-/** A debug tool was used: the world is marked for good (ADR 0212 point 4). */
+/** A debug tool was used: the world is marked for good (ADR 0213 point 4). */
 function markUsed(core: SimCore): void {
 	const state = stateOf(core);
 	if (!state.usedCheats) writeState(core, { ...state, usedCheats: true });
@@ -90,7 +90,7 @@ export function debugSnapshot(core: SimCore): DebugSnapshot {
 	};
 }
 
-/** `debug-mode` (ADR 0212 point 5): meaningful in an `opt-in` world; turning it on marks the world. */
+/** `debug-mode` (ADR 0213 point 5): meaningful in an `opt-in` world; turning it on marks the world. */
 export function setDebugMode(core: SimCore, on: boolean): CommandResult {
 	const access = debugAccess(core);
 	if (access === 'locked') return refuse(debugRefusal(core)!);

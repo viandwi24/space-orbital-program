@@ -1,11 +1,11 @@
 /**
- * The world side of Debug mode (plan 203, ADR 0212): which worlds need it, and the "used cheats"
+ * The world side of Debug mode (plan 203, ADR 0213): which worlds need it, and the "used cheats"
  * mark on the world record, which the Worlds cards and the achievements read.
  */
 import type { DebugAccess } from '@orbital/core';
 import type { WorldRecord } from '../save/world-record';
 
-/** The rule the access comes from (ADR 0212 point 1). */
+/** The rule the access comes from (ADR 0213 point 1). */
 export const DEBUG_RULE = 'stock.debug-tools';
 
 /**

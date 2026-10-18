@@ -98,7 +98,7 @@ export interface Worlds {
 	 * them; none before the first save.
 	 */
 	milestones(id: string): Promise<{ records: MilestoneRecord[]; epoch: Epoch }>;
-	/** A debug tool was used in the world (plan 203, ADR 0212 point 4): its card says so for good. */
+	/** A debug tool was used in the world (plan 203, ADR 0213 point 4): its card says so for good. */
 	markUsedCheats(id: string): Promise<void>;
 }
 
