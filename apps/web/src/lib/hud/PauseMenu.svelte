@@ -11,7 +11,9 @@
 		oncontrols,
 		onsettings,
 		onsave,
-		onload
+		onload,
+		onreplay,
+		onghost
 	}: {
 		open: boolean;
 		name: string;
@@ -21,6 +23,10 @@
 		onsettings: () => void;
 		onsave: () => void;
 		onload: () => void;
+		/** Export the flight as a replay file (plan 131). */
+		onreplay?: () => void;
+		/** Load a replay file as a ghost (plan 131). */
+		onghost?: () => void;
 	} = $props();
 </script>
 
@@ -35,6 +41,14 @@
 			<Button onclick={onsave}>Save the flight</Button>
 			<Button onclick={onload}>Load a flight</Button>
 		</div>
+		{#if onreplay || onghost}
+			<div class="pair">
+				{#if onreplay}<Button onclick={onreplay} data-testid="pause-replay"
+						>Export the replay</Button
+					>{/if}
+				{#if onghost}<Button onclick={onghost} data-testid="pause-ghost">Load a ghost</Button>{/if}
+			</div>
+		{/if}
 		<div class="pair">
 			<Button onclick={onsettings} data-testid="pause-settings">Settings</Button>
 			<Button onclick={oncontrols}>Controls</Button>

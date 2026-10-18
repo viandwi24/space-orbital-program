@@ -3,6 +3,11 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import type { GhostTrack } from './replays/ghost-model';
+import { designCost } from '@orbital/core';
+import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
+import { designStats } from './editor/stats';
+import type { ReplayFile } from '@orbital/core';
 import { panelInputOf } from './dock/panel-input';
 import { createAchievementTracker, type AchievementTracker } from './achievements/tracker';
 import type { ProfileStore } from './achievements/store';
@@ -194,6 +199,10 @@ export interface Flight {
 	panelInput(): PanelInput | null;
 	/** Rim-light one part in the view, or none (plan 111, ADR 0153 point 5). */
 	highlightPart(part: EntityId | null): void;
+	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
+	replay(name: string): Promise<ReplayFile | null>;
+	/** Draw a replay's ghost over this flight, or none (plan 131). */
+	setGhost(track: GhostTrack | null): void;
 	/** A command from a dock panel; the sim validates it, a refusal shows as a toast. */
 	command(command: Command): Promise<boolean>;
 	dispose(): void;
@@ -220,6 +229,7 @@ export function startFlight(options: FlightOptions): Flight {
 	let catalog: Catalog | null = null;
 	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
 	let achievements: AchievementTracker | null = null;
+	const challenges = typeof localStorage === 'undefined' ? null : bookStore(localStorage);
 	let caughtUp = false;
 	let vessel: EntityId | null = null;
 	let snap: Snapshot | null = null;
@@ -739,6 +749,22 @@ export function startFlight(options: FlightOptions): Flight {
 	client.onSimEvent((event) => {
 		hudCtl?.simEvent(event);
 		if (event.type === 'milestone') void achievements?.check([event]);
+		// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
+		if (event.type === 'milestone' && challenges && catalog) {
+			const finished = finishRun(challenges, catalog.worldId ?? 'legacy', event.id, {
+				cost: designCost(options.design, options.content).total,
+				mass: designStats(options.design, options.content, 'sea-level', 9.81).wetMass,
+				time: event.time,
+				dvMargin: hud.model?.stages.total ?? 0
+			});
+			if (finished)
+				hudCtl?.notice({
+					kind: 'success',
+					title: `Challenge: ${finished.challenge.title}`,
+					detail: scoreText(finished.scores),
+					key: 'challenge'
+				});
+		}
 		if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
 	});
 	client.onScript((event) => {
@@ -957,6 +983,8 @@ export function startFlight(options: FlightOptions): Flight {
 	return {
 		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
 		highlightPart: (part) => renderer?.highlightPart(part),
+		replay: (name) => client.replay(name),
+		setGhost: (track) => hudCtl?.setGhost(track),
 		command: (command) => send(command),
 		runScript(source) {
 			if (vessel === null) return;

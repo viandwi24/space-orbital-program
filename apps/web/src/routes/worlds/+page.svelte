@@ -24,6 +24,14 @@
 	import { profileStore } from '../../lib/achievements/store';
 	import type { Epoch, MilestoneRecord } from '@orbital/core';
 	import { enterWorld } from '../../lib/worlds/enter';
+	import { homeBodyOf } from '@orbital/core';
+	import { createWorldInfo } from '../../lib/worlds/world-model';
+	import {
+		bookStore,
+		challengeWorldInput,
+		importChallenge,
+		markWorld
+	} from '../../lib/challenges/challenge-model';
 	import {
 		activeWorldId,
 		browserWorldsEnv,
@@ -106,6 +114,31 @@
 			note = `Created "${record.name}".`;
 		});
 	}
+	// challenges (plan 131, ADR 0159 point 6): a file makes a world marked with its challenge
+	const challenges = bookStore(typeof localStorage === 'undefined' ? null : localStorage);
+	let challengeInput = $state<HTMLInputElement>();
+	const importChallengeFile = (file: File) =>
+		guard(async () => {
+			const imported = importChallenge(challenges, await file.text());
+			if (!imported.ok) throw new Error(`This file cannot be imported: ${imported.reason}.`);
+			const c = imported.challenge;
+			const system =
+				catalog!.systems.find((x) => x.id === (c.system?.id ?? 'stock')) ?? catalog!.systems[0]!;
+			const result = createWorldInfo(
+				{
+					...challengeWorldInput(c, env.newId(), env.newSeed(), system.version),
+					home: homeBodyOf(system.bodies)?.id
+				},
+				catalog!,
+				system.calendar,
+				Date.now()
+			);
+			if (!result.ok) throw new Error(`This challenge cannot be played: ${result.reason}.`);
+			const record = await worlds!.create(result.world, c.title, catalog!.mods);
+			markWorld(challenges, record.id, c.id);
+			await refresh(record.id);
+			note = `Imported the challenge "${c.title}": reach ${c.goal} in this world to score it.`;
+		});
 	const enter = (id: string) => guard(() => enterWorld(worlds!, id, (url) => goto(url)));
 	const duplicate = (id: string) =>
 		guard(async () => {
@@ -145,6 +178,23 @@
 				mods apply to every world
 			</p>
 		</div>
+		<input
+			bind:this={challengeInput}
+			type="file"
+			accept=".json,application/json"
+			hidden
+			data-testid="worlds-challenge-file"
+			onchange={(e) => {
+				const file = e.currentTarget.files?.[0];
+				if (file) void importChallengeFile(file);
+				e.currentTarget.value = '';
+			}}
+		/>
+		<Button
+			disabled={!catalog}
+			onclick={() => challengeInput?.click()}
+			data-testid="worlds-challenge">Import challenge</Button
+		>
 		<Button
 			variant="primary"
 			disabled={!catalog}

@@ -21,8 +21,8 @@ export interface ReplayRecorder {
 	dispatch(command: Command): CommandResult;
 	/** Call after each `step`: takes a checkpoint when one is due. */
 	tick(): void;
-	/** The replay so far, with a final checkpoint now. */
-	finish(): ReplayFile;
+	/** The replay so far, with a final checkpoint now (`name` replaces the recording's). */
+	finish(name?: string): ReplayFile;
 }
 
 export function recordReplay(
@@ -45,12 +45,12 @@ export function recordReplay(
 			checkpoints.push(checkpointOf(sim.snapshot(), commands.length));
 			next = sim.time + CHECKPOINT_EVERY;
 		},
-		finish() {
+		finish(as) {
 			return {
 				format: REPLAY_FORMAT,
 				formatVersion: REPLAY_FORMAT_VERSION,
 				apiVersion: API_VERSION,
-				name,
+				name: as ?? name,
 				terrain: options.terrain === true,
 				start,
 				commands: [...commands],
