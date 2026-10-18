@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Panel from '../ui/Panel.svelte';
 	import BodyCard from './BodyCard.svelte';
-	import type { Dossier } from '@orbital/core';
+	import type { Command, Dossier } from '@orbital/core';
 	import { settings } from '../settings/settings.svelte';
 	import { formatDistance, formatDuration, formatSpeed } from '../format';
 	import type { TargetChoice, TargetHud } from '../target-model';
@@ -15,7 +15,8 @@
 		rendezvous = null,
 		dossier = null,
 		onselect,
-		onplan
+		onplan,
+		oncommand
 	}: {
 		target: TargetHud | null;
 		choices: readonly TargetChoice[];
@@ -29,6 +30,8 @@
 		onselect: (key: string | null) => void;
 		/** Place the node of an aid (a `node-set` command). */
 		onplan?: (id: AidId) => void;
+		/** Discovery commands from the dossier (plan 129): lab processing and claims. */
+		oncommand?: (c: Command) => void;
 	} = $props();
 
 	/**
@@ -110,7 +113,7 @@
 		{/if}
 	{/if}
 	{#if dossier}
-		<BodyCard {dossier} />
+		<BodyCard {dossier} {oncommand} />
 	{/if}
 </Panel>
 

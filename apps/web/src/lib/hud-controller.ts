@@ -15,6 +15,7 @@ import {
 import {
 	bodyPole,
 	calendarOf,
+	discoveryDossier,
 	dossierOf,
 	entityId,
 	formatDate,
@@ -175,7 +176,11 @@ function targetDossier(
 		const parts = parseSubjectId(s.id);
 		return parts ? [{ ...parts, count: s.count }] : [];
 	});
-	return dossierOf(body, subjects, content.science.dossierEntries, content.science.labelOf);
+	const dossier = dossierOf(body, subjects, content.science.dossierEntries, content.science.labelOf);
+	// discovery facts, data and claims (plan 129, ADR 0192 point 10)
+	return snap.discovery
+		? { ...dossier, discovery: discoveryDossier(String(body.id), snap.discovery) }
+		: dossier;
 }
 
 /** What the render loop needs every frame (small, no Svelte). */

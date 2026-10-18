@@ -79,6 +79,43 @@ describe('Upcoming (plan 113)', () => {
 		const later = { ...snapshot, t: 7_000, vessels: [snapshot.vessels[1]!] };
 		expect(upcomingEvents(later, bodies, nodes)).toEqual([]);
 	});
+
+	it('lists a claim in peer review, not one already judged (plan 129)', () => {
+		const claim = { body: 'stock.home', fact: 'stock.polar-ice', value: 20, confidence: 0.8, made: 0 };
+		const withReview: Snapshot = {
+			...snapshot,
+			vessels: [],
+			discovery: {
+				facts: [
+					{
+						body: 'stock.home',
+						fact: 'stock.polar-ice',
+						label: 'Polar ice',
+						unit: '%',
+						tolerance: 4,
+						status: 'open'
+					}
+				],
+				data: [],
+				claims: [
+					{ ...claim, id: 'c1', due: 5_000 },
+					{ ...claim, id: 'c2', due: 900, verdict: 'rejected', reputation: -10 }
+				],
+				labSlots: null,
+				processing: 0
+			}
+		};
+		const [review, ...rest] = upcomingEvents(withReview, bodies, nodes);
+		expect(rest).toEqual([]);
+		expect(review).toMatchObject({
+			kind: 'review',
+			vessel: null,
+			time: 5_000,
+			label: 'Peer review: Polar ice on Home',
+			detail: 'Claimed at 80%'
+		});
+		expect(warpToCommand(review!)).toEqual({ type: 'warp-to', time: 5_000, factor: 100_000 });
+	});
 });
 
 describe('Tracking and the card', () => {
