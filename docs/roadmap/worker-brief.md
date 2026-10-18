@@ -6,6 +6,22 @@ This is the brief that each worker session reads first. The coordinating session
 
 The machine is a 10-core MacBook Pro M5 with 16 GB RAM. It is also the owner's desktop. **It must never lag or freeze.**
 
+### The pause flag (decided by the coordinator, not the owner)
+
+The coordinating session runs a watchdog that writes a sample every 30 s to `/tmp/orbital-machine.log`. Each sample records:
+- free memory %;
+- swap used;
+- load;
+- the macOS CPU speed limit.
+
+It creates **`/tmp/orbital-pause`** after 3 bad samples in a row and removes it after 6 good ones. A sample is bad when any of these holds:
+- free memory < 15 %;
+- swap > 7 GB;
+- load > 10;
+- CPU speed limit < 80.
+
+**Before every step and before every heavy job**, wait while the flag exists: `while [ -e /tmp/orbital-pause ]; do sleep 60; done`. While paused, stop any running server or browser tab of yours. Never ask the owner whether the machine is busy: the watchdog and the coordinator decide.
+
 ### Heavy jobs and the lock
 
 These count as **heavy jobs**:
