@@ -1,12 +1,12 @@
 ---
 id: 119
 title: "Comms tier 4: transmission queues, store-and-forward, contact windows"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [117, 083]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 119 — Comms tier 4: transmission queues, store-and-forward, contact windows
