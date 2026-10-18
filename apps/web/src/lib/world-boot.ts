@@ -8,7 +8,9 @@ import { bootedMods, modHint } from './save/mods';
 import { SaveController } from './save/save-controller.svelte';
 import type { SimBoot } from './world-session';
 
-export async function worldBoot(worldId: string): Promise<{ boot: SimBoot; base: GameSave | null }> {
+export async function worldBoot(
+	worldId: string
+): Promise<{ boot: SimBoot; base: GameSave | null }> {
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,

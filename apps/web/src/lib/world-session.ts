@@ -103,7 +103,9 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 			if (worldId === id && booting) return booting;
 			session.end();
 			worldId = id;
-			const pending = boot().then((b) => (worldId === id ? adopt(id, start(b)) : Promise.reject(new Error('the world was left'))));
+			const pending = boot().then((b) =>
+				worldId === id ? adopt(id, start(b)) : Promise.reject(new Error('the world was left'))
+			);
 			booting = pending;
 			try {
 				return await pending;

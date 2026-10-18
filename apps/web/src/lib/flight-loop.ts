@@ -820,67 +820,77 @@ export function startFlight(options: FlightOptions): Flight {
 	const observer = new ResizeObserver(resize);
 
 	// --- boot --------------------------------------------------------------------------------
-	offClient.push(client.onSnapshot((s, simWarp) => {
-		snap = s;
-		// the loaded world's firsts, once: an achievement added since, or earned elsewhere, is not missed
-		if (achievements && !caughtUp) {
-			caughtUp = true;
-			if (s.milestones) void achievements.check(s.milestones);
-		}
-		// The sim changes its own warp (a change of sphere, a finished warp-to): follow it.
-		if (simWarp !== undefined && simWarp !== hud.warp) {
-			hud.warp = simWarp;
-			warpIndex = Math.max(
-				0,
-				WARP_STEPS.reduce((at, step, i) => (step <= simWarp ? i : at), 0)
-			);
-		}
-		presence.snapshot(s);
-		hudCtl?.snapshot(s);
-		dirty = true;
-		auto?.update(s);
-	}));
-	offClient.push(client.onStage((event) => {
-		logBuffer.add('info', 'sim', `stage ${event.stage} fired on vessel ${event.vessel}`);
-		hudCtl?.stage(event);
-		director.event('stage');
-	}));
-	offClient.push(client.onSimEvent((event) => {
-		const line = simEventLine(event);
-		logBuffer.add(line.level, 'sim', line.message);
-		hudCtl?.simEvent(event);
-		if (event.type === 'milestone') void achievements?.check([event]);
-		// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
-		if (event.type === 'milestone' && challenges && catalog) {
-			const finished = finishRun(challenges, catalog.worldId ?? 'legacy', event.id, {
-				cost: designCost(options.design, options.content).total,
-				mass: designStats(options.design, options.content, 'sea-level', 9.81).wetMass,
-				time: event.time,
-				dvMargin: hud.model?.stages.total ?? 0
-			});
-			if (finished)
-				hudCtl?.notice({
-					kind: 'success',
-					title: `Challenge: ${finished.challenge.title}`,
-					detail: scoreText(finished.scores),
-					key: 'challenge'
+	offClient.push(
+		client.onSnapshot((s, simWarp) => {
+			snap = s;
+			// the loaded world's firsts, once: an achievement added since, or earned elsewhere, is not missed
+			if (achievements && !caughtUp) {
+				caughtUp = true;
+				if (s.milestones) void achievements.check(s.milestones);
+			}
+			// The sim changes its own warp (a change of sphere, a finished warp-to): follow it.
+			if (simWarp !== undefined && simWarp !== hud.warp) {
+				hud.warp = simWarp;
+				warpIndex = Math.max(
+					0,
+					WARP_STEPS.reduce((at, step, i) => (step <= simWarp ? i : at), 0)
+				);
+			}
+			presence.snapshot(s);
+			hudCtl?.snapshot(s);
+			dirty = true;
+			auto?.update(s);
+		})
+	);
+	offClient.push(
+		client.onStage((event) => {
+			logBuffer.add('info', 'sim', `stage ${event.stage} fired on vessel ${event.vessel}`);
+			hudCtl?.stage(event);
+			director.event('stage');
+		})
+	);
+	offClient.push(
+		client.onSimEvent((event) => {
+			const line = simEventLine(event);
+			logBuffer.add(line.level, 'sim', line.message);
+			hudCtl?.simEvent(event);
+			if (event.type === 'milestone') void achievements?.check([event]);
+			// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
+			if (event.type === 'milestone' && challenges && catalog) {
+				const finished = finishRun(challenges, catalog.worldId ?? 'legacy', event.id, {
+					cost: designCost(options.design, options.content).total,
+					mass: designStats(options.design, options.content, 'sea-level', 9.81).wetMass,
+					time: event.time,
+					dvMargin: hud.model?.stages.total ?? 0
 				});
-		}
-		if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
-	}));
-	offClient.push(client.onScript((event) => {
-		script = reduceScript(script, event);
-		scriptDirty = true;
-		// The script ended (or never ran): removing the iframe also kills a Worker that is still
-		// spinning inside a native builtin (ADR 0038).
-		if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
-	}));
-	offClient.push(client.onError((message) => {
-		logBuffer.add('error', 'sim', message);
-		hud.status = 'error';
-		hud.message = message;
-		publish();
-	}));
+				if (finished)
+					hudCtl?.notice({
+						kind: 'success',
+						title: `Challenge: ${finished.challenge.title}`,
+						detail: scoreText(finished.scores),
+						key: 'challenge'
+					});
+			}
+			if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
+		})
+	);
+	offClient.push(
+		client.onScript((event) => {
+			script = reduceScript(script, event);
+			scriptDirty = true;
+			// The script ended (or never ran): removing the iframe also kills a Worker that is still
+			// spinning inside a native builtin (ADR 0038).
+			if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
+		})
+	);
+	offClient.push(
+		client.onError((message) => {
+			logBuffer.add('error', 'sim', message);
+			hud.status = 'error';
+			hud.message = message;
+			publish();
+		})
+	);
 	client.ready.then(
 		async (c) => {
 			if (disposed) return;

@@ -49,10 +49,19 @@ export function actionOf(provides: readonly string[]): BuildingAction {
 	if (provides.includes('launch-pad'))
 		return { kind: 'none', reason: 'Build a rocket in the Hangar; it launches from this pad.' };
 	if (provides.includes('crew'))
-		return { kind: 'link', href: resolve('/(world)/astronauts'), label: 'Open the Astronaut Complex' };
+		return {
+			kind: 'link',
+			href: resolve('/(world)/astronauts'),
+			label: 'Open the Astronaut Complex'
+		};
 	if (provides.includes('mission-control'))
-		return { kind: 'link', href: resolve('/(world)/mission-center'), label: 'Open the Mission Center' };
-	if (provides.includes('lab')) return { kind: 'link', href: resolve('/(world)/rnd'), label: 'Open R&D' };
+		return {
+			kind: 'link',
+			href: resolve('/(world)/mission-center'),
+			label: 'Open the Mission Center'
+		};
+	if (provides.includes('lab'))
+		return { kind: 'link', href: resolve('/(world)/rnd'), label: 'Open R&D' };
 	if (provides.includes('admin'))
 		return { kind: 'link', href: resolve('/(world)/administration'), label: 'Open Administration' };
 	if (provides.includes('test-stand'))
