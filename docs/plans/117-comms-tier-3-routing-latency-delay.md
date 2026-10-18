@@ -77,4 +77,31 @@ Determinism: queued commands carry their arrival sim time; ties by id.
   - **Sim tests:** `packages/sim/test/comms-routing.test.ts` (7) checks `enforced` at exactly 3 s, `display` at once with 3 s shown, the flight computer, a Manual route through a relay that breaks when it is occluded, policies, pointing, and the 6 → 7 migration.
   - **Benchmark:** 180 to 207 µs per step here, under the 500 µs budget.
   - **Full checks:** in the journal.
+- 2026-10-18 — Handover (`ready/117`):
 
+```text
+Handover: plan 117 — Comms tier 3: pointing, routing, latency and the signal-delay rule
+
+Agent: Agent 3 (Dev C, Linux Mint 6c/8 GB)   Branch: devc/117-comms-routing
+Base: origin/main @ 3fd4e35 (rebased 2026-10-18, after 101)
+Commits:
+54c20ba fix(sim,web): routing returns at once without vessels (the career bot back to its time); the worlds migration test expects the current save format (plan 117)
+2c691fd docs(plan-117): Log and STATUS row
+f113c9a perf(sim): routing with a heap for the widest-path tree and sweep-and-prune for vessel pairs; docs for comms tier 3 (plan 117, ADR 0188)
+1c3d770 feat(web,sim): relayed routes in the Comms tab with their hops, light time and Auto/policy/pin buttons; the light time in the link badge; the host marks the script's commands for the flight computer; routing tests (plan 117, ADR 0188)
+6cf2ba1 feat(core,sdk,sim,stock): comms tier 3: relays and the widest-path routing graph, dish pointing, Auto/Manual/Policy routes, shared capacity, latency, the signal-delay queue; save format 7; API_VERSION 0.1.66 (plan 117, ADR 0188)
+68e012d docs(plan-117): ADR 0188; the frozen format-6 save fixture, written while format 6 is current
+9f6882e docs(plan-117): claim (Agent 3)
+Acceptance:
+  [x] enforced: a throttle 3 light-seconds away applies exactly 3 s later; display: at once, 3 s shown — `bun test packages/sim/test/comms-routing.test.ts` — 7 pass (the step that applies it starts at t0 + 3.000000)
+  [x] a Manual route pinned through a relay is used with a direct link present, and breaks when the relay is occluded — same file
+  [x] migration test with a frozen fixture of the previous format — same file (save-v6.json, written while format 6 was current)
+  [x] bun test, typecheck, build, docs:check — below
+Checks run here: bun run test 1697 pass / 1 fail (764 s; patch benchmark under load) · web vitest 1006 passed, 1 skipped (CreateWorld timed out once under load, 6/6 alone; 4 env-only import suites, no Node) · typecheck exit 0 · build exit 0 · docs:check OK · e2e not run (no WebGL 2 here)
+Contracts changed (from Touches): protocol — comms-route, antenna-point, dispatch { source }, CommandResult.queued, network vessels route/latency/mode · save — format 7 (SimSave.comms) with the 6→7 migration · also SDK defineRoutePolicy, ctx.routePolicies, report kind route-policy, AntennaDefinition.beamWidth, the antenna hook's target, SignalState.latency (ADR 0188) · Contract requests: none
+Save format / API_VERSION: format 7 (bump with migration and fixture) · API_VERSION patch bump 0.1.66
+Docs: journal docs/journal/117-comms-tier-3-routing-latency-delay.md · ADR 0188 · research none new · simulation.md, plugin-system.md, guides/scripting.md, writing-a-mod.md, glossary · STATUS row only
+Notes: the comms benchmark is 180..207 µs/step here (300 probes now relay each other; tier 1 was 25..39 µs). Links now name their first hop; bisection still dates link changes on the direct rule.
+Resource notes: swap used 1257 MB, thermal ok, sub-workers used 0, anything left running: none
+Follow-ups: new drafts none (118 planning tools, 119 queues, EC draw in ADR 0188)
+```

@@ -39,6 +39,9 @@
   - **Profile per network update before the last two changes:** pairs 8 ms, tree 3.4 ms, routes 1.6 ms.
 - **Signal delay:** a throttle to a probe 3 light-seconds out is queued for t0 + 3.000 and applies in the step that starts then. Under `display` it applies in the next step, and the snapshot shows 3.0 s.
 
+- **The career bot slowed** from about 32 s to 48.5 s at first: routing built its graph on every warp sample even with no vessel at all. A no-vessel fast path brought it back to 34 s.
+- **The worlds-migration web test** expected format 6, and now expects the current format.
+
 ## Follow-ups
 
 - 118: the contact timeline, coverage and the constellation planner on this graph.
@@ -49,5 +52,14 @@
 ## Verification output
 
 ```text
-VERIFICATION
+bun test packages/sim/test/comms-routing.test.ts  7 pass
+bun test packages/sim/test/comms.test.ts          benchmark 180..207 µs per step alone (budget 500)
+bun test packages/sim/test/career-bot.test.ts     plain 34 s alone (32 s before 117; 48.5 s before the
+                                                  no-vessel fast path), in the band
+bun run docs:check                                docs-check: OK (135 plans, 164 ADRs)
+bun run test                                      1697 pass, 1 fail (764 s): the patch benchmark under load
+bun run typecheck                                 exit 0
+bun run --filter @orbital/web test                1006 passed, 1 skipped; CreateWorld timed out once under load
+                                                  (6/6 alone); 4 env-only import suites (no Node here)
+bun run build                                     exit 0
 ```
