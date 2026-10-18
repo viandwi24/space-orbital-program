@@ -260,7 +260,25 @@ export interface Snapshot {
 		places: string[];
 	}>;
 	/** Balances (plan 095); `enabled` false when the economy rule is off or absent. */
-	economy?: { enabled: boolean; funds: number; science: number; reputation: number };
+	economy?: {
+		enabled: boolean;
+		funds: number;
+		science: number;
+		reputation: number;
+		/** Commodities with today's price (plan 097, ADR 0124 point 8); absent with the economy off. */
+		markets?: Array<{
+			id: string;
+			label: string;
+			unit: string;
+			base: number;
+			price: number;
+			stock: number;
+			/** The last 90 daily prices, oldest first. */
+			history: number[];
+		}>;
+		/** Commodities held at sites with storage. */
+		storage?: Array<{ site: string; capacity: number; items: Record<string, number> }>;
+	};
 	/** Each site's buildings and road cells (plan 090). */
 	/**
 	 * The comms network (plan 114, ADR 0179 point 9): stations (system-relative position, like
@@ -497,6 +515,9 @@ export type Command =
 	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
 	/** Let an available member go: they leave the roster (contract request of plan 108, ADR 0152 point 4). */
 	| { type: 'crew-dismiss'; member: string }
+	/** Trade a commodity at today's price into or out of a site's storage (plan 097, ADR 0124 point 7). */
+	| { type: 'market-buy'; commodity: string; amount: number; site: string }
+	| { type: 'market-sell'; commodity: string; amount: number; site: string }
 	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
 	| { type: 'research'; node: string }
 	/** Move a crew member to another part of the same vessel (capacity checked). */

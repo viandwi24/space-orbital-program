@@ -62,3 +62,4 @@ export * from './range-safety.ts';
 export * from './reliability.ts';
 export * from './replay.ts';
 export * from './challenge.ts';
+export * from './market.ts';

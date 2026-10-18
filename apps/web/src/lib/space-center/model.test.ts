@@ -15,6 +15,8 @@ import {
 	spreadLabels,
 	statusTextOf,
 	upkeepWarning,
+	marketRows,
+	productionNote,
 	steadyLabels
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
@@ -197,5 +199,38 @@ describe('construction and upkeep (plan 096, ADR 0123 point 6)', () => {
 		expect(upkeepWarning(1_000, 2_400, 25)).toBe('Upkeep of 2,400 due in 5 days is more than the funds');
 		expect(upkeepWarning(5_000, 2_400, 25)).toBeNull();
 		expect(upkeepWarning(undefined, 2_400, 25)).toBeNull();
+	});
+});
+
+describe('the Market panel (plan 097, ADR 0124 point 8)', () => {
+	const economy = {
+		enabled: true,
+		funds: -10,
+		science: 0,
+		reputation: 0,
+		markets: [
+			{ id: 'stock.liquid-fuel', label: 'Liquid fuel', unit: 'u', base: 0.8, price: 0.76, stock: 6e4, history: [0.76] },
+			{ id: 'stock.data', label: 'Data', unit: 'Mbit', base: 5, price: 5, stock: 0, history: [] }
+		],
+		storage: [{ site: 'legacy', capacity: 20_000, items: { 'stock.liquid-fuel': 1234.6 } }]
+	};
+	it('lists price, trend against base and what the site holds', () => {
+		expect(marketRows(economy, 'legacy')).toEqual([
+			{ id: 'stock.liquid-fuel', label: 'Liquid fuel', price: '0.76 / u', trend: '−5 %', held: 1234 },
+			{ id: 'stock.data', label: 'Data', price: '5.00 / Mbit', trend: null, held: null }
+		]);
+		expect(marketRows({ ...economy, enabled: false }, 'legacy')).toEqual([]);
+	});
+	it('a working plant in a world in debt needs attention', () => {
+		const site = {
+			id: 'legacy',
+			roads: [],
+			buildings: [
+				{ id: 'p', kind: 'stock.propellant-plant', cell: { i: 0, j: 0 }, rotation: 0 as const, level: 0, state: 'active' as const }
+			]
+		};
+		const producers = new Set(['stock.propellant-plant']);
+		expect(productionNote(economy, site, producers)).toBe('Production stopped: funds are below zero');
+		expect(productionNote({ ...economy, funds: 5 }, site, producers)).toBeNull();
 	});
 });

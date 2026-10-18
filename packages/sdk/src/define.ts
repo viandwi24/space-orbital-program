@@ -6,6 +6,8 @@
 import type {
 	ActionGroupDefinition,
 	FailureModeDefinition,
+	CommodityDefinition,
+	RecipeDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
 	TechNodeDefinition,
@@ -390,3 +392,20 @@ export const defineTechNode = (def: TechNodeDefinition): TechNodeDefinition => d
  * repair it. A failed module stops working. Register with `ctx.failureModes`.
  */
 export const defineFailureMode = (def: FailureModeDefinition): FailureModeDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineCommodity, defineRecipe
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A commodity (plan 097, ADR 0124): a base price, an optional resource it prices at launch, and a
+ * market (`target`, `elasticity`, `cap`, `floor`, `ceiling`, `relaxDays`) or `'fixed'`. Register
+ * with `ctx.commodities`.
+ */
+export const defineCommodity = (def: CommodityDefinition): CommodityDefinition => def;
+
+/**
+ * A recipe (plan 097, ADR 0124): what a building of kind `building` turns into what, per day at
+ * production factor 1 (the level's `production` capacity scales it). Register with `ctx.recipes`.
+ */
+export const defineRecipe = (def: RecipeDefinition): RecipeDefinition => def;

@@ -7,6 +7,7 @@ import type { ModuleDefinition, PartDefinition, ResourceDefinition } from './def
 import { definitionIdSchema } from './schemas.ts';
 import type { VesselDesign } from './protocol.ts';
 import type { RuleValue } from './rules.ts';
+import { marketStateSchema, siteStorageSchema, type MarketState, type SiteStorage } from './market.ts';
 
 export const CURRENCIES = ['funds', 'science', 'reputation'] as const;
 export type Currency = (typeof CURRENCIES)[number];
@@ -28,6 +29,10 @@ export interface LedgerEntry {
 export interface SaveEconomy {
 	balances: Balances;
 	entries: LedgerEntry[];
+	/** Traded commodities (plan 097, ADR 0124 point 2); absent until a market opens. */
+	markets?: Record<string, MarketState>;
+	/** Commodities held at each site (plan 097); absent until something is stored. */
+	storage?: SiteStorage;
 }
 
 /** The rules the sim reads (ADR 0113 point 4); stock registers them. */
@@ -90,7 +95,9 @@ export const saveEconomySchema = z.object({
 			cause: z.string().min(1),
 			ref: z.string().optional()
 		})
-	)
+	),
+	markets: z.record(z.string(), marketStateSchema).optional(),
+	storage: siteStorageSchema.optional()
 });
 
 type RuleLookup = (id: string) => RuleValue | undefined;
@@ -169,6 +176,31 @@ export interface DesignCost {
 	byIndex: Map<number, { part: number; contents: number }>;
 	/** Part ids without a `cost`. */
 	uncosted: string[];
+}
+
+/** Units of each resource a design launches with, as the sim fills a new vessel (plan 097). */
+export function designContents(
+	design: VesselDesign,
+	registries: CostRegistries
+): Map<string, number> {
+	const out = new Map<string, number>();
+	for (const entry of design.parts) {
+		const def = registries.parts.get(entry.part);
+		if (!def) continue;
+		for (const [moduleId, raw] of def.modules ?? []) {
+			const module = registries.modules.get(moduleId);
+			if (!module?.store) continue;
+			const parsed = module.config
+				? module.config.safeParse(raw)
+				: { success: true, data: undefined };
+			if (!parsed.success) continue;
+			const state = module.state?.(parsed.data);
+			for (const r of module.store.resources(parsed.data, state)) {
+				out.set(r, (out.get(r) ?? 0) + module.store.amount(parsed.data, state, r));
+			}
+		}
+	}
+	return out;
 }
 
 /** What a design costs to launch with full tanks, as the sim fills a new vessel. */

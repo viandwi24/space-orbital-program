@@ -28,3 +28,29 @@ test('career bot: 3 600 game days with only launches and recoveries keep funds i
 	expect(seconds).toBeLessThan(45);
 	bot.sim.dispose();
 }, 60_000);
+
+test('career bot with markets: 10 years of launches buying fuel, a propellant plant from year 2, sales above base', async () => {
+	const started = performance.now();
+	const bot = await runCareerBot({
+		world: { ...legacyWorldInfo(7), id: 'career-bot-markets', preset: 'stock.career' },
+		days: 3_600,
+		markets: true
+	});
+	const seconds = (performance.now() - started) / 1000;
+	const income = new Map<string, number>();
+	for (const e of bot.entries)
+		if (e.amount > 0 && e.currency === 'funds') income.set(e.cause, (income.get(e.cause) ?? 0) + e.amount);
+	const total = [...income.values()].reduce((a, b) => a + b, 0);
+	const shares = Object.fromEntries([...income].map(([k, v]) => [k, Math.round((v / total) * 1000) / 10]));
+	console.log(
+		`career bot with markets: funds min ${Math.round(bot.min)} max ${Math.round(bot.max)} end ${Math.round(bot.daily.at(-1)!)}, ${seconds.toFixed(1)} s; income shares %`,
+		shares
+	);
+	expect(bot.missions).toBe(120);
+	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
+	expect(bot.max).toBeLessThanOrEqual(BAND.max);
+	expect(income.get('stock.market-sell') ?? 0).toBeGreaterThan(0);
+	for (const v of income.values()) expect(v / total).toBeLessThanOrEqual(0.8);
+	expect(seconds).toBeLessThan(45);
+	bot.sim.dispose();
+}, 60_000);

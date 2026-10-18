@@ -9,7 +9,7 @@
 	import Capsule from '../ui/Capsule.svelte';
 	import ListRow from '../ui/ListRow.svelte';
 	import Panel from '../ui/Panel.svelte';
-	import { moveSelection, type BuildingRow } from './model';
+	import { moveSelection, type BuildingRow, type MarketRow } from './model';
 
 	let {
 		worldName,
@@ -23,7 +23,8 @@
 		onrotate,
 		onremove,
 		onupgrade = () => {},
-		notes = []
+		notes = [],
+		market = []
 	}: {
 		worldName: string;
 		rows: readonly BuildingRow[];
@@ -41,6 +42,8 @@
 		onupgrade?: (id: string) => void;
 		/** More "Needs attention" lines: finished construction, upkeep over the funds (plan 096). */
 		notes?: readonly string[];
+		/** The read-only Market panel (plan 097); empty with the economy off. */
+		market?: readonly MarketRow[];
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -122,6 +125,23 @@
 				</ul>
 			{/if}
 		</Panel>
+		{#if market.length > 0}
+			<Panel title="Market">
+				<ul class="list" data-testid="sc-market">
+					{#each market as m (m.id)}
+						<li>
+							<ListRow
+								name={m.label}
+								sub="{m.price}{m.trend ? ` · ${m.trend}` : ''}{m.held !== null
+									? ` · ${m.held.toLocaleString('en-US')} held`
+									: ''}"
+								testid="sc-market-{m.id}"
+							/>
+						</li>
+					{/each}
+				</ul>
+			</Panel>
+		{/if}
 	</aside>
 
 	{#if current}

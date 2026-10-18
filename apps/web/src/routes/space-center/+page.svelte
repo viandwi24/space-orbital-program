@@ -33,6 +33,8 @@
 		spreadLabels,
 		steadyLabels,
 		upkeepWarning,
+		marketRows,
+		productionNote,
 		type GhostCheck,
 		type SiteState
 	} from '../../lib/space-center/model';
@@ -77,19 +79,24 @@
 
 	let today = $state<number | undefined>(undefined);
 	let funds = $state<number | undefined>(undefined);
+	let economy = $state.raw<Snapshot['economy']>(undefined);
+	/** Building kinds that run a recipe (plan 097). */
+	const producers = new Set(registries.recipes.list().map((r) => r.building));
 	/** Construction finished while the page is open (plan 096, ADR 0123 point 6). */
 	let finished = $state.raw<string[]>([]);
 	const rows = $derived(buildingRows(site, buildingRegistry, today));
 	const notes = $derived.by(() => {
 		const upkeep = upkeepOf(site ? [site] : [], buildingRegistry).reduce((t, u) => t + u.amount, 0);
 		const warning = upkeepWarning(funds, upkeep, today);
-		return [...finished, ...(warning ? [warning] : [])];
+		const stopped = productionNote(economy, site, producers);
+		return [...finished, ...(warning ? [warning] : []), ...(stopped ? [stopped] : [])];
 	});
 	const siteInfo = $derived(sitesOf(world ?? { sites: [] })[0]!);
 
 	function onSnapshot(s: Snapshot): void {
 		today = s.day;
 		funds = s.economy?.enabled ? s.economy.funds : undefined;
+		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
 		const next = s.sites?.[0];
 		for (const b of next?.buildings ?? []) {
 			const was = site?.buildings.find((x) => x.id === b.id);
@@ -254,6 +261,7 @@
 		onremove={(id) => void remove(id)}
 		onupgrade={(id) => void upgrade(id)}
 		{notes}
+		market={marketRows(economy, site?.id)}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
 </main>

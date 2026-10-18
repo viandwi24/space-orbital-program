@@ -265,7 +265,9 @@ describe('registration and report', () => {
 			'failure-mode': [],
 			panel: [],
 			scenario: [],
-			'tech-node': []
+			'tech-node': [],
+			commodity: [],
+			recipe: []
 		});
 	});
 
