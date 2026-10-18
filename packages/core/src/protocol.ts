@@ -509,7 +509,7 @@ export const DEBUG_CHEATS = [
 ] as const;
 export type DebugCheat = (typeof DEBUG_CHEATS)[number];
 
-/** Who may use the debug tools in a world (rule `stock.debug-tools`, ADR 0212 point 1). */
+/** Who may use the debug tools in a world (rule `stock.debug-tools`, ADR 0213 point 1). */
 export type DebugAccess = 'always' | 'opt-in' | 'locked';
 
 /** Where `debug-set-orbit` puts a vessel: elements around a body, epoch now (rad and m). */
@@ -541,7 +541,7 @@ export type DebugLocation =
 			climb?: number;
 	  };
 
-/** The world's debug state as the sim reports it (plan 203, ADR 0212). */
+/** The world's debug state as the sim reports it (plan 203, ADR 0213). */
 export interface DebugSnapshot {
 	access: DebugAccess;
 	/** Debug mode is on (always true where access is `always`). */
@@ -728,7 +728,7 @@ export type Command =
 	| { type: 'fix-anomaly'; report: string }
 	/** An engineer in `suit` repairs a failed module on `part` of `vessel`. */
 	| { type: 'repair'; suit: EntityId; vessel: EntityId; part: EntityId }
-	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0212); on marks the world "used cheats". */
+	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0213); on marks the world "used cheats". */
 	| { type: 'debug-mode'; on: boolean }
 	/** Switch one cheat (ADR 0200 point 2). */
 	| { type: 'debug-cheat'; cheat: DebugCheat; on: boolean }

@@ -39,7 +39,7 @@ class SettingsStore {
 	ui = $state<InterfaceSettings>({ ...DEFAULT_INTERFACE });
 	/** The flight dock's rail and open panel (plan 112). */
 	dock = $state<DockChoice>(defaultDock());
-	/** Debug mode (plan 203, ADR 0212 point 5). */
+	/** Debug mode (plan 203, ADR 0213 point 5). */
 	debug = $state(false);
 	/** Handlers read this; it follows `bindings`. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings));

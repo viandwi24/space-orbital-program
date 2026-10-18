@@ -316,7 +316,7 @@ export function dispatch(
 		}
 	}
 	if (command.type.startsWith('debug-')) {
-		// the access rule first (ADR 0212 point 3); `debug-mode` checks its own
+		// the access rule first (ADR 0213 point 3); `debug-mode` checks its own
 		const locked = command.type === 'debug-mode' ? undefined : debugRefusal(core);
 		if (locked) return refuse(locked);
 	}

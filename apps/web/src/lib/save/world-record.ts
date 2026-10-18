@@ -48,7 +48,7 @@ export interface WorldRecord {
 	world?: WorldInfo;
 	/** The scenario the world was made from (plan 100, ADR 0151 point 4): its first flight starts from it. */
 	scenario?: string;
-	/** A debug tool was used in this world (plan 203, ADR 0212 point 4); never cleared. */
+	/** A debug tool was used in this world (plan 203, ADR 0213 point 4); never cleared. */
 	usedCheats?: boolean;
 }
 

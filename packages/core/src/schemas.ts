@@ -54,7 +54,7 @@ export const worldInfoSchema = z.object({
 			})
 		)
 		.default([]),
-	/** Plan 203 (ADR 0212): additive in format 8, so a save without it reads as never used. */
+	/** Plan 203 (ADR 0213): additive in format 8, so a save without it reads as never used. */
 	debug: z
 		.object({
 			mode: z.boolean(),

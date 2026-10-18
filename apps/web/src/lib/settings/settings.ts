@@ -72,7 +72,7 @@ const settingsV3 = z.object({
 	...v2Fields,
 	interface: interfaceSchema,
 	dock: dockSchema,
-	/** Debug mode (plan 203, ADR 0212 point 5): additive in format 3, off when absent. */
+	/** Debug mode (plan 203, ADR 0213 point 5): additive in format 3, off when absent. */
 	debug: z.boolean().catch(false).default(false)
 });
 

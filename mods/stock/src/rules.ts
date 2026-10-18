@@ -122,7 +122,7 @@ export const RuleLifeSupport = defineRule({
 	changeable: true
 });
 /**
- * Who may use the debug panel and API (plan 203, ADR 0212 point 1): Sandbox always, Science and
+ * Who may use the debug panel and API (plan 203, ADR 0213 point 1): Sandbox always, Science and
  * Career after Debug mode is turned on, Hardcore never (default per owner review, rancangan §15 #14).
  */
 export const RuleDebugTools = defineRule({

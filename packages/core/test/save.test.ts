@@ -251,7 +251,7 @@ describe('format 5: the world info (plan 077, ADR 0110)', () => {
 	});
 });
 
-describe('the debug state in the world info (plan 203, ADR 0212)', () => {
+describe('the debug state in the world info (plan 203, ADR 0213)', () => {
 	test('a format-8 save without it reads as never used', () => {
 		const save = readSimSave(signed());
 		expect(save.worldInfo.debug).toBeUndefined();

@@ -1,4 +1,4 @@
-/** Plan 203 / ADRs 0200 and 0212: the access rule, cheats and the set-state commands. */
+/** Plan 203 / ADRs 0200 and 0213: the access rule, cheats and the set-state commands. */
 import { describe, expect, test } from 'bun:test';
 import {
 	bodyAngularVelocity,
