@@ -1,12 +1,12 @@
 ---
 id: 097
 title: "Markets and production: one commodity chain first"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [095, 096]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 097 — Markets and production: one commodity chain first
