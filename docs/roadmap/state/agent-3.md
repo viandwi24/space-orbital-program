@@ -28,7 +28,7 @@
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | done | `devc/117-comms-routing` | 2026-10-18 | merged d2193e9, cp/f4-117-comms-3 |
 | 119 comms-4 | done | `devc/119-comms-queues` | 2026-10-18 | merged f48199b, cp/f4-119-comms-4 |
-| 126 agencies | handed-over | `devc/126-agencies` | 2026-10-18 | ready/126 |
+| 126 agencies | done | `devc/126-agencies` | 2026-10-17 | merged 5b7c42b3, cp/f6-126-agencies |
 | 120 comms-5 | handed-over | `devc/120-comms-channels` | 2026-10-18 | ready/120 |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |
 | 121 comms-6 | todo |  |  |  |

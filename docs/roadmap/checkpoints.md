@@ -74,7 +74,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f6-127-range-safety` | 127 | A2 | — (none) | done | aaa9f4c | 2026-10-17 |
 | `cp/f6-130-reliability` | 130 | A2 | — (none) | done | 246185e | 2026-10-17 |
 | `cp/f6-066-devices` | 066 | A2 | A2 (073) | done | 74f8ad1 | 2026-10-17 |
-| `cp/f6-126-agencies` | 126 | A3 | — (none) | pending | | |
+| `cp/f6-126-agencies` | 126 | A3 | — (none) | done | 5b7c42b3 | 2026-10-17 |
 | `cp/f6-131-replays` | 131 | A2 | — (none) | done | bf2d509 | 2026-10-17 |
 | `cp/f6-065-mod-models` | 065 | A2 | — (none) | done | 528d048 | 2026-10-17 |
 | `cp/f6-063-aeroplane` | 063 | A2 | — (none) | done | 2b612c8 | 2026-10-17 |

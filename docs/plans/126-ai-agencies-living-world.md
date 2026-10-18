@@ -1,7 +1,7 @@
 ---
 id: 126
 title: "AI agencies and a living world"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [082, 099, 114, 097, 117]
 phase: 9
