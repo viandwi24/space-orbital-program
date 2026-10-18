@@ -1,7 +1,7 @@
 ---
 id: 099
 title: "Procedural contracts"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [098, 095, 096]
 phase: 6
