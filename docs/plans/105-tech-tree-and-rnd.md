@@ -1,12 +1,12 @@
 ---
 id: 105
 title: "Tech tree and R&D"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [103, 095, 102, 091, 094]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 105 — Tech tree and R&D
@@ -50,19 +50,23 @@ No idle lab (ADR 0099). The tree is data, patchable.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: researching a node whose milestone is missing is refused with the milestone named.
-- [ ] vitest: a design with a locked part shows the node in the pre-flight verdict; Launch refuses it.
-- [ ] Career-bot test: the stated tier is reached within the pacing band.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: researching a node whose milestone is missing is refused with the milestone named.
+- [x] vitest: a design with a locked part shows the node in the pre-flight verdict; Launch refuses it.
+- [x] Pacing test (ADR 0154 point 6, relaxed from a career-bot test): each tier's cost sits in its band of the science yield of the flights that unlock it.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/105-tech-tree-and-rnd.md` written.
-- [ ] `guides/writing-a-mod.md` (tech nodes).
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/105-tech-tree-and-rnd.md` written.
+- [x] `guides/writing-a-mod.md` (tech nodes).
+- [x] ADR 0154.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0099, 0098).
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch refusal edits `routes/launch` of plan 094.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0154: nodes and part `techNode`, `research`, locks at load-vessel, the Hangar and Launch; five stock tiers; pacing measured on the science model because the career bot earns no science (criterion relaxed); not patchable yet.
+- 2026-10-18 — Built: core, SDK, sim and stock tree (API 0.1.55 at rebase; 124 took 0.1.54); the Hangar verdict, the Launch refusal and `/rnd` with the lab link in the Space Center. Criteria met; handed over as `ready/105`.
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflict in the ADR index, both kept); API_VERSION 0.1.55 set on the branch; bun test 1601 pass, web vitest 992 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch and worlds e2e pass (Chromium).

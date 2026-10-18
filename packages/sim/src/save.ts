@@ -6,6 +6,7 @@
  * physics engine; its pose and velocity (float32-exact when read back) are written and the body
  * is created again, so the saved data is independent of the backend.
  */
+import { saveTech } from './tech.ts';
 import { saveMilestones } from './milestones.ts';
 import {
 	cloneData,
@@ -181,6 +182,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 	}));
 	const science = saveScience(core);
 	const milestones = saveMilestones(core);
+	const tech = saveTech(core);
 	const unsigned: Omit<SimSave, 'checksum'> = {
 		format: SIM_SAVE_FORMAT,
 		formatVersion: SIM_SAVE_VERSION,
@@ -202,6 +204,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		...(core.crew.next > 1 ? { crew: cloneData(core.crew) } : {}),
 		...(science ? { science } : {}),
 		...(milestones ? { milestones } : {}),
+		...(tech ? { tech } : {}),
 		world: core.world.serialize(),
 		frames
 	};

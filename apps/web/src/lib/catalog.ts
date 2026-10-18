@@ -5,7 +5,8 @@ import {
 	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup,
-	type SystemChoice
+	type SystemChoice,
+	type TechNodeDefinition
 } from '@orbital/core';
 import type { PartShape } from '@orbital/renderer';
 import { BUILTIN_PLUGINS, STOCK_CHOICE } from './builtins';
@@ -46,6 +47,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	/** Missions and objective labels for the tracker (plan 100, ADR 0151). */
 	missions: MissionDefinition[];
 	objectiveLabels: Record<string, string>;
+	/** The tech tree (plan 105, ADR 0154). */
+	techNodes: TechNodeDefinition[];
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -60,6 +63,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		panels: registries.panels.list(),
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
+		techNodes: registries.techNodes.list(),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

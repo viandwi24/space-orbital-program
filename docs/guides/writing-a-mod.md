@@ -407,6 +407,27 @@ ctx.scenarios.register(defineScenario({
 
 - A vessel either has an `orbit` (circular, equatorial, at that altitude) or `site: true` (on the site's pad). The first one is the vessel the player flies. `examples/mod-sample` has a complete pack.
 
+## Tech nodes (API 0.1.55, plan 105, ADR 0154)
+
+A world with the `stock.tech-tree` rule on (Career) locks every part some tech node unlocks until a node that unlocks it is researched. Define a node as data:
+
+```ts
+ctx.techNodes.register(defineTechNode({
+	id: 'acme.tech.ion',
+	label: 'Ion propulsion',
+	tier: 3,
+	cost: 180,
+	requires: ['stock.tech.propulsion'],
+	milestone: 'flyby:stock.cinder',
+	unlocks: ['acme.ion-engine', 'acme.xenon-tank']
+}));
+```
+
+- `research { node }` spends `cost` science when every `requires` node is researched and the world has the `milestone` (an id from the section above); the refusal names what is missing. A node of cost 0 with no requirement is researched from the start.
+- A part may also name its node with `techNode` on the part definition; a part no node unlocks is never locked. When several nodes unlock a part, any one of them is enough.
+- A locked part is a no-go in the Hangar's verdict, the Launch screen refuses the design, and the sim refuses `load-vessel` with `"Title" is locked: research "Node" first`. The R&D screen (the Space Center's lab) shows the tree by tier.
+- Pace a node by the science of the flights that reach it: `mods/stock/test/tech.test.ts` measures the stock bands from the science model (`subjectCap`). Nodes are not patchable yet.
+
 ## Patching another mod's data (API 0.1.26, plan 079, ADRs 0104 and 0170)
 
 A mod can change data another mod registered (a part's mass, an engine's thrust, a resource's density, a body's field) without replacing it. Register a `definePatch` in `setup`:

@@ -238,6 +238,8 @@ export interface Snapshot {
 	science?: Array<{ id: string; count: number; produced: number; credited: number; cap: number }>;
 	/** The world's firsts (plan 102, ADR 0147); absent while there are none. */
 	milestones?: MilestoneRecord[];
+	/** The tech tree's state (plan 105, ADR 0154 point 3); absent while nothing was researched and the tree is off. */
+	tech?: { enabled: boolean; researched: string[] };
 	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
 	crew?: Array<{
 		id: string;
@@ -470,6 +472,8 @@ export type Command =
 	  }
 	/** Hire a crew member into the roster (plan 106, ADR 0176 point 2). */
 	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
+	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
+	| { type: 'research'; node: string }
 	/** Move a crew member to another part of the same vessel (capacity checked). */
 	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId }
 	/** EVA (plan 109, ADR 0120): the member steps out into a suit, a vessel of its own beside the part. */

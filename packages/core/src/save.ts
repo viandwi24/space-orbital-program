@@ -7,6 +7,7 @@
  * What is NOT here by design: Rapier state (rebuilt from plain pose data), scripts, renderer state,
  * thumbnails and names (the web client's envelope, `apps/web/src/lib/save`).
  */
+import { saveTechSchema, type SaveTech } from './tech-tree.ts';
 import * as z from 'zod';
 import { worldDataSchema, worldInfoSchema } from './schemas.ts';
 import { saveEconomySchema, type SaveEconomy } from './economy.ts';
@@ -160,6 +161,8 @@ export interface SimSave {
 	science?: SaveScience;
 	/** Firsts and per-vessel visits (plan 102, ADR 0147 point 3); optional in format 5, absent = none. */
 	milestones?: SaveMilestones;
+	/** Researched tech nodes (plan 105, ADR 0154 point 3); optional in format 5, absent = none. */
+	tech?: SaveTech;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -220,6 +223,7 @@ export const simSaveSchema = z.object({
 	crew: saveCrewSchema.optional(),
 	science: saveScienceSchema.optional(),
 	milestones: saveMilestonesSchema.optional(),
+	tech: saveTechSchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

@@ -3,6 +3,7 @@
  * `Plugin` values with full type inference; this file is what actually validates, orders and boots
  * them, so it only needs the erased shapes.
  */
+import type { TechNodeDefinition } from './tech-tree.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
@@ -125,6 +126,8 @@ export interface BasePluginContext {
 	readonly actionGroups: Registrar<ActionGroupDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
 	readonly achievements: Registrar<AchievementDefinition>;
+	/** The tech tree (plan 105, ADR 0154). */
+	readonly techNodes: Registrar<TechNodeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	readonly scenarios: Registrar<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
@@ -180,6 +183,7 @@ export const REGISTRY_KINDS = [
 	'contract',
 	'mission',
 	'achievement',
+	'tech-node',
 	'scenario',
 	'panel',
 	'crew-trait',
@@ -246,6 +250,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'dossierEntries',
 	'categories',
 	'achievements',
+	'techNodes',
 	'scenarios',
 	'panels',
 	'crewTraits',
@@ -439,6 +444,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
 			achievements: registrar(registries.achievements),
+			techNodes: registrar(registries.techNodes),
 			scenarios: registrar(registries.scenarios),
 			panels: registrar(registries.panels),
 			crewTraits: registrar(registries.crewTraits),
@@ -617,6 +623,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				contract: section(registries.contracts),
 				mission: section(registries.missions),
 				achievement: section(registries.achievements),
+				'tech-node': section(registries.techNodes),
 				scenario: section(registries.scenarios),
 				panel: section(registries.panels),
 				'crew-trait': section(registries.crewTraits),

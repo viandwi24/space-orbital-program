@@ -262,7 +262,8 @@ describe('registration and report', () => {
 			category: [],
 			achievement: [],
 			panel: [],
-			scenario: []
+			scenario: [],
+			'tech-node': []
 		});
 	});
 

@@ -27,7 +27,8 @@ export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/co
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
 export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
 export { scenarioPlacement } from '@orbital/core';
-export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
+export { isResearched, lockedParts, nodeOfParts, researchProblem } from '@orbital/core';
+export { bodyScience, nextValue, situationOf, subjectCap, subjectId } from '@orbital/core';
 export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
@@ -182,6 +183,7 @@ export type {
 	SiteTemplateCriteria,
 	SiteTemplateDefinition,
 	AchievementCriteria,
+	TechNodeDefinition,
 	ScenarioDefinition,
 	ScenarioVessel,
 	AchievementDefinition,

@@ -3,6 +3,7 @@
  * core, then semantic checks against the world) and applies them. Refusals are results, not
  * exceptions: commands come from outside the sim.
  */
+import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import {
 	bodyId,
@@ -104,6 +105,8 @@ function loadVessel(
 	if (!resolved.ok) return refuse(`invalid design: ${resolved.errors.join('; ')}`);
 	const seats = command.crew && seatProblem(core, command.design, command.crew);
 	if (seats) return refuse(seats);
+	const locked = lockRefusal(core, command.design);
+	if (locked) return refuse(locked);
 	const short = launchRefusal(core, command.design);
 	if (short) return refuse(short);
 	const placement = command.placement ?? { kind: 'surface' };
@@ -353,6 +356,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return transmitData(core, command.vessel, command.item);
 		}
+		case 'research':
+			return research(core, command.node);
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
 		case 'crew-eva':
