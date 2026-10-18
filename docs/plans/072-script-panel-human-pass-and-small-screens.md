@@ -1,12 +1,12 @@
 ---
 id: 072
 title: "Script editor: the human pass and the panel on small screens"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [058, 112]
-phase: 3
+phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 072 — Script editor: the human pass and the panel on small screens
