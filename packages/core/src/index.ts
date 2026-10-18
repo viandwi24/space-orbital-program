@@ -60,3 +60,5 @@ export * from './scenarios.ts';
 export * from './panels.ts';
 export * from './range-safety.ts';
 export * from './reliability.ts';
+export * from './replay.ts';
+export * from './challenge.ts';

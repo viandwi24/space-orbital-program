@@ -1,4 +1,5 @@
 /** Main-thread wrapper over the sim Worker: typed messages, command round trips, snapshot fan-out. */
+import type { ReplayFile } from '@orbital/core';
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
 import {
 	parseWorkerMessage,
@@ -48,6 +49,8 @@ export interface SimClient {
 	setPaused(paused: boolean): void;
 	/** The whole simulation as plain data (plan 043); rejects with the worker's reason. */
 	save(): Promise<SimSave>;
+	/** The flight recorded since the sim booted, as a replay file (plan 131); null when not ready. */
+	replay(name: string): Promise<ReplayFile | null>;
 	dispose(): void;
 }
 
@@ -61,6 +64,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		number,
 		{ resolve: (s: SimSave) => void; reject: (e: Error) => void }
 	>();
+	const pendingReplays = new Map<number, (replay: ReplayFile | null) => void>();
 	const snapshotListeners = new Set<(snapshot: Snapshot, warp?: number) => void>();
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
@@ -107,6 +111,12 @@ export function createSimClient(worker: WorkerLike): SimClient {
 					pending.delete(message.id);
 					resolve(message.result);
 				}
+				break;
+			}
+			case 'replay': {
+				const resolve = pendingReplays.get(message.id);
+				pendingReplays.delete(message.id);
+				resolve?.(message.replay);
 				break;
 			}
 			case 'saved': {
@@ -181,6 +191,14 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		setPaused(paused) {
 			if (!disposed) worker.postMessage({ kind: 'pause', paused });
 		},
+		replay(name) {
+			if (disposed) return Promise.resolve(null);
+			const id = nextId++;
+			return new Promise<ReplayFile | null>((resolve) => {
+				pendingReplays.set(id, resolve);
+				worker.postMessage({ kind: 'replay', id, name });
+			});
+		},
 		save() {
 			if (disposed) return Promise.reject(new Error('the sim client is disposed'));
 			const id = nextId++;
@@ -202,6 +220,8 @@ export function createSimClient(worker: WorkerLike): SimClient {
 				request.reject(new Error('the sim client is disposed'));
 			}
 			pendingSaves.clear();
+			for (const resolve of pendingReplays.values()) resolve(null);
+			pendingReplays.clear();
 			snapshotListeners.clear();
 			errorListeners.clear();
 			scriptListeners.clear();

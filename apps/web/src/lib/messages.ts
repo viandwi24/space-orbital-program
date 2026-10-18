@@ -2,6 +2,7 @@
  * Main thread <-> sim Worker protocol (plain data, structured-clone safe). Commands travel as
  * `unknown`: the sim validates them with `commandSchema` (ADR 0016), the client does not duplicate that.
  */
+import type { ReplayFile } from '@orbital/core';
 import {
 	modAssetSchema,
 	modManifestSchema,
@@ -101,6 +102,8 @@ export type ClientMessage =
 	| { kind: 'init'; save?: unknown; mods?: ModBundle[]; world?: unknown }
 	/** Ask for the whole simulation as a `SimSave`; answered with `saved` or `save-error`. */
 	| { kind: 'save'; id: number }
+	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
+	| { kind: 'replay'; id: number; name: string }
 	| { kind: 'command'; id: number; command: unknown }
 	/** Freeze or resume the simulation clock (the Esc menu); scripts pause with it. */
 	| { kind: 'pause'; paused: boolean }
@@ -113,6 +116,7 @@ export type WorkerMessage =
 	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
 	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number }
 	| { kind: 'result'; id: number; result: CommandResult }
+	| { kind: 'replay'; id: number; replay: ReplayFile | null }
 	| { kind: 'saved'; id: number; save: SimSave }
 	| { kind: 'save-error'; id: number; message: string }
 	| { kind: 'error'; message: string }
@@ -255,6 +259,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 		};
 	}
 	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };
+	if (data.kind === 'replay' && typeof data.id === 'number' && typeof data.name === 'string')
+		return { kind: 'replay', id: data.id, name: data.name };
 	if (data.kind === 'script-stop') return { kind: 'script-stop' };
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };

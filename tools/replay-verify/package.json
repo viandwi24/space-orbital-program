@@ -1,0 +1,23 @@
+{
+	"name": "@orbital/tool-replay-verify",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Re-simulates a replay file and checks its checkpoints (plan 131, ADR 0159).",
+	"type": "module",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test ./test"
+	},
+	"dependencies": {
+		"@orbital/core": "workspace:*",
+		"@orbital/sim": "workspace:*",
+		"@orbital/physics": "workspace:*",
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/mod-sol": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

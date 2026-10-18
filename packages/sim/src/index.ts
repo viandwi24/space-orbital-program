@@ -11,3 +11,4 @@ export { createSim } from './sim.ts';
 export type { Sim, SimOptions } from './sim.ts';
 export type { TerrainFactory } from './bodies.ts';
 export * from './constants.ts';
+export { recordReplay, verifyReplay, type ReplayRecorder, type ReplayVerdict } from './replay.ts';

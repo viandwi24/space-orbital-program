@@ -1,12 +1,12 @@
 ---
 id: 131
 title: "Replays and challenges as files"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [077]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 131 — Replays and challenges as files
@@ -17,7 +17,7 @@ A flight can be saved as a replay (a start save, the command log and periodic ch
 
 ## Context
 
-- ADRs: 0098, 0094
+- ADRs: 0098, 0094, [0159](../decisions/0159-replays-and-challenges-as-files.md) (this plan)
 - Read: ADR 0098 point 6, ADR 0094 point 5 (no backend; verifiable files), ADR 0050 (saves and determinism bounds).
 
 ## Scope
@@ -49,18 +49,22 @@ Cross-machine determinism is not a goal; checkpoints absorb small drift.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: a recorded headless ascent replay re-simulates to its checkpoints within the ADR 0050 tolerance.
-- [ ] `tools` test: the verifier rejects a replay whose final state was edited.
-- [ ] vitest: importing a challenge file and finishing it records a score on each axis.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: a recorded headless ascent replay re-simulates to its checkpoints within the ADR 0050 tolerance.
+- [x] `tools` test: the verifier rejects a replay whose final state was edited.
+- [x] vitest: importing a challenge file and finishing it records a score on each axis.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/131-replays-and-challenges-as-files.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/131-replays-and-challenges-as-files.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098, 0094).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0159: commands stamped with sim time and checkpoints every 10 s (not every host step); verification by re-simulation with a relative tolerance on ADR 0050's bound; challenges scored locally per axis; ghosts as a page overlay.
+- 2026-10-18 — Built: replay and challenge files, the recorder in the sim and the web host, the verifier tool, challenges scored locally, ghosts as a page overlay. The renderer is not changed (ghosts are an overlay, ADR 0159 point 7). Handed over as `ready/131`.
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts); bun install for tools/replay-verify; bun test 1644 pass, web vitest 1017 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch and worlds e2e pass (Chromium).
