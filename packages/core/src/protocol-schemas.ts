@@ -180,6 +180,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('crew-hire'),
 		profession: z.enum(['pilot', 'engineer', 'scientist', 'tourist'])
 	}),
+	z.object({ type: z.literal('crew-dismiss'), member: z.string().min(1) }),
 	z.object({ type: z.literal('research'), node: z.string().min(1) }),
 	z.object({
 		type: z.literal('crew-transfer'),

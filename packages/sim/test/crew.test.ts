@@ -175,3 +175,22 @@ describe('crew', () => {
 		]);
 	});
 });
+
+describe('crew-dismiss (contract request of plan 108, ADR 0152 point 4)', () => {
+	test('an available member leaves the roster; a seated one cannot be let go', async () => {
+		const sim = await hired(['pilot', 'engineer']);
+		const [a, b] = roster(sim).map((m) => m.id);
+		const gone: string[] = [];
+		sim.events.on('crew:dismissed', (e) => gone.push(e.member));
+		const seated = load(sim, twoPods(), undefined, [{ member: b!, part: 0 }]);
+		expect(seated.ok).toBe(true);
+		const refused = sim.dispatch({ type: 'crew-dismiss', member: b! });
+		expect(refused.ok ? '' : refused.reason).toMatch(/is assigned and cannot be dismissed$/);
+		expect(sim.dispatch({ type: 'crew-dismiss', member: a! }).ok).toBe(true);
+		expect(roster(sim).map((m) => m.id)).toEqual([b!]);
+		expect(gone).toEqual([a!]);
+		const unknown = sim.dispatch({ type: 'crew-dismiss', member: 'nobody' });
+		expect(unknown.ok ? '' : unknown.reason).toBe('no crew member "nobody"');
+		sim.dispose();
+	});
+});

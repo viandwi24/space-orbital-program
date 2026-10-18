@@ -485,6 +485,8 @@ export type Command =
 	  }
 	/** Hire a crew member into the roster (plan 106, ADR 0176 point 2). */
 	| { type: 'crew-hire'; profession: 'pilot' | 'engineer' | 'scientist' | 'tourist' }
+	/** Let an available member go: they leave the roster (contract request of plan 108, ADR 0152 point 4). */
+	| { type: 'crew-dismiss'; member: string }
 	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
 	| { type: 'research'; node: string }
 	/** Move a crew member to another part of the same vessel (capacity checked). */

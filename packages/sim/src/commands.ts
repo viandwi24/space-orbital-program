@@ -29,7 +29,7 @@ import {
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
-import { hireCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
+import { hireCrew, dismissCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
 import { resetStations, signalRefusal } from './comms.ts';
@@ -398,6 +398,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return research(core, command.node);
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
+		case 'crew-dismiss':
+			return dismissCrew(core, command.member);
 		case 'crew-eva':
 			return crewEva(core, command.vessel, command.member);
 		case 'crew-board':

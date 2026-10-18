@@ -113,6 +113,21 @@ export function hireCrew(core: SimCore, profession: Profession): CommandResult {
 	return { ok: true };
 }
 
+/**
+ * `crew-dismiss` (contract request of plan 108, ADR 0152 point 4): an available member leaves the
+ * roster; one seated in a vessel, missing or lost cannot be let go. Nothing is refunded.
+ */
+export function dismissCrew(core: SimCore, id: string): CommandResult {
+	const member = core.crew.members.find((m) => m.id === id);
+	if (!member) return { ok: false, reason: `no crew member "${id}"` };
+	if (member.status !== 'available') {
+		return { ok: false, reason: `${member.name} is ${member.status} and cannot be dismissed` };
+	}
+	core.crew.members = core.crew.members.filter((m) => m.id !== id);
+	core.events.emit('crew:dismissed', { member: id, name: member.name });
+	return { ok: true };
+}
+
 /** Why `crew` cannot sit in `design`, or undefined (ADR 0176 point 3). */
 export function seatProblem(
 	core: SimCore,

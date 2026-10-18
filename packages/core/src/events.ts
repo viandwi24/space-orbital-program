@@ -48,6 +48,7 @@ export interface EventMap {
 	};
 	/** Crew (plan 106, ADR 0176): hired, XP booked at a recovery, lost with a vessel, back from missing. */
 	'crew:hired': { member: string; name: string; profession: string };
+	'crew:dismissed': { member: string; name: string };
 	'crew:xp': { member: string; place: string; xp: number; level: number };
 	'crew:lost': { member: string; vessel: EntityId; status: 'lost' | 'missing' | 'available' };
 	'crew:returned': { member: string };
