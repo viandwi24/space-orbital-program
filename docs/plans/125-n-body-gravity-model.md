@@ -1,8 +1,8 @@
 ---
 id: 125
 title: "N-body gravity model (future; DE440)"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [080, 123]
 phase: 8
 created: 2026-10-17
@@ -19,7 +19,7 @@ A world can be created with the n-body gravity model: bodies stay on rails (anal
 
 - ADRs: 0095, 0103, [0122](../decisions/0122-n-body-restricted-vessels-integrated-bodies-on-paths.md) (decisions of this plan, proposed)
 - Read: ADR 0095 point 5, ADR 0103 point 5, ADR 0173 (provider), ADR 0183 (path models), `refs/reverse-engineering-ksp2/beyond/05-universe-mode.md` and `09-time-and-real-solar-system.md` (git-ignored).
-- **Exploring** (ADR 0108): refined as Agent 1's while-waiting work (roadmap §4.4); implementation starts when the owner schedules it.
+- **Scheduled by the owner on 2026-10-18** (in chat: "sambil nunggu 070 ga bisa kah ngerjain 125?"), so it leaves "exploring" (ADR 0108). The DE440 download waits for the owner's yes on the file and its size.
 
 ## Scope
 
@@ -72,3 +72,4 @@ ADR 0122. The integrator's tolerance and the warp budget are the two numbers to 
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0095, 0103).
 - 2026-10-18 — Refined by Agent 1 as while-waiting work (roadmap §4.4): ADR 0122 (proposed), measurable criteria, steps. Status stays `draft` until the owner schedules the plan (exploring, ADR 0108).
+- 2026-10-18 — The owner scheduled it in chat while 070 waits; claimed by Agent 1. Save format 9 reserved (7 and 8 are 117's and 119's).
