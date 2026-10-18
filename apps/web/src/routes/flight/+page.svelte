@@ -744,14 +744,6 @@
 			<div class="tl">
 				<div class="capsules">
 					<WorldCapsule name={world.name} mode={world.mode} system={world.system} />
-					{#if hud?.funds != null}
-						<FundsCapsule funds={hud.funds} />
-					{/if}
-					{#if hud?.recovery}
-						<Button variant="primary" onclick={() => (recoverOpen = true)} data-testid="hud-recover"
-							>Recover</Button
-						>
-					{/if}
 					<WarpControl
 						warp={hud.warp}
 						usable={warpUsable}
@@ -784,7 +776,14 @@
 						onmissioncenter={() => void openMissionCenter()}
 					/>
 					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
+				{#if hud?.funds != null}<FundsCapsule funds={hud.funds} />{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
+				{#if hud?.recovery}
+					<!-- the funds and Recover sit here, not in the capsule row: that row sets the top-left stack's width, which the touch throttle must clear (plan 132) -->
+					<Button variant="primary" onclick={() => (recoverOpen = true)} data-testid="hud-recover"
+						>Recover</Button
+					>
+				{/if}
 				<Toasts toasts={model?.toasts ?? []} />
 				{#if hud?.recovery}
 					<RecoverDialog
