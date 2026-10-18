@@ -61,7 +61,7 @@ describe('readSimSave', () => {
 		expect(parseSimSave(JSON.stringify(save, null, 2))).toEqual(save); // layout does not matter
 	});
 
-	test('a foreign file is "not an Orbital save", not a crash', () => {
+	test('a foreign file is "not a Space Orbital Program save", not a crash', () => {
 		for (const raw of [
 			null,
 			42,
@@ -73,7 +73,7 @@ describe('readSimSave', () => {
 		]) {
 			expect(code(() => readSimSave(raw))).toBe('not-a-save');
 		}
-		expect(() => readSimSave({})).toThrow('This is not an Orbital save file.');
+		expect(() => readSimSave({})).toThrow('This is not a Space Orbital Program save file.');
 	});
 
 	test('text that is not JSON is rejected with its own message', () => {

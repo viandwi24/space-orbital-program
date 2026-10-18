@@ -86,7 +86,7 @@ describe('a save the sim refuses', () => {
 	test('a foreign JSON document', async () => {
 		const r = await reason(resume({ formatVersion: 1, parts: [] }));
 		expect(r.code).toBe('not-a-save');
-		expect(r.message).toBe('This is not an Orbital save file.');
+		expect(r.message).toBe('This is not a Space Orbital Program save file.');
 	});
 
 	test('edited contents (checksum)', async () => {

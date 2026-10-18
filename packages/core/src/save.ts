@@ -363,7 +363,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 /**
  * Validate and upgrade unknown data to the current `SimSave`. Throws `SaveError` with a message a
- * player can read: foreign files are "not an Orbital save", newer versions say to update the game,
+ * player can read: foreign files are "not a Space Orbital Program save", newer versions say to update the game,
  * edited or cut files fail the checksum. Run on the migrated data, so the checksum is only checked
  * for the version it was written in.
  */
@@ -373,7 +373,7 @@ export function readSimSave(
 	current: number = SIM_SAVE_VERSION
 ): SimSave {
 	if (!isRecord(raw) || raw.format !== SIM_SAVE_FORMAT) {
-		throw new SaveError('not-a-save', 'This is not an Orbital save file.');
+		throw new SaveError('not-a-save', 'This is not a Space Orbital Program save file.');
 	}
 	const declared = raw.formatVersion;
 	if (typeof declared !== 'number' || !Number.isInteger(declared) || declared < 1) {
@@ -432,7 +432,7 @@ export function parseSimSave(text: string): SimSave {
 	try {
 		raw = JSON.parse(text);
 	} catch {
-		throw new SaveError('not-json', 'This file is not valid JSON, so it is not an Orbital save.');
+		throw new SaveError('not-json', 'This file is not valid JSON, so it is not a Space Orbital Program save.');
 	}
 	return readSimSave(raw);
 }
