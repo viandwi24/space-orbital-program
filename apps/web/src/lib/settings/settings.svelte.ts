@@ -11,8 +11,11 @@ import {
 	rebind,
 	resetBinding,
 	swapBindings,
+	switchProfile,
+	DEFAULT_KEY_PROFILE,
 	type ActionId,
 	type Bindings,
+	type KeyProfile,
 	type Keymap,
 	type RebindResult
 } from '../keybindings';
@@ -45,8 +48,12 @@ class SettingsStore {
 	debug = $state(false);
 	/** Settings → Time (plan 205). */
 	time = $state<TimeSettings>(defaultTime());
-	/** Handlers read this; it follows `bindings`. */
-	keymap = $derived<Keymap>(createKeymap(this.bindings));
+	/** The key profile under the overrides (plan 216). */
+	keyProfile = $state<KeyProfile>(DEFAULT_KEY_PROFILE);
+	/** The one-time notice offering the KSP profile is due (plan 216). */
+	keyNotice = $state(false);
+	/** Handlers read this; it follows `bindings` and the profile. */
+	keymap = $derived<Keymap>(createKeymap(this.bindings, this.keyProfile));
 	#started = false;
 
 	/** Read the stored settings (once per page load) and apply the units. */
@@ -66,6 +73,8 @@ class SettingsStore {
 		this.dock = settings.dock;
 		this.debug = settings.debug;
 		this.time = settings.time;
+		this.keyProfile = settings.keyProfile;
+		this.keyNotice = settings.keyNotice;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -76,7 +85,7 @@ class SettingsStore {
 
 	snapshot(): Settings {
 		return {
-			v: 3,
+			v: 4,
 			units: this.units,
 			tutorial: { ...this.tutorial },
 			bindings: this.bindings,
@@ -85,7 +94,9 @@ class SettingsStore {
 			interface: { ...this.ui },
 			dock: { panels: [...this.dock.panels], open: this.dock.open },
 			debug: this.debug,
-			time: { ...this.time, places: { ...this.time.places } }
+			time: { ...this.time, places: { ...this.time.places } },
+			keyProfile: this.keyProfile,
+			keyNotice: this.keyNotice
 		};
 	}
 
@@ -111,7 +122,7 @@ class SettingsStore {
 
 	/** Try to give an action a key; a clash or a reserved key is reported, nothing changes then. */
 	rebind(id: ActionId, key: string): RebindResult {
-		const result = rebind(this.bindings, id, key);
+		const result = rebind(this.bindings, id, key, this.keyProfile);
 		if (result.ok) {
 			this.bindings = result.bindings;
 			this.#save();
@@ -121,12 +132,30 @@ class SettingsStore {
 
 	/** `id` takes `key` and the action that had it takes `id`'s keys. */
 	swap(id: ActionId, key: string): void {
-		this.bindings = swapBindings(this.bindings, id, key);
+		this.bindings = swapBindings(this.bindings, id, key, this.keyProfile);
 		this.#save();
 	}
 
 	resetBinding(id: ActionId): void {
 		this.bindings = resetBinding(this.bindings, id);
+		this.#save();
+	}
+
+	/** The overrides that would clash in `to`: the player picks "keep mine" or "use profile" for each. */
+	profileClashes(to: KeyProfile): ActionId[] {
+		return switchProfile(this.bindings, to).clashes;
+	}
+
+	/** Switch the key profile, keeping the overrides in `keep` (plan 216); dismisses the notice. */
+	setKeyProfile(to: KeyProfile, keep: readonly ActionId[] = []): void {
+		this.bindings = switchProfile(this.bindings, to, keep).bindings;
+		this.keyProfile = to;
+		this.keyNotice = false;
+		this.#save();
+	}
+
+	dismissKeyNotice(): void {
+		this.keyNotice = false;
 		this.#save();
 	}
 

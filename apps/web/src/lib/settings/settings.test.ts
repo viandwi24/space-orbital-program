@@ -24,16 +24,18 @@ const stubStorage = (initial: Record<string, string> = {}) => {
 describe('settings parsing', () => {
 	it('round trips', () => {
 		const s = {
-			v: 3 as const,
+			v: 4 as const,
 			units: 'imperial' as const,
 			tutorial: { status: 'active' as const, step: 3 },
-			bindings: { stage: ['KeyG'], help: ['F1'] },
+			bindings: { stage: ['KeyF'], help: ['F1'] },
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
 			touch: 'on' as const,
 			interface: { scale: 1.25, highContrast: true },
 			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
 			debug: true,
-			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false }
+			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false },
+			keyProfile: 'classic' as const,
+			keyNotice: true
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -43,7 +45,7 @@ describe('settings parsing', () => {
 		expect(parseSettings('{not json')).toEqual(d);
 		expect(parseSettings('[1,2]')).toEqual(d);
 		expect(parseSettings('"metric"')).toEqual(d);
-		expect(parseSettings(JSON.stringify({ v: 4, units: 'imperial' }))).toEqual(d);
+		expect(parseSettings(JSON.stringify({ v: 5, units: 'imperial' }))).toEqual(d);
 		expect(parseSettings(JSON.stringify({ units: 'imperial' }))).toEqual(d);
 	});
 	it('migrates format 1: units and tutorial kept, the new fields at their defaults', () => {
@@ -70,12 +72,28 @@ describe('settings parsing', () => {
 		};
 		expect(parseSettings(JSON.stringify(v2))).toEqual({
 			...v2,
-			v: 3,
+			v: 4,
 			interface: { scale: 1, highContrast: false },
 			dock: defaultDock(),
 			debug: false,
-			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true }
+			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true },
+			// it has overrides: the classic profile, and the notice offers KSP (plan 216)
+			keyProfile: 'classic',
+			keyNotice: true
 		});
+	});
+	it('format 3 migrates to 4 (plan 216): overrides keep classic, nothing changed gets ksp', () => {
+		const { keyProfile: _p, keyNotice: _n, ...rest } = defaultSettings();
+		const v3 = { ...rest, v: 3 };
+		const changed = parseSettings(JSON.stringify({ ...v3, bindings: { stage: ['KeyF'] } }));
+		expect(changed.v).toBe(4);
+		expect(changed.keyProfile).toBe('classic');
+		expect(changed.bindings).toEqual({ stage: ['KeyF'] });
+		expect(changed.keyNotice).toBe(true);
+		const plain = parseSettings(JSON.stringify(v3));
+		expect(plain.keyProfile).toBe('ksp');
+		expect(plain.keyNotice).toBe(false);
+		expect(plain.bindings).toEqual({});
 	});
 	it('a format 3 value without a dock, or with a damaged one, takes the default dock (plan 112)', () => {
 		const { dock: _dock, ...old } = defaultSettings();

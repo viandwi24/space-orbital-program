@@ -6,12 +6,15 @@
 		ACTIONS,
 		BINDING_MODE_LABEL,
 		FIXED_KEYS,
+		KEY_PROFILES,
+		KEY_PROFILE_LABEL,
 		actionSpec,
-		keyIdOf,
+		chordIdOf,
 		keyLabel,
 		scopeOf,
 		type ActionId,
-		type BindingMode
+		type BindingMode,
+		type KeyProfile
 	} from '../keybindings';
 	import { settings } from '../settings/settings.svelte';
 
@@ -29,12 +32,34 @@
 	}));
 	const groups = $derived.by(() => {
 		const out = new Map<string, (typeof ACTIONS)[number][]>();
-		for (const a of ACTIONS.filter((x) => x.mode === mode)) {
+		// an action a later plan wires is not listed until then (plan 216)
+		for (const a of ACTIONS.filter((x) => x.mode === mode && !('pending' in x))) {
 			out.set(a.group, [...(out.get(a.group) ?? []), a]);
 		}
 		return [...out];
 	});
-	const fixed = $derived(FIXED_KEYS.filter((f) => f.scope === scopeOf(mode)));
+	const fixed = $derived(
+		FIXED_KEYS.filter((f) => f.scope === scopeOf(mode) || (mode === 'map' && f.scope === 'flight'))
+	);
+
+	const profileOptions = KEY_PROFILES.map((p) => ({ value: p, label: KEY_PROFILE_LABEL[p] }));
+	/** A profile switch waiting for the player's answer on the overrides that clash in it. */
+	let pendingProfile = $state<{ to: KeyProfile; clashes: ActionId[]; keep: ActionId[] } | null>(
+		null
+	);
+	function chooseProfile(to: KeyProfile): void {
+		if (to === settings.keyProfile) return;
+		const clashes = settings.profileClashes(to);
+		if (clashes.length === 0) settings.setKeyProfile(to);
+		else pendingProfile = { to, clashes, keep: [] };
+	}
+	function toggleKeep(id: ActionId): void {
+		if (!pendingProfile) return;
+		const keep = pendingProfile.keep.includes(id)
+			? pendingProfile.keep.filter((k) => k !== id)
+			: [...pendingProfile.keep, id];
+		pendingProfile = { ...pendingProfile, keep };
+	}
 
 	function stop(): void {
 		capturing = null;
@@ -52,7 +77,7 @@
 		e.stopPropagation();
 		if (e.repeat) return;
 		if (e.key === 'Escape') return stop();
-		const key = keyIdOf(e);
+		const key = chordIdOf(e);
 		const id = capturing;
 		stop();
 		const result = settings.rebind(id, key);
@@ -80,8 +105,70 @@
 	const anyChanged = $derived(Object.keys(settings.bindings).length > 0);
 </script>
 
+{#if settings.keyNotice}
+	<div class="notice" role="status" data-testid="key-notice">
+		<span
+			>Orbital now uses KSP's keys by default. Your changed keys are kept on Orbital classic.</span
+		>
+		<Button onclick={() => chooseProfile('ksp')} data-testid="key-notice-switch"
+			>Switch to KSP</Button
+		>
+		<Button variant="ghost" onclick={() => settings.dismissKeyNotice()}>Keep Orbital classic</Button
+		>
+	</div>
+{/if}
+
 <div class="head">
-	<p class="note">Click a key to change it, then press the new one. Esc cancels.</p>
+	<Segmented
+		label="Key profile"
+		value={settings.keyProfile}
+		options={profileOptions}
+		onchange={(p: KeyProfile) => chooseProfile(p)}
+	/>
+</div>
+
+{#if pendingProfile}
+	<div
+		class="clashes"
+		role="group"
+		aria-label="Keys that clash in the new profile"
+		data-testid="profile-clashes"
+	>
+		<p>
+			These keys you changed clash with {KEY_PROFILE_LABEL[pendingProfile.to]}. Keep yours, or use
+			the profile's.
+		</p>
+		<ul>
+			{#each pendingProfile.clashes as id (id)}
+				<li>
+					<span class="what">{actionSpec(id).label}</span>
+					<span class="fixedkeys"
+						>{#each settings.bindings[id] ?? [] as k (k)}<Kbd>{keyLabel(k)}</Kbd>{/each}</span
+					>
+					<Button
+						variant={pendingProfile.keep.includes(id) ? 'primary' : 'ghost'}
+						onclick={() => toggleKeep(id)}
+						data-testid="profile-keep-{id}"
+						>{pendingProfile.keep.includes(id) ? 'Keep mine' : 'Use profile'}</Button
+					>
+				</li>
+			{/each}
+		</ul>
+		<Button
+			onclick={() => {
+				if (pendingProfile) settings.setKeyProfile(pendingProfile.to, pendingProfile.keep);
+				pendingProfile = null;
+			}}
+			data-testid="profile-apply">Switch to {KEY_PROFILE_LABEL[pendingProfile.to]}</Button
+		>
+		<Button variant="ghost" onclick={() => (pendingProfile = null)}>Cancel</Button>
+	</div>
+{/if}
+
+<div class="head">
+	<p class="note">
+		Click a key to change it, then press the new one (Ctrl and Alt make a chord). Esc cancels.
+	</p>
 	<Segmented
 		label="Which controls"
 		value={mode}
@@ -161,11 +248,28 @@
 	<Button
 		disabled={!anyChanged}
 		onclick={() => settings.resetAllBindings()}
-		data-testid="bind-reset-all">Reset all to defaults</Button
+		data-testid="bind-reset-all">Reset all to the profile's keys</Button
 	>
 </div>
 
 <style>
+	.notice,
+	.clashes {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--s-3);
+		margin-bottom: var(--s-3);
+		padding: var(--s-2) var(--s-3);
+		font-size: var(--t-sm);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--r-control);
+	}
+	.clashes ul,
+	.clashes p {
+		width: 100%;
+		margin: 0;
+	}
 	.head {
 		display: flex;
 		flex-wrap: wrap;

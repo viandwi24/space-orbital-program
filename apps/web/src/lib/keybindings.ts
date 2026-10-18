@@ -7,11 +7,27 @@
  * A key id is `KeyboardEvent.code` for letters, digits and named keys (`KeyW`, `Digit1`, `Space`,
  * `F5`), the character itself for punctuation (`,` `.` `/` `?` `[` `]`, so it follows the layout,
  * as the flight handler always did for comma and period), and the right-hand modifier is folded onto
- * the left one.
+ * the left one. A chord (plan 216, ADR 0206) puts the held modifiers in front: `Alt+Digit1`,
+ * `Ctrl+KeyM` (Shift is never a chord modifier: it is the throttle).
+ *
+ * Key profiles (plan 216, ADR 0206): `ksp`, the default, follows KSP; `classic` keeps the keys of
+ * Orbital before plan 216. A profile is a full default table; the player's overrides apply on top.
  */
 export type BindingMode = 'flight' | 'map' | 'vab';
-/** Actions in the flight and map modes are active together, so they share one clash scope. */
-export type BindingScope = 'flight' | 'vab';
+/**
+ * Clash scopes. Map keys act only in the map with a node selected, before the flight keys, so they
+ * may share keys with flight actions (plan 216: I is a node key and RCS translation).
+ */
+export type BindingScope = 'flight' | 'map' | 'vab';
+
+export const KEY_PROFILES = ['ksp', 'classic'] as const;
+export type KeyProfile = (typeof KEY_PROFILES)[number];
+export const KEY_PROFILE_LABEL: Record<KeyProfile, string> = {
+	ksp: 'KSP',
+	classic: 'Orbital classic'
+};
+/** What a new player gets (settings format 4). The functions below default to `classic`, the table of `ACTIONS`. */
+export const DEFAULT_KEY_PROFILE: KeyProfile = 'ksp';
 
 export const BINDING_MODE_LABEL: Record<BindingMode, string> = {
 	flight: 'Flight',
@@ -19,7 +35,7 @@ export const BINDING_MODE_LABEL: Record<BindingMode, string> = {
 	vab: 'Vehicle assembly'
 };
 
-export const scopeOf = (mode: BindingMode): BindingScope => (mode === 'vab' ? 'vab' : 'flight');
+export const scopeOf = (mode: BindingMode): BindingScope => mode;
 
 export interface ActionSpec {
 	id: string;
@@ -30,6 +46,11 @@ export interface ActionSpec {
 	defaults: readonly string[];
 	/** Works on every page (the sound mute): its keys clash with the keys of every scope. */
 	global?: boolean;
+	/**
+	 * Declared for a later plan that binds its handler (plan 216: RCS, vessel switching, camera
+	 * modes, ...). Hidden from the controls list and the help until then.
+	 */
+	pending?: boolean;
 }
 
 const flight = (group: string, id: string, label: string, ...defaults: string[]): ActionSpec => ({
@@ -38,6 +59,11 @@ const flight = (group: string, id: string, label: string, ...defaults: string[])
 	group,
 	label,
 	defaults
+});
+/** An action a later plan wires (`ActionSpec.pending`). */
+const later = (group: string, id: string, label: string, ...defaults: string[]): ActionSpec => ({
+	...flight(group, id, label, ...defaults),
+	pending: true
 });
 const map = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
 	id,
@@ -123,6 +149,30 @@ export const ACTIONS = [
 		defaults: ['KeyN'],
 		global: true
 	},
+	// Plan 216 (ADR 0206): keys the KSP profile has, for the plans that wire them
+	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
+	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
+	later('Fly', 'abort', 'Abort', 'Backspace'),
+	later('Fly', 'precision', 'Fine control', 'CapsLock'),
+	later('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
+	later('RCS', 'translateForward', 'Translate forward', 'KeyH'),
+	later('RCS', 'translateBack', 'Translate back'),
+	later('RCS', 'translateLeft', 'Translate left', 'KeyJ'),
+	later('RCS', 'translateRight', 'Translate right', 'KeyL'),
+	later('RCS', 'translateDown', 'Translate down', 'KeyI'),
+	later('RCS', 'translateUp', 'Translate up', 'KeyK'),
+	later('Aircraft', 'trimYawLeft', 'Trim yaw left', 'Alt+KeyA'),
+	later('Aircraft', 'trimYawRight', 'Trim yaw right', 'Alt+KeyD'),
+	later('Aircraft', 'trimRollLeft', 'Trim roll left', 'Alt+KeyQ'),
+	later('Aircraft', 'trimRollRight', 'Trim roll right', 'Alt+KeyE'),
+	later('Aircraft', 'trimReset', 'Reset the trim', 'Alt+KeyX'),
+	later('See', 'vesselNext', 'Next vessel', 'PageDown'),
+	later('See', 'vesselPrev', 'Previous vessel', 'PageUp'),
+	later('See', 'cameraMode', 'Camera mode'),
+	later('See', 'cameraReset', 'Reset the camera', '`'),
+	later('See', 'hideUi', 'Hide the interface', 'F2'),
+	later('See', 'screenshot', 'Screenshot', 'F10'),
+	later('Time and menus', 'stopWarp', 'Stop time warp', '/'),
 	map('mapFocus', 'Look at the next body', 'Tab'),
 	map('nodePrograde', 'Selected node: prograde up', 'KeyI'),
 	map('nodeRetrograde', 'Selected node: prograde down', 'KeyK'),
@@ -148,9 +198,49 @@ export const ACTIONS = [
 
 export type ActionId = (typeof ACTIONS)[number]['id'];
 
+/**
+ * Where the KSP profile differs from `ACTIONS` (whose defaults are the classic profile; ADR 0206):
+ * brakes on B, action groups on the digits, SAS modes and the trim on Alt, the vessel keys on the
+ * brackets, the camera on V and translate-back on N, so the mute moves to Ctrl+M and the speed
+ * reference to a click on its read-out.
+ */
+const KSP_DEFAULTS: Partial<Record<string, readonly string[]>> = {
+	brakes: ['KeyB'],
+	sasHold: ['Alt+Digit1'],
+	sasPrograde: ['Alt+Digit2'],
+	sasRetrograde: ['Alt+Digit3'],
+	sasNormal: ['Alt+Digit4'],
+	sasAntinormal: ['Alt+Digit5'],
+	sasRadialOut: ['Alt+Digit6'],
+	sasRadialIn: ['Alt+Digit7'],
+	sasManeuver: ['Alt+Digit8'],
+	sasTarget: ['Alt+Digit9'],
+	sasAntiTarget: ['Alt+Digit0'],
+	...Object.fromEntries(
+		Array.from({ length: 10 }, (_, i) => [
+			`customGroup${i + 1}`,
+			[`Digit${(i + 1) % 10}`, `Numpad${(i + 1) % 10}`]
+		])
+	),
+	trimUp: ['Alt+KeyS'],
+	trimDown: ['Alt+KeyW'],
+	speedMode: [],
+	mute: ['Ctrl+KeyM'],
+	translateBack: ['KeyN'],
+	vesselNext: [']'],
+	vesselPrev: ['['],
+	cameraMode: ['KeyV']
+};
+
+/** The defaults of an action in a profile. */
+export function profileDefaults(profile: KeyProfile, id: ActionId): readonly string[] {
+	const spec = actionSpec(id);
+	return (profile === 'ksp' ? KSP_DEFAULTS[id] : undefined) ?? spec.defaults;
+}
+
 /** The clash scopes an action's keys occupy. */
 const slotsOf = (a: ActionSpec): BindingScope[] =>
-	a.global ? ['flight', 'vab'] : [scopeOf(a.mode)];
+	a.global ? ['flight', 'map', 'vab'] : [scopeOf(a.mode)];
 
 const BY_ID = new Map<string, ActionSpec>(ACTIONS.map((a) => [a.id, a]));
 /** The slot (1..10) of a custom-group action, or undefined (plan 110). */
@@ -167,10 +257,9 @@ export type Bindings = Partial<Record<ActionId, readonly string[]>>;
 /** Every action with its keys. */
 export type KeyTable = Record<ActionId, readonly string[]>;
 
-/** Key ids no action may take: they have fixed jobs (pause menu, camera, second Delete). */
+/** Key ids no action may take: they have fixed jobs (pause menu, camera). Backspace is Abort since plan 216. */
 export const RESERVED_KEYS: readonly string[] = [
 	'Escape',
-	'Backspace',
 	'ArrowLeft',
 	'ArrowRight',
 	'ArrowUp',
@@ -209,6 +298,32 @@ export function keyIdOf(e: { key: string; code: string }): string {
 	return FOLD[e.code] ?? e.code;
 }
 
+const MODIFIER_KEYS = new Set(['ShiftLeft', 'ControlLeft', 'AltLeft', 'MetaLeft']);
+const CHORD = /^((?:Ctrl|Alt|Cmd)\+)+/;
+
+/**
+ * The chord id of a keyboard event: the key id with the held Ctrl, Alt and Cmd in front, in that
+ * order (`Alt+Digit1`). A modifier pressed on its own is its plain key id. Alt and Option change the
+ * character on macOS, so a chord's key is always the `code` (letters, digits) or the unshifted
+ * punctuation of the key id.
+ */
+export function chordIdOf(e: {
+	key: string;
+	code: string;
+	ctrlKey?: boolean;
+	altKey?: boolean;
+	metaKey?: boolean;
+}): string {
+	const base = FOLD[e.code] ?? e.code;
+	if (MODIFIER_KEYS.has(base)) return base;
+	const mods = `${e.ctrlKey ? 'Ctrl+' : ''}${e.altKey ? 'Alt+' : ''}${e.metaKey ? 'Cmd+' : ''}`;
+	// with a modifier the character is unreliable (Option+2 types ™): use the code
+	return mods === '' ? keyIdOf(e) : mods + base;
+}
+
+/** The key of a chord without its modifiers (`Alt+KeyW` → `KeyW`). */
+export const chordKey = (id: string): string => id.replace(CHORD, '');
+
 const NAMED: Record<string, string> = {
 	ShiftLeft: 'Shift',
 	ControlLeft: 'Ctrl',
@@ -223,23 +338,39 @@ const NAMED: Record<string, string> = {
 
 /** What the player sees on the key cap. */
 export function keyLabel(id: string): string {
+	const mods = CHORD.exec(id)?.[0];
+	if (mods && id.length > mods.length) return mods + keyLabel(id.slice(mods.length));
 	const named = NAMED[id];
 	if (named) return named;
 	if (/^Key[A-Z]$/.test(id)) return id.slice(3);
 	if (/^Digit\d$/.test(id)) return id.slice(5);
 	if (/^Numpad\d$/.test(id)) return `Num ${id.slice(6)}`;
+	if (id === 'CapsLock') return 'Caps Lock';
+	if (id === 'PageUp') return 'Page Up';
+	if (id === 'PageDown') return 'Page Down';
 	return id;
 }
 
-/** True for what the capture field may store: a real key id, not reserved, not a bare Meta. */
+/** True for what the capture field may store: a real key id or chord, not reserved, not a bare Meta. */
 export function bindableKey(id: string): boolean {
-	return id.length > 0 && id.length <= 24 && !RESERVED_KEYS.includes(id) && id !== 'MetaLeft';
+	const key = chordKey(id);
+	return (
+		id.length > 0 &&
+		id.length <= 32 &&
+		key.length > 0 &&
+		!RESERVED_KEYS.includes(key) &&
+		key !== 'MetaLeft'
+	);
 }
 
-/** The defaults, or the overrides where the player changed an action. */
-export function resolveBindings(overrides: Bindings = {}): KeyTable {
+/** The profile's defaults, or the overrides where the player changed an action. */
+export function resolveBindings(
+	overrides: Bindings = {},
+	profile: KeyProfile = 'classic'
+): KeyTable {
 	const table = {} as Record<string, readonly string[]>;
-	for (const a of ACTIONS) table[a.id] = overrides[a.id as ActionId] ?? a.defaults;
+	for (const a of ACTIONS)
+		table[a.id] = overrides[a.id as ActionId] ?? profileDefaults(profile, a.id as ActionId);
 	return table as KeyTable;
 }
 
@@ -270,13 +401,14 @@ export function bindingClashes(table: KeyTable): string[] {
 	return out;
 }
 
-/** Drop overrides equal to the defaults so the stored value only holds real changes. */
-function normalise(overrides: Bindings): Bindings {
+/** Drop overrides equal to the profile's defaults so the stored value only holds real changes. */
+function normalise(overrides: Bindings, profile: KeyProfile): Bindings {
 	const out: Bindings = {};
 	for (const a of ACTIONS) {
 		const keys = overrides[a.id as ActionId];
 		if (keys === undefined) continue;
-		if (keys.length === a.defaults.length && keys.every((k, i) => k === a.defaults[i])) continue;
+		const defaults = profileDefaults(profile, a.id as ActionId);
+		if (keys.length === defaults.length && keys.every((k, i) => k === defaults[i])) continue;
 		out[a.id as ActionId] = keys;
 	}
 	return out;
@@ -288,19 +420,29 @@ export type RebindResult =
 	| { ok: false; reason: 'clash'; with: ActionId };
 
 /** Give `id` the single key `key`. A key another action of the same scope uses is a clash. */
-export function rebind(bindings: Bindings, id: ActionId, key: string): RebindResult {
+export function rebind(
+	bindings: Bindings,
+	id: ActionId,
+	key: string,
+	profile: KeyProfile = 'classic'
+): RebindResult {
 	if (!bindableKey(key)) return { ok: false, reason: 'reserved' };
-	const clash = findClash(resolveBindings(bindings), id, key);
+	const clash = findClash(resolveBindings(bindings, profile), id, key);
 	if (clash !== null) return { ok: false, reason: 'clash', with: clash };
-	return { ok: true, bindings: normalise({ ...bindings, [id]: [key] }) };
+	return { ok: true, bindings: normalise({ ...bindings, [id]: [key] }, profile) };
 }
 
 /** `id` takes `key`, and the action that had it takes all of `id`'s previous keys. */
-export function swapBindings(bindings: Bindings, id: ActionId, key: string): Bindings {
-	const table = resolveBindings(bindings);
+export function swapBindings(
+	bindings: Bindings,
+	id: ActionId,
+	key: string,
+	profile: KeyProfile = 'classic'
+): Bindings {
+	const table = resolveBindings(bindings, profile);
 	const other = findClash(table, id, key);
-	if (other === null) return normalise({ ...bindings, [id]: [key] });
-	return normalise({ ...bindings, [id]: [key], [other]: table[id] });
+	if (other === null) return normalise({ ...bindings, [id]: [key] }, profile);
+	return normalise({ ...bindings, [id]: [key], [other]: table[id] }, profile);
 }
 
 export function resetBinding(bindings: Bindings, id: ActionId): Bindings {
@@ -309,11 +451,50 @@ export function resetBinding(bindings: Bindings, id: ActionId): Bindings {
 	return next;
 }
 
+/** The overrides that clash in `profile` (each is involved in a clash with another action). */
+export function clashingOverrides(bindings: Bindings, profile: KeyProfile): ActionId[] {
+	const table = resolveBindings(bindings, profile);
+	return ACTIONS.filter(
+		(a) =>
+			bindings[a.id as ActionId] !== undefined &&
+			table[a.id as ActionId].some((k) => findClash(table, a.id as ActionId, k) !== null)
+	).map((a) => a.id as ActionId);
+}
+
+/**
+ * Switch the profile (plan 216): every override that does not clash in the new profile stays. The
+ * ones that do are listed for the player, who keeps each (and the other action falls back to the
+ * profile) or takes the profile's keys; `keep` names the overrides to keep.
+ */
+export function switchProfile(
+	bindings: Bindings,
+	to: KeyProfile,
+	keep: readonly ActionId[] = []
+): { bindings: Bindings; clashes: ActionId[] } {
+	const clashes = clashingOverrides(bindings, to);
+	let next: Bindings = normalise(bindings, to);
+	for (const id of clashes) {
+		if (keep.includes(id)) {
+			// the player keeps this key: the other action keeps the profile's other keys, if it has any
+			const table = resolveBindings(next, to);
+			for (const key of next[id] ?? []) {
+				const other = findClash(table, id, key);
+				const rest = other === null ? [] : table[other].filter((k) => k !== key);
+				if (other !== null && rest.length > 0) next = { ...next, [other]: rest };
+			}
+		} else next = resetBinding(next, id);
+	}
+	return { bindings: repairBindings(next as Record<string, unknown>, to), clashes };
+}
+
 /**
  * A stored value made safe (ADR 0061, point 4): unknown actions, empty or reserved keys and
  * overrides that clash with another action fall back to that action's defaults.
  */
-export function repairBindings(raw: Readonly<Record<string, unknown>>): Bindings {
+export function repairBindings(
+	raw: Readonly<Record<string, unknown>>,
+	profile: KeyProfile = 'classic'
+): Bindings {
 	let candidate: Bindings = {};
 	for (const a of ACTIONS) {
 		const value = raw[a.id];
@@ -322,22 +503,19 @@ export function repairBindings(raw: Readonly<Record<string, unknown>>): Bindings
 		if (keys.length === 0 || !keys.every(bindableKey)) continue;
 		candidate[a.id as ActionId] = keys;
 	}
-	candidate = normalise(candidate);
+	candidate = normalise(candidate, profile);
 	// Drop the overrides involved in a clash until none is left (the defaults do not clash).
 	for (let guard = 0; guard < ACTIONS.length; guard++) {
-		const table = resolveBindings(candidate);
-		const bad = ACTIONS.find(
-			(a) =>
-				candidate[a.id as ActionId] !== undefined &&
-				table[a.id as ActionId].some((k) => findClash(table, a.id as ActionId, k) !== null)
-		);
-		if (!bad) break;
-		candidate = resetBinding(candidate, bad.id as ActionId);
+		const bad = clashingOverrides(candidate, profile)[0];
+		if (bad === undefined) break;
+		candidate = resetBinding(candidate, bad);
 	}
 	return candidate;
 }
 
 export interface Keymap {
+	/** The profile under the player's overrides. */
+	readonly profile: KeyProfile;
 	keys(id: ActionId): readonly string[];
 	/** The action a key id triggers in a scope, or null. */
 	actionFor(scope: BindingScope, key: string): ActionId | null;
@@ -347,14 +525,15 @@ export interface Keymap {
 	labels(id: ActionId): string[];
 }
 
-export function createKeymap(bindings: Bindings = {}): Keymap {
-	const table = resolveBindings(bindings);
+export function createKeymap(bindings: Bindings = {}, profile: KeyProfile = 'classic'): Keymap {
+	const table = resolveBindings(bindings, profile);
 	const lookup = new Map<string, ActionId>();
 	for (const a of ACTIONS) {
 		for (const k of table[a.id as ActionId])
 			for (const scope of slotsOf(a)) lookup.set(`${scope}:${k}`, a.id as ActionId);
 	}
 	return {
+		profile,
 		keys: (id) => table[id],
 		actionFor: (scope, key) => lookup.get(`${scope}:${key}`) ?? null,
 		label: (id) => (table[id][0] === undefined ? '' : keyLabel(table[id][0])),
@@ -393,7 +572,8 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['pitchPlus', 'pitchMinus'], text: 'Pitch' },
 			{ actions: ['yawMinus', 'yawPlus'], text: 'Yaw' },
 			{ actions: ['rollMinus', 'rollPlus'], text: 'Roll' },
-			{ actions: ['stage'], text: 'Fire the next stage' }
+			{ actions: ['stage'], text: 'Fire the next stage' },
+			{ actions: ['gear', 'lights'], text: 'Landing gear, lights' }
 		]
 	},
 	{

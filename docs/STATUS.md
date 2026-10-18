@@ -162,7 +162,7 @@
 | 213 | [Tank transfer, flow locks, rates](plans/213-tank-transfer-and-flow.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208]. |
 | 214 | [Vessel panel v2 and the part inspector](plans/214-vessel-panel-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204, 213]. |
 | 215 | [HUD layout spec and stable camera framing](plans/215-hud-layout-spec.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
-| 216 | [Key profiles: KSP-compatible default and Orbital classic](plans/216-key-profiles.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 216 | [Key profiles: KSP-compatible default and Orbital classic](plans/216-key-profiles.md) | in-progress | Worker A | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 217 | [Hangar: carry loop, symmetry, rotation, turntable camera](plans/217-hangar-carry-loop.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 218 | [Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report](plans/218-hangar-inspector-groups-report.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [214, 217, 208]. |
 | 219 | [Procedural fairings and interstages](plans/219-procedural-fairings.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [217, 207]. |

@@ -1,13 +1,19 @@
 /**
  * Player settings that are not graphics (plan 023, ADR 0060; format 2 by plan 053, ADR 0061; format 3
- * by plan 086): display units, the first-flight tutorial, key bindings, audio volumes, the touch-controls
+ * by plan 086, format 4 by plan 216): display units, the first-flight tutorial, key bindings, audio volumes, the touch-controls
  * choice and the interface (UI scale, high contrast), as one versioned, validated JSON value in localStorage. The graphics preset
  * and the automatic quality switch keep their own keys (`graphics.ts`, plan 019/039) so a profile
  * from an earlier build keeps its choices. Everything read from storage is parsed, never asserted.
  */
 import { defaultDock, type DockChoice } from '../dock/dock-model';
 import { z } from 'zod';
-import { repairBindings, type Bindings } from '../keybindings';
+import {
+	DEFAULT_KEY_PROFILE,
+	KEY_PROFILES,
+	repairBindings,
+	type Bindings,
+	type KeyProfile
+} from '../keybindings';
 
 export const SETTINGS_KEY = 'orbital.settings';
 
@@ -99,11 +105,21 @@ const settingsV3 = z.object({
 	time: timeSchema
 });
 
+/**
+ * Format 4 (plan 216, ADR 0206): format 3 plus the key profile and whether the one-time notice that
+ * offers the KSP profile is still to show (a player moved to `classic` by the migration).
+ */
+const settingsV4 = settingsV3.extend({
+	v: z.literal(4),
+	keyProfile: z.enum(KEY_PROFILES).catch(DEFAULT_KEY_PROFILE),
+	keyNotice: z.boolean().catch(false)
+});
+
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
 const settingsV1 = z.object({ v: z.literal(1), units: unitsSchema, tutorial: tutorialSchema });
 
 export interface Settings {
-	v: 3;
+	v: 4;
 	units: 'metric' | 'imperial';
 	tutorial: { status: (typeof TUTORIAL_STATUS)[number]; step: number };
 	/** Only what the player changed (ADR 0061). */
@@ -115,13 +131,17 @@ export interface Settings {
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */
 	debug: boolean;
 	time: TimeSettings;
+	/** The key profile under `bindings` (plan 216): KSP for new players. */
+	keyProfile: KeyProfile;
+	/** Show once: "Orbital now uses KSP keys; switch?" (a player migrated to `classic`). */
+	keyNotice: boolean;
 }
 export type TutorialProgress = Settings['tutorial'];
 export type AudioSettings = Settings['audio'];
 export type InterfaceSettings = Settings['interface'];
 
 export const defaultSettings = (): Settings => ({
-	v: 3,
+	v: 4,
 	units: 'metric',
 	tutorial: { status: 'pending', step: 0 },
 	bindings: {},
@@ -130,8 +150,24 @@ export const defaultSettings = (): Settings => ({
 	interface: { ...DEFAULT_INTERFACE },
 	dock: defaultDock(),
 	debug: false,
-	time: defaultTime()
+	time: defaultTime(),
+	keyProfile: DEFAULT_KEY_PROFILE,
+	keyNotice: false
 });
+
+/**
+ * A player who changed keys before plan 216 keeps their hands: `classic` with the same overrides,
+ * and the notice offers KSP once. A player who changed nothing gets KSP (ADR 0206).
+ */
+function profileFor(bindings: Readonly<Record<string, unknown>>): {
+	keyProfile: KeyProfile;
+	keyNotice: boolean;
+} {
+	const changed = Object.keys(repairBindings(bindings, 'classic')).length > 0;
+	return changed
+		? { keyProfile: 'classic', keyNotice: true }
+		: { keyProfile: 'ksp', keyNotice: false };
+}
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */
 export function parseSettings(text: string | null): Settings {
@@ -142,19 +178,33 @@ export function parseSettings(text: string | null): Settings {
 	} catch {
 		return defaultSettings();
 	}
+	const v4 = settingsV4.safeParse(raw);
+	if (v4.success)
+		return { ...v4.data, bindings: repairBindings(v4.data.bindings, v4.data.keyProfile) };
 	const v3 = settingsV3.safeParse(raw);
-	if (v3.success) return { ...v3.data, bindings: repairBindings(v3.data.bindings) };
+	if (v3.success) {
+		const profile = profileFor(v3.data.bindings);
+		return {
+			...v3.data,
+			v: 4,
+			...profile,
+			bindings: repairBindings(v3.data.bindings, profile.keyProfile)
+		};
+	}
 	const v2 = settingsV2.safeParse(raw);
-	if (v2.success)
+	if (v2.success) {
+		const profile = profileFor(v2.data.bindings);
 		return {
 			...v2.data,
-			v: 3,
-			bindings: repairBindings(v2.data.bindings),
+			v: 4,
+			...profile,
+			bindings: repairBindings(v2.data.bindings, profile.keyProfile),
 			interface: { ...DEFAULT_INTERFACE },
 			dock: defaultDock(),
 			debug: false,
 			time: defaultTime()
 		};
+	}
 	const v1 = settingsV1.safeParse(raw);
 	return v1.success
 		? { ...defaultSettings(), units: v1.data.units, tutorial: v1.data.tutorial }

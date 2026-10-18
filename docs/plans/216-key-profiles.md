@@ -1,12 +1,12 @@
 ---
 id: 216
 title: "Key profiles: KSP-compatible default and Orbital classic"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 216 — Key profiles: KSP-compatible default and Orbital classic

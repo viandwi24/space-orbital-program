@@ -15,7 +15,7 @@
 	import { onMount } from 'svelte';
 	import { applyAudioSettings, pageAudio } from '../lib/audio/audio';
 	import { detectInBrowser, missingFeatures } from '../lib/browser-support';
-	import { keyIdOf } from '../lib/keybindings';
+	import { chordIdOf } from '../lib/keybindings';
 	import { settings } from '../lib/settings/settings.svelte';
 	import BrowserNotice from '../lib/ui/BrowserNotice.svelte';
 	import ErrorScreen from '../lib/ui/ErrorScreen.svelte';
@@ -42,8 +42,10 @@
 		};
 		// The mute key works on every page, and it says what it did.
 		const onKey = (e: KeyboardEvent): void => {
-			if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing(e)) return;
-			if (settings.keymap.actionFor('flight', keyIdOf(e)) !== 'mute') return;
+			if (e.repeat || typing(e)) return;
+			// a chord since plan 216 (Ctrl+M in the KSP profile); a plain key only without modifiers
+			if (settings.keymap.actionFor('flight', chordIdOf(e)) !== 'mute') return;
+			e.preventDefault();
 			settings.setAudio({ muted: !settings.audio.muted });
 			note = settings.audio.muted ? 'Sound muted' : 'Sound on';
 			clearTimeout(noteTimer);

@@ -56,6 +56,7 @@ import {
 import { modeForAction } from './hud/sas-model';
 import {
 	DEFAULT_KEYMAP,
+	chordIdOf,
 	keyIdOf,
 	type ActionId,
 	type Keymap,
@@ -545,8 +546,18 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 		if (modal || e.repeat || typingInField(e)) return;
 		const id = keyIdOf(e);
-		const action = keymap().actionFor('flight', id);
-		held.add(id);
+		const chord = chordIdOf(e);
+		const km = keymap();
+		// Map keys first, and only in the map (plan 216): a node key with no node selected falls through.
+		if (renderer?.isMapView) {
+			const mapAction = km.actionFor('map', chord) ?? km.actionFor('map', id);
+			if (mapAction && mapKey(mapAction, e)) return;
+		}
+		// A chord bound to an action is that action; an unbound chord is its plain key (Alt+W pitches).
+		const chordAction = chord === id ? null : km.actionFor('flight', chord);
+		const action = chordAction ?? km.actionFor('flight', id);
+		if (chordAction) e.preventDefault();
+		else held.add(id);
 		switch (action) {
 			case 'quicksave':
 			case 'quickload':
@@ -607,15 +618,19 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'brakes':
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.brakes' });
 				break;
+			case 'gear':
+				if (vessel !== null)
+					void send({ type: 'action-group', vessel, group: 'stock.landing-gear' });
+				break;
+			case 'lights':
+				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.lights' });
+				break;
+			case 'abort':
+				// Abort is a later plan's; in the map it still removes the selected node (ADR 0061)
+				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
+				break;
 			case 'map':
 				toggleMap();
-				break;
-			case 'mapFocus':
-				// In map view this looks at the next body (the vessel's own sphere first); elsewhere it is Tab.
-				if (renderer?.isMapView) {
-					e.preventDefault();
-					cycleMapFocus(e.shiftKey ? -1 : 1);
-				}
 				break;
 			case 'speedMode':
 				hudCtl?.cycleSpeedMode();
@@ -629,15 +644,6 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'warpUp':
 				setWarp(warpIndex + 1);
 				break;
-			case 'nodePrograde':
-			case 'nodeRetrograde':
-			case 'nodeNormal':
-			case 'nodeAntinormal':
-			case 'nodeRadialOut':
-			case 'nodeRadialIn':
-			case 'nodeDelete':
-				if (maneuverCtl?.key(action, { shift: e.shiftKey, alt: e.altKey })) e.preventDefault();
-				break;
 			case null:
 				if (import.meta.env.DEV && id === 'KeyP') void toggleAutopilot();
 				// Backspace is a fixed second key for removing the selected node (ADR 0061).
@@ -647,6 +653,28 @@ export function startFlight(options: FlightOptions): Flight {
 				const sasMode = modeForAction(action, hud.model?.sas?.mode ?? 'off');
 				if (sasMode !== null) setSas(sasMode);
 			}
+		}
+	}
+	/** A map-scope key in the map view: true when it did something (plan 216: node keys need a node). */
+	function mapKey(action: ActionId, e: KeyboardEvent): boolean {
+		switch (action) {
+			case 'mapFocus':
+				// look at the next body (the vessel's own sphere first)
+				e.preventDefault();
+				cycleMapFocus(e.shiftKey ? -1 : 1);
+				return true;
+			case 'nodePrograde':
+			case 'nodeRetrograde':
+			case 'nodeNormal':
+			case 'nodeAntinormal':
+			case 'nodeRadialOut':
+			case 'nodeRadialIn':
+			case 'nodeDelete':
+				if (!maneuverCtl?.key(action, { shift: e.shiftKey, alt: e.altKey })) return false;
+				e.preventDefault();
+				return true;
+			default:
+				return false;
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
