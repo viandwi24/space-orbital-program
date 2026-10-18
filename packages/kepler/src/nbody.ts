@@ -120,6 +120,83 @@ export function integrateNBody(
 	};
 }
 
+/**
+ * One accepted Bulirsch–Stoer step from `state` at `t`, trying `h` first and cutting it until the step
+ * converges (the sim's dense rails, ADR 0122 point 3): the state at `t + step` and the next step.
+ */
+export function nBodyStep(
+	field: NBodyField,
+	state: StateVector,
+	t: number,
+	h: number,
+	options: IntegrateOptions = {}
+): { r: Vec3; v: Vec3; step: number; next: number; evaluations: number } {
+	const tol = options.tolerance ?? 1e-12;
+	let evaluations = 0;
+	const deriv = (tau: number, s: Y): Y => {
+		evaluations++;
+		const a = nBodyAcceleration(field, tau, { x: s[0], y: s[1], z: s[2] });
+		return [s[3], s[4], s[5], a.x, a.y, a.z];
+	};
+	const y: Y = [state.r.x, state.r.y, state.r.z, state.v.x, state.v.y, state.v.z];
+	const d = Math.hypot(y[0], y[1], y[2]);
+	const hMax = options.maxStep ?? (2 * Math.PI * Math.sqrt((d * d * d) / field.mu)) / 20;
+	let H = Math.min(h > 0 ? h : hMax / 5, hMax);
+	for (let guard = 0; guard < 200; guard++) {
+		const out = bsStep(deriv, t, y, H, tol);
+		if (out.ok) {
+			const z = out.y;
+			return {
+				r: { x: z[0], y: z[1], z: z[2] },
+				v: { x: z[3], y: z[4], z: z[5] },
+				step: H,
+				next: Math.min(out.next, hMax),
+				evaluations
+			};
+		}
+		H = out.next;
+	}
+	throw new RangeError('nBodyStep: the step did not converge');
+}
+
+/**
+ * Position and velocity between two states of a trajectory (quintic Hermite from positions,
+ * velocities and accelerations at both ends): the dense output of numeric rails.
+ */
+export function hermiteState(
+	a: { r: Vec3; v: Vec3; acc: Vec3; t: number },
+	b: { r: Vec3; v: Vec3; acc: Vec3; t: number },
+	t: number
+): StateVector {
+	const h = b.t - a.t;
+	const s = (t - a.t) / h;
+	const s2 = s * s;
+	const s3 = s2 * s;
+	const s4 = s3 * s;
+	const s5 = s4 * s;
+	// quintic Hermite basis and its derivative in s
+	const h0 = 1 - 10 * s3 + 15 * s4 - 6 * s5;
+	const h1 = s - 6 * s3 + 8 * s4 - 3 * s5;
+	const h2 = 0.5 * s2 - 1.5 * s3 + 1.5 * s4 - 0.5 * s5;
+	const h3 = 0.5 * s3 - s4 + 0.5 * s5;
+	const h4 = -4 * s3 + 7 * s4 - 3 * s5;
+	const h5 = 10 * s3 - 15 * s4 + 6 * s5;
+	const d0 = -30 * s2 + 60 * s3 - 30 * s4;
+	const d1 = 1 - 18 * s2 + 32 * s3 - 15 * s4;
+	const d2 = s - 4.5 * s2 + 6 * s3 - 2.5 * s4;
+	const d3 = 1.5 * s2 - 4 * s3 + 2.5 * s4;
+	const d4 = -12 * s2 + 28 * s3 - 15 * s4;
+	const d5 = 30 * s2 - 60 * s3 + 30 * s4;
+	const axis = (k: 'x' | 'y' | 'z'): [number, number] => [
+		h0 * a.r[k] + h1 * h * a.v[k] + h2 * h * h * a.acc[k] + h3 * h * h * b.acc[k] + h4 * h * b.v[k] + h5 * b.r[k],
+		(d0 * a.r[k] + d1 * h * a.v[k] + d2 * h * h * a.acc[k] + d3 * h * h * b.acc[k] + d4 * h * b.v[k] + d5 * b.r[k]) / h
+	];
+	const [rx, vx] = axis('x');
+	const [ry, vy] = axis('y');
+	const [rz, vz] = axis('z');
+	return { r: { x: rx, y: ry, z: rz }, v: { x: vx, y: vy, z: vz } };
+}
+
 /** Gragg's modified midpoint over `n` substeps of a step `H`. */
 function midpoint(deriv: (t: number, s: Y) => Y, t: number, y: Y, d0: Y, H: number, n: number): Y {
 	const h = H / n;

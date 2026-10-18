@@ -92,7 +92,9 @@ const railsCheck = orNull(
 			elements: shape({ a: num, e: num, i: num, raan: num, argp: num, m0: num, epoch: num })
 		}),
 		state: shape({ r: vec3, v: vec3, t0: num }),
-		surface: shape({ r: vec3, q: quat })
+		surface: shape({ r: vec3, q: quat }),
+		// an n-body world (plan 125, ADR 0122 point 8)
+		numeric: shape({ r: vec3, v: vec3, t0: num, h: num })
 	})
 );
 

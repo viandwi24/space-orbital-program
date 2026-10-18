@@ -26,8 +26,8 @@ export const worldDataSchema = z.object({
 });
 
 /**
- * The world fields of a run (plan 077, ADRs 0094, 0095, 0110). `gravityModel` names `n-body` so
- * the refusal can say why: no build accepts it until draft 125 ships.
+ * The world fields of a run (plan 077, ADRs 0094, 0095, 0110). `gravityModel` is `patched` or, since
+ * plan 125 (ADR 0122), `n-body`.
  */
 export const worldInfoSchema = z.object({
 	id: z.string().min(1),
@@ -35,9 +35,7 @@ export const worldInfoSchema = z.object({
 	systemId: z.string().min(1),
 	systemVersion: z.string(),
 	variant: z.string().min(1),
-	gravityModel: z
-		.enum(['patched', 'n-body'])
-		.refine((g) => g === 'patched', 'n-body worlds are not available yet'),
+	gravityModel: z.enum(['patched', 'n-body']),
 	epoch: z.object({
 		day: z.int(),
 		fraction: z.number().min(0).lt(1)

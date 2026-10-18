@@ -83,24 +83,18 @@ describe('trajectory goldens (plan 080)', () => {
 });
 
 describe('gravity model (plan 080)', () => {
-	test('createSim with an n-body world throws a SaveError (incompatible): not available yet', async () => {
+	test('an n-body world gets the n-body provider (plan 125, ADR 0122)', async () => {
 		const { createSim } = await import('../src/index.ts');
-		const { legacyWorldInfo, SaveError } = await import('@orbital/core');
+		const { legacyWorldInfo } = await import('@orbital/core');
 		const Stock = (await import('@orbital/mod-stock')).default;
 		const { rapier } = await import('./helpers/vessels.ts');
-		let err: unknown;
-		try {
-			await createSim({
-				plugins: [Stock],
-				backendFactory: rapier(),
-				world: { ...legacyWorldInfo(0), gravityModel: 'n-body' as never }
-			});
-		} catch (e) {
-			err = e;
-		}
-		expect(err).toBeInstanceOf(SaveError);
-		expect((err as InstanceType<typeof SaveError>).code).toBe('incompatible');
-		expect((err as Error).message).toContain('n-body worlds are not available yet');
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: rapier(),
+			world: { ...legacyWorldInfo(0), gravityModel: 'n-body' }
+		});
+		expect(sim.save().worldInfo.gravityModel).toBe('n-body');
+		sim.dispose();
 	});
 
 	test('a patched world gets the patched provider', async () => {

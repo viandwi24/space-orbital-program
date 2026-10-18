@@ -37,6 +37,7 @@ import {
 	worldInfoSchema
 } from '@orbital/core';
 import { buildBodies, type TerrainFactory } from './bodies.ts';
+import { NBODY_FRAME_EVALUATIONS, nBodyOn, takeEvaluations } from './nbody.ts';
 import { dispatch } from './commands.ts';
 import { drainQueue, type CommandSource } from './delay.ts';
 import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
@@ -184,13 +185,6 @@ function worldOf(options: SimOptions, resume: SimSave | undefined, seed: number)
 		if (resume) return cloneData(resume.worldInfo);
 		const stock = options.plugins.find((p) => p.meta.id === 'stock');
 		return legacyWorldInfo(seed, stock?.meta.version);
-	}
-	if ((options.world as { gravityModel?: unknown }).gravityModel === 'n-body') {
-		// ADR 0095, 0173: there is no n-body trajectory provider yet.
-		throw new SaveError(
-			'incompatible',
-			'This world uses n-body gravity; n-body worlds are not available yet.'
-		);
 	}
 	const parsed = worldInfoSchema.safeParse(options.world);
 	if (!parsed.success) {
@@ -390,6 +384,17 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			if (vessel.mode === 'on-rails') stepSasOnRails(core, vessel);
 		}
 	};
+	/**
+	 * The n-body warp budget (ADR 0122 point 5), once per real frame: the integrator's evaluations,
+	 * not the wall clock, so the warp a world reaches is the same on every machine.
+	 */
+	const holdWarp = (): void => {
+		const used = takeEvaluations();
+		if (!nBodyOn(core) || core.warp <= 1 || used <= NBODY_FRAME_EVALUATIONS) return;
+		const factor = Math.max(1, Math.floor(core.warp / 2));
+		core.warp = factor;
+		core.events.emit('warp:limited', { factor, reason: `n-body integration limits warp to ${factor}x` });
+	};
 
 	/** Commands whose light time has passed apply first (signal delay, plan 117, ADR 0188 point 6). */
 	const drain = (): void => drainQueue(core, (c) => dispatch(core, c, 'queued'));
@@ -491,6 +496,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				core.warpTarget = null;
 				core.warp = 1;
 			}
+			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;
 			while (core.accumulator >= dt) {
@@ -511,6 +517,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				}
 			}
 			if (core.warpTarget !== null) arriveAtWarpTarget(core, railsStep);
+			holdWarp();
 		},
 		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),
 		snapshot: () => takeSnapshot(core),

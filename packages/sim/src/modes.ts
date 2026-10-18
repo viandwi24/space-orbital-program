@@ -28,7 +28,13 @@ export function toRails(core: SimCore, vesselId: EntityId, reason: string): void
 	const vessel = vesselOf(core, vesselId);
 	const frame = frameOfVessel(core, vesselId);
 	if (frame) refreshPose(core, frame, vesselId);
-	vessel.rails = computeRails(bodyOfVessel(core, vessel).mu, vessel.com, vessel.velocity, core.t);
+	vessel.rails = computeRails(
+		bodyOfVessel(core, vessel).mu,
+		vessel.com,
+		vessel.velocity,
+		core.t,
+		core.info.gravityModel
+	);
 	leaveFlight(core, vesselId);
 	vessel.mode = 'on-rails';
 	if (hasBackground(core, vesselId)) vessel.backgroundAt = core.t;

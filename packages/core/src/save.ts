@@ -435,12 +435,6 @@ export function readSimSave(
 		data = step(data);
 		version = data.formatVersion as number;
 	}
-	if (isRecord(data.worldInfo) && data.worldInfo.gravityModel === 'n-body') {
-		throw new SaveError(
-			'incompatible',
-			'This save uses n-body gravity; n-body worlds are not available yet.'
-		);
-	}
 	const parsed = simSaveSchema.safeParse(data);
 	if (!parsed.success) {
 		throw new SaveError(

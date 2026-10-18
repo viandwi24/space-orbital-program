@@ -322,7 +322,7 @@ describe('the world of a run (plan 077, ADR 0110)', () => {
 		same.dispose();
 	});
 
-	test('a resume into another world, or an invalid world, is refused', async () => {
+	test('a resume into another world, or an invalid world (an unknown gravity model), is refused', async () => {
 		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(16), world });
 		const save = sim.save();
 		sim.dispose();
@@ -332,9 +332,9 @@ describe('the world of a run (plan 077, ADR 0110)', () => {
 			createSim({
 				plugins: [Stock],
 				backendFactory: rapier(16),
-				world: { ...world, gravityModel: 'n-body' as never }
+				world: { ...world, gravityModel: 'orbits' as never }
 			})
-		).rejects.toThrow(/n-body worlds are not available yet/);
+		).rejects.toThrow();
 	});
 });
 

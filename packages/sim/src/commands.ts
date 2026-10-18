@@ -44,6 +44,7 @@ import { hasBackground } from './tick.ts';
 import { creditRecovery, recoveryBlocker } from './economy.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
 import { createRoute, deleteRoute, deployBase, joinSite } from './bases.ts';
+import { NBODY_MAX_WARP, nBodyOn } from './nbody.ts';
 import {
 	placeBuilding,
 	removeBuilding,
@@ -187,7 +188,7 @@ function loadVessel(
 	}
 	const onRails = placement.kind === 'state' && isStableOrbit(body, vessel.com, vessel.velocity);
 	if (onRails) {
-		vessel.rails = computeRails(body.mu, vessel.com, vessel.velocity, core.t);
+		vessel.rails = computeRails(body.mu, vessel.com, vessel.velocity, core.t, core.info.gravityModel);
 		if (hasBackground(core, id)) vessel.backgroundAt = core.t; // background counts from the load (ADR 0171)
 	} else {
 		const frame =
@@ -390,6 +391,8 @@ export function dispatch(
 		case 'warp': {
 			if (command.factor > MAX_WARP)
 				return refuse(`warp ${command.factor} exceeds the maximum ${MAX_WARP}`);
+			if (nBodyOn(core) && command.factor > NBODY_MAX_WARP)
+				return refuse(`n-body integration limits warp to ${NBODY_MAX_WARP}x`);
 			if (command.factor > 1 && hasFlightVessels(core)) {
 				const flying = vesselIds(core).filter((id) => vesselOf(core, id).mode === 'flight');
 				return refuse(
@@ -403,6 +406,8 @@ export function dispatch(
 		case 'warp-to': {
 			if (command.factor > MAX_WARP)
 				return refuse(`warp ${command.factor} exceeds the maximum ${MAX_WARP}`);
+			if (nBodyOn(core) && command.factor > NBODY_MAX_WARP)
+				return refuse(`n-body integration limits warp to ${NBODY_MAX_WARP}x`);
 			if (command.time <= core.t) return refuse('warp-to needs a time that has not passed');
 			if (hasFlightVessels(core)) {
 				const flying = vesselIds(core).filter((id) => vesselOf(core, id).mode === 'flight');

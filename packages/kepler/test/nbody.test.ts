@@ -87,3 +87,19 @@ describe('the circular restricted three-body problem', () => {
 		expect(worst / A).toBeLessThan(0.01);
 	});
 });
+
+describe('dense output', () => {
+	test('quintic Hermite between two steps of a low orbit is within a few centimetres', async () => {
+		const { hermiteState, nBodyAcceleration, nBodyStep } = await import('../src/index.ts');
+		const start: StateVector = { r: { x: 700_000, y: 0, z: 0 }, v: { x: 0, y: 0, z: -2_246 } };
+		const step = nBodyStep(field, start, 0, 120);
+		const a = { ...start, acc: nBodyAcceleration(field, 0, start.r), t: 0 };
+		const b = { r: step.r, v: step.v, acc: nBodyAcceleration(field, step.step, step.r), t: step.step };
+		for (const f of [0.1, 0.37, 0.5, 0.9]) {
+			const t = f * step.step;
+			const exact = integrateNBody(field, start, 0, t);
+			const dense = hermiteState(a, b, t);
+			expect(Math.hypot(dense.r.x - exact.r.x, dense.r.y - exact.r.y, dense.r.z - exact.r.z)).toBeLessThan(0.05);
+		}
+	});
+});
