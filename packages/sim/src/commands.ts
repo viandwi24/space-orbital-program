@@ -44,6 +44,17 @@ import {
 } from './comms.ts';
 import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
+import {
+	debugRefusal,
+	grant,
+	setCheat,
+	setCrewLevel,
+	setDebugMode,
+	setLocation,
+	setOrbit,
+	setResource,
+	setTemperature
+} from './debug.ts';
 import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
@@ -303,6 +314,11 @@ export function dispatch(
 				return { ok: true, queued: at };
 			}
 		}
+	}
+	if (command.type.startsWith('debug-')) {
+		// the access rule first (ADR 0212 point 3); `debug-mode` checks its own
+		const locked = command.type === 'debug-mode' ? undefined : debugRefusal(core);
+		if (locked) return refuse(locked);
 	}
 	switch (command.type) {
 		case 'throttle': {
@@ -569,6 +585,22 @@ export function dispatch(
 			return fixAnomaly(core, command.report);
 		case 'repair':
 			return repair(core, command.suit, command.vessel, command.part);
+		case 'debug-mode':
+			return setDebugMode(core, command.on);
+		case 'debug-cheat':
+			return setCheat(core, command.cheat, command.on);
+		case 'debug-grant':
+			return grant(core, command);
+		case 'debug-set-orbit':
+			return setOrbit(core, command);
+		case 'debug-set-location':
+			return setLocation(core, command);
+		case 'debug-set-resource':
+			return setResource(core, command);
+		case 'debug-set-temperature':
+			return setTemperature(core, command);
+		case 'debug-set-crew-level':
+			return setCrewLevel(core, command.member, command.level);
 		case 'plant-flag':
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return plantFlag(core, command.vessel);

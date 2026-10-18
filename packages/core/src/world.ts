@@ -51,6 +51,15 @@ export interface WorldInfo {
 	preset: string;
 	/** Every rule change during play, oldest first (ADR 0094 point 4). */
 	changelog: RuleChange[];
+	/** Debug state (plan 203, ADR 0212 point 2); absent until a debug command changed it. */
+	debug?: WorldDebug;
+}
+
+/** Debug mode, the cheats that are on, and the mark that a debug tool was ever used (ADR 0212). */
+export interface WorldDebug {
+	mode: boolean;
+	usedCheats: boolean;
+	cheats: string[];
 }
 
 /** One `set-rule` change: sim time, rule id, old and new value. */

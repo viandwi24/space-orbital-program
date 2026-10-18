@@ -1,5 +1,6 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
 import { techSnapshot } from './tech.ts';
+import { debugSnapshot } from './debug.ts';
 import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
@@ -189,6 +190,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			rotation: rotationAt(body, core.t)
 		})),
 		rules: rulesView(core),
+		debug: debugSnapshot(core),
 		economy: { ...economySnapshot(core), ...marketSnapshot(core) },
 		sites: sitesSnapshot(core),
 		day: core.ticks.lastDay,

@@ -2,6 +2,7 @@
  * Crew simulation (plan 107, ADR 0181): life support integrated exactly over each step or rails
  * chunk, shortages with a grace and the death rule, morale, fatigue, g-load and radiation dose.
  */
+import { cheatOn } from './cheats.ts';
 import {
 	abilitiesOf,
 	CHARGE_RESOURCE,
@@ -141,6 +142,11 @@ function lifeSupport(
 	t0: number,
 	t1: number
 ): void {
+	if (cheatOn(core, 'infinite-life-support')) {
+		// a cheat (plan 203): nothing is used up and no shortage runs
+		for (const m of members) delete m.shortages;
+		return;
+	}
 	const vessel = vesselOf(core, vesselId);
 	const root = vessel.root;
 	const rates = ratesOf(core, vesselId, mode, members.length);
