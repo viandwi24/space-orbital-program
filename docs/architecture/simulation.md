@@ -333,6 +333,10 @@ Off the sim Worker (ADR 0101 point 2): `apps/web/src/lib/comms-planning/` and it
 
 Terrain, burns, SOI changes and routing are left out. The contact timeline samples every 10 s and bisects each change to 0.01 s, as `updateNetwork` does; for a vessel on rails over spherical bodies it gives the sim's link events. The coverage grid (72 × 36, equirectangular) holds the fraction of samples at which a ground receiver links to some node. `resonantDeployment` (`packages/kepler`) gives the deploy orbit of period `T (N±1)/N` with an apsis on the target orbit, the drops a deploy period apart (360°/N spacing) and the burns. A vessel's range on the page comes from its parts' `{ antenna }` configs and the `antennas` of the `ready` catalog. `boundary.test.ts` keeps the two Workers' import graphs apart.
 
+## Pause and warp-stop events (plan 205, ADR 0201)
+
+`pause { on }` sets `SimCore.paused` (not saved: a loaded world runs); `Sim.step` returns at once while it is set, and `Snapshot.paused` reports it. A pause is refused when the stock rule `stock.pause-allowed` is false (Career Hardcore); warp is not a pause and stays allowed. `warp:stopped { reason }` is emitted when the sim ends a warp by itself: a controlled vessel changed sphere of influence (only when the warp was above 1), a warp-to arrived, or a vessel in flight cancelled a warp-to.
+
 ## Debug tools (plan 203, ADRs 0200 and 0213)
 
 `packages/sim/src/debug.ts` and `cheats.ts`. Who may use them is the stock rule `stock.debug-tools` (`always` in Sandbox, `opt-in` in Science and Career, `locked` in Hardcore; not changeable; a world without the rule counts as `always`). `dispatch` refuses every `debug-*` command except `debug-mode` with `debugRefusal`'s reason unless the access is `always`, or `opt-in` with the mode on. The state is `WorldInfo.debug` (`{ mode, usedCheats, cheats }`, optional, so saves stay format 8): `debug-mode` switches the mode in an `opt-in` world (refused where it is `always` or `locked`), and it and every accepted debug command set `usedCheats` for good. `debug-cheat` switches one of `DEBUG_CHEATS`; the other files read them through `cheatOn`/`infiniteResource`:

@@ -1,12 +1,12 @@
 ---
 id: 205
 title: "Clock states, pause rules, tab policy, leaving active flight"
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [204]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 205 — Clock states, pause rules, tab policy, leaving active flight
@@ -63,20 +63,21 @@ The world clock has explicit states (Running, Warp, Paused by player, Paused by 
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `clock-state.test.ts`: player pause beats every other input; place pause resumes on leaving the place only when the player did not pause; Hardcore never reaches a paused state; tab hidden with the policy off gives "Paused by tab".
-- [ ] `bun test packages/sim` passes, including `test/pause-rule.test.ts`: a pause command in a Hardcore world is refused with a reason; warp is accepted.
-- [ ] Chromium e2e `e2e/clock.e2e.ts`: in Space Center the clock runs; in Hangar the chip reads `PAUSED · HANGAR`; back in Space Center it runs again; `P` pauses and leaving to Hangar and back keeps it paused.
-- [ ] Chromium e2e `e2e/leave-flight.e2e.ts`: with `debugSetLocation` at 5 km in the atmosphere, leaving Flight shows the warning; "Leave anyway" goes to Space Center and the vessel's altitude keeps changing in the snapshot.
-- [ ] `bun run check:affected --e2e e2e/clock.e2e.ts` passes.
-- [ ] CI green on the `ready/205` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `apps/web` vitest `clock-state.test.ts`: player pause beats every other input; place pause resumes on leaving the place only when the player did not pause; Hardcore never reaches a paused state; tab hidden with the policy off gives "Paused by tab".
+- [x] `bun test packages/sim` passes, including `test/pause-rule.test.ts`: a pause command in a Hardcore world is refused with a reason; warp is accepted.
+- [x] Chromium e2e `e2e/clock.e2e.ts`: in Space Center the clock runs; in Hangar the chip reads `PAUSED · HANGAR`; back in Space Center it runs again; `P` pauses and leaving to Hangar and back keeps it paused.
+- [x] Chromium e2e `e2e/leave-flight.e2e.ts`: with `debugSetLocation` at 5 km in the atmosphere, leaving Flight shows the warning; "Leave anyway" goes to Space Center and the vessel's altitude keeps changing in the snapshot.
+- [x] `bun run check:affected --e2e e2e/clock.e2e.ts` passes.
+- [x] CI green on the `ready/205` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/205-clock-states-and-pause-rules.md` written.
-- [ ] `docs/architecture/overview.md` (clock states) and `docs/architecture/simulation.md` (pause rule, warp-stop events) updated.
-- [ ] ADR 0201 linked; any deviation recorded.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/205-clock-states-and-pause-rules.md` written.
+- [x] `docs/architecture/overview.md` (clock states) and `docs/architecture/simulation.md` (pause rule, warp-stop events) updated.
+- [x] ADR 0201 linked; any deviation recorded.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Refined and done by Worker B (`claim/205`). Checked against the code after plan 204: the host paused with a `pause` message the sim knew nothing about, and the flight's dialogs called it directly. Decisions (default per owner review): the pause is a sim command so the rule is the sim's; the flight's dialogs hold a "Menu" place pause through the world session instead of pausing the sim; Space pauses outside Flight and the Hangar (the Hangar uses Space to place a part); "active flight" is a vessel in physics that is not landed, or under thrust; `window.__orbitalDebug` moved to the world layout so a test can read the vessel from any page. Evidence: `bun test packages/sim/test/pause-rule.test.ts` 3 pass; vitest `clock-state.test.ts` 6, the whole web vitest 1097 pass; Chromium `e2e/clock.e2e.ts` and `e2e/leave-flight.e2e.ts` pass with `debug`, `world-shell`, `recovery`, `smoke`, `launch` (16 passed); `check:affected --build --e2e e2e/clock.e2e.ts` and CI on `ready/205` (journal).
