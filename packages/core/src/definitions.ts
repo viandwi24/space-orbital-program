@@ -427,6 +427,22 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	describe?: Bivariant<(config: Out, state: State) => ModuleInfo>;
 	/** The JSON-compatible view of `state` that snapshots expose to the UI. */
 	snapshot?: Bivariant<(state: State) => unknown>;
+	/**
+	 * The module's electric charge for the power budget (plan 208, ADR 0213; `powerBudget`): a steady
+	 * rate in EC/s (positive produces, negative draws), whether it needs the star, and the EC it can
+	 * store. Pure.
+	 */
+	power?: Bivariant<(config: Out) => PowerInfo>;
+}
+
+/** What a module adds to the power budget (`ModuleDefinition.power`). */
+export interface PowerInfo {
+	/** EC per second: positive produces, negative draws (a probe core's computer). */
+	rate?: number;
+	/** The rate needs the star: it counts by day, not at night (a solar panel at its rating). */
+	sun?: boolean;
+	/** EC the module can store (a battery). */
+	capacity?: number;
 }
 
 /**

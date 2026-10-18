@@ -41,14 +41,16 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
-export const commandConfigSchema = z.object({
-	/**
-	 * Electric charge per second the source draws (plan 208, ADR 0213): a probe core's computer.
-	 * A source with a drain is no control source while the vessel has no EC; 0 (a crewed pod) never
-	 * needs power to be steered.
-	 */
-	drain: z.number().nonnegative().default(0)
-}).prefault({});
+export const commandConfigSchema = z
+	.object({
+		/**
+		 * Electric charge per second the source draws (plan 208, ADR 0213): a probe core's computer.
+		 * A source with a drain is no control source while the vessel has no EC; 0 (a crewed pod) never
+		 * needs power to be steered.
+		 */
+		drain: z.number().nonnegative().default(0)
+	})
+	.prefault({});
 
 /** Draws the drain for `dt` seconds; what is missing is simply not there (the control check sees 0 EC). */
 function commandDrain(
@@ -67,6 +69,7 @@ export const ModuleCommand = defineModule({
 	config: commandConfigSchema,
 	controlSource: true,
 	needs: (config) => (config.drain > 0 ? ElectricCharge.id : undefined),
+	power: (config) => ({ rate: -config.drain }),
 	describe: () => ({ category: 'command' }),
 	update: commandDrain,
 	background: commandDrain
@@ -132,6 +135,7 @@ export const ModuleResourceContainer = defineModule({
 	id: 'stock.resource-container',
 	config: containerConfigSchema,
 	describe: () => ({ category: 'tanks' }),
+	power: (config) => ({ capacity: config.contents[ElectricCharge.id]?.capacity ?? 0 }),
 	state: (config): ContainerState => ({
 		amounts: Object.fromEntries(
 			Object.entries(config.contents).map(([resource, slot]) => [resource, slot.amount])

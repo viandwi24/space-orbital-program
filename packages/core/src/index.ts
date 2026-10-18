@@ -18,6 +18,7 @@ export * from './schemas.ts';
 export * from './definitions.ts';
 export * from './module-info.ts';
 export * from './node-size.ts';
+export * from './power-budget.ts';
 export * from './registry.ts';
 export * from './physics-backend.ts';
 export * from './protocol.ts';

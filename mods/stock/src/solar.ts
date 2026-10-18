@@ -75,6 +75,8 @@ export const ModuleSolarPanel = defineModule({
 					}
 				]
 	}),
+	// by day at its rating (facing the star at the home planet's distance)
+	power: (config) => ({ rate: config.rate, sun: true }),
 	update: charge,
 	background: charge,
 	actions: {
@@ -113,6 +115,7 @@ export const ModuleRtg = defineModule({
 	id: 'stock.rtg',
 	config: rtgConfigSchema,
 	describe: () => ({ category: 'other' }),
+	power: (config) => ({ rate: config.rate }),
 	update: rtgCharge,
 	background: rtgCharge
 });
