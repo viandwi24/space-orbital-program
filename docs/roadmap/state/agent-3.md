@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 129 discovery: checks running before ready/129; 120 merged and cleaned up; 121 next.
-**Waiting for:** nothing (121 unblocked by cp/f4-120-comms-5).
+**Now:** 129 handed over as ready/129; 121 comms-6 next.
+**Waiting for:** the merge of 129.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -32,4 +32,4 @@
 | 120 comms-5 | done | `devc/120-comms-channels` | 2026-10-18 | merged 7ff2a0fd, cp/f4-120-comms-5 |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |
 | 121 comms-6 | todo |  |  |  |
-| 129 discovery | in-progress | `devc/129-discovery` | 2026-10-18 | claimed |
+| 129 discovery | handed-over | `devc/129-discovery` | 2026-10-18 | ready/129 |
