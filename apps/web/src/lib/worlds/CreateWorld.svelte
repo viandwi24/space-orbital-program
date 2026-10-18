@@ -5,7 +5,7 @@
 	 * consequences) and every rule, generated from the registries so a mod's rules appear here too. The form
 	 * hands plain data to `createWorldInfo`, which validates it like a save.
 	 */
-	import type { RuleDefinition, RuleValue, WorldInfo } from '@orbital/core';
+	import { homeBodyOf, type RuleDefinition, type RuleValue, type WorldInfo } from '@orbital/core';
 	import { untrack } from 'svelte';
 	import Button from '../ui/Button.svelte';
 	import Chip from '../ui/Chip.svelte';
@@ -61,14 +61,32 @@
 	let preset = $state(initial.preset);
 	let rules = $state<Record<string, RuleValue>>(initial.rules);
 	let seed = $state(initial.seed);
-	const starts = initial.starts;
-	let start = $state<StartDate['kind']>(starts[0]!);
+	// The star system (plan 124, ADR 0184): its bodies, calendar and variants drive the rest.
+	let systemId = $state(untrack(() => catalog.systems[0]?.id ?? catalog.system.id));
+	const active = $derived(catalog.systems.find((s) => s.id === systemId) ?? catalog.systems[0]!);
+	let variant = $state(untrack(() => catalog.systems[0]?.variants[0]?.variant ?? 'default'));
+	const starts = $derived(startDatesFor(active.calendar));
+	let start = $state<StartDate['kind']>(untrack(() => initial.starts[0]!));
+	function chooseSystem(id: string): void {
+		systemId = id;
+		const next = catalog.systems.find((s) => s.id === id);
+		variant = next?.variants[0]?.variant ?? 'default';
+		start = startDatesFor(next?.calendar ?? catalog.calendar)[0]!;
+		siteChoice = 'default';
+	}
+	const chosenVariant = $derived(active.variants.find((v) => v.variant === variant));
+	/** `Δv to orbit ≈ 9.4 km/s · Moon in 4.9 days`, from the pack's data. */
+	const factsText = (f: NonNullable<(typeof active.variants)[number]['facts']>): string =>
+		`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s` +
+		(f.moonTransfer === undefined ? '' : ` · Moon in ${(f.moonTransfer / 86_400).toFixed(1)} days`);
 	let fixedDate = $state('2000-01-01');
 	let gravity = $state('patched');
 	let siteChoice = $state(untrack(() => initialSite));
 	// Resolving reads the seed's terrain map once (about a second the first time, cached after).
 	const resolved = $derived(
-		siteChoice === 'default' ? null : resolveSiteChoice(catalog, siteChoice, seed)
+		siteChoice === 'default'
+			? null
+			: resolveSiteChoice({ ...catalog, bodies: active.bodies }, siteChoice, seed)
 	);
 	const boundary = (d: string) =>
 		d === 'sea' ? 'over the sea' : d === 'land' ? 'over land' : 'over land and sea';
@@ -128,9 +146,10 @@
 				rules,
 				start: startDate(),
 				gravityModel: gravity,
-				systemId: catalog.system.id,
-				systemVersion: catalog.system.version,
-				variant: catalog.system.variants[0] ?? 'default',
+				systemId: active.id,
+				systemVersion: active.version,
+				variant,
+				home: homeBodyOf(active.bodies)?.id,
 				...(resolved
 					? {
 							site: {
@@ -142,7 +161,7 @@
 					: {})
 			},
 			catalog,
-			catalog.calendar,
+			active.calendar,
 			now()
 		);
 		if (!result.ok) {
@@ -203,8 +222,15 @@
 		<div class="row">
 			<label class="field">
 				<span class="label">Star system</span>
-				<select disabled data-testid="world-system">
-					<option>{catalog.system.label}</option>
+				<select
+					value={systemId}
+					disabled={catalog.systems.length < 2}
+					data-testid="world-system"
+					onchange={(e) => chooseSystem(e.currentTarget.value)}
+				>
+					{#each catalog.systems as s (s.id)}
+						<option value={s.id}>{s.label}</option>
+					{/each}
 				</select>
 			</label>
 			<label class="field">
@@ -219,6 +245,22 @@
 				/>
 			</label>
 		</div>
+
+		{#if active.variants.length > 1 || chosenVariant?.facts}
+			<fieldset class="field" data-testid="world-variants">
+				<legend class="label">Scale</legend>
+				<div class="variants">
+					{#each active.variants as v (v.variant)}
+						<label class="variant" data-testid="world-variant-{v.variant}">
+							<input type="radio" name="variant" value={v.variant} bind:group={variant} />
+							<span class="vname">{v.label}</span>
+							{#if v.facts}<span class="facts">{factsText(v.facts)}</span>{/if}
+							{#if v.description}<span class="desc">{v.description}</span>{/if}
+						</label>
+					{/each}
+				</div>
+			</fieldset>
+		{/if}
 
 		<fieldset class="field">
 			<legend class="label">Start date</legend>
@@ -466,5 +508,21 @@
 		display: flex;
 		justify-content: flex-end;
 		gap: var(--s-2);
+	}
+	.variants {
+		display: grid;
+		gap: var(--s-2);
+	}
+	.variant {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: var(--s-2);
+		align-items: baseline;
+	}
+	.variant .facts,
+	.variant .desc {
+		grid-column: 2;
+		font-size: var(--t-sm);
+		color: var(--text-dim);
 	}
 </style>

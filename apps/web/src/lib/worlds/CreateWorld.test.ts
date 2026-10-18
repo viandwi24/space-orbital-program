@@ -1,9 +1,10 @@
 /** Create World's form (plan 087): generated from the registries, n-body shown and disabled. */
 import { calendarOf, loadPlugins } from '@orbital/core';
+import Sol from '@orbital/mod-sol';
 import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import type { WorldCatalog } from './catalog';
+import { systemsOf, type WorldCatalog } from './catalog';
 import CreateWorld from './CreateWorld.svelte';
 import { createWorldInfo, formatLatLon, resolveSiteChoice } from './world-model';
 
@@ -17,6 +18,7 @@ const catalog: WorldCatalog = {
 	system: { id: 'stock', version: '0.1.0', label: 'Stock system', variants: ['default'] },
 	mods: [{ id: 'stock', version: '0.1.0' }],
 	siteTemplates: registries.siteTemplates.list(),
+	systems: systemsOf([Stock, Sol]),
 	achievements: registries.achievements.list(),
 	scenarios: registries.scenarios.list()
 };
@@ -34,6 +36,28 @@ const html = (initialSite?: string): string =>
 	}).body.replace(/<!--.*?-->/g, '');
 
 describe('Create World form', () => {
+	it("lists Sol's variants with the Δv to orbit and the Moon transfer time from the pack data", () => {
+		const sol = catalog.systems.find((x) => x.id === 'sol')!;
+		expect(sol.variants.map((v) => v.variant)).toEqual(['1:1', 'rescaled']);
+		const h = render(CreateWorld, {
+			props: {
+				open: true,
+				catalog: { ...catalog, systems: [sol, ...catalog.systems.filter((x) => x !== sol)] },
+				onclose: () => {},
+				oncreate: () => {},
+				newId: () => 'w-1',
+				newSeed: () => 42
+			}
+		}).body.replace(/<!--.*?-->/g, '');
+		for (const v of sol.variants) {
+			const f = v.facts!;
+			expect(h).toContain(v.label);
+			expect(h).toContain(`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s`);
+			expect(h).toContain(`Moon in ${(f.moonTransfer! / 86_400).toFixed(1)} days`);
+		}
+		expect(h).toMatch(/<option value="sol"[^>]*>The real solar system<\/option>/);
+	});
+
 	it('renders the n-body option disabled and labelled Coming soon', () => {
 		const h = html();
 		expect(h).toMatch(/<input[^>]*value="n-body"[^>]*disabled[^>]*data-testid="gravity-n-body"/);

@@ -299,9 +299,12 @@
 				if (newest?.ok) into = (await saves.read(newest.meta.id)).sim;
 			}
 			if (gone) return;
+			// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
+			const info = resume?.sim.worldInfo ?? into?.worldInfo ?? world;
+			const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
 			stop = begin(
-				catalog,
-				content,
+				own?.catalog ?? catalog,
+				own?.content ?? content,
 				design,
 				resume,
 				world,

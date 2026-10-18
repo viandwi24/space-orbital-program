@@ -214,7 +214,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	}
 	if (!(dt > 0)) throw new RangeError(`createSim: dt must be positive, got ${dt}`);
 	const maxSteps = options.maxStepsPerCall ?? 5000;
-	const { registries, events, report } = loadPlugins(options.plugins);
+	const seed = options.seed ?? resume?.seed ?? 0;
+	const info = worldOf(options, resume, seed);
+	// The world's system: other systems' bodies go, its variant's patches apply (ADR 0184 point 2).
+	const { registries, events, report } = loadPlugins(options.plugins, {
+		system: { id: info.systemId, variant: info.variant }
+	});
 
 	if (resume) {
 		const missing = resume.mods.filter((m) => !report.order.includes(m.id));
@@ -225,15 +230,17 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			);
 		}
 	}
-	const seed = options.seed ?? resume?.seed ?? 0;
 	const defs = registries.bodies.list();
-	const info = worldOf(options, resume, seed);
 	// The home body (ADR 0119 point 1): asked for, the save's, the primary site's, else the root.
 	const siteBody = sitesOf(info)[0]?.body;
+	const variantHome = registries.systemVariants
+		.list()
+		.find((v) => v.system === info.systemId && v.variant === info.variant)?.home;
 	const wantedBody =
 		options.body ??
 		resume?.home ??
-		(siteBody !== undefined && registries.bodies.has(siteBody) ? siteBody : undefined);
+		(siteBody !== undefined && registries.bodies.has(siteBody) ? siteBody : undefined) ??
+		(variantHome !== undefined && registries.bodies.has(variantHome) ? variantHome : undefined);
 	const bodyDef = wantedBody
 		? registries.bodies.get(wantedBody)
 		: defs.find((b) => b.parent === undefined);

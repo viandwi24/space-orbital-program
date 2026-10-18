@@ -24,6 +24,7 @@
 	},
 	"devDependencies": {
 		"@orbital/mod-stock": "workspace:*",
+		"@orbital/mod-sol": "workspace:*",
 		"@orbital/physics": "workspace:*",
 		"@orbital/sdk": "workspace:*",
 		"@orbital/sim": "workspace:*",

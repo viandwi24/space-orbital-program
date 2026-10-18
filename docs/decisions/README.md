@@ -168,3 +168,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0181 | [Crew simulation: life support, morale, fatigue, g-load and radiation](0181-crew-life-support-morale-fatigue-exposure.md) | accepted | 2026-10-18 |
 | 0182 | [Buoyancy: where the water is, the seabed, sliced volumes, water drag and impacts](0182-buoyancy-water-seabed-slices-wet-landed.md) | accepted | 2026-10-18 |
 | 0183 | [Body path models: fixed conic, elements with rates, periodic series; osculating elements for conic consumers](0183-body-path-models-kepler-rates-series-osculating.md) | accepted | 2026-10-18 |
+| 0184 | [Systems and scale variants: selection in the loader, variant patches, J2000 rotation, the Sol pack](0184-systems-variants-loader-selection-sol-pack.md) | accepted | 2026-10-18 |

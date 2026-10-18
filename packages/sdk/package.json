@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@orbital/core": "workspace:*",
+		"@orbital/kepler": "workspace:*",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

@@ -9,7 +9,7 @@ import {
 	createBodyTerrainField,
 	type ModBundle
 } from '@orbital/core';
-import Stock from '@orbital/mod-stock';
+import { BUILTIN_PLUGINS } from './builtins';
 import { createRapierBackend } from '@orbital/physics';
 import * as sdk from '@orbital/sdk';
 import type { WorldInfo } from '@orbital/core';
@@ -38,11 +38,11 @@ const host = createSimHost({
 	createSim: async () => {
 		installModSdk(sdk);
 		const mods = await resolveMods(modBundles, {
-			builtin: [Stock],
+			builtin: [...BUILTIN_PLUGINS],
 			importModule: importModBundle
 		});
 		current = await createSim({
-			plugins: [Stock, ...mods.plugins],
+			plugins: [...BUILTIN_PLUGINS, ...mods.plugins],
 			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
 			// The same procedural terrain the renderer draws (ADR 0043, 0054), by the kind each body names
 			// (`BodyDefinition.terrain`, ADR 0067): hills, craters with the body's seed, or a smooth sphere.

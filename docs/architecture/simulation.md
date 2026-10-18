@@ -73,6 +73,8 @@ After every step (`soi.ts`, `applySoiTransitions`): a vessel leaves a child for 
 
 The J2000 models run on `τ = t + world epoch offset` (`BodyRuntime.timeOffset`). `stateInParent` dispatches through kepler's `bodyPathState` and caches per time. Code that needs a conic takes `elementsAt(body, t)`, the osculating elements now: the target's approach, and the trajectory provider's body list, refreshed after every step (`refreshPatchedBodies`). SOI crossings bisect on `stateInParent` as before, so an entry follows the real path. The elements in `orbit` stay the mean conic, which sizes the sphere of influence. Scripts, the planner and the renderer read the mean conic until 124.
 
+**Systems (plan 124, ADR 0184).** `createSim` loads the plugins with the world's system and variant, so `sim.registries` holds only that system's bodies, with the variant's patches applied. The home is the asked body, the save's, the primary site's (if loaded), the variant's `home`, or the root. A body with `rotation.epoch: 'j2000'` gets its `w0` and periodic phases shifted by the world epoch in `buildBodies`, so every consumer of the sim's bodies sees world time.
+
 ## Frames and precision
 
 See `units-and-frames.md`. BCI float64 is authoritative; flight runs in a local frame that moves at constant velocity (`bci = origin + local`, velocities relative to `frame.velocity`) and re-anchors when the focus vessel is 1 km from the origin. One frame holds a cluster of vessels (a decoupled stage stays with its parent); a vessel loaded or woken within 2.5 km joins an active frame, otherwise it needs a free one (`maxFlightFrames`).

@@ -182,7 +182,24 @@ export const HomeBody = defineBody({
 
 A body with no `parent`/`orbit` is a root body. A moon is a body with `parent` (a registered body id) and `orbit` (Kepler elements around it; `stock.cinder` in `mods/stock/src/bodies.ts` is the example, ADR 0052): the sim moves it on rails, gives it a Laplace sphere of influence and switches vessels between spheres (ADR 0051). Gravity is point-mass (one body at a time); the atmosphere is exponential.
 
-**Paths that drift (API 0.1.50, plan 123, ADR 0183).** A body whose orbit is not a fixed conic says so with `orbit.model`. For a real planet, take its JPL Level A row: `const { elements, rates } = levelAElements({ a: [1.52371034, 0.00001847], e: [...], I: [...], L: [...], peri: [...], node: [...] })` (from `@orbital/kepler`), then `orbit: { ...elements, model: 'kepler-rates', rates }`. A moon with a periodic theory uses `model: 'series'` with `series: { longitude, latitude, parallax, parentRadius }`, in degrees and Julian centuries, as in the Astronomical Almanac. Keep the six elements as the mean conic: they size the sphere of influence. These models run on J2000 time, and the world's epoch puts the body at the right date. `docs/research/ephemerides.md` lists the sources.
+**Paths that drift (API 0.1.50, plan 123, ADR 0183).** A body whose orbit is not a fixed conic says so with `orbit.model`. For a real planet, take its JPL Level A row: `const { elements, rates } = levelAElements({ a: [1.52371034, 0.00001847], e: [...], I: [...], L: [...], peri: [...], node: [...] })` (from `@orbital/sdk`), then `orbit: { ...elements, model: 'kepler-rates', rates }`. A moon with a periodic theory uses `model: 'series'` with `series: { longitude, latitude, parallax, parentRadius }`, in degrees and Julian centuries, as in the Astronomical Almanac. Keep the six elements as the mean conic: they size the sphere of influence. These models run on J2000 time, and the world's epoch puts the body at the right date. `docs/research/ephemerides.md` lists the sources.
+
+**A system of your own, and its scales (API 0.1.54, plan 124, ADR 0184).** Register a variant and your bodies become a system a world can choose instead of stock:
+
+```ts
+ctx.systemVariants.register(defineSystemVariant({
+	id: 'acme.full', system: 'acme', variant: 'full', label: 'Full scale',
+	description: 'What this scale means for the player.', home: 'acme.terra',
+	facts: { dvToOrbit: 6_000, moonTransfer: 3 * 86_400 },
+	patches: [/* balance for this scale: ordinary patches (ADR 0170) */]
+}));
+```
+
+- The loader keeps one system's bodies per world. Every plugin that registers a variant owns its bodies as a system, and every other plugin's bodies belong to stock.
+- The chosen variant's patches apply only in that variant's worlds. A smaller scale is a set of `set` patches on your own bodies that your pack computes (the Sol pack keeps surface gravity and periods real: sizes ×k, masses ×k², distances ×k^(2/3)).
+- `rotation.epoch: 'j2000'` measures your bodies' spin at J2000, like their orbits.
+- Create World shows each variant's `facts`.
+- `mods/sol` is the worked example, with its validation suite in `packages/sim/test/sol-validation.test.ts`.
 
 **The ground of a body (API 0.1.18, ADR 0067).** `terrain` names the kind of ground the body has: `{ kind: 'hills' }` (the home planet's ridged terrain, for the first body: the launch site stands on its flat zone at latitude 0, longitude 0) or `{ kind: 'craters', seed?: 0..999 }` (the stock moon's cratered regolith with its landing plain at latitude 0, longitude 0; another `seed` is another set of craters, rims and hills, so a third airless body with its own look is one line of data). A body without `terrain` is a smooth sphere, whatever its parent or atmosphere. The kind decides the sim's ground (`createBodyTerrainField`) and what the renderer draws; a kind is code in core and the renderer, so a mod picks one and does not supply a height function. Both kinds are drawn on any body after the first (plan 059, ADR 0090): a second planet with `{ kind: 'hills' }` is a globe with the home planet's continents seen from orbit and the hills the sim stands vessels on near the ground, with or without an `atmosphere` in its definition (the sim gives it drag; the renderer draws no sky, haze or sea waves on it, and no launch-site buildings, clouds, terrain shadows or stones: draft plan 071). It shares the home planet's biome map and flat grassland at latitude 0, longitude 0 (its own radius changes the hills, not the coasts; a `seed` or `site` on `hills` is draft 071), and a vessel placed there should use `surface` placement at that longitude or a hillside the field makes gentle. On a craters body the sun casts the craters' shadows and stones lie about the ground (ADR 0068); a stone has no collision (draft plan 060).
 

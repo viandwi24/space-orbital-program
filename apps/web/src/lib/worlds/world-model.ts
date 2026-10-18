@@ -112,6 +112,8 @@ export interface CreateWorldInput {
 	variant: string;
 	/** The primary site (plan 092): absent = the Legacy site at 0°, 0°. */
 	site?: { latitude: number; longitude: number; template?: string };
+	/** The home body of the chosen system (plan 124); its sites stand on it. Default the stock home. */
+	home?: string;
 }
 
 /** A resolved template for Create World (ADR 0177 point 5): the spot, what was relaxed, its consequences. */
@@ -184,16 +186,19 @@ export function createWorldInfo(
 		epoch: startEpoch(input.start, nowMs),
 		rules,
 		// The chosen site becomes the Space Center with the Legacy pad and layout; none = the Legacy site.
-		sites: input.site
-			? [
-					{
-						...structuredClone(LEGACY_SITE),
-						id: 'space-center',
-						latitude: input.site.latitude,
-						longitude: input.site.longitude
-					}
-				]
-			: [],
+		// another system's world always gets a site on its own home (at 0°, 0° by default, plan 124)
+		sites:
+			input.site || (input.home !== undefined && input.home !== LEGACY_SITE.body)
+				? [
+						{
+							...structuredClone(LEGACY_SITE),
+							id: 'space-center',
+							body: input.home ?? LEGACY_SITE.body,
+							latitude: input.site?.latitude ?? 0,
+							longitude: input.site?.longitude ?? 0
+						}
+					]
+				: [],
 		preset: input.preset,
 		changelog: []
 	});

@@ -1,0 +1,24 @@
+{
+	"name": "@orbital/mod-sol",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "The real solar system (plan 124): the Sun, the planets and the Moon from JPL and IAU data, in a 1:1 and a rescaled variant, written with the public SDK.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/mod-stock": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

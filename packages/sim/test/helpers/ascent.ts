@@ -28,6 +28,10 @@ export interface AscentOptions {
 	stageCount?: number;
 	/** Fire the next stage when the throttle is cut (jettison spent boosters before the coast). */
 	jettisonAtCut?: boolean;
+	/** The circularising engine's vacuum thrust (N) and Isp (s); default the stock engine (plan 124). */
+	engine?: { thrust: number; isp: number };
+	/** Stage whenever an engine runs dry, in every phase, up to `stageCount` (plan 124). */
+	stageAnyPhase?: boolean;
 }
 
 export const defaultAscent: AscentOptions = {
@@ -84,6 +88,18 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 			mark(t, 'liftoff');
 		}
 
+		if (opts.stageAnyPhase && phase !== 'ascent' && staged < (opts.stageCount ?? 1)) {
+			const dry = v.parts.some(
+				(p) => (p.modules['stock.engine'] as { flameout?: boolean } | undefined)?.flameout
+			);
+			if (dry) {
+				staged++;
+				const s = sim.dispatch({ type: 'stage', vessel });
+				if (!s.ok) throw new Error(s.reason);
+				mark(t, 'staged');
+			}
+		}
+
 		if (phase === 'ascent') {
 			// Stage when an engine has run dry.
 			const dry = v.parts.some(
@@ -126,8 +142,9 @@ export function createAscent(sim: Sim, vessel: EntityId, opts: AscentOptions = d
 				const { mass } = massProperties(v, rotate(v.orientation, UP_Y));
 				// Rocket equation for one engine (vacuum thrust 215 kN, Isp 300 s): the burn is shorter
 				// than dv·m/F because the vessel gets lighter, and centring it on apoapsis matters.
-				const ve = 300 * 9.80665;
-				const burn = (mass * ve * (1 - Math.exp(-dv / ve))) / 215_000;
+				const engine = opts.engine ?? { thrust: 215_000, isp: 300 };
+				const ve = engine.isp * 9.80665;
+				const burn = (mass * ve * (1 - Math.exp(-dv / ve))) / engine.thrust;
 				if (toApo <= burn / 2) {
 					phase = 'circularise';
 					sim.dispatch({ type: 'throttle', vessel, value: 1 });
