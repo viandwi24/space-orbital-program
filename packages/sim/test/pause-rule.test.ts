@@ -9,7 +9,11 @@ const make = (preset: string) =>
 	createSim({
 		plugins: [Stock],
 		backendFactory: rapier(16),
-		world: { ...legacyWorldInfo(1), id: '0d1f6c4e-7a2b-4c8d-9e0f-1a2b3c4d5e6f', preset } as WorldInfo
+		world: {
+			...legacyWorldInfo(1),
+			id: '0d1f6c4e-7a2b-4c8d-9e0f-1a2b3c4d5e6f',
+			preset
+		} as WorldInfo
 	});
 
 describe('pause', () => {

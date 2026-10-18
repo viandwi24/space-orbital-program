@@ -130,7 +130,8 @@ export const RulePauseAllowed = defineRule({
 	id: 'stock.pause-allowed',
 	label: 'Pause allowed',
 	category: 'world',
-	description: 'The player can pause the world clock. Without it the world always runs; warp still works.',
+	description:
+		'The player can pause the world clock. Without it the world always runs; warp still works.',
 	type: 'boolean',
 	default: true,
 	presets: byMode(true, true, true, false),
