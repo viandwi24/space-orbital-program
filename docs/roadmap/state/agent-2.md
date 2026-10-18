@@ -25,7 +25,7 @@
 | 108 astronauts | done | `devb/108-astronauts` | 2026-10-17 | merged c90868c, cp/f3-108-astronauts |
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | done | `devb/111-vessel-panel` | 2026-10-17 | merged 47c55ad, cp/f4-111-vessel-panel |
-| 105 tech-tree | handed-over | `devb/105-tech-tree` | 2026-10-18 | ready/105; ADR 0154; API 0.1.55 |
+| 105 tech-tree | done | `devb/105-tech-tree` | 2026-10-17 | merged 047ab15, cp/f3-105-tech-tree |
 | 115 comms-1-ui | in-progress | `devb/115-comms-ui` | 2026-10-18 | claim/115 |
 | 127 range-safety | handed-over | `devb/127-range-safety` | 2026-10-18 | ready/127; ADR 0155; API 0.1.55 |
 | 130 reliability | handed-over | `devb/130-reliability` | 2026-10-18 | ready/130; ADR 0156; API 0.1.55 |

@@ -1,7 +1,7 @@
 ---
 id: 105
 title: "Tech tree and R&D"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [103, 095, 102, 091, 094]
 phase: 6
