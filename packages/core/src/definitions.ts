@@ -19,6 +19,7 @@ import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
 import type { ContractDefinition, MissionDefinition, ObjectiveDefinition } from './objectives.ts';
 import type { ContractTemplateDefinition } from './contracts.ts';
+import type { StrategyDefinition } from './strategies.ts';
 import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -95,6 +96,8 @@ export interface ReadonlyRegistries {
 	contracts: ReadonlyRegistry<ContractDefinition>;
 	/** Procedural contract templates (plan 099, ADR 0186). */
 	contractTemplates: ReadonlyRegistry<ContractTemplateDefinition>;
+	/** Strategies (plan 101, ADR 0187). */
+	strategies: ReadonlyRegistry<StrategyDefinition>;
 	missions: ReadonlyRegistry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: ReadonlyRegistry<DataKindDefinition>;

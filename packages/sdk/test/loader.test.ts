@@ -252,6 +252,7 @@ describe('registration and report', () => {
 			objective: [],
 			contract: [],
 			'contract-template': [],
+			strategy: [],
 			mission: [],
 			'crew-trait': [],
 			'crew-names': [],

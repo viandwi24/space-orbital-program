@@ -43,6 +43,7 @@ export * from './data.ts';
 export * from './action-groups.ts';
 export * from './objectives.ts';
 export * from './contracts.ts';
+export * from './strategies.ts';
 export * from './crew.ts';
 export * from './patch.ts';
 export * from './plugin.ts';

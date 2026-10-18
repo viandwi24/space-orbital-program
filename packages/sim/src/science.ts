@@ -2,6 +2,7 @@
  * Science in the world (plan 103, ADR 0178): the situation cache, subjects, results and credit.
  * Subjects live beside the ECS world (ADR 0110) and save as `SimSave.science`.
  */
+import { multiplierOf } from './strategies.ts';
 import {
 	bodyScience,
 	GLOBAL_REGION,
@@ -195,7 +196,8 @@ export function creditScience(
 	core.events.emit('science:credited', { subject, value, how });
 	if (ruleOf(core, SCIENCE_RULES.techTree) !== true || value === 0) return;
 	const factor = ruleOf(core, SCIENCE_RULES.multiplier);
-	const points = value * (typeof factor === 'number' ? factor : 1);
+	// strategies scale the science booked, not the subject's credit (plan 101, ADR 0187 point 1)
+	const points = value * (typeof factor === 'number' ? factor : 1) * multiplierOf(core, 'science');
 	record(core, 'science', points, `science.${s.experiment}`, subject);
 }
 

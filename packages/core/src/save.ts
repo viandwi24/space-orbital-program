@@ -17,6 +17,7 @@ import { saveMilestonesSchema, type SaveMilestones } from './milestones.ts';
 import { saveRangeSchema, type SaveRange } from './range-safety.ts';
 import { saveReliabilitySchema, type SaveReliability } from './reliability.ts';
 import { saveContractsSchema, type SaveContracts } from './contracts.ts';
+import { saveStrategiesSchema, type SaveStrategies } from './strategies.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -163,6 +164,8 @@ export interface SimSave {
 	objectives?: SaveObjectives;
 	/** Contract offers and accepted generated contracts (plan 099, ADR 0186); optional, absent = none yet. */
 	contracts?: SaveContracts;
+	/** Active strategies and cooldowns (plan 101, ADR 0187); optional, absent = none ever. */
+	strategies?: SaveStrategies;
 	/** The crew roster (plan 106, ADR 0176 point 1); optional in format 5, absent = nobody hired. */
 	crew?: SaveCrew;
 	/** Science subjects (plan 103, ADR 0178 point 8); optional in format 5, absent = none yet. */
@@ -233,6 +236,7 @@ export const simSaveSchema = z.object({
 	economy: saveEconomySchema.optional(),
 	objectives: saveObjectivesSchema.optional(),
 	contracts: saveContractsSchema.optional(),
+	strategies: saveStrategiesSchema.optional(),
 	crew: saveCrewSchema.optional(),
 	science: saveScienceSchema.optional(),
 	milestones: saveMilestonesSchema.optional(),

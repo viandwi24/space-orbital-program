@@ -51,6 +51,7 @@ export interface SupplyRoute {
 export const ECONOMY_RULES = {
 	enabled: 'stock.economy',
 	costMultiplier: 'stock.cost-multiplier',
+	agencyType: 'stock.agency-type',
 	startingFunds: 'stock.starting-funds'
 } as const;
 
@@ -82,6 +83,8 @@ export interface ChargeDefinition {
 	when?: { rule: string; equals: RuleValue };
 	/** Numeric rules multiplied into the amount (missing or non-numeric rules count as 1). */
 	scaleBy?: string[];
+	/** A strategy multiplier key scaling the amount (plan 101, ADR 0187; stock: `budget`). */
+	multiplier?: string;
 }
 
 export const chargeDefinitionSchema = z.object({
@@ -93,7 +96,8 @@ export const chargeDefinitionSchema = z.object({
 	when: z
 		.object({ rule: z.string().min(1), equals: z.union([z.boolean(), z.number(), z.string()]) })
 		.optional(),
-	scaleBy: z.array(z.string().min(1)).optional()
+	scaleBy: z.array(z.string().min(1)).optional(),
+	multiplier: z.string().min(1).optional()
 });
 
 const finite = z.number().refine(Number.isFinite, 'expected a finite number');
@@ -126,8 +130,16 @@ export const saveEconomySchema = z.object({
 
 type RuleLookup = (id: string) => RuleValue | undefined;
 
+/** A strategy multiplier by key (1 for none). */
+export type MultiplierLookup = (key: string) => number;
+
 /** The amount a charge writes today, or null when it does not apply on `day`. */
-export function chargeOn(charge: ChargeDefinition, day: number, rule: RuleLookup): number | null {
+export function chargeOn(
+	charge: ChargeDefinition,
+	day: number,
+	rule: RuleLookup,
+	multiplier?: MultiplierLookup
+): number | null {
 	if (day <= 0 || day % charge.everyDays !== 0) return null;
 	if (charge.when && rule(charge.when.rule) !== charge.when.equals) return null;
 	let amount = charge.amount;
@@ -135,6 +147,7 @@ export function chargeOn(charge: ChargeDefinition, day: number, rule: RuleLookup
 		const v = rule(id);
 		if (typeof v === 'number') amount *= v;
 	}
+	if (charge.multiplier && multiplier) amount *= multiplier(charge.multiplier);
 	return amount;
 }
 
@@ -151,13 +164,16 @@ export function projectBalances(
 	charges: readonly ChargeDefinition[],
 	rule: RuleLookup,
 	fromDay: number,
-	days: number
+	days: number,
+	/** Strategy multipliers and extra charges such as upkeep (plan 101, ADR 0187 point 4). */
+	options: { multiplier?: MultiplierLookup; extra?: readonly ChargeDefinition[] } = {}
 ): Balances[] {
 	const out: Balances[] = [];
 	const b = { ...balances };
+	const all = [...charges, ...(options.extra ?? [])];
 	for (let day = fromDay + 1; day <= fromDay + days; day++) {
-		for (const charge of charges) {
-			const amount = chargeOn(charge, day, rule);
+		for (const charge of all) {
+			const amount = chargeOn(charge, day, rule, options.multiplier);
 			if (amount !== null) b[charge.currency] += amount;
 		}
 		if (day % REPUTATION_DECAY_EVERY === 0) b.reputation = decayedReputation(b.reputation);

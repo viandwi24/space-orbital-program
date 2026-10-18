@@ -27,6 +27,7 @@ import type {
 	BuildingDefinition,
 	ContractDefinition,
 	ContractTemplateDefinition,
+	StrategyDefinition,
 	MissionDefinition,
 	ObjectiveDefinition,
 	DataKindDefinition,
@@ -202,6 +203,13 @@ export const defineBuilding = (def: BuildingDefinition): BuildingDefinition => d
  * `ctx.charges.register(...)`; its id is the cause of its ledger entries.
  */
 export const defineCharge = (def: ChargeDefinition): ChargeDefinition => def;
+
+/**
+ * A strategy (plan 101, ADR 0187): factors on declared multiplier keys (`STRATEGY_KEYS`, each
+ * within its bounds), an upkeep in funds per 30 days, and the agency types it is offered to.
+ * Register with `ctx.strategies`.
+ */
+export const defineStrategy = (def: StrategyDefinition): StrategyDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // definePatch
