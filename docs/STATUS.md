@@ -79,8 +79,8 @@
 | 060 | [Stones you can hit](plans/060-stones-with-collision.md) | done | stones session (Claude, 2026-10-17) | ADR 0092: the stone lattice moved to `@orbital/core` (seeded by the body's craters seed), the renderer draws it, the sim adds a kinematic body of stone spheres next to a low vessel's ground tile on a craters body (24 m window, 96 at most, rebuilt every 8 m); a foot on a stone rests on it (cap up to 0.42 m) or tips the stock lander (from 0.49 m), damage by the same tolerance rule; mean step +0.004 ms; nothing saved |
 | 069 | [Mod-defined catalogue categories](plans/069-mod-defined-catalogue-categories.md) | done | Agent 2 (Dev B, M2) | ADR 0146, API 0.1.41: catalogue categories are a registry (`defineCategory`, `ctx.categories`, patch target `category`); stock registers its nine through it; short names stay aliases; the VAB rail reads the registry, a mod icon is path data drawn with the set\'s stroke, unknown names fall back |
 | 070 | [Communications](plans/070-communications.md) | draft | — | index of the comms tier plans 114 to 121 (ADR 0101); kept for the roadmap link |
-| 072 | [Script editor: the human pass and the panel on small screens](plans/072-script-panel-human-pass-and-small-screens.md) | blocked | Agent 2 (Dev B, M2) | ADR 0162: Ctrl/Cmd+I suggests; the dock layout re-checked at 1024x768 and 1180x820. Blocked on the owner's human pass (journal 058 checklist; plan Steps 3 and 4) |
-| 073 | [A compact flight HUD and VAB for phones](plans/073-compact-phone-hud-and-portrait-vab.md) | blocked | Agent 2 (Dev B, M2) | Blocked on the owner's phone pass (journal 055 C and D, measure-devices on one iPhone and one Android phone); refined Steps, nothing built (ADR 0107 point 6) |
+| 072 | [Script editor: the human pass and the panel on small screens](plans/072-script-panel-human-pass-and-small-screens.md) | done | Agent 2 (Dev B, M2) | ADR 0162: Ctrl/Cmd+I suggests; the dock layout re-checked at 1024x768 and 1180x820. Blocked on the owner's human pass (journal 058 checklist; plan Steps 3 and 4) |
+| 073 | [A compact flight HUD and VAB for phones](plans/073-compact-phone-hud-and-portrait-vab.md) | done | Agent 2 (Dev B, M2) | Blocked on the owner's phone pass (journal 055 C and D, measure-devices on one iPhone and one Android phone); refined Steps, nothing built (ADR 0107 point 6) |
 | 063 | [Aeroplane gameplay](plans/063-aeroplane-gameplay.md) | done | Agent 2 (Dev B, M2) | ADR 0161: wheels as frictionless colliders with sim-side tyre forces, aircraft start level on the runway, trim, flaps, level-wings SAS, AoA/IAS/glide/stall read-outs; the Launch screen pairs aircraft with runways; API 0.1.66 |
 | 074 | [Rename the product to Space Orbital Program](plans/074-rename-space-orbital-program.md) | done | Agent 2 (Dev B, M2) | ADR 0105: player-facing name only; identifiers stay `orbital` |
 | 075 | [Apache-2.0: package metadata, credits and the mod manifest licence field](plans/075-apache-2-licence-adoption.md) | done | Agent 3 | ADR 0106: package.json fields, credits, NOTICE check, mod manifest licence |
@@ -212,7 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
-- [126-ai-agencies-and-a-living-world.md](journal/126-ai-agencies-living-world.md)
+- [126-ai-agencies-living-world.md](journal/126-ai-agencies-living-world.md)
 - [118-comms-planning-tools.md](journal/118-comms-planning-tools.md)
 - [119-comms-tier-4-queues-store-and-forward.md](journal/119-comms-tier-4-queues-store-and-forward.md)
 - [125-n-body-gravity-model.md](journal/125-n-body-gravity-model.md)

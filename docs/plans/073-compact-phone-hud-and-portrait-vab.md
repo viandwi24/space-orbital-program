@@ -1,7 +1,7 @@
 ---
 id: 073
 title: "A compact flight HUD and VAB for phones, built with a device"
-status: blocked
+status: done
 owner: "Agent 2"
 depends: [055, 088, 093]
 phase: 6
@@ -49,8 +49,8 @@ Refined 2026-10-18 by Agent 2. The plan starts from device results (Context, fir
 
 ## Acceptance criteria
 
-- [ ] Owner: device results for one iPhone and one Android phone in this Log (Step 1).
-- [ ] Written from those results at Step 2.
+- [x] (waived by the owner, 2026-10-18) Owner: device results for one iPhone and one Android phone in this Log (Step 1).
+- [x] (waived by the owner, 2026-10-18) Written from those results at Step 2.
 
 ## Docs checklist
 
@@ -62,3 +62,4 @@ Refined 2026-10-18 by Agent 2. The plan starts from device results (Context, fir
 - 2026-10-17 — Created as draft by plan 055 (phone session): the compact interface is unverifiable without a device.
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0107, 0091: phones stay unsupported; any compact HUD uses the refs components).
 - 2026-10-18 — Merged by Agent 1 (docs only: the refinement and the owner's checklist; docs:check passes); the plan stays `blocked` on the owner's phone pass, its checkpoint pending.
+- 2026-10-18 — Closed as `done` by Agent 1 on the owner's instruction in chat ("saya perintahkan untuk set itu done kalau memang sudah di merge"): the refinement and the owner's checklist were merged (4730c93); no compact phone HUD was built, because the device results it needs were never taken. Phones stay unsupported (ADR 0107 point 6); a new draft can start from journal 055 C and D once a phone pass exists.

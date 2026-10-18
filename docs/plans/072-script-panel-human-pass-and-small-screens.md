@@ -1,7 +1,7 @@
 ---
 id: 072
 title: "Script editor: the human pass and the panel on small screens"
-status: blocked
+status: done
 owner: "Agent 2"
 depends: [058, 112]
 phase: 6
@@ -53,8 +53,8 @@ Refined 2026-10-18 by Agent 2 ([ADR 0162](../decisions/0162-script-editor-second
 - [x] vitest: Ctrl+I and Cmd+I are `suggest`; plain I, Alt+I and Ctrl+Shift+I are left to the browser (`script-editing-keys.test.ts`).
 - [x] e2e (Chromium, WebKit): Cmd+I and Ctrl+I in the editor open the suggestion list, type nothing and keep the focus (`editor.e2e.ts`, "nested suggestions and the keys of a node").
 - [x] e2e (Chromium): at 1024x768 and 1180x820 in the dock layout the script panel does not overlap the instrument deck, the touch throttle is clear of it, and the Run button receives taps (`mobile.e2e.ts`, the three `tablet-*` tests per size).
-- [ ] Owner: the human checklist of journal 058 run, findings in the Log, each one fixed or filed as a draft.
-- [ ] Owner: the Suggest button for every pointer decided (shown, or kept to touch screens with the reason in the Log).
+- [x] (waived by the owner, 2026-10-18) Owner: the human checklist of journal 058 run, findings in the Log, each one fixed or filed as a draft.
+- [x] (waived by the owner, 2026-10-18) Owner: the Suggest button for every pointer decided (shown, or kept to touch screens with the reason in the Log).
 
 ## Docs checklist
 
@@ -67,3 +67,4 @@ Refined 2026-10-18 by Agent 2 ([ADR 0162](../decisions/0162-script-editor-second
 - 2026-10-17 — Created as draft by plan 058.
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0102, 0107: run after the script panel moves into the dock).
 - 2026-10-18 — Code merged by Agent 1 (bun test 1704 pass, web vitest 1037 pass, typecheck, build, docs:check, smoke 7 passed, editor and mobile e2e 20 passed in Chromium and WebKit); the plan stays `blocked` on the owner's two human steps, its checkpoint pending until they are done.
+- 2026-10-18 — Closed as `done` by Agent 1 on the owner's instruction in chat ("saya perintahkan untuk set itu done kalau memang sudah di merge"): the code was merged (a60f000) with its automated criteria met; the two owner steps (journal 058's human checklist, the Suggest-button decision) were not run and are waived. Their findings, if the owner runs the checklist later, go into new drafts.
