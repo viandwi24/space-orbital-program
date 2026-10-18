@@ -184,3 +184,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0186 | [Procedural contracts: templates, the offer generator, slots, expected value and the save](0186-procedural-contracts-templates-offers-slots-value.md) | accepted | 2026-10-18 |
 | 0187 | [Strategies: declared multiplier keys with bounds, upkeep as a charge, slots, cooldown and the projection](0187-strategies-bounded-multipliers-upkeep-slots-projection.md) | accepted | 2026-10-18 |
 | 0161 | [Aeroplanes: wheels as frictionless colliders with sim-side tyre forces, a level runway start, trim, flaps, level-wings, flight read-outs](0161-aeroplanes-wheels-level-runway-trim-flaps-readouts.md) | accepted | 2026-10-18 |
+| 0188 | [Comms tier 3: relays and the routing graph, dish pointing, route modes, shared capacity, latency and the signal-delay rule](0188-comms-routing-pointing-capacity-latency-signal-delay.md) | accepted | 2026-10-18 |
