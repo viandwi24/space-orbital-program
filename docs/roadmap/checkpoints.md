@@ -22,7 +22,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f1-080-trajectory` | 080 | A3 | A1, A3 (113, 123, 125) | done | 0354289 | 2026-10-17 |
 | `cp/f1-085-orientation` | 085 | A2 | A1 (122) | done | c8298c8 | 2026-10-17 |
 | `cp/f1-076-roadmap-page` | 076 | A2 | A2 (089) | done | c262e53 | 2026-10-17 |
-| `cp/f1-done` | phase gate F1: all F1 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f1-done` | phase gate F1: all F1 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 | `cp/f2-087-worlds-screen` | 087 | A2 | A1, A2, A3 (091, 092, 100, 102) | done | 2d7724e | 2026-10-17 |
 | `cp/f2-090-buildings` | 090 | A1 | A1, A2, A3 (065, 091, 092, 130) | done | 2ba881b | 2026-10-17 |
 | `cp/f2-088-hud` | 088 | A2 | A2 (066, 073, 108, 111, 112) | done | d2caaa4 | 2026-10-17 |
@@ -33,7 +33,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f2-091-space-center` | 091 | A1 | A1, A2 (063, 065, 066, 094, 096, 105, 108) | done | d204a3d | 2026-10-17 |
 | `cp/f2-093-hangar` | 093 | A2 | A2 (073, 094) | done | dceae76 | 2026-10-17 |
 | `cp/f2-094-launch` | 094 | A2 | A1, A2 (063, 096, 105, 108, 127) | done | 2ac52f7 | 2026-10-17 |
-| `cp/f2-done` | phase gate F2: all F2 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f2-done` | phase gate F2: all F2 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 | `cp/f3-095-economy` | 095 | A1 | A1, A2, A3 (067, 096, 097, 099, 101, 105, 127, 130) | done | a060d06 | 2026-10-17 |
 | `cp/f3-098-objectives` | 098 | A3 | A2, A3 (099, 100) | done | 2b004b4 | 2026-10-17 |
 | `cp/f3-106-crew` | 106 | A3 | A1, A2, A3 (107, 108, 109) | done | 53cd3cf | 2026-10-17 |
@@ -50,7 +50,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f3-101-strategies` | 101 | A3 | — (none) | done | 3608196 | 2026-10-17 |
 | `cp/f3-109-eva` | 109 | A1 | A2, A3 (121, 130) | done | 912d3e3 | 2026-10-17 |
 | `cp/f3-097-markets` | 097 | A1 | A3 (126) | done | 4f791b9 | 2026-10-17 |
-| `cp/f3-done` | phase gate F3: all F3 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f3-done` | phase gate F3: all F3 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 | `cp/f4-110-part-actions` | 110 | A3 | A2 (063, 065, 111) | done | f84365e | 2026-10-17 |
 | `cp/f4-114-comms-1` | 114 | A3 | A1, A2, A3 (070, 115, 116, 126) | done | 23e3c4a | 2026-10-17 |
 | `cp/f4-112-dock` | 112 | A2 | A2 (072) | done | 49f8d21 | 2026-10-17 |
@@ -64,13 +64,13 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f4-120-comms-5` | 120 | A3 | A1, A3 (070, 121) | done | 7ff2a0fd | 2026-10-17 |
 | `cp/f4-121-comms-6` | 121 | A3 | A1 (070) | done | df5da7ad | 2026-10-17 |
 | `cp/f4-070-comms-index` | 070 | A1 | — (none) | done | a80d9bd8 | 2026-10-18 |
-| `cp/f4-done` | phase gate F4: all F4 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f4-done` | phase gate F4: all F4 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 | `cp/f5-122-sun` | 122 | A1 | A1, A3 (071, 123) | done | b33f76a | 2026-10-17 |
 | `cp/f5-123-elements` | 123 | A3 | A1, A3 (124, 125) | done | 8403dd7 | 2026-10-17 |
 | `cp/f5-071-second-planet` | 071 | A1 | A3 (124) | done | 5ba6b20 | 2026-10-17 |
 | `cp/f5-124-sol` | 124 | A3 | — (none) | done | 8d8d694 | 2026-10-17 |
 | `cp/f5-125-n-body` | 125 | A1 | — (none) | done | fdfc35f | 2026-10-17 |
-| `cp/f5-done` | phase gate F5: all F5 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f5-done` | phase gate F5: all F5 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 | `cp/f6-127-range-safety` | 127 | A2 | — (none) | done | aaa9f4c | 2026-10-17 |
 | `cp/f6-130-reliability` | 130 | A2 | — (none) | done | 246185e | 2026-10-17 |
 | `cp/f6-066-devices` | 066 | A2 | A2 (073) | done | 74f8ad1 | 2026-10-17 |
@@ -82,7 +82,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f6-129-discovery` | 129 | A3 | — (none) | done | bd246857 | 2026-10-17 |
 | `cp/f6-128-bases` | 128 | A1 | — (none) | done | 5cbba2a | 2026-10-17 |
 | `cp/f6-073-phone` | 073 | A2 | — (none) | done (owner waived; nothing built) | 4730c93 | 2026-10-18 |
-| `cp/f6-done` | phase gate F6: all F6 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
+| `cp/f6-done` | phase gate F6: all F6 plans merged, phase review (ADR 0108) | A1 | all | done | 11dc0a7c | 2026-10-18 |
 
 ## Contract checkpoints (mid-phase, §3.6)
 

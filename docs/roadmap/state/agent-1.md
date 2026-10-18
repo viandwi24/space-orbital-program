@@ -2,7 +2,7 @@
 
 > **Only Agent 1 edits this file** (ADR 0112). Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 1 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** every plan in this lane is done; 070 closed after 121 merged (cp/f4-070-comms-index). Processing the merge queue.
+**Now:** the foundation roadmap is complete (68/68) and the phase gates cp/f1-done to cp/f6-done are tagged; nothing claimed.
 **Waiting for:** nothing.
 **Updated:** 2026-10-18
 
