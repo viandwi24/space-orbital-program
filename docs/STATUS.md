@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-18
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
 **Current plan:** none: the three-agent foundation roadmap (`docs/roadmap/`) is complete, 68 of 68 plans done and the phase gates `cp/f1-done` to `cp/f6-done` passed on 2026-10-18 (full suite and 85 e2e on Chromium, Firefox and WebKit on the M5); 072 and 073 were closed on the owner's instruction with their human passes waived
-**Next plan:** none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
+**Next plan:** the release roadmap (`docs/roadmap/release-roadmap.md`, plans 200–232, ADRs 0200–0210): take the lowest draft whose depends are done, starting with wave 1 (200, 201, 202, 203, 204, 207, 212, 216, 217, 220, 227). Earlier note: none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
 
 ## Plan board
 
@@ -146,6 +146,39 @@
 | 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | done | Agent 1 (Lead) | ADR 0194: `VesselSnapshot.science.stored` (API 0.1.74) and the stock `stock.science` dock panel: experiments with state and reason, stored results with value × factor, Run the next experiment, Transmit the best result |
 | 192 | [Region overlay on the map view](plans/192-region-overlay-on-the-map.md) | done | Agent 1 (Lead) | The Regions layer of the flight map view: a sphere per body tinted from `regionAt` (a 256 × 128 texture in the body frame, 1.5 % above the radius, no tone mapping) and `<body> · <region>` under the cursor |
 | 193 | [Splash and ripples at the waterline](plans/193-splash-and-ripples-at-the-waterline.md) | done | Agent 1 (Lead) | Ripples and splashes at the waterline: rings at the parts whose bounding sphere spans the home body water plane over water, a splash on an entry at 2 m/s or more; from the snapshot alone, at most 16 parts × 3 rings |
+| 200 | [Quick fixes from the owner review](plans/200-quick-fixes-from-the-review.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 201 | [Shadow flicker on the high preset](plans/201-shadow-flicker.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 202 | [Release operations: error handling, deploy job, hosting headers](plans/202-release-operations.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 203 | [Debug panel, cheats, set orbit/location/resources, log](plans/203-debug-panel-and-cheats.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 208 | [Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost](plans/208-power-and-resources.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
+| 209 | [Parachutes](plans/209-parachutes.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
+| 210 | [SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts](plans/210-propulsion-and-structure-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207, 208]. |
+| 211 | [RCS thrusters and monopropellant](plans/211-rcs-and-monopropellant.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208, 216]. |
+| 212 | [Mach effects, atmosphere temperature curves, heating rule, part temperature limits](plans/212-flight-model-additions.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 213 | [Tank transfer, flow locks, rates](plans/213-tank-transfer-and-flow.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208]. |
+| 214 | [Vessel panel v2 and the part inspector](plans/214-vessel-panel-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204, 213]. |
+| 215 | [HUD layout spec and stable camera framing](plans/215-hud-layout-spec.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 216 | [Key profiles: KSP-compatible default and Orbital classic](plans/216-key-profiles.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 217 | [Hangar: carry loop, symmetry, rotation, turntable camera](plans/217-hangar-carry-loop.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 218 | [Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report](plans/218-hangar-inspector-groups-report.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [214, 217, 208]. |
+| 219 | [Procedural fairings and interstages](plans/219-procedural-fairings.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [217, 207]. |
+| 220 | [Roomier Hangar and high detail in the Hangar](plans/220-roomier-hangar.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 222 | [Docking ports and docking](plans/222-docking.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221, 207, 211]. |
+| 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
+| 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
+| 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
+| 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
+| 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
+| 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [203, 222, 224]. |
+| 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
+| 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [209, 210, 211, 222, 225]. |
+| 232 | [Release QA and launch](plans/232-release-qa.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231]. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

@@ -135,7 +135,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0115 | [Buildings: a 10 m grid centred on the site, placement rules, and the Legacy layout](0115-building-grid-placement-rules-and-the-legacy-layout.md) | accepted | 2026-10-17 |
 | 0116 | [The terrain bake's gradient is analytic, in forward mode](0116-analytic-terrain-gradient-in-forward-mode.md) | accepted | 2026-10-17 |
 | 0117 | [The Space Center view: the renderer's site mode, picking on the site plane, and where buildings persist](0117-space-center-view-site-mode-picking-and-where-buildings-persist.md) | accepted | 2026-10-17 |
-| 0118 | [The Mission Center: the map's system scope, its own sim from the world's save, and what Fly can fly](0118-mission-center-system-scope-own-sim-and-fly.md) | accepted | 2026-10-18 |
+| 0118 | [The Mission Center: the map's system scope, its own sim from the world's save, and what Fly can fly](0118-mission-center-system-scope-own-sim-and-fly.md) | superseded by 0201 | 2026-10-18 |
 | 0119 | [The Sun at the root: the home body is named, the tilt is the home orbit's inclination, and saves carry their home](0119-sun-at-the-root-home-body-tilt-as-orbit-inclination.md) | accepted | 2026-10-18 |
 | 0120 | [EVA: the suit is a vessel, crew commands for stepping out, walking and the flag, the jetpack as an engine](0120-eva-the-suit-is-a-vessel-commands-walking-jetpack-flag.md) | accepted | 2026-10-18 |
 | 0121 | [A second hills planet: one terrain spec for sim and GPU, air through the moon pass, sea shading and shadows](0121-second-hills-planet-terrain-spec-air-sea-shadows.md) | accepted | 2026-10-18 |
@@ -153,7 +153,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0149 | [`definePanel`: view nodes over a panel input, a small canvas, and the dock](0149-define-panel-view-nodes-panel-input-canvas-and-the-dock.md) | accepted | 2026-10-18 |
 | 0150 | [Launch facilities are the site's pad and runway buildings, placed by surface position; the choice travels to the flight](0150-launch-facilities-from-buildings-surface-placement-and-the-launch-choice.md) | accepted | 2026-10-18 |
 | 0151 | [Missions: briefings and next missions, a stock main line, scenarios as mission packs, the tracker panel](0151-missions-briefings-next-missions-scenarios-and-the-tracker.md) | accepted | 2026-10-18 |
-| 0152 | [Astronaut Complex: applicants by profession, crew kept by launching into the world's newest save](0152-astronaut-complex-applicants-by-profession-and-launching-into-the-world.md) | accepted | 2026-10-18 |
+| 0152 | [Astronaut Complex: applicants by profession, crew kept by launching into the world's newest save](0152-astronaut-complex-applicants-by-profession-and-launching-into-the-world.md) | superseded by 0201 | 2026-10-18 |
 | 0153 | [Vessel panel: controls from descriptors in a stable order, what a group click does, the part highlight](0153-vessel-panel-controls-from-descriptors-group-clicks-and-part-highlight.md) | accepted | 2026-10-18 |
 | 0154 | [Tech tree: nodes, research, locks at the Hangar and at launch, pacing by science yield](0154-tech-tree-nodes-research-locks-and-pacing-by-science-yield.md) | accepted | 2026-10-18 |
 | 0155 | [Range safety: the safe fan from the water map, the drop predicted at staging, penalties once](0155-range-safety-fans-impacts-at-staging-and-penalties.md) | accepted | 2026-10-18 |
@@ -195,3 +195,14 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0193 | [Comms tier 6: suit radios relayed by crewed vessels, the radio ability, fine terrain sampling, live broadcasts of firsts](0193-comms-tier-6-suit-radios-broadcasts.md) | accepted | 2026-10-18 |
 | 0194 | [The science dock panel: stored results in the snapshot, Run and Transmit over a fixed view](0194-science-dock-panel-stored-results.md) | accepted | 2026-10-18 |
 | 0195 | [Silhouettes of the planet pass: coverage at a miss's closest approach, one shading function, grazing normals](0195-planet-pass-silhouette-coverage.md) | accepted | 2026-10-18 |
+| 0200 | [Debug panel, cheats, set-state tools and the debug API](0200-debug-panel-cheats-set-state-debug-api.md) | accepted | 2026-10-18 |
+| 0201 | [One simulation per world: Base layout shell, clock states and pause rules](0201-one-sim-per-world-base-layout-clock-states-pause.md) | accepted | 2026-10-18 |
+| 0202 | [Flexible time warp](0202-flexible-time-warp.md) | accepted | 2026-10-18 |
+| 0203 | [KSP-grade parts pack](0203-ksp-grade-parts-pack.md) | accepted | 2026-10-18 |
+| 0204 | [Flight model additions](0204-flight-model-additions.md) | accepted | 2026-10-18 |
+| 0205 | [Vessel panel v2, part inspector and HUD layout spec](0205-vessel-panel-v2-part-inspector-hud-layout.md) | accepted | 2026-10-18 |
+| 0206 | [Key profile: KSP-compatible default plus an "Orbital classic" profile](0206-key-profiles-ksp-default-orbital-classic.md) | accepted | 2026-10-18 |
+| 0207 | [Hangar interaction model](0207-hangar-interaction-model.md) | accepted | 2026-10-18 |
+| 0208 | [Vessel switching, per-vessel designs, docking and fleet management](0208-vessel-switching-per-vessel-designs-docking-fleet.md) | accepted | 2026-10-18 |
+| 0209 | [EVA v2](0209-eva-v2.md) | accepted | 2026-10-18 |
+| 0210 | [Audio additions and music](0210-audio-additions-and-music.md) | proposed | 2026-10-18 |

@@ -67,7 +67,7 @@ docs/              everything below
 | `docs/architecture/` | how the system is built | when a plan changes structure |
 | `docs/decisions/` | ADRs (numbered, immutable once accepted) | any non-trivial choice |
 | `docs/guides/` | how-tos for mod authors, written from stock | when the SDK or stock changes |
-| `docs/roadmap/` | three-agent team roadmap: lanes, checkpoints, claims, start prompts (entry: `docs/roadmap/README.md`) | when told "you are Agent N", follow its self-routing procedure; only the Lead edits `checkpoints.md`/`claims.md` |
+| `docs/roadmap/` | **release roadmap** (`release-roadmap.md`, plans 200–232, active) and the completed three-agent team roadmap: lanes, checkpoints, claims, start prompts (entry: `docs/roadmap/README.md`) | when told "you are Agent N", follow its self-routing procedure; only the Lead edits `checkpoints.md`/`claims.md` |
 | `docs/plans/` | numbered plans with acceptance criteria | lifecycle: draft → ready → in-progress → done/blocked |
 | `docs/journal/` | one entry per plan execution: what happened, surprises, open questions | end of every plan |
 | `docs/research/` | verified facts from the internet with date checked | whenever you look something up |

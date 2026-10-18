@@ -1,6 +1,6 @@
 # 0152 — Astronaut Complex: applicants by profession, crew kept by launching into the world's newest save
 
-**Status:** accepted
+**Status:** superseded by 0201
 **Date:** 2026-10-18
 **Plan:** [108](../plans/108-astronaut-complex-and-crew-panel.md)
 **Builds on:** ADR 0176 (roster, recruit cost, seats), ADR 0100 point 1 (a roster and flight log per world), ADR 0143 point 2 (the Hangar's launch flies in the active world), ADR 0118 (a page runs its own sim from the newest save), ADR 0150 (the launch choice)

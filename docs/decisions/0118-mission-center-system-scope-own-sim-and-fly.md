@@ -1,6 +1,6 @@
 # 0118 — The Mission Center: the map's system scope, its own sim from the world's save, and what Fly can fly
 
-**Status:** accepted
+**Status:** superseded by 0201
 **Date:** 2026-10-18
 **Plan:** [113](../plans/113-mission-center.md)
 **Builds on:** ADR 0102 point 6 (Mission Center), ADR 0107 (refs UI), ADR 0050 (saves), ADR 0143 (worlds in the client), ADR 0173 (trajectory provider), ADR 0179 (comms network), ADR 0117 (Space Center)

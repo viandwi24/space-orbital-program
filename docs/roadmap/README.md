@@ -1,5 +1,7 @@
 # Team roadmap — entry point for the three developer agents
 
+> **Now active: the [release roadmap](release-roadmap.md)** (plans 200–232, one team, waves of parallel work; visual: [`release-roadmap.html`](release-roadmap.html)). The three-agent foundation roadmap below is complete (68 of 68 plans) and kept for reference.
+
 This folder holds the plan for building the foundation roadmap (plans 063, 065 to 131) with **three developer agents on three separate computers**. Start here; everything an agent needs to find its next task is reachable from this page.
 
 | File | What it is |
