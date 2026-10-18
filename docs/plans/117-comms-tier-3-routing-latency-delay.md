@@ -105,3 +105,4 @@ Notes: the comms benchmark is 180..207 µs/step here (300 probes now relay each 
 Resource notes: swap used 1257 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (118 planning tools, 119 queues, EC draw in ADR 0188)
 ```
+- 2026-10-18 — Merged by Agent 1 ahead of 072, 073 and 125 at the owner's request (Agent 3 waits on it): rebased on main (conflict in the ADR index, both kept); save format 7; API_VERSION 0.1.67 (063 took 0.1.66); bun test 1704 pass, web vitest 1035 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center, vessel-panel and worlds e2e pass (Chromium).
