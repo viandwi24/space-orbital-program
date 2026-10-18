@@ -30,6 +30,7 @@ import { stateInParent, type BodyRuntime } from './bodies.ts';
 import type { SimCore } from './core.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { finishObjective, startObjective } from './objectives.ts';
+import { multiplierOf } from './strategies.ts';
 import { dayLength } from './tick.ts';
 
 export const freshContracts = (core: Pick<SimCore, 'info'>): SaveContracts => ({
@@ -202,8 +203,12 @@ export function acceptContract(core: SimCore, offerId: string): CommandResult {
 		return started;
 	}
 	if (economyOn(core)) {
-		for (const e of offer.advance)
-			record(core, e.currency, e.amount, CONTRACT_ADVANCE_CAUSE, offer.id);
+		// strategies scale a positive advance like the reward (plan 101, ADR 0187 point 1)
+		const k = multiplierOf(core, 'contract-funds');
+		for (const e of offer.advance) {
+			const amount = e.currency === 'funds' && e.amount > 0 ? e.amount * k : e.amount;
+			record(core, e.currency, amount, CONTRACT_ADVANCE_CAUSE, offer.id);
+		}
 	}
 	return { ok: true };
 }

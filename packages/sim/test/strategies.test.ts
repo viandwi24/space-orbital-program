@@ -198,4 +198,20 @@ describe('strategies', () => {
 		expect(sim.snapshot().strategies).toBeUndefined();
 		sim.dispose();
 	});
+
+	test('a contract advance follows the contract-funds multiplier (plan 099 meets 101)', async () => {
+		const sim = await make('hybrid');
+		expect(
+			sim.dispatch({ type: 'strategy-activate', strategy: 'stock.commercial-contracts' }).ok
+		).toBe(true);
+		let offer = sim.snapshot().contracts?.offers[0];
+		for (let i = 0; !offer && i < 30; i++) {
+			warpDays(sim, 1);
+			offer = sim.snapshot().contracts?.offers[0];
+		}
+		const before = funds(sim);
+		expect(sim.dispatch({ type: 'contract-accept', offer: offer!.id }).ok).toBe(true);
+		expect(funds(sim) - before).toBeCloseTo(offer!.advance[0]!.amount * 1.2, 6);
+		sim.dispose();
+	});
 });
