@@ -1,4 +1,4 @@
-# 0212 — Debug access is a world rule; debug state lives in the world info
+# 0213 — Debug access is a world rule; debug state lives in the world info
 
 **Status:** accepted
 **Date:** 2026-10-19
