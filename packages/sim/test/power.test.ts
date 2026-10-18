@@ -180,6 +180,9 @@ describe('power for radios and probes (plan 208)', () => {
 		expect(r.ok ? '' : r.reason).toContain('no power');
 		run(sim, 50);
 		expect(depleted).toEqual([expect.objectContaining({ vessel: id })]);
+		// out of power is not debris: the probe stays, landed and at rest
+		run(sim, 60);
+		expect(sim.snapshot().vessels.some((v) => v.id === id)).toBe(true);
 		sim.dispose();
 	});
 });

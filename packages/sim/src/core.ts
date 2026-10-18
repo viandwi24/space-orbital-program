@@ -205,8 +205,14 @@ export function controlProblem(
 	return sources === 0 ? 'no-source' : 'no-power';
 }
 
+/**
+ * The vessel has a control source (ADR 0109): it is no debris, whether or not the source has power
+ * now (`controlProblem` says whether it takes commands).
+ */
 export function isControlled(core: SimCore, vessel: VesselState): boolean {
-	return controlProblem(core, vessel) === undefined;
+	return vessel.parts.some((id) =>
+		partOf(core, id).modules.some((m) => moduleDefOf(core, m.id).controlSource === true)
+	);
 }
 
 /** A vessel with a `keep` module (a planted flag, ADR 0120 point 5): never reaped as debris. */

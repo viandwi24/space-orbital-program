@@ -4,7 +4,7 @@ import { legacyWorldInfo, type Plugin, type SystemDefinition, type WorldInfo } f
 import Stock, { HomeBody, MoonBody, SunBody } from '@orbital/mod-stock';
 import { defineModule, definePlugin, GRAVITATIONAL_CONSTANT, z } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
-import { tickDayLength } from '../src/tick.ts';
+import { BACKGROUND_REFRESH, tickDayLength } from '../src/tick.ts';
 import { orbitState } from './helpers/measure.ts';
 import { rapier, stack } from './helpers/vessels.ts';
 
@@ -220,7 +220,7 @@ const charge = (s: Sim): number =>
 	).charge;
 
 describe('background operations', () => {
-	test('rate × elapsed time on ticks, before a save and on wake; updateOnRails is not called for it', async () => {
+	test('rate × elapsed time on ticks and every 5 s between them, before a save and on wake; updateOnRails is not called for it', async () => {
 		const calls = { background: 0, onRails: 0, counter: 0 };
 		const s = await sim([batteryMod(calls)]);
 		expect(s.dispatch({ type: 'warp', factor: 1_000 }).ok).toBe(true); // loads straight onto rails
@@ -235,7 +235,10 @@ describe('background operations', () => {
 
 		s.dispatch({ type: 'warp', factor: 1e5 });
 		s.step((DAY + 50 - s.time) / 1e5); // past the first tick
-		expect(charge(s)).toBeCloseTo(RATE * (DAY - t0), 6); // brought up to the tick, not further
+		// brought up to at least the tick, and between ticks at most BACKGROUND_REFRESH behind (plan 208)
+		expect(charge(s)).toBeGreaterThanOrEqual(RATE * (DAY - t0) - 1e-6);
+		expect(charge(s)).toBeLessThanOrEqual(RATE * (s.time - t0) + 1e-6);
+		expect(charge(s)).toBeGreaterThanOrEqual(RATE * (s.time - t0 - BACKGROUND_REFRESH) - 1e-6);
 		expect(calls.onRails).toBe(0);
 		expect(calls.counter).toBeGreaterThan(0); // a module without `background` keeps updateOnRails
 
