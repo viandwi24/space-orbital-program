@@ -106,7 +106,8 @@
 			<span class="cap">Transmitters</span>
 			{#each transmitters as p (p.entity)}
 				{#each p.controls.filter((c) => c.kind === 'toggle') as c (c.module + '/' + c.id)}
-					<div class="row" title={c.enabled ? undefined : c.reason}>
+					<div class="row endpoint" title={c.enabled ? undefined : c.reason}>
+						<span>{p.title} · {c.label}</span>
 						<Switch
 							checked={c.value === true}
 							label="{p.title} · {c.label}"
@@ -122,7 +123,8 @@
 		</section>
 	{:else if tab === 'overview'}
 		{#each view.groups as g (g.id)}
-			<div class="row">
+			<div class="row endpoint">
+				<span>{g.label} ({g.parts})</span>
 				<Switch
 					checked={g.state === 'mixed' ? 'mixed' : g.state === 'on'}
 					label="{g.label} ({g.parts})"
@@ -149,6 +151,7 @@
 				{#each p.controls as c (c.module + '/' + c.id)}
 					<div class="row" title={c.enabled ? undefined : c.reason}>
 						{#if c.kind === 'toggle'}
+							<span class="toggle-label">{c.label}</span>
 							<Switch
 								checked={c.value === true}
 								label={c.label}
@@ -319,5 +322,10 @@
 	}
 	.dim {
 		color: var(--text-muted);
+	}
+	.toggle-label {
+		margin-right: auto;
+		font-size: var(--t-small);
+		color: var(--text-secondary);
 	}
 </style>
