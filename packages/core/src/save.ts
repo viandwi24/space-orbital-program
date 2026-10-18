@@ -66,6 +66,8 @@ export interface SaveActiveObjective {
 	id: string;
 	source: { kind: 'contract' | 'mission'; id: string };
 	vessel?: number;
+	/** Only vessels with a higher entity id count: launched after the start (plan 099, ADR 0186 point 3). */
+	since?: number;
 	startedAt: number;
 	deadline?: number;
 	status: 'active' | 'done' | 'failed';
@@ -94,6 +96,7 @@ const saveActiveObjectiveSchema = z.object({
 	id: z.string().min(1),
 	source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
 	vessel: z.int().optional(),
+	since: z.int().optional(),
 	startedAt: z.number(),
 	deadline: z.number().optional(),
 	status: objectiveStatus,

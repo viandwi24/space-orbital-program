@@ -17,7 +17,7 @@ import {
 /** Gravity and drag loss on the way up, m/s (an estimate; ADR 0083 has the real model). */
 const ASCENT_LOSS = 1_150;
 /** Expected value over cost by tier: advance + reward = this × the estimated cost. */
-const VALUE = [1.6, 1.45, 1.3] as const;
+const VALUE = [1.2, 1.25, 1.3] as const;
 const ADVANCE_SHARE = 0.2;
 const PENALTY_SHARE = 0.5;
 

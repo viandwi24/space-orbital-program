@@ -41,7 +41,13 @@ export {
 	RATE_LADDER,
 	BLACKOUT_BADGE_LEVEL
 } from '@orbital/core';
-export { estimatedLaunchCost, expectedValue, CONTRACT_COST_PER_DV2 } from '@orbital/core';
+export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
+export {
+	estimatedLaunchCost,
+	expectedValue,
+	CONTRACT_COST_BASE,
+	CONTRACT_COST_PER_DV2
+} from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
 // Ephemeris helpers for system packs (plans 123 and 124, ADRs 0183 and 0184).

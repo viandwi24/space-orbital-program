@@ -45,7 +45,7 @@ Authored contracts (`defineContract`) exist since plan 098, but nothing offers t
 3. **Generated contracts live in the sim's contract state.** An offer is `{ id: 'gen.<n>', template, tier, key, title, brief, objectives, advance, reward, penalty, deadline, estimate, offeredAt, expires }`.
    - **Accepting it** starts an ordinary objective instance with source `{ kind: 'contract', id: 'gen.<n>' }`. The objectives engine resolves that id from the contract state before the registry.
    - **Everything else is ADR 0175:** reward, penalty, deadline and events.
-   - **Binding:** generated contracts are unbound (ADR 0175 point 4). Any vessel may do the work, as in KSP.
+   - **Binding:** generated contracts are unbound (ADR 0175 point 4): any vessel may do the work. Only vessels launched after the acceptance count, though. The instance keeps `since`, the highest vessel entity id at the start, and its view holds only vessels with a higher id. Otherwise a satellite already in orbit would finish every orbit contract the moment it is accepted.
 4. **Commands.**
    - `contract-accept { offer }` checks the slots, pays the advance (cause `contract.advance`) and starts the instance. Its deadline is the acceptance time plus the blueprint's.
    - `contract-decline { offer }` removes the offer and starts its key's cooldown.
@@ -55,7 +55,7 @@ Authored contracts (`defineContract`) exist since plan 098, but nothing offers t
 5. **Slots are the `mission-control` capacity** of the primary site (ADR 0123: "active contracts"; stock Mission Center 3, 6 and 12). Plan 099 said Administration, but ADR 0123 already gave this key to the Mission Center and strategy slots (`admin`) to Administration. Active authored and generated contracts both count. A site without such a building has no limit, which keeps old worlds working.
 6. **Transfer windows.** The template context's `window(target)` runs `hohmannToTarget` (`@orbital/kepler`, plan 045) on the home body's and the target's states around their common parent. It gives the next departure and the transfer time. For a sibling planet, a template sets its deadline to the wait, plus the transfer, plus a margin. Moons of the home body need no window.
 7. **Expected value** = advance + reward funds − the estimated launch cost, labelled an estimate.
-   - **The cost** is `estimatedLaunchCost(deltaV) = CONTRACT_COST_PER_DV2 · deltaV²` in core. It is calibrated so that the career bot's two-stage rocket costs its real price at the Δv to orbit.
+   - **The cost** is `estimatedLaunchCost(deltaV) = CONTRACT_COST_BASE + CONTRACT_COST_PER_DV2 · deltaV²` in core. The base, 5 000 funds, is the smallest rocket: a stock tank and engine cost about 8 300. The factor makes the career bot's two-stage rocket cost its real price, about 26 000, at the Δv to orbit.
    - **The Hangar's cheapest library design** that meets the objective (plan's design note) is a web refinement. The sim knows no library, and the screen's estimate label stays until that lands (follow-up).
 8. **Stock templates** (tiers 1 to 3):
    - an altitude record;
@@ -65,7 +65,7 @@ Authored contracts (`defineContract`) exist since plan 098, but nothing offers t
    - a moon landing and return;
    - a flyby of a sibling planet, generated only in systems that have one, with the window deadline.
 
-   Rewards scale with the estimated cost and the tier, so the expected value is positive by a margin that shrinks with tier. Advance 20 % of the reward, penalty 50 %, and a reputation reward of 5 × tier.
+   Rewards scale with the estimated cost and the tier: advance plus reward is 1.2, 1.25 or 1.3 times the estimated cost, ±10 %. Riskier jobs pay a larger margin. The career bot's ten-year band set tier 1 (plan 099 journal). Advance 20 % of the reward, penalty 50 %, and a reputation reward of 5 × tier.
 9. **Snapshot, save and screen.**
    - **Snapshot:** `Snapshot.contracts = { enabled, slots, used, offers, contracts }`. `contracts` lists the generated ones that were accepted, with their instance id and status. The live progress is in `Snapshot.objectives`.
    - **Save:** `SimSave.contracts = { next, rng, offers, accepted, cooldowns }` is optional in the current save format (6), like `objectives`. It is absent until the first offer.
@@ -82,7 +82,7 @@ Authored contracts (`defineContract`) exist since plan 098, but nothing offers t
 
 - **Mod API:** `defineContractTemplate`, `ctx.contractTemplates`, report kind `contract-template`, `estimatedLaunchCost`, `expectedValue`; additive, `API_VERSION` patch bump.
 - **Protocol:** the commands `contract-accept`, `contract-decline` and `contract-cancel`; `Snapshot.contracts`; the ledger causes `contract.advance` and the contract ids.
-- **Save:** an optional field, no format bump.
+- **Save:** an optional field, and an optional `since` on objective instances; no format bump.
 - **Rule:** `stock.contracts`.
 - **Follow-ups:**
   - the Hangar-based estimate;

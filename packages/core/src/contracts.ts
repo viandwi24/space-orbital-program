@@ -16,11 +16,13 @@ export const CONTRACT_OFFER_DAYS = 10;
 export const CONTRACT_COOLDOWN_DAYS = 15;
 /** Default reputation each prestige tier needs (tiers 1, 2, 3). */
 export const CONTRACT_TIER_REPUTATION = [0, 100, 300] as const;
+/** The smallest rocket's price in the launch-cost estimate: a stock tank and engine (about 8 300 funds). */
+export const CONTRACT_COST_BASE = 5_000;
 /**
- * Funds per (m/s)² of the launch-cost estimate (ADR 0186 point 7): the career bot's two-stage
- * rocket (about 26 000 funds) at the stock Δv to low orbit (about 3 400 m/s).
+ * Funds per (m/s)² of the launch-cost estimate (ADR 0186 point 7): with the base, the career bot's
+ * two-stage rocket (about 26 000 funds) at the stock Δv to low orbit (about 3 400 m/s).
  */
-export const CONTRACT_COST_PER_DV2 = 26_000 / 3_400 ** 2;
+export const CONTRACT_COST_PER_DV2 = (26_000 - CONTRACT_COST_BASE) / 3_400 ** 2;
 /** Ledger cause of an advance. */
 export const CONTRACT_ADVANCE_CAUSE = 'contract.advance';
 /** The rule that switches the generator (ADR 0186 point 2). */
@@ -28,7 +30,7 @@ export const CONTRACT_RULE = 'stock.contracts';
 
 /** An estimate of what launching a mission of `deltaV` m/s costs, in funds. */
 export const estimatedLaunchCost = (deltaV: number): number =>
-	Math.round(CONTRACT_COST_PER_DV2 * Math.max(0, deltaV) ** 2);
+	Math.round(CONTRACT_COST_BASE + CONTRACT_COST_PER_DV2 * Math.max(0, deltaV) ** 2);
 
 /** A body as a template sees it. */
 export interface ContractBodyView {

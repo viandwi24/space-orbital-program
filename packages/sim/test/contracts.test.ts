@@ -250,4 +250,34 @@ describe('accepted contracts', () => {
 			expect(counts[i]! - counts[i - 1]!).toBeLessThanOrEqual(1);
 		sim.dispose();
 	});
+
+	test('only vessels launched after the acceptance count', async () => {
+		const sim = await make(3);
+		const id = waitFor(sim, 'stock.contract-orbit');
+		const offer = contracts(sim).offers.find((o) => o.id === id)!;
+		const p = offer.objectives as { params: { minPeriapsis: number; maxApoapsis: number } };
+		const home = sim.registries.bodies.get('stock.home')!;
+		const r = home.radius + (p.params.minPeriapsis + p.params.maxApoapsis) / 2;
+		const v = Math.sqrt((GRAVITATIONAL_CONSTANT * home.mass) / r);
+		const probe = () =>
+			sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Probe', ['stock.probe-core'], []),
+				placement: {
+					kind: 'state',
+					position: { x: r, y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: -v }
+				}
+			});
+		expect(probe().ok).toBe(true); // already up there
+		sim.step(0.1);
+		expect(sim.dispatch({ type: 'contract-accept', offer: id }).ok).toBe(true);
+		sim.step(0.1);
+		const status = () => contracts(sim).contracts.find((c) => c.id === id)!.status;
+		expect(status()).toBe('active');
+		expect(probe().ok).toBe(true); // a new launch
+		sim.step(0.1);
+		expect(status()).toBe('done');
+		sim.dispose();
+	});
 });

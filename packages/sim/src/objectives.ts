@@ -97,12 +97,19 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
 	};
 }
 
-/** The view of one instance (ADR 0175 points 1 and 4): its bound vessel, or every vessel. */
-export function viewFor(core: SimCore, inst: Pick<SaveActiveObjective, 'vessel'>): ObjectiveView {
-	const ids =
-		inst.vessel === undefined
-			? vesselIds(core)
-			: vesselIds(core).filter((id) => id === inst.vessel);
+/**
+ * The view of one instance (ADR 0175 points 1 and 4): its bound vessel, or every vessel; with
+ * `since`, only the vessels launched after its start (ADR 0186 point 3).
+ */
+export function viewFor(
+	core: SimCore,
+	inst: Pick<SaveActiveObjective, 'vessel' | 'since'>
+): ObjectiveView {
+	const since = inst.since;
+	const ids = vesselIds(core).filter(
+		(id) =>
+			(inst.vessel === undefined || id === inst.vessel) && (since === undefined || id > since)
+	);
 	return { time: core.t, home: core.root.def.id, vessels: ids.map((id) => vesselView(core, id)) };
 }
 
@@ -187,7 +194,9 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 export function startObjective(
 	core: SimCore,
 	source: Source,
-	vessel: EntityId | undefined
+	vessel: EntityId | undefined,
+	/** Count only vessels launched from now on (generated contracts, ADR 0186 point 3). */
+	newVessels = false
 ): CommandResult {
 	const def = definitionOf(core, source);
 	if (!def) return { ok: false, reason: `unknown ${source.kind} "${source.id}"` };
@@ -210,6 +219,7 @@ export function startObjective(
 		id: `o${s.next++}`,
 		source: { ...source },
 		...(vessel === undefined ? {} : { vessel: Number(vessel) }),
+		...(newVessels ? { since: Math.max(-1, ...vesselIds(core).map(Number)) } : {}),
 		startedAt: core.t,
 		...(deadline === undefined ? {} : { deadline }),
 		status: 'active',
