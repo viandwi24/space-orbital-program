@@ -586,6 +586,12 @@ ctx.failureModes.register(defineFailureMode({
 - A failed module stops working by itself: its `update`, `updateOnRails`, `onStage` and `controlAuthority` are not called, its actions are refused and described as `Failed: <label>`, and a failed antenna is off. Your module needs no code for it.
 - Listen to `part:failed { vessel, part, module, mode, time }`. Draws come from the sim's own `reliability` stream, so a replay fails the same way.
 
+## Wheels, flaps and aircraft (API 0.1.65, plan 063, ADR 0161)
+
+- **A wheel** is a module collider with a `wheel` field: `colliders: (config, state) => [{ offset, halfExtents, wheel: { rolling: 0.02, grip: 0.8, brake: state.brakes ? 1 : 0, steer: 0.35 } }]`. Its box is frictionless; the sim applies rolling resistance, side grip and brakes at its ground contact, rolling along the part's +Y (the nose of a level craft), steered by the yaw demand times `steer` (rad). `stock.wheel` and `stock.wheel-steer` (`ModuleWheel`) are examples; hang them radially under a fuselage (radial angle π/2 points down for a craft with +Z up).
+- **Flaps**: the stock wing takes `flapLift`, `flapDrag` and `flapStall` (degrees) and gets a `Flaps` mode action (up, half, full) in the `stock.flaps` group.
+- **Aircraft**: a design with `aircraft: true` rolls out to a runway (the Launch screen pairs aircraft with runways and the rest with pads) and starts level, nose north. Build a runway in the Space Center first: the Legacy layout has none.
+
 ## Buildings (API 0.1.36, plan 090, ADR 0115)
 
 `ctx.buildings.register(defineBuilding({ id, label, size: { w, d }, entrances, levels, provides, bodies?, hazardRadius?, visual }))` adds a building kind. Sizes are in **10 m cells** (`w` east, `d` north at rotation 0); `entrances` are cells on the footprint edge with the side they open to (`{ i: 1, j: 0, side: 'south' }`); `levels` carry `cost`, `buildDays`, `upkeep`, `power` and `capacity` per capability (`launch-pad`, `hangar`, `comms-node`, ...); `provides` lists the capabilities; `hazardRadius` keeps other buildings that many metres from the footprint centre. Stock's kinds are in `mods/stock/src/buildings.ts`.

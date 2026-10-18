@@ -66,6 +66,7 @@ import {
 	reindex,
 	removeEmptyStage,
 	rename,
+	setAircraft,
 	replaceDesign,
 	setRadial,
 	setTilt,
@@ -331,14 +332,7 @@ export class VabController {
 		)
 	);
 	readonly checks = $derived(
-		checkDesign(
-			this.current,
-			this.content,
-			this.stats,
-			this.stability,
-			this.locks,
-			this.partsLimit
-		)
+		checkDesign(this.current, this.content, this.stats, this.stability, this.locks, this.partsLimit)
 	);
 	tripId = $state('low-orbit');
 	readonly trip = $derived(
@@ -1070,6 +1064,10 @@ export class VabController {
 	}
 	setName(name: string): void {
 		this.editor = rename(this.editor, name);
+	}
+	/** Mark the design an aircraft: it rolls out to a runway and starts level (plan 063). */
+	setAircraft(on: boolean): void {
+		this.editor = setAircraft(this.editor, on);
 	}
 	newVessel(): void {
 		this.disarm();

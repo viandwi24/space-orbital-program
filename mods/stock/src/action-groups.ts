@@ -10,5 +10,8 @@ export const STOCK_ACTION_GROUPS = [
 	defineActionGroup({ id: 'stock.science', label: 'Science', icon: 'science', order: 5 }),
 	defineActionGroup({ id: 'stock.docking', label: 'Docking', icon: 'docking', order: 6 }),
 	defineActionGroup({ id: 'stock.landing-gear', label: 'Landing gear', icon: 'legs', order: 7 }),
-	defineActionGroup({ id: 'stock.parachutes', label: 'Parachutes', icon: 'parachute', order: 8 })
+	defineActionGroup({ id: 'stock.parachutes', label: 'Parachutes', icon: 'parachute', order: 8 }),
+	// plan 063, ADR 0161: the wheels' brakes and the wings' flaps
+	defineActionGroup({ id: 'stock.brakes', label: 'Brakes', icon: 'legs', order: 9 }),
+	defineActionGroup({ id: 'stock.flaps', label: 'Flaps', icon: 'wing', order: 10 })
 ] as const;

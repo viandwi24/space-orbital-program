@@ -23,6 +23,11 @@ export interface ShapePlacement {
 	position: Vec3;
 	/** Defaults to identity. */
 	rotation?: Quat;
+	/**
+	 * Friction of this shape instead of the body's (plan 063, ADR 0161 point 1), combined with the
+	 * other collider by the minimum: a wheel is frictionless against the ground.
+	 */
+	friction?: number;
 }
 
 export type BodyShape =

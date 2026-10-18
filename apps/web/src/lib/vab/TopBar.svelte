@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Switch from '../ui/Switch.svelte';
 	import BackButton from '../ui/BackButton.svelte';
 	import Icon from '../ui/Icon.svelte';
 	import IconButton from '../ui/IconButton.svelte';
@@ -26,6 +27,16 @@
 				oninput={(e) => vab.setName(e.currentTarget.value)}
 			/>
 		</label>
+		<!-- plan 063: an aircraft rolls out to a runway and starts level -->
+		<span class="capsule aircraft" title="An aircraft rolls out to a runway and starts level">
+			<Switch
+				checked={vab.editor.design.aircraft === true}
+				label="Aircraft"
+				testid="vab-aircraft"
+				onchange={(on) => vab.setAircraft(on)}
+			/>
+			<span class="cap" aria-hidden="true">Aircraft</span>
+		</span>
 	</div>
 	<div class="center">
 		<div class="context" aria-live="polite">
@@ -167,6 +178,12 @@
 		border-radius: var(--radius-pill);
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
+	}
+	.aircraft {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0 0.75rem;
 	}
 	.name {
 		gap: 0.625rem;

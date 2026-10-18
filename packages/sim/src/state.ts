@@ -131,6 +131,8 @@ export interface VesselState {
 	backgroundAt?: number;
 	/** Walking target (plan 109, ADR 0120 point 3): heading from north, rad, and ground speed, m/s. */
 	walk?: { heading: number; speed: number };
+	/** Pitch trim, -1..1, added to the pitch demand (plan 063, ADR 0161 point 4). */
+	trim?: number;
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
 }
@@ -141,10 +143,13 @@ export interface VesselState {
  */
 export function effectiveControl(vessel: VesselState): ControlState {
 	const { sas, control } = vessel;
-	if (!sas.active) return control;
+	const trim = vessel.trim ?? 0;
+	// pitch trim offsets the demand, whoever makes it (plan 063, ADR 0161 point 4)
+	const trimmed = (pitch: number): number => Math.max(-1, Math.min(1, pitch + trim));
+	if (!sas.active) return trim === 0 ? control : { ...control, pitch: trimmed(control.pitch) };
 	return {
 		throttle: control.throttle,
-		pitch: sas.demand.x,
+		pitch: trimmed(sas.demand.x),
 		roll: sas.demand.y,
 		yaw: sas.demand.z
 	};
@@ -216,6 +221,8 @@ export interface FlightBody {
 	shapeParts: EntityId[];
 	/** Identifies the module-contributed colliders the body was built with (see `collectColliders`). */
 	signature: string;
+	/** Wheel colliders by collider index: the part, its module and the collider's place in that list (ADR 0161). */
+	wheels?: Map<number, { part: EntityId; module: string; k: number }>;
 }
 
 /** The kinematic slab standing in for the ground under one vessel (ADR 0019). */
@@ -248,4 +255,6 @@ export interface FlightFrame {
 	wet: Map<EntityId, Set<EntityId>>;
 	wetVessels: Set<EntityId>;
 	waterImpacts: Array<{ vessel: EntityId; part: EntityId; speed: number }>;
+	/** Wheel contacts with the ground tile after the last step, per vessel: collider index to point (ADR 0161). */
+	wheelContacts?: Map<EntityId, Map<number, Vec3>>;
 }

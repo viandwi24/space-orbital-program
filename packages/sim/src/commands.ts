@@ -171,7 +171,8 @@ function loadVessel(
 	vessel.soi = bodyName ?? core.root.def.id;
 	const body = bodyOfVessel(core, vessel);
 	if (surface) {
-		placeOnSurface(core, id, surface.latitude, surface.longitude);
+		// an aircraft lies level on the runway (plan 063, ADR 0161 point 3)
+		placeOnSurface(core, id, surface.latitude, surface.longitude, command.design.aircraft === true);
 	} else if (placement.kind === 'state') {
 		placeAtState(
 			core,
@@ -233,6 +234,13 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 				if (why) return refuse(why);
 			}
 			v.control.throttle = command.value;
+			return accept();
+		}
+		case 'trim': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			if (command.pitch === 0) delete v.trim;
+			else v.trim = command.pitch;
 			return accept();
 		}
 		case 'attitude': {

@@ -57,6 +57,19 @@ describe('launch facilities', () => {
 		]);
 	});
 
+	it('with the aircraft flag, an aircraft rolls out to the runway and anything else to a pad (plan 063)', () => {
+		const f = facilitiesOf(
+			site([at('pad-s', 'stock.launchpad-s', -1, -1), at('runway', 'stock.runway', 10, 0)]),
+			buildings
+		);
+		const pad = f.find((x) => x.kind === 'pad')!;
+		const runway = f.find((x) => x.kind === 'runway')!;
+		expect(accepts(runway, 9_000, true)).toBe(true);
+		expect(accepts(runway, 9_000, false)).toBe(false);
+		expect(accepts(pad, 9_000, true)).toBe(false);
+		expect(accepts(pad, 9_000, false)).toBe(true);
+	});
+
 	it("a facility's spot is its footprint's centre, east and north turned into latitude and longitude", () => {
 		const [pad] = facilitiesOf(site([at('pad-m', 'stock.launchpad-m', 4, 2, 1)]), buildings);
 		expect([pad!.east, pad!.north]).toEqual([60, 40]);

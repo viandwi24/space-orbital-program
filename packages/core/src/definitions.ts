@@ -274,6 +274,23 @@ export interface ModuleCollider {
 	/** Centre of the box relative to the part origin. */
 	offset: Vec3;
 	halfExtents: Vec3;
+	/**
+	 * A wheel (plan 063, ADR 0161 point 1): the box is frictionless and the sim applies the tyre
+	 * forces at its ground contacts, rolling along the part's +Y turned by `steer` times the yaw
+	 * demand.
+	 */
+	wheel?: WheelSpec;
+}
+
+export interface WheelSpec {
+	/** Rolling resistance coefficient (force over the wheel's load). */
+	rolling: number;
+	/** Side grip coefficient: the most side force over the load. */
+	grip: number;
+	/** 0..1: braking force over `grip` times the load. */
+	brake: number;
+	/** Steering angle at full yaw demand, rad (0: the wheel does not steer). */
+	steer: number;
 }
 
 /** Heat the airflow delivers to a part this step (what `ModuleDefinition.absorbHeat` receives). */

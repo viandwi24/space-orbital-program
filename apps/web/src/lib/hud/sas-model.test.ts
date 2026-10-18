@@ -35,7 +35,9 @@ describe('buttons', () => {
 			'radial-in',
 			'maneuver',
 			'target',
-			'anti-target'
+			'anti-target',
+			// plan 063: wings level, nose on the horizon
+			'level'
 		]);
 		expect(new Set(SAS_BUTTONS.map((b) => b.action)).size).toBe(SAS_BUTTONS.length);
 	});

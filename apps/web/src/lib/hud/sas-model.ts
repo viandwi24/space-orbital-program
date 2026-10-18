@@ -38,7 +38,9 @@ export const SAS_BUTTONS: readonly SasButtonSpec[] = [
 	{ mode: 'radial-in', label: 'Radial in', glyph: 'radial-in', action: 'sasRadialIn' },
 	{ mode: 'maneuver', label: 'Maneuver node', glyph: 'maneuver', action: 'sasManeuver' },
 	{ mode: 'target', label: 'Target', glyph: 'target', action: 'sasTarget' },
-	{ mode: 'anti-target', label: 'Anti-target', glyph: 'anti-target', action: 'sasAntiTarget' }
+	{ mode: 'anti-target', label: 'Anti-target', glyph: 'anti-target', action: 'sasAntiTarget' },
+	// wings level, nose on the horizon (plan 063, ADR 0161 point 5)
+	{ mode: 'level', label: 'Level wings', glyph: 'hold', action: 'sasLevel' }
 ];
 
 export interface SasButtonState extends SasButtonSpec {

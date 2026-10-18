@@ -31,7 +31,9 @@ export const SAS_MODES = [
 	'radial-out',
 	'maneuver',
 	'target',
-	'anti-target'
+	'anti-target',
+	/** Wings level and the nose on the horizon (plan 063, ADR 0161 point 5). */
+	'level'
 ] as const;
 export type SasMode = (typeof SAS_MODES)[number];
 
@@ -394,6 +396,8 @@ export interface VesselDesign {
 	}>;
 	/** `stages[k]` lists the part indices whose modules' `onStage` runs for the k-th `stage` command. */
 	stages: number[][];
+	/** An aircraft starts level on a runway, nose along it (plan 063, ADR 0161 point 3). */
+	aircraft?: boolean;
 	/** Custom action groups (plan 110, ADR 0174): slot 1..10, members by part index. Any version. */
 	groups?: Array<{
 		slot: number;
@@ -434,6 +438,8 @@ export type Command =
 	| { type: 'throttle'; vessel: EntityId; value: number }
 	| { type: 'attitude'; vessel: EntityId; pitch: number; yaw: number; roll: number }
 	| { type: 'stage'; vessel: EntityId }
+	/** Pitch trim (plan 063, ADR 0161 point 4): -1..1 added to the pitch demand; kept until changed. */
+	| { type: 'trim'; vessel: EntityId; pitch: number }
 	/** Set the stability assist mode and/or the prograde reference; an omitted field keeps its value (ADR 0049). */
 	| { type: 'sas'; vessel: EntityId; mode?: SasMode; reference?: SasReference }
 	| {

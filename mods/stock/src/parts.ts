@@ -8,6 +8,7 @@ import {
 	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
+	ModuleWheel,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
 	ModuleScrubber,
@@ -497,7 +498,13 @@ export const PartWing = definePart({
 	},
 	attach: { radial: { pos: [-1.5, 0, 0], dir: [-1, 0, 0] } },
 	crossfeed: false,
-	modules: [[ModuleWing, { area: 3, aspectRatio: 6, centre: [0, 0.25, 0] }]],
+	modules: [
+		[
+			ModuleWing,
+			// flaps (plan 063, ADR 0161 point 4): +0.6 C_L, +0.05 C_D, 3 degrees of stall at full flap
+			{ area: 3, aspectRatio: 6, centre: [0, 0.25, 0], flapLift: 0.6, flapDrag: 0.05, flapStall: 3 }
+		]
+	],
 	stagingIcon: 'fin'
 });
 
@@ -758,3 +765,30 @@ export const PartFlotationCollar = definePart({
 	},
 	attach: stackNodes(0.6)
 });
+
+/**
+ * Landing gear (plan 063, ADR 0161 point 2): a strut with a wheel at its outer end, hung radially
+ * under a fuselage; the wheel rolls along the vessel's nose (+Y) and its brakes are a toggle.
+ */
+const wheelPart = (id: string, title: string, steer: number) =>
+	definePart({
+		id,
+		title,
+		mass: kg(40),
+		cost: partCost(40, 'structure'),
+		impactTolerance: 6,
+		maxTemperature: 1200,
+		shape: { kind: 'box', size: [0.4, 0.3, 0.2] },
+		visual: {
+			kind: 'gear',
+			palette: { primary: '#2b2f36', secondary: '#c9ccd1', accent: '#d9552b' },
+			params: { offset: 0.45, radius: 0.3, width: 0.15 }
+		},
+		attach: { radial: { pos: [-0.2, 0, 0], dir: [-1, 0, 0] } },
+		crossfeed: false,
+		modules: [[ModuleWheel, { radius: 0.3, width: 0.15, offset: [0.45, 0, 0], steer }]],
+		stagingIcon: 'legs'
+	});
+
+export const PartWheel = wheelPart('stock.wheel', 'Wheel', 0);
+export const PartWheelSteer = wheelPart('stock.wheel-steer', 'Steering wheel', 20);

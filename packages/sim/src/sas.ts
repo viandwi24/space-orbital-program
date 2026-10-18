@@ -11,7 +11,7 @@ import { bodyOfVessel, spinAt } from './bodies.ts';
 import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import type { FlightBody, FlightFrame, SasState, VesselState } from './state.ts';
 import { makeContext } from './hooks.ts';
-import { qConj, qMul, qNormalize, qRotate } from './math.ts';
+import { qConj, qFromBasis, qMul, qNormalize, qRotate } from './math.ts';
 import { burnDirection } from './maneuver.ts';
 import { targetDirection as directionToTarget } from './target.ts';
 import { motionOf } from './orbit.ts';
@@ -30,6 +30,13 @@ export const RATE_MAX = 0.6;
 export const INTEGRAL_ZONE = 0.2;
 /** The integral is limited to this fraction of the authority. */
 export const INTEGRAL_LIMIT = 0.5;
+/**
+ * `level` holds a craft against its own steady aerodynamic moment (plan 063, ADR 0161 point 5): its
+ * integral may take the whole authority.
+ */
+export const LEVEL_INTEGRAL_LIMIT = 1;
+const limitOf = (mode: SasMode): number =>
+	mode === 'level' ? LEVEL_INTEGRAL_LIMIT : INTEGRAL_LIMIT;
 /**
  * Quiet band: a settled vessel (error below `QUIET_ENTER`, angular speed below `QUIET_RATE`) gets
  * exactly nothing until the error exceeds `QUIET_LEAVE`, so it stays force-free long enough to go
@@ -61,7 +68,20 @@ function aimOf(core: SimCore, vessel: VesselState): Vec3 | undefined {
 }
 
 /** Pointing modes (the ones with a direction). */
-export const isPointing = (mode: SasMode): boolean => mode !== 'off' && mode !== 'hold';
+export const isPointing = (mode: SasMode): boolean =>
+	mode !== 'off' && mode !== 'hold' && mode !== 'level';
+
+/**
+ * Level wings (plan 063, ADR 0161 point 5): the attitude with the nose on the horizon along its own
+ * heading and the wings level (+Z up), or undefined when the nose points straight up or down.
+ */
+export function levelAttitude(orientation: Quat, up: Vec3): Quat | undefined {
+	const nose = qRotate(orientation, { x: 0, y: 1, z: 0 });
+	const flat = sub(nose, scale(up, dot(nose, up)));
+	if (length(flat) < 1e-3) return undefined;
+	const y = normalize(flat);
+	return qFromBasis(cross(y, up), y, up);
+}
 
 /**
  * Unit direction (BCI) a pointing mode asks the nose to take, or undefined when there is none
@@ -226,6 +246,10 @@ export function stepSas(
 			settle = true;
 			if (length(omega) < LATCH_RATE) sas.settling = false;
 		} else error = holdError(orientation, sas.hold);
+	} else if (sas.mode === 'level') {
+		const level = levelAttitude(orientation, normalize(vessel.com));
+		if (level) error = holdError(orientation, level);
+		else settle = true;
 	} else {
 		const d = targetDirection(
 			spinAt(bodyOfVessel(core, vessel), core.t),
@@ -269,8 +293,8 @@ export function stepSas(
 			if (Math.abs(err) < INTEGRAL_ZONE) {
 				integral[k] = clamp(
 					integral[k] + KI * err * dt,
-					-INTEGRAL_LIMIT * amax,
-					INTEGRAL_LIMIT * amax
+					-limitOf(sas.mode) * amax,
+					limitOf(sas.mode) * amax
 				);
 			}
 		} else integral[k] = 0;

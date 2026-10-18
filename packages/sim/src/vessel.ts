@@ -162,6 +162,41 @@ function verticalExtent(core: SimCore, part: PartState): number {
 	);
 }
 
+/** Half extent along the design's Z of a box of half extents `h` turned by `rotation` (row 2 of its matrix). */
+function zExtent(h: Vec3, rotation: Quat | undefined): number {
+	if (!rotation) return h.z;
+	const { x, y, z, w } = rotation;
+	return (
+		Math.abs(2 * (x * z - y * w)) * h.x +
+		Math.abs(2 * (y * z + x * w)) * h.y +
+		Math.abs(1 - 2 * (x * x + y * y)) * h.z
+	);
+}
+
+/**
+ * Lowest design-frame point along -Z: the side an aircraft rests on when it lies level (plan 063,
+ * ADR 0161 point 3), parts' boxes and their modules' boxes (wheels) turned with the part.
+ */
+function lowestAlongZ(core: SimCore, parts: readonly EntityId[]): number {
+	let lowest = Infinity;
+	for (const id of parts) {
+		const p = partOf(core, id);
+		lowest = Math.min(
+			lowest,
+			p.designPos.z - zExtent(halfExtentsOf(partDefOf(core, p)), p.rotation)
+		);
+		for (const m of p.modules) {
+			const colliders = moduleDefOf(core, m.id).colliders;
+			if (!colliders) continue;
+			for (const c of colliders(m.config, moduleState(core, id, m.id))) {
+				const at = p.rotation ? qRotate(p.rotation, c.offset) : c.offset;
+				lowest = Math.min(lowest, p.designPos.z + at.z - zExtent(c.halfExtents, p.rotation));
+			}
+		}
+	}
+	return lowest;
+}
+
 /** Lowest design-frame point of the vessel along its +Y axis (negative or zero for a standing stack). */
 function lowestPoint(core: SimCore, parts: readonly EntityId[]): number {
 	let lowest = Infinity;
@@ -185,12 +220,15 @@ function lowestPoint(core: SimCore, parts: readonly EntityId[]): number {
  * lowest point, moving with the rotating ground. Local X points east, Y up, Z south. The body
  * has turned `omega * t` about +Y since t = 0, so the inertial position is the body-fixed one
  * rotated by that angle: a vessel loaded at any time stands on the same ground spot (plan 025).
+ * `level` (an aircraft, plan 063, ADR 0161 point 3) lays it down instead: nose (+Y) north, +Z up,
+ * resting on its lowest point along -Z.
  */
 export function placeOnSurface(
 	core: SimCore,
 	vesselId: EntityId,
 	latitude: number,
-	longitude: number
+	longitude: number,
+	level = false
 ): void {
 	const vessel = vesselOf(core, vesselId);
 	const body = bodyOfVessel(core, vessel);
@@ -207,9 +245,16 @@ export function placeOnSurface(
 	const eastRaw = cross({ x: 0, y: 1, z: 0 }, up);
 	const east =
 		Math.hypot(eastRaw.x, eastRaw.y, eastRaw.z) > 1e-9 ? normalize(eastRaw) : { x: 0, y: 0, z: -1 };
-	vessel.orientation = qFromBasis(east, up, cross(east, up));
 	const rootDesign = partOf(core, vessel.root).designPos;
-	const rootOrigin = add(ground.point, scale(up, rootDesign.y - lowestPoint(core, vessel.parts)));
+	let rootOrigin: Vec3;
+	if (level) {
+		const north = cross(up, east);
+		vessel.orientation = qFromBasis(cross(north, up), north, up);
+		rootOrigin = add(ground.point, scale(up, rootDesign.z - lowestAlongZ(core, vessel.parts)));
+	} else {
+		vessel.orientation = qFromBasis(east, up, cross(east, up));
+		rootOrigin = add(ground.point, scale(up, rootDesign.y - lowestPoint(core, vessel.parts)));
+	}
 	const offset = qRotate(vessel.orientation, sub(designCom(core, vessel.parts), rootDesign));
 	vessel.com = add(rootOrigin, offset);
 	vessel.velocity = cross(spinAt(body, core.t), vessel.com);

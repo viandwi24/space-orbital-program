@@ -20,6 +20,7 @@ import {
 	rename,
 	replaceDesign,
 	rootOf,
+	setAircraft,
 	singlePart,
 	stageOf,
 	undo,
@@ -407,7 +408,11 @@ describe('preview and categories', () => {
 			'stock.fin': 'stock.aero',
 			'stock.nose-cone': 'stock.aero'
 		});
-		expect(Object.values(ids).every((c) => categoriesOf(registries.categories.list()).some((x) => x.id === c))).toBe(true);
+		expect(
+			Object.values(ids).every((c) =>
+				categoriesOf(registries.categories.list()).some((x) => x.id === c)
+			)
+		).toBe(true);
 		const tank = registries.parts.get('stock.tank-small')!;
 		expect(matchesQuery(tank, 'small tank')).toBe(true);
 		expect(matchesQuery(tank, 'ENGINE')).toBe(false);
@@ -439,5 +444,17 @@ describe('save and load', () => {
 			parts: referenceTwoStage().parts.slice(1)
 		});
 		expect(parseDesign(bad, content.parts).ok).toBe(false);
+	});
+});
+
+describe('aircraft flag (plan 063)', () => {
+	it('marks a design an aircraft and back, keeps it through a file, adds no undo step', () => {
+		const s = replaceDesign(createEditor(emptyDesign(), content), content, referenceTwoStage());
+		const plane = setAircraft(s, true);
+		expect(plane.design.aircraft).toBe(true);
+		expect(plane.past.length).toBe(s.past.length);
+		const again = parseDesign(serialiseDesign(plane.design), content.parts);
+		expect(again.ok && again.design.aircraft).toBe(true);
+		expect('aircraft' in setAircraft(plane, false).design).toBe(false);
 	});
 });

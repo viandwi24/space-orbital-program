@@ -3,6 +3,7 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
+import { aeroReadout, wingStallAngle, type AeroReadout } from './aircraft/aero-readout';
 import { projectGhost, type GhostTrack, type ScreenGhost } from './replays/ghost-model';
 import { rangeWarning } from './range/range-model';
 import {
@@ -139,6 +140,8 @@ export interface HudModel {
 	range: string | null;
 	/** The link indicator and the reason a link is down (plan 115, ADR 0158); null without a network. */
 	link: LinkBadge | null;
+	/** Aircraft read-outs (plan 063, ADR 0161 point 6); null without wings or out of the air. */
+	aero: AeroReadout | null;
 	/** Stability assist state from the snapshot (plan 042); undefined before the sim reports it. */
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
@@ -541,6 +544,14 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				blackout: vesselBlackout(v.position, v.velocity, tele.altitude, body),
 				range: rangeWarning(snap.range, Number(v.id)),
 				link: linkBadge(snap, Number(v.id)),
+				aero: aeroReadout(
+					v,
+					body,
+					wingStallAngle(
+						v.parts.map((p) => p.definition),
+						options.content.parts
+					)
+				),
 				sas: v.sas,
 				controllable: hasControlSource(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),
