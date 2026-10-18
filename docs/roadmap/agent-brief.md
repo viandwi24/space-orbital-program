@@ -19,8 +19,8 @@ You are one of three developer agents. Each runs on its own computer, in its own
    - Change only the contracts in your plan's Touches.
    - Use ADR numbers from your range (§3.7).
    - Stage files with explicit `git add <paths>`, and push after every step.
-   - Run targeted tests while iterating, and the full suite once at the end.
-7. **Hand over:** rebase on `origin/main`, run the full checks, write the journal entry, then push the annotated tag `ready/<NNN>` with the template of roadmap §7.1. Leave the plan `in-progress`.
+   - Run targeted tests while iterating, and `bun run check:affected` at the end. Never the full suite: CI runs it on your handover tag (ADR 0126).
+7. **Hand over:** rebase on `origin/main`, run `bun run check:affected` (plus your plan's own e2e file on one engine, if it names one), write the journal entry, then push the annotated tag `ready/<NNN>` with the template of roadmap §7.1. Leave the plan `in-progress`. CI then runs the full suite on that commit; move on to your next task. A `refs/ci/fail/<sha>` for it means Agent 1 will bounce it: look at the Actions run and fix it first.
 8. **After the merge** (a new `cp/*` tag): delete your branch, clean up, and go back to step 1.
 9. **State file (ADR 0112):** keep `docs/roadmap/state/agent-<N>.md` current: **Now**, **Waiting for**, **Updated** and your plan's row (`in-progress` at claim, `handed-over` at handover, `bounced` on a bounce). Update it at claim, at every pushed step that changes what you do or wait for, at handover and after the merge. Commit it **alone** on `main`: `git switch main && git pull --rebase`, edit, `git add docs/roadmap/state/agent-<N>.md`, commit `docs(roadmap): agent <N> state`, `git push origin main` (on a refusal: `git pull --rebase` and push again), then switch back to your branch. Never put another path in that commit.
 
@@ -28,7 +28,7 @@ Never push `main`, except a commit that changes only your own state file (step 9
 
 ## If you are Agent 1 (Lead, M5)
 
-- **Merge queue first.** Every session, and at every natural break (at most every 30 minutes), merge the oldest `ready/*` handover with the checklist in roadmap §7.2. Publish its `cp/*` tag and update `checkpoints.md`, `claims.md` and `docs/STATUS.md`; set the plan's row in the dev's state file to `done`, run `bun run roadmap:progress` and commit `progress.md` and `roadmap-graph.html` in the same completion commit. You may also edit the roadmap design files (ADR 0112). Then continue your own lane: 077, 078, 095, 090, 068, 091, 113, 122, 096, 109, 097, 071, 125, 128, 070.
+- **Merge queue first.** Every session, and at every natural break (at most every 30 minutes), merge the oldest `ready/*` handover with the checklist in roadmap §7.2. Merge only with `refs/ci/pass/<sha>` for the handed-over commit (roadmap §7.2 step 4). Publish its `cp/*` tag and update `checkpoints.md`, `claims.md` and `docs/STATUS.md`; set the plan's row in the dev's state file to `done`, run `bun run roadmap:progress` and commit `progress.md` and `roadmap-graph.html` in the same completion commit. You may also edit the roadmap design files (ADR 0112). Then continue your own lane: 077, 078, 095, 090, 068, 091, 113, 122, 096, 109, 097, 071, 125, 128, 070.
 - **Kickoff, once:** push `main` with `docs/roadmap/` and tag `cp/f0-kickoff`. 077 is yours alone: make `cp/f1-077-world` land fast, because all three lanes wait for it.
 - **M5 criteria:** run every criterion marked ¹ and every renderer frame budget at merge, on a quiet machine, by the journal 054 method.
 - **Coordination:**

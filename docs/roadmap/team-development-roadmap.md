@@ -26,7 +26,7 @@ Every agent runs its **resource check** at session start, before starting a buil
 | Builds (`vite build`) at once | 2 | 1 | 1; never with a browser open |
 | Playwright engines at once | 1 (`E2E_WORKERS=1`) | 1 | 1 |
 | E2E engines it runs | Chromium (merge smoke), WebKit; all three at phase gates | Chromium, WebKit | Firefox, Chromium |
-| Test cadence | targeted (`bun test packages/<pkg>`, one vitest file) while iterating; the full suite once before handover and at every merge | same | same; `apps/web` vitest only before handover |
+| Test cadence (ADR 0126) | targeted (`bun test packages/<pkg>`, one vitest file) while iterating; `bun run check:affected` before handover and at every merge; the full suite runs in CI, locally only at phase gates or as the fallback | same, never the full suite | same, never the full suite |
 | Frame measurements | yes: production build (`NODE_ENV=development bun run build`), served by `apps/web/scripts/serve.ts` on its own port, no other sub-worker, no other tab, second page load, minimum over windows (journals 039, 050, 054) | only for plan 066 (plugged in, after 10 min idle, lid open) | never |
 
 **Check commands**
@@ -346,7 +346,7 @@ Commits: <git log --oneline origin/main..HEAD>
 Acceptance:
   [x] <criterion> — `<command>` — <one trimmed output line>
   [ ] <criterion> — needs Agent 1 (M5 / 3-engine e2e / visible pane) — why
-Checks run here: bun run test · web vitest · typecheck · build · docs:check · e2e <engine> (pass/fail, durations)
+Checks run here: bun run check:affected (steps, duration) · e2e <file> <engine> if the plan names one · full suite: CI on this tag (ADR 0126)
 Contracts changed (from Touches): <list> · Contract requests: <none | list>
 Save format / API_VERSION: <unchanged | reserved number N | patch bump>
 Docs: journal docs/journal/NNN-<slug>.md · ADRs <numbers> · research <files> · STATUS row only
@@ -359,12 +359,12 @@ Follow-ups: new drafts <numbers> | none
 1. `git fetch origin --tags --prune`; take the oldest `ready/*` tag; read its message.
 2. `git switch -c merge/NNN origin/<branch>`; `git rebase origin/main` (stop and `bounce` if it does not apply cleanly outside STATUS, `checkpoints.md`, the ADR index and the board).
 3. Review the diff against the plan's **Touches** (paths and contracts) and `docs/architecture/boundaries.md`. Any contract change that the plan does not list is a bounce.
-4. `bun install` if the lockfile changed, then: `bun run test` · `bun run --filter @orbital/web test` (web vitest) · `bun run typecheck` · `bun run build` · `bun run docs:check`.
-5. E2E smoke on one engine: `cd apps/web && E2E_PORT=5201 bunx playwright test --project=chromium e2e/smoke.e2e.ts` (and the plan's own e2e file if it names one).
+4. **CI result (ADR 0126):** `git ls-remote origin 'refs/ci/*/<sha>'` for the commit of `ready/NNN`. `refs/ci/fail/<sha>` is a bounce (name the Actions run). With no result yet, take the next handover and come back. With no result after 30 minutes, use the fallback of step 5.
+5. `bun install` if the lockfile changed, then `bun run check:affected` on the rebased branch (plus `--e2e <file>` for the plan's own e2e file, if it names one). Fallback when CI is unavailable: `bun run check:affected --full --e2e e2e/smoke.e2e.ts`. The full suite and the Chromium smoke run in CI on the push to `main`; a red `main` is fixed before the next merge.
 6. If the plan touches `packages/renderer` or the flight or Space Center views, or carries ¹: run the frame budget or the benchmark on the M5 by the journal 054 method (production build, own port, no other worker or tab). Record the numbers in the plan's Log and the journal (a `docs(plan-NNN)` commit on the merge branch).
 7. `git switch main && git merge --no-ff merge/NNN -m "chore(plan-NNN): merge <branch> (Agent N)"`.
 8. Completion commit `docs(plan-NNN): complete`: plan `status: done`, `updated:`; STATUS row, "Current/Next plan", "Recent journal entries"; `checkpoints.md` row (done, merge commit, date); `claims.md` row removed. Then `bun run docs:check`.
-9. `git tag -a cp/f<phase>-<NNN>-<slug> -m "plan NNN merged"`; `git push origin main cp/...`; `git push origin :refs/tags/claim/NNN :refs/tags/ready/NNN`.
+9. `git tag -a cp/f<phase>-<NNN>-<slug> -m "plan NNN merged"`; `git push origin main cp/...`; `git push origin :refs/tags/claim/NNN :refs/tags/ready/NNN` and the plan's `refs/ci/*/<sha>` refs.
 10. Clean up: delete `merge/NNN`, stop servers, close tabs.
 
 On failure: `git tag -a bounce/NNN -m "<what failed, command, output>" origin/<branch>` and `git push origin bounce/NNN`; delete `ready/NNN`. A criterion that only the M5 can run and that fails is a bounce with the numbers.
@@ -379,7 +379,8 @@ On failure: `git tag -a bounce/NNN -m "<what failed, command, output>" origin/<b
 | A checkpoint slips | Waiting agents do §4.4 work, then the next ready task in their lane (lookahead is part of the pick rule). If a base plan slips by more than its own estimate, its owner lands the **contract part first** (types, schemas, stubs, tests), and Agent 1 tags it as the plan's checkpoint with suffix `-contract`. Dependents start on it; the rest of the plan follows. |
 | A contract must change mid-phase | §3.6: a request; Agent 1 lands an additive change as `cp/f<phase>-contract-<slug>`, and every agent whose branch touches that contract rebases at its next step. A breaking change needs an ADR and waits for open branches on that contract to merge. |
 | A measurement is noisy | Discard it if `pmset -g therm` shows throttling, another tab or worker ran, or the pane was hidden (journals 039, 050). Rerun on a quiet machine after a second page load. A plan is not `done` until its M5 criteria pass. Agent 1 may merge the code to unblock dependents and keep the plan `in-progress` with owner `"Agent 1 (measure)"` until the numbers are in. |
-| Flaky e2e | One retry, reported as flaky (ADR 0040); the merge needs the Chromium smoke green twice in a row. |
+| Flaky e2e | One retry, reported as flaky (ADR 0040); the merge needs the Chromium smoke green twice in a row (a CI re-run counts). |
+| CI unavailable or slow | No result 30 minutes after a handover tag, or Actions is down: Agent 1 merges with the local fallback (§7.2 step 5). A red `main` is fixed before the next merge (ADR 0126). |
 | Human-gated plans (066 partly, 072, 073) | The agent does every automatable step, stops at the human step, sets the plan `blocked` with the checklist for the owner, and moves on in its lane. |
 
 ## 9. Notes for the Lead
