@@ -26,6 +26,7 @@
 
 - **Two whip probes** 2 000 km above the station and 50 km apart, both on channel 0: each loses exactly 3.0 dB of margin. Moving one to channel 1 restores the other's margin to the probe-alone value. With the rule off, neither loses anything.
 - **Encryption:** the rate is 0.8 times the plain rate.
+- **Comms benchmark** (300 probes, 10 bodies), back to back on this machine at one time: 381 µs per step with interference off and 424 µs with it on. Interference costs about 40 µs. The same benchmark measured 180 to 257 µs earlier the same day, so this laptop's thermal state moves it more than the code does. The budget is 500 µs on the M5. Interference counts each receiver's same-channel neighbours once per band and channel (O(edges)), not every pair of links.
 
 ## Follow-ups
 
@@ -37,5 +38,11 @@
 ## Verification output
 
 ```text
-VERIFICATION
+bun run check:affected        prettier, docs:check, typecheck (11 workspaces + web) pass;
+                              bun test of 10 workspaces: 1627 pass, 1 fail — the comms benchmark under the
+                              suite's load (257 µs alone then; see Measurements)
+bun test packages/sim/test/comms-channels.test.ts packages/sim/test/comms-routing.test.ts
+         packages/sim/test/comms-queues.test.ts               16 pass after the O(edges) interference
+bun run --filter @orbital/web test -- src/lib/comms src/lib/vessel-panel   11 passed
+full suite                    CI on the ready/120 commit (ADR 0126)
 ```

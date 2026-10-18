@@ -839,14 +839,31 @@ function routeNetwork(
 			b: out.get(f.vessel)!.budget
 		}));
 		const interfere = ruleOf(core, COMMS_RULES.interference) !== false;
+		// per band and channel, the set of transmitting vertices; a receiver's interferers are the
+		// group's transmitters among its neighbours (O(edges), not O(flows²))
+		const groups = new Map<string, Set<number>>();
+		for (const a of firsts) {
+			if (!a.b) continue;
+			const k = `${a.b.band}#${a.b.channel}`;
+			let g = groups.get(k);
+			if (!g) groups.set(k, (g = new Set()));
+			g.add(a.tx);
+		}
+		const heard = new Map<string, number>();
 		for (const a of firsts) {
 			if (!a.b) continue;
 			let n = 0;
 			if (interfere) {
-				for (const o of firsts) {
-					if (o === a || !o.b || o.b.band !== a.b.band || o.b.channel !== a.b.channel) continue;
-					if (o.tx === a.rx || across[o.tx]!.has(a.rx)) n += 1;
+				const k = `${a.b.band}#${a.b.channel}`;
+				const g = groups.get(k)!;
+				const key = `${k}@${a.rx}`;
+				let total = heard.get(key);
+				if (total === undefined) {
+					total = g.has(a.rx) ? 1 : 0;
+					for (const e of edges[a.rx]!) if (g.has(e.to)) total += 1;
+					heard.set(key, total);
 				}
+				n = total - 1; // all but itself
 			}
 			const loss = Math.min(INTERFERENCE_CAP_DB, INTERFERENCE_DB * n);
 			const margin = a.b.margin - loss;
