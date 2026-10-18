@@ -237,6 +237,21 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - The queue (`SimCore.commsState.queue`, `{ at, seq, command }`) drains at the start of each flight step and rails chunk, through `dispatch(…, 'queued')`, so every check runs again.
 - **Save format 7:** `SimSave.comms = { seq, routes, queue }`. Migration 6 → 7 adds an empty one; `save-v6.json` is the frozen fixture.
 
+
+## Comms tier 4 (plan 119, ADR 0189)
+
+`packages/sim/src/transmission.ts`.
+
+- **Queueing:** with comms on, `transmit-data` moves an item out of its storage into `SimCore.commsState.transmissions` (`{ seq, holder, origin, item, sent, hops }`, saved). With comms off it credits at once. `transmission-cancel` restores the item with its id.
+- **Sending:** at each network sample, `stepTransmissions` spends the time since the last sample on each holder's queue, in kind priority order (`stock.command` is −1) and then `seq`.
+  - **A holder with a route** sends at its shared rate (command items move at 1 kbit/s even over a commands-only link). It delivers with `comms:data-delivered { vessel: origin, item, kind, bits, time }` and credits science at `dataValueAt × transmitFactor`.
+  - **A holder without a route** hands its head item to a neighbour with free data storage whose next direct contact comes earlier (store-and-forward, at most 8 hops).
+- **Rates:** budgets are computed at every sample while anything is queued, so rails chunks transmit in the background over their sampled windows.
+- **Next contact:** `nextDirectContact` scans the tier-1 rule every 60 s for a home day, cached 60 s per holder.
+- **Snapshot:** `Snapshot.network.queues` lists the holders, with `nextContact`, `custody` and each item's `sent` and `eta`.
+- **Recovery** credits queued science at full value.
+- **Save format 8:** `comms.transmissions`. Migration 7 → 8 adds an empty list; `save-v7.json` is the frozen fixture.
+
 ## Range safety (plan 127, ADR 0155)
 
 `packages/core/src/range-safety.ts` and `packages/sim/src/range.ts`; rule `stock.range-safety` (`cost` default in Career, `hard`, `off`). A site's safe fan (`safeFan`, cached per run in `SimCore.range.fans`) is every 5° azimuth whose track from 20 to 200 km is water (`TerrainField.waterAt`, plan 067) at 75 % of its 10 km samples and passes 50 km clear of other sites; a body without `waterAt` has none and is not judged. A `stage` command that fires a separator (a module whose `describe` has an unfinished `separator`) on a controlled vessel more than 100 m above the ground takes the vessel's state as the spent stage's: `conicImpact` follows the drag-free conic (the debris rails model) to the reference radius, the body turns for the flight time, and `dropProblem` names a site within 50 km or land. `hard` refuses the command with the reason; `cost` fires it and books `RANGE_PENALTIES` once through the ledger (cause `range-safety`, ref `<kind>:<vessel>`, funds times the cost multiplier, only with `stock.economy` on). A vessel loaded at a site is watched (`SimSave.range.pending`, optional in format 5) until it climbs through 2 km above the ground; the heading of its velocity over the turning ground is then compared with the site's fan (`azimuth` violation, booked under `cost` and `hard`). Each violation emits `range:violation { vessel, kind, site?, latitude?, longitude?, azimuth?, penalised }`. `Snapshot.range` (absent when off) carries the mode, the fan of the latest watched ascent's site (else the primary site) and, per controlled vessel in flight, the predicted drop of its next separating stage when that is a violation.
