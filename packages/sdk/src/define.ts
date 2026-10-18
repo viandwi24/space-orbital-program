@@ -17,6 +17,7 @@ import type {
 	SituationDefinition,
 	AntennaDefinition,
 	BandDefinition,
+	RoutePolicyDefinition,
 	GroundStationDefinition,
 	SystemVariantDefinition,
 	DossierEntryDefinition,
@@ -321,6 +322,12 @@ export const defineAntenna = (def: AntennaDefinition): AntennaDefinition => def;
  * `ctx.bands`.
  */
 export const defineBand = (def: BandDefinition): BandDefinition => def;
+
+/**
+ * A route policy (plan 117, ADR 0188 point 3): a pure `choose(routes)` returning the index of the
+ * route to take, from `{ hops, width, latency }` candidates. Register with `ctx.routePolicies`.
+ */
+export const defineRoutePolicy = (def: RoutePolicyDefinition): RoutePolicyDefinition => def;
 
 /** A fixed ground station on a body (every world site is one already). Register with `ctx.groundStations`. */
 export const defineGroundStation = (def: GroundStationDefinition): GroundStationDefinition => def;

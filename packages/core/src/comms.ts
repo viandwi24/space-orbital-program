@@ -23,6 +23,8 @@ export interface AntennaDefinition {
 	gain?: number;
 	/** Dish diameter, m: the gain on the band follows from it. */
 	aperture?: number;
+	/** Full beam width of a dish, rad (plan 117, ADR 0188 point 2); default from band and aperture. */
+	beamWidth?: number;
 }
 
 /** A radio band (plan 116, ADR 0185 point 1). */
@@ -60,7 +62,8 @@ export const antennaDefinitionSchema = z.object({
 	power: z.number().nonnegative(),
 	band: z.string().min(1).optional(),
 	gain: z.number().refine(Number.isFinite, 'must be finite').optional(),
-	aperture: z.number().positive().optional()
+	aperture: z.number().positive().optional(),
+	beamWidth: z.number().positive().max(Math.PI).optional()
 });
 
 export const bandDefinitionSchema = z.object({
@@ -97,7 +100,8 @@ export const COMMS_NODE = 'comms-node';
 export const COMMS_RULES = {
 	enabled: 'stock.comms',
 	controlWithoutSignal: 'stock.control-without-signal',
-	scale: 'stock.comms-scale'
+	scale: 'stock.comms-scale',
+	signalDelay: 'stock.signal-delay'
 } as const;
 
 export const CONTROL_STATES = ['full', 'partial', 'none'] as const;
@@ -110,7 +114,8 @@ export type LinkReason =
 	| 'plasma blackout'
 	| 'out of range'
 	| `blocked by ${string}`
-	| 'blocked by terrain';
+	| 'blocked by terrain'
+	| `route broken at ${string}`;
 
 /** What `ctx.vessel.signal()` returns. */
 export interface SignalState {
@@ -121,6 +126,8 @@ export interface SignalState {
 	control: ControlState;
 	/** Downlink rate, bit/s (plan 116): 0 below the ladder, null without a link budget. */
 	rate?: number | null;
+	/** Light time along the route, s (plan 117); null without a link. */
+	latency?: number | null;
 }
 
 /** The longest link between two ratings, m. */
@@ -245,6 +252,73 @@ export function linkBudget(input: LinkBudgetInput): LinkBudget {
 		rate: rateForMargin(margin)
 	};
 }
+
+// ---- routing (plan 117, ADR 0188) ----
+
+/** Beam width of a dish without band or aperture data, rad. */
+export const DEFAULT_BEAM_WIDTH = (2 * Math.PI) / 180;
+
+/** A dish's full beam width, rad: its own, else `70 λ / D` degrees, else 2°. */
+export function beamWidthOf(
+	antenna: Pick<AntennaDefinition, 'beamWidth' | 'aperture'>,
+	band: Pick<BandDefinition, 'frequency'> | undefined
+): number {
+	if (antenna.beamWidth !== undefined) return antenna.beamWidth;
+	if (antenna.aperture !== undefined && band) {
+		const wavelength = SPEED_OF_LIGHT / band.frequency;
+		return Math.min(Math.PI, ((70 * wavelength) / antenna.aperture) * (Math.PI / 180));
+	}
+	return DEFAULT_BEAM_WIDTH;
+}
+
+/** How a vessel picks its route (ADR 0188 point 3). */
+export type RouteMode =
+	{ kind: 'auto' } | { kind: 'manual'; via: string[] } | { kind: 'policy'; policy: string };
+
+export const routeModeSchema = z.union([
+	z.object({ kind: z.literal('auto') }),
+	z.object({ kind: z.literal('manual'), via: z.array(z.string().min(1)).min(1).max(16) }),
+	z.object({ kind: z.literal('policy'), policy: definitionIdSchema })
+]);
+
+/** A candidate route a policy chooses from. */
+export interface RouteCandidate {
+	/** Hop ids after the vessel, ending at a control point. */
+	hops: string[];
+	/** Smallest edge capacity, bit/s. */
+	width: number;
+	/** Light time, s. */
+	latency: number;
+}
+
+export interface RoutePolicyDefinition {
+	id: string;
+	label: string;
+	/** Pure: the index of the route to take (candidates are never empty). */
+	choose(routes: readonly RouteCandidate[]): number;
+}
+
+export const routePolicyDefinitionSchema = z.object({
+	id: definitionIdSchema,
+	label: z.string().min(1),
+	choose: z.custom<(...a: never[]) => unknown>(
+		(v) => typeof v === 'function',
+		'choose must be a function'
+	)
+});
+
+/** Commands the signal-delay rule queues for a linked probe (ADR 0188 point 6). */
+export const DELAYED_COMMANDS: ReadonlySet<string> = new Set([
+	'throttle',
+	'attitude',
+	'sas',
+	'stage',
+	'action',
+	'action-group'
+]);
+
+/** Rounds of the proportional capacity sharing (ADR 0188 point 4). */
+export const CAPACITY_ROUNDS = 3;
 
 // ---- plasma blackout (ADR 0079, moved here by ADR 0179 point 7) ----
 

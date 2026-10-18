@@ -2,7 +2,7 @@
  * Sim <-> host protocol (simulation.md). Plain data only, so it works in-process and over
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
-import type { LinkBudget } from './comms.ts';
+import type { LinkBudget, RouteMode } from './comms.ts';
 import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
 import type { StrategiesSnapshot } from './strategies.ts';
@@ -313,6 +313,12 @@ export interface Snapshot {
 			rate: number | null;
 			/** Margin at the ladder's first step, dB; null without a budget. */
 			margin: number | null;
+			/** Hop ids from the vessel to its control point (plan 117, ADR 0188); empty without a link. */
+			route: string[];
+			/** Light time along the route, s; null without a link. */
+			latency: number | null;
+			/** The route mode. */
+			mode: RouteMode;
 		}>;
 		/**
 		 * The full budget of the vessel picked by `comms-inspect` (ADR 0185 point 9); `budget` is null
@@ -549,7 +555,14 @@ export type Command =
 	 */
 	| { type: 'deploy-base'; vessel: EntityId; id: string; name: string }
 	| { type: 'join-site'; vessel: EntityId; site: string }
-	| { type: 'create-route'; id: string; from: string; to: string; commodity: string; amount: number }
+	| {
+			type: 'create-route';
+			id: string;
+			from: string;
+			to: string;
+			commodity: string;
+			amount: number;
+	  }
 	| { type: 'delete-route'; id: string }
 	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
 	| { type: 'research'; node: string }
@@ -571,6 +584,10 @@ export type Command =
 	| { type: 'strategy-end'; strategy: string }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
+	/** A vessel's route mode (plan 117, ADR 0188 point 3): Auto, a pinned Manual route, or a policy. */
+	| { type: 'comms-route'; vessel: EntityId; mode: RouteMode }
+	/** Point a dish (null: Auto). Never refused for lack of signal. */
+	| { type: 'antenna-point'; vessel: EntityId; part: EntityId; target: string | null }
 	/** Accept a contract offer (plan 099, ADR 0186 point 4): checks the slots, pays the advance. */
 	| { type: 'contract-accept'; offer: string }
 	/** Decline an offer: it goes, and its key stays out for the template's cooldown. */
@@ -588,7 +605,14 @@ export type Command =
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =
-	| { ok: true; vessel?: EntityId; /** The node `node-set` created or replaced. */ node?: number }
+	| {
+			ok: true;
+			vessel?: EntityId;
+			/** The node `node-set` created or replaced. */
+			node?: number;
+			/** Sim time a delayed command applies (signal delay, plan 117, ADR 0188 point 6). */
+			queued?: number;
+	  }
 	| { ok: false; reason: string };
 
 export type CommandType = Command['type'];

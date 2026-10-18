@@ -31,6 +31,7 @@ import type {
 	AntennaDefinition,
 	BandDefinition,
 	GroundStationDefinition,
+	RoutePolicyDefinition,
 	SignalState
 } from './comms.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
@@ -114,6 +115,8 @@ export interface ReadonlyRegistries {
 	groundStations: ReadonlyRegistry<GroundStationDefinition>;
 	/** Radio bands (plan 116, ADR 0185). */
 	bands: ReadonlyRegistry<BandDefinition>;
+	/** Route policies (plan 117, ADR 0188). */
+	routePolicies: ReadonlyRegistry<RoutePolicyDefinition>;
 	/** Systems and scale variants (plan 124, ADR 0184). */
 	systemVariants: ReadonlyRegistry<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
@@ -330,7 +333,17 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * Present when this module is an antenna (plan 114, ADR 0179): the antenna definition id and
 	 * whether it is switched on now.
 	 */
-	antenna?: Bivariant<(config: Out, state: State) => { antenna: string; enabled: boolean }>;
+	antenna?: Bivariant<
+		(
+			config: Out,
+			state: State
+		) => {
+			antenna: string;
+			enabled: boolean;
+			/** Where a dish points (plan 117, ADR 0188 point 2); null or absent: Auto. */
+			target?: string | null;
+		}
+	>;
 	/** Present when this module scrubs CO2 (plan 107, ADR 0181 point 1): people served and EC per person per day. */
 	scrubber?: Bivariant<(config: Out) => ScrubberInfo>;
 	/**

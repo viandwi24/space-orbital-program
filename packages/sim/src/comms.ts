@@ -12,9 +12,13 @@ import {
 	COMMS_NODE,
 	COMMS_RULES,
 	antennaGain,
+	beamWidthOf,
+	CAPACITY_ROUNDS,
 	dishGain,
+	SPEED_OF_LIGHT,
 	linkBudget,
 	linkRange,
+	rateForMargin,
 	sitesOf,
 	SITE_STATION_APERTURES,
 	SITE_STATION_RANGES,
@@ -24,6 +28,7 @@ import {
 	type EntityId,
 	type LinkBudget,
 	type LinkReason,
+	type RouteMode,
 	type SignalState,
 	type Snapshot,
 	type Vec3
@@ -67,12 +72,19 @@ interface Station {
 }
 
 export interface VesselLink {
+	/** The first hop (plan 117): a station id or `vessel:<id>`; null without a link. */
 	to: string | null;
 	reason: LinkReason | null;
 	control: ControlState;
 	blackout: number;
-	/** The downlink budget (ADR 0185); null without a link or a common known band. */
+	/** The first hop's downlink budget (ADR 0185); null without a link or a common known band. */
 	budget: LinkBudget | null;
+	/** Hop ids to the control point (ADR 0188); empty without a link. */
+	route: string[];
+	/** Light time along the route, s; null without a link. */
+	latency: number | null;
+	/** The shared rate along the route, bit/s (ADR 0188 point 4); null without a budget. */
+	rate: number | null;
 }
 
 export interface CommsRuntime {
@@ -193,6 +205,8 @@ interface Node {
 	probe: boolean;
 	/** Its enabled, working antennas (for the link budget). */
 	antennas: AntennaDefinition[];
+	/** The same antennas with where each points (plan 117, ADR 0188 point 2; null: Auto). */
+	pointing: Array<{ antenna: AntennaDefinition; target: string | null }>;
 }
 
 function nodeOf(core: SimCore, id: EntityId): Node {
@@ -200,6 +214,7 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 	let crewed = false;
 	let sources = 0;
 	const antennas: AntennaDefinition[] = [];
+	const pointing: Node['pointing'] = [];
 	for (const partId of vesselOf(core, id).parts) {
 		const part = partOf(core, partId);
 		const seats = (partDefOf(core, part).crewCapacity ?? 0) > 0;
@@ -215,11 +230,14 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 				// a failed antenna is dead (plan 130, ADR 0156 point 2)
 				const on = a.enabled && !isFailed(core, partId, m.id);
 				range = Math.max(range, on ? (antenna?.range ?? 0) : 0);
-				if (on && antenna) antennas.push(antenna);
+				if (on && antenna) {
+					antennas.push(antenna);
+					pointing.push({ antenna, target: a.target ?? null });
+				}
 			}
 		}
 	}
-	return { id, range, crewed, probe: sources > 0 && !crewed, antennas };
+	return { id, range, crewed, probe: sources > 0 && !crewed, antennas, pointing };
 }
 
 /** The geometry of one sample time: bodies, stations and vessels in the system frame. */
@@ -384,6 +402,376 @@ function controlFor(core: SimCore, node: Node, linked: boolean): ControlState {
 	return rule === 'partial' || rule === 'none' ? rule : 'full';
 }
 
+// ---- routing (plan 117, ADR 0188) ----
+
+/** A vertex of the routing graph: a station or a vessel with a working antenna. */
+interface Vertex {
+	id: string;
+	at: Vec3;
+	/** A station, or a vessel with a crewed command part. */
+	control: boolean;
+	/** The vessel's node; undefined for a station. */
+	node?: Node;
+	station?: Station;
+}
+
+interface Edge {
+	to: number;
+	d: number;
+}
+
+export interface Routed {
+	to: string | null;
+	reason: LinkReason | null;
+	budget: LinkBudget | null;
+	route: string[];
+	latency: number | null;
+	rate: number | null;
+}
+
+/** The direction a pointing target names, from `here`; null for an unknown target. */
+function targetPosition(
+	core: SimCore,
+	frame: Frame,
+	stations: Station[],
+	target: string
+): Vec3 | null {
+	const i = stations.findIndex((s) => s.id === target);
+	if (i >= 0) return frame.stations[i]!;
+	if (target.startsWith('vessel:')) {
+		const id = Number(target.slice(7)) as EntityId;
+		return vesselIds(core).includes(id) ? frame.position(id) : null;
+	}
+	const body = frame.bodies.find((b) => b.body.def.id === target);
+	return body ? body.centre : null;
+}
+
+const angleBetween = (a: Vec3, b: Vec3): number => {
+	const la = length(a);
+	const lb = length(b);
+	if (la === 0 || lb === 0) return 0;
+	return Math.acos(Math.max(-1, Math.min(1, dot(a, b) / (la * lb))));
+};
+
+/** The strongest range rating of `node`'s antennas that may reach `other` (ADR 0188 point 2). */
+function rangeToward(
+	core: SimCore,
+	frame: Frame,
+	stations: Station[],
+	node: Node,
+	here: Vec3,
+	other: Vec3
+): number {
+	let best = 0;
+	for (const { antenna, target } of node.pointing) {
+		if (antenna.range <= best) continue;
+		if (antenna.kind === 'dish' && target !== null) {
+			const aim = targetPosition(core, frame, stations, target);
+			if (!aim) continue;
+			const band = antenna.band === undefined ? undefined : core.registries.bands.get(antenna.band);
+			if (angleBetween(sub(aim, here), sub(other, here)) > beamWidthOf(antenna, band) / 2) continue;
+		}
+		best = antenna.range;
+	}
+	return best;
+}
+
+const routeKey = (width: number, hops: number, dist: number) => ({ width, hops, dist });
+type Key = ReturnType<typeof routeKey>;
+/** Wider first, then fewer hops, then shorter. */
+const better = (a: Key, b: Key): boolean =>
+	a.width !== b.width ? a.width > b.width : a.hops !== b.hops ? a.hops < b.hops : a.dist < b.dist;
+
+/**
+ * Links of every vessel at `frame` through the routing graph (ADR 0188 points 1 to 5): the edges,
+ * each vessel's route by its mode, the shared capacity and the latency. `withBudget` computes the
+ * budgets and capacities (the last sample of an update); without it every edge counts as 1.
+ */
+function routeNetwork(
+	core: SimCore,
+	frame: Frame,
+	nodes: Node[],
+	stations: Station[],
+	blackout: ReadonlyMap<EntityId, number>,
+	withBudget: boolean
+): Map<EntityId, Routed> {
+	const scaleRule = ruleOf(core, COMMS_RULES.scale);
+	const factor = typeof scaleRule === 'number' ? scaleRule : 1;
+	const vertices: Vertex[] = stations.map((s, i) => ({
+		id: s.id,
+		at: frame.stations[i]!,
+		control: true,
+		station: s
+	}));
+	for (const node of nodes) {
+		if (node.range <= 0 || blackout.get(node.id)! >= BLACKOUT_BADGE_LEVEL) continue;
+		vertices.push({
+			id: `vessel:${node.id}`,
+			at: frame.position(node.id),
+			control: node.crewed,
+			node
+		});
+	}
+	const index = new Map(vertices.map((v, i) => [v.id, i]));
+	const edges: Edge[][] = vertices.map(() => []);
+	/** Edge length by neighbour, for O(1) lookups along a route. */
+	const across: Array<Map<number, number>> = vertices.map(() => new Map());
+	// the largest rating of each vertex, and whether a pointed dish may narrow it
+	const maxRange = vertices.map((v) => (v.station ? v.station.range : v.node!.range));
+	const pointed = vertices.map(
+		(v) => !!v.node?.pointing.some((p) => p.antenna.kind === 'dish' && p.target !== null)
+	);
+	const f2 = factor * factor;
+	for (let i = 0; i < vertices.length; i++) {
+		const a = vertices[i]!;
+		for (let j = i + 1; j < vertices.length; j++) {
+			const b = vertices[j]!;
+			if (a.station && b.station) continue;
+			const dx = b.at.x - a.at.x;
+			const dy = b.at.y - a.at.y;
+			const dz = b.at.z - a.at.z;
+			const d2 = dx * dx + dy * dy + dz * dz;
+			// a cheap reject before the pointing and line-of-sight checks
+			if (d2 > maxRange[i]! * maxRange[j]! * f2) continue;
+			const d = Math.sqrt(d2);
+			const ra = pointed[i]
+				? rangeToward(core, frame, stations, a.node!, a.at, b.at)
+				: maxRange[i]!;
+			const rb = pointed[j]
+				? rangeToward(core, frame, stations, b.node!, b.at, a.at)
+				: maxRange[j]!;
+			if (ra <= 0 || rb <= 0 || d > linkRange(ra, rb, factor)) continue;
+			if (blocker(frame, a.at, b.at)) continue;
+			edges[i]!.push({ to: j, d });
+			edges[j]!.push({ to: i, d });
+			across[i]!.set(j, d);
+			across[j]!.set(i, d);
+		}
+	}
+	// capacity of u transmitting to v, memoized (tier-2 budget; 0 is commands only)
+	const budgets = new Map<string, LinkBudget | null>();
+	const budgetOf = (u: number, v: number, d: number): LinkBudget | null => {
+		const k = `${u}>${v}`;
+		if (!budgets.has(k)) {
+			const from = vertices[u]!;
+			const to = vertices[v]!;
+			const rx: Receiver = to.station
+				? { aperture: to.station.aperture }
+				: { antennas: to.node!.antennas };
+			budgets.set(k, from.node ? bestBudget(core, from.node, rx, d, factor) : null);
+		}
+		return budgets.get(k)!;
+	};
+	// The margin falls by 20·log10(d) from its value at 1 m (effective), so one budget per pair of
+	// antenna sets is enough for every edge's capacity; the full budget is only for first hops.
+	const signature = (v: Vertex): string =>
+		v.station ? `aperture:${v.station.aperture}` : v.node!.antennas.map((a) => a.id).join(',');
+	const reference = new Map<string, number | null>();
+	const capacity = (u: number, v: number, d: number): number => {
+		if (!withBudget) return 1;
+		const from = vertices[u]!;
+		const to = vertices[v]!;
+		if (!from.node) return 0;
+		const k = `${signature(from)}>${signature(to)}`;
+		if (!reference.has(k)) {
+			const rx: Receiver = to.station
+				? { aperture: to.station.aperture }
+				: { antennas: to.node!.antennas };
+			reference.set(k, bestBudget(core, from.node, rx, factor, factor)?.margin ?? null);
+		}
+		const m1 = reference.get(k)!;
+		return m1 === null ? 0 : rateForMargin(m1 - 20 * Math.log10(d / factor));
+	};
+	// the widest-path tree towards the control points (multi-source, O(V²))
+	const n = vertices.length;
+	const key: Array<Key | null> = vertices.map((v) => (v.control ? routeKey(Infinity, 0, 0) : null));
+	const next: Array<number | null> = vertices.map(() => null);
+	const done = new Array<boolean>(n).fill(false);
+	for (;;) {
+		let pick = -1;
+		for (let i = 0; i < n; i++) {
+			if (done[i] || !key[i]) continue;
+			if (
+				pick < 0 ||
+				better(key[i]!, key[pick]!) ||
+				(!better(key[pick]!, key[i]!) && vertices[i]!.id < vertices[pick]!.id)
+			)
+				pick = i;
+		}
+		if (pick < 0) break;
+		done[pick] = true;
+		const kp = key[pick]!;
+		for (const e of edges[pick]!) {
+			const u = e.to; // u transmits towards pick
+			if (done[u] || vertices[u]!.control) continue;
+			const k = routeKey(Math.min(kp.width, capacity(u, pick, e.d)), kp.hops + 1, kp.dist + e.d);
+			const cur = key[u];
+			if (
+				!cur ||
+				better(k, cur) ||
+				(!better(cur, k) && next[u] !== null && vertices[pick]!.id < vertices[next[u]!]!.id)
+			) {
+				key[u] = k;
+				next[u] = pick;
+			}
+		}
+	}
+	const pathFrom = (i: number): number[] | null => {
+		if (vertices[i]!.control) return [];
+		const out: number[] = [];
+		for (let c: number | null = next[i] ?? null; c !== null; c = next[c] ?? null) {
+			out.push(c);
+			if (vertices[c]!.control) return out;
+			if (out.length > n) return null;
+		}
+		return null;
+	};
+	interface Choice {
+		hops: number[];
+		width: number;
+		dist: number;
+	}
+	/** The best route through each neighbour, not coming back through `i`. */
+	const candidates = (i: number): Choice[] => {
+		const out: Choice[] = [];
+		for (const e of edges[i]!) {
+			const rest = pathFrom(e.to);
+			if (!rest || rest.includes(i)) continue;
+			const hops = [e.to, ...rest];
+			const k = key[e.to]!;
+			out.push({ hops, width: Math.min(capacity(i, e.to, e.d), k.width), dist: e.d + k.dist });
+		}
+		return out.sort((a, b) =>
+			better(routeKey(a.width, a.hops.length, a.dist), routeKey(b.width, b.hops.length, b.dist))
+				? -1
+				: better(routeKey(b.width, b.hops.length, b.dist), routeKey(a.width, a.hops.length, a.dist))
+					? 1
+					: vertices[a.hops[0]!]!.id < vertices[b.hops[0]!]!.id
+						? -1
+						: 1
+		);
+	};
+	const modes = new Map(core.commsState.routes.map((r) => [r.vessel, r.mode]));
+	const out = new Map<EntityId, Routed>();
+	const flows: Array<{ vessel: EntityId; edges: Array<[number, number, number]>; share: number }> =
+		[];
+	for (const node of nodes) {
+		const i = index.get(`vessel:${node.id}`);
+		const unlinked = (reason: LinkReason | null): Routed => ({
+			to: null,
+			reason:
+				reason ??
+				linkOf(
+					core,
+					frame,
+					node,
+					nodes.filter((p) => p.crewed),
+					stations,
+					blackout.get(node.id)!,
+					false
+				).reason,
+			budget: null,
+			route: [],
+			latency: null,
+			rate: null
+		});
+		if (i === undefined) {
+			out.set(node.id, unlinked(null));
+			continue;
+		}
+		const mode = modes.get(Number(node.id)) ?? { kind: 'auto' as const };
+		let choice: Choice | null = null;
+		let broken: LinkReason | null = null;
+		if (mode.kind === 'manual') {
+			const hops: number[] = [];
+			let from = i;
+			let dist = 0;
+			let width = Infinity;
+			for (const id of mode.via) {
+				const to = index.get(id);
+				const d = to === undefined ? undefined : across[from]!.get(to);
+				if (to === undefined || d === undefined) {
+					broken = `route broken at ${id}`;
+					break;
+				}
+				hops.push(to);
+				width = Math.min(width, capacity(from, to, d));
+				dist += d;
+				from = to;
+			}
+			if (!broken && !vertices[from]!.control) broken = `route broken at ${mode.via.at(-1)!}`;
+			if (!broken) choice = { hops, width, dist };
+		} else if (mode.kind === 'auto' && !vertices[i]!.control) {
+			// a probe's Auto route is its branch of the widest-path tree
+			const hops = pathFrom(i);
+			if (hops && hops.length > 0) choice = { hops, width: key[i]!.width, dist: key[i]!.dist };
+		} else {
+			const list = candidates(i);
+			if (list.length > 0) {
+				choice = list[0]!;
+				const policy =
+					mode.kind === 'policy' ? core.registries.routePolicies.get(mode.policy) : undefined;
+				if (policy) {
+					const k = policy.choose(
+						list.map((c) => ({
+							hops: c.hops.map((h) => vertices[h]!.id),
+							width: c.width,
+							latency: c.dist / SPEED_OF_LIGHT
+						}))
+					);
+					choice = list[Math.max(0, Math.min(list.length - 1, Math.floor(k)))] ?? choice;
+				}
+			}
+		}
+		if (!choice) {
+			out.set(node.id, unlinked(broken));
+			continue;
+		}
+		const first = choice.hops[0]!;
+		const firstD = across[i]!.get(first)!;
+		const path: Array<[number, number, number]> = [];
+		let from = i;
+		for (const h of choice.hops) {
+			path.push([from, h, across[from]!.get(h)!]);
+			from = h;
+		}
+		flows.push({ vessel: node.id, edges: path, share: choice.width });
+		out.set(node.id, {
+			to: vertices[first]!.id,
+			reason: null,
+			budget: withBudget ? budgetOf(i, first, firstD) : null,
+			route: choice.hops.map((h) => vertices[h]!.id),
+			latency: choice.dist / SPEED_OF_LIGHT,
+			rate: null
+		});
+	}
+	if (withBudget) {
+		// shared capacity: bounded proportional rounds (ADR 0188 point 4)
+		const keyOf = (e: [number, number, number]) => `${e[0]}>${e[1]}`;
+		const onEdge = new Map<string, { cap: number; flows: typeof flows }>();
+		for (const f of flows)
+			for (const e of f.edges) {
+				const k = keyOf(e);
+				const entry = onEdge.get(k) ?? { cap: capacity(e[0], e[1], e[2]), flows: [] };
+				entry.flows.push(f);
+				onEdge.set(k, entry);
+			}
+		const order = [...onEdge.keys()].sort();
+		for (let round = 0; round < CAPACITY_ROUNDS; round++) {
+			for (const k of order) {
+				const { cap, flows: fs } = onEdge.get(k)!;
+				const total = fs.reduce((sum, f) => sum + f.share, 0);
+				if (total > cap && total > 0) for (const f of fs) f.share *= cap / total;
+			}
+		}
+		for (const f of flows) {
+			const r = out.get(f.vessel)!;
+			r.rate = r.budget ? f.share : null;
+		}
+	}
+	return out;
+}
+
 /**
  * Updates the network after a step or rails chunk that ended at `core.t` (ADR 0179 point 4):
  * when due or dirty, samples from the last update (at most `NETWORK_SAMPLE` apart), dates each
@@ -416,11 +804,11 @@ export function updateNetwork(core: SimCore): void {
 	for (const t of times) {
 		const frame = frameAt(core, t, stations);
 		const last = t === times[times.length - 1];
+		// the budget only at the update's last sample (ADR 0185 point 8); routes at every sample
+		const routed = routeNetwork(core, frame, nodes, stations, blackout, last);
 		for (const node of nodes) {
 			seen.add(node.id);
-			const b = blackout.get(node.id)!;
-			// the budget only at the update's last sample (ADR 0185 point 8)
-			const now = linkOf(core, frame, node, points, stations, b, last);
+			const now = routed.get(node.id)!;
 			const before = comms.links.get(node.id);
 			const control = controlFor(core, node, now.to !== null);
 			const next: VesselLink = { ...now, control, blackout: blackout.get(node.id)! };
@@ -473,15 +861,33 @@ export function signalOf(core: SimCore, id: EntityId): SignalState {
 			to: null,
 			reason: null,
 			control: 'full',
-			rate: null
+			rate: null,
+			latency: null
 		};
 	return {
 		connected: link.to !== null,
 		to: link.to,
 		reason: link.reason,
 		control: link.control,
-		rate: link.budget?.rate ?? null
+		rate: link.rate,
+		latency: link.latency
 	};
+}
+
+/** A vessel whose control sources all sit on parts without seats (ADR 0179 point 5). */
+export const isProbe = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).probe;
+
+/** A vessel's route mode (ADR 0188 point 3): Auto unless one was set. */
+export function modeOf(core: SimCore, vessel: EntityId): RouteMode {
+	return core.commsState.routes.find((r) => r.vessel === Number(vessel))?.mode ?? { kind: 'auto' };
+}
+
+/** `comms-route`: Auto drops the entry. The network updates after the step. */
+export function setRouteMode(core: SimCore, vessel: EntityId, mode: RouteMode): void {
+	const routes = core.commsState.routes.filter((r) => r.vessel !== Number(vessel));
+	if (mode.kind !== 'auto') routes.push({ vessel: Number(vessel), mode });
+	core.commsState.routes = routes.sort((a, b) => a.vessel - b.vessel);
+	core.comms.dirty = true;
 }
 
 /** Commands each control state refuses (ADR 0179 point 5). */
@@ -512,11 +918,15 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 	if (core.comms.dirty || core.comms.last === null) {
 		links = new Map();
 		const nodes = vesselIds(core).map((id) => nodeOf(core, id));
-		const points = nodes.filter((n) => n.crewed);
+		const blackout = new Map(nodes.map((n) => [n.id, blackoutOf(core, n.id)]));
+		const routed = routeNetwork(core, frame, nodes, stations, blackout, true);
 		for (const node of nodes) {
-			const b = blackoutOf(core, node.id);
-			const now = linkOf(core, frame, node, points, stations, b);
-			links.set(node.id, { ...now, control: controlFor(core, node, now.to !== null), blackout: b });
+			const now = routed.get(node.id)!;
+			links.set(node.id, {
+				...now,
+				control: controlFor(core, node, now.to !== null),
+				blackout: blackout.get(node.id)!
+			});
 		}
 	}
 	const inspected = core.comms.inspect === null ? undefined : links.get(core.comms.inspect);
@@ -536,8 +946,11 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 				reason: l.reason,
 				control: l.control,
 				blackout: l.blackout,
-				rate: l.budget?.rate ?? null,
-				margin: l.budget?.margin ?? null
+				rate: l.rate,
+				margin: l.budget?.margin ?? null,
+				route: [...l.route],
+				latency: l.latency,
+				mode: modeOf(core, vessel)
 			})),
 		...(inspected
 			? {

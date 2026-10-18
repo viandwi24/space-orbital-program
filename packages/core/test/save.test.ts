@@ -22,6 +22,7 @@ const unsigned = (): Omit<SimSave, 'checksum'> => ({
 	mods: [{ id: 'stock', version: '0.1.0' }],
 	bodies: ['stock.home'],
 	home: 'stock.home',
+	comms: { seq: 0, routes: [], queue: [] },
 	dt: 0.02,
 	seed: 1,
 	time: 12.5,

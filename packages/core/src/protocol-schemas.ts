@@ -4,6 +4,7 @@
  * validates saved designs with `vesselDesignSchema`. Output types equal the hand-written
  * protocol types (the `z.ZodType<...>` annotations make the compiler check that).
  */
+import { routeModeSchema } from './comms.ts';
 import * as z from 'zod';
 import { entityId, partId, bodyId } from './ids.ts';
 import { definitionIdSchema } from './schemas.ts';
@@ -231,6 +232,13 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('strategy-activate'), strategy: z.string().min(1) }),
 	z.object({ type: z.literal('strategy-end'), strategy: z.string().min(1) }),
 	z.object({ type: z.literal('comms-inspect'), vessel: entity.nullable() }),
+	z.object({ type: z.literal('comms-route'), vessel: entity, mode: routeModeSchema }),
+	z.object({
+		type: z.literal('antenna-point'),
+		vessel: entity,
+		part: entity,
+		target: z.string().min(1).nullable()
+	}),
 	z.object({ type: z.literal('contract-accept'), offer: z.string().min(1) }),
 	z.object({ type: z.literal('contract-decline'), offer: z.string().min(1) }),
 	z.object({ type: z.literal('contract-cancel'), contract: z.string().min(1) }),

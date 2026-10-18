@@ -38,6 +38,7 @@ import {
 } from '@orbital/core';
 import { buildBodies, type TerrainFactory } from './bodies.ts';
 import { dispatch } from './commands.ts';
+import { drainQueue, type CommandSource } from './delay.ts';
 import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
@@ -137,6 +138,11 @@ export interface SimOptions {
 	world?: WorldInfo;
 }
 
+/** Who sent a command (plan 117, ADR 0188 point 6): `script` for the script runner's commands. */
+export interface DispatchOptions {
+	source?: CommandSource;
+}
+
 export interface Sim {
 	/** Advance by `wallDelta` seconds of host time (scaled by the warp factor). */
 	step(wallDelta: number): void;
@@ -145,8 +151,8 @@ export interface Sim {
 	 * that came over the wire (`postMessage`) and is validated at runtime either way. Bad input is
 	 * a refusal in the result, never an exception.
 	 */
-	dispatch(command: Command): CommandResult;
-	dispatch(command: unknown): CommandResult;
+	dispatch(command: Command, options?: DispatchOptions): CommandResult;
+	dispatch(command: unknown, options?: DispatchOptions): CommandResult;
 	/** Plain-data view of the current state. */
 	snapshot(): Snapshot;
 	/**
@@ -332,6 +338,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),
+		commsState: resume ? cloneData(resume.comms) : { seq: 0, routes: [], queue: [] },
 		life: freshLife(),
 		milestones: freshMilestones(resume?.milestones),
 		tech: freshTech(resume?.tech),
@@ -384,8 +391,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		}
 	};
 
+	/** Commands whose light time has passed apply first (signal delay, plan 117, ADR 0188 point 6). */
+	const drain = (): void => drainQueue(core, (c) => dispatch(core, c, 'queued'));
+
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
+		drain();
 		const tStart = core.t;
 		runSystems(core.pre, dt);
 		const overheated: Overheat[] = [];
@@ -450,6 +461,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 
 	function railsChunk(h: number): void {
 		if (h <= 0) return;
+		drain();
 		const tStart = core.t;
 		runSystems(core.pre, h);
 		stepRailsVessels(h);
@@ -500,7 +512,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			}
 			if (core.warpTarget !== null) arriveAtWarpTarget(core, railsStep);
 		},
-		dispatch: (command) => dispatch(core, command),
+		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),
 		snapshot: () => takeSnapshot(core),
 		save: () => writeSave({ core, mods, seed }),
 		world: core.world,
