@@ -1,12 +1,50 @@
+# Full checks off the laptops (ADR 0126).
+# - Handover tags `ready/*` and `ready/prep-*`: the full suite on the tagged commit, then a result ref
+#   `refs/ci/pass/<sha>` or `refs/ci/fail/<sha>` that Agent 1 reads with plain git before a merge.
+# - Pushes to `main`: the full suite after each merge; a push that changes only docs runs docs:check.
+# - Lint checks the files changed since the base, until the one-time repo-wide format (ADR 0126).
 name: CI
 
 on:
   push:
     branches: [main]
+    tags: ['ready/**']
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A newer push to main cancels the older run; every handover tag keeps its own run.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
 
 jobs:
-  check:
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+      base: ${{ steps.scope.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ] \
+             && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            base="${{ github.event.before }}"
+          else
+            base="$(git merge-base origin/main HEAD)"
+            # A tag on a commit already in main (or main itself): compare with its parent.
+            if [ "$base" = "$(git rev-parse HEAD)" ]; then base="$(git rev-parse HEAD~1)"; fi
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if git diff --name-only "$base" HEAD | grep -qvE '^(docs/|README\.md$|AGENTS\.md$|CLAUDE\.md$)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +53,48 @@ jobs:
           bun-version: 1.4.x
       - run: bun install --frozen-lockfile
       - run: bun run docs:check
-      - run: bun run lint
+
+  check:
+    needs: scope
+    if: needs.scope.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.x
+      - run: bun install --frozen-lockfile
+      - name: lint (changed files)
+        run: bun run check:affected --lint-only --base ${{ needs.scope.outputs.base }}
       - run: bun run typecheck
-      - run: bun test packages mods
+      - run: bun run test
+      - name: web vitest
+        run: bun run --filter @orbital/web test
       - run: bun run build
+      - name: e2e smoke (chromium)
+        working-directory: apps/web
+        run: |
+          bunx playwright install --with-deps chromium
+          E2E_PORT=5192 bunx playwright test --project=chromium e2e/smoke.e2e.ts
+
+  report:
+    # The result of a handover, as a ref Agent 1 can read with `git ls-remote` (no gh, no API).
+    needs: [scope, docs, check]
+    if: always() && startsWith(github.ref, 'refs/tags/ready/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          if [ "${{ needs.docs.result }}" = "success" ] && \
+             { [ "${{ needs.check.result }}" = "success" ] || [ "${{ needs.check.result }}" = "skipped" ]; }; then
+            result=pass
+          else
+            result=fail
+          fi
+          git push origin "$GITHUB_SHA:refs/ci/$result/$GITHUB_SHA"
+          echo "CI $result for $GITHUB_REF_NAME at $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
