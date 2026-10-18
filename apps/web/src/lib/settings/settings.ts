@@ -67,13 +67,36 @@ const dockSchema = z
 	})
 	.catch(defaultDock());
 
+/** Settings → Time (plan 205): place pauses the player changed, the hidden-tab policy, the leave-flight prompt. */
+export const defaultTime = (): TimeSettings => ({
+	places: {},
+	keepRunningHidden: false,
+	askLeaveFlight: true
+});
+export interface TimeSettings {
+	/** Only the places the player changed; the rest take `PLACE_PAUSE_DEFAULTS`. */
+	places: Record<string, boolean>;
+	keepRunningHidden: boolean;
+	askLeaveFlight: boolean;
+}
+const timeSchema = z
+	.object({
+		places: z.record(z.string().min(1).max(40), z.boolean()).catch({}),
+		keepRunningHidden: z.boolean().catch(false),
+		askLeaveFlight: z.boolean().catch(true)
+	})
+	.catch(defaultTime())
+	.default(defaultTime());
+
 const settingsV3 = z.object({
 	v: z.literal(3),
 	...v2Fields,
 	interface: interfaceSchema,
 	dock: dockSchema,
 	/** Debug mode (plan 203, ADR 0213 point 5): additive in format 3, off when absent. */
-	debug: z.boolean().catch(false).default(false)
+	debug: z.boolean().catch(false).default(false),
+	/** Time (plan 205, ADR 0201 points 7 to 9): additive in format 3, the defaults when absent. */
+	time: timeSchema
 });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
@@ -91,6 +114,7 @@ export interface Settings {
 	dock: DockChoice;
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */
 	debug: boolean;
+	time: TimeSettings;
 }
 export type TutorialProgress = Settings['tutorial'];
 export type AudioSettings = Settings['audio'];
@@ -105,7 +129,8 @@ export const defaultSettings = (): Settings => ({
 	touch: 'auto',
 	interface: { ...DEFAULT_INTERFACE },
 	dock: defaultDock(),
-	debug: false
+	debug: false,
+	time: defaultTime()
 });
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */
@@ -127,7 +152,8 @@ export function parseSettings(text: string | null): Settings {
 			bindings: repairBindings(v2.data.bindings),
 			interface: { ...DEFAULT_INTERFACE },
 			dock: defaultDock(),
-			debug: false
+			debug: false,
+			time: defaultTime()
 		};
 	const v1 = settingsV1.safeParse(raw);
 	return v1.success

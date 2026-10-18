@@ -22,6 +22,12 @@
 		bell,
 		onmenu,
 		onhome,
+		clockChip = null,
+		paused = false,
+		pauseLocked = false,
+		placePaused = false,
+		onpause,
+		onplace,
 		actions,
 		children
 	}: {
@@ -38,6 +44,17 @@
 		onmenu: () => void;
 		/** Leave the world (the sim stops). */
 		onhome: () => void;
+		/** The clock's chip (plan 205): `PAUSED`, `PAUSED · HANGAR`, `LOCKED`, `BACKGROUND`, or null. */
+		clockChip?: string | null;
+		/** The player's pause is on. */
+		paused?: boolean;
+		/** The world's rule forbids pausing (Hardcore). */
+		pauseLocked?: boolean;
+		/** This place pauses the clock by the player's choice. */
+		placePaused?: boolean;
+		onpause?: () => void;
+		/** Switch whether this place pauses the clock. */
+		onplace?: () => void;
 		/** The page's own actions (Hangar: New · Open · Save · Launch). */
 		actions?: Snippet;
 		children: Snippet;
@@ -67,6 +84,29 @@
 		<div class="clock">
 			<span class="num" data-testid="world-clock" data-t={snapshot?.t ?? 0}>{clock}</span>
 			<span class="warp num" data-testid="world-warp">{warp}×</span>
+			{#if onpause}
+				<button
+					type="button"
+					class="mb"
+					data-testid="time-pause"
+					aria-label={pauseLocked ? 'Pause is locked in this world' : paused ? 'Resume' : 'Pause'}
+					aria-pressed={paused}
+					title={pauseLocked ? 'This world does not allow pausing' : 'Pause or resume (P)'}
+					disabled={pauseLocked}
+					onclick={onpause}><Icon name={paused ? 'play' : 'pause'} size={15} /></button
+				>
+			{/if}
+			{#if clockChip}<span class="chip" data-testid="time-chip">{clockChip}</span>{/if}
+			{#if onplace && place}
+				<button
+					type="button"
+					class="place"
+					data-testid="time-place"
+					aria-pressed={placePaused}
+					title="Whether the clock pauses in {place} (Settings → Time)"
+					onclick={onplace}>{placePaused ? `${place} pauses` : `${place} runs`}</button
+				>
+			{/if}
 		</div>
 		<nav class="menu" aria-label="World menu" data-testid="menu-bar">
 			{#if actions}<div class="actions">{@render actions()}</div>{/if}
@@ -206,6 +246,25 @@
 	.warp {
 		color: var(--text-muted);
 	}
+	.chip {
+		padding: 0 0.5rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-chip);
+		color: var(--text-primary);
+		font-size: var(--t-label);
+		font-weight: 700;
+		letter-spacing: 0.08em;
+	}
+	.place {
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: var(--text-muted);
+		font: inherit;
+		font-size: var(--t-label);
+		padding: 0 0.5rem;
+		cursor: pointer;
+	}
 	.menu,
 	.actions {
 		display: flex;
@@ -227,6 +286,10 @@
 		color: var(--text-secondary);
 		cursor: pointer;
 		text-decoration: none;
+	}
+	.mb:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 	.mb:hover {
 		background: var(--surface-hover);

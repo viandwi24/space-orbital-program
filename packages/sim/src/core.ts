@@ -77,6 +77,8 @@ export interface SimCore {
 	accumulator: number;
 	/** Set by an SOI change of a controlled vessel; `step` then drops the rest of the accumulator (ADR 0051). */
 	warpStopped: boolean;
+	/** The clock is paused (plan 205, ADR 0201 point 4); not saved: a loaded world runs. */
+	paused: boolean;
 	/**
 	 * The world this run belongs to (plan 077, ADR 0110). Only `set-rule` changes it (its `rules`
 	 * and `changelog`, ADR 0111), and then resets `rulesView`.

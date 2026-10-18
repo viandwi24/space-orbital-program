@@ -32,7 +32,8 @@ describe('settings parsing', () => {
 			touch: 'on' as const,
 			interface: { scale: 1.25, highContrast: true },
 			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
-			debug: true
+			debug: true,
+			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false }
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -72,7 +73,8 @@ describe('settings parsing', () => {
 			v: 3,
 			interface: { scale: 1, highContrast: false },
 			dock: defaultDock(),
-			debug: false
+			debug: false,
+			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true }
 		});
 	});
 	it('a format 3 value without a dock, or with a damaged one, takes the default dock (plan 112)', () => {

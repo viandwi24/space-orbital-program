@@ -25,6 +25,10 @@
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import type { Catalog } from '../../lib/messages';
+	import { settings } from '../../lib/settings/settings.svelte';
+	import { keyIdOf } from '../../lib/keybindings';
+	import { clockState, placePauses } from '../../lib/clock-state';
+	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../lib/debug/api';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -71,6 +75,46 @@
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox' });
 	let settingsOpen = $state(false);
 	const bell = createBellFeed();
+
+	// ---- the clock (plan 205, ADR 0201 points 4 to 8) -------------------------------------------
+	let playerPaused = $state(false);
+	let tabHidden = $state(false);
+	let holds = $state(0);
+	const pauseAllowed = $derived(snapshot?.rules?.['stock.pause-allowed'] !== false);
+	const menuHeld = $derived(holds > 0 && placePauses('Menu', settings.time.places));
+	const placeHere = $derived(placePauses(place, settings.time.places));
+	const clockView = $derived(
+		clockState({
+			playerPaused,
+			placePaused: placeHere || menuHeld,
+			place: menuHeld && !placeHere ? 'Menu' : place,
+			tabHidden,
+			keepRunningHidden: settings.time.keepRunningHidden,
+			pauseAllowed,
+			warp
+		})
+	);
+	let sentPause: boolean | null = null;
+	let pausedClient: unknown = null;
+	$effect(() => {
+		const pause = !clockView.ticks;
+		const client = worldSession.client;
+		void snapshot; // a new client (boot or load) is told again
+		if (!client || (pause === sentPause && client === pausedClient)) return;
+		sentPause = pause;
+		pausedClient = client;
+		client.setPaused(pause);
+	});
+	function togglePause(): void {
+		if (!pauseAllowed) {
+			bell.push({ source: 'clock', text: 'This world does not allow pausing.' });
+			return;
+		}
+		playerPaused = !playerPaused;
+	}
+	function togglePlace(): void {
+		settings.setTime({ places: { [place]: !placePauses(place, settings.time.places) } });
+	}
 
 	const clock = $derived.by(() => {
 		if (!snapshot || !catalog?.bodies.length) return '';
@@ -170,6 +214,19 @@
 			const client = worldSession.client;
 			snapshot = worldSession.snapshot;
 			if (!client) return;
+			// the debug API on every in-world page (plan 203, from the layout since plan 205)
+			const host: DebugHost = {
+				snapshot: () => worldSession.snapshot,
+				vessel: () => {
+					const id = worldSession.focus?.vessel ?? worldSession.base?.focus ?? null;
+					return id === null ? null : (id as ReturnType<DebugHost['vessel']>);
+				},
+				send: (command) => client.dispatch(command),
+				onSnapshot: (listener) => client.onSnapshot((s) => listener(s)),
+				bodies: () => catalog?.bodies ?? [],
+				home: () => catalog?.home ?? catalog?.bodies.find((b) => b.parent === undefined)?.id ?? ''
+			};
+			offClient.push(exposeDebugApi(window, createDebugApi(host), host));
 			void client.ready.then((c) => (catalog = c)).catch(() => {});
 			offClient.push(
 				client.onSnapshot((s, w) => {
@@ -183,6 +240,13 @@
 						bell.push({ source: 'sim', text: `A vessel entered ${e.to}` });
 					else if (e.type === 'maneuver-complete')
 						bell.push({ source: 'sim', text: 'A maneuver node was burned' });
+					else if (e.type === 'warp-stopped')
+						bell.push({ source: 'clock', text: `Warp stopped: ${e.reason}` });
+					else if (e.type === 'building-ready')
+						bell.push({
+							source: 'construction',
+							text: `Construction done: ${e.kind} level ${e.level}`
+						});
 				})
 			);
 		};
@@ -198,6 +262,37 @@
 			else pending = reason;
 		};
 
+		const typing = (e: Event): boolean => {
+			const t = e.target;
+			return (
+				t instanceof HTMLTextAreaElement ||
+				t instanceof HTMLInputElement ||
+				t instanceof HTMLSelectElement ||
+				(t instanceof HTMLElement && t.isContentEditable)
+			);
+		};
+		// P pauses on every page; Space too where it has no job of its own (not Flight, not Hangar)
+		const onKey = (e: KeyboardEvent): void => {
+			if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing(e)) return;
+			const id = keyIdOf(e);
+			const space = id === 'Space' && place !== 'Flight' && place !== 'Hangar' && place !== '';
+			if (settings.keymap.actionFor('flight', id) !== 'pause' && !space) return;
+			if (document.querySelector('dialog[open]')) return;
+			e.preventDefault();
+			togglePause();
+		};
+		let hiddenAt = 0;
+		const onVisible = (): void => {
+			tabHidden = document.visibilityState === 'hidden';
+			if (tabHidden) hiddenAt = performance.now();
+			else if (settings.time.keepRunningHidden && hiddenAt > 0) {
+				// browsers slow a hidden tab down: the world catches up from the wall clock
+				worldSession.client?.catchUp((performance.now() - hiddenAt) / 1000);
+			}
+		};
+		window.addEventListener('keydown', onKey);
+		document.addEventListener('visibilitychange', onVisible);
+		const offHolds = worldSession.onChange(() => (holds = worldSession.holds.size));
 		const timer = setInterval(() => {
 			const due = pending ? autosaver.request(pending, autosaveState()) : null;
 			if (due) pending = null;
@@ -212,6 +307,9 @@
 		window.addEventListener('pagehide', onPageHide);
 		return () => {
 			clearInterval(timer);
+			window.removeEventListener('keydown', onKey);
+			document.removeEventListener('visibilitychange', onVisible);
+			offHolds();
 			document.removeEventListener('visibilitychange', onHidden);
 			window.removeEventListener('pagehide', onPageHide);
 			for (const off of offClient) off();
@@ -254,6 +352,12 @@
 		onmenu={() => (settingsOpen = true)}
 		onhome={() => void goto(resolve('/'))}
 		actions={pageActions.current ?? undefined}
+		clockChip={clockView.chip}
+		paused={playerPaused}
+		pauseLocked={!pauseAllowed}
+		placePaused={placeHere}
+		onpause={togglePause}
+		onplace={togglePlace}
 	>
 		{@render children()}
 	</WorldShell>

@@ -57,6 +57,9 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				key: 'flameout'
 			};
 		}
+		case 'warp-stopped':
+		case 'building-ready':
+			return null; // the world layout's bell shows them (plan 205)
 		case 'part-failed': {
 			if (!ctx.isActiveVessel(event.vessel)) return null;
 			const def = ctx.definitionOf(event.part);

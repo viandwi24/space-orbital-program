@@ -16,6 +16,7 @@
 	} from '../graphics';
 	import { settings } from '../settings/settings.svelte';
 	import { markActiveWorldForDebug } from '../debug/world-mark';
+	import { PLACE_PAUSE_DEFAULTS, placePauses } from '../clock-state';
 	/** Debug mode marked the active world (plan 203). */
 	let debugNote = $state<string | null>(null);
 	import type { UnitSystem } from '../units.svelte';
@@ -34,7 +35,7 @@
 		onautoquality?: (on: boolean) => void;
 	} = $props();
 
-	type Tab = 'graphics' | 'interface' | 'game' | 'controls' | 'audio';
+	type Tab = 'graphics' | 'interface' | 'game' | 'time' | 'controls' | 'audio';
 	let tab = $state<Tab>('graphics');
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
@@ -62,6 +63,7 @@
 		{ id: 'graphics', label: 'Graphics' },
 		{ id: 'interface', label: 'Interface' },
 		{ id: 'game', label: 'Game' },
+		{ id: 'time', label: 'Time' },
 		{ id: 'controls', label: 'Controls' },
 		{ id: 'audio', label: 'Audio' }
 	];
@@ -244,6 +246,46 @@
 				/>
 			</div>
 			{#if debugNote}<p class="note" data-testid="debug-marked">{debugNote}</p>{/if}
+		{:else if tab === 'time'}
+			<p class="note">
+				Where the world clock pauses by itself (plan 205). A pause you make with P or the time bar
+				always wins: only you resume it. A world that does not allow pausing (Hardcore) always runs.
+			</p>
+			{#each Object.keys(PLACE_PAUSE_DEFAULTS) as place (place)}
+				<div class="row">
+					<div class="what"><h3>{place}</h3></div>
+					<Switch
+						checked={placePauses(place, settings.time.places)}
+						label="Pause in {place}"
+						onchange={(on) => settings.setTime({ places: { [place]: on } })}
+						testid="time-place-{place}"
+					/>
+				</div>
+			{/each}
+			<div class="row">
+				<div class="what">
+					<h3>Keep running in a hidden tab</h3>
+					<p>The world goes on while you look elsewhere and catches up when you come back.</p>
+				</div>
+				<Switch
+					checked={settings.time.keepRunningHidden}
+					label="Keep running in a hidden tab"
+					onchange={(on) => settings.setTime({ keepRunningHidden: on })}
+					testid="time-background"
+				/>
+			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Ask before leaving a flight</h3>
+					<p>When the vessel is in the air, under thrust or in physics.</p>
+				</div>
+				<Switch
+					checked={settings.time.askLeaveFlight}
+					label="Ask before leaving a flight"
+					onchange={(on) => settings.setTime({ askLeaveFlight: on })}
+					testid="time-ask-leave"
+				/>
+			</div>
 		{:else if tab === 'controls'}
 			<ControlsEditor />
 		{:else}

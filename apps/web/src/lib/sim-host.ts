@@ -27,6 +27,9 @@ import type { ScriptWorkerLike } from './script-protocol';
 
 /** Largest wall delta handed to `sim.step`, s: a stalled tab must not trigger a burst of steps. */
 export const MAX_WALL_DELTA = 0.1;
+/** Wall seconds of catch-up stepped per tick, and the most a hidden tab is owed (plan 205). */
+export const CATCH_UP_SLICE = 2;
+export const MAX_CATCH_UP = 6 * 3600;
 /** Loop period, ms (about 60 Hz; browsers may clamp it). */
 export const TICK_MS = 16;
 /**
@@ -157,6 +160,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let sim: Sim | null = null;
 	/** Every flight is recorded from boot (plan 131, ADR 0159): `replay` asks for the file. */
 	let recorder: ReplayRecorder | null = null;
+	/** The sim without the recorder: a pause is not part of the flight (plan 205). */
+	let raw: Sim | null = null;
+	/** Seconds of wall time a hidden tab owes the world (plan 205, ADR 0201 point 8). */
+	let owed = 0;
 	let last = 0;
 	let cancel: (() => void) | null = null;
 	let disposed = false;
@@ -451,7 +458,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
 			if (!paused) {
 				const before = options.now();
-				sim.step(delta);
+				// a hidden tab that kept the world running catches up a slice per tick (ADR 0201 point 8)
+				const slice = Math.min(owed, CATCH_UP_SLICE);
+				owed -= slice;
+				sim.step(delta + slice);
 				stepMs = options.now() - before; // the Debug panel's Info tab (plan 203)
 				recorder?.tick();
 			}
@@ -498,6 +508,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				}
 				recorder = recordReplay(created, 'Flight', { terrain: options.replayTerrain === true });
 				const rec = recorder;
+				raw = created;
 				// every command the host dispatches (page, script, warp) goes through the recorder
 				sim = new Proxy(created, {
 					get: (target, key) => (key === 'dispatch' ? rec.dispatch : Reflect.get(target, key))
@@ -574,6 +585,15 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							event: { type: 'maneuver-complete', vessel: Number(e.vessel), node: e.node }
 						})
 					),
+					created.events.on('warp:stopped', (e) =>
+						options.post({ kind: 'sim-event', event: { type: 'warp-stopped', reason: e.reason } })
+					),
+					created.events.on('building:ready', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'building-ready', kind: e.kind, level: e.level }
+						})
+					),
 					created.events.on('vessel:destroyed', (e) =>
 						options.post({
 							kind: 'sim-event',
@@ -603,7 +623,15 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				return;
 			}
 			if (message.kind === 'pause') {
-				paused = message.paused;
+				// the sim decides (plan 205): a world whose rule forbids pausing keeps running
+				const r = raw?.dispatch({ type: 'pause', on: message.paused });
+				paused = raw ? raw.paused : message.paused;
+				if (r && !r.ok)
+					options.post({ kind: 'sim-event', event: { type: 'warp-stopped', reason: r.reason } });
+				return;
+			}
+			if (message.kind === 'catch-up') {
+				owed += Math.max(0, Math.min(message.seconds, MAX_CATCH_UP));
 				return;
 			}
 			if (message.kind === 'script-stop') {

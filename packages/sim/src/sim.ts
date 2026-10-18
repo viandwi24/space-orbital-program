@@ -99,6 +99,7 @@ function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void): void
 	}
 	core.warp = 1;
 	core.warpTarget = null;
+	core.events.emit('warp:stopped', { reason: 'the warp reached its time' });
 }
 
 const NO_HEAT: ReadonlyMap<EntityId, HeatInput> = new Map();
@@ -183,6 +184,8 @@ export interface Sim {
 	/** Simulation time, s. */
 	readonly time: number;
 	readonly warp: number;
+	/** The clock is paused by a `pause` command (plan 205). */
+	readonly paused: boolean;
 	/** Release the physics backends. */
 	dispose(): void;
 }
@@ -316,6 +319,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		warpTarget: resume?.warpTarget ?? null,
 		accumulator: resume?.accumulator ?? 0,
 		warpStopped: false,
+		paused: false,
 		info,
 		rulesView: null,
 		trajectory: createTrajectoryProvider(info.gravityModel, patchedBodiesOf(bodies)),
@@ -514,7 +518,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 				// Something woke up: a warp-to needs every vessel on rails.
 				core.warpTarget = null;
 				core.warp = 1;
+				core.events.emit('warp:stopped', { reason: 'a vessel is in flight' });
 			}
+			if (core.paused) return; // the clock is paused (plan 205): nothing advances
 			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;
@@ -557,6 +563,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		unknownRules,
 		get time() {
 			return core.t;
+		},
+		get paused() {
+			return core.paused;
 		},
 		get warp() {
 			return core.warp;

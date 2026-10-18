@@ -44,6 +44,10 @@ import {
 } from './comms.ts';
 import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
+import { ruleOf } from './economy.ts';
+
+/** The rule that allows pausing the clock (plan 205, ADR 0201 point 5). */
+export const PAUSE_RULE = 'stock.pause-allowed';
 import {
 	debugRefusal,
 	grant,
@@ -585,6 +589,13 @@ export function dispatch(
 			return fixAnomaly(core, command.report);
 		case 'repair':
 			return repair(core, command.suit, command.vessel, command.part);
+		case 'pause': {
+			if (command.on && ruleOf(core, PAUSE_RULE) === false) {
+				return refuse('this world does not allow pausing (stock.pause-allowed)');
+			}
+			core.paused = command.on;
+			return accept();
+		}
 		case 'debug-mode':
 			return setDebugMode(core, command.on);
 		case 'debug-cheat':

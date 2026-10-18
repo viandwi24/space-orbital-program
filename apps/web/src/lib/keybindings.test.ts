@@ -182,7 +182,7 @@ describe('the handlers resolve through the table', () => {
 		const map = createKeymap({
 			stage: ['KeyG'],
 			throttleFull: ['KeyH'],
-			sasPrograde: ['KeyP'],
+			sasPrograde: ['F7'],
 			warpUp: ['KeyB'],
 			nodePrograde: ['KeyY'],
 			detach: ['KeyR'],
@@ -190,7 +190,7 @@ describe('the handlers resolve through the table', () => {
 		});
 		expect(map.actionFor('flight', keyIdOf(ev('g', 'KeyG')))).toBe('stage');
 		expect(map.actionFor('flight', 'KeyH')).toBe('throttleFull');
-		expect(map.actionFor('flight', 'KeyP')).toBe('sasPrograde');
+		expect(map.actionFor('flight', 'F7')).toBe('sasPrograde');
 		expect(map.actionFor('flight', 'KeyB')).toBe('warpUp');
 		expect(map.actionFor('flight', 'KeyY')).toBe('nodePrograde');
 		expect(map.actionFor('vab', 'KeyR')).toBe('detach');
