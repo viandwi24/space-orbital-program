@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/contracts.ts` (new) | template, blueprint, context and offer types with schemas; `SaveContracts`; `ContractsSnapshot`; the constants (cap 5, offer life 10 days, cooldown 15 days, tier reputation 0/100/300); `estimatedLaunchCost` (a base of 5 000 plus a Δv² term), `expectedValue`, `fundsOf` |
-| `packages/core` | the `contractTemplates` registry, `ctx.contractTemplates`, report kind `contract-template`; the commands `contract-accept`, `contract-decline` and `contract-cancel`; `Snapshot.contracts`; `SimSave.contracts` (optional); `since` on objective instances; `API_VERSION` 0.1.62, since 116 took 0.1.60 and 097 0.1.61 |
+| `packages/core` | the `contractTemplates` registry, `ctx.contractTemplates`, report kind `contract-template`; the commands `contract-accept`, `contract-decline` and `contract-cancel`; `Snapshot.contracts`; `SimSave.contracts` (optional); `since` on objective instances; `API_VERSION 0.1.63 (0.1.62 went to 065 at its merge), since 116 took 0.1.60 and 097 0.1.61 |
 | `packages/sdk` | `defineContractTemplate`; `estimatedLaunchCost`, `expectedValue`, the cost constants and `hohmannTransfer` re-exported |
 | `packages/sim/src/contracts.ts` (new) | the generator on the world tick (expiry, cooldowns, a weighted pick, the `contracts` stream, de-duplication by key, unknown objectives dropped); `window()` by `hohmannToTarget`; accept, decline and cancel; slots from `mission-control`; the snapshot |
 | `packages/sim` | `definitionOf` resolves `gen.*` from the contract state; `finishObjective` exported for cancel; `viewFor` honours `since`; the tick, the save, the snapshot and init wired |

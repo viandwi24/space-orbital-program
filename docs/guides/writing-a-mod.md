@@ -239,7 +239,7 @@ ctx.contracts.register(defineContract({
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 
-### Contract templates (API 0.1.62, plan 099, ADR 0186)
+### Contract templates (API 0.1.63, plan 099, ADR 0186)
 
 A template makes procedural contracts. The world offers one at most each day, while fewer than five offers wait.
 
