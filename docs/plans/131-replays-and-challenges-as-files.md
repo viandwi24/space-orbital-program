@@ -67,3 +67,4 @@ Cross-machine determinism is not a goal; checkpoints absorb small drift.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0159: commands stamped with sim time and checkpoints every 10 s (not every host step); verification by re-simulation with a relative tolerance on ADR 0050's bound; challenges scored locally per axis; ghosts as a page overlay.
 - 2026-10-18 — Built: replay and challenge files, the recorder in the sim and the web host, the verifier tool, challenges scored locally, ghosts as a page overlay. The renderer is not changed (ghosts are an overlay, ADR 0159 point 7). Handed over as `ready/131`.
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts); bun install for tools/replay-verify; bun test 1644 pass, web vitest 1017 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch and worlds e2e pass (Chromium).
