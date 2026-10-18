@@ -172,7 +172,7 @@ export function hasBackground(core: SimCore, vesselId: EntityId): boolean {
 
 /**
  * Sim seconds after which a rails vessel's `background` forms run again between ticks (plan 208,
- * ADR 0213): charge on rails shows within seconds instead of at the next day.
+ * ADR 0214): charge on rails shows within seconds instead of at the next day.
  */
 export const BACKGROUND_REFRESH = 5;
 

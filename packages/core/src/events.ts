@@ -17,7 +17,7 @@ export interface EventMap {
 	/** A vessel was loaded, or split off `from` another one. */
 	'vessel:created': { vessel: EntityId; from?: EntityId };
 	'vessel:destroyed': { vessel: EntityId; reason: string };
-	/** Every control source of the vessel ran out of the power it needs (plan 208, ADR 0213). */
+	/** Every control source of the vessel ran out of the power it needs (plan 208, ADR 0214). */
 	'vessel:power-depleted': { vessel: EntityId; time: number };
 	/**
 	 * A vessel crossed a sphere of influence boundary (plan 044, ADR 0051): `from` and `to` are body

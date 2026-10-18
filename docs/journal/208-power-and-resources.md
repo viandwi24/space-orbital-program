@@ -6,7 +6,7 @@
 
 - **Resources:** `stock.monopropellant` (4 kg/u, vessel flow) and `stock.solid-fuel` (7.5 kg/u, no flow, for plan 210's SRBs). `stock.eva-propellant` became `stock.cold-gas` (`ColdGas`; `EvaPropellant` stays as an alias). Save migration 8 → 9 renames the id everywhere in a save with the generic `renameId`.
 - **Batteries:** three sizes at 5 kg per 100 EC: 100 EC (0.625 m), 400 EC and 1 000 EC (1.25 m).
-- **Sunlight:** `VesselApi.sunExposure(dt, factor)` in `packages/sim/src/sunlight.ts` (ADR 0213):
+- **Sunlight:** `VesselApi.sunExposure(dt, factor)` in `packages/sim/src/sunlight.ts` (ADR 0214):
   - the direction of the star in the part frame;
   - inverse-square flux relative to the home planet's orbit;
   - a shadow cylinder per body;
@@ -34,7 +34,7 @@
 
 ## Decisions made (link ADRs)
 
-- ADR 0213: the sunlight API and sampling, the flux reference, the shadow model, the panel modes, the RTG, `needs`, the transmit cost and the 5 s background refresh. ADR 0171 notes that ADR 0213 extends it.
+- ADR 0214: the sunlight API and sampling, the flux reference, the shadow model, the panel modes, the RTG, `needs`, the transmit cost and the 5 s background refresh. ADR 0171 notes that ADR 0214 extends it.
 
 ## Open questions / follow-ups
 

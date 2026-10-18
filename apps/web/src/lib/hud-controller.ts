@@ -147,7 +147,7 @@ export interface HudModel {
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
 	controllable: boolean;
-	/** Why the sim takes no control commands now (plan 208, ADR 0213): the "Uncontrolled" chip. */
+	/** Why the sim takes no control commands now (plan 208, ADR 0214): the "Uncontrolled" chip. */
 	uncontrolled: 'no-source' | 'no-power' | null;
 	/** The earliest maneuver node, if any (plan 045). */
 	maneuver: ManeuverHud | null;

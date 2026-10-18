@@ -143,7 +143,7 @@ export interface VesselSnapshot {
 	 */
 	recovery?: { value: number; factor: number; distance: number | null; credit: number };
 	/**
-	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0213): it has no
+	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0214): it has no
 	 * control source, or every source needs power the vessel has run out of.
 	 */
 	uncontrolled?: 'no-source' | 'no-power';

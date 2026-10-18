@@ -1,5 +1,5 @@
 /**
- * The stock solar panel (plan 190, ADR 0171; real sunlight since plan 208, ADR 0213): electric
+ * The stock solar panel (plan 190, ADR 0171; real sunlight since plan 208, ADR 0214): electric
  * charge at `rate` × the panel's angle factor × the sunlight's flux (inverse square of the distance
  * to the star, relative to the home planet; zero in a body's shadow). The same in flight (`update`)
  * and on rails (`background`, integrated over the interval along the path), up to what the

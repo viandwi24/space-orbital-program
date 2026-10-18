@@ -33,7 +33,7 @@ import { VESSEL } from './state.ts';
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
 
-/** Electric charge per Mbit sent, per watt of the antenna's transmit power (plan 208, ADR 0213). */
+/** Electric charge per Mbit sent, per watt of the antenna's transmit power (plan 208, ADR 0214). */
 export const TRANSMIT_EC_PER_MBIT_PER_W = 0.2;
 const MBIT = 1024 * 1024;
 
@@ -54,7 +54,7 @@ export function transmitCostPerBit(core: SimCore, holder: EntityId): number {
 
 /**
  * The bits the holder can pay for out of `budget`, and a function that charges what was sent: a
- * radio sends only while the vessel has electric charge (plan 208, ADR 0213).
+ * radio sends only while the vessel has electric charge (plan 208, ADR 0214).
  */
 function powerBudget(core: SimCore, holder: EntityId, budget: number) {
 	const perBit = transmitCostPerBit(core, holder);

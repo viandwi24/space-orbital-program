@@ -1,6 +1,6 @@
 /**
  * Plan 190: the stock solar panel charges the same in flight and on rails (`background`, ADR 0171).
- * Plan 208 (ADR 0213): the output follows the star's angle, the distance and the shadow of bodies.
+ * Plan 208 (ADR 0214): the output follows the star's angle, the distance and the shadow of bodies.
  */
 import { describe, expect, test } from 'bun:test';
 import type { EntityId, Plugin } from '@orbital/core';
@@ -156,7 +156,7 @@ describe('the stock solar panel (plan 190)', () => {
 	}, 600_000);
 });
 
-describe('sunlight on a panel (plan 208, ADR 0213)', () => {
+describe('sunlight on a panel (plan 208, ADR 0214)', () => {
 	test('facing the star gives the rating at the home distance, about half at 60 degrees, zero behind the home body', async () => {
 		sunLog.length = 0;
 		const sim = await createSim({ plugins: [Stock, battery], backendFactory: rapier(), seed: 7 });

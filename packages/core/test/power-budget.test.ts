@@ -1,4 +1,4 @@
-/** The power budget (plan 208, ADR 0213): producers and consumers by day and by night. */
+/** The power budget (plan 208, ADR 0214): producers and consumers by day and by night. */
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { powerBudget, type ModuleDefinition, type PartDefinition } from '../src/index.ts';

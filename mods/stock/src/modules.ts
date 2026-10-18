@@ -48,7 +48,7 @@ export const ModuleCommand = defineModule({
 });
 
 export const probeComputerConfigSchema = z.object({
-	/** Electric charge per second the probe core's computer draws (plan 208, ADR 0213). */
+	/** Electric charge per second the probe core's computer draws (plan 208, ADR 0214). */
 	drain: z.number().positive().default(0.025)
 });
 
@@ -64,7 +64,7 @@ function computerDrain(
 }
 
 /**
- * A probe core's computer (plan 208, ADR 0213): it draws electric charge, and while the vessel has
+ * A probe core's computer (plan 208, ADR 0214): it draws electric charge, and while the vessel has
  * none the part's control source does not count (`needs`), so a probe-only vessel is uncontrolled.
  */
 export const ModuleProbeComputer = defineModule({

@@ -177,7 +177,7 @@ export interface VesselApi {
 	readonly control: VesselControl;
 	readonly ambient: Ambient;
 	/**
-	 * Mean sunlight on this part over the last `dt` seconds (plan 208, ADR 0213): the average of
+	 * Mean sunlight on this part over the last `dt` seconds (plan 208, ADR 0214): the average of
 	 * `factor(direction) × flux`, where `direction` is the unit vector to the star in the part frame
 	 * (null in a system without a star) and `flux` the star's flux over its flux at the home planet's
 	 * distance, 0 in a body's shadow. One sample now in flight; samples along the path on rails, so
@@ -334,7 +334,7 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
 	controlSource?: boolean;
 	/**
-	 * A module that powers its part's control source (plan 208, ADR 0213: a probe core's computer on
+	 * A module that powers its part's control source (plan 208, ADR 0214: a probe core's computer on
 	 * electric charge): the resource id it runs on for this config, or undefined. While the vessel
 	 * holds none of it, the part is no control source and the vessel is uncontrolled for want of power.
 	 */
@@ -428,7 +428,7 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	/** The JSON-compatible view of `state` that snapshots expose to the UI. */
 	snapshot?: Bivariant<(state: State) => unknown>;
 	/**
-	 * The module's electric charge for the power budget (plan 208, ADR 0213; `powerBudget`): a steady
+	 * The module's electric charge for the power budget (plan 208, ADR 0214; `powerBudget`): a steady
 	 * rate in EC/s (positive produces, negative draws), whether it needs the star, and the EC it can
 	 * store. Pure.
 	 */

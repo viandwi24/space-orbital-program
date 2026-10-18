@@ -1,5 +1,5 @@
 /**
- * Power for control (plan 208, ADR 0213): the sim notices when a vessel's control sources run out
+ * Power for control (plan 208, ADR 0214): the sim notices when a vessel's control sources run out
  * of the power they need and says so once, with `vessel:power-depleted`, for the host's notices.
  */
 import type { EntityId } from '@orbital/core';

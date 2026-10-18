@@ -1,5 +1,5 @@
 <script lang="ts">
-	/** Why the vessel takes no control commands (plan 208, ADR 0213); null hides the chip. */
+	/** Why the vessel takes no control commands (plan 208, ADR 0214); null hides the chip. */
 	let { reason }: { reason: 'no-source' | 'no-power' | null } = $props();
 	const WHY = { 'no-source': 'no crew or probe core', 'no-power': 'no power' } as const;
 </script>

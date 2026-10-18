@@ -1,5 +1,5 @@
 /**
- * Power rules in the sim (plan 208, ADR 0213): sending data costs electric charge by the antenna's
+ * Power rules in the sim (plan 208, ADR 0214): sending data costs electric charge by the antenna's
  * power and takes the link's time, a radio pauses at zero charge, and a probe that runs out of
  * charge is uncontrolled ("no power") and says so once.
  */

@@ -1,4 +1,4 @@
-# 0213 — Sunlight on parts, solar panel modes and the power rules in the sim
+# 0214 — Sunlight on parts, solar panel modes and the power rules in the sim
 
 **Status:** accepted
 **Date:** 2026-10-19

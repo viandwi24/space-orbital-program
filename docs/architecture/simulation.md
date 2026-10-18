@@ -308,7 +308,7 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
   - when the milestone's vessel has no rate of `BROADCAST_RATE` (10⁵ bit/s) to the ground. The rate follows a suit on through its relay, and the lowest along the chain counts.
 - **Snapshot and save:** `Snapshot.network.broadcasts` lists the open ones with the rate now. `SimSave.comms.broadcasts` (optional) keeps the done ones.
 
-## Power (plan 208, ADR 0213)
+## Power (plan 208, ADR 0214)
 
 - **Resources:** `stock.monopropellant` (4 kg/u, `vessel` flow), `stock.solid-fuel` (7.5 kg/u, `none` flow) and `stock.cold-gas` (1 kg/u), the renamed EVA propellant. Save format 9: migration 8 → 9 renames `stock.eva-propellant` everywhere in the save (`renameId`).
 - **Sunlight:** `VesselApi.sunExposure(dt, factor)` (`packages/sim/src/sunlight.ts`) averages `factor(direction) × flux`. The direction is the star in the part frame. The flux is inverse square relative to the home planet's orbit, and 0 inside a body's shadow cylinder. In flight it takes one sample; on rails it samples every 10 s along the rails path (at most 4 096 samples), with the frozen orientation. The stock panel modes are `flat` (cos to `normal`) and `track` (about the part's +Y); `deployable: false` makes a fixed panel. The RTG gives a constant 0.75 EC/s.

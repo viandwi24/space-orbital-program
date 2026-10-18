@@ -178,7 +178,7 @@ export function vesselAmount(core: SimCore, vessel: VesselState, resource: strin
 }
 
 /**
- * Why the vessel takes no control commands (ADR 0109; plan 208, ADR 0213), or undefined when it
+ * Why the vessel takes no control commands (ADR 0109; plan 208, ADR 0214), or undefined when it
  * does: `no-source` without any control source, `no-power` when every source part has a module
  * that needs a resource (`ModuleDefinition.needs`) the vessel has run out of.
  */

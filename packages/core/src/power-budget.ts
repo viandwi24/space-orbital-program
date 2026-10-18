@@ -1,5 +1,5 @@
 /**
- * The power budget of a design or vessel (plan 208, ADR 0213): EC produced and drawn per second by
+ * The power budget of a design or vessel (plan 208, ADR 0214): EC produced and drawn per second by
  * day (in full sun at the home planet's distance) and by night, and the EC its batteries store,
  * from each module's `power` descriptor. Pure; the Hangar shows it (plan 218).
  */

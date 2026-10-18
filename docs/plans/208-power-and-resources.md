@@ -26,7 +26,7 @@ Power behaves the way a KSP player expects. Monopropellant and solid fuel exist 
   - Built-in storage only (pod 50, probe 20, suit 20 EC); the `stock.batteries` action group is empty (`mods/stock/src/action-groups.ts`).
   - Reaction wheels already lose authority at zero EC (`mods/stock/src/modules.ts:396-420`); experiments pause (`mods/stock/src/science.ts:169, 216-219`).
 - Parts go into the per-family files from plan 207 (`mods/stock/src/parts/power.ts`, `parts/tanks.ts`).
-- ADRs: 0203 (resources and power rules), 0109 (control source), 0213 (sunlight model, panel modes, power rules in the sim).
+- ADRs: 0203 (resources and power rules), 0109 (control source), 0214 (sunlight model, panel modes, power rules in the sim).
 
 ## Scope
 

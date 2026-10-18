@@ -1,5 +1,5 @@
 /**
- * Sunlight on a part (plan 208, ADR 0213): the direction of the star in the part's frame, the flux
+ * Sunlight on a part (plan 208, ADR 0214): the direction of the star in the part's frame, the flux
  * as a fraction of the flux at the home planet's distance (inverse square), and the shadow of every
  * other body on the line to the star (an umbra cylinder test, no penumbra). The same function serves
  * a flight step (one sample now) and a background interval on rails (samples along the rails path),
