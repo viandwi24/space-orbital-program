@@ -103,3 +103,4 @@ Notes: the six per-strategy bot runs add about 230 s to bun run test here (about
 Resource notes: swap used 1256 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (director layer, activation fee, agency strategies in ADR 0187)
 ```
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts; API_VERSION 0.1.65 set on the branch); bun test 1691 pass, web vitest 1029 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, space-center and worlds e2e pass (Chromium).
