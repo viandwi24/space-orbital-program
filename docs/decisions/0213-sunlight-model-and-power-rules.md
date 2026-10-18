@@ -27,6 +27,14 @@ ADR 0203 asks for solar output that follows the sun angle, the distance to the s
    - `deployable: false` makes a fixed panel: always on, with no toggle.
    - Stock panels: the folding 0.5 EC/s panel (flat, +Z), a fixed 0.35 EC/s panel, and a large tracking array at 8.25 EC/s (the ADR 0203 reference).
 5. **RTG** at 0.75 EC/s, always on, in flight and in the background.
+6. **Background refresh.** A rails vessel's `background` forms also run whenever their last run is 5 s of sim time old, besides the day tick, a wake and a save. Charge on rails then moves within seconds, and the solar sampling keeps the total the same.
+7. **Power for control.** `ModuleDefinition.needs(config)` names the resource a module needs to power its part's control source. The stock probe core's `stock.probe-computer` draws 0.025 EC/s.
+   - While the vessel holds none of that resource, the part is no control source.
+   - A vessel whose every source part is unpowered is uncontrolled with the reason `no-power`. Control commands are refused with "no power", and `VesselSnapshot.uncontrolled` carries the reason.
+   - `vessel:power-depleted` fires once on the change.
+   - A crewed pod needs no power to be steered.
+8. **Transmit cost.** Each bit a radio sends costs its vessel's strongest working antenna's `power` (W) × 0.2 EC per Mbit. A holder sends only what its charge pays for, so its queue pauses at zero EC.
+9. **Power budget.** `ModuleDefinition.power(config)` describes a module's steady rate (positive produces, negative draws), whether it needs the sun, and its EC capacity. Core's `powerBudget` sums these by day and by night.
 
 ## Alternatives considered
 
@@ -36,5 +44,5 @@ ADR 0203 asks for solar output that follows the sun angle, the distance to the s
 
 ## Consequences
 
-- API_VERSION patch bump: `VesselApi.sunExposure` is a new required member of the capability object that the sim provides. Mods only call it.
+- API_VERSION patch bump (0.1.76): `VesselApi.sunExposure`, `ModuleDefinition.needs` and `power`, `VesselSnapshot.uncontrolled`, and the event `vessel:power-depleted`. They are additive for mods, which only call or declare them.
 - Background cost: one shadow test per body for each sample, at up to 2 160 samples per vessel per stock day.

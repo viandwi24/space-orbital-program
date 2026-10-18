@@ -61,6 +61,7 @@ import {
 	nextTickTime,
 	orderTickSystems,
 	runDueTicks,
+	runStaleBackground,
 	tickDayLength
 } from './tick.ts';
 import { patchedBodiesOf, completeNodes, refreshPatchedBodies } from './maneuver.ts';
@@ -460,6 +461,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
+		runStaleBackground(core); // rails vessels' charge between ticks (plan 208, ADR 0213)
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
 	}
@@ -507,6 +509,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
+		runStaleBackground(core);
 	}
 
 	return {
