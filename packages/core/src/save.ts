@@ -14,6 +14,7 @@ import { saveEconomySchema, type SaveEconomy } from './economy.ts';
 import { saveCrewSchema, type SaveCrew } from './crew.ts';
 import { saveScienceSchema, type SaveScience } from './science.ts';
 import { saveMilestonesSchema, type SaveMilestones } from './milestones.ts';
+import { saveRangeSchema, type SaveRange } from './range-safety.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -163,6 +164,8 @@ export interface SimSave {
 	milestones?: SaveMilestones;
 	/** Researched tech nodes (plan 105, ADR 0154 point 3); optional in format 5, absent = none. */
 	tech?: SaveTech;
+	/** Ascents whose azimuth is still to be judged (plan 127, ADR 0155 point 4); optional in format 5. */
+	range?: SaveRange;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -224,6 +227,7 @@ export const simSaveSchema = z.object({
 	science: saveScienceSchema.optional(),
 	milestones: saveMilestonesSchema.optional(),
 	tech: saveTechSchema.optional(),
+	range: saveRangeSchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

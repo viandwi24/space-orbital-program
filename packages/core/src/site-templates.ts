@@ -109,7 +109,7 @@ const isSea = (p: Probe, la: number, lo: number): boolean =>
 	elevationAt(p, la, lo) < TERRAIN_SHAPE.landStart;
 
 /** The point `distance` m from (la, lo) along `bearing` (rad from north, east positive). */
-function travel(
+export function travel(
 	la: number,
 	lo: number,
 	bearing: number,

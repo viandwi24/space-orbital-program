@@ -3,6 +3,7 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
+import { rangeWarning } from './range/range-model';
 import {
 	bodyPole,
 	calendarOf,
@@ -127,6 +128,8 @@ export interface HudModel {
 	heat: number;
 	/** Loss of signal to the plasma around the vessel, 0..1 (plan 040, ADR 0079). */
 	blackout: number;
+	/** The predicted drop of the next spent stage breaks the range (plan 127, ADR 0155 point 6). */
+	range: string | null;
 	/** Stability assist state from the snapshot (plan 042); undefined before the sim reports it. */
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
@@ -511,6 +514,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				throttle: vesselThrottle(v.parts, localThrottle, content),
 				heat,
 				blackout: vesselBlackout(v.position, v.velocity, tele.altitude, body),
+				range: rangeWarning(snap.range, Number(v.id)),
 				sas: v.sas,
 				controllable: hasControlSource(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),

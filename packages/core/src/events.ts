@@ -74,6 +74,16 @@ export interface EventMap {
 		crewed: boolean;
 		time: number;
 	};
+	/** Range safety (plan 127, ADR 0155 point 5): a drop or an ascent azimuth broke the range. */
+	'range:violation': {
+		vessel: EntityId;
+		kind: 'site' | 'land' | 'azimuth';
+		site?: string;
+		latitude?: number;
+		longitude?: number;
+		azimuth?: number;
+		penalised: boolean;
+	};
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
 	/** Comms (plan 114, ADR 0179 point 4): `time` is when the link changed (bisected on rails). */
 	'comms:link-up': { vessel: EntityId; to: string; time: number };

@@ -63,7 +63,7 @@ export function record(
 	core.events.emit('economy:entry', { ...entry });
 }
 
-const costMultiplier = (core: SimCore): number => {
+export const costMultiplier = (core: SimCore): number => {
 	const v = ruleOf(core, ECONOMY_RULES.costMultiplier);
 	return typeof v === 'number' ? v : 1;
 };
