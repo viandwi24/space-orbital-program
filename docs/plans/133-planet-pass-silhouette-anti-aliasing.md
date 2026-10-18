@@ -1,12 +1,12 @@
 ---
 id: 133
 title: "Anti-aliased silhouettes of the planet pass"
-status: in-progress
+status: blocked
 owner: "Agent 1 (Lead)"
 depends: [068]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 133 — Anti-aliased silhouettes of the planet pass
@@ -34,8 +34,8 @@ The silhouette of the planet pass against the sky (the ground's horizon, a ridge
 
 ## Acceptance criteria
 
-- [x] JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved). The far ridge is at 0.44 to 0.49 of the count; the hills horizon could not be counted (journal).
-- [ ] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms. **Not met:** `high` is +0.29 to +0.75 ms and `medium` +0.32 to +0.42 ms (journal 133).
+- [ ] JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved). **Blocked:** the blend that halved them (0.44 to 0.49 at the far ridge) cost +0.4 ms and is deferred to a resolve pass (ADR 0211).
+- [x] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms. Met by what shipped: +0.01 to +0.23 ms on `high` (journal 133, 2026-10-19).
 - [x] `bun run test`, typecheck, build, docs:check pass; the terrain parity e2e stays within its bounds.
 
 ## Docs checklist
@@ -52,3 +52,8 @@ The silhouette of the planet pass against the sky (the ground's horizon, a ridge
   - Stair steps at a far ridge fell to 0.44 to 0.49 of the count, and the dark crest dashes are gone.
   - The frame cost is over the criterion: `high` +0.29 to +0.75 ms, `medium` +0.32 to +0.42 ms.
   - Left `in-progress` for the owner to accept the cost or have it cut. Measurements are in journal 133.
+- 2026-10-19 — Agent 1 (Lead), on main, at the owner's request to bring the cost under 0.3 ms:
+  - Nine variants were measured with the quality governor off (journal 133).
+  - Every form of the blend's second colour costs +0.3 to +1 ms. ADR 0211 defers the blend to a resolve pass.
+  - What shipped (one shading, the crest and grazing rules) measures +0.01 to +0.23 ms.
+  - **Blocked:** the stair-step criterion needs that resolve pass, which is not yet planned.

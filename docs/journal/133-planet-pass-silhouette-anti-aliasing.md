@@ -66,3 +66,29 @@
 - The `high` cost is +0.3 to +0.75 ms, against at most +0.3.
 - The hit side of an edge is still hard. It would need a march past the hit point.
 - A count method for the hills horizon whose reference does not move.
+
+## 2026-10-19: the frame cost, measured again (ADR 0211)
+
+**The quality governor was on in the first measurements.** It changes the preset or the render scale between runs. With it off (`orbital.graphics.auto = off`), each variant was built and measured against the base build, alternating, three runs, minimum of six `benchmark(8)` per scene, `high` (`apps/web/scripts/measure-silhouette.ts`).
+
+| Variant | pad-low-sun | pad-noon | horizon | ridge |
+|---|---|---|---|---|
+| all of plan 133 compiled out | −0.12 | +0.01 | +0.09 | −0.00 |
+| as committed on 2026-10-18 (blend in a two-pass loop) | +0.44 | +0.39 | +0.39 | +0.51 |
+| cheaper bookkeeping in the march loop | +0.80 | +0.68 | +0.57 | +0.60 |
+| **no second pass (shipped)** | +0.18 / +0.05 | +0.04 / +0.01 | +0.23 / +0.16 | +0.18 / +0.21 |
+| no bookkeeping, two passes | +0.52 | +0.48 | +0.43 | +0.35 |
+| a loop bound that cannot be unrolled | +0.36 | +0.32 | +0.31 | +0.41 |
+| a light second pass (no clouds, aurora, shafts) | +0.57 | +0.50 | +0.52 | +0.65 |
+| the quad neighbour's colour (`dFdx` / `dFdy`) | +0.98 | +0.79 | +0.79 | +0.89 |
+| the shipped variant with a plain call instead of the one-pass loop | +0.65 | +0.50 | +0.48 | +0.64 |
+
+The shipped variant was measured twice; its row gives both runs.
+
+What these show:
+
+- **Off and on cost the same in every variant.** The cost is the program's size and registers, not the work on the edge pixels.
+- **The second shading is what costs.** No form of it fits 0.3 ms, so the blend is deferred to a resolve pass (ADR 0211).
+- **The shipped variant keeps a one-pass loop.** A plain call of the same function measured +0.5 ms. The GPU compiler's register allocation follows the form of the code, so the form stays as it measured.
+- **Stair steps.** The quad-neighbour blend gave 0.62 of the count at the ridge. The shipped variant has no blend, so the stair steps are back to one pixel.
+- **The dark crest line.** Its two fixes, a crest stepped over taken as a hit and the grazing normal, stay. In the frames of this run the line did not show with the switch off either (the scene state differs between page loads), so this run gives no visual comparison of them.

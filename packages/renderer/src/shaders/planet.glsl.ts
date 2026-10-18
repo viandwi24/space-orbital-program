@@ -1513,10 +1513,11 @@ void main() {
 	bool hitG = hitP || hitT;
 	float tG = hitT ? tT : tHit;
 
-	// Anti-aliased silhouette (plan 133, ADR 0195): a ray that misses the ground but passes within half
-	// a pixel footprint of it is that much covered by it; it is shaded a second time as ground at its
-	// closest approach and blended. The sea horizon's closest approach is analytic. One call site in a
-	// loop, so the compiler keeps one copy of the shading.
+	// Silhouette coverage (plan 133, ADR 0211): the coverage of a miss's closest approach is computed, but the
+	// second shading of the ground that the blend needs is not in this pass. Every form of it measured +0.3
+	// to +1 ms on every pixel on the M5 (journal 133); the loop stays at one pass, a form that measured
+	// within 0.2 ms of the pass before plan 133, where a plain call measured +0.5. The blend waits for a
+	// resolve pass of its own.
 	float cover = 0.0;
 	bool edgeT = false;
 	float tEdge = 0.0;
@@ -1542,7 +1543,7 @@ void main() {
 	}
 	vec3 colour = vec3(0.0);
 	float depthDist = -1.0;
-	for (int pass = 0; pass < 2; pass++) {
+	for (int pass = 0; pass < 1; pass++) { // one pass: see above
 		bool first = pass == 0;
 		float dPass;
 		vec3 c = shadeRay(ro, rd, r0, d, h, first ? hitG : true, first ? hitT : edgeT, first ? tG : tEdge, dPass);
