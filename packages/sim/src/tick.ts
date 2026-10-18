@@ -21,6 +21,7 @@ import { makeContext } from './hooks.ts';
 import { economyTick } from './economy.ts';
 import { crewTick } from './crew.ts';
 import { buildingsTick } from './buildings.ts';
+import { marketDay } from './market.ts';
 import { resetStations } from './comms.ts';
 
 export interface TickState {
@@ -129,6 +130,7 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 		if (buildingsTick(core, day)) resetStations(core);
 		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
 		crewTick(core); // returns and salaries (plan 106, ADR 0176)
+		marketDay(core); // production, then the markets, after the day's charges (plan 097, ADR 0124)
 		core.events.emit('world:tick', { day, time });
 	}
 }

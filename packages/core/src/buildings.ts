@@ -417,7 +417,7 @@ export const CAPACITY = {
 	'comms-node': { unit: 'tier', meaning: 'station tier' },
 	lab: { unit: 'labs', meaning: 'research slots' },
 	admin: { unit: 'strategies', meaning: 'strategy slots' },
-	storage: { unit: 'kg', meaning: 'stored commodities' },
+	storage: { unit: 'u', meaning: 'commodity units held at the site (plan 097)' },
 	production: { unit: 'recipes', meaning: 'recipes at once' },
 	'test-stand': { unit: 'grade', meaning: 'static-fire grade (plan 130)' }
 } as const;

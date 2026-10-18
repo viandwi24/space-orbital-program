@@ -44,9 +44,16 @@ describe('launch', () => {
 		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		expect(r.ok).toBe(true);
 		expect(funds(sim)).toBeCloseTo(100_000 - cost, 9);
-		expect(ledger(sim)).toEqual([
-			{ time: 0, currency: 'funds', amount: -cost, cause: 'economy.launch', ref: 'Two-stage' }
+		// with markets open the fuel is bought at today's price, here the base (plan 097, ADR 0124
+		// point 6): the parts entry and one purchase per propellant add up to the design cost
+		const entries = ledger(sim);
+		expect(entries.map((e) => e.cause)).toEqual([
+			'economy.launch',
+			'stock.market-buy',
+			'stock.market-buy'
 		]);
+		expect(entries[0]).toMatchObject({ cause: 'economy.launch', ref: 'Two-stage' });
+		expect(entries.reduce((t, e) => t + e.amount, 0)).toBeCloseTo(-cost, 9);
 		sim.dispose();
 	});
 

@@ -8,6 +8,11 @@
  * rocket is cleared from the pad and its pod is put down at rest `downrange` metres east, then the
  * economy is switched back on and the pod is recovered (the recovery credit). Between missions
  * the clock runs on rails with `warp-to`, so the world tick pays the scheduled charges.
+ *
+ * With `markets` (plan 097, ADR 0124) launches buy their fuel through the market (the sim does it),
+ * and from year 2, once it has 150 000 funds, the bot builds a propellant plant; before each launch
+ * it sells what its site holds above 5 000 u of each commodity while the price is at least 95 % of
+ * base (at base exactly a market never rises above it without buyers).
  */
 import { tickDayLength } from '../../src/tick.ts';
 import type { CommandResult, EntityId, LedgerEntry, WorldInfo } from '@orbital/core';
@@ -40,6 +45,8 @@ export async function runCareerBot(options: {
 	days: number;
 	everyDays?: number;
 	downrange?: number;
+	/** Build a propellant plant in year 2 and sell its surplus (plan 097). */
+	markets?: boolean;
 }): Promise<BotResult> {
 	const everyDays = options.everyDays ?? 30;
 	const downrange = options.downrange ?? 40_000;
@@ -58,7 +65,35 @@ export async function runCareerBot(options: {
 		must(sim.dispatch({ type: 'set-rule', rule: 'stock.economy', value: on }), 'economy');
 
 	let missions = 0;
+	let plant = false;
+	const sellSurplus = (): void => {
+		const economy = sim.snapshot().economy!;
+		const held = economy.storage?.find((s) => s.site === 'legacy')?.items ?? {};
+		for (const m of economy.markets ?? []) {
+			const surplus = (held[m.id] ?? 0) - 5_000;
+			if (surplus > 0 && m.price >= 0.95 * m.base)
+				must(
+					sim.dispatch({ type: 'market-sell', commodity: m.id, amount: surplus, site: 'legacy' }),
+					'sell'
+				);
+		}
+	};
 	for (let day = everyDays; day <= lastDay; day += everyDays) {
+		if (options.markets && !plant && day >= 360 && sim.snapshot().economy!.funds >= 150_000) {
+			must(
+				sim.dispatch({
+					type: 'place-building',
+					site: 'legacy',
+					kind: 'stock.propellant-plant',
+					cell: { i: 20, j: -12 },
+					rotation: 0,
+					id: 'bot-plant'
+				}),
+				'build the plant'
+			);
+			plant = true;
+		}
+		if (options.markets) sellSurplus();
 		// The rocket: paid for at launch.
 		const rocket = must(sim.dispatch({ type: 'load-vessel', design: twoStage() }), 'launch')!;
 		settle(sim, 3);

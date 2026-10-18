@@ -4,6 +4,7 @@
  * them, so it only needs the erased shapes.
  */
 import type { TechNodeDefinition } from './tech-tree.ts';
+import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
@@ -131,6 +132,9 @@ export interface BasePluginContext {
 	readonly achievements: Registrar<AchievementDefinition>;
 	/** The tech tree (plan 105, ADR 0154). */
 	readonly techNodes: Registrar<TechNodeDefinition>;
+	/** Commodities and recipes (plan 097, ADR 0124). */
+	readonly commodities: Registrar<CommodityDefinition>;
+	readonly recipes: Registrar<RecipeDefinition>;
 	/** Failure modes (plan 130, ADR 0156). */
 	readonly failureModes: Registrar<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
@@ -190,6 +194,8 @@ export const REGISTRY_KINDS = [
 	'mission',
 	'achievement',
 	'tech-node',
+	'commodity',
+	'recipe',
 	'failure-mode',
 	'scenario',
 	'panel',
@@ -259,6 +265,8 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'categories',
 	'achievements',
 	'techNodes',
+	'commodities',
+	'recipes',
 	'failureModes',
 	'scenarios',
 	'panels',
@@ -455,6 +463,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			categories: registrar(registries.categories),
 			achievements: registrar(registries.achievements),
 			techNodes: registrar(registries.techNodes),
+			commodities: registrar(registries.commodities),
+			recipes: registrar(registries.recipes),
 			failureModes: registrar(registries.failureModes),
 			scenarios: registrar(registries.scenarios),
 			panels: registrar(registries.panels),
@@ -636,6 +646,8 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				mission: section(registries.missions),
 				achievement: section(registries.achievements),
 				'tech-node': section(registries.techNodes),
+				commodity: section(registries.commodities),
+				recipe: section(registries.recipes),
 				'failure-mode': section(registries.failureModes),
 				scenario: section(registries.scenarios),
 				panel: section(registries.panels),

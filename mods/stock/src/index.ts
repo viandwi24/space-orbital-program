@@ -54,6 +54,7 @@ import {
 } from './resources.ts';
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
+import { RecipePropellantSynthesis, STOCK_COMMODITIES } from './market.ts';
 import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 import { STOCK_SITE_TEMPLATES } from './site-templates.ts';
@@ -152,6 +153,9 @@ export const Stock = definePlugin({
 		for (const rule of STOCK_RULES) ctx.rules.register(rule);
 		for (const preset of STOCK_PRESETS) ctx.presets.register(preset);
 		for (const charge of STOCK_CHARGES) ctx.charges.register(charge);
+		// one commodity chain first (plan 097, ADR 0124)
+		for (const commodity of STOCK_COMMODITIES) ctx.commodities.register(commodity);
+		ctx.recipes.register(RecipePropellantSynthesis);
 		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);
 
 		ctx.provide('stock', stockApi);
@@ -182,3 +186,4 @@ export * from './missions.ts';
 export * from './tech.ts';
 export * from './science.ts';
 export * from './comms.ts';
+export * from './market.ts';

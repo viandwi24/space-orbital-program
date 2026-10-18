@@ -37,7 +37,8 @@ import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { hasBackground } from './tick.ts';
-import { chargeLaunch, creditRecovery, launchRefusal, recoveryBlocker } from './economy.ts';
+import { creditRecovery, recoveryBlocker } from './economy.ts';
+import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
 import {
 	placeBuilding,
 	removeBuilding,
@@ -124,9 +125,11 @@ function loadVessel(
 	if (seats) return refuse(seats);
 	const locked = lockRefusal(core, command.design);
 	if (locked) return refuse(locked);
-	const short = launchRefusal(core, command.design);
-	if (short) return refuse(short);
 	const placement = command.placement ?? { kind: 'surface' };
+	// fuel from the launch site's storage, then the market (plan 097, ADR 0124 point 6)
+	const launchSite = launchSiteOf(core, placement);
+	const short = refuseLaunch(core, command.design, launchSite);
+	if (short) return refuse(short);
 	// a site placement is a surface placement on the site's body at its pad (ADR 0142 point 5)
 	let surface: { latitude: number; longitude: number } | undefined;
 	let bodyName = placement.kind === 'site' ? undefined : placement.body;
@@ -198,7 +201,7 @@ function loadVessel(
 		seatCrew(core, id, command.crew, (index) => indexOf.get(index)!);
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
-	chargeLaunch(core, command.design); // only a vessel that was placed is paid for (ADR 0113)
+	payLaunch(core, command.design, launchSite); // only a vessel that was placed is paid for (ADR 0113)
 	if (placement.kind === 'site') {
 		const site = sitesOf(core.info).find((s) => s.id === placement.site);
 		if (site) watchAscent(core, id, site); // its ascent azimuth is judged at 2 km (ADR 0155)
@@ -402,6 +405,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return research(core, command.node);
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
+		case 'market-buy':
+			return marketBuy(core, command);
+		case 'market-sell':
+			return marketSell(core, command);
 		case 'crew-dismiss':
 			return dismissCrew(core, command.member);
 		case 'crew-eva':

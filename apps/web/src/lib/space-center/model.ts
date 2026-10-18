@@ -291,3 +291,46 @@ export function upkeepWarning(
 	const due = today === undefined ? '' : ` in ${every - (today % every)} days`;
 	return `Upkeep of ${Math.ceil(upkeep).toLocaleString('en-US')} due${due} is more than the funds`;
 }
+
+export interface MarketRow {
+	id: string;
+	label: string;
+	/** "0.76 / u", or "30,000 / launch" for a fixed service. */
+	price: string;
+	/** Change against the base price, "−5 %"; null for a fixed price at its base. */
+	trend: string | null;
+	/** Units at the site, when it holds any. */
+	held: number | null;
+}
+
+type EconomyView = NonNullable<Snapshot['economy']>;
+
+/** The read-only Market panel (plan 097, ADR 0124 point 8): price, trend against base, site stock. */
+export function marketRows(economy: EconomyView | undefined, site: string | undefined): MarketRow[] {
+	if (!economy?.enabled || !economy.markets) return [];
+	const held = economy.storage?.find((s) => s.site === site)?.items ?? {};
+	return economy.markets.map((m) => {
+		const change = m.base > 0 ? m.price / m.base - 1 : 0;
+		const digits = m.price < 10 ? 2 : 0;
+		return {
+			id: m.id,
+			label: m.label,
+			price: `${m.price.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })} / ${m.unit}`,
+			trend: Math.abs(change) < 0.005 ? null : `${change > 0 ? '+' : '−'}${Math.round(Math.abs(change) * 100)} %`,
+			held: held[m.id] === undefined ? null : Math.floor(held[m.id]!)
+		};
+	});
+}
+
+/** "Needs attention" when production stands still because the world is in debt (ADR 0124 point 5). */
+export function productionNote(
+	economy: EconomyView | undefined,
+	site: SiteState | undefined,
+	producers: ReadonlySet<string>
+): string | null {
+	if (!economy?.enabled || economy.funds >= 0 || !site) return null;
+	const working = site.buildings.some(
+		(b) => producers.has(b.kind) && (b.state === 'active' || b.state === 'upgrading')
+	);
+	return working ? 'Production stopped: funds are below zero' : null;
+}

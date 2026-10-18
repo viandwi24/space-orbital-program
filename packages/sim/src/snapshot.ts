@@ -40,6 +40,7 @@ import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
 import { terrainUnder } from './terrain.ts';
 import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
+import { marketSnapshot } from './market.ts';
 import { sitesSnapshot } from './buildings.ts';
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
@@ -179,7 +180,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 			rotation: rotationAt(body, core.t)
 		})),
 		rules: rulesView(core),
-		economy: economySnapshot(core),
+		economy: { ...economySnapshot(core), ...marketSnapshot(core) },
 		sites: sitesSnapshot(core),
 		day: core.ticks.lastDay,
 		...(objectives ? { objectives } : {}),

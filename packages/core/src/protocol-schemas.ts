@@ -181,6 +181,18 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		profession: z.enum(['pilot', 'engineer', 'scientist', 'tourist'])
 	}),
 	z.object({ type: z.literal('crew-dismiss'), member: z.string().min(1) }),
+	z.object({
+		type: z.literal('market-buy'),
+		commodity: z.string().min(1),
+		amount: z.number().positive(),
+		site: z.string().min(1)
+	}),
+	z.object({
+		type: z.literal('market-sell'),
+		commodity: z.string().min(1),
+		amount: z.number().positive(),
+		site: z.string().min(1)
+	}),
 	z.object({ type: z.literal('research'), node: z.string().min(1) }),
 	z.object({
 		type: z.literal('crew-transfer'),

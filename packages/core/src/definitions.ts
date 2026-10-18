@@ -4,6 +4,7 @@
  * by the schemas in `schemas.ts`.
  */
 import type { TechNodeDefinition } from './tech-tree.ts';
+import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
@@ -117,6 +118,9 @@ export interface ReadonlyRegistries {
 	achievements: ReadonlyRegistry<AchievementDefinition>;
 	/** The tech tree (plan 105, ADR 0154). */
 	techNodes: ReadonlyRegistry<TechNodeDefinition>;
+	/** Commodities and recipes (plan 097, ADR 0124). */
+	commodities: ReadonlyRegistry<CommodityDefinition>;
+	recipes: ReadonlyRegistry<RecipeDefinition>;
 	/** Failure modes (plan 130, ADR 0156). */
 	failureModes: ReadonlyRegistry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */

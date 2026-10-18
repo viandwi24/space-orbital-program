@@ -3,6 +3,12 @@
  * frozen on registration so a plugin cannot mutate another plugin's data afterwards.
  */
 import { techNodeDefinitionSchema, type TechNodeDefinition } from './tech-tree.ts';
+import {
+	commodityDefinitionSchema,
+	recipeDefinitionSchema,
+	type CommodityDefinition,
+	type RecipeDefinition
+} from './market.ts';
 import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
@@ -267,6 +273,9 @@ export interface Registries {
 	achievements: Registry<AchievementDefinition>;
 	/** The tech tree (plan 105, ADR 0154). */
 	techNodes: Registry<TechNodeDefinition>;
+	/** Commodities and recipes (plan 097, ADR 0124). */
+	commodities: Registry<CommodityDefinition>;
+	recipes: Registry<RecipeDefinition>;
 	/** Failure modes (plan 130, ADR 0156). */
 	failureModes: Registry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
@@ -328,6 +337,10 @@ export function createRegistries(): Registries {
 		techNodes: createRegistry<TechNodeDefinition>('tech-node', {
 			schema: techNodeDefinitionSchema
 		}),
+		commodities: createRegistry<CommodityDefinition>('commodity', {
+			schema: commodityDefinitionSchema
+		}),
+		recipes: createRegistry<RecipeDefinition>('recipe', { schema: recipeDefinitionSchema }),
 		achievements: createRegistry<AchievementDefinition>('achievement', {
 			schema: achievementDefinitionSchema
 		}),

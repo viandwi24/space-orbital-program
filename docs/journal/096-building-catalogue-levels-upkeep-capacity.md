@@ -32,7 +32,7 @@
 | Administration | 1 / 3 / 5 strategies | 30 000 / 90 000 / 200 000 | 6 / 14 / 24 |
 | Tracking dish | tier 1 / 2 / 3 | 20 000 / 60 000 / 150 000 | 2 / 6 / 12 |
 | Test stand (plan 130) | grade 1 / 2 / 3 | 30 000 / 70 000 / 150 000 | 4 / 10 / 18 |
-| Propellant plant | 1 / 2 / 4 recipes, 20 / 50 / 120 t storage | 80 000 / 160 000 / 320 000 | 10 / 18 / 28 |
+| Propellant plant | 1 / 2 / 4 recipes, 20 000 / 50 000 / 120 000 u storage | 80 000 / 160 000 / 320 000 | 10 / 18 / 28 |
 
 Upkeep is 1 % of the level's cost per 30 days: the Legacy layout's four buildings cost 1 300 funds a month.
 

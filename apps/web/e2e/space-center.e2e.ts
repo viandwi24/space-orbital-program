@@ -48,6 +48,8 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	await expect(page.getByTestId('sc-attention')).toContainText(
 		/Tracking dish: Under construction · ready in 2 days/
 	);
+	// the read-only Market panel of a Career world (plan 097, ADR 0124 point 8)
+	await expect(page.getByTestId('sc-market-stock.liquid-fuel')).toContainText('0.80 / u');
 	await page.getByTestId('sc-build-stop').click();
 
 	await page.getByTestId('sc-label-stock.hangar').click();

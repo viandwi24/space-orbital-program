@@ -17,7 +17,7 @@ Commodities have prices that respond to supply and demand on the world tick with
 
 ## Context
 
-- ADRs: 0098 (points 1 and 2, guardrails), 0096 (world tick), 0110, 0111; an ADR at claim for the market model numbers if they change below
+- ADRs: 0098 (points 1 and 2, guardrails), 0096 (world tick), 0110, 0111, [0124](../decisions/0124-markets-one-propellant-chain-site-storage-launch-fuel.md) (written at claim: state, trade timing, production gate, launch fuel)
 - Read: plan 095 (ledger, `vesselCost`, resource `price`, career bot), plan 096 (building levels, upkeep, storage capacity), plan 082 (world tick, PRNG streams), `refs/reverse-engineering-ksp2/beyond/03-world-and-economy-dynamics.md` §2.2.
 - Start with one chain (propellant: liquid fuel and oxidizer) and add more only after the first is fun (ADR 0098 guardrail).
 
@@ -56,21 +56,23 @@ Prices and stocks are deterministic tick functions of the day's inputs, so a res
 
 ## Acceptance criteria
 
-- [ ] `packages/core` test: selling 10 000 units every day lowers the price by at most 5 % per tick and settles at `0.4 × base`; stopping the sales lets the price return toward base as the stock relaxes (hand-computed table for 10 days).
-- [ ] `packages/sim` test: a level 1 propellant plant with power and paid upkeep adds exactly 200 × days liquid fuel and 245 × days oxidizer to storage, stops at capacity, and adds nothing on a day its upkeep was refused.
-- [ ] `packages/sim` test: a launch draws its fuel from site storage first and buys the rest at today's price; the two ledger entries add up to the debit.
-- [ ] `packages/sim` resume test: markets and storage resume byte for byte after 30 days of trades.
-- [ ] Career-bot test with markets on, 10 game years: funds stay between 25 000 and 500 000; no income source (budget, recovery, sales) exceeds 80 % of income (099 lowers this when contracts exist); under 30 s in Bun on the M5.
-- [ ] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/core` test: selling 10 000 units every day lowers the price by at most 5 % per tick and settles at `0.4 × base`; stopping the sales lets the price return toward base as the stock relaxes (hand-computed table for 10 days).
+- [x] `packages/sim` test: a level 1 propellant plant with power and paid upkeep adds exactly 200 × days liquid fuel and 245 × days oxidizer to storage, stops at capacity, and adds nothing on a day its upkeep was refused.
+- [x] `packages/sim` test: a launch draws its fuel from site storage first and buys the rest at today's price; the two ledger entries add up to the debit.
+- [x] `packages/sim` resume test: markets and storage resume byte for byte after 30 days of trades.
+- [x] Career-bot test with markets on, 10 game years: funds stay between 25 000 and 500 000; no income source (budget, recovery, sales) exceeds 80 % of income (099 lowers this when contracts exist); under 30 s in Bun on the M5.
+- [x] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/097-markets-and-production.md` written.
-- [ ] `architecture/simulation.md` (markets), `guides/writing-a-mod.md`.
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/097-markets-and-production.md` written.
+- [x] `architecture/simulation.md` (markets), `guides/writing-a-mod.md`.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — Refined by Agent 1 while waiting (body only, status stays `draft`): commodity and recipe shapes, a deterministic market model with its stock numbers, storage and upkeep gates, launch fuel from storage then market, trades as commands with ledger entries, measurable criteria tied to 095's career bot and 096's levels.
+- 2026-10-18 — Claimed by Agent 1 after 096 merged. ADR 0124: market and storage state in `SimSave.economy` (optional), trades move the market stock at once and the tick relaxes and prices it, production needs the world out of debt after the day's charges (096's upkeep is monthly and may go negative), power from the site grid until 128, launch fuel from the launch site's storage then the market (two kinds of ledger entries), a read-only Market panel in the Space Center. `CAPACITY.storage` is in commodity units. The bot's sale threshold is 95 % of base (at base exactly a market never rises above it without buyers) and it builds the plant in year 2 once it holds 150 000 funds. API_VERSION 0.1.60.
+- 2026-10-18 — Criteria: core `market.test.ts` (the 10-day table, the floor at 0.4 × base, the climb back), sim `market.test.ts` (200 and 245 u a day, capacity, nothing on a day in debt, launch fuel from storage then market, trades, byte-for-byte resume after 30 days of trades), `career-bot.test.ts` with markets (funds 52 709 to 365 903, budget 70.3 %, recovery 23.6 %, sales 6.1 % of income, 7.9 s); full checks in the journal.
