@@ -239,6 +239,23 @@ ctx.contracts.register(defineContract({
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 
+### Strategies (API 0.1.65, plan 101, ADR 0187)
+
+```ts
+ctx.strategies.register(defineStrategy({
+	id: 'acme.fly-cheap',
+	label: 'Fly cheap',
+	description: 'Cheaper launches, smaller science returns.',
+	effects: [{ key: 'launch-cost', factor: 0.9 }, { key: 'science', factor: 0.9 }],
+	upkeep: 1_200, // funds every 30 days
+	agencyTypes: ['company', 'hybrid'] // offered only there; omit for every agency type
+}));
+```
+
+- **Keys and bounds:** `launch-cost` 0.75 to 1.25, `recovery` 0.75 to 1.5, `science`, `reputation` and `contract-funds` 0.5 to 1.5, `budget` 0.8 to 1.2. A factor outside its key's bounds fails at load. Several active strategies multiply, and the result is clamped to the bounds.
+- **Your own charge** can follow the `budget` key: `defineCharge({ ..., multiplier: 'budget' })`.
+- **The player** activates and ends strategies in Administration, within the `admin` slots. An ended strategy waits `cooldownDays` (default 30) before it can come back.
+
 ### Contract templates (API 0.1.63, plan 099, ADR 0186)
 
 A template makes procedural contracts. The world offers one at most each day, while fewer than five offers wait.

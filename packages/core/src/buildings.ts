@@ -5,6 +5,7 @@
  */
 import * as z from 'zod';
 import { DEFINITION_ID_PATTERN } from './ids.ts';
+import type { ChargeDefinition } from './economy.ts';
 
 // Not `schemas.ts`'s `definitionIdSchema`: schemas imports sites, which imports this module.
 const definitionIdSchema = z
@@ -518,4 +519,22 @@ export function upkeepOf(
 			if (upkeep > 0) out.push({ id: b.id, kind: b.kind, amount: upkeep });
 		}
 	return out;
+}
+
+/**
+ * The buildings' upkeep as charges, for `projectBalances` (plan 101, ADR 0187 point 4): what
+ * `buildingsTick` books every `UPKEEP_EVERY_DAYS` days, scaled by `stock.cost-multiplier`.
+ */
+export function buildingUpkeepCharges(
+	sites: ReadonlyArray<{ buildings?: readonly PlacedBuilding[] }>,
+	registry: Lookup
+): ChargeDefinition[] {
+	return upkeepOf(sites, registry).map((u) => ({
+		id: u.id,
+		label: `${u.kind} upkeep`,
+		currency: 'funds',
+		amount: -u.amount,
+		everyDays: UPKEEP_EVERY_DAYS,
+		scaleBy: ['stock.cost-multiplier']
+	}));
 }

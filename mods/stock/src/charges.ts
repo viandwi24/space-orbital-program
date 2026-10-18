@@ -14,7 +14,8 @@ export const ChargeBudgetGovernment = defineCharge({
 	amount: 24_000,
 	everyDays: MONTH,
 	when: { rule: 'stock.agency-type', equals: 'government' },
-	scaleBy: ['stock.funds-multiplier']
+	scaleBy: ['stock.funds-multiplier'],
+	multiplier: 'budget' // strategies (plan 101, ADR 0187)
 });
 export const ChargeBudgetHybrid = defineCharge({
 	id: 'stock.budget-hybrid',
@@ -23,7 +24,8 @@ export const ChargeBudgetHybrid = defineCharge({
 	amount: 12_000,
 	everyDays: MONTH,
 	when: { rule: 'stock.agency-type', equals: 'hybrid' },
-	scaleBy: ['stock.funds-multiplier']
+	scaleBy: ['stock.funds-multiplier'],
+	multiplier: 'budget'
 });
 export const ChargeOperations = defineCharge({
 	id: 'stock.operations',

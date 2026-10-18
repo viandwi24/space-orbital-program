@@ -226,6 +226,8 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('plant-flag'), vessel: entity }),
 	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) }),
+	z.object({ type: z.literal('strategy-activate'), strategy: z.string().min(1) }),
+	z.object({ type: z.literal('strategy-end'), strategy: z.string().min(1) }),
 	z.object({ type: z.literal('comms-inspect'), vessel: entity.nullable() }),
 	z.object({ type: z.literal('contract-accept'), offer: z.string().min(1) }),
 	z.object({ type: z.literal('contract-decline'), offer: z.string().min(1) }),

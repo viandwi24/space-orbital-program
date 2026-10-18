@@ -3,6 +3,7 @@
  * read-only view, evaluating after steps, ticks and the events the primitives name, rewards and
  * penalties, the snapshot and the save.
  */
+import { multiplierOf } from './strategies.ts';
 import {
 	currentLeaves,
 	evaluateObjectives,
@@ -113,6 +114,27 @@ export function viewFor(
 	return { time: core.t, home: core.root.def.id, vessels: ids.map((id) => vesselView(core, id)) };
 }
 
+/** Whether instance `ref` is a contract (not a mission). */
+const isContract = (core: SimCore, ref: string): boolean =>
+	[...core.objectives.state.active, ...core.objectives.state.finished].some(
+		(i) => i.id === ref && i.source.kind === 'contract'
+	);
+
+/**
+ * A reward entry after the strategies (plan 101, ADR 0187 point 1): science always, positive
+ * reputation always, and positive funds of contracts. Penalties are never scaled.
+ */
+function scaled(
+	core: SimCore,
+	e: { currency: 'funds' | 'science' | 'reputation'; amount: number },
+	contract: boolean
+): number {
+	if (e.amount <= 0) return e.amount;
+	if (e.currency === 'science') return e.amount * multiplierOf(core, 'science');
+	if (e.currency === 'reputation') return e.amount * multiplierOf(core, 'reputation');
+	return contract ? e.amount * multiplierOf(core, 'contract-funds') : e.amount;
+}
+
 function pay(
 	core: SimCore,
 	entries: readonly { currency: 'funds' | 'science' | 'reputation'; amount: number }[] | undefined,
@@ -120,7 +142,8 @@ function pay(
 	ref: string
 ): void {
 	if (!entries || !economyOn(core)) return;
-	for (const e of entries) record(core, e.currency, e.amount, cause, ref);
+	const contract = ref !== undefined && isContract(core, ref);
+	for (const e of entries) record(core, e.currency, scaled(core, e, contract), cause, ref);
 }
 
 /** Ends an instance: booked, moved to `finished`, reported. Also `contract-cancel` (plan 099). */

@@ -37,6 +37,7 @@ import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { acceptContract, cancelContract, declineContract } from './contracts.ts';
+import { activateStrategy, endStrategy } from './strategies.ts';
 import { hasBackground } from './tick.ts';
 import { creditRecovery, recoveryBlocker } from './economy.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
@@ -409,6 +410,10 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return declineContract(core, command.offer);
 		case 'contract-cancel':
 			return cancelContract(core, command.contract);
+		case 'strategy-activate':
+			return activateStrategy(core, command.strategy);
+		case 'strategy-end':
+			return endStrategy(core, command.strategy);
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

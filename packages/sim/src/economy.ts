@@ -2,6 +2,7 @@
  * The economy in the sim (plan 095, ADR 0113): the ledger state, the launch debit, recovery, the
  * charges and reputation decay on the world tick, and the snapshot view. The maths is core's.
  */
+import { multiplierOf, upkeepCharges } from './strategies.ts';
 import { gradeSurcharge } from './reliability.ts';
 import {
 	clampReputation,
@@ -21,6 +22,7 @@ import {
 	type RecoveryQuote,
 	type RuleValue,
 	type SaveEconomy,
+	type StrategyKey,
 	type VesselDesign
 } from '@orbital/core';
 import { moduleDefOf, moduleState, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
@@ -72,7 +74,9 @@ export const costMultiplier = (core: SimCore): number => {
 /** What a launch of `design` costs now (ADR 0113 point 5). */
 export const launchCost = (core: SimCore, design: VesselDesign): number =>
 	// the grades bought for its part models cost extra (plan 130, ADR 0156 point 5)
-	(designCost(design, core.registries).total + gradeSurcharge(core, design)) * costMultiplier(core);
+	(designCost(design, core.registries).total + gradeSurcharge(core, design)) *
+	costMultiplier(core) *
+	multiplierOf(core, 'launch-cost'); // strategies (plan 101, ADR 0187 point 1)
 
 /** Refusal text when the economy cannot pay for `design`, else undefined. */
 export function launchRefusal(core: SimCore, design: VesselDesign): string | undefined {
@@ -145,7 +149,8 @@ export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote 
 export function creditRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {
 	const quote = quoteRecovery(core, vesselId);
 	if (economyOn(core) && quote.credit > 0) {
-		record(core, 'funds', quote.credit, ECONOMY_CAUSES.recovery, `vessel ${vesselId}`);
+		const credit = quote.credit * multiplierOf(core, 'recovery'); // strategies (plan 101)
+		record(core, 'funds', credit, ECONOMY_CAUSES.recovery, `vessel ${vesselId}`);
 	}
 	return quote;
 }
@@ -154,8 +159,10 @@ export function creditRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote
 export function economyTick(core: SimCore, day: number): void {
 	if (!economyOn(core)) return;
 	const rule = (id: string) => ruleOf(core, id);
-	for (const charge of core.registries.charges.list()) {
-		const amount = chargeOn(charge, day, rule);
+	const multiplier = (key: string) => multiplierOf(core, key as StrategyKey);
+	// the registered charges, then the active strategies' upkeep (plan 101, ADR 0187 point 4)
+	for (const charge of [...core.registries.charges.list(), ...upkeepCharges(core)]) {
+		const amount = chargeOn(charge, day, rule, multiplier);
 		if (amount !== null && amount !== 0) record(core, charge.currency, amount, charge.id);
 	}
 	if (day > 0 && day % REPUTATION_DECAY_EVERY === 0) {

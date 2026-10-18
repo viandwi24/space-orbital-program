@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -86,6 +86,9 @@ export {
 	chargeDefinitionSchema,
 	designCost,
 	projectBalances,
+	STRATEGY_KEYS,
+	strategyMultipliers,
+	strategyUpkeepCharge,
 	recoveryFactor
 } from '@orbital/core';
 // Calendars (plan 081, ADR 0141): a system pack's tests check the date its root body's calendar shows.
@@ -255,6 +258,9 @@ export type {
 	ContractTemplateContext,
 	ContractTemplateDefinition,
 	ContractsSnapshot,
+	StrategyDefinition,
+	StrategyKey,
+	StrategiesSnapshot,
 	MissionDefinition,
 	ObjectiveDefinition,
 	ObjectiveNode,

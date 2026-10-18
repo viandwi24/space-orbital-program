@@ -2,7 +2,8 @@
 	/**
 	 * Administration (plan 099, ADR 0186; refs W5 `Admin.dc.html`): the agency strip, then Contracts
 	 * (Offered / Active / Completed, a contract's detail with Accept, Decline and Cancel) and
-	 * Strategies (plan 101). It runs the world's sim from its newest save and saves after a change.
+	 * Strategies (plan 101, ADR 0187: ratios, caps, upkeep and the projection; Activate and End).
+	 * It runs the world's sim from its newest save and saves after a change.
 	 */
 	import { onMount } from 'svelte';
 	import { calendarOf, homeBodyOf, type Snapshot } from '@orbital/core';
@@ -19,13 +20,19 @@
 	import Segmented from '../../lib/ui/Segmented.svelte';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import ContractsTab from '../../lib/administration/ContractsTab.svelte';
+	import StrategiesTab from '../../lib/administration/StrategiesTab.svelte';
+	import {
+		strategyCards,
+		strategyCommand,
+		strategySlotsText
+	} from '../../lib/administration/strategies-model';
 	import {
 		agencyStrip,
 		contractCommand,
 		type ContractTab
 	} from '../../lib/administration/contracts-model';
 
-	const { catalog } = loadContent();
+	const { catalog, world: registries } = loadContent();
 	const day = (() => {
 		try {
 			const c = calendarOf(catalog.bodies);
@@ -66,6 +73,20 @@
 	});
 
 	const strip = $derived(agencyStrip(snapshot));
+	const cards = $derived(
+		snapshot
+			? strategyCards(
+					{
+						snapshot,
+						charges: registries.charges.list(),
+						buildings: registries.buildings,
+						strategies: registries.strategies
+					},
+					snapshot.t,
+					day
+				)
+			: []
+	);
 
 	onMount(() => {
 		let gone = false;
@@ -91,6 +112,17 @@
 		decline: 'Offer declined.',
 		cancel: 'Contract cancelled; the penalty is booked.'
 	} as const;
+
+	async function strategy(action: 'activate' | 'end', id: string): Promise<void> {
+		if (!client) return;
+		const r = await client.dispatch(strategyCommand(action, id));
+		if (!r.ok) {
+			note = r.reason;
+			return;
+		}
+		const done = action === 'activate' ? 'Strategy activated.' : 'Strategy ended; its cooldown starts.';
+		note = (await saves.autosave()) ? done : `${done} The world could not be saved.`;
+	}
 
 	async function act(action: 'accept' | 'decline' | 'cancel', id: string): Promise<void> {
 		if (!client) return;
@@ -135,6 +167,10 @@
 			<dt>Contracts</dt>
 			<dd>{strip.contracts}</dd>
 		</div>
+		<div>
+			<dt>Strategies</dt>
+			<dd>{strategySlotsText(snapshot?.strategies)}</dd>
+		</div>
 	</dl>
 	<div class="bar">
 		<Segmented
@@ -164,7 +200,7 @@
 			onaction={(a, id) => void act(a, id)}
 		/>
 	{:else}
-		<p class="note" data-testid="admin-strategies">Strategies arrive with plan 101.</p>
+		<StrategiesTab {cards} disabled={!ready} onaction={(a, id) => void strategy(a, id)} />
 	{/if}
 </main>
 

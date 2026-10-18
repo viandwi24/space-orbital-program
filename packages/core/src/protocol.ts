@@ -5,6 +5,7 @@
 import type { LinkBudget } from './comms.ts';
 import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
+import type { StrategiesSnapshot } from './strategies.ts';
 import type { RangeSnapshot } from './range-safety.ts';
 import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
@@ -227,6 +228,8 @@ export interface Snapshot {
 	rules?: Readonly<Record<string, boolean | number | string>>;
 	/** Contract slots, offers and accepted generated contracts (plan 099, ADR 0186); absent before any. */
 	contracts?: ContractsSnapshot;
+	/** Strategy slots, multipliers and the strategies on offer (plan 101, ADR 0187); with the economy on. */
+	strategies?: StrategiesSnapshot;
 	/** Started objectives, active and finished (plan 098, ADR 0175). */
 	objectives?: Array<{
 		id: string;
@@ -556,6 +559,10 @@ export type Command =
 	| { type: 'plant-flag'; vessel: EntityId }
 	/** Transmit a science data item (plan 103, ADR 0178 point 7): value × its factor, then it is gone. */
 	| { type: 'transmit-data'; vessel: EntityId; item: string }
+	/** Activate a strategy (plan 101, ADR 0187 point 6): agency type, slots and cooldown checked. */
+	| { type: 'strategy-activate'; strategy: string }
+	/** End an active strategy; its cooldown starts. */
+	| { type: 'strategy-end'; strategy: string }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
 	/** Accept a contract offer (plan 099, ADR 0186 point 4): checks the slots, pays the advance. */
