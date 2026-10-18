@@ -5,6 +5,12 @@
  */
 import { rangeWarning } from './range/range-model';
 import {
+	linkBadge,
+	projectNetwork,
+	type LinkBadge,
+	type ScreenNetwork
+} from './comms/network-model';
+import {
 	bodyPole,
 	calendarOf,
 	dossierOf,
@@ -130,6 +136,8 @@ export interface HudModel {
 	blackout: number;
 	/** The predicted drop of the next spent stage breaks the range (plan 127, ADR 0155 point 6). */
 	range: string | null;
+	/** The link indicator and the reason a link is down (plan 115, ADR 0158); null without a network. */
+	link: LinkBadge | null;
 	/** Stability assist state from the snapshot (plan 042); undefined before the sim reports it. */
 	sas: SasSnapshot | undefined;
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
@@ -171,6 +179,8 @@ export interface FrameData {
 	navball: NavballFrame | null;
 	/** Screen positions in px inside the canvas box; null when not in map view. */
 	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
+	/** The Network layer in map view (plan 115, ADR 0158); null outside it. */
+	network?: ScreenNetwork | null;
 	/** Maneuver nodes and handles in px (plan 045); filled in by the flight loop. */
 	maneuver?: ManeuverFrame | null;
 	/** The target's markers in the map, or its label and arrow in the flight view (plan 057). */
@@ -456,7 +466,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 					vessel: at(v.position)
 				};
 			}
-			return { navball, map: marks };
+			const network = map && s ? projectNetwork(s, options.project) : null;
+			return { navball, map: marks, network };
 		},
 		model(now, localThrottle) {
 			const v = find();
@@ -515,6 +526,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				heat,
 				blackout: vesselBlackout(v.position, v.velocity, tele.altitude, body),
 				range: rangeWarning(snap.range, Number(v.id)),
+				link: linkBadge(snap, Number(v.id)),
 				sas: v.sas,
 				controllable: hasControlSource(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),

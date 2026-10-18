@@ -1,12 +1,12 @@
 ---
 id: 115
 title: "Comms tier 1 in the interface: link state, Comms tab, Network layer"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [114, 111, 113]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 115 — Comms tier 1 in the interface: link state, Comms tab, Network layer
@@ -17,7 +17,7 @@ The player sees the network: a link indicator and the reason when it breaks, the
 
 ## Context
 
-- ADRs: 0101, 0107
+- ADRs: 0101, 0107, [0158](../decisions/0158-comms-interface-link-badge-comms-tab-network-overlay.md) (this plan)
 - Read: ADR 0101 point 5, `refs/space-orbital-program-ui/docs/CONCEPT.md` §4 (Comms tab), plan 114.
 
 ## Scope
@@ -47,19 +47,23 @@ Every broken link names its cause (occluded by <body>, out of range, blackout, a
 
 ## Acceptance criteria
 
-- [ ] vitest: a snapshot with an occluded link shows "Occluded by <moon>" in the badge and the tab.
-- [ ] vitest: the Network layer receives one line per link from the snapshot.
-- [ ] Screenshots in the journal.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: a snapshot with an occluded link shows "Occluded by <moon>" in the badge and the tab.
+- [x] vitest: the Network layer receives one line per link from the snapshot.
+- [x] Screenshots in the journal.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/115-comms-tier-1-interface.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/115-comms-tier-1-interface.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101, 0107).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — ADR 0158: one link badge with every reason (blackout one of them), bars 4/2/0 until plan 116, the Comms tab with transmitters from descriptors, the Network layer as a page overlay shared by the map and the Mission Center (`renderer/src/map.ts` unchanged).
+- 2026-10-18 — Built: the link badge, the Comms tab (with visible switch labels, also in plan 111's tabs), the Network layer in the map and the Mission Center; screenshots in the journal. The crew panel's suit radio waits for plan 121. Handed over as `ready/115`.
+- 2026-10-18 — Merged by Agent 1: rebased on main (conflict in the ADR index, both kept); bun test 1620 pass, web vitest 1003 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center and vessel-panel e2e pass (Chromium).
