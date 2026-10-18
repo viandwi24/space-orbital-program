@@ -7,6 +7,7 @@ import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
+import type { FailureModeDefinition } from './reliability.ts';
 import type * as z from 'zod';
 import type { EntityId } from './ids.ts';
 import type { EventBus, EventMap } from './events.ts';
@@ -106,6 +107,8 @@ export interface ReadonlyRegistries {
 	categories: ReadonlyRegistry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
 	achievements: ReadonlyRegistry<AchievementDefinition>;
+	/** Failure modes (plan 130, ADR 0156). */
+	failureModes: ReadonlyRegistry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: ReadonlyRegistry<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */

@@ -5,6 +5,15 @@
  */
 import { recoverMilestones } from './milestones.ts';
 import {
+	failureOf,
+	fixAnomaly,
+	launchTrials,
+	partTrials,
+	repair,
+	setGrade,
+	staticFire
+} from './reliability.ts';
+import {
 	bodyId,
 	commandSchema,
 	IDENTITY_RULES,
@@ -87,6 +96,7 @@ function fireStage(core: SimCore, id: EntityId): CommandResult {
 	vessel.nextStage += 1;
 	for (const partId of stage) {
 		if (core.world.hasEntity(partId) && partOf(core, partId).vessel === id) {
+			partTrials(core, id, partId, 'stage'); // reliability draws at staging (plan 130, ADR 0156)
 			runStageHooks(core, partId);
 		}
 	}
@@ -179,6 +189,7 @@ function loadVessel(
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
 	chargeLaunch(core, command.design); // only a vessel that was placed is paid for (ADR 0113)
+	launchTrials(core, id); // reliability draws at load (plan 130, ADR 0156 point 1)
 	return accept(id);
 }
 
@@ -257,6 +268,8 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			if (!instance) return refuse(`part ${command.part} has no module "${command.module}"`);
 			const action = moduleDefOf(core, command.module).actions?.[command.action];
 			if (!action) return refuse(`module "${command.module}" has no action "${command.action}"`);
+			const failure = failureOf(core, command.part, command.module);
+			if (failure) return refuse(`module "${command.module}" has failed: ${failure.label}`);
 			// an antenna can always be switched, or a probe could never get its signal back
 			if (!moduleDefOf(core, command.module).antenna) {
 				const noSignal = signalRefusal(core, command.vessel, 'action');
@@ -362,6 +375,14 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		case 'crew-walk':
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return crewWalk(core, command.vessel, command.heading, command.speed);
+		case 'set-grade':
+			return setGrade(core, command.part, command.grade);
+		case 'static-fire':
+			return staticFire(core, command.part);
+		case 'fix-anomaly':
+			return fixAnomaly(core, command.report);
+		case 'repair':
+			return repair(core, command.suit, command.vessel, command.part);
 		case 'plant-flag':
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return plantFlag(core, command.vessel);

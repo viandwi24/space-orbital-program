@@ -24,6 +24,7 @@ import type { SaveCrew } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
+import type { ReliabilityRuntime } from './reliability.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -92,6 +93,8 @@ export interface SimCore {
 	readonly economy: SaveEconomy;
 	/** Firsts and per-vessel visits (plan 102, ADR 0147); saved as `SimSave.milestones`. */
 	readonly milestones: SaveMilestones;
+	/** Part reliability (plan 130, ADR 0156); saved as `SimSave.reliability`. */
+	reliability: ReliabilityRuntime;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

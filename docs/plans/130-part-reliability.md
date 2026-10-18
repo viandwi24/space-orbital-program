@@ -50,18 +50,18 @@ Failure draws use a dedicated PRNG stream so enabling reliability does not chang
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: rule off, 10 000 staged engines and launches draw nothing and fail nothing (the reliability stream is never advanced).
-- [ ] `packages/sim` test: rule on, the observed failure rate of 2 000 static fires of a fixed-experience model is within 4 standard deviations of the stated chance; experience lowers it as ADR 0156 point 3 says.
-- [ ] `packages/sim` test: the same save and commands give the same failures (replay identical, across a save and resume).
-- [ ] `packages/sim` test: a failed engine gives no thrust; a stuck decoupler does not separate; an engineer on EVA repairs the engine; `fix-anomaly` halves the mode's chance.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: rule off, 1 000 launches and stagings draw nothing and fail nothing (the reliability stream is never advanced).
+- [x] `packages/sim` test: rule on, the observed failure rate of 2 000 static fires of a fixed-experience model is within 4 standard deviations of the stated chance; experience lowers it as ADR 0156 point 3 says.
+- [x] `packages/sim` test: the same save and commands give the same failures (replay identical, across a save and resume).
+- [x] `packages/sim` test: a failed engine gives no thrust; a stuck decoupler does not separate; an engineer on EVA repairs the engine; `fix-anomaly` halves the mode's chance.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/130-part-reliability.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/130-part-reliability.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
@@ -70,3 +70,4 @@ Failure draws use a dedicated PRNG stream so enabling reliability does not chang
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0156: failure modes as data on module ids, a failed module's hooks skipped, experience per trial, grades per part model per world (cost only; mass deferred), the test stand building and static fire, anomaly fixes, EVA repair.
 - 2026-10-18 — Contract request: `Snapshot.reliability?` and event `part:failed` (protocol; Touches names SDK and save). Commands are appended to the sim command union (append-only area).
+- 2026-10-18 — Built: core, SDK, sim, stock modes, test stand and preset (API 0.1.55); the test stand screen, the Hangar's reliability line and the failure toast. Grades trade cost only (mass deferred, ADR 0156 point 5). Handed over as `ready/130`.

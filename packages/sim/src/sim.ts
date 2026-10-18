@@ -3,6 +3,7 @@
  * loop (simulation.md). No clock, no I/O: time is an input to `step`.
  */
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
+import { freshReliability } from './reliability.ts';
 import {
 	cloneData,
 	createRng,
@@ -326,7 +327,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		science: freshScience(resume?.science),
 		comms: freshComms(),
 		life: freshLife(),
-		milestones: freshMilestones(resume?.milestones)
+		milestones: freshMilestones(resume?.milestones),
+		reliability: freshReliability({ info }, resume?.reliability)
 	};
 	listenForObjectives(core);
 	listenForComms(core);

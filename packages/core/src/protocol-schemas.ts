@@ -194,5 +194,13 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		speed: z.number().finite().min(0)
 	}),
 	z.object({ type: z.literal('plant-flag'), vessel: entity }),
-	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) })
+	z.object({ type: z.literal('transmit-data'), vessel: entity, item: z.string().min(1) }),
+	z.object({
+		type: z.literal('set-grade'),
+		part: z.string().min(1),
+		grade: z.enum(['economy', 'standard', 'proven'])
+	}),
+	z.object({ type: z.literal('static-fire'), part: z.string().min(1) }),
+	z.object({ type: z.literal('fix-anomaly'), report: z.string().min(1) }),
+	z.object({ type: z.literal('repair'), suit: entity, vessel: entity, part: entity })
 ]);

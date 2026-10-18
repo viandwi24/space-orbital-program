@@ -1,6 +1,7 @@
 import {
 	loadPlugins,
 	type CategoryDefinition,
+	type FailureModeDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup,
@@ -43,6 +44,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	/** Missions and objective labels for the tracker (plan 100, ADR 0151). */
 	missions: MissionDefinition[];
 	objectiveLabels: Record<string, string>;
+	/** Failure modes for the Hangar's reliability line (plan 130, ADR 0156). */
+	failureModes: FailureModeDefinition[];
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -56,6 +59,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		panels: registries.panels.list(),
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
+		failureModes: registries.failureModes.list(),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

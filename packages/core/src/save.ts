@@ -13,6 +13,7 @@ import { saveEconomySchema, type SaveEconomy } from './economy.ts';
 import { saveCrewSchema, type SaveCrew } from './crew.ts';
 import { saveScienceSchema, type SaveScience } from './science.ts';
 import { saveMilestonesSchema, type SaveMilestones } from './milestones.ts';
+import { saveReliabilitySchema, type SaveReliability } from './reliability.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -160,6 +161,8 @@ export interface SimSave {
 	science?: SaveScience;
 	/** Firsts and per-vessel visits (plan 102, ADR 0147 point 3); optional in format 5, absent = none. */
 	milestones?: SaveMilestones;
+	/** Part reliability (plan 130, ADR 0156); optional in format 5, absent = rule never on. */
+	reliability?: SaveReliability;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -220,6 +223,7 @@ export const simSaveSchema = z.object({
 	crew: saveCrewSchema.optional(),
 	science: saveScienceSchema.optional(),
 	milestones: saveMilestonesSchema.optional(),
+	reliability: saveReliabilitySchema.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

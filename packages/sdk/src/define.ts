@@ -5,6 +5,7 @@
  */
 import type {
 	ActionGroupDefinition,
+	FailureModeDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
 	ScenarioDefinition,
@@ -360,3 +361,14 @@ export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => d
  * Register with `ctx.systemVariants`.
  */
 export const defineSystemVariant = (def: SystemVariantDefinition): SystemVariantDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineFailureMode
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A failure mode (plan 130, ADR 0156): a module that can fail, when it is drawn (`stage` or
+ * `launch`), its chance per trial of a new standard part model, and whether an engineer can
+ * repair it. A failed module stops working. Register with `ctx.failureModes`.
+ */
+export const defineFailureMode = (def: FailureModeDefinition): FailureModeDefinition => def;

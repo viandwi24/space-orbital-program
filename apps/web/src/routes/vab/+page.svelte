@@ -11,6 +11,10 @@
 	import TopBar from '../../lib/vab/TopBar.svelte';
 	import ToolPill from '../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../lib/vab/controller.svelte';
+	import { SaveController } from '../../lib/save/save-controller.svelte';
+	import { bootedMods, modHint } from '../../lib/save/mods';
+	import { loadWorldReliability } from '../../lib/reliability/reliability-model';
+	import { activeWorldId } from '../../lib/worlds/worlds';
 	import Button from '../../lib/ui/Button.svelte';
 	import Dialog from '../../lib/ui/Dialog.svelte';
 	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
@@ -19,6 +23,13 @@
 	import { advance, currentStep, skip, stepLabel } from '../../lib/onboarding/tutorial';
 
 	const vab = new VabController();
+	// the active world's part reliability for the part card (plan 130, ADR 0156 point 8)
+	const worldSaves = new SaveController({
+		loadedMods: bootedMods,
+		modHint,
+		startLoad: () => {},
+		world: () => activeWorldId()
+	});
 
 	let stage = $state<HTMLDivElement>();
 	let canvas = $state<HTMLCanvasElement>();
@@ -30,6 +41,7 @@
 		if (!stage || !canvas || !left || !right) return;
 		vab.focusSearch = () => catalogueRef?.focusSearch();
 		const stop = vab.mount({ canvas, stage, left, right });
+		void loadWorldReliability(worldSaves, activeWorldId()).then((r) => (vab.reliability = r));
 		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);

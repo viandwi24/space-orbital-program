@@ -474,6 +474,25 @@ definePlugin({
 - **Reading the ledger:** listen to `economy:entry` (`{ time, currency, amount, cause, ref? }`); the HUD reads `snapshot.economy`. `designCost(design, registries)` gives a design's launch cost, and `projectBalances(...)` projects the charges over N days.
 - Launching (`load-vessel`) pays the design's cost and is refused when funds are short; `recover-vessel` pays back the value of what is left of a landed vessel at rest, times a distance factor (`recoveryFactor`), and removes it.
 
+## Failure modes (API 0.1.55, plan 130, ADR 0156)
+
+With the `stock.reliability` rule on (the Career (engineering) preset), parts can fail. A failure mode is data on a module id:
+
+```ts
+ctx.failureModes.register(defineFailureMode({
+	id: 'acme.ion-flameout',
+	label: 'Ion flameout',
+	module: 'acme.ion-engine',
+	trigger: 'stage',
+	chance: 0.06,
+	repairable: true
+}));
+```
+
+- `trigger: 'stage'` draws when a part with the module is staged; `'launch'` when its vessel is loaded. `chance` is per trial for a new part model at the standard grade; experience (`1 / (1 + trials / 5)`, at least 0.2), the grade, an engineer aboard (× 0.75) and bought fixes (× 0.5 each, at most 3) scale it: `trialChance` and `modelReliability` are the game's formulas.
+- A failed module stops working by itself: its `update`, `updateOnRails`, `onStage` and `controlAuthority` are not called, its actions are refused and described as `Failed: <label>`, and a failed antenna is off. Your module needs no code for it.
+- Listen to `part:failed { vessel, part, module, mode, time }`. Draws come from the sim's own `reliability` stream, so a replay fails the same way.
+
 ## Buildings (API 0.1.36, plan 090, ADR 0115)
 
 `ctx.buildings.register(defineBuilding({ id, label, size: { w, d }, entrances, levels, provides, bodies?, hazardRadius?, visual }))` adds a building kind. Sizes are in **10 m cells** (`w` east, `d` north at rotation 0); `entrances` are cells on the footprint edge with the side they open to (`{ i: 1, j: 0, side: 'south' }`); `levels` carry `cost`, `buildDays`, `upkeep`, `power` and `capacity` per capability (`launch-pad`, `hangar`, `comms-node`, ...); `provides` lists the capabilities; `hazardRadius` keeps other buildings that many metres from the footprint centre. Stock's kinds are in `mods/stock/src/buildings.ts`.

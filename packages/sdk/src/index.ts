@@ -25,6 +25,7 @@ export { satisfies as apiSatisfies } from '@orbital/core';
 export { PATCH_TARGETS } from '@orbital/core';
 export { resolveSiteTemplate, siteConsequences, siteDistance } from '@orbital/core';
 export { achievementMatches, MILESTONE_KINDS, milestoneId } from '@orbital/core';
+export { GRADES, GRADE_FACTORS, modelReliability, trialChance } from '@orbital/core';
 export { PANEL_CONTEXTS, sortPanels } from '@orbital/core';
 export { scenarioPlacement } from '@orbital/core';
 export { bodyScience, nextValue, situationOf, subjectId } from '@orbital/core';
@@ -185,6 +186,9 @@ export type {
 	ScenarioDefinition,
 	ScenarioVessel,
 	AchievementDefinition,
+	FailureModeDefinition,
+	FailureTrigger,
+	Grade,
 	MilestoneKind,
 	MilestoneRecord,
 	PanelCanvas,

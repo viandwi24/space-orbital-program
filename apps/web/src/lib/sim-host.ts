@@ -524,6 +524,18 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							}
 						})
 					),
+					created.events.on('part:failed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'part-failed',
+								vessel: Number(e.vessel),
+								part: Number(e.part),
+								mode: e.mode,
+								label: created.registries.failureModes.get(e.mode)?.label ?? e.mode
+							}
+						})
+					),
 					created.events.on('vessel:soi-changed', (e) =>
 						options.post({
 							kind: 'sim-event',

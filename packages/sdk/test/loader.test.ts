@@ -261,6 +261,7 @@ describe('registration and report', () => {
 			'dossier-entry': [],
 			category: [],
 			achievement: [],
+			'failure-mode': [],
 			panel: [],
 			scenario: []
 		});
