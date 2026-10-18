@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 105 tech tree claimed (`devb/105-tech-tree`).
-**Waiting for:** merges of 108 and 111 (`ready/*`); the Lead on contract request `crew-dismiss`.
+**Now:** 127 range safety claimed (`devb/127-range-safety`); 105 handed over as `ready/105`.
+**Waiting for:** merges of 111 and 105 (`ready/*`); 115 waits for the 111 merge (it fills the vessel panel's Comms tab); the Lead on contract request `crew-dismiss`.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -25,9 +25,9 @@
 | 108 astronauts | done | `devb/108-astronauts` | 2026-10-17 | merged c90868c, cp/f3-108-astronauts |
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | handed-over | `devb/111-vessel-panel` | 2026-10-18 | ready/111; ADR 0153 |
-| 105 tech-tree | in-progress | `devb/105-tech-tree` | 2026-10-18 | claim/105 |
+| 105 tech-tree | handed-over | `devb/105-tech-tree` | 2026-10-18 | ready/105; ADR 0154; API 0.1.55 |
 | 115 comms-1-ui | todo |  |  |  |
-| 127 range-safety | todo |  |  |  |
+| 127 range-safety | in-progress | `devb/127-range-safety` | 2026-10-18 | claim/127 |
 | 130 reliability | todo |  |  |  |
 | 118 comms-tools | todo |  |  |  |
 | 066 devices | todo |  |  |  |
