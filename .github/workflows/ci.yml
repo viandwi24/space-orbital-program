@@ -69,6 +69,11 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: lint (changed files)
         run: bun run check:affected --lint-only --base ${{ needs.scope.outputs.base }}
+      - name: generated web assets
+        # Git-ignored outputs that `svelte-check` and the tests expect (laptops have them from earlier builds).
+        run: |
+          bun run --filter @orbital/web build:sandbox
+          cd apps/web && bun scripts/copy-basis.ts
       - run: bun run typecheck
       - run: bun run test
       - name: web vitest
