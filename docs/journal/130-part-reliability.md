@@ -8,7 +8,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core/src/reliability.ts` | `FailureModeDefinition` and schema, grades and their factors, `trialChance`, `modelReliability`, `SaveReliability`, `ReliabilitySnapshot`; registry `failureModes` (report kind `failure-mode`); commands `set-grade`, `static-fire`, `fix-anomaly`, `repair`; `SimSave.reliability?`; `Snapshot.reliability?`; event `part:failed`; API_VERSION 0.1.55 |
+| `packages/core/src/reliability.ts` | `FailureModeDefinition` and schema, grades and their factors, `trialChance`, `modelReliability`, `SaveReliability`, `ReliabilitySnapshot`; registry `failureModes` (report kind `failure-mode`); commands `set-grade`, `static-fire`, `fix-anomaly`, `repair`; `SimSave.reliability?`; `Snapshot.reliability?`; event `part:failed`; API_VERSION 0.1.57 (0.1.55 and 0.1.56 went to 105 and 127 at their merges) |
 | `packages/sdk` | `defineFailureMode`; `GRADES`, `GRADE_FACTORS`, `trialChance`, `modelReliability` and the types |
 | `packages/sim/src/reliability.ts` | trials at stage and at load from the `reliability` stream, failed modules skipped in the hooks, the authority, actions and comms, experience, reports, grades in the launch cost, static fire, fixes, EVA repair, save, snapshot |
 | `mods/stock` | three failure modes, the `stock.test-stand` building, the `stock.career-engineering` preset |
