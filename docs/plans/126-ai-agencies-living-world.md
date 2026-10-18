@@ -109,3 +109,4 @@ Notes: owned objects are passive in the rails chunks (no hooks, heat, rebase, SO
 Resource notes: swap used 1089 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (rent button on the card, agency world firsts, markets, customer requests, a rule naming agencies — ADR 0190)
 ```
+- 2026-10-18 — Merged by Agent 1 (ADR 0126): no CI result 30 minutes after the handover tag (none), so the local fallback ran on the rebased result: check:affected passed (11 affected workspaces, bun test, related vitest), the build and the Chromium smoke; Mission Center and n-body e2e pass. API_VERSION 0.1.70.
