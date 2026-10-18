@@ -280,7 +280,7 @@ describe('credit (ADR 0178 point 7)', () => {
 		const [item] = items(sim, id);
 		// the snapshot lists the stored result with its transmit factor (plan 191, ADR 0194)
 		const stored = () => sim.snapshot().vessels.find((v) => v.id === id)!.science?.stored;
-		expect(stored()).toEqual([{ item: item!.id, subject: item!.subject, value: 8, factor: 0.5 }]);
+		expect(stored()).toEqual([{ item: item!.id, subject: item!.subject!, value: 8, factor: 0.5 }]);
 		const credited: unknown[] = [];
 		sim.events.on('science:credited', (e) => credited.push(e));
 		// comms off: transmitted directly at the factor (ADR 0099 point 2); through queues is plan 119's
