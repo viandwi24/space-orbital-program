@@ -26,6 +26,7 @@ import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
 import type { RangeRuntime } from './range.ts';
+import type { ReliabilityRuntime } from './reliability.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -98,6 +99,8 @@ export interface SimCore {
 	readonly tech: SaveTech;
 	/** Range safety (plan 127, ADR 0155): ascents to judge (saved as `SimSave.range`) and fans. */
 	readonly range: RangeRuntime;
+	/** Part reliability (plan 130, ADR 0156); saved as `SimSave.reliability`. */
+	reliability: ReliabilityRuntime;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

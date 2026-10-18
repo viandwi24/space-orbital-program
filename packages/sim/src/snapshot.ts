@@ -2,6 +2,7 @@
 import { techSnapshot } from './tech.ts';
 import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
+import { reliabilitySnapshot } from './reliability.ts';
 import {
 	bodyId,
 	partId,
@@ -168,6 +169,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const milestones = milestonesSnapshot(core);
 	const tech = techSnapshot(core);
 	const range = rangeSnapshot(core);
+	const reliability = reliabilitySnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -185,6 +187,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		...(milestones ? { milestones } : {}),
 		...(tech ? { tech } : {}),
 		...(range ? { range } : {}),
+		...(reliability ? { reliability } : {}),
 		...(roster ? { crew: roster } : {})
 	};
 }

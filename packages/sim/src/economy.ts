@@ -2,6 +2,7 @@
  * The economy in the sim (plan 095, ADR 0113): the ledger state, the launch debit, recovery, the
  * charges and reputation decay on the world tick, and the snapshot view. The maths is core's.
  */
+import { gradeSurcharge } from './reliability.ts';
 import {
 	clampReputation,
 	contentsValue,
@@ -70,7 +71,8 @@ export const costMultiplier = (core: SimCore): number => {
 
 /** What a launch of `design` costs now (ADR 0113 point 5). */
 export const launchCost = (core: SimCore, design: VesselDesign): number =>
-	designCost(design, core.registries).total * costMultiplier(core);
+	// the grades bought for its part models cost extra (plan 130, ADR 0156 point 5)
+	(designCost(design, core.registries).total + gradeSurcharge(core, design)) * costMultiplier(core);
 
 /** Refusal text when the economy cannot pay for `design`, else undefined. */
 export function launchRefusal(core: SimCore, design: VesselDesign): string | undefined {

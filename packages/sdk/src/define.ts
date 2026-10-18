@@ -5,6 +5,7 @@
  */
 import type {
 	ActionGroupDefinition,
+	FailureModeDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
 	TechNodeDefinition,
@@ -372,3 +373,12 @@ export const defineSystemVariant = (def: SystemVariantDefinition): SystemVariant
  * `techNode`). Register with `ctx.techNodes`.
  */
 export const defineTechNode = (def: TechNodeDefinition): TechNodeDefinition => def;
+// defineFailureMode
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A failure mode (plan 130, ADR 0156): a module that can fail, when it is drawn (`stage` or
+ * `launch`), its chance per trial of a new standard part model, and whether an engineer can
+ * repair it. A failed module stops working. Register with `ctx.failureModes`.
+ */
+export const defineFailureMode = (def: FailureModeDefinition): FailureModeDefinition => def;

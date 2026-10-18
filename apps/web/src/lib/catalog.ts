@@ -2,6 +2,7 @@ import {
 	loadPlugins,
 	type ActionGroupDefinition,
 	type CategoryDefinition,
+	type FailureModeDefinition,
 	type MissionDefinition,
 	type PanelDefinition,
 	type PartLookup,
@@ -49,6 +50,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	objectiveLabels: Record<string, string>;
 	/** The tech tree (plan 105, ADR 0154). */
 	techNodes: TechNodeDefinition[];
+	/** Failure modes for the Hangar's reliability line (plan 130, ADR 0156). */
+	failureModes: FailureModeDefinition[];
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -64,6 +67,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		missions: registries.missions.list(),
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),
+		failureModes: registries.failureModes.list(),
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,

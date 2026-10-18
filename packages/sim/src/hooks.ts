@@ -23,6 +23,7 @@ import { amountAvailable, depositResource, withdrawResource } from './resources.
 import { dataUse, storeData } from './data.ts';
 import { creditScience, makeResult, vesselSituation } from './science.ts';
 import { signalOf } from './comms.ts';
+import { isFailed } from './reliability.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -162,7 +163,8 @@ export function runUpdateHooks(core: SimCore, vesselId: EntityId, dt: number): v
 			const def = moduleDefOf(core, m.id);
 			// On rails a module with a `background` closed form is worked by the tick instead (ADR 0171).
 			const hook = rails ? (def.background ? undefined : def.updateOnRails) : def.update;
-			if (hook) hook(makeContext(core, partId, m.id), dt);
+			// a failed module stops working (plan 130, ADR 0156 point 2)
+			if (hook && !isFailed(core, partId, m.id)) hook(makeContext(core, partId, m.id), dt);
 		}
 	}
 }
@@ -171,6 +173,6 @@ export function runUpdateHooks(core: SimCore, vesselId: EntityId, dt: number): v
 export function runStageHooks(core: SimCore, partId: EntityId): void {
 	for (const m of partOf(core, partId).modules) {
 		const hook = moduleDefOf(core, m.id).onStage;
-		if (hook) hook(makeContext(core, partId, m.id));
+		if (hook && !isFailed(core, partId, m.id)) hook(makeContext(core, partId, m.id));
 	}
 }

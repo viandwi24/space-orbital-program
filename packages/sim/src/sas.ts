@@ -4,6 +4,7 @@
  * properties and the control authority its modules report. Environment-neutral and deterministic:
  * a pure function of sim state.
  */
+import { isFailed } from './reliability.ts';
 import type { EntityId, Quat, SasMode, Vec3 } from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { bodyOfVessel, spinAt } from './bodies.ts';
@@ -171,7 +172,7 @@ export function vesselAuthority(core: SimCore, vesselId: EntityId): Vec3 {
 		const part = partOf(core, partId);
 		for (const m of part.modules) {
 			const def = moduleDefOf(core, m.id);
-			if (!def.controlAuthority) continue;
+			if (!def.controlAuthority || isFailed(core, partId, m.id)) continue;
 			const a = def.controlAuthority(makeContext(core, partId, m.id));
 			const c = Math.abs(Math.cos(part.yaw));
 			const s = Math.abs(Math.sin(part.yaw));

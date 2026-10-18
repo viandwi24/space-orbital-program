@@ -7,6 +7,7 @@ import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.t
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
 import { achievementDefinitionSchema, type AchievementDefinition } from './milestones.ts';
+import { failureModeDefinitionSchema, type FailureModeDefinition } from './reliability.ts';
 import * as z from 'zod';
 import type {
 	BodyDefinition,
@@ -262,6 +263,8 @@ export interface Registries {
 	achievements: Registry<AchievementDefinition>;
 	/** The tech tree (plan 105, ADR 0154). */
 	techNodes: Registry<TechNodeDefinition>;
+	/** Failure modes (plan 130, ADR 0156). */
+	failureModes: Registry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: Registry<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
@@ -322,6 +325,9 @@ export function createRegistries(): Registries {
 		}),
 		achievements: createRegistry<AchievementDefinition>('achievement', {
 			schema: achievementDefinitionSchema
+		}),
+		failureModes: createRegistry<FailureModeDefinition>('failure-mode', {
+			schema: failureModeDefinitionSchema
 		}),
 		crewTraits: createRegistry<CrewTraitDefinition>('crew-trait', {
 			schema: crewTraitDefinitionSchema

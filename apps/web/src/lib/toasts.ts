@@ -57,6 +57,15 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				key: 'flameout'
 			};
 		}
+		case 'part-failed': {
+			if (!ctx.isActiveVessel(event.vessel)) return null;
+			const def = ctx.definitionOf(event.part);
+			return {
+				kind: 'warning',
+				title: event.label,
+				detail: `${def ? ctx.partTitle(def) : 'A part'} failed: see the anomaly report`
+			};
+		}
 		case 'part-damaged': {
 			if (!ctx.isActiveVessel(event.vessel)) return null;
 			const title = ctx.partTitle(event.definition);

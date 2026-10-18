@@ -59,6 +59,12 @@ describe('the overlay', () => {
 		expect(html).toContain('Moon program');
 		// a lab opens R&D since plan 105
 		expect(actionOf(['lab'])).toEqual({ kind: 'link', href: '/rnd', label: 'Open R&D' });
+		// the test stand opens since plan 130
+		expect(actionOf(['test-stand'])).toEqual({
+			kind: 'link',
+			href: '/test-stand',
+			label: 'Open the test stand'
+		});
 	});
 
 	it('keyboard: arrows reach every building in turn and wrap; the selected one opens its detail', () => {

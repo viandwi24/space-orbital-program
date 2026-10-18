@@ -84,6 +84,14 @@ export interface EventMap {
 		azimuth?: number;
 		penalised: boolean;
 	};
+	/** Part reliability (plan 130, ADR 0156 point 8): a module failed at a trial. */
+	'part:failed': {
+		vessel: EntityId;
+		part: EntityId;
+		module: string;
+		mode: string;
+		time: number;
+	};
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
 	/** Comms (plan 114, ADR 0179 point 4): `time` is when the link changed (bisected on rails). */
 	'comms:link-up': { vessel: EntityId; to: string; time: number };

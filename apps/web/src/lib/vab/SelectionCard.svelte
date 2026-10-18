@@ -70,6 +70,9 @@
 				floor{/if}
 			{#if vab.subtreeSize <= 1 && vab.groupSize <= 1 && !vab.selectedLoose}single part{/if}
 		</p>
+		{#if vab.reliabilityOfPart(sel)}
+			<p class="dim sub" data-testid="vab-reliability">{vab.reliabilityOfPart(sel)}</p>
+		{/if}
 
 		<div class="acts" role="toolbar" aria-label="Actions for the selected part">
 			{@render act(

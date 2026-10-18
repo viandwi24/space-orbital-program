@@ -78,7 +78,9 @@ export type SimEvent =
 			time: number;
 	  }
 	/** A maneuver node was burned off (plan 045). */
-	| { type: 'maneuver-complete'; vessel: number; node: number };
+	| { type: 'maneuver-complete'; vessel: number; node: number }
+	/** A module failed at a reliability trial (plan 130, ADR 0156); `label` names the failure. */
+	| { type: 'part-failed'; vessel: number; part: number; mode: string; label: string };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a

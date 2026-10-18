@@ -499,6 +499,25 @@ definePlugin({
 
 With `stock.range-safety` at `cost` (Career) or `hard`, a site has a safe launch fan over its water and every spent stage is judged when it separates: on land or within 50 km of a site it costs a penalty (`cost`) or the `stage` command is refused (`hard`). A mod part that separates is judged when its module's `describe` returns a `separator` (as `stock.decoupler` does); nothing else is needed. Listen to `range:violation` for the drops and ascent azimuths that broke the range; `safeFan`, `conicImpact` and `nominalDrops` are in `@orbital/core` (not re-exported by the SDK yet), the functions the game uses for the fan and the drops.
 
+## Failure modes (API 0.1.57, plan 130, ADR 0156)
+
+With the `stock.reliability` rule on (the Career (engineering) preset), parts can fail. A failure mode is data on a module id:
+
+```ts
+ctx.failureModes.register(defineFailureMode({
+	id: 'acme.ion-flameout',
+	label: 'Ion flameout',
+	module: 'acme.ion-engine',
+	trigger: 'stage',
+	chance: 0.06,
+	repairable: true
+}));
+```
+
+- `trigger: 'stage'` draws when a part with the module is staged; `'launch'` when its vessel is loaded. `chance` is per trial for a new part model at the standard grade; experience (`1 / (1 + trials / 5)`, at least 0.2), the grade, an engineer aboard (× 0.75) and bought fixes (× 0.5 each, at most 3) scale it: `trialChance` and `modelReliability` are the game's formulas.
+- A failed module stops working by itself: its `update`, `updateOnRails`, `onStage` and `controlAuthority` are not called, its actions are refused and described as `Failed: <label>`, and a failed antenna is off. Your module needs no code for it.
+- Listen to `part:failed { vessel, part, module, mode, time }`. Draws come from the sim's own `reliability` stream, so a replay fails the same way.
+
 ## Buildings (API 0.1.36, plan 090, ADR 0115)
 
 `ctx.buildings.register(defineBuilding({ id, label, size: { w, d }, entrances, levels, provides, bodies?, hazardRadius?, visual }))` adds a building kind. Sizes are in **10 m cells** (`w` east, `d` north at rotation 0); `entrances` are cells on the footprint edge with the side they open to (`{ i: 1, j: 0, side: 'south' }`); `levels` carry `cost`, `buildDays`, `upkeep`, `power` and `capacity` per capability (`launch-pad`, `hangar`, `comms-node`, ...); `provides` lists the capabilities; `hazardRadius` keeps other buildings that many metres from the footprint centre. Stock's kinds are in `mods/stock/src/buildings.ts`.

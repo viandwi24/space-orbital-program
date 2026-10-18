@@ -14,6 +14,7 @@
 	import { SaveController } from '../../lib/save/save-controller.svelte';
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { loadWorldTech } from '../../lib/tech/world-tech';
+	import { loadWorldReliability } from '../../lib/reliability/reliability-model';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import Button from '../../lib/ui/Button.svelte';
 	import Dialog from '../../lib/ui/Dialog.svelte';
@@ -24,6 +25,7 @@
 
 	const vab = new VabController();
 	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
+	// the active world's part reliability for the part card (plan 130, ADR 0156 point 8)
 	const worldSaves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
@@ -42,6 +44,7 @@
 		vab.focusSearch = () => catalogueRef?.focusSearch();
 		const stop = vab.mount({ canvas, stage, left, right });
 		void loadWorldTech(worldSaves, activeWorldId()).then((t) => (vab.tech = t));
+		void loadWorldReliability(worldSaves, activeWorldId()).then((r) => (vab.reliability = r));
 		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);

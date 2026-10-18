@@ -4,6 +4,7 @@
  */
 import type { MilestoneRecord } from './milestones.ts';
 import type { RangeSnapshot } from './range-safety.ts';
+import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
@@ -243,6 +244,8 @@ export interface Snapshot {
 	tech?: { enabled: boolean; researched: string[] };
 	/** Range safety (plan 127, ADR 0155 point 6); absent when the rule is off. */
 	range?: RangeSnapshot;
+	/** Part reliability (plan 130, ADR 0156 point 8); absent when the rule is off. */
+	reliability?: ReliabilitySnapshot;
 	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
 	crew?: Array<{
 		id: string;
@@ -488,7 +491,15 @@ export type Command =
 	/** A suit on the ground plants a flag beside it: a kept one-part vessel (ADR 0120 point 5). */
 	| { type: 'plant-flag'; vessel: EntityId }
 	/** Transmit a science data item (plan 103, ADR 0178 point 7): value × its factor, then it is gone. */
-	| { type: 'transmit-data'; vessel: EntityId; item: string };
+	| { type: 'transmit-data'; vessel: EntityId; item: string }
+	/** Part reliability (plan 130, ADR 0156): the grade the world buys a part model at. */
+	| { type: 'set-grade'; part: string; grade: 'economy' | 'standard' | 'proven' }
+	/** One trial of every failure mode of a part model on the world's test stand. */
+	| { type: 'static-fire'; part: string }
+	/** Pay for a fix of an anomaly report: halves its mode's chance on that model. */
+	| { type: 'fix-anomaly'; report: string }
+	/** An engineer in `suit` repairs a failed module on `part` of `vessel`. */
+	| { type: 'repair'; suit: EntityId; vessel: EntityId; part: EntityId };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =
