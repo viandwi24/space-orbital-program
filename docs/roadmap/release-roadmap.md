@@ -10,6 +10,8 @@
 
 ## How to work
 
+**Worker sessions follow [`worker-brief.md`](worker-brief.md)** (machine guard, picking, merging). The points below summarise it.
+
 1. **One roadmap, one team.** Work is no longer split into fixed agent lanes. Any agent or session takes the **next plan** by this rule:
    - **next plan** = the lowest-numbered `draft` or `ready` plan whose `depends` are all `done` and that nobody has claimed.
    - Refine it to `ready` (Steps and Acceptance criteria checked against the code), then claim it.
