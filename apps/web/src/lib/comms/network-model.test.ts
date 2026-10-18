@@ -12,9 +12,20 @@ import {
 } from './network-model';
 
 type NetworkVessel = NonNullable<Snapshot['network']>['vessels'][number];
-/** Network vessels; `rate` and `margin` (plan 116) default to null. */
-const snap = (list: Array<Omit<NetworkVessel, 'rate' | 'margin'> & Partial<NetworkVessel>>) => {
-	const vessels = list.map((v) => ({ rate: null, margin: null, ...v }));
+/** Network vessels; `rate`, `margin` (116), `route`, `latency` and `mode` (117) have defaults. */
+const snap = (
+	list: Array<
+		Omit<NetworkVessel, 'rate' | 'margin' | 'route' | 'latency' | 'mode'> & Partial<NetworkVessel>
+	>
+) => {
+	const vessels = list.map((v) => ({
+		rate: null,
+		margin: null,
+		route: v.to ? [v.to] : [],
+		latency: null,
+		mode: { kind: 'auto' as const },
+		...v
+	}));
 	return withNetwork(vessels);
 };
 const withNetwork = (vessels: NetworkVessel[]) =>
@@ -129,5 +140,39 @@ describe('comms on the page (plan 115)', () => {
 		]);
 		expect(linkBadge(s, 2)!.bars).toBe(2);
 		expect(commsTab(s, 2, 'Probe')).toMatchObject({ bars: 2, rate: '100 kbit/s', budget: null });
+	});
+
+	it('a relayed route shows every hop, its light time and the mode buttons (plan 117)', () => {
+		const s = snap([
+			{
+				vessel: 2 as never,
+				to: 'vessel:1',
+				reason: null,
+				control: 'full',
+				blackout: 0,
+				route: ['vessel:1', 'stock.ksc'],
+				latency: 3,
+				mode: { kind: 'manual', via: ['vessel:1', 'stock.ksc'] }
+			}
+		]);
+		expect(linkBadge(s, 2)!.text).toBe('Linked to Relay · 3.0 s');
+		const tab = commsTab(s, 2, 'Probe')!;
+		expect(tab.path).toEqual(['Probe', 'Relay', 'KSC Dish']);
+		expect(tab.route).toBe('manual');
+		expect(tab.routeLabel).toBe('Pinned');
+		expect(tab.latency).toBe('3.0 s');
+		expect(tab.modes.map((m) => [m.label, m.active])).toEqual([
+			['Auto', false],
+			['Fewest hops', false],
+			['Lowest latency', false],
+			['Pinned', true]
+		]);
+		expect(tab.modes[0]!.command).toEqual({
+			type: 'comms-route',
+			vessel: 2,
+			mode: { kind: 'auto' }
+		});
+		expect(tab.endpoints[0]!.current).toBe(true);
+		expect(linkText('route broken at vessel:1')).toBe('Pinned route broken at vessel 1');
 	});
 });
