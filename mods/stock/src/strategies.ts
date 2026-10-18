@@ -30,7 +30,7 @@ export const StrategyPublicOutreach = defineStrategy({
 	label: 'Public outreach',
 	description: 'Talks, open days and live coverage: more reputation from every success.',
 	effects: [{ key: 'reputation', factor: 1.3 }],
-	upkeep: 3_000,
+	upkeep: 1_000,
 	agencyTypes: ['government', 'hybrid']
 });
 export const StrategyLeanOperations = defineStrategy({
@@ -52,7 +52,7 @@ export const StrategyCommercialContracts = defineStrategy({
 		{ key: 'contract-funds', factor: 1.2 },
 		{ key: 'science', factor: 0.8 }
 	],
-	upkeep: 1_500,
+	upkeep: 1_000,
 	agencyTypes: ['company', 'hybrid']
 });
 export const StrategyBudgetLobbying = defineStrategy({

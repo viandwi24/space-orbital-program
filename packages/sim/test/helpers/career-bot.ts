@@ -9,6 +9,8 @@
  * economy is switched back on and the pod is recovered (the recovery credit). Between missions
  * the clock runs on rails with `warp-to`, so the world tick pays the scheduled charges.
  *
+ * With `strategy` (plan 101, ADR 0187) that strategy is active for the whole run.
+ *
  * With `markets` (plan 097, ADR 0124) launches buy their fuel through the market (the sim does it),
  * and from year 2, once it has 150 000 funds, the bot builds a propellant plant; before each launch
  * it sells what its site holds above 5 000 u of each commodity while the price is at least 95 % of
@@ -55,6 +57,8 @@ export async function runCareerBot(options: {
 	markets?: boolean;
 	/** Take and fly one altitude contract per mission (plan 099). */
 	contracts?: boolean;
+	/** A strategy active from day 0 (plan 101). */
+	strategy?: string;
 }): Promise<BotResult> {
 	const everyDays = options.everyDays ?? 30;
 	const downrange = options.downrange ?? 40_000;
@@ -109,6 +113,8 @@ export async function runCareerBot(options: {
 		);
 		settle(sim, 3); // past the idle time: it goes on rails as debris
 	};
+	if (options.strategy)
+		must(sim.dispatch({ type: 'strategy-activate', strategy: options.strategy }), 'strategy');
 
 	let missions = 0;
 	let plant = false;

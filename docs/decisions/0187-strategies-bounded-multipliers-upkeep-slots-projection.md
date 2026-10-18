@@ -51,12 +51,17 @@ Plan 101 adds strategies that the player activates in Administration. Open quest
    |---|---|---|---|
    | Reuse first | recovery ×1.25, launch cost ×1.05 | 1 500 | all |
    | Science first | science ×1.25, contract funds ×0.85 | 1 000 | all |
-   | Public outreach | reputation ×1.3 | 3 000 | government, hybrid |
+   | Public outreach | reputation ×1.3 | 1 000 | government, hybrid |
    | Lean operations | launch cost ×0.9, reputation ×0.85 | 2 000 | company, hybrid |
-   | Commercial contracts | contract funds ×1.2, science ×0.8 | 1 500 | company, hybrid |
+   | Commercial contracts | contract funds ×1.2, science ×0.8 | 1 000 | company, hybrid |
    | Budget lobbying | budget ×1.1, reputation ×0.9 | 1 000 | government |
 
-   The career bot runs ten years with each one active that its agency type allows, and stays in the band.
+   The career bot runs ten years with each one active, and stays in the band:
+   - strategies offered to government run in a government world with a launch every 30 days;
+   - the others run in a hybrid world with a launch every 90 days, because a hybrid's grant pays for about one a quarter;
+   - a company has no budget, so the bot's launches alone cannot run one.
+
+   The first upkeeps (3 000 for Public outreach, 1 500 for Commercial contracts) drained the bot below the band, and were lowered (journal 101).
 
 ## Alternatives considered
 

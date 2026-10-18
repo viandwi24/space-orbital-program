@@ -1,6 +1,7 @@
 /** Plan 095 / ADR 0098 guardrail: ten game years of launches and recoveries stay in the band. */
 import { expect, test } from 'bun:test';
 import { legacyWorldInfo } from '@orbital/core';
+import { STOCK_STRATEGIES } from '@orbital/mod-stock';
 import { runCareerBot } from './helpers/career-bot.ts';
 
 /** 120 missions of 30 days; the band is the plan's (25 000 to 500 000 funds every day). */
@@ -84,3 +85,32 @@ test('career bot with contracts (plan 099): 3 600 days with an altitude job a mi
 	expect(seconds).toBeLessThan(45);
 	bot.sim.dispose();
 }, 60_000);
+
+// Plan 101 (ADR 0187 point 8): each stock strategy active for ten years. Strategies offered to a
+// government run there with a launch a month; the others run in a hybrid world, whose grant pays
+// for a launch a quarter (a company has no budget: the bot's launches alone cannot run one).
+for (const s of STOCK_STRATEGIES) {
+	const agency = !s.agencyTypes || s.agencyTypes.includes('government') ? 'government' : 'hybrid';
+	const everyDays = agency === 'government' ? 30 : 90;
+	test(`career bot with ${s.label} (${agency}, plan 101): 3 600 days stay in the band`, async () => {
+		const base = legacyWorldInfo(7);
+		const bot = await runCareerBot({
+			world: {
+				...base,
+				id: `career-bot-${s.id}`,
+				preset: 'stock.career',
+				rules: { ...base.rules, 'stock.agency-type': agency }
+			},
+			days: 3_600,
+			everyDays,
+			strategy: s.id
+		});
+		console.log(
+			`career bot with ${s.label} (${agency}): funds min ${Math.round(bot.min)} max ${Math.round(bot.max)} end ${Math.round(bot.daily.at(-1)!)}`
+		);
+		expect(bot.missions).toBe(3_600 / everyDays);
+		expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
+		expect(bot.max).toBeLessThanOrEqual(BAND.max);
+		bot.sim.dispose();
+	}, 90_000);
+}
