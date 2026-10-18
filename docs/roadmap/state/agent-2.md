@@ -22,7 +22,7 @@
 | 112 dock | done | `devb/112-dock` | 2026-10-17 | merged 49f8d21, cp/f4-112-dock |
 | 094 launch | done | `devb/094-launch` | 2026-10-17 | merged 2ac52f7, cp/f2-094-launch |
 | 102 milestones | done | `devb/102-milestones` | 2026-10-17 | merged 0e1209d, cp/f3-102-milestones |
-| 108 astronauts | handed-over | `devb/108-astronauts` | 2026-10-18 | ready/108; ADR 0152; contract request crew-dismiss |
+| 108 astronauts | done | `devb/108-astronauts` | 2026-10-17 | merged c90868c, cp/f3-108-astronauts |
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | handed-over | `devb/111-vessel-panel` | 2026-10-18 | ready/111; ADR 0153 |
 | 105 tech-tree | in-progress | `devb/105-tech-tree` | 2026-10-18 | claim/105 |

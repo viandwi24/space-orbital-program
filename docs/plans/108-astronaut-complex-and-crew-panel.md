@@ -1,7 +1,7 @@
 ---
 id: 108
 title: "Astronaut Complex and the crew panel"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [106, 088, 091, 094]
 phase: 6
