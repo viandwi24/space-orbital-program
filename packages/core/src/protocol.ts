@@ -275,6 +275,8 @@ export interface Snapshot {
 			blackout: number;
 		}>;
 	};
+	/** The world tick's day (the day last entered, ADR 0171), for construction ready days (plan 096). */
+	day?: number;
 	sites?: Array<{
 		id: string;
 		buildings: Array<{
@@ -283,7 +285,9 @@ export interface Snapshot {
 			cell: { i: number; j: number };
 			rotation: 0 | 90 | 180 | 270;
 			level: number;
-			state: 'active' | 'planned';
+			state: 'active' | 'planned' | 'building' | 'upgrading';
+			/** Tick day on which construction is done (plan 096, ADR 0123). */
+			readyDay?: number;
 		}>;
 		roads: Array<{ i: number; j: number }>;
 	}>;
@@ -444,7 +448,8 @@ export type Command =
 	| { type: 'action-group'; vessel: EntityId; group: string; value?: boolean | number | string }
 	/**
 	 * Place a building on a site (plan 090, ADR 0115), refused with `canPlace`'s reasons; `id` is a
-	 * host UUID. Instant until plan 096 adds construction.
+	 * host UUID. With the economy on it debits level 1's cost and builds until `readyDay` (plan 096,
+	 * ADR 0123 point 1).
 	 */
 	| {
 			type: 'place-building';
@@ -455,6 +460,8 @@ export type Command =
 			id: string;
 	  }
 	| { type: 'remove-building'; site: string; id: string }
+	/** Upgrade a working building one level (plan 096, ADR 0123 point 1): debits the next level's cost. */
+	| { type: 'upgrade-building'; site: string; id: string }
 	/**
 	 * Found a site (plan 092, ADR 0177 point 6): a base with the starter pad; its flat zone shapes the
 	 * terrain from the next load. `id` is a host UUID.

@@ -5,9 +5,11 @@
 	 * by the sim's `place-building`; the site list is then written into the world record.
 	 */
 	import {
+		homeBodyOf,
 		LEGACY_WORLD_ID,
 		loadPlugins,
 		sitesOf,
+		upkeepOf,
 		type Rotation,
 		type Snapshot,
 		type WorldInfo
@@ -17,6 +19,7 @@
 	import { GAME_NAME } from '../../lib/public/about';
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { SaveController } from '../../lib/save/save-controller.svelte';
+	import type { GameSave } from '../../lib/save/game-save';
 	import { activePlugins } from '../../lib/mods/runtime';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import SpaceCenterOverlay from '../../lib/space-center/SpaceCenterOverlay.svelte';
@@ -29,16 +32,30 @@
 		siteViews,
 		spreadLabels,
 		steadyLabels,
+		upkeepWarning,
 		type GhostCheck,
 		type SiteState
 	} from '../../lib/space-center/model';
 	import { startSpaceCenter, type SpaceCenter } from '../../lib/space-center/space-center-loop';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 
+	/** The world's newest save: the Space Center runs it and writes it back after a change (plan 096). */
+	let base: GameSave | null = null;
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		world: () => worldId,
+		collect: async () => {
+			if (!center || !base) throw new Error('This world has no save to write back to.');
+			return {
+				sim: await center.save(),
+				focus: base.focus,
+				design: base.design,
+				thumbnail: null,
+				bodyRadius: homeBodyOf(registries.bodies.list())?.radius ?? 600_000
+			};
+		}
 	});
 	const { registries } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
 		system: STOCK_CHOICE
@@ -58,11 +75,29 @@
 	let build = $state<{ kind: string; rotation: Rotation } | null>(null);
 	let hover = $state.raw<{ cell: { i: number; j: number }; check: GhostCheck } | null>(null);
 
-	const rows = $derived(buildingRows(site, buildingRegistry));
+	let today = $state<number | undefined>(undefined);
+	let funds = $state<number | undefined>(undefined);
+	/** Construction finished while the page is open (plan 096, ADR 0123 point 6). */
+	let finished = $state.raw<string[]>([]);
+	const rows = $derived(buildingRows(site, buildingRegistry, today));
+	const notes = $derived.by(() => {
+		const upkeep = upkeepOf(site ? [site] : [], buildingRegistry).reduce((t, u) => t + u.amount, 0);
+		const warning = upkeepWarning(funds, upkeep, today);
+		return [...finished, ...(warning ? [warning] : [])];
+	});
 	const siteInfo = $derived(sitesOf(world ?? { sites: [] })[0]!);
 
 	function onSnapshot(s: Snapshot): void {
+		today = s.day;
+		funds = s.economy?.enabled ? s.economy.funds : undefined;
 		const next = s.sites?.[0];
+		for (const b of next?.buildings ?? []) {
+			const was = site?.buildings.find((x) => x.id === b.id);
+			if (was && was.state !== 'active' && was.state !== 'planned' && b.state === 'active') {
+				const label = buildingRegistry.get(b.kind)?.label ?? b.kind;
+				finished = [...finished, `${label} is ready (level ${b.level + 1})`];
+			}
+		}
 		if (JSON.stringify(next) === JSON.stringify(site)) return;
 		site = next;
 		center?.setBuildings(siteViews(next, buildingRegistry), next?.roads ?? []);
@@ -79,6 +114,13 @@
 		const check = checkGhost(siteInfo, site, buildingRegistry, build.kind, cell, build.rotation);
 		hover = { cell, check };
 		center?.setGhost({ size: def.size, cell, rotation: build.rotation, valid: check.valid });
+	}
+
+	/** After an accepted change: the world's save at once, the record once the snapshot has it. */
+	function changed(): void {
+		// the funds and construction live in the world's save; a launch continues it (ADR 0123, 0152)
+		if (base) void saves.autosave();
+		setTimeout(() => void persist(), 300);
 	}
 
 	async function persist(): Promise<void> {
@@ -104,8 +146,17 @@
 		if (r && !r.ok) problem = r.reason;
 		else if (r?.ok) {
 			problem = null;
-			// the next snapshot carries the new building; write the record once it has
-			setTimeout(() => void persist(), 300);
+			// the next snapshot carries the new building; the record is written once it has
+			changed();
+		}
+	}
+
+	async function upgrade(id: string): Promise<void> {
+		const r = await center?.dispatch({ type: 'upgrade-building', site: siteInfo.id, id });
+		if (r && !r.ok) problem = r.reason;
+		else {
+			problem = null;
+			changed();
 		}
 	}
 
@@ -114,7 +165,7 @@
 		if (r && !r.ok) problem = r.reason;
 		else {
 			selected = null;
-			setTimeout(() => void persist(), 300);
+			changed();
 		}
 	}
 
@@ -141,10 +192,21 @@
 			const record = await worlds.get(worldId);
 			worldName = record?.name ?? (worldId === LEGACY_WORLD_ID ? 'Legacy world' : 'Space Center');
 			world = await worlds.startInfo(worldId);
+			await saves.refresh();
+			const newest = saves.entries.find((e) => e.ok);
+			if (newest?.ok) {
+				try {
+					base = await saves.read(newest.meta.id);
+					world = base.sim.worldInfo;
+				} catch {
+					base = null;
+				}
+			}
 			if (gone) return;
 			center = startSpaceCenter({
 				canvas,
 				...(world ? { world } : {}),
+				...(base ? { resume: base.sim } : {}),
 				onSnapshot,
 				onFrame: (project) => {
 					const next: Record<string, { x: number; y: number } | null> = {};
@@ -190,6 +252,8 @@
 		onbuild={setBuild}
 		onrotate={() => build && (build = { ...build, rotation: nextRotation(build.rotation) })}
 		onremove={(id) => void remove(id)}
+		onupgrade={(id) => void upgrade(id)}
+		{notes}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
 </main>

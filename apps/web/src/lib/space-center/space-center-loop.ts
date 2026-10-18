@@ -4,7 +4,7 @@
  * each frame the label positions of the buildings for the overlay. Build mode's ghost is drawn
  * from what the page decides; the pointer's site point comes from `pick`.
  */
-import type { Command, CommandResult, Snapshot, WorldInfo } from '@orbital/core';
+import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
 import { createRenderer, type Renderer, type SiteBuildingView } from '@orbital/renderer';
 import { partShapesOf } from '../catalog';
 import { initialGraphicsPreset } from '../graphics';
@@ -13,6 +13,8 @@ import { startSimWorker } from '../sim-client';
 export interface SpaceCenterOptions {
 	canvas: HTMLCanvasElement;
 	world?: WorldInfo;
+	/** The world's newest save, resumed so its funds, day and crew are the world's (plan 096, ADR 0123). */
+	resume?: SimSave;
 	/** A new snapshot (the page derives the rows and the renderer list from its `sites`). */
 	onSnapshot: (snapshot: Snapshot) => void;
 	/** Every frame: where each label anchor lands on screen. */
@@ -28,6 +30,8 @@ export interface SpaceCenterOptions {
 
 export interface SpaceCenter {
 	dispatch(command: Command): Promise<CommandResult>;
+	/** The sim's state now, to write back as the world's newest save (plan 096). */
+	save(): Promise<SimSave>;
 	setBuildings(list: readonly SiteBuildingView[], roads: readonly { i: number; j: number }[]): void;
 	setGhost(ghost: Parameters<Renderer['setSiteGhost']>[0]): void;
 	/** The renderer, once the sim is up (screenshots and measurements). */
@@ -37,7 +41,13 @@ export interface SpaceCenter {
 
 export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	const { canvas } = options;
-	const client = startSimWorker(options.world ? { world: options.world } : {});
+	const client = startSimWorker(
+		options.resume
+			? { resume: options.resume }
+			: options.world
+				? { world: options.world }
+				: {}
+	);
 	let renderer: Renderer | null = null;
 	let snap: Snapshot | null = null;
 	let dirty = false;
@@ -162,6 +172,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 
 	return {
 		dispatch: (command) => client.dispatch(command),
+		save: () => client.save(),
 		setBuildings(list, roads) {
 			pending = { list, roads };
 			renderer?.setSiteBuildings(list, roads);

@@ -29,6 +29,7 @@
 		toggleSeat,
 		type Facility
 	} from '../../lib/launch/launch-model';
+	import { limitsOn, massUpgrade } from '../../lib/capacity';
 	import { activePlugins } from '../../lib/mods/runtime';
 	import { GAME_NAME } from '../../lib/public/about';
 	import { bootedMods, modHint } from '../../lib/save/mods';
@@ -74,9 +75,11 @@
 	let facilityId = $state<string | null>(null);
 	let designKey = $state<string | null>(null);
 
-	const facilities = $derived(site ? facilitiesOf(site, registries.buildings) : []);
+	let limits = $state(false);
+	const facilities = $derived(site ? facilitiesOf(site, registries.buildings, limits) : []);
 	const facility = $derived(facilities.find((f) => f.id === facilityId) ?? facilities[0] ?? null);
 	const fitting = $derived(facility ? designs.filter((d) => accepts(facility, d.wet)) : []);
+	const tooHeavy = $derived(facility ? designs.filter((d) => !accepts(facility, d.wet)) : []);
 	const chosen = $derived(fitting.find((d) => d.key === designKey) ?? fitting[0] ?? null);
 	const body = $derived(site ? registries.bodies.get(site.body) : undefined);
 	const seats = $derived(chosen ? seatsOf(chosen.design, registries.parts) : []);
@@ -133,6 +136,7 @@
 			const info = await worlds.startInfo(activeWorldId());
 			site = sitesOf(info ?? { sites: [] })[0] ?? null;
 			worldInfo = info ?? null;
+			limits = limitsOn(info, registries);
 			const list: Choice[] = [];
 			const draft = loadDraft();
 			if (draft) {
@@ -232,6 +236,15 @@
 						{designs.length === 0
 							? 'No vessel yet. Build one in the Hangar.'
 							: 'No vessel fits this facility. Choose another, or build a lighter one.'}
+					</p>
+				{/each}
+				<!-- designs over this pad's limit, with the upgrade that takes them (plan 096, ADR 0123) -->
+				{#each tooHeavy as d (d.key)}
+					<p class="over" data-testid="launch-over-limit">
+						<span class="name">{d.name}</span> · {formatMass(d.wet)}: {massUpgrade(
+							registries.buildings,
+							d.wet
+						) ?? 'no pad takes this mass'}
 					</p>
 				{/each}
 			</div>
@@ -418,6 +431,7 @@
 		background: var(--text-primary);
 	}
 	.empty,
+	.over,
 	.note {
 		margin: 0.5rem;
 		font-size: var(--t-small);

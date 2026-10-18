@@ -12,6 +12,7 @@ import {
 	surfaceSite,
 	type DesignTilt,
 	type PartDefinition,
+	type PlacedBuilding,
 	type VesselDesign
 } from '@orbital/core';
 import { VabView, type VabMarker } from '@orbital/renderer';
@@ -34,6 +35,7 @@ import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId 
 import { asparagusRocket, boosterRocket, glider, moonShot } from '../editor/examples';
 import { assemblyFromSubtree } from '../editor/assembly';
 import { blocksLaunch, checkDesign } from '../editor/checks';
+import { partsLimit } from '../capacity';
 import { describeStack } from '../editor/describe';
 import { partFacts } from '../editor/part-info';
 import { buildScene, defaultCursor, partKey, withoutCarried } from '../editor/scene';
@@ -313,8 +315,30 @@ export class VabController {
 	readonly locks = $derived(
 		designLocks(this.current.design, this.techNodes, this.registriesParts, this.tech)
 	);
+	/**
+	 * The active world's first site and whether its capacity limits apply (plan 096, ADR 0123
+	 * point 4); the page sets it once the world is read. Null: no limits.
+	 */
+	capacity = $state.raw<{ site: { buildings?: readonly PlacedBuilding[] }; on: boolean } | null>(
+		null
+	);
+	readonly partsLimit = $derived(
+		partsLimit(
+			this.capacity?.site,
+			this.loaded.world.buildings,
+			this.capacity?.on ?? false,
+			this.current.design.parts.length
+		)
+	);
 	readonly checks = $derived(
-		checkDesign(this.current, this.content, this.stats, this.stability, this.locks)
+		checkDesign(
+			this.current,
+			this.content,
+			this.stats,
+			this.stability,
+			this.locks,
+			this.partsLimit
+		)
 	);
 	tripId = $state('low-orbit');
 	readonly trip = $derived(

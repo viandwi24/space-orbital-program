@@ -11,6 +11,7 @@ import {
 	RELIABILITY_CAUSES,
 	RELIABILITY_RULE,
 	sitesOf,
+	workingLevel,
 	streamSeed,
 	trialChance,
 	type CommandResult,
@@ -222,7 +223,8 @@ const hasTestStand = (core: SimCore): boolean =>
 	sitesOf(core.info).some((s) =>
 		(s.buildings ?? []).some(
 			(b) =>
-				b.state === 'active' &&
+				// an upgrading stand keeps working (plan 096, ADR 0123 point 2)
+				workingLevel(b) !== null &&
 				core.registries.buildings.get(b.kind)?.provides.includes('test-stand') === true
 		)
 	);

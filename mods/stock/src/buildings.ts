@@ -1,16 +1,24 @@
 /**
  * Stock buildings (plan 090, ADRs 0097 and 0115). Sizes in 10 m cells (east × north at rotation
- * 0), entrances on the south edge unless a pad or runway needs another side. Level costs, build
- * days and upkeep are 0 until plan 096 sets them; capacities are placeholders for 096 to tune.
+ * 0), entrances on the south edge unless a pad or runway needs another side. Costs, build days and
+ * upkeep per level from plan 096 (ADR 0123 point 7): a level's cost is what building or upgrading
+ * to it costs, upkeep about 1 % of the level's cost per 30 days.
  */
 import { defineBuilding, type BuildingLevel } from '@orbital/sdk';
 
-/** Three levels with the given capacity per level; costs come with plan 096. */
-const levels = (capacity: Record<string, [number, number, number]>, power = 0): BuildingLevel[] =>
+type Three = [number, number, number];
+
+/** Three levels: capacity per level, cost (funds) and build days per level, power. */
+const levels = (
+	capacity: Record<string, Three>,
+	cost: Three,
+	buildDays: Three,
+	power = 0
+): BuildingLevel[] =>
 	[0, 1, 2].map((k) => ({
-		cost: 0,
-		buildDays: 0,
-		upkeep: 0,
+		cost: cost[k]!,
+		buildDays: buildDays[k]!,
+		upkeep: Math.round(cost[k]! * 0.01),
 		power,
 		capacity: Object.fromEntries(Object.entries(capacity).map(([id, v]) => [id, v[k]!]))
 	}));
@@ -23,7 +31,7 @@ export const BuildingHangar = defineBuilding({
 	label: 'Hangar',
 	size: { w: 8, d: 5 },
 	entrances: southDoor(8),
-	levels: levels({ hangar: [30, 80, 255] }),
+	levels: levels({ hangar: [30, 120, 255] }, [40_000, 90_000, 250_000], [10, 20, 30]),
 	provides: ['hangar'],
 	visual: gen('hangar')
 });
@@ -33,28 +41,29 @@ const pad = (
 	label: string,
 	n: number,
 	hazard: number,
-	mass: [number, number, number]
+	mass: Three,
+	cost: Three
 ) =>
 	defineBuilding({
 		id,
 		label,
 		size: { w: n, d: n },
 		entrances: [{ i: Math.floor(n / 2), j: n - 1, side: 'north' }],
-		levels: levels({ 'launch-pad': mass }),
+		levels: levels({ 'launch-pad': mass }, cost, [5, 12, 20]),
 		provides: ['launch-pad'],
 		hazardRadius: hazard,
 		visual: gen('launch-pad')
 	});
-export const BuildingLaunchpadS = pad('stock.launchpad-s', 'Launchpad S', 3, 40, [18, 30, 45]);
-export const BuildingLaunchpadM = pad('stock.launchpad-m', 'Launchpad M', 5, 80, [60, 100, 150]);
-export const BuildingLaunchpadL = pad('stock.launchpad-l', 'Launchpad L', 7, 140, [180, 300, 500]);
+export const BuildingLaunchpadS = pad('stock.launchpad-s', 'Launchpad S', 3, 40, [18, 30, 45], [20_000, 60_000, 150_000]);
+export const BuildingLaunchpadM = pad('stock.launchpad-m', 'Launchpad M', 5, 80, [60, 100, 150], [80_000, 160_000, 300_000]);
+export const BuildingLaunchpadL = pad('stock.launchpad-l', 'Launchpad L', 7, 140, [180, 300, 500], [200_000, 300_000, 400_000]);
 
 export const BuildingRunway = defineBuilding({
 	id: 'stock.runway',
 	label: 'Runway',
 	size: { w: 4, d: 120 },
 	entrances: [{ i: 3, j: 0, side: 'east' }],
-	levels: levels({ runway: [1_200, 1_800, 2_400] }),
+	levels: levels({ runway: [1_200, 1_800, 2_400] }, [60_000, 120_000, 200_000], [8, 15, 25]),
 	provides: ['runway'],
 	hazardRadius: 30,
 	visual: gen('runway')
@@ -65,7 +74,7 @@ export const BuildingMissionCenter = defineBuilding({
 	label: 'Mission Center',
 	size: { w: 4, d: 2 },
 	entrances: southDoor(4),
-	levels: levels({ 'mission-control': [3, 6, 12] }),
+	levels: levels({ 'mission-control': [3, 6, 12] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['mission-control'],
 	visual: gen('control')
 });
@@ -74,7 +83,7 @@ export const BuildingAstronautComplex = defineBuilding({
 	label: 'Astronaut Complex',
 	size: { w: 4, d: 3 },
 	entrances: southDoor(4),
-	levels: levels({ crew: [5, 12, 30] }),
+	levels: levels({ crew: [5, 12, 30] }, [30_000, 80_000, 180_000], [6, 12, 20]),
 	provides: ['crew'],
 	visual: gen('office')
 });
@@ -83,7 +92,7 @@ export const BuildingResearch = defineBuilding({
 	label: 'R&D',
 	size: { w: 5, d: 4 },
 	entrances: southDoor(5),
-	levels: levels({ lab: [1, 2, 3] }),
+	levels: levels({ lab: [1, 2, 3] }, [50_000, 120_000, 250_000], [8, 16, 28]),
 	provides: ['lab'],
 	visual: gen('office')
 });
@@ -92,7 +101,7 @@ export const BuildingAdministration = defineBuilding({
 	label: 'Administration',
 	size: { w: 5, d: 3 },
 	entrances: southDoor(5),
-	levels: levels({ admin: [1, 3, 5] }),
+	levels: levels({ admin: [1, 3, 5] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['admin'],
 	visual: gen('office')
 });
@@ -101,7 +110,7 @@ export const BuildingTrackingDish = defineBuilding({
 	label: 'Tracking dish',
 	size: { w: 2, d: 2 },
 	entrances: southDoor(2),
-	levels: levels({ 'comms-node': [1, 2, 3] }, 20),
+	levels: levels({ 'comms-node': [1, 2, 3] }, [20_000, 60_000, 150_000], [2, 6, 12], 20),
 	provides: ['comms-node'],
 	visual: gen('dish')
 });
@@ -110,7 +119,12 @@ export const BuildingPropellantPlant = defineBuilding({
 	label: 'Propellant plant',
 	size: { w: 4, d: 4 },
 	entrances: southDoor(4),
-	levels: levels({ production: [1, 2, 4], storage: [20_000, 50_000, 120_000] }, 150),
+	levels: levels(
+		{ production: [1, 2, 4], storage: [20_000, 50_000, 120_000] },
+		[80_000, 160_000, 320_000],
+		[10, 18, 28],
+		150
+	),
 	provides: ['production', 'storage'],
 	hazardRadius: 30,
 	visual: gen('tanks')
@@ -120,7 +134,7 @@ export const BuildingTestStand = defineBuilding({
 	label: 'Test stand',
 	size: { w: 3, d: 3 },
 	entrances: southDoor(3),
-	levels: levels({ 'test-stand': [1, 2, 3] }),
+	levels: levels({ 'test-stand': [1, 2, 3] }, [30_000, 70_000, 150_000], [4, 10, 18]),
 	provides: ['test-stand'],
 	hazardRadius: 40,
 	visual: gen('tanks')

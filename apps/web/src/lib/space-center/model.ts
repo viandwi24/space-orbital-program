@@ -29,8 +29,10 @@ export interface BuildingRow {
 	id: string;
 	kind: string;
 	label: string;
-	status: 'active' | 'planned';
+	status: 'active' | 'planned' | 'building' | 'upgrading';
 	statusText: string;
+	/** The next level's upgrade, or null at the top level or while work runs (plan 096). */
+	upgrade: { level: number; cost: number; days: number } | null;
 	provides: string[];
 	action: BuildingAction;
 	/** Where the label sits: site metres east, north and up. */
@@ -71,7 +73,32 @@ export function footprintCentreMetres(cells: readonly Cell[]): { east: number; n
 	return { east: i * 10, north: j * 10 };
 }
 
-export function buildingRows(site: SiteState | undefined, registry: BuildingLookup): BuildingRow[] {
+/** What a building is doing, as the player reads it (plan 096, ADR 0123 point 1). */
+export function statusTextOf(
+	b: { state: BuildingRow['status']; level: number; readyDay?: number },
+	today: number | undefined
+): string {
+	const left =
+		b.readyDay === undefined || today === undefined
+			? ''
+			: ` · ready in ${Math.max(0, b.readyDay - today)} ${b.readyDay - today === 1 ? 'day' : 'days'}`;
+	switch (b.state) {
+		case 'active':
+			return `Level ${b.level + 1} · running`;
+		case 'building':
+			return `Under construction${left}`;
+		case 'upgrading':
+			return `Level ${b.level + 1} · upgrading to ${b.level + 2}${left}`;
+		default:
+			return 'Planned';
+	}
+}
+
+export function buildingRows(
+	site: SiteState | undefined,
+	registry: BuildingLookup,
+	today?: number
+): BuildingRow[] {
 	if (!site) return [];
 	return site.buildings.flatMap((b) => {
 		const def = registry.get(b.kind);
@@ -84,7 +111,15 @@ export function buildingRows(site: SiteState | undefined, registry: BuildingLook
 				kind: b.kind,
 				label: def.label,
 				status: b.state,
-				statusText: b.state === 'active' ? `Level ${b.level + 1} · running` : 'Planned',
+				statusText: statusTextOf(b, today),
+				upgrade:
+					b.state === 'active' && def.levels[b.level + 1]
+						? {
+								level: b.level + 1,
+								cost: def.levels[b.level + 1]!.cost,
+								days: def.levels[b.level + 1]!.buildDays
+							}
+						: null,
 				provides: [...def.provides],
 				action: actionOf(def.provides),
 				anchor: { ...c, up: (HEIGHTS[generator] ?? 10) + 4 }
@@ -240,4 +275,19 @@ export function steadyLabels(
 		else out[id] = { x: Math.round(p.x), y: Math.round(p.y) };
 	}
 	return out;
+}
+
+/**
+ * "Needs attention" lines beyond the building rows (plan 096, ADR 0123 point 6): the next upkeep
+ * when it is more than the funds. `upkeep` is the total per 30 days after the cost multiplier.
+ */
+export function upkeepWarning(
+	funds: number | undefined,
+	upkeep: number,
+	today: number | undefined,
+	every = 30
+): string | null {
+	if (funds === undefined || upkeep <= 0 || funds >= upkeep) return null;
+	const due = today === undefined ? '' : ` in ${every - (today % every)} days`;
+	return `Upkeep of ${Math.ceil(upkeep).toLocaleString('en-US')} due${due} is more than the funds`;
 }

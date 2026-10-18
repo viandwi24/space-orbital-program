@@ -56,5 +56,23 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	await expect(top).toContainText('Moon program');
 	await expect(top).toContainText('1 save');
 	await expect(top).toContainText('Last played');
+
+	// back in the Space Center the world's save runs (plan 096): an upgrade is paid from its funds
+	// and written back as the world's newest save
+	await page.getByTestId('world-enter').click();
+	await page.waitForURL('**/space-center');
+	await page.getByTestId('sc-label-stock.launchpad-s').click({ timeout: 60_000 });
+	await page.getByTestId('sc-upgrade').click();
+	await expect(page.getByTestId('sc-attention')).toContainText(/Launchpad S: Level 1 · upgrading to 2/);
+	await page.waitForTimeout(1500); // the autosave is written in the background
+	await expect
+		.poll(
+			async () => {
+				await page.goto('/worlds');
+				return page.getByTestId('world-card').first().innerText();
+			},
+			{ timeout: 30_000, intervals: [1000] }
+		)
+		.toContain('2 saves');
 	expect(errors).toEqual([]);
 });

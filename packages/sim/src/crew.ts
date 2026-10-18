@@ -4,6 +4,7 @@
  */
 import {
 	abilitiesOf,
+	capacityUpgrade,
 	createRng,
 	drawTraits,
 	generateCrewName,
@@ -12,6 +13,8 @@ import {
 	RECRUIT_DAYS,
 	SALARY_BASE,
 	salaryOf,
+	siteCapacity,
+	sitesOf,
 	streamSeed,
 	type CommandResult,
 	type CrewMember,
@@ -61,8 +64,27 @@ export function vesselOfMember(core: SimCore, m: CrewMember): EntityId | undefin
 const seatedIn = (core: SimCore, part: EntityId): CrewMember[] =>
 	core.crew.members.filter((m) => m.status === 'assigned' && m.location?.part === Number(part));
 
+/**
+ * The roster limit of the primary site's crew capacity with the economy on (plan 096, ADR 0123
+ * point 4): the refusal text, or undefined. Missing and lost members do not count.
+ */
+export function rosterFull(core: SimCore): string | undefined {
+	if (!economyOn(core)) return undefined;
+	const site = sitesOf(core.info)[0];
+	const limit = site ? siteCapacity(site, core.registries.buildings, 'crew') : null;
+	if (limit === null) return undefined;
+	const roster = core.crew.members.filter(
+		(m) => m.status === 'available' || m.status === 'assigned'
+	).length;
+	if (roster < limit) return undefined;
+	const lift = capacityUpgrade(core.registries.buildings, 'crew', roster + 1);
+	return `The roster is full (${limit} crew)${lift ? `; ${lift.text}` : ''}`;
+}
+
 /** `crew-hire` (ADR 0176 point 2). */
 export function hireCrew(core: SimCore, profession: Profession): CommandResult {
+	const full = rosterFull(core);
+	if (full) return { ok: false, reason: full };
 	const rng = createRng(core.crew.rng);
 	const names = core.registries.crewNames.list();
 	const name =

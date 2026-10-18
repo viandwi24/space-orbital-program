@@ -5,6 +5,9 @@
 import {
 	canPlace,
 	cloneData,
+	ECONOMY_CAUSES,
+	UPKEEP_EVERY_DAYS,
+	upkeepOf,
 	LEGACY_LAYOUT,
 	LEGACY_SITE,
 	MAX_TERRAIN_ZONES,
@@ -13,10 +16,12 @@ import {
 	siteDistance,
 	sitesOf,
 	type CommandResult,
+	type PlacedBuilding,
 	type Rotation,
 	type Site
 } from '@orbital/core';
 import type { SimCore } from './core.ts';
+import { costMultiplier, economyOn, record } from './economy.ts';
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
 
@@ -51,6 +56,9 @@ export function placeBuilding(
 		command.rotation
 	);
 	if (!check.ok) return refuse(check.reasons.map((r) => r.message).join('; '));
+	const level = core.registries.buildings.get(command.kind)!.levels[0]!;
+	const paid = pay(core, level.cost, command.id);
+	if (paid) return refuse(paid);
 	const site = writableSite(core, command.site)!;
 	site.buildings = [
 		...(site.buildings ?? []),
@@ -60,11 +68,105 @@ export function placeBuilding(
 			cell: { ...command.cell },
 			rotation: command.rotation,
 			level: 0,
-			state: 'active'
+			...construction(core, level.buildDays)
 		}
 	];
 	site.roads = [...(site.roads ?? []), ...check.roads];
 	return { ok: true };
+}
+
+/** Debit a construction cost (economy on); the refusal text when funds do not cover it. */
+function pay(core: SimCore, cost: number, ref: string): string | undefined {
+	if (!economyOn(core) || cost <= 0) return undefined;
+	const amount = cost * costMultiplier(core);
+	const funds = core.economy.balances.funds;
+	if (amount > funds) {
+		return `Not enough funds: needs ${Math.ceil(amount)}, has ${Math.floor(funds)}`;
+	}
+	record(core, 'funds', -amount, ECONOMY_CAUSES.construction, ref);
+	return undefined;
+}
+
+/** The state of new work: done at once with the economy off or no build time (ADR 0123 point 1). */
+function construction(
+	core: SimCore,
+	buildDays: number,
+	working: 'building' | 'upgrading' = 'building'
+): Pick<PlacedBuilding, 'state' | 'readyDay'> {
+	if (!economyOn(core) || buildDays <= 0) return { state: 'active' };
+	return { state: working, readyDay: core.ticks.lastDay + Math.ceil(buildDays) };
+}
+
+/** `upgrade-building` (ADR 0123 point 1): one level up, paid now, done on its ready day. */
+export function upgradeBuilding(
+	core: SimCore,
+	command: { site: string; id: string }
+): CommandResult {
+	const known = sitesOf(core.info).find((s) => s.id === command.site);
+	if (!known) return refuse(`unknown site "${command.site}"`);
+	const placed = (known.buildings ?? []).find((b) => b.id === command.id);
+	if (!placed) return refuse(`no building "${command.id}" on site "${command.site}"`);
+	const def = core.registries.buildings.get(placed.kind);
+	if (!def) return refuse(`unknown building "${placed.kind}"`);
+	if (placed.state !== 'active') return refuse(`${def.label} is ${placed.state}`);
+	const next = def.levels[placed.level + 1];
+	if (!next) return refuse(`${def.label} is at its top level`);
+	const paid = pay(core, next.cost, command.id);
+	if (paid) return refuse(paid);
+	const site = writableSite(core, command.site)!;
+	const work = construction(core, next.buildDays, 'upgrading');
+	site.buildings = (site.buildings ?? []).map((b) =>
+		b.id !== command.id
+			? b
+			: work.state === 'active'
+				? { ...b, level: b.level + 1, state: 'active' as const }
+				: { ...b, ...work }
+	);
+	if (work.state === 'active') {
+		core.events.emit('building:ready', {
+			site: command.site,
+			id: command.id,
+			kind: placed.kind,
+			level: placed.level + 1
+		});
+	}
+	return { ok: true };
+}
+
+/**
+ * The world tick's building work (ADR 0123 points 1 and 5): construction whose ready day has come
+ * is done, then upkeep on every 30th day. Sites are only written when something changed.
+ */
+export function buildingsTick(core: SimCore, day: number): boolean {
+	let changed = false;
+	for (const known of sitesOf(core.info)) {
+		const due = (known.buildings ?? []).filter(
+			(b) => (b.state === 'building' || b.state === 'upgrading') && (b.readyDay ?? 0) <= day
+		);
+		if (due.length === 0) continue;
+		const site = writableSite(core, known.id)!;
+		site.buildings = (site.buildings ?? []).map((b) => {
+			if (!due.some((d) => d.id === b.id)) return b;
+			const { readyDay: _, ...rest } = b;
+			return { ...rest, level: b.state === 'upgrading' ? b.level + 1 : b.level, state: 'active' };
+		});
+		changed = true;
+		for (const b of due) {
+			core.events.emit('building:ready', {
+				site: known.id,
+				id: b.id,
+				kind: b.kind,
+				level: b.state === 'upgrading' ? b.level + 1 : b.level
+			});
+		}
+	}
+	if (economyOn(core) && day > 0 && day % UPKEEP_EVERY_DAYS === 0) {
+		const k = costMultiplier(core);
+		for (const u of upkeepOf(sitesOf(core.info), core.registries.buildings)) {
+			record(core, 'funds', -u.amount * k, ECONOMY_CAUSES.upkeep, u.id);
+		}
+	}
+	return changed;
 }
 
 export function removeBuilding(
@@ -146,6 +248,6 @@ const STARTER_LAYOUT = {
 export const sitesSnapshot = (core: SimCore) =>
 	sitesOf(core.info).map((s) => ({
 		id: s.id,
-		buildings: cloneData(s.buildings ?? []),
+		buildings: cloneData(s.buildings ?? []) as PlacedBuilding[],
 		roads: cloneData(s.roads ?? [])
 	}));

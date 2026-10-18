@@ -41,7 +41,9 @@ export const ECONOMY_RULES = {
 export const ECONOMY_CAUSES = {
 	launch: 'economy.launch',
 	recovery: 'economy.recovery',
-	reputationDecay: 'economy.reputation-decay'
+	reputationDecay: 'economy.reputation-decay',
+	construction: 'economy.construction',
+	upkeep: 'economy.upkeep'
 } as const;
 
 export const REPUTATION_LIMIT = 1_000;

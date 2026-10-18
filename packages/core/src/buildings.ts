@@ -105,8 +105,14 @@ export interface PlacedBuilding {
 	cell: Cell;
 	rotation: Rotation;
 	level: number;
-	state: 'active' | 'planned';
+	/** `building` provides nothing; `upgrading` works at `level` until done (ADR 0123 point 2). */
+	state: BuildingState;
+	/** Tick day on which `building` or `upgrading` is done (ADR 0123 point 1). */
+	readyDay?: number;
 }
+
+export const BUILDING_STATES = ['active', 'planned', 'building', 'upgrading'] as const;
+export type BuildingState = (typeof BUILDING_STATES)[number];
 
 const cellSchema = z.object({ i: z.int(), j: z.int() });
 export const placedBuildingSchema = z.object({
@@ -115,7 +121,8 @@ export const placedBuildingSchema = z.object({
 	cell: cellSchema,
 	rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
 	level: z.int().nonnegative(),
-	state: z.enum(['active', 'planned'])
+	state: z.enum(BUILDING_STATES),
+	readyDay: z.int().optional()
 });
 export const roadsSchema = z.array(cellSchema);
 
@@ -397,3 +404,106 @@ export const LEGACY_LAYOUT: { buildings: PlacedBuilding[]; roads: Cell[] } = {
 		...roadLine({ i: -6, j: -1 }, { i: -6, j: -5 })
 	])
 };
+
+// ---- capacity (plan 096, ADR 0123) ----
+
+/** The capacity keys a building level may raise, with their unit (ADR 0123 point 3). */
+export const CAPACITY = {
+	hangar: { unit: 'parts', meaning: 'parts in a design' },
+	'launch-pad': { unit: 't', meaning: 'launch mass' },
+	runway: { unit: 'm', meaning: 'runway length' },
+	crew: { unit: 'crew', meaning: 'roster size' },
+	'mission-control': { unit: 'contracts', meaning: 'active contracts' },
+	'comms-node': { unit: 'tier', meaning: 'station tier' },
+	lab: { unit: 'labs', meaning: 'research slots' },
+	admin: { unit: 'strategies', meaning: 'strategy slots' },
+	storage: { unit: 'kg', meaning: 'stored commodities' },
+	production: { unit: 'recipes', meaning: 'recipes at once' },
+	'test-stand': { unit: 'grade', meaning: 'static-fire grade (plan 130)' }
+} as const;
+export type CapacityKey = keyof typeof CAPACITY;
+export const CAPACITY_KEYS = Object.keys(CAPACITY) as CapacityKey[];
+
+
+/** Whether a placed building works, and at which level index; null while it provides nothing. */
+export function workingLevel(b: Pick<PlacedBuilding, 'state' | 'level'>): number | null {
+	return b.state === 'active' || b.state === 'upgrading' ? b.level : null;
+}
+
+/**
+ * A site's capacity for `key`: the highest value over its working buildings, or null when no
+ * building there provides it (no limit, ADR 0123 point 3).
+ */
+export function siteCapacity(
+	site: { buildings?: readonly PlacedBuilding[] },
+	registry: Lookup,
+	key: string
+): number | null {
+	let best: number | null = null;
+	for (const b of site.buildings ?? []) {
+		const at = workingLevel(b);
+		if (at === null) continue;
+		const levels = registry.get(b.kind)?.levels;
+		const value = levels?.[Math.min(at, levels.length - 1)]?.capacity[key];
+		if (value !== undefined && (best === null || value > best)) best = value;
+	}
+	return best;
+}
+
+export interface CapacityUpgrade {
+	kind: string;
+	label: string;
+	/** Level index (0-based); the text says `level + 1`. */
+	level: number;
+	value: number;
+	cost: number;
+	/** "Hangar level 2: 120 parts". */
+	text: string;
+}
+
+/** The cheapest registered building level whose `key` capacity is at least `need`, or null. */
+export function capacityUpgrade(
+	registry: { list(): readonly BuildingDefinition[] },
+	key: string,
+	need: number
+): CapacityUpgrade | null {
+	let best: CapacityUpgrade | null = null;
+	const unit = (CAPACITY as Record<string, { unit: string }>)[key]?.unit ?? '';
+	for (const def of registry.list()) {
+		def.levels.forEach((level, k) => {
+			const value = level.capacity[key];
+			if (value === undefined || value < need) return;
+			// the cost of reaching this level from nothing
+			const cost = def.levels.slice(0, k + 1).reduce((s, l) => s + l.cost, 0);
+			if (best && (cost > best.cost || (cost === best.cost && value >= best.value))) return;
+			best = {
+				kind: def.id,
+				label: def.label,
+				level: k,
+				value,
+				cost,
+				text: `${def.label} level ${k + 1}: ${value.toLocaleString('en-US')} ${unit}`
+			};
+		});
+	}
+	return best;
+}
+
+/** Upkeep of the working buildings per 30 days, funds, before the cost multiplier (ADR 0123 point 5). */
+export const UPKEEP_EVERY_DAYS = 30;
+
+export function upkeepOf(
+	sites: ReadonlyArray<{ buildings?: readonly PlacedBuilding[] }>,
+	registry: Lookup
+): Array<{ id: string; kind: string; amount: number }> {
+	const out: Array<{ id: string; kind: string; amount: number }> = [];
+	for (const site of sites)
+		for (const b of site.buildings ?? []) {
+			const at = workingLevel(b);
+			if (at === null) continue;
+			const levels = registry.get(b.kind)?.levels;
+			const upkeep = levels?.[Math.min(at, levels.length - 1)]?.upkeep ?? 0;
+			if (upkeep > 0) out.push({ id: b.id, kind: b.kind, amount: upkeep });
+		}
+	return out;
+}

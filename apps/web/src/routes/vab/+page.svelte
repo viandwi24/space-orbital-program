@@ -15,6 +15,8 @@
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { loadWorldTech } from '../../lib/tech/world-tech';
 	import { loadWorldReliability } from '../../lib/reliability/reliability-model';
+	import { sitesOf } from '@orbital/core';
+	import { limitsOn } from '../../lib/capacity';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import Button from '../../lib/ui/Button.svelte';
 	import Dialog from '../../lib/ui/Dialog.svelte';
@@ -45,6 +47,14 @@
 		const stop = vab.mount({ canvas, stage, left, right });
 		void loadWorldTech(worldSaves, activeWorldId()).then((t) => (vab.tech = t));
 		void loadWorldReliability(worldSaves, activeWorldId()).then((r) => (vab.reliability = r));
+		// the active world's site and limits for the Hangar's part limit (plan 096, ADR 0123 point 4)
+		void worldSaves
+			.worldStartInfo(activeWorldId())
+			.then((info) => {
+				const site = sitesOf(info ?? { sites: [] })[0];
+				vab.capacity = site ? { site, on: limitsOn(info, vab.loaded.world) } : null;
+			})
+			.catch(() => (vab.capacity = null));
 		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);

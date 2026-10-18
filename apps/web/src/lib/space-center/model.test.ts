@@ -13,6 +13,8 @@ import {
 	nextRotation,
 	siteViews,
 	spreadLabels,
+	statusTextOf,
+	upkeepWarning,
 	steadyLabels
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
@@ -172,5 +174,28 @@ describe('labels', () => {
 		const prev = { a: { x: 100, y: 50 } };
 		expect(steadyLabels({ a: { x: 100.4, y: 49.7 } }, prev).a).toBe(prev.a);
 		expect(steadyLabels({ a: { x: 103.6, y: 50.2 } }, prev).a).toEqual({ x: 104, y: 50 });
+	});
+});
+
+describe('construction and upkeep (plan 096, ADR 0123 point 6)', () => {
+	it('a row says what the building is doing and when it is ready', () => {
+		expect(statusTextOf({ state: 'active', level: 0 }, 10)).toBe('Level 1 · running');
+		expect(statusTextOf({ state: 'building', level: 0, readyDay: 12 }, 10)).toBe(
+			'Under construction · ready in 2 days'
+		);
+		expect(statusTextOf({ state: 'upgrading', level: 1, readyDay: 11 }, 10)).toBe(
+			'Level 2 · upgrading to 3 · ready in 1 day'
+		);
+	});
+	it('an active building below its top level offers the next level with its cost and days', () => {
+		const rows = buildingRows({ id: 'legacy', buildings: LEGACY_LAYOUT.buildings, roads: [] }, reg);
+		const hangar = rows.find((r) => r.kind === 'stock.hangar')!;
+		const next = reg.get('stock.hangar')!.levels[1]!;
+		expect(hangar.upgrade).toEqual({ level: 1, cost: next.cost, days: next.buildDays });
+	});
+	it('the next upkeep over the funds needs attention', () => {
+		expect(upkeepWarning(1_000, 2_400, 25)).toBe('Upkeep of 2,400 due in 5 days is more than the funds');
+		expect(upkeepWarning(5_000, 2_400, 25)).toBeNull();
+		expect(upkeepWarning(undefined, 2_400, 25)).toBeNull();
 	});
 });
