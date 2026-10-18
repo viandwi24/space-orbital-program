@@ -1,7 +1,7 @@
 ---
 id: 121
 title: "Comms tier 6: suit radios, voice and live broadcasts"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [120, 109, 108, 102]
 phase: 7
@@ -47,20 +47,21 @@ Terrain occlusion for the suit uses the tier 1 terrain test at short range.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: an EVA crew member 200 m behind a ridge from the lander loses the suit link at the geometric point (within 1 m), with the reason `blocked by terrain`; in sight it relays through the lander.
-- [ ] `packages/sim` test: a suit never links to a station or a probe, and a probe never routes through a suit.
-- [ ] `packages/sim` test: broadcasting the first landing with enough rate books the stated reputation bonus; without the rate, after the window or twice it is refused with a reason.
-- [ ] vitest: the crew panel shows the suit radio's bars and the cut reason; the broadcast offer renders.
-- [ ] `bun run check:affected` passes (CI runs the full suite).
+- [x] `packages/sim` test: an EVA crew member 200 m behind a ridge from the lander loses the suit link at the geometric point (within 1 m), with the reason `blocked by terrain`; in sight it relays through the lander.
+- [x] `packages/sim` test: a suit never links to a station or a probe, and a probe never routes through a suit.
+- [x] `packages/sim` test: broadcasting the first landing with enough rate books the stated reputation bonus; without the rate, after the window or twice it is refused with a reason.
+- [x] vitest: the crew panel shows the suit radio's bars and the cut reason; the broadcast offer renders.
+- [x] `bun run check:affected` passes (CI runs the full suite).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/121-comms-tier-6-suit-radios-voice-broadcast.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/121-comms-tier-6-suit-radios-voice-broadcast.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101, 0100).
 - 2026-10-17 — `depends` gains 108, 102 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the crew panel bars are those of plan 108 and broadcasts fire on milestones of plan 102.
+- 2026-10-18 — Claimed by Agent 3, refined. Implemented per ADR 0193: suit radios relayed by a crewed vessel in sight with metre terrain sampling, the `radio` ability, live broadcasts of firsts, the crew panel's bars and offers. `comms-suit.test.ts` (4) and `crew-card.test.ts` (+2) pass; `check:affected` passed (journal 121). Handed over as `ready/121`.

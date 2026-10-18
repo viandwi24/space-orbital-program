@@ -420,6 +420,11 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - **Licences:** data on a channel other than 0 needs `licence-buy`.
 - **Interference:** links that share a band and a channel, and reach each other's receiver, lose 3 dB each.
 
+**Suit radios and broadcasts (API 0.1.73, plan 121, ADR 0193).**
+
+- **A suit radio:** `defineAntenna({ ..., band: 'stock.uhf', range: 1_500, suit: true })` on your suit part. A crewed vessel in sight relays it, within its own range rating. A crew member's `radio` ability stretches that range (a trait may scale it: `abilities: { radio: 1.2 }`).
+- **Broadcasts:** a world first may be broadcast live with `comms-broadcast { milestone }` for an hour after it, when its vessel reaches the ground at 100 kbit/s or more. It pays half the milestone's reputation.
+
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 
 The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:

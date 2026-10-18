@@ -129,7 +129,7 @@
 | 118 | [Comms planning tools: contact timeline, coverage map, constellation planner](plans/118-comms-planning-tools.md) | done | Agent 2 (Dev B, M2) | ADR 0163: the planning Worker (off the sim Worker), the contact timeline on the sim's link rule (matches its events over 24 h), the coverage grid, the resonant constellation planner; the Mission Center's Planning panel |
 | 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | done | Agent 3 | ADR 0189: transmission queues by priority at the route's rate, store-and-forward custody, delivery with science on arrival, next contacts and arrival times, save format 8; handed over as `ready/119` |
 | 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | done | Agent 3 | ADR 0191: channels and licences gating data, interference on shared channels in the budget and inspector, encryption overhead; handed over as `ready/120` |
-| 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | in-progress | Agent 3 | ADR 0101 tier 6: suit radios, voice, broadcasts |
+| 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | done | Agent 3 | ADR 0193: suit radios relayed by a crewed vessel in sight (ridge cuts at the line of sight), the radio ability, live broadcasts of firsts; handed over as `ready/121` |
 | 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | done | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
 | 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | done | Agent 3 | ADR 0183: kepler-rates (JPL Level A) and series (Almanac Moon) paths, osculating conics for consumers; handed over as `ready/123` |
 | 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | done | Agent 3 | ADR 0184: systems chosen in the loader, Sol (JPL/IAU data) at 1:1 and rescaled (×1/4, real periods), balance patches, validation suite, Create World variants; handed over as `ready/124` |
@@ -212,7 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
-- [129-discovery-science.md](journal/129-discovery-science.md)
+- [121-comms-tier-6-suit-radios-voice-broadcast.md](journal/121-comms-tier-6-suit-radios-voice-broadcast.md)
 - [129-discovery-science.md](journal/129-discovery-science.md)
 - [120-comms-tier-5-channels-licences-interference.md](journal/120-comms-tier-5-channels-licences-interference.md)
 - [126-ai-agencies-living-world.md](journal/126-ai-agencies-living-world.md)
