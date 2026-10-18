@@ -98,6 +98,9 @@ export interface AntennaState {
 	enabled: boolean;
 	/** Where a dish points (plan 117, ADR 0188 point 2); null or absent: Auto. */
 	target?: string | null;
+	/** Channel on the antenna's band and encryption (plan 120, ADR 0191 point 1). */
+	channel?: number;
+	encrypted?: boolean;
 }
 
 /** Puts the part's antenna on the network while enabled (ADR 0179 point 1). */
@@ -108,7 +111,9 @@ export const ModuleAntenna = defineModule({
 	antenna: (config, state) => ({
 		antenna: config.antenna,
 		enabled: state.enabled,
-		target: state.target ?? null
+		target: state.target ?? null,
+		channel: state.channel ?? 0,
+		encrypted: state.encrypted === true
 	}),
 	describe: (_config, state) => ({
 		category: 'command',
@@ -120,6 +125,23 @@ export const ModuleAntenna = defineModule({
 				value: state.enabled,
 				enabled: true,
 				icon: 'antenna'
+			},
+			{
+				id: 'setChannel',
+				label: 'Channel',
+				kind: 'value',
+				value: state.channel ?? 0,
+				min: 0,
+				max: 3,
+				step: 1,
+				enabled: true
+			},
+			{
+				id: 'setEncrypted',
+				label: 'Encryption',
+				kind: 'toggle',
+				value: state.encrypted === true,
+				enabled: true
 			}
 		]
 	}),
@@ -128,7 +150,21 @@ export const ModuleAntenna = defineModule({
 		setEnabled: (ctx, ...args) => {
 			const [enabled] = z.tuple([z.boolean()]).parse(args);
 			ctx.state.enabled = enabled;
+		},
+		/** `(channel)`: 0..3 on the stock bands (ADR 0191 point 1). */
+		setChannel: (ctx, ...args) => {
+			const [channel] = z.tuple([z.number().int().min(0).max(63)]).parse(args);
+			ctx.state.channel = channel;
+		},
+		/** `(encrypted)`: 0.8 times the rate (ADR 0191 point 4). */
+		setEncrypted: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.encrypted = on;
 		}
 	},
-	snapshot: (state) => ({ enabled: state.enabled })
+	snapshot: (state) => ({
+		enabled: state.enabled,
+		channel: state.channel ?? 0,
+		encrypted: state.encrypted === true
+	})
 });

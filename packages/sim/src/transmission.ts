@@ -14,7 +14,7 @@ import {
 	type SaveTransmission,
 	type Snapshot
 } from '@orbital/core';
-import { commsOn, hasAntenna, nextDirectContact, type Routed } from './comms.ts';
+import { commsOn, hasAntenna, licenceRefusal, nextDirectContact, type Routed } from './comms.ts';
 import { vesselIds, type SimCore } from './core.ts';
 import { dataUse, deleteData, restoreData, storagesOf } from './data.ts';
 import { creditScience } from './science.ts';
@@ -52,6 +52,9 @@ export function enqueueTransmission(
 		.find((i) => i.id === itemId);
 	if (!item) return refuse(`vessel ${vessel} has no data item "${itemId}"`);
 	if (!hasAntenna(core, vessel)) return refuse('no antenna: this vessel cannot transmit');
+	// data needs a licensed channel (plan 120, ADR 0191 point 2)
+	const unlicensed = licenceRefusal(core, vessel);
+	if (unlicensed) return refuse(unlicensed);
 	const removed = deleteData(core, vessel, itemId);
 	if (!removed.ok) return removed;
 	const s = core.commsState;

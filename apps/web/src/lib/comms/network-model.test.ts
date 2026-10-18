@@ -1,5 +1,5 @@
 /** Comms tier 1 on the page (plan 115, ADR 0158): the badge, the Comms tab, the Network layer. */
-import type { Snapshot } from '@orbital/core';
+import { linkBudget, type Snapshot } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
 import {
 	barsForRate,
@@ -15,7 +15,11 @@ type NetworkVessel = NonNullable<Snapshot['network']>['vessels'][number];
 /** Network vessels; `rate`, `margin` (116), `route`, `latency` and `mode` (117) have defaults. */
 const snap = (
 	list: Array<
-		Omit<NetworkVessel, 'rate' | 'margin' | 'route' | 'latency' | 'mode'> & Partial<NetworkVessel>
+		Omit<
+			NetworkVessel,
+			'rate' | 'margin' | 'route' | 'latency' | 'mode' | 'channel' | 'encrypted' | 'interference'
+		> &
+			Partial<NetworkVessel>
 	>
 ) => {
 	const vessels = list.map((v) => ({
@@ -24,6 +28,9 @@ const snap = (
 		route: v.to ? [v.to] : [],
 		latency: null,
 		mode: { kind: 'auto' as const },
+		channel: v.to ? 0 : null,
+		encrypted: false,
+		interference: 0,
 		...v
 	}));
 	return withNetwork(vessels);
@@ -206,5 +213,42 @@ describe('comms on the page (plan 115)', () => {
 			['Bulk · 500 kbit', 0, 'Waits for a contact']
 		]);
 		expect(tab.queue[0]!.cancel).toEqual({ type: 'transmission-cancel', vessel: 2, item: '7:0' });
+	});
+
+	it('the channel line and a licence to buy for an unlicensed channel (plan 120)', () => {
+		const s = snap([
+			{
+				vessel: 2 as never,
+				to: 'stock.ksc',
+				reason: null,
+				control: 'full',
+				blackout: 0,
+				channel: 2,
+				encrypted: true,
+				interference: 3
+			}
+		]) as Snapshot;
+		const net = s.network as unknown as Record<string, unknown>;
+		net.licences = [];
+		const budget = linkBudget({
+			power: 5,
+			txGain: 2,
+			rxGain: 44.85,
+			distance: 2e6,
+			band: { id: 'stock.s', label: 'S band', frequency: 2.25e9, noiseTemperature: 100 }
+		});
+		net.inspector = {
+			vessel: 2,
+			to: 'stock.ksc',
+			budget: { ...budget, channel: 2, encrypted: true, interference: 3 }
+		};
+		const tab = commsTab(s, 2, 'Probe')!;
+		expect(tab.channel).toBe('S band channel 2 · encrypted · −3 dB interference');
+		expect(tab.licence).toEqual({
+			label: 'Buy a licence for S band channel 2',
+			command: { type: 'licence-buy', band: 'stock.s', channel: 2 }
+		});
+		net.licences = [{ band: 'stock.s', channel: 2 }];
+		expect(commsTab(s, 2, 'Probe')!.licence).toBeNull();
 	});
 });

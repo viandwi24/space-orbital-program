@@ -34,7 +34,14 @@ import { MAX_WARP } from './constants.ts';
 import { hireCrew, dismissCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
-import { commsOn, resetStations, setRouteMode, signalRefusal, updateNetwork } from './comms.ts';
+import {
+	buyLicence,
+	commsOn,
+	resetStations,
+	setRouteMode,
+	signalRefusal,
+	updateNetwork
+} from './comms.ts';
 import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
 import { applyActionGroup } from './actions.ts';
@@ -519,6 +526,8 @@ export function dispatch(
 			return rentRelay(core, command.vessel);
 		case 'relay-end-rent':
 			return endRent(core, command.vessel);
+		case 'licence-buy':
+			return buyLicence(core, command.band, command.channel);
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

@@ -180,6 +180,15 @@ export const RuleComms = defineRule({
 	default: true,
 	changeable: true
 });
+/** Links on one band's channel that reach each other's receiver lose 3 dB each (plan 120, ADR 0191). */
+export const RuleCommsInterference = defineRule({
+	id: 'stock.comms-interference',
+	label: 'Radio interference',
+	category: 'comms',
+	type: 'boolean',
+	default: true,
+	changeable: true
+});
 export const RuleSignalDelay = defineRule({
 	id: 'stock.signal-delay',
 	label: 'Signal delay',
@@ -285,6 +294,7 @@ export const STOCK_RULES = [
 	RuleCrewReturnDays,
 	RuleComms,
 	RuleSignalDelay,
+	RuleCommsInterference,
 	RuleControlWithoutSignal,
 	RuleCommsScale,
 	RuleRangeSafety,

@@ -345,6 +345,10 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 			enabled: boolean;
 			/** Where a dish points (plan 117, ADR 0188 point 2); null or absent: Auto. */
 			target?: string | null;
+			/** Its channel on the band (plan 120, ADR 0191; default 0). */
+			channel?: number;
+			/** Encrypted (default false). */
+			encrypted?: boolean;
 		}
 	>;
 	/** Present when this module scrubs CO2 (plan 107, ADR 0181 point 1): people served and EC per person per day. */
