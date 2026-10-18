@@ -1,12 +1,12 @@
 ---
 id: 099
 title: "Procedural contracts"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [098, 095, 096]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 099 — Procedural contracts
