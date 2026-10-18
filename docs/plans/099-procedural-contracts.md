@@ -105,3 +105,4 @@ Deviations: slots from the Mission Center's mission-control capacity (ADR 0123),
 Resource notes: swap used 1273 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (follow-ups listed in ADR 0186 and the journal; 101 fills Strategies)
 ```
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts); API_VERSION 0.1.63 (065 took 0.1.62); bun test 1671 pass (three career bots in the band, 25 to 27 s each in the parallel suite), web vitest 1024 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center, space-center and worlds e2e pass (Chromium).
