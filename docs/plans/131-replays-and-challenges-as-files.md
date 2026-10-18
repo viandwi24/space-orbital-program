@@ -1,12 +1,12 @@
 ---
 id: 131
 title: "Replays and challenges as files"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [077]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 131 — Replays and challenges as files
@@ -64,3 +64,4 @@ Cross-machine determinism is not a goal; checkpoints absorb small drift.
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098, 0094).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).

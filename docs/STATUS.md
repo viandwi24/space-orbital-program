@@ -139,7 +139,7 @@
 | 128 | [Off-world bases: base kits and parts left on the surface](plans/128-off-world-bases.md) | draft | — | ADR 0097: base kits and outposts, one chain |
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | done | Agent 2 (Dev B, M2) | ADR 0156: `defineFailureMode` on module ids, trials at stage and load from the `reliability` stream, failed modules skipped, experience, grades (cost), the test stand and static fire, anomaly fixes, EVA repair; `/test-stand`, the Hangar line, the failure toast; API 0.1.55 |
-| 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | draft | — | ADR 0098/0094: replays, challenges, ghosts as files |
+| 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0098/0094: replays, challenges, ghosts as files |
 | 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | draft | — | Scope pushed out of 095: funds capsule, Recover dialog from `VesselSnapshot.recovery` |
 | 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
