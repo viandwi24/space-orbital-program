@@ -101,6 +101,8 @@ export const ACTIONS = [
 	flight('Time and menus', 'quicksave', 'Quicksave', 'F5'),
 	flight('Time and menus', 'quickload', 'Quickload', 'F9'),
 	flight('Time and menus', 'help', 'Show the controls list', '?', 'F1'),
+	// with Alt held (plan 203, ADR 0200 point 1): F12 alone is the browser's developer tools
+	flight('Time and menus', 'debug', 'Debug panel (hold Alt)', 'F12'),
 	{
 		id: 'mute',
 		mode: 'flight',
@@ -435,6 +437,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['quicksave', 'quickload'], text: 'Quicksave, quickload' },
 			{ actions: [], fixed: ['Esc'], text: 'Pause menu' },
 			{ actions: ['help'], text: 'This list' },
+			{ actions: ['debug'], fixed: ['Alt'], text: 'Debug panel (hold Alt)' },
 			{ actions: ['mute'], text: 'Mute or unmute sound' }
 		]
 	},

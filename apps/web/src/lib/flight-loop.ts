@@ -4,7 +4,7 @@
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
 import type { GhostTrack } from './replays/ghost-model';
-import { designCost } from '@orbital/core';
+import { API_VERSION, designCost } from '@orbital/core';
 import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
 import { designStats } from './editor/stats';
 import type { ReplayFile } from '@orbital/core';
@@ -82,6 +82,9 @@ import {
 	type BroadcastOffer,
 	type RadioBars
 } from './comms/suit-radio';
+import { logBuffer } from './log-buffer';
+import type { DebugHost } from './debug/api';
+import { simEventLine } from './debug/model';
 import {
 	createHudController,
 	type FrameData,
@@ -128,7 +131,7 @@ export interface FlightOptions {
 	/** The key map in force (plan 053, ADR 0061); read on every key event, so rebinding applies at once. */
 	keymap?: () => Keymap;
 	/** Esc (pause menu), help, quicksave and quickload were pressed (by their keys now in force). */
-	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload'): void;
+	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug'): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
 	/** A new flight in a world without saves (plan 087): its info; ignored when resuming. */
@@ -229,7 +232,24 @@ export interface Flight {
 	regionLabelAt(x: number, y: number): string | null;
 	/** A command from a dock panel; the sim validates it, a refusal shows as a toast. */
 	command(command: Command): Promise<boolean>;
+	/** What the Debug panel and the debug API work on (plan 203). */
+	readonly debug: DebugHost;
+	/** The Debug panel's Info tab: sim step time, graphics level, vessels (plan 203). */
+	debugInfo(): DebugInfo;
 	dispose(): void;
+}
+
+/** The numbers of the Debug panel's Info tab that only the flight knows. */
+export interface DebugInfo {
+	/** Wall time of the last sim step, ms; null before the first snapshot. */
+	stepMs: number | null;
+	vessels: number;
+	/** The preset drawn now, its resolution scale and whether the governor may change them. */
+	preset: string | null;
+	scale: number;
+	governor: boolean;
+	/** The game's API version and the mods running. */
+	versions: string;
 }
 
 /** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
@@ -309,7 +329,10 @@ export function startFlight(options: FlightOptions): Flight {
 
 	const send = (command: Command): Promise<boolean> =>
 		client.dispatch(command).then((result) => {
-			if (!result.ok) hudCtl?.refused(command.type, result.reason);
+			if (!result.ok) {
+				hudCtl?.refused(command.type, result.reason);
+				logBuffer.add('warn', 'command', `${command.type} refused: ${result.reason}`);
+			}
 			return result.ok;
 		});
 
@@ -404,6 +427,11 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'help':
 				e.preventDefault();
 				options.onKey?.('help');
+				break;
+			case 'debug':
+				if (!e.altKey) break;
+				e.preventDefault();
+				options.onKey?.('debug');
 				break;
 			case 'throttleFull':
 				throttle = 1;
@@ -686,6 +714,7 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer.setPlanetScale(level.planetScale);
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
+			logBuffer.add('info', 'graphics', `governor: ${level.preset} at ${percent}%`);
 			hudCtl?.notice({
 				kind: 'info',
 				title: 'Graphics adjusted',
@@ -798,10 +827,13 @@ export function startFlight(options: FlightOptions): Flight {
 		auto?.update(s);
 	});
 	client.onStage((event) => {
+		logBuffer.add('info', 'sim', `stage ${event.stage} fired on vessel ${event.vessel}`);
 		hudCtl?.stage(event);
 		director.event('stage');
 	});
 	client.onSimEvent((event) => {
+		const line = simEventLine(event);
+		logBuffer.add(line.level, 'sim', line.message);
 		hudCtl?.simEvent(event);
 		if (event.type === 'milestone') void achievements?.check([event]);
 		// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
@@ -830,6 +862,7 @@ export function startFlight(options: FlightOptions): Flight {
 		if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
 	});
 	client.onError((message) => {
+		logBuffer.add('error', 'sim', message);
 		hud.status = 'error';
 		hud.message = message;
 		publish();
@@ -844,6 +877,7 @@ export function startFlight(options: FlightOptions): Flight {
 					achievements: c.achievements,
 					home: homeOfCatalog(c)?.id ?? '',
 					world: c.worldId ?? 'legacy',
+					blocked: () => snap?.debug?.usedCheats === true,
 					onUnlock: (a) =>
 						hudCtl?.notice({
 							kind: 'success',
@@ -1056,6 +1090,22 @@ export function startFlight(options: FlightOptions): Flight {
 					)
 				: null,
 		command: (command) => send(command),
+		debug: {
+			snapshot: () => snap,
+			vessel: () => vessel,
+			send: (command) => client.dispatch(command),
+			onSnapshot: (listener) => client.onSnapshot((s) => listener(s)),
+			bodies: () => catalog?.bodies ?? [],
+			home: () => (catalog ? (homeOfCatalog(catalog)?.id ?? '') : '')
+		},
+		debugInfo: () => ({
+			stepMs: client.stepMs,
+			vessels: snap?.vessels.length ?? 0,
+			preset: renderer?.preset ?? null,
+			scale: governor?.level.scale ?? 1,
+			governor: autoQuality,
+			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', ')
+		}),
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);

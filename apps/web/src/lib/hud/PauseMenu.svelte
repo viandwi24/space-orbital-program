@@ -14,7 +14,8 @@
 		onsave,
 		onload,
 		onreplay,
-		onghost
+		onghost,
+		ondebug
 	}: {
 		open: boolean;
 		name: string;
@@ -28,6 +29,8 @@
 		onreplay?: () => void;
 		/** Load a replay file as a ghost (plan 131). */
 		onghost?: () => void;
+		/** Open the Debug panel (plan 203). */
+		ondebug?: () => void;
 	} = $props();
 </script>
 
@@ -54,6 +57,9 @@
 			<Button onclick={onsettings} data-testid="pause-settings">Settings</Button>
 			<Button onclick={oncontrols}>Controls</Button>
 		</div>
+		{#if ondebug}
+			<Button onclick={ondebug} data-testid="pause-debug">Debug (Alt+F12)</Button>
+		{/if}
 		<div class="pair">
 			<a class="link" href={resolve('/vab')}>Back to the hangar</a>
 			<a class="link" href={resolve('/vab?library')}>Vessel library</a>

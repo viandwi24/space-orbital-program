@@ -71,7 +71,9 @@ const settingsV3 = z.object({
 	v: z.literal(3),
 	...v2Fields,
 	interface: interfaceSchema,
-	dock: dockSchema
+	dock: dockSchema,
+	/** Debug mode (plan 203, ADR 0212 point 5): additive in format 3, off when absent. */
+	debug: z.boolean().catch(false).default(false)
 });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
@@ -87,6 +89,8 @@ export interface Settings {
 	touch: TouchChoice;
 	interface: { scale: number; highContrast: boolean };
 	dock: DockChoice;
+	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */
+	debug: boolean;
 }
 export type TutorialProgress = Settings['tutorial'];
 export type AudioSettings = Settings['audio'];
@@ -100,7 +104,8 @@ export const defaultSettings = (): Settings => ({
 	audio: { ...DEFAULT_AUDIO },
 	touch: 'auto',
 	interface: { ...DEFAULT_INTERFACE },
-	dock: defaultDock()
+	dock: defaultDock(),
+	debug: false
 });
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */
@@ -121,7 +126,8 @@ export function parseSettings(text: string | null): Settings {
 			v: 3,
 			bindings: repairBindings(v2.data.bindings),
 			interface: { ...DEFAULT_INTERFACE },
-			dock: defaultDock()
+			dock: defaultDock(),
+			debug: false
 		};
 	const v1 = settingsV1.safeParse(raw);
 	return v1.success

@@ -31,7 +31,8 @@ describe('settings parsing', () => {
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
 			touch: 'on' as const,
 			interface: { scale: 1.25, highContrast: true },
-			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' }
+			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
+			debug: true
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
 	});
@@ -70,7 +71,8 @@ describe('settings parsing', () => {
 			...v2,
 			v: 3,
 			interface: { scale: 1, highContrast: false },
-			dock: defaultDock()
+			dock: defaultDock(),
+			debug: false
 		});
 	});
 	it('a format 3 value without a dock, or with a damaged one, takes the default dock (plan 112)', () => {

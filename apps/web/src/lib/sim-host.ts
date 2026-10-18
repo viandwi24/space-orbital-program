@@ -439,6 +439,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		});
 	};
 
+	/** Wall time of the last `sim.step`, ms. */
+	let stepMs = 0;
+
 	function tick(): void {
 		if (!sim) return;
 		try {
@@ -447,7 +450,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			last = now;
 			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
 			if (!paused) {
+				const before = options.now();
 				sim.step(delta);
+				stepMs = options.now() - before; // the Debug panel's Info tab (plan 203)
 				recorder?.tick();
 			}
 			// The sim ends a warp itself (a finished `warp-to`, a change of sphere): the script's
@@ -463,7 +468,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				verdicts = [];
 				if (session && !session.tick(snapshot, batch)) verdicts = [...batch, ...verdicts];
 			}
-			options.post({ kind: 'snapshot', snapshot, warp: sim.warp });
+			options.post({ kind: 'snapshot', snapshot, warp: sim.warp, stepMs });
 		} catch (error) {
 			// A throwing sim is not recoverable mid-step: stop the loop and report.
 			cancel?.();

@@ -57,6 +57,11 @@
 	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
 	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
+	import DebugPanel from '../../lib/debug/DebugPanel.svelte';
+	import { createDebugApi, exposeDebugApi } from '../../lib/debug/api';
+	import { captureErrors } from '../../lib/log-buffer';
+	import { listEntries, withFallback } from '../../lib/vab/library';
+	import { indexedDbStore } from '../../lib/vab/library-idb';
 	import ResourcesPanel from '../../lib/hud/ResourcesPanel.svelte';
 	import ScriptPanel from '../../lib/hud/ScriptPanel.svelte';
 	import SituationBar from '../../lib/hud/SituationBar.svelte';
@@ -179,6 +184,10 @@
 	/** The text of the last Run: its error line only means something while the editor still holds it. */
 	let ranSource = $state<string | null>(null);
 	let pauseOpen = $state(false);
+	/** The Debug panel (plan 203, Alt+F12 or the pause menu). */
+	let debugOpen = $state(false);
+	/** The flight's design and parts, for the panel's "spawn a design" list. */
+	let debugDesigns: () => Promise<Array<{ name: string; design: VesselDesign }>> = async () => [];
 	let helpOpen = $state(false);
 	let settingsOpen = $state(false);
 	/** Settings was opened from the pause menu: closing it goes back there. */
@@ -515,10 +524,44 @@
 				if (key === 'escape') pauseOpen = true;
 				else if (key === 'quicksave') void quicksave();
 				else if (key === 'quickload') void saves.quickload();
+				else if (key === 'debug') debugOpen = true;
 				else helpOpen = true;
 			}
 		});
 		flight = started;
+		// the debug API (plan 203): `window.__orbitalDebug` while the world allows it, the log of
+		// uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
+		const offDebug = exposeDebugApi(window, createDebugApi(started.debug), started.debug);
+		const offErrors = captureErrors(window);
+		let modeSent: boolean | null = null;
+		let marked = false;
+		const offDebugWatch = started.debug.onSnapshot((s) => {
+			const d = s.debug;
+			if (!d) return;
+			if (d.access === 'opt-in' && d.mode !== settings.debug && modeSent !== settings.debug) {
+				modeSent = settings.debug;
+				void started.debug.send({ type: 'debug-mode', on: settings.debug });
+			}
+			if (d.usedCheats && !marked) {
+				marked = true;
+				void saves.worldsService().then((w) => w.markUsedCheats(activeWorldId()));
+			}
+		});
+		debugDesigns = async () => {
+			const own = [{ name: design.name, design }];
+			try {
+				const store = withFallback(indexedDbStore());
+				const entries = await listEntries(store, content.parts, 'vessel');
+				return [
+					...own,
+					...entries.flatMap((e) =>
+						e.ok && e.record.name !== design.name ? [{ name: e.record.name, design: e.design }] : []
+					)
+				];
+			} catch {
+				return own;
+			}
+		};
 		const waitForPlanner = setInterval(() => {
 			if (started.maneuver) {
 				planner = started.maneuver;
@@ -527,6 +570,9 @@
 		}, 100);
 		return () => {
 			clearInterval(waitForPlanner);
+			offDebugWatch();
+			offDebug();
+			offErrors();
 			offSandbox();
 			checker?.close();
 			checker = null;
@@ -542,7 +588,8 @@
 	$effect(() => {
 		const modal = pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen;
 		flight?.setPaused(modal);
-		flight?.setModal(modal);
+		// the Debug panel quiets the flight keys but lets the sim run (plan 203)
+		flight?.setModal(modal || debugOpen);
 	});
 
 	/** Edits and "Load sample" both go through here so the text is saved per design. */
@@ -1028,6 +1075,18 @@
 				pauseOpen = false;
 				void saves.showLoad();
 			}}
+			ondebug={() => {
+				pauseOpen = false;
+				debugOpen = true;
+			}}
+		/>
+		<DebugPanel
+			open={debugOpen}
+			onclose={() => (debugOpen = false)}
+			host={flight?.debug ?? null}
+			info={() => flight?.debugInfo() ?? null}
+			world={world.name}
+			designs={() => debugDesigns()}
 		/>
 		<SaveDialog {saves} suggestion={model?.name ?? 'Saved flight'} />
 		<LoadDialog {saves} />

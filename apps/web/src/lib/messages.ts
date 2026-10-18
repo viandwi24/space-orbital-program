@@ -125,7 +125,8 @@ export type ClientMessage =
 export type WorkerMessage =
 	| ({ kind: 'ready' } & Catalog)
 	/** `warp` is the sim's own time warp, which it changes itself (SOI change, warp-to); optional for old fixtures. */
-	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number }
+	/** `stepMs`: wall time of the sim step behind it (plan 203's Info tab). */
+	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number; stepMs?: number }
 	| { kind: 'result'; id: number; result: CommandResult }
 	| { kind: 'replay'; id: number; replay: ReplayFile | null }
 	| { kind: 'saved'; id: number; save: SimSave }

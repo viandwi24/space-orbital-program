@@ -15,6 +15,7 @@
 		type PresetChoice
 	} from '../graphics';
 	import { settings } from '../settings/settings.svelte';
+	import { markActiveWorldForDebug } from '../debug/world-mark';
 	import type { UnitSystem } from '../units.svelte';
 	import { TUTORIAL_STEPS } from '../onboarding/tutorial';
 
@@ -215,6 +216,25 @@
 					options={touchOptions}
 					onchange={(c: TouchChoice) => settings.setTouch(c)}
 					testid="setting-touch"
+				/>
+			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Debug mode</h3>
+					<p>
+						Cheats and set-state tools (Alt+F12) in Science and Career worlds. A world where you use
+						them is marked "used cheats" for good and earns no achievements. Sandbox always has
+						them; Hardcore never does.
+					</p>
+				</div>
+				<Switch
+					checked={settings.debug}
+					label="Debug mode"
+					onchange={(on) => {
+						settings.setDebug(on);
+						if (on) void markActiveWorldForDebug();
+					}}
+					testid="setting-debug"
 				/>
 			</div>
 		{:else if tab === 'controls'}
