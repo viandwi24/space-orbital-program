@@ -269,6 +269,14 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - **Recovery** credits queued science at full value.
 - **Save format 8:** `comms.transmissions`. Migration 7 → 8 adds an empty list; `save-v7.json` is the frozen fixture.
 
+
+## Comms tier 5 (plan 120, ADR 0191)
+
+- **Channels:** a band has `channels` (default 4), and the stock antenna module's state holds `channel` and `encrypted`, set by its `setChannel` and `setEncrypted` actions. `bestBudget` keeps the transmitting antenna's channel and encryption on the budget.
+- **Interference:** after routing, with `stock.comms-interference` on, every first hop loses 3 dB (capped at 12) for each other routed first hop on the same band and channel whose transmitter has an edge to its receiver. Encryption then sends at 0.8 times the rate, and the route's width is the smaller one before capacity sharing.
+- **Licences:** `licence-buy { band, channel }` books the band's `licence` price (cause `comms.licence`) and adds to `SimSave.comms.licences`. Channel 0 is always licensed. `transmit-data` is refused on an unlicensed channel; links and commands are not.
+- **Snapshot:** network vessels carry `channel`, `encrypted` and `interference`, and `Snapshot.network.licences` lists the licences.
+
 ## Range safety (plan 127, ADR 0155)
 
 `packages/core/src/range-safety.ts` and `packages/sim/src/range.ts`; rule `stock.range-safety` (`cost` default in Career, `hard`, `off`). A site's safe fan (`safeFan`, cached per run in `SimCore.range.fans`) is every 5° azimuth whose track from 20 to 200 km is water (`TerrainField.waterAt`, plan 067) at 75 % of its 10 km samples and passes 50 km clear of other sites; a body without `waterAt` has none and is not judged. A `stage` command that fires a separator (a module whose `describe` has an unfinished `separator`) on a controlled vessel more than 100 m above the ground takes the vessel's state as the spent stage's: `conicImpact` follows the drag-free conic (the debris rails model) to the reference radius, the body turns for the flight time, and `dropProblem` names a site within 50 km or land. `hard` refuses the command with the reason; `cost` fires it and books `RANGE_PENALTIES` once through the ledger (cause `range-safety`, ref `<kind>:<vessel>`, funds times the cost multiplier, only with `stock.economy` on). A vessel loaded at a site is watched (`SimSave.range.pending`, optional in format 5) until it climbs through 2 km above the ground; the heading of its velocity over the turning ground is then compared with the site's fan (`azimuth` violation, booked under `cost` and `hard`). Each violation emits `range:violation { vessel, kind, site?, latitude?, longitude?, azimuth?, penalised }`. `Snapshot.range` (absent when off) carries the mode, the fan of the latest watched ascent's site (else the primary site) and, per controlled vessel in flight, the predicted drop of its next separating stage when that is a violation.

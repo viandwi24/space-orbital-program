@@ -389,6 +389,13 @@ ctx.siteTemplates.register(defineSiteTemplate({
 - Listen for `comms:data-delivered { vessel, item, kind, bits, time }` to react when your data arrives.
 - A vessel with data storage can carry other vessels' data (store-and-forward) when it will reach a station first.
 
+**Channels and licences (API 0.1.71, plan 120, ADR 0191).**
+
+- **A band's channels:** give your band `channels: 8` and a `licence` price.
+- **An antenna's channel:** your own antenna module returns `channel` and `encrypted` from its `antenna` hook. The stock one has `setChannel` and `setEncrypted` actions.
+- **Licences:** data on a channel other than 0 needs `licence-buy`.
+- **Interference:** links that share a band and a channel, and reach each other's receiver, lose 3 dB each.
+
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 
 The editor's part catalogue groups parts by category, and the categories are a registry: stock registers its nine (`stock.command`, `stock.tanks`, `stock.propulsion`, `stock.structural`, `stock.aero`, `stock.control`, `stock.landing`, `stock.thermal`, `stock.other`) the same way a mod adds its own:
