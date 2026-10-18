@@ -69,6 +69,8 @@ export interface RendererDebug {
 	 * bake cost); `gradient` picks the bake program (`analytic`, the old `fd`, or `none`). Development only.
 	 */
 	bakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void;
+	/** Plan 133: the planet pass's silhouette coverage on or off (before/after screenshots). */
+	silhouetteAA(on: boolean): void;
 	readPatch(which: 'fine' | 'mid'): {
 		frame: { centre: Vec3; east: Vec3; north: Vec3; halfTan: number };
 		size: number;
@@ -463,6 +465,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		terrainHeightAt: (direction) => env.groundHeight(direction),
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
 		bakeMode: (rebake, gradient) => env.planet.debugBakeMode(rebake, gradient),
+		silhouetteAA: (on) => env.planet.debugSilhouetteAA(on),
 		benchmark(frames) {
 			const ctx = gl.getContext();
 			const pixel = new Uint8Array(4);

@@ -150,6 +150,41 @@ export interface MarchResult {
 	/** Distance along the ray, m. */
 	t: number;
 	steps: number;
+	/**
+	 * For a miss (plan 133): the smallest clearance over the marched samples in pixel footprints,
+	 * `c / (t · pixelAngle)`, and the distance where it was. `Infinity` when nothing came near. Within
+	 * 1.5 footprints the real clearance where a parabola through the closest sample and its neighbours
+	 * is lowest refines it; negative there means the ray crossed a crest between two samples.
+	 */
+	closest: { s: number; t: number };
+}
+
+/**
+ * The share of a missing pixel the ground covers (plan 133): a ray whose closest approach is `s`
+ * pixel footprints clear of the ground is half covered at 0 and clear from half a footprint up.
+ */
+export const silhouetteCoverage = (s: number): number => Math.min(1, Math.max(0, 0.5 - s));
+
+/**
+ * The lowest point of the parabola through `(x1, cA)`, `(0, cB)`, `(x3, cC)` (`x1 < 0 < x3`), clamped
+ * to the interval; undefined when it opens downwards or the points are degenerate. A negative `c`
+ * means the curve dips below the ground between the samples.
+ */
+export function parabolaMin(
+	x1: number,
+	cA: number,
+	cB: number,
+	x3: number,
+	cC: number
+): { u: number; c: number } | undefined {
+	const den = x1 * x3 * (x1 - x3);
+	if (!Number.isFinite(cA) || !Number.isFinite(cB) || !(x3 > 0) || Math.abs(den) <= 1e-6)
+		return undefined;
+	const pa = (x3 * (cA - cB) - x1 * (cC - cB)) / den;
+	const pb = (x1 * x1 * (cC - cB) - x3 * x3 * (cA - cB)) / den;
+	if (!(pa > 0)) return undefined;
+	const u = Math.min(x3, Math.max(x1, -pb / (2 * pa)));
+	return { u, c: cB + pa * u * u + pb * u };
 }
 
 /**
@@ -174,7 +209,26 @@ export function marchTerrain(
 	let t = 0;
 	let prevT = 0;
 	let c = heightAt(0);
+	const closest = { s: Infinity, t: 0 };
+	// the closest sample with the one before and the one after it, for the parabola at the end
+	let around = { tP: 0, cP: Infinity, cM: Infinity, tN: 0, cN: -1 };
+	let grabNext = false;
+	let [tLast, cLast] = [0, Infinity];
 	for (let i = 0; i < maxSteps; i++) {
+		if (c >= 0 && t > 0) {
+			const s = c / (t * pixelAngle);
+			if (grabNext) {
+				around = { ...around, tN: t, cN: c };
+				grabNext = false;
+			}
+			if (s < closest.s) {
+				closest.s = s;
+				closest.t = t;
+				around = { tP: tLast, cP: cLast, cM: c, tN: 0, cN: -1 };
+				grabNext = true;
+			}
+			[tLast, cLast] = [t, c];
+		}
 		if (c < 0) {
 			let lo = prevT;
 			let hi = t;
@@ -183,7 +237,7 @@ export function marchTerrain(
 				if (heightAt(mid) < 0) hi = mid;
 				else lo = mid;
 			}
-			return { hit: true, t: 0.5 * (lo + hi), steps: i };
+			return { hit: true, t: 0.5 * (lo + hi), steps: i, closest };
 		}
 		const p = vec(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
 		const r = Math.hypot(p.x, p.y, p.z);
@@ -206,10 +260,22 @@ export function marchTerrain(
 			);
 		}
 		t += marchStep(c, descent, t, pixelAngle, slope);
-		if (t > tMax) return { hit: false, t: tMax, steps: i };
+		if (t > tMax) return { hit: false, t: tMax, steps: i, closest: refine() };
 		c = heightAt(t);
 	}
-	return { hit: false, t, steps: maxSteps };
+	return { hit: false, t, steps: maxSteps, closest: refine() };
+
+	/** As the shader does after a miss: the real clearance where the parabola is lowest, for a near pass. */
+	function refine(): { s: number; t: number } {
+		const { tP, cP, cM, tN, cN } = around;
+		if (!(closest.s < 1.5 && cN >= 0 && tN > closest.t && closest.t > tP && cM <= cP && cM <= cN))
+			return closest;
+		const vertex = parabolaMin(tP - closest.t, cP, cM, tN - closest.t, cN);
+		if (!vertex) return closest;
+		const tv = closest.t + vertex.u;
+		const sv = heightAt(tv) / (tv * pixelAngle);
+		return sv < closest.s ? { s: sv, t: tv } : closest;
+	}
 }
 
 /**

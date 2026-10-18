@@ -387,6 +387,7 @@ export class PlanetPass {
 				uTime: u(0),
 				uPackDepth: u(0),
 				uEdgeOnly: u(0),
+				uSilhouetteAA: u(1),
 				uEdgeHalf: u<unknown>(null),
 				uEdgeFullSize: u(new Vector2(1, 1)),
 				uEdgeHalfSize: u(new Vector2(1, 1)),
@@ -781,6 +782,11 @@ export class PlanetPass {
 	 * `gradient` picks the bake program: `analytic` (the shipped one, ADR 0116), `fd` (the forward
 	 * differences of before plan 068, two extra heights per texel) or `none` (one height, no gradient).
 	 */
+	/** Plan 133: the silhouette coverage on (the shipped default) or off, for before/after screenshots. */
+	debugSilhouetteAA(on: boolean): void {
+		(this.material.uniforms['uSilhouetteAA'] as { value: number }).value = on ? 1 : 0;
+	}
+
 	debugBakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void {
 		this.debugRebake = rebake;
 		for (const m of [this.bake.material, this.patchBake.material]) {

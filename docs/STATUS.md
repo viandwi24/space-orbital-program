@@ -141,7 +141,7 @@
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | done | Agent 2 (Dev B, M2) | ADR 0156: `defineFailureMode` on module ids, trials at stage and load from the `reliability` stream, failed modules skipped, experience, grades (cost), the test stand and static fire, anomaly fixes, EVA repair; `/test-stand`, the Hangar line, the failure toast; API 0.1.55 |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | done | Agent 2 (Dev B, M2) | ADR 0159: replay files (start save, timed commands, checkpoints) recorded by the sim and the web host, verified by re-simulation (`tools/replay-verify`); challenge files scored locally per axis; ghosts in the map and flight view |
 | 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | done | Agent 1 (Lead) | Funds capsule in the HUD (economy on), the Recover button and dialog from `VesselSnapshot.recovery`, `recover-vessel`, back to the Hangar; vitest and a Chromium Career e2e |
-| 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
+| 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | in-progress | Agent 1 (Lead) | ADR 0195: `shadeRay`, coverage at a miss closest approach, crests stepped over taken as hits, grazing normals; far-ridge stair steps at 0.44 to 0.49 and the dark crest line gone; frame cost over the 0.3 ms criterion (+0.29 to +0.75 ms `high`), for the owner to accept or cut |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | done | Agent 1 (Lead) | Stock `stock.solar-panel` (module and part, Probes node, 0.5 EC/s while deployed, `stock.solar` action group): one closed form for `update` and `background`; a day on rails and in flight agree to 0.001 % |
 | 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | done | Agent 1 (Lead) | ADR 0194: `VesselSnapshot.science.stored` (API 0.1.74) and the stock `stock.science` dock panel: experiments with state and reason, stored results with value × factor, Run the next experiment, Transmit the best result |
 | 192 | [Region overlay on the map view](plans/192-region-overlay-on-the-map.md) | done | Agent 1 (Lead) | The Regions layer of the flight map view: a sphere per body tinted from `regionAt` (a 256 × 128 texture in the body frame, 1.5 % above the radius, no tone mapping) and `<body> · <region>` under the cursor |
@@ -212,6 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [133 — Anti-aliased silhouettes of the planet pass](journal/133-planet-pass-silhouette-anti-aliasing.md)
 - [193 — Splash and ripples at the waterline](journal/193-splash-and-ripples-at-the-waterline.md)
 - [192 — Region overlay on the map view](journal/192-region-overlay-on-the-map.md)
 - [190 — Stock solar panel](journal/190-stock-solar-panel-and-battery-background.md)

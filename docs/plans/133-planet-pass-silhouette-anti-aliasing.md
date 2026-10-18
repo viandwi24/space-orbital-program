@@ -1,12 +1,12 @@
 ---
 id: 133
 title: "Anti-aliased silhouettes of the planet pass"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1 (Lead)"
 depends: [068]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 133 — Anti-aliased silhouettes of the planet pass
@@ -34,16 +34,21 @@ The silhouette of the planet pass against the sky (the ground's horizon, a ridge
 
 ## Acceptance criteria
 
-- [ ] JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved).
-- [ ] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms.
-- [ ] `bun run test`, typecheck, build, docs:check pass; the terrain parity e2e stays within its bounds.
+- [x] JPG screenshots of a far ridge and of the horizon, before and after, and a count of stair-step pixels along a rendered edge (at least halved). The far ridge is at 0.44 to 0.49 of the count; the hills horizon could not be counted (journal).
+- [ ] Frame table (journal 054's method): no scene more than 0.3 ms over the baseline; budgets `medium` 13.3 ms, `high` 16.7 ms. **Not met:** `high` is +0.29 to +0.75 ms and `medium` +0.32 to +0.42 ms (journal 133).
+- [x] `bun run test`, typecheck, build, docs:check pass; the terrain parity e2e stays within its bounds.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/133-planet-pass-silhouette-anti-aliasing.md` written.
-- [ ] ADR for the shading split; `docs/architecture/overview.md` (planet pass).
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/133-planet-pass-silhouette-anti-aliasing.md` written.
+- [x] ADR for the shading split ([0195](../decisions/0195-planet-pass-silhouette-coverage.md)); `docs/architecture/overview.md` (planet pass).
 
 ## Log
 
 - 2026-10-17 — Created by Agent 1 from plan 068 (the silhouette half), with what 068 learned about the shading split.
+- 2026-10-18 — Agent 1 (Lead), on lead/followups (ADR 0195):
+  - Built `shadeRay`, the closest approach with a parabola refinement after the loop, the coverage blend, the rule that a crest stepped over is a hit, and grazing normals and self-shadow.
+  - Stair steps at a far ridge fell to 0.44 to 0.49 of the count, and the dark crest dashes are gone.
+  - The frame cost is over the criterion: `high` +0.29 to +0.75 ms, `medium` +0.32 to +0.42 ms.
+  - Left `in-progress` for the owner to accept the cost or have it cut. Measurements are in journal 133.

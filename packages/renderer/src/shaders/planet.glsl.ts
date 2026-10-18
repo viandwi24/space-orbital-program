@@ -127,6 +127,8 @@ void main() {
  * Expects `uR`, `uBodyInv`, `uPixelAngle` and `raySphere` from the includer.
  */
 export const terrainMarchGLSL = /* glsl */ `
+// 1: anti-aliased silhouettes (plan 133); 0 for the before/after screenshots (and in the march prepass)
+uniform float uSilhouetteAA;
 // --- terrain (ADR 0036) -------------------------------------------------------------------------
 #if TERRAIN
 uniform samplerCube uTerrain;
@@ -266,8 +268,14 @@ float rayAltitude(float r0, float d, float t, vec3 p) {
 
 // Sphere-traces the baked heights from the camera ray; true with the hit distance in tOut.
 // tFrom: where the march prepass proved the terrain cannot be hit before (0 without it).
-bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom, out float tOut) {
+// sMin/tMin (plan 133): a miss's closest clearance in pixel footprints and where it was, negative when
+// the ray crossed a crest between two samples (twin: marchTerrain in terrain-model.ts)
+bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom, out float tOut, out float sMin, out float tMin) {
 	tOut = 0.0;
+	sMin = 1e9;
+	tMin = 0.0;
+	float tP = 0.0, cP = 1e9, cM = 1e9, tN = 0.0, cN = -1.0;
+	bool grabNext = false;
 	vec2 shell = raySphere(r0, d, uR + T_MAX);
 	if (shell.y <= 0.0) return false;
 	float t = max(shell.x, 0.0);
@@ -289,6 +297,21 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom
 			hit = true;
 			cHit = c;
 			break;
+		}
+		// the closest sample, the one before it and the one after it (for the parabola after the loop)
+		float sc = c / max(t * uPixelAngle, 1e-6);
+		if (grabNext) {
+			tN = t;
+			cN = c;
+			grabNext = false;
+		}
+		if (sc < sMin) {
+			sMin = sc;
+			tMin = t;
+			cM = c;
+			tP = tPrev;
+			cP = cPrev;
+			grabNext = true;
 		}
 		float mu = dot(rd, p / r);
 		float dt = max(max(t * mix(T_MIN_FRAC, T_FAR_FRAC, smoothstep(50.0, 500.0, t)), t * uPixelAngle * 1.5), T_MIN_M);
@@ -327,7 +350,31 @@ bool marchTerrain(vec3 ro, vec3 rd, float r0, float d, float tLimit, float tFrom
 			break;
 		}
 	}
-	if (!hit) return false;
+	if (!hit) {
+		// the closest approach lies between samples (plan 133): where a parabola through the closest
+		// sample and its neighbours has its lowest point, read the real clearance once, for a near pass
+		// only; below zero, the ray crossed a crest between the samples and main takes it as a hit there
+		if (uSilhouetteAA > 0.5 && sMin < 1.5 && cN >= 0.0 && tN > tMin && tMin > tP && cM <= cP && cM <= cN) {
+			float x1 = tP - tMin;
+			float x3 = tN - tMin;
+			float den = x1 * x3 * (x1 - x3);
+			if (abs(den) > 1e-6) {
+				float pa = (x3 * (cP - cM) - x1 * (cN - cM)) / den;
+				float pb = (x1 * x1 * (cN - cM) - x3 * x3 * (cP - cM)) / den;
+				if (pa > 0.0) {
+					float tv = tMin + clamp(-pb / (2.0 * pa), x1, x3);
+					vec3 pv = ro + rd * tv;
+					float cv = rayAltitude(r0, d, tv, pv) - terrainH(pv, gm);
+					float sv = cv / max(tv * uPixelAngle, 1e-6);
+					if (sv < sMin) {
+						sMin = sv;
+						tMin = tv;
+					}
+				}
+			}
+		}
+		return false;
+	}
 	// Illinois (regula falsi): the bracket [tPrev, t] holds one crossing of a smooth height field;
 	// 5 evaluations land within millimetres where 10 bisections would be needed.
 	float lo = tPrev;
@@ -1136,41 +1183,13 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	return s;
 }
 
-void main() {
-	if (uEdgeOnly > 0.5 && !halfEdge(gl_FragCoord.xy)) discard;
-	vec4 vp = uInvProj * vec4(vNdc, 0.0, 1.0);
-	vec3 rdView = normalize(vp.xyz / vp.w);
-	vec3 rd = normalize(uCamRot * rdView);
-	vec3 fwd = uCamRot * vec3(0.0, 0.0, -1.0);
-
+/**
+ * The shading of one ray (plan 133): the ground at \`tG\` when \`hitG\` (terrain when \`hitT\`, else the
+ * sea-level sphere), else the sky; the atmosphere, clouds and aurora in front. \`main\` runs it once,
+ * and a second time as ground for the few pixels that a silhouette partly covers.
+ */
+vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT, float tG, out float depthDist) {
 	float R = uR;
-	float h = max(uAlt, 0.0);
-	float r0 = R + h;
-	vec3 ro = uCamUp * r0;
-	float d = dot(uCamUp, rd);
-	vec3 cr = cross(uCamUp, rd);
-	float s2 = dot(cr, cr);
-	float disc = R * R - r0 * r0 * s2;
-	bool hitP = disc > 0.0 && d < 0.0;
-	float tHit = 0.0;
-	if (hitP) {
-		float q = r0 * (-d) + sqrt(disc);
-		tHit = h * (2.0 * R + h) / q;
-	}
-	// terrain: the first hit of the baked heights before the sea-level sphere (ADR 0036)
-	bool hitT = false;
-	float tT = 0.0;
-#if TERRAIN
-	if (uTerrainOn > 0.5) {
-		// the march prepass (a quarter of the pixels in each direction) already crossed the empty air
-		float tFrom = 0.0;
-		if (uMarchOn > 0.5) tFrom = texelFetch(uMarchStart, ivec2(gl_FragCoord.xy * uMarchScale) / MARCH_BLOCK, 0).r;
-		if (tFrom < MARCH_NO_HIT * 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tFrom, tT);
-	}
-#endif
-	bool hitG = hitP || hitT;
-	float tG = hitT ? tT : tHit;
-
 	// atmosphere interval
 	float jitter = ign(gl_FragCoord.xy);
 	vec2 at = raySphere(r0, d, R + uAtmH);
@@ -1180,7 +1199,7 @@ void main() {
 	bool inAtm = at.y > 0.0 && t1 > t0;
 
 	vec3 base = vec3(0.0);
-	float depthDist = -1.0; // distance along the ray written to the depth buffer
+	depthDist = -1.0; // distance along the ray written to the depth buffer
 	if (hitG) {
 		vec3 rdBF = uBodyInv * rd;
 		vec3 pl = uCamLocal + rdBF * tG;
@@ -1201,6 +1220,11 @@ void main() {
 		float cosv = max(abs(dot(nGeoI, rd)), 0.03);
 		float footprint = max(tG * uPixelAngle / cosv, 0.002);
 		Surface sf = surfaceAt(nBF, pl, footprint, rdBF * tG, hT, gT);
+		// A ray that grazes the ground sees the rim of a slope edge-on, but its pixel spans the face in
+		// front of it as well: the normal leans back to level ground and the rim's self-shadow fades as
+		// the incidence goes grazing (plan 133), or the silhouette of every ridge is a dark dashed line.
+		float graze = hitT && uSilhouetteAA > 0.5 ? 1.0 - smoothstep(0.03, 0.2, abs(dot(nGeoI, rd))) : 0.0;
+		sf.normal = normalize(mix(sf.normal, nBF, graze));
 
 		vec3 Lb = uSunBF;
 		float ndl = max(dot(sf.normal, Lb), 0.0);
@@ -1214,7 +1238,7 @@ void main() {
 		// it is not run, which also saves its eight height reads for the far half of the screen.
 		if (hitT && geo > -0.05 && footprint < 160.0) {
 			float vis = terrainShadow(posRel + nGeoI * 2.0, uSunDir);
-			sh *= mix(vis, 1.0, smoothstep(40.0, 160.0, footprint));
+			sh *= mix(mix(vis, 1.0, smoothstep(40.0, 160.0, footprint)), 1.0, graze);
 		}
 #endif
 #if CLOUD_SHADOW_MAP
@@ -1444,6 +1468,92 @@ void main() {
 	}
 
 	colour += auroraNear;
+	return colour;
+}
+
+void main() {
+	if (uEdgeOnly > 0.5 && !halfEdge(gl_FragCoord.xy)) discard;
+	vec4 vp = uInvProj * vec4(vNdc, 0.0, 1.0);
+	vec3 rdView = normalize(vp.xyz / vp.w);
+	vec3 rd = normalize(uCamRot * rdView);
+	vec3 fwd = uCamRot * vec3(0.0, 0.0, -1.0);
+
+	float R = uR;
+	float h = max(uAlt, 0.0);
+	float r0 = R + h;
+	vec3 ro = uCamUp * r0;
+	float d = dot(uCamUp, rd);
+	vec3 cr = cross(uCamUp, rd);
+	float s2 = dot(cr, cr);
+	float disc = R * R - r0 * r0 * s2;
+	bool hitP = disc > 0.0 && d < 0.0;
+	float tHit = 0.0;
+	if (hitP) {
+		float q = r0 * (-d) + sqrt(disc);
+		tHit = h * (2.0 * R + h) / q;
+	}
+	// terrain: the first hit of the baked heights before the sea-level sphere (ADR 0036)
+	bool hitT = false;
+	float tT = 0.0;
+	float sT = 1e9;
+	float tTMin = 0.0;
+#if TERRAIN
+	if (uTerrainOn > 0.5) {
+		// the march prepass (a quarter of the pixels in each direction) already crossed the empty air
+		float tFrom = 0.0;
+		if (uMarchOn > 0.5) tFrom = texelFetch(uMarchStart, ivec2(gl_FragCoord.xy * uMarchScale) / MARCH_BLOCK, 0).r;
+		if (tFrom < MARCH_NO_HIT * 0.5) hitT = marchTerrain(ro, rd, r0, d, hitP ? tHit : 1e9, tFrom, tT, sT, tTMin);
+		// a crest stepped over between two samples (plan 133): the ground is there, not the sea far behind it
+		if (!hitT && sT < 0.0 && uSilhouetteAA > 0.5) {
+			hitT = true;
+			tT = tTMin;
+		}
+	}
+#endif
+	bool hitG = hitP || hitT;
+	float tG = hitT ? tT : tHit;
+
+	// Anti-aliased silhouette (plan 133, ADR 0195): a ray that misses the ground but passes within half
+	// a pixel footprint of it is that much covered by it; it is shaded a second time as ground at its
+	// closest approach and blended. The sea horizon's closest approach is analytic. One call site in a
+	// loop, so the compiler keeps one copy of the shading.
+	float cover = 0.0;
+	bool edgeT = false;
+	float tEdge = 0.0;
+	if (uSilhouetteAA > 0.5 && !hitG) {
+		float sEdge = 1e9;
+#if TERRAIN
+		if (sT < sEdge) {
+			sEdge = sT;
+			tEdge = tTMin;
+			edgeT = true;
+		}
+#endif
+		if (d < 0.0) {
+			float tc = -r0 * d;
+			float sSea = (r0 * sqrt(s2) - R) / max(tc * uPixelAngle, 1e-6);
+			if (sSea < sEdge) {
+				sEdge = sSea;
+				tEdge = tc;
+				edgeT = false;
+			}
+		}
+		cover = clamp(0.5 - sEdge, 0.0, 1.0);
+	}
+	vec3 colour = vec3(0.0);
+	float depthDist = -1.0;
+	for (int pass = 0; pass < 2; pass++) {
+		bool first = pass == 0;
+		float dPass;
+		vec3 c = shadeRay(ro, rd, r0, d, h, first ? hitG : true, first ? hitT : edgeT, first ? tG : tEdge, dPass);
+		if (first) {
+			colour = c;
+			depthDist = dPass;
+			if (cover <= 0.004) break;
+		} else {
+			colour = mix(colour, c, cover);
+		}
+	}
 
 	// A single NaN or infinity would smear through the bloom chain over the whole frame.
 	bool bad = any(isnan(colour)) || any(isinf(colour));

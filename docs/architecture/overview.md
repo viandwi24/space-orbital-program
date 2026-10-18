@@ -34,6 +34,15 @@ Since plan 122 (ADR 0119) the renderer is told the home body (`SceneConfig.home`
 
 Since plan 027 the same pass also draws terrain heights (ADR 0036): `terrain-model.ts` is the reference height function, `shaders/terrain.glsl.ts` bakes it once into a cube map, and the planet shader sphere-traces it per pixel under a flat zone around the launch site and a bubble around a low camera. The heights are visual only; the sim's ground is still the flat tile on the reference sphere. Clouds are two shells in one atmosphere march (`cloud-model.ts`) and the sea is a sum of dispersive waves (`water-model.ts`, ADR 0037).
 
+
+**Silhouettes of the planet pass** (plan 133, ADR 0195) have three parts:
+
+- `shadeRay` holds the pass's shading of one ray: ground or sky, then the atmosphere, clouds and aurora in front.
+- `marchTerrain` reports a miss's closest approach in pixel footprints. A parabola through the closest sample and its neighbours refines it, with one real height read. A ray whose closest approach is within half a footprint is shaded a second time as ground there, and the two are blended by coverage. A negative clearance is a crest the samples stepped over, and it counts as a hit.
+- At grazing incidence the ground's normal leans to level and its self-shadow fades. Without that, every ridge is a dark dashed line.
+
+The CPU twin is `terrain-model.ts` (`marchTerrain(...).closest`, `silhouetteCoverage`, `parabolaMin`).
+
 Lakes, rivers and shores (plan 038, ADR 0072): `core/terrain.ts` carves lake basins out of the one height function (a flat floor at sea level, relief capped by a cone, so lakes are as solid as the sea), the planet pass draws them as water, moves the ripples of a river along its course by a two-phase flow map (`water-flow.ts`) and runs the swell up the beach with a shoaling phase and a breaker line (`shore-wave.ts`). The launch site's arms, steam, beacons and lit windows are driven by the vessel's height and the clock (`site-animation.ts`, ADR 0073), and `Renderer.precompile(onProgress)` reports its progress to the flight page's badge (ADR 0074).
 
 ### Space Center (plan 091, ADR 0117)
