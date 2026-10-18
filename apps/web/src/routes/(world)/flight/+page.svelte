@@ -5,7 +5,11 @@
 	import { ghostTrack, type ScreenGhost } from '../../../lib/replays/ghost-model';
 	import { downloadText, fileNameOf } from '../../../lib/download';
 	import VesselPanel from '../../../lib/vessel-panel/VesselPanel.svelte';
-	import { transmitters, vesselView, type PanelContent } from '../../../lib/vessel-panel/vessel-model';
+	import {
+		transmitters,
+		vesselView,
+		type PanelContent
+	} from '../../../lib/vessel-panel/vessel-model';
 	import { commsTab, type ScreenNetwork } from '../../../lib/comms/network-model';
 	import NetworkLayer from '../../../lib/comms/NetworkLayer.svelte';
 	import { categoriesOf } from '../../../lib/editor/categories';
@@ -441,7 +445,10 @@
 		if (gone()) return undefined;
 		// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
 		const ready = await client.ready.catch(() => null);
-		const info = resume?.sim.worldInfo ?? worldSession.base?.sim.worldInfo ?? (await saves.worldStartInfo(activeWorldId()));
+		const info =
+			resume?.sim.worldInfo ??
+			worldSession.base?.sim.worldInfo ??
+			(await saves.worldStartInfo(activeWorldId()));
 		const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
 		if (gone() || !ready) return undefined;
 		return begin(
@@ -696,9 +703,28 @@
 	let viewport = $state({ width: 1440, height: 900 });
 	/** Below 1280 px the dock stands at the right, where the left stack has no room (plan 112). */
 	const narrow = $derived(viewport.width <= 1279);
+	/** The flight's own box (inside the world layout's bars since plan 204): every measure is relative to it. */
+	let stageEl = $state<HTMLDivElement>();
 	function updateInsets(): void {
-		viewport = { width: innerWidth, height: innerHeight };
-		const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+		const frame = stageEl?.getBoundingClientRect() ?? {
+			left: 0,
+			top: 0,
+			width: innerWidth,
+			height: innerHeight
+		};
+		viewport = { width: frame.width, height: frame.height };
+		const box = (sel: string) => {
+			const r = document.querySelector(sel)?.getBoundingClientRect();
+			if (!r) return undefined;
+			return {
+				left: r.left - frame.left,
+				right: r.right - frame.left,
+				top: r.top - frame.top,
+				bottom: r.bottom - frame.top,
+				width: r.width,
+				height: r.height
+			};
+		};
 		const deck = box('.bc .deck');
 		const right = box('.tr');
 		const bar = box('.tc header');
@@ -709,8 +735,8 @@
 		// beside the whole left stack: the capsules can be wider than the open panel
 		dockRight = open && open.width > 0 && left ? Math.round(Math.max(open.right, left.right)) : 0;
 		const top = bar ? bar.bottom + 8 : 0;
-		const bottom = deck ? Math.max(0, innerHeight - deck.top + 8) : 0;
-		const side = right && right.width > 0 ? Math.max(0, innerWidth - right.left + 8) : 0;
+		const bottom = deck ? Math.max(0, frame.height - deck.top + 8) : 0;
+		const side = right && right.width > 0 ? Math.max(0, frame.width - right.left + 8) : 0;
 		const key = [top, side, bottom, dockRight].map(Math.round).join(',');
 		if (key === lastInsets) return;
 		lastInsets = key;
@@ -762,7 +788,7 @@
 
 <svelte:window onresize={updateInsets} />
 
-<div class="stage">
+<div class="stage" bind:this={stageEl}>
 	<canvas
 		bind:this={canvas}
 		onpointermove={onCanvasMove}

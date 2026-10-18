@@ -45,7 +45,7 @@ export function throttleAnchor(
 	leftStackBottom: number,
 	/** Right edge of the open dock panel (plan 112), px; 0 when no panel is open. */
 	dockRight = 0
-): { left: number; centre: number } {
+): { left: number; centre: number; room: number } {
 	// beside an open panel the throttle has the full height; otherwise it sits under the left stack
 	const beside = dockRight > 0 || scriptOpen;
 	const left =
@@ -56,7 +56,8 @@ export function throttleAnchor(
 				: EDGE - 4;
 	const spanTop = beside ? EDGE : Math.max(EDGE, leftStackBottom + EDGE);
 	const spanBottom = Math.max(spanTop, viewport.height - Math.max(0, deckHeight) - EDGE);
-	return { left, centre: (spanTop + spanBottom) / 2 };
+	// `room`: the free height, so the throttle can shorten its track where the span is short
+	return { left, centre: (spanTop + spanBottom) / 2, room: spanBottom - spanTop };
 }
 
 /** What kind of small screen this is, for the wording of the notice. `ok` shows no notice. */

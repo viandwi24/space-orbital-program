@@ -10,6 +10,7 @@
 	import StageEditor from '../../../lib/vab/StageEditor.svelte';
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import TopBar from '../../../lib/vab/TopBar.svelte';
+	import { pageActions } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../../lib/vab/controller.svelte';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -93,7 +94,40 @@
 		void vab.drawer;
 		queueMicrotask(() => vab.updateInsets());
 	});
+	// the Hangar's actions in the world menu bar (plan 204, rancangan §2.4)
+	$effect(() => {
+		pageActions.current = menuActions;
+		return () => {
+			if (pageActions.current === menuActions) pageActions.current = null;
+		};
+	});
 </script>
+
+{#snippet menuActions()}
+	<Button onclick={() => vab.newVessel()} title="A new, empty vessel" data-testid="menu-new"
+		>New</Button
+	>
+	<Button
+		onclick={() => vab.openLibrary()}
+		title="Open a vessel from the library"
+		data-testid="menu-open">Open</Button
+	>
+	<Button
+		disabled={vab.editor.design.parts.length === 0}
+		onclick={() => {
+			vab.saveState = 'saving';
+			void vab.flushSave();
+		}}
+		title="Save to the library (Ctrl+S)"
+		data-testid="menu-save">Save</Button
+	>
+	<Button
+		variant="primary"
+		onclick={(e) => vab.launch(false, e.shiftKey)}
+		aria-label="Go to the launch screen"
+		data-testid="menu-launch">Launch</Button
+	>
+{/snippet}
 
 <PageMeta
 	title="Vehicle assembly · {GAME_NAME}"

@@ -7,7 +7,9 @@ const snap = (extra: Partial<Snapshot>): Snapshot => ({ t: 0, vessels: [], bodie
 
 describe('status bar', () => {
 	it('shows funds, science and reputation from the snapshot', () => {
-		const s = snap({ economy: { enabled: true, funds: 123456.7, science: 12.34, reputation: 40.4 } });
+		const s = snap({
+			economy: { enabled: true, funds: 123456.7, science: 12.34, reputation: 40.4 }
+		});
 		expect(statusItems(s)).toEqual({
 			funds: '123,457',
 			science: '12.3',

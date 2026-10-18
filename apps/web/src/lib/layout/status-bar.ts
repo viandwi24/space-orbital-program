@@ -73,10 +73,10 @@ export function createBellFeed(limit = 50, now: () => number = Date.now): BellFe
 			return entries.filter((e) => !e.read).length;
 		},
 		push(entry) {
-			entries = [{ ...entry, id: next++, time: entry.time ?? now(), read: false }, ...entries].slice(
-				0,
-				limit
-			);
+			entries = [
+				{ ...entry, id: next++, time: entry.time ?? now(), read: false },
+				...entries
+			].slice(0, limit);
 			notify();
 		},
 		markAllRead() {

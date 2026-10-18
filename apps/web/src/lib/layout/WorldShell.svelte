@@ -65,13 +65,17 @@
 <div class="shell">
 	<header class="top" data-testid="time-bar">
 		<div class="clock">
-			<span class="num" data-testid="world-clock">{clock}</span>
+			<span class="num" data-testid="world-clock" data-t={snapshot?.t ?? 0}>{clock}</span>
 			<span class="warp num" data-testid="world-warp">{warp}×</span>
 		</div>
 		<nav class="menu" aria-label="World menu" data-testid="menu-bar">
 			{#if actions}<div class="actions">{@render actions()}</div>{/if}
-			<a class="mb" href={resolve('/(world)/flight')} data-testid="nav-flight" aria-label="Flight" title="Flight"
-				><Icon name="launch" size={17} /></a
+			<a
+				class="mb"
+				href={resolve('/(world)/flight')}
+				data-testid="nav-flight"
+				aria-label="Flight"
+				title="Flight"><Icon name="launch" size={17} /></a
 			>
 			<a
 				class="mb"
@@ -87,11 +91,21 @@
 				aria-label="Space Center"
 				title="Space Center"><Icon name="hangar" size={17} /></a
 			>
-			<button type="button" class="mb" data-testid="nav-home" aria-label="Home" title="Home" onclick={onhome}
-				><Icon name="home" size={17} /></button
+			<button
+				type="button"
+				class="mb"
+				data-testid="nav-home"
+				aria-label="Home"
+				title="Home"
+				onclick={onhome}><Icon name="home" size={17} /></button
 			>
-			<button type="button" class="mb" data-testid="nav-menu" aria-label="Menu" title="Menu" onclick={onmenu}
-				><Icon name="menu" size={17} /></button
+			<button
+				type="button"
+				class="mb"
+				data-testid="nav-menu"
+				aria-label="Menu"
+				title="Menu"
+				onclick={onmenu}><Icon name="menu" size={17} /></button
 			>
 		</nav>
 	</header>
@@ -103,10 +117,18 @@
 		<span class="cell dim">{world.mode}</span>
 		<span class="cell">{place}</span>
 		<span class="grow"></span>
-		{#if items.funds !== null}<span class="cell" data-testid="hud-funds">Funds <b class="num">{items.funds}</b></span>{/if}
-		{#if items.science !== null}<span class="cell" data-testid="status-science">Science <b class="num">{items.science}</b></span>{/if}
-		{#if items.reputation !== null}<span class="cell" data-testid="status-reputation">Rep <b class="num">{items.reputation}</b></span>{/if}
-		{#if items.contracts !== null}<span class="cell">Contracts <b class="num">{items.contracts}</b></span>{/if}
+		{#if items.funds !== null}<span class="cell" data-testid="hud-funds"
+				>Funds <b class="num">{items.funds}</b></span
+			>{/if}
+		{#if items.science !== null}<span class="cell" data-testid="status-science"
+				>Science <b class="num">{items.science}</b></span
+			>{/if}
+		{#if items.reputation !== null}<span class="cell" data-testid="status-reputation"
+				>Rep <b class="num">{items.reputation}</b></span
+			>{/if}
+		{#if items.contracts !== null}<span class="cell"
+				>Contracts <b class="num">{items.contracts}</b></span
+			>{/if}
 		<span class="cell dim" data-testid="status-saved">{savedAgo(savedAt, now)}</span>
 		{#if mods > 0}<span class="cell dim">{mods} mod{mods === 1 ? '' : 's'}</span>{/if}
 		<button
@@ -134,8 +156,8 @@
 
 <style>
 	.shell {
-		--shell-top: 2.5rem;
-		--shell-bottom: 1.75rem;
+		--shell-top: 2.25rem;
+		--shell-bottom: 1.5rem;
 	}
 	.top,
 	.status {
@@ -197,8 +219,8 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 2rem;
+		width: 1.875rem;
+		height: 1.875rem;
 		border: 0;
 		border-radius: 50%;
 		background: transparent;

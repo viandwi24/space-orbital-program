@@ -1,6 +1,6 @@
 # 0123 — Construction on the world tick, typed capacity keys, upkeep every 30 days
 
-**Status:** accepted
+**Status:** accepted; its Consequences note on the Space Center running and writing back the newest save is amended by 0201 (one sim per world)
 **Date:** 2026-10-18
 **Plan:** [096](../plans/096-building-catalogue-levels-upkeep-capacity.md)
 **Builds on:** ADR 0097 points 4 and 5 (buildings are data, construction costs time and money), ADR 0098 point 3 (capacity-only gates), ADR 0113 (ledger, charges), ADR 0115 (placement), ADR 0150 (Launch screen), ADR 0171 (world tick)

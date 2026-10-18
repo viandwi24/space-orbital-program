@@ -30,7 +30,8 @@ test('on a touch tablet: controls show, Stage fires, the throttle slider sets th
 
 	const track = page.getByTestId('touch-throttle');
 	const box = (await track.boundingBox())!;
-	await page.touchscreen.tap(box.x + box.width / 2, box.y + 10);
+	// near the top: the track is 72 to 150 px tall, after the room the world bars leave (plan 204)
+	await page.touchscreen.tap(box.x + box.width / 2, box.y + 4);
 	await expect(track).toHaveAttribute('aria-valuenow', /^(9\d|100)$/);
 
 	await page.getByTestId('touch-stage').tap();

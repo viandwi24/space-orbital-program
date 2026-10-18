@@ -4,7 +4,12 @@
 	 * The Launch screen (plan 094, ADR 0150; refs Launch): the site's pad or runway, a design it
 	 * accepts, seats, the summary, then the flight.
 	 */
-	import { designLocks, loadWorldTech, NO_TREE, type WorldTech } from '../../../lib/tech/world-tech';
+	import {
+		designLocks,
+		loadWorldTech,
+		NO_TREE,
+		type WorldTech
+	} from '../../../lib/tech/world-tech';
 	import { goto } from '$app/navigation';
 	import {
 		designCost,
@@ -44,7 +49,12 @@
 	import { listEntries, memoryStore, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
-	import { fanText, launchRange, rangeModeOf, type LaunchRange } from '../../../lib/range/range-model';
+	import {
+		fanText,
+		launchRange,
+		rangeModeOf,
+		type LaunchRange
+	} from '../../../lib/range/range-model';
 
 	interface Choice {
 		key: string;

@@ -18,7 +18,8 @@
 		onattitude: (input: { pitch: number; yaw: number; roll: number }) => void;
 		onstage: () => void;
 		/** Left edge and vertical centre of the throttle, px: clear of the script panel and the deck (plan 055). */
-		anchor?: { left: number; centre: number };
+		/** `room`: the free height at the left edge (plan 204: the world bars take some). */
+		anchor?: { left: number; centre: number; room?: number };
 	} = $props();
 
 	let track: HTMLDivElement;
@@ -71,6 +72,12 @@
 		roll[which] = down;
 		send();
 	}
+	/** The Full and Cut chips and the gaps around the track, px. */
+	const CHIPS = 96;
+	/** The track at most 150 px (its CSS height), at least 72, within the free height. */
+	const trackHeight = $derived(
+		anchor?.room === undefined ? null : Math.max(72, Math.min(150, anchor.room - CHIPS))
+	);
 </script>
 
 <div class="touch" data-testid="touch-controls" data-silent>
@@ -95,6 +102,7 @@
 			aria-valuemax="100"
 			aria-valuenow={Math.round(throttle * 100)}
 			data-testid="touch-throttle"
+			style:height={trackHeight === null ? undefined : `${trackHeight}px`}
 			onpointerdown={slideDown}
 			onpointermove={slideMove}
 		>

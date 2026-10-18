@@ -13,6 +13,7 @@
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import { createBellFeed } from '../../lib/layout/status-bar';
+	import { pageActions } from '../../lib/layout/page-actions.svelte';
 	import { worldSession } from '../../lib/world-session';
 	import { bootWorld } from '../../lib/world-boot';
 	import { createWorldLock, type LockState, type WorldLock } from '../../lib/world-lock';
@@ -176,9 +177,12 @@
 					if (w !== undefined) warp = w;
 				}),
 				client.onSimEvent((e) => {
-					if (e.type === 'vessel-destroyed') bell.push({ source: 'sim', text: `Vessel lost: ${e.reason}` });
-					else if (e.type === 'soi-changed') bell.push({ source: 'sim', text: `A vessel entered ${e.to}` });
-					else if (e.type === 'maneuver-complete') bell.push({ source: 'sim', text: 'A maneuver node was burned' });
+					if (e.type === 'vessel-destroyed')
+						bell.push({ source: 'sim', text: `Vessel lost: ${e.reason}` });
+					else if (e.type === 'soi-changed')
+						bell.push({ source: 'sim', text: `A vessel entered ${e.to}` });
+					else if (e.type === 'maneuver-complete')
+						bell.push({ source: 'sim', text: 'A maneuver node was burned' });
 				})
 			);
 		};
@@ -186,11 +190,22 @@
 			attach();
 			savedAt = worldSession.savedAt;
 		});
-		worldSession.requestSave = (reason) => void save(autosaver.request(reason, autosaveState()));
+		// an event save inside the minimum gap is not dropped: it waits for the gap to pass
+		let pending: 'stage' | 'landed' | 'change' | null = null;
+		worldSession.requestSave = (reason) => {
+			const now = autosaver.request(reason, autosaveState());
+			if (now) void save(now);
+			else pending = reason;
+		};
 
-		const timer = setInterval(() => void save(autosaver.tick(autosaveState())), 1000);
+		const timer = setInterval(() => {
+			const due = pending ? autosaver.request(pending, autosaveState()) : null;
+			if (due) pending = null;
+			void save(due ?? autosaver.tick(autosaveState()));
+		}, 1000);
 		const onHidden = (): void => {
-			if (document.visibilityState === 'hidden') void save(autosaver.request('hidden', autosaveState()));
+			if (document.visibilityState === 'hidden')
+				void save(autosaver.request('hidden', autosaveState()));
 		};
 		const onPageHide = (): void => void save(autosaver.request('pagehide', autosaveState()));
 		document.addEventListener('visibilitychange', onHidden);
@@ -238,6 +253,7 @@
 		{bell}
 		onmenu={() => (settingsOpen = true)}
 		onhome={() => void goto(resolve('/'))}
+		actions={pageActions.current ?? undefined}
 	>
 		{@render children()}
 	</WorldShell>
