@@ -95,3 +95,4 @@ Docs: journal docs/journal/120-comms-tier-5-channels-licences-interference.md ·
 Resource notes: swap used 1078 MB, thermal warm (benchmark drift), sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (interception and jamming, power-based interference, licence auctions in ADR 0191)
 ```
+- 2026-10-18 — Merged by Agent 1 (ADR 0126): no CI result 30 minutes after the handover tag, so the local fallback ran on the rebased result: check:affected passed (11 affected workspaces, bun test, related vitest), the build and the Chromium smoke; Mission Center and vessel-panel e2e pass; conflicts in the ADR index and the sim's command switch (both kept). API_VERSION 0.1.71 set on the branch.
