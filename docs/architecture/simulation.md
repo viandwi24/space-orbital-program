@@ -167,6 +167,23 @@ A data item (`DataItem`: `id`, `kind`, `bits`, `value`, `time`, optional `source
 - **`Snapshot.strategies`** (economy on) lists the strategies on offer with each key's bounds, and the current multipliers.
 - **The projection on the screen** is core's `projectBalances` with the strategy's multipliers and extra charges: the upkeep, and the buildings' upkeep (`buildingUpkeepCharges`). So it matches the sim to the funds unit.
 
+## Rival agencies (plan 126, ADR 0190)
+
+`packages/sim/src/agencies.ts`. `SimCore.agencies` (`SimSave.agencies`, optional) holds each running agency's funds, reputation, next mission, ready day, stream state and objects, plus the rentals and the last 50 news items.
+
+- **The daily step:** `agenciesTick` runs on each world tick after the economy, for the first `stock.agency-count` registered agencies. Each one:
+  - gains `monthly / 30`;
+  - retires objects at the end of their life;
+  - fails relays at `0.2 × risk / lifeDays` per day, with news and a reactive contract offer (template `agency.<id>`) in the contract offers;
+  - launches its next mission when ready and paid for. The success roll is `success × (1 − 0.3 × risk)`, and the next one is due after `prepDays × (1.5 − aggressiveness)` days.
+- **Objects:** a success places a probe core and dish on a circular orbit of home (phase from the stream) on rails, with `VesselState.owner`. At most 2 per agency; the oldest is deorbited.
+- **Passive:** owned objects skip the per-chunk update hooks, heat, rebasing, SOI checks, debris and milestones. Unrented, they are not on the comms network.
+- **Commands:**
+  - every command naming an owned vessel is refused (`owned by <name>`), except `relay-rent`, `relay-end-rent` and `comms-inspect`;
+  - `relay-rent` adds a rental, which books `agency.rent` daily and puts the relay on the network.
+- **`Snapshot.agencies`** carries the agencies and the news, newest first; `VesselSnapshot.owner` names an object's agency.
+- **ECS query:** `world.query` reuses its answer until an entity joins or leaves a queried component. Rails chunks of 10 s ask for the vessels many times each.
+
 ## Crew (plan 106, ADR 0176)
 `packages/sim/src/crew.ts`. `SimCore.crew` (`SimSave.crew`, optional in format 5, written once anyone is hired) holds the roster, the id counter and the `crew` stream state. `crew-hire { profession }` draws a name and traits from that stream and books the recruit fee (20 days of the base salary) when economy and salaries are on; `crew-dismiss { member }` lets an available member go (they leave the roster, `crew:dismissed`; a seated, missing or lost member is refused; contract `cp/f3-contract-crew-dismiss`, API 0.1.59). `load-vessel { crew: [{ member, part }] }` seats available members within `crewCapacity`, and `crew-transfer` moves one between parts of a vessel. A member's location is the part entity, so staging carries them along. After each step, everyone aboard collects places: `flyby:<body>` outside home's sphere, `orbit:<body>` on a closed orbit whose periapsis clears the atmosphere, `landed:<body>` on a body other than home. At `recover-vessel`, with `stock.crew-experience` on, each new place books `kind × body` XP (flyby 1, orbit 1.5, landed 2.3; other bodies ×2), and the member is available again. Any other `destroyVessel` applies `stock.crew-death`: `permanent` → lost, `return` → missing until `stock.crew-return-days` days later (checked on world ticks), `off` → available. On each world tick, with economy and salaries on, salaries are one `crew.salaries` ledger entry. `Snapshot.crew` lists the roster, and `VesselSnapshot.crew` who sits where, with ability factors. The command-source rule of ADR 0109 (crew needed for control) is plan 114's.
 

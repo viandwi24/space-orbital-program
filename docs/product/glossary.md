@@ -92,6 +92,7 @@ Use these terms consistently in code, docs, and UI.
 | **Contract slot / expected value** | Slots: how many contracts may be active at once (the Mission Center's `mission-control` capacity). Expected value: an offer's advance plus reward funds, less its estimated launch cost; labelled an estimate (ADR 0186). |
 | **Mission** | A written job in the story line or a mission pack (`defineMission`), on the same evaluator as contracts. |
 | **Strategy** | A policy activated in Administration (`defineStrategy`). It scales declared multiplier keys (launch cost, recovery, science, reputation, contract funds, budget) within each key's bounds, for an upkeep every 30 days; the screen shows a 90-day projection first (ADR 0187). |
+| **Rival agency / owned object** | An AI agency (`defineAgency`) that launches satellites and relays on the world tick; its objects are real vessels on rails with an `owner`, which the player sees and targets and may rent as relays, but cannot command (ADR 0190). |
 | **Milestone** | A world first recorded automatically (first orbit, landing, return, ...), written to the world's history book. |
 | **Achievement** | A local, cross-world player award defined as data (`defineAchievement`), kept in an exportable profile. |
 | **Agency** | A rival space programme simulated as a state machine on the world tick whose successes place real objects in the world (ADR 0096); also the player's own type: government, company or hybrid. |

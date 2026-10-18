@@ -6,6 +6,7 @@
  */
 import { isFailed } from './reliability.ts';
 import { queuesSnapshot, stepTransmissions } from './transmission.ts';
+import { routable } from './agencies.ts';
 import {
 	BLACKOUT_BADGE_LEVEL,
 	BLACKOUT_NOSE_RADIUS,
@@ -853,8 +854,13 @@ export function updateNetwork(core: SimCore): void {
 	const from = comms.last ?? core.t;
 	comms.dirty = false;
 	comms.last = core.t;
+	const nodes = networkVessels(core).map((id) => nodeOf(core, id));
+	// nothing on the network: no links and no events, so the samples need not run (plan 126)
+	if (nodes.length === 0) {
+		comms.links.clear();
+		return;
+	}
 	const stations = stationsOf(core);
-	const nodes = vesselIds(core).map((id) => nodeOf(core, id));
 	const points = nodes.filter((n) => n.crewed);
 	const blackout = new Map(nodes.map((n) => [n.id, blackoutOf(core, n.id)]));
 	// Sample times: every NETWORK_SAMPLE seconds after `from`, then now.
@@ -962,6 +968,9 @@ export function signalOf(core: SimCore, id: EntityId): SignalState {
 
 /** Whether a vessel has an antenna at all, on or off (plan 119). */
 export const hasAntenna = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).range >= 0;
+/** The vessels on the network: the player's and rented relays, not other agencies' (ADR 0190). */
+const networkVessels = (core: SimCore): EntityId[] =>
+	vesselIds(core).filter((id) => routable(core, id));
 
 /** A vessel whose control sources all sit on parts without seats (ADR 0179 point 5). */
 export const isProbe = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).probe;
@@ -1006,7 +1015,7 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 	let links = core.comms.links;
 	if (core.comms.dirty || core.comms.last === null) {
 		links = new Map();
-		const nodes = vesselIds(core).map((id) => nodeOf(core, id));
+		const nodes = networkVessels(core).map((id) => nodeOf(core, id));
 		const blackout = new Map(nodes.map((n) => [n.id, blackoutOf(core, n.id)]));
 		const routed = routeNetwork(core, frame, nodes, stations, blackout, true);
 		for (const node of nodes) {

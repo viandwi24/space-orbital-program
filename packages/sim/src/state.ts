@@ -92,6 +92,8 @@ export type TargetState = { kind: 'body'; id: string } | { kind: 'vessel'; id: E
 
 export interface VesselState {
 	name: string;
+	/** The agency that owns it (plan 126, ADR 0190 point 3); absent for the player's vessels. */
+	owner?: string;
 	mode: VesselMode;
 	/** Id of the body whose sphere of influence the vessel is in. */
 	soi: string;

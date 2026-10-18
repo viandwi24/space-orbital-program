@@ -6,6 +6,7 @@ import type { LinkBudget, RouteMode } from './comms.ts';
 import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
 import type { StrategiesSnapshot } from './strategies.ts';
+import type { AgenciesSnapshot } from './agencies.ts';
 import type { RangeSnapshot } from './range-safety.ts';
 import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
@@ -133,6 +134,8 @@ export interface PartSnapshot {
 
 export interface VesselSnapshot {
 	id: EntityId;
+	/** The agency that owns it (plan 126, ADR 0190 point 3); absent for the player's. */
+	owner?: string;
 	/**
 	 * Present while the vessel can be recovered (landed or splashed and at rest; plan 095): what
 	 * `recover-vessel` would credit, for the HUD to show before the player confirms.
@@ -232,6 +235,8 @@ export interface Snapshot {
 	contracts?: ContractsSnapshot;
 	/** Strategy slots, multipliers and the strategies on offer (plan 101, ADR 0187); with the economy on. */
 	strategies?: StrategiesSnapshot;
+	/** Rival agencies and their news (plan 126, ADR 0190); absent when none runs. */
+	agencies?: AgenciesSnapshot;
 	/** Started objectives, active and finished (plan 098, ADR 0175). */
 	objectives?: Array<{
 		id: string;
@@ -601,6 +606,9 @@ export type Command =
 	| { type: 'strategy-activate'; strategy: string }
 	/** End an active strategy; its cooldown starts. */
 	| { type: 'strategy-end'; strategy: string }
+	/** Rent an agency's relay for the comms network (plan 126, ADR 0190 point 4): its rent is booked daily. */
+	| { type: 'relay-rent'; vessel: EntityId }
+	| { type: 'relay-end-rent'; vessel: EntityId }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
 	/** Take a queued data item back into storage (plan 119, ADR 0189 point 1); sent bits are lost. */

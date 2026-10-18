@@ -208,7 +208,8 @@ export function autoRails(core: SimCore): void {
 export function reapDebris(core: SimCore): void {
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
-		if (isControlled(core, vessel) || isKept(core, vessel)) continue;
+		// an agency's object is never debris (plan 126); skip the module walk of `isControlled`
+		if (vessel.owner !== undefined || isControlled(core, vessel) || isKept(core, vessel)) continue;
 		const body = bodyOfVessel(core, vessel);
 		const top = body.def.atmosphere?.height ?? 0;
 		const omega = spinAt(body, core.t);

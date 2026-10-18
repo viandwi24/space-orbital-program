@@ -31,6 +31,7 @@ import { networkSnapshot } from './comms.ts';
 import { lifeSupportSnapshot } from './life.ts';
 import { actionsSnapshot } from './actions.ts';
 import { objectivesSnapshot } from './objectives.ts';
+import { agenciesSnapshot } from './agencies.ts';
 import { contractsSnapshot } from './contracts.ts';
 import { strategiesSnapshot } from './strategies.ts';
 import { nodeSnapshots } from './maneuver.ts';
@@ -119,6 +120,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const snapshot: VesselSnapshot = {
 		id,
 		name: vessel.name,
+		...(vessel.owner ? { owner: vessel.owner } : {}),
 		mode: vessel.mode,
 		soi: bodyId(vessel.soi),
 		position,
@@ -166,6 +168,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 
 export function takeSnapshot(core: SimCore): Snapshot {
 	const objectives = objectivesSnapshot(core);
+	const agencies = agenciesSnapshot(core);
 	const contracts = contractsSnapshot(core);
 	const strategies = strategiesSnapshot(core);
 	const roster = rosterSnapshot(core);
@@ -188,6 +191,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		sites: sitesSnapshot(core),
 		day: core.ticks.lastDay,
 		...(objectives ? { objectives } : {}),
+		...(agencies ? { agencies } : {}),
 		...(contracts ? { contracts } : {}),
 		...(strategies ? { strategies } : {}),
 		...(science ? { science } : {}),

@@ -239,6 +239,24 @@ ctx.contracts.register(defineContract({
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 
+### Rival agencies (API 0.1.70, plan 126, ADR 0190)
+
+```ts
+ctx.agencies.register(defineAgency({
+	id: 'acme.orbital',
+	name: 'Acme Orbital',
+	personality: { aggressiveness: 0.7, risk: 0.4 },
+	budget: { start: 100_000, monthly: 25_000 },
+	programme: [
+		{ id: 'acme-relay', kind: 'relay', altitude: 2_200_000, cost: 55_000, success: 0.85, prepDays: 40, lifeDays: 900, rent: 300 }
+	]
+}));
+```
+
+- **What runs:** a world runs the first `stock.agency-count` registered agencies, so register yours before stock's (a plugin that boots earlier) or raise the count.
+- **What a success places:** a passive probe core and dish on rails, owned by the agency.
+- **What the player can do:** see and target the object, rent a relay (`relay-rent`, booked daily), and take the contract an agency offers when one of its relays fails.
+
 ### Strategies (API 0.1.65, plan 101, ADR 0187)
 
 ```ts

@@ -7,7 +7,7 @@ import { runCareerBot } from './helpers/career-bot.ts';
 /** 120 missions of 30 days; the band is the plan's (25 000 to 500 000 funds every day). */
 const BAND = { min: 25_000, max: 500_000 };
 
-test('career bot: 3 600 game days with only launches and recoveries keep funds in the band', async () => {
+test('career bot: 3 600 game days with only launches and recoveries (and three rival agencies) keep funds in the band', async () => {
 	const started = performance.now();
 	const bot = await runCareerBot({
 		world: { ...legacyWorldInfo(7), id: 'career-bot', preset: 'stock.career' },
@@ -22,6 +22,11 @@ test('career bot: 3 600 game days with only launches and recoveries keep funds i
 	);
 	expect(bot.missions).toBe(120);
 	expect(bot.daily).toHaveLength(3_600);
+	// the career preset runs three rival agencies (plan 126, ADR 0190): they flew, within their caps
+	const agencies = bot.sim.snapshot().agencies!;
+	expect(agencies.agencies).toHaveLength(3);
+	for (const a of agencies.agencies) expect(a.objects.length).toBeLessThanOrEqual(2);
+	expect(agencies.news.length).toBeGreaterThan(10);
 	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
 	// about 9 s alone on an M5 since plan 122 (7.4 s before the Sun: home's orbit is propagated at
