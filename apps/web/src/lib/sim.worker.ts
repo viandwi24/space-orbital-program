@@ -14,6 +14,7 @@ import { createRapierBackend } from '@orbital/physics';
 import * as sdk from '@orbital/sdk';
 import type { WorldInfo } from '@orbital/core';
 import { createSim, type Sim } from '@orbital/sim';
+import { readEphemeris } from '@orbital/kepler';
 import type { ScriptPortLike } from './messages';
 import type { ScriptWorkerLike } from './script-protocol';
 import { scriptWorkerOverPort } from './script-port';
@@ -32,6 +33,8 @@ let resume: unknown;
 let world: unknown;
 /** The mods the page decided to run (ADR 0057); resolved again here, with the same function. */
 let modBundles: ModBundle[] = [];
+/** JPL's DE440 for an n-body Sol world (plan 125, ADR 0122 point 7), from `init`. */
+let ephemeris: ArrayBuffer | undefined;
 let current: Sim | undefined;
 
 const host = createSimHost({
@@ -49,7 +52,8 @@ const host = createSimHost({
 			terrain: createBodyTerrainField,
 			// `createSim` validates the save (checksum, version, content) and refuses with a readable reason.
 			...(resume === undefined ? {} : { resume }),
-			...(world === undefined ? {} : { world: world as WorldInfo })
+			...(world === undefined ? {} : { world: world as WorldInfo }),
+			...(ephemeris === undefined ? {} : { ephemeris: readEphemeris(new Uint8Array(ephemeris)) })
 		});
 		return current;
 	},
@@ -66,10 +70,11 @@ const host = createSimHost({
 const saves = createSaveRouter({
 	sim: () => current,
 	post: (message) => self.postMessage(message),
-	boot: (save, mods, info) => {
+	boot: (save, mods, info, de440) => {
 		resume = save;
 		world = info;
 		modBundles = mods;
+		ephemeris = de440;
 		void host.start();
 	}
 });

@@ -41,6 +41,8 @@ export interface Catalog {
 	/** Achievements of the booted plugins and the world's id (plan 102, ADR 0147); only the sim's `ready`. */
 	achievements?: AchievementDefinition[];
 	worldId?: string;
+	/** The world's gravity model (plan 125, ADR 0122). */
+	gravityModel?: 'patched' | 'n-body';
 	/** The home body the sim runs on (plan 122, ADR 0119); only the sim's `ready`. */
 	home?: string;
 	/** Seed and flat zones of each later hills body (plan 071, ADR 0121); only the sim's `ready`. */
@@ -99,7 +101,14 @@ export type ClientMessage =
 	 * game. `save` is validated by `createSim`, so it travels as `unknown`.
 	 */
 	/** `world`: the info of a world without saves (plan 087, ADR 0143), validated by `createSim`. */
-	| { kind: 'init'; save?: unknown; mods?: ModBundle[]; world?: unknown }
+	| {
+			kind: 'init';
+			save?: unknown;
+			mods?: ModBundle[];
+			world?: unknown;
+			/** The DE440 asset, un-gzipped (plan 125, ADR 0122 point 7). */
+			ephemeris?: ArrayBuffer;
+	  }
 	/** Ask for the whole simulation as a `SimSave`; answered with `saved` or `save-error`. */
 	| { kind: 'save'; id: number }
 	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
@@ -255,7 +264,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 			kind: 'init',
 			...(data.save === undefined ? {} : { save: data.save }),
 			...(mods.length === 0 ? {} : { mods }),
-			...(data.world === undefined ? {} : { world: data.world })
+			...(data.world === undefined ? {} : { world: data.world }),
+			...(data.ephemeris instanceof ArrayBuffer ? { ephemeris: data.ephemeris } : {})
 		};
 	}
 	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };

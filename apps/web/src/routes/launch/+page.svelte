@@ -14,7 +14,6 @@
 		type VesselDesign,
 		type WorldInfo
 	} from '@orbital/core';
-	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { loadContent, partLookup } from '../../lib/catalog';
 	import { parseDesign, serialiseDesign } from '../../lib/design';
@@ -31,6 +30,7 @@
 	} from '../../lib/launch/launch-model';
 	import { limitsOn, massUpgrade } from '../../lib/capacity';
 	import { activePlugins } from '../../lib/mods/runtime';
+	import { BUILTIN_PLUGINS } from '../../lib/builtins';
 	import { GAME_NAME } from '../../lib/public/about';
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { SaveController } from '../../lib/save/save-controller.svelte';
@@ -57,7 +57,8 @@
 	}
 
 	const { catalog, content } = loadContent();
-	const { registries } = loadPlugins([Stock, ...activePlugins()]);
+	// the world's own system (plan 124): a Sol world's site is on `sol.earth` (fixed with plan 125)
+	let registries = $state.raw(loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()]).registries);
 	const lookup = partLookup(catalog);
 	const saves = new SaveController({
 		loadedMods: bootedMods,
@@ -145,6 +146,10 @@
 		void (async () => {
 			const worlds = await saves.worldsService();
 			const info = await worlds.startInfo(activeWorldId());
+			if (info)
+				registries = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
+					system: { id: info.systemId, variant: info.variant }
+				}).registries;
 			site = sitesOf(info ?? { sites: [] })[0] ?? null;
 			worldInfo = info ?? null;
 			limits = limitsOn(info, registries);

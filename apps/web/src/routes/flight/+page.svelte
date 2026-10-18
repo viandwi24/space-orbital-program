@@ -26,6 +26,7 @@
 	import { addPanel, railOf, removePanel, togglePanel } from '../../lib/dock/dock-model';
 	import Panel from '../../lib/ui/Panel.svelte';
 	import { takeLaunchChoice } from '../../lib/launch/launch-model';
+	import { loadEphemeris, needsEphemeris } from '../../lib/ephemeris-asset';
 	import type { WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
 	import { profileStore } from '../../lib/achievements/store';
@@ -361,6 +362,18 @@
 			// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
 			const info = resume?.sim.worldInfo ?? into?.worldInfo ?? world;
 			const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
+			// an n-body world of the 1:1 Sol system follows JPL's DE440, fetched once (plan 125, ADR 0122)
+			let ephemeris: ArrayBuffer | undefined;
+			if (needsEphemeris(info)) {
+				notice = "Loading JPL's DE440 ephemeris (7.5 MB, once)…";
+				try {
+					ephemeris = await loadEphemeris();
+					notice = null;
+				} catch (e) {
+					notice = `The planets keep their own paths: ${e instanceof Error ? e.message : String(e)}.`;
+				}
+			}
+			if (gone) return;
 			stop = begin(
 				own?.catalog ?? catalog,
 				own?.content ?? content,
@@ -370,7 +383,8 @@
 				launch?.placement,
 				start,
 				into,
-				launch?.crew
+				launch?.crew,
+				ephemeris
 			);
 		})();
 		return () => {
@@ -391,7 +405,8 @@
 		placement?: VesselPlacement,
 		start: ScenarioStart | null = null,
 		into?: SimSave,
-		crew?: { member: string; part: number }[]
+		crew?: { member: string; part: number }[],
+		ephemeris?: ArrayBuffer
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -440,6 +455,7 @@
 					: {}),
 			...(into ? { into } : {}),
 			...(crew?.length ? { crew } : {}),
+			...(ephemeris ? { ephemeris } : {}),
 			content,
 			profile: profileStore(),
 			onHud: (h) => {

@@ -58,10 +58,11 @@ describe('Create World form', () => {
 		expect(h).toMatch(/<option value="sol"[^>]*>The real solar system<\/option>/);
 	});
 
-	it('renders the n-body option disabled and labelled Coming soon', () => {
+	it('offers n-body beside patched conics since plan 125', () => {
 		const h = html();
-		expect(h).toMatch(/<input[^>]*value="n-body"[^>]*disabled[^>]*data-testid="gravity-n-body"/);
-		expect(h).toMatch(/N-body\s*<span class="chip[^"]*outline[^"]*">Coming soon<\/span>/);
+		expect(h).toMatch(/<input[^>]*value="n-body"[^>]*data-testid="gravity-n-body"/);
+		expect(h).not.toMatch(/<input[^>]*value="n-body"[^>]*disabled/);
+		expect(h).not.toContain('Coming soon');
 		expect(h).toMatch(/<input[^>]*value="patched"/);
 	});
 

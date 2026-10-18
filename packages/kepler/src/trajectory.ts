@@ -161,6 +161,16 @@ export function createTrajectoryProvider(
 }
 
 const cache = new WeakMap<readonly PatchedBody[], Map<TrajectoryModel, TrajectoryProvider>>();
+const models = new WeakMap<readonly PatchedBody[], TrajectoryModel>();
+
+/**
+ * Name the gravity model of a body list (plan 125): `trajectoryFor(list)` then gives that model's
+ * provider, so callers that pass the list around need not carry the model too.
+ */
+export function tagTrajectoryModel<T extends readonly PatchedBody[]>(bodies: T, model: TrajectoryModel): T {
+	models.set(bodies, model);
+	return bodies;
+}
 
 /**
  * One provider per body list and model, for callers that hold a list (the web client's map path
@@ -168,7 +178,7 @@ const cache = new WeakMap<readonly PatchedBody[], Map<TrajectoryModel, Trajector
  */
 export function trajectoryFor(
 	bodies: readonly PatchedBody[],
-	model: TrajectoryModel = 'patched'
+	model: TrajectoryModel = models.get(bodies) ?? 'patched'
 ): TrajectoryProvider {
 	let byModel = cache.get(bodies);
 	if (!byModel) cache.set(bodies, (byModel = new Map()));

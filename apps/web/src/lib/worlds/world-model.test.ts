@@ -77,9 +77,10 @@ describe('Create World from the registries', () => {
 		expect(isIdentityRule(agency)).toBe(true);
 	});
 
-	it('a forged n-body gravity model is refused by the validator', () => {
+	it('an n-body world is accepted since plan 125; an unknown model is refused', () => {
 		const r = createWorldInfo(input({ gravityModel: 'n-body' }), catalog, FICTIONAL, NOW);
-		expect(r).toEqual({ ok: false, reason: 'n-body worlds are not available yet' });
+		expect(r.ok && r.world.gravityModel).toBe('n-body');
+		expect(createWorldInfo(input({ gravityModel: 'orbits' }), catalog, FICTIONAL, NOW).ok).toBe(false);
 		expect(createWorldInfo(input({ gravityModel: 'teleport' }), catalog, FICTIONAL, NOW).ok).toBe(
 			false
 		);

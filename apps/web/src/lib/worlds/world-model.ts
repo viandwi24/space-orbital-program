@@ -105,7 +105,7 @@ export interface CreateWorldInput {
 	preset: string;
 	rules: Record<string, RuleValue>;
 	start: StartDate;
-	/** `patched` only; `n-body` is shown "Coming soon" and refused here. */
+	/** `patched`, or `n-body` since plan 125 (ADR 0122). */
 	gravityModel: string;
 	systemId: string;
 	systemVersion: string;
@@ -160,7 +160,7 @@ export function formatLatLon(latitude: number, longitude: number): string {
 export type CreateWorldResult = { ok: true; world: WorldInfo } | { ok: false; reason: string };
 
 /**
- * The world info of a new world, validated like a save's (`worldInfoSchema`: n-body refused) and
+ * The world info of a new world, validated like a save's (`worldInfoSchema`) and
  * with every rule checked against its definition.
  */
 export function createWorldInfo(

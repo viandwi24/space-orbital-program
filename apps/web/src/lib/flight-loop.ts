@@ -131,6 +131,8 @@ export interface FlightOptions {
 	into?: SimSave;
 	/** Crew seated in the new vessel at launch (design part indices). */
 	crew?: { member: string; part: number }[];
+	/** JPL's DE440, un-gzipped, for an n-body Sol world (plan 125, ADR 0122 point 7). */
+	ephemeris?: ArrayBuffer;
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 	/** Progress of the renderer's background shader compile (plan 038, ADR 0074), until it is done. */
@@ -214,13 +216,14 @@ const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
 
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
+	const de440 = options.ephemeris ? { ephemeris: options.ephemeris } : {};
 	const client: SimClient = startSimWorker(
 		options.resume
-			? { resume: options.resume.sim }
+			? { resume: options.resume.sim, ...de440 }
 			: options.into
-				? { resume: options.into }
+				? { resume: options.into, ...de440 }
 				: options.world
-					? { world: options.world }
+					? { world: options.world, ...de440 }
 					: {}
 	);
 	let renderer: Renderer | null = null;
@@ -857,6 +860,7 @@ export function startFlight(options: FlightOptions): Flight {
 			const draw = renderer;
 			maneuverCtl = createManeuverController({
 				bodies: c.bodies,
+				...(c.gravityModel ? { gravityModel: c.gravityModel } : {}),
 				dispatch: (command) => client.dispatch(command),
 				project: (world) => draw.project(world),
 				setPath: (path) => draw.setMapPath(path),
@@ -869,6 +873,7 @@ export function startFlight(options: FlightOptions): Flight {
 			});
 			targetView = createTargetView({
 				bodies: c.bodies,
+				...(c.gravityModel ? { gravityModel: c.gravityModel } : {}),
 				project: (world) => draw.project(world),
 				snapshot: () => snap,
 				vessel: () => vessel,

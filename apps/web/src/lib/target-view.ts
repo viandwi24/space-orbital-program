@@ -69,6 +69,8 @@ export interface TargetViewFrame {
 
 export interface TargetViewOptions {
 	bodies: readonly BodyDefinition[];
+	/** The world's gravity model (plan 125): the aids predict with its provider. */
+	gravityModel?: 'patched' | 'n-body';
 	/** `Renderer.project` (ADR 0033). */
 	project(world: Vec3): ScreenPoint | null;
 	snapshot(): Snapshot | null;
@@ -128,7 +130,7 @@ function visibleRuns(points: Array<ScreenPoint | null>): PickPoint[][] {
 }
 
 export function createTargetView(options: TargetViewOptions): TargetView {
-	const patched = bodyNodes(options.bodies);
+	const patched = bodyNodes(options.bodies, options.gravityModel);
 	let info: RendezvousInfo | null = null;
 	let approach: ApproachInfo | null = null;
 	let aids: Aid[] = [];
