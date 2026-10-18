@@ -18,6 +18,7 @@ A model a mod ships can do what a generated part does and cost what a generated 
 ## Context
 
 - Found, not done, in plan 051 (ADR 0076): models get plume, gimbal/hinge pivot (node `moving`), glow and shadows, but not `visual.deploy`; textures are PNG or JPEG only (no decoders in a package); one level of detail; no instancing of the static mesh in the VAB (a model has no `staticMesh`).
+- ADRs: [0160](../decisions/0160-richer-mod-models-deploy-clips-lods-material-palette-ktx2.md) (this plan)
 - Read: ADRs 0028, 0045, 0047, 0076; `research/mod-assets.md`; draft 040 (KTX2 on the stock side).
 - Foundation (ADR 0104): models are data on parts and, now, on buildings (`defineBuilding` visual, plan 090); a mod's model choices are patchable through `definePatch` (plan 079), so LOD lists and palettes are typed fields, not conventions. Deploy animations are driven by the part action state of ADR 0102 (plan 110) as well as `deploy.flag`.
 
@@ -41,7 +42,10 @@ A model a mod ships can do what a generated part does and cost what a generated 
 
 ## Acceptance criteria
 
-- [ ] To be made measurable at refinement.
+- [ ] `packages/core` test: `inspectGlb` accepts an animated model under the keyframe cap and refuses one over it, and accepts `KHR_texture_basisu` with `image/ktx2` images; the resolver checks every `visual.lods` asset is in the package.
+- [ ] `packages/renderer` test: a model part with a `deploy` clip moves its animated node with the deploy flag (closed at 0, open after `seconds`); `visual.lods` switches to the far model beyond its distance; `visual.materials` recolours the named material with its palette slot.
+- [ ] The transcoder is served from `/basis/` and fetched only for an asset that uses KTX2 (bundle cost recorded in the journal).
+- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
@@ -54,3 +58,4 @@ A model a mod ships can do what a generated part does and cost what a generated 
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0104, 0097, 0102: buildings get models too; typed LOD fields; deploy from action state).
 - 2026-10-17 — `depends` gains 110, 091 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): item 1 reads the action state of plan 110 and item 3 covers the building models of plan 091.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0160: deploy plays a glTF clip by the generated parts' progress, a typed `visual.lods` list, palette slots on named materials, KTX2 accepted with the transcoder loaded on demand; Hangar instancing and building LOD deferred.
