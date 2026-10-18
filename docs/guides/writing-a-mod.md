@@ -239,6 +239,39 @@ ctx.contracts.register(defineContract({
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 
+### Contract templates (API 0.1.61, plan 099, ADR 0186)
+
+A template makes procedural contracts. The world offers one at most each day, while fewer than five offers wait.
+
+```ts
+ctx.contractTemplates.register(defineContractTemplate({
+	id: 'acme.high-hop',
+	label: 'High hop',
+	tier: 1, // prestige 1 to 3; tiers 2 and 3 need 100 and 300 reputation unless you set minReputation
+	maxOffers: 1, // at most one of these on the board at once
+	generate: (ctx) => {
+		const h = 50_000 + Math.round(ctx.random() * 10) * 5_000; // draw only from ctx.random()
+		const deltaV = 1_500;
+		const cost = estimatedLaunchCost(deltaV);
+		return {
+			key: `high-hop:${h}`, // the same key is the same job: never offered twice at once, and kept out after a decline
+			title: `Hop to ${h / 1000} km`,
+			brief: 'Any vessel launched after you accept may do it.',
+			objectives: { objective: 'stock.reach-altitude', params: { min: h } },
+			advance: [{ currency: 'funds', amount: Math.round(0.2 * cost) }],
+			reward: [{ currency: 'funds', amount: Math.round(1.1 * cost) }],
+			penalty: [{ currency: 'funds', amount: -Math.round(0.5 * cost) }],
+			deadline: 20 * ctx.dayLength,
+			deltaV // shown as the estimate behind the expected value
+		};
+	}
+}));
+```
+
+- **What `ctx` holds:** `home`, `bodies` (`{ id, label, parent, radius, mu, a }`), `reputation`, `time`, `day`, `dayLength`, and `window(target)`, the next Hohmann window to a sibling of the home body (`{ departure, travel }` or null). Return `null` when the template has nothing to offer in this system.
+- **The player** accepts (the advance is paid; Mission Center slots), declines, or cancels (the penalty is booked) from Administration. Only vessels launched after the acceptance count towards it.
+- **Expected value** is advance plus reward funds, minus `estimatedLaunchCost(deltaV)`.
+
 ## Crew (API 0.1.38, plan 106, ADR 0176)
 - **Seats.** Give a crewed part seats with `crewCapacity: 2`. The launch (`load-vessel`) seats roster members by design part index, and `crew-transfer` moves them between parts of one vessel.
 - **Traits.** `ctx.crewTraits.register(defineCrewTrait({ id: 'acme.calm', label: 'Calm', abilities: { panicResistance: 1.3 } }))`. A trait can only scale quality factors (`controlSmoothing`, `scriptBudget`, `repairRate`, `dataQuality`, `gTolerance`, `panicResistance`); no trait or level ever turns a tool on or off.

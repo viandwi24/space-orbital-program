@@ -17,7 +17,7 @@ The world offers contracts generated from templates with the seeded PRNG: few bu
 
 ## Context
 
-- ADRs: 0098
+- ADRs: 0098, [0186](../decisions/0186-procedural-contracts-templates-offers-slots-value.md) (this plan)
 - Read: ADR 0098 point 4, plan 098, `refs/space-orbital-program-ui/docs/SCREENS.md` (Administration contracts).
 
 ## Scope
@@ -49,19 +49,31 @@ Expected value uses the Hangar's cost of the cheapest library design that meets 
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: the same seed generates the same offers; offers never exceed the cap; a declined offer does not reappear for the stated cooldown.
-- [ ] `packages/sim` test: completing a contract books its reward; missing the deadline books the penalty.
-- [ ] Career-bot test with contracts: funds stay in the band.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: the same seed generates the same offers; offers never exceed the cap; a declined offer does not reappear for the stated cooldown.
+- [x] `packages/sim` test: completing a contract books its reward; missing the deadline books the penalty.
+- [x] Career-bot test with contracts: funds stay in the band.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/099-procedural-contracts.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/099-procedural-contracts.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0098).
 - 2026-10-17 — `depends` gains 096 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): contract slots come from the Administration level of plan 096.
+- 2026-10-18 — Claimed by Agent 3 (`claim/099`, branch `devc/099-contracts`).
+- 2026-10-18 — ADR 0186 covers:
+  - templates, and the generator on the world tick (a cap of 5, one offer a day, per-template limits, the decline cooldown, its own stream);
+  - generated contracts in the sim's contract state as ordinary objective instances, counting only vessels launched after the acceptance;
+  - slots from the Mission Center's `mission-control` capacity (ADR 0123; not Administration);
+  - expected value from a Δv rule of thumb, labelled an estimate.
+- 2026-10-18 — Done here, handed over as `ready/099`:
+  - **Sim tests:** `packages/sim/test/contracts.test.ts` checks the same seed giving the same offers, the cap, the cooldown, reward and penalty, cancel, the slots, save and resume, and new vessels only.
+  - **Career bot:** `career-bot.test.ts` "with contracts" runs ten years with funds max 383 348, in the band.
+  - **Web:** the Administration Contracts tab, with vitest.
+  - **Full checks:** in the journal.
+
