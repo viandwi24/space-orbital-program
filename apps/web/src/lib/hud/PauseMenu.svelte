@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Button from '../ui/Button.svelte';
 	import Dialog from '../ui/Dialog.svelte';
 	import { formatMet } from '../format';
@@ -54,10 +55,10 @@
 			<Button onclick={oncontrols}>Controls</Button>
 		</div>
 		<div class="pair">
-			<a class="link" href="/vab">Back to the hangar</a>
-			<a class="link" href="/vab?library">Vessel library</a>
+			<a class="link" href={resolve('/vab')}>Back to the hangar</a>
+			<a class="link" href={resolve('/vab?library')}>Vessel library</a>
 		</div>
-		<a class="link" href="/">Main menu</a>
+		<a class="link" href={resolve('/')}>Main menu</a>
 	</div>
 </Dialog>
 

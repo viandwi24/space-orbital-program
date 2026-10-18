@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The world capsule (refs `Main` top left; plan 088, ADR 0144 point 7): the home button, the
 	 * world's name and `MODE · SYSTEM`. Home leads to the Space Center (plan 091; wired in plan 113).
@@ -11,7 +12,7 @@
 <div class="world" data-testid="world-capsule">
 	<a
 		class="home"
-		href="/space-center"
+		href={resolve('/space-center')}
 		aria-label="Back to the Space Center"
 		title="Back to the Space Center"><Icon name="home" size={16} /></a
 	>

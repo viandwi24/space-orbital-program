@@ -3,6 +3,7 @@
  * Upcoming events with their warp-to command, the selected object's card and what Fly can do. Pure,
  * so the page and the tests share it.
  */
+import { resolve } from '$app/paths';
 import type { BodyDefinition, Command, Snapshot, VesselSnapshot } from '@orbital/core';
 import { trajectoryFor, type PatchedBody } from '@orbital/kepler';
 import { formatDistance, formatDuration, formatSpeed } from '../format';
@@ -248,7 +249,7 @@ export async function fly(deps: {
 }): Promise<string | null> {
 	const id = await deps.autosave();
 	if (!id) return 'The flight could not be saved, so it was not opened.';
-	deps.go(`/flight?load=${encodeURIComponent(id)}`);
+	deps.go(resolve(`/flight?load=${encodeURIComponent(id)}`));
 	return null;
 }
 

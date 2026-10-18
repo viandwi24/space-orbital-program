@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Switch from '../ui/Switch.svelte';
 	import BackButton from '../ui/BackButton.svelte';
 	import Icon from '../ui/Icon.svelte';
@@ -15,7 +16,7 @@
 
 <div class="top">
 	<div class="left">
-		<BackButton href="/" label="Back to the main menu" />
+		<BackButton href={resolve('/')} label="Back to the main menu" />
 		<label class="capsule name">
 			<span class="cap" aria-hidden="true">Hangar</span>
 			<span class="sr-only">Vessel name</span>

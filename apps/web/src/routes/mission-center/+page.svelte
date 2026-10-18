@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The Mission Center (plan 113, ADR 0118): the whole system of the world's save in map view,
 	 * Tracking, Upcoming with warp-to, the selected object's card with Fly, and the layers. Its sim
@@ -73,7 +74,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!mc || !loaded) throw new Error('There is no flight to save.');

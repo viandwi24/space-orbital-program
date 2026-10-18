@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { GAME_NAME } from '../../lib/public/about';
 	import MenuShell from '../../lib/ui/MenuShell.svelte';
 	import PageHead from '../../lib/ui/PageHead.svelte';
@@ -21,7 +22,10 @@
 	import ModPatches from '../../lib/mods/ModPatches.svelte';
 	import { openModStore } from '../../lib/mods/store-idb';
 
-	const manager = new ModManager({ open: openModStore, reload: () => location.assign('/mods') });
+	const manager = new ModManager({
+		open: openModStore,
+		reload: () => location.assign(resolve('/mods'))
+	});
 	let fileInput = $state<HTMLInputElement>();
 	let url = $state('');
 

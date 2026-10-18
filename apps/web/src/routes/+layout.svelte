@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { asset, resolve } from '$app/paths';
 	import { GAME_NAME } from '../lib/public/about';
 	import '@fontsource/manrope/latin-300.css';
 	import '@fontsource/manrope/latin-400.css';
@@ -76,8 +77,8 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} type="image/svg+xml" />
-	<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64" />
-	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	<link rel="icon" href={asset('favicon.png')} type="image/png" sizes="64x64" />
+	<link rel="apple-touch-icon" href={asset('apple-touch-icon.png')} />
 </svelte:head>
 
 {#if missing === null}
@@ -98,7 +99,7 @@
 	</svelte:boundary>
 {/if}
 
-{#if missing?.length === 0 && !['/roadmap', '/credits'].includes(page.url.pathname)}<SmallScreenNotice
+{#if missing?.length === 0 && !([resolve('/roadmap'), resolve('/credits')] as string[]).includes(page.url.pathname)}<SmallScreenNotice
 	/>{/if}
 
 {#if note}<p class="note" role="status" data-testid="audio-note">{note}</p>{/if}

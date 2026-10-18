@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The Astronaut Complex (plan 108, ADR 0152; refs W3): Roster, Applicants and Lost, a profession
 	 * filter, a profile. It runs the world's sim from its newest save and saves after a hire.
@@ -49,7 +50,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!client) throw new Error('The world is not running.');
@@ -112,7 +113,7 @@
 
 <main class="astro">
 	<header>
-		<BackButton href="/space-center" label="Back to the Space Center" />
+		<BackButton href={resolve('/space-center')} label="Back to the Space Center" />
 		<div class="title">
 			<span class="cap">Space Center</span>
 			<h1>Astronaut Complex</h1>

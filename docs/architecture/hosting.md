@@ -53,6 +53,32 @@ E2E_HEADERS=1 bun run e2e                      # the Playwright suite against th
 
 Plan 023 ran the smoke suite against `scripts/serve.ts` in Chromium, Firefox and WebKit (journal 023). The unit test `hosting-headers.test.ts` pins the policy's key parts.
 
+## GitHub Pages
+
+`.github/workflows/pages.yml` publishes `main` to <https://viandwi24.github.io/space-orbital-program/>.
+
+**What the workflow does:**
+
+- It builds with `BASE_PATH=/<repo>`. That is SvelteKit's `paths.base` in `apps/web/vite.config.ts`, empty everywhere else.
+- It sets `VITE_SITE_URL` to the Pages address.
+- It copies `200.html` to `404.html`, so an unknown path gets the game's own error page with status 404, and it adds `.nojekyll`.
+- It deploys with `actions/deploy-pages`.
+
+**The one-time setting:** Settings → Pages → Source: **GitHub Actions**.
+
+**How the code handles the base path:**
+
+- In-app links and navigation go through `resolve()` from `$app/paths`, and static files through `asset()`.
+- The sandbox and the ephemeris read paths relative to the page.
+- A new link must not hard-code a root path such as `href="/vab"`.
+
+**What Pages does not do:**
+
+- It cannot send the headers above. There is no Content-Security-Policy and no `Cache-Control` of our own: Pages caches for 10 minutes.
+- The game runs without them, as the table says.
+
+The build was checked on a local server that mimics Pages (`/<repo>/` prefix, `x` → `x.html`, `404.html`): the menu, Hangar, Launch and a flight.
+
 ## Not decided here
 
 The domain, the CDN and the licence of the game are the human's decisions (`STATUS.md`, known issues); `VITE_SITE_URL=https://example.org bun run build` makes the Open Graph image addresses absolute for that domain.

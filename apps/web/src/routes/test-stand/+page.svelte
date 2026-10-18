@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The test stand (plan 130, ADR 0156 points 5 to 7): the world's part models that can fail, their
 	 * reliability, experience and grade, static fires, and the anomaly reports with their fixes. Its
@@ -47,7 +48,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!client) throw new Error('The world is not running.');
@@ -109,7 +110,7 @@
 
 <main class="stand">
 	<header>
-		<BackButton href="/space-center" label="Back to the Space Center" />
+		<BackButton href={resolve('/space-center')} label="Back to the Space Center" />
 		<div class="title">
 			<span class="cap">Engineering</span>
 			<h1>Test stand</h1>

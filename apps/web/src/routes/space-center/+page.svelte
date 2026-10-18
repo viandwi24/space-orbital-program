@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The Space Center (plan 091, ADR 0117): the active world's first site in 3D from its building
 	 * list, the overlay, and build mode. Buildings are checked with core's `canPlace` here and placed
@@ -49,7 +50,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => worldId,
 		collect: async () => {
 			if (!center || !base) throw new Error('This world has no save to write back to.');

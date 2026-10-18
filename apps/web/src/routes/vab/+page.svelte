@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { GAME_NAME } from '../../lib/public/about';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
@@ -123,7 +124,7 @@
 			<h1>The 3D view could not start</h1>
 			<p>{vab.loadFailed}</p>
 			<p>{GAME_NAME} needs WebGL 2. Try another browser or enable hardware acceleration.</p>
-			<a href="/">Back to the main page</a>
+			<a href={resolve('/')}>Back to the main page</a>
 		</div>
 	{/if}
 

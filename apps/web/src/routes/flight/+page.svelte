@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { readReplay } from '@orbital/core';
 	import GhostLayer from '../../lib/replays/GhostLayer.svelte';
 	import { ghostTrack, type ScreenGhost } from '../../lib/replays/ghost-model';
@@ -213,7 +214,7 @@
 			if (!flight) throw new Error('There is no flight to save yet.');
 			return flight.collectSave();
 		},
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		// the Load dialog and F9 stay in the world being flown (plan 087)
 		world: activeWorldId
 	});
@@ -228,7 +229,7 @@
 	/** The map's switch (plan 113, ADR 0118 point 6): save the flight, then open it in the Mission Center. */
 	async function openMissionCenter(): Promise<void> {
 		const id = await saves.autosaveId();
-		if (id) location.assign(`/mission-center?load=${encodeURIComponent(id)}`);
+		if (id) location.assign(resolve(`/mission-center?load=${encodeURIComponent(id)}`));
 	}
 	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
 		if (reason === null) return;
@@ -279,7 +280,7 @@
 			return;
 		}
 		await saves.autosave();
-		location.assign('/vab');
+		location.assign(resolve('/vab'));
 	}
 
 	async function quicksave(): Promise<void> {
@@ -698,15 +699,15 @@
 				<StatusCard tone="danger" title="That flight could not be loaded">
 					<p>{problem}</p>
 					{#snippet actions()}
-						<a class="cta" href="/">Main menu</a>
-						<a class="cta quiet" href="/vab">Open the VAB</a>
+						<a class="cta" href={resolve('/')}>Main menu</a>
+						<a class="cta quiet" href={resolve('/vab')}>Open the VAB</a>
 					{/snippet}
 				</StatusCard>
 			{:else}
 				<StatusCard tone="warning" title="Nothing to fly">
 					<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
 					{#snippet actions()}
-						<a class="cta" href="/vab">Open the VAB</a>
+						<a class="cta" href={resolve('/vab')}>Open the VAB</a>
 					{/snippet}
 				</StatusCard>
 			{/if}
@@ -720,7 +721,7 @@
 					<p>{hud.message}</p>
 					{#snippet actions()}
 						<Button variant="primary" onclick={() => location.reload()}>Reload</Button>
-						<a class="cta quiet" href="/vab">Back to the VAB</a>
+						<a class="cta quiet" href={resolve('/vab')}>Back to the VAB</a>
 					{/snippet}
 				</StatusCard>
 			</div>
@@ -729,7 +730,7 @@
 				<StatusCard tone="danger" title="Vessel lost">
 					<p>{hud.message}. Revert to the VAB to adjust the design and launch again.</p>
 					{#snippet actions()}
-						<a class="cta" href="/vab">Back to the VAB</a>
+						<a class="cta" href={resolve('/vab')}>Back to the VAB</a>
 					{/snippet}
 				</StatusCard>
 			</div>

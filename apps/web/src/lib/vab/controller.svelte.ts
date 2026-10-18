@@ -4,6 +4,7 @@
  * state (an immutable value replaced per edit, ADR 0029), the 3D view, pointer and keyboard
  * handling, the vessel library (ADR 0041) and the derived read-outs.
  */
+import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
 	homeBodyOf,
@@ -1145,7 +1146,7 @@ export class VabController {
 		}
 		saveDraft(serialiseDesign(this.editor.design));
 		void this.flushSave();
-		void goto(quick ? '/flight' : '/launch');
+		void goto(resolve(quick ? '/flight' : '/launch'));
 	}
 
 	// --- pointer ---------------------------------------------------------------------------------------------

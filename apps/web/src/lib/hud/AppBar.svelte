@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The refs flight toolbar (plan 088, ADR 0144): `Map · VAB · Camera | Dock · Vessel · Staging · Nav
 	 * · Crew | Script · Controls | Menu`, flat icons with the 4 px dot for what is open. Camera, Dock,
@@ -58,8 +59,11 @@
 		title="Map view ({settings.keymap.label('map')})"
 		onclick={onmap}><Icon name="orbit" size={18} /></button
 	>
-	<a class="tb" href="/vab" aria-label="Vehicle assembly" title="Back to the vehicle assembly"
-		><Icon name="hangar" size={18} /></a
+	<a
+		class="tb"
+		href={resolve('/vab')}
+		aria-label="Vehicle assembly"
+		title="Back to the vehicle assembly"><Icon name="hangar" size={18} /></a
 	>
 	<button
 		type="button"

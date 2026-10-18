@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Button from './Button.svelte';
 	import SpaceBackdrop from './SpaceBackdrop.svelte';
 
@@ -21,7 +22,7 @@
 		<pre>{message}</pre>
 		<div class="actions">
 			<Button variant="primary" onclick={onreload}>Reload the page</Button>
-			<a href="/">Main menu</a>
+			<a href={resolve('/')}>Main menu</a>
 		</div>
 	</main>
 </div>

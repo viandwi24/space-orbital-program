@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The Worlds screen (plan 087, ADRs 0094 and 0143; refs `SCREENS.md` Worlds): every world as a card,
 	 * the chosen one's details, Enter, Duplicate, Rename, Delete, and Create World.
@@ -42,7 +43,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`))
 	});
 	const env = browserWorldsEnv();
 
@@ -169,7 +170,7 @@
 
 <main class="worlds">
 	<header>
-		<BackButton href="/" label="Back to the main menu" />
+		<BackButton href={resolve('/')} label="Back to the main menu" />
 		<div class="title">
 			<h1>Worlds</h1>
 			<p class="sub">

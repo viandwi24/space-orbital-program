@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	/**
 	 * The Mission Center's overlay (plan 113, refs `Map.dc.html`): the world capsule and the
@@ -118,7 +119,7 @@
 	{/if}
 
 	<div class="top">
-		<BackButton label="Space Center" href="/space-center" testid="mc-home" />
+		<BackButton label="Space Center" href={resolve('/space-center')} testid="mc-home" />
 		<Capsule data-testid="world-capsule"
 			><span class="world">{worldName}</span><span class="u num">{clock}</span>{#if warp > 1}<span
 					class="u num">{warp.toLocaleString('en-US')}×</span

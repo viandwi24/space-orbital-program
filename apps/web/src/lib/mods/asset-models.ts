@@ -6,6 +6,7 @@
  * model, so a game without such mods pays nothing. A model that fails to load, or does not match
  * its part, is reported on the console and the part is drawn by its fallback generator.
  */
+import { asset } from '$app/paths';
 import type { PartModelProvider } from '@orbital/renderer';
 import { activePartAssets } from './runtime';
 
@@ -22,7 +23,7 @@ export async function prepareModelProviders(
 		const provider = new GltfPartProvider({
 			assets,
 			// KTX2 textures (plan 065, ADR 0160): the transcoder in static/basis/, fetched only when needed
-			ktx2: () => createKtx2Loader('/basis/'),
+			ktx2: () => createKtx2Loader(asset('basis/' as never)),
 			onWarning: (part, message) => log(`Mod model for "${part}": ${message}`)
 		});
 		await provider.preload([...assets.keys()]);

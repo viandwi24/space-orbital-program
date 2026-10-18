@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
 	import { goto } from '$app/navigation';
@@ -22,7 +23,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		// Load a flight lists the active world's saves (plan 087)
 		world: activeWorldId
 	});
@@ -96,14 +97,14 @@
 			icon="globe"
 			label="Worlds"
 			hint="Open, create or manage your worlds"
-			href="/worlds"
+			href={resolve('/worlds')}
 			testid="menu-worlds"
 		/>
 		<MenuButton
 			icon="launch"
 			label="New flight"
 			hint="Build a rocket in the hangar"
-			href="/vab"
+			href={resolve('/vab')}
 			testid="menu-new"
 		/>
 		{#if hasDraft}
@@ -111,7 +112,7 @@
 				icon="stage"
 				label="Fly the last vessel"
 				hint="Launch what you built last"
-				href="/flight"
+				href={resolve('/flight')}
 				testid="menu-last"
 			/>
 		{/if}
@@ -126,14 +127,14 @@
 			icon="cube"
 			label="Vessel library"
 			hint="Designs you can launch in any world"
-			href="/vab?library"
+			href={resolve('/vab?library')}
 			testid="menu-library"
 		/>
 		<MenuButton
 			icon="mods"
 			label="Mods"
 			hint="Add-ons active in every world"
-			href="/mods"
+			href={resolve('/mods')}
 			testid="menu-mods"
 		/>
 		<MenuButton
@@ -149,14 +150,14 @@
 			variant="compact"
 			icon="map"
 			label="Roadmap"
-			href="/roadmap"
+			href={resolve('/roadmap')}
 			testid="menu-roadmap"
 		/>
 		<MenuButton
 			variant="compact"
 			icon="info"
 			label="Credits"
-			href="/credits"
+			href={resolve('/credits')}
 			testid="menu-credits"
 		/>
 	</div>

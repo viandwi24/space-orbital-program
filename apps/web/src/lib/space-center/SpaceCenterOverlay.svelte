@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * The Space Center's overlay (plan 091, refs Space Center): labels over the 3D site, the building
 	 * list (every building reachable by keyboard without the camera), the detail panel of the
@@ -72,7 +73,7 @@
 
 <div class="overlay" data-testid="space-center">
 	<div class="top">
-		<BackButton label="Main menu" href="/" testid="sc-home" />
+		<BackButton label="Main menu" href={resolve('/')} testid="sc-home" />
 		<Capsule data-testid="world-capsule"
 			><span class="world">{worldName}</span><span class="u">Space Center</span></Capsule
 		>

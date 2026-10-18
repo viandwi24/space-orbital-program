@@ -3,6 +3,7 @@
  * fetches it once from `/ephemeris/`, checks its size and SHA-256, keeps it in IndexedDB, and hands
  * the un-gzipped bytes to the sim Worker. Any other world never fetches it.
  */
+import { asset } from '$app/paths';
 import type { WorldInfo } from '@orbital/core';
 
 /** The shipped asset: JPL DE440 (NAIF de440s.bsp) for 2000 to 2100, packed by `tools/pack-de440.ts`. */
@@ -73,7 +74,8 @@ export function browserEphemerisDeps(): EphemerisDeps {
 				})
 		);
 	return {
-		fetch: (path) => fetch(path),
+		// a root path is a static file under the site's base path (GitHub Pages)
+		fetch: (path) => fetch(path.startsWith('/') ? asset(path.slice(1) as never) : path),
 		cache: {
 			get: (sha) => run('readonly', (s) => s.get(sha) as IDBRequest<ArrayBuffer | undefined>),
 			put: (sha, gz) => run('readwrite', (s) => s.put(gz, sha)).then(() => undefined)

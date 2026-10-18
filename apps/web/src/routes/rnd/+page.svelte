@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * Research and Development (plan 105, ADR 0154 point 5): the world's tech tree in tier columns,
 	 * a node's detail, and Research. Its sim runs from the world's newest save (or its start info),
@@ -35,7 +36,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!client) throw new Error('The world is not running.');
@@ -99,7 +100,7 @@
 
 <main class="rnd">
 	<header>
-		<BackButton href="/space-center" label="Back to the Space Center" />
+		<BackButton href={resolve('/space-center')} label="Back to the Space Center" />
 		<div class="title">
 			<span class="cap">Research and Development</span>
 			<h1>Tech tree</h1>

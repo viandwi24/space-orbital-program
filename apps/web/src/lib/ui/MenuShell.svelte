@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import { GAME_NAME, GAME_VERSION } from '../public/about';
 	import SpaceBackdrop from './SpaceBackdrop.svelte';
@@ -19,7 +20,7 @@
 <SpaceBackdrop />
 <div class="page" class:wide>
 	<header>
-		<a class="mark" href="/" aria-label="{GAME_NAME}, main menu">
+		<a class="mark" href={resolve('/')} aria-label="{GAME_NAME}, main menu">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
 				<ellipse
 					cx="12"

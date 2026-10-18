@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/** The head of a public page (plan 089, refs): the round back button to the menu and a light title. */
 	import BackButton from './BackButton.svelte';
 
@@ -6,7 +7,7 @@
 </script>
 
 <header>
-	<BackButton href="/" label="Back to the main menu" />
+	<BackButton href={resolve('/')} label="Back to the main menu" />
 	<h1>{title}</h1>
 </header>
 

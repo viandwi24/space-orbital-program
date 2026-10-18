@@ -1,0 +1,52 @@
+# The game on GitHub Pages: https://viandwi24.github.io/space-orbital-program/
+# A static build (docs/architecture/hosting.md) under the repository's sub-path. Pages cannot send
+# the Content-Security-Policy header; the game runs without it (the policy is defence in depth).
+# One-time setting: Settings → Pages → Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.x
+      - run: bun install --frozen-lockfile
+      - name: Build under the repository's path
+        run: bun run --filter @orbital/web build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+          VITE_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+      - name: Page fallback and no Jekyll
+        run: |
+          cp apps/web/build/200.html apps/web/build/404.html
+          touch apps/web/build/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

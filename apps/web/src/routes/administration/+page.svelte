@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	/**
 	 * Administration (plan 099, ADR 0186; refs W5 `Admin.dc.html`): the agency strip, then Contracts
 	 * (Offered / Active / Completed, a contract's detail with Accept, Decline and Cancel) and
@@ -58,7 +59,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!client) throw new Error('The world is not running.');
@@ -145,7 +146,7 @@
 
 <main class="admin">
 	<header>
-		<BackButton href="/space-center" label="Back to the Space Center" />
+		<BackButton href={resolve('/space-center')} label="Back to the Space Center" />
 		<div class="title">
 			<span class="cap">Space Center</span>
 			<h1>Administration</h1>
