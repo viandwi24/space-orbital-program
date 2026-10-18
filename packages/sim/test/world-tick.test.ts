@@ -235,10 +235,10 @@ describe('background operations', () => {
 
 		s.dispatch({ type: 'warp', factor: 1e5 });
 		s.step((DAY + 50 - s.time) / 1e5); // past the first tick
-		// brought up to at least the tick, and between ticks at most BACKGROUND_REFRESH behind (plan 208)
-		expect(charge(s)).toBeGreaterThanOrEqual(RATE * (DAY - t0) - 1e-6);
-		expect(charge(s)).toBeLessThanOrEqual(RATE * (s.time - t0) + 1e-6);
-		expect(charge(s)).toBeGreaterThanOrEqual(RATE * (s.time - t0 - BACKGROUND_REFRESH) - 1e-6);
+		// brought up to the tick; between ticks a refresh runs only every BACKGROUND_REFRESH × warp
+		// (5e5 s at this warp, longer than the step), so not further (plan 208)
+		expect(charge(s)).toBeCloseTo(RATE * (DAY - t0), 6);
+		expect(BACKGROUND_REFRESH * 1e5).toBeGreaterThan(s.time - DAY);
 		expect(calls.onRails).toBe(0);
 		expect(calls.counter).toBeGreaterThan(0); // a module without `background` keeps updateOnRails
 

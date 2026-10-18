@@ -64,23 +64,36 @@ Power behaves the way a KSP player expects. Monopropellant and solid fuel exist 
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including `test/solar.test.ts` (extended): a panel facing the sun gives its rating at 1 AU, about half at 60°, zero behind the home body; the same vessel on rails over one orbit gets the same EC within 1 % as in physics.
-- [ ] `bun test packages/sim` passes `test/power.test.ts`: transmitting 10 Mbit costs the antenna's EC per Mbit and takes the rated time; at zero EC the queue pauses; a probe-only vessel at zero EC refuses throttle with the "no power" reason.
-- [ ] `bun test packages/core` passes `test/power-budget.test.ts`: two batteries, one RTG and one probe core give the expected day and night net rates.
-- [ ] `bun test packages/core` passes the save migration test: an old save with `stock.eva-propellant` loads as `stock.cold-gas` with the same amount.
-- [ ] `bun test mods/stock` passes, including the part-id snapshot (updated with the new parts only).
-- [ ] Chromium e2e `e2e/power.e2e.ts`: `debugSetOrbit` a probe with one panel to 100 km; EC rises on the day side and stops in shadow; `debugSetResource` EC to 0 shows the "Uncontrolled" chip and a bell entry.
-- [ ] `bun run check:affected --e2e e2e/power.e2e.ts` passes.
-- [ ] CI green on the `ready/208` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test packages/sim` passes, including `test/solar.test.ts` (extended): a panel facing the sun gives its rating at 1 AU, about half at 60°, zero behind the home body; the same vessel on rails over one orbit gets the same EC within 1 % as in physics.
+- [x] `bun test packages/sim` passes `test/power.test.ts`: transmitting 10 Mbit costs the antenna's EC per Mbit and takes the rated time; at zero EC the queue pauses; a probe-only vessel at zero EC refuses throttle with the "no power" reason.
+- [x] `bun test packages/core` passes `test/power-budget.test.ts`: two batteries, one RTG and one probe core give the expected day and night net rates.
+- [x] `bun test packages/core` passes the save migration test: an old save with `stock.eva-propellant` loads as `stock.cold-gas` with the same amount.
+- [x] `bun test mods/stock` passes, including the part-id snapshot (updated with the new parts only).
+- [x] Chromium e2e `e2e/power.e2e.ts`: `debugSetOrbit` a probe with one panel to 100 km; EC rises on the day side and stops in shadow; `debugSetResource` EC to 0 shows the "Uncontrolled" chip and a bell entry.
+- [x] `bun run check:affected --e2e e2e/power.e2e.ts` passes.
+- [x] CI green on the `ready/208` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/208-power-and-resources.md` written.
-- [ ] `docs/architecture/simulation.md` updated (resources, solar model, transmission cost).
-- [ ] ADR 0203 linked; ADR 0171 notes it is extended.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/208-power-and-resources.md` written.
+- [x] `docs/architecture/simulation.md` updated (resources, solar model, transmission cost).
+- [x] ADR 0203 linked; ADR 0171 notes it is extended.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-18 — Coordinator: `depends` set to 207, since the new parts go into the split part files.
+- 2026-10-19 — Worker A: refined against the code and implemented on `rel/208-power` (ADR 0214; 0213 went to plan 203). Defaults noted, not asked:
+  - flux 1 is the home planet's distance;
+  - the large tracking array gives 8.25 EC/s and the fixed panel 0.35 EC/s;
+  - a probe core draws 0.025 EC/s;
+  - a transmission costs 0.2 EC per Mbit per watt.
+- 2026-10-19 — Worker A, deviations from the plan as written:
+  - The bell does not exist yet (plan 205), so the notice is an "Out of power" toast.
+  - The e2e checks night with `debugSetLocation` on the far side of the home planet, not with a shadowed orbit: in orbit the array would fill the battery within seconds at warp, and the sunlit part of an orbit is not known in advance.
+  - Rails vessels' `background` forms now refresh every 5 s × the warp, so charge shows on rails.
+  - A probe out of power is no debris (`isControlled` stays structural).
+  - Batteries have no `stock.batteries` action yet: they would need the flow lock of plan 213.
+- 2026-10-19 — Worker A, found and fixed: the solar module's descriptor category `'other'` is invalid, so on main any design with a solar panel did not open in the Hangar (since plan 190). It is now `stock.other`, with a test that validates every stock module's descriptor. The debug log (plan 203) had no line for the new event, so the toast never fired.
+- 2026-10-19 — Checks: `bun run check:affected --e2e e2e/power.e2e.ts` all passed in 504 s (typecheck, bun test 10 workspaces, web vitest 587/587, Chromium `power.e2e.ts` 1/1).

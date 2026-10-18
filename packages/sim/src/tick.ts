@@ -171,17 +171,19 @@ export function hasBackground(core: SimCore, vesselId: EntityId): boolean {
 }
 
 /**
- * Sim seconds after which a rails vessel's `background` forms run again between ticks (plan 208,
- * ADR 0214): charge on rails shows within seconds instead of at the next day.
+ * Seconds after which a rails vessel's `background` forms run again between ticks (plan 208,
+ * ADR 0214): sim seconds at 1x, scaled by the warp, so about every 5 s of wall time. Charge on
+ * rails then shows within seconds instead of at the next day, and a long warp stays cheap.
  */
 export const BACKGROUND_REFRESH = 5;
 
-/** Runs the background of every rails vessel whose last evaluation is `BACKGROUND_REFRESH` old. */
+/** Runs the background of every rails vessel whose last evaluation is a refresh interval old. */
 export function runStaleBackground(core: SimCore): void {
+	const interval = BACKGROUND_REFRESH * Math.max(1, core.warp);
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
 		if (vessel.mode !== 'on-rails' || vessel.backgroundAt === undefined) continue;
-		if (core.t - vessel.backgroundAt >= BACKGROUND_REFRESH) runBackground(core, id);
+		if (core.t - vessel.backgroundAt >= interval) runBackground(core, id);
 	}
 }
 

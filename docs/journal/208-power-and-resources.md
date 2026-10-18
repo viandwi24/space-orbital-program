@@ -13,7 +13,7 @@
   - one sample in flight, and samples every 10 s along the rails path on rails.
 - **Panels:** `flat` or `track` mode, and `deployable: false` for a fixed panel. Stock has the folding 0.5 EC/s panel, a fixed 0.35 EC/s panel and a large 8.25 EC/s tracking array.
 - **RTG:** 0.75 EC/s, always on.
-- **Rails vessels:** their `background` forms now also run every 5 s of sim time between day ticks (`runStaleBackground`), so charge moves visibly on rails.
+- **Rails vessels:** their `background` forms now also run every 5 s × the warp between day ticks (`runStaleBackground`; about 5 s of wall time), so charge moves visibly on rails and a long warp stays cheap (the first cut at a flat 5 s made the 10-year career bot 4× slower: CI failed it at 107 s).
 - **Probe drain:** a `stock.probe-computer` module on the probe core draws 0.025 EC/s.
   - `ModuleDefinition.needs` names the resource that a part's control source runs on.
   - `controlProblem` in the sim gives `no-source` or `no-power`. Control commands are refused with that reason ("no power: …"), and `VesselSnapshot.uncontrolled` carries it.
