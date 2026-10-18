@@ -55,7 +55,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f4-114-comms-1` | 114 | A3 | A1, A2, A3 (070, 115, 116, 126) | done | 23e3c4a | 2026-10-17 |
 | `cp/f4-112-dock` | 112 | A2 | A2 (072) | done | 49f8d21 | 2026-10-17 |
 | `cp/f4-113-mission-center` | 113 | A1 | A2 (115) | done | c21d52b | 2026-10-17 |
-| `cp/f4-111-vessel-panel` | 111 | A2 | A2 (115) | pending | | |
+| `cp/f4-111-vessel-panel` | 111 | A2 | A2 (115) | done | 47c55ad | 2026-10-17 |
 | `cp/f4-115-comms-1-ui` | 115 | A2 | A1, A3 (070, 116) | pending | | |
 | `cp/f4-116-comms-2` | 116 | A3 | A1, A3 (070, 117) | pending | | |
 | `cp/f4-117-comms-3` | 117 | A3 | A1, A2, A3 (070, 118, 119, 126) | pending | | |

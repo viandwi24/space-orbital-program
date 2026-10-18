@@ -1,7 +1,7 @@
 ---
 id: 111
 title: "Vessel panel: Overview with group control, Parts with per-part actions"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [110, 088]
 phase: 7
