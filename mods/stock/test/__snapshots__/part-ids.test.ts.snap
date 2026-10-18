@@ -559,11 +559,11 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.resource-container",
         {
           "contents": {
+            "stock.cold-gas": {
+              "capacity": 5,
+            },
             "stock.electric-charge": {
               "capacity": 20,
-            },
-            "stock.eva-propellant": {
-              "capacity": 5,
             },
             "stock.food": {
               "capacity": 0.5,
@@ -588,7 +588,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "propellants": [
             {
               "ratio": 1,
-              "resource": "stock.eva-propellant",
+              "resource": "stock.cold-gas",
             },
           ],
           "thrust": 50,

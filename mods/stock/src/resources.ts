@@ -74,4 +74,25 @@ export const Food = defineResource({
 	price: RESOURCE_PRICES.food
 });
 
+/**
+ * Monopropellant for RCS (plan 208, ADR 0203 point 2): about 4 kg per unit, drawn from anywhere on
+ * the vessel like KSP's.
+ */
+export const Monopropellant = defineResource({
+	id: 'stock.monopropellant',
+	density: 4,
+	flowMode: 'vessel',
+	unit: 'u',
+	price: RESOURCE_PRICES.monopropellant
+});
+
+/** Solid fuel (plan 208): about 7.5 kg per unit; a solid booster burns only its own. */
+export const SolidFuel = defineResource({
+	id: 'stock.solid-fuel',
+	density: 7.5,
+	flowMode: 'none',
+	unit: 'u',
+	price: RESOURCE_PRICES.solidFuel
+});
+
 export const LIFE_SUPPORT_RESOURCES = [Supplies, Oxygen, Water, Food] as const;

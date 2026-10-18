@@ -4,7 +4,7 @@
  */
 import { definePlugin } from '@orbital/sdk';
 import { HomeBody, MoonBody, SunBody } from './bodies.ts';
-import { EvaPropellant, ModuleFlag, STOCK_EVA_PARTS } from './eva.ts';
+import { ColdGas, ModuleFlag, STOCK_EVA_PARTS } from './eva.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
@@ -56,7 +56,9 @@ import {
 	ElectricCharge,
 	LIFE_SUPPORT_RESOURCES,
 	LiquidFuel,
-	Oxidizer
+	Monopropellant,
+	Oxidizer,
+	SolidFuel
 } from './resources.ts';
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
@@ -105,7 +107,9 @@ export const Stock = definePlugin({
 		ctx.resources.register(ElectricCharge);
 		ctx.resources.register(Ablator);
 		for (const resource of LIFE_SUPPORT_RESOURCES) ctx.resources.register(resource);
-		ctx.resources.register(EvaPropellant);
+		ctx.resources.register(ColdGas);
+		ctx.resources.register(Monopropellant);
+		ctx.resources.register(SolidFuel);
 
 		ctx.modules.register(ModuleCommand);
 		ctx.modules.register(ModuleResourceContainer);

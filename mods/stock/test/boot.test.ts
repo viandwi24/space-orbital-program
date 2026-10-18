@@ -11,12 +11,14 @@ describe('stock boots through the loader', () => {
 			report.registered[kind].map((e) => e.id).sort();
 		expect(ids('resource')).toEqual([
 			'stock.ablator',
+			'stock.cold-gas',
 			'stock.electric-charge',
-			'stock.eva-propellant',
 			'stock.food',
 			'stock.liquid-fuel',
+			'stock.monopropellant',
 			'stock.oxidizer',
 			'stock.oxygen',
+			'stock.solid-fuel',
 			'stock.supplies',
 			'stock.water'
 		]);

@@ -271,3 +271,26 @@ describe('the debug state in the world info (plan 203, ADR 0213)', () => {
 		});
 	});
 });
+
+describe('format 9: cold gas (plan 208, ADR 0203 point 2)', () => {
+	test('an old save with stock.eva-propellant loads as stock.cold-gas with the same amount', () => {
+		const container = { amounts: { 'stock.eva-propellant': 3.25, 'stock.oxygen': 1 } };
+		const v8 = signed({
+			...unsigned(),
+			formatVersion: 8,
+			world: {
+				formatVersion: 1,
+				nextEntity: 1,
+				entities: [0],
+				components: { 'module:stock.resource-container': { '0': container } }
+			}
+		} as Omit<SimSave, 'checksum'>);
+		const read = readSimSave(v8);
+		expect(read.formatVersion).toBe(9);
+		const comps = read.world.components as Record<string, Record<string, unknown>>;
+		expect(comps['module:stock.resource-container']!['0']).toEqual({
+			amounts: { 'stock.cold-gas': 3.25, 'stock.oxygen': 1 }
+		});
+		expect(JSON.stringify(read)).not.toContain('stock.eva-propellant');
+	});
+});

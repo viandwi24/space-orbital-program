@@ -27,5 +27,8 @@ export const RESOURCE_PRICES = {
 	supplies: 2,
 	oxygen: 1,
 	water: 0.2,
-	food: 1.5
+	food: 1.5,
+	/** KSP's reference prices: monoprop 1.2, solid fuel 0.6 per unit. */
+	monopropellant: 1.2,
+	solidFuel: 0.6
 } as const;

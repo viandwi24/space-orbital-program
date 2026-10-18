@@ -1,12 +1,12 @@
 ---
 id: 208
 title: "Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [207]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 208 — Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost

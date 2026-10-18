@@ -16,14 +16,19 @@ import {
 import { ElectricCharge, Food, Oxygen, Supplies, Water } from './resources.ts';
 import { ExperimentSurfaceSample, ModuleExperiment } from './science.ts';
 
-/** Cold gas for the suit's jetpack: 1 u is 1 kg. */
-export const EvaPropellant = defineResource({
-	id: 'stock.eva-propellant',
+/**
+ * Cold gas for the suit's jetpack and cold-gas RCS: 1 u is 1 kg. It was `stock.eva-propellant`
+ * before plan 208; save format 9 renames it (ADR 0203 point 2).
+ */
+export const ColdGas = defineResource({
+	id: 'stock.cold-gas',
 	density: 1,
 	flowMode: 'vessel',
 	unit: 'u',
 	price: 0.5
 });
+/** The old name of `ColdGas`, kept for mods written against it. */
+export const EvaPropellant = ColdGas;
 
 /** Jetpack figures (ADR 0120 point 4): 50 N at 60 s, 5 kg of propellant. */
 export const JETPACK = { thrust: 50, isp: 60, propellant: 5 } as const;
@@ -55,7 +60,7 @@ export const PartEvaSuit = definePart({
 			{
 				contents: {
 					[ElectricCharge.id]: { capacity: 20 },
-					[EvaPropellant.id]: { capacity: JETPACK.propellant },
+					[ColdGas.id]: { capacity: JETPACK.propellant },
 					// half a day of everything a crew member needs (ADR 0181)
 					[Supplies.id]: { capacity: 0.5 },
 					[Oxygen.id]: { capacity: 0.5 },
@@ -70,7 +75,7 @@ export const PartEvaSuit = definePart({
 				thrust: JETPACK.thrust,
 				ispVacuum: JETPACK.isp,
 				ispSeaLevel: JETPACK.isp,
-				propellants: [{ resource: EvaPropellant.id, ratio: 1 }]
+				propellants: [{ resource: ColdGas.id, ratio: 1 }]
 			}
 		],
 		[ModuleReactionWheel, { torque: 20, chargeRate: 0.01 }],

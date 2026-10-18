@@ -28,7 +28,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 8;
+export const SIM_SAVE_VERSION = 9;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -418,8 +418,28 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 	7: (data) => {
 		const comms = isRecord(data.comms) ? data.comms : { seq: 0, routes: [], queue: [] };
 		return { ...data, formatVersion: 8, comms: { ...comms, transmissions: [] } };
-	}
+	},
+	// format 9 (plan 208, ADR 0203 point 2): EVA propellant is renamed cold gas, same amounts
+	8: (data) => ({
+		...renameId(data, 'stock.eva-propellant', 'stock.cold-gas'),
+		formatVersion: 9
+	})
 };
+
+/**
+ * `value` with every object key and every string equal to `from` replaced by `to`: a definition
+ * id renamed in a save (the containers' amounts, engine propellants, snapshots of modules).
+ */
+export function renameId<T>(value: T, from: string, to: string): T {
+	if (typeof value === 'string') return (value === from ? to : value) as T;
+	if (Array.isArray(value)) return value.map((v) => renameId(v, from, to)) as T;
+	if (isRecord(value)) {
+		const out: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(value)) out[k === from ? to : k] = renameId(v, from, to);
+		return out as T;
+	}
+	return value;
+}
 
 export class SaveError extends Error {
 	override readonly name = 'SaveError';
