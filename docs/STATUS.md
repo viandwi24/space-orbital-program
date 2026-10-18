@@ -135,7 +135,7 @@
 | 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | done | Agent 3 | ADR 0184: systems chosen in the loader, Sol (JPL/IAU data) at 1:1 and rescaled (×1/4, real periods), balance patches, validation suite, Create World variants; handed over as `ready/124` |
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
 | 126 | [AI agencies and a living world](plans/126-ai-agencies-living-world.md) | draft | — | ADR 0096: agencies, real objects, rent, news |
-| 127 | [Range safety: safe azimuth fans and stage impact zones](plans/127-range-safety.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0097: safe fans, impact zones, rule |
+| 127 | [Range safety: safe azimuth fans and stage impact zones](plans/127-range-safety.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0155: the safe fan from the water map, the spent stage's drop judged at staging (refused under `hard`, a penalty once under `cost`), the ascent azimuth at 2 km, the Launch panel estimate and the HUD warning; API 0.1.55 |
 | 128 | [Off-world bases: base kits and parts left on the surface](plans/128-off-world-bases.md) | draft | — | ADR 0097: base kits and outposts, one chain |
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | draft | — | ADR 0094: reliability rule, off by default |
