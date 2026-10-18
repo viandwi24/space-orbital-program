@@ -1,7 +1,7 @@
 ---
 id: 118
 title: "Comms planning tools: contact timeline, coverage map, constellation planner"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [117]
 phase: 7

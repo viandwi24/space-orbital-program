@@ -29,7 +29,7 @@
 | 115 comms-1-ui | done | `devb/115-comms-ui` | 2026-10-17 | merged 55ca2da, cp/f4-115-comms-1-ui |
 | 127 range-safety | done | `devb/127-range-safety` | 2026-10-17 | merged aaa9f4c, cp/f6-127-range-safety |
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
-| 118 comms-tools | handed-over | `devb/118-comms-tools` | 2026-10-18 | ready/118 at 84901593 (ADR 0163) |
+| 118 comms-tools | done | `devb/118-comms-tools` | 2026-10-17 | merged 8ef33384, cp/f4-118-comms-tools |
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
 | 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
 | 065 mod-models | done | `devb/065-mod-models` | 2026-10-17 | merged 528d048, cp/f6-065-mod-models |
