@@ -60,7 +60,7 @@ export const ModuleSolarPanel = defineModule({
 	config: solarPanelConfigSchema,
 	state: (config): SolarPanelState => ({ deployed: config.deployed || !config.deployable }),
 	describe: (config, state) => ({
-		category: 'other',
+		category: 'stock.other',
 		actions: !config.deployable
 			? []
 			: [
@@ -114,7 +114,7 @@ function rtgCharge(
 export const ModuleRtg = defineModule({
 	id: 'stock.rtg',
 	config: rtgConfigSchema,
-	describe: () => ({ category: 'other' }),
+	describe: () => ({ category: 'stock.other' }),
 	power: (config) => ({ rate: config.rate }),
 	update: rtgCharge,
 	background: rtgCharge

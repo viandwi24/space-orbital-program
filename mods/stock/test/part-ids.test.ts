@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { powerBudget } from '@orbital/sdk';
+import { describeModule, parseModuleConfig, powerBudget } from '@orbital/sdk';
 import { loaded } from './helpers.ts';
 
 /**
@@ -37,4 +37,19 @@ test('the stock power budget: two batteries, an RTG and a probe core (plan 208)'
 	expect(b.day).toBeCloseTo(0.725, 12);
 	expect(b.night).toBeCloseTo(0.725, 12);
 	expect(b.capacity).toBe(820);
+});
+
+test('every stock module describes itself with a valid descriptor (plan 208 found solar "other")', () => {
+	for (const part of loaded.registries.parts.list()) {
+		for (const [moduleId, config] of part.modules ?? []) {
+			const def = loaded.registries.modules.get(moduleId)!;
+			const parsed = parseModuleConfig(def, config);
+			if (!parsed.ok || !def.describe) continue;
+			const state = def.state ? def.state(parsed.value) : undefined;
+			expect(
+				() => describeModule(def, parsed.value, state),
+				`${part.id}/${moduleId}`
+			).not.toThrow();
+		}
+	}
 });

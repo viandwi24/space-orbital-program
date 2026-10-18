@@ -22,18 +22,24 @@ async function launchProbe(page: Page): Promise<void> {
 		),
 		stages: []
 	};
+	await page.goto('/vab');
+	// opening from the library replaces what the Hangar holds; start from the example, as a player would
+	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
+	await expect(library).toBeVisible();
 	await library.locator('input[type=file]').setInputFiles({
 		name: 'power-probe.json',
 		mimeType: 'application/json',
 		buffer: Buffer.from(JSON.stringify(design))
 	});
+	await expect(library.getByRole('status')).toHaveText('Imported Power probe.');
 	await library
 		.getByRole('listitem')
 		.filter({ hasText: 'Power probe' })
 		.getByRole('button', { name: 'Open' })
 		.click();
+	await expect(page.getByText('Opened Power probe.')).toBeVisible();
 	const launch = page.getByRole('button', { name: /^Launch/ });
 	await expect(launch).toBeEnabled();
 	await launch.click();
