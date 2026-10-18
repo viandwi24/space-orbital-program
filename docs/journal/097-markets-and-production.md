@@ -9,7 +9,7 @@
 | Where | What |
 |---|---|
 | `core/market.ts` | `CommodityDefinition`, `RecipeDefinition` and schemas; `MarketState`, `freshMarket`, `rawPrice`, `marketTick` (relax, price, clamp, cap, 90-day history); `storedUnits` |
-| core | `commodities` and `recipes` registries (registrars, report sections); `SimSave.economy.markets` and `.storage` (optional); `designContents`; commands `market-buy`, `market-sell`; `Snapshot.economy.markets` and `.storage`; `CAPACITY.storage` in commodity units; API_VERSION 0.1.60 |
+| core | `commodities` and `recipes` registries (registrars, report sections); `SimSave.economy.markets` and `.storage` (optional); `designContents`; commands `market-buy`, `market-sell`; `Snapshot.economy.markets` and `.storage`; `CAPACITY.storage` in commodity units; API_VERSION 0.1.61 (116 took 0.1.60) |
 | sdk | `defineCommodity`, `defineRecipe` |
 | `sim/market.ts` | markets open lazily with the economy on; `launchQuote` (parts at static price, propellants from the launch site's storage then the market), `refuseLaunch` and `payLaunch` used by `load-vessel`; `marketBuy`, `marketSell`; `marketDay` on the world tick after the day's charges (production while funds ≥ 0, then each market's tick); `marketSnapshot` |
 | `mods/stock/market.ts` | liquid fuel (0.8) and oxidizer (0.18) on the plan's market numbers, five fixed services, `stock.propellant-synthesis` (200 and 245 u a day in the propellant plant) |

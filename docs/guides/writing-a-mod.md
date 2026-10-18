@@ -505,7 +505,7 @@ definePlugin({
 - **Reading the ledger:** listen to `economy:entry` (`{ time, currency, amount, cause, ref? }`); the HUD reads `snapshot.economy`. `designCost(design, registries)` gives a design's launch cost, and `projectBalances(...)` projects the charges over N days.
 - Launching (`load-vessel`) pays the design's cost and is refused when funds are short; `recover-vessel` pays back the value of what is left of a landed vessel at rest, times a distance factor (`recoveryFactor`), and removes it.
 
-## Commodities and recipes (API 0.1.60, plan 097, ADR 0124)
+## Commodities and recipes (API 0.1.61, plan 097, ADR 0124)
 
 `ctx.commodities.register(defineCommodity({ id, label, unit, basePrice, resource?, market }))` adds a commodity. `market` is `'fixed'` (a price, no trade) or `{ target, elasticity, cap, floor, ceiling, relaxDays }`: the world holds `target` units at the base price, `elasticity` sets how hard the price answers `target / stock`, `cap` is the largest move per day, `floor` and `ceiling` bound the price as fractions of base, and `relaxDays` is how fast world demand brings the stock back. A commodity with a `resource` prices that resource's launch contents while markets are open (Career): a launch takes it from the launch site's storage first and buys the rest. `ctx.recipes.register(defineRecipe({ id, label, building, inputs, outputs }))` makes a building kind turn inputs into outputs per day at production factor 1; the building level's `production` capacity multiplies it and its `storage` capacity bounds what a site holds. Stock: `stock.liquid-fuel`, `stock.oxidizer` (traded) and five fixed services; `stock.propellant-synthesis` in `stock.propellant-plant`. Commands `market-buy` and `market-sell { commodity, amount, site }`.
 
