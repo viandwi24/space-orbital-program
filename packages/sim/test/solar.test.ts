@@ -169,7 +169,7 @@ describe('sunlight on a panel (plan 208, ADR 0213)', () => {
 			),
 			placement: { kind: 'state', ...orbitState(sim, 100_000) }
 		});
-		expect(r.ok).toBe(true);
+		if (!r.ok) throw new Error(r.reason);
 		// an action wakes the vessel into flight, where `update` runs every step
 		const array = sim
 			.snapshot()

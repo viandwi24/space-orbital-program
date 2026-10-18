@@ -5,6 +5,7 @@
  * next contact of a holder without a route. The queues are `SimCore.commsState.transmissions`.
  */
 import {
+	CHARGE_RESOURCE,
 	COMMAND_RATE,
 	MAX_CUSTODY_HOPS,
 	dataValueAt,
@@ -15,13 +16,58 @@ import {
 	type Snapshot
 } from '@orbital/core';
 import { commsOn, hasAntenna, licenceRefusal, nextDirectContact, type Routed } from './comms.ts';
-import { vesselIds, type SimCore } from './core.ts';
+import {
+	moduleDefOf,
+	moduleState,
+	partOf,
+	vesselAmount,
+	vesselIds,
+	vesselOf,
+	type SimCore
+} from './core.ts';
+import { withdrawResource } from './resources.ts';
 import { dataUse, deleteData, restoreData, storagesOf } from './data.ts';
 import { intakeData } from './discovery.ts';
 import { creditScience } from './science.ts';
 import { VESSEL } from './state.ts';
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
+
+/** Electric charge per Mbit sent, per watt of the antenna's transmit power (plan 208, ADR 0213). */
+export const TRANSMIT_EC_PER_MBIT_PER_W = 0.2;
+const MBIT = 1024 * 1024;
+
+/** EC per bit the holder spends sending: its strongest working antenna's power (0 without one). */
+export function transmitCostPerBit(core: SimCore, holder: EntityId): number {
+	let power = 0;
+	for (const partId of vesselOf(core, holder).parts) {
+		for (const m of partOf(core, partId).modules) {
+			const def = moduleDefOf(core, m.id);
+			if (!def.antenna) continue;
+			const a = def.antenna(m.config, moduleState(core, partId, m.id));
+			if (!a.enabled) continue;
+			power = Math.max(power, core.registries.antennas.get(a.antenna)?.power ?? 0);
+		}
+	}
+	return (power * TRANSMIT_EC_PER_MBIT_PER_W) / MBIT;
+}
+
+/**
+ * The bits the holder can pay for out of `budget`, and a function that charges what was sent: a
+ * radio sends only while the vessel has electric charge (plan 208, ADR 0213).
+ */
+function powerBudget(core: SimCore, holder: EntityId, budget: number) {
+	const perBit = transmitCostPerBit(core, holder);
+	if (perBit <= 0) return { bits: budget, pay: (_bits: number) => {} };
+	const vessel = vesselOf(core, holder);
+	const charge = vesselAmount(core, vessel, CHARGE_RESOURCE);
+	return {
+		bits: Math.min(budget, charge / perBit),
+		pay: (bits: number) => {
+			if (bits > 0) withdrawResource(core, vessel, vessel.root, CHARGE_RESOURCE, bits * perBit);
+		}
+	};
+}
 
 const priorityOf = (core: SimCore, item: DataItem): number =>
 	core.registries.dataKinds.get(item.kind)?.priority ?? 0;
@@ -155,9 +201,11 @@ export function stepTransmissions(
 		if (!link) continue;
 		const queue = queueOf(core, holder);
 		if (link.route.length > 0) {
-			// at the route's shared rate; "commands only" still moves command items
-			let left = (link.rate ?? 0) * dt;
-			let commands = COMMAND_RATE * dt;
+			// at the route's shared rate; "commands only" still moves command items; each bit costs EC
+			const power = powerBudget(core, holder as EntityId, (link.rate ?? 0) * dt);
+			let left = power.bits;
+			let commands = Math.min(COMMAND_RATE * dt, power.bits);
+			let spent = 0;
 			for (const item of queue) {
 				const command = priorityOf(core, item.item) < 0;
 				const budget = command ? Math.max(left, commands) : left;
@@ -165,6 +213,7 @@ export function stepTransmissions(
 				const need = item.item.bits - item.sent;
 				const sent = Math.min(need, budget);
 				item.sent += sent;
+				spent += sent;
 				if (command) commands -= sent;
 				left = Math.max(0, left - sent);
 				if (item.sent >= item.item.bits - 1e-9) {
@@ -172,6 +221,7 @@ export function stepTransmissions(
 					deliver(core, item, t);
 				} else break; // one item at a time, in order
 			}
+			power.pay(spent);
 			continue;
 		}
 		// store-and-forward: hand the head item to a relay that has a route (ADR 0189 point 4)
@@ -179,7 +229,10 @@ export function stepTransmissions(
 		if (!head || head.hops >= MAX_CUSTODY_HOPS) continue;
 		const to = custodian(core, holder, link, head.item.bits);
 		if (!to || to.rate <= 0) continue;
-		head.sent = Math.min(head.item.bits, head.sent + to.rate * dt);
+		const power = powerBudget(core, holder as EntityId, to.rate * dt);
+		const step = Math.min(head.item.bits - head.sent, power.bits);
+		head.sent += step;
+		power.pay(step);
 		if (head.sent >= head.item.bits - 1e-9) {
 			head.holder = Number(to.vessel);
 			head.sent = 0;

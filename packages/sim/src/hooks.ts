@@ -25,6 +25,7 @@ import { creditScience, makeResult, vesselSituation } from './science.ts';
 import { signalOf } from './comms.ts';
 import { isFailed } from './reliability.ts';
 import { sunExposure } from './sunlight.ts';
+import { notePower } from './power.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -169,6 +170,7 @@ export function runUpdateHooks(core: SimCore, vesselId: EntityId, dt: number): v
 			if (hook && !isFailed(core, partId, m.id)) hook(makeContext(core, partId, m.id), dt);
 		}
 	}
+	notePower(core, vesselId);
 }
 
 /** Calls `onStage` on every module of `partId`. */

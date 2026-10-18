@@ -334,6 +334,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
 	controlSource?: boolean;
 	/**
+	 * A control source that runs on a resource (plan 208, ADR 0213: a probe core on electric
+	 * charge): the resource id for this config, or undefined. While the vessel holds none of it, the
+	 * part is no control source and the vessel is uncontrolled for want of power.
+	 */
+	needs?(config: Out): string | undefined;
+	/**
 	 * True when a vessel with this module is never removed as resting debris (plan 109, ADR 0120
 	 * point 5): a planted flag stays where it was put.
 	 */

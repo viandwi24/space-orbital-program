@@ -17,6 +17,7 @@ import {
 	type WorldInfo
 } from '@orbital/core';
 import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { notePower } from './power.ts';
 import { makeContext } from './hooks.ts';
 import { economyTick } from './economy.ts';
 import { agenciesTick } from './agencies.ts';
@@ -159,6 +160,7 @@ export function runBackground(core: SimCore, vesselId: EntityId): void {
 			if (hook) hook(makeContext(core, partId, m.id), dt);
 		}
 	}
+	notePower(core, vesselId);
 }
 
 /** Whether any module of the vessel declares `background`; only such vessels carry `backgroundAt`. */

@@ -162,10 +162,49 @@ export function moduleState(core: SimCore, part: EntityId, moduleId: string): un
 	return core.world.get(part, moduleStateToken(moduleId));
 }
 
+/** Amount of `resource` in every store of the vessel (a `vessel`-flow resource such as EC). */
+export function vesselAmount(core: SimCore, vessel: VesselState, resource: string): number {
+	let sum = 0;
+	for (const id of vessel.parts) {
+		for (const m of partOf(core, id).modules) {
+			const store = moduleDefOf(core, m.id).store;
+			if (!store) continue;
+			const state = moduleState(core, id, m.id);
+			if (store.resources(m.config, state).includes(resource))
+				sum += store.amount(m.config, state, resource);
+		}
+	}
+	return sum;
+}
+
+/**
+ * Why the vessel takes no control commands (ADR 0109; plan 208, ADR 0213), or undefined when it
+ * does: `no-source` without any control source, `no-power` when every source needs a resource
+ * (`ModuleDefinition.needs`) the vessel has run out of.
+ */
+export function controlProblem(
+	core: SimCore,
+	vessel: VesselState
+): 'no-source' | 'no-power' | undefined {
+	let sources = 0;
+	const short = new Map<string, boolean>();
+	for (const id of vessel.parts) {
+		for (const m of partOf(core, id).modules) {
+			const def = moduleDefOf(core, m.id);
+			if (def.controlSource !== true) continue;
+			sources += 1;
+			const need = def.needs?.(m.config);
+			if (need === undefined) return undefined;
+			let out = short.get(need);
+			if (out === undefined) short.set(need, (out = vesselAmount(core, vessel, need) <= 0));
+			if (!out) return undefined;
+		}
+	}
+	return sources === 0 ? 'no-source' : 'no-power';
+}
+
 export function isControlled(core: SimCore, vessel: VesselState): boolean {
-	return vessel.parts.some((id) =>
-		partOf(core, id).modules.some((m) => moduleDefOf(core, m.id).controlSource === true)
-	);
+	return controlProblem(core, vessel) === undefined;
 }
 
 /** A vessel with a `keep` module (a planted flag, ADR 0120 point 5): never reaped as debris. */

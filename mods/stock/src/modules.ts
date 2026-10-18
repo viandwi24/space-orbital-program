@@ -41,10 +41,35 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
+export const commandConfigSchema = z.object({
+	/**
+	 * Electric charge per second the source draws (plan 208, ADR 0213): a probe core's computer.
+	 * A source with a drain is no control source while the vessel has no EC; 0 (a crewed pod) never
+	 * needs power to be steered.
+	 */
+	drain: z.number().nonnegative().default(0)
+}).prefault({});
+
+/** Draws the drain for `dt` seconds; what is missing is simply not there (the control check sees 0 EC). */
+function commandDrain(
+	ctx: {
+		config: z.output<typeof commandConfigSchema>;
+		vessel: { resources: { withdraw(resource: string, amount: number): number } };
+	},
+	dt: number
+): void {
+	if (ctx.config.drain > 0 && dt > 0)
+		ctx.vessel.resources.withdraw(ElectricCharge.id, ctx.config.drain * dt);
+}
+
 export const ModuleCommand = defineModule({
 	id: 'stock.command',
+	config: commandConfigSchema,
 	controlSource: true,
-	describe: () => ({ category: 'command' })
+	needs: (config) => (config.drain > 0 ? ElectricCharge.id : undefined),
+	describe: () => ({ category: 'command' }),
+	update: commandDrain,
+	background: commandDrain
 });
 
 // ---------------------------------------------------------------------------------------------

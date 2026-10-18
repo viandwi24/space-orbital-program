@@ -142,6 +142,11 @@ export interface VesselSnapshot {
 	 * `recover-vessel` would credit, for the HUD to show before the player confirms.
 	 */
 	recovery?: { value: number; factor: number; distance: number | null; credit: number };
+	/**
+	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0213): it has no
+	 * control source, or every source needs power the vessel has run out of.
+	 */
+	uncontrolled?: 'no-source' | 'no-power';
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;

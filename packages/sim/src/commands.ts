@@ -80,6 +80,7 @@ import {
 } from './buildings.ts';
 import {
 	hasFlightVessels,
+	controlProblem,
 	isControlled,
 	moduleDefOf,
 	moduleState,
@@ -112,7 +113,10 @@ const accept = (vessel?: EntityId): CommandResult =>
 function controllable(core: SimCore, id: EntityId): VesselState | string {
 	const vessel = core.world.get(id, VESSEL);
 	if (!vessel) return `unknown vessel ${id}`;
-	if (!isControlled(core, vessel)) return `vessel ${id} ("${vessel.name}") has no control source`;
+	const problem = controlProblem(core, vessel);
+	if (problem === 'no-source') return `vessel ${id} ("${vessel.name}") has no control source`;
+	if (problem === 'no-power')
+		return `no power: vessel ${id} ("${vessel.name}") has no electric charge for its probe core`;
 	return vessel;
 }
 

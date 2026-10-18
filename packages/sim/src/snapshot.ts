@@ -23,7 +23,8 @@ import {
 	partOf,
 	vesselIds,
 	vesselOf,
-	type SimCore
+	type SimCore,
+	controlProblem
 } from './core.ts';
 import { dataUse, storagesOf } from './data.ts';
 import { rosterSnapshot, vesselCrewSnapshot } from './crew.ts';
@@ -139,6 +140,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const target = resolveTarget(core, vessel);
 	if (target) snapshot.target = target;
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
+	const uncontrolled = controlProblem(core, vessel);
+	if (uncontrolled) snapshot.uncontrolled = uncontrolled;
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
 	const crew = vesselCrewSnapshot(core, id);
 	if (crew) snapshot.crew = crew;
