@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 063 handed over as `ready/063` (API 0.1.66); next 072 script-panel (human-gated: automatable steps, then `blocked` with the checklist).
-**Waiting for:** the merge of 063 (`ready/063`); 118 waits for `cp/f4-117-comms-3`.
+**Now:** lane done except 118: 063 handed over (`ready/063`, API 0.1.66); 072 and 073 handed over as `ready/072` and `ready/073`, both `blocked` on the owner's human passes (072: journal 058 checklist + journal 072; 073: phone device results, journal 055 C and D).
+**Waiting for:** `cp/f4-117-comms-3` (Agent 3) for 118; merges of 063, 072, 073.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -34,5 +34,5 @@
 | 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
 | 065 mod-models | done | `devb/065-mod-models` | 2026-10-17 | merged 528d048, cp/f6-065-mod-models |
 | 063 aeroplane | handed-over | `devb/063-aeroplane` | 2026-10-18 | ready/063 at 2846d8f |
-| 072 script-panel | todo |  |  |  |
-| 073 phone | todo |  |  |  |
+| 072 script-panel | handed-over | `devb/072-script-panel` | 2026-10-18 | ready/072; plan blocked on the owner's human pass (ADR 0162) |
+| 073 phone | handed-over | `devb/073-phone` | 2026-10-18 | ready/073; plan blocked on the owner's phone results |
