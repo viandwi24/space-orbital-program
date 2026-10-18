@@ -1,7 +1,7 @@
 ---
 id: 125
 title: "N-body gravity model (future; DE440)"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [080, 123]
 phase: 8

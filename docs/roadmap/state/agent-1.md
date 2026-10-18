@@ -20,6 +20,6 @@
 | 109 eva | done | `lead/109-eva` | 2026-10-17 | merged 912d3e3, cp/f3-109-eva |
 | 097 markets | done | `lead/097-markets` | 2026-10-18 | merged, cp/f3-097-markets |
 | 071 second-planet | done | `lead/071-second-planet` | 2026-10-17 | merged 5ba6b20, cp/f5-071-second-planet |
-| 125 n-body | in-progress | `lead/125-n-body` | 2026-10-18 | claim/125; save format 9 reserved |
+| 125 n-body | done | `lead/125-n-body` | 2026-10-17 | merged fdfc35f, cp/f5-125-n-body |
 | 128 bases | done | `lead/128-bases` | 2026-10-18 | merged, cp/f6-128-bases |
 | 070 comms-index | todo |  |  |  |
