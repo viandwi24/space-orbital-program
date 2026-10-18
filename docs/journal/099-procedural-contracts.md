@@ -49,5 +49,14 @@
 ## Verification output
 
 ```text
-VERIFICATION
+bun test packages/sim/test/contracts.test.ts      10 pass
+bun test packages/sim/test/career-bot.test.ts     3 pass: plain max 196 573; markets max 365 903;
+                                                  contracts 119 done, max 382 277 (band 25 000..500 000)
+bun run docs:check                                docs-check: OK (135 plans, 160 ADRs)
+bun run test                                      1663 pass, 1 fail (503 s): the patch benchmark under load
+                                                  (passes alone, M5-indicative)
+bun run typecheck                                 exit 0
+bun run --filter @orbital/web test                1000 passed, 1 skipped; CreateWorld timed out once under load
+                                                  (6/6 alone); 4 env-only import suites (no Node here)
+bun run build                                     exit 0
 ```
