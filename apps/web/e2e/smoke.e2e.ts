@@ -185,7 +185,7 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 	await expect(scriptStatus(page)).toHaveText('running', { timeout: 60_000 });
 	const faster = page.getByRole('button', { name: 'Faster time warp' });
 	await expect(faster).toBeEnabled();
-	// 1x -> 2x -> 5x -> 10x; the first press waits for the vessel to settle on the pad
+	// 1x -> 2x -> 4x -> 10x (plan 206 levels); the first press waits for the vessel to settle on the pad
 	// A machine under load can need longer than the host waits (8 s); pressing again is what a player does.
 	for (let attempt = 0; attempt < 3; attempt++) {
 		await faster.click();
@@ -199,7 +199,7 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 	}
 	await expect(page.getByTestId('hud-warp')).toHaveText('2x');
 	await faster.click();
-	await expect(page.getByTestId('hud-warp')).toHaveText('5x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('4x');
 	await faster.click();
 	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
 
@@ -214,7 +214,7 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 
 	// The keyboard path (plan 023: journal 043 could not exercise it): `,` and `.` step the warp.
 	await page.keyboard.press(',');
-	await expect(page.getByTestId('hud-warp')).toHaveText('5x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('4x');
 	await page.keyboard.press('.');
 	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
 	await page.getByRole('button', { name: 'Slower time warp' }).click();
