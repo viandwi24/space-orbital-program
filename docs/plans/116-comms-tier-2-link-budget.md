@@ -96,3 +96,4 @@ Docs: journal docs/journal/116-comms-tier-2-link-budget.md · ADR 0185 · resear
 Resource notes: swap used 907 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (117 takes relays, capacity, the budget as the link rule and combined antennas; the ADR lists UHF/Ka/optical parts and EC draw)
 ```
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts); API_VERSION 0.1.60 set on the branch; bun test 1641 pass, web vitest 1012 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center and vessel-panel e2e pass (Chromium).
