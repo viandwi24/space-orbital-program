@@ -16,7 +16,7 @@ The coordinating session runs a watchdog that writes a sample every 30 s to `/tm
 
 It creates **`/tmp/orbital-pause`** after 3 bad samples in a row and removes it after 6 good ones. A sample is bad when any of these holds:
 - free memory < 15 %;
-- swap > 7 GB;
+- swap > 8 GB **and** free memory < 30 % (macOS keeps swap used long after memory frees up, so swap alone means nothing);
 - load > 10;
 - CPU speed limit < 80.
 
@@ -49,7 +49,6 @@ Run these first, and **wait 2 minutes and check again** while any limit is excee
 | Check | Command | Limit |
 |---|---|---|
 | Free memory | `memory_pressure -Q` | "System-wide memory free percentage" must be ≥ 20 % |
-| Swap | `sysctl -n vm.swapusage` | used ≤ 6 GB |
 | Load | `sysctl -n vm.loadavg` | 1-minute load ≤ 8 |
 
 ### Other rules
