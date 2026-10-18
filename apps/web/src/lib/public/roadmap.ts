@@ -393,6 +393,7 @@ export const ROADMAP_NOTES: readonly { date: string; item: string; change: strin
 /** The label shown for an item, from its plan file's status (`virtual:plan-status`). */
 export function labelOf(item: Pick<RoadmapItem, 'plan' | 'exploring'>, status: string | undefined): RoadmapLabel {
 	if (status === 'done') return 'shipped';
-	if (status === 'in-progress') return 'in progress';
+	// a blocked plan has its work done and waits for a human step (roadmap §8): in progress to a reader
+	if (status === 'in-progress' || status === 'blocked') return 'in progress';
 	return item.exploring ? 'exploring' : 'planned';
 }

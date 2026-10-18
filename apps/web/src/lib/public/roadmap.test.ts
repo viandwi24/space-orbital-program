@@ -15,7 +15,7 @@ const status = readPlanStatus(join(__dirname, '../../../../../docs/plans'));
 describe('public roadmap', () => {
 	it('lists only plans that exist, with a known status', () => {
 		for (const item of [...ROADMAP, ...SHIPPED]) {
-			expect(['draft', 'ready', 'in-progress', 'done'], `plan ${item.plan}`).toContain(
+			expect(['draft', 'ready', 'in-progress', 'blocked', 'done'], `plan ${item.plan}`).toContain(
 				status[item.plan]
 			);
 		}
