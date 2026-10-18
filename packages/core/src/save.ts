@@ -140,6 +140,8 @@ export interface SaveComms {
 	transmissions: SaveTransmission[];
 	/** Licensed channels beyond channel 0 (plan 120, ADR 0191 point 2); optional. */
 	licences?: Array<{ band: string; channel: number }>;
+	/** Milestones broadcast live (plan 121, ADR 0193 point 5); optional. */
+	broadcasts?: string[];
 }
 
 /** One data item in a radio's queue (ADR 0189 point 2). */
@@ -276,7 +278,8 @@ export const simSaveSchema = z.object({
 				hops: z.int().min(0)
 			})
 		),
-		licences: z.array(z.object({ band: z.string().min(1), channel: z.int().min(0) })).optional()
+		licences: z.array(z.object({ band: z.string().min(1), channel: z.int().min(0) })).optional(),
+		broadcasts: z.array(z.string().min(1)).optional()
 	}),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
 	seed: finite,

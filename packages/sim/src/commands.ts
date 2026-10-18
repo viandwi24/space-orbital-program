@@ -50,6 +50,7 @@ import { startObjective } from './objectives.ts';
 import { acceptContract, cancelContract, declineContract } from './contracts.ts';
 import { activateStrategy, endStrategy } from './strategies.ts';
 import { claimFact, processDataset } from './discovery.ts';
+import { broadcastMilestone } from './broadcast.ts';
 import { hasBackground } from './tick.ts';
 import { creditRecovery, recoveryBlocker } from './economy.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
@@ -533,6 +534,8 @@ export function dispatch(
 			return processDataset(core, command.dataset);
 		case 'discovery-claim':
 			return claimFact(core, command.body, command.fact, command.value, command.confidence);
+		case 'comms-broadcast':
+			return broadcastMilestone(core, command.milestone);
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

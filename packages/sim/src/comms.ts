@@ -42,7 +42,9 @@ import {
 	licensed,
 	type SignalState,
 	type Snapshot,
-	type Vec3
+	type Vec3,
+	SUIT_SAMPLE_SPACING,
+	abilitiesOf
 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
@@ -56,6 +58,8 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
+import { vesselOfMember } from './crew.ts';
+import { broadcastOffers } from './broadcast.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { railsMotion } from './orbit.ts';
 import { qAboutY, qRotate } from './math.ts';
@@ -216,6 +220,8 @@ interface Node {
 	crewed: boolean;
 	/** Has a control source, and all of them sit on parts without seats. */
 	probe: boolean;
+	/** Every enabled antenna is a suit radio (plan 121, ADR 0193 point 1). */
+	suit: boolean;
 	/** Its enabled, working antennas (for the link budget). */
 	antennas: AntennaDefinition[];
 	/** The same antennas with where each points (plan 117, ADR 0188 point 2; null: Auto). */
@@ -234,6 +240,8 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 	let sources = 0;
 	const antennas: AntennaDefinition[] = [];
 	const pointing: Node['pointing'] = [];
+	let suits = 0;
+	let radio: number | undefined;
 	for (const partId of vesselOf(core, id).parts) {
 		const part = partOf(core, partId);
 		const seats = (partDefOf(core, part).crewCapacity ?? 0) > 0;
@@ -248,7 +256,10 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 				const antenna = core.registries.antennas.get(a.antenna);
 				// a failed antenna is dead (plan 130, ADR 0156 point 2)
 				const on = a.enabled && !isFailed(core, partId, m.id);
-				range = Math.max(range, on ? (antenna?.range ?? 0) : 0);
+				// a suit radio reaches farther with a better operator (ADR 0193 point 2)
+				const scale = antenna?.suit === true ? (radio ??= radioOf(core, id)) : 1;
+				range = Math.max(range, on ? (antenna?.range ?? 0) * scale : 0);
+				if (on && antenna?.suit === true) suits += 1;
 				if (on && antenna) {
 					antennas.push(antenna);
 					pointing.push({
@@ -261,8 +272,26 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 			}
 		}
 	}
-	return { id, range, crewed, probe: sources > 0 && !crewed, antennas, pointing };
+	const suit = suits > 0 && suits === antennas.length;
+	return { id, range, crewed, probe: sources > 0 && !crewed, suit, antennas, pointing };
 }
+
+/** The best `radio` ability among the members aboard (1 without crew; ADR 0193 point 2). */
+function radioOf(core: SimCore, id: EntityId): number {
+	let best = 1;
+	let any = false;
+	for (const m of core.crew.members) {
+		if (vesselOfMember(core, m) !== id) continue;
+		const r = abilitiesOf(m, core.registries.crewTraits).radio;
+		best = any ? Math.max(best, r) : r;
+		any = true;
+	}
+	return best;
+}
+
+/** Whether a suit may link with `other` (ADR 0193 point 1): only a crewed vessel that is no suit. */
+const suitPeer = (other: Node | undefined): boolean =>
+	other !== undefined && other.crewed && !other.suit;
 
 /** The geometry of one sample time: bodies, stations and vessels in the system frame. */
 interface Frame {
@@ -298,10 +327,16 @@ function frameAt(core: SimCore, t: number, stations: Station[]): Frame {
 	};
 }
 
-/** The first body or terrain the segment a→b runs into, or undefined. */
-function blocker(frame: Frame, a: Vec3, b: Vec3): string | undefined {
+/**
+ * The first body or terrain the segment a→b runs into, or undefined. `fine` samples the terrain
+ * every `SUIT_SAMPLE_SPACING` m (an edge with a suit, ADR 0193 point 3).
+ */
+function blocker(frame: Frame, a: Vec3, b: Vec3, fine = false): string | undefined {
 	const ab = sub(b, a);
 	const len2 = dot(ab, ab);
+	const samples = fine
+		? Math.max(TERRAIN_SAMPLES, Math.ceil(Math.sqrt(len2) / SUIT_SAMPLE_SPACING))
+		: TERRAIN_SAMPLES;
 	for (const { body, centre } of frame.bodies) {
 		const s = len2 > 0 ? Math.min(1, Math.max(0, dot(sub(centre, a), ab) / len2)) : 0;
 		const closest = add(a, scale(ab, s));
@@ -311,8 +346,8 @@ function blocker(frame: Frame, a: Vec3, b: Vec3): string | undefined {
 		const terrain = body.terrain;
 		if (!terrain || d > R + terrain.maxHeight) continue;
 		const turn = qAboutY(-body.omega * frame.t);
-		for (let k = 0; k < TERRAIN_SAMPLES; k++) {
-			const p = sub(add(a, scale(ab, (k + 0.5) / TERRAIN_SAMPLES)), centre);
+		for (let k = 0; k < samples; k++) {
+			const p = sub(add(a, scale(ab, (k + 0.5) / samples)), centre);
 			const altitude = length(p) - R;
 			if (altitude > terrain.maxHeight) continue;
 			if (terrain.heightAt(normalize(qRotate(turn, p))) > altitude + 1) return 'blocked by terrain';
@@ -340,6 +375,17 @@ interface Evaluation {
 
 /** The budget's receiving end: a station's dish, or a control point's antennas. */
 type Receiver = { aperture: number } | { antennas: AntennaDefinition[] };
+
+/**
+ * The receiver of an edge from `from` to `to`. A crewed vessel hears its suits on their own radio
+ * (ADR 0193 point 1): the suit's antennas at both ends.
+ */
+const receiverOf = (from: { node?: Node }, to: { station?: Station; node?: Node }): Receiver =>
+	to.station
+		? { aperture: to.station.aperture }
+		: from.node?.suit
+			? { antennas: from.node.antennas }
+			: { antennas: to.node!.antennas };
 
 /**
  * The best downlink budget from `node` to `rx` over `distance` m (ADR 0185 point 5): every pair
@@ -395,23 +441,26 @@ function linkOf(
 	const factor = typeof scaleRule === 'number' ? scaleRule : 1;
 	const here = frame.position(node.id);
 	const candidates: Array<{ id: string; at: Vec3; range: number; d: number; rx: Receiver }> = [];
-	stations.forEach((s, i) => {
-		const at = frame.stations[i]!;
-		const rx = { aperture: s.aperture };
-		candidates.push({ id: s.id, at, range: s.range, d: length(sub(at, here)), rx });
-	});
+	// a suit links to crewed vessels only, and nobody links to a suit (ADR 0193 point 1)
+	if (!node.suit)
+		stations.forEach((s, i) => {
+			const at = frame.stations[i]!;
+			const rx = { aperture: s.aperture };
+			candidates.push({ id: s.id, at, range: s.range, d: length(sub(at, here)), rx });
+		});
 	for (const p of points) {
-		if (p.id === node.id || p.range <= 0) continue;
+		if (p.id === node.id || p.range <= 0 || p.suit || (node.suit && !suitPeer(p))) continue;
 		const at = frame.position(p.id);
-		const rx = { antennas: p.antennas };
+		const rx = receiverOf({ node }, { node: p });
 		candidates.push({ id: `vessel:${p.id}`, at, range: p.range, d: length(sub(at, here)), rx });
 	}
 	candidates.sort((a, b) => a.d - b.d || (a.id < b.id ? -1 : 1));
 	let first: LinkReason = 'out of range';
 	let inRange = false;
 	for (const c of candidates) {
-		if (c.d > linkRange(node.range, c.range, factor)) continue;
-		const blocked = blocker(frame, here, c.at) as LinkReason | undefined;
+		// a suit reaches as far as its own radio (ADR 0193 point 1)
+		if (c.d > (node.suit ? node.range * factor : linkRange(node.range, c.range, factor))) continue;
+		const blocked = blocker(frame, here, c.at, node.suit) as LinkReason | undefined;
 		if (!blocked) {
 			const budget = withBudget ? bestBudget(core, node, c.rx, c.d, factor) : null;
 			return { to: c.id, reason: null, budget };
@@ -573,7 +622,8 @@ function routeNetwork(
 		vertices.push({
 			id: `vessel:${node.id}`,
 			at: frame.position(node.id),
-			control: node.crewed,
+			// a suit is no control point (ADR 0193 point 1)
+			control: node.crewed && !node.suit,
 			node
 		});
 	}
@@ -590,17 +640,21 @@ function routeNetwork(
 	const tryPair = (i: number, j: number): void => {
 		const a = vertices[i]!;
 		const b = vertices[j]!;
+		const suit = a.node?.suit === true || b.node?.suit === true;
+		if (suit && !(a.node?.suit ? suitPeer(b.node) : suitPeer(a.node))) return;
 		const dx = b.at.x - a.at.x;
 		const dy = b.at.y - a.at.y;
 		const dz = b.at.z - a.at.z;
 		const d2 = dx * dx + dy * dy + dz * dz;
 		// a cheap reject before the pointing and line-of-sight checks
-		if (d2 > maxRange[i]! * maxRange[j]! * f2) return;
+		const own = a.node?.suit ? maxRange[i]! : maxRange[j]!;
+		if (d2 > (suit ? own * own : maxRange[i]! * maxRange[j]!) * f2) return;
 		const d = Math.sqrt(d2);
 		const ra = pointed[i] ? rangeToward(core, frame, stations, a.node!, a.at, b.at) : maxRange[i]!;
 		const rb = pointed[j] ? rangeToward(core, frame, stations, b.node!, b.at, a.at) : maxRange[j]!;
-		if (ra <= 0 || rb <= 0 || d > linkRange(ra, rb, factor)) return;
-		if (blocker(frame, a.at, b.at)) return;
+		const reach = suit ? (a.node?.suit ? ra : rb) * factor : linkRange(ra, rb, factor);
+		if (ra <= 0 || rb <= 0 || d > reach) return;
+		if (blocker(frame, a.at, b.at, suit)) return;
 		edges[i]!.push({ to: j, d });
 		edges[j]!.push({ to: i, d });
 		across[i]!.set(j, d);
@@ -631,9 +685,7 @@ function routeNetwork(
 		if (!budgets.has(k)) {
 			const from = vertices[u]!;
 			const to = vertices[v]!;
-			const rx: Receiver = to.station
-				? { aperture: to.station.aperture }
-				: { antennas: to.node!.antennas };
+			const rx = receiverOf(from, to);
 			budgets.set(k, from.node ? bestBudget(core, from.node, rx, d, factor) : null);
 		}
 		return budgets.get(k)!;
@@ -641,7 +693,9 @@ function routeNetwork(
 	// The margin falls by 20·log10(d) from its value at 1 m (effective), so one budget per pair of
 	// antenna sets is enough for every edge's capacity; the full budget is only for first hops.
 	const signature = (v: Vertex): string =>
-		v.station ? `aperture:${v.station.aperture}` : v.node!.antennas.map((a) => a.id).join(',');
+		v.station
+			? `aperture:${v.station.aperture}`
+			: `${v.node!.suit ? 'suit:' : ''}${v.node!.antennas.map((a) => a.id).join(',')}`;
 	const reference = new Map<string, number | null>();
 	const capacity = (u: number, v: number, d: number): number => {
 		if (!withBudget) return 1;
@@ -650,9 +704,7 @@ function routeNetwork(
 		if (!from.node) return 0;
 		const k = `${signature(from)}>${signature(to)}`;
 		if (!reference.has(k)) {
-			const rx: Receiver = to.station
-				? { aperture: to.station.aperture }
-				: { antennas: to.node!.antennas };
+			const rx = receiverOf(from, to);
 			reference.set(k, bestBudget(core, from.node, rx, factor, factor)?.margin ?? null);
 		}
 		const m1 = reference.get(k)!;
@@ -1162,6 +1214,7 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 				interference: l.budget?.interference ?? 0
 			})),
 		licences: (core.commsState.licences ?? []).map((x) => ({ ...x })),
+		broadcasts: broadcastOffers(core, links),
 		...(queues ? { queues } : {}),
 		...(inspected
 			? {

@@ -8,17 +8,24 @@
 	import SignalBars from '../ui/SignalBars.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import type { CrewCard } from '../crew-card';
+	import type { BroadcastOffer, RadioBars } from '../comms/suit-radio';
 
 	let {
 		card = null,
 		eva = null,
+		broadcasts = [],
+		onbroadcast,
 		oneva,
 		onwalk,
 		onflag,
 		onboard
 	}: {
 		card?: CrewCard | null;
-		eva?: { suit: number; name: string; walking: boolean } | null;
+		/** The suit radio (plan 121, ADR 0193): its bars, what it relays through, why it is cut. */
+		eva?: { suit: number; name: string; walking: boolean; radio?: RadioBars } | null;
+		/** Firsts that may still be broadcast live (ADR 0193 point 5). */
+		broadcasts?: readonly BroadcastOffer[];
+		onbroadcast?: (milestone: string) => void;
 		oneva?: (member: string) => void;
 		onwalk?: (heading: number | null) => void;
 		onflag?: () => void;
@@ -38,6 +45,13 @@
 	{#if eva}
 		<div class="eva" data-testid="crew-eva">
 			<div class="name">{eva.name} is outside</div>
+			{#if eva.radio}
+				<div class="radio" data-testid="suit-radio">
+					<SignalBars level={eva.radio.level} offline={eva.radio.offline} /><span
+						class:no-radio={eva.radio.offline}>Suit radio · {eva.radio.text}</span
+					>
+				</div>
+			{/if}
 			<div class="buttons" role="group" aria-label="Walk">
 				{#each HEADINGS as h (h.label)}
 					<button type="button" onclick={() => onwalk?.(h.heading)} data-testid="eva-walk-{h.label}"
@@ -57,10 +71,11 @@
 			<div class="row" data-testid="crew-row">
 				<div class="name">
 					{row.name}
-					<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): no suit radios until plan 121 -->
+					<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
 					<span class="suit" data-testid="crew-suit">IVA</span>
-					<span class="radio" title="No radio until suit radios come"
-						><SignalBars level={0} offline /><span class="no-radio">no radio</span></span
+					<span class="radio" title={card.radio.text} data-testid="crew-radio"
+						><SignalBars level={card.radio.level} offline={card.radio.offline} />{#if card.radio
+							.offline}<span class="no-radio">{card.radio.text}</span>{/if}</span
 					>
 					{#if !eva && oneva}<button
 							type="button"
@@ -80,6 +95,24 @@
 		{/if}
 	{:else}
 		<p>No crew aboard. Seat crew on the Launch screen.</p>
+	{/if}
+	{#if broadcasts.length > 0}
+		<div class="live" data-testid="broadcasts">
+			{#each broadcasts as b (b.milestone)}
+				<div class="offer">
+					<div>
+						<div class="name">{b.label}</div>
+						<small>{b.detail}</small>
+					</div>
+					<button
+						type="button"
+						disabled={!b.ready}
+						onclick={() => onbroadcast?.(b.milestone)}
+						data-testid="broadcast-{b.milestone}">Broadcast live</button
+					>
+				</div>
+			{/each}
+		</div>
 	{/if}
 </Panel>
 
@@ -133,6 +166,27 @@
 	}
 	.eva {
 		margin-bottom: var(--s-2);
+	}
+	.eva .radio {
+		margin: 2px 0 0;
+		font-size: var(--t-label);
+	}
+	.live {
+		margin-top: var(--s-2);
+	}
+	.offer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--s-2);
+	}
+	.offer + .offer {
+		margin-top: var(--s-1);
+	}
+	.offer small {
+		display: block;
+		font-size: var(--t-xs);
+		color: var(--text-dim);
 	}
 	.buttons {
 		display: flex;

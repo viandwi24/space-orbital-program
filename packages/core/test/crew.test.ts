@@ -40,7 +40,8 @@ describe('crew abilities (ADR 0098, 0176)', () => {
 			'repairRate',
 			'dataQuality',
 			'gTolerance',
-			'panicResistance'
+			'panicResistance',
+			'radio'
 		]);
 		const norm = (k: string) => k.toLowerCase().replace(/[^a-z]/g, '');
 		for (const key of ABILITY_KEYS) {

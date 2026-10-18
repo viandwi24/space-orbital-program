@@ -76,6 +76,12 @@ import { WARP_STEPS } from './warp';
 import { catchUpCommand, catchUpOffer, type CatchUp } from './worlds/world-model';
 import { setGlassFallback } from './ui/root-theme';
 import {
+	broadcastOffers,
+	suitRadio,
+	type BroadcastOffer,
+	type RadioBars
+} from './comms/suit-radio';
+import {
 	createHudController,
 	type FrameData,
 	type HudController,
@@ -101,7 +107,9 @@ export interface FlightHud {
 	map: boolean;
 	autopilot: string | null;
 	/** A crew member outside in a suit (plan 109, ADR 0120): the camera follows the suit. */
-	eva: { suit: number; name: string; walking: boolean } | null;
+	eva: { suit: number; name: string; walking: boolean; radio?: RadioBars } | null;
+	/** Firsts that may still be broadcast live (plan 121, ADR 0193 point 5). */
+	broadcasts: BroadcastOffer[];
 }
 
 export interface FlightOptions {
@@ -255,7 +263,8 @@ export function startFlight(options: FlightOptions): Flight {
 		warp: 1,
 		map: false,
 		autopilot: null,
-		eva: null
+		eva: null,
+		broadcasts: []
 	};
 	// Dev-only cost counters for the HUD (journal 021): per-frame paint and 10 Hz model build.
 	const stats = {
@@ -707,6 +716,11 @@ export function startFlight(options: FlightOptions): Flight {
 			hud.throttle = throttle;
 			const t0 = performance.now();
 			hud.model = hudCtl?.model(now, throttle) ?? null;
+			// the suit radio and the live broadcasts (plan 121, ADR 0193 point 6)
+			if (snap) {
+				if (hud.eva) hud.eva = { ...hud.eva, radio: suitRadio(snap, hud.eva.suit) };
+				hud.broadcasts = broadcastOffers(snap);
+			}
 			const m = hud.model;
 			const soi = snap?.vessels.find((v) => Number(v.id) === Number(vessel))?.soi;
 			audioView = m

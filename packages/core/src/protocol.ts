@@ -340,6 +340,18 @@ export interface Snapshot {
 		/** Licensed channels beyond each band's channel 0 (plan 120, ADR 0191 point 2). */
 		licences: Array<{ band: string; channel: number }>;
 		/**
+		 * Firsts that may still be broadcast live (plan 121, ADR 0193 point 5): until when, and the
+		 * route rate the vessel has now (null: no route).
+		 */
+		broadcasts: Array<{
+			milestone: string;
+			label: string;
+			vessel: EntityId;
+			until: number;
+			rate: number | null;
+			needs: number;
+		}>;
+		/**
 		 * Radios with queued data (plan 119, ADR 0189 point 6): each item with its sent bits and an
 		 * estimated delivery time; `nextContact` for a holder without a route (null: none in a day).
 		 */
@@ -626,6 +638,8 @@ export type Command =
 	| { type: 'comms-inspect'; vessel: EntityId | null }
 	/** Buy a channel's licence for this world (plan 120, ADR 0191 point 2). */
 	| { type: 'licence-buy'; band: string; channel: number }
+	/** Broadcast a world first live (plan 121, ADR 0193 point 5): within the window, with the rate. */
+	| { type: 'comms-broadcast'; milestone: string }
 	/** Take a queued data item back into storage (plan 119, ADR 0189 point 1); sent bits are lost. */
 	| { type: 'transmission-cancel'; vessel: EntityId; item: string }
 	/** A vessel's route mode (plan 117, ADR 0188 point 3): Auto, a pinned Manual route, or a policy. */

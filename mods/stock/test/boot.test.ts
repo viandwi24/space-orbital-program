@@ -101,7 +101,7 @@ describe('stock boots through the loader', () => {
 			'stock.surface-sample',
 			'stock.temperature'
 		]);
-		expect(ids('antenna')).toEqual(['stock.dish', 'stock.whip']);
+		expect(ids('antenna')).toEqual(['stock.dish', 'stock.suit-radio', 'stock.whip']);
 		expect(ids('data-kind')).toEqual([
 			'stock.bulk',
 			'stock.command',

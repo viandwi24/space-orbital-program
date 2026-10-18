@@ -5,6 +5,7 @@
  * surface sampler.
  */
 import { defineModule, definePart, defineResource, kg, type PartShape } from '@orbital/sdk';
+import { AntennaSuitRadio, ModuleAntenna } from './comms.ts';
 import { partCost } from './costs.ts';
 import {
 	ModuleCommand,
@@ -73,7 +74,9 @@ export const PartEvaSuit = definePart({
 			}
 		],
 		[ModuleReactionWheel, { torque: 20, chargeRate: 0.01 }],
-		[ModuleExperiment, { experiment: ExperimentSurfaceSample.id, label: 'Take surface sample' }]
+		[ModuleExperiment, { experiment: ExperimentSurfaceSample.id, label: 'Take surface sample' }],
+		// relayed by a crewed vessel in sight (plan 121, ADR 0193 point 1)
+		[ModuleAntenna, { antenna: AntennaSuitRadio.id }]
 	]
 });
 

@@ -25,6 +25,11 @@ export interface AntennaDefinition {
 	aperture?: number;
 	/** Full beam width of a dish, rad (plan 117, ADR 0188 point 2); default from band and aperture. */
 	beamWidth?: number;
+	/**
+	 * A suit radio (plan 121, ADR 0193 point 1): links only to a crewed vessel that is not a suit,
+	 * is no control point and relays nobody; its range scales with the wearer's `radio` ability.
+	 */
+	suit?: boolean;
 }
 
 /** A radio band (plan 116, ADR 0185 point 1). */
@@ -67,7 +72,8 @@ export const antennaDefinitionSchema = z.object({
 	band: z.string().min(1).optional(),
 	gain: z.number().refine(Number.isFinite, 'must be finite').optional(),
 	aperture: z.number().positive().optional(),
-	beamWidth: z.number().positive().max(Math.PI).optional()
+	beamWidth: z.number().positive().max(Math.PI).optional(),
+	suit: z.boolean().optional()
 });
 
 export const bandDefinitionSchema = z.object({
@@ -353,6 +359,16 @@ export const licensed = (
 	channel: number
 ): boolean =>
 	channel === 0 || (licences ?? []).some((l) => l.band === band && l.channel === channel);
+
+/** Terrain samples along an edge with a suit: one per this many metres (ADR 0193 point 3). */
+export const SUIT_SAMPLE_SPACING = 1;
+/** A live broadcast of a first (ADR 0193 point 5): within this long after it, s. */
+export const BROADCAST_WINDOW = 3_600;
+/** The route rate a broadcast needs, bit/s. */
+export const BROADCAST_RATE = 1e5;
+/** The reputation of a broadcast as a fraction of the milestone's own. */
+export const BROADCAST_FACTOR = 0.5;
+export const BROADCAST_CAUSE = 'comms.broadcast';
 
 /** Rounds of the proportional capacity sharing (ADR 0188 point 4). */
 export const CAPACITY_ROUNDS = 3;

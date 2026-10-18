@@ -4,6 +4,7 @@
  */
 import { graceSeconds, type Snapshot, type VesselSnapshot } from '@orbital/core';
 import { formatDuration } from './format';
+import { linkBars, type RadioBars } from './comms/suit-radio';
 
 export interface CrewCardRow {
 	member: string;
@@ -18,6 +19,8 @@ export interface CrewCard {
 	rows: CrewCardRow[];
 	/** "Supplies 1d 03:00:00 left", or "Oxygen out" ... */
 	supplies: string[];
+	/** The vessel's link: the crew's radio inside (plan 121, ADR 0193 point 6). */
+	radio: RadioBars;
 }
 
 const LABELS: Record<string, string> = {
@@ -59,5 +62,5 @@ export function crewCard(snap: Snapshot, v: VesselSnapshot, day: number): CrewCa
 			? `${label(c.resource)} out`
 			: `${label(c.resource)} ${Number.isFinite(c.timeLeft) ? formatDuration(c.timeLeft) : '—'} left`
 	);
-	return { rows, supplies };
+	return { rows, supplies, radio: linkBars(snap, Number(v.id)) };
 }
