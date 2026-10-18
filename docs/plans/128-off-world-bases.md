@@ -1,12 +1,12 @@
 ---
 id: 128
 title: "Off-world bases: base kits and parts left on the surface"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 1"
 depends: [096, 092, 082]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 128 — Off-world bases: base kits and parts left on the surface
