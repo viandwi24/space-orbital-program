@@ -18,14 +18,21 @@ import {
 	soiRadius,
 	type ManeuverInput,
 	type OrbitalAxes,
+	tagTrajectoryModel,
 	type PatchedBody,
 	type PatchedSegment
 } from '@orbital/kepler';
 
-/** What a body contributes to the prediction, from its definition. */
-export function bodyNodes(bodies: readonly BodyDefinition[]): PatchedBody[] {
+/**
+ * What a body contributes to the prediction, from its definition; the list is tagged with the
+ * world's gravity model, so the map and the aids predict as the sim flies (plan 125).
+ */
+export function bodyNodes(
+	bodies: readonly BodyDefinition[],
+	gravityModel: 'patched' | 'n-body' = 'patched'
+): PatchedBody[] {
 	const byId = new Map(bodies.map((b) => [b.id, b]));
-	return bodies.map((b) => {
+	return tagTrajectoryModel(bodies.map((b) => {
 		const parent = b.parent === undefined ? undefined : byId.get(b.parent);
 		return {
 			id: b.id,
@@ -34,7 +41,7 @@ export function bodyNodes(bodies: readonly BodyDefinition[]): PatchedBody[] {
 			radius: b.radius,
 			...(parent && b.orbit ? { parent: parent.id, orbit: b.orbit } : {})
 		};
-	});
+	}), gravityModel);
 }
 
 export interface MapPath {

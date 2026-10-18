@@ -103,12 +103,42 @@ describe('patched trajectory provider', () => {
 		expect(p.crossing(signed, 0, 5_000)).toBe(findCrossing(signed, 0, 5_000));
 	});
 
-	test('trajectoryFor caches one provider per body list; n-body has none yet', () => {
+	test('trajectoryFor caches one provider per body list and model; n-body has one since plan 125', () => {
 		expect(trajectoryFor(bodies)).toBe(trajectoryFor(bodies));
 		expect(trajectoryFor([...bodies])).not.toBe(trajectoryFor(bodies));
 		expect(createTrajectoryProvider('patched', bodies).capabilities.model).toBe('patched');
-		expect(() => createTrajectoryProvider('n-body', bodies)).toThrow(
-			'n-body worlds are not available yet'
-		);
+		expect(createTrajectoryProvider('n-body', bodies).capabilities.model).toBe('n-body');
+		expect(trajectoryFor(bodies, 'n-body')).toBe(trajectoryFor(bodies, 'n-body'));
+		expect(trajectoryFor(bodies, 'n-body')).not.toBe(trajectoryFor(bodies));
+	});
+});
+
+describe('the n-body provider (plan 125, ADR 0122 point 6)', () => {
+	const provider = createTrajectoryProvider('n-body', bodies);
+	const start = { body: 'home', r: { x: 700_000, y: 0, z: 0 }, v: { x: 0, y: 0, z: 2_250 }, t: 0 };
+
+	test('a day of prediction is the integration itself, and segments start from it', async () => {
+		const { integrateNBody, nBodyFieldOf } = await import('../src/index.ts');
+		const day = 21_600;
+		const segments = provider.predict(start, day);
+		expect(segments.at(-1)!.end).toBe('horizon');
+		expect(segments.slice(0, -1).every((s) => s.end === 'sample')).toBe(true);
+		const direct = integrateNBody(nBodyFieldOf(bodies, 'home'), start, 0, day);
+		const at = provider.stateAt(start, day)!;
+		expect(Math.hypot(at.r.x - direct.r.x, at.r.y - direct.r.y, at.r.z - direct.r.z)).toBeLessThan(1);
+		// a consumer that propagates each segment's entry conic stays within metres of the path
+		const track = provider.track(start, day);
+		const mid = segments[5]!;
+		const conic = track.at((mid.t0 + mid.t1) / 2).relative.r;
+		const exact = integrateNBody(nBodyFieldOf(bodies, 'home'), start, 0, (mid.t0 + mid.t1) / 2).r;
+		expect(Math.hypot(conic.x - exact.x, conic.y - exact.y, conic.z - exact.z)).toBeLessThan(5);
+	});
+
+	test('a path toward the moon switches frame at its sphere, like the patched one', () => {
+		const out = { ...start, v: { x: 0, y: 0, z: 3_120 } };
+		const nb = provider.predict(out, 4 * 86_400).filter((s) => s.end === 'transition');
+		const pc = predictPatchedConics(bodies, out, 4 * 86_400).filter((s) => s.end === 'transition');
+		expect(pc.length).toBeGreaterThan(0);
+		expect(nb.map((s) => s.next)).toEqual(pc.map((s) => s.next));
 	});
 });

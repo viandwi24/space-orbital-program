@@ -34,7 +34,9 @@ export interface ControlState {
 export type RailsState =
 	| { kind: 'elements'; elements: OrbitalElements }
 	| { kind: 'state'; r: Vec3; v: Vec3; t0: number }
-	| { kind: 'surface'; r: Vec3; q: Quat };
+	| { kind: 'surface'; r: Vec3; q: Quat }
+	/** An n-body world's rails (plan 125, ADR 0122 point 8): integrated, not a conic. */
+	| { kind: 'numeric'; r: Vec3; v: Vec3; t0: number; h: number };
 
 /**
  * Stability assist state of one vessel (plan 042, ADR 0049). Plain data, so a save serialises it

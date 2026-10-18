@@ -33,9 +33,10 @@ import {
 	type PatchedTrack
 } from './rendezvous.ts';
 import { findCrossing } from './soi.ts';
+import { predictNBody } from './nbody-path.ts';
 import type { Vec3 } from './vec3.ts';
 
-/** Gravity models a world can name (ADR 0095); only `patched` has a provider. */
+/** Gravity models a world can name (ADR 0095); `n-body` since plan 125 (ADR 0122). */
 export type TrajectoryModel = 'patched' | 'n-body';
 
 export interface TrajectoryCapabilities {
@@ -123,26 +124,68 @@ export function createPatchedProvider(bodies: readonly PatchedBody[]): Trajector
 	};
 }
 
-/** The provider for a world's gravity model; `n-body` has none yet (ADR 0095). */
+/**
+ * The n-body provider (plan 125, ADR 0122 point 6): paths integrated against every body, cut into
+ * segments the patched consumers already read; bodies, conics and crossings are the patched ones.
+ */
+export function createNBodyProvider(bodies: readonly PatchedBody[]): TrajectoryProvider {
+	const patched = createPatchedProvider(bodies);
+	const predict = (start: PatchedStart, horizon: number, options?: PatchedOptions) =>
+		predictNBody(bodies, start, horizon, options);
+	const track = (start: PatchedStart, horizon: number, options?: PatchedOptions) =>
+		segmentsTrack(bodies, predict(start, horizon, options), start.t);
+	return {
+		...patched,
+		capabilities: { model: 'n-body', maneuvers: true, soiTransitions: true },
+		stateAt(start, t, options) {
+			if (t <= start.t) return patched.stateAt(start, t, options);
+			const last = predict(start, t - start.t, options).at(-1);
+			if (!last || last.end !== 'horizon' || last.t1 < t - 1e-6) return undefined;
+			return { body: last.body, r: last.exit.r, v: last.exit.v };
+		},
+		predict,
+		predictWithManeuvers: (start, nodes, horizon, options) =>
+			predictNodes(bodies, start, nodes, horizon, options, predictNBody),
+		track,
+		closestApproach: (start, target, horizon, samples, options) =>
+			approachOnTrack(track(start, horizon, options), target, samples)
+	};
+}
+
+/** The provider for a world's gravity model (ADR 0095, 0122). */
 export function createTrajectoryProvider(
 	model: TrajectoryModel,
 	bodies: readonly PatchedBody[]
 ): TrajectoryProvider {
-	if (model === 'n-body') throw new RangeError('n-body worlds are not available yet');
-	return createPatchedProvider(bodies);
+	return model === 'n-body' ? createNBodyProvider(bodies) : createPatchedProvider(bodies);
 }
 
-const cache = new WeakMap<readonly PatchedBody[], TrajectoryProvider>();
+const cache = new WeakMap<readonly PatchedBody[], Map<TrajectoryModel, TrajectoryProvider>>();
+const models = new WeakMap<readonly PatchedBody[], TrajectoryModel>();
 
 /**
- * One patched provider per body list, for callers that hold a list (the web client's map path and
- * rendezvous aids); the same list gives the same provider.
+ * Name the gravity model of a body list (plan 125): `trajectoryFor(list)` then gives that model's
+ * provider, so callers that pass the list around need not carry the model too.
  */
-export function trajectoryFor(bodies: readonly PatchedBody[]): TrajectoryProvider {
-	let provider = cache.get(bodies);
+export function tagTrajectoryModel<T extends readonly PatchedBody[]>(bodies: T, model: TrajectoryModel): T {
+	models.set(bodies, model);
+	return bodies;
+}
+
+/**
+ * One provider per body list and model, for callers that hold a list (the web client's map path
+ * and rendezvous aids); the same list gives the same provider.
+ */
+export function trajectoryFor(
+	bodies: readonly PatchedBody[],
+	model: TrajectoryModel = models.get(bodies) ?? 'patched'
+): TrajectoryProvider {
+	let byModel = cache.get(bodies);
+	if (!byModel) cache.set(bodies, (byModel = new Map()));
+	let provider = byModel.get(model);
 	if (!provider) {
-		provider = createPatchedProvider(bodies);
-		cache.set(bodies, provider);
+		provider = createTrajectoryProvider(model, bodies);
+		byModel.set(model, provider);
 	}
 	return provider;
 }

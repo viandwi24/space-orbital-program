@@ -145,6 +145,7 @@ export function catalogOf(sim: Sim): Catalog {
 		epoch: { ...sim.worldInfo.epoch },
 		achievements: sim.registries.achievements.list(),
 		worldId: sim.worldInfo.id,
+		gravityModel: sim.worldInfo.gravityModel,
 		home: sim.home,
 		bodyTerrain: bodyTerrainOf(sim),
 		...worldTerrainOf(sim)

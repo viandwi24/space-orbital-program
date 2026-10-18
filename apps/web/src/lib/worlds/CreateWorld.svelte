@@ -342,12 +342,22 @@
 					/>
 					Patched conics
 				</label>
-				<label class="off">
-					<input type="radio" name="gravity" value="n-body" disabled data-testid="gravity-n-body" />
-					N-body <Chip outline>Coming soon</Chip>
+				<label>
+					<input
+						type="radio"
+						name="gravity"
+						value="n-body"
+						bind:group={gravity}
+						data-testid="gravity-n-body"
+					/>
+					N-body
 				</label>
 			</div>
-			<p class="note">N-body: every body pulls on every vessel. It comes after version 1.</p>
+			<p class="note">
+				N-body: every body pulls on every vessel, so Lagrange points and perturbed orbits are real; time
+				warp is held lower to keep the integration fast. In the 1:1 Sol system the planets follow JPL's
+				DE440, downloaded once (7.5 MB).
+			</p>
 		</fieldset>
 
 		{#each groups as group (group.category)}

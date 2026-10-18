@@ -475,12 +475,19 @@ function splitAt(
 		// A piece that stays with a vessel standing on the ground stays on the ground (ADR 0024).
 		vessel.rails = wasOnSurface
 			? surfaceRails(core, bodyOfVessel(core, vessel), vessel.com, vessel.orientation)
-			: computeRails(bodyOfVessel(core, vessel).mu, vessel.com, vessel.velocity, core.t);
+			: computeRails(
+					bodyOfVessel(core, vessel).mu,
+					vessel.com,
+					vessel.velocity,
+					core.t,
+					core.info.gravityModel
+				);
 		newState.rails = computeRails(
 			bodyOfVessel(core, vessel).mu,
 			newState.com,
 			newState.velocity,
-			core.t
+			core.t,
+			core.info.gravityModel
 		);
 	}
 	core.events.emit('vessel:created', { vessel: newId, from: vesselId });
@@ -577,7 +584,8 @@ function applyKicks(core: SimCore, kicks: Array<{ parts: EntityId[]; dv: Vec3 }>
 				bodyOfVessel(core, vessel).mu,
 				vessel.com,
 				vessel.velocity,
-				core.t
+				core.t,
+				core.info.gravityModel
 			);
 		}
 	}

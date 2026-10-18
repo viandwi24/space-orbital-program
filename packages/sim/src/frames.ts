@@ -48,6 +48,7 @@ import { runUpdateHooks } from './hooks.ts';
 import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { ZERO, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { stepWalking } from './eva.ts';
+import { nBodyOn, thirdBody } from './nbody.ts';
 import { massProperties } from './mass.ts';
 import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
@@ -384,6 +385,8 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		const motion = bodyMotion(frame, body);
 		const centre = add(frame.origin, motion.centre);
 		backend.applyForce(body.handle, scale(gravityAt(planet.mu, centre), body.mass));
+		// an n-body world: the other bodies' pull, uniform over the bubble at its origin (ADR 0122 point 4)
+		if (nBodyOn(core)) backend.applyForce(body.handle, scale(thirdBody(planet, core.t, frame.origin), body.mass));
 		updateTile(core, frame, planet, vesselId, centre);
 		stepWheels(core, frame, vesselId, body, centre, dt);
 		stepWalking(core, frame, vesselId, body);

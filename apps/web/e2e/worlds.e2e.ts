@@ -14,7 +14,7 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	const form = page.getByTestId('create-world');
 	await form.getByTestId('world-name').fill('Moon program');
 	await form.getByRole('radio', { name: 'Career', exact: true }).click();
-	await expect(form.getByTestId('gravity-n-body')).toBeDisabled();
+	await expect(form.getByTestId('gravity-n-body')).toBeEnabled();
 	await form.getByTestId('world-create').click();
 
 	const first = page.getByTestId('world-card').first();

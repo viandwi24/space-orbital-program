@@ -69,6 +69,8 @@ export interface ManeuverFrame {
 
 export interface ManeuverControllerOptions {
 	bodies: readonly BodyDefinition[];
+	/** The world's gravity model (plan 125): the aids predict with its provider. */
+	gravityModel?: 'patched' | 'n-body';
 	dispatch(command: Command): Promise<CommandResult>;
 	/** `Renderer.project` (ADR 0033). */
 	project(world: Vec3): ScreenPoint | null;
@@ -132,7 +134,7 @@ type DragMode =
 	{ kind: 'handle'; handle: HandleSpec; screen: { x: number; y: number } } | { kind: 'time' };
 
 export function createManeuverController(options: ManeuverControllerOptions): ManeuverController {
-	const patched = bodyNodes(options.bodies);
+	const patched = bodyNodes(options.bodies, options.gravityModel);
 	let selected: number | null = null;
 	let draft: Draft | null = null;
 	let prediction: ManeuverPrediction | null = null;

@@ -39,7 +39,9 @@ export interface BodySeries {
 export type BodyPath =
 	| { model: 'kepler'; elements: OrbitalElements }
 	| { model: 'kepler-rates'; elements: OrbitalElements; rates: ElementRates }
-	| { model: 'series'; elements: OrbitalElements; series: BodySeries };
+	| { model: 'series'; elements: OrbitalElements; series: BodySeries }
+	/** A tabulated path (plan 125, ADR 0122 point 7): the DE440 asset, as a function of seconds from J2000. */
+	| { model: 'table'; elements: OrbitalElements; at: (tau: number) => StateVector };
 
 /** The osculating elements of a `kepler-rates` path at `tau` (seconds from J2000), epoch `tau`. */
 function ratedElements(el: OrbitalElements, rates: ElementRates, tau: number): OrbitalElements {
@@ -86,6 +88,8 @@ export function bodyPathState(path: BodyPath, mu: number, t: number): StateVecto
 			return toStateVector(path.elements, mu, t);
 		case 'kepler-rates':
 			return toStateVector(ratedElements(path.elements, path.rates, t), mu, t);
+		case 'table':
+			return path.at(t);
 		case 'series': {
 			const a = seriesPosition(path.series, t - SERIES_DT);
 			const b = seriesPosition(path.series, t + SERIES_DT);

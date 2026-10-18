@@ -108,4 +108,4 @@ Save-format versions (`SimSave.formatVersion`) and other single-sequence numbers
 | save format 6 | Sun as root: the old root becomes the Sun's child (ADR 0103) | 122 | A1 | 2026-10-17, reserved |
 | save format 7 | comms tier 3: pinned routes and policies | 117 | A3 | 2026-10-17, merged 2026-10-18 |
 | save format 8 | comms tier 4: data queues and stored bundles | 119 | A3 | 2026-10-17, reserved |
-| save format 9 | n-body: numeric rails state | 125 | A1 | 2026-10-18, reserved |
+| save format 9 | n-body: numeric rails state | 125 | A1 | 2026-10-18, released at claim (additive, no bump, ADR 0122 point 8) |

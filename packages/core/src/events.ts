@@ -63,6 +63,8 @@ export interface EventMap {
 	'site:left': { site: string; vessel: EntityId };
 	/** A supply route ran on its window (plan 128, ADR 0125 point 6). */
 	'route:delivered': { route: string; amount: number; cost: number };
+	/** An n-body world held the warp lower to keep its integration in budget (plan 125, ADR 0122 point 5). */
+	'warp:limited': { factor: number; reason: string };
 	/** Construction or an upgrade finished on the tick of its ready day (plan 096, ADR 0123). */
 	'building:ready': { site: string; id: string; kind: string; level: number };
 	/** Science (plan 103, ADR 0178): a result was made, and science was credited. */

@@ -31,6 +31,8 @@ export type TerrainFactory = (
 import {
 	add,
 	bodyPathState,
+	ephemerisPath,
+	type Ephemeris,
 	osculatingElements,
 	propagate,
 	soiRadius,
@@ -90,7 +92,8 @@ export function buildBodies(
 	defs: readonly BodyDefinition[],
 	rootId: string,
 	terrain: TerrainField | TerrainFactory | undefined,
-	world: Pick<WorldInfo, 'id' | 'seed' | 'sites'> & Partial<Pick<WorldInfo, 'epoch'>>
+	world: Pick<WorldInfo, 'id' | 'seed' | 'sites'> & Partial<Pick<WorldInfo, 'epoch'>>,
+	ephemeris?: Ephemeris
 ): Map<string, BodyRuntime> {
 	// J2000 models run on τ = t + the world epoch (ADR 0183 point 5)
 	const timeOffset = world.epoch ? (world.epoch.day + world.epoch.fraction) * 86_400 : 0;
@@ -143,6 +146,26 @@ export function buildBodies(
 			body.path = { model: 'kepler-rates', elements: orbit, rates: orbit.rates };
 		} else if (orbit.model === 'series' && orbit.series) {
 			body.path = { model: 'series', elements: orbit, series: orbit.series };
+		}
+		// JPL's DE440 within its span (plan 125, ADR 0122 point 7); the body's own model outside it
+		const table =
+			ephemeris && body.def.naif !== undefined && parent.def.naif !== undefined
+				? ephemerisPath(ephemeris, body.def.naif, parent.def.naif)
+				: undefined;
+		if (table && ephemeris) {
+			const own = body.path;
+			const mu = parent.mu;
+			const offset = body.timeOffset;
+			body.path = {
+				model: 'table',
+				elements: orbit,
+				at: (tau) =>
+					tau >= ephemeris.start && tau <= ephemeris.end
+						? table(tau)
+						: own
+							? bodyPathState(own, mu, tau)
+							: propagate(orbit, mu, tau - offset)
+			};
 		}
 		body.soi = soiRadius(body.def.orbit.a, body.def.mass, parent.def.mass);
 		body.terrain = plain ?? forBody(body.def);

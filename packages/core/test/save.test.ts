@@ -227,12 +227,11 @@ describe('format 5: the world info (plan 077, ADR 0110)', () => {
 		expect(readSimSave(save)).toEqual(save);
 	});
 
-	test('an n-body world is refused with its reason', () => {
+	test('an n-body world reads since plan 125 (ADR 0122 point 8)', () => {
 		const u = unsigned();
 		const nBody = { ...u, worldInfo: { ...u.worldInfo, gravityModel: 'n-body' } };
 		const save = { ...nBody, checksum: simSaveChecksum(nBody as never) };
-		expect(code(() => readSimSave(save))).toBe('incompatible');
-		expect(() => readSimSave(save)).toThrow(/n-body worlds are not available yet/);
+		expect(readSimSave(save).worldInfo.gravityModel).toBe('n-body');
 	});
 
 	test('a damaged world info is "damaged"', () => {

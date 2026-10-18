@@ -149,7 +149,9 @@ export function predictWithManeuvers(
 	start: PatchedStart,
 	nodes: readonly ManeuverInput[],
 	horizon: number,
-	options: PatchedOptions = {}
+	options: PatchedOptions = {},
+	/** The path between burns: patched conics, or the n-body path (plan 125). */
+	predict: typeof predictPatchedConics = predictPatchedConics
 ): ManeuverPath {
 	const sorted = [...nodes].sort((a, b) => a.time - b.time || a.id - b.id);
 	const end = start.t + horizon;
@@ -204,7 +206,7 @@ export function predictWithManeuvers(
 		}
 		if (node.time > end) break;
 		if (node.time > cur.t) {
-			const leg = predictPatchedConics(bodies, cur, node.time - cur.t, options);
+			const leg = predict(bodies, cur, node.time - cur.t, options);
 			const last = leg.at(-1);
 			if (!last || last.end !== 'horizon' || last.t1 < node.time - 1e-6) {
 				segments.push(...leg);
@@ -220,6 +222,6 @@ export function predictWithManeuvers(
 			cur = { ...cur, v: post.v };
 		}
 	}
-	if (cur.t < end) segments.push(...predictPatchedConics(bodies, cur, end - cur.t, options));
+	if (cur.t < end) segments.push(...predict(bodies, cur, end - cur.t, options));
 	return { segments, nodes: results, unreachable };
 }

@@ -21,6 +21,7 @@ import { bodyOfVessel, rotationAt, spinAt, type BodyRuntime } from './bodies.ts'
 import type { SimCore } from './core.ts';
 import { qConj, qMul, qNormalize, qRotate } from './math.ts';
 import type { RailsState, VesselState } from './state.ts';
+import { advanceNumeric, numericMotion } from './nbody.ts';
 
 /** Seconds after which a state-vector rails record is advanced (it is exact either way; this keeps dt small). */
 const STATE_REBASE_INTERVAL = 600;
@@ -30,8 +31,15 @@ export interface Motion {
 	v: Vec3;
 }
 
-/** Rails state for a BCI state vector at time `t`. */
-export function computeRails(mu: number, r: Vec3, v: Vec3, t: number): RailsState {
+/** Rails state for a BCI state vector at time `t`; numeric in an n-body world (ADR 0122). */
+export function computeRails(
+	mu: number,
+	r: Vec3,
+	v: Vec3,
+	t: number,
+	model: 'patched' | 'n-body' = 'patched'
+): RailsState {
+	if (model === 'n-body') return { kind: 'numeric', r: { ...r }, v: { ...v }, t0: t, h: 0 };
 	try {
 		return { kind: 'elements', elements: fromStateVector(r, v, mu, t) };
 	} catch (e) {
@@ -80,6 +88,7 @@ export function rebaseElements(el: OrbitalElements, mu: number, t: number): Orbi
 /** Centre-of-mass state of an on-rails vessel at time `t`. */
 export function railsMotion(body: BodyRuntime, rails: RailsState, t: number): Motion {
 	if (rails.kind === 'elements') return propagate(rails.elements, body.mu, t);
+	if (rails.kind === 'numeric') return numericMotion(body, rails, t);
 	if (rails.kind === 'surface') {
 		const r = qRotate(rotationAt(body, t), rails.r);
 		return { r, v: cross(spinAt(body, t), r) };
@@ -92,6 +101,10 @@ export function rebaseRails(core: SimCore, vessel: VesselState, t: number): void
 	const rails = vessel.rails;
 	if (!rails) return;
 	if (rails.kind === 'surface') return; // fixed in the body frame: nothing drifts
+	if (rails.kind === 'numeric') {
+		vessel.rails = advanceNumeric(bodyOfVessel(core, vessel), rails, t);
+		return;
+	}
 	const { mu } = bodyOfVessel(core, vessel);
 	if (rails.kind === 'elements') {
 		vessel.rails = { kind: 'elements', elements: rebaseElements(rails.elements, mu, t) };

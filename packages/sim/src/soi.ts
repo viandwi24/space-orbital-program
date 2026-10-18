@@ -73,7 +73,7 @@ function transitionRails(core: SimCore, vesselId: EntityId, tPrev: number): void
 	const state = convert(target, railsMotion(body, rails, tc), tc);
 	const next = bodyById(core, target.to.def.id);
 	vessel.soi = next.def.id;
-	vessel.rails = computeRails(next.mu, state.r, state.v, tc);
+	vessel.rails = computeRails(next.mu, state.r, state.v, tc, core.info.gravityModel);
 	const here = railsMotion(next, vessel.rails, t);
 	vessel.com = here.r;
 	vessel.velocity = here.v;

@@ -100,3 +100,12 @@ Looked up 2026-10-18 by Agent 3.
 
   The pack uses the J2000 values (no pole drift: under 0.7° per century) and turns them from the ICRF equator into the J2000 ecliptic with the obliquity 23.43928° (the same rotation JPL's Level A page gives).
 - **Moon frame:** the Almanac series is in the ecliptic and equinox of date. In the J2000 ecliptic its longitude rate is less the general precession, 5028.796″ per century (1.396888°), which the pack subtracts from the longitude rate.
+
+## DE440 for n-body worlds (plan 125, ADR 0122 point 7)
+
+- **Ephemeris:** NAIF `de440s.bsp` (SPK, type 2 Chebyshev segments, 1849 to 2150), <https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp>, downloaded 2026-10-18 with the owner's go: 32 726 016 bytes, SHA-256 `c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2`. Segments: planet barycentres 1–9 and the Sun (10) about the solar system barycentre, the Moon (301) and the Earth (399) about the Earth–Moon barycentre (3), all in ICRF (the J2000 equator), km and TDB seconds past J2000.
+- **Test points:** JPL `testpo.440`, <https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de440/testpo.440> (the `test-data/440/` path of older readers answers 404), downloaded 2026-10-18: 858 238 bytes, SHA-256 `45084a7f406b8e41032e7d99dd8042d4df97a9f752a68c06d1a27af16693429f`. Lines are `440 date JED target centre coordinate value` in AU and AU/day (DE440's AU: 149 597 870.700 km); targets 1–9 planets, 3 the Earth, 10 the Moon, 11 the Sun, 12 the barycentre, 13 the Earth–Moon barycentre.
+- **Packed asset** (`tools/pack-de440.ts`, 2000 to 2100): 11 segments (the Earth is the Moon's vector over EMRAT = 81.3005682214972154), 7.89 MB raw, 7 499 061 bytes gzipped, SHA-256 `4e44f260c9f756356733571e27d7b8cef7cde16ce12eb126024996745296bfe0`. Per century: Moon 2.9 MB, Mercury 1.6 MB, Venus 0.57, Earth–Moon barycentre 0.73, Sun 0.62, Mars 0.31, the giants 0.18 to 0.23 MB each (raw).
+- **Check:** all 1 042 test points of 2000 to 2100 agree within 7.1e-15 AU in position and 6.9e-18 AU/day in velocity. The repo test uses the 2025–2026 cut (152 kB) and those years' 24 lines.
+- **Frame:** ICRF to the game frame is the J2000 obliquity 84 381.448″ (to the ecliptic), then ecliptic (x, y, z) to game (x, z, −y), as the Sol pack's other paths. The Moon from DE440 lies 1 114 km from the Almanac series on 2025-07-01 (the series' stated 0.3°); the Earth 6 352 km from Level A.
+

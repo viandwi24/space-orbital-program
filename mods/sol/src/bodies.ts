@@ -203,8 +203,21 @@ export const SolSun = defineBody({
 	rotationPeriod: (360 / 14.1844) * DAY,
 	rotation: iauRotation(286.13, 63.87, 84.176, 14.1844),
 	star: true,
-	calendar: { kind: 'gregorian-utc' }
+	calendar: { kind: 'gregorian-utc' },
+	naif: 10
 });
+
+/** NAIF ids (plan 125, ADR 0122 point 7): with the DE440 asset the bodies follow JPL's ephemeris. */
+const NAIF: Record<string, number> = {
+	mercury: 1,
+	venus: 2,
+	earth: 399,
+	mars: 4,
+	jupiter: 5,
+	saturn: 6,
+	uranus: 7,
+	neptune: 8
+};
 
 const planet = (
 	name: string,
@@ -222,6 +235,7 @@ const planet = (
 		rotation: iauRotation(...iau),
 		parent: 'sol.sun',
 		orbit: levelAOrbit(LEVEL_A[name]!),
+		...(NAIF[name] !== undefined ? { naif: NAIF[name] } : {}),
 		...extra
 	});
 
@@ -303,6 +317,7 @@ export const SolMoon = defineBody({
 	rotationPeriod: 27.321661 * DAY,
 	rotation: iauRotation(269.9949, 66.5392, 38.3213, 13.17635815),
 	parent: 'sol.earth',
+	naif: 301,
 	terrain: { kind: 'craters' },
 	science: { spaceHigh: km(100), multiplier: 2 },
 	orbit: {

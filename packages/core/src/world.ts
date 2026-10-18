@@ -23,7 +23,8 @@ export type WorldData = {
 };
 
 /** How a world computes gravity (ADR 0095). Only patched conics exist so far. */
-export type GravityModel = 'patched';
+/** Patched conics, or vessels integrated against every body (plan 125, ADR 0122). */
+export type GravityModel = 'patched' | 'n-body';
 
 /**
  * The world a run belongs to (plan 077, ADRs 0094 and 0110): its identity fields and the
