@@ -521,6 +521,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					created.events.on('stock:engine-flameout', (e) =>
 						options.post({ kind: 'sim-event', event: { type: 'flameout', part: Number(e.part) } })
 					),
+					created.events.on('vessel:power-depleted', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'power-depleted', vessel: Number(e.vessel) }
+						})
+					),
 					created.events.on('part:damaged', (e) =>
 						options.post({
 							kind: 'sim-event',

@@ -162,4 +162,12 @@ describe('toast store', () => {
 		expect(pruneToasts(list, 20 + 4_001)).toEqual([]);
 		expect(pruneToasts(list, 21)).toBe(list);
 	});
+
+	it('out of power on the flown vessel is a danger toast, on another vessel nothing (plan 208)', () => {
+		expect(toastForSimEvent({ type: 'power-depleted', vessel: 1 }, ctx)).toMatchObject({
+			kind: 'danger',
+			title: 'Out of power'
+		});
+		expect(toastForSimEvent({ type: 'power-depleted', vessel: 99 }, ctx)).toBeNull();
+	});
 });

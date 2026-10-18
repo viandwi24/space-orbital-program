@@ -49,6 +49,7 @@
 	import { loadWorldCatalog } from '../../../lib/worlds/catalog';
 	import BlackoutBadge from '../../../lib/hud/BlackoutBadge.svelte';
 	import RangeBadge from '../../../lib/hud/RangeBadge.svelte';
+	import UncontrolledBadge from '../../../lib/hud/UncontrolledBadge.svelte';
 	import AeroStrip from '../../../lib/hud/AeroStrip.svelte';
 	import LinkBadge from '../../../lib/hud/LinkBadge.svelte';
 	import HelpOverlay from '../../../lib/hud/HelpOverlay.svelte';
@@ -948,6 +949,7 @@
 						{ghostNote}
 					</p>{/if}
 				<RangeBadge warning={model?.range ?? null} />
+				<UncontrolledBadge reason={model?.uncontrolled ?? null} />
 				{#if model?.aero}<AeroStrip aero={model.aero} />{/if}
 				<PrecompileBadge progress={graphics} />
 			</div>

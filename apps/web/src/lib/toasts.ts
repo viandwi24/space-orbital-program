@@ -45,6 +45,15 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 			return ctx.isActiveVessel(event.vessel)
 				? { kind: 'info', title: `Stage ${event.stage + 1} fired`, key: 'stage' }
 				: null;
+		case 'power-depleted':
+			return ctx.isActiveVessel(event.vessel)
+				? {
+						kind: 'danger',
+						title: 'Out of power',
+						detail: 'No electric charge for the probe core: the vessel is uncontrolled',
+						key: 'power'
+					}
+				: null;
 		case 'flameout': {
 			if (!ctx.isActivePart(event.part)) return null;
 			const def = ctx.definitionOf(event.part);

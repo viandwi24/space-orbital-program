@@ -89,7 +89,9 @@ export type SimEvent =
 	/** The sim ended a warp, or refused a pause (plan 205, ADR 0201 point 10). */
 	| { type: 'warp-stopped'; reason: string }
 	/** Construction finished (plan 205's bell). */
-	| { type: 'building-ready'; kind: string; level: number };
+	| { type: 'building-ready'; kind: string; level: number }
+	/** Every control source of the vessel ran out of power (plan 208, ADR 0214). */
+	| { type: 'power-depleted'; vessel: number };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -173,7 +175,8 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'milestone',
 	'part-failed',
 	'warp-stopped',
-	'building-ready'
+	'building-ready',
+	'power-depleted'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
