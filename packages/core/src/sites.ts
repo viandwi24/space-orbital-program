@@ -36,7 +36,9 @@ export const siteSchema = z.object({
 	pads: z.array(sitePadSchema).min(1),
 	/** Placed buildings and road cells (plan 090, ADR 0115); absent = none. */
 	buildings: z.array(placedBuildingSchema).optional(),
-	roads: roadsSchema.optional()
+	roads: roadsSchema.optional(),
+	/** Landed vessels that are outposts of this site (plan 128, ADR 0125 point 4); absent = none. */
+	members: z.array(z.int().nonnegative()).optional()
 });
 
 export type Site = z.infer<typeof siteSchema>;

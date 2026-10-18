@@ -9,6 +9,7 @@ import {
 	CRATERS_SEED_SALT,
 	HIGHLAND,
 	LAKE_SHAPE as LAKE,
+	MAX_TERRAIN_ZONES,
 	MOON_SHAPE as S,
 	SEA_LEVEL
 } from '@orbital/core';
@@ -74,7 +75,7 @@ float craterLayer(vec3 q, float cellKm, float rMin, float rSpan, int salt) {
 	}
 	return h;
 }
-float moonHeight(vec3 n, float radius) {
+float moonHeightRaw(vec3 n, float radius) {
 	float relief = smoothstep(${f(S.plainFrom)}, ${f(S.plainTo)}, radius * acos(clamp(n.x, -1.0, 1.0)));
 	if (relief <= 0.0) return ${f(S.base)};
 	int seedShift = uSeed * ${CRATERS_SEED_SALT};
@@ -83,6 +84,20 @@ float moonHeight(vec3 n, float radius) {
 	${layers}
 	float hills = ${f(S.hillAmplitude)} * (noiseT(q, 1.0 / ${f(S.hillWavelengthKm)}, ${S.hillSalt} + seedShift) - 0.5) * 2.0;
 	return ${f(S.base)} + relief * (h + hills);
+}
+// the site zones (plan 128, ADR 0125 point 1): each blends the ground toward its centre's raw height
+uniform vec4 uCraterZones[${MAX_TERRAIN_ZONES}];
+uniform vec2 uCraterZoneBlend[${MAX_TERRAIN_ZONES}];
+uniform int uCraterZoneCount;
+float moonHeight(vec3 n, float radius) {
+	float h = moonHeightRaw(n, radius);
+	for (int i = 0; i < ${MAX_TERRAIN_ZONES}; i++) {
+		if (i >= uCraterZoneCount) break;
+		float a = radius * acos(clamp(dot(n, uCraterZones[i].xyz), -1.0, 1.0));
+		float t = smoothstep(uCraterZones[i].w, uCraterZones[i].w + uCraterZoneBlend[i].x, a);
+		h = uCraterZoneBlend[i].y + (h - uCraterZoneBlend[i].y) * t;
+	}
+	return h;
 }
 `;
 

@@ -46,6 +46,8 @@ export interface BuildingDefinition {
 	provides: string[];
 	/** Allowed body ids; absent = any. */
 	bodies?: string[];
+	/** The home body only, or other bodies only (plan 128, ADR 0125 point 3); absent = anywhere. */
+	placement?: 'home' | 'off-world';
 	/** Metres from the footprint centre that no other building may enter. */
 	hazardRadius?: number;
 	visual: { kind: 'generator'; generator: string } | { kind: 'asset'; path: string };
@@ -73,6 +75,7 @@ export const buildingDefinitionSchema = z
 			.min(1),
 		provides: z.array(z.string().min(1)),
 		bodies: z.array(z.string().min(1)).optional(),
+		placement: z.enum(['home', 'off-world']).optional(),
 		hazardRadius: z.number().positive().optional(),
 		visual: z.discriminatedUnion('kind', [
 			z.object({ kind: z.literal('generator'), generator: z.string().min(1) }),
@@ -185,6 +188,8 @@ function footprintCentre(cells: readonly Cell[]): { east: number; north: number 
 
 export interface PlacementSite {
 	body: string;
+	/** Whether `body` is the world's home body (plan 128, ADR 0125 point 3); absent = yes. */
+	home?: boolean;
 	flatRadius: number;
 	buildings: readonly PlacedBuilding[];
 	roads: readonly Cell[];
@@ -193,6 +198,7 @@ export interface PlacementSite {
 export type PlaceReason =
 	| { code: 'unknown-kind'; message: string }
 	| { code: 'body'; message: string }
+	| { code: 'placement'; message: string }
 	| { code: 'outside-zone'; message: string }
 	| { code: 'overlap'; message: string; with: string }
 	| { code: 'hazard'; message: string; with: string }
@@ -272,6 +278,12 @@ export function canPlace(
 	const reasons: PlaceReason[] = [];
 	if (def.bodies && !def.bodies.includes(site.body)) {
 		reasons.push({ code: 'body', message: `${def.label} cannot be built on ${site.body}` });
+	}
+	const home = site.home ?? true;
+	if (def.placement === 'home' && !home) {
+		reasons.push({ code: 'placement', message: `${def.label} is built on the home planet only` });
+	} else if (def.placement === 'off-world' && home) {
+		reasons.push({ code: 'placement', message: `${def.label} is built on other bodies only` });
 	}
 	const cells = footprint(def.size, cell, rotation);
 	const inZone = (c: Cell): boolean => {

@@ -17,6 +17,9 @@ import {
 	upkeepWarning,
 	marketRows,
 	productionNote,
+	flowRows,
+	kindsFor,
+	firstFreeCell,
 	steadyLabels
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
@@ -240,5 +243,49 @@ describe('the Market panel (plan 097, ADR 0124 point 8)', () => {
 		const producers = new Set(['stock.propellant-plant']);
 		expect(productionNote(economy, site, producers)).toBe('Production stopped: funds are below zero');
 		expect(productionNote({ ...economy, funds: 5 }, site, producers)).toBeNull();
+	});
+});
+
+describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
+	const base = {
+		id: 'b',
+		roads: [],
+		members: [7 as never],
+		buildings: [
+			{ id: 'hub', kind: 'stock.base-hub', cell: { i: -1, j: -1 }, rotation: 0 as const, level: 0, state: 'active' as const },
+			{ id: 'isru', kind: 'stock.isru-plant', cell: { i: 5, j: -2 }, rotation: 0 as const, level: 0, state: 'active' as const }
+		]
+	};
+	const label = (id: string) => (id === 'legacy' ? 'space center' : id.replace('stock.', '').replace('-', ' '));
+	it('the Flows panel lists the recipe, the drills, the routes and the storage', () => {
+		const rows = flowRows(base, {
+			buildings: reg,
+			recipes: registries.recipes.list(),
+			vessels: [{ id: 7, parts: [{ definition: 'stock.drill' }, { definition: 'stock.drill' }] }] as never,
+			drillPerDay: 50,
+			economy: {
+				enabled: true,
+				funds: 1,
+				science: 0,
+				reputation: 0,
+				storage: [{ site: 'b', capacity: 5_000, items: { 'stock.ice': 300 } }],
+				routes: [{ id: 'r1', from: 'legacy', to: 'b', commodity: 'stock.liquid-fuel', amount: 1_000, nextDay: 12 }]
+			},
+			today: 10,
+			label
+		});
+		expect(rows).toEqual([
+			'ISRU plant: 100 ice → 40 liquid fuel + 49 oxidizer a day',
+			'Drills (2 on 1 outpost): +100 ice a day',
+			'Route r1: 1,000 liquid fuel from space center, next in 2 days',
+			'Storage: 300 / 5,000 u'
+		]);
+	});
+	it('the build dock offers a base the off-world kinds only, and finds a free cell', () => {
+		const off = kindsFor(reg.list(), false).map((k) => k.id);
+		expect(off).toEqual(['stock.base-hub', 'stock.isru-plant', 'stock.storage-module']);
+		expect(kindsFor(reg.list(), true).map((k) => k.id)).not.toContain('stock.isru-plant');
+		const cell = firstFreeCell({ body: 'stock.cinder', flatRadius: 5_000 }, base, reg, 'stock.storage-module', false);
+		expect(cell).not.toBeNull();
 	});
 });

@@ -22,10 +22,12 @@ describe('stock boots through the loader', () => {
 		]);
 		expect(ids('module')).toEqual([
 			'stock.antenna',
+			'stock.base-kit',
 			'stock.command',
 			'stock.control-surface',
 			'stock.data-storage',
 			'stock.decoupler',
+			'stock.drill',
 			'stock.engine',
 			'stock.experiment',
 			'stock.fin',
@@ -40,12 +42,14 @@ describe('stock boots through the loader', () => {
 		expect(ids('part')).toEqual([
 			'stock.atmosphere-sampler',
 			'stock.barometer',
+			'stock.base-kit',
 			'stock.booster',
 			'stock.command-pod',
 			'stock.control-surface',
 			'stock.data-drive',
 			'stock.decoupler',
 			'stock.dish-antenna',
+			'stock.drill',
 			'stock.engine-cluster',
 			'stock.engine-lv',
 			'stock.eva-suit',

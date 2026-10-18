@@ -119,16 +119,19 @@ function worldTerrainOf(sim: Sim): Pick<Catalog, 'terrain' | 'launchSite'> {
 	};
 }
 
-/** The seed and zones of every later hills body (plan 071, ADR 0121 point 1), for the renderer's bakes. */
+/**
+ * The seed and zones of every later hills body (plan 071, ADR 0121 point 1), and the base zones of
+ * every craters body that has one (plan 128, ADR 0125 point 1), for the renderer's bakes.
+ */
 function bodyTerrainOf(sim: Sim): Catalog['bodyTerrain'] {
 	const out: NonNullable<Catalog['bodyTerrain']> = {};
 	const worldSeed = terrainSeedOf(sim.worldInfo);
 	for (const b of sim.registries.bodies.list()) {
-		if (b.terrain?.kind !== 'hills' || b.id === sim.home) continue;
-		out[b.id] = {
-			seed: hillsSeedOf(b, worldSeed, false),
-			zones: zonesOf(sitesOf(sim.worldInfo), b.id)
-		};
+		if (b.id === sim.home) continue;
+		const zones = zonesOf(sitesOf(sim.worldInfo), b.id);
+		if (b.terrain?.kind === 'hills') out[b.id] = { seed: hillsSeedOf(b, worldSeed, false), zones };
+		else if (b.terrain?.kind === 'craters' && zones.length > 0)
+			out[b.id] = { seed: b.terrain.seed ?? 0, zones };
 	}
 	return out;
 }

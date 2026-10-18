@@ -33,6 +33,9 @@
 		spreadLabels,
 		steadyLabels,
 		upkeepWarning,
+		flowRows,
+		firstFreeCell,
+		kindsFor,
 		marketRows,
 		productionNote,
 		type GhostCheck,
@@ -63,7 +66,9 @@
 		system: STOCK_CHOICE
 	});
 	const buildingRegistry = registries.buildings;
-	const buildKinds = buildingRegistry.list().map((b) => ({ id: b.id, label: b.label }));
+	const homeId = homeBodyOf(registries.bodies.list())?.id;
+	/** The site shown in the overlay (plan 128): the primary site, or a base on another body. */
+	let siteId = $state<string | null>(null);
 
 	let canvas: HTMLCanvasElement;
 	let center: SpaceCenter | null = null;
@@ -91,13 +96,39 @@
 		const stopped = productionNote(economy, site, producers);
 		return [...finished, ...(warning ? [warning] : []), ...(stopped ? [stopped] : [])];
 	});
-	const siteInfo = $derived(sitesOf(world ?? { sites: [] })[0]!);
+	const allSites = $derived(sitesOf(world ?? { sites: [] }));
+	const siteInfo = $derived(allSites.find((s) => s.id === siteId) ?? allSites[0]!);
+	const homeSelected = $derived(siteInfo.body === homeId);
+	const buildKinds = $derived(
+		kindsFor(buildingRegistry.list(), homeSelected).map((b) => ({ id: b.id, label: b.label }))
+	);
+	let vessels = $state.raw<Snapshot['vessels']>([]);
+	const label = (id: string): string =>
+		(registries.commodities.get(id)?.label ?? allSites.find((s) => s.id === id)?.name ?? id).toLowerCase();
+	const flows = $derived(
+		flowRows(site, {
+			buildings: buildingRegistry,
+			recipes: registries.recipes.list(),
+			vessels,
+			drillPerDay: 50,
+			economy,
+			today,
+			label
+		})
+	);
 
 	function onSnapshot(s: Snapshot): void {
 		today = s.day;
 		funds = s.economy?.enabled ? s.economy.funds : undefined;
 		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
-		const next = s.sites?.[0];
+		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length)) vessels = s.vessels;
+		// the 3D view is the primary site's (ADR 0125 point 7); the overlay shows the chosen site
+		const primary = s.sites?.[0];
+		if (JSON.stringify(primary) !== JSON.stringify(shown)) {
+			shown = primary;
+			center?.setBuildings(siteViews(primary, buildingRegistry), primary?.roads ?? []);
+		}
+		const next = s.sites?.find((x) => x.id === siteInfo.id);
 		for (const b of next?.buildings ?? []) {
 			const was = site?.buildings.find((x) => x.id === b.id);
 			if (was && was.state !== 'active' && was.state !== 'planned' && b.state === 'active') {
@@ -107,8 +138,8 @@
 		}
 		if (JSON.stringify(next) === JSON.stringify(site)) return;
 		site = next;
-		center?.setBuildings(siteViews(next, buildingRegistry), next?.roads ?? []);
 	}
+	let shown: SiteState | undefined;
 
 	function ghostAt(at: { east: number; north: number } | null): void {
 		if (!build || !at) {
@@ -118,7 +149,7 @@
 		}
 		const def = buildingRegistry.get(build.kind)!;
 		const cell = ghostCell(at, def, build.rotation);
-		const check = checkGhost(siteInfo, site, buildingRegistry, build.kind, cell, build.rotation);
+		const check = checkGhost(siteInfo, site, buildingRegistry, build.kind, cell, build.rotation, homeSelected);
 		hover = { cell, check };
 		center?.setGhost({ size: def.size, cell, rotation: build.rotation, valid: check.valid });
 	}
@@ -132,8 +163,8 @@
 
 	async function persist(): Promise<void> {
 		if (!site) return;
-		const sites = sitesOf(world ?? { sites: [] }).map((s, i) =>
-			i === 0 ? { ...s, buildings: site!.buildings, roads: site!.roads } : s
+		const sites = sitesOf(world ?? { sites: [] }).map((s) =>
+			s.id === site!.id ? { ...s, buildings: site!.buildings, roads: site!.roads } : s
 		);
 		const worlds = await saves.worldsService();
 		await worlds.setSites(worldId, sites);
@@ -184,6 +215,24 @@
 	}
 
 	function setBuild(kind: string | null): void {
+		// a base has no 3D view yet: the building goes on the first free cell near its centre (ADR 0125 point 7)
+		if (kind && !homeSelected) {
+			const cell = firstFreeCell(siteInfo, site, buildingRegistry, kind, false);
+			if (!cell) {
+				problem = 'No free cell at this base for that building';
+				return;
+			}
+			void center
+				?.dispatch({ type: 'place-building', site: siteInfo.id, kind, cell, rotation: 0, id: crypto.randomUUID() })
+				.then((r) => {
+					if (!r.ok) problem = r.reason;
+					else {
+						problem = null;
+						changed();
+					}
+				});
+			return;
+		}
 		build = kind ? { kind, rotation: 0 } : null;
 		if (!kind) {
 			hover = null;
@@ -261,6 +310,15 @@
 		onremove={(id) => void remove(id)}
 		onupgrade={(id) => void upgrade(id)}
 		{notes}
+		sites={allSites.map((s) => ({ id: s.id, label: s.body === homeId ? s.name : `${s.name} (${s.body.replace(/^stock\./, '')})` }))}
+		siteId={siteInfo.id}
+		onsite={(id) => {
+			siteId = id;
+			site = undefined;
+			selected = null;
+			setBuild(null);
+		}}
+		{flows}
 		market={marketRows(economy, site?.id)}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}

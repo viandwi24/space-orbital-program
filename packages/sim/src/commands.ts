@@ -40,6 +40,7 @@ import { acceptContract, cancelContract, declineContract } from './contracts.ts'
 import { hasBackground } from './tick.ts';
 import { creditRecovery, recoveryBlocker } from './economy.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
+import { createRoute, deleteRoute, deployBase, joinSite } from './bases.ts';
 import {
 	placeBuilding,
 	removeBuilding,
@@ -412,6 +413,14 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			return research(core, command.node);
 		case 'crew-hire':
 			return hireCrew(core, command.profession);
+		case 'deploy-base':
+			return withStations(core, deployBase(core, command));
+		case 'join-site':
+			return joinSite(core, command);
+		case 'create-route':
+			return createRoute(core, command);
+		case 'delete-route':
+			return deleteRoute(core, command);
 		case 'market-buy':
 			return marketBuy(core, command);
 		case 'market-sell':

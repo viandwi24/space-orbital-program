@@ -16,6 +16,7 @@ import {
 	siteDistance,
 	sitesOf,
 	type CommandResult,
+	type EntityId,
 	type PlacedBuilding,
 	type Rotation,
 	type Site
@@ -49,7 +50,13 @@ export function placeBuilding(
 	if (buildings.some((b) => b.id === command.id))
 		return refuse(`building id "${command.id}" is taken`);
 	const check = canPlace(
-		{ body: known.body, flatRadius: known.flatRadius, buildings, roads: known.roads ?? [] },
+		{
+			body: known.body,
+			home: known.body === core.root.def.id,
+			flatRadius: known.flatRadius,
+			buildings,
+			roads: known.roads ?? []
+		},
 		core.registries.buildings,
 		command.kind,
 		command.cell,
@@ -192,7 +199,9 @@ export const foundedInThisRun = (core: SimCore, site: string): boolean =>
 /** `found-site` (ADR 0177 point 6): a base with the starter pad, refused when its zone would overlap. */
 export function foundSite(
 	core: SimCore,
-	command: { id: string; name: string; latitude: number; longitude: number; body?: string }
+	command: { id: string; name: string; latitude: number; longitude: number; body?: string },
+	/** What the new site starts with: the starter pad, or a base's hub (plan 128, ADR 0125 point 2). */
+	layout: { buildings: PlacedBuilding[]; roads: Array<{ i: number; j: number }> } = STARTER_LAYOUT
 ): CommandResult {
 	const body = command.body ?? core.root.def.id;
 	const runtime = core.bodies.get(body);
@@ -224,8 +233,8 @@ export function foundSite(
 		flatRadius: SITE_FLAT_RADIUS,
 		blendWidth: SITE_BLEND_WIDTH,
 		pads: [{ east: 0, north: 0 }],
-		buildings: cloneData(STARTER_LAYOUT.buildings),
-		roads: cloneData(STARTER_LAYOUT.roads)
+		buildings: cloneData(layout.buildings),
+		roads: cloneData(layout.roads)
 	});
 	let set = foundedThisRun.get(core);
 	if (!set) foundedThisRun.set(core, (set = new Set()));
@@ -248,6 +257,8 @@ const STARTER_LAYOUT = {
 export const sitesSnapshot = (core: SimCore) =>
 	sitesOf(core.info).map((s) => ({
 		id: s.id,
+		body: s.body,
+		...(s.members?.length ? { members: s.members.map((m) => m as EntityId) } : {}),
 		buildings: cloneData(s.buildings ?? []) as PlacedBuilding[],
 		roads: cloneData(s.roads ?? [])
 	}));

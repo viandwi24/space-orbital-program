@@ -59,7 +59,12 @@ export function createBodyTerrainField(
 				...(world?.zones && world.zones.length > 0 ? { zones: world.zones } : {})
 			});
 		case 'craters':
-			return createMoonTerrainField({ radius: body.radius, seed: body.terrain.seed ?? 0 });
+			// site zones flatten craters ground too (plan 128, ADR 0125 point 1)
+			return createMoonTerrainField({
+				radius: body.radius,
+				seed: body.terrain.seed ?? 0,
+				...(world?.zones && world.zones.length > 0 ? { zones: world.zones } : {})
+			});
 		case undefined:
 			return undefined;
 	}

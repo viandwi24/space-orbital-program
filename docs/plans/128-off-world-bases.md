@@ -17,7 +17,7 @@ A base can be founded on another body in two ways: a base kit lands and deploys,
 
 ## Context
 
-- ADRs: 0097, 0098
+- ADRs: 0097, 0098, [0125](../decisions/0125-off-world-bases-kits-outposts-isru-supply-routes.md) (written at claim: craters zones, the kit, placement rules, outposts, the ISRU step, routes, the Flows panel)
 - Read: ADR 0097 point 7, ADR 0098 (commodities), `refs/reverse-engineering-ksp2/11-colonies-resources-interstellar.md` and `beyond/08-space-center-building-and-colonies.md` §5 (git-ignored).
 
 ## Scope
@@ -39,7 +39,7 @@ A base can be founded on another body in two ways: a base kit lands and deploys,
 
 ## Design notes
 
-Off-world sites reuse the Space Center screen with the body's ground pass.
+Off-world sites reuse the Space Center screen: a site picker, the Flows panel and the build dock for the chosen site; the 3D view stays the primary site's (ADR 0125 point 7: drawing a base on another body's ground is a renderer plan of its own).
 
 ## Steps
 
@@ -51,18 +51,21 @@ Off-world sites reuse the Space Center screen with the body's ground pass.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: a deployed base kit on the moon creates a site whose flat zone appears in the moon's height function.
-- [ ] `packages/sim` test: a landed vessel made an outpost runs its drill on the world tick and stops when it drives off.
-- [ ] `packages/sim` test: the supply route delivers its cargo on each window and books its cost.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: a deployed base kit on the moon creates a site whose flat zone appears in the moon's height function.
+- [x] `packages/sim` test: a landed vessel made an outpost runs its drill on the world tick and stops when it drives off.
+- [x] `packages/sim` test: the supply route delivers its cargo on each window and books its cost.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/128-off-world-bases.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/128-off-world-bases.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097, 0098).
+- 2026-10-18 — Claimed by Agent 1 (all depends merged) and refined with ADR 0125 (the draft said what, not how): craters zones toward the centre's own height (sim and the moon pass's bakes), `deploy-base` from a landed `stock.base-kit` on another body (a `base` site with the hub), `placement: 'home' | 'off-world'` on buildings, `join-site` outposts that leave when they lift off or drive away, `stock.drill` 50 u of ice a day, recipes that consume their inputs (`stock.ice-electrolysis` in the ISRU plant), `create-route` / `delete-route` on the synodic window with the launch-service price, the site picker and the Flows panel. The base kit and the drill sit in tier 5 (`stock.surface-operations`). API_VERSION 0.1.64.
+- 2026-10-18 — Criteria: sim `bases.test.ts` (5: the zone in the moon's height function after the next load, home and off-world placement, an outpost's drill and its lift-off, the ISRU step, a route's two windows and its cost), core `craters-zones.test.ts`, renderer `craters-zones.test.ts`, vitest `space-center/model.test.ts` (+2); full checks in the journal.
+- 2026-10-18 — Merged by Agent 1 (own lane): rebased after 065 and 099 (no conflicts); API_VERSION 0.1.64; bun test 1679 pass, web vitest 1026 pass, typecheck, build, docs:check, smoke e2e 7 passed (the moon pass's craters shaders with the zone uniforms compile in flight); launch, mission-center, space-center and worlds e2e pass (Chromium).

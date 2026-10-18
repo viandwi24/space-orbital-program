@@ -24,7 +24,11 @@
 		onremove,
 		onupgrade = () => {},
 		notes = [],
-		market = []
+		market = [],
+		sites = [],
+		siteId = null,
+		onsite = () => {},
+		flows = []
 	}: {
 		worldName: string;
 		rows: readonly BuildingRow[];
@@ -44,6 +48,12 @@
 		notes?: readonly string[];
 		/** The read-only Market panel (plan 097); empty with the economy off. */
 		market?: readonly MarketRow[];
+		/** The world's sites for the picker (plan 128): the primary site first, then bases. */
+		sites?: readonly { id: string; label: string }[];
+		siteId?: string | null;
+		onsite?: (id: string) => void;
+		/** The Flows panel of the chosen site (ADR 0125 point 7). */
+		flows?: readonly string[];
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -66,6 +76,18 @@
 		<Capsule data-testid="world-capsule"
 			><span class="world">{worldName}</span><span class="u">Space Center</span></Capsule
 		>
+		{#if sites.length > 1}
+			<label class="site-pick"
+				><span class="u">Site</span>
+				<select
+					data-testid="sc-site"
+					value={siteId ?? sites[0]?.id}
+					onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
+				>
+					{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+				</select></label
+			>
+		{/if}
 	</div>
 
 	{#each rows as row (row.id)}
@@ -125,6 +147,13 @@
 				</ul>
 			{/if}
 		</Panel>
+		{#if flows.length > 0}
+			<Panel title="Flows">
+				<ul class="list" data-testid="sc-flows">
+					{#each flows as f (f)}<li>{f}</li>{/each}
+				</ul>
+			</Panel>
+		{/if}
 		{#if market.length > 0}
 			<Panel title="Market">
 				<ul class="list" data-testid="sc-market">
@@ -193,6 +222,22 @@
 </div>
 
 <style>
+	.site-pick {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		pointer-events: auto;
+		font-size: var(--t-small);
+		color: var(--text-secondary);
+	}
+	.site-pick select {
+		font: inherit;
+		color: var(--text-primary);
+		background: var(--surface-tile);
+		border: 1px solid var(--border-subtle, transparent);
+		border-radius: var(--radius-pill, 999px);
+		padding: 0.25rem 0.75rem;
+	}
 	.overlay {
 		position: absolute;
 		inset: 0;

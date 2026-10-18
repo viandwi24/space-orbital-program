@@ -100,5 +100,15 @@ export const STOCK_TECH = [
 		milestone: 'landing:stock.cinder',
 		description: 'Long flights with crew, and a collar to float.',
 		unlocks: ['stock.life-support-pack', 'stock.scrubber', 'stock.flotation-collar']
+	}),
+	defineTechNode({
+		id: 'stock.surface-operations',
+		label: 'Surface operations',
+		tier: 5,
+		cost: 320,
+		requires: ['stock.life-support'],
+		milestone: 'landing:stock.cinder',
+		description: 'A base kit to found a site on another body, and a drill for its outposts (plan 128).',
+		unlocks: ['stock.base-kit', 'stock.drill']
 	})
 ];

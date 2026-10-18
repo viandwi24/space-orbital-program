@@ -19,6 +19,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import type { SimCore } from './core.ts';
+import { drill, routesTick } from './bases.ts';
 import {
 	chargeLaunch,
 	costMultiplier,
@@ -191,9 +192,26 @@ export function marketSell(
  * The world tick's market work (ADR 0124 points 3 and 5), after the day's charges: production into
  * site storage while the world is out of debt, then each traded market relaxes and is priced.
  */
-export function marketDay(core: SimCore): void {
+export function marketDay(core: SimCore, day: number): void {
 	if (!economyOn(core)) return;
-	if (core.economy.balances.funds >= 0) produce(core);
+	if (core.economy.balances.funds >= 0) {
+		// the outposts' drills first, so a base's ISRU plant runs on the day's ice (plan 128, ADR 0125)
+		drill(core, (site) => storageOf(core, site));
+		produce(core);
+	}
+	routesTick(
+		core,
+		day,
+		(site) => storageOf(core, site),
+		(commodity) => {
+			const def = core.registries.commodities.get(commodity);
+			return def && isTraded(def) ? priceOf(core, def) : undefined;
+		},
+		(commodity, amount) => {
+			const def = core.registries.commodities.get(commodity);
+			if (def && isTraded(def)) marketOf(core, def).stock -= amount;
+		}
+	);
 	for (const def of traded(core)) {
 		const markets = (core.economy.markets ??= {});
 		markets[def.id] = marketTick(marketOf(core, def), def.basePrice, def.market);
@@ -213,9 +231,20 @@ function produce(core: SimCore): void {
 			for (const recipe of recipes) {
 				if (recipe.building !== b.kind) continue;
 				const held = storageOf(core, site.id);
+				// the share of a full day the stored inputs allow (plan 128, ADR 0125 point 5); power is not stored
+				let share = 1;
+				for (const [input, perDay] of Object.entries(recipe.inputs)) {
+					if (input === 'power' || perDay <= 0) continue;
+					share = Math.min(share, (held[input] ?? 0) / (perDay * factor));
+				}
+				if (share <= 0) continue;
+				for (const [input, perDay] of Object.entries(recipe.inputs)) {
+					if (input === 'power' || perDay <= 0) continue;
+					held[input] = (held[input] ?? 0) - perDay * factor * share;
+				}
 				for (const [commodity, perDay] of Object.entries(recipe.outputs)) {
 					const room = capacity - storedUnits(held);
-					const add = Math.min(perDay * factor, Math.max(0, room));
+					const add = Math.min(perDay * factor * share, Math.max(0, room));
 					if (add > 0) held[commodity] = (held[commodity] ?? 0) + add;
 				}
 			}
@@ -236,6 +265,14 @@ export function marketSnapshot(core: SimCore):
 				history: number[];
 			}>;
 			storage: Array<{ site: string; capacity: number; items: Record<string, number> }>;
+			routes?: Array<{
+				id: string;
+				from: string;
+				to: string;
+				commodity: string;
+				amount: number;
+				nextDay: number;
+			}>;
 	  }
 	| undefined {
 	if (!economyOn(core)) return undefined;
@@ -259,5 +296,6 @@ export function marketSnapshot(core: SimCore):
 			items: { ...(core.economy.storage?.[s.id] ?? {}) }
 		}))
 		.filter((s) => s.capacity > 0 || storedUnits(s.items) > 0);
-	return { markets, storage };
+	const routes = (core.economy.routes ?? []).map((r) => ({ ...r }));
+	return { markets, storage, ...(routes.length > 0 ? { routes } : {}) };
 }

@@ -5,6 +5,7 @@
  * to it costs, upkeep about 1 % of the level's cost per 30 days.
  */
 import { defineBuilding, type BuildingLevel } from '@orbital/sdk';
+import { STOCK_BASE_BUILDINGS } from './bases.ts';
 
 type Three = [number, number, number];
 
@@ -33,6 +34,7 @@ export const BuildingHangar = defineBuilding({
 	entrances: southDoor(8),
 	levels: levels({ hangar: [30, 120, 255] }, [40_000, 90_000, 250_000], [10, 20, 30]),
 	provides: ['hangar'],
+	placement: 'home',
 	visual: gen('hangar')
 });
 
@@ -51,6 +53,7 @@ const pad = (
 		entrances: [{ i: Math.floor(n / 2), j: n - 1, side: 'north' }],
 		levels: levels({ 'launch-pad': mass }, cost, [5, 12, 20]),
 		provides: ['launch-pad'],
+		placement: 'home',
 		hazardRadius: hazard,
 		visual: gen('launch-pad')
 	});
@@ -65,6 +68,7 @@ export const BuildingRunway = defineBuilding({
 	entrances: [{ i: 3, j: 0, side: 'east' }],
 	levels: levels({ runway: [1_200, 1_800, 2_400] }, [60_000, 120_000, 200_000], [8, 15, 25]),
 	provides: ['runway'],
+	placement: 'home',
 	hazardRadius: 30,
 	visual: gen('runway')
 });
@@ -76,6 +80,7 @@ export const BuildingMissionCenter = defineBuilding({
 	entrances: southDoor(4),
 	levels: levels({ 'mission-control': [3, 6, 12] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['mission-control'],
+	placement: 'home',
 	visual: gen('control')
 });
 export const BuildingAstronautComplex = defineBuilding({
@@ -85,6 +90,7 @@ export const BuildingAstronautComplex = defineBuilding({
 	entrances: southDoor(4),
 	levels: levels({ crew: [5, 12, 30] }, [30_000, 80_000, 180_000], [6, 12, 20]),
 	provides: ['crew'],
+	placement: 'home',
 	visual: gen('office')
 });
 export const BuildingResearch = defineBuilding({
@@ -94,6 +100,7 @@ export const BuildingResearch = defineBuilding({
 	entrances: southDoor(5),
 	levels: levels({ lab: [1, 2, 3] }, [50_000, 120_000, 250_000], [8, 16, 28]),
 	provides: ['lab'],
+	placement: 'home',
 	visual: gen('office')
 });
 export const BuildingAdministration = defineBuilding({
@@ -103,6 +110,7 @@ export const BuildingAdministration = defineBuilding({
 	entrances: southDoor(5),
 	levels: levels({ admin: [1, 3, 5] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['admin'],
+	placement: 'home',
 	visual: gen('office')
 });
 export const BuildingTrackingDish = defineBuilding({
@@ -112,6 +120,7 @@ export const BuildingTrackingDish = defineBuilding({
 	entrances: southDoor(2),
 	levels: levels({ 'comms-node': [1, 2, 3] }, [20_000, 60_000, 150_000], [2, 6, 12], 20),
 	provides: ['comms-node'],
+	placement: 'home',
 	visual: gen('dish')
 });
 export const BuildingPropellantPlant = defineBuilding({
@@ -126,6 +135,7 @@ export const BuildingPropellantPlant = defineBuilding({
 		150
 	),
 	provides: ['production', 'storage'],
+	placement: 'home',
 	hazardRadius: 30,
 	visual: gen('tanks')
 });
@@ -136,6 +146,7 @@ export const BuildingTestStand = defineBuilding({
 	entrances: southDoor(3),
 	levels: levels({ 'test-stand': [1, 2, 3] }, [30_000, 70_000, 150_000], [4, 10, 18]),
 	provides: ['test-stand'],
+	placement: 'home',
 	hazardRadius: 40,
 	visual: gen('tanks')
 });
@@ -152,5 +163,7 @@ export const STOCK_BUILDINGS = [
 	BuildingAdministration,
 	BuildingTrackingDish,
 	BuildingPropellantPlant,
-	BuildingTestStand
+	BuildingTestStand,
+	// off-world bases (plan 128, ADR 0125)
+	...STOCK_BASE_BUILDINGS
 ] as const;

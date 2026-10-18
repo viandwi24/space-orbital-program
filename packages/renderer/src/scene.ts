@@ -303,7 +303,11 @@ export class SceneModel {
 				const moon = new MoonPass(b.id, b.radius, {
 					...(b.terrain.kind === 'hills'
 						? { kind: 'hills' as const, terrain: hillsTerrain() }
-						: { seed: b.terrain.seed ?? 0 }),
+						: {
+								seed: b.terrain.seed ?? 0,
+								// a craters body's base zones (plan 128, ADR 0125 point 1), from the host
+								zones: config.bodyTerrain?.[b.id]?.zones ?? []
+							}),
 					// its own air (ADR 0121 point 2)
 					...(b.atmosphere
 						? {
