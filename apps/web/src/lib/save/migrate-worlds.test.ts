@@ -1,6 +1,6 @@
 /** Plan 077 / ADR 0110: old saves in IndexedDB are attached to one Legacy world, once. */
 import 'fake-indexeddb/auto';
-import { LEGACY_WORLD_ID, readSimSave } from '@orbital/core';
+import { LEGACY_WORLD_ID, readSimSave, SIM_SAVE_VERSION } from '@orbital/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import fixtureV4 from '../../../../../packages/sim/test/fixtures/save-v4.json';
 import { referenceTwoStage } from '../design';
@@ -86,7 +86,7 @@ describe('migrateLegacySaves on IndexedDB', () => {
 		const manager = createSaveManager(store, { now: () => 3_000, newId: () => 'n1' });
 		const loaded = await manager.load('a');
 		expect(loaded.worldId).toBe(LEGACY_WORLD_ID);
-		expect(loaded.sim.formatVersion).toBe(6);
+		expect(loaded.sim.formatVersion).toBe(SIM_SAVE_VERSION); // migrated to the current format
 		expect(loaded.sim.worldInfo.id).toBe(loaded.worldId);
 
 		const before = { worlds: await worlds.list(), saves: await store.listMeta() };

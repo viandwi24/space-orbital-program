@@ -530,6 +530,8 @@ function routeNetwork(
 	blackout: ReadonlyMap<EntityId, number>,
 	withBudget: boolean
 ): Map<EntityId, Routed> {
+	// no vessel, no route: warping an empty sky costs nothing more than tier 1 did
+	if (nodes.length === 0) return new Map();
 	const scaleRule = ruleOf(core, COMMS_RULES.scale);
 	const factor = typeof scaleRule === 'number' ? scaleRule : 1;
 	const vertices: Vertex[] = stations.map((s, i) => ({
