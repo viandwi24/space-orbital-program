@@ -105,3 +105,4 @@ Behaviour: with comms on, transmitted science arrives when its bits are sent; a 
 Resource notes: swap used 1096 MB, thermal ok, sub-workers used 0, anything left running: none
 Follow-ups: new drafts none (120 channels, 118 timeline, EC per bit in ADR 0189)
 ```
+- 2026-10-18 — Merged by Agent 1: rebased on main (no conflicts); save format 8; API_VERSION 0.1.69 (125 took 0.1.68); bun test 1725 pass, web vitest 1041 pass, typecheck, build, docs:check, smoke e2e 7 passed; launch, mission-center, nbody, vessel-panel and worlds e2e pass (Chromium).
