@@ -12,6 +12,7 @@ import type { CoverageGrid } from './coverage';
 import type { DeploymentPlan } from '@orbital/kepler';
 import { formatDeltaV, formatDistance, formatDuration, formatPercent } from '../format';
 import { bodyLabel } from '../hud-model';
+import { speedUnit } from '../units.svelte';
 import { planNodes, planWorld, type PlanNode, type PlanWorld } from './geometry';
 import type { ContactTimeline } from './timeline';
 
@@ -137,7 +138,10 @@ export function deploymentRows(
 		},
 		{ label: 'Drop at', value: `each ${plan.dropAt}, every ${formatDuration(plan.deploy.period)}` },
 		{ label: 'Spacing', value: `${Math.round((plan.spacing * 180) / Math.PI)}°` },
-		{ label: 'Carrier insertion', value: formatDeltaV(plan.insertionDv) },
-		{ label: 'Each satellite circularises', value: formatDeltaV(plan.circularizeDv) }
+		{ label: 'Carrier insertion', value: `${formatDeltaV(plan.insertionDv)} ${speedUnit()}` },
+		{
+			label: 'Each satellite circularises',
+			value: `${formatDeltaV(plan.circularizeDv)} ${speedUnit()}`
+		}
 	];
 }
