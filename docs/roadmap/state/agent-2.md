@@ -31,7 +31,7 @@
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
 | 118 comms-tools | todo |  |  |  |
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
-| 131 replays | handed-over | `devb/131-replays` | 2026-10-18 | ready/131 (1154f14); ADR 0159 |
+| 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
 | 065 mod-models | in-progress | `devb/065-mod-models` | 2026-10-18 | claim/065 |
 | 063 aeroplane | todo |  |  |  |
 | 072 script-panel | todo |  |  |  |
