@@ -102,8 +102,16 @@
 				</p>
 				{#if comms.reason}<p class="problem" data-testid="comms-reason">{comms.reason}</p>{/if}
 				{#if comms.rate || comms.latency}<p class="dim" data-testid="comms-rate">
-						{[comms.rate, comms.latency && `light time ${comms.latency}`].filter(Boolean).join(' · ')}
+						{[comms.rate, comms.latency && `light time ${comms.latency}`]
+							.filter(Boolean)
+							.join(' · ')}
 					</p>{/if}
+				{#if comms.channel}<p class="dim" data-testid="comms-channel">{comms.channel}</p>{/if}
+				{#if comms.licence}
+					<Button onclick={() => oncommand(comms.licence!.command)} data-testid="comms-licence"
+						>{comms.licence.label}</Button
+					>
+				{/if}
 				<div class="modes" role="group" aria-label="Route mode" data-testid="comms-modes">
 					{#each comms.modes as m (m.id)}
 						<button
@@ -121,7 +129,9 @@
 				{#each comms.queue as q (q.id)}
 					<div class="row endpoint" data-testid="comms-queue-item">
 						<span>{q.label} · {Math.round(q.progress * 100)}% · {q.eta}</span>
-						<Button onclick={() => oncommand(q.cancel)} data-testid="comms-cancel-{q.id}">Cancel</Button>
+						<Button onclick={() => oncommand(q.cancel)} data-testid="comms-cancel-{q.id}"
+							>Cancel</Button
+						>
 					</div>
 				{/each}
 			{/if}

@@ -12,7 +12,8 @@ type VesselLink = Network['vessels'][number];
 /** The player's words for a link reason (every broken link names its cause). */
 export function linkText(reason: string): string {
 	if (reason === 'blocked by terrain') return 'Blocked by terrain';
-	if (reason.startsWith('route broken at ')) return `Pinned route broken at ${hopName(reason.slice(16))}`;
+	if (reason.startsWith('route broken at '))
+		return `Pinned route broken at ${hopName(reason.slice(16))}`;
 	if (reason.startsWith('blocked by ')) return `Occluded by ${bodyLabel(reason.slice(11))}`;
 	switch (reason) {
 		case 'no antenna':
@@ -125,6 +126,9 @@ export function budgetTerms(b: LinkBudget, bandLabel = b.band): BudgetTerm[] {
 		{ id: 'noiseDensity', label: 'Noise density', value: dB(b.noiseDensity, 'dBW/Hz') },
 		{ id: 'cn0', label: 'Carrier to noise (C/N0)', value: dB(b.cn0, 'dB-Hz') },
 		{ id: 'ebN0', label: 'Required Eb/N0', value: dB(b.ebN0, 'dB') },
+		// tier 5 (plan 120, ADR 0191): the channel, and what other links on it cost
+		{ id: 'channel', label: 'Channel', value: `${b.channel}${b.encrypted ? ' · encrypted' : ''}` },
+		{ id: 'interference', label: 'Interference', value: dB(-b.interference, 'dB') },
 		{ id: 'margin', label: 'Margin at 1 kbit/s', value: dB(b.margin, 'dB') },
 		{ id: 'rate', label: 'Data rate', value: rateText(b.rate) }
 	];
@@ -179,6 +183,10 @@ export interface CommsTab {
 	queue: Array<{ id: string; label: string; progress: number; eta: string; cancel: Command }>;
 	/** "Next contact in 12 min", "No contact within a day", or null with a route or no queue. */
 	contact: string | null;
+	/** "S band channel 2 · encrypted · −3 dB interference" (plan 120); null without a link. */
+	channel: string | null;
+	/** A licence to buy when the link's channel has none (data waits for it), else null. */
+	licence: { label: string; command: Command } | null;
 	linked: boolean;
 	reason: string | null;
 	control: 'full' | 'partial' | 'none';
@@ -217,7 +225,12 @@ export function commsTab(
 	const hops = link.route ?? (link.to ? [link.to] : []);
 	const id = entityId(vessel);
 	const modes: CommsTab['modes'] = [
-		{ id: 'auto', label: 'Auto', active: mode.kind === 'auto', command: { type: 'comms-route', vessel: id, mode: { kind: 'auto' } } },
+		{
+			id: 'auto',
+			label: 'Auto',
+			active: mode.kind === 'auto',
+			command: { type: 'comms-route', vessel: id, mode: { kind: 'auto' } }
+		},
 		...Object.entries(POLICIES).map(([policy, label]) => ({
 			id: policy,
 			label,
@@ -250,15 +263,49 @@ export function commsTab(
 				? null
 				: 'No contact within a day'
 			: `Next contact ${inTime(radio.nextContact)}`;
+	const licences = snapshot.network.licences ?? [];
+	const inspectorBand =
+		inspector && Number(inspector.vessel) === vessel ? inspector.budget?.band : undefined;
+	const ch = link.channel ?? null;
+	const channel =
+		!linked || ch === null
+			? null
+			: [
+					`${inspectorBand ? bandLabel(inspectorBand) + ' ' : ''}channel ${ch}`,
+					link.encrypted ? 'encrypted' : null,
+					link.interference ? `−${link.interference} dB interference` : null
+				]
+					.filter(Boolean)
+					.join(' · ');
+	const unlicensed =
+		linked &&
+		ch !== null &&
+		ch > 0 &&
+		inspectorBand !== undefined &&
+		!licences.some((l) => l.band === inspectorBand && l.channel === ch);
+	const licence = unlicensed
+		? {
+				label: `Buy a licence for ${bandLabel(inspectorBand!)} channel ${ch}`,
+				command: { type: 'licence-buy', band: inspectorBand!, channel: ch } as Command
+			}
+		: null;
 	return {
+		channel,
+		licence,
 		queue,
 		contact,
 		route: mode.kind,
 		routeLabel:
-			mode.kind === 'auto' ? 'Auto' : mode.kind === 'manual' ? 'Pinned' : (POLICIES[mode.policy] ?? mode.policy),
+			mode.kind === 'auto'
+				? 'Auto'
+				: mode.kind === 'manual'
+					? 'Pinned'
+					: (POLICIES[mode.policy] ?? mode.policy),
 		path: linked ? [name, ...hops.map((h) => endpointLabel(snapshot, h))] : [name],
 		latency:
-			linked && link.latency !== null && link.latency !== undefined ? latencyText(link.latency) : null,
+			linked && link.latency !== null && link.latency !== undefined
+				? latencyText(link.latency)
+				: null,
 		modes,
 		linked,
 		reason: linked ? null : linkText(link.reason ?? 'out of range'),

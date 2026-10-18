@@ -137,6 +137,8 @@ export interface SaveComms {
 	queue: Array<{ at: number; seq: number; command: Record<string, unknown> }>;
 	/** Data items being sent (format 8, plan 119, ADR 0189 point 2), in order of `seq`. */
 	transmissions: SaveTransmission[];
+	/** Licensed channels beyond channel 0 (plan 120, ADR 0191 point 2); optional. */
+	licences?: Array<{ band: string; channel: number }>;
 }
 
 /** One data item in a radio's queue (ADR 0189 point 2). */
@@ -270,7 +272,8 @@ export const simSaveSchema = z.object({
 				sent: z.number().min(0),
 				hops: z.int().min(0)
 			})
-		)
+		),
+		licences: z.array(z.object({ band: z.string().min(1), channel: z.int().min(0) })).optional()
 	}),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
 	seed: finite,

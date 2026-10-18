@@ -16,6 +16,9 @@ import {
 	antennaGain,
 	beamWidthOf,
 	CAPACITY_ROUNDS,
+	ENCRYPTION_OVERHEAD,
+	INTERFERENCE_CAP_DB,
+	INTERFERENCE_DB,
 	dishGain,
 	SPEED_OF_LIGHT,
 	linkBudget,
@@ -31,7 +34,12 @@ import {
 	type LinkBudget,
 	type LinkReason,
 	type RouteMode,
+	type CommandResult,
 	CONTACT_SCAN_STEP,
+	DEFAULT_CHANNELS,
+	DEFAULT_LICENCE,
+	LICENCE_CAUSE,
+	licensed,
 	type SignalState,
 	type Snapshot,
 	type Vec3
@@ -48,7 +56,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
-import { ruleOf } from './economy.ts';
+import { economyOn, record, ruleOf } from './economy.ts';
 import { railsMotion } from './orbit.ts';
 import { qAboutY, qRotate } from './math.ts';
 import { stagnationFlux } from './thermal.ts';
@@ -211,7 +219,13 @@ interface Node {
 	/** Its enabled, working antennas (for the link budget). */
 	antennas: AntennaDefinition[];
 	/** The same antennas with where each points (plan 117, ADR 0188 point 2; null: Auto). */
-	pointing: Array<{ antenna: AntennaDefinition; target: string | null }>;
+	pointing: Array<{
+		antenna: AntennaDefinition;
+		target: string | null;
+		/** Its channel and encryption (plan 120, ADR 0191 point 1). */
+		channel: number;
+		encrypted: boolean;
+	}>;
 }
 
 function nodeOf(core: SimCore, id: EntityId): Node {
@@ -237,7 +251,12 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 				range = Math.max(range, on ? (antenna?.range ?? 0) : 0);
 				if (on && antenna) {
 					antennas.push(antenna);
-					pointing.push({ antenna, target: a.target ?? null });
+					pointing.push({
+						antenna,
+						target: a.target ?? null,
+						channel: a.channel ?? 0,
+						encrypted: a.encrypted === true
+					});
 				}
 			}
 		}
@@ -328,13 +347,15 @@ type Receiver = { aperture: number } | { antennas: AntennaDefinition[] };
  */
 export function bestBudget(
 	core: SimCore,
-	node: Pick<Node, 'antennas'>,
+	node: Pick<Node, 'antennas'> & Partial<Pick<Node, 'pointing'>>,
 	rx: Receiver,
 	distance: number,
 	scale: number
 ): LinkBudget | null {
 	let best: LinkBudget | null = null;
-	for (const tx of node.antennas) {
+	const radios =
+		node.pointing ?? node.antennas.map((antenna) => ({ antenna, channel: 0, encrypted: false }));
+	for (const { antenna: tx, channel, encrypted } of radios) {
 		const band = tx.band === undefined ? undefined : core.registries.bands.get(tx.band);
 		if (!band) continue;
 		const gains =
@@ -350,7 +371,7 @@ export function bestBudget(
 				scale,
 				band
 			});
-			if (!best || b.margin > best.margin) best = b;
+			if (!best || b.margin > best.margin) best = { ...b, channel, encrypted };
 		}
 	}
 	return best;
@@ -809,6 +830,48 @@ function routeNetwork(
 		});
 	}
 	if (withBudget) {
+		// interference between first hops on one band and channel that reach each other's
+		// receiver, then encryption's overhead (plan 120, ADR 0191 points 3 and 4)
+		const firsts = flows.map((f) => ({
+			f,
+			tx: f.edges[0]![0],
+			rx: f.edges[0]![1],
+			b: out.get(f.vessel)!.budget
+		}));
+		const interfere = ruleOf(core, COMMS_RULES.interference) !== false;
+		// per band and channel, the set of transmitting vertices; a receiver's interferers are the
+		// group's transmitters among its neighbours (O(edges), not O(flows²))
+		const groups = new Map<string, Set<number>>();
+		for (const a of firsts) {
+			if (!a.b) continue;
+			const k = `${a.b.band}#${a.b.channel}`;
+			let g = groups.get(k);
+			if (!g) groups.set(k, (g = new Set()));
+			g.add(a.tx);
+		}
+		const heard = new Map<string, number>();
+		for (const a of firsts) {
+			if (!a.b) continue;
+			let n = 0;
+			if (interfere) {
+				const k = `${a.b.band}#${a.b.channel}`;
+				const g = groups.get(k)!;
+				const key = `${k}@${a.rx}`;
+				let total = heard.get(key);
+				if (total === undefined) {
+					total = g.has(a.rx) ? 1 : 0;
+					for (const e of edges[a.rx]!) if (g.has(e.to)) total += 1;
+					heard.set(key, total);
+				}
+				n = total - 1; // all but itself
+			}
+			const loss = Math.min(INTERFERENCE_CAP_DB, INTERFERENCE_DB * n);
+			const margin = a.b.margin - loss;
+			const rate = rateForMargin(margin) * (a.b.encrypted ? ENCRYPTION_OVERHEAD : 1);
+			const b = { ...a.b, margin, interference: loss, rate };
+			out.get(a.f.vessel)!.budget = b;
+			a.f.share = Math.min(a.f.share, rate);
+		}
 		// shared capacity: bounded proportional rounds (ADR 0188 point 4)
 		const keyOf = (e: [number, number, number]) => `${e[0]}>${e[1]}`;
 		const onEdge = new Map<string, { cap: number; flows: typeof flows }>();
@@ -975,6 +1038,50 @@ const networkVessels = (core: SimCore): EntityId[] =>
 /** A vessel whose control sources all sit on parts without seats (ADR 0179 point 5). */
 export const isProbe = (core: SimCore, id: EntityId): boolean => nodeOf(core, id).probe;
 
+/**
+ * `licence-buy` (ADR 0191 point 2): a band's channel for this world, at the band's price with the
+ * economy on.
+ */
+export function buyLicence(core: SimCore, bandId: string, channel: number): CommandResult {
+	const band = core.registries.bands.get(bandId);
+	if (!band) return { ok: false, reason: `no band "${bandId}"` };
+	const channels = band.channels ?? DEFAULT_CHANNELS;
+	if (channel >= channels)
+		return { ok: false, reason: `${band.label} has channels 0 to ${channels - 1}` };
+	const s = core.commsState;
+	if (licensed(s.licences, bandId, channel))
+		return { ok: false, reason: `${band.label} channel ${channel} is licensed already` };
+	const price = band.licence ?? DEFAULT_LICENCE;
+	if (economyOn(core)) {
+		if (core.economy.balances.funds < price)
+			return { ok: false, reason: `Not enough funds: the licence costs ${price}` };
+		record(core, 'funds', -price, LICENCE_CAUSE, `${bandId}:${channel}`);
+	}
+	s.licences = [...(s.licences ?? []), { band: bandId, channel }];
+	return { ok: true };
+}
+
+/**
+ * Why `vessel` may not send data now (ADR 0191 point 2): its transmitting antenna's channel has no
+ * licence. The transmitter is the one its link uses, else its first antenna on a known band.
+ */
+export function licenceRefusal(core: SimCore, vessel: EntityId): string | undefined {
+	const link = core.comms.links.get(vessel);
+	let band = link?.budget?.band;
+	let channel = link?.budget?.channel;
+	if (band === undefined) {
+		const radio = nodeOf(core, vessel).pointing.find(
+			(p) => p.antenna.band !== undefined && core.registries.bands.has(p.antenna.band)
+		);
+		band = radio?.antenna.band;
+		channel = radio?.channel;
+	}
+	if (band === undefined || channel === undefined) return undefined;
+	if (licensed(core.commsState.licences, band, channel)) return undefined;
+	const label = core.registries.bands.get(band)?.label ?? band;
+	return `no licence for ${label} channel ${channel}: buy one first`;
+}
+
 /** A vessel's route mode (ADR 0188 point 3): Auto unless one was set. */
 export function modeOf(core: SimCore, vessel: EntityId): RouteMode {
 	return core.commsState.routes.find((r) => r.vessel === Number(vessel))?.mode ?? { kind: 'auto' };
@@ -1049,8 +1156,12 @@ export function networkSnapshot(core: SimCore): Snapshot['network'] | undefined 
 				margin: l.budget?.margin ?? null,
 				route: [...l.route],
 				latency: l.latency,
-				mode: modeOf(core, vessel)
+				mode: modeOf(core, vessel),
+				channel: l.budget?.channel ?? null,
+				encrypted: l.budget?.encrypted ?? false,
+				interference: l.budget?.interference ?? 0
 			})),
+		licences: (core.commsState.licences ?? []).map((x) => ({ ...x })),
 		...(queues ? { queues } : {}),
 		...(inspected
 			? {

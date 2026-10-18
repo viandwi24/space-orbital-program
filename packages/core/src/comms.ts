@@ -35,6 +35,10 @@ export interface BandDefinition {
 	frequency: number;
 	/** The receiving system's noise temperature on this band, K. */
 	noiseTemperature: number;
+	/** Channels 0..n−1 (plan 120, ADR 0191; default `DEFAULT_CHANNELS`). */
+	channels?: number;
+	/** Price of one channel's licence, funds (default `DEFAULT_LICENCE`). */
+	licence?: number;
 }
 
 export interface GroundStationDefinition {
@@ -70,7 +74,9 @@ export const bandDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	label: z.string().min(1),
 	frequency: z.number().positive(),
-	noiseTemperature: z.number().positive()
+	noiseTemperature: z.number().positive(),
+	channels: z.int().min(1).max(64).optional(),
+	licence: z.number().nonnegative().optional()
 });
 
 export const groundStationDefinitionSchema = z.object({
@@ -101,7 +107,8 @@ export const COMMS_RULES = {
 	enabled: 'stock.comms',
 	controlWithoutSignal: 'stock.control-without-signal',
 	scale: 'stock.comms-scale',
-	signalDelay: 'stock.signal-delay'
+	signalDelay: 'stock.signal-delay',
+	interference: 'stock.comms-interference'
 } as const;
 
 export const CONTROL_STATES = ['full', 'partial', 'none'] as const;
@@ -217,10 +224,15 @@ export interface LinkBudget {
 	cn0: number;
 	/** dB. */
 	ebN0: number;
-	/** Margin at the ladder's first step, dB. */
+	/** Margin at the ladder's first step, dB (after interference). */
 	margin: number;
 	/** bit/s. */
 	rate: number;
+	/** Margin lost to other links on the channel, dB (plan 120, ADR 0191 point 3). */
+	interference: number;
+	/** The transmitting antenna's channel and encryption (ADR 0191 points 1 and 4). */
+	channel: number;
+	encrypted: boolean;
 }
 
 /** The Friis budget of one link, down to its rate (ADR 0185 points 5 to 7). */
@@ -249,7 +261,10 @@ export function linkBudget(input: LinkBudgetInput): LinkBudget {
 		cn0,
 		ebN0: LINK_EB_N0,
 		margin,
-		rate: rateForMargin(margin)
+		rate: rateForMargin(margin),
+		interference: 0,
+		channel: 0,
+		encrypted: false
 	};
 }
 
@@ -316,6 +331,28 @@ export const DELAYED_COMMANDS: ReadonlySet<string> = new Set([
 	'action',
 	'action-group'
 ]);
+
+// ---- channels (plan 120, ADR 0191) ----
+
+/** Channels a band has without saying. */
+export const DEFAULT_CHANNELS = 4;
+/** A licence's price without the band saying, funds. */
+export const DEFAULT_LICENCE = 5_000;
+/** Margin one interferer on the channel costs, dB, and the most all of them cost. */
+export const INTERFERENCE_DB = 3;
+export const INTERFERENCE_CAP_DB = 12;
+/** Rate factor of an encrypted link. */
+export const ENCRYPTION_OVERHEAD = 0.8;
+/** Ledger cause of a licence. */
+export const LICENCE_CAUSE = 'comms.licence';
+
+/** Whether `(band, channel)` may carry data: channel 0 always, others with a licence. */
+export const licensed = (
+	licences: readonly { band: string; channel: number }[] | undefined,
+	band: string,
+	channel: number
+): boolean =>
+	channel === 0 || (licences ?? []).some((l) => l.band === band && l.channel === channel);
 
 /** Rounds of the proportional capacity sharing (ADR 0188 point 4). */
 export const CAPACITY_ROUNDS = 3;

@@ -324,12 +324,18 @@ export interface Snapshot {
 			latency: number | null;
 			/** The route mode. */
 			mode: RouteMode;
+			/** The first hop's channel, encryption and interference loss, dB (plan 120, ADR 0191). */
+			channel: number | null;
+			encrypted: boolean;
+			interference: number;
 		}>;
 		/**
 		 * The full budget of the vessel picked by `comms-inspect` (ADR 0185 point 9); `budget` is null
 		 * without a link, or when no antenna pair has a known common band.
 		 */
 		inspector?: { vessel: EntityId; to: string | null; budget: LinkBudget | null };
+		/** Licensed channels beyond each band's channel 0 (plan 120, ADR 0191 point 2). */
+		licences: Array<{ band: string; channel: number }>;
 		/**
 		 * Radios with queued data (plan 119, ADR 0189 point 6): each item with its sent bits and an
 		 * estimated delivery time; `nextContact` for a holder without a route (null: none in a day).
@@ -611,6 +617,8 @@ export type Command =
 	| { type: 'relay-end-rent'; vessel: EntityId }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
+	/** Buy a channel's licence for this world (plan 120, ADR 0191 point 2). */
+	| { type: 'licence-buy'; band: string; channel: number }
 	/** Take a queued data item back into storage (plan 119, ADR 0189 point 1); sent bits are lost. */
 	| { type: 'transmission-cancel'; vessel: EntityId; item: string }
 	/** A vessel's route mode (plan 117, ADR 0188 point 3): Auto, a pinned Manual route, or a policy. */
