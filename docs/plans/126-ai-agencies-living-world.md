@@ -1,12 +1,12 @@
 ---
 id: 126
 title: "AI agencies and a living world"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [082, 099, 114, 097, 117]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 126 — AI agencies and a living world
