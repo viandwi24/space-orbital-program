@@ -1,7 +1,7 @@
 ---
 id: 127
 title: "Range safety: safe azimuth fans and stage impact zones"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [092, 095, 078, 094, 067]
 phase: 9
