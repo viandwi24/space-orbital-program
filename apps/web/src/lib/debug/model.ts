@@ -172,5 +172,9 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 			return { level: 'info', message: `node ${event.node} of vessel ${event.vessel} burned` };
 		case 'milestone':
 			return { level: 'info', message: `first: ${event.id}` };
+		case 'warp-stopped':
+			return { level: 'info', message: `warp stopped: ${event.reason}` };
+		case 'building-ready':
+			return { level: 'info', message: `construction done: ${event.kind} level ${event.level}` };
 	}
 }

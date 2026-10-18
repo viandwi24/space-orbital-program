@@ -85,7 +85,11 @@ export type SimEvent =
 	/** A maneuver node was burned off (plan 045). */
 	| { type: 'maneuver-complete'; vessel: number; node: number }
 	/** A module failed at a reliability trial (plan 130, ADR 0156); `label` names the failure. */
-	| { type: 'part-failed'; vessel: number; part: number; mode: string; label: string };
+	| { type: 'part-failed'; vessel: number; part: number; mode: string; label: string }
+	/** The sim ended a warp, or refused a pause (plan 205, ADR 0201 point 10). */
+	| { type: 'warp-stopped'; reason: string }
+	/** Construction finished (plan 205's bell). */
+	| { type: 'building-ready'; kind: string; level: number };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -118,6 +122,8 @@ export type ClientMessage =
 	| { kind: 'command'; id: number; command: unknown }
 	/** Freeze or resume the simulation clock (the Esc menu); scripts pause with it. */
 	| { kind: 'pause'; paused: boolean }
+	/** Wall seconds a hidden tab that kept the world running owes it (plan 205). */
+	| { kind: 'catch-up'; seconds: number }
 	| { kind: 'script-start'; source: string; vessel: number; port?: ScriptPortLike }
 	| { kind: 'script-stop' }
 	| { kind: 'dispose' };
@@ -164,7 +170,10 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'vessel-destroyed',
 	'soi-changed',
 	'maneuver-complete',
-	'milestone'
+	'milestone',
+	'part-failed',
+	'warp-stopped',
+	'building-ready'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
@@ -277,6 +286,13 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (data.kind === 'script-stop') return { kind: 'script-stop' };
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };
+	}
+	if (
+		data.kind === 'catch-up' &&
+		typeof data.seconds === 'number' &&
+		Number.isFinite(data.seconds)
+	) {
+		return { kind: 'catch-up', seconds: data.seconds };
 	}
 	if (
 		data.kind === 'script-start' &&

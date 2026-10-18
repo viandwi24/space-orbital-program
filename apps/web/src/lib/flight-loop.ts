@@ -1279,7 +1279,8 @@ export function startFlight(options: FlightOptions): Flight {
 		planAid,
 		setPaused(paused) {
 			hud.paused = paused;
-			client.setPaused(paused);
+			// a shared world clock is the world layout's to pause (plan 205, ADR 0201 point 4)
+			if (ownsClient) client.setPaused(paused);
 		},
 		setTouchAttitude(input) {
 			touchAttitude.pitch = input.pitch;
@@ -1317,7 +1318,6 @@ export function startFlight(options: FlightOptions): Flight {
 			else {
 				// the world keeps running without this page (ADR 0201 point 1)
 				client.stopScript();
-				client.setPaused(false);
 			}
 		}
 	};

@@ -20,12 +20,14 @@ import {
 	DEFAULT_AUDIO,
 	DEFAULT_INTERFACE,
 	defaultSettings,
+	defaultTime,
 	loadSettings,
 	saveSettings,
 	type AudioSettings,
 	type InterfaceSettings,
 	type Settings,
 	type TouchChoice,
+	type TimeSettings,
 	type TutorialProgress
 } from './settings';
 
@@ -41,6 +43,8 @@ class SettingsStore {
 	dock = $state<DockChoice>(defaultDock());
 	/** Debug mode (plan 203, ADR 0213 point 5). */
 	debug = $state(false);
+	/** Settings → Time (plan 205). */
+	time = $state<TimeSettings>(defaultTime());
 	/** Handlers read this; it follows `bindings`. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings));
 	#started = false;
@@ -61,6 +65,7 @@ class SettingsStore {
 		this.ui = settings.interface;
 		this.dock = settings.dock;
 		this.debug = settings.debug;
+		this.time = settings.time;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -79,7 +84,8 @@ class SettingsStore {
 			touch: this.touch,
 			interface: { ...this.ui },
 			dock: { panels: [...this.dock.panels], open: this.dock.open },
-			debug: this.debug
+			debug: this.debug,
+			time: { ...this.time, places: { ...this.time.places } }
 		};
 	}
 
@@ -142,6 +148,16 @@ class SettingsStore {
 	/** Debug mode (plan 203): the flight turns it on in a world that needs it; the world stays marked. */
 	setDebug(on: boolean): void {
 		this.debug = on;
+		this.#save();
+	}
+
+	/** Settings → Time (plan 205): a place pause, the hidden-tab policy or the leave-flight prompt. */
+	setTime(patch: Partial<TimeSettings>): void {
+		this.time = {
+			...this.time,
+			...patch,
+			places: { ...this.time.places, ...(patch.places ?? {}) }
+		};
 		this.#save();
 	}
 

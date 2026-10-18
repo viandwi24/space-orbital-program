@@ -61,7 +61,7 @@
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
-	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../../lib/debug/api';
+	import type { DebugHost } from '../../../lib/debug/api';
 	import { captureErrors } from '../../../lib/log-buffer';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
@@ -81,6 +81,7 @@
 	} from '../../../lib/layout/layout-model';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
 	import Button from '../../../lib/ui/Button.svelte';
+	import Dialog from '../../../lib/ui/Dialog.svelte';
 	import LoadingScreen from '../../../lib/ui/LoadingScreen.svelte';
 	import SettingsDialog from '../../../lib/ui/SettingsDialog.svelte';
 	import { settings } from '../../../lib/settings/settings.svelte';
@@ -109,7 +110,7 @@
 	import { worldSession } from '../../../lib/world-session';
 	import { bootWorld } from '../../../lib/world-boot';
 	import type { SimClient } from '../../../lib/sim-client';
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import type { GameSave } from '../../../lib/save/game-save';
 	import LoadDialog from '../../../lib/save/LoadDialog.svelte';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
@@ -315,6 +316,32 @@
 		if (landed && !wasLanded) worldSession.requestSave('landed');
 		wasLanded = landed;
 	});
+
+	// Leaving an active flight asks first (plan 205, ADR 0201 point 9): in the air, under thrust or
+	// in physics. The vessel keeps flying in the world's sim either way.
+	let leaveTo = $state<URL | null>(null);
+	let dontAsk = $state(false);
+	let leaving = false;
+	const activeFlight = (): boolean => {
+		const v = flight?.debug.vessel();
+		const s = worldSession.snapshot?.vessels.find((x) => x.id === v);
+		if (!s || s.mode !== 'flight') return false;
+		return model?.phase !== 'landed' || (model?.throttle ?? 0) > 0;
+	};
+	beforeNavigate((nav) => {
+		if (leaving || nav.willUnload || !nav.to || !settings.time.askLeaveFlight) return;
+		if (nav.to.url.pathname === location.pathname || !activeFlight()) return;
+		nav.cancel();
+		leaveTo = nav.to.url;
+	});
+	function leaveAnyway(): void {
+		const to = leaveTo;
+		leaveTo = null;
+		if (dontAsk) settings.setTime({ askLeaveFlight: false });
+		if (!to) return;
+		leaving = true;
+		void goto(to);
+	}
 
 	/** The start of a world made from a scenario, while it has no save yet (plan 100). */
 	async function scenarioOfWorld(): Promise<ScenarioStart | null> {
@@ -579,10 +606,9 @@
 		});
 		flight = started;
 		worldSession.collect = () => started.collectSave();
-		// the debug API (plan 203): `window.__orbitalDebug` while the world allows it, the log of
-		// uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
+		// the debug panel's host (plan 203; `window.__orbitalDebug` is the world layout's since plan
+		// 205), the log of uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
 		debugHost = started.debug;
-		const offDebug = exposeDebugApi(window, createDebugApi(started.debug), started.debug);
 		const offErrors = captureErrors(window);
 		let modeSent: boolean | null = null;
 		let marked = false;
@@ -622,7 +648,6 @@
 		return () => {
 			clearInterval(waitForPlanner);
 			offDebugWatch();
-			offDebug();
 			debugHost = null;
 			offErrors();
 			offSandbox();
@@ -633,6 +658,7 @@
 			pointer.removeEventListener('change', syncPointer);
 			flight = null;
 			worldSession.collect = null;
+			worldSession.hold('flight-menu', false);
 			started.dispose();
 		};
 	}
@@ -641,6 +667,8 @@
 	$effect(() => {
 		const modal = pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen;
 		flight?.setPaused(modal);
+		// the world clock pauses for a menu as the player's "Menu" place says (plan 205)
+		worldSession.hold('flight-menu', modal);
 		// the Debug panel quiets the flight keys but lets the sim run (plan 203)
 		flight?.setModal(modal || debugOpen);
 	});
@@ -1165,6 +1193,21 @@
 			<p class="savenote" class:error={saves.noteIsError} role="status">{saves.note}</p>
 		{/if}
 		<HelpOverlay open={helpOpen} onclose={() => (helpOpen = false)} />
+		<Dialog open={leaveTo !== null} title="Leave this flight?" onclose={() => (leaveTo = null)}>
+			<p class="leave" data-testid="leave-flight">
+				The vessel is still flying. It keeps flying in the world, with its SAS and scripts, while
+				you are away.
+			</p>
+			<label class="leave"
+				><input type="checkbox" bind:checked={dontAsk} data-testid="leave-dont-ask" /> Don't ask again</label
+			>
+			<div class="leave-actions">
+				<Button onclick={() => (leaveTo = null)} data-testid="leave-stay">Stay here</Button>
+				<Button variant="primary" onclick={leaveAnyway} data-testid="leave-anyway"
+					>Leave anyway</Button
+				>
+			</div>
+		</Dialog>
 		<SettingsDialog
 			open={settingsOpen}
 			onclose={() => {
@@ -1179,6 +1222,17 @@
 </div>
 
 <style>
+	.leave {
+		display: block;
+		margin: 0 0 var(--s-3);
+		max-width: 40ch;
+		color: var(--text-muted);
+	}
+	.leave-actions {
+		display: flex;
+		gap: var(--s-2);
+		justify-content: flex-end;
+	}
 	.stage {
 		position: fixed;
 		inset: 0;

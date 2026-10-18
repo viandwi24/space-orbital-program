@@ -122,6 +122,21 @@ export const RuleLifeSupport = defineRule({
 	changeable: true
 });
 /**
+ * Whether the player may pause the world clock (plan 205, ADR 0201 point 5): yes in Sandbox,
+ * Science and Career, no in Hardcore (default per owner review, rancangan §15 #1). It may change
+ * during play only toward easier; the editor for that is plan 230.
+ */
+export const RulePauseAllowed = defineRule({
+	id: 'stock.pause-allowed',
+	label: 'Pause allowed',
+	category: 'world',
+	description: 'The player can pause the world clock. Without it the world always runs; warp still works.',
+	type: 'boolean',
+	default: true,
+	presets: byMode(true, true, true, false),
+	changeable: true
+});
+/**
  * Who may use the debug panel and API (plan 203, ADR 0213 point 1): Sandbox always, Science and
  * Career after Debug mode is turned on, Hardcore never (default per owner review, rancangan §15 #14).
  */
@@ -316,7 +331,8 @@ export const STOCK_RULES = [
 	RuleReliability,
 	RuleAgencyType,
 	RuleAgencyCount,
-	RuleDebugTools
+	RuleDebugTools,
+	RulePauseAllowed
 ] as const;
 
 export const PresetSandbox = definePreset({

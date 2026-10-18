@@ -235,6 +235,8 @@ export interface Snapshot {
 	t: number;
 	vessels: VesselSnapshot[];
 	bodies: BodySnapshot[];
+	/** The clock is paused (plan 205); absent while it runs. */
+	paused?: boolean;
 	/** The world's debug state (plan 203). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	debug?: DebugSnapshot;
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
@@ -728,6 +730,11 @@ export type Command =
 	| { type: 'fix-anomaly'; report: string }
 	/** An engineer in `suit` repairs a failed module on `part` of `vessel`. */
 	| { type: 'repair'; suit: EntityId; vessel: EntityId; part: EntityId }
+	/**
+	 * Pause or resume the world clock (plan 205, ADR 0201 point 5): refused where the rule
+	 * `stock.pause-allowed` is false (Career Hardcore). Warp is not a pause and stays allowed.
+	 */
+	| { type: 'pause'; on: boolean }
 	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0213); on marks the world "used cheats". */
 	| { type: 'debug-mode'; on: boolean }
 	/** Switch one cheat (ADR 0200 point 2). */

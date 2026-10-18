@@ -50,6 +50,7 @@ function announce(core: SimCore, vesselId: EntityId, from: string, to: string): 
 	// A change the player must see: back to real time, and the time that was still to be played at
 	// the old rate is dropped (ADR 0051).
 	if (isControlled(core, vesselOf(core, vesselId))) {
+		if (core.warp > 1) core.events.emit('warp:stopped', { reason: `a vessel entered ${to}` });
 		core.warp = 1;
 		core.warpTarget = null;
 		core.warpStopped = true;

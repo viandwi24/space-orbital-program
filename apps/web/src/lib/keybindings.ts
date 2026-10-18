@@ -104,6 +104,15 @@ export const ACTIONS = [
 	// with Alt held (plan 203, ADR 0200 point 1): F12 alone is the browser's developer tools
 	flight('Time and menus', 'debug', 'Debug panel (hold Alt)', 'F12'),
 	{
+		// every page (plan 205, ADR 0201 point 6); Space also pauses on the pages without a Space key
+		id: 'pause',
+		mode: 'flight',
+		group: 'Time and menus',
+		label: 'Pause or resume the world clock',
+		defaults: ['KeyP'],
+		global: true
+	},
+	{
 		id: 'mute',
 		mode: 'flight',
 		group: 'Time and menus',
@@ -438,6 +447,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: [], fixed: ['Esc'], text: 'Pause menu' },
 			{ actions: ['help'], text: 'This list' },
 			{ actions: ['debug'], fixed: ['Alt'], text: 'Debug panel (hold Alt)' },
+			{ actions: ['pause'], text: 'Pause or resume the world clock' },
 			{ actions: ['mute'], text: 'Mute or unmute sound' }
 		]
 	},

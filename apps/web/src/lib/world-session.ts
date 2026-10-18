@@ -52,6 +52,13 @@ export interface WorldSession {
 	requestSave(reason: 'stage' | 'landed' | 'change'): void;
 	/** Tell the layout a page wrote a save itself. */
 	saved(): void;
+	/**
+	 * A menu or dialog that pauses as the place "Menu" does (plan 205): `source` holds it while
+	 * `on`; the layout decides with the player's choices and the world's rule.
+	 */
+	hold(source: string, on: boolean): void;
+	/** The sources that hold a menu pause now. */
+	readonly holds: ReadonlySet<string>;
 	/** Leave the world: the Worker is terminated. */
 	end(): void;
 	onChange(listener: () => void): () => void;
@@ -64,6 +71,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 	let offSnapshot: (() => void) | null = null;
 	let snapshot: Snapshot | null = null;
 	const listeners = new Set<() => void>();
+	const holds = new Set<string>();
 	const changed = (): void => {
 		for (const l of listeners) l();
 	};
@@ -98,6 +106,15 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 			session.savedAt = Date.now();
 			changed();
 		},
+		hold(source, on) {
+			if (on === holds.has(source)) return;
+			if (on) holds.add(source);
+			else holds.delete(source);
+			changed();
+		},
+		get holds() {
+			return holds;
+		},
 		async acquire(id, boot) {
 			if (worldId === id && client) return client;
 			if (worldId === id && booting) return booting;
@@ -128,6 +145,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 			session.focus = null;
 			session.base = null;
 			session.savedAt = null;
+			holds.clear();
 			changed();
 		},
 		onChange(listener) {

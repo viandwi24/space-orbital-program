@@ -47,8 +47,10 @@ export interface SimClient {
 	onScript(listener: (event: ScriptEvent) => void): () => void;
 	onStage(listener: (event: StageEvent) => void): () => void;
 	onSimEvent(listener: (event: SimEventMessage) => void): () => void;
-	/** Freeze or resume the simulation clock. */
+	/** Freeze or resume the simulation clock (the sim refuses a pause its world forbids, plan 205). */
 	setPaused(paused: boolean): void;
+	/** Run `seconds` of wall time the world missed while the tab was hidden (plan 205). */
+	catchUp(seconds: number): void;
 	/** The whole simulation as plain data (plan 043); rejects with the worker's reason. */
 	save(): Promise<SimSave>;
 	/** The flight recorded since the sim booted, as a replay file (plan 131); null when not ready. */
@@ -197,6 +199,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		},
 		setPaused(paused) {
 			if (!disposed) worker.postMessage({ kind: 'pause', paused });
+		},
+		catchUp(seconds) {
+			if (!disposed) worker.postMessage({ kind: 'catch-up', seconds });
 		},
 		replay(name) {
 			if (disposed) return Promise.resolve(null);

@@ -191,6 +191,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		})),
 		rules: rulesView(core),
 		debug: debugSnapshot(core),
+		...(core.paused ? { paused: true } : {}),
 		economy: { ...economySnapshot(core), ...marketSnapshot(core) },
 		sites: sitesSnapshot(core),
 		day: core.ticks.lastDay,
