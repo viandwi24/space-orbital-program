@@ -338,7 +338,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),
-		commsState: resume ? cloneData(resume.comms) : { seq: 0, routes: [], queue: [] },
+		commsState: resume
+			? cloneData(resume.comms)
+			: { seq: 0, routes: [], queue: [], transmissions: [] },
 		life: freshLife(),
 		milestones: freshMilestones(resume?.milestones),
 		tech: freshTech(resume?.tech),

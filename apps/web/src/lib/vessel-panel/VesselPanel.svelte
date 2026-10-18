@@ -115,6 +115,16 @@
 					{/each}
 				</div>
 			</div>
+			{#if comms.queue.length > 0}
+				<span class="cap">Sending</span>
+				{#if comms.contact}<p class="dim" data-testid="comms-contact">{comms.contact}</p>{/if}
+				{#each comms.queue as q (q.id)}
+					<div class="row endpoint" data-testid="comms-queue-item">
+						<span>{q.label} · {Math.round(q.progress * 100)}% · {q.eta}</span>
+						<Button onclick={() => oncommand(q.cancel)} data-testid="comms-cancel-{q.id}">Cancel</Button>
+					</div>
+				{/each}
+			{/if}
 			{#if comms.budget}
 				<span class="cap">Link budget</span>
 				<dl class="budget" data-testid="comms-budget">

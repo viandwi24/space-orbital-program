@@ -32,6 +32,14 @@ export function linkText(reason: string): string {
 const hopName = (id: string): string =>
 	id.startsWith('vessel:') ? `vessel ${id.slice(7)}` : bodyLabel(id.replace(/^site:/, ''));
 
+/** A size for the player: "1.2 Mbit", "800 kbit", "64 bit". */
+export function bitsText(bits: number): string {
+	if (bits >= 1e9) return `${Number((bits / 1e9).toPrecision(3))} Gbit`;
+	if (bits >= 1e6) return `${Number((bits / 1e6).toPrecision(3))} Mbit`;
+	if (bits >= 1e3) return `${Number((bits / 1e3).toPrecision(3))} kbit`;
+	return `${Math.round(bits)} bit`;
+}
+
 /** A light time for the player: "3.0 s", "120 ms", "4 min 10 s". */
 export function latencyText(seconds: number): string {
 	if (seconds < 1) return `${Math.round(seconds * 1000)} ms`;
@@ -167,6 +175,10 @@ export interface CommsTab {
 	latency: string | null;
 	/** Route choices for the tab's buttons. */
 	modes: Array<{ id: string; label: string; active: boolean; command: Command }>;
+	/** Data in the radio (plan 119, ADR 0189): each item's share sent and when it should arrive. */
+	queue: Array<{ id: string; label: string; progress: number; eta: string; cancel: Command }>;
+	/** "Next contact in 12 min", "No contact within a day", or null with a route or no queue. */
+	contact: string | null;
 	linked: boolean;
 	reason: string | null;
 	control: 'full' | 'partial' | 'none';
@@ -220,7 +232,27 @@ export function commsTab(
 			active: mode.kind === 'manual',
 			command: { type: 'comms-route', vessel: id, mode: { kind: 'manual', via: [...hops] } }
 		});
+	const radio = snapshot.network.queues?.find((q) => Number(q.vessel) === vessel);
+	const t = (snapshot as { t?: number }).t ?? 0;
+	const inTime = (at: number | null): string =>
+		at === null ? 'unknown' : at <= t ? 'now' : `in ${latencyText(at - t)}`;
+	const queue: CommsTab['queue'] = (radio?.items ?? []).map((q) => ({
+		id: q.id,
+		label: `${bodyLabel(q.kind)} · ${bitsText(q.bits)}`,
+		progress: q.bits > 0 ? q.sent / q.bits : 0,
+		eta: q.eta === null ? 'Waits for a contact' : `Arrives ${inTime(q.eta)}`,
+		cancel: { type: 'transmission-cancel', vessel: id, item: q.id }
+	}));
+	const contact = !radio
+		? null
+		: radio.nextContact === null
+			? linked
+				? null
+				: 'No contact within a day'
+			: `Next contact ${inTime(radio.nextContact)}`;
 	return {
+		queue,
+		contact,
 		route: mode.kind,
 		routeLabel:
 			mode.kind === 'auto' ? 'Auto' : mode.kind === 'manual' ? 'Pinned' : (POLICIES[mode.policy] ?? mode.policy),

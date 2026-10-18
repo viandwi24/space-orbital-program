@@ -33,7 +33,8 @@ import { MAX_WARP } from './constants.ts';
 import { hireCrew, dismissCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
-import { resetStations, setRouteMode, signalRefusal, updateNetwork } from './comms.ts';
+import { commsOn, resetStations, setRouteMode, signalRefusal, updateNetwork } from './comms.ts';
+import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
 import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
@@ -447,6 +448,7 @@ export function dispatch(
 			if (why) return refuse(why);
 			creditRecovery(core, id);
 			recoverScience(core, id); // science aboard at full value (plan 103, ADR 0178 point 7)
+			recoverQueued(core, id); // and what its radio still held (plan 119, ADR 0189)
 			recoverMilestones(core, id); // first returns, crew still aboard (plan 102, ADR 0147)
 			recoverCrew(core, id); // XP at a safe return (plan 106, ADR 0176 point 5)
 			destroyVessel(core, id, 'recovered');
@@ -462,8 +464,14 @@ export function dispatch(
 			return withStations(core, foundSite(core, command));
 		case 'transmit-data': {
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
-			return transmitData(core, command.vessel, command.item);
+			// through the radio's queue with comms on, at once with it off (ADR 0099 point 2, 0189)
+			return commsOn(core)
+				? enqueueTransmission(core, command.vessel, command.item)
+				: transmitData(core, command.vessel, command.item);
 		}
+		case 'transmission-cancel':
+			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+			return cancelTransmission(core, command.vessel, command.item);
 		case 'comms-inspect':
 			// view state (ADR 0185 point 9): never saved, never refused
 			core.comms.inspect = command.vessel;
