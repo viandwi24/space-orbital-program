@@ -95,5 +95,7 @@ export function keyAction(e: KeyInfo, state: KeyState): KeyAction | null {
 		if (e.key === 'ArrowDown') return e.shiftKey ? 'duplicate-down' : 'move-down';
 	}
 	if (e.ctrlKey && !e.altKey && !e.metaKey && e.key === ' ') return 'suggest';
+	// ADR 0162: the second key; Ctrl+Space never reaches the page on a Mac
+	if (mod && !e.altKey && !e.shiftKey && k === 'i') return 'suggest';
 	return null;
 }

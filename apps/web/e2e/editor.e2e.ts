@@ -2,7 +2,8 @@
  * The script editor from the keyboard (plan 036, 058): auto-indent, a completion accepted with Tab, a
  * problem reported, find, undo, and Escape then Tab leaving the field without opening the pause menu;
  * then replace, go to line, comments, moving lines, the engine's syntax error before Run, input-method
- * keys left alone, and the on-screen keys on a touch screen. Run in Chromium, Firefox and WebKit.
+ * keys left alone, the second suggest key (plan 072), and the on-screen keys on a touch screen. Run in
+ * Chromium, Firefox and WebKit.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { launchTwoStage, watchErrors } from './support';
@@ -183,6 +184,18 @@ test('nested suggestions and the keys of a node', async ({ page }) => {
 	await expect(page.getByRole('option', { name: /prograde/ })).toBeVisible();
 	await page.keyboard.press('Enter');
 	await expect(editor).toHaveValue('await addNode({ prograde: ');
+
+	// The second "suggest" key (ADR 0162): Cmd+I and Ctrl+I open the list and type nothing.
+	const list = page.getByRole('listbox', { name: 'Suggestions' });
+	for (const chord of ['Meta+i', 'Control+i']) {
+		await editor.fill('');
+		await expect(list).toBeHidden();
+		await page.keyboard.press(chord);
+		await expect(list).toBeVisible();
+		await expect(editor).toHaveValue('');
+		await expect(editor).toBeFocused();
+		await page.keyboard.press('Escape');
+	}
 });
 
 test('the on-screen keys appear on a touch screen and indent, undo and suggest', async ({
