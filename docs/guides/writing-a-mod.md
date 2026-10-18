@@ -407,7 +407,7 @@ ctx.scenarios.register(defineScenario({
 
 - A vessel either has an `orbit` (circular, equatorial, at that altitude) or `site: true` (on the site's pad). The first one is the vessel the player flies. `examples/mod-sample` has a complete pack.
 
-## Tech nodes (API 0.1.54, plan 105, ADR 0154)
+## Tech nodes (API 0.1.55, plan 105, ADR 0154)
 
 A world with the `stock.tech-tree` rule on (Career) locks every part some tech node unlocks until a node that unlocks it is researched. Define a node as data:
 
