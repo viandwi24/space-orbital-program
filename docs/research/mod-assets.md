@@ -11,3 +11,9 @@ Checked **2026-10-17** (three 0.186.1, installed; Bun 1.4.2).
 | Quota | IndexedDB per origin: Chromium up to 60 percent of disk, Firefox best-effort the smaller of 10 percent of disk or 10 GiB, Safari about 60 percent in browser apps. A write over the quota fails with `QuotaExceededError` (already mapped to "no room left" by `ModStoreError`). No per-record limit is documented; the package caps (2 MiB per model, 6 MiB per package) keep every record far below any practical limit. | https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria |
 | Base64 | `atob`/`btoa` exist in browsers, Workers, Bun and Node; the package carries models as base64 (33 percent larger than binary) inside the one JSON file, so a package is still a single file that can be inspected and attached. | https://developer.mozilla.org/en-US/docs/Web/API/Window/atob |
 | Blob URLs and workers | `URL.createObjectURL` works in the page; the sim Worker never decodes models (the renderer runs in the page). | MDN, Web Workers API |
+
+## Plan 065: clips, LODs, KTX2 (checked 2026-10-18, three 0.186.1)
+
+- `GLTFLoader` returns `animations` (`AnimationClip[]`); a paused action ignores `AnimationMixer.setTime`, so a clip posed by a progress sets `action.time` and calls `mixer.update(0)`, with `LoopOnce` and `clampWhenFinished` so the end does not wrap.
+- `LOD.addLevel(object, distance)`; `WebGLRenderer` updates `LOD` objects itself when `autoUpdate` is true (the default), so a model part needs no per-frame call.
+- `KTX2Loader` needs `setTranscoderPath` (three's `examples/jsm/libs/basis/`: `basis_transcoder.wasm` 515 KB, `basis_transcoder.js` 56 KB) and `detectSupport(renderer)` before use; it transcodes in a blob Worker (CSP `worker-src blob:` and `'wasm-unsafe-eval'` already allow it). `GLTFLoader.setKTX2Loader` attaches it.

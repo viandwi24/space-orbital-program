@@ -24,3 +24,5 @@ vite.config.ts.timestamp-*
 static/sandbox/*.js
 # Playwright
 test-results
+# three's Basis transcoder, copied by scripts/copy-basis.ts (plan 065)
+static/basis/

@@ -42,14 +42,14 @@ A model a mod ships can do what a generated part does and cost what a generated 
 
 ## Acceptance criteria
 
-- [ ] `packages/core` test: `inspectGlb` accepts an animated model under the keyframe cap and refuses one over it, and accepts `KHR_texture_basisu` with `image/ktx2` images; the resolver checks every `visual.lods` asset is in the package.
-- [ ] `packages/renderer` test: a model part with a `deploy` clip moves its animated node with the deploy flag (closed at 0, open after `seconds`); `visual.lods` switches to the far model beyond its distance; `visual.materials` recolours the named material with its palette slot.
-- [ ] The transcoder is served from `/basis/` and fetched only for an asset that uses KTX2 (bundle cost recorded in the journal).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/core` test: `inspectGlb` accepts an animated model under the keyframe cap and refuses one over it, and accepts `KHR_texture_basisu` with `image/ktx2` images; the resolver checks every `visual.lods` asset is in the package.
+- [x] `packages/renderer` test: a model part with a `deploy` clip moves its animated node with the deploy flag (closed at 0, open after `seconds`); `visual.lods` switches to the far model beyond its distance; `visual.materials` recolours the named material with its palette slot.
+- [x] The transcoder is served from `/basis/` and fetched only for an asset that uses KTX2 (bundle cost recorded in the journal).
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] STATUS, journal, ADR, `writing-a-mod.md`, `research/mod-assets.md`.
+- [x] STATUS, journal, ADR, `writing-a-mod.md`, `research/mod-assets.md`.
 
 ## Log
 
@@ -59,3 +59,4 @@ A model a mod ships can do what a generated part does and cost what a generated 
 - 2026-10-17 — `depends` gains 110, 091 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): item 1 reads the action state of plan 110 and item 3 covers the building models of plan 091.
 - 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
 - 2026-10-18 — Refined with ADR 0160: deploy plays a glTF clip by the generated parts' progress, a typed `visual.lods` list, palette slots on named materials, KTX2 accepted with the transcoder loaded on demand; Hangar instancing and building LOD deferred.
+- 2026-10-18 — Built: deploy clips, `visual.lods`, palette slots on named materials, KTX2 accepted with the transcoder fetched on demand (API 0.1.60). KTX2's memory saving against PNG is not measured (no Basis encoder here). Hangar instancing and building LOD deferred (ADR 0160 point 5). Handed over as `ready/065`.
