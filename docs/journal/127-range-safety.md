@@ -9,7 +9,7 @@
 | Where | What |
 |---|---|
 | `packages/core/src/range-safety.ts` | `safeFan` (5° azimuths, 20 to 200 km track, 75 % water, 50 km clear of sites), `inFan`, `fanWidth`, `conicImpact` (the debris conic to the reference radius, flight time by Kepler), `dropProblem`, `headingOf`, `latLonOf`, `nominalDrops` (the Launch screen's estimate), `RANGE_PENALTIES`, `SaveRange`, `RangeSnapshot`; `travel` exported from `site-templates.ts` |
-| core contracts | `SimSave.range?` (optional in format 5), event `range:violation`, `Snapshot.range?`; API_VERSION 0.1.55 |
+| core contracts | `SimSave.range?` (optional in format 5), event `range:violation`, `Snapshot.range?`; API_VERSION 0.1.56 (0.1.55 went to 105 at the merge) |
 | `packages/sim/src/range.ts` | the drop judged at the `stage` command (refused under `hard`, booked once under `cost`), the ascent azimuth at 2 km for vessels loaded at a site, fans cached per run, the snapshot warnings; `costMultiplier` exported from `economy.ts` |
 | web | `lib/range/range-model.ts` (the rule from the world or its preset, the Launch panel, the HUD line), the Launch screen's range panel, `RangeBadge` in the flight HUD |
 | tests | core `range-safety.test.ts` (8), sim `range.test.ts` (4), web `range/range-model.test.ts` (4) |

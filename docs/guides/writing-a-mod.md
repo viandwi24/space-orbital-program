@@ -495,7 +495,7 @@ definePlugin({
 - **Reading the ledger:** listen to `economy:entry` (`{ time, currency, amount, cause, ref? }`); the HUD reads `snapshot.economy`. `designCost(design, registries)` gives a design's launch cost, and `projectBalances(...)` projects the charges over N days.
 - Launching (`load-vessel`) pays the design's cost and is refused when funds are short; `recover-vessel` pays back the value of what is left of a landed vessel at rest, times a distance factor (`recoveryFactor`), and removes it.
 
-## Range safety (API 0.1.55, plan 127, ADR 0155)
+## Range safety (API 0.1.56, plan 127, ADR 0155)
 
 With `stock.range-safety` at `cost` (Career) or `hard`, a site has a safe launch fan over its water and every spent stage is judged when it separates: on land or within 50 km of a site it costs a penalty (`cost`) or the `stage` command is refused (`hard`). A mod part that separates is judged when its module's `describe` returns a `separator` (as `stock.decoupler` does); nothing else is needed. Listen to `range:violation` for the drops and ascent azimuths that broke the range; `safeFan`, `conicImpact` and `nominalDrops` are in `@orbital/core` (not re-exported by the SDK yet), the functions the game uses for the fan and the drops.
 
