@@ -52,6 +52,7 @@ import {
 	type BandDefinition,
 	type GroundStationDefinition
 } from './comms.ts';
+import { contractTemplateDefinitionSchema, type ContractTemplateDefinition } from './contracts.ts';
 import { dossierEntryDefinitionSchema, type DossierEntryDefinition } from './dossier.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import {
@@ -246,6 +247,8 @@ export interface Registries {
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
 	objectives: Registry<ObjectiveDefinition>;
 	contracts: Registry<ContractDefinition>;
+	/** Procedural contract templates (plan 099, ADR 0186). */
+	contractTemplates: Registry<ContractTemplateDefinition>;
 	missions: Registry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: Registry<DataKindDefinition>;
@@ -331,6 +334,9 @@ export function createRegistries(): Registries {
 			schema: objectiveDefinitionSchema
 		}),
 		contracts: createRegistry<ContractDefinition>('contract', { schema: contractDefinitionSchema }),
+		contractTemplates: createRegistry<ContractTemplateDefinition>('contract-template', {
+			schema: contractTemplateDefinitionSchema
+		}),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
 		panels: createRegistry<PanelDefinition>('panel', { schema: panelDefinitionSchema }),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),

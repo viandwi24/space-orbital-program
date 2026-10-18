@@ -26,6 +26,7 @@ import type {
 	AnyPatchDefinition,
 	BuildingDefinition,
 	ContractDefinition,
+	ContractTemplateDefinition,
 	MissionDefinition,
 	ObjectiveDefinition,
 	DataKindDefinition,
@@ -250,6 +251,15 @@ export const defineObjective = <P>(def: ObjectiveDefinition<P>): ObjectiveDefini
 
 /** A contract: an objective tree with rewards, penalties, a deadline and prerequisites. */
 export const defineContract = (def: ContractDefinition): ContractDefinition => def;
+
+/**
+ * A procedural contract template (plan 099, ADR 0186): a prestige tier and a pure `generate(ctx)`
+ * that draws its parameters from `ctx.random()` and returns a blueprint (objectives, advance,
+ * reward, penalty, deadline, estimated Δv) or null. Register with `ctx.contractTemplates`.
+ */
+export const defineContractTemplate = (
+	def: ContractTemplateDefinition
+): ContractTemplateDefinition => def;
 
 /** A mission: an objective tree with rewards and prerequisites (the story line, plan 100). */
 export const defineMission = (def: MissionDefinition): MissionDefinition => def;

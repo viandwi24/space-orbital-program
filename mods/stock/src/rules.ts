@@ -29,6 +29,17 @@ export const RuleEconomy = defineRule({
 	presets: byMode(false, false, true),
 	changeable: true
 });
+/** The procedural contract offers (plan 099, ADR 0186 point 2); only where the economy runs. */
+export const RuleContracts = defineRule({
+	id: 'stock.contracts',
+	label: 'Procedural contracts',
+	category: 'economy',
+	description:
+		'Contract offers generated each day, with an advance, a reward, a penalty and a deadline.',
+	type: 'boolean',
+	default: true,
+	changeable: true
+});
 export const RuleFundsMultiplier = defineRule({
 	id: 'stock.funds-multiplier',
 	label: 'Funds rewards',
@@ -257,6 +268,7 @@ export const RuleStartingFunds = defineRule({
 
 export const STOCK_RULES = [
 	RuleEconomy,
+	RuleContracts,
 	RuleFundsMultiplier,
 	RuleCostMultiplier,
 	RuleStartingFunds,

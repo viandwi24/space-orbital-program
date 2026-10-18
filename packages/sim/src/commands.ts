@@ -36,6 +36,7 @@ import { resetStations, signalRefusal } from './comms.ts';
 import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
+import { acceptContract, cancelContract, declineContract } from './contracts.ts';
 import { hasBackground } from './tick.ts';
 import { creditRecovery, recoveryBlocker } from './economy.ts';
 import { launchSiteOf, marketBuy, marketSell, payLaunch, refuseLaunch } from './market.ts';
@@ -401,6 +402,12 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			// view state (ADR 0185 point 9): never saved, never refused
 			core.comms.inspect = command.vessel;
 			return accept();
+		case 'contract-accept':
+			return acceptContract(core, command.offer);
+		case 'contract-decline':
+			return declineContract(core, command.offer);
+		case 'contract-cancel':
+			return cancelContract(core, command.contract);
 		case 'research':
 			return research(core, command.node);
 		case 'crew-hire':

@@ -21,7 +21,7 @@ import type {
 import type { BodyRuntime } from './bodies.ts';
 import type { TickState } from './tick.ts';
 import type { ObjectivesState } from './objectives.ts';
-import type { SaveCrew } from '@orbital/core';
+import type { SaveContracts, SaveCrew } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
@@ -81,6 +81,8 @@ export interface SimCore {
 	readonly ticks: TickState;
 	/** Started contracts and missions (plan 098, ADR 0175). */
 	readonly objectives: ObjectivesState;
+	/** Contract offers and accepted generated contracts (plan 099, ADR 0186); saved once touched. */
+	readonly contracts: SaveContracts;
 	/** The crew roster (plan 106, ADR 0176); saved as `SimSave.crew` once anyone is hired. */
 	readonly crew: SaveCrew;
 	/** Science subjects and the situation cache (plan 103, ADR 0178); saved as `SimSave.science`. */

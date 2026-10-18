@@ -43,6 +43,7 @@ import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
+import { freshContracts } from './contracts.ts';
 import { collectCrewPlaces, freshCrew } from './crew.ts';
 import { freshScience } from './science.ts';
 import { freshComms, listenForComms, updateNetwork } from './comms.ts';
@@ -325,6 +326,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			state: resume?.objectives ? cloneData(resume.objectives) : freshObjectives(),
 			dirty: new Set()
 		},
+		contracts: resume?.contracts ? cloneData(resume.contracts) : freshContracts({ info }),
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),

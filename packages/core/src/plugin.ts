@@ -43,6 +43,7 @@ import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
 import type { AntennaDefinition, BandDefinition, GroundStationDefinition } from './comms.ts';
+import type { ContractTemplateDefinition } from './contracts.ts';
 import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
@@ -105,6 +106,8 @@ export interface BasePluginContext {
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
 	readonly objectives: Registrar<ObjectiveDefinition>;
 	readonly contracts: Registrar<ContractDefinition>;
+	/** Procedural contract templates (plan 099, ADR 0186). */
+	readonly contractTemplates: Registrar<ContractTemplateDefinition>;
 	readonly missions: Registrar<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
@@ -191,6 +194,7 @@ export const REGISTRY_KINDS = [
 	'category',
 	'objective',
 	'contract',
+	'contract-template',
 	'mission',
 	'achievement',
 	'tech-node',
@@ -250,6 +254,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'charges',
 	'objectives',
 	'contracts',
+	'contractTemplates',
 	'missions',
 	'dataKinds',
 	'actionGroups',
@@ -448,6 +453,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			charges: registrar(registries.charges),
 			objectives: registrar(registries.objectives),
 			contracts: registrar(registries.contracts),
+			contractTemplates: registrar(registries.contractTemplates),
 			missions: registrar(registries.missions),
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
@@ -643,6 +649,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				category: section(registries.categories),
 				objective: section(registries.objectives),
 				contract: section(registries.contracts),
+				'contract-template': section(registries.contractTemplates),
 				mission: section(registries.missions),
 				achievement: section(registries.achievements),
 				'tech-node': section(registries.techNodes),

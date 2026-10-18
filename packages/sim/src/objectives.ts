@@ -21,6 +21,7 @@ import {
 import { length } from '@orbital/kepler';
 import { bodyOfVessel } from './bodies.ts';
 import { vesselIds, vesselOf, type SimCore } from './core.ts';
+import { generatedContract } from './contracts.ts';
 import { economyOn, record } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 
@@ -38,8 +39,9 @@ function definitionOf(
 	core: SimCore,
 	source: Source
 ): ContractDefinition | MissionDefinition | undefined {
+	// a generated contract lives in the contract state (plan 099, ADR 0186 point 3)
 	return source.kind === 'contract'
-		? core.registries.contracts.get(source.id)
+		? (generatedContract(core, source.id) ?? core.registries.contracts.get(source.id))
 		: core.registries.missions.get(source.id);
 }
 
@@ -114,7 +116,8 @@ function pay(
 	for (const e of entries) record(core, e.currency, e.amount, cause, ref);
 }
 
-function finish(
+/** Ends an instance: booked, moved to `finished`, reported. Also `contract-cancel` (plan 099). */
+export function finishObjective(
 	core: SimCore,
 	inst: SaveActiveObjective,
 	status: 'done' | 'failed',
@@ -162,7 +165,7 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 		const tree = treeOf(core, inst);
 		if (!tree) continue; // its plugin is not loaded: kept as it is
 		if (inst.deadline !== undefined && core.t > inst.deadline) {
-			finish(core, inst, 'failed', 'deadline passed');
+			finishObjective(core, inst, 'failed', 'deadline passed');
 			continue;
 		}
 		const due =
@@ -174,8 +177,8 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 		const r = evaluateObjectives(tree, inst.leaves, lookup(core), viewFor(core, inst));
 		inst.leaves = r.leaves;
 		inst.progress = r.progress;
-		if (r.status === 'done') finish(core, inst, 'done', 'completed');
-		else if (r.status === 'failed') finish(core, inst, 'failed', 'an objective failed');
+		if (r.status === 'done') finishObjective(core, inst, 'done', 'completed');
+		else if (r.status === 'failed') finishObjective(core, inst, 'failed', 'an objective failed');
 	}
 	if (trigger === 'step') dirty.clear();
 }
