@@ -20,7 +20,8 @@ export type CheckId =
 	| 'low-twr'
 	| 'marginal-twr'
 	| 'unstable'
-	| 'loose';
+	| 'loose'
+	| 'locked';
 
 /** How bad for the flight (ADR 0148 point 1), apart from whether it blocks Launch (`severity`). */
 export type CheckLevel = 'no-go' | 'caution';
@@ -45,7 +46,9 @@ export function checkDesign(
 	state: Pick<EditorState, 'design' | 'loose'>,
 	content: ContentLookups,
 	stats: Pick<DesignStats, 'liftoffTwr'>,
-	stability?: Pick<Stability, 'state' | 'margin' | 'fins'>
+	stability?: Pick<Stability, 'state' | 'margin' | 'fins'>,
+	/** Parts the world's tech tree locks (plan 105, ADR 0154 point 4). */
+	locks: readonly { parts: number[]; title: string; node: string }[] = []
 ): Check[] {
 	const { design, loose } = state;
 	if (design.parts.length === 0) {
@@ -135,7 +138,9 @@ export function checkDesign(
 	}
 	// the engines of the first stage to fire, else every engine
 	const first = new Set(design.stages[0] ?? []);
-	const liftEngines = engines.some((i) => first.has(i)) ? engines.filter((i) => first.has(i)) : engines;
+	const liftEngines = engines.some((i) => first.has(i))
+		? engines.filter((i) => first.has(i))
+		: engines;
 	if (stats.liftoffTwr !== null && stats.liftoffTwr < 1) {
 		out.push({
 			id: 'low-twr',
@@ -183,6 +188,19 @@ export function checkDesign(
 			text: `${plural(n, 'part is', 'parts are')} not attached and will stay behind.`,
 			hint: 'Pick them up and attach them, or delete them.',
 			parts: loose.flatMap((a) => a.parts.map((p) => p.index))
+		});
+	}
+	// one check for every locked part (the list keys checks by id)
+	if (locks.length > 0) {
+		const names = locks.map((l) => `"${l.title}"`).join(', ');
+		const nodes = [...new Set(locks.map((l) => `"${l.node}"`))].join(', ');
+		out.unshift({
+			id: 'locked',
+			severity: 'error',
+			level: 'no-go',
+			text: `${names} ${locks.length === 1 ? 'is' : 'are'} locked in this world.`,
+			hint: `Research ${nodes} in R&D, or take ${locks.length === 1 ? 'the part' : 'them'} off.`,
+			parts: locks.flatMap((l) => l.parts)
 		});
 	}
 	return out;

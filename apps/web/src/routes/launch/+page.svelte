@@ -3,6 +3,7 @@
 	 * The Launch screen (plan 094, ADR 0150; refs Launch): the site's pad or runway, a design it
 	 * accepts, seats, the summary, then the flight.
 	 */
+	import { designLocks, loadWorldTech, NO_TREE, type WorldTech } from '../../lib/tech/world-tech';
 	import { goto } from '$app/navigation';
 	import { designCost, loadPlugins, sitesOf, type Site, type VesselDesign } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
@@ -74,6 +75,11 @@
 		void chosen?.key;
 		seated = [];
 	});
+	// the world's tech tree (plan 105, ADR 0154 point 4)
+	let tech = $state<WorldTech>(NO_TREE);
+	const locks = $derived(
+		chosen ? designLocks(chosen.design, registries.techNodes.list(), registries.parts, tech) : []
+	);
 
 	function choiceOf(key: string, design: VesselDesign, from: Choice['from']): Choice {
 		const g = body ? (6.6743e-11 * body.mass) / (body.radius * body.radius) : 9.81;
@@ -120,11 +126,12 @@
 					.filter((m) => m.status === 'available')
 					.map((m) => ({ id: m.id, name: m.name, profession: m.profession }));
 			}
+			tech = await loadWorldTech(saves, activeWorldId());
 		})();
 	});
 
 	function launch(): void {
-		if (!site || !facility || !chosen || !body) return;
+		if (!site || !facility || !chosen || !body || locks.length > 0) return;
 		saveDraft(serialiseDesign(chosen.design));
 		saveLaunchChoice({
 			facility: facility.id,
@@ -243,10 +250,15 @@
 						: 'No crew available: hire in the Astronaut Complex.'}
 				</p>
 			{/if}
+			{#each locks as l (l.title)}
+				<p class="locked" role="status" data-testid="launch-locked">
+					"{l.title}" is locked: research "{l.node}" in R&D.
+				</p>
+			{/each}
 			<button
 				type="button"
 				class="go"
-				disabled={!chosen || !facility}
+				disabled={!chosen || !facility || locks.length > 0}
 				data-testid="launch-go"
 				onclick={launch}
 			>
@@ -422,6 +434,11 @@
 	}
 	.mname {
 		font-weight: 600;
+	}
+	.locked {
+		margin: 0.5rem 0.375rem 0;
+		font-size: var(--t-small);
+		color: var(--warn);
 	}
 	.go {
 		display: flex;

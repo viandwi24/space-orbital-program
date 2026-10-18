@@ -75,6 +75,7 @@ import {
 } from '../editor/state';
 import { designStats, type Environment } from '../editor/stats';
 import { stagingModelFromDesign } from '../delta-v';
+import { designLocks, NO_TREE, type WorldTech } from '../tech/world-tech';
 import { destinationsOf } from '../editor/trip';
 import { tripView } from '../editor/trip-view';
 import {
@@ -114,6 +115,11 @@ export class VabController {
 	readonly parts = this.catalog.parts;
 	/** The catalogue rail, in order (plan 069). */
 	readonly categories = categoriesOf(this.loaded.categories);
+	readonly techNodes = this.loaded.techNodes;
+	readonly registriesParts = {
+		list: () => this.catalog.parts,
+		get: (id: string) => this.catalog.parts.find((p) => p.id === id)
+	};
 	readonly body = homeBodyOf(this.catalog.bodies)!;
 	readonly gravity = bodyMu(this.body) / (this.body.radius * this.body.radius);
 	/** What the loaded bodies offer as a trip (plan 034): mod bodies are in the list without any code. */
@@ -297,7 +303,14 @@ export class VabController {
 			preview: this.connectPreview
 		})
 	);
-	readonly checks = $derived(checkDesign(this.current, this.content, this.stats, this.stability));
+	/** Parts the active world's tech tree locks (plan 105, ADR 0154 point 4); set by the page. */
+	tech = $state<WorldTech>(NO_TREE);
+	readonly locks = $derived(
+		designLocks(this.current.design, this.techNodes, this.registriesParts, this.tech)
+	);
+	readonly checks = $derived(
+		checkDesign(this.current, this.content, this.stats, this.stability, this.locks)
+	);
 	tripId = $state('low-orbit');
 	readonly trip = $derived(
 		tripView(
