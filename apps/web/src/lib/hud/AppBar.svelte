@@ -61,7 +61,7 @@
 	>
 	<a
 		class="tb"
-		href={resolve('/vab')}
+		href={resolve('/(world)/vab')}
 		aria-label="Vehicle assembly"
 		title="Back to the vehicle assembly"><Icon name="hangar" size={18} /></a
 	>

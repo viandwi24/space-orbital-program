@@ -61,8 +61,8 @@
 			<Button onclick={ondebug} data-testid="pause-debug">Debug (Alt+F12)</Button>
 		{/if}
 		<div class="pair">
-			<a class="link" href={resolve('/vab')}>Back to the hangar</a>
-			<a class="link" href={resolve('/vab?library')}>Vessel library</a>
+			<a class="link" href={resolve('/(world)/vab')}>Back to the hangar</a>
+			<a class="link" href={resolve('/(world)/vab?library')}>Vessel library</a>
 		</div>
 		<a class="link" href={resolve('/')}>Main menu</a>
 	</div>

@@ -64,7 +64,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`)),
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		world: activeWorldId
 	});
 
@@ -187,7 +187,7 @@
 			placement: placementOf(site, facility, body.radius),
 			...(seated.length > 0 ? { crew: seated } : {})
 		});
-		void goto(resolve('/flight'));
+		void goto(resolve('/(world)/flight'));
 	}
 
 	const limit = (f: Facility): string =>
@@ -198,7 +198,7 @@
 
 <main class="launch">
 	<header>
-		<BackButton href={resolve('/vab')} label="Back to the Hangar" />
+		<BackButton href={resolve('/(world)/vab')} label="Back to the Hangar" />
 		<div class="title">
 			<span class="cap">Launch</span>
 			<h1>{site?.name ?? 'Space Center'}</h1>
@@ -265,7 +265,7 @@
 					</p>
 				{/each}
 			</div>
-			<a class="edit" href={resolve('/vab')}>Edit in Hangar</a>
+			<a class="edit" href={resolve('/(world)/vab')}>Edit in Hangar</a>
 		</Panel>
 
 		<Panel title="Flight" data-testid="launch-summary">

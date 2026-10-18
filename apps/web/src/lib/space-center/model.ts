@@ -45,18 +45,18 @@ export type SiteState = NonNullable<Snapshot['sites']>[number];
 /** What a building of these capabilities opens (ADR 0117 consequences). */
 export function actionOf(provides: readonly string[]): BuildingAction {
 	if (provides.includes('hangar'))
-		return { kind: 'link', href: resolve('/vab'), label: 'Open the Hangar' };
+		return { kind: 'link', href: resolve('/(world)/vab'), label: 'Open the Hangar' };
 	if (provides.includes('launch-pad'))
 		return { kind: 'none', reason: 'Build a rocket in the Hangar; it launches from this pad.' };
 	if (provides.includes('crew'))
-		return { kind: 'link', href: resolve('/astronauts'), label: 'Open the Astronaut Complex' };
+		return { kind: 'link', href: resolve('/(world)/astronauts'), label: 'Open the Astronaut Complex' };
 	if (provides.includes('mission-control'))
-		return { kind: 'link', href: resolve('/mission-center'), label: 'Open the Mission Center' };
-	if (provides.includes('lab')) return { kind: 'link', href: resolve('/rnd'), label: 'Open R&D' };
+		return { kind: 'link', href: resolve('/(world)/mission-center'), label: 'Open the Mission Center' };
+	if (provides.includes('lab')) return { kind: 'link', href: resolve('/(world)/rnd'), label: 'Open R&D' };
 	if (provides.includes('admin'))
-		return { kind: 'link', href: resolve('/administration'), label: 'Open Administration' };
+		return { kind: 'link', href: resolve('/(world)/administration'), label: 'Open Administration' };
 	if (provides.includes('test-stand'))
-		return { kind: 'link', href: resolve('/test-stand'), label: 'Open the test stand' };
+		return { kind: 'link', href: resolve('/(world)/test-stand'), label: 'Open the test stand' };
 	return { kind: 'none', reason: 'Nothing to open here yet.' };
 }
 

@@ -1,8 +1,7 @@
-/** The funds capsule and the Recover dialog (plan 132, ADR 0113 point 6). */
+/** The Recover dialog (plan 132, ADR 0113 point 6); the funds are in the status bar since plan 204. */
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { formatFunds } from '../format';
-import FundsCapsule from './FundsCapsule.svelte';
 import RecoverDialog from './RecoverDialog.svelte';
 import { recoveryLines } from './recovery-model';
 
@@ -29,10 +28,5 @@ describe('recovery in the HUD', () => {
 		expect(body).toContain('98 %');
 		expect(body).toContain(formatFunds(11_760));
 		expect(body).toContain('recover-confirm');
-	});
-	it('the funds capsule shows the funds', () => {
-		const { body } = render(FundsCapsule, { props: { funds: 25_000 } });
-		expect(body).toContain('hud-funds');
-		expect(body).toContain(formatFunds(25_000));
 	});
 });

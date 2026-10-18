@@ -12,7 +12,7 @@
 <div class="world" data-testid="world-capsule">
 	<a
 		class="home"
-		href={resolve('/space-center')}
+		href={resolve('/(world)/space-center')}
 		aria-label="Back to the Space Center"
 		title="Back to the Space Center"><Icon name="home" size={16} /></a
 	>

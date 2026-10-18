@@ -1,12 +1,12 @@
 ---
 id: 204
 title: "World shell: Base layout, one sim per world, client navigation"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 204 — World shell: Base layout, one sim per world, client navigation
@@ -86,3 +86,4 @@ Every in-world page (Space Center, Flight and Map, Mission Center, Hangar, Launc
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Refined to ready and claimed by Worker B (`claim/204`). Checked against the code: every in-world page starts its own Worker through `startSimWorker` (flight-loop, space-center-loop, mission-center-loop, R&D, Administration, Astronaut Complex) and hands over with `location.assign`; autosave runs only in Flight (120 s). The refs folder `refs/space-orbital-program-ui-v2/` is not in the repository, so the bars follow `refs/space-orbital-program-ui/docs/STYLE.md` and rancangan §2 (default per owner review). Design: `lib/world-session.ts` holds the one client (acquire / restart / end, the focus vessel, the boot save); `lib/world-boot.ts` boots it from the newest save or the start info; `(world)/+layout.svelte` holds the lock, the autosave cadence (60 s, events, hide, pagehide, leaving the world) and `lib/layout/WorldShell.svelte` (time bar, menu bar, status bar, bell). Flight takes the session's client (`FlightOptions.client`), launches into the running world and comes back to the focus vessel (`attach`).

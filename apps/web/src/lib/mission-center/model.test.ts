@@ -153,26 +153,16 @@ describe('Tracking and the card', () => {
 	});
 });
 
-describe('Fly (ADR 0118 point 5)', () => {
-	it('writes an autosave and opens the flight with it', async () => {
+describe('Fly (ADR 0201 point 1)', () => {
+	it('opens Flight on the same sim, with no save in between', () => {
 		const went: string[] = [];
-		let saved = 0;
-		const error = await fly({
-			autosave: async () => {
-				saved++;
-				return 'auto-1';
-			},
-			go: (href) => went.push(href)
-		});
-		expect(error).toBeNull();
-		expect(saved).toBe(1);
-		expect(went).toEqual(['/flight?load=auto-1']);
+		expect(fly({ focus: () => true, go: (href) => went.push(href) })).toBeNull();
+		expect(went).toEqual(['/flight']);
 	});
 
-	it('does not open the flight when the save failed', async () => {
+	it('does not open Flight without a vessel to fly', () => {
 		const went: string[] = [];
-		const error = await fly({ autosave: async () => null, go: (href) => went.push(href) });
-		expect(error).toMatch(/could not be saved/);
+		expect(fly({ focus: () => false, go: (href) => went.push(href) })).toMatch(/no vessel/);
 		expect(went).toEqual([]);
 	});
 });

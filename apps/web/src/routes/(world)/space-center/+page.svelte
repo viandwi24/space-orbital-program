@@ -20,7 +20,9 @@
 	import { GAME_NAME } from '../../../lib/public/about';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
-	import type { GameSave } from '../../../lib/save/game-save';
+	import { worldSession } from '../../../lib/world-session';
+	import { bootWorld } from '../../../lib/world-boot';
+	import { goto } from '$app/navigation';
 	import { activePlugins } from '../../../lib/mods/runtime';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import SpaceCenterOverlay from '../../../lib/space-center/SpaceCenterOverlay.svelte';
@@ -45,23 +47,13 @@
 	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
 
-	/** The world's newest save: the Space Center runs it and writes it back after a change (plan 096). */
-	let base: GameSave | null = null;
+	// The world's one sim (plan 204, ADR 0201): construction and spending happen in it, and the
+	// world layout autosaves it after a change.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
-		world: () => worldId,
-		collect: async () => {
-			if (!center || !base) throw new Error('This world has no save to write back to.');
-			return {
-				sim: await center.save(),
-				focus: base.focus,
-				design: base.design,
-				thumbnail: null,
-				bodyRadius: homeBodyOf(registries.bodies.list(), world)?.radius ?? 600_000
-			};
-		}
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
+		world: () => worldId
 	});
 	/** The world's own system once it is known (a Sol world's site is on `sol.earth`, plan 124). */
 	const registriesOf = (info?: WorldInfo) =>
@@ -173,8 +165,8 @@
 
 	/** After an accepted change: the world's save at once, the record once the snapshot has it. */
 	function changed(): void {
-		// the funds and construction live in the world's save; a launch continues it (ADR 0123, 0152)
-		if (base) void saves.autosave();
+		// the funds and construction live in the world's sim; its layout saves it (ADR 0201 point 11)
+		worldSession.requestSave('change');
 		setTimeout(() => void persist(), 300);
 	}
 
@@ -271,23 +263,13 @@
 			worldId = activeWorldId();
 			const record = await worlds.get(worldId);
 			worldName = record?.name ?? (worldId === LEGACY_WORLD_ID ? 'Legacy world' : 'Space Center');
-			world = await worlds.startInfo(worldId);
-			await saves.refresh();
-			const newest = saves.entries.find((e) => e.ok);
-			if (newest?.ok) {
-				try {
-					base = await saves.read(newest.meta.id);
-					world = base.sim.worldInfo;
-				} catch {
-					base = null;
-				}
-			}
+			const client = await bootWorld(worldSession, worldId);
+			world = worldSession.base?.sim.worldInfo ?? (await worlds.startInfo(worldId));
 			if (gone) return;
 			if (world) registries = registriesOf(world);
 			center = startSpaceCenter({
 				canvas,
-				...(world ? { world } : {}),
-				...(base ? { resume: base.sim } : {}),
+				client,
 				onSnapshot,
 				onFrame: (project) => {
 					const next: Record<string, { x: number; y: number } | null> = {};

@@ -23,7 +23,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`)),
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		// Load a flight lists the active world's saves (plan 087)
 		world: activeWorldId
 	});
@@ -104,7 +104,7 @@
 			icon="launch"
 			label="New flight"
 			hint="Build a rocket in the hangar"
-			href={resolve('/vab')}
+			href={resolve('/(world)/vab')}
 			testid="menu-new"
 		/>
 		{#if hasDraft}
@@ -112,7 +112,7 @@
 				icon="stage"
 				label="Fly the last vessel"
 				hint="Launch what you built last"
-				href={resolve('/flight')}
+				href={resolve('/(world)/flight')}
 				testid="menu-last"
 			/>
 		{/if}
@@ -127,14 +127,14 @@
 			icon="cube"
 			label="Vessel library"
 			hint="Designs you can launch in any world"
-			href={resolve('/vab?library')}
+			href={resolve('/(world)/vab?library')}
 			testid="menu-library"
 		/>
 		<MenuButton
 			icon="mods"
 			label="Mods"
 			hint="Add-ons active in every world"
-			href={resolve('/mods')}
+			href={resolve('/(world)/mods')}
 			testid="menu-mods"
 		/>
 		<MenuButton

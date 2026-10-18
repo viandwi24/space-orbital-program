@@ -14,7 +14,10 @@
 	import type { GameSave } from '../../../lib/save/game-save';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
-	import { startSimWorker, type SimClient } from '../../../lib/sim-client';
+	import type { SimClient } from '../../../lib/sim-client';
+	import { worldSession } from '../../../lib/world-session';
+	import { bootWorld } from '../../../lib/world-boot';
+	import { goto } from '$app/navigation';
 	import { STATE_LABEL, techColumns } from '../../../lib/tech/rnd-model';
 	import BackButton from '../../../lib/ui/BackButton.svelte';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
@@ -36,7 +39,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		world: () => activeWorldId(),
 		collect: async () => {
 			if (!client) throw new Error('The world is not running.');
@@ -68,27 +71,24 @@
 
 	onMount(() => {
 		let gone = false;
+		const offs: Array<() => void> = [];
 		void (async () => {
-			try {
-				await saves.refresh();
-				const newest = saves.entries.find((e) => e.ok);
-				loaded = newest?.ok ? await saves.read(newest.meta.id) : undefined;
-			} catch (e) {
-				note = e instanceof Error ? e.message : String(e);
-			}
-			const world = loaded ? undefined : await saves.worldStartInfo(activeWorldId());
+			// the world's one sim (plan 204, ADR 0201): the page reads it and leaves it running
+			const shared = await bootWorld(worldSession, activeWorldId());
+			loaded = worldSession.base ?? undefined;
 			if (gone) return;
-			client = startSimWorker(loaded ? { resume: loaded.sim } : world ? { world } : {});
-			client.onSnapshot((s) => (snapshot = s));
-			client.onError((m) => (note = m));
-			client.ready.then(
+			client = shared;
+			snapshot = shared.latest;
+			offs.push(shared.onSnapshot((s) => (snapshot = s)));
+			offs.push(shared.onError((m) => (note = m)));
+			shared.ready.then(
 				() => (ready = true),
 				(e: unknown) => (note = e instanceof Error ? e.message : String(e))
 			);
 		})();
 		return () => {
 			gone = true;
-			client?.dispose();
+			for (const off of offs) off();
 		};
 	});
 </script>
@@ -100,7 +100,7 @@
 
 <main class="rnd">
 	<header>
-		<BackButton href={resolve('/space-center')} label="Back to the Space Center" />
+		<BackButton href={resolve('/(world)/space-center')} label="Back to the Space Center" />
 		<div class="title">
 			<span class="cap">Research and Development</span>
 			<h1>Tech tree</h1>

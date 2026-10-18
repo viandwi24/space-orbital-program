@@ -39,7 +39,6 @@
 	import AppBar from '../../../lib/hud/AppBar.svelte';
 	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
 	import WorldCapsule from '../../../lib/hud/WorldCapsule.svelte';
-	import FundsCapsule from '../../../lib/hud/FundsCapsule.svelte';
 	import RecoverDialog from '../../../lib/hud/RecoverDialog.svelte';
 	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
 	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
@@ -103,7 +102,10 @@
 	import { decodeScript, tokenFromHash, type ImportInfo } from '../../../lib/script-share';
 	import { loadDraft, loadScript, saveScript } from '../../../lib/storage';
 	import { canWarp } from '../../../lib/telemetry';
-	import { createAutosaver } from '../../../lib/save/autosave';
+	import { worldSession } from '../../../lib/world-session';
+	import { bootWorld } from '../../../lib/world-boot';
+	import type { SimClient } from '../../../lib/sim-client';
+	import { goto } from '$app/navigation';
 	import type { GameSave } from '../../../lib/save/game-save';
 	import LoadDialog from '../../../lib/save/LoadDialog.svelte';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
@@ -225,26 +227,16 @@
 			if (!flight) throw new Error('There is no flight to save yet.');
 			return flight.collectSave();
 		},
-		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
+		// a load replaces the world's sim in place (plan 204, ADR 0201): no page reload
+		startLoad: (id) => restartWith(id),
 		// the Load dialog and F9 stay in the world being flown (plan 087)
 		world: activeWorldId
 	});
-	/** "Catch up to now" (plan 087): refreshed with the autosave timer. */
+	/** "Catch up to now" (plan 087): refreshed every second. */
 	let catchUp = $state<CatchUp>({ kind: 'none' });
-	const autosaver = createAutosaver(() => performance.now());
-	const saveState = () => ({
-		flying: hud?.status === 'flying',
-		paused: pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen,
-		busy: saves.busy
-	});
-	/** The map's switch (plan 113, ADR 0118 point 6): save the flight, then open it in the Mission Center. */
-	async function openMissionCenter(): Promise<void> {
-		const id = await saves.autosaveId();
-		if (id) location.assign(resolve(`/mission-center?load=${encodeURIComponent(id)}`));
-	}
-	async function autosave(reason: ReturnType<typeof autosaver.tick>): Promise<void> {
-		if (reason === null) return;
-		if (await saves.autosave()) autosaver.saved();
+	/** The map's switch (plan 113): the Mission Center runs on the same sim (plan 204, ADR 0201). */
+	function openMissionCenter(): void {
+		void goto(resolve('/(world)/mission-center'));
 	}
 	/** Draw a replay file's vessel over this flight (plan 131, ADR 0159 point 7). */
 	async function loadGhost(file: File): Promise<void> {
@@ -290,12 +282,13 @@
 			saves.note = r ? r.reason : null;
 			return;
 		}
-		await saves.autosave();
-		location.assign(resolve('/vab'));
+		worldSession.focus = null;
+		if (await saves.autosave()) worldSession.saved();
+		void goto(resolve('/(world)/vab'));
 	}
 
 	async function quicksave(): Promise<void> {
-		if (await saves.quicksave()) autosaver.saved();
+		if (await saves.quicksave()) worldSession.saved();
 	}
 
 	// A short confirmation ("Quicksaved.") while no dialog shows the note.
@@ -312,10 +305,10 @@
 	let wasLanded = false;
 	$effect(() => {
 		const stages = model?.stagesFired ?? 0;
-		if (stages > lastStages) void autosave(autosaver.request('stage', saveState()));
+		if (stages > lastStages) worldSession.requestSave('stage');
 		lastStages = stages;
 		const landed = model?.phase === 'landed';
-		if (landed && !wasLanded) void autosave(autosaver.request('landed', saveState()));
+		if (landed && !wasLanded) worldSession.requestSave('landed');
 		wasLanded = landed;
 	});
 
@@ -351,95 +344,140 @@
 		missionDefs = missions;
 		objectiveNames = objectiveLabels;
 		const timer = setInterval(() => {
-			void autosave(autosaver.tick(saveState()));
 			if (flight) catchUp = flight.catchUp(Date.now());
 		}, 1000);
-		const onHidden = (): void => {
-			if (document.visibilityState === 'hidden')
-				void autosave(autosaver.request('hidden', saveState()));
+		bootFlight = (loadId) => {
+			stop?.();
+			stop = undefined;
+			const run = ++boots;
+			void startFlightOf(loadId, catalog, content, () => run !== boots).then((s) => {
+				if (run === boots) stop = s;
+				else s?.();
+			});
 		};
-		document.addEventListener('visibilitychange', onHidden);
-		let stop: (() => void) | undefined;
-		let gone = false;
-		const loadId = new URLSearchParams(location.search).get('load');
-		void (async () => {
-			let design: VesselDesign;
-			let resume: GameSave | undefined;
-			let start: ScenarioStart | null = null;
-			if (loadId !== null) {
-				try {
-					resume = await saves.read(loadId);
-				} catch (e) {
-					loadFailed = true;
-					problem = e instanceof Error ? e.message : String(e);
-					return;
-				}
-				design = resume.design;
-				// a save is flown in its own world (plan 087, ADR 0143)
-				setActiveWorld(resume.worldId ?? 'legacy');
-			} else if ((start = await scenarioOfWorld())) {
+		bootFlight(new URLSearchParams(location.search).get('load'));
+		return () => {
+			boots += 1;
+			clearInterval(timer);
+			stop?.();
+			worldSession.collect = null;
+		};
+	});
+
+	/** The running flight's cleanup, and a counter that drops a boot a newer one replaced. */
+	let stop: (() => void) | undefined;
+	let boots = 0;
+	let bootFlight: (loadId: string | null) => void = () => {};
+
+	/** A load from the dialog or F9: the world's sim restarts from the save, the page stays (plan 204). */
+	function restartWith(id: string): void {
+		history.replaceState(history.state, '', resolve('/(world)/flight'));
+		problem = null;
+		loadFailed = false;
+		bootFlight(id);
+	}
+
+	/**
+	 * Start the flight on the world's one sim (plan 204, ADR 0201): a save restarts it, a launch adds
+	 * the design to the running world, and coming back without either takes up the focus vessel.
+	 */
+	async function startFlightOf(
+		loadId: string | null,
+		catalog: ReturnType<typeof loadContent>['catalog'],
+		content: ReturnType<typeof loadContent>['content'],
+		gone: () => boolean
+	): Promise<(() => void) | undefined> {
+		let design: VesselDesign;
+		let resume: GameSave | undefined;
+		let start: ScenarioStart | null = null;
+		let attach: { vessel: number } | undefined;
+		const launch = loadId === null ? takeLaunchChoice() : null;
+		let client: SimClient;
+		if (loadId !== null) {
+			try {
+				resume = await saves.read(loadId);
+			} catch (e) {
+				loadFailed = true;
+				problem = e instanceof Error ? e.message : String(e);
+				return undefined;
+			}
+			design = resume.design;
+			// a save is flown in its own world (plan 087, ADR 0143); the world rolls back with it
+			const worldId = resume.worldId ?? 'legacy';
+			setActiveWorld(worldId);
+			const ephemeris = await ephemerisFor(resume.sim.worldInfo);
+			if (gone()) return undefined;
+			client = worldSession.restart(worldId, {
+				resume: resume.sim,
+				...(ephemeris ? { ephemeris } : {})
+			});
+			worldSession.base = resume;
+			worldSession.focus = null;
+		} else {
+			client = await bootWorld(worldSession, activeWorldId());
+			if (gone()) return undefined;
+			const focus = worldSession.focus ?? baseFocus();
+			if (!launch && focus) {
+				// back in Flight: the vessel that was flying, still in the running world
+				design = focus.design;
+				attach = { vessel: focus.vessel };
+			} else if (!launch && !worldSession.base && (start = await scenarioOfWorld())) {
 				// a world made from a scenario starts its first flight from it (plan 100, ADR 0151)
 				design = start.design;
 			} else {
 				const text = loadDraft();
 				if (text === null) {
 					problem = 'No vessel to launch yet.';
-					return;
+					return undefined;
 				}
 				const parsed = parseDesign(text, partLookup(catalog));
 				if (!parsed.ok) {
 					problem = `The saved design is invalid: ${parsed.errors.join('; ')}`;
-					return;
+					return undefined;
 				}
 				design = parsed.design;
 			}
-			// a new flight in a world without saves starts with the world's own info (ADR 0143 point 1)
-			const world = resume ? undefined : await saves.worldStartInfo(activeWorldId());
-			// the Launch screen's facility, once (plan 094, ADR 0150 point 4)
-			const launch = resume ? null : takeLaunchChoice();
-			// a launch into a world with a save flies in that save (plan 108, ADR 0152 point 1)
-			let into: SimSave | undefined;
-			if (launch) {
-				await saves.refresh();
-				const newest = saves.entries.find((e) => e.ok);
-				if (newest?.ok) into = (await saves.read(newest.meta.id)).sim;
-			}
-			if (gone) return;
-			// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
-			const info = resume?.sim.worldInfo ?? into?.worldInfo ?? world;
-			const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
-			// an n-body world of the 1:1 Sol system follows JPL's DE440, fetched once (plan 125, ADR 0122)
-			let ephemeris: ArrayBuffer | undefined;
-			if (needsEphemeris(info)) {
-				notice = "Loading JPL's DE440 ephemeris (7.5 MB, once)…";
-				try {
-					ephemeris = await loadEphemeris();
-					notice = null;
-				} catch (e) {
-					notice = `The planets keep their own paths: ${e instanceof Error ? e.message : String(e)}.`;
-				}
-			}
-			if (gone) return;
-			stop = begin(
-				own?.catalog ?? catalog,
-				own?.content ?? content,
-				design,
-				resume,
-				world,
-				launch?.placement,
-				start,
-				into,
-				launch?.crew,
-				ephemeris
-			);
-		})();
-		return () => {
-			gone = true;
-			clearInterval(timer);
-			document.removeEventListener('visibilitychange', onHidden);
-			stop?.();
-		};
-	});
+		}
+		if (gone()) return undefined;
+		// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
+		const ready = await client.ready.catch(() => null);
+		const info = resume?.sim.worldInfo ?? worldSession.base?.sim.worldInfo ?? (await saves.worldStartInfo(activeWorldId()));
+		const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
+		if (gone() || !ready) return undefined;
+		return begin(
+			own?.catalog ?? catalog,
+			own?.content ?? content,
+			design,
+			resume,
+			client,
+			attach,
+			launch?.placement,
+			start,
+			launch?.crew
+		);
+	}
+
+	/** The boot save's focus vessel while it is still in the world. */
+	function baseFocus(): { vessel: number; design: VesselDesign } | null {
+		const base = worldSession.base;
+		if (!base || base.focus === null) return null;
+		const alive = worldSession.snapshot?.vessels.some((v) => v.id === base.focus) ?? true;
+		return alive ? { vessel: base.focus, design: base.design } : null;
+	}
+
+	/** JPL's DE440 for an n-body Sol world (plan 125, ADR 0122), with a note while it loads. */
+	async function ephemerisFor(info: WorldInfo | undefined): Promise<ArrayBuffer | undefined> {
+		if (!needsEphemeris(info)) return undefined;
+		notice = "Loading JPL's DE440 ephemeris (7.5 MB, once)…";
+		try {
+			const e = await loadEphemeris();
+			notice = null;
+			return e;
+		} catch (e) {
+			notice = `The planets keep their own paths: ${e instanceof Error ? e.message : String(e)}.`;
+			return undefined;
+		}
+	}
 
 	/** Start the flight and return its cleanup. */
 	function begin(
@@ -447,12 +485,11 @@
 		content: ReturnType<typeof loadContent>['content'],
 		design: VesselDesign,
 		resume: GameSave | undefined,
-		world: WorldInfo | undefined,
+		client: SimClient,
+		attach: { vessel: number } | undefined,
 		placement?: VesselPlacement,
 		start: ScenarioStart | null = null,
-		into?: SimSave,
-		crew?: { member: string; part: number }[],
-		ephemeris?: ArrayBuffer
+		crew?: { member: string; part: number }[]
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -489,8 +526,9 @@
 		const started: Flight = startFlight({
 			canvas,
 			design,
+			client,
 			...(resume ? { resume } : {}),
-			...(world ? { world } : {}),
+			...(attach ? { attach } : {}),
 			...(start
 				? {
 						placement: start.placement,
@@ -499,13 +537,15 @@
 				: placement
 					? { placement }
 					: {}),
-			...(into ? { into } : {}),
 			...(crew?.length ? { crew } : {}),
-			...(ephemeris ? { ephemeris } : {}),
 			content,
 			profile: profileStore(),
 			onHud: (h) => {
 				hud = h;
+				// the vessel in focus, for coming back to Flight and for the world's autosave (plan 204)
+				const v = h.status === 'flying' ? flight?.debug.vessel() : null;
+				if (v != null && worldSession.focus?.vessel !== Number(v))
+					worldSession.focus = { vessel: Number(v), design };
 				// dock panels read the same 10 Hz update (ADR 0149 point 2)
 				if (dockShown || vesselOpen) panelInput = flight?.panelInput() ?? null;
 			},
@@ -531,6 +571,7 @@
 			}
 		});
 		flight = started;
+		worldSession.collect = () => started.collectSave();
 		// the debug API (plan 203): `window.__orbitalDebug` while the world allows it, the log of
 		// uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
 		debugHost = started.debug;
@@ -584,6 +625,7 @@
 			small.removeEventListener('change', sync);
 			pointer.removeEventListener('change', syncPointer);
 			flight = null;
+			worldSession.collect = null;
 			started.dispose();
 		};
 	}
@@ -751,14 +793,14 @@
 					<p>{problem}</p>
 					{#snippet actions()}
 						<a class="cta" href={resolve('/')}>Main menu</a>
-						<a class="cta quiet" href={resolve('/vab')}>Open the VAB</a>
+						<a class="cta quiet" href={resolve('/(world)/vab')}>Open the VAB</a>
 					{/snippet}
 				</StatusCard>
 			{:else}
 				<StatusCard tone="warning" title="Nothing to fly">
 					<p>{problem} Build a vessel in the VAB, then launch it from there.</p>
 					{#snippet actions()}
-						<a class="cta" href={resolve('/vab')}>Open the VAB</a>
+						<a class="cta" href={resolve('/(world)/vab')}>Open the VAB</a>
 					{/snippet}
 				</StatusCard>
 			{/if}
@@ -772,7 +814,7 @@
 					<p>{hud.message}</p>
 					{#snippet actions()}
 						<Button variant="primary" onclick={() => location.reload()}>Reload</Button>
-						<a class="cta quiet" href={resolve('/vab')}>Back to the VAB</a>
+						<a class="cta quiet" href={resolve('/(world)/vab')}>Back to the VAB</a>
 					{/snippet}
 				</StatusCard>
 			</div>
@@ -781,7 +823,7 @@
 				<StatusCard tone="danger" title="Vessel lost">
 					<p>{hud.message}. Revert to the VAB to adjust the design and launch again.</p>
 					{#snippet actions()}
-						<a class="cta" href={resolve('/vab')}>Back to the VAB</a>
+						<a class="cta" href={resolve('/(world)/vab')}>Back to the VAB</a>
 					{/snippet}
 				</StatusCard>
 			</div>
@@ -828,7 +870,6 @@
 						onmissioncenter={() => void openMissionCenter()}
 					/>
 					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
-				{#if hud?.funds != null}<FundsCapsule funds={hud.funds} />{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				{#if hud?.recovery}
 					<!-- the funds and Recover sit here, not in the capsule row: that row sets the top-left stack's width, which the touch throttle must clear (plan 132) -->

@@ -15,6 +15,8 @@ export interface SpaceCenterOptions {
 	world?: WorldInfo;
 	/** The world's newest save, resumed so its funds, day and crew are the world's (plan 096, ADR 0123). */
 	resume?: SimSave;
+	/** The world's running sim (plan 204): used instead of a Worker of its own, and left running. */
+	client?: import('../sim-client').SimClient;
 	/** A new snapshot (the page derives the rows and the renderer list from its `sites`). */
 	onSnapshot: (snapshot: Snapshot) => void;
 	/** Every frame: where each label anchor lands on screen. */
@@ -41,9 +43,13 @@ export interface SpaceCenter {
 
 export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	const { canvas } = options;
-	const client = startSimWorker(
-		options.resume ? { resume: options.resume } : options.world ? { world: options.world } : {}
-	);
+	// the world's one sim when the page has it (plan 204, ADR 0201), else a Worker of its own
+	const ownsClient = options.client === undefined;
+	const client =
+		options.client ??
+		startSimWorker(
+			options.resume ? { resume: options.resume } : options.world ? { world: options.world } : {}
+		);
 	let renderer: Renderer | null = null;
 	let snap: Snapshot | null = null;
 	let dirty = false;
@@ -55,7 +61,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	} | null = null;
 	let ghost: Parameters<Renderer['setSiteGhost']>[0] = null;
 
-	client.onError((m) => options.onError(m));
+	const offError = client.onError((m) => options.onError(m));
 	const offSnapshot = client.onSnapshot((s) => {
 		snap = s;
 		dirty = true;
@@ -190,7 +196,8 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			canvas.removeEventListener('pointerup', onUp);
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();
-			client.dispose();
+			offError();
+			if (ownsClient) client.dispose();
 		}
 	};
 }

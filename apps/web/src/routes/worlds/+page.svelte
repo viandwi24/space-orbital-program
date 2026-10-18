@@ -43,7 +43,7 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`))
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`))
 	});
 	const env = browserWorldsEnv();
 

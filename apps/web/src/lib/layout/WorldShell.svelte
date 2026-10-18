@@ -70,19 +70,19 @@
 		</div>
 		<nav class="menu" aria-label="World menu" data-testid="menu-bar">
 			{#if actions}<div class="actions">{@render actions()}</div>{/if}
-			<a class="mb" href={resolve('/flight')} data-testid="nav-flight" aria-label="Flight" title="Flight"
+			<a class="mb" href={resolve('/(world)/flight')} data-testid="nav-flight" aria-label="Flight" title="Flight"
 				><Icon name="launch" size={17} /></a
 			>
 			<a
 				class="mb"
-				href={resolve('/mission-center')}
+				href={resolve('/(world)/mission-center')}
 				data-testid="nav-mission-center"
 				aria-label="Mission Center"
 				title="Mission Center"><Icon name="map" size={17} /></a
 			>
 			<a
 				class="mb"
-				href={resolve('/space-center')}
+				href={resolve('/(world)/space-center')}
 				data-testid="nav-space-center"
 				aria-label="Space Center"
 				title="Space Center"><Icon name="hangar" size={17} /></a
@@ -103,7 +103,7 @@
 		<span class="cell dim">{world.mode}</span>
 		<span class="cell">{place}</span>
 		<span class="grow"></span>
-		{#if items.funds !== null}<span class="cell" data-testid="status-funds">Funds <b class="num">{items.funds}</b></span>{/if}
+		{#if items.funds !== null}<span class="cell" data-testid="hud-funds">Funds <b class="num">{items.funds}</b></span>{/if}
 		{#if items.science !== null}<span class="cell" data-testid="status-science">Science <b class="num">{items.science}</b></span>{/if}
 		{#if items.reputation !== null}<span class="cell" data-testid="status-reputation">Rep <b class="num">{items.reputation}</b></span>{/if}
 		{#if items.contracts !== null}<span class="cell">Contracts <b class="num">{items.contracts}</b></span>{/if}

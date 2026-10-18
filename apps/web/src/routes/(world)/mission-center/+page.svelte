@@ -2,13 +2,12 @@
 	import { resolve } from '$app/paths';
 	/**
 	 * The Mission Center (plan 113, ADR 0118): the whole system of the world's save in map view,
-	 * Tracking, Upcoming with warp-to, the selected object's card with Fly, and the layers. Its sim
-	 * runs from the save given in `?load=`, or the world's newest save, or the world's start info.
+	 * Tracking, Upcoming with warp-to, the selected object's card with Fly, and the layers. It shows
+	 * the world's one sim (plan 204, ADR 0201).
 	 */
 	import {
 		calendarOf,
 		formatDate,
-		homeBodyOf,
 		type BodyDefinition,
 		type PartDefinition,
 		type Epoch,
@@ -18,6 +17,9 @@
 	import { newsRows, rivalRows } from '../../../lib/mission-center/agencies-model';
 	import { objectiveLabel } from '../../../lib/administration/contracts-model';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { worldSession } from '../../../lib/world-session';
+	import { bootWorld } from '../../../lib/world-boot';
 	import { formatFunds } from '../../../lib/format';
 	import { bodyNodes } from '../../../lib/map-path';
 	import { pickTarget, type PickCandidate } from '../../../lib/map-pick';
@@ -40,7 +42,6 @@
 		type MissionCenter
 	} from '../../../lib/mission-center/mission-center-loop';
 	import { GAME_NAME } from '../../../lib/public/about';
-	import type { GameSave } from '../../../lib/save/game-save';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
 	import { spreadLabels } from '../../../lib/space-center/model';
@@ -48,11 +49,10 @@
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import CommsPlanningPanel from '../../../lib/comms-planning/CommsPlanningPanel.svelte';
 	import type { Antenna } from '../../../lib/comms-planning/planning-model';
-	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
 
 	let canvas: HTMLCanvasElement;
 	let mc: MissionCenter | null = null;
-	let loaded: GameSave | undefined;
 	let bodies = $state.raw<BodyDefinition[]>([]);
 	let parts = $state.raw<PartDefinition[]>([]);
 	let antennas = $state.raw<Antenna[]>([]);
@@ -74,18 +74,8 @@
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(resolve(`/flight?load=${encodeURIComponent(id)}`)),
-		world: () => activeWorldId(),
-		collect: async () => {
-			if (!mc || !loaded) throw new Error('There is no flight to save.');
-			return {
-				sim: await mc.save(),
-				focus: loaded.focus,
-				design: loaded.design,
-				thumbnail: null,
-				bodyRadius: homeBodyOf(bodies, loaded.sim.worldInfo)?.radius ?? 0
-			};
-		}
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
+		world: () => activeWorldId()
 	});
 
 	const rows = $derived(trackingRows(snapshot, bodies, filter));
@@ -204,38 +194,24 @@
 		note = r && !r.ok ? r.reason : null;
 	}
 
-	async function flyNow(): Promise<void> {
-		note = await fly({ autosave: () => saves.autosaveId(), go: (href) => location.assign(href) });
-		if (note === null) return;
-		if (saves.note && saves.noteIsError) note = saves.note;
-	}
-
-	async function savedFlight(): Promise<GameSave | undefined> {
-		const loadId = new URLSearchParams(location.search).get('load');
-		if (loadId !== null) return saves.read(loadId);
-		await saves.refresh();
-		const newest = saves.entries.find((e) => e.ok);
-		return newest?.ok ? saves.read(newest.meta.id) : undefined;
+	/** Fly (ADR 0201): the focus vessel in the same sim; Flight takes it up. */
+	function flyNow(): void {
+		note = fly({ focus: () => focus !== null, go: (href) => void goto(href) });
 	}
 
 	onMount(() => {
 		let gone = false;
 		void (async () => {
-			try {
-				loaded = await savedFlight();
-			} catch (e) {
-				note = e instanceof Error ? e.message : String(e);
-			}
-			if (loaded) setActiveWorld(loaded.worldId ?? 'legacy');
 			const worldId = activeWorldId();
 			const worlds = await saves.worldsService();
 			worldName = (await worlds.get(worldId))?.name ?? 'Legacy world';
-			const world = loaded ? undefined : await saves.worldStartInfo(worldId);
+			const client = await bootWorld(worldSession, worldId);
 			if (gone) return;
-			focus = loaded?.focus ?? null;
+			// the vessel last flown in this world, or the boot save's (the map's active vessel)
+			focus = worldSession.focus?.vessel ?? worldSession.base?.focus ?? null;
 			mc = startMissionCenter({
 				canvas,
-				...(loaded ? { resume: loaded.sim } : world ? { world } : {}),
+				client,
 				focus,
 				onReady: (c) => {
 					bodies = c.bodies;

@@ -240,16 +240,13 @@ export function objectCard(
 }
 
 /**
- * Fly (ADR 0118 point 5): write the Mission Center's sim as the world's autosave, then open the
- * flight with it. Returns the error to show, or null when the flight opens.
+ * Fly (ADR 0201 point 1, superseding ADR 0118 point 5): the flight runs on the same sim, so Fly
+ * makes the vessel the focus and opens Flight; no save is written or loaded. Returns the error to
+ * show, or null when the flight opens.
  */
-export async function fly(deps: {
-	autosave: () => Promise<string | null>;
-	go: (href: string) => void;
-}): Promise<string | null> {
-	const id = await deps.autosave();
-	if (!id) return 'The flight could not be saved, so it was not opened.';
-	deps.go(resolve(`/flight?load=${encodeURIComponent(id)}`));
+export function fly(deps: { focus: () => boolean; go: (href: string) => void }): string | null {
+	if (!deps.focus()) return 'There is no vessel to fly in this world.';
+	deps.go(resolve('/(world)/flight'));
 	return null;
 }
 

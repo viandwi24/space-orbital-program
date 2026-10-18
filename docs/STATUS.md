@@ -150,7 +150,7 @@
 | 201 | [Shadow flicker on the high preset](plans/201-shadow-flicker.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 202 | [Release operations: error handling, deploy job, hosting headers](plans/202-release-operations.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 203 | [Debug panel, cheats, set orbit/location/resources, log](plans/203-debug-panel-and-cheats.md) | done | Worker B | Debug panel (Alt+F12), cheats, set orbit/location/resources, log; debug API `window.__orbitalDebug` and e2e helpers (`debugSetOrbit`, …) for later plans; ADR 0213. |
-| 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
+| 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | in-progress | Worker B | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
 | 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
 | 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | done | Worker A | ADR 0212: stock parts split into `mods/stock/src/parts/<family>.ts`; node `size` (API 0.1.75); booster ring and bell winding fixed; seam test for every generator; auto shrouds; adapters and nose/tail cones per size; Hangar size-mismatch check |

@@ -24,7 +24,7 @@
 
 	const manager = new ModManager({
 		open: openModStore,
-		reload: () => location.assign(resolve('/mods'))
+		reload: () => location.assign(resolve('/(world)/mods'))
 	});
 	let fileInput = $state<HTMLInputElement>();
 	let url = $state('');

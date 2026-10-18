@@ -23,6 +23,8 @@ export interface MissionCenterOptions {
 	canvas: HTMLCanvasElement;
 	resume?: SimSave;
 	world?: WorldInfo;
+	/** The world's running sim (plan 204): used instead of a Worker of its own, and left running. */
+	client?: import('../sim-client').SimClient;
 	/** The save's vessel in focus: the map's active vessel (its path and sphere). */
 	focus: number | null;
 	/** The sim booted: its bodies and parts. */
@@ -49,16 +51,20 @@ export interface MissionCenter {
 
 export function startMissionCenter(options: MissionCenterOptions): MissionCenter {
 	const { canvas } = options;
-	const client = startSimWorker(
-		options.resume ? { resume: options.resume } : options.world ? { world: options.world } : {}
-	);
+	// the world's one sim when the page has it (plan 204, ADR 0201), else a Worker of its own
+	const ownsClient = options.client === undefined;
+	const client =
+		options.client ??
+		startSimWorker(
+			options.resume ? { resume: options.resume } : options.world ? { world: options.world } : {}
+		);
 	let renderer: Renderer | null = null;
 	let snap: Snapshot | null = null;
 	let dirty = false;
 	let disposed = false;
 	let raf = 0;
 
-	client.onError((m) => options.onError(m));
+	const offError = client.onError((m) => options.onError(m));
 	const offSnapshot = client.onSnapshot((s, warp) => {
 		snap = s;
 		dirty = true;
@@ -193,7 +199,8 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			canvas.removeEventListener('pointerup', onUp);
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();
-			client.dispose();
+			offError();
+			if (ownsClient) client.dispose();
 		}
 	};
 }

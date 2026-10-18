@@ -82,7 +82,7 @@
 		loadedMods: bootedMods,
 		modHint,
 		collect: () => collect(),
-		startLoad: (id) => goto(resolve(`/flight?load=${encodeURIComponent(id)}`)),
+		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		world: () => worldSession.worldId ?? worldId
 	});
 	const autosaver = createAutosaver(() => performance.now());
@@ -123,7 +123,7 @@
 			saving = false;
 		}
 	}
-	const state = () => ({ flying: canSave(), paused: false, busy: saving || saves.busy });
+	const autosaveState = () => ({ flying: canSave(), paused: false, busy: saving || saves.busy });
 
 	// ---- leaving the world ---------------------------------------------------------------------
 	let leaving = false;
@@ -133,7 +133,7 @@
 		// out of the world: save first, then go (the sim stops with the layout)
 		nav.cancel();
 		leaving = true;
-		void save(autosaver.request('pagehide', state())).finally(() => void goto(to));
+		void save(autosaver.request('pagehide', autosaveState())).finally(() => void goto(to));
 	});
 
 	onMount(() => {
@@ -186,13 +186,13 @@
 			attach();
 			savedAt = worldSession.savedAt;
 		});
-		worldSession.requestSave = (reason) => void save(autosaver.request(reason, state()));
+		worldSession.requestSave = (reason) => void save(autosaver.request(reason, autosaveState()));
 
-		const timer = setInterval(() => void save(autosaver.tick(state())), 1000);
+		const timer = setInterval(() => void save(autosaver.tick(autosaveState())), 1000);
 		const onHidden = (): void => {
-			if (document.visibilityState === 'hidden') void save(autosaver.request('hidden', state()));
+			if (document.visibilityState === 'hidden') void save(autosaver.request('hidden', autosaveState()));
 		};
-		const onPageHide = (): void => void save(autosaver.request('pagehide', state()));
+		const onPageHide = (): void => void save(autosaver.request('pagehide', autosaveState()));
 		document.addEventListener('visibilitychange', onHidden);
 		window.addEventListener('pagehide', onPageHide);
 		return () => {

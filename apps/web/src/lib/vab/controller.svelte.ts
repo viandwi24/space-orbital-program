@@ -1146,7 +1146,7 @@ export class VabController {
 		}
 		saveDraft(serialiseDesign(this.editor.design));
 		void this.flushSave();
-		void goto(resolve(quick ? '/flight' : '/launch'));
+		void goto(quick ? resolve('/(world)/flight') : resolve('/(world)/launch'));
 	}
 
 	// --- pointer ---------------------------------------------------------------------------------------------

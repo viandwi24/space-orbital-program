@@ -13,5 +13,5 @@ export async function enterWorld(
 ): Promise<void> {
 	setActiveWorld(id);
 	await worlds.touch(id);
-	await go(resolve('/space-center'));
+	await go(resolve('/(world)/space-center'));
 }
