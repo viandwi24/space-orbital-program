@@ -46,8 +46,11 @@ export interface PatchedSegment {
 	elements?: OrbitalElements;
 	/** Position of the body's centre in the system frame at `t0` (the root's centre). */
 	bodyOffset: Vec3;
-	/** Why the segment ends: a change of sphere (`next` names it), the horizon, or an impact. */
-	end: 'transition' | 'horizon' | 'impact';
+	/**
+	 * Why the segment ends: a change of sphere (`next` names it), the horizon, an impact, or (n-body
+	 * paths, plan 125) a sample cut inside the same sphere.
+	 */
+	end: 'transition' | 'horizon' | 'impact' | 'sample';
 	next?: string;
 }
 

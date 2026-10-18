@@ -17,3 +17,6 @@ export * from './body-state.ts';
 export * from './body-path.ts';
 export * from './rendezvous.ts';
 export * from './trajectory.ts';
+export * from './nbody.ts';
+export * from './chebyshev.ts';
+export * from './nbody-path.ts';

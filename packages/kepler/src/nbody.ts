@@ -1,0 +1,177 @@
+/**
+ * Restricted n-body motion of a vessel (plan 125, ADR 0122): a test particle in the frame of its
+ * dominant body, pulled by every other body on its path (direct term) less the pull on the frame's
+ * own centre (indirect term), integrated by an adaptive Bulirsch–Stoer method. Pure float64 with a
+ * fixed operation order: the same inputs give the same bits.
+ */
+import type { StateVector } from './convert.ts';
+import type { Vec3 } from './vec3.ts';
+
+/** A body that pulls: its gravitational parameter and its position relative to the frame body at `t`. */
+export interface Perturber {
+	mu: number;
+	at(t: number): Vec3;
+}
+
+export interface NBodyField {
+	/** The frame body's gravitational parameter, m³/s². */
+	mu: number;
+	/** Every other body that pulls. */
+	perturbers: readonly Perturber[];
+}
+
+/** Acceleration in the frame of the dominant body at `t` for position `r` (ADR 0122 point 2). */
+export function nBodyAcceleration(field: NBodyField, t: number, r: Vec3): Vec3 {
+	const d = Math.hypot(r.x, r.y, r.z);
+	const k = -field.mu / (d * d * d);
+	let ax = k * r.x;
+	let ay = k * r.y;
+	let az = k * r.z;
+	for (const p of field.perturbers) {
+		if (p.mu === 0) continue;
+		const s = p.at(t);
+		const dx = s.x - r.x;
+		const dy = s.y - r.y;
+		const dz = s.z - r.z;
+		const dd = Math.hypot(dx, dy, dz);
+		const sd = Math.hypot(s.x, s.y, s.z);
+		const kd = p.mu / (dd * dd * dd);
+		const ks = p.mu / (sd * sd * sd);
+		ax += kd * dx - ks * s.x;
+		ay += kd * dy - ks * s.y;
+		az += kd * dz - ks * s.z;
+	}
+	return { x: ax, y: ay, z: az };
+}
+
+/** The perturbation alone (direct less indirect, without the frame body), for the flight bubble. */
+export function thirdBodyAcceleration(field: NBodyField, t: number, r: Vec3): Vec3 {
+	return nBodyAcceleration({ mu: 0, perturbers: field.perturbers }, t, r) as Vec3;
+}
+
+export interface IntegrateOptions {
+	/** Relative error per step (default 1e-12). */
+	tolerance?: number;
+	/** Longest step, s (default: a twentieth of the local circular period). */
+	maxStep?: number;
+	/** First step to try, s (the last call's `h`). */
+	step?: number;
+}
+
+export interface IntegrateResult extends StateVector {
+	/** The step to try next. */
+	h: number;
+	/** Acceleration evaluations spent (the warp budget counts these, ADR 0122 point 5). */
+	evaluations: number;
+}
+
+type Y = [number, number, number, number, number, number];
+
+const SEQUENCE = [2, 4, 6, 8, 10, 12, 14, 16];
+const SAFETY = 0.9;
+
+/**
+ * Integrate `state` from `t0` to `t1` (either direction) in `field` with Bulirsch–Stoer steps: Gragg's
+ * modified midpoint over `n` substeps for n in 2, 4, 6, …, extrapolated to zero step in h², the step
+ * grown or cut from the extrapolation error (ADR 0122 point 3).
+ */
+export function integrateNBody(
+	field: NBodyField,
+	state: StateVector,
+	t0: number,
+	t1: number,
+	options: IntegrateOptions = {}
+): IntegrateResult {
+	const tol = options.tolerance ?? 1e-12;
+	let y: Y = [state.r.x, state.r.y, state.r.z, state.v.x, state.v.y, state.v.z];
+	let evaluations = 0;
+	const deriv = (t: number, s: Y): Y => {
+		evaluations++;
+		const a = nBodyAcceleration(field, t, { x: s[0], y: s[1], z: s[2] });
+		return [s[3], s[4], s[5], a.x, a.y, a.z];
+	};
+	const span = t1 - t0;
+	if (span === 0) return { r: { ...state.r }, v: { ...state.v }, h: options.step ?? 0, evaluations };
+	const dir = Math.sign(span);
+	const period = (s: Y): number => {
+		const d = Math.hypot(s[0], s[1], s[2]);
+		return 2 * Math.PI * Math.sqrt((d * d * d) / field.mu);
+	};
+	let t = t0;
+	let h = Math.abs(options.step ?? period(y) / 100);
+	for (let guard = 0; guard < 1e6 && dir * (t1 - t) > 0; guard++) {
+		const hMax = options.maxStep ?? period(y) / 20;
+		h = Math.min(h, hMax, Math.abs(t1 - t));
+		const step = bsStep(deriv, t, y, dir * h, tol);
+		if (!step.ok) {
+			h = step.next;
+			continue;
+		}
+		const last = Math.abs(t1 - t) <= h;
+		t = last ? t1 : t + dir * h;
+		y = step.y;
+		h = step.next;
+	}
+	return {
+		r: { x: y[0], y: y[1], z: y[2] },
+		v: { x: y[3], y: y[4], z: y[5] },
+		h,
+		evaluations
+	};
+}
+
+/** Gragg's modified midpoint over `n` substeps of a step `H`. */
+function midpoint(deriv: (t: number, s: Y) => Y, t: number, y: Y, d0: Y, H: number, n: number): Y {
+	const h = H / n;
+	let zPrev = y.slice() as Y;
+	let z = y.map((v, i) => v + h * d0[i]!) as Y;
+	for (let m = 1; m < n; m++) {
+		const d = deriv(t + m * h, z);
+		const next = zPrev.map((v, i) => v + 2 * h * d[i]!) as Y;
+		zPrev = z;
+		z = next;
+	}
+	const d = deriv(t + H, z);
+	return z.map((v, i) => 0.5 * (v + zPrev[i]! + h * d[i]!)) as Y;
+}
+
+/** One Bulirsch–Stoer step; on failure `next` is a smaller step to retry. */
+function bsStep(
+	deriv: (t: number, s: Y) => Y,
+	t: number,
+	y: Y,
+	H: number,
+	tol: number
+): { ok: true; y: Y; next: number } | { ok: false; next: number } {
+	const d0 = deriv(t, y);
+	const scaleR = Math.max(Math.hypot(y[0], y[1], y[2]), 1);
+	const scaleV = Math.max(Math.hypot(y[3], y[4], y[5]), 1e-3);
+	// Neville tableau in h², one row per sequence entry
+	const rows: Y[][] = [];
+	for (let k = 0; k < SEQUENCE.length; k++) {
+		const n = SEQUENCE[k]!;
+		const row: Y[] = [midpoint(deriv, t, y, d0, H, n)];
+		for (let j = 1; j <= k; j++) {
+			const ratio = (n / SEQUENCE[k - j]!) ** 2 - 1;
+			const a = row[j - 1]!;
+			const b = rows[k - 1]![j - 1]!;
+			row.push(a.map((v, i) => v + (v - b[i]!) / ratio) as Y);
+		}
+		rows.push(row);
+		if (k >= 2) {
+			const best = row[k]!;
+			const prev = row[k - 1]!;
+			let err = 0;
+			for (let i = 0; i < 6; i++) {
+				const scale = i < 3 ? scaleR : scaleV;
+				err = Math.max(err, Math.abs(best[i]! - prev[i]!) / scale);
+			}
+			if (err <= tol) {
+				// converged early: grow; at the last columns: keep about the same
+				const grow = k <= 3 ? 1.6 : k <= 5 ? 1.2 : 1;
+				return { ok: true, y: best, next: Math.abs(H) * grow };
+			}
+		}
+	}
+	return { ok: false, next: Math.abs(H) * 0.5 * SAFETY };
+}
