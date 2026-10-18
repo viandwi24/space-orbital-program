@@ -50,7 +50,9 @@ export function resonantDeployment(input: DeploymentInput): DeploymentPlan {
 		throw new RangeError('resonantDeployment: needs mu > 0 and a target radius above the surface');
 	}
 	if (!Number.isInteger(count) || count < 2) {
-		throw new RangeError(`resonantDeployment: count must be an integer of at least 2, got ${count}`);
+		throw new RangeError(
+			`resonantDeployment: count must be an integer of at least 2, got ${count}`
+		);
 	}
 	const targetPeriod = 2 * Math.PI * Math.sqrt(radius ** 3 / mu);
 	const numerator = side === 'above' ? count + 1 : count - 1;
