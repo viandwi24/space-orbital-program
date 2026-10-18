@@ -921,6 +921,7 @@
 								dossier={model.dossier}
 								onselect={(key) => flight?.setTarget(key)}
 								onplan={(aid) => flight?.planAid(aid)}
+								oncommand={(c) => void flight?.command(c)}
 							/>
 						{:else}
 							{@const panel = modPanels.find((p) => p.id === id)}

@@ -4,6 +4,7 @@
  */
 import * as z from 'zod';
 import type { BodyDefinition } from './definitions.ts';
+import type { DiscoverySnapshot } from './discovery.ts';
 import { regionsOf } from './regions.ts';
 import { definitionIdSchema } from './schemas.ts';
 import { GLOBAL_REGION, type ScienceSubject } from './science.ts';
@@ -54,6 +55,39 @@ export interface DossierEntry {
 export interface Dossier {
 	body: string;
 	entries: DossierEntry[];
+	/** Discovery facts, data and claims (plan 129, ADR 0192 point 10); with discovery on. */
+	discovery?: DossierDiscovery;
+}
+
+/** A fact of the body in the dossier: open or settled, and the best data in hand. */
+export interface DossierDiscoveryFact {
+	fact: string;
+	label: string;
+	status: 'open' | 'settled';
+	/** The settled value, or "unknown". */
+	value: string;
+	/** The most precise dataset, "24.1 ± 3 μT · calibrated"; null without data. */
+	best: string | null;
+	/** Datasets of it in the lab now. */
+	processing: number;
+	/** The dataset to process next (the most precise one not derived nor in the lab); null = none. */
+	next: string | null;
+}
+
+export interface DossierClaim {
+	id: string;
+	label: string;
+	value: string;
+	confidence: string;
+	verdict: 'in review' | 'accepted' | 'rejected';
+	priority: boolean;
+	/** "+19.2" once reviewed; null in review. */
+	reputation: string | null;
+}
+
+export interface DossierDiscovery {
+	facts: DossierDiscoveryFact[];
+	claims: DossierClaim[];
 }
 
 const num = (v: number, digits = 3): string =>
@@ -142,5 +176,47 @@ export function dossierOf(
 					needs: unlocked ? '' : needsText(e, labelOf)
 				};
 			})
+	};
+}
+
+const withUnit = (v: number, unit: string): string => `${num(v)}${unit ? ` ${unit}` : ''}`;
+
+/** The Discovery part of `body`'s dossier from `Snapshot.discovery` (plan 129, ADR 0192 point 10). */
+export function discoveryDossier(body: string, snap: DiscoverySnapshot): DossierDiscovery {
+	const facts = snap.facts.filter((f) => f.body === body);
+	const unitOf = new Map(facts.map((f) => [f.fact, f.unit]));
+	const labelOf = new Map(facts.map((f) => [f.fact, f.label]));
+	return {
+		facts: facts.map((f) => {
+			const data = snap.data.filter((d) => d.body === body && d.fact === f.fact);
+			const best = [...data].sort((a, b) => a.sigma - b.sigma)[0];
+			return {
+				fact: f.fact,
+				label: f.label,
+				status: f.status,
+				value:
+					f.value === undefined ? 'unknown' : f.value === 0 ? 'none' : withUnit(f.value, f.unit),
+				best: best ? `${num(best.value)} ± ${withUnit(best.sigma, f.unit)} · ${best.level}` : null,
+				processing: data.filter((d) => d.processing).length,
+				next:
+					data
+						.filter((d) => !d.processing && d.level !== 'derived')
+						.sort((a, b) => a.sigma - b.sigma)[0]?.id ?? null
+			};
+		}),
+		claims: snap.claims
+			.filter((c) => c.body === body)
+			.map((c) => ({
+				id: c.id,
+				label: labelOf.get(c.fact) ?? c.fact,
+				value: c.value === 0 ? 'none' : withUnit(c.value, unitOf.get(c.fact) ?? ''),
+				confidence: `${Math.round(c.confidence * 100)}%`,
+				verdict: c.verdict ?? 'in review',
+				priority: c.priority === true,
+				reputation:
+					c.reputation === undefined
+						? null
+						: `${c.reputation >= 0 ? '+' : '−'}${num(Math.abs(c.reputation))}`
+			}))
 	};
 }

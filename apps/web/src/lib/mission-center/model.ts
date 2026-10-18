@@ -81,8 +81,9 @@ export function trackingRows(
 /** An Upcoming entry; `warpTime` is where warp-to stops (a node: the maneuver lead before it). */
 export interface UpcomingEvent {
 	key: string;
-	kind: 'node' | 'soi';
-	vessel: number;
+	kind: 'node' | 'soi' | 'review';
+	/** The vessel it is about; null for a peer review (plan 129). */
+	vessel: number | null;
 	time: number;
 	warpTime: number;
 	label: string;
@@ -90,8 +91,8 @@ export interface UpcomingEvent {
 }
 
 /**
- * Every vessel's maneuver nodes and its next change of sphere of influence after `snapshot.t`, in
- * time order, at most `limit`. The prediction is the map path's (the trajectory provider, ADR 0173).
+ * Every vessel's maneuver nodes and its next change of sphere of influence after `snapshot.t`, and
+ * the claims in peer review (plan 129, ADR 0192 point 10), in time order, at most `limit`. The prediction is the map path's (the trajectory provider, ADR 0173).
  */
 export function upcomingEvents(
 	snapshot: Snapshot,
@@ -143,6 +144,20 @@ export function upcomingEvents(
 				detail: entering ? 'Sphere of influence' : `Leaves ${bodyLabel(change.body)}`
 			});
 		}
+	}
+	const discovery = snapshot.discovery;
+	for (const c of discovery?.claims ?? []) {
+		if (c.verdict !== undefined || c.due <= t) continue;
+		const label = discovery!.facts.find((f) => f.fact === c.fact)?.label ?? c.fact;
+		out.push({
+			key: `review:${c.id}`,
+			kind: 'review',
+			vessel: null,
+			time: c.due,
+			warpTime: c.due,
+			label: `Peer review: ${label} on ${bodyLabel(c.body)}`,
+			detail: `Claimed at ${Math.round(c.confidence * 100)}%`
+		});
 	}
 	return out.sort((a, b) => a.time - b.time || a.key.localeCompare(b.key)).slice(0, limit);
 }

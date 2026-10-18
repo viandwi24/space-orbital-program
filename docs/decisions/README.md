@@ -191,3 +191,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0163 | [Comms planning: a planning Worker on snapshots, the sim's link rule on conics, a coverage grid, resonant deployment](0163-comms-planning-worker-timeline-coverage-constellation.md) | accepted | 2026-10-18 |
 | 0190 | [AI agencies: state machines on the world tick, owned objects, relay rental, reactive contracts and news](0190-ai-agencies-state-machines-owned-objects-rental-news.md) | accepted | 2026-10-18 |
 | 0191 | [Comms tier 5: channels, frequency licences, interference and encryption](0191-comms-channels-licences-interference-encryption.md) | accepted | 2026-10-18 |
+| 0192 | [Discovery science: seeded facts, noisy measurements, data levels in the lab, claims judged by a proper scoring rule](0192-discovery-science-facts-measurements-levels-claims-review.md) | accepted | 2026-10-18 |

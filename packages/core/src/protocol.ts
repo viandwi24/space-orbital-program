@@ -7,6 +7,7 @@ import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
 import type { StrategiesSnapshot } from './strategies.ts';
 import type { AgenciesSnapshot } from './agencies.ts';
+import type { DiscoverySnapshot } from './discovery.ts';
 import type { RangeSnapshot } from './range-safety.ts';
 import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
@@ -237,6 +238,8 @@ export interface Snapshot {
 	strategies?: StrategiesSnapshot;
 	/** Rival agencies and their news (plan 126, ADR 0190); absent when none runs. */
 	agencies?: AgenciesSnapshot;
+	/** Facts, datasets, claims and lab slots (plan 129, ADR 0192 point 8); with discovery on. */
+	discovery?: DiscoverySnapshot;
 	/** Started objectives, active and finished (plan 098, ADR 0175). */
 	objectives?: Array<{
 		id: string;
@@ -615,6 +618,10 @@ export type Command =
 	/** Rent an agency's relay for the comms network (plan 126, ADR 0190 point 4): its rent is booked daily. */
 	| { type: 'relay-rent'; vessel: EntityId }
 	| { type: 'relay-end-rent'; vessel: EntityId }
+	/** Discovery (plan 129, ADR 0192 point 5): start a dataset's next level in the lab. */
+	| { type: 'discovery-process'; dataset: string }
+	/** Claim a fact's value with a confidence in [0.5, 1]; judged on the world tick (ADR 0192 point 6). */
+	| { type: 'discovery-claim'; body: string; fact: string; value: number; confidence: number }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
 	/** Buy a channel's licence for this world (plan 120, ADR 0191 point 2). */

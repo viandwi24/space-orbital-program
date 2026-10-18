@@ -17,6 +17,7 @@ import {
 import { commsOn, hasAntenna, licenceRefusal, nextDirectContact, type Routed } from './comms.ts';
 import { vesselIds, type SimCore } from './core.ts';
 import { dataUse, deleteData, restoreData, storagesOf } from './data.ts';
+import { intakeData } from './discovery.ts';
 import { creditScience } from './science.ts';
 import { VESSEL } from './state.ts';
 
@@ -106,6 +107,7 @@ function deliver(core: SimCore, t: SaveTransmission, time: number): void {
 	const factor = t.item.meta?.['transmitFactor'];
 	const worth = kind ? dataValueAt(kind, t.item, core.t) : t.item.value;
 	creditScience(core, subject, worth * (typeof factor === 'number' ? factor : 1), 'transmitted');
+	intakeData(core, t.item); // discovery datasets (plan 129, ADR 0192 point 4)
 }
 
 /**

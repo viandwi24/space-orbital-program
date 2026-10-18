@@ -49,6 +49,7 @@ import { runUpdateHooks } from './hooks.ts';
 import { evaluateObjectivesDue, freshObjectives, listenForObjectives } from './objectives.ts';
 import { freshContracts } from './contracts.ts';
 import { freshStrategies } from './strategies.ts';
+import { freshDiscovery } from './discovery.ts';
 import { collectCrewPlaces, freshCrew } from './crew.ts';
 import { freshScience } from './science.ts';
 import { freshComms, listenForComms, updateNetwork } from './comms.ts';
@@ -336,6 +337,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		},
 		contracts: resume?.contracts ? cloneData(resume.contracts) : freshContracts({ info }),
 		strategies: resume?.strategies ? cloneData(resume.strategies) : freshStrategies(),
+		discovery: resume?.discovery ? cloneData(resume.discovery) : freshDiscovery({ info }),
 		crew: resume?.crew ? cloneData(resume.crew) : freshCrew({ info }),
 		science: freshScience(resume?.science),
 		comms: freshComms(),

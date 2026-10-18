@@ -257,6 +257,30 @@ ctx.agencies.register(defineAgency({
 - **What a success places:** a passive probe core and dish on rails, owned by the agency.
 - **What the player can do:** see and target the object, rent a relay (`relay-rent`, booked daily), and take the contract an agency offers when one of its relays fails.
 
+### Discovery facts (API 0.1.72, plan 129, ADR 0192)
+
+```ts
+ctx.discoveryFacts.register(defineDiscoveryFact({
+	id: 'acme.methane-lakes',
+	label: 'Methane lakes',
+	unit: '% of the surface',
+	chance: 0.2, // a body has it with this probability, from the world seed
+	range: [2, 40], // its value when present; absent = 0
+	tolerance: 5, // a claim within this is correct
+	resolution: 8, // raw error, one standard deviation
+	instruments: ['stock.pressure'] // data experiments whose results measure it
+}));
+```
+
+- **Only with `stock.science-depth` `discovery`.** With `classic` nothing measures and the commands refuse.
+- **The player:**
+  - processes datasets in the lab (raw, then calibrated, then derived; the error halves, then halves again);
+  - claims a value with a confidence from the body dossier.
+- **Peer review** judges a claim three days later:
+  - overclaiming (wrong at high confidence) costs reputation;
+  - a right claim pays more the surer it was;
+  - the first right claim of a fact gets priority.
+
 ### Strategies (API 0.1.65, plan 101, ADR 0187)
 
 ```ts

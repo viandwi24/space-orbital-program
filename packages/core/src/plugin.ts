@@ -51,6 +51,7 @@ import type {
 import type { ContractTemplateDefinition } from './contracts.ts';
 import type { StrategyDefinition } from './strategies.ts';
 import type { AgencyDefinition } from './agencies.ts';
+import type { DiscoveryFactDefinition } from './discovery.ts';
 import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
@@ -119,6 +120,8 @@ export interface BasePluginContext {
 	readonly strategies: Registrar<StrategyDefinition>;
 	/** Rival agencies (plan 126, ADR 0190). */
 	readonly agencies: Registrar<AgencyDefinition>;
+	/** Discovery fact kinds (plan 129, ADR 0192). */
+	readonly discoveryFacts: Registrar<DiscoveryFactDefinition>;
 	readonly missions: Registrar<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	readonly dataKinds: Registrar<DataKindDefinition>;
@@ -211,6 +214,7 @@ export const REGISTRY_KINDS = [
 	'contract-template',
 	'strategy',
 	'agency',
+	'discovery-fact',
 	'mission',
 	'achievement',
 	'tech-node',
@@ -273,6 +277,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'contractTemplates',
 	'strategies',
 	'agencies',
+	'discoveryFacts',
 	'missions',
 	'dataKinds',
 	'actionGroups',
@@ -475,6 +480,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			contractTemplates: registrar(registries.contractTemplates),
 			strategies: registrar(registries.strategies),
 			agencies: registrar(registries.agencies),
+			discoveryFacts: registrar(registries.discoveryFacts),
 			missions: registrar(registries.missions),
 			dataKinds: registrar(registries.dataKinds),
 			actionGroups: registrar(registries.actionGroups),
@@ -675,6 +681,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				'contract-template': section(registries.contractTemplates),
 				strategy: section(registries.strategies),
 				agency: section(registries.agencies),
+				'discovery-fact': section(registries.discoveryFacts),
 				mission: section(registries.missions),
 				achievement: section(registries.achievements),
 				'tech-node': section(registries.techNodes),

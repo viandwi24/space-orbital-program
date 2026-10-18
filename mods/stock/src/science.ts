@@ -204,7 +204,7 @@ function finish(ctx: ModuleContext<ExperimentConfig, ExperimentState>): void {
 		value: result.value,
 		time: vessel.time,
 		subject: result.subject,
-		meta: { transmitFactor: def.transmitFactor }
+		meta: { transmitFactor: def.transmitFactor, ...result.meta }
 	});
 	set(state, 'READY', null, 0);
 }

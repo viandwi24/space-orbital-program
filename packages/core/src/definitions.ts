@@ -21,6 +21,7 @@ import type { ContractDefinition, MissionDefinition, ObjectiveDefinition } from 
 import type { ContractTemplateDefinition } from './contracts.ts';
 import type { StrategyDefinition } from './strategies.ts';
 import type { AgencyDefinition } from './agencies.ts';
+import type { DiscoveryFactDefinition } from './discovery.ts';
 import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -102,6 +103,8 @@ export interface ReadonlyRegistries {
 	strategies: ReadonlyRegistry<StrategyDefinition>;
 	/** Rival agencies (plan 126, ADR 0190). */
 	agencies: ReadonlyRegistry<AgencyDefinition>;
+	/** Discovery fact kinds (plan 129, ADR 0192). */
+	discoveryFacts: ReadonlyRegistry<DiscoveryFactDefinition>;
 	missions: ReadonlyRegistry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: ReadonlyRegistry<DataKindDefinition>;
@@ -218,7 +221,9 @@ export interface VesselApi {
 	 * subject (a recovered sample).
 	 */
 	readonly science: {
-		result(experiment: string): { subject: string; value: number } | undefined;
+		result(
+			experiment: string
+		): { subject: string; value: number; meta?: Record<string, number> } | undefined;
 		credit(subject: string, value: number): void;
 	};
 	readonly data: {

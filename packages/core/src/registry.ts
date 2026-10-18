@@ -57,6 +57,7 @@ import {
 import { contractTemplateDefinitionSchema, type ContractTemplateDefinition } from './contracts.ts';
 import { strategyDefinitionSchema, type StrategyDefinition } from './strategies.ts';
 import { agencyDefinitionSchema, type AgencyDefinition } from './agencies.ts';
+import { discoveryFactDefinitionSchema, type DiscoveryFactDefinition } from './discovery.ts';
 import { dossierEntryDefinitionSchema, type DossierEntryDefinition } from './dossier.ts';
 import { chargeDefinitionSchema, type ChargeDefinition } from './economy.ts';
 import {
@@ -257,6 +258,8 @@ export interface Registries {
 	strategies: Registry<StrategyDefinition>;
 	/** Rival agencies (plan 126, ADR 0190). */
 	agencies: Registry<AgencyDefinition>;
+	/** Discovery fact kinds (plan 129, ADR 0192). */
+	discoveryFacts: Registry<DiscoveryFactDefinition>;
 	missions: Registry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: Registry<DataKindDefinition>;
@@ -354,6 +357,9 @@ export function createRegistries(): Registries {
 			schema: strategyDefinitionSchema
 		}),
 		agencies: createRegistry<AgencyDefinition>('agency', { schema: agencyDefinitionSchema }),
+		discoveryFacts: createRegistry<DiscoveryFactDefinition>('discovery-fact', {
+			schema: discoveryFactDefinitionSchema
+		}),
 		missions: createRegistry<MissionDefinition>('mission', { schema: missionDefinitionSchema }),
 		panels: createRegistry<PanelDefinition>('panel', { schema: panelDefinitionSchema }),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),

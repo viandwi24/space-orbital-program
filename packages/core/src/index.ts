@@ -45,6 +45,7 @@ export * from './objectives.ts';
 export * from './contracts.ts';
 export * from './strategies.ts';
 export * from './agencies.ts';
+export * from './discovery.ts';
 export * from './crew.ts';
 export * from './patch.ts';
 export * from './plugin.ts';
