@@ -260,6 +260,7 @@ describe('registration and report', () => {
 			antenna: [],
 			'ground-station': [],
 			band: [],
+			'route-policy': [],
 			'system-variant': [],
 			'dossier-entry': [],
 			category: [],

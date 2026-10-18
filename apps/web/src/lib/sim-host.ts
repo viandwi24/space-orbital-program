@@ -183,8 +183,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		reply: (r: CommandResult) => void;
 	} | null = null;
 
+	/** A script's command: under `flight-computer` it does not wait for the light time (plan 117, ADR 0188). */
 	const dispatchTracked = (command: Command): CommandResult => {
-		const result = sim!.dispatch(command);
+		const result = sim!.dispatch(command, { source: 'script' });
 		if (result.ok && command.type === 'throttle')
 			throttles.set(Number(command.vessel), command.value);
 		return result;

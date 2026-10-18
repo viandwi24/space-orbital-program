@@ -95,13 +95,25 @@
 	{#if tab === 'comms' && comms}
 		<section class="comms" data-testid="vessel-comms">
 			<div class="route">
-				<span class="cap">Route · Auto</span>
+				<span class="cap">Route · {comms.routeLabel}</span>
 				<p class="path" data-testid="comms-path">
 					<SignalBars level={comms.bars} offline={!comms.linked} />
 					{comms.path.join(' → ')}
 				</p>
 				{#if comms.reason}<p class="problem" data-testid="comms-reason">{comms.reason}</p>{/if}
-				{#if comms.rate}<p class="dim" data-testid="comms-rate">{comms.rate}</p>{/if}
+				{#if comms.rate || comms.latency}<p class="dim" data-testid="comms-rate">
+						{[comms.rate, comms.latency && `light time ${comms.latency}`].filter(Boolean).join(' · ')}
+					</p>{/if}
+				<div class="modes" role="group" aria-label="Route mode" data-testid="comms-modes">
+					{#each comms.modes as m (m.id)}
+						<button
+							type="button"
+							aria-pressed={m.active}
+							data-testid="comms-mode-{m.id}"
+							onclick={() => oncommand(m.command)}>{m.label}</button
+						>
+					{/each}
+				</div>
 			</div>
 			{#if comms.budget}
 				<span class="cap">Link budget</span>
@@ -297,6 +309,11 @@
 		font: inherit;
 		font-size: var(--t-small);
 	}
+	.route .modes {
+		flex-wrap: wrap;
+		margin: 0.25rem;
+	}
+	.modes button[aria-pressed='true'],
 	.modes button[aria-checked='true'] {
 		background: var(--selected-bg);
 		color: var(--selected-fg);

@@ -42,7 +42,12 @@ import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
-import type { AntennaDefinition, BandDefinition, GroundStationDefinition } from './comms.ts';
+import type {
+	AntennaDefinition,
+	BandDefinition,
+	GroundStationDefinition,
+	RoutePolicyDefinition
+} from './comms.ts';
 import type { ContractTemplateDefinition } from './contracts.ts';
 import type { StrategyDefinition } from './strategies.ts';
 import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
@@ -126,6 +131,8 @@ export interface BasePluginContext {
 	readonly groundStations: Registrar<GroundStationDefinition>;
 	/** Radio bands (plan 116, ADR 0185). */
 	readonly bands: Registrar<BandDefinition>;
+	/** Route policies (plan 117, ADR 0188). */
+	readonly routePolicies: Registrar<RoutePolicyDefinition>;
 	/** Systems and scale variants (plan 124, ADR 0184). */
 	readonly systemVariants: Registrar<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
@@ -192,6 +199,7 @@ export const REGISTRY_KINDS = [
 	'antenna',
 	'ground-station',
 	'band',
+	'route-policy',
 	'system-variant',
 	'dossier-entry',
 	'category',
@@ -270,6 +278,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'antennas',
 	'groundStations',
 	'bands',
+	'routePolicies',
 	'systemVariants',
 	'dossierEntries',
 	'categories',
@@ -470,6 +479,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			antennas: registrar(registries.antennas),
 			groundStations: registrar(registries.groundStations),
 			bands: registrar(registries.bands),
+			routePolicies: registrar(registries.routePolicies),
 			systemVariants: registrar(registries.systemVariants),
 			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
@@ -650,6 +660,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				antenna: section(registries.antennas),
 				'ground-station': section(registries.groundStations),
 				band: section(registries.bands),
+				'route-policy': section(registries.routePolicies),
 				'system-variant': section(registries.systemVariants),
 				'dossier-entry': section(registries.dossierEntries),
 				category: section(registries.categories),

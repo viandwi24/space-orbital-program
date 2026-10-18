@@ -3,7 +3,7 @@
  * the vessel panel's Comms tab, and the Network layer's lines and stations, from `Snapshot.network`.
  * Tier 2 (plan 116, ADR 0185): signal bars from the rate, and the link inspector's terms.
  */
-import type { LinkBudget, Snapshot, Vec3 } from '@orbital/core';
+import { entityId, type Command, type LinkBudget, type Snapshot, type Vec3 } from '@orbital/core';
 import { bodyLabel } from '../hud-model';
 
 type Network = NonNullable<Snapshot['network']>;
@@ -12,6 +12,7 @@ type VesselLink = Network['vessels'][number];
 /** The player's words for a link reason (every broken link names its cause). */
 export function linkText(reason: string): string {
 	if (reason === 'blocked by terrain') return 'Blocked by terrain';
+	if (reason.startsWith('route broken at ')) return `Pinned route broken at ${hopName(reason.slice(16))}`;
 	if (reason.startsWith('blocked by ')) return `Occluded by ${bodyLabel(reason.slice(11))}`;
 	switch (reason) {
 		case 'no antenna':
@@ -25,6 +26,18 @@ export function linkText(reason: string): string {
 		default:
 			return reason.charAt(0).toUpperCase() + reason.slice(1);
 	}
+}
+
+/** A hop id without the snapshot: a vessel's number, or the id's last part. */
+const hopName = (id: string): string =>
+	id.startsWith('vessel:') ? `vessel ${id.slice(7)}` : bodyLabel(id.replace(/^site:/, ''));
+
+/** A light time for the player: "3.0 s", "120 ms", "4 min 10 s". */
+export function latencyText(seconds: number): string {
+	if (seconds < 1) return `${Math.round(seconds * 1000)} ms`;
+	if (seconds < 60) return `${seconds.toFixed(1)} s`;
+	const m = Math.floor(seconds / 60);
+	return `${m} min ${Math.round(seconds - 60 * m)} s`;
 }
 
 /** What a link reaches: a station's label, or another vessel's name. */
@@ -133,18 +146,27 @@ export function linkBadge(
 			blackout: link.blackout
 		};
 	const partial = link.control === 'partial';
+	// the light time shows once it is noticeable (plan 117, ADR 0188 point 5)
+	const delay = link.latency !== null && link.latency !== undefined && link.latency >= 0.1;
 	return {
 		state: partial ? 'partial' : 'linked',
-		text: `Linked to ${endpointLabel(snapshot, link.to)}`,
+		text: `Linked to ${endpointLabel(snapshot, link.to)}${delay ? ` · ${latencyText(link.latency!)}` : ''}`,
 		bars: partial ? 2 : barsForRate(link.rate),
 		blackout: link.blackout
 	};
 }
 
 export interface CommsTab {
-	route: 'auto';
-	/** The hops from the vessel: itself, then what it reaches (one hop in tier 1). */
+	/** The route mode (plan 117, ADR 0188 point 3). */
+	route: 'auto' | 'manual' | 'policy';
+	/** "Auto", "Pinned", or the policy's label. */
+	routeLabel: string;
+	/** The hops from the vessel: itself, then each hop to the control point. */
 	path: string[];
+	/** The light time along the route, or null. */
+	latency: string | null;
+	/** Route choices for the tab's buttons. */
+	modes: Array<{ id: string; label: string; active: boolean; command: Command }>;
 	linked: boolean;
 	reason: string | null;
 	control: 'full' | 'partial' | 'none';
@@ -161,7 +183,13 @@ export interface CommsTab {
 	endpoints: Array<{ id: string; label: string; body: string; current: boolean }>;
 }
 
-/** The vessel panel's Comms tab (Auto route; Manual comes with plan 117). */
+/** Stock route policies by id (others show their id). */
+const POLICIES: Record<string, string> = {
+	'stock.fewest-hops': 'Fewest hops',
+	'stock.lowest-latency': 'Lowest latency'
+};
+
+/** The vessel panel's Comms tab: the route and its mode (plan 117), the stations, the budget. */
 export function commsTab(
 	snapshot: Pick<Snapshot, 'network' | 'vessels'> | null,
 	vessel: number,
@@ -173,9 +201,33 @@ export function commsTab(
 	const inspector = snapshot.network.inspector;
 	const budget =
 		linked && inspector && Number(inspector.vessel) === vessel ? inspector.budget : null;
+	const mode = link.mode ?? { kind: 'auto' as const };
+	const hops = link.route ?? (link.to ? [link.to] : []);
+	const id = entityId(vessel);
+	const modes: CommsTab['modes'] = [
+		{ id: 'auto', label: 'Auto', active: mode.kind === 'auto', command: { type: 'comms-route', vessel: id, mode: { kind: 'auto' } } },
+		...Object.entries(POLICIES).map(([policy, label]) => ({
+			id: policy,
+			label,
+			active: mode.kind === 'policy' && mode.policy === policy,
+			command: { type: 'comms-route', vessel: id, mode: { kind: 'policy', policy } } as Command
+		}))
+	];
+	if (linked && hops.length > 0)
+		modes.push({
+			id: 'pin',
+			label: mode.kind === 'manual' ? 'Pinned' : 'Pin this route',
+			active: mode.kind === 'manual',
+			command: { type: 'comms-route', vessel: id, mode: { kind: 'manual', via: [...hops] } }
+		});
 	return {
-		route: 'auto',
-		path: linked ? [name, endpointLabel(snapshot, link.to!)] : [name],
+		route: mode.kind,
+		routeLabel:
+			mode.kind === 'auto' ? 'Auto' : mode.kind === 'manual' ? 'Pinned' : (POLICIES[mode.policy] ?? mode.policy),
+		path: linked ? [name, ...hops.map((h) => endpointLabel(snapshot, h))] : [name],
+		latency:
+			linked && link.latency !== null && link.latency !== undefined ? latencyText(link.latency) : null,
+		modes,
 		linked,
 		reason: linked ? null : linkText(link.reason ?? 'out of range'),
 		control: link.control,
@@ -186,7 +238,7 @@ export function commsTab(
 			id: s.id,
 			label: s.label,
 			body: bodyLabel(s.body),
-			current: link.to === s.id
+			current: hops.includes(s.id)
 		}))
 	};
 }

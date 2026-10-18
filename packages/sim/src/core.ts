@@ -21,7 +21,7 @@ import type {
 import type { BodyRuntime } from './bodies.ts';
 import type { TickState } from './tick.ts';
 import type { ObjectivesState } from './objectives.ts';
-import type { SaveContracts, SaveCrew, SaveStrategies } from '@orbital/core';
+import type { SaveComms, SaveContracts, SaveCrew, SaveStrategies } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
@@ -91,6 +91,8 @@ export interface SimCore {
 	readonly science: ScienceRuntime;
 	/** The comms network (plan 114, ADR 0179): derived links, never saved. */
 	readonly comms: CommsRuntime;
+	/** Route modes and the signal-delay queue (plan 117, ADR 0188 point 7); saved. */
+	commsState: SaveComms;
 	/** Crew simulation run-time state (plan 107): last velocities for g-load; not saved. */
 	readonly life: LifeRuntime;
 	/** Orbit prediction for this world's gravity model (plan 080, ADR 0173). */

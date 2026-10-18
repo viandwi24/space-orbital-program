@@ -8,7 +8,7 @@ export { KEPLER_VERSION } from '@orbital/kepler';
 export const SIM_VERSION = '0.1.0';
 
 export { createSim } from './sim.ts';
-export type { Sim, SimOptions } from './sim.ts';
+export type { DispatchOptions, Sim, SimOptions } from './sim.ts';
 export type { TerrainFactory } from './bodies.ts';
 export * from './constants.ts';
 export { recordReplay, verifyReplay, type ReplayRecorder, type ReplayVerdict } from './replay.ts';

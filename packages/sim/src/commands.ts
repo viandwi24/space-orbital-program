@@ -18,6 +18,7 @@ import {
 import {
 	bodyId,
 	commandSchema,
+	DELAYED_COMMANDS,
 	IDENTITY_RULES,
 	padLatLon,
 	resolveVesselDesign,
@@ -32,7 +33,8 @@ import { MAX_WARP } from './constants.ts';
 import { hireCrew, dismissCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
-import { resetStations, signalRefusal } from './comms.ts';
+import { resetStations, setRouteMode, signalRefusal, updateNetwork } from './comms.ts';
+import { delayOf, enqueue, type CommandSource } from './delay.ts';
 import { applyActionGroup } from './actions.ts';
 import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
@@ -53,6 +55,7 @@ import {
 	hasFlightVessels,
 	isControlled,
 	moduleDefOf,
+	moduleState,
 	partOf,
 	vesselIds,
 	vesselOf,
@@ -214,7 +217,43 @@ function loadVessel(
 	return accept(id);
 }
 
-export function dispatch(core: SimCore, raw: unknown): CommandResult {
+/**
+ * `antenna-point` (ADR 0188 point 2): a dish of the vessel points at a target (null: Auto). Never
+ * refused for lack of signal, as antenna toggles are not.
+ */
+function pointAntenna(
+	core: SimCore,
+	vesselId: EntityId,
+	partId: EntityId,
+	target: string | null
+): CommandResult {
+	if (!core.world.has(vesselId, VESSEL)) return refuse(`no vessel ${vesselId}`);
+	if (!vesselOf(core, vesselId).parts.includes(partId))
+		return refuse(`part ${partId} is not on vessel ${vesselId}`);
+	for (const m of partOf(core, partId).modules) {
+		const def = moduleDefOf(core, m.id);
+		if (!def.antenna) continue;
+		const state = moduleState(core, partId, m.id) as { target?: string | null };
+		const a = def.antenna(m.config, state);
+		if (core.registries.antennas.get(a.antenna)?.kind !== 'dish')
+			return refuse('only a dish can be pointed');
+		state.target = target;
+		core.comms.dirty = true;
+		return accept();
+	}
+	return refuse(`part ${partId} has no antenna`);
+}
+
+/**
+ * Validate and apply a command. `source` says who sent it (plan 117, ADR 0188 point 6): the
+ * signal-delay rule may queue a player's (or, under `enforced`, a script's) vessel control
+ * command; `queued` is a command coming off that queue, applied now.
+ */
+export function dispatch(
+	core: SimCore,
+	raw: unknown,
+	source: CommandSource | 'queued' = 'player'
+): CommandResult {
 	const parsed = commandSchema.safeParse(raw);
 	if (!parsed.success) {
 		const issues = parsed.error.issues.map(
@@ -223,6 +262,18 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 		return refuse(`invalid command: ${issues.join('; ')}`);
 	}
 	const command = parsed.data;
+	if (source !== 'queued' && DELAYED_COMMANDS.has(command.type)) {
+		const vessel = (command as { vessel: EntityId }).vessel;
+		if (core.world.has(vessel, VESSEL)) {
+			if (core.comms.dirty || core.comms.last === null) updateNetwork(core);
+			const wait = delayOf(core, command, source);
+			if (wait > 0) {
+				const at = core.t + wait;
+				enqueue(core, command, at);
+				return { ok: true, queued: at };
+			}
+		}
+	}
 	switch (command.type) {
 		case 'throttle': {
 			const v = controllable(core, command.vessel);
@@ -412,6 +463,16 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 			// view state (ADR 0185 point 9): never saved, never refused
 			core.comms.inspect = command.vessel;
 			return accept();
+		case 'comms-route': {
+			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
+			const m = command.mode;
+			if (m.kind === 'policy' && !core.registries.routePolicies.has(m.policy))
+				return refuse(`no route policy "${m.policy}"`);
+			setRouteMode(core, command.vessel, m);
+			return accept();
+		}
+		case 'antenna-point':
+			return pointAntenna(core, command.vessel, command.part, command.target);
 		case 'contract-accept':
 			return acceptContract(core, command.offer);
 		case 'contract-decline':

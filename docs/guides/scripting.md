@@ -208,6 +208,18 @@ const ve = thrust / flow;
 const burn = (dv) => (ship.mass * ve * (1 - Math.exp(-dv / ve))) / thrust;
 ```
 
+## Signal delay (plan 117, ADR 0188)
+
+A probe obeys commands over its comms route, and the world's `stock.signal-delay` rule decides what the light time does.
+
+- **`display`** (the default): nothing waits. The HUD shows the light time (`Linked to Relay · 3.0 s`).
+- **`enforced`:** the script runs on the ground. Its `throttle`, `attitude`, `sas`, `stage`, `action` and `action-group` commands reach the probe after the route's light time, as yours do.
+  - The command result says `queued: <sim time>`.
+  - Plan burns that many seconds early, or use maneuver nodes: planning never waits.
+- **`flight-computer`:** the script runs on board. Its commands apply at once, and only your own commands from the page wait.
+
+Crewed vessels never wait: the crew aboard give the orders.
+
 ## For mod authors
 
 `ship.engines`/`ship.wheels` are built from the part definitions' module configs by shape, so a mod engine with `thrust`, `ispVacuum`, `ispSeaLevel` numbers in its config and a `snapshot` with `ignited`, `throttle`, `flameout` shows up without any scripting-specific code. Design background: `docs/architecture/scripting.md`, ADR 0020 (engine), ADR 0031 (Worker) and ADR 0038 (sandbox frame).

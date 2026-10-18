@@ -3,7 +3,7 @@
  * bands (plan 116, ADR 0185). Stations are the world's sites; the network itself is computed by
  * the sim from these definitions and the rules.
  */
-import { defineAntenna, defineBand, defineModule, z } from '@orbital/sdk';
+import { defineAntenna, defineBand, defineModule, defineRoutePolicy, z } from '@orbital/sdk';
 
 // Values and sources: docs/research/comms.md.
 export const BandUhf = defineBand({
@@ -40,6 +40,32 @@ export const BandOptical = defineBand({
 
 export const STOCK_BANDS = [BandUhf, BandS, BandX, BandKa, BandOptical] as const;
 
+/** Route policies (plan 117, ADR 0188 point 3): pure choices among the candidate routes. */
+export const PolicyFewestHops = defineRoutePolicy({
+	id: 'stock.fewest-hops',
+	label: 'Fewest hops',
+	choose: (routes) => {
+		let best = 0;
+		routes.forEach((r, i) => {
+			if (r.hops.length < routes[best]!.hops.length) best = i;
+		});
+		return best;
+	}
+});
+export const PolicyLowestLatency = defineRoutePolicy({
+	id: 'stock.lowest-latency',
+	label: 'Lowest latency',
+	choose: (routes) => {
+		let best = 0;
+		routes.forEach((r, i) => {
+			if (r.latency < routes[best]!.latency) best = i;
+		});
+		return best;
+	}
+});
+
+export const STOCK_ROUTE_POLICIES = [PolicyFewestHops, PolicyLowestLatency] as const;
+
 /** A small omni antenna: reaches the home system's moon from a tier-1 station. */
 export const AntennaWhip = defineAntenna({
 	id: 'stock.whip',
@@ -70,6 +96,8 @@ export const antennaConfigSchema = z.object({
 export type AntennaConfig = z.output<typeof antennaConfigSchema>;
 export interface AntennaState {
 	enabled: boolean;
+	/** Where a dish points (plan 117, ADR 0188 point 2); null or absent: Auto. */
+	target?: string | null;
 }
 
 /** Puts the part's antenna on the network while enabled (ADR 0179 point 1). */
@@ -77,7 +105,11 @@ export const ModuleAntenna = defineModule({
 	id: 'stock.antenna',
 	config: antennaConfigSchema,
 	state: (): AntennaState => ({ enabled: true }),
-	antenna: (config, state) => ({ antenna: config.antenna, enabled: state.enabled }),
+	antenna: (config, state) => ({
+		antenna: config.antenna,
+		enabled: state.enabled,
+		target: state.target ?? null
+	}),
 	describe: (_config, state) => ({
 		category: 'command',
 		actions: [

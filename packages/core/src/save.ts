@@ -19,12 +19,13 @@ import { saveReliabilitySchema, type SaveReliability } from './reliability.ts';
 import { saveContractsSchema, type SaveContracts } from './contracts.ts';
 import { saveStrategiesSchema, type SaveStrategies } from './strategies.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
+import { routeModeSchema, type RouteMode } from './comms.ts';
 import type { Quat, Vec3 } from './math.ts';
 
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 6;
+export const SIM_SAVE_VERSION = 7;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -124,6 +125,16 @@ export interface SaveWorldTick {
 	streams: Record<string, number>;
 }
 
+/** The saved part of comms (format 7, ADR 0188 point 7). */
+export interface SaveComms {
+	/** Counter of queued commands, for their order. */
+	seq: number;
+	/** Vessels whose route is not Auto. */
+	routes: Array<{ vessel: number; mode: RouteMode }>;
+	/** Commands waiting for their light time under `enforced` or `flight-computer`. */
+	queue: Array<{ at: number; seq: number; command: Record<string, unknown> }>;
+}
+
 export interface SimSave {
 	format: typeof SIM_SAVE_FORMAT;
 	formatVersion: number;
@@ -138,6 +149,11 @@ export interface SimSave {
 	 * home once a Sun sits there. Earlier saves were rooted at home, so the migration takes `bodies[0]`.
 	 */
 	home: string;
+	/**
+	 * Pinned route modes and the signal-delay queue (format 7, plan 117, ADR 0188 point 7). The
+	 * migration from 6 adds an empty one.
+	 */
+	comms: SaveComms;
 	/** Fixed step the run used; a different step would break determinism. */
 	dt: number;
 	/** Seed the sim started with (informational; `rng` is the live state). */
@@ -219,6 +235,13 @@ export const simSaveSchema = z.object({
 	mods: z.array(z.object({ id: z.string().min(1), version: z.string() })),
 	bodies: z.array(z.string().min(1)).min(1),
 	home: z.string().min(1),
+	comms: z.object({
+		seq: z.int().min(0),
+		routes: z.array(z.object({ vessel: z.int(), mode: routeModeSchema })),
+		queue: z.array(
+			z.object({ at: z.number(), seq: z.int().min(0), command: z.record(z.string(), z.unknown()) })
+		)
+	}),
 	dt: finite.refine((d) => d > 0, 'dt must be positive'),
 	seed: finite,
 	time: finite.refine((t) => t >= 0, 'time must not be negative'),
@@ -347,7 +370,9 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 			throw new SaveError('damaged', 'This save is damaged: it lists no bodies.');
 		}
 		return { ...data, formatVersion: 6, home: bodies[0] };
-	}
+	},
+	// format 7 (plan 117, ADR 0188 point 7): routes and the delay queue start empty
+	6: (data) => ({ ...data, formatVersion: 7, comms: { seq: 0, routes: [], queue: [] } })
 };
 
 export class SaveError extends Error {
@@ -436,7 +461,10 @@ export function parseSimSave(text: string): SimSave {
 	try {
 		raw = JSON.parse(text);
 	} catch {
-		throw new SaveError('not-json', 'This file is not valid JSON, so it is not a Space Orbital Program save.');
+		throw new SaveError(
+			'not-json',
+			'This file is not valid JSON, so it is not a Space Orbital Program save.'
+		);
 	}
 	return readSimSave(raw);
 }
