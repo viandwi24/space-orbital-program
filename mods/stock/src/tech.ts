@@ -59,7 +59,7 @@ export const STOCK_TECH = [
 		requires: ['stock.instruments'],
 		milestone: 'orbit:stock.home',
 		description: 'Fly without crew: a probe core and a whip antenna.',
-		unlocks: ['stock.probe-core', 'stock.whip-antenna']
+		unlocks: ['stock.probe-core', 'stock.whip-antenna', 'stock.solar-panel']
 	}),
 	defineTechNode({
 		id: 'stock.aerodynamics',

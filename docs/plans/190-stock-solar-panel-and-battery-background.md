@@ -1,12 +1,12 @@
 ---
 id: 190
 title: "Stock solar panel: electric charge produced on rails through background operations"
-status: draft
-owner: ""
+status: done
+owner: "Agent 1 (Lead)"
 depends: [082]
 phase: 4
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 190 — Stock solar panel: electric charge produced on rails through background operations
@@ -47,15 +47,16 @@ The panel's flight `update` and its `background` must agree. A test compares a v
 
 ## Acceptance criteria
 
-- [ ] `mods/stock` test: over one game day, a vessel on rails and one in flight charge the same amount to within 1 %.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `mods/stock` test: over one game day, a vessel on rails and one in flight charge the same amount to within 1 %.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated.
-- [ ] `docs/journal/190-stock-solar-panel-and-battery-background.md` written.
-- [ ] `guides/writing-a-mod.md`.
+- [x] `docs/STATUS.md` updated.
+- [x] `docs/journal/190-stock-solar-panel-and-battery-background.md` written.
+- [x] `guides/writing-a-mod.md`.
 
 ## Log
 
 - 2026-10-17 — Created as a draft by Agent 3 while refining plan 082: scope that 082 left out.
+- 2026-10-18 — Done by Agent 1 (Lead) on lead/followups: `ModuleSolarPanel` (`mods/stock/src/solar.ts`) and `PartSolarPanel` (Probes node). Sim test `solar.test.ts`: one game day on rails gives 10 825.4 EC and in flight 10 825.5 EC (criterion 1 %). The test lives in `packages/sim/test`, because `mods/stock` tests run without a sim. A fixture keeps the flight vessel awake with a 1e-9 N·m torque.

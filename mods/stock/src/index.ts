@@ -45,6 +45,7 @@ import {
 	PartFlotationCollar,
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
+	STOCK_POWER_PARTS,
 	STOCK_LIFE_SUPPORT_PARTS,
 	PartWing
 } from './parts.ts';
@@ -74,6 +75,7 @@ import { STOCK_FAILURE_MODES } from './reliability.ts';
 import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { PanelScience } from './panels.ts';
+import { ModuleSolarPanel } from './solar.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
 import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
@@ -115,6 +117,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleControlSurface);
 		ctx.modules.register(ModuleWing);
 		ctx.modules.register(ModuleScrubber);
+		ctx.modules.register(ModuleSolarPanel);
 		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
@@ -166,6 +169,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartFlotationCollar);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_POWER_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_EVA_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
 
@@ -200,6 +204,7 @@ export * from './parts.ts';
 export * from './bodies.ts';
 export * from './eva.ts';
 export * from './panels.ts';
+export * from './solar.ts';
 export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';

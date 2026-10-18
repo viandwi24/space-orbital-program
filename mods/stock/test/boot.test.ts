@@ -37,6 +37,7 @@ describe('stock boots through the loader', () => {
 			'stock.reaction-wheel',
 			'stock.resource-container',
 			'stock.scrubber',
+			'stock.solar-panel',
 			'stock.wheel',
 			'stock.wing'
 		]);
@@ -67,6 +68,7 @@ describe('stock boots through the loader', () => {
 			'stock.reaction-wheel',
 			'stock.scrubber',
 			'stock.seismometer',
+			'stock.solar-panel',
 			'stock.strut',
 			'stock.surface-sampler',
 			'stock.tank-medium',
