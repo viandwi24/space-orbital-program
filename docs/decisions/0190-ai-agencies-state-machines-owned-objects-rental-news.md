@@ -36,7 +36,7 @@ The rule `stock.agency-count` exists, but no agency does anything. Plan 126 make
 3. **Owned objects.** A success creates a vessel from a fixed design (probe core and dish, the same for every agency). It is placed on a circular orbit of the home body at the mission's altitude and inclination, at a phase from the stream, and on rails at once.
    - `VesselState.owner` holds the agency id, and the snapshot shows it.
    - The map, Mission Center and targeting see it like any vessel.
-   - It is not the player's: control commands, actions, recovery, staging and nodes for an owned vessel are refused (`owned by <agency name>`). Targeting it is allowed.
+   - It is not the player's: control commands, actions, recovery, staging and nodes for an owned vessel are refused (`owned by <agency name>`). Targeting it is allowed. It never counts for the player's contracts, missions or milestones.
    - Placing an object skips the player's launch price and tech locks.
    - **Limits:** each agency keeps at most 2 objects. The oldest is deorbited when a third would be placed. An object is removed at the end of `lifeDays`. With 4 objects each, the ten-year career bot took 37.9 s against 29.9 s with 2.
    - **Passive:** an agency's object skips the per-chunk work of the rails steps (update hooks, heat, rebasing, SOI checks, debris, milestones). Its fixed circular orbit is read from its rails when needed. Unrented, it is not on the comms network at all.

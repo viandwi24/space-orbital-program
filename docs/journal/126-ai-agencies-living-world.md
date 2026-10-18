@@ -28,7 +28,7 @@
     - an empty network returns at once;
     - the ECS query reuses its answer.
   - **The result:** 28 to 30 s with two objects per agency, faster than the 32 s before agencies. Four objects each took 37.9 s, too close to the 45 s limit in a full run.
-- **Agency objects earned player milestones.** They have a control source, so `collectMilestones` counted their orbits as the player's. They are skipped now.
+- **Agency objects counted for the player.** They have a control source, so `collectMilestones` counted their orbits as the player's milestones. A rival satellite placed after an altitude contract was accepted also finished that contract (caught by `check:affected` in the contracts test). Owned vessels are now left out of milestones and out of the objectives view.
 - **Rent is a fixed price per relay**, not a capacity commodity on the 097 markets. Markets trade goods, and services would need a market of their own.
 - **Mod agencies run in registration order** within `stock.agency-count`. A mod's agency needs to boot before stock or a higher count. A world rule naming agencies is a follow-up.
 - **No rent button in the page yet.** The commands are there, and the Mission Center shows rivals and news. Renting from the vessel card is a follow-up.
@@ -50,5 +50,12 @@
 ## Verification output
 
 ```text
-VERIFICATION
+bun run check:affected        prettier, docs:check, typecheck (11 workspaces + web) pass;
+                              bun test of 10 workspaces: 1627 pass, 2 fail — the patch benchmark (load)
+                              and the contracts deadline test, which showed a rival satellite finishing
+                              the player's contract (fixed: owned vessels are out of the objectives view)
+bun test packages/sim/test/contracts.test.ts packages/sim/test/objectives.test.ts
+         packages/sim/test/agencies.test.ts                     19 pass after the fix
+bun test packages/sim/test/career-bot.test.ts -t "only launches"   1 pass, 28.3 s
+full suite                    CI on the ready/126 commit (ADR 0126)
 ```

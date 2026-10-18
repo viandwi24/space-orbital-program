@@ -107,9 +107,12 @@ export function viewFor(
 	inst: Pick<SaveActiveObjective, 'vessel' | 'since'>
 ): ObjectiveView {
 	const since = inst.since;
+	// only the player's vessels do the work: never an agency's (plan 126, ADR 0190 point 3)
 	const ids = vesselIds(core).filter(
 		(id) =>
-			(inst.vessel === undefined || id === inst.vessel) && (since === undefined || id > since)
+			(inst.vessel === undefined || id === inst.vessel) &&
+			(since === undefined || id > since) &&
+			vesselOf(core, id).owner === undefined
 	);
 	return { time: core.t, home: core.root.def.id, vessels: ids.map((id) => vesselView(core, id)) };
 }
