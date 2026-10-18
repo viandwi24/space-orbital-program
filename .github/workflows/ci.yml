@@ -2,7 +2,7 @@
 # - Handover tags `ready/*` and `ready/prep-*`: the full suite on the tagged commit, then a result ref
 #   `refs/ci/pass/<sha>` or `refs/ci/fail/<sha>` that Agent 1 reads with plain git before a merge.
 # - Pushes to `main`: the full suite after each merge; a push that changes only docs runs docs:check.
-# - Lint checks the files changed since the base, until the one-time repo-wide format (ADR 0126).
+# - Lint checks the whole tree (the one-time repo-wide format of ADR 0126 point 6 was done on 2026-10-18).
 name: CI
 
 on:
@@ -67,8 +67,8 @@ jobs:
         with:
           bun-version: 1.4.x
       - run: bun install --frozen-lockfile
-      - name: lint (changed files)
-        run: bun run check:affected --lint-only --base ${{ needs.scope.outputs.base }}
+      - name: lint
+        run: bun run lint
       - name: generated web assets
         # Git-ignored outputs that `svelte-check` and the tests expect (laptops have them from earlier builds).
         run: |
