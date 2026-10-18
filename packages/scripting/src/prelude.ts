@@ -6,7 +6,7 @@
  *
  * The source must not contain backticks or `${`: it lives in a template literal.
  */
-export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
+export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
 	'use strict';
 	let T = null;
 	let refusals = [];
@@ -191,6 +191,31 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson) {
 	};
 	fixed('setTarget', (spec) => request('target-set', JSON.stringify({ target: targetRef(spec) })));
 	fixed('bodies', bodies);
+	// The debug API (plan 203): only while the world allows debug tools. Each call resolves with the
+	// sim's verdict, like stage(). setOrbit takes { body, apoapsis, periapsis } altitudes (m) or the
+	// elements { body, a, e, i, raan, argp, m0 }; angles in rad.
+	if (debugOn) {
+		const orbitOf = (spec) => {
+			if (typeof spec !== 'object' || spec === null) throw new TypeError('setOrbit needs { body, apoapsis, periapsis } or elements');
+			const body = spec.body === undefined ? needTelemetry().body : spec.body;
+			const angles = { i: spec.i || 0, raan: spec.raan || 0, argp: spec.argp || 0, m0: spec.m0 || 0 };
+			if (spec.apoapsis !== undefined || spec.periapsis !== undefined) {
+				const radius = bodies[body] ? bodies[body].radius : needTelemetry().bodyRadius;
+				const ra = radius + Math.max(spec.apoapsis, spec.periapsis);
+				const rp = radius + Math.min(spec.apoapsis, spec.periapsis);
+				return Object.assign({ body, a: (ra + rp) / 2, e: (ra - rp) / (ra + rp) }, angles);
+			}
+			return Object.assign({ body, a: spec.a, e: spec.e || 0 }, angles);
+		};
+		fixed('debug', Object.freeze({
+			setOrbit: (spec) => request('debug-set-orbit', JSON.stringify({ orbit: orbitOf(spec) })),
+			setLocation: (location) => request('debug-set-location', JSON.stringify({ location })),
+			setResource: (spec) => request('debug-set-resource', JSON.stringify(spec || {})),
+			setTemperature: (spec) => request('debug-set-temperature', JSON.stringify(spec || {})),
+			setCheat: (cheat, on) => request('debug-cheat', JSON.stringify({ cheat, on: on === undefined ? true : on })),
+			log: (...args) => host.print('[debug] ' + args.map(text).join(' '))
+		}));
+	}
 	fixed('print', (...args) => host.print(args.map(text).join(' ')));
 
 	return {

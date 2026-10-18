@@ -22,6 +22,12 @@ export interface ScriptEnvironment {
 	resources: readonly ResourceDefinition[];
 	/** The world's epoch (plan 081): what a host's `date` provider formats from; day 0 when absent. */
 	epoch?: Epoch;
+	/**
+	 * Define the `debug` global (plan 203, ADR 0200 point 9): set orbit, location, resources,
+	 * temperature and cheats on the script's vessel. The host sets it only while the world allows
+	 * debug tools; the sim refuses the commands otherwise anyway. Default false.
+	 */
+	debug?: boolean;
 }
 
 export interface TelemetryPart {

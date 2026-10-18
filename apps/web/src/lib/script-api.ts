@@ -86,6 +86,39 @@ export const GLOBALS: readonly ApiEntry[] = [
 	)
 ];
 
+/**
+ * Members of `debug` (plan 203, ADR 0200 point 9). The global exists only while the world allows
+ * the debug tools (Sandbox, or Debug mode on), so it is not in `GLOBALS`.
+ */
+export const DEBUG: readonly ApiEntry[] = [
+	fn(
+		'setOrbit',
+		'debug.setOrbit({ body?, apoapsis, periapsis } | { body?, a, e, i?, raan?, argp?, m0? }): Promise',
+		'Put this vessel on rails in that orbit; altitudes in m, angles in rad.'
+	),
+	fn(
+		'setLocation',
+		"debug.setLocation({ kind: 'surface' | 'air' | 'site', ... }): Promise",
+		'Put this vessel landed somewhere, or in the air at an altitude and speed.'
+	),
+	fn(
+		'setResource',
+		'debug.setResource({ part?, resource?, fraction? | amount? }): Promise',
+		'Fill, empty or set a tank: every part and resource unless named.'
+	),
+	fn(
+		'setTemperature',
+		'debug.setTemperature({ part?, temperature }): Promise',
+		'Set the skin temperature of a part, or every part, in kelvin.'
+	),
+	fn(
+		'setCheat',
+		"debug.setCheat(cheat, on = true): Promise",
+		"Switch a cheat such as 'infinite-fuel' or 'no-crash-damage'."
+	),
+	fn('log', 'debug.log(...values)', 'Write a line marked [debug] to the panel log.')
+];
+
 /** Members of `ship`. */
 export const SHIP: readonly ApiEntry[] = [
 	value('throttle', 'number 0..1', 'Engine throttle; assign to set it.', true),
