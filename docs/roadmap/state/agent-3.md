@@ -27,7 +27,7 @@
 | 101 strategies | done | `devc/101-strategies` | 2026-10-18 | merged 3608196, cp/f3-101-strategies |
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | done | `devc/117-comms-routing` | 2026-10-18 | merged d2193e9, cp/f4-117-comms-3 |
-| 119 comms-4 | handed-over | `devc/119-comms-queues` | 2026-10-18 | ready/119 |
+| 119 comms-4 | done | `devc/119-comms-queues` | 2026-10-17 | merged f48199b, cp/f4-119-comms-4 |
 | 126 agencies | in-progress | `devc/126-agencies` | 2026-10-18 | claimed |
 | 120 comms-5 | todo |  |  |  |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |

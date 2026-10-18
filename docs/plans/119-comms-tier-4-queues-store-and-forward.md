@@ -1,7 +1,7 @@
 ---
 id: 119
 title: "Comms tier 4: transmission queues, store-and-forward, contact windows"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [117, 083]
 phase: 7

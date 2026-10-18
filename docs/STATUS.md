@@ -127,7 +127,7 @@
 | 116 | [Comms tier 2: link budget, bands, data rates, comms scale](plans/116-comms-tier-2-link-budget.md) | done | Agent 3 | ADR 0185: five bands, antenna band/gain/aperture, the Friis budget and decade rate ladder per link (the tier-1 rule still links), comms scale in the budget, the link inspector in the Comms tab; handed over as `ready/116` |
 | 117 | [Comms tier 3: pointing, routing, latency and the signal-delay rule](plans/117-comms-tier-3-routing-latency-delay.md) | done | Agent 3 | ADR 0188: relays and widest-path routes (Auto, pinned, policies), dish pointing, shared capacity, light time, the signal-delay queue (enforced, flight computer), save format 7; handed over as `ready/117` |
 | 118 | [Comms planning tools: contact timeline, coverage map, constellation planner](plans/118-comms-planning-tools.md) | draft | — | ADR 0101 tier 3 tools: timeline, coverage, planner |
-| 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | in-progress | Agent 3 | ADR 0189: transmission queues by priority at the route's rate, store-and-forward custody, delivery with science on arrival, next contacts and arrival times, save format 8; handed over as `ready/119` |
+| 119 | [Comms tier 4: transmission queues, store-and-forward, contact windows](plans/119-comms-tier-4-queues-store-and-forward.md) | done | Agent 3 | ADR 0189: transmission queues by priority at the route's rate, store-and-forward custody, delivery with science on arrival, next contacts and arrival times, save format 8; handed over as `ready/119` |
 | 120 | [Comms tier 5: channels, frequency licences, interference, encryption](plans/120-comms-tier-5-channels-licences-interference.md) | draft | — | ADR 0101 tier 5: channels, licences, interference |
 | 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
 | 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | done | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
@@ -212,6 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [119-comms-tier-4-queues-store-and-forward.md](journal/119-comms-tier-4-queues-store-and-forward.md)
 - [125-n-body-gravity-model.md](journal/125-n-body-gravity-model.md)
 - [117-comms-tier-3-routing-latency-delay.md](journal/117-comms-tier-3-routing-latency-delay.md)
 - [063-aeroplane-gameplay.md](journal/063-aeroplane-gameplay.md)

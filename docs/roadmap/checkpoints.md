@@ -59,7 +59,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f4-115-comms-1-ui` | 115 | A2 | A1, A3 (070, 116) | done | 55ca2da | 2026-10-17 |
 | `cp/f4-116-comms-2` | 116 | A3 | A1, A3 (070, 117) | done | 960984c | 2026-10-17 |
 | `cp/f4-117-comms-3` | 117 | A3 | A1, A2, A3 (070, 118, 119, 126) | done | d2193e9 | 2026-10-17 |
-| `cp/f4-119-comms-4` | 119 | A3 | A1, A3 (070, 120, 129) | pending | | |
+| `cp/f4-119-comms-4` | 119 | A3 | A1, A3 (070, 120, 129) | done | f48199b | 2026-10-17 |
 | `cp/f4-118-comms-tools` | 118 | A2 | A1 (070) | pending | | |
 | `cp/f4-120-comms-5` | 120 | A3 | A1, A3 (070, 121) | pending | | |
 | `cp/f4-121-comms-6` | 121 | A3 | A1 (070) | pending | | |
