@@ -1,7 +1,7 @@
 ---
 id: 120
 title: "Comms tier 5: channels, frequency licences, interference, encryption"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [119]
 phase: 7
