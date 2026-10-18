@@ -116,10 +116,15 @@
 		center?.setGhost({ size: def.size, cell, rotation: build.rotation, valid: check.valid });
 	}
 
+	/** After an accepted change: the world's save at once, the record once the snapshot has it. */
+	function changed(): void {
+		// the funds and construction live in the world's save; a launch continues it (ADR 0123, 0152)
+		if (base) void saves.autosave();
+		setTimeout(() => void persist(), 300);
+	}
+
 	async function persist(): Promise<void> {
 		if (!site) return;
-		// the funds and construction live in the world's save; a launch continues it (ADR 0123, 0152)
-		if (base) await saves.autosave();
 		const sites = sitesOf(world ?? { sites: [] }).map((s, i) =>
 			i === 0 ? { ...s, buildings: site!.buildings, roads: site!.roads } : s
 		);
@@ -141,8 +146,8 @@
 		if (r && !r.ok) problem = r.reason;
 		else if (r?.ok) {
 			problem = null;
-			// the next snapshot carries the new building; write the record once it has
-			setTimeout(() => void persist(), 300);
+			// the next snapshot carries the new building; the record is written once it has
+			changed();
 		}
 	}
 
@@ -151,7 +156,7 @@
 		if (r && !r.ok) problem = r.reason;
 		else {
 			problem = null;
-			setTimeout(() => void persist(), 300);
+			changed();
 		}
 	}
 
@@ -160,7 +165,7 @@
 		if (r && !r.ok) problem = r.reason;
 		else {
 			selected = null;
-			setTimeout(() => void persist(), 300);
+			changed();
 		}
 	}
 
