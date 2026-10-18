@@ -121,6 +121,21 @@ export const RuleLifeSupport = defineRule({
 	presets: byMode('off', 'simple', 'simple', 'full'),
 	changeable: true
 });
+/**
+ * Who may use the debug panel and API (plan 203, ADR 0212 point 1): Sandbox always, Science and
+ * Career after Debug mode is turned on, Hardcore never (default per owner review, rancangan §15 #14).
+ */
+export const RuleDebugTools = defineRule({
+	id: 'stock.debug-tools',
+	label: 'Debug tools',
+	category: 'world',
+	description: 'Cheats and set-state tools: always, after turning on Debug mode, or never.',
+	type: 'enum',
+	values: ['always', 'opt-in', 'locked'],
+	default: 'opt-in',
+	presets: byMode('always', 'opt-in', 'opt-in', 'locked'),
+	changeable: false
+});
 export const RuleCrewMorale = defineRule({
 	id: 'stock.crew-morale',
 	label: 'Morale',
@@ -300,7 +315,8 @@ export const STOCK_RULES = [
 	RuleRangeSafety,
 	RuleReliability,
 	RuleAgencyType,
-	RuleAgencyCount
+	RuleAgencyCount,
+	RuleDebugTools
 ] as const;
 
 export const PresetSandbox = definePreset({

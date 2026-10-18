@@ -235,6 +235,8 @@ export interface Snapshot {
 	t: number;
 	vessels: VesselSnapshot[];
 	bodies: BodySnapshot[];
+	/** The world's debug state (plan 203). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	debug?: DebugSnapshot;
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
 	rules?: Readonly<Record<string, boolean | number | string>>;
 	/** Contract slots, offers and accepted generated contracts (plan 099, ADR 0186); absent before any. */
@@ -490,6 +492,67 @@ export type VesselPlacement =
 			pad?: number;
 	  };
 
+/**
+ * Debug cheats (plan 203, ADR 0200 point 2): switches in the world's state that the sim reads.
+ * `unbreakable-joints` has no effect until joints can break; it is kept for parity with KSP.
+ */
+export const DEBUG_CHEATS = [
+	'infinite-fuel',
+	'infinite-electricity',
+	'infinite-monopropellant',
+	'no-crash-damage',
+	'ignore-temperature',
+	'unbreakable-joints',
+	'comms-without-signal',
+	'infinite-life-support',
+	'instant-construction'
+] as const;
+export type DebugCheat = (typeof DEBUG_CHEATS)[number];
+
+/** Who may use the debug tools in a world (rule `stock.debug-tools`, ADR 0212 point 1). */
+export type DebugAccess = 'always' | 'opt-in' | 'locked';
+
+/** Where `debug-set-orbit` puts a vessel: elements around a body, epoch now (rad and m). */
+export interface DebugOrbit {
+	body: BodyId;
+	/** Semi-major axis, m (negative for a hyperbola). */
+	a: number;
+	e: number;
+	i: number;
+	raan: number;
+	argp: number;
+	/** Mean anomaly now, rad. */
+	m0: number;
+}
+
+/** Where `debug-set-location` puts a vessel (ADR 0200 point 4). Angles in rad; altitude above the reference sphere, m. */
+export type DebugLocation =
+	| { kind: 'site'; site: string; pad?: number }
+	| { kind: 'surface'; body?: BodyId; latitude: number; longitude: number }
+	| {
+			/** In the air at `altitude`, moving `speed` m/s relative to the ground towards `heading` (from north), climbing at `climb` rad. */
+			kind: 'air';
+			body?: BodyId;
+			latitude: number;
+			longitude: number;
+			altitude: number;
+			speed: number;
+			heading?: number;
+			climb?: number;
+	  };
+
+/** The world's debug state as the sim reports it (plan 203, ADR 0212). */
+export interface DebugSnapshot {
+	access: DebugAccess;
+	/** Debug mode is on (always true where access is `always`). */
+	mode: boolean;
+	/** Whether a debug command is accepted now: `always`, or `opt-in` with the mode on. */
+	allowed: boolean;
+	/** The world used a debug tool at least once; never cleared. */
+	usedCheats: boolean;
+	cheats: DebugCheat[];
+}
+
 export type Command =
 	| { type: 'throttle'; vessel: EntityId; value: number }
 	| { type: 'attitude'; vessel: EntityId; pitch: number; yaw: number; roll: number }
@@ -664,7 +727,33 @@ export type Command =
 	/** Pay for a fix of an anomaly report: halves its mode's chance on that model. */
 	| { type: 'fix-anomaly'; report: string }
 	/** An engineer in `suit` repairs a failed module on `part` of `vessel`. */
-	| { type: 'repair'; suit: EntityId; vessel: EntityId; part: EntityId };
+	| { type: 'repair'; suit: EntityId; vessel: EntityId; part: EntityId }
+	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0212); on marks the world "used cheats". */
+	| { type: 'debug-mode'; on: boolean }
+	/** Switch one cheat (ADR 0200 point 2). */
+	| { type: 'debug-cheat'; cheat: DebugCheat; on: boolean }
+	/** Add funds, science or reputation; `tech` researches every node of the tree. */
+	| { type: 'debug-grant'; funds?: number; science?: number; reputation?: number; tech?: boolean }
+	/** Put `vessel` on rails at `orbit`, or spawn `design` there (exactly one of the two). */
+	| { type: 'debug-set-orbit'; vessel?: EntityId; design?: VesselDesign; orbit: DebugOrbit }
+	/** Put `vessel` landed at a site or coordinates, or in the air with a velocity. */
+	| { type: 'debug-set-location'; vessel: EntityId; location: DebugLocation }
+	/**
+	 * Set the amount of `resource` (every resource when absent) in `part` (every part when absent):
+	 * `fraction` of capacity, or an exact `amount` per store.
+	 */
+	| {
+			type: 'debug-set-resource';
+			vessel: EntityId;
+			part?: EntityId;
+			resource?: string;
+			fraction?: number;
+			amount?: number;
+	  }
+	/** Set the skin temperature of `part` (every part when absent), K. */
+	| { type: 'debug-set-temperature'; vessel: EntityId; part?: EntityId; temperature: number }
+	/** Set a crew member's level. */
+	| { type: 'debug-set-crew-level'; member: string; level: number };
 
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =

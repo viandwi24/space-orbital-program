@@ -4,6 +4,7 @@
  * Tier 2 (plan 116, ADR 0185): each link's Friis budget and rate on the best common band.
  * Links are derived: they live beside the world, are never saved, and are recomputed on resume.
  */
+import { cheatOn } from './cheats.ts';
 import { isFailed } from './reliability.ts';
 import { queuesSnapshot, stepTransmissions } from './transmission.ts';
 import { routable } from './agencies.ts';
@@ -472,7 +473,7 @@ function linkOf(
 }
 
 function controlFor(core: SimCore, node: Node, linked: boolean): ControlState {
-	if (!node.probe || linked) return 'full';
+	if (!node.probe || linked || cheatOn(core, 'comms-without-signal')) return 'full';
 	const rule = ruleOf(core, COMMS_RULES.controlWithoutSignal);
 	return rule === 'partial' || rule === 'none' ? rule : 'full';
 }
@@ -1159,7 +1160,7 @@ const REFUSED: Record<ControlState, ReadonlySet<string>> = {
  * up to date first when it is dirty (a command is an input, so this stays deterministic).
  */
 export function signalRefusal(core: SimCore, id: EntityId, command: string): string | undefined {
-	if (!commsOn(core)) return undefined;
+	if (!commsOn(core) || cheatOn(core, 'comms-without-signal')) return undefined;
 	if (core.comms.dirty || core.comms.last === null) updateNetwork(core);
 	const link = core.comms.links.get(id);
 	if (!link || !REFUSED[link.control].has(command)) return undefined;

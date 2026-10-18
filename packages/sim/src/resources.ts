@@ -5,6 +5,7 @@
  */
 import type { EntityId } from '@orbital/core';
 import { moduleDefOf, moduleState, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
+import { infiniteResource } from './cheats.ts';
 import type { VesselState } from './state.ts';
 
 /**
@@ -116,6 +117,8 @@ export function withdrawResource(
 	amount: number
 ): number {
 	checkAmount(amount);
+	// a cheat (plan 203): the draw is granted and the stores keep their contents
+	if (infiniteResource(core, resource)) return amount;
 	let remaining = amount;
 	return eachStore(
 		core,

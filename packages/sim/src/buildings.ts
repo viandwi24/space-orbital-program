@@ -2,6 +2,7 @@
  * Buildings on sites in the sim (plan 090, ADR 0115): `place-building` and `remove-building`,
  * validated by core's `canPlace`, and the snapshot view. The site list lives in the world info.
  */
+import { cheatOn } from './cheats.ts';
 import {
 	canPlace,
 	cloneData,
@@ -100,7 +101,8 @@ function construction(
 	buildDays: number,
 	working: 'building' | 'upgrading' = 'building'
 ): Pick<PlacedBuilding, 'state' | 'readyDay'> {
-	if (!economyOn(core) || buildDays <= 0) return { state: 'active' };
+	if (!economyOn(core) || buildDays <= 0 || cheatOn(core, 'instant-construction'))
+		return { state: 'active' };
 	return { state: working, readyDay: core.ticks.lastDay + Math.ceil(buildDays) };
 }
 

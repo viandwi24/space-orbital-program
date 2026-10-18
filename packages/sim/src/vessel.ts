@@ -26,6 +26,7 @@ import {
 	vesselOf,
 	type SimCore
 } from './core.ts';
+import { cheatOn } from './cheats.ts';
 import { loseCrew } from './crew.ts';
 import {
 	bodyMotion,
@@ -609,6 +610,7 @@ export function destroyVessel(core: SimCore, vesselId: EntityId, reason: string)
  */
 export function damagePart(core: SimCore, hit: GroundImpact): void {
 	if (!core.world.hasEntity(hit.part)) return;
+	if (cheatOn(core, 'no-crash-damage')) return;
 	const def = partDefOf(core, partOf(core, hit.part));
 	const outcome = impactOutcome(hit.speed, def.impactTolerance ?? DEFAULT_IMPACT_TOLERANCE);
 	if (!outcome) return;
@@ -633,6 +635,7 @@ export function damagePart(core: SimCore, hit: GroundImpact): void {
  */
 export function burnPart(core: SimCore, hit: Overheat): void {
 	if (!core.world.hasEntity(hit.part)) return;
+	if (cheatOn(core, 'ignore-temperature')) return;
 	const def = partDefOf(core, partOf(core, hit.part));
 	loosePart(core, hit.part);
 	core.events.emit('part:damaged', {

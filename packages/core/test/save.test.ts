@@ -250,3 +250,24 @@ describe('format 5: the world info (plan 077, ADR 0110)', () => {
 		}
 	});
 });
+
+describe('the debug state in the world info (plan 203, ADR 0212)', () => {
+	test('a format-8 save without it reads as never used', () => {
+		const save = readSimSave(signed());
+		expect(save.worldInfo.debug).toBeUndefined();
+	});
+
+	test('a save with it round-trips', () => {
+		const u = unsigned();
+		u.worldInfo = {
+			...u.worldInfo,
+			debug: { mode: true, usedCheats: true, cheats: ['infinite-fuel'] }
+		};
+		const save = signed(u);
+		expect(readSimSave(JSON.parse(JSON.stringify(save))).worldInfo.debug).toEqual({
+			mode: true,
+			usedCheats: true,
+			cheats: ['infinite-fuel']
+		});
+	});
+});

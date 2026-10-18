@@ -53,7 +53,15 @@ export const worldInfoSchema = z.object({
 				to: z.union([z.boolean(), z.number(), z.string()])
 			})
 		)
-		.default([])
+		.default([]),
+	/** Plan 203 (ADR 0212): additive in format 8, so a save without it reads as never used. */
+	debug: z
+		.object({
+			mode: z.boolean(),
+			usedCheats: z.boolean(),
+			cheats: z.array(z.string().min(1))
+		})
+		.optional()
 });
 
 export const resourceDefinitionSchema = z.object({

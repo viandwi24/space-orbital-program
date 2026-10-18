@@ -9,6 +9,7 @@ import * as z from 'zod';
 import { entityId, partId, bodyId } from './ids.ts';
 import { definitionIdSchema } from './schemas.ts';
 import {
+	DEBUG_CHEATS,
 	MAX_NODE_DV,
 	SAS_MODES,
 	type Command,
@@ -23,6 +24,7 @@ const quat = z
 	.refine((q) => Math.hypot(q.x, q.y, q.z, q.w) > 0, 'quaternion must not be zero');
 const nodeName = z.string().min(1);
 const index = z.int().nonnegative();
+const finite = z.number().finite();
 
 export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
@@ -262,5 +264,80 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('static-fire'), part: z.string().min(1) }),
 	z.object({ type: z.literal('fix-anomaly'), report: z.string().min(1) }),
-	z.object({ type: z.literal('repair'), suit: entity, vessel: entity, part: entity })
+	z.object({ type: z.literal('repair'), suit: entity, vessel: entity, part: entity }),
+	z.object({ type: z.literal('debug-mode'), on: z.boolean() }),
+	z.object({ type: z.literal('debug-cheat'), cheat: z.enum(DEBUG_CHEATS), on: z.boolean() }),
+	z.object({
+		type: z.literal('debug-grant'),
+		funds: finite.optional(),
+		science: finite.optional(),
+		reputation: finite.optional(),
+		tech: z.boolean().optional()
+	}),
+	z
+		.object({
+			type: z.literal('debug-set-orbit'),
+			vessel: entity.optional(),
+			design: vesselDesignSchema.optional(),
+			orbit: z.object({
+				body: definitionIdSchema.transform(bodyId),
+				a: finite,
+				e: finite.min(0),
+				i: finite,
+				raan: finite,
+				argp: finite,
+				m0: finite
+			})
+		})
+		.refine(
+			(c) => (c.vessel === undefined) !== (c.design === undefined),
+			'give exactly one of vessel and design'
+		),
+	z.object({
+		type: z.literal('debug-set-location'),
+		vessel: entity,
+		location: z.discriminatedUnion('kind', [
+			z.object({ kind: z.literal('site'), site: z.string().min(1), pad: index.optional() }),
+			z.object({
+				kind: z.literal('surface'),
+				body: definitionIdSchema.transform(bodyId).optional(),
+				latitude: finite,
+				longitude: finite
+			}),
+			z.object({
+				kind: z.literal('air'),
+				body: definitionIdSchema.transform(bodyId).optional(),
+				latitude: finite,
+				longitude: finite,
+				altitude: finite.min(0),
+				speed: finite.min(0),
+				heading: finite.optional(),
+				climb: finite.optional()
+			})
+		])
+	}),
+	z
+		.object({
+			type: z.literal('debug-set-resource'),
+			vessel: entity,
+			part: entity.optional(),
+			resource: z.string().min(1).optional(),
+			fraction: finite.min(0).max(1).optional(),
+			amount: finite.min(0).optional()
+		})
+		.refine(
+			(c) => (c.fraction === undefined) !== (c.amount === undefined),
+			'give exactly one of fraction and amount'
+		),
+	z.object({
+		type: z.literal('debug-set-temperature'),
+		vessel: entity,
+		part: entity.optional(),
+		temperature: finite.min(0)
+	}),
+	z.object({
+		type: z.literal('debug-set-crew-level'),
+		member: z.string().min(1),
+		level: z.int().min(0).max(10)
+	})
 ]);
