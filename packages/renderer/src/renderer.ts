@@ -136,6 +136,8 @@ export interface Renderer {
 	toggleMapView(): boolean;
 	readonly isMapView: boolean;
 	setActiveVessel(id: EntityId | null): void;
+	/** Rim-light one part of any vessel, or none (plan 111, ADR 0153 point 5). */
+	highlightPart(id: EntityId | null): void;
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void;
 	/**
 	 * Screen position of a point in the sim's inertial frame (a body's `position` plus a vessel's
@@ -507,6 +509,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			return model.isMapView;
 		},
 		setActiveVessel: (id) => model.setActiveVessel(id),
+		highlightPart: (id) => model.highlightPart(id),
 		orbitCamera: (input) => model.orbitCamera(input),
 		project: (world) => model.project(world),
 		setSiteView: (on) => model.setSiteView(on),

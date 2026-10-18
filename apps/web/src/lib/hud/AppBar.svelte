@@ -13,6 +13,7 @@
 		scriptRunning,
 		staging = true,
 		dock = true,
+		vessel = false,
 		nav = true,
 		onmenu,
 		onmap,
@@ -20,6 +21,7 @@
 		onhelp,
 		onstaging,
 		ondock,
+		onvessel,
 		onnav
 	}: {
 		map: boolean;
@@ -29,6 +31,8 @@
 		staging?: boolean;
 		/** The panel dock is shown (plan 112). */
 		dock?: boolean;
+		/** The vessel panel is open (plan 111). */
+		vessel?: boolean;
 		/** The navball module is shown. */
 		nav?: boolean;
 		onmenu: () => void;
@@ -37,6 +41,7 @@
 		onhelp: () => void;
 		onstaging?: () => void;
 		ondock?: () => void;
+		onvessel?: () => void;
 		onnav?: () => void;
 	} = $props();
 
@@ -76,9 +81,11 @@
 	<button
 		type="button"
 		class="tb"
+		class:on={vessel}
 		aria-label="Vessel panel"
-		title={later('The vessel panel', 111)}
-		disabled><Icon name="vessel" size={18} /></button
+		aria-pressed={vessel}
+		title="Vessel panel"
+		onclick={onvessel}><Icon name="vessel" size={18} /></button
 	>
 	<button
 		type="button"
