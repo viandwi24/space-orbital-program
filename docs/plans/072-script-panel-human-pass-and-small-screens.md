@@ -66,3 +66,4 @@ Refined 2026-10-18 by Agent 2 ([ADR 0162](../decisions/0162-script-editor-second
 - 2026-10-17 — Plan 055 (phone session) fixed item 2 for tablets at 1024x768 and 1180x820 (the script panel and guide scroll above the measured instrument deck; the touch throttle sits beside the open panel; panels are above the touch overlay; `e2e/mobile.e2e.ts` guards it). What remains here is the human pass (item 1) and item 3.
 - 2026-10-17 — Created as draft by plan 058.
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0102, 0107: run after the script panel moves into the dock).
+- 2026-10-18 — Code merged by Agent 1 (bun test 1704 pass, web vitest 1037 pass, typecheck, build, docs:check, smoke 7 passed, editor and mobile e2e 20 passed in Chromium and WebKit); the plan stays `blocked` on the owner's two human steps, its checkpoint pending until they are done.
