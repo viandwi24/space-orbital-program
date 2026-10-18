@@ -47,6 +47,8 @@ export interface Catalog {
 	home?: string;
 	/** Seed and flat zones of each later hills body (plan 071, ADR 0121); only the sim's `ready`. */
 	bodyTerrain?: Record<string, { seed: number; zones: TerrainZone[] }>;
+	/** Registered antennas, for the comms planning tools (plan 118, ADR 0163 point 3); only the sim's `ready`. */
+	antennas?: Array<{ id: string; label: string; range: number }>;
 }
 
 /** Script lifecycle as the page sees it: the runner's statuses plus the two the host adds. */

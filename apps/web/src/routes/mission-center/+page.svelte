@@ -9,6 +9,7 @@
 		formatDate,
 		homeBodyOf,
 		type BodyDefinition,
+		type PartDefinition,
 		type Epoch,
 		type Snapshot,
 		type Vec3
@@ -43,12 +44,17 @@
 	import { spreadLabels } from '../../lib/space-center/model';
 	import { projectNetwork, type ScreenNetwork } from '../../lib/comms/network-model';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
+	import CommsPlanningPanel from '../../lib/comms-planning/CommsPlanningPanel.svelte';
+	import type { Antenna } from '../../lib/comms-planning/planning-model';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
 
 	let canvas: HTMLCanvasElement;
 	let mc: MissionCenter | null = null;
 	let loaded: GameSave | undefined;
 	let bodies = $state.raw<BodyDefinition[]>([]);
+	let parts = $state.raw<PartDefinition[]>([]);
+	let antennas = $state.raw<Antenna[]>([]);
+	let planningOpen = $state(false);
 	let epoch: Epoch | undefined;
 	let snapshot = $state.raw<Snapshot | null>(null);
 	let warp = $state(1);
@@ -223,6 +229,8 @@
 				focus,
 				onReady: (c) => {
 					bodies = c.bodies;
+					parts = c.parts;
+					antennas = c.antennas ?? [];
 					epoch = c.epoch;
 				},
 				onSnapshot,
@@ -269,7 +277,19 @@
 		{labels}
 		{network}
 		{note}
-	/>
+		{planningOpen}
+		onplanning={snapshot?.network ? () => (planningOpen = !planningOpen) : undefined}
+	>
+		{#snippet planning()}
+			<CommsPlanningPanel
+				{snapshot}
+				{bodies}
+				{parts}
+				{antennas}
+				onclose={() => (planningOpen = false)}
+			/>
+		{/snippet}
+	</MissionCenterOverlay>
 </main>
 
 <style>
