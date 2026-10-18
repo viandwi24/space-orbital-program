@@ -1,12 +1,12 @@
 ---
 id: 117
 title: "Comms tier 3: pointing, routing, latency and the signal-delay rule"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [116, 078]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 117 — Comms tier 3: pointing, routing, latency and the signal-delay rule
