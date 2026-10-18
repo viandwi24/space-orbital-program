@@ -32,3 +32,4 @@ ADR 0096 asks for a `world-tick` phase once per game day at the exact boundary, 
 - **Mod API:** phase `world-tick`, `SystemDefinition.order`, `SystemContext.tick`, `ModuleDefinition.background`, event `world:tick`: additive, `API_VERSION` patch bump.
 - **Performance:** a tick costs the background calls for vessels on rails plus the world systems. Plan 082 measures 1 000 ticks with 50 vessels. At warp 1e6 a 10 s chunk covers about 46 stock days, all run in order.
 - Plans 095, 098, 102, 106, 114, 126 and 128 register on this tick.
+- **Extended by ADR 0213** (plan 208): `VesselApi.sunExposure` lets a `background` hook integrate sunlight over its interval along the rails path.
