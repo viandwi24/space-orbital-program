@@ -586,7 +586,7 @@ ctx.failureModes.register(defineFailureMode({
 - A failed module stops working by itself: its `update`, `updateOnRails`, `onStage` and `controlAuthority` are not called, its actions are refused and described as `Failed: <label>`, and a failed antenna is off. Your module needs no code for it.
 - Listen to `part:failed { vessel, part, module, mode, time }`. Draws come from the sim's own `reliability` stream, so a replay fails the same way.
 
-## Wheels, flaps and aircraft (API 0.1.65, plan 063, ADR 0161)
+## Wheels, flaps and aircraft (API 0.1.66, plan 063, ADR 0161)
 
 - **A wheel** is a module collider with a `wheel` field: `colliders: (config, state) => [{ offset, halfExtents, wheel: { rolling: 0.02, grip: 0.8, brake: state.brakes ? 1 : 0, steer: 0.35 } }]`. Its box is frictionless; the sim applies rolling resistance, side grip and brakes at its ground contact, rolling along the part's +Y (the nose of a level craft), steered by the yaw demand times `steer` (rad). `stock.wheel` and `stock.wheel-steer` (`ModuleWheel`) are examples; hang them radially under a fuselage (radial angle π/2 points down for a craft with +Z up).
 - **Flaps**: the stock wing takes `flapLift`, `flapDrag` and `flapStall` (degrees) and gets a `Flaps` mode action (up, half, full) in the `stock.flaps` group.
