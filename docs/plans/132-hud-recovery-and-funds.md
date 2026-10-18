@@ -1,12 +1,12 @@
 ---
 id: 132
 title: "HUD: funds read-out and the recovery dialog"
-status: draft
-owner: ""
+status: done
+owner: "Agent 1 (Lead)"
 depends: [095, 088]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 132 — HUD: funds read-out and the recovery dialog
@@ -41,16 +41,17 @@ The flight HUD shows the world's funds when the economy is on, and a landed vess
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest: with `recovery` in the snapshot the dialog shows value, factor and credit; without it there is no Recover button; with the economy off the funds capsule is hidden.
-- [ ] Chromium e2e: in a Career world a vessel recovered on the pad credits 0.98 of its value and the HUD funds change by that amount.
-- [ ] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `apps/web` vitest: with `recovery` in the snapshot the dialog shows value, factor and credit; without it there is no Recover button; with the economy off the funds capsule is hidden.
+- [x] Chromium e2e: in a Career world a vessel recovered on the pad credits 0.98 of its value and the HUD funds change by that amount.
+- [x] `bun run test`, web vitest, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/132-hud-recovery-and-funds.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/132-hud-recovery-and-funds.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped.
 
 ## Log
 
 - 2026-10-17 — Created by Agent 1 as scope pushed out of plan 095 (the HUD side of recovery).
+- 2026-10-18 — Done by Agent 1 (Lead) on lead/followups: `FlightHud.funds` and `.recovery`, `Flight.recover()`, `FundsCapsule`, `RecoverDialog` (lines from `recovery-model`); a recovered flight saves without its vessel. Vitest `hud/recovery.test.ts` (3) and Chromium `e2e/recovery.e2e.ts` (credit 98 % on the pad, the next launch pays credit / 0.98) pass; the full suite runs once at the end of the follow-up batch.

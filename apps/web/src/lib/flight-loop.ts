@@ -110,6 +110,10 @@ export interface FlightHud {
 	eva: { suit: number; name: string; walking: boolean; radio?: RadioBars } | null;
 	/** Firsts that may still be broadcast live (plan 121, ADR 0193 point 5). */
 	broadcasts: BroadcastOffer[];
+	/** The world's funds with the economy on, else null (plan 132). */
+	funds: number | null;
+	/** The focused vessel's recovery quote while it can be recovered (plan 132, ADR 0113 point 6). */
+	recovery: { value: number; factor: number; distance: number | null; credit: number } | null;
 }
 
 export interface FlightOptions {
@@ -201,6 +205,11 @@ export interface Flight {
 	setThrottle(value: number): void;
 	/** Everything a save needs from the running flight (plan 043); rejects when there is no vessel to save. */
 	collectSave(): Promise<SaveRequest>;
+	/**
+	 * Recover the focused vessel (plan 132): `recover-vessel`, then the flight can still be saved
+	 * without a focus, so the credit is in the world's newest save.
+	 */
+	recover(): Promise<{ ok: true; credit: number } | { ok: false; reason: string }>;
 	/** While a dialog is open the flight keys do nothing. */
 	setModal(open: boolean): void;
 	/** Pixels of the view the interface panels cover; the camera centres the vessel in the rest (plan 023). */
@@ -244,6 +253,8 @@ export function startFlight(options: FlightOptions): Flight {
 	let caughtUp = false;
 	let vessel: EntityId | null = null;
 	let snap: Snapshot | null = null;
+	/** The focused vessel was recovered (plan 132): no quote any more, saves have no focus. */
+	let recovered = false;
 	/** Whether the vessel is still in the sim; only snapshots taken after the load count (plan 047). */
 	const presence = createVesselPresence();
 	let dirty = false;
@@ -264,7 +275,9 @@ export function startFlight(options: FlightOptions): Flight {
 		map: false,
 		autopilot: null,
 		eva: null,
-		broadcasts: []
+		broadcasts: [],
+		funds: null,
+		recovery: null
 	};
 	// Dev-only cost counters for the HUD (journal 021): per-frame paint and 10 Hz model build.
 	const stats = {
@@ -708,7 +721,7 @@ export function startFlight(options: FlightOptions): Flight {
 			lastHud = now;
 			if (catalog && vessel !== null && snap) {
 				hud.telemetry = computeTelemetry(snap, vessel, catalog.bodies);
-				if (presence.lost() && hud.status === 'flying') {
+				if (presence.lost() && hud.status === 'flying' && !recovered) {
 					hud.status = 'lost';
 					hud.message = 'the vessel was destroyed';
 				}
@@ -720,6 +733,10 @@ export function startFlight(options: FlightOptions): Flight {
 			if (snap) {
 				if (hud.eva) hud.eva = { ...hud.eva, radio: suitRadio(snap, hud.eva.suit) };
 				hud.broadcasts = broadcastOffers(snap);
+				// funds and the recovery quote (plan 132)
+				hud.funds = snap.economy?.enabled ? snap.economy.funds : null;
+				const quote = snap.vessels.find((v) => Number(v.id) === Number(vessel))?.recovery;
+				hud.recovery = quote && !recovered ? { ...quote } : null;
 			}
 			const m = hud.model;
 			const soi = snap?.vessels.find((v) => Number(v.id) === Number(vessel))?.soi;
@@ -1059,7 +1076,22 @@ export function startFlight(options: FlightOptions): Flight {
 			client.stopScript();
 			options.sandbox?.close();
 		},
+		async recover() {
+			if (vessel === null) return { ok: false, reason: 'there is no vessel to recover' };
+			const credit = hud.recovery?.credit ?? 0;
+			const r = await client.dispatch({ type: 'recover-vessel', vessel });
+			if (!r.ok) return { ok: false, reason: r.reason };
+			recovered = true;
+			hud.recovery = null;
+			return { ok: true, credit };
+		},
 		async collectSave() {
+			if (recovered && catalog) {
+				// after a recovery the world is saved without a focus vessel (plan 132)
+				const body = homeOfCatalog(catalog);
+				const sim = await client.save();
+				return { sim, focus: null, design, thumbnail: null, bodyRadius: body?.radius ?? 0 };
+			}
 			if (vessel === null || !catalog || !renderer || hud.status !== 'flying') {
 				throw new Error('There is no flight to save yet.');
 			}

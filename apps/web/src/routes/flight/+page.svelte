@@ -38,6 +38,8 @@
 	import AppBar from '../../lib/hud/AppBar.svelte';
 	import CrewPanel from '../../lib/hud/CrewPanel.svelte';
 	import WorldCapsule from '../../lib/hud/WorldCapsule.svelte';
+	import FundsCapsule from '../../lib/hud/FundsCapsule.svelte';
+	import RecoverDialog from '../../lib/hud/RecoverDialog.svelte';
 	import MapSwitch from '../../lib/hud/MapSwitch.svelte';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
@@ -246,6 +248,19 @@
 		const replay = await flight?.replay(name);
 		if (!replay) return;
 		downloadText(JSON.stringify(replay), fileNameOf(name, 'orbital-replay.json'));
+	}
+
+	/** Recover the landed vessel (plan 132, ADR 0113 point 6): credit the funds, save, back to the Hangar. */
+	let recoverOpen = $state(false);
+	async function recover(): Promise<void> {
+		recoverOpen = false;
+		const r = await flight?.recover();
+		if (!r?.ok) {
+			saves.note = r ? r.reason : null;
+			return;
+		}
+		await saves.autosave();
+		location.assign('/vab');
 	}
 
 	async function quicksave(): Promise<void> {
@@ -706,6 +721,14 @@
 			<div class="tl">
 				<div class="capsules">
 					<WorldCapsule name={world.name} mode={world.mode} system={world.system} />
+					{#if hud?.funds != null}
+						<FundsCapsule funds={hud.funds} />
+					{/if}
+					{#if hud?.recovery}
+						<Button variant="primary" onclick={() => (recoverOpen = true)} data-testid="hud-recover"
+							>Recover</Button
+						>
+					{/if}
 					<WarpControl
 						warp={hud.warp}
 						usable={warpUsable}
@@ -739,6 +762,14 @@
 					/>{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
+				{#if hud?.recovery}
+					<RecoverDialog
+						open={recoverOpen}
+						quote={hud.recovery}
+						onrecover={() => void recover()}
+						onclose={() => (recoverOpen = false)}
+					/>
+				{/if}
 				{#if model?.link}<LinkBadge link={model.link} />{:else}<BlackoutBadge
 						level={model?.blackout ?? 0}
 					/>{/if}

@@ -140,7 +140,7 @@
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | done | Agent 3 | ADR 0192: seeded facts per body, noisy instruments, lab levels raw/calibrated/derived, claims judged by a proper scoring rule with priority, dossier UI; handed over as `ready/129` |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | done | Agent 2 (Dev B, M2) | ADR 0156: `defineFailureMode` on module ids, trials at stage and load from the `reliability` stream, failed modules skipped, experience, grades (cost), the test stand and static fire, anomaly fixes, EVA repair; `/test-stand`, the Hangar line, the failure toast; API 0.1.55 |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | done | Agent 2 (Dev B, M2) | ADR 0159: replay files (start save, timed commands, checkpoints) recorded by the sim and the web host, verified by re-simulation (`tools/replay-verify`); challenge files scored locally per axis; ghosts in the map and flight view |
-| 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | draft | — | Scope pushed out of 095: funds capsule, Recover dialog from `VesselSnapshot.recovery` |
+| 132 | [HUD: funds read-out and the recovery dialog](plans/132-hud-recovery-and-funds.md) | done | Agent 1 (Lead) | Funds capsule in the HUD (economy on), the Recover button and dialog from `VesselSnapshot.recovery`, `recover-vessel`, back to the Hangar; vitest and a Chromium Career e2e |
 | 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | draft | — | Scope pushed out of 082: a stock producer using `background` |
 | 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | draft | — | Scope pushed out of 103: the science panel after the dock of 112 |
@@ -212,6 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [132 — HUD funds and the recovery dialog](journal/132-hud-recovery-and-funds.md)
 - [121-comms-tier-6-suit-radios-voice-broadcast.md](journal/121-comms-tier-6-suit-radios-voice-broadcast.md)
 - [121-comms-tier-6-suit-radios-voice-broadcast.md](journal/121-comms-tier-6-suit-radios-voice-broadcast.md)
 - [129-discovery-science.md](journal/129-discovery-science.md)
