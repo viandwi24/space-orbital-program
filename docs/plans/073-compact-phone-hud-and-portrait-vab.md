@@ -1,7 +1,7 @@
 ---
 id: 073
 title: "A compact flight HUD and VAB for phones, built with a device"
-status: in-progress
+status: blocked
 owner: "Agent 2"
 depends: [055, 088, 093]
 phase: 6
@@ -39,9 +39,18 @@ Make phones (landscape first, then portrait) a supported class, if the human's d
 - **Edits:** `apps/web/src/lib/hud`, `apps/web/src/lib/vab`, `apps/web/src/lib/touch`, `apps/web/src/lib/ui`, `packages/renderer/src/presets.ts`
 - **Shared contracts:** none
 
+## Steps
+
+Refined 2026-10-18 by Agent 2. The plan starts from device results (Context, first point), and none exist: journal 055's checklist sections C and D have not been run, and plan 066 measured only the M2 (no phone hardware). ADR 0107 point 6 keeps phones unsupported until then.
+
+1. **Owner (gate):** run journal [055](../journal/055-phone-layout-and-real-device-passes.md)'s checklist sections C and D on at least one iPhone (Safari) and one Android phone (Chrome), and `apps/web/scripts/measure-devices.ts` (plan 066) on each with the `low` preset and the governor: frame time at the pad and in orbit, the usable area with the browser chrome and the notch, whether audio survives a call. Results go into this Log.
+2. **Agent, if the results allow phones:** write the acceptance criteria from them (frame-time budget per class, the 44 px targets, the drawer and sheet layouts at 844x390 and 390x844), then the ADR superseding ADR 0091 point 1, then Scope items 1 to 4 with the refs components.
+3. **If they do not:** record why in the Log, keep ADR 0091, and close the plan as not doing.
+
 ## Acceptance criteria
 
-- [ ] To be written when refined, from the device results.
+- [ ] Owner: device results for one iPhone and one Android phone in this Log (Step 1).
+- [ ] Written from those results at Step 2.
 
 ## Docs checklist
 
@@ -49,5 +58,6 @@ Make phones (landscape first, then portrait) a supported class, if the human's d
 
 ## Log
 
+- 2026-10-18 — Agent 2: claimed and refined (Steps). Nothing built: the plan's gate is the owner's phone pass, and no phone results exist (journal 055 C and D unrun; journal 066 has the M2 row only). Set `blocked` on Step 1 under the roadmap's human-gated rule; the next agent session starts at Step 2 from the results.
 - 2026-10-17 — Created as draft by plan 055 (phone session): the compact interface is unverifiable without a device.
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0107, 0091: phones stay unsupported; any compact HUD uses the refs components).
