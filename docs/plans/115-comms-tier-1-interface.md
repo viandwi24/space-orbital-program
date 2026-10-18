@@ -1,12 +1,12 @@
 ---
 id: 115
 title: "Comms tier 1 in the interface: link state, Comms tab, Network layer"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [114, 111, 113]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 115 — Comms tier 1 in the interface: link state, Comms tab, Network layer
@@ -63,3 +63,4 @@ Every broken link names its cause (occluded by <body>, out of range, blackout, a
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0101, 0107).
 - 2026-10-17 — Defaults updated by ADR 0109: control needs a command source (crew aboard or linked probe), `controlWithoutSignal` none in Career/Science and full in Sandbox, Career crew presets standard + hardcore.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
