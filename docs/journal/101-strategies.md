@@ -9,7 +9,7 @@
 | Where | What |
 | --- | --- |
 | `packages/core/src/strategies.ts` (new) | `STRATEGY_KEYS` (six keys with labels and bounds); `StrategyDefinition` and its schema, which fails a factor outside its bounds; `strategyMultipliers` (product, clamped); `strategyUpkeepCharge`; `offeredTo`; `SaveStrategies`; `StrategiesSnapshot` |
-| `packages/core` | `ChargeDefinition.multiplier` and `chargeOn`'s lookup; `projectBalances` options `{ multiplier, extra }`; `buildingUpkeepCharges`; `ECONOMY_RULES.agencyType`; the `strategies` registry, `ctx.strategies`, report kind `strategy`; the commands `strategy-activate` and `strategy-end`; `Snapshot.strategies`; `SimSave.strategies` (optional); `API_VERSION` 0.1.64 (099 took 0.1.63) |
+| `packages/core` | `ChargeDefinition.multiplier` and `chargeOn`'s lookup; `projectBalances` options `{ multiplier, extra }`; `buildingUpkeepCharges`; `ECONOMY_RULES.agencyType`; the `strategies` registry, `ctx.strategies`, report kind `strategy`; the commands `strategy-activate` and `strategy-end`; `Snapshot.strategies`; `SimSave.strategies` (optional); `API_VERSION` 0.1.65 (099 took 0.1.63, 128 0.1.64) |
 | `packages/sdk` | `defineStrategy`; the keys and helpers re-exported |
 | `packages/sim/src/strategies.ts` (new) | `multiplierOf`, upkeep charges, slots from `admin`, activate and end (agency type, duplicate, cooldown, slots with the upgrade text), the snapshot |
 | `packages/sim` | the multipliers in `launchCost`, `creditRecovery`, `creditScience`, objective rewards (science, reputation, contract funds) and contract advances; upkeep and `budget` in `economyTick`; init, save and snapshot wired |

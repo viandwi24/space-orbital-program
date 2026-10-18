@@ -239,7 +239,7 @@ ctx.contracts.register(defineContract({
 - Your own primitive: `ctx.objectives.register(defineObjective({ id, label, params: z.object({...}), evaluate: (params, view, prior) => ({ status, progress, data }) }))`. Keep `evaluate` pure: it reads only `view` (time, home body, vessels) and `prior` (its last result; keep memory in `data`). Name the events it should react to in `on` (default: every step).
 - The sim starts one with `objective-start` (plan 099 offers contracts, plan 100 the story line), reports it in `Snapshot.objectives`, and pays the reward into the ledger when the economy is on.
 
-### Strategies (API 0.1.64, plan 101, ADR 0187)
+### Strategies (API 0.1.65, plan 101, ADR 0187)
 
 ```ts
 ctx.strategies.register(defineStrategy({
