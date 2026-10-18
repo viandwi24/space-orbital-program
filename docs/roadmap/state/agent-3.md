@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 119 handed over (ready/119). Next lane plans (120, 126, 129) wait for cp/f4-119.
-**Waiting for:** the merge of 119.
+**Now:** 126 agencies claimed (claim/126) on devc/126-agencies; 119 handed over (ready/119).
+**Waiting for:** the merge of 119; nothing for 126.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -28,7 +28,7 @@
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
 | 117 comms-3 | done | `devc/117-comms-routing` | 2026-10-18 | merged d2193e9, cp/f4-117-comms-3 |
 | 119 comms-4 | handed-over | `devc/119-comms-queues` | 2026-10-18 | ready/119 |
-| 126 agencies | todo |  |  |  |
+| 126 agencies | in-progress | `devc/126-agencies` | 2026-10-18 | claimed |
 | 120 comms-5 | todo |  |  |  |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |
 | 121 comms-6 | todo |  |  |  |
