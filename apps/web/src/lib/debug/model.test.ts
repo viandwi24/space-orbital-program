@@ -62,6 +62,13 @@ describe('the Log tab', () => {
 		expect(log.atLeast('warn')).toHaveLength(0);
 	});
 
+	it('out of power is a warning (plan 208)', () => {
+		expect(simEventLine({ type: 'power-depleted', vessel: 4 })).toEqual({
+			level: 'warn',
+			message: 'vessel 4 out of power'
+		});
+	});
+
 	it('an explosion is a warning with its cause', () => {
 		expect(
 			simEventLine({
