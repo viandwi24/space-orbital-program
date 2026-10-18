@@ -1,12 +1,12 @@
 ---
 id: 121
 title: "Comms tier 6: suit radios, voice and live broadcasts"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [120, 109, 108, 102]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 121 — Comms tier 6: suit radios, voice and live broadcasts
@@ -17,7 +17,7 @@ Crew on EVA carry a low-power UHF suit radio relayed by their lander or rover (w
 
 ## Context
 
-- ADRs: 0101, 0100
+- ADRs: 0101, 0100, [0193](../decisions/0193-comms-tier-6-suit-radios-broadcasts.md) (new)
 - Read: ADR 0101 tier 6, ADR 0100, plan 109 (EVA).
 
 ## Scope
@@ -41,15 +41,17 @@ Terrain occlusion for the suit uses the tier 1 terrain test at short range.
 
 ## Steps
 
-1. Suit radio.
-2. UI bars.
-3. Broadcasts.
+1. Suit radio: a stock UHF suit antenna (`suit: true`) on the EVA suit. A suit links only to a crewed vessel that is not a suit (no station, probe or other suit); it is not a control point and nobody routes through it. Its range is scaled by the wearer's `radio` ability (a crew stat; engineers start at 1.1). An edge with a suit samples the terrain every metre (tier 1's test, finer at short range). Voice is the stock `stock.voice` data kind (already registered).
+2. UI bars: the crew panel's EVA section shows the suit radio's bars, what it relays through and why it is cut; rows show the vessel's bars instead of the "no radio" placeholder.
+3. Broadcasts: `comms-broadcast { milestone }` within an hour of the first, once, when the milestone's vessel has a route at `BROADCAST_RATE` or more: `BROADCAST_FACTOR` × the milestone's reputation as `comms.broadcast`. `Snapshot.network.broadcasts` lists the open ones; the HUD offers a Broadcast button.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: an EVA crew member 200 m behind a ridge from the lander loses the suit link at the geometric point.
-- [ ] `packages/sim` test: broadcasting the first landing with enough rate books the stated reputation bonus.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [ ] `packages/sim` test: an EVA crew member 200 m behind a ridge from the lander loses the suit link at the geometric point (within 1 m), with the reason `blocked by terrain`; in sight it relays through the lander.
+- [ ] `packages/sim` test: a suit never links to a station or a probe, and a probe never routes through a suit.
+- [ ] `packages/sim` test: broadcasting the first landing with enough rate books the stated reputation bonus; without the rate, after the window or twice it is refused with a reason.
+- [ ] vitest: the crew panel shows the suit radio's bars and the cut reason; the broadcast offer renders.
+- [ ] `bun run check:affected` passes (CI runs the full suite).
 
 ## Docs checklist
 
