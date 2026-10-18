@@ -1,7 +1,7 @@
 ---
 id: 117
 title: "Comms tier 3: pointing, routing, latency and the signal-delay rule"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [116, 078]
 phase: 7

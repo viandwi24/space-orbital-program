@@ -26,7 +26,7 @@
 | 099 contracts | done | `devc/099-contracts` | 2026-10-18 | merged 5bbe137, cp/f3-099-contracts |
 | 101 strategies | done | `devc/101-strategies` | 2026-10-18 | merged 3608196, cp/f3-101-strategies |
 | 116 comms-2 | done | `devc/116-link-budget` | 2026-10-18 | merged 960984c, cp/f4-116-comms-2 |
-| 117 comms-3 | handed-over | `devc/117-comms-routing` | 2026-10-18 | ready/117 |
+| 117 comms-3 | done | `devc/117-comms-routing` | 2026-10-17 | merged d2193e9, cp/f4-117-comms-3 |
 | 119 comms-4 | todo |  |  |  |
 | 126 agencies | todo |  |  |  |
 | 120 comms-5 | todo |  |  |  |
