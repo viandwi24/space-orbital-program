@@ -1,12 +1,12 @@
 ---
 id: 129
 title: "Discovery science (optional world rule)"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [104, 119]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 129 — Discovery science (optional world rule)
@@ -42,12 +42,20 @@ Classic points stay available beside it (ADR 0099).
 
 ## Steps
 
-1. Refine at phase start.
+1. Facts: a per-body generator from the world seed (polar ice, magnetic field, subsurface ocean) with registered fact kinds.
+2. Instruments: a measurement as a data item with a value, resolution and error from the `discovery` stream.
+3. Levels: raw, then calibrated, then derived, processed over time in a lab (capacity from buildings).
+4. Claims and review: `claim { fact, value, confidence }`, judged on the world tick; reputation by a proper scoring rule; first correct claim per fact gets priority.
+5. UI: claims and results in the dossier; review news in the Mission Center.
 
 ## Acceptance criteria
 
-- [ ] To be made measurable at refinement (same seed gives the same facts; an overclaim loses reputation; a correct claim at high confidence gains more).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [ ] `packages/sim` test: the same world seed gives the same hidden facts on every body; another seed gives others.
+- [ ] `packages/sim` test: a measurement's error shrinks as the data goes raw → calibrated → derived, and processing takes the stated time.
+- [ ] `packages/sim` test: an overclaim (wrong at high confidence) loses reputation; a correct claim at high confidence gains more than the same claim at low confidence; a second correct claim of a fact gains less than the first (priority).
+- [ ] `packages/sim` test: with `stock.science-depth` `classic`, nothing of this runs and classic points are unchanged.
+- [ ] vitest: the dossier shows a body's open facts, the player's claims and their verdicts.
+- [ ] `bun run check:affected` passes (CI runs the full suite).
 
 ## Docs checklist
 
