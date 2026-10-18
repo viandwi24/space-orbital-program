@@ -333,6 +333,17 @@ Off the sim Worker (ADR 0101 point 2): `apps/web/src/lib/comms-planning/` and it
 
 Terrain, burns, SOI changes and routing are left out. The contact timeline samples every 10 s and bisects each change to 0.01 s, as `updateNetwork` does; for a vessel on rails over spherical bodies it gives the sim's link events. The coverage grid (72 × 36, equirectangular) holds the fraction of samples at which a ground receiver links to some node. `resonantDeployment` (`packages/kepler`) gives the deploy orbit of period `T (N±1)/N` with an apsis on the target orbit, the drops a deploy period apart (360°/N spacing) and the burns. A vessel's range on the page comes from its parts' `{ antenna }` configs and the `antennas` of the `ready` catalog. `boundary.test.ts` keeps the two Workers' import graphs apart.
 
+## Debug tools (plan 203, ADRs 0200 and 0212)
+
+`packages/sim/src/debug.ts` and `cheats.ts`. Who may use them is the stock rule `stock.debug-tools` (`always` in Sandbox, `opt-in` in Science and Career, `locked` in Hardcore; not changeable; a world without the rule counts as `always`). `dispatch` refuses every `debug-*` command except `debug-mode` with `debugRefusal`'s reason unless the access is `always`, or `opt-in` with the mode on. The state is `WorldInfo.debug` (`{ mode, usedCheats, cheats }`, optional, so saves stay format 8): `debug-mode` switches the mode in an `opt-in` world (refused where it is `always` or `locked`), and it and every accepted debug command set `usedCheats` for good. `debug-cheat` switches one of `DEBUG_CHEATS`; the other files read them through `cheatOn`/`infiniteResource`:
+- `withdrawResource` grants the draw without touching the stores (`infinite-electricity`: `stock.electric-charge`; `infinite-monopropellant`: `stock.monopropellant`, `stock.eva-propellant`; `infinite-fuel`: every other resource);
+- `damagePart` (`no-crash-damage`) and `burnPart` (`ignore-temperature`) return early;
+- `controlFor` and `signalRefusal` give full control (`comms-without-signal`);
+- `lifeSupport` uses nothing and ends shortages (`infinite-life-support`);
+- `construction` builds at once (`instant-construction`); `unbreakable-joints` has no reader yet.
+
+`debug-grant` books funds, science and reputation as ledger entries with cause `debug.grant` and with `tech` researches every node. `debug-set-orbit` takes the vessel out of flight (or spawns `design`) and puts it on rails at the elements with epoch now (refused below the surface); the normal wake path brings it back to physics. `debug-set-location` lands it with `placeOnSurface` (a site's pad, or latitude and longitude) or, with `kind: 'air'`, puts its centre of mass at the altitude above the reference sphere with the ground-relative velocity (`airState`: speed along the heading from north at the climb angle, plus the body's spin), then enters flight at warp 1 (on no free frame it goes back on rails where it was). `debug-set-resource` fills each matching store and withdraws down to `fraction` of its capacity or to `amount`; `debug-set-temperature` and `debug-set-crew-level` set the values. `Snapshot.debug` reports `{ access, mode, allowed, usedCheats, cheats }`.
+
 ## Snapshots and commands (sim ↔ host protocol)
 
 Types and zod schemas are in `packages/core/src/protocol.ts` and `protocol-schemas.ts`; plain data, so the same protocol works in-process and over `postMessage`.

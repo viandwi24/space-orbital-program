@@ -81,3 +81,56 @@ export async function metSeconds(page: Page): Promise<number> {
 	const text = (await page.getByTestId('hud-met').innerText()).replace('T+', '').trim();
 	return text.split(':').reduce((total, part) => total * 60 + Number(part), 0);
 }
+
+// ---- the debug API (plan 203, ADR 0200 point 9) ------------------------------------------------
+// Later plans set up the state they test with these instead of flying there. They need a world
+// where the debug tools are allowed (Sandbox, or Debug mode on) and a flight on screen; each one
+// resolves once a snapshot shows the change and throws with the sim's reason on a refusal.
+
+type DebugResult = { ok: true } | { ok: false; reason: string };
+
+async function debugCall(page: Page, method: string, ...args: unknown[]): Promise<void> {
+	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
+	const result = await page.evaluate(
+		([name, params]) => {
+			const api = (window as unknown as { __orbitalDebug: Record<string, (...a: unknown[]) => unknown> })
+				.__orbitalDebug;
+			return api[name as string]!(...(params as unknown[])) as Promise<DebugResult>;
+		},
+		[method, args] as const
+	);
+	if (!result.ok) throw new Error(`${method} refused: ${result.reason}`);
+}
+
+/** The focused vessel on rails in an orbit: `{ apoapsis, periapsis }` altitudes (m) or elements. */
+export const debugSetOrbit = (
+	page: Page,
+	orbit: { body?: string; apoapsis: number; periapsis: number; i?: number } | Record<string, number | string>
+) => debugCall(page, 'setOrbit', orbit);
+
+/** The focused vessel landed at a site or coordinates, or in the air (`{ kind: 'air', latitude, longitude, altitude, speed }`). */
+export const debugSetLocation = (page: Page, location: Record<string, unknown>) =>
+	debugCall(page, 'setLocation', location);
+
+/** Fill (`fraction: 1`), empty (`fraction: 0`) or set (`amount`) a resource on the focused vessel. */
+export const debugSetResource = (
+	page: Page,
+	spec: { part?: number; resource?: string; fraction?: number; amount?: number }
+) => debugCall(page, 'setResource', spec);
+
+/** Switch a cheat (`'infinite-fuel'`, `'no-crash-damage'`, ...). */
+export const debugCheat = (page: Page, cheat: string, on = true) => debugCall(page, 'setCheat', cheat, on);
+
+/** Units of `resource` aboard the focused vessel, from the last snapshot. */
+export const debugAmount = (page: Page, resource: string): Promise<number> =>
+	page.evaluate((id) => {
+		const api = (window as unknown as {
+			__orbitalDebug: { vessel(): { parts: Array<{ modules: Record<string, unknown> }> } | null };
+		}).__orbitalDebug;
+		let total = 0;
+		for (const p of api.vessel()?.parts ?? []) {
+			const c = p.modules['stock.resource-container'] as { amounts?: Record<string, number> } | undefined;
+			total += c?.amounts?.[id] ?? 0;
+		}
+		return total;
+	}, resource);
