@@ -132,7 +132,7 @@
 | 121 | [Comms tier 6: suit radios, voice and live broadcasts](plans/121-comms-tier-6-suit-radios-voice-broadcast.md) | draft | — | ADR 0101 tier 6: suit radios, voice, broadcasts |
 | 122 | [The Sun as root, axial tilt and seasons in the stock system](plans/122-sun-root-axial-tilt-seasons.md) | done | Agent 1 | ADR 0103: Sun root, tilt, seasons; planet pass on the home body |
 | 123 | [Body orbits from elements with secular rates and a lunar model](plans/123-orbits-from-elements-and-a-lunar-model.md) | done | Agent 3 | ADR 0183: kepler-rates (JPL Level A) and series (Almanac Moon) paths, osculating conics for consumers; handed over as `ready/123` |
-| 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | in-progress | Agent 3 | ADR 0184: systems chosen in the loader, Sol (JPL/IAU data) at 1:1 and rescaled (×1/4, real periods), balance patches, validation suite, Create World variants; handed over as `ready/124` |
+| 124 | [The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale](plans/124-real-solar-system-pack-scales.md) | done | Agent 3 | ADR 0184: systems chosen in the loader, Sol (JPL/IAU data) at 1:1 and rescaled (×1/4, real periods), balance patches, validation suite, Create World variants; handed over as `ready/124` |
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
 | 126 | [AI agencies and a living world](plans/126-ai-agencies-living-world.md) | draft | — | ADR 0096: agencies, real objects, rent, news |
 | 127 | [Range safety: safe azimuth fans and stage impact zones](plans/127-range-safety.md) | draft | — | ADR 0097: safe fans, impact zones, rule |
@@ -209,6 +209,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [124-real-solar-system-pack-scales.md](journal/124-real-solar-system-pack-scales.md)
 - [108-astronaut-complex-and-crew-panel.md](journal/108-astronaut-complex-and-crew-panel.md)
 - [100-authored-missions-and-mission-packs.md](journal/100-authored-missions-and-mission-packs.md)
 - [094-launch-screen.md](journal/094-launch-screen.md)

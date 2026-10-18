@@ -1,7 +1,7 @@
 ---
 id: 124
 title: "The real solar system pack ("Sol"): 1:1 and rescaled, balanced per scale"
-status: in-progress
+status: done
 owner: "Agent 3"
 depends: [123, 092, 071]
 phase: 8

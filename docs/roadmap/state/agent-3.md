@@ -30,6 +30,6 @@
 | 119 comms-4 | todo |  |  |  |
 | 126 agencies | todo |  |  |  |
 | 120 comms-5 | todo |  |  |  |
-| 124 sol | handed-over | `devc/124-sol` | 2026-10-18 | ready/124; API 0.1.53 |
+| 124 sol | done | `devc/124-sol` | 2026-10-17 | merged 8d8d694, cp/f5-124-sol |
 | 121 comms-6 | todo |  |  |  |
 | 129 discovery | todo |  |  |  |
