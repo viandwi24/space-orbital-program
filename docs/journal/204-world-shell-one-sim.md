@@ -32,9 +32,18 @@
 ## Open questions / follow-ups
 
 - Clock states, place pauses and the leave-flight warning: plan 205. Warp segments: plan 206.
-- Hangar page actions (New · Open · Save · Launch) use the layout's actions slot; the Hangar still shows them in its own top bar (the slot is in place for plan 215's HUD layout).
+- The Hangar's New · Open · Save · Launch are in the menu bar (`lib/layout/page-actions.svelte.ts`) and still in its own top bar; plan 215 (HUD layout) can drop the duplicate. Their accessible names differ from the top bar's ("New", "Go to the launch screen") because Playwright matches names by substring.
 - A script left running when the player leaves Flight stops with the page (its sandbox frame belongs to the page); ADR 0201 point 9 (plan 205) keeps it running.
 
 ## Verification output
 
-(filled in at completion)
+```
+vitest world-session 4, autosave 5, status-bar 4, world-lock 3; web vitest 147 files, 1091 pass
+svelte-check: 1855 files, 0 errors, 0 warnings
+grep -rn "location.assign" apps/web/src/routes  ->  (world)/mods/+page.svelte (the mod reload) only
+playwright chromium: world-shell, two-tabs, space-center, mission-center, recovery, debug: 8 passed
+  the rest of the suite: 34 passed + mobile/worlds/touch 15 passed after the layout fixes
+check:affected --build --e2e e2e/world-shell.e2e.ts: all passed
+```
+
+- **Tests adapted, not just rerun:** `worlds.e2e.ts` counted exactly 1 and then 2 saves; the world now also autosaves on `pagehide` and after the Space Center change, so it checks the count grows. `touch.e2e.ts` tapped 10 px below the top of a 150 px track; the track now shortens to the room the bars leave (72 to 150 px), so it taps 4 px down.
