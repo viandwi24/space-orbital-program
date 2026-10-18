@@ -2,8 +2,8 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** lane done except 118: 063 handed over (`ready/063`, API 0.1.66); 072 and 073 handed over as `ready/072` and `ready/073`, both `blocked` on the owner's human passes (072: journal 058 checklist + journal 072; 073: phone device results, journal 055 C and D).
-**Waiting for:** `cp/f4-117-comms-3` (Agent 3) for 118; merges of 063, 072, 073.
+**Now:** lane done: 118 handed over as `ready/118`; 072 and 073 merged, both blocked on the owner's passes.
+**Waiting for:** the merge of 118 (`ready/118`) and its CI result; the owner's decision on 072 and 073.
 **Updated:** 2026-10-18
 
 | Plan | Status | Branch | Updated | Note |
@@ -29,7 +29,7 @@
 | 115 comms-1-ui | done | `devb/115-comms-ui` | 2026-10-17 | merged 55ca2da, cp/f4-115-comms-1-ui |
 | 127 range-safety | done | `devb/127-range-safety` | 2026-10-17 | merged aaa9f4c, cp/f6-127-range-safety |
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
-| 118 comms-tools | todo |  |  |  |
+| 118 comms-tools | handed-over | `devb/118-comms-tools` | 2026-10-18 | ready/118 at 84901593 (ADR 0163) |
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
 | 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
 | 065 mod-models | done | `devb/065-mod-models` | 2026-10-17 | merged 528d048, cp/f6-065-mod-models |
