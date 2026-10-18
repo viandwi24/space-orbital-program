@@ -1,11 +1,5 @@
 import { expect, test } from '@playwright/test';
-import {
-	debugAmount,
-	debugCheat,
-	debugSetOrbit,
-	launchTwoStage,
-	watchErrors
-} from './support';
+import { debugAmount, debugCheat, debugSetOrbit, launchTwoStage, watchErrors } from './support';
 
 /** Plan 203 (ADR 0200): the debug API in a Sandbox world, and the "used cheats" mark of Debug mode. */
 
@@ -33,7 +27,11 @@ test('infinite fuel keeps the tanks full during a burn', async ({ page }) => {
 	await expect.poll(() => debugAmount(page, 'stock.liquid-fuel')).toBeGreaterThan(0);
 	const full = await debugAmount(page, 'stock.liquid-fuel');
 	await debugCheat(page, 'infinite-fuel');
-	await page.locator('canvas').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
+	await page
+		.locator('canvas')
+		.first()
+		.click({ position: { x: 20, y: 20 } })
+		.catch(() => {});
 	await page.keyboard.press('KeyZ');
 	await page.keyboard.press('Space');
 	// burning: the vessel climbs while the tanks stay full
@@ -42,7 +40,9 @@ test('infinite fuel keeps the tanks full during a burn', async ({ page }) => {
 	expect(errors).toEqual([]);
 });
 
-test('in a Career world with Debug mode on, the world card shows "Used cheats"', async ({ page }) => {
+test('in a Career world with Debug mode on, the world card shows "Used cheats"', async ({
+	page
+}) => {
 	const errors = watchErrors(page);
 	await page.goto('/worlds');
 	await page.getByTestId('worlds-create').click();

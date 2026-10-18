@@ -93,8 +93,9 @@ async function debugCall(page: Page, method: string, ...args: unknown[]): Promis
 	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
 	const result = await page.evaluate(
 		([name, params]) => {
-			const api = (window as unknown as { __orbitalDebug: Record<string, (...a: unknown[]) => unknown> })
-				.__orbitalDebug;
+			const api = (
+				window as unknown as { __orbitalDebug: Record<string, (...a: unknown[]) => unknown> }
+			).__orbitalDebug;
 			return api[name as string]!(...(params as unknown[])) as Promise<DebugResult>;
 		},
 		[method, args] as const
@@ -105,7 +106,9 @@ async function debugCall(page: Page, method: string, ...args: unknown[]): Promis
 /** The focused vessel on rails in an orbit: `{ apoapsis, periapsis }` altitudes (m) or elements. */
 export const debugSetOrbit = (
 	page: Page,
-	orbit: { body?: string; apoapsis: number; periapsis: number; i?: number } | Record<string, number | string>
+	orbit:
+		| { body?: string; apoapsis: number; periapsis: number; i?: number }
+		| Record<string, number | string>
 ) => debugCall(page, 'setOrbit', orbit);
 
 /** The focused vessel landed at a site or coordinates, or in the air (`{ kind: 'air', latitude, longitude, altitude, speed }`). */
@@ -119,18 +122,22 @@ export const debugSetResource = (
 ) => debugCall(page, 'setResource', spec);
 
 /** Switch a cheat (`'infinite-fuel'`, `'no-crash-damage'`, ...). */
-export const debugCheat = (page: Page, cheat: string, on = true) => debugCall(page, 'setCheat', cheat, on);
+export const debugCheat = (page: Page, cheat: string, on = true) =>
+	debugCall(page, 'setCheat', cheat, on);
 
 /** Units of `resource` aboard the focused vessel, from the last snapshot. */
 export async function debugAmount(page: Page, resource: string): Promise<number> {
 	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
 	return page.evaluate((id) => {
-		const api = (window as unknown as {
-			__orbitalDebug: { vessel(): { parts: Array<{ modules: Record<string, unknown> }> } | null };
-		}).__orbitalDebug;
+		const api = (
+			window as unknown as {
+				__orbitalDebug: { vessel(): { parts: Array<{ modules: Record<string, unknown> }> } | null };
+			}
+		).__orbitalDebug;
 		let total = 0;
 		for (const p of api.vessel()?.parts ?? []) {
-			const c = p.modules['stock.resource-container'] as { amounts?: Record<string, number> } | undefined;
+			const c = p.modules['stock.resource-container'] as
+				{ amounts?: Record<string, number> } | undefined;
 			total += c?.amounts?.[id] ?? 0;
 		}
 		return total;

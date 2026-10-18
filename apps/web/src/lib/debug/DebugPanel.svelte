@@ -72,7 +72,10 @@
 	const vessel = $derived(snap?.vessels.find((v) => v.id === host?.vessel()) ?? null);
 	const bodies = $derived(host?.bodies() ?? []);
 
-	async function run(what: string, call: () => Promise<{ ok: true } | { ok: false; reason: string }>) {
+	async function run(
+		what: string,
+		call: () => Promise<{ ok: true } | { ok: false; reason: string }>
+	) {
 		const r = await call();
 		noteBad = !r.ok;
 		note = r.ok ? `${what}: done` : `${what}: ${r.reason}`;
@@ -176,11 +179,15 @@
 	let tempK = $state(300);
 	let crewMember = $state('');
 	let crewLevel = $state(1);
-	const partChoices = $derived(vessel?.parts.map((p) => ({ id: p.id, label: `${p.definition} #${p.id}` })) ?? []);
+	const partChoices = $derived(
+		vessel?.parts.map((p) => ({ id: p.id, label: `${p.definition} #${p.id}` })) ?? []
+	);
 	const resourceIds = $derived.by(() => {
 		const out = new Set<string>();
 		for (const p of vessel?.parts ?? []) {
-			const amounts = (p.modules['stock.resource-container'] as { amounts?: Record<string, number> } | undefined)?.amounts;
+			const amounts = (
+				p.modules['stock.resource-container'] as { amounts?: Record<string, number> } | undefined
+			)?.amounts;
 			for (const k of Object.keys(amounts ?? {})) out.add(k);
 		}
 		return [...out].sort();
@@ -281,14 +288,17 @@
 			</div>
 			<div class="line">
 				<label>Funds <input type="number" bind:value={grantFunds} /></label>
-				<Button onclick={() => void run('Add funds', () => api!.grant({ funds: grantFunds }))}>Add</Button>
+				<Button onclick={() => void run('Add funds', () => api!.grant({ funds: grantFunds }))}
+					>Add</Button
+				>
 				<label>Science <input type="number" bind:value={grantScience} /></label>
 				<Button onclick={() => void run('Add science', () => api!.grant({ science: grantScience }))}
 					>Add</Button
 				>
 				<label>Reputation <input type="number" bind:value={grantReputation} /></label>
 				<Button
-					onclick={() => void run('Add reputation', () => api!.grant({ reputation: grantReputation }))}
+					onclick={() =>
+						void run('Add reputation', () => api!.grant({ reputation: grantReputation }))}
 					>Add</Button
 				>
 			</div>
@@ -433,7 +443,12 @@
 						{level}</label
 					>
 				{/each}
-				<input type="search" placeholder="Filter" aria-label="Filter the log" bind:value={logFilter} />
+				<input
+					type="search"
+					placeholder="Filter"
+					aria-label="Filter the log"
+					bind:value={logFilter}
+				/>
 				<Button onclick={() => void copyLog()}>Copy</Button>
 				<Button
 					onclick={() =>
@@ -444,11 +459,11 @@
 			<pre class="log" data-testid="debug-log">{#each visible.slice(-400) as e, i (i)}<span
 						class={e.level}>{formatLogLine(e)}</span
 					>
-{/each}</pre>
+				{/each}</pre>
 		{:else if tab === 'overlay'}
 			<p class="lock">
-				Overlays (aero forces, heat, centres of mass, lift and thrust, colliders, physics range) come
-				in a later release (P1).
+				Overlays (aero forces, heat, centres of mass, lift and thrust, colliders, physics range)
+				come in a later release (P1).
 			</p>
 		{:else if tab === 'info'}
 			<dl class="info" data-testid="debug-info">

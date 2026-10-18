@@ -49,7 +49,9 @@ describe('the Log tab', () => {
 		expect(logFileName('My Career (2)', new Date(Date.UTC(2026, 9, 19, 23, 0)))).toBe(
 			'orbital-log-my-career-2-2026-10-19.txt'
 		);
-		expect(logFileName('', new Date(Date.UTC(2026, 0, 2)))).toBe('orbital-log-world-2026-01-02.txt');
+		expect(logFileName('', new Date(Date.UTC(2026, 0, 2)))).toBe(
+			'orbital-log-world-2026-01-02.txt'
+		);
 	});
 
 	it('the ring keeps the newest 2000 entries', () => {
@@ -88,7 +90,11 @@ describe('Set orbit', () => {
 	it('offers low orbit, the moon and a transfer to it', () => {
 		const bodies = loadPlugins([Stock]).registries.bodies.list();
 		const presets = orbitPresets(bodies, 'stock.home');
-		expect(presets.map((p) => p.label)).toEqual(['Low orbit', 'Cinder orbit', 'Transfer to Cinder']);
+		expect(presets.map((p) => p.label)).toEqual([
+			'Low orbit',
+			'Cinder orbit',
+			'Transfer to Cinder'
+		]);
 		const home = bodies.find((b) => b.id === 'stock.home')!;
 		const low = presets[0]!.orbit;
 		expect(low.a - home.radius).toBe(home.atmosphere!.height + 10_000);

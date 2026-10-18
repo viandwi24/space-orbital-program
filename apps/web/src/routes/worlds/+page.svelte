@@ -224,7 +224,9 @@
 						<span class="chips">
 							<Chip>{presetLabel(r.preset)}</Chip>
 							{#if i === 0}<Chip outline>Last played</Chip>{/if}
-							{#if r.usedCheats}<span data-testid="used-cheats"><Chip outline>Used cheats</Chip></span>{/if}
+							{#if r.usedCheats}<span data-testid="used-cheats"
+									><Chip outline>Used cheats</Chip></span
+								>{/if}
 						</span>
 						<span class="meta">
 							{r.summary.saves}
