@@ -34,6 +34,7 @@
 	import MapSwitch from '../../lib/hud/MapSwitch.svelte';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
+	import RangeBadge from '../../lib/hud/RangeBadge.svelte';
 	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
@@ -665,6 +666,7 @@
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
 				<BlackoutBadge level={model?.blackout ?? 0} />
+				<RangeBadge warning={model?.range ?? null} />
 				<PrecompileBadge progress={graphics} />
 			</div>
 

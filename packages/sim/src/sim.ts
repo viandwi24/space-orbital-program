@@ -4,6 +4,7 @@
  */
 import { freshTech } from './tech.ts';
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
+import { collectRange, freshRange } from './range.ts';
 import {
 	cloneData,
 	createRng,
@@ -328,7 +329,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		comms: freshComms(),
 		life: freshLife(),
 		milestones: freshMilestones(resume?.milestones),
-		tech: freshTech(resume?.tech)
+		tech: freshTech(resume?.tech),
+		range: freshRange(resume?.range)
 	};
 	listenForObjectives(core);
 	listenForComms(core);
@@ -411,6 +413,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
+		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
@@ -456,6 +459,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
+		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 	}
 

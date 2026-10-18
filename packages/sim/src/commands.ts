@@ -5,6 +5,7 @@
  */
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
+import { stageRefusal, violation, watchAscent } from './range.ts';
 import {
 	bodyId,
 	commandSchema,
@@ -182,6 +183,10 @@ function loadVessel(
 	}
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
 	chargeLaunch(core, command.design); // only a vessel that was placed is paid for (ADR 0113)
+	if (placement.kind === 'site') {
+		const site = sitesOf(core.info).find((s) => s.id === placement.site);
+		if (site) watchAscent(core, id, site); // its ascent azimuth is judged at 2 km (ADR 0155)
+	}
 	return accept(id);
 }
 
@@ -247,7 +252,19 @@ export function dispatch(core: SimCore, raw: unknown): CommandResult {
 				return refuse(`vessel ${command.vessel} has no stage left to fire`);
 			const why = ensureFlight(core, command.vessel, 'stage');
 			if (why) return refuse(why);
-			return fireStage(core, command.vessel);
+			// range safety judges the stage this firing drops (plan 127, ADR 0155 point 3)
+			const range = stageRefusal(core, command.vessel);
+			if (range.refusal) return refuse(range.refusal);
+			const fired = fireStage(core, command.vessel);
+			if (fired.ok && range.drop) {
+				const { kind, latitude, longitude } = range.drop;
+				violation(core, command.vessel, kind, {
+					...(range.drop.kind === 'site' ? { site: range.drop.site } : {}),
+					latitude,
+					longitude
+				});
+			}
+			return fired;
 		}
 		case 'action': {
 			const vessel = core.world.get(command.vessel, VESSEL);
