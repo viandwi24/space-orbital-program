@@ -6,8 +6,8 @@
 	"type": "module",
 	"scripts": {
 		"build:sandbox": "bun scripts/build-sandbox.ts",
-		"dev": "bun run build:sandbox && vite dev",
-		"build": "bun run build:sandbox && vite build",
+		"dev": "bun run build:sandbox && bun scripts/copy-basis.ts && vite dev",
+		"build": "bun run build:sandbox && bun scripts/copy-basis.ts && vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

@@ -1,6 +1,7 @@
 /** Plan 051 / ADR 0076: assets in mod packages are validated before anything is stored or run. */
 import { describe, expect, test } from 'bun:test';
 import {
+	MAX_ASSET_KEYFRAMES,
 	MAX_ASSET_TRIANGLES,
 	MAX_MOD_ASSET_BYTES,
 	base64ToBytes,
@@ -219,5 +220,101 @@ describe('resolveMods with assets', () => {
 	test('an invalid asset path in a visual fails the part definition', async () => {
 		const r = await run(source(part('Models/A.png')), { 'models/a.glb': model() });
 		expect(r.rejected).toHaveLength(1);
+	});
+});
+
+describe('richer models (plan 065, ADR 0160)', () => {
+	/** A body and a lid that turns 90 degrees about X over 1 s, sampled `samples` times. */
+	const animated = (samples = 3): Uint8Array => {
+		const times = new Float32Array(samples).map((_, i) => i / Math.max(1, samples - 1));
+		const values = new Float32Array(samples * 4);
+		times.forEach((t, i) =>
+			values.set([Math.sin((t * Math.PI) / 4), 0, 0, Math.cos((t * Math.PI) / 4)], i * 4)
+		);
+		return buildGlb({
+			meshes: [
+				lathe(
+					[
+						[0.5, -0.5],
+						[0.5, 0.5]
+					],
+					8,
+					0
+				)
+			],
+			materials: [{ color: [1, 1, 1, 1] }],
+			nodes: [
+				{ name: 'body', mesh: 0 },
+				{ name: 'lid', mesh: 0, translation: [0, 0.5, 0] }
+			],
+			roots: [0, 1],
+			animations: [{ name: 'deploy', channels: [{ node: 1, path: 'rotation', times, values }] }]
+		});
+	};
+
+	test('an animated model is counted and accepted under the keyframe cap, refused over it', () => {
+		const r = inspectGlb(animated(3));
+		expect(r.ok && r.info).toMatchObject({ animations: 1, keyframes: 3 });
+		const over = inspectGlb(animated(MAX_ASSET_KEYFRAMES + 1));
+		expect(over.ok === false && over.errors[0]).toContain('keyframes');
+	});
+
+	test('KTX2 textures (KHR_texture_basisu) are accepted', () => {
+		const ktx = buildGlb({
+			meshes: [
+				lathe(
+					[
+						[0.5, -0.5],
+						[0.5, 0.5]
+					],
+					8,
+					0
+				)
+			],
+			materials: [{ color: [1, 1, 1, 1], texture: 0 }],
+			nodes: [{ name: 'body', mesh: 0 }],
+			roots: [0],
+			images: [new Uint8Array([0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb])],
+			imageMime: 'image/ktx2',
+			extensionsUsed: ['KHR_texture_basisu']
+		});
+		const r = inspectGlb(ktx);
+		expect(r.ok && r.info.extensions).toEqual(['KHR_texture_basisu']);
+	});
+
+	test('every LOD asset must be in the package, and each is listed with its level', async () => {
+		const lodPart = (lods: string) =>
+			`ctx.parts.register({ id: 'm.shiny', title: 'Shiny', mass: 1, shape: { kind: 'cylinder', radius: 0.5, height: 1 }, visual: { kind: 'tank', asset: 'models/a.glb', lods: ${lods} } });`;
+		const run = async (code: string, files: Record<string, Uint8Array>) => {
+			const pkg = await createModPackage(MANIFEST, code, files);
+			return resolveMods(
+				[{ manifest: pkg.manifest as ModManifest, code: pkg.code, assets: pkg.assets }],
+				{
+					builtin: [builtin],
+					importModule: importModBundle
+				}
+			);
+		};
+		const ok = await run(source(lodPart('[{ asset: "models/far.glb", distance: 80 }]')), {
+			'models/a.glb': model(),
+			'models/far.glb': model(6)
+		});
+		expect(ok.partAssets).toEqual([
+			{ part: 'm.shiny', mod: 'm', path: 'models/a.glb' },
+			{ part: 'm.shiny', mod: 'm', path: 'models/far.glb', lod: 1 }
+		]);
+		const missing = await run(source(lodPart('[{ asset: "models/far.glb", distance: 80 }]')), {
+			'models/a.glb': model()
+		});
+		expect(missing.rejected[0]!.reason).toContain('LOD asset "models/far.glb"');
+		const order = await run(
+			source(
+				lodPart(
+					'[{ asset: "models/a.glb", distance: 80 }, { asset: "models/a.glb", distance: 40 }]'
+				)
+			),
+			{ 'models/a.glb': model() }
+		);
+		expect(order.rejected).toHaveLength(1);
 	});
 });

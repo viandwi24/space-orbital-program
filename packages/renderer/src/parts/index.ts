@@ -5,7 +5,7 @@ export { PartModelFactory, ProceduralProvider, ShapeProvider, defaultNodes } fro
 export type { PartModelFactoryConfig } from './factory.ts';
 export { MaterialLibrary, DEFAULT_PALETTE } from './materials.ts';
 export { revolve } from './revolve.ts';
-export { GltfPartProvider } from './gltf-provider.ts';
+export { createKtx2Loader, GltfPartProvider, lodAssetKey, usesBasisu } from './gltf-provider.ts';
 export type { AssetReader, GltfProviderOptions } from './gltf-provider.ts';
 export * from './articulation.ts';
 export { ConnectorBars, connectorRadius, placeBar } from './connector.ts';

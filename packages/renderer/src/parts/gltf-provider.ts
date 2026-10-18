@@ -9,12 +9,20 @@
  * An asset part behaves like a procedural one where it can: the engine plume (`visual.plume`),
  * the gimbal/hinge articulation (a node named `moving` is the part that turns, about its own
  * origin), temperature glow, shadows, and a bounds check against the part's shape and attach
- * nodes (warnings, nothing is rescaled). `visual.deploy` animations are not available to
- * assets. Compressed assets (Draco, KTX2) need decoders attached to `loader`; mod packages cannot
- * carry them (core `inspectGlb`).
+ * nodes (warnings, nothing is rescaled). Since plan 065 (ADR 0160): `visual.deploy` plays the
+ * model's glTF clip (`deploy.clip`, default `deploy`) by the same progress a generated part
+ * animates; `visual.lods` adds far models (assets keyed `lodAssetKey`) in a three `LOD`;
+ * `visual.materials` recolours named materials from the palette; KTX2 textures load through a
+ * `KTX2Loader` attached only when an asset uses `KHR_texture_basisu`. Draco needs a decoder
+ * attached to `loader`; mod packages cannot carry it (core `inspectGlb`).
  */
 import {
+	AnimationMixer,
+	LoopOnce,
 	Box3,
+	LOD,
+	type AnimationAction,
+	type AnimationClip,
 	BufferGeometry,
 	Group,
 	Mesh,
@@ -27,6 +35,7 @@ import {
 	type Texture
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
 import { articulationRotation, articulationValue } from './articulation.ts';
@@ -59,6 +68,50 @@ export interface GltfProviderOptions {
 	loader?: GLTFLoader;
 	/** Called once per definition and message when a model does not match its part (see `assetFit`). */
 	onWarning?: (definition: string, message: string) => void;
+	/**
+	 * KTX2 textures (ADR 0160 point 4): makes a `KTX2Loader` set up for the host's renderer (its
+	 * transcoder path and `detectSupport`). Called only when an asset uses `KHR_texture_basisu`.
+	 */
+	ktx2?: () => Promise<KTX2Loader> | KTX2Loader;
+}
+
+/**
+ * A `KTX2Loader` for `GltfProviderOptions.ktx2` (ADR 0160 point 4): the transcoder from
+ * `transcoderPath` (the web serves three's at `/basis/`) and the compressed formats this browser's
+ * WebGL supports, read from a short-lived renderer. Imported and run only when an asset needs it.
+ */
+export async function createKtx2Loader(transcoderPath: string): Promise<KTX2Loader> {
+	const [{ KTX2Loader }, { WebGLRenderer }] = await Promise.all([
+		import('three/addons/loaders/KTX2Loader.js'),
+		import('three')
+	]);
+	const probe = new WebGLRenderer({ canvas: document.createElement('canvas') });
+	try {
+		return new KTX2Loader().setTranscoderPath(transcoderPath).detectSupport(probe);
+	} finally {
+		probe.dispose();
+	}
+}
+
+/** The asset key of a part's lower-detail model `lod` (1 to 3) in `GltfProviderOptions.assets`. */
+export const lodAssetKey = (definition: string, lod: number): string => `${definition}#lod${lod}`;
+
+/** True when a binary glTF or a glTF JSON text names `KHR_texture_basisu`. */
+export function usesBasisu(data: ArrayBuffer | string): boolean {
+	let json = typeof data === 'string' ? data : '';
+	if (typeof data !== 'string' && data.byteLength >= 20) {
+		const view = new DataView(data);
+		const length = view.getUint32(12, true);
+		json = new TextDecoder().decode(
+			new Uint8Array(data, 20, Math.min(length, data.byteLength - 20))
+		);
+	}
+	return json.includes('KHR_texture_basisu');
+}
+
+interface LoadedModel {
+	scene: Object3D;
+	clips: AnimationClip[];
 }
 
 /** Shared plume geometry for every asset model of a provider. */
@@ -87,17 +140,37 @@ class GltfModel implements PartModel {
 	private time = 0;
 	private pressure = 0;
 	private engine = { throttle: 0, ignited: false, flameout: false };
+	/** The deploy clip and its progress, as a generated part's (ADR 0160 point 1). */
+	private readonly mixer: AnimationMixer | null = null;
+	private readonly action: AnimationAction | null = null;
+	private progress = 0;
+	private target = 0;
+	private fresh = true;
 
 	constructor(
-		scene: Object3D,
+		loaded: LoadedModel,
 		readonly nodes: Readonly<Record<string, PartNode>>,
 		readonly definition: string,
 		private readonly visual: PartModelRequest['visual'],
-		shared: SharedEffects
+		shared: SharedEffects,
+		lods: ReadonlyArray<{ scene: Object3D; distance: number }> = []
 	) {
 		this.root.name = `part:${definition}`;
-		const clone = scene.clone(true);
-		this.root.add(clone);
+		const clone = loaded.scene.clone(true);
+		if (lods.length > 0) {
+			// far levels are static shapes; the plume, the pivot and the clip live on the base model
+			const lod = new LOD();
+			lod.name = 'lods';
+			lod.addLevel(clone, 0);
+			for (const l of lods) {
+				const far = l.scene.clone(true);
+				far.traverse((o) => {
+					if (o instanceof Mesh) o.castShadow = o.receiveShadow = true;
+				});
+				lod.addLevel(far, l.distance);
+			}
+			this.root.add(lod);
+		} else this.root.add(clone);
 		clone.traverse((o) => {
 			if (!(o instanceof Mesh)) return;
 			o.castShadow = true;
@@ -108,6 +181,16 @@ class GltfModel implements PartModel {
 		this.bounds = new Box3().setFromObject(this.root);
 		this.triangles = countTriangles(clone);
 
+		const clip = visual?.deploy ? deployClip(loaded.clips, visual.deploy.clip) : undefined;
+		if (clip) {
+			this.mixer = new AnimationMixer(clone);
+			this.action = this.mixer.clipAction(clip);
+			// the clip is posed by the deploy progress, never run by the clock: once, held at its end
+			this.action.setLoop(LoopOnce, 1);
+			this.action.clampWhenFinished = true;
+			this.action.play();
+			this.mixer.update(0);
+		}
 		this.pivot = visual?.articulation ? (clone.getObjectByName('moving') ?? null) : null;
 		if (this.pivot) this.pivotRest.copy(this.pivot.quaternion);
 		this.plume = visual?.plume ? new PlumeEffect(visual.plume, shared.plume, shared.sprite) : null;
@@ -122,6 +205,15 @@ class GltfModel implements PartModel {
 	}
 
 	setState(state: PartRuntimeState): void {
+		const deploy = this.visual?.deploy;
+		if (deploy && this.action) {
+			const flag = (state.modules[deploy.module] as Record<string, unknown> | undefined)?.[
+				deploy.flag
+			];
+			this.target = flag === true ? 1 : 0;
+			if (this.fresh) this.setProgress(this.target);
+		}
+		this.fresh = false;
 		this.pressure = state.ambientPressure ?? 0;
 		if (this.plume) {
 			const e = state.modules[this.plume.spec.module] as Record<string, unknown> | undefined;
@@ -147,7 +239,27 @@ class GltfModel implements PartModel {
 
 	tick(dt: number): void {
 		this.time += dt;
+		if (this.action && this.progress !== this.target) {
+			const step = dt / (this.visual?.deploy?.seconds ?? 1.2);
+			this.setProgress(
+				this.target > this.progress
+					? Math.min(this.target, this.progress + step)
+					: Math.max(this.target, this.progress - step)
+			);
+		}
 		this.plume?.update(this.engine, this.pressure, this.time);
+	}
+
+	/** 0 = retracted, 1 = deployed: the clip's time (ADR 0160 point 1). */
+	get deployProgress(): number {
+		return this.progress;
+	}
+
+	private setProgress(p: number): void {
+		this.progress = p;
+		if (!this.action || !this.mixer) return;
+		this.action.time = p * this.action.getClip().duration;
+		this.mixer.update(0);
 	}
 
 	/** Glow needs per-part emissive: the part's materials are cloned the first time the skin is hot. */
@@ -189,7 +301,28 @@ class GltfModel implements PartModel {
 		for (const o of this.owned) o.material.dispose();
 		this.owned = [];
 		this.plume?.dispose();
+		this.mixer?.stopAllAction();
 	}
+}
+
+/** The clip named `name` (default `deploy`), else the model's first clip. */
+function deployClip(clips: readonly AnimationClip[], name = 'deploy'): AnimationClip | undefined {
+	return clips.find((c) => c.name === name) ?? clips[0];
+}
+
+/** Palette slots on named materials (ADR 0160 point 3), applied to the cached scene once. */
+function applyMaterialSlots(scene: Object3D, visual: PartModelRequest['visual']): void {
+	const slots = visual?.materials;
+	const palette = visual?.palette;
+	if (!slots || !palette) return;
+	scene.traverse((o) => {
+		if (!(o instanceof Mesh)) return;
+		for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+			const slot = m.name ? slots[m.name] : undefined;
+			const colour = slot ? palette[slot] : undefined;
+			if (colour && m instanceof MeshStandardMaterial) m.color.set(colour);
+		}
+	});
 }
 
 function countTriangles(root: Object3D): number {
@@ -213,7 +346,10 @@ const TEXTURE_SLOTS = [
 
 export class GltfPartProvider implements PartModelProvider {
 	readonly id = 'gltf';
-	private readonly scenes = new Map<string, Object3D>();
+	private readonly scenes = new Map<string, LoadedModel>();
+	/** Definitions whose palette slots are applied to their cached scene. */
+	private readonly painted = new Set<string>();
+	private ktx2Attached = false;
 	/** Definitions whose asset failed, with the reason (kept for diagnostics). */
 	readonly failures = new Map<string, string>();
 	/** Fit warnings per definition (`assetFit`), filled when the first model of a part is made. */
@@ -267,23 +403,51 @@ export class GltfPartProvider implements PartModelProvider {
 	private async parse(definition: string, data: ArrayBuffer | string): Promise<void> {
 		if (this.scenes.has(definition) || this.failures.has(definition)) return;
 		try {
-			const gltf = await new Promise<{ scene: Object3D }>((resolve, reject) => {
-				this.loader.parse(data, '', resolve, (e) =>
-					reject(e instanceof Error ? e : new Error(String(e)))
-				);
-			});
-			this.scenes.set(definition, gltf.scene);
+			if (usesBasisu(data) && !this.ktx2Attached) {
+				if (!this.options.ktx2)
+					throw new Error('the model uses KTX2 textures and no transcoder is set up');
+				this.loader.setKTX2Loader(await this.options.ktx2());
+				this.ktx2Attached = true;
+			}
+			const gltf = await new Promise<{ scene: Object3D; animations: AnimationClip[] }>(
+				(resolve, reject) => {
+					this.loader.parse(data, '', resolve, (e) =>
+						reject(e instanceof Error ? e : new Error(String(e)))
+					);
+				}
+			);
+			this.scenes.set(definition, { scene: gltf.scene, clips: gltf.animations });
 		} catch (e) {
 			this.failures.set(definition, e instanceof Error ? e.message : String(e));
 		}
 	}
 
 	create(request: PartModelRequest): PartModel | null {
-		const scene = this.scenes.get(request.definition);
-		if (!scene) return null;
+		const loaded = this.scenes.get(request.definition);
+		if (!loaded) return null;
+		const scene = loaded.scene;
 		this.effects ??= { plume: createPlumeGeometry(24), sprite: createSpriteGeometry() };
+		if (!this.painted.has(request.definition)) {
+			applyMaterialSlots(scene, request.visual);
+			for (const [i] of (request.visual?.lods ?? []).entries()) {
+				const far = this.scenes.get(lodAssetKey(request.definition, i + 1));
+				if (far) applyMaterialSlots(far.scene, request.visual);
+			}
+			this.painted.add(request.definition);
+		}
+		const lods = (request.visual?.lods ?? []).flatMap((l, i) => {
+			const far = this.scenes.get(lodAssetKey(request.definition, i + 1));
+			return far ? [{ scene: far.scene, distance: l.distance }] : [];
+		});
 		const nodes = request.attach ?? defaultNodes(request.shape);
-		const model = new GltfModel(scene, nodes, request.definition, request.visual, this.effects);
+		const model = new GltfModel(
+			loaded,
+			nodes,
+			request.definition,
+			request.visual,
+			this.effects,
+			lods
+		);
 		if (!this.warnings.has(request.definition)) {
 			const found = assetFit(
 				{
@@ -293,8 +457,10 @@ export class GltfPartProvider implements PartModelProvider {
 				request.shape,
 				request.attach
 			);
-			if (request.visual?.deploy) {
-				found.push('"deploy" animations are not available to model parts and are ignored');
+			if (request.visual?.deploy && loaded.clips.length === 0) {
+				found.push(
+					'"deploy" needs an animation in the model (named "deploy"); the part will not fold out'
+				);
 			}
 			if (request.visual?.articulation && !scene.getObjectByName('moving')) {
 				found.push(
@@ -308,7 +474,7 @@ export class GltfPartProvider implements PartModelProvider {
 	}
 
 	dispose(): void {
-		for (const scene of this.scenes.values()) {
+		for (const { scene } of this.scenes.values()) {
 			scene.traverse((o) => {
 				if (!(o instanceof Mesh)) return;
 				o.geometry.dispose();
