@@ -18,9 +18,11 @@ export async function prepareModelProviders(
 	providers = [];
 	if (assets.size === 0) return;
 	try {
-		const { GltfPartProvider } = await import('@orbital/renderer');
+		const { GltfPartProvider, createKtx2Loader } = await import('@orbital/renderer');
 		const provider = new GltfPartProvider({
 			assets,
+			// KTX2 textures (plan 065, ADR 0160): the transcoder in static/basis/, fetched only when needed
+			ktx2: () => createKtx2Loader('/basis/'),
 			onWarning: (part, message) => log(`Mod model for "${part}": ${message}`)
 		});
 		await provider.preload([...assets.keys()]);

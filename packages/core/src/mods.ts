@@ -247,6 +247,8 @@ export interface PartAssetRef {
 	part: string;
 	mod: string;
 	path: string;
+	/** A lower-detail model (`visual.lods[lod - 1]`, ADR 0160 point 2); absent for the base `asset`. */
+	lod?: number;
 }
 
 export interface RejectedMod {
@@ -426,6 +428,14 @@ export async function resolveMods(
 						break;
 					}
 					refs.push({ part: def.id, mod: m.id, path });
+					for (const [i, lod] of (def.visual?.lods ?? []).entries()) {
+						if (!decoded.has(lod.asset)) {
+							missing = `part "${def.id}" names the LOD asset "${lod.asset}", which the package does not carry`;
+							break;
+						}
+						refs.push({ part: def.id, mod: m.id, path: lod.asset, lod: i + 1 });
+					}
+					if (missing) break;
 				}
 				if (missing) {
 					reject(m, missing);

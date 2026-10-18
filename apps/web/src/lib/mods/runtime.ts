@@ -94,7 +94,8 @@ export async function evaluateMods(
 	const partAssets = new Map<string, Uint8Array>();
 	for (const ref of resolved.partAssets) {
 		const asset = resolved.assets.get(ref.mod)?.get(ref.path);
-		if (asset) partAssets.set(ref.part, asset.bytes);
+		// a lower-detail model is keyed like the renderer's `lodAssetKey` (plan 065, ADR 0160)
+		if (asset) partAssets.set(ref.lod ? `${ref.part}#lod${ref.lod}` : ref.part, asset.bytes);
 	}
 	// The booted set loads once more, headless, for what its patches changed: the same list and
 	// order the sim boots, so the mod manager shows what a flight will use.

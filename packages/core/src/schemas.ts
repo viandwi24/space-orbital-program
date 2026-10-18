@@ -313,9 +313,25 @@ export const partVisualSchema = z.object({
 		.object({
 			module: definitionIdSchema,
 			flag: z.string().min(1),
-			seconds: z.number().positive().optional()
+			seconds: z.number().positive().optional(),
+			/** A model part plays this glTF animation by the deploy progress (default `deploy`; ADR 0160). */
+			clip: z.string().min(1).optional()
 		})
 		.optional(),
+	/**
+	 * Lower-detail models of a model part (ADR 0160 point 2): each drawn beyond its distance from the
+	 * camera, m, in increasing order; the base `asset` draws closer than the first.
+	 */
+	lods: z
+		.array(z.object({ asset: assetPathSchema, distance: z.number().positive() }))
+		.min(1)
+		.max(3)
+		.refine((l) => l.every((x, i) => i === 0 || x.distance > l[i - 1]!.distance), {
+			message: 'lods: distances must increase'
+		})
+		.optional(),
+	/** Palette slots of named glTF materials of a model part (ADR 0160 point 3). */
+	materials: z.record(z.string().min(1), z.enum(['primary', 'secondary', 'accent'])).optional(),
 	/**
 	 * A moving piece of the model driven by a number in a module's snapshot (ADR 0045): `gimbal`
 	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis.

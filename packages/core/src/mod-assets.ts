@@ -20,6 +20,10 @@ export const MAX_ASSET_TRIANGLES = 50_000;
 export const MAX_ASSET_MESH_NODES = 32;
 /** Textures a model may embed. */
 export const MAX_ASSET_IMAGES = 8;
+/** Animation clips per model (plan 065, ADR 0160 point 1). */
+export const MAX_ASSET_ANIMATIONS = 4;
+/** Keyframe samples over every channel of every clip. */
+export const MAX_ASSET_KEYFRAMES = 20_000;
 
 /** Where an asset lives in a package and how a part names it: lower-case segments, `.glb`. */
 export const assetPathSchema = z
@@ -83,8 +87,8 @@ export async function modPackageFingerprint(
 	return sha256Hex(encoder.encode(text));
 }
 
-// glTF extensions a model may use: everything the game's loader decodes without an extra
-// decoder (no Draco, Meshopt, Basis/KTX2, WebP or AVIF: those need decoder files; ADR 0076).
+// glTF extensions a model may use: everything the game's loader decodes, KTX2 with the transcoder
+// the game serves (ADR 0160 point 4); no Draco, Meshopt, WebP or AVIF (ADR 0076).
 const ALLOWED_EXTENSIONS = new Set([
 	'KHR_materials_clearcoat',
 	'KHR_materials_emissive_strength',
@@ -94,7 +98,8 @@ const ALLOWED_EXTENSIONS = new Set([
 	'KHR_materials_unlit',
 	'KHR_materials_volume',
 	'KHR_mesh_quantization',
-	'KHR_texture_transform'
+	'KHR_texture_transform',
+	'KHR_texture_basisu'
 ]);
 
 export interface GlbInfo {
@@ -104,6 +109,9 @@ export interface GlbInfo {
 	meshNodes: number;
 	images: number;
 	extensions: string[];
+	/** Animation clips and their keyframe samples (ADR 0160 point 1). */
+	animations: number;
+	keyframes: number;
 }
 
 export type GlbInspection = { ok: true; info: GlbInfo } | { ok: false; errors: string[] };
@@ -157,7 +165,7 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 	for (const e of extensions) {
 		if (!ALLOWED_EXTENSIONS.has(e)) {
 			errors.push(
-				`uses the glTF extension ${e}, which the game cannot decode (no Draco, Meshopt, KTX2, WebP or AVIF; export plain triangles with PNG or JPEG textures)`
+				`uses the glTF extension ${e}, which the game cannot decode (no Draco, Meshopt, WebP or AVIF; export plain triangles with PNG, JPEG or KTX2 textures)`
 			);
 		}
 	}
@@ -171,9 +179,13 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 	for (const [i, img] of images.entries()) {
 		if (img.uri !== undefined || typeof img.bufferView !== 'number') {
 			errors.push(`images[${i}] must be embedded in the .glb (bufferView), not a URI`);
-		} else if (img.mimeType !== 'image/png' && img.mimeType !== 'image/jpeg') {
+		} else if (
+			img.mimeType !== 'image/png' &&
+			img.mimeType !== 'image/jpeg' &&
+			img.mimeType !== 'image/ktx2'
+		) {
 			errors.push(
-				`images[${i}] is ${String(img.mimeType)}; only image/png and image/jpeg are supported`
+				`images[${i}] is ${String(img.mimeType)}; only image/png, image/jpeg and image/ktx2 are supported`
 			);
 		}
 	}
@@ -214,9 +226,29 @@ export function inspectGlb(bytes: Uint8Array): GlbInspection {
 		errors.push(`has ${meshNodes} mesh nodes; the limit is ${MAX_ASSET_MESH_NODES} (merge meshes)`);
 	}
 	if (meshNodes === 0) errors.push('contains no mesh');
+	// Animations (ADR 0160 point 1): a clip count and the keyframe samples of every channel.
+	const animations = list(doc.animations);
+	let keyframes = 0;
+	for (const a of animations) for (const s of list(a.samplers)) keyframes += count(s.input);
+	if (animations.length > MAX_ASSET_ANIMATIONS) {
+		errors.push(`has ${animations.length} animations; at most ${MAX_ASSET_ANIMATIONS} are allowed`);
+	}
+	if (keyframes > MAX_ASSET_KEYFRAMES) {
+		errors.push(`animations hold ${keyframes} keyframes; the limit is ${MAX_ASSET_KEYFRAMES}`);
+	}
 	return errors.length > 0
 		? { ok: false, errors }
-		: { ok: true, info: { triangles, meshNodes, images: images.length, extensions } };
+		: {
+				ok: true,
+				info: {
+					triangles,
+					meshNodes,
+					images: images.length,
+					extensions,
+					animations: animations.length,
+					keyframes
+				}
+			};
 }
 
 /** A package's assets after the checks, with decoded bytes. Key: asset path. */

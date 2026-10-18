@@ -159,6 +159,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0157 | [The base M1 and M2 start on `low`; the renderer misses ADR 0025's budget on its budget machine](0157-the-base-m1-and-m2-start-on-low.md) | accepted | 2026-10-18 |
 | 0158 | [Comms in the interface: the link badge with its reason, the Comms tab, the Network layer as a page overlay](0158-comms-interface-link-badge-comms-tab-network-overlay.md) | accepted | 2026-10-18 |
 | 0159 | [Replays and challenges as files: a start save, timed commands and checkpoints; challenges scored locally](0159-replays-and-challenges-as-files.md) | accepted | 2026-10-18 |
+| 0160 | [Richer mod models: a deploy clip, a typed LOD list, palette slots on named materials, KTX2 textures](0160-richer-mod-models-deploy-clips-lods-material-palette-ktx2.md) | accepted | 2026-10-18 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
 | 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |

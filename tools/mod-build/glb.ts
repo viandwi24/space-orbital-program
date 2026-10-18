@@ -36,6 +36,19 @@ export interface GlbNode {
 	children?: number[];
 }
 
+/** One animation clip: channels that key a node's rotation, translation or scale (plan 065, ADR 0160). */
+export interface GlbAnimation {
+	name: string;
+	channels: Array<{
+		node: number;
+		path: 'rotation' | 'translation' | 'scale';
+		/** Seconds, increasing. */
+		times: Float32Array;
+		/** VEC4 quaternions for rotation, VEC3 otherwise, one per time. */
+		values: Float32Array;
+	}>;
+}
+
 export interface GlbSpec {
 	meshes: GlbMesh[];
 	materials: GlbMaterial[];
@@ -44,6 +57,11 @@ export interface GlbSpec {
 	roots: number[];
 	/** Embedded PNG files. */
 	images?: Uint8Array[];
+	/** The images' type when they are not PNG (`image/ktx2` with `KHR_texture_basisu`). */
+	imageMime?: string;
+	animations?: GlbAnimation[];
+	/** Extra `extensionsUsed` entries. */
+	extensionsUsed?: string[];
 }
 
 const pad4 = (n: number): number => (n + 3) & ~3;
@@ -120,8 +138,33 @@ export function buildGlb(spec: GlbSpec): Uint8Array {
 
 	const images = (spec.images ?? []).map((png) => ({
 		bufferView: push(png),
-		mimeType: 'image/png'
+		mimeType: spec.imageMime ?? 'image/png'
 	}));
+
+	const animations = (spec.animations ?? []).map((a) => {
+		const samplers: Record<string, unknown>[] = [];
+		const channels = a.channels.map((c) => {
+			const times = Array.from(c.times);
+			accessors.push({
+				bufferView: push(bytesOf(c.times)),
+				componentType: 5126,
+				count: c.times.length,
+				type: 'SCALAR',
+				min: [Math.min(...times)],
+				max: [Math.max(...times)]
+			});
+			const input = accessors.length - 1;
+			accessors.push({
+				bufferView: push(bytesOf(c.values)),
+				componentType: 5126,
+				count: c.times.length,
+				type: c.path === 'rotation' ? 'VEC4' : 'VEC3'
+			});
+			samplers.push({ input, output: accessors.length - 1, interpolation: 'LINEAR' });
+			return { sampler: samplers.length - 1, target: { node: c.node, path: c.path } };
+		});
+		return { name: a.name, channels, samplers };
+	});
 
 	const json = {
 		asset: { version: '2.0', generator: 'orbital mod-build glb.ts' },
@@ -144,7 +187,18 @@ export function buildGlb(spec: GlbSpec): Uint8Array {
 			},
 			...(m.emissive ? { emissiveFactor: [...m.emissive] } : {})
 		})),
-		...(images.length > 0 ? { images, textures: images.map((_, i) => ({ source: i })) } : {}),
+		...(images.length > 0
+			? {
+					images,
+					textures: images.map((_, i) =>
+						spec.imageMime === 'image/ktx2'
+							? { extensions: { KHR_texture_basisu: { source: i } } }
+							: { source: i }
+					)
+				}
+			: {}),
+		...(animations.length > 0 ? { animations } : {}),
+		...(spec.extensionsUsed ? { extensionsUsed: spec.extensionsUsed } : {}),
 		accessors,
 		bufferViews,
 		buffers: [{ byteLength: length }]
