@@ -1,12 +1,12 @@
 ---
 id: 120
 title: "Comms tier 5: channels, frequency licences, interference, encryption"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 3"
 depends: [119]
 phase: 7
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 120 — Comms tier 5: channels, frequency licences, interference, encryption
