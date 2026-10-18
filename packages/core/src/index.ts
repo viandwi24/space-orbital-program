@@ -55,5 +55,6 @@ export * from './mod-assets.ts';
 export type { TrajectoryCapabilities, TrajectoryModel, TrajectoryProvider } from '@orbital/kepler';
 export * from './science.ts';
 export * from './milestones.ts';
+export * from './tech-tree.ts';
 export * from './scenarios.ts';
 export * from './panels.ts';

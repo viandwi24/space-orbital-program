@@ -374,6 +374,8 @@ export const partDefinitionSchema = z.object({
 	// loader (plan 005), which is the only place both registries are visible.
 	modules: z.array(z.tuple([definitionIdSchema, z.unknown()])).optional(),
 	stagingIcon: z.string().optional(),
+	/** The tech node that unlocks this part (plan 105, ADR 0154 point 1). */
+	techNode: definitionIdSchema.optional(),
 	/**
 	 * Where the part sits in the editor's catalogue (ADR 0082). `category` overrides the one the
 	 * part's modules imply (`ModuleInfo.category`, an engine, a separator, ...); `order` sorts the

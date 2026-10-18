@@ -1,4 +1,5 @@
 /** Comms tier 1 (plan 114, ADR 0179): occlusion and its timing, probe control, blackout, cost. */
+import { openTree } from './helpers/tech.ts';
 import { describe, expect, test } from 'bun:test';
 import {
 	GRAVITATIONAL_CONSTANT,
@@ -22,7 +23,7 @@ const world = (preset: string): WorldInfo => ({
 });
 const make = (preset?: string, plugins: Plugin[] = []) =>
 	createSim({
-		plugins: [Stock, ...plugins],
+		plugins: [Stock, openTree, ...plugins],
 		backendFactory: rapier(16),
 		...(preset ? { world: world(preset) } : {})
 	});

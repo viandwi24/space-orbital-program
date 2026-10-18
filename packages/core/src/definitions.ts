@@ -3,6 +3,7 @@
  * `define*` functions on top of these; the data-only kinds (resource, body, part) are validated
  * by the schemas in `schemas.ts`.
  */
+import type { TechNodeDefinition } from './tech-tree.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
@@ -106,6 +107,8 @@ export interface ReadonlyRegistries {
 	categories: ReadonlyRegistry<CategoryDefinition>;
 	/** Achievements (plan 102, ADR 0147). */
 	achievements: ReadonlyRegistry<AchievementDefinition>;
+	/** The tech tree (plan 105, ADR 0154). */
+	techNodes: ReadonlyRegistry<TechNodeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: ReadonlyRegistry<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */

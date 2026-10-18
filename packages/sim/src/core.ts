@@ -14,6 +14,7 @@ import type {
 	Vec3,
 	SaveEconomy,
 	SaveMilestones,
+	SaveTech,
 	World,
 	WorldInfo
 } from '@orbital/core';
@@ -92,6 +93,8 @@ export interface SimCore {
 	readonly economy: SaveEconomy;
 	/** Firsts and per-vessel visits (plan 102, ADR 0147); saved as `SimSave.milestones`. */
 	readonly milestones: SaveMilestones;
+	/** Researched tech nodes (plan 105, ADR 0154); saved as `SimSave.tech`. */
+	readonly tech: SaveTech;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {

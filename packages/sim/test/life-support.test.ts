@@ -1,4 +1,5 @@
 /** Crew simulation (plan 107, ADR 0181): life support, shortages, resume, morale, fatigue, g-load. */
+import { openTree } from './helpers/tech.ts';
 import { describe, expect, test } from 'bun:test';
 import { legacyWorldInfo, type EntityId, type Plugin, type WorldInfo } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
@@ -94,7 +95,7 @@ const world = (
 
 async function make(days: number, preset = 'stock.career', resume?: unknown): Promise<Sim> {
 	const sim = await createSim({
-		plugins: [Stock, fixture(days)],
+		plugins: [Stock, fixture(days), openTree],
 		backendFactory: rapier(16),
 		world: world(preset),
 		...(resume ? { resume } : {})
