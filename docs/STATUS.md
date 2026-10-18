@@ -213,6 +213,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Recent journal entries
 
 - [121-comms-tier-6-suit-radios-voice-broadcast.md](journal/121-comms-tier-6-suit-radios-voice-broadcast.md)
+- [121-comms-tier-6-suit-radios-voice-broadcast.md](journal/121-comms-tier-6-suit-radios-voice-broadcast.md)
 - [129-discovery-science.md](journal/129-discovery-science.md)
 - [120-comms-tier-5-channels-licences-interference.md](journal/120-comms-tier-5-channels-licences-interference.md)
 - [126-ai-agencies-living-world.md](journal/126-ai-agencies-living-world.md)

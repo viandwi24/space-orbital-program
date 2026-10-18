@@ -31,5 +31,5 @@
 | 126 agencies | done | `devc/126-agencies` | 2026-10-17 | merged 5b7c42b3, cp/f6-126-agencies |
 | 120 comms-5 | done | `devc/120-comms-channels` | 2026-10-18 | merged 7ff2a0fd, cp/f4-120-comms-5 |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |
-| 121 comms-6 | handed-over | `devc/121-comms-suit` | 2026-10-18 | ready/121 |
+| 121 comms-6 | done | `devc/121-comms-suit` | 2026-10-17 | merged df5da7ad, cp/f4-121-comms-6 |
 | 129 discovery | done | `devc/129-discovery` | 2026-10-18 | merged bd246857, cp/f6-129-discovery |
