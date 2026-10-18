@@ -1,12 +1,12 @@
 ---
 id: 073
 title: "A compact flight HUD and VAB for phones, built with a device"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [055, 088, 093]
-phase: 3
+phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 073 — A compact flight HUD and VAB for phones, built with a device
