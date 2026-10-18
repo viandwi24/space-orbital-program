@@ -17,7 +17,7 @@ Three to six rival agencies run as state machines on the world tick; their succe
 
 ## Context
 
-- ADRs: 0096, 0098
+- ADRs: 0096, 0098, [0190](../decisions/0190-ai-agencies-state-machines-owned-objects-rental-news.md) (this plan)
 - Read: ADR 0096 point 4, ADR 0098, `refs/reverse-engineering-ksp2/beyond/03-world-and-economy-dynamics.md` (git-ignored).
 
 ## Scope
@@ -51,19 +51,35 @@ Agency count and aggressiveness are world rules; Sandbox has none.
 
 ## Acceptance criteria
 
-- [ ] `packages/sim` test: with a fixed seed, agency A launches its first relay on the same day every run and the relay appears as an on-rails vessel with `owner: A`.
-- [ ] `packages/sim` test: renting a rival relay routes a link through it and books the rent daily.
-- [ ] Career-bot test with agencies: funds stay in the band.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/sim` test: with a fixed seed, agency A launches its first relay on the same day every run and the relay appears as an on-rails vessel with `owner: A`.
+- [x] `packages/sim` test: renting a rival relay routes a link through it and books the rent daily.
+- [x] Career-bot test with agencies: funds stay in the band.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/126-ai-agencies-living-world.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/126-ai-agencies-living-world.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] New ADRs for decisions made here; `docs/research/` for anything looked up.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0096, 0098).
 - 2026-10-17 — `depends` gains 117 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): renting a rival relay routes a link through it (routing is tier 3, plan 117).
+- 2026-10-18 — Claimed by Agent 3 (`claim/126`, branch `devc/126-agencies`).
+- 2026-10-18 — ADR 0190 covers:
+  - agencies as data;
+  - a daily machine with its own stream;
+  - owned passive objects on rails (two per agency, with lifetimes);
+  - relays routed only when rented, with a daily rent;
+  - reactive contracts after a failed relay;
+  - news;
+  - an optional save field.
+
+  The ECS query now reuses its answer, so the career bot stays fast with agencies.
+- 2026-10-18 — Done here, handed over as `ready/126`:
+  - **Sim tests:** `packages/sim/test/agencies.test.ts` (4) checks the same first-relay day for one seed (on rails, owned), refusals and save/resume, rental routing with the daily rent, and a reactive contract.
+  - **Career bot:** three agencies for ten years in the band, at 28 s.
+  - **Full checks:** in the journal.
+
