@@ -123,7 +123,7 @@
 | 112 | [Dock panels, the Panel library and `definePanel`](plans/112-dock-panels-and-define-panel.md) | done | Agent 2 (Dev B, M2) | ADR 0149, API 0.1.45: `definePanel` (view nodes over a `PanelInput`, `PanelCanvas`), the flight dock and Panel library (settings `dock`), Orbit/Resources/Target/Script as host panels, sample Beacon panel; dock at the right below 1280 px |
 | 113 | [Mission Center: one place for the whole system](plans/113-mission-center.md) | done | Agent 1 | ADR 0102: system map, tracking, upcoming, Fly |
 | 114 | [Comms tier 1: antennas, line of sight, ground stations, control states](plans/114-comms-tier-1-model.md) | done | Agent 3 | ADR 0101/0179 tier 1: LOS, stations, probe control states, real blackout; handed over as `ready/114` |
-| 115 | [Comms tier 1 in the interface: link state, Comms tab, Network layer](plans/115-comms-tier-1-interface.md) | in-progress | Agent 2 (Dev B, M2) | ADR 0158: the link badge with every reason (blackout one of them), the vessel panel's Comms tab (route, stations, transmitters), the Network layer as a page overlay in the map and the Mission Center |
+| 115 | [Comms tier 1 in the interface: link state, Comms tab, Network layer](plans/115-comms-tier-1-interface.md) | done | Agent 2 (Dev B, M2) | ADR 0158: the link badge with every reason (blackout one of them), the vessel panel's Comms tab (route, stations, transmitters), the Network layer as a page overlay in the map and the Mission Center |
 | 116 | [Comms tier 2: link budget, bands, data rates, comms scale](plans/116-comms-tier-2-link-budget.md) | draft | — | ADR 0101 tier 2: Friis budget, bands, rates, inspector |
 | 117 | [Comms tier 3: pointing, routing, latency and the signal-delay rule](plans/117-comms-tier-3-routing-latency-delay.md) | draft | — | ADR 0101 tier 3: routing, capacity, latency, delay rule |
 | 118 | [Comms planning tools: contact timeline, coverage map, constellation planner](plans/118-comms-planning-tools.md) | draft | — | ADR 0101 tier 3 tools: timeline, coverage, planner |
@@ -209,6 +209,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [115-comms-tier-1-interface.md](journal/115-comms-tier-1-interface.md)
 - [066-environment-devices-and-mobile.md](journal/066-environment-devices-and-mobile.md)
 - [130-part-reliability.md](journal/130-part-reliability.md)
 - [127-range-safety.md](journal/127-range-safety.md)

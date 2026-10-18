@@ -26,7 +26,7 @@
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | done | `devb/111-vessel-panel` | 2026-10-17 | merged 47c55ad, cp/f4-111-vessel-panel |
 | 105 tech-tree | done | `devb/105-tech-tree` | 2026-10-17 | merged 047ab15, cp/f3-105-tech-tree |
-| 115 comms-1-ui | handed-over | `devb/115-comms-ui` | 2026-10-18 | ready/115; ADR 0158 |
+| 115 comms-1-ui | done | `devb/115-comms-ui` | 2026-10-17 | merged 55ca2da, cp/f4-115-comms-1-ui |
 | 127 range-safety | done | `devb/127-range-safety` | 2026-10-17 | merged aaa9f4c, cp/f6-127-range-safety |
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
 | 118 comms-tools | todo |  |  |  |
