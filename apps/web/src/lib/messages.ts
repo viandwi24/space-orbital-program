@@ -41,6 +41,8 @@ export interface Catalog {
 	/** Achievements of the booted plugins and the world's id (plan 102, ADR 0147); only the sim's `ready`. */
 	achievements?: AchievementDefinition[];
 	worldId?: string;
+	/** The world's system (plan 206: a Sol world has the 100k× warp level). */
+	systemId?: string;
 	/** The world's gravity model (plan 125, ADR 0122). */
 	gravityModel?: 'patched' | 'n-body';
 	/** The home body the sim runs on (plan 122, ADR 0119); only the sim's `ready`. */

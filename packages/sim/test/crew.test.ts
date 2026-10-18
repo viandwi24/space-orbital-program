@@ -152,8 +152,8 @@ describe('crew', () => {
 		expect(member(sim, 'c1').status).toBe('missing');
 		const back: string[] = [];
 		sim.events.on('crew:returned', (e) => back.push(e.member));
-		sim.dispatch({ type: 'warp', factor: 1e5 });
-		sim.step(0.5); // 50 000 s: more than two stock days
+		sim.dispatch({ type: 'warp', factor: 1e4 });
+		sim.step(5); // 50 000 s: more than two stock days
 		expect(back).toEqual(['c1']);
 		expect(member(sim, 'c1').status).toBe('available');
 	});
@@ -164,8 +164,8 @@ describe('crew', () => {
 		sim.dispatch({ type: 'set-rule', rule: 'stock.crew-salaries', value: true });
 		sim.dispatch({ type: 'crew-hire', profession: 'pilot' });
 		sim.dispatch({ type: 'crew-hire', profession: 'scientist' });
-		sim.dispatch({ type: 'warp', factor: 1e5 });
-		sim.step(0.5); // two ticks
+		sim.dispatch({ type: 'warp', factor: 1e4 });
+		sim.step(5); // two ticks
 		const entries = sim.save().economy!.entries.filter((e) => e.cause.startsWith('crew.'));
 		expect(entries.map((e) => [e.cause, e.amount])).toEqual([
 			['crew.recruit', -8_000],

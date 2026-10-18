@@ -28,18 +28,16 @@ async function inOrbit(speedFactor = 1) {
 }
 
 describe('time warp', () => {
-	test('refused while any vessel is in flight mode, naming it', async () => {
+	test('physics warp runs with a vessel in flight (plan 206, ADR 0202 point 2)', async () => {
 		const sim = await newSim();
-		// On the pad, just loaded: flight. (Since plan 016 it goes on surface rails after 2 s at rest,
-		// see surface-rails.test.ts; the refusal here holds until then.)
 		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		expect(r.ok).toBe(true);
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
-		const w = sim.dispatch({ type: 'warp', factor: 10 });
-		expect(w.ok).toBe(false);
-		if (!w.ok) expect(w.reason).toContain('in flight');
-		expect(sim.warp).toBe(1);
-		expect(sim.dispatch({ type: 'warp', factor: 1 }).ok).toBe(true); // 1x is always fine
+		expect(sim.dispatch({ type: 'warp', factor: 10 })).toEqual({ ok: true, granted: 10 });
+		expect(sim.warp).toBe(10);
+		sim.step(1);
+		expect(sim.time).toBeCloseTo(10, 6); // 500 fixed steps, physics all the way
+		expect(sim.dispatch({ type: 'warp', factor: 1 }).ok).toBe(true);
 	});
 
 	test('accepted when every vessel is on rails; position after 10 000 s matches kepler.propagate within 1e-6', async () => {
@@ -65,30 +63,33 @@ describe('time warp', () => {
 		const { sim, position, velocity } = await inOrbit(1.02);
 		const mu = homeMu(sim);
 		const el0 = fromStateVector(position, velocity, mu, 0);
-		sim.dispatch({ type: 'warp', factor: 100_000 });
-		sim.step(10);
+		// the stock world's top is 10k× (plan 206): 100 s of host time
+		expect(sim.dispatch({ type: 'warp', factor: 100_000 })).toMatchObject({
+			ok: true,
+			granted: 10_000
+		});
+		sim.step(100);
 		expect(sim.time).toBeCloseTo(1_000_000, 3);
 		const v = sim.snapshot().vessels[0]!;
 		expect(relErr(centreOfMass(sim, v), propagate(el0, mu, sim.time).r)).toBeLessThan(1e-6);
 		expect(Math.abs(v.orbit!.epoch - sim.time)).toBeLessThan(2 * 3_000 * 2); // re-based: epoch is recent
 	});
 
-	test('commands that need flight are refused while warping; at 1x they wake the vessel and warp is refused again', async () => {
+	test('throttle during rails warp drops to physics warp in the same call and wakes the vessel (plan 206)', async () => {
 		const { sim, id } = await inOrbit();
-		sim.dispatch({ type: 'warp', factor: 50 });
-		const refused = sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
-		expect(refused.ok).toBe(false);
-		if (!refused.ok) expect(refused.reason).toContain('warp');
-		expect(sim.dispatch({ type: 'throttle', vessel: id, value: 0 }).ok).toBe(true); // no flight needed
-		expect(sim.dispatch({ type: 'load-vessel', design: twoStage() }).ok).toBe(false); // would be flight
-
-		sim.dispatch({ type: 'warp', factor: 1 });
+		expect(sim.dispatch({ type: 'warp', factor: 50 })).toEqual({ ok: true, granted: 50 });
 		const modes: string[] = [];
 		sim.events.on('vessel:mode-changed', (e) => modes.push(`${e.mode}:${e.reason}`));
 		expect(sim.dispatch({ type: 'throttle', vessel: id, value: 1 }).ok).toBe(true);
+		expect(sim.warp).toBe(10);
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		expect(modes).toEqual(['flight:throttle']);
-		expect(sim.dispatch({ type: 'warp', factor: 10 }).ok).toBe(false);
+		// with the engine running, rails warp is clamped to 10× with the reason
+		expect(sim.dispatch({ type: 'warp', factor: 50 })).toEqual({
+			ok: true,
+			granted: 10,
+			limit: 'Max 10× — engine running'
+		});
 	});
 
 	test('a vessel left idle in a stable orbit goes back on rails after two seconds, on the same orbit', async () => {

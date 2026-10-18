@@ -54,8 +54,8 @@ describe('world tick', () => {
 	test('100 game days at warp 1e6 fire exactly 100 ticks, days 1..100, each at its boundary', async () => {
 		const s = await sim([]);
 		const ticks = ticksOf(s);
-		expect(s.dispatch({ type: 'warp', factor: 1e6 }).ok).toBe(true);
-		s.step((100 * DAY + 100) / 1e6); // 100 days and 100 s
+		expect(s.dispatch({ type: 'warp', factor: 1e4 }).ok).toBe(true);
+		s.step((100 * DAY + 100) / 1e4); // 100 days and 100 s
 		expect(ticks.map((t) => t.day)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1));
 		for (const t of ticks) {
 			expect(Math.abs(t.time - t.day * DAY)).toBeLessThan(1e-6);
@@ -89,8 +89,8 @@ describe('world tick', () => {
 			const a = recorder('test.alpha');
 			const b = recorder('test.beta');
 			const s = await sim(plugins(a.system, b.system));
-			s.dispatch({ type: 'warp', factor: 1e6 });
-			s.step((5 * DAY + 1) / 1e6);
+			s.dispatch({ type: 'warp', factor: 1e4 });
+			s.step((5 * DAY + 1) / 1e4);
 			return a.seen;
 		};
 		const alone = await run((a) => [systemsPlugin('a', [a])]);
@@ -103,8 +103,8 @@ describe('world tick', () => {
 		// Two systems do not share a stream.
 		const other = recorder('test.gamma');
 		const s = await sim([systemsPlugin('a', [recorder('test.alpha').system, other.system])]);
-		s.dispatch({ type: 'warp', factor: 1e6 });
-		s.step((DAY + 1) / 1e6);
+		s.dispatch({ type: 'warp', factor: 1e4 });
+		s.step((DAY + 1) / 1e4);
 		expect(other.seen[0]!.draw).not.toBe(alone[0]!.draw);
 	});
 
@@ -120,27 +120,27 @@ describe('world tick', () => {
 			systemsPlugin('first', [sys('z.late', 5), sys('z.b'), sys('z.a')]),
 			systemsPlugin('second', [sys('a.early', -1), sys('a.next')])
 		]);
-		s.dispatch({ type: 'warp', factor: 1e6 });
-		s.step((DAY + 1) / 1e6);
+		s.dispatch({ type: 'warp', factor: 1e4 });
+		s.step((DAY + 1) / 1e4);
 		expect(calls).toEqual(['a.early', 'z.a', 'z.b', 'a.next', 'z.late']);
 	});
 
 	test('a save taken mid-day resumes with the same next tick, day and draws', async () => {
 		const straight = recorder('test.alpha');
 		const s1 = await sim([systemsPlugin('a', [straight.system])]);
-		s1.dispatch({ type: 'warp', factor: 1e6 });
-		s1.step((3 * DAY + 1) / 1e6);
+		s1.dispatch({ type: 'warp', factor: 1e4 });
+		s1.step((3 * DAY + 1) / 1e4);
 
 		const first = recorder('test.alpha');
 		const s2 = await sim([systemsPlugin('a', [first.system])]);
-		s2.dispatch({ type: 'warp', factor: 1e6 });
-		s2.step((1.5 * DAY) / 1e6); // mid-day 1
+		s2.dispatch({ type: 'warp', factor: 1e4 });
+		s2.step((1.5 * DAY) / 1e4); // mid-day 1
 		const saved = JSON.parse(JSON.stringify(s2.save()));
 		expect(saved.worldTick.lastDay).toBe(1);
 		const second = recorder('test.alpha');
 		const s3 = await sim([systemsPlugin('a', [second.system])], { resume: saved });
 		const ticks = ticksOf(s3);
-		s3.step((1.5 * DAY + 1) / 1e6);
+		s3.step((1.5 * DAY + 1) / 1e4);
 		expect([...first.seen, ...second.seen]).toEqual(straight.seen);
 		expect(ticks.map((t) => t.day)).toEqual([2, 3]);
 		expect(ticks[0]!.time).toBe(straight.seen[1]!.time);
@@ -148,14 +148,14 @@ describe('world tick', () => {
 
 	test('a format-5 save without worldTick fires no duplicate tick', async () => {
 		const s = await sim([]);
-		s.dispatch({ type: 'warp', factor: 1e6 });
-		s.step((1.5 * DAY) / 1e6);
+		s.dispatch({ type: 'warp', factor: 1e4 });
+		s.step((1.5 * DAY) / 1e4);
 		const { worldTick: _drop, ...older } = JSON.parse(JSON.stringify(s.save()));
 		const { simSaveChecksum } = await import('@orbital/core');
 		const { checksum: _c, ...unsigned } = older;
 		const resumed = await sim([], { resume: { ...unsigned, checksum: simSaveChecksum(unsigned) } });
 		const ticks = ticksOf(resumed);
-		resumed.step((DAY + 1) / 1e6);
+		resumed.step((DAY + 1) / 1e4);
 		expect(ticks.map((t) => t.day)).toEqual([2]);
 	});
 });
@@ -233,12 +233,12 @@ describe('background operations', () => {
 		expect(s.snapshot().vessels[0]!.mode).toBe('on-rails');
 		const t0 = s.time; // the first evaluation starts counting here
 
-		s.dispatch({ type: 'warp', factor: 1e5 });
-		s.step((DAY + 50 - s.time) / 1e5); // past the first tick
+		s.dispatch({ type: 'warp', factor: 1e4 });
+		s.step((DAY + 50 - s.time) / 1e4); // past the first tick
 		// brought up to the tick; between ticks a refresh runs only every BACKGROUND_REFRESH × warp
-		// (5e5 s at this warp, longer than the step), so not further (plan 208)
+		// (5e4 s at this warp, longer than the step), so not further (plan 208)
 		expect(charge(s)).toBeCloseTo(RATE * (DAY - t0), 6);
-		expect(BACKGROUND_REFRESH * 1e5).toBeGreaterThan(s.time - DAY);
+		expect(BACKGROUND_REFRESH * 1e4).toBeGreaterThan(s.time - DAY);
 		expect(calls.onRails).toBe(0);
 		expect(calls.counter).toBeGreaterThan(0); // a module without `background` keeps updateOnRails
 
@@ -310,9 +310,9 @@ describe('background operations', () => {
 			}
 			start = -1;
 		});
-		s.dispatch({ type: 'warp', factor: 1e6 });
+		s.dispatch({ type: 'warp', factor: 1e4 });
 		const before = calls.background;
-		s.step((1000 * BENCH_DAY + 1) / 1e6);
+		s.step((1000 * BENCH_DAY + 1) / 1e4);
 		expect(count).toBe(1000);
 		expect(calls.background - before).toBe(50 * 1000);
 		const perTick = spent / count;

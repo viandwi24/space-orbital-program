@@ -38,7 +38,7 @@ const day = (sim: Sim) => tickDayLength(sim.registries.bodies.list());
 
 function warpDays(sim: Sim, n: number): void {
 	const to = sim.time + n * day(sim);
-	const r = sim.dispatch({ type: 'warp-to', time: to, factor: 1e6 });
+	const r = sim.dispatch({ type: 'warp-to', time: to, factor: 1e4 });
 	if (!r.ok) throw new Error(r.reason);
 	for (let g = 0; (sim.time < to - 1e-6 || sim.warp !== 1) && g < 1e5; g++) sim.step(10);
 }

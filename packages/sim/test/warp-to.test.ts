@@ -10,18 +10,18 @@ async function inOrbit() {
 	const res = sim.dispatch({
 		type: 'load-vessel',
 		design: moonLander(),
-		placement: { kind: 'state', ...orbitState(sim, 150_000) }
+		placement: { kind: 'state', ...orbitState(sim, 500_000) } // above the 10k× tier (plan 206)
 	});
 	if (!res.ok) throw new Error(res.reason);
 	return { sim, id: res.vessel as EntityId };
 }
 
 describe('warp-to', () => {
-	test('stops at the requested time within 1e-6 s at warp 1, never overshooting at 1e5x', async () => {
+	test('stops at the requested time within 1e-6 s at warp 1, never overshooting at 1e4x', async () => {
 		const { sim } = await inOrbit();
 		const target = 50_000.123;
-		expect(sim.dispatch({ type: 'warp-to', time: target, factor: 1e5 }).ok).toBe(true);
-		expect(sim.warp).toBe(1e5);
+		expect(sim.dispatch({ type: 'warp-to', time: target, factor: 1e4 }).ok).toBe(true);
+		expect(sim.warp).toBe(1e4);
 		let worst = 0;
 		let steps = 0;
 		let fastest = 1;
@@ -30,7 +30,7 @@ describe('warp-to', () => {
 			worst = Math.max(worst, sim.time - target);
 			fastest = Math.max(fastest, sim.warp);
 		}
-		expect(fastest).toBe(1e5);
+		expect(fastest).toBe(1e4);
 		expect(sim.warp).toBe(1);
 		expect(Math.abs(sim.time - target)).toBeLessThan(1e-6);
 		expect(worst).toBeLessThan(1e-6);
@@ -53,12 +53,11 @@ describe('warp-to', () => {
 		sim.dispose();
 	});
 
-	test('refused in flight and for a time that has passed', async () => {
+	test('in flight it runs at physics warp; a time that has passed is refused (plan 206)', async () => {
 		const sim = await newSim();
 		sim.dispatch({ type: 'load-vessel', design: twoStage() });
 		const r = sim.dispatch({ type: 'warp-to', time: 100, factor: 10 });
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.reason).toContain('in flight');
+		expect(r).toMatchObject({ ok: true, granted: 10 });
 		const past = sim.dispatch({ type: 'warp-to', time: 0, factor: 10 });
 		expect(past.ok).toBe(false);
 		sim.dispose();

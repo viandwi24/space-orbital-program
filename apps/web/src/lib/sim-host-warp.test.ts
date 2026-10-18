@@ -107,15 +107,15 @@ async function setup(placement: Placement = { altitude: 100_000, speedFactor: 1 
 const WIGGLE = `let n = 0; while (true) { ship.attitude = { pitch: 0.001 + 1e-6 * n++ }; await nextTick(); }`;
 
 describe('time warp while a script runs (ADR 0039)', () => {
-	it('control: without the hold a wiggling attitude keeps the vessel in flight and the sim refuses warp', async () => {
+	it('control: a wiggling attitude keeps the vessel in flight; physics warp needs no rails (plan 206)', async () => {
 		const t = await setup();
 		expect(t.mode()).toBe('on-rails');
 		await t.run(WIGGLE);
 		t.tick(400); // 8 s of sim time: well past the 2 s idle time
 		expect(t.mode()).toBe('flight');
-		// asked of the sim directly, as the page's button did before this plan
 		const verdict = t.sim().dispatch({ type: 'warp', factor: 10 });
-		expect(verdict.ok).toBe(false);
+		expect(verdict).toEqual({ ok: true, granted: 10 });
+		expect(t.mode()).toBe('flight');
 		t.host.dispose();
 	});
 
@@ -124,17 +124,17 @@ describe('time warp while a script runs (ADR 0039)', () => {
 		await t.run(WIGGLE);
 		t.tick(20);
 		expect(t.mode()).toBe('flight');
-		const answer = t.pageWarp(10);
+		const answer = t.pageWarp(50); // rails warp (plan 206): the attitude is held first
 		expect(answer()).toBeUndefined(); // pending: the vessel is still in flight
 		for (let i = 0; i < 400 && answer() === undefined; i++) t.tick();
-		expect(answer()).toEqual({ ok: true });
+		expect(answer()).toEqual({ ok: true, granted: 50 });
 		expect(t.mode()).toBe('on-rails');
 		const before = t.sim().time;
 		t.tick(50);
 		const gained = t.sim().time - before;
-		// 50 ticks of 20 ms at 10x (the host clamps one step to 0.1 s of wall time)
-		expect(gained).toBeGreaterThan(8);
-		expect(gained).toBeLessThan(12);
+		// 50 ticks of 20 ms at 50x (the host clamps one step to 0.1 s of wall time)
+		expect(gained).toBeGreaterThan(40);
+		expect(gained).toBeLessThan(60);
 		expect(t.statuses().at(-1)?.status).toBe('running');
 		// the sim never saw another non-zero attitude after the request
 		const after = t.dispatched.slice(t.dispatched.findIndex((c) => c.type === 'warp'));
@@ -155,20 +155,19 @@ describe('time warp while a script runs (ADR 0039)', () => {
 			}
 		`);
 		t.tick(30);
-		const answer = t.pageWarp(5);
+		const answer = t.pageWarp(50);
 		for (let i = 0; i < 400 && answer() === undefined; i++) t.tick();
 		t.tick(5);
 		expect(t.lines().filter((l) => l.startsWith('refused:'))).toEqual(['refused: held']);
 		t.host.dispose();
 	});
 
-	it('a burning script (throttle above 0) is refused at once, without waiting', async () => {
+	it('a burning script (throttle above 0) gets physics warp at once, with the reason (plan 206)', async () => {
 		const t = await setup();
 		await t.run(`ship.throttle = 1; stage(); while (true) await nextTick();`);
 		t.tick(10);
-		const answer = t.pageWarp(10);
-		expect(answer()).toMatchObject({ ok: false });
-		expect((answer() as { reason: string }).reason).toContain('burning');
+		const answer = t.pageWarp(50);
+		expect(answer()).toEqual({ ok: true, granted: 10, limit: 'Max 10× — engine running' });
 		expect(t.mode()).toBe('flight');
 		t.host.dispose();
 	});
@@ -177,13 +176,13 @@ describe('time warp while a script runs (ADR 0039)', () => {
 		const t = await setup();
 		await t.run(WIGGLE);
 		t.tick(20);
-		const answer = t.pageWarp(10);
+		const answer = t.pageWarp(50);
 		for (let i = 0; i < 400 && answer() === undefined; i++) t.tick();
 		t.tick(10);
 		expect(t.mode()).toBe('on-rails');
 		t.dispatched.length = 0;
 		const back = t.pageWarp(1);
-		expect(back()).toEqual({ ok: true });
+		expect(back()).toEqual({ ok: true, granted: 1 });
 		const restored = t.dispatched.filter((c) => c.type === 'attitude');
 		expect(restored.length).toBeGreaterThanOrEqual(1);
 		expect(restored.at(-1)?.type).toBe('attitude');
@@ -193,18 +192,15 @@ describe('time warp while a script runs (ADR 0039)', () => {
 		t.host.dispose();
 	});
 
-	it('a request the sim keeps refusing is answered after the wall timeout with the sim reason, and the hold ends', async () => {
+	it('in the air a rails request is clamped to physics warp with the reason, and the hold ends (plan 206)', async () => {
 		// 10 km up, slow: a suborbital vessel in the air never qualifies for the rails
 		const t = await setup({ altitude: 10_000, speedFactor: 0.3 });
 		await t.run(WIGGLE);
 		t.tick(10);
-		const answer = t.pageWarp(10);
-		t.tick(10);
-		expect(answer()).toBeUndefined();
-		t.skip(WARP_PENDING_MS + 100);
-		t.tick();
-		expect(answer()).toMatchObject({ ok: false });
-		expect((answer() as { reason: string }).reason).toContain('on rails');
+		const answer = t.pageWarp(50);
+		t.tick(2);
+		expect(answer()).toEqual({ ok: true, granted: 10, limit: 'Max 10× — in the atmosphere' });
+		void WARP_PENDING_MS;
 		// the hold is over: the script's attitude reaches the sim again
 		t.dispatched.length = 0;
 		t.tick(5);
@@ -216,11 +212,10 @@ describe('time warp while a script runs (ADR 0039)', () => {
 		const t = await setup();
 		await t.run(WIGGLE);
 		t.tick(10);
-		const answer = t.pageWarp(10);
-		t.tick(5);
+		const answer = t.pageWarp(50);
 		expect(answer()).toBeUndefined();
 		t.host.handle({ kind: 'script-stop' });
-		expect(answer()).toMatchObject({ ok: false });
+		expect(answer()).toBeDefined();
 		t.host.dispose();
 	});
 

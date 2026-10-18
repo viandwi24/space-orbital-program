@@ -23,10 +23,10 @@ const OX = 'stock.oxidizer';
 
 /** Advance whole days at warp 1e6, landing a little past the boundary. */
 function days(sim: Sim, n: number): void {
-	sim.dispatch({ type: 'warp', factor: 1e6 });
+	sim.dispatch({ type: 'warp', factor: 1e4 });
 	const at = sim.snapshot().t;
 	const target = (Math.floor(at / DAY) + n) * DAY + 1;
-	sim.step((target - at) / 1e6);
+	sim.step((target - at) / 1e4);
 	sim.dispatch({ type: 'warp', factor: 1 });
 }
 

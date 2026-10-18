@@ -77,6 +77,8 @@ export interface SimCore {
 	accumulator: number;
 	/** Set by an SOI change of a controlled vessel; `step` then drops the rest of the accumulator (ADR 0051). */
 	warpStopped: boolean;
+	/** The vessel the player watches (plan 206): it and those in range of it limit the warp. */
+	warpFocus: EntityId | null;
 	/** The clock is paused (plan 205, ADR 0201 point 4); not saved: a loaded world runs. */
 	paused: boolean;
 	/**

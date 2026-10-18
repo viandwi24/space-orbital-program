@@ -1,6 +1,7 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
 import { techSnapshot } from './tech.ts';
 import { debugSnapshot } from './debug.ts';
+import { warpLimit } from './warp-limits.ts';
 import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
@@ -157,6 +158,10 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
 	// dip below the surface (ADR 0024).
+	if (vessel.rails?.kind === 'frozen') {
+		snapshot.frozen = true; // held still during rails warp (plan 206): no path to show
+		return snapshot;
+	}
 	if (vessel.rails?.kind === 'surface') {
 		// The root part's velocity, like a flight vessel's (the orbital branch reports the COM's).
 		snapshot.velocity = cross(spinAt(body, core.t), position);
@@ -194,6 +199,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		})),
 		rules: rulesView(core),
 		debug: debugSnapshot(core),
+		warpLimit: warpLimit(core),
 		...(core.paused ? { paused: true } : {}),
 		economy: { ...economySnapshot(core), ...marketSnapshot(core) },
 		sites: sitesSnapshot(core),

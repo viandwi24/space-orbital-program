@@ -4,6 +4,7 @@
  */
 import type { Quat, Vec3 } from '@orbital/core';
 import {
+	add,
 	cross,
 	dot,
 	fromStateVector,
@@ -93,6 +94,11 @@ export function railsMotion(body: BodyRuntime, rails: RailsState, t: number): Mo
 		const r = qRotate(rotationAt(body, t), rails.r);
 		return { r, v: cross(spinAt(body, t), r) };
 	}
+	if (rails.kind === 'frozen') {
+		const turn = rotationAt(body, t);
+		const r = qRotate(turn, rails.r);
+		return { r, v: add(qRotate(turn, rails.v), cross(spinAt(body, t), r)) };
+	}
 	return propagateUniversal(rails.r, rails.v, body.mu, t - rails.t0);
 }
 
@@ -100,7 +106,7 @@ export function railsMotion(body: BodyRuntime, rails: RailsState, t: number): Mo
 export function rebaseRails(core: SimCore, vessel: VesselState, t: number): void {
 	const rails = vessel.rails;
 	if (!rails) return;
-	if (rails.kind === 'surface') return; // fixed in the body frame: nothing drifts
+	if (rails.kind === 'surface' || rails.kind === 'frozen') return; // fixed in the body frame
 	if (rails.kind === 'numeric') {
 		vessel.rails = advanceNumeric(bodyOfVessel(core, vessel), rails, t);
 		return;
@@ -123,7 +129,7 @@ export function motionOf(core: SimCore, vessel: VesselState): Motion {
 /** Root orientation now: frozen on orbital rails, turning with the body on surface rails. */
 export function orientationOf(core: SimCore, vessel: VesselState): Quat {
 	const rails = vessel.rails;
-	if (rails?.kind !== 'surface') return vessel.orientation;
+	if (rails?.kind !== 'surface' && rails?.kind !== 'frozen') return vessel.orientation;
 	return qMul(rotationAt(bodyOfVessel(core, vessel), core.t), rails.q);
 }
 

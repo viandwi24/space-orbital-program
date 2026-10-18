@@ -313,7 +313,13 @@ export function stepSas(
 export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	const sas = vessel.sas;
 	sas.active = false;
-	if (!isPointing(sas.mode) || vessel.rails === null || vessel.rails.kind === 'surface') return;
+	if (
+		!isPointing(sas.mode) ||
+		vessel.rails === null ||
+		vessel.rails.kind === 'surface' ||
+		vessel.rails.kind === 'frozen'
+	)
+		return;
 	if (!isControlled(core, vessel)) return;
 	const { r, v } = motionOf(core, vessel);
 	const d = targetDirection(

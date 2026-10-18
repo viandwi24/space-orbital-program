@@ -55,9 +55,9 @@ function landOnMoon(
 }
 
 function days(sim: Sim, n: number): void {
-	sim.dispatch({ type: 'warp', factor: 1e6 });
+	sim.dispatch({ type: 'warp', factor: 1e4 });
 	const at = sim.snapshot().t;
-	sim.step(((Math.floor(at / DAY) + n) * DAY + 1 - at) / 1e6);
+	sim.step(((Math.floor(at / DAY) + n) * DAY + 1 - at) / 1e4);
 	sim.dispatch({ type: 'warp', factor: 1 });
 }
 const held = (sim: Sim, site: string, commodity: string) =>
@@ -151,7 +151,7 @@ describe('outposts (ADR 0125 points 4 and 5)', () => {
 		const left: string[] = [];
 		sim.events.on('site:left', (e) => left.push(e.site));
 		const boundary = (Math.floor(sim.snapshot().t / DAY) + 1) * DAY;
-		expect(sim.dispatch({ type: 'warp-to', time: boundary - 4, factor: 1e6 }).ok).toBe(true);
+		expect(sim.dispatch({ type: 'warp-to', time: boundary - 4, factor: 1e4 }).ok).toBe(true);
 		for (let g = 0; g < 1e5 && (sim.time < boundary - 4 - 1e-6 || sim.warp !== 1); g++) sim.step(1);
 		expect(sim.dispatch({ type: 'stage', vessel: rig }).ok).toBe(true);
 		expect(sim.dispatch({ type: 'throttle', vessel: rig, value: 1 }).ok).toBe(true);

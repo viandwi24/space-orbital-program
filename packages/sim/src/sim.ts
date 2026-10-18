@@ -75,6 +75,7 @@ import { rulesView, takeSnapshot } from './snapshot.ts';
 import { freshEconomy } from './economy.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
+import { holdWarpLimit, thawFrozen } from './warp.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -92,8 +93,11 @@ function warpedDelta(core: SimCore, wallDelta: number): number {
 function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void): void {
 	if (core.warpTarget === null) return;
 	const left = core.warpTarget - core.t;
-	if (left > 1e-9 && left - core.accumulator > 1e-9) return;
-	if (left > 1e-9 && core.accumulator > 0) {
+	if (hasFlightVessels(core)) {
+		// physics warp (plan 206): fixed steps cannot land exactly; it ends within one step
+		if (left > core.dt) return;
+	} else if (left > 1e-9 && left - core.accumulator > 1e-9) return;
+	else if (left > 1e-9 && core.accumulator > 0) {
 		const h = core.accumulator;
 		core.accumulator = 0;
 		railsStep(h);
@@ -321,6 +325,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		accumulator: resume?.accumulator ?? 0,
 		warpStopped: false,
 		paused: false,
+		warpFocus: null,
 		info,
 		rulesView: null,
 		trajectory: createTrajectoryProvider(info.gravityModel, patchedBodiesOf(bodies)),
@@ -517,12 +522,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			if (!Number.isFinite(wallDelta) || wallDelta < 0) {
 				throw new RangeError(`Sim.step: wallDelta must be a finite number >= 0, got ${wallDelta}`);
 			}
-			if (core.warpTarget !== null && hasFlightVessels(core)) {
-				// Something woke up: a warp-to needs every vessel on rails.
-				core.warpTarget = null;
-				core.warp = 1;
-				core.events.emit('warp:stopped', { reason: 'a vessel is in flight' });
-			}
+			// rails warp holds only while the watched vessels allow it; frozen ones come back below it
+			holdWarpLimit(core);
+			thawFrozen(core);
 			if (core.paused) return; // the clock is paused (plan 205): nothing advances
 			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);

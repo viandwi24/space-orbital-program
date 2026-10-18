@@ -20,6 +20,7 @@ import {
 	bodyId,
 	commandSchema,
 	DELAYED_COMMANDS,
+	PHYSICS_WARP_MAX,
 	IDENTITY_RULES,
 	padLatLon,
 	resolveVesselDesign,
@@ -45,6 +46,7 @@ import {
 import { cancelTransmission, enqueueTransmission, recoverQueued } from './transmission.ts';
 import { delayOf, enqueue, type CommandSource } from './delay.ts';
 import { ruleOf } from './economy.ts';
+import { dropForThrust, requestWarp, requestWarpTo } from './warp.ts';
 
 /** The rule that allows pausing the clock (plan 205, ADR 0201 point 5). */
 export const PAUSE_RULE = 'stock.pause-allowed';
@@ -228,12 +230,14 @@ function loadVessel(
 		if (hasBackground(core, id)) vessel.backgroundAt = core.t; // background counts from the load (ADR 0171)
 	} else {
 		const frame =
-			core.warp > 1 ? undefined : acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
+			core.warp > PHYSICS_WARP_MAX
+				? undefined
+				: acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
 		if (!frame) {
 			destroyVessel(core, id, 'could not be placed');
 			return refuse(
-				core.warp > 1
-					? `time warp is ${core.warp}x; set warp to 1 before loading a vessel into flight`
+				core.warp > PHYSICS_WARP_MAX
+					? `time warp is ${core.warp}x; set warp to ${PHYSICS_WARP_MAX}x or less before loading a vessel into flight`
 					: 'no free physics frame (another vessel is in flight far away)'
 			);
 		}
@@ -335,6 +339,7 @@ export function dispatch(
 			const noSignal = signalRefusal(core, command.vessel, 'throttle');
 			if (noSignal) return refuse(noSignal);
 			if (command.value > 0 && v.mode === 'on-rails') {
+				dropForThrust(core, command.vessel); // rails warp falls to physics warp (ADR 0202 point 5)
 				const why = ensureFlight(core, command.vessel, 'throttle');
 				if (why) return refuse(why);
 			}
@@ -441,37 +446,10 @@ export function dispatch(
 			refreshColliders(core, command.vessel);
 			return accept();
 		}
-		case 'warp': {
-			if (command.factor > MAX_WARP)
-				return refuse(`warp ${command.factor} exceeds the maximum ${MAX_WARP}`);
-			if (nBodyOn(core) && command.factor > NBODY_MAX_WARP)
-				return refuse(`n-body integration limits warp to ${NBODY_MAX_WARP}x`);
-			if (command.factor > 1 && hasFlightVessels(core)) {
-				const flying = vesselIds(core).filter((id) => vesselOf(core, id).mode === 'flight');
-				return refuse(
-					`time warp needs every vessel on rails; in flight: ${flying.map((id) => `${id} ("${vesselOf(core, id).name}")`).join(', ')}`
-				);
-			}
-			core.warp = command.factor;
-			core.warpTarget = null;
-			return accept();
-		}
-		case 'warp-to': {
-			if (command.factor > MAX_WARP)
-				return refuse(`warp ${command.factor} exceeds the maximum ${MAX_WARP}`);
-			if (nBodyOn(core) && command.factor > NBODY_MAX_WARP)
-				return refuse(`n-body integration limits warp to ${NBODY_MAX_WARP}x`);
-			if (command.time <= core.t) return refuse('warp-to needs a time that has not passed');
-			if (hasFlightVessels(core)) {
-				const flying = vesselIds(core).filter((id) => vesselOf(core, id).mode === 'flight');
-				return refuse(
-					`time warp needs every vessel on rails; in flight: ${flying.map((id) => `${id} ("${vesselOf(core, id).name}")`).join(', ')}`
-				);
-			}
-			core.warp = command.factor;
-			core.warpTarget = command.time;
-			return accept();
-		}
+		case 'warp':
+			return requestWarp(core, command.factor, command.vessel);
+		case 'warp-to':
+			return requestWarpTo(core, command);
 		case 'node-set': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);

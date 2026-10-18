@@ -165,6 +165,8 @@ export interface VesselSnapshot {
 	 * ground (its pose turns with the body's `rotation`) and there is no `orbit`.
 	 */
 	surface?: boolean;
+	/** Held still during rails warp (plan 206, ADR 0202 point 7): no orbit while it lasts. */
+	frozen?: boolean;
 	/**
 	 * Height, m, of the ground above the body's reference sphere under the root part (ADR 0043).
 	 * Present only when the sim was created with terrain; radar altitude is the vessel's altitude
@@ -240,6 +242,8 @@ export interface Snapshot {
 	t: number;
 	vessels: VesselSnapshot[];
 	bodies: BodySnapshot[];
+	/** The warp limit for the watched vessel (plan 206). Always set by the sim; optional for older fixtures. */
+	warpLimit?: WarpLimitSnapshot;
 	/** The clock is paused (plan 205); absent while it runs. */
 	paused?: boolean;
 	/** The world's debug state (plan 203). Always set by the sim; optional so older hosts' fixtures stay valid. */
@@ -576,12 +580,24 @@ export type Command =
 			action: string;
 			args?: unknown;
 	  }
-	| { type: 'warp'; factor: number }
+	/**
+	 * Ask for time warp (plan 206, ADR 0202): granted up to the world's limit, never refused for
+	 * being too high; the result says the level granted and why when it is lower. `vessel` is the
+	 * one the player watches: vessels within physics range of it limit the warp, others do not.
+	 */
+	| { type: 'warp'; factor: number; vessel?: EntityId }
 	/**
 	 * Run the clock up to `time` at about `factor` times real time, slowing down so it stops exactly
 	 * there with warp 1 (plan 045, ADR 0056). Needs every vessel on rails, like `warp`.
 	 */
-	| { type: 'warp-to'; time: number; factor: number }
+	| {
+			type: 'warp-to';
+			/** Sim time to stop at; or `target`, whose time the sim works out (with its margin). */
+			time?: number;
+			factor: number;
+			target?: WarpTarget;
+			vessel?: EntityId;
+	  }
 	/**
 	 * Create (no `id`; the result carries `node`) or replace a maneuver node of a vessel; the
 	 * components are the burn in the orbital frame at the node, m/s.
@@ -767,6 +783,25 @@ export type Command =
 	/** Set a crew member's level. */
 	| { type: 'debug-set-crew-level'; member: string; level: number };
 
+/** What a `warp-to` can head for (plan 206, ADR 0202 point 6); alarms come with plan 224. */
+export type WarpTarget =
+	| { kind: 'apoapsis' | 'periapsis' | 'soi' | 'node'; vessel: EntityId }
+	| { kind: 'alarm'; id: string };
+
+/** The time warp levels of the time bar (ADR 0202 point 1): physics up to 10×, rails above. */
+export const WARP_LEVELS = [1, 2, 4, 10, 50, 100, 1_000, 10_000] as const;
+/** The extra top level of a Sol world (default per owner review, rancangan §15 #5). */
+export const SOL_WARP_LEVEL = 100_000;
+/** The highest physics warp: above it every vessel in range must be on rails. */
+export const PHYSICS_WARP_MAX = 10;
+
+/** The world's warp limit now (plan 206): the highest level allowed and why it is not higher. */
+export interface WarpLimitSnapshot {
+	max: number;
+	/** Null at the world's top level. */
+	reason: string | null;
+}
+
 /** What `Sim.dispatch` returns: accepted (with the new vessel id for `load-vessel`) or refused with a reason. */
 export type CommandResult =
 	| {
@@ -776,6 +811,9 @@ export type CommandResult =
 			node?: number;
 			/** Sim time a delayed command applies (signal delay, plan 117, ADR 0188 point 6). */
 			queued?: number;
+			/** `warp` and `warp-to` (plan 206): the level granted, and why when it is below the ask. */
+			granted?: number;
+			limit?: string;
 	  }
 	| { ok: false; reason: string };
 

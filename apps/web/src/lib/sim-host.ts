@@ -3,6 +3,7 @@
  * streams snapshots. Kept free of `self`/`postMessage` so Node tests drive it with a mock `post`;
  * `sim.worker.ts` wires it to the real worker scope.
  */
+import { PHYSICS_WARP_MAX } from '@orbital/core';
 import { recordReplay, type ReplayRecorder } from '@orbital/sim';
 import {
 	entityId,
@@ -108,7 +109,9 @@ const isWarp = (c: unknown): c is WarpCommand =>
 	(c.type === 'warp' || c.type === 'warp-to') &&
 	typeof c.factor === 'number' &&
 	Number.isFinite(c.factor) &&
-	(c.type === 'warp' || (typeof c.time === 'number' && Number.isFinite(c.time)));
+	(c.type === 'warp' ||
+		(typeof c.time === 'number' && Number.isFinite(c.time)) ||
+		isRecord(c.target));
 
 /** The home terrain and primary site of the sim's world (plan 084, ADR 0142). */
 function worldTerrainOf(sim: Sim): Pick<Catalog, 'terrain' | 'launchSite'> {
@@ -149,6 +152,7 @@ export function catalogOf(sim: Sim): Catalog {
 		achievements: sim.registries.achievements.list(),
 		worldId: sim.worldInfo.id,
 		gravityModel: sim.worldInfo.gravityModel,
+		systemId: sim.worldInfo.systemId,
 		home: sim.home,
 		bodyTerrain: bodyTerrainOf(sim),
 		antennas: sim.registries.antennas.list().map(({ id, label, range }) => ({ id, label, range })),
@@ -236,12 +240,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		if (factor <= 1 || !session) return direct();
 		const vessel = sim.snapshot().vessels.find((v) => Number(v.id) === scriptVessel);
 		if (!vessel || vessel.mode === 'on-rails') return direct();
-		if ((throttles.get(scriptVessel) ?? 0) > 0) {
-			return reply({
-				ok: false,
-				reason: 'the script is burning (throttle above 0); cut the throttle before time warp'
-			});
-		}
+		// physics warp needs no rails, and a burn is clamped to it by the sim (plan 206, ADR 0202)
+		if (factor <= PHYSICS_WARP_MAX || (throttles.get(scriptVessel) ?? 0) > 0) return direct();
 		holding = true;
 		dispatchTracked({
 			type: 'attitude',
@@ -259,6 +259,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		const result = sim.dispatch(request.command);
 		if (result.ok) {
 			pendingWarp = null;
+			// clamped to physics warp (plan 206): the vessel stays in flight, so nothing is held
+			if ((result.granted ?? request.command.factor) <= PHYSICS_WARP_MAX) releaseHold();
 			request.reply(result);
 		} else if (options.now() - request.since > WARP_PENDING_MS) {
 			pendingWarp = null;

@@ -65,7 +65,7 @@ function targetVessel(core: SimCore, id: EntityId): VesselState | undefined {
 /** Elements of a vessel's centre of mass about its sphere-of-influence body; undefined on the ground or off a conic. */
 function vesselElements(core: SimCore, vessel: VesselState): OrbitalElements | undefined {
 	const rails = vessel.rails;
-	if (rails?.kind === 'surface') return undefined;
+	if (rails?.kind === 'surface' || rails?.kind === 'frozen') return undefined;
 	if (rails?.kind === 'elements') return rails.elements;
 	const body = bodyOfVessel(core, vessel);
 	const m = motionOf(core, vessel);

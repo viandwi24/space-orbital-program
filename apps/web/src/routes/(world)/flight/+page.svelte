@@ -47,6 +47,7 @@
 	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
 	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
 	import { loadWorldCatalog } from '../../../lib/worlds/catalog';
+	import { WARP_STEPS, warpStepsFor } from '../../../lib/warp';
 	import BlackoutBadge from '../../../lib/hud/BlackoutBadge.svelte';
 	import RangeBadge from '../../../lib/hud/RangeBadge.svelte';
 	import UncontrolledBadge from '../../../lib/hud/UncontrolledBadge.svelte';
@@ -473,6 +474,7 @@
 		if (gone()) return undefined;
 		// the HUD's bodies and calendar are the world's own system's (plan 124, ADR 0184)
 		const ready = await client.ready.catch(() => null);
+		if (ready) warpSteps = warpStepsFor(ready.systemId);
 		const info =
 			resume?.sim.worldInfo ??
 			worldSession.base?.sim.worldInfo ??
@@ -704,6 +706,8 @@
 	const model = $derived(hud?.model ?? null);
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
+	/** The world's warp levels (plan 206). */
+	let warpSteps = $state<readonly number[]>(WARP_STEPS);
 	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1, running));
 	// User Timing mark for the release measurements (plan 023): time from navigation start to the
 	// first HUD model, i.e. the vessel is on the pad and the player can act.
@@ -906,6 +910,9 @@
 						onpause={() => (pauseOpen = true)}
 						onslower={() => flight?.stepWarp(-1)}
 						onfaster={() => flight?.stepWarp(1)}
+						steps={warpSteps}
+						limit={hud.warpLimit}
+						clamp={hud.warpClamp}
 					/>
 				</div>
 				{#if tutorialStep}
@@ -1115,7 +1122,11 @@
 									})}
 							/>
 						{:else if id === 'host.orbit'}
-							<OrbitStrip orbit={model.orbit} phase={model.phase} />
+							<OrbitStrip
+								orbit={model.orbit}
+								phase={model.phase}
+								onwarp={(to) => flight?.warpToApsis(to)}
+							/>
 						{:else if id === 'host.resources'}
 							<ResourcesPanel resources={model.resources} />
 						{:else if id === 'host.target'}

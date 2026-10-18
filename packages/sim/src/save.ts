@@ -95,6 +95,8 @@ const railsCheck = orNull(
 		}),
 		state: shape({ r: vec3, v: vec3, t0: num }),
 		surface: shape({ r: vec3, q: quat }),
+		// held still during rails warp (plan 206); a save from before has none
+		frozen: shape({ r: vec3, v: vec3, q: quat }),
 		// an n-body world (plan 125, ADR 0122 point 8)
 		numeric: shape({ r: vec3, v: vec3, t0: num, h: num })
 	})

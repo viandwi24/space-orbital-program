@@ -36,7 +36,12 @@ export type RailsState =
 	| { kind: 'state'; r: Vec3; v: Vec3; t0: number }
 	| { kind: 'surface'; r: Vec3; q: Quat }
 	/** An n-body world's rails (plan 125, ADR 0122 point 8): integrated, not a conic. */
-	| { kind: 'numeric'; r: Vec3; v: Vec3; t0: number; h: number };
+	| { kind: 'numeric'; r: Vec3; v: Vec3; t0: number; h: number }
+	/**
+	 * Held still during rails warp (plan 206, ADR 0202 point 7): a vessel nobody watches in an
+	 * atmosphere. Position, velocity (relative to the ground) and attitude in the body-fixed frame.
+	 */
+	| { kind: 'frozen'; r: Vec3; v: Vec3; q: Quat };
 
 /**
  * Stability assist state of one vessel (plan 042, ADR 0049). Plain data, so a save serialises it

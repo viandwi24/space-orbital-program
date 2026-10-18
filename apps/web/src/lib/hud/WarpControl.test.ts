@@ -114,3 +114,40 @@ describe('time control date', () => {
 		expect(render(WarpControl, { props }).body).not.toContain('catch-up');
 	});
 });
+
+describe('warp limits in the time control (plan 206)', () => {
+	it('shows the reason text next to the clamped segment, and the levels above it out of reach', () => {
+		const body = render(WarpControl, {
+			props: {
+				warp: 10,
+				usable: true,
+				met: 0,
+				onslower: () => {},
+				onfaster: () => {},
+				limit: { max: 10, reason: 'engine running' },
+				clamp: 'Max 10× — engine running'
+			}
+		}).body;
+		expect(body).toContain('data-testid="warp-reason"');
+		expect(body).toContain('Max 10× — engine running');
+		// 8 levels: 1, 2, 4 and 10 reachable, the four rails levels out of reach
+		expect(body.match(/class="seg[ "]/g)?.length).toBe(8);
+		expect(body.match(/class="seg [^"]*\bout\b/g)?.length).toBe(4);
+	});
+
+	it('shows no reason at the top level, and nine levels in a Sol world', () => {
+		const body = render(WarpControl, {
+			props: {
+				warp: 1,
+				usable: true,
+				met: 0,
+				onslower: () => {},
+				onfaster: () => {},
+				steps: [1, 2, 4, 10, 50, 100, 1_000, 10_000, 100_000],
+				limit: { max: 100_000, reason: null }
+			}
+		}).body;
+		expect(body).not.toContain('warp-reason');
+		expect(body.match(/class="seg[ "]/g)?.length).toBe(9);
+	});
+});

@@ -69,6 +69,11 @@ export interface EventMap {
 	'warp:limited': { factor: number; reason: string };
 	/** The sim ended a warp by itself (plan 205, ADR 0201 point 10): an SOI change, a warp-to that arrived, a vessel that woke. */
 	'warp:stopped': { reason: string };
+	/** A warp was granted lower than asked (plan 206, ADR 0202 point 4). */
+	'warp:clamped': { requested: number; granted: number; reason: string };
+	/** A vessel nobody watches in an atmosphere is held still during rails warp (ADR 0202 point 7). */
+	'vessel:frozen': { vessel: EntityId; reason: string };
+	'vessel:thawed': { vessel: EntityId };
 	/** Construction or an upgrade finished on the tick of its ready day (plan 096, ADR 0123). */
 	'building:ready': { site: string; id: string; kind: string; level: number };
 	/** Science (plan 103, ADR 0178): a result was made, and science was credited. */
