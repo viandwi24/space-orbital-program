@@ -30,7 +30,7 @@
 | 127 range-safety | done | `devb/127-range-safety` | 2026-10-17 | merged aaa9f4c, cp/f6-127-range-safety |
 | 130 reliability | done | `devb/130-reliability` | 2026-10-17 | merged 246185e, cp/f6-130-reliability |
 | 118 comms-tools | todo |  |  |  |
-| 066 devices | handed-over | `devb/066-devices` | 2026-10-18 | ready/066; ADR 0157 (M2 row only) |
+| 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
 | 131 replays | todo |  |  |  |
 | 065 mod-models | todo |  |  |  |
 | 063 aeroplane | todo |  |  |  |

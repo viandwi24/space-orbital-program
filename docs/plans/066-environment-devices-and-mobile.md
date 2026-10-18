@@ -1,7 +1,7 @@
 ---
 id: 066
 title: "Environment on real devices: M1/M2, integrated Intel, phones"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [038]
 phase: 3
