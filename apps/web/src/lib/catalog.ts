@@ -53,8 +53,11 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	techNodes: TechNodeDefinition[];
 	/** Failure modes for the Hangar's reliability line (plan 130, ADR 0156). */
 	failureModes: FailureModeDefinition[];
-	/** Buildings, rules and presets, for the capacity limits (plan 096, ADR 0123). */
-	world: Pick<Registries, 'buildings' | 'rules' | 'presets'>;
+	/**
+	 * Buildings, rules and presets, for the capacity limits (plan 096, ADR 0123); charges and
+	 * strategies for the Administration projection (plan 101, ADR 0187).
+	 */
+	world: Pick<Registries, 'buildings' | 'rules' | 'presets' | 'charges' | 'strategies'>;
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -71,7 +74,13 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),
 		failureModes: registries.failureModes.list(),
-		world: { buildings: registries.buildings, rules: registries.rules, presets: registries.presets },
+		world: {
+			buildings: registries.buildings,
+			rules: registries.rules,
+			presets: registries.presets,
+			charges: registries.charges,
+			strategies: registries.strategies
+		},
 		content: {
 			parts: registries.parts,
 			modules: registries.modules,
