@@ -33,6 +33,6 @@
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
 | 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
 | 065 mod-models | done | `devb/065-mod-models` | 2026-10-17 | merged 528d048, cp/f6-065-mod-models |
-| 063 aeroplane | handed-over | `devb/063-aeroplane` | 2026-10-18 | ready/063 at 2846d8f |
+| 063 aeroplane | done | `devb/063-aeroplane` | 2026-10-17 | merged 2b612c8, cp/f6-063-aeroplane |
 | 072 script-panel | handed-over | `devb/072-script-panel` | 2026-10-18 | ready/072; plan blocked on the owner's human pass (ADR 0162) |
 | 073 phone | handed-over | `devb/073-phone` | 2026-10-18 | ready/073; plan blocked on the owner's phone results |

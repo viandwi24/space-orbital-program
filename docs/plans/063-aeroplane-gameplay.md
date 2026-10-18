@@ -1,7 +1,7 @@
 ---
 id: 063
 title: "Aeroplane gameplay: landing gear, runway, trim, flaps, flight read-outs"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [041, 091, 094, 110]
 phase: 3
