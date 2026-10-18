@@ -4,7 +4,7 @@ import { createRapierBackend } from '@orbital/physics';
 import { createScriptRunner } from '@orbital/scripting';
 import { createSim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
-import { GLOBALS, SHIP } from './script-api';
+import { DEBUG, GLOBALS, SHIP } from './script-api';
 
 /** The lower-case names ECMAScript itself puts on a QuickJS global. */
 const ECMASCRIPT = new Set(
@@ -58,8 +58,40 @@ describe('the typed script API table against the real sandbox', () => {
 		}
 	}, 30_000);
 
+	it('defines debug only with Debug mode on, with exactly the members of the table (plan 203)', async () => {
+		const sim = await createSim({
+			plugins: [Stock],
+			backendFactory: () => createRapierBackend({ solverIterations: 16 }),
+			maxFlightFrames: 1
+		});
+		try {
+			const loaded = sim.dispatch({ type: 'load-vessel', design: probe });
+			if (!loaded.ok) throw new Error(loaded.reason);
+			const source = `print(typeof debug, typeof debug === 'object' ? Object.keys(debug).sort().join(',') : '-');
+				print(typeof globalThis.debug?.setResource);`;
+			const env = {
+				vessel: Number(loaded.vessel),
+				bodies: sim.registries.bodies.list(),
+				parts: sim.registries.parts.list(),
+				resources: sim.registries.resources.list(),
+				budgetMs: 2_000
+			};
+			const off = await createScriptRunner(source, env);
+			off.tick(sim.snapshot());
+			expect(off.logs).toEqual(['undefined -', 'undefined']);
+			off.dispose();
+			const on = await createScriptRunner(source, { ...env, debug: true });
+			on.tick(sim.snapshot());
+			expect(on.logs[0]).toBe(`object ${DEBUG.map((e) => e.name).sort().join(',')}`);
+			expect(on.logs[1]).toBe('function');
+			on.dispose();
+		} finally {
+			sim.dispose();
+		}
+	}, 30_000);
+
 	it('has a signature and a description for every entry, and no name twice', () => {
-		for (const e of [...GLOBALS, ...SHIP]) {
+		for (const e of [...GLOBALS, ...SHIP, ...DEBUG]) {
 			expect(e.signature.length, e.name).toBeGreaterThan(2);
 			expect(e.doc.length, e.name).toBeGreaterThan(10);
 		}

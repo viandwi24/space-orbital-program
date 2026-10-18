@@ -339,6 +339,35 @@ export async function createScriptRunnerIn(
 			case 'target-set':
 				candidate = { type: 'target-set', vessel, target: p.target };
 				break;
+			// the debug API (plan 203, ADR 0200 point 9): defined only with `debug`, refused by the sim
+			// unless the world allows it; the vessel is the script's own
+			case 'debug-set-orbit':
+				candidate = { type: 'debug-set-orbit', vessel, orbit: p.orbit };
+				break;
+			case 'debug-set-location':
+				candidate = { type: 'debug-set-location', vessel, location: p.location };
+				break;
+			case 'debug-set-resource':
+				candidate = {
+					type: 'debug-set-resource',
+					vessel,
+					...(p.part === undefined ? {} : { part: p.part }),
+					...(p.resource === undefined ? {} : { resource: p.resource }),
+					...(p.fraction === undefined ? {} : { fraction: p.fraction }),
+					...(p.amount === undefined ? {} : { amount: p.amount })
+				};
+				break;
+			case 'debug-set-temperature':
+				candidate = {
+					type: 'debug-set-temperature',
+					vessel,
+					...(p.part === undefined ? {} : { part: p.part }),
+					temperature: p.temperature
+				};
+				break;
+			case 'debug-cheat':
+				candidate = { type: 'debug-cheat', cheat: p.cheat, on: p.on };
+				break;
 			default:
 				throw new Error(`unknown command "${kind}"`);
 		}
@@ -458,7 +487,15 @@ export async function createScriptRunnerIn(
 	const prelude = own(context.unwrapResult(preludeResult));
 	const seed = context.newNumber(options.seed ?? 1);
 	const bodiesJson = context.newString(JSON.stringify(bodiesOf(options)));
-	const apiResult = context.callFunction(prelude, context.undefined, host, seed, bodiesJson);
+	const debugOn = options.debug === true ? context.true : context.false;
+	const apiResult = context.callFunction(
+		prelude,
+		context.undefined,
+		host,
+		seed,
+		bodiesJson,
+		debugOn
+	);
 	seed.dispose();
 	bodiesJson.dispose();
 	const api = own(context.unwrapResult(apiResult));

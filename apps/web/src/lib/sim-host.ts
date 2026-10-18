@@ -400,7 +400,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					bodies: sim.registries.bodies.list(),
 					parts: sim.registries.parts.list(),
 					resources: sim.registries.resources.list(),
-					epoch: { ...sim.worldInfo.epoch }
+					epoch: { ...sim.worldInfo.epoch },
+					// the `debug` global only while the world allows the tools (plan 203)
+					debug: sim.snapshot().debug?.allowed === true
 				},
 				...(options.scriptWatchdogMs === undefined ? {} : { watchdogMs: options.scriptWatchdogMs }),
 				...(options.scriptBootTimeoutMs === undefined
