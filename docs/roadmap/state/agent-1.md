@@ -18,7 +18,7 @@
 | 122 sun | done | `lead/122-sun-seasons` | 2026-10-17 | merged b33f76a, cp/f5-122-sun |
 | 096 building-levels | done | `lead/096-building-levels` | 2026-10-18 | merged, cp/f3-096-building-levels |
 | 109 eva | done | `lead/109-eva` | 2026-10-17 | merged 912d3e3, cp/f3-109-eva |
-| 097 markets | in-progress | `lead/097-markets` | 2026-10-18 | claim/097 |
+| 097 markets | done | `lead/097-markets` | 2026-10-17 | merged 4f791b9, cp/f3-097-markets |
 | 071 second-planet | done | `lead/071-second-planet` | 2026-10-17 | merged 5ba6b20, cp/f5-071-second-planet |
 | 125 n-body | todo |  |  |  |
 | 128 bases | todo |  |  |  |

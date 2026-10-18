@@ -1,7 +1,7 @@
 ---
 id: 097
 title: "Markets and production: one commodity chain first"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [095, 096]
 phase: 6
