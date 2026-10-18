@@ -1,7 +1,7 @@
 ---
 id: 128
 title: "Off-world bases: base kits and parts left on the surface"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [096, 092, 082]
 phase: 9

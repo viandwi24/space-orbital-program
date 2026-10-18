@@ -21,5 +21,5 @@
 | 097 markets | done | `lead/097-markets` | 2026-10-18 | merged, cp/f3-097-markets |
 | 071 second-planet | done | `lead/071-second-planet` | 2026-10-17 | merged 5ba6b20, cp/f5-071-second-planet |
 | 125 n-body | todo |  |  |  |
-| 128 bases | in-progress | `lead/128-bases` | 2026-10-18 | claim/128 |
+| 128 bases | done | `lead/128-bases` | 2026-10-17 | merged 5cbba2a, cp/f6-128-bases |
 | 070 comms-index | todo |  |  |  |

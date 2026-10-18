@@ -136,7 +136,7 @@
 | 125 | [N-body gravity model (future; DE440)](plans/125-n-body-gravity-model.md) | draft | — | ADR 0095: future n-body, exploring |
 | 126 | [AI agencies and a living world](plans/126-ai-agencies-living-world.md) | draft | — | ADR 0096: agencies, real objects, rent, news |
 | 127 | [Range safety: safe azimuth fans and stage impact zones](plans/127-range-safety.md) | done | Agent 2 (Dev B, M2) | ADR 0155: the safe fan from the water map, the spent stage's drop judged at staging (refused under `hard`, a penalty once under `cost`), the ascent azimuth at 2 km, the Launch panel estimate and the HUD warning; API 0.1.55 |
-| 128 | [Off-world bases: base kits and parts left on the surface](plans/128-off-world-bases.md) | in-progress | Agent 1 | ADR 0097: base kits and outposts, one chain |
+| 128 | [Off-world bases: base kits and parts left on the surface](plans/128-off-world-bases.md) | done | Agent 1 | ADR 0097: base kits and outposts, one chain |
 | 129 | [Discovery science (optional world rule)](plans/129-discovery-science.md) | draft | — | ADR 0099: optional discovery layer |
 | 130 | [Part reliability (world rule, off by default)](plans/130-part-reliability.md) | done | Agent 2 (Dev B, M2) | ADR 0156: `defineFailureMode` on module ids, trials at stage and load from the `reliability` stream, failed modules skipped, experience, grades (cost), the test stand and static fire, anomaly fixes, EVA repair; `/test-stand`, the Hangar line, the failure toast; API 0.1.55 |
 | 131 | [Replays and challenges as files](plans/131-replays-and-challenges-as-files.md) | done | Agent 2 (Dev B, M2) | ADR 0159: replay files (start save, timed commands, checkpoints) recorded by the sim and the web host, verified by re-simulation (`tools/replay-verify`); challenge files scored locally per axis; ghosts in the map and flight view |
@@ -212,6 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [128-off-world-bases.md](journal/128-off-world-bases.md)
 - [099-procedural-contracts.md](journal/099-procedural-contracts.md)
 - [065-richer-mod-models.md](journal/065-richer-mod-models.md)
 - [097-markets-and-production.md](journal/097-markets-and-production.md)
