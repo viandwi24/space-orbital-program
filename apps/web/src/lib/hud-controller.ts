@@ -3,6 +3,7 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
+import { projectGhost, type GhostTrack, type ScreenGhost } from './replays/ghost-model';
 import { rangeWarning } from './range/range-model';
 import {
 	linkBadge,
@@ -181,6 +182,8 @@ export interface FrameData {
 	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
 	/** The Network layer in map view (plan 115, ADR 0158); null outside it. */
 	network?: ScreenNetwork | null;
+	/** A replay's ghost (plan 131): its track in map view and where it is now. */
+	ghost?: ScreenGhost | null;
 	/** Maneuver nodes and handles in px (plan 045); filled in by the flight loop. */
 	maneuver?: ManeuverFrame | null;
 	/** The target's markers in the map, or its label and arrow in the flight view (plan 057). */
@@ -232,6 +235,8 @@ export interface HudController {
 	sasFollowUp(): Command | null;
 	/** Whether the map view is on: map markers are only computed then. */
 	setMapView(on: boolean): void;
+	/** A replay's ghost to draw over this flight, or none (plan 131, ADR 0159 point 7). */
+	setGhost(track: GhostTrack | null): void;
 	frame(): FrameData;
 	/** `localThrottle`: the page's own setting, used when the vessel has no engine to read it from. */
 	model(now: number, localThrottle: number): HudModel | null;
@@ -286,6 +291,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	/** Highest altitude seen, m: "Landed" only means something after leaving the ground. */
 	let ceiling = 0;
 	let map = false;
+	let ghost: GhostTrack | null = null;
+	/** Sim time of the first snapshot: the ghost runs from the replay's start by the same elapsed time. */
+	let firstT: number | null = null;
 	let stageCache: {
 		at: number;
 		model: StageStackModel;
@@ -408,6 +416,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		setMapView(on) {
 			map = on;
 		},
+		setGhost(track) {
+			ghost = track;
+		},
 		burnTimeFor(dv) {
 			return stageCache ? burnTime(dv, stageCache.report.stages).time : null;
 		},
@@ -467,7 +478,10 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				};
 			}
 			const network = map && s ? projectNetwork(s, options.project) : null;
-			return { navball, map: marks, network };
+			if (s && firstT === null) firstT = s.t;
+			const ghostFrame =
+				ghost && s ? projectGhost(ghost, s, s.t - (firstT ?? s.t), map, options.project) : null;
+			return { navball, map: marks, network, ghost: ghostFrame };
 		},
 		model(now, localThrottle) {
 			const v = find();

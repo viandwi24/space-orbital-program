@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { readReplay } from '@orbital/core';
+	import GhostLayer from '../../lib/replays/GhostLayer.svelte';
+	import { ghostTrack, type ScreenGhost } from '../../lib/replays/ghost-model';
+	import { downloadText, fileNameOf } from '../../lib/download';
 	import VesselPanel from '../../lib/vessel-panel/VesselPanel.svelte';
 	import { transmitters, vesselView, type PanelContent } from '../../lib/vessel-panel/vessel-model';
 	import { commsTab, type ScreenNetwork } from '../../lib/comms/network-model';
@@ -177,6 +181,10 @@
 	let markers = $state<MapMarkers>();
 	/** The Network layer in map view (plan 115, ADR 0158). */
 	let mapNetwork = $state.raw<ScreenNetwork | null>(null);
+	/** A replay's ghost over this flight (plan 131, ADR 0159 point 7). */
+	let ghostFrame = $state.raw<ScreenGhost | null>(null);
+	let ghostInput = $state<HTMLInputElement>();
+	let ghostNote = $state<string | null>(null);
 	let targetMarks = $state<TargetMarkers>();
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
@@ -221,6 +229,23 @@
 		if (reason === null) return;
 		if (await saves.autosave()) autosaver.saved();
 	}
+	/** Draw a replay file's vessel over this flight (plan 131, ADR 0159 point 7). */
+	async function loadGhost(file: File): Promise<void> {
+		pauseOpen = false;
+		const read = readReplay(await file.text());
+		const track = read.ok ? ghostTrack(read.replay) : null;
+		ghostNote = track ? null : read.ok ? 'This replay has no vessel to show.' : read.reason;
+		flight?.setGhost(track);
+	}
+
+	/** Download the flight recorded since boot as a replay file (plan 131, ADR 0159). */
+	async function exportReplay(): Promise<void> {
+		const name = model?.name ?? designName ?? 'Flight';
+		const replay = await flight?.replay(name);
+		if (!replay) return;
+		downloadText(JSON.stringify(replay), fileNameOf(name, 'orbital-replay.json'));
+	}
+
 	async function quicksave(): Promise<void> {
 		if (await saves.quicksave()) autosaver.saved();
 	}
@@ -429,6 +454,8 @@
 				markers?.place(f.map);
 				const net = f.network ?? null;
 				if (JSON.stringify(net) !== JSON.stringify(mapNetwork)) mapNetwork = net;
+				const g = f.ghost ?? null;
+				if (JSON.stringify(g) !== JSON.stringify(ghostFrame)) ghostFrame = g;
 				targetMarks?.place(f.target ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
@@ -593,6 +620,19 @@
 <div class="stage">
 	<canvas bind:this={canvas}></canvas>
 	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
+	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
+	<input
+		bind:this={ghostInput}
+		type="file"
+		accept=".json,application/json"
+		hidden
+		data-testid="ghost-file"
+		onchange={(e) => {
+			const file = e.currentTarget.files?.[0];
+			if (file) void loadGhost(file);
+			e.currentTarget.value = '';
+		}}
+	/>
 	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
 	<TargetMarkers bind:this={targetMarks} />
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
@@ -685,6 +725,10 @@
 				{#if model?.link}<LinkBadge link={model.link} />{:else}<BlackoutBadge
 						level={model?.blackout ?? 0}
 					/>{/if}
+				<BlackoutBadge level={model?.blackout ?? 0} />
+				{#if ghostNote}<p class="ghost-note" role="status" data-testid="ghost-note">
+						{ghostNote}
+					</p>{/if}
 				<RangeBadge warning={model?.range ?? null} />
 				<PrecompileBadge progress={graphics} />
 			</div>
@@ -901,6 +945,8 @@
 				pauseOpen = false;
 				saves.showSave();
 			}}
+			onreplay={() => void exportReplay()}
+			onghost={() => ghostInput?.click()}
 			onload={() => {
 				pauseOpen = false;
 				void saves.showLoad();
@@ -1111,5 +1157,13 @@
 		background: var(--panel);
 		border: 1px solid var(--line);
 		border-radius: var(--r-control);
+	}
+	.ghost-note {
+		margin: 0;
+		padding: 3px var(--s-4);
+		background: var(--panel);
+		border-radius: 999px;
+		font-size: var(--t-sm);
+		color: var(--c-warning);
 	}
 </style>

@@ -53,6 +53,7 @@ const host = createSimHost({
 		});
 		return current;
 	},
+	replayTerrain: true,
 	spawnScriptWorker: spawnScriptWorker,
 	post: (message) => self.postMessage(message),
 	now: () => performance.now(),

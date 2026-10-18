@@ -1,6 +1,6 @@
 /**
- * Challenge files (plan 131, ADR 0159 points 5 and 6): a world to play (preset, rules, system,
- * site), a goal milestone and score axes; scored locally against the player's own history.
+ * Challenge files (plan 131, ADR 0159 points 5 and 6): a world to play (preset, rules, system),
+ * a goal milestone and score axes; scored locally against the player's own history.
  */
 import * as z from 'zod';
 import { definitionIdSchema } from './schemas.ts';
@@ -31,7 +31,6 @@ export interface ChallengeFile {
 	preset: string;
 	rules: Record<string, boolean | number | string>;
 	system?: { id: string; variant?: string };
-	siteTemplate?: string;
 	/** A milestone id (`orbit:stock.home`, `landing:stock.cinder`). */
 	goal: string;
 	axes: ScoreAxis[];
@@ -46,7 +45,6 @@ export const challengeFileSchema = z.object({
 	preset: z.string().min(1),
 	rules: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
 	system: z.object({ id: z.string().min(1), variant: z.string().optional() }).optional(),
-	siteTemplate: z.string().optional(),
 	goal: z.string().min(1),
 	axes: z.array(z.enum(SCORE_AXES)).min(1)
 });

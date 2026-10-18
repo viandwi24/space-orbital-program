@@ -3,6 +3,7 @@
  * streams snapshots. Kept free of `self`/`postMessage` so Node tests drive it with a mock `post`;
  * `sim.worker.ts` wires it to the real worker scope.
  */
+import { recordReplay, type ReplayRecorder } from '@orbital/sim';
 import {
 	entityId,
 	sitesOf,
@@ -62,6 +63,8 @@ export const MAX_LOG_LINES_PER_TICK = 50;
 
 export interface SimHostOptions {
 	createSim(): Promise<Sim>;
+	/** The sim has terrain heights: written into replays for the verifier (plan 131). */
+	replayTerrain?: boolean;
 	post(message: WorkerMessage): void;
 	/** Wall clock in ms (`performance.now`). */
 	now(): number;
@@ -147,6 +150,8 @@ export function catalogOf(sim: Sim): Catalog {
 
 export function createSimHost(options: SimHostOptions): SimHost {
 	let sim: Sim | null = null;
+	/** Every flight is recorded from boot (plan 131, ADR 0159): `replay` asks for the file. */
+	let recorder: ReplayRecorder | null = null;
 	let last = 0;
 	let cancel: (() => void) | null = null;
 	let disposed = false;
@@ -433,7 +438,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			const delta = Math.min(Math.max((now - last) / 1000, 0), MAX_WALL_DELTA);
 			last = now;
 			// Paused: the clock moves on (resuming must not burst) but nothing steps or ticks.
-			if (!paused) sim.step(delta);
+			if (!paused) {
+				sim.step(delta);
+				recorder?.tick();
+			}
 			// The sim ends a warp itself (a finished `warp-to`, a change of sphere): the script's
 			// attitude must not stay held after that (ADR 0039).
 			if (holding && !pendingWarp && sim.warp <= 1) releaseHold();
@@ -475,7 +483,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					created.dispose();
 					return;
 				}
-				sim = created;
+				recorder = recordReplay(created, 'Flight', { terrain: options.replayTerrain === true });
+				const rec = recorder;
+				// every command the host dispatches (page, script, warp) goes through the recorder
+				sim = new Proxy(created, {
+					get: (target, key) => (key === 'dispatch' ? rec.dispatch : Reflect.get(target, key))
+				}) as Sim;
 				// The page's stage counter follows what the sim fired, not what the page asked for.
 				unsubscribeEvents = [
 					created.events.on('stage:activated', (e) =>
@@ -586,6 +599,14 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			}
 			// `init` and `save` are answered by the Worker entry (save/worker-save.ts), not by the host.
 			if (message.kind === 'init' || message.kind === 'save') return;
+			if (message.kind === 'replay') {
+				options.post({
+					kind: 'replay',
+					id: message.id,
+					replay: recorder?.finish(message.name) ?? null
+				});
+				return;
+			}
 			if (!sim) {
 				options.post({
 					kind: 'result',
