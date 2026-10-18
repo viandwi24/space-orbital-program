@@ -7,6 +7,7 @@ import type {
 	ActionGroupDefinition,
 	SiteTemplateDefinition,
 	AchievementDefinition,
+	TechNodeDefinition,
 	ScenarioDefinition,
 	PanelDefinition,
 	ExperimentDefinition,
@@ -360,3 +361,14 @@ export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => d
  * Register with `ctx.systemVariants`.
  */
 export const defineSystemVariant = (def: SystemVariantDefinition): SystemVariantDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineTechNode
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A tech tree node (plan 105, ADR 0154): a tier, a science cost, nodes required first, an optional
+ * milestone gate (`orbit:stock.home`), and the parts it unlocks (a part can also name its node with
+ * `techNode`). Register with `ctx.techNodes`.
+ */
+export const defineTechNode = (def: TechNodeDefinition): TechNodeDefinition => def;

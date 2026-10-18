@@ -1,4 +1,5 @@
 /** Science core (plan 103, ADR 0178): the value curve, credit by transmission and recovery, states. */
+import { openTree } from './helpers/tech.ts';
 import { describe, expect, test } from 'bun:test';
 import {
 	legacyWorldInfo,
@@ -109,7 +110,8 @@ const world = (preset = 'stock.career'): WorldInfo => ({
 });
 const make = (preset?: string, resume?: unknown) =>
 	createSim({
-		plugins: [Stock, fixture],
+		// the tree stays on for science credit; every part is open (plan 105)
+		plugins: [Stock, fixture, openTree],
 		backendFactory: rapier(16),
 		world: world(preset),
 		...(resume ? { resume } : {})

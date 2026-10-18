@@ -2,6 +2,7 @@
  * `createSim`: boots plugins, owns the world and the physics frames, and runs the fixed-timestep
  * loop (simulation.md). No clock, no I/O: time is an input to `step`.
  */
+import { freshTech } from './tech.ts';
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
 import {
 	cloneData,
@@ -326,7 +327,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		science: freshScience(resume?.science),
 		comms: freshComms(),
 		life: freshLife(),
-		milestones: freshMilestones(resume?.milestones)
+		milestones: freshMilestones(resume?.milestones),
+		tech: freshTech(resume?.tech)
 	};
 	listenForObjectives(core);
 	listenForComms(core);
