@@ -3,6 +3,7 @@
  * loop (simulation.md). No clock, no I/O: time is an input to `step`.
  */
 import { collectMilestones, freshMilestones, listenForMilestones } from './milestones.ts';
+import { collectRange, freshRange } from './range.ts';
 import {
 	cloneData,
 	createRng,
@@ -326,7 +327,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		science: freshScience(resume?.science),
 		comms: freshComms(),
 		life: freshLife(),
-		milestones: freshMilestones(resume?.milestones)
+		milestones: freshMilestones(resume?.milestones),
+		range: freshRange(resume?.range)
 	};
 	listenForObjectives(core);
 	listenForComms(core);
@@ -409,6 +411,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
+		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
@@ -454,6 +457,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
+		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 	}
 

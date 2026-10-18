@@ -3,6 +3,7 @@
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
 import type { MilestoneRecord } from './milestones.ts';
+import type { RangeSnapshot } from './range-safety.ts';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
@@ -238,6 +239,8 @@ export interface Snapshot {
 	science?: Array<{ id: string; count: number; produced: number; credited: number; cap: number }>;
 	/** The world's firsts (plan 102, ADR 0147); absent while there are none. */
 	milestones?: MilestoneRecord[];
+	/** Range safety (plan 127, ADR 0155 point 6); absent when the rule is off. */
+	range?: RangeSnapshot;
 	/** The crew roster (plan 106, ADR 0176); absent before anyone is hired. */
 	crew?: Array<{
 		id: string;

@@ -4,7 +4,15 @@
 	 * accepts, seats, the summary, then the flight.
 	 */
 	import { goto } from '$app/navigation';
-	import { designCost, loadPlugins, sitesOf, type Site, type VesselDesign } from '@orbital/core';
+	import {
+		designCost,
+		homeBodyOf,
+		loadPlugins,
+		sitesOf,
+		type Site,
+		type VesselDesign,
+		type WorldInfo
+	} from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
 	import { loadContent, partLookup } from '../../lib/catalog';
@@ -33,6 +41,7 @@
 	import { listEntries, memoryStore, withFallback } from '../../lib/vab/library';
 	import { indexedDbStore } from '../../lib/vab/library-idb';
 	import { activeWorldId } from '../../lib/worlds/worlds';
+	import { fanText, launchRange, rangeModeOf, type LaunchRange } from '../../lib/range/range-model';
 
 	interface Choice {
 		key: string;
@@ -70,6 +79,24 @@
 	const chosen = $derived(fitting.find((d) => d.key === designKey) ?? fitting[0] ?? null);
 	const body = $derived(site ? registries.bodies.get(site.body) : undefined);
 	const seats = $derived(chosen ? seatsOf(chosen.design, registries.parts) : []);
+	// range safety: the site's fan and a nominal estimate of the drops (plan 127, ADR 0155 point 6)
+	let worldInfo = $state.raw<WorldInfo | null>(null);
+	const range = $derived.by((): LaunchRange | null => {
+		if (!site || !body || !chosen || !worldInfo) return null;
+		const g = (6.6743e-11 * body.mass) / (body.radius * body.radius);
+		const dv = designStats(chosen.design, content, 'sea-level', g)
+			.rows.filter((r) => r.dv > 0)
+			.map((r) => r.dv);
+		const home = homeBodyOf(registries.bodies.list())?.id === body.id;
+		const mode = rangeModeOf(worldInfo, registries.rules, registries.presets);
+		return launchRange(mode, site, body, home, worldInfo, dv);
+	});
+	const dropText = (d: LaunchRange['drops'][number]): string =>
+		d.place === 'orbit'
+			? 'reaches orbit'
+			: `falls ${Math.round((d.downrange ?? 0) / 1000)} km downrange, ${
+					d.place === 'site' ? `on site "${d.site}"` : d.place === 'land' ? 'on land' : 'at sea'
+				}`;
 	$effect(() => {
 		void chosen?.key;
 		seated = [];
@@ -99,6 +126,7 @@
 			const worlds = await saves.worldsService();
 			const info = await worlds.startInfo(activeWorldId());
 			site = sitesOf(info ?? { sites: [] })[0] ?? null;
+			worldInfo = info ?? null;
 			const list: Choice[] = [];
 			const draft = loadDraft();
 			if (draft) {
@@ -242,6 +270,27 @@
 						? 'This vessel has no seats.'
 						: 'No crew available: hire in the Astronaut Complex.'}
 				</p>
+			{/if}
+			{#if range}
+				<div class="range" data-testid="launch-range">
+					<span class="cap seats-cap"
+						>Range safety · {range.mode === 'hard' ? 'enforced' : 'penalties'}</span
+					>
+					<p class="note">
+						Safe fan: {fanText(range.fan)}{range.east ? '' : '; the eastward ascent is outside it'}.
+					</p>
+					{#each range.drops as d (d.stage)}
+						<p class="note" data-testid="launch-drop">Stage {d.stage + 1} {dropText(d)}.</p>
+					{/each}
+					{#if range.penalty.funds > 0}
+						<p class="warn" role="status" data-testid="launch-range-penalty">
+							{range.mode === 'hard'
+								? 'Staging over land or a site will be refused in flight.'
+								: `Estimated penalty: ${formatFunds(range.penalty.funds)} and ${range.penalty.reputation} reputation.`}
+						</p>
+					{/if}
+					<p class="note">An estimate: each drop is judged in flight, when the stage separates.</p>
+				</div>
 			{/if}
 			<button
 				type="button"
@@ -422,6 +471,11 @@
 	}
 	.mname {
 		font-weight: 600;
+	}
+	.warn {
+		margin: 0.5rem 0.375rem 0;
+		font-size: var(--t-small);
+		color: var(--warn);
 	}
 	.go {
 		display: flex;

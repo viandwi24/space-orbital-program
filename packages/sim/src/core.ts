@@ -24,6 +24,7 @@ import type { SaveCrew } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
 import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
+import type { RangeRuntime } from './range.ts';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -92,6 +93,8 @@ export interface SimCore {
 	readonly economy: SaveEconomy;
 	/** Firsts and per-vessel visits (plan 102, ADR 0147); saved as `SimSave.milestones`. */
 	readonly milestones: SaveMilestones;
+	/** Range safety (plan 127, ADR 0155): ascents to judge (saved as `SimSave.range`) and fans. */
+	readonly range: RangeRuntime;
 }
 
 export function vesselOf(core: SimCore, id: EntityId): VesselState {
