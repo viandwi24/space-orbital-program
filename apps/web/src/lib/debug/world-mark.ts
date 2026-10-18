@@ -23,9 +23,9 @@ export function accessOfRecord(record: Pick<WorldRecord, 'preset' | 'world'> | u
 
 /**
  * Debug mode was turned on in Settings: the active world is marked when it is one that needs the
- * mode (`opt-in`). Its sim takes the mode at the next flight.
+ * mode (`opt-in`); true when it was. Its sim takes the mode at the next flight.
  */
-export async function markActiveWorldForDebug(): Promise<void> {
+export async function markActiveWorldForDebug(): Promise<boolean> {
 	const [{ openSaveStore }, { activeWorldId, browserWorldsEnv, createWorlds }] = await Promise.all([
 		import('../save/open-store'),
 		import('../worlds/worlds')
@@ -33,5 +33,7 @@ export async function markActiveWorldForDebug(): Promise<void> {
 	const { store, worlds } = await openSaveStore();
 	const service = createWorlds(worlds, store, browserWorldsEnv());
 	const id = activeWorldId();
-	if (accessOfRecord(await service.get(id)) === 'opt-in') await service.markUsedCheats(id);
+	if (accessOfRecord(await service.get(id)) !== 'opt-in') return false;
+	await service.markUsedCheats(id);
+	return true;
 }

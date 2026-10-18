@@ -16,6 +16,8 @@
 	} from '../graphics';
 	import { settings } from '../settings/settings.svelte';
 	import { markActiveWorldForDebug } from '../debug/world-mark';
+	/** Debug mode marked the active world (plan 203). */
+	let debugNote = $state<string | null>(null);
 	import type { UnitSystem } from '../units.svelte';
 	import { TUTORIAL_STEPS } from '../onboarding/tutorial';
 
@@ -232,11 +234,16 @@
 					label="Debug mode"
 					onchange={(on) => {
 						settings.setDebug(on);
-						if (on) void markActiveWorldForDebug();
+						debugNote = null;
+						if (on)
+							void markActiveWorldForDebug().then(
+								(marked) => (debugNote = marked ? 'This world is now marked "used cheats".' : null)
+							);
 					}}
 					testid="setting-debug"
 				/>
 			</div>
+			{#if debugNote}<p class="note" data-testid="debug-marked">{debugNote}</p>{/if}
 		{:else if tab === 'controls'}
 			<ControlsEditor />
 		{:else}
