@@ -289,6 +289,25 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - **Licences:** `licence-buy { band, channel }` books the band's `licence` price (cause `comms.licence`) and adds to `SimSave.comms.licences`. Channel 0 is always licensed. `transmit-data` is refused on an unlicensed channel; links and commands are not.
 - **Snapshot:** network vessels carry `channel`, `encrypted` and `interference`, and `Snapshot.network.licences` lists the licences.
 
+## Comms tier 6 (plan 121, ADR 0193)
+
+`packages/sim/src/comms.ts` and `broadcast.ts`.
+
+- **Suit radios:** a vessel whose enabled antennas are all `suit: true` is a suit node.
+  - It links only to a crewed vessel that is not a suit. It never links to a station, a probe or another suit.
+  - It is in range under its own radio's rating × the world's comms scale, not the geometric mean.
+  - The edge's budget uses the suit's antennas at both ends.
+  - It is no control point, and nobody routes through it.
+  - Its rating is multiplied by the best `radio` ability aboard.
+  - An edge with a suit samples the terrain every `SUIT_SAMPLE_SPACING` (1 m), at least 16 times.
+  - A cut suit link has the tier 1 reason (`blocked by terrain`, `out of range`); control stays full, because the suit is crewed.
+- **Broadcasts:** `comms-broadcast { milestone }` books `BROADCAST_FACTOR × milestoneReputation` (cause `comms.broadcast`, ref the milestone). It is refused, with a reason:
+  - after `BROADCAST_WINDOW` (3 600 s);
+  - a second time;
+  - with comms off;
+  - when the milestone's vessel has no rate of `BROADCAST_RATE` (10⁵ bit/s) to the ground. The rate follows a suit on through its relay, and the lowest along the chain counts.
+- **Snapshot and save:** `Snapshot.network.broadcasts` lists the open ones with the rate now. `SimSave.comms.broadcasts` (optional) keeps the done ones.
+
 ## Range safety (plan 127, ADR 0155)
 
 `packages/core/src/range-safety.ts` and `packages/sim/src/range.ts`; rule `stock.range-safety` (`cost` default in Career, `hard`, `off`). A site's safe fan (`safeFan`, cached per run in `SimCore.range.fans`) is every 5° azimuth whose track from 20 to 200 km is water (`TerrainField.waterAt`, plan 067) at 75 % of its 10 km samples and passes 50 km clear of other sites; a body without `waterAt` has none and is not judged. A `stage` command that fires a separator (a module whose `describe` has an unfinished `separator`) on a controlled vessel more than 100 m above the ground takes the vessel's state as the spent stage's: `conicImpact` follows the drag-free conic (the debris rails model) to the reference radius, the body turns for the flight time, and `dropProblem` names a site within 50 km or land. `hard` refuses the command with the reason; `cost` fires it and books `RANGE_PENALTIES` once through the ledger (cause `range-safety`, ref `<kind>:<vessel>`, funds times the cost multiplier, only with `stock.economy` on). A vessel loaded at a site is watched (`SimSave.range.pending`, optional in format 5) until it climbs through 2 km above the ground; the heading of its velocity over the turning ground is then compared with the site's fan (`azimuth` violation, booked under `cost` and `hard`). Each violation emits `range:violation { vessel, kind, site?, latitude?, longitude?, azimuth?, penalised }`. `Snapshot.range` (absent when off) carries the mode, the fan of the latest watched ascent's site (else the primary site) and, per controlled vessel in flight, the predicted drop of its next separating stage when that is a violation.

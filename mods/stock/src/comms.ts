@@ -87,7 +87,22 @@ export const AntennaDish = defineAntenna({
 	aperture: 1
 });
 
-export const STOCK_ANTENNAS = [AntennaWhip, AntennaDish] as const;
+/**
+ * The EVA suit's radio (plan 121, ADR 0193 point 1): low-power UHF, relayed by a crewed vessel
+ * in sight; its range scales with the wearer's `radio` ability.
+ */
+export const AntennaSuitRadio = defineAntenna({
+	id: 'stock.suit-radio',
+	label: 'Suit radio',
+	kind: 'omni',
+	range: 2_000,
+	power: 0.5,
+	band: BandUhf.id,
+	gain: 0,
+	suit: true
+});
+
+export const STOCK_ANTENNAS = [AntennaWhip, AntennaDish, AntennaSuitRadio] as const;
 
 export const antennaConfigSchema = z.object({
 	/** Antenna definition id. */

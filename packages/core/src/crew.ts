@@ -19,7 +19,9 @@ export const ABILITY_KEYS = [
 	'repairRate',
 	'dataQuality',
 	'gTolerance',
-	'panicResistance'
+	'panicResistance',
+	/** Suit radio range (plan 121, ADR 0193 point 2). */
+	'radio'
 ] as const;
 export type AbilityKey = (typeof ABILITY_KEYS)[number];
 export type Abilities = Record<AbilityKey, number>;
@@ -146,7 +148,7 @@ export const saveCrewSchema = z.object({
 /** Base factors per profession at level 0, and the gain per level (ADR 0176 point 6). */
 const PROFESSION_BASE: Record<Profession, Partial<Abilities>> = {
 	pilot: { controlSmoothing: 1.1, scriptBudget: 1.1 },
-	engineer: { repairRate: 1.1 },
+	engineer: { repairRate: 1.1, radio: 1.1 },
 	scientist: { dataQuality: 1.1 },
 	tourist: {}
 };
