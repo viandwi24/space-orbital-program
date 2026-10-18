@@ -151,6 +151,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0151 | [Missions: briefings and next missions, a stock main line, scenarios as mission packs, the tracker panel](0151-missions-briefings-next-missions-scenarios-and-the-tracker.md) | accepted | 2026-10-18 |
 | 0152 | [Astronaut Complex: applicants by profession, crew kept by launching into the world's newest save](0152-astronaut-complex-applicants-by-profession-and-launching-into-the-world.md) | accepted | 2026-10-18 |
 | 0153 | [Vessel panel: controls from descriptors in a stable order, what a group click does, the part highlight](0153-vessel-panel-controls-from-descriptors-group-clicks-and-part-highlight.md) | accepted | 2026-10-18 |
+| 0157 | [The base M1 and M2 start on `low`; the renderer misses ADR 0025's budget on its budget machine](0157-the-base-m1-and-m2-start-on-low.md) | accepted | 2026-10-18 |
 | 0144 | [The flight HUD in the refs layout: where our extra controls go and what shows before its data exists](0144-flight-hud-refs-layout-what-has-no-data-yet.md) | accepted | 2026-10-17 |
 | 0145 | [Body rotation: one function, the pole in the system frame, the prime meridian by the shortest turn](0145-body-rotation-pole-convention-and-one-function.md) | accepted | 2026-10-17 |
 | 0146 | [Catalogue categories are a registry: `defineCategory`, stock re-registers its nine, short names stay aliases](0146-catalogue-categories-are-a-registry.md) | accepted | 2026-10-18 |
