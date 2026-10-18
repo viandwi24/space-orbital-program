@@ -2,7 +2,7 @@
 
 > **Only Agent 2 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 2 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 111 handed over (`ready/111`); next in lane: 105 tech tree.
+**Now:** 105 tech tree claimed (`devb/105-tech-tree`).
 **Waiting for:** merges of 108 and 111 (`ready/*`); the Lead on contract request `crew-dismiss`.
 **Updated:** 2026-10-18
 
@@ -25,7 +25,7 @@
 | 108 astronauts | handed-over | `devb/108-astronauts` | 2026-10-18 | ready/108; ADR 0152; contract request crew-dismiss |
 | 100 missions | done | `devb/100-missions` | 2026-10-17 | merged efad25c, cp/f3-100-missions |
 | 111 vessel-panel | handed-over | `devb/111-vessel-panel` | 2026-10-18 | ready/111; ADR 0153 |
-| 105 tech-tree | todo |  |  |  |
+| 105 tech-tree | in-progress | `devb/105-tech-tree` | 2026-10-18 | claim/105 |
 | 115 comms-1-ui | todo |  |  |  |
 | 127 range-safety | todo |  |  |  |
 | 130 reliability | todo |  |  |  |
