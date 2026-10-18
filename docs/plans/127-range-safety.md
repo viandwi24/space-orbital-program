@@ -1,12 +1,12 @@
 ---
 id: 127
 title: "Range safety: safe azimuth fans and stage impact zones"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [092, 095, 078, 094, 067]
 phase: 9
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 127 — Range safety: safe azimuth fans and stage impact zones
@@ -64,3 +64,4 @@ Prediction uses the same debris ballistic model as the sim so the warning and th
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0097).
 - 2026-10-17 — `depends` gains 094, 067 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the pre-launch panel is on the Launch screen of plan 094 and impact points use the water level of plan 067.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
