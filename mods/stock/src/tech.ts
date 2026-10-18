@@ -39,7 +39,21 @@ export const STOCK_TECH = [
 		cost: 15,
 		requires: ['stock.basics'],
 		description: 'Bigger tanks, side mounts and the links between them.',
-		unlocks: ['stock.tank-medium', 'stock.radial-decoupler', 'stock.strut', 'stock.fuel-line']
+		unlocks: [
+			'stock.tank-medium',
+			'stock.radial-decoupler',
+			'stock.strut',
+			'stock.fuel-line',
+			// size adapters and cones (plan 207); plan 231 may move them
+			'stock.adapter-small',
+			'stock.adapter-large',
+			'stock.nose-cone-small',
+			'stock.nose-cone-medium',
+			'stock.nose-cone-large',
+			'stock.tail-cone-small',
+			'stock.tail-cone-medium',
+			'stock.tail-cone-large'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.propulsion',

@@ -47,7 +47,9 @@ import {
 	STOCK_COMMS_PARTS,
 	STOCK_POWER_PARTS,
 	STOCK_LIFE_SUPPORT_PARTS,
-	PartWing
+	PartWing,
+	STOCK_ADAPTER_PARTS,
+	STOCK_CONE_PARTS
 } from './parts/index.ts';
 import {
 	Ablator,
@@ -167,6 +169,9 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartFuelLine);
 		ctx.parts.register(PartDataDrive);
 		ctx.parts.register(PartFlotationCollar);
+		// size adapters and cones in every size class (plan 207, ADR 0212)
+		for (const part of STOCK_ADAPTER_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_CONE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_POWER_PARTS) ctx.parts.register(part);

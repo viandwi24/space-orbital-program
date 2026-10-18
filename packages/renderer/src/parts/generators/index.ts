@@ -1,4 +1,5 @@
 /** Registers the stock procedural generators (kinds used by `mods/stock`). */
+import { adapter } from './adapter.ts';
 import { gear } from './gear.ts';
 import { registerPartGenerator, type GenContext } from '../registry.ts';
 import { capsule } from './capsule.ts';
@@ -14,6 +15,7 @@ import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
 import { noseCone } from './nose-cone.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
+import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
 import { reactionWheel } from './wheel.ts';
 import { wing } from './wing.ts';
@@ -35,6 +37,8 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('radial-decoupler', radialDecoupler);
 	registerPartGenerator('booster', booster);
 	registerPartGenerator('nose-cone', noseCone);
+	registerPartGenerator('tail-cone', tailCone);
+	registerPartGenerator('adapter', adapter);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);

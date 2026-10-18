@@ -14,6 +14,8 @@ const KINDS = [
 	'radial-decoupler',
 	'booster',
 	'nose-cone',
+	'tail-cone',
+	'adapter',
 	'fin',
 	'control-surface',
 	'wing',

@@ -106,3 +106,64 @@ export const PartWing = definePart({
 	],
 	stagingIcon: 'fin'
 });
+
+// ---------------------------------------------------------------------------------------------
+// Nose and tail cones in every size class (plan 207, ADR 0212).
+// ---------------------------------------------------------------------------------------------
+
+const CONE_SIZES = [
+	{ size: 0.625, suffix: 'small', label: '0.625 m', massKg: 15, height: 0.6 },
+	{ size: 1.25, suffix: 'medium', label: '1.25 m', massKg: 40, height: 1.2 },
+	{ size: 2.5, suffix: 'large', label: '2.5 m', massKg: 150, height: 2.2 }
+] as const;
+
+/** A nose cone that caps a stack of `size` m: its bottom node is the joint. */
+const noseCone = (c: (typeof CONE_SIZES)[number]) =>
+	definePart({
+		id: `stock.nose-cone-${c.suffix}`,
+		title: `Nose Cone ${c.label}`,
+		mass: kg(c.massKg),
+		cost: partCost(c.massKg, 'structure'),
+		impactTolerance: 6,
+		maxTemperature: 1200,
+		dragCoefficient: 0.12,
+		shape: { kind: 'cylinder', radius: c.size / 2, height: c.height },
+		visual: {
+			kind: 'nose-cone',
+			palette: { primary: '#e6e3da', secondary: '#23272d', accent: '#e6e3da' }
+		},
+		attach: { bottom: { pos: [0, -c.height / 2, 0], dir: [0, -1, 0], size: c.size } },
+		stagingIcon: 'cone'
+	});
+
+/** A tail cone under a stack of `size` m: a boat tail with less base drag than a flat end. */
+const tailCone = (c: (typeof CONE_SIZES)[number]) =>
+	definePart({
+		id: `stock.tail-cone-${c.suffix}`,
+		title: `Tail Cone ${c.label}`,
+		mass: kg(c.massKg),
+		cost: partCost(c.massKg, 'structure'),
+		impactTolerance: 6,
+		maxTemperature: 1200,
+		dragCoefficient: 0.15,
+		shape: { kind: 'cylinder', radius: c.size / 2, height: c.height * 0.75 },
+		visual: { kind: 'tail-cone', palette: { primary: '#e6e3da', secondary: '#23272d' } },
+		attach: { top: { pos: [0, (c.height * 0.75) / 2, 0], dir: [0, 1, 0], size: c.size } },
+		stagingIcon: 'cone'
+	});
+
+export const PartNoseConeSmall = noseCone(CONE_SIZES[0]);
+export const PartNoseConeMedium = noseCone(CONE_SIZES[1]);
+export const PartNoseConeLarge = noseCone(CONE_SIZES[2]);
+export const PartTailConeSmall = tailCone(CONE_SIZES[0]);
+export const PartTailConeMedium = tailCone(CONE_SIZES[1]);
+export const PartTailConeLarge = tailCone(CONE_SIZES[2]);
+
+export const STOCK_CONE_PARTS = [
+	PartNoseConeSmall,
+	PartNoseConeMedium,
+	PartNoseConeLarge,
+	PartTailConeSmall,
+	PartTailConeMedium,
+	PartTailConeLarge
+] as const;

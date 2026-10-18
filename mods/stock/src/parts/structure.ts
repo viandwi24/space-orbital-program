@@ -91,3 +91,51 @@ export const PartFuelLine = definePart({
 	attach: connectorNode,
 	crossfeed: false
 });
+
+// ---------------------------------------------------------------------------------------------
+// Size adapters (plan 207, ADR 0212): a stack changes size class through one of these.
+// ---------------------------------------------------------------------------------------------
+
+/** An adapter with a `top` m joint over a `bottom` m joint; it passes propellant through. */
+const adapterPart = (
+	id: string,
+	title: string,
+	top: number,
+	bottom: number,
+	height: number,
+	massKg: number
+) =>
+	definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'structure'),
+		impactTolerance: 8,
+		maxTemperature: 1000,
+		shape: { kind: 'cylinder', radius: Math.max(top, bottom) / 2, height },
+		visual: {
+			kind: 'adapter',
+			palette: { primary: '#e6e3da', secondary: '#23272d', accent: '#e0572b' },
+			params: { top: top / 2, bottom: bottom / 2 }
+		},
+		attach: stackNodes(height, top, bottom)
+	});
+
+export const PartAdapterSmall = adapterPart(
+	'stock.adapter-small',
+	'Adapter 0.625 – 1.25 m',
+	0.625,
+	1.25,
+	0.6,
+	40
+);
+export const PartAdapterLarge = adapterPart(
+	'stock.adapter-large',
+	'Adapter 1.25 – 2.5 m',
+	1.25,
+	2.5,
+	1,
+	150
+);
+
+export const STOCK_ADAPTER_PARTS = [PartAdapterSmall, PartAdapterLarge] as const;
