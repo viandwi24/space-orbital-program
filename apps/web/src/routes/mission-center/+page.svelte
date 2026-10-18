@@ -13,9 +13,9 @@
 		type Snapshot,
 		type Vec3
 	} from '@orbital/core';
+	import { objectiveLabel } from '../../lib/administration/contracts-model';
 	import { onMount } from 'svelte';
 	import { formatFunds } from '../../lib/format';
-	import { bodyLabel } from '../../lib/hud-model';
 	import { bodyNodes } from '../../lib/map-path';
 	import { pickTarget, type PickCandidate } from '../../lib/map-pick';
 	import MissionCenterOverlay, {
@@ -106,7 +106,7 @@
 			.filter((o) => o.status === 'active')
 			.map((o) => ({
 				id: o.id,
-				label: bodyLabel(o.source.id),
+				label: objectiveLabel(snapshot, o.source),
 				progress: o.progress,
 				status: o.source.kind
 			}))

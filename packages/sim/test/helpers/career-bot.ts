@@ -13,6 +13,10 @@
  * and from year 2, once it has 150 000 funds, the bot builds a propellant plant; before each launch
  * it sells what its site holds above 5 000 u of each commodity while the price is at least 95 % of
  * base (at base exactly a market never rises above it without buyers).
+ *
+ * With `contracts` (plan 099, ADR 0186), each mission also does one altitude job: the bot accepts
+ * an offer (the advance) and buys a sounding rocket placed above the altitude (its launch debit;
+ * the reward). Other offers expire.
  */
 import { tickDayLength } from '../../src/tick.ts';
 import type { CommandResult, EntityId, LedgerEntry, WorldInfo } from '@orbital/core';
@@ -28,6 +32,8 @@ export interface BotResult {
 	min: number;
 	max: number;
 	entries: LedgerEntry[];
+	/** Contracts the bot completed (with `contracts`). */
+	completed: number;
 }
 
 const must = (r: CommandResult, what: string): EntityId | undefined => {
@@ -47,6 +53,8 @@ export async function runCareerBot(options: {
 	downrange?: number;
 	/** Build a propellant plant in year 2 and sell its surplus (plan 097). */
 	markets?: boolean;
+	/** Take and fly one altitude contract per mission (plan 099). */
+	contracts?: boolean;
 }): Promise<BotResult> {
 	const everyDays = options.everyDays ?? 30;
 	const downrange = options.downrange ?? 40_000;
@@ -60,9 +68,47 @@ export async function runCareerBot(options: {
 	const dayLength = tickDayLength(sim.registries.bodies.list());
 	const lastDay = options.days;
 	const daily: number[] = [];
-	sim.events.on('world:tick', () => daily.push(sim.snapshot().economy!.funds));
+	// funds from the ledger's events: a snapshot a day would cost more with every pod in orbit
+	let funds = sim.snapshot().economy!.funds;
+	sim.events.on('economy:entry', (e) => {
+		if (e.currency === 'funds') funds += e.amount;
+	});
+	sim.events.on('world:tick', () => daily.push(funds));
 	const economy = (on: boolean) =>
 		must(sim.dispatch({ type: 'set-rule', rule: 'stock.economy', value: on }), 'economy');
+
+	let completed = 0;
+	if (options.contracts) {
+		sim.events.on('objective:completed', (e) => {
+			if (e.source.kind === 'contract') completed++;
+		});
+	}
+	/**
+	 * One job per mission: accept one altitude offer and fly it with a sounding rocket, a tank and
+	 * an engine bought like any launch (the debit) and placed above the altitude at rest. It has no
+	 * control source, so it goes on rails as ballistic debris and is removed when it falls back into
+	 * the air (ADR 0021): nothing piles up.
+	 */
+	const doContracts = () => {
+		const board = () => sim.snapshot().contracts!;
+		const doable = (t: string) => t === 'stock.contract-altitude';
+		const offer = board().offers.find((x) => doable(x.template));
+		if (!offer || !sim.dispatch({ type: 'contract-accept', offer: offer.id }).ok) return;
+		const { min } = (offer.objectives as { params: { min: number } }).params;
+		must(
+			sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Sounding rocket', ['stock.tank-small', 'stock.engine-lv'], [[1]]),
+				placement: {
+					kind: 'state',
+					position: { x: home.radius + Math.max(min + 10_000, 80_000), y: 0, z: 0 },
+					velocity: { x: 0, y: 0, z: 0 }
+				}
+			}),
+			'fly a sounding rocket'
+		);
+		settle(sim, 3); // past the idle time: it goes on rails as debris
+	};
 
 	let missions = 0;
 	let plant = false;
@@ -94,6 +140,7 @@ export async function runCareerBot(options: {
 			plant = true;
 		}
 		if (options.markets) sellSurplus();
+		if (options.contracts) doContracts();
 		// The rocket: paid for at launch.
 		const rocket = must(sim.dispatch({ type: 'load-vessel', design: twoStage() }), 'launch')!;
 		settle(sim, 3);
@@ -128,6 +175,7 @@ export async function runCareerBot(options: {
 		daily,
 		min: Math.min(...daily),
 		max: Math.max(...daily),
-		entries
+		entries,
+		completed
 	};
 }

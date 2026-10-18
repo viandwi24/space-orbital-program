@@ -21,6 +21,7 @@ import {
 import { length } from '@orbital/kepler';
 import { bodyOfVessel } from './bodies.ts';
 import { vesselIds, vesselOf, type SimCore } from './core.ts';
+import { generatedContract } from './contracts.ts';
 import { economyOn, record } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 
@@ -38,8 +39,9 @@ function definitionOf(
 	core: SimCore,
 	source: Source
 ): ContractDefinition | MissionDefinition | undefined {
+	// a generated contract lives in the contract state (plan 099, ADR 0186 point 3)
 	return source.kind === 'contract'
-		? core.registries.contracts.get(source.id)
+		? (generatedContract(core, source.id) ?? core.registries.contracts.get(source.id))
 		: core.registries.missions.get(source.id);
 }
 
@@ -95,12 +97,19 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
 	};
 }
 
-/** The view of one instance (ADR 0175 points 1 and 4): its bound vessel, or every vessel. */
-export function viewFor(core: SimCore, inst: Pick<SaveActiveObjective, 'vessel'>): ObjectiveView {
-	const ids =
-		inst.vessel === undefined
-			? vesselIds(core)
-			: vesselIds(core).filter((id) => id === inst.vessel);
+/**
+ * The view of one instance (ADR 0175 points 1 and 4): its bound vessel, or every vessel; with
+ * `since`, only the vessels launched after its start (ADR 0186 point 3).
+ */
+export function viewFor(
+	core: SimCore,
+	inst: Pick<SaveActiveObjective, 'vessel' | 'since'>
+): ObjectiveView {
+	const since = inst.since;
+	const ids = vesselIds(core).filter(
+		(id) =>
+			(inst.vessel === undefined || id === inst.vessel) && (since === undefined || id > since)
+	);
 	return { time: core.t, home: core.root.def.id, vessels: ids.map((id) => vesselView(core, id)) };
 }
 
@@ -114,7 +123,8 @@ function pay(
 	for (const e of entries) record(core, e.currency, e.amount, cause, ref);
 }
 
-function finish(
+/** Ends an instance: booked, moved to `finished`, reported. Also `contract-cancel` (plan 099). */
+export function finishObjective(
 	core: SimCore,
 	inst: SaveActiveObjective,
 	status: 'done' | 'failed',
@@ -162,7 +172,7 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 		const tree = treeOf(core, inst);
 		if (!tree) continue; // its plugin is not loaded: kept as it is
 		if (inst.deadline !== undefined && core.t > inst.deadline) {
-			finish(core, inst, 'failed', 'deadline passed');
+			finishObjective(core, inst, 'failed', 'deadline passed');
 			continue;
 		}
 		const due =
@@ -174,8 +184,8 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 		const r = evaluateObjectives(tree, inst.leaves, lookup(core), viewFor(core, inst));
 		inst.leaves = r.leaves;
 		inst.progress = r.progress;
-		if (r.status === 'done') finish(core, inst, 'done', 'completed');
-		else if (r.status === 'failed') finish(core, inst, 'failed', 'an objective failed');
+		if (r.status === 'done') finishObjective(core, inst, 'done', 'completed');
+		else if (r.status === 'failed') finishObjective(core, inst, 'failed', 'an objective failed');
 	}
 	if (trigger === 'step') dirty.clear();
 }
@@ -184,7 +194,9 @@ export function evaluateObjectivesDue(core: SimCore, trigger: 'step' | 'tick'): 
 export function startObjective(
 	core: SimCore,
 	source: Source,
-	vessel: EntityId | undefined
+	vessel: EntityId | undefined,
+	/** Count only vessels launched from now on (generated contracts, ADR 0186 point 3). */
+	newVessels = false
 ): CommandResult {
 	const def = definitionOf(core, source);
 	if (!def) return { ok: false, reason: `unknown ${source.kind} "${source.id}"` };
@@ -207,6 +219,7 @@ export function startObjective(
 		id: `o${s.next++}`,
 		source: { ...source },
 		...(vessel === undefined ? {} : { vessel: Number(vessel) }),
+		...(newVessels ? { since: Math.max(-1, ...vesselIds(core).map(Number)) } : {}),
 		startedAt: core.t,
 		...(deadline === undefined ? {} : { deadline }),
 		status: 'active',

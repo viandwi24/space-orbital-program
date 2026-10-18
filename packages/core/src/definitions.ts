@@ -18,6 +18,7 @@ import type { PhysicsBackend } from './physics-backend.ts';
 import type { Registry } from './registry.ts';
 import type { Rng } from './rng.ts';
 import type { ContractDefinition, MissionDefinition, ObjectiveDefinition } from './objectives.ts';
+import type { ContractTemplateDefinition } from './contracts.ts';
 import type { CrewNamesDefinition, CrewTraitDefinition } from './crew.ts';
 import type { DataKindDefinition, DataStorage, NewDataItem } from './data.ts';
 import type { ActionGroupDefinition } from './action-groups.ts';
@@ -92,6 +93,8 @@ export interface ReadonlyRegistries {
 	/** Objectives, contracts and missions (plan 098, ADR 0175). */
 	objectives: ReadonlyRegistry<ObjectiveDefinition>;
 	contracts: ReadonlyRegistry<ContractDefinition>;
+	/** Procedural contract templates (plan 099, ADR 0186). */
+	contractTemplates: ReadonlyRegistry<ContractTemplateDefinition>;
 	missions: ReadonlyRegistry<MissionDefinition>;
 	/** Data kinds (plan 083, ADR 0172). */
 	dataKinds: ReadonlyRegistry<DataKindDefinition>;

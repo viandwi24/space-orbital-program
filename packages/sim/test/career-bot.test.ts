@@ -39,9 +39,12 @@ test('career bot with markets: 10 years of launches buying fuel, a propellant pl
 	const seconds = (performance.now() - started) / 1000;
 	const income = new Map<string, number>();
 	for (const e of bot.entries)
-		if (e.amount > 0 && e.currency === 'funds') income.set(e.cause, (income.get(e.cause) ?? 0) + e.amount);
+		if (e.amount > 0 && e.currency === 'funds')
+			income.set(e.cause, (income.get(e.cause) ?? 0) + e.amount);
 	const total = [...income.values()].reduce((a, b) => a + b, 0);
-	const shares = Object.fromEntries([...income].map(([k, v]) => [k, Math.round((v / total) * 1000) / 10]));
+	const shares = Object.fromEntries(
+		[...income].map(([k, v]) => [k, Math.round((v / total) * 1000) / 10])
+	);
 	console.log(
 		`career bot with markets: funds min ${Math.round(bot.min)} max ${Math.round(bot.max)} end ${Math.round(bot.daily.at(-1)!)}, ${seconds.toFixed(1)} s; income shares %`,
 		shares
@@ -51,6 +54,33 @@ test('career bot with markets: 10 years of launches buying fuel, a propellant pl
 	expect(bot.max).toBeLessThanOrEqual(BAND.max);
 	expect(income.get('stock.market-sell') ?? 0).toBeGreaterThan(0);
 	for (const v of income.values()) expect(v / total).toBeLessThanOrEqual(0.8);
+	expect(seconds).toBeLessThan(45);
+	bot.sim.dispose();
+}, 60_000);
+
+test('career bot with contracts (plan 099): 3 600 days with an altitude job a mission keep funds in the band', async () => {
+	const started = performance.now();
+	const bot = await runCareerBot({
+		world: { ...legacyWorldInfo(7), id: 'career-bot-contracts', preset: 'stock.career' },
+		days: 3_600,
+		contracts: true
+	});
+	const seconds = (performance.now() - started) / 1000;
+	const causes = new Map<string, number>();
+	for (const e of bot.entries) {
+		const cause = e.cause.startsWith('gen.') ? 'contract.reward-or-penalty' : e.cause;
+		if (e.currency === 'funds') causes.set(cause, (causes.get(cause) ?? 0) + e.amount);
+	}
+	console.log(
+		`career bot with contracts: ${bot.missions} missions, ${bot.completed} contracts, funds min ${Math.round(bot.min)} max ${Math.round(bot.max)} end ${Math.round(bot.daily.at(-1)!)}, ${seconds.toFixed(1)} s;`,
+		Object.fromEntries([...causes].map(([k, v]) => [k, Math.round(v)]))
+	);
+	expect(bot.missions).toBe(120);
+	expect(bot.completed).toBeGreaterThan(100);
+	expect(causes.get('contract.advance')!).toBeGreaterThan(0);
+	expect(causes.get('contract.reward-or-penalty')!).toBeGreaterThan(0);
+	expect(bot.min).toBeGreaterThanOrEqual(BAND.min);
+	expect(bot.max).toBeLessThanOrEqual(BAND.max);
 	expect(seconds).toBeLessThan(45);
 	bot.sim.dispose();
 }, 60_000);

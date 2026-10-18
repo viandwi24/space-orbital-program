@@ -16,6 +16,7 @@ import { saveScienceSchema, type SaveScience } from './science.ts';
 import { saveMilestonesSchema, type SaveMilestones } from './milestones.ts';
 import { saveRangeSchema, type SaveRange } from './range-safety.ts';
 import { saveReliabilitySchema, type SaveReliability } from './reliability.ts';
+import { saveContractsSchema, type SaveContracts } from './contracts.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import type { Quat, Vec3 } from './math.ts';
 
@@ -65,6 +66,8 @@ export interface SaveActiveObjective {
 	id: string;
 	source: { kind: 'contract' | 'mission'; id: string };
 	vessel?: number;
+	/** Only vessels with a higher entity id count: launched after the start (plan 099, ADR 0186 point 3). */
+	since?: number;
 	startedAt: number;
 	deadline?: number;
 	status: 'active' | 'done' | 'failed';
@@ -93,6 +96,7 @@ const saveActiveObjectiveSchema = z.object({
 	id: z.string().min(1),
 	source: z.object({ kind: z.enum(['contract', 'mission']), id: z.string().min(1) }),
 	vessel: z.int().optional(),
+	since: z.int().optional(),
 	startedAt: z.number(),
 	deadline: z.number().optional(),
 	status: objectiveStatus,
@@ -157,6 +161,8 @@ export interface SimSave {
 	economy?: SaveEconomy;
 	/** Started objectives (plan 098, ADR 0175 point 8); optional in format 5, absent = none. */
 	objectives?: SaveObjectives;
+	/** Contract offers and accepted generated contracts (plan 099, ADR 0186); optional, absent = none yet. */
+	contracts?: SaveContracts;
 	/** The crew roster (plan 106, ADR 0176 point 1); optional in format 5, absent = nobody hired. */
 	crew?: SaveCrew;
 	/** Science subjects (plan 103, ADR 0178 point 8); optional in format 5, absent = none yet. */
@@ -226,6 +232,7 @@ export const simSaveSchema = z.object({
 		.optional(),
 	economy: saveEconomySchema.optional(),
 	objectives: saveObjectivesSchema.optional(),
+	contracts: saveContractsSchema.optional(),
 	crew: saveCrewSchema.optional(),
 	science: saveScienceSchema.optional(),
 	milestones: saveMilestonesSchema.optional(),

@@ -65,6 +65,7 @@ import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
+import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
 import { STOCK_TECH } from './tech.ts';
 import {
 	ModuleExperiment,
@@ -112,6 +113,7 @@ export const Stock = definePlugin({
 		for (const group of STOCK_ACTION_GROUPS) ctx.actionGroups.register(group);
 		for (const objective of STOCK_OBJECTIVES) ctx.objectives.register(objective);
 		for (const mission of STOCK_MISSIONS) ctx.missions.register(mission);
+		for (const t of STOCK_CONTRACT_TEMPLATES) ctx.contractTemplates.register(t);
 		for (const node of STOCK_TECH) ctx.techNodes.register(node);
 		for (const situation of STOCK_SITUATIONS) ctx.situations.register(situation);
 		for (const experiment of STOCK_EXPERIMENTS) ctx.experiments.register(experiment);
@@ -183,6 +185,7 @@ export * from './crew.ts';
 export * from './action-groups.ts';
 export * from './objectives.ts';
 export * from './missions.ts';
+export * from './contracts.ts';
 export * from './tech.ts';
 export * from './science.ts';
 export * from './comms.ts';

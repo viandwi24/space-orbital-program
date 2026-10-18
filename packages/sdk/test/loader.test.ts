@@ -251,6 +251,7 @@ describe('registration and report', () => {
 			experiment: [],
 			objective: [],
 			contract: [],
+			'contract-template': [],
 			mission: [],
 			'crew-trait': [],
 			'crew-names': [],

@@ -3,6 +3,7 @@
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
 import type { LinkBudget } from './comms.ts';
+import type { ContractsSnapshot } from './contracts.ts';
 import type { MilestoneRecord } from './milestones.ts';
 import type { RangeSnapshot } from './range-safety.ts';
 import type { ReliabilitySnapshot } from './reliability.ts';
@@ -224,6 +225,8 @@ export interface Snapshot {
 	bodies: BodySnapshot[];
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
 	rules?: Readonly<Record<string, boolean | number | string>>;
+	/** Contract slots, offers and accepted generated contracts (plan 099, ADR 0186); absent before any. */
+	contracts?: ContractsSnapshot;
 	/** Started objectives, active and finished (plan 098, ADR 0175). */
 	objectives?: Array<{
 		id: string;
@@ -534,6 +537,12 @@ export type Command =
 	| { type: 'transmit-data'; vessel: EntityId; item: string }
 	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
 	| { type: 'comms-inspect'; vessel: EntityId | null }
+	/** Accept a contract offer (plan 099, ADR 0186 point 4): checks the slots, pays the advance. */
+	| { type: 'contract-accept'; offer: string }
+	/** Decline an offer: it goes, and its key stays out for the template's cooldown. */
+	| { type: 'contract-decline'; offer: string }
+	/** Cancel an active contract (generated `gen.<n>` or an authored id): it fails, the penalty is booked. */
+	| { type: 'contract-cancel'; contract: string }
 	/** Part reliability (plan 130, ADR 0156): the grade the world buys a part model at. */
 	| { type: 'set-grade'; part: string; grade: 'economy' | 'standard' | 'proven' }
 	/** One trial of every failure mode of a part model on the world's test stand. */

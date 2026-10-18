@@ -29,6 +29,7 @@ import {
 import { createVesselBody } from './frames.ts';
 import { partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { saveScience } from './science.ts';
+import { contractsTouched } from './contracts.ts';
 import { runAllBackground, saveTickState } from './tick.ts';
 import { PART, VESSEL } from './state.ts';
 
@@ -205,6 +206,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		worldTick: saveTickState(core.ticks),
 		economy: cloneData(core.economy),
 		...(core.objectives.state.next > 1 ? { objectives: cloneData(core.objectives.state) } : {}),
+		...(contractsTouched(core) ? { contracts: cloneData(core.contracts) } : {}),
 		...(core.crew.next > 1 ? { crew: cloneData(core.crew) } : {}),
 		...(science ? { science } : {}),
 		...(milestones ? { milestones } : {}),

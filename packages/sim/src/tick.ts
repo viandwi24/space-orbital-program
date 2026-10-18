@@ -19,6 +19,7 @@ import {
 import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { makeContext } from './hooks.ts';
 import { economyTick } from './economy.ts';
+import { contractsTick } from './contracts.ts';
 import { crewTick } from './crew.ts';
 import { buildingsTick } from './buildings.ts';
 import { marketDay } from './market.ts';
@@ -129,6 +130,7 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 		// construction done and upkeep (plan 096, ADR 0123); comms stations follow the sites
 		if (buildingsTick(core, day)) resetStations(core);
 		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
+		contractsTick(core, day); // expiry and at most one new offer (plan 099, ADR 0186)
 		crewTick(core); // returns and salaries (plan 106, ADR 0176)
 		marketDay(core); // production, then the markets, after the day's charges (plan 097, ADR 0124)
 		core.events.emit('world:tick', { day, time });

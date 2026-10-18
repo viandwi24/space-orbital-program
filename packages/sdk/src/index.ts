@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
 export * from './define.ts';
@@ -41,10 +41,22 @@ export {
 	RATE_LADDER,
 	BLACKOUT_BADGE_LEVEL
 } from '@orbital/core';
+export {
+	estimatedLaunchCost,
+	expectedValue,
+	CONTRACT_COST_BASE,
+	CONTRACT_COST_PER_DV2
+} from '@orbital/core';
 export { dossierOf, regionAt, regionsOf } from '@orbital/core';
 export { CONSUMABLES, LIFE_SUPPORT_RATES, performanceOf } from '@orbital/core';
 // Ephemeris helpers for system packs (plans 123 and 124, ADRs 0183 and 0184).
-export { AU, levelAElements, SECONDS_PER_CENTURY, type LevelARow } from '@orbital/kepler';
+export {
+	AU,
+	hohmannTransfer,
+	levelAElements,
+	SECONDS_PER_CENTURY,
+	type LevelARow
+} from '@orbital/kepler';
 export { poleQuaternion } from '@orbital/core';
 export { categoryIdOf, sortCategories, STOCK_CATEGORY_NAMES } from '@orbital/core';
 export { homeBodyOf, positionFromStar, subSolarLatitude } from '@orbital/core';
@@ -237,6 +249,12 @@ export type {
 	CategoryDefinition,
 	CategoryIcon,
 	ContractDefinition,
+	ContractBlueprint,
+	ContractBodyView,
+	ContractOffer,
+	ContractTemplateContext,
+	ContractTemplateDefinition,
+	ContractsSnapshot,
 	MissionDefinition,
 	ObjectiveDefinition,
 	ObjectiveNode,
