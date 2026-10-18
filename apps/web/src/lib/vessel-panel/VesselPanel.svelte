@@ -1,13 +1,22 @@
 <script lang="ts">
 	/**
 	 * The vessel panel (plan 111, ADR 0153; refs): Overview with a switch per group, Parts with each
-	 * part's controls from its descriptors, Comms reserved for plan 115.
+	 * part's controls from its descriptors, Comms with the route, the stations and the transmitters
+	 * (plan 115, ADR 0158).
 	 */
 	import type { Command, EntityId } from '@orbital/core';
 	import Panel from '../ui/Panel.svelte';
 	import Switch from '../ui/Switch.svelte';
 	import Button from '../ui/Button.svelte';
-	import { controlCommand, groupCommand, type ControlRow, type VesselView } from './vessel-model';
+	import SignalBars from '../ui/SignalBars.svelte';
+	import type { CommsTab } from '../comms/network-model';
+	import {
+		controlCommand,
+		groupCommand,
+		type ControlRow,
+		type PartRow,
+		type VesselView
+	} from './vessel-model';
 
 	let {
 		vessel,
@@ -15,6 +24,8 @@
 		view,
 		oncommand,
 		onhighlight,
+		comms = null,
+		transmitters = [],
 		initialTab = 'overview'
 	}: {
 		vessel: EntityId;
@@ -23,11 +34,14 @@
 		oncommand: (command: Command) => void;
 		/** A part row is hovered or focused (null: none). */
 		onhighlight: (part: EntityId | null) => void;
-		initialTab?: 'overview' | 'parts';
+		/** The Comms tab (null: this world has no comms network). */
+		comms?: CommsTab | null;
+		transmitters?: PartRow[];
+		initialTab?: 'overview' | 'parts' | 'comms';
 	} = $props();
 
 	// svelte-ignore state_referenced_locally
-	let tab = $state<'overview' | 'parts'>(initialTab);
+	let tab = $state<'overview' | 'parts' | 'comms'>(initialTab);
 	let problem = $state<string | null>(null);
 
 	function send(part: EntityId, c: ControlRow, value?: boolean | number | string): void {
@@ -56,13 +70,57 @@
 			data-testid="vessel-tab-parts"
 			onclick={() => (tab = 'parts')}>Parts</button
 		>
-		<button type="button" role="tab" aria-selected="false" disabled title="Comms come with plan 115"
-			>Comms</button
+		<button
+			type="button"
+			role="tab"
+			aria-selected={tab === 'comms'}
+			disabled={!comms}
+			title={comms ? undefined : 'This world has no comms network'}
+			data-testid="vessel-tab-comms"
+			onclick={() => (tab = 'comms')}>Comms</button
 		>
 	</div>
 	{#if problem}<p class="problem" role="status">{problem}</p>{/if}
 
-	{#if tab === 'overview'}
+	{#if tab === 'comms' && comms}
+		<section class="comms" data-testid="vessel-comms">
+			<div class="route">
+				<span class="cap">Route · Auto</span>
+				<p class="path" data-testid="comms-path">
+					<SignalBars
+						level={comms.linked ? (comms.control === 'partial' ? 2 : 4) : 0}
+						offline={!comms.linked}
+					/>
+					{comms.path.join(' → ')}
+				</p>
+				{#if comms.reason}<p class="problem" data-testid="comms-reason">{comms.reason}</p>{/if}
+			</div>
+			<span class="cap">Ground stations</span>
+			{#each comms.endpoints as e (e.id)}
+				<div class="row endpoint" class:current={e.current}>
+					<span>{e.label}</span><span class="dim">{e.body}{e.current ? ' · linked' : ''}</span>
+				</div>
+			{:else}
+				<p class="none">No ground station.</p>
+			{/each}
+			<span class="cap">Transmitters</span>
+			{#each transmitters as p (p.entity)}
+				{#each p.controls.filter((c) => c.kind === 'toggle') as c (c.module + '/' + c.id)}
+					<div class="row" title={c.enabled ? undefined : c.reason}>
+						<Switch
+							checked={c.value === true}
+							label="{p.title} · {c.label}"
+							disabled={!c.enabled}
+							testid="comms-{p.entity}-{c.id}"
+							onchange={(on) => send(p.entity, c, on)}
+						/>
+					</div>
+				{/each}
+			{:else}
+				<p class="none">No antenna on board.</p>
+			{/each}
+		</section>
+	{:else if tab === 'overview'}
 		{#each view.groups as g (g.id)}
 			<div class="row">
 				<Switch
@@ -229,5 +287,37 @@
 	}
 	.problem {
 		color: var(--warn);
+	}
+	.comms {
+		display: grid;
+		gap: 0.25rem;
+	}
+	.cap {
+		margin: 0.5rem 0.25rem 0;
+		font-size: var(--t-label);
+		font-weight: 700;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.path {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0.25rem;
+		font-size: var(--t-small);
+		color: var(--text-primary);
+	}
+	.endpoint {
+		justify-content: space-between;
+		padding: 0 0.25rem;
+		font-size: var(--t-small);
+		color: var(--text-secondary);
+	}
+	.endpoint.current {
+		color: var(--text-primary);
+	}
+	.dim {
+		color: var(--text-muted);
 	}
 </style>

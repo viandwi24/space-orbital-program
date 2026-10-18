@@ -3,8 +3,10 @@
 	 * The Mission Center's overlay (plan 113, refs `Map.dc.html`): the world capsule and the
 	 * `Map | Mission Center` switch on top, Tracking with its filters and the crew and agency on the
 	 * left, Upcoming and Contracts on the right, the selected object's card at the bottom, the layer
-	 * toggles bottom right, and labels and comms links over the canvas.
+	 * toggles bottom right, and labels and the Network layer (plan 115) over the canvas.
 	 */
+	import NetworkLayer from '../comms/NetworkLayer.svelte';
+	import type { ScreenNetwork } from '../comms/network-model';
 	import BackButton from '../ui/BackButton.svelte';
 	import Button from '../ui/Button.svelte';
 	import Capsule from '../ui/Capsule.svelte';
@@ -49,7 +51,7 @@
 		layers,
 		onlayers,
 		labels,
-		links,
+		network,
 		note
 	}: {
 		worldName: string;
@@ -74,8 +76,8 @@
 		onlayers: (l: Layers) => void;
 		/** Labels in CSS pixels: objects on screen and clusters of close vessels. */
 		labels: readonly MapLabel[];
-		/** Comms links in CSS pixels. */
-		links: readonly { key: string; x1: number; y1: number; x2: number; y2: number }[];
+		/** The Network layer in CSS pixels (plan 115, ADR 0158). */
+		network: ScreenNetwork;
 		note: string | null;
 	} = $props();
 
@@ -84,9 +86,7 @@
 
 <div class="overlay" data-testid="mission-center">
 	{#if layers.network}
-		<svg class="links" aria-hidden="true" data-testid="mc-network">
-			{#each links as l (l.key)}<line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />{/each}
-		</svg>
+		<div data-testid="mc-network"><NetworkLayer {network} /></div>
 	{/if}
 	{#if layers.labels}
 		{#each labels as l (l.key)}
@@ -259,19 +259,6 @@
 	.overlay .switch,
 	.overlay .layers {
 		pointer-events: auto;
-	}
-	.links {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		pointer-events: none;
-	}
-	.links line {
-		stroke: var(--ok, #7bd88f);
-		stroke-width: 1;
-		stroke-dasharray: 4 4;
-		opacity: 0.7;
 	}
 	.label {
 		position: absolute;

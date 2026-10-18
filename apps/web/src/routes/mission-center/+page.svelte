@@ -41,6 +41,7 @@
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { SaveController } from '../../lib/save/save-controller.svelte';
 	import { spreadLabels } from '../../lib/space-center/model';
+	import { projectNetwork, type ScreenNetwork } from '../../lib/comms/network-model';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
 
@@ -58,7 +59,7 @@
 	let layers = $state<Layers>({ orbits: true, network: true, labels: true });
 	let upcoming = $state.raw<UpcomingEvent[]>([]);
 	let labels = $state.raw<MapLabel[]>([]);
-	let links = $state.raw<{ key: string; x1: number; y1: number; x2: number; y2: number }[]>([]);
+	let network = $state.raw<ScreenNetwork>({ lines: [], stations: [] });
 	let note = $state<string | null>(null);
 	let upcomingAt = -Infinity;
 
@@ -157,17 +158,10 @@
 			x: Math.round(spread[l.key]!.x),
 			y: Math.round(spread[l.key]!.y)
 		}));
-		const nextLinks: typeof links = [];
-		for (const n of s.network?.vessels ?? []) {
-			const station = n.to ? s.network!.stations.find((st) => st.id === n.to) : undefined;
-			const from = worldOf(s, `vessel:${n.vessel}`);
-			const a = from && project(from);
-			const b = station && project(station.position);
-			if (a && b && !a.hidden)
-				nextLinks.push({ key: `${n.vessel}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y });
-		}
+		// the Network layer (plan 115, ADR 0158): every link, coloured by its state, and the stations
+		const nextNetwork = projectNetwork(s, (w) => project(w));
 		if (JSON.stringify(nextLabels) !== JSON.stringify(labels)) labels = nextLabels;
-		if (JSON.stringify(nextLinks) !== JSON.stringify(links)) links = nextLinks;
+		if (JSON.stringify(nextNetwork) !== JSON.stringify(network)) network = nextNetwork;
 	}
 
 	function onClick(x: number, y: number): void {
@@ -273,7 +267,7 @@
 		{layers}
 		onlayers={setLayers}
 		{labels}
-		{links}
+		{network}
 		{note}
 	/>
 </main>
