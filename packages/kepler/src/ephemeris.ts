@@ -88,6 +88,43 @@ export function segmentState(e: Ephemeris, target: number, t: number): StateVect
 	};
 }
 
+/** J2000 obliquity of the ecliptic (IAU 1976, 84 381.448″): DE440's equator to the ecliptic. */
+const OBLIQUITY = (84_381.448 / 3600) * (Math.PI / 180);
+const COS_E = Math.cos(OBLIQUITY);
+const SIN_E = Math.sin(OBLIQUITY);
+
+/**
+ * A vector of DE440's frame (ICRF, the J2000 equator) in the game frame: to the ecliptic, then
+ * ecliptic (x, y, z) to game (x, z, −y), as the series paths do (ADR 0183 point 4).
+ */
+export function icrfToGame(v: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+	const ey = COS_E * v.y + SIN_E * v.z;
+	const ez = -SIN_E * v.y + COS_E * v.z;
+	return { x: v.x, y: ez, z: -ey };
+}
+
+/**
+ * A body's path about its parent from the asset (game frame, seconds from J2000), or undefined when
+ * the asset lacks one of them. Outside the asset's span the caller keeps its own model.
+ */
+export function ephemerisPath(
+	e: Ephemeris,
+	naif: number,
+	parentNaif: number
+): ((tau: number) => StateVector) | undefined {
+	const has = (id: number) =>
+		id === 0 || id === 301 || id === 399 || e.segments.some((s) => s.target === id);
+	if (!has(naif) || !has(parentNaif)) return undefined;
+	return (tau) => {
+		const a = barycentricState(e, naif, tau);
+		const b = barycentricState(e, parentNaif, tau);
+		return {
+			r: icrfToGame({ x: a.r.x - b.r.x, y: a.r.y - b.r.y, z: a.r.z - b.r.z }),
+			v: icrfToGame({ x: a.v.x - b.v.x, y: a.v.y - b.v.y, z: a.v.z - b.v.z })
+		};
+	};
+}
+
 /**
  * State of a body about the solar system barycentre (NAIF 0) at `t`, m and m/s: 1–10 directly, the
  * Moon (301) and the Earth (399) from the Earth–Moon barycentre (3) and the Moon's record.

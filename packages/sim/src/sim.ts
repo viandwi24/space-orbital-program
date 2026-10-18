@@ -37,6 +37,7 @@ import {
 	worldInfoSchema
 } from '@orbital/core';
 import { buildBodies, type TerrainFactory } from './bodies.ts';
+import type { Ephemeris } from '@orbital/kepler';
 import { NBODY_FRAME_EVALUATIONS, nBodyOn, takeEvaluations } from './nbody.ts';
 import { dispatch } from './commands.ts';
 import { drainQueue, type CommandSource } from './delay.ts';
@@ -131,6 +132,11 @@ export interface SimOptions {
 	 * save's. Mutable behaviour kept in a plugin's own closures, outside the world, is not saved.
 	 */
 	resume?: unknown;
+	/**
+	 * JPL's DE440 for the bodies that name a NAIF id (plan 125, ADR 0122 point 7): within its span
+	 * they follow it instead of their own path model. Not saved: a host gives it again on resume.
+	 */
+	ephemeris?: Ephemeris;
 	/**
 	 * The world this run belongs to (plan 077, ADR 0110), validated like a save. Absent: the save's
 	 * world on resume, else the Legacy world with this run's seed. On resume it must name the
@@ -273,7 +279,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	}
 	info.rules = resolved.values;
 	const unknownRules = Object.freeze([...resolved.unknown]);
-	const bodies = buildBodies(defs, bodyDef.id, options.terrain, info);
+	const bodies = buildBodies(defs, bodyDef.id, options.terrain, info, options.ephemeris);
 	const root = bodies.get(bodyDef.id);
 	if (!root) throw new Error(`createSim: body "${bodyDef.id}" is not registered`);
 
