@@ -40,4 +40,12 @@
 
 ## Verification output
 
-(filled in at completion)
+```
+bun test packages/sim         509 pass, 0 fail (test/debug.test.ts: 12 pass)
+bun test packages/core        320 pass, 0 fail
+vitest debug/model.test.ts    7 pass; script-api.test.ts 4 pass; tracker, settings, worlds pass
+check:affected --build --e2e e2e/debug.e2e.ts   (after the rebase onto plan 207)
+  ✓ prettier ✓ docs:check ✓ typecheck (11) ✓ typecheck (web) ✓ bun test (10 workspaces)
+  ✓ web vitest 697 ✓ build ✓ e2e e2e/debug.e2e.ts (chromium) 3 passed
+  check-affected: all passed in 432.5 s
+```

@@ -1,7 +1,7 @@
 ---
 id: 203
 title: "Debug panel, cheats, set orbit/location/resources, log"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: []
 phase: 7
@@ -66,23 +66,24 @@ A Debug panel (`Alt+F12` and the ☰ menu) lets a player or a test jump straight
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including `test/debug.test.ts`: set-orbit to Ap 100 km / Pe 100 km around the home body gives those apsides within 1 m; set-location in the atmosphere at 5 km and 200 m/s gives that altitude and surface speed after one step; a debug command in a Career world without Debug mode is rejected with a reason; in Hardcore it is always rejected.
-- [ ] `bun test packages/core` passes, including the save test that a format-8 save without `debug` reads as never used, and one with it round-trips.
-- [ ] `apps/web` vitest `debug/model.test.ts`: the Log tab filters by level, copy returns the visible lines, download names the file with the world and date.
-- [ ] `apps/web` vitest `script-api.test.ts` (extended): `debug.setResource` is absent when Debug mode is off.
-- [ ] Chromium e2e `e2e/debug.e2e.ts`: in a Sandbox world, `debugSetOrbit` puts the vessel in a 100 km orbit and the HUD shows it; turning on infinite fuel keeps the tank full during a burn; in a Career world with Debug mode on, the world card on Worlds shows "Used cheats".
-- [ ] `bun run check:affected --e2e e2e/debug.e2e.ts` passes.
-- [ ] CI green on the `ready/203` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test packages/sim` passes, including `test/debug.test.ts`: set-orbit to Ap 100 km / Pe 100 km around the home body gives those apsides within 1 m; set-location in the atmosphere at 5 km and 200 m/s gives that altitude and surface speed after one step; a debug command in a Career world without Debug mode is rejected with a reason; in Hardcore it is always rejected.
+- [x] `bun test packages/core` passes, including the save test that a format-8 save without `debug` reads as never used, and one with it round-trips.
+- [x] `apps/web` vitest `debug/model.test.ts`: the Log tab filters by level, copy returns the visible lines, download names the file with the world and date.
+- [x] `apps/web` vitest `script-api.test.ts` (extended): `debug.setResource` is absent when Debug mode is off.
+- [x] Chromium e2e `e2e/debug.e2e.ts`: in a Sandbox world, `debugSetOrbit` puts the vessel in a 100 km orbit and the HUD shows it; turning on infinite fuel keeps the tank full during a burn; in a Career world with Debug mode on, the world card on Worlds shows "Used cheats".
+- [x] `bun run check:affected --e2e e2e/debug.e2e.ts` passes.
+- [x] CI green on the `ready/203` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/203-debug-panel-and-cheats.md` written.
-- [ ] `docs/architecture/simulation.md` (debug commands) and `docs/architecture/scripting.md` (`debug.*`) updated.
-- [ ] `docs/conventions/testing.md` gains a short section on setting up e2e states with the debug helpers.
-- [ ] ADR 0200 linked; any deviation recorded as a new ADR.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/203-debug-panel-and-cheats.md` written.
+- [x] `docs/architecture/simulation.md` (debug commands) and `docs/architecture/scripting.md` (`debug.*`) updated.
+- [x] `docs/conventions/testing.md` gains a short section on setting up e2e states with the debug helpers.
+- [x] ADR 0200 linked; any deviation recorded as a new ADR.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-19 — Refined to ready and claimed by Worker B (`claim/203`). Checked against the code: commands go through `commandSchema` (core) and `dispatch` (sim `commands.ts`); world rules resolve in `createSim`; resource draws all pass `withdrawResource`; damage is `damagePart`/`burnPart`; control without signal is `controlFor`/`signalRefusal`. Decisions (ADR 0213, default per owner review): access is the stock rule `stock.debug-tools` (`always`/`opt-in`/`locked`); debug state is `WorldInfo.debug` (additive, so no save version bump: the plan's "bump with migration" follows ADR 0200's "additive, no version bump" instead); "unlock all tech" is a one-shot grant, not a switch; plan 202's log buffer is not merged, so this plan adds `log-buffer.ts` with 202's API.
+- 2026-10-19 — Done (Worker B). Evidence: `bun test packages/sim` 509 pass, including `test/debug.test.ts` (12: apsides within 1 m, 5 km / 200 m/s after one step, Career refusal with reason, Hardcore always refused); `bun test packages/core` 320 pass (save round trip of `WorldInfo.debug`); vitest `debug/model.test.ts` 7, `script-api.test.ts` 4 (`debug` absent with Debug mode off); Chromium `e2e/debug.e2e.ts` 3/3; `bun run check:affected --build --e2e e2e/debug.e2e.ts` all passed in 432 s after the rebase onto plan 207; CI on `ready/203` (see journal). The first `ready/203` (50275b1) failed CI's `bun run lint` on the web package's Prettier config; fixed and tagged again. ADR renumbered 0212 → 0213 (0212 went to plan 207).
