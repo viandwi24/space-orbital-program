@@ -63,7 +63,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f4-118-comms-tools` | 118 | A2 | A1 (070) | done | 8ef33384 | 2026-10-17 |
 | `cp/f4-120-comms-5` | 120 | A3 | A1, A3 (070, 121) | done | 7ff2a0fd | 2026-10-17 |
 | `cp/f4-121-comms-6` | 121 | A3 | A1 (070) | done | df5da7ad | 2026-10-17 |
-| `cp/f4-070-comms-index` | 070 | A1 | — (none) | pending | | |
+| `cp/f4-070-comms-index` | 070 | A1 | — (none) | done | a80d9bd8 | 2026-10-18 |
 | `cp/f4-done` | phase gate F4: all F4 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
 | `cp/f5-122-sun` | 122 | A1 | A1, A3 (071, 123) | done | b33f76a | 2026-10-17 |
 | `cp/f5-123-elements` | 123 | A3 | A1, A3 (124, 125) | done | 8403dd7 | 2026-10-17 |
