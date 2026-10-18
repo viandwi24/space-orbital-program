@@ -28,7 +28,7 @@ describe('presets', () => {
 		).toBe('high');
 		expect(
 			selectPreset({
-				gpu: 'ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)',
+				gpu: 'ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)',
 				maxTextureSize: 16384
 			})
 		).toBe('medium');
@@ -37,6 +37,16 @@ describe('presets', () => {
 			'medium'
 		);
 		expect(selectPreset({ maxTextureSize: 16384 })).toBe('medium');
+	});
+	test('selectPreset: the base M1 and M2 start on low (plan 066: 33 ms at the pad on medium, ADR 0157)', () => {
+		for (const chip of ['Apple M1', 'Apple M2'])
+			expect(
+				selectPreset({
+					gpu: `ANGLE (Apple, ANGLE Metal Renderer: ${chip}, Unspecified Version)`,
+					maxTextureSize: 16384
+				})
+			).toBe('low');
+		expect(selectPreset({ gpu: 'Apple M1 Pro', maxTextureSize: 16384 })).toBe('medium');
 	});
 	test('parsePreset accepts the three names and rejects everything else', () => {
 		for (const p of GRAPHICS_PRESETS) expect(parsePreset(p)).toBe(p);

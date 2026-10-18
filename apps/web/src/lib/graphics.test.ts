@@ -3,7 +3,7 @@ import { parseAutoQuality, resolvePreset } from './graphics';
 
 describe('resolvePreset', () => {
 	it('prefers a saved preset over the device default', () => {
-		expect(resolvePreset('low', { gpu: 'Apple M2', maxTextureSize: 16384 })).toBe('low');
+		expect(resolvePreset('high', { gpu: 'Apple M2', maxTextureSize: 16384 })).toBe('high');
 	});
 	it('falls back to the device default', () => {
 		expect(

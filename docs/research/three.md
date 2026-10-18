@@ -174,3 +174,8 @@ Facts below come from the pages named and, where a page was only an API stub, fr
 | `patch` is a reserved word in GLSL ES 3.00 | A function-local `float patch` fails to compile in WebGL 2 (`'patch' : Illegal use of reserved word`); the shader failed at runtime, not in `tsc` or `vite build`, and the planet pass drew black (the console says so). Renamed `gaps`. | observed, journal 061 |
 | A build of a `git archive` copy resolves workspace packages through its `node_modules` links | The copy's `node_modules/@orbital/*` are relative links; a symlink of the main tree's `node_modules` made the "base" build resolve into the main tree (it contained the new code). Clone the directories (`cp -Rc`) so the links resolve inside the copy, and check the built chunk for a name that only the new code has. | observed, journal 061 |
 
+## Plan 066: measuring on a real M2 (checked 2026-10-18, Chromium in the app's browser pane, ANGLE Metal)
+
+- Headless Chromium (Playwright, `--use-angle=metal`) reports the same GPU string but reads `renderer.debug.benchmark` about three times high on the M2 (medium at the pad 107 ms against 33 ms in a visible window). Measure in a visible window.
+- A page whose window is out of view stops `requestAnimationFrame` while it reports `visibilityState: visible`: whole-page frame intervals (`__orbital.frameIntervals`, the glass blur check) need a watched window. `benchmark` waits on the GPU and does not need frames.
+- `precompile()` returns the same promise on a second call; on the M2 it resolves 100 to 160 s after the page loads (84 s on the M5, journal 054).
