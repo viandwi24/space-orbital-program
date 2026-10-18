@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 129 discovery claimed (claim/129) on devc/129-discovery; 126 and 120 handed over.
-**Waiting for:** the merges of 126 and 120 (121 waits cp/f4-120).
+**Now:** 129 discovery in progress on devc/129-discovery (sim and dossier UI done; docs and checks next); 126 merged and cleaned up; 120 handed over.
+**Waiting for:** the merge of 120 (121 waits cp/f4-120).
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
