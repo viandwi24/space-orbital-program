@@ -98,6 +98,8 @@ export interface Worlds {
 	 * them; none before the first save.
 	 */
 	milestones(id: string): Promise<{ records: MilestoneRecord[]; epoch: Epoch }>;
+	/** A debug tool was used in the world (plan 203, ADR 0212 point 4): its card says so for good. */
+	markUsedCheats(id: string): Promise<void>;
 }
 
 export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEnv): Worlds {
@@ -211,6 +213,7 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 				summary: emptySummary(),
 				world
 			};
+			delete copy.usedCheats; // a copy starts clean (plan 203)
 			await worlds.put(copy);
 			return copy;
 		},
@@ -240,6 +243,15 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 			await worlds.put({ ...record, world: { ...world, sites: structuredClone(sites) } });
 		},
 		saves: savesOf,
+		async markUsedCheats(id) {
+			let record = await get(id);
+			if (!record) {
+				if (id !== LEGACY_WORLD_ID) return;
+				record = legacyWorldRecord(env.now(), [], emptySummary());
+			}
+			if (record.usedCheats) return;
+			await worlds.put({ ...record, usedCheats: true });
+		},
 		async milestones(id) {
 			for (const meta of await savesOf(id)) {
 				const stored = await saves.get(meta.id);

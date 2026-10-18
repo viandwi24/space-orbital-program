@@ -48,6 +48,8 @@ export interface WorldRecord {
 	world?: WorldInfo;
 	/** The scenario the world was made from (plan 100, ADR 0151 point 4): its first flight starts from it. */
 	scenario?: string;
+	/** A debug tool was used in this world (plan 203, ADR 0212 point 4); never cleared. */
+	usedCheats?: boolean;
 }
 
 export const LEGACY_WORLD_NAME = 'Legacy world';
@@ -148,6 +150,7 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 		changelog: raw.changelog as RuleChange[],
 		summary: { saves: s.saves, vessel: s.vessel, simTime: s.simTime },
 		...(world ? { world } : {}),
-		...(typeof raw.scenario === 'string' ? { scenario: raw.scenario } : {})
+		...(typeof raw.scenario === 'string' ? { scenario: raw.scenario } : {}),
+		...(raw.usedCheats === true ? { usedCheats: true } : {})
 	};
 }

@@ -11,8 +11,14 @@
 
 	let {
 		achievements,
-		store
-	}: { achievements: readonly AchievementDefinition[]; store: ProfileStore } = $props();
+		store,
+		usedCheats = null
+	}: {
+		achievements: readonly AchievementDefinition[];
+		store: ProfileStore;
+		/** The chosen world's name when it used cheats (plan 203): nothing unlocks there. */
+		usedCheats?: string | null;
+	} = $props();
 
 	let profile = $state.raw<Profile | null>(null);
 	let note = $state<string | null>(null);
@@ -44,6 +50,11 @@
 		<h2>Achievements</h2>
 		<span class="count num">{count} / {achievements.length}</span>
 	</header>
+	{#if usedCheats}
+		<p class="cheats" data-testid="achievements-cheats">
+			{usedCheats} used cheats: no achievement unlocks in it.
+		</p>
+	{/if}
 	<ul>
 		{#each shown as a (a.id)}
 			{@const u = profile?.unlocked[a.id]}
@@ -79,6 +90,11 @@
 </section>
 
 <style>
+	.cheats {
+		margin: 0 0 var(--s-2);
+		color: var(--c-warning);
+		font-size: var(--t-sm);
+	}
 	.achievements {
 		display: grid;
 		gap: var(--s-3);

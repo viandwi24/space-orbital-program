@@ -39,6 +39,8 @@ class SettingsStore {
 	ui = $state<InterfaceSettings>({ ...DEFAULT_INTERFACE });
 	/** The flight dock's rail and open panel (plan 112). */
 	dock = $state<DockChoice>(defaultDock());
+	/** Debug mode (plan 203, ADR 0212 point 5). */
+	debug = $state(false);
 	/** Handlers read this; it follows `bindings`. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings));
 	#started = false;
@@ -58,6 +60,7 @@ class SettingsStore {
 		this.touch = settings.touch;
 		this.ui = settings.interface;
 		this.dock = settings.dock;
+		this.debug = settings.debug;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -75,7 +78,8 @@ class SettingsStore {
 			audio: { ...this.audio },
 			touch: this.touch,
 			interface: { ...this.ui },
-			dock: { panels: [...this.dock.panels], open: this.dock.open }
+			dock: { panels: [...this.dock.panels], open: this.dock.open },
+			debug: this.debug
 		};
 	}
 
@@ -132,6 +136,12 @@ class SettingsStore {
 
 	setTouch(choice: TouchChoice): void {
 		this.touch = choice;
+		this.#save();
+	}
+
+	/** Debug mode (plan 203): the flight turns it on in a world that needs it; the world stays marked. */
+	setDebug(on: boolean): void {
+		this.debug = on;
 		this.#save();
 	}
 

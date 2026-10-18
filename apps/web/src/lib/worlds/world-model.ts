@@ -210,7 +210,9 @@ export function createWorldInfo(
 
 /** Duplicate (ADR 0143): a new id, the same rules and start, optionally a new seed; no changelog. */
 export function duplicateWorldInfo(world: WorldInfo, id: string, seed = world.seed): WorldInfo {
-	return { ...structuredClone(world), id, seed, changelog: [] };
+	// a copy starts without the original's debug state (plan 203)
+	const { debug: _debug, ...rest } = structuredClone(world);
+	return { ...rest, id, seed, changelog: [] };
 }
 
 // --- catch-up (ADR 0103 point 3, ADR 0143 point 4) --------------------------------------------

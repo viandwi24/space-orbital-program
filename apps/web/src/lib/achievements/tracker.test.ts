@@ -33,6 +33,25 @@ describe('achievement tracker', () => {
 		]);
 	});
 
+	it('unlocks nothing in a world that used cheats (plan 203)', async () => {
+		const store = memoryProfileStore();
+		const unlocked: string[] = [];
+		let cheated = true;
+		const t = createAchievementTracker({
+			store,
+			achievements,
+			home: 'stock.home',
+			world: 'w-1',
+			blocked: () => cheated,
+			onUnlock: (a) => unlocked.push(a.id)
+		});
+		await t.check([{ kind: 'launch', crewed: false }]);
+		expect(unlocked).toEqual([]);
+		cheated = false;
+		await t.check([{ kind: 'launch', crewed: false }]);
+		expect(unlocked).toEqual(['stock.liftoff']);
+	});
+
 	it('a profile that cannot be written does not throw into the flight', async () => {
 		const t = createAchievementTracker({
 			store: {

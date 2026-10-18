@@ -70,7 +70,8 @@ describe('Create World from the registries', () => {
 			'crew',
 			'comms',
 			'launch',
-			'agency'
+			'agency',
+			'world'
 		]);
 		expect(groups.flatMap((g) => g.rules).length).toBe(catalog.rules.length);
 		const agency = catalog.rules.find((r) => r.id === 'stock.agency-type')!;

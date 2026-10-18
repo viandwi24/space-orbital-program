@@ -33,6 +33,8 @@ export interface SimClient {
 	dispatch(command: Command | unknown): Promise<CommandResult>;
 	/** Latest snapshot received, or null before the first one. */
 	readonly latest: Snapshot | null;
+	/** Wall time of the sim step behind the latest snapshot, ms; null before the first. */
+	readonly stepMs: number | null;
 	/** `warp` is the sim's current time warp when the worker reports it. */
 	onSnapshot(listener: (snapshot: Snapshot, warp?: number) => void): () => void;
 	onError(listener: (message: string) => void): () => void;
@@ -57,6 +59,7 @@ export interface SimClient {
 export function createSimClient(worker: WorkerLike): SimClient {
 	let nextId = 1;
 	let latest: Snapshot | null = null;
+	let stepMs: number | null = null;
 	let isReady = false;
 	let disposed = false;
 	const pending = new Map<number, (result: CommandResult) => void>();
@@ -103,6 +106,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 			}
 			case 'snapshot':
 				latest = message.snapshot;
+				stepMs = message.stepMs ?? null;
 				for (const listener of snapshotListeners) listener(message.snapshot, message.warp);
 				break;
 			case 'result': {
@@ -160,6 +164,9 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		},
 		get latest() {
 			return latest;
+		},
+		get stepMs() {
+			return stepMs;
 		},
 		onSnapshot(listener) {
 			snapshotListeners.add(listener);

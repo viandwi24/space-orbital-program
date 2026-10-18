@@ -17,6 +17,8 @@ export function createAchievementTracker(options: {
 	home: string;
 	world: string;
 	now?: () => string;
+	/** True while the world has used a debug tool (plan 203, ADR 0200 point 8): nothing unlocks. */
+	blocked?: () => boolean;
 	onUnlock(achievement: AchievementDefinition): void;
 }): AchievementTracker {
 	let queue: Promise<void> = Promise.resolve();
@@ -24,6 +26,7 @@ export function createAchievementTracker(options: {
 	return {
 		check(records) {
 			if (records.length === 0 || options.achievements.length === 0) return queue;
+			if (options.blocked?.()) return queue;
 			queue = queue
 				.then(async () => {
 					const r = unlockFrom(await options.store.get(), options.achievements, records, {
