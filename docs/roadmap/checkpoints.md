@@ -79,7 +79,7 @@ Rows are in the planned order within each phase. "Waited on by" lists the agents
 | `cp/f6-065-mod-models` | 065 | A2 | — (none) | done | 528d048 | 2026-10-17 |
 | `cp/f6-063-aeroplane` | 063 | A2 | — (none) | done | 2b612c8 | 2026-10-17 |
 | `cp/f6-072-script-panel` | 072 | A2 | — (none) | done (owner waived the human pass) | a60f000 | 2026-10-18 |
-| `cp/f6-129-discovery` | 129 | A3 | — (none) | pending | | |
+| `cp/f6-129-discovery` | 129 | A3 | — (none) | done | bd246857 | 2026-10-17 |
 | `cp/f6-128-bases` | 128 | A1 | — (none) | done | 5cbba2a | 2026-10-17 |
 | `cp/f6-073-phone` | 073 | A2 | — (none) | done (owner waived; nothing built) | 4730c93 | 2026-10-18 |
 | `cp/f6-done` | phase gate F6: all F6 plans merged, phase review (ADR 0108) | A1 | all | pending | | |
