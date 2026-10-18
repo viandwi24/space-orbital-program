@@ -1,12 +1,12 @@
 ---
 id: 108
 title: "Astronaut Complex and the crew panel"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [106, 088, 091, 094]
 phase: 6
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 108 — Astronaut Complex and the crew panel
@@ -48,19 +48,24 @@ Stats shown are the model's real values; unknowns are `[—]`.
 
 ## Acceptance criteria
 
-- [ ] vitest: the roster filters by profession; recruiting adds a member and books the cost.
-- [ ] vitest: the crew panel lists the focused vessel's crew with IVA chips.
-- [ ] `bun run e2e` (Chromium): assign two crew at Launch and see them in flight.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] vitest: the roster filters by profession; recruiting adds a member and books the cost (sim with the economy on).
+- [x] vitest: the crew panel lists the focused vessel's crew with IVA chips.
+- [x] `bun run e2e` (Chromium): assign two crew at Launch and see them in flight.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/108-astronaut-complex-and-crew-panel.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/108-astronaut-complex-and-crew-panel.md` written.
 
-- [ ] New ADRs for decisions made here; `docs/research/` for anything looked up.
+- [x] ADR 0152.
 
 ## Log
 
 - 2026-10-17 — Created as draft from the owner's Fondasi Orbital decisions (ADR 0100, 0107).
 - 2026-10-17 — `depends` gains 094 (three-agent roadmap review, `docs/roadmap/team-development-roadmap.md` "Notes for the Lead"): the Launch screen seats of plan 094 become active here.
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
+- 2026-10-18 — Refined with ADR 0152: a launch with a save resumes the world's newest save (crew, ledger, missions carry on); Applicants are the professions; Dismiss waits for the sim.
+- 2026-10-18 — Contract request: `crew-dismiss { member }` (sim protocol, base plan 106) to let a member go; plan 108 shows no Dismiss until it lands.
+- 2026-10-18 — Done on the branch: `/astronauts`, launch into the world's newest save with crew, seats at Launch, crew panel chips, the Space Center link. Dismiss waits for the contract request. Journal: [108](../journal/108-astronaut-complex-and-crew-panel.md).
+- 2026-10-18 — Merged by Agent 1: rebased on main after 100 (conflicts in the ADR index, the flight loop and the flight page; the flight page passes the scenario start and the launch into the world together, a fix commit on the merge branch); bun test 1577 pass, web vitest 984 pass, typecheck, build, docs:check, smoke e2e 7 passed; astronauts, launch, space-center and worlds e2e pass (Chromium). Contract request crew-dismiss recorded for the Lead (base plan 106).

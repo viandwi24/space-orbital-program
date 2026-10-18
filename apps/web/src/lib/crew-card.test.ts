@@ -52,7 +52,7 @@ describe('crew card', () => {
 		const html = render(CrewPanel, { props: { card: crewCard(snap, vessel, DAY) } }).body;
 		expect(html).toContain('Ada Vega');
 		expect(html).toContain('Out of supplies: 17:50:00 to live');
-		expect(render(CrewPanel, { props: {} }).body).toContain('Crew comes with plan 108.');
+		expect(render(CrewPanel, { props: {} }).body).toContain('No crew aboard.');
 	});
 
 	it('offers EVA per member, and while outside the walk, flag and board buttons (plan 109)', () => {
@@ -68,5 +68,14 @@ describe('crew card', () => {
 		}
 		// one member outside at a time: no EVA buttons on the rows meanwhile
 		expect(outside).not.toContain('data-testid="crew-eva-');
+	});
+
+	it('plan 108: lists the focused vessel crew, each with an IVA chip and the no-radio bars', () => {
+		const card = crewCard(snap, vessel, DAY)!;
+		const html = render(CrewPanel, { props: { card } }).body;
+		expect(html.match(/data-testid="crew-row"/g)).toHaveLength(card.rows.length);
+		expect(html.match(/data-testid="crew-suit"[^>]*>IVA</g)).toHaveLength(card.rows.length);
+		expect(html).toContain('no radio');
+		expect(html).toContain('Ada Vega');
 	});
 });

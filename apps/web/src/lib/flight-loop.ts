@@ -13,6 +13,7 @@ import {
 	type SasMode,
 	type Snapshot,
 	type VesselDesign,
+	type SimSave,
 	type VesselPlacement,
 	type WorldInfo
 } from '@orbital/core';
@@ -118,6 +119,13 @@ export interface FlightOptions {
 	placement?: VesselPlacement;
 	/** A scenario's other vessels and its missions, for a world's first flight (plan 100, ADR 0151). */
 	scenario?: { others: { design: VesselDesign; placement: VesselPlacement }[]; missions: string[] };
+	/**
+	 * Launch into the world (plan 108, ADR 0152): its newest save, resumed, and the new vessel added to
+	 * it; the roster, ledger and missions carry on.
+	 */
+	into?: SimSave;
+	/** Crew seated in the new vessel at launch (design part indices). */
+	crew?: { member: string; part: number }[];
 	/** Script status and print output, at HUD rate and only when something changed. */
 	onScript?(view: ScriptView): void;
 	/** Progress of the renderer's background shader compile (plan 038, ADR 0074), until it is done. */
@@ -196,7 +204,13 @@ const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
 	const client: SimClient = startSimWorker(
-		options.resume ? { resume: options.resume.sim } : options.world ? { world: options.world } : {}
+		options.resume
+			? { resume: options.resume.sim }
+			: options.into
+				? { resume: options.into }
+				: options.world
+					? { world: options.world }
+					: {}
 	);
 	let renderer: Renderer | null = null;
 	let governor: QualityGovernor | null = null;
@@ -840,7 +854,8 @@ export function startFlight(options: FlightOptions): Flight {
 				const result = await client.dispatch({
 					type: 'load-vessel',
 					design,
-					...(options.placement ? { placement: options.placement } : {})
+					...(options.placement ? { placement: options.placement } : {}),
+					...(options.crew?.length ? { crew: options.crew } : {})
 				});
 				if (!result.ok || result.vessel === undefined) {
 					hud.status = 'error';

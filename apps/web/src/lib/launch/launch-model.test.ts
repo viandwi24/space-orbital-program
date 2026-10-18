@@ -7,7 +7,9 @@ import {
 	facilitiesOf,
 	placementOf,
 	saveLaunchChoice,
-	takeLaunchChoice
+	seatsOf,
+	takeLaunchChoice,
+	toggleSeat
 } from './launch-model';
 
 const { registries } = loadPlugins([Stock]);
@@ -86,5 +88,40 @@ describe('the launch choice', () => {
 		);
 		expect(takeLaunchChoice(storage)?.facility).toBe('legacy-pad');
 		expect(takeLaunchChoice(storage)).toBeNull();
+	});
+});
+
+describe('seats (plan 108)', () => {
+	const parts = {
+		get: (id: string) =>
+			id === 'pod'
+				? { title: 'Pod', crewCapacity: 2 }
+				: id === 'can'
+					? { title: 'Can', crewCapacity: 1 }
+					: { title: 'Tank' }
+	};
+	const design = {
+		parts: [
+			{ index: 0, part: 'pod' },
+			{ index: 1, part: 'tank' },
+			{ index: 2, part: 'can' }
+		]
+	};
+	it('lists the parts with seats and fills them in design order; a second click takes a member out', () => {
+		const seats = seatsOf(design, parts);
+		expect(seats).toEqual([
+			{ part: 0, title: 'Pod', capacity: 2 },
+			{ part: 2, title: 'Can', capacity: 1 }
+		]);
+		let s = toggleSeat([], seats, 'c1');
+		s = toggleSeat(s, seats, 'c2');
+		s = toggleSeat(s, seats, 'c3');
+		expect(s).toEqual([
+			{ member: 'c1', part: 0 },
+			{ member: 'c2', part: 0 },
+			{ member: 'c3', part: 2 }
+		]);
+		expect(toggleSeat(s, seats, 'c4')).toEqual(s);
+		expect(toggleSeat(s, seats, 'c2').map((x) => x.member)).toEqual(['c1', 'c3']);
 	});
 });

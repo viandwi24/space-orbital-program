@@ -70,7 +70,7 @@
 	import PrecompileBadge from '../../lib/ui/PrecompileBadge.svelte';
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
 	import { loadContent, partLookup } from '../../lib/catalog';
-	import type { VesselDesign, VesselPlacement } from '@orbital/core';
+	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
 	import { parseDesign } from '../../lib/design';
 	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
 	import type { FrameData } from '../../lib/hud-controller';
@@ -291,8 +291,25 @@
 			const world = resume ? undefined : await saves.worldStartInfo(activeWorldId());
 			// the Launch screen's facility, once (plan 094, ADR 0150 point 4)
 			const launch = resume ? null : takeLaunchChoice();
+			// a launch into a world with a save flies in that save (plan 108, ADR 0152 point 1)
+			let into: SimSave | undefined;
+			if (launch) {
+				await saves.refresh();
+				const newest = saves.entries.find((e) => e.ok);
+				if (newest?.ok) into = (await saves.read(newest.meta.id)).sim;
+			}
 			if (gone) return;
-			stop = begin(catalog, content, design, resume, world, launch?.placement, start);
+			stop = begin(
+				catalog,
+				content,
+				design,
+				resume,
+				world,
+				launch?.placement,
+				start,
+				into,
+				launch?.crew
+			);
 		})();
 		return () => {
 			gone = true;
@@ -310,7 +327,9 @@
 		resume: GameSave | undefined,
 		world: WorldInfo | undefined,
 		placement?: VesselPlacement,
-		start: ScenarioStart | null = null
+		start: ScenarioStart | null = null,
+		into?: SimSave,
+		crew?: { member: string; part: number }[]
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
@@ -357,6 +376,8 @@
 				: placement
 					? { placement }
 					: {}),
+			...(into ? { into } : {}),
+			...(crew?.length ? { crew } : {}),
 			content,
 			profile: profileStore(),
 			onHud: (h) => {
