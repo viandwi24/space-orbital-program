@@ -242,6 +242,8 @@
 						bell.push({ source: 'sim', text: 'A maneuver node was burned' });
 					else if (e.type === 'warp-stopped')
 						bell.push({ source: 'clock', text: `Warp stopped: ${e.reason}` });
+					else if (e.type === 'power-depleted')
+						bell.push({ source: 'sim', text: 'Out of power: a probe is uncontrolled' });
 					else if (e.type === 'building-ready')
 						bell.push({
 							source: 'construction',

@@ -82,6 +82,11 @@ test('a probe charges by day, not at night, and at zero charge it is uncontrolle
 	await debugSetResource(page, { resource: EC, amount: 0 });
 	await expect(page.getByTestId('hud-uncontrolled')).toContainText('Uncontrolled');
 	await expect(page.getByTestId('hud-uncontrolled')).toContainText('no power');
-	await expect(page.getByText('Out of power')).toBeVisible();
+	await expect(page.getByText('Out of power').first()).toBeVisible();
+	// and the bell of the world layout keeps it (plan 205)
+	await page.getByTestId('status-bell').click();
+	await expect(page.getByTestId('bell-feed')).toContainText(
+		'Out of power: a probe is uncontrolled'
+	);
 	expect(errors).toEqual([]);
 });
