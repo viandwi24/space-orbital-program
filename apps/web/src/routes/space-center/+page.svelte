@@ -58,15 +58,17 @@
 				focus: base.focus,
 				design: base.design,
 				thumbnail: null,
-				bodyRadius: homeBodyOf(registries.bodies.list())?.radius ?? 600_000
+				bodyRadius: homeBodyOf(registries.bodies.list(), world)?.radius ?? 600_000
 			};
 		}
 	});
-	const { registries } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
-		system: STOCK_CHOICE
-	});
-	const buildingRegistry = registries.buildings;
-	const homeId = homeBodyOf(registries.bodies.list())?.id;
+	/** The world's own system once it is known (a Sol world's site is on `sol.earth`, plan 124). */
+	const registriesOf = (info?: WorldInfo) =>
+		loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
+			system: info ? { id: info.systemId, variant: info.variant } : STOCK_CHOICE
+		}).registries;
+	let registries = $state.raw(registriesOf());
+	const buildingRegistry = $derived(registries.buildings);
 	/** The site shown in the overlay (plan 128): the primary site, or a base on another body. */
 	let siteId = $state<string | null>(null);
 
@@ -74,7 +76,8 @@
 	let center: SpaceCenter | null = null;
 	let worldId = activeWorldId();
 	let worldName = $state('Space Center');
-	let world: WorldInfo | undefined;
+	let world = $state.raw<WorldInfo | undefined>(undefined);
+	const homeId = $derived(homeBodyOf(registries.bodies.list(), world)?.id);
 	let site = $state.raw<SiteState | undefined>(undefined);
 	let selected = $state<string | null>(null);
 	let labels = $state.raw<Record<string, { x: number; y: number } | null>>({});
@@ -86,7 +89,7 @@
 	let funds = $state<number | undefined>(undefined);
 	let economy = $state.raw<Snapshot['economy']>(undefined);
 	/** Building kinds that run a recipe (plan 097). */
-	const producers = new Set(registries.recipes.list().map((r) => r.building));
+	const producers = $derived(new Set(registries.recipes.list().map((r) => r.building)));
 	/** Construction finished while the page is open (plan 096, ADR 0123 point 6). */
 	let finished = $state.raw<string[]>([]);
 	const rows = $derived(buildingRows(site, buildingRegistry, today));
@@ -259,6 +262,7 @@
 				}
 			}
 			if (gone) return;
+			if (world) registries = registriesOf(world);
 			center = startSpaceCenter({
 				canvas,
 				...(world ? { world } : {}),

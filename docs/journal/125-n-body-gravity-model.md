@@ -31,7 +31,7 @@
 - **The warp budget had to leave the wall clock.** A time-based budget would make the reached warp, and so the flight, depend on the machine, and a replay would no longer verify (plan 131). It counts evaluations.
 - **No save format bump.** The numeric rails state is a new variant of an existing field; old saves read as before. Format 9, reserved at claim, was released.
 - **`testpo.440` moved:** the `test-data/440/` path some readers use answers 404; the file is under `ascii/de440/`.
-- **A Sol world's Launch screen did nothing:** it loaded the stock system's bodies, so `sol.earth` was unknown and Launch returned quietly. It now loads the world's system. The Space Center of a Sol world still lists no buildings (STATUS).
+- **A Sol world's Launch screen did nothing:** it loaded the stock system's bodies, so `sol.earth` was unknown and Launch returned quietly. It now loads the world's system. The Space Center of a Sol world listed no buildings: its world info was not reactive, so the page kept the Legacy site (id `legacy`) and matched no snapshot site; it now follows the loaded world and loads the world's system (fixed after 125).
 
 ## How to test manually
 

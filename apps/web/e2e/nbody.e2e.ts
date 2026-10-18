@@ -43,8 +43,11 @@ test('an n-body world of the 1:1 Sol system fetches DE440 once and flies on it',
 	await form.getByTestId('world-create').click();
 	await page.getByTestId('world-enter').click();
 	await page.waitForURL('**/space-center');
-	// the Hangar directly: the Sol site's buildings are not listed in the Space Center (journal 125)
-	await page.goto('/vab');
+	// the Sol site's buildings are listed and labelled like the Legacy layout (journal 125)
+	await expect(page.getByTestId('sc-list')).toContainText('Hangar', { timeout: 60_000 });
+	await page.getByTestId('sc-label-stock.hangar').click({ timeout: 60_000 });
+	await page.getByTestId('sc-open').click();
+	await page.waitForURL('**/vab');
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 	await page.getByRole('button', { name: /^Launch/ }).click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });

@@ -75,7 +75,7 @@
 				focus: loaded.focus,
 				design: loaded.design,
 				thumbnail: null,
-				bodyRadius: homeBodyOf(bodies)?.radius ?? 0
+				bodyRadius: homeBodyOf(bodies, loaded.sim.worldInfo)?.radius ?? 0
 			};
 		}
 	});
