@@ -547,6 +547,34 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 150,
+    "id": "stock.solar-panel-fixed",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "deployable": false,
+          "rate": 0.35,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3000,
+    "id": "stock.solar-array-large",
+    "mass": 300,
+    "modules": [
+      [
+        "stock.solar-panel",
+        {
+          "mode": "track",
+          "rate": 8.25,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 50,
     "id": "stock.battery-small",
     "mass": 5,

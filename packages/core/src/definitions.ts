@@ -177,6 +177,14 @@ export interface VesselApi {
 	readonly control: VesselControl;
 	readonly ambient: Ambient;
 	/**
+	 * Mean sunlight on this part over the last `dt` seconds (plan 208, ADR 0213): the average of
+	 * `factor(direction) × flux`, where `direction` is the unit vector to the star in the part frame
+	 * (null in a system without a star) and `flux` the star's flux over its flux at the home planet's
+	 * distance, 0 in a body's shadow. One sample now in flight; samples along the path on rails, so
+	 * a `background` hook can integrate a whole interval.
+	 */
+	sunExposure(dt: number, factor: (direction: Vec3 | null) => number): number;
+	/**
 	 * Force in N, in the part's local frame, at `point` (a local-frame position in metres; the part
 	 * origin when omitted). Acts for the current step only, so call it every step. Flight mode only:
 	 * throws on rails.

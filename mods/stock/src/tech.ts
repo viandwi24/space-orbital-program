@@ -77,6 +77,7 @@ export const STOCK_TECH = [
 			'stock.probe-core',
 			'stock.whip-antenna',
 			'stock.solar-panel',
+			'stock.solar-panel-fixed',
 			'stock.battery-small',
 			'stock.battery-medium'
 		]
@@ -109,7 +110,12 @@ export const STOCK_TECH = [
 		requires: ['stock.probes'],
 		milestone: 'flyby:stock.cinder',
 		description: 'A dish for long links and an air sampler.',
-		unlocks: ['stock.dish-antenna', 'stock.atmosphere-sampler', 'stock.battery-large']
+		unlocks: [
+			'stock.dish-antenna',
+			'stock.atmosphere-sampler',
+			'stock.battery-large',
+			'stock.solar-array-large'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.life-support',

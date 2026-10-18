@@ -24,6 +24,7 @@ import { dataUse, storeData } from './data.ts';
 import { creditScience, makeResult, vesselSituation } from './science.ts';
 import { signalOf } from './comms.ts';
 import { isFailed } from './reliability.ts';
+import { sunExposure } from './sunlight.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -83,6 +84,7 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			const { def } = bodyOfFrame(core, frame);
 			return ambientAt(def, length(r) - def.radius);
 		},
+		sunExposure: (dt, factor) => sunExposure(core, partId, dt, factor),
 		applyForce(force, point) {
 			finiteVec(force, 'force');
 			const { backend, transform, handle } = pose();
