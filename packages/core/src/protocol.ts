@@ -2,6 +2,7 @@
  * Sim <-> host protocol (simulation.md). Plain data only, so it works in-process and over
  * `postMessage`. Hosts read `Snapshot`s and send `Command`s; they never mutate sim state.
  */
+import type { LinkBudget } from './comms.ts';
 import type { MilestoneRecord } from './milestones.ts';
 import type { RangeSnapshot } from './range-safety.ts';
 import type { ReliabilitySnapshot } from './reliability.ts';
@@ -273,7 +274,16 @@ export interface Snapshot {
 			reason: string | null;
 			control: 'full' | 'partial' | 'none';
 			blackout: number;
+			/** Downlink rate, bit/s (plan 116, ADR 0185): 0 below the ladder; null without a budget. */
+			rate: number | null;
+			/** Margin at the ladder's first step, dB; null without a budget. */
+			margin: number | null;
 		}>;
+		/**
+		 * The full budget of the vessel picked by `comms-inspect` (ADR 0185 point 9); `budget` is null
+		 * without a link, or when no antenna pair has a known common band.
+		 */
+		inspector?: { vessel: EntityId; to: string | null; budget: LinkBudget | null };
 	};
 	/** The world tick's day (the day last entered, ADR 0171), for construction ready days (plan 096). */
 	day?: number;
@@ -501,6 +511,8 @@ export type Command =
 	| { type: 'plant-flag'; vessel: EntityId }
 	/** Transmit a science data item (plan 103, ADR 0178 point 7): value × its factor, then it is gone. */
 	| { type: 'transmit-data'; vessel: EntityId; item: string }
+	/** Carry this vessel's full link budget in `Snapshot.network.inspector` (null: none; ADR 0185). */
+	| { type: 'comms-inspect'; vessel: EntityId | null }
 	/** Part reliability (plan 130, ADR 0156): the grade the world buys a part model at. */
 	| { type: 'set-grade'; part: string; grade: 'economy' | 'standard' | 'proven' }
 	/** One trial of every failure mode of a part model on the world's test stand. */

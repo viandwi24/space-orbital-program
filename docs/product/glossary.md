@@ -104,6 +104,7 @@ Use these terms consistently in code, docs, and UI.
 | **Crew member** | A person of a world's roster with a profession, traits, XP and state; the crew simulation's aspects (life support, morale, rest, g-load, death) are world rules (ADR 0100). |
 | **EVA** | A crew member outside a vessel, simulated as a small vessel of their own. |
 | **Antenna / ground station / link** | Comms building blocks: antenna modules on vessels, stations at sites, links between them with line of sight, rate and latency (ADR 0101). |
+| **Band / link budget / margin** | Comms tier 2 (ADR 0185): a band is a radio frequency with its receivers' noise temperature; the link budget adds up a link's power, gains and free-space loss (Friis); the margin is how far it clears 1 kbit/s, in dB, and every 10 dB of it is one decade of data rate. |
 | **Control state** | `full`, `partial` or `none`: what a vessel without a link may still do, per the `controlWithoutSignal` rule. |
 | **Signal delay** | Light time plus queueing on a route; by default shown, not enforced (`display`); `enforced` and `flight-computer` are rules. |
 | **Part action** | An action a module describes (toggle, value, trigger, mode) that the vessel panel turns into a control (ADR 0102). |

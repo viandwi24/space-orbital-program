@@ -41,7 +41,7 @@ import { ruleValueProblem, type PresetDefinition, type RuleDefinition } from './
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
-import type { AntennaDefinition, GroundStationDefinition } from './comms.ts';
+import type { AntennaDefinition, BandDefinition, GroundStationDefinition } from './comms.ts';
 import { STOCK_SYSTEM, type SystemChoice, type SystemVariantDefinition } from './systems.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ChargeDefinition } from './economy.ts';
@@ -117,6 +117,8 @@ export interface BasePluginContext {
 	/** Comms (plan 114, ADR 0179). */
 	readonly antennas: Registrar<AntennaDefinition>;
 	readonly groundStations: Registrar<GroundStationDefinition>;
+	/** Radio bands (plan 116, ADR 0185). */
+	readonly bands: Registrar<BandDefinition>;
 	/** Systems and scale variants (plan 124, ADR 0184). */
 	readonly systemVariants: Registrar<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */
@@ -179,6 +181,7 @@ export const REGISTRY_KINDS = [
 	'experiment',
 	'antenna',
 	'ground-station',
+	'band',
 	'system-variant',
 	'dossier-entry',
 	'category',
@@ -250,6 +253,7 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
 	'experiments',
 	'antennas',
 	'groundStations',
+	'bands',
 	'systemVariants',
 	'dossierEntries',
 	'categories',
@@ -445,6 +449,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 			experiments: registrar(registries.experiments),
 			antennas: registrar(registries.antennas),
 			groundStations: registrar(registries.groundStations),
+			bands: registrar(registries.bands),
 			systemVariants: registrar(registries.systemVariants),
 			dossierEntries: registrar(registries.dossierEntries),
 			categories: registrar(registries.categories),
@@ -622,6 +627,7 @@ export function loadPlugins(plugins: readonly Plugin[], options: LoadOptions = {
 				experiment: section(registries.experiments),
 				antenna: section(registries.antennas),
 				'ground-station': section(registries.groundStations),
+				band: section(registries.bands),
 				'system-variant': section(registries.systemVariants),
 				'dossier-entry': section(registries.dossierEntries),
 				category: section(registries.categories),

@@ -24,7 +24,12 @@ import type { PresetDefinition, RuleDefinition, RuleValue } from './rules.ts';
 import type { BuildingDefinition } from './buildings.ts';
 import type { SiteTemplateDefinition } from './site-templates.ts';
 import type { ExperimentDefinition, SituationDefinition } from './science.ts';
-import type { AntennaDefinition, GroundStationDefinition, SignalState } from './comms.ts';
+import type {
+	AntennaDefinition,
+	BandDefinition,
+	GroundStationDefinition,
+	SignalState
+} from './comms.ts';
 import type { DossierEntryDefinition } from './dossier.ts';
 import type { ScrubberInfo } from './life-support.ts';
 import type { SystemVariantDefinition } from './systems.ts';
@@ -100,6 +105,8 @@ export interface ReadonlyRegistries {
 	/** Comms (plan 114, ADR 0179). */
 	antennas: ReadonlyRegistry<AntennaDefinition>;
 	groundStations: ReadonlyRegistry<GroundStationDefinition>;
+	/** Radio bands (plan 116, ADR 0185). */
+	bands: ReadonlyRegistry<BandDefinition>;
 	/** Systems and scale variants (plan 124, ADR 0184). */
 	systemVariants: ReadonlyRegistry<SystemVariantDefinition>;
 	/** Body dossier entries (plan 104, ADR 0180). */

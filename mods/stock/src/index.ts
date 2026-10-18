@@ -71,7 +71,7 @@ import {
 	STOCK_EXPERIMENTS,
 	STOCK_SITUATIONS
 } from './science.ts';
-import { ModuleAntenna, STOCK_ANTENNAS } from './comms.ts';
+import { ModuleAntenna, STOCK_ANTENNAS, STOCK_BANDS } from './comms.ts';
 
 /** Pure helpers other plugins and the sim can use through `ctx.stock` (a `depends: [Stock]` plugin). */
 export const stockApi = { engineOutput, ispAt, propellantRates, withdraw, deposit };
@@ -117,6 +117,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleExperiment);
 		for (const entry of STOCK_DOSSIER_ENTRIES) ctx.dossierEntries.register(entry);
 		for (const antenna of STOCK_ANTENNAS) ctx.antennas.register(antenna);
+		for (const band of STOCK_BANDS) ctx.bands.register(band);
 		ctx.modules.register(ModuleAntenna);
 
 		ctx.parts.register(PartCommandPod);
