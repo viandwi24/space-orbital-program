@@ -114,7 +114,8 @@ export const STOCK_TECH = [
 			'stock.dish-antenna',
 			'stock.atmosphere-sampler',
 			'stock.battery-large',
-			'stock.solar-array-large'
+			'stock.solar-array-large',
+			'stock.rtg'
 		]
 	}),
 	defineTechNode({

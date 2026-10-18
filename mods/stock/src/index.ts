@@ -79,7 +79,7 @@ import { STOCK_FAILURE_MODES } from './reliability.ts';
 import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { PanelScience } from './panels.ts';
-import { ModuleSolarPanel } from './solar.ts';
+import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
 import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
@@ -124,6 +124,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleWing);
 		ctx.modules.register(ModuleScrubber);
 		ctx.modules.register(ModuleSolarPanel);
+		ctx.modules.register(ModuleRtg);
 		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);

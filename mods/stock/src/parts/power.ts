@@ -2,7 +2,7 @@ import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleResourceContainer } from '../modules.ts';
 import { ElectricCharge } from '../resources.ts';
-import { ModuleSolarPanel } from '../solar.ts';
+import { ModuleRtg, ModuleSolarPanel } from '../solar.ts';
 import { cylinder, stackNodes } from './shared.ts';
 
 /**
@@ -65,6 +65,24 @@ export const PartSolarArrayLarge = definePart({
 	modules: [[ModuleSolarPanel, { rate: 8.25, mode: 'track' }]]
 });
 
+/** A radioisotope generator (plan 208): 0.75 EC/s, day and night. */
+export const PartRtg = definePart({
+	id: 'stock.rtg',
+	title: 'Radioisotope Generator',
+	mass: kg(80),
+	cost: partCost(80, 'engine'),
+	impactTolerance: 8,
+	maxTemperature: 1200,
+	shape: cylinder(0.5),
+	visual: {
+		kind: 'tank',
+		palette: { primary: '#3b4047', secondary: '#e3a61f', accent: '#d9552b' },
+		params: { stripe: 0.4, bands: 2 }
+	},
+	attach: stackNodes(0.5),
+	modules: [[ModuleRtg, {}]]
+});
+
 /**
  * A battery: a store of electric charge at 5 kg per 100 EC (plan 208, ADR 0203 point 3, the KSP
  * reference). The three sizes differ in capacity and joint size.
@@ -96,6 +114,7 @@ export const STOCK_POWER_PARTS = [
 	PartSolarPanel,
 	PartSolarPanelFixed,
 	PartSolarArrayLarge,
+	PartRtg,
 	PartBatterySmall,
 	PartBatteryMedium,
 	PartBatteryLarge

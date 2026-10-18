@@ -575,6 +575,17 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 480,
+    "id": "stock.rtg",
+    "mass": 80,
+    "modules": [
+      [
+        "stock.rtg",
+        {},
+      ],
+    ],
+  },
+  {
     "cost": 50,
     "id": "stock.battery-small",
     "mass": 5,

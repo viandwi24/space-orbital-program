@@ -92,3 +92,27 @@ export const ModuleSolarPanel = defineModule({
 	},
 	snapshot: (state) => ({ deployed: state.deployed })
 });
+
+export const rtgConfigSchema = z.object({
+	/** Electric charge per second, always (ADR 0203 point 3: 0.75, the KSP reference). */
+	rate: z.number().positive().default(0.75)
+});
+
+/** A radioisotope generator (plan 208): a constant charge, in flight and on rails, needing no sun. */
+function rtgCharge(
+	ctx: {
+		config: z.output<typeof rtgConfigSchema>;
+		vessel: { resources: { deposit(resource: string, amount: number): number } };
+	},
+	dt: number
+): void {
+	if (dt > 0) ctx.vessel.resources.deposit(ElectricCharge.id, ctx.config.rate * dt);
+}
+
+export const ModuleRtg = defineModule({
+	id: 'stock.rtg',
+	config: rtgConfigSchema,
+	describe: () => ({ category: 'other' }),
+	update: rtgCharge,
+	background: rtgCharge
+});
