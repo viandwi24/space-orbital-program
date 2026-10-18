@@ -32,7 +32,7 @@
 | 118 comms-tools | todo |  |  |  |
 | 066 devices | done | `devb/066-devices` | 2026-10-17 | merged 74f8ad1, cp/f6-066-devices |
 | 131 replays | done | `devb/131-replays` | 2026-10-17 | merged bf2d509, cp/f6-131-replays |
-| 065 mod-models | handed-over | `devb/065-mod-models` | 2026-10-18 | ready/065; ADR 0160; API 0.1.62 |
+| 065 mod-models | done | `devb/065-mod-models` | 2026-10-17 | merged 528d048, cp/f6-065-mod-models |
 | 063 aeroplane | in-progress | `devb/063-aeroplane` | 2026-10-18 | claim/063 |
 | 072 script-panel | todo |  |  |  |
 | 073 phone | todo |  |  |  |

@@ -1,7 +1,7 @@
 ---
 id: 065
 title: "Richer mod models: deploy animations, KTX2, per-model LOD"
-status: in-progress
+status: done
 owner: "Agent 2"
 depends: [051, 079, 090, 110, 091]
 phase: 3
