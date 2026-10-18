@@ -195,7 +195,7 @@ export function acceptContract(core: SimCore, offerId: string): CommandResult {
 	}
 	s.offers = s.offers.filter((o) => o !== offer);
 	s.accepted.push(offer);
-	const started = startObjective(core, { kind: 'contract', id: offer.id }, undefined);
+	const started = startObjective(core, { kind: 'contract', id: offer.id }, undefined, true);
 	if (!started.ok) {
 		s.accepted = s.accepted.filter((a) => a !== offer);
 		s.offers.push(offer);
