@@ -8,7 +8,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core`, `packages/physics` | `ShapePlacement.friction` (Rapier: the minimum combine rule), `ModuleCollider.wheel` / `WheelSpec`, `VesselDesign.aircraft`, the `trim` command, SAS mode `level`; API_VERSION 0.1.65 |
+| `packages/core`, `packages/physics` | `ShapePlacement.friction` (Rapier: the minimum combine rule), `ModuleCollider.wheel` / `WheelSpec`, `VesselDesign.aircraft`, the `trim` command, SAS mode `level`; API_VERSION 0.1.66 |
 | `packages/sim` | tyre forces from the ground contacts (`stepWheels`), the level start for aircraft, trim in `effectiveControl`, `level` in `stepSas` |
 | `mods/stock` | `ModuleWheel`, `stock.wheel` and `stock.wheel-steer` (Aerodynamics node), flaps on the wing, the `stock.brakes` and `stock.flaps` groups |
 | `packages/renderer` | a `gear` generator (strut and tyre) |
