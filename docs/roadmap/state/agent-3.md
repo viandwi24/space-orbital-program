@@ -2,8 +2,8 @@
 
 > **Only Agent 3 edits this file** (ADR 0112); Agent 1 also sets `done` at merge and may reassign rows. Update it at claim, at each pushed step that changes what you do or wait for, at handover, on a bounce and after the merge. Commit this file alone on `main` (`docs(roadmap): agent 3 state`), `git pull --rebase`, push. Status: `todo` · `in-progress` · `handed-over` · `bounced` · `done`. The tags stay the truth (roadmap §3.2).
 
-**Now:** 121 handed over as ready/121; the lane's plans are all merged or handed over.
-**Waiting for:** the merge of 121 (last plan in the lane).
+**Now:** every plan in the Agent 3 lane is merged (121 last, cp/f4-121-comms-6).
+**Waiting for:** nothing: the lane is complete.
 **Updated:** 2026-10-17
 
 | Plan | Status | Branch | Updated | Note |
@@ -31,5 +31,5 @@
 | 126 agencies | done | `devc/126-agencies` | 2026-10-17 | merged 5b7c42b3, cp/f6-126-agencies |
 | 120 comms-5 | done | `devc/120-comms-channels` | 2026-10-18 | merged 7ff2a0fd, cp/f4-120-comms-5 |
 | 124 sol | done | `devc/124-sol` | 2026-10-18 | merged 8d8d694, cp/f5-124-sol |
-| 121 comms-6 | done | `devc/121-comms-suit` | 2026-10-17 | merged df5da7ad, cp/f4-121-comms-6 |
+| 121 comms-6 | done | `devc/121-comms-suit` | 2026-10-18 | merged df5da7ad, cp/f4-121-comms-6 |
 | 129 discovery | done | `devc/129-discovery` | 2026-10-18 | merged bd246857, cp/f6-129-discovery |
