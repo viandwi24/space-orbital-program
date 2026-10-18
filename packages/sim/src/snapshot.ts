@@ -34,6 +34,7 @@ import { objectivesSnapshot } from './objectives.ts';
 import { agenciesSnapshot } from './agencies.ts';
 import { contractsSnapshot } from './contracts.ts';
 import { strategiesSnapshot } from './strategies.ts';
+import { discoverySnapshot } from './discovery.ts';
 import { nodeSnapshots } from './maneuver.ts';
 import { partPose, partVelocity } from './frames.ts';
 import { bodyOfVessel, rotationAt, spinAt, systemPosition } from './bodies.ts';
@@ -171,6 +172,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const agencies = agenciesSnapshot(core);
 	const contracts = contractsSnapshot(core);
 	const strategies = strategiesSnapshot(core);
+	const discovery = discoverySnapshot(core);
 	const roster = rosterSnapshot(core);
 	const science = scienceSnapshot(core);
 	const network = networkSnapshot(core);
@@ -194,6 +196,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		...(agencies ? { agencies } : {}),
 		...(contracts ? { contracts } : {}),
 		...(strategies ? { strategies } : {}),
+		...(discovery ? { discovery } : {}),
 		...(science ? { science } : {}),
 		...(network ? { network } : {}),
 		...(milestones ? { milestones } : {}),

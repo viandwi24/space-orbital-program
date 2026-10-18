@@ -3,7 +3,7 @@
  * Stable surface — changes follow docs/conventions/versioning.md.
  *
  * Plugin authors: definePlugin / defineModule / definePart / defineResource / defineBody /
- * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineAgency / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
+ * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineStrategy / defineAgency / defineDiscoveryFact / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * defineSystem / definePatch / defineRule / definePreset / defineDataKind / defineActionGroup / defineObjective / defineContract / defineContractTemplate / defineMission / defineCrewTrait / defineCrewNames / defineSiteTemplate / defineExperiment / defineSituation / defineAntenna / defineBand / defineRoutePolicy / defineGroundStation / defineCategory / defineDossierEntry / defineSystemVariant (`./define.ts`), plus `z` for module config schemas. Hosts and tests boot plugins
  * with `loadPlugins`. Everything else re-exported here is a type or helper a mod may need.
  */
@@ -90,6 +90,8 @@ export {
 	STRATEGY_KEYS,
 	strategyMultipliers,
 	strategyUpkeepCharge,
+	factValue,
+	reviewScore,
 	recoveryFactor
 } from '@orbital/core';
 // Calendars (plan 081, ADR 0141): a system pack's tests check the date its root body's calendar shows.
@@ -268,6 +270,10 @@ export type {
 	AgencyMission,
 	AgenciesSnapshot,
 	StrategyKey,
+	DiscoveryClaim,
+	DiscoveryDataset,
+	DiscoveryFactDefinition,
+	DiscoverySnapshot,
 	StrategiesSnapshot,
 	MissionDefinition,
 	ObjectiveDefinition,

@@ -30,6 +30,7 @@ import type {
 	ContractTemplateDefinition,
 	StrategyDefinition,
 	AgencyDefinition,
+	DiscoveryFactDefinition,
 	MissionDefinition,
 	ObjectiveDefinition,
 	DataKindDefinition,
@@ -218,6 +219,13 @@ export const defineStrategy = (def: StrategyDefinition): StrategyDefinition => d
  * it launches over the home world. Register with `ctx.agencies`.
  */
 export const defineAgency = (def: AgencyDefinition): AgencyDefinition => def;
+
+/**
+ * A discovery fact kind (plan 129, ADR 0192): the chance a body has it, its value range, unit,
+ * claim tolerance, raw resolution and the data experiments that measure it. Register with
+ * `ctx.discoveryFacts`.
+ */
+export const defineDiscoveryFact = (def: DiscoveryFactDefinition): DiscoveryFactDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // definePatch

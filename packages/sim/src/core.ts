@@ -26,6 +26,7 @@ import type {
 	SaveComms,
 	SaveContracts,
 	SaveCrew,
+	SaveDiscovery,
 	SaveStrategies
 } from '@orbital/core';
 import type { ScienceRuntime } from './science.ts';
@@ -91,6 +92,8 @@ export interface SimCore {
 	readonly contracts: SaveContracts;
 	/** Active strategies and cooldowns (plan 101, ADR 0187); saved once anything happened. */
 	strategies: SaveStrategies;
+	/** Discovery datasets, claims and the `discovery` stream (plan 129, ADR 0192); saved once touched. */
+	discovery: SaveDiscovery;
 	/** The crew roster (plan 106, ADR 0176); saved as `SimSave.crew` once anyone is hired. */
 	readonly crew: SaveCrew;
 	/** Science subjects and the situation cache (plan 103, ADR 0178); saved as `SimSave.science`. */

@@ -2,6 +2,7 @@
  * Science in the world (plan 103, ADR 0178): the situation cache, subjects, results and credit.
  * Subjects live beside the ECS world (ADR 0110) and save as `SimSave.science`.
  */
+import { intakeData, measure } from './discovery.ts';
 import { multiplierOf } from './strategies.ts';
 import {
 	bodyScience,
@@ -138,7 +139,7 @@ export function makeResult(
 	core: SimCore,
 	part: EntityId,
 	experiment: string
-): { subject: string; value: number } | undefined {
+): { subject: string; value: number; meta?: Record<string, number> } | undefined {
 	const def = core.registries.experiments.get(experiment);
 	if (!def) throw new Error(`science.result: unknown experiment "${experiment}"`);
 	const vesselId = partOf(core, part).vessel;
@@ -174,7 +175,9 @@ export function makeResult(
 		value,
 		kind: def.kind
 	});
-	return { subject: id, value };
+	// discovery (plan 129, ADR 0192 point 3): a data result also measures the body's facts
+	const meta = def.kind === 'data' ? measure(core, experiment, vessel.soi) : undefined;
+	return meta ? { subject: id, value, meta } : { subject: id, value };
 }
 
 /**
@@ -213,6 +216,7 @@ export function transmitData(core: SimCore, vesselId: EntityId, itemId: string):
 		const value = item.value * (typeof factor === 'number' ? factor : 1);
 		deleteData(core, vesselId, itemId);
 		creditScience(core, item.subject, value, 'transmitted');
+		intakeData(core, item);
 		return { ok: true };
 	}
 	return { ok: false, reason: `vessel ${vesselId} has no data item "${itemId}"` };
@@ -227,6 +231,7 @@ export function recoverScience(core: SimCore, vesselId: EntityId): void {
 		for (const item of storage.state.items) {
 			if (item.subject !== undefined && core.science.subjects.has(item.subject)) {
 				creditScience(core, item.subject, item.value, 'recovered');
+				intakeData(core, item);
 			}
 		}
 	}

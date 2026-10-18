@@ -103,6 +103,14 @@ export interface EventMap {
 		time: number;
 	};
 	'science:credited': { subject: string; value: number; how: 'transmitted' | 'recovered' };
+	/** Discovery (plan 129, ADR 0192 point 6): a claim was judged. */
+	'discovery:reviewed': {
+		claim: string;
+		body: string;
+		fact: string;
+		verdict: 'accepted' | 'rejected';
+		reputation: number;
+	};
 	/** Comms (plan 114, ADR 0179 point 4): `time` is when the link changed (bisected on rails). */
 	'comms:link-up': { vessel: EntityId; to: string; time: number };
 	/** A data item reached a station or a crewed vessel (plan 119, ADR 0189 point 5). */

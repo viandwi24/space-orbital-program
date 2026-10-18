@@ -32,6 +32,7 @@ import { saveScience } from './science.ts';
 import { agenciesTouched } from './agencies.ts';
 import { contractsTouched } from './contracts.ts';
 import { strategiesTouched } from './strategies.ts';
+import { discoveryTouched } from './discovery.ts';
 import { runAllBackground, saveTickState } from './tick.ts';
 import { PART, VESSEL } from './state.ts';
 
@@ -214,6 +215,7 @@ export function writeSave({ core, mods, seed }: WriteSaveInput): SimSave {
 		...(agenciesTouched(core) ? { agencies: cloneData(core.agencies) } : {}),
 		...(contractsTouched(core) ? { contracts: cloneData(core.contracts) } : {}),
 		...(strategiesTouched(core) ? { strategies: cloneData(core.strategies) } : {}),
+		...(discoveryTouched(core) ? { discovery: cloneData(core.discovery) } : {}),
 		...(core.crew.next > 1 ? { crew: cloneData(core.crew) } : {}),
 		...(science ? { science } : {}),
 		...(milestones ? { milestones } : {}),

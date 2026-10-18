@@ -21,6 +21,7 @@ import { makeContext } from './hooks.ts';
 import { economyTick } from './economy.ts';
 import { agenciesTick } from './agencies.ts';
 import { contractsTick } from './contracts.ts';
+import { discoveryTick } from './discovery.ts';
 import { crewTick } from './crew.ts';
 import { buildingsTick } from './buildings.ts';
 import { marketDay } from './market.ts';
@@ -134,6 +135,7 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
 		agenciesTick(core, day); // rival agencies (plan 126, ADR 0190)
 		contractsTick(core, day); // expiry and at most one new offer (plan 099, ADR 0186)
+		discoveryTick(core, time); // lab work and peer review (plan 129, ADR 0192)
 		crewTick(core); // returns and salaries (plan 106, ADR 0176)
 		membersTick(core); // outposts that drove off leave their site (plan 128, ADR 0125 point 4)
 		marketDay(core, day); // production, then the markets, after the day's charges (plan 097, ADR 0124)

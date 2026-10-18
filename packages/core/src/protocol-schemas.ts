@@ -233,6 +233,14 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('strategy-end'), strategy: z.string().min(1) }),
 	z.object({ type: z.literal('relay-rent'), vessel: entity }),
 	z.object({ type: z.literal('relay-end-rent'), vessel: entity }),
+	z.object({ type: z.literal('discovery-process'), dataset: z.string().min(1) }),
+	z.object({
+		type: z.literal('discovery-claim'),
+		body: z.string().min(1),
+		fact: z.string().min(1),
+		value: z.number().finite(),
+		confidence: z.number().finite()
+	}),
 	z.object({ type: z.literal('comms-inspect'), vessel: entity.nullable() }),
 	z.object({ type: z.literal('licence-buy'), band: z.string().min(1), channel: z.int().min(0) }),
 	z.object({ type: z.literal('transmission-cancel'), vessel: entity, item: z.string().min(1) }),
