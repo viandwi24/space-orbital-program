@@ -47,5 +47,18 @@
 ## Verification output
 
 ```text
-VERIFICATION
+bun test packages/sim/test/comms-queues.test.ts   6 pass
+bun test ./mods                                   106 pass, 1 fail (patch benchmark, load) after adding
+                                                  stock.command to the boot test's lists
+bun run docs:check                                docs-check: OK (135 plans, 167 ADRs)
+bun run test                                      1707 pass, 3 fail (742 s) before the boot-test fix:
+                                                  the patch benchmark, and the two stock boot lists
+                                                  (now updated, mods suite above)
+bun run typecheck                                 exit 0 (after the rebase on 073)
+bun run --filter @orbital/web test                1012 passed, 1 skipped after the rebase on 073;
+                                                  range-model timed out once under load (passes alone);
+                                                  public/roadmap.test fails on main's plan 073 status
+                                                  "blocked" (from the 073 merge, not this plan);
+                                                  4 env-only import suites (no Node here)
+bun run build                                     exit 0
 ```
