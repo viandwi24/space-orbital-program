@@ -347,7 +347,7 @@ ctx.siteTemplates.register(defineSiteTemplate({
   - the rate steps through decades from 1 kbit/s to 1 Gbit/s, every 10 dB of margin.
 - **Reading it.** `ctx.vessel.signal().rate` gives the rate in bit/s. The pure functions `linkBudget`, `freeSpaceLoss`, `dishGain`, `antennaGain` and `rateForMargin` are exported from `@orbital/sdk`.
 
-**Relays, pointing and route policies (API 0.1.66, plan 117, ADR 0188).**
+**Relays, pointing and route policies (API 0.1.67, plan 117, ADR 0188).**
 
 - **Relays:** any vessel with a working antenna relays. Routes go through relays to a station or a crewed vessel.
 - **Dishes point:** the `antenna-point` command (`target`: a station, `vessel:<id>` or a body id; null is Auto). A dish then reaches only within half its beam. Give a dish `beamWidth` (rad), or let the beam follow from its band and `aperture`.
