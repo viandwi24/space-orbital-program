@@ -18,11 +18,18 @@ const [base, label, out] = [process.argv[2]!, process.argv[3]!, process.argv[4]!
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({
 	headless: true,
-	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader=false']
+	args: [
+		'--use-angle=metal',
+		'--enable-gpu',
+		'--ignore-gpu-blocklist',
+		'--enable-unsafe-swiftshader=false'
+	]
 });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, baseURL: base });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
-page.on('console', (m) => { if (m.type() === 'error') console.log('console', m.text().slice(0, 300)); });
+page.on('console', (m) => {
+	if (m.type() === 'error') console.log('console', m.text().slice(0, 300));
+});
 await page.goto('/vab');
 await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 await page.getByRole('button', { name: /^Launch/ }).click();
@@ -107,7 +114,12 @@ for (const sc of scenes) {
 			for (let x = 0; x < small.width; x++)
 				for (let c = 0; c < 4; c++) {
 					let sum = 0;
-					for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]])
+					for (const [dx, dy] of [
+						[0, 0],
+						[1, 0],
+						[0, 1],
+						[1, 1]
+					])
 						sum += bd[((2 * y + dy) * big.width + 2 * x + dx) * 4 + c]!;
 					sd.data[(y * small.width + x) * 4 + c] = sum / 4;
 				}
@@ -117,39 +129,87 @@ for (const sc of scenes) {
 		if (has) d.silhouetteAA(true);
 		// stair steps: in each column, the rows the AA changed (the silhouette); a vertical pair there
 		// whose luminance jump is over 60 % of the column's sky-ground contrast is a hard step
-		const W = on.width, H = on.height;
+		const W = on.width,
+			H = on.height;
 		const L = (img: ImageData, x: number, y: number): number => {
 			const i = (y * W + x) * 4;
 			return 0.2126 * img.data[i]! + 0.7152 * img.data[i + 1]! + 0.0722 * img.data[i + 2]!;
 		};
-		let hardOff = 0, hardOn = 0, edgeCols = 0, changed = 0;
+		let hardOff = 0,
+			hardOn = 0,
+			edgeCols = 0,
+			changed = 0;
 		for (let x = 0; x < W; x++) {
-			let lo = -1, hi = -1;
+			let lo = -1,
+				hi = -1;
 			for (let y = 0; y < H; y++) {
 				const i = (y * W + x) * 4;
-				const diff = Math.abs(on.data[i]! - off.data[i]!) + Math.abs(on.data[i + 1]! - off.data[i + 1]!) + Math.abs(on.data[i + 2]! - off.data[i + 2]!);
-				if (diff > 30) { changed++; if (lo < 0) lo = y; hi = y; }
+				const diff =
+					Math.abs(on.data[i]! - off.data[i]!) +
+					Math.abs(on.data[i + 1]! - off.data[i + 1]!) +
+					Math.abs(on.data[i + 2]! - off.data[i + 2]!);
+				if (diff > 30) {
+					changed++;
+					if (lo < 0) lo = y;
+					hi = y;
+				}
 			}
 			if (lo < 0) continue;
 			edgeCols++;
-			const y0 = Math.max(1, lo - 3), y1 = Math.min(H - 1, hi + 3);
-			for (const [img, add] of [[off, (n: number) => (hardOff += n)], [on, (n: number) => (hardOn += n)]] as const) {
-				let mn = 1e9, mx = -1e9;
-				for (let y = y0 - 1; y <= y1; y++) { const l = L(img, x, y); mn = Math.min(mn, l); mx = Math.max(mx, l); }
+			const y0 = Math.max(1, lo - 3),
+				y1 = Math.min(H - 1, hi + 3);
+			for (const [img, add] of [
+				[off, (n: number) => (hardOff += n)],
+				[on, (n: number) => (hardOn += n)]
+			] as const) {
+				let mn = 1e9,
+					mx = -1e9;
+				for (let y = y0 - 1; y <= y1; y++) {
+					const l = L(img, x, y);
+					mn = Math.min(mn, l);
+					mx = Math.max(mx, l);
+				}
 				const contrast = mx - mn;
 				if (contrast < 12) continue;
 				let n = 0;
-				for (let y = y0; y <= y1; y++) if (Math.abs(L(img, x, y) - L(img, x, y - 1)) > 0.6 * contrast) n++;
+				for (let y = y0; y <= y1; y++)
+					if (Math.abs(L(img, x, y) - L(img, x, y - 1)) > 0.6 * contrast) n++;
 				add(n);
 			}
 		}
-		return { has, offMs, onMs, edgeCols, changed, hardOff, hardOn, offJpg, onJpg, offPng, onPng, refPng };
+		return {
+			has,
+			offMs,
+			onMs,
+			edgeCols,
+			changed,
+			hardOff,
+			hardOn,
+			offJpg,
+			onJpg,
+			offPng,
+			onPng,
+			refPng
+		};
 	}, sc);
 	const { offJpg, onJpg, offPng, onPng, refPng, ...nums } = r as any;
-	for (const [k, v] of [['off', offPng], ['on', onPng], ['ref', refPng]] as const)
-		writeFileSync(join(out, `133-${label}-${sc.name}-${k}.png`), Buffer.from(v.split(',')[1], 'base64'));
-	writeFileSync(join(out, `133-${label}-${sc.name}-off.jpg`), Buffer.from(offJpg.split(',')[1], 'base64'));
-	writeFileSync(join(out, `133-${label}-${sc.name}-on.jpg`), Buffer.from(onJpg.split(',')[1], 'base64'));
+	for (const [k, v] of [
+		['off', offPng],
+		['on', onPng],
+		['ref', refPng]
+	] as const)
+		writeFileSync(
+			join(out, `133-${label}-${sc.name}-${k}.png`),
+			Buffer.from(v.split(',')[1], 'base64')
+		);
+	writeFileSync(
+		join(out, `133-${label}-${sc.name}-off.jpg`),
+		Buffer.from(offJpg.split(',')[1], 'base64')
+	);
+	writeFileSync(
+		join(out, `133-${label}-${sc.name}-on.jpg`),
+		Buffer.from(onJpg.split(',')[1], 'base64')
+	);
 	console.log(label, sc.name, JSON.stringify(nums));
 	result[sc.name] = nums;
 }
