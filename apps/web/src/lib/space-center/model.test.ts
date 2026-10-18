@@ -4,6 +4,7 @@ import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import {
+	actionOf,
 	buildingRows,
 	checkGhost,
 	confirmPlacement,
@@ -56,6 +57,8 @@ describe('the overlay', () => {
 			label: 'Open the Mission Center'
 		});
 		expect(html).toContain('Moon program');
+		// a lab opens R&D since plan 105
+		expect(actionOf(['lab'])).toEqual({ kind: 'link', href: '/rnd', label: 'Open R&D' });
 	});
 
 	it('keyboard: arrows reach every building in turn and wrap; the selected one opens its detail', () => {

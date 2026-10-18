@@ -11,6 +11,10 @@
 	import TopBar from '../../lib/vab/TopBar.svelte';
 	import ToolPill from '../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../lib/vab/controller.svelte';
+	import { SaveController } from '../../lib/save/save-controller.svelte';
+	import { bootedMods, modHint } from '../../lib/save/mods';
+	import { loadWorldTech } from '../../lib/tech/world-tech';
+	import { activeWorldId } from '../../lib/worlds/worlds';
 	import Button from '../../lib/ui/Button.svelte';
 	import Dialog from '../../lib/ui/Dialog.svelte';
 	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
@@ -19,6 +23,13 @@
 	import { advance, currentStep, skip, stepLabel } from '../../lib/onboarding/tutorial';
 
 	const vab = new VabController();
+	// the active world's tech tree flags locked parts (plan 105, ADR 0154 point 4)
+	const worldSaves = new SaveController({
+		loadedMods: bootedMods,
+		modHint,
+		startLoad: () => {},
+		world: () => activeWorldId()
+	});
 
 	let stage = $state<HTMLDivElement>();
 	let canvas = $state<HTMLCanvasElement>();
@@ -30,6 +41,7 @@
 		if (!stage || !canvas || !left || !right) return;
 		vab.focusSearch = () => catalogueRef?.focusSearch();
 		const stop = vab.mount({ canvas, stage, left, right });
+		void loadWorldTech(worldSaves, activeWorldId()).then((t) => (vab.tech = t));
 		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);
