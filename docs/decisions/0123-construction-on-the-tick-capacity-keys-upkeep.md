@@ -23,5 +23,5 @@ Plan 090 gave buildings levels with `cost`, `buildDays`, `upkeep`, `power` and `
 
 - `defineBuilding` levels now mean something; a mod's building costs funds in Career.
 - The Launch screen lists every design in Sandbox.
-- Known gap: a new flight in the web client starts its sim from the world record's info, so funds spent in the Space Center are not carried into the next new flight's ledger (the world's newest save is not continued). The construction state is carried, since it lives in the sites.
+- In the web client the Space Center runs the world's newest save and writes it back after a change, so a launch into the world (ADR 0152) carries the spending and the construction. A world with no save yet starts from its record.
 - Roads drawn by hand, earthworks and moving a building stay out (ADR 0115).

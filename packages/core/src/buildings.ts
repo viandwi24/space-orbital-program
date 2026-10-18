@@ -418,7 +418,8 @@ export const CAPACITY = {
 	lab: { unit: 'labs', meaning: 'research slots' },
 	admin: { unit: 'strategies', meaning: 'strategy slots' },
 	storage: { unit: 'kg', meaning: 'stored commodities' },
-	production: { unit: 'recipes', meaning: 'recipes at once' }
+	production: { unit: 'recipes', meaning: 'recipes at once' },
+	'test-stand': { unit: 'grade', meaning: 'static-fire grade (plan 130)' }
 } as const;
 export type CapacityKey = keyof typeof CAPACITY;
 export const CAPACITY_KEYS = Object.keys(CAPACITY) as CapacityKey[];

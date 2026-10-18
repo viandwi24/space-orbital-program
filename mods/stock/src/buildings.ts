@@ -134,7 +134,7 @@ export const BuildingTestStand = defineBuilding({
 	label: 'Test stand',
 	size: { w: 3, d: 3 },
 	entrances: southDoor(3),
-	levels: levels({ 'test-stand': [1, 2, 3] }),
+	levels: levels({ 'test-stand': [1, 2, 3] }, [30_000, 70_000, 150_000], [4, 10, 18]),
 	provides: ['test-stand'],
 	hazardRadius: 40,
 	visual: gen('tanks')

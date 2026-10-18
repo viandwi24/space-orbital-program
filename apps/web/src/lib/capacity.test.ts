@@ -43,7 +43,7 @@ describe("the Hangar's part limit", () => {
 		expect(s.design.parts.length).toBe(40);
 		const limit = partsLimit(site, registries.buildings, true, 40);
 		expect(limit).toEqual({ limit: 30, upgrade: 'Hangar level 2: 120 parts' });
-		const checks = checkDesign(s, content, designStats(s.design, content, 'sea-level', g), undefined, limit);
+		const checks = checkDesign(s, content, designStats(s.design, content, 'sea-level', g), undefined, [], limit);
 		const over = checks.find((c) => c.id === 'over-capacity')!;
 		expect(over).toMatchObject({ level: 'no-go', severity: 'error' });
 		expect(over.text).toBe('40 parts: the Hangar takes 30.');
@@ -55,7 +55,7 @@ describe("the Hangar's part limit", () => {
 	it('30 parts fit; no limit where the economy is off', () => {
 		const s = tower(30);
 		const limit = partsLimit(site, registries.buildings, true, 30);
-		const checks = checkDesign(s, content, designStats(s.design, content, 'sea-level', g), undefined, limit);
+		const checks = checkDesign(s, content, designStats(s.design, content, 'sea-level', g), undefined, [], limit);
 		expect(checks.some((c) => c.id === 'over-capacity')).toBe(false);
 		expect(partsLimit(site, registries.buildings, false, 40)).toBeNull();
 	});

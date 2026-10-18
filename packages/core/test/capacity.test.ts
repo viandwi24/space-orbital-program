@@ -29,7 +29,8 @@ describe('capacity keys (ADR 0098 point 3)', () => {
 			'lab',
 			'admin',
 			'storage',
-			'production'
+			'production',
+			'test-stand'
 		]);
 		const tools = new Set(FLIGHT_TOOLS.map(norm));
 		for (const key of CAPACITY_KEYS) {

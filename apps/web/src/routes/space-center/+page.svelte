@@ -5,6 +5,7 @@
 	 * by the sim's `place-building`; the site list is then written into the world record.
 	 */
 	import {
+		homeBodyOf,
 		LEGACY_WORLD_ID,
 		loadPlugins,
 		sitesOf,
@@ -18,6 +19,7 @@
 	import { GAME_NAME } from '../../lib/public/about';
 	import { bootedMods, modHint } from '../../lib/save/mods';
 	import { SaveController } from '../../lib/save/save-controller.svelte';
+	import type { GameSave } from '../../lib/save/game-save';
 	import { activePlugins } from '../../lib/mods/runtime';
 	import PageMeta from '../../lib/ui/PageMeta.svelte';
 	import SpaceCenterOverlay from '../../lib/space-center/SpaceCenterOverlay.svelte';
@@ -37,10 +39,23 @@
 	import { startSpaceCenter, type SpaceCenter } from '../../lib/space-center/space-center-loop';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 
+	/** The world's newest save: the Space Center runs it and writes it back after a change (plan 096). */
+	let base: GameSave | null = null;
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
-		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`)
+		startLoad: (id) => location.assign(`/flight?load=${encodeURIComponent(id)}`),
+		world: () => worldId,
+		collect: async () => {
+			if (!center || !base) throw new Error('This world has no save to write back to.');
+			return {
+				sim: await center.save(),
+				focus: base.focus,
+				design: base.design,
+				thumbnail: null,
+				bodyRadius: homeBodyOf(registries.bodies.list())?.radius ?? 600_000
+			};
+		}
 	});
 	const { registries } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
 		system: STOCK_CHOICE
@@ -103,6 +118,8 @@
 
 	async function persist(): Promise<void> {
 		if (!site) return;
+		// the funds and construction live in the world's save; a launch continues it (ADR 0123, 0152)
+		if (base) await saves.autosave();
 		const sites = sitesOf(world ?? { sites: [] }).map((s, i) =>
 			i === 0 ? { ...s, buildings: site!.buildings, roads: site!.roads } : s
 		);
@@ -170,10 +187,21 @@
 			const record = await worlds.get(worldId);
 			worldName = record?.name ?? (worldId === LEGACY_WORLD_ID ? 'Legacy world' : 'Space Center');
 			world = await worlds.startInfo(worldId);
+			await saves.refresh();
+			const newest = saves.entries.find((e) => e.ok);
+			if (newest?.ok) {
+				try {
+					base = await saves.read(newest.meta.id);
+					world = base.sim.worldInfo;
+				} catch {
+					base = null;
+				}
+			}
 			if (gone) return;
 			center = startSpaceCenter({
 				canvas,
 				...(world ? { world } : {}),
+				...(base ? { resume: base.sim } : {}),
 				onSnapshot,
 				onFrame: (project) => {
 					const next: Record<string, { x: number; y: number } | null> = {};
