@@ -579,7 +579,7 @@ function applyKicks(core: SimCore, kicks: Array<{ parts: EntityId[]; dv: Vec3 }>
 			const v = frame.backend.getVelocity(body.handle);
 			frame.backend.setVelocity(body.handle, { linear: add(v.linear, dv), angular: v.angular });
 			vessel.velocity = add(vessel.velocity, dv);
-		} else if (vessel.rails && vessel.rails.kind !== 'surface') {
+		} else if (vessel.rails && vessel.rails.kind !== 'surface' && vessel.rails.kind !== 'frozen') {
 			vessel.velocity = add(vessel.velocity, dv);
 			vessel.rails = computeRails(
 				bodyOfVessel(core, vessel).mu,

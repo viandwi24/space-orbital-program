@@ -27,6 +27,7 @@ import {
 	homeBodyOf,
 	type BodyDefinition,
 	type CommandResult,
+	type WarpLimitSnapshot,
 	type PanelInput
 } from '@orbital/core';
 import {
@@ -72,7 +73,10 @@ import type { ContentLookups } from './delta-v';
 import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
-import { WARP_STEPS } from './warp';
+import { warpStepsFor } from './warp';
+
+/** The level a granted warp-to runs at. */
+const r_granted = (r: CommandResult): number => (r.ok ? (r.granted ?? 1) : 1);
 import { catchUpCommand, catchUpOffer, type CatchUp } from './worlds/world-model';
 import { setGlassFallback } from './ui/root-theme';
 import { regionHoverLabel, regionLayer } from './hud/regions-model';
@@ -108,6 +112,9 @@ export interface FlightHud {
 	/** The sim clock is frozen (pause menu). */
 	paused: boolean;
 	warp: number;
+	/** The world's warp limit for the vessel (plan 206), and the text of the last clamp. */
+	warpLimit: WarpLimitSnapshot | null;
+	warpClamp: string | null;
 	map: boolean;
 	autopilot: string | null;
 	/** A crew member outside in a suit (plan 109, ADR 0120): the camera follows the suit. */
@@ -187,6 +194,8 @@ export interface Flight {
 	readonly maneuver: ManeuverController | null;
 	/** Time warp to the burn of the earliest maneuver node. */
 	warpToNode(): void;
+	/** Time warp to just before the next apsis (plan 206): the sim works out the time and the level. */
+	warpToApsis(to: 'apoapsis' | 'periapsis'): void;
 	/** Whether the world is behind the real date `nowMs` (plan 087, ADR 0143): offer, unavailable or none. */
 	catchUp(nowMs: number): CatchUp;
 	/** Accept the catch-up: `warp-to` the real date; resolves with the sim's answer (null when nothing to do). */
@@ -311,6 +320,8 @@ export function startFlight(options: FlightOptions): Flight {
 		model: null,
 		paused: false,
 		warp: 1,
+		warpLimit: null,
+		warpClamp: null,
 		map: false,
 		autopilot: null,
 		eva: null,
@@ -396,15 +407,27 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	}
 
+	/** The world's levels (plan 206): 9 in a Sol world. */
+	const steps = (): readonly number[] => warpStepsFor(catalog?.systemId);
 	function setWarp(index: number): void {
-		const next = Math.min(WARP_STEPS.length - 1, Math.max(0, index));
-		const factor = WARP_STEPS[next]!;
-		void send({ type: 'warp', factor }).then((ok) => {
-			if (ok) {
-				warpIndex = next;
-				hud.warp = factor;
-			}
-		});
+		const list = steps();
+		const next = Math.min(list.length - 1, Math.max(0, index));
+		const factor = list[next]!;
+		// the sim grants as much as the world allows and says why when it is less (ADR 0202 point 4)
+		void client
+			.dispatch({ type: 'warp', factor, ...(vessel !== null ? { vessel } : {}) })
+			.then((r) => {
+				if (!r.ok) {
+					hudCtl?.refused('warp', r.reason);
+					return;
+				}
+				const granted = r.granted ?? factor;
+				hud.warp = granted;
+				hud.warpClamp = r.limit ?? null;
+				warpIndex = list.reduce((at, step, i) => (step <= granted ? i : at), 0);
+				if (r.limit) logBuffer.add('info', 'warp', r.limit);
+				publish();
+			});
 	}
 
 	/** Typing in the script panel must not fly the vessel (Space stages, WASD steers). */
@@ -831,11 +854,13 @@ export function startFlight(options: FlightOptions): Flight {
 			// The sim changes its own warp (a change of sphere, a finished warp-to): follow it.
 			if (simWarp !== undefined && simWarp !== hud.warp) {
 				hud.warp = simWarp;
+				if (simWarp <= 1) hud.warpClamp = null;
 				warpIndex = Math.max(
 					0,
-					WARP_STEPS.reduce((at, step, i) => (step <= simWarp ? i : at), 0)
+					steps().reduce((at, step, i) => (step <= simWarp ? i : at), 0)
 				);
 			}
+			hud.warpLimit = s.warpLimit ?? null;
 			presence.snapshot(s);
 			hudCtl?.snapshot(s);
 			dirty = true;
@@ -992,7 +1017,7 @@ export function startFlight(options: FlightOptions): Flight {
 				throttle = sentThrottle = resumed.throttle;
 				const warp = options.resume.sim.warp;
 				hud.warp = warp;
-				warpIndex = Math.max(0, (WARP_STEPS as readonly number[]).indexOf(warp));
+				warpIndex = Math.max(0, steps().indexOf(warp));
 			} else if (options.attach) {
 				vessel = entityId(options.attach.vessel);
 				const flying = snap?.vessels.find((v) => v.id === vessel);
@@ -1124,6 +1149,18 @@ export function startFlight(options: FlightOptions): Flight {
 					)
 				: null,
 		command: (command) => send(command),
+		warpToApsis(to) {
+			if (vessel === null) return;
+			const top = steps()[steps().length - 1]!;
+			void client
+				.dispatch({ type: 'warp-to', target: { kind: to, vessel }, factor: top, vessel })
+				.then((r) => {
+					if (!r.ok) return hudCtl?.refused('warp-to', r.reason);
+					hud.warp = r.granted ?? top;
+					hud.warpClamp = r.limit ?? null;
+					publish();
+				});
+		},
 		debug: {
 			snapshot: () => snap,
 			vessel: () => vessel,
@@ -1253,7 +1290,7 @@ export function startFlight(options: FlightOptions): Flight {
 			if (offer.kind !== 'offer') return null;
 			const result = await client.dispatch(catchUpCommand(offer));
 			if (result.ok) {
-				hud.warp = 1_000_000;
+				hud.warp = r_granted(result);
 				publish();
 			}
 			return result;

@@ -61,11 +61,15 @@ export const GLOBALS: readonly ApiEntry[] = [
 		'Game date at simulation time t (default: now) in the world calendar.'
 	),
 	fn('print', 'print(...values)', 'Write a line to the panel log.'),
-	fn('warp', 'warp(factor): Promise<{ ok, reason? }>', 'Ask for time warp, 1 to 100 000.'),
+	fn(
+		'warp',
+		'warp(factor): Promise<{ ok, reason? }>',
+		'Ask for time warp; granted up to what the world allows (10× in the air or under thrust).'
+	),
 	fn(
 		'warpTo',
-		'warpTo(time, factor = 100000): Promise',
-		'Time warp that slows down and stops at that simulation time.'
+		"warpTo(time | 'apoapsis' | 'periapsis' | 'soi' | 'node', factor = 100000): Promise",
+		'Time warp that slows down and stops at that time, or just before that point of the orbit.'
 	),
 	fn(
 		'addNode',

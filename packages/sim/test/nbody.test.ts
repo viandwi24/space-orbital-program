@@ -60,12 +60,12 @@ describe('n-body worlds (ADR 0122)', () => {
 		again.dispose();
 	});
 
-	test('warp above the cap is refused with the reason', async () => {
+	test('warp above the cap is granted up to the top with the reason (plan 206)', async () => {
 		const sim = await make();
 		orbiter(sim);
 		const r = sim.dispatch({ type: 'warp', factor: NBODY_MAX_WARP * 10 });
-		expect(r.ok ? '' : r.reason).toBe(`n-body integration limits warp to ${NBODY_MAX_WARP}x`);
-		expect(sim.dispatch({ type: 'warp', factor: NBODY_MAX_WARP }).ok).toBe(true);
+		expect(r.ok && r.granted).toBe(Math.min(NBODY_MAX_WARP, 10_000));
+		expect(r.ok && r.limit).toMatch(/^Max /);
 		sim.dispose();
 	});
 
@@ -109,8 +109,10 @@ describe('n-body worlds (ADR 0122)', () => {
 		console.log(
 			`n-body: 20 vessels held at ${sim.warp}x: ${evaluations.toFixed(0)} evaluations, ${perFrame.toFixed(3)} ms per frame`
 		);
-		expect(limited.length).toBeGreaterThan(0);
-		expect(sim.warp).toBeLessThan(NBODY_MAX_WARP);
+		// a stock world tops out at 10k× (plan 206), where 20 orbiters fit the budget; above it
+		// the budget halves the warp
+		if (sim.warp >= NBODY_MAX_WARP) expect(limited.length).toBeGreaterThan(0);
+		expect(sim.warp).toBeLessThanOrEqual(NBODY_MAX_WARP);
 		expect(evaluations).toBeLessThanOrEqual(nb.NBODY_FRAME_EVALUATIONS);
 		sim.dispose();
 	});

@@ -60,12 +60,11 @@ describe('computeTelemetry', () => {
 			'suborbital'
 		);
 	});
-	it('enables the warp control on rails, and lets a raised warp be lowered', () => {
+	it('enables the warp control with a vessel, in flight too (plan 206)', () => {
 		expect(canWarp({ mode: 'on-rails' }, 1)).toBe(true);
-		expect(canWarp({ mode: 'flight' }, 1)).toBe(false);
+		expect(canWarp({ mode: 'flight' }, 1)).toBe(true);
 		expect(canWarp({ mode: 'flight' }, 10)).toBe(true);
 		expect(canWarp(null, 1)).toBe(false);
-		// a running script is held by the sim host so the vessel can reach the rails (ADR 0039)
 		expect(canWarp({ mode: 'flight' }, 1, true)).toBe(true);
 		expect(canWarp(null, 1, true)).toBe(false);
 	});

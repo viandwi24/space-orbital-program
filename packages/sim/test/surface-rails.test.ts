@@ -34,7 +34,9 @@ describe('going on surface rails', () => {
 		sim.events.on('vessel:mode-changed', (e) => modes.push(`${e.mode}:${e.reason}`));
 		run(sim, 1);
 		expect(vesselOf(sim).mode).toBe('flight');
-		expect(sim.dispatch({ type: 'warp', factor: 10 }).ok).toBe(false); // not yet at rest for 2 s
+		// physics warp works before it rests (plan 206); it rests at 1×
+		expect(sim.dispatch({ type: 'warp', factor: 10 })).toMatchObject({ ok: true, granted: 10 });
+		sim.dispatch({ type: 'warp', factor: 1 });
 		run(sim, 3);
 		const v = vesselOf(sim);
 		expect(v.mode).toBe('on-rails');
@@ -150,15 +152,14 @@ describe('waking up', () => {
 		expect(vesselOf(sim).mode).toBe('flight');
 	});
 
-	test('waking is refused while warping, and changes nothing', async () => {
+	test('throttle during rails warp drops to physics warp and wakes the vessel (plan 206)', async () => {
 		const { sim, id } = await padSim();
 		run(sim, 4);
-		sim.dispatch({ type: 'warp', factor: 50 });
+		expect(sim.dispatch({ type: 'warp', factor: 50 })).toMatchObject({ ok: true, granted: 50 });
 		const r = sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.reason).toContain('warp');
-		expect(vesselOf(sim).mode).toBe('on-rails');
-		expect(vesselOf(sim).surface).toBe(true);
+		expect(r.ok).toBe(true);
+		expect(sim.warp).toBe(10);
+		expect(vesselOf(sim).mode).toBe('flight');
 	});
 
 	test('after a long warp it wakes without a jump or a fall: no damage, bounded motion, back on rails 2 s later', async () => {

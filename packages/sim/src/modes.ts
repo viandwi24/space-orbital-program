@@ -3,6 +3,7 @@
  * follows kepler and attitude is frozen; in flight the vessel is one compound rigid body in a flight frame.
  */
 import type { EntityId } from '@orbital/core';
+import { PHYSICS_WARP_MAX } from '@orbital/core';
 import { cross, dot, length, sub } from '@orbital/kepler';
 import {
 	DEBRIS_REST_SPEED,
@@ -64,7 +65,8 @@ export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string
 export function wakeBlocker(core: SimCore, vesselId: EntityId): string | undefined {
 	const vessel = vesselOf(core, vesselId);
 	if (vessel.mode === 'flight') return undefined;
-	if (core.warp > 1) return `time warp is ${core.warp}x; set warp to 1 first`;
+	if (core.warp > PHYSICS_WARP_MAX)
+		return `time warp is ${core.warp}x; physics runs up to ${PHYSICS_WARP_MAX}x`;
 	const motion = motionOf(core, vessel);
 	const joins = core.frames.some(
 		(f) =>
@@ -213,6 +215,7 @@ export function reapDebris(core: SimCore): void {
 		const body = bodyOfVessel(core, vessel);
 		const top = body.def.atmosphere?.height ?? 0;
 		const omega = spinAt(body, core.t);
+		if (vessel.rails?.kind === 'frozen') continue; // held still during rails warp, not lost (ADR 0202)
 		if (vessel.mode === 'on-rails') {
 			const motion = motionOf(core, vessel);
 			if (isStableOrbit(body, motion.r, motion.v)) continue;

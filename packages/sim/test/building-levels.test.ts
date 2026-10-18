@@ -39,10 +39,10 @@ const hangar = (id: string, i: number) =>
 /** Advance whole days at warp 1e6, landing a little past the boundary. */
 function days(sim: Sim, n: number): void {
 	const day = DAY;
-	sim.dispatch({ type: 'warp', factor: 1e6 });
+	sim.dispatch({ type: 'warp', factor: 1e4 });
 	const at = sim.snapshot().t;
 	const target = (Math.floor(at / day) + n) * day + 1;
-	sim.step((target - at) / 1e6);
+	sim.step((target - at) / 1e4);
 	sim.dispatch({ type: 'warp', factor: 1 });
 }
 

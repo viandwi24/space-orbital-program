@@ -109,7 +109,7 @@ test('a repeated setpoint resolves at once and an unknown or repeated verdict is
 	rig.sim.dispose();
 });
 
-test('warp(f) is a command without a vessel, factor 1 to 100 000; anything else throws into the script', async () => {
+test('warp(f) names the script vessel as the watched one (plan 206), factor 1 to 100 000; anything else throws into the script', async () => {
 	const rig = await newRig();
 	const runner = await rig.runner(`
 		warp(10);
@@ -120,8 +120,8 @@ test('warp(f) is a command without a vessel, factor 1 to 100 000; anything else 
 	`);
 	const result = runner.tick(rig.sim.snapshot());
 	expect(result.commands).toEqual([
-		{ type: 'warp', factor: 10 },
-		{ type: 'warp', factor: MAX_SCRIPT_WARP }
+		{ type: 'warp', factor: 10, vessel: rig.vessel },
+		{ type: 'warp', factor: MAX_SCRIPT_WARP, vessel: rig.vessel }
 	]);
 	expect(runner.logs).toEqual([
 		'RangeError',

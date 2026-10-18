@@ -3,6 +3,7 @@
 	import IconButton from '../ui/IconButton.svelte';
 	import { formatMet, formatWarp } from '../format';
 	import { WARP_STEPS } from '../warp';
+	import type { WarpLimitSnapshot } from '@orbital/core';
 	import { behindText, type CatchUp } from '../worlds/world-model';
 
 	let {
@@ -14,7 +15,10 @@
 		onfaster,
 		catchUp = { kind: 'none' },
 		oncatchup,
-		onpause
+		onpause,
+		steps = WARP_STEPS,
+		limit = null,
+		clamp = null
 	}: {
 		warp: number;
 		usable: boolean;
@@ -28,10 +32,18 @@
 		oncatchup?: () => void;
 		/** Pause (opens the pause menu, which is what pausing is; ADR 0144 point 3). */
 		onpause?: () => void;
+		/** The world's levels (plan 206): 8, or 9 in a Sol world. */
+		steps?: readonly number[];
+		/** The world's limit now: segments above it are shown as out of reach. */
+		limit?: WarpLimitSnapshot | null;
+		/** The text of the last clamp ("Max 10× — engine running"), shown by the segment it stopped at. */
+		clamp?: string | null;
 	} = $props();
-	const index = $derived(Math.max(0, WARP_STEPS.indexOf(warp as (typeof WARP_STEPS)[number])));
-	const reason =
-		'Time warp needs the vessel on rails: shut the engines down and coast or sit still.';
+	const index = $derived(steps.reduce((at, step, i) => (step <= warp ? i : at), 0));
+	const times = (f: number): string => (f >= 1000 ? `${f / 1000}k×` : `${f}×`);
+	const reason = $derived(
+		clamp ?? (limit?.reason ? `Max ${times(limit.max)} — ${limit.reason}` : '')
+	);
 </script>
 
 <!-- The refs time capsule (plan 088, ADR 0144 point 3): pause, one segment per warp step, MET and date. -->
@@ -53,7 +65,7 @@
 		icon="slower"
 		label="Slower time warp"
 		hint={settings.keymap.label('warpDown')}
-		disabled={!usable && warp === 1}
+		disabled={warp === 1}
 		onclick={onslower}
 	/>
 	<div
@@ -61,28 +73,37 @@
 		role="meter"
 		aria-label="Time warp step"
 		aria-valuemin="1"
-		aria-valuemax={WARP_STEPS.length}
+		aria-valuemax={steps.length}
 		aria-valuenow={index + 1}
 		aria-valuetext={formatWarp(warp)}
 	>
-		{#each WARP_STEPS as step, i (step)}
-			<span class="seg" class:wide={i >= 4} class:past={i < index} class:now={i === index}></span>
+		{#each steps as step, i (step)}
+			<span
+				class="seg"
+				class:wide={i >= 4}
+				class:past={i < index}
+				class:now={i === index}
+				class:out={limit !== null && step > limit.max}
+				title={limit !== null && step > limit.max ? reason : times(step)}
+			></span>
 		{/each}
 	</div>
 	<IconButton
 		icon="faster"
 		label="Faster time warp"
 		hint={settings.keymap.label('warpUp')}
-		disabled={!usable}
+		disabled={!usable || (limit !== null && warp >= limit.max)}
 		onclick={onfaster}
 	/>
 	<span class="x num" data-testid="hud-warp">{warp}x</span>
+	{#if clamp || (limit?.reason && limit.max < steps[steps.length - 1]!)}
+		<span class="why" data-testid="warp-reason">{reason}</span>
+	{/if}
 	<span class="rule" aria-hidden="true"></span>
 	<span class="when">
 		<span class="met num" data-testid="hud-met">{formatMet(met)}</span>
 		{#if date}<span class="date num" data-testid="hud-date">{date}</span>{/if}
 	</span>
-	{#if !usable}<span class="sr-only">{reason}</span>{/if}
 	{#if catchUp.kind !== 'none'}
 		<button
 			type="button"
@@ -131,6 +152,14 @@
 		width: 1rem;
 		height: 1rem;
 		fill: currentColor;
+	}
+	.why {
+		font-size: var(--t-label);
+		color: var(--c-warning);
+		white-space: nowrap;
+	}
+	.seg.out {
+		opacity: 0.3;
 	}
 	.segs {
 		display: flex;

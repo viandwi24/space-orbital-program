@@ -31,7 +31,7 @@ describe('tick days from an epoch in SI days', () => {
 		});
 		const ticks: Array<{ day: number; time: number }> = [];
 		sim.events.on('world:tick', (e) => ticks.push(e));
-		sim.dispatch({ type: 'warp-to', time: 2 * DAY, factor: 1e5 });
+		sim.dispatch({ type: 'warp-to', time: 2 * DAY, factor: 1e4 });
 		while (sim.time < 2 * DAY - 1e-6) sim.step(10);
 		expect(ticks.map((t) => t.day)).toEqual([7, 8]);
 		expect(ticks[0]!.time).toBeCloseTo(7 * DAY - 138_240, 6);

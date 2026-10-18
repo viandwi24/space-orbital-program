@@ -314,7 +314,7 @@ export async function createScriptRunnerIn(
 				if (typeof p.factor === 'number' && p.factor > MAX_SCRIPT_WARP) {
 					throw new RangeError(`warp: factor must be 1 to ${MAX_SCRIPT_WARP}`);
 				}
-				candidate = { type: 'warp', factor: p.factor };
+				candidate = { type: 'warp', factor: p.factor, vessel };
 				break;
 			case 'node-set':
 				candidate = {
@@ -334,7 +334,15 @@ export async function createScriptRunnerIn(
 				if (typeof p.factor === 'number' && p.factor > MAX_SCRIPT_WARP) {
 					throw new RangeError(`warpTo: factor must be 1 to ${MAX_SCRIPT_WARP}`);
 				}
-				candidate = { type: 'warp-to', time: p.time, factor: p.factor };
+				candidate =
+					typeof p.target === 'string'
+						? {
+								type: 'warp-to',
+								target: { kind: p.target, vessel },
+								factor: p.factor,
+								vessel
+							}
+						: { type: 'warp-to', time: p.time, factor: p.factor, vessel };
 				break;
 			case 'target-set':
 				candidate = { type: 'target-set', vessel, target: p.target };

@@ -73,7 +73,8 @@ export interface ResolvedNodes {
 }
 
 /** Whether the vessel moves on a path nodes can lie on (not fixed to the ground). */
-export const hasPath = (v: VesselState): boolean => v.rails === null || v.rails.kind !== 'surface';
+export const hasPath = (v: VesselState): boolean =>
+	v.rails === null || (v.rails.kind !== 'surface' && v.rails.kind !== 'frozen');
 
 /** The nodes of `vessel` resolved against its path from now. */
 export function resolveNodes(

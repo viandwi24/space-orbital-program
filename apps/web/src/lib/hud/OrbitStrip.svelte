@@ -4,7 +4,16 @@
 	import type { OrbitInfo } from '../orbit-info';
 	import type { FlightPhase } from '../telemetry';
 
-	let { orbit, phase }: { orbit: OrbitInfo | null; phase: FlightPhase | null } = $props();
+	let {
+		orbit,
+		phase,
+		onwarp
+	}: {
+		orbit: OrbitInfo | null;
+		phase: FlightPhase | null;
+		/** Warp to just before the apsis (plan 206, ADR 0202 point 6). */
+		onwarp?: (to: 'apoapsis' | 'periapsis') => void;
+	} = $props();
 	const below = $derived(orbit !== null && orbit.periapsis < 0);
 </script>
 
@@ -41,6 +50,18 @@
 			<dd class="num">{orbit.eccentricity.toFixed(3)}</dd>
 		</dl>
 		{#if below}<p class="note">Periapsis is below the surface, so this is not an orbit yet.</p>{/if}
+		{#if onwarp}
+			<div class="to">
+				{#if orbit.apoapsis !== undefined}
+					<button type="button" data-testid="warp-to-ap" onclick={() => onwarp('apoapsis')}
+						>Warp to Ap</button
+					>
+				{/if}
+				<button type="button" data-testid="warp-to-pe" onclick={() => onwarp('periapsis')}
+					>Warp to Pe</button
+				>
+			</div>
+		{/if}
 	{:else}
 		<p class="note">
 			{phase === 'landed' ? 'On the ground. Launch to get an orbit.' : 'No orbit yet.'}
@@ -49,6 +70,21 @@
 </Panel>
 
 <style>
+	.to {
+		display: flex;
+		gap: var(--s-2);
+		margin-top: var(--s-2);
+	}
+	.to button {
+		font: inherit;
+		font-size: var(--t-small);
+		padding: 0.125rem 0.5rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-row);
+		background: var(--surface-button);
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
 	dl {
 		display: grid;
 		grid-template-columns: auto 1fr;

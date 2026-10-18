@@ -178,7 +178,11 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
 		return request('node-set', JSON.stringify(Object.assign(nodeFields(merged), { id })));
 	});
 	fixed('removeNode', (id) => request('node-remove', JSON.stringify(id === undefined ? {} : { id })));
-	fixed('warpTo', (time, factor) => request('warp-to', JSON.stringify({ time, factor: factor === undefined ? 100000 : factor })));
+	// warpTo(time | 'apoapsis' | 'periapsis' | 'soi' | 'node', factor): the sim works out a target's time (plan 206)
+	fixed('warpTo', (when, factor) => request('warp-to', JSON.stringify(
+		typeof when === 'string'
+			? { target: when, factor: factor === undefined ? 100000 : factor }
+			: { time: when, factor: factor === undefined ? 100000 : factor })));
 	// Targets (plan 035, ADR 0064): a body id, a vessel id, an entry of ship.targets, or null to clear.
 	const targetRef = (spec) => {
 		if (spec === null) return null;

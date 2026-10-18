@@ -159,7 +159,9 @@ describe('broadcasts (ADR 0193 point 5)', () => {
 
 		const near = await landed();
 		const to = near.sim.time + BROADCAST_WINDOW + 60;
-		expect(near.sim.dispatch({ type: 'warp-to', time: to, factor: 1000 })).toEqual({ ok: true });
+		expect(near.sim.dispatch({ type: 'warp-to', time: to, factor: 1000 })).toMatchObject({
+			ok: true
+		});
 		for (let g = 0; (near.sim.time < to - 1e-6 || near.sim.warp !== 1) && g < 1e5; g++)
 			near.sim.step(1);
 		const late = near.sim.dispatch({ type: 'comms-broadcast', milestone: 'landing:stock.cinder' });

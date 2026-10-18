@@ -63,7 +63,7 @@ describe('debris lifecycle', () => {
 		}
 	});
 
-	test('debris at rest on the ground is removed after the rest time, then warp is accepted', async () => {
+	test('debris at rest on the ground is removed after the rest time', async () => {
 		const sim = await newSim();
 		const reasons: string[] = [];
 		sim.events.on('vessel:destroyed', (e) => reasons.push(e.reason));
@@ -72,7 +72,6 @@ describe('debris lifecycle', () => {
 		const loaded = sim.dispatch({ type: 'load-vessel', design: tank });
 		if (!loaded.ok) throw new Error(loaded.reason);
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
-		expect(sim.dispatch({ type: 'warp', factor: 5 }).ok).toBe(false);
 		for (let i = 0; i < 400; i++) sim.step(0.02); // 8 s: not yet
 		expect(sim.snapshot().vessels).toHaveLength(1);
 		for (let i = 0; i < 800; i++) sim.step(0.02); // 16 s in total

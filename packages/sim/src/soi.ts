@@ -61,7 +61,7 @@ function announce(core: SimCore, vesselId: EntityId, from: string, to: string): 
 function transitionRails(core: SimCore, vesselId: EntityId, tPrev: number): void {
 	const vessel = vesselOf(core, vesselId);
 	const rails = vessel.rails;
-	if (!rails || rails.kind === 'surface') return;
+	if (!rails || rails.kind === 'surface' || rails.kind === 'frozen') return;
 	const body = bodyById(core, vessel.soi);
 	const t = core.t;
 	const now = railsMotion(body, rails, t);

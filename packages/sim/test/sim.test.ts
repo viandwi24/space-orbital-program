@@ -52,14 +52,14 @@ describe('commands are validated at the boundary', () => {
 			{ type: 'throttle', vessel: 'x', value: 1 },
 			{ type: 'attitude', vessel: id, pitch: 0, yaw: 5, roll: 0 },
 			{ type: 'warp', factor: 0 },
-			{ type: 'warp', factor: 1e12 },
 			{ type: 'load-vessel', design: { formatVersion: 1 } }
 		];
 		for (const c of bad) {
 			const r = sim.dispatch(c);
 			expect(r.ok).toBe(false);
 		}
-		expect(sim.dispatch({ type: 'warp', factor: 1e12 })).toMatchObject({ ok: false });
+		// too much warp is not malformed: it is granted as far as the world allows (plan 206, ADR 0202)
+		expect(sim.dispatch({ type: 'warp', factor: 1e12 })).toMatchObject({ ok: true, granted: 10 }); // on the pad, not yet landed: physics warp
 	});
 
 	test('semantic refusals: unknown vessel, no control source, no stage left, bad part, bad design', async () => {

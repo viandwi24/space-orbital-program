@@ -61,4 +61,9 @@ export const canWarp = (
 	telemetry: Pick<Telemetry, 'mode'> | null,
 	warp: number,
 	scriptRunning = false
-): boolean => telemetry?.mode === 'on-rails' || warp > 1 || (scriptRunning && telemetry !== null);
+): boolean => {
+	void warp;
+	void scriptRunning;
+	// physics warp works in flight too (plan 206, ADR 0202 point 2): only a missing vessel blocks it
+	return telemetry !== null;
+};

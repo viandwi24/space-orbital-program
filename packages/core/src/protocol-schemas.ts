@@ -118,12 +118,27 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		action: z.string().min(1),
 		args: z.unknown().optional()
 	}),
-	z.object({ type: z.literal('warp'), factor: z.number().min(1) }),
-	z.object({
-		type: z.literal('warp-to'),
-		time: z.number().refine(Number.isFinite, 'time must be finite'),
-		factor: z.number().min(1)
-	}),
+	z.object({ type: z.literal('warp'), factor: z.number().min(1), vessel: entity.optional() }),
+	z
+		.object({
+			type: z.literal('warp-to'),
+			time: z.number().refine(Number.isFinite, 'time must be finite').optional(),
+			factor: z.number().min(1),
+			target: z
+				.discriminatedUnion('kind', [
+					z.object({
+						kind: z.enum(['apoapsis', 'periapsis', 'soi', 'node']),
+						vessel: entity
+					}),
+					z.object({ kind: z.literal('alarm'), id: z.string().min(1) })
+				])
+				.optional(),
+			vessel: entity.optional()
+		})
+		.refine(
+			(c) => (c.time === undefined) !== (c.target === undefined),
+			'give exactly one of time and target'
+		),
 	z.object({
 		type: z.literal('node-set'),
 		vessel: entity,
