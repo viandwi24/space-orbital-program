@@ -2,8 +2,9 @@
 	/**
 	 * The vessel panel (plan 111, ADR 0153; refs): Overview with a switch per group, Parts with each
 	 * part's controls from its descriptors, Comms with the route, the stations and the transmitters
-	 * (plan 115, ADR 0158).
+	 * (plan 115, ADR 0158), and the link budget's terms (plan 116, ADR 0185).
 	 */
+	import { untrack } from 'svelte';
 	import type { Command, EntityId } from '@orbital/core';
 	import Panel from '../ui/Panel.svelte';
 	import Switch from '../ui/Switch.svelte';
@@ -43,6 +44,15 @@
 	// svelte-ignore state_referenced_locally
 	let tab = $state<'overview' | 'parts' | 'comms'>(initialTab);
 	let problem = $state<string | null>(null);
+	// the link inspector (ADR 0185 point 9): the sim carries this vessel's budget while the tab is open
+	const inspecting = $derived(tab === 'comms' && comms !== null);
+	$effect(() => {
+		if (!inspecting) return;
+		const id = vessel;
+		// only the tab and the vessel restart it, not a new `oncommand` closure
+		untrack(() => oncommand({ type: 'comms-inspect', vessel: id }));
+		return () => untrack(() => oncommand({ type: 'comms-inspect', vessel: null }));
+	});
 
 	function send(part: EntityId, c: ControlRow, value?: boolean | number | string): void {
 		const r = controlCommand(vessel, part, c, value);
@@ -87,14 +97,23 @@
 			<div class="route">
 				<span class="cap">Route · Auto</span>
 				<p class="path" data-testid="comms-path">
-					<SignalBars
-						level={comms.linked ? (comms.control === 'partial' ? 2 : 4) : 0}
-						offline={!comms.linked}
-					/>
+					<SignalBars level={comms.bars} offline={!comms.linked} />
 					{comms.path.join(' → ')}
 				</p>
 				{#if comms.reason}<p class="problem" data-testid="comms-reason">{comms.reason}</p>{/if}
+				{#if comms.rate}<p class="dim" data-testid="comms-rate">{comms.rate}</p>{/if}
 			</div>
+			{#if comms.budget}
+				<span class="cap">Link budget</span>
+				<dl class="budget" data-testid="comms-budget">
+					{#each comms.budget as term (term.id)}
+						<div class="row" data-term={term.id}>
+							<dt>{term.label}</dt>
+							<dd>{term.value}</dd>
+						</div>
+					{/each}
+				</dl>
+			{/if}
 			<span class="cap">Ground stations</span>
 			{#each comms.endpoints as e (e.id)}
 				<div class="row endpoint" class:current={e.current}>
@@ -322,6 +341,28 @@
 	}
 	.dim {
 		color: var(--text-muted);
+	}
+	.route .dim {
+		margin: 0 0.25rem;
+		font-size: var(--t-small);
+	}
+	.budget {
+		margin: 0;
+		padding: 0 0.25rem;
+		font-size: var(--t-small);
+		font-variant-numeric: tabular-nums;
+	}
+	.budget .row {
+		min-height: 1.75rem;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+	.budget dt {
+		color: var(--text-secondary);
+	}
+	.budget dd {
+		margin: 0;
+		color: var(--text-primary);
 	}
 	.toggle-label {
 		margin-right: auto;

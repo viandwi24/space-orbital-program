@@ -1,7 +1,15 @@
 /** Comms tier 1 on the page (plan 115, ADR 0158): the badge, the Comms tab, the Network layer. */
 import type { Snapshot } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
-import { commsTab, linkBadge, linkText, networkLines, networkStations } from './network-model';
+import {
+	barsForRate,
+	commsTab,
+	linkBadge,
+	linkText,
+	networkLines,
+	networkStations,
+	rateText
+} from './network-model';
 
 const snap = (vessels: NonNullable<Snapshot['network']>['vessels']) =>
 	({
@@ -89,5 +97,31 @@ describe('comms on the page (plan 115)', () => {
 		]);
 		expect(networkLines(down)).toEqual([]);
 		expect(networkStations(s).map((x) => x.label)).toEqual(['KSC Dish']);
+	});
+
+	it('bars and words follow the rate (plan 116, ADR 0185 point 9)', () => {
+		expect([null, 0, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9].map(barsForRate)).toEqual([
+			4, 1, 1, 2, 2, 3, 3, 4, 4
+		]);
+		expect([0, 1e3, 1e5, 1e6, 1e9].map(rateText)).toEqual([
+			'Commands only',
+			'1 kbit/s',
+			'100 kbit/s',
+			'1 Mbit/s',
+			'1 Gbit/s'
+		]);
+		const s = snap([
+			{
+				vessel: 2 as never,
+				to: 'stock.ksc',
+				reason: null,
+				control: 'full',
+				blackout: 0,
+				rate: 1e5,
+				margin: 25
+			}
+		]);
+		expect(linkBadge(s, 2)!.bars).toBe(2);
+		expect(commsTab(s, 2, 'Probe')).toMatchObject({ bars: 2, rate: '100 kbit/s', budget: null });
 	});
 });
