@@ -58,5 +58,14 @@ The six bot runs add about 230 s to `bun run test` here (one run is about 35 s; 
 ## Verification output
 
 ```text
-VERIFICATION
+bun test packages/sim/test/strategies.test.ts     6 pass
+bun test packages/sim/test/career-bot.test.ts     9 pass (plain, markets, contracts, six strategies; table above)
+bun run --filter @orbital/web test -- src/lib/administration/strategies-model   3 passed
+                                                  (projection = sim books for 90 days, within 1 funds)
+bun run docs:check                                docs-check: OK (135 plans, 163 ADRs)
+bun run test                                      1690 pass, 1 fail (715 s): the patch benchmark under load
+                                                  (passes alone, M5-indicative)
+bun run typecheck                                 exit 0
+bun run --filter @orbital/web test                1006 passed, 1 skipped; 4 env-only import suites (no Node here)
+bun run build                                     exit 0
 ```
