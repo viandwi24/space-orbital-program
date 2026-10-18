@@ -177,11 +177,14 @@ export function checkGhost(
 	registry: BuildingLookup,
 	kind: string,
 	cell: Cell,
-	rotation: Rotation
+	rotation: Rotation,
+	/** Whether the site is on the home body (plan 128, ADR 0125 point 3). */
+	home = true
 ): GhostCheck {
 	const r = canPlace(
 		{
 			body: site.body,
+			home,
 			flatRadius: site.flatRadius,
 			buildings: state?.buildings ?? [],
 			roads: state?.roads ?? []
@@ -335,4 +338,103 @@ export function productionNote(
 		(b) => producers.has(b.kind) && (b.state === 'active' || b.state === 'upgrading')
 	);
 	return working ? 'Production stopped: funds are below zero' : null;
+}
+
+// ---- off-world bases (plan 128, ADR 0125) ----
+
+interface RecipeLike {
+	label: string;
+	building: string;
+	inputs: Record<string, number>;
+	outputs: Record<string, number>;
+}
+
+const amountText = (v: number): string => Math.round(v).toLocaleString('en-US');
+
+/**
+ * The Flows panel of a site (ADR 0125 point 7): each working recipe's rate, the outposts' drills,
+ * the routes in and out, and the storage. `label` names commodities and sites.
+ */
+export function flowRows(
+	site: SiteState | undefined,
+	options: {
+		buildings: BuildingLookup;
+		recipes: readonly RecipeLike[];
+		vessels: Snapshot['vessels'];
+		/** Ice per day of one drill part (its module config). */
+		drillPerDay: number;
+		economy: EconomyView | undefined;
+		today: number | undefined;
+		label: (id: string) => string;
+	}
+): string[] {
+	if (!site) return [];
+	const out: string[] = [];
+	const { buildings, recipes, label } = options;
+	for (const b of site.buildings) {
+		if (b.state !== 'active' && b.state !== 'upgrading') continue;
+		const def = buildings.get(b.kind);
+		const factor = def?.levels[Math.min(b.level, (def?.levels.length ?? 1) - 1)]?.capacity.production ?? 1;
+		for (const r of recipes) {
+			if (r.building !== b.kind) continue;
+			const side = (m: Record<string, number>) =>
+				Object.entries(m)
+					.filter(([id]) => id !== 'power')
+					.map(([id, v]) => `${amountText(v * factor)} ${label(id)}`)
+					.join(' + ');
+			const inputs = side(r.inputs);
+			out.push(`${def?.label ?? b.kind}: ${inputs ? `${inputs} → ` : ''}${side(r.outputs)} a day`);
+		}
+	}
+	const members = new Set((site.members ?? []).map(Number));
+	const drills = options.vessels
+		.filter((v) => members.has(Number(v.id)))
+		.reduce((n, v) => n + v.parts.filter((p) => p.definition === 'stock.drill').length, 0);
+	if (drills > 0)
+		out.push(
+			`Drills (${drills} on ${members.size} ${members.size === 1 ? 'outpost' : 'outposts'}): +${amountText(drills * options.drillPerDay)} ${label('stock.ice')} a day`
+		);
+	for (const r of options.economy?.routes ?? []) {
+		if (r.from !== site.id && r.to !== site.id) continue;
+		const inbound = r.to === site.id;
+		const days = options.today === undefined ? '' : ` in ${Math.max(0, r.nextDay - options.today)} days`;
+		out.push(
+			`Route ${r.id}: ${amountText(r.amount)} ${label(r.commodity)} ${inbound ? `from ${label(r.from)}` : `to ${label(r.to)}`}, next${days}`
+		);
+	}
+	const storage = options.economy?.storage?.find((x) => x.site === site.id);
+	if (storage) {
+		const used = Object.values(storage.items).reduce((a, b) => a + b, 0);
+		out.push(`Storage: ${amountText(used)} / ${amountText(storage.capacity)} u`);
+	}
+	return out;
+}
+
+/** The building kinds a site's body allows (ADR 0125 point 3). */
+export const kindsFor = (
+	kinds: readonly BuildingDefinition[],
+	home: boolean
+): BuildingDefinition[] =>
+	kinds.filter((k) => !k.placement || (k.placement === 'home') === home);
+
+/**
+ * The first valid cell for `kind` near a site's centre (a base has no 3D view yet, ADR 0125 point 7):
+ * a square spiral of up to `reach` cells.
+ */
+export function firstFreeCell(
+	site: Pick<Site, 'body' | 'flatRadius'>,
+	state: SiteState | undefined,
+	registry: BuildingLookup,
+	kind: string,
+	home: boolean,
+	reach = 30
+): Cell | null {
+	for (let ring = 0; ring <= reach; ring++) {
+		for (let i = -ring; i <= ring; i++)
+			for (let j = -ring; j <= ring; j++) {
+				if (Math.max(Math.abs(i), Math.abs(j)) !== ring) continue;
+				if (checkGhost(site, state, registry, kind, { i, j }, 0, home).valid) return { i, j };
+			}
+	}
+	return null;
 }

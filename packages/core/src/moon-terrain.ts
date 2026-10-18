@@ -11,7 +11,13 @@
  * `MOON_MAX_SLOPE` (measured by the tests).
  */
 import type { Vec3 } from './math.ts';
-import { latLonDirection, pcgX, terrainNoise, type TerrainField } from './terrain.ts';
+import {
+	latLonDirection,
+	pcgX,
+	terrainNoise,
+	type TerrainField,
+	type TerrainZone
+} from './terrain.ts';
 
 /** Upper bound of every height, m. */
 export const MOON_MAX_HEIGHT = 6_000;
@@ -121,13 +127,69 @@ export interface MoonTerrainOptions {
 	radius: number;
 	/** Crater field seed, 0 to `CRATERS_MAX_SEED` (default 0: the stock moon). */
 	seed?: number;
+	/** Flat zones of the sites on this body (plan 128, ADR 0125 point 1); absent: none. */
+	zones?: readonly TerrainZone[];
 }
 
-/** The terrain field of the stock moon; the landing plain is at latitude 0, longitude 0. */
+/** A zone as the craters height reads it: its direction and the raw height at its centre. */
+export interface CratersZone {
+	direction: Vec3;
+	flatRadius: number;
+	blendWidth: number;
+	/** `moonHeight` at the centre without zones, m. */
+	height: number;
+}
+
+/** The zones of a craters body with their centre heights (ADR 0125 point 1). */
+export function cratersZones(
+	zones: readonly TerrainZone[],
+	radius: number,
+	seed = 0
+): CratersZone[] {
+	return zones.map((z) => {
+		const direction = latLonDirection(z.latitude, z.longitude);
+		return {
+			direction,
+			flatRadius: z.flatRadius,
+			blendWidth: z.blendWidth,
+			height: moonHeight(direction, radius, seed)
+		};
+	});
+}
+
+/**
+ * The craters height with site zones: each zone in turn blends the ground toward its centre's raw
+ * height, exactly that height within `flatRadius`, the raw ground again `blendWidth` further out.
+ */
+export function zonedMoonHeight(
+	n: Vec3,
+	radius: number,
+	seed: number,
+	zones: readonly CratersZone[]
+): number {
+	let h = moonHeight(n, radius, seed);
+	for (const z of zones) {
+		const d = n.x * z.direction.x + n.y * z.direction.y + n.z * z.direction.z;
+		const arc = radius * Math.acos(clamp(d, -1, 1));
+		const t = smoothstep(z.flatRadius, z.flatRadius + z.blendWidth, arc);
+		h = z.height + (h - z.height) * t;
+	}
+	return h;
+}
+
+/** The terrain field of a craters body; the landing plain is at latitude 0, longitude 0. */
 export function createMoonTerrainField(options: MoonTerrainOptions): TerrainField {
+	const seed = options.seed ?? 0;
+	if (!options.zones || options.zones.length === 0) {
+		return {
+			maxHeight: MOON_MAX_HEIGHT,
+			heightAt: (direction) => moonHeight(direction, options.radius, seed)
+		};
+	}
+	const zones = cratersZones(options.zones, options.radius, seed);
 	return {
 		maxHeight: MOON_MAX_HEIGHT,
-		heightAt: (direction) => moonHeight(direction, options.radius, options.seed ?? 0)
+		heightAt: (direction) => zonedMoonHeight(direction, options.radius, seed, zones)
 	};
 }
 

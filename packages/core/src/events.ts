@@ -58,6 +58,11 @@ export interface EventMap {
 	'crew:g-loc': { vessel: EntityId; member: string; until: number };
 	/** A site was founded (plan 092, ADR 0177); its flat zone applies from the next load. */
 	'site:founded': { site: string; body: string; latitude: number; longitude: number };
+	/** Off-world bases (plan 128, ADR 0125): a vessel joined or left a site as an outpost. */
+	'site:joined': { site: string; vessel: EntityId };
+	'site:left': { site: string; vessel: EntityId };
+	/** A supply route ran on its window (plan 128, ADR 0125 point 6). */
+	'route:delivered': { route: string; amount: number; cost: number };
 	/** Construction or an upgrade finished on the tick of its ready day (plan 096, ADR 0123). */
 	'building:ready': { site: string; id: string; kind: string; level: number };
 	/** Science (plan 103, ADR 0178): a result was made, and science was credited. */

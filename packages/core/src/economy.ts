@@ -33,6 +33,18 @@ export interface SaveEconomy {
 	markets?: Record<string, MarketState>;
 	/** Commodities held at each site (plan 097); absent until something is stored. */
 	storage?: SiteStorage;
+	/** Supply routes (plan 128, ADR 0125 point 6); absent until one is made. */
+	routes?: SupplyRoute[];
+}
+
+export interface SupplyRoute {
+	id: string;
+	from: string;
+	to: string;
+	commodity: string;
+	amount: number;
+	/** Tick day of the next transfer window. */
+	nextDay: number;
 }
 
 /** The rules the sim reads (ADR 0113 point 4); stock registers them. */
@@ -97,7 +109,19 @@ export const saveEconomySchema = z.object({
 		})
 	),
 	markets: z.record(z.string(), marketStateSchema).optional(),
-	storage: siteStorageSchema.optional()
+	storage: siteStorageSchema.optional(),
+	routes: z
+		.array(
+			z.object({
+				id: z.string().min(1),
+				from: z.string().min(1),
+				to: z.string().min(1),
+				commodity: z.string().min(1),
+				amount: z.number().positive(),
+				nextDay: z.int()
+			})
+		)
+		.optional()
 });
 
 type RuleLookup = (id: string) => RuleValue | undefined;

@@ -281,6 +281,15 @@ export interface Snapshot {
 		}>;
 		/** Commodities held at sites with storage. */
 		storage?: Array<{ site: string; capacity: number; items: Record<string, number> }>;
+		/** Supply routes (plan 128, ADR 0125 point 6) with the tick day of their next window. */
+		routes?: Array<{
+			id: string;
+			from: string;
+			to: string;
+			commodity: string;
+			amount: number;
+			nextDay: number;
+		}>;
 	};
 	/** Each site's buildings and road cells (plan 090). */
 	/**
@@ -321,6 +330,10 @@ export interface Snapshot {
 			readyDay?: number;
 		}>;
 		roads: Array<{ i: number; j: number }>;
+		/** Outposts (plan 128, ADR 0125 point 4). */
+		members?: EntityId[];
+		/** The site's body (plan 128): another body's site is a base. */
+		body?: string;
 	}>;
 }
 
@@ -521,6 +534,14 @@ export type Command =
 	/** Trade a commodity at today's price into or out of a site's storage (plan 097, ADR 0124 point 7). */
 	| { type: 'market-buy'; commodity: string; amount: number; site: string }
 	| { type: 'market-sell'; commodity: string; amount: number; site: string }
+	/**
+	 * Off-world bases (plan 128, ADR 0125): a landed base kit founds a site (`id` a host UUID); a landed
+	 * vessel joins a site as an outpost; a supply route moves cargo between sites on each transfer window.
+	 */
+	| { type: 'deploy-base'; vessel: EntityId; id: string; name: string }
+	| { type: 'join-site'; vessel: EntityId; site: string }
+	| { type: 'create-route'; id: string; from: string; to: string; commodity: string; amount: number }
+	| { type: 'delete-route'; id: string }
 	/** Research a tech node with the world's science (plan 105, ADR 0154 point 2). */
 	| { type: 'research'; node: string }
 	/** Move a crew member to another part of the same vessel (capacity checked). */

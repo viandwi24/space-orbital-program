@@ -55,6 +55,13 @@ import {
 import { STOCK_PRESETS, STOCK_RULES } from './rules.ts';
 import { STOCK_CHARGES } from './charges.ts';
 import { RecipePropellantSynthesis, STOCK_COMMODITIES } from './market.ts';
+import {
+	CommodityIce,
+	ModuleBaseKit,
+	ModuleDrill,
+	RecipeIceElectrolysis,
+	STOCK_BASE_PARTS
+} from './bases.ts';
 import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 import { STOCK_SITE_TEMPLATES } from './site-templates.ts';
@@ -158,6 +165,12 @@ export const Stock = definePlugin({
 		// one commodity chain first (plan 097, ADR 0124)
 		for (const commodity of STOCK_COMMODITIES) ctx.commodities.register(commodity);
 		ctx.recipes.register(RecipePropellantSynthesis);
+		// off-world bases (plan 128, ADR 0125)
+		ctx.modules.register(ModuleBaseKit);
+		ctx.modules.register(ModuleDrill);
+		for (const part of STOCK_BASE_PARTS) ctx.parts.register(part);
+		ctx.commodities.register(CommodityIce);
+		ctx.recipes.register(RecipeIceElectrolysis);
 		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);
 
 		ctx.provide('stock', stockApi);
@@ -190,3 +203,4 @@ export * from './tech.ts';
 export * from './science.ts';
 export * from './comms.ts';
 export * from './market.ts';
+export * from './bases.ts';

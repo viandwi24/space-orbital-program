@@ -23,6 +23,7 @@ import { contractsTick } from './contracts.ts';
 import { crewTick } from './crew.ts';
 import { buildingsTick } from './buildings.ts';
 import { marketDay } from './market.ts';
+import { membersTick } from './bases.ts';
 import { resetStations } from './comms.ts';
 
 export interface TickState {
@@ -132,7 +133,8 @@ export function runDueTicks(core: SimCore, base: Omit<SystemContext, 'tick'>): v
 		economyTick(core, day); // charges and reputation decay (plan 095, ADR 0113)
 		contractsTick(core, day); // expiry and at most one new offer (plan 099, ADR 0186)
 		crewTick(core); // returns and salaries (plan 106, ADR 0176)
-		marketDay(core); // production, then the markets, after the day's charges (plan 097, ADR 0124)
+		membersTick(core); // outposts that drove off leave their site (plan 128, ADR 0125 point 4)
+		marketDay(core, day); // production, then the markets, after the day's charges (plan 097, ADR 0124)
 		core.events.emit('world:tick', { day, time });
 	}
 }

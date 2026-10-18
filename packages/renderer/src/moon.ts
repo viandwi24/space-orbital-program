@@ -10,9 +10,13 @@ import {
 	LEGACY_ZONE,
 	cachedPlanetMap,
 	createTerrainField,
-	moonHeight,
+	cratersZones,
+	MAX_TERRAIN_ZONES,
 	stoneSalt,
+	zonedMoonHeight,
+	type CratersZone,
 	type TerrainField,
+	type TerrainZone,
 	type Vec3
 } from '@orbital/core';
 import {
@@ -42,7 +46,9 @@ import {
 	Sphere,
 	Uniform,
 	UnsignedByteType,
+	Vector2,
 	Vector3,
+	Vector4,
 	WebGLCubeRenderTarget,
 	WebGLRenderTarget,
 	type WebGLRenderer
@@ -207,6 +213,8 @@ export class MoonPass {
 	readonly terrain: WorldTerrainSpec;
 	/** The sim's own height field of a hills body (the same function the GPU bake runs). */
 	private hillsField: TerrainField | null = null;
+	/** A craters body's zones with their centre heights (plan 128). */
+	private cratersZones: CratersZone[] = [];
 	/** The biome map a hills body is baked and coloured from. */
 	private readonly biome: DataTexture | null;
 	/** Stones as instanced geometry round the camera (ADR 0068). */
@@ -238,6 +246,8 @@ export class MoonPass {
 			terrain?: WorldTerrainSpec;
 			/** The body's air (plan 071, ADR 0121 point 2): aerial perspective and a sky shell. */
 			atmosphere?: Atmosphere;
+			/** A craters body's site zones (plan 128, ADR 0125 point 1); default none. */
+			zones?: readonly TerrainZone[];
 		} = {}
 	) {
 		this.radius = radius;
@@ -252,7 +262,15 @@ export class MoonPass {
 		};
 		this.biome = this.kind === 'hills' ? biomeTexture(this.terrain) : null;
 		const hills = this.kind === 'hills';
-		const zones = zoneUniforms(this.terrain);
+		const zones = {
+			...zoneUniforms(this.terrain),
+			// a craters body's site zones and their centre heights (plan 128, ADR 0125 point 1)
+			...craterZoneUniforms(
+				(this.cratersZones = hills
+					? []
+					: cratersZones(options.zones ?? [], radius, this.seed))
+			)
+		};
 		const tint = options.tint ?? [0.135, 0.13, 0.122];
 		this.shared = {
 			uRadius: u(radius),
@@ -590,7 +608,7 @@ export class MoonPass {
 			this.hillsField ??= createTerrainField({ radius: this.radius, ...this.terrain });
 			return this.hillsField.heightAt(direction);
 		}
-		return moonHeight(direction, this.radius, this.seed);
+		return zonedMoonHeight(direction, this.radius, this.seed, this.cratersZones);
 	}
 
 	/** Steps of the shadow march (`SHADOW_STEPS` of the graphics preset). */
@@ -790,4 +808,19 @@ export class MoonPass {
 		this.patchMaterial.dispose();
 		this.bakeQuad.geometry.dispose();
 	}
+}
+
+/** The craters zone uniforms of `moonHeightGLSL` (plan 128, ADR 0125 point 1). */
+function craterZoneUniforms(zones: readonly CratersZone[]): Record<string, U<unknown>> {
+	const dirs = Array.from({ length: MAX_TERRAIN_ZONES }, () => new Vector4());
+	const blend = Array.from({ length: MAX_TERRAIN_ZONES }, () => new Vector2());
+	zones.forEach((z, i) => {
+		dirs[i]!.set(z.direction.x, z.direction.y, z.direction.z, z.flatRadius);
+		blend[i]!.set(z.blendWidth, z.height);
+	});
+	return {
+		uCraterZones: u(dirs),
+		uCraterZoneBlend: u(blend),
+		uCraterZoneCount: u(zones.length)
+	};
 }
