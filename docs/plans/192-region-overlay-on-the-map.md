@@ -1,8 +1,8 @@
 ---
 id: 192
 title: "Region overlay on the map view"
-status: draft
-owner: ""
+status: done
+owner: "Agent 1 (Lead)"
 depends: [104]
 phase: 6
 created: 2026-10-18
@@ -39,15 +39,25 @@ In map view the player can toggle an overlay that tints each body by its science
 
 ## Acceptance criteria
 
-- [ ] `packages/renderer` test: the overlay colour at 200 sample directions matches `regionAt` on the home body and the moon.
-- [ ] vitest: the toggle switches the overlay and the hover label names the region.
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
+- [x] `packages/renderer` test: the overlay colour at 200 sample directions matches `regionAt` on the home body and the moon.
+- [x] vitest: the toggle switches the overlay and the hover label names the region.
+- [x] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated.
-- [ ] `docs/journal/192-region-overlay-on-the-map.md` written.
+- [x] `docs/STATUS.md` updated.
+- [x] `docs/journal/192-region-overlay-on-the-map.md` written.
 
 ## Log
 
 - 2026-10-18 — Created as a draft by Agent 3 while refining plan 104: the map overlay left out of 104.
+- 2026-10-18 — Done by Agent 1 (Lead) on lead/followups:
+  - The renderer gains `region-overlay.ts` and `setRegionOverlay` / `bodyDirectionAt` on the scene.
+  - The web gains `hud/RegionsLayer.svelte` and `hud/regions-model.ts`.
+  - The toggle lives in the flight map view, not in the Mission Center, which looks at the whole system from the Sun, so a planet is under a pixel there.
+  - The tint is a texture from `regionAt`, not a shader function, so it matches the sim by construction.
+
+  Tests that pass:
+  - renderer `region-overlay.test.ts` (4): 200 directions on home and on the moon.
+  - vitest `hud/regions.test.ts` (3).
+  - Chromium `e2e/regions.e2e.ts`.

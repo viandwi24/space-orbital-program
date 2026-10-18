@@ -41,6 +41,7 @@
 	import FundsCapsule from '../../lib/hud/FundsCapsule.svelte';
 	import RecoverDialog from '../../lib/hud/RecoverDialog.svelte';
 	import MapSwitch from '../../lib/hud/MapSwitch.svelte';
+	import RegionsLayer from '../../lib/hud/RegionsLayer.svelte';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
 	import RangeBadge from '../../lib/hud/RangeBadge.svelte';
@@ -248,6 +249,24 @@
 		const replay = await flight?.replay(name);
 		if (!replay) return;
 		downloadText(JSON.stringify(replay), fileNameOf(name, 'orbital-replay.json'));
+	}
+
+	/** The Regions layer of map view (plan 192): the tint and the region under the cursor. */
+	let regionsOn = $state(false);
+	let regionHover = $state<{ label: string; x: number; y: number } | null>(null);
+	function toggleRegions(): void {
+		regionsOn = !regionsOn;
+		flight?.setRegions(regionsOn);
+		if (!regionsOn) regionHover = null;
+	}
+	function onCanvasMove(e: PointerEvent): void {
+		if (!regionsOn || !hud?.map || e.buttons !== 0) {
+			regionHover = null;
+			return;
+		}
+		const r = canvas.getBoundingClientRect();
+		const label = flight?.regionLabelAt(e.clientX - r.left, e.clientY - r.top) ?? null;
+		regionHover = label ? { label, x: e.clientX, y: e.clientY } : null;
 	}
 
 	/** Recover the landed vessel (plan 132, ADR 0113 point 6): credit the funds, save, back to the Hangar. */
@@ -650,7 +669,11 @@
 <svelte:window onresize={updateInsets} />
 
 <div class="stage">
-	<canvas bind:this={canvas}></canvas>
+	<canvas
+		bind:this={canvas}
+		onpointermove={onCanvasMove}
+		onpointerleave={() => (regionHover = null)}
+	></canvas>
 	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
 	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
 	<input
@@ -759,7 +782,8 @@
 				{#if hud.map}<MapSwitch
 						busy={saves.busy}
 						onmissioncenter={() => void openMissionCenter()}
-					/>{/if}
+					/>
+					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
 				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				<Toasts toasts={model?.toasts ?? []} />
 				{#if hud?.recovery}

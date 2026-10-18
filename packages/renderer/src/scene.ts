@@ -11,6 +11,7 @@ import type {
 	EntityId,
 	PartVisual,
 	Quat,
+	RegionWorld,
 	Snapshot,
 	Vec3,
 	VesselSnapshot
@@ -19,6 +20,7 @@ import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
 import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
+	DataTexture,
 	Group,
 	Mesh,
 	MeshBasicMaterial,
@@ -27,11 +29,15 @@ import {
 	Object3D,
 	PerspectiveCamera,
 	Quaternion,
+	Raycaster,
+	RGBAFormat,
 	Scene,
 	SphereGeometry,
+	Vector2,
 	Vector3,
 	type WebGLRenderer
 } from 'three';
+import { regionTexture, type RegionBody } from './region-overlay.ts';
 import {
 	FLIGHT_RIG_LIMITS,
 	applyRigInput,
@@ -527,9 +533,10 @@ export class SceneModel {
 
 	setMapView(on: boolean): void {
 		this.map = on;
+		for (const mesh of this.regionMeshes.values()) mesh.visible = on;
 	}
 	toggleMapView(): boolean {
-		this.map = !this.map;
+		this.setMapView(!this.map);
 		return this.map;
 	}
 	setActiveVessel(id: EntityId | null): void {
@@ -590,6 +597,85 @@ export class SceneModel {
 	/** Map view layers: `orbits` false hides every orbit line (vessels and bodies). */
 	setMapLayers(layers: { orbits: boolean }): void {
 		this.mapOrbits = layers.orbits;
+	}
+
+	// --- science regions (plan 192, ADR 0180): a tinted sphere per body in map view ------------------
+	private readonly regionMeshes = new Map<string, Mesh>();
+
+	/**
+	 * Map view: tint each listed body by its science regions (`null` removes the overlay). The
+	 * texture is built once per call from `regionAt`; the sphere sits 1.5 % above the body's radius
+	 * in its body-fixed frame and shows in map view only.
+	 */
+	setRegionOverlay(
+		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null
+	): void {
+		for (const mesh of this.regionMeshes.values()) {
+			mesh.removeFromParent();
+			const m = mesh.material as MeshBasicMaterial;
+			m.map?.dispose();
+			m.dispose();
+		}
+		this.regionMeshes.clear();
+		for (const b of bodies ?? []) {
+			const entry = this.bodies.get(b.id);
+			if (!entry) continue;
+			const t = regionTexture(b.body, b.world ?? {});
+			const texture = new DataTexture(t.data, t.width, t.height, RGBAFormat);
+			texture.needsUpdate = true;
+			const mesh = new Mesh(
+				this.sphere,
+				new MeshBasicMaterial({
+					map: texture,
+					transparent: true,
+					opacity: 0.6,
+					depthWrite: false,
+					// a flat tint: no exposure or tone mapping, so the region colours read as they are
+					toneMapped: false
+				})
+			);
+			// above the highest terrain (ADR 0043: a few kilometres), so mountains do not poke through
+			mesh.scale.setScalar(entry.radius * 1.015);
+			mesh.renderOrder = 10;
+			mesh.visible = this.map;
+			mesh.name = `regions:${b.id}`;
+			entry.holder.add(mesh);
+			this.regionMeshes.set(b.id, mesh);
+		}
+	}
+	get regionOverlayBodies(): readonly string[] {
+		return [...this.regionMeshes.keys()];
+	}
+
+	/**
+	 * The body under canvas point `(x, y)` (CSS pixels) and the body-fixed unit direction of the hit,
+	 * nearest body first; `null` over empty space. For the region label under the cursor.
+	 */
+	bodyDirectionAt(x: number, y: number): { body: string; direction: Vec3 } | null {
+		if (this.cameraDirty && this.lastView) {
+			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);
+			this.cameraDirty = false;
+		}
+		this.camera.updateMatrixWorld();
+		const { width, height } = this.viewport;
+		const ray = new Raycaster();
+		ray.setFromCamera(new Vector2((x / width) * 2 - 1, 1 - (y / height) * 2), this.camera);
+		let best: { body: string; direction: Vec3; distance: number } | null = null;
+		const o = ray.ray.origin;
+		const d = ray.ray.direction;
+		for (const [id, b] of this.bodies) {
+			const c = b.holder.position;
+			const oc = new Vector3().subVectors(o, c);
+			const half = oc.dot(d);
+			const disc = half * half - (oc.lengthSq() - b.radius * b.radius);
+			if (disc < 0) continue;
+			const t = -half - Math.sqrt(disc);
+			if (t < 0 || (best && t >= best.distance)) continue;
+			const hit = new Vector3().copy(d).multiplyScalar(t).add(oc).normalize();
+			hit.applyQuaternion(b.holder.quaternion.clone().invert());
+			best = { body: id, direction: { x: hit.x, y: hit.y, z: hit.z }, distance: t };
+		}
+		return best && { body: best.body, direction: best.direction };
 	}
 	/** Set the flight orbit camera directly (screenshot presets). */
 	setFlightRig(rig: RigState): void {
@@ -1347,6 +1433,7 @@ export class SceneModel {
 	}
 
 	dispose(): void {
+		this.setRegionOverlay(null);
 		removeOverlay(this.highlight.meshes);
 		this.highlightMaterials.dispose();
 		for (const r of this.remnants) this.dropRemnant(r);

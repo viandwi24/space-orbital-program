@@ -4,7 +4,8 @@
  * exercised by the manual runs in the journals, not by Bun tests.
  */
 import type { SiteBuildingView } from './site-list.ts';
-import type { EntityId, Snapshot } from '@orbital/core';
+import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
+import type { RegionBody } from './region-overlay.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	ACESFilmicToneMapping,
@@ -131,6 +132,12 @@ export interface Renderer {
 	setMapHighlight(key: string | null): void;
 	/** Map view layers: `orbits` false hides every orbit line. */
 	setMapLayers(layers: { orbits: boolean }): void;
+	/** Map view: tint these bodies by their science regions, `null` none (plan 192). */
+	setRegionOverlay(
+		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null
+	): void;
+	/** The body under a canvas point and the body-fixed direction of the hit, or `null` (plan 192). */
+	bodyDirectionAt(x: number, y: number): { body: string; direction: Vec3 } | null;
 	/** Ids of the bodies, root first. */
 	readonly bodyIds: readonly string[];
 	toggleMapView(): boolean;
@@ -498,6 +505,8 @@ export function createRenderer(config: RendererConfig): Renderer {
 		setMapScope: (scope) => model.setMapScope(scope),
 		setMapHighlight: (key) => model.setMapHighlight(key),
 		setMapLayers: (layers) => model.setMapLayers(layers),
+		setRegionOverlay: (bodies) => model.setRegionOverlay(bodies),
+		bodyDirectionAt: (x, y) => model.bodyDirectionAt(x, y),
 		get mapFocus() {
 			return model.mapFocusBody;
 		},

@@ -75,6 +75,7 @@ import { captureThumbnail } from './save/thumbnail';
 import { WARP_STEPS } from './warp';
 import { catchUpCommand, catchUpOffer, type CatchUp } from './worlds/world-model';
 import { setGlassFallback } from './ui/root-theme';
+import { regionHoverLabel, regionLayer } from './hud/regions-model';
 import {
 	broadcastOffers,
 	suitRadio,
@@ -222,6 +223,10 @@ export interface Flight {
 	replay(name: string): Promise<ReplayFile | null>;
 	/** Draw a replay's ghost over this flight, or none (plan 131). */
 	setGhost(track: GhostTrack | null): void;
+	/** Map view: tint the bodies by their science regions (plan 192), or not. */
+	setRegions(on: boolean): void;
+	/** Map view: `<body> · <region>` under canvas point `(x, y)`, or null (plan 192). */
+	regionLabelAt(x: number, y: number): string | null;
 	/** A command from a dock panel; the sim validates it, a refusal shows as a toast. */
 	command(command: Command): Promise<boolean>;
 	dispose(): void;
@@ -1037,6 +1042,19 @@ export function startFlight(options: FlightOptions): Flight {
 		highlightPart: (part) => renderer?.highlightPart(part),
 		replay: (name) => client.replay(name),
 		setGhost: (track) => hudCtl?.setGhost(track),
+		setRegions: (on) =>
+			renderer?.setRegionOverlay(
+				on && catalog ? regionLayer(catalog.bodies, catalog.terrain, catalog.home) : null
+			),
+		regionLabelAt: (x, y) =>
+			renderer?.isMapView && catalog
+				? regionHoverLabel(
+						catalog.bodies,
+						renderer.bodyDirectionAt(x, y),
+						catalog.terrain,
+						catalog.home
+					)
+				: null,
 		command: (command) => send(command),
 		runScript(source) {
 			if (vessel === null) return;

@@ -144,7 +144,7 @@
 | 133 | [Anti-aliased silhouettes of the planet pass](plans/133-planet-pass-silhouette-anti-aliasing.md) | draft | — | Scope pushed out of 068: coverage from the march's closest approach; needs the shading split into a function |
 | 190 | [Stock solar panel: electric charge produced on rails through background operations](plans/190-stock-solar-panel-and-battery-background.md) | done | Agent 1 (Lead) | Stock `stock.solar-panel` (module and part, Probes node, 0.5 EC/s while deployed, `stock.solar` action group): one closed form for `update` and `background`; a day on rails and in flight agree to 0.001 % |
 | 191 | [Science dock panel: experiments, results and transmit in flight](plans/191-science-dock-panel.md) | done | Agent 1 (Lead) | ADR 0194: `VesselSnapshot.science.stored` (API 0.1.74) and the stock `stock.science` dock panel: experiments with state and reason, stored results with value × factor, Run the next experiment, Transmit the best result |
-| 192 | [Region overlay on the map view](plans/192-region-overlay-on-the-map.md) | draft | — | Scope pushed out of 104: the region tint and hover in map view |
+| 192 | [Region overlay on the map view](plans/192-region-overlay-on-the-map.md) | done | Agent 1 (Lead) | The Regions layer of the flight map view: a sphere per body tinted from `regionAt` (a 256 × 128 texture in the body frame, 1.5 % above the radius, no tone mapping) and `<body> · <region>` under the cursor |
 | 193 | [Splash and ripples at the waterline](plans/193-splash-and-ripples-at-the-waterline.md) | draft | — | Scope pushed out of 067: the waterline effects |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -212,6 +212,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [192 — Region overlay on the map view](journal/192-region-overlay-on-the-map.md)
 - [190 — Stock solar panel](journal/190-stock-solar-panel-and-battery-background.md)
 - [191 — Science dock panel](journal/191-science-dock-panel.md)
 - [132 — HUD funds and the recovery dialog](journal/132-hud-recovery-and-funds.md)

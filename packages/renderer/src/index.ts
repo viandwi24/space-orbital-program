@@ -10,6 +10,7 @@ export * from './camera-rig.ts';
 export * from './project.ts';
 export * from './scene.ts';
 export * from './map.ts';
+export * from './region-overlay.ts';
 export * from './renderer.ts';
 export * from './presets.ts';
 export * from './quality-governor.ts';
