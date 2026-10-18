@@ -6,31 +6,31 @@
 	 */
 	import { onMount } from 'svelte';
 	import { homeBodyOf, type Profession, type Snapshot } from '@orbital/core';
-	import { loadContent } from '../../lib/catalog';
-	import { parseDesign, referenceTwoStage } from '../../lib/design';
-	import { loadDraft } from '../../lib/storage';
-	import { partLookup } from '../../lib/catalog';
-	import { formatFunds } from '../../lib/format';
-	import { GAME_NAME } from '../../lib/public/about';
-	import type { GameSave } from '../../lib/save/game-save';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import { startSimWorker, type SimClient } from '../../lib/sim-client';
-	import BackButton from '../../lib/ui/BackButton.svelte';
-	import Button from '../../lib/ui/Button.svelte';
-	import Chip from '../../lib/ui/Chip.svelte';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import Panel from '../../lib/ui/Panel.svelte';
-	import Segmented from '../../lib/ui/Segmented.svelte';
-	import StatCell from '../../lib/ui/StatCell.svelte';
-	import { activeWorldId } from '../../lib/worlds/worlds';
+	import { loadContent } from '../../../lib/catalog';
+	import { parseDesign, referenceTwoStage } from '../../../lib/design';
+	import { loadDraft } from '../../../lib/storage';
+	import { partLookup } from '../../../lib/catalog';
+	import { formatFunds } from '../../../lib/format';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import { startSimWorker, type SimClient } from '../../../lib/sim-client';
+	import BackButton from '../../../lib/ui/BackButton.svelte';
+	import Button from '../../../lib/ui/Button.svelte';
+	import Chip from '../../../lib/ui/Chip.svelte';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import Panel from '../../../lib/ui/Panel.svelte';
+	import Segmented from '../../../lib/ui/Segmented.svelte';
+	import StatCell from '../../../lib/ui/StatCell.svelte';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
 	import {
 		applicants,
 		profileOf,
 		rosterRows,
 		type ProfessionFilter,
 		type RosterTab
-	} from '../../lib/astronauts/roster-model';
+	} from '../../../lib/astronauts/roster-model';
 
 	const { catalog } = loadContent();
 	const hangarDesign = () => {

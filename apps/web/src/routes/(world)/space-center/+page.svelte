@@ -15,15 +15,15 @@
 		type Snapshot,
 		type WorldInfo
 	} from '@orbital/core';
-	import { BUILTIN_PLUGINS, STOCK_CHOICE } from '../../lib/builtins';
+	import { BUILTIN_PLUGINS, STOCK_CHOICE } from '../../../lib/builtins';
 	import { onMount } from 'svelte';
-	import { GAME_NAME } from '../../lib/public/about';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import type { GameSave } from '../../lib/save/game-save';
-	import { activePlugins } from '../../lib/mods/runtime';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import SpaceCenterOverlay from '../../lib/space-center/SpaceCenterOverlay.svelte';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import { activePlugins } from '../../../lib/mods/runtime';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import SpaceCenterOverlay from '../../../lib/space-center/SpaceCenterOverlay.svelte';
 	import {
 		buildingRows,
 		checkGhost,
@@ -41,9 +41,9 @@
 		productionNote,
 		type GhostCheck,
 		type SiteState
-	} from '../../lib/space-center/model';
-	import { startSpaceCenter, type SpaceCenter } from '../../lib/space-center/space-center-loop';
-	import { activeWorldId } from '../../lib/worlds/worlds';
+	} from '../../../lib/space-center/model';
+	import { startSpaceCenter, type SpaceCenter } from '../../../lib/space-center/space-center-loop';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
 
 	/** The world's newest save: the Space Center runs it and writes it back after a change (plan 096). */
 	let base: GameSave | null = null;

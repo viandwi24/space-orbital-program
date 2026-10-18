@@ -134,6 +134,13 @@ export interface FlightOptions {
 	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug'): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
+	/**
+	 * The world's running sim (plan 204, ADR 0201): the flight uses it instead of starting a Worker
+	 * and leaves it running on dispose. With it, `resume` only says which vessel to take up.
+	 */
+	client?: SimClient;
+	/** Take up a vessel already flying in `client` (back in Flight from another page) instead of launching. */
+	attach?: { vessel: number };
 	/** A new flight in a world without saves (plan 087): its info; ignored when resuming. */
 	world?: WorldInfo;
 	/** Where a new flight's vessel stands, from the Launch screen (plan 094, ADR 0150); default: the site's pad. */
@@ -259,15 +266,22 @@ const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas, design } = options;
 	const de440 = options.ephemeris ? { ephemeris: options.ephemeris } : {};
-	const client: SimClient = startSimWorker(
-		options.resume
-			? { resume: options.resume.sim, ...de440 }
-			: options.into
-				? { resume: options.into, ...de440 }
-				: options.world
-					? { world: options.world, ...de440 }
-					: {}
-	);
+	// the world's one sim (plan 204, ADR 0201): given by the world session; a Worker of its own only
+	// for a host without one (tests, a page outside a world)
+	const ownsClient = options.client === undefined;
+	const client: SimClient =
+		options.client ??
+		startSimWorker(
+			options.resume
+				? { resume: options.resume.sim, ...de440 }
+				: options.into
+					? { resume: options.into, ...de440 }
+					: options.world
+						? { world: options.world, ...de440 }
+						: {}
+		);
+	/** Unsubscribes from the shared client on dispose. */
+	const offClient: Array<() => void> = [];
 	let renderer: Renderer | null = null;
 	let governor: QualityGovernor | null = null;
 	let autoQuality = loadAutoQuality();
@@ -806,7 +820,7 @@ export function startFlight(options: FlightOptions): Flight {
 	const observer = new ResizeObserver(resize);
 
 	// --- boot --------------------------------------------------------------------------------
-	client.onSnapshot((s, simWarp) => {
+	offClient.push(client.onSnapshot((s, simWarp) => {
 		snap = s;
 		// the loaded world's firsts, once: an achievement added since, or earned elsewhere, is not missed
 		if (achievements && !caughtUp) {
@@ -825,13 +839,13 @@ export function startFlight(options: FlightOptions): Flight {
 		hudCtl?.snapshot(s);
 		dirty = true;
 		auto?.update(s);
-	});
-	client.onStage((event) => {
+	}));
+	offClient.push(client.onStage((event) => {
 		logBuffer.add('info', 'sim', `stage ${event.stage} fired on vessel ${event.vessel}`);
 		hudCtl?.stage(event);
 		director.event('stage');
-	});
-	client.onSimEvent((event) => {
+	}));
+	offClient.push(client.onSimEvent((event) => {
 		const line = simEventLine(event);
 		logBuffer.add(line.level, 'sim', line.message);
 		hudCtl?.simEvent(event);
@@ -853,20 +867,20 @@ export function startFlight(options: FlightOptions): Flight {
 				});
 		}
 		if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
-	});
-	client.onScript((event) => {
+	}));
+	offClient.push(client.onScript((event) => {
 		script = reduceScript(script, event);
 		scriptDirty = true;
 		// The script ended (or never ran): removing the iframe also kills a Worker that is still
 		// spinning inside a native builtin (ADR 0038).
 		if (event.kind === 'script-status' && !scriptIsActive(event.status)) options.sandbox?.close();
-	});
-	client.onError((message) => {
+	}));
+	offClient.push(client.onError((message) => {
 		logBuffer.add('error', 'sim', message);
 		hud.status = 'error';
 		hud.message = message;
 		publish();
-	});
+	}));
 	client.ready.then(
 		async (c) => {
 			if (disposed) return;
@@ -969,6 +983,16 @@ export function startFlight(options: FlightOptions): Flight {
 				const warp = options.resume.sim.warp;
 				hud.warp = warp;
 				warpIndex = Math.max(0, (WARP_STEPS as readonly number[]).indexOf(warp));
+			} else if (options.attach) {
+				vessel = entityId(options.attach.vessel);
+				const flying = snap?.vessels.find((v) => v.id === vessel);
+				hud.warp = client.latest ? hud.warp : 1;
+				if (!flying && client.latest && !client.latest.vessels.some((v) => v.id === vessel)) {
+					hud.status = 'lost';
+					hud.message = 'the vessel is no longer in the world';
+					publish();
+					return;
+				}
 			} else {
 				const result = await client.dispatch({
 					type: 'load-vessel',
@@ -1278,7 +1302,13 @@ export function startFlight(options: FlightOptions): Flight {
 			renderer?.dispose();
 			setGlassFallback(document.documentElement, false);
 			options.sandbox?.close();
-			client.dispose();
+			for (const off of offClient) off();
+			if (ownsClient) client.dispose();
+			else {
+				// the world keeps running without this page (ADR 0201 point 1)
+				client.stopScript();
+				client.setPaused(false);
+			}
 		}
 	};
 }

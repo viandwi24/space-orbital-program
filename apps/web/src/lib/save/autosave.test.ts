@@ -54,3 +54,20 @@ describe('autosaver', () => {
 		expect(a.request('hidden', { ...flying, paused: true })).toBe('hidden');
 	});
 });
+
+describe('autosaver cadence (plan 204)', () => {
+	it('defaults to a 60 s timer; an event save keeps the minimum gap, a pagehide save does not', () => {
+		const c = clock();
+		const a = createAutosaver(c.now);
+		c.advance(59_999);
+		expect(a.tick(flying)).toBeNull();
+		c.advance(1);
+		expect(a.tick(flying)).toBe('timer');
+		a.saved();
+		c.advance(5_000);
+		expect(a.request('change', flying)).toBeNull();
+		expect(a.request('pagehide', flying)).toBe('pagehide');
+		c.advance(10_000);
+		expect(a.request('stage', flying)).toBe('stage');
+	});
+});

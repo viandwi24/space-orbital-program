@@ -4,7 +4,7 @@
 	 * The Launch screen (plan 094, ADR 0150; refs Launch): the site's pad or runway, a design it
 	 * accepts, seats, the summary, then the flight.
 	 */
-	import { designLocks, loadWorldTech, NO_TREE, type WorldTech } from '../../lib/tech/world-tech';
+	import { designLocks, loadWorldTech, NO_TREE, type WorldTech } from '../../../lib/tech/world-tech';
 	import { goto } from '$app/navigation';
 	import {
 		designCost,
@@ -16,10 +16,10 @@
 		type WorldInfo
 	} from '@orbital/core';
 	import { onMount } from 'svelte';
-	import { loadContent, partLookup } from '../../lib/catalog';
-	import { parseDesign, serialiseDesign } from '../../lib/design';
-	import { designStats } from '../../lib/editor/stats';
-	import { formatFunds, formatMass } from '../../lib/format';
+	import { loadContent, partLookup } from '../../../lib/catalog';
+	import { parseDesign, serialiseDesign } from '../../../lib/design';
+	import { designStats } from '../../../lib/editor/stats';
+	import { formatFunds, formatMass } from '../../../lib/format';
 	import {
 		accepts,
 		facilitiesOf,
@@ -28,23 +28,23 @@
 		seatsOf,
 		toggleSeat,
 		type Facility
-	} from '../../lib/launch/launch-model';
-	import { limitsOn, massUpgrade } from '../../lib/capacity';
-	import { activePlugins } from '../../lib/mods/runtime';
-	import { BUILTIN_PLUGINS } from '../../lib/builtins';
-	import { GAME_NAME } from '../../lib/public/about';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import { loadDraft, saveDraft } from '../../lib/storage';
-	import BackButton from '../../lib/ui/BackButton.svelte';
-	import Icon from '../../lib/ui/Icon.svelte';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import Panel from '../../lib/ui/Panel.svelte';
-	import StatCell from '../../lib/ui/StatCell.svelte';
-	import { listEntries, memoryStore, withFallback } from '../../lib/vab/library';
-	import { indexedDbStore } from '../../lib/vab/library-idb';
-	import { activeWorldId } from '../../lib/worlds/worlds';
-	import { fanText, launchRange, rangeModeOf, type LaunchRange } from '../../lib/range/range-model';
+	} from '../../../lib/launch/launch-model';
+	import { limitsOn, massUpgrade } from '../../../lib/capacity';
+	import { activePlugins } from '../../../lib/mods/runtime';
+	import { BUILTIN_PLUGINS } from '../../../lib/builtins';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import { loadDraft, saveDraft } from '../../../lib/storage';
+	import BackButton from '../../../lib/ui/BackButton.svelte';
+	import Icon from '../../../lib/ui/Icon.svelte';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import Panel from '../../../lib/ui/Panel.svelte';
+	import StatCell from '../../../lib/ui/StatCell.svelte';
+	import { listEntries, memoryStore, withFallback } from '../../../lib/vab/library';
+	import { indexedDbStore } from '../../../lib/vab/library-idb';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
+	import { fanText, launchRange, rangeModeOf, type LaunchRange } from '../../../lib/range/range-model';
 
 	interface Choice {
 		key: string;

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { GAME_NAME } from '../../lib/public/about';
-	import MenuShell from '../../lib/ui/MenuShell.svelte';
-	import PageHead from '../../lib/ui/PageHead.svelte';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import MenuShell from '../../../lib/ui/MenuShell.svelte';
+	import PageHead from '../../../lib/ui/PageHead.svelte';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
-	import Button from '../../lib/ui/Button.svelte';
-	import Dialog from '../../lib/ui/Dialog.svelte';
-	import Icon from '../../lib/ui/Icon.svelte';
+	import Button from '../../../lib/ui/Button.svelte';
+	import Dialog from '../../../lib/ui/Dialog.svelte';
+	import Icon from '../../../lib/ui/Icon.svelte';
 	import {
 		assetLabel,
 		dependencyList,
@@ -17,10 +17,10 @@
 		sizeLabel,
 		sourceLabel,
 		statusLabel
-	} from '../../lib/mods/format';
-	import { ModManager } from '../../lib/mods/manager.svelte';
-	import ModPatches from '../../lib/mods/ModPatches.svelte';
-	import { openModStore } from '../../lib/mods/store-idb';
+	} from '../../../lib/mods/format';
+	import { ModManager } from '../../../lib/mods/manager.svelte';
+	import ModPatches from '../../../lib/mods/ModPatches.svelte';
+	import { openModStore } from '../../../lib/mods/store-idb';
 
 	const manager = new ModManager({
 		open: openModStore,

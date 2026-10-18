@@ -15,15 +15,15 @@
 		type Snapshot,
 		type Vec3
 	} from '@orbital/core';
-	import { newsRows, rivalRows } from '../../lib/mission-center/agencies-model';
-	import { objectiveLabel } from '../../lib/administration/contracts-model';
+	import { newsRows, rivalRows } from '../../../lib/mission-center/agencies-model';
+	import { objectiveLabel } from '../../../lib/administration/contracts-model';
 	import { onMount } from 'svelte';
-	import { formatFunds } from '../../lib/format';
-	import { bodyNodes } from '../../lib/map-path';
-	import { pickTarget, type PickCandidate } from '../../lib/map-pick';
+	import { formatFunds } from '../../../lib/format';
+	import { bodyNodes } from '../../../lib/map-path';
+	import { pickTarget, type PickCandidate } from '../../../lib/map-pick';
 	import MissionCenterOverlay, {
 		type Layers
-	} from '../../lib/mission-center/MissionCenterOverlay.svelte';
+	} from '../../../lib/mission-center/MissionCenterOverlay.svelte';
 	import {
 		clusterLabels,
 		fly,
@@ -34,21 +34,21 @@
 		type MapLabel,
 		type TrackFilter,
 		type UpcomingEvent
-	} from '../../lib/mission-center/model';
+	} from '../../../lib/mission-center/model';
 	import {
 		startMissionCenter,
 		type MissionCenter
-	} from '../../lib/mission-center/mission-center-loop';
-	import { GAME_NAME } from '../../lib/public/about';
-	import type { GameSave } from '../../lib/save/game-save';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import { spreadLabels } from '../../lib/space-center/model';
-	import { projectNetwork, type ScreenNetwork } from '../../lib/comms/network-model';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import CommsPlanningPanel from '../../lib/comms-planning/CommsPlanningPanel.svelte';
-	import type { Antenna } from '../../lib/comms-planning/planning-model';
-	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
+	} from '../../../lib/mission-center/mission-center-loop';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import { spreadLabels } from '../../../lib/space-center/model';
+	import { projectNetwork, type ScreenNetwork } from '../../../lib/comms/network-model';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import CommsPlanningPanel from '../../../lib/comms-planning/CommsPlanningPanel.svelte';
+	import type { Antenna } from '../../../lib/comms-planning/planning-model';
+	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
 
 	let canvas: HTMLCanvasElement;
 	let mc: MissionCenter | null = null;

@@ -1,7 +1,8 @@
 /**
- * When to autosave (plan 043): a timer while a flight is running, a prompt save after a stage or a
- * landing, and one when the tab is hidden. Pure decision logic with an injected clock; the page
- * calls `tick` from its frame loop and `request` from events, and performs the save it returns.
+ * When to autosave (plan 043; every 60 s by plan 204, ADR 0201 point 11): a timer while the world
+ * has something to save, a prompt save after an event (a stage, a landing, a change in the Space
+ * Center), and one when the tab is hidden or closed. Pure decision logic with an injected clock; the
+ * world layout calls `tick` every second and `request` from events, and performs the save it returns.
  */
 export interface AutosaveOptions {
 	/** Wall time between timed autosaves, ms. */
@@ -10,11 +11,11 @@ export interface AutosaveOptions {
 	minGapMs: number;
 }
 
-export const DEFAULT_AUTOSAVE: AutosaveOptions = { intervalMs: 120_000, minGapMs: 15_000 };
+export const DEFAULT_AUTOSAVE: AutosaveOptions = { intervalMs: 60_000, minGapMs: 15_000 };
 
 /** What the page knows right now. */
 export interface AutosaveState {
-	/** The sim has produced a snapshot with a vessel in it. */
+	/** The world has something to save (a flight, or a save it booted from). */
 	flying: boolean;
 	/** The Esc menu or a dialog has frozen the sim. */
 	paused: boolean;
@@ -22,7 +23,7 @@ export interface AutosaveState {
 	busy: boolean;
 }
 
-export type AutosaveReason = 'timer' | 'stage' | 'landed' | 'hidden';
+export type AutosaveReason = 'timer' | 'stage' | 'landed' | 'change' | 'hidden' | 'pagehide';
 
 export interface Autosaver {
 	/** Call every frame or second; returns the reason to save now, or null. */
@@ -47,7 +48,8 @@ export function createAutosaver(
 		request(reason, state) {
 			if (!allowed(state)) return null;
 			// Leaving the tab must save whatever the gap; the other events wait out the minimum.
-			if (reason !== 'hidden' && now() - last < options.minGapMs) return null;
+			const leaving = reason === 'hidden' || reason === 'pagehide';
+			if (!leaving && now() - last < options.minGapMs) return null;
 			return reason;
 		},
 		saved() {

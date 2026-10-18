@@ -15,24 +15,24 @@
 	} from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
 	import { onMount } from 'svelte';
-	import { referenceTwoStage } from '../../lib/design';
-	import { formatFunds } from '../../lib/format';
-	import { activePlugins } from '../../lib/mods/runtime';
-	import { GAME_NAME } from '../../lib/public/about';
+	import { referenceTwoStage } from '../../../lib/design';
+	import { formatFunds } from '../../../lib/format';
+	import { activePlugins } from '../../../lib/mods/runtime';
+	import { GAME_NAME } from '../../../lib/public/about';
 	import {
 		GRADE_TEXT,
 		modelRows,
 		percent,
 		reportRows
-	} from '../../lib/reliability/reliability-model';
-	import type { GameSave } from '../../lib/save/game-save';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import { startSimWorker, type SimClient } from '../../lib/sim-client';
-	import BackButton from '../../lib/ui/BackButton.svelte';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import Panel from '../../lib/ui/Panel.svelte';
-	import { activeWorldId } from '../../lib/worlds/worlds';
+	} from '../../../lib/reliability/reliability-model';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import { startSimWorker, type SimClient } from '../../../lib/sim-client';
+	import BackButton from '../../../lib/ui/BackButton.svelte';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import Panel from '../../../lib/ui/Panel.svelte';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
 
 	const { registries } = loadPlugins([Stock, ...activePlugins()]);
 	const part = (id: string) => registries.parts.get(id);

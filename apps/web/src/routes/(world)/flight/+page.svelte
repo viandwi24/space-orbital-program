@@ -1,114 +1,114 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { readReplay } from '@orbital/core';
-	import GhostLayer from '../../lib/replays/GhostLayer.svelte';
-	import { ghostTrack, type ScreenGhost } from '../../lib/replays/ghost-model';
-	import { downloadText, fileNameOf } from '../../lib/download';
-	import VesselPanel from '../../lib/vessel-panel/VesselPanel.svelte';
-	import { transmitters, vesselView, type PanelContent } from '../../lib/vessel-panel/vessel-model';
-	import { commsTab, type ScreenNetwork } from '../../lib/comms/network-model';
-	import NetworkLayer from '../../lib/comms/NetworkLayer.svelte';
-	import { categoriesOf } from '../../lib/editor/categories';
+	import GhostLayer from '../../../lib/replays/GhostLayer.svelte';
+	import { ghostTrack, type ScreenGhost } from '../../../lib/replays/ghost-model';
+	import { downloadText, fileNameOf } from '../../../lib/download';
+	import VesselPanel from '../../../lib/vessel-panel/VesselPanel.svelte';
+	import { transmitters, vesselView, type PanelContent } from '../../../lib/vessel-panel/vessel-model';
+	import { commsTab, type ScreenNetwork } from '../../../lib/comms/network-model';
+	import NetworkLayer from '../../../lib/comms/NetworkLayer.svelte';
+	import { categoriesOf } from '../../../lib/editor/categories';
 	import { loadPlugins } from '@orbital/core';
 	import Stock from '@orbital/mod-stock';
-	import { activePlugins } from '../../lib/mods/runtime';
-	import { scenarioStart, type ScenarioStart } from '../../lib/missions/scenario-start';
+	import { activePlugins } from '../../../lib/mods/runtime';
+	import { scenarioStart, type ScenarioStart } from '../../../lib/missions/scenario-start';
 	import {
 		sortPanels,
 		type MissionDefinition,
 		type PanelDefinition,
 		type PanelInput
 	} from '@orbital/core';
-	import MissionsPanel from '../../lib/missions/MissionsPanel.svelte';
-	import { trackerView } from '../../lib/missions/tracker';
-	import Dock from '../../lib/dock/Dock.svelte';
-	import ModPanel from '../../lib/dock/ModPanel.svelte';
-	import PanelLibrary from '../../lib/dock/PanelLibrary.svelte';
-	import { addPanel, railOf, removePanel, togglePanel } from '../../lib/dock/dock-model';
-	import Panel from '../../lib/ui/Panel.svelte';
-	import { takeLaunchChoice } from '../../lib/launch/launch-model';
-	import { loadEphemeris, needsEphemeris } from '../../lib/ephemeris-asset';
+	import MissionsPanel from '../../../lib/missions/MissionsPanel.svelte';
+	import { trackerView } from '../../../lib/missions/tracker';
+	import Dock from '../../../lib/dock/Dock.svelte';
+	import ModPanel from '../../../lib/dock/ModPanel.svelte';
+	import PanelLibrary from '../../../lib/dock/PanelLibrary.svelte';
+	import { addPanel, railOf, removePanel, togglePanel } from '../../../lib/dock/dock-model';
+	import Panel from '../../../lib/ui/Panel.svelte';
+	import { takeLaunchChoice } from '../../../lib/launch/launch-model';
+	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
 	import type { WorldInfo } from '@orbital/core';
-	import { activeWorldId, setActiveWorld } from '../../lib/worlds/worlds';
-	import { profileStore } from '../../lib/achievements/store';
-	import type { CatchUp } from '../../lib/worlds/world-model';
-	import { GAME_NAME } from '../../lib/public/about';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
+	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
+	import { profileStore } from '../../../lib/achievements/store';
+	import type { CatchUp } from '../../../lib/worlds/world-model';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import { onMount } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
-	import AppBar from '../../lib/hud/AppBar.svelte';
-	import CrewPanel from '../../lib/hud/CrewPanel.svelte';
-	import WorldCapsule from '../../lib/hud/WorldCapsule.svelte';
-	import FundsCapsule from '../../lib/hud/FundsCapsule.svelte';
-	import RecoverDialog from '../../lib/hud/RecoverDialog.svelte';
-	import MapSwitch from '../../lib/hud/MapSwitch.svelte';
-	import RegionsLayer from '../../lib/hud/RegionsLayer.svelte';
-	import { loadWorldCatalog } from '../../lib/worlds/catalog';
-	import BlackoutBadge from '../../lib/hud/BlackoutBadge.svelte';
-	import RangeBadge from '../../lib/hud/RangeBadge.svelte';
-	import AeroStrip from '../../lib/hud/AeroStrip.svelte';
-	import LinkBadge from '../../lib/hud/LinkBadge.svelte';
-	import HelpOverlay from '../../lib/hud/HelpOverlay.svelte';
-	import InstrumentDeck from '../../lib/hud/InstrumentDeck.svelte';
-	import ManeuverLayer from '../../lib/hud/ManeuverLayer.svelte';
-	import ManeuverPanel from '../../lib/hud/ManeuverPanel.svelte';
-	import TargetMarkers from '../../lib/hud/TargetMarkers.svelte';
-	import TargetPanel from '../../lib/hud/TargetPanel.svelte';
-	import MapMarkers from '../../lib/hud/MapMarkers.svelte';
-	import OrbitStrip from '../../lib/hud/OrbitStrip.svelte';
-	import PauseMenu from '../../lib/hud/PauseMenu.svelte';
-	import DebugPanel from '../../lib/debug/DebugPanel.svelte';
-	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../lib/debug/api';
-	import { captureErrors } from '../../lib/log-buffer';
-	import { listEntries, withFallback } from '../../lib/vab/library';
-	import { indexedDbStore } from '../../lib/vab/library-idb';
-	import ResourcesPanel from '../../lib/hud/ResourcesPanel.svelte';
-	import ScriptPanel from '../../lib/hud/ScriptPanel.svelte';
-	import SituationBar from '../../lib/hud/SituationBar.svelte';
-	import StageStack from '../../lib/hud/StageStack.svelte';
-	import StatusCard from '../../lib/hud/StatusCard.svelte';
-	import WarpControl from '../../lib/hud/WarpControl.svelte';
-	import TouchControls from '../../lib/hud/TouchControls.svelte';
-	import TutorialCard from '../../lib/hud/TutorialCard.svelte';
+	import AppBar from '../../../lib/hud/AppBar.svelte';
+	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
+	import WorldCapsule from '../../../lib/hud/WorldCapsule.svelte';
+	import FundsCapsule from '../../../lib/hud/FundsCapsule.svelte';
+	import RecoverDialog from '../../../lib/hud/RecoverDialog.svelte';
+	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
+	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
+	import { loadWorldCatalog } from '../../../lib/worlds/catalog';
+	import BlackoutBadge from '../../../lib/hud/BlackoutBadge.svelte';
+	import RangeBadge from '../../../lib/hud/RangeBadge.svelte';
+	import AeroStrip from '../../../lib/hud/AeroStrip.svelte';
+	import LinkBadge from '../../../lib/hud/LinkBadge.svelte';
+	import HelpOverlay from '../../../lib/hud/HelpOverlay.svelte';
+	import InstrumentDeck from '../../../lib/hud/InstrumentDeck.svelte';
+	import ManeuverLayer from '../../../lib/hud/ManeuverLayer.svelte';
+	import ManeuverPanel from '../../../lib/hud/ManeuverPanel.svelte';
+	import TargetMarkers from '../../../lib/hud/TargetMarkers.svelte';
+	import TargetPanel from '../../../lib/hud/TargetPanel.svelte';
+	import MapMarkers from '../../../lib/hud/MapMarkers.svelte';
+	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
+	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
+	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
+	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../../lib/debug/api';
+	import { captureErrors } from '../../../lib/log-buffer';
+	import { listEntries, withFallback } from '../../../lib/vab/library';
+	import { indexedDbStore } from '../../../lib/vab/library-idb';
+	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
+	import ScriptPanel from '../../../lib/hud/ScriptPanel.svelte';
+	import SituationBar from '../../../lib/hud/SituationBar.svelte';
+	import StageStack from '../../../lib/hud/StageStack.svelte';
+	import StatusCard from '../../../lib/hud/StatusCard.svelte';
+	import WarpControl from '../../../lib/hud/WarpControl.svelte';
+	import TouchControls from '../../../lib/hud/TouchControls.svelte';
+	import TutorialCard from '../../../lib/hud/TutorialCard.svelte';
 	import {
 		aboveDeckHeight,
 		DECK_FALLBACK,
 		scriptPanelWidth,
 		throttleAnchor
-	} from '../../lib/layout/layout-model';
-	import { touchControlsOn } from '../../lib/touch/touch-model';
-	import Button from '../../lib/ui/Button.svelte';
-	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
-	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
-	import { settings } from '../../lib/settings/settings.svelte';
+	} from '../../../lib/layout/layout-model';
+	import { touchControlsOn } from '../../../lib/touch/touch-model';
+	import Button from '../../../lib/ui/Button.svelte';
+	import LoadingScreen from '../../../lib/ui/LoadingScreen.svelte';
+	import SettingsDialog from '../../../lib/ui/SettingsDialog.svelte';
+	import { settings } from '../../../lib/settings/settings.svelte';
 	import {
 		advance,
 		currentStep,
 		skip,
 		stepLabel,
 		type Observation
-	} from '../../lib/onboarding/tutorial';
-	import Toasts from '../../lib/ui/Toasts.svelte';
-	import PrecompileBadge from '../../lib/ui/PrecompileBadge.svelte';
+	} from '../../../lib/onboarding/tutorial';
+	import Toasts from '../../../lib/ui/Toasts.svelte';
+	import PrecompileBadge from '../../../lib/ui/PrecompileBadge.svelte';
 	import type { PrecompileProgress } from '@orbital/renderer/precompile-progress';
-	import { loadContent, partLookup } from '../../lib/catalog';
+	import { loadContent, partLookup } from '../../../lib/catalog';
 	import type { SimSave, VesselDesign, VesselPlacement } from '@orbital/core';
-	import { parseDesign } from '../../lib/design';
-	import { startFlight, type Flight, type FlightHud } from '../../lib/flight-loop';
-	import type { FrameData } from '../../lib/hud-controller';
-	import { idleScript, scriptIsActive, type ScriptView } from '../../lib/script-state';
-	import type { SandboxStatus } from '../../lib/script-sandbox';
-	import { startScriptSandbox } from '../../lib/script-sandbox-web';
-	import { createScriptChecker, type ScriptChecker } from '../../lib/script-checker';
-	import { decodeScript, tokenFromHash, type ImportInfo } from '../../lib/script-share';
-	import { loadDraft, loadScript, saveScript } from '../../lib/storage';
-	import { canWarp } from '../../lib/telemetry';
-	import { createAutosaver } from '../../lib/save/autosave';
-	import type { GameSave } from '../../lib/save/game-save';
-	import LoadDialog from '../../lib/save/LoadDialog.svelte';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import SaveDialog from '../../lib/save/SaveDialog.svelte';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
+	import { parseDesign } from '../../../lib/design';
+	import { startFlight, type Flight, type FlightHud } from '../../../lib/flight-loop';
+	import type { FrameData } from '../../../lib/hud-controller';
+	import { idleScript, scriptIsActive, type ScriptView } from '../../../lib/script-state';
+	import type { SandboxStatus } from '../../../lib/script-sandbox';
+	import { startScriptSandbox } from '../../../lib/script-sandbox-web';
+	import { createScriptChecker, type ScriptChecker } from '../../../lib/script-checker';
+	import { decodeScript, tokenFromHash, type ImportInfo } from '../../../lib/script-share';
+	import { loadDraft, loadScript, saveScript } from '../../../lib/storage';
+	import { canWarp } from '../../../lib/telemetry';
+	import { createAutosaver } from '../../../lib/save/autosave';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import LoadDialog from '../../../lib/save/LoadDialog.svelte';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import SaveDialog from '../../../lib/save/SaveDialog.svelte';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
 
 	let canvas: HTMLCanvasElement;
 	let hud = $state.raw<FlightHud | null>(null);

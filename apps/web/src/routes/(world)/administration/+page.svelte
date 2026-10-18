@@ -8,30 +8,30 @@
 	 */
 	import { onMount } from 'svelte';
 	import { calendarOf, homeBodyOf, type Snapshot } from '@orbital/core';
-	import { loadContent, partLookup } from '../../lib/catalog';
-	import { parseDesign, referenceTwoStage } from '../../lib/design';
-	import { loadDraft } from '../../lib/storage';
-	import { GAME_NAME } from '../../lib/public/about';
-	import type { GameSave } from '../../lib/save/game-save';
-	import { bootedMods, modHint } from '../../lib/save/mods';
-	import { SaveController } from '../../lib/save/save-controller.svelte';
-	import { startSimWorker, type SimClient } from '../../lib/sim-client';
-	import BackButton from '../../lib/ui/BackButton.svelte';
-	import PageMeta from '../../lib/ui/PageMeta.svelte';
-	import Segmented from '../../lib/ui/Segmented.svelte';
-	import { activeWorldId } from '../../lib/worlds/worlds';
-	import ContractsTab from '../../lib/administration/ContractsTab.svelte';
-	import StrategiesTab from '../../lib/administration/StrategiesTab.svelte';
+	import { loadContent, partLookup } from '../../../lib/catalog';
+	import { parseDesign, referenceTwoStage } from '../../../lib/design';
+	import { loadDraft } from '../../../lib/storage';
+	import { GAME_NAME } from '../../../lib/public/about';
+	import type { GameSave } from '../../../lib/save/game-save';
+	import { bootedMods, modHint } from '../../../lib/save/mods';
+	import { SaveController } from '../../../lib/save/save-controller.svelte';
+	import { startSimWorker, type SimClient } from '../../../lib/sim-client';
+	import BackButton from '../../../lib/ui/BackButton.svelte';
+	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import Segmented from '../../../lib/ui/Segmented.svelte';
+	import { activeWorldId } from '../../../lib/worlds/worlds';
+	import ContractsTab from '../../../lib/administration/ContractsTab.svelte';
+	import StrategiesTab from '../../../lib/administration/StrategiesTab.svelte';
 	import {
 		strategyCards,
 		strategyCommand,
 		strategySlotsText
-	} from '../../lib/administration/strategies-model';
+	} from '../../../lib/administration/strategies-model';
 	import {
 		agencyStrip,
 		contractCommand,
 		type ContractTab
-	} from '../../lib/administration/contracts-model';
+	} from '../../../lib/administration/contracts-model';
 
 	const { catalog, world: registries } = loadContent();
 	const day = (() => {
