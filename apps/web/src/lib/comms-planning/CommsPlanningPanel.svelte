@@ -249,6 +249,12 @@
 				<p class="sub" data-testid="mc-cover-mean">
 					Covered {formatPercent(grid.mean)} of the time over the next 6 h, by area
 				</p>
+				{#if grid.mean === 0}
+					<p class="calm" data-testid="mc-cover-none">
+						Nothing covers this body yet: a station on the ground sees only its own horizon, so
+						coverage comes from relays in orbit.
+					</p>
+				{/if}
 			{/if}
 		{/if}
 	{:else}

@@ -29,6 +29,11 @@ Tier 3 of ADR 0101 asks for three planning tools: a contact timeline, a coverage
    It refuses a deploy orbit whose periapsis is below the body radius plus a stated clearance.
 6. **Mission Center panel:** a "Comms planning" panel with three tabs (Timeline, Coverage, Constellation), opened from the layers row; it reads the page's snapshot and catalog and calls the Worker.
 
+## Found while building (plan 118)
+
+- **Coverage comes from relays.** A ground receiver 10 m up sees a ground station only within its horizon, about 11 km on the home planet: a world without relays has no coverage beyond a speck at each site. The panel says so when the map is empty.
+- **The timeline needs no correction for the sim's own sample grid**: over 24 h of a 2000 km probe the four events equal the sim's to the printed digit.
+
 ## Alternatives considered
 
 - **Running the planners in the sim Worker on request:** exact (terrain, routing), but against ADR 0101 point 2, and a long timeline would stall the sim.

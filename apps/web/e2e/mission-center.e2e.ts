@@ -27,6 +27,26 @@ test('open the Mission Center from its building and select a body', async ({ pag
 	await expect(page.getByTestId('mc-card')).toContainText('Moon of Home');
 	await page.getByTestId('mc-filter').getByText('Relays').click();
 	await expect(page.getByTestId('mc-tracking')).toContainText('No relays yet');
+
+	// comms planning (plan 118, ADR 0163): answered by the planning Worker
+	await page.getByTestId('mc-planning-toggle').click();
+	const planning = page.getByTestId('mc-planning');
+	await expect(planning).toContainText('No vessel with an antenna');
+	await planning.getByTestId('mc-planning-tab').getByText('Constellation').click();
+	await planning.getByTestId('mc-plan-constellation').click();
+	await expect(planning.getByTestId('mc-const-plan')).toContainText('4/3 of the target');
+	await expect(planning.getByTestId('mc-const-plan')).toContainText('120°');
+	await planning.getByTestId('mc-const-side').selectOption('below');
+	await planning.getByTestId('mc-const-altitude').fill('100');
+	await planning.getByTestId('mc-plan-constellation').click();
+	await expect(planning.getByTestId('mc-plan-error')).toContainText('deploy from above');
+	await planning.getByTestId('mc-planning-tab').getByText('Coverage').click();
+	await planning.getByTestId('mc-plan-coverage').click();
+	await expect(planning.getByTestId('mc-cover-mean')).toContainText('Covered', { timeout: 30_000 });
+	// a new world has no relays: the ground station sees only its horizon
+	await expect(planning.getByTestId('mc-cover-none')).toBeVisible();
+	await planning.getByTestId('mc-planning-close').click();
+	await expect(planning).toBeHidden();
 	await page.getByTestId('mc-home').click();
 	await page.waitForURL('**/space-center');
 	expect(errors).toEqual([]);
