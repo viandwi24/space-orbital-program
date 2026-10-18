@@ -41,7 +41,6 @@ export {
 	RATE_LADDER,
 	BLACKOUT_BADGE_LEVEL
 } from '@orbital/core';
-export { blackoutLevelFromFlux, linkRange, BLACKOUT_BADGE_LEVEL } from '@orbital/core';
 export {
 	estimatedLaunchCost,
 	expectedValue,
