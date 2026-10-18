@@ -1,12 +1,12 @@
 ---
 id: 063
 title: "Aeroplane gameplay: landing gear, runway, trim, flaps, flight read-outs"
-status: draft
-owner: ""
+status: in-progress
+owner: "Agent 2"
 depends: [041, 091, 094, 110]
 phase: 3
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-10-18
 ---
 
 # 063 — Aeroplane gameplay
@@ -53,3 +53,4 @@ A player can build a winged craft, take off from a runway, fly it with the keybo
 
 - 2026-10-17 — Created as draft by plan 041 (found, not done).
 - 2026-10-17 — Realigned with the owner's Fondasi Orbital decisions (ADR 0097, 0102, 0107: runway is a building; flaps and gear are part actions).
+- 2026-10-18 — Claimed by Agent 2 (Dev B, M2).
