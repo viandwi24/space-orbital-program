@@ -72,4 +72,27 @@ Rate ladder steps keep numbers readable (for example 1 kbit/s to 1 Gbit/s in dec
   - **Sim test:** `packages/sim/test/comms-budget.test.ts`: twice the distance gives −6.02 dB, and 1 Gbit/s steps to 100 Mbit/s across the 60 dB mark.
   - **Vitest:** `comms-render.test.ts` checks the inspector's 15 terms and values.
   - **Full checks:** in the journal.
+- 2026-10-18 — Handover (`ready/116`):
 
+```text
+Handover: plan 116 — Comms tier 2: link budget, bands, data rates, comms scale
+
+Agent: Agent 3 (Dev C, Linux Mint 6c/8 GB)   Branch: devc/116-link-budget
+Base: origin/main @ 5f114dc (rebased 2026-10-18, after 096 and the crew-dismiss contract)
+Commits:
+2a62de4 docs(plan-116): journal, Log, STATUS, architecture and glossary; API_VERSION 0.1.60 (096 took 0.1.58, crew-dismiss 0.1.59); web test typings
+415ee74 feat(web): the link inspector in the Comms tab: every budget term with its value, the rate, signal bars from the rate; comms-inspect while the tab is open (plan 116, ADR 0185)
+2ed8282 feat(core,sdk,sim,stock): comms tier 2: bands, the Friis link budget and rate ladder per link, the comms scale in the budget, comms-inspect; API_VERSION 0.1.58 (plan 116, ADR 0185)
+0d6daae docs(plan-116): claim (Agent 3)
+Acceptance:
+  [x] budget for a stated pair equals a hand calculation within 0.1 dB — `bun test packages/core/test/comms-budget.test.ts` — 4 pass (every term within 0.001 dB of docs/research/comms.md "Worked case")
+  [x] doubling the distance lowers the margin by 6.02 dB and steps the rate down at the stated thresholds — `bun test packages/sim/test/comms-budget.test.ts` — 4 pass (2 000 vs 4 000 km: −6.02 dB, 1 Gbit/s → 100 Mbit/s across 60 dB; comms scale 2 gains 6.02 dB)
+  [x] vitest: the inspector lists each term with its value — `bun run --filter @orbital/web test -- src/lib/comms` — 6 passed (15 terms rendered in the Comms tab)
+  [x] bun test, typecheck, build, docs:check — see below
+Checks run here: bun run test 1637 pass / 4 fail (551 s; all four load timeouts — surface-rails, scenario-orbit, heating, grouping — 34/34 pass alone) · web vitest 989 passed, 1 skipped, 4 env-only import suites (editor-options, settings, WarpControl, dock; no Node here) · typecheck exit 0 · build exit 0 · docs:check OK · e2e not run (no WebGL 2 here)
+Contracts changed (from Touches): SDK — defineBand, antenna band/gain/aperture, station aperture, SignalState.rate, budget functions re-exported · also the protocol pieces the plan names ("inspector data in the snapshot on request"): command comms-inspect, Snapshot.network.vessels rate/margin, Snapshot.network.inspector (ADR 0185 point 9) · Contract requests: none
+Save format / API_VERSION: save unchanged · API_VERSION patch bump 0.1.60 (096 took 0.1.58, crew-dismiss 0.1.59)
+Docs: journal docs/journal/116-comms-tier-2-link-budget.md · ADR 0185 · research docs/research/comms.md · simulation.md, plugin-system.md, writing-a-mod.md, glossary · STATUS row only
+Resource notes: swap used 907 MB, thermal ok, sub-workers used 0, anything left running: none
+Follow-ups: new drafts none (117 takes relays, capacity, the budget as the link rule and combined antennas; the ADR lists UHF/Ka/optical parts and EC draw)
+```
