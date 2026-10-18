@@ -74,10 +74,36 @@ jobs:
         run: |
           bun run --filter @orbital/web build:sandbox
           cd apps/web && bun scripts/copy-basis.ts
-      - run: bun run typecheck
-      - run: bun run test
+      # Each step keeps its output in a file; on failure the last lines go to the run's summary page,
+      # which anyone can read without signing in (the raw job log needs a login).
+      - name: typecheck
+        run: |
+          set -o pipefail
+          bun run typecheck 2>&1 | tee /tmp/ci-typecheck.log
+      - name: bun test
+        run: |
+          set -o pipefail
+          bun run test 2>&1 | tee /tmp/ci-test.log
       - name: web vitest
-        run: bun run --filter @orbital/web test
+        run: |
+          set -o pipefail
+          bun run --filter @orbital/web test 2>&1 | tee /tmp/ci-vitest.log
+      - name: failure summary
+        if: failure()
+        run: |
+          for f in typecheck test vitest; do
+            [ -f /tmp/ci-$f.log ] || continue
+            {
+              echo "### $f: failing lines"
+              echo '```'
+              grep -nE '(✗|FAIL|fail\b|error|Error|ERROR|panic|Unhandled|exited with code [1-9])' /tmp/ci-$f.log | tail -n 60 || true
+              echo '```'
+              echo "### $f: last 80 lines"
+              echo '```'
+              tail -n 80 /tmp/ci-$f.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
       - run: bun run build
       - name: e2e smoke (chromium, informational)
         # The runner has no GPU (software WebGL on 4 vCPU): a failure here is reported, not blocking.
