@@ -16,7 +16,7 @@
 | 091 space-center | done | `lead/091-space-center` | 2026-10-17 | merged d204a3d, cp/f2-091-space-center |
 | 113 mission-center | done | `lead/113-mission-center` | 2026-10-17 | merged c21d52b, cp/f4-113-mission-center |
 | 122 sun | done | `lead/122-sun-seasons` | 2026-10-17 | merged b33f76a, cp/f5-122-sun |
-| 096 building-levels | in-progress | `lead/096-building-levels` | 2026-10-18 | claim/096 |
+| 096 building-levels | done | `lead/096-building-levels` | 2026-10-17 | merged 279abc5, cp/f3-096-building-levels |
 | 109 eva | done | `lead/109-eva` | 2026-10-17 | merged 912d3e3, cp/f3-109-eva |
 | 097 markets | todo |  | 2026-10-17 | draft refined |
 | 071 second-planet | done | `lead/071-second-planet` | 2026-10-17 | merged 5ba6b20, cp/f5-071-second-planet |

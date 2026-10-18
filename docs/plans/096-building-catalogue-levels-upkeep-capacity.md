@@ -1,7 +1,7 @@
 ---
 id: 096
 title: "Buildings with costs, construction time, upkeep and capacity limits"
-status: in-progress
+status: done
 owner: "Agent 1"
 depends: [091, 095, 094]
 phase: 6
