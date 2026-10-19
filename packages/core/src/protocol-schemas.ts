@@ -110,6 +110,22 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 			.optional()
 	}),
 	z.object({ type: z.literal('set-rcs'), vessel: entity, on: z.boolean() }),
+	z.object({
+		type: z.literal('transfer'),
+		vessel: entity,
+		resource: z.string().min(1),
+		from: z.array(entity).min(1).optional(),
+		to: z.array(entity).min(1).optional(),
+		rate: z.number().positive().finite().optional(),
+		stop: z.boolean().optional()
+	}),
+	z.object({
+		type: z.literal('set-flow-lock'),
+		vessel: entity,
+		part: entity,
+		resource: z.string().min(1),
+		locked: z.boolean()
+	}),
 	z.object({ type: z.literal('stage'), vessel: entity }),
 	z.object({ type: z.literal('trim'), vessel: entity, pitch: z.number().min(-1).max(1) }),
 	z.object({

@@ -1,4 +1,5 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
+import { partResourceSnapshot, vesselResourceSnapshot } from './transfer.ts';
 import { portAlignment, portSnapshots } from './docking.ts';
 import { techSnapshot } from './tech.ts';
 import { debugSnapshot } from './debug.ts';
@@ -10,6 +11,7 @@ import {
 	bodyId,
 	partId,
 	type PartSnapshot,
+	type ResourceSnapshot,
 	type Snapshot,
 	type EntityId,
 	type Quat,
@@ -85,6 +87,12 @@ function linkOf(
 	};
 }
 
+/** `{ resources }` for a part with stores (plan 213), else nothing. */
+function withResources(core: SimCore, partId: EntityId): { resources?: ResourceSnapshot[] } {
+	const resources = partResourceSnapshot(core, partId);
+	return resources ? { resources } : {};
+}
+
 function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const vessel = vesselOf(core, id);
 	const frame = frameOfVessel(core, id);
@@ -109,7 +117,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				temperature: partOf(core, partEntity).temperature,
 				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: partOf(core, partEntity).index,
-				...linkOf(core, partEntity, root.rotation)
+				...linkOf(core, partEntity, root.rotation),
+				...withResources(core, partEntity)
 			});
 		}
 	} else {
@@ -129,7 +138,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				temperature: p.temperature,
 				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: p.index,
-				...linkOf(core, partEntity, orientation)
+				...linkOf(core, partEntity, orientation),
+				...withResources(core, partEntity)
 			});
 		}
 	}
@@ -162,6 +172,16 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const uncontrolled = controlProblem(core, vessel);
 	if (uncontrolled) snapshot.uncontrolled = uncontrolled;
 	if (vessel.rcs) snapshot.rcs = true;
+	const resources = vesselResourceSnapshot(parts.map((p) => p.resources));
+	if (resources) snapshot.resources = resources;
+	if (vessel.transfers?.length) {
+		snapshot.transfers = vessel.transfers.map((t) => ({
+			resource: t.resource,
+			from: [...t.from],
+			to: [...t.to],
+			rate: t.rate
+		}));
+	}
 	const ports = portSnapshots(core, parts);
 	if (ports) snapshot.ports = ports;
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);

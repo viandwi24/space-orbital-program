@@ -30,7 +30,9 @@ export const ElectricCharge = defineResource({
 	// Shared by every part on the vessel.
 	flowMode: 'vessel',
 	unit: 'EC',
-	price: RESOURCE_PRICES.electricCharge
+	price: RESOURCE_PRICES.electricCharge,
+	// a transfer moves charge at 50 EC/s (plan 213)
+	transferRate: 50
 });
 
 /** Consumed by heat shields to carry re-entry heat away (ADR 0023). 1 u is 1 kg. */

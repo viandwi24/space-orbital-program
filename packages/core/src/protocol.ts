@@ -132,6 +132,30 @@ export type TargetSnapshot = TargetRef & {
 	port?: PortAlignment;
 };
 
+/**
+ * One resource of a part's stores, or of the whole vessel (plan 213). `rate` is the net flow,
+ * units/s, smoothed over about a second (negative while it drains); `timeToEmpty` is
+ * `amount / -rate` while it drains, else null.
+ */
+export interface ResourceSnapshot {
+	resource: string;
+	amount: number;
+	capacity: number;
+	rate: number;
+	timeToEmpty: number | null;
+	/** Every store of it is flow-locked (for the vessel: all of them). */
+	locked: boolean;
+}
+
+/** A running `transfer` (plan 213). */
+export interface TransferSnapshot {
+	resource: string;
+	from: EntityId[];
+	to: EntityId[];
+	/** Units/s asked for. */
+	rate: number;
+}
+
 export interface PartSnapshot {
 	/** Part instance entity id. */
 	id: EntityId;
@@ -158,6 +182,8 @@ export interface PartSnapshot {
 	 * `position`. Absent for other parts and once a split cut the link.
 	 */
 	link?: { peer: EntityId; point: Vec3 };
+	/** The part's stores by resource (plan 213); absent for a part without one. */
+	resources?: ResourceSnapshot[];
 }
 
 /**
@@ -193,6 +219,10 @@ export interface VesselSnapshot {
 	uncontrolled?: 'no-source' | 'no-crew' | 'no-power';
 	/** RCS is on (plan 211); absent while off. */
 	rcs?: true;
+	/** Totals over the vessel's stores by resource (plan 213), resource id order. */
+	resources?: ResourceSnapshot[];
+	/** Running transfers (plan 213). */
+	transfers?: TransferSnapshot[];
 	/** The vessel's docking ports (plan 222): the target list and the Locked camera (plan 226) read them. */
 	ports?: PortSnapshot[];
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
@@ -638,6 +668,23 @@ export type Command =
 	  }
 	/** Switch RCS on or off for the vessel (plan 211, ADR 0217). */
 	| { type: 'set-rcs'; vessel: EntityId; on: boolean }
+	/**
+	 * Move `resource` between containers of one vessel (plan 213): from the `from` parts to the `to`
+	 * parts at `rate` units/s (the resource's `transferRate`, else 20). It runs until the sources
+	 * are empty, the targets full, or `stop` (with `from`/`to` absent) ends the vessel's transfers of
+	 * that resource. Locked stores and flow-mode `none` resources are refused.
+	 */
+	| {
+			type: 'transfer';
+			vessel: EntityId;
+			resource: string;
+			from?: EntityId[];
+			to?: EntityId[];
+			rate?: number;
+			stop?: boolean;
+	  }
+	/** Lock or unlock one resource of a part's stores (plan 213): flow and transfers skip it. */
+	| { type: 'set-flow-lock'; vessel: EntityId; part: EntityId; resource: string; locked: boolean }
 	| { type: 'stage'; vessel: EntityId }
 	/** Pitch trim (plan 063, ADR 0161 point 4): -1..1 added to the pitch demand; kept until changed. */
 	| { type: 'trim'; vessel: EntityId; pitch: number }

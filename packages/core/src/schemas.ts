@@ -70,7 +70,9 @@ export const resourceDefinitionSchema = z.object({
 	flowMode: z.enum(['stack', 'vessel', 'none']),
 	unit: z.string().min(1),
 	/** Funds per unit (plan 095, ADR 0113); absent = 0. */
-	price: z.number().nonnegative().optional()
+	price: z.number().nonnegative().optional(),
+	/** Default rate of a `transfer`, units/s (plan 213); absent = 20. */
+	transferRate: z.number().positive().optional()
 });
 
 /**

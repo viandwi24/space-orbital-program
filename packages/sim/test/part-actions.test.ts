@@ -165,7 +165,8 @@ describe('action groups', () => {
 		const { sim, vessel } = await loaded(design);
 		const actions = vesselSnap(sim, vessel).actions!;
 		// 33 engines carry a thrust limiter and a gimbal limit too (plan 210)
-		expect(actions.states).toHaveLength(99 + 33 * 2);
+		// and the pod's container a lock per resource and the two transfer triggers (plan 213)
+		expect(actions.states).toHaveLength(99 + 33 * 2 + 4);
 		const bytes = JSON.stringify(actions).length;
 		console.log(`snapshot actions of a 100-part vessel: ${bytes} bytes`);
 		expect(bytes).toBeLessThan(8_192);

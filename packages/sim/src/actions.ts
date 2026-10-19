@@ -9,6 +9,7 @@ import {
 	groupState,
 	type CommandResult,
 	type EntityId,
+	type ModuleContext,
 	type PartActionDescriptor,
 	type VesselSnapshot
 } from '@orbital/core';
@@ -117,7 +118,7 @@ export function applyActionGroup(
 	for (const a of live) {
 		const arg = a.d.kind === 'toggle' ? (typeof value === 'boolean' ? value : toggleTo) : value;
 		if (a.d.kind !== 'trigger' && actionArgumentProblem(a.d, arg)) continue; // another kind of control in the group
-		const action = moduleDefOf(core, a.module).actions?.[a.d.id];
+		const action = moduleAction(moduleDefOf(core, a.module), a.d.id);
 		if (!action) {
 			failures.push(`module "${a.module}" has no action "${a.d.id}"`);
 			continue;
@@ -138,4 +139,22 @@ export function applyActionGroup(
 		};
 	}
 	return { ok: true };
+}
+
+/**
+ * The action an id names (plan 213): `name`, or `name:key`, which calls action `name` with `key`
+ * first, so one action serves a control per resource (`setLock:stock.liquid-fuel`).
+ */
+export function moduleAction(
+	def: { actions?: Record<string, ((ctx: never, ...args: unknown[]) => unknown) | undefined> },
+	id: string
+): ((ctx: ModuleContext, ...args: unknown[]) => unknown) | undefined {
+	const direct = def.actions?.[id];
+	if (direct) return direct as (ctx: ModuleContext, ...args: unknown[]) => unknown;
+	const at = id.indexOf(':');
+	if (at <= 0) return undefined;
+	const named = def.actions?.[id.slice(0, at)] as
+		((ctx: ModuleContext, ...args: unknown[]) => unknown) | undefined;
+	const key = id.slice(at + 1);
+	return named ? (ctx, ...args) => named(ctx, key, ...args) : undefined;
 }

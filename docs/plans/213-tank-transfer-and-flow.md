@@ -1,12 +1,12 @@
 ---
 id: 213
 title: Tank transfer, flow locks, rates
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [208]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 213 — Tank transfer, flow locks, rates
@@ -87,3 +87,8 @@ The player can move a resource from one container to another (source, target, st
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A. Defaults, recorded here:
+  - ADR 0220 holds the design: store hooks for the lock, transfers as vessel jobs, measured and smoothed rates, and `name:key` action ids for a lock per resource.
+  - Step 4's script passthrough is skipped: the prelude exposes named functions, not commands by name (the plan's condition). It comes with plan 214's panel.
+  - Flame-out on all tanks locked: the stock engine flames out as it does when dry (event `stock:engine-flameout`); its snapshot shows `flameout`.
+  - Rates run in flight and rails steps; a vessel's totals are the sums of its parts' rows.

@@ -78,6 +78,11 @@ export interface DebugApi {
 	setCrewLevel(member: string, level: number): Promise<CommandResult>;
 	/** The log's entries, oldest first. */
 	log(): readonly LogEntry[];
+	/**
+	 * Any command, as the flight would send it (plan 213: a `transfer` from a test), then wait for
+	 * the snapshot that shows it.
+	 */
+	send(command: Command): Promise<CommandResult>;
 }
 
 /** How long a call waits for the snapshot that shows its change, ms. */
@@ -168,7 +173,8 @@ export function createDebugApi(host: DebugHost): DebugApi {
 			return id === null ? noVessel : apply({ type: 'debug-set-temperature', vessel: id, ...spec });
 		},
 		setCrewLevel: (member, level) => apply({ type: 'debug-set-crew-level', member, level }),
-		log: () => logBuffer.entries()
+		log: () => logBuffer.entries(),
+		send: (command) => apply(command)
 	};
 }
 

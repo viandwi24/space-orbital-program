@@ -304,6 +304,12 @@ export interface ResourceStore<Config = unknown, State = unknown> {
 	withdraw(config: Config, state: State, resource: string, amount: number): number;
 	/** Add up to `amount` (bounded by capacity); returns what was accepted. */
 	deposit(config: Config, state: State, resource: string, amount: number): number;
+	/** Most this store holds of `resource` (plan 213: snapshots and transfers); absent = unknown. */
+	capacity?(config: Config, state: State, resource: string): number;
+	/** Flow lock (plan 213): a locked store neither gives nor takes `resource` through flow or transfers. */
+	locked?(config: Config, state: State, resource: string): boolean;
+	/** Sets the flow lock of `resource` (the `set-flow-lock` command). */
+	setLocked?(config: Config, state: State, resource: string, locked: boolean): void;
 }
 
 /**

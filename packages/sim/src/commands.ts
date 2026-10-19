@@ -4,6 +4,9 @@
  * exceptions: commands come from outside the sim.
  */
 import { endRent, ownedRefusal, rentRelay } from './agencies.ts';
+import { DEFAULT_TRANSFER_RATE, transferRefusal } from './transfer.ts';
+import { setFlowLock } from './resources.ts';
+import { moduleAction } from './actions.ts';
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import { stageRefusal, violation, watchAscent } from './range.ts';
@@ -389,6 +392,40 @@ export function dispatch(
 			}
 			return accept();
 		}
+		case 'transfer': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			if (v.owner !== undefined)
+				return refuse(`vessel ${command.vessel} belongs to another agency`);
+			if (command.stop) {
+				v.transfers = (v.transfers ?? []).filter((j) => j.resource !== command.resource);
+				if (v.transfers.length === 0) delete v.transfers;
+				return accept();
+			}
+			if (!command.from || !command.to) return refuse('a transfer needs source and target parts');
+			const why = transferRefusal(core, command.vessel, command.resource, command.from, command.to);
+			if (why) return refuse(why);
+			const rate =
+				command.rate ??
+				core.registries.resources.get(command.resource)?.transferRate ??
+				DEFAULT_TRANSFER_RATE;
+			v.transfers = [
+				...(v.transfers ?? []),
+				{ resource: command.resource, from: [...command.from], to: [...command.to], rate }
+			];
+			return accept();
+		}
+		case 'set-flow-lock': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			if (!v.parts.includes(command.part)) {
+				return refuse(`part ${command.part} is not part of vessel ${command.vessel}`);
+			}
+			if (!setFlowLock(core, command.part, command.resource, command.locked)) {
+				return refuse(`part ${command.part} has no lockable store of "${command.resource}"`);
+			}
+			return accept();
+		}
 		case 'set-rcs': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
@@ -446,7 +483,7 @@ export function dispatch(
 			}
 			const instance = part.modules.find((m) => m.id === command.module);
 			if (!instance) return refuse(`part ${command.part} has no module "${command.module}"`);
-			const action = moduleDefOf(core, command.module).actions?.[command.action];
+			const action = moduleAction(moduleDefOf(core, command.module), command.action);
 			if (!action) return refuse(`module "${command.module}" has no action "${command.action}"`);
 			const failure = failureOf(core, command.part, command.module);
 			if (failure) return refuse(`module "${command.module}" has failed: ${failure.label}`);

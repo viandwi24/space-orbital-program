@@ -98,7 +98,12 @@ export type ContainerConfig = z.output<typeof containerConfigSchema>;
 export interface ContainerState {
 	/** Current amount per resource id, in the resource's unit. */
 	amounts: Record<string, number>;
+	/** Flow-locked resources (plan 213); absent in states saved before it, meaning none. */
+	locked?: Record<string, true>;
 }
+
+/** "stock.liquid-fuel" → "liquid fuel", for a control's label. */
+const resourceWords = (id: string): string => id.slice(id.indexOf('.') + 1).replace(/-/g, ' ');
 
 function checkAmount(amount: number): void {
 	if (!Number.isFinite(amount) || amount < 0) {
@@ -133,10 +138,38 @@ export function deposit(
 
 const transferArgs = z.tuple([resourceKey, z.number()]);
 
+function setLock(state: ContainerState, resource: string, locked: boolean): void {
+	if (locked) state.locked = { ...state.locked, [resource]: true };
+	else if (state.locked) {
+		const { [resource]: _gone, ...rest } = state.locked;
+		if (Object.keys(rest).length > 0) state.locked = rest;
+		else delete state.locked;
+	}
+}
+
 export const ModuleResourceContainer = defineModule({
 	id: 'stock.resource-container',
 	config: containerConfigSchema,
-	describe: () => ({ category: 'tanks' }),
+	describe: (config, state: ContainerState) => {
+		const resources = Object.keys(config.contents).sort();
+		if (resources.length === 0) return { category: 'tanks' };
+		return {
+			category: 'tanks',
+			actions: [
+				// one flow lock per resource (plan 213): `setLock:<resource>` calls `setLock`
+				...resources.map((r) => ({
+					id: `setLock:${r}`,
+					label: `Lock ${resourceWords(r)}`,
+					kind: 'toggle' as const,
+					value: state.locked?.[r] === true,
+					enabled: true
+				})),
+				// the panel turns these into a picker of the other end (plan 214)
+				{ id: 'transferOut', label: 'Transfer out', kind: 'trigger' as const, enabled: true },
+				{ id: 'transferIn', label: 'Transfer in', kind: 'trigger' as const, enabled: true }
+			]
+		};
+	},
 	power: (config) => ({ capacity: config.contents[ElectricCharge.id]?.capacity ?? 0 }),
 	state: (config): ContainerState => ({
 		amounts: Object.fromEntries(
@@ -148,7 +181,10 @@ export const ModuleResourceContainer = defineModule({
 		resources: (config) => Object.keys(config.contents),
 		amount: (_config, state, resource) => state.amounts[resource] ?? 0,
 		withdraw: (_config, state, resource, amount) => withdraw(state, resource, amount),
-		deposit: (config, state, resource, amount) => deposit(config, state, resource, amount)
+		deposit: (config, state, resource, amount) => deposit(config, state, resource, amount),
+		capacity: (config, _state, resource) => config.contents[resource]?.capacity ?? 0,
+		locked: (_config, state, resource) => state.locked?.[resource] === true,
+		setLocked: (_config, state, resource, locked) => setLock(state, resource, locked)
 	},
 	actions: {
 		/** `(resource, amount)` -> amount actually removed. */
@@ -160,9 +196,22 @@ export const ModuleResourceContainer = defineModule({
 		deposit: (ctx, ...args) => {
 			const [resource, amount] = transferArgs.parse(args);
 			return deposit(ctx.config, ctx.state, resource, amount);
-		}
+		},
+		/** `(resource, locked)`: the flow lock (plan 213); the descriptor ids are `setLock:<resource>`. */
+		setLock: (ctx, ...args) => {
+			const [resource, locked] = z.tuple([resourceKey, z.boolean()]).parse(args);
+			if (resource in ctx.config.contents) setLock(ctx.state, resource, locked);
+		},
+		/** Picker triggers for the vessel panel (plan 214): the transfer itself is the `transfer` command. */
+		transferOut: () => {},
+		transferIn: () => {}
 	},
-	snapshot: (state) => ({ amounts: { ...state.amounts } })
+	snapshot: (state) => ({
+		amounts: { ...state.amounts },
+		...(state.locked && Object.keys(state.locked).length > 0
+			? { locked: Object.keys(state.locked).sort() }
+			: {})
+	})
 });
 
 // ---------------------------------------------------------------------------------------------

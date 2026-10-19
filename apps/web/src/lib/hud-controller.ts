@@ -90,6 +90,10 @@ export interface ResourceRow {
 	amount: number;
 	capacity: number;
 	unit: string;
+	/** Net flow, units/s, from the sim (plan 213); absent before it reports one. */
+	rate?: number;
+	/** Seconds until empty at that rate, or null while it does not drain (plan 213). */
+	timeToEmpty?: number | null;
 }
 
 /** The earliest maneuver node as the burn panel shows it (plan 045). */
@@ -387,7 +391,19 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				totals.set(r, row);
 			}
 		}
-		stageCache = { at: now, model, resources: [...totals.values()], report };
+		// the sim's own totals (plan 213) when the snapshot has them: the same sums, with rates
+		const live = find()?.resources;
+		const resources: ResourceRow[] = live
+			? live.map((r) => ({
+					id: r.resource,
+					amount: r.amount,
+					capacity: r.capacity,
+					unit: content.resources.get(r.resource)?.unit ?? '',
+					rate: r.rate,
+					timeToEmpty: r.timeToEmpty
+				}))
+			: [...totals.values()];
+		stageCache = { at: now, model, resources, report };
 		return stageCache;
 	}
 

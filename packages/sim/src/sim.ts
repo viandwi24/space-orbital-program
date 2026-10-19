@@ -78,6 +78,7 @@ import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
+import { runTransfers, updateRates } from './transfer.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -469,12 +470,14 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		autoRails(core);
 		collectCrewPlaces(core);
 		updateCrewLife(core, tStart, true);
+		runTransfers(core, dt); // plan 213
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 		runStaleBackground(core); // rails vessels' charge between ticks (plan 208, ADR 0214)
+		updateRates(core); // plan 213
 		// The step is not split; a boundary it crossed ticks now, at the boundary's own time (ADR 0171 point 4).
 		if (atBoundary(core.t, nextTickTime(core))) runDueTicks(core, { registries, events, rules });
 	}
@@ -517,12 +520,14 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		runSystems(core.post, h);
 		collectCrewPlaces(core);
 		updateCrewLife(core, tStart, false);
+		runTransfers(core, h); // transfers run on rails too, in the same step as life support (plan 213)
 		refreshPatchedBodies(core);
 		updateNetwork(core);
 		collectMilestones(core);
 		collectRange(core);
 		evaluateObjectivesDue(core, 'step');
 		runStaleBackground(core);
+		updateRates(core);
 	}
 
 	return {

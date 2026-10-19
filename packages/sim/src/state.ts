@@ -173,6 +173,8 @@ export interface VesselState {
 	 * (origin relative to the planet's centre, and rotation). Absent while free.
 	 */
 	anchor?: { r: Vec3; q: Quat };
+	/** Running transfers between the vessel's stores (plan 213), in start order. */
+	transfers?: Array<{ resource: string; from: EntityId[]; to: EntityId[]; rate: number }>;
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
 }
@@ -252,6 +254,11 @@ export interface PartState {
 	 * longer after the faces met too fast.
 	 */
 	portBlockedUntil?: number;
+	/** Net flow of each resource through the part's stores, units/s, smoothed over about 1 s (plan 213). */
+	rates?: Record<string, number>;
+	/** The amounts and time of the part's last rate sample (plan 213). */
+	rateBase?: Record<string, number>;
+	rateAt?: number;
 	/** Module instances in definition order, with parsed configs. */
 	modules: Array<{ id: string; config: unknown }>;
 }
