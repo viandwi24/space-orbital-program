@@ -99,3 +99,8 @@ A KSP player's hands work on day one. The default key profile follows KSP: B bra
   - The keys that later plans wire are declared `pending` and hidden.
 - 2026-10-19 — Worker A, found and fixed: the flight page never passed the settings keymap to `startFlight`, so a player's rebinds did not apply in flight.
 - 2026-10-19 — Checks: `CI=true bun run check:affected --e2e e2e/key-profiles.e2e.ts` all passed; smoke, editor, vessel-panel and power e2e 14/14; web vitest 1107/1107; CI green on `ready/216` (`refs/ci/pass/47bf7698`).
+- 2026-10-19 — Worker A, rebased onto plan 221, which put vessel switching on `[`/`]`:
+  - classic keeps `[`/`]` for the trim and switches vessels on Page Up/Down;
+  - KSP switches vessels on `[`/`]` and trims on Alt+S/W.
+
+  Re-checked after the rebase: `check:affected --e2e e2e/key-profiles.e2e.ts` all passed, web vitest 1109/1109, and vessel-switch, warp and clock e2e 5/5.
