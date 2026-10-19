@@ -1,12 +1,12 @@
 ---
 id: 215
 title: HUD layout spec and stable camera framing
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: [204]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 215 — HUD layout spec and stable camera framing
@@ -91,3 +91,4 @@ Every flight HUD region has a minimum, default and maximum width, a bounded heig
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. Between 1280 and 1439 px both side panels stay allowed, as before (the ADR names ≥ 1440 and < 1280; the band between keeps today's two-panel layout). "Bottom panels at 56 px" holds through the world shell since plan 204: the flight box ends above the status bar, so a 24 px margin inside it is 48 px plus the bar. Drawer mode is the one-panel rule plus 44 px targets in the side panels, not a sliding drawer. The toast cap was already four; past it the oldest non-error toast now leaves first, errors still expire on their timer (dismissing is plan 228's tooltip and notice work). The vessel panel takes its 340 px default width; its resize handle is plan 214's. The touch throttle stands above a staging stack in the left column, or beside it when the room above is shorter than its smallest track. Debug API: `toast` and `vesselOnScreen` (through `flightDebug`, filled by the flight page). The journal's screenshots are taken at the three widths with the vessel panel open.
