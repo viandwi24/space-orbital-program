@@ -16,6 +16,9 @@
 
 - **A station parked on rails could never be docked with:** capture needs both vessels in one flight frame, and idle vessels go on rails after 2 s. Port vessels within 50 m now wake and stay in flight (ADR 0218 point 5).
 - **The e2e needs the clock paused** to place the second vessel 20 m away: 20 m of orbit is 3 ms at 7.6 km/s.
+- **A sideways miss never captured:** the faces met 0.13 m apart side by side, and the "line between the faces within 15°" rule failed. Inside the capture range only the face angle counts now.
+- **Software-rendered frames hold a key for most of a second** in headless Chromium: a 30 ms RCS tap gave 5 m/s. The e2e flies a 28 t Alpha so one press adds about 0.1 m/s.
+- **The stock probe core has no reaction wheel,** so the target vessel needs one to turn its port; both vessels hold SAS target on each other, which keeps the faces in line through the curved relative path.
 - **A failing `target-set` hid behind a missing control source** in the first draft of the port target test: assert the reason, not only `ok: false`.
 
 ## Decisions made (link ADRs)

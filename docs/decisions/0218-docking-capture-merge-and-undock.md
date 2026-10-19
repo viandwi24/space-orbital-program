@@ -14,7 +14,7 @@ ADR 0208 point 3 says ports of equal size pull together, capture when aligned an
 1. **Generic hooks, no stock ids in the sim.** `ModuleDefinition.dock(config)` returns `{ size, node }` (the face node). `ModuleDefinition.crossfeed(config, state)` lets a module close the part to stack flow. Stock `stock.docking-port` carries them, with Undock and Crossfeed in its descriptor (group `stock.docking`).
 2. **Numbers** (KSP-like starting points):
    - magnet range 5 m between faces, capture at 0.15 m;
-   - faces and the line between them within 15°;
+   - faces and the line between them within 15°; inside the capture range only the faces' angle counts, so a sideways miss under 0.15 m still captures;
    - the magnet lets go above 1 m/s, pulls at 0.15 m/s² (reduced mass) while the faces close slower than 0.3 m/s;
    - capture needs under 0.5 m/s; faster faces bounce and do not capture for 10 s;
    - an undocked port does not capture for 5 s, and the undock pushes with 150 N·s.

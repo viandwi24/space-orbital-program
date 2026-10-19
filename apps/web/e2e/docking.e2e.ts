@@ -1,6 +1,6 @@
 /**
  * Docking (plan 222, ADR 0218): two port probes 20 m apart in low orbit (the second spawned by the
- * plan 203 debug API with the clock paused). Beta holds retrograde, Alpha targets Beta's port,
+ * plan 203 debug API with the clock paused). Beta holds target on Alpha, Alpha targets Beta's port,
  * holds target, and translates in on RCS; the ports capture into one vessel, and Undock gives
  * both names back.
  */
@@ -19,7 +19,7 @@ const radial = (index: number, parent: number) =>
 		}
 	}));
 
-/** A probe with a port on its nose; Alpha also has four RCS blocks. */
+/** A probe with a port on its nose; Alpha also has tanks and four RCS blocks. */
 const probe = (name: string, rcs: boolean) => ({
 	formatVersion: 3,
 	name,
@@ -32,10 +32,24 @@ const probe = (name: string, rcs: boolean) => ({
 		},
 		{
 			index: 2,
-			part: 'stock.monoprop-tank',
+			part: 'stock.reaction-wheel',
 			parent: { index: 0, parentNode: 'bottom', node: 'top' }
 		},
-		...(rcs ? radial(3, 2) : [])
+		{
+			index: 3,
+			part: 'stock.monoprop-tank',
+			parent: { index: 2, parentNode: 'bottom', node: 'top' }
+		},
+		// Alpha: three full tanks (about 28 t), so one key press of RCS adds about 0.1 m/s; a
+		// software-rendered frame holds the key for most of a second
+		...(rcs
+			? [4, 5, 6].map((index) => ({
+					index,
+					part: 'stock.tank-medium',
+					parent: { index: index - 1, parentNode: 'bottom', node: 'top' }
+				}))
+			: []),
+		...(rcs ? radial(7, 5) : [])
 	],
 	stages: []
 });
@@ -149,41 +163,60 @@ test('two port probes 20 m apart dock on RCS, and Undock gives both names back',
 	await page.keyboard.press('KeyP');
 	await expect(page.getByTestId('time-chip')).toHaveCount(0);
 
-	// Beta, ahead on the orbit, turns its port back along the orbit, towards Alpha
+	// Beta, ahead on the orbit, targets Alpha and holds its port towards it
 	await switchTo(page, 'Beta');
-	await page.getByTestId('sas-retrograde').click();
+	await pick(page, 'Alpha');
+	await page.getByTestId('sas-target').click();
 	await switchTo(page, 'Alpha');
 
 	// Alpha targets Beta's port: the indicator reads in text
 	await pick(page, 'Beta · docking port');
+	// RCS on (it turns the heavy stack too), then hold target
+	await canvas.click({ position: { x: 20, y: 20 } });
+	await page.keyboard.press('KeyR');
+	await expect(page.getByTestId('hud-rcs')).toHaveAttribute('aria-label', 'RCS on');
+	await page.getByTestId('sas-target').click();
+	// a stick input (an attitude command) puts Alpha in flight, and Beta, 20 m off, joins it
+	// (ADR 0218 point 5); SAS alone holds on rails
+	await canvas.click({ position: { x: 20, y: 20 } });
+	await page.keyboard.down('KeyW');
+	await page.waitForTimeout(60);
+	await page.keyboard.up('KeyW');
 	const indicator = page.getByTestId('target-port');
 	await expect(indicator).toContainText('offset', { timeout: 20_000 });
 	await expect(indicator).toContainText('°');
-	await page.getByTestId('sas-target').click();
 	await expect
 		.poll(async () => (await port(page))?.angle ?? 180, { timeout: 60_000 })
 		.toBeLessThan(5);
 	const parts = (await seen(page)).parts;
 
-	// RCS on, short pushes forward until the faces close at about 0.2 m/s
+	// short pushes forward until the faces close at 0.08..0.45 m/s (capture needs under 0.5)
 	await canvas.click({ position: { x: 20, y: 20 } });
-	await page.keyboard.press('KeyR');
-	await expect(page.getByTestId('hud-rcs')).toHaveAttribute('aria-label', 'RCS on');
-	for (let i = 0; i < 40; i++) {
+	for (let i = 0; i < 30; i++) {
 		const now = await port(page);
-		if (!now || now.closing >= 0.15) break;
-		await page.keyboard.down('KeyH');
-		await page.waitForTimeout(80);
-		await page.keyboard.up('KeyH');
-		await page.waitForTimeout(400);
+		if (!now) break;
+		if (now.closing >= 0.08 && now.closing <= 0.45) break;
+		const key = now.closing < 0.08 ? 'KeyH' : 'KeyN';
+		await page.keyboard.down(key);
+		await page.waitForTimeout(30);
+		await page.keyboard.up(key);
+		await page.waitForTimeout(1_500);
 	}
-	expect((await port(page))?.closing ?? 0).toBeGreaterThan(0.1);
+	console.log('docking e2e: approach', JSON.stringify(await port(page)));
+	expect((await port(page))?.closing ?? 0).toBeGreaterThan(0.05);
 
 	// one vessel: Alpha now carries Beta's parts, and Beta is not a target any more
 	await expect
-		.poll(async () => (await seen(page)).parts, { timeout: 150_000 })
+		.poll(
+			async () => {
+				const now = await seen(page);
+				console.log('docking e2e: waiting', JSON.stringify(now.port), now.parts);
+				return now.parts;
+			},
+			{ timeout: 150_000, intervals: [5_000] }
+		)
 		.toBeGreaterThan(parts);
-	await expect(page.getByText('Docked').first()).toBeVisible();
+	await expect(page.getByText(/First dock/).first()).toBeVisible({ timeout: 10_000 });
 	await expect(
 		page.getByTestId('target-select').locator('option', { hasText: 'Beta' })
 	).toHaveCount(0);

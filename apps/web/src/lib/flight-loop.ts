@@ -1076,14 +1076,15 @@ export function startFlight(options: FlightOptions): Flight {
 		client.onSimEvent((event) => {
 			const line = simEventLine(event);
 			logBuffer.add(line.level, 'sim', line.message);
-			hudCtl?.simEvent(event);
-			if (event.type === 'milestone') void achievements?.check([event]);
 			// the active vessel docked (or was docked into another) or undocked: follow the merged or
-			// split vessel with its new design record (plan 222)
+			// split vessel with its new design record, then toast on the new HUD (plan 222)
 			const active = vessel === null ? null : Number(vessel);
-			if (event.type === 'docked' && (active === event.vessel || active === event.absorbed))
-				void switchVessel(event.vessel, true);
-			if (event.type === 'undocked' && active === event.vessel) void switchVessel(event.vessel, true);
+			const follow =
+				(event.type === 'docked' && (active === event.vessel || active === event.absorbed)) ||
+				(event.type === 'undocked' && active === event.vessel);
+			if (follow) void switchVessel(event.vessel, true).then(() => hudCtl?.simEvent(event));
+			else hudCtl?.simEvent(event);
+			if (event.type === 'milestone') void achievements?.check([event]);
 			// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
 			if (event.type === 'milestone' && challenges && catalog) {
 				const finished = finishRun(challenges, catalog.worldId ?? 'legacy', event.id, {
