@@ -24,7 +24,7 @@ describe('the build menu', () => {
 		]);
 		const of = (label: string) => menu.find((c) => c.label === label)!.cards.map((k) => k.label);
 		expect(of('Launch')).toEqual(['Launchpad S', 'Launchpad M', 'Launchpad L', 'Runway']);
-		expect(of('Comms')).toEqual(['Tracking dish']);
+		expect(of('Comms')).toEqual(['Tracking dish', 'Deep-space dish']);
 		expect(of('Science')).toEqual(['R&D', 'Test stand']);
 		// at home the off-world kinds come after the buildable ones, disabled with the reason
 		const production = menu.find((c) => c.label === 'Production')!.cards;
