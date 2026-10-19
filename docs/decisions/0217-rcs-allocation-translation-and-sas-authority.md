@@ -1,4 +1,4 @@
-# 0216 — RCS: per-nozzle allocation, translation in the attitude command, and SAS authority
+# 0217 — RCS: per-nozzle allocation, translation in the attitude command, and SAS authority
 
 **Status:** accepted
 **Date:** 2026-10-19

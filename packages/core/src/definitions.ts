@@ -208,7 +208,7 @@ export interface VesselApi {
 	 * each -1..1 (`control` rotated by the part's yaw). Available in both modes (ADR 0045).
 	 */
 	readonly torqueDemand: Vec3;
-	/** RCS is switched on for the vessel (plan 211, ADR 0216): thrusters may fire. */
+	/** RCS is switched on for the vessel (plan 211, ADR 0217): thrusters may fire. */
 	readonly rcs: boolean;
 	/**
 	 * The translation demand in the part frame, each -1..1 (plan 211): the player's `translate`

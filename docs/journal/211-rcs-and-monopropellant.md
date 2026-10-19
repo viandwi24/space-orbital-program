@@ -36,11 +36,11 @@
 - A probe left idle goes on rails, where SAS points exactly, so a hold test measures nothing there. The test keeps it awake with the disturbance part.
 - Filling the pod's monoprop would add 40 kg to the reference rockets and break every frozen flight, so the reserve starts empty.
 - The stock vessel test summed container *capacity* as mass; it now sums the starting amount, as the sim does.
-- The `stock.rcs` action group of ADR 0203 makes no sense for a vessel flag. R and the pill send `set-rcs` instead (ADR 0216).
+- The `stock.rcs` action group of ADR 0203 makes no sense for a vessel flag. R and the pill send `set-rcs` instead (ADR 0217).
 
 ## Decisions made (link ADRs)
 
-- ADR 0216.
+- ADR 0217.
 
 ## Open questions / follow-ups
 

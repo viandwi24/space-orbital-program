@@ -182,7 +182,7 @@ export const Stock = definePlugin({
 		// size adapters and cones in every size class (plan 207, ADR 0212)
 		for (const part of STOCK_ADAPTER_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_CONE_PARTS) ctx.parts.register(part);
-		// reaction control (plan 211, ADR 0216)
+		// reaction control (plan 211, ADR 0217)
 		for (const part of STOCK_RCS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);

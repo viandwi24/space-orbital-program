@@ -6,7 +6,7 @@ import { ModuleRcs } from '../rcs.ts';
 import { Monopropellant } from '../resources.ts';
 import { stackNodes, type Vec3Tuple } from './shared.ts';
 
-// Reaction control (plan 211, ADR 0216): thrusters and their tanks.
+// Reaction control (plan 211, ADR 0217): thrusters and their tanks.
 
 const BLOCK_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
 	{ pos: [0.05, 0.14, 0], dir: [0, -1, 0] },

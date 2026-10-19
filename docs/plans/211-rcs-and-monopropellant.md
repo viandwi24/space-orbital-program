@@ -18,7 +18,7 @@ A vessel can carry RCS. A four-way monopropellant block and a small cold-gas thr
 ## Context
 
 - Rancangan §4.2 (RCS rows, monoprop tank row, RCS block 1 kN reference), §11.3 (RCS puffs).
-- ADRs: 0203 (KSP-grade parts pack: resources and RCS), 0049 (SAS in the sim with module authority), 0174 (part action descriptors), 0206 (key profiles, from plan 216), 0062 (procedural audio), 0216 (RCS allocation, translation, SAS authority).
+- ADRs: 0203 (KSP-grade parts pack: resources and RCS), 0049 (SAS in the sim with module authority), 0174 (part action descriptors), 0206 (key profiles, from plan 216), 0062 (procedural audio), 0217 (RCS allocation, translation, SAS authority).
 - Research: 15a §4 "MISSING: RCS and monopropellant"; the closest thing is the EVA jetpack, the stock engine on cold gas at 50 N (`mods/stock/src/eva.ts:28-29, 58-73`). 05 §3.1: the RCS pill is hard-disabled with "No RCS yet" (`apps/web/src/lib/hud/SasButtons.svelte:43`), and R and H/N/I/J/K/L are not bound. 03 §1.2 and §4 list what KSP shows per RCS part.
 - Depends on 208 (the `monopropellant` resource and the cold-gas rename) and 216 (R, translation keys and Caps Lock in the KSP profile).
 
@@ -95,7 +95,7 @@ A vessel can carry RCS. A four-way monopropellant block and a small cold-gas thr
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
-- 2026-10-19 — Worker A: refined against the code and implemented on `rel/211-rcs` (ADR 0216).
+- 2026-10-19 — Worker A: refined against the code and implemented on `rel/211-rcs` (ADR 0217).
 - 2026-10-19 — Worker A, deviations from the plan as written:
   - The vessel RCS switch is the `set-rcs` command (R and the pill), not a `stock.rcs` action group: a module action cannot set a vessel flag.
   - The navball has no separate mark; the RCS pill beside SAS reads "RCS on", "RCS off" or "RCS: no propellant".

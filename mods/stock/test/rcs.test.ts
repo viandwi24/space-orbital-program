@@ -1,4 +1,4 @@
-/** Reaction control (plan 211, ADR 0216): nozzle allocation, switches and propellant use. */
+/** Reaction control (plan 211, ADR 0217): nozzle allocation, switches and propellant use. */
 import { describe, expect, test } from 'bun:test';
 import { STANDARD_GRAVITY, type Vec3 } from '@orbital/sdk';
 import {

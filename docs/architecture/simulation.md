@@ -321,7 +321,7 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - **Auto-crew:** `load-vessel` without a `crew` field calls `autoCrew` (`crew.ts`) when the vessel would be `no-crew`: the first available member takes the first seat of a crewed control part; with nobody available and `stock.economy` off, a pilot is hired first. `crew: []` keeps the vessel empty.
 - **Liftoff:** `VesselState.launchedAt` is set by the first `stage` command, or at load for a vessel not placed on the surface; split pieces copy it, and the snapshot carries it. Before it the vessel is pre-launch. The web's 50 % launch throttle is sent with the first stage, so the vessel rests on the pad until then. The web reads pre-launch from the snapshot (no `launchedAt`, `nextStage` 0, within 200 m of the ground) and counts MET from `launchedAt`.
 
-## RCS (plan 211, ADR 0216)
+## RCS (plan 211, ADR 0217)
 
 - `set-rcs` switches the vessel's RCS (`VesselState.rcs`, `VesselSnapshot.rcs`). `attitude.translate` (vessel axes: x right, y forward, z up) sets the translation; modules read `VesselApi.rcs` and `VesselApi.translateDemand` (part frame).
 - Stock `stock.rcs` fires each nozzle at `clamp(dir · T + mix(R, lever × dir), 0, 1) × limiter`, burns `thrust / (Isp g0)` with the Isp by pressure, and reports `firing` and `dry`. While RCS is on it adds `Σ |lever × dir| × thrust / 2` to the SAS authority (`controlAuthority`).

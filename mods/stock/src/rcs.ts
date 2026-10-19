@@ -1,5 +1,5 @@
 /**
- * Reaction control (plan 211, ADR 0216): a set of nozzles that fire in proportion to the rotation
+ * Reaction control (plan 211, ADR 0217): a set of nozzles that fire in proportion to the rotation
  * and translation they can give, while the vessel's RCS is on. Each nozzle's share is
  * `clamp(dir · translate + mix(rotation, lever × dir), 0, 1) × limiter`, the KSP behaviour without
  * an optimiser: deterministic and per nozzle. Propellant flows like an engine's, at

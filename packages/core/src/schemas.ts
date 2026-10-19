@@ -352,7 +352,7 @@ export const partVisualSchema = z.object({
 		})
 		.optional(),
 	/**
-	 * Thruster puffs (plan 211, ADR 0216): a small jet at each nozzle while the number at the same
+	 * Thruster puffs (plan 211, ADR 0217): a small jet at each nozzle while the number at the same
 	 * index of the module snapshot's `field` array (0..1) is above zero. `dir` is where the nozzle
 	 * pushes the vessel; the jet leaves the other way.
 	 */

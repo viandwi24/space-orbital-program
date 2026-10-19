@@ -1,4 +1,4 @@
-/** RCS authority for the stability assist (plan 211, ADR 0216): a probe without a wheel holds prograde on RCS. */
+/** RCS authority for the stability assist (plan 211, ADR 0217): a probe without a wheel holds prograde on RCS. */
 import { describe, expect, test } from 'bun:test';
 import { partId, type VesselDesign } from '@orbital/core';
 import {

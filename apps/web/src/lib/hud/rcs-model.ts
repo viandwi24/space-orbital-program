@@ -1,5 +1,5 @@
 /**
- * The RCS pill (plan 211, ADR 0216): no RCS on the vessel, off, on, or on with nothing left to
+ * The RCS pill (plan 211, ADR 0217): no RCS on the vessel, off, on, or on with nothing left to
  * burn. The propellant is whatever the vessel's RCS modules name (monopropellant, cold gas), counted
  * from the containers of the snapshot.
  */

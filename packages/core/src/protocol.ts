@@ -585,7 +585,7 @@ export type Command =
 			/** RCS translation (plan 211), each -1..1 in vessel axes: x right, y forward, z up; kept when absent. */
 			translate?: { x: number; y: number; z: number };
 	  }
-	/** Switch RCS on or off for the vessel (plan 211, ADR 0216). */
+	/** Switch RCS on or off for the vessel (plan 211, ADR 0217). */
 	| { type: 'set-rcs'; vessel: EntityId; on: boolean }
 	| { type: 'stage'; vessel: EntityId }
 	/** Pitch trim (plan 063, ADR 0161 point 4): -1..1 added to the pitch demand; kept until changed. */

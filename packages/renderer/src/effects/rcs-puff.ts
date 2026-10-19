@@ -1,5 +1,5 @@
 /**
- * RCS puffs (plan 211, ADR 0216): a short white jet at each nozzle while it fires, its length by
+ * RCS puffs (plan 211, ADR 0217): a short white jet at each nozzle while it fires, its length by
  * the nozzle's firing fraction. One cone geometry and one material for every thruster.
  */
 import {
