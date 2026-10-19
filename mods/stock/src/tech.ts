@@ -84,7 +84,11 @@ export const STOCK_TECH = [
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
 			'stock.monoprop-tank',
-			'stock.monoprop-radial'
+			'stock.monoprop-radial',
+			// docking (plan 222); plan 231 may move them
+			'stock.docking-port-small',
+			'stock.docking-port',
+			'stock.docking-port-large'
 		]
 	}),
 	defineTechNode({

@@ -346,6 +346,17 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 */
 	controlPoint?: boolean;
 	/**
+	 * A docking port (plan 222, ADR 0218): the diameter of its face (only equal sizes dock) and the
+	 * attach node that is the face. The sim captures, merges and splits; it keeps `docked` (boolean)
+	 * in the module's state current, so `describe` and the actions can read it.
+	 */
+	dock?(config: Out): { size: number; node: string };
+	/**
+	 * Whether stack-flow resources may pass through the part now (plan 222): false makes it a
+	 * barrier like a part with `crossfeed: false` (a docking port with its crossfeed switched off).
+	 */
+	crossfeed?(config: Out, state: State): boolean;
+	/**
 	 * A module that powers its part's control source (plan 208, ADR 0214: a probe core's computer on
 	 * electric charge): the resource id it runs on for this config, or undefined. While the vessel
 	 * holds none of it, the part is no control source and the vessel is uncontrolled for want of power.

@@ -557,6 +557,45 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 40,
+    "id": "stock.docking-port-small",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.docking-port",
+        {
+          "size": 0.625,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 100,
+    "id": "stock.docking-port",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.docking-port",
+        {
+          "size": 1.25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 300,
+    "id": "stock.docking-port-large",
+    "mass": 150,
+    "modules": [
+      [
+        "stock.docking-port",
+        {
+          "size": 2.5,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 100,
     "id": "stock.thermometer",
     "mass": 10,

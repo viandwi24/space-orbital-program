@@ -5,6 +5,7 @@
 export * from './aero.ts';
 export * from './command.ts';
 export * from './comms.ts';
+export * from './docking.ts';
 export * from './engines.ts';
 export * from './ground.ts';
 export * from './life-support.ts';

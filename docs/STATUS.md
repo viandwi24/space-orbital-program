@@ -168,7 +168,7 @@
 | 219 | [Procedural fairings and interstages](plans/219-procedural-fairings.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [217, 207]. |
 | 220 | [Roomier Hangar and high detail in the Hangar](plans/220-roomier-hangar.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | done | Worker B | Design records on every vessel (ADR 0215), switch with `[`/`]`, Switch to, Fly any vessel, control from here; save envelope 3. |
-| 222 | [Docking ports and docking](plans/222-docking.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221, 207, 211]. |
+| 222 | [Docking ports and docking](plans/222-docking.md) | in-progress | Worker A | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221, 207, 211]. |
 | 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
 | 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
 | 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
