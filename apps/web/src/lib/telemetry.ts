@@ -22,7 +22,12 @@ export interface Telemetry {
 	periapsis?: number;
 	/** True when the elements describe an escape trajectory. */
 	escape: boolean;
+	/** On the pad before the first stage (plan 200): no liftoff yet, so no MET. */
+	prelaunch: boolean;
 }
+
+/** Above this height over the ground a vessel without a liftoff time is no longer on the pad, m. */
+const PAD_HEIGHT = 200;
 
 export function computeTelemetry(
 	snapshot: Snapshot,
@@ -39,8 +44,14 @@ export function computeTelemetry(
 		phase: v.surface ? 'landed' : v.mode === 'flight' ? 'flight' : 'suborbital',
 		altitude: Math.hypot(x, y, z) - radius,
 		speed: Math.hypot(v.velocity.x, v.velocity.y, v.velocity.z),
-		escape: false
+		escape: false,
+		prelaunch: false
 	};
+	out.prelaunch =
+		v.launchedAt === undefined &&
+		(v.nextStage ?? 0) === 0 &&
+		(v.surface === true || v.mode === 'flight') &&
+		out.altitude - (v.terrainHeight ?? 0) < PAD_HEIGHT;
 	const o = v.orbit;
 	if (o) {
 		out.periapsis = o.a * (1 - o.e) - radius;

@@ -1,12 +1,12 @@
 ---
 id: 200
 title: Quick fixes from the owner review
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 200 — Quick fixes from the owner review
@@ -82,3 +82,4 @@ The small bugs the owner saw on the pad are gone. A pod counts as crewed only wi
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-18 — Booster ring winding fix moved to plan 207 on the coordinator's request.
+- 2026-10-19 — Worker B. Applying ADR 0109 as written made every first pod uncontrolled (ADR 0176: no starting roster), so `load-vessel` seats crew when none is given (ADR 0216). Pre-launch is read in the web from `launchedAt` in the snapshot rather than a new sim situation field. The pad throttle (50 %) is the HUD's until the first stage sends it, so the sim's wake and warp rules stay as they are. "Catch up to now" was already gated by the system's calendar (`gregorian-utc` only in Sol); the plan adds the test. The single blackout badge is checked against the page source.

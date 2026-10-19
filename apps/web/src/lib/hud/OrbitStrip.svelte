@@ -7,10 +7,13 @@
 	let {
 		orbit,
 		phase,
+		prelaunch = false,
 		onwarp
 	}: {
 		orbit: OrbitInfo | null;
 		phase: FlightPhase | null;
+		/** On the pad before liftoff (plan 200): the conic through the ground is no orbit. */
+		prelaunch?: boolean;
 		/** Warp to just before the apsis (plan 206, ADR 0202 point 6). */
 		onwarp?: (to: 'apoapsis' | 'periapsis') => void;
 	} = $props();
@@ -18,7 +21,7 @@
 </script>
 
 <Panel title="Orbit">
-	{#if orbit}
+	{#if orbit && !prelaunch}
 		<dl>
 			<dt>Apoapsis</dt>
 			<dd class="num">
@@ -64,7 +67,9 @@
 		{/if}
 	{:else}
 		<p class="note">
-			{phase === 'landed' ? 'On the ground. Launch to get an orbit.' : 'No orbit yet.'}
+			{phase === 'landed' || prelaunch
+				? 'On the surface, no orbit yet. Launch to get one.'
+				: 'No orbit yet.'}
 		</p>
 	{/if}
 </Panel>

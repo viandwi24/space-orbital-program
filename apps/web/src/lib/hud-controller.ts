@@ -114,6 +114,10 @@ export interface HudModel {
 	name: string;
 	body: string;
 	situation: string;
+	/** On the pad before the first stage (plan 200). */
+	prelaunch: boolean;
+	/** Sim time, s: what the clock shows before liftoff. */
+	time: number;
 	phase: FlightPhase | null;
 	met: number;
 	/** The game date at `met` in the world's calendar (plan 081, ADR 0141). */
@@ -148,7 +152,7 @@ export interface HudModel {
 	/** The vessel has a command part: SAS and attitude commands are accepted. */
 	controllable: boolean;
 	/** Why the sim takes no control commands now (plan 208, ADR 0214): the "Uncontrolled" chip. */
-	uncontrolled: 'no-source' | 'no-power' | null;
+	uncontrolled: 'no-source' | 'no-crew' | 'no-power' | null;
 	/** The earliest maneuver node, if any (plan 045). */
 	maneuver: ManeuverHud | null;
 	/** The vessel's target and what to show about it (plan 035); null without one. */
@@ -541,9 +545,12 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			return {
 				name,
 				body: bodyLabel(body.id),
-				situation: situationLabel(tele.phase, tele.escape, bodyLabel(body.id)),
+				situation: situationLabel(tele.phase, tele.escape, bodyLabel(body.id), tele.prelaunch),
+				prelaunch: tele.prelaunch,
 				phase: tele.phase,
-				met: snap.t,
+				// MET counts from liftoff (plan 200): 0 on the pad; a vessel from an older save, from t = 0
+				met: tele.prelaunch ? 0 : snap.t - (v.launchedAt ?? 0),
+				time: snap.t,
 				date: formatDate(calendar, epoch, snap.t).text,
 				altitude: Math.max(0, tele.altitude - clearance),
 				radar: radarReading(tele.altitude, clearance, v.terrainHeight),

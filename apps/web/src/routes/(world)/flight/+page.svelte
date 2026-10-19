@@ -902,7 +902,7 @@
 					<WarpControl
 						warp={hud.warp}
 						usable={warpUsable}
-						met={model?.met ?? 0}
+						met={model ? (model.prelaunch ? model.time : model.met) : 0}
 						date={model?.date ?? ''}
 						{catchUp}
 						oncatchup={() =>
@@ -953,7 +953,6 @@
 				{#if model?.link}<LinkBadge link={model.link} />{:else}<BlackoutBadge
 						level={model?.blackout ?? 0}
 					/>{/if}
-				<BlackoutBadge level={model?.blackout ?? 0} />
 				{#if ghostNote}<p class="ghost-note" role="status" data-testid="ghost-note">
 						{ghostNote}
 					</p>{/if}
@@ -1127,6 +1126,7 @@
 							<OrbitStrip
 								orbit={model.orbit}
 								phase={model.phase}
+								prelaunch={model.prelaunch}
 								onwarp={(to) => flight?.warpToApsis(to)}
 							/>
 						{:else if id === 'host.resources'}

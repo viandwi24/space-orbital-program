@@ -103,6 +103,12 @@ const SWITCH_RANGE = 2_500;
 
 /** Throttle change per second while Shift/Ctrl is held. */
 const THROTTLE_RATE = 0.5;
+/**
+ * A new vessel's throttle (plan 200, ADR 0216 point 4): half, so the first stage lifts off without a
+ * key press. The HUD shows it at once; the sim gets it with the first stage, so the vessel stays at
+ * rest on the pad (a raised throttle wakes it and caps warp).
+ */
+export const DEFAULT_THROTTLE = 0.5;
 const HUD_PERIOD_MS = 100;
 
 export interface FlightHud {
@@ -404,6 +410,7 @@ export function startFlight(options: FlightOptions): Flight {
 		vessel = entityId(id);
 		client.stopScript();
 		throttle = sentThrottle = 0;
+		padThrottle = false;
 		hudCtl = makeHud(catalog, recordOf(now));
 		presence.attach(vessel);
 		hudCtl.attach(id);
@@ -461,6 +468,18 @@ export function startFlight(options: FlightOptions): Flight {
 	/** The pitch trim sent last (plan 063): R and F step it. */
 	let trim = 0;
 	let sentThrottle = 0;
+	/** The HUD's pad throttle the sim has not been sent yet (`DEFAULT_THROTTLE`). */
+	let padThrottle = false;
+	/** Fires the next stage; the pad throttle goes first (quietly: an uncontrolled vessel's chip says why). */
+	async function stageNext(): Promise<void> {
+		if (vessel === null) return;
+		const id = vessel;
+		if (padThrottle) {
+			padThrottle = false;
+			await client.dispatch({ type: 'throttle', vessel: id, value: sentThrottle });
+		}
+		await send({ type: 'stage', vessel: id });
+	}
 	let sentAttitude = '0,0,0';
 	const touchAttitude = { pitch: 0, yaw: 0, roll: 0 };
 	let warpIndex = 0;
@@ -485,6 +504,7 @@ export function startFlight(options: FlightOptions): Flight {
 		);
 		if (!auto && Math.abs(throttle - sentThrottle) > 0.004) {
 			sentThrottle = throttle;
+			padThrottle = false;
 			void send({ type: 'throttle', vessel, value: throttle });
 		}
 		if (!auto) {
@@ -582,7 +602,7 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'stage':
 				e.preventDefault();
-				if (vessel !== null) void send({ type: 'stage', vessel });
+				void stageNext();
 				break;
 			case 'customGroup1':
 			case 'customGroup2':
@@ -851,7 +871,10 @@ export function startFlight(options: FlightOptions): Flight {
 			resources: catalog.resources,
 			send: (c) => {
 				// Keep the HUD's throttle truthful for commands the autopilot sends.
-				if (c.type === 'throttle') throttle = sentThrottle = c.value;
+				if (c.type === 'throttle') {
+					throttle = sentThrottle = c.value;
+					padThrottle = false;
+				}
 				void send(c);
 			}
 		});
@@ -1134,6 +1157,8 @@ export function startFlight(options: FlightOptions): Flight {
 				}
 				vessel = entityId(resumed.focus);
 				throttle = sentThrottle = resumed.throttle;
+				padThrottle = resumed.throttle > 0; // a pad throttle saved before it was sent
+
 				const warp = options.resume.sim.warp;
 				hud.warp = warp;
 				warpIndex = Math.max(0, steps().indexOf(warp));
@@ -1163,6 +1188,8 @@ export function startFlight(options: FlightOptions): Flight {
 					return;
 				}
 				vessel = result.vessel;
+				throttle = sentThrottle = DEFAULT_THROTTLE;
+				padThrottle = true;
 				// a scenario's start (plan 100, ADR 0151 point 4): its other vessels, then its missions
 				for (const v of options.scenario?.others ?? [])
 					await client.dispatch({ type: 'load-vessel', design: v.design, placement: v.placement });
@@ -1426,7 +1453,7 @@ export function startFlight(options: FlightOptions): Flight {
 			if (first) maneuverCtl?.remove(first.id);
 		},
 		stage() {
-			if (vessel !== null) void send({ type: 'stage', vessel });
+			void stageNext();
 		},
 		toggleMap,
 		cycleSpeedMode() {

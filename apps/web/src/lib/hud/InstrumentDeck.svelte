@@ -116,7 +116,7 @@
 
 	<div class="throttle" title="Throttle">
 		<div class="bar"><Meter vertical value={throttle} tone="accent" label="Throttle" /></div>
-		<span class="num pct">{formatPercent(throttle)}</span>
+		<span class="num pct" data-testid="hud-throttle">{formatPercent(throttle)}</span>
 	</div>
 
 	<span class="heading num" title="Heading">{att ? formatBearing(att.heading) : NO_VALUE}</span>

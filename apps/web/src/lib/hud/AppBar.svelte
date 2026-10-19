@@ -2,8 +2,8 @@
 	import { resolve } from '$app/paths';
 	/**
 	 * The refs flight toolbar (plan 088, ADR 0144): `Map · VAB · Camera | Dock · Vessel · Staging · Nav
-	 * · Crew | Script · Controls | Menu`, flat icons with the 4 px dot for what is open. Camera, Dock,
-	 * Vessel and Crew wait for their plans and show disabled; Script and Controls are ours.
+	 * · Crew | Script · Controls | Menu`, flat icons with the 4 px dot for what is open. Camera (plan
+	 * 226) and Crew stay disabled; their tooltips say what there is now (plan 200).
 	 */
 	import { settings } from '../settings/settings.svelte';
 	import Icon from '../ui/Icon.svelte';
@@ -45,8 +45,6 @@
 		onvessel?: () => void;
 		onnav?: () => void;
 	} = $props();
-
-	const later = (what: string, plan: number): string => `${what}: comes with plan ${plan}`;
 </script>
 
 <nav class="bar" aria-label="Flight tools">
@@ -69,7 +67,7 @@
 		type="button"
 		class="tb"
 		aria-label="Camera view"
-		title={later('Camera views', 112)}
+		title="Camera views: the chase camera only for now"
 		disabled><Icon name="camera" size={18} /></button
 	>
 	<span class="rule" aria-hidden="true"></span>
@@ -113,7 +111,7 @@
 		type="button"
 		class="tb"
 		aria-label="Crew panel"
-		title={later('The crew panel', 108)}
+		title="Crew: the crew card in the lower right shows who is aboard"
 		disabled><Icon name="crew" size={18} /></button
 	>
 	<span class="rule" aria-hidden="true"></span>

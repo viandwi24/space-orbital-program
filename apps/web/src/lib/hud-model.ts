@@ -42,7 +42,13 @@ export function bodyLabel(id: string): string {
 	return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-export function situationLabel(phase: FlightPhase | null, escape: boolean, body: string): string {
+export function situationLabel(
+	phase: FlightPhase | null,
+	escape: boolean,
+	body: string,
+	prelaunch = false
+): string {
+	if (prelaunch) return 'On the pad, ready to launch';
 	switch (phase) {
 		case 'landed':
 			return `Landed on ${body}`;

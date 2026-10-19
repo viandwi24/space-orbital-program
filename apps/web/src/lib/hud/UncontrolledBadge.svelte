@@ -1,7 +1,11 @@
 <script lang="ts">
 	/** Why the vessel takes no control commands (plan 208, ADR 0214); null hides the chip. */
-	let { reason }: { reason: 'no-source' | 'no-power' | null } = $props();
-	const WHY = { 'no-source': 'no crew or probe core', 'no-power': 'no power' } as const;
+	let { reason }: { reason: 'no-source' | 'no-crew' | 'no-power' | null } = $props();
+	const WHY = {
+		'no-source': 'no crew or probe core',
+		'no-crew': 'no crew or probe core',
+		'no-power': 'no power'
+	} as const;
 </script>
 
 <!-- ADR 0109: the vessel ignores throttle, staging and SAS; text, never colour alone -->
