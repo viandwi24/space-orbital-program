@@ -1,7 +1,7 @@
 ---
 id: 226
 title: Camera modes, hide UI and screenshots
-status: in-progress
+status: done
 owner: "Worker C"
 depends: [216]
 phase: 7
@@ -71,18 +71,18 @@ The flight camera has four modes, Auto, Free, Orbital and Locked, cycled with V 
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `bun test packages/renderer` passes, including `test/camera-modes.test.ts`: in Orbital the rig's up vector equals the orbit normal; switching Free → Orbital keeps the view direction within 0.5°; Locked follows a 90° vessel roll.
-- [ ] `apps/web` vitest: keybinding V maps to `cameraMode` in the KSP profile.
-- [ ] Chromium e2e `apps/web/e2e/camera.e2e.ts`: `debug.setOrbit` (plan 203) to low orbit; V three times shows the toasts "Orbital", "Locked", "Auto" in order (starting from Free); F2 hides the HUD root (no HUD test id is visible); the screenshot key triggers a download whose name ends in `.png` and whose size is over 10 KB.
-- [ ] `bun run check:affected --build --e2e e2e/camera.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun test packages/renderer` passes, including `test/camera-modes.test.ts`: in Orbital the rig's up vector equals the orbit normal; switching Free → Orbital keeps the view direction within 0.5°; Locked follows a 90° vessel roll.
+- [x] `apps/web` vitest: keybinding V maps to `cameraMode` in the KSP profile.
+- [x] Chromium e2e `apps/web/e2e/camera.e2e.ts`: `debug.setOrbit` (plan 203) to low orbit; V three times shows the toasts "Orbital", "Locked", "Auto" in order (starting from Free); F2 hides the HUD root (no HUD test id is visible); the screenshot key triggers a download whose name ends in `.png` and whose size is over 10 KB.
+- [x] `bun run check:affected --build --e2e e2e/camera.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/226-camera-modes-and-capture.md` written.
-- [ ] `docs/architecture/overview.md` updated (renderer camera modes).
-- [ ] Help overlay and `docs/product/glossary.md` list the camera modes.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/226-camera-modes-and-capture.md` written.
+- [x] `docs/architecture/overview.md` updated (renderer camera modes).
+- [x] Help overlay and `docs/product/glossary.md` list the camera modes.
 
 ## Log
 
@@ -91,3 +91,4 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 - 2026-10-19 — Default per the owner's UI rule (ADR 0222, the v2 package): the toolbar's **Change camera** is a one-press action without a dot (BASE_LAYOUT.md, CONCEPT.md), not the menu the plan text describes. One press goes to the next mode, like V; Hide UI and Screenshot are on their keys and in the pause menu.
 - 2026-10-19 — Default: the screenshot holds the canvas only. Drawing the HTML interface into the image needs a DOM rasteriser library, which this plan does not add; the "with UI" setting is left out.
 - 2026-10-19 — Default: a new world starts in Free (today's camera), so V goes Orbital, Locked, Auto, Free. The mode is kept per world in local storage.
+- 2026-10-19 — Evidence: `packages/renderer/test/camera-modes.test.ts` 4 pass (Orbital up = orbit normal; Free → Orbital keeps the view within 0.5°; Locked follows a 90° roll; Auto and the V order); `keybindings.test.ts` (V is `cameraMode` in the KSP profile); `check:affected --build --e2e e2e/camera.e2e.ts` all passed (e2e 1 passed: toasts Orbital, Locked, Auto; F2 leaves no `hud-*` visible; F10 downloads a `.png` over 10 KB); CI `refs/ci/pass/450b3591`.
