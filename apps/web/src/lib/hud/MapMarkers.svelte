@@ -26,8 +26,6 @@
 		Array<{ key: string; kind: NavMark['kind']; planned: boolean; text: string; time: number }>
 	>([]);
 	let extraKey = '';
-	/** Times of the current apsides, kept for the menu. */
-	let apsisTimes = { apoapsis: 0, periapsis: 0 };
 	let open = $state<string | null>(null);
 	const els = new Map<string, HTMLElement>();
 
@@ -94,11 +92,10 @@
 		for (const x of list) put(els.get(x.key), x.point);
 	}
 
-	$effect(() => {
-		apsisTimes = {
-			apoapsis: orbit?.timeToApoapsis !== undefined ? now + orbit.timeToApoapsis : 0,
-			periapsis: orbit?.timeToPeriapsis !== undefined ? now + orbit.timeToPeriapsis : 0
-		};
+	/** Times of the current apsides, for the menu. */
+	const apsisTimes = $derived({
+		apoapsis: orbit?.timeToApoapsis !== undefined ? now + orbit.timeToApoapsis : 0,
+		periapsis: orbit?.timeToPeriapsis !== undefined ? now + orbit.timeToPeriapsis : 0
 	});
 
 	const LABEL: Record<NavMark['kind'], string> = {
