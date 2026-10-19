@@ -269,7 +269,7 @@ describe('part materials of the other presets', () => {
 			for (let i = 0; i < 5; i++) model.prepareFrame(1 / 60);
 		}
 		expect(shadow.map).toBe(map);
-		expect(shadow.map!.depthTexture).toBe(depthTexture);
+		expect((shadow.map as unknown as { depthTexture: object }).depthTexture).toBe(depthTexture);
 		expect(shadow.mapSize.x).toBe(PRESETS.high.shadowMapSize);
 		expect(resized).toBe(0);
 		expect(freed).toBe(0);
