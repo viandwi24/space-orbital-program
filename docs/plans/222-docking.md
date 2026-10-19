@@ -1,12 +1,12 @@
 ---
 id: 222
 title: Docking ports and docking
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [221, 207, 211]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 222 — Docking ports and docking

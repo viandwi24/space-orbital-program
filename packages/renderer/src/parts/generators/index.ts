@@ -7,6 +7,7 @@ import { booster } from './booster.ts';
 import { controlSurface } from './control-surface.ts';
 import { fuelLine, strut } from './connector.ts';
 import { decoupler } from './decoupler.ts';
+import { dockingPort } from './docking-port.ts';
 import { engine } from './engine.ts';
 import { engineCluster } from './engine-cluster.ts';
 import { flag, suit } from './eva.ts';
@@ -41,6 +42,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('tail-cone', tailCone);
 	registerPartGenerator('adapter', adapter);
 	registerPartGenerator('rcs-block', rcsBlock);
+	registerPartGenerator('docking-port', dockingPort);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);

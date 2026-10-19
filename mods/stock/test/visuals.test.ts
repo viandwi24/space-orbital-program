@@ -17,6 +17,7 @@ const KINDS = [
 	'tail-cone',
 	'adapter',
 	'rcs-block',
+	'docking-port',
 	'fin',
 	'control-surface',
 	'wing',
