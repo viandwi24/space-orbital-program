@@ -31,4 +31,11 @@
 
 ## Verification output
 
-(filled in at completion)
+```
+bun test packages/sim: warp-limits 5, warp-transitions 2, physics-warp 1, pause-rule 3; whole package passes
+bun test packages/scripting: 62 pass
+web vitest: 1099 pass (WarpControl 5, sim-host-warp 9, telemetry, comms-planning)
+playwright chromium: warp 2/2; debug 3, leave-flight, smoke 7, clock, world-shell pass
+check:affected --build --e2e e2e/warp.e2e.ts: all passed (again after the rebase onto plan 208: 472 s)
+CI ready/206: refs/ci/pass/5db70b8b
+```
