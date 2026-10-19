@@ -1,7 +1,7 @@
 ---
 id: 220
 title: Roomier Hangar and high detail in the Hangar
-status: in-progress
+status: done
 owner: "Worker A"
 depends: []
 phase: 7
@@ -65,21 +65,22 @@ The Hangar feels open. The service towers move back to about x = ±15 m, z = −
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer/test/hangar.test.ts` passes with new cases: tower bases at |x| ≥ 14 m and z ≤ −12 m; with `setVesselRadius(1.875)` no arm mesh comes closer than 2.5 m to the vertical axis; with no radius set no arm passes inside the platform radius; every mover path stays outside the platform radius.
-- [ ] `bun test packages/renderer/test/presets.test.ts` passes, and a new case asserts the Hangar view requests high detail on the low preset.
-- [ ] Chromium e2e `e2e/editor.e2e.ts` passes.
-- [ ] `SHOT_URL=http://localhost:5211 bun scripts/capture-hangar.ts` (from `apps/web`, Playwright Chromium against a running build) writes four images; they are linked in the journal. [manual] The owner reviews the four images.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `bun test packages/renderer/test/hangar.test.ts` passes with new cases: tower bases at |x| ≥ 14 m and z ≤ −12 m; with `setVesselRadius(1.875)` no arm mesh comes closer than 2.5 m to the vertical axis; with no radius set no arm passes inside the platform radius; every mover path stays outside the platform radius.
+- [x] `bun test packages/renderer/test/presets.test.ts` passes, and a new case asserts the Hangar view requests high detail on the low preset.
+- [x] Chromium e2e `e2e/editor.e2e.ts` passes.
+- [x] `SHOT_URL=http://localhost:5211 bun scripts/capture-hangar.ts` (from `apps/web`, Playwright Chromium against a running build) writes four images; they are linked in the journal. [manual] The owner reviews the four images.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/220-roomier-hangar.md` written, with the four captures and triangle counts.
-- [ ] `docs/architecture/overview.md` updated if it describes the Hangar layout.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/220-roomier-hangar.md` written, with the four captures and triangle counts.
+- [x] `docs/architecture/overview.md` updated if it describes the Hangar layout.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-20 — Worker A: towers at (±15, −13); the arms now run along the line to the axis (they used to run along x and never met the vessel), stopping 1 m outside its radius or 0.2 m outside the platform; tug lane, crew and floodlights moved; camera limits 70 / 27.5 / 18 m; `hangarDetail` fixes high part detail. Captures in the journal as JPEG.
 - 2026-10-20 — Worker A: CI failed on the world-tick benchmark (M5 budget on a slow runner, no sim change here). Per the coordinator, the M5 timing budgets now only log on CI (`docs/conventions/testing.md`); fixed on this branch.
+- 2026-10-20 — Worker A: complete. hangar.test and presets.test pass with the new cases; editor.e2e passes on Chromium; check:affected passed; CI pass on ready/220 (b67a5444). The four captures are in the journal for the owner's review [manual].
