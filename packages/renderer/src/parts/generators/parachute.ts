@@ -33,7 +33,7 @@ export function canopyShape(progress: number): { radius: number; lines: number; 
 }
 
 export function parachute(ctx: GenContext): GeneratedPart {
-	const { radius: R, height: H, builder: b, size } = ctx;
+	const { radius: R, height: H, builder: b, size, detail } = ctx;
 	const h2 = H / 2;
 	const radial = ctx.visual.params?.radial === true;
 	const canopyRadius = ctx.param('canopy', 11, 1, 40);
@@ -66,9 +66,11 @@ export function parachute(ctx: GenContext): GeneratedPart {
 		dynamic(material: (slot: SlotName) => Material) {
 			const root = new Group();
 			root.name = 'canopy';
-			const segments = 24;
+			// the canopy follows the preset's detail like the revolved parts
+			const segments = Math.max(8, Math.round(detail.segments * 0.75));
+			const rings = Math.max(4, Math.round(segments / 3));
 			// a unit hemisphere, open side down; the inside drawn too (seen from the capsule)
-			const outer = new SphereGeometry(1, segments, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+			const outer = new SphereGeometry(1, segments, rings, 0, Math.PI * 2, 0, Math.PI / 2);
 			const inner = outer.clone();
 			const index = inner.getIndex();
 			if (index) {
@@ -128,7 +130,7 @@ export function parachute(ctx: GenContext): GeneratedPart {
 			return {
 				object: root,
 				animate,
-				triangles: segments * 8 * 2 * 2 + LINES * 6,
+				triangles: segments * rings * 2 * 2 + LINES * 6,
 				dispose() {
 					for (const g of [outer, inner, line]) g.dispose();
 				}
