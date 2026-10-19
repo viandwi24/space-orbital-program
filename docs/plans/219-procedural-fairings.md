@@ -1,7 +1,7 @@
 ---
 id: 219
 title: Procedural fairings and interstages
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [217, 207]
 phase: 7
@@ -70,20 +70,20 @@ The player places a fairing base (0.625, 1.25 or 2.5 m) under a payload and buil
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock/test/fairing.test.ts`: a closed 1.25 m fairing over a probe reduces the vessel's drag at Mach 0.8 by at least 30 % against the same stack without it; after jettison the drag returns to within 5 % of the bare stack.
-- [ ] `bun test packages/sim/test/fairing-jettison.test.ts`: staging the fairing makes two debris vessels; total momentum is conserved to 1e-6.
-- [ ] `bun test packages/renderer/test/parts.test.ts` gains a fairing case: every face's normal points outward and the base rim radius equals the node radius within 1 mm.
-- [ ] `apps/web` vitest `lib/editor/fairing.test.ts`: three clicks make three sections; a 45° taper is refused with "Too steep"; undo removes the last section.
-- [ ] Chromium e2e `e2e/fairing.e2e.ts`: build a probe on a 1.25 m base, add sections and Close in the Hangar, launch; `window.__orbitalDebug.setLocation` puts it at 40 km and 1000 m/s; staging jettisons the fairing and the vessel panel no longer lists the fairing.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `bun test mods/stock/test/fairing.test.ts`: a closed 1.25 m fairing over a probe reduces the vessel's drag at Mach 0.8 by at least 30 % against the same stack without it; after jettison the drag returns to within 5 % of the bare stack.
+- [x] `bun test packages/sim/test/fairing-jettison.test.ts`: staging the fairing makes two debris vessels; total momentum is conserved to 1e-6.
+- [x] `bun test packages/renderer/test/parts.test.ts` gains a fairing case: every face's normal points outward and the base rim radius equals the node radius within 1 mm.
+- [x] `apps/web` vitest `lib/editor/fairing.test.ts`: three clicks make three sections; a 45° taper is refused with "Too steep"; undo removes the last section.
+- [x] Chromium e2e `e2e/fairing.e2e.ts`: build a probe on a 1.25 m base, add sections and Close in the Hangar, launch; `window.__orbitalDebug.setLocation` puts it at 40 km and 1000 m/s; staging jettisons the fairing and the vessel panel no longer lists the fairing.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/219-procedural-fairings.md` written, with the limit values.
-- [ ] `docs/architecture/simulation.md` updated (fairing shielding and jettison).
-- [ ] `docs/architecture/plugin-system.md` updated (`fairing` module config).
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/219-procedural-fairings.md` written, with the limit values.
+- [x] `docs/architecture/simulation.md` updated (fairing shielding and jettison).
+- [x] `docs/architecture/plugin-system.md` updated (`fairing` module config).
 
 ## Log
 
@@ -94,3 +94,4 @@ The player places a fairing base (0.625, 1.25 or 2.5 m) under a payload and buil
   - Panel push 300 N·s each instead of 1500 (65 m/s for ~23 kg panels); the base stays on the vessel after the jettison, as in KSP, so the e2e checks that the base's Jettison is spent rather than that the base is gone.
   - Deferred, with reasons in ADR 0224: the interstage top node (step 5), 3D handles and a section at the cursor's height, and a cost on the status label.
   - The renderer's fairing case is in `part-seams.test.ts` (the seam and winding checks live there), not `parts.test.ts`.
+- 2026-10-19 — Done. CI `refs/ci/pass/ac6c4364`; rebased onto plans 214 and 224 as one commit (the ADR became 0224: 0222 and 0223 were taken meanwhile), `check:affected --build --e2e` passed again locally. The machine lock was stale (over 30 minutes) at 20:40 and was removed before that run.
