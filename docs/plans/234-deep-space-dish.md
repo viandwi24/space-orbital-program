@@ -1,12 +1,12 @@
 ---
 id: 234
 title: "Deep-space dish: a large, realistic parabolic antenna building"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker C"
 depends: [233]
 phase: 7
 created: 2026-10-19
-updated: 2026-10-19
+updated: 2026-10-20
 ---
 
 # 234 — Deep-space dish: a large, realistic parabolic antenna building
@@ -73,3 +73,5 @@ The Space Center can build a deep-space dish (`stock.deep-space-dish`) that look
 ## Log
 
 - 2026-10-19 — Created from the owner's manual test (ADR 0222).
+- 2026-10-20 — Worker C refined to ready and claimed (claim/234). Checked against the code: buildings draw from `site-list.ts` generators merged into the site's material buckets (static); the station tier of a site is the highest `comms-node` capacity of its buildings, with ranges and dish apertures per tier in `SITE_STATION_RANGES` / `SITE_STATION_APERTURES` (core `comms.ts`); the tracking dish's three levels are tiers 1–3 with 10, 34 and 70 m apertures. The debug API has no building command, so the e2e places the dish through `send({ type: 'place-building' })` (Sandbox, no cost).
+- 2026-10-20 — Reference geometry (step 1; sources in `docs/research/deep-space-dish.md`): a **64 m** reflector (the DSN's 64 m class, later 70 m) so the turning dish stays inside an 8 × 8 cell footprint (78 m usable); f = 22 m (f/D 0.34, depth 11.6 m); elevation axis 40 m above the ground, the vertex 2 m behind it; a 7 m hyperbolic subreflector 18 m in front of the axis on a quadripod; pedestal 9 m radius × 9 m; bearing towers ±14 m; slew 0.25°/s per axis; tracking from 6° elevation; stow at the zenith.
