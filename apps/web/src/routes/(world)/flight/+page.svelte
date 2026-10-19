@@ -836,6 +836,8 @@
 	const narrow = $derived(layout.mode !== 'two');
 	/** The staging stack's box when it stands in the left column (narrow), for the touch throttle. */
 	let stagingBox = $state<{ top: number; right: number } | undefined>(undefined);
+	/** Top of the crew panel at the bottom right, 0 when hidden: the side column stops above it (plan 214). */
+	let crewTop = $state(0);
 	/** The flight's own box (inside the world layout's bars since plan 204): every measure is relative to it. */
 	let stageEl = $state<HTMLDivElement>();
 	function updateInsets(): void {
@@ -870,6 +872,8 @@
 		const top = bar ? bar.bottom + 8 : 0;
 		const bottom = deck ? Math.max(0, frame.height - deck.top + 8) : 0;
 		const side = right && right.width > 0 ? Math.max(0, frame.width - right.left + 8) : 0;
+		const crew = box('.ui > .br');
+		crewTop = crew && crew.height > 0 ? Math.round(crew.top) : 0;
 		const staging = box('.bl');
 		stagingBox =
 			narrow && staging && staging.height > 0
@@ -903,6 +907,7 @@
 		void settings.ui.scale;
 		void vesselOpen;
 		void stagingOpen;
+		void model?.crew?.rows.length;
 		queueMicrotask(updateInsets);
 	});
 
@@ -1021,6 +1026,7 @@
 			class:narrow
 			class:drawer={layout.mode === 'drawer'}
 			style:--tl-bottom="{leftStackBottom}px"
+			style:--crew-top={crewTop > 0 ? `${crewTop}px` : '100%'}
 			style:--deck-h="{deckHeight}px"
 			style:--above-deck="{aboveDeckHeight(viewport.height, deckHeight)}px"
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
@@ -1527,9 +1533,17 @@
 		pointer-events: none;
 	}
 	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
+	/* the vessel panel ends above the crew panel at the bottom right (plan 214: a tall panel ran under it) */
 	.vr {
 		width: 21.25rem;
 		overflow-y: auto;
+		max-height: min(
+			calc(var(--above-deck) - var(--capsule) - var(--panel-gap)),
+			calc(
+				var(--crew-top) - var(--margin-hud) - var(--capsule) - var(--panel-gap) * 2 -
+					var(--safe-top)
+			)
+		);
 	}
 	.grip {
 		position: absolute;
