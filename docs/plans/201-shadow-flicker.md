@@ -1,7 +1,7 @@
 ---
 id: 201
 title: Shadow flicker on the high preset
-status: in-progress
+status: done
 owner: "Worker B"
 depends: []
 phase: 7
@@ -55,18 +55,18 @@ Keep the depth texture object stable for the life of the renderer. A lower shado
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer` passes, including `test/preset-switch.test.ts` (extended): switching High → Medium → High keeps the same depth texture object and never calls `setSize` after start-up.
-- [ ] `bun test packages/renderer` passes `test/quality-governor.test.ts` (extended): a frame-time trace that oscillates around 55 fps causes at most one preset change in 30 s.
-- [ ] `bun test packages/renderer` passes `test/shadow-matrix.test.ts`: the matrix the planet uniform holds after a render equals the shadow camera's matrix of the same frame.
-- [ ] `bun run check:affected --build --e2e e2e/smoke.e2e.ts` passes (Chromium; shaders compile).
-- [ ] CI green on the `ready/201` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test packages/renderer` passes, including `test/preset-switch.test.ts` (extended): switching High → Medium → High keeps the same depth texture object and never calls `setSize` after start-up.
+- [x] `bun test packages/renderer` passes `test/quality-governor.test.ts` (extended): a frame-time trace that oscillates around 55 fps causes at most one preset change in 30 s.
+- [x] `bun test packages/renderer` passes `test/shadow-matrix.test.ts`: the matrix the planet uniform holds after a render equals the shadow camera's matrix of the same frame.
+- [x] `bun run check:affected --build --e2e e2e/smoke.e2e.ts` passes (Chromium; shaders compile).
+- [x] CI green on the `ready/201` tag (`refs/ci/pass/<sha>`, ADR 0126).
 - [ ] [manual] On the M5 with High and "Adjust quality while playing" on, no flicker at the pad for 2 minutes.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/201-shadow-flicker.md` written.
-- [ ] ADR 0053 consequences noted in the journal; a new ADR only if the governor contract changes.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/201-shadow-flicker.md` written.
+- [x] ADR 0053 consequences noted in the journal; a new ADR only if the governor contract changes.
 
 ## Log
 

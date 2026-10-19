@@ -29,5 +29,9 @@
 ## Verification output
 
 ```
-(filled in at handover)
+bun test packages/renderer: preset-switch 12 pass, quality-governor 21 pass, shadow-matrix 1 pass
+  (shadow-matrix fails with the old copy order: checked by disabling the fix)
+governor trace, CPU-bound high: preset changes before 24 46 52 94 100 182 188 s, after 24 86 116 178 208 s
+check:affected --build --e2e e2e/smoke.e2e.ts (after the rebase on plan 211): all passed in 190 s, smoke 7/7
+CI ready/201: refs/ci/pass/c122a9f5
 ```
