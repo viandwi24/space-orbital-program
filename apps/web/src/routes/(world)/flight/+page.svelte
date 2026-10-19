@@ -582,7 +582,7 @@
 				// the vessel in focus, for coming back to Flight and for the world's autosave (plan 204)
 				const v = h.status === 'flying' ? flight?.debug.vessel() : null;
 				if (v != null && worldSession.focus?.vessel !== Number(v))
-					worldSession.focus = { vessel: Number(v), design };
+					worldSession.focus = { vessel: Number(v), design: flight?.design ?? design };
 				// dock panels read the same 10 Hz update (ADR 0149 point 2)
 				if (dockShown || vesselOpen) panelInput = flight?.panelInput() ?? null;
 			},
@@ -1139,6 +1139,10 @@
 								onselect={(key) => flight?.setTarget(key)}
 								onplan={(aid) => flight?.planAid(aid)}
 								oncommand={(c) => void flight?.command(c)}
+								onswitch={(id) =>
+									void flight?.switchVessel(id).then((r) => {
+										if (!r.ok) notice = r.reason;
+									})}
 							/>
 						{:else}
 							{@const panel = modPanels.find((p) => p.id === id)}

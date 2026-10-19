@@ -20,6 +20,7 @@ import {
 	type VesselDesign,
 	type SimSave,
 	type VesselPlacement,
+	type VesselSnapshot,
 	type WorldInfo
 } from '@orbital/core';
 import {
@@ -95,6 +96,9 @@ import {
 	type HudController,
 	type HudModel
 } from './hud-controller';
+
+/** How far `[` and `]` look for another vessel, m: the physics range (plan 221). */
+const SWITCH_RANGE = 2_500;
 
 /** Throttle change per second while Shift/Ctrl is held. */
 const THROTTLE_RATE = 0.5;
@@ -194,6 +198,12 @@ export interface Flight {
 	readonly maneuver: ManeuverController | null;
 	/** Time warp to the burn of the earliest maneuver node. */
 	warpToNode(): void;
+	/** The design of the vessel flown now (plan 221: it changes with a switch). */
+	readonly design: VesselDesign;
+	/** Fly another vessel without a reload (plan 221); refused with a reason when it cannot be flown. */
+	switchVessel(id: number): Promise<{ ok: true } | { ok: false; reason: string }>;
+	/** `]` (1) and `[` (-1): the nearest other vessel within 2.5 km, or the farthest. */
+	cycleVessel(direction: 1 | -1): void;
 	/** Time warp to just before the next apsis (plan 206): the sim works out the time and the level. */
 	warpToApsis(to: 'apoapsis' | 'periapsis'): void;
 	/** Whether the world is behind the real date `nowMs` (plan 087, ADR 0143): offer, unavailable or none. */
@@ -273,7 +283,9 @@ const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
 	c.bodies.find((b) => b.id === c.home) ?? homeBodyOf(c.bodies);
 
 export function startFlight(options: FlightOptions): Flight {
-	const { canvas, design } = options;
+	const { canvas } = options;
+	/** The flown vessel's design (plan 221): the launch design, or the record of a vessel switched to. */
+	let design = options.design;
 	const de440 = options.ephemeris ? { ephemeris: options.ephemeris } : {};
 	// the world's one sim (plan 204, ADR 0201): given by the world session; a Worker of its own only
 	// for a host without one (tests, a page outside a world)
@@ -349,6 +361,87 @@ export function startFlight(options: FlightOptions): Flight {
 	let scriptDirty = false;
 	/** Counts Runs and Stops, so a sandbox that finishes starting after a newer action is dropped. */
 	let scriptRun = 0;
+	/** The HUD for `design` and, for a vessel that already flew, its part indices and stages fired. */
+	function makeHud(
+		c: Catalog,
+		resume?: { entityIndex: ReadonlyMap<number, number>; stagesFired: number }
+	): HudController {
+		return createHudController({
+			design,
+			content: options.content,
+			bodies: c.bodies,
+			...(c.epoch ? { epoch: c.epoch } : {}),
+			project: (world) => renderer?.project(world) ?? null,
+			rendezvous: () => targetView?.info ?? null,
+			...(resume ? { resume } : {})
+		});
+	}
+	/** Part entity to design index and stages fired, from the snapshot (plan 221). */
+	const recordOf = (v: VesselSnapshot) => ({
+		entityIndex: new Map(
+			v.parts.flatMap((p) => (p.index === undefined ? [] : [[Number(p.id), p.index] as const]))
+		),
+		stagesFired: v.nextStage ?? 0
+	});
+
+	/**
+	 * Fly another vessel (plan 221, ADR 0208 point 2): its design record from the sim, a new HUD,
+	 * the camera on it. No reload; the sim brings it into physics when the player acts on it.
+	 */
+	async function switchVessel(id: number): Promise<{ ok: true } | { ok: false; reason: string }> {
+		if (!catalog || !snap) return { ok: false, reason: 'the flight has not started' };
+		if (vessel !== null && Number(vessel) === id) return { ok: true };
+		const v = snap.vessels.find((x) => Number(x.id) === id);
+		if (!v) return { ok: false, reason: `vessel ${id} is gone` };
+		if (v.owner !== undefined)
+			return { ok: false, reason: `${v.name ?? 'that vessel'} belongs to another agency` };
+		const record = await client.designOf(id);
+		if (!record) return { ok: false, reason: `vessel ${id} has no design record` };
+		if (disposed) return { ok: false, reason: 'the flight ended' };
+		const now = client.latest?.vessels.find((x) => Number(x.id) === id) ?? v;
+		design = { ...record.design, name: now.name ?? record.design.name };
+		vessel = entityId(id);
+		client.stopScript();
+		throttle = sentThrottle = 0;
+		hudCtl = makeHud(catalog, recordOf(now));
+		presence.attach(vessel);
+		hudCtl.attach(id);
+		if (client.latest) hudCtl.snapshot(client.latest);
+		renderer?.setActiveVessel(vessel);
+		hud.vesselName = design.name;
+		hud.model = null;
+		hudCtl.notice({ kind: 'info', title: `Switched to ${design.name}`, key: 'switch' });
+		publish();
+		return { ok: true };
+	}
+
+	/** `[` and `]` (plan 221): the player's vessels within physics range, nearest first. */
+	function cycleVessel(direction: 1 | -1): void {
+		if (!snap || vessel === null) return;
+		const here = snap.vessels.find((v) => v.id === vessel);
+		if (!here) return;
+		const near = snap.vessels
+			.filter((v) => v.id !== vessel && v.owner === undefined && v.soi === here.soi)
+			.map((v) => ({
+				id: Number(v.id),
+				d: Math.hypot(
+					v.position.x - here.position.x,
+					v.position.y - here.position.y,
+					v.position.z - here.position.z
+				)
+			}))
+			.filter((v) => v.d <= SWITCH_RANGE)
+			.sort((a, b) => a.d - b.d || a.id - b.id);
+		const pick = direction > 0 ? near[0] : near[near.length - 1];
+		if (!pick) {
+			hudCtl?.notice({ kind: 'info', title: 'No other vessel within 2.5 km', key: 'switch' });
+			return;
+		}
+		void switchVessel(pick.id).then((r) => {
+			if (!r.ok) hudCtl?.refused('switch', r.reason);
+		});
+	}
+
 	const publish = (): void =>
 		options.onHud({ ...hud, telemetry: hud.telemetry && { ...hud.telemetry } });
 
@@ -494,6 +587,11 @@ export function startFlight(options: FlightOptions): Flight {
 				if (vessel !== null) {
 					void send({ type: 'action-group', vessel, group: `custom.${customGroupSlot(action)}` });
 				}
+				break;
+			case 'vesselNext':
+			case 'vesselPrev':
+				e.preventDefault();
+				cycleVessel(action === 'vesselNext' ? 1 : -1);
 				break;
 			case 'trimUp':
 			case 'trimDown':
@@ -937,17 +1035,10 @@ export function startFlight(options: FlightOptions): Flight {
 				});
 			}
 			const resumed = options.resume ? resumeInfo(options.resume) : null;
-			hudCtl = createHudController({
-				design,
-				content: options.content,
-				bodies: c.bodies,
-				...(c.epoch ? { epoch: c.epoch } : {}),
-				project: (world) => renderer?.project(world) ?? null,
-				rendezvous: () => targetView?.info ?? null,
-				...(resumed
-					? { resume: { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } }
-					: {})
-			});
+			hudCtl = makeHud(
+				c,
+				resumed ? { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } : undefined
+			);
 			renderer = createRenderer({
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
@@ -1021,6 +1112,8 @@ export function startFlight(options: FlightOptions): Flight {
 			} else if (options.attach) {
 				vessel = entityId(options.attach.vessel);
 				const flying = snap?.vessels.find((v) => v.id === vessel);
+				// back in Flight on a vessel that already flew: its stages and parts as they are now
+				if (flying) hudCtl = makeHud(c, recordOf(flying));
 				hud.warp = client.latest ? hud.warp : 1;
 				if (!flying && client.latest && !client.latest.vessels.some((v) => v.id === vessel)) {
 					hud.status = 'lost';
@@ -1149,6 +1242,11 @@ export function startFlight(options: FlightOptions): Flight {
 					)
 				: null,
 		command: (command) => send(command),
+		get design() {
+			return design;
+		},
+		switchVessel,
+		cycleVessel,
 		warpToApsis(to) {
 			if (vessel === null) return;
 			const top = steps()[steps().length - 1]!;

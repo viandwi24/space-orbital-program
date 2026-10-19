@@ -261,6 +261,12 @@ export interface HudController {
 }
 
 const STAGE_RECOMPUTE_MS = 250;
+
+/** The attitude the navball shows (plan 221): the "control from here" part's, else the root's. */
+const controlOrientation = (v: VesselSnapshot) =>
+	v.controlPart === undefined
+		? v.orientation
+		: (v.parts.find((p) => p.id === v.controlPart)?.orientation ?? v.orientation);
 /** Above this the vessel counts as having left the pad, m (the pad vessel settles within a metre). */
 const LIFTOFF_ALTITUDE = 50;
 
@@ -457,7 +463,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 					target: v.target ?? null
 				});
 				navball = {
-					orientation: v.orientation,
+					orientation: controlOrientation(v),
 					position: v.position,
 					markers: markerDirections(
 						v.position,
@@ -472,7 +478,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 								}
 							: null
 					),
-					heading: attitudeAngles(v.orientation, v.position, bodyPole(body)).heading,
+					heading: attitudeAngles(controlOrientation(v), v.position, bodyPole(body)).heading,
 					pole: bodyPole(body)
 				};
 			}
@@ -545,7 +551,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				speedMode: read.mode,
 				speedPreference: preference,
 				vertical: read.vertical,
-				attitude: attitudeAngles(v.orientation, v.position, bodyPole(body)),
+				attitude: attitudeAngles(controlOrientation(v), v.position, bodyPole(body)),
 				orbit: v.orbit ? orbitInfo(v.orbit, bodyMu(body), snap.t, body.radius) : null,
 				stages: cache.model,
 				environment,

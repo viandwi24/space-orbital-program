@@ -16,7 +16,8 @@
 		dossier = null,
 		onselect,
 		onplan,
-		oncommand
+		oncommand,
+		onswitch
 	}: {
 		target: TargetHud | null;
 		choices: readonly TargetChoice[];
@@ -32,6 +33,8 @@
 		onplan?: (id: AidId) => void;
 		/** Discovery commands from the dossier (plan 129): lab processing and claims. */
 		oncommand?: (c: Command) => void;
+		/** Fly the target vessel instead (plan 221, ADR 0208 point 2). */
+		onswitch?: (vessel: number) => void;
 	} = $props();
 
 	/**
@@ -93,6 +96,14 @@
 				{/if}
 			</dd>
 		</dl>
+		{#if onswitch && target.kind === 'vessel'}
+			<button
+				type="button"
+				class="aid"
+				data-testid="target-switch"
+				onclick={() => onswitch(Number(target.key.slice('vessel:'.length)))}>Switch to</button
+			>
+		{/if}
 		{#if rendezvous && rendezvous.aids.length > 0}
 			<details class="aids" open>
 				<summary>Plan a node</summary>

@@ -17,8 +17,16 @@ import {
 	type PartDefinition,
 	type ResourceDefinition,
 	type SimSave,
-	type Snapshot
+	type Snapshot,
+	type VesselDesign
 } from '@orbital/core';
+
+/** A vessel's design and the design indices it kept (plan 221); `rebuilt` for a save from before. */
+export interface DesignRecordMessage {
+	design: VesselDesign;
+	parts: number[];
+	rebuilt: boolean;
+}
 
 /** Content the worker booted with; the main thread builds part shapes and the VAB palette from it. */
 export interface Catalog {
@@ -123,6 +131,8 @@ export type ClientMessage =
 	| { kind: 'save'; id: number }
 	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
 	| { kind: 'replay'; id: number; name: string }
+	/** A vessel's design record (plan 221, ADR 0208 point 1). */
+	| { kind: 'design'; id: number; vessel: number }
 	| { kind: 'command'; id: number; command: unknown }
 	/** Freeze or resume the simulation clock (the Esc menu); scripts pause with it. */
 	| { kind: 'pause'; paused: boolean }
@@ -139,6 +149,7 @@ export type WorkerMessage =
 	| { kind: 'snapshot'; snapshot: Snapshot; warp?: number; stepMs?: number }
 	| { kind: 'result'; id: number; result: CommandResult }
 	| { kind: 'replay'; id: number; replay: ReplayFile | null }
+	| { kind: 'design'; id: number; record: DesignRecordMessage | null }
 	| { kind: 'saved'; id: number; save: SimSave }
 	| { kind: 'save-error'; id: number; message: string }
 	| { kind: 'error'; message: string }
@@ -212,6 +223,10 @@ export function parseWorkerMessage(data: unknown): WorkerMessage | null {
 				: null;
 		case 'error':
 			return typeof data.message === 'string' ? (data as unknown as WorkerMessage) : null;
+		case 'design':
+			return typeof data.id === 'number' && (data.record === null || isRecord(data.record))
+				? (data as unknown as WorkerMessage)
+				: null;
 		case 'script-status':
 			return SCRIPT_STATES.includes(data.status) &&
 				typeof data.lastMs === 'number' &&
@@ -288,6 +303,8 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
 	if (data.kind === 'save' && typeof data.id === 'number') return { kind: 'save', id: data.id };
 	if (data.kind === 'replay' && typeof data.id === 'number' && typeof data.name === 'string')
 		return { kind: 'replay', id: data.id, name: data.name };
+	if (data.kind === 'design' && typeof data.id === 'number' && typeof data.vessel === 'number')
+		return { kind: 'design', id: data.id, vessel: data.vessel };
 	if (data.kind === 'script-stop') return { kind: 'script-stop' };
 	if (data.kind === 'pause' && typeof data.paused === 'boolean') {
 		return { kind: 'pause', paused: data.paused };

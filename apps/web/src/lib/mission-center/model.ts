@@ -183,12 +183,12 @@ export interface ObjectCard {
 	fly: null | { enabled: true } | { enabled: false; reason: string };
 }
 
-export const NOT_FLYABLE =
-	'Only the vessel this save flies can be flown from here: the others have no saved design yet.';
+/** Fly is refused for an agency's object (plan 221: every vessel of the player has a design record). */
+export const NOT_OURS = 'This vessel belongs to another agency.';
 
 /**
- * The card for `key`, or null when the object is gone. Fly is enabled for the save's focus vessel
- * only (ADR 0118 point 5).
+ * The card for `key`, or null when the object is gone. Fly is enabled for every vessel of the
+ * player (plan 221, ADR 0208 point 1, amending ADR 0118 point 5).
  */
 export function objectCard(
 	key: string | null,
@@ -235,7 +235,7 @@ export function objectCard(
 						: '—'
 			}
 		],
-		fly: Number(v.id) === focus ? { enabled: true } : { enabled: false, reason: NOT_FLYABLE }
+		fly: v.owner === undefined ? { enabled: true } : { enabled: false, reason: NOT_OURS }
 	};
 }
 
