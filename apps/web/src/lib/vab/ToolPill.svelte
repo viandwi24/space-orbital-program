@@ -25,14 +25,16 @@
 			>
 		{/each}
 	</div>
-	<!-- touch chips for the modifier keys (plan 217, ADR 0207 point 11) -->
+	<span class="sep" aria-hidden="true"></span>
+	<!-- touch chips for the modifier keys (plan 217, ADR 0207 point 11), styled like CoM/CoT (Hangar.dc.html) -->
 	<button
 		type="button"
 		class="toggle"
 		aria-pressed={vab.mirror}
 		title="Mirror symmetry: two copies reflected ({settings.keymap.label('mirror')})"
 		data-testid="tool-mirror"
-		onclick={() => (vab.mirror = !vab.mirror)}>Mirror</button
+		onclick={() => (vab.mirror = !vab.mirror)}
+		>Mirror<span class="dot" aria-hidden="true"></span></button
 	>
 	<button
 		type="button"
@@ -40,7 +42,8 @@
 		aria-pressed={vab.angleSnap}
 		title="Angle snap of side sites ({settings.keymap.label('angleSnap')})"
 		data-testid="tool-snap"
-		onclick={() => (vab.angleSnap = !vab.angleSnap)}>Snap</button
+		onclick={() => (vab.angleSnap = !vab.angleSnap)}
+		>Snap<span class="dot" aria-hidden="true"></span></button
 	>
 	<button
 		type="button"
@@ -48,7 +51,8 @@
 		aria-pressed={vab.copyMode}
 		title="Copy: the next part you tap goes on the cursor as a copy (Alt+click)"
 		data-testid="tool-copy"
-		onclick={() => (vab.copyMode = !vab.copyMode)}>Copy</button
+		onclick={() => (vab.copyMode = !vab.copyMode)}
+		>Copy<span class="dot" aria-hidden="true"></span></button
 	>
 	<span class="sep" aria-hidden="true"></span>
 	<button
@@ -135,8 +139,7 @@
 	.toggle:hover {
 		background: var(--surface-hover);
 	}
-	.seg.on,
-	.toggle[data-testid^='tool-'][aria-pressed='true'] {
+	.seg.on {
 		background: var(--selected-bg);
 		color: var(--selected-fg);
 	}
@@ -159,6 +162,13 @@
 		border-radius: 50%;
 		background: transparent;
 		box-shadow: inset 0 0 0 1px var(--text-subtle);
+	}
+	/* Hangar.dc.html: a toggle is muted off and white on, with a dot under it */
+	.toggle[aria-pressed='false'] {
+		color: var(--text-muted);
+	}
+	.toggle[aria-pressed='true'] {
+		color: var(--text-primary);
 	}
 	.toggle[aria-pressed='true'] .dot {
 		background: var(--text-primary);

@@ -30,8 +30,10 @@
 				<span>Edit: a click adds a section</span>
 			</label>
 		</header>
-		<p class="status {status?.kind}" data-testid="fairing-status">
-			{status?.text} · {f.mass.toFixed(0)} kg
+		<p class="status" data-testid="fairing-status">
+			<span class="dot {status?.kind}" aria-hidden="true"></span>{status?.text} · {f.mass.toFixed(
+				0
+			)} kg
 		</p>
 		{#each f.sections as s, i (i)}
 			<div class="row" data-testid="fairing-section">
@@ -93,9 +95,15 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 	}
+	/* section headings of Hangar.dc.html: small caps, tracked, muted */
 	h3 {
 		margin: 0;
-		font-size: var(--t-small);
+		font-size: var(--t-label);
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 	.edit {
 		display: flex;
@@ -103,20 +111,32 @@
 		gap: 0.25rem;
 		font-size: var(--t-label);
 	}
+	/* a check row of Hangar.dc.html: a 6 px dot, then the text */
 	.status {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 1.75rem;
 		margin: 0;
-		padding: 0.25rem 0.5rem;
-		border-left: 3px solid var(--text-subtle);
+		padding: 0 0.375rem;
 		font-size: var(--t-small);
+		color: var(--text-primary);
 	}
-	.status.ok {
-		border-left-color: var(--ok);
+	.dot {
+		width: 6px;
+		height: 6px;
+		flex: none;
+		border-radius: 50%;
+		background: var(--text-subtle);
 	}
-	.status.open {
-		border-left-color: var(--warn);
+	.dot.ok {
+		background: var(--ok);
 	}
-	.status.bad {
-		border-left-color: var(--danger);
+	.dot.open {
+		background: var(--warn);
+	}
+	.dot.bad {
+		background: var(--danger);
 	}
 	.row {
 		display: grid;
