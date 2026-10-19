@@ -36,6 +36,15 @@ The game is judged by strangers on first sight. A screen that looks like a debug
 - Menus: main menu, pause menu, settings (graphics quality, units, keybindings list), loading screen. No raw "Untitled vessel"/"0 / 0 fired" states; empty states explain what to do.
 - Accessibility: keyboard navigable, visible focus, contrast AA for text, `prefers-reduced-motion` respected.
 
+### Tooltips (plan 228)
+
+One tooltip serves the page; elements carry `data-tip` instead of the browser's `title`.
+
+- **Look:** a solid panel (surface-solid, 1 px subtle border, tile radius, soft shadow), at most 18 rem wide. Text is the extra-small size, never under the 10 px floor at any UI scale (ADR 0205). A HUD term adds an accent link, "More in the glossary".
+- **Placement:** above the element, else below, else beside it. It always stays 8 px inside the viewport and moves off the navball (`data-tip-avoid`).
+- **Timing:** hover shows it after 400 ms, keyboard focus at once, a touch long-press after 500 ms. Escape closes it, and only it.
+- **Terms:** HUD terms (Ap, Pe, TWR, …) show a dotted underline and a help cursor, and are focusable.
+
 ## Performance and quality budget
 
 - 60 fps target at 1920×1080 on an Apple M1/M2-class laptop with integrated GPU in Chromium; ≥ 30 fps on the "low" preset on weaker hardware.

@@ -1,12 +1,12 @@
 ---
 id: 228
 title: Tooltip system and glossary
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker D"
 depends: [215]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-20
 ---
 
 # 228 — Tooltip system and glossary
@@ -64,11 +64,11 @@ Every HUD term explains itself. A tooltip component replaces native `title=` att
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `apps/web` vitest: `ui/tooltip.test.ts` covers hover delay, focus, Escape and placement inside a 1024 × 768 viewport.
-- [ ] `apps/web` vitest: the `title=` scan finds no uses outside the allow-list.
-- [ ] `apps/web` vitest: every term id referenced by a HUD tooltip exists in the glossary data, and every glossary entry has a short text under 140 characters.
-- [ ] Chromium e2e `apps/web/e2e/tooltips.e2e.ts`: `debug.setOrbit` (plan 203) to low orbit; focus the Ap read-out with Tab; the tooltip text contains "Apoapsis"; its "More" link opens `/glossary#apoapsis`; the glossary search for "TWR" shows one entry.
-- [ ] The same e2e passes on WebKit (`--project=webkit`) with a long-press.
+- [x] `apps/web` vitest: `ui/tooltip.test.ts` covers hover delay, focus, Escape and placement inside a 1024 × 768 viewport.
+- [x] `apps/web` vitest: the `title=` scan finds no uses outside the allow-list.
+- [x] `apps/web` vitest: every term id referenced by a HUD tooltip exists in the glossary data, and every glossary entry has a short text under 140 characters.
+- [x] Chromium e2e `apps/web/e2e/tooltips.e2e.ts`: `debug.setOrbit` (plan 203) to low orbit; focus the Ap read-out with Tab; the tooltip text contains "Apoapsis"; its "More" link opens `/glossary#apoapsis`; the glossary search for "TWR" shows one entry.
+- [ ] The same e2e passes on WebKit (`--project=webkit`) with a long-press: not run here (worker brief: Chromium only on the M2); long-press is covered by `tooltip.test.ts`; left to release QA (plan 232).
 - [ ] `bun run check:affected --build --e2e e2e/tooltips.e2e.ts` passes.
 - [ ] CI is green on the `ready/*` tag for this plan.
 
@@ -76,9 +76,20 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
 - [ ] `docs/journal/228-tooltips-and-glossary.md` written.
-- [ ] `docs/product/glossary.md` notes the player glossary file and how they stay in sync.
-- [ ] `docs/product/visual-direction.md` describes the tooltip look.
+- [x] `docs/product/glossary.md` notes the player glossary file and how they stay in sync.
+- [x] `docs/product/visual-direction.md` describes the tooltip look.
 
 ## Log
+
+- 2026-10-20 — Worker D: claimed (claim/228) and built.
+  - **The tooltip:** `ui/tooltip.ts` (placement and a pure state machine) and `ui/TooltipLayer.svelte`, one per page in the root layout, for every `[data-tip]` (`data-tip-term` links to the glossary).
+  - **`title=` replaced:** 98 uses on native elements, `Button` and `IconButton` became `data-tip=`, and `TargetMarkers` sets `dataset.tip`. The allow-list keeps canvas and iframe.
+  - **Accessibility:** the icon-only buttons all have an `aria-label`, so no accessible name was lost.
+  - **The player glossary** (`lib/public/glossary.ts`, 28 entries), `/glossary` with search and anchors, and `ui/Term.svelte` on the Orbit panel's terms, ALT, the radar chip and TWR.
+  - **Links:** the Glossary link in the menu and the help overlay.
+  - **Found while testing:** Escape that closed a tooltip also opened the flight's pause menu; the layer now stops the key when it closes one.
+  - **Docs:** the developer glossary lists the player entries, kept in sync by `ui/tips.test.ts`.
+  - **WebKit long-press e2e:** not run. The worker brief keeps Playwright to Chromium on this M2; the long-press logic is covered by `tooltip.test.ts`, and the WebKit run is left to release QA (plan 232).
+  - **Run on battery** at the owner's word (2026-10-20).
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).

@@ -104,7 +104,11 @@
 		};
 		const up = () => dispatch({ type: 'release' });
 		const key = (e: KeyboardEvent) => {
-			if (e.key === 'Escape' && tipState.open) dispatch({ type: 'escape' });
+			if (e.key !== 'Escape' || !tipState.open) return;
+			// Escape closes the tooltip only: the flight's pause menu must not open with it
+			e.stopPropagation();
+			e.preventDefault();
+			dispatch({ type: 'escape' });
 		};
 		const opts = { capture: true, passive: true } as const;
 		document.addEventListener('pointerover', over, opts);

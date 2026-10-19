@@ -174,7 +174,7 @@
 | 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
 | 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
 | 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
-| 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
+| 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | in-progress | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
 | 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | done | Worker E | Lessons page and four lessons in throwaway Sandbox worlds set by the debug API, key and place permissions with reasons; `[manual]` playthrough open for the owner |
 | 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
 | 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | done | Worker E | ADR 0231: 22-node tech tree with every part placed, rescue/satellite/station/docking contracts (a rescue spawns its pod), the richer objective view, per-row science panel buttons |
