@@ -15,6 +15,8 @@
 		onload,
 		onreplay,
 		onghost,
+		onhideui,
+		onscreenshot,
 		ondebug
 	}: {
 		open: boolean;
@@ -29,6 +31,9 @@
 		onreplay?: () => void;
 		/** Load a replay file as a ghost (plan 131). */
 		onghost?: () => void;
+		/** Hide the interface and take a screenshot (plan 226). */
+		onhideui?: () => void;
+		onscreenshot?: () => void;
 		/** Open the Debug panel (plan 203). */
 		ondebug?: () => void;
 	} = $props();
@@ -51,6 +56,16 @@
 						>Export the replay</Button
 					>{/if}
 				{#if onghost}<Button onclick={onghost} data-testid="pause-ghost">Load a ghost</Button>{/if}
+			</div>
+		{/if}
+		{#if onhideui || onscreenshot}
+			<div class="pair">
+				{#if onhideui}<Button onclick={onhideui} data-testid="pause-hide-ui"
+						>Hide the interface</Button
+					>{/if}
+				{#if onscreenshot}<Button onclick={onscreenshot} data-testid="pause-screenshot"
+						>Screenshot</Button
+					>{/if}
 			</div>
 		{/if}
 		<div class="pair">

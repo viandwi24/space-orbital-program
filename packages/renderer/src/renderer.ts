@@ -150,7 +150,7 @@ export interface Renderer {
 	readonly isMapView: boolean;
 	setActiveVessel(id: EntityId | null): void;
 	/**
-	 * Flight camera mode (plan 226, ADR 0224): Auto, Free (horizon up), Orbital (orbit normal up) or
+	 * Flight camera mode (plan 226, ADR 0226): Auto, Free (horizon up), Orbital (orbit normal up) or
 	 * Locked (turns with the vessel). The view direction is kept across a change.
 	 */
 	setCameraMode(mode: CameraMode): void;

@@ -1,4 +1,4 @@
-/** Plan 226 / ADR 0224: the flight camera's reference frame per mode. */
+/** Plan 226 / ADR 0226: the flight camera's reference frame per mode. */
 import { describe, expect, test } from 'bun:test';
 import {
 	CAMERA_MODES,

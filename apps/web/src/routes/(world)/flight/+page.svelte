@@ -3,7 +3,7 @@
 	import { readReplay } from '@orbital/core';
 	import GhostLayer from '../../../lib/replays/GhostLayer.svelte';
 	import { ghostTrack, type ScreenGhost } from '../../../lib/replays/ghost-model';
-	import { downloadText, fileNameOf } from '../../../lib/download';
+	import { downloadBlob, downloadText, fileNameOf, screenshotName } from '../../../lib/download';
 	import VesselPanel from '../../../lib/vessel-panel/VesselPanel.svelte';
 	import PartInspector from '../../../lib/inspector/PartInspector.svelte';
 	import {
@@ -71,6 +71,7 @@
 	import TargetMarkers from '../../../lib/hud/TargetMarkers.svelte';
 	import TargetPanel from '../../../lib/hud/TargetPanel.svelte';
 	import MapMarkers from '../../../lib/hud/MapMarkers.svelte';
+	import type { CameraMode } from '@orbital/renderer';
 	import type { PlannedOrbit } from '../../../lib/maneuver-controller';
 	import type { NavMark } from '../../../lib/nav-markers';
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
@@ -275,6 +276,37 @@
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
+	/** F2 (plan 226): every interface layer hidden, the canvas alone. */
+	let uiHidden = $state(false);
+	$effect(() => {
+		// the world layout's bars too (WorldShell reads the attribute)
+		if (uiHidden) document.documentElement.dataset.uiHidden = '';
+		else delete document.documentElement.dataset.uiHidden;
+		return () => delete document.documentElement.dataset.uiHidden;
+	});
+	/** The camera mode is kept per world (plan 226), in this browser only. */
+	const cameraKey = (): string => `orbital.camera-mode.${activeWorldId()}`;
+	function loadCameraMode(): CameraMode {
+		try {
+			const v = localStorage.getItem(cameraKey());
+			return v === 'auto' || v === 'free' || v === 'orbital' || v === 'locked' ? v : 'free';
+		} catch {
+			return 'free';
+		}
+	}
+	function saveCameraMode(mode: CameraMode): void {
+		try {
+			localStorage.setItem(cameraKey(), mode);
+		} catch {
+			// private mode or blocked storage: the mode lasts for this flight
+		}
+	}
+	/** F10 and the pause menu (plan 226): the canvas as a PNG download named by world and MET. */
+	async function screenshot(): Promise<void> {
+		const blob = await flight?.capture();
+		if (blob) downloadBlob(blob, screenshotName(world.name, model?.met ?? 0));
+	}
+
 	/** The node the map selected and the orbit after the node the panel shows (plan 224). */
 	let nodeSelected = $state<number | null>(null);
 	let nodePlanned = $state.raw<PlannedOrbit | null>(null);
@@ -737,8 +769,13 @@
 			},
 			// the player's profile and keys (plan 216; before it the flight read the defaults only)
 			keymap: () => settings.keymap,
+			cameraMode: loadCameraMode(),
+			onCameraMode: saveCameraMode,
 			onKey: (key) => {
-				if (key === 'escape') pauseOpen = true;
+				if (key === 'escape' && uiHidden) uiHidden = false;
+				else if (key === 'escape') pauseOpen = true;
+				else if (key === 'hideUi') uiHidden = !uiHidden;
+				else if (key === 'screenshot') void screenshot();
 				else if (key === 'quicksave') void quicksave();
 				else if (key === 'quickload') void saves.quickload();
 				else if (key === 'debug') debugOpen = true;
@@ -901,11 +938,13 @@
 			onclick: () => (crewOpen = !crewOpen)
 		},
 		{
+			// a one-press action without a dot (BASE_LAYOUT.md; plan 226, ADR 0226)
 			id: 'camera',
 			label: 'Change camera',
-			title: 'Camera views: the chase camera only for now',
+			title: `Change camera (${settings.keymap.label('cameraMode') || 'no key'})`,
 			icon: 'camera',
-			disabled: true
+			testid: 'tb-camera',
+			onclick: () => flight?.cycleCameraMode()
 		}
 	]);
 	$effect(() => {
@@ -1125,7 +1164,7 @@
 
 <svelte:window onresize={updateInsets} />
 
-<div class="stage" bind:this={stageEl}>
+<div class="stage" class:bare={uiHidden} bind:this={stageEl}>
 	<canvas
 		bind:this={canvas}
 		onpointermove={onCanvasMove}
@@ -1307,6 +1346,7 @@
 								onpin={() => (inspector = togglePin(inspector, id))}
 								onclose={() => (inspector = closePart(inspector, id))}
 								onhighlight={(part) => flight?.highlightPart(part)}
+								onfocus={(part) => flight?.focusPart(Number(part))}
 							/>
 						{/if}
 					{/each}
@@ -1514,6 +1554,15 @@
 			}}
 			onreplay={() => void exportReplay()}
 			onghost={() => ghostInput?.click()}
+			onhideui={() => {
+				pauseOpen = false;
+				uiHidden = true;
+			}}
+			onscreenshot={() => {
+				pauseOpen = false;
+				// a frame later, so the menu's own close is not in the way of the draw
+				requestAnimationFrame(() => void screenshot());
+			}}
 			onload={() => {
 				pauseOpen = false;
 				void saves.showLoad();
@@ -1581,6 +1630,10 @@
 		position: fixed;
 		inset: 0;
 		overflow: hidden;
+	}
+	/* F2 (plan 226): the canvas alone */
+	.stage.bare > :not(canvas) {
+		display: none;
 	}
 	canvas {
 		display: block;

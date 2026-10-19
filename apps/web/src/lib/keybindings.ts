@@ -186,10 +186,10 @@ export const ACTIONS = [
 	later('Aircraft', 'trimRollLeft', 'Trim roll left', 'Alt+KeyQ'),
 	later('Aircraft', 'trimRollRight', 'Trim roll right', 'Alt+KeyE'),
 	later('Aircraft', 'trimReset', 'Reset the trim', 'Alt+KeyX'),
-	later('See', 'cameraMode', 'Camera mode'),
-	later('See', 'cameraReset', 'Reset the camera', '`'),
-	later('See', 'hideUi', 'Hide the interface', 'F2'),
-	later('See', 'screenshot', 'Screenshot', 'F10'),
+	flight('See', 'cameraMode', 'Next camera mode', '\\'),
+	flight('See', 'cameraReset', 'Camera back on the vessel', '`'),
+	flight('See', 'hideUi', 'Hide the interface', 'F2'),
+	flight('See', 'screenshot', 'Screenshot', 'F10'),
 	later('Time and menus', 'stopWarp', 'Stop time warp', '/'),
 	map('mapFocus', 'Look at the next body', 'Tab'),
 	map('nodePrograde', 'Selected node: prograde up', 'KeyI'),
@@ -669,7 +669,15 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['speedMode'], text: 'Speed reference: auto, surface, orbit, target' },
 			{ actions: ['targetNext'], text: 'Next target: each body, each other vessel, none' },
 			{ actions: ['vesselPrev', 'vesselNext'], text: 'Previous, next vessel within 2.5 km' },
-			{ actions: [], fixed: ['Drag', 'Wheel'], text: 'Orbit and zoom the camera' }
+			{ actions: [], fixed: ['Drag', 'Wheel'], text: 'Orbit and zoom the camera' },
+			{ actions: ['cameraMode'], text: 'Camera mode: Auto, Free, Orbital, Locked' },
+			{
+				actions: ['cameraReset'],
+				fixed: ['Middle click'],
+				text: 'Camera on a part, back on the vessel'
+			},
+			{ actions: ['hideUi'], text: 'Hide the interface (Esc shows it again)' },
+			{ actions: ['screenshot'], text: 'Screenshot (PNG download)' }
 		]
 	},
 	{

@@ -221,3 +221,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0223 | [User alarms in the sim, the node panel and the navigation markers](0223-user-alarms-and-navigation-tools.md) | accepted | 2026-10-19 |
 | 0224 | [Per-part design settings, module mass and shells, thrown-off debris, per-instance visuals](0224-per-part-settings-fairings-debris.md) | accepted | 2026-10-19 |
 | 0225 | [Build-time controls, Hangar action groups, crew seats and the pre-flight report](0225-hangar-build-controls-groups-crew-report.md) | accepted | 2026-10-19 |
+| 0226 | [Flight camera modes, part focus, hide UI and screenshots](0226-flight-camera-modes-hide-ui-screenshots.md) | accepted | 2026-10-19 |
