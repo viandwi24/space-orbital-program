@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { debugSetLocation, watchErrors } from './support';
 
 /**
- * Plan 209 (ADR 0203 point 4): a capsule under its parachute. Placed 2 km up falling at 400 m/s
+ * Plan 209 (ADR 0203 point 4): a capsule under its parachute. Placed 3 km up falling at 400 m/s
  * (Unsafe air for a main chute), it is staged: the chute waits Armed until the air slows the
  * capsule, semi-deploys, opens fully at 1 000 m and the capsule lands intact.
  */
@@ -43,15 +43,12 @@ test('staged in a fast fall, the chute goes Armed, Semi-deployed, Deployed and t
 		kind: 'air',
 		latitude: 0,
 		longitude: 0.3,
-		altitude: 2_000,
+		altitude: 3_000,
 		speed: 400,
 		climb: -Math.PI / 2
 	});
-	await page
-		.locator('canvas')
-		.first()
-		.click({ position: { x: 20, y: 20 } })
-		.catch(() => {});
+	// Space to the flight, not to a panel button: a click outside would close the panel
+	await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 	await page.keyboard.press('Space');
 	await expect(status(page)).toHaveText('Armed', { timeout: 10_000 });
 	await expect(page.locator('[data-testid$="-safety"]').first()).toHaveText('Unsafe');

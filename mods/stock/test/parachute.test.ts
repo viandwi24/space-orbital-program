@@ -89,8 +89,9 @@ describe('parachute states (plan 209)', () => {
 		expect(parachuteSafety(main, 200, 0.5)).toBe('safe');
 		expect(parachuteSafety(main, 260, 0.1)).toBe('risky');
 		expect(parachuteSafety(main, 400, 0.1)).toBe('unsafe');
-		// slow but in thick air: dynamic pressure decides (½ · 1.225 · 240² ≈ 35 kPa)
-		expect(parachuteSafety(main, 240, 1.225)).toBe('risky');
+		// slow but in thick air: dynamic pressure decides (½ · 1.225 · 300² ≈ 55 kPa, 380² at 0.6 ≈ 87)
+		expect(parachuteSafety(main, 300, 1.225)).toBe('risky');
+		expect(parachuteSafety(main, 320, 1.8)).toBe('unsafe');
 		expect(parachuteSafety(drogue, 400, 0.3)).toBe('safe');
 		expect(drogue.minPressure).toBe(0.02);
 		expect(drogue.deployHeight).toBe(2_500);

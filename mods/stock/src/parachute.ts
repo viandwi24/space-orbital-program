@@ -44,9 +44,12 @@ export const parachuteConfigSchema = z.object({
 	/** Airspeed from which the airflow is Risky, then Unsafe (a canopy opened in it tears), m/s. */
 	riskySpeed: z.number().positive().default(250),
 	unsafeSpeed: z.number().positive().default(330),
-	/** Dynamic pressure from which the airflow is Risky, then Unsafe, Pa. */
-	riskyQ: z.number().positive().default(20_000),
-	unsafeQ: z.number().positive().default(40_000),
+	/**
+	 * Dynamic pressure from which the airflow is Risky, then Unsafe, Pa. Above what a capsule falls
+	 * at: at its terminal speed `q = m g / CdA` whatever the height, about 44 kPa for the stock pod.
+	 */
+	riskyQ: z.number().positive().default(50_000),
+	unsafeQ: z.number().positive().default(80_000),
 	/** Where the shroud lines meet the part, part frame, m (the drag acts there). */
 	anchor: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0]),
 	mode: z.enum(['when-safe', 'immediate']).default('when-safe')

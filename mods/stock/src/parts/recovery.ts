@@ -133,8 +133,8 @@ export const PartDrogueChute = definePart({
 				fullDragArea: 40,
 				riskySpeed: 500,
 				unsafeSpeed: 700,
-				riskyQ: 80_000,
-				unsafeQ: 160_000,
+				riskyQ: 120_000,
+				unsafeQ: 200_000,
 				anchor: [0, 0.13, 0] as [number, number, number]
 			}
 		]
