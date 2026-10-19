@@ -48,7 +48,12 @@ test('step out on Cinder, walk, grab the ladder, climb and board', async ({ page
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 	await expect(page.getByTestId('crew-row')).toHaveCount(1, { timeout: 30_000 });
 
-	await debugSetLocation(page, { kind: 'surface', body: 'stock.cinder', latitude: 0.1, longitude: 0.5 });
+	await debugSetLocation(page, {
+		kind: 'surface',
+		body: 'stock.cinder',
+		latitude: 0.1,
+		longitude: 0.5
+	});
 	await page.waitForTimeout(3000);
 
 	// step out: the crew panel turns to the suit, its chip reads EVA and its propellant shows
