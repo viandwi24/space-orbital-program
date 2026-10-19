@@ -105,6 +105,16 @@ describe('the director (plan 227)', () => {
 		expect(d.played.touchdown).toBe(1);
 	});
 
+	it('takes an impact the sim reported as a touchdown, once a second', () => {
+		const { engine, shots } = fakeEngine();
+		const d = createDirector(engine);
+		d.touch(20, 5000);
+		d.touch(20, 5300);
+		d.touch(4, 6500);
+		const touch = shots.filter((s) => s.kind === 'touchdown');
+		expect(touch.map((s) => s.intensity)).toEqual([1, 0.5]);
+	});
+
 	it('does not hear a touchdown while warping or when the ground rises slowly', () => {
 		const { engine, shots } = fakeEngine();
 		const d = createDirector(engine);

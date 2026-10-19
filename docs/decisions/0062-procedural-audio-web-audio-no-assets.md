@@ -1,6 +1,6 @@
 # 0062 — Audio is synthesised in code with Web Audio nodes; no audio files
 
-**Status:** accepted
+**Status:** accepted; amended by [ADR 0210](0210-audio-additions-and-music.md) (proposed: the cue table and the music bus, plan 227)
 **Date:** 2026-10-17
 **Plan:** plans/053-remappable-keys-audio-and-small-screens.md
 **Amends:** ADR 0060 (point 4: "1.0 has no sound").

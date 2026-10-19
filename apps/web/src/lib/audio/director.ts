@@ -47,6 +47,8 @@ export interface Director {
 	event(kind: OneShot): void;
 	/** Play a cue of the table (plan 227); `intensity` 0..1. Returns false when it was dropped. */
 	cue(id: CueId, intensity?: number, now?: number): boolean;
+	/** A touchdown at `speed` m/s (an impact the sim reported); at most one a second. */
+	touch(speed: number, now?: number): void;
 	/** Silence the continuous sounds (leaving the page). */
 	stop(): void;
 	/** Time spent in `frame` since creation, ms, and the number of calls (the cost measurement). */
@@ -87,6 +89,13 @@ export function createDirector(engine: AudioEngine, options: DirectorOptions = {
 		return true;
 	}
 
+	function touch(speed: number, now = performance.now()): void {
+		if (now - lastTouch <= 1000) return;
+		lastTouch = now;
+		cue('touchdown', Math.min(1, Math.max(0, speed) / TOUCH_HARD), now);
+		options.onCue?.('touchdown', { speed });
+	}
+
 	/**
 	 * A touchdown in the radar: armed while above `TOUCH_FROM`, heard when the height reaches
 	 * `TOUCH_AT` still descending at `TOUCH_MIN_SPEED` or more.
@@ -101,11 +110,9 @@ export function createDirector(engine: AudioEngine, options: DirectorOptions = {
 		if (radar && h !== radar.h) {
 			const dt = (now - radar.t) / 1000;
 			const speed = dt > 0 ? (radar.h - h) / dt : 0;
-			if (armed && h <= TOUCH_AT && speed >= TOUCH_MIN_SPEED && now - lastTouch > 1000) {
+			if (armed && h <= TOUCH_AT && speed >= TOUCH_MIN_SPEED) {
 				armed = false;
-				lastTouch = now;
-				cue('touchdown', Math.min(1, speed / TOUCH_HARD), now);
-				options.onCue?.('touchdown', { speed });
+				touch(speed, now);
 			}
 		}
 		if (!radar || h !== radar.h) radar = { h, t: now };
@@ -115,6 +122,7 @@ export function createDirector(engine: AudioEngine, options: DirectorOptions = {
 		cost,
 		played,
 		cue,
+		touch,
 		frame(now, view, warp, paused) {
 			const t0 = performance.now();
 			cost.calls++;

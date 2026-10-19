@@ -1322,6 +1322,8 @@ export function startFlight(options: FlightOptions): Flight {
 					});
 			}
 			if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
+			// a hard landing is a touchdown the radar may not catch between two readings (plan 227)
+			if (event.type === 'part-damaged' && event.cause !== 'overheat') director.touch(event.speed);
 			// a destroyed part explodes, louder the heavier it was (plan 227)
 			if (event.type === 'part-damaged' && event.outcome === 'destroyed') {
 				const mass = catalog?.parts.find((p) => String(p.id) === event.definition)?.mass ?? 500;
