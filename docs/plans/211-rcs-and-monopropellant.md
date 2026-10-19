@@ -1,7 +1,7 @@
 ---
 id: 211
 title: RCS thrusters and monopropellant
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [208, 216]
 phase: 7
@@ -77,21 +77,33 @@ A vessel can carry RCS. A four-way monopropellant block and a small cold-gas thr
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock/test/rcs.test.ts` passes: a four-block ring with translate +X gives net force along +X and torque under 1 % of the rotate case; with `translate` off a block gives no force for a translation request; propellant drops by thrust × time / (Isp × g0).
-- [ ] `bun test packages/sim/test/rcs-sas.test.ts` passes: a probe with RCS on and no wheel holds prograde within 2° after 20 s; with RCS off it does not.
-- [ ] `apps/web` vitest `lib/keybindings.test.ts` asserts R toggles RCS and H N I J K L map to translation in the KSP profile.
-- [ ] Chromium e2e `e2e/rcs.e2e.ts`: `window.__orbitalDebug.setOrbit` puts an RCS probe in low orbit; press R, the RCS pill reads "RCS on"; hold H for 2 s, the monoprop gauge drops and the speed changes; empty the monoprop with `debug.setResource`, the pill reads "RCS: no propellant".
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `bun test mods/stock/test/rcs.test.ts` passes: a four-block ring with translate +X gives net force along +X and torque under 1 % of the rotate case; with `translate` off a block gives no force for a translation request; propellant drops by thrust × time / (Isp × g0).
+- [x] `bun test packages/sim/test/rcs-sas.test.ts` passes: a probe with RCS on and no wheel holds prograde within 2° after 20 s; with RCS off it does not.
+- [x] `apps/web` vitest `lib/keybindings.test.ts` asserts R toggles RCS and H N I J K L map to translation in the KSP profile.
+- [x] Chromium e2e `e2e/rcs.e2e.ts`: `window.__orbitalDebug.setOrbit` puts an RCS probe in low orbit; press R, the RCS pill reads "RCS on"; hold H for 2 s, the monoprop gauge drops and the speed changes; empty the monoprop with `debug.setResource`, the pill reads "RCS: no propellant".
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/211-rcs-and-monopropellant.md` written, with the balancing numbers.
-- [ ] `docs/architecture/simulation.md` updated (RCS module, allocation, SAS authority).
-- [ ] `docs/architecture/plugin-system.md` updated if the `rcs` module is exposed to mods.
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/211-rcs-and-monopropellant.md` written, with the balancing numbers.
+- [x] `docs/architecture/simulation.md` updated (RCS module, allocation, SAS authority).
+- [x] `docs/architecture/plugin-system.md` updated if the `rcs` module is exposed to mods.
+- [x] New ADRs written for any decision made here, linked above.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A: refined against the code and implemented on `rel/211-rcs` (ADR 0216).
+- 2026-10-19 — Worker A, deviations from the plan as written:
+  - The vessel RCS switch is the `set-rcs` command (R and the pill), not a `stock.rcs` action group: a module action cannot set a vessel flag.
+  - The navball has no separate mark; the RCS pill beside SAS reads "RCS on", "RCS off" or "RCS: no propellant".
+  - The pod's 10 u monoprop reserve starts empty, so the reference rockets keep their mass and the frozen flights hold.
+  - Classic translate-back is on `'`, because N stays the classic mute.
+- 2026-10-19 — Checks:
+  - `CI=true bun run check:affected --e2e e2e/rcs.e2e.ts` all passed (260 s);
+  - web vitest 1112/1112;
+  - key-profiles, smoke and vessel-switch e2e 10/10;
+  - `rcs-sas.test.ts`: 0.69° with RCS, 154° without;
+  - CI green on `ready/211` (`refs/ci/pass/1076c434`).
