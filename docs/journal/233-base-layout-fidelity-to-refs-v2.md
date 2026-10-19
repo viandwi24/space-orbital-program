@@ -54,5 +54,14 @@ Outside this plan's scope, and seen in the pairs:
 ## Verification output
 
 ```
-VERIFY
+bun run check:affected --build --e2e e2e/base-layout.e2e.ts (under /tmp/orbital-heavy.lock, Chromium, 1 worker)
+  ✓ prettier (31 changed files) · ✓ docs:check · ✓ typecheck (web)
+  ✓ web vitest related: 4 files, 30 tests (shell-model, status-bar, TimeBar, space-center model)
+  ✓ build · ✓ e2e e2e/base-layout.e2e.ts: 4 passed (4.2m)
+  check-affected: all passed in 263.8 s
+bun run lint: all matched files use Prettier code style
+affected e2e (Chromium): base-layout, hud-layout, smoke, warp, world-shell, clock, space-center, pad-state,
+  regions, vessel-switch, leave-flight, editor, power, recovery, two-tabs: all pass
+  (vessel-switch after its fix: 2 passed)
+CI: refs/ci/pass/74d1bbc0edf6de91d523279232f28fd9a98a819c (ready/233)
 ```

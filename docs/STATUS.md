@@ -179,7 +179,7 @@
 | 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
 | 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [209, 210, 211, 222, 225]. |
 | 232 | [Release QA and launch](plans/232-release-qa.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231]. |
-| 233 | [Base layout, Flight and Space Center: match the v2 design package exactly](plans/233-base-layout-fidelity-to-refs-v2.md) | in-progress | Worker B | Owner review 2026-10-19 (ADR 0222). |
+| 233 | [Base layout, Flight and Space Center: match the v2 design package exactly](plans/233-base-layout-fidelity-to-refs-v2.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 234 | [Deep-space dish: a large, realistic parabolic antenna building](plans/234-deep-space-dish.md) | draft | | Owner review 2026-10-19 (ADR 0222). |
 | 235 | [Space Center build menu: categories along the bottom, cards with building thumbnails](plans/235-space-center-build-menu.md) | draft | | Owner review 2026-10-19 (ADR 0222). |
 | 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | draft | | Owner review 2026-10-19 (ADR 0222). |

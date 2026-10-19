@@ -1,7 +1,7 @@
 ---
 id: 233
 title: "Base layout, Flight and Space Center: match the v2 design package exactly"
-status: in-progress
+status: done
 owner: "Worker B (M5)"
 depends: [204, 215]
 phase: 7
@@ -72,16 +72,16 @@ The time bar, menu bar and status bar look exactly as `refs/space-orbital-progra
 
 ## Acceptance criteria
 
-- [ ] `e2e/base-layout.e2e.ts` passes on Chromium. Its checks are listed in step 5.
-- [ ] The `apps/web` vitest for `status-bar.ts` and `layout-model.ts` passes with the zones and order from BASE_LAYOUT §4.
-- [ ] The journal has screenshots of ours next to the design for Base, Flight and Space Center, with an empty "remaining differences" list. `[manual]` The owner looks at them.
-- [ ] `bun run check:affected` passes, and CI is green on `ready/233`.
+- [x] `e2e/base-layout.e2e.ts` passes on Chromium. Its checks are listed in step 5.
+- [x] The `apps/web` vitest for `status-bar.ts` and `layout-model.ts` passes with the zones and order from BASE_LAYOUT §4.
+- [x] The journal has screenshots of ours next to the design for Base, Flight and Space Center, with an empty "remaining differences" list. `[manual]` The owner looks at them.
+- [x] `bun run check:affected` passes, and CI is green on `ready/233`.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated.
-- [ ] `docs/journal/233-base-layout-fidelity-to-refs-v2.md` written, with the screenshots.
-- [ ] `docs/architecture/` notes on the shell updated.
+- [x] `docs/STATUS.md` updated.
+- [x] `docs/journal/233-base-layout-fidelity-to-refs-v2.md` written, with the screenshots.
+- [x] `docs/architecture/` notes on the shell updated.
 
 ## Log
 
