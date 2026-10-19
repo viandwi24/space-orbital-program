@@ -120,8 +120,8 @@ test('warp(f) names the script vessel as the watched one (plan 206), factor 1 to
 	`);
 	const result = runner.tick(rig.sim.snapshot());
 	expect(result.commands).toEqual([
-		{ type: 'warp', factor: 10, vessel: rig.vessel },
-		{ type: 'warp', factor: MAX_SCRIPT_WARP, vessel: rig.vessel }
+		{ type: 'warp', factor: 10, vessel: entityId(rig.vessel) },
+		{ type: 'warp', factor: MAX_SCRIPT_WARP, vessel: entityId(rig.vessel) }
 	]);
 	expect(runner.logs).toEqual([
 		'RangeError',
