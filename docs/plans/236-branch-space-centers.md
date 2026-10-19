@@ -1,7 +1,7 @@
 ---
 id: 236
 title: "Branch space centers on the home planet, linked into the network"
-status: in-progress
+status: done
 owner: "Worker B (M5)"
 depends: [235]
 phase: 7
@@ -70,18 +70,18 @@ The Space Center switches between sites. The Launch screen can pick a pad at any
 
 ## Acceptance criteria
 
-- [ ] Core and sim tests pass:
-  - [ ] a branch founded on the far side of the home planet keeps a probe linked when the HQ has no line of sight;
-  - [ ] founding costs are charged;
-  - [ ] the HQ completes after its build days.
-- [ ] `e2e/branch-sites.e2e.ts` passes on Chromium: found a branch through the picker, use the debug API to finish construction, build a pad and a dish, then launch from the branch.
-- [ ] `bun run check:affected` passes, and CI is green on `ready/236`.
+- [x] Core and sim tests pass:
+  - [x] a branch founded on the far side of the home planet keeps a probe linked when the HQ has no line of sight;
+  - [x] founding costs are charged;
+  - [x] the HQ completes after its build days.
+- [x] `e2e/branch-sites.e2e.ts` passes on Chromium: found a branch through the picker, use the debug API to finish construction, build a pad and a dish, then launch from the branch.
+- [x] `bun run check:affected` passes, and CI is green on `ready/236`.
 
 ## Docs checklist
 
-- [ ] STATUS updated.
-- [ ] Journal written.
-- [ ] Architecture notes on sites and comms updated.
+- [x] STATUS updated.
+- [x] Journal written.
+- [x] Architecture notes on sites and comms updated.
 
 ## Log
 

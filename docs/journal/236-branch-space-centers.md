@@ -46,4 +46,5 @@ bun run check:affected --build --e2e e2e/branch-sites.e2e.ts (under /tmp/orbital
 bun run lint: all matched files use Prettier code style
 sim branches.test.ts: 4 pass (far-side link, charge and HQ days, the cheat, the zone rules)
 e2e (Chromium): branch-sites, space-center, build-menu, launch, mission-center, debug, world-shell, smoke: 17 passed
+CI: refs/ci/pass/eac2d416b831f584b651dbc905ead56c85c5b0ac (ready/236)
 ```
