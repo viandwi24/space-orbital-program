@@ -152,7 +152,7 @@
 				data-testid="sc-cat-{c.id}"
 				aria-expanded={open === c.id}
 				aria-label={c.label}
-				title={c.label}
+				data-tip={c.label}
 				onclick={() => toggle(c.id)}
 			>
 				<Icon {...iconProps(c.icon)} size={18} />

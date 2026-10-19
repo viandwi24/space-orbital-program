@@ -71,7 +71,7 @@
 				<Button
 					onclick={onrevert}
 					disabled={revertWhy !== null}
-					title={revertWhy ?? 'Back to the Hangar as it was before this launch'}
+					data-tip={revertWhy ?? 'Back to the Hangar as it was before this launch'}
 					data-testid="pause-revert">Revert to the Hangar</Button
 				>
 				{#if revertWhy}<p class="why" data-testid="pause-revert-why">{revertWhy}</p>{/if}

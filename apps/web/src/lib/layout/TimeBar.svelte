@@ -56,7 +56,7 @@
 		data-testid="time-pause"
 		aria-label={pauseLocked ? 'Pause is locked in this world' : paused ? 'Resume' : 'Pause'}
 		aria-pressed={paused}
-		title={pauseLocked ? 'This world does not allow pausing' : 'Pause or resume (P)'}
+		data-tip={pauseLocked ? 'This world does not allow pausing' : 'Pause or resume (P)'}
 		disabled={pauseLocked || !onpause}
 		onclick={onpause}
 	>
@@ -86,7 +86,7 @@
 				class:locked={s.locked}
 				aria-label={s.label}
 				aria-pressed={i === index}
-				title={s.locked && reason ? reason : s.label}
+				data-tip={s.locked && reason ? reason : s.label}
 				disabled={!onpick || s.locked}
 				onclick={() => onpick?.(i)}
 			></button>
@@ -96,7 +96,7 @@
 	<span class="sr-only" data-testid="world-warp">{warpText(factor)}</span>
 	{#if reason}<span class="why" data-testid="warp-reason">{reason}</span>{/if}
 	<div class="rule" aria-hidden="true"></div>
-	<div class="when" data-testid="world-clock" data-t={t} title={date}>
+	<div class="when" data-testid="world-clock" data-t={t} data-tip={date}>
 		{#if met}<span data-testid="hud-met">{time}</span>{:else}{time}{/if}
 	</div>
 	{#if chip}<span class="chip" data-testid="time-chip">{chip}</span>{/if}
@@ -106,7 +106,7 @@
 			class="catch-up"
 			data-testid="catch-up"
 			disabled={catchUp.kind === 'unavailable'}
-			title={catchUp.kind === 'offer'
+			data-tip={catchUp.kind === 'offer'
 				? `The world is ${behindText(catchUp.behindSeconds)} behind the real date: warp to ${catchUp.date}`
 				: catchUp.reason}
 			onclick={() => oncatchup?.()}>Catch up to now</button

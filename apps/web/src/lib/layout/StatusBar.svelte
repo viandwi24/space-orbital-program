@@ -123,7 +123,7 @@
 			data-testid="status-bell"
 			aria-label="Notifications{unread ? `, ${unread} unread` : ''}"
 			aria-expanded={bellOpen}
-			title="Notifications"
+			data-tip="Notifications"
 			onclick={() => {
 				bellOpen = !bellOpen;
 				if (!bellOpen) bell.markAllRead();

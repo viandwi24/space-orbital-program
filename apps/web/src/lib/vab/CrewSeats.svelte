@@ -26,7 +26,7 @@
 			{#each vab.seats as p (p.part)}
 				{#each Array.from({ length: p.capacity }) as _, i (i)}
 					{@const who = vab.seated.filter((s) => s.part === p.part)[i]}
-					<span class="seat" class:on={who} title="{p.title}, seat {i + 1}"
+					<span class="seat" class:on={who} data-tip="{p.title}, seat {i + 1}"
 						>{who ? nameOf(who.member) : 'Empty'}</span
 					>
 				{/each}

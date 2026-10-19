@@ -66,7 +66,7 @@ describe('time control date', () => {
 			// stock: fictional solar days of 21 650.8 s (plan 122); 2.25 SI days is day 9 at about 05:53
 			expect(expected.startsWith('Year 1, day 9, 05:53')).toBe(true);
 			expect(model.date).toBe(expected);
-			expect(warp(model.date)).toContain(`title="${expected}"`);
+			expect(warp(model.date)).toContain(`data-tip="${expected}"`);
 		} finally {
 			sim.dispose();
 		}

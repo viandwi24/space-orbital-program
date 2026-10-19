@@ -89,7 +89,7 @@
 									<option
 										value={String(o.value)}
 										disabled={o.value !== current && o.why !== null}
-										title={o.why ?? ''}
+										data-tip={o.why ?? ''}
 										>{o.label}{o.value !== current && o.why ? ' (harder)' : ''}</option
 									>
 								{/each}

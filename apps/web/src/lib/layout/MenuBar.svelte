@@ -55,7 +55,7 @@
 				class:on={a.on === true}
 				aria-label={a.label}
 				aria-pressed={a.on}
-				title={a.title ?? a.label}
+				data-tip={a.title ?? a.label}
 				disabled={a.disabled}
 				data-testid={a.testid}
 				onclick={a.onclick}
@@ -84,7 +84,7 @@
 			href={hrefs[f.id]}
 			aria-label={f.label}
 			aria-current={active === f.id ? 'page' : undefined}
-			title={f.label}
+			data-tip={f.label}
 			data-testid={testids[f.id]}
 			onclick={(e) => onfixed(e, f.id)}
 		>
@@ -107,7 +107,7 @@
 		type="button"
 		class="mb menu-btn"
 		aria-label="Menu"
-		title="Menu"
+		data-tip="Menu"
 		aria-expanded={menuOpen}
 		data-testid="nav-menu"
 		onclick={onmenu}

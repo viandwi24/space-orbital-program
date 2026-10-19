@@ -137,13 +137,13 @@
 					style:top={px(s.latitude, s.longitude).top}
 					style:width={ringW(keepOut(s))}
 					style:height={ringH(keepOut(s))}
-					title="{s.name}: no new zone within {km(keepOut(s))}"
+					data-tip="{s.name}: no new zone within {km(keepOut(s))}"
 				></span>
 				<span
 					class="site"
 					style:left={px(s.latitude, s.longitude).left}
 					style:top={px(s.latitude, s.longitude).top}
-					title={s.name}
+					data-tip={s.name}
 				></span>
 			{/each}
 			{#if spot}
