@@ -945,6 +945,69 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 400,
+    "id": "stock.parachute",
+    "mass": 100,
+    "modules": [
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.16,
+            0,
+          ],
+          "fullDragArea": 480,
+          "semiDragArea": 10,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.radial-parachute",
+    "mass": 100,
+    "modules": [
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.3,
+            0,
+          ],
+          "fullDragArea": 480,
+          "semiDragArea": 10,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 240,
+    "id": "stock.drogue-chute",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.13,
+            0,
+          ],
+          "deployHeight": 2500,
+          "fullDragArea": 40,
+          "minPressure": 0.02,
+          "riskyQ": 80000,
+          "riskySpeed": 500,
+          "semiDragArea": 4,
+          "unsafeQ": 160000,
+          "unsafeSpeed": 700,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 12000,
     "id": "stock.base-kit",
     "mass": 1200,

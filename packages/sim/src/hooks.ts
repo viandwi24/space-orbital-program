@@ -25,6 +25,7 @@ import { creditScience, makeResult, vesselSituation } from './science.ts';
 import { signalOf } from './comms.ts';
 import { isFailed } from './reliability.ts';
 import { sunExposure } from './sunlight.ts';
+import { terrainBelow } from './terrain.ts';
 import { notePower } from './power.ts';
 
 const needsFlight = (what: string): never => {
@@ -82,8 +83,10 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (!frame) return { pressure: 0, density: 0, altitude: 0 };
 			const { transform } = pose();
 			const r = add(frame.origin, transform.position);
-			const { def } = bodyOfFrame(core, frame);
-			return ambientAt(def, length(r) - def.radius);
+			const body = bodyOfFrame(core, frame);
+			const altitude = length(r) - body.def.radius;
+			const ground = terrainBelow(core, body, r) ?? 0;
+			return { ...ambientAt(body.def, altitude), height: altitude - ground };
 		},
 		sunExposure: (dt, factor) => sunExposure(core, partId, dt, factor),
 		applyForce(force, point) {

@@ -209,6 +209,12 @@
 						>
 					</div>
 				{/if}
+				{#each p.readouts as r (r.module + '/' + r.id)}
+					<div class="row readout">
+						<span>{r.label}</span>
+						<span class="value" data-testid="part-{p.entity}-{r.id}">{r.value}</span>
+					</div>
+				{/each}
 				{#each p.controls as c (c.module + '/' + c.id)}
 					<div class="row" title={c.enabled ? undefined : c.reason}>
 						{#if c.kind === 'toggle'}
@@ -316,6 +322,16 @@
 		min-height: 2.75rem;
 		display: flex;
 		align-items: center;
+	}
+	.readout {
+		justify-content: space-between;
+		min-height: 1.75rem;
+		font-size: var(--t-sm);
+		color: var(--text-muted);
+	}
+	.readout .value {
+		color: var(--text-primary);
+		font-weight: 600;
 	}
 	.slider {
 		display: grid;

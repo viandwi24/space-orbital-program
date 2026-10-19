@@ -195,3 +195,24 @@ export function referenceTwoStage(): VesselDesign {
 		stages: [[6], [4, 3]]
 	};
 }
+
+/**
+ * The Hangar's starter rocket (plan 209, ADR 0203 point 5): the two-stage reference with a
+ * parachute on the pod, staged last, so the first flight comes home. The reference itself stays as
+ * it is: the tests fly it.
+ */
+export function starterRocket(): VesselDesign {
+	const reference = referenceTwoStage();
+	return {
+		...reference,
+		parts: [
+			...reference.parts,
+			{
+				index: 7,
+				part: partId('stock.parachute'),
+				parent: { index: 0, parentNode: 'top', node: 'bottom' }
+			}
+		],
+		stages: [...reference.stages, [7]]
+	};
+}

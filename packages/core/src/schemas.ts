@@ -281,7 +281,8 @@ const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected "#rrggbb"');
 /**
  * What a part looks like (ADR 0028). `kind` names a renderer generator; `params` are read (and
  * clamped) by that generator. `plume` and `deploy` name the module whose snapshot drives the
- * effect: `plume` reads `ignited`, `throttle` and `flameout`; `deploy` reads the boolean `flag`.
+ * effect: `plume` reads `ignited`, `throttle` and `flameout`; `deploy` reads `flag`, a boolean (out
+ * or in) or a number 0..1 (how far open: a parachute's canopy, plan 209).
  * Lengths in metres, pressure in Pa, in the part frame (thrust along local +Y).
  */
 export const partVisualSchema = z.object({
@@ -507,6 +508,13 @@ export const actionGroupDefinitionSchema = z.object({
 export const moduleInfoSchema = z.object({
 	/** Controls the module offers (plan 110, ADR 0174). */
 	actions: z.array(partActionDescriptorSchema).optional(),
+	/**
+	 * State the part panel shows as text beside the controls (plan 209: a parachute's "Armed" and
+	 * "Unsafe"): never colour alone. Read from the module's snapshot view.
+	 */
+	readouts: z
+		.array(z.object({ id: z.string().min(1), label: z.string().min(1), value: z.string() }))
+		.optional(),
 	/** The module is a science experiment (plan 103, ADR 0178 point 5): its id and state. */
 	experiment: z
 		.object({

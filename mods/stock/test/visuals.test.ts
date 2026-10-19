@@ -27,7 +27,8 @@ const KINDS = [
 	'plain',
 	// EVA (plan 109, ADR 0120 point 7)
 	'suit',
-	'flag'
+	'flag',
+	'parachute'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

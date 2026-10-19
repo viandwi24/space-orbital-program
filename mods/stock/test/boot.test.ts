@@ -37,6 +37,7 @@ describe('stock boots through the loader', () => {
 			'stock.flag',
 			'stock.heat-shield',
 			'stock.landing-leg',
+			'stock.parachute',
 			'stock.probe-computer',
 			'stock.rcs',
 			'stock.reaction-wheel',
@@ -66,6 +67,7 @@ describe('stock boots through the loader', () => {
 			'stock.docking-port-large',
 			'stock.docking-port-small',
 			'stock.drill',
+			'stock.drogue-chute',
 			'stock.engine-cluster',
 			'stock.engine-lv',
 			'stock.eva-suit',
@@ -82,8 +84,10 @@ describe('stock boots through the loader', () => {
 			'stock.nose-cone-large',
 			'stock.nose-cone-medium',
 			'stock.nose-cone-small',
+			'stock.parachute',
 			'stock.probe-core',
 			'stock.radial-decoupler',
+			'stock.radial-parachute',
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
 			'stock.reaction-wheel',
@@ -203,7 +207,11 @@ describe('stock boots through the loader', () => {
 			'stock.strut',
 			'stock.fuel-line',
 			'stock.wheel',
-			'stock.wheel-steer'
+			'stock.wheel-steer',
+			// a chute's only node is its bottom one, or a radial one (plan 209)
+			'stock.parachute',
+			'stock.drogue-chute',
+			'stock.radial-parachute'
 		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();

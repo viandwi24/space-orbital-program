@@ -26,7 +26,7 @@ import {
 	type WorldReliability
 } from '../reliability/reliability-model';
 import { modelProviders } from '../mods/asset-models';
-import { emptyDesign, parseDesign, referenceTwoStage, serialiseDesign } from '../design';
+import { emptyDesign, parseDesign, serialiseDesign, starterRocket } from '../design';
 import { initialGraphicsPreset } from '../graphics';
 import { keyIdOf, type ActionId } from '../keybindings';
 import { pinchZoomFactor } from '../touch/touch-model';
@@ -1084,9 +1084,9 @@ export class VabController {
 		this.selected = null;
 		this.libraryId = null;
 		saveLibraryId(null);
-		this.editor = replaceDesign(this.editor, this.editorContent, referenceTwoStage());
+		this.editor = replaceDesign(this.editor, this.editorContent, starterRocket());
 		this.view?.frame();
-		this.say('Loaded the two-stage example.');
+		this.say('Loaded the two-stage example, with a parachute for the way home.');
 	}
 	loadBoosterExample(): void {
 		this.disarm();

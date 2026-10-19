@@ -540,6 +540,18 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							}
 						})
 					),
+					created.events.on('stock:parachute-deployed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'parachute-deployed', part: Number(e.part), stage: e.stage }
+						})
+					),
+					created.events.on('stock:parachute-torn', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'parachute-torn', part: Number(e.part), speed: e.speed }
+						})
+					),
 					created.events.on('vessel:power-depleted', (e) =>
 						options.post({
 							kind: 'sim-event',

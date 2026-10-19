@@ -74,6 +74,20 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 				key: 'flameout'
 			};
 		}
+		case 'parachute-deployed':
+			if (!ctx.isActivePart(event.part)) return null;
+			return event.stage === 'semi'
+				? { kind: 'info', title: 'Parachute semi-deployed', key: `chute-${event.part}` }
+				: { kind: 'success', title: 'Parachute deployed', key: `chute-${event.part}` };
+		case 'parachute-torn':
+			return ctx.isActivePart(event.part)
+				? {
+						kind: 'danger',
+						title: 'Parachute torn',
+						detail: `Opened at ${formatSpeed(event.speed)}: too fast for the canopy`,
+						key: `chute-${event.part}`
+					}
+				: null;
 		case 'warp-stopped':
 		case 'building-ready':
 			return null; // the world layout's bell shows them (plan 205)

@@ -1103,6 +1103,9 @@ export function startFlight(options: FlightOptions): Flight {
 					});
 			}
 			if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
+			// a canopy filling (plan 209); a torn one warns
+			if (event.type === 'parachute-deployed') director.event('chute');
+			if (event.type === 'parachute-torn') director.event('warning');
 		})
 	);
 	offClient.push(

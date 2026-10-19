@@ -195,7 +195,9 @@ class ProceduralModel implements PartModel {
 			const flag = (state.modules[this.deploy.module] as Record<string, unknown> | undefined)?.[
 				this.deploy.flag
 			];
-			this.target = flag === true ? 1 : 0;
+			// a boolean (legs out), or how far open, 0..1 (a parachute's canopy, plan 209)
+			this.target =
+				flag === true ? 1 : typeof flag === 'number' ? Math.min(1, Math.max(0, flag)) : 0;
 			if (this.fresh) this.progress = this.target;
 		}
 		this.fresh = false;

@@ -6,7 +6,7 @@
  */
 import { busGains, type FlightSound, type Volumes } from './params';
 
-export type OneShot = 'click' | 'sasOn' | 'sasOff' | 'stage' | 'warning';
+export type OneShot = 'click' | 'sasOn' | 'sasOff' | 'stage' | 'warning' | 'chute';
 /** `locked`: no gesture yet (or no Web Audio); `muted`: the player's mute; otherwise the context's state. */
 export type AudioState = 'locked' | 'running' | 'suspended' | 'muted';
 
@@ -270,6 +270,30 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		}, bus);
 	}
 
+	/** A canopy filling (plan 209): a rush of air rising through a band-pass, then a soft snap. */
+	function whoosh(): void {
+		shot((c, out, end) => {
+			const t = c.currentTime;
+			const air = c.createBufferSource();
+			air.buffer = g!.noise;
+			const band = c.createBiquadFilter();
+			band.type = 'bandpass';
+			band.Q.value = 1.4;
+			band.frequency.setValueAtTime(300, t);
+			band.frequency.exponentialRampToValueAtTime(1600, t + 0.45);
+			const swell = c.createGain();
+			swell.gain.setValueAtTime(0.0001, t);
+			swell.gain.linearRampToValueAtTime(0.8, t + 0.3);
+			swell.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+			air.connect(band).connect(swell).connect(out);
+			out.gain.value = 1;
+			air.onended = () => end([air, band, swell]);
+			air.start(t, 0.4);
+			air.stop(t + 0.72);
+		}, 'effects');
+		tone('sine', 140, 60, 0.42, 0.18, 0.5, 'effects');
+	}
+
 	function thunk(): void {
 		shot((c, out, end) => {
 			const t = c.currentTime;
@@ -327,6 +351,9 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 					break;
 				case 'stage':
 					thunk();
+					break;
+				case 'chute':
+					whoosh();
 					break;
 				case 'warning':
 					tone('square', 880, 880, 0, 0.12, 0.18, 'effects');

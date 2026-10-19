@@ -68,6 +68,9 @@ export type ScriptState = 'starting' | 'running' | 'finished' | 'failed' | 'term
 export type SimEvent =
 	| { type: 'stage'; vessel: number; stage: number }
 	| { type: 'flameout'; part: number }
+	/** A parachute opened (plan 209): `semi` streaming, or `full`. */
+	| { type: 'parachute-deployed'; part: number; stage: 'semi' | 'full' }
+	| { type: 'parachute-torn'; part: number; speed: number }
 	| {
 			type: 'part-damaged';
 			vessel: number;
@@ -195,7 +198,9 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'building-ready',
 	'power-depleted',
 	'docked',
-	'undocked'
+	'undocked',
+	'parachute-deployed',
+	'parachute-torn'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

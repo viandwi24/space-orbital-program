@@ -210,7 +210,8 @@ class GltfModel implements PartModel {
 			const flag = (state.modules[deploy.module] as Record<string, unknown> | undefined)?.[
 				deploy.flag
 			];
-			this.target = flag === true ? 1 : 0;
+			this.target =
+				flag === true ? 1 : typeof flag === 'number' ? Math.min(1, Math.max(0, flag)) : 0;
 			if (this.fresh) this.setProgress(this.target);
 		}
 		this.fresh = false;

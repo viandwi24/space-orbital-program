@@ -1,12 +1,12 @@
 ---
 id: 209
 title: Parachutes
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: [207]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 209 — Parachutes
@@ -78,3 +78,4 @@ Top, radial and drogue parachutes exist and work like KSP since 1.2. Staging arm
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. "Deploy when safe" waits while the air is Unsafe, not until it is Safe: a capsule's terminal speed at 5 km is about 260 m/s, past the 250 m/s Risky line, so waiting for Safe never opened the chute (the descent test showed it). Risky air opens it with the warning shown; Unsafe air tears an open canopy. The drag is the module's own force at the chute's top (`applyForce`), so `packages/sim/src/aero.ts` is unchanged; the sim gains `Ambient.height` for the full-deploy height. The safety text is a new `ModuleInfo.readouts` list the part panel shows. The e2e drops from 2 km at 400 m/s instead of 5 km at 200 m/s: at 200 m/s the chute is already allowed to open, so Armed would last one step. The starter template is the Hangar's two-stage example with a chute on the pod, staged last (`starterRocket`); the reference rocket the tests fly is unchanged. The radial chute and the drogue are in the Aerodynamics node, the main in Basics (plan 231 may move them).

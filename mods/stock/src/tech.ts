@@ -20,7 +20,9 @@ export const STOCK_TECH = [
 			'stock.decoupler',
 			'stock.nose-cone',
 			'stock.fin',
-			'stock.heat-shield'
+			'stock.heat-shield',
+			// the starter capsule comes home on one (plan 209, ADR 0203 point 5)
+			'stock.parachute'
 		]
 	}),
 	defineTechNode({
@@ -98,8 +100,16 @@ export const STOCK_TECH = [
 		cost: 15,
 		requires: ['stock.structures'],
 		milestone: 'orbit:stock.home',
-		description: 'Wings and control surfaces.',
-		unlocks: ['stock.wing', 'stock.control-surface', 'stock.wheel', 'stock.wheel-steer']
+		description: 'Wings, control surfaces and more parachutes.',
+		unlocks: [
+			'stock.wing',
+			'stock.control-surface',
+			'stock.wheel',
+			'stock.wheel-steer',
+			// plan 209; plan 231 may move them
+			'stock.radial-parachute',
+			'stock.drogue-chute'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.landing',

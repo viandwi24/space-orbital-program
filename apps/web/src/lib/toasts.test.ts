@@ -170,4 +170,19 @@ describe('toast store', () => {
 		});
 		expect(toastForSimEvent({ type: 'power-depleted', vessel: 99 }, ctx)).toBeNull();
 	});
+	it('a parachute says when it opens and when it tears, for the flown vessel only (plan 209)', () => {
+		expect(
+			toastForSimEvent({ type: 'parachute-deployed', part: 7, stage: 'semi' }, ctx)
+		).toMatchObject({ kind: 'info', title: 'Parachute semi-deployed' });
+		expect(
+			toastForSimEvent({ type: 'parachute-deployed', part: 7, stage: 'full' }, ctx)
+		).toMatchObject({ kind: 'success', title: 'Parachute deployed' });
+		expect(toastForSimEvent({ type: 'parachute-torn', part: 7, speed: 401 }, ctx)).toMatchObject({
+			kind: 'danger',
+			title: 'Parachute torn'
+		});
+		expect(
+			toastForSimEvent({ type: 'parachute-deployed', part: 8, stage: 'full' }, ctx)
+		).toBeNull();
+	});
 });

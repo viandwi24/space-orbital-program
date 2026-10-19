@@ -42,6 +42,8 @@ export const ICONS = {
 	shield: 'M12 3.5l7 2.8V12c0 4.2-3 7.2-7 8.5-4-1.3-7-4.3-7-8.5V6.3Z',
 	fin: 'M6.5 4v16M6.5 6.5l11 5.5v5.5l-11 3',
 	cone: 'M12 3.5c2.6 3.4 4 7.2 4 11.5H8c0-4.3 1.4-8.1 4-11.5ZM8 15v3.5h8V15',
+	// plan 209: a canopy on its lines over the pack
+	parachute: 'M4 10a8 6.5 0 0 1 16 0ZM4 10l8 8.5M20 10l-8 8.5M12 10v8.5M10.5 18.5h3V21h-3Z',
 	part: 'M6 6h12v12H6Z',
 	assembly: 'M12 3.5l6 3v6l-6 3-6-3v-6ZM6 12.5l6 3 6-3M6 12.5v4l6 3 6-3v-4',
 	copy: 'M8.5 8.5h10v11h-10ZM5.5 15.5v-11h10',

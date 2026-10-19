@@ -44,6 +44,9 @@ import {
 	PartTankSmall,
 	PartDataDrive,
 	PartFlotationCollar,
+	PartParachute,
+	PartRadialParachute,
+	PartDrogueChute,
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
 	STOCK_POWER_PARTS,
@@ -85,6 +88,7 @@ import { PanelScience } from './panels.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleRcs } from './rcs.ts';
 import { ModuleDockingPort } from './docking.ts';
+import { ModuleParachute } from './parachute.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
 import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
@@ -133,6 +137,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleRtg);
 		ctx.modules.register(ModuleRcs);
 		ctx.modules.register(ModuleDockingPort);
+		ctx.modules.register(ModuleParachute);
 		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
@@ -194,6 +199,10 @@ export const Stock = definePlugin({
 		for (const part of STOCK_POWER_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_EVA_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
+		// parachutes (plan 209, ADR 0203 point 4)
+		ctx.parts.register(PartParachute);
+		ctx.parts.register(PartRadialParachute);
+		ctx.parts.register(PartDrogueChute);
 
 		// the Sun first: hosts list bodies in registration order and the tree's root comes first
 		ctx.bodies.register(SunBody);
@@ -229,6 +238,7 @@ export * from './panels.ts';
 export * from './solar.ts';
 export * from './rcs.ts';
 export * from './docking.ts';
+export * from './parachute.ts';
 export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';

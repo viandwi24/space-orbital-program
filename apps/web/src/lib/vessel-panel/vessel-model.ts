@@ -32,11 +32,20 @@ export interface ControlRow extends PartActionDescriptor {
 	module: string;
 }
 
+export interface ReadoutRow {
+	id: string;
+	label: string;
+	value: string;
+	module: string;
+}
+
 export interface PartRow {
 	entity: EntityId;
 	title: string;
 	category: string;
 	controls: ControlRow[];
+	/** State the modules show as text (plan 209: a parachute's "Armed" and "Unsafe"). */
+	readouts: ReadoutRow[];
 	/** The part can be controlled from (a command part or a docking port; plan 221). */
 	controlPoint?: boolean;
 	/** The vessel is controlled from this part now. */
@@ -69,12 +78,14 @@ export function vesselView(
 		const def = content.parts.get(p.definition);
 		if (!def) continue;
 		const controls: ControlRow[] = [];
+		const readouts: ReadoutRow[] = [];
 		for (const [moduleId, raw] of def.modules ?? []) {
 			const mod = content.modules.get(moduleId);
 			if (!mod?.describe) continue;
 			try {
-				for (const d of describeModule(mod, raw, p.modules[moduleId])?.actions ?? [])
-					controls.push({ ...d, module: moduleId });
+				const info = describeModule(mod, raw, p.modules[moduleId]);
+				for (const d of info?.actions ?? []) controls.push({ ...d, module: moduleId });
+				for (const r of info?.readouts ?? []) readouts.push({ ...r, module: moduleId });
 			} catch {
 				// a module whose describe throws shows no controls; the rest go on (ADR 0153 point 1)
 			}
@@ -89,6 +100,7 @@ export function vesselView(
 			title: def.title,
 			category: categoryOf(def, content.modules, categories),
 			controls,
+			readouts,
 			...(point
 				? {
 						controlPoint: true,

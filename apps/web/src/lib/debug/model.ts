@@ -188,5 +188,12 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 				level: 'info',
 				message: `vessel ${event.vessel} undocked ${event.name} (vessel ${event.restored})`
 			};
+		case 'parachute-deployed':
+			return { level: 'info', message: `parachute on part ${event.part}: ${event.stage}` };
+		case 'parachute-torn':
+			return {
+				level: 'warn',
+				message: `parachute on part ${event.part} torn at ${event.speed.toFixed(1)} m/s`
+			};
 	}
 }

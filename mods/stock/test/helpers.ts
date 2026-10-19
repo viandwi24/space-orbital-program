@@ -41,7 +41,7 @@ export const loaded = loadPlugins([Stock]);
 /** A recording `VesselApi`: resources are a plain map, forces and detach requests are logged. */
 export interface FakeVessel extends VesselApi {
 	control: { throttle: number; pitch: number; roll: number; yaw: number };
-	ambient: { pressure: number; density: number; altitude: number };
+	ambient: { pressure: number; density: number; altitude: number; height?: number };
 	stock: Record<string, number>;
 	forces: Array<{ force: Vec3; point?: Vec3 }>;
 	torques: Vec3[];
