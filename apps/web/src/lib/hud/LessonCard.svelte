@@ -17,6 +17,8 @@
 		keymap,
 		touch = false,
 		notice = null,
+		waiting = false,
+		onbegin,
 		onleave
 	}: {
 		lesson: Lesson;
@@ -26,6 +28,9 @@
 		keymap: Keymap;
 		touch?: boolean;
 		notice?: string | null;
+		/** The scene is set and the clock waits for Begin. */
+		waiting?: boolean;
+		onbegin?: () => void;
 		onleave: () => void;
 	} = $props();
 	const keys = $derived(step ? stepKeys(step, keymap, touch) : []);
@@ -49,6 +54,9 @@
 			</p>
 		{/if}
 	{/if}
+	{#if waiting}
+		<p class="wait" data-testid="lesson-waiting">The clock waits until you press Begin.</p>
+	{/if}
 	{#if notice}
 		<p class="notice" role="status" data-testid="lesson-notice">{notice}</p>
 	{/if}
@@ -56,6 +64,10 @@
 		<Button variant={done ? 'primary' : 'ghost'} onclick={onleave} data-testid="lesson-leave"
 			>{done ? 'Back to lessons' : 'Leave the lesson'}</Button
 		>
+		{#if waiting}
+			<Button variant="primary" onclick={() => onbegin?.()} data-testid="lesson-begin">Begin</Button
+			>
+		{/if}
 	</div>
 </aside>
 
@@ -103,6 +115,11 @@
 		gap: var(--s-1);
 		margin: var(--s-2) 0 0;
 	}
+	.wait {
+		margin: var(--s-2) 0 0;
+		font-size: var(--t-xs);
+		color: var(--text-muted);
+	}
 	.notice {
 		margin: var(--s-2) 0 0;
 		padding-top: var(--s-2);
@@ -114,6 +131,7 @@
 	.foot {
 		display: flex;
 		justify-content: flex-end;
+		gap: var(--s-2);
 		margin-top: var(--s-2);
 	}
 </style>

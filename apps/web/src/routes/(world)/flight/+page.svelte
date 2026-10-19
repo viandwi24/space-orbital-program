@@ -87,11 +87,7 @@
 		runLessonSetup,
 		type LessonObservation
 	} from '../../../lib/onboarding/lessons';
-	import {
-		activeLesson,
-		endLessonSession,
-		markLessonReady
-	} from '../../../lib/onboarding/lesson-world';
+	import { activeLesson, markLessonReady } from '../../../lib/onboarding/lesson-world';
 	import { lessonKeymap, lessonNotice } from '../../../lib/onboarding/lesson-gate.svelte';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
@@ -279,6 +275,8 @@
 	let lessonReady = $state(lessonRun?.ready === true);
 	let lessonProblem = $state<string | null>(null);
 	let lessonSetting = false;
+	/** The player pressed Begin: until then the world clock waits on the first card. */
+	let lessonBegun = $state(false);
 	/** The flight's design and parts, for the panel's "spawn a design" list. */
 	let debugDesigns: () => Promise<Array<{ name: string; design: VesselDesign }>> = async () => [];
 	let helpOpen = $state(false);
@@ -1154,6 +1152,8 @@
 	async function setLessonScene(): Promise<void> {
 		if (!lesson || !debugHost) return;
 		lessonSetting = true;
+		// the clock is held while the scene is set and until Begin, so nothing moves before the player reads
+		worldSession.hold('lesson', true);
 		const result = await runLessonSetup(lesson, createDebugApi(debugHost));
 		lessonSetting = false;
 		if (!result.ok) {
@@ -1165,9 +1165,18 @@
 		lessonReady = true;
 		settings.setLesson(lesson.id, { status: 'active', step: 0 });
 	}
+	function beginLesson(): void {
+		lessonBegun = true;
+		worldSession.hold('lesson', false);
+	}
+	$effect(() => {
+		// the clock waits while the player reads the first card (a lesson often starts mid-fall)
+		if (lesson && lessonReady && !lessonBegun) worldSession.hold('lesson', true);
+		return () => worldSession.hold('lesson', false);
+	});
 	const lessonObservation = $derived.by((): LessonObservation | null => {
-		if (!lesson || !lessonReady || !hud || hud.status !== 'flying' || !model || !debugHost)
-			return null;
+		if (!lesson || !lessonReady || !lessonBegun) return null;
+		if (!hud || hud.status !== 'flying' || !model || !debugHost) return null;
 		const v = flight?.panelInput()?.vessel;
 		if (!v) return null;
 		return observeLesson({
@@ -1195,6 +1204,12 @@
 		lesson ? (settings.lessons[lesson.id] ?? NEW_LESSON) : NEW_LESSON
 	);
 	$effect(() => {
+		// a blocked control's reason stays until the lesson moves on
+		void lessonProgress.step;
+		void lessonProgress.status;
+		lessonNotice.clear();
+	});
+	$effect(() => {
 		if (!lesson || lessonObservation === null) return;
 		const next = advanceLesson(lesson, lessonProgress, lessonObservation);
 		if (next !== lessonProgress) settings.setLesson(lesson.id, next);
@@ -1204,10 +1219,17 @@
 			? lesson
 			: null
 	);
-	/** Leave the lesson: the player's world comes back, and the Lessons page removes the lesson world. */
+	/**
+	 * Leave the lesson: out to the Lessons page, without the "leave an active flight?" question (the
+	 * lesson world goes away). Leaving the world saves it first, into the lesson world; the Lessons
+	 * page then ends the session, brings the player's world back and removes the lesson world.
+	 */
 	function leaveLessonToList(): void {
-		endLessonSession();
+		leaving = true;
 		lessonNotice.clear();
+		// the save on the way out needs a running clock: a lesson left before Begin lets it go
+		lessonBegun = true;
+		worldSession.hold('lesson', false);
 		void goto(resolve('/lessons'));
 	}
 	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
@@ -1320,6 +1342,8 @@
 						keymap={settings.keymap}
 						touch={touchOn}
 						notice={lessonProblem ?? lessonNotice.reason}
+						waiting={lessonReady && !lessonBegun}
+						onbegin={beginLesson}
 						onleave={leaveLessonToList}
 					/>
 				{/if}

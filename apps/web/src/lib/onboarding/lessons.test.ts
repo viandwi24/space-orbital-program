@@ -192,7 +192,6 @@ describe('lessons (plan 229)', () => {
 		expect(o.surfaceSpeed).toBeLessThan(1e-3);
 		expect(
 			observeLesson({
-				...(o as never),
 				vessel: { ...vessel, surface: true, ports: [] } as never,
 				bodies: [],
 				nodes: [],

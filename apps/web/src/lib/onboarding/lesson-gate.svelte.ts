@@ -7,25 +7,18 @@ import type { ActionId, Keymap } from '../keybindings';
 import { blockedAction, blockedPlace, lessonOf, type Lesson } from './lessons';
 import { activeLesson } from './lesson-world';
 
-/** How long a "not in this lesson" notice stays, ms. */
-export const NOTICE_MS = 6_000;
-
+/**
+ * The last "not in this lesson" reason. It stays until the lesson moves on a step or the page
+ * changes, so a player (or a slow test page) never misses it.
+ */
 class LessonNotice {
 	reason = $state<string | null>(null);
-	#timer: ReturnType<typeof setTimeout> | null = null;
 
 	show(reason: string): void {
 		this.reason = reason;
-		if (this.#timer !== null) clearTimeout(this.#timer);
-		this.#timer = setTimeout(() => {
-			this.reason = null;
-			this.#timer = null;
-		}, NOTICE_MS);
 	}
 
 	clear(): void {
-		if (this.#timer !== null) clearTimeout(this.#timer);
-		this.#timer = null;
 		this.reason = null;
 	}
 }

@@ -5,7 +5,7 @@
 	 * lock, the autosave cadence and the bars. Pages render only while this tab holds the world.
 	 */
 	import { onMount } from 'svelte';
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { calendarOf, formatDate, homeBodyOf, type Epoch, type Snapshot } from '@orbital/core';
@@ -198,6 +198,9 @@
 		leaving = true;
 		void save(autosaver.request('pagehide', autosaveState())).finally(() => void goto(to));
 	});
+
+	// a lesson's "closed" reason belongs to the page it was shown on (plan 229)
+	afterNavigate(() => lessonNotice.clear());
 
 	onMount(() => {
 		const presets = loadWorldCatalog().presets;
