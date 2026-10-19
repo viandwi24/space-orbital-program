@@ -86,3 +86,17 @@ The time bar, menu bar and status bar look exactly as `refs/space-orbital-progra
 ## Log
 
 - 2026-10-19 — Created from the owner's manual test (ADR 0222). The worker that built plan 204 does this right after its current plan, before anything else (owner's rule).
+- 2026-10-19 — Worker B (M5) claimed it. Measurements from `BASE_LAYOUT.md` §1–6 and the inline styles of `Base.dc.html`, `FlightV2.dc.html` and `SpaceCenterV2.dc.html`, each checked in the code (`lib/layout/shell-model.ts` and the three bars) and, where it is a box, in `e2e/base-layout.e2e.ts`:
+  - [x] time bar: left 24, top 24, height 44, radius 999, padding 4 14 4 4, gap 10; glass `rgba(22,23,26,0.6)`, `blur(28px) saturate(160%)`, border `rgba(255,255,255,0.08)` (e2e: 24/24/44)
+  - [x] play 36 round `#F4F4F5`, icon 14 `#0B0B0C` (pause: two rects, play: a triangle)
+  - [x] 8 segments, height 18, radius 3, gap 3, widths 6 6 6 6 10 10 10 10; up to the level `#F4F4F5`, the level accent, the rest `rgba(255,255,255,0.12)`, all dim while paused
+  - [x] multiple 12/600 white, min-width 34, `1×`, `50×`, `1k×`, `—` paused; rule 1 × 18; time 12/500 `T+ 2y 70d 26:32`
+  - [x] menu bar: right 24, top 24, padding 4, gap 4, rules 1 × 18 with margin 0 2 (the first only with page actions); buttons 36 round, icon 18, stroke 1.7; active white with a 4 px dot at bottom 3, others `#8B8B93`; Menu `#E4E4E7` (e2e: 24/24/44, fixed order Vessel · Map · Space Center · VAB)
+  - [x] Flight page actions Panels · Vessel info · Navball · Crew · Change camera (FlightV2's paths; Change camera without a dot); Space Center page action Mission Center
+  - [x] status bar: full width, height 32, border-top 1 px `rgba(255,255,255,0.08)`, padding 0 24, gap 14, 10 px `#A1A1AA`; rules 1 × 12 (e2e: 0/width/32 at the bottom)
+  - [x] left: world 11/700 white, mode chip 16 high, padding 0 6, 8/700 letter-spacing 0.08em, `rgba(255,255,255,0.1)` `#E4E4E7`, system; connection dot 6 (accent, `#FF5A5F` offline), "Connected" 600 white, the network; location with a 12 px icon (stroke 1.9)
+  - [x] centre `margin: 0 auto`, gap 16: Funds · Science · Reputation · Contracts "N active", values 600 white
+  - [x] right: autosave and mods with 12 px icons, the tray `margin-right: -6px`; bell 26 × 26 radius 6 `#C4C4CC`, icon 14, badge right 1 top 2, min-width 12, height 12, padding 0 3, 8/700, `#F4F4F5` on `#0B0B0C` (e2e: 26 × 26)
+  - [x] safe area top 80, sides 24, bottom 56 (e2e: Flight dock 80/24, staging 24/56, crew 24/56, navball bottom 56, vessel panel 80/24; Space Center column 80/24/320, dock bottom 52)
+  - [x] nothing above the bars but the two bars; no title top centre (e2e)
+  - [x] FlightV2 §5: staging and crew bottom 24 → 56, navball and the maneuver editor up 32 (they stand on the deck at bottom 56), vessel panel under the crew panel

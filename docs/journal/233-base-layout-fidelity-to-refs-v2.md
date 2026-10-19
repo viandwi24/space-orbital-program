@@ -18,15 +18,30 @@
 
 ## Side by side
 
-DESIGN_PAIRS
+Ours on the left, the design on the right. The design frames were drawn from the `.dc.html` sources with their own `renderVals()` and default props (the package has no images and its canvas runtime is not in it): a small Playwright script expands the `{{holes}}`, `<sc-for>` and `<sc-if>` and screenshots the 1920 × 1080 canvas. The 1440 × 900 rows put our 1440 shot next to the same 1920 frame.
+
+- The bars, 1920 × 1080 (Flight with no panel open; the design is `Base.dc.html` with its vessel-page example): `assets/233-base-1920.jpg`
+- Flight, 1920 × 1080 and 1440 × 900 (in orbit, the vessel panel open; `FlightV2.dc.html`): `assets/233-flight-1920.jpg`, `assets/233-flight-1440.jpg`
+- Space Center, 1920 × 1080 and 1440 × 900 (`SpaceCenterV2.dc.html`): `assets/233-space-center-1920.jpg`, `assets/233-space-center-1440.jpg`
+
+The before state for comparison is plan 215's shot with the old top navbar: `assets/215-flight-1440x900.jpg`.
 
 ## Remaining differences
 
-None.
+In this plan's scope (the three bars, the safe area, the Flight and Space Center offsets of BASE_LAYOUT §5): none. Every measurement of the plan's Log checklist is in the code, and the boxes are measured by `e2e/base-layout.e2e.ts`.
+
+Outside this plan's scope, and seen in the pairs:
+
+- The Space Center's bottom dock is still the build dock with text buttons; the design's dock of building icons and the build menu are plan 235. Its right column keeps our panels (Buildings, Needs attention, Market) in the design's place and width, not the design's cards.
+- The panels inside the safe area (staging, crew, the vessel panel, the navball deck, the dock's panels) are the components of plans 088, 214 and 215, not redrawn here.
+- `Base.dc.html` draws Vessel info as an info circle in its example; Flight uses `FlightV2.dc.html`'s rocket, as the plan says Flight follows FlightV2.
 
 ## What surprised me
 
-SURPRISES
+- **The design package cannot be opened in a browser** (its README says so): the `.dc.html` files need the canvas runtime. Their markup is simple enough (holes, `sc-for`, `sc-if`, a `renderVals()` class) that a 60-line expander in a Playwright page draws them faithfully; that is how the side-by-side frames were made.
+- **A black strip along the top of the Flight shots** appears only in the headless e2e renderer: in the dev build on the GPU the canvas's top rows are drawn (read back right after a frame). The canvas itself fills the window (measured 0, 0, 1440 × 900).
+- **Tests leaned on the old bars:** the smoke test's warp buttons, the script panel's toolbar button, `header.bar h1` for the vessel's name, the Mission Center in the top nav. The warp is now one button per level ("Time warp 2×"), the script editor is its dock tab, the vessel's name is the status bar's `status-place`, and the Mission Center is the Space Center's page action.
+- **SvelteKit's route announcer** is a 1 × 1 div at 0, 0: the "nothing above the bars" check skips elements of 1 px and less.
 
 ## Decisions made (link ADRs)
 
