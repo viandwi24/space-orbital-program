@@ -1,12 +1,12 @@
 ---
 id: 221
 title: Vessel switching and per-vessel designs
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [204]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 221 — Vessel switching and per-vessel designs
@@ -26,6 +26,7 @@ The player can fly any vessel they own. Every vessel, including debris and piece
   - 15c §1: map picking order is marker, own path, other orbit lines (`apps/web/src/lib/map-pick.ts:35-62`).
   - 15a §8: physics range 2.5 km (`packages/sim/src/constants.ts:14`).
   - 08 (KSP navigation and vessel management) for KSP's switch rules.
+- ADR 0215: the records live on the sim's vessels (as ADR 0208 says), not in the envelope; the envelope goes to version 3 only to seed the focus design of older saves.
 - Depends on 204 (one sim per world and client navigation; switching must not boot a new sim). Plan 216 gives `[`/`]` to switching in the KSP profile; until it lands, this plan binds them as `vesselPrev`/`vesselNext` with trim kept on its current keys in the classic profile.
 
 ## Scope
@@ -77,22 +78,23 @@ The player can fly any vessel they own. Every vessel, including debris and piece
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/save/game-save.test.ts` (new or in `saves.test.ts`): a version 2 save migrates with the focus design as the focus record; a staged save has a record per vessel and each lists only its kept parts.
-- [ ] `bun test packages/sim/test/debris.test.ts` gains a case: a decouple event carries the parent id and the indices each side kept.
-- [ ] `bun test packages/sim/test/sas.test.ts` gains a case: after `set-control-part` to a part rotated 90°, prograde hold aligns that part, not the root.
-- [ ] Chromium e2e `e2e/vessel-switch.e2e.ts`: `window.__orbitalDebug.setOrbit` places the vessel in low orbit; stage to drop a spent stage; press `]`, the HUD names the spent stage and its stage stack shows its parts; press `[`, back to the first vessel; no page reload happens (a `window` marker set before survives).
-- [ ] Chromium e2e `e2e/mission-center.e2e.ts` gains a case: Fly on a non-focus vessel opens Flight on it.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/save/game-save.test.ts` (new or in `saves.test.ts`): a version 2 save migrates with the focus design as the focus record; a staged save has a record per vessel and each lists only its kept parts.
+- [x] `bun test packages/sim/test/debris.test.ts` gains a case: a decouple event carries the parent id and the indices each side kept.
+- [x] `bun test packages/sim/test/sas.test.ts` gains a case: after `set-control-part` to a part rotated 90°, prograde hold aligns that part, not the root.
+- [x] Chromium e2e `e2e/vessel-switch.e2e.ts`: `window.__orbitalDebug.setOrbit` places the vessel in low orbit; stage to drop a spent stage; press `]`, the HUD names the spent stage and its stage stack shows its parts; press `[`, back to the first vessel; no page reload happens (a `window` marker set before survives).
+- [x] Chromium e2e `e2e/mission-center.e2e.ts` gains a case: Fly on a non-focus vessel opens Flight on it.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues; remove the STATUS.md:178 note).
-- [ ] `docs/journal/221-vessel-switching.md` written.
-- [ ] `docs/architecture/overview.md` updated (save envelope, per-vessel records).
-- [ ] `docs/architecture/simulation.md` updated (split events, control part).
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues; remove the STATUS.md:178 note).
+- [x] `docs/journal/221-vessel-switching.md` written.
+- [x] `docs/architecture/overview.md` updated (save envelope, per-vessel records).
+- [x] `docs/architecture/simulation.md` updated (split events, control part).
+- [x] New ADRs written for any decision made here, linked above.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Refined and done by Worker B (`claim/221`). Deviations (default per owner review, ADR 0215): records on `VesselState.design` instead of the envelope; trim moved from `[`/`]` to Home/End until plan 216 sets the profiles; "Switch to" is on the Target card (the map's vessel markers have no card of their own yet); the Mission Center Fly case lives in `e2e/vessel-switch.e2e.ts`, which has the staging set-up, instead of `mission-center.e2e.ts`. Evidence: `bun test packages/sim packages/core packages/scripting` 915 pass, including the split event in `debris.test.ts` and control from here in `sas.test.ts`; vitest `save/game-save.test.ts` 2, web 1103 pass; Chromium `e2e/vessel-switch.e2e.ts` 2/2 with `mission-center` and `smoke`; `check:affected` and CI on `ready/221` (journal).

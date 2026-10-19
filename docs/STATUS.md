@@ -167,7 +167,7 @@
 | 218 | [Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report](plans/218-hangar-inspector-groups-report.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [214, 217, 208]. |
 | 219 | [Procedural fairings and interstages](plans/219-procedural-fairings.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [217, 207]. |
 | 220 | [Roomier Hangar and high detail in the Hangar](plans/220-roomier-hangar.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
-| 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | done | Worker B | Design records on every vessel (ADR 0215), switch with `[`/`]`, Switch to, Fly any vessel, control from here; save envelope 3. |
 | 222 | [Docking ports and docking](plans/222-docking.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221, 207, 211]. |
 | 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
 | 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
@@ -208,9 +208,9 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Known issues / open questions
 
 - **Second hills planet** (plan 071, journal 071): the image-based light cube still reflects the home sky on a later body with air; hills terrain shadows reach 5 km (the mid patch); a mod hills planet without a `seed` got new continents with plan 071.
-- **EVA** (plan 109, journal 109): the HUD keeps the launched vessel's readouts while the camera follows a suit (a vessel switcher needs per-vessel designs); the jetpack pushes along the suit's up axis only (no RCS); crew are seated at launch only from plan 108.
+- **EVA** (plan 109, journal 109): the HUD keeps the launched vessel's readouts while the camera follows a suit (per-vessel designs exist since plan 221; suit focus is plan 225); the jetpack pushes along the suit's up axis only (no RCS); crew are seated at launch only from plan 108.
 - **Sun at the root** (plan 122, journal 122): body positions in snapshots and scripts' `system` frame are Sun-centred (13.6 Gm); day-based constants written against 21 600 s (stock data, crew rest) are 0.2 % off the solar day of 21 650.8 s; the flight still launches at (0, 0), not the world's site (094); the Mission Center's system scope frames the whole Sun system.
-- **Mission Center** (plan 113, journal 113): Fly flies only the save's focus vessel (the save keeps one design; per-vessel designs are a follow-up); Relays stay empty until 117; contract deadlines wait for 099 and construction done for 096. At the system scope the planet is a few pixels and a low-orbit fleet shares one label.
+- **Mission Center** (plan 113, journal 113): Fly flies any vessel of the player since plan 221; Relays stay empty until 117; contract deadlines wait for 099 and construction done for 096. At the system scope the planet is a few pixels and a low-orbit fleet shares one label.
 - **N-body** (plan 125, journal 125): the Mission Center and the Space Center run an n-body Sol world without DE440 (only the flight fetches it); the map's prediction in a Sol world uses the bodies' osculating conics, not their DE440 paths.
 - **Bases** (plan 128, journal 128): a base's buildings are not drawn yet (the Space Center's 3D view is the primary site's; its build dock places a base's buildings on the first free cell); bases need no life support, power or crew; a route's cargo moves at its window without a flight in the sim.
 - **Markets** (plan 097, journal 097): one chain (propellant); a trade UI, agencies as market actors (126) and a power budget (128) are later; patches cannot target commodities or recipes yet (the patch targets stay part, resource, body, building, category).
@@ -245,6 +245,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
 - [206 — Flexible time warp](journal/206-flexible-time-warp.md)
 - [205 — Clock states, pause rules, tab policy, leaving active flight](journal/205-clock-states-and-pause-rules.md)
 - [204 — World shell: Base layout, one sim per world](journal/204-world-shell-one-sim.md)
