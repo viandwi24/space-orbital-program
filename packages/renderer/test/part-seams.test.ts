@@ -106,7 +106,9 @@ describe('part seams', () => {
 					'rcs-block',
 					'launch-clamp',
 					// a panel without sections is a plate (plan 219; the fairing case below draws one)
-					'fairing-panel'
+					'fairing-panel',
+					// boxes only (plan 225)
+					'ladder'
 				].includes(visual.kind)
 			)
 				continue;
