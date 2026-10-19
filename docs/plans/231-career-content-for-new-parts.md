@@ -1,12 +1,12 @@
 ---
 id: 231
 title: Career content for the new parts
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker E"
 depends: [209, 210, 211, 222, 225]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 231 — Career content for the new parts
@@ -24,7 +24,7 @@ A Career world uses the new parts. Every part added in plans 207–211, 222 and 
   - §A6: the science dock panel offers only "run next" and "transmit best" (`mods/stock/src/panels.ts:14-30`); no way to pick an experiment or result.
   - Stale: `mods/stock/src/tech.ts:51` calls BST-1 "solid" (plan 210 makes it true).
 - Doc 14 lists KSP2 career content for comparison.
-- ADRs: 0186 (procedural contracts: templates, offers, slots, value), 0194 (science dock panel), 0147 (milestones), 0203 (parts pack), 0208 (docking). No new ADR: this is content within existing models.
+- ADRs: 0186 (procedural contracts: templates, offers, slots, value), 0194 (science dock panel), 0147 (milestones), 0203 (parts pack), 0208 (docking), [0231](../decisions/0231-career-content-tech-tiers-rescue-spawn-objective-view.md) (new: templates see milestones, a blueprint may spawn a rescue, the objective view grows, panel list items carry actions).
 - Owner question: pods carry no built-in parachute; the starter template includes one. Default per owner review (rancangan §15 #3); may change. The tech tree puts the first parachute in the starting node.
 - Plans: 209 (chutes), 210 (SRBs, clamps, vacuum engine, 2.5 m, basic science parts), 211 (RCS and monoprop), 222 (docking ports), 225 (ladder).
 
@@ -60,12 +60,21 @@ A Career world uses the new parts. Every part added in plans 207–211, 222 and 
 
 ## Steps
 
-1. Tech tree layout and the "every part has a node" test.
-2. Rescue template with its spawn.
-3. Satellite, station and docking templates.
-4. Science picker in the panel.
-5. Starter template with a parachute.
-6. Chromium e2e.
+1. **Tech tree:** 22 nodes in tiers 0 to 5. The tier 1 to 4 totals stay as they are, so the pacing tests hold. Basics gain the small SRB. Add `test/tech-coverage.test.ts`.
+2. **Core contracts** (ADR 0231):
+   - `ContractTemplateContext.milestones`;
+   - `ContractBlueprint.spawn` and `ContractOffer.spawned`;
+   - `ObjectiveVesselView` gains inclination, seats, crew, antenna, power, ports and docked;
+   - `ObjectiveView.rescues`;
+   - panel list item actions.
+3. **Sim:**
+   - the rescue spawn on accept (a stranded member, the vessel's `contract`);
+   - `viewFor` with the new fields and the dock rule;
+   - milestones passed to the templates.
+4. **Stock:** the objectives `stock.rescue`, `stock.satellite`, `stock.station` and `stock.dock`; the four templates.
+5. **Science picker:** experiments with Run, stored results with Transmit and Discard; the shortcuts stay.
+6. **Starter craft:** the Hangar's starter already carries a parachute (plan 209). The check is that the tree keeps it researchable from the start.
+7. **Chromium e2e** `career-content.e2e.ts`, set up with the plan 203 debug API.
 
 ## Acceptance criteria
 
@@ -88,3 +97,7 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Claimed by Worker E (Linux) and refined.
+  - The new contracts need data the models did not carry, so ADR 0231 records the small contract changes.
+  - The station template waits for the first docking (`dock:stock.home`).
+  - The starter craft already has a parachute since plan 209.
