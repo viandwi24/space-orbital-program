@@ -1,7 +1,7 @@
 ---
 id: 217
 title: "Hangar: carry loop, symmetry, rotation, turntable camera"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: []
 phase: 7
@@ -77,22 +77,22 @@ Building in the Hangar feels like KSP's VAB. A part rides on the cursor; nodes l
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/editor/carry.test.ts`: picking up a tank with an engine below carries both; dropping on the catalogue deletes both; undo restores both in one step.
-- [ ] `apps/web` vitest `lib/editor/symmetry.test.ts`: four radial boosters at symmetry 4, then a fin placed on one gives four fins in one undo step; mirror symmetry places two wings reflected; counts 5, 7 and 8 work.
-- [ ] `bun test packages/core/test/design.test.ts packages/core/test/design-v3.test.ts` pass, with a new case: a format 3 design with symmetry groups migrates and resolves unchanged; a mirror group round-trips.
-- [ ] `bun test packages/renderer/test/vab-picking.test.ts`: a ray to the side of a box part returns that face's normal.
-- [ ] Chromium e2e `e2e/hangar-carry.e2e.ts`: pick a tank from the catalogue, it follows the pointer; hover over the pod's bottom node, it snaps; click places it; Alt-click it gives a copy on the cursor; dropping the copy on the catalogue removes it; the part count reads the same as before the copy.
-- [ ] `e2e/editor.e2e.ts` passes on Chromium.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/editor/carry.test.ts`: picking up a tank with an engine below carries both; dropping on the catalogue deletes both; undo restores both in one step.
+- [x] `apps/web` vitest `lib/editor/symmetry.test.ts`: four radial boosters at symmetry 4, then a fin placed on one gives four fins in one undo step; mirror symmetry places two wings reflected; counts 5, 7 and 8 work.
+- [x] `bun test packages/core/test/design.test.ts packages/core/test/design-v3.test.ts` pass, with a new case: a format 3 design with symmetry groups migrates and resolves unchanged; a mirror group round-trips.
+- [x] `bun test packages/renderer/test/vab-picking.test.ts`: a ray to the side of a box part returns that face's normal.
+- [x] Chromium e2e `e2e/hangar-carry.e2e.ts`: pick a tank from the catalogue, it follows the pointer; hover over the pod's bottom node, it snaps; click places it; Alt-click it gives a copy on the cursor; dropping the copy on the catalogue removes it; the part count reads the same as before the copy.
+- [x] `e2e/editor.e2e.ts` passes on Chromium.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/217-hangar-carry-loop.md` written.
-- [ ] `docs/architecture/overview.md` updated (editor carry model).
-- [ ] Design format notes updated where ADR 0016/0034/0071 are summarised.
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/217-hangar-carry-loop.md` written.
+- [x] `docs/architecture/overview.md` updated (editor carry model).
+- [x] Design format notes updated where ADR 0016/0034/0071 are summarised.
+- [x] New ADRs written for any decision made here, linked above.
 
 ## Log
 
@@ -104,3 +104,4 @@ Building in the Hangar feels like KSP's VAB. A part rides on the cursor; nodes l
   - The carry keys get their own scope (`carry`), so WASD, Space and C act only while a part rides the cursor.
   - Deferred, with the reason in ADR 0221: surface attach on top and bottom faces and cones (needs a general surface link), a ghost free under the cursor, Shift-click for the whole vessel.
   - `e2e/editor.e2e.ts` is the script editor's (plus the Hangar size mark); it is run unchanged.
+- 2026-10-19 — Done. CI `refs/ci/pass/a0328e3a`; rebased onto plan 215 as one commit, `check:affected --build --e2e` passed again locally.
