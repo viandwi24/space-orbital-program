@@ -18,6 +18,7 @@ import type {
 } from '@orbital/core';
 import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
 import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
+import { cameraPose, modeFrame, reframe, resolveMode, type CameraMode } from './camera-modes.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	DataTexture,
@@ -206,7 +207,10 @@ export class SceneModel {
 	readonly scene = new Scene();
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
 
-	private readonly bodies = new Map<string, { holder: Object3D; radius: number }>();
+	private readonly bodies = new Map<
+		string,
+		{ holder: Object3D; radius: number; atmosphereTop?: number }
+	>();
 	/** Bodies other than the first with a craters or hills ground, drawn by the ground (moon) pass (ADR 0054, 0090). */
 	private readonly moons = new Map<string, MoonPass>();
 	/** Map view furniture of a body with a parent: its orbit around the parent and its sphere of influence. */
@@ -269,6 +273,12 @@ export class SceneModel {
 	private effectsTime = 0;
 	private debugTemperature: number | null = null;
 	private focus: { definition: string; occurrence: number } | null = null;
+	/** The player's part focus (plan 226): the camera looks at this part of the active vessel. */
+	private focusId: EntityId | null = null;
+	/** Flight camera mode (plan 226, ADR 0224), the mode it resolved to last and that frame. */
+	private cameraMode: CameraMode = 'free';
+	private resolvedMode: Exclude<CameraMode, 'auto'> | null = null;
+	private cameraFrame: Quat | null = null;
 	/** Where the active vessel was (body-fixed), so the camera stays at a wreck while it burns. */
 	private lastActive: { soi: string; local: Vec3; t: number } | null = null;
 	/** Site view (ADR 0117): the camera orbits the site centre, a virtual vessel without parts. */
@@ -350,7 +360,11 @@ export class SceneModel {
 				holder.add(mesh);
 			}
 			this.scene.add(holder);
-			this.bodies.set(b.id, { holder, radius: b.radius });
+			this.bodies.set(b.id, {
+				holder,
+				radius: b.radius,
+				...(b.atmosphere ? { atmosphereTop: b.atmosphere.height } : {})
+			});
 		});
 		for (const b of config.bodies) {
 			if (b.parent === undefined || !b.orbit) continue;
@@ -512,6 +526,27 @@ export class SceneModel {
 		return scene;
 	}
 
+	/** The flight camera's mode (plan 226): the rig is re-measured in the new frame on the next placement. */
+	setCameraMode(mode: CameraMode): void {
+		this.cameraMode = mode;
+		this.cameraDirty = true;
+	}
+	get flightCameraMode(): CameraMode {
+		return this.cameraMode;
+	}
+	/** What `auto` resolved to at the last placement (null before one). */
+	get resolvedCameraMode(): Exclude<CameraMode, 'auto'> | null {
+		return this.resolvedMode;
+	}
+	/** Look at one part of the active vessel (plan 226), or the vessel again with `null`. */
+	setFocusPart(id: EntityId | null): void {
+		this.focusId = id;
+		this.cameraDirty = true;
+	}
+	get focusedPart(): EntityId | null {
+		return this.focusId;
+	}
+
 	/** Screenshot hook: aim the flight camera at the n-th part of a definition instead of the root part. */
 	setDebugFocus(definition: string | null, occurrence = 0): void {
 		this.focus = definition === null ? null : { definition, occurrence };
@@ -552,6 +587,7 @@ export class SceneModel {
 		return this.map;
 	}
 	setActiveVessel(id: EntityId | null): void {
+		if (id !== this.active) this.focusId = null;
 		this.active = id;
 	}
 
@@ -1641,7 +1677,17 @@ export class SceneModel {
 				: active && base
 					? toRenderSpace(add(base, active.position), this.origin)
 					: ZERO;
-			if (group && active && this.focus) {
+			const focused =
+				group && active && this.focusId !== null
+					? active.parts.find((p) => p.id === this.focusId)
+					: undefined;
+			if (focused) {
+				target = {
+					x: target.x + focused.position.x,
+					y: target.y + focused.position.y,
+					z: target.z + focused.position.z
+				};
+			} else if (group && active && this.focus) {
 				const hit = active.parts.filter((p) => p.definition === this.focus!.definition)[
 					this.focus.occurrence
 				];
@@ -1654,7 +1700,7 @@ export class SceneModel {
 				}
 			}
 			// Look at the middle of the vessel, not at its root part (the capsule at the top).
-			if (!this.focus) {
+			if (!this.focus && !focused) {
 				target = {
 					x: target.x + this.vesselCentre.x,
 					y: target.y + this.vesselCentre.y,
@@ -1663,17 +1709,37 @@ export class SceneModel {
 			}
 			rig = this.flightRig;
 		}
-		const o = rigOffset(rig);
-		// Flight view: "up" is away from the SOI body (the pad is not at the pole), so the vessel
-		// stands upright on screen. Map view keeps +Y (the body's rotation axis) up.
-		const up = new Vector3(0, 1, 0);
+		// Flight view (plan 226, ADR 0224): the mode's frame. Free has "up" away from the SOI body
+		// (the pad is not at the pole), so the vessel stands upright on screen; Orbital the orbit
+		// normal; Locked the vessel. A change of the resolved mode re-measures the rig, so the view
+		// direction stays. Map view keeps +Y (the body's rotation axis) up.
+		let frame: Quat = { x: 0, y: 0, z: 0, w: 1 };
 		if (!this.map && active) {
-			const r = new Vector3(active.position.x, active.position.y, active.position.z);
-			if (r.lengthSq() > 0) up.copy(r.normalize());
+			const body = this.bodies.get(active.soi);
+			const control =
+				active.controlPart === undefined
+					? undefined
+					: active.parts.find((p) => p.id === active.controlPart)?.orientation;
+			const subject = {
+				position: active.position,
+				velocity: active.velocity,
+				orientation: control ?? active.orientation,
+				altitude:
+					Math.hypot(active.position.x, active.position.y, active.position.z) - (body?.radius ?? 0),
+				...(body?.atmosphereTop !== undefined ? { atmosphereTop: body.atmosphereTop } : {})
+			};
+			const resolved = resolveMode(this.cameraMode, subject);
+			frame = modeFrame(resolved, subject);
+			if (this.resolvedMode !== null && this.resolvedMode !== resolved && this.cameraFrame) {
+				this.flightRig = reframe(this.flightRig, this.cameraFrame, frame);
+				rig = this.flightRig;
+			}
+			this.resolvedMode = resolved;
+			this.cameraFrame = frame;
 		}
-		const offset = new Vector3(o.x, o.y, o.z).applyQuaternion(
-			new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), up)
-		);
+		const pose = cameraPose(rig, frame);
+		const offset = new Vector3(pose.offset.x, pose.offset.y, pose.offset.z);
+		const up = new Vector3(pose.up.x, pose.up.y, pose.up.z);
 		this.camera.up.copy(up);
 		this.camera.position.set(target.x + offset.x, target.y + offset.y, target.z + offset.z);
 		const bodyPos = anchorBody ? bodyWorld.get(anchorBody) : undefined;

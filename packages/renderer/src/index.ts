@@ -7,6 +7,7 @@ export const RENDERER_VERSION = '0.2.0';
 export * from './origin.ts';
 export * from './orbit-line.ts';
 export * from './camera-rig.ts';
+export * from './camera-modes.ts';
 export * from './project.ts';
 export * from './scene.ts';
 export * from './map.ts';

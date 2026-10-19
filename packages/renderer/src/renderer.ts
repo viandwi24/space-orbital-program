@@ -25,6 +25,7 @@ import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
 import type { ScreenPoint } from './project.ts';
 import { SceneModel, type MapPathSegment, type MapScope, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
+import type { CameraMode } from './camera-modes.ts';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (measured), for the progress bar only. */
 const VEGETATION_STEPS = 34;
@@ -148,6 +149,19 @@ export interface Renderer {
 	toggleMapView(): boolean;
 	readonly isMapView: boolean;
 	setActiveVessel(id: EntityId | null): void;
+	/**
+	 * Flight camera mode (plan 226, ADR 0224): Auto, Free (horizon up), Orbital (orbit normal up) or
+	 * Locked (turns with the vessel). The view direction is kept across a change.
+	 */
+	setCameraMode(mode: CameraMode): void;
+	readonly cameraMode: CameraMode;
+	/** What the mode means now (Auto resolves to Free or Orbital); null before the first frame. */
+	readonly resolvedCameraMode: Exclude<CameraMode, 'auto'> | null;
+	/** Point the flight camera at one part of the active vessel, `null` back to the vessel (plan 226). */
+	focusPart(id: EntityId | null): void;
+	readonly focusedPart: EntityId | null;
+	/** Draw one frame and return it as a PNG (plan 226): the canvas only, never the HTML interface. */
+	capture(): Promise<Blob>;
 	/** Rim-light one part of any vessel, or none (plan 111, ADR 0153 point 5). */
 	highlightPart(id: EntityId | null): void;
 	/** The active vessel's part under a point of the canvas box (CSS px), or null (plan 214). */
@@ -531,6 +545,28 @@ export function createRenderer(config: RendererConfig): Renderer {
 			return model.isMapView;
 		},
 		setActiveVessel: (id) => model.setActiveVessel(id),
+		setCameraMode: (mode) => model.setCameraMode(mode),
+		get cameraMode() {
+			return model.flightCameraMode;
+		},
+		get resolvedCameraMode() {
+			return model.resolvedCameraMode;
+		},
+		focusPart: (id) => model.setFocusPart(id),
+		get focusedPart() {
+			return model.focusedPart;
+		},
+		capture() {
+			// Read the drawing buffer in the same task as the draw: without preserveDrawingBuffer the
+			// browser clears it only after compositing, so the PNG costs nothing on other frames.
+			drawFrame(0);
+			return new Promise((resolve, reject) =>
+				config.canvas.toBlob(
+					(blob) => (blob ? resolve(blob) : reject(new Error('no image'))),
+					'image/png'
+				)
+			);
+		},
 		highlightPart: (id) => model.highlightPart(id),
 		partAt: (x, y) => model.partAt(x, y),
 		orbitCamera: (input) => model.orbitCamera(input),
