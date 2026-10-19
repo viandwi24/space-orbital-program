@@ -1,12 +1,12 @@
 ---
 id: 227
 title: Audio pack and minimal music
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker D"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 227 — Audio pack and minimal music
@@ -61,10 +61,10 @@ The game sounds like a launch campaign. Explosions, decoupling, parachutes, touc
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `apps/web` vitest: `audio/cues.test.ts` asserts every cue id in the table has a visual sign and a gain under the bus limit; settings migration gives Music 0.25 to an old profile.
-- [ ] `apps/web` vitest: the director plays `explosion` once per destroyed part event and never more than 4 at once.
-- [ ] Chromium e2e `apps/web/e2e/audio.e2e.ts`: the Music slider persists after reload; after a stage event with `debug.setLocation` (plan 203) at 500 m and a hard landing, the page reports the `touchdown` and `explosion` cues through the director's debug counter and shows their visual signs.
-- [ ] The same e2e passes on Firefox (`--project=firefox`).
+- [x] `apps/web` vitest: `audio/cues.test.ts` asserts every cue id in the table has a visual sign and a gain under the bus limit; settings migration gives Music 0.25 to an old profile.
+- [x] `apps/web` vitest: the director plays `explosion` once per destroyed part event and never more than 4 at once.
+- [x] Chromium e2e `apps/web/e2e/audio.e2e.ts`: the Music slider persists after reload; after a stage event with `debug.setLocation` (plan 203) at 500 m and a hard landing, the page reports the `touchdown` and `explosion` cues through the director's debug counter and shows their visual signs.
+- [ ] The same e2e passes on Firefox (`--project=firefox`): not run here (worker brief: Chromium only on the M2); left to release QA's three-engine run (plan 232).
 - [ ] `bun run check:affected --build --e2e e2e/audio.e2e.ts` passes.
 - [ ] CI is green on the `ready/*` tag for this plan.
 
@@ -76,5 +76,20 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 - [ ] Credits page unchanged unless licensed audio is added.
 
 ## Log
+
+- 2026-10-19 — Worker D: claimed (claim/227) and built.
+  - **The cue table** (`lib/audio/cues.ts`): 13 cues, each with its bus, gain and visual sign.
+  - **The procedural one-shots** in `engine.ts`.
+  - **The director:**
+    - it counts the cues and publishes them as `data-audio-cues`;
+    - at most 4 explosions within 1.6 s;
+    - a touchdown from the radar, or from a sim-reported impact, which a 10 Hz radar can miss in a hard landing;
+    - RCS puffs, EVA steps, the jetpack hiss.
+  - **The music bus:** four procedural beds by page (root layout) with a 2.5 s crossfade, and ducking under warnings.
+  - **Settings:** `audio.music`, additive in format 4 like plans 203 and 205's fields, so an old profile gets 0.25. The Music slider.
+  - **The roar curve** stays `throttle × √p`; ADR 0210 records why.
+  - **Outside the listed Edits:** `routes/+layout.svelte` (the bed by page) and `lib/eva/eva-model.ts` (the jetpack's firing).
+  - **Firefox:** not run. The worker brief keeps Playwright to Chromium on this M2; the three-engine run is release QA (plan 232).
+  - **ADR 0210** stays proposed until the owner picks the music source.
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
