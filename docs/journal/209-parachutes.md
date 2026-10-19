@@ -32,5 +32,11 @@
 ## Verification output
 
 ```
-(filled in at handover)
+bun test mods/stock: 113 pass (parachute.test.ts 4)
+bun test packages/sim parachute-descent: pod + chute from 5 km at 250 m/s lands at 5.6 m/s, no damage
+bun test packages/renderer parachute.test.ts 4 pass; parts triangle budgets pass
+web vitest parachute-panel, toasts pass; 640 vitest in the affected run
+check:affected --build --e2e e2e/parachute.e2e.ts (after the rebase on plan 222): all passed in 288 s
+playwright chromium: parachute, launch (2), trip, power, vessel-panel, pad-state (2), smoke (7) pass
+CI ready/209: refs/ci/pass/faa405a9
 ```

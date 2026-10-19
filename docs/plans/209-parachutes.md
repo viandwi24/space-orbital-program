@@ -1,7 +1,7 @@
 ---
 id: 209
 title: Parachutes
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [207]
 phase: 7
@@ -60,20 +60,20 @@ Top, radial and drogue parachutes exist and work like KSP since 1.2. Staging arm
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock` passes, including `test/parachute.test.ts`: an armed chute stays stowed above its min pressure, semi-deploys at 0.04 atm and fully deploys at 1000 m; in `when-safe` mode at 400 m/s it waits; forced at 400 m/s it tears.
-- [ ] `bun test packages/sim` passes `test/parachute-descent.test.ts`: a pod with one top chute dropped at 5 km and 250 m/s lands below 8 m/s.
-- [ ] `bun test packages/renderer` passes `test/parachute.test.ts`: the canopy mesh exists for `semi` and `full` and not for `stowed`, `cut` or `torn`.
-- [ ] `apps/web` vitest: the part panel shows "Unsafe" with text for a fast descent fixture, and Deploy, Force deploy, Disarm and Cut buttons.
-- [ ] Chromium e2e `e2e/parachute.e2e.ts`: `debugSetLocation` a pod with a chute at 5 km and 200 m/s; stage; the panel reads Armed, then Semi-deployed, then Deployed; the vessel lands intact.
-- [ ] `bun run check:affected --e2e e2e/parachute.e2e.ts` passes.
-- [ ] CI green on the `ready/209` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test mods/stock` passes, including `test/parachute.test.ts`: an armed chute stays stowed above its min pressure, semi-deploys at 0.04 atm and fully deploys at 1000 m; in `when-safe` mode at 400 m/s it waits; forced at 400 m/s it tears.
+- [x] `bun test packages/sim` passes `test/parachute-descent.test.ts`: a pod with one top chute dropped at 5 km and 250 m/s lands below 8 m/s.
+- [x] `bun test packages/renderer` passes `test/parachute.test.ts`: the canopy mesh exists for `semi` and `full` and not for `stowed`, `cut` or `torn`.
+- [x] `apps/web` vitest: the part panel shows "Unsafe" with text for a fast descent fixture, and Deploy, Force deploy, Disarm and Cut buttons.
+- [x] Chromium e2e `e2e/parachute.e2e.ts`: `debugSetLocation` a pod with a chute at 5 km and 200 m/s; stage; the panel reads Armed, then Semi-deployed, then Deployed; the vessel lands intact.
+- [x] `bun run check:affected --e2e e2e/parachute.e2e.ts` passes.
+- [x] CI green on the `ready/209` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/209-parachutes.md` written.
-- [ ] `docs/architecture/simulation.md` updated (parachute model).
-- [ ] ADR 0203 linked.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/209-parachutes.md` written.
+- [x] `docs/architecture/simulation.md` updated (parachute model).
+- [x] ADR 0203 linked.
 
 ## Log
 
