@@ -28,7 +28,7 @@
 	import { settings } from '../../lib/settings/settings.svelte';
 	import { keyIdOf } from '../../lib/keybindings';
 	import { clockState, placePauses } from '../../lib/clock-state';
-	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../lib/debug/api';
+	import { createDebugApi, exposeDebugApi, flightDebug, type DebugHost } from '../../lib/debug/api';
 	import { fatalSave } from '../../lib/fatal-error.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -225,7 +225,9 @@
 				send: (command) => client.dispatch(command),
 				onSnapshot: (listener) => client.onSnapshot((s) => listener(s)),
 				bodies: () => catalog?.bodies ?? [],
-				home: () => catalog?.home ?? catalog?.bodies.find((b) => b.parent === undefined)?.id ?? ''
+				home: () => catalog?.home ?? catalog?.bodies.find((b) => b.parent === undefined)?.id ?? '',
+				notice: (toast) => flightDebug.current?.notice?.(toast),
+				vesselOnScreen: () => flightDebug.current?.vesselOnScreen?.() ?? null
 			};
 			offClient.push(exposeDebugApi(window, createDebugApi(host), host));
 			void client.ready.then((c) => (catalog = c)).catch(() => {});

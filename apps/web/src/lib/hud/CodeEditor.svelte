@@ -910,7 +910,7 @@
 	}
 	textarea::selection {
 		color: transparent;
-		background: rgb(92 207 255 / 0.32);
+		background: color-mix(in srgb, var(--code-select) 32%, transparent);
 	}
 	.keyword {
 		color: var(--syn-keyword);
@@ -944,7 +944,7 @@
 		gap: var(--s-1);
 	}
 	.find button[aria-pressed='true'] {
-		background: rgb(92 207 255 / 0.25);
+		background: color-mix(in srgb, var(--code-select) 25%, transparent);
 		border-color: var(--c-accent);
 	}
 	.find button.word {
@@ -1049,16 +1049,16 @@
 		text-decoration: underline wavy;
 	}
 	.m-bracket {
-		background: rgb(92 207 255 / 0.28);
-		outline: 1px solid rgb(92 207 255 / 0.7);
+		background: color-mix(in srgb, var(--code-select) 28%, transparent);
+		outline: 1px solid color-mix(in srgb, var(--code-select) 70%, transparent);
 		border-radius: 2px;
 	}
 	.m-find {
-		background: rgb(255 214 102 / 0.28);
+		background: color-mix(in srgb, var(--code-match) 28%, transparent);
 	}
 	.m-find-current {
-		background: rgb(255 214 102 / 0.65);
-		outline: 1px solid rgb(255 214 102);
+		background: color-mix(in srgb, var(--code-match) 65%, transparent);
+		outline: 1px solid var(--code-match);
 	}
 	.list {
 		position: absolute;
@@ -1074,7 +1074,7 @@
 		background: var(--panel-solid);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--r-control);
-		box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+		box-shadow: 0 6px 18px var(--surface-scrim);
 	}
 	.list li {
 		display: grid;
@@ -1085,7 +1085,7 @@
 		border-radius: 3px;
 	}
 	.list li.on {
-		background: rgb(92 207 255 / 0.2);
+		background: color-mix(in srgb, var(--code-select) 20%, transparent);
 	}
 	.list .name {
 		font-weight: 600;

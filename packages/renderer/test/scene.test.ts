@@ -97,6 +97,23 @@ describe('SceneModel', () => {
 		expect(m.project(world)!.y).toBeCloseTo(300, 0);
 	});
 
+	test('an animated inset change eases over 250 ms (plan 215, ADR 0205 point 7)', () => {
+		const m = make();
+		m.resize(800, 600);
+		const s = snap(0, vessel(1, R + 100, 0, 0));
+		m.sync(s);
+		const c = partCentre(s.vessels[0]!.parts);
+		const world = { x: ROOT.x + R + 100 + c.x, y: ROOT.y + c.y, z: ROOT.z + c.z };
+		m.setViewInsets({ top: 0, right: 0, bottom: 200, left: 0 }, { animate: true });
+		expect(m.project(world)!.y).toBeCloseTo(300, 0); // nothing moves at once
+		m.prepareFrame(0.125);
+		const half = m.project(world)!.y;
+		expect(half).toBeLessThan(299);
+		expect(half).toBeGreaterThan(201);
+		m.prepareFrame(0.2);
+		expect(m.project(world)!.y).toBeCloseTo(200, 0);
+	});
+
 	test('partCentre is the middle of the parts bounding box', () => {
 		expect(partCentre([])).toEqual({ x: 0, y: 0, z: 0 });
 		expect(

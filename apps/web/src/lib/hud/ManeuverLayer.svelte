@@ -202,13 +202,13 @@
 		background: var(--bg-void);
 		border: 2px solid currentColor;
 		border-radius: 50%;
-		box-shadow: 0 0 0 2px rgb(4 7 11 / 0.7);
+		box-shadow: 0 0 0 2px var(--surface-scrim);
 	}
 	.node.sel .gem {
 		background: currentColor;
 		box-shadow:
-			0 0 0 2px rgb(4 7 11 / 0.7),
-			0 0 0 5px rgb(185 162 255 / 0.35);
+			0 0 0 2px var(--surface-scrim),
+			0 0 0 5px color-mix(in srgb, var(--mnv-normal) 35%, transparent);
 	}
 	.node:focus-visible,
 	.handle:focus-visible {
@@ -222,7 +222,7 @@
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: rgb(4 7 11 / 0.72);
+		background: var(--surface-scrim);
 		border: 1px solid var(--line-strong);
 	}
 	.handle:hover {

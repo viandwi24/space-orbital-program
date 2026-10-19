@@ -158,7 +158,7 @@
 		font: inherit;
 		font-size: var(--t-sm);
 		color: var(--text);
-		background: rgb(150 180 210 / 0.1);
+		background: var(--surface-hover);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--r-control);
 	}
@@ -195,7 +195,7 @@
 		font-size: var(--t-sm);
 		text-align: left;
 		color: var(--text);
-		background: rgb(150 180 210 / 0.1);
+		background: var(--surface-hover);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--r-control);
 		cursor: pointer;

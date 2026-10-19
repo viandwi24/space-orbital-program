@@ -163,6 +163,17 @@ describe('toast store', () => {
 		expect(pruneToasts(list, 21)).toBe(list);
 	});
 
+	it('past four, the oldest that is not a danger leaves first (plan 215)', () => {
+		let list = addToast([], { kind: 'danger', title: 'fire' }, 0, 1);
+		for (let i = 0; i < 6; i++)
+			list = addToast(list, { kind: 'warning', title: `w${i}` }, 1, 2 + i);
+		expect(list.map((t) => t.title)).toEqual(['fire', 'w3', 'w4', 'w5']);
+		// all dangers: the oldest goes
+		let red = addToast([], { kind: 'danger', title: 'd0' }, 0, 1);
+		for (let i = 1; i < 6; i++) red = addToast(red, { kind: 'danger', title: `d${i}` }, 0, 1 + i);
+		expect(red.map((t) => t.title)).toEqual(['d2', 'd3', 'd4', 'd5']);
+	});
+
 	it('out of power on the flown vessel is a danger toast, on another vessel nothing (plan 208)', () => {
 		expect(toastForSimEvent({ type: 'power-depleted', vessel: 1 }, ctx)).toMatchObject({
 			kind: 'danger',

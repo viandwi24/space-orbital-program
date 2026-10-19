@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LiveToast } from '../toasts';
 	import Icon from './Icon.svelte';
+	import { REGIONS } from '../layout/regions';
 
 	let { toasts }: { toasts: readonly LiveToast[] } = $props();
 	const icon = { info: 'info', success: 'check', warning: 'alert', danger: 'flame' } as const;
@@ -8,7 +9,7 @@
 
 <!-- Polite live region; danger toasts are announced assertively by their own role. -->
 <div class="toasts" aria-live="polite" aria-atomic="false">
-	{#each toasts as t (t.id)}
+	{#each toasts.slice(-REGIONS.toasts) as t (t.id)}
 		<div class="toast {t.kind}" role={t.kind === 'danger' ? 'alert' : 'status'}>
 			<span class="ico"><Icon name={icon[t.kind]} size={18} /></span>
 			<div>
@@ -31,8 +32,8 @@
 		display: flex;
 		gap: var(--s-3);
 		align-items: flex-start;
-		min-width: 240px;
-		max-width: 420px;
+		min-width: 15rem;
+		max-width: 26.25rem;
 		padding: var(--s-2) var(--s-4) var(--s-2) var(--s-3);
 		background: var(--surface-glass);
 		border: 1px solid var(--border-subtle);
@@ -58,15 +59,15 @@
 	}
 	.success {
 		--tone: var(--c-positive);
-		border-color: rgb(95 227 161 / 0.5);
+		border-color: color-mix(in srgb, var(--ok) 50%, transparent);
 	}
 	.warning {
 		--tone: var(--c-warning);
-		border-color: rgb(255 191 74 / 0.55);
+		border-color: color-mix(in srgb, var(--warn) 55%, transparent);
 	}
 	.danger {
 		--tone: var(--c-danger);
-		border-color: rgb(255 114 114 / 0.65);
+		border-color: color-mix(in srgb, var(--danger) 65%, transparent);
 	}
 	@keyframes in {
 		from {

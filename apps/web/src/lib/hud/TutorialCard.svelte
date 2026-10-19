@@ -30,14 +30,15 @@
 
 <style>
 	.card {
-		width: 288px;
+		width: 18rem;
 		padding: var(--s-3) var(--s-4);
 		box-sizing: border-box;
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-left: 3px solid var(--c-accent);
-		border-radius: var(--r-panel);
-		backdrop-filter: blur(10px) saturate(1.2);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-left: 3px solid var(--accent-text);
+		border-radius: var(--radius-panel);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 		pointer-events: auto;
 	}
 	.eyebrow {

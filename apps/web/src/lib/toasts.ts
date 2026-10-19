@@ -213,7 +213,10 @@ export interface LiveToast extends Toast {
 	until: number;
 }
 
-/** Adds `toast` (replacing one with the same key) and keeps the newest `MAX_TOASTS`. */
+/**
+ * Adds `toast` (replacing one with the same key) and keeps at most `MAX_TOASTS`: past the cap the
+ * oldest that is not a danger leaves first, so an error stays on screen (plan 215, ADR 0205 point 5).
+ */
 export function addToast(
 	list: readonly LiveToast[],
 	toast: Toast,
@@ -221,7 +224,12 @@ export function addToast(
 	id: number
 ): LiveToast[] {
 	const rest = toast.key === undefined ? list : list.filter((t) => t.key !== toast.key);
-	return [...rest, { ...toast, id, until: now + TOAST_MS[toast.kind] }].slice(-MAX_TOASTS);
+	const out = [...rest, { ...toast, id, until: now + TOAST_MS[toast.kind] }];
+	while (out.length > MAX_TOASTS) {
+		const calm = out.findIndex((t) => t.kind !== 'danger');
+		out.splice(calm >= 0 ? calm : 0, 1);
+	}
+	return out;
 }
 
 export const pruneToasts = (list: readonly LiveToast[], now: number): LiveToast[] =>

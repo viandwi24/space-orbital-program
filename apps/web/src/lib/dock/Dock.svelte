@@ -121,9 +121,9 @@
 		position: absolute;
 		right: 1px;
 		top: 50%;
-		width: 4px;
-		height: 4px;
-		margin-top: -2px;
+		width: var(--dot);
+		height: var(--dot);
+		margin-top: calc(var(--dot) / -2);
 		border-radius: 50%;
 	}
 	.tab[aria-selected='true'] .dot {
@@ -137,14 +137,14 @@
 	.dock.right {
 		flex-direction: row-reverse;
 	}
-	/* host and mod panels keep the width of the old right column (16.5 rem); the script editor sets its own */
+	/* host and mod panels take the dock region's default width (280 px at 100 %, plan 215); the script editor sets its own */
 	.open > :global(*) {
 		flex: 0 1 auto;
 		min-height: 0;
 		overflow-y: auto;
 	}
 	.open > :global(.panel) {
-		width: 16.5rem;
+		width: 17.5rem;
 	}
 	/* a column whose child shrinks and scrolls itself, so its box is what shows */
 	.open {

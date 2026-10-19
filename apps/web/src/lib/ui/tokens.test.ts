@@ -146,7 +146,8 @@ describe('text floor (ADR 0109): no text token below 10 px at 100 %', () => {
 	});
 	for (const [name, value] of sizes) {
 		it(`${name} = ${value}`, () => {
-			const m = /^([\d.]+)rem$/.exec(value);
+			// rem so the UI scale applies; `max(10px, …rem)` keeps the floor at small scales (plan 215)
+			const m = /^(?:max\(10px,\s*)?([\d.]+)rem\)?$/.exec(value);
 			expect(m, `${name} must be in rem so the UI scale applies`).not.toBeNull();
 			expect(Number(m![1]) * 16).toBeGreaterThanOrEqual(10);
 		});
@@ -262,5 +263,46 @@ describe('reduced motion', () => {
 		expect(reduced![1]).toContain('--dur-fast: 0.01ms');
 		expect(reduced![1]).toContain('animation-duration: 0.01ms');
 		expect(reduced![1]).toContain('transition-duration: 0.01ms');
+	});
+});
+
+// ---- the 10 px floor at every UI scale (plan 215, ADR 0205 point 6) ----
+
+const SCALES = [0.8, 0.9, 1, 1.1, 1.25, 1.5];
+
+/** A length in px for a root font size of `16 × scale`: `Npx`, `Nrem` or `max(a, b)` of those. */
+function pxAt(value: string, scale: number): number {
+	const v = value.trim();
+	const max = v.match(/^max\((.*),(.*)\)$/);
+	if (max) return Math.max(pxAt(max[1]!, scale), pxAt(max[2]!, scale));
+	const m = v.match(/^([0-9.]+)(px|rem)$/);
+	if (!m) throw new Error(`cannot read the length "${v}"`);
+	return m[2] === 'px' ? Number(m[1]) : Number(m[1]) * 16 * scale;
+}
+
+describe('type tokens', () => {
+	const tokens = [...css.matchAll(/(--t-[a-z]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!] as const);
+
+	it('are all read', () => {
+		expect(tokens.map(([n]) => n)).toEqual(
+			expect.arrayContaining([
+				'--t-label',
+				'--t-small',
+				'--t-button',
+				'--t-value',
+				'--t-xs',
+				'--t-sm'
+			])
+		);
+	});
+
+	it.each(SCALES)('are at least 10 px at UI scale %s', (scale) => {
+		for (const [name, value] of tokens) expect(pxAt(value, scale), name).toBeGreaterThanOrEqual(10);
+	});
+
+	it('scale with the UI above the floor', () => {
+		const value = tokens.find(([n]) => n === '--t-value')![1];
+		expect(pxAt(value, 1.5)).toBeCloseTo(19.5, 6);
+		expect(pxAt(value, 0.8)).toBeCloseTo(10.4, 6);
 	});
 });

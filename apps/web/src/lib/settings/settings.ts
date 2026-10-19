@@ -43,14 +43,16 @@ const audioSchema = z
 
 /** The UI scale choices, as fractions of the default size (ADR 0107 point 5: 80 to 150 %). */
 export const UI_SCALES = [0.8, 0.9, 1, 1.1, 1.25, 1.5] as const;
-export const DEFAULT_INTERFACE = { scale: 1, highContrast: false } as const;
+export const DEFAULT_INTERFACE = { scale: 1, highContrast: false, centreVessel: false } as const;
 /** The nearest offered scale, so a hand-edited value still lands on one the dialog shows. */
 export const nearestUiScale = (v: number): number =>
 	UI_SCALES.reduce((best, s) => (Math.abs(s - v) < Math.abs(best - v) ? s : best), 1);
 const interfaceSchema = z
 	.object({
 		scale: z.number().min(0.8).max(1.5).transform(nearestUiScale).catch(DEFAULT_INTERFACE.scale),
-		highContrast: z.boolean().catch(false)
+		highContrast: z.boolean().catch(false),
+		/** The camera centres the vessel in the area the panels leave free (plan 215; default off). */
+		centreVessel: z.boolean().catch(false)
 	})
 	.catch({ ...DEFAULT_INTERFACE });
 
@@ -126,7 +128,7 @@ export interface Settings {
 	bindings: Bindings;
 	audio: { master: number; effects: number; ui: number; muted: boolean };
 	touch: TouchChoice;
-	interface: { scale: number; highContrast: boolean };
+	interface: { scale: number; highContrast: boolean; centreVessel: boolean };
 	dock: DockChoice;
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */
 	debug: boolean;

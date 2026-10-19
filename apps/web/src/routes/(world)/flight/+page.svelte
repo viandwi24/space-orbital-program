@@ -63,7 +63,7 @@
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
-	import type { DebugHost } from '../../../lib/debug/api';
+	import { flightDebug, type DebugHost } from '../../../lib/debug/api';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
@@ -80,6 +80,7 @@
 		scriptPanelWidth,
 		throttleAnchor
 	} from '../../../lib/layout/layout-model';
+	import { layoutFor, type SidePanel } from '../../../lib/layout/regions';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
 	import Button from '../../../lib/ui/Button.svelte';
 	import Dialog from '../../../lib/ui/Dialog.svelte';
@@ -613,6 +614,7 @@
 		// the debug panel's host (plan 203; `window.__orbitalDebug` is the world layout's since plan
 		// 205), the log of uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
 		debugHost = started.debug;
+		flightDebug.current = started.debug;
 		let modeSent: boolean | null = null;
 		let marked = false;
 		const offDebugWatch = started.debug.onSnapshot((s) => {
@@ -652,6 +654,7 @@
 			clearInterval(waitForPlanner);
 			offDebugWatch();
 			debugHost = null;
+			flightDebug.current = null;
 			offSandbox();
 			checker?.close();
 			checker = null;
@@ -733,8 +736,18 @@
 	/** Right edge of the open dock panel, 0 when none is open (plan 112). */
 	let dockRight = $state(0);
 	let viewport = $state({ width: 1440, height: 900 });
-	/** Below 1280 px the dock stands at the right, where the left stack has no room (plan 112). */
-	const narrow = $derived(viewport.width <= 1279);
+	/** The side panel opened last: with room for one, it is the one that stays (plan 215). */
+	let lastSide = $state<SidePanel>('vessel');
+	/**
+	 * The region rules (plan 215, ADR 0205 point 6): widths over the UI scale decide; below 1280 one
+	 * side panel, where the dock stands at the right (plan 112); at 1024 and below, drawers.
+	 */
+	const layout = $derived(
+		layoutFor(viewport.width, settings.ui.scale, { dock: dockShown, vessel: vesselOpen }, lastSide)
+	);
+	const narrow = $derived(layout.mode !== 'two');
+	/** Top of the staging stack when it stands in the left column (narrow), for the touch throttle. */
+	let stagingTop = $state(0);
 	/** The flight's own box (inside the world layout's bars since plan 204): every measure is relative to it. */
 	let stageEl = $state<HTMLDivElement>();
 	function updateInsets(): void {
@@ -769,10 +782,23 @@
 		const top = bar ? bar.bottom + 8 : 0;
 		const bottom = deck ? Math.max(0, frame.height - deck.top + 8) : 0;
 		const side = right && right.width > 0 ? Math.max(0, frame.width - right.left + 8) : 0;
-		const key = [top, side, bottom, dockRight].map(Math.round).join(',');
+		const staging = box('.bl');
+		stagingTop = narrow && staging && staging.height > 0 ? Math.round(staging.top) : 0;
+		// Side panels float over the view and do not move the camera (plan 215, ADR 0205 point 7):
+		// only the fixed bars count, unless the player asked to centre the vessel in the free area.
+		const centre = settings.ui.centreVessel;
+		const insets = {
+			top,
+			right: centre ? side : 0,
+			bottom,
+			left: centre ? dockRight : 0
+		};
+		const key = [insets.top, insets.right, insets.bottom, insets.left].map(Math.round).join(',');
 		if (key === lastInsets) return;
+		const first = lastInsets === '';
 		lastInsets = key;
-		flight?.setViewInsets({ top, right: side, bottom, left: dockRight });
+		const still = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+		flight?.setViewInsets(insets, { animate: !first && !still });
 	}
 	$effect(() => {
 		void model?.name;
@@ -782,6 +808,10 @@
 		void dockShown;
 		void tutorialStep;
 		void hud?.status;
+		void settings.ui.centreVessel;
+		void settings.ui.scale;
+		void vesselOpen;
+		void stagingOpen;
 		queueMicrotask(updateInsets);
 	});
 
@@ -889,6 +919,9 @@
 
 		<div
 			class="ui"
+			class:narrow
+			class:drawer={layout.mode === 'drawer'}
+			style:--tl-bottom="{leftStackBottom}px"
 			style:--deck-h="{deckHeight}px"
 			style:--above-deck="{aboveDeckHeight(viewport.height, deckHeight)}px"
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
@@ -970,12 +1003,22 @@
 					onmap={() => flight?.toggleMap()}
 					onscript={toggleScript}
 					dock={dockShown}
-					ondock={() => (dockShown = !dockShown)}
+					ondock={() => {
+						dockShown = !dockShown;
+						if (dockShown) {
+							lastSide = 'dock';
+							// one side panel at a time below 1280 px: the dock closes the vessel panel
+							if (narrow) vesselOpen = false;
+						}
+					}}
 					vessel={vesselOpen}
 					onvessel={() => {
 						vesselOpen = !vesselOpen;
 						if (!vesselOpen) flight?.highlightPart(null);
-						else panelInput = flight?.panelInput() ?? null;
+						else {
+							lastSide = 'vessel';
+							panelInput = flight?.panelInput() ?? null;
+						}
 					}}
 					onhelp={() => (helpOpen = true)}
 					onstaging={() => (stagingOpen = !stagingOpen)}
@@ -1061,7 +1104,8 @@
 						deckHeight,
 						scriptOpen && !narrow,
 						leftStackBottom,
-						dockRight
+						dockRight,
+						stagingTop
 					)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
@@ -1288,24 +1332,23 @@
 		align-items: flex-start;
 		gap: var(--s-2);
 		/* The script panel and the guide scroll above the instrument deck, never under it (plan 055). */
-		max-height: var(--above-deck, calc(100% - 200px));
+		max-height: var(--above-deck);
 	}
 	.capsules {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-start;
 		gap: 0.5rem;
+		/* the row wraps before it reaches the toolbar (plan 215; about 30 rem of buttons at the right) */
+		max-width: calc(100vw - 33rem);
 	}
-	@media (max-width: 1279px) {
-		.capsules {
-			flex-direction: column;
-		}
-		/* the capsules stack: the vessel's name goes below both (more specific than the base rule below) */
-		.ui > .tc {
-			top: calc(
-				var(--margin-hud) + var(--capsule) * 2 + var(--panel-gap) + 0.5rem + var(--safe-top)
-			);
-		}
+	/* narrow by the region rule (width over the UI scale, plan 215), not a fixed media query */
+	.ui.narrow .capsules {
+		flex-direction: column;
+	}
+	/* the capsules stack: the vessel's name goes below both (more specific than the base rule below) */
+	.ui.narrow > .tc {
+		top: calc(var(--margin-hud) + var(--capsule) * 2 + var(--panel-gap) + 0.5rem + var(--safe-top));
 	}
 	.tb {
 		top: calc(var(--margin-hud) + var(--safe-top));
@@ -1315,6 +1358,8 @@
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
 		right: calc(var(--margin-hud) + var(--safe-right));
 		width: 13.75rem;
+		max-height: var(--above-deck);
+		overflow-y: auto;
 	}
 	.script {
 		width: var(--script-w, min(420px, 46vw));
@@ -1323,7 +1368,7 @@
 	.savenote {
 		position: absolute;
 		z-index: 5;
-		top: 64px;
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap));
 		left: 50%;
 		transform: translateX(-50%);
 		margin: 0;
@@ -1347,8 +1392,9 @@
 		gap: var(--s-3);
 		pointer-events: none;
 	}
+	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
 	.vr {
-		width: 18.75rem;
+		width: 21.25rem;
 		overflow-y: auto;
 	}
 	.tr {
@@ -1356,8 +1402,9 @@
 		right: calc(var(--margin-hud) + var(--safe-right));
 		display: flex;
 		/* it starts under the toolbar, so it has the toolbar's height less than the space above the deck */
-		max-height: calc(var(--above-deck, calc(100% - 290px)) - var(--capsule) - var(--panel-gap));
+		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
 	}
+	/* staging: a capped height under the left stack, scrolling inside (plan 215, ADR 0205 point 5) */
 	.bl {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
 		left: calc(var(--margin-hud) + var(--safe-left));
@@ -1365,11 +1412,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
+		max-height: calc(100% - var(--tl-bottom, 0px) - var(--margin-hud) * 2 - var(--safe-bottom));
+		overflow-y: auto;
+		scrollbar-width: thin;
 	}
-	@media (max-width: 1279px) {
-		.bl {
-			bottom: calc(var(--deck-h, 262px) + var(--margin-hud) * 2 + var(--safe-bottom));
-		}
+	.ui.narrow .bl {
+		bottom: calc(var(--deck-h) + var(--margin-hud) * 2 + var(--safe-bottom));
+		max-height: calc(
+			100% - var(--deck-h) - var(--tl-bottom, 0px) - var(--margin-hud) * 3 - var(--safe-bottom)
+		);
+	}
+	/* drawers at 1024 px and below: 44 px targets in the side panels (ADR 0205 point 6) */
+	.ui.drawer :global(.panel button),
+	.ui.drawer :global([role='tab']) {
+		min-height: var(--touch-min);
 	}
 	/* the ball, not the module, is centred (refs): its centre is 154 mock px from the module's left */
 	.bc {
@@ -1382,6 +1438,8 @@
 	}
 	.mnv {
 		width: 22.5rem;
+		max-height: var(--above-deck);
+		overflow-y: auto;
 		margin-left: calc(9.625rem * var(--ball-k, 1) - 11.25rem);
 	}
 	.bl.stowed {
@@ -1399,7 +1457,11 @@
 	}
 	/* No canvas worth showing behind a failure card: the loading screen's backdrop instead of black. */
 	.center.cover {
-		background: radial-gradient(ellipse at 50% 42%, #10243a 0%, var(--bg-void) 70%);
+		background: radial-gradient(
+			ellipse at 50% 42%,
+			color-mix(in srgb, var(--accent) 14%, var(--bg-void)) 0%,
+			var(--bg-void) 70%
+		);
 	}
 	.center :global(.card) {
 		pointer-events: auto;

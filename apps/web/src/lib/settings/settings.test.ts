@@ -30,7 +30,7 @@ describe('settings parsing', () => {
 			bindings: { stage: ['KeyF'], help: ['F1'] },
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
 			touch: 'on' as const,
-			interface: { scale: 1.25, highContrast: true },
+			interface: { scale: 1.25, highContrast: true, centreVessel: true },
 			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
 			debug: true,
 			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false },
@@ -73,7 +73,7 @@ describe('settings parsing', () => {
 		expect(parseSettings(JSON.stringify(v2))).toEqual({
 			...v2,
 			v: 4,
-			interface: { scale: 1, highContrast: false },
+			interface: { scale: 1, highContrast: false, centreVessel: false },
 			dock: defaultDock(),
 			debug: false,
 			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true },
@@ -110,10 +110,19 @@ describe('settings parsing', () => {
 	it('repairs the interface: scale outside 80 to 150 % is the default, a value between steps snaps', () => {
 		const at = (iface: unknown) =>
 			parseSettings(JSON.stringify({ ...defaultSettings(), interface: iface })).interface;
-		expect(at({ scale: 3, highContrast: true })).toEqual({ scale: 1, highContrast: true });
-		expect(at({ scale: 0.5, highContrast: 'yes' })).toEqual({ scale: 1, highContrast: false });
+		expect(at({ scale: 3, highContrast: true })).toEqual({
+			scale: 1,
+			highContrast: true,
+			centreVessel: false
+		});
+		expect(at({ scale: 0.5, highContrast: 'yes' })).toEqual({
+			scale: 1,
+			highContrast: false,
+			centreVessel: false
+		});
 		expect(at({ scale: 1.2, highContrast: false }).scale).toBe(1.25);
-		expect(at(null)).toEqual({ scale: 1, highContrast: false });
+		expect(at(null)).toEqual({ scale: 1, highContrast: false, centreVessel: false });
+		expect(at({ scale: 1, centreVessel: true }).centreVessel).toBe(true);
 	});
 	it('repairs bad audio, touch and bindings without losing the good fields', () => {
 		const s = parseSettings(

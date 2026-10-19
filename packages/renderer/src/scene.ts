@@ -199,6 +199,9 @@ interface VesselEntry {
 	marker: VesselMarker;
 }
 
+/** How long a change of the view insets eases, s (plan 215, ADR 0205 point 7). */
+export const INSET_EASE_SECONDS = 0.25;
+
 export class SceneModel {
 	readonly scene = new Scene();
 	readonly camera = new PerspectiveCamera(50, 1, CAMERA_NEAR, CAMERA_FAR);
@@ -228,6 +231,11 @@ export class SceneModel {
 	/** Centre of the active vessel's parts relative to its root, inertial axes, m: the flight camera looks here. */
 	private vesselCentre: Vec3 = ZERO;
 	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
+	private insetTween: {
+		from: SceneModel['insets'];
+		to: SceneModel['insets'];
+		t: number;
+	} | null = null;
 	private readonly bodyRot = new Map<string, Quat>();
 	/** Share of the sun's light the active vessel gets under a moon's terrain shadow (1 elsewhere). */
 	private moonSunScale = 1;
@@ -763,9 +771,37 @@ export class SceneModel {
 			);
 		this.cameraDirty = true;
 	}
-	/** Draw the view centred in the area the interface leaves free (plan 023). */
-	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void {
-		this.insets = { ...insets };
+	/**
+	 * Draw the view centred in the area the interface leaves free (plan 023). With `animate` the
+	 * centre eases there over `INSET_EASE_SECONDS` (plan 215, ADR 0205 point 7): the host passes
+	 * false when the player prefers reduced motion.
+	 */
+	setViewInsets(
+		insets: { top: number; right: number; bottom: number; left: number },
+		options: { animate?: boolean } = {}
+	): void {
+		if (!options.animate) {
+			this.insets = { ...insets };
+			this.insetTween = null;
+			this.applyViewOffset();
+			return;
+		}
+		this.insetTween = { from: { ...this.insets }, to: { ...insets }, t: 0 };
+	}
+	/** Steps an inset change in progress (smoothstep over `INSET_EASE_SECONDS`). */
+	private stepInsets(dt: number): void {
+		const tw = this.insetTween;
+		if (!tw) return;
+		tw.t = Math.min(1, tw.t + dt / INSET_EASE_SECONDS);
+		const e = tw.t * tw.t * (3 - 2 * tw.t);
+		const lerp = (a: number, b: number): number => a + (b - a) * e;
+		this.insets = {
+			top: lerp(tw.from.top, tw.to.top),
+			right: lerp(tw.from.right, tw.to.right),
+			bottom: lerp(tw.from.bottom, tw.to.bottom),
+			left: lerp(tw.from.left, tw.to.left)
+		};
+		if (tw.t >= 1) this.insetTween = null;
 		this.applyViewOffset();
 	}
 	private applyViewOffset(): void {
@@ -1070,6 +1106,7 @@ export class SceneModel {
 	 * synced snapshot and the current camera. `dt` is wall-clock seconds since the last call.
 	 */
 	prepareFrame(dt: number, force = false): void {
+		this.stepInsets(dt);
 		if (!this.frameState) return;
 		if (this.cameraDirty && this.lastView) {
 			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);

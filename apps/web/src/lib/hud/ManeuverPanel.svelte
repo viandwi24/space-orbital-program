@@ -109,7 +109,7 @@
 	dl {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 3px var(--s-4);
+		gap: 0.1875rem var(--s-4);
 		margin: 0 0 var(--s-2);
 		font-size: var(--t-sm);
 	}
@@ -135,7 +135,7 @@
 	.keys {
 		display: inline-flex;
 		flex-wrap: nowrap;
-		gap: 2px;
+		gap: 0.125rem;
 		white-space: nowrap;
 		vertical-align: middle;
 	}

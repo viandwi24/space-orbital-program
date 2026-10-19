@@ -18,6 +18,7 @@ import type {
 	VesselSnapshot
 } from '@orbital/core';
 import { logBuffer, type LogEntry } from '../log-buffer';
+import type { Toast } from '../toasts';
 import { fromApsides } from './model';
 
 /** What the flight gives the API. */
@@ -30,6 +31,10 @@ export interface DebugHost {
 	bodies(): readonly BodyDefinition[];
 	/** The body the world starts on. */
 	home(): string;
+	/** Show a toast as the HUD would (plan 215: tests fill the toast column). */
+	notice?(toast: Toast): void;
+	/** The focused vessel's root on screen, CSS px of the view (plan 215: camera framing tests). */
+	vesselOnScreen?(): { x: number; y: number } | null;
 }
 
 /** An orbit by apoapsis and periapsis altitudes (m) or by elements; angles in rad, default 0. */
@@ -83,6 +88,10 @@ export interface DebugApi {
 	 * the snapshot that shows it.
 	 */
 	send(command: Command): Promise<CommandResult>;
+	/** Push a toast onto the HUD (plan 215). */
+	toast(kind: Toast['kind'], title: string, detail?: string): void;
+	/** The focused vessel's root on screen, CSS px; null without a view. */
+	vesselOnScreen(): { x: number; y: number } | null;
 }
 
 /** How long a call waits for the snapshot that shows its change, ms. */
@@ -174,9 +183,17 @@ export function createDebugApi(host: DebugHost): DebugApi {
 		},
 		setCrewLevel: (member, level) => apply({ type: 'debug-set-crew-level', member, level }),
 		log: () => logBuffer.entries(),
-		send: (command) => apply(command)
+		send: (command) => apply(command),
+		toast: (kind, title, detail) =>
+			host.notice?.({ kind, title, ...(detail !== undefined ? { detail } : {}) }),
+		vesselOnScreen: () => host.vesselOnScreen?.() ?? null
 	};
 }
+
+/** The running flight's own hooks (plan 215): the layout's API reaches the HUD and the view through it. */
+export const flightDebug: { current: Pick<DebugHost, 'notice' | 'vesselOnScreen'> | null } = {
+	current: null
+};
 
 /** The global the e2e helpers and the console use. */
 export const DEBUG_GLOBAL = '__orbitalDebug';

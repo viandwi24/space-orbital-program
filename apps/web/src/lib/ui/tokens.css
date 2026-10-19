@@ -57,16 +57,20 @@
 	--mnv-prograde: #7bd88f;
 	--mnv-normal: #c792ea;
 	--mnv-radial: #7fd4f5;
+	/* the script editor's selection and search-match marks (plan 215: were literals in CodeEditor) */
+	--code-select: #5ccfff;
+	--code-match: #ffd666;
 
-	/* Type: Manrope with tabular figures; refs labels of 7 to 9 px become 10 px (ADR 0107 point 5) */
+	/* Type: Manrope with tabular figures; refs labels of 7 to 9 px become 10 px (ADR 0107 point 5), and no
+	   size falls under 10 px at any UI scale (plan 215, ADR 0205 point 6) */
 	--font-ui: 'Manrope', system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 	--tracking-label: 0.14em;
 	--tracking-chip: 0.08em;
-	--t-label: 0.625rem;
-	--t-small: 0.6875rem;
-	--t-button: 0.75rem;
-	--t-value: 0.8125rem;
+	--t-label: max(10px, 0.625rem);
+	--t-small: max(10px, 0.6875rem);
+	--t-button: max(10px, 0.75rem);
+	--t-value: max(10px, 0.8125rem);
 	--t-display: 1.75rem;
 
 	/* Shape and space */
@@ -127,8 +131,8 @@
 	 */
 	/* numbers in Manrope with tabular figures since stage 2 (plan 088, ADR 0140 point 4); code keeps --font-mono */
 	--font-num: var(--font-ui);
-	--t-xs: 0.75rem;
-	--t-sm: 0.8125rem;
+	--t-xs: max(10px, 0.75rem);
+	--t-sm: max(10px, 0.8125rem);
 	--t-md: 0.9375rem;
 	--t-lg: 1.25rem;
 	--t-xl: 1.75rem;

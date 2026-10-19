@@ -118,7 +118,10 @@ export interface Renderer {
 	 * longer hides the lower half of the rocket. Not applied in map view's projection maths: `project`
 	 * reads the same camera, so markers stay on their points.
 	 */
-	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
+	setViewInsets(
+		insets: { top: number; right: number; bottom: number; left: number },
+		options?: { animate?: boolean }
+	): void;
 	setMapView(on: boolean): void;
 	/**
 	 * The predicted path of the active vessel across spheres of influence, drawn in map view (plan 044):
@@ -501,7 +504,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			applySize();
 			model.resize(w, h);
 		},
-		setViewInsets: (insets) => model.setViewInsets(insets),
+		setViewInsets: (insets, options) => model.setViewInsets(insets, options),
 		setMapView: (on) => model.setMapView(on),
 		setMapPath: (segments) => model.setMapPath(segments),
 		setMapFocus: (body) => model.setMapFocus(body),

@@ -44,7 +44,9 @@ export function throttleAnchor(
 	scriptOpen: boolean,
 	leftStackBottom: number,
 	/** Right edge of the open dock panel (plan 112), px; 0 when no panel is open. */
-	dockRight = 0
+	dockRight = 0,
+	/** Top of the staging stack when it stands in the left column, px; 0 when it does not (plan 215). */
+	stagingTop = 0
 ): { left: number; centre: number; room: number } {
 	// beside an open panel the throttle has the full height; otherwise it sits under the left stack
 	const beside = dockRight > 0 || scriptOpen;
@@ -55,7 +57,9 @@ export function throttleAnchor(
 				? EDGE + scriptPanelWidth(viewport.width) + EDGE
 				: EDGE - 4;
 	const spanTop = beside ? EDGE : Math.max(EDGE, leftStackBottom + EDGE);
-	const spanBottom = Math.max(spanTop, viewport.height - Math.max(0, deckHeight) - EDGE);
+	// the throttle stays above the staging stack, which stands in the left column on narrow screens
+	const floor = viewport.height - Math.max(0, deckHeight) - EDGE;
+	const spanBottom = Math.max(spanTop, stagingTop > 0 ? Math.min(floor, stagingTop - EDGE) : floor);
 	// `room`: the free height, so the throttle can shorten its track where the span is short
 	return { left, centre: (spanTop + spanBottom) / 2, room: spanBottom - spanTop };
 }

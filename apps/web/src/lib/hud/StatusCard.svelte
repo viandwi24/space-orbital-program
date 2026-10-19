@@ -67,7 +67,7 @@
 	.busy {
 		height: 3px;
 		margin-top: var(--s-4);
-		background: rgb(150 180 210 / 0.16);
+		background: var(--surface-chip);
 		overflow: hidden;
 		border-radius: 2px;
 	}

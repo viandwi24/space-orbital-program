@@ -67,29 +67,32 @@
 		</div>
 	{/if}
 	{#if card}
-		{#each card.rows as row (row.member)}
-			<div class="row" data-testid="crew-row">
-				<div class="name">
-					{row.name}
-					<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
-					<span class="suit" data-testid="crew-suit">IVA</span>
-					<span class="radio" title={card.radio.text} data-testid="crew-radio"
-						><SignalBars
-							level={card.radio.level}
-							offline={card.radio.offline}
-						/>{#if card.radio.offline}<span class="no-radio">{card.radio.text}</span>{/if}</span
-					>
-					{#if !eva && oneva}<button
-							type="button"
-							class="step-out"
-							onclick={() => oneva(row.member)}
-							data-testid="crew-eva-{row.member}">EVA</button
-						>{/if}
+		<!-- at most three rows show; more scroll inside (plan 215, ADR 0205 point 5) -->
+		<div class="rows">
+			{#each card.rows as row (row.member)}
+				<div class="row" data-testid="crew-row">
+					<div class="name">
+						{row.name}
+						<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
+						<span class="suit" data-testid="crew-suit">IVA</span>
+						<span class="radio" title={card.radio.text} data-testid="crew-radio"
+							><SignalBars
+								level={card.radio.level}
+								offline={card.radio.offline}
+							/>{#if card.radio.offline}<span class="no-radio">{card.radio.text}</span>{/if}</span
+						>
+						{#if !eva && oneva}<button
+								type="button"
+								class="step-out"
+								onclick={() => oneva(row.member)}
+								data-testid="crew-eva-{row.member}">EVA</button
+							>{/if}
+					</div>
+					{#if row.stats.length > 0}<div class="stats">{row.stats.join(' · ')}</div>{/if}
+					{#each row.causes as cause (cause)}<small class="cause">{cause}</small>{/each}
 				</div>
-				{#if row.stats.length > 0}<div class="stats">{row.stats.join(' · ')}</div>{/if}
-				{#each row.causes as cause (cause)}<small class="cause">{cause}</small>{/each}
-			</div>
-		{/each}
+			{/each}
+		</div>
 		{#if card.supplies.length > 0}
 			<div class="supplies" data-testid="crew-supplies">
 				{#each card.supplies as line (line)}<small>{line}</small>{/each}
@@ -148,6 +151,11 @@
 	.row + .row {
 		margin-top: var(--s-2);
 	}
+	.rows {
+		max-height: calc(3 * 3.75rem);
+		overflow-y: auto;
+		scrollbar-width: thin;
+	}
 	.name {
 		font-size: var(--t-sm);
 		color: var(--text);
@@ -170,7 +178,7 @@
 		margin-bottom: var(--s-2);
 	}
 	.eva .radio {
-		margin: 2px 0 0;
+		margin: 0.125rem 0 0;
 		font-size: var(--t-label);
 	}
 	.live {

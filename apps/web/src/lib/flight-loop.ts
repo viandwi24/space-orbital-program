@@ -255,8 +255,15 @@ export interface Flight {
 	recover(): Promise<{ ok: true; credit: number } | { ok: false; reason: string }>;
 	/** While a dialog is open the flight keys do nothing. */
 	setModal(open: boolean): void;
-	/** Pixels of the view the interface panels cover; the camera centres the vessel in the rest (plan 023). */
-	setViewInsets(insets: { top: number; right: number; bottom: number; left: number }): void;
+	/**
+	 * Pixels of the view the interface covers; the camera centres the vessel in the rest (plan 023).
+	 * Since plan 215 only the fixed bars count unless the player asked for the free area; `animate`
+	 * eases a change over 250 ms.
+	 */
+	setViewInsets(
+		insets: { top: number; right: number; bottom: number; left: number },
+		options?: { animate?: boolean }
+	): void;
 	/** What dock panel selectors read now (plan 112, ADR 0149 point 2); null before the first snapshot. */
 	panelInput(): PanelInput | null;
 	/** Rim-light one part in the view, or none (plan 111, ADR 0153 point 5). */
@@ -1380,7 +1387,19 @@ export function startFlight(options: FlightOptions): Flight {
 			send: (command) => client.dispatch(command),
 			onSnapshot: (listener) => client.onSnapshot((s) => listener(s)),
 			bodies: () => catalog?.bodies ?? [],
-			home: () => (catalog ? (homeOfCatalog(catalog)?.id ?? '') : '')
+			home: () => (catalog ? (homeOfCatalog(catalog)?.id ?? '') : ''),
+			notice: (toast) => hudCtl?.notice(toast),
+			vesselOnScreen() {
+				const v = snap?.vessels.find((x) => x.id === vessel);
+				const body = v && snap?.bodies.find((b) => b.id === v.soi);
+				if (!v || !body || !renderer) return null;
+				const p = renderer.project({
+					x: body.position.x + v.position.x,
+					y: body.position.y + v.position.y,
+					z: body.position.z + v.position.z
+				});
+				return p ? { x: p.x, y: p.y } : null;
+			}
 		},
 		debugInfo: () => ({
 			stepMs: client.stepMs,
@@ -1456,9 +1475,9 @@ export function startFlight(options: FlightOptions): Flight {
 			const sim = await client.save();
 			return { sim, focus: Number(vessel), design, thumbnail, bodyRadius: body.radius };
 		},
-		setViewInsets(insets) {
+		setViewInsets(insets, options) {
 			viewInsets = insets;
-			renderer?.setViewInsets(insets);
+			renderer?.setViewInsets(insets, options);
 		},
 		setGraphicsPreset(choice) {
 			// `auto` forgets the saved choice and takes the device default again (plan 023)

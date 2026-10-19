@@ -48,6 +48,11 @@ describe('the touch throttle never sits under the script panel, the guide or the
 		expect(a.left).toBe(300 + EDGE);
 		expect(a.centre).toBe((EDGE + 768 - 262 - EDGE) / 2);
 	});
+	it('on a narrow screen it stays above the staging stack in the left column (plan 215)', () => {
+		const a = throttleAnchor(vp, 262, false, 150, 0, 300);
+		expect(a.centre).toBe((150 + EDGE + (300 - EDGE)) / 2);
+		expect(a.centre + a.room / 2).toBeLessThanOrEqual(300 - EDGE);
+	});
 	it('a deck taller than the screen leaves a centre that is still a number', () => {
 		const a = throttleAnchor(vp, 9999, false, 300);
 		expect(Number.isFinite(a.centre)).toBe(true);

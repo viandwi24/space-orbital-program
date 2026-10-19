@@ -334,7 +334,7 @@
 		padding: var(--s-2) var(--s-3);
 		font-size: var(--t-sm);
 		color: var(--text);
-		background: rgb(255 191 74 / 0.1);
+		background: color-mix(in srgb, var(--warn) 10%, transparent);
 		border: 1px solid var(--c-warning);
 		border-radius: var(--r-control);
 	}

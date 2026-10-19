@@ -183,6 +183,21 @@
 					testid="setting-high-contrast"
 				/>
 			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Centre the vessel in the free area</h3>
+					<p>
+						The camera moves the vessel to the middle of the space the open panels leave. Off: it
+						stays put when a panel opens or closes.
+					</p>
+				</div>
+				<Switch
+					checked={settings.ui.centreVessel}
+					label="Centre the vessel in the free area"
+					onchange={(on) => settings.setInterface({ centreVessel: on })}
+					testid="setting-centre-vessel"
+				/>
+			</div>
 		{:else if tab === 'game'}
 			<div class="row">
 				<div class="what">

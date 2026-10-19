@@ -130,7 +130,12 @@
 	>
 
 	<div class="ball">
-		<Navball bind:this={ball} size={ballSize} label="Navball: attitude relative to the horizon" />
+		<!-- the canvas in px follows the UI scale like its rem slot (plan 215: at 0.8 it covered the arcs) -->
+		<Navball
+			bind:this={ball}
+			size={Math.round(ballSize * settings.ui.scale)}
+			label="Navball: attitude relative to the horizon"
+		/>
 	</div>
 
 	<div class="readouts">

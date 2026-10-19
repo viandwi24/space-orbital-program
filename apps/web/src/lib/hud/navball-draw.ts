@@ -139,7 +139,8 @@ export function drawNavball(
 	stroke(elevationCircle(h, 0), 2.5, theme.horizon, 1);
 
 	// Heading ticks and labels on the horizon.
-	ctx.font = `600 ${Math.max(9, Math.round(size / 17))}px Manrope, sans-serif`;
+	// labels follow the ball's size (and with it the UI scale), never under 10 px (plan 215)
+	ctx.font = `600 ${Math.max(10, Math.round(size / 17))}px Manrope, sans-serif`;
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	for (let a = 0; a < 360; a += 10) {
@@ -165,7 +166,7 @@ export function drawNavball(
 		}
 	}
 	// Pitch labels along the nose heading.
-	ctx.font = `700 ${Math.max(8, Math.round(size / 19))}px Manrope, sans-serif`;
+	ctx.font = `700 ${Math.max(10, Math.round(size / 19))}px Manrope, sans-serif`;
 	for (const e of [-60, -30, 30, 60]) {
 		const p = projectDirection(horizonDirection(h, frame.heading, e * DEG), q);
 		if (p.z > 0.25) {

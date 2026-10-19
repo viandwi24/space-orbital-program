@@ -41,6 +41,6 @@
 	}
 	.station text {
 		fill: var(--text-secondary, #c4c4cc);
-		font-size: 11px;
+		font-size: var(--t-small);
 	}
 </style>

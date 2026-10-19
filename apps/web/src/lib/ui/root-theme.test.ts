@@ -13,10 +13,10 @@ const fakeRoot = () => {
 describe('root theme switches', () => {
 	it('the UI scale and high contrast land on the root, and come off again', () => {
 		const root = fakeRoot();
-		applyInterface(root, { scale: 1.5, highContrast: true });
+		applyInterface(root, { scale: 1.5, highContrast: true, centreVessel: false });
 		expect(root.props.get('--ui-scale')).toBe('1.5');
 		expect(root.dataset.contrast).toBe('more');
-		applyInterface(root, { scale: 1, highContrast: false });
+		applyInterface(root, { scale: 1, highContrast: false, centreVessel: false });
 		expect(root.props.get('--ui-scale')).toBe('1');
 		expect('contrast' in root.dataset).toBe(false);
 	});
