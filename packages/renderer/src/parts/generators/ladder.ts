@@ -12,6 +12,10 @@ export function ladder(ctx: GenContext): void {
 	const rungs = Math.max(2, Math.round(sy / 0.3));
 	for (let i = 0; i < rungs; i++) {
 		const y = -sy / 2 + ((i + 0.5) * sy) / rungs;
-		b.box(i % 4 === 0 && detail.extras >= 1 ? 'paint-accent' : 'metal', [rail, rail * 0.8, sz - 2 * rail], [sx * 0.2, y, 0]);
+		b.box(
+			i % 4 === 0 && detail.extras >= 1 ? 'paint-accent' : 'metal',
+			[rail, rail * 0.8, sz - 2 * rail],
+			[sx * 0.2, y, 0]
+		);
 	}
 }
