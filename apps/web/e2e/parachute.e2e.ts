@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { debugSetLocation, watchErrors } from './support';
 
 /**
- * Plan 209 (ADR 0203 point 4): a capsule under its parachute. Placed 3 km up falling at 400 m/s
+ * Plan 209 (ADR 0203 point 4): a capsule under its parachute. Placed 8 km up falling at 800 m/s
  * (Unsafe air for a main chute), it is staged: the chute waits Armed until the air slows the
  * capsule, semi-deploys, opens fully at 1 000 m and the capsule lands intact.
  */
@@ -43,17 +43,34 @@ test('staged in a fast fall, the chute goes Armed, Semi-deployed, Deployed and t
 		kind: 'air',
 		latitude: 0,
 		longitude: 0.3,
-		altitude: 3_000,
-		speed: 400,
+		altitude: 8_000,
+		speed: 800,
 		climb: -Math.PI / 2
+	});
+	// every status and airflow text the panel shows, in order: Armed can last well under a second
+	await page.evaluate(() => {
+		const seen: string[] = [];
+		(window as unknown as { chuteSeen: string[] }).chuteSeen = seen;
+		const read = (): void => {
+			const s = document.querySelector('[data-testid$="-status"]')?.textContent ?? '';
+			const a = document.querySelector('[data-testid$="-safety"]')?.textContent ?? '';
+			const line = `${s}/${a}`;
+			if (seen.at(-1) !== line) seen.push(line);
+		};
+		new MutationObserver(read).observe(document.body, {
+			subtree: true,
+			childList: true,
+			characterData: true
+		});
 	});
 	// Space to the flight, not to a panel button: a click outside would close the panel
 	await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 	await page.keyboard.press('Space');
-	await expect(status(page)).toHaveText('Armed', { timeout: 10_000 });
-	await expect(page.locator('[data-testid$="-safety"]').first()).toHaveText('Unsafe');
-	await expect(status(page)).toHaveText('Semi-deployed', { timeout: 30_000 });
 	await expect(status(page)).toHaveText('Deployed', { timeout: 60_000 });
+	const seen = await page.evaluate(() => (window as unknown as { chuteSeen: string[] }).chuteSeen);
+	const statuses = seen.map((l) => l.split('/')[0]).filter((x, i, a) => x !== a[i - 1]);
+	expect(statuses.slice(statuses.indexOf('Armed'))).toEqual(['Armed', 'Semi-deployed', 'Deployed']);
+	expect(seen).toContain('Armed/Unsafe'); // it waited out the Unsafe air
 
 	// the last stretch under the full canopy, near the ground at its descent speed
 	await debugSetLocation(page, {
