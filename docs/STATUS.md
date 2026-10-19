@@ -172,7 +172,7 @@
 | 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
 | 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
 | 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
-| 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | in-progress | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
+| 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
 | 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
 | 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [203, 222, 224]. |
@@ -249,6 +249,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
 - [206 — Flexible time warp](journal/206-flexible-time-warp.md)
