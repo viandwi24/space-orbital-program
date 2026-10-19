@@ -1,6 +1,6 @@
 /** Docking (plan 222): the e2e approach in the sim — Beta holds target on Alpha, Alpha targets its port on RCS. */
 import { describe, expect, test } from 'bun:test';
-import { entityId, partId, type VesselDesign } from '@orbital/core';
+import { partId, type CommandResult, type EntityId, type VesselDesign } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
 import { orbitState } from './helpers/measure.ts';
@@ -50,6 +50,12 @@ const probe = (name: string, heavy: boolean): VesselDesign =>
 		stages: []
 	}) as VesselDesign;
 
+/** The vessel a `load-vessel` made; throws on a refusal. */
+const loaded = (r: CommandResult): EntityId => {
+	if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+	return r.vessel;
+};
+
 describe('docking approach (plan 222)', () => {
 	test('from 20 m on RCS with both holding SAS target, the ports capture', async () => {
 		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(), seed: 3 });
@@ -69,8 +75,8 @@ describe('docking approach (plan 222)', () => {
 				orientation: { x: 0, y: 0, z: 0, w: 1 }
 			}
 		});
-		const A = a.vessel!;
-		const B = b.vessel!;
+		const A = loaded(a);
+		const B = loaded(b);
 		const v = (id: number) => sim.snapshot().vessels.find((x) => x.id === id)!;
 		expect(
 			(sim.dispatch({ type: 'target-set', vessel: B, target: { kind: 'vessel', id: A } }),
