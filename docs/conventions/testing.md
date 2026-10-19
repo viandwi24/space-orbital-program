@@ -6,7 +6,7 @@
 - **Numerics:** compare with relative tolerances; state them in the test name or a constant. Seed any randomness (`createRng(seed)`), never `Math.random()`.
 - **Determinism:** tests that run the sim twice and compare JSON snapshots are mandatory for any plan touching `sim` or `physics`.
 - **Speed:** the whole suite should stay under a minute in Bun. Long scenarios get a `test.skipIf(process.env.FAST)` guard only in `tools/` harnesses, never inside environment-neutral packages (they must not read `process`).
-- **Timing budgets:** a per-tick, per-step or per-frame limit measured on the M5 is asserted only off CI (`if (!process.env.CI) expect(ms).toBeLessThan(…)`) and always logged, so a slow runner cannot fail a plan; wall-clock ceilings that catch a hang (a watchdog, a scenario's whole run) stay enforced everywhere.
+- **Timing budgets:** a per-tick, per-step or per-frame limit measured on the M5 is asserted only off CI (`if (!process.env.CI) expect(ms).toBeLessThan(…)`) and always logged (keep one assertion that runs everywhere: vitest fails a test with none), so a slow runner cannot fail a plan; wall-clock ceilings that catch a hang (a watchdog, a scenario's whole run) stay enforced everywhere.
 - **No browser in Phase 0.** Browser-only behaviour (Three, Worker) is tested in `apps/web` with vitest or marked `[manual]` in the plan with a journal record.
 
 ## Setting up a state with the debug helpers (plan 203)
