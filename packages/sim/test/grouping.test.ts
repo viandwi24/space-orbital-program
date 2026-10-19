@@ -421,5 +421,5 @@ describe('determinism', () => {
 		const b = await run();
 		expect(a).toBe(b);
 		expect(JSON.parse(a)[0].vessels).toHaveLength(2);
-	});
+	}, 60_000); // two 100-part runs: near bun's 5 s default on a loaded CI runner
 });
