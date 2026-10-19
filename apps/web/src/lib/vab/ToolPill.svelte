@@ -119,6 +119,7 @@
 	}
 	.seg,
 	.toggle {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.375rem;
@@ -156,12 +157,16 @@
 		outline: 2px solid var(--text-primary);
 		outline-offset: 1px;
 	}
+	/* Hangar.dc.html: a 4 px dot centred under the label, shown only while on */
 	.dot {
-		width: 0.375rem;
-		height: 0.375rem;
+		position: absolute;
+		left: 50%;
+		bottom: 1px;
+		width: 4px;
+		height: 4px;
+		margin-left: -2px;
 		border-radius: 50%;
 		background: transparent;
-		box-shadow: inset 0 0 0 1px var(--text-subtle);
 	}
 	/* Hangar.dc.html: a toggle is muted off and white on, with a dot under it */
 	.toggle[aria-pressed='false'] {
@@ -172,10 +177,6 @@
 	}
 	.toggle[aria-pressed='true'] .dot {
 		background: var(--text-primary);
-		box-shadow: none;
-	}
-	.toggle[aria-pressed='true'] .dot.cot {
-		background: var(--accent);
 	}
 	.sep {
 		width: 1px;
