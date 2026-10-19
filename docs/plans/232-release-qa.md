@@ -127,3 +127,4 @@ Run on the production build at the public URL, in Chrome or Edge on a laptop, th
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-20 — Preparation by Worker B (M5), before the claim, on branch `prep/232-release-qa` (coordinator's request): the human acceptance checklist as a fillable sheet (`docs/release/1.0.0-acceptance-checklist.md`, items 1–23 plus 24–27 for plans 233–236) and a draft `CHANGELOG.md` from the plans' goals. The integration suite and the deploy wait for 228, 230 and the owner's review of 234.
