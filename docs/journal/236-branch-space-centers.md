@@ -6,7 +6,7 @@
 
 | Where | What |
 |---|---|
-| `packages/core` | site kind `branch`; `BRANCH_HQ`, `branchHqOf`, `hqReady`; `canPlace` waits for a branch's HQ (code `hq`) and never places a `branch-hq` by hand; command `found-branch`; the site placement's `at: { east, north }`; `terrainReadout` (sea, coast, land from the templates' probe); API 0.1.86 |
+| `packages/core` | site kind `branch`; `BRANCH_HQ`, `branchHqOf`, `hqReady`; `canPlace` waits for a branch's HQ (code `hq`) and never places a `branch-hq` by hand; command `found-branch`; the site placement's `at: { east, north }`; `terrainReadout` (sea, coast, land from the templates' probe); API 0.1.87 |
 | `packages/sim` | `found-branch` (the site rules of `found-site`, now shared as `siteRefusal` and `addSite`; the HQ's level-1 cost paid; the HQ under construction); a branch is a ground station only with a working comms building; site placement at a spot; the `instant-construction` cheat also finishes work in progress |
 | `mods/stock` | `stock.branch-hq` (250 000 funds, 20 days, upkeep 2 500, Infrastructure) |
 | web, Space Center | "Found a branch" and `BranchPicker.svelte`: a map of the home planet (sea, coast, land by height; the sites' zones drawn as land with keep-out rings), the spot's place, ground, what lies east, rotation boost, lowest inclination, nearest site, cost and HQ time, and the refusal in words; founding writes the record, saves and reloads the world; the site switcher; the status bar names the shown site; at a branch a building goes to the first free cell; the build menu says "Comes with a new branch" and "The branch HQ is still under construction" |

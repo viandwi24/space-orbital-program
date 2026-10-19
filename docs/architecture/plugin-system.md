@@ -249,7 +249,7 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 `CategoryDefinition.scope` (`'parts'` when absent, or `'buildings'`) splits the one category registry between the Hangar's rail and the Space Center's build menu. `BuildingDefinition.category` names a buildings-scope category and `description` gives its card a line; `buildingCategoryOf` sends anything else to `stock.other-buildings`. The renderer's `createBuildingThumbnails()` draws a building generator once per session into a 256 × 160 picture (one offscreen renderer, released when its queue is empty).
 
-## Branch space centers (API 0.1.86, plan 236, ADR 0229)
+## Branch space centers (API 0.1.87, plan 236, ADR 0229)
 
 `SITE_KINDS` gains `branch`; the command `found-branch` founds one on the home body; the site placement gains `at: { east, north }` for a spot instead of a pad index; `BRANCH_HQ`, `branchHqOf` and `hqReady` are core helpers and `PlacementSite.branch` makes `canPlace` wait for the HQ. A building providing `branch-hq` sets the founding cost and time.
 
