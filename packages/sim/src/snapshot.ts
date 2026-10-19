@@ -134,6 +134,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		orientation,
 		parts,
 		nextStage: vessel.nextStage,
+		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
 		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {})
 	};
 	snapshot.sas = {

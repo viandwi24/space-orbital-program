@@ -15,6 +15,7 @@ import { defineBody, definePlugin } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
 import { orbitState } from './helpers/measure.ts';
 import { rapier, stack } from './helpers/vessels.ts';
+import { pilotFor } from './helpers/crew.ts';
 
 const world = (preset: string): WorldInfo => ({
 	...legacyWorldInfo(1),
@@ -41,7 +42,8 @@ function load(sim: Sim, parts: string[], placement: unknown): EntityId {
 	const r = sim.dispatch({
 		type: 'load-vessel',
 		design: stack('Probe', parts, []),
-		placement: placement as never
+		placement: placement as never,
+		...(parts[0] === 'stock.command-pod' ? pilotFor(sim) : {})
 	});
 	if (!r.ok) throw new Error(r.reason);
 	return r.vessel!;

@@ -26,7 +26,7 @@ import {
 	type VesselSnapshot
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
-import { partDefOf, vesselOf, type SimCore } from './core.ts';
+import { controlProblem, moduleDefOf, partDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 import { PART } from './state.ts';
@@ -101,6 +101,8 @@ export function hireCrew(core: SimCore, profession: Profession): CommandResult {
 		xp: 0,
 		level: 0,
 		status: 'available',
+		// the key in its saved place (after `status`), so a seated member saves byte for byte
+		...({ location: undefined } as Pick<CrewMember, 'location'>),
 		places: [],
 		visited: [],
 		log: []
@@ -167,6 +169,31 @@ export function seatCrew(
 		m.boardedAt = core.t;
 	}
 	collectCrewPlaces(core);
+}
+
+/**
+ * A vessel launched without a crew list whose only control is an empty crewed part (plan 200,
+ * ADR 0216): an available member takes its first seat, and in a world without an economy a pilot
+ * is hired for it (KSP's Hangar fills the seats). With the economy on and nobody available it
+ * stays uncontrolled, and the HUD says so.
+ */
+export function autoCrew(core: SimCore, vesselId: EntityId): void {
+	const vessel = vesselOf(core, vesselId);
+	if (controlProblem(core, vessel) !== 'no-crew') return;
+	const seat = vessel.parts.find((id) => {
+		const part = partOf(core, id);
+		return (
+			(partDefOf(core, part).crewCapacity ?? 0) > 0 &&
+			part.modules.some((m) => moduleDefOf(core, m.id).controlSource === true)
+		);
+	});
+	if (seat === undefined) return;
+	let member = core.crew.members.find((m) => m.status === 'available');
+	if (!member && !economyOn(core) && hireCrew(core, 'pilot').ok) {
+		member = core.crew.members[core.crew.members.length - 1];
+	}
+	if (!member) return;
+	seatCrew(core, vesselId, [{ member: member.id, part: partOf(core, seat).index }], () => seat);
 }
 
 /** `crew-transfer` within one vessel. */

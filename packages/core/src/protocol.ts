@@ -148,7 +148,7 @@ export interface VesselSnapshot {
 	 * Present while the vessel takes no control commands (ADR 0109; plan 208, ADR 0214): it has no
 	 * control source, or every source needs power the vessel has run out of.
 	 */
-	uncontrolled?: 'no-source' | 'no-power';
+	uncontrolled?: 'no-source' | 'no-crew' | 'no-power';
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;
@@ -169,6 +169,8 @@ export interface VesselSnapshot {
 	surface?: boolean;
 	/** Held still during rails warp (plan 206, ADR 0202 point 7): no orbit while it lasts. */
 	frozen?: boolean;
+	/** Sim time of liftoff (plan 200); absent while it waits on the pad (the "pre-launch" situation). */
+	launchedAt?: number;
 	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */
 	nextStage?: number;
 	/** "Control from here" (plan 221): the part SAS and the navball follow; absent for the root. */

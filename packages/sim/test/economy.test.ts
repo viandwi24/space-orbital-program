@@ -10,6 +10,7 @@ import {
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../src/index.ts';
 import { rapier, stack, twoStage } from './helpers/vessels.ts';
+import { pilotFor } from './helpers/crew.ts';
 
 const world = (extra: Partial<WorldInfo> = {}): WorldInfo => ({
 	...legacyWorldInfo(1),
@@ -115,7 +116,7 @@ describe('recover-vessel', () => {
 
 	test('a vessel in flight cannot be recovered', async () => {
 		const sim = await make();
-		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage(), ...pilotFor(sim) });
 		sim.dispatch({ type: 'throttle', vessel: r.ok ? r.vessel! : (0 as never), value: 1 });
 		sim.dispatch({ type: 'stage', vessel: r.ok ? r.vessel! : (0 as never) });
 		for (let i = 0; i < 100; i++) sim.step(0.02);

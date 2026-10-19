@@ -13,6 +13,7 @@ import {
 import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../src/index.ts';
 import { openTree } from './helpers/tech.ts';
+import { pilotFor } from './helpers/crew.ts';
 import { rapier, stack } from './helpers/vessels.ts';
 
 const HOME_RADIUS = 600_000;
@@ -51,6 +52,8 @@ function load(
 	body = 'stock.home',
 	lon = LON
 ): EntityId {
+	// a pod or a suit counts as crewed only with someone in it (plan 200, ADR 0109 point 1)
+	const seated = parts[0] === 'stock.command-pod' || parts[0] === 'stock.eva-suit';
 	const r = sim.dispatch({
 		type: 'load-vessel',
 		design: stack('V', parts, []),
@@ -59,7 +62,8 @@ function load(
 			body,
 			latitude: north / HOME_RADIUS,
 			longitude: lon + east / HOME_RADIUS
-		} as never
+		} as never,
+		...(seated ? pilotFor(sim) : {})
 	});
 	if (!r.ok) throw new Error(r.reason);
 	return r.vessel!;

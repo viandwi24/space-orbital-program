@@ -75,9 +75,15 @@ describe('milestones', () => {
 		const sim = await newSim();
 		load(sim, { kind: 'state', ...orbitState(sim, 100_000) });
 		for (let i = 0; i < 10; i++) sim.step(0.02);
-		expect(sim.snapshot().milestones!.map((r) => r.id)).toEqual(['launch', 'orbit:stock.home']);
+		// a pilot takes the empty pod's seat at launch (plan 200, ADR 0216): the crewed firsts too
+		expect(sim.snapshot().milestones!.map((r) => r.id)).toEqual([
+			'launch',
+			'crewed-launch',
+			'orbit:stock.home',
+			'crewed-orbit:stock.home'
+		]);
 		const saved = JSON.parse(JSON.stringify(sim.save()));
-		expect(saved.milestones.records).toHaveLength(2);
+		expect(saved.milestones.records).toHaveLength(4);
 		const resumed = await newSim(saved);
 		const list = reached(resumed);
 		for (let i = 0; i < 50; i++) resumed.step(0.02);
@@ -102,7 +108,7 @@ describe('milestones', () => {
 		for (let i = 0; i < 100; i++) resumed.step(0.02);
 		const r = resumed.dispatch({ type: 'recover-vessel', vessel: id });
 		expect(r.ok).toBe(true);
-		expect(list.map((m) => m.id)).toEqual(['return:stock.home']);
+		expect(list.map((m) => m.id)).toEqual(['return:stock.home', 'crewed-return:stock.home']);
 		expect(resumed.save().milestones?.visits).toEqual({});
 	});
 

@@ -13,6 +13,7 @@ import { buildBodies } from '../src/bodies.ts';
 import { createSim, type Sim } from '../src/index.ts';
 import { tickDayLength } from '../src/tick.ts';
 import { rapier, stack } from './helpers/vessels.ts';
+import { pilotFor } from './helpers/crew.ts';
 
 const DAY = tickDayLength([SunBody, HomeBody, MoonBody]);
 const MOON = MoonBody.id;
@@ -25,6 +26,8 @@ const world = (rules: WorldInfo['rules'] = {}): WorldInfo => ({
 		'stock.starting-funds': 500_000,
 		// the tree is off here: the base kit sits in tier 5 (its pacing is mods/stock's test)
 		'stock.tech-tree': false,
+		// the pods' pilots sit through days of base ticks (plan 200: a pod controls only with crew)
+		'stock.life-support': 'off',
 		...rules
 	}
 });
@@ -47,7 +50,8 @@ function landOnMoon(
 	const r = sim.dispatch({
 		type: 'load-vessel',
 		design: stack('Lander', parts, stages),
-		placement: { kind: 'surface', body: MOON, latitude, longitude }
+		placement: { kind: 'surface', body: MOON, latitude, longitude },
+		...(parts[0] === 'stock.command-pod' ? pilotFor(sim) : {})
 	});
 	if (!r.ok) throw new Error(r.reason);
 	for (let i = 0; i < 600; i++) sim.step(0.02);

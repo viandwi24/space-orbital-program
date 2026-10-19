@@ -57,7 +57,8 @@ import {
 	partOf,
 	vesselIds,
 	vesselOf,
-	type SimCore
+	type SimCore,
+	crewAboard
 } from './core.ts';
 import { vesselOfMember } from './crew.ts';
 import { broadcastOffers } from './broadcast.ts';
@@ -249,6 +250,8 @@ function nodeOf(core: SimCore, id: EntityId): Node {
 		for (const m of part.modules) {
 			const def = moduleDefOf(core, m.id);
 			if (def.controlSource) {
+				// a seat with nobody in it controls nothing (plan 200, ADR 0109 point 1)
+				if (seats && !crewAboard(core, partId)) continue;
 				sources += 1;
 				if (seats) crewed = true;
 			}

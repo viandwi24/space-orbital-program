@@ -25,6 +25,7 @@ import { moduleDefOf, moduleState, partOf, vesselOf, type SimCore } from './core
 import { record, ruleOf } from './economy.ts';
 import { acquireFrame, enterFlight, leaveFlight } from './frames.ts';
 import { qFromBasis, qRotate } from './math.ts';
+import { autoCrew } from './crew.ts';
 import { computeRails } from './orbit.ts';
 import { VESSEL, PART } from './state.ts';
 import { hasBackground } from './tick.ts';
@@ -204,6 +205,8 @@ export function setOrbit(
 		const resolved = resolveVesselDesign(command.design!, core.registries.parts);
 		if (!resolved.ok) return refuse(`invalid design: ${resolved.errors.join('; ')}`);
 		id = spawnVessel(core, command.design!, resolved);
+		autoCrew(core, id); // like a launch (plan 200, ADR 0216 point 2)
+		vesselOf(core, id).launchedAt = core.t;
 	} else {
 		const why = playerVessel(core, id);
 		if (why) return refuse(why);

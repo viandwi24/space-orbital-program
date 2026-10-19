@@ -312,9 +312,14 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 
 - **Resources:** `stock.monopropellant` (4 kg/u, `vessel` flow), `stock.solid-fuel` (7.5 kg/u, `none` flow) and `stock.cold-gas` (1 kg/u), the renamed EVA propellant. Save format 9: migration 8 → 9 renames `stock.eva-propellant` everywhere in the save (`renameId`).
 - **Sunlight:** `VesselApi.sunExposure(dt, factor)` (`packages/sim/src/sunlight.ts`) averages `factor(direction) × flux`. The direction is the star in the part frame. The flux is inverse square relative to the home planet's orbit, and 0 inside a body's shadow cylinder. In flight it takes one sample; on rails it samples every 10 s along the rails path (at most 4 096 samples), with the frozen orientation. The stock panel modes are `flat` (cos to `normal`) and `track` (about the part's +Y); `deployable: false` makes a fixed panel. The RTG gives a constant 0.75 EC/s.
-- **Control:** `ModuleDefinition.needs(config)` names the resource a control source runs on (a probe core with `drain`). `controlProblem` gives `no-source` or `no-power`; control commands are refused with that reason, and `VesselSnapshot.uncontrolled` carries it. `vessel:power-depleted` fires once when a vessel runs out (`power.ts`), and the web shows an "Out of power" toast and the "Uncontrolled" chip.
+- **Control:** `ModuleDefinition.needs(config)` names the resource a control source runs on (a probe core with `drain`). `controlProblem` gives `no-source`, `no-crew` (plan 200, ADR 0216: a seat part is a source only with crew aboard, and the comms graph skips an empty one) or `no-power`; control commands are refused with that reason, and `VesselSnapshot.uncontrolled` carries it. `vessel:power-depleted` fires once when a vessel runs out (`power.ts`), and the web shows an "Out of power" toast and the "Uncontrolled" chip.
 - **Transmission cost:** each bit sent costs the strongest antenna's `power` × `TRANSMIT_EC_PER_MBIT_PER_W` (0.2) EC per Mbit, drawn from the holder. A radio sends only what its charge pays for, so the queue pauses at 0 EC.
 - **Budget:** `powerBudget(partIds, registries)` in core gives the net EC/s by day and by night, the capacity and the night reserve, from each module's `power(config)` descriptor.
+
+## The pad and auto-crew (plan 200, ADR 0216)
+
+- **Auto-crew:** `load-vessel` without a `crew` field calls `autoCrew` (`crew.ts`) when the vessel would be `no-crew`: the first available member takes the first seat of a crewed control part; with nobody available and `stock.economy` off, a pilot is hired first. `crew: []` keeps the vessel empty.
+- **Liftoff:** `VesselState.launchedAt` is set by the first `stage` command, or at load for a vessel not placed on the surface; split pieces copy it, and the snapshot carries it. Before it the vessel is pre-launch. The web's 50 % launch throttle is sent with the first stage, so the vessel rests on the pad until then. The web reads pre-launch from the snapshot (no `launchedAt`, `nextStage` 0, within 200 m of the ground) and counts MET from `launchedAt`.
 
 ## Range safety (plan 127, ADR 0155)
 

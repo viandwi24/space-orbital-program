@@ -32,7 +32,15 @@ import {
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
-import { hireCrew, dismissCrew, recoverCrew, seatCrew, seatProblem, transferCrew } from './crew.ts';
+import {
+	autoCrew,
+	hireCrew,
+	dismissCrew,
+	recoverCrew,
+	seatCrew,
+	seatProblem,
+	transferCrew
+} from './crew.ts';
 import { deleteData, moveData } from './data.ts';
 import { recoverScience, transmitData } from './science.ts';
 import {
@@ -117,6 +125,8 @@ function controllable(core: SimCore, id: EntityId): VesselState | string {
 	if (!vessel) return `unknown vessel ${id}`;
 	const problem = controlProblem(core, vessel);
 	if (problem === 'no-source') return `vessel ${id} ("${vessel.name}") has no control source`;
+	if (problem === 'no-crew')
+		return `vessel ${id} ("${vessel.name}") has no crew in its command part`;
 	if (problem === 'no-power')
 		return `no power: vessel ${id} ("${vessel.name}") has no electric charge for its probe core`;
 	return vessel;
@@ -142,6 +152,7 @@ function fireStage(core: SimCore, id: EntityId): CommandResult {
 	if (!stage) return refuse(`vessel ${id} has no stage left to fire`);
 	const index = vessel.nextStage;
 	vessel.nextStage += 1;
+	vessel.launchedAt ??= core.t; // the first stage is liftoff (plan 200)
 	for (const partId of stage) {
 		if (core.world.hasEntity(partId) && partOf(core, partId).vessel === id) {
 			partTrials(core, id, partId, 'stage'); // reliability draws at staging (plan 130, ADR 0156)
@@ -243,11 +254,12 @@ function loadVessel(
 		}
 		enterFlight(core, id, frame);
 	}
+	if (!surface) vessel.launchedAt = core.t; // loaded in flight or orbit: no pad to wait on
 	if (command.crew && command.crew.length > 0) {
 		// Design indices to part entities: the vessel's parts follow the resolved order.
 		const indexOf = new Map(resolved.parts.map((rp, i) => [rp.index, vessel.parts[i]!]));
 		seatCrew(core, id, command.crew, (index) => indexOf.get(index)!);
-	}
+	} else if (command.crew === undefined) autoCrew(core, id); // fill an empty command seat (plan 200)
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: vessel.mode, reason: 'loaded' });
 	payLaunch(core, command.design, launchSite); // only a vessel that was placed is paid for (ADR 0113)
 	if (placement.kind === 'site') {

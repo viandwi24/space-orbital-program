@@ -156,7 +156,8 @@ export async function runCareerBot(options: {
 			sim.dispatch({
 				type: 'load-vessel',
 				design: stack('Pod', ['stock.command-pod'], []),
-				placement: { kind: 'surface', latitude: 0, longitude: downrange / home.radius }
+				placement: { kind: 'surface', latitude: 0, longitude: downrange / home.radius },
+				crew: [] // a stand-in for a returning capsule: nobody to hire (plan 200's auto-crew)
 			}),
 			'place the pod'
 		)!;

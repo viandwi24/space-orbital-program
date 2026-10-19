@@ -14,6 +14,7 @@ import Stock from '@orbital/mod-stock';
 import { createSim, type Sim } from '../src/index.ts';
 import { createAscent, defaultAscent } from './helpers/ascent.ts';
 import { rapier, twoStage } from './helpers/vessels.ts';
+import { pilotFor } from './helpers/crew.ts';
 
 const R = 600_000;
 const DEG = Math.PI / 180;
@@ -68,7 +69,8 @@ function overTheOtherSite(sim: Sim): number {
 	const r = sim.dispatch({
 		type: 'load-vessel',
 		design: twoStage(),
-		placement: { kind: 'state', body: 'stock.home', position, velocity }
+		placement: { kind: 'state', body: 'stock.home', position, velocity },
+		...pilotFor(sim)
 	} as never);
 	if (!r.ok) throw new Error(r.reason);
 	return Number(r.vessel);
@@ -134,7 +136,8 @@ describe('the ascent azimuth (ADR 0155 point 4)', () => {
 		const r = sim.dispatch({
 			type: 'load-vessel',
 			design: twoStage(),
-			placement: { kind: 'site', site: 'legacy' }
+			placement: { kind: 'site', site: 'legacy' },
+			...pilotFor(sim)
 		} as never);
 		if (!r.ok) throw new Error(r.reason);
 		const fan = sim.snapshot().range!.site!;

@@ -149,6 +149,11 @@ export interface VesselState {
 	 * Absent only in a save from before plan 221 until the sim rebuilds it on load.
 	 */
 	design?: VesselDesign;
+	/**
+	 * Sim time of liftoff (plan 200): the first stage fired, or the load for a vessel placed off the
+	 * ground. Absent while the vessel waits on the pad; MET counts from it.
+	 */
+	launchedAt?: number;
 	/** "Control from here" (plan 221): the part whose nose SAS and the navball follow; the root when absent. */
 	controlPart?: EntityId;
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */

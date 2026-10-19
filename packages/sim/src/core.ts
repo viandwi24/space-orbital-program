@@ -179,20 +179,32 @@ export function vesselAmount(core: SimCore, vessel: VesselState, resource: strin
 	return sum;
 }
 
+/** Someone sits in the part (plan 200, ADR 0109 point 1): an assigned crew member located there. */
+export const crewAboard = (core: SimCore, part: EntityId): boolean =>
+	core.crew.members.some((m) => m.status === 'assigned' && m.location?.part === Number(part));
+
 /**
  * Why the vessel takes no control commands (ADR 0109; plan 208, ADR 0214), or undefined when it
- * does: `no-source` without any control source, `no-power` when every source part has a module
- * that needs a resource (`ModuleDefinition.needs`) the vessel has run out of.
+ * does: `no-source` without any control source, `no-crew` when its only sources are crewed parts
+ * nobody sits in (plan 200: a seat alone is no crew), `no-power` when every source part has a
+ * module that needs a resource (`ModuleDefinition.needs`) the vessel has run out of.
  */
 export function controlProblem(
 	core: SimCore,
 	vessel: VesselState
-): 'no-source' | 'no-power' | undefined {
+): 'no-source' | 'no-crew' | 'no-power' | undefined {
 	let sources = 0;
+	let empty = 0;
 	const short = new Map<string, boolean>();
 	for (const id of vessel.parts) {
-		const modules = partOf(core, id).modules;
+		const part = partOf(core, id);
+		const modules = part.modules;
 		if (!modules.some((m) => moduleDefOf(core, m.id).controlSource === true)) continue;
+		// a crewed command part needs its crew aboard (ADR 0109 point 1)
+		if ((partDefOf(core, part).crewCapacity ?? 0) > 0 && !crewAboard(core, id)) {
+			empty += 1;
+			continue;
+		}
 		sources += 1;
 		let powered = true;
 		for (const m of modules) {
@@ -204,7 +216,8 @@ export function controlProblem(
 		}
 		if (powered) return undefined;
 	}
-	return sources === 0 ? 'no-source' : 'no-power';
+	if (sources > 0) return 'no-power';
+	return empty > 0 ? 'no-crew' : 'no-source';
 }
 
 /**

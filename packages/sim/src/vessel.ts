@@ -422,6 +422,7 @@ function splitAt(
 	const newState: VesselState = {
 		name: `${vessel.name} (debris)`,
 		...(vessel.design ? { design: vessel.design } : {}),
+		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
 		mode: vessel.mode,
 		soi: vessel.soi,
 		root: newRoot,
