@@ -13,7 +13,12 @@ import {
 import { LEGACY_LAYOUT, placedBuildingSchema, roadsSchema } from './buildings.ts';
 import type { WorldInfo } from './world.ts';
 
-export const SITE_KINDS = ['space-center', 'base', 'outpost'] as const;
+/**
+ * `space-center` is the HQ, `branch` another space center on the home planet (plan 236, ADR 0229),
+ * `base` a site on another body (plan 128), `outpost` a landed vessel's.
+ */
+export const SITE_KINDS = ['space-center', 'branch', 'base', 'outpost'] as const;
+export type SiteKind = (typeof SITE_KINDS)[number];
 
 /** A pad: metres east and north of the site centre on its tangent plane. */
 export const sitePadSchema = z.object({ east: z.number(), north: z.number() });

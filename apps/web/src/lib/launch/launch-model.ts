@@ -5,7 +5,6 @@
 import {
 	CELL_SIZE,
 	footprint,
-	padLatLon,
 	workingLevel,
 	type BuildingDefinition,
 	type PlacedBuilding,
@@ -81,18 +80,16 @@ export const accepts = (
 		facility.kind === undefined ||
 		(facility.kind === 'runway') === aircraft);
 
-/** Where the vessel stands: the facility's centre on the site's body (ADR 0150 point 2). */
+/**
+ * Where the vessel stands: the facility's centre at its site (ADR 0150 point 2), as a site
+ * placement with the spot (plan 236, ADR 0229 point 6), so the sim takes fuel and the launch
+ * charge from that site.
+ */
 export function placementOf(
-	site: Pick<Site, 'body' | 'latitude' | 'longitude'>,
-	facility: Pick<Facility, 'east' | 'north'>,
-	radius: number
+	site: Pick<Site, 'id'>,
+	facility: Pick<Facility, 'east' | 'north'>
 ): VesselPlacement {
-	const [latitude, longitude] = padLatLon(
-		site as Site,
-		{ east: facility.east, north: facility.north },
-		radius
-	);
-	return { kind: 'surface', body: site.body as never, latitude, longitude };
+	return { kind: 'site', site: site.id, at: { east: facility.east, north: facility.north } };
 }
 
 // ---- the choice handed to the flight (ADR 0150 point 4) ----
@@ -126,7 +123,12 @@ export function takeLaunchChoice(
 		storage.removeItem(LAUNCH_KEY);
 		if (!raw) return null;
 		const c = JSON.parse(raw) as LaunchChoice;
-		if (!c || typeof c.facility !== 'string' || c.placement?.kind !== 'surface') return null;
+		if (
+			!c ||
+			typeof c.facility !== 'string' ||
+			(c.placement?.kind !== 'surface' && c.placement?.kind !== 'site')
+		)
+			return null;
 		const crewOk =
 			c.crew === undefined ||
 			(Array.isArray(c.crew) &&

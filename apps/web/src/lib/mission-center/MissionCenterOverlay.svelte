@@ -9,6 +9,7 @@
 	 */
 	import NetworkLayer from '../comms/NetworkLayer.svelte';
 	import type { ScreenNetwork } from '../comms/network-model';
+	import type { SiteRow } from '../space-center/branch-model';
 	import BackButton from '../ui/BackButton.svelte';
 	import Button from '../ui/Button.svelte';
 	import Icon from '../ui/Icon.svelte';
@@ -80,6 +81,7 @@
 		onlayers,
 		labels,
 		network,
+		sites = [],
 		note,
 		planningOpen = false,
 		onplanning,
@@ -135,6 +137,8 @@
 		labels: readonly MapLabel[];
 		/** The Network layer in CSS pixels (plan 115, ADR 0158). */
 		network: ScreenNetwork;
+		/** The world's sites and their ground stations (plan 236, ADR 0229 point 7). */
+		sites?: readonly SiteRow[];
 		note: string | null;
 		/** The comms planning panel (plan 118, ADR 0163 point 6), drawn in place of the card while open. */
 		planningOpen?: boolean;
@@ -266,6 +270,17 @@
 				</ul>
 			{/if}
 		</Panel>
+		{#if sites.length > 0}
+			<Panel title="Sites">
+				<ul class="list" data-testid="mc-sites">
+					{#each sites as s (s.id)}
+						<li data-testid="mc-site-{s.id}">
+							<ListRow name="{s.name} · {s.kind}" sub="{s.place} · {s.station}" />
+						</li>
+					{/each}
+				</ul>
+			</Panel>
+		{/if}
 		{#if agency}
 			<div class="agency" data-testid="mc-agency">
 				<StatCell label="Funds" value={agency.funds} />

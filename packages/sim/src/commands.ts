@@ -90,6 +90,8 @@ import {
 	placeBuilding,
 	removeBuilding,
 	upgradeBuilding,
+	finishConstruction,
+	foundBranch,
 	foundSite,
 	foundedInThisRun
 } from './buildings.ts';
@@ -201,7 +203,7 @@ function loadVessel(
 				`site "${site.id}" was founded in this run; its ground is ready after the world is loaded again`
 			);
 		}
-		const pad = site.pads[placement.pad ?? 0];
+		const pad = placement.at ?? site.pads[placement.pad ?? 0];
 		if (!pad)
 			return refuse(`site "${site.id}" has ${site.pads.length} pad(s); no pad ${placement.pad}`);
 		const siteBody = core.bodies.get(site.body);
@@ -573,6 +575,8 @@ export function dispatch(
 			return withStations(core, upgradeBuilding(core, command));
 		case 'found-site':
 			return withStations(core, foundSite(core, command));
+		case 'found-branch':
+			return withStations(core, foundBranch(core, command));
 		case 'transmit-data': {
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			// through the radio's queue with comms on, at once with it off (ADR 0099 point 2, 0189)
@@ -689,8 +693,18 @@ export function dispatch(
 		}
 		case 'debug-mode':
 			return setDebugMode(core, command.on);
-		case 'debug-cheat':
-			return setCheat(core, command.cheat, command.on);
+		case 'debug-cheat': {
+			const r = setCheat(core, command.cheat, command.on);
+			// instant construction also finishes the work in progress (plan 236: a branch's HQ)
+			if (
+				r.ok &&
+				command.cheat === 'instant-construction' &&
+				command.on &&
+				finishConstruction(core)
+			)
+				resetStations(core);
+			return r;
+		}
 		case 'debug-grant':
 			return grant(core, command);
 		case 'debug-set-orbit':

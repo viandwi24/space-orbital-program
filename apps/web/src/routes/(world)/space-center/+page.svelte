@@ -6,9 +6,15 @@
 	 * by the sim's `place-building`; the site list is then written into the world record.
 	 */
 	import {
+		branchHqOf,
 		homeBodyOf,
+		hqReady,
 		loadPlugins,
+		SITE_BLEND_WIDTH,
+		SITE_FLAT_RADIUS,
 		sitesOf,
+		terrainSeedOf,
+		type Site,
 		upkeepOf,
 		type Rotation,
 		type Snapshot,
@@ -18,6 +24,8 @@
 	import { onMount } from 'svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import { buildMenu, type BuildCard } from '../../../lib/space-center/build-menu';
+	import BranchPicker from '../../../lib/space-center/BranchPicker.svelte';
+	import { branchId, type BranchContext } from '../../../lib/space-center/branch-model';
 	import { buildingThumbnails } from '../../../lib/space-center/thumbnails';
 	import { bodyLabel } from '../../../lib/hud-model';
 	import { GAME_NAME } from '../../../lib/public/about';
@@ -102,7 +110,8 @@
 			home: homeSelected,
 			body: siteInfo.body,
 			funds,
-			bodyName: bodyLabel
+			bodyName: bodyLabel,
+			hqPending: siteInfo.kind === 'branch' && !hqReady(site?.buildings ?? [], buildingRegistry)
 		})
 	);
 	const thumbnail = (card: BuildCard): Promise<string> | null =>
@@ -233,11 +242,21 @@
 	}
 
 	function setBuild(kind: string | null): void {
-		// a base has no 3D view yet: the building goes on the first free cell near its centre (ADR 0125 point 7)
-		if (kind && !homeSelected) {
-			const cell = firstFreeCell(siteInfo, site, buildingRegistry, kind, false);
+		// a base and a branch have no 3D view yet: the building goes on the first free cell near the
+		// centre (ADR 0125 point 7, ADR 0229 point 7); the view draws the HQ's site
+		if (kind && siteInfo.id !== allSites[0]?.id) {
+			const cell = firstFreeCell(siteInfo, site, buildingRegistry, kind, homeSelected);
 			if (!cell) {
-				problem = 'No free cell at this base for that building';
+				const why = checkGhost(
+					siteInfo,
+					site,
+					buildingRegistry,
+					kind,
+					{ i: 0, j: 0 },
+					0,
+					homeSelected
+				).reasons.find((r) => r.startsWith('The branch HQ'));
+				problem = why ?? 'No free cell at this site for that building';
 				return;
 			}
 			void center
@@ -264,6 +283,75 @@
 			center?.setGhost(null);
 		}
 	}
+
+	// founding a branch (plan 236, ADR 0229): the picker, the command, then a save and a reload so
+	// the new zone shapes the ground (ADR 0229 point 5)
+	let branchOpen = $state(false);
+	const branchCtx = $derived.by((): BranchContext => {
+		const home = homeId ? registries.bodies.get(homeId) : undefined;
+		return {
+			sites: allSites,
+			home: {
+				id: homeId ?? 'stock.home',
+				radius: home?.radius ?? 600_000,
+				rotationPeriod: home?.rotationPeriod ?? 21_600
+			},
+			terrain: { seed: world ? terrainSeedOf(world) : 0, radius: home?.radius ?? 600_000 },
+			hq: branchHqOf(buildingRegistry),
+			funds
+		};
+	});
+	async function foundBranch(spot: {
+		name: string;
+		latitude: number;
+		longitude: number;
+	}): Promise<string | null> {
+		const id = branchId(allSites);
+		const r = await center?.dispatch({ type: 'found-branch', id, ...spot });
+		if (!r) return 'The Space Center is not ready yet';
+		if (!r.ok) return r.reason;
+		// the record gets the branch as the sim made it; the HQ's state comes with the next snapshot
+		const made = await new Promise<SiteState | undefined>((done) => {
+			const off = worldSession.client?.onSnapshot((snap) => {
+				const b = snap.sites?.find((x) => x.id === id);
+				if (b) {
+					off?.();
+					done(b);
+				}
+			});
+			setTimeout(() => {
+				off?.();
+				done(undefined);
+			}, 3000);
+		});
+		const branch: Site = {
+			id,
+			name: spot.name,
+			body: branchCtx.home.id,
+			kind: 'branch',
+			latitude: spot.latitude,
+			longitude: spot.longitude,
+			flatRadius: SITE_FLAT_RADIUS,
+			blendWidth: SITE_BLEND_WIDTH,
+			pads: [{ east: 0, north: 0 }],
+			buildings: made?.buildings ?? [],
+			roads: made?.roads ?? []
+		};
+		const sites = [...sitesOf(world ?? { sites: [] }), branch];
+		const worlds = await saves.worldsService();
+		await worlds.setSites(worldId, sites);
+		await worldSession.saveNow();
+		location.reload();
+		return null;
+	}
+
+	// the shown site in the status bar (ADR 0229 point 7)
+	$effect(() => {
+		pageShell.location = {
+			icon: 'spaceCenter',
+			text: `${siteInfo.name} · ${bodyLabel(siteInfo.body)}`
+		};
+	});
 
 	// the Space Center's page action (BASE_LAYOUT §3): the Mission Center
 	$effect(() => {
@@ -351,6 +439,13 @@
 		}}
 		{flows}
 		market={marketRows(economy, site?.id)}
+		onfoundbranch={() => (branchOpen = true)}
+	/>
+	<BranchPicker
+		open={branchOpen}
+		ctx={branchCtx}
+		onfound={foundBranch}
+		onclose={() => (branchOpen = false)}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
 </main>

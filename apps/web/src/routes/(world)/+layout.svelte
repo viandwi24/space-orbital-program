@@ -265,10 +265,23 @@
 			void client.ready
 				.then(() => client.dispatch({ type: 'set-debris-cap', cap: settings.time.debrisCap }))
 				.catch(() => {});
+			// Debug mode from Settings on every in-world page (plan 203; Flight did it alone before
+			// plan 236), and the world's "used cheats" mark
+			let modeSent: boolean | null = null;
+			let marked = false;
 			offClient.push(
 				client.onSnapshot((s, w) => {
 					snapshot = s;
 					if (w !== undefined) warp = w;
+					const d = s.debug;
+					if (d?.access === 'opt-in' && d.mode !== settings.debug && modeSent !== settings.debug) {
+						modeSent = settings.debug;
+						void client.dispatch({ type: 'debug-mode', on: settings.debug });
+					}
+					if (d?.usedCheats && !marked) {
+						marked = true;
+						void saves.worldsService().then((x) => x.markUsedCheats(worldId));
+					}
 				}),
 				client.onSimEvent((e) => {
 					if (e.type === 'vessel-destroyed')
@@ -374,6 +387,7 @@
 			worldSession.requestSave = () => {};
 			worldSession.saveNow = () => Promise.resolve(false);
 			fatalSave.current = null;
+			worldSession.saveNow = async () => false;
 			worldSession.end();
 		};
 	});

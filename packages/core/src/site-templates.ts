@@ -108,6 +108,30 @@ const isLand = (p: Probe, la: number, lo: number): boolean =>
 const isSea = (p: Probe, la: number, lo: number): boolean =>
 	elevationAt(p, la, lo) < TERRAIN_SHAPE.landStart;
 
+/** What the ground is at a spot (plan 236's branch picker): sea, coast or land, and its map elevation 0..1. */
+export interface TerrainReadout {
+	ground: 'sea' | 'coast' | 'land';
+	elevation: number;
+}
+
+/** The terrain at a latitude and longitude, read where the terrain reads it (the same probe as the templates). */
+export function terrainReadout(
+	latitude: number,
+	longitude: number,
+	terrain: TerrainProbe
+): TerrainReadout {
+	const p = probeOf(terrain);
+	const elevation = elevationAt(p, latitude, longitude);
+	return {
+		ground: isSea(p, latitude, longitude)
+			? 'sea'
+			: isLand(p, latitude, longitude)
+				? 'land'
+				: 'coast',
+		elevation
+	};
+}
+
 /** The point `distance` m from (la, lo) along `bearing` (rad from north, east positive). */
 export function travel(
 	la: number,

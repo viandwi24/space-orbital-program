@@ -182,7 +182,7 @@
 | 233 | [Base layout, Flight and Space Center: match the v2 design package exactly](plans/233-base-layout-fidelity-to-refs-v2.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 234 | [Deep-space dish: a large, realistic parabolic antenna building](plans/234-deep-space-dish.md) | blocked | Worker C | Owner review 2026-10-19 (ADR 0222). |
 | 235 | [Space Center build menu: categories along the bottom, cards with building thumbnails](plans/235-space-center-build-menu.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
-| 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | draft | | Owner review 2026-10-19 (ADR 0222). |
+| 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | in-progress | Worker B | Owner review 2026-10-19 (ADR 0222). |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

@@ -88,7 +88,8 @@ export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminated
 	z.object({
 		kind: z.literal('site'),
 		site: z.string().min(1),
-		pad: z.int().min(0).optional()
+		pad: z.int().min(0).optional(),
+		at: z.object({ east: z.number(), north: z.number() }).optional()
 	})
 ]);
 
@@ -249,6 +250,16 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 			.max(Math.PI / 2),
 		longitude: z.number().refine(Number.isFinite, 'must be finite'),
 		body: z.string().min(1).optional()
+	}),
+	z.object({
+		type: z.literal('found-branch'),
+		id: z.string().min(1),
+		name: z.string().min(1).max(60),
+		latitude: z
+			.number()
+			.min(-Math.PI / 2)
+			.max(Math.PI / 2),
+		longitude: z.number().refine(Number.isFinite, 'must be finite')
 	}),
 	z.object({
 		type: z.literal('objective-start'),

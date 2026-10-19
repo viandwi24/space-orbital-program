@@ -6,6 +6,7 @@ import { cheatOn } from './cheats.ts';
 import {
 	canPlace,
 	cloneData,
+	branchHqOf,
 	ECONOMY_CAUSES,
 	UPKEEP_EVERY_DAYS,
 	upkeepOf,
@@ -56,7 +57,8 @@ export function placeBuilding(
 			home: known.body === core.root.def.id,
 			flatRadius: known.flatRadius,
 			buildings,
-			roads: known.roads ?? []
+			roads: known.roads ?? [],
+			branch: known.kind === 'branch'
 		},
 		core.registries.buildings,
 		command.kind,
@@ -142,6 +144,32 @@ export function upgradeBuilding(
 	return { ok: true };
 }
 
+/** Finish every building and upgrade in progress at once (the debug cheat); whether any was. */
+export function finishConstruction(core: SimCore): boolean {
+	let any = false;
+	for (const known of sitesOf(core.info)) {
+		const due = (known.buildings ?? []).filter(
+			(b) => b.state === 'building' || b.state === 'upgrading'
+		);
+		if (due.length === 0) continue;
+		any = true;
+		const site = writableSite(core, known.id)!;
+		site.buildings = (site.buildings ?? []).map((b) => {
+			if (!due.some((d) => d.id === b.id)) return b;
+			const { readyDay: _, ...rest } = b;
+			return { ...rest, level: b.state === 'upgrading' ? b.level + 1 : b.level, state: 'active' };
+		});
+		for (const b of due)
+			core.events.emit('building:ready', {
+				site: known.id,
+				id: b.id,
+				kind: b.kind,
+				level: b.state === 'upgrading' ? b.level + 1 : b.level
+			});
+	}
+	return any;
+}
+
 /**
  * The world tick's building work (ADR 0123 points 1 and 5): construction whose ready day has come
  * is done, then upkeep on every 30th day. Sites are only written when something changed.
@@ -198,38 +226,43 @@ const foundedThisRun = new WeakMap<SimCore, Set<string>>();
 export const foundedInThisRun = (core: SimCore, site: string): boolean =>
 	foundedThisRun.get(core)?.has(site) ?? false;
 
-/** `found-site` (ADR 0177 point 6): a base with the starter pad, refused when its zone would overlap. */
-export function foundSite(
+/** Why a new site cannot go at this spot on `body`, or undefined (ADR 0177 point 6). */
+function siteRefusal(
 	core: SimCore,
-	command: { id: string; name: string; latitude: number; longitude: number; body?: string },
-	/** What the new site starts with: the starter pad, or a base's hub (plan 128, ADR 0125 point 2). */
-	layout: { buildings: PlacedBuilding[]; roads: Array<{ i: number; j: number }> } = STARTER_LAYOUT
-): CommandResult {
-	const body = command.body ?? core.root.def.id;
+	command: { id: string; latitude: number; longitude: number },
+	body: string
+): string | undefined {
 	const runtime = core.bodies.get(body);
-	if (!runtime) return refuse(`unknown body "${body}"`);
+	if (!runtime) return `unknown body "${body}"`;
 	const sites = sitesOf(core.info);
-	if (sites.some((s) => s.id === command.id)) return refuse(`site id "${command.id}" is taken`);
+	if (sites.some((s) => s.id === command.id)) return `site id "${command.id}" is taken`;
 	const onBody = sites.filter((s) => s.body === body);
-	if (onBody.length >= MAX_TERRAIN_ZONES) {
-		return refuse(`body ${body} already has ${onBody.length} sites; at most ${MAX_TERRAIN_ZONES}`);
-	}
+	if (onBody.length >= MAX_TERRAIN_ZONES)
+		return `body ${body} already has ${onBody.length} sites; at most ${MAX_TERRAIN_ZONES}`;
 	const reach = SITE_FLAT_RADIUS + SITE_BLEND_WIDTH;
 	for (const s of onBody) {
 		const d = siteDistance(s, command, runtime.def.radius);
-		if (d < reach + s.flatRadius + s.blendWidth) {
-			return refuse(
-				`too close to site "${s.id}" (${Math.round(d / 1000)} km): flat zones would overlap`
-			);
-		}
+		if (d < reach + s.flatRadius + s.blendWidth)
+			return `too close to site "${s.id}" (${Math.round(d / 1000)} km): flat zones would overlap`;
 	}
+	return undefined;
+}
+
+/** Write a new site after the checks; the Legacy site stays first. */
+function addSite(
+	core: SimCore,
+	command: { id: string; name: string; latitude: number; longitude: number },
+	body: string,
+	kind: Site['kind'],
+	layout: { buildings: PlacedBuilding[]; roads: Array<{ i: number; j: number }> }
+): void {
 	// The implicit Legacy site is written first, so it stays the primary site.
 	if (core.info.sites.length === 0) writableSite(core, LEGACY_SITE.id);
 	(core.info.sites as Site[]).push({
 		id: command.id,
 		name: command.name,
 		body,
-		kind: 'base',
+		kind,
 		latitude: command.latitude,
 		longitude: command.longitude,
 		flatRadius: SITE_FLAT_RADIUS,
@@ -246,6 +279,55 @@ export function foundSite(
 		body,
 		latitude: command.latitude,
 		longitude: command.longitude
+	});
+}
+
+/** `found-site` (ADR 0177 point 6): a base with the starter pad, refused when its zone would overlap. */
+export function foundSite(
+	core: SimCore,
+	command: { id: string; name: string; latitude: number; longitude: number; body?: string },
+	/** What the new site starts with: the starter pad, or a base's hub (plan 128, ADR 0125 point 2). */
+	layout: { buildings: PlacedBuilding[]; roads: Array<{ i: number; j: number }> } = STARTER_LAYOUT
+): CommandResult {
+	const body = command.body ?? core.root.def.id;
+	const why = siteRefusal(core, command, body);
+	if (why) return refuse(why);
+	addSite(core, command, body, 'base', layout);
+	return { ok: true };
+}
+
+/** Where a branch's HQ stands: north of the centre, the pads' ground left free. */
+export const BRANCH_HQ_CELL = { i: -2, j: 6 };
+
+/**
+ * `found-branch` (plan 236, ADR 0229 point 2): another space center on the home planet. The spot
+ * passes the site rules, the HQ's level-1 cost is paid (economy on), and the HQ is built over its
+ * build days on the world tick; the branch builds nothing else until then.
+ */
+export function foundBranch(
+	core: SimCore,
+	command: { id: string; name: string; latitude: number; longitude: number }
+): CommandResult {
+	const hq = branchHqOf(core.registries.buildings);
+	if (!hq) return refuse('no branch HQ building is loaded');
+	const body = core.root.def.id;
+	const why = siteRefusal(core, command, body);
+	if (why) return refuse(why);
+	const level = hq.levels[0]!;
+	const paid = pay(core, level.cost, `branch:${command.id}`);
+	if (paid) return refuse(paid);
+	addSite(core, command, body, 'branch', {
+		buildings: [
+			{
+				id: `${command.id}-hq`,
+				kind: hq.id,
+				cell: BRANCH_HQ_CELL,
+				rotation: 0,
+				level: 0,
+				...construction(core, level.buildDays)
+			}
+		],
+		roads: []
 	});
 	return { ok: true };
 }

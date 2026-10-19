@@ -200,6 +200,20 @@ export const BuildingTestStand = defineBuilding({
 	visual: gen('tanks')
 });
 
+/** A branch's headquarters (plan 236, ADR 0229): founding a branch builds it; its cost is the founding cost. */
+export const BuildingBranchHq = defineBuilding({
+	id: 'stock.branch-hq',
+	label: 'Branch HQ',
+	size: { w: 5, d: 4 },
+	entrances: southDoor(5),
+	levels: [{ cost: 250_000, buildDays: 20, upkeep: 2_500, power: 0, capacity: {} }],
+	provides: ['branch-hq'],
+	placement: 'home',
+	category: 'stock.infrastructure',
+	description: 'The offices of a branch space center; it comes with founding the branch.',
+	visual: gen('control')
+});
+
 export const STOCK_BUILDINGS = [
 	BuildingHangar,
 	BuildingLaunchpadS,
@@ -214,6 +228,7 @@ export const STOCK_BUILDINGS = [
 	BuildingDeepSpaceDish,
 	BuildingPropellantPlant,
 	BuildingTestStand,
+	BuildingBranchHq,
 	// off-world bases (plan 128, ADR 0125)
 	...STOCK_BASE_BUILDINGS
 ] as const;

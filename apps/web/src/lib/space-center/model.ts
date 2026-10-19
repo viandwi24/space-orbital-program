@@ -183,7 +183,7 @@ export interface GhostCheck {
 
 /** The same check the sim runs for `place-building` (ADR 0115). */
 export function checkGhost(
-	site: Pick<Site, 'body' | 'flatRadius'>,
+	site: Pick<Site, 'body' | 'flatRadius'> & { kind?: Site['kind'] },
 	state: SiteState | undefined,
 	registry: BuildingLookup,
 	kind: string,
@@ -198,7 +198,8 @@ export function checkGhost(
 			home,
 			flatRadius: site.flatRadius,
 			buildings: state?.buildings ?? [],
-			roads: state?.roads ?? []
+			roads: state?.roads ?? [],
+			branch: site.kind === 'branch'
 		},
 		registry,
 		kind,
@@ -440,7 +441,7 @@ export const kindsFor = (
  * a square spiral of up to `reach` cells.
  */
 export function firstFreeCell(
-	site: Pick<Site, 'body' | 'flatRadius'>,
+	site: Pick<Site, 'body' | 'flatRadius'> & { kind?: Site['kind'] },
 	state: SiteState | undefined,
 	registry: BuildingLookup,
 	kind: string,

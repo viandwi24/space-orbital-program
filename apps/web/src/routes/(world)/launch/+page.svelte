@@ -21,6 +21,7 @@
 		type WorldInfo
 	} from '@orbital/core';
 	import { onMount } from 'svelte';
+	import { worldSession } from '../../../lib/world-session';
 	import { loadContent, partLookup } from '../../../lib/catalog';
 	import { parseDesign, serialiseDesign } from '../../../lib/design';
 	import { designStats } from '../../../lib/editor/stats';
@@ -84,7 +85,10 @@
 	let roster = $state.raw<{ id: string; name: string; profession: string }[]>([]);
 	let seated = $state.raw<{ member: string; part: number }[]>([]);
 
-	let site = $state.raw<Site | null>(null);
+	/** The world's home-planet space centers (plan 236): the HQ and its branches. */
+	let launchSites = $state.raw<Site[]>([]);
+	let siteId = $state<string | null>(null);
+	const site = $derived(launchSites.find((s) => s.id === siteId) ?? launchSites[0] ?? null);
 	let designs = $state.raw<Choice[]>([]);
 	let facilityId = $state<string | null>(null);
 	let designKey = $state<string | null>(null);
@@ -181,7 +185,18 @@
 				registries = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], {
 					system: { id: info.systemId, variant: info.variant }
 				}).registries;
-			site = sitesOf(info ?? { sites: [] })[0] ?? null;
+			// the HQ and the branches, with their buildings as the running sim has them (construction
+			// finishes on the world tick; the record is written by the Space Center)
+			const all = sitesOf(info ?? { sites: [] });
+			const live = worldSession.snapshot?.sites;
+			launchSites = all
+				.filter(
+					(s) => s.body === all[0]?.body && (s.kind === 'space-center' || s.kind === 'branch')
+				)
+				.map((s) => {
+					const now = live?.find((x) => x.id === s.id);
+					return now ? { ...s, buildings: now.buildings, roads: now.roads } : s;
+				});
 			worldInfo = info ?? null;
 			limits = limitsOn(info, registries);
 			const list: Choice[] = [];
@@ -207,7 +222,7 @@
 		saveDraft(serialiseDesign(chosen.design));
 		saveLaunchChoice({
 			facility: facility.id,
-			placement: placementOf(site, facility, body.radius),
+			placement: placementOf(site, facility),
 			...(seated.length > 0 ? { crew: seated } : {})
 		});
 		void goto(resolve('/(world)/flight'));
@@ -229,6 +244,33 @@
 	</header>
 
 	<div class="cols">
+		{#if launchSites.length > 1}
+			<Panel title="Site" data-testid="launch-sites">
+				<div class="list" role="radiogroup" aria-label="Launch site">
+					{#each launchSites as s (s.id)}
+						<button
+							type="button"
+							role="radio"
+							class="row"
+							aria-checked={site?.id === s.id}
+							data-testid="launch-site-{s.id}"
+							onclick={() => {
+								siteId = s.id;
+								facilityId = null;
+							}}
+						>
+							<span class="tile"><Icon name="hangar" size={16} /></span>
+							<span class="text"
+								><span class="name">{s.name}</span><span class="sub"
+									>{s.kind === 'branch' ? 'Branch' : 'Headquarters'}</span
+								></span
+							>
+							<span class="dot" aria-hidden="true"></span>
+						</button>
+					{/each}
+				</div>
+			</Panel>
+		{/if}
 		<Panel title="Facility" data-testid="launch-facilities">
 			<div class="list" role="radiogroup" aria-label="Launch facility">
 				{#each facilities as f (f.id)}

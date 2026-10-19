@@ -1,8 +1,8 @@
 ---
 id: 236
 title: "Branch space centers on the home planet, linked into the network"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B (M5)"
 depends: [235, 234]
 phase: 7
 created: 2026-10-19
@@ -22,6 +22,8 @@ The player founds additional space centers (branches) anywhere suitable on the h
 The Space Center switches between sites. The Launch screen can pick a pad at any site. The status bar names the current site.
 
 ## Context
+
+- **ADR:** [0229](../decisions/0229-branch-space-centers.md).
 
 - Owner idea, from earlier and repeated on 2026-10-19: agencies open branch space centers and connect them into a network. See ADR 0222 point 4.
 - Existing pieces:
@@ -84,3 +86,14 @@ The Space Center switches between sites. The Launch screen can pick a pad at any
 ## Log
 
 - 2026-10-19 — Created from the owner's idea (ADR 0222).
+- 2026-10-20 — Worker B (M5) claimed it after 234 and 235 merged. ADR 0229 written first. Choices the plan leaves open:
+  - `kind` keeps the saved names: `space-center` is the HQ and `base` off-world; only `branch` is new, so old saves need no migration.
+  - The founding cost and time are the `branch-hq` building's level 1 (data), not constants.
+  - A branch is a ground station only with a working comms building; the HQ and bases keep tier 1.
+  - A new zone shapes the ground only on load (ADR 0177), so the web saves and reloads right after founding.
+  - Launch uses the site placement with an `at` spot, so the fuel and the charge are the branch's.
+  - The 3D view stays the HQ's; at a branch a building goes to the first free cell, as at a base.
+  - Turning on the `instant-construction` cheat also finishes work in progress (the e2e's "finish construction").
+  - The world layout now sends Settings' Debug mode on every in-world page; before, only Flight did.
+  - A sea spot is refused in the picker; the sim checks the zone rules only.
+

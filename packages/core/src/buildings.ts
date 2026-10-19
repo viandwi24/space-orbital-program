@@ -200,12 +200,33 @@ export interface PlacementSite {
 	flatRadius: number;
 	buildings: readonly PlacedBuilding[];
 	roads: readonly Cell[];
+	/** A branch builds nothing until its HQ is done (plan 236, ADR 0229 point 3); absent = not a branch. */
+	branch?: boolean;
 }
+
+/** The capability of a branch HQ (plan 236, ADR 0229): founding a branch places it; the player cannot. */
+export const BRANCH_HQ = 'branch-hq';
+
+/** The branch HQ kind of a registry: the first building that provides `branch-hq`. */
+export const branchHqOf = (registry: { list(): readonly BuildingDefinition[] }) =>
+	registry.list().find((b) => b.provides.includes(BRANCH_HQ));
+
+/** The site's HQ is built (a branch's work may start). */
+export const hqReady = (
+	buildings: readonly PlacedBuilding[],
+	registry: { get(id: string): BuildingDefinition | undefined }
+): boolean =>
+	buildings.some(
+		(b) =>
+			(b.state === 'active' || b.state === 'upgrading') &&
+			(registry.get(b.kind)?.provides.includes(BRANCH_HQ) ?? false)
+	);
 
 export type PlaceReason =
 	| { code: 'unknown-kind'; message: string }
 	| { code: 'body'; message: string }
 	| { code: 'placement'; message: string }
+	| { code: 'hq'; message: string }
 	| { code: 'outside-zone'; message: string }
 	| { code: 'overlap'; message: string; with: string }
 	| { code: 'hazard'; message: string; with: string }
@@ -291,6 +312,11 @@ export function canPlace(
 		reasons.push({ code: 'placement', message: `${def.label} is built on the home planet only` });
 	} else if (def.placement === 'off-world' && home) {
 		reasons.push({ code: 'placement', message: `${def.label} is built on other bodies only` });
+	}
+	if (def.provides.includes(BRANCH_HQ)) {
+		reasons.push({ code: 'hq', message: `${def.label} comes with a new branch` });
+	} else if (site.branch && !hqReady(site.buildings, registry)) {
+		reasons.push({ code: 'hq', message: 'The branch HQ is still under construction' });
 	}
 	const cells = footprint(def.size, cell, rotation);
 	const inZone = (c: Cell): boolean => {

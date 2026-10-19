@@ -4,6 +4,7 @@
  * `place-building` stays the judge.
  */
 import {
+	BRANCH_HQ,
 	buildingCategoryOf,
 	scopeOf,
 	sortCategories,
@@ -52,6 +53,8 @@ export interface BuildContext {
 	funds?: number;
 	/** A body's name for the reasons. */
 	bodyName?: (id: string) => string;
+	/** The site is a branch whose HQ is not built yet (plan 236, ADR 0229 point 3). */
+	hqPending?: boolean;
 }
 
 const number = (n: number): string => Math.round(n).toLocaleString('en-US');
@@ -64,10 +67,12 @@ export function cardFacts(c: Pick<BuildCard, 'cost' | 'size' | 'days' | 'levels'
 
 /** The first thing that stops this building here (ADR 0227 point 4), or null. */
 export function buildReason(def: BuildingDefinition, ctx: BuildContext): string | null {
+	if (def.provides.includes(BRANCH_HQ)) return 'Comes with a new branch';
 	if (def.placement === 'home' && !ctx.home) return 'Only at the home Space Center';
 	if (def.placement === 'off-world' && ctx.home) return 'Only at an off-world base';
 	if (def.bodies && !def.bodies.includes(ctx.body))
 		return `Cannot be built on ${ctx.bodyName?.(ctx.body) ?? ctx.body}`;
+	if (ctx.hqPending) return 'The branch HQ is still under construction';
 	const cost = def.levels[0]?.cost ?? 0;
 	if (ctx.funds !== undefined && cost > ctx.funds)
 		return `Needs ${number(cost)} funds, ${number(Math.max(0, ctx.funds))} available`;

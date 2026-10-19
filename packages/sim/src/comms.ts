@@ -173,13 +173,16 @@ export function stationsOf(core: SimCore): Station[] {
 	if (core.comms.stations) return core.comms.stations;
 	const out: Station[] = [];
 	for (const site of sitesOf(core.info)) {
-		let tier = 1;
+		// a branch is a ground station only with a working comms building (plan 236, ADR 0229 point 4)
+		const branch = site.kind === 'branch';
+		let tier = branch ? 0 : 1;
 		for (const b of site.buildings ?? []) {
 			// an upgrading dish works at its level (plan 096, ADR 0123 point 2)
 			if (b.state !== 'active' && b.state !== 'upgrading') continue;
 			const level = core.registries.buildings.get(b.kind)?.levels[b.level];
 			tier = Math.max(tier, level?.capacity[COMMS_NODE] ?? 0);
 		}
+		if (tier <= 0) continue;
 		const index = Math.min(tier, SITE_STATION_RANGES.length) - 1;
 		const range = SITE_STATION_RANGES[index]!;
 		const s = station(

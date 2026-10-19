@@ -59,6 +59,8 @@
 	import CommsPlanningPanel from '../../../lib/comms-planning/CommsPlanningPanel.svelte';
 	import type { Antenna } from '../../../lib/comms-planning/planning-model';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
+	import { siteRows } from '../../../lib/space-center/branch-model';
+	import { sitesOf, type Site } from '@orbital/core';
 
 	let canvas: HTMLCanvasElement;
 	let mc: MissionCenter | null = null;
@@ -70,6 +72,9 @@
 	let snapshot = $state.raw<Snapshot | null>(null);
 	let warp = $state(1);
 	let worldName = $state('Mission Center');
+	/** The world's sites (plan 236, ADR 0229): the HQ, branches and bases, with their ground stations. */
+	let worldSites = $state.raw<readonly Site[]>([]);
+	const sites = $derived(siteRows(worldSites, snapshot?.network?.stations, bodyLabel));
 	let focus = $state<number | null>(null);
 	let filter = $state<TrackFilter>('all');
 	let selected = $state<string | null>(null);
@@ -309,6 +314,9 @@
 			const worlds = await saves.worldsService();
 			worldName = (await worlds.get(worldId))?.name ?? 'Legacy world';
 			const client = await bootWorld(worldSession, worldId);
+			worldSites = sitesOf(
+				worldSession.base?.sim.worldInfo ?? (await worlds.startInfo(worldId)) ?? { sites: [] }
+			);
 			if (gone) return;
 			// the vessel last flown in this world, or the boot save's (the map's active vessel)
 			focus = worldSession.focus?.vessel ?? worldSession.base?.focus ?? null;
@@ -390,6 +398,7 @@
 		onlayers={setLayers}
 		{labels}
 		{network}
+		{sites}
 		{note}
 		{planningOpen}
 		onplanning={snapshot?.network ? () => (planningOpen = !planningOpen) : undefined}

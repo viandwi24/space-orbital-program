@@ -30,7 +30,8 @@
 		sites = [],
 		siteId = null,
 		onsite = () => {},
-		flows = []
+		flows = [],
+		onfoundbranch
 	}: {
 		rows: readonly BuildingRow[];
 		/** CSS pixel of each building's label, or null when off screen. */
@@ -58,6 +59,8 @@
 		onsite?: (id: string) => void;
 		/** The Flows panel of the chosen site (ADR 0125 point 7). */
 		flows?: readonly string[];
+		/** Open the branch picker (plan 236, ADR 0229). */
+		onfoundbranch?: () => void;
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -96,18 +99,23 @@
 
 	<!-- the right column (SpaceCenterV2: right 24, top 80, 320 wide): the selected building first -->
 	<aside class="side">
-		{#if sites.length > 1}
-			<label class="site-pick"
-				><span class="u">Site</span>
-				<select
-					data-testid="sc-site"
-					value={siteId ?? sites[0]?.id}
-					onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
+		<div class="sites">
+			{#if sites.length > 1}
+				<label class="site-pick"
+					><span class="u">Site</span>
+					<select
+						data-testid="sc-site"
+						value={siteId ?? sites[0]?.id}
+						onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
+					>
+						{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+					</select></label
 				>
-					{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
-				</select></label
-			>
-		{/if}
+			{/if}
+			{#if onfoundbranch}
+				<Button onclick={onfoundbranch} data-testid="sc-found-branch">Found a branch</Button>
+			{/if}
+		</div>
 		{#if current}
 			<section class="detail" data-testid="sc-detail" aria-label="{current.label} details">
 				<Panel title={current.label}>
@@ -218,6 +226,13 @@
 </div>
 
 <style>
+	.sites {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		pointer-events: auto;
+	}
 	.site-pick {
 		display: flex;
 		align-items: center;

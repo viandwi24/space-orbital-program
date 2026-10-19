@@ -650,6 +650,11 @@ export type VesselPlacement =
 			site: string;
 			/** Index into the site's pads; default 0. */
 			pad?: number;
+			/**
+			 * A spot of the site instead of a pad, m east and north of its centre: a pad or runway
+			 * building's centre from the Launch screen (plan 236, ADR 0229 point 6).
+			 */
+			at?: { east: number; north: number };
 	  };
 
 /**
@@ -870,6 +875,17 @@ export type Command =
 			latitude: number;
 			longitude: number;
 			body?: string;
+	  }
+	/**
+	 * Found a branch space center on the home planet (plan 236, ADR 0229): the site rules of
+	 * `found-site`, the branch HQ's cost, and the HQ built over its build days.
+	 */
+	| {
+			type: 'found-branch';
+			id: string;
+			name: string;
+			latitude: number;
+			longitude: number;
 	  }
 	/**
 	 * Start the objectives of a contract or mission (plan 098, ADR 0175), optionally bound to one

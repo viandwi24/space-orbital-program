@@ -701,6 +701,10 @@ Where a building may go is `canPlace(site, registries.buildings, kind, cell, rot
 **Levels, construction and upkeep (API 0.1.58, plan 096, ADR 0123).** In a world with the economy on (Career), `place-building` pays level 1's `cost` and the building is `building` until its `readyDay` (`buildDays` world-tick days later); `upgrade-building { site, id }` pays the next level's cost and the building stays `upgrading` at its old level until done. A building under construction provides nothing; an upgrading one works at its current level. Each level's `upkeep` is charged every 30 days (cause `economy.upkeep`, the building id as `ref`). In Sandbox and the Legacy world all of this is free and immediate. `capacity` keys are the ones core lists in `CAPACITY` (`hangar` parts, `launch-pad` t, `runway` m, `crew`, `mission-control`, `comms-node`, `lab`, `admin`, `storage`, `production`); a site's value is the highest over its working buildings (`siteCapacity`), and a site with no building providing a key has no limit for it. `capacityUpgrade(registries.buildings, key, need)` names the cheapest level that meets a need ("Hangar level 2: 120 parts"). A level raises capacity only: no key may gate a flight tool (`FLIGHT_TOOLS`). The `building:ready` event fires when work is done.
 
 
+### Branch HQ (API 0.1.86, plan 236, ADR 0229)
+
+A building that provides `branch-hq` is what founding a branch builds: its level 1 `cost` and `buildDays` are the founding cost and time, and the player cannot place it. Stock's is `stock.branch-hq`; a mod may replace it with a patch or register its own (the first one registered is used). Until it is built, a branch takes no other building.
+
 ### Build menu categories (API 0.1.84, plan 235, ADR 0227)
 
 A building names its build-menu row with `category` (a category id) and may carry a one-line `description` for its card. The rows are categories of the same registry as the Hangar's, with `scope: 'buildings'`; stock has `stock.launch`, `stock.comms`, `stock.science`, `stock.crew`, `stock.administration`, `stock.production`, `stock.infrastructure` and `stock.other-buildings` (Other, last). A mod adds its own row:
