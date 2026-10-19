@@ -94,6 +94,8 @@ export const BuildingBaseHub = defineBuilding({
 	levels: levels({ storage: [5_000, 15_000, 40_000] }, [40_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['storage'],
 	placement: 'off-world',
+	category: 'stock.infrastructure',
+	description: 'The centre of an off-world base; its storage takes the first ice.',
 	visual: gen('office')
 });
 export const BuildingIsruPlant = defineBuilding({
@@ -105,6 +107,8 @@ export const BuildingIsruPlant = defineBuilding({
 	provides: ['production'],
 	placement: 'off-world',
 	hazardRadius: 30,
+	category: 'stock.production',
+	description: 'Turns local resources into propellant.',
 	visual: gen('tanks')
 });
 export const BuildingStorageModule = defineBuilding({
@@ -115,6 +119,8 @@ export const BuildingStorageModule = defineBuilding({
 	levels: levels({ storage: [20_000, 50_000, 120_000] }, [25_000, 60_000, 140_000], [4, 10, 18]),
 	provides: ['storage'],
 	placement: 'off-world',
+	category: 'stock.production',
+	description: 'Stores what an off-world base produces.',
 	visual: gen('tanks')
 });
 

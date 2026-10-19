@@ -35,3 +35,4 @@ export * from './effects/shards.ts';
 export * from './terrain-zones.ts';
 export type { SiteBuildingView } from './site-list.ts';
 export { SITE_RIG_LIMITS } from './scene.ts';
+export * from './building-thumbnail.ts';

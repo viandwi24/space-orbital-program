@@ -45,7 +45,21 @@ export interface CategoryDefinition {
 	/** Rail position, ascending; ties keep registration order. Stock uses 100 to 800, Other 10 000. */
 	order: number;
 	description?: string;
+	/**
+	 * What the category groups (plan 235, ADR 0227): the Hangar's parts (absent) or the Space
+	 * Center's buildings, whose build menu lists the `buildings` scope only.
+	 */
+	scope?: CategoryScope;
 }
+
+export const CATEGORY_SCOPES = ['parts', 'buildings'] as const;
+export type CategoryScope = (typeof CATEGORY_SCOPES)[number];
+
+/** Where a building without a registered buildings-scope category lands (ADR 0227 point 2). */
+export const FALLBACK_BUILDING_CATEGORY = 'stock.other-buildings';
+
+/** A category's scope, `parts` when it names none. */
+export const scopeOf = (c: Pick<CategoryDefinition, 'scope'>): CategoryScope => c.scope ?? 'parts';
 
 /** Path commands, numbers, separators: nothing that could leave the path attribute. */
 const PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]+$/;
@@ -66,7 +80,8 @@ export const categoryDefinitionSchema = z.object({
 	label: z.string().min(1),
 	icon: categoryIconSchema,
 	order: z.number().finite(),
-	description: z.string().optional()
+	description: z.string().optional(),
+	scope: z.enum(CATEGORY_SCOPES).optional()
 });
 
 /** What a part's `catalog.category` or a module's `category` may say: a short name or a category id. */
@@ -85,4 +100,18 @@ export function sortCategories<T extends Pick<CategoryDefinition, 'order'>>(
 		.map((c, i) => [c, i] as const)
 		.sort((a, b) => a[0].order - b[0].order || a[1] - b[1])
 		.map(([c]) => c);
+}
+
+/**
+ * A building's build-menu category (ADR 0227 point 2): its own id when that is a registered
+ * buildings-scope category, else Other.
+ */
+export function buildingCategoryOf(
+	category: string | undefined,
+	registered: readonly Pick<CategoryDefinition, 'id' | 'scope'>[]
+): string {
+	return category !== undefined &&
+		registered.some((c) => c.id === category && scopeOf(c) === 'buildings')
+		? category
+		: FALLBACK_BUILDING_CATEGORY;
 }

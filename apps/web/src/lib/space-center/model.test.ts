@@ -23,6 +23,7 @@ import {
 	steadyLabels
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
+import { buildMenu } from './build-menu';
 
 const { registries } = loadPlugins([Stock]);
 const reg = registries.buildings;
@@ -33,7 +34,7 @@ const props = (over: Record<string, unknown> = {}) => ({
 	labels: {},
 	selected: null,
 	onselect: () => {},
-	buildKinds: reg.list().map((b) => ({ id: b.id, label: b.label })),
+	menu: buildMenu(reg.list(), registries.categories.list(), { home: true, body: 'stock.home' }),
 	build: null,
 	onbuild: () => {},
 	onrotate: () => {},

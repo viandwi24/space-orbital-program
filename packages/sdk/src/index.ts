@@ -62,7 +62,15 @@ export {
 	type LevelARow
 } from '@orbital/kepler';
 export { poleQuaternion } from '@orbital/core';
-export { categoryIdOf, sortCategories, STOCK_CATEGORY_NAMES } from '@orbital/core';
+export {
+	buildingCategoryOf,
+	categoryIdOf,
+	CATEGORY_SCOPES,
+	FALLBACK_BUILDING_CATEGORY,
+	scopeOf,
+	sortCategories,
+	STOCK_CATEGORY_NAMES
+} from '@orbital/core';
 export { homeBodyOf, positionFromStar, subSolarLatitude } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
 export { actionArgumentProblem, customGroupId, groupState, MAX_CUSTOM_GROUPS } from '@orbital/core';
@@ -261,6 +269,7 @@ export type {
 	ScrubberInfo,
 	CategoryDefinition,
 	CategoryIcon,
+	CategoryScope,
 	ContractDefinition,
 	ContractBlueprint,
 	ContractBodyView,

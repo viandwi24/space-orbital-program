@@ -81,7 +81,7 @@ import {
 import { STOCK_BUILDINGS } from './buildings.ts';
 import { ModuleDataStorage, STOCK_DATA_KINDS } from './data.ts';
 import { STOCK_SITE_TEMPLATES } from './site-templates.ts';
-import { STOCK_CATEGORIES } from './categories.ts';
+import { STOCK_BUILDING_CATEGORIES, STOCK_CATEGORIES } from './categories.ts';
 import { STOCK_ACHIEVEMENTS } from './achievements.ts';
 import { STOCK_FAILURE_MODES } from './reliability.ts';
 import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
@@ -151,7 +151,8 @@ export const Stock = definePlugin({
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);
 		for (const template of STOCK_SITE_TEMPLATES) ctx.siteTemplates.register(template);
-		for (const category of STOCK_CATEGORIES) ctx.categories.register(category);
+		for (const category of [...STOCK_CATEGORIES, ...STOCK_BUILDING_CATEGORIES])
+			ctx.categories.register(category);
 		for (const achievement of STOCK_ACHIEVEMENTS) ctx.achievements.register(achievement);
 		for (const mode of STOCK_FAILURE_MODES) ctx.failureModes.register(mode);
 		for (const trait of STOCK_CREW_TRAITS) ctx.crewTraits.register(trait);

@@ -8,6 +8,8 @@
 	 */
 	import Button from '../ui/Button.svelte';
 	import ListRow from '../ui/ListRow.svelte';
+	import BuildMenu from './BuildMenu.svelte';
+	import type { BuildCard, BuildCategory } from './build-menu';
 	import Panel from '../ui/Panel.svelte';
 	import { moveSelection, type BuildingRow, type MarketRow } from './model';
 
@@ -16,7 +18,8 @@
 		labels,
 		selected,
 		onselect,
-		buildKinds,
+		menu,
+		thumbnail,
 		build,
 		onbuild,
 		onrotate,
@@ -34,7 +37,10 @@
 		labels: Readonly<Record<string, { x: number; y: number } | null>>;
 		selected: string | null;
 		onselect: (id: string | null) => void;
-		buildKinds: readonly { id: string; label: string }[];
+		/** The build menu's categories and cards (plan 235). */
+		menu: readonly BuildCategory[];
+		/** A card's thumbnail (plan 235): a data URL once drawn, or null without a picture. */
+		thumbnail?: (card: BuildCard) => Promise<string> | null;
 		/** Build mode: the kind being placed and what the ghost under the pointer is told. */
 		build: { kind: string; label: string; valid: boolean; reasons: readonly string[] } | null;
 		onbuild: (kind: string | null) => void;
@@ -192,7 +198,7 @@
 		{/if}
 	</aside>
 
-	<div class="dock" role="toolbar" aria-label="Build">
+	<div class="dock">
 		{#if build}
 			<div class="ghost-info" data-testid="sc-ghost" class:invalid={!build.valid}>
 				<strong>{build.label}</strong>
@@ -206,9 +212,7 @@
 			<Button variant="ghost" onclick={() => onbuild(null)} data-testid="sc-build-stop">Done</Button
 			>
 		{:else}
-			{#each buildKinds as k (k.id)}
-				<Button onclick={() => onbuild(k.id)} data-testid="sc-build-{k.id}">{k.label}</Button>
-			{/each}
+			<BuildMenu {menu} {thumbnail} onpick={(kind) => onbuild(kind)} />
 		{/if}
 	</div>
 </div>

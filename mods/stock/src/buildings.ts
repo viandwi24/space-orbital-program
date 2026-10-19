@@ -35,6 +35,8 @@ export const BuildingHangar = defineBuilding({
 	levels: levels({ hangar: [30, 120, 255] }, [40_000, 90_000, 250_000], [10, 20, 30]),
 	provides: ['hangar'],
 	placement: 'home',
+	category: 'stock.infrastructure',
+	description: 'Builds and stores vessel designs; its level sets the part count.',
 	visual: gen('hangar')
 });
 
@@ -48,6 +50,8 @@ const pad = (id: string, label: string, n: number, hazard: number, mass: Three, 
 		provides: ['launch-pad'],
 		placement: 'home',
 		hazardRadius: hazard,
+		category: 'stock.launch',
+		description: 'A vertical launch pad; its level sets the heaviest vessel it takes.',
 		visual: gen('launch-pad')
 	});
 export const BuildingLaunchpadS = pad(
@@ -84,6 +88,8 @@ export const BuildingRunway = defineBuilding({
 	provides: ['runway'],
 	placement: 'home',
 	hazardRadius: 30,
+	category: 'stock.launch',
+	description: 'A runway for horizontal take-off and landing; its level sets its length.',
 	visual: gen('runway')
 });
 
@@ -95,6 +101,8 @@ export const BuildingMissionCenter = defineBuilding({
 	levels: levels({ 'mission-control': [3, 6, 12] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['mission-control'],
 	placement: 'home',
+	category: 'stock.administration',
+	description: 'Tracks vessels and runs missions; its level sets how many at once.',
 	visual: gen('control')
 });
 export const BuildingAstronautComplex = defineBuilding({
@@ -105,6 +113,8 @@ export const BuildingAstronautComplex = defineBuilding({
 	levels: levels({ crew: [5, 12, 30] }, [30_000, 80_000, 180_000], [6, 12, 20]),
 	provides: ['crew'],
 	placement: 'home',
+	category: 'stock.crew',
+	description: 'Hires and trains astronauts; its level sets the roster size.',
 	visual: gen('office')
 });
 export const BuildingResearch = defineBuilding({
@@ -115,6 +125,8 @@ export const BuildingResearch = defineBuilding({
 	levels: levels({ lab: [1, 2, 3] }, [50_000, 120_000, 250_000], [8, 16, 28]),
 	provides: ['lab'],
 	placement: 'home',
+	category: 'stock.science',
+	description: 'Researches the tech tree and analyses science.',
 	visual: gen('office')
 });
 export const BuildingAdministration = defineBuilding({
@@ -125,6 +137,8 @@ export const BuildingAdministration = defineBuilding({
 	levels: levels({ admin: [1, 3, 5] }, [30_000, 90_000, 200_000], [6, 14, 24]),
 	provides: ['admin'],
 	placement: 'home',
+	category: 'stock.administration',
+	description: 'Contracts and strategies; its level sets their slots.',
 	visual: gen('office')
 });
 export const BuildingTrackingDish = defineBuilding({
@@ -135,6 +149,8 @@ export const BuildingTrackingDish = defineBuilding({
 	levels: levels({ 'comms-node': [1, 2, 3] }, [20_000, 60_000, 150_000], [2, 6, 12], 20),
 	provides: ['comms-node'],
 	placement: 'home',
+	category: 'stock.comms',
+	description: 'A ground station for the comms network; its level sets range and rate.',
 	visual: gen('dish')
 });
 export const BuildingPropellantPlant = defineBuilding({
@@ -151,6 +167,8 @@ export const BuildingPropellantPlant = defineBuilding({
 	provides: ['production', 'storage'],
 	placement: 'home',
 	hazardRadius: 30,
+	category: 'stock.production',
+	description: 'Makes and stores propellant at the site.',
 	visual: gen('tanks')
 });
 export const BuildingTestStand = defineBuilding({
@@ -162,6 +180,8 @@ export const BuildingTestStand = defineBuilding({
 	provides: ['test-stand'],
 	placement: 'home',
 	hazardRadius: 40,
+	category: 'stock.science',
+	description: 'Fires engines and tests parts on the ground.',
 	visual: gen('tanks')
 });
 

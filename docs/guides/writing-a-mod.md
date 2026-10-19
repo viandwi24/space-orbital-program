@@ -694,6 +694,19 @@ Where a building may go is `canPlace(site, registries.buildings, kind, cell, rot
 
 **Levels, construction and upkeep (API 0.1.58, plan 096, ADR 0123).** In a world with the economy on (Career), `place-building` pays level 1's `cost` and the building is `building` until its `readyDay` (`buildDays` world-tick days later); `upgrade-building { site, id }` pays the next level's cost and the building stays `upgrading` at its old level until done. A building under construction provides nothing; an upgrading one works at its current level. Each level's `upkeep` is charged every 30 days (cause `economy.upkeep`, the building id as `ref`). In Sandbox and the Legacy world all of this is free and immediate. `capacity` keys are the ones core lists in `CAPACITY` (`hangar` parts, `launch-pad` t, `runway` m, `crew`, `mission-control`, `comms-node`, `lab`, `admin`, `storage`, `production`); a site's value is the highest over its working buildings (`siteCapacity`), and a site with no building providing a key has no limit for it. `capacityUpgrade(registries.buildings, key, need)` names the cheapest level that meets a need ("Hangar level 2: 120 parts"). A level raises capacity only: no key may gate a flight tool (`FLIGHT_TOOLS`). The `building:ready` event fires when work is done.
 
+
+### Build menu categories (API 0.1.84, plan 235, ADR 0227)
+
+A building names its build-menu row with `category` (a category id) and may carry a one-line `description` for its card. The rows are categories of the same registry as the Hangar's, with `scope: 'buildings'`; stock has `stock.launch`, `stock.comms`, `stock.science`, `stock.crew`, `stock.administration`, `stock.production`, `stock.infrastructure` and `stock.other-buildings` (Other, last). A mod adds its own row:
+
+```ts
+ctx.categories.register(
+	defineCategory({ id: 'mymod.power', label: 'Power', icon: { path: 'M13 2 L4 14 H11 L10 22 L20 9 H13 Z' }, order: 650, scope: 'buildings' })
+);
+ctx.buildings.register(defineBuilding({ /* ... */ category: 'mymod.power', description: 'Solar power for the site.' }));
+```
+
+A building without `category`, or with an id that is not a registered buildings-scope category, lands in Other. The card's picture is drawn from the building's `visual` generator; an asset visual shows the row's icon.
 ## Saves (API 0.1.12, ADR 0050)
 
 A flight is saved as plain JSON: the world (every module's `state`) plus the sim's clock and bodies. So a module's `state` must be plain, JSON-compatible data (numbers that are finite, strings, booleans, arrays, plain objects; no `undefined` meaning something, no `Map`/`Set`/typed arrays, no functions), and anything a module needs between steps belongs in `state`, never in a closure or a module-level variable: it would be lost on load. A save lists the plugins that were loaded; loading refuses it when a plugin is missing (or a part or module id it uses is gone) and says which. Keep ids stable across releases, and when a new version changes the shape of a module's `state`, read the old shape in `update`/`snapshot` defensively or ask for a save-format migration (an ADR and a bump of `SIM_SAVE_VERSION`).

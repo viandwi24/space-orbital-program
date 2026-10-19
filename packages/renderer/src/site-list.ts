@@ -41,7 +41,7 @@ const STEEL = lin(0xc9ccce);
 const WHITE = lin(0xe9e9e4);
 
 /** One building, at the origin, unturned: w east-west and d north-south in metres. */
-function generate(generator: string, w: number, d: number, p: SiteParts): void {
+export function generate(generator: string, w: number, d: number, p: SiteParts): void {
 	const spec = (kind: BoxSpec['kind'], h: number): BoxSpec => ({ x: 0, z: 0, w, d, h, kind });
 	switch (generator) {
 		case 'hangar':
@@ -87,7 +87,7 @@ function generate(generator: string, w: number, d: number, p: SiteParts): void {
 	}
 }
 
-const BUCKETS = [
+export const BUCKETS = [
 	'structure',
 	'painted',
 	'siding',

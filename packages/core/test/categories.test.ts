@@ -1,8 +1,12 @@
 /** Catalogue categories as a registry (plan 069, ADR 0146). */
 import { describe, expect, test } from 'bun:test';
 import {
+	buildingCategoryOf,
+	buildingDefinitionSchema,
 	CATEGORY_ICON_PATH_MAX,
 	categoryDefinitionSchema,
+	FALLBACK_BUILDING_CATEGORY,
+	scopeOf,
 	categoryIdOf,
 	loadPlugins,
 	moduleInfoSchema,
@@ -124,5 +128,53 @@ describe('the categories registry', () => {
 		const { registries, report } = loadPlugins([owner, patcher]);
 		expect(registries.categories.get('stock.command')?.order).toBe(100);
 		expect(report.patches[0]!.disabled).toBeDefined();
+	});
+});
+
+describe('building categories (plan 235, ADR 0227)', () => {
+	const cat = (id: string, scope?: 'parts' | 'buildings') => ({
+		id,
+		label: id,
+		icon: 'part',
+		order: 1,
+		...(scope ? { scope } : {})
+	});
+
+	test('a category may name the buildings scope; anything else is refused', () => {
+		expect(categoryDefinitionSchema.safeParse(cat('stock.comms', 'buildings')).success).toBe(true);
+		expect(
+			categoryDefinitionSchema.safeParse({ ...cat('stock.comms'), scope: 'roads' }).success
+		).toBe(false);
+		expect(scopeOf(cat('stock.command'))).toBe('parts');
+		expect(scopeOf(cat('stock.comms', 'buildings'))).toBe('buildings');
+	});
+
+	test('a building names a buildings-scope category; a part category or an unknown id is Other', () => {
+		const list = [cat('stock.comms', 'buildings'), cat('stock.command')];
+		expect(buildingCategoryOf('stock.comms', list)).toBe('stock.comms');
+		expect(buildingCategoryOf('stock.command', list)).toBe(FALLBACK_BUILDING_CATEGORY);
+		expect(buildingCategoryOf('mymod.none', list)).toBe(FALLBACK_BUILDING_CATEGORY);
+		expect(buildingCategoryOf(undefined, list)).toBe(FALLBACK_BUILDING_CATEGORY);
+	});
+
+	test('the building schema takes an optional category id and description', () => {
+		const base = {
+			id: 'mymod.solar-farm',
+			label: 'Solar farm',
+			size: { w: 2, d: 2 },
+			entrances: [{ i: 1, j: 0, side: 'south' }],
+			levels: [{ cost: 1, buildDays: 1, upkeep: 0, power: -50, capacity: {} }],
+			provides: [],
+			visual: { kind: 'generator', generator: 'tanks' }
+		};
+		expect(buildingDefinitionSchema.safeParse(base).success).toBe(true);
+		expect(
+			buildingDefinitionSchema.safeParse({
+				...base,
+				category: 'mymod.power',
+				description: 'Power.'
+			}).success
+		).toBe(true);
+		expect(buildingDefinitionSchema.safeParse({ ...base, category: 'Power' }).success).toBe(false);
 	});
 });

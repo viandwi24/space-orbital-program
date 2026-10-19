@@ -52,6 +52,10 @@ export interface BuildingDefinition {
 	/** Metres from the footprint centre that no other building may enter. */
 	hazardRadius?: number;
 	visual: { kind: 'generator'; generator: string } | { kind: 'asset'; path: string };
+	/** The build menu's category, a buildings-scope category id (plan 235, ADR 0227); absent = Other. */
+	category?: string;
+	/** One line for the build menu's card details. */
+	description?: string;
 }
 
 const nonNegative = z.number().nonnegative();
@@ -78,6 +82,8 @@ export const buildingDefinitionSchema = z
 		bodies: z.array(z.string().min(1)).optional(),
 		placement: z.enum(['home', 'off-world']).optional(),
 		hazardRadius: z.number().positive().optional(),
+		category: definitionIdSchema.optional(),
+		description: z.string().optional(),
 		visual: z.discriminatedUnion('kind', [
 			z.object({ kind: z.literal('generator'), generator: z.string().min(1) }),
 			z.object({ kind: z.literal('asset'), path: z.string().min(1) })

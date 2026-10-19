@@ -245,6 +245,10 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 `VesselDesign.crew` (`{ member, part }[]`, optional) is the Hangar's seating; the Launch screen starts from it and the sim ignores it. The design's custom `groups` are edited in the Hangar, and the editor drops members and seats on parts it no longer holds.
 
+## Building categories and the build menu (API 0.1.84, plan 235, ADR 0227)
+
+`CategoryDefinition.scope` (`'parts'` when absent, or `'buildings'`) splits the one category registry between the Hangar's rail and the Space Center's build menu. `BuildingDefinition.category` names a buildings-scope category and `description` gives its card a line; `buildingCategoryOf` sends anything else to `stock.other-buildings`. The renderer's `createBuildingThumbnails()` draws a building generator once per session into a 256 × 160 picture (one offscreen renderer, released when its queue is empty).
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

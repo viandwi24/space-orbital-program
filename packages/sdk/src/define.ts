@@ -365,6 +365,8 @@ export const defineDossierEntry = (def: DossierEntryDefinition): DossierEntryDef
  * A group of the editor's part catalogue (plan 069, ADR 0146): id, label, an icon (a name from the
  * game's icon set, or `{ path }` SVG path data on the 24 x 24 grid) and an order (stock uses 100 to
  * 800, Other 10 000). Register with `ctx.categories`; a part joins it with `catalog.category`.
+ * With `scope: 'buildings'` it is a group of the Space Center's build menu instead (plan 235, ADR
+ * 0227), and a building joins it with `category`.
  */
 export const defineCategory = (def: CategoryDefinition): CategoryDefinition => def;
 

@@ -19,8 +19,10 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	const rows = page.locator('[data-testid^="sc-row-"]');
 	await expect(rows).toHaveCount(4, { timeout: 60_000 });
 
-	// build mode: walk the pointer over the canvas until the ghost may be placed, then click
+	// the build menu (plan 235): Comms, then the dish's card
+	await page.getByTestId('sc-cat-stock.comms').click();
 	await page.getByTestId('sc-build-stock.tracking-dish').click();
+	// build mode: walk the pointer over the canvas until the ghost may be placed, then click
 	const canvas = page.getByTestId('sc-canvas');
 	const box = (await canvas.boundingBox())!;
 	let placed = false;

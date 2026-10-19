@@ -8,6 +8,7 @@ import {
 	categoryIdOf,
 	describeModule,
 	FALLBACK_CATEGORY,
+	scopeOf,
 	sortCategories,
 	type CategoryDefinition,
 	type CategoryIcon,
@@ -25,9 +26,16 @@ export interface Category {
 	icon: CategoryIcon;
 }
 
-/** The rail's categories in display order (`order` ascending, ties in registration order). */
+/**
+ * The rail's categories in display order (`order` ascending, ties in registration order); the
+ * build menu's (`scope: 'buildings'`, plan 235) are not part categories.
+ */
 export function categoriesOf(list: readonly CategoryDefinition[]): Category[] {
-	return sortCategories(list).map(({ id, label, icon }) => ({ id, label, icon }));
+	return sortCategories(list.filter((c) => scopeOf(c) === 'parts')).map(({ id, label, icon }) => ({
+		id,
+		label,
+		icon
+	}));
 }
 
 /** The registry `categoryOf` reads module descriptors through. */

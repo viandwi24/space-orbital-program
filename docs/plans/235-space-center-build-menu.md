@@ -1,8 +1,8 @@
 ---
 id: 235
 title: "Space Center build menu: categories along the bottom, cards with building thumbnails"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B (M5)"
 depends: [233]
 phase: 7
 created: 2026-10-19
@@ -16,6 +16,8 @@ updated: 2026-10-19
 Building at the Space Center feels like a city builder. A category bar runs along the bottom: Launch, Comms, Science, Crew, Administration, Production, Infrastructure, plus mod categories. Each category opens a row of cards. A card shows a rendered thumbnail of the building with its name, cost, size, build time and level range, and the requirements it still lacks. Hovering a card shows the full details. Choosing a card starts the placement preview.
 
 ## Context
+
+- **ADR:** [0227](../decisions/0227-building-categories-and-build-menu.md) (categories by scope in the one registry, the cards, the thumbnail pass).
 
 - **Owner request, 2026-10-19:** "the Space Center building menu is ugly; in Cities: Skylines there are categories at the bottom, e.g. comms with the dishes, with an icon or picture of each building". See ADR 0222 point 2.
 - **Code:**
@@ -72,3 +74,5 @@ Building at the Space Center feels like a city builder. A category bar runs alon
 ## Log
 
 - 2026-10-19 — Created from the owner's manual test (ADR 0222).
+- 2026-10-20 — Worker B (M5) claimed it (queue 233 → 235 → 236). ADR 0227 written before the code: building categories are the category registry's `scope: 'buildings'`, so mods add them through `ctx.categories` with no new registrar; `BuildingDefinition.category` and `description` are additive (API 0.1.84). Plan 234 is with Worker C: the e2e opens Comms and places the tracking dish; the deep-space dish joins Comms by naming `stock.comms`.
+- 2026-10-20 — Off-world kinds now show at home as disabled cards ("Only at an off-world base") instead of being left out, so the reason is visible; buildable cards come first in a row.

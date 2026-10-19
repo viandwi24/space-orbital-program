@@ -17,6 +17,9 @@
 	import { BUILTIN_PLUGINS, STOCK_CHOICE } from '../../../lib/builtins';
 	import { onMount } from 'svelte';
 	import { pageShell } from '../../../lib/layout/page-actions.svelte';
+	import { buildMenu, type BuildCard } from '../../../lib/space-center/build-menu';
+	import { buildingThumbnails } from '../../../lib/space-center/thumbnails';
+	import { bodyLabel } from '../../../lib/hud-model';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -38,7 +41,6 @@
 		upkeepWarning,
 		flowRows,
 		firstFreeCell,
-		kindsFor,
 		marketRows,
 		productionNote,
 		type GhostCheck,
@@ -94,9 +96,17 @@
 	const allSites = $derived(sitesOf(world ?? { sites: [] }));
 	const siteInfo = $derived(allSites.find((s) => s.id === siteId) ?? allSites[0]!);
 	const homeSelected = $derived(siteInfo.body === homeId);
-	const buildKinds = $derived(
-		kindsFor(buildingRegistry.list(), homeSelected).map((b) => ({ id: b.id, label: b.label }))
+	// the build menu (plan 235, ADR 0227): categories, cards and why a card cannot be built here
+	const menu = $derived(
+		buildMenu(buildingRegistry.list(), registries.categories.list(), {
+			home: homeSelected,
+			body: siteInfo.body,
+			funds,
+			bodyName: bodyLabel
+		})
 	);
+	const thumbnail = (card: BuildCard): Promise<string> | null =>
+		card.generator ? buildingThumbnails().get(card.generator, card.size) : null;
 	let vessels = $state.raw<Snapshot['vessels']>([]);
 	const label = (id: string): string =>
 		(
@@ -313,7 +323,8 @@
 		{labels}
 		{selected}
 		onselect={(id) => (selected = id)}
-		{buildKinds}
+		{menu}
+		{thumbnail}
 		build={build
 			? {
 					kind: build.kind,
