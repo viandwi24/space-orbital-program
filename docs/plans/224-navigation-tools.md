@@ -1,7 +1,7 @@
 ---
 id: 224
 title: "Navigation tools: numeric node editor, AN/DN, alarms, transfer windows"
-status: in-progress
+status: done
 owner: "Worker C"
 depends: [206]
 phase: 7
@@ -73,19 +73,19 @@ Planning a flight no longer needs guesswork. Every maneuver node has a panel wit
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `bun test packages/sim` passes, including `test/alarms.test.ts`: a time alarm at T+600 s stops a 1000× warp no later than T+600 s; an alarm on an unfocused vessel's Pe fires; alarms survive a save and load.
-- [ ] `apps/web` vitest: `maneuver.test.ts` covers typed Δv and ±orbit (a node moved +1 orbit keeps its Δv and shifts by one period); AN/DN of two orbits 5° apart are 180° apart in true anomaly.
-- [ ] Chromium e2e `apps/web/e2e/navigation.e2e.ts`: `debug.setOrbit` (plan 203) puts a vessel in a 100 km orbit of Home; add two nodes; the second node's panel accepts "250" prograde and the planned Ap updates; warp to AN stops before it; a 5-minute alarm stops warp and appears in the bell.
-- [ ] `bun run check:affected --build --e2e e2e/navigation.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun test packages/sim` passes, including `test/alarms.test.ts`: a time alarm at T+600 s stops a 1000× warp no later than T+600 s; an alarm on an unfocused vessel's Pe fires; alarms survive a save and load.
+- [x] `apps/web` vitest: `maneuver.test.ts` covers typed Δv and ±orbit (a node moved +1 orbit keeps its Δv and shifts by one period); AN/DN of two orbits 5° apart are 180° apart in true anomaly.
+- [x] Chromium e2e `apps/web/e2e/navigation.e2e.ts`: `debug.setOrbit` (plan 203) puts a vessel in a 100 km orbit of Home; add two nodes; the second node's panel accepts "250" prograde and the planned Ap updates; warp to AN stops before it; a 5-minute alarm stops warp and appears in the bell.
+- [x] `bun run check:affected --build --e2e e2e/navigation.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/224-navigation-tools.md` written.
-- [ ] `docs/architecture/simulation.md` updated (alarms).
-- [ ] `docs/guides/scripting.md` updated if alarms are exposed to scripts.
-- [ ] `docs/product/glossary.md`: AN/DN, alarm, transfer window.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/224-navigation-tools.md` written.
+- [x] `docs/architecture/simulation.md` updated (alarms).
+- [x] `docs/guides/scripting.md` updated if alarms are exposed to scripts (they are not: no change).
+- [x] `docs/product/glossary.md`: AN/DN, alarm, transfer window.
 
 ## Log
 
@@ -93,3 +93,4 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 - 2026-10-19 — Worker C refined to ready and claimed (claim/224). Checked against the code: plan 206's `warp-to` already takes `{ kind: 'alarm', id }` and refused it until this plan; the bell is `createBellFeed` in the world layout (plan 205); plan 203's debug API exists, so the e2e uses `debug.setOrbit`. ADR 0223 (0221 is Worker A's, 0222 left for Worker B).
 - 2026-10-19 — Default (not asked): `SimSave.alarms` is an optional field, not a format bump. Every save section added since format 5 (economy, contracts, reliability, …) came the same way, an older save simply has none, and two other workers are bumping the format in parallel. The plan text said "version bump"; this is the one deviation.
 - 2026-10-19 — Default: an apsis, sphere or node alarm fires the warp-to margin before its event (15 s, 30 s for a node) unless the player gives a lead; its time is fixed when set, like the transfer alarm. A fired alarm leaves the list; the bell keeps the record.
+- 2026-10-19 — Evidence: `bun test packages/sim/test/alarms.test.ts` 3 pass (time alarm stops 1000× by T+600 s, unfocused vessel's Pe alarm fires, save round trip with edit, remove and warp-to); vitest `maneuver.test.ts` (typed delta-v, +1 orbit keeps the burn and shifts one period), `nav-markers.test.ts` (AN/DN 5° apart are π apart in true anomaly), web vitest 632/632; `check:affected --build --e2e e2e/navigation.e2e.ts` all passed in 348 s, the e2e 1 passed (1.6 min); CI `refs/ci/pass/af670a1c`. The first `ready/224` failed CI on `apps/web`'s Prettier step only (fixed, see journal).

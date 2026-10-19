@@ -170,7 +170,7 @@
 | 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | done | Worker B | Design records on every vessel (ADR 0215), switch with `[`/`]`, Switch to, Fly any vessel, control from here; save envelope 3. |
 | 222 | [Docking ports and docking](plans/222-docking.md) | done | Worker A | ADR 0218: ports 0.625/1.25/2.5 m pull within 5 m and 15°, capture at 0.15 m under 0.5 m/s, merge into one vessel with a `DockRecord`; Undock restores names and designs; crossfeed switch; port targets with alignment text; on-rails port vessels wake within 50 m. |
 | 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
-| 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | in-progress | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
+| 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
 | 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
 | 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
 | 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
@@ -249,6 +249,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
 - [206 — Flexible time warp](journal/206-flexible-time-warp.md)
 - [205 — Clock states, pause rules, tab policy, leaving active flight](journal/205-clock-states-and-pause-rules.md)
