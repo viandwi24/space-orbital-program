@@ -13,12 +13,13 @@
  * Key profiles (plan 216, ADR 0206): `ksp`, the default, follows KSP; `classic` keeps the keys of
  * Orbital before plan 216. A profile is a full default table; the player's overrides apply on top.
  */
-export type BindingMode = 'flight' | 'map' | 'vab' | 'carry';
+export type BindingMode = 'flight' | 'map' | 'vab' | 'carry' | 'eva';
 /**
  * Clash scopes. Map keys act only in the map with a node selected, before the flight keys, so they
- * may share keys with flight actions (plan 216: I is a node key and RCS translation).
+ * may share keys with flight actions (plan 216: I is a node key and RCS translation). EVA keys act
+ * while a suit has focus, instead of the flight keys (plan 225).
  */
-export type BindingScope = 'flight' | 'map' | 'vab' | 'carry';
+export type BindingScope = 'flight' | 'map' | 'vab' | 'carry' | 'eva';
 
 export const KEY_PROFILES = ['ksp', 'classic'] as const;
 export type KeyProfile = (typeof KEY_PROFILES)[number];
@@ -33,7 +34,8 @@ export const BINDING_MODE_LABEL: Record<BindingMode, string> = {
 	flight: 'Flight',
 	map: 'Map view',
 	vab: 'Vehicle assembly',
-	carry: 'Carrying a part (Hangar)'
+	carry: 'Carrying a part (Hangar)',
+	eva: 'On EVA'
 };
 
 export const scopeOf = (mode: BindingMode): BindingScope => mode;
@@ -85,6 +87,15 @@ const carry = (id: string, label: string, ...defaults: string[]): ActionSpec => 
 	id,
 	mode: 'carry',
 	group: 'Carrying a part',
+	label,
+	defaults
+});
+
+/** Keys while a suit has focus (plan 225, ADR 0209 point 2): the same in both profiles. */
+const eva = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
+	id,
+	mode: 'eva',
+	group: 'On EVA',
 	label,
 	defaults
 });
@@ -209,7 +220,19 @@ export const ACTIONS = [
 	carry('yawLeft', 'Turn the carried part: yaw left', 'KeyQ'),
 	carry('yawRight', 'Turn the carried part: yaw right', 'KeyE'),
 	carry('turnReset', 'Reset the turn of the carried part', 'Space'),
-	carry('angleSnap', 'Angle snap on or off', 'KeyC')
+	carry('angleSnap', 'Angle snap on or off', 'KeyC'),
+	eva('evaForward', 'Walk or fly forward (climb up a ladder)', 'KeyW'),
+	eva('evaBack', 'Walk or fly back (climb down a ladder)', 'KeyS'),
+	eva('evaLeft', 'Walk or fly left', 'KeyA'),
+	eva('evaRight', 'Walk or fly right', 'KeyD'),
+	eva('evaRun', 'Run (jetpack: up)', 'ShiftLeft'),
+	eva('evaDown', 'Jetpack: down', 'ControlLeft'),
+	eva('evaTurnLeft', 'Jetpack: turn left', 'KeyQ'),
+	eva('evaTurnRight', 'Jetpack: turn right', 'KeyE'),
+	eva('evaJump', 'Jump (let go of a ladder)', 'Space'),
+	eva('evaJetpack', 'Jetpack on or off', 'KeyR'),
+	eva('evaGrab', 'Grab or let go of a ladder', 'KeyF'),
+	eva('evaBoard', 'Board at a hatch or ladder', 'KeyB')
 ] as const satisfies readonly ActionSpec[];
 
 export type ActionId = (typeof ACTIONS)[number]['id'];
@@ -729,6 +752,24 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['yawLeft', 'yawRight'], text: 'Yaw it' },
 			{ actions: ['turnReset'], text: 'Reset its turn' },
 			{ actions: ['angleSnap'], text: 'Angle snap on or off' }
+		]
+	},
+	{
+		id: 'eva',
+		title: 'On EVA',
+		mode: 'eva',
+		rows: [
+			{
+				actions: ['evaForward', 'evaLeft', 'evaBack', 'evaRight'],
+				text: 'Walk, relative to the view'
+			},
+			{ actions: ['evaRun'], text: 'Run; with the jetpack on, up' },
+			{ actions: ['evaJump'], text: 'Jump; on a ladder, let go' },
+			{ actions: ['evaJetpack'], text: 'Jetpack on or off' },
+			{ actions: ['evaDown'], text: 'Jetpack: down' },
+			{ actions: ['evaTurnLeft', 'evaTurnRight'], text: 'Jetpack: turn' },
+			{ actions: ['evaGrab'], text: 'Grab a ladder within 1 m, or let go' },
+			{ actions: ['evaBoard'], text: 'Board at a hatch or from a ladder' }
 		]
 	},
 	{
