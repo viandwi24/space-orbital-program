@@ -348,7 +348,12 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 	'bodies[].atmosphere': [
 		field('scaleHeight', 'number', 'Height over which the pressure falls by e, m.'),
 		field('surfacePressure', 'number', 'Pressure at the surface, Pa.'),
-		field('height', 'number', 'Height of the atmosphere, m.')
+		field('height', 'number', 'Height of the atmosphere, m.'),
+		field(
+			'temperatureCurve',
+			'[number, number][]',
+			'Air temperature over altitude: [altitude m, K] keys, linear between (plan 212).'
+		)
 	],
 	'bodies[].orbit': ORBIT
 };
