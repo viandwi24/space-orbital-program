@@ -55,13 +55,17 @@ test('staged in a fast fall, the chute goes Armed, Semi-deployed, Deployed and t
 	await expect(status(page)).toHaveText('Semi-deployed', { timeout: 30_000 });
 	await expect(status(page)).toHaveText('Deployed', { timeout: 60_000 });
 
-	// the last kilometre at about 6 m/s: physics warp shortens the wait
-	const faster = page.getByRole('button', { name: 'Faster time warp' });
-	for (const x of ['2x', '4x', '10x']) {
-		await faster.click();
-		await expect(page.getByTestId('hud-warp')).toHaveText(x);
-	}
-	await expect(page.getByTestId('hud-phase-text')).toContainText('Landed', { timeout: 120_000 });
+	// the last stretch under the full canopy, near the ground at its descent speed
+	await debugSetLocation(page, {
+		kind: 'air',
+		latitude: 0,
+		longitude: 0.3,
+		altitude: 60,
+		speed: 6,
+		climb: -Math.PI / 2
+	});
+	await expect(status(page)).toHaveText('Deployed');
+	await expect(page.getByTestId('hud-phase-text')).toContainText('Landed', { timeout: 60_000 });
 	await expect(page.getByText(/destroyed|broke off|Vessel lost/)).toHaveCount(0);
 	expect(errors).toEqual([]);
 });

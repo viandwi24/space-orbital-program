@@ -110,6 +110,8 @@ export const PARACHUTE_SAFETY_TEXT: Record<ParachuteSafety, string> = {
 };
 
 const open = (s: ParachuteStatus): boolean => s === 'semi' || s === 'full';
+/** Below this airspeed an open canopy pulls nothing, m/s. */
+const STILL_AIR = 1;
 
 export const ModuleParachute = defineModule({
 	id: 'stock.parachute',
@@ -232,6 +234,9 @@ export const ModuleParachute = defineModule({
 		if (state.safety === 'unsafe') return tear();
 		const seconds = state.status === 'semi' ? config.semiSeconds : config.fullSeconds;
 		state.opening = Math.min(1, state.opening + dt / seconds);
+		// at a walking pace the canopy only drapes: no force, so a capsule on the ground comes to rest
+		// (any force keeps a vessel awake, off surface rails)
+		if (speed < STILL_AIR) return;
 		const k = 0.5 * ambient.density * parachuteDragArea(config, state) * speed;
 		if (k > 0) ctx.vessel.applyForce({ x: -k * air.x, y: -k * air.y, z: -k * air.z }, point);
 	},
