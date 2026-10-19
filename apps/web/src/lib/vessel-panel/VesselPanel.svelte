@@ -76,7 +76,9 @@
 		from: '',
 		to: ''
 	});
-	const pickGroup = $derived(groups.find((g) => g.resource === pick.resource) ?? groups[0]);
+	/** Resources in two containers or more: the ones a transfer can move. */
+	const movable = $derived(groups.filter((g) => g.containers.length >= 2));
+	const pickGroup = $derived(movable.find((g) => g.resource === pick.resource) ?? movable[0]);
 	const rate = (r: Pick<ResourceSnapshot, 'rate'>): string =>
 		Math.abs(r.rate) < 1e-3 ? 'steady' : `${r.rate > 0 ? '+' : ''}${r.rate.toFixed(2)}/s`;
 	let problem = $state<string | null>(null);
@@ -275,7 +277,7 @@
 						value={pickGroup.resource}
 						onchange={(e) => (pick = { resource: e.currentTarget.value, from: '', to: '' })}
 					>
-						{#each groups.filter((x) => x.containers.length >= 2) as x (x.resource)}
+						{#each movable as x (x.resource)}
 							<option value={x.resource}>{resourceLabel(x.resource)}</option>
 						{/each}
 					</select>
