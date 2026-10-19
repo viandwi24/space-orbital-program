@@ -107,9 +107,7 @@
 
 {#if settings.keyNotice}
 	<div class="notice" role="status" data-testid="key-notice">
-		<span
-			>Orbital now uses KSP's keys by default. Your changed keys are kept on Orbital classic.</span
-		>
+		<span>Keys now follow KSP's by default. Your changed keys are kept on Orbital classic.</span>
 		<Button onclick={() => chooseProfile('ksp')} data-testid="key-notice-switch"
 			>Switch to KSP</Button
 		>
