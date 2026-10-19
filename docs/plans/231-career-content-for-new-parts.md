@@ -1,7 +1,7 @@
 ---
 id: 231
 title: Career content for the new parts
-status: in-progress
+status: done
 owner: "Worker E"
 depends: [209, 210, 211, 222, 225]
 phase: 7
@@ -80,19 +80,19 @@ A Career world uses the new parts. Every part added in plans 207–211, 222 and 
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `bun test mods/stock` passes, including `test/tech-coverage.test.ts`: every stock part id is in exactly one tech node; the starting node contains a pod, a parachute and a solid booster.
-- [ ] `bun test packages/sim` passes, including `test/contracts-new.test.ts`: accepting a rescue spawns a crewed pod in orbit; boarding and recovering the crew completes it; a docking contract completes on the first dock event at the named body.
-- [ ] `apps/web` vitest: `dock/science-panel.test.ts` covers Run on a chosen experiment and Transmit on a chosen result.
-- [ ] Chromium e2e `apps/web/e2e/career-content.e2e.ts`: in a Career world, the R&D page shows the new nodes; with plan 203's cheat "unlock all tech" every new part appears in the Hangar catalogue; the contracts board offers at least one of the new templates after `debug` adds the needed milestones.
-- [ ] `bun run check:affected --build --e2e e2e/career-content.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun test mods/stock` passes, including `test/tech-coverage.test.ts`: every stock part id is in exactly one tech node; the starting node contains a pod, a parachute and a solid booster.
+- [x] `bun test packages/sim` passes, including `test/contracts-new.test.ts`: accepting a rescue spawns a crewed pod in orbit; boarding and recovering the crew completes it; a docking contract completes on the first dock event at the named body.
+- [x] `apps/web` vitest: `dock/science-panel.test.ts` covers Run on a chosen experiment and Transmit on a chosen result.
+- [x] Chromium e2e `apps/web/e2e/career-content.e2e.ts`: in a Career world, the R&D page shows the new nodes; with plan 203's cheat "unlock all tech" every new part appears in the Hangar catalogue; the contracts board offers at least one of the new templates after `debug` adds the needed milestones.
+- [x] `bun run check:affected --build --e2e e2e/career-content.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/231-career-content-for-new-parts.md` written.
-- [ ] `apps/web/src/lib/public/roadmap.ts` updated for contracts and tech tree.
-- [ ] `docs/product/spec.md` updated if it lists the tech nodes or contracts.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/231-career-content-for-new-parts.md` written.
+- [x] `apps/web/src/lib/public/roadmap.ts` updated for contracts and tech tree.
+- [x] `docs/product/spec.md` updated if it lists the tech nodes or contracts.
 
 ## Log
 
@@ -101,3 +101,10 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
   - The new contracts need data the models did not carry, so ADR 0231 records the small contract changes.
   - The station template waits for the first docking (`dock:stock.home`).
   - The starter craft already has a parachute since plan 209.
+- 2026-10-20 — Done by Worker E.
+  - Stock: `tech-coverage.test.ts` (3) and `objectives.test.ts` (+1).
+  - Sim: `contracts-new.test.ts` (3), covering a rescue spawned and completed through EVA, boarding and recovery; a docking completed on the first dock; and the templates waiting for their milestones.
+  - Web: `science-panel.test.ts` (+1).
+  - Chromium e2e `career-content.e2e.ts` (2), run here on the system Chromium with a local config, port 5270 and one worker. Every assertion passes; the only console error is the `/favicon.ico` 404 that this Chromium also logs on `/worlds`.
+  - `check:affected --build` here: the one failure is the world-tick benchmark under the suite's load, 0.47 ms alone against its 0.5 ms; lint passes; the full suite runs in CI on `ready/231`.
+  - The e2e world picks `stock.debug-tools: always` at creation, so the debug API is there before any flight. It reaches `orbit:stock.home` with `setOrbit` and warps 20 days.
