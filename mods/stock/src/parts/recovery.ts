@@ -30,7 +30,7 @@ export const PartHeatShieldWide = definePart({
 	mass: kg(300),
 	cost: partCost(300, 'gear'),
 	impactTolerance: 8,
-	maxTemperature: 3_000,
+	maxTemperature: 3_300,
 	shape: cylinder(0.3, WIDE_RADIUS),
 	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 	attach: stackNodes(0.3, 2.5),

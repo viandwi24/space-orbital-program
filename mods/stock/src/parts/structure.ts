@@ -28,7 +28,6 @@ export const PartDecouplerWide = definePart({
 	mass: kg(200),
 	cost: partCost(200, 'structure'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: cylinder(0.25, WIDE_RADIUS),
 	visual: {
 		kind: 'decoupler',

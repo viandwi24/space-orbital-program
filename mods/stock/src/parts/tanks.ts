@@ -66,7 +66,6 @@ function wideTank(id: string, title: string, dry: number, height: number, fuel: 
 		mass: kg(dry),
 		cost: partCost(dry, 'tank'),
 		impactTolerance: 5,
-		maxTemperature: 900,
 		shape: cylinder(height, WIDE_RADIUS),
 		visual: {
 			kind: 'tank',

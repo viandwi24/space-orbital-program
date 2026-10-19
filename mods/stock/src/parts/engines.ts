@@ -120,7 +120,6 @@ function solidBooster(spec: {
 		mass: kg(spec.dry),
 		cost: partCost(spec.dry, 'engine'),
 		impactTolerance: 5,
-		maxTemperature: 1500,
 		shape: { kind: 'cylinder', radius: spec.radius, height: spec.height },
 		visual: {
 			kind: 'booster',
@@ -260,7 +259,6 @@ export const PartEngineVacuum = definePart({
 	mass: kg(500),
 	cost: partCost(500, 'engine'),
 	impactTolerance: 4,
-	maxTemperature: 1800,
 	shape: cylinder(0.9),
 	visual: {
 		kind: 'engine',
@@ -302,7 +300,6 @@ export const PartEngineWide = definePart({
 	mass: kg(3_000),
 	cost: partCost(3_000, 'engine'),
 	impactTolerance: 4,
-	maxTemperature: 1800,
 	shape: cylinder(1.8, WIDE_RADIUS),
 	visual: {
 		kind: 'engine',

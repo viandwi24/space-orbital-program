@@ -68,7 +68,6 @@ export const PartLaunchClamp = definePart({
 	mass: kg(100),
 	cost: partCost(100, 'structure'),
 	impactTolerance: 50,
-	maxTemperature: 2_000,
 	shape: { kind: 'box', size: [0.4, 0.8, 0.4] },
 	visual: {
 		kind: 'launch-clamp',
