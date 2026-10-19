@@ -25,7 +25,7 @@ import {
 	type StateVector
 } from '@orbital/kepler';
 import { bodyOfVessel, elementsAt, stateInParent, type BodyRuntime } from './bodies.ts';
-import { vesselIds, vesselOf, type SimCore } from './core.ts';
+import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { elementsOf, motionOf } from './orbit.ts';
 import { VESSEL, type TargetState, type VesselState } from './state.ts';
 
@@ -177,7 +177,18 @@ export function setTarget(
 		return { ok: true };
 	}
 	if (target.id === vesselId) return refuse('a vessel cannot target itself');
-	if (!targetVessel(core, target.id)) return refuse(`unknown vessel ${target.id}`);
+	const other = targetVessel(core, target.id);
+	if (!other) return refuse(`unknown vessel ${target.id}`);
+	if (target.part !== undefined) {
+		// a docking port of the target vessel (plan 222)
+		if (!other.parts.includes(target.part)) {
+			return refuse(`part ${target.part} is not on vessel ${target.id}`);
+		}
+		const port = partOf(core, target.part).modules.some((m) => moduleDefOf(core, m.id).dock);
+		if (!port) return refuse(`part ${target.part} is not a docking port`);
+		vessel.target = { kind: 'vessel', id: target.id, part: target.part };
+		return { ok: true };
+	}
 	vessel.target = { kind: 'vessel', id: target.id };
 	return { ok: true };
 }
@@ -187,6 +198,8 @@ export function pruneTargets(core: SimCore): void {
 	for (const id of vesselIds(core)) {
 		const vessel = vesselOf(core, id);
 		const ref = vessel.target;
+		if (ref?.kind === 'vessel' && ref.part !== undefined && !core.world.hasEntity(ref.part))
+			delete ref.part;
 		if (ref?.kind === 'vessel' && !targetVessel(core, ref.id)) {
 			vessel.target = null;
 			core.events.emit('vessel:target-lost', { vessel: id, target: ref.id });

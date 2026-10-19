@@ -5,13 +5,14 @@
  * keeps its id remembers the other (`VesselState.docks`), so an undock at that port pair gives
  * the other side its name and design back (`restoreUndocked`, called from the split).
  */
-import type { EntityId, Quat, Vec3 } from '@orbital/core';
+import type { EntityId, PortAlignment, Quat, Vec3 } from '@orbital/core';
 import { add, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import {
 	isControlled,
 	moduleDefOf,
 	moduleState,
 	partDefOf,
+	frameOfVessel,
 	partOf,
 	totalMass,
 	vesselOf,
@@ -19,6 +20,7 @@ import {
 } from './core.ts';
 import { bodyMotion, createVesselBody, partTransform, partVelocity } from './frames.ts';
 import { qConj, qMul, qRotate } from './math.ts';
+import { reachMilestone } from './milestones.ts';
 import type { DockRecord, FlightFrame, VesselState } from './state.ts';
 
 /** Ports this close (face to face, m) start to pull each other. */
@@ -284,6 +286,7 @@ function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 	});
 	core.world.destroyEntity(gone.vessel);
 	core.active.add(keep.vessel);
+	reachMilestone(core, 'dock', keeper.soi, keep.vessel);
 	core.events.emit('vessel:docked', {
 		vessel: keep.vessel,
 		absorbed: gone.vessel,
@@ -340,5 +343,39 @@ export function restoreUndocked(
 		setDocked(core, p, false);
 		partOf(core, p).portBlockedUntil = core.t + UNDOCK_COOLDOWN;
 	}
+	reachMilestone(core, 'undock', home.soi, homeId);
 	core.events.emit('vessel:undocked', { vessel: homeId, restored: dockedId, name: rec.name });
+}
+
+/** The alignment of `vesselId`'s port with the port its target names (plan 222), or undefined. */
+export function portAlignment(core: SimCore, vesselId: EntityId): PortAlignment | undefined {
+	const vessel = vesselOf(core, vesselId);
+	const ref = vessel.target;
+	if (ref?.kind !== 'vessel' || ref.part === undefined || !core.world.hasEntity(ref.id))
+		return undefined;
+	const frame = frameOfVessel(core, vesselId);
+	if (!frame || !frame.vessels.includes(ref.id)) return undefined;
+	const theirs = freePorts(core, frame, ref.id).find((p) => p.part === ref.part);
+	if (!theirs) return undefined;
+	const mine = freePorts(core, frame, vesselId).filter(
+		(p) => Math.abs(p.size - theirs.size) <= 1e-3
+	);
+	if (mine.length === 0) return undefined;
+	const own =
+		mine.find((p) => p.part === vessel.controlPart) ??
+		mine.sort((a, b) => length(sub(a.at, theirs.at)) - length(sub(b.at, theirs.at)))[0]!;
+	const d = sub(theirs.at, own.at);
+	const along = dot(d, own.dir);
+	const lateral = sub(d, scale(own.dir, along));
+	const rel = sub(partVelocity(core, frame, theirs.part), partVelocity(core, frame, own.part));
+	const dist = length(d);
+	const angle =
+		(Math.acos(Math.max(-1, Math.min(1, dot(own.dir, scale(theirs.dir, -1))))) * 180) / Math.PI;
+	return {
+		port: own.part,
+		angle,
+		offset: length(lateral),
+		distance: dist,
+		closing: dist > 1e-6 ? -dot(rel, scale(d, 1 / dist)) : 0
+	};
 }

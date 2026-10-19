@@ -28,5 +28,9 @@ export function milestoneTitle(
 		case 'eva':
 			// the first step outside (plan 109): crewed by nature, so no "crewed" variant in the words
 			return `First EVA ${r.body === home ? 'at home' : `on ${body}`}`;
+		case 'dock':
+			return `First docking ${r.body === home ? 'in orbit of home' : `at ${body}`}`;
+		case 'undock':
+			return `First undocking ${r.body === home ? 'in orbit of home' : `at ${body}`}`;
 	}
 }

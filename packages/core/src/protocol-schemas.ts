@@ -90,7 +90,7 @@ export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminated
 
 const targetRefSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('body'), id: definitionIdSchema.transform(bodyId) }),
-	z.object({ kind: z.literal('vessel'), id: entity })
+	z.object({ kind: z.literal('vessel'), id: entity, part: entity.optional() })
 ]);
 
 export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
