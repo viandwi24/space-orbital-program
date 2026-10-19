@@ -143,7 +143,13 @@ describe('the target card', () => {
 
 describe('docking port targets (plan 222)', () => {
 	it('the indicator is text: angle, offset, distance and closing speed', () => {
-		const h = portHud({ port: entityId(3), angle: 2.14, offset: 0.4, distance: 4.82, closing: 0.3 });
+		const h = portHud({
+			port: entityId(3),
+			angle: 2.14,
+			offset: 0.4,
+			distance: 4.82,
+			closing: 0.3
+		});
 		expect(h.aligned).toBe(true);
 		expect(h.text).toBe('Aligned 2.1° · offset 0.40 m · 4.8 m · closing 0.30 m/s');
 		const off = portHud({ port: entityId(3), angle: 22, offset: 1.2, distance: 9, closing: -0.1 });
