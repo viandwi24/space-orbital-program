@@ -648,6 +648,15 @@ export function createSimHost(options: SimHostOptions): SimHost {
 			}
 			// `init` and `save` are answered by the Worker entry (save/worker-save.ts), not by the host.
 			if (message.kind === 'init' || message.kind === 'save') return;
+			if (message.kind === 'design') {
+				const record = sim?.designOf(entityId(message.vessel));
+				options.post({
+					kind: 'design',
+					id: message.id,
+					record: record ? structuredClone(record) : null
+				});
+				return;
+			}
 			if (message.kind === 'replay') {
 				options.post({
 					kind: 'replay',

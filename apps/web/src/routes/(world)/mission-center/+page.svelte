@@ -194,9 +194,18 @@
 		note = r && !r.ok ? r.reason : null;
 	}
 
-	/** Fly (ADR 0201): the focus vessel in the same sim; Flight takes it up. */
-	function flyNow(): void {
-		note = fly({ focus: () => focus !== null, go: (href) => void goto(href) });
+	/** Fly (plan 221, ADR 0208): the selected vessel becomes the focus; Flight takes it up in the same sim. */
+	async function flyNow(): Promise<void> {
+		const id = selected?.startsWith('vessel:') ? Number(selected.slice('vessel:'.length)) : focus;
+		const record = id === null ? null : await worldSession.client?.designOf(id);
+		if (id !== null && record) {
+			const name = snapshot?.vessels.find((v) => Number(v.id) === id)?.name;
+			worldSession.focus = {
+				vessel: id,
+				design: { ...record.design, name: name ?? record.design.name }
+			};
+		}
+		note = fly({ focus: () => id !== null && record != null, go: (href) => void goto(href) });
 	}
 
 	onMount(() => {

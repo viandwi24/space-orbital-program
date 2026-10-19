@@ -5,6 +5,7 @@ import {
 	parseWorkerMessage,
 	type Catalog,
 	type ClientMessage,
+	type DesignRecordMessage,
 	type WorkerMessage
 } from './messages';
 import { activeBundles } from './mods/runtime';
@@ -53,6 +54,8 @@ export interface SimClient {
 	catchUp(seconds: number): void;
 	/** The whole simulation as plain data (plan 043); rejects with the worker's reason. */
 	save(): Promise<SimSave>;
+	/** A vessel's design record (plan 221): its design and the indices it kept; null when unknown. */
+	designOf(vessel: number): Promise<DesignRecordMessage | null>;
 	/** The flight recorded since the sim booted, as a replay file (plan 131); null when not ready. */
 	replay(name: string): Promise<ReplayFile | null>;
 	dispose(): void;
@@ -70,6 +73,7 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		{ resolve: (s: SimSave) => void; reject: (e: Error) => void }
 	>();
 	const pendingReplays = new Map<number, (replay: ReplayFile | null) => void>();
+	const pendingDesigns = new Map<number, (record: DesignRecordMessage | null) => void>();
 	const snapshotListeners = new Set<(snapshot: Snapshot, warp?: number) => void>();
 	const errorListeners = new Set<(message: string) => void>();
 	const scriptListeners = new Set<(event: ScriptEvent) => void>();
@@ -123,6 +127,12 @@ export function createSimClient(worker: WorkerLike): SimClient {
 				const resolve = pendingReplays.get(message.id);
 				pendingReplays.delete(message.id);
 				resolve?.(message.replay);
+				break;
+			}
+			case 'design': {
+				const resolve = pendingDesigns.get(message.id);
+				pendingDesigns.delete(message.id);
+				resolve?.(message.record);
 				break;
 			}
 			case 'saved': {
@@ -202,6 +212,14 @@ export function createSimClient(worker: WorkerLike): SimClient {
 		},
 		catchUp(seconds) {
 			if (!disposed) worker.postMessage({ kind: 'catch-up', seconds });
+		},
+		designOf(vessel) {
+			if (disposed) return Promise.resolve(null);
+			const id = nextId++;
+			return new Promise<DesignRecordMessage | null>((resolve) => {
+				pendingDesigns.set(id, resolve);
+				worker.postMessage({ kind: 'design', id, vessel });
+			});
 		},
 		replay(name) {
 			if (disposed) return Promise.resolve(null);

@@ -199,6 +199,16 @@
 				onfocusout={() => onhighlight(null)}
 			>
 				<h3>{p.title}</h3>
+				{#if p.controlPoint}
+					<div class="row">
+						<Button
+							disabled={p.controlling}
+							onclick={() => oncommand({ type: 'set-control-part', vessel, part: p.entity })}
+							data-testid="part-{p.entity}-control-from"
+							>{p.controlling ? 'Controlling from here' : 'Control from here'}</Button
+						>
+					</div>
+				{/if}
 				{#each p.controls as c (c.module + '/' + c.id)}
 					<div class="row" title={c.enabled ? undefined : c.reason}>
 						{#if c.kind === 'toggle'}

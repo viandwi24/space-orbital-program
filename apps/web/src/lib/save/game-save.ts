@@ -7,6 +7,7 @@
 import {
 	readSimSave,
 	SaveError,
+	simSaveChecksum,
 	vesselDesignSchema,
 	type SaveMod,
 	type SimSave,
@@ -14,7 +15,12 @@ import {
 } from '@orbital/core';
 
 export const GAME_SAVE_FORMAT = 'orbital-game-save';
-export const GAME_SAVE_VERSION = 2;
+/**
+ * Version 3 (plan 221, ADR 0208 point 1): the sim keeps a design per vessel. A version 2 save
+ * gives its focus vessel the envelope's design on load; other vessels get one rebuilt from their
+ * parts by the sim.
+ */
+export const GAME_SAVE_VERSION = 3;
 
 /** `quick`: the one F5 slot. `auto`: the rotating autosaves. `manual`: named by the player. */
 export type SaveKind = 'quick' | 'auto' | 'manual';
@@ -198,6 +204,7 @@ export function parseGameSave(raw: unknown): GameSave {
 	const design = vesselDesignSchema.safeParse(record.design);
 	if (!design.success) throw damaged('the design it was launched with is unreadable');
 	const sim = readSimSave(record.sim);
+	if (meta.formatVersion < 3 && focus !== null) seedFocusDesign(sim, focus, design.data);
 	return {
 		...meta,
 		// A version 1 envelope: its payload migrated into the Legacy world (ADR 0110), so it is that world's.
@@ -206,6 +213,16 @@ export function parseGameSave(raw: unknown): GameSave {
 		design: design.data,
 		sim
 	};
+}
+
+/** Give the focus vessel of a version 2 save the design it was launched with (plan 221). */
+function seedFocusDesign(sim: SimSave, focus: number, design: VesselDesign): void {
+	const vessels = sim.world.components['sim.vessel'];
+	const vessel = vessels?.[String(focus)];
+	if (!isRecord(vessel) || vessel.design !== undefined) return;
+	vessel.design = structuredClone(design);
+	const { checksum: _old, ...rest } = sim;
+	sim.checksum = simSaveChecksum(rest);
 }
 
 /** Parse the text of a save file. */

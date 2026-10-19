@@ -37,6 +37,10 @@ export interface PartRow {
 	title: string;
 	category: string;
 	controls: ControlRow[];
+	/** The part can be controlled from (a command part or a docking port; plan 221). */
+	controlPoint?: boolean;
+	/** The vessel is controlled from this part now. */
+	controlling?: boolean;
 }
 
 export interface VesselView {
@@ -75,12 +79,22 @@ export function vesselView(
 				// a module whose describe throws shows no controls; the rest go on (ADR 0153 point 1)
 			}
 		}
-		if (controls.length === 0) continue;
+		const point = (def.modules ?? []).some(([id]) => {
+			const m = content.modules.get(id);
+			return m?.controlSource === true || m?.controlPoint === true;
+		});
+		if (controls.length === 0 && !point) continue;
 		parts.push({
 			entity: p.id,
 			title: def.title,
 			category: categoryOf(def, content.modules, categories),
-			controls
+			controls,
+			...(point
+				? {
+						controlPoint: true,
+						controlling: (vessel.controlPart ?? vessel.parts[0]?.id) === p.id
+					}
+				: {})
 		});
 	}
 	parts.sort(

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { WARP_LEAD_S } from '../maneuver-controller';
 import { bodyNodes } from '../map-path';
 import {
-	NOT_FLYABLE,
+	NOT_OURS,
 	clusterLabels,
 	fly,
 	objectCard,
@@ -140,13 +140,18 @@ describe('Tracking and the card', () => {
 		expect(trackingRows(snapshot, bodies, 'relays')).toEqual([]);
 	});
 
-	it('Fly is enabled for the save focus vessel only', () => {
+	it('Fly is enabled for every vessel of the player, not for an agency object (plan 221)', () => {
 		const focused = objectCard('vessel:2', snapshot, bodies, 2)!;
 		expect(focused.fly).toEqual({ enabled: true });
 		expect(focused.facts.map((f) => f.label)).toEqual(['Altitude', 'Speed', 'Ap / Pe']);
-		expect(objectCard('vessel:1', snapshot, bodies, 2)!.fly).toEqual({
+		expect(objectCard('vessel:1', snapshot, bodies, 2)!.fly).toEqual({ enabled: true });
+		const agency = {
+			...snapshot,
+			vessels: snapshot.vessels.map((v) => ({ ...v, owner: 'rival' }))
+		};
+		expect(objectCard('vessel:1', agency, bodies, 2)!.fly).toEqual({
 			enabled: false,
-			reason: NOT_FLYABLE
+			reason: NOT_OURS
 		});
 		expect(objectCard('body:stock.cinder', snapshot, bodies, 2)!.fly).toBeNull();
 		expect(objectCard('vessel:9', snapshot, bodies, 2)).toBeNull();

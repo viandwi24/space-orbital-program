@@ -90,8 +90,11 @@ export const ACTIONS = [
 	flight('Stability assist (SAS)', 'sasAntiTarget', 'Point away from the target', 'Digit0'),
 	flight('Stability assist (SAS)', 'sasLevel', 'Level wings (aircraft)', ';'),
 	// Aircraft (plan 063, ADR 0161): pitch trim and the wheels' brakes
-	flight('Aircraft', 'trimUp', 'Trim nose up', ']'),
-	flight('Aircraft', 'trimDown', 'Trim nose down', '['),
+	// `[`/`]` switch vessels (plan 221, rancangan §12.1); trim waits on Home/End for plan 216's profiles
+	flight('Aircraft', 'trimUp', 'Trim nose up', 'Home'),
+	flight('Aircraft', 'trimDown', 'Trim nose down', 'End'),
+	flight('See', 'vesselNext', 'Next vessel within 2.5 km', ']'),
+	flight('See', 'vesselPrev', 'Previous vessel within 2.5 km', '['),
 	flight('Aircraft', 'brakes', 'Brakes on or off', 'KeyC'),
 	flight('See', 'map', 'Map view', 'KeyM'),
 	flight('See', 'speedMode', 'Speed reference: auto, surface, orbit, target', 'KeyV'),
@@ -434,6 +437,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['map'], text: 'Map view' },
 			{ actions: ['speedMode'], text: 'Speed reference: auto, surface, orbit, target' },
 			{ actions: ['targetNext'], text: 'Next target: each body, each other vessel, none' },
+			{ actions: ['vesselPrev', 'vesselNext'], text: 'Previous, next vessel within 2.5 km' },
 			{ actions: [], fixed: ['Drag', 'Wheel'], text: 'Orbit and zoom the camera' }
 		]
 	},
