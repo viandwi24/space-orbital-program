@@ -38,5 +38,12 @@
 ## Verification output
 
 ```
-VERIFY
+bun run check:affected --build --e2e e2e/branch-sites.e2e.ts (under /tmp/orbital-heavy.lock, Chromium, 1 worker)
+  ✓ prettier (36 changed files) · ✓ docs:check · ✓ typecheck (11 workspaces) · ✓ typecheck (web)
+  ✓ bun test (10 workspaces) · ✓ web vitest (related to the change)
+  ✓ build · ✓ e2e e2e/branch-sites.e2e.ts (chromium)
+  check-affected: all passed in 396.4 s
+bun run lint: all matched files use Prettier code style
+sim branches.test.ts: 4 pass (far-side link, charge and HQ days, the cheat, the zone rules)
+e2e (Chromium): branch-sites, space-center, build-menu, launch, mission-center, debug, world-shell, smoke: 17 passed
 ```
