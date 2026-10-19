@@ -5,7 +5,14 @@
  * keeps its id remembers the other (`VesselState.docks`), so an undock at that port pair gives
  * the other side its name and design back (`restoreUndocked`, called from the split).
  */
-import type { EntityId, PortAlignment, Quat, Vec3 } from '@orbital/core';
+import type {
+	EntityId,
+	PartSnapshot,
+	PortAlignment,
+	PortSnapshot,
+	Quat,
+	Vec3
+} from '@orbital/core';
 import { add, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import {
 	isControlled,
@@ -378,4 +385,33 @@ export function portAlignment(core: SimCore, vesselId: EntityId): PortAlignment 
 		distance: dist,
 		closing: dist > 1e-6 ? -dot(rel, scale(d, 1 / dist)) : 0
 	};
+}
+
+/** The vessel's docking port faces from its part snapshots (plan 222), or undefined without a port. */
+export function portSnapshots(
+	core: SimCore,
+	parts: readonly PartSnapshot[]
+): PortSnapshot[] | undefined {
+	const out: PortSnapshot[] = [];
+	for (const snap of parts) {
+		const part = partOf(core, snap.id);
+		for (const m of part.modules) {
+			const dock = moduleDefOf(core, m.id).dock?.(m.config);
+			const node = dock && partDefOf(core, part).attach?.[dock.node];
+			if (!dock || !node) continue;
+			const q = snap.orientation;
+			out.push({
+				part: snap.id,
+				size: dock.size,
+				free: !part.attachments.some((a) => a.node === dock.node),
+				position: add(
+					snap.position,
+					qRotate(q, { x: node.pos[0], y: node.pos[1], z: node.pos[2] })
+				),
+				direction: normalize(qRotate(q, { x: node.dir[0], y: node.dir[1], z: node.dir[2] })),
+				orientation: q
+			});
+		}
+	}
+	return out.length > 0 ? out : undefined;
 }

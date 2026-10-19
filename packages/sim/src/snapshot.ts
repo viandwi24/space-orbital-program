@@ -1,5 +1,5 @@
 /** Builds the plain-data `Snapshot` the host reads (protocol.ts). Read-only: never mutates sim state. */
-import { portAlignment } from './docking.ts';
+import { portAlignment, portSnapshots } from './docking.ts';
 import { techSnapshot } from './tech.ts';
 import { debugSnapshot } from './debug.ts';
 import { warpLimit } from './warp-limits.ts';
@@ -153,6 +153,8 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const uncontrolled = controlProblem(core, vessel);
 	if (uncontrolled) snapshot.uncontrolled = uncontrolled;
 	if (vessel.rcs) snapshot.rcs = true;
+	const ports = portSnapshots(core, parts);
+	if (ports) snapshot.ports = ports;
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
 	const crew = vesselCrewSnapshot(core, id);
 	if (crew) snapshot.crew = crew;

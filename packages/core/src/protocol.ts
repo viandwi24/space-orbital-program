@@ -158,6 +158,23 @@ export interface PartSnapshot {
 	link?: { peer: EntityId; point: Vec3 };
 }
 
+/**
+ * A docking port's face (plan 222, ADR 0218): the point and outward direction of its docking node,
+ * relative to the vessel root's origin in the inertial (BCI) axes like `PartSnapshot.position`.
+ */
+export interface PortSnapshot {
+	part: EntityId;
+	/** Node size, m (0.625, 1.25, 2.5). */
+	size: number;
+	/** The face node is free: it can dock (or is cooling down after an undock). */
+	free: boolean;
+	position: Vec3;
+	/** Unit, pointing out of the face. */
+	direction: Vec3;
+	/** The part's absolute orientation (the port frame's axes; the face is along `direction`). */
+	orientation: Quat;
+}
+
 export interface VesselSnapshot {
 	id: EntityId;
 	/** The agency that owns it (plan 126, ADR 0190 point 3); absent for the player's. */
@@ -174,6 +191,8 @@ export interface VesselSnapshot {
 	uncontrolled?: 'no-source' | 'no-crew' | 'no-power';
 	/** RCS is on (plan 211); absent while off. */
 	rcs?: true;
+	/** The vessel's docking ports (plan 222): the target list and the Locked camera (plan 226) read them. */
+	ports?: PortSnapshot[];
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;

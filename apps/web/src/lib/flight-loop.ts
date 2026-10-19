@@ -406,9 +406,13 @@ export function startFlight(options: FlightOptions): Flight {
 	 * Fly another vessel (plan 221, ADR 0208 point 2): its design record from the sim, a new HUD,
 	 * the camera on it. No reload; the sim brings it into physics when the player acts on it.
 	 */
-	async function switchVessel(id: number): Promise<{ ok: true } | { ok: false; reason: string }> {
+	async function switchVessel(
+		id: number,
+		/** A dock or undock changed the vessel (plan 222): reload its record, no "Switched" notice. */
+		refresh = false
+	): Promise<{ ok: true } | { ok: false; reason: string }> {
 		if (!catalog || !snap) return { ok: false, reason: 'the flight has not started' };
-		if (vessel !== null && Number(vessel) === id) return { ok: true };
+		if (!refresh && vessel !== null && Number(vessel) === id) return { ok: true };
 		const v = snap.vessels.find((x) => Number(x.id) === id);
 		if (!v) return { ok: false, reason: `vessel ${id} is gone` };
 		if (v.owner !== undefined)
@@ -429,7 +433,7 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer?.setActiveVessel(vessel);
 		hud.vesselName = design.name;
 		hud.model = null;
-		hudCtl.notice({ kind: 'info', title: `Switched to ${design.name}`, key: 'switch' });
+		if (!refresh) hudCtl.notice({ kind: 'info', title: `Switched to ${design.name}`, key: 'switch' });
 		publish();
 		return { ok: true };
 	}
@@ -1074,6 +1078,12 @@ export function startFlight(options: FlightOptions): Flight {
 			logBuffer.add(line.level, 'sim', line.message);
 			hudCtl?.simEvent(event);
 			if (event.type === 'milestone') void achievements?.check([event]);
+			// the active vessel docked (or was docked into another) or undocked: follow the merged or
+			// split vessel with its new design record (plan 222)
+			const active = vessel === null ? null : Number(vessel);
+			if (event.type === 'docked' && (active === event.vessel || active === event.absorbed))
+				void switchVessel(event.vessel, true);
+			if (event.type === 'undocked' && active === event.vessel) void switchVessel(event.vessel, true);
 			// a challenge world scores the run when its goal is reached (plan 131, ADR 0159 point 6)
 			if (event.type === 'milestone' && challenges && catalog) {
 				const finished = finishRun(challenges, catalog.worldId ?? 'legacy', event.id, {

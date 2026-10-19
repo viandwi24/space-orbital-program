@@ -45,6 +45,14 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 			return ctx.isActiveVessel(event.vessel)
 				? { kind: 'info', title: `Stage ${event.stage + 1} fired`, key: 'stage' }
 				: null;
+		case 'docked':
+			return ctx.isActiveVessel(event.vessel) || ctx.isActiveVessel(event.absorbed)
+				? { kind: 'success', title: 'Docked', key: 'dock' }
+				: null;
+		case 'undocked':
+			return ctx.isActiveVessel(event.vessel)
+				? { kind: 'info', title: `Undocked ${event.name}`, key: 'dock' }
+				: null;
 		case 'power-depleted':
 			return ctx.isActiveVessel(event.vessel)
 				? {

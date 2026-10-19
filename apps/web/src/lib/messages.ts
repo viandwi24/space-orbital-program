@@ -101,7 +101,11 @@ export type SimEvent =
 	/** Construction finished (plan 205's bell). */
 	| { type: 'building-ready'; kind: string; level: number }
 	/** Every control source of the vessel ran out of power (plan 208, ADR 0214). */
-	| { type: 'power-depleted'; vessel: number };
+	| { type: 'power-depleted'; vessel: number }
+	/** Two vessels docked (plan 222): `absorbed` is now part of `vessel`. */
+	| { type: 'docked'; vessel: number; absorbed: number }
+	/** An undock split `vessel` (plan 222): `restored` has its old name back. */
+	| { type: 'undocked'; vessel: number; restored: number; name: string };
 
 /**
  * The page-made end of the channel to the script Worker inside the sandbox iframe (ADR 0038): a
@@ -189,7 +193,9 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'part-failed',
 	'warp-stopped',
 	'building-ready',
-	'power-depleted'
+	'power-depleted',
+	'docked',
+	'undocked'
 ];
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

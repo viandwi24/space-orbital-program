@@ -8,6 +8,7 @@ import {
 	type BodyDefinition,
 	type Command,
 	type EntityId,
+	type PortAlignment,
 	type Snapshot,
 	type TargetRef,
 	type VesselSnapshot
@@ -24,7 +25,12 @@ export interface TargetChoice {
 	kind: 'body' | 'vessel';
 }
 
-export const targetKey = (ref: TargetRef): string => `${ref.kind}:${String(ref.id)}`;
+export const targetKey = (ref: TargetRef): string =>
+	ref.kind === 'vessel' && ref.part !== undefined
+		? `vessel:${String(ref.id)}:port:${String(ref.part)}`
+		: `${ref.kind}:${String(ref.id)}`;
+
+const PORT_SIZE_LABEL: Record<string, string> = { '0.625': 'small', '1.25': '', '2.5': 'large' };
 
 /**
  * What the vessel may aim at: every body, then every other vessel by name. The sim refuses
@@ -47,6 +53,19 @@ export function targetChoices(
 			ref,
 			label: v.name ?? `Vessel ${Number(v.id)}`,
 			kind: 'vessel'
+		});
+		// its free docking ports, each a target of its own (plan 222)
+		const free = (v.ports ?? []).filter((p) => p.free);
+		free.forEach((p, i) => {
+			const portRef: TargetRef = { kind: 'vessel', id: v.id, part: p.part };
+			const size = PORT_SIZE_LABEL[String(p.size)] ?? `${p.size} m`;
+			const which = free.length > 1 ? ` ${i + 1}` : '';
+			out.push({
+				key: targetKey(portRef),
+				ref: portRef,
+				label: `${v.name ?? `Vessel ${Number(v.id)}`} · ${size ? `${size} ` : ''}docking port${which}`,
+				kind: 'vessel'
+			});
 		});
 	}
 	return out;
@@ -84,6 +103,37 @@ export interface TargetHud {
 	approach: { in: number; distance: number; relativeSpeed: number } | null;
 	/** SAS is pointing at (`target`) or away from (`anti-target`) it. */
 	pointing: 'target' | 'anti-target' | null;
+	/** A targeted docking port's alignment (plan 222); null otherwise or out of range. */
+	port: PortHud | null;
+}
+
+/** Inside these the ports capture (ADR 0218): 15°, and the faces in line (the offset is a hint). */
+export const PORT_ALIGNED_ANGLE = 15;
+export const PORT_ALIGNED_OFFSET = 0.5;
+
+export interface PortHud {
+	angle: number;
+	offset: number;
+	distance: number;
+	closing: number;
+	aligned: boolean;
+	/** "Aligned 2.1° · offset 0.4 m · 4.8 m · closing 0.3 m/s": the indicator is text first. */
+	text: string;
+}
+
+export function portHud(a: PortAlignment): PortHud {
+	const aligned = a.angle <= PORT_ALIGNED_ANGLE && a.offset <= PORT_ALIGNED_OFFSET;
+	const rate =
+		Math.abs(a.closing) < 0.005
+			? 'steady'
+			: `${a.closing > 0 ? 'closing' : 'opening'} ${Math.abs(a.closing).toFixed(2)} m/s`;
+	const text = [
+		`${aligned ? 'Aligned' : 'Off'} ${a.angle.toFixed(1)}°`,
+		`offset ${a.offset.toFixed(2)} m`,
+		`${a.distance.toFixed(1)} m`,
+		rate
+	].join(' · ');
+	return { angle: a.angle, offset: a.offset, distance: a.distance, closing: a.closing, aligned, text };
 }
 
 /** The card for `v`'s target at sim time `t`, or null without one. */
@@ -108,6 +158,7 @@ export function targetHud(v: VesselSnapshot, t: number): TargetHud | null {
 					relativeSpeed: target.approach.relativeSpeed
 				}
 			: null,
-		pointing: mode === 'target' || mode === 'anti-target' ? mode : null
+		pointing: mode === 'target' || mode === 'anti-target' ? mode : null,
+		port: target.port ? portHud(target.port) : null
 	};
 }
