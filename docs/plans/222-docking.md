@@ -92,3 +92,10 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A. Defaults (owner rule, rancangan §15 and ADRs 0200–0210), recorded here:
+  - Numbers and the merge, undock and wake rules are in ADR 0218 (0208 point 3 links it). The plan said "ADR 0208"; the numbers needed their own ADR.
+  - No `SIM_SAVE_VERSION` bump: `docks` and `portBlockedUntil` are optional fields on world components and round-trip as they are (test "survives a save and resume"). The plan's "migration from version 8" is the existing 8→9 step of plan 208.
+  - Port states are `docked` and `crossfeed` in the module, plus `free` in the snapshot; "acquiring" is the pull, with no state of its own.
+  - "Control from here" is the existing plan 221 control-point button (`controlPoint: true`). "Set as target" is a Target list entry per free port, because a descriptor acts on the flying vessel's own parts.
+  - The Docking action group already existed (`stock.docking`); Undock sits in it.
+  - E2E: plan 203 is done, so the setup uses `debug.setOrbit` with `design` for the second vessel, the clock paused while both are placed.
