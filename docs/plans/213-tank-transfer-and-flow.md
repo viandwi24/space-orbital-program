@@ -1,7 +1,7 @@
 ---
 id: 213
 title: Tank transfer, flow locks, rates
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [208]
 phase: 7
@@ -70,19 +70,19 @@ The player can move a resource from one container to another (source, target, st
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/transfer.test.ts` passes: 100 u of LF moves from tank A to tank B at 20 u/s in 5 s ± one step; stop halts it; a full target stops it; solid fuel refuses with "Solid fuel cannot be transferred"; a save mid-transfer resumes it.
-- [ ] `bun test packages/sim/test/flow-lock.test.ts` passes: an engine fed by two tanks drains only the unlocked one; locking both flames it out with reason "no propellant".
-- [ ] `bun test packages/sim/test/resource-rates.test.ts` passes: a battery drained at 1 EC/s reports rate −1 ± 0.05 and time to empty within 2 % of amount / 1.
-- [ ] Chromium e2e `e2e/tank-transfer.e2e.ts`: `window.__orbitalDebug.setOrbit` and `debug.setResource` set up two half tanks; a `transfer` command sent through the debug API moves fuel and the snapshot read back through the page shows the new amounts.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `bun test packages/sim/test/transfer.test.ts` passes: 100 u of LF moves from tank A to tank B at 20 u/s in 5 s ± one step; stop halts it; a full target stops it; solid fuel refuses with "Solid fuel cannot be transferred"; a save mid-transfer resumes it.
+- [x] `bun test packages/sim/test/flow-lock.test.ts` passes: an engine fed by two tanks drains only the unlocked one; locking both flames it out with reason "no propellant".
+- [x] `bun test packages/sim/test/resource-rates.test.ts` passes: a battery drained at 1 EC/s reports rate −1 ± 0.05 and time to empty within 2 % of amount / 1.
+- [x] Chromium e2e `e2e/tank-transfer.e2e.ts`: `window.__orbitalDebug.setOrbit` and `debug.setResource` set up two half tanks; a `transfer` command sent through the debug API moves fuel and the snapshot read back through the page shows the new amounts.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/213-tank-transfer-and-flow.md` written.
-- [ ] `docs/architecture/simulation.md` "Resources" updated (locks, transfers, rates).
-- [ ] `docs/architecture/scripting.md` updated if the script API gains `transfer`.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/213-tank-transfer-and-flow.md` written.
+- [x] `docs/architecture/simulation.md` "Resources" updated (locks, transfers, rates).
+- [x] `docs/architecture/scripting.md` updated if the script API gains `transfer`.
 
 ## Log
 
@@ -92,3 +92,4 @@ The player can move a resource from one container to another (source, target, st
   - Step 4's script passthrough is skipped: the prelude exposes named functions, not commands by name (the plan's condition). It comes with plan 214's panel.
   - Flame-out on all tanks locked: the stock engine flames out as it does when dry (event `stock:engine-flameout`); its snapshot shows `flameout`.
   - Rates run in flight and rails steps; a vessel's totals are the sums of its parts' rows.
+- 2026-10-19 — Done. CI `refs/ci/pass/f0dd2843` after two red runs (career bots and a 100-part test too slow while every vessel's stores were measured every step; now flight and transfer vessels, once per 0.1 s). Rebased onto plan 212 as one commit; `check:affected --build --e2e` passed again locally.
