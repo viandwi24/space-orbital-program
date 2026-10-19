@@ -1,7 +1,7 @@
 ---
 id: 210
 title: "SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [207, 208]
 phase: 7
@@ -64,22 +64,22 @@ The first-flight parts a KSP player expects are in the game. Solid rocket booste
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/stock` passes, including `test/srb.test.ts`: an SRB ignores throttle, burns to empty and cannot shut down; at a 50 % limiter its burn time doubles.
-- [ ] `bun test packages/sim` passes `test/launch-clamp.test.ts`: a clamped rocket at full thrust does not move before staging; after staging it rises; EC stays full while clamped.
-- [ ] `bun test packages/sim` passes `test/booster-ascent.test.ts` (updated for the solid BST-1).
-- [ ] `bun test packages/core` passes the BST-1 save migration test.
-- [ ] `bun test packages/renderer` passes `test/part-seams.test.ts` (from plan 207) for every new generator.
-- [ ] `bun test mods/stock` passes the part-id snapshot (new parts only, existing ids unchanged).
-- [ ] Chromium e2e `e2e/clamps-and-srb.e2e.ts`: launch a design with two clamps and two SRBs; the vessel stays on the pad until the first stage; after staging the SRBs burn out and the HUD shows no throttle effect on them.
-- [ ] `bun run check:affected --e2e e2e/clamps-and-srb.e2e.ts` passes.
-- [ ] CI green on the `ready/210` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test mods/stock` passes, including `test/srb.test.ts`: an SRB ignores throttle, burns to empty and cannot shut down; at a 50 % limiter its burn time doubles.
+- [x] `bun test packages/sim` passes `test/launch-clamp.test.ts`: a clamped rocket at full thrust does not move before staging; after staging it rises; EC stays full while clamped.
+- [x] `bun test packages/sim` passes `test/booster-ascent.test.ts` (updated for the solid BST-1).
+- [x] `bun test packages/core` passes the BST-1 save migration test.
+- [x] `bun test packages/renderer` passes `test/part-seams.test.ts` (from plan 207) for every new generator.
+- [x] `bun test mods/stock` passes the part-id snapshot (new parts only, existing ids unchanged).
+- [x] Chromium e2e `e2e/clamps-and-srb.e2e.ts`: launch a design with two clamps and two SRBs; the vessel stays on the pad until the first stage; after staging the SRBs burn out and the HUD shows no throttle effect on them.
+- [x] `bun run check:affected --e2e e2e/clamps-and-srb.e2e.ts` passes.
+- [x] CI green on the `ready/210` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/210-propulsion-and-structure-pack.md` written.
-- [ ] `docs/architecture/simulation.md` updated (solid engines, clamps).
-- [ ] ADR 0203 linked; ADR 0019 notes clamps are back as parts.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/210-propulsion-and-structure-pack.md` written.
+- [x] `docs/architecture/simulation.md` updated (solid engines, clamps).
+- [x] ADR 0203 linked; ADR 0019 notes clamps are back as parts.
 
 ## Log
 
@@ -90,3 +90,4 @@ The first-flight parts a KSP player expects are in the game. Solid rocket booste
   - "Refuses placement off a pad": a clamp holds only within 40 m of the ground (so not in orbit or after a debug teleport); the Hangar warning goes to plan 218's pre-flight report.
   - The new parts sit in existing tech nodes (clamp in Basics, SRBs and the vacuum engine in Propulsion, 2.5 m in Structures, the experiments in Instruments) until plan 231.
   - Reset of a held experiment needs no crew for now (KSP needs a scientist or a lab).
+- 2026-10-19 — Done. CI `refs/ci/pass/23d419a2`; rebased onto plan 209 (parachutes) as one commit, `check:affected --build --e2e` and the parachute and launch e2e passed again locally. Tests that need a liquid side booster use the new LB-1 (`stock.booster-liquid`).
