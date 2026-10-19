@@ -1,7 +1,7 @@
 ---
 id: 215
 title: HUD layout spec and stable camera framing
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [204]
 phase: 7
@@ -73,20 +73,20 @@ Every flight HUD region has a minimum, default and maximum width, a bounded heig
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/layout/regions.test.ts`: at 1440 × 900 both side panels may be open; at 1279 opening the vessel panel closes the dock; at 1024 both are drawers; at scale 1.25 and 1440 px the layout drops to the one-panel rule.
-- [ ] `apps/web` vitest `lib/ui/tokens.test.ts` asserts every type token is at least 10 px at scales 0.8 through 1.5.
-- [ ] Chromium e2e `e2e/hud-layout.e2e.ts` at 1440 × 900, 1280 × 800 and 1024 × 768: no two HUD regions overlap (bounding boxes); the staging stack with 6 stages scrolls inside; at most 4 toasts are visible after `window.__orbitalDebug.log` pushes 6 warnings.
-- [ ] Chromium e2e `e2e/hud-layout.e2e.ts` camera case: the projected screen position of the vessel root (read through `window.__orbitalDebug`) moves by less than 2 px when the vessel panel opens and closes.
-- [ ] `e2e/ui-scale.e2e.ts` still passes on Chromium.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/layout/regions.test.ts`: at 1440 × 900 both side panels may be open; at 1279 opening the vessel panel closes the dock; at 1024 both are drawers; at scale 1.25 and 1440 px the layout drops to the one-panel rule.
+- [x] `apps/web` vitest `lib/ui/tokens.test.ts` asserts every type token is at least 10 px at scales 0.8 through 1.5.
+- [x] Chromium e2e `e2e/hud-layout.e2e.ts` at 1440 × 900, 1280 × 800 and 1024 × 768: no two HUD regions overlap (bounding boxes); the staging stack with 6 stages scrolls inside; at most 4 toasts are visible after `window.__orbitalDebug.log` pushes 6 warnings.
+- [x] Chromium e2e `e2e/hud-layout.e2e.ts` camera case: the projected screen position of the vessel root (read through `window.__orbitalDebug`) moves by less than 2 px when the vessel panel opens and closes.
+- [x] `e2e/ui-scale.e2e.ts` still passes on Chromium.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/215-hud-layout-spec.md` written, with screenshots at the three widths.
-- [ ] `docs/architecture/overview.md` updated (layout regions and camera framing).
-- [ ] `docs/product/visual-direction.md` updated if a deviation from the refs is recorded.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/215-hud-layout-spec.md` written, with screenshots at the three widths.
+- [x] `docs/architecture/overview.md` updated (layout regions and camera framing).
+- [x] `docs/product/visual-direction.md` updated if a deviation from the refs is recorded.
 
 ## Log
 

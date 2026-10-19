@@ -37,5 +37,8 @@ At 1440 × 900, 1280 × 800 and 1024 × 768, vessel panel open: `assets/215-flig
 ## Verification output
 
 ```
-(filled in at handover)
+web vitest: regions 5, tokens 90 (floor at 0.8–1.5 and the contrast tests), toasts 15, layout-model 24 pass; renderer scene 14 (easing)
+check:affected --build --e2e e2e/hud-layout.e2e.ts (after the rebase on plan 213): all passed in 116 s, hud-layout 4/4
+playwright chromium: mobile (12), touch (2), ui-scale (2), vessel-panel, smoke (7), world-shell pass
+CI ready/215: refs/ci/pass/8883f83c
 ```
