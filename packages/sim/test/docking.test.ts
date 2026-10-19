@@ -1,6 +1,6 @@
 /** Docking (plan 222, ADR 0218): capture and merge, undock and restore, crossfeed, determinism. */
 import { describe, expect, test } from 'bun:test';
-import type { EntityId, Plugin, Quat, Vec3, VesselDesign } from '@orbital/core';
+import type { CommandResult, EntityId, Plugin, Quat, Vec3, VesselDesign } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { defineModule, definePlugin } from '@orbital/sdk';
 import { createSim, type Sim } from '../src/index.ts';
@@ -111,6 +111,12 @@ const names = (sim: Sim) =>
 		.snapshot()
 		.vessels.map((v) => v.name ?? '')
 		.sort();
+
+/** The vessel a `load-vessel` made; throws on a refusal. */
+const loaded = (r: CommandResult): EntityId => {
+	if (!r.ok || r.vessel === undefined) throw new Error(r.ok ? 'no vessel' : r.reason);
+	return r.vessel;
+};
 
 describe('docking (plan 222)', () => {
 	test('aligned ports 5 m apart closing at 0.2 m/s become one vessel within 10 s', async () => {
@@ -295,17 +301,17 @@ describe('docking (plan 222)', () => {
 			});
 			const part = sim
 				.snapshot()
-				.vessels.find((v) => v.id === a.vessel)!
+				.vessels.find((v) => v.id === loaded(a))!
 				.parts.find((p) => p.definition === 'fix.awake')!;
 			sim.dispatch({
 				type: 'action',
-				vessel: a.vessel!,
+				vessel: loaded(a),
 				part: part.id,
 				module: 'fix.awake',
 				action: 'wake'
 			});
 			run(sim, 6);
-			const station = sim.snapshot().vessels.find((v) => v.id === b.vessel)!;
+			const station = sim.snapshot().vessels.find((v) => v.id === loaded(b))!;
 			expect(station.mode, `${gap} m`).toBe(mode);
 			sim.dispose();
 		}
