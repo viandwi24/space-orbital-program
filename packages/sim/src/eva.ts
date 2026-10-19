@@ -524,16 +524,26 @@ function stepLatch(
 	const partId = latch.part as EntityId;
 	if (latch.rate !== 0 && dt > 0) {
 		const len = ladderLength(core, partId);
-		latch.s = Math.max(0, Math.min(1, latch.s + (latch.rate * CLIMB_SPEED * dt) / Math.max(len, 1e-6)));
+		latch.s = Math.max(
+			0,
+			Math.min(1, latch.s + (latch.rate * CLIMB_SPEED * dt) / Math.max(len, 1e-6))
+		);
 	}
 	const m = bodyMotion(frame, target);
 	const at = add(m.origin, qRotate(m.rotation, hangPoint(core, vesselId, partId, latch.s)));
-	const tangent = qRotate(m.rotation, sub(hangPoint(core, vesselId, partId, 1), hangPoint(core, vesselId, partId, 0)));
+	const tangent = qRotate(
+		m.rotation,
+		sub(hangPoint(core, vesselId, partId, 1), hangPoint(core, vesselId, partId, 0))
+	);
 	const len = length(tangent);
-	const climb = len > 0 && dt > 0 ? scale(tangent, (latch.rate * CLIMB_SPEED) / len) : { x: 0, y: 0, z: 0 };
+	const climb =
+		len > 0 && dt > 0 ? scale(tangent, (latch.rate * CLIMB_SPEED) / len) : { x: 0, y: 0, z: 0 };
 	const position = sub(at, qRotate(m.rotation, body.com));
 	frame.backend.setTransform(body.handle, { position, rotation: m.rotation });
-	const linear = add(add(m.linear, cross(m.angular, sub(at, m.centre))), latch.s > 0 && latch.s < 1 ? climb : { x: 0, y: 0, z: 0 });
+	const linear = add(
+		add(m.linear, cross(m.angular, sub(at, m.centre))),
+		latch.s > 0 && latch.s < 1 ? climb : { x: 0, y: 0, z: 0 }
+	);
 	frame.backend.setVelocity(body.handle, { linear, angular: m.angular });
 	core.active.add(suitId);
 }
