@@ -93,6 +93,7 @@ Use these terms consistently in code, docs, and UI.
 | **Capacity gate** | A limit raised by a building level or tech (part count, launch mass, pad size, crew, contract slots, network power, prediction quality). Flight tools are never gated. |
 | **Objective** | A deterministic primitive (reach orbit, land in a region, return a sample, hold a link, by a date) evaluated on events and ticks; contracts and missions are built from objectives. |
 | **Contract** | A job with an advance, a reward, a penalty and a deadline. Authored ones are `defineContract`; procedural ones come from a `defineContractTemplate` as **offers** (plan 099). |
+| **Rescue contract / stranded crew** | A contract (plan 231, ADR 0231) that spawns a pod in orbit with a new crew member aboard when it is accepted. Bringing them home and recovering them completes it; the member then joins the roster. |
 | **Contract slot / expected value** | Slots: how many contracts may be active at once (the Mission Center's `mission-control` capacity). Expected value: an offer's advance plus reward funds, less its estimated launch cost; labelled an estimate (ADR 0186). |
 | **Mission** | A written job in the story line or a mission pack (`defineMission`), on the same evaluator as contracts. |
 | **Strategy** | A policy activated in Administration (`defineStrategy`). It scales declared multiplier keys (launch cost, recovery, science, reputation, contract funds, budget) within each key's bounds, for an upkeep every 30 days; the screen shows a 90-day projection first (ADR 0187). |

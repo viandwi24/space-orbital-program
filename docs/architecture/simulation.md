@@ -150,6 +150,18 @@ A data item (`DataItem`: `id`, `kind`, `bits`, `value`, `time`, optional `source
   - `contract-accept` checks the `mission-control` slots of the primary site (none = no limit), pays the advance (cause `contract.advance`) and starts an objective instance with source `{ kind: 'contract', id: 'gen.<n>' }` and `since`, the highest vessel id then. `definitionOf` resolves `gen.*` ids from the contract state. `viewFor` keeps only vessels with a higher id.
   - `contract-decline` sets the cooldown.
   - `contract-cancel` fails the instance with `cancelled`, and its penalty is booked.
+- **Plan 231 (ADR 0231):**
+  - Templates get `ctx.milestones`, the world's firsts so far, and the stock rescue, satellite, station and docking templates wait for theirs.
+  - A blueprint's `spawn` is made on accept: the design on rails in a circular orbit at `altitude`, and with `member` a new crew member stranded in its first seat (`strandMember`: free, past the roster cap). It is kept on the offer as `spawned`.
+  - The objective view's vessels carry:
+    - `inclination`;
+    - `seats` and `crew`;
+    - `antenna` (a module with an antenna hook);
+    - `power` (a module whose power rate is positive);
+    - `ports`;
+    - `docked` (the vessel has dock records).
+  - `viewFor` keeps a vessel from before the instance when a vessel newer than `since` docked to it.
+  - `ObjectiveView.rescues` lists the instance's stranded members with their status. `stock.rescue` is done when they are `available` again (recovered), and failed when one is lost.
 - **`Snapshot.contracts`** carries `enabled`, `slots`, `used`, the offers with `value`, and the accepted ones with their instance, status and deadline.
 
 ## Strategies (plan 101, ADR 0187)

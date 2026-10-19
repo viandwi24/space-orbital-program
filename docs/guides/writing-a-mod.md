@@ -302,6 +302,11 @@ ctx.strategies.register(defineStrategy({
 
 A template makes procedural contracts. The world offers one at most each day, while fewer than five offers wait.
 
+Since API 0.1.84 (plan 231, ADR 0231):
+- **`ctx.milestones`** lists the world's firsts (`orbit:stock.home`, `dock:stock.home`). Return null until the one your job needs exists.
+- **`spawn: { design, body, altitude, member: true }`** makes a vessel when the player accepts: the design in a circular orbit, with a stranded crew member aboard. The stock `stock.rescue` objective is done once they are recovered at home.
+- **The objective view** also tells inclination, seats, crew, antenna, power, ports and docked per vessel. The stock primitives `stock.satellite`, `stock.station` and `stock.dock` use them.
+
 ```ts
 ctx.contractTemplates.register(defineContractTemplate({
 	id: 'acme.high-hop',
@@ -428,7 +433,8 @@ ctx.siteTemplates.register(defineSiteTemplate({
 **Stored science and the science panel (API 0.1.74, plan 191, ADR 0194).**
 
 - **`VesselSnapshot.science.stored`:** each science result aboard, as `{ item, subject, value, factor }`. Transmitting it credits `value × factor`.
-- **The stock panel `stock.science`:** lists the experiments and the stored results. It runs the next experiment that may run and transmits the best result. A panel of your own can read the same fields.
+- **The stock panel `stock.science`:** lists the experiments with a Run button each, and the stored results with Transmit and Discard each. Its two shortcuts run the next experiment that may run and transmit the best result. A panel of your own can read the same fields.
+- **Buttons on a list row** (API 0.1.84, plan 231): a list item may carry `actions: [{ label, command }]`. Each is evaluated like a button, and a null command shows the button disabled.
 
 ## Catalogue categories (API 0.1.43, plan 069, ADR 0146)
 

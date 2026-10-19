@@ -133,7 +133,7 @@ export const ROADMAP: readonly RoadmapItem[] = [
 		plan: '099',
 		title: 'Contracts',
 		gives:
-			'Offers from the world that pay in funds, science and reputation: reach an orbit, test a part, bring data back.',
+			'Offers from the world that pay in funds, science and reputation: reach an orbit, rescue a stranded crew member, place a satellite, build a station, dock two vessels.',
 		phase: 'Career'
 	},
 	{
@@ -174,7 +174,8 @@ export const ROADMAP: readonly RoadmapItem[] = [
 	{
 		plan: '105',
 		title: 'Tech tree and R&D',
-		gives: 'Unlock parts with science in a research building, with the tree shown as it grows.',
+		gives:
+			'Unlock parts with science in a research building: 22 nodes over six tiers, every part in one of them, the tree shown as it grows.',
 		phase: 'Career'
 	},
 	{
