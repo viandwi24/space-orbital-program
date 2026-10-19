@@ -37,6 +37,7 @@ describe('stock boots through the loader', () => {
 			'stock.heat-shield',
 			'stock.landing-leg',
 			'stock.probe-computer',
+			'stock.rcs',
 			'stock.reaction-wheel',
 			'stock.resource-container',
 			'stock.rtg',
@@ -71,12 +72,16 @@ describe('stock boots through the loader', () => {
 			'stock.heat-shield',
 			'stock.landing-legs',
 			'stock.life-support-pack',
+			'stock.monoprop-radial',
+			'stock.monoprop-tank',
 			'stock.nose-cone',
 			'stock.nose-cone-large',
 			'stock.nose-cone-medium',
 			'stock.nose-cone-small',
 			'stock.probe-core',
 			'stock.radial-decoupler',
+			'stock.rcs-block',
+			'stock.rcs-cold-gas',
 			'stock.reaction-wheel',
 			'stock.rtg',
 			'stock.scrubber',
@@ -162,8 +167,8 @@ describe('stock boots through the loader', () => {
 				}
 			}
 		}
-		// monopropellant and solid fuel wait for their parts (plans 210 and 211)
-		const later = new Set(['stock.monopropellant', 'stock.solid-fuel']);
+		// solid fuel waits for its parts (plan 210)
+		const later = new Set(['stock.solid-fuel']);
 		expect([...used].sort()).toEqual(
 			registries.resources
 				.list()
@@ -178,6 +183,9 @@ describe('stock boots through the loader', () => {
 		const special = new Set([
 			'stock.radial-decoupler',
 			'stock.booster',
+			'stock.rcs-block',
+			'stock.rcs-cold-gas',
+			'stock.monoprop-radial',
 			'stock.nose-cone',
 			'stock.nose-cone-small',
 			'stock.nose-cone-medium',

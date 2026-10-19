@@ -149,6 +149,8 @@ export interface VesselSnapshot {
 	 * control source, or every source needs power the vessel has run out of.
 	 */
 	uncontrolled?: 'no-source' | 'no-crew' | 'no-power';
+	/** RCS is on (plan 211); absent while off. */
+	rcs?: true;
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;
@@ -574,7 +576,17 @@ export interface DebugSnapshot {
 
 export type Command =
 	| { type: 'throttle'; vessel: EntityId; value: number }
-	| { type: 'attitude'; vessel: EntityId; pitch: number; yaw: number; roll: number }
+	| {
+			type: 'attitude';
+			vessel: EntityId;
+			pitch: number;
+			yaw: number;
+			roll: number;
+			/** RCS translation (plan 211), each -1..1 in vessel axes: x right, y forward, z up; kept when absent. */
+			translate?: { x: number; y: number; z: number };
+	  }
+	/** Switch RCS on or off for the vessel (plan 211, ADR 0216). */
+	| { type: 'set-rcs'; vessel: EntityId; on: boolean }
 	| { type: 'stage'; vessel: EntityId }
 	/** Pitch trim (plan 063, ADR 0161 point 4): -1..1 added to the pitch demand; kept until changed. */
 	| { type: 'trim'; vessel: EntityId; pitch: number }

@@ -100,8 +100,16 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		vessel: entity,
 		pitch: z.number().min(-1).max(1),
 		yaw: z.number().min(-1).max(1),
-		roll: z.number().min(-1).max(1)
+		roll: z.number().min(-1).max(1),
+		translate: z
+			.object({
+				x: z.number().min(-1).max(1),
+				y: z.number().min(-1).max(1),
+				z: z.number().min(-1).max(1)
+			})
+			.optional()
 	}),
+	z.object({ type: z.literal('set-rcs'), vessel: entity, on: z.boolean() }),
 	z.object({ type: z.literal('stage'), vessel: entity }),
 	z.object({ type: z.literal('trim'), vessel: entity, pitch: z.number().min(-1).max(1) }),
 	z.object({

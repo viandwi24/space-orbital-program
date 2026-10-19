@@ -1,7 +1,7 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleCommand, ModuleReactionWheel, ModuleResourceContainer } from '../modules.ts';
-import { ElectricCharge } from '../resources.ts';
+import { ElectricCharge, Monopropellant } from '../resources.ts';
 import { ModuleDataStorage } from '../data.ts';
 import { cylinder, stackNodes } from './shared.ts';
 
@@ -22,7 +22,17 @@ export const PartCommandPod = definePart({
 	attach: stackNodes(1, 0.625, 1.25),
 	modules: [
 		[ModuleCommand],
-		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 50 } } }]
+		// a monopropellant reserve for RCS (plan 211, ADR 0203 point 5), empty at build: filling it
+		// would change the reference rockets' mass and every frozen flight of the tests
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					[ElectricCharge.id]: { capacity: 50 },
+					[Monopropellant.id]: { capacity: 10, amount: 0 }
+				}
+			}
+		]
 	],
 	stagingIcon: 'command'
 });

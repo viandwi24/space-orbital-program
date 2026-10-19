@@ -108,6 +108,10 @@ export interface VesselState {
 	/** Part entities, ascending. */
 	parts: EntityId[];
 	control: ControlState;
+	/** RCS on (plan 211); absent is off. */
+	rcs?: boolean;
+	/** RCS translation demand in vessel axes (plan 211); absent is none. */
+	translate?: { x: number; y: number; z: number };
 	/** Stability assist (plan 042). */
 	sas: SasState;
 	/** Maneuver nodes in time order, at most `MAX_NODES` (plan 045). */

@@ -115,6 +115,14 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			if (!isTurned(part)) return { x: c.pitch, y: c.roll, z: c.yaw };
 			return qRotate(qConj(partRotation(part)), { x: c.pitch, y: c.roll, z: c.yaw });
 		},
+		get rcs(): boolean {
+			return vessel.rcs === true;
+		},
+		get translateDemand(): Vec3 {
+			const t = vessel.translate ?? { x: 0, y: 0, z: 0 };
+			if (!isTurned(part)) return { x: t.x, y: t.y, z: t.z };
+			return qRotate(qConj(partRotation(part)), t);
+		},
 		applyTorque(torque) {
 			finiteVec(torque, 'torque');
 			const { backend, transform, handle } = pose();

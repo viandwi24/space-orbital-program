@@ -9,6 +9,7 @@ export * from './engines.ts';
 export * from './ground.ts';
 export * from './life-support.ts';
 export * from './power.ts';
+export * from './rcs.ts';
 export * from './recovery.ts';
 export * from './science.ts';
 export * from './structure.ts';

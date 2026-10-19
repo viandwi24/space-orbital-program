@@ -370,7 +370,12 @@ export function dispatch(
 			if (typeof v === 'string') return refuse(v);
 			const noSignal = signalRefusal(core, command.vessel, 'attitude');
 			if (noSignal) return refuse(noSignal);
-			const demanded = command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0;
+			const t = command.translate;
+			if (t && ![t.x, t.y, t.z].every((n) => Number.isFinite(n) && Math.abs(n) <= 1))
+				return refuse('translate must be three numbers in -1..1');
+			const translating = t !== undefined && (t.x !== 0 || t.y !== 0 || t.z !== 0);
+			const demanded =
+				command.pitch !== 0 || command.yaw !== 0 || command.roll !== 0 || translating;
 			if (demanded && v.mode === 'on-rails') {
 				const why = ensureFlight(core, command.vessel, 'attitude');
 				if (why) return refuse(why);
@@ -378,6 +383,19 @@ export function dispatch(
 			v.control.pitch = command.pitch;
 			v.control.yaw = command.yaw;
 			v.control.roll = command.roll;
+			if (t !== undefined) {
+				if (translating) v.translate = { x: t.x, y: t.y, z: t.z };
+				else delete v.translate;
+			}
+			return accept();
+		}
+		case 'set-rcs': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'set-rcs');
+			if (noSignal) return refuse(noSignal);
+			if (command.on) v.rcs = true;
+			else delete v.rcs;
 			return accept();
 		}
 		case 'sas': {

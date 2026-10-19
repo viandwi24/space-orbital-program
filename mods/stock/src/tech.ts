@@ -79,7 +79,12 @@ export const STOCK_TECH = [
 			'stock.solar-panel',
 			'stock.solar-panel-fixed',
 			'stock.battery-small',
-			'stock.battery-medium'
+			'stock.battery-medium',
+			// reaction control (plan 211); plan 231 may move them
+			'stock.rcs-block',
+			'stock.rcs-cold-gas',
+			'stock.monoprop-tank',
+			'stock.monoprop-radial'
 		]
 	}),
 	defineTechNode({

@@ -50,6 +50,7 @@ import {
 	STOCK_LIFE_SUPPORT_PARTS,
 	PartWing,
 	STOCK_ADAPTER_PARTS,
+	STOCK_RCS_PARTS,
 	STOCK_CONE_PARTS
 } from './parts/index.ts';
 import {
@@ -81,6 +82,7 @@ import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { PanelScience } from './panels.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
+import { ModuleRcs } from './rcs.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
 import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
@@ -127,6 +129,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleScrubber);
 		ctx.modules.register(ModuleSolarPanel);
 		ctx.modules.register(ModuleRtg);
+		ctx.modules.register(ModuleRcs);
 		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
@@ -179,6 +182,8 @@ export const Stock = definePlugin({
 		// size adapters and cones in every size class (plan 207, ADR 0212)
 		for (const part of STOCK_ADAPTER_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_CONE_PARTS) ctx.parts.register(part);
+		// reaction control (plan 211, ADR 0216)
+		for (const part of STOCK_RCS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_POWER_PARTS) ctx.parts.register(part);
@@ -217,6 +222,7 @@ export * from './bodies.ts';
 export * from './eva.ts';
 export * from './panels.ts';
 export * from './solar.ts';
+export * from './rcs.ts';
 export * from './engine.ts';
 export * from './rules.ts';
 export * from './costs.ts';

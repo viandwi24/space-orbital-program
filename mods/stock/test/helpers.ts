@@ -54,6 +54,9 @@ export interface FakeVessel extends VesselApi {
 	centre: Vec3;
 	/** What `torqueDemand` returns. */
 	demand: Vec3;
+	/** RCS on and the translation demand (plan 211). */
+	rcs: boolean;
+	translateDemand: Vec3;
 	/** What `sunExposure` sees: the star's direction in the part frame and the flux. */
 	sun: { direction: Vec3 | null; flux: number };
 }
@@ -71,6 +74,8 @@ export function fakeVessel(stock: Record<string, number> = {}): FakeVessel {
 		centre: { x: 0, y: 0, z: 0 },
 		demand: { x: 0, y: 0, z: 0 },
 		sun: { direction: null, flux: 1 },
+		rcs: false,
+		translateDemand: { x: 0, y: 0, z: 0 },
 		sunExposure: (_dt, factor) => v.sun.flux * Math.max(0, factor(v.sun.direction)),
 		situation: () => undefined,
 		science: { result: () => undefined, credit: () => {} },

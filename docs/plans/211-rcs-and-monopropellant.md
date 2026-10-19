@@ -1,12 +1,12 @@
 ---
 id: 211
 title: RCS thrusters and monopropellant
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [208, 216]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 211 — RCS thrusters and monopropellant

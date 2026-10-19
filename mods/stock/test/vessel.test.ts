@@ -26,7 +26,7 @@ function propellantMass(part: string): number {
 	const { contents } = containerConfigSchema.parse(entry[1]);
 	return Object.entries(contents)
 		.filter(([id]) => id !== 'stock.electric-charge')
-		.reduce((sum, [id, c]) => sum + c.capacity * registries.resources.get(id)!.density, 0);
+		.reduce((sum, [id, c]) => sum + c.amount * registries.resources.get(id)!.density, 0);
 }
 const wet = (part: string): number => dry(part) + propellantMass(part);
 const engineConfig = {

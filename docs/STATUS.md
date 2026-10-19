@@ -157,7 +157,7 @@
 | 208 | [Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost](plans/208-power-and-resources.md) | done | Worker A | ADR 0214: monoprop, solid fuel, cold gas (save format 9); batteries, fixed/folding/tracking panels with angle, distance and shadow, RTG; probe drain and no-power control; transmit EC cost; `powerBudget`; merged by the brief's fallback (CI red with no visible cause) |
 | 209 | [Parachutes](plans/209-parachutes.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
 | 210 | [SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts](plans/210-propulsion-and-structure-pack.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207, 208]. |
-| 211 | [RCS thrusters and monopropellant](plans/211-rcs-and-monopropellant.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208, 216]. |
+| 211 | [RCS thrusters and monopropellant](plans/211-rcs-and-monopropellant.md) | in-progress | Worker A | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208, 216]. |
 | 212 | [Mach effects, atmosphere temperature curves, heating rule, part temperature limits](plans/212-flight-model-additions.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 213 | [Tank transfer, flow locks, rates](plans/213-tank-transfer-and-flow.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [208]. |
 | 214 | [Vessel panel v2 and the part inspector](plans/214-vessel-panel-v2.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204, 213]. |

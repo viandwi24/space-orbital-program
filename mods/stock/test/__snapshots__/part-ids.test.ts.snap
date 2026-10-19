@@ -18,6 +18,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             "stock.electric-charge": {
               "capacity": 50,
             },
+            "stock.monopropellant": {
+              "amount": 0,
+              "capacity": 10,
+            },
           },
         },
       ],
@@ -411,6 +415,146 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "id": "stock.tail-cone-large",
     "mass": 150,
     "modules": [],
+  },
+  {
+    "cost": 300,
+    "id": "stock.rcs-block",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.rcs",
+        {
+          "ispSeaLevel": 100,
+          "ispVacuum": 240,
+          "nozzles": [
+            {
+              "dir": [
+                0,
+                -1,
+                0,
+              ],
+              "pos": [
+                0.05,
+                0.14,
+                0,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                1,
+                0,
+              ],
+              "pos": [
+                0.05,
+                -0.14,
+                0,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                0,
+                -1,
+              ],
+              "pos": [
+                0.05,
+                0,
+                0.14,
+              ],
+            },
+            {
+              "dir": [
+                0,
+                0,
+                1,
+              ],
+              "pos": [
+                0.05,
+                0,
+                -0.14,
+              ],
+            },
+          ],
+          "propellant": "stock.monopropellant",
+          "thrust": 1000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 90,
+    "id": "stock.rcs-cold-gas",
+    "mass": 15,
+    "modules": [
+      [
+        "stock.rcs",
+        {
+          "ispSeaLevel": 40,
+          "ispVacuum": 70,
+          "nozzles": [
+            {
+              "dir": [
+                -1,
+                0,
+                0,
+              ],
+              "pos": [
+                0.07,
+                0,
+                0,
+              ],
+            },
+          ],
+          "propellant": "stock.cold-gas",
+          "thrust": 200,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.cold-gas": {
+              "capacity": 8,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 90,
+    "id": "stock.monoprop-tank",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.monopropellant": {
+              "capacity": 120,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 30,
+    "id": "stock.monoprop-radial",
+    "mass": 20,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.monopropellant": {
+              "capacity": 30,
+            },
+          },
+        },
+      ],
+    ],
   },
   {
     "cost": 100,

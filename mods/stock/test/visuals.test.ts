@@ -16,6 +16,7 @@ const KINDS = [
 	'nose-cone',
 	'tail-cone',
 	'adapter',
+	'rcs-block',
 	'fin',
 	'control-surface',
 	'wing',

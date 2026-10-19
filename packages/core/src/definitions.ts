@@ -208,6 +208,13 @@ export interface VesselApi {
 	 * each -1..1 (`control` rotated by the part's yaw). Available in both modes (ADR 0045).
 	 */
 	readonly torqueDemand: Vec3;
+	/** RCS is switched on for the vessel (plan 211, ADR 0216): thrusters may fire. */
+	readonly rcs: boolean;
+	/**
+	 * The translation demand in the part frame, each -1..1 (plan 211): the player's `translate`
+	 * (vessel axes: `x` right, `y` forward along the nose, `z` up) turned like `torqueDemand`.
+	 */
+	readonly translateDemand: Vec3;
 	/**
 	 * Resources reachable from this part according to each resource's `flowMode` (and parts'
 	 * `crossfeed`). Amounts are in the resource's unit; `withdraw`/`deposit` return what moved.

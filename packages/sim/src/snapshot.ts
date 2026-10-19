@@ -148,6 +148,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	if (recoveryBlocker(core, id) === undefined) snapshot.recovery = quoteRecovery(core, id);
 	const uncontrolled = controlProblem(core, vessel);
 	if (uncontrolled) snapshot.uncontrolled = uncontrolled;
+	if (vessel.rcs) snapshot.rcs = true;
 	if (storagesOf(core, id).length > 0) snapshot.data = dataUse(core, id);
 	const crew = vesselCrewSnapshot(core, id);
 	if (crew) snapshot.crew = crew;
