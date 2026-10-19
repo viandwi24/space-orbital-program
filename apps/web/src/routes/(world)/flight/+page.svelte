@@ -838,6 +838,15 @@
 	let stagingBox = $state<{ top: number; right: number } | undefined>(undefined);
 	/** Top of the crew panel at the bottom right, 0 when hidden: the side column stops above it (plan 214). */
 	let crewTop = $state(0);
+	let crewEl = $state<HTMLDivElement>();
+	$effect(() => {
+		// the crew panel grows with its broadcast offers after the first measure: measure again then
+		const el = crewEl;
+		if (!el || typeof ResizeObserver === 'undefined') return;
+		const ro = new ResizeObserver(() => queueMicrotask(updateInsets));
+		ro.observe(el);
+		return () => ro.disconnect();
+	});
 	/** The flight's own box (inside the world layout's bars since plan 204): every measure is relative to it. */
 	let stageEl = $state<HTMLDivElement>();
 	function updateInsets(): void {
@@ -1222,7 +1231,7 @@
 			</div>
 
 			{#if !touchOn}
-				<div class="br">
+				<div class="br" bind:this={crewEl}>
 					<CrewPanel
 						card={model?.crew ?? null}
 						eva={hud.eva}
@@ -1498,7 +1507,8 @@
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
 		right: calc(var(--margin-hud) + var(--safe-right));
 		width: 13.75rem;
-		max-height: var(--above-deck);
+		/* half the box at most, so the side column above keeps room (plan 214) */
+		max-height: min(var(--above-deck), calc(50% - var(--margin-hud)));
 		overflow-y: auto;
 	}
 	.script {
