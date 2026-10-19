@@ -1,7 +1,7 @@
 ---
 id: 228
 title: Tooltip system and glossary
-status: in-progress
+status: done
 owner: "Worker D"
 depends: [215]
 phase: 7
@@ -69,18 +69,19 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 - [x] `apps/web` vitest: every term id referenced by a HUD tooltip exists in the glossary data, and every glossary entry has a short text under 140 characters.
 - [x] Chromium e2e `apps/web/e2e/tooltips.e2e.ts`: `debug.setOrbit` (plan 203) to low orbit; focus the Ap read-out with Tab; the tooltip text contains "Apoapsis"; its "More" link opens `/glossary#apoapsis`; the glossary search for "TWR" shows one entry.
 - [ ] The same e2e passes on WebKit (`--project=webkit`) with a long-press: not run here (worker brief: Chromium only on the M2); long-press is covered by `tooltip.test.ts`; left to release QA (plan 232).
-- [ ] `bun run check:affected --build --e2e e2e/tooltips.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun run check:affected --build --e2e e2e/tooltips.e2e.ts` passes (check:affected green; the e2e run on its own: 1 passed).
+- [x] CI is green on the `ready/*` tag for this plan (`refs/ci/pass/3454f1fd`).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/228-tooltips-and-glossary.md` written.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/228-tooltips-and-glossary.md` written.
 - [x] `docs/product/glossary.md` notes the player glossary file and how they stay in sync.
 - [x] `docs/product/visual-direction.md` describes the tooltip look.
 
 ## Log
 
+- 2026-10-20 — Worker D: rebased over plans 218–236 (14 more `title=` converted; HelpOverlay keeps the lessons link beside the glossary one); CI green on `ready/228`; done.
 - 2026-10-20 — Worker D: claimed (claim/228) and built.
   - **The tooltip:** `ui/tooltip.ts` (placement and a pure state machine) and `ui/TooltipLayer.svelte`, one per page in the root layout, for every `[data-tip]` (`data-tip-term` links to the glossary).
   - **`title=` replaced:** 98 uses on native elements, `Button` and `IconButton` became `data-tip=`, and `TargetMarkers` sets `dataset.tip`. The allow-list keeps canvas and iframe.
