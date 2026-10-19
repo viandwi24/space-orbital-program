@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { CURRENCIES } from './economy.ts';
 import { objectiveNodeSchema, type ObjectiveNode, type RewardEntry } from './objectives.ts';
 import { definitionIdSchema } from './schemas.ts';
+import type { VesselDesign } from './protocol.ts';
 
 /** Offers at once (ADR 0186 point 2). */
 export const CONTRACT_OFFER_CAP = 5;
@@ -69,6 +70,20 @@ export interface ContractTemplateContext {
 	dayLength: number;
 	/** The next window from the home body to a sibling of it, or null (not a sibling). */
 	window(target: string): TransferWindowView | null;
+	/** The world's firsts so far (`orbit:stock.home`, `dock:stock.home`; plan 231, ADR 0231 point 2). */
+	milestones: readonly string[];
+}
+
+/**
+ * A vessel the sim makes when the contract is accepted (plan 231, ADR 0231 point 3): the design on
+ * rails in a circular orbit `altitude` m above `body`, its vessel tagged with the contract, and,
+ * with `member`, a new crew member stranded in its first seat (a rescue).
+ */
+export interface ContractSpawn {
+	design: VesselDesign;
+	body: string;
+	altitude: number;
+	member?: boolean;
 }
 
 /** What a template makes (ADR 0186 point 1). */
@@ -85,6 +100,8 @@ export interface ContractBlueprint {
 	deadline: number;
 	/** The template's estimate of the mission's Δv, m/s. */
 	deltaV: number;
+	/** Made on accept (a rescue's pod); ADR 0231 point 3. */
+	spawn?: ContractSpawn;
 }
 
 export interface ContractTemplateDefinition {
@@ -141,7 +158,25 @@ export interface ContractOffer {
 	offeredAt: number;
 	/** Sim time the offer goes. */
 	expires: number;
+	/** What accepting it makes (ADR 0231 point 3). */
+	spawn?: ContractSpawn;
+	/** What accepting it made: the vessel and the stranded member. */
+	spawned?: { vessel: number; member?: string };
 }
+
+const spawnSchema = z.object({
+	design: z.custom<VesselDesign>(
+		(v) =>
+			typeof v === 'object' &&
+			v !== null &&
+			Array.isArray((v as { parts?: unknown }).parts) &&
+			Array.isArray((v as { stages?: unknown }).stages),
+		'a vessel design'
+	),
+	body: z.string().min(1),
+	altitude: z.number().positive(),
+	member: z.boolean().optional()
+});
 
 export const contractOfferSchema = z.object({
 	id: z.string().regex(/^gen\.\d+$/),
@@ -157,7 +192,9 @@ export const contractOfferSchema = z.object({
 	deadline: finite.refine((d) => d > 0, 'deadline must be positive'),
 	estimate: z.object({ deltaV: finite, cost: finite }),
 	offeredAt: finite,
-	expires: finite
+	expires: finite,
+	spawn: spawnSchema.optional(),
+	spawned: z.object({ vessel: z.int().min(0), member: z.string().min(1).optional() }).optional()
 });
 
 /** The generator's saved state (ADR 0186 point 9). */

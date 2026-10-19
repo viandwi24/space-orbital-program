@@ -43,7 +43,15 @@ export type PanelNode =
 	| {
 			kind: 'list';
 			label?: string;
-			items(input: PanelInput): readonly { name: string; value?: string }[];
+			/**
+			 * The rows; a row may carry buttons of its own (plan 231, ADR 0231 point 7), each a command
+			 * like a button's (null: shown disabled).
+			 */
+			items(input: PanelInput): readonly {
+				name: string;
+				value?: string;
+				actions?: readonly { label: string; command: Command | null }[];
+			}[];
 	  }
 	| {
 			kind: 'sparkline';

@@ -1,13 +1,16 @@
 /**
  * Stock contract templates (plan 099, ADR 0186 point 8): an altitude record and orbit (tier 1),
  * a moon flyby and a moon landing (tier 2), a landing and return and a planet flyby on the next
- * transfer window (tier 3). Each draws its parameters from the generator's stream and estimates
+ * transfer window (tier 3); since plan 231 (ADR 0231 point 6) a rescue and a satellite (tier 1),
+ * a station and a docking (tier 2), each after the milestone that makes it possible. Each draws its parameters from the generator's stream and estimates
  * its mission's Δv, so the offer can show its expected value.
  */
 import {
 	defineContractTemplate,
 	estimatedLaunchCost,
 	hohmannTransfer,
+	partId,
+	type VesselDesign,
 	type ContractBlueprint,
 	type ContractBodyView,
 	type ContractTemplateContext,
@@ -214,11 +217,119 @@ export const ContractPlanetFlyby = defineContractTemplate({
 	}
 });
 
+// ---- plan 231 (ADR 0231 point 6): rescue, satellite, station, docking ----
+
+const ORBIT_HOME = (ctx: ContractTemplateContext): string => `orbit:${ctx.home.id}`;
+const has = (ctx: ContractTemplateContext, milestone: string): boolean =>
+	ctx.milestones.includes(milestone);
+const deg = (rad: number): string => `${Math.round((rad * 180) / Math.PI)}°`;
+
+/** The stranded pod of a rescue: a command pod alone, on rails. */
+export const strandedPod = (): VesselDesign => ({
+	formatVersion: 3,
+	name: 'Stranded pod',
+	parts: [{ index: 0, part: partId('stock.command-pod'), parent: null }],
+	stages: []
+});
+
+export const ContractRescue = defineContractTemplate({
+	id: 'stock.contract-rescue',
+	label: 'Rescue',
+	tier: 1,
+	generate: (ctx) => {
+		if (!has(ctx, ORBIT_HOME(ctx))) return null;
+		const altitude = round(ctx.home.radius * (0.13 + 0.07 * ctx.random()), 5_000);
+		// up, a rendezvous, and down again
+		const deltaV = ascent(ctx.home, altitude) + 400;
+		return {
+			key: `rescue:${ctx.home.id}:${altitude}`,
+			title: `Rescue a crew member from ${km(altitude)} above ${ctx.home.label}`,
+			brief: `A pod is stranded in a circular orbit at ${km(altitude)}, with someone inside. Reach it, bring them aboard (an EVA across, or dock and transfer), and recover them at home.`,
+			objectives: { objective: 'stock.rescue', params: {} },
+			...money(ctx, deltaV, 1),
+			deadline: days(ctx, 60),
+			deltaV,
+			spawn: { design: strandedPod(), body: ctx.home.id, altitude, member: true }
+		};
+	}
+});
+
+export const ContractSatellite = defineContractTemplate({
+	id: 'stock.contract-satellite',
+	label: 'Satellite',
+	tier: 1,
+	generate: (ctx) => {
+		if (!has(ctx, ORBIT_HOME(ctx))) return null;
+		const peri = round(ctx.home.radius * (0.15 + 0.35 * ctx.random()), 10_000);
+		const apo = round(peri + ctx.home.radius * 0.3 * ctx.random(), 10_000);
+		const inclination = (Math.round(6 * ctx.random()) * 5 * Math.PI) / 180;
+		const v = circular(ctx.home, peri);
+		const deltaV = ascent(ctx.home, peri) + 2 * v * Math.sin(inclination / 2);
+		return {
+			key: `satellite:${ctx.home.id}:${peri}:${apo}:${Math.round((inclination * 180) / Math.PI)}`,
+			title: `A satellite at ${km(peri)} by ${km(apo)}, ${deg(inclination)} inclined`,
+			brief: `Put a vessel with an antenna and a source of power (a solar panel or a generator) on an orbit of ${ctx.home.label}: periapsis ${km(peri)} and apoapsis ${km(apo)} (each within 10 %), inclination ${deg(inclination)} (within 2°).`,
+			objectives: {
+				objective: 'stock.satellite',
+				params: { periapsis: peri, apoapsis: apo, inclination }
+			},
+			...money(ctx, deltaV, 1),
+			deadline: days(ctx, 60),
+			deltaV
+		};
+	}
+});
+
+export const ContractStation = defineContractTemplate({
+	id: 'stock.contract-station',
+	label: 'Space station',
+	tier: 2,
+	generate: (ctx) => {
+		if (!has(ctx, `dock:${ctx.home.id}`)) return null;
+		const seats = 2 + Math.floor(3 * ctx.random());
+		const minPeriapsis = round(lowOrbit(ctx.home) * 1.5, 5_000);
+		const deltaV = ascent(ctx.home, minPeriapsis) * 1.3;
+		return {
+			key: `station:${ctx.home.id}:${seats}`,
+			title: `A station for ${seats} around ${ctx.home.label}`,
+			brief: `Build a station in orbit of ${ctx.home.label} with its periapsis at ${km(minPeriapsis)} or higher: a docking port, at least ${seats} crew seats and a source of power. It may be assembled from several launches.`,
+			objectives: { objective: 'stock.station', params: { minPeriapsis, seats } },
+			...money(ctx, deltaV, 2),
+			deadline: days(ctx, 120),
+			deltaV
+		};
+	}
+});
+
+export const ContractDocking = defineContractTemplate({
+	id: 'stock.contract-docking',
+	label: 'Docking',
+	tier: 2,
+	generate: (ctx) => {
+		if (!has(ctx, ORBIT_HOME(ctx))) return null;
+		// two vessels up and one rendezvous
+		const deltaV = 2 * ascent(ctx.home, lowOrbit(ctx.home)) + 300;
+		return {
+			key: `docking:${ctx.home.id}`,
+			title: `Dock two vessels around ${ctx.home.label}`,
+			brief: `Bring two vessels together in orbit of ${ctx.home.label} and join them with docking ports. A vessel launched before the contract may be one of them.`,
+			objectives: { objective: 'stock.dock', params: {} },
+			...money(ctx, deltaV, 2),
+			deadline: days(ctx, 90),
+			deltaV
+		};
+	}
+});
+
 export const STOCK_CONTRACT_TEMPLATES = [
 	ContractAltitude,
 	ContractOrbit,
 	ContractMoonFlyby,
 	ContractMoonLanding,
 	ContractMoonReturn,
-	ContractPlanetFlyby
+	ContractPlanetFlyby,
+	ContractRescue,
+	ContractSatellite,
+	ContractStation,
+	ContractDocking
 ] as const;

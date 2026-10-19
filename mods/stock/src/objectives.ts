@@ -109,6 +109,102 @@ export const ObjectiveBefore = defineObjective({
 		view.time <= p.time ? { status: 'done', progress: 1 } : { status: 'failed', progress: 0 }
 });
 
+/** In a closed orbit of `body`, off the ground. */
+const orbiting = (v: ObjectiveVesselView, body: string): boolean =>
+	v.body === body && !v.landed && v.periapsis !== null && v.apoapsis !== null;
+
+/**
+ * Every crew member the contract stranded is home again (plan 231, ADR 0231 point 5): boarded,
+ * flown back and recovered, so the roster has them available.
+ */
+export const ObjectiveRescue = defineObjective({
+	id: 'stock.rescue',
+	label: 'Rescue the crew',
+	params: z.object({}),
+	on: ['step', 'tick'],
+	evaluate: (_p, view) => {
+		const rescues = view.rescues ?? [];
+		if (rescues.length === 0) return { status: 'active', progress: 0 };
+		const home = rescues.filter((r) => r.status === 'available').length;
+		if (rescues.some((r) => r.status === 'lost')) {
+			return { status: 'failed', progress: home / rescues.length };
+		}
+		return home === rescues.length
+			? { status: 'done', progress: 1 }
+			: { status: 'active', progress: home / rescues.length };
+	}
+});
+
+/** A satellite: in the given orbit (±`tolerance` on Ap and Pe, ±`inclinationTolerance`) with an antenna and power. */
+export const ObjectiveSatellite = defineObjective({
+	id: 'stock.satellite',
+	label: 'Place a satellite',
+	params: z.object({
+		body: z.string().optional(),
+		periapsis: z.number().positive(),
+		apoapsis: z.number().positive(),
+		/** rad. */
+		inclination: z.number().min(0).max(Math.PI),
+		/** Fraction of each altitude (default 0.1). */
+		tolerance: z.number().positive().max(1).optional(),
+		/** rad (default 2°). */
+		inclinationTolerance: z.number().positive().optional()
+	}),
+	evaluate: (p, view) => {
+		const body = bodyOf(view, p.body);
+		const tol = p.tolerance ?? 0.1;
+		const di = p.inclinationTolerance ?? (2 * Math.PI) / 180;
+		const near = (x: number | null, want: number) => x !== null && Math.abs(x - want) <= want * tol;
+		return overVessels(
+			view,
+			(v) =>
+				orbiting(v, body) &&
+				near(v.periapsis, p.periapsis) &&
+				near(v.apoapsis, p.apoapsis) &&
+				v.inclination !== undefined &&
+				v.inclination !== null &&
+				Math.abs(v.inclination - p.inclination) <= di &&
+				v.antenna === true &&
+				v.power === true,
+			(v) => (orbiting(v, body) ? 0.5 : 0)
+		);
+	}
+});
+
+/** A station: in orbit with a docking port, `seats` crew seats or more, and power. */
+export const ObjectiveStation = defineObjective({
+	id: 'stock.station',
+	label: 'Build a station',
+	params: z.object({
+		body: z.string().optional(),
+		minPeriapsis: z.number().nonnegative(),
+		seats: z.int().min(1)
+	}),
+	evaluate: (p, view) => {
+		const body = bodyOf(view, p.body);
+		return overVessels(
+			view,
+			(v) =>
+				orbiting(v, body) &&
+				(v.periapsis ?? -1) >= p.minPeriapsis &&
+				(v.ports ?? 0) >= 1 &&
+				(v.seats ?? 0) >= p.seats &&
+				v.power === true,
+			(v) => (orbiting(v, body) ? Math.min(1, (v.seats ?? 0) / p.seats) * 0.9 : 0)
+		);
+	}
+});
+
+/** Two vessels docked in orbit of `body` (a vessel that took another in by docking). */
+export const ObjectiveDock = defineObjective({
+	id: 'stock.dock',
+	label: 'Dock two vessels',
+	params: z.object({ body: z.string().optional() }),
+	on: ['step', 'vessel:docked'],
+	evaluate: (p, view) =>
+		overVessels(view, (v) => orbiting(v, bodyOf(view, p.body)) && v.docked === true)
+});
+
 export const STOCK_OBJECTIVES = [
 	ObjectiveReachOrbit,
 	ObjectiveLand,
@@ -116,5 +212,9 @@ export const STOCK_OBJECTIVES = [
 	ObjectiveEnterSoi,
 	ObjectiveFlyby,
 	ObjectiveReturnHome,
-	ObjectiveBefore
+	ObjectiveBefore,
+	ObjectiveRescue,
+	ObjectiveSatellite,
+	ObjectiveStation,
+	ObjectiveDock
 ] as const;

@@ -85,6 +85,30 @@ export function rosterFull(core: SimCore): string | undefined {
 export function hireCrew(core: SimCore, profession: Profession): CommandResult {
 	const full = rosterFull(core);
 	if (full) return { ok: false, reason: full };
+	const member = newMember(core, profession);
+	if (salariesOn(core) && SALARY_BASE[profession] > 0) {
+		record(core, 'funds', -SALARY_BASE[profession] * RECRUIT_DAYS, 'crew.recruit', member.id);
+	}
+	core.events.emit('crew:hired', { member: member.id, name: member.name, profession });
+	return { ok: true };
+}
+
+/**
+ * A member stranded in `vesselId`'s first seat (a rescue contract; plan 231, ADR 0231 point 3): a
+ * new member like a hire, free and past the roster's cap, who joins the roster once recovered.
+ * Undefined when the vessel has no seat.
+ */
+export function strandMember(core: SimCore, vesselId: EntityId): string | undefined {
+	const vessel = vesselOf(core, vesselId);
+	const seat = vessel.parts.find((id) => (partDefOf(core, partOf(core, id)).crewCapacity ?? 0) > 0);
+	if (seat === undefined) return undefined;
+	const member = newMember(core, 'pilot');
+	seatCrew(core, vesselId, [{ member: member.id, part: partOf(core, seat).index }], () => seat);
+	return member.id;
+}
+
+/** A new available member on the roster: a name, traits and nothing flown yet. */
+function newMember(core: SimCore, profession: Profession): CrewMember {
 	const rng = createRng(core.crew.rng);
 	const names = core.registries.crewNames.list();
 	const name =
@@ -108,11 +132,7 @@ export function hireCrew(core: SimCore, profession: Profession): CommandResult {
 		log: []
 	};
 	core.crew.members.push(member);
-	if (salariesOn(core) && SALARY_BASE[profession] > 0) {
-		record(core, 'funds', -SALARY_BASE[profession] * RECRUIT_DAYS, 'crew.recruit', member.id);
-	}
-	core.events.emit('crew:hired', { member: member.id, name, profession });
-	return { ok: true };
+	return member;
 }
 
 /**

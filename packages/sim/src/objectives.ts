@@ -21,7 +21,8 @@ import {
 } from '@orbital/core';
 import { length } from '@orbital/kepler';
 import { bodyOfVessel } from './bodies.ts';
-import { vesselIds, vesselOf, type SimCore } from './core.ts';
+import { moduleDefOf, partDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
+import { vesselOfMember } from './crew.ts';
 import { generatedContract } from './contracts.ts';
 import { economyOn, record } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
@@ -87,6 +88,21 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
 			? vessel.rails.elements
 			: elementsOf(body.mu, motion.r, motion.v, core.t);
 	const radius = body.def.radius;
+	// what the vessel carries (plan 231, ADR 0231 point 4)
+	let seats = 0;
+	let antenna = false;
+	let power = false;
+	let ports = 0;
+	for (const partId of vessel.parts) {
+		const part = partOf(core, partId);
+		seats += partDefOf(core, part).crewCapacity ?? 0;
+		for (const m of part.modules) {
+			const def = moduleDefOf(core, m.id);
+			if (def.antenna) antenna = true;
+			if ((def.power?.(m.config).rate ?? 0) > 0) power = true;
+			if (def.dock?.(m.config)) ports += 1;
+		}
+	}
 	return {
 		id,
 		body: body.def.id,
@@ -94,7 +110,14 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
 		landed,
 		altitude: length(motion.r) - radius,
 		periapsis: orbit && !landed ? orbit.a * (1 - orbit.e) - radius : null,
-		apoapsis: orbit && !landed && orbit.e < 1 ? orbit.a * (1 + orbit.e) - radius : null
+		apoapsis: orbit && !landed && orbit.e < 1 ? orbit.a * (1 + orbit.e) - radius : null,
+		inclination: orbit && !landed ? orbit.i : null,
+		seats,
+		crew: core.crew.members.filter((m) => vesselOfMember(core, m) === id).length,
+		antenna,
+		power,
+		ports,
+		docked: (vessel.docks?.length ?? 0) > 0
 	};
 }
 
@@ -104,17 +127,39 @@ function vesselView(core: SimCore, id: EntityId): ObjectiveVesselView {
  */
 export function viewFor(
 	core: SimCore,
-	inst: Pick<SaveActiveObjective, 'vessel' | 'since'>
+	inst: Pick<SaveActiveObjective, 'vessel' | 'since'> & Partial<Pick<SaveActiveObjective, 'source'>>
 ): ObjectiveView {
 	const since = inst.since;
+	// a vessel from before still counts once a newer one docked to it (plan 231, ADR 0231 point 4)
+	const fresh = (id: EntityId): boolean =>
+		since === undefined ||
+		id > since ||
+		(vesselOf(core, id).docks ?? []).some((d) => Number(d.vessel) > since);
 	// only the player's vessels do the work: never an agency's (plan 126, ADR 0190 point 3)
 	const ids = vesselIds(core).filter(
 		(id) =>
 			(inst.vessel === undefined || id === inst.vessel) &&
-			(since === undefined || id > since) &&
+			fresh(id) &&
 			vesselOf(core, id).owner === undefined
 	);
-	return { time: core.t, home: core.root.def.id, vessels: ids.map((id) => vesselView(core, id)) };
+	const view: ObjectiveView = {
+		time: core.t,
+		home: core.root.def.id,
+		vessels: ids.map((id) => vesselView(core, id))
+	};
+	// the crew this contract stranded (a rescue)
+	const spawned =
+		inst.source?.kind === 'contract'
+			? core.contracts.accepted.find((a) => a.id === inst.source!.id)?.spawned
+			: undefined;
+	if (spawned?.member !== undefined) {
+		const m = core.crew.members.find((x) => x.id === spawned.member);
+		return {
+			...view,
+			rescues: [{ member: spawned.member, vessel: spawned.vessel, status: m?.status ?? 'lost' }]
+		};
+	}
+	return view;
 }
 
 /** Whether instance `ref` is a contract (not a mission). */

@@ -8,7 +8,11 @@ import {
 	ObjectiveLand,
 	ObjectiveReachAltitude,
 	ObjectiveReachOrbit,
-	ObjectiveReturnHome
+	ObjectiveReturnHome,
+	ObjectiveRescue,
+	ObjectiveSatellite,
+	ObjectiveStation,
+	ObjectiveDock
 } from '../src/index.ts';
 import { loaded } from './helpers.ts';
 
@@ -37,16 +41,71 @@ const run = (
 ) => o.evaluate(p as never, v, prior);
 
 describe('stock objectives', () => {
-	test('stock registers the seven primitives', () => {
+	test('stock registers the eleven primitives', () => {
 		expect(loaded.report.registered.objective.map((e) => e.id).sort()).toEqual([
 			'stock.before',
+			'stock.dock',
 			'stock.enter-soi',
 			'stock.flyby',
 			'stock.land',
 			'stock.reach-altitude',
 			'stock.reach-orbit',
-			'stock.return-home'
+			'stock.rescue',
+			'stock.return-home',
+			'stock.satellite',
+			'stock.station'
 		]);
+	});
+
+	test('plan 231: rescue, satellite, station and docking over the richer view', () => {
+		// rescue: done once every stranded member is home, failed when one is lost
+		const rescue = (status: string) => ({
+			...view([]),
+			rescues: [{ member: 'c3', vessel: 9, status }]
+		});
+		expect(run(ObjectiveRescue, {}, view([])).status).toBe('active');
+		expect(run(ObjectiveRescue, {}, rescue('assigned')).status).toBe('active');
+		expect(run(ObjectiveRescue, {}, rescue('available')).status).toBe('done');
+		expect(run(ObjectiveRescue, {}, rescue('lost')).status).toBe('failed');
+		// satellite: orbit within 10 %, inclination within 2°, with an antenna and power
+		const sat = { periapsis: 100_000, apoapsis: 150_000, inclination: (10 * Math.PI) / 180 };
+		const good = vessel({
+			periapsis: 95_000,
+			apoapsis: 160_000,
+			inclination: (11 * Math.PI) / 180,
+			antenna: true,
+			power: true
+		});
+		expect(run(ObjectiveSatellite, sat, view([good])).status).toBe('done');
+		expect(run(ObjectiveSatellite, sat, view([{ ...good, power: false }])).status).toBe('active');
+		expect(run(ObjectiveSatellite, sat, view([{ ...good, antenna: false }])).status).toBe('active');
+		expect(
+			run(ObjectiveSatellite, sat, view([{ ...good, inclination: (14 * Math.PI) / 180 }])).status
+		).toBe('active');
+		expect(run(ObjectiveSatellite, sat, view([{ ...good, apoapsis: 200_000 }])).status).toBe(
+			'active'
+		);
+		// station: a port, the seats and power, in orbit high enough
+		const station = vessel({ ports: 1, seats: 3, power: true });
+		expect(run(ObjectiveStation, { minPeriapsis: 80_000, seats: 3 }, view([station])).status).toBe(
+			'done'
+		);
+		expect(run(ObjectiveStation, { minPeriapsis: 80_000, seats: 4 }, view([station])).status).toBe(
+			'active'
+		);
+		expect(
+			run(ObjectiveStation, { minPeriapsis: 80_000, seats: 3 }, view([{ ...station, ports: 0 }]))
+				.status
+		).toBe('active');
+		// docking: a docked vessel in orbit of the body, not on the ground
+		expect(run(ObjectiveDock, {}, view([vessel({ docked: true })])).status).toBe('done');
+		expect(run(ObjectiveDock, {}, view([vessel({ docked: false })])).status).toBe('active');
+		expect(
+			run(ObjectiveDock, { body: 'stock.cinder' }, view([vessel({ docked: true })])).status
+		).toBe('active');
+		expect(
+			run(ObjectiveDock, {}, view([vessel({ docked: true, landed: true, periapsis: null })])).status
+		).toBe('active');
 	});
 
 	test('reach orbit: periapsis bound, apoapsis bound, body, not landed; progress toward the periapsis', () => {

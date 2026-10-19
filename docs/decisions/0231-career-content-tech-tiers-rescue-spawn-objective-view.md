@@ -27,7 +27,7 @@ Plan 231 gives the new parts of plans 207–225 a place in Career. The plan call
    - `mods/stock/test/tech-coverage.test.ts` fails when a stock part has no node or two.
 2. **Templates see the world's firsts.** `ContractTemplateContext.milestones` lists the milestone ids already recorded (`orbit:stock.home`, `dock:stock.home`, …). The new templates offer nothing before theirs.
 3. **A blueprint may spawn a rescue.** `ContractBlueprint.spawn` is `{ design, body, altitude, member }`. On accept the sim does three things:
-   - It spawns the design on rails in a circular orbit at that altitude, with the vessel's `contract` set to the offer id.
+   - It spawns the design on rails in a circular orbit at that altitude (the stock design is named "Stranded pod").
    - It adds a new crew member (stranded: free, past the roster cap) seated in its first seat.
    - It keeps `{ vessel, member }` on the accepted offer (`ContractOffer.spawned`).
 

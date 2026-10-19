@@ -30,6 +30,20 @@ export interface ObjectiveVesselView {
 	/** Periapsis and apoapsis altitudes, m; null without a closed orbit (or on the ground). */
 	periapsis: number | null;
 	apoapsis: number | null;
+	/** Plan 231 (ADR 0231 point 4), additive: absent in a view from an older host. */
+	/** Inclination to the body's equator, rad; null without an orbit. */
+	inclination?: number | null;
+	/** Crew seats, and members aboard. */
+	seats?: number;
+	crew?: number;
+	/** A working antenna part. */
+	antenna?: boolean;
+	/** A module that produces electric charge (a solar panel, an RTG). */
+	power?: boolean;
+	/** Docking ports. */
+	ports?: number;
+	/** The vessel took another in by docking. */
+	docked?: boolean;
 }
 
 export interface ObjectiveView {
@@ -38,6 +52,8 @@ export interface ObjectiveView {
 	/** Id of the home (root) body. */
 	home: string;
 	vessels: readonly ObjectiveVesselView[];
+	/** The crew a contract of this instance stranded (a rescue; plan 231, ADR 0231 point 4). */
+	rescues?: readonly { member: string; vessel: number; status: string }[];
 }
 
 /** What a primitive listens to (ADR 0175 point 5): every step, every world tick, or events. */

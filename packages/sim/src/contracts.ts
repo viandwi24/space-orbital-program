@@ -15,23 +15,28 @@ import {
 	estimatedLaunchCost,
 	expectedValue,
 	leavesOf,
+	resolveVesselDesign,
 	siteCapacity,
 	sitesOf,
 	streamSeed,
 	type CommandResult,
 	type ContractBodyView,
 	type ContractDefinition,
+	type ContractOffer,
 	type ContractTemplateDefinition,
 	type ContractsSnapshot,
 	type SaveContracts
 } from '@orbital/core';
-import { hohmannToTarget } from '@orbital/kepler';
+import { hohmannToTarget, toStateVector } from '@orbital/kepler';
 import { stateInParent, type BodyRuntime } from './bodies.ts';
-import type { SimCore } from './core.ts';
+import { vesselOf, type SimCore } from './core.ts';
+import { strandMember } from './crew.ts';
+import { computeRails } from './orbit.ts';
+import { spawnVessel } from './vessel.ts';
 import { economyOn, record, ruleOf } from './economy.ts';
 import { finishObjective, startObjective } from './objectives.ts';
 import { multiplierOf } from './strategies.ts';
-import { dayLength } from './tick.ts';
+import { dayLength, hasBackground } from './tick.ts';
 
 export const freshContracts = (core: Pick<SimCore, 'info'>): SaveContracts => ({
 	next: 1,
@@ -133,7 +138,8 @@ export function contractsTick(core: SimCore, day: number): void {
 		time: core.t,
 		day,
 		dayLength: length,
-		window: (target) => windowTo(core, target)
+		window: (target) => windowTo(core, target),
+		milestones: core.milestones.records.map((r) => r.id)
 	});
 	s.rng = rng.state();
 	if (!blueprint) return;
@@ -163,8 +169,42 @@ export function contractsTick(core: SimCore, day: number): void {
 		deadline: blueprint.deadline,
 		estimate: { deltaV: blueprint.deltaV, cost: estimatedLaunchCost(blueprint.deltaV) },
 		offeredAt: core.t,
-		expires: core.t + CONTRACT_OFFER_DAYS * length
+		expires: core.t + CONTRACT_OFFER_DAYS * length,
+		...(blueprint.spawn ? { spawn: blueprint.spawn } : {})
 	});
+}
+
+/**
+ * What an accepted offer makes (plan 231, ADR 0231 point 3): its design on rails in a circular
+ * orbit, and with `member` a stranded crew member in its first seat. A reason when it cannot.
+ */
+function spawnFor(
+	core: SimCore,
+	offer: ContractOffer
+): { vessel: number; member?: string } | string {
+	const spawn = offer.spawn!;
+	const body = core.bodies.get(spawn.body);
+	if (!body) return `this contract needs the body "${spawn.body}"`;
+	const resolved = resolveVesselDesign(spawn.design, core.registries.parts);
+	if (!resolved.ok) return `this contract's vessel does not build: ${resolved.errors.join('; ')}`;
+	const a = body.def.radius + spawn.altitude;
+	const state = toStateVector(
+		{ a, e: 0, i: 0, raan: 0, argp: 0, m0: 0, epoch: core.t },
+		body.mu,
+		core.t
+	);
+	const id = spawnVessel(core, spawn.design, resolved);
+	const vessel = vesselOf(core, id);
+	vessel.soi = body.def.id;
+	vessel.com = { ...state.r };
+	vessel.velocity = { ...state.v };
+	vessel.rails = computeRails(body.mu, state.r, state.v, core.t, core.info.gravityModel);
+	vessel.mode = 'on-rails';
+	vessel.launchedAt = core.t;
+	if (hasBackground(core, id)) vessel.backgroundAt = core.t;
+	const member = spawn.member ? strandMember(core, id) : undefined;
+	core.events.emit('vessel:mode-changed', { vessel: id, mode: 'on-rails', reason: 'contract' });
+	return { vessel: Number(id), ...(member ? { member } : {}) };
 }
 
 /** The next Hohmann window from the home body to a sibling of it (ADR 0186 point 6). */
@@ -201,6 +241,12 @@ export function acceptContract(core: SimCore, offerId: string): CommandResult {
 		s.accepted = s.accepted.filter((a) => a !== offer);
 		s.offers.push(offer);
 		return started;
+	}
+	// a rescue's pod and its stranded member come with the contract (plan 231, ADR 0231 point 3)
+	if (offer.spawn) {
+		const made = spawnFor(core, offer);
+		if (typeof made === 'string') return refuse(made);
+		offer.spawned = made;
 	}
 	if (economyOn(core)) {
 		// strategies scale a positive advance like the reward (plan 101, ADR 0187 point 1)
