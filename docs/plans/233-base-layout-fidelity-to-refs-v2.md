@@ -1,8 +1,8 @@
 ---
 id: 233
 title: "Base layout, Flight and Space Center: match the v2 design package exactly"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B (M5)"
 depends: [204, 215]
 phase: 7
 created: 2026-10-19

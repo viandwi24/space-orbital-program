@@ -44,9 +44,9 @@ async function regions(page: Page): Promise<Record<string, DOMRect>> {
 	return page.evaluate(() => {
 		const out: Record<string, DOMRect> = {};
 		const pick: Record<string, string> = {
-			capsules: '.ui > .tl .capsules',
-			toolbar: '.ui > .tb',
-			situation: '.ui > .tc [data-testid="hud-phase-text"]',
+			timeBar: '[data-testid="time-bar"]',
+			menuBar: '[data-testid="menu-bar"]',
+			statusBar: '[data-testid="status-bar"]',
 			staging: '.ui > .bl',
 			navball: '.ui > .bc',
 			crew: '.ui > .br',

@@ -7,7 +7,6 @@
 	 */
 	import {
 		homeBodyOf,
-		LEGACY_WORLD_ID,
 		loadPlugins,
 		sitesOf,
 		upkeepOf,
@@ -17,6 +16,7 @@
 	} from '@orbital/core';
 	import { BUILTIN_PLUGINS, STOCK_CHOICE } from '../../../lib/builtins';
 	import { onMount } from 'svelte';
+	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import { bootedMods, modHint } from '../../../lib/save/mods';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -68,7 +68,6 @@
 	let canvas: HTMLCanvasElement;
 	let center: SpaceCenter | null = null;
 	let worldId = activeWorldId();
-	let worldName = $state('Space Center');
 	let world = $state.raw<WorldInfo | undefined>(undefined);
 	const homeId = $derived(homeBodyOf(registries.bodies.list(), world)?.id);
 	let site = $state.raw<SiteState | undefined>(undefined);
@@ -256,13 +255,25 @@
 		}
 	}
 
+	// the Space Center's page action (BASE_LAYOUT §3): the Mission Center
+	$effect(() => {
+		pageShell.actions = [
+			{
+				id: 'mission-center',
+				label: 'Mission Center',
+				icon: 'missionCenter',
+				testid: 'nav-mission-center',
+				onclick: () => void goto(resolve('/(world)/mission-center'))
+			}
+		];
+		return () => pageShell.reset();
+	});
+
 	onMount(() => {
 		let gone = false;
 		void (async () => {
 			const worlds = await saves.worldsService();
 			worldId = activeWorldId();
-			const record = await worlds.get(worldId);
-			worldName = record?.name ?? (worldId === LEGACY_WORLD_ID ? 'Legacy world' : 'Space Center');
 			const client = await bootWorld(worldSession, worldId);
 			world = worldSession.base?.sim.worldInfo ?? (await worlds.startInfo(worldId));
 			if (gone) return;
@@ -298,7 +309,6 @@
 <main class="page">
 	<canvas bind:this={canvas} data-testid="sc-canvas"></canvas>
 	<SpaceCenterOverlay
-		{worldName}
 		{rows}
 		{labels}
 		{selected}

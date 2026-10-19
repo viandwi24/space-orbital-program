@@ -13,7 +13,6 @@
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import { createBellFeed } from '../../lib/layout/status-bar';
-	import { pageActions } from '../../lib/layout/page-actions.svelte';
 	import { worldSession } from '../../lib/world-session';
 	import { bootWorld } from '../../lib/world-boot';
 	import { createWorldLock, type LockState, type WorldLock } from '../../lib/world-lock';
@@ -26,6 +25,7 @@
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import type { Catalog } from '../../lib/messages';
 	import { settings } from '../../lib/settings/settings.svelte';
+	import { bodyLabel } from '../../lib/hud-model';
 	import { keyIdOf } from '../../lib/keybindings';
 	import { clockState, placePauses } from '../../lib/clock-state';
 	import { createDebugApi, exposeDebugApi, flightDebug, type DebugHost } from '../../lib/debug/api';
@@ -113,9 +113,18 @@
 		}
 		playerPaused = !playerPaused;
 	}
-	function togglePlace(): void {
-		settings.setTime({ places: { [place]: !placePauses(place, settings.time.places) } });
-	}
+
+	const calendarLengths = $derived.by(() => {
+		if (!catalog?.bodies.length) return { day: 86_400, year: 365 * 86_400 };
+		const c = calendarOf(catalog.bodies);
+		return c.kind === 'fictional'
+			? { day: c.dayLength, year: c.yearLength ?? Number.POSITIVE_INFINITY }
+			: { day: 86_400, year: 365.25 * 86_400 };
+	});
+	const homeName = $derived.by(() => {
+		const id = catalog?.home ?? catalog?.bodies.find((b) => b.parent === undefined)?.id;
+		return id ? bodyLabel(id) : '';
+	});
 
 	const clock = $derived.by(() => {
 		if (!snapshot || !catalog?.bodies.length) return '';
@@ -361,21 +370,23 @@
 	<WorldShell
 		{snapshot}
 		{warp}
-		{clock}
+		path={local(page.url.pathname)}
+		calendar={calendarLengths}
+		date={clock}
 		{world}
+		system={homeName ? `${homeName} system` : ''}
 		{place}
+		home={homeName}
+		focus={worldSession.focus?.vessel ?? worldSession.base?.focus ?? null}
 		{savedAt}
 		mods={activePlugins().length}
 		{bell}
-		onmenu={() => (settingsOpen = true)}
+		onsettings={() => (settingsOpen = true)}
 		onhome={() => void goto(resolve('/'))}
-		actions={pageActions.current ?? undefined}
 		clockChip={clockView.chip}
-		paused={playerPaused}
+		paused={!clockView.ticks}
 		pauseLocked={!pauseAllowed}
-		placePaused={placeHere}
 		onpause={togglePause}
-		onplace={togglePlace}
 	>
 		{@render children()}
 	</WorldShell>

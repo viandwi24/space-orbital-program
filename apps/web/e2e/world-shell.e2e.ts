@@ -36,11 +36,13 @@ test('the world clock runs on across pages without a reload', async ({ page }) =
 	await later();
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 
-	// Hangar -> Mission Center -> Flight by the menu bar
+	// Hangar -> Space Center -> Mission Center (its page action) -> Flight by the menu bar
+	await page.getByTestId('nav-space-center').click();
+	await page.waitForURL('**/space-center');
 	await page.getByTestId('nav-mission-center').click();
 	await page.waitForURL('**/mission-center');
 	await later();
-	await page.getByTestId('nav-flight').click();
+	await page.getByTestId('nav-vessel').click();
 	await page.waitForURL('**/flight');
 	await later();
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });

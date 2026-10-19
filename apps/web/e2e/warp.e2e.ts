@@ -30,8 +30,8 @@ test('warp-to Ap stops within the margin before apoapsis', async ({ page }) => {
 	const before = await toApoapsis(page);
 	expect(before).toBeGreaterThan(300);
 	await page.getByTestId('warp-to-ap').click();
-	await expect(page.getByTestId('hud-warp')).not.toHaveText('1x', { timeout: 10_000 });
-	await expect(page.getByTestId('hud-warp')).toHaveText('1x', { timeout: 90_000 });
+	await expect(page.getByTestId('hud-warp')).not.toHaveText('1×', { timeout: 10_000 });
+	await expect(page.getByTestId('hud-warp')).toHaveText('1×', { timeout: 90_000 });
 	const left = await toApoapsis(page);
 	expect(left).toBeGreaterThan(0);
 	expect(left).toBeLessThan(20); // the 15 s margin, and the frames since
@@ -54,7 +54,7 @@ test('at 10 km a 1k× request is clamped and the time bar shows the reason', asy
 		.first()
 		.click({ position: { x: 10, y: 10 } });
 	for (let i = 0; i < 6; i++) await page.keyboard.press('.');
-	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('10×');
 	await expect(page.getByTestId('warp-reason')).toHaveText('Max 10× — in the atmosphere');
 	expect(errors).toEqual([]);
 });

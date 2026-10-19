@@ -6,7 +6,7 @@ test('map view: the Regions layer names the region under the cursor', async ({ p
 	test.skip(test.info().project.name !== 'chromium', 'one engine is enough for the overlay');
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
-	await page.getByRole('button', { name: 'Map view' }).click();
+	await page.getByTestId('nav-map').click();
 	const toggle = page.getByTestId('map-regions');
 	await toggle.click();
 	await expect(toggle).toHaveAttribute('aria-pressed', 'true');

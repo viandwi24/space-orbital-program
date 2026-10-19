@@ -183,25 +183,26 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 		`let n = 0;\nwhile (true) { ship.attitude = { pitch: 0.001 + 1e-6 * n++ }; await nextTick(); }`
 	);
 	await expect(scriptStatus(page)).toHaveText('running', { timeout: 60_000 });
-	const faster = page.getByRole('button', { name: 'Faster time warp' });
-	await expect(faster).toBeEnabled();
+	// the time bar's segments (plan 233, BASE_LAYOUT §2): one button per warp level
+	const level = (x: string) => page.getByRole('button', { name: `Time warp ${x}`, exact: true });
+	await expect(level('2×')).toBeEnabled();
 	// 1x -> 2x -> 4x -> 10x (plan 206 levels); the first press waits for the vessel to settle on the pad
 	// A machine under load can need longer than the host waits (8 s); pressing again is what a player does.
 	for (let attempt = 0; attempt < 3; attempt++) {
-		await faster.click();
+		await level('2×').click();
 		const reached = await expect(page.getByTestId('hud-warp'))
-			.toHaveText('2x', { timeout: 12_000 })
+			.toHaveText('2×', { timeout: 12_000 })
 			.then(
 				() => true,
 				() => false
 			);
 		if (reached) break;
 	}
-	await expect(page.getByTestId('hud-warp')).toHaveText('2x');
-	await faster.click();
-	await expect(page.getByTestId('hud-warp')).toHaveText('4x');
-	await faster.click();
-	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('2×');
+	await level('4×').click();
+	await expect(page.getByTestId('hud-warp')).toHaveText('4×');
+	await level('10×').click();
+	await expect(page.getByTestId('hud-warp')).toHaveText('10×');
 
 	const before = await metSeconds(page);
 	const started = Date.now();
@@ -214,13 +215,11 @@ test('time warp works while a script holds an attitude (ADR 0039)', async ({ pag
 
 	// The keyboard path (plan 023: journal 043 could not exercise it): `,` and `.` step the warp.
 	await page.keyboard.press(',');
-	await expect(page.getByTestId('hud-warp')).toHaveText('4x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('4×');
 	await page.keyboard.press('.');
-	await expect(page.getByTestId('hud-warp')).toHaveText('10x');
-	await page.getByRole('button', { name: 'Slower time warp' }).click();
-	await page.getByRole('button', { name: 'Slower time warp' }).click();
-	await page.getByRole('button', { name: 'Slower time warp' }).click();
-	await expect(page.getByTestId('hud-warp')).toHaveText('1x');
+	await expect(page.getByTestId('hud-warp')).toHaveText('10×');
+	await level('1×').click();
+	await expect(page.getByTestId('hud-warp')).toHaveText('1×');
 	await expect(scriptStatus(page)).toHaveText('running');
 	expect(errors).toEqual([]);
 });

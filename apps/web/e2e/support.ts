@@ -49,8 +49,9 @@ export async function launchTwoStage(page: Page): Promise<void> {
 
 /** Open the script panel, put `source` in the editor (or load the sample) and press Run. */
 export async function runScript(page: Page, source: string | 'sample'): Promise<void> {
-	const panel = page.getByRole('button', { name: 'Script panel' });
-	if ((await panel.getAttribute('aria-pressed')) !== 'true') await panel.click();
+	// the script editor is a dock panel (the flight toolbar's Script button went with plan 233)
+	const panel = page.getByTestId('dock-tab-host.script');
+	if ((await panel.getAttribute('aria-selected')) !== 'true') await panel.click();
 	if (source === 'sample') {
 		await page.getByRole('button', { name: 'Load sample' }).click();
 	} else {

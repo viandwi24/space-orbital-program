@@ -15,7 +15,7 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	await form.getByTestId('world-create').click();
 	await page.getByTestId('world-enter').click();
 	await page.waitForURL('**/space-center');
-	await expect(page.getByTestId('world-capsule')).toContainText('Builders');
+	await expect(page.getByTestId('status-bar')).toContainText('Builders');
 	const rows = page.locator('[data-testid^="sc-row-"]');
 	await expect(rows).toHaveCount(4, { timeout: 60_000 });
 

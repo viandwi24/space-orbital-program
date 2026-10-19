@@ -11,7 +11,7 @@ import { launchTwoStage, watchErrors } from './support';
 test('the script editor works from the keyboard and does not trap it', async ({ page }) => {
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
-	await page.getByRole('button', { name: 'Script panel' }).click();
+	await page.getByTestId('dock-tab-host.script').click();
 	const editor = page.getByLabel('Script source');
 	await editor.fill('');
 	await editor.click();
@@ -74,7 +74,7 @@ test('replace, go to line, comments, moving lines, and a syntax error before Run
 }) => {
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
-	await page.getByRole('button', { name: 'Script panel' }).click();
+	await page.getByTestId('dock-tab-host.script').click();
 	const editor = page.getByLabel('Script source');
 	await editor.fill('a ship\nship b\nshipment');
 	await editor.click();
@@ -171,7 +171,7 @@ test('replace, go to line, comments, moving lines, and a syntax error before Run
 
 test('nested suggestions and the keys of a node', async ({ page }) => {
 	await launchTwoStage(page);
-	await page.getByRole('button', { name: 'Script panel' }).click();
+	await page.getByTestId('dock-tab-host.script').click();
 	const editor = page.getByLabel('Script source');
 	await editor.fill('');
 	await editor.click();
@@ -216,7 +216,7 @@ test('the on-screen keys appear on a touch screen and indent, undo and suggest',
 	const page = await context.newPage();
 	try {
 		await launchTwoStage(page);
-		await page.getByRole('button', { name: 'Script panel' }).click();
+		await page.getByTestId('dock-tab-host.script').click();
 		const editor = page.getByLabel('Script source');
 		await editor.fill('while (true) {');
 		await editor.click();

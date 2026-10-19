@@ -3,17 +3,15 @@
 	/**
 	 * The Space Center's overlay (plan 091, refs Space Center): labels over the 3D site, the building
 	 * list (every building reachable by keyboard without the camera), the detail panel of the
-	 * selected building, the "Needs attention" list, the build dock and the world capsule.
+	 * selected building, the "Needs attention" list and the build dock. The world's name and the
+	 * place are in the status bar (plan 233).
 	 */
-	import BackButton from '../ui/BackButton.svelte';
 	import Button from '../ui/Button.svelte';
-	import Capsule from '../ui/Capsule.svelte';
 	import ListRow from '../ui/ListRow.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import { moveSelection, type BuildingRow, type MarketRow } from './model';
 
 	let {
-		worldName,
 		rows,
 		labels,
 		selected,
@@ -31,7 +29,6 @@
 		onsite = () => {},
 		flows = []
 	}: {
-		worldName: string;
 		rows: readonly BuildingRow[];
 		/** CSS pixel of each building's label, or null when off screen. */
 		labels: Readonly<Record<string, { x: number; y: number } | null>>;
@@ -72,25 +69,6 @@
 </script>
 
 <div class="overlay" data-testid="space-center">
-	<div class="top">
-		<BackButton label="Main menu" href={resolve('/')} testid="sc-home" />
-		<Capsule data-testid="world-capsule"
-			><span class="world">{worldName}</span><span class="u">Space Center</span></Capsule
-		>
-		{#if sites.length > 1}
-			<label class="site-pick"
-				><span class="u">Site</span>
-				<select
-					data-testid="sc-site"
-					value={siteId ?? sites[0]?.id}
-					onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
-				>
-					{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
-				</select></label
-			>
-		{/if}
-	</div>
-
 	{#each rows as row (row.id)}
 		{@const at = labels[row.id]}
 		{#if at}
@@ -110,7 +88,47 @@
 		{/if}
 	{/each}
 
+	<!-- the right column (SpaceCenterV2: right 24, top 80, 320 wide): the selected building first -->
 	<aside class="side">
+		{#if sites.length > 1}
+			<label class="site-pick"
+				><span class="u">Site</span>
+				<select
+					data-testid="sc-site"
+					value={siteId ?? sites[0]?.id}
+					onchange={(e) => onsite((e.currentTarget as HTMLSelectElement).value)}
+				>
+					{#each sites as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+				</select></label
+			>
+		{/if}
+		{#if current}
+			<section class="detail" data-testid="sc-detail" aria-label="{current.label} details">
+				<Panel title={current.label}>
+					<p class="status-line">{current.statusText}</p>
+					{#if current.action.kind === 'link'}
+						<a class="open" href={current.action.href} data-testid="sc-open"
+							>{current.action.label}</a
+						>
+					{:else}
+						<p class="why">{current.action.reason}</p>
+					{/if}
+					{#if current.upgrade}
+						<Button onclick={() => onupgrade(current.id)} data-testid="sc-upgrade"
+							>Upgrade to level {current.upgrade.level + 1} · {current.upgrade.cost.toLocaleString(
+								'en-US'
+							)} funds · {current.upgrade.days} days</Button
+						>
+					{/if}
+					{#if build}
+						<Button variant="danger" onclick={() => onremove(current.id)} data-testid="sc-remove"
+							>Remove</Button
+						>
+					{/if}
+					<Button variant="ghost" onclick={() => onselect(null)}>Close</Button>
+				</Panel>
+			</section>
+		{/if}
 		<Panel title="Buildings">
 			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<ul
@@ -174,33 +192,6 @@
 		{/if}
 	</aside>
 
-	{#if current}
-		<section class="detail" data-testid="sc-detail" aria-label="{current.label} details">
-			<Panel title={current.label}>
-				<p class="status-line">{current.statusText}</p>
-				{#if current.action.kind === 'link'}
-					<a class="open" href={current.action.href} data-testid="sc-open">{current.action.label}</a
-					>
-				{:else}
-					<p class="why">{current.action.reason}</p>
-				{/if}
-				{#if current.upgrade}
-					<Button onclick={() => onupgrade(current.id)} data-testid="sc-upgrade"
-						>Upgrade to level {current.upgrade.level + 1} · {current.upgrade.cost.toLocaleString(
-							'en-US'
-						)} funds · {current.upgrade.days} days</Button
-					>
-				{/if}
-				{#if build}
-					<Button variant="danger" onclick={() => onremove(current.id)} data-testid="sc-remove"
-						>Remove</Button
-					>
-				{/if}
-				<Button variant="ghost" onclick={() => onselect(null)}>Close</Button>
-			</Panel>
-		</section>
-	{/if}
-
 	<div class="dock" role="toolbar" aria-label="Build">
 		{#if build}
 			<div class="ghost-info" data-testid="sc-ghost" class:invalid={!build.valid}>
@@ -250,24 +241,11 @@
 	.overlay :global(a),
 	.overlay :global(section),
 	.overlay :global(aside),
-	.overlay :global(.dock),
-	.overlay .top {
+	.overlay :global(.dock) {
 		pointer-events: auto;
-	}
-	.top {
-		position: absolute;
-		top: var(--space-4, 1rem);
-		left: var(--space-4, 1rem);
-		display: flex;
-		gap: var(--space-3, 0.75rem);
-		align-items: center;
-	}
-	.world {
-		font-weight: 600;
 	}
 	.u {
 		color: var(--text-muted);
-		margin-left: 0.5rem;
 		font-size: var(--t-sm, 0.8125rem);
 	}
 	.label {
@@ -302,9 +280,11 @@
 	}
 	.side {
 		position: absolute;
-		top: 4.5rem;
-		right: var(--space-4, 1rem);
-		width: 16rem;
+		top: calc(5rem + var(--safe-top));
+		right: calc(1.5rem + var(--safe-right));
+		width: 20rem;
+		max-height: calc(100% - 5rem - 7rem - var(--safe-top) - var(--safe-bottom));
+		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3, 0.75rem);
@@ -321,12 +301,6 @@
 		font-size: var(--t-sm, 0.8125rem);
 		margin: 0 0 0.5rem;
 	}
-	.detail {
-		position: absolute;
-		left: var(--space-4, 1rem);
-		top: 4.5rem;
-		width: 18rem;
-	}
 	.open {
 		display: inline-block;
 		margin: 0 0 0.75rem;
@@ -335,7 +309,8 @@
 	}
 	.dock {
 		position: absolute;
-		bottom: var(--space-4, 1rem);
+		/* over the status bar (BASE_LAYOUT §5: 24 → 52) */
+		bottom: calc(3.25rem + var(--safe-bottom));
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;

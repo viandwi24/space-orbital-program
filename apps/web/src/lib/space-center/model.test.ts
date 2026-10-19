@@ -29,7 +29,6 @@ const reg = registries.buildings;
 const site = { id: 'legacy', buildings: LEGACY_LAYOUT.buildings, roads: LEGACY_LAYOUT.roads };
 
 const props = (over: Record<string, unknown> = {}) => ({
-	worldName: 'Moon program',
 	rows: buildingRows(site, reg),
 	labels: {},
 	selected: null,
@@ -63,7 +62,8 @@ describe('the overlay', () => {
 			href: '/mission-center',
 			label: 'Open the Mission Center'
 		});
-		expect(html).toContain('Moon program');
+		// the world's name is in the status bar since plan 233, not over the site
+		expect(html).not.toContain('world-capsule');
 		// a lab opens R&D since plan 105
 		expect(actionOf(['lab'])).toEqual({ kind: 'link', href: '/rnd', label: 'Open R&D' });
 		// the test stand opens since plan 130

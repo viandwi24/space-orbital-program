@@ -20,7 +20,7 @@ test('] flies the spent stage, [ comes back; no reload', async ({ page }) => {
 	const errors = watchErrors(page);
 	await dropTheStage(page);
 	await page.evaluate(() => ((window as unknown as { __marker: number }).__marker = 7));
-	const title = page.locator('header.bar h1');
+	const title = page.getByTestId('status-place');
 	await expect(title).toHaveText('Two-stage');
 	await page.keyboard.press(']');
 	await expect(title).toHaveText('Two-stage (debris)');
@@ -36,15 +36,18 @@ test('Fly on a vessel that is not the focus opens Flight on it (Mission Center)'
 }) => {
 	const errors = watchErrors(page);
 	await dropTheStage(page);
-	await page.getByTestId('nav-mission-center').click();
+	// the Mission Center is the Space Center's page action (plan 233)
+	await page.getByTestId('nav-space-center').click();
 	const anyway = page.getByTestId('leave-anyway');
 	if (await anyway.isVisible({ timeout: 3000 }).catch(() => false)) await anyway.click();
+	await page.waitForURL('**/space-center');
+	await page.getByTestId('nav-mission-center').click();
 	await page.waitForURL('**/mission-center');
 	const debris = page.locator('[data-testid^="mc-row-vessel:"]').filter({ hasText: 'debris' });
 	await debris.first().click({ timeout: 60_000 });
 	await page.getByTestId('mc-fly').click();
 	await page.waitForURL('**/flight');
-	await expect(page.locator('header.bar h1')).toHaveText('Two-stage (debris)', {
+	await expect(page.getByTestId('status-place')).toHaveText('Two-stage (debris)', {
 		timeout: 60_000
 	});
 	expect(errors).toEqual([]);

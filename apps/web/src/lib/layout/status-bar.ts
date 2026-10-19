@@ -10,7 +10,7 @@ export interface StatusItems {
 	funds: string | null;
 	science: string | null;
 	reputation: string | null;
-	/** "2 / 3" active contracts and slots, or null without contracts. */
+	/** "2 active" contracts (BASE_LAYOUT §4), or null without contracts. */
 	contracts: string | null;
 }
 
@@ -22,7 +22,33 @@ export function statusItems(snapshot: Snapshot | null): StatusItems {
 		funds: on ? formatFunds(e.funds) : null,
 		science: e ? e.science.toFixed(1) : null,
 		reputation: on ? e.reputation.toFixed(0) : null,
-		contracts: c?.enabled ? `${c.used} / ${c.slots ?? '∞'}` : null
+		contracts: c?.enabled ? `${c.used} active` : null
+	};
+}
+
+/** The status bar's connection (BASE_LAYOUT §4): the dot, "Connected" and the network. */
+export interface Connection {
+	online: boolean;
+	text: string;
+	detail: string;
+}
+
+const count = (n: number, one: string): string => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/** The focused vessel's link when it has one in the comms network, else the network's size. */
+export function connection(snapshot: Snapshot | null, focus: number | null = null): Connection {
+	const net = snapshot?.network;
+	if (!net) return { online: true, text: 'Connected', detail: 'Comms off' };
+	const link = focus === null ? undefined : net.vessels.find((v) => v.vessel === focus);
+	if (link && link.to === null)
+		return { online: false, text: 'No signal', detail: link.reason ?? 'Out of range' };
+	const relays = link ? Math.max(0, link.route.length - 1) : 0;
+	return {
+		online: true,
+		text: 'Connected',
+		detail: link
+			? `${count(net.stations.length, 'station')} · ${count(relays, 'relay')}`
+			: count(net.stations.length, 'station')
 	};
 }
 

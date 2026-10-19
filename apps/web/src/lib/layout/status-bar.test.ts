@@ -1,7 +1,7 @@
 /** Plan 204: the status bar from a snapshot fixture and the bell's unread count. */
 import { describe, expect, it } from 'vitest';
 import type { Snapshot } from '@orbital/core';
-import { createBellFeed, savedAgo, statusItems } from './status-bar';
+import { connection, createBellFeed, savedAgo, statusItems } from './status-bar';
 
 const snap = (extra: Partial<Snapshot>): Snapshot => ({ t: 0, vessels: [], bodies: [], ...extra });
 
@@ -22,6 +22,36 @@ describe('status bar', () => {
 		const s = snap({ economy: { enabled: false, funds: 0, science: 5, reputation: 0 } });
 		expect(statusItems(s)).toMatchObject({ funds: null, science: '5.0', reputation: null });
 		expect(statusItems(null).funds).toBeNull();
+	});
+
+	it('counts active contracts (BASE_LAYOUT §4)', () => {
+		const s = snap({ contracts: { enabled: true, used: 2, slots: 3 } as Snapshot['contracts'] });
+		expect(statusItems(s).contracts).toBe('2 active');
+	});
+
+	it('shows the connection: comms off, the network, the focused link or its loss', () => {
+		expect(connection(null)).toEqual({ online: true, text: 'Connected', detail: 'Comms off' });
+		const station = {
+			id: 'ksc',
+			label: 'KSC',
+			body: 'kerbin',
+			position: { x: 0, y: 0, z: 0 },
+			range: 1
+		};
+		const link = { vessel: 4, to: 'ksc', reason: null, route: ['r1', 'r2', 'ksc'] };
+		const s = snap({
+			network: { stations: [station, { ...station, id: 'b' }], vessels: [link] }
+		} as unknown as Partial<Snapshot>);
+		expect(connection(s)).toMatchObject({ online: true, detail: '2 stations' });
+		expect(connection(s, 4)).toMatchObject({ online: true, detail: '2 stations · 2 relays' });
+		const lost = snap({
+			network: { stations: [station], vessels: [{ ...link, to: null, reason: 'Out of range' }] }
+		} as unknown as Partial<Snapshot>);
+		expect(connection(lost, 4)).toEqual({
+			online: false,
+			text: 'No signal',
+			detail: 'Out of range'
+		});
 	});
 
 	it('says how long ago the world was saved', () => {

@@ -26,6 +26,8 @@
 	--surface-scrim: rgb(0 0 0 / 0.6);
 	/* The backdrop dimming keeps text readable over a white cloud (ADR 0140) */
 	--glass-filter: blur(28px) saturate(160%) brightness(0.4);
+	/* the Base layout's bars: the v2 package's glass, no darkening (plan 233) */
+	--bar-filter: blur(28px) saturate(160%);
 
 	/* Borders */
 	--border-subtle: rgb(255 255 255 / 0.08);
@@ -167,12 +169,14 @@
 :root[data-glass='solid'] {
 	--surface-glass: var(--surface-solid);
 	--glass-filter: none;
+	--bar-filter: none;
 }
 
 /* High contrast (settings): solid surfaces, lighter greys, visible borders */
 :root[data-contrast='more'] {
 	--surface-glass: var(--surface-solid);
 	--glass-filter: none;
+	--bar-filter: none;
 	--text-muted: #d4d4d8;
 	--text-subtle: #b4b4bc;
 	--text-disabled: #8b8b93;

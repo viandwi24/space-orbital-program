@@ -50,10 +50,10 @@
 	import { GAME_NAME } from '../../../lib/public/about';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
 	import { onMount, untrack } from 'svelte';
+	import { pageShell, type PageAction } from '../../../lib/layout/page-actions.svelte';
+	import { warpText } from '../../../lib/layout/shell-model';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
-	import AppBar from '../../../lib/hud/AppBar.svelte';
 	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
-	import WorldCapsule from '../../../lib/hud/WorldCapsule.svelte';
 	import RecoverDialog from '../../../lib/hud/RecoverDialog.svelte';
 	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
 	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
@@ -81,10 +81,8 @@
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
 	import ScriptPanel from '../../../lib/hud/ScriptPanel.svelte';
-	import SituationBar from '../../../lib/hud/SituationBar.svelte';
 	import StageStack from '../../../lib/hud/StageStack.svelte';
 	import StatusCard from '../../../lib/hud/StatusCard.svelte';
-	import WarpControl from '../../../lib/hud/WarpControl.svelte';
 	import TouchControls from '../../../lib/hud/TouchControls.svelte';
 	import TutorialCard from '../../../lib/hud/TutorialCard.svelte';
 	import {
@@ -314,8 +312,9 @@
 	let tall = $state(true);
 	const ballSize = $derived(tall ? 176 : 144);
 	// The toolbar's Staging and Nav buttons (plan 088, ADR 0144 point 5).
-	let stagingOpen = $state(true);
 	let navOpen = $state(true);
+	/** The crew panel at the bottom right (BASE_LAYOUT §3: a panel toggle). */
+	let crewOpen = $state(true);
 	/** The world capsule: the active world's name, mode and system (ADR 0144 point 7). */
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox', system: 'Stock system' });
 	/** The primary pointer is a finger (plan 053): the on-screen controls show for Automatic. */
@@ -848,6 +847,107 @@
 	/** The world's warp levels (plan 206). */
 	let warpSteps = $state<readonly number[]>(WARP_STEPS);
 	const warpUsable = $derived(canWarp(t, hud?.warp ?? 1, running));
+
+	// The Base layout's bars (plan 233, BASE_LAYOUT §3 and the v2 Flight page): this page's actions
+	// in the menu bar, its warp and mission time in the time bar, the vessel in the status bar.
+	function toggleDock(): void {
+		dockShown = !dockShown;
+		if (dockShown) {
+			lastSide = 'dock';
+			// one side panel at a time below 1280 px: the dock closes the vessel panel
+			if (narrow) vesselOpen = false;
+		}
+	}
+	function toggleVessel(): void {
+		vesselOpen = !vesselOpen;
+		if (!vesselOpen) flight?.highlightPart(null);
+		else {
+			lastSide = 'vessel';
+			panelInput = flight?.panelInput() ?? null;
+		}
+	}
+	const flightActions = $derived<PageAction[]>([
+		{
+			id: 'panels',
+			label: 'Panel dock',
+			title: 'Panels',
+			icon: 'panels',
+			on: dockShown,
+			onclick: toggleDock
+		},
+		{
+			id: 'vessel',
+			label: 'Vessel panel',
+			title: 'Vessel info',
+			icon: 'vesselInfo',
+			on: vesselOpen,
+			onclick: toggleVessel
+		},
+		{
+			id: 'navball',
+			label: 'Navball',
+			title: 'Navball and instruments',
+			icon: 'navball',
+			on: navOpen,
+			onclick: () => (navOpen = !navOpen)
+		},
+		{
+			id: 'crew',
+			label: 'Crew panel',
+			title: touchOn ? 'Crew: hidden while the touch controls are on' : 'Crew',
+			icon: 'crew',
+			on: crewOpen && !touchOn,
+			disabled: touchOn,
+			onclick: () => (crewOpen = !crewOpen)
+		},
+		{
+			id: 'camera',
+			label: 'Change camera',
+			title: 'Camera views: the chase camera only for now',
+			icon: 'camera',
+			disabled: true
+		}
+	]);
+	$effect(() => {
+		pageShell.actions = flightActions;
+	});
+	$effect(() => {
+		const steps = warpSteps;
+		const warp = hud?.warp ?? 1;
+		const limit = hud?.warpLimit ?? null;
+		const clamp = hud?.warpClamp ?? null;
+		const index = steps.reduce((at, step, i) => (step <= warp ? i : at), 0);
+		const limited = limit?.reason && limit.max < steps[steps.length - 1]!;
+		const usable = warpUsable;
+		pageShell.time = {
+			steps,
+			index,
+			limit: limit?.max ?? null,
+			reason: clamp ?? (limited ? `Max ${warpText(limit.max)} — ${limit.reason}` : ''),
+			elapsed: model ? (model.prelaunch ? model.time : model.met) : 0,
+			date: model?.date ?? '',
+			onpick: (i) => {
+				if (i > index && !usable) return;
+				flight?.stepWarp(i - index);
+			},
+			catchUp,
+			oncatchup: () =>
+				void flight?.acceptCatchUp(Date.now()).then((r) => {
+					if (r && !r.ok) notice = `Catch up was refused: ${r.reason}`;
+				})
+		};
+	});
+	$effect(() => {
+		pageShell.location = model
+			? { icon: 'vessel', text: model.name, situation: model.situation }
+			: null;
+	});
+	$effect(() => {
+		const on = hud?.map ?? false;
+		pageShell.map = { on, toggle: () => flight?.toggleMap() };
+		pageShell.menu = () => (pauseOpen = true);
+	});
+	$effect(() => () => pageShell.reset());
 	// User Timing mark for the release measurements (plan 023): time from navigation start to the
 	// first HUD model, i.e. the vessel is on the pad and the player can act.
 	let booted = false;
@@ -873,6 +973,8 @@
 	/** Right edge of the open dock panel, 0 when none is open (plan 112). */
 	let dockRight = $state(0);
 	let viewport = $state({ width: 1440, height: 900 });
+	/** The status bar's height from the bottom of the window (plan 233): 32 px at 100 %. */
+	let statusHeight = $state(32);
 	/** The side panel opened last: with room for one, it is the one that stays (plan 215). */
 	let lastSide = $state<SidePanel>('vessel');
 	/**
@@ -920,7 +1022,10 @@
 		};
 		const deck = box('.bc .deck');
 		const right = box('.tr');
-		const bar = box('.tc header');
+		// the time bar is the top of the view (plan 233); the status bar is under the bottom panels
+		const bar = box('[data-testid="time-bar"]');
+		const status = box('[data-testid="status-bar"]');
+		statusHeight = status ? Math.round(frame.height - status.top) : 0;
 		if (deck && deck.height > 0) deckHeight = Math.round(deck.height);
 		const left = box('.tl');
 		leftStackBottom = left ? Math.round(left.bottom) : 0;
@@ -964,7 +1069,6 @@
 		void settings.ui.centreVessel;
 		void settings.ui.scale;
 		void vesselOpen;
-		void stagingOpen;
 		void model?.crew?.rows.length;
 		queueMicrotask(updateInsets);
 	});
@@ -1092,30 +1196,10 @@
 			style:--tl-bottom="{leftStackBottom}px"
 			style:--crew-top={crewTop > 0 ? `${crewTop}px` : '100%'}
 			style:--deck-h="{deckHeight}px"
-			style:--above-deck="{aboveDeckHeight(viewport.height, deckHeight)}px"
+			style:--above-deck="{aboveDeckHeight(viewport.height - statusHeight, deckHeight)}px"
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
 		>
 			<div class="tl">
-				<div class="capsules">
-					<WorldCapsule name={world.name} mode={world.mode} system={world.system} />
-					<WarpControl
-						warp={hud.warp}
-						usable={warpUsable}
-						met={model ? (model.prelaunch ? model.time : model.met) : 0}
-						date={model?.date ?? ''}
-						{catchUp}
-						oncatchup={() =>
-							void flight?.acceptCatchUp(Date.now()).then((r) => {
-								if (r && !r.ok) notice = `Catch up was refused: ${r.reason}`;
-							})}
-						onpause={() => (pauseOpen = true)}
-						onslower={() => flight?.stepWarp(-1)}
-						onfaster={() => flight?.stepWarp(1)}
-						steps={warpSteps}
-						limit={hud.warpLimit}
-						clamp={hud.warpClamp}
-					/>
-				</div>
 				{#if tutorialStep}
 					<TutorialCard
 						step={tutorialStep}
@@ -1133,7 +1217,6 @@
 						onmissioncenter={() => void openMissionCenter()}
 					/>
 					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
-				{#if model}<SituationBar name={model.name} situation={model.situation} />{/if}
 				{#if hud?.recovery}
 					<!-- the funds and Recover sit here, not in the capsule row: that row sets the top-left stack's width, which the touch throttle must clear (plan 132) -->
 					<Button variant="primary" onclick={() => (recoverOpen = true)} data-testid="hud-recover"
@@ -1161,39 +1244,6 @@
 				<PrecompileBadge progress={graphics} />
 			</div>
 
-			<div class="tb">
-				<AppBar
-					map={hud.map}
-					script={scriptOpen}
-					scriptRunning={running}
-					staging={stagingOpen}
-					nav={navOpen}
-					onmenu={() => (pauseOpen = true)}
-					onmap={() => flight?.toggleMap()}
-					onscript={toggleScript}
-					dock={dockShown}
-					ondock={() => {
-						dockShown = !dockShown;
-						if (dockShown) {
-							lastSide = 'dock';
-							// one side panel at a time below 1280 px: the dock closes the vessel panel
-							if (narrow) vesselOpen = false;
-						}
-					}}
-					vessel={vesselOpen}
-					onvessel={() => {
-						vesselOpen = !vesselOpen;
-						if (!vesselOpen) flight?.highlightPart(null);
-						else {
-							lastSide = 'vessel';
-							panelInput = flight?.panelInput() ?? null;
-						}
-					}}
-					onhelp={() => (helpOpen = true)}
-					onstaging={() => (stagingOpen = !stagingOpen)}
-					onnav={() => (navOpen = !navOpen)}
-				/>
-			</div>
 			{#if vesselOpen && vesselShown}
 				<!-- the vessel panel (plan 111, ADR 0153 point 4): top right; below 1280 px in place of the dock -->
 				<div class="tr vr" style:width="{panelWidth / 16}rem">
@@ -1245,7 +1295,7 @@
 					{/each}
 				</div>
 			{/if}
-			{#if model && stagingOpen}
+			{#if model}
 				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
 				<div class="bl" class:stowed={scriptOpen && viewport.width <= 1279}>
 					<StageStack
@@ -1297,7 +1347,7 @@
 				</div>
 			</div>
 
-			{#if !touchOn}
+			{#if !touchOn && crewOpen}
 				<div class="br" bind:this={crewEl}>
 					<CrewPanel
 						card={model?.crew ?? null}
@@ -1539,36 +1589,20 @@
 	.ui :global(nav) {
 		pointer-events: auto;
 	}
-	/* refs layout (plan 088, ADR 0144): 24 px margins, capsules top left, toolbar top right */
+	/* the v2 Flight page on the Base layout (plan 233, BASE_LAYOUT §1 and §5): the content's safe area
+	   is top 80 (under the time and menu bars), sides 24 and bottom 56 (over the 32 px status bar) */
+	.ui {
+		--safe-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
+	}
 	.tl {
-		top: calc(var(--margin-hud) + var(--safe-top));
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
 		left: calc(var(--margin-hud) + var(--safe-left));
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--s-2);
 		/* The script panel and the guide scroll above the instrument deck, never under it (plan 055). */
-		max-height: var(--above-deck);
-	}
-	.capsules {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		gap: 0.5rem;
-		/* the row wraps before it reaches the toolbar (plan 215; about 30 rem of buttons at the right) */
-		max-width: calc(100vw - 33rem);
-	}
-	/* narrow by the region rule (width over the UI scale, plan 215), not a fixed media query */
-	.ui.narrow .capsules {
-		flex-direction: column;
-	}
-	/* the capsules stack: the vessel's name goes below both (more specific than the base rule below) */
-	.ui.narrow > .tc {
-		top: calc(var(--margin-hud) + var(--capsule) * 2 + var(--panel-gap) + 0.5rem + var(--safe-top));
-	}
-	.tb {
-		top: calc(var(--margin-hud) + var(--safe-top));
-		right: calc(var(--margin-hud) + var(--safe-right));
+		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
 	}
 	.br {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));

@@ -50,7 +50,7 @@ for (const size of [
 		await page.setViewportSize({ width: size.width, height: size.height });
 		await launchTwoStage(page);
 		await expect(page.getByTestId('touch-controls')).toBeVisible();
-		await page.getByRole('button', { name: 'Script panel' }).tap();
+		await page.getByTestId('dock-tab-host.script').tap();
 		await expect(page.getByLabel('Script source')).toBeVisible();
 		// let the insets and the deck measurement settle
 		await page.waitForTimeout(400);
