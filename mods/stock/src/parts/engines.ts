@@ -10,7 +10,6 @@ export const PartEngineLV = definePart({
 	mass: kg(1_250),
 	cost: partCost(1_250, 'engine'),
 	impactTolerance: 4,
-	maxTemperature: 1800,
 	shape: cylinder(1.2),
 	visual: {
 		kind: 'engine',
@@ -58,7 +57,6 @@ export const PartEngineCluster = definePart({
 	mass: kg(1_850),
 	cost: partCost(1_850, 'engine'),
 	impactTolerance: 4,
-	maxTemperature: 1800,
 	shape: cylinder(1.2),
 	visual: {
 		kind: 'engine-cluster',
@@ -187,7 +185,6 @@ export const PartBoosterLiquid = definePart({
 	mass: kg(450),
 	cost: partCost(450, 'engine'),
 	impactTolerance: 5,
-	maxTemperature: 1500,
 	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 3.2 },
 	visual: {
 		kind: 'booster',

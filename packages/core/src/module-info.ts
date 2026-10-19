@@ -14,6 +14,23 @@ export const STANDARD_GRAVITY = 9.80665;
 export const SEA_LEVEL_PRESSURE = 101_325;
 
 /**
+ * Air temperature over altitude of the US Standard Atmosphere 1976 (plan 212, ADR 0204 point 1),
+ * `[m, K]`: the layer bases to 86 km, then the start of the thermosphere's rise. A body's
+ * `atmosphere.temperatureCurve` may use it as is or scaled.
+ */
+export const STANDARD_ATMOSPHERE_TEMPERATURE: ReadonlyArray<readonly [number, number]> = [
+	[0, 288.15],
+	[11_000, 216.65],
+	[20_000, 216.65],
+	[32_000, 228.65],
+	[47_000, 270.65],
+	[51_000, 270.65],
+	[71_000, 214.65],
+	[86_000, 186.87],
+	[100_000, 195.08]
+];
+
+/**
  * Thrust of an engine at full throttle in ambient `pressure` (Pa): the piecewise-linear curve of
  * its descriptor, clamped to the first and last point.
  */

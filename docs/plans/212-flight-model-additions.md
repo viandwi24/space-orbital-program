@@ -1,12 +1,12 @@
 ---
 id: 212
 title: Mach effects, atmosphere temperature curves, heating rule, part temperature limits
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 212 — Mach effects, atmosphere temperature curves, heating rule, part temperature limits
@@ -93,3 +93,4 @@ The atmosphere has a temperature that changes with altitude on each body, so den
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. The heating rule follows ADR 0204 (0–1.2, in the launch group), not the plan's 0–1.5. The Mach curve follows ADR 0204 (1.6 flat from Mach 2). The standard-atmosphere table is in core (`STANDARD_ATMOSPHERE_TEMPERATURE`, exported by the SDK) so stock and Sol share it; Sol's rescaled variant scales its altitudes with the air. Stock parts drop their explicit limits for the 2000 K default; the pod is 2400 K, the shield 3300 K, the EVA suit and flag keep theirs. Under these limits a low-orbit entry no longer burns an unshielded probe (peak 864 K), as in KSP; the overheat path is tested with a test part rated 800 K. The panel shows a part's temperature bar from 400 K or half its limit (the shield's 3300 K limit is never half reached on a low-orbit entry). The sun-parity fixture is re-frozen: its frozen flight crosses the air. Rebalance: none needed; the booster ascent's circularisation Δv rose from 1780 to 1835 m/s (3 %), the moon landing's lean gain in its test went from 0.1 to 0.3, and the Sol transfer planner's search is finer. The e2e enters at 23° instead of straight down, which no capsule survives.

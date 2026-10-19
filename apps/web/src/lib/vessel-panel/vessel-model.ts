@@ -46,6 +46,8 @@ export interface PartRow {
 	controls: ControlRow[];
 	/** State the modules show as text (plan 209: a parachute's "Armed" and "Unsafe"). */
 	readouts: ReadoutRow[];
+	/** Its skin temperature and limit, K, while it is hot (plan 212): the panel draws a bar. */
+	heat?: { temperature: number; max: number };
 	/** The part can be controlled from (a command part or a docking port; plan 221). */
 	controlPoint?: boolean;
 	/** The vessel is controlled from this part now. */
@@ -55,6 +57,19 @@ export interface PartRow {
 export interface VesselView {
 	groups: GroupRow[];
 	parts: PartRow[];
+}
+
+/** A part shows its temperature from this, K, or from half its limit (plan 212, ADR 0204 point 6). */
+export const HOT_SHOWN = 400;
+
+/** The temperature row of a part, or undefined while it is cool. */
+export function heatOf(
+	p: Pick<VesselSnapshot['parts'][number], 'temperature' | 'maxTemperature'>
+): { temperature: number; max: number } | undefined {
+	const t = p.temperature;
+	const max = p.maxTemperature;
+	if (t === undefined || max === undefined) return undefined;
+	return t >= HOT_SHOWN || t / max >= 0.5 ? { temperature: t, max } : undefined;
 }
 
 /** Groups with members on this vessel, then parts with controls (ADR 0153 points 1 and 2). */
@@ -94,13 +109,15 @@ export function vesselView(
 			const m = content.modules.get(id);
 			return m?.controlSource === true || m?.controlPoint === true;
 		});
-		if (controls.length === 0 && !point) continue;
+		const heat = heatOf(p);
+		if (controls.length === 0 && readouts.length === 0 && !point && !heat) continue;
 		parts.push({
 			entity: p.id,
 			title: def.title,
 			category: categoryOf(def, content.modules, categories),
 			controls,
 			readouts,
+			...(heat ? { heat } : {}),
 			...(point
 				? {
 						controlPoint: true,

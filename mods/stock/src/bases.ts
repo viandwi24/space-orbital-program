@@ -43,7 +43,6 @@ export const PartBaseKit = definePart({
 	mass: kg(1_200),
 	cost: partCost(1_200, 'command'),
 	impactTolerance: 8,
-	maxTemperature: 1200,
 	shape: cylinder(1.2),
 	visual: {
 		kind: 'tank',
@@ -60,7 +59,6 @@ export const PartDrill = definePart({
 	mass: kg(250),
 	cost: partCost(250, 'engine'),
 	impactTolerance: 8,
-	maxTemperature: 1200,
 	shape: cylinder(0.6),
 	visual: {
 		kind: 'tank',

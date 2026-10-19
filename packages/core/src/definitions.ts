@@ -165,6 +165,9 @@ export interface Ambient {
 	readonly density: number;
 	/** Height above the body's reference sphere, m. */
 	readonly altitude: number;
+	/** Air temperature, K, and the speed of sound in it, m/s (plan 212); absent in vacuum. */
+	readonly temperature?: number;
+	readonly speedOfSound?: number;
 	/**
 	 * Height above the ground under the part, m (plan 209: a parachute's full-deploy height): the
 	 * altitude less the terrain there, or the altitude itself above the highest terrain. Absent

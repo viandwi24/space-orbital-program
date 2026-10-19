@@ -13,7 +13,6 @@ export const PartLifeSupportPack = definePart({
 	mass: kg(60),
 	cost: partCost(60, 'tank'),
 	impactTolerance: 6,
-	maxTemperature: 900,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',
@@ -43,7 +42,6 @@ export const PartScrubber = definePart({
 	mass: kg(40),
 	cost: partCost(40, 'command'),
 	impactTolerance: 6,
-	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',

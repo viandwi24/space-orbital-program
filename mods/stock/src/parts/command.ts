@@ -12,7 +12,8 @@ export const PartCommandPod = definePart({
 	crewCapacity: 1,
 	cost: partCost(840, 'command'),
 	impactTolerance: 10,
-	maxTemperature: 1000,
+	// a pod takes more heat than most parts, a shield more again (plan 212, ADR 0204 point 5)
+	maxTemperature: 2_400,
 	shape: cylinder(1),
 	visual: {
 		kind: 'capsule',
@@ -43,7 +44,6 @@ export const PartReactionWheel = definePart({
 	mass: kg(100),
 	cost: partCost(100, 'command'),
 	impactTolerance: 6,
-	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'reaction-wheel',
@@ -61,7 +61,6 @@ export const PartDataDrive = definePart({
 	mass: kg(20),
 	cost: partCost(20, 'command'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',

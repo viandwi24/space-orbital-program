@@ -114,7 +114,7 @@ async function fly() {
 		rootToFoot: 7.2,
 		margin: 0.5,
 		finalSpeed: 30,
-		leanGain: 0.1
+		leanGain: 0.3
 	});
 	for (let i = 0; sim.time < 80_000 && landing.phase !== 'done'; i++) {
 		sim.step(0.02);

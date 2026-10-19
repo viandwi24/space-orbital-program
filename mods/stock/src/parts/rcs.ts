@@ -32,7 +32,6 @@ export const PartRcsBlock = definePart({
 	mass: kg(50),
 	cost: partCost(50, 'engine'),
 	impactTolerance: 8,
-	maxTemperature: 1500,
 	shape: { kind: 'box', size: [0.2, 0.3, 0.3] },
 	visual: {
 		kind: 'rcs-block',
@@ -67,7 +66,6 @@ export const PartColdGasThruster = definePart({
 	mass: kg(15),
 	cost: partCost(15, 'engine'),
 	impactTolerance: 8,
-	maxTemperature: 1200,
 	shape: { kind: 'box', size: [0.14, 0.14, 0.14] },
 	visual: {
 		kind: 'rcs-block',
@@ -99,7 +97,6 @@ export const PartMonopropTank = definePart({
 	mass: kg(60),
 	cost: partCost(60, 'tank'),
 	impactTolerance: 6,
-	maxTemperature: 900,
 	shape: { kind: 'cylinder', radius: 0.625, height: 0.5 },
 	visual: {
 		kind: 'tank',
@@ -118,7 +115,6 @@ export const PartMonopropRadial = definePart({
 	mass: kg(20),
 	cost: partCost(20, 'tank'),
 	impactTolerance: 6,
-	maxTemperature: 900,
 	shape: { kind: 'cylinder', radius: 0.3125, height: 0.6 },
 	visual: {
 		kind: 'tank',

@@ -10,6 +10,7 @@
 	import Switch from '../ui/Switch.svelte';
 	import Button from '../ui/Button.svelte';
 	import SignalBars from '../ui/SignalBars.svelte';
+	import Meter from '../ui/Meter.svelte';
 	import type { CommsTab } from '../comms/network-model';
 	import {
 		controlCommand,
@@ -209,6 +210,22 @@
 						>
 					</div>
 				{/if}
+				{#if p.heat}
+					{@const f = p.heat.temperature / p.heat.max}
+					<div class="row heat">
+						<span>Temperature</span>
+						<span class="bar"
+							><Meter
+								value={Math.min(1, f)}
+								tone={f >= 0.8 ? 'danger' : f >= 0.5 ? 'warning' : 'accent'}
+								label="{p.title} temperature"
+							/></span
+						>
+						<span class="value num" data-testid="part-{p.entity}-temperature"
+							>{Math.round(p.heat.temperature)} K of {p.heat.max} K</span
+						>
+					</div>
+				{/if}
 				{#each p.readouts as r (r.module + '/' + r.id)}
 					<div class="row readout">
 						<span>{r.label}</span>
@@ -328,6 +345,17 @@
 		min-height: 1.75rem;
 		font-size: var(--t-sm);
 		color: var(--text-muted);
+	}
+	.heat {
+		gap: var(--s-3);
+		font-size: var(--t-sm);
+		color: var(--text-muted);
+	}
+	.heat .bar {
+		flex: 1;
+	}
+	.heat .value {
+		color: var(--text-primary);
 	}
 	.readout .value {
 		color: var(--text-primary);

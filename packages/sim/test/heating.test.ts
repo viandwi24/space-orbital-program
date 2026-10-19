@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { EntityId } from '@orbital/core';
+import Stock, { PartTankSmall } from '@orbital/mod-stock';
+import { definePart, definePlugin } from '@orbital/sdk';
 import { advanceTemperature, noseRadius, stagnationFlux, surfaceArea } from '../src/thermal.ts';
 import { PART } from '../src/state.ts';
 import {
@@ -10,7 +12,18 @@ import {
 } from '../src/index.ts';
 import { altitude, orbitState } from './helpers/measure.ts';
 import { deorbit, enter, probeEntry, shieldedProbe, type EntryOptions } from './helpers/reentry.ts';
-import { newSim, probe } from './helpers/vessels.ts';
+import { newSim, probe, stack } from './helpers/vessels.ts';
+
+/** A small tank rated 800 K (the stock one takes 2000 K since plan 212): the overheat path. */
+const HotTank = definePlugin({
+	meta: { id: 'test', version: '1.0.0', api: '^0.1' },
+	depends: [Stock],
+	setup(ctx) {
+		ctx.parts.register(definePart({ ...PartTankSmall, id: 'test.tank-800', maxTemperature: 800 }));
+	}
+});
+const probeHotEntry = () =>
+	stack('Probe', ['stock.command-pod', 'stock.reaction-wheel', 'test.tank-800'], []);
 
 interface Run {
 	damaged: Array<{ t: number } & Record<string, unknown>>;
@@ -26,9 +39,10 @@ interface Run {
 async function fly(
 	design: Parameters<typeof enter>[0],
 	opts: EntryOptions,
-	limit = 900
+	limit = 900,
+	extra: Parameters<typeof enter>[2] = {}
 ): Promise<Run> {
-	const { sim, id, damaged } = await enter(design, opts);
+	const { sim, id, damaged } = await enter(design, opts, extra);
 	let peak = 0;
 	const peakByPart = new Map<string, number>();
 	let parts = 0;
@@ -60,8 +74,18 @@ async function fly(
 }
 
 describe('re-entry heating (plan 014, ADR 0023)', () => {
-	test('an unshielded probe on a deorbit path overheats and loses parts, tail first', async () => {
+	test('an unshielded probe on a deorbit path heats tail first and, under KSP-like limits, survives', async () => {
+		// plan 212 (ADR 0204 point 5): parts fail at 2000 K, pods 2400 K; a low-orbit return stays under
 		const run = await fly(probeEntry(), deorbit);
+		console.log(`unshielded: end ${run.end}, peak ${run.peak.toFixed(0)} K`);
+		expect(run.end).toBe('low');
+		expect(run.damaged).toEqual([]);
+		expect(run.peak).toBeGreaterThan(600);
+		expect(run.peakByPart.get('stock.tank-small')).toBe(run.peak); // the end facing the flow
+	});
+
+	test('a part rated for less overheats and is lost on the same entry, tail first', async () => {
+		const run = await fly(probeHotEntry(), deorbit, 900, { plugins: [HotTank] });
 		const burnt = run.damaged.filter((d) => d.cause === 'overheat');
 		console.log(
 			`unshielded: end ${run.end}, peak ${run.peak.toFixed(0)} K, lost ` +
@@ -70,9 +94,9 @@ describe('re-entry heating (plan 014, ADR 0023)', () => {
 					.join(', ')
 		);
 		expect(burnt.length).toBeGreaterThanOrEqual(1);
-		expect(burnt[0]!.definition).toBe('stock.tank-small'); // the end facing the flow goes first
+		expect(burnt[0]!.definition).toBe('test.tank-800'); // the end facing the flow goes first
 		expect(burnt[0]!.outcome).toBe('destroyed');
-		expect(burnt[0]!.temperature as number).toBeGreaterThan(900);
+		expect(burnt[0]!.temperature as number).toBeGreaterThan(800);
 		expect(run.damaged.every((d) => d.cause === 'overheat')).toBe(true); // nothing reached the ground
 	});
 
@@ -87,6 +111,19 @@ describe('re-entry heating (plan 014, ADR 0023)', () => {
 		expect(run.ablator!).toBeLessThan(120);
 		expect(run.ablator!).toBeGreaterThan(0);
 		expect(run.peak).toBeLessThan(900); // below the tank limit
+	});
+
+	test('"Re-entry heating" 0 keeps every part cool; at 1 a shielded pod stays under its 2400 K', async () => {
+		const off = await fly(probeEntry(), deorbit, 900, { heating: 0 });
+		expect(off.peak).toBeLessThan(400);
+		expect(off.damaged).toEqual([]);
+		const on = await fly(shieldedProbe(), deorbit, 900, { heating: 1 });
+		expect(on.peakByPart.get('stock.command-pod')!).toBeLessThan(2_400);
+		expect(on.damaged).toEqual([]);
+		// a hotter rule heats more
+		const hot = await fly(probeEntry(), deorbit, 900, { heating: 1.2 });
+		const normal = await fly(probeEntry(), deorbit, 900, { heating: 1 });
+		expect(hot.peak).toBeGreaterThan(normal.peak);
 	});
 
 	test('a slow, low pass does not heat significantly', async () => {

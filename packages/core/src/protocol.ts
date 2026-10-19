@@ -148,6 +148,8 @@ export interface PartSnapshot {
 	modules: Record<string, unknown>;
 	/** Skin temperature, K (plan 014). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	temperature?: number;
+	/** The temperature at which the part fails, K (plan 212): the bars draw `temperature` over it. */
+	maxTemperature?: number;
 	/** Index of the part in its vessel's design (plan 221): the HUD maps parts to the design record. */
 	index?: number;
 	/**
@@ -225,6 +227,13 @@ export interface VesselSnapshot {
 	 * minus this.
 	 */
 	terrainHeight?: number;
+	/** Mach number of the root part's airspeed (plan 212); absent out of the air. */
+	mach?: number;
+	/**
+	 * The part nearest its temperature limit (plan 212, ADR 0204 point 6), when above half of it:
+	 * `fraction` is its temperature over its limit.
+	 */
+	hottest?: { part: EntityId; fraction: number };
 	/** Stability assist state (plan 042). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	sas?: SasSnapshot;
 	/** Maneuver nodes in time order (plan 045). Always set by the sim; optional so older hosts' fixtures stay valid. */

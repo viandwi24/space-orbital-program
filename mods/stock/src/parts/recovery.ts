@@ -14,7 +14,7 @@ export const PartHeatShield = definePart({
 	mass: kg(80),
 	cost: partCost(80, 'gear'),
 	impactTolerance: 8,
-	maxTemperature: 3_000,
+	maxTemperature: 3_300,
 	shape: cylinder(0.2),
 	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
 	attach: stackNodes(0.2),
@@ -49,7 +49,6 @@ export const PartFlotationCollar = definePart({
 	mass: kg(40),
 	cost: partCost(40, 'gear'),
 	impactTolerance: 12,
-	maxTemperature: 900,
 	shape: { kind: 'cylinder', radius: 1.25, height: 0.6 },
 	visual: {
 		kind: 'tank',
@@ -74,7 +73,6 @@ export const PartParachute = definePart({
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
-	maxTemperature: 1_200,
 	shape: { kind: 'cylinder', radius: 0.3125, height: 0.32 },
 	visual: {
 		kind: 'parachute',
@@ -100,7 +98,6 @@ export const PartRadialParachute = definePart({
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
-	maxTemperature: 1_200,
 	shape: { kind: 'box', size: [0.24, 0.6, 0.36] },
 	visual: {
 		kind: 'parachute',
@@ -129,7 +126,6 @@ export const PartDrogueChute = definePart({
 	mass: kg(60),
 	cost: partCost(60, 'gear'),
 	impactTolerance: 12,
-	maxTemperature: 1_600,
 	shape: { kind: 'cylinder', radius: 0.3125, height: 0.26 },
 	visual: {
 		kind: 'parachute',

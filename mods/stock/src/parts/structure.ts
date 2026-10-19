@@ -9,7 +9,6 @@ export const PartDecoupler = definePart({
 	mass: kg(50),
 	cost: partCost(50, 'structure'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: cylinder(0.2),
 	visual: {
 		kind: 'decoupler',
@@ -52,7 +51,6 @@ export const PartRadialDecoupler = definePart({
 	mass: kg(40),
 	cost: partCost(40, 'structure'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: { kind: 'box', size: [0.2, 0.6, 0.45] },
 	visual: {
 		kind: 'radial-decoupler',
@@ -85,7 +83,6 @@ export const PartStrut = definePart({
 	mass: kg(20),
 	cost: partCost(20, 'structure'),
 	impactTolerance: 3,
-	maxTemperature: 1000,
 	connector: {},
 	shape: { kind: 'cylinder', radius: CONNECTOR_RADIUS, height: 0.1 },
 	visual: { kind: 'strut', palette: { primary: '#aeb4bc', secondary: '#23272d' } },
@@ -103,7 +100,6 @@ export const PartFuelLine = definePart({
 	mass: kg(10),
 	cost: partCost(10, 'structure'),
 	impactTolerance: 3,
-	maxTemperature: 1000,
 	connector: { feeds: true },
 	shape: { kind: 'cylinder', radius: CONNECTOR_RADIUS, height: 0.1 },
 	visual: { kind: 'fuel-line', palette: { primary: '#d9552b', secondary: '#23272d' } },
@@ -130,7 +126,6 @@ const adapterPart = (
 		mass: kg(massKg),
 		cost: partCost(massKg, 'structure'),
 		impactTolerance: 8,
-		maxTemperature: 1000,
 		shape: { kind: 'cylinder', radius: Math.max(top, bottom) / 2, height },
 		visual: {
 			kind: 'adapter',

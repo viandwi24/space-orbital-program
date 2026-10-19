@@ -16,12 +16,15 @@ import {
 	type Vec3,
 	type VesselSnapshot
 } from '@orbital/core';
-import { add, cross, sub } from '@orbital/kepler';
+import { add, cross, length, sub } from '@orbital/kepler';
+import { ambientAt } from './atmosphere.ts';
+import { DEFAULT_MAX_TEMPERATURE } from './constants.ts';
 import {
 	designCom,
 	frameOfVessel,
 	moduleDefOf,
 	moduleState,
+	partDefOf,
 	partOf,
 	vesselIds,
 	vesselOf,
@@ -50,6 +53,10 @@ import { terrainUnder } from './terrain.ts';
 import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
 import { marketSnapshot } from './market.ts';
 import { sitesSnapshot } from './buildings.ts';
+
+/** The part's failure temperature, K (its definition's, else the default; plan 212). */
+const maxTemperatureOf = (core: SimCore, part: EntityId): number =>
+	partDefOf(core, partOf(core, part)).maxTemperature ?? DEFAULT_MAX_TEMPERATURE;
 
 function moduleViews(core: SimCore, part: EntityId): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -100,6 +107,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				orientation: pose.rotation,
 				modules: moduleViews(core, partEntity),
 				temperature: partOf(core, partEntity).temperature,
+				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: partOf(core, partEntity).index,
 				...linkOf(core, partEntity, root.rotation)
 			});
@@ -119,6 +127,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				orientation: isTurned(p) ? qMul(orientation, partRotation(p)) : orientation,
 				modules: moduleViews(core, partEntity),
 				temperature: p.temperature,
+				maxTemperature: maxTemperatureOf(core, partEntity),
 				index: p.index,
 				...linkOf(core, partEntity, orientation)
 			});
@@ -168,6 +177,17 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	}
 	const body = bodyOfVessel(core, vessel);
 	if (body.terrain) snapshot.terrainHeight = terrainUnder(core, body, position);
+	const air = ambientAt(body.def, length(position) - body.def.radius);
+	if (air.speedOfSound) {
+		const airspeed = length(sub(velocity, cross(spinAt(body, core.t), position)));
+		snapshot.mach = airspeed / air.speedOfSound;
+	}
+	let hottest: { part: EntityId; fraction: number } | undefined;
+	for (const p of parts) {
+		const fraction = (p.temperature ?? 0) / (p.maxTemperature ?? DEFAULT_MAX_TEMPERATURE);
+		if (fraction > 0.5 && fraction > (hottest?.fraction ?? 0)) hottest = { part: p.id, fraction };
+	}
+	if (hottest) snapshot.hottest = hottest;
 	// A vessel fixed to the ground follows no orbit: the conic through its inertial state would
 	// dip below the surface (ADR 0024).
 	if (vessel.rails?.kind === 'frozen') {

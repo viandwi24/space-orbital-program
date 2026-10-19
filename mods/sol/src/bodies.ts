@@ -9,6 +9,7 @@ import {
 	km,
 	levelAElements,
 	poleQuaternion,
+	STANDARD_ATMOSPHERE_TEMPERATURE,
 	type BodyDefinition,
 	type LevelARow
 } from '@orbital/sdk';
@@ -263,7 +264,13 @@ export const SolEarth = planet(
 	0.99726968,
 	[0, 90, 190.147, 360.9856235],
 	{
-		atmosphere: { scaleHeight: 8_500, surfacePressure: 101_325, height: km(100) },
+		atmosphere: {
+			scaleHeight: 8_500,
+			surfacePressure: 101_325,
+			height: km(100),
+			// the 1976 standard atmosphere (plan 212)
+			temperatureCurve: STANDARD_ATMOSPHERE_TEMPERATURE.map(([h, t]) => [h, t] as [number, number])
+		},
 		terrain: { kind: 'hills' },
 		science: { flyingHigh: km(18), spaceHigh: km(500), multiplier: 1 },
 		regions: { kind: 'biomes' }

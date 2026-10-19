@@ -45,7 +45,15 @@ export function rescaledBody(b: BodyDefinition): BodyDefinition {
 					atmosphere: {
 						...b.atmosphere,
 						scaleHeight: b.atmosphere.scaleHeight * RESCALE_AIR,
-						height: b.atmosphere.height * RESCALE_AIR
+						height: b.atmosphere.height * RESCALE_AIR,
+						// the temperature layers shrink with the air (plan 212)
+						...(b.atmosphere.temperatureCurve
+							? {
+									temperatureCurve: b.atmosphere.temperatureCurve.map(
+										([h, t]) => [h * RESCALE_AIR, t] as [number, number]
+									)
+								}
+							: {})
 					}
 				}
 			: {})

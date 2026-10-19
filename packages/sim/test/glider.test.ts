@@ -1,7 +1,8 @@
 /** Plan 041 / ADR 0075: a craft with wings carries its weight and glides at the glide ratio of its drag polar. */
 import { describe, expect, test } from 'bun:test';
 import { partId, type EntityId, type VesselDesign } from '@orbital/core';
-import { wingCoefficients, wingConfigSchema } from '@orbital/mod-stock';
+import { HomeBody, wingCoefficients, wingConfigSchema } from '@orbital/mod-stock';
+import { ambientAt } from '../src/atmosphere.ts';
 import { qFromBasis } from '../src/math.ts';
 import { VESSEL } from '../src/state.ts';
 import { vesselMass } from './helpers/measure.ts';
@@ -46,7 +47,8 @@ export function glider(incidence = 0.15): VesselDesign {
 
 const wingConfig = wingConfigSchema.parse({ area: 3, aspectRatio: 6 });
 /** Air density of the stock home atmosphere (ADR 0017): `rho0 exp(-h / H)`. */
-const density = (h: number): number => 1.225 * Math.exp(-h / 5_600);
+// the stock air with its temperature curve (plan 212): colder, so denser, aloft
+const density = (h: number): number => ambientAt(HomeBody, h).density;
 
 /** The craft in level flight at `alt` m heading -Z, its flight path `gamma` rad below the horizon, nose along it (no angle of attack), `speed` m/s through the air. */
 async function fly(speed: number, gamma: number, alt = 3_000, incidence = 0.15) {

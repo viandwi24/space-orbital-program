@@ -1,4 +1,9 @@
-import { defineBody, GRAVITATIONAL_CONSTANT, km } from '@orbital/sdk';
+import {
+	defineBody,
+	GRAVITATIONAL_CONSTANT,
+	km,
+	STANDARD_ATMOSPHERE_TEMPERATURE
+} from '@orbital/sdk';
 
 /**
  * The Sun (plan 122, ADR 0119 point 3): the root of the stock system, a star with no surface. It
@@ -44,7 +49,15 @@ export const HomeBody = defineBody({
 	rotationPeriod: 21_600,
 	parent: 'stock.sun',
 	orbit: HOME_ORBIT,
-	atmosphere: { scaleHeight: 5_600, surfacePressure: 101_325, height: km(70) },
+	atmosphere: {
+		scaleHeight: 5_600,
+		surfacePressure: 101_325,
+		height: km(70),
+		// the 1976 standard atmosphere's layers to its top (plan 212): a = 340 m/s at sea level
+		temperatureCurve: STANDARD_ATMOSPHERE_TEMPERATURE.filter(([h]) => h <= km(71)).map(
+			([h, t]) => [h, t] as [number, number]
+		)
+	},
 	terrain: { kind: 'hills' },
 	// Science thresholds and multiplier (plan 103, ADR 0178 point 2).
 	science: { flyingHigh: km(18), spaceHigh: km(250), multiplier: 1 },

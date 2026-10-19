@@ -139,7 +139,7 @@ describe('crew', () => {
 			const r = load(
 				sim,
 				probe(),
-				{ kind: 'state', position: { x: 601_000, y: 0, z: 0 }, velocity: { x: -200, y: 0, z: 0 } },
+				{ kind: 'state', position: { x: 601_000, y: 0, z: 0 }, velocity: { x: -300, y: 0, z: 0 } },
 				[{ member: 'c1', part: 0 }]
 			);
 			expect(r.ok).toBe(true);

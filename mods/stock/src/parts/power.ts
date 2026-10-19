@@ -15,7 +15,6 @@ export const PartSolarPanel = definePart({
 	mass: kg(30),
 	cost: partCost(30, 'command'),
 	impactTolerance: 6,
-	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',
@@ -33,7 +32,6 @@ export const PartSolarPanelFixed = definePart({
 	mass: kg(15),
 	cost: partCost(15, 'command'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: cylinder(0.3),
 	visual: {
 		kind: 'tank',
@@ -54,7 +52,6 @@ export const PartSolarArrayLarge = definePart({
 	mass: kg(300),
 	cost: partCost(300, 'command'),
 	impactTolerance: 5,
-	maxTemperature: 1000,
 	shape: cylinder(0.6),
 	visual: {
 		kind: 'tank',
@@ -72,7 +69,6 @@ export const PartRtg = definePart({
 	mass: kg(80),
 	cost: partCost(80, 'engine'),
 	impactTolerance: 8,
-	maxTemperature: 1200,
 	shape: cylinder(0.5),
 	visual: {
 		kind: 'tank',
@@ -94,7 +90,6 @@ const battery = (id: string, title: string, ec: number, size: number, height: nu
 		mass: kg((ec / 100) * 5),
 		cost: partCost((ec / 100) * 5, 'command'),
 		impactTolerance: 8,
-		maxTemperature: 1000,
 		shape: { kind: 'cylinder', radius: size / 2, height },
 		visual: {
 			kind: 'tank',

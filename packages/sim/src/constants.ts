@@ -19,8 +19,10 @@ export const DEFAULT_MAX_FLIGHT_FRAMES = 2;
 export const DRAG_COEFFICIENT = 0.3;
 /** Specific gas constant of air, J/(kg·K). */
 export const AIR_GAS_CONSTANT = 287.05;
-/** Reference air temperature used to turn pressure into density, K. */
+/** Air temperature of a body without a temperature curve, K (plan 212). */
 export const AIR_TEMPERATURE = 288.15;
+/** Heat capacity ratio of air. */
+export const AIR_GAMMA = 1.4;
 
 /** Box used for a part without a `shape`, edge length in m. */
 export const FALLBACK_PART_SIZE = 1;
@@ -62,8 +64,10 @@ export const SUTTON_GRAVES_K = 1.74e-4;
 export const SKIN_HEAT_CAPACITY = 2_700 * 900 * 0.003;
 /** Temperature of the surroundings a part starts at and radiates towards, K. */
 export const AMBIENT_TEMPERATURE = AIR_TEMPERATURE;
-/** Temperature above which a part that declares no `maxTemperature` fails, K. */
-export const DEFAULT_MAX_TEMPERATURE = 1_000;
+/** Temperature above which a part that declares no `maxTemperature` fails, K (KSP's usual limit, plan 212). */
+export const DEFAULT_MAX_TEMPERATURE = 2_000;
+/** World rule scaling the convective heating, 0..1.2 (plan 212, ADR 0204 point 4). */
+export const REENTRY_HEATING_RULE = 'stock.reentry-heating';
 /** Newton iterations of the implicit temperature update (converges in 4-6 from above). */
 export const THERMAL_ITERATIONS = 12;
 

@@ -19,7 +19,6 @@ export const PartLandingLegs = definePart({
 	mass: kg(150),
 	cost: partCost(150, 'gear'),
 	impactTolerance: 12,
-	maxTemperature: 1000,
 	shape: cylinder(0.3),
 	visual: {
 		kind: 'landing-legs',
@@ -43,7 +42,6 @@ const wheelPart = (id: string, title: string, steer: number) =>
 		mass: kg(40),
 		cost: partCost(40, 'structure'),
 		impactTolerance: 6,
-		maxTemperature: 1200,
 		shape: { kind: 'box', size: [0.4, 0.3, 0.2] },
 		visual: {
 			kind: 'gear',

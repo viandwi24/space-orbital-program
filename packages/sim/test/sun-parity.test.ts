@@ -1,7 +1,7 @@
 /**
  * Plan 122 (ADR 0119 point 4): with the Sun at the root and the home planet on its tilted orbit, a
  * flight in the home sphere is the flight it was before. The frozen numbers come from the old system
- * (`fixtures/make-sun-parity.ts`).
+ * (`fixtures/make-sun-parity.ts`), re-frozen in plan 212 when the atmosphere changed on purpose.
  */
 import { describe, expect, test } from 'bun:test';
 import frozen from './fixtures/sun-parity.json';

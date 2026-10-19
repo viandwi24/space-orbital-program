@@ -10,7 +10,6 @@ export const PartNoseCone = definePart({
 	mass: kg(25),
 	cost: partCost(25, 'structure'),
 	impactTolerance: 6,
-	maxTemperature: 1200,
 	dragCoefficient: 0.12,
 	shape: { kind: 'cylinder', radius: BOOSTER_RADIUS, height: 0.9 },
 	visual: { kind: 'nose-cone', palette: { primary: '#d9552b', secondary: '#23272d' } },
@@ -29,7 +28,6 @@ export const PartFin = definePart({
 	mass: kg(30),
 	cost: partCost(30, 'structure'),
 	impactTolerance: 4,
-	maxTemperature: 1000,
 	shape: { kind: 'box', size: [1.1, 1.8, 0.06] },
 	visual: { kind: 'fin', palette: { primary: '#d5d8dc', secondary: '#23272d', accent: '#d9552b' } },
 	attach: { radial: { pos: [-0.55, 0, 0], dir: [-1, 0, 0] } },
@@ -49,7 +47,6 @@ export const PartControlSurface = definePart({
 	mass: kg(45),
 	cost: partCost(45, 'structure'),
 	impactTolerance: 4,
-	maxTemperature: 1000,
 	shape: { kind: 'box', size: [1, 1.6, 0.07] },
 	visual: {
 		kind: 'control-surface',
@@ -87,7 +84,6 @@ export const PartWing = definePart({
 	mass: kg(90),
 	cost: partCost(90, 'structure'),
 	impactTolerance: 4,
-	maxTemperature: 1000,
 	// A thin section: the part drag of its faces is small (the module has its own parasite drag).
 	dragCoefficient: 0.05,
 	shape: { kind: 'box', size: [3, 1, 0.08] },
@@ -125,7 +121,6 @@ const noseCone = (c: (typeof CONE_SIZES)[number]) =>
 		mass: kg(c.massKg),
 		cost: partCost(c.massKg, 'structure'),
 		impactTolerance: 6,
-		maxTemperature: 1200,
 		dragCoefficient: 0.12,
 		shape: { kind: 'cylinder', radius: c.size / 2, height: c.height },
 		visual: {
@@ -144,7 +139,6 @@ const tailCone = (c: (typeof CONE_SIZES)[number]) =>
 		mass: kg(c.massKg),
 		cost: partCost(c.massKg, 'structure'),
 		impactTolerance: 6,
-		maxTemperature: 1200,
 		dragCoefficient: 0.15,
 		shape: { kind: 'cylinder', radius: c.size / 2, height: c.height * 0.75 },
 		visual: { kind: 'tail-cone', palette: { primary: '#e6e3da', secondary: '#23272d' } },

@@ -137,6 +137,21 @@ export const bodyDefinitionSchema = z.object({
 			scaleHeight: z.number().positive(),
 			surfacePressure: z.number().nonnegative(),
 			height: z.number().positive(),
+			/**
+			 * Air temperature over altitude (plan 212, ADR 0204 point 1): `[altitude m, K]` keys in
+			 * rising altitude, linear between and held beyond the ends. Density is `p / (R·T)` and the
+			 * speed of sound `√(γ·R·T)`. Absent: 288.15 K everywhere (the density of before).
+			 */
+			temperatureCurve: z
+				.array(z.tuple([z.number(), z.number().positive()]))
+				.min(1)
+				.refine((keys) => keys.every((k, i) => i === 0 || k[0] > keys[i - 1]![0]), {
+					message: 'temperatureCurve: altitudes must rise'
+				})
+				.optional(),
+			/** Heat capacity ratio and specific gas constant of the gas, J/(kg·K); air: 1.4 and 287.05. */
+			gamma: z.number().positive().optional(),
+			gasConstant: z.number().positive().optional(),
 			/** Whether the night sky shows an aurora around the magnetic pole (plan 061, ADR 0093); on unless `false`. */
 			aurora: z.boolean().optional()
 		})

@@ -250,6 +250,22 @@ export const RuleCommsScale = defineRule({
 	changeable: true
 });
 
+/**
+ * Re-entry heating % (plan 212, ADR 0204 point 4): scales the airflow's convective heating; 0 means
+ * parts never heat (they still cool). KSP's most used difficulty setting.
+ */
+export const RuleReentryHeating = defineRule({
+	id: 'stock.reentry-heating',
+	label: 'Re-entry heating',
+	category: 'launch',
+	description: 'How much the airflow heats parts: 0 (never) to 1.2 (hotter than normal).',
+	type: 'number',
+	min: 0,
+	max: 1.2,
+	default: 1,
+	changeable: true
+});
+
 // Launch and reliability (ADRs 0097 and 0094).
 export const RuleRangeSafety = defineRule({
 	id: 'stock.range-safety',
@@ -330,6 +346,7 @@ export const STOCK_RULES = [
 	RuleCommsScale,
 	RuleRangeSafety,
 	RuleReliability,
+	RuleReentryHeating,
 	RuleAgencyType,
 	RuleAgencyCount,
 	RuleDebugTools,

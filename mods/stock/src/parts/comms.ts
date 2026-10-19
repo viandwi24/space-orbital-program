@@ -14,7 +14,6 @@ export const PartProbeCore = definePart({
 	mass: kg(50),
 	cost: partCost(50, 'command'),
 	impactTolerance: 8,
-	maxTemperature: 1000,
 	shape: cylinder(0.4),
 	visual: {
 		kind: 'tank',
@@ -39,7 +38,6 @@ function antennaPart(id: string, title: string, massKg: number, antenna: string,
 		mass: kg(massKg),
 		cost: partCost(massKg, 'command'),
 		impactTolerance: 6,
-		maxTemperature: 1000,
 		shape: cylinder(0.4),
 		visual: {
 			kind: 'tank',

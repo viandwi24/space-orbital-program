@@ -15,9 +15,10 @@ import type {
 	Vec3
 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
-import { ambientAt } from './atmosphere.ts';
+import { ambientAt, machDragFactor } from './atmosphere.ts';
 import { bodyById, rotationAt, spinAt, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
+import { ruleOf } from './economy.ts';
 import {
 	CONTACT_DISTANCE,
 	DEFAULT_IMPACT_TOLERANCE,
@@ -29,6 +30,7 @@ import {
 	GROUND_TILE_HALF,
 	PHYSICS_RANGE,
 	REANCHOR_DISTANCE,
+	REENTRY_HEATING_RULE,
 	STONE_ENTER,
 	STONE_EXIT
 } from './constants.ts';
@@ -516,6 +518,9 @@ function applyDrag(
 	const body = planet.def;
 	if (!body.atmosphere) return heat;
 	const omega = spinAt(planet, core.t);
+	// "Re-entry heating %" scales the convective input only; radiation still cools (ADR 0204 point 4)
+	const rule = ruleOf(core, REENTRY_HEATING_RULE);
+	const heating = typeof rule === 'number' ? Math.max(0, rule) : 1;
 	const vessel = vesselOf(core, vesselId);
 	const flight = frame.bodies.get(vesselId)!;
 	const motion = bodyMotion(frame, flight); // one backend read for the whole vessel
@@ -527,7 +532,7 @@ function applyDrag(
 			rotation: motion.rotation
 		};
 		const r = add(frame.origin, pose.position);
-		const { density } = ambientAt(body, length(r) - body.radius);
+		const { density, speedOfSound } = ambientAt(body, length(r) - body.radius);
 		if (density === 0) continue;
 		const v = add(
 			add(frame.velocity, motion.linear),
@@ -544,14 +549,17 @@ function applyDrag(
 			else if (dirY < -0.5) covered.bottom = true;
 		}
 		const area = axisAreas(def.shape, local.y, covered);
-		const k = -0.5 * density * (def.dragCoefficient ?? DRAG_COEFFICIENT);
+		// the transonic drag rise (plan 212, ADR 0204 point 3) from the part's own airspeed
+		const mach = speedOfSound ? Math.hypot(local.x, local.y, local.z) / speedOfSound : 0;
+		const k = -0.5 * density * (def.dragCoefficient ?? DRAG_COEFFICIENT) * machDragFactor(mach);
 		const force = {
 			x: k * area.x * Math.abs(local.x) * local.x,
 			y: k * area.y * Math.abs(local.y) * local.y,
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
 		frame.backend.applyForce(flight.handle, qRotate(turned, force), pose.position);
-		heat.set(partId, heatInput(density, def.shape, area, local));
+		const input = heatInput(density, def.shape, area, local);
+		heat.set(partId, heating === 1 ? input : { ...input, power: input.power * heating });
 	}
 	return heat;
 }

@@ -30,7 +30,6 @@ function instrument(
 		mass: kg(massKg),
 		cost: partCost(massKg, 'command'),
 		impactTolerance: 8,
-		maxTemperature: 1000,
 		shape: cylinder(height),
 		visual: {
 			kind: 'tank',

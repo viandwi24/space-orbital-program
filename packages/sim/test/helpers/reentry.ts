@@ -3,9 +3,11 @@
  * given flight-path angle, with its bottom end facing the airflow (tail first, which is
  * aerodynamically stable for a stack with its mass forward of its drag).
  */
-import type { EntityId, VesselDesign } from '@orbital/core';
+import type { EntityId, Plugin, VesselDesign } from '@orbital/core';
+import Stock from '@orbital/mod-stock';
+import { createSim } from '../../src/index.ts';
 import { RADIUS, homeMu } from './measure.ts';
-import { newSim, stack } from './vessels.ts';
+import { rapier, stack } from './vessels.ts';
 
 const PROBE = ['stock.command-pod', 'stock.reaction-wheel', 'stock.tank-small'];
 
@@ -28,9 +30,28 @@ export interface EntryOptions {
 	angle: number;
 }
 
-/** Load `design` on a ballistic path into the atmosphere, bottom first, and return the sim. */
-export async function enter(design: VesselDesign, opts: EntryOptions) {
-	const sim = await newSim();
+/**
+ * Load `design` on a ballistic path into the atmosphere, bottom first, and return the sim; `plugins`
+ * add test parts, `heating` sets the re-entry heating rule (plan 212).
+ */
+export async function enter(
+	design: VesselDesign,
+	opts: EntryOptions,
+	extra: { plugins?: Plugin[]; heating?: number } = {}
+) {
+	const sim = await createSim({
+		plugins: [Stock, ...(extra.plugins ?? [])],
+		backendFactory: rapier(16),
+		seed: 1
+	});
+	if (extra.heating !== undefined) {
+		const set = sim.dispatch({
+			type: 'set-rule',
+			rule: 'stock.reentry-heating',
+			value: extra.heating
+		});
+		if (!set.ok) throw new Error(set.reason);
+	}
 	const damaged: Array<{ t: number } & Record<string, unknown>> = [];
 	sim.events.on('part:damaged', (e) => damaged.push({ t: sim.time, ...e }));
 	const r = RADIUS + opts.altitude;

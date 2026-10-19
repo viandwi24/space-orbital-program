@@ -147,8 +147,8 @@ function planTransfer(
 					dep = node - flight + s;
 				}
 			}
-			for (const k of [0.96, 0.98, 1, 1.02, 1.04, 1.06]) {
-				for (let s = -120; s <= 120; s += 10) {
+			for (const k of [0.94, 0.96, 0.98, 1, 1.02, 1.04, 1.06, 1.08]) {
+				for (let s = -180; s <= 180; s += 5) {
 					const at = parked(dep + s);
 					const apo = length(target) * k;
 					const vNeed = Math.sqrt(moon.mu * (2 / rPark - 2 / (rPark + apo)));

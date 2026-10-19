@@ -12,7 +12,6 @@ const port = (id: string, title: string, size: number, height: number, massKg: n
 		mass: kg(massKg),
 		cost: partCost(massKg, 'structure'),
 		impactTolerance: 10,
-		maxTemperature: 1200,
 		shape: { kind: 'cylinder', radius: size / 2, height },
 		visual: {
 			kind: 'docking-port',

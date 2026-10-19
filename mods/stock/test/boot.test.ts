@@ -273,11 +273,14 @@ describe('stock boots through the loader', () => {
 		const home = registries.bodies.get('stock.home');
 		expect(home?.radius).toBe(600_000);
 		expect(home?.rotationPeriod).toBe(21_600);
-		expect(home?.atmosphere).toEqual({
+		expect(home?.atmosphere).toMatchObject({
 			scaleHeight: 5_600,
 			surfacePressure: 101_325,
 			height: 70_000
 		});
+		// the 1976 standard atmosphere's layers to the top of the air (plan 212)
+		expect(home?.atmosphere?.temperatureCurve?.[0]).toEqual([0, 288.15]);
+		expect(home?.atmosphere?.temperatureCurve?.at(-1)).toEqual([71_000, 214.65]);
 		// the home planet orbits the Sun since plan 122 (ADR 0119)
 		expect(home?.parent).toBe('stock.sun');
 		expect(6.6743e-11 * (home?.mass ?? 0)).toBeCloseTo(HOME_MU, -3);

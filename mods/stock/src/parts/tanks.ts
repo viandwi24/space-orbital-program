@@ -10,7 +10,6 @@ export const PartTankSmall = definePart({
 	mass: kg(250),
 	cost: partCost(250, 'tank'),
 	impactTolerance: 5,
-	maxTemperature: 900,
 	shape: cylinder(2),
 	visual: {
 		kind: 'tank',
@@ -38,7 +37,6 @@ export const PartTankMedium = definePart({
 	mass: kg(500),
 	cost: partCost(500, 'tank'),
 	impactTolerance: 5,
-	maxTemperature: 900,
 	shape: cylinder(4),
 	visual: {
 		kind: 'tank',

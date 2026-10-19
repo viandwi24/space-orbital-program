@@ -19,6 +19,7 @@ export {
 	PluginError,
 	RegistryError,
 	SEA_LEVEL_PRESSURE,
+	STANDARD_ATMOSPHERE_TEMPERATURE,
 	STANDARD_GRAVITY,
 	thrustAtPressure
 } from '@orbital/core';
