@@ -1,7 +1,7 @@
 ---
 id: 216
 title: "Key profiles: KSP-compatible default and Orbital classic"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: []
 phase: 7
@@ -73,20 +73,29 @@ A KSP player's hands work on day one. The default key profile follows KSP: B bra
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/keybindings.test.ts`: in `ksp`, B is brakes, Digit1 is custom group 1, Alt+Digit2 is SAS prograde, Alt+KeyW is trim pitch, Backspace is abort; in `classic`, C is brakes and `[` is trim down; `Alt+Digit1` and `Digit1` do not clash.
-- [ ] `apps/web` vitest `lib/settings/settings.test.ts` (new or extended): a format 3 value with overrides migrates to `classic` with the same overrides; an empty format 3 value migrates to `ksp`.
-- [ ] Chromium e2e `e2e/key-profiles.e2e.ts`: in a new world, pressing B in flight turns the Brakes group on (vessel panel Overview reads "Brakes on"); switching to Orbital classic in Settings makes C do it; Alt+2 sets SAS to prograde; in the map with no node selected, I does nothing.
-- [ ] `e2e/smoke.e2e.ts` and `e2e/editor.e2e.ts` still pass on Chromium.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/keybindings.test.ts`: in `ksp`, B is brakes, Digit1 is custom group 1, Alt+Digit2 is SAS prograde, Alt+KeyW is trim pitch, Backspace is abort; in `classic`, C is brakes and `[` is trim down; `Alt+Digit1` and `Digit1` do not clash.
+- [x] `apps/web` vitest `lib/settings/settings.test.ts` (new or extended): a format 3 value with overrides migrates to `classic` with the same overrides; an empty format 3 value migrates to `ksp`.
+- [x] Chromium e2e `e2e/key-profiles.e2e.ts`: in a new world, pressing B in flight turns the Brakes group on (vessel panel Overview reads "Brakes on"); switching to Orbital classic in Settings makes C do it; Alt+2 sets SAS to prograde; in the map with no node selected, I does nothing.
+- [x] `e2e/smoke.e2e.ts` and `e2e/editor.e2e.ts` still pass on Chromium.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/216-key-profiles.md` written, with both profile tables.
-- [ ] `docs/architecture/overview.md` updated (key profiles and chords).
-- [ ] ADR 0206 updated if the screenshot key changes.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/216-key-profiles.md` written, with both profile tables.
+- [x] `docs/architecture/overview.md` updated (key profiles and chords).
+- [x] ADR 0206 updated if the screenshot key changes.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A: refined against the code and implemented on `rel/216-key-profiles` (ADR 0206).
+- 2026-10-19 — Worker A, decisions:
+  - The screenshot key is F10: F1 is help, and plan 203 put the debug panel on Alt+F12. ADR 0206 is updated.
+  - Brakes stay a toggle on B (KSP holds), as the AC asks for.
+  - The old pitch-trim actions take Alt+S and Alt+W in KSP instead of new `trimPitch*` ids.
+  - Every migrated player (not only those moved to classic) sees the one-time note, per ADR 0206 point 5.
+  - The keys that later plans wire are declared `pending` and hidden.
+- 2026-10-19 — Worker A, found and fixed: the flight page never passed the settings keymap to `startFlight`, so a player's rebinds did not apply in flight.
+- 2026-10-19 — Checks: `CI=true bun run check:affected --e2e e2e/key-profiles.e2e.ts` all passed; smoke, editor, vessel-panel and power e2e 14/14; web vitest 1107/1107; CI green on `ready/216` (`refs/ci/pass/47bf7698`).
