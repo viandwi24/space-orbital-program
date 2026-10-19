@@ -38,6 +38,9 @@ export function aboveDeckHeight(viewportHeight: number, deckHeight: number): num
  * menu bar and the first-flight guide, `leftStackBottom`) when the script panel is closed, below the
  * top margin when it is open and the throttle stands beside it, and always above the deck.
  */
+/** The shortest track the touch throttle draws, px (`TouchControls`: 72 to 150). */
+export const MIN_THROTTLE_ROOM = 72;
+
 export function throttleAnchor(
 	viewport: Viewport,
 	deckHeight: number,
@@ -45,21 +48,30 @@ export function throttleAnchor(
 	leftStackBottom: number,
 	/** Right edge of the open dock panel (plan 112), px; 0 when no panel is open. */
 	dockRight = 0,
-	/** Top of the staging stack when it stands in the left column, px; 0 when it does not (plan 215). */
-	stagingTop = 0
+	/**
+	 * The staging stack when it stands in the left column (narrow screens), px; absent when it does
+	 * not (plan 215): the throttle goes above it, or beside it when the room above is too short.
+	 */
+	staging?: { top: number; right: number }
 ): { left: number; centre: number; room: number } {
 	// beside an open panel the throttle has the full height; otherwise it sits under the left stack
 	const beside = dockRight > 0 || scriptOpen;
-	const left =
+	let left =
 		dockRight > 0
 			? dockRight + EDGE
 			: scriptOpen
 				? EDGE + scriptPanelWidth(viewport.width) + EDGE
 				: EDGE - 4;
 	const spanTop = beside ? EDGE : Math.max(EDGE, leftStackBottom + EDGE);
-	// the throttle stays above the staging stack, which stands in the left column on narrow screens
 	const floor = viewport.height - Math.max(0, deckHeight) - EDGE;
-	const spanBottom = Math.max(spanTop, stagingTop > 0 ? Math.min(floor, stagingTop - EDGE) : floor);
+	let spanBottom = floor;
+	if (staging && staging.top > 0 && left < staging.right) {
+		// the staging stack stands in the left column (narrow screens): above it when there is room,
+		// else beside it, still under the left stack and down to the deck
+		if (staging.top - EDGE - spanTop >= MIN_THROTTLE_ROOM) spanBottom = staging.top - EDGE;
+		else left = staging.right + EDGE;
+	}
+	spanBottom = Math.max(spanTop, spanBottom);
 	// `room`: the free height, so the throttle can shorten its track where the span is short
 	return { left, centre: (spanTop + spanBottom) / 2, room: spanBottom - spanTop };
 }

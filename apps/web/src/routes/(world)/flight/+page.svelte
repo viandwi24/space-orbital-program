@@ -746,8 +746,8 @@
 		layoutFor(viewport.width, settings.ui.scale, { dock: dockShown, vessel: vesselOpen }, lastSide)
 	);
 	const narrow = $derived(layout.mode !== 'two');
-	/** Top of the staging stack when it stands in the left column (narrow), for the touch throttle. */
-	let stagingTop = $state(0);
+	/** The staging stack's box when it stands in the left column (narrow), for the touch throttle. */
+	let stagingBox = $state<{ top: number; right: number } | undefined>(undefined);
 	/** The flight's own box (inside the world layout's bars since plan 204): every measure is relative to it. */
 	let stageEl = $state<HTMLDivElement>();
 	function updateInsets(): void {
@@ -783,7 +783,10 @@
 		const bottom = deck ? Math.max(0, frame.height - deck.top + 8) : 0;
 		const side = right && right.width > 0 ? Math.max(0, frame.width - right.left + 8) : 0;
 		const staging = box('.bl');
-		stagingTop = narrow && staging && staging.height > 0 ? Math.round(staging.top) : 0;
+		stagingBox =
+			narrow && staging && staging.height > 0
+				? { top: Math.round(staging.top), right: Math.round(staging.right) }
+				: undefined;
 		// Side panels float over the view and do not move the camera (plan 215, ADR 0205 point 7):
 		// only the fixed bars count, unless the player asked to centre the vessel in the free area.
 		const centre = settings.ui.centreVessel;
@@ -1105,7 +1108,7 @@
 						scriptOpen && !narrow,
 						leftStackBottom,
 						dockRight,
-						stagingTop
+						stagingBox
 					)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
