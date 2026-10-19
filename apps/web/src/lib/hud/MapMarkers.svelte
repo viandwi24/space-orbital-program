@@ -184,6 +184,7 @@
 			class:node={!x.planned}
 			class:planned={x.planned}
 			data-testid={`marker-${x.key}`}
+			data-time={x.time}
 			use:reg={x.key}
 		>
 			<span class="dot"></span>

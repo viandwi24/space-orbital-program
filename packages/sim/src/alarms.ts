@@ -55,7 +55,8 @@ export function addAlarm(
 	const list = core.alarms.list;
 	const at = command.id === undefined ? -1 : list.findIndex((a) => a.id === command.id);
 	if (command.id !== undefined && at < 0) return refuse(`no alarm ${command.id}`);
-	if (at < 0 && list.length >= MAX_ALARMS) return refuse(`a world keeps at most ${MAX_ALARMS} alarms`);
+	if (at < 0 && list.length >= MAX_ALARMS)
+		return refuse(`a world keeps at most ${MAX_ALARMS} alarms`);
 	const id = at >= 0 ? list[at]!.id : `alarm.${core.alarms.next++}`;
 	const alarm: AlarmSnapshot = {
 		id,
