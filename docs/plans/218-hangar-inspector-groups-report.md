@@ -1,7 +1,7 @@
 ---
 id: 218
 title: "Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report"
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [214, 217, 208]
 phase: 7
@@ -77,25 +77,26 @@ In the Hangar, clicking a part opens the same inspector as in flight (plan 214),
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/editor/checks.test.ts`: a pod with no crew and no probe core gives "No control source"; a crewed pod without a parachute gives "Crewed vessel without a parachute"; a probe without an antenna gives "Probe without antenna".
-- [ ] `apps/web` vitest `lib/editor/stats.test.ts`: the same stage has more Δv in vacuum than at home sea level, and its TWR on the moon at sea level is higher than at home.
-- [ ] `apps/web` vitest `lib/editor/state.test.ts`: setting the limiter to 60 % on one of four symmetric boosters sets all four; undo resets all four in one step.
-- [ ] Chromium e2e `e2e/hangar-inspector.e2e.ts`: open the moon shot, click an engine, set the limiter to 50 %, launch; in flight the vessel panel shows 50 % for that engine.
-- [ ] Chromium e2e `e2e/hangar-groups.e2e.ts`: assign the legs to Custom 1 in the group editor, launch, press 1 (KSP profile), the legs deploy.
-- [ ] `e2e/editor.e2e.ts` and `e2e/launch.e2e.ts` pass on Chromium.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/editor/checks.test.ts`: a pod with no crew and no probe core gives "No control source"; a crewed pod without a parachute gives "Crewed vessel without a parachute"; a probe without an antenna gives "Probe without antenna".
+- [x] `apps/web` vitest `lib/editor/stats.test.ts`: the same stage has more Δv in vacuum than at home sea level, and its TWR on the moon at sea level is higher than at home.
+- [x] `apps/web` vitest `lib/editor/state.test.ts`: setting the limiter to 60 % on one of four symmetric boosters sets all four; undo resets all four in one step.
+- [x] Chromium e2e `e2e/hangar-inspector.e2e.ts`: open the moon shot, click an engine, set the limiter to 50 %, launch; in flight the vessel panel shows 50 % for that engine.
+- [x] Chromium e2e `e2e/hangar-groups.e2e.ts`: assign the legs to Custom 1 in the group editor, launch, press 1 (KSP profile), the legs deploy.
+- [x] `e2e/editor.e2e.ts` and `e2e/launch.e2e.ts` pass on Chromium.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/218-hangar-inspector-groups-report.md` written.
-- [ ] `docs/architecture/overview.md` updated (inspector in design mode, report checks).
-- [ ] `docs/architecture/plugin-system.md` updated (descriptor `phase`, per-part settings for mod modules).
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/218-hangar-inspector-groups-report.md` written.
+- [x] `docs/architecture/overview.md` updated (inspector in design mode, report checks).
+- [x] `docs/architecture/plugin-system.md` updated (descriptor `phase`, per-part settings for mod modules).
+- [x] New ADRs written for any decision made here, linked above.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-19 — Worker A: descriptor `build` / `buildOnly` instead of `phase` (ADR 0225 point 1); the Hangar draws the flight inspector's `ControlRows`, not the `PartInspector` panel (point 2). Stock limiter, gimbal limit, crossfeed, chute settings and tank fill; settings for the symmetry group as one undo step.
 - 2026-10-19 — Worker A: Δv/TWR by body and sea level / altitude / vacuum; power budget; Custom 1–10 editor; `design.crew` seats; report items for crew, antenna and parachute, crew items only with the seating known (the sim seats a free astronaut otherwise). The editor prunes group members and seats of removed parts.
+- 2026-10-19 — Worker A: complete. check:affected passed (629 web vitest, bun test 10 workspaces, build, e2e hangar-inspector and hangar-groups); editor.e2e and launch.e2e pass on Chromium; CI pass on ready/218 (a0ebc443). The groups e2e selects the legs from the stage tray (the lander engine hides them in the view). Follow-up: the moon shot's liftoff TWR is 0.90 (no-go) since the solid BST-1, before this plan.
