@@ -433,7 +433,8 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer?.setActiveVessel(vessel);
 		hud.vesselName = design.name;
 		hud.model = null;
-		if (!refresh) hudCtl.notice({ kind: 'info', title: `Switched to ${design.name}`, key: 'switch' });
+		if (!refresh)
+			hudCtl.notice({ kind: 'info', title: `Switched to ${design.name}`, key: 'switch' });
 		publish();
 		return { ok: true };
 	}

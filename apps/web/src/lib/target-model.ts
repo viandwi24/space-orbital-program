@@ -133,7 +133,14 @@ export function portHud(a: PortAlignment): PortHud {
 		`${a.distance.toFixed(1)} m`,
 		rate
 	].join(' · ');
-	return { angle: a.angle, offset: a.offset, distance: a.distance, closing: a.closing, aligned, text };
+	return {
+		angle: a.angle,
+		offset: a.offset,
+		distance: a.distance,
+		closing: a.closing,
+		aligned,
+		text
+	};
 }
 
 /** The card for `v`'s target at sim time `t`, or null without one. */

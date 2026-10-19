@@ -33,5 +33,9 @@
 ## Verification output
 
 ```
-(filled at hand-over)
+bun test packages/sim test/docking.test.ts + docking-approach.test.ts   10 pass, 0 fail (captured after 8.62 s; RCS approach from 20 m captured after 94 s)
+check:affected --build --e2e e2e/docking.e2e.ts: all passed in 417.9 s
+  bun test (10 workspaces) 1734 pass, 0 fail; web vitest 603 pass; typecheck 11 workspaces + web clean
+  e2e docking.e2e.ts (chromium): 1 passed (3.2 min)
+web vitest (CI=true, full): 151 files, 1118 pass
 ```
