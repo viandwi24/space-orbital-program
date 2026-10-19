@@ -11,6 +11,7 @@
 	import type { ScreenNetwork } from '../comms/network-model';
 	import BackButton from '../ui/BackButton.svelte';
 	import Button from '../ui/Button.svelte';
+	import Icon from '../ui/Icon.svelte';
 	import Capsule from '../ui/Capsule.svelte';
 	import ListRow from '../ui/ListRow.svelte';
 	import Panel from '../ui/Panel.svelte';
@@ -223,21 +224,26 @@
 							<div class="acts">
 								<Button onclick={() => onwarp(e)} data-testid="mc-warp-{e.key}">Warp to</Button>
 								{#if e.alarm !== undefined && onalarmsave}
-									<Button
-										variant="ghost"
+									<button
+										type="button"
+										class="act"
+										aria-label="Edit alarm"
+										title="Edit alarm"
 										onclick={() =>
 											(editing = {
 												id: e.alarm,
 												name: e.label.replace(/^Alarm: /, ''),
 												inSeconds: Math.max(1, e.time - now)
 											})}
-										data-testid="mc-alarm-edit-{e.alarm}">Edit</Button
+										data-testid="mc-alarm-edit-{e.alarm}"><Icon name="pencil" size={12} /></button
 									>
-									<Button
-										variant="ghost"
-										onclick={() => onalarmremove?.(e.alarm!)}
+									<button
+										type="button"
+										class="act"
 										aria-label="Delete alarm"
-										data-testid="mc-alarm-delete-{e.alarm}">Delete</Button
+										title="Delete alarm"
+										onclick={() => onalarmremove?.(e.alarm!)}
+										data-testid="mc-alarm-delete-{e.alarm}"><Icon name="trash" size={12} /></button
 									>
 								{/if}
 							</div>
@@ -474,9 +480,28 @@
 	}
 	.acts {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
 		gap: 0.25rem;
-		justify-content: flex-end;
+		margin-left: auto;
+	}
+	/* the v2 Upcoming row's icon buttons (refs Map.dc.html): 26 px, 7 px radius */
+	.act {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		flex: none;
+		padding: 0;
+		border: none;
+		border-radius: 7px;
+		background: rgb(255 255 255 / 0.08);
+		color: var(--text-body);
+		cursor: pointer;
+	}
+	.act:hover,
+	.act:focus-visible {
+		background: rgb(255 255 255 / 0.14);
 	}
 	.event .name {
 		display: block;
