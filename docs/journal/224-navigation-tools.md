@@ -19,6 +19,8 @@
 - **An alarm and a warp-to share one stop.** Setting `warpTarget` to the alarm time would have overwritten the player's warp-to; the step now takes the earlier of the two, and the arrival code tells which one it reached.
 - **Physics warp cannot land on a time:** like warp-to, an alarm at 2–10× ends the warp within one fixed step before the time, and the alarm fires at 1× a moment later.
 - **The equator plane of a body is its pole,** not world +Z: bodies spin about +Y here. `relativeNodes` from the rendezvous aids gives AN/DN against any plane once the reference is a synthetic circular state in that plane.
+- **`check:affected`'s Prettier step is the root's,** but CI's `lint` also runs `apps/web`'s own Prettier settings: the first `ready/224` failed on format only. Run `bun run lint` before tagging.
+- **The map path's goldens** caught the new conic fields on `MapPath`; they now live beside it in a `WeakMap` (`conicOf`).
 - **`grep` in this shell is `rg` through RTK:** `\|` alternation fails; plain patterns or `rtk proxy grep` work.
 
 ## Decisions made (link ADRs)
