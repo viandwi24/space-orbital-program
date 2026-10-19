@@ -65,10 +65,12 @@ import {
 	type TargetHud
 } from './target-model';
 import { bodyMu, orbitInfo, type OrbitInfo } from './orbit-info';
+import { planeNodes, referenceNormal } from './nav-markers';
+import { bodyNodes } from './map-path';
 import type { RendezvousInfo, TargetViewFrame } from './target-view';
 import type { SimEventMessage, StageEvent } from './sim-client';
 import { nextSpeedMode, speedReadout, type SpeedMode, type SpeedModePreference } from './speed';
-import { stageStackModel, type StageStackModel } from './stage-stack';
+import { stageStackModel, type Environment, type StageStackModel } from './stage-stack';
 import { noStages, reduceStages, stagesFiredBy, type StageProgress } from './stage-state';
 import { computeTelemetry, type FlightPhase, type Telemetry } from './telemetry';
 import {
@@ -113,6 +115,29 @@ export interface ManeuverHud {
 	state: BurnState;
 	/** The node's body and SAS is pointing at it. */
 	pointing: boolean;
+	/** Every node in time order (plan 224): the node panel edits the selected one. */
+	nodes: NodeHud[];
+}
+
+/** The flight stage stack's body and situation picker (plan 224). */
+export interface DeltaVView {
+	body: string;
+	situation: 'vacuum' | 'surface';
+}
+
+/** One node for the node panel (plan 224): its plan values and its own burn numbers. */
+export interface NodeHud {
+	id: number;
+	time: number;
+	prograde: number;
+	normal: number;
+	radial: number;
+	dv: number;
+	burnTime: number | null;
+	short: boolean;
+	toNode: number;
+	toBurn: number | null;
+	state: BurnState;
 }
 
 export interface HudModel {
@@ -138,6 +163,10 @@ export interface HudModel {
 	orbit: OrbitInfo | null;
 	stages: StageStackModel;
 	environment: 'vacuum' | 'sea-level';
+	/** The stage stack's body and situation picker (plan 224); null while it follows the vessel. */
+	deltaVView: DeltaVView | null;
+	/** The bodies the picker offers, `atmosphere` true where a surface figure differs from vacuum. */
+	deltaVBodies: readonly { id: string; label: string; atmosphere: boolean }[];
 	stagesFired: number;
 	resources: ResourceRow[];
 	/** The throttle the vessel is at (scripts and the autopilot included), 0..1. */
@@ -207,7 +236,13 @@ function targetDossier(
 export interface FrameData {
 	navball: NavballFrame | null;
 	/** Screen positions in px inside the canvas box; null when not in map view. */
-	map: { apoapsis: Point | null; periapsis: Point | null; vessel: Point | null } | null;
+	map: {
+		apoapsis: Point | null;
+		periapsis: Point | null;
+		vessel: Point | null;
+		/** Where the orbit crosses the target's plane, or the equator without one (plan 224). */
+		nodes?: NavNodeFrame[];
+	} | null;
 	/** The Network layer in map view (plan 115, ADR 0158); null outside it. */
 	network?: ScreenNetwork | null;
 	/** A replay's ghost (plan 131): its track in map view and where it is now. */
@@ -217,6 +252,15 @@ export interface FrameData {
 	/** The target's markers in the map, or its label and arrow in the flight view (plan 057). */
 	target?: TargetViewFrame | null;
 }
+/** An ascending or descending node marker (plan 224). */
+export interface NavNodeFrame {
+	kind: 'ascending' | 'descending';
+	relativeTo: 'target' | 'equator';
+	/** Sim time of the crossing. */
+	time: number;
+	point: Point | null;
+}
+
 /** A map marker position in px inside the canvas box; `hidden` when a body is in front of it. */
 export type Point = ScreenPoint;
 
@@ -261,6 +305,11 @@ export interface HudController {
 	nextTargetCommand(): Command | null;
 	/** The `sas` command that keeps the prograde reference in step with the speed readout, or null. */
 	sasFollowUp(): Command | null;
+	/**
+	 * The stage stack's delta-v for another body and situation (plan 224), or `null` for the
+	 * body the vessel is at, in the air or not as it flies now.
+	 */
+	setDeltaVView(view: DeltaVView | null): void;
 	/** Whether the map view is on: map markers are only computed then. */
 	setMapView(on: boolean): void;
 	/** A replay's ghost to draw over this flight, or none (plan 131, ADR 0159 point 7). */
@@ -285,26 +334,62 @@ const LIFTOFF_ALTITUDE = 50;
 
 /** The burn panel's numbers for the earliest node of `v`, or null without one. */
 function maneuverHud(v: VesselSnapshot, now: number, report: DeltaVReport): ManeuverHud | null {
-	const node = v.nodes?.[0];
-	if (!node) return null;
-	const burn = burnTime(node.dv, report.stages);
-	const time = burn.time > 0 ? burn.time : null;
-	const indicator = burnIndicator(now, node.time, time ?? 0, node.dv);
+	const list = v.nodes ?? [];
+	if (list.length === 0) return null;
+	const nodes = list.map((node): NodeHud => {
+		const burn = burnTime(node.dv, report.stages);
+		const time = burn.time > 0 ? burn.time : null;
+		const indicator = burnIndicator(now, node.time, time ?? 0, node.dv);
+		return {
+			id: node.id,
+			time: node.time,
+			prograde: node.prograde,
+			normal: node.normal,
+			radial: node.radial,
+			dv: node.dv,
+			burnTime: time,
+			short: !burn.enough,
+			toNode: indicator.toNode,
+			toBurn: time === null ? null : indicator.toBurn,
+			state: indicator.state
+		};
+	});
+	const first = nodes[0]!;
 	return {
-		id: node.id,
-		count: v.nodes!.length,
-		dv: node.dv,
-		burnTime: time,
-		short: !burn.enough,
-		toNode: indicator.toNode,
-		toBurn: time === null ? null : indicator.toBurn,
-		state: indicator.state,
-		pointing: v.sas?.mode === 'maneuver'
+		id: first.id,
+		count: nodes.length,
+		dv: first.dv,
+		burnTime: first.burnTime,
+		short: first.short,
+		toNode: first.toNode,
+		toBurn: first.toBurn,
+		state: first.state,
+		pointing: v.sas?.mode === 'maneuver',
+		nodes
 	};
 }
 
 export function createHudController(options: HudControllerOptions): HudController {
 	const { design, content, bodies } = options;
+	const patched = bodyNodes(bodies);
+	/** AN/DN of the vessel's closed orbit against its target's plane or the equator (plan 224). */
+	function navNodes(v: VesselSnapshot, s: Snapshot, body: BodyDefinition) {
+		if (!v.orbit || v.orbit.e >= 1 || v.surface) return [];
+		const own = { r: v.position, v: v.velocity };
+		const t = v.target;
+		let sameSphere = false;
+		if (t?.kind === 'vessel') sameSphere = s.vessels.find((x) => x.id === t.id)?.soi === v.soi;
+		else if (t?.kind === 'body') sameSphere = patched.find((b) => b.id === String(t.id))?.parent === String(v.soi);
+		const ref = referenceNormal(
+			own,
+			t ? { position: t.position, velocity: t.velocity, sameSphere } : null,
+			bodyPole(body)
+		);
+		return planeNodes(own, ref.normal, bodyMu(body), s.t).map((n) => ({
+			...n,
+			relativeTo: ref.relativeTo
+		}));
+	}
 	const calendar = calendarOf(bodies);
 	const epoch: Epoch = options.epoch ?? { day: 0, fraction: 0 };
 	const name = displayVesselName(design);
@@ -361,12 +446,34 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		if (t) toasts = addToast(toasts, t, clock(), ++toastId);
 	};
 
-	function stageModel(now: number, v: VesselSnapshot, body: BodyDefinition, altitude: number) {
+	let dvView: DeltaVView | null = null;
+	const deltaVBodies = bodies
+		.filter((b) => !b.star)
+		.map((b) => ({ id: String(b.id), label: bodyLabel(b.id), atmosphere: b.atmosphere !== undefined }));
+	/** The body and situation the stage stack shows: the picker's, else where the vessel is. */
+	function stageEnvironment(body: BodyDefinition, altitude: number) {
+		const picked = dvView ? bodies.find((b) => String(b.id) === dvView!.body) : undefined;
+		if (picked && dvView) {
+			const air = dvView.situation === 'surface' ? picked.atmosphere : undefined;
+			return {
+				body: picked,
+				environment: (air ? 'sea-level' : 'vacuum') as Environment,
+				pressure: air?.surfacePressure ?? 0
+			};
+		}
+		return {
+			body,
+			environment: (altitude < (body.atmosphere?.height ?? 0) ? 'sea-level' : 'vacuum') as Environment,
+			pressure: undefined
+		};
+	}
+
+	function stageModel(now: number, v: VesselSnapshot, here: BodyDefinition, altitude: number) {
 		if (stageCache && now - stageCache.at < STAGE_RECOMPUTE_MS) return stageCache;
 		const fired = stagesFiredBy(stages, vessel);
 		const staging = stagingModelFromSnapshot(design, content, v, entityIndex!);
-		const report = stageDeltaV(staging, fired);
-		const environment = altitude < (body.atmosphere?.height ?? 0) ? 'sea-level' : 'vacuum';
+		const { body, environment, pressure } = stageEnvironment(here, altitude);
+		const report = stageDeltaV(staging, fired, pressure);
 		const g = bodyMu(body) / (body.radius * body.radius);
 		const model = stageStackModel({
 			report,
@@ -459,6 +566,10 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			if (vessel === null) return null;
 			return referenceFollowUp(entityId(vessel), find()?.sas, lastMode);
 		},
+		setDeltaVView(view) {
+			dvView = view;
+			stageCache = null;
+		},
 		setMapView(on) {
 			map = on;
 		},
@@ -520,7 +631,13 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				marks = {
 					apoapsis: place(info?.timeToApoapsis),
 					periapsis: place(info?.timeToPeriapsis),
-					vessel: at(v.position)
+					vessel: at(v.position),
+					nodes: navNodes(v, s, body).map((n) => ({
+						kind: n.kind,
+						relativeTo: n.relativeTo,
+						time: n.time,
+						point: at(n.position)
+					}))
 				};
 			}
 			const network = map && s ? projectNetwork(s, options.project) : null;
@@ -562,7 +679,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			push(h.toast);
 			toasts = pruneToasts(toasts, now);
 			const cache = stageModel(now, v, body, tele.altitude);
-			const environment = tele.altitude < (body.atmosphere?.height ?? 0) ? 'sea-level' : 'vacuum';
+			const environment = stageEnvironment(body, tele.altitude).environment;
 			return {
 				name,
 				body: bodyLabel(body.id),
@@ -583,6 +700,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				orbit: v.orbit ? orbitInfo(v.orbit, bodyMu(body), snap.t, body.radius) : null,
 				stages: cache.model,
 				environment,
+				deltaVView: dvView,
+				deltaVBodies,
 				stagesFired: stagesFiredBy(stages, vessel),
 				resources: cache.resources,
 				// on the pad the engines read 0 until the first stage sends the HUD's throttle (ADR 0216 point 4)

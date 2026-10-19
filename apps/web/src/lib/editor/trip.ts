@@ -14,6 +14,7 @@
  * orbit of its semi-major axis, impulsive burns.
  */
 import { homeBodyOf, type BodyDefinition } from '@orbital/core';
+import { hohmannToTarget, toStateVector } from '@orbital/kepler';
 import { bodyMu } from '../orbit-info';
 
 /** Ascent acceleration of the reference rocket, in surface gravities of the home body (every body). */
@@ -397,4 +398,91 @@ export function planTrip(dest: Destination, stages: readonly StageBudget[]): Tri
 		spare,
 		enough: short <= 1e-9
 	};
+}
+
+// --- transfer windows (plan 224) --------------------------------------------------------------------
+
+/** The next Hohmann window from a vessel's orbit to `destination` (plan 224, ADR 0223). */
+export interface TransferWindow {
+	destination: string;
+	/** Sim time the departure burn is due, s. */
+	time: number;
+	/** Seconds from now until then. */
+	wait: number;
+	/** Departure burn from the vessel's orbit, m/s (an ejection burn for a planet's neighbour). */
+	dv: number;
+	/** Coast time of the transfer, s. */
+	transferTime: number;
+}
+
+type Vec3Like = { x: number; y: number; z: number };
+type WindowBody = Pick<BodyDefinition, 'id' | 'parent' | 'orbit'> & { mu: number };
+
+/**
+ * From a vessel around `sphere` at state `own` (relative to it) to a body that orbits the same
+ * sphere (a moon: departure from the vessel's orbit) or the sphere's parent (a neighbour: the
+ * sphere's own orbit gives the window, the burn is the ejection from the vessel's orbit). Circular,
+ * coplanar orbits as in the rest of the planner; the date is worked out once, it is not tracked.
+ * Returns why there is none instead.
+ */
+export function nextWindow(
+	own: { r: Vec3Like; v: Vec3Like },
+	sphere: string,
+	destination: string,
+	bodies: readonly WindowBody[],
+	now: number
+): TransferWindow | string {
+	const here = bodies.find((b) => b.id === sphere);
+	const there = bodies.find((b) => b.id === destination);
+	if (!here || !there) return 'unknown body';
+	if (!there.orbit) return `${bodyName(there)} has no orbit to meet`;
+	const stateOf = (b: WindowBody): { r: Vec3Like; v: Vec3Like } | null => {
+		const parent = bodies.find((p) => p.id === b.parent);
+		return parent && b.orbit ? toStateVector(b.orbit, parent.mu, now) : null;
+	};
+	if (there.parent === sphere) {
+		const them = stateOf(there);
+		const plan = them ? hohmannToTarget(own, them, here.mu, now, 60) : undefined;
+		if (!plan) return 'no window: the orbits turn the other way or at the same rate';
+		return {
+			destination,
+			time: plan.time,
+			wait: plan.wait,
+			dv: Math.abs(plan.dv1),
+			transferTime: plan.transferTime
+		};
+	}
+	if (here.parent !== undefined && there.parent === here.parent) {
+		const parent = bodies.find((p) => p.id === here.parent)!;
+		const from = stateOf(here);
+		const them = stateOf(there);
+		const plan = from && them ? hohmannToTarget(from, them, parent.mu, now, 60) : undefined;
+		if (!plan) return 'no window: the orbits turn the other way or at the same rate';
+		const r = Math.hypot(own.r.x, own.r.y, own.r.z);
+		return {
+			destination,
+			time: plan.time,
+			wait: plan.wait,
+			dv: hyperbolicBurn(here.mu, r, Math.abs(plan.dv1)),
+			transferTime: plan.transferTime
+		};
+	}
+	return `${bodyName(there)} orbits neither ${bodyName(here)} nor its neighbours' parent`;
+}
+
+/** The bodies a vessel around `sphere` can have a window to: its moons and its neighbours. */
+export function windowDestinations(
+	sphere: string,
+	bodies: readonly Pick<BodyDefinition, 'id' | 'parent' | 'orbit'>[]
+): string[] {
+	const here = bodies.find((b) => b.id === sphere);
+	if (!here) return [];
+	return bodies
+		.filter(
+			(b) =>
+				b.orbit &&
+				b.id !== sphere &&
+				(b.parent === sphere || (here.parent !== undefined && b.parent === here.parent))
+		)
+		.map((b) => String(b.id));
 }

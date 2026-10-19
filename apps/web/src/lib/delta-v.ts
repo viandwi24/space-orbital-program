@@ -403,7 +403,11 @@ const EMPTY_BURN: BurnResult = {
  * ends, so booster burnout is a stage boundary (ADR 0034) and the rest of the burn is attributed
  * to the stage that drops it.
  */
-function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
+function burn(
+	w: Work,
+	shed: ReadonlySet<number> = new Set(),
+	pressure = SEA_LEVEL_PRESSURE
+): BurnResult {
 	const out: BurnResult = { ...EMPTY_BURN, massStart: massOf(w), massEnd: massOf(w) };
 	let first = true;
 	for (let guard = 0; guard < 500; guard++) {
@@ -464,7 +468,7 @@ function burn(w: Work, shed: ReadonlySet<number> = new Set()): BurnResult {
 		if (!Number.isFinite(dt) || dt <= 0) break;
 		const vac = active.reduce((s, e) => s + thrustAtPressure(e.engine.thrust, 0) * e.factor, 0);
 		const asl = active.reduce(
-			(s, e) => s + thrustAtPressure(e.engine.thrust, SEA_LEVEL_PRESSURE) * e.factor,
+			(s, e) => s + thrustAtPressure(e.engine.thrust, pressure) * e.factor,
 			0
 		);
 		const mdot = active.reduce((s, e) => s + e.mdot, 0);
@@ -521,13 +525,19 @@ export interface DeltaVReport {
 
 /**
  * Delta-v of the burns that remain: the engines that are lit now (attributed to `stagesFired - 1`),
- * then each stage from `stagesFired` on. `stagesFired` is 0 for a design on the pad.
+ * then each stage from `stagesFired` on. `stagesFired` is 0 for a design on the pad. The "sea
+ * level" figures are at `pressure`, Pa: the home body's sea level unless the flight's body picker
+ * chose another surface (plan 224).
  */
-export function stageDeltaV(model: StagingModel, stagesFired = 0): DeltaVReport {
+export function stageDeltaV(
+	model: StagingModel,
+	stagesFired = 0,
+	pressure = SEA_LEVEL_PRESSURE
+): DeltaVReport {
 	const w = start(model);
 	const stages: StageDeltaV[] = [];
 	if (stagesFired > 0 && w.ignited.size > 0) {
-		const b = burn(w, shedBy(w, stagesFired));
+		const b = burn(w, shedBy(w, stagesFired), pressure);
 		stages.push({
 			...b,
 			stage: stagesFired - 1,
@@ -537,7 +547,7 @@ export function stageDeltaV(model: StagingModel, stagesFired = 0): DeltaVReport 
 	}
 	for (let k = stagesFired; k < model.stages.length; k++) {
 		fireStage(w, k);
-		const b = burn(w, shedBy(w, k + 1));
+		const b = burn(w, shedBy(w, k + 1), pressure);
 		stages.push({
 			...b,
 			stage: k,

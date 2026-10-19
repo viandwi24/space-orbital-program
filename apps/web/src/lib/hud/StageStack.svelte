@@ -6,18 +6,27 @@
 	import { formatDeltaV, formatDuration, formatPercent } from '../format';
 	import { speedUnit } from '../units.svelte';
 	import type { StageStackModel } from '../stage-stack';
+	import type { DeltaVView } from '../hud-controller';
 
 	let {
 		stages,
 		environment,
 		throttle,
-		onstage
+		onstage,
+		bodies = [],
+		view = null,
+		onview
 	}: {
 		stages: StageStackModel;
 		environment: 'vacuum' | 'sea-level';
 		throttle: number;
 		onstage: () => void;
+		/** The delta-v picker's bodies (plan 224); no picker without them. */
+		bodies?: readonly { id: string; label: string; atmosphere: boolean }[];
+		view?: DeltaVView | null;
+		onview?: (view: DeltaVView | null) => void;
 	} = $props();
+	const pickedAir = $derived(bodies.find((b) => b.id === view?.body)?.atmosphere ?? false);
 
 	// The vessel stands upright on screen: the stage that fires first sits at the bottom.
 	const rows = $derived([...stages.rows].reverse());
@@ -39,6 +48,34 @@
 		>
 	{/snippet}
 
+	{#if onview && bodies.length > 0}
+		<div class="dvpick">
+			<select
+				value={view?.body ?? ''}
+				aria-label="Delta-v for body"
+				data-testid="dv-body"
+				onchange={(e) => {
+					const id = e.currentTarget.value;
+					onview(id ? { body: id, situation: view?.situation ?? 'vacuum' } : null);
+				}}
+			>
+				<option value="">Here, as flown</option>
+				{#each bodies as b (b.id)}<option value={b.id}>{b.label}</option>{/each}
+			</select>
+			{#if view}
+				<select
+					value={view.situation}
+					aria-label="Situation"
+					data-testid="dv-situation"
+					onchange={(e) =>
+						onview({ body: view.body, situation: e.currentTarget.value as 'vacuum' | 'surface' })}
+				>
+					<option value="vacuum">Vacuum</option>
+					<option value="surface" disabled={!pickedAir}>Surface</option>
+				</select>
+			{/if}
+		</div>
+	{/if}
 	{#if stages.empty === 'no-staging'}
 		<p class="empty">
 			This vessel has no staging. Assign engines and decouplers to stages in the VAB.
@@ -107,6 +144,22 @@
 </Panel>
 
 <style>
+	.dvpick {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 0.375rem;
+	}
+	.dvpick select {
+		flex: 1 1 0;
+		min-width: 0;
+		padding: 0.125rem 0.25rem;
+		font: inherit;
+		font-size: var(--t-xs);
+		color: var(--text-body);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-row);
+	}
 	:global(.panel[data-testid='staging']) {
 		display: grid;
 		gap: 0.375rem;

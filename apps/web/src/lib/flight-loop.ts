@@ -18,6 +18,7 @@ import {
 	type SasMode,
 	type Snapshot,
 	type VesselDesign,
+	type WarpTarget,
 	type SimSave,
 	type VesselPlacement,
 	type VesselSnapshot,
@@ -93,6 +94,7 @@ import type { DebugHost } from './debug/api';
 import { simEventLine } from './debug/model';
 import {
 	createHudController,
+	type DeltaVView,
 	type FrameData,
 	type HudController,
 	type HudModel
@@ -205,6 +207,8 @@ export interface Flight {
 	setAutoQuality(on: boolean): void;
 	/** Fire the next stage (the button next to the stage stack). */
 	stage(): void;
+	/** The stage stack's delta-v body and situation (plan 224); null follows the vessel. */
+	setDeltaVView(view: DeltaVView | null): void;
 	/** The map view's maneuver planner (plan 045); null until the sim has started. */
 	readonly maneuver: ManeuverController | null;
 	/** Time warp to the burn of the earliest maneuver node. */
@@ -217,6 +221,15 @@ export interface Flight {
 	cycleVessel(direction: 1 | -1): void;
 	/** Time warp to just before the next apsis (plan 206): the sim works out the time and the level. */
 	warpToApsis(to: 'apoapsis' | 'periapsis'): void;
+	/** Time warp to `time` (plan 224: a map marker, already less its margin) or to an alarm by id. */
+	warpTo(to: { time: number } | { alarm: string }): void;
+	/** Set an alarm for the flown vessel (plan 224): its apsis, or a time with a name and lead. */
+	addAlarm(alarm: {
+		kind: 'time' | 'apoapsis' | 'periapsis' | 'soi' | 'node';
+		name?: string;
+		time?: number;
+		lead?: number;
+	}): Promise<boolean>;
 	/** Whether the world is behind the real date `nowMs` (plan 087, ADR 0143): offer, unavailable or none. */
 	catchUp(nowMs: number): CatchUp;
 	/** Accept the catch-up: `warp-to` the real date; resolves with the sim's answer (null when nothing to do). */
@@ -486,6 +499,19 @@ export function startFlight(options: FlightOptions): Flight {
 			}
 			return result.ok;
 		});
+
+	/** `warp-to` at the top level the bar offers (plan 206); the sim grants what the world allows. */
+	function warpToCommand(to: { time: number } | { target: WarpTarget }): void {
+		const top = steps()[steps().length - 1]!;
+		void client
+			.dispatch({ type: 'warp-to', ...to, factor: top, ...(vessel !== null ? { vessel } : {}) })
+			.then((r) => {
+				if (!r.ok) return hudCtl?.refused('warp-to', r.reason);
+				hud.warp = r.granted ?? top;
+				hud.warpClamp = r.limit ?? null;
+				publish();
+			});
+	}
 
 	// --- input state -------------------------------------------------------------------------
 	const held = new Set<string>();
@@ -1374,15 +1400,13 @@ export function startFlight(options: FlightOptions): Flight {
 		cycleVessel,
 		warpToApsis(to) {
 			if (vessel === null) return;
-			const top = steps()[steps().length - 1]!;
-			void client
-				.dispatch({ type: 'warp-to', target: { kind: to, vessel }, factor: top, vessel })
-				.then((r) => {
-					if (!r.ok) return hudCtl?.refused('warp-to', r.reason);
-					hud.warp = r.granted ?? top;
-					hud.warpClamp = r.limit ?? null;
-					publish();
-				});
+			warpToCommand({ target: { kind: to, vessel } });
+		},
+		addAlarm(alarm) {
+			return send({ type: 'add-alarm', ...alarm, ...(vessel !== null ? { vessel } : {}) });
+		},
+		warpTo(to) {
+			warpToCommand('time' in to ? { time: to.time } : { target: { kind: 'alarm', id: to.alarm } });
 		},
 		debug: {
 			snapshot: () => snap,
@@ -1549,6 +1573,9 @@ export function startFlight(options: FlightOptions): Flight {
 		},
 		stage() {
 			void stageNext();
+		},
+		setDeltaVView(view) {
+			hudCtl?.setDeltaVView(view);
 		},
 		toggleMap,
 		cycleSpeedMode() {

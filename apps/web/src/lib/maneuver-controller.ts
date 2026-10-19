@@ -23,10 +23,14 @@ import {
 	modifierScale,
 	pickTime,
 	type HandleSpec,
+	orbitPeriod,
+	shiftByOrbits,
 	type Modifiers,
 	type NodeAxis,
+	type NodePlan,
 	type TimedPoint
 } from './maneuver';
+import { stretchApsides } from './nav-markers';
 import {
 	bodyNodes,
 	predictManeuvers,
@@ -62,9 +66,31 @@ export interface EncounterDraw {
 	point: ScreenPoint | null;
 }
 
+/** An apsis of a planned stretch (plan 224): the orbit after a node. */
+export interface PlannedApsisDraw {
+	key: string;
+	kind: 'apoapsis' | 'periapsis';
+	/** Altitude above the body's surface, m. */
+	altitude: number;
+	/** Sim time it is passed. */
+	time: number;
+	point: ScreenPoint | null;
+}
+
 export interface ManeuverFrame {
 	nodes: NodeDraw[];
 	encounters: EncounterDraw[];
+	apsides: PlannedApsisDraw[];
+}
+
+/** The orbit right after a node (plan 224): what the node panel shows as planned. */
+export interface PlannedOrbit {
+	body: string;
+	/** Altitudes, m; apoapsis absent for an escape path. */
+	apoapsis?: number;
+	periapsis: number;
+	/** Period of the orbit the node lies on, s, for ±orbit; null when it is open. */
+	period: number | null;
 }
 
 export interface ManeuverControllerOptions {
@@ -104,8 +130,14 @@ export interface ManeuverController {
 	/** Keyboard on the selected node; true when the key was used. */
 	key(action: string, modifiers: Modifiers): boolean;
 	remove(id: number): void;
-	/** Time warp to the burn of the earliest node. */
-	warpToNode(): void;
+	/** Time warp to the burn of node `id`, the earliest without one. */
+	warpToNode(id?: number): void;
+	/** Typed values or a time change for one node (plan 224); the same path as a drag. */
+	edit(id: number, change: Partial<NodePlan>): void;
+	/** Move a node by `seconds`, or by whole revolutions of its orbit with `orbits`. */
+	shift(id: number, by: { seconds?: number; orbits?: number }): void;
+	/** The orbit after node `id` as last predicted (map view), or null. */
+	planned(id: number): PlannedOrbit | null;
 }
 
 const SEND_PERIOD_MS = 60;
@@ -349,7 +381,101 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		return out;
 	}
 
+	/** The stretch after node `id` and the stretch it lies on, from the last prediction. */
+	function around(id: number): { before?: MapPath; after?: MapPath } {
+		const placed = prediction?.nodes.find((n) => n.id === id);
+		if (!placed || !prediction) return {};
+		const before = placed.path >= 0 ? prediction.paths[placed.path] : undefined;
+		const after = prediction.paths.find((p, i) => i > placed.path && p.planned && p.t0 >= placed.time - 1e-6);
+		return { before, after };
+	}
+
+	const muOf = (body: string): number | undefined => patched.find((b) => b.id === body)?.mu;
+	const radiusOf = (body: string): number => options.bodies.find((b) => b.id === body)?.radius ?? 0;
+
+	function plannedOf(id: number): PlannedOrbit | null {
+		const { before, after } = around(id);
+		if (!after) return null;
+		const mu = muOf(after.body);
+		if (mu === undefined || after.elements === undefined) return null;
+		const { a, e } = after.elements;
+		const radius = radiusOf(after.body);
+		const beforeEl = before?.elements;
+		const beforeMu = before ? muOf(before.body) : undefined;
+		return {
+			body: after.body,
+			periapsis: Math.abs(a) * Math.abs(1 - e) - radius,
+			...(e < 1 && a > 0 ? { apoapsis: a * (1 + e) - radius } : {}),
+			period:
+				beforeEl && beforeMu !== undefined ? orbitPeriod(beforeEl.a, beforeEl.e, beforeMu) : null
+		};
+	}
+
+	/** Period of the orbit node `id` lies on: from the prediction, else the vessel's own orbit. */
+	function periodAt(id: number): number | null {
+		const known = plannedOf(id)?.period;
+		if (known !== undefined && known !== null) return known;
+		if (around(id).before) return null;
+		const v = vesselSnapshot();
+		const mu = v ? muOf(String(v.soi)) : undefined;
+		return v?.orbit && mu !== undefined ? orbitPeriod(v.orbit.a, v.orbit.e, mu) : null;
+	}
+
+	/** Apoapsis and periapsis on each planned stretch (plan 224). */
+	function apsidesOf(paths: readonly MapPath[]): PlannedApsisDraw[] {
+		const out: PlannedApsisDraw[] = [];
+		paths.forEach((p, i) => {
+			if (!p.planned || !p.entry) return;
+			const mu = muOf(p.body);
+			if (mu === undefined) return;
+			const radius = radiusOf(p.body);
+			for (const m of stretchApsides(p.entry, mu, p.t1 - p.t0)) {
+				out.push({
+					key: `${i}:${m.kind}`,
+					kind: m.kind,
+					altitude: m.radius - radius,
+					time: p.t0 + m.after,
+					point: options.project({
+						x: p.offset.x + m.position.x,
+						y: p.offset.y + m.position.y,
+						z: p.offset.z + m.position.z
+					})
+				});
+			}
+		});
+		return out;
+	}
+
+	function commit(d: Draft): void {
+		setDraft(d);
+		lastSent = Number.NEGATIVE_INFINITY;
+		flush(performance.now());
+	}
+
 	return {
+		edit(id, change) {
+			const node = draft && draft.id === id ? draft : nodeView(id);
+			if (!node) return;
+			selected = id;
+			commit({ ...node, ...change, id });
+		},
+		shift(id, by) {
+			const node = draft && draft.id === id ? draft : nodeView(id);
+			const now = options.snapshot()?.t ?? 0;
+			if (!node) return;
+			selected = id;
+			if (by.orbits !== undefined) {
+				const moved = shiftByOrbits(node, by.orbits, periodAt(id), now + MIN_AHEAD);
+				if (!moved) {
+					options.notice('Node not moved', 'An open orbit has no period, or that is in the past');
+					return;
+				}
+				commit(moved);
+				return;
+			}
+			commit({ ...node, time: Math.max(now + MIN_AHEAD, node.time + (by.seconds ?? 0)) });
+		},
+		planned: (id) => plannedOf(id),
 		update(now) {
 			lastNow = now;
 			settleDraft(now);
@@ -368,6 +494,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		frame() {
 			if (!options.mapOn() || !prediction) return null;
 			const encounters = encountersOf(prediction.paths);
+			const apsides = apsidesOf(prediction.paths);
 			if (prediction.nodes.length === 0 && encounters.length === 0) return null;
 			const nodes: NodeDraw[] = prediction.nodes.map((n) => {
 				const point = options.project(n.world);
@@ -403,7 +530,7 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				}
 				return { id: n.id, selected: isSelected, point, handles };
 			});
-			return { nodes, encounters };
+			return { nodes, encounters, apsides };
 		},
 		get selected() {
 			return selected;
@@ -499,10 +626,10 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 				dirty = true;
 			});
 		},
-		warpToNode() {
+		warpToNode(id) {
 			const snap = options.snapshot();
 			const v = vesselSnapshot();
-			const first = v?.nodes?.[0];
+			const first = id === undefined ? v?.nodes?.[0] : v?.nodes?.find((n) => n.id === id);
 			if (!snap || !first) {
 				options.notice('No maneuver node', 'Click the orbit in map view to place one');
 				return;

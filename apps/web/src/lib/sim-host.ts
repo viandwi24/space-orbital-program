@@ -622,6 +622,17 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							event: { type: 'maneuver-complete', vessel: Number(e.vessel), node: e.node }
 						})
 					),
+					created.events.on('alarm:fired', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: {
+								type: 'alarm',
+								id: e.id,
+								name: e.name,
+								vessel: e.vessel === undefined ? null : Number(e.vessel)
+							}
+						})
+					),
 					created.events.on('warp:stopped', (e) =>
 						options.post({ kind: 'sim-event', event: { type: 'warp-stopped', reason: e.reason } })
 					),

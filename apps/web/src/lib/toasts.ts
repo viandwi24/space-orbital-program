@@ -88,6 +88,8 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 						key: `chute-${event.part}`
 					}
 				: null;
+		case 'alarm':
+			return { kind: 'warning', title: `Alarm: ${event.name}`, key: `alarm-${event.id}` };
 		case 'warp-stopped':
 		case 'building-ready':
 			return null; // the world layout's bell shows them (plan 205)

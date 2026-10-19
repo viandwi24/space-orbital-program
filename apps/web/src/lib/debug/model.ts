@@ -174,6 +174,8 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 			return { level: 'info', message: `first: ${event.id}` };
 		case 'warp-stopped':
 			return { level: 'info', message: `warp stopped: ${event.reason}` };
+		case 'alarm':
+			return { level: 'info', message: `alarm ${event.id} fired: ${event.name}` };
 		case 'building-ready':
 			return { level: 'info', message: `construction done: ${event.kind} level ${event.level}` };
 		case 'power-depleted':

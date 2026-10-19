@@ -9,7 +9,9 @@ import {
 	objectCard,
 	trackingRows,
 	upcomingEvents,
-	warpToCommand
+	warpToCommand,
+	alarmCommand,
+	parseDuration
 } from './model';
 
 const HOME = 'stock.home' as BodyId;
@@ -194,5 +196,48 @@ describe('map labels', () => {
 			['vessel:4', 'Ship 4']
 		]);
 		expect(out[1]!.members).toEqual(['vessel:1', 'vessel:2', 'vessel:3']);
+	});
+});
+
+describe('alarms in Upcoming (plan 224)', () => {
+	it('lists alarms with the vessel, warps to them by id and builds the form command', () => {
+		const snap: Snapshot = {
+			t: 100,
+			bodies: [],
+			vessels: [vessel(2, {})],
+			alarms: [
+				{ id: 'alarm.1', name: 'Wake up', time: 400, kind: 'time' },
+				{ id: 'alarm.2', name: 'Pe', time: 50, kind: 'periapsis', vessel: 2 as EntityId }
+			]
+		};
+		const events = upcomingEvents(snap, bodies, bodyNodes(bodies)).filter((e) => e.kind === 'alarm');
+		expect(events).toHaveLength(1); // the one in the past is not shown
+		expect(events[0]).toMatchObject({ alarm: 'alarm.1', label: 'Alarm: Wake up', time: 400 });
+		expect(warpToCommand(events[0]!)).toEqual({
+			type: 'warp-to',
+			target: { kind: 'alarm', id: 'alarm.1' },
+			factor: 100_000
+		});
+		expect(alarmCommand({ name: ' Burn ', inSeconds: 300 }, 100)).toEqual({
+			type: 'add-alarm',
+			name: 'Burn',
+			kind: 'time',
+			time: 400
+		});
+		expect(alarmCommand({ id: 'alarm.1', name: '', inSeconds: 60 }, 100)).toMatchObject({
+			id: 'alarm.1',
+			time: 160
+		});
+		expect(typeof alarmCommand({ name: '', inSeconds: 0 }, 100)).toBe('string');
+	});
+
+	it('reads typed durations', () => {
+		expect(parseDuration('5')).toBe(300);
+		expect(parseDuration('10 min')).toBe(600);
+		expect(parseDuration('1h 30m')).toBe(5_400);
+		expect(parseDuration('1:30:00')).toBe(5_400);
+		expect(parseDuration('1:30')).toBe(5_400);
+		expect(parseDuration('2d')).toBe(172_800);
+		expect(parseDuration('soon')).toBeNull();
 	});
 });

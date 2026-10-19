@@ -71,6 +71,8 @@
 	import TargetMarkers from '../../../lib/hud/TargetMarkers.svelte';
 	import TargetPanel from '../../../lib/hud/TargetPanel.svelte';
 	import MapMarkers from '../../../lib/hud/MapMarkers.svelte';
+	import type { PlannedOrbit } from '../../../lib/maneuver-controller';
+	import type { NavMark } from '../../../lib/nav-markers';
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
@@ -275,6 +277,35 @@
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
+	/** The node the map selected and the orbit after the node the panel shows (plan 224). */
+	let nodeSelected = $state<number | null>(null);
+	let nodePlanned = $state.raw<PlannedOrbit | null>(null);
+	let nodePlannedKey = '';
+
+	/** A map marker's warp: the sim's margin before apsides (plan 206), the same for the rest. */
+	const MARK_MARGIN = 15;
+	function warpToMark(mark: NavMark): void {
+		if (!flight) return;
+		if (!mark.planned && (mark.kind === 'apoapsis' || mark.kind === 'periapsis')) {
+			flight.warpToApsis(mark.kind);
+			return;
+		}
+		flight.warpTo({ time: Math.max(mark.time - MARK_MARGIN, (model?.time ?? 0) + 1) });
+	}
+	function alarmAtMark(mark: NavMark): void {
+		if (!flight) return;
+		if (!mark.planned && (mark.kind === 'apoapsis' || mark.kind === 'periapsis')) {
+			void flight.addAlarm({ kind: mark.kind });
+			return;
+		}
+		void flight.addAlarm({ kind: 'time', name: mark.label, time: mark.time, lead: MARK_MARGIN });
+	}
+	function alarmAtNode(id: number): void {
+		const node = model?.maneuver?.nodes.find((n) => n.id === id);
+		if (!flight || !node) return;
+		const index = (model?.maneuver?.nodes.indexOf(node) ?? 0) + 1;
+		void flight.addAlarm({ kind: 'time', name: `Maneuver node ${index}`, time: node.time, lead: 30 });
+	}
 	let tall = $state(true);
 	const ballSize = $derived(tall ? 176 : 144);
 	// The toolbar's Staging and Nav buttons (plan 088, ADR 0144 point 5).
@@ -679,7 +710,20 @@
 			sandbox: scriptSandbox,
 			onFrame: (f: FrameData) => {
 				deck?.paint(f.navball);
-				markers?.place(f.map);
+				markers?.place(f.map, f.maneuver?.apsides ?? []);
+				if (planner) {
+					const sel = planner.selected;
+					if (sel !== nodeSelected) nodeSelected = sel;
+					const shown = sel ?? model?.maneuver?.id ?? null;
+					const p = shown === null ? null : planner.planned(shown);
+					const k = p
+						? `${Math.round(p.apoapsis ?? -1)}|${Math.round(p.periapsis)}|${p.body}|${p.period === null ? '' : Math.round(p.period)}`
+						: '';
+					if (k !== nodePlannedKey) {
+						nodePlannedKey = k;
+						nodePlanned = p;
+					}
+				}
 				const net = f.network ?? null;
 				if (JSON.stringify(net) !== JSON.stringify(mapNetwork)) mapNetwork = net;
 				const g = f.ghost ?? null;
@@ -983,7 +1027,13 @@
 			e.currentTarget.value = '';
 		}}
 	/>
-	<MapMarkers bind:this={markers} orbit={model?.orbit ?? null} />
+	<MapMarkers
+		bind:this={markers}
+		orbit={model?.orbit ?? null}
+		now={model?.time ?? 0}
+		onwarp={warpToMark}
+		onalarm={alarmAtMark}
+	/>
 	<TargetMarkers bind:this={targetMarks} />
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
 
@@ -1198,6 +1248,9 @@
 						environment={model.environment}
 						throttle={model?.throttle ?? hud.throttle}
 						onstage={() => flight?.stage()}
+						bodies={model.deltaVBodies}
+						view={model.deltaVView}
+						onview={(v) => flight?.setDeltaVView(v)}
 					/>
 				</div>
 			{/if}
@@ -1209,9 +1262,18 @@
 							maneuver={model.maneuver}
 							map={hud.map}
 							{warpUsable}
-							onwarp={() => flight?.warpToNode()}
+							selected={nodeSelected}
+							planned={nodePlanned}
+							onwarp={(id) => planner?.warpToNode(id)}
 							onpoint={() => flight?.setSas('maneuver')}
-							onremove={() => flight?.removeNode()}
+							onremove={(id) => planner?.remove(id)}
+							onselect={(id) => {
+								planner?.select(id);
+								nodeSelected = id;
+							}}
+							onedit={(id, change) => planner?.edit(id, change)}
+							onshift={(id, by) => planner?.shift(id, by)}
+							onalarm={alarmAtNode}
 						/>
 					</div>
 				{/if}

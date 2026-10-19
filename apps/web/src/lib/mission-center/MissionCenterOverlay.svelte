@@ -16,6 +16,7 @@
 	import Panel from '../ui/Panel.svelte';
 	import Segmented from '../ui/Segmented.svelte';
 	import StatCell from '../ui/StatCell.svelte';
+	import AlarmTools, { type AlarmDraft } from './AlarmTools.svelte';
 	import {
 		TRACK_FILTERS,
 		timeUntil,
@@ -44,6 +45,13 @@
 		onselect,
 		upcoming,
 		onwarp,
+		onalarmsave,
+		onalarmremove,
+		windowDestinations = [],
+		windowDestination = null,
+		onwindowdestination,
+		transferWindow = null,
+		onwindowalarm,
 		contracts,
 		crew,
 		agency,
@@ -72,6 +80,15 @@
 		onselect: (key: string | null) => void;
 		upcoming: readonly UpcomingEvent[];
 		onwarp: (e: UpcomingEvent) => void;
+		/** Alarms (plan 224): add or replace one, and delete one by id. */
+		onalarmsave?: (draft: AlarmDraft) => void;
+		onalarmremove?: (id: string) => void;
+		/** The next transfer window from the focused vessel (plan 224). */
+		windowDestinations?: readonly { id: string; label: string }[];
+		windowDestination?: string | null;
+		onwindowdestination?: (id: string | null) => void;
+		transferWindow?: { date: string; wait: number; dv: number } | string | null;
+		onwindowalarm?: () => void;
 		contracts: readonly { id: string; label: string; progress: number; status: string }[];
 		crew: readonly { id: string; name: string; sub: string }[];
 		agency: { funds: string; science: string; reputation: string } | null;
@@ -97,6 +114,7 @@
 	} = $props();
 
 	const toggle = (name: keyof Layers) => onlayers({ ...layers, [name]: !layers[name] });
+	let editing = $state<AlarmDraft | null>(null);
 </script>
 
 <div class="overlay" data-testid="mission-center">
@@ -202,10 +220,45 @@
 								<span class="name">{e.label}</span>
 								<span class="sub">{e.detail} · {timeUntil(e.time, now)}</span>
 							</div>
-							<Button onclick={() => onwarp(e)} data-testid="mc-warp-{e.key}">Warp to</Button>
+							<div class="acts">
+								<Button onclick={() => onwarp(e)} data-testid="mc-warp-{e.key}">Warp to</Button>
+								{#if e.alarm !== undefined && onalarmsave}
+									<Button
+										variant="ghost"
+										onclick={() =>
+											(editing = {
+												id: e.alarm,
+												name: e.label.replace(/^Alarm: /, ''),
+												inSeconds: Math.max(1, e.time - now)
+											})}
+										data-testid="mc-alarm-edit-{e.alarm}">Edit</Button
+									>
+									<Button
+										variant="ghost"
+										onclick={() => onalarmremove?.(e.alarm!)}
+										aria-label="Delete alarm"
+										data-testid="mc-alarm-delete-{e.alarm}">Delete</Button
+									>
+								{/if}
+							</div>
 						</li>
 					{/each}
 				</ul>
+			{/if}
+			{#if onalarmsave}
+				<AlarmTools
+					{editing}
+					onsave={(d) => {
+						onalarmsave(d);
+						editing = null;
+					}}
+					oncancel={() => (editing = null)}
+					destinations={windowDestinations}
+					destination={windowDestination}
+					ondestination={onwindowdestination}
+					window={transferWindow}
+					{onwindowalarm}
+				/>
 			{/if}
 		</Panel>
 		<Panel title="Contracts">
@@ -418,6 +471,12 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.375rem 0;
+	}
+	.acts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		justify-content: flex-end;
 	}
 	.event .name {
 		display: block;

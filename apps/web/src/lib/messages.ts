@@ -101,6 +101,8 @@ export type SimEvent =
 	| { type: 'part-failed'; vessel: number; part: number; mode: string; label: string }
 	/** The sim ended a warp, or refused a pause (plan 205, ADR 0201 point 10). */
 	| { type: 'warp-stopped'; reason: string }
+	/** A user alarm fired (plan 224): the warp has stopped; the bell keeps it. */
+	| { type: 'alarm'; id: string; name: string; vessel: number | null }
 	/** Construction finished (plan 205's bell). */
 	| { type: 'building-ready'; kind: string; level: number }
 	/** Every control source of the vessel ran out of power (plan 208, ADR 0214). */
@@ -195,6 +197,7 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'milestone',
 	'part-failed',
 	'warp-stopped',
+	'alarm',
 	'building-ready',
 	'power-depleted',
 	'docked',

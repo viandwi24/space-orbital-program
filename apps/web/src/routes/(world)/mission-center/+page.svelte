@@ -22,6 +22,10 @@
 	import { bootWorld } from '../../../lib/world-boot';
 	import { formatFunds } from '../../../lib/format';
 	import { bodyNodes } from '../../../lib/map-path';
+	import { nextWindow, windowDestinations as windowDestinations_ } from '../../../lib/editor/trip';
+	import { bodyMu } from '../../../lib/orbit-info';
+	import { bodyLabel } from '../../../lib/hud-model';
+	import type { AlarmDraft } from '../../../lib/mission-center/AlarmTools.svelte';
 	import { pickTarget, type PickCandidate } from '../../../lib/map-pick';
 	import MissionCenterOverlay, {
 		type Layers
@@ -33,6 +37,7 @@
 		trackingRows,
 		upcomingEvents,
 		warpToCommand,
+		alarmCommand,
 		type MapLabel,
 		type TrackFilter,
 		type UpcomingEvent
@@ -189,6 +194,72 @@
 		mc?.renderer?.setMapLayers({ orbits: next.orbits });
 	}
 
+	// alarms and the next transfer window (plan 224)
+	async function saveAlarm(d: AlarmDraft): Promise<void> {
+		const command = alarmCommand(d, snapshot?.t ?? 0);
+		if (typeof command === 'string') {
+			note = command;
+			return;
+		}
+		const r = await mc?.dispatch(command);
+		note = r && !r.ok ? r.reason : null;
+		upcomingAt = -Infinity;
+	}
+	async function removeAlarm(id: string): Promise<void> {
+		const r = await mc?.dispatch({ type: 'remove-alarm', id });
+		note = r && !r.ok ? r.reason : null;
+		upcomingAt = -Infinity;
+	}
+	let windowDestination = $state<string | null>(null);
+	/** The vessel windows start from: the selected one, else the focus. */
+	const windowVessel = $derived.by(() => {
+		const id = selected?.startsWith('vessel:') ? Number(selected.slice('vessel:'.length)) : focus;
+		const v = snapshot?.vessels.find((x) => Number(x.id) === id);
+		return v && !v.surface && v.orbit ? v : null;
+	});
+	const windowDestinations = $derived(
+		windowVessel
+			? windowDestinations_(String(windowVessel.soi), bodies).map((id) => ({
+					id,
+					label: bodyLabel(id)
+				}))
+			: []
+	);
+	const windowBodies = $derived(bodies.map((b) => ({ ...b, mu: bodyMu(b) })));
+	const transferWindow = $derived.by(() => {
+		const v = windowVessel;
+		if (!v || !windowDestination || !snapshot || !epoch) return null;
+		const w = nextWindow(
+			{ r: v.position, v: v.velocity },
+			String(v.soi),
+			windowDestination,
+			windowBodies,
+			snapshot.t
+		);
+		if (typeof w === 'string') return w;
+		return {
+			date: formatDate(calendarOf(bodies), epoch, w.time).text,
+			wait: w.wait,
+			dv: w.dv,
+			time: w.time
+		};
+	});
+	async function windowAlarm(): Promise<void> {
+		const w = transferWindow;
+		const v = windowVessel;
+		if (!w || typeof w === 'string' || !v || !windowDestination) return;
+		const r = await mc?.dispatch({
+			type: 'add-alarm',
+			kind: 'transfer',
+			name: `Window to ${bodyLabel(windowDestination)}`,
+			time: w.time,
+			vessel: v.id,
+			body: windowDestination
+		});
+		note = r && !r.ok ? r.reason : null;
+		upcomingAt = -Infinity;
+	}
+
 	async function warpTo(e: UpcomingEvent): Promise<void> {
 		const r = await mc?.dispatch(warpToCommand(e));
 		note = r && !r.ok ? r.reason : null;
@@ -261,6 +332,13 @@
 		onselect={select}
 		{upcoming}
 		onwarp={(e) => void warpTo(e)}
+		onalarmsave={(d) => void saveAlarm(d)}
+		onalarmremove={(id) => void removeAlarm(id)}
+		{windowDestinations}
+		{windowDestination}
+		onwindowdestination={(id) => (windowDestination = id)}
+		{transferWindow}
+		onwindowalarm={() => void windowAlarm()}
 		{contracts}
 		{rivals}
 		{news}

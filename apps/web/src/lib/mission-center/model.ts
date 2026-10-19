@@ -4,7 +4,7 @@
  * so the page and the tests share it.
  */
 import { resolve } from '$app/paths';
-import type { BodyDefinition, Command, Snapshot, VesselSnapshot } from '@orbital/core';
+import type { AlarmKind, BodyDefinition, Command, Snapshot, VesselSnapshot } from '@orbital/core';
 import { trajectoryFor, type PatchedBody } from '@orbital/kepler';
 import { formatDistance, formatDuration, formatSpeed } from '../format';
 import { bodyLabel } from '../hud-model';
@@ -82,7 +82,9 @@ export function trackingRows(
 /** An Upcoming entry; `warpTime` is where warp-to stops (a node: the maneuver lead before it). */
 export interface UpcomingEvent {
 	key: string;
-	kind: 'node' | 'soi' | 'review';
+	kind: 'node' | 'soi' | 'review' | 'alarm';
+	/** The alarm's id (plan 224), for edit, delete and warp-to. */
+	alarm?: string;
 	/** The vessel it is about; null for a peer review (plan 129). */
 	vessel: number | null;
 	time: number;
@@ -146,6 +148,23 @@ export function upcomingEvents(
 			});
 		}
 	}
+	// user alarms (plan 224): the sim keeps them; a warp-to an alarm stops on it
+	for (const a of snapshot.alarms ?? []) {
+		if (a.time <= t) continue;
+		const v = a.vessel === undefined ? undefined : snapshot.vessels.find((x) => x.id === a.vessel);
+		out.push({
+			key: `alarm:${a.id}`,
+			kind: 'alarm',
+			alarm: a.id,
+			vessel: v ? Number(v.id) : null,
+			time: a.time,
+			warpTime: a.time,
+			label: `Alarm: ${a.name}`,
+			detail: [ALARM_KIND[a.kind], v ? vesselName(v) : null, a.body ? bodyLabel(a.body) : null]
+				.filter(Boolean)
+				.join(' · ')
+		});
+	}
 	const discovery = snapshot.discovery;
 	for (const c of discovery?.claims ?? []) {
 		if (c.verdict !== undefined || c.due <= t) continue;
@@ -163,12 +182,58 @@ export function upcomingEvents(
 	return out.sort((a, b) => a.time - b.time || a.key.localeCompare(b.key)).slice(0, limit);
 }
 
+const ALARM_KIND: Record<AlarmKind, string> = {
+	time: 'Time',
+	apoapsis: 'Apoapsis',
+	periapsis: 'Periapsis',
+	soi: 'Sphere change',
+	node: 'Maneuver node',
+	transfer: 'Transfer window'
+};
+
 /** The command warp-to sends for an Upcoming event (the maneuver panel's factor). */
-export const warpToCommand = (event: UpcomingEvent): Command => ({
-	type: 'warp-to',
-	time: event.warpTime,
-	factor: 100_000
-});
+export const warpToCommand = (event: UpcomingEvent): Command =>
+	event.alarm !== undefined
+		? { type: 'warp-to', target: { kind: 'alarm', id: event.alarm }, factor: 100_000 }
+		: { type: 'warp-to', time: event.warpTime, factor: 100_000 };
+
+/**
+ * The alarm form's command (plan 224): a new alarm, or the one with `id` replaced. `inSeconds` is
+ * from `now`; a blank name takes the sim's label.
+ */
+export function alarmCommand(
+	form: { id?: string; name: string; inSeconds: number },
+	now: number
+): Command | string {
+	if (!Number.isFinite(form.inSeconds) || form.inSeconds <= 0) return 'Give a time in the future.';
+	return {
+		type: 'add-alarm',
+		...(form.id !== undefined ? { id: form.id } : {}),
+		name: form.name.trim(),
+		kind: 'time',
+		time: now + form.inSeconds
+	};
+}
+
+/** "1:30:00", "45", "2h 5m", "10 min": a duration typed in the alarm form, s; null when unreadable. */
+export function parseDuration(text: string): number | null {
+	const t = text.trim().toLowerCase();
+	if (t === '') return null;
+	if (/^\d+(:\d{1,2}){1,2}$/.test(t)) {
+		const parts = t.split(':').map(Number);
+		return parts.reduce((acc, p) => acc * 60 + p, 0) * (parts.length === 2 ? 60 : 1);
+	}
+	const units: Record<string, number> = { d: 86_400, h: 3_600, m: 60, min: 60, s: 1 };
+	let total = 0;
+	let matched = '';
+	for (const m of t.matchAll(/(\d+(?:\.\d+)?)\s*(d|h|min|m|s)\b/g)) {
+		total += Number(m[1]) * units[m[2]!]!;
+		matched += m[0];
+	}
+	if (matched.replace(/\s/g, '') === t.replace(/\s/g, '')) return total > 0 ? total : null;
+	const minutes = Number(t);
+	return Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null;
+}
 
 /** "in 4 m 12 s" from `now`. */
 export const timeUntil = (time: number, now: number): string =>

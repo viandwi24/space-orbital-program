@@ -172,3 +172,43 @@ export function burnIndicator(
 
 /** Lead before the burn the "warp to node" button stops at, s. */
 export const WARP_LEAD = 30;
+
+/** The time buttons of the node panel (plan 224), s: each shifts the node by this much either way. */
+export const TIME_STEPS = [1, 10, 60, 600] as const;
+
+/** Period of a closed orbit with semi-major axis `a` about `mu`, s; null for an open one. */
+export function orbitPeriod(a: number, e: number, mu: number): number | null {
+	if (!(a > 0) || !(e < 1) || !(mu > 0)) return null;
+	return 2 * Math.PI * Math.sqrt((a * a * a) / mu);
+}
+
+/** A node's plan values: its time and the burn in the orbital frame at the node. */
+export interface NodePlan {
+	time: number;
+	prograde: number;
+	normal: number;
+	radial: number;
+}
+
+/**
+ * The node moved by `orbits` revolutions of the orbit it lies on (plan 224): the burn is the same,
+ * the time shifts by whole periods. Null when the orbit is open or the move lands before `now`.
+ */
+export function shiftByOrbits<T extends NodePlan>(
+	node: T,
+	orbits: number,
+	period: number | null,
+	now: number
+): T | null {
+	if (period === null || !Number.isFinite(period)) return null;
+	const time = node.time + orbits * period;
+	return time > now ? { ...node, time } : null;
+}
+
+/** A typed value of the node panel, m/s; null for text that is not a finite number. */
+export function parseDv(text: string): number | null {
+	const cleaned = text.trim().replace(/\s*m\/s$/i, '').replace(',', '.');
+	if (cleaned === '') return null;
+	const n = Number(cleaned);
+	return Number.isFinite(n) ? n : null;
+}

@@ -244,6 +244,7 @@
 						bell.push({ source: 'sim', text: `A vessel entered ${e.to}` });
 					else if (e.type === 'maneuver-complete')
 						bell.push({ source: 'sim', text: 'A maneuver node was burned' });
+					else if (e.type === 'alarm') bell.push({ source: 'alarm', text: `Alarm: ${e.name}` });
 					else if (e.type === 'warp-stopped')
 						bell.push({ source: 'clock', text: `Warp stopped: ${e.reason}` });
 					else if (e.type === 'power-depleted')

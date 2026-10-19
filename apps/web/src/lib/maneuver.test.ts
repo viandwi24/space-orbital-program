@@ -8,8 +8,13 @@ import {
 	dvFromDrag,
 	dvPerPixel,
 	modifierScale,
-	pickTime
+	orbitPeriod,
+	parseDv,
+	pickTime,
+	shiftByOrbits,
+	TIME_STEPS
 } from './maneuver';
+import { fromStateVector, trajectoryFor } from '@orbital/kepler';
 
 const G0 = 9.80665;
 /** The numbers of a stock stage: LV-T30-like engine, 215 kN, Isp 300 s, 7 t at start, 3 t at the end. */
@@ -154,5 +159,60 @@ describe('picking a time on the path', () => {
 		expect(pickTime(line, -5, 50, 12)!.t).toBe(0);
 		expect(pickTime([], 0, 0)).toBeNull();
 		expect(pickTime([line[0]!], 0, 50)).toBeNull();
+	});
+});
+
+describe('node panel (plan 224)', () => {
+	const MU = 3.5316e12;
+	const R = 700_000;
+	const bodies = [{ id: 'home', mu: MU, soi: 1e12, radius: R }];
+	const r = R + 100_000;
+	const start = {
+		body: 'home',
+		r: { x: r, y: 0, z: 0 },
+		v: { x: 0, y: 0, z: -Math.sqrt(MU / r) * 1.02 },
+		t: 0
+	};
+
+	it('reads typed delta-v with or without the unit, and refuses text that is no number', () => {
+		expect(parseDv('250')).toBe(250);
+		expect(parseDv(' 250 m/s ')).toBe(250);
+		expect(parseDv('-12,5')).toBe(-12.5);
+		expect(parseDv('abc')).toBeNull();
+		expect(parseDv('')).toBeNull();
+	});
+
+	it('a typed value changes only its axis and resolves to that burn', () => {
+		const node = { id: 1, time: 600, prograde: 0, normal: 0, radial: 0 };
+		const typed = { ...node, prograde: parseDv('250')! };
+		const path = trajectoryFor(bodies).predictWithManeuvers(start, [typed], 700);
+		const done = path.nodes[0]!;
+		expect(done.dv.prograde).toBeCloseTo(250, 9);
+		expect(done.dv.normal).toBeCloseTo(0, 9);
+		expect(done.dv.radial).toBeCloseTo(0, 9);
+	});
+
+	it('a node moved +1 orbit keeps its delta-v and shifts by one period', () => {
+		const node = { id: 1, time: 900, prograde: 120, normal: -15, radial: 8 };
+		const el = fromStateVector(start.r, start.v, MU, 0);
+		const period = orbitPeriod(el.a, el.e, MU)!;
+		const moved = shiftByOrbits(node, 1, period, 0)!;
+		expect(moved.time - node.time).toBeCloseTo(period, 9);
+		expect([moved.prograde, moved.normal, moved.radial]).toEqual([120, -15, 8]);
+		const at = (n: typeof node) =>
+			trajectoryFor(bodies).predictWithManeuvers(start, [n], n.time - start.t + 1).nodes[0]!;
+		const a = at(node);
+		const b = at(moved);
+		// the same point of the orbit, the same burn, the same orbit after it
+		expect(Math.hypot(a.pre.r.x - b.pre.r.x, a.pre.r.y - b.pre.r.y, a.pre.r.z - b.pre.r.z)).toBeLessThan(1e-3);
+		expect(b.magnitude).toBeCloseTo(a.magnitude, 9);
+		const ea = fromStateVector(a.post.r, a.post.v, MU, a.time);
+		const eb = fromStateVector(b.post.r, b.post.v, MU, b.time);
+		expect(eb.a).toBeCloseTo(ea.a, 3);
+		expect(eb.e).toBeCloseTo(ea.e, 9);
+		// an open orbit has no period; a move into the past is refused
+		expect(shiftByOrbits(node, 1, null, 0)).toBeNull();
+		expect(shiftByOrbits(node, -1, period, 0)).toBeNull();
+		expect(TIME_STEPS).toEqual([1, 10, 60, 600]);
 	});
 });

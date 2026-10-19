@@ -4,12 +4,22 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { bodyMu } from '../orbit-info';
 import {
+	cross,
+	dot,
+	normalize,
+	propagateUniversal,
+	scale,
+	toStateVector
+} from '@orbital/kepler';
+import {
 	ascentOf,
 	bodyName,
 	destinationsOf,
 	hohmannDeparture,
 	hyperbolicBurn,
 	lowOrbitAltitude,
+	nextWindow,
+	windowDestinations,
 	planTrip,
 	REFERENCE_ACCELERATION_G,
 	surfaceGravity,
@@ -287,5 +297,37 @@ describe('laying the legs over the stages', () => {
 	it('the stock lander designs fit the stock map', () => {
 		const d = destinationsOf(stock);
 		expect(d.every((x) => x.legs.every((l) => l.dv > 0))).toBe(true);
+	});
+});
+
+describe('next transfer window (plan 224)', () => {
+	const windowBodies = stock.map((b) => ({ ...b, mu: bodyMu(b) }));
+	it('from a low orbit to the moon: the moon leads by pi - n2 T at the departure', () => {
+		const now = 1_000;
+		const m = toStateVector(moon.orbit!, MU, now);
+		const h = normalize(cross(m.r, m.v));
+		const u = normalize(m.r);
+		const r1 = home.radius + 100_000;
+		// the vessel trails the moon by 1 rad, turning the same way
+		const hu = cross(h, u);
+		const at = { x: u.x * Math.cos(-1) + hu.x * Math.sin(-1), y: u.y * Math.cos(-1) + hu.y * Math.sin(-1), z: u.z * Math.cos(-1) + hu.z * Math.sin(-1) };
+		const own = { r: scale(at, r1), v: scale(normalize(cross(h, at)), Math.sqrt(MU / r1)) };
+		const w = nextWindow(own, home.id, moon.id, windowBodies, now);
+		if (typeof w === 'string') throw new Error(w);
+		expect(w.wait).toBeGreaterThan(60);
+		expect(w.time).toBeCloseTo(now + w.wait, 9);
+		const ship = propagateUniversal(own.r, own.v, MU, w.wait);
+		const there = toStateVector(moon.orbit!, MU, w.time);
+		const lead = Math.atan2(dot(cross(normalize(ship.r), normalize(there.r)), h), dot(normalize(ship.r), normalize(there.r)));
+		const n2 = Math.sqrt(MU / moon.orbit!.a ** 3);
+		const expected = Math.PI - n2 * w.transferTime;
+		expect(Math.abs(lead - expected)).toBeLessThan(1e-6);
+		expect(w.dv).toBeCloseTo(hohmannDeparture(MU, r1, moon.orbit!.a), 0);
+		expect(windowDestinations(home.id, stock)).toContain(moon.id);
+	});
+
+	it('says why there is none for a body that is not a neighbour', () => {
+		const own = { r: { x: 700_000, y: 0, z: 0 }, v: { x: 0, y: 0, z: 2_000 } };
+		expect(typeof nextWindow(own, moon.id, 'stock.nowhere', windowBodies, 0)).toBe('string');
 	});
 });

@@ -61,6 +61,10 @@ export interface MapPath {
 	planned?: boolean;
 	/** Periapsis radius of the stretch's conic, m from the body's centre, when it has one. */
 	periapsis?: number;
+	/** The state the stretch starts from, relative to its body (plan 224: planned apsides). */
+	entry?: { r: Vec3; v: Vec3 };
+	/** The stretch's conic, when it has one. */
+	elements?: { a: number; e: number };
 }
 
 /** Samples per stretch. */
@@ -106,6 +110,8 @@ function mapPathOf(s: PatchedSegment, bodies: readonly PatchedBody[], planned = 
 		end: s.end
 	};
 	if (planned) out.planned = true;
+	out.entry = { r: s.entry.r, v: s.entry.v };
+	if (s.elements) out.elements = { a: s.elements.a, e: s.elements.e };
 	if (s.elements && s.elements.e < 1) out.periapsis = s.elements.a * (1 - s.elements.e);
 	else if (s.elements) out.periapsis = Math.abs(s.elements.a) * (s.elements.e - 1);
 	return out;
