@@ -9,15 +9,10 @@
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
-import {
-	cacheControl,
-	contentSecurityPolicy,
-	inlineScripts,
-	securityHeaders,
-	sha256Source
-} from '../src/lib/hosting-headers';
+import { cacheControl, securityHeaders } from '../src/lib/hosting-headers';
+import { sitePolicy } from './site-policy';
 
-const root = join(import.meta.dir, '../build');
+const root = process.env.SERVE_ROOT ?? join(import.meta.dir, '../build');
 const port = Number(process.argv[2] ?? process.env.PORT ?? 4173);
 const types: Record<string, string> = {
 	'.html': 'text/html; charset=utf-8',
@@ -34,21 +29,13 @@ const types: Record<string, string> = {
 };
 const compressible = new Set(['.html', '.js', '.css', '.json', '.svg', '.wasm', '.txt']);
 
-// The script sandbox's bootstrap is inlined into the iframe's srcdoc; the page policy must allow its hash.
-const bootstrap = readFileSync(join(root, 'sandbox/script-sandbox-frame-main.js'), 'utf8');
-const bootstrapHash = await sha256Source(bootstrap);
-const policyCache = new Map<string, { mtime: number; policy: string }>();
-async function policyFor(file: string): Promise<string> {
-	// Keyed by modification time: a rebuild changes the start-up script and with it the hash.
-	const mtime = statSync(file).mtimeMs;
-	const hit = policyCache.get(file);
-	if (hit && hit.mtime === mtime) return hit.policy;
-	const hashes = await Promise.all(
-		inlineScripts(readFileSync(file, 'utf8')).map((s) => sha256Source(s))
-	);
-	const policy = contentSecurityPolicy([...hashes, bootstrapHash]);
-	policyCache.set(file, { mtime, policy });
-	return policy;
+// One policy for every page (plan 202): the same one `emit-headers.ts` writes into `_headers`.
+// Keyed by the fallback page's modification time: a rebuild changes the start-up scripts.
+let cached: { mtime: number; policy: string } | null = null;
+async function policyFor(): Promise<string> {
+	const mtime = statSync(join(root, '200.html')).mtimeMs;
+	if (cached?.mtime !== mtime) cached = { mtime, policy: await sitePolicy(root) };
+	return cached.policy;
 }
 
 function resolve(pathname: string): string {
@@ -69,7 +56,7 @@ Bun.serve({
 		const headers = new Headers(securityHeaders());
 		headers.set('Content-Type', types[ext] ?? 'application/octet-stream');
 		headers.set('Cache-Control', cacheControl(url.pathname));
-		if (ext === '.html') headers.set('Content-Security-Policy', await policyFor(file));
+		if (ext === '.html') headers.set('Content-Security-Policy', await policyFor());
 		let body: Uint8Array = readFileSync(file);
 		if (compressible.has(ext) && (req.headers.get('accept-encoding') ?? '').includes('gzip')) {
 			body = Bun.gzipSync(body);

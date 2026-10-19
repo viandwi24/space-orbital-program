@@ -3,31 +3,65 @@
 	import Button from './Button.svelte';
 	import SpaceBackdrop from './SpaceBackdrop.svelte';
 
-	/** The page broke (plan 023): say what happened, offer a way out. Never a blank page. */
+	/**
+	 * The page broke (plan 023): say what happened, offer a way out. Never a blank page. As an
+	 * `overlay` (plan 202's error card) it sits over a page that still runs: "Save and reload" saves
+	 * the world first, "Continue" closes the card.
+	 */
 	let {
 		title = 'Something went wrong',
 		message,
-		onreload
-	}: { title?: string; message: string; onreload: () => void } = $props();
+		onreload,
+		overlay = false,
+		onsave,
+		ondismiss
+	}: {
+		title?: string;
+		message: string;
+		onreload: () => void;
+		overlay?: boolean;
+		/** Save and reload; absent when there is no world to save. */
+		onsave?: () => void;
+		ondismiss?: () => void;
+	} = $props();
 </script>
 
-<SpaceBackdrop planet={false} />
-<div class="wrap">
-	<main role="alert" data-testid="error-screen">
+{#if !overlay}<SpaceBackdrop planet={false} />{/if}
+<div class="wrap" class:overlay>
+	<main role="alert" data-testid={overlay ? 'error-card' : 'error-screen'}>
 		<h1>{title}</h1>
 		<p>
-			The game hit a problem it could not recover from. Your saved flights and designs are stored in
-			this browser and are not affected.
+			{#if overlay}
+				The game hit an error. It may keep running, but to be safe save your world and reload.
+			{:else}
+				The game hit a problem it could not recover from. Your saved flights and designs are stored
+				in this browser and are not affected.
+			{/if}
 		</p>
 		<pre>{message}</pre>
 		<div class="actions">
-			<Button variant="primary" onclick={onreload}>Reload the page</Button>
+			{#if onsave}
+				<Button variant="primary" onclick={onsave} data-testid="error-save-reload"
+					>Save and reload</Button
+				>
+				<Button onclick={onreload}>Reload</Button>
+			{:else}
+				<Button variant="primary" onclick={onreload}>Reload the page</Button>
+			{/if}
+			{#if ondismiss}<Button onclick={ondismiss} data-testid="error-dismiss">Continue</Button>{/if}
 			<a href={resolve('/')}>Main menu</a>
 		</div>
 	</main>
 </div>
 
 <style>
+	.wrap.overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 1000;
+		min-height: 0;
+		background: rgb(0 0 0 / 0.55);
+	}
 	.wrap {
 		position: relative;
 		min-height: 100vh;

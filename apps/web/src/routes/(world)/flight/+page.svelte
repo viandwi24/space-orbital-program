@@ -64,7 +64,6 @@
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
 	import type { DebugHost } from '../../../lib/debug/api';
-	import { captureErrors } from '../../../lib/log-buffer';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
@@ -614,7 +613,6 @@
 		// the debug panel's host (plan 203; `window.__orbitalDebug` is the world layout's since plan
 		// 205), the log of uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
 		debugHost = started.debug;
-		const offErrors = captureErrors(window);
 		let modeSent: boolean | null = null;
 		let marked = false;
 		const offDebugWatch = started.debug.onSnapshot((s) => {
@@ -654,7 +652,6 @@
 			clearInterval(waitForPlanner);
 			offDebugWatch();
 			debugHost = null;
-			offErrors();
 			offSandbox();
 			checker?.close();
 			checker = null;

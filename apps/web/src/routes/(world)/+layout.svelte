@@ -29,6 +29,7 @@
 	import { keyIdOf } from '../../lib/keybindings';
 	import { clockState, placePauses } from '../../lib/clock-state';
 	import { createDebugApi, exposeDebugApi, type DebugHost } from '../../lib/debug/api';
+	import { fatalSave } from '../../lib/fatal-error.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -258,6 +259,16 @@
 		});
 		// an event save inside the minimum gap is not dropped: it waits for the gap to pass
 		let pending: 'stage' | 'landed' | 'change' | null = null;
+		// the error card's "Save and reload" (plan 202): an autosave now, past the gap
+		fatalSave.current = async () => {
+			if (!canSave()) return false;
+			const written = await saves.autosave();
+			if (written) {
+				autosaver.saved();
+				worldSession.saved();
+			}
+			return written;
+		};
 		worldSession.requestSave = (reason) => {
 			const now = autosaver.request(reason, autosaveState());
 			if (now) void save(now);
@@ -319,6 +330,7 @@
 			offLock();
 			lock?.release();
 			worldSession.requestSave = () => {};
+			fatalSave.current = null;
 			worldSession.end();
 		};
 	});

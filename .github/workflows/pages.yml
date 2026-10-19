@@ -1,6 +1,7 @@
 # The game on GitHub Pages: https://viandwi24.github.io/space-orbital-program/
-# A static build (docs/architecture/hosting.md) under the repository's sub-path. Pages cannot send
-# the Content-Security-Policy header; the game runs without it (the policy is defence in depth).
+# The preview (plan 202; production is release.yml). A static build (docs/architecture/hosting.md)
+# under the repository's sub-path. Pages cannot send headers, so the build puts the policy into
+# every page as a <meta> (META_CSP=1), which has no frame-ancestors.
 # One-time setting: Settings → Pages → Source: GitHub Actions.
 name: Pages
 
@@ -32,6 +33,7 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}
           VITE_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          META_CSP: '1'
       - name: Page fallback and no Jekyll
         run: |
           cp apps/web/build/200.html apps/web/build/404.html

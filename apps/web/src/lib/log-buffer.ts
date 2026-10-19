@@ -59,22 +59,3 @@ export function createLogBuffer(capacity = LOG_CAPACITY, now: () => number = Dat
 
 /** The page's one log. */
 export const logBuffer: LogBuffer = createLogBuffer();
-
-/**
- * Write uncaught errors and unhandled rejections of `target` to `log`; returns the remover. Plan
- * 202's global error hook replaces this when it lands.
- */
-export function captureErrors(target: Window, log: LogBuffer = logBuffer): () => void {
-	const onError = (event: ErrorEvent): void =>
-		log.add('error', 'page', event.message || String(event.error));
-	const onRejection = (event: PromiseRejectionEvent): void => {
-		const r: unknown = event.reason;
-		log.add('error', 'page', `unhandled rejection: ${r instanceof Error ? r.message : String(r)}`);
-	};
-	target.addEventListener('error', onError);
-	target.addEventListener('unhandledrejection', onRejection);
-	return () => {
-		target.removeEventListener('error', onError);
-		target.removeEventListener('unhandledrejection', onRejection);
-	};
-}

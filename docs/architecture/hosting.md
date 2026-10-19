@@ -18,7 +18,9 @@ Optional: `Cross-Origin-Opener-Policy: same-origin` (the reference server sends 
 
 ## The Content-Security-Policy
 
-The pages carry two kinds of inline script: the SvelteKit start-up script (different per page) and, inside the script sandbox's `srcdoc` iframe, its bootstrap. A `srcdoc` document inherits its parent's policy as well as its own, so the page policy must allow the bootstrap's hash too. `apps/web/src/lib/hosting-headers.ts` computes the policy; `scripts/serve.ts` hashes the built files per page. A real host must do the same at build time (a `_headers` file or an edge function), or use `'unsafe-inline'` for `script-src` and give up the hash protection.
+The pages carry two kinds of inline script: the SvelteKit start-up script (different per page) and, inside the script sandbox's `srcdoc` iframe, its bootstrap. A `srcdoc` document inherits its parent's policy as well as its own, so the page policy must allow the bootstrap's hash too. `apps/web/src/lib/hosting-headers.ts` computes the policy.
+
+Since plan 202 there is **one policy for every page**: `scripts/site-policy.ts` hashes every inline script of the build (six distinct ones in October 2026) and the sandbox bootstrap. A `_headers` host joins every rule that matches a path into one header, so a policy on `/*` and another on `/flight` would both apply and block each other's hashes; allowing a hash that another page of the same site uses costs nothing. `scripts/serve.ts` and the build's `_headers` send this same policy (the vitest `hosting-headers.test.ts` checks it against the running server).
 
 ```
 default-src 'self';
@@ -53,6 +55,17 @@ E2E_HEADERS=1 bun run e2e                      # the Playwright suite against th
 
 Plan 023 ran the smoke suite against `scripts/serve.ts` in Chromium, Firefox and WebKit (journal 023). The unit test `hosting-headers.test.ts` pins the policy's key parts.
 
+## Hosts (plan 202)
+
+| Host | Role | Headers | Workflow |
+|---|---|---|---|
+| Cloudflare Pages | production, at the site root | `build/_headers`: the policy and the security headers on `/*`, taken off the asset paths (`! Content-Security-Policy`), a year of caching for `/_app/immutable/*` | `release.yml` on a `v*` tag (dry run by hand or with a `dry-run/*` tag) |
+| GitHub Pages | preview of `main`, under `/<repo>` | none: the policy is a `<meta>` in every page (`META_CSP=1`) | `pages.yml` on every push to `main` |
+
+**`_headers`:** written by `scripts/emit-headers.ts` after every `vite build`. The policy is one line of about 700 characters (Cloudflare's limit is 2 000 per line and 100 rules). Unknown paths get `404.html` (a copy of `200.html`, status 404) and the client router shows the page or the game's error page; a `_redirects` rewrite of `/*` is not used, because Cloudflare follows redirects even where a file exists.
+
+**The meta policy's limits:** a `<meta http-equiv="Content-Security-Policy">` cannot carry `frame-ancestors` (browsers ignore it there), so on GitHub Pages another site may frame the game. ADR 0038's script sandbox does not depend on it: the sandbox is an opaque-origin `srcdoc` frame inside our page either way. The meta comes right after `<meta charset>`, before any script, so it covers the start-up script. Report-only and `sandbox` directives are not possible in a meta policy either; we use neither.
+
 ## GitHub Pages
 
 `.github/workflows/pages.yml` publishes `main` to <https://viandwi24.github.io/space-orbital-program/>.
@@ -74,8 +87,8 @@ Plan 023 ran the smoke suite against `scripts/serve.ts` in Chromium, Firefox and
 
 **What Pages does not do:**
 
-- It cannot send the headers above. There is no Content-Security-Policy and no `Cache-Control` of our own: Pages caches for 10 minutes.
-- The game runs without them, as the table says.
+- It cannot send the headers above. The policy comes as a `<meta>` instead (above, without `frame-ancestors`); there is no `Cache-Control` of our own: Pages caches for 10 minutes.
+- The game runs without the other headers, as the table says.
 
 The build was checked on a local server that mimics Pages (`/<repo>/` prefix, `x` → `x.html`, `404.html`): the menu, Hangar, Launch and a flight.
 

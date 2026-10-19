@@ -1,0 +1,79 @@
+# Production deploy (plan 202, docs/guides/release-checklist.md): a `v*` tag builds the game at the
+# site root and publishes it to Cloudflare Pages with the generated `_headers` (the policy and the
+# security headers as real headers). GitHub Pages (pages.yml) stays the preview of `main`.
+#
+# Dry run: Actions → Release → Run workflow with "dry_run" ticked, or push a `dry-run/<name>` tag.
+# It builds the same way and lists what it would publish, without credentials.
+#
+# One-time setup by the owner (repository Settings → Secrets and variables → Actions):
+#   secrets   CLOUDFLARE_API_TOKEN (Account · Cloudflare Pages · Edit), CLOUDFLARE_ACCOUNT_ID
+#   variables CLOUDFLARE_PROJECT (the Pages project name), PRODUCTION_URL (https://…, no slash)
+name: Release
+
+on:
+  push:
+    tags: ['v*', 'dry-run/*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and list the files, publish nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) || startsWith(github.ref_name, 'dry-run/') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.x
+      - run: bun install --frozen-lockfile
+      - name: Build at the site root
+        run: bun run --filter @orbital/web build
+        env:
+          BASE_PATH: ''
+          VITE_SITE_URL: ${{ vars.PRODUCTION_URL }}
+      - name: Page fallback
+        # Pages serves the closest 404.html for an unknown path; the client router takes it from there
+        run: cp apps/web/build/200.html apps/web/build/404.html
+      - name: What would be published
+        run: |
+          cd apps/web/build
+          echo "files: $(find . -type f | wc -l), bytes: $(du -sb . | cut -f1)"
+          find . -type f -not -path './_app/immutable/*' | sort
+          echo "--- _headers"
+          cat _headers
+      - name: Check the credentials
+        if: env.DRY_RUN != 'true'
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ vars.CLOUDFLARE_PROJECT }}
+        run: |
+          missing=""
+          [ -n "$TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$ACCOUNT" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -n "$PROJECT" ] || missing="$missing CLOUDFLARE_PROJECT"
+          if [ -n "$missing" ]; then
+            echo "::error::not set:$missing (see the header of .github/workflows/release.yml)"
+            exit 1
+          fi
+      - name: Publish to Cloudflare Pages
+        if: env.DRY_RUN != 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/build --project-name=${{ vars.CLOUDFLARE_PROJECT }} --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

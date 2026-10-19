@@ -1,12 +1,12 @@
 ---
 id: 202
 title: "Release operations: error handling, deploy job, hosting headers"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 202 — Release operations: error handling, deploy job, hosting headers
@@ -79,3 +79,4 @@ An uncaught error or rejected promise shows a friendly card with "Save and reloa
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. The log buffer already existed (plan 203 added it to this plan's API); this plan adds its test and moves the flight page's error capture into the global hooks. One policy for every page, the union of all inline-script hashes: a `_headers` host joins every matching rule, so per-page policies would block each other. The error card sits over a page that may still run, with "Save and reload", "Reload" and "Continue"; "Save and reload" appears only inside a world (the world layout registers `fatalSave`). The release workflow also runs as a dry run on a `dry-run/*` tag, because the agents have no `gh` to start a `workflow_dispatch`. The meta policy is only in the GitHub Pages build (`META_CSP=1`), so the local preview and the e2e suite run as before.

@@ -21,6 +21,8 @@
 	import ErrorScreen from '../lib/ui/ErrorScreen.svelte';
 	import SmallScreenNotice from '../lib/ui/SmallScreenNotice.svelte';
 	import LoadingScreen from '../lib/ui/LoadingScreen.svelte';
+	import { describeError, dismissFatal, fatal, fatalSave } from '../lib/fatal-error.svelte';
+	import { logBuffer } from '../lib/log-buffer';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -78,6 +80,15 @@
 			clearTimeout(noteTimer);
 		};
 	});
+	/** The error card's "Save and reload": the world is saved first (a failed save still reloads). */
+	async function saveAndReload(): Promise<void> {
+		try {
+			await fatalSave.current?.();
+		} catch (error) {
+			logBuffer.add('error', 'save', `save before reload failed: ${describeError(error)}`);
+		}
+		location.reload();
+	}
 	let note = $state<string | null>(null);
 	let noteTimer: ReturnType<typeof setTimeout> | undefined;
 	// Volumes and mute from the settings reach the engine (and wait for it before the first gesture).
@@ -108,6 +119,17 @@
 			/>
 		{/snippet}
 	</svelte:boundary>
+{/if}
+
+<!-- An uncaught error or rejection outside rendering (plan 202): a card over the page, not a dead page. -->
+{#if fatal.current}
+	<ErrorScreen
+		overlay
+		message={fatal.current.message}
+		onreload={() => location.reload()}
+		onsave={fatalSave.current ? saveAndReload : undefined}
+		ondismiss={dismissFatal}
+	/>
 {/if}
 
 {#if missing?.length === 0 && !([resolve('/roadmap'), resolve('/credits')] as string[]).includes(page.url.pathname)}<SmallScreenNotice
