@@ -107,7 +107,8 @@ export function vesselView(
 			if (!mod?.describe) continue;
 			try {
 				const info = describeModule(mod, raw, p.modules[moduleId]);
-				for (const d of info?.actions ?? []) controls.push({ ...d, module: moduleId });
+				for (const d of info?.actions ?? [])
+					if (!d.buildOnly) controls.push({ ...d, module: moduleId });
 				for (const r of info?.readouts ?? []) readouts.push({ ...r, module: moduleId });
 			} catch {
 				// a module whose describe throws shows no controls; the rest go on (ADR 0153 point 1)

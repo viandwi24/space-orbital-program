@@ -62,7 +62,8 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 				)
 			})
 		)
-		.optional()
+		.optional(),
+	crew: z.array(z.object({ member: z.string().min(1), part: index })).optional()
 });
 
 export const vesselPlacementSchema: z.ZodType<VesselPlacement> = z.discriminatedUnion('kind', [

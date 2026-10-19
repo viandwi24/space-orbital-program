@@ -3,7 +3,13 @@
  * `lib/delta-v.ts` unchanged (the same function the flight HUD uses), so the VAB and the HUD agree
  * by construction; this file only arranges them for the stage editor.
  */
-import type { PartDefinition, PartLookup, VesselDesign } from '@orbital/core';
+import {
+	SEA_LEVEL_PRESSURE,
+	type BodyDefinition,
+	type PartDefinition,
+	type PartLookup,
+	type VesselDesign
+} from '@orbital/core';
 import {
 	stageDeltaV,
 	stagingModelFromDesign,
@@ -11,9 +17,38 @@ import {
 	type ContentLookups,
 	type DeltaVReport
 } from '../delta-v';
+import { bodyMu } from '../orbit-info';
 import { positionsOf } from './state';
 
 export type Environment = 'vacuum' | 'sea-level';
+
+/**
+ * Where the Hangar evaluates Δv and TWR (plan 218): a body and a situation, at its surface, at an
+ * altitude above it (m), or in vacuum.
+ */
+export interface Situation {
+	kind: 'sea-level' | 'altitude' | 'vacuum';
+	/** m above the surface, for `altitude`. */
+	altitude?: number;
+}
+
+/** The pressure (Pa) and gravity (m/s²) of `situation` at `body`: exp(−h/H), none above the air. */
+export function situationAt(
+	body: Pick<BodyDefinition, 'radius' | 'atmosphere' | 'mass'>,
+	situation: Situation
+): { environment: Environment; pressure: number; gravity: number } {
+	const h = situation.kind === 'altitude' ? Math.max(0, situation.altitude ?? 0) : 0;
+	const r = body.radius + h;
+	const gravity = bodyMu(body) / (r * r);
+	const air = body.atmosphere;
+	if (situation.kind === 'vacuum' || !air || h >= air.height)
+		return { environment: 'vacuum', pressure: 0, gravity };
+	return {
+		environment: 'sea-level',
+		pressure: air.surfacePressure * Math.exp(-h / air.scaleHeight),
+		gravity
+	};
+}
 
 export interface StageEditRow {
 	/** Index into `design.stages` (0 fires first). */
@@ -52,7 +87,9 @@ export function designStats(
 	design: VesselDesign,
 	content: ContentLookups,
 	environment: Environment,
-	gravity: number
+	gravity: number,
+	/** The "sea level" pressure, Pa (plan 218's body and situation); the home sea level by default. */
+	pressure = SEA_LEVEL_PRESSURE
 ): DesignStats {
 	const count = design.parts.length;
 	if (count === 0) {
@@ -68,7 +105,7 @@ export function designStats(
 		};
 	}
 	const model = stagingModelFromDesign(design, content);
-	const report = stageDeltaV(model);
+	const report = stageDeltaV(model, 0, pressure);
 	let wet = 0;
 	let dry = 0;
 	for (const part of model.parts.values()) {

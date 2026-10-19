@@ -76,11 +76,17 @@ describe('flow lock (plan 213)', () => {
 			{ contents: { [LF]: { capacity: 10, amount: 10 }, [OX]: { capacity: 10, amount: 10 } } },
 			{ amounts: { [LF]: 10, [OX]: 10 }, locked: { [OX]: true } }
 		)!;
-		expect(d.actions!.map((x) => [x.id, x.value ?? null])).toEqual([
+		const flight = d.actions!.filter((x) => !x.buildOnly);
+		expect(flight.map((x) => [x.id, x.value ?? null])).toEqual([
 			[`setLock:${LF}`, false],
 			[`setLock:${OX}`, true],
 			['transferOut', null],
 			['transferIn', null]
+		]);
+		// the Hangar's fill per resource (plan 218) is a build-only control
+		expect(d.actions!.filter((x) => x.buildOnly).map((x) => x.id)).toEqual([
+			`fill:${LF}`,
+			`fill:${OX}`
 		]);
 	});
 });

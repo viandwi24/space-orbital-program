@@ -175,7 +175,8 @@ export const ModuleParachute = defineModule({
 						{ value: 'when-safe', label: 'When safe' },
 						{ value: 'immediate', label: 'Immediately' }
 					],
-					enabled: !done
+					enabled: !done,
+					build: 'mode'
 				},
 				{
 					id: 'setMinPressure',
@@ -184,7 +185,8 @@ export const ModuleParachute = defineModule({
 					value: state.minPressure,
 					...MIN_PRESSURE_RANGE,
 					unit: 'atm',
-					enabled: !done && !open(s)
+					enabled: !done && !open(s),
+					build: 'minPressure'
 				},
 				{
 					id: 'setDeployHeight',
@@ -193,7 +195,8 @@ export const ModuleParachute = defineModule({
 					value: state.deployHeight,
 					...DEPLOY_HEIGHT_RANGE,
 					unit: 'm',
-					enabled: !done && s !== 'full'
+					enabled: !done && s !== 'full',
+					build: 'deployHeight'
 				}
 			]
 		};

@@ -18,6 +18,11 @@
 		iconOf,
 		thumbOf = () => undefined,
 		onenv,
+		bodies = [],
+		bodyId = '',
+		altitude = null,
+		onbody = () => {},
+		onaltitude = () => {},
 		onmove,
 		onselect,
 		onremove,
@@ -36,6 +41,13 @@
 		/** Rendered thumbnail of the part (data URL), when there is one. */
 		thumbOf?: (index: number) => string | undefined;
 		onenv: (e: Environment) => void;
+		/** Bodies Δv and TWR can be shown at (plan 218), and the one chosen. */
+		bodies?: ReadonlyArray<{ id: string; label: string }>;
+		bodyId?: string;
+		/** m above the surface, or null at sea level. */
+		altitude?: number | null;
+		onbody?: (id: string) => void;
+		onaltitude?: (m: number | null) => void;
 		/** Stage index to move to, `stages.length` for a new stage, `null` for none. */
 		onmove: (index: number, stage: number | null) => void;
 		onselect: (index: number) => void;
@@ -107,7 +119,11 @@
 		<h2>Staging · Δv</h2>
 		<div
 			class="total num"
-			title="Total delta-v, {environment === 'vacuum' ? 'in vacuum' : 'at sea level'}"
+			title="Total delta-v, {environment === 'vacuum'
+				? 'in vacuum'
+				: altitude !== null
+					? `at ${altitude} m`
+					: 'at sea level'}"
 		>
 			{dv(total)}<span class="u"> {speedUnit()}</span>
 		</div>
@@ -116,15 +132,62 @@
 	<div class="env" role="group" aria-label="Delta-v and thrust are shown for">
 		<button
 			type="button"
-			aria-pressed={environment === 'sea-level'}
-			onclick={() => onenv('sea-level')}
+			aria-pressed={environment === 'sea-level' && altitude === null}
+			onclick={() => {
+				onenv('sea-level');
+				onaltitude(null);
+			}}
 		>
 			Sea level
+		</button>
+		<button
+			type="button"
+			aria-pressed={environment === 'sea-level' && altitude !== null}
+			onclick={() => {
+				onenv('sea-level');
+				onaltitude(altitude ?? 10_000);
+			}}
+		>
+			Altitude
 		</button>
 		<button type="button" aria-pressed={environment === 'vacuum'} onclick={() => onenv('vacuum')}>
 			Vacuum
 		</button>
 	</div>
+	{#if bodies.length > 1 || (environment === 'sea-level' && altitude !== null)}
+		<div class="where">
+			{#if bodies.length > 1}
+				<label>
+					<span class="dim">At</span>
+					<select
+						data-testid="stats-body"
+						value={bodyId}
+						onchange={(e) => onbody(e.currentTarget.value)}
+					>
+						{#each bodies as b (b.id)}<option value={b.id}>{b.label}</option>{/each}
+					</select>
+				</label>
+			{/if}
+			{#if environment === 'sea-level' && altitude !== null}
+				<label>
+					<input
+						class="num"
+						type="number"
+						min="0"
+						step="1000"
+						value={altitude}
+						aria-label="Altitude, m"
+						data-testid="stats-altitude"
+						onchange={(e) => {
+							const m = Number(e.currentTarget.value);
+							if (Number.isFinite(m) && m >= 0) onaltitude(m);
+						}}
+					/>
+					<span class="dim">m</span>
+				</label>
+			{/if}
+		</div>
+	{/if}
 
 	{#if design.parts.length === 0}
 		<p class="empty">Stages appear here once you attach an engine.</p>
@@ -253,9 +316,36 @@
 		font-size: var(--t-xs);
 		color: var(--text-muted);
 	}
+	.where {
+		display: flex;
+		gap: var(--s-2);
+		align-items: center;
+		font-size: var(--t-sm);
+	}
+	.where label {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+	}
+	.where select,
+	.where input {
+		height: 26px;
+		font: inherit;
+		color: var(--text);
+		background: var(--surface-inset);
+		border: 0;
+		border-radius: var(--radius-tile);
+	}
+	.where input {
+		width: 6rem;
+		padding: 0 6px;
+	}
+	.dim {
+		color: var(--text-muted);
+	}
 	.env {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: 1fr 1fr 1fr;
 		gap: 2px;
 		padding: 2px;
 		background: var(--surface-inset);

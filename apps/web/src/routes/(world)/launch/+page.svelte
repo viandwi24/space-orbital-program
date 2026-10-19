@@ -24,6 +24,7 @@
 	import { loadContent, partLookup } from '../../../lib/catalog';
 	import { parseDesign, serialiseDesign } from '../../../lib/design';
 	import { designStats } from '../../../lib/editor/stats';
+	import { LAUNCH_REPORT, checkDesign } from '../../../lib/editor/checks';
 	import { formatFunds, formatMass } from '../../../lib/format';
 	import {
 		accepts,
@@ -49,6 +50,7 @@
 	import { listEntries, memoryStore, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import { activeWorldId } from '../../../lib/worlds/worlds';
+	import { loadRoster } from '../../../lib/launch/roster';
 	import {
 		fanText,
 		launchRange,
@@ -124,10 +126,28 @@
 			: `falls ${Math.round((d.downrange ?? 0) / 1000)} km downrange, ${
 					d.place === 'site' ? `on site "${d.site}"` : d.place === 'land' ? 'on land' : 'at sea'
 				}`;
+	// the seats chosen in the Hangar (plan 218), for crew who are still available
 	$effect(() => {
 		void chosen?.key;
-		seated = [];
+		const free = new Set(roster.map((r) => r.id));
+		seated = (chosen?.design.crew ?? []).filter(
+			(c) => free.has(c.member) && seats.some((p) => p.part === c.part)
+		);
 	});
+	// the pre-flight report's crew items with the seats as they are now (plan 218)
+	const report = $derived(
+		chosen
+			? checkDesign(
+					{ design: chosen.design, loose: [] },
+					content,
+					{ liftoffTwr: null },
+					undefined,
+					[],
+					null,
+					seated.length > 0 ? seated : null
+				).filter((c) => LAUNCH_REPORT.includes(c.id))
+			: []
+	);
 	// the world's tech tree (plan 105, ADR 0154 point 4)
 	let tech = $state<WorldTech>(NO_TREE);
 	const locks = $derived(
@@ -177,14 +197,7 @@
 				if (e.ok && !list.some((d) => d.name === e.design.name && d.from === 'hangar'))
 					list.push(choiceOf(e.record.id, e.design, 'library'));
 			designs = list;
-			await saves.refresh();
-			const newest = saves.entries.find((e) => e.ok);
-			if (newest?.ok) {
-				const save = await saves.read(newest.meta.id);
-				roster = (save.sim.crew?.members ?? [])
-					.filter((m) => m.status === 'available')
-					.map((m) => ({ id: m.id, name: m.name, profession: m.profession }));
-			}
+			roster = await loadRoster(saves);
 			tech = await loadWorldTech(saves, activeWorldId());
 		})();
 	});
@@ -318,6 +331,9 @@
 						: 'No crew available: hire in the Astronaut Complex.'}
 				</p>
 			{/if}
+			{#each report as c (c.id)}
+				<p class="warn" role="status" data-testid="launch-check-{c.id}">{c.text}</p>
+			{/each}
 			{#each locks as l (l.title)}
 				<p class="locked" role="status" data-testid="launch-locked">
 					"{l.title}" is locked: research "{l.node}" in R&D.
