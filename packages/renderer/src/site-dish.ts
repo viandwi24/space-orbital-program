@@ -1,5 +1,5 @@
 /**
- * The deep-space dish (plan 234, ADR 0227): a 64 m Cassegrain antenna of the deep-space-network
+ * The deep-space dish (plan 234, ADR 0228): a 64 m Cassegrain antenna of the deep-space-network
  * class on an 8 × 8 cell footprint. Dimensions follow the public descriptions of the 64/70 m and
  * 34 m DSN antennas (docs/research/deep-space-dish.md), rounded:
  *

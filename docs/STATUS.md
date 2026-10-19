@@ -180,7 +180,7 @@
 | 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [209, 210, 211, 222, 225]. |
 | 232 | [Release QA and launch](plans/232-release-qa.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231]. |
 | 233 | [Base layout, Flight and Space Center: match the v2 design package exactly](plans/233-base-layout-fidelity-to-refs-v2.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
-| 234 | [Deep-space dish: a large, realistic parabolic antenna building](plans/234-deep-space-dish.md) | in-progress | Worker C | Owner review 2026-10-19 (ADR 0222). |
+| 234 | [Deep-space dish: a large, realistic parabolic antenna building](plans/234-deep-space-dish.md) | blocked | Worker C | Owner review 2026-10-19 (ADR 0222). |
 | 235 | [Space Center build menu: categories along the bottom, cards with building thumbnails](plans/235-space-center-build-menu.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | draft | | Owner review 2026-10-19 (ADR 0222). |
 
@@ -211,6 +211,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Plan 234 waits for the owner's eye** (`[manual]`): is the deep-space dish realistic? Four screenshots in [journal 234](journal/234-deep-space-dish.md); the code is on main.
 - **Second hills planet** (plan 071, journal 071): the image-based light cube still reflects the home sky on a later body with air; hills terrain shadows reach 5 km (the mid patch); a mod hills planet without a `seed` got new continents with plan 071.
 - **EVA** (plan 109, journal 109): the HUD keeps the launched vessel's readouts while the camera follows a suit (per-vessel designs exist since plan 221; suit focus is plan 225); the jetpack pushes along the suit's up axis only (no RCS); crew are seated at launch only from plan 108.
 - **Sun at the root** (plan 122, journal 122): body positions in snapshots and scripts' `system` frame are Sun-centred (13.6 Gm); day-based constants written against 21 600 s (stock data, crew rest) are 0.2 % off the solar day of 21 650.8 s; the flight still launches at (0, 0), not the world's site (094); the Mission Center's system scope frames the whole Sun system.
@@ -250,6 +251,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Recent journal entries
 
 - [229 — Lessons: landing, maneuver nodes, rendezvous and docking, transfers](journal/229-lessons-past-first-orbit.md)
+- [234 — Deep-space dish](journal/234-deep-space-dish.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)

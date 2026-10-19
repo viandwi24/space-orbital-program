@@ -103,11 +103,11 @@ export const groundStationDefinitionSchema = z.object({
 export const STATION_MAST = 10;
 /**
  * Range of a site's station by tier, m: 1–3 the tracking dish's levels, 4–6 the deep-space dish's
- * (plan 234, ADR 0227).
+ * (plan 234, ADR 0228).
  */
 export const SITE_STATION_RANGES = [2e9, 5e10, 2.5e11, 1e12, 4e12, 1.5e13] as const;
 /**
- * Dish diameter of a site's station by tier, m (ADR 0185 point 3; plan 234, ADR 0227): the 2 × 2
+ * Dish diameter of a site's station by tier, m (ADR 0185 point 3; plan 234, ADR 0228): the 2 × 2
  * cell tracking dish 9, 12 and 18 m, the deep-space dish 64, 70 and about 99 m (its 70 m arrayed
  * with two 34 m antennas, as the DSN arrays for distant missions).
  */

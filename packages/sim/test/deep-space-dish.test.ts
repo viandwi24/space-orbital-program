@@ -1,4 +1,4 @@
-/** Plan 234 / ADR 0227: the deep-space dish is a station of tiers 4–6, above the tracking dish. */
+/** Plan 234 / ADR 0228: the deep-space dish is a station of tiers 4–6, above the tracking dish. */
 import { describe, expect, test } from 'bun:test';
 import { legacyWorldInfo, type EntityId, type Vec3 } from '@orbital/core';
 import Stock from '@orbital/mod-stock';

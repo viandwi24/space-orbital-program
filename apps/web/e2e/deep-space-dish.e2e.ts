@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { watchErrors } from './support';
 
 /**
- * Plan 234 (ADR 0227): the deep-space dish built at the Space Center through the debug API, seen
+ * Plan 234 (ADR 0228): the deep-space dish built at the Space Center through the debug API, seen
  * from four sides. The screenshots go to `test-results/` for the journal; the owner judges them.
  */
 type Debug = {
@@ -52,6 +52,12 @@ test('the deep-space dish stands at the Space Center, seen from four sides', asy
 	const box = (await canvas.boundingBox())!;
 	const cx = box.x + box.width / 2;
 	const cy = box.y + box.height / 2;
+	// closer: the wheel zooms the site camera (it looks at the pad) to about half its distance
+	await page.mouse.move(cx, cy);
+	for (let k = 0; k < 2; k++) {
+		await page.mouse.wheel(0, -300);
+		await page.waitForTimeout(100);
+	}
 	await page.waitForTimeout(3_000); // the dish slews from its stow toward the moon
 	for (let n = 1; n <= 4; n++) {
 		await page.screenshot({

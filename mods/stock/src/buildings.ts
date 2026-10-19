@@ -154,7 +154,7 @@ export const BuildingTrackingDish = defineBuilding({
 	visual: gen('dish')
 });
 /**
- * The deep-space dish (plan 234, ADR 0227): a 64 m Cassegrain antenna of the DSN class. Its levels
+ * The deep-space dish (plan 234, ADR 0228): a 64 m Cassegrain antenna of the DSN class. Its levels
  * are station tiers 4–6, above the tracking dish's three.
  */
 export const BuildingDeepSpaceDish = defineBuilding({

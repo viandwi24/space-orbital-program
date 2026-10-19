@@ -1,7 +1,7 @@
 ---
 id: 234
 title: "Deep-space dish: a large, realistic parabolic antenna building"
-status: in-progress
+status: blocked
 owner: "Worker C"
 depends: [233]
 phase: 7
@@ -61,17 +61,20 @@ The Space Center can build a deep-space dish (`stock.deep-space-dish`) that look
 
 ## Acceptance criteria
 
-- [ ] Renderer tests pass: the dish bounds stay within its footprint; the tracking function respects its slew limits and points within 0.5° at steady state.
-- [ ] A sim or core test passes: a vessel at Moon distance links through the dish with a higher data rate than through the tracking dish.
-- [ ] `e2e/deep-space-dish.e2e.ts` passes on Chromium, with 4 screenshots in the journal. `[manual]` The owner judges the realism.
-- [ ] `bun run check:affected` passes, and CI is green on `ready/234`.
+- [x] Renderer tests pass: the dish bounds stay within its footprint; the tracking function respects its slew limits and points within 0.5° at steady state.
+- [x] A sim or core test passes: a vessel at Moon distance links through the dish with a higher data rate than through the tracking dish.
+- [ ] `e2e/deep-space-dish.e2e.ts` passes on Chromium, with 4 screenshots in the journal. `[manual]` The owner judges the realism (screenshots in the journal; open).
+- [x] `bun run check:affected` passes, and CI is green on `ready/234`.
 
 ## Docs checklist
 
-- [ ] STATUS, journal with screenshots, architecture notes on site buildings.
+- [x] STATUS, journal with screenshots, architecture notes on site buildings.
 
 ## Log
 
 - 2026-10-19 — Created from the owner's manual test (ADR 0222).
 - 2026-10-20 — Worker C refined to ready and claimed (claim/234). Checked against the code: buildings draw from `site-list.ts` generators merged into the site's material buckets (static); the station tier of a site is the highest `comms-node` capacity of its buildings, with ranges and dish apertures per tier in `SITE_STATION_RANGES` / `SITE_STATION_APERTURES` (core `comms.ts`); the tracking dish's three levels are tiers 1–3 with 10, 34 and 70 m apertures. The debug API has no building command, so the e2e places the dish through `send({ type: 'place-building' })` (Sandbox, no cost).
 - 2026-10-20 — Reference geometry (step 1; sources in `docs/research/deep-space-dish.md`): a **64 m** reflector (the DSN's 64 m class, later 70 m) so the turning dish stays inside an 8 × 8 cell footprint (78 m usable); f = 22 m (f/D 0.34, depth 11.6 m); elevation axis 40 m above the ground, the vertex 2 m behind it; a 7 m hyperbolic subreflector 18 m in front of the axis on a quadripod; pedestal 9 m radius × 9 m; bearing towers ±14 m; slew 0.25°/s per axis; tracking from 6° elevation; stow at the zenith.
+- 2026-10-20 — ADR 0228. Default: the tracking dish's apertures become 9, 12 and 18 m (they were 10, 34 and 70 m on a 20 m footprint) so the deep-space dish's 64, 70 and ≈99 m are the step up; one link-budget test moved by 20 log 0.9.
+- 2026-10-20 — Evidence: `packages/renderer/test/site-dish.test.ts` 4 pass (every vertex within the 39 m circle and above the ground at 20 aims; far model under half the vertices; slew limits per step and within 0.5° at steady state; short way round; stow); `packages/sim/test/deep-space-dish.test.ts` 1 pass (≈17 dB more margin and a higher rate at the moon's distance); `check:affected --build --e2e e2e/deep-space-dish.e2e.ts` all passed in 340 s; four screenshots in the journal. The `[manual]` realism check is the owner's.
+- 2026-10-20 — **Blocked on the owner** (`[manual]`, worker brief: Owner decisions): every automated criterion passes and the code is on main; the realism check is open. Checklist for the owner: look at the four screenshots in `docs/journal/234-deep-space-dish.md` (or build the dish at the Space Center in a Sandbox world: Build → Deep-space dish) and say whether the dish reads as a real deep-space antenna; anything to change goes into a new plan. The e2e line stays unticked only for its `[manual]` part.

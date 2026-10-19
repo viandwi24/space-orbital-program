@@ -223,3 +223,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0225 | [Build-time controls, Hangar action groups, crew seats and the pre-flight report](0225-hangar-build-controls-groups-crew-report.md) | accepted | 2026-10-19 |
 | 0226 | [Flight camera modes, part focus, hide UI and screenshots](0226-flight-camera-modes-hide-ui-screenshots.md) | accepted | 2026-10-19 |
 | 0227 | [Building categories in the category registry, and the build menu's cards](0227-building-categories-and-build-menu.md) | accepted | 2026-10-20 |
+| 0228 | [The deep-space dish: model, tracking and station tiers 4–6](0228-deep-space-dish-model-tracking-station-tiers.md) | accepted | 2026-10-20 |
