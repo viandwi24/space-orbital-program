@@ -564,7 +564,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				environment,
 				stagesFired: stagesFiredBy(stages, vessel),
 				resources: cache.resources,
-				throttle: vesselThrottle(v.parts, localThrottle, content),
+				// on the pad the engines read 0 until the first stage sends the HUD's throttle (ADR 0216 point 4)
+				throttle: tele.prelaunch ? localThrottle : vesselThrottle(v.parts, localThrottle, content),
 				heat,
 				blackout: vesselBlackout(v.position, v.velocity, tele.altitude, body),
 				range: rangeWarning(snap.range, Number(v.id)),

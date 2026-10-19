@@ -57,6 +57,7 @@ describe('the pad state', () => {
 		expect(model.prelaunch).toBe(true);
 		expect(model.situation).toBe('On the pad, ready to launch');
 		expect(model.met).toBe(0);
+		expect(model.throttle).toBe(0.5); // the HUD's pad throttle, not yet sent
 		expect(model.time).toBeGreaterThan(0);
 		const { body } = render(OrbitStrip, {
 			props: { orbit: model.orbit, phase: model.phase, prelaunch: model.prelaunch }
