@@ -75,6 +75,25 @@ export interface ManeuverNodeSnapshot {
 	vector?: Vec3;
 }
 
+/** A vessel's type for the fleet list (plan 223, ADR 0208): the player's, or guessed from its parts. */
+export const VESSEL_TYPES = [
+	'debris',
+	'probe',
+	'rover',
+	'lander',
+	'ship',
+	'station',
+	'base',
+	'plane',
+	'relay',
+	'eva',
+	'flag'
+] as const;
+export type VesselType = (typeof VESSEL_TYPES)[number];
+
+/** Debris kept in a world by default (plan 223; KSP's default). */
+export const DEFAULT_DEBRIS_CAP = 250;
+
 /** What an alarm waits for (plan 224, ADR 0223): its time is worked out once, when it is set. */
 export type AlarmKind = 'time' | 'apoapsis' | 'periapsis' | 'soi' | 'node' | 'transfer';
 
@@ -245,6 +264,8 @@ export interface VesselSnapshot {
 	transfers?: TransferSnapshot[];
 	/** The vessel's docking ports (plan 222): the target list and the Locked camera (plan 226) read them. */
 	ports?: PortSnapshot[];
+	/** Its type (plan 223): set by the player, else guessed from its parts. Always set by the sim. */
+	type?: VesselType;
 	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;
@@ -782,6 +803,16 @@ export type Command =
 			body?: string;
 	  }
 	| { type: 'remove-alarm'; id: string }
+	/** Fleet management (plan 223, ADR 0208): rename a vessel, set its type, or end it. */
+	| { type: 'rename-vessel'; vessel: EntityId; name: string }
+	| { type: 'set-vessel-type'; vessel: EntityId; vesselType: VesselType }
+	/** Remove the vessel; its crew follow the `stock.crew-death` rule as in a crash. */
+	| { type: 'terminate-vessel'; vessel: EntityId }
+	/**
+	 * Most debris the world keeps (a player setting, plan 223): beyond it the oldest goes first; 0
+	 * removes debris at once. Not saved: the page sends it at the start of a session.
+	 */
+	| { type: 'set-debris-cap'; cap: number }
 	/** Remove one node, or all of the vessel's nodes without an `id`. */
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */

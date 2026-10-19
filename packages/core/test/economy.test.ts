@@ -61,10 +61,14 @@ describe('projectBalances', () => {
 });
 
 describe('recovery factor', () => {
-	test('0.98 at the site, falls linearly to 0.1 at half the circumference', () => {
+	test('1.0 on the pad, 0.98 in the Space Center area, then falling to 0.1 (plan 223)', () => {
 		const R = 600_000;
-		expect(recoveryFactor(0, R)).toBe(0.98);
-		expect(recoveryFactor(40_000, R)).toBeCloseTo(0.98 - 0.88 * (40_000 / (Math.PI * R)), 12);
+		expect(recoveryFactor(0, R)).toBe(1);
+		expect(recoveryFactor(150, R)).toBe(1);
+		expect(recoveryFactor(2_000, R)).toBe(0.98);
+		const span = Math.PI * R - 3_000;
+		expect(recoveryFactor(40_000, R)).toBeCloseTo(0.98 - 0.88 * ((40_000 - 3_000) / span), 12);
+		expect(recoveryFactor(200_000, R)).toBeLessThan(0.98);
 		expect(recoveryFactor(Math.PI * R, R)).toBeCloseTo(0.1, 12);
 		expect(recoveryFactor(10 * R, R)).toBeCloseTo(0.1, 12);
 	});

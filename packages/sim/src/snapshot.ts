@@ -8,6 +8,7 @@ import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
 import { alarmsSnapshot } from './alarms.ts';
+import { vesselTypeOf } from './fleet.ts';
 import {
 	bodyId,
 	partId,
@@ -147,6 +148,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const snapshot: VesselSnapshot = {
 		id,
 		name: vessel.name,
+		type: vesselTypeOf(core, vessel),
 		...(vessel.owner ? { owner: vessel.owner } : {}),
 		mode: vessel.mode,
 		soi: bodyId(vessel.soi),

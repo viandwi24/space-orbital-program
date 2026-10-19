@@ -82,6 +82,8 @@ export interface SimCore {
 	warpFocus: EntityId | null;
 	/** The clock is paused (plan 205, ADR 0201 point 4); not saved: a loaded world runs. */
 	paused: boolean;
+	/** Most debris kept (plan 223): a player setting the page sends; not saved (default 250). */
+	debrisCap?: number;
 	/** User alarms in time order (plan 224, ADR 0223); saved once any was set. */
 	readonly alarms: SaveAlarms;
 	/**

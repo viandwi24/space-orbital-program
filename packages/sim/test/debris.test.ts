@@ -63,7 +63,7 @@ describe('debris lifecycle', () => {
 		}
 	});
 
-	test('debris at rest on the ground is removed after the rest time', async () => {
+	test('debris at rest on the ground is kept on surface rails after the rest time (plan 223)', async () => {
 		const sim = await newSim();
 		const reasons: string[] = [];
 		sim.events.on('vessel:destroyed', (e) => reasons.push(e.reason));
@@ -73,11 +73,13 @@ describe('debris lifecycle', () => {
 		if (!loaded.ok) throw new Error(loaded.reason);
 		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		for (let i = 0; i < 400; i++) sim.step(0.02); // 8 s: not yet
-		expect(sim.snapshot().vessels).toHaveLength(1);
+		expect(sim.snapshot().vessels[0]!.mode).toBe('flight');
 		for (let i = 0; i < 800; i++) sim.step(0.02); // 16 s in total
-		expect(sim.snapshot().vessels).toHaveLength(0);
-		expect(reasons).toHaveLength(1);
-		expect(reasons[0]).toContain('surface');
+		const v = sim.snapshot().vessels;
+		expect(v).toHaveLength(1);
+		expect(v[0]!.surface).toBe(true);
+		expect(v[0]!.type).toBe('debris');
+		expect(reasons).toEqual([]);
 		expect(sim.dispatch({ type: 'warp', factor: 5 }).ok).toBe(true);
 	});
 

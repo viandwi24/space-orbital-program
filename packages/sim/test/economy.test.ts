@@ -84,7 +84,7 @@ describe('launch', () => {
 });
 
 describe('recover-vessel', () => {
-	test('a pod at rest on the launch site pays back 0.98 of its value and is removed', async () => {
+	test('a pod at rest on the launch site pays back its whole value (the pad, plan 223) and is removed', async () => {
 		const sim = await make();
 		const id = landedPod(sim);
 		const before = funds(sim);
@@ -92,13 +92,13 @@ describe('recover-vessel', () => {
 		const events: string[] = [];
 		sim.events.on('vessel:destroyed', (e) => events.push(e.reason));
 		const quote = sim.snapshot().vessels[0]!.recovery!;
-		expect(quote.factor).toBe(0.98);
-		expect(quote.credit).toBeCloseTo(podValue * 0.98, 6);
+		expect(quote.factor).toBe(1);
+		expect(quote.credit).toBeCloseTo(podValue, 6);
 		expect(sim.dispatch({ type: 'recover-vessel', vessel: id as never })).toEqual({ ok: true });
 		expect(podValue).toBe(8_400);
-		expect(funds(sim) - before).toBeCloseTo(podValue * 0.98, 6);
+		expect(funds(sim) - before).toBeCloseTo(podValue, 6);
 		expect(ledger(sim).at(-1)).toMatchObject({ cause: 'economy.recovery', currency: 'funds' });
-		expect(ledger(sim).at(-1)!.amount).toBeCloseTo(podValue * 0.98, 6);
+		expect(ledger(sim).at(-1)!.amount).toBeCloseTo(podValue, 6);
 		expect(sim.snapshot().vessels).toHaveLength(0);
 		expect(events).toEqual(['recovered']);
 		sim.dispose();

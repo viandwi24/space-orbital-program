@@ -8,6 +8,7 @@ import { DEFAULT_TRANSFER_RATE, transferRefusal } from './transfer.ts';
 import { setFlowLock } from './resources.ts';
 import { moduleAction } from './actions.ts';
 import { addAlarm, removeAlarm } from './alarms.ts';
+import { renameVessel, setDebrisCap, setVesselType, terminateVessel } from './fleet.ts';
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import { stageRefusal, violation, watchAscent } from './range.ts';
@@ -520,6 +521,14 @@ export function dispatch(
 			return requestWarpTo(core, command);
 		case 'add-alarm':
 			return addAlarm(core, command);
+		case 'rename-vessel':
+			return renameVessel(core, command.vessel, command.name);
+		case 'set-vessel-type':
+			return setVesselType(core, command.vessel, command.vesselType);
+		case 'terminate-vessel':
+			return terminateVessel(core, command.vessel);
+		case 'set-debris-cap':
+			return setDebrisCap(core, command.cap);
 		case 'remove-alarm':
 			return removeAlarm(core, command.id);
 		case 'node-set': {
