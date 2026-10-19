@@ -37,5 +37,12 @@
 ## Verification output
 
 ```
-VERIFY
+bun run check:affected --build --e2e e2e/build-menu.e2e.ts (under /tmp/orbital-heavy.lock, Chromium, 1 worker)
+  ✓ prettier (34 changed files) · ✓ docs:check · ✓ typecheck (11 workspaces) · ✓ typecheck (web)
+  ✓ bun test (10 workspaces) · ✓ web vitest (related to the change)
+  ✓ build · ✓ e2e e2e/build-menu.e2e.ts (chromium)
+  check-affected: all passed in 560.9 s
+bun run lint: all matched files use Prettier code style
+core categories 11 pass · stock 128 pass · renderer building-thumbnail 4 pass · web build-menu 4 pass
+e2e (Chromium): build-menu, space-center, base-layout: 6 passed
 ```
