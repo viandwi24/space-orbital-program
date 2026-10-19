@@ -6,6 +6,7 @@
 import { BufferGeometry, Matrix4, Quaternion, Vector3 } from 'three';
 import { buildControl, buildHangar, buildOffice, buildService } from './site-buildings.ts';
 import { box, cylinder, emptyParts, lin, type SiteParts } from './site-geo.ts';
+import { dishStaticParts } from './site-dish.ts';
 import type { BoxSpec } from './site.ts';
 
 export const SITE_CELL = 10;
@@ -70,6 +71,9 @@ export function generate(generator: string, w: number, d: number, p: SiteParts):
 			p.painted.push(cylinder(r * 0.95, r * 0.25, 1.6, 0, 8, 0, WHITE, 28));
 			return;
 		}
+		case 'deep-space-dish':
+			// static and stowed (the build menu's thumbnail); the site draws it moving (plan 234)
+			return dishStaticParts('low', p);
 		case 'tanks': {
 			const r = Math.min(w, d) / 5;
 			for (const [x, z] of [

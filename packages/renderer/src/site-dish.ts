@@ -378,3 +378,27 @@ export function dishObject(
 		}
 	};
 }
+
+/** The dish as one static set of parts at `aim` (stowed by default): the build menu's thumbnail. */
+export function dishStaticParts(
+	detail: 'high' | 'low',
+	out: SiteParts,
+	aim: DishAim = { azimuth: 0, elevation: DISH_STOW }
+): void {
+	const parts = buildDishParts(detail);
+	const az = new Matrix4().makeRotationY(-aim.azimuth);
+	const el = new Matrix4()
+		.makeTranslation(0, DISH.axisHeight, 0)
+		.multiply(new Matrix4().makeRotationX(aim.elevation));
+	const levels: Array<[SiteParts, Matrix4]> = [
+		[parts.base, new Matrix4()],
+		[parts.azimuth, az],
+		[parts.elevation, az.clone().multiply(el)]
+	];
+	for (const [p, m] of levels) {
+		for (const bucket of DISH_BUCKETS) {
+			for (const g of p[bucket] as BufferGeometry[])
+				(out[bucket] as BufferGeometry[]).push(g.applyMatrix4(m));
+		}
+	}
+}

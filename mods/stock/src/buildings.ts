@@ -165,6 +165,7 @@ export const BuildingDeepSpaceDish = defineBuilding({
 	levels: levels({ 'comms-node': [4, 5, 6] }, [600_000, 1_200_000, 2_400_000], [40, 60, 90], 400),
 	provides: ['comms-node'],
 	placement: 'home',
+	category: 'stock.comms',
 	visual: gen('deep-space-dish')
 });
 export const BuildingPropellantPlant = defineBuilding({
