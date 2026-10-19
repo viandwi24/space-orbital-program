@@ -3,7 +3,7 @@
  * raises the error card (`lib/fatal-error.svelte.ts`); a navigation error SvelteKit catches is
  * logged and keeps its own error page.
  */
-import type { HandleClientError, ClientInit } from '@sveltejs/kit';
+import type { ClientInit, HandleClientError } from '@sveltejs/kit/hooks';
 import { describeError, listenForFatal } from './lib/fatal-error.svelte';
 import { logBuffer } from './lib/log-buffer';
 
@@ -11,7 +11,7 @@ export const init: ClientInit = () => {
 	listenForFatal(window);
 };
 
-export const handleError: HandleClientError = ({ error, status, message }) => {
-	logBuffer.add('error', 'navigation', `${status}: ${describeError(error)}`);
-	return { message };
+export const handleError: HandleClientError = ({ kind, error }) => {
+	// the defaults (status and safe message) stay: SvelteKit's error page shows them
+	logBuffer.add('error', 'navigation', `${kind}: ${describeError(error)}`);
 };
