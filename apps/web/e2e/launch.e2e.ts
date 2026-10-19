@@ -43,8 +43,10 @@ test('Hangar, Launch screen, flight: the vessel stands on the chosen pad (plan 0
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
-	// standing on the pad: landed on the home planet, and still there a moment later
-	await expect(page.getByText(/landed on home/i).first()).toBeVisible({ timeout: 30_000 });
+	// standing on the pad (before liftoff the HUD says so, plan 200), and still there a moment later
+	await expect(page.getByTestId('hud-phase-text')).toHaveText(/On the pad|Landed on Home/, {
+		timeout: 30_000
+	});
 	await page.waitForTimeout(2000);
 	await expect(page.getByText('Vessel lost')).toHaveCount(0);
 	// the choice was for this flight only
