@@ -14,9 +14,9 @@ Five workers on three machines; the owner-approved split is in [`worker-brief.md
 
 | Worker | Machine | Queue |
 |---|---|---|
-| A, B, C | Agent 1, MacBook Pro M5 | A: 219 → 218 → 220 · B: 214 → 233 → 235 → 234 → 236 · C: 224 → 226 → 230 → 223 |
+| A, B, C | Agent 1, MacBook Pro M5 | A: 219 → 218 → 220 · B: 214 → 233 → 234 → 236 · C: 224 → 226 → 230 → 235 |
 | D | Agent 2, MacBook Pro M2 13" | 225 → 227 → 228 |
-| E | Agent 3, Linux Mint (6 CPU, 8 GB) | 231 → 229 |
+| E | Agent 3, Linux Mint (6 CPU, 8 GB) | 231 → 229 → 223 |
 
 Claims are annotated tags (`claim/NNN` with the worker's name); the visual page shows who holds what. Everyone syncs with `git fetch origin --tags --prune --prune-tags` before each pick and merge.
 

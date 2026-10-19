@@ -75,10 +75,10 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 | Worker | Queue (in order) |
 |---|---|
 | A | 219 → 218 → 220 |
-| B | 214 → **233** → 235 → 234 → 236 |
-| C | 224 → 226 → 230 → 223 |
+| B | 214 → **233** → 234 → 236 |
+| C | 224 → 226 → 230 → 235 (after 233 is done) |
 | D | 225 → 227 → 228 |
-| E | 231 → 229 (only after 224 is done) |
+| E | 231 → 229 → 223 |
 | any (coordinator decides) | 232 release QA, last |
 
 ## Picking work
