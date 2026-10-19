@@ -127,6 +127,11 @@
 		const id = worldSession.worldId ?? worldId;
 		void saves.worldsService().then((w) => w.setChangelog(id, worldChangelog));
 	}
+	function openWorldSettings(): void {
+		worldSettingsOpen = true;
+		worldSettingsNote = null;
+		void refreshChangelog();
+	}
 	async function setWorldRule(rule: string, value: RuleValue): Promise<void> {
 		const r = await worldSession.client?.dispatch({ type: 'set-rule', rule, value });
 		worldSettingsNote = r && !r.ok ? r.reason : null;
@@ -383,6 +388,7 @@
 			if (now) void save(now);
 			else pending = reason;
 		};
+		worldSession.openWorldSettings = openWorldSettings;
 		worldSession.saveNow = async () => {
 			if (!canSave() || saving) return false;
 			await save('change');
@@ -445,8 +451,8 @@
 			lock?.release();
 			worldSession.requestSave = () => {};
 			worldSession.saveNow = () => Promise.resolve(false);
+			worldSession.openWorldSettings = () => {};
 			fatalSave.current = null;
-			worldSession.saveNow = async () => false;
 			worldSession.end();
 		};
 	});
@@ -485,11 +491,7 @@
 		mods={activePlugins().length}
 		{bell}
 		onsettings={() => (settingsOpen = true)}
-		onworldsettings={() => {
-			worldSettingsOpen = true;
-			worldSettingsNote = null;
-			void refreshChangelog();
-		}}
+		onworldsettings={openWorldSettings}
 		onhome={() => void goto(resolve('/'))}
 		clockChip={clockView.chip}
 		paused={!clockView.ticks}

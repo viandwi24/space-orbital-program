@@ -19,6 +19,7 @@
 		onscreenshot,
 		onrevert,
 		revertWhy = null,
+		onworldsettings,
 		ondebug
 	}: {
 		open: boolean;
@@ -33,6 +34,8 @@
 		onreplay?: () => void;
 		/** Load a replay file as a ghost (plan 131). */
 		onghost?: () => void;
+		/** World settings: the world's rules, easier only (plan 230). */
+		onworldsettings?: () => void;
 		/** Revert to the Hangar (plan 230), or why it is not offered. */
 		onrevert?: () => void;
 		revertWhy?: string | null;
@@ -86,6 +89,9 @@
 		{/if}
 		<div class="pair">
 			<Button onclick={onsettings} data-testid="pause-settings">Settings</Button>
+			{#if onworldsettings}<Button onclick={onworldsettings} data-testid="pause-world-settings"
+					>World settings</Button
+				>{/if}
 			<Button onclick={oncontrols}>Controls</Button>
 		</div>
 		{#if ondebug}

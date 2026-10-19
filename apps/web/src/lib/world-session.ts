@@ -62,6 +62,8 @@ export interface WorldSession {
 	 * it. Null when the flight was loaded or taken up again, or after a restart.
 	 */
 	revertPoint: { worldId: string; sim: SimSave } | null;
+	/** Open World settings (plan 230): the layout owns the dialog; a page's menu asks for it. */
+	openWorldSettings(): void;
 	/**
 	 * A menu or dialog that pauses as the place "Menu" does (plan 205): `source` holds it while
 	 * `on`; the layout decides with the player's choices and the world's rule.
@@ -114,6 +116,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 		requestSave: () => {},
 		saveNow: () => Promise.resolve(false),
 		revertPoint: null,
+		openWorldSettings: () => {},
 		saved: () => {
 			session.savedAt = Date.now();
 			changed();

@@ -30,11 +30,9 @@ test('Hardcore: revert is off with its reason until World settings allows it', a
 	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('pause-revert')).toBeDisabled();
 	await expect(page.getByTestId('pause-revert-why')).toContainText('does not allow revert');
-	await page.keyboard.press('Escape');
 
-	// World settings: allow revert (easier); the way back (harder) is closed
-	await page.getByTestId('nav-menu').click();
-	await page.getByTestId('nav-world-settings').click();
+	// World settings from the pause menu: allow revert (easier); the way back (harder) is closed
+	await page.getByTestId('pause-world-settings').click();
 	const revert = page.getByTestId('ws-rule-stock.allow-revert');
 	await expect(revert.locator('option[value="true"]')).toBeEnabled();
 	await revert.selectOption('true');
@@ -46,8 +44,12 @@ test('Hardcore: revert is off with its reason until World settings allows it', a
 	const heating = page.getByTestId('ws-rule-stock.reentry-heating');
 	await expect(heating).toHaveValue('0.5');
 	await expect(heating).toHaveAttribute('max', '0.5');
-	await page.keyboard.press('Escape');
+	await page.getByRole('button', { name: 'Close', exact: true }).click();
 
+	await page
+		.locator('canvas')
+		.first()
+		.click({ position: { x: 10, y: 10 } });
 	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('pause-revert')).toBeEnabled();
 	await page.getByTestId('pause-revert').click();

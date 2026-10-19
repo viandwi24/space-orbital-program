@@ -622,8 +622,12 @@ export const RuleWeather = defineRule({
 	values: ['calm', 'normal', 'stormy'],
 	default: 'normal',
 	presets: { 'stock.sandbox': 'calm' }, // value per preset id
+	// which way is easier (plan 230): during play a world may only change the rule this way
+	easier: ['stormy', 'normal', 'calm'], // enum: hardest first; boolean: the easier value; number: 'higher' | 'lower'
 	changeable: true // false = identity: fixed when the world is created
 });
+// Without `easier` a changeable rule is fixed once the world is made (outside debug mode). World
+// settings shows every changeable rule and closes the harder choices with the reason.
 export const PresetStorm = definePreset({
 	id: 'acme.storm-career',
 	label: 'Stormy career',

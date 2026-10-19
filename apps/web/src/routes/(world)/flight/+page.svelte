@@ -1725,6 +1725,10 @@
 			onreplay={() => void exportReplay()}
 			onghost={() => ghostInput?.click()}
 			onrevert={() => void revert()}
+			onworldsettings={() => {
+				pauseOpen = false;
+				worldSession.openWorldSettings();
+			}}
 			{revertWhy}
 			onhideui={() => {
 				pauseOpen = false;
