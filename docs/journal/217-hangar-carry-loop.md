@@ -24,6 +24,12 @@
 
 - ADR 0221; the rest in the plan's Log.
 
+## After the merge: checked against `Hangar.dc.html` (owner, ADR 0222)
+
+- The bottom bar's toggles (Mirror, Snap, Copy, CoM, CoT) now follow the design: muted off, white on, a 4 px dot under the label only while on (they had a filled background or a ringed dot beside the label).
+- The fairing card (plan 219) uses the design's small-caps heading and a dot-led status row.
+- Not changed: symmetry offers ×1–8 (ADR 0207) where the design shows ×1–6; the design's Place / Move / Rotate / Re-root / Staging tool buttons predate these plans (Re-root is P1). The Hangar's vessel mass does not count a fairing shell yet: plan 218.
+
 ## Open questions / follow-ups
 
 - Surface attach on top and bottom faces and cones (a general surface link in the design format).
