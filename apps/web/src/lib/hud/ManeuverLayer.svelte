@@ -91,7 +91,7 @@
 			class:sel={n.selected}
 			use:reg={`n${n.id}`}
 			aria-label="Maneuver node {n.id}: drag along the orbit to change its time"
-			title="Maneuver node: drag to move it along the orbit. Delete removes it."
+			data-tip="Maneuver node: drag to move it along the orbit. Delete removes it."
 			onpointerdown={(e) => begin(e, n.id, null)}
 		>
 			<span class="gem"></span>
@@ -103,7 +103,7 @@
 					class="handle {h.kind}"
 					use:reg={`h${n.id}:${h.kind}`}
 					aria-label="{h.label} handle: drag outward to add"
-					title="{h.label}: drag (Shift coarse, Alt fine)"
+					data-tip="{h.label}: drag (Shift coarse, Alt fine)"
 					onpointerdown={(e) => begin(e, n.id, h.kind)}
 				>
 					<svg viewBox="-12 -12 24 24" width="22" height="22" aria-hidden="true">

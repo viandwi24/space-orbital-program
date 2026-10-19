@@ -19,6 +19,7 @@
 	import { chordIdOf } from '../lib/keybindings';
 	import { settings } from '../lib/settings/settings.svelte';
 	import BrowserNotice from '../lib/ui/BrowserNotice.svelte';
+	import TooltipLayer from '../lib/ui/TooltipLayer.svelte';
 	import ErrorScreen from '../lib/ui/ErrorScreen.svelte';
 	import SmallScreenNotice from '../lib/ui/SmallScreenNotice.svelte';
 	import LoadingScreen from '../lib/ui/LoadingScreen.svelte';
@@ -140,10 +141,13 @@
 	/>
 {/if}
 
-{#if missing?.length === 0 && !([resolve('/roadmap'), resolve('/credits')] as string[]).includes(page.url.pathname)}<SmallScreenNotice
+{#if missing?.length === 0 && !([resolve('/roadmap'), resolve('/credits'), resolve('/glossary')] as string[]).includes(page.url.pathname)}<SmallScreenNotice
 	/>{/if}
 
 {#if note}<p class="note" role="status" data-testid="audio-note">{note}</p>{/if}
+
+<!-- the page's one tooltip for every [data-tip] (plan 228) -->
+<TooltipLayer />
 
 <style>
 	.note {

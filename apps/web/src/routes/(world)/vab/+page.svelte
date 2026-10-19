@@ -109,12 +109,12 @@
 </script>
 
 {#snippet menuActions()}
-	<Button onclick={() => vab.newVessel()} title="A new, empty vessel" data-testid="menu-new"
+	<Button onclick={() => vab.newVessel()} data-tip="A new, empty vessel" data-testid="menu-new"
 		>New</Button
 	>
 	<Button
 		onclick={() => vab.openLibrary()}
-		title="Open a vessel from the library"
+		data-tip="Open a vessel from the library"
 		data-testid="menu-open">Open</Button
 	>
 	<Button
@@ -123,7 +123,7 @@
 			vab.saveState = 'saving';
 			void vab.flushSave();
 		}}
-		title="Save to the library (Ctrl+S)"
+		data-tip="Save to the library (Ctrl+S)"
 		data-testid="menu-save">Save</Button
 	>
 	<Button

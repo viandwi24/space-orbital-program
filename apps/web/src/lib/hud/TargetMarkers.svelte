@@ -85,7 +85,7 @@
 			const o = map?.others[i];
 			if (o) {
 				putAt(dot, o.point.x, o.point.y, o.point.hidden);
-				dot.title = o.name;
+				dot.dataset.tip = o.name;
 			} else hide(dot);
 		});
 

@@ -130,7 +130,7 @@
 			role="tab"
 			aria-selected={tab === 'comms'}
 			disabled={!comms}
-			title={comms ? undefined : 'This world has no comms network'}
+			data-tip={comms ? undefined : 'This world has no comms network'}
 			data-testid="vessel-tab-comms"
 			onclick={() => (tab = 'comms')}>Comms</button
 		>
@@ -202,7 +202,7 @@
 			<span class="cap">Transmitters</span>
 			{#each transmitters as p (p.entity)}
 				{#each p.controls.filter((c) => c.kind === 'toggle') as c (c.module + '/' + c.id)}
-					<div class="row endpoint" title={c.enabled ? undefined : c.reason}>
+					<div class="row endpoint" data-tip={c.enabled ? undefined : c.reason}>
 						<span>{p.title} · {c.label}</span>
 						<Switch
 							checked={c.value === true}

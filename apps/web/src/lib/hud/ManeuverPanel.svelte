@@ -98,14 +98,14 @@
 						variant="ghost"
 						disabled={index === 0}
 						onclick={() => onselect?.(maneuver.nodes[index - 1]!.id)}
-						title="Previous node"
+						data-tip="Previous node"
 						aria-label="Previous node">◀</Button
 					>
 					<Button
 						variant="ghost"
 						disabled={index === maneuver.count - 1}
 						onclick={() => onselect?.(maneuver.nodes[index + 1]!.id)}
-						title="Next node"
+						data-tip="Next node"
 						aria-label="Next node"
 						data-testid="maneuver-next">▶</Button
 					>
@@ -174,13 +174,13 @@
 				<button
 					type="button"
 					onclick={() => onshift?.(node.id, { orbits: -1 })}
-					title="One orbit earlier">−orbit</button
+					data-tip="One orbit earlier">−orbit</button
 				>
 				<button
 					type="button"
 					data-testid="node-plus-orbit"
 					onclick={() => onshift?.(node.id, { orbits: 1 })}
-					title="One orbit later">+orbit</button
+					data-tip="One orbit later">+orbit</button
 				>
 			</div>
 		{/if}
@@ -188,7 +188,7 @@
 			<Button
 				onclick={() => onwarp(node.id)}
 				disabled={!warpUsable}
-				title="Time warp to 30 s before the burn starts"
+				data-tip="Time warp to 30 s before the burn starts"
 			>
 				Warp to burn
 			</Button>
@@ -196,21 +196,23 @@
 				<Button
 					variant={maneuver.pointing ? 'primary' : 'default'}
 					onclick={onpoint}
-					title="Point the nose at the burn (8)"
+					data-tip="Point the nose at the burn (8)"
 					aria-pressed={maneuver.pointing}
 				>
 					Point SAS
 				</Button>
 			{/if}
 			{#if onalarm}
-				<Button variant="ghost" onclick={() => onalarm(node.id)} title="Alarm 30 s before the node"
-					>Alarm</Button
+				<Button
+					variant="ghost"
+					onclick={() => onalarm(node.id)}
+					data-tip="Alarm 30 s before the node">Alarm</Button
 				>
 			{/if}
 			<Button
 				variant="ghost"
 				onclick={() => onremove(node.id)}
-				title="Remove the node (Delete in map view)">Remove</Button
+				data-tip="Remove the node (Delete in map view)">Remove</Button
 			>
 		</div>
 		<p class="note">Impulsive plan: the burn starts half its length before the node.</p>

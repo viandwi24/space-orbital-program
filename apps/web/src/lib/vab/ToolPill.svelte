@@ -12,7 +12,7 @@
 </script>
 
 <div class="pill" role="toolbar" aria-label="Build tools">
-	<span class="cap" title="Copies per placement ({settings.keymap.label('symmetry')})">Sym</span>
+	<span class="cap" data-tip="Copies per placement ({settings.keymap.label('symmetry')})">Sym</span>
 	<div class="group" role="group" aria-label="Symmetry: copies per placement">
 		{#each vab.symmetryCounts as n (n)}
 			<button
@@ -20,7 +20,7 @@
 				class="seg"
 				class:on={vab.symmetry === n}
 				aria-pressed={vab.symmetry === n}
-				title={n === 1 ? 'One part' : `${n} copies around the vessel`}
+				data-tip={n === 1 ? 'One part' : `${n} copies around the vessel`}
 				onclick={() => ((vab.symmetry = n), (vab.mirror = false))}>×{n}</button
 			>
 		{/each}
@@ -31,7 +31,7 @@
 		type="button"
 		class="toggle"
 		aria-pressed={vab.mirror}
-		title="Mirror symmetry: two copies reflected ({settings.keymap.label('mirror')})"
+		data-tip="Mirror symmetry: two copies reflected ({settings.keymap.label('mirror')})"
 		data-testid="tool-mirror"
 		onclick={() => (vab.mirror = !vab.mirror)}
 		>Mirror<span class="dot" aria-hidden="true"></span></button
@@ -40,7 +40,7 @@
 		type="button"
 		class="toggle"
 		aria-pressed={vab.angleSnap}
-		title="Angle snap of side sites ({settings.keymap.label('angleSnap')})"
+		data-tip="Angle snap of side sites ({settings.keymap.label('angleSnap')})"
 		data-testid="tool-snap"
 		onclick={() => (vab.angleSnap = !vab.angleSnap)}
 		>Snap<span class="dot" aria-hidden="true"></span></button
@@ -49,7 +49,7 @@
 		type="button"
 		class="toggle"
 		aria-pressed={vab.copyMode}
-		title="Copy: the next part you tap goes on the cursor as a copy (Alt+click)"
+		data-tip="Copy: the next part you tap goes on the cursor as a copy (Alt+click)"
 		data-testid="tool-copy"
 		onclick={() => (vab.copyMode = !vab.copyMode)}
 		>Copy<span class="dot" aria-hidden="true"></span></button
@@ -59,7 +59,7 @@
 		type="button"
 		class="toggle"
 		aria-pressed={vab.showCom}
-		title="Centre of mass and of pressure"
+		data-tip="Centre of mass and of pressure"
 		onclick={() => (vab.showCom = !vab.showCom)}
 		>CoM<span class="dot" aria-hidden="true"></span></button
 	>
@@ -67,7 +67,7 @@
 		type="button"
 		class="toggle"
 		aria-pressed={vab.showCot}
-		title="Centre of thrust of the first stage"
+		data-tip="Centre of thrust of the first stage"
 		onclick={() => (vab.showCot = !vab.showCot)}
 		>CoT<span class="dot cot" aria-hidden="true"></span></button
 	>

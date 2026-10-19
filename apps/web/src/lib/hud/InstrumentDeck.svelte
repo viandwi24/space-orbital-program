@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Term from '../ui/Term.svelte';
 	/**
 	 * The navball module (plan 088, ADRs 0107 and 0144; refs `Main` bottom centre): one solid bezel
 	 * holding the monochrome navball, the vertical-speed arc, the heading chip, the SAS pod with the
@@ -110,19 +111,19 @@
 		{#if Math.abs(fraction) > 0.002}<path class="value" d={arc} />{/if}
 		<line x1="52" y1="104" x2="62" y2="104" />
 	</svg>
-	<span class="vsv num" title="Vertical speed, {speedUnit()}"
+	<span class="vsv num" data-tip="Vertical speed, {speedUnit()}"
 		><span data-testid="hud-vspeed">{speedValue(Math.abs(vs)).toFixed(1)}</span><span class="vsu"
 			>{vs >= 0 ? '▲' : '▼'}
 			{model?.speedMode === 'target' ? 'range' : 'v/s'}</span
 		></span
 	>
 
-	<div class="throttle" title="Throttle">
+	<div class="throttle" data-tip="Throttle">
 		<div class="bar"><Meter vertical value={throttle} tone="accent" label="Throttle" /></div>
 		<span class="num pct" data-testid="hud-throttle">{formatPercent(throttle)}</span>
 	</div>
 
-	<span class="heading num" title="Heading">{att ? formatBearing(att.heading) : NO_VALUE}</span>
+	<span class="heading num" data-tip="Heading">{att ? formatBearing(att.heading) : NO_VALUE}</span>
 	<span class="sr-only" aria-label="Attitude"
 		>{att
 			? `Pitch ${formatSignedAngle(att.pitch)}, heading ${formatBearing(att.heading)}, roll ${formatSignedAngle(att.roll)}`
@@ -146,22 +147,27 @@
 					>{speedParts.u}</span
 				></span
 			>
-			<button type="button" class="chip" onclick={oncyclespeed} title={modeTitle}>{modeText}</button
+			<button type="button" class="chip" onclick={oncyclespeed} data-tip={modeTitle}
+				>{modeText}</button
 			>
 		</div>
 		<div class="rule"></div>
 		<div class="row">
-			<span class="lab">ALT</span>
+			<span class="lab"><Term id="altitude">ALT</Term></span>
 			<span class="value"
 				><span class="num" data-testid="hud-altitude">{alt.n}</span><span class="unit">{alt.u}</span
 				></span
 			>
 			{#if model && model.radar !== null}
-				<span class="chip" title="Height above the ground under the vessel"
+				<span
+					class="chip"
+					data-tip="Radar altitude: height of your lowest point above the ground right under you."
+					data-tip-term="radar-altitude"
 					>RAD <span data-testid="hud-radar">{formatDistance(model.radar)}</span></span
 				>
 			{:else}
-				<span class="chip quiet" title="Above sea level of {model?.body ?? 'the body'}">SEA</span>
+				<span class="chip quiet" data-tip="Above sea level of {model?.body ?? 'the body'}">SEA</span
+				>
 			{/if}
 		</div>
 	</div>

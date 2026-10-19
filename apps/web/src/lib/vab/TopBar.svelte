@@ -29,7 +29,7 @@
 			/>
 		</label>
 		<!-- plan 063: an aircraft rolls out to a runway and starts level -->
-		<span class="capsule aircraft" title="An aircraft rolls out to a runway and starts level">
+		<span class="capsule aircraft" data-tip="An aircraft rolls out to a runway and starts level">
 			<Switch
 				checked={vab.editor.design.aircraft === true}
 				label="Aircraft"
@@ -134,7 +134,7 @@
 			type="button"
 			class="launch"
 			disabled={vab.launchBlocked}
-			title={vab.launchBlocked
+			data-tip={vab.launchBlocked
 				? vab.checks.find((c) => c.severity === 'error')?.text
 				: vab.warnings > 0
 					? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`

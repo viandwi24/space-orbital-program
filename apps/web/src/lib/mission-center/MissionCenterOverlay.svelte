@@ -188,7 +188,7 @@
 			role="tab"
 			aria-selected="false"
 			disabled={!canFly}
-			title={canFly ? 'Back to the flight' : 'There is no flight in this save'}
+			data-tip={canFly ? 'Back to the flight' : 'There is no flight in this save'}
 			onclick={onfly}
 			data-testid="mc-tab-map">Map</button
 		>
@@ -309,7 +309,7 @@
 										type="button"
 										class="act"
 										aria-label="Edit alarm"
-										title="Edit alarm"
+										data-tip="Edit alarm"
 										onclick={() =>
 											(editing = {
 												id: e.alarm,
@@ -322,7 +322,7 @@
 										type="button"
 										class="act"
 										aria-label="Delete alarm"
-										title="Delete alarm"
+										data-tip="Delete alarm"
 										onclick={() => onalarmremove?.(e.alarm!)}
 										data-testid="mc-alarm-delete-{e.alarm}"><Icon name="trash" size={12} /></button
 									>

@@ -87,7 +87,7 @@ describe('catalogue categories from the registry', () => {
 	});
 
 	it('the rail shows the tabs in order, the mod path icon, and the fallback for an unknown name', () => {
-		const tab = (label: string) => html.indexOf(`title="${label} (`);
+		const tab = (label: string) => html.indexOf(`data-tip="${label} (`);
 		expect(tab('Structural')).toBeGreaterThan(-1);
 		expect(tab('Structural')).toBeLessThan(tab('Solar'));
 		expect(tab('Solar')).toBeLessThan(tab('Aerodynamics'));
@@ -111,7 +111,7 @@ describe('catalogue categories from the registry', () => {
 				onarm: () => {}
 			}
 		}).body;
-		const labels = [...rail.matchAll(/role="tab"[^>]*title="([^"(]+) \(/g)].map((m) => m[1]);
+		const labels = [...rail.matchAll(/role="tab"[^>]*data-tip="([^"(]+) \(/g)].map((m) => m[1]);
 		expect(labels).toEqual([
 			'All parts',
 			'Command',
@@ -130,7 +130,7 @@ describe('catalogue categories from the registry', () => {
 	it('plan 093: a vertical rail with the chosen tab marked; a card without a cost shows [—]', () => {
 		expect(html).toContain('aria-orientation="vertical"');
 		const selected = [
-			...html.matchAll(/role="tab"[^>]*aria-selected="true"[^>]*title="([^"(]+) \(/g)
+			...html.matchAll(/role="tab"[^>]*aria-selected="true"[^>]*data-tip="([^"(]+) \(/g)
 		];
 		expect(selected.map((m) => m[1])).toEqual(['All parts']);
 		const card = (title: string): string => {

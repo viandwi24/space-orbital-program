@@ -41,7 +41,7 @@
 			aria-checked={o.value === value}
 			tabindex={o.value === value ? 0 : -1}
 			data-value={o.value}
-			title={o.hint}
+			data-tip={o.hint}
 			class:on={o.value === value}
 			onclick={() => onchange(o.value)}
 			onkeydown={(e) => key(e, i)}>{o.label}</button

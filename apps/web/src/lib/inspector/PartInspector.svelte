@@ -57,7 +57,7 @@
 					type="button"
 					aria-pressed={pinned}
 					aria-label={pinned ? 'Unpin' : 'Pin'}
-					title={pinned ? 'Unpin' : 'Pin: keep it open (three at most)'}
+					data-tip={pinned ? 'Unpin' : 'Pin: keep it open (three at most)'}
 					data-testid="inspector-{part.entity}-pin"
 					onclick={onpin}>{pinned ? 'Pinned' : 'Pin'}</button
 				>

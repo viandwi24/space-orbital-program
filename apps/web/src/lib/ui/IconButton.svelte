@@ -23,7 +23,7 @@
 	class:on={pressed}
 	aria-label={label}
 	aria-pressed={pressed}
-	title={hint ? `${label} (${hint})` : label}
+	data-tip={hint ? `${label} (${hint})` : label}
 	{...rest}
 >
 	<Icon name={icon} />

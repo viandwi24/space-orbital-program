@@ -144,7 +144,7 @@ describe('crew radios and broadcasts (plan 121, ADR 0193)', () => {
 			/data-testid="suit-radio"[\s\S]*?data-level="4"[\s\S]*?Suit radio · via Lander/
 		);
 		// the crew rows inside show the lander's own link
-		expect(html).toMatch(/<span[^>]*title="via Home station"[^>]*data-testid="crew-radio"/);
+		expect(html).toMatch(/<span[^>]*data-tip="via Home station"[^>]*data-testid="crew-radio"/);
 		const cut = net(link(9, null, 'blocked by terrain', null));
 		html = render(CrewPanel, { props: { card: crewCard(cut, inside, DAY), eva: eva(cut) } }).body;
 		expect(html).toMatch(

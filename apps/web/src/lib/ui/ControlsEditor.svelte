@@ -220,7 +220,7 @@
 							class="reset"
 							disabled={!changed(a.id)}
 							aria-label="Reset {a.label} to its default"
-							title="Reset to the default"
+							data-tip="Reset to the default"
 							onclick={() => settings.resetBinding(a.id)}>↺</button
 						>
 					</li>

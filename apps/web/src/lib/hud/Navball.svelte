@@ -30,7 +30,7 @@
 	}
 </script>
 
-<div role="img" aria-label={label}>
+<div role="img" aria-label={label} data-tip-avoid>
 	<canvas bind:this={canvas} style:width="{size}px" style:height="{size}px"></canvas>
 </div>
 

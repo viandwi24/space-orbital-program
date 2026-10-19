@@ -43,7 +43,7 @@
 		class="act"
 		{disabled}
 		aria-label={label}
-		title="{label} ({hint})"
+		data-tip="{label} ({hint})"
 		onclick={run}
 	>
 		<Icon name={icon} size={20} />
@@ -59,7 +59,7 @@
 				type="button"
 				class="x"
 				aria-label="Deselect"
-				title="Deselect (Esc)"
+				data-tip="Deselect (Esc)"
 				onclick={() => (vab.selected = null)}
 			>
 				<Icon name="close" size={16} />
@@ -202,7 +202,7 @@
 		{#if tilt}
 			<div class="turn" role="group" aria-label="Tilt of {vab.titleOfPart(sel)}">
 				{#each AXES as a (a.axis)}
-					<label class="row" title={a.hint}>
+					<label class="row" data-tip={a.hint}>
 						<span class="dim">{a.label}</span>
 						<input
 							type="range"

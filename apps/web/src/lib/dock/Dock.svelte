@@ -36,7 +36,7 @@
 				class="tab"
 				aria-selected={open === e.id}
 				aria-label={e.title}
-				title={e.title}
+				data-tip={e.title}
 				data-testid="dock-tab-{e.id}"
 				onclick={() => ontoggle(e.id)}
 			>
@@ -52,7 +52,7 @@
 			type="button"
 			class="tab lib"
 			aria-label="Panel library"
-			title="Panel library"
+			data-tip="Panel library"
 			data-testid="dock-library"
 			onclick={onlibrary}><Icon name="plus" size={18} /></button
 		>

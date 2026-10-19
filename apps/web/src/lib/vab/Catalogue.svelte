@@ -135,7 +135,7 @@
 				class="tab"
 				aria-selected={category === t.id}
 				tabindex={category === t.id ? 0 : -1}
-				title="{t.label} ({t.count})"
+				data-tip="{t.label} ({t.count})"
 				onclick={() => (category = t.id)}
 				onkeydown={(e) => tabKey(e, i)}
 			>
@@ -185,7 +185,7 @@
 							class:armed={armedAssembly === e.record.id}
 							aria-pressed={armedAssembly === e.record.id}
 							disabled={!e.ok}
-							title={e.ok ? `Place ${e.record.name}` : `Damaged: ${e.errors.join('; ')}`}
+							data-tip={e.ok ? `Place ${e.record.name}` : `Damaged: ${e.errors.join('; ')}`}
 							onclick={() => onarmAssembly(e.record.id)}
 						>
 							<span class="thumb">
@@ -202,7 +202,7 @@
 							type="button"
 							class="del"
 							aria-label="Delete the sub-assembly {e.record.name}"
-							title="Delete"
+							data-tip="Delete"
 							onclick={() => ondeleteAssembly(e.record.id)}
 						>
 							<Icon name="trash" size={14} />

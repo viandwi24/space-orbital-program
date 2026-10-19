@@ -94,7 +94,7 @@
 		class="chip"
 		class:sel={selected === index}
 		draggable="true"
-		title="{titleOf(index)}{current === null
+		data-tip="{titleOf(index)}{current === null
 			? ', no stage'
 			: `, stage ${current + 1}`}. Drag to another stage, or Alt+Up / Alt+Down."
 		aria-label="{titleOf(index)}, {current === null ? 'no stage' : `stage ${current + 1}`}"
@@ -119,7 +119,7 @@
 		<h2>Staging · Δv</h2>
 		<div
 			class="total num"
-			title="Total delta-v, {environment === 'vacuum'
+			data-tip="Total delta-v, {environment === 'vacuum'
 				? 'in vacuum'
 				: altitude !== null
 					? `at ${altitude} m`
@@ -213,7 +213,7 @@
 					ondragleave={() => (over = null)}
 					ondrop={(e) => drop(e, k)}
 				>
-					<span class="badge num" title="Pressing Space number {k + 1} fires this stage"
+					<span class="badge num" data-tip="Pressing Space number {k + 1} fires this stage"
 						>{k + 1}</span
 					>
 					<div class="chips">
@@ -226,7 +226,7 @@
 					<div class="nums num">
 						{#if r && r.engines > 0}
 							<span class="dv">{dv(r.dv)}<span class="u"> {speedUnit()}</span></span>
-							<span class="meta" title="Thrust to weight when the stage ignites"
+							<span class="meta" data-tip="Thrust to weight when the stage ignites"
 								>TWR {r.twr.toFixed(2)}</span
 							>
 							<span class="meta">{formatDuration(r.burnTime)}</span>
@@ -252,7 +252,7 @@
 				ondragleave={() => (over = null)}
 				ondrop={(e) => drop(e, 'tray')}
 			>
-				<span class="badge" title="Not staged"><Icon name="stage" size={14} /></span>
+				<span class="badge" data-tip="Not staged"><Icon name="stage" size={14} /></span>
 				<div class="chips">
 					{#each unstaged as index (index)}
 						{@render chip(index, null)}

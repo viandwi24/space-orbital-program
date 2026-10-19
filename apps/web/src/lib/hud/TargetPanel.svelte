@@ -64,7 +64,7 @@
 		<select
 			value={target?.key ?? ''}
 			disabled={!controllable}
-			title="Choose a target ({settings.keymap.label('targetNext')} steps to the next)"
+			data-tip="Choose a target ({settings.keymap.label('targetNext')} steps to the next)"
 			data-testid="target-select"
 			onchange={(e) => onselect(e.currentTarget.value === '' ? null : e.currentTarget.value)}
 		>
@@ -124,7 +124,7 @@
 						type="button"
 						class="aid"
 						disabled={!aid.node || !controllable}
-						title={aid.detail}
+						data-tip={aid.detail}
 						data-testid="aid-{aid.id}"
 						onclick={() => onplan?.(aid.id)}
 					>

@@ -207,7 +207,7 @@
 					{/if}
 				</dd>
 				<dt>Fingerprint</dt>
-				<dd class="num" title={p.package.sha256}>{shortHash(p.package.sha256)}</dd>
+				<dd class="num" data-tip={p.package.sha256}>{shortHash(p.package.sha256)}</dd>
 			</dl>
 			{#if p.package.manifest.description}<p class="dim">{p.package.manifest.description}</p>{/if}
 			{#if p.replaces}

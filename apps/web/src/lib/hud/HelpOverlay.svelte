@@ -32,9 +32,15 @@
 	</div>
 	<div class="foot">
 		<!-- the lessons after the first orbit (plan 229) -->
-		<a class="lessons" href={resolve('/lessons')} data-testid="help-lessons"
-			>Lessons: landing, nodes, docking, transfers</a
-		>
+		<span class="links">
+			<a class="lessons" href={resolve('/lessons')} data-testid="help-lessons"
+				>Lessons: landing, nodes, docking, transfers</a
+			>
+			<!-- every HUD term explained (plan 228) -->
+			<a class="lessons" href={resolve('/glossary')} data-testid="help-glossary"
+				>Glossary of HUD terms</a
+			>
+		</span>
 		<Button variant="primary" onclick={onclose}>Close</Button>
 	</div>
 </Dialog>
@@ -81,5 +87,10 @@
 	.lessons {
 		font-size: var(--t-sm);
 		color: var(--accent-text);
+	}
+	.links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-2) var(--s-4);
 	}
 </style>

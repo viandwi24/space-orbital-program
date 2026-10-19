@@ -131,3 +131,38 @@ Use these terms consistently in code, docs, and UI.
 | **Alarm** | A user alarm kept by the sim (plan 224, ADR 0223): a time, a vessel's apsis, sphere change or node less a lead, or a transfer window. It stops any warp when it comes, for any vessel, posts to the bell and then leaves the list. |
 | **Transfer window** | The next date a Hohmann transfer from the vessel's orbit reaches a body: to a moon of its sphere, or to a neighbour of the sphere (ejection burn). Shown in the Mission Center's Upcoming with its wait and delta-v; it can become an alarm. |
 | **Camera mode** | How the flight camera's up is chosen (plan 226): **Auto** (Free in the air, Orbital above it), **Free** (up away from the body), **Orbital** (up along the orbit normal), **Locked** (turns with the vessel). V or the toolbar's Change camera goes to the next one. |
+
+## Player glossary (plan 228)
+
+The game has its own, shorter glossary for players: `apps/web/src/lib/public/glossary.ts`, shown at `/glossary` and in the HUD's term tooltips. Its entries are plain-language definitions, not the code terms above. Every player entry is listed here, and `apps/web/src/lib/ui/tips.test.ts` fails when the two lists drift apart. Add a term in both places.
+
+| Term | HUD shows | Id |
+|---|---|---|
+| Apoapsis | Ap | `apoapsis` |
+| Periapsis | Pe | `periapsis` |
+| Orbital period | Period | `orbital-period` |
+| Inclination | — | `inclination` |
+| Eccentricity | — | `eccentricity` |
+| Ascending and descending nodes | AN / DN | `an-dn` |
+| Prograde | — | `prograde` |
+| Retrograde | — | `retrograde` |
+| Normal and anti-normal | — | `normal` |
+| Radial in and out | — | `radial` |
+| Delta-v | Δv | `delta-v` |
+| Thrust-to-weight ratio | TWR | `twr` |
+| Specific impulse | Isp | `isp` |
+| Stage | — | `stage` |
+| Sphere of influence | SOI | `soi` |
+| Mission elapsed time | MET | `met` |
+| Time warp | — | `time-warp` |
+| Altitude | — | `altitude` |
+| Radar altitude | — | `radar-altitude` |
+| Dynamic pressure | Q | `dynamic-pressure` |
+| Mach number | Mach | `mach` |
+| Stability assist | SAS | `sas` |
+| Reaction control system | RCS | `rcs` |
+| Electric charge | EC | `electric-charge` |
+| Signal | — | `comms` |
+| Extravehicular activity | EVA | `eva` |
+| Intravehicular activity | IVA | `iva` |
+| Heat | — | `heat` |

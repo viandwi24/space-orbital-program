@@ -11,12 +11,17 @@
 </script>
 
 {#if href}
-	<a class="back" {href} aria-label={label} title={label} data-testid={testid}
+	<a class="back" {href} aria-label={label} data-tip={label} data-testid={testid}
 		><Icon name="back" size={18} /></a
 	>
 {:else}
-	<button type="button" class="back" aria-label={label} title={label} data-testid={testid} {onclick}
-		><Icon name="back" size={18} /></button
+	<button
+		type="button"
+		class="back"
+		aria-label={label}
+		data-tip={label}
+		data-testid={testid}
+		{onclick}><Icon name="back" size={18} /></button
 	>
 {/if}
 

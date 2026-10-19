@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Panel from '../ui/Panel.svelte';
+	import Term from '../ui/Term.svelte';
 	import { formatAngle, formatDistance, formatDuration, NO_VALUE } from '../format';
 	import type { OrbitInfo } from '../orbit-info';
 	import type { FlightPhase } from '../telemetry';
@@ -23,7 +24,7 @@
 <Panel title="Orbit">
 	{#if orbit && !prelaunch}
 		<dl>
-			<dt>Apoapsis</dt>
+			<dt><Term id="apoapsis">Apoapsis</Term></dt>
 			<dd class="num">
 				{orbit.apoapsis !== undefined
 					? formatDistance(orbit.apoapsis)
@@ -36,7 +37,7 @@
 						: ''}</span
 				>
 			</dd>
-			<dt>Periapsis</dt>
+			<dt><Term id="periapsis">Periapsis</Term></dt>
 			<dd class="num" class:warn={below}>
 				{formatDistance(orbit.periapsis)}
 				<span class="t"
@@ -45,11 +46,11 @@
 						: ''}</span
 				>
 			</dd>
-			<dt>Period</dt>
+			<dt><Term id="orbital-period">Period</Term></dt>
 			<dd class="num">{orbit.period !== undefined ? formatDuration(orbit.period) : NO_VALUE}</dd>
-			<dt>Inclination</dt>
+			<dt><Term id="inclination">Inclination</Term></dt>
 			<dd class="num">{formatAngle(orbit.inclination)}</dd>
-			<dt>Eccentricity</dt>
+			<dt><Term id="eccentricity">Eccentricity</Term></dt>
 			<dd class="num">{orbit.eccentricity.toFixed(3)}</dd>
 		</dl>
 		{#if below}<p class="note">Periapsis is below the surface, so this is not an orbit yet.</p>{/if}

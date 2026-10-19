@@ -624,14 +624,14 @@
 					type="button"
 					aria-label="Match case"
 					aria-pressed={find.matchCase}
-					title="Match case"
+					data-tip="Match case"
 					onclick={() => stayInFind(() => toggleFindOption('matchCase'))}>Aa</button
 				>
 				<button
 					type="button"
 					aria-label="Whole word"
 					aria-pressed={find.wholeWord}
-					title="Whole word"
+					data-tip="Whole word"
 					onclick={() => stayInFind(() => toggleFindOption('wholeWord'))}>ab</button
 				>
 				<button type="button" aria-label="Close find" onclick={closeFind}>&#10005;</button>

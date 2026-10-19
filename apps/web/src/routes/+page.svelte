@@ -165,6 +165,13 @@
 		/>
 		<MenuButton
 			variant="compact"
+			icon="help"
+			label="Glossary"
+			href={resolve('/glossary')}
+			testid="menu-glossary"
+		/>
+		<MenuButton
+			variant="compact"
 			icon="info"
 			label="Credits"
 			href={resolve('/credits')}

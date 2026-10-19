@@ -27,7 +27,7 @@ describe('product name', () => {
 	});
 	it('no page or component writes the old name as text or in a title', () => {
 		const root = new URL('../..', import.meta.url).pathname;
-		const old = /title="[^"]*\bOrbital"|>\s*Orbital\b|\bOrbital (is|needs|mods)\b/;
+		const old = /(?:title|data-tip)="[^"]*\bOrbital"|>\s*Orbital\b|\bOrbital (is|needs|mods)\b/;
 		const hits = svelteFiles(root).filter((f) => old.test(readFileSync(f, 'utf8')));
 		expect(hits).toEqual([]);
 	});

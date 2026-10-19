@@ -84,7 +84,7 @@
 							<button
 								type="button"
 								class="ic"
-								title="Rename"
+								data-tip="Rename"
 								aria-label="Rename {e.record.name}"
 								onclick={() => startRename(e.record.id, e.record.name)}
 							>
@@ -93,7 +93,7 @@
 							<button
 								type="button"
 								class="ic"
-								title="Duplicate"
+								data-tip="Duplicate"
 								aria-label="Duplicate {e.record.name}"
 								onclick={() => void vab.duplicateLibraryEntry(e.record.id)}
 							>
@@ -102,7 +102,7 @@
 							<button
 								type="button"
 								class="ic"
-								title="Export as a file"
+								data-tip="Export as a file"
 								aria-label="Export {e.record.name} as a file"
 								onclick={() => vab.exportLibraryEntry(e.record.id)}
 							>
@@ -128,7 +128,7 @@
 								<button
 									type="button"
 									class="ic"
-									title="Delete"
+									data-tip="Delete"
 									aria-label="Delete {e.record.name}"
 									onclick={() => (confirming = e.record.id)}
 								>

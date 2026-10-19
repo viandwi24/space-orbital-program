@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Term from '../ui/Term.svelte';
 	import Panel from '../ui/Panel.svelte';
 	import Icon from '../ui/Icon.svelte';
 	import Meter from '../ui/Meter.svelte';
@@ -113,7 +114,7 @@
 					/>
 				{/if}
 				<div class="meta num">
-					<span>TWR {hand.twr.toFixed(2)}</span>
+					<span><Term id="twr">TWR</Term> {hand.twr.toFixed(2)}</span>
 					<span>{hand.burnTime > 0 ? formatDuration(hand.burnTime) : '-'} burn</span>
 					{#if hand.current}<span>{throttle > 0 ? 'burning' : 'engine idle'}</span>{/if}
 				</div>
@@ -127,13 +128,13 @@
 			class="go"
 			disabled={!canStage}
 			aria-label="Stage ({settings.keymap.label('stage')})"
-			title="Activate the next stage ({settings.keymap.label('stage')})"
+			data-tip="Activate the next stage ({settings.keymap.label('stage')})"
 			onclick={onstage}>GO</button
 		>
 		<span class="lab">Total Δv</span>
 		<span
 			class="total num"
-			title="Total delta-v of the remaining stages, {environment === 'vacuum'
+			data-tip="Total delta-v of the remaining stages, {environment === 'vacuum'
 				? 'in vacuum'
 				: 'at sea level'}"
 			>{dv(stages.total)}<span class="u">

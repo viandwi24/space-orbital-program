@@ -86,7 +86,7 @@
 									<button
 										type="button"
 										class="ic"
-										title="Rename"
+										data-tip="Rename"
 										aria-label="Rename {e.meta.name}"
 										onclick={() => startRename(e.meta.id, e.meta.name)}
 									>
@@ -96,7 +96,7 @@
 								<button
 									type="button"
 									class="ic"
-									title="Export as a file"
+									data-tip="Export as a file"
 									aria-label="Export {e.meta.name} as a file"
 									onclick={() => void saves.exportFile(e.meta.id)}
 								>
@@ -122,7 +122,7 @@
 									<button
 										type="button"
 										class="ic"
-										title="Delete"
+										data-tip="Delete"
 										aria-label="Delete {e.meta.name}"
 										onclick={() => (confirming = e.meta.id)}
 									>
@@ -142,7 +142,7 @@
 								<button
 									type="button"
 									class="ic"
-									title="Delete"
+									data-tip="Delete"
 									aria-label="Delete the damaged save"
 									onclick={() => void saves.remove(e.id)}
 								>

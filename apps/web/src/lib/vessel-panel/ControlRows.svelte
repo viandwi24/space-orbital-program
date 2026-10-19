@@ -47,7 +47,7 @@
 </script>
 
 {#snippet row(c: ControlRow)}
-	<div class="row" title={c.enabled ? undefined : c.reason}>
+	<div class="row" data-tip={c.enabled ? undefined : c.reason}>
 		{#if c.kind === 'toggle'}
 			<span class="toggle-label">{c.label}</span>
 			<Switch

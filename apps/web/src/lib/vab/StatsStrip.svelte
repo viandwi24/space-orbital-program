@@ -88,14 +88,14 @@
 			<span class="v num">{stats.partCount ? `${n(stats.totalDv)} ${speedUnit()}` : '[—]'}</span>
 		</div>
 		<div class="tile">
-			<span class="k" title="Thrust to weight at liftoff, sea level">TWR</span>
+			<span class="k" data-tip="Thrust to weight at liftoff, sea level">TWR</span>
 			<span class="v num {twrTone}"
 				>{stats.liftoffTwr === null ? '[—]' : stats.liftoffTwr.toFixed(2)}</span
 			>
 		</div>
 		<div
 			class="tile"
-			title={cost
+			data-tip={cost
 				? cost.uncosted.length
 					? `No cost set for ${cost.uncosted.join(', ')}; they count as 0.`
 					: `Parts ${formatFunds(cost.parts)}, contents ${formatFunds(cost.contents)}`
@@ -108,7 +108,7 @@
 			{#if cost?.uncosted.length}<span class="u">no cost set</span>{/if}
 		</div>
 	</div>
-	<div class="stability" title={stabilityTitle}>
+	<div class="stability" data-tip={stabilityTitle}>
 		<span class="k">Stability</span>
 		<span class="num {stabilityTone}"
 			>{STABILITY_LABEL[

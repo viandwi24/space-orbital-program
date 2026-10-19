@@ -97,10 +97,10 @@
 						<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
 						<span
 							class="suit"
-							title={eva ? 'Suit: EVA' : 'Suit: flight (IVA)'}
+							data-tip={eva ? 'Suit: EVA' : 'Suit: flight (IVA)'}
 							data-testid="crew-suit">{eva ? 'EVA' : 'IVA'}</span
 						>
-						<span class="radio" title={card.radio.text} data-testid="crew-radio"
+						<span class="radio" data-tip={card.radio.text} data-testid="crew-radio"
 							><SignalBars
 								level={card.radio.level}
 								offline={card.radio.offline}
