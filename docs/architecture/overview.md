@@ -114,6 +114,7 @@ A part definition may carry a `visual` descriptor (core `partVisualSchema`, API 
 - Fixed timestep, flight vs on-rails, time warp, snapshots → `simulation.md`
 - Units, frames, precision, floating origin → `units-and-frames.md`
 - Import rules and environment constraints → `boundaries.md`
+- Keys (plans 053, 216; ADRs 0061, 0206): one binding table in `apps/web/src/lib/keybindings.ts` with two key profiles, `ksp` (default) and `classic`, under the player's overrides. Key ids are chords when Ctrl, Alt or Cmd is held (`Alt+Digit2`). Clash scopes are flight, map and VAB; map keys act first in the map view and only on a selected node. Actions marked `pending` wait for the plan that wires them. Settings format 4 stores `keyProfile` → `docs/journal/216-key-profiles.md`
 
 ## What is deliberately *not* decided yet
 
