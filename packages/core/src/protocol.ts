@@ -596,6 +596,11 @@ export interface VesselDesign {
 		label: string;
 		members: Array<{ part: number; module: string; action: string }>;
 	}>;
+	/**
+	 * Crew seated in the Hangar (plan 218, ADR 0225): roster member ids by part index. The Launch
+	 * screen starts from it; the sim ignores it (crew board through the launch choice).
+	 */
+	crew?: Array<{ member: string; part: number }>;
 }
 
 /** Where `load-vessel` puts the vessel. Defaults to the surface of the root body at latitude 0, longitude 0. */

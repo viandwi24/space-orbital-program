@@ -530,7 +530,11 @@ export const partActionDescriptorSchema = z
 			.array(z.object({ unit: z.string().min(1), factor: finiteNumber.refine((f) => f !== 0) }))
 			.optional(),
 		/** An advanced control: the inspector keeps it under "More" (plan 214). */
-		more: z.boolean().optional()
+		more: z.boolean().optional(),
+		/** The config field the control sets in the Hangar (plan 218): see `PartActionDescriptor.build`. */
+		build: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional(),
+		/** A Hangar-only control (plan 218): flight skips it. */
+		buildOnly: z.boolean().optional()
 	})
 	.superRefine((d, ctx) => {
 		const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
@@ -549,6 +553,8 @@ export const partActionDescriptorSchema = z
 			issue('a mode needs options and a value that is one of them');
 		}
 		if (d.kind === 'trigger' && d.value !== undefined) issue('a trigger has no value');
+		if (d.build !== undefined && d.kind === 'trigger') issue('a trigger sets no config field');
+		if (d.buildOnly && d.build === undefined) issue('a Hangar-only control needs `build`');
 	});
 
 export const actionGroupDefinitionSchema = z.object({

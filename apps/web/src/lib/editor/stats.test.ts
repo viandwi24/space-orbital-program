@@ -15,7 +15,7 @@ import {
 	singlePart,
 	type EditorState
 } from './state';
-import { designStats, heightOfDesign } from './stats';
+import { designStats, heightOfDesign, situationAt } from './stats';
 import { planTrip } from './trip';
 import { budgetsOf } from './trip-view';
 
@@ -204,5 +204,28 @@ describe('checks', () => {
 		const stats = designStats(s.design, content, 'vacuum', g);
 		expect(stats.rows).toHaveLength(2);
 		expect(stats.rows[0]!.empty).toBe(true);
+	});
+});
+
+describe('Δv and TWR by body and situation (plan 218)', () => {
+	const design = referenceTwoStage();
+	const moon = registries.bodies.get('stock.cinder')!;
+	const at = (body: typeof home, kind: 'sea-level' | 'vacuum' | 'altitude', altitude?: number) => {
+		const s = situationAt(body, { kind, altitude });
+		return designStats(design, content, s.environment, s.gravity, s.pressure);
+	};
+
+	it('the same stage has more Δv in vacuum than at home sea level', () => {
+		const sea = at(home, 'sea-level').rows[0]!;
+		const vac = at(home, 'vacuum').rows[0]!;
+		expect(vac.dv).toBeGreaterThan(sea.dv);
+		// 10 km up lies between the two
+		const up = at(home, 'altitude', 10_000).rows[0]!;
+		expect(up.dv).toBeGreaterThan(sea.dv);
+		expect(up.dv).toBeLessThan(vac.dv);
+	});
+
+	it('its TWR on the moon at sea level is higher than at home', () => {
+		expect(at(moon, 'sea-level').rows[0]!.twr).toBeGreaterThan(at(home, 'sea-level').rows[0]!.twr);
 	});
 });

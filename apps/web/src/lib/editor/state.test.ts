@@ -29,6 +29,8 @@ import {
 } from './state';
 import { autoStages, sameStages } from './staging';
 import { categoriesOf, categoryOf, matchesQuery } from './categories';
+import { buildRow, setBuildSetting } from './build-settings';
+import { moonShot } from './examples';
 
 const { registries } = loadPlugins([Stock]);
 const content = { parts: registries.parts, modules: registries.modules };
@@ -456,5 +458,43 @@ describe('aircraft flag (plan 063)', () => {
 		const again = parseDesign(serialiseDesign(plane.design), content.parts);
 		expect(again.ok && again.design.aircraft).toBe(true);
 		expect('aircraft' in setAircraft(plane, false).design).toBe(false);
+	});
+});
+
+describe('build-time settings (plan 218)', () => {
+	const ENGINE = 'stock.engine';
+	const limiterOf = (s: EditorState, i: number): number | undefined =>
+		s.design.parts.find((p) => p.index === i)?.settings?.[ENGINE]?.limiter as number | undefined;
+
+	it('a 60 % limiter on one of four symmetric boosters sets all four; one undo resets them', () => {
+		const s0 = createEditor(moonShot(), content);
+		const boosters = [21, 24, 27, 30];
+		const row = buildRow(s0.design, content, 21)!;
+		const limiter = row.controls.find((c) => c.id === 'setLimiter')!;
+		expect(limiter.value).toBe(1);
+		const s1 = setBuildSetting(s0, content, 21, limiter, 0.6);
+		for (const b of boosters) expect(limiterOf(s1, b)).toBe(0.6);
+		expect(
+			buildRow(s1.design, content, 27)!.controls.find((c) => c.id === 'setLimiter')!.value
+		).toBe(0.6);
+		const back = undo(s1);
+		for (const b of boosters) expect(limiterOf(back, b)).toBeUndefined();
+		// "Only this part" sets one
+		const one = setBuildSetting(s0, content, 21, limiter, 0.6, { single: true });
+		expect(boosters.map((b) => limiterOf(one, b))).toEqual([0.6, undefined, undefined, undefined]);
+	});
+
+	it('a tank fill keeps the other resources and is refused above capacity', () => {
+		const s0 = createEditor(moonShot(), content);
+		const fill = buildRow(s0.design, content, 3)!.controls.find((c) =>
+			c.id.startsWith('fill:stock.liquid-fuel')
+		)!;
+		expect(fill.buildOnly).toBe(true);
+		const half = (fill.max as number) / 2;
+		const s1 = setBuildSetting(s0, content, 3, fill, half);
+		const row = buildRow(s1.design, content, 3)!;
+		expect(row.controls.find((c) => c.id === fill.id)!.value).toBe(half);
+		expect(row.controls.find((c) => c.id === 'fill:stock.oxidizer')!.value).toBeGreaterThan(half);
+		expect(() => setBuildSetting(s0, content, 3, fill, (fill.max as number) * 2)).toThrow();
 	});
 });

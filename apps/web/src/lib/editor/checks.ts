@@ -4,6 +4,7 @@
  */
 import { nodeSize, nodeSizesMatch, resolveVesselDesign, type PartLookup } from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
+import { groupActions } from './groups';
 import { isAutoStaged } from './staging';
 import type { EditorState } from './state';
 import type { Stability } from './stability';
@@ -24,7 +25,13 @@ export type CheckId =
 	| 'loose'
 	| 'locked'
 	| 'over-capacity'
-	| 'size-mismatch';
+	| 'size-mismatch'
+	| 'no-crew'
+	| 'no-antenna'
+	| 'no-parachute';
+
+/** The stock group parachutes put their deploy switch in: how the report knows a part is one. */
+export const PARACHUTE_GROUP = 'stock.parachutes';
 
 /** How bad for the flight (ADR 0148 point 1), apart from whether it blocks Launch (`severity`). */
 export type CheckLevel = 'no-go' | 'caution';
@@ -53,7 +60,12 @@ export function checkDesign(
 	/** Parts the world's tech tree locks (plan 105, ADR 0154 point 4). */
 	locks: readonly { parts: number[]; title: string; node: string }[] = [],
 	/** The Hangar's part limit where the world's limits apply (plan 096, ADR 0123 point 4). */
-	partsLimit?: PartsLimit | null
+	partsLimit?: PartsLimit | null,
+	/**
+	 * Crew seated in the design (plan 218), or null where the world has no roster: then a pod
+	 * counts as a control source and the crew checks are off.
+	 */
+	crew: readonly { member: string; part: number }[] | null = null
 ): Check[] {
 	const { design, loose } = state;
 	if (design.parts.length === 0) {
@@ -96,15 +108,65 @@ export function checkDesign(
 	}
 	const model = stagingModelFromDesign(design, content);
 	const parts = [...model.parts.values()];
-	if (!parts.some((p) => p.controlSource)) {
+	const seatsOf = (p: (typeof parts)[number]): number => p.def.crewCapacity ?? 0;
+	const seated = new Set((crew ?? []).map((c) => c.part));
+	// a pod steers only with someone in it (ADR 0109 point 1) where the world has crew to seat
+	const steers = (p: (typeof parts)[number]): boolean =>
+		p.controlSource && (crew === null || seatsOf(p) === 0 || seated.has(p.index));
+	if (!parts.some(steers)) {
 		out.push({
 			id: 'no-control',
 			severity: 'warning',
 			level: 'no-go',
 			text: 'No control source: nothing can steer this vessel.',
-			hint: 'Add a command pod.',
+			hint:
+				crew !== null && parts.some((p) => p.controlSource)
+					? 'Seat crew in the pod, or add a probe core.'
+					: 'Add a command pod.',
 			// the part at fault is the top of the vessel, where a pod belongs (ADR 0148 point 2)
 			parts: design.parts.filter((p) => p.parent === null).map((p) => p.index)
+		});
+	}
+	const pods = parts.filter((p) => p.controlSource && seatsOf(p) > 0);
+	if (crew !== null && pods.length > 0 && !pods.some((p) => seated.has(p.index))) {
+		out.push({
+			id: 'no-crew',
+			severity: 'warning',
+			level: 'caution',
+			text: 'Pod without crew: nobody sits in the command pod.',
+			hint: 'Seat crew in the pod below, or on the Launch screen.',
+			parts: pods.map((p) => p.index)
+		});
+	}
+	const probes = parts.filter((p) => p.controlSource && seatsOf(p) === 0);
+	const crewed = crew === null ? pods.length > 0 : pods.some((p) => seated.has(p.index));
+	const antennas = design.parts.some((p) =>
+		(content.parts.get(p.part)?.modules ?? []).some(
+			([id]) => content.modules.get(id)?.antenna !== undefined
+		)
+	);
+	if (probes.length > 0 && !crewed && !antennas) {
+		out.push({
+			id: 'no-antenna',
+			severity: 'warning',
+			level: 'caution',
+			text: 'Probe without antenna: it cannot be steered once out of range of home.',
+			hint: 'Add an antenna.',
+			parts: probes.map((p) => p.index)
+		});
+	}
+	const chutes = design.parts.some((p) =>
+		groupActions(design, content, p.index).some((a) => a.group === PARACHUTE_GROUP)
+	);
+	// only with the seating known: the old designs without a chute stay go (ADR 0225)
+	if (crew !== null && pods.some((p) => seated.has(p.index)) && !chutes) {
+		out.push({
+			id: 'no-parachute',
+			severity: 'warning',
+			level: 'caution',
+			text: 'Crewed vessel without a parachute: the crew cannot land safely.',
+			hint: 'Put a parachute on top of the pod and stage it last.',
+			parts: pods.map((p) => p.index)
 		});
 	}
 	const engines = parts.filter((p) => p.engine).map((p) => p.index);
@@ -270,6 +332,14 @@ export function sizeMismatches(
 	}
 	return out;
 }
+
+/** The report items the Launch screen repeats under the seats (plan 218): they change with the crew. */
+export const LAUNCH_REPORT: readonly CheckId[] = [
+	'no-control',
+	'no-crew',
+	'no-antenna',
+	'no-parachute'
+];
 
 export const blocksLaunch = (checks: readonly Check[]): boolean =>
 	checks.some((c) => c.severity === 'error');

@@ -2,7 +2,7 @@
 import { loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
-import { emptyDesign, referenceTwoStage } from '../design';
+import { emptyDesign, referenceTwoStage, starterRocket } from '../design';
 import type { ContentLookups } from '../delta-v';
 import { blocksLaunch, checkDesign, MARGINAL_TWR, sizeMismatches, verdictOf } from './checks';
 import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
@@ -112,5 +112,73 @@ describe('size mismatch (plan 207, ADR 0212)', () => {
 		]) {
 			expect(sizeMismatches(design, content.parts), design.name).toEqual([]);
 		}
+	});
+});
+
+describe('the pre-flight report (plan 218)', () => {
+	const textOf = (checks: ReturnType<typeof checkDesign>) => checks.map((c) => c.text).join('\n');
+	const run = (
+		design: ReturnType<typeof moonShot>,
+		crew: { member: string; part: number }[] | null,
+		c = content
+	) => {
+		const s = createEditor(design, c);
+		return checkDesign(s, c, { liftoffTwr: 2 }, undefined, [], null, crew);
+	};
+
+	it('a pod with no crew and no probe core gives "No control source" and "Pod without crew"', () => {
+		const checks = run(moonShot(), []);
+		expect(textOf(checks)).toContain('No control source');
+		expect(checks.find((c) => c.id === 'no-crew')?.parts).toEqual([0]);
+		// unknown seating: the launch seats a free astronaut, so the pod steers
+		expect(run(moonShot(), null).some((c) => c.id === 'no-control' || c.id === 'no-crew')).toBe(
+			false
+		);
+	});
+
+	it('a crewed pod without a parachute gives "Crewed vessel without a parachute"', () => {
+		const checks = run(moonShot(), [{ member: 'jeb', part: 0 }]);
+		expect(textOf(checks)).toContain('Crewed vessel without a parachute');
+		expect(checks.some((c) => c.id === 'no-control')).toBe(false);
+		// the starter rocket carries one; unknown seating does not ask for one
+		expect(
+			run(starterRocket(), [{ member: 'jeb', part: 0 }]).some((c) => c.id === 'no-parachute')
+		).toBe(false);
+		expect(run(moonShot(), null).some((c) => c.id === 'no-parachute')).toBe(false);
+	});
+
+	it('a probe without an antenna gives "Probe without antenna"', () => {
+		const probe: ReturnType<typeof moonShot> = {
+			formatVersion: 3,
+			name: 'Probe',
+			parts: [
+				{ index: 0, part: 'stock.probe-core' as never, parent: null },
+				{
+					index: 1,
+					part: 'stock.tank-small' as never,
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				}
+			],
+			stages: []
+		};
+		// the stock probe core has its own whip: take it off for the case
+		const bare: ContentLookups = {
+			...content,
+			parts: {
+				get: (id: string) => {
+					const def = registries.parts.get(id);
+					return def && id === 'stock.probe-core'
+						? {
+								...def,
+								modules: def.modules?.filter(
+									([m]) => registries.modules.get(m)?.antenna === undefined
+								)
+							}
+						: def;
+				}
+			} as ContentLookups['parts']
+		};
+		expect(textOf(run(probe, null, bare))).toContain('Probe without antenna');
+		expect(run(probe, null).some((c) => c.id === 'no-antenna')).toBe(false);
 	});
 });

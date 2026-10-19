@@ -164,6 +164,19 @@ export const ModuleResourceContainer = defineModule({
 					value: state.locked?.[r] === true,
 					enabled: true
 				})),
+				// how full it starts (plan 218): the Hangar writes `contents.<resource>.amount`
+				...resources.map((r) => ({
+					id: `fill:${r}`,
+					label: `Fill ${resourceWords(r)}`,
+					kind: 'value' as const,
+					value: config.contents[r]!.amount,
+					min: 0,
+					max: config.contents[r]!.capacity,
+					units: [{ unit: '%', factor: 100 / config.contents[r]!.capacity }],
+					enabled: true,
+					build: ['contents', r, 'amount'],
+					buildOnly: true
+				})),
 				// the panel turns these into a picker of the other end (plan 214)
 				{ id: 'transferOut', label: 'Transfer out', kind: 'trigger' as const, enabled: true },
 				{ id: 'transferIn', label: 'Transfer in', kind: 'trigger' as const, enabled: true }
@@ -238,7 +251,11 @@ export const engineConfigSchema = z
 			})
 			.default({ range: 0, rate: 20 }),
 		/** A solid motor (plan 210, ADR 0203): no throttle, no shutdown, the limiter fixed once lit. */
-		solid: z.boolean().default(false)
+		solid: z.boolean().default(false),
+		/** The thrust limiter it starts with, 0..1 (plan 218: set per part in the Hangar). */
+		limiter: z.number().min(0).max(1).default(1),
+		/** The share of the gimbal range it starts with, 0..1 (plan 218). */
+		gimbalLimit: z.number().min(0).max(1).default(1)
 	})
 	.refine((c) => c.ispSeaLevel <= c.ispVacuum, 'ispSeaLevel must not exceed ispVacuum');
 export type EngineConfig = z.output<typeof engineConfigSchema>;
@@ -288,14 +305,14 @@ const limiterOf = (state: EngineState): number => state.limiter ?? 1;
 export const ModuleEngine = defineModule({
 	id: 'stock.engine',
 	config: engineConfigSchema,
-	state: (): EngineState => ({
+	state: (config): EngineState => ({
 		ignited: false,
 		throttle: 0,
 		flameout: false,
 		gimbal: [0, 0],
-		limiter: 1,
+		limiter: config.limiter,
 		gimbalLock: false,
-		gimbalLimit: 1
+		gimbalLimit: config.gimbalLimit
 	}),
 	// What tools (stage delta-v) may know without running the sim (ADR 0033): the flow is fixed by
 	// the vacuum rating and thrust follows Isp(p) (`engineOutput`), so two curve points are exact.
@@ -363,7 +380,8 @@ export const ModuleEngine = defineModule({
 					{ unit: 'kN', factor: config.thrust / 1000 }
 				],
 				// a solid motor's limiter is set before ignition (plan 210)
-				enabled: !(config.solid && state.ignited)
+				enabled: !(config.solid && state.ignited),
+				build: 'limiter'
 			},
 			...(config.gimbal.range > 0
 				? [
@@ -379,7 +397,8 @@ export const ModuleEngine = defineModule({
 							step: 0.05,
 							units: [{ unit: '%', factor: 100 }],
 							more: true,
-							enabled: true
+							enabled: true,
+							build: 'gimbalLimit'
 						}
 					]
 				: [])

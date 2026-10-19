@@ -35,12 +35,14 @@ export function partActions(core: SimCore, vesselId: EntityId): PartAction[] {
 			).actions;
 			// a failed module's actions are disabled with the failure as the reason (ADR 0156 point 2)
 			const failure = failureOf(core, part, m.id);
-			for (const d of actions ?? [])
+			for (const d of actions ?? []) {
+				if (d.buildOnly) continue; // a Hangar-only control (plan 218)
 				out.push({
 					part,
 					module: m.id,
 					d: failure ? { ...d, enabled: false, reason: `Failed: ${failure.label}` } : d
 				});
+			}
 		}
 	}
 	return out;

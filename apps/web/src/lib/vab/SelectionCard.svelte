@@ -6,6 +6,7 @@
 	import type { VabController } from './controller.svelte';
 	import { settings } from '../settings/settings.svelte';
 	import FairingEditor from './FairingEditor.svelte';
+	import BuildSettings from './BuildSettings.svelte';
 
 	let { vab }: { vab: VabController } = $props();
 
@@ -113,6 +114,7 @@
 			</label>
 		{/if}
 
+		<BuildSettings {vab} />
 		<FairingEditor {vab} />
 
 		{#if !vab.selectedLoose}

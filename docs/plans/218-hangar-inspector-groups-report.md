@@ -1,12 +1,12 @@
 ---
 id: 218
 title: "Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [214, 217, 208]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 218 — Hangar: part inspector, action group editor, Δv by body, power budget, pre-flight report
@@ -18,7 +18,7 @@ In the Hangar, clicking a part opens the same inspector as in flight (plan 214),
 ## Context
 
 - Rancangan §8.6–8.8, §8.10 (crew in the Hangar), §4.3b.4 (pre-flight report items), §4.3 (power budget day and night).
-- ADRs: 0207 (Hangar interaction model), 0205 (shared inspector), 0203 (power rules and per-part settings), 0174 (custom action groups in the design), 0083 (trip planner), 0109 (control needs a command source), 0148 (Hangar verdict levels), 0152 (crew assignment at launch).
+- ADRs: [0225](../decisions/0225-hangar-build-controls-groups-crew-report.md) (this plan's decisions), 0207 (Hangar interaction model), 0205 (shared inspector), 0203 (power rules and per-part settings), 0174 (custom action groups in the design), 0083 (trip planner), 0109 (control needs a command source), 0148 (Hangar verdict levels), 0152 (crew assignment at launch).
 - Research:
   - 05 §2 table: no editor tweakables; a design part holds only index, part, parent, symmetry, tilt and link (`packages/core/src/protocol.ts:433-463`); `SelectionCard.svelte` offers a stage dropdown, sliders and Move/Detach/Delete/Keep (`apps/web/src/lib/vab/SelectionCard.svelte:77-132`).
   - 05 §2 table: action-group editor missing; `design.groups` exists in core (`protocol.ts:457-462`) and nothing in the Hangar reads it.
@@ -97,3 +97,5 @@ In the Hangar, clicking a part opens the same inspector as in flight (plan 214),
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A: descriptor `build` / `buildOnly` instead of `phase` (ADR 0225 point 1); the Hangar draws the flight inspector's `ControlRows`, not the `PartInspector` panel (point 2). Stock limiter, gimbal limit, crossfeed, chute settings and tank fill; settings for the symmetry group as one undo step.
+- 2026-10-19 — Worker A: Δv/TWR by body and sea level / altitude / vacuum; power budget; Custom 1–10 editor; `design.crew` seats; report items for crew, antenna and parachute, crew items only with the seating known (the sim seats a free astronaut otherwise). The editor prunes group members and seats of removed parts.

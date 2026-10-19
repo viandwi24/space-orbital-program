@@ -8,6 +8,10 @@
 	import LibraryDialog from '../../../lib/vab/LibraryDialog.svelte';
 	import SelectionCard from '../../../lib/vab/SelectionCard.svelte';
 	import StageEditor from '../../../lib/vab/StageEditor.svelte';
+	import PowerBudget from '../../../lib/vab/PowerBudget.svelte';
+	import CrewSeats from '../../../lib/vab/CrewSeats.svelte';
+	import { loadRoster } from '../../../lib/launch/roster';
+	import ActionGroupEditor from '../../../lib/vab/ActionGroupEditor.svelte';
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import TopBar from '../../../lib/vab/TopBar.svelte';
 	import { pageActions } from '../../../lib/layout/page-actions.svelte';
@@ -49,6 +53,7 @@
 		const stop = vab.mount({ canvas, stage, left, right });
 		void loadWorldTech(worldSaves, activeWorldId()).then((t) => (vab.tech = t));
 		void loadWorldReliability(worldSaves, activeWorldId()).then((r) => (vab.reliability = r));
+		void loadRoster(worldSaves).then((r) => (vab.roster = r));
 		// the active world's site and limits for the Hangar's part limit (plan 096, ADR 0123 point 4)
 		void worldSaves
 			.worldStartInfo(activeWorldId())
@@ -205,12 +210,20 @@
 				iconOf={vab.iconOfPart}
 				thumbOf={vab.thumbOfPart}
 				onenv={(e) => (vab.environment = e)}
+				bodies={vab.statsBodies}
+				bodyId={vab.statsBodyId}
+				altitude={vab.statsAltitude}
+				onbody={(id) => (vab.statsBodyId = id)}
+				onaltitude={(m) => (vab.statsAltitude = m)}
 				onmove={(i, to) => vab.moveStage(i, to)}
 				onselect={(i) => (vab.selected = i)}
 				onremove={(k) => vab.removeStage(k)}
 				onauto={() => vab.autoStage()}
 			/>
 			<ChecksList checks={vab.checks} onflag={(p) => (vab.flagged = p)} titleOf={vab.titleOfPart} />
+			<PowerBudget power={vab.power} />
+			<CrewSeats {vab} />
+			<ActionGroupEditor {vab} />
 		</div>
 
 		<div class="bottom">
@@ -353,7 +366,8 @@
 	   own panels, the Launch button always keeps its place at the foot. */
 	.rightcol :global(.stages) {
 		flex: 1 1 0;
-		min-height: 120px;
+		/* the header, the situation picker and at least three stage rows; the column scrolls past it */
+		min-height: 300px;
 		overflow-y: auto;
 		scrollbar-width: thin;
 	}
@@ -363,6 +377,11 @@
 		min-height: 44px;
 		overflow-y: auto;
 		scrollbar-width: thin;
+	}
+	.rightcol :global(.power),
+	.rightcol :global(.crew),
+	.rightcol :global(.groups) {
+		flex: none;
 	}
 	.bottom {
 		grid-column: 2;

@@ -32,6 +32,20 @@ import { keyIdOf, type ActionId } from '../keybindings';
 import { pinchZoomFactor } from '../touch/touch-model';
 import { settings } from '../settings/settings.svelte';
 import { bodyMu } from '../orbit-info';
+import { bodyLabel } from '../hud-model';
+import { buildRow, setBuildSetting } from '../editor/build-settings';
+import { powerView } from '../editor/power';
+import { setCrew } from '../editor/crew';
+import { seatsOf, toggleSeat } from '../launch/launch-model';
+import type { RosterMember } from '../launch/roster';
+import {
+	customMembers,
+	groupActions,
+	setGroupMember,
+	stockGroupParts,
+	stockGroupsOf
+} from '../editor/groups';
+import type { ControlRow } from '../vessel-panel/vessel-model';
 import { loadDraft, loadFlag, loadLibraryId, saveDraft, saveFlag, saveLibraryId } from '../storage';
 import { asparagusRocket, boosterRocket, glider, moonShot } from '../editor/examples';
 import { assemblyFromSubtree } from '../editor/assembly';
@@ -93,7 +107,7 @@ import {
 	type ConnectorEnd,
 	type EditorState
 } from '../editor/state';
-import { designStats, type Environment } from '../editor/stats';
+import { designStats, situationAt, type Environment } from '../editor/stats';
 import { stagingModelFromDesign } from '../delta-v';
 import { designLocks, NO_TREE, type WorldTech } from '../tech/world-tech';
 import { destinationsOf } from '../editor/trip';
@@ -181,6 +195,28 @@ export class VabController {
 	keyboardRadial = $state(false);
 	flagged = $state.raw<number[]>([]);
 	environment = $state<Environment>('sea-level');
+	/** Δv and TWR are for this body (plan 218): the home body until the picker chooses another. */
+	statsBodyId = $state(String(this.body.id));
+	/** The bodies of the picker: those with a surface (no star), home first. */
+	readonly statsBodies = [
+		this.body,
+		...this.catalog.bodies.filter((b) => b !== this.body && b.star !== true)
+	].map((b) => ({ id: String(b.id), label: bodyLabel(String(b.id)) }));
+	/** m above the surface for the "altitude" situation; null at the surface (sea level). */
+	statsAltitude = $state<number | null>(null);
+	readonly statsBody = $derived(
+		this.catalog.bodies.find((b) => String(b.id) === this.statsBodyId) ?? this.body
+	);
+	readonly situation = $derived(
+		situationAt(
+			this.statsBody,
+			this.environment === 'vacuum'
+				? { kind: 'vacuum' }
+				: this.statsAltitude !== null
+					? { kind: 'altitude', altitude: this.statsAltitude }
+					: { kind: 'sea-level' }
+		)
+	);
 	icons = $state.raw<Record<string, string>>({});
 	notice = $state('');
 	announce = $state('');
@@ -267,9 +303,17 @@ export class VabController {
 			: Math.min(this.hoverNode ?? this.cursor ?? 0, this.targets.length - 1)
 	);
 	readonly stats = $derived(
-		designStats(this.current.design, this.content, this.environment, this.gravity)
+		designStats(
+			this.current.design,
+			this.content,
+			this.situation.environment,
+			this.situation.gravity,
+			this.situation.pressure
+		)
 	);
 	readonly stability = $derived(stabilityOf(this.current.design, this.content));
+	/** Power made and drawn by day and night (plan 218). */
+	readonly power = $derived(powerView(this.current.design, this.editorContent));
 	/** Launch cost of the design with full tanks (plan 095, ADR 0113). */
 	readonly cost = $derived(designCost(this.current.design, this.content));
 	/** The tool pill's marker toggles (plan 093, ADR 0148 point 4). */
@@ -372,7 +416,15 @@ export class VabController {
 		)
 	);
 	readonly checks = $derived(
-		checkDesign(this.current, this.content, this.stats, this.stability, this.locks, this.partsLimit)
+		checkDesign(
+			this.current,
+			this.content,
+			this.stats,
+			this.stability,
+			this.locks,
+			this.partsLimit,
+			this.current.design.crew ?? null
+		)
 	);
 	tripId = $state('low-orbit');
 	readonly trip = $derived(
@@ -1276,6 +1328,102 @@ export class VabController {
 		this.attempt(() => {
 			this.editor = setFairingClosed(this.editor, this.editorContent, sel, closed);
 			this.say(closed ? 'Fairing closed.' : 'Fairing opened.');
+		});
+	}
+
+	/** The selected part's build-time settings (plan 218): its inspector rows in the Hangar. */
+	readonly selectedBuild = $derived(
+		this.selected === null || this.selectedLoose
+			? null
+			: buildRow(this.current.design, this.editorContent, this.selected)
+	);
+
+	/** Sets a build control on the selected part and, unless "Only this part", its copies. */
+	setBuild(control: ControlRow, value: boolean | number | string): void {
+		const sel = this.selected;
+		if (sel === null) return;
+		this.attempt(() => {
+			const before = groupOf(this.editor.design, sel).length;
+			this.editor = setBuildSetting(this.editor, this.editorContent, sel, control, value, {
+				single: this.onlyThis
+			});
+			const n = this.onlyThis ? 1 : before;
+			this.say(`${control.label} set${n > 1 ? ` on ${n} parts` : ''}.`);
+		});
+	}
+
+	// --- action groups (plan 218) -----------------------------------------------------------------------
+
+	/** The group the editor shows: a stock group id or `custom.<slot>`; null with the editor closed. */
+	groupPick = $state<string | null>(null);
+	/** Stock groups with members on the design, in order. */
+	readonly stockGroups = $derived(
+		stockGroupsOf(this.current.design, this.editorContent, this.loaded.actionGroups)
+	);
+	/** The picked group's custom slot, or null for a stock group. */
+	readonly groupSlot = $derived(
+		this.groupPick?.startsWith('custom.') ? Number(this.groupPick.slice(7)) : null
+	);
+	/** Parts in the picked group (the view lights them). */
+	readonly groupParts = $derived.by(() => {
+		const pick = this.groupPick;
+		if (pick === null) return [];
+		if (this.groupSlot !== null)
+			return [...new Set(customMembers(this.current.design, this.groupSlot).map((m) => m.part))];
+		return stockGroupParts(this.current.design, this.editorContent, pick);
+	});
+	/** The selected part's switches and triggers, with whether each is in the picked custom group. */
+	readonly selectedGroupActions = $derived.by(() => {
+		const sel = this.selected;
+		if (sel === null || this.selectedLoose) return [];
+		const members =
+			this.groupSlot === null ? [] : customMembers(this.current.design, this.groupSlot);
+		return groupActions(this.current.design, this.editorContent, sel).map((a) => ({
+			...a,
+			member: members.some((m) => m.part === sel && m.module === a.module && m.action === a.id)
+		}));
+	});
+
+	pickGroup(id: string | null): void {
+		this.groupPick = id;
+		this.flagged = this.groupParts;
+	}
+
+	/** Puts the selected part's control (and its copies', unless "Only this part") in the picked custom group. */
+	setGroupMember(module: string, action: string, on: boolean): void {
+		const sel = this.selected;
+		const slot = this.groupSlot;
+		if (sel === null || slot === null) return;
+		this.attempt(() => {
+			this.editor = setGroupMember(
+				this.editor,
+				this.editorContent,
+				slot,
+				{ part: sel, module, action },
+				on,
+				{ single: this.onlyThis }
+			);
+			this.flagged = this.groupParts;
+			this.say(`${on ? 'Added to' : 'Removed from'} Custom ${slot}.`);
+		});
+	}
+
+	// --- crew seats (plan 218) ----------------------------------------------------------------------------
+
+	/** Available crew of the active world (the page loads it). */
+	roster = $state.raw<RosterMember[]>([]);
+	readonly seats = $derived(seatsOf(this.current.design, this.lookup));
+	readonly seated = $derived(this.current.design.crew ?? []);
+
+	/** Seats `member` in the first free seat, or takes them out. */
+	toggleCrew(member: string): void {
+		this.attempt(() => {
+			const next = toggleSeat(this.seated, this.seats, member);
+			if (next.length === this.seated.length && !this.seated.some((s) => s.member === member)) {
+				this.notice = 'Every seat is taken.';
+				return;
+			}
+			this.editor = setCrew(this.editor, this.editorContent, next);
 		});
 	}
 

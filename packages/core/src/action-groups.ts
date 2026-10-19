@@ -32,6 +32,14 @@ export interface PartActionDescriptor {
 	units?: ReadonlyArray<{ unit: string; factor: number }>;
 	/** An advanced control the inspector keeps under "More" (plan 214). */
 	more?: boolean;
+	/**
+	 * The module config field this control sets in the Hangar (plan 218, ADR 0225): the control's
+	 * value goes into the part's design `settings` at that field (a path for a nested one). Without
+	 * it the control acts in flight only.
+	 */
+	build?: string | readonly string[];
+	/** A Hangar-only control (a tank's fill; needs `build`): the flight panel and inspector skip it. */
+	buildOnly?: boolean;
 }
 
 export interface ActionGroupDefinition {

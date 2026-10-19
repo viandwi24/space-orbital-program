@@ -13,7 +13,9 @@ export const dockingPortConfigSchema = z.object({
 	/** Face diameter, m: 0.625, 1.25 or 2.5 (ADR 0212 sizes); only equal sizes dock. */
 	size: z.number().positive(),
 	/** The attach node that is the docking face. */
-	node: z.string().min(1).default('top')
+	node: z.string().min(1).default('top'),
+	/** Crossfeed it starts with (plan 218: set per part in the Hangar). */
+	crossfeed: z.boolean().default(true)
 });
 
 export interface DockingPortState {
@@ -29,7 +31,10 @@ export const ModuleDockingPort = defineModule({
 	controlPoint: true,
 	dock: (config) => ({ size: config.size, node: config.node }),
 	crossfeed: (_config, state) => state.crossfeed,
-	state: (): DockingPortState => ({ docked: false, crossfeed: true }),
+	state: (config: z.output<typeof dockingPortConfigSchema>): DockingPortState => ({
+		docked: false,
+		crossfeed: config.crossfeed
+	}),
 	describe: (_config, state) => ({
 		category: 'structural',
 		actions: [
@@ -47,7 +52,8 @@ export const ModuleDockingPort = defineModule({
 				label: 'Crossfeed',
 				kind: 'toggle',
 				value: state.crossfeed,
-				enabled: true
+				enabled: true,
+				build: 'crossfeed'
 			}
 		]
 	}),

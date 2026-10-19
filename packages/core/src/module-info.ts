@@ -73,3 +73,43 @@ export function describeModule(
 	}
 	return info.data;
 }
+
+// --- per-part settings (plan 219, ADR 0224; plan 218, ADR 0225) -------------------------------------
+
+/**
+ * A module's raw config on one part: the part definition's config with the design part's `settings`
+ * for that module laid over it, field by field (what the sim spawns and the Hangar shows).
+ */
+export function withSettings(base: unknown, own: Record<string, unknown> | undefined): unknown {
+	if (!own) return base;
+	if (base === undefined) return own;
+	if (typeof base !== 'object' || base === null) return base;
+	return { ...(base as Record<string, unknown>), ...own };
+}
+
+/**
+ * The settings of one module after a Hangar control sets `value` at `path` (a descriptor's `build`):
+ * the top field of the path is written whole, copied from the current config with the value placed
+ * deep inside, so a nested field (a tank's `contents.<resource>.amount`) keeps its siblings.
+ */
+export function settingsWith(
+	base: unknown,
+	own: Record<string, unknown> | undefined,
+	path: string | readonly string[],
+	value: unknown
+): Record<string, unknown> {
+	const keys = typeof path === 'string' ? [path] : path;
+	if (keys.length === 0) throw new Error('settingsWith: empty path');
+	const current = withSettings(base, own);
+	const put = (into: unknown, at: readonly string[]): unknown => {
+		if (at.length === 0) return value;
+		const obj =
+			typeof into === 'object' && into !== null && !Array.isArray(into)
+				? (into as Record<string, unknown>)
+				: {};
+		return { ...obj, [at[0]!]: put(obj[at[0]!], at.slice(1)) };
+	};
+	const top = keys[0]!;
+	const field = (current as Record<string, unknown> | undefined)?.[top];
+	return { ...(own ?? {}), [top]: put(field, keys.slice(1)) };
+}

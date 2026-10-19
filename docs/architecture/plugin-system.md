@@ -237,6 +237,14 @@ The values belong to the world, not to the registry: `WorldInfo.rules` in `SimSa
 
 A design part may carry `settings` by module id; the fields merge over the definition's module config and the module's schema parses the result at load. Three optional module hooks: `mass(config, state)` adds kg to the part, `shell(config, state)` returns a closed profile (`{ y, r }` bottom to top) whose enclosed parts take no drag or convective heat, and `VesselApi.spawnDebris({ part, settings, offset, velocity })` throws a one-part vessel off (its mass must leave through `mass`). `PartVisual.paramsFrom` names the module whose config becomes the generator's params per part. Stock `stock.fairing` config: `size` (base diameter), `sections` (`{ height, radius }[]`), `closed`, `arealDensity` (kg/m², default 4), `ejectionImpulse` (N·s per panel, default 300), `baseTop`.
 
+## Build-time controls and Hangar data (API 0.1.83, plan 218, ADR 0225)
+
+A part action descriptor may name the config field its value sets in the Hangar: `build: 'limiter'` or a path such as `['contents', resource, 'amount']`. The Hangar draws those controls with the flight inspector's rows and writes the value into the design part's `settings` for that module (the top field whole, with the value placed inside), for the whole symmetry group unless "Only this part". The module's `state(config)` must start from the field, so the part flies as built. `buildOnly: true` marks a Hangar-only control (a tank's fill): flight panels skip it, and it needs no action. A trigger takes no `build`. Core exports `withSettings(base, own)` (the merge the sim spawns with) and `settingsWith(base, own, path, value)`.
+
+Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port `crossfeed` (default true), the parachute's `mode`, `minPressure` and `deployHeight`, a container's `contents.<resource>.amount`.
+
+`VesselDesign.crew` (`{ member, part }[]`, optional) is the Hangar's seating; the Launch screen starts from it and the sim ignores it. The design's custom `groups` are edited in the Hangar, and the editor drops members and seats on parts it no longer holds.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

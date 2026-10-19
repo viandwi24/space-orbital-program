@@ -89,12 +89,13 @@ const snapshotOf = (s: Doc): Doc => ({
 
 /** Applies auto-staging when it is on, then pushes the previous document onto the history. */
 function commit(state: EditorState, next: Doc, content: Content): EditorState {
+	const pruned = pruneGroups(next.design);
 	const design = next.autoStage
 		? {
-				...next.design,
-				stages: next.design.parts.length > 0 ? autoStages(next.design, content) : []
+				...pruned,
+				stages: pruned.parts.length > 0 ? autoStages(pruned, content) : []
 			}
-		: next.design;
+		: pruned;
 	const past = [...state.past, snapshotOf(state)].slice(-HISTORY_LIMIT);
 	return { ...snapshotOf({ ...next, design }), past, future: [] };
 }
@@ -162,8 +163,30 @@ function join(design: VesselDesign, assembly: VesselDesign, target: AttachTarget
 	return { ...design, parts: [...design.parts, ...parts] };
 }
 
+/**
+ * The design without custom group members or seated crew on parts it no longer holds (deleted or
+ * detached; plan 218): an emptied group leaves.
+ */
+export function pruneGroups(design: VesselDesign): VesselDesign {
+	if (!design.groups && !design.crew) return design;
+	const here = new Set(design.parts.map((p) => p.index));
+	const groupsOk = (design.groups ?? []).every((g) => g.members.every((m) => here.has(m.part)));
+	const crewOk = (design.crew ?? []).every((c) => here.has(c.part));
+	if (groupsOk && crewOk) return design;
+	const groups = (design.groups ?? [])
+		.map((g) => ({ ...g, members: g.members.filter((m) => here.has(m.part)) }))
+		.filter((g) => g.members.length > 0);
+	const crew = (design.crew ?? []).filter((c) => here.has(c.part));
+	const { groups: _g, crew: _c, ...rest } = design;
+	return {
+		...rest,
+		...(groups.length > 0 ? { groups } : {}),
+		...(crew.length > 0 ? { crew } : {})
+	};
+}
+
 function assertResolves(design: VesselDesign, content: Content): void {
-	const r = resolveVesselDesign(design, content.parts);
+	const r = resolveVesselDesign(pruneGroups(design), content.parts);
 	if (!r.ok) throw new Error(`the edit would make an invalid design: ${r.errors.join('; ')}`);
 }
 
@@ -720,6 +743,16 @@ export function setPartSettings(
 		return Object.keys(next).length > 0 ? { ...rest, settings: next } : rest;
 	});
 	const design = { ...state.design, parts };
+	assertResolves(design, content);
+	return commit(state, { ...state, design }, content);
+}
+
+/** Puts `design` in as one undo step (plan 218's settings and groups edits); throws when it would not resolve. */
+export function commitDesign(
+	state: EditorState,
+	content: Content,
+	design: VesselDesign
+): EditorState {
 	assertResolves(design, content);
 	return commit(state, { ...state, design }, content);
 }

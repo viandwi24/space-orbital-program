@@ -30,7 +30,8 @@ import {
 	type ResourceDefinition,
 	type VesselDesign,
 	type VesselSnapshot,
-	type DossierEntryDefinition
+	type DossierEntryDefinition,
+	withSettings
 } from '@orbital/core';
 
 export interface ContentLookups {
@@ -78,7 +79,9 @@ function buildPart(
 	index: number,
 	def: PartDefinition,
 	content: ContentLookups,
-	view: (moduleId: string) => unknown
+	view: (moduleId: string) => unknown,
+	/** The design part's per-part settings (plan 218): a tank's fill, an engine's limiter. */
+	settings?: Record<string, Record<string, unknown>>
 ): ModelPart {
 	const part: ModelPart = {
 		index,
@@ -90,9 +93,10 @@ function buildPart(
 		full: {},
 		controlSource: false
 	};
-	for (const [moduleId, raw] of def.modules ?? []) {
+	for (const [moduleId, base] of def.modules ?? []) {
 		const mod = content.modules.get(moduleId);
 		if (!mod) continue;
+		const raw = withSettings(base, settings?.[moduleId]);
 		const config = parse(mod, raw);
 		if (mod.controlSource) part.controlSource = true;
 		const fresh = mod.state ? mod.state(config as never) : undefined;
@@ -125,7 +129,7 @@ function assemble(
 		if (!def) throw new Error(`delta-v: unknown part "${p.part}" in design "${design.name}"`);
 		parts.set(
 			p.index,
-			buildPart(p.index, def, content, (m) => viewOf(p.index, m))
+			buildPart(p.index, def, content, (m) => viewOf(p.index, m), p.settings)
 		);
 	}
 	let root = -1;
