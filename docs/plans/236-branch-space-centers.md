@@ -3,7 +3,7 @@ id: 236
 title: "Branch space centers on the home planet, linked into the network"
 status: in-progress
 owner: "Worker B (M5)"
-depends: [235, 234]
+depends: [235]
 phase: 7
 created: 2026-10-19
 updated: 2026-10-19
@@ -96,4 +96,4 @@ The Space Center switches between sites. The Launch screen can pick a pad at any
   - Turning on the `instant-construction` cheat also finishes work in progress (the e2e's "finish construction").
   - The world layout now sends Settings' Debug mode on every in-world page; before, only Flight did.
   - A sea spot is refused in the picker; the sim checks the zone rules only.
-
+- 2026-10-20 — `depends` is now [235]: 234 is `blocked` only on the owner's manual realism check, with its code on main, and a branch needs only a comms-node building (the tracking dish or 234's dish). Asked the coordinator; revert if 234 should stay a dependency.
