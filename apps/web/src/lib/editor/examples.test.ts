@@ -3,6 +3,7 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { resolveVesselDesign } from '@orbital/core';
 import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
+import { starterRocket } from '../design';
 import { designStats } from './stats';
 import { destinationsOf } from './trip';
 import { tripView } from './trip-view';
@@ -81,5 +82,27 @@ describe('moon shot example (plan 034)', () => {
 				.filter((r) => r.id !== 'ascent')
 				.every((r) => r.covers.every((c) => c.label === 'Stage 3'))
 		).toBe(true);
+	});
+});
+
+describe('every stock example with engines leaves the pad', () => {
+	const full = { ...content, resources: registries.resources };
+	const examples: Array<[string, () => import('@orbital/core').VesselDesign]> = [
+		['two-stage', () => starterRocket()],
+		['booster rocket', () => boosterRocket(content)],
+		['asparagus rocket', () => asparagusRocket(content)],
+		['moon shot', () => moonShot()]
+	];
+	it.each(examples)('%s: liftoff TWR at sea level is at least 1.2', (_name, make) => {
+		const twr = designStats(make(), full, 'sea-level', 9.81).liftoffTwr;
+		expect(twr).not.toBeNull();
+		expect(twr!).toBeGreaterThanOrEqual(1.2);
+	});
+
+	it('the moon shot flies on half-thrust liquid boosters: TWR about 1.4, the same delta-v budget', () => {
+		const stats = designStats(moonShot(), full, 'sea-level', 9.81);
+		expect(stats.liftoffTwr!).toBeGreaterThan(1.3);
+		expect(stats.liftoffTwr!).toBeLessThan(1.5);
+		expect(designStats(moonShot(), full, 'vacuum', 9.81).totalDv).toBeGreaterThan(5_800);
 	});
 });

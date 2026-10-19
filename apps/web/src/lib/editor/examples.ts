@@ -121,8 +121,9 @@ export function glider(content: Content): VesselDesign {
 /**
  * The two-stage stock rocket that reaches the moon in `packages/sim/test/moon-mission.test.ts`
  * (plan 044), top to bottom: pod, two wheels, a medium tank, the lander engine and legs, a
- * decoupler, a medium tank and an engine (the core), and four boosters with nose cones and four
- * fins on the core tank. Stage 1 lights the core and the boosters, stage 2 drops the boosters,
+ * decoupler, a medium tank and an engine (the core), and four liquid boosters (LB-1, the sim test's;
+ * the BST-1 became a solid motor in plan 210) at half thrust with nose cones and four fins on the
+ * core tank. Stage 1 lights the core and the boosters, stage 2 drops the boosters,
  * stage 3 drops the core and lights the lander. The trip planner of the stats strip measures it
  * against the moon (plan 034).
  */
@@ -160,9 +161,11 @@ export function moonShot(): VesselDesign {
 			},
 			{
 				index: 21 + 3 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 20 + 3 * k, parentNode: 'outer', node: 'radial' },
-				symmetry: 2
+				symmetry: 2,
+				// half thrust off the pad: liftoff TWR about 1.4, the boosters burn longer
+				settings: { 'stock.engine': { limiter: 0.5 } }
 			},
 			{
 				index: 22 + 3 * k,
