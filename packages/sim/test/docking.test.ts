@@ -270,6 +270,47 @@ describe('docking (plan 222)', () => {
 		resumed.dispose();
 	}, 60_000);
 
+	test('a port vessel stays in flight within 50 m of another; farther it goes idle on rails', async () => {
+		for (const [gap, mode] of [
+			[30, 'flight'],
+			[300, 'on-rails']
+		] as const) {
+			const sim = await createSim({ plugins: [Stock, awake], backendFactory: rapier(), seed: 3 });
+			const s = orbitState(sim, 200_000);
+			const at = (dy: number) => ({
+				kind: 'state' as const,
+				...s,
+				position: { ...s.position, y: s.position.y + dy },
+				orientation: { x: 0, y: 0, z: 0, w: 1 }
+			});
+			const a = sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Alpha', ['stock.docking-port', 'stock.tank-small', 'fix.awake'], []),
+				placement: at(0)
+			});
+			const b = sim.dispatch({
+				type: 'load-vessel',
+				design: stack('Station', ['stock.docking-port', 'stock.tank-small'], []),
+				placement: at(gap)
+			});
+			const part = sim
+				.snapshot()
+				.vessels.find((v) => v.id === a.vessel)!
+				.parts.find((p) => p.definition === 'fix.awake')!;
+			sim.dispatch({
+				type: 'action',
+				vessel: a.vessel!,
+				part: part.id,
+				module: 'fix.awake',
+				action: 'wake'
+			});
+			run(sim, 6);
+			const station = sim.snapshot().vessels.find((v) => v.id === b.vessel)!;
+			expect(station.mode, `${gap} m`).toBe(mode);
+			sim.dispose();
+		}
+	}, 60_000);
+
 	test('the docking scenario run twice gives identical snapshots', async () => {
 		const once = async () => {
 			const { sim } = await approach(0.2);

@@ -27,6 +27,7 @@ The flight's vessel is set once (`flight-loop.ts:259,933,951`), and `[`/`]` are 
 
 ## Consequences
 
+- Point 3's numbers, the merge and the undock restore are in ADR 0218 (plan 222): magnet 5 m, capture 0.15 m, 15°, under 0.5 m/s.
 - Plan 221 delivers points 1–2, plan 222 point 3, plan 223 points 4–6. Plan 229's docking lesson builds on 222.
 - Saves gain per-vessel designs; the save version goes up with a migration that gives existing vessels the focus design or a "design unknown" record.
 - The Mission Center's `NOT_FLYABLE` state is removed.

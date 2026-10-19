@@ -213,3 +213,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0215 | [Design records live on the sim's vessels; save envelope 3 seeds the focus](0215-design-records-in-the-sim-envelope-3.md) | accepted | 2026-10-19 |
 | 0216 | [A pod controls only with crew in it; launches seat crew; the pad state](0216-crew-in-seats-auto-crew-and-the-pad-state.md) | accepted | 2026-10-19 |
 | 0217 | [RCS: per-nozzle allocation, translation in the attitude command, and SAS authority](0217-rcs-allocation-translation-and-sas-authority.md) | accepted | 2026-10-19 |
+| 0218 | [Docking: capture numbers, merge into one vessel, undock restore](0218-docking-capture-merge-and-undock.md) | accepted | 2026-10-19 |

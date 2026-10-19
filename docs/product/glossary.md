@@ -46,7 +46,9 @@ Use these terms consistently in code, docs, and UI.
 | **Module augmentation** | `declare module '@orbital/sdk' { interface EventMap {…} }`: how a mod adds typed events, resource ids and module config types to the open interfaces. |
 | **Part shape** | Placeholder geometry of a part (`box` or `cylinder`, metres, axis = local Y) used by the renderer and physics body until art exists. `PartDefinition.shape`, ADR 0014. |
 | **Vessel API** | `ModuleContext.vessel`: the capabilities a module hook has over its vessel (forces, control input, ambient, resources, detach); ADR 0015. |
-| **Crossfeed** | Whether resources may flow through a part (`PartDefinition.crossfeed`, default true). Engines and decouplers block it, which makes a decoupler a stage barrier. |
+| **Crossfeed** | Whether resources may flow through a part (`PartDefinition.crossfeed`, default true). Engines and decouplers block it, which makes a decoupler a stage barrier. A docking port's Crossfeed switch closes it the same way (`ModuleDefinition.crossfeed`, plan 222). |
+| **Docking port** | A part whose module has a `dock` hook (`{ size, node }`): its free face node of one size (0.625, 1.25, 2.5 m) docks with an equal one (ADR 0218). |
+| **Capture** | Two aligned port faces within 0.15 m closing under 0.5 m/s merge their vessels into one; the keeper's `DockRecord` lets an undock restore both (ADR 0218). |
 | **Flight frame** | One physics backend with a local frame that moves at constant velocity; holds a cluster of flight vessels (ADR 0017). |
 | **Pad hold** | Removed by plan 012 (ADR 0019): a stack now stands on the ground tile by friction. Was: the sim pinned a surface-loaded vessel to its pad pose until thrust exceeded weight (ADR 0017). |
 | **Ground tile** | A kinematic slab under each flight vessel near the ground whose top face is the tangent plane of the reference sphere; real contact, friction and the rotating ground's velocity (ADR 0019). |

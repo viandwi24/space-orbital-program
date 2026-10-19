@@ -22,12 +22,15 @@ import {
 	frameOfVessel,
 	partOf,
 	totalMass,
+	vesselIds,
 	vesselOf,
 	type SimCore
 } from './core.ts';
 import { bodyMotion, createVesselBody, partTransform, partVelocity } from './frames.ts';
 import { qConj, qMul, qRotate } from './math.ts';
 import { reachMilestone } from './milestones.ts';
+import { wake, wakeBlocker } from './modes.ts';
+import { motionOf } from './orbit.ts';
 import type { DockRecord, FlightFrame, VesselState } from './state.ts';
 
 /** Ports this close (face to face, m) start to pull each other. */
@@ -44,6 +47,11 @@ export const CAPTURE_SPEED = 0.5;
 export const PULL_ACCEL = 0.15;
 /** The magnet pulls only while the faces close slower than this, m/s: they meet gently. */
 export const PULL_TARGET = 0.3;
+/**
+ * A vessel with a port this close (m, centre to centre) to a flight vessel with a port is put in
+ * flight and kept there: an idle station on rails can be docked with.
+ */
+export const PORT_WAKE_RANGE = 50;
 /** A port that just undocked does not capture for this long, s. */
 export const UNDOCK_COOLDOWN = 5;
 /** Ports whose faces met faster than `CAPTURE_SPEED` do not capture for this long, s (they bounce). */
@@ -125,8 +133,51 @@ function pairs(core: SimCore, frame: FlightFrame): Pair[] {
 	return out.sort((p, q) => p.dist - q.dist || p.a.part - q.a.part);
 }
 
+const hasPort = (core: SimCore, vesselId: EntityId): boolean =>
+	vesselOf(core, vesselId).parts.some((id) =>
+		partOf(core, id).modules.some((m) => moduleDefOf(core, m.id).dock !== undefined)
+	);
+
+/** Port vessels of a flight frame and their centres of mass, in the frame's body axes. */
+function portVessels(core: SimCore, frame: FlightFrame): Array<{ id: EntityId; r: Vec3 }> {
+	return frame.vessels
+		.filter((id) => hasPort(core, id))
+		.map((id) => ({ id, r: motionOf(core, vesselOf(core, id)).r }));
+}
+
+/**
+ * Before the step's forces: an on-rails vessel with a port inside `PORT_WAKE_RANGE` of a flight
+ * vessel with a port joins it in flight (ADR 0218). Runs where commands run, before the frames
+ * are prepared.
+ */
+export function wakePortNeighbours(core: SimCore): void {
+	for (const frame of core.frames) {
+		if (!frame.inUse) continue;
+		const near = portVessels(core, frame);
+		if (near.length === 0) continue;
+		for (const id of vesselIds(core)) {
+			const vessel = vesselOf(core, id);
+			if (vessel.mode !== 'on-rails' || vessel.soi !== frame.soi) continue;
+			if (vessel.rails?.kind === 'surface' || vessel.rails?.kind === 'frozen') continue;
+			if (!hasPort(core, id)) continue;
+			const r = motionOf(core, vessel).r;
+			if (!near.some((n) => length(sub(n.r, r)) < PORT_WAKE_RANGE)) continue;
+			if (wakeBlocker(core, id) === undefined) wake(core, id, 'docking approach');
+		}
+	}
+}
+
 /** Before the physics step: the magnets pull aligned, slow port pairs together. */
 export function pullPorts(core: SimCore, frame: FlightFrame): void {
+	// port vessels this close stay in flight (they would go idle on rails between pulls)
+	const near = portVessels(core, frame);
+	for (let i = 0; i < near.length; i++) {
+		for (let j = i + 1; j < near.length; j++) {
+			if (length(sub(near[i]!.r, near[j]!.r)) >= PORT_WAKE_RANGE) continue;
+			core.active.add(near[i]!.id);
+			core.active.add(near[j]!.id);
+		}
+	}
 	for (const { a, b, dist, rel } of pairs(core, frame)) {
 		if (dist < 1e-3 || length(rel) > MAX_PULL_SPEED) continue;
 		const closing = -dot(rel, scale(sub(b.at, a.at), 1 / dist));
