@@ -1544,7 +1544,8 @@
 	}
 	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
 	/* the vessel panel ends above the crew panel at the bottom right (plan 214: a tall panel ran under it) */
-	.vr {
+	/* `.tr.vr`: more specific than `.tr` below, whose max-height would win */
+	.tr.vr {
 		width: 21.25rem;
 		/* a block, not the flex of .tr: the panel inside must not shrink and spill, the box scrolls */
 		display: block;
