@@ -1,7 +1,7 @@
 ---
 id: 222
 title: Docking ports and docking
-status: in-progress
+status: done
 owner: "Worker A"
 depends: [221, 207, 211]
 phase: 7
@@ -72,22 +72,22 @@ Two vessels can dock. Docking ports in three sizes pull each other in when they 
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `bun test packages/sim` passes, including `test/docking.test.ts`: two vessels set 5 m apart with aligned ports and 0.2 m/s closing speed become one vessel within 10 s; at 3 m/s or 30° off-axis they do not.
-- [ ] Same test file: undock restores both original names, types and design ids; total mass is conserved to 1e-9 relative.
-- [ ] Same test file: with crossfeed off, the far side's tanks do not drain; with it on, they do.
-- [ ] Determinism: the docking scenario run twice gives identical snapshots.
-- [ ] `bun test packages/core` passes, including the save migration from version 8.
-- [ ] Chromium e2e `apps/web/e2e/docking.e2e.ts`: set up with `debug.setOrbit` (plan 203) two port-equipped vessels 20 m apart in low orbit; target the port; the indicator text shows angle and offset; translate in with RCS; the HUD shows one vessel; Undock gives two vessels in the vessel list with their old names.
-- [ ] `bun run check:affected --build --e2e e2e/docking.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan (`refs/ci/pass/<sha>`).
+- [x] `bun test packages/sim` passes, including `test/docking.test.ts`: two vessels set 5 m apart with aligned ports and 0.2 m/s closing speed become one vessel within 10 s; at 3 m/s or 30° off-axis they do not.
+- [x] Same test file: undock restores both original names, types and design ids; total mass is conserved to 1e-9 relative.
+- [x] Same test file: with crossfeed off, the far side's tanks do not drain; with it on, they do.
+- [x] Determinism: the docking scenario run twice gives identical snapshots.
+- [x] `bun test packages/core` passes, including the save migration from version 8.
+- [x] Chromium e2e `apps/web/e2e/docking.e2e.ts`: set up with `debug.setOrbit` (plan 203) two port-equipped vessels 20 m apart in low orbit; target the port; the indicator text shows angle and offset; translate in with RCS; the HUD shows one vessel; Undock gives two vessels in the vessel list with their old names.
+- [x] `bun run check:affected --build --e2e e2e/docking.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan (`refs/ci/pass/<sha>`).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/222-docking.md` written.
-- [ ] `docs/architecture/simulation.md` updated (merge and split, port module, crossfeed).
-- [ ] ADR 0208 linked and its capture numbers confirmed.
-- [ ] `docs/product/glossary.md`: docking port, capture, crossfeed.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/222-docking.md` written.
+- [x] `docs/architecture/simulation.md` updated (merge and split, port module, crossfeed).
+- [x] ADR 0208 linked and its capture numbers confirmed.
+- [x] `docs/product/glossary.md`: docking port, capture, crossfeed.
 
 ## Log
 
@@ -99,3 +99,4 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
   - "Control from here" is the existing plan 221 control-point button (`controlPoint: true`). "Set as target" is a Target list entry per free port, because a descriptor acts on the flying vessel's own parts.
   - The Docking action group already existed (`stock.docking`); Undock sits in it.
   - E2E: plan 203 is done, so the setup uses `debug.setOrbit` with `design` for the second vessel, the clock paused while both are placed.
+- 2026-10-19 — Done. CI `refs/ci/pass/c02128aa`. The e2e found three fixes: on-rails port vessels wake within 50 m, a sideways miss inside the capture range captures, and the target vessel needs a reaction wheel to turn its port (the stock probe core has none).
