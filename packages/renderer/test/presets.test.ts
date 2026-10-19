@@ -1,6 +1,13 @@
 import { ENVIRONMENT_PRESETS, findPreset } from '../src/camera-presets.ts';
 import { describe, expect, test } from 'bun:test';
-import { GRAPHICS_PRESETS, PRESETS, parsePreset, selectPreset } from '../src/presets.ts';
+import {
+	GRAPHICS_PRESETS,
+	PRESETS,
+	detailOf,
+	hangarDetail,
+	parsePreset,
+	selectPreset
+} from '../src/presets.ts';
 import {
 	DAY_EXPOSURE,
 	NIGHT_EXPOSURE,
@@ -160,5 +167,13 @@ describe('screenshot presets', () => {
 		}
 		expect(findPreset('pad-noon')?.sun?.elevation).toBe(62);
 		expect(findPreset('nope')).toBeUndefined();
+	});
+});
+
+describe('Hangar detail (plan 220)', () => {
+	test('the Hangar view asks for high part detail on the low preset too', () => {
+		expect(hangarDetail('low')).toEqual(detailOf(PRESETS.high));
+		expect(hangarDetail('high')).toEqual(detailOf(PRESETS.high));
+		expect(detailOf(PRESETS.low).segments).toBeLessThan(hangarDetail('low').segments);
 	});
 });

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { Box3, Mesh } from 'three';
+import { CREW, LANE, LANE_LENGTH, crewPose, lanePose } from '../src/vab/hangar-movers.ts';
 import {
 	HANGAR,
+	TOWERS,
 	createHangar,
 	floorBrightness,
 	hazard,
@@ -51,5 +53,58 @@ describe('hangar', () => {
 		const a = hazard(0.01, 0.01);
 		const b = hazard(0.1, 0.1);
 		expect(a).not.toEqual(b);
+	});
+
+	// Plan 220: a roomier Hangar.
+	const armsOf = (h: ReturnType<typeof createHangar>) => h.root.getObjectByName('arms')!;
+	/** The nearest any vertex of `o` comes to the vertical axis, m. */
+	const nearest = (o: { traverse(f: (x: unknown) => void): void }): number => {
+		let min = Infinity;
+		o.traverse((x) => {
+			if (!(x instanceof Mesh)) return;
+			const p = x.geometry.getAttribute('position');
+			for (let i = 0; i < p.count; i++) min = Math.min(min, Math.hypot(p.getX(i), p.getZ(i)));
+		});
+		return min;
+	};
+
+	it('the towers stand back: bases at |x| >= 14 m and z <= -12 m', () => {
+		for (const t of TOWERS) {
+			expect(Math.abs(t.x)).toBeGreaterThanOrEqual(14);
+			expect(t.z).toBeLessThanOrEqual(-12);
+		}
+	});
+
+	it('the swing arms stop at the platform edge, or 1 m outside a set vessel radius', () => {
+		const h = createHangar({ dust: 0, textureSize: 16 });
+		expect(nearest(armsOf(h))).toBeGreaterThanOrEqual(HANGAR.platformRadius);
+		h.setVesselRadius(1.875);
+		const close = nearest(armsOf(h));
+		expect(close).toBeGreaterThanOrEqual(2.5);
+		expect(close).toBeLessThan(HANGAR.platformRadius);
+		// a change under 0.1 m keeps the geometry
+		const before = armsOf(h).children[0];
+		h.setVesselRadius(1.9);
+		expect(armsOf(h).children[0]).toBe(before);
+		h.setVesselRadius(null);
+		expect(nearest(armsOf(h))).toBeGreaterThanOrEqual(HANGAR.platformRadius);
+		h.dispose();
+	});
+
+	it('every mover path stays outside the platform and off the tower bases', () => {
+		const onTower = (x: number, z: number, pad: number) =>
+			TOWERS.some((t) => Math.abs(x - t.x) < 1.8 + pad && Math.abs(z - t.z) < 1.8 + pad);
+		for (let s = 0; s < LANE_LENGTH; s += 0.25) {
+			const p = lanePose(s);
+			expect(Math.hypot(p.x, p.z)).toBeGreaterThan(HANGAR.platformRadius);
+			expect(onTower(p.x, p.z, 1.5)).toBe(false); // the tug is about 3 m wide with its trailer
+		}
+		expect(LANE.zEast).toBeLessThan(-14.6 - 1.5);
+		for (const c of CREW)
+			for (let t = 0; t < 120; t += 0.5) {
+				const p = crewPose(c, t);
+				expect(Math.hypot(p.x, p.z)).toBeGreaterThan(HANGAR.platformRadius);
+				expect(onTower(p.x, p.z, 0.3)).toBe(false);
+			}
 	});
 });

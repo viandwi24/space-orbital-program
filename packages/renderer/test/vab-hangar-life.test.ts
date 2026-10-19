@@ -100,8 +100,9 @@ describe('movers', () => {
 	it('the crane stays clear of the towers and the platform at every time', () => {
 		for (let t = 0; t < 400; t += 0.7) {
 			const p = cranePose(t);
-			// Towers stand at z = -7 (decks reach z = -5.1 to -8.9); the crate is 1.8 m deep.
-			expect(p.bridgeZ + 0.9).toBeLessThan(-9.2);
+			// The towers' decks start at |x| = 13 (plan 220); the crate is 1.8 m wide.
+			expect(Math.abs(p.trolleyX) + 0.9).toBeLessThan(13);
+			expect(p.bridgeZ + 0.9).toBeLessThan(-HANGAR.platformRadius);
 			// Crate bottom (4.75 m under the hook) above the tug (2 m) and the hook below the crane.
 			expect(p.hookY - 4.8).toBeGreaterThan(2.2);
 			expect(p.hookY).toBeLessThan(30);

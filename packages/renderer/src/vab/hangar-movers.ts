@@ -37,7 +37,7 @@ export interface CranePose {
 	hookY: number;
 }
 
-/** Slow, overlapping periods so the crane never repeats a pose; stays clear of the towers and the platform. */
+/** Slow, overlapping periods so the crane never repeats a pose; it runs between the towers (|x| < 13.4) and behind the platform. */
 export function cranePose(t: number): CranePose {
 	return {
 		bridgeZ: -13.5 + 2.5 * Math.sin((2 * Math.PI * t) / 96),
@@ -50,7 +50,8 @@ export const CRANE = { girderY: 37.3, trolleyY: 36.4, railX: 28.4 } as const;
 
 // --- tug on a lane ---------------------------------------------------------------------------------------------
 
-export const LANE = { x0: -18, x1: 18, zEast: -15.6, zWest: -18.6, speed: 1.9 } as const;
+/** The tug's loop (plan 220): behind the towers' bases (z = -11.4 to -14.6) and short of the crates. */
+export const LANE = { x0: -16, x1: 16, zEast: -18.6, zWest: -21.6, speed: 1.9 } as const;
 const LANE_R = (LANE.zEast - LANE.zWest) / 2;
 const LANE_STRAIGHT = LANE.x1 - LANE.x0;
 /** Length of the closed lane (two straights and two half turns), m. */
@@ -136,19 +137,19 @@ export const CREW: readonly CrewSpec[] = [
 		vest: VESTS[2]!,
 		hat: HATS[2]!,
 		skin: SKINS[2]!,
-		path: { kind: 'line', from: [-17, -11], to: [-12.4, -12.8], pause: 3 }
+		path: { kind: 'line', from: [-19.5, -8.6], to: [-12.8, -9.4], pause: 3 }
 	},
 	{
 		vest: VESTS[3]!,
 		hat: HATS[3]!,
 		skin: SKINS[3]!,
-		path: { kind: 'stand', x: -18.4, z: -15.6, facing: -0.6 }
+		path: { kind: 'stand', x: -18.6, z: -16.4, facing: -0.6 }
 	},
 	{
 		vest: VESTS[0]!,
 		hat: HATS[1]!,
 		skin: SKINS[2]!,
-		path: { kind: 'stand', x: -17.2, z: -16.4, facing: Math.PI - 0.7 }
+		path: { kind: 'stand', x: -17.4, z: -17.2, facing: Math.PI - 0.7 }
 	},
 	{
 		vest: VESTS[1]!,
@@ -160,7 +161,7 @@ export const CREW: readonly CrewSpec[] = [
 		vest: VESTS[2]!,
 		hat: HATS[3]!,
 		skin: SKINS[0]!,
-		path: { kind: 'stand', x: 3.4, z: 5.2, facing: -2.2 }
+		path: { kind: 'stand', x: 4.4, z: 5.6, facing: -2.2 }
 	},
 	{
 		vest: VESTS[3]!,

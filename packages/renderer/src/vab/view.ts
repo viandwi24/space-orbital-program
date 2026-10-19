@@ -36,7 +36,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { PRESETS, detailOf } from '../presets.ts';
+import { hangarDetail } from '../presets.ts';
 import { ConnectorBars } from '../parts/connector.ts';
 import { PartModelFactory, type PartModelFactoryConfig } from '../parts/factory.ts';
 import {
@@ -219,7 +219,7 @@ export class VabView {
 			visuals: config.visuals,
 			attach: config.attach,
 			providers: config.providers,
-			detail: detailOf(PRESETS[this.quality])
+			detail: hangarDetail(this.quality)
 		};
 		this.factory = new PartModelFactory(factoryConfig);
 		this.layer = new PartLayer(this.factory, this.highlights, config.visuals);
@@ -409,11 +409,27 @@ export class VabView {
 	setScene(next: VabScene): void {
 		this.layer.sync(next);
 		this.sceneModel = next;
+		this.hangar.setVesselRadius(this.vesselRadius());
 		this.applyHighlights();
 		this.rebuildMarkers(next.nodes);
 		this.rebuildGlyphs(next.markers ?? []);
 		this.updateFloorShifts();
 		this.updateCameraGoal();
+	}
+
+	/** The widest reach of the design (the `main` group) from the platform axis, m; null when empty. */
+	private vesselRadius(): number | null {
+		const main = this.layer.groups.get('main');
+		if (!main) return null;
+		const box = new Box3().setFromObject(main.object);
+		if (box.isEmpty()) return null;
+		const at = main.object.getWorldPosition(new Vector3());
+		return Math.max(
+			Math.abs(box.min.x - at.x),
+			Math.abs(box.max.x - at.x),
+			Math.abs(box.min.z - at.z),
+			Math.abs(box.max.z - at.z)
+		);
 	}
 
 	private rebuildMarkers(nodes: readonly VabNode[]): void {
