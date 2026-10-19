@@ -77,6 +77,15 @@
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox' });
 	let settingsOpen = $state(false);
 	const bell = createBellFeed();
+	// a changed debris cap reaches the running sim at once (plan 223)
+	$effect(() => {
+		const cap = settings.time.debrisCap;
+		const client = worldSession.client;
+		if (client)
+			void client.ready
+				.then(() => client.dispatch({ type: 'set-debris-cap', cap }))
+				.catch(() => {});
+	});
 
 	// ---- the clock (plan 205, ADR 0201 points 4 to 8) -------------------------------------------
 	let playerPaused = $state(false);
@@ -252,6 +261,10 @@
 			};
 			offClient.push(exposeDebugApi(window, createDebugApi(host), host));
 			void client.ready.then((c) => (catalog = c)).catch(() => {});
+			// the player's debris cap (plan 223): a setting, not a world rule, so sent each session
+			void client.ready
+				.then(() => client.dispatch({ type: 'set-debris-cap', cap: settings.time.debrisCap }))
+				.catch(() => {});
 			offClient.push(
 				client.onSnapshot((s, w) => {
 					snapshot = s;

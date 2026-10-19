@@ -7,6 +7,9 @@
 	 */
 	import {
 		calendarOf,
+		entityId,
+		type Command,
+		type VesselType,
 		formatDate,
 		type BodyDefinition,
 		type PartDefinition,
@@ -35,6 +38,7 @@
 		fly,
 		objectCard,
 		trackingRows,
+		typeCounts,
 		upcomingEvents,
 		warpToCommand,
 		alarmCommand,
@@ -83,7 +87,26 @@
 		world: () => activeWorldId()
 	});
 
-	const rows = $derived(trackingRows(snapshot, bodies, filter));
+	// the fleet list (plan 223): one type, a search, the order by name or distance
+	let trackType = $state<VesselType | null>(null);
+	let search = $state('');
+	let sort = $state<'name' | 'distance'>('name');
+	const counts = $derived(typeCounts(snapshot));
+	const listFrom = $derived.by(() => {
+		if (!snapshot) return null;
+		const v = focus === null ? undefined : snapshot.vessels.find((x) => Number(x.id) === focus);
+		return v ? worldOf(snapshot, `vessel:${v.id}`) : (snapshot.bodies[0]?.position ?? null);
+	});
+	const rows = $derived(
+		trackingRows(snapshot, bodies, filter, { type: trackType, search, sort, from: listFrom })
+	);
+
+	/** Fleet actions (plan 223): each is one command; a rename or a new type is saved at once. */
+	async function fleetCommand(command: Command, save = false): Promise<void> {
+		const r = await mc?.dispatch(command);
+		note = r && !r.ok ? r.reason : null;
+		if (r?.ok && save) await saves.autosave();
+	}
 	const card = $derived(objectCard(selected, snapshot, bodies, focus));
 	const clock = $derived(
 		snapshot && epoch && bodies.length ? formatDate(calendarOf(bodies), epoch, snapshot.t).text : ''
@@ -332,6 +355,22 @@
 		onselect={select}
 		{upcoming}
 		onwarp={(e) => void warpTo(e)}
+		{counts}
+		{trackType}
+		ontracktype={(t) => (trackType = t)}
+		{search}
+		onsearch={(t) => (search = t)}
+		{sort}
+		onsort={(s) => (sort = s)}
+		onrecover={(id) => void fleetCommand({ type: 'recover-vessel', vessel: entityId(id) }, true)}
+		onterminate={(id) => {
+			void fleetCommand({ type: 'terminate-vessel', vessel: entityId(id) }, true);
+			select(null);
+		}}
+		onrename={(id, name) =>
+			void fleetCommand({ type: 'rename-vessel', vessel: entityId(id), name }, true)}
+		onsettype={(id, vesselType) =>
+			void fleetCommand({ type: 'set-vessel-type', vessel: entityId(id), vesselType }, true)}
 		onalarmsave={(d) => void saveAlarm(d)}
 		onalarmremove={(id) => void removeAlarm(id)}
 		{windowDestinations}

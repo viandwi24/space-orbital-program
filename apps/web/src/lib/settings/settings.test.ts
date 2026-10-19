@@ -33,7 +33,12 @@ describe('settings parsing', () => {
 			interface: { scale: 1.25, highContrast: true, centreVessel: true },
 			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
 			debug: true,
-			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false },
+			time: {
+				places: { Hangar: false },
+				keepRunningHidden: true,
+				askLeaveFlight: false,
+				debrisCap: 100
+			},
 			keyProfile: 'classic' as const,
 			keyNotice: true,
 			lessons: {
@@ -85,7 +90,7 @@ describe('settings parsing', () => {
 			interface: { scale: 1, highContrast: false, centreVessel: false },
 			dock: defaultDock(),
 			debug: false,
-			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true },
+			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true, debrisCap: 250 },
 			// it has overrides: the classic profile, and the notice offers KSP (plan 216)
 			keyProfile: 'classic',
 			keyNotice: true,

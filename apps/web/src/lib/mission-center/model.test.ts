@@ -8,6 +8,7 @@ import {
 	fly,
 	objectCard,
 	trackingRows,
+	typeCounts,
 	upcomingEvents,
 	warpToCommand,
 	alarmCommand,
@@ -127,7 +128,7 @@ describe('Upcoming (plan 113)', () => {
 });
 
 describe('Tracking and the card', () => {
-	it('filters bodies and vessels; relays are empty until plan 117', () => {
+	it('filters bodies and vessels; relays are the vessels of type relay (plan 223)', () => {
 		expect(trackingRows(snapshot, bodies, 'all').map((r) => r.key)).toEqual([
 			'body:stock.home',
 			'body:stock.cinder',
@@ -135,11 +136,57 @@ describe('Tracking and the card', () => {
 			'vessel:2'
 		]);
 		expect(trackingRows(snapshot, bodies, 'vessels').map((r) => r.sub)).toEqual([
-			'Orbit · Cinder',
-			'Orbit · Home'
+			'Probe · Orbit · Cinder',
+			'Probe · Orbit · Home'
 		]);
 		expect(trackingRows(snapshot, bodies, 'bodies')).toHaveLength(2);
 		expect(trackingRows(snapshot, bodies, 'relays')).toEqual([]);
+	});
+
+	it('the fleet list filters by each type and its counts match (plan 223)', () => {
+		const types = [
+			'debris',
+			'probe',
+			'rover',
+			'lander',
+			'ship',
+			'station',
+			'base',
+			'plane',
+			'relay',
+			'eva',
+			'flag'
+		] as const;
+		const fleet: Snapshot = {
+			...snapshot,
+			vessels: types.flatMap((type, k) =>
+				Array.from({ length: k + 1 }, (_, j) =>
+					vessel(100 + k * 20 + j, { type, name: `${type} ${j}` })
+				)
+			)
+		};
+		const counts = typeCounts(fleet);
+		expect(counts.all).toBe(fleet.vessels.length);
+		types.forEach((type, k) => {
+			expect(counts.byType[type]).toBe(k + 1);
+			const rows = trackingRows(fleet, bodies, 'all', { type });
+			expect(rows).toHaveLength(counts.byType[type]);
+			expect(rows.every((r) => r.type === type)).toBe(true);
+		});
+		expect(trackingRows(fleet, bodies, 'relays')).toHaveLength(counts.byType.relay);
+		// search and sort by distance from a point
+		expect(
+			trackingRows(fleet, bodies, 'vessels', { search: 'ROVER 1' }).map((r) => r.label)
+		).toEqual(['rover 1']);
+		const near = vessel(900, { name: 'Near', position: { x: 10, y: 0, z: 0 } });
+		const far = vessel(901, { name: 'Alpha far', position: { x: 9e6, y: 0, z: 0 } });
+		const two: Snapshot = { ...snapshot, vessels: [far, near] };
+		expect(
+			trackingRows(two, bodies, 'vessels', { sort: 'distance', from: { x: 0, y: 0, z: 0 } }).map(
+				(r) => r.label
+			)
+		).toEqual(['Near', 'Alpha far']);
+		expect(trackingRows(two, bodies, 'vessels').map((r) => r.label)).toEqual(['Alpha far', 'Near']);
 	});
 
 	it('Fly is enabled for every vessel of the player, not for an agency object (plan 221)', () => {
