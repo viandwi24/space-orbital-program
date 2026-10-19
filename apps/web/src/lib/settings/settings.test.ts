@@ -28,7 +28,7 @@ describe('settings parsing', () => {
 			units: 'imperial' as const,
 			tutorial: { status: 'active' as const, step: 3 },
 			bindings: { stage: ['KeyF'], help: ['F1'] },
-			audio: { master: 0.4, effects: 0.5, ui: 0.1, muted: true },
+			audio: { master: 0.4, effects: 0.5, ui: 0.1, music: 0.6, muted: true },
 			touch: 'on' as const,
 			interface: { scale: 1.25, highContrast: true, centreVessel: true },
 			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
@@ -72,6 +72,8 @@ describe('settings parsing', () => {
 		};
 		expect(parseSettings(JSON.stringify(v2))).toEqual({
 			...v2,
+			// no music volume in format 2: the quiet default (plan 227)
+			audio: { ...v2.audio, music: 0.25 },
 			v: 4,
 			interface: { scale: 1, highContrast: false, centreVessel: false },
 			dock: defaultDock(),
@@ -135,7 +137,7 @@ describe('settings parsing', () => {
 			})
 		);
 		expect(s.units).toBe('imperial');
-		expect(s.audio).toEqual({ master: 0.7, effects: 0.8, ui: 0.25, muted: false });
+		expect(s.audio).toEqual({ master: 0.7, effects: 0.8, ui: 0.25, music: 0.25, muted: false });
 		expect(s.touch).toBe('auto');
 		// stage clashes with Z (full throttle) and is dropped; map is fine; the rest is unknown or reserved
 		expect(s.bindings).toEqual({ map: ['KeyB'] });

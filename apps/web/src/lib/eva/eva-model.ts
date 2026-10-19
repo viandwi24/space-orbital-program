@@ -52,6 +52,8 @@ export interface SuitStatus {
 	jetpack: boolean;
 	/** The jetpack's part, for its on/off action. */
 	jetpackPart: number | null;
+	/** 0..1 of the jetpack's thrust last step (plan 227: its hiss). */
+	jetpackFiring: number;
 }
 
 export function suitStatus(v: VesselSnapshot): SuitStatus {
@@ -60,13 +62,14 @@ export function suitStatus(v: VesselSnapshot): SuitStatus {
 		return r ? { amount: r.amount, capacity: r.capacity } : null;
 	};
 	const part = v.parts.find((p) => p.modules[JETPACK_MODULE] !== undefined);
-	const state = part?.modules[JETPACK_MODULE] as { on?: boolean } | undefined;
+	const state = part?.modules[JETPACK_MODULE] as { on?: boolean; firing?: number } | undefined;
 	return {
 		gas: res(COLD_GAS),
 		oxygen: res('stock.oxygen'),
 		charge: res('stock.electric-charge'),
 		jetpack: state?.on === true,
-		jetpackPart: part ? Number(part.id) : null
+		jetpackPart: part ? Number(part.id) : null,
+		jetpackFiring: typeof state?.firing === 'number' ? state.firing : 0
 	};
 }
 

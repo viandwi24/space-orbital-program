@@ -4,9 +4,19 @@
  * user gesture (autoplay policy, `research/web-audio-and-touch.md`); a hidden tab suspends the
  * context. The main thread only sets parameters; the sound is made on the audio thread.
  */
-import { busGains, type FlightSound, type Volumes } from './params';
+import { busGains, DEFAULT_MUSIC, type FlightSound, type Volumes } from './params';
+import {
+	BEDS,
+	CUES,
+	DUCK_LEVEL,
+	DUCK_SECONDS,
+	MUSIC_FADE,
+	type CueId,
+	type MusicBed
+} from './cues';
 
-export type OneShot = 'click' | 'sasOn' | 'sasOff' | 'stage' | 'warning' | 'chute';
+/** The original one-shots (plan 053) and the cue table's (plan 227, `cues.ts`). */
+export type OneShot = 'click' | 'sasOn' | 'sasOff' | 'stage' | 'warning' | 'chute' | CueId;
 /** `locked`: no gesture yet (or no Web Audio); `muted`: the player's mute; otherwise the context's state. */
 export type AudioState = 'locked' | 'running' | 'suspended' | 'muted';
 
@@ -26,7 +36,10 @@ export interface AudioEngine {
 	setVolumes(v: Volumes): void;
 	/** Target values for the continuous sounds (engine, rumble, wind). */
 	setFlight(sound: FlightSound): void;
-	oneShot(kind: OneShot): void;
+	/** `intensity` 0..1 scales the cues that have one (explosion, touchdown). */
+	oneShot(kind: OneShot, intensity?: number): void;
+	/** The ambient bed to play (plan 227), crossfading from the current one; null fades it out. */
+	setMusic(bed: MusicBed | null): void;
 	/** RMS of the master output right now, 0..1 (creates an analyser on first use; for tests and the debug hook). */
 	level(): number;
 	/** One-shot graphs still alive (a leak check for tests). */
@@ -34,7 +47,15 @@ export interface AudioEngine {
 	dispose(): void;
 }
 
-const DEFAULT_VOLUMES: Volumes = { master: 0.7, effects: 0.8, ui: 0.6, muted: false };
+const DEFAULT_VOLUMES: Volumes = {
+	master: 0.7,
+	effects: 0.8,
+	ui: 0.6,
+	music: DEFAULT_MUSIC,
+	muted: false
+};
+/** A bed's own level before the music bus: soft, it sits under everything. */
+const BED_LEVEL = 0.08;
 /** Parameter smoothing time constant, s: fast enough to follow the throttle, too slow to click. */
 const SMOOTH = 0.08;
 const NOISE_SECONDS = 2;
@@ -73,6 +94,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		master: GainNode;
 		effects: GainNode;
 		ui: GainNode;
+		music: GainNode;
 		roarGain: GainNode;
 		roarFilter: BiquadFilterNode;
 		rumbleGain: GainNode;
@@ -83,6 +105,9 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		noise: AudioBuffer;
 	};
 	let g: Graph | null = null;
+	/** The bed asked for, and the one playing with its nodes. */
+	let wantBed: MusicBed | null = null;
+	let playing: { bed: MusicBed; gain: GainNode; nodes: AudioScheduledSourceNode[] } | null = null;
 
 	const stateNow = (): AudioState => {
 		if (ctx === null) return 'locked';
@@ -102,7 +127,66 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		ramp(g.master.gain, gains.master);
 		ramp(g.effects.gain, gains.effects);
 		ramp(g.ui.gain, gains.ui);
+		ramp(g.music.gain, gains.music);
 		publish();
+	}
+
+	/** Fade the playing bed out and the wanted one in (plan 227). */
+	function applyMusic(): void {
+		if (!ctx || !g) return;
+		if (playing?.bed === wantBed) return;
+		const t = ctx.currentTime;
+		if (playing) {
+			const old = playing;
+			old.gain.gain.setTargetAtTime(0, t, MUSIC_FADE / 4);
+			for (const n of old.nodes) n.stop(t + MUSIC_FADE + 0.2);
+			old.nodes[0]!.onended = () => {
+				for (const n of old.nodes) n.disconnect();
+				old.gain.disconnect();
+			};
+			playing = null;
+		}
+		if (wantBed === null) return;
+		const spec = BEDS[wantBed];
+		const gain = ctx.createGain();
+		gain.gain.setValueAtTime(0, t);
+		gain.gain.setTargetAtTime(BED_LEVEL, t, MUSIC_FADE / 4);
+		const filter = ctx.createBiquadFilter();
+		filter.type = 'lowpass';
+		filter.frequency.value = spec.cutoff;
+		filter.connect(gain).connect(g.music);
+		const nodes: AudioScheduledSourceNode[] = [];
+		// the filter breathes slowly
+		const lfo = ctx.createOscillator();
+		lfo.frequency.value = spec.lfo;
+		const depth = ctx.createGain();
+		depth.gain.value = spec.cutoff * 0.35;
+		lfo.connect(depth).connect(filter.frequency);
+		lfo.start(t);
+		nodes.push(lfo);
+		spec.notes.forEach((f, i) => {
+			for (const cents of [-6, 6]) {
+				const osc = ctx!.createOscillator();
+				osc.type = i === 0 ? 'sine' : 'triangle';
+				osc.frequency.value = f;
+				osc.detune.value = cents;
+				const voice = ctx!.createGain();
+				voice.gain.value = 1 / (spec.notes.length * 2);
+				osc.connect(voice).connect(filter);
+				osc.start(t);
+				nodes.push(osc);
+			}
+		});
+		playing = { bed: wantBed, gain, nodes };
+	}
+
+	/** Lower the music under a warning for a moment (plan 227). */
+	function duck(): void {
+		if (!ctx || !g) return;
+		const level = busGains(volumes).music;
+		const t = ctx.currentTime;
+		g.music.gain.setTargetAtTime(level * DUCK_LEVEL, t, 0.05);
+		g.music.gain.setTargetAtTime(level, t + DUCK_SECONDS, 0.4);
 	}
 
 	function applyFlight(): void {
@@ -123,8 +207,10 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		master.connect(compressor).connect(c.destination);
 		const effects = c.createGain();
 		const ui = c.createGain();
+		const music = c.createGain();
 		effects.connect(master);
 		ui.connect(master);
+		music.connect(master);
 
 		const noise = c.createBuffer(1, Math.floor(c.sampleRate * NOISE_SECONDS), c.sampleRate);
 		noise.copyToChannel(noiseSamples(noise.length) as Float32Array<ArrayBuffer>, 0);
@@ -181,6 +267,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 			master,
 			effects,
 			ui,
+			music,
 			roarGain,
 			roarFilter,
 			rumbleGain,
@@ -209,6 +296,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 			g = build(ctx);
 			applyVolumes();
 			applyFlight();
+			applyMusic();
 		}
 		// `suspended` is ours (hidden tab) or the autoplay lock; `interrupted` is the system's (Safari,
 		// MDN BaseAudioContext.state). Either way a gesture is the moment to ask for sound again.
@@ -323,6 +411,87 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		}, 'effects');
 	}
 
+	/** A filtered noise burst with a sweep and an exponential decay (plan 227's cues). */
+	function noiseBurst(
+		type: BiquadFilterType,
+		from: number,
+		to: number,
+		length: number,
+		peak: number,
+		bus: 'effects' | 'ui',
+		start = 0
+	): void {
+		shot((c, out, end) => {
+			const t = c.currentTime + start;
+			const src = c.createBufferSource();
+			src.buffer = g!.noise;
+			const filter = c.createBiquadFilter();
+			filter.type = type;
+			filter.frequency.setValueAtTime(from, t);
+			if (to !== from) filter.frequency.exponentialRampToValueAtTime(to, t + length);
+			const env = c.createGain();
+			env.gain.setValueAtTime(0.0001, t);
+			env.gain.linearRampToValueAtTime(peak, t + Math.min(0.01, length / 4));
+			env.gain.exponentialRampToValueAtTime(0.0001, t + length);
+			src.connect(filter).connect(env).connect(out);
+			out.gain.value = 1;
+			src.onended = () => end([src, filter, env]);
+			src.start(t, (from * 7) % 1.5);
+			src.stop(t + length + 0.02);
+		}, bus);
+	}
+
+	/** A cue of the table (plan 227): procedural, sized by `intensity` where it has one. */
+	function cue(id: CueId, intensity: number): void {
+		const k = Math.max(0, Math.min(1, Number.isFinite(intensity) ? intensity : 1));
+		const peak = CUES[id].gain;
+		switch (id) {
+			case 'explosion':
+				noiseBurst('lowpass', 900, 120, 0.9 + 0.8 * k, peak * (0.5 + 0.5 * k), 'effects');
+				tone('sine', 70, 24, 0, 0.8 + 0.6 * k, peak * (0.4 + 0.4 * k), 'effects');
+				return;
+			case 'decouple':
+				thunk();
+				tone('square', 2600, 1700, 0, 0.025, peak * 0.3, 'effects');
+				return;
+			case 'chute-semi':
+				noiseBurst('bandpass', 400, 1100, 0.4, peak, 'effects');
+				return;
+			case 'chute-full':
+				whoosh();
+				return;
+			case 'touchdown':
+				tone('sine', 90, 38, 0, 0.25, peak * (0.35 + 0.65 * k), 'effects');
+				noiseBurst('lowpass', 600, 200, 0.18, peak * 0.6 * k, 'effects');
+				return;
+			case 'rcs':
+				noiseBurst('highpass', 2400, 2000, 0.09, peak, 'effects');
+				return;
+			case 'eva-step':
+				noiseBurst('lowpass', 500, 300, 0.06, peak, 'effects');
+				return;
+			case 'jetpack':
+				noiseBurst('highpass', 1500, 2600, 0.3, peak, 'effects');
+				return;
+			case 'docking':
+				thunk();
+				tone('triangle', 520, 515, 0.12, 0.45, peak * 0.3, 'effects');
+				return;
+			case 'map-open':
+				tone('sine', 520, 880, 0, 0.12, peak, 'ui');
+				return;
+			case 'map-close':
+				tone('sine', 880, 520, 0, 0.12, peak, 'ui');
+				return;
+			case 'warp-up':
+				tone('triangle', 740, 1040, 0, 0.07, peak, 'ui');
+				return;
+			case 'warp-down':
+				tone('triangle', 1040, 740, 0, 0.07, peak, 'ui');
+				return;
+		}
+	}
+
 	return {
 		get state() {
 			return stateNow();
@@ -338,7 +507,12 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 			flight = sound;
 			applyFlight();
 		},
-		oneShot(kind) {
+		setMusic(bed) {
+			wantBed = bed;
+			applyMusic();
+		},
+		oneShot(kind, intensity = 1) {
+			if (kind in CUES) return cue(kind as CueId, intensity);
 			switch (kind) {
 				case 'click':
 					tone('sine', 1100, 700, 0, 0.035, 0.35, 'ui');
@@ -356,6 +530,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 					whoosh();
 					break;
 				case 'warning':
+					duck();
 					tone('square', 880, 880, 0, 0.12, 0.18, 'effects');
 					tone('square', 880, 880, 0.18, 0.12, 0.18, 'effects');
 					break;

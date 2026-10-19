@@ -31,12 +31,20 @@ export const TOUCH_CHOICES = ['auto', 'on', 'off'] as const;
 export type TouchChoice = (typeof TOUCH_CHOICES)[number];
 
 const volume = (fallback: number) => z.number().min(0).max(1).catch(fallback);
-export const DEFAULT_AUDIO = { master: 0.7, effects: 0.8, ui: 0.6, muted: false } as const;
+/** `music` (plan 227): additive in format 4; a profile without it gets the quiet default. */
+export const DEFAULT_AUDIO = {
+	master: 0.7,
+	effects: 0.8,
+	ui: 0.6,
+	music: 0.25,
+	muted: false
+} as const;
 const audioSchema = z
 	.object({
 		master: volume(DEFAULT_AUDIO.master),
 		effects: volume(DEFAULT_AUDIO.effects),
 		ui: volume(DEFAULT_AUDIO.ui),
+		music: volume(DEFAULT_AUDIO.music),
 		muted: z.boolean().catch(false)
 	})
 	.catch({ ...DEFAULT_AUDIO });
@@ -128,7 +136,7 @@ export interface Settings {
 	tutorial: { status: (typeof TUTORIAL_STATUS)[number]; step: number };
 	/** Only what the player changed (ADR 0061). */
 	bindings: Bindings;
-	audio: { master: number; effects: number; ui: number; muted: boolean };
+	audio: { master: number; effects: number; ui: number; music: number; muted: boolean };
 	touch: TouchChoice;
 	interface: { scale: number; highContrast: boolean; centreVessel: boolean; panelWidth?: number };
 	dock: DockChoice;

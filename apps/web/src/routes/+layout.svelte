@@ -14,6 +14,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { applyAudioSettings, pageAudio } from '../lib/audio/audio';
+	import { musicForPath } from '../lib/audio/cues';
 	import { detectInBrowser, missingFeatures } from '../lib/browser-support';
 	import { chordIdOf } from '../lib/keybindings';
 	import { settings } from '../lib/settings/settings.svelte';
@@ -94,6 +95,13 @@
 	// Volumes and mute from the settings reach the engine (and wait for it before the first gesture).
 	$effect(() => {
 		applyAudioSettings({ ...settings.audio });
+	});
+	// The ambient bed of the page (plan 227): crossfades when the player moves between screens.
+	$effect(() => {
+		const home = resolve('/');
+		const path = page.url.pathname;
+		const local = path.startsWith(home) ? '/' + path.slice(home.length) : path;
+		pageAudio().setMusic(musicForPath(local));
 	});
 </script>
 

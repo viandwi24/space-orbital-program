@@ -108,10 +108,25 @@ export interface Volumes {
 	master: number;
 	effects: number;
 	ui: number;
+	/** The ambient music bus (plan 227): quiet by default (0.25). Older callers may leave it out. */
+	music?: number;
 	muted: boolean;
 }
 
-/** The three gains the graph needs: a muted master is 0, every volume is clamped to 0..1. */
-export function busGains(v: Volumes): { master: number; effects: number; ui: number } {
-	return { master: v.muted ? 0 : unit(v.master), effects: unit(v.effects), ui: unit(v.ui) };
+/** The music bus's level when the settings give none (plan 227, rancangan §15 #9). */
+export const DEFAULT_MUSIC = 0.25;
+
+/** The gains the graph needs: a muted master is 0, every volume is clamped to 0..1. */
+export function busGains(v: Volumes): {
+	master: number;
+	effects: number;
+	ui: number;
+	music: number;
+} {
+	return {
+		master: v.muted ? 0 : unit(v.master),
+		effects: unit(v.effects),
+		ui: unit(v.ui),
+		music: unit(v.music ?? DEFAULT_MUSIC)
+	};
 }

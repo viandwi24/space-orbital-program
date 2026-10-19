@@ -417,7 +417,24 @@ export function startFlight(options: FlightOptions): Flight {
 	};
 	let hudCtl: HudController | null = null;
 	/** Sound (plan 053, ADR 0062): the director reads `audioView`, refreshed with the 10 Hz HUD model. */
-	const director = createDirector(pageAudio());
+	const director = createDirector(pageAudio(), {
+		// the touchdown has no toast of its own: the cue's visual sign (plan 227, rancangan §11.8)
+		onCue: (id, detail) => {
+			if (id === 'touchdown' && detail.speed !== undefined)
+				hudCtl?.notice({
+					kind: detail.speed >= 6 ? 'warning' : 'info',
+					title: `Touchdown at ${detail.speed.toFixed(1)} m/s`,
+					key: 'touchdown'
+				});
+		},
+		// the cues played, for the e2e (`data-audio-cues`), as the engine publishes `data-audio`
+		publish: (played) => {
+			if (typeof document === 'undefined') return;
+			document.documentElement.dataset.audioCues = Object.entries(played)
+				.map(([id, n]) => `${id}:${n}`)
+				.join(',');
+		}
+	});
 	let audioView: AudioFlightView | null = null;
 	let modal = false;
 	let script: ScriptView = idleScript();
@@ -678,6 +695,7 @@ export function startFlight(options: FlightOptions): Flight {
 					return;
 				}
 				const granted = r.granted ?? factor;
+				if (granted !== hud.warp) director.cue(granted > hud.warp ? 'warp-up' : 'warp-down');
 				hud.warp = granted;
 				hud.warpClamp = r.limit ?? null;
 				warpIndex = list.reduce((at, step, i) => (step <= granted ? i : at), 0);
@@ -1065,6 +1083,7 @@ export function startFlight(options: FlightOptions): Flight {
 
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
+		director.cue(hud.map ? 'map-open' : 'map-close');
 		hudCtl?.setMapView(hud.map);
 	}
 
@@ -1214,7 +1233,10 @@ export function startFlight(options: FlightOptions): Flight {
 						speed: m.speed,
 						heat: m.heat,
 						atmosphere: catalog?.bodies.find((b) => b.id === soi)?.atmosphere,
-						rcs: m.rcsFiring
+						rcs: m.rcsFiring,
+						radar: m.radar,
+						walking: hud.eva?.walking === true,
+						jetpack: hud.eva?.status?.jetpackFiring ?? 0
 					}
 				: null;
 			// The prograde reference follows the speed readout (V, or the automatic switch).
@@ -1267,7 +1289,7 @@ export function startFlight(options: FlightOptions): Flight {
 		client.onStage((event) => {
 			logBuffer.add('info', 'sim', `stage ${event.stage} fired on vessel ${event.vessel}`);
 			hudCtl?.stage(event);
-			director.event('stage');
+			director.cue('decouple');
 		})
 	);
 	offClient.push(
@@ -1300,9 +1322,16 @@ export function startFlight(options: FlightOptions): Flight {
 					});
 			}
 			if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
-			// a canopy filling (plan 209); a torn one warns
-			if (event.type === 'parachute-deployed') director.event('chute');
+			// a destroyed part explodes, louder the heavier it was (plan 227)
+			if (event.type === 'part-damaged' && event.outcome === 'destroyed') {
+				const mass = catalog?.parts.find((p) => String(p.id) === event.definition)?.mass ?? 500;
+				director.cue('explosion', Math.min(1, Math.sqrt(mass / 4000)));
+			}
+			// a canopy streaming, then filling (plan 209); a torn one warns
+			if (event.type === 'parachute-deployed')
+				director.cue(event.stage === 'semi' ? 'chute-semi' : 'chute-full');
 			if (event.type === 'parachute-torn') director.event('warning');
+			if (event.type === 'docked') director.cue('docking');
 		})
 	);
 	offClient.push(

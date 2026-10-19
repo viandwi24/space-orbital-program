@@ -142,15 +142,18 @@ describe('warning tone', () => {
 
 describe('volumes', () => {
 	it('clamp to 0..1, and mute zeroes the master only', () => {
-		expect(busGains({ master: 2, effects: -1, ui: 0.5, muted: false })).toEqual({
+		expect(busGains({ master: 2, effects: -1, ui: 0.5, music: 3, muted: false })).toEqual({
 			master: 1,
 			effects: 0,
-			ui: 0.5
+			ui: 0.5,
+			music: 1
 		});
 		expect(busGains({ master: 0.7, effects: 0.8, ui: 0.6, muted: true })).toEqual({
 			master: 0,
 			effects: 0.8,
-			ui: 0.6
+			ui: 0.6,
+			// no music volume given: the quiet default (plan 227)
+			music: 0.25
 		});
 		expect(busGains({ master: Number.NaN, effects: 1, ui: 1, muted: false }).master).toBe(0);
 	});

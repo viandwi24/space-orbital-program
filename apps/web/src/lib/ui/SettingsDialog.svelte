@@ -90,7 +90,8 @@
 	const volumes = [
 		{ key: 'master', label: 'Master', hint: 'Everything' },
 		{ key: 'effects', label: 'Effects', hint: 'Engines, wind, staging, warnings' },
-		{ key: 'ui', label: 'Interface', hint: 'Button clicks and SAS ticks' }
+		{ key: 'ui', label: 'Interface', hint: 'Button clicks and SAS ticks' },
+		{ key: 'music', label: 'Music', hint: 'Quiet ambient beds behind the game' }
 	] as const;
 	const tutorialText = $derived(
 		settings.tutorial.status === 'done'
