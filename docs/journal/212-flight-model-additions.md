@@ -32,5 +32,9 @@
 ## Verification output
 
 ```
-(filled in at handover)
+bun test packages/sim: atmosphere-temperature 3, mach-drag 2, heating 13, booster/asparagus/moon-mission, sol-validation 6, sun-parity (re-frozen) pass
+bun test (10 workspaces) in check:affected: pass; web vitest 677 pass (heat-row, script-api)
+check:affected --build --e2e e2e/reentry.e2e.ts (after the rebase on plan 210): all passed in 319 s
+playwright chromium: reentry, parachute (twice), smoke (7), launch (2), debug (3) pass
+CI ready/212: two runs failed on bun's 5 s timeout (the four-entry heating test, the 100-part determinism test), then refs/ci/pass/37945a39
 ```

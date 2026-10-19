@@ -1,7 +1,7 @@
 ---
 id: 212
 title: Mach effects, atmosphere temperature curves, heating rule, part temperature limits
-status: in-progress
+status: done
 owner: "Worker B"
 depends: []
 phase: 7
@@ -74,21 +74,21 @@ The atmosphere has a temperature that changes with altitude on each body, so den
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim/test/atmosphere-temperature.test.ts` passes: with no curve, density equals today's to 1e-9; with the stock curve, the speed of sound at 0 m is 340 ± 2 m/s and at 11 km is 295 ± 3 m/s.
-- [ ] `bun test packages/sim/test/mach-drag.test.ts` passes: the drag factor at Mach 1.1 is greater than at Mach 0.6 and at Mach 3.
-- [ ] `bun test packages/sim/test/heating.test.ts` passes with a new case: the same re-entry with `stock.reentry-heating = 0` keeps every part under 400 K; at 1 the pod peaks below 2400 K with a heat shield.
-- [ ] `bun test packages/sim/test/booster-ascent.test.ts packages/sim/test/asparagus-ascent.test.ts packages/sim/test/moon-mission.test.ts` pass.
-- [ ] Chromium e2e `e2e/reentry.e2e.ts`: `window.__orbitalDebug.setLocation` puts a pod at 60 km, 2300 m/s downward; the vessel panel shows a temperature bar for the shield with a text value; the flight ends with the pod intact.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `bun test packages/sim/test/atmosphere-temperature.test.ts` passes: with no curve, density equals today's to 1e-9; with the stock curve, the speed of sound at 0 m is 340 ± 2 m/s and at 11 km is 295 ± 3 m/s.
+- [x] `bun test packages/sim/test/mach-drag.test.ts` passes: the drag factor at Mach 1.1 is greater than at Mach 0.6 and at Mach 3.
+- [x] `bun test packages/sim/test/heating.test.ts` passes with a new case: the same re-entry with `stock.reentry-heating = 0` keeps every part under 400 K; at 1 the pod peaks below 2400 K with a heat shield.
+- [x] `bun test packages/sim/test/booster-ascent.test.ts packages/sim/test/asparagus-ascent.test.ts packages/sim/test/moon-mission.test.ts` pass.
+- [x] Chromium e2e `e2e/reentry.e2e.ts`: `window.__orbitalDebug.setLocation` puts a pod at 60 km, 2300 m/s downward; the vessel panel shows a temperature bar for the shield with a text value; the flight ends with the pod intact.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/212-flight-model-additions.md` written, with the curves' sources and any rebalance.
-- [ ] `docs/architecture/simulation.md` updated (atmosphere, Mach drag, heating rule, limits).
-- [ ] `docs/architecture/plugin-system.md` updated (body `temperatureCurve` for mods).
-- [ ] `docs/research/stack-versions.md` updated for any reference table looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/212-flight-model-additions.md` written, with the curves' sources and any rebalance.
+- [x] `docs/architecture/simulation.md` updated (atmosphere, Mach drag, heating rule, limits).
+- [x] `docs/architecture/plugin-system.md` updated (body `temperatureCurve` for mods).
+- [x] `docs/research/stack-versions.md` updated for any reference table looked up.
 
 ## Log
 
