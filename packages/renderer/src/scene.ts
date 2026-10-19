@@ -275,7 +275,7 @@ export class SceneModel {
 	private focus: { definition: string; occurrence: number } | null = null;
 	/** The player's part focus (plan 226): the camera looks at this part of the active vessel. */
 	private focusId: EntityId | null = null;
-	/** Flight camera mode (plan 226, ADR 0224), the mode it resolved to last and that frame. */
+	/** Flight camera mode (plan 226, ADR 0226), the mode it resolved to last and that frame. */
 	private cameraMode: CameraMode = 'free';
 	private resolvedMode: Exclude<CameraMode, 'auto'> | null = null;
 	private cameraFrame: Quat | null = null;
@@ -1709,7 +1709,7 @@ export class SceneModel {
 			}
 			rig = this.flightRig;
 		}
-		// Flight view (plan 226, ADR 0224): the mode's frame. Free has "up" away from the SOI body
+		// Flight view (plan 226, ADR 0226): the mode's frame. Free has "up" away from the SOI body
 		// (the pad is not at the pole), so the vessel stands upright on screen; Orbital the orbit
 		// normal; Locked the vessel. A change of the resolved mode re-measures the rig, so the view
 		// direction stays. Map view keeps +Y (the body's rotation axis) up.

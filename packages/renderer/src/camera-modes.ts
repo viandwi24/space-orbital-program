@@ -1,5 +1,5 @@
 /**
- * Flight camera modes (plan 226, ADR 0224). The orbit rig keeps one state (yaw, pitch, distance);
+ * Flight camera modes (plan 226, ADR 0226). The orbit rig keeps one state (yaw, pitch, distance);
  * a mode only picks the frame that yaw and pitch are measured in:
  *
  * - `free`: up is away from the body's centre (today's horizon-up rig);

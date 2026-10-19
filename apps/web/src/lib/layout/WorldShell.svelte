@@ -137,6 +137,13 @@
 <StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} />
 
 <style>
+	/* F2 in flight (plan 226): the bars and the menu step aside with the rest of the interface */
+	:global(html[data-ui-hidden] [data-testid='time-bar']),
+	:global(html[data-ui-hidden] [data-testid='menu-bar']),
+	:global(html[data-ui-hidden] [data-testid='status-bar']),
+	:global(html[data-ui-hidden] [data-testid='system-menu']) {
+		display: none !important;
+	}
 	/* the safe area (BASE_LAYOUT §1): pages without a 3D view sit in it */
 	.page {
 		position: fixed;

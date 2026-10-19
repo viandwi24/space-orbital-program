@@ -1,12 +1,12 @@
 ---
 id: 226
 title: Camera modes, hide UI and screenshots
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker C"
 depends: [216]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 226 — Camera modes, hide UI and screenshots
@@ -87,3 +87,7 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker C refined to ready and claimed (claim/226). Checked against the code: the rig is `camera-rig.ts` (yaw, pitch, distance) placed in `SceneModel.placeCamera` with up away from the body; a debug-only part focus by definition existed; plan 216 declared `cameraMode` (V in the KSP profile, no key in Classic), `cameraReset` (`), `hideUi` (F2) and `screenshot` (F10) as pending. Plan 203's debug API is on main, so the e2e uses `debug.setOrbit`. ADR 0226.
+- 2026-10-19 — Default per the owner's UI rule (ADR 0222, the v2 package): the toolbar's **Change camera** is a one-press action without a dot (BASE_LAYOUT.md, CONCEPT.md), not the menu the plan text describes. One press goes to the next mode, like V; Hide UI and Screenshot are on their keys and in the pause menu.
+- 2026-10-19 — Default: the screenshot holds the canvas only. Drawing the HTML interface into the image needs a DOM rasteriser library, which this plan does not add; the "with UI" setting is left out.
+- 2026-10-19 — Default: a new world starts in Free (today's camera), so V goes Orbital, Locked, Auto, Free. The mode is kept per world in local storage.

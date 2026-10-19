@@ -238,6 +238,17 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 		expect(ksp.actionFor('flight', 'KeyN')).toBe('translateBack');
 	});
 
+	it('the camera keys are wired (plan 226): V is the camera mode in ksp, F2 and F10 in both', () => {
+		expect(ksp.actionFor('flight', 'KeyV')).toBe('cameraMode');
+		for (const k of [ksp, classic]) {
+			expect(k.actionFor('flight', 'F2')).toBe('hideUi');
+			expect(k.actionFor('flight', 'F10')).toBe('screenshot');
+			expect(k.actionFor('flight', '`')).toBe('cameraReset');
+		}
+		for (const id of ['cameraMode', 'cameraReset', 'hideUi', 'screenshot'] as const)
+			expect(actionSpec(id).pending).toBeUndefined();
+	});
+
 	it('in classic: C brakes and [ trims down', () => {
 		expect(classic.actionFor('flight', 'KeyC')).toBe('brakes');
 		expect(classic.actionFor('flight', '[')).toBe('trimDown');

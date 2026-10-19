@@ -34,8 +34,11 @@ import {
 	type PanelInput
 } from '@orbital/core';
 import {
+	CAMERA_MODE_LABEL,
 	QualityGovernor,
 	createRenderer,
+	nextCameraMode,
+	type CameraMode,
 	type GovernorLevel,
 	type GraphicsPreset,
 	type PrecompileProgress,
@@ -178,7 +181,12 @@ export interface FlightOptions {
 	/** The key map in force (plan 053, ADR 0061); read on every key event, so rebinding applies at once. */
 	keymap?: () => Keymap;
 	/** Esc (pause menu), help, quicksave and quickload were pressed (by their keys now in force). */
-	onKey?(key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug'): void;
+	onKey?(
+		key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug' | 'hideUi' | 'screenshot'
+	): void;
+	/** The camera mode to start in (plan 226: the world's last one) and where a change goes. */
+	cameraMode?: CameraMode;
+	onCameraMode?(mode: CameraMode): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
 	/**
@@ -260,6 +268,12 @@ export interface Flight {
 	/** Remove the earliest maneuver node. */
 	removeNode(): void;
 	toggleMap(): void;
+	/** The flight camera (plan 226): the next mode (V), the mode now, a part to look at or none. */
+	cycleCameraMode(): void;
+	readonly cameraMode: CameraMode;
+	focusPart(part: number | null): void;
+	/** One frame of the canvas as a PNG; null before the renderer exists. */
+	capture(): Promise<Blob | null>;
 	cycleSpeedMode(): void;
 	/** Ask for a stability assist mode (the SAS buttons next to the navball; plan 042). */
 	setSas(mode: SasMode): void;
@@ -826,6 +840,20 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'map':
 				toggleMap();
 				break;
+			// the camera (plan 226, ADR 0226)
+			case 'cameraMode':
+				e.preventDefault();
+				cycleCameraMode();
+				break;
+			case 'cameraReset':
+				e.preventDefault();
+				renderer?.focusPart(null);
+				break;
+			case 'hideUi':
+			case 'screenshot':
+				e.preventDefault();
+				options.onKey?.(action);
+				break;
 			case 'speedMode':
 				hudCtl?.cycleSpeedMode();
 				break;
@@ -888,6 +916,16 @@ export function startFlight(options: FlightOptions): Flight {
 		return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
 	};
 	const onPointerDown = (e: PointerEvent): void => {
+		// The middle button looks at the part under it (plan 226); Backtick looks at the vessel again.
+		if (e.button === 1 && e.pointerType === 'mouse') {
+			e.preventDefault();
+			const box = canvas.getBoundingClientRect();
+			const part = renderer?.isMapView
+				? null
+				: (renderer?.partAt(e.clientX - box.left, e.clientY - box.top) ?? null);
+			if (part !== null) renderer?.focusPart(part);
+			return;
+		}
 		pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 		canvas.setPointerCapture(e.pointerId);
 		if (pointers.size === 1) pressed = { active: true, moved: 0 };
@@ -942,6 +980,18 @@ export function startFlight(options: FlightOptions): Flight {
 		const input = { zoomFactor: Math.exp(e.deltaY * 0.001) };
 		renderer?.orbitCamera(input);
 	};
+
+	let cameraMode: CameraMode = options.cameraMode ?? 'free';
+	/** V and the toolbar's Change camera (plan 226): the next mode, named in a toast. */
+	function cycleCameraMode(): void {
+		setCameraMode(nextCameraMode(cameraMode));
+	}
+	function setCameraMode(mode: CameraMode): void {
+		cameraMode = mode;
+		renderer?.setCameraMode(mode);
+		hudCtl?.notice({ kind: 'info', title: CAMERA_MODE_LABEL[mode], key: 'camera-mode' });
+		options.onCameraMode?.(mode);
+	}
 
 	function setSas(mode: SasMode): void {
 		const command = hudCtl?.sasCommand(mode);
@@ -1406,6 +1456,7 @@ export function startFlight(options: FlightOptions): Flight {
 				...(c.terrain ? { terrain: c.terrain } : {}),
 				...(c.launchSite ? { launchSite: c.launchSite } : {})
 			});
+			renderer.setCameraMode(cameraMode);
 			const draw = renderer;
 			maneuverCtl = createManeuverController({
 				bodies: c.bodies,
@@ -1771,6 +1822,14 @@ export function startFlight(options: FlightOptions): Flight {
 			hudCtl?.setDeltaVView(view);
 		},
 		toggleMap,
+		cycleCameraMode,
+		get cameraMode() {
+			return cameraMode;
+		},
+		focusPart(part) {
+			renderer?.focusPart(part === null ? null : entityId(part));
+		},
+		capture: () => renderer?.capture() ?? Promise.resolve(null),
 		cycleSpeedMode() {
 			hudCtl?.cycleSpeedMode();
 		},

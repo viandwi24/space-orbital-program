@@ -18,7 +18,8 @@
 		oncommand,
 		onpin,
 		onclose,
-		onhighlight
+		onhighlight,
+		onfocus
 	}: {
 		vessel: EntityId;
 		part: PartRow;
@@ -27,6 +28,8 @@
 		onpin: () => void;
 		onclose: () => void;
 		onhighlight: (part: EntityId | null) => void;
+		/** Point the flight camera at this part (plan 226); absent in the Hangar. */
+		onfocus?: (part: EntityId) => void;
 	} = $props();
 
 	let problem = $state<string | null>(null);
@@ -66,6 +69,13 @@
 				>
 			</span>
 		{/snippet}
+		{#if onfocus}
+			<div class="row">
+				<Button onclick={() => onfocus(part.entity)} data-testid="inspector-{part.entity}-focus"
+					>Focus camera</Button
+				>
+			</div>
+		{/if}
 		{#if part.controlPoint}
 			<div class="row">
 				<Button
