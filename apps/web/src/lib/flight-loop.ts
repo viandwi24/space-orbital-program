@@ -15,6 +15,7 @@ import {
 	entityId,
 	type Command,
 	type EntityId,
+	type PartDefinition,
 	type SasMode,
 	type Snapshot,
 	type VesselDesign,
@@ -64,6 +65,17 @@ import {
 	customGroupSlot
 } from './keybindings';
 import type { Catalog } from './messages';
+import {
+	boardTarget,
+	isSuit,
+	jetpackTranslate,
+	JETPACK_MODULE,
+	RUN_SPEED,
+	suitStatus,
+	walkHeading,
+	WALK_SPEED,
+	type SuitStatus
+} from './eva/eva-model';
 import { idleScript, reduceScript, scriptIsActive, type ScriptView } from './script-state';
 import type { ScriptSandbox } from './script-sandbox';
 import { startSimWorker, type SimClient } from './sim-client';
@@ -134,8 +146,19 @@ export interface FlightHud {
 	warpClamp: string | null;
 	map: boolean;
 	autopilot: string | null;
-	/** A crew member outside in a suit (plan 109, ADR 0120): the camera follows the suit. */
-	eva: { suit: number; name: string; walking: boolean; radio?: RadioBars } | null;
+	/**
+	 * A crew member outside in a suit (plan 109, ADR 0120): since plan 225 the suit has focus, and
+	 * this is its HUD state: the vessel it came from, its propellant, O₂, charge and jetpack.
+	 */
+	eva: {
+		suit: number;
+		name: string;
+		walking: boolean;
+		radio?: RadioBars;
+		ship?: number | null;
+		latched?: boolean;
+		status?: SuitStatus | null;
+	} | null;
 	/** Firsts that may still be broadcast live (plan 121, ADR 0193 point 5). */
 	broadcasts: BroadcastOffer[];
 	/** The world's funds with the economy on, else null (plan 132). */
@@ -547,8 +570,59 @@ export function startFlight(options: FlightOptions): Flight {
 	const axis = (neg: ActionId, pos: ActionId): number =>
 		(isHeld(pos) ? 1 : 0) - (isHeld(neg) ? 1 : 0);
 
+	/** The suit has focus (plan 225): EVA keys instead of the flight's. */
+	const onSuit = (): boolean =>
+		hud.eva !== null && vessel !== null && Number(vessel) === hud.eva.suit;
+	let sentWalk = 'stop';
+	let sentClimb = 0;
+	/** Walk, climb or fly the suit from the held EVA keys, relative to the view (plan 225). */
+	function sendEvaInput(): void {
+		const e = hud.eva;
+		const s = snap?.vessels.find((v) => Number(v.id) === Number(vessel));
+		if (!e || !s || !snap || vessel === null) return;
+		const forward = axis('evaBack', 'evaForward');
+		const side = axis('evaLeft', 'evaRight');
+		if (e.latched) {
+			if (forward !== sentClimb) {
+				sentClimb = forward;
+				void send({ type: 'crew-climb', suit: vessel, rate: forward });
+			}
+			return;
+		}
+		const view = renderer?.viewDirection() ?? { x: 0, y: 0, z: 0 };
+		if (e.status?.jetpack) {
+			const vertical = (isHeld('evaRun') ? 1 : 0) - (isHeld('evaDown') ? 1 : 0);
+			const t = jetpackTranslate(view, s.position, s.orientation, forward, side, vertical);
+			const roll = axis('evaTurnLeft', 'evaTurnRight');
+			const r = (x: number) => Math.round(x * 50) / 50;
+			const key = [0, 0, roll, r(t.x), r(t.y), r(t.z)].join(',');
+			if (key !== sentAttitude) {
+				sentAttitude = key;
+				void send({
+					type: 'attitude',
+					vessel,
+					pitch: 0,
+					yaw: 0,
+					roll,
+					translate: { x: r(t.x), y: r(t.y), z: r(t.z) }
+				});
+			}
+			return;
+		}
+		const body = snap.bodies.find((b) => String(b.id) === String(s.soi));
+		const heading = body ? walkHeading(view, s.position, body.rotation, forward, side) : null;
+		const speed = heading === null ? 0 : isHeld('evaRun') ? RUN_SPEED : WALK_SPEED;
+		const key = heading === null ? 'stop' : `${heading.toFixed(2)},${speed}`;
+		if (key !== sentWalk) {
+			sentWalk = key;
+			void send({ type: 'crew-walk', vessel, heading: heading ?? 0, speed });
+			hud.eva = { ...e, walking: heading !== null };
+		}
+	}
+
 	function sendInput(dt: number): void {
 		if (vessel === null) return;
+		if (onSuit()) return sendEvaInput();
 		const up = isHeld('throttleUp');
 		const down = isHeld('throttleDown');
 		throttle = Math.min(
@@ -641,6 +715,16 @@ export function startFlight(options: FlightOptions): Flight {
 		if (renderer?.isMapView) {
 			const mapAction = km.actionFor('map', chord) ?? km.actionFor('map', id);
 			if (mapAction && mapKey(mapAction, e)) return;
+		}
+		// A suit with focus takes the EVA keys first (plan 225); the rest stay the flight's.
+		if (onSuit() && !renderer?.isMapView) {
+			const evaAction = km.actionFor('eva', id);
+			if (evaAction) {
+				held.add(id);
+				e.preventDefault();
+				evaKey(evaAction);
+				return;
+			}
 		}
 		// A chord bound to an action is that action; an unbound chord is its plain key (Alt+W pitches).
 		const chordAction = chord === id ? null : km.actionFor('flight', chord);
@@ -861,15 +945,59 @@ export function startFlight(options: FlightOptions): Flight {
 		if (command) void send(command);
 	}
 
-	// ---- EVA (plan 109, ADR 0120): the flight stays on its vessel; the camera follows the suit ----
+	// ---- EVA (plan 109, ADR 0120; plan 225, ADR 0209): focus and the HUD move to the suit ----
 	async function eva(member: string): Promise<void> {
 		if (vessel === null || hud.eva) return;
+		const ship = Number(vessel);
 		const name = client.latest?.crew?.find((m) => m.id === member)?.name ?? member;
 		const result = await client.dispatch({ type: 'crew-eva', vessel, member });
 		if (!result.ok) return void hudCtl?.refused('crew-eva', result.reason);
-		hud.eva = { suit: Number(result.vessel), name, walking: false };
-		renderer?.setActiveVessel(result.vessel as EntityId);
+		const suit = Number(result.vessel);
+		sentWalk = 'stop';
+		sentClimb = 0;
+		const switched = await switchVessel(suit);
+		if (!switched.ok) renderer?.setActiveVessel(result.vessel as EntityId);
+		hud.eva = { suit, name, walking: false, ship, latched: false, status: null };
 		publish();
+	}
+	/** The discrete EVA keys (plan 225). */
+	function evaKey(action: ActionId): void {
+		const e = hud.eva;
+		if (!e || vessel === null) return;
+		const suit = vessel;
+		switch (action) {
+			case 'evaJetpack': {
+				const part = e.status?.jetpackPart;
+				if (part === null || part === undefined) return;
+				void send({
+					type: 'action',
+					vessel: suit,
+					part: part as EntityId,
+					module: JETPACK_MODULE,
+					action: 'setOn',
+					args: [!(e.status?.jetpack ?? false)]
+				});
+				return;
+			}
+			case 'evaGrab':
+			case 'evaJump':
+				if (e.latched) {
+					void send({ type: 'crew-grab', suit, release: true });
+					hud.eva = { ...e, latched: false };
+				} else if (action === 'evaGrab') {
+					void client.dispatch({ type: 'crew-grab', suit }).then((r) => {
+						if (!r.ok) return void hudCtl?.refused('crew-grab', r.reason);
+						sentClimb = 0;
+						if (hud.eva) hud.eva = { ...hud.eva, latched: true, walking: false };
+						publish();
+					});
+				} else void send({ type: 'crew-jump', suit });
+				publish();
+				return;
+			case 'evaBoard':
+				void board();
+				return;
+		}
 	}
 	function walk(heading: number | null): void {
 		const e = hud.eva;
@@ -888,17 +1016,28 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	async function board(): Promise<void> {
 		const e = hud.eva;
-		if (!e || vessel === null) return;
+		if (!e || !snap || !catalog) return;
+		const target = boardTarget(snap, e.suit, partsById(), e.ship ?? null);
+		if (target === null)
+			return void hudCtl?.refused('crew-board', 'no vessel within 60 m to board');
 		const result = await client.dispatch({
 			type: 'crew-board',
 			suit: e.suit as EntityId,
-			vessel
+			vessel: target as EntityId
 		});
 		if (!result.ok) return void hudCtl?.refused('crew-board', result.reason);
 		hud.eva = null;
-		renderer?.setActiveVessel(vessel);
+		const switched = await switchVessel(target);
+		if (!switched.ok) renderer?.setActiveVessel(target as EntityId);
 		publish();
 	}
+	let partsCache: { from: Catalog; map: Map<string, PartDefinition> } | null = null;
+	const partsById = (): Map<string, PartDefinition> => {
+		if (!catalog) return new Map();
+		if (partsCache?.from !== catalog)
+			partsCache = { from: catalog, map: new Map(catalog.parts.map((p) => [String(p.id), p])) };
+		return partsCache.map;
+	};
 
 	function planAid(id: AidId): void {
 		const command = targetView?.aidCommand(id);
@@ -1035,6 +1174,15 @@ export function startFlight(options: FlightOptions): Flight {
 			hud.model = hudCtl?.model(now, throttle) ?? null;
 			// the suit radio and the live broadcasts (plan 121, ADR 0193 point 6)
 			if (snap) {
+				// the suit with focus (plan 225): reached by EVA or by `[`/`]`; anything else ends the EVA HUD
+				const focused = snap.vessels.find((v) => Number(v.id) === Number(vessel));
+				if (focused && catalog && isSuit(focused, partsById())) {
+					const id = Number(focused.id);
+					const name =
+						snap.crew?.find((m) => Number(m.vessel) === id)?.name ?? focused.name ?? 'Crew';
+					const base = hud.eva?.suit === id ? hud.eva : { suit: id, name, walking: false };
+					hud.eva = { ...base, status: suitStatus(focused) };
+				} else if (hud.eva) hud.eva = null;
 				if (hud.eva) hud.eva = { ...hud.eva, radio: suitRadio(snap, hud.eva.suit) };
 				hud.broadcasts = broadcastOffers(snap);
 				// funds and the recovery quote (plan 132)

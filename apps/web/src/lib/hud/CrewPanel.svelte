@@ -9,6 +9,7 @@
 	import Panel from '../ui/Panel.svelte';
 	import type { CrewCard } from '../crew-card';
 	import type { BroadcastOffer, RadioBars } from '../comms/suit-radio';
+	import type { SuitStatus } from '../eva/eva-model';
 
 	let {
 		card = null,
@@ -22,7 +23,14 @@
 	}: {
 		card?: CrewCard | null;
 		/** The suit radio (plan 121, ADR 0193): its bars, what it relays through, why it is cut. */
-		eva?: { suit: number; name: string; walking: boolean; radio?: RadioBars } | null;
+		eva?: {
+			suit: number;
+			name: string;
+			walking: boolean;
+			radio?: RadioBars;
+			latched?: boolean;
+			status?: SuitStatus | null;
+		} | null;
 		/** Firsts that may still be broadcast live (ADR 0193 point 5). */
 		broadcasts?: readonly BroadcastOffer[];
 		onbroadcast?: (milestone: string) => void;
@@ -32,6 +40,8 @@
 		onboard?: () => void;
 	} = $props();
 
+	const pct = (r: { amount: number; capacity: number } | null | undefined): string =>
+		r && r.capacity > 0 ? `${Math.round((100 * r.amount) / r.capacity)} %` : '—';
 	const HEADINGS = [
 		{ label: 'N', heading: 0 },
 		{ label: 'E', heading: Math.PI / 2 },
@@ -44,7 +54,18 @@
 	{#snippet aside()}<span class="num">[{card ? card.rows.length : '—'}]</span>{/snippet}
 	{#if eva}
 		<div class="eva" data-testid="crew-eva">
-			<div class="name">{eva.name} is outside</div>
+			<div class="name">{eva.name} is outside{eva.latched ? ' · on a ladder' : ''}</div>
+			<!-- the suit's own supplies (plan 225, ADR 0209 point 1) -->
+			{#if eva.status}
+				<div class="suit-status" data-testid="suit-status">
+					<span data-testid="suit-propellant"
+						>Jetpack {eva.status.jetpack ? 'on' : 'off'} · {eva.status.gas
+							? `${eva.status.gas.amount.toFixed(1)} / ${eva.status.gas.capacity} kg`
+							: 'no propellant'}</span
+					>
+					<span>O₂ {pct(eva.status.oxygen)} · EC {pct(eva.status.charge)}</span>
+				</div>
+			{/if}
 			{#if eva.radio}
 				<div class="radio" data-testid="suit-radio">
 					<SignalBars level={eva.radio.level} offline={eva.radio.offline} /><span
@@ -74,7 +95,11 @@
 					<div class="name">
 						{row.name}
 						<!-- the suit chip and the radio (plan 108, ADR 0152 point 6): inside, the vessel's link (plan 121) -->
-						<span class="suit" data-testid="crew-suit">IVA</span>
+						<span
+							class="suit"
+							title={eva ? 'Suit: EVA' : 'Suit: flight (IVA)'}
+							data-testid="crew-suit">{eva ? 'EVA' : 'IVA'}</span
+						>
 						<span class="radio" title={card.radio.text} data-testid="crew-radio"
 							><SignalBars
 								level={card.radio.level}
@@ -161,6 +186,14 @@
 		color: var(--text);
 	}
 	.stats {
+		font-size: var(--t-xs);
+		color: var(--text-dim);
+	}
+	.suit-status {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		margin: var(--s-1) 0;
 		font-size: var(--t-xs);
 		color: var(--text-dim);
 	}
