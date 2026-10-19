@@ -400,5 +400,8 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('debug-set-crew-level'),
 		member: z.string().min(1),
 		level: z.int().min(0).max(10)
-	})
+	}),
+	z.object({ type: z.literal('crew-grab'), suit: entity, release: z.boolean().optional() }),
+	z.object({ type: z.literal('crew-climb'), suit: entity, rate: finite.min(-1).max(1) }),
+	z.object({ type: z.literal('crew-jump'), suit: entity })
 ]);

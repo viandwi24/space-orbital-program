@@ -867,7 +867,10 @@ export type Command =
 	| { type: 'crew-transfer'; vessel: EntityId; member: string; to: EntityId }
 	/** EVA (plan 109, ADR 0120): the member steps out into a suit, a vessel of its own beside the part. */
 	| { type: 'crew-eva'; vessel: EntityId; member: string }
-	/** The member in `suit` boards `vessel` (a free seat within 50 m); the suit's samples come aboard. */
+	/**
+	 * The member in `suit` boards `vessel` at a hatch or a ladder (plan 225; within 50 m with
+	 * `stock.eva-board-assist`); the suit's samples come aboard.
+	 */
 	| { type: 'crew-board'; suit: EntityId; vessel: EntityId }
 	/** Walk a landed vessel that can (its part declares `walk`): heading from north, rad; speed 0 stops. */
 	| { type: 'crew-walk'; vessel: EntityId; heading: number; speed: number }
@@ -947,7 +950,16 @@ export type Command =
 	/** Set the skin temperature of `part` (every part when absent), K. */
 	| { type: 'debug-set-temperature'; vessel: EntityId; part?: EntityId; temperature: number }
 	/** Set a crew member's level. */
-	| { type: 'debug-set-crew-level'; member: string; level: number };
+	| { type: 'debug-set-crew-level'; member: string; level: number }
+	/**
+	 * EVA v2 (plan 225, ADR 0209): the suit grabs the nearest ladder within reach, or lets go with
+	 * `release`.
+	 */
+	| { type: 'crew-grab'; suit: EntityId; release?: boolean }
+	/** A latched suit climbs its ladder: `rate` -1 (down) .. 1 (up), 0 holds still. */
+	| { type: 'crew-climb'; suit: EntityId; rate: number }
+	/** A standing suit jumps. */
+	| { type: 'crew-jump'; suit: EntityId };
 
 /** What a `warp-to` can head for (plan 206, ADR 0202 point 6); a user alarm by id (plan 224). */
 export type WarpTarget =

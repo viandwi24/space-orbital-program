@@ -91,6 +91,8 @@ export interface CrewMember {
 	returnsAt?: number;
 	/** Places of the current flight (ADR 0176 point 4). */
 	places: string[];
+	/** Cold gas in the member's suit, kg (plan 225): kept between EVAs, topped up when boarding. */
+	suitGas?: number;
 	/** Places already booked, ever. */
 	visited: string[];
 	/** Booked XP, oldest first. */
@@ -132,6 +134,7 @@ export const saveCrewSchema = z.object({
 			location: z.object({ vessel: z.int(), part: z.int() }).optional(),
 			returnsAt: z.number().optional(),
 			places: z.array(z.string()),
+			suitGas: z.number().nonnegative().optional(),
 			visited: z.array(z.string()),
 			log: z.array(z.object({ time: z.number(), place: z.string(), xp: z.number() })),
 			morale: z.number().min(0).max(1).optional(),

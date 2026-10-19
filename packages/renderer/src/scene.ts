@@ -783,6 +783,12 @@ export class SceneModel {
 		this.cameraDirty = true;
 	}
 	/** Rotate/zoom whichever camera is current (flight rig or map rig). */
+	/** The camera's view direction (render axes are the sim's inertial axes). */
+	viewDirection(): Vec3 {
+		const d = this.camera.getWorldDirection(new Vector3());
+		return { x: d.x, y: d.y, z: d.z };
+	}
+
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void {
 		if (this.map) {
 			// Before the first map placement the distance is 0 ("not yet set"): turn only, the

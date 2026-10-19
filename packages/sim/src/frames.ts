@@ -392,7 +392,7 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 			backend.applyForce(body.handle, scale(thirdBody(planet, core.t, frame.origin), body.mass));
 		updateTile(core, frame, planet, vesselId, centre);
 		stepWheels(core, frame, vesselId, body, centre, dt);
-		stepWalking(core, frame, vesselId, body);
+		stepWalking(core, frame, vesselId, body, dt);
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
 		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));

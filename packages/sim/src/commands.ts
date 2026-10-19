@@ -74,7 +74,7 @@ import {
 	setTemperature
 } from './debug.ts';
 import { applyActionGroup } from './actions.ts';
-import { crewBoard, crewEva, crewWalk, plantFlag } from './eva.ts';
+import { crewBoard, crewClimb, crewEva, crewGrab, crewJump, crewWalk, plantFlag } from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { acceptContract, cancelContract, declineContract } from './contracts.ts';
 import { activateStrategy, endStrategy } from './strategies.ts';
@@ -635,6 +635,15 @@ export function dispatch(
 		case 'crew-walk':
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return crewWalk(core, command.vessel, command.heading, command.speed);
+		case 'crew-grab':
+			if (!core.world.has(command.suit, VESSEL)) return refuse(`no vessel ${command.suit}`);
+			return crewGrab(core, command.suit, command.release === true);
+		case 'crew-climb':
+			if (!core.world.has(command.suit, VESSEL)) return refuse(`no vessel ${command.suit}`);
+			return crewClimb(core, command.suit, command.rate);
+		case 'crew-jump':
+			if (!core.world.has(command.suit, VESSEL)) return refuse(`no vessel ${command.suit}`);
+			return crewJump(core, command.suit);
 		case 'set-grade':
 			return setGrade(core, command.part, command.grade);
 		case 'static-fire':

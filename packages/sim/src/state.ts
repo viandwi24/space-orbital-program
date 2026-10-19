@@ -148,6 +148,13 @@ export interface VesselState {
 	backgroundAt?: number;
 	/** Walking target (plan 109, ADR 0120 point 3): heading from north, rad, and ground speed, m/s. */
 	walk?: { heading: number; speed: number };
+	/** A pending jump (plan 225): applied at the next step while standing. */
+	jump?: boolean;
+	/**
+	 * Hanging on a ladder (plan 225): the vessel and part of the ladder, where on it (0..1) and the
+	 * climb rate (-1..1).
+	 */
+	latch?: { vessel: number; part: number; s: number; rate: number };
 	/** Pitch trim, -1..1, added to the pitch demand (plan 063, ADR 0161 point 4). */
 	trim?: number;
 	/**

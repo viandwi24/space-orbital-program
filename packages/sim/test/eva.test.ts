@@ -1,10 +1,8 @@
 /** EVA (plan 109, ADR 0120): stepping out, walking, the jetpack, the flag and the sample. */
 import { describe, expect, test } from 'bun:test';
 import type { CommandResult, EntityId, VesselSnapshot } from '@orbital/core';
-import { JETPACK } from '@orbital/mod-stock';
 import type { Sim } from '../src/index.ts';
 import { vesselMass } from './helpers/measure.ts';
-import { orbitState } from './helpers/measure.ts';
 import { newSim, stack } from './helpers/vessels.ts';
 
 const pod = () => stack('Pod', ['stock.command-pod'], []);
@@ -13,7 +11,6 @@ const made = (r: CommandResult): EntityId => {
 	if (!r.ok) throw new Error(r.reason);
 	return r.vessel as EntityId;
 };
-const G0 = 9.80665;
 
 async function crewed(placement: unknown) {
 	const sim = await newSim();
@@ -88,53 +85,7 @@ describe('EVA (plan 109)', () => {
 		sim.dispose();
 	}, 60_000);
 
-	test("in orbit the jetpack changes the suit's velocity by its rocket-equation Δv", async () => {
-		const sim0 = await newSim();
-		const st = orbitState(sim0, 150_000);
-		sim0.dispose();
-		const { sim, ship } = await crewed({
-			kind: 'state',
-			position: st.position,
-			velocity: st.velocity
-		});
-		const out = sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' });
-		expect(out.ok).toBe(true);
-		const suit = made(out);
-		sim.step(0.02);
-		const s0 = vessel(sim, suit)!;
-		const m0 = vesselMass(sim, s0);
-		const rel0 = vessel(sim, ship)!.velocity;
-		const relStart = {
-			x: s0.velocity.x - rel0.x,
-			y: s0.velocity.y - rel0.y,
-			z: s0.velocity.z - rel0.z
-		};
-		const part = s0.parts[0]!.id;
-		expect(
-			sim.dispatch({
-				type: 'action',
-				vessel: suit,
-				part,
-				module: 'stock.engine',
-				action: 'activate'
-			}).ok
-		).toBe(true);
-		expect(sim.dispatch({ type: 'throttle', vessel: suit, value: 1 }).ok).toBe(true);
-		const burn = (JETPACK.propellant * JETPACK.isp * G0) / JETPACK.thrust; // about 59 s
-		run(sim, burn + 2);
-		const s1 = vessel(sim, suit)!;
-		const m1 = vesselMass(sim, s1);
-		expect(m0 - m1).toBeCloseTo(JETPACK.propellant, 3);
-		const shipNow = vessel(sim, ship)!.velocity;
-		const rel = {
-			x: s1.velocity.x - shipNow.x - relStart.x,
-			y: s1.velocity.y - shipNow.y - relStart.y,
-			z: s1.velocity.z - shipNow.z - relStart.z
-		};
-		const expected = JETPACK.isp * G0 * Math.log(m0 / m1);
-		expect(Math.abs(Math.hypot(rel.x, rel.y, rel.z) - expected) / expected).toBeLessThan(0.01);
-		sim.dispose();
-	}, 120_000);
+	// the jetpack's rocket-equation test moved to eva-v2.test.ts (plan 225: 270 N on translation)
 
 	test('a planted flag is still there after 60 s; a sample from the suit is credited when its vessel is recovered', async () => {
 		const { sim, ship } = await crewed(moon);
