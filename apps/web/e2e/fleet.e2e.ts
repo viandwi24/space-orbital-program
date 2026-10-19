@@ -43,10 +43,15 @@ test('recover a vessel 50 km out at its quote, rename another and keep the name'
 	await form.getByTestId('world-create').click();
 	await page.getByTestId('world-enter').click();
 	await page.waitForURL('**/space-center');
+	// Debug mode (plan 203): the set-state tools in a Career world are the player's opt-in
+	await page.getByTestId('nav-menu').click();
+	await page.getByTestId('nav-settings').click();
+	await page.locator('#settings-tab-game').click();
+	await page.getByTestId('setting-debug').click();
+	await page.keyboard.press('Escape');
 
 	await launchTwoStage(page);
 	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
-	expect((await api(page).debugMode()).ok).toBe(true);
 	// landed 50 km east of the Legacy coordinates (Home is 600 km in radius)
 	await debugSetLocation(page, { kind: 'surface', latitude: 0, longitude: 50_000 / 600_000 });
 	const lander = await api(page).vesselId();

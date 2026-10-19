@@ -1,6 +1,6 @@
 # 0021 — Debris lifecycle: ballistic debris on rails, removed at re-entry or at rest
 
-**Status:** accepted
+**Status:** accepted; amended by ADR 0208 (plan 223, 2026-10-20): debris at rest is kept on surface rails, and a player cap (default 250) removes the oldest instead
 **Date:** 2026-10-16
 **Plan:** plans/013-debris-lifecycle.md
 
