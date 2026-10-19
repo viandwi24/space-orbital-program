@@ -15,6 +15,7 @@ import { qConj, qFromBasis, qMul, qNormalize, qRotate } from './math.ts';
 import { burnDirection } from './maneuver.ts';
 import { targetDirection as directionToTarget } from './target.ts';
 import { motionOf } from './orbit.ts';
+import { partRotation } from './parts.ts';
 
 /** Position gain (1/s): desired rate per radian of error near the target. */
 export const KP = 0.7;
@@ -53,6 +54,15 @@ export const MIN_SPEED = 0.5;
 const NOSE: Vec3 = { x: 0, y: 1, z: 0 };
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
+
+/**
+ * The nose SAS points, in the vessel's body axes (plan 221, ADR 0208 point 2): the control part's
+ * +Y when the player chose "control from here", else the root's.
+ */
+export function controlNose(core: SimCore, vessel: VesselState): Vec3 {
+	if (vessel.controlPart === undefined || !core.world.hasEntity(vessel.controlPart)) return NOSE;
+	return qRotate(partRotation(partOf(core, vessel.controlPart)), NOSE);
+}
 
 /** The direction the modes that aim at something (not at the velocity) ask for: the node's burn or the target. */
 function aimOf(core: SimCore, vessel: VesselState): Vec3 | undefined {
@@ -153,8 +163,8 @@ function holdError(orientation: Quat, target: Quat): Vec3 {
 }
 
 /** Error vector (rad, body axes, no roll) that turns the nose onto the world direction `d`. */
-function pointError(orientation: Quat, d: Vec3): Vec3 {
-	const nose = qRotate(orientation, NOSE);
+function pointError(orientation: Quat, d: Vec3, noseBody: Vec3 = NOSE): Vec3 {
+	const nose = qRotate(orientation, noseBody);
 	const axis = cross(nose, d);
 	const s = length(axis);
 	const c = dot(nose, d);
@@ -163,7 +173,8 @@ function pointError(orientation: Quat, d: Vec3): Vec3 {
 	}
 	const angle = Math.atan2(s, c);
 	const e = qRotate(qConj(orientation), scale(axis, angle / s));
-	return { x: e.x, y: 0, z: e.z };
+	// no roll about the nose: for the root's nose (+Y) this is the x and z components
+	return sub(e, scale(noseBody, dot(e, noseBody)));
 }
 
 /** Diagonal of the inertia tensor in body axes from the principal moments and their frame. */
@@ -258,7 +269,7 @@ export function stepSas(
 			vessel.velocity,
 			aimOf(core, vessel)
 		);
-		if (d) error = pointError(orientation, d);
+		if (d) error = pointError(orientation, d, controlNose(core, vessel));
 		else settle = true;
 	}
 
@@ -330,7 +341,7 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 		aimOf(core, vessel)
 	);
 	if (!d) return;
-	const nose = qRotate(vessel.orientation, NOSE);
+	const nose = qRotate(vessel.orientation, controlNose(core, vessel));
 	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));
 	sas.error = 0;
 }

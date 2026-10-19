@@ -392,3 +392,48 @@ describe('protocol', () => {
 		expect(await run()).toBe(await run());
 	}, 60_000);
 });
+
+describe('control from here (plan 221, ADR 0208 point 2)', () => {
+	test('after set-control-part to a part turned 90°, prograde holds that part on prograde, not the root', async () => {
+		const sim = await newSasSim();
+		const design: VesselDesign = {
+			formatVersion: 3,
+			name: 'Sideways core',
+			parts: [
+				{ index: 0, part: 'stock.command-pod' as never, parent: null },
+				{
+					index: 1,
+					part: 'stock.reaction-wheel' as never,
+					parent: { index: 0, parentNode: 'bottom', node: 'top' }
+				},
+				{
+					index: 2,
+					part: 'stock.probe-core' as never,
+					parent: { index: 1, parentNode: 'bottom', node: 'top' },
+					tilt: { x: Math.PI / 2, y: 0, z: 0 }
+				}
+			],
+			stages: []
+		};
+		const id = launchInOrbit(sim, design, quatAbout({ x: 0, y: 0, z: 1 }, 0.3));
+		const core = vesselOf(sim, id).parts.find((p) => p.definition === 'stock.probe-core')!;
+		expect(sim.dispatch({ type: 'set-control-part', vessel: id, part: core.id })).toEqual({
+			ok: true
+		});
+		expect(vesselOf(sim, id).controlPart).toBe(core.id);
+		sim.dispatch({ type: 'sas', vessel: id, mode: 'prograde', reference: 'orbit' });
+		for (let i = 0; i < 60 * 50; i++) sim.step(0.02);
+		const v = vesselOf(sim, id);
+		const part = v.parts.find((p) => p.id === core.id)!;
+		const dir = modeDirection('prograde', v.position, v.velocity);
+		expect(pointingError(part.orientation, dir) * DEG).toBeLessThan(2);
+		expect(pointingError(v.orientation, dir) * DEG).toBeGreaterThan(80);
+		// a part that is no control source is refused
+		const wheel = v.parts.find((p) => p.definition === 'stock.reaction-wheel')!;
+		expect(sim.dispatch({ type: 'set-control-part', vessel: id, part: wheel.id })).toEqual({
+			ok: false,
+			reason: 'only a command part or a docking port can be controlled from'
+		});
+		sim.dispose();
+	}, 60_000);
+});

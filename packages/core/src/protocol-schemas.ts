@@ -281,6 +281,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('fix-anomaly'), report: z.string().min(1) }),
 	z.object({ type: z.literal('repair'), suit: entity, vessel: entity, part: entity }),
 	z.object({ type: z.literal('pause'), on: z.boolean() }),
+	z.object({ type: z.literal('set-control-part'), vessel: entity, part: entity.nullable() }),
 	z.object({ type: z.literal('debug-mode'), on: z.boolean() }),
 	z.object({ type: z.literal('debug-cheat'), cheat: z.enum(DEBUG_CHEATS), on: z.boolean() }),
 	z.object({

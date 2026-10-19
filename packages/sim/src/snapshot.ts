@@ -99,6 +99,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				orientation: pose.rotation,
 				modules: moduleViews(core, partEntity),
 				temperature: partOf(core, partEntity).temperature,
+				index: partOf(core, partEntity).index,
 				...linkOf(core, partEntity, root.rotation)
 			});
 		}
@@ -117,6 +118,7 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 				orientation: isTurned(p) ? qMul(orientation, partRotation(p)) : orientation,
 				modules: moduleViews(core, partEntity),
 				temperature: p.temperature,
+				index: p.index,
 				...linkOf(core, partEntity, orientation)
 			});
 		}
@@ -130,7 +132,9 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		position,
 		velocity,
 		orientation,
-		parts
+		parts,
+		nextStage: vessel.nextStage,
+		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {})
 	};
 	snapshot.sas = {
 		mode: vessel.sas.mode,

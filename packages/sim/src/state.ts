@@ -13,6 +13,7 @@ import {
 	type SasMode,
 	type SasReference,
 	type Vec3,
+	type VesselDesign,
 	type VesselMode
 } from '@orbital/core';
 import type { OrbitalElements } from '@orbital/kepler';
@@ -142,6 +143,14 @@ export interface VesselState {
 	walk?: { heading: number; speed: number };
 	/** Pitch trim, -1..1, added to the pitch demand (plan 063, ADR 0161 point 4). */
 	trim?: number;
+	/**
+	 * The design this vessel came from (plan 221, ADR 0208 point 1): the launch design, shared by
+	 * every piece that split off; a piece keeps the parts whose `PartState.index` it still has.
+	 * Absent only in a save from before plan 221 until the sim rebuilds it on load.
+	 */
+	design?: VesselDesign;
+	/** "Control from here" (plan 221): the part whose nose SAS and the navball follow; the root when absent. */
+	controlPart?: EntityId;
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
 }

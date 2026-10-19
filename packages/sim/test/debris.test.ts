@@ -134,3 +134,42 @@ describe('debris lifecycle', () => {
 		expect(reasons).toEqual(['debris re-entered the atmosphere']);
 	});
 });
+
+describe('design records (plan 221, ADR 0208 point 1)', () => {
+	test('a decouple event carries the parent id and the indices each side kept; each side keeps its design', async () => {
+		const sim = await newSim();
+		const r = sim.dispatch({ type: 'load-vessel', design: twoStage() });
+		if (!r.ok) throw new Error(r.reason);
+		const id = r.vessel!;
+		const splits: Array<{
+			parent: number;
+			vessel: number;
+			parentParts: number[];
+			parts: number[];
+		}> = [];
+		sim.events.on('vessel:split', (e) =>
+			splits.push({
+				parent: Number(e.parent),
+				vessel: Number(e.vessel),
+				parentParts: e.parentParts,
+				parts: e.parts
+			})
+		);
+		sim.dispatch({ type: 'stage', vessel: id });
+		sim.dispatch({ type: 'throttle', vessel: id, value: 1 });
+		for (let i = 0; i < 100; i++) sim.step(0.02);
+		sim.dispatch({ type: 'stage', vessel: id }); // fires the decoupler
+		sim.step(0.02);
+		expect(splits).toHaveLength(1);
+		expect(splits[0]!.parent).toBe(Number(id));
+		expect(splits[0]!.parentParts).toEqual([0, 1, 2, 3]);
+		expect(splits[0]!.parts).toEqual([4, 5, 6]);
+		const upper = sim.designOf(id)!;
+		const lower = sim.designOf(splits[0]!.vessel as never)!;
+		expect(upper.design.name).toBe('Two-stage');
+		expect(lower.design.name).toBe('Two-stage');
+		expect(upper.parts).toEqual([0, 1, 2, 3]);
+		expect(lower.parts).toEqual([4, 5, 6]);
+		expect(upper.rebuilt).toBe(false);
+	});
+});
