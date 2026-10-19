@@ -31,7 +31,8 @@ import {
 	type Settings,
 	type TouchChoice,
 	type TimeSettings,
-	type TutorialProgress
+	type TutorialProgress,
+	type LessonProgress
 } from './settings';
 
 class SettingsStore {
@@ -52,6 +53,8 @@ class SettingsStore {
 	keyProfile = $state<KeyProfile>(DEFAULT_KEY_PROFILE);
 	/** The one-time notice offering the KSP profile is due (plan 216). */
 	keyNotice = $state(false);
+	/** Lesson progress by lesson id (plan 229). */
+	lessons = $state<Record<string, LessonProgress>>({});
 	/** Handlers read this; it follows `bindings` and the profile. */
 	keymap = $derived<Keymap>(createKeymap(this.bindings, this.keyProfile));
 	#started = false;
@@ -75,6 +78,7 @@ class SettingsStore {
 		this.time = settings.time;
 		this.keyProfile = settings.keyProfile;
 		this.keyNotice = settings.keyNotice;
+		this.lessons = settings.lessons;
 		setUnitSystem(settings.units);
 		this.#applyInterface();
 	}
@@ -96,7 +100,8 @@ class SettingsStore {
 			debug: this.debug,
 			time: { ...this.time, places: { ...this.time.places } },
 			keyProfile: this.keyProfile,
-			keyNotice: this.keyNotice
+			keyNotice: this.keyNotice,
+			lessons: Object.fromEntries(Object.entries(this.lessons).map(([k, p]) => [k, { ...p }]))
 		};
 	}
 
@@ -112,6 +117,12 @@ class SettingsStore {
 
 	setTutorial(progress: TutorialProgress): void {
 		this.tutorial = progress;
+		this.#save();
+	}
+
+	/** A lesson's progress (plan 229). */
+	setLesson(id: string, progress: LessonProgress): void {
+		this.lessons = { ...this.lessons, [id]: progress };
 		this.#save();
 	}
 

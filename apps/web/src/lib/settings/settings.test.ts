@@ -35,9 +35,16 @@ describe('settings parsing', () => {
 			debug: true,
 			time: { places: { Hangar: false }, keepRunningHidden: true, askLeaveFlight: false },
 			keyProfile: 'classic' as const,
-			keyNotice: true
+			keyNotice: true,
+			lessons: {
+				landing: { status: 'done' as const, step: 4 },
+				nodes: { status: 'active' as const, step: 2 }
+			}
 		};
 		expect(parseSettings(serialiseSettings(s))).toEqual(s);
+		// a format 4 value from before the lessons (plan 229) reads with none started
+		const { lessons: _, ...before } = s;
+		expect(parseSettings(JSON.stringify(before)).lessons).toEqual({});
 	});
 	it('gives the defaults for nothing, text that is not JSON, other JSON and a wrong version', () => {
 		const d = defaultSettings();

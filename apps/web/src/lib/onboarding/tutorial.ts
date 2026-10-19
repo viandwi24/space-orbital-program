@@ -49,7 +49,11 @@ export interface TutorialStep {
 }
 
 /** The step's text for the keys in force; unknown placeholders are left as written (a test pins that none exist). */
-export function stepText(step: TutorialStep, keymap: Keymap, touch = false): string {
+export function stepText(
+	step: Pick<TutorialStep, 'text' | 'touchText'>,
+	keymap: Keymap,
+	touch = false
+): string {
 	const text = touch ? (step.touchText ?? step.text) : step.text;
 	return text.replace(/\{key:([A-Za-z]+)\}/g, (whole, id: string) => {
 		const label = keymap.label(id as ActionId);
@@ -58,7 +62,11 @@ export function stepText(step: TutorialStep, keymap: Keymap, touch = false): str
 }
 
 /** Key caps of a step for the keys in force (none on touch). */
-export function stepKeys(step: TutorialStep, keymap: Keymap, touch = false): string[] {
+export function stepKeys(
+	step: Pick<TutorialStep, 'actions'>,
+	keymap: Keymap,
+	touch = false
+): string[] {
 	if (touch) return [];
 	return (step.actions ?? []).flatMap((a) => keymap.labels(a).slice(0, 1));
 }

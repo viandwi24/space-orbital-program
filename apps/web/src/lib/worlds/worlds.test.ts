@@ -86,6 +86,21 @@ describe('worlds', () => {
 		expect(await w.startInfo(LEGACY_WORLD_ID)).toBeUndefined();
 	});
 
+	it('a lesson world (plan 229) is never listed, but can be found, kept apart and removed', async () => {
+		const w = createWorlds(memoryWorldStore(), memoryStore(), env());
+		await w.create(career('mine'), 'Moon program', []);
+		const lesson = await w.create(career('lesson'), 'Lesson: Landing', [], undefined, {
+			lesson: 'landing'
+		});
+		expect(lesson.lesson).toBe('landing');
+		expect((await w.list()).map((e) => (e.ok ? e.record.id : '?'))).toEqual(['mine']);
+		expect((await w.lessonWorlds()).map((r) => [r.id, r.lesson])).toEqual([['lesson', 'landing']]);
+		expect((await w.get('lesson'))?.lesson).toBe('landing');
+		await w.remove('lesson');
+		expect(await w.lessonWorlds()).toEqual([]);
+		expect((await w.list()).length).toBe(1);
+	});
+
 	it("setSites (plan 091): new flights start with the Space Center's buildings, the Legacy world too", async () => {
 		const w = createWorlds(memoryWorldStore(), memoryStore(), env());
 		await w.create(career('a'), 'Moon program', []);

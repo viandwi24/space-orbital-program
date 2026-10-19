@@ -25,6 +25,7 @@
 	import { profileStore } from '../../lib/achievements/store';
 	import type { Epoch, MilestoneRecord } from '@orbital/core';
 	import { enterWorld } from '../../lib/worlds/enter';
+	import { leaveLesson } from '../../lib/onboarding/lesson-world';
 	import { homeBodyOf } from '@orbital/core';
 	import { createWorldInfo } from '../../lib/worlds/world-model';
 	import {
@@ -81,7 +82,9 @@
 
 	onMount(() => {
 		catalog = loadWorldCatalog();
-		void saves.worldsService().then((w) => {
+		void saves.worldsService().then(async (w) => {
+			// a lesson quit from the pause menu ends here: the player's world comes back (plan 229)
+			await leaveLesson(w);
 			worlds = w;
 			selected = activeWorldId();
 			return refresh();

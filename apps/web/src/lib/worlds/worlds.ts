@@ -67,15 +67,18 @@ const cleanName = (name: string): string =>
 const emptySummary = (): WorldSummary => ({ saves: 0, vessel: null, simTime: 0 });
 
 export interface Worlds {
-	/** Every world, the one played last first. */
+	/** Every world, the one played last first; lesson worlds (plan 229) are left out. */
 	list(): Promise<WorldEntry[]>;
+	/** The lesson worlds that exist (plan 229): a lesson that was not left cleanly leaves one. */
+	lessonWorlds(): Promise<WorldRecord[]>;
 	get(id: string): Promise<WorldRecord | undefined>;
 	/** A record for a world made in Create World (its info travels in the record until the first save). */
 	create(
 		world: WorldInfo,
 		name: string,
 		mods: readonly SaveMod[],
-		scenario?: string
+		scenario?: string,
+		options?: { lesson?: string }
 	): Promise<WorldRecord>;
 	rename(id: string, name: string): Promise<WorldRecord>;
 	/** A new world with the same rules and start; optionally a new name and seed. No saves are copied. */
@@ -139,7 +142,7 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 			if (!taken.has(candidate)) return candidate;
 		}
 	}
-	async function list(): Promise<WorldEntry[]> {
+	async function all(): Promise<WorldEntry[]> {
 		const out: WorldEntry[] = [];
 		for (const raw of await worlds.list()) {
 			try {
@@ -152,6 +155,8 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 		const at = (e: WorldEntry): number => (e.ok ? e.record.lastPlayedAt : 0);
 		return out.sort((a, b) => at(b) - at(a));
 	}
+	const list = async (): Promise<WorldEntry[]> =>
+		(await all()).filter((e) => !e.ok || e.record.lesson === undefined);
 	async function summaryOf(id: string): Promise<WorldSummary> {
 		const own = await savesOf(id);
 		const newest = own[0];
@@ -162,8 +167,13 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 
 	return {
 		list,
+		async lessonWorlds() {
+			return (await all()).flatMap((e) =>
+				e.ok && e.record.lesson !== undefined ? [e.record] : []
+			);
+		},
 		get,
-		async create(world, name, mods, scenario) {
+		async create(world, name, mods, scenario, options = {}) {
 			const now = env.now();
 			const record: WorldRecord = {
 				format: WORLD_FORMAT,
@@ -177,7 +187,8 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 				changelog: [],
 				summary: emptySummary(),
 				world,
-				...(scenario ? { scenario } : {})
+				...(scenario ? { scenario } : {}),
+				...(options.lesson ? { lesson: options.lesson } : {})
 			};
 			await worlds.put(record);
 			return record;

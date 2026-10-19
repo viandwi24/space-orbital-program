@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { leaveLesson } from '../lib/onboarding/lesson-world';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { API_VERSION } from '@orbital/sdk';
@@ -51,6 +52,8 @@
 			.worldsService()
 			.then(async (w) => {
 				worlds = w;
+				// a lesson quit from the pause menu ends here: the player's world comes back (plan 229)
+				await leaveLesson(w);
 				lastWorld = (await w.list()).flatMap((e) => (e.ok ? [e.record] : []))[0] ?? null;
 				if (lastWorld) newest = (await w.saves(lastWorld.id))[0] ?? null;
 			})
@@ -99,6 +102,13 @@
 			hint="Open, create or manage your worlds"
 			href={resolve('/worlds')}
 			testid="menu-worlds"
+		/>
+		<MenuButton
+			icon="orbit"
+			label="Lessons"
+			hint="Landing, maneuver nodes, docking and a transfer, step by step"
+			href={resolve('/lessons')}
+			testid="menu-lessons"
 		/>
 		<MenuButton
 			icon="launch"

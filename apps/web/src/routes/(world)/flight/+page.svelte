@@ -76,7 +76,23 @@
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
-	import { flightDebug, type DebugHost } from '../../../lib/debug/api';
+	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
+	import LessonCard from '../../../lib/hud/LessonCard.svelte';
+	import {
+		advanceLesson,
+		lessonOf,
+		lessonStep,
+		NEW_LESSON,
+		observeLesson,
+		runLessonSetup,
+		type LessonObservation
+	} from '../../../lib/onboarding/lessons';
+	import {
+		activeLesson,
+		endLessonSession,
+		markLessonReady
+	} from '../../../lib/onboarding/lesson-world';
+	import { lessonKeymap, lessonNotice } from '../../../lib/onboarding/lesson-gate.svelte';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
 	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
@@ -257,6 +273,12 @@
 	let debugOpen = $state(false);
 	/** The running flight's debug host (`flight` itself is not reactive). */
 	let debugHost = $state.raw<DebugHost | null>(null);
+	// a lesson world (plan 229): its lesson, whether its scene is set, and why a setup failed
+	const lessonRun = activeLesson();
+	const lesson = lessonRun ? (lessonOf(lessonRun.lesson) ?? null) : null;
+	let lessonReady = $state(lessonRun?.ready === true);
+	let lessonProblem = $state<string | null>(null);
+	let lessonSetting = false;
 	/** The flight's design and parts, for the panel's "spawn a design" list. */
 	let debugDesigns: () => Promise<Array<{ name: string; design: VesselDesign }>> = async () => [];
 	let helpOpen = $state(false);
@@ -577,6 +599,9 @@
 			} else if (!launch && !worldSession.base && (start = await scenarioOfWorld())) {
 				// a world made from a scenario starts its first flight from it (plan 100, ADR 0151)
 				design = start.design;
+			} else if (!launch && lesson) {
+				// a lesson flies its own vessel; the setup puts it where the lesson starts (plan 229)
+				design = lesson.design();
 			} else {
 				const text = loadDraft();
 				if (text === null) {
@@ -699,6 +724,8 @@
 			profile: profileStore(),
 			onHud: (h) => {
 				hud = h;
+				if (h.status === 'flying' && lesson && !lessonReady && !lessonSetting)
+					void setLessonScene();
 				// the vessel in focus, for coming back to Flight and for the world's autosave (plan 204)
 				const v = h.status === 'flying' ? flight?.debug.vessel() : null;
 				if (v != null && worldSession.focus?.vessel !== Number(v))
@@ -736,7 +763,10 @@
 				nodeLayer?.place(f.maneuver ?? null);
 			},
 			// the player's profile and keys (plan 216; before it the flight read the defaults only)
-			keymap: () => settings.keymap,
+			keymap: () =>
+				lesson
+					? lessonKeymap(settings.keymap, lesson, (reason) => lessonNotice.show(reason))
+					: settings.keymap,
 			onKey: (key) => {
 				if (key === 'escape') pauseOpen = true;
 				else if (key === 'quicksave') void quicksave();
@@ -1108,13 +1138,78 @@
 		};
 	});
 	$effect(() => {
-		if (observation === null) return;
+		// a lesson world teaches its own lesson, not the first flight (plan 229)
+		if (observation === null || lesson) return;
 		const next = advance(settings.tutorial, observation);
 		if (next !== settings.tutorial) settings.setTutorial(next);
 	});
 	const tutorialStep = $derived(
-		hud?.status === 'flying' && !pauseOpen ? currentStep(settings.tutorial, 'flight') : null
+		hud?.status === 'flying' && !pauseOpen && !lesson
+			? currentStep(settings.tutorial, 'flight')
+			: null
 	);
+
+	// ---- lessons (plan 229) ----------------------------------------------------------------------
+	/** Sets the lesson's scene through the debug API, once per lesson world. */
+	async function setLessonScene(): Promise<void> {
+		if (!lesson || !debugHost) return;
+		lessonSetting = true;
+		const result = await runLessonSetup(lesson, createDebugApi(debugHost));
+		lessonSetting = false;
+		if (!result.ok) {
+			lessonProblem = `The lesson could not set its scene (${result.reason}).`;
+			return;
+		}
+		lessonProblem = null;
+		markLessonReady();
+		lessonReady = true;
+		settings.setLesson(lesson.id, { status: 'active', step: 0 });
+	}
+	const lessonObservation = $derived.by((): LessonObservation | null => {
+		if (!lesson || !lessonReady || !hud || hud.status !== 'flying' || !model || !debugHost)
+			return null;
+		const v = flight?.panelInput()?.vessel;
+		if (!v) return null;
+		return observeLesson({
+			vessel: v,
+			bodies: debugHost.bodies(),
+			throttle: model.throttle,
+			altitude: model.altitude,
+			sasMode: model.sas?.mode ?? 'off',
+			rcs: model.rcs === 'on',
+			map: hud.map,
+			warp: hud.warp,
+			apoapsis: model.orbit?.apoapsis ?? null,
+			periapsis: model.orbit && !model.orbit.escape ? model.orbit.periapsis : null,
+			nodes: model.maneuver?.nodes ?? [],
+			target: model.target
+				? {
+						key: model.target.key,
+						distance: model.target.distance,
+						relativeSpeed: model.target.relativeSpeed
+					}
+				: null
+		});
+	});
+	const lessonProgress = $derived(
+		lesson ? (settings.lessons[lesson.id] ?? NEW_LESSON) : NEW_LESSON
+	);
+	$effect(() => {
+		if (!lesson || lessonObservation === null) return;
+		const next = advanceLesson(lesson, lessonProgress, lessonObservation);
+		if (next !== lessonProgress) settings.setLesson(lesson.id, next);
+	});
+	const lessonShown = $derived(
+		lesson && hud?.status === 'flying' && !pauseOpen && (lessonReady || lessonProblem !== null)
+			? lesson
+			: null
+	);
+	/** Leave the lesson: the player's world comes back, and the Lessons page removes the lesson world. */
+	function leaveLessonToList(): void {
+		endLessonSession();
+		lessonNotice.clear();
+		void goto(resolve('/lessons'));
+	}
 	const canRun = $derived(hud?.status === 'flying' && source.trim() !== '' && !running);
 </script>
 
@@ -1217,6 +1312,17 @@
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
 		>
 			<div class="tl">
+				{#if lessonShown}
+					<LessonCard
+						lesson={lessonShown}
+						step={lessonStep(lessonShown, lessonProgress)}
+						progress={lessonProgress}
+						keymap={settings.keymap}
+						touch={touchOn}
+						notice={lessonProblem ?? lessonNotice.reason}
+						onleave={leaveLessonToList}
+					/>
+				{/if}
 				{#if tutorialStep}
 					<TutorialCard
 						step={tutorialStep}

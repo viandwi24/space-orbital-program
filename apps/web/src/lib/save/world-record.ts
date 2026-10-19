@@ -50,6 +50,8 @@ export interface WorldRecord {
 	scenario?: string;
 	/** A debug tool was used in this world (plan 203, ADR 0213 point 4); never cleared. */
 	usedCheats?: boolean;
+	/** A throwaway world a lesson runs in (plan 229): never listed, removed when the lesson ends. */
+	lesson?: string;
 }
 
 export const LEGACY_WORLD_NAME = 'Legacy world';
@@ -151,6 +153,7 @@ export function parseWorldRecord(raw: unknown): WorldRecord {
 		summary: { saves: s.saves, vessel: s.vessel, simTime: s.simTime },
 		...(world ? { world } : {}),
 		...(typeof raw.scenario === 'string' ? { scenario: raw.scenario } : {}),
-		...(raw.usedCheats === true ? { usedCheats: true } : {})
+		...(raw.usedCheats === true ? { usedCheats: true } : {}),
+		...(typeof raw.lesson === 'string' && raw.lesson !== '' ? { lesson: raw.lesson } : {})
 	};
 }

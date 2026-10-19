@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Button from '../ui/Button.svelte';
 	import Dialog from '../ui/Dialog.svelte';
 	import Kbd from '../ui/Kbd.svelte';
@@ -29,7 +30,13 @@
 			</section>
 		{/each}
 	</div>
-	<div class="foot"><Button variant="primary" onclick={onclose}>Close</Button></div>
+	<div class="foot">
+		<!-- the lessons after the first orbit (plan 229) -->
+		<a class="lessons" href={resolve('/lessons')} data-testid="help-lessons"
+			>Lessons: landing, nodes, docking, transfers</a
+		>
+		<Button variant="primary" onclick={onclose}>Close</Button>
+	</div>
 </Dialog>
 
 <style>
@@ -66,7 +73,13 @@
 	}
 	.foot {
 		display: flex;
-		justify-content: flex-end;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--s-3);
 		margin-top: var(--s-5);
+	}
+	.lessons {
+		font-size: var(--t-sm);
+		color: var(--accent-text);
 	}
 </style>

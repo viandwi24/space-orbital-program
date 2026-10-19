@@ -27,6 +27,16 @@ const tutorialSchema = z
 	})
 	.catch({ status: 'pending', step: 0 });
 
+/** Lesson progress (plan 229): per lesson id, its status and step; additive in format 4. */
+export const LESSON_STATUS = ['new', 'active', 'done'] as const;
+const lessonsSchema = z
+	.record(
+		z.string().min(1).max(40),
+		z.object({ status: z.enum(LESSON_STATUS), step: z.number().int().min(0).max(99) })
+	)
+	.catch({})
+	.default({});
+
 export const TOUCH_CHOICES = ['auto', 'on', 'off'] as const;
 export type TouchChoice = (typeof TOUCH_CHOICES)[number];
 
@@ -124,7 +134,9 @@ const settingsV3 = z.object({
 const settingsV4 = settingsV3.extend({
 	v: z.literal(4),
 	keyProfile: z.enum(KEY_PROFILES).catch(DEFAULT_KEY_PROFILE),
-	keyNotice: z.boolean().catch(false)
+	keyNotice: z.boolean().catch(false),
+	/** Lesson progress (plan 229): additive in format 4, none when absent. */
+	lessons: lessonsSchema
 });
 
 /** Format 1 (plan 023): units and tutorial only; migrated by taking the new fields' defaults. */
@@ -147,8 +159,14 @@ export interface Settings {
 	keyProfile: KeyProfile;
 	/** Show once after the migration to format 4: which key profile is in force. */
 	keyNotice: boolean;
+	/** Lesson progress by lesson id (plan 229). */
+	lessons: Record<string, LessonProgress>;
 }
 export type TutorialProgress = Settings['tutorial'];
+export interface LessonProgress {
+	status: (typeof LESSON_STATUS)[number];
+	step: number;
+}
 export type AudioSettings = Settings['audio'];
 export type InterfaceSettings = Settings['interface'];
 
@@ -164,7 +182,8 @@ export const defaultSettings = (): Settings => ({
 	debug: false,
 	time: defaultTime(),
 	keyProfile: DEFAULT_KEY_PROFILE,
-	keyNotice: false
+	keyNotice: false,
+	lessons: {}
 });
 
 /**
@@ -198,7 +217,8 @@ export function parseSettings(text: string | null): Settings {
 			...v3.data,
 			v: 4,
 			...profile,
-			bindings: repairBindings(v3.data.bindings, profile.keyProfile)
+			bindings: repairBindings(v3.data.bindings, profile.keyProfile),
+			lessons: {}
 		};
 	}
 	const v2 = settingsV2.safeParse(raw);
@@ -212,7 +232,8 @@ export function parseSettings(text: string | null): Settings {
 			interface: { ...DEFAULT_INTERFACE },
 			dock: defaultDock(),
 			debug: false,
-			time: defaultTime()
+			time: defaultTime(),
+			lessons: {}
 		};
 	}
 	const v1 = settingsV1.safeParse(raw);

@@ -30,6 +30,7 @@
 	import { clockState, placePauses } from '../../lib/clock-state';
 	import { createDebugApi, exposeDebugApi, flightDebug, type DebugHost } from '../../lib/debug/api';
 	import { fatalSave } from '../../lib/fatal-error.svelte';
+	import { lessonNotice, placeBlocked } from '../../lib/onboarding/lesson-gate.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -184,6 +185,13 @@
 	let leaving = false;
 	beforeNavigate((nav) => {
 		const to = nav.to?.url;
+		// a lesson closes some places (plan 229): the try is cancelled and its reason shown
+		const closed = to && inWorld(to.pathname) ? placeBlocked(local(to.pathname)) : null;
+		if (closed !== null && nav.type !== 'leave') {
+			nav.cancel();
+			lessonNotice.show(closed);
+			return;
+		}
 		if (!to || inWorld(to.pathname) || leaving || nav.type === 'leave') return;
 		// out of the world: save first, then go (the sim stops with the layout)
 		nav.cancel();
@@ -390,6 +398,9 @@
 	>
 		{@render children()}
 	</WorldShell>
+	{#if lessonNotice.reason && local(page.url.pathname) !== '/flight'}
+		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
+	{/if}
 	<SettingsDialog open={settingsOpen} onclose={() => (settingsOpen = false)} />
 {/if}
 
@@ -407,6 +418,24 @@
 		margin: 0;
 		font-weight: 300;
 		color: var(--text-primary);
+	}
+	.lesson-notice {
+		position: fixed;
+		left: 50%;
+		bottom: var(--s-6, 2rem);
+		transform: translateX(-50%);
+		max-width: 28rem;
+		margin: 0;
+		padding: var(--s-3) var(--s-4);
+		font-size: var(--t-small);
+		color: var(--text-primary);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-left: 3px solid var(--accent-text);
+		border-radius: var(--radius-panel);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+		z-index: 40;
 	}
 	.row {
 		display: flex;
