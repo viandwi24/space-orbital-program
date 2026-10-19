@@ -18,8 +18,12 @@
 	import Segmented from '../ui/Segmented.svelte';
 	import StatCell from '../ui/StatCell.svelte';
 	import AlarmTools, { type AlarmDraft } from './AlarmTools.svelte';
+	import Dialog from '../ui/Dialog.svelte';
+	import RecoverDialog from '../hud/RecoverDialog.svelte';
+	import { VESSEL_TYPES, type VesselType } from '@orbital/core';
 	import {
 		TRACK_FILTERS,
+		VESSEL_TYPE_LABEL,
 		timeUntil,
 		type MapLabel,
 		type ObjectCard,
@@ -48,6 +52,17 @@
 		onwarp,
 		onalarmsave,
 		onalarmremove,
+		counts = null,
+		trackType = null,
+		ontracktype,
+		search = '',
+		onsearch,
+		sort = 'name',
+		onsort,
+		onrecover,
+		onterminate,
+		onrename,
+		onsettype,
 		windowDestinations = [],
 		windowDestination = null,
 		onwindowdestination,
@@ -81,6 +96,19 @@
 		onselect: (key: string | null) => void;
 		upcoming: readonly UpcomingEvent[];
 		onwarp: (e: UpcomingEvent) => void;
+		/** The fleet list (plan 223): counts per type, the type kept, the search and the order. */
+		counts?: { all: number; byType: Record<VesselType, number> } | null;
+		trackType?: VesselType | null;
+		ontracktype?: (type: VesselType | null) => void;
+		search?: string;
+		onsearch?: (text: string) => void;
+		sort?: 'name' | 'distance';
+		onsort?: (sort: 'name' | 'distance') => void;
+		/** Fleet actions on the selected vessel (plan 223). */
+		onrecover?: (vessel: number) => void;
+		onterminate?: (vessel: number) => void;
+		onrename?: (vessel: number, name: string) => void;
+		onsettype?: (vessel: number, type: VesselType) => void;
 		/** Alarms (plan 224): add or replace one, and delete one by id. */
 		onalarmsave?: (draft: AlarmDraft) => void;
 		onalarmremove?: (id: string) => void;
@@ -116,6 +144,10 @@
 
 	const toggle = (name: keyof Layers) => onlayers({ ...layers, [name]: !layers[name] });
 	let editing = $state<AlarmDraft | null>(null);
+	let recovering = $state<number | null>(null);
+	let terminating = $state<number | null>(null);
+	let renaming = $state<number | null>(null);
+	let newName = $state('');
 </script>
 
 <div class="overlay" data-testid="mission-center">
@@ -170,6 +202,40 @@
 				onchange={onfilter}
 				testid="mc-filter"
 			/>
+			{#if onsearch}
+				<div class="fleet">
+					<input
+						type="search"
+						placeholder="Search"
+						value={search}
+						oninput={(e) => onsearch(e.currentTarget.value)}
+						aria-label="Search vessels and bodies"
+						data-testid="mc-search"
+					/>
+					<select
+						value={trackType ?? ''}
+						onchange={(e) => ontracktype?.((e.currentTarget.value || null) as VesselType | null)}
+						aria-label="Vessel type"
+						data-testid="mc-type"
+					>
+						<option value="">All types{counts ? ` (${counts.all})` : ''}</option>
+						{#each VESSEL_TYPES as t (t)}
+							<option value={t}
+								>{VESSEL_TYPE_LABEL[t]}{counts ? ` (${counts.byType[t]})` : ''}</option
+							>
+						{/each}
+					</select>
+					<select
+						value={sort}
+						onchange={(e) => onsort?.(e.currentTarget.value as 'name' | 'distance')}
+						aria-label="Order"
+						data-testid="mc-sort"
+					>
+						<option value="name">By name</option>
+						<option value="distance">By distance</option>
+					</select>
+				</div>
+			{/if}
 			<ul class="list" data-testid="mc-tracking">
 				{#each rows as row (row.key)}
 					<li>
@@ -320,6 +386,93 @@
 				{:else}
 					<p class="why" data-testid="mc-fly-why">{card.fly.reason}</p>
 				{/if}
+			{/if}
+			{#if card.vessel}
+				{@const v = card.vessel}
+				<div class="fleetacts" data-testid="mc-fleet-actions">
+					{#if v.recovery && onrecover}
+						<Button onclick={() => (recovering = v.id)} data-testid="mc-recover"
+							>Recover · {Math.round(v.recovery.factor * 1000) / 10} %</Button
+						>
+					{/if}
+					{#if onsettype}
+						<select
+							value={v.type}
+							onchange={(e) => onsettype(v.id, e.currentTarget.value as VesselType)}
+							aria-label="Type of {v.name}"
+							data-testid="mc-set-type"
+						>
+							{#each VESSEL_TYPES as t (t)}<option value={t}>{VESSEL_TYPE_LABEL[t]}</option>{/each}
+						</select>
+					{/if}
+					{#if onrename}
+						{#if renaming === v.id}
+							<form
+								class="rename"
+								onsubmit={(e) => {
+									e.preventDefault();
+									if (newName.trim()) onrename(v.id, newName.trim());
+									renaming = null;
+								}}
+							>
+								<input
+									bind:value={newName}
+									maxlength="60"
+									aria-label="New name"
+									data-testid="mc-rename-input"
+								/>
+								<Button type="submit" data-testid="mc-rename-save">Save</Button>
+							</form>
+						{:else}
+							<Button
+								variant="ghost"
+								onclick={() => {
+									renaming = v.id;
+									newName = v.name;
+								}}
+								data-testid="mc-rename">Rename</Button
+							>
+						{/if}
+					{/if}
+					{#if onterminate}
+						<Button variant="ghost" onclick={() => (terminating = v.id)} data-testid="mc-terminate"
+							>Terminate</Button
+						>
+					{/if}
+				</div>
+				{#if v.recovery && onrecover}
+					<RecoverDialog
+						open={recovering === v.id}
+						quote={v.recovery}
+						cancel="Not now"
+						onrecover={() => {
+							recovering = null;
+							onrecover(v.id);
+						}}
+						onclose={() => (recovering = null)}
+					/>
+				{/if}
+				<Dialog
+					open={terminating === v.id}
+					title="Terminate {v.name}?"
+					onclose={() => (terminating = null)}
+				>
+					<p class="why">
+						The vessel leaves the world for good. Crew aboard follow the world's crew rule, as in a
+						crash.
+					</p>
+					<div class="fleetacts">
+						<Button variant="ghost" onclick={() => (terminating = null)}>Keep it</Button>
+						<Button
+							variant="primary"
+							onclick={() => {
+								terminating = null;
+								onterminate?.(v.id);
+							}}
+							data-testid="mc-terminate-confirm">Terminate</Button
+						>
+					</div>
+				</Dialog>
 			{/if}
 		</section>
 	{/if}
@@ -477,6 +630,36 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.375rem 0;
+	}
+	.fleet {
+		display: flex;
+		gap: 0.25rem;
+		margin: 0.5rem 0;
+	}
+	.fleet input,
+	.fleet select,
+	.fleetacts select,
+	.rename input {
+		min-width: 0;
+		flex: 1 1 0;
+		padding: 0.25rem 0.5rem;
+		font: inherit;
+		font-size: var(--t-sm);
+		color: var(--text-body);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-row);
+	}
+	.fleetacts {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+	.rename {
+		display: flex;
+		gap: 0.25rem;
 	}
 	.acts {
 		display: flex;

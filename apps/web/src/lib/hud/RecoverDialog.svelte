@@ -11,12 +11,15 @@
 		open,
 		quote,
 		onrecover,
-		onclose
+		onclose,
+		cancel = 'Keep flying'
 	}: {
 		open: boolean;
 		quote: RecoveryQuoteView;
 		onrecover: () => void;
 		onclose: () => void;
+		/** The cancel button's text (the Mission Center says "Not now", plan 223). */
+		cancel?: string;
 	} = $props();
 </script>
 
@@ -28,7 +31,7 @@
 		{/each}
 	</dl>
 	<div class="actions">
-		<Button variant="ghost" onclick={onclose}>Keep flying</Button>
+		<Button variant="ghost" onclick={onclose}>{cancel}</Button>
 		<Button variant="primary" onclick={onrecover} data-testid="recover-confirm">Recover</Button>
 	</div>
 </Dialog>

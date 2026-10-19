@@ -4,7 +4,16 @@
  * so the page and the tests share it.
  */
 import { resolve } from '$app/paths';
-import type { AlarmKind, BodyDefinition, Command, Snapshot, VesselSnapshot } from '@orbital/core';
+import {
+	VESSEL_TYPES,
+	type AlarmKind,
+	type BodyDefinition,
+	type Command,
+	type Snapshot,
+	type Vec3,
+	type VesselSnapshot,
+	type VesselType
+} from '@orbital/core';
 import { trajectoryFor, type PatchedBody } from '@orbital/kepler';
 import { formatDistance, formatDuration, formatSpeed } from '../format';
 import { bodyLabel } from '../hud-model';
@@ -26,6 +35,8 @@ export interface TrackRow {
 	kind: 'vessel' | 'body';
 	label: string;
 	sub: string;
+	/** A vessel's type (plan 223). */
+	type?: VesselType;
 }
 
 const vesselName = (v: VesselSnapshot): string => v.name ?? `Vessel ${v.id}`;
@@ -43,36 +54,101 @@ export function vesselWhere(v: VesselSnapshot): string {
 	return `${what} · ${bodyLabel(String(v.soi))}`;
 }
 
+/** The fleet list's labels of the vessel types (plan 223). */
+export const VESSEL_TYPE_LABEL: Record<VesselType, string> = {
+	debris: 'Debris',
+	probe: 'Probe',
+	rover: 'Rover',
+	lander: 'Lander',
+	ship: 'Ship',
+	station: 'Station',
+	base: 'Base',
+	plane: 'Plane',
+	relay: 'Relay',
+	eva: 'EVA',
+	flag: 'Flag'
+};
+
+/** The list's options beyond the filter (plan 223): one vessel type, a search, the order. */
+export interface TrackOptions {
+	type?: VesselType | null;
+	search?: string;
+	sort?: 'name' | 'distance';
+	/** System-frame point distances are measured from (the focused vessel, or the home body). */
+	from?: Vec3 | null;
+}
+
+const vesselTypeOf = (v: VesselSnapshot): VesselType => v.type ?? 'probe';
+
+/** How many of the player's vessels each type has, and in all (the filter's counts). */
+export function typeCounts(snapshot: Snapshot | null): {
+	all: number;
+	byType: Record<VesselType, number>;
+} {
+	const byType = Object.fromEntries(VESSEL_TYPES.map((t) => [t, 0])) as Record<VesselType, number>;
+	let all = 0;
+	for (const v of snapshot?.vessels ?? []) {
+		if (v.owner !== undefined) continue;
+		byType[vesselTypeOf(v)]++;
+		all++;
+	}
+	return { all, byType };
+}
+
+/** System-frame position of a vessel. */
+function vesselWorld(snapshot: Snapshot, v: VesselSnapshot): Vec3 | null {
+	const base = snapshot.bodies.find((b) => b.id === v.soi)?.position;
+	return base
+		? { x: base.x + v.position.x, y: base.y + v.position.y, z: base.z + v.position.z }
+		: null;
+}
+
 /**
- * The rows for `filter`: bodies root first, then vessels by name. Relays are vessels that relay for
- * others, which only plan 117 makes: the filter is empty until then.
+ * The rows for `filter`: bodies root first, then vessels by name (or by distance from
+ * `options.from`). Relays are the vessels of type relay (plan 223); `options.type` keeps one type
+ * and `options.search` the names that contain it.
  */
 export function trackingRows(
 	snapshot: Snapshot | null,
 	bodies: readonly BodyDefinition[],
-	filter: TrackFilter
+	filter: TrackFilter,
+	options: TrackOptions = {}
 ): TrackRow[] {
 	const rows: TrackRow[] = [];
-	if (filter === 'all' || filter === 'bodies') {
+	const needle = options.search?.trim().toLowerCase() ?? '';
+	const matches = (label: string) => needle === '' || label.toLowerCase().includes(needle);
+	if ((filter === 'all' || filter === 'bodies') && !options.type) {
 		for (const b of bodies) {
-			rows.push({
-				key: `body:${b.id}`,
-				kind: 'body',
-				label: bodyLabel(String(b.id)),
-				sub: kindOf(b, bodies)
-			});
+			const label = bodyLabel(String(b.id));
+			if (!matches(label)) continue;
+			rows.push({ key: `body:${b.id}`, kind: 'body', label, sub: kindOf(b, bodies) });
 		}
 	}
-	if ((filter === 'all' || filter === 'vessels') && snapshot) {
-		const vessels = [...snapshot.vessels].sort((a, b) =>
-			vesselName(a).localeCompare(vesselName(b))
+	if (filter !== 'bodies' && snapshot) {
+		const from = options.from ?? null;
+		const vessels = snapshot.vessels
+			.filter((v) => (filter === 'relays' ? vesselTypeOf(v) === 'relay' : true))
+			.filter((v) => !options.type || vesselTypeOf(v) === options.type)
+			.filter((v) => matches(vesselName(v)))
+			.map((v) => {
+				const at = from ? vesselWorld(snapshot, v) : null;
+				const distance =
+					at && from ? Math.hypot(at.x - from.x, at.y - from.y, at.z - from.z) : undefined;
+				return { v, distance };
+			});
+		vessels.sort((a, b) =>
+			options.sort === 'distance' && a.distance !== undefined && b.distance !== undefined
+				? a.distance - b.distance
+				: vesselName(a.v).localeCompare(vesselName(b.v))
 		);
-		for (const v of vessels) {
+		for (const { v, distance } of vessels) {
+			const type = vesselTypeOf(v);
 			rows.push({
 				key: `vessel:${v.id}`,
 				kind: 'vessel',
 				label: vesselName(v),
-				sub: vesselWhere(v)
+				sub: `${VESSEL_TYPE_LABEL[type]} · ${vesselWhere(v)}${distance !== undefined && options.sort === 'distance' ? ` · ${formatDistance(distance)}` : ''}`,
+				type
 			});
 		}
 	}
@@ -246,6 +322,14 @@ export interface ObjectCard {
 	sub: string;
 	facts: { label: string; value: string }[];
 	fly: null | { enabled: true } | { enabled: false; reason: string };
+	/** The player's vessel (plan 223): what the fleet actions need. */
+	vessel?: {
+		id: number;
+		name: string;
+		type: VesselType;
+		/** Present while it can be recovered (landed or splashed, at rest): the sim's quote. */
+		recovery?: { value: number; factor: number; distance: number | null; credit: number };
+	};
 }
 
 /** Fly is refused for an agency's object (plan 221: every vessel of the player has a design record). */
@@ -300,7 +384,17 @@ export function objectCard(
 						: '—'
 			}
 		],
-		fly: v.owner === undefined ? { enabled: true } : { enabled: false, reason: NOT_OURS }
+		fly: v.owner === undefined ? { enabled: true } : { enabled: false, reason: NOT_OURS },
+		...(v.owner === undefined
+			? {
+					vessel: {
+						id: Number(v.id),
+						name: vesselName(v),
+						type: vesselTypeOf(v),
+						...(v.recovery ? { recovery: v.recovery } : {})
+					}
+				}
+			: {})
 	};
 }
 

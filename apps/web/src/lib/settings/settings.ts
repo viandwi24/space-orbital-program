@@ -5,6 +5,7 @@
  * and the automatic quality switch keep their own keys (`graphics.ts`, plan 019/039) so a profile
  * from an earlier build keeps its choices. Everything read from storage is parsed, never asserted.
  */
+import { DEFAULT_DEBRIS_CAP } from '@orbital/core';
 import { defaultDock, type DockChoice } from '../dock/dock-model';
 import { z } from 'zod';
 import {
@@ -99,19 +100,25 @@ const dockSchema = z
 export const defaultTime = (): TimeSettings => ({
 	places: {},
 	keepRunningHidden: false,
-	askLeaveFlight: true
+	askLeaveFlight: true,
+	debrisCap: DEFAULT_DEBRIS_CAP
 });
 export interface TimeSettings {
 	/** Only the places the player changed; the rest take `PLACE_PAUSE_DEFAULTS`. */
 	places: Record<string, boolean>;
 	keepRunningHidden: boolean;
 	askLeaveFlight: boolean;
+	/** Most debris a world keeps (plan 223): sent to the sim with `set-debris-cap`; 0 removes it at once. */
+	debrisCap: number;
 }
+/** The debris cap's choices in Settings (plan 223). */
+export const DEBRIS_CAPS = [0, 50, 100, 250, 500, 1000] as const;
 const timeSchema = z
 	.object({
 		places: z.record(z.string().min(1).max(40), z.boolean()).catch({}),
 		keepRunningHidden: z.boolean().catch(false),
-		askLeaveFlight: z.boolean().catch(true)
+		askLeaveFlight: z.boolean().catch(true),
+		debrisCap: z.int().min(0).max(10_000).catch(DEFAULT_DEBRIS_CAP).default(DEFAULT_DEBRIS_CAP)
 	})
 	.catch(defaultTime())
 	.default(defaultTime());

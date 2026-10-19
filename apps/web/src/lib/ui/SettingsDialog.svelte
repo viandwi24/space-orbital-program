@@ -5,7 +5,7 @@
 	import Segmented from './Segmented.svelte';
 	import Switch from './Switch.svelte';
 	import { pageAudio } from '../audio/audio';
-	import { UI_SCALES, type TouchChoice } from '../settings/settings';
+	import { DEBRIS_CAPS, UI_SCALES, type TouchChoice } from '../settings/settings';
 	import {
 		clearGraphicsPreset,
 		loadAutoQuality,
@@ -302,6 +302,24 @@
 					testid="time-ask-leave"
 				/>
 			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Debris kept</h3>
+					<p>
+						Spent stages and other debris stay in the world up to this many; the oldest goes first.
+					</p>
+				</div>
+				<select
+					class="pick"
+					value={settings.time.debrisCap}
+					aria-label="Debris kept"
+					data-testid="time-debris-cap"
+					onchange={(e) => settings.setTime({ debrisCap: Number(e.currentTarget.value) })}
+				>
+					{#each DEBRIS_CAPS as cap (cap)}<option value={cap}>{cap === 0 ? 'None' : cap}</option
+						>{/each}
+				</select>
+			</div>
 		{:else if tab === 'controls'}
 			<ControlsEditor />
 		{:else}
@@ -352,6 +370,14 @@
 </Dialog>
 
 <style>
+	.pick {
+		padding: 0.25rem 0.5rem;
+		font: inherit;
+		color: var(--text-body);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-row);
+	}
 	.tabs {
 		display: flex;
 		gap: var(--s-1);
