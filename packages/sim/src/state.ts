@@ -160,6 +160,11 @@ export interface VesselState {
 	launchedAt?: number;
 	/** "Control from here" (plan 221): the part whose nose SAS and the navball follow; the root when absent. */
 	controlPart?: EntityId;
+	/**
+	 * Vessels docked into this one (plan 222, ADR 0218), newest last: what an undock at the port pair
+	 * gives back to the side that came from the other vessel.
+	 */
+	docks?: DockRecord[];
 	/** Samples brought aboard by boarding crew (plan 109): credited at recovery. */
 	samples?: Array<{ subject: string; value: number }>;
 }
@@ -190,6 +195,28 @@ export interface Attachment {
 	peerNode: string;
 }
 
+/** One docking (plan 222): the port pair and what the absorbed vessel was. */
+export interface DockRecord {
+	/** The port of this vessel and the port of the vessel that docked. */
+	port: EntityId;
+	peerPort: EntityId;
+	/** The docked vessel's entity id before the merge (retired), name and design. */
+	vessel: EntityId;
+	name: string;
+	design?: VesselDesign;
+	/** This vessel's design before the merge. */
+	keeperDesign?: VesselDesign;
+	/** The docked vessel's parts got `index + offset` here; undock takes the offset off again. */
+	offset: number;
+	/** How many stages the keeper had: the docked vessel's were appended after them. */
+	keeperStages: number;
+	/** The docked vessel's parts and stages (part entities), and its control part. */
+	parts: EntityId[];
+	stages: EntityId[][];
+	controlPart?: EntityId;
+	time: number;
+}
+
 export interface PartState {
 	vessel: EntityId;
 	/** Index in the design the part came from. */
@@ -212,6 +239,11 @@ export interface PartState {
 	attachments: Attachment[];
 	/** Skin temperature, K (ADR 0023). */
 	temperature: number;
+	/**
+	 * A docking port does not capture before this sim time (plan 222): a moment after an undock, and
+	 * longer after the faces met too fast.
+	 */
+	portBlockedUntil?: number;
 	/** Module instances in definition order, with parsed configs. */
 	modules: Array<{ id: string; config: unknown }>;
 }

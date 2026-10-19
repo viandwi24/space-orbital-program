@@ -19,6 +19,10 @@ export interface EventMap {
 	/** A vessel split (plan 221): the design indices each side kept, the new piece being `vessel`. */
 	'vessel:split': { parent: EntityId; vessel: EntityId; parentParts: number[]; parts: number[] };
 	'vessel:destroyed': { vessel: EntityId; reason: string };
+	/** Two vessels docked (plan 222, ADR 0218): `absorbed` is now part of `vessel` and is gone. */
+	'vessel:docked': { vessel: EntityId; absorbed: EntityId; port: EntityId; peerPort: EntityId };
+	/** An undock split `vessel` (plan 222): `restored` is the new vessel with the old name and design. */
+	'vessel:undocked': { vessel: EntityId; restored: EntityId; name: string };
 	/** Every control source of the vessel ran out of the power it needs (plan 208, ADR 0214). */
 	'vessel:power-depleted': { vessel: EntityId; time: number };
 	/**

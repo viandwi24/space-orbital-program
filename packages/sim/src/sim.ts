@@ -77,6 +77,7 @@ import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
+import { capturePorts, pullPorts } from './docking.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -440,6 +441,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		for (const frame of core.frames) {
 			if (frame.inUse) overheated.push(...prepareFrame(core, frame, dt));
 		}
+		// docking ports pull each other in (plan 222, ADR 0218)
+		for (const frame of core.frames) if (frame.inUse) pullPorts(core, frame);
 		for (const frame of core.frames) {
 			if (!frame.inUse) continue;
 			for (const hit of advanceFrame(core, frame, dt)) damagePart(core, hit);
@@ -453,6 +456,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		// Splits requested by `update` hooks are applied after the backend step: rebuilding bodies
 		// earlier would drop the forces already queued for this step (ADR 0018).
 		processPending(core);
+		capturePorts(core);
 		stepRailsVessels(dt);
 		core.t += dt;
 		rebaseAll();
