@@ -31,6 +31,7 @@
 		mods,
 		bell,
 		onsettings,
+		onworldsettings,
 		onhome,
 		clockChip = null,
 		paused = false,
@@ -57,6 +58,8 @@
 		mods: number;
 		bell: BellFeed;
 		onsettings: () => void;
+		/** World settings during play (plan 230). */
+		onworldsettings?: () => void;
 		/** Leave the world (the sim stops). */
 		onhome: () => void;
 		/** The clock's chip (plan 205): `PAUSED`, `PAUSED · HANGAR`, `LOCKED`, `BACKGROUND`, or null. */
@@ -123,6 +126,17 @@
 				onsettings();
 			}}>Settings</button
 		>
+		{#if onworldsettings}
+			<button
+				type="button"
+				role="menuitem"
+				data-testid="nav-world-settings"
+				onclick={() => {
+					menuOpen = false;
+					onworldsettings();
+				}}>World settings</button
+			>
+		{/if}
 		<button
 			type="button"
 			role="menuitem"

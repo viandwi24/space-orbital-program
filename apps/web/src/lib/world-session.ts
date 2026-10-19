@@ -58,6 +58,11 @@ export interface WorldSession {
 	/** Tell the layout a page wrote a save itself. */
 	saved(): void;
 	/**
+	 * The world before the flight's launch (plan 230): Revert to the Hangar restarts the sim from
+	 * it. Null when the flight was loaded or taken up again, or after a restart.
+	 */
+	revertPoint: { worldId: string; sim: SimSave } | null;
+	/**
 	 * A menu or dialog that pauses as the place "Menu" does (plan 205): `source` holds it while
 	 * `on`; the layout decides with the player's choices and the world's rule.
 	 */
@@ -108,6 +113,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 		collect: null,
 		requestSave: () => {},
 		saveNow: () => Promise.resolve(false),
+		revertPoint: null,
 		saved: () => {
 			session.savedAt = Date.now();
 			changed();

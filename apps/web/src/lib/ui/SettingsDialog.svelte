@@ -5,6 +5,7 @@
 	import Segmented from './Segmented.svelte';
 	import Switch from './Switch.svelte';
 	import { pageAudio } from '../audio/audio';
+	import SavesPanel from '../save/SavesPanel.svelte';
 	import { DEBRIS_CAPS, UI_SCALES, type TouchChoice } from '../settings/settings';
 	import {
 		clearGraphicsPreset,
@@ -35,7 +36,7 @@
 		onautoquality?: (on: boolean) => void;
 	} = $props();
 
-	type Tab = 'graphics' | 'interface' | 'game' | 'time' | 'controls' | 'audio';
+	type Tab = 'graphics' | 'interface' | 'game' | 'time' | 'controls' | 'audio' | 'saves';
 	let tab = $state<Tab>('graphics');
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
@@ -65,7 +66,8 @@
 		{ id: 'game', label: 'Game' },
 		{ id: 'time', label: 'Time' },
 		{ id: 'controls', label: 'Controls' },
-		{ id: 'audio', label: 'Audio' }
+		{ id: 'audio', label: 'Audio' },
+		{ id: 'saves', label: 'Saves' }
 	];
 	const presetOptions = [
 		{ value: 'auto', label: 'Automatic', hint: 'Chosen from your graphics hardware' },
@@ -320,6 +322,8 @@
 						>{/each}
 				</select>
 			</div>
+		{:else if tab === 'saves'}
+			<SavesPanel />
 		{:else if tab === 'controls'}
 			<ControlsEditor />
 		{:else}

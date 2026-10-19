@@ -184,6 +184,8 @@ export interface FlightOptions {
 	onKey?(
 		key: 'escape' | 'help' | 'quicksave' | 'quickload' | 'debug' | 'hideUi' | 'screenshot'
 	): void;
+	/** The sim's save just before a fresh launch (plan 230): what Revert to the Hangar restores. */
+	onLaunchPoint?(sim: SimSave): void;
 	/** The camera mode to start in (plan 226: the world's last one) and where a change goes. */
 	cameraMode?: CameraMode;
 	onCameraMode?(mode: CameraMode): void;
@@ -1514,6 +1516,8 @@ export function startFlight(options: FlightOptions): Flight {
 					return;
 				}
 			} else {
+				// the world as it was before the launch: Revert goes back to it (plan 230)
+				if (options.onLaunchPoint) options.onLaunchPoint(await client.save());
 				const result = await client.dispatch({
 					type: 'load-vessel',
 					design,

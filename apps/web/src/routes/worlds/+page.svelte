@@ -28,6 +28,8 @@
 	import { leaveLesson } from '../../lib/onboarding/lesson-world';
 	import { homeBodyOf } from '@orbital/core';
 	import { createWorldInfo } from '../../lib/worlds/world-model';
+	import { requestSavePersistence } from '../../lib/save/open-store';
+	import { markPersistenceWarned, persistenceWarned } from '../../lib/save/backup-state';
 	import {
 		bookStore,
 		challengeWorldInput,
@@ -116,6 +118,12 @@
 			createOpen = false;
 			await refresh(record.id);
 			note = `Created "${record.name}".`;
+			// save safety (plan 230): ask the browser to keep the saves; say so once when it will not
+			if (!(await requestSavePersistence()) && !persistenceWarned()) {
+				note +=
+					' This browser may delete saves when it runs short of space: export a backup from Settings → Saves.';
+				markPersistenceWarned();
+			}
 		});
 	}
 	// challenges (plan 131, ADR 0159 point 6): a file makes a world marked with its challenge
@@ -229,6 +237,9 @@
 							{#if i === 0}<Chip outline>Last played</Chip>{/if}
 							{#if r.usedCheats}<span data-testid="used-cheats"
 									><Chip outline>Used cheats</Chip></span
+								>{/if}
+							{#if r.changelog.length > 0}<span data-testid="rules-changed"
+									><Chip outline>Rules changed</Chip></span
 								>{/if}
 						</span>
 						<span class="meta">

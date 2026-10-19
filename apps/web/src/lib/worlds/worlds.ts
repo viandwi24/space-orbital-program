@@ -3,6 +3,7 @@
  * the `SaveStore`, and the one active world the VAB and the flight use. Storage is untrusted: every
  * record is parsed, and one that does not parse is listed with its error instead of hiding the rest.
  */
+import type { RuleChange } from '../save/world-record';
 import {
 	LEGACY_WORLD_ID,
 	legacyWorldInfo,
@@ -103,6 +104,8 @@ export interface Worlds {
 	milestones(id: string): Promise<{ records: MilestoneRecord[]; epoch: Epoch }>;
 	/** A debug tool was used in the world (plan 203, ADR 0213 point 4): its card says so for good. */
 	markUsedCheats(id: string): Promise<void>;
+	/** The world's rule changes during play (plan 230): the worlds list says "rules changed". */
+	setChangelog(id: string, changelog: RuleChange[]): Promise<void>;
 }
 
 export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEnv): Worlds {
@@ -254,6 +257,14 @@ export function createWorlds(worlds: WorldStore, saves: SaveStore, env: WorldsEn
 			await worlds.put({ ...record, world: { ...world, sites: structuredClone(sites) } });
 		},
 		saves: savesOf,
+		async setChangelog(id, changelog) {
+			let record = await get(id);
+			if (!record) {
+				if (id !== LEGACY_WORLD_ID) return;
+				record = legacyWorldRecord(env.now(), [], emptySummary());
+			}
+			await worlds.put({ ...record, changelog: structuredClone(changelog) });
+		},
 		async markUsedCheats(id) {
 			let record = await get(id);
 			if (!record) {

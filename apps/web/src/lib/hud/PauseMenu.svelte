@@ -17,6 +17,8 @@
 		onghost,
 		onhideui,
 		onscreenshot,
+		onrevert,
+		revertWhy = null,
 		ondebug
 	}: {
 		open: boolean;
@@ -31,6 +33,9 @@
 		onreplay?: () => void;
 		/** Load a replay file as a ghost (plan 131). */
 		onghost?: () => void;
+		/** Revert to the Hangar (plan 230), or why it is not offered. */
+		onrevert?: () => void;
+		revertWhy?: string | null;
 		/** Hide the interface and take a screenshot (plan 226). */
 		onhideui?: () => void;
 		onscreenshot?: () => void;
@@ -56,6 +61,17 @@
 						>Export the replay</Button
 					>{/if}
 				{#if onghost}<Button onclick={onghost} data-testid="pause-ghost">Load a ghost</Button>{/if}
+			</div>
+		{/if}
+		{#if onrevert}
+			<div class="revert">
+				<Button
+					onclick={onrevert}
+					disabled={revertWhy !== null}
+					title={revertWhy ?? 'Back to the Hangar as it was before this launch'}
+					data-testid="pause-revert">Revert to the Hangar</Button
+				>
+				{#if revertWhy}<p class="why" data-testid="pause-revert-why">{revertWhy}</p>{/if}
 			</div>
 		{/if}
 		{#if onhideui || onscreenshot}
@@ -84,6 +100,15 @@
 </Dialog>
 
 <style>
+	.revert {
+		display: grid;
+		gap: 0.25rem;
+	}
+	.why {
+		margin: 0;
+		font-size: var(--t-xs);
+		color: var(--text-dim);
+	}
 	.what {
 		margin: 0 0 1.25rem;
 		max-width: 36ch;

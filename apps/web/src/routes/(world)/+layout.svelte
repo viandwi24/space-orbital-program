@@ -8,7 +8,15 @@
 	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { calendarOf, formatDate, homeBodyOf, type Epoch, type Snapshot } from '@orbital/core';
+	import {
+		calendarOf,
+		formatDate,
+		homeBodyOf,
+		type Epoch,
+		type RuleValue,
+		type Snapshot,
+		type WorldInfo
+	} from '@orbital/core';
 	import WorldShell from '../../lib/layout/WorldShell.svelte';
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
 	import Button from '../../lib/ui/Button.svelte';
@@ -23,6 +31,17 @@
 	import { activePlugins } from '../../lib/mods/runtime';
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
+	import WorldSettingsDialog from '../../lib/worlds/WorldSettingsDialog.svelte';
+	import {
+		backupFileName,
+		exportBackup,
+		exportPromptDue,
+		exported,
+		remindLater
+	} from '../../lib/save/backup';
+	import { loadReminder, saveReminder } from '../../lib/save/backup-state';
+	import { openSaveStore } from '../../lib/save/open-store';
+	import { downloadText } from '../../lib/download';
 	import type { Catalog } from '../../lib/messages';
 	import { settings } from '../../lib/settings/settings.svelte';
 	import { bodyLabel } from '../../lib/hud-model';
@@ -76,6 +95,46 @@
 	let savedAt = $state<number | null>(null);
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox' });
 	let settingsOpen = $state(false);
+	// the backup reminder (plan 230): after the first hour of play, then weekly; "later" waits a day
+	let backupDue = $state(false);
+	$effect(() => {
+		const tick = () => {
+			const r = loadReminder();
+			const next = { ...r, playedMs: r.playedMs + 60_000 };
+			saveReminder(next);
+			backupDue = exportPromptDue(next, Date.now());
+		};
+		backupDue = exportPromptDue(loadReminder(), Date.now());
+		const timer = setInterval(tick, 60_000);
+		return () => clearInterval(timer);
+	});
+	async function backupNow(): Promise<void> {
+		const { store, worlds } = await openSaveStore();
+		const now = Date.now();
+		downloadText(JSON.stringify(await exportBackup(store, worlds, now)), backupFileName(now));
+		saveReminder(exported(loadReminder(), now));
+		backupDue = false;
+	}
+	// World settings during play (plan 230, ADR 0230): rules toward easier only, with the changelog
+	let worldSettingsOpen = $state(false);
+	let worldChangelog = $state.raw<WorldInfo['changelog']>([]);
+	let worldSettingsNote = $state<string | null>(null);
+	const worldRules = loadWorldCatalog().rules;
+	async function refreshChangelog(): Promise<void> {
+		const client = worldSession.client;
+		if (!client) return;
+		worldChangelog = (await client.save()).worldInfo.changelog;
+		const id = worldSession.worldId ?? worldId;
+		void saves.worldsService().then((w) => w.setChangelog(id, worldChangelog));
+	}
+	async function setWorldRule(rule: string, value: RuleValue): Promise<void> {
+		const r = await worldSession.client?.dispatch({ type: 'set-rule', rule, value });
+		worldSettingsNote = r && !r.ok ? r.reason : null;
+		if (r?.ok) {
+			await refreshChangelog();
+			await worldSession.saveNow();
+		}
+	}
 	const bell = createBellFeed();
 	// a changed debris cap reaches the running sim at once (plan 223)
 	$effect(() => {
@@ -426,6 +485,11 @@
 		mods={activePlugins().length}
 		{bell}
 		onsettings={() => (settingsOpen = true)}
+		onworldsettings={() => {
+			worldSettingsOpen = true;
+			worldSettingsNote = null;
+			void refreshChangelog();
+		}}
 		onhome={() => void goto(resolve('/'))}
 		clockChip={clockView.chip}
 		paused={!clockView.ticks}
@@ -438,6 +502,32 @@
 		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
 	{/if}
 	<SettingsDialog open={settingsOpen} onclose={() => (settingsOpen = false)} />
+	{#if backupDue}
+		<div class="backup" role="status" data-testid="backup-prompt">
+			<span>Back up your worlds: one file keeps every world and save safe from the browser.</span>
+			<button type="button" onclick={() => void backupNow()} data-testid="backup-now"
+				>Export now</button
+			>
+			<button
+				type="button"
+				onclick={() => {
+					saveReminder(remindLater(loadReminder(), Date.now()));
+					backupDue = false;
+				}}
+				data-testid="backup-later">Remind me later</button
+			>
+		</div>
+	{/if}
+	<WorldSettingsDialog
+		open={worldSettingsOpen}
+		rules={worldRules}
+		values={snapshot?.rules ?? {}}
+		changelog={worldChangelog}
+		dayLength={calendarLengths.day}
+		note={worldSettingsNote}
+		onset={(rule, value) => void setWorldRule(rule, value)}
+		onclose={() => (worldSettingsOpen = false)}
+	/>
 {/if}
 
 <style>
@@ -454,6 +544,33 @@
 		margin: 0;
 		font-weight: 300;
 		color: var(--text-primary);
+	}
+	.backup {
+		position: fixed;
+		left: 50%;
+		bottom: calc(3.5rem + var(--safe-bottom, 0px));
+		transform: translateX(-50%);
+		z-index: 45;
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		max-width: min(40rem, calc(100vw - 2rem));
+		padding: var(--s-2) var(--s-3);
+		font-size: var(--t-small);
+		color: var(--text-primary);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
+	}
+	.backup button {
+		flex: none;
+		padding: 0.25rem 0.625rem;
+		font: inherit;
+		color: var(--text-body);
+		background: rgb(255 255 255 / 0.08);
+		border: 0;
+		border-radius: var(--radius-row);
+		cursor: pointer;
 	}
 	.lesson-notice {
 		position: fixed;

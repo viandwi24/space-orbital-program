@@ -296,6 +296,42 @@
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
+	// ---- rules the page keeps (plan 230, ADR 0230): revert and quickload ----------------------
+	/** This flight was launched here: Revert to the Hangar can restore the world before it. */
+	let launchedHere = $state(false);
+	const ruleOn = (id: string): boolean => (worldSession.snapshot?.rules?.[id] ?? true) !== false;
+	/** Why Revert is not offered, or null when it is. */
+	const revertWhy = $derived.by((): string | null => {
+		void model?.time; // re-read with the HUD's updates
+		if (!ruleOn('stock.allow-revert'))
+			return 'This world does not allow revert. Allow it in World settings.';
+		if (!launchedHere || !worldSession.revertPoint)
+			return 'Only a flight launched from the Hangar can be reverted.';
+		return null;
+	});
+	async function revert(): Promise<void> {
+		const point = worldSession.revertPoint;
+		if (!point || revertWhy !== null) return;
+		pauseOpen = false;
+		const ephemeris = await ephemerisFor(point.sim.worldInfo);
+		worldSession.restart(point.worldId, { resume: point.sim, ...(ephemeris ? { ephemeris } : {}) });
+		worldSession.focus = null;
+		void goto(resolve('/(world)/vab'));
+	}
+	/** F9 and the Load dialog's quickload, unless the world forbids it (stock.allow-quickload). */
+	function quickload(): void {
+		if (!ruleOn('stock.allow-quickload')) {
+			flight?.debug.notice({
+				kind: 'warning',
+				title: 'Quickload is off in this world',
+				detail: 'Allow it in World settings.',
+				key: 'no-quickload'
+			});
+			return;
+		}
+		void saves.quickload();
+	}
+
 	/** F2 (plan 226): every interface layer hidden, the canvas alone. */
 	let uiHidden = $state(false);
 	$effect(() => {
@@ -798,6 +834,10 @@
 					? lessonKeymap(settings.keymap, lesson, (reason) => lessonNotice.show(reason))
 					: settings.keymap,
 			cameraMode: loadCameraMode(),
+			onLaunchPoint: (sim) => {
+				worldSession.revertPoint = { worldId: activeWorldId(), sim };
+				launchedHere = true;
+			},
 			onCameraMode: saveCameraMode,
 			onKey: (key) => {
 				if (key === 'escape' && uiHidden) uiHidden = false;
@@ -805,7 +845,7 @@
 				else if (key === 'hideUi') uiHidden = !uiHidden;
 				else if (key === 'screenshot') void screenshot();
 				else if (key === 'quicksave') void quicksave();
-				else if (key === 'quickload') void saves.quickload();
+				else if (key === 'quickload') quickload();
 				else if (key === 'debug') debugOpen = true;
 				else helpOpen = true;
 			}
@@ -1684,6 +1724,8 @@
 			}}
 			onreplay={() => void exportReplay()}
 			onghost={() => ghostInput?.click()}
+			onrevert={() => void revert()}
+			{revertWhy}
 			onhideui={() => {
 				pauseOpen = false;
 				uiHidden = true;
