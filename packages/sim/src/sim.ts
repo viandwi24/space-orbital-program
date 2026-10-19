@@ -77,7 +77,7 @@ import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
-import { capturePorts, pullPorts } from './docking.ts';
+import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -435,6 +435,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	/** One fixed flight step for every flight frame (and the rails vessels alongside). */
 	function flightStep(): void {
 		drain();
+		wakePortNeighbours(core); // an idle station on rails can be docked with (plan 222)
 		const tStart = core.t;
 		runSystems(core.pre, dt);
 		const overheated: Overheat[] = [];
