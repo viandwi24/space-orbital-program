@@ -128,7 +128,11 @@ export function resolveTarget(core: SimCore, vessel: VesselState): TargetSnapsho
 	return {
 		...(ref.kind === 'body'
 			? { kind: 'body' as const, id: bodyId(ref.id) }
-			: { kind: 'vessel' as const, id: ref.id }),
+			: {
+					kind: 'vessel' as const,
+					id: ref.id,
+					...(ref.part !== undefined ? { part: ref.part } : {})
+				}),
 		name,
 		position,
 		velocity,

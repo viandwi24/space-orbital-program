@@ -225,7 +225,13 @@ describe('docking (plan 222)', () => {
 		});
 		expect(set(port.id)).toEqual({ ok: true });
 		sim.step(0.02);
-		const align = sim.snapshot().vessels.find((v) => v.id === a)!.target!.port!;
+		const alpha = sim.snapshot().vessels.find((v) => v.id === a)!;
+		// Alpha's port faces +Y (its root, unturned), its face 0.15 m above the root's origin
+		expect(alpha.ports).toHaveLength(1);
+		expect(alpha.ports![0]!).toMatchObject({ size: 1.25, free: true });
+		expect(alpha.ports![0]!.direction.y).toBeCloseTo(1, 6);
+		expect(alpha.ports![0]!.position.y).toBeCloseTo(0.15, 6);
+		const align = alpha.target!.port!;
 		expect(align.angle).toBeLessThan(0.5);
 		expect(align.offset).toBeLessThan(0.05);
 		// the probe core moves Alpha's centre of mass, so the gap is about, not exactly, 5 m
@@ -233,6 +239,35 @@ describe('docking (plan 222)', () => {
 		expect(align.distance).toBeLessThan(7);
 		expect(align.closing).toBeGreaterThan(0.1);
 		sim.dispose();
+	}, 60_000);
+
+	test('a docked pair survives a save and resume; undock after it restores both names', async () => {
+		const { sim, a } = await approach(0.2);
+		run(sim, 10);
+		expect(sim.snapshot().vessels).toHaveLength(1);
+		const text = JSON.stringify(sim.save());
+		const resumed = await createSim({
+			plugins: [Stock, awake],
+			backendFactory: rapier(),
+			resume: JSON.parse(text)
+		});
+		expect(JSON.stringify(resumed.save())).toBe(text);
+		const port = resumed
+			.snapshot()
+			.vessels[0]!.parts.find((p) => p.definition === 'stock.docking-port')!;
+		expect(
+			resumed.dispatch({
+				type: 'action',
+				vessel: a,
+				part: port.id,
+				module: 'stock.docking-port',
+				action: 'undock'
+			}).ok
+		).toBe(true);
+		resumed.step(0.02);
+		expect(names(resumed)).toEqual(['Alpha', 'Beta']);
+		sim.dispose();
+		resumed.dispose();
 	}, 60_000);
 
 	test('the docking scenario run twice gives identical snapshots', async () => {

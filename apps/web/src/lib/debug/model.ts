@@ -178,5 +178,12 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 			return { level: 'info', message: `construction done: ${event.kind} level ${event.level}` };
 		case 'power-depleted':
 			return { level: 'warn', message: `vessel ${event.vessel} out of power` };
+		case 'docked':
+			return { level: 'info', message: `vessel ${event.absorbed} docked with vessel ${event.vessel}` };
+		case 'undocked':
+			return {
+				level: 'info',
+				message: `vessel ${event.vessel} undocked ${event.name} (vessel ${event.restored})`
+			};
 	}
 }

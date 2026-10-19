@@ -96,12 +96,24 @@
 				{/if}
 			</dd>
 		</dl>
+		{#if target.port}
+			<p
+				class="port"
+				class:aligned={target.port.aligned}
+				data-testid="target-port"
+				aria-label="Docking alignment: {target.port.text}"
+			>
+				{target.port.text}
+			</p>
+		{:else if target.key.includes(':port:')}
+			<p class="port" data-testid="target-port">Docking port out of range</p>
+		{/if}
 		{#if onswitch && target.kind === 'vessel'}
 			<button
 				type="button"
 				class="aid"
 				data-testid="target-switch"
-				onclick={() => onswitch(Number(target.key.slice('vessel:'.length)))}>Switch to</button
+				onclick={() => onswitch(Number(target.key.split(':')[1]))}>Switch to</button
 			>
 		{/if}
 		{#if rendezvous && rendezvous.aids.length > 0}
@@ -204,6 +216,16 @@
 	}
 	dt {
 		color: var(--text-dim);
+	}
+	.port {
+		margin: var(--s-2) 0 0;
+		padding: 2px var(--s-2);
+		font-size: var(--t-sm);
+		font-variant-numeric: tabular-nums;
+		border-left: 3px solid var(--c-warning);
+	}
+	.port.aligned {
+		border-left-color: var(--c-positive);
 	}
 	dd {
 		margin: 0;

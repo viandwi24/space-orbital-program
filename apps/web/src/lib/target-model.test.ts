@@ -6,7 +6,14 @@ import {
 	type VesselSnapshot
 } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
-import { nextTarget, targetChoices, targetCommand, targetHud, targetKey } from './target-model';
+import {
+	nextTarget,
+	portHud,
+	targetChoices,
+	targetCommand,
+	targetHud,
+	targetKey
+} from './target-model';
 
 const body = (id: string): BodyDefinition => ({ id, mass: 1, radius: 1, rotationPeriod: 1 });
 const vessel = (id: number, name?: string, extra: Partial<VesselSnapshot> = {}): VesselSnapshot =>
@@ -131,5 +138,23 @@ describe('the target card', () => {
 		expect(hud.name).toBe('Cinder');
 		expect(hud.approach).toBeNull();
 		expect(hud.pointing).toBeNull();
+	});
+});
+
+describe('docking port targets (plan 222)', () => {
+	it('the indicator is text: angle, offset, distance and closing speed', () => {
+		const h = portHud({ port: entityId(3), angle: 2.14, offset: 0.4, distance: 4.82, closing: 0.3 });
+		expect(h.aligned).toBe(true);
+		expect(h.text).toBe('Aligned 2.1° · offset 0.40 m · 4.8 m · closing 0.30 m/s');
+		const off = portHud({ port: entityId(3), angle: 22, offset: 1.2, distance: 9, closing: -0.1 });
+		expect(off.aligned).toBe(false);
+		expect(off.text).toBe('Off 22.0° · offset 1.20 m · 9.0 m · opening 0.10 m/s');
+	});
+
+	it('a key names the port, so two ports of one vessel are two choices', () => {
+		expect(targetKey({ kind: 'vessel', id: entityId(4), part: entityId(9) })).toBe(
+			'vessel:4:port:9'
+		);
+		expect(targetKey({ kind: 'vessel', id: entityId(4) })).toBe('vessel:4');
 	});
 });
