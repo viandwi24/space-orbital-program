@@ -27,6 +27,7 @@ import { isFailed } from './reliability.ts';
 import { sunExposure } from './sunlight.ts';
 import { terrainBelow } from './terrain.ts';
 import { notePower } from './power.ts';
+import { queueDebris } from './debris.ts';
 import { waterUnder } from './water.ts';
 
 const needsFlight = (what: string): never => {
@@ -163,6 +164,11 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 				throw new RangeError(`detach impulse must be a finite number >= 0, got ${impulse}`);
 			}
 			core.pending.push({ part: partId, node, impulse });
+		},
+		spawnDebris(spec) {
+			finiteVec(spec.offset, 'debris offset');
+			finiteVec(spec.velocity, 'debris velocity');
+			queueDebris(core, { from: partId, ...spec });
 		}
 	};
 

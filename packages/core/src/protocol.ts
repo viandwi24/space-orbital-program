@@ -580,6 +580,11 @@ export interface VesselDesign {
 		tilt?: DesignTilt;
 		/** Connector parts only (version 3): where the part's other end lands (struts and fuel lines, ADR 0071). */
 		link?: DesignEnd;
+		/**
+		 * Per-part module settings (plan 219, ADR 0224): by module id, fields merged over the part
+		 * definition's module config and parsed by the module's schema (a fairing's sections).
+		 */
+		settings?: Record<string, Record<string, unknown>>;
 	}>;
 	/** `stages[k]` lists the part indices whose modules' `onStage` runs for the k-th `stage` command. */
 	stages: number[][];

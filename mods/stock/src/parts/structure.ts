@@ -1,5 +1,6 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
+import { ModuleFairing, ModuleFairingPanel } from '../fairing.ts';
 import { ModuleDecoupler } from '../modules.ts';
 import { cylinder, stackNodes, WIDE_RADIUS, type Vec3Tuple } from './shared.ts';
 
@@ -152,3 +153,59 @@ export const PartAdapterLarge = adapterPart(
 );
 
 export const STOCK_ADAPTER_PARTS = [PartAdapterSmall, PartAdapterLarge] as const;
+
+/** A fairing base (plan 219, ADR 0224): its shell is built in the Hangar from sections. */
+function fairingBase(id: string, title: string, size: number, dry: number) {
+	const height = 0.2;
+	return definePart({
+		id,
+		title,
+		mass: kg(dry),
+		cost: partCost(dry, 'structure'),
+		impactTolerance: 8,
+		maxTemperature: 2_000,
+		shape: cylinder(height, size / 2),
+		visual: {
+			kind: 'fairing',
+			palette: { primary: '#eceee9', secondary: '#3b4047', accent: '#e3a61f' },
+			paramsFrom: ModuleFairing.id,
+			articulation: { module: ModuleFairing.id, field: 'shown', mode: 'visible' }
+		},
+		attach: stackNodes(height, size),
+		modules: [[ModuleFairing, { size, baseTop: height / 2 }]],
+		stagingIcon: 'decoupler'
+	});
+}
+
+export const PartFairingBaseSmall = fairingBase(
+	'stock.fairing-base-small',
+	'Fairing Base 0.625 m',
+	0.625,
+	40
+);
+export const PartFairingBase = fairingBase('stock.fairing-base', 'Fairing Base 1.25 m', 1.25, 75);
+export const PartFairingBaseLarge = fairingBase(
+	'stock.fairing-base-large',
+	'Fairing Base 2.5 m',
+	2.5,
+	175
+);
+
+/** Half a thrown-off fairing shell (plan 219): debris only, never in the catalogue. */
+export const PartFairingPanel = definePart({
+	id: 'stock.fairing-panel',
+	title: 'Fairing Panel',
+	mass: kg(1),
+	cost: 0,
+	impactTolerance: 8,
+	maxTemperature: 2_000,
+	// a small collider outside the shell (its look is the half shell, plan 219)
+	shape: { kind: 'box', size: [0.1, 0.5, 0.5] },
+	visual: {
+		kind: 'fairing-panel',
+		palette: { primary: '#eceee9', secondary: '#3b4047', accent: '#e3a61f' },
+		paramsFrom: ModuleFairingPanel.id
+	},
+	modules: [[ModuleFairingPanel, { size: 1.25, half: 0 }]],
+	catalog: { hidden: true }
+});

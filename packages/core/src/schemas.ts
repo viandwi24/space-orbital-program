@@ -362,13 +362,14 @@ export const partVisualSchema = z.object({
 	 * A moving piece of the model driven by a number in a module's snapshot (ADR 0045): `gimbal`
 	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis,
 	 * `extend` a length in m that stretches the moving piece (built 1 m long, down from its pivot)
-	 * along -Y (plan 210: a launch clamp's tower down to the pad).
+	 * along -Y (plan 210: a launch clamp's tower down to the pad), `visible` shows the moving piece
+	 * while the value is truthy (plan 219: a fairing shell until it is thrown off).
 	 */
 	articulation: z
 		.object({
 			module: definitionIdSchema,
 			field: z.string().min(1),
-			mode: z.enum(['gimbal', 'hinge', 'extend'])
+			mode: z.enum(['gimbal', 'hinge', 'extend', 'visible'])
 		})
 		.optional(),
 	/**
@@ -376,6 +377,12 @@ export const partVisualSchema = z.object({
 	 * index of the module snapshot's `field` array (0..1) is above zero. `dir` is where the nozzle
 	 * pushes the vessel; the jet leaves the other way.
 	 */
+	/**
+	 * Per-instance generator parameters (plan 219): the config of this module (the design's
+	 * settings in the Hangar, the module snapshot in flight) adds to `params`, so one definition
+	 * draws a different shape per part (a fairing's sections).
+	 */
+	paramsFrom: definitionIdSchema.optional(),
 	puffs: z
 		.object({
 			module: definitionIdSchema,
@@ -453,7 +460,9 @@ export const partDefinitionSchema = z.object({
 	catalog: z
 		.object({
 			category: categoryRefSchema.optional(),
-			order: z.number().finite().optional()
+			order: z.number().finite().optional(),
+			/** Not offered in the catalogue: a piece that only exists as debris (plan 219, a fairing panel). */
+			hidden: z.boolean().optional()
 		})
 		.optional()
 });

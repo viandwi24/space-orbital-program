@@ -69,8 +69,17 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 		const partId = world.createEntity();
 		byIndex.set(rp.index, partId);
 		const modules: PartState['modules'] = [];
-		for (const [moduleId, raw] of rp.definition.modules ?? []) {
+		const settings = design.parts.find((p) => p.index === rp.index)?.settings;
+		for (const [moduleId, base] of rp.definition.modules ?? []) {
 			const def = moduleDefOf(core, moduleId);
+			// per-part settings of the design (plan 219, ADR 0224) over the definition's config
+			const own = settings?.[moduleId];
+			const raw =
+				own && typeof base === 'object' && base !== null
+					? { ...(base as Record<string, unknown>), ...own }
+					: own && base === undefined
+						? own
+						: base;
 			const parsed = parseModuleConfig(def, raw);
 			if (!parsed.ok) {
 				throw new Error(`part "${rp.definition.id}" module "${moduleId}": ${parsed.message}`);

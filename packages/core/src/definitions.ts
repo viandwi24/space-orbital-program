@@ -271,6 +271,20 @@ export interface VesselApi {
 	 * is attached at `node`.
 	 */
 	detach(node: string, impulse?: number): void;
+	/**
+	 * Throws off a piece as its own vessel (plan 219: fairing panels): one part of definition `part`
+	 * with module config `settings` (by module id, merged over the definition's), at `offset` (part
+	 * frame, m) moving at this part's velocity plus `velocity` (part frame, m/s). Its mass must
+	 * already have left this part (a `mass` hook that drops), so momentum is conserved when the
+	 * pieces' pushes cancel. Applied after the current hook returns. Optional in test fakes.
+	 */
+	spawnDebris?(spec: {
+		part: string;
+		settings?: Record<string, Record<string, unknown>>;
+		offset: Vec3;
+		velocity: Vec3;
+		name?: string;
+	}): void;
 }
 
 /** What a module hook sees. Built by the sim (plan 007) per part instance and call. */
@@ -382,6 +396,14 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * off; the rocket goes free with the ground's velocity.
 	 */
 	anchor?(config: Out, state: State): boolean;
+	/** Extra mass the module adds to its part now, kg (plan 219: a fairing shell until it is thrown off). */
+	mass?(config: Out, state: State): number;
+	/**
+	 * A closed shell (plan 219, a fairing): its profile in the part frame, bottom to top, as
+	 * `{ y, r }` points (m). Parts of the vessel inside it take no drag and no convective heat.
+	 * Null while open or gone.
+	 */
+	shell?(config: Out, state: State): ReadonlyArray<{ y: number; r: number }> | null;
 	/**
 	 * A module that powers its part's control source (plan 208, ADR 0214: a probe core's computer on
 	 * electric charge): the resource id it runs on for this config, or undefined. While the vessel

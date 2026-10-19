@@ -159,10 +159,17 @@ describe('catalogue categories through descriptors', () => {
 		expect(ids.indexOf('acme.plate')).toBeLessThan(ids.indexOf('acme.quiet-motor'));
 		expect(ids.indexOf('acme.quiet-motor')).toBeLessThan(ids.indexOf('stock.command-pod'));
 		expect(ids.indexOf('stock.command-pod')).toBeLessThan(ids.indexOf('acme.cowl'));
-		// stock keeps the grouping its modules imply: no explicit placement anywhere
-		expect(registries.parts.list().filter((p) => p.id.startsWith('stock.') && p.catalog)).toEqual(
-			[]
-		);
+		// stock keeps the grouping its modules imply: no explicit placement anywhere (a debris-only
+		// part is only hidden, plan 219)
+		expect(
+			registries.parts
+				.list()
+				.filter(
+					(p) =>
+						p.id.startsWith('stock.') &&
+						(p.catalog?.category !== undefined || p.catalog?.order !== undefined)
+				)
+		).toEqual([]);
 		// parts without an order keep registration order
 		const stockIds = registries.parts
 			.list()

@@ -697,6 +697,33 @@ export function moveGroup(
 	return commit(state, { ...state, design, loose: plan.loose }, content);
 }
 
+// --- per-part settings (plan 219, ADR 0224) -----------------------------------------------------------
+
+/**
+ * Sets one module's per-part settings on a part of the design (a fairing's sections): `null`
+ * removes them. One undo step; throws (design unchanged) when the design would not resolve.
+ */
+export function setPartSettings(
+	state: EditorState,
+	content: Content,
+	index: number,
+	module: string,
+	settings: Record<string, unknown> | null
+): EditorState {
+	if (!state.design.parts.some((p) => p.index === index)) throw new Error(`no part ${index}`);
+	const parts = state.design.parts.map((p) => {
+		if (p.index !== index) return p;
+		const { settings: old, ...rest } = p;
+		const next = { ...(old ?? {}) };
+		if (settings === null) delete next[module];
+		else next[module] = settings;
+		return Object.keys(next).length > 0 ? { ...rest, settings: next } : rest;
+	});
+	const design = { ...state.design, parts };
+	assertResolves(design, content);
+	return commit(state, { ...state, design }, content);
+}
+
 // --- tilt (ADR 0071) ---------------------------------------------------------------------------------
 
 export const NO_TILT: DesignTilt = { x: 0, y: 0, z: 0 };

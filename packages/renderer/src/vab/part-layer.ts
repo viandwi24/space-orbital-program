@@ -219,19 +219,28 @@ export class PartLayer {
 
 	private addPart(
 		key: string,
-		part: { definition: string; role: PartSlot['role']; group: string },
+		part: {
+			definition: string;
+			role: PartSlot['role'];
+			group: string;
+			params?: PartSlot['params'];
+		},
 		lod: PartEntry['lod']
 	): void {
-		const model = this.factory.create(
-			part.definition,
-			lod === 'repeated' ? { detail: repeatedDetail(this.factory.currentDetail) } : {}
-		);
+		const model = this.factory.create(part.definition, {
+			...(lod === 'repeated' ? { detail: repeatedDetail(this.factory.currentDetail) } : {}),
+			...(part.params ? { params: part.params } : {})
+		});
 		model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
 		model.root.userData.key = key;
 		if (part.role === 'ghost') makeGhost(model.root, this.highlights.ghost);
 		this.groups.get(part.group)?.object.add(model.root);
 		this.parts.set(key, {
-			slot: { definition: part.definition, role: part.role },
+			slot: {
+				definition: part.definition,
+				role: part.role,
+				...(part.params ? { params: part.params } : {})
+			},
 			model,
 			group: part.group,
 			lod,

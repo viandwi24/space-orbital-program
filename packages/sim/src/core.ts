@@ -256,9 +256,19 @@ export function contentsMass(core: SimCore, part: EntityId): number {
 	return mass;
 }
 
-/** Current mass of a part: dry mass plus contents, kg. */
+/** Mass the part's modules add now (`ModuleDefinition.mass`, plan 219: a fairing shell), kg. */
+export function moduleMass(core: SimCore, part: EntityId): number {
+	let mass = 0;
+	for (const m of partOf(core, part).modules) {
+		const hook = moduleDefOf(core, m.id).mass;
+		if (hook) mass += Math.max(0, hook(m.config, moduleState(core, part, m.id)));
+	}
+	return mass;
+}
+
+/** Current mass of a part: dry mass plus contents and module mass, kg. */
 export const partMass = (core: SimCore, part: EntityId): number =>
-	partDefOf(core, partOf(core, part)).mass + contentsMass(core, part);
+	partDefOf(core, partOf(core, part)).mass + contentsMass(core, part) + moduleMass(core, part);
 
 /** Design-frame centre of mass of a set of parts, m. */
 export function designCom(core: SimCore, parts: readonly EntityId[]): Vec3 {

@@ -1,12 +1,12 @@
 ---
 id: 219
 title: Procedural fairings and interstages
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [217, 207]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 219 — Procedural fairings and interstages
@@ -88,3 +88,9 @@ The player places a fairing base (0.625, 1.25 or 2.5 m) under a payload and buil
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A. Defaults, recorded here and in ADR 0224:
+  - Per-part settings arrive here (`parts[].settings`), not in plan 218: this plan needs them first. No design format bump.
+  - The drag and jettison tests live in `packages/sim/test` (`fairing.test.ts`, `fairing-jettison.test.ts`): `mods/stock` has no sim. `mods/stock/test/fairing.test.ts` tests the module's limits, profile, mass and jettison.
+  - Panel push 300 N·s each instead of 1500 (65 m/s for ~23 kg panels); the base stays on the vessel after the jettison, as in KSP, so the e2e checks that the base's Jettison is spent rather than that the base is gone.
+  - Deferred, with reasons in ADR 0224: the interstage top node (step 5), 3D handles and a section at the cursor's height, and a cost on the status label.
+  - The renderer's fairing case is in `part-seams.test.ts` (the seam and winding checks live there), not `parts.test.ts`.
