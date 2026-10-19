@@ -128,7 +128,7 @@ describe('re-entry heating (plan 014, ADR 0023)', () => {
 		const hot = await fly(probeEntry(), deorbit, 900, { heating: 1.2 });
 		const normal = await fly(probeEntry(), deorbit, 900, { heating: 1 });
 		expect(hot.peak).toBeGreaterThan(normal.peak);
-	});
+	}, 120_000); // four entries: past bun's 5 s default on a loaded CI runner
 
 	test('a slow, low pass does not heat significantly', async () => {
 		const run = await fly(probeEntry(), { altitude: 10_000, speed: 300, angle: 0.4 }, 20);
