@@ -74,9 +74,9 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 
 | Worker | Queue (in order) |
 |---|---|
-| A | 219 → 218 → 220 → 223 |
+| A | 219 → 218 → 220 |
 | B | 214 → **233** → 235 → 236 |
-| C | 224 → 226 → 234 |
+| C | 224 → 226 → 234 → moon-shot TWR fix → 223 |
 | D | 225 → 227 → 228 → 230 |
 | E | 231 → 229 |
 | any (coordinator decides) | 232 release QA, last |
