@@ -321,7 +321,7 @@
 	/** F9 and the Load dialog's quickload, unless the world forbids it (stock.allow-quickload). */
 	function quickload(): void {
 		if (!ruleOn('stock.allow-quickload')) {
-			flight?.debug.notice({
+			flight?.debug.notice?.({
 				kind: 'warning',
 				title: 'Quickload is off in this world',
 				detail: 'Allow it in World settings.',
