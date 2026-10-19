@@ -101,10 +101,17 @@ export const groundStationDefinitionSchema = z.object({
 
 /** Height of a site's station above the ground, m (ADR 0179 point 2). */
 export const STATION_MAST = 10;
-/** Range of a site's station by tier (1, 2, 3), m. */
-export const SITE_STATION_RANGES = [2e9, 5e10, 2.5e11] as const;
-/** Dish diameter of a site's station by tier, m (ADR 0185 point 3). */
-export const SITE_STATION_APERTURES = [10, 34, 70] as const;
+/**
+ * Range of a site's station by tier, m: 1–3 the tracking dish's levels, 4–6 the deep-space dish's
+ * (plan 234, ADR 0227).
+ */
+export const SITE_STATION_RANGES = [2e9, 5e10, 2.5e11, 1e12, 4e12, 1.5e13] as const;
+/**
+ * Dish diameter of a site's station by tier, m (ADR 0185 point 3; plan 234, ADR 0227): the 2 × 2
+ * cell tracking dish 9, 12 and 18 m, the deep-space dish 64, 70 and about 99 m (its 70 m arrayed
+ * with two 34 m antennas, as the DSN arrays for distant missions).
+ */
+export const SITE_STATION_APERTURES = [9, 12, 18, 64, 70, 99] as const;
 /** Building capability that makes a site's station tier (ADR 0097). */
 export const COMMS_NODE = 'comms-node';
 

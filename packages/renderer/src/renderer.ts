@@ -90,6 +90,8 @@ export interface RendererDebug {
 		size: number;
 		heights: Float32Array;
 	} | null;
+	/** Where the site's deep-space dishes point (plan 234), radians, azimuth from north. */
+	dishAims(): Array<{ azimuth: number; elevation: number }>;
 	/** The scene graph, for inspection in the browser console. */
 	readonly scene: Scene;
 	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
@@ -477,6 +479,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		},
 		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
 		focusPart: (definition, occurrence) => model.setDebugFocus(definition, occurrence),
+		dishAims: () => model.environment.site.dishAims.map((a) => ({ ...a })),
 		stepEffects(seconds) {
 			const steps = Math.max(1, Math.round(seconds * 60));
 			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);

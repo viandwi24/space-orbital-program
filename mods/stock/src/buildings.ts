@@ -153,6 +153,25 @@ export const BuildingTrackingDish = defineBuilding({
 	description: 'A ground station for the comms network; its level sets range and rate.',
 	visual: gen('dish')
 });
+/**
+ * The deep-space dish (plan 234, ADR 0227): a 64 m Cassegrain antenna of the DSN class. Its levels
+ * are station tiers 4–6, above the tracking dish's three.
+ */
+export const BuildingDeepSpaceDish = defineBuilding({
+	id: 'stock.deep-space-dish',
+	label: 'Deep-space dish',
+	size: { w: 8, d: 8 },
+	entrances: southDoor(8),
+	levels: levels(
+		{ 'comms-node': [4, 5, 6] },
+		[600_000, 1_200_000, 2_400_000],
+		[40, 60, 90],
+		400
+	),
+	provides: ['comms-node'],
+	placement: 'home',
+	visual: gen('deep-space-dish')
+});
 export const BuildingPropellantPlant = defineBuilding({
 	id: 'stock.propellant-plant',
 	label: 'Propellant plant',
@@ -196,6 +215,7 @@ export const STOCK_BUILDINGS = [
 	BuildingResearch,
 	BuildingAdministration,
 	BuildingTrackingDish,
+	BuildingDeepSpaceDish,
 	BuildingPropellantPlant,
 	BuildingTestStand,
 	// off-world bases (plan 128, ADR 0125)

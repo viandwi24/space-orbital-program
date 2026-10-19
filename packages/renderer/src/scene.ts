@@ -250,7 +250,12 @@ export class SceneModel {
 		anchorBody: string | undefined;
 		bodyWorld: ReadonlyMap<string, Vec3>;
 	} | null = null;
-	private frameState: { bodyRender: Vec3; bodyRotation: Quat; vesselRender: Vec3 | null } | null =
+	private frameState: {
+		bodyRender: Vec3;
+		bodyRotation: Quat;
+		vesselRender: Vec3 | null;
+		dishTarget: Vec3 | null;
+	} | null =
 		null;
 	private readonly vessels = new Map<number, VesselEntry>();
 	/** How long each vessel has lain still on the ground, and stages kept after the sim removed them (plan 040). */
@@ -1165,9 +1170,38 @@ export class SceneModel {
 										y: activeGroup.position.y,
 										z: activeGroup.position.z
 									}
-								: null
+								: null,
+						dishTarget: this.dishTargetOf(activeVessel, activeGroup, bodyWorld)
 					}
 				: null;
+	}
+
+	/**
+	 * What the site's deep-space dishes track (plan 234): the vessel flown from the home body's
+	 * sphere, else the nearest body that orbits the home body (the sky target). Render space.
+	 */
+	private dishTargetOf(
+		active: VesselSnapshot | undefined,
+		group: Object3D | undefined,
+		bodyWorld: ReadonlyMap<string, Vec3>
+	): Vec3 | null {
+		if (group && active && !this.siteView && active.soi === this.primaryBody)
+			return { x: group.position.x, y: group.position.y, z: group.position.z };
+		const home = this.primaryBody ? bodyWorld.get(this.primaryBody) : undefined;
+		if (!home) return null;
+		let best: Vec3 | null = null;
+		let bestDistance = Infinity;
+		for (const [id, mark] of this.bodyMarks) {
+			if (mark.parent !== this.primaryBody) continue;
+			const w = bodyWorld.get(id);
+			if (!w) continue;
+			const d = Math.hypot(w.x - home.x, w.y - home.y, w.z - home.z);
+			if (d < bestDistance) {
+				bestDistance = d;
+				best = w;
+			}
+		}
+		return best ? toRenderSpace(best, this.origin) : null;
 	}
 
 	/**
@@ -1200,6 +1234,7 @@ export class SceneModel {
 							z: activeGroup.position.z
 						}
 					: this.frameState.vesselRender,
+			dishTarget: this.frameState.dishTarget,
 			// a moon with air lights the scene through its own atmosphere (ADR 0121 point 2)
 			...(moonUp ? { up: moonUp, ...this.moonAir() } : {}),
 			vesselRadius: this.vesselRadius,

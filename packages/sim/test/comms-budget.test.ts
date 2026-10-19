@@ -80,8 +80,8 @@ describe('the link budget in the sim', () => {
 		expect(budget.band).toBe('stock.s');
 		expect(budget.txGain).toBe(2);
 		expect(budget.txPower).toBeCloseTo(10 * Math.log10(5), 9);
-		// a tier-1 site receives with a 10 m dish: 44.85 dBi at S band
-		expect(budget.rxGain).toBeCloseTo(44.85, 2);
+		// a tier-1 site receives with a 9 m dish (plan 234): 44.85 dBi of a 10 m dish less 20 log 0.9
+		expect(budget.rxGain).toBeCloseTo(44.85 + 20 * Math.log10(0.9), 2);
 		expect(budget.received).toBeCloseTo(
 			budget.txPower + budget.txGain + budget.rxGain - budget.pathLoss,
 			9

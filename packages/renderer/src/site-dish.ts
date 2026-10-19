@@ -320,6 +320,20 @@ export function buildDishParts(detail: 'high' | 'low'): DishParts {
 	return { base, azimuth: az, elevation: el };
 }
 
+/** The material buckets the dish uses. */
+export const DISH_BUCKETS = [
+	'structure',
+	'painted',
+	'siding',
+	'glass',
+	'door',
+	'lamp',
+	'thin',
+	'glassLit',
+	'beacon'
+] as const;
+export type DishBucket = (typeof DISH_BUCKETS)[number];
+
 /** The dish as three nested groups; `setAim` turns them. */
 export interface DishObject {
 	root: Group;
@@ -334,13 +348,13 @@ export interface DishObject {
  */
 export function dishObject(
 	parts: DishParts,
-	mesh: (geometries: BufferGeometry[], bucket: keyof SiteParts) => Object3D | null
+	mesh: (geometries: BufferGeometry[], bucket: DishBucket) => Object3D | null
 ): DishObject {
 	const root = new Group();
 	const azimuth = new Group();
 	const elevation = new Group();
 	const fill = (group: Group, p: SiteParts): void => {
-		for (const bucket of Object.keys(p) as (keyof SiteParts)[]) {
+		for (const bucket of DISH_BUCKETS) {
 			const geos = p[bucket] as BufferGeometry[];
 			if (!geos.length) continue;
 			const m = mesh(geos, bucket);

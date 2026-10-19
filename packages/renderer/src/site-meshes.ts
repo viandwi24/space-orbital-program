@@ -41,6 +41,21 @@ import {
 import { emptyParts, merge, type ArmParts, type Rgb } from './site-geo.ts';
 import { buildSiteList, footprintCentre, SITE_CELL, type SiteBuildingView } from './site-list.ts';
 import {
+	DISH,
+	DISH_STOW,
+	aimOf,
+	buildDishParts,
+	dishObject,
+	trackStep,
+	type DishAim,
+	type DishObject
+} from './site-dish.ts';
+
+/** The generator of the deep-space dish (plan 234): drawn moving, not merged. */
+export const DEEP_SPACE_DISH = 'deep-space-dish';
+/** Beyond this camera distance the dishes draw their far model, m. */
+const DISH_FAR_DISTANCE = 3_000;
+import {
 	bushGeometry,
 	pineGeometry,
 	rockGeometry,
@@ -262,6 +277,9 @@ export class LaunchSite {
 	private readonly listMode: boolean;
 	private readonly listGroup = new Object3D();
 	private listGeometries: BufferGeometry[] = [];
+	/** Deep-space dishes of the list (plan 234): a near and a far model each, and where they point. */
+	private dishes: Array<{ near: DishObject; far: DishObject; at: Vector3; aim: DishAim }> = [];
+	private dishFar = false;
 	private listKey = '';
 	private ghost: Mesh | null = null;
 
@@ -391,8 +409,15 @@ export class LaunchSite {
 	 * height above where it stood on the pad, slewed in wall time; steam vents while it stands there; the
 	 * beacons blink; the lit windows glow with the floodlights.
 	 */
-	animate(input: { dt: number; time: number; vesselRender: Vec3 | null }): void {
+	animate(input: {
+		dt: number;
+		time: number;
+		vesselRender: Vec3 | null;
+		/** What the deep-space dishes track, render space (plan 234); absent or null stows them. */
+		dishTarget?: Vec3 | null;
+	}): void {
 		const m = this.materials;
+		this.trackDishes(input.dishTarget ?? null, Math.min(input.dt, 0.1));
 		// the vessel's place in the pad's frame: height along the pad's vertical and distance off its axis
 		let up: number | null = null;
 		let off = 0;
@@ -629,6 +654,11 @@ export class LaunchSite {
 		}
 		for (const m of this.structureMeshes) m.visible = d.structures;
 		this.detailStructures = d.structures;
+		this.dishFar = distance > DISH_FAR_DISTANCE;
+		for (const dish of this.dishes) {
+			dish.near.root.visible = !this.dishFar;
+			dish.far.root.visible = this.dishFar;
+		}
 	}
 
 	/**
@@ -646,7 +676,13 @@ export class LaunchSite {
 		for (const child of [...this.listGroup.children]) this.listGroup.remove(child);
 		for (const g of this.listGeometries) g.dispose();
 		this.listGeometries = [];
-		const parts = buildSiteList(list, roads);
+		// deep-space dishes move: drawn as their own nested groups, not merged (plan 234)
+		this.dishes = [];
+		const dishes = list.filter((b) => b.generator === DEEP_SPACE_DISH);
+		const parts = buildSiteList(
+			list.filter((b) => b.generator !== DEEP_SPACE_DISH),
+			roads
+		);
 		const m = this.materials;
 		const add = (
 			geos: BufferGeometry[],
@@ -669,6 +705,68 @@ export class LaunchSite {
 		add(parts.glassLit, m.glassLit);
 		add(parts.lamp, m.lamp, false);
 		add(parts.thin, m.structure, false);
+		const bucketMaterial = {
+			structure: m.structure,
+			painted: m.painted,
+			siding: m.siding,
+			glass: m.glass,
+			door: m.door,
+			lamp: m.lamp,
+			thin: m.structure,
+			glassLit: m.glassLit,
+			beacon: m.beaconA
+		} as const;
+		const dishMesh = (geos: BufferGeometry[], bucket: keyof typeof bucketMaterial) => {
+			const g = merge(geos);
+			this.listGeometries.push(g);
+			const mesh = new Mesh(g, bucketMaterial[bucket]);
+			const shadows = bucket !== 'beacon' && bucket !== 'thin';
+			mesh.castShadow = shadows;
+			mesh.receiveShadow = shadows;
+			return mesh;
+		};
+		for (const b of dishes) {
+			const f = footprintCentre(b);
+			const yaw = (b.rotation * Math.PI) / 180;
+			const near = dishObject(buildDishParts('high'), dishMesh);
+			const far = dishObject(buildDishParts('low'), dishMesh);
+			const aim: DishAim = { azimuth: yaw, elevation: DISH_STOW };
+			for (const d of [near, far]) {
+				d.root.position.set(f.x, 0, f.z);
+				d.setAim(aim);
+				this.listGroup.add(d.root);
+			}
+			far.root.visible = this.dishFar;
+			near.root.visible = !this.dishFar;
+			this.dishes.push({ near, far, at: new Vector3(f.x, 0, f.z), aim });
+		}
+	}
+
+	/**
+	 * The deep-space dishes follow `target` (render space: the active vessel, or a body in the sky;
+	 * null stows them), slewed in wall time (plan 234).
+	 */
+	private trackDishes(target: Vec3 | null, dt: number): void {
+		if (this.dishes.length === 0) return;
+		let local: Vector3 | null = null;
+		if (target) {
+			local = new Vector3(
+				target.x - this.root.position.x,
+				target.y - this.root.position.y,
+				target.z - this.root.position.z
+			).applyQuaternion(this.root.quaternion.clone().invert());
+		}
+		for (const d of this.dishes) {
+			const goal = local ? aimOf(local.clone().sub(d.at).setY(local.y - DISH.axisHeight)) : null;
+			d.aim = trackStep(d.aim, goal, dt);
+			d.near.setAim(d.aim);
+			d.far.setAim(d.aim);
+		}
+	}
+
+	/** Where each dish points (plan 234, for tests and the debug overlay). */
+	get dishAims(): readonly DishAim[] {
+		return this.dishes.map((d) => d.aim);
 	}
 
 	/** Draw calls of the building group (journal of plan 091). */
