@@ -79,7 +79,28 @@ export interface ManeuverNodeSnapshot {
  * What a vessel can aim at (plan 035, ADR 0064): another body, or another vessel (debris included).
  * Vessel ids are entity ids, body ids are definition ids.
  */
-export type TargetRef = { kind: 'body'; id: BodyId } | { kind: 'vessel'; id: EntityId };
+export type TargetRef =
+	| { kind: 'body'; id: BodyId }
+	/** `part`: a docking port of that vessel to dock at (plan 222): the snapshot adds `port`. */
+	| { kind: 'vessel'; id: EntityId; part?: EntityId };
+
+/**
+ * How the vessel's own port lines up with the targeted port (plan 222, ADR 0218): the angle
+ * between the two faces, the target face's distance from the own port's axis, the distance between
+ * the faces, and their closing speed (positive closing). Present while both vessels share a
+ * flight frame and the vessel has a free port of the same size.
+ */
+export interface PortAlignment {
+	/** The own port (the control part when it is a port, else the nearest free port of that size). */
+	port: EntityId;
+	/** Degrees between the own face direction and the reverse of the target's. */
+	angle: number;
+	/** m. */
+	offset: number;
+	distance: number;
+	/** m/s, positive while the faces close. */
+	closing: number;
+}
 
 /** Closest approach of the vessel's current orbit to its target within the next revolution (or 10 days). */
 export interface TargetApproach {
@@ -107,6 +128,8 @@ export type TargetSnapshot = TargetRef & {
 	/** Length of `velocity`, m/s. */
 	relativeSpeed: number;
 	approach: TargetApproach | null;
+	/** A targeted docking port's alignment (plan 222); absent without one or out of range. */
+	port?: PortAlignment;
 };
 
 export interface PartSnapshot {

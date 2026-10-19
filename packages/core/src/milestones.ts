@@ -6,7 +6,17 @@ import * as z from 'zod';
 import { definitionIdSchema } from './schemas.ts';
 
 /** The kinds that exist now (ADR 0147 point 1); later systems add more. */
-export const MILESTONE_KINDS = ['launch', 'orbit', 'flyby', 'landing', 'return', 'eva'] as const;
+export const MILESTONE_KINDS = [
+	'launch',
+	'orbit',
+	'flyby',
+	'landing',
+	'return',
+	'eva',
+	// plan 222, ADR 0218
+	'dock',
+	'undock'
+] as const;
 export type MilestoneKind = (typeof MILESTONE_KINDS)[number];
 
 /** One first in a world. `id` is the kind, `crewed-` when crew was aboard, and the body: `crewed-orbit:stock.home`. */
@@ -61,7 +71,10 @@ export const MILESTONE_REPUTATION: Readonly<Record<MilestoneKind, number>> = {
 	landing: 20,
 	return: 10,
 	// the first time a member steps out at a body (plan 109, ADR 0120 point 6)
-	eva: 10
+	eva: 10,
+	// the first docking and undocking at a body (plan 222, ADR 0218)
+	dock: 15,
+	undock: 5
 };
 
 export function milestoneReputation(

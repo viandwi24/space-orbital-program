@@ -210,6 +210,31 @@ describe('docking (plan 222)', () => {
 		}, 60_000);
 	}
 
+	test('targeting a port gives its alignment; a part that is not a port is refused', async () => {
+		const { sim, a, b } = await approach(0.2, 0, {
+			a: stack('Alpha', ['stock.docking-port', 'stock.probe-core', 'fix.awake'], [])
+		});
+		const beta = sim.snapshot().vessels.find((v) => v.id === b)!;
+		const port = beta.parts.find((p) => p.definition === 'stock.docking-port')!;
+		const tank = beta.parts.find((p) => p.definition === 'stock.tank-small')!;
+		const set = (part: number) =>
+			sim.dispatch({ type: 'target-set', vessel: a, target: { kind: 'vessel', id: b, part } });
+		expect(set(tank.id)).toMatchObject({
+			ok: false,
+			reason: expect.stringContaining('not a docking port')
+		});
+		expect(set(port.id)).toEqual({ ok: true });
+		sim.step(0.02);
+		const align = sim.snapshot().vessels.find((v) => v.id === a)!.target!.port!;
+		expect(align.angle).toBeLessThan(0.5);
+		expect(align.offset).toBeLessThan(0.05);
+		// the probe core moves Alpha's centre of mass, so the gap is about, not exactly, 5 m
+		expect(align.distance).toBeGreaterThan(3);
+		expect(align.distance).toBeLessThan(7);
+		expect(align.closing).toBeGreaterThan(0.1);
+		sim.dispose();
+	}, 60_000);
+
 	test('the docking scenario run twice gives identical snapshots', async () => {
 		const once = async () => {
 			const { sim } = await approach(0.2);

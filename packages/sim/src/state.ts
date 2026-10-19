@@ -94,7 +94,10 @@ export interface ManeuverNodeState {
 }
 
 /** What a vessel aims at (plan 035, ADR 0064): a body by definition id, or a vessel by entity id. */
-export type TargetState = { kind: 'body'; id: string } | { kind: 'vessel'; id: EntityId };
+export type TargetState =
+	| { kind: 'body'; id: string }
+	/** `part`: a docking port of that vessel (plan 222). */
+	| { kind: 'vessel'; id: EntityId; part?: EntityId };
 
 export interface VesselState {
 	name: string;
