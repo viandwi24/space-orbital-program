@@ -1,7 +1,7 @@
 ---
 id: 202
 title: "Release operations: error handling, deploy job, hosting headers"
-status: in-progress
+status: done
 owner: "Worker B"
 depends: []
 phase: 7
@@ -60,21 +60,21 @@ An uncaught error or rejected promise shows a friendly card with "Save and reloa
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `log-buffer.test.ts`: entries keep order, the ring drops the oldest past 2000, and a filter by level works.
-- [ ] `apps/web` vitest `hosting-headers.test.ts` (extended): the emitted `_headers` carries the same CSP and script hashes as `scripts/serve.ts`; the meta fallback has no `frame-ancestors`.
-- [ ] Chromium e2e `e2e/error-card.e2e.ts`: a page script throws an unhandled rejection; the error card appears, "Save and reload" saves the world and the page reloads into it.
-- [ ] `E2E_HEADERS=1` Chromium run of `e2e/smoke.e2e.ts` passes with the new headers.
-- [ ] `bun run check:affected --build --e2e e2e/error-card.e2e.ts` passes.
-- [ ] The release workflow has a `workflow_dispatch` dry run (`dry_run: true`) that builds with the production base and lists the files it would publish; one run is green and linked in the journal.
-- [ ] CI green on the `ready/202` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `apps/web` vitest `log-buffer.test.ts`: entries keep order, the ring drops the oldest past 2000, and a filter by level works.
+- [x] `apps/web` vitest `hosting-headers.test.ts` (extended): the emitted `_headers` carries the same CSP and script hashes as `scripts/serve.ts`; the meta fallback has no `frame-ancestors`.
+- [x] Chromium e2e `e2e/error-card.e2e.ts`: a page script throws an unhandled rejection; the error card appears, "Save and reload" saves the world and the page reloads into it.
+- [x] `E2E_HEADERS=1` Chromium run of `e2e/smoke.e2e.ts` passes with the new headers.
+- [x] `bun run check:affected --build --e2e e2e/error-card.e2e.ts` passes.
+- [x] The release workflow has a `workflow_dispatch` dry run (`dry_run: true`) that builds with the production base and lists the files it would publish; one run is green and linked in the journal.
+- [x] CI green on the `ready/202` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/202-release-operations.md` written.
-- [ ] `docs/architecture/hosting.md` updated (hosts, `_headers`, meta CSP limits).
-- [ ] `docs/guides/release-checklist.md` written.
-- [ ] `docs/research/stack-versions.md` updated for host and SvelteKit hook docs looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/202-release-operations.md` written.
+- [x] `docs/architecture/hosting.md` updated (hosts, `_headers`, meta CSP limits).
+- [x] `docs/guides/release-checklist.md` written.
+- [x] `docs/research/stack-versions.md` updated for host and SvelteKit hook docs looked up.
 
 ## Log
 

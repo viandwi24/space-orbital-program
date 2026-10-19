@@ -32,5 +32,9 @@
 ## Verification output
 
 ```
-(filled in at handover)
+web vitest: log-buffer 3, fatal-error 3, hosting-headers 6 (parity with a running scripts/serve.ts) pass
+check:affected --build --e2e e2e/error-card.e2e.ts: all passed in 54 s, error-card 2/2
+E2E_HEADERS=1 playwright smoke.e2e.ts (chromium): 7 passed
+release dry run (dry-run/202 tag): https://github.com/viandwi24/space-orbital-program/actions/runs/39196175310 success
+CI ready/202: refs/ci/pass/964c5f84
 ```
