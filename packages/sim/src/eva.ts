@@ -31,7 +31,7 @@ import { makeContext } from './hooks.ts';
 import { reachMilestone } from './milestones.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { motionOf, orientationOf } from './orbit.ts';
-import type { FlightBody, FlightFrame } from './state.ts';
+import { VESSEL, type FlightBody, type FlightFrame } from './state.ts';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { destroyVessel, placeAtState, placeOnSurface, spawnVessel } from './vessel.ts';
 
@@ -443,6 +443,20 @@ const ladderLength = (core: SimCore, partId: EntityId): number => {
 	return length(sub(v3(l.to), v3(l.from)));
 };
 
+/** Vessels other than `suitId` in its sphere within 30 m of `at` that carry a ladder. */
+function vesselIdsNear(core: SimCore, suitId: EntityId, at: Vec3): EntityId[] {
+	const suit = vesselOf(core, suitId);
+	const out: EntityId[] = [];
+	for (const id of core.world.query([VESSEL])) {
+		if (id === suitId) continue;
+		const v = vesselOf(core, id);
+		if (v.soi !== suit.soi) continue;
+		if (!v.parts.some((p) => partDefOf(core, p).ladder !== undefined)) continue;
+		if (length(sub(motionOf(core, v).r, at)) <= 30) out.push(id);
+	}
+	return out;
+}
+
 const frameOf = (core: SimCore, id: EntityId): FlightFrame | undefined =>
 	core.frames.find((f) => f.inUse && f.bodies.has(id));
 
@@ -456,6 +470,14 @@ export function crewGrab(core: SimCore, suitId: EntityId, release: boolean): Com
 		return { ok: true };
 	}
 	if (suit.latch) return refuse('already holding a ladder');
+	// a suit standing still rests on rails: wake it, and the vessels within reach, into one frame
+	const blocker = wakeBlocker(core, suitId);
+	if (blocker) return refuse(blocker);
+	wake(core, suitId, 'grabbing a ladder');
+	const here = motionOf(core, suit).r;
+	for (const id of vesselIdsNear(core, suitId, here)) {
+		if (!wakeBlocker(core, id)) wake(core, id, 'a suit grabs its ladder');
+	}
 	const frame = frameOf(core, suitId);
 	if (!frame) return refuse('the suit is not in flight');
 	const me = bodyMotion(frame, frame.bodies.get(suitId)!).centre;
@@ -545,5 +567,7 @@ function stepLatch(
 		latch.s > 0 && latch.s < 1 ? climb : { x: 0, y: 0, z: 0 }
 	);
 	frame.backend.setVelocity(body.handle, { linear, angular: m.angular });
+	// both stay awake while it hangs on: a resting vessel would go to rails and drop the suit
 	core.active.add(suitId);
+	core.active.add(vesselId);
 }

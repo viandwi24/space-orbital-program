@@ -955,10 +955,23 @@ export function startFlight(options: FlightOptions): Flight {
 		const suit = Number(result.vessel);
 		sentWalk = 'stop';
 		sentClimb = 0;
+		// the suit exists from the next snapshot on: focus can only move once the flight has seen it
+		evaPending = true;
+		await untilSeen(suit);
 		const switched = await switchVessel(suit);
+		evaPending = false;
 		if (!switched.ok) renderer?.setActiveVessel(result.vessel as EntityId);
 		hud.eva = { suit, name, walking: false, ship, latched: false, status: null };
 		publish();
+	}
+	/** Set while focus moves to a new suit, so the frame does not end the EVA HUD meanwhile. */
+	let evaPending = false;
+	/** Resolves once the flight's snapshot holds vessel `id` (at most about 3 s). */
+	async function untilSeen(id: number): Promise<void> {
+		for (let i = 0; i < 60 && !disposed; i++) {
+			if (snap?.vessels.some((v) => Number(v.id) === id)) return;
+			await new Promise((r) => setTimeout(r, 50));
+		}
 	}
 	/** The discrete EVA keys (plan 225). */
 	function evaKey(action: ActionId): void {
@@ -1027,6 +1040,7 @@ export function startFlight(options: FlightOptions): Flight {
 		});
 		if (!result.ok) return void hudCtl?.refused('crew-board', result.reason);
 		hud.eva = null;
+		await untilSeen(target);
 		const switched = await switchVessel(target);
 		if (!switched.ok) renderer?.setActiveVessel(target as EntityId);
 		publish();
@@ -1182,7 +1196,7 @@ export function startFlight(options: FlightOptions): Flight {
 						snap.crew?.find((m) => Number(m.vessel) === id)?.name ?? focused.name ?? 'Crew';
 					const base = hud.eva?.suit === id ? hud.eva : { suit: id, name, walking: false };
 					hud.eva = { ...base, status: suitStatus(focused) };
-				} else if (hud.eva) hud.eva = null;
+				} else if (hud.eva && !evaPending) hud.eva = null;
 				if (hud.eva) hud.eva = { ...hud.eva, radio: suitRadio(snap, hud.eva.suit) };
 				hud.broadcasts = broadcastOffers(snap);
 				// funds and the recovery quote (plan 132)

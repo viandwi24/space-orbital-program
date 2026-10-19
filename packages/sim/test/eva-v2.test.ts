@@ -270,6 +270,20 @@ describe('EVA v2 (plan 225)', () => {
 		sim.dispose();
 	}, 60_000);
 
+	test('a suit resting on the ground still grabs the ladder beside the hatch', async () => {
+		const { sim, ship } = await crewed(moon);
+		run(sim, 3);
+		const suit = made(sim.dispatch({ type: 'crew-eva', vessel: ship, member: 'c1' }));
+		// long enough for both to rest on surface rails
+		run(sim, 6);
+		ok(sim.dispatch({ type: 'crew-grab', suit }));
+		run(sim, 5);
+		ok(sim.dispatch({ type: 'crew-climb', suit, rate: 1 }));
+		ok(sim.dispatch({ type: 'crew-board', suit, vessel: ship }));
+		expect(member(sim).vessel).toBe(ship);
+		sim.dispose();
+	}, 60_000);
+
 	test('a scripted EVA run twice gives identical snapshots', async () => {
 		const once = async () => {
 			const { sim, ship } = await crewed(moon);
