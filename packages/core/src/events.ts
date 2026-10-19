@@ -16,6 +16,8 @@ export interface EventMap {
 	'vessel:mode-changed': { vessel: EntityId; mode: VesselMode; reason: string };
 	/** A vessel was loaded, or split off `from` another one. */
 	'vessel:created': { vessel: EntityId; from?: EntityId };
+	/** A vessel split (plan 221): the design indices each side kept, the new piece being `vessel`. */
+	'vessel:split': { parent: EntityId; vessel: EntityId; parentParts: number[]; parts: number[] };
 	'vessel:destroyed': { vessel: EntityId; reason: string };
 	/** Every control source of the vessel ran out of the power it needs (plan 208, ADR 0214). */
 	'vessel:power-depleted': { vessel: EntityId; time: number };

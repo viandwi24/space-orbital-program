@@ -125,6 +125,8 @@ export interface PartSnapshot {
 	modules: Record<string, unknown>;
 	/** Skin temperature, K (plan 014). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	temperature?: number;
+	/** Index of the part in its vessel's design (plan 221): the HUD maps parts to the design record. */
+	index?: number;
 	/**
 	 * Connector parts (ADR 0071) whose far end is still attached: the part it lands on and the
 	 * point on its surface, relative to the vessel root's origin in the inertial (BCI) axes like
@@ -167,6 +169,10 @@ export interface VesselSnapshot {
 	surface?: boolean;
 	/** Held still during rails warp (plan 206, ADR 0202 point 7): no orbit while it lasts. */
 	frozen?: boolean;
+	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */
+	nextStage?: number;
+	/** "Control from here" (plan 221): the part SAS and the navball follow; absent for the root. */
+	controlPart?: EntityId;
 	/**
 	 * Height, m, of the ground above the body's reference sphere under the root part (ADR 0043).
 	 * Present only when the sim was created with terrain; radar altitude is the vessel's altitude
@@ -756,6 +762,11 @@ export type Command =
 	 * `stock.pause-allowed` is false (Career Hardcore). Warp is not a pause and stays allowed.
 	 */
 	| { type: 'pause'; on: boolean }
+	/**
+	 * "Control from here" (plan 221, ADR 0208 point 2): SAS, the navball and steering take `part`'s
+	 * axes; `null` goes back to the root. The part must be a control source of the vessel.
+	 */
+	| { type: 'set-control-part'; vessel: EntityId; part: EntityId | null }
 	/** Turn Debug mode on or off in an `opt-in` world (plan 203, ADR 0213); on marks the world "used cheats". */
 	| { type: 'debug-mode'; on: boolean }
 	/** Switch one cheat (ADR 0200 point 2). */

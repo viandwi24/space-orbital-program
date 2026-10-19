@@ -334,6 +334,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
 	controlSource?: boolean;
 	/**
+	 * A part the player may "control from here" without it being a control source (plan 221, ADR
+	 * 0208 point 2): a docking port (plan 222). Control sources always may.
+	 */
+	controlPoint?: boolean;
+	/**
 	 * A module that powers its part's control source (plan 208, ADR 0214: a probe core's computer on
 	 * electric charge): the resource id it runs on for this config, or undefined. While the vessel
 	 * holds none of it, the part is no control source and the vessel is uncontrolled for want of power.

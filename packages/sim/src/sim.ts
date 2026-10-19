@@ -76,6 +76,7 @@ import { freshEconomy } from './economy.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
+import { designRecord, type DesignRecord } from './vessel-design.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -191,6 +192,8 @@ export interface Sim {
 	readonly warp: number;
 	/** The clock is paused by a `pause` command (plan 205). */
 	readonly paused: boolean;
+	/** The vessel's design record (plan 221, ADR 0208 point 1): its design and the indices it kept. */
+	designOf(vessel: EntityId): DesignRecord | undefined;
 	/** Release the physics backends. */
 	dispose(): void;
 }
@@ -572,6 +575,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		get paused() {
 			return core.paused;
 		},
+		designOf: (vessel) => designRecord(core, vessel),
 		get warp() {
 			return core.warp;
 		},

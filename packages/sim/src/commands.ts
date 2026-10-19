@@ -571,6 +571,25 @@ export function dispatch(
 			return fixAnomaly(core, command.report);
 		case 'repair':
 			return repair(core, command.suit, command.vessel, command.part);
+		case 'set-control-part': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			if (command.part === null) {
+				delete v.controlPart;
+				return accept();
+			}
+			if (!v.parts.includes(command.part)) {
+				return refuse(`part ${command.part} is not on vessel ${command.vessel}`);
+			}
+			const controls = partOf(core, command.part).modules.some(
+				(m) =>
+					moduleDefOf(core, m.id).controlSource === true ||
+					moduleDefOf(core, m.id).controlPoint === true
+			);
+			if (!controls) return refuse('only a command part or a docking port can be controlled from');
+			v.controlPart = command.part;
+			return accept();
+		}
 		case 'pause': {
 			if (command.on && ruleOf(core, PAUSE_RULE) === false) {
 				return refuse('this world does not allow pausing (stock.pause-allowed)');

@@ -3,6 +3,7 @@
  * destruction. Vessels and parts are world entities holding plain-data components (state.ts).
  */
 import {
+	cloneData,
 	parseModuleConfig,
 	SURFACE_NODE,
 	type EntityId,
@@ -114,6 +115,7 @@ export function spawnVessel(core: SimCore, design: VesselDesign, resolved: Resol
 	const parts = resolved.parts.map((rp) => byIndex.get(rp.index)!);
 	const state: VesselState = {
 		name: design.name,
+		design: cloneData(design),
 		mode: 'on-rails',
 		soi: core.root.def.id,
 		root: byIndex.get(resolved.root)!,
@@ -419,6 +421,7 @@ function splitAt(
 	const keepSet = new Set(keepSide);
 	const newState: VesselState = {
 		name: `${vessel.name} (debris)`,
+		...(vessel.design ? { design: vessel.design } : {}),
 		mode: vessel.mode,
 		soi: vessel.soi,
 		root: newRoot,
@@ -491,7 +494,20 @@ function splitAt(
 			core.info.gravityModel
 		);
 	}
+	if (vessel.controlPart !== undefined && !keepSet.has(vessel.controlPart)) {
+		newState.controlPart = vessel.controlPart;
+		delete vessel.controlPart;
+	}
 	core.events.emit('vessel:created', { vessel: newId, from: vesselId });
+	// each side's design indices (plan 221, ADR 0208 point 1): the host's records follow them
+	const kept = (ids: readonly EntityId[]) =>
+		ids.map((id) => partOf(core, id).index).sort((a, b) => a - b);
+	core.events.emit('vessel:split', {
+		parent: vesselId,
+		vessel: newId,
+		parentParts: kept(keepSide),
+		parts: kept(newSide)
+	});
 	return newId;
 }
 
