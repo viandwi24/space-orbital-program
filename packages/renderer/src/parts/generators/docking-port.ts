@@ -39,12 +39,7 @@ export function dockingPort(ctx: GenContext): void {
 		for (let i = 0; i < 3; i++) {
 			const a = (i / 3) * Math.PI * 2;
 			const r = R * 0.7;
-			b.box(
-				'dark-metal',
-				[R * 0.18, 0.03, 0.02],
-				[Math.sin(a) * r, h2 - 0.02, Math.cos(a) * r],
-				a
-			);
+			b.box('dark-metal', [R * 0.18, 0.03, 0.02], [Math.sin(a) * r, h2 - 0.02, Math.cos(a) * r], a);
 		}
 	}
 }
