@@ -317,6 +317,27 @@ export const ModuleEngine = defineModule({
 			throttle: Math.min(1, Math.max(0, state.throttle))
 		},
 		category: 'propulsion',
+		// the inspector's status line (plan 214): what it does now, as text
+		readouts: [
+			{
+				id: 'status',
+				label: 'Status',
+				value: state.flameout
+					? 'Flameout: out of propellant'
+					: state.ignited
+						? state.throttle > 0
+							? `Running at ${Math.round(state.throttle * 100)} %`
+							: 'Idle'
+						: 'Off'
+			},
+			{
+				id: 'thrust',
+				label: 'Thrust',
+				value: `${Math.round((config.thrust * limiterOf(state)) / 1000)} kN max · Isp ${Math.round(
+					ispAt(config, SEA_LEVEL_PRESSURE)
+				)}–${Math.round(config.ispVacuum)} s`
+			}
+		],
 		actions: [
 			{
 				id: 'setActive',
@@ -336,6 +357,11 @@ export const ModuleEngine = defineModule({
 				min: 0,
 				max: 1,
 				step: 0.005,
+				// typed in the inspector as a share or as thrust (plan 214)
+				units: [
+					{ unit: '%', factor: 100 },
+					{ unit: 'kN', factor: config.thrust / 1000 }
+				],
 				// a solid motor's limiter is set before ignition (plan 210)
 				enabled: !(config.solid && state.ignited)
 			},
@@ -351,6 +377,8 @@ export const ModuleEngine = defineModule({
 							min: 0,
 							max: 1,
 							step: 0.05,
+							units: [{ unit: '%', factor: 100 }],
+							more: true,
 							enabled: true
 						}
 					]
@@ -692,8 +720,17 @@ export interface HeatShieldState {
 export const ModuleHeatShield = defineModule({
 	id: 'stock.heat-shield',
 	config: heatShieldConfigSchema,
-	describe: () => ({ category: 'thermal' }),
 	state: (config): HeatShieldState => ({ ablator: config.ablator }),
+	describe: (config, state) => ({
+		category: 'thermal',
+		readouts: [
+			{
+				id: 'ablator',
+				label: 'Ablator',
+				value: `${Math.round(state.ablator)} of ${config.ablator} u`
+			}
+		]
+	}),
 	store: {
 		resources: () => [Ablator.id],
 		amount: (_config, state, resource) => (resource === Ablator.id ? state.ablator : 0),
@@ -827,7 +864,23 @@ export type ControlSurfaceConfig = z.output<typeof controlSurfaceConfigSchema>;
 export interface ControlSurfaceState {
 	/** Deflection about local X, rad. */
 	deflection: number;
+	/** Share of the full deflection it may use, 0..1 (plan 214; absent: 1). */
+	authority?: number;
+	/** Axes it answers, absent: all (plan 214). */
+	pitch?: boolean;
+	yaw?: boolean;
+	roll?: boolean;
 }
+
+/** The torque demand a control surface answers: its axes and its authority (plan 214). */
+const surfaceDemand = (s: ControlSurfaceState, d: Vec3): Vec3 => {
+	const a = s.authority ?? 1;
+	return {
+		x: s.pitch === false ? 0 : d.x * a,
+		y: s.roll === false ? 0 : d.y * a,
+		z: s.yaw === false ? 0 : d.z * a
+	};
+};
 
 /**
  * Force of the deflected plate in the part frame (ADR 0045): the plate normal is
@@ -858,10 +911,53 @@ export const ModuleControlSurface = defineModule({
 	id: 'stock.control-surface',
 	config: controlSurfaceConfigSchema,
 	state: (): ControlSurfaceState => ({ deflection: 0 }),
-	// At rest a control surface is a fin (the stability read-out of the editor).
-	describe: (config) => finInfo(config),
+	// At rest a control surface is a fin (the stability read-out of the editor); its controls set
+	// how much it may deflect and which axes it answers (plan 214, rancangan §7.6b)
+	describe: (config, state) => ({
+		...finInfo(config),
+		actions: [
+			{
+				id: 'setAuthority',
+				label: 'Authority',
+				kind: 'value',
+				value: state.authority ?? 1,
+				min: 0,
+				max: 1,
+				step: 0.05,
+				units: [{ unit: '%', factor: 100 }],
+				enabled: true
+			},
+			...(['pitch', 'yaw', 'roll'] as const).map((axis) => ({
+				id: `setAxis:${axis}`,
+				label: axis[0]!.toUpperCase() + axis.slice(1),
+				kind: 'toggle' as const,
+				value: state[axis] !== false,
+				more: true,
+				enabled: true
+			}))
+		]
+	}),
+	actions: {
+		/** `(authority)`, 0..1. */
+		setAuthority: (ctx, ...args) => {
+			const [a] = z.tuple([z.number().min(0).max(1)]).parse(args);
+			ctx.state.authority = a;
+		},
+		/** `setAxis:<pitch|yaw|roll>(on)` (keyed action id, ADR 0220 point 4). */
+		setAxis: (ctx, ...args) => {
+			const [axis, on] = z.tuple([z.enum(['pitch', 'yaw', 'roll']), z.boolean()]).parse(args);
+			ctx.state[axis] = on;
+		}
+	},
+	snapshot: (state) => ({
+		deflection: state.deflection,
+		authority: state.authority ?? 1,
+		pitch: state.pitch !== false,
+		yaw: state.yaw !== false,
+		roll: state.roll !== false
+	}),
 	/** The force change over the full range in the present airflow, times the lever (ADR 0049). */
-	controlAuthority({ config, vessel }) {
+	controlAuthority({ config, state, vessel }) {
 		const rho = vessel.ambient.density;
 		if (rho === 0) return { x: 0, y: 0, z: 0 };
 		const at = { x: config.centre[0], y: config.centre[1], z: config.centre[2] };
@@ -869,11 +965,13 @@ export const ModuleControlSurface = defineModule({
 		const max = (config.maxDeflection * Math.PI) / 180;
 		const neutral = controlSurfaceForce(config, v, rho, 0);
 		const full = controlSurfaceForce(config, v, rho, max);
-		return surfaceAuthority(at, vessel.centreOfMass, {
+		const full3 = surfaceAuthority(at, vessel.centreOfMass, {
 			x: full.x - neutral.x,
 			y: full.y - neutral.y,
 			z: full.z - neutral.z
 		});
+		// what it may use of it: its authority and its axes (plan 214)
+		return surfaceDemand(state, full3);
 	},
 	update(ctx, dt) {
 		const { config, state, vessel } = ctx;
@@ -881,7 +979,8 @@ export const ModuleControlSurface = defineModule({
 		const v = vessel.airVelocity(at);
 		const rho = vessel.ambient.density;
 		const max = (config.maxDeflection * Math.PI) / 180;
-		const target = surfaceTarget(at, vessel.centreOfMass, vessel.torqueDemand, max, v.y <= 0);
+		const demand = surfaceDemand(state, vessel.torqueDemand);
+		const target = surfaceTarget(at, vessel.centreOfMass, demand, max, v.y <= 0);
 		state.deflection = slew(state.deflection, target, (config.deflectionRate * Math.PI * dt) / 180);
 		if (rho === 0) return;
 		const force = controlSurfaceForce(config, v, rho, state.deflection);
@@ -890,8 +989,7 @@ export const ModuleControlSurface = defineModule({
 			force.z += finDampingForce(config, speed, rho, rotationalNormalFlow(vessel, at));
 		}
 		vessel.applyForce(force, at);
-	},
-	snapshot: (state) => ({ deflection: state.deflection })
+	}
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -5,6 +5,16 @@
 	import { ghostTrack, type ScreenGhost } from '../../../lib/replays/ghost-model';
 	import { downloadText, fileNameOf } from '../../../lib/download';
 	import VesselPanel from '../../../lib/vessel-panel/VesselPanel.svelte';
+	import PartInspector from '../../../lib/inspector/PartInspector.svelte';
+	import {
+		closePart,
+		emptyInspector,
+		keepParts,
+		openPart,
+		shownParts,
+		togglePin,
+		type InspectorState
+	} from '../../../lib/inspector/inspector-model';
 	import {
 		transmitters,
 		vesselView,
@@ -19,6 +29,7 @@
 	import { scenarioStart, type ScenarioStart } from '../../../lib/missions/scenario-start';
 	import {
 		sortPanels,
+		type EntityId,
 		type MissionDefinition,
 		type PanelDefinition,
 		type PanelInput
@@ -38,7 +49,7 @@
 	import type { CatchUp } from '../../../lib/worlds/world-model';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { ascentScript } from '@orbital/scripting/samples/ascent';
 	import AppBar from '../../../lib/hud/AppBar.svelte';
 	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
@@ -80,7 +91,7 @@
 		scriptPanelWidth,
 		throttleAnchor
 	} from '../../../lib/layout/layout-model';
-	import { layoutFor, type SidePanel } from '../../../lib/layout/regions';
+	import { REGIONS, clampSpan, layoutFor, type SidePanel } from '../../../lib/layout/regions';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
 	import Button from '../../../lib/ui/Button.svelte';
 	import Dialog from '../../../lib/ui/Dialog.svelte';
@@ -138,10 +149,59 @@
 	let vesselOpen = $state(false);
 	let vesselContent = $state.raw<PanelContent | null>(null);
 	let vesselCategories = $state.raw<ReturnType<typeof categoriesOf>>([]);
+	/** The flown design's stages (design part indices), for the Parts tab's stage filter (plan 214). */
+	let vesselStages = $state.raw<number[][]>([]);
 	const vesselShown = $derived(panelInput?.vessel ?? null);
 	const vesselShownView = $derived(
-		vesselShown && vesselContent ? vesselView(vesselShown, vesselContent, vesselCategories) : null
+		vesselShown && vesselContent
+			? vesselView(vesselShown, vesselContent, vesselCategories, vesselStages)
+			: null
 	);
+	// the part inspector (plan 214, ADR 0205 point 2): a 3D click or Inspect opens it, Pin keeps it
+	let inspector = $state<InspectorState>(emptyInspector());
+	const inspected = $derived(shownParts(inspector));
+	const inspectView = $derived(
+		inspected.length > 0 && vesselShown && vesselContent
+			? vesselView(vesselShown, vesselContent, vesselCategories, vesselStages, true)
+			: null
+	);
+	/** The part the pointer is over in the view (two-way highlight with the panel's rows). */
+	let hoverPart = $state<EntityId | null>(null);
+	let hoverAt = 0;
+	let downAt: { x: number; y: number } | null = null;
+	function inspect(part: EntityId): void {
+		inspector = openPart(inspector, part);
+		panelInput = flight?.panelInput() ?? null;
+	}
+	$effect(() => {
+		// parts that left the vessel (a decoupled stage) close their inspectors
+		const v = vesselShown;
+		if (!v) return;
+		const alive = new Set(v.parts.map((p) => p.id));
+		untrack(() => (inspector = keepParts(inspector, alive)));
+	});
+	/** The vessel panel's width, px at 100 % (plan 214), dragged at its left edge. */
+	const panelWidth = $derived(
+		clampSpan(REGIONS.vessel, settings.ui.panelWidth ?? REGIONS.vessel.default)
+	);
+	function startResize(e: PointerEvent): void {
+		const grip = e.currentTarget as HTMLElement;
+		grip.setPointerCapture(e.pointerId);
+		const startX = e.clientX;
+		const start = panelWidth;
+		const scale = settings.ui.scale;
+		const move = (m: PointerEvent): void => {
+			const width = clampSpan(REGIONS.vessel, start + (startX - m.clientX) / scale);
+			settings.setInterface({ panelWidth: Math.round(width) });
+		};
+		const up = (): void => {
+			grip.removeEventListener('pointermove', move);
+			grip.removeEventListener('pointerup', up);
+			queueMicrotask(updateInsets);
+		};
+		grip.addEventListener('pointermove', move);
+		grip.addEventListener('pointerup', up);
+	}
 	// the mission tracker (plan 100, ADR 0151 point 3)
 	let missionDefs = $state.raw<MissionDefinition[]>([]);
 	let objectiveNames = $state.raw<Record<string, string>>({});
@@ -270,7 +330,32 @@
 		flight?.setRegions(regionsOn);
 		if (!regionsOn) regionHover = null;
 	}
+	function onCanvasDown(e: PointerEvent): void {
+		downAt = { x: e.clientX, y: e.clientY };
+	}
+	/** A click (not a camera drag) on a part of the flown vessel opens its inspector (plan 214). */
+	function onCanvasUp(e: PointerEvent): void {
+		const from = downAt;
+		downAt = null;
+		if (!from || hud?.map || Math.hypot(e.clientX - from.x, e.clientY - from.y) > 4) return;
+		const r = canvas.getBoundingClientRect();
+		const part = flight?.partAt(e.clientX - r.left, e.clientY - r.top) ?? null;
+		if (part !== null) inspect(part);
+	}
 	function onCanvasMove(e: PointerEvent): void {
+		// the part under the pointer lights its row and itself, 20 times a second at most
+		if (!hud?.map && e.buttons === 0 && (vesselOpen || inspected.length > 0)) {
+			const now = performance.now();
+			if (now - hoverAt > 50) {
+				hoverAt = now;
+				const r = canvas.getBoundingClientRect();
+				const part = flight?.partAt(e.clientX - r.left, e.clientY - r.top) ?? null;
+				if (part !== hoverPart) {
+					hoverPart = part;
+					flight?.highlightPart(part);
+				}
+			}
+		}
 		if (!regionsOn || !hud?.map || e.buttons !== 0) {
 			regionHover = null;
 			return;
@@ -584,7 +669,10 @@
 				if (v != null && worldSession.focus?.vessel !== Number(v))
 					worldSession.focus = { vessel: Number(v), design: flight?.design ?? design };
 				// dock panels read the same 10 Hz update (ADR 0149 point 2)
-				if (dockShown || vesselOpen) panelInput = flight?.panelInput() ?? null;
+				if (dockShown || vesselOpen || inspected.length > 0)
+					panelInput = flight?.panelInput() ?? null;
+				const stages = flight?.design.stages;
+				if (stages && stages !== vesselStages) vesselStages = stages as number[][];
 			},
 			onScript: (v) => (script = v),
 			onGraphics: (p) => (graphics = p),
@@ -857,7 +945,15 @@
 	<canvas
 		bind:this={canvas}
 		onpointermove={onCanvasMove}
-		onpointerleave={() => (regionHover = null)}
+		onpointerdown={onCanvasDown}
+		onpointerup={onCanvasUp}
+		onpointerleave={() => {
+			regionHover = null;
+			if (hoverPart !== null) {
+				hoverPart = null;
+				flight?.highlightPart(null);
+			}
+		}}
 	></canvas>
 	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
 	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
@@ -1030,7 +1126,16 @@
 			</div>
 			{#if vesselOpen && vesselShown}
 				<!-- the vessel panel (plan 111, ADR 0153 point 4): top right; below 1280 px in place of the dock -->
-				<div class="tr vr">
+				<div class="tr vr" style:width="{panelWidth / 16}rem">
+					<!-- drag to resize, 300 to 440 px (plan 214, ADR 0205 point 1) -->
+					<div
+						class="grip"
+						role="separator"
+						aria-orientation="vertical"
+						aria-label="Resize the vessel panel"
+						data-testid="vessel-panel-grip"
+						onpointerdown={startResize}
+					></div>
 					<VesselPanel
 						vessel={vesselShown.id}
 						name={vesselShown.name ?? designName}
@@ -1039,10 +1144,36 @@
 						transmitters={vesselTransmitters}
 						oncommand={(c) => void flight?.command(c)}
 						onhighlight={(part) => flight?.highlightPart(part)}
+						oninspect={inspect}
+						highlighted={hoverPart}
+						totals={vesselShown.resources ?? []}
+						transfers={vesselShown.transfers ?? []}
 					/>
 				</div>
 			{:else if narrow}
 				<div class="tr">{@render dock('right')}</div>
+			{/if}
+			{#if inspectView && vesselShown}
+				<!-- pinned and open inspectors, left of the vessel panel, never over the vessel (plan 214) -->
+				<div
+					class="ins"
+					style:--panel-room={vesselOpen && !narrow ? `${panelWidth / 16}rem` : '0rem'}
+				>
+					{#each inspected as id (id)}
+						{@const row = inspectView.parts.find((p) => p.entity === id)}
+						{#if row}
+							<PartInspector
+								vessel={vesselShown.id}
+								part={row}
+								pinned={inspector.pinned.includes(id)}
+								oncommand={(c) => void flight?.command(c)}
+								onpin={() => (inspector = togglePin(inspector, id))}
+								onclose={() => (inspector = closePart(inspector, id))}
+								onhighlight={(part) => flight?.highlightPart(part)}
+							/>
+						{/if}
+					{/each}
+				</div>
 			{/if}
 			{#if model && stagingOpen}
 				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
@@ -1398,6 +1529,25 @@
 	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
 	.vr {
 		width: 21.25rem;
+		overflow-y: auto;
+	}
+	.grip {
+		position: absolute;
+		left: -0.375rem;
+		top: 0;
+		bottom: 0;
+		width: 0.75rem;
+		cursor: ew-resize;
+		pointer-events: auto;
+		z-index: 1;
+	}
+	.ins {
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
+		right: calc(var(--margin-hud) * 2 + var(--panel-room, 0rem) + var(--safe-right));
+		display: flex;
+		flex-direction: column;
+		gap: var(--panel-gap);
+		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
 		overflow-y: auto;
 	}
 	.tr {

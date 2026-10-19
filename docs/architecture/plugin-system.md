@@ -85,6 +85,8 @@ export const ModuleEngine = defineModule({
 
 `describe(config, state)` may return `actions`: descriptors `{ id, label, kind: 'toggle' | 'value' | 'trigger' | 'mode', value, min, max, step, unit, options, enabled, reason, group, icon }` (`partActionDescriptorSchema`). `id` names an entry of the module's `actions`: a toggle calls it with a boolean, a value with a number in `min..max`, a mode with an option's `value`, a trigger with nothing. `group` joins a registered `defineActionGroup({ id, label, icon?, order? })` (registered with `ctx.actionGroups`; stock: engines, batteries, solar, lights, antennas, science, docking, landing gear, parachutes). The command `action-group { vessel, group, value? }` calls every enabled member's action in one dispatch, and `groupState` gives `on`, `off`, `mixed` or `none`. The host builds the controls from `describeModule(module, config, view)`. The snapshot carries only `VesselSnapshot.actions` (group states and `[part, module, action, value, enabled]`).
 
+Since plan 214 a descriptor may carry `units: [{ unit, factor }]` (other units its value reads in, `amount = value × factor`; the first is what the part inspector shows and what a bare typed number means: the engine limiter reads `%` and `kN`) and `more: true` (an advanced control the inspector keeps under "More"). `ModuleInfo.readouts` (plan 209) are the part's state as text; the inspector and the vessel panel show both.
+
 #### The vessel capability API (`ctx.vessel`, ADR 0015, plan 007)
 
 ```ts

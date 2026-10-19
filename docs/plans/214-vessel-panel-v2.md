@@ -1,12 +1,12 @@
 ---
 id: 214
 title: Vessel panel v2 and the part inspector
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: [204, 213]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 214 — Vessel panel v2 and the part inspector
@@ -95,3 +95,4 @@ The flight vessel panel is 340 px wide and resizable from 300 to 440 px, with fo
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. The resize grip is the panel's left edge (the panel stands at the right): dragging it left widens it, so the e2e drags "far left" to 440 px. Typed units are descriptor data (`units`, `more` on `PartActionDescriptor`, additive), so the inspector needs no per-module code. Filled from §7.6b P0: engine status, thrust and Isp as text and the limiter in % and kN; heat shield ablator; control surface authority and per-axis switches (`setAxis:<axis>`, ADR 0220's keyed ids). Not done here, left as follow-ups: pod rename and vessel type (plan 223's commands), the reaction wheel's mode, a crew list with EVA and transfer in the inspector (the crew card does it), decoupler "staged" switch. The narrow-screen drawer keeps the inspectors beside it rather than as tabs inside it. `ResourcesPanel` stays in the dock as the vessel totals (plan 213 already reads the snapshot). Debug API: `partOnScreen`.

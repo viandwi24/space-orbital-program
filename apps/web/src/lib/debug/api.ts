@@ -35,6 +35,8 @@ export interface DebugHost {
 	notice?(toast: Toast): void;
 	/** The focused vessel's root on screen, CSS px of the view (plan 215: camera framing tests). */
 	vesselOnScreen?(): { x: number; y: number } | null;
+	/** A part of the focused vessel on screen, CSS px of the view (plan 214: click to inspect). */
+	partOnScreen?(part: EntityId): { x: number; y: number } | null;
 }
 
 /** An orbit by apoapsis and periapsis altitudes (m) or by elements; angles in rad, default 0. */
@@ -92,6 +94,8 @@ export interface DebugApi {
 	toast(kind: Toast['kind'], title: string, detail?: string): void;
 	/** The focused vessel's root on screen, CSS px; null without a view. */
 	vesselOnScreen(): { x: number; y: number } | null;
+	/** A part of the focused vessel on screen, CSS px of the view; null without one. */
+	partOnScreen(part: EntityId): { x: number; y: number } | null;
 }
 
 /** How long a call waits for the snapshot that shows its change, ms. */
@@ -186,12 +190,15 @@ export function createDebugApi(host: DebugHost): DebugApi {
 		send: (command) => apply(command),
 		toast: (kind, title, detail) =>
 			host.notice?.({ kind, title, ...(detail !== undefined ? { detail } : {}) }),
-		vesselOnScreen: () => host.vesselOnScreen?.() ?? null
+		vesselOnScreen: () => host.vesselOnScreen?.() ?? null,
+		partOnScreen: (part) => host.partOnScreen?.(part) ?? null
 	};
 }
 
 /** The running flight's own hooks (plan 215): the layout's API reaches the HUD and the view through it. */
-export const flightDebug: { current: Pick<DebugHost, 'notice' | 'vesselOnScreen'> | null } = {
+export const flightDebug: {
+	current: Pick<DebugHost, 'notice' | 'vesselOnScreen' | 'partOnScreen'> | null;
+} = {
 	current: null
 };
 

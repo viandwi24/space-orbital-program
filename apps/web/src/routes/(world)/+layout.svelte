@@ -227,7 +227,8 @@
 				bodies: () => catalog?.bodies ?? [],
 				home: () => catalog?.home ?? catalog?.bodies.find((b) => b.parent === undefined)?.id ?? '',
 				notice: (toast) => flightDebug.current?.notice?.(toast),
-				vesselOnScreen: () => flightDebug.current?.vesselOnScreen?.() ?? null
+				vesselOnScreen: () => flightDebug.current?.vesselOnScreen?.() ?? null,
+				partOnScreen: (part) => flightDebug.current?.partOnScreen?.(part) ?? null
 			};
 			offClient.push(exposeDebugApi(window, createDebugApi(host), host));
 			void client.ready.then((c) => (catalog = c)).catch(() => {});

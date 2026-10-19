@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	G0,
 	ModuleCommand,
+	ModuleControlSurface,
 	ModuleDecoupler,
 	ModuleEngine,
 	ModuleFin,
@@ -9,6 +10,7 @@ import {
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
+	PartControlSurface,
 	containerConfigSchema,
 	deposit,
 	engineConfigSchema,
@@ -449,5 +451,78 @@ describe('stock.fin (ADR 0035)', () => {
 		vessel.ambient.density = 0;
 		ModuleFin.update!(ctx, 0.02);
 		expect(vessel.forces).toHaveLength(0);
+	});
+});
+
+describe('descriptors for the part inspector (plan 214, rancangan §7.6b)', () => {
+	const surface = () => {
+		const config = PartControlSurface.modules!.find(([m]) => m === ModuleControlSurface.id)![1];
+		const vessel = fakeVessel();
+		const ctx = contextFor(ModuleControlSurface, config as never, vessel);
+		vessel.ambient = { pressure: SEA_LEVEL_PRESSURE, density: 1.225, altitude: 0 };
+		vessel.air = { x: 0, y: -120, z: 0 };
+		vessel.demand = { x: 1, y: 0, z: 0 };
+		vessel.centre = { x: 0, y: 5, z: 0 };
+		return { ctx, vessel };
+	};
+
+	test('the engine says what it does as text, the limiter reads in % and kN', () => {
+		const config = engineConfigSchema.parse({
+			thrust: 200_000,
+			ispVacuum: 320,
+			ispSeaLevel: 280,
+			propellants: [{ resource: 'stock.liquid-fuel', ratio: 1 }]
+		});
+		const state = { ...ModuleEngine.state!(config), ignited: true, throttle: 0.5 };
+		const info = describeModule(ModuleEngine, config, ModuleEngine.snapshot!(state))!;
+		expect(info.readouts).toEqual([
+			{ id: 'status', label: 'Status', value: 'Running at 50 %' },
+			{ id: 'thrust', label: 'Thrust', value: '200 kN max · Isp 280–320 s' }
+		]);
+		const limiter = info.actions!.find((a) => a.id === 'setLimiter')!;
+		expect(limiter.units).toEqual([
+			{ unit: '%', factor: 100 },
+			{ unit: 'kN', factor: 200 }
+		]);
+		const out = describeModule(
+			ModuleEngine,
+			config,
+			ModuleEngine.snapshot!({ ...state, flameout: true })
+		)!;
+		expect(out.readouts![0]!.value).toBe('Flameout: out of propellant');
+	});
+
+	test('the heat shield reads its ablator', () => {
+		const config = { ablator: 120, heatOfAblation: 3e6, ablationTemperature: 700 };
+		const info = describeModule(ModuleHeatShield, config, { ablator: 90.4 })!;
+		expect(info.readouts).toEqual([{ id: 'ablator', label: 'Ablator', value: '90 of 120 u' }]);
+	});
+
+	test('a control surface: authority scales its deflection, a switched-off axis ignores the demand', () => {
+		const full = surface();
+		for (let i = 0; i < 200; i++) ModuleControlSurface.update!(full.ctx, 0.02);
+		const half = surface();
+		ModuleControlSurface.actions!.setAuthority!(half.ctx, 0.5);
+		for (let i = 0; i < 200; i++) ModuleControlSurface.update!(half.ctx, 0.02);
+		expect(Math.abs(full.ctx.state.deflection)).toBeGreaterThan(0);
+		expect(Math.abs(half.ctx.state.deflection)).toBeCloseTo(
+			Math.abs(full.ctx.state.deflection) / 2,
+			6
+		);
+		const off = surface();
+		ModuleControlSurface.actions!.setAxis!(off.ctx, 'pitch', false);
+		for (let i = 0; i < 200; i++) ModuleControlSurface.update!(off.ctx, 0.02);
+		expect(Math.abs(off.ctx.state.deflection)).toBe(0);
+		const info = describeModule(
+			ModuleControlSurface,
+			off.ctx.config,
+			ModuleControlSurface.snapshot!(off.ctx.state)
+		)!;
+		expect(info.actions!.map((a) => [a.id, a.value, a.more ?? false])).toEqual([
+			['setAuthority', 1, false],
+			['setAxis:pitch', false, true],
+			['setAxis:yaw', true, true],
+			['setAxis:roll', true, true]
+		]);
 	});
 });

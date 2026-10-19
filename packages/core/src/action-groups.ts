@@ -28,6 +28,10 @@ export interface PartActionDescriptor {
 	/** Action group id (a registered group). */
 	group?: string;
 	icon?: string;
+	/** Other units the value reads in, `amount = value × factor`; the first is shown (plan 214). */
+	units?: ReadonlyArray<{ unit: string; factor: number }>;
+	/** An advanced control the inspector keeps under "More" (plan 214). */
+	more?: boolean;
 }
 
 export interface ActionGroupDefinition {

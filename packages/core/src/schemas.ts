@@ -492,7 +492,16 @@ export const partActionDescriptorSchema = z
 		enabled: z.boolean(),
 		reason: z.string().optional(),
 		group: definitionIdSchema.optional(),
-		icon: z.string().optional()
+		icon: z.string().optional(),
+		/**
+		 * Other units the value reads in (plan 214): `amount = value × factor`, the first is what the
+		 * inspector shows and what a bare number means (the limiter's 0..1 as `%` and `kN`).
+		 */
+		units: z
+			.array(z.object({ unit: z.string().min(1), factor: finiteNumber.refine((f) => f !== 0) }))
+			.optional(),
+		/** An advanced control: the inspector keeps it under "More" (plan 214). */
+		more: z.boolean().optional()
 	})
 	.superRefine((d, ctx) => {
 		const issue = (message: string) => ctx.addIssue({ code: 'custom', message });

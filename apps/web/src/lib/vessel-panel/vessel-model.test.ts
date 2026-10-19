@@ -8,7 +8,14 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { referenceTwoStage } from '../design';
 import VesselPanel from './VesselPanel.svelte';
-import { controlCommand, groupCommand, vesselView } from './vessel-model';
+import {
+	controlCommand,
+	filterParts,
+	groupCommand,
+	groupText,
+	stagesOf,
+	vesselView
+} from './vessel-model';
 
 const Dial = defineModule({
 	id: 'fix.dial',
@@ -115,5 +122,47 @@ describe('vessel panel', () => {
 		expect(sim.dispatch(cmd).ok).toBe(true);
 		sim.step(0.02);
 		expect(engines().state).toBe('off');
+	});
+});
+
+describe('vessel panel v2 (plan 214)', () => {
+	const stock = loadPlugins([Stock]).registries;
+	const content = {
+		parts: stock.parts,
+		modules: stock.modules,
+		groups: stock.actionGroups.list()
+	};
+	/** A stack of four engines (design indices 0..3), staged one per stage; `lit` of them on. */
+	function fourEngines(lit: boolean[]): VesselSnapshot {
+		return {
+			id: 1,
+			parts: lit.map((on, i) => ({
+				id: 10 + i,
+				index: i,
+				definition: 'stock.engine-lv',
+				modules: { 'stock.engine': { ignited: on, throttle: 0, flameout: false } }
+			})),
+			actions: { groups: [{ id: 'stock.engines', state: 'mixed', parts: 4 }], states: [] }
+		} as unknown as VesselSnapshot;
+	}
+
+	it('the Overview count reads "Engines 3/4" for four engines with one off', () => {
+		const view = vesselView(fourEngines([true, true, false, true]), content);
+		const engines = view.groups.find((g) => g.id === 'stock.engines')!;
+		expect(groupText(engines)).toBe('Engines 3/4');
+	});
+
+	it('the stage filter keeps only that stage parts; search by name', () => {
+		const view = vesselView(
+			fourEngines([true, true, true, true]),
+			content,
+			[],
+			[[3], [2], [1], [0]]
+		);
+		expect(view.parts.map((p) => p.stage)).toEqual([3, 2, 1, 0]);
+		expect(filterParts(view.parts, { stage: 1 }).map((p) => Number(p.entity))).toEqual([12]);
+		expect(filterParts(view.parts, { search: 'nothing like it' })).toEqual([]);
+		expect(filterParts(view.parts, { search: 'ENGINE' })).toHaveLength(4);
+		expect(stagesOf(view.parts)).toEqual([0, 1, 2, 3]);
 	});
 });

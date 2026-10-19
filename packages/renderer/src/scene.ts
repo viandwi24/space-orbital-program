@@ -280,6 +280,7 @@ export class SceneModel {
 
 	private origin: Vec3 = ZERO;
 	private active: EntityId | null = null;
+	private readonly picker = new Raycaster();
 	private map = false;
 	private flightRig: RigState = initialRig(25);
 	private mapRig: RigState = initialRig(0);
@@ -561,6 +562,32 @@ export class SceneModel {
 		root: null,
 		meshes: []
 	};
+
+	/**
+	 * The active vessel's part under the canvas point (x, y) in CSS px, or null (plan 214: click to
+	 * inspect, hover to light its row). One raycast against that vessel's part meshes only.
+	 */
+	partAt(x: number, y: number): EntityId | null {
+		if (this.map || this.active === null) return null;
+		const v = this.vessels.get(Number(this.active));
+		if (!v) return null;
+		const { width, height } = this.viewport;
+		if (width <= 0 || height <= 0) return null;
+		const roots = new Map<Object3D, number>();
+		for (const [id, p] of v.parts) {
+			roots.set(p.model.root, id);
+			p.model.root.updateWorldMatrix(true, true);
+		}
+		this.camera.updateMatrixWorld();
+		this.picker.setFromCamera(new Vector2((x / width) * 2 - 1, 1 - (y / height) * 2), this.camera);
+		for (const hit of this.picker.intersectObjects([...roots.keys()], true)) {
+			for (let o: Object3D | null = hit.object; o; o = o.parent) {
+				const id = roots.get(o);
+				if (id !== undefined) return id as EntityId;
+			}
+		}
+		return null;
+	}
 
 	highlightPart(id: EntityId | null): void {
 		const next = id === null ? null : Number(id);

@@ -268,6 +268,8 @@ export interface Flight {
 	panelInput(): PanelInput | null;
 	/** Rim-light one part in the view, or none (plan 111, ADR 0153 point 5). */
 	highlightPart(part: EntityId | null): void;
+	/** The flown vessel's part under a point of the view (CSS px of the canvas box), or null (plan 214). */
+	partAt(x: number, y: number): EntityId | null;
 	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
 	replay(name: string): Promise<ReplayFile | null>;
 	/** Draw a replay's ghost over this flight, or none (plan 131). */
@@ -1348,6 +1350,7 @@ export function startFlight(options: FlightOptions): Flight {
 	return {
 		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
 		highlightPart: (part) => renderer?.highlightPart(part),
+		partAt: (x, y) => renderer?.partAt(x, y) ?? null,
 		replay: (name) => client.replay(name),
 		setGhost: (track) => hudCtl?.setGhost(track),
 		setRegions: (on) =>
@@ -1399,6 +1402,18 @@ export function startFlight(options: FlightOptions): Flight {
 					z: body.position.z + v.position.z
 				});
 				return p ? { x: p.x, y: p.y } : null;
+			},
+			partOnScreen(part) {
+				const v = snap?.vessels.find((x) => x.id === vessel);
+				const body = v && snap?.bodies.find((b) => b.id === v.soi);
+				const p = v?.parts.find((x) => x.id === part);
+				if (!v || !body || !p || !renderer) return null;
+				const at = renderer.project({
+					x: body.position.x + v.position.x + p.position.x,
+					y: body.position.y + v.position.y + p.position.y,
+					z: body.position.z + v.position.z + p.position.z
+				});
+				return at ? { x: at.x, y: at.y } : null;
 			}
 		},
 		debugInfo: () => ({
