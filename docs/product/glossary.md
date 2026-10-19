@@ -126,3 +126,6 @@ Use these terms consistently in code, docs, and UI.
 | **Provenance** | Per patched field, the plugins that set it: the registering one first, then each patching plugin in apply order (`LoadReport.provenance`, shown on `/mods`; ADR 0170). |
 | **Scale variant** | A version of a star system at a size and distance scale (the Sol pack's `1:1` and `rescaled`) with its own balance patches (ADR 0103). |
 | **Sol pack** | The real solar system as an in-repo mod package with orbits from JPL elements with secular rates and a lunar model. |
+| **AN / DN** | Ascending and descending node: where the vessel's orbit crosses the reference plane going north or south. The reference is the target's orbit plane when the target shares the vessel's sphere, else the body's equator; the map marks both and can warp to them (plan 224). |
+| **Alarm** | A user alarm kept by the sim (plan 224, ADR 0223): a time, a vessel's apsis, sphere change or node less a lead, or a transfer window. It stops any warp when it comes, for any vessel, posts to the bell and then leaves the list. |
+| **Transfer window** | The next date a Hohmann transfer from the vessel's orbit reaches a body: to a moon of its sphere, or to a neighbour of the sphere (ejection burn). Shown in the Mission Center's Upcoming with its wait and delta-v; it can become an alarm. |
