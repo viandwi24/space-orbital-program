@@ -61,11 +61,19 @@ export interface MapPath {
 	planned?: boolean;
 	/** Periapsis radius of the stretch's conic, m from the body's centre, when it has one. */
 	periapsis?: number;
-	/** The state the stretch starts from, relative to its body (plan 224: planned apsides). */
-	entry?: { r: Vec3; v: Vec3 };
-	/** The stretch's conic, when it has one. */
+}
+
+/**
+ * The conic of a stretch (plan 224: planned apsides and the node panel): its entry state relative
+ * to its body and its elements. Kept beside the path, so the drawn data and its goldens stay as
+ * they were.
+ */
+export interface PathConic {
+	entry: { r: Vec3; v: Vec3 };
 	elements?: { a: number; e: number };
 }
+const conics = new WeakMap<MapPath, PathConic>();
+export const conicOf = (path: MapPath): PathConic | undefined => conics.get(path);
 
 /** Samples per stretch. */
 const SAMPLES = 160;
@@ -110,8 +118,10 @@ function mapPathOf(s: PatchedSegment, bodies: readonly PatchedBody[], planned = 
 		end: s.end
 	};
 	if (planned) out.planned = true;
-	out.entry = { r: s.entry.r, v: s.entry.v };
-	if (s.elements) out.elements = { a: s.elements.a, e: s.elements.e };
+	conics.set(out, {
+		entry: { r: s.entry.r, v: s.entry.v },
+		...(s.elements ? { elements: { a: s.elements.a, e: s.elements.e } } : {})
+	});
 	if (s.elements && s.elements.e < 1) out.periapsis = s.elements.a * (1 - s.elements.e);
 	else if (s.elements) out.periapsis = Math.abs(s.elements.a) * (s.elements.e - 1);
 	return out;

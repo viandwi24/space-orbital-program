@@ -33,6 +33,7 @@ import {
 import { stretchApsides } from './nav-markers';
 import {
 	bodyNodes,
+	conicOf,
 	predictManeuvers,
 	predictMapPath,
 	predictionHorizon,
@@ -397,10 +398,11 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		const { before, after } = around(id);
 		if (!after) return null;
 		const mu = muOf(after.body);
-		if (mu === undefined || after.elements === undefined) return null;
-		const { a, e } = after.elements;
+		const afterEl = conicOf(after)?.elements;
+		if (mu === undefined || afterEl === undefined) return null;
+		const { a, e } = afterEl;
 		const radius = radiusOf(after.body);
-		const beforeEl = before?.elements;
+		const beforeEl = before ? conicOf(before)?.elements : undefined;
 		const beforeMu = before ? muOf(before.body) : undefined;
 		return {
 			body: after.body,
@@ -425,11 +427,12 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 	function apsidesOf(paths: readonly MapPath[]): PlannedApsisDraw[] {
 		const out: PlannedApsisDraw[] = [];
 		paths.forEach((p, i) => {
-			if (!p.planned || !p.entry) return;
+			const entry = conicOf(p)?.entry;
+			if (!p.planned || !entry) return;
 			const mu = muOf(p.body);
 			if (mu === undefined) return;
 			const radius = radiusOf(p.body);
-			for (const m of stretchApsides(p.entry, mu, p.t1 - p.t0)) {
+			for (const m of stretchApsides(entry, mu, p.t1 - p.t0)) {
 				out.push({
 					key: `${i}:${m.kind}`,
 					kind: m.kind,
