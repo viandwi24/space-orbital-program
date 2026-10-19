@@ -82,3 +82,4 @@ The Hangar feels open. The service towers move back to about x = ±15 m, z = −
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-20 — Worker A: towers at (±15, −13); the arms now run along the line to the axis (they used to run along x and never met the vessel), stopping 1 m outside its radius or 0.2 m outside the platform; tug lane, crew and floodlights moved; camera limits 70 / 27.5 / 18 m; `hangarDetail` fixes high part detail. Captures in the journal as JPEG.
+- 2026-10-20 — Worker A: CI failed on the world-tick benchmark (M5 budget on a slow runner, no sim change here). Per the coordinator, the M5 timing budgets now only log on CI (`docs/conventions/testing.md`); fixed on this branch.
