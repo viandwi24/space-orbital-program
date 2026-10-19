@@ -1,7 +1,7 @@
 ---
 id: 227
 title: Audio pack and minimal music
-status: in-progress
+status: done
 owner: "Worker D"
 depends: []
 phase: 7
@@ -65,18 +65,19 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 - [x] `apps/web` vitest: the director plays `explosion` once per destroyed part event and never more than 4 at once.
 - [x] Chromium e2e `apps/web/e2e/audio.e2e.ts`: the Music slider persists after reload; after a stage event with `debug.setLocation` (plan 203) at 500 m and a hard landing, the page reports the `touchdown` and `explosion` cues through the director's debug counter and shows their visual signs.
 - [ ] The same e2e passes on Firefox (`--project=firefox`): not run here (worker brief: Chromium only on the M2); left to release QA's three-engine run (plan 232).
-- [ ] `bun run check:affected --build --e2e e2e/audio.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun run check:affected --build --e2e e2e/audio.e2e.ts` passes (check:affected green; the e2e run on its own: 2 passed).
+- [x] CI is green on the `ready/*` tag for this plan (`refs/ci/pass/835ed5b6`).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/227-audio-pack.md` written.
-- [ ] ADR 0210 moved from proposed to accepted only after the owner decides the music source; ADR 0062 status line notes the amendment.
-- [ ] Credits page unchanged unless licensed audio is added.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/227-audio-pack.md` written.
+- [x] ADR 0210 moved from proposed to accepted only after the owner decides the music source (it stays proposed); ADR 0062 status line notes the amendment.
+- [x] Credits page unchanged unless licensed audio is added.
 
 ## Log
 
+- 2026-10-19 — Worker D: CI green on `ready/227`; done. ADR 0210 stays proposed until the owner picks the music source (procedural beds ship as the default).
 - 2026-10-19 — Worker D: claimed (claim/227) and built.
   - **The cue table** (`lib/audio/cues.ts`): 13 cues, each with its bus, gain and visual sign.
   - **The procedural one-shots** in `engine.ts`.
