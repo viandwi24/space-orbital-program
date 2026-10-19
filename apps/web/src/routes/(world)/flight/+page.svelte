@@ -1546,6 +1546,8 @@
 	/* the vessel panel ends above the crew panel at the bottom right (plan 214: a tall panel ran under it) */
 	.vr {
 		width: 21.25rem;
+		/* a block, not the flex of .tr: the panel inside must not shrink and spill, the box scrolls */
+		display: block;
 		overflow-y: auto;
 		max-height: min(
 			calc(var(--above-deck) - var(--capsule) - var(--panel-gap)),
