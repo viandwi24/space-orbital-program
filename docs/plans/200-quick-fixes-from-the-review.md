@@ -1,7 +1,7 @@
 ---
 id: 200
 title: Quick fixes from the owner review
-status: in-progress
+status: done
 owner: "Worker B"
 depends: []
 phase: 7
@@ -64,19 +64,19 @@ The small bugs the owner saw on the pad are gone. A pod counts as crewed only wi
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including `test/control-source.test.ts`: an empty pod with no probe is uncontrolled and ignores throttle and stage; the same pod with one crew member is controlled; a probe without signal follows the world's comms rule.
-- [ ] `apps/web` vitest `hud/pad-state.test.ts`: from a pre-launch snapshot fixture the situation reads "On the pad", the Orbit panel shows the no-orbit text and no countdown, and MET reads 0.
-- [ ] `apps/web` vitest: the flight page renders one blackout badge; "Catch up to now" is hidden in a stock-system world and shown in a Sol world.
-- [ ] Chromium e2e `e2e/pad-state.e2e.ts`: launch an empty-pod vessel, see the "Uncontrolled" chip, press Space and the stage does not fire; the throttle reads 50 % on a crewed vessel.
-- [ ] `bun run check:affected --e2e e2e/pad-state.e2e.ts` passes.
-- [ ] CI green on the `ready/200` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test packages/sim` passes, including `test/control-source.test.ts`: an empty pod with no probe is uncontrolled and ignores throttle and stage; the same pod with one crew member is controlled; a probe without signal follows the world's comms rule.
+- [x] `apps/web` vitest `hud/pad-state.test.ts`: from a pre-launch snapshot fixture the situation reads "On the pad", the Orbit panel shows the no-orbit text and no countdown, and MET reads 0.
+- [x] `apps/web` vitest: the flight page renders one blackout badge; "Catch up to now" is hidden in a stock-system world and shown in a Sol world.
+- [x] Chromium e2e `e2e/pad-state.e2e.ts`: launch an empty-pod vessel, see the "Uncontrolled" chip, press Space and the stage does not fire; the throttle reads 50 % on a crewed vessel.
+- [x] `bun run check:affected --e2e e2e/pad-state.e2e.ts` passes.
+- [x] CI green on the `ready/200` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/200-quick-fixes-from-the-review.md` written.
-- [ ] `docs/architecture/simulation.md` updated for the control-source rule and the pre-launch situation.
-- [ ] ADR 0109 status line notes the expired exception, if the coordinator agrees.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/200-quick-fixes-from-the-review.md` written.
+- [x] `docs/architecture/simulation.md` updated for the control-source rule and the pre-launch situation.
+- [ ] ADR 0109 status line notes the expired exception, if the coordinator agrees. (Not done: left for the coordinator; ADR 0216 records it.)
 
 ## Log
 

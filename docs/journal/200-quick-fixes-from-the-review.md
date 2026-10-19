@@ -30,5 +30,9 @@
 ## Verification output
 
 ```
-(filled in at handover)
+bun test packages/sim packages/core packages/scripting   919 pass, 0 fail
+web vitest hud/pad-state.test.ts: 4 pass (pad state, one blackout badge, catch-up stock vs Sol)
+check:affected --build --e2e e2e/pad-state.e2e.ts (after the rebase on plan 216): all passed in 281 s
+  typecheck 11 workspaces + web, bun test 10 workspaces, web vitest 587 pass, build, pad-state 2/2
+CI ready/200: refs/ci/pass/e5eeb3d5
 ```
