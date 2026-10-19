@@ -467,7 +467,10 @@ describe('build-time settings (plan 218)', () => {
 		s.design.parts.find((p) => p.index === i)?.settings?.[ENGINE]?.limiter as number | undefined;
 
 	it('a 60 % limiter on one of four symmetric boosters sets all four; one undo resets them', () => {
-		const s0 = createEditor(moonShot(), content);
+		// the example's boosters come at half thrust: start from them without it
+		const shot = moonShot();
+		const bare = { ...shot, parts: shot.parts.map(({ settings: _s, ...p }) => p) };
+		const s0 = createEditor(bare, content);
 		const boosters = [21, 24, 27, 30];
 		const row = buildRow(s0.design, content, 21)!;
 		const limiter = row.controls.find((c) => c.id === 'setLimiter')!;
