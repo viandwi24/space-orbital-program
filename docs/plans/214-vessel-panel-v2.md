@@ -1,7 +1,7 @@
 ---
 id: 214
 title: Vessel panel v2 and the part inspector
-status: in-progress
+status: done
 owner: "Worker B"
 depends: [204, 213]
 phase: 7
@@ -76,21 +76,21 @@ The flight vessel panel is 340 px wide and resizable from 300 to 440 px, with fo
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest `lib/inspector/inspector-model.test.ts`: "50 kN" on a 200 kN engine sets the limiter to 25 %; "abc" reverts with a message; a fourth pin drops the oldest.
-- [ ] `apps/web` vitest `lib/vessel-panel/vessel-model.test.ts`: Overview count reads "Engines 3/4" for four engines with one off; stage filter keeps only that stage's parts.
-- [ ] Chromium e2e `e2e/vessel-panel.e2e.ts` gains: the panel is 340 px wide by default and 440 px after dragging the handle far right; clicking the engine in 3D opens its inspector; typing "50 kN" changes the snapshot's limiter.
-- [ ] Chromium e2e `e2e/resources-tab.e2e.ts`: `window.__orbitalDebug.setResource` half-fills two tanks; the Resources tab shows rate and time to empty; a transfer from the picker moves fuel; locking a tank shows "Locked" as text.
-- [ ] `bun test mods/stock/test/modules.test.ts` covers the new descriptors.
-- [ ] `bun run check:affected` passes.
-- [ ] CI is green on the plan's ready tag (full suite, ADR 0126).
+- [x] `apps/web` vitest `lib/inspector/inspector-model.test.ts`: "50 kN" on a 200 kN engine sets the limiter to 25 %; "abc" reverts with a message; a fourth pin drops the oldest.
+- [x] `apps/web` vitest `lib/vessel-panel/vessel-model.test.ts`: Overview count reads "Engines 3/4" for four engines with one off; stage filter keeps only that stage's parts.
+- [x] Chromium e2e `e2e/vessel-panel.e2e.ts` gains: the panel is 340 px wide by default and 440 px after dragging the handle far right; clicking the engine in 3D opens its inspector; typing "50 kN" changes the snapshot's limiter.
+- [x] Chromium e2e `e2e/resources-tab.e2e.ts`: `window.__orbitalDebug.setResource` half-fills two tanks; the Resources tab shows rate and time to empty; a transfer from the picker moves fuel; locking a tank shows "Locked" as text.
+- [x] `bun test mods/stock/test/modules.test.ts` covers the new descriptors.
+- [x] `bun run check:affected` passes.
+- [x] CI is green on the plan's ready tag (full suite, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/214-vessel-panel-v2.md` written.
-- [ ] `docs/architecture/overview.md` updated (inspector component shared by Flight and Hangar).
-- [ ] `docs/architecture/plugin-system.md` updated (descriptor `unit` and `more`).
-- [ ] New ADRs written for any decision made here, linked above.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/214-vessel-panel-v2.md` written.
+- [x] `docs/architecture/overview.md` updated (inspector component shared by Flight and Hangar).
+- [x] `docs/architecture/plugin-system.md` updated (descriptor `unit` and `more`).
+- [x] New ADRs written for any decision made here, linked above.
 
 ## Log
 

@@ -30,5 +30,9 @@
 ## Verification output
 
 ```
-(filled in at handover)
+web vitest: inspector-model 4, vessel-model 6, vessel-panel tests; 622 vitest in the affected run
+bun test mods/stock: 124 pass (modules.test descriptors); renderer scene 16 (partAt)
+check:affected --build --e2e e2e/vessel-panel.e2e.ts (after the rebase on plan 217): all passed in 567 s, vessel-panel 2/2
+playwright chromium: resources-tab, hud-layout (4), parachute, tank-transfer pass
+CI ready/214: refs/ci/pass/1407c94f
 ```
