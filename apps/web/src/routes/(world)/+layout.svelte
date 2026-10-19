@@ -311,6 +311,11 @@
 			if (now) void save(now);
 			else pending = reason;
 		};
+		worldSession.saveNow = async () => {
+			if (!canSave() || saving) return false;
+			await save('change');
+			return true;
+		};
 
 		const typing = (e: Event): boolean => {
 			const t = e.target;
@@ -367,6 +372,7 @@
 			offLock();
 			lock?.release();
 			worldSession.requestSave = () => {};
+			worldSession.saveNow = () => Promise.resolve(false);
 			fatalSave.current = null;
 			worldSession.end();
 		};

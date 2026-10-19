@@ -77,14 +77,25 @@ test('recover a vessel 50 km out at its quote, rename another and keep the name'
 	expect(sat.ok).toBe(true);
 	await page.waitForTimeout(3_000); // the lander comes to rest
 
-	await page.goto('/mission-center');
+	// in-app, so the world keeps running (a page load would boot it from the last save)
+	await page
+		.locator('canvas')
+		.first()
+		.click({ position: { x: 10, y: 10 } });
+	await page.keyboard.press('KeyM');
+	await page.getByTestId('map-tab-mc').click();
+	await page.waitForURL('**/mission-center');
 	await expect(page.getByTestId(`mc-row-vessel:${lander}`)).toBeVisible({ timeout: 60_000 });
 	// it is a ship (a pod); retype it Probe, then the Probe filter shows it
 	await page.getByTestId(`mc-row-vessel:${lander}`).click();
 	await page.getByTestId('mc-set-type').selectOption('probe');
 	await page.getByTestId('mc-type').selectOption('probe');
 	await expect(page.getByTestId(`mc-row-vessel:${lander}`)).toBeVisible();
-	await expect(page.locator('[data-testid^="mc-row-vessel:"]')).toHaveCount(1);
+	// the probe core in orbit is a probe too: two rows, both probes
+	await expect(page.locator('[data-testid^="mc-row-vessel:"]')).toHaveCount(2);
+	await expect(
+		page.locator('[data-testid^="mc-row-vessel:"]').filter({ hasText: 'Probe ·' })
+	).toHaveCount(2);
 
 	const recover = page.getByTestId('mc-recover');
 	await expect(recover).toBeVisible({ timeout: 30_000 });
@@ -113,7 +124,10 @@ test('recover a vessel 50 km out at its quote, rename another and keep the name'
 	await expect(
 		page.locator('[data-testid^="mc-row-vessel:"]').filter({ hasText: 'Relay Prime' })
 	).toHaveCount(1);
-	await page.waitForTimeout(1_500); // the autosave
+	// the rename is autosaved at once: wait for the status bar to say so
+	await expect(page.getByTestId('status-saved')).toContainText(/Saved \d+ s ago/, {
+		timeout: 20_000
+	});
 	await page.reload();
 	await expect(
 		page.locator('[data-testid^="mc-row-vessel:"]').filter({ hasText: 'Relay Prime' })

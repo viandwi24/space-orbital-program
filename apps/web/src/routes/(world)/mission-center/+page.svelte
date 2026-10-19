@@ -105,7 +105,7 @@
 	async function fleetCommand(command: Command, save = false): Promise<void> {
 		const r = await mc?.dispatch(command);
 		note = r && !r.ok ? r.reason : null;
-		if (r?.ok && save) await saves.autosave();
+		if (r?.ok && save) await worldSession.saveNow();
 	}
 	const card = $derived(objectCard(selected, snapshot, bodies, focus));
 	const clock = $derived(

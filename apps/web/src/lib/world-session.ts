@@ -50,6 +50,11 @@ export interface WorldSession {
 	collect: (() => Promise<SaveRequest>) | null;
 	/** Ask the layout for an event autosave (a stage, a landing, a change); set by the layout. */
 	requestSave(reason: 'stage' | 'landed' | 'change'): void;
+	/**
+	 * Save now, whatever the autosave gap (plan 223: the Mission Center's fleet actions are the
+	 * player's own changes); resolves false when nothing could be saved. Set by the layout.
+	 */
+	saveNow(): Promise<boolean>;
 	/** Tell the layout a page wrote a save itself. */
 	saved(): void;
 	/**
@@ -102,6 +107,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 		savedAt: null,
 		collect: null,
 		requestSave: () => {},
+		saveNow: () => Promise.resolve(false),
 		saved: () => {
 			session.savedAt = Date.now();
 			changed();
