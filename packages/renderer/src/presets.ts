@@ -203,6 +203,12 @@ export function parsePreset(value: unknown): GraphicsPreset | null {
 }
 
 /** Part-model detail from a preset (`PartModelFactory`). */
+/**
+ * Part detail in the Hangar (plan 220): always the high preset's, whatever the graphics preset, so
+ * round parts are smooth up close; the Hangar has one vessel and no planet to pay for it.
+ */
+export const hangarDetail = (_quality: 'low' | 'high'): PartDetail => detailOf(PRESETS.high);
+
 export function detailOf(settings: PresetSettings): PartDetail {
 	return {
 		segments: settings.partSegments,

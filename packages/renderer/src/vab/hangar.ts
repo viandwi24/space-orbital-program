@@ -61,6 +61,17 @@ import { SAFETY_CELLS, SIGN_ATLAS, numberCell, type SignCell } from './hangar-si
 /** Room half-extent on x and z, and height, metres. */
 export const HANGAR = { half: 30, height: 46, platformRadius: 6.2 } as const;
 
+/**
+ * The service towers (plan 220): bases well back from the platform, the left one taller. Their arms
+ * stop at the platform edge plus `ARM_MARGIN`, or `ARM_CLEARANCE` outside a vessel's radius.
+ */
+export const TOWERS = [
+	{ x: -15, z: -13, height: 30 },
+	{ x: 15, z: -13, height: 26 }
+] as const;
+export const ARM_MARGIN = 0.2;
+export const ARM_CLEARANCE = 1.0;
+
 /** Colours of the room. The accent is the UI accent (`--c-accent`), so the platform ring ties the scene to the panels. */
 export const HANGAR_COLOURS = {
 	steel: 0x3b4655,
@@ -318,6 +329,11 @@ export interface Hangar {
 	workLights: SpotLight[];
 	/** The sun of this hangar's time of day; the view tints its key light with `warmth`. */
 	daylight: DayLight;
+	/**
+	 * The widest horizontal reach of the vessel from the platform axis, m, or null for none (plan
+	 * 220): the swing arms stop `ARM_CLEARANCE` outside it, or at the platform edge without one.
+	 */
+	setVesselRadius(radius: number | null): void;
 	/** Crane, tug and crew freeze at the rest pose (true) or move again (false). */
 	setReducedMotion(on: boolean): void;
 	update(dt: number, time: number): void;
@@ -753,7 +769,7 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const decks = new Batch(deckMat);
 	const rails = new Batch(yellowPaint);
 	const post = new Batch(steel);
-	function tower(cx: number, cz: number, height: number, side: number): void {
+	function tower(cx: number, cz: number, height: number): void {
 		const half = 1.6;
 		const levels = Math.floor(height / 3);
 		for (const [sx, sz] of [
@@ -780,7 +796,10 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 				post.beam([cx + half, y, cz - half], [cx + half, y + 3, cz + half * alt], 0.12);
 			}
 		}
-		// Working decks every 6 m with railings on three sides and a swing arm reaching towards the stack.
+		// Working decks every 6 m with railings on the two sides away from the vessel; the swing arms
+		// (`buildArms`) leave from the open corner towards the stack.
+		const bx = cx + Math.sign(cx) * 1.9;
+		const bz = cz + Math.sign(cz) * 1.9;
 		for (let y = 6; y <= height - 3; y += 6) {
 			decks.box([cx, y, cz], [3.9, 0.12, 3.9]);
 			for (const [px, pz] of [
@@ -791,26 +810,73 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 			] as const) {
 				rails.box([cx + px * 1.9, y + 0.55, cz + pz * 1.9], [0.07, 1.1, 0.07]);
 			}
-			rails.beam([cx - 1.9, y + 1.05, cz - 1.9], [cx + 1.9, y + 1.05, cz - 1.9], 0.06);
-			rails.beam([cx - 1.9, y + 1.05, cz + 1.9], [cx + 1.9, y + 1.05, cz + 1.9], 0.06);
-			rails.beam(
-				[cx + side * -1.9, y + 1.05, cz - 1.9],
-				[cx + side * -1.9, y + 1.05, cz + 1.9],
-				0.06
-			);
-			// Swing arm: a truss from the deck towards the vessel's axis, stopping 1.6 m short of it.
-			const tip = side * 1.6;
-			const x0 = cx + side * 1.9;
-			post.beam([x0, y - 0.12, cz - 0.4], [tip, y - 0.12, cz - 0.4], 0.16);
-			post.beam([x0, y - 0.12, cz + 0.4], [tip, y - 0.12, cz + 0.4], 0.16);
-			post.beam([x0, y + 0.3, cz], [tip, y + 0.05, cz], 0.1);
-			decks.box([(x0 + tip) / 2, y, cz], [Math.abs(x0 - tip), 0.1, 1.0]);
-			rails.beam([x0, y + 1.0, cz - 0.55], [tip, y + 1.0, cz - 0.55], 0.05);
-			rails.beam([x0, y + 1.0, cz + 0.55], [tip, y + 1.0, cz + 0.55], 0.05);
+			rails.beam([cx - 1.9, y + 1.05, bz], [cx + 1.9, y + 1.05, bz], 0.06);
+			rails.beam([bx, y + 1.05, cz - 1.9], [bx, y + 1.05, cz + 1.9], 0.06);
 		}
 	}
-	tower(-9.5, -7, 30, 1);
-	tower(9.5, -7, 26, -1);
+	for (const t of TOWERS) tower(t.x, t.z, t.height);
+
+	// Swing arms: one truss per deck from the tower towards the vessel's axis. They stop at the
+	// platform's edge, or `ARM_CLEARANCE` outside the vessel once the view gives its radius; rebuilt
+	// only when the reach moves by more than 0.1 m.
+	const arms = new Group();
+	arms.name = 'arms';
+	root.add(arms);
+	let armReach = -1;
+	function buildArms(reach: number): void {
+		for (const c of [...arms.children]) {
+			arms.remove(c);
+			if (c instanceof Mesh) c.geometry.dispose();
+		}
+		const truss = new Batch(steel);
+		const plank = new Batch(deckMat);
+		const rail = new Batch(yellowPaint);
+		for (const t of TOWERS) {
+			const d = Math.hypot(t.x, t.z);
+			const ux = -t.x / d;
+			const uz = -t.z / d;
+			const nx = -uz;
+			const nz = ux;
+			const out = 1.95 / Math.max(Math.abs(ux), Math.abs(uz));
+			const x0 = t.x + ux * out;
+			const z0 = t.z + uz * out;
+			const x1 = -ux * reach;
+			const z1 = -uz * reach;
+			const len = Math.hypot(x1 - x0, z1 - z0);
+			const yaw = Math.atan2(ux, uz);
+			for (let y = 6; y <= t.height - 3; y += 6) {
+				const side = (k: number, h: number) =>
+					[
+						[x0 + nx * k, y + h, z0 + nz * k],
+						[x1 + nx * k, y + h, z1 + nz * k]
+					] as const;
+				truss.beam(...side(-0.4, -0.12), 0.16);
+				truss.beam(...side(0.4, -0.12), 0.16);
+				truss.beam([x0, y + 0.3, z0], [x1, y + 0.05, z1], 0.1);
+				plank.add(new BoxGeometry(1.0, 0.1, len), [(x0 + x1) / 2, y, (z0 + z1) / 2], {
+					axis: [0, 1, 0],
+					angle: yaw
+				});
+				rail.beam(...side(-0.55, 1.0), 0.05);
+				rail.beam(...side(0.55, 1.0), 0.05);
+			}
+		}
+		for (const [b, name] of [
+			[truss, 'arm-truss'],
+			[plank, 'arm-deck'],
+			[rail, 'arm-rails']
+		] as const) {
+			const mesh = b.build(name);
+			if (mesh) arms.add(mesh);
+		}
+		armReach = reach;
+	}
+	const setVesselRadius = (radius: number | null): void => {
+		const reach =
+			radius === null ? HANGAR.platformRadius + ARM_MARGIN : Math.max(radius + ARM_CLEARANCE, 1);
+		if (Math.abs(reach - armReach) > 0.1) buildArms(reach);
+	};
+	setVesselRadius(null);
 
 	// Floodlights on the towers' lower decks, aimed at the vessel. The fixtures are always there;
 	// the high variant adds real spot lights at the same places.
@@ -819,10 +885,20 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const workLights: SpotLight[] = [];
 	const target = new Object3D();
 	target.position.set(0, 6, 0);
+	const floodAt = (
+		t: (typeof TOWERS)[number],
+		y: number,
+		shift: number
+	): [number, number, number] => {
+		const d = Math.hypot(t.x, t.z);
+		const [ux, uz] = [-t.x / d, -t.z / d];
+		return [t.x + ux * 2.4 - uz * shift, y, t.z + uz * 2.4 + ux * shift];
+	};
+	const [left, right] = TOWERS;
 	for (const [fx, fy, fz, colour] of [
-		[-7.5, 13.2, -5.8, 0xe4eeff],
-		[-7.5, 19.2, -8.2, 0xe4eeff],
-		[7.4, 13.2, -5.8, 0xffe6c8]
+		[...floodAt(left, 13.2, 1.1), 0xe4eeff],
+		[...floodAt(left, 19.2, -1.1), 0xe4eeff],
+		[...floodAt(right, 13.2, 0), 0xffe6c8]
 	] as const) {
 		const yaw = Math.atan2(-fx, -fz);
 		const q = { axis: [0, 1, 0] as const, angle: yaw };
@@ -833,7 +909,8 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 			q
 		);
 		if (high) {
-			const light = new SpotLight(colour, 260, 46, 0.5, 0.8, 2);
+			// a third farther than at the old towers: the intensity follows the square of it
+			const light = new SpotLight(colour, 820, 64, 0.42, 0.8, 2);
 			light.position.set(fx, fy, fz);
 			light.target = target;
 			workLights.push(light);
@@ -1259,6 +1336,7 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		shafts,
 		workLights,
 		daylight,
+		setVesselRadius,
 		setReducedMotion(on) {
 			reduced = on;
 			if (on) poseMovers(REST_TIME, false);
@@ -1280,6 +1358,9 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 		},
 		dispose() {
 			for (const d of disposables) d.dispose();
+			arms.traverse((o) => {
+				if (o instanceof Mesh) o.geometry.dispose();
+			});
 		}
 	};
 }

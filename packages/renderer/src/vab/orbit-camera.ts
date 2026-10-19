@@ -25,13 +25,15 @@ export interface VabCameraLimits {
 	panTop: number;
 }
 
+/** Limits of the Hangar camera; plan 220 widened them for the towers at x = ±15 m, z = −13 m. */
 export const VAB_CAMERA_LIMITS: VabCameraLimits = {
 	minDistance: 2.5,
-	maxDistance: 60,
+	maxDistance: 70,
 	maxPitch: 1.35,
 	floorClearance: 0.5,
-	roomHalf: 26,
-	panExtent: 14,
+	// the columns stand 1.2 m off the walls at ±30 m
+	roomHalf: 27.5,
+	panExtent: 18,
 	panTop: 34
 };
 

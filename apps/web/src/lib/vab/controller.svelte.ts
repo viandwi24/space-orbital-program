@@ -638,7 +638,11 @@ export class VabController {
 			active: () => this.active,
 			parts: () => this.editor.design.parts.map((p) => ({ index: p.index, part: p.part })),
 			looseParts: () => this.editor.loose.reduce((n, a) => n + a.parts.length, 0),
-			armed: () => this.armed?.kind ?? null
+			armed: () => this.armed?.kind ?? null,
+			// for captures (plan 220): the vessel's draw cost, and a fixed camera
+			stats: () => (this.view ? { ...this.view.stats } : null),
+			aim: (yaw: number, pitch: number, distance: number, target?: [number, number, number]) =>
+				this.view?.debug.setCamera(yaw, pitch, distance, target)
 		};
 		ro.observe(els.stage);
 		ro.observe(els.left);
