@@ -43,7 +43,9 @@ async function ascend(design: VesselDesign, tankIndex: number, limit = 1_500) {
 		const v = sim.snapshot().vessels.find((x) => x.id === vessel);
 		if (!v) break;
 		if (droppedAt === undefined && ascent.phase === 'ascent') {
-			const boosters = design.parts.filter((p) => p.part === 'stock.booster').map((p) => p.index);
+			const boosters = design.parts
+				.filter((p) => p.part === 'stock.booster-liquid')
+				.map((p) => p.index);
 			const dry = boosters.every(
 				(i) =>
 					(v.parts[order.indexOf(i)]!.modules['stock.engine'] as { flameout: boolean }).flameout

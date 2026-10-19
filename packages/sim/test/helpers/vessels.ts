@@ -123,7 +123,7 @@ export function boosted(n: number, finCount = 0, fins = { y: -0.7 }): VesselDesi
 			},
 			{
 				index: 11 + 3 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 10 + 3 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2
 			},
@@ -277,7 +277,7 @@ export function moonShot(): VesselDesign {
 			},
 			{
 				index: 21 + 3 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 20 + 3 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2
 			},

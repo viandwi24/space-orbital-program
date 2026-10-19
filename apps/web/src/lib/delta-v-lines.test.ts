@@ -46,7 +46,7 @@ function asparagus(n: number, lines: boolean): VesselDesign {
 			},
 			{
 				index: 11 + 3 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 10 + 3 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2
 			}

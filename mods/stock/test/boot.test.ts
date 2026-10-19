@@ -37,6 +37,7 @@ describe('stock boots through the loader', () => {
 			'stock.flag',
 			'stock.heat-shield',
 			'stock.landing-leg',
+			'stock.launch-clamp',
 			'stock.parachute',
 			'stock.probe-computer',
 			'stock.rcs',
@@ -58,10 +59,12 @@ describe('stock boots through the loader', () => {
 			'stock.battery-medium',
 			'stock.battery-small',
 			'stock.booster',
+			'stock.booster-liquid',
 			'stock.command-pod',
 			'stock.control-surface',
 			'stock.data-drive',
 			'stock.decoupler',
+			'stock.decoupler-wide',
 			'stock.dish-antenna',
 			'stock.docking-port',
 			'stock.docking-port-large',
@@ -70,14 +73,20 @@ describe('stock boots through the loader', () => {
 			'stock.drogue-chute',
 			'stock.engine-cluster',
 			'stock.engine-lv',
+			'stock.engine-vacuum',
+			'stock.engine-wide',
 			'stock.eva-suit',
 			'stock.fin',
 			'stock.flag',
 			'stock.flotation-collar',
 			'stock.fuel-line',
+			'stock.goo-canister',
 			'stock.heat-shield',
+			'stock.heat-shield-wide',
 			'stock.landing-legs',
+			'stock.launch-clamp',
 			'stock.life-support-pack',
+			'stock.materials-bay',
 			'stock.monoprop-radial',
 			'stock.monoprop-tank',
 			'stock.nose-cone',
@@ -97,6 +106,8 @@ describe('stock boots through the loader', () => {
 			'stock.solar-array-large',
 			'stock.solar-panel',
 			'stock.solar-panel-fixed',
+			'stock.srb-large',
+			'stock.srb-small',
 			'stock.strut',
 			'stock.surface-sampler',
 			'stock.tail-cone-large',
@@ -104,6 +115,8 @@ describe('stock boots through the loader', () => {
 			'stock.tail-cone-small',
 			'stock.tank-medium',
 			'stock.tank-small',
+			'stock.tank-wide',
+			'stock.tank-wide-short',
 			'stock.thermometer',
 			'stock.wheel',
 			'stock.wheel-steer',
@@ -129,6 +142,8 @@ describe('stock boots through the loader', () => {
 		]);
 		expect(ids('experiment')).toEqual([
 			'stock.atmosphere-sample',
+			'stock.goo',
+			'stock.materials',
 			'stock.pressure',
 			'stock.seismic',
 			'stock.surface-sample',
@@ -175,13 +190,10 @@ describe('stock boots through the loader', () => {
 				}
 			}
 		}
-		// solid fuel waits for its parts (plan 210)
-		const later = new Set(['stock.solid-fuel']);
 		expect([...used].sort()).toEqual(
 			registries.resources
 				.list()
 				.map((r) => r.id)
-				.filter((id) => !later.has(id))
 				.sort()
 		);
 	});
@@ -191,6 +203,12 @@ describe('stock boots through the loader', () => {
 		const special = new Set([
 			'stock.radial-decoupler',
 			'stock.booster',
+			'stock.booster-liquid',
+			// solid motors: top and radial, the nozzle at the bottom (plan 210)
+			'stock.srb-small',
+			'stock.srb-large',
+			// the launch clamp: one radial node (plan 210)
+			'stock.launch-clamp',
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
 			'stock.monoprop-radial',

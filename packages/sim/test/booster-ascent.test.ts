@@ -23,7 +23,8 @@ async function ascend(design: VesselDesign, limit = 1_500) {
 		// One stage when a booster runs dry (the radial decouplers), one at the cut (stack decoupler).
 		stageCount: 1,
 		jettisonAtCut: true,
-		apoapsis: 200_000,
+		// the solid BST-1 (plan 210) gives less Δv than the old liquid one: a lower first apoapsis
+		apoapsis: 120_000,
 		turnStart: 100,
 		turnEnd: 12_000,
 		turnPitch: 1.1

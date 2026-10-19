@@ -15,3 +15,29 @@ export * from './recovery.ts';
 export * from './science.ts';
 export * from './structure.ts';
 export * from './tanks.ts';
+
+import {
+	PartBoosterLiquid,
+	PartEngineVacuum,
+	PartEngineWide,
+	PartSrbLarge,
+	PartSrbSmall
+} from './engines.ts';
+import { PartLaunchClamp } from './ground.ts';
+import { PartHeatShieldWide } from './recovery.ts';
+import { PartDecouplerWide } from './structure.ts';
+import { PartTankWide, PartTankWideShort } from './tanks.ts';
+
+/** Plan 210: two more solid motors, the vacuum engine, the 2.5 m class and the launch clamp. */
+export const STOCK_PROPULSION_PACK = [
+	PartSrbSmall,
+	PartSrbLarge,
+	PartBoosterLiquid,
+	PartEngineVacuum,
+	PartTankWideShort,
+	PartTankWide,
+	PartEngineWide,
+	PartDecouplerWide,
+	PartHeatShieldWide,
+	PartLaunchClamp
+] as const;

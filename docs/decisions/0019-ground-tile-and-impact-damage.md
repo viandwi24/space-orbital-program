@@ -37,3 +37,4 @@ Plan 007 idealised the ground: a sphere clamp that zeroes the velocity relative 
 - Damage splits vessels mid-flight (deterministic, same machinery as staging). Part-to-part collision damage (a stage hitting its parent) is not modelled.
 - Terrain (heights) would replace the tile's plane by a height-aware shape; the tile interface in `frames.ts` is where it plugs in.
 - Follow-ups: draft plan 014 (re-entry heating).
+- Plan 210 (ADR 0219) brings a hold back only as a part: launch clamps anchor a vessel to the rotating ground until staged.

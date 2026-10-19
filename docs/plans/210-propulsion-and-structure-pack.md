@@ -1,12 +1,12 @@
 ---
 id: 210
 title: "SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: [207, 208]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 210 — SRBs, launch clamps, vacuum engine, 2.5 m class, engine tweakables, basic science parts
@@ -84,3 +84,9 @@ The first-flight parts a KSP player expects are in the game. Solid rocket booste
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A. Defaults (owner rule, rancangan §15 #8 and #16, ADR 0203), recorded here:
+  - The open design points are in ADR 0219: the solid mode, flow `none` as the part itself, the clamp hold through an `anchor` hook (not a joint to the ground tile), save format 10 and the held experiments.
+  - The thrust limiter is set in flight before ignition (the part panel). The Hangar setting needs per-part settings in designs, which plan 218's part inspector adds; recorded as a follow-up.
+  - "Refuses placement off a pad": a clamp holds only within 40 m of the ground (so not in orbit or after a debug teleport); the Hangar warning goes to plan 218's pre-flight report.
+  - The new parts sit in existing tech nodes (clamp in Basics, SRBs and the vacuum engine in Propulsion, 2.5 m in Structures, the experiments in Instruments) until plan 231.
+  - Reset of a held experiment needs no crew for now (KSP needs a scientist or a lab).

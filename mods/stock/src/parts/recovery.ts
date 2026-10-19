@@ -2,7 +2,7 @@ import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleHeatShield } from '../modules.ts';
 import { ModuleParachute } from '../parachute.ts';
-import { cylinder, stackNodes } from './shared.ts';
+import { cylinder, stackNodes, WIDE_RADIUS } from './shared.ts';
 
 /**
  * An ablative heat shield, 1.25 m class. Mount it at the end that faces the airflow in a
@@ -20,6 +20,22 @@ export const PartHeatShield = definePart({
 	attach: stackNodes(0.2),
 	crossfeed: false,
 	modules: [[ModuleHeatShield, {}]],
+	stagingIcon: 'shield'
+});
+
+/** The 2.5 m heat shield (plan 210): four times the area, four times the ablator. */
+export const PartHeatShieldWide = definePart({
+	id: 'stock.heat-shield-wide',
+	title: 'Wide Heat Shield',
+	mass: kg(300),
+	cost: partCost(300, 'gear'),
+	impactTolerance: 8,
+	maxTemperature: 3_000,
+	shape: cylinder(0.3, WIDE_RADIUS),
+	visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
+	attach: stackNodes(0.3, 2.5),
+	crossfeed: false,
+	modules: [[ModuleHeatShield, { ablator: 480 }]],
 	stagingIcon: 'shield'
 });
 

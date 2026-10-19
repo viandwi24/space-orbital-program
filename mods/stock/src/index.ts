@@ -25,6 +25,7 @@ import {
 } from './modules.ts';
 import {
 	PartBooster,
+	STOCK_PROPULSION_PACK,
 	PartCommandPod,
 	PartControlSurface,
 	PartDecoupler,
@@ -89,6 +90,7 @@ import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleRcs } from './rcs.ts';
 import { ModuleDockingPort } from './docking.ts';
 import { ModuleParachute } from './parachute.ts';
+import { ModuleLaunchClamp } from './launch-clamp.ts';
 import { STOCK_OBJECTIVES } from './objectives.ts';
 import { STOCK_MISSIONS } from './missions.ts';
 import { STOCK_CONTRACT_TEMPLATES } from './contracts.ts';
@@ -138,6 +140,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleRcs);
 		ctx.modules.register(ModuleDockingPort);
 		ctx.modules.register(ModuleParachute);
+		ctx.modules.register(ModuleLaunchClamp);
 		ctx.modules.register(ModuleFlag);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
@@ -179,6 +182,8 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartHeatShield);
 		ctx.parts.register(PartRadialDecoupler);
 		ctx.parts.register(PartBooster);
+		// solid motors, the vacuum engine and the 2.5 m class (plan 210)
+		for (const part of STOCK_PROPULSION_PACK) ctx.parts.register(part);
 		ctx.parts.register(PartNoseCone);
 		ctx.parts.register(PartFin);
 		ctx.parts.register(PartControlSurface);
@@ -237,6 +242,7 @@ export * from './eva.ts';
 export * from './panels.ts';
 export * from './solar.ts';
 export * from './rcs.ts';
+export * from './launch-clamp.ts';
 export * from './docking.ts';
 export * from './parachute.ts';
 export * from './engine.ts';

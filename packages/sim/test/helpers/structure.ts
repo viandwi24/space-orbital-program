@@ -38,7 +38,7 @@ export function asparagus(
 			},
 			{
 				index: 11 + 3 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 10 + 3 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2
 			},
@@ -96,7 +96,10 @@ export function saturnAsparagus(
 	const { lines = true, struts = true } = options;
 	const base = saturn(wheels);
 	const lowerTank = wheels + 4;
-	const parts = [...base.parts];
+	// fuel lines feed the core from liquid boosters (the BST-1 is solid since plan 210)
+	const parts = base.parts.map((p) =>
+		p.part === 'stock.booster' ? { ...p, part: partId('stock.booster-liquid') } : p
+	);
 	for (let k = 0; k < 4; k++) {
 		const angle = (k * Math.PI) / 2;
 		if (lines) {

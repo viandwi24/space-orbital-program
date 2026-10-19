@@ -1,7 +1,7 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleDecoupler } from '../modules.ts';
-import { cylinder, stackNodes, type Vec3Tuple } from './shared.ts';
+import { cylinder, stackNodes, WIDE_RADIUS, type Vec3Tuple } from './shared.ts';
 
 export const PartDecoupler = definePart({
 	id: 'stock.decoupler',
@@ -19,6 +19,25 @@ export const PartDecoupler = definePart({
 	// Stages are separated by decouplers: no propellant crosses them.
 	crossfeed: false,
 	modules: [[ModuleDecoupler, { separates: 'top', ejectionImpulse: 2_000 }]],
+	stagingIcon: 'decoupler'
+});
+
+/** The 2.5 m stack decoupler (plan 210). */
+export const PartDecouplerWide = definePart({
+	id: 'stock.decoupler-wide',
+	title: 'Wide Stack Decoupler',
+	mass: kg(200),
+	cost: partCost(200, 'structure'),
+	impactTolerance: 8,
+	maxTemperature: 1000,
+	shape: cylinder(0.25, WIDE_RADIUS),
+	visual: {
+		kind: 'decoupler',
+		palette: { primary: '#3b4047', accent: '#e3a61f' }
+	},
+	attach: stackNodes(0.25, 2.5),
+	crossfeed: false,
+	modules: [[ModuleDecoupler, { separates: 'top', ejectionImpulse: 5_000 }]],
 	stagingIcon: 'decoupler'
 });
 

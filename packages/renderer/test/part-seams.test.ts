@@ -25,6 +25,9 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.engine-lv/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-cluster/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
 	'stock.heat-shield/bottom': 'the ablative dish faces the airflow at the end of a stack',
+	'stock.heat-shield-wide/bottom': 'the ablative dish faces the airflow at the end of a stack',
+	'stock.engine-vacuum/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
+	'stock.engine-wide/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.flotation-collar/top': 'a ring around the stack, wider than its joint by design',
 	'stock.flotation-collar/bottom': 'a ring around the stack, wider than its joint by design'
 };
@@ -100,7 +103,8 @@ describe('part seams', () => {
 					'radial-decoupler',
 					'gear',
 					'flag',
-					'rcs-block'
+					'rcs-block',
+					'launch-clamp'
 				].includes(visual.kind)
 			)
 				continue;

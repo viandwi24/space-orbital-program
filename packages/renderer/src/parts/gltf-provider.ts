@@ -38,7 +38,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
-import { articulationRotation, articulationValue } from './articulation.ts';
+import { articulationRotation, articulationScale, articulationValue } from './articulation.ts';
 import { assetFit } from './asset-fit.ts';
 import { defaultNodes } from './factory.ts';
 import type {
@@ -226,13 +226,12 @@ class GltfModel implements PartModel {
 		}
 		const articulation = this.visual?.articulation;
 		if (this.pivot && articulation) {
-			const r = articulationRotation(
-				articulation.mode,
-				articulationValue(articulation, state.modules)
-			);
+			const value = articulationValue(articulation, state.modules);
+			const r = articulationRotation(articulation.mode, value);
 			this.pivot.quaternion
 				.copy(this.pivotRest)
 				.multiply(new Quaternion().setFromEuler(new Euler(r.x, r.y, r.z)));
+			this.pivot.scale.y = articulationScale(articulation.mode, value);
 		}
 		this.applyGlow(state.temperature);
 		this.plume?.update(this.engine, this.pressure, this.time);

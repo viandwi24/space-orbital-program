@@ -47,7 +47,7 @@ function design(boosters: number): VesselDesign {
 			},
 			{
 				index: 11 + 2 * k,
-				part: partId('stock.booster'),
+				part: partId('stock.booster-liquid'),
 				parent: { index: 10 + 2 * k, parentNode: 'outer', node: 'radial' },
 				symmetry: 2
 			}

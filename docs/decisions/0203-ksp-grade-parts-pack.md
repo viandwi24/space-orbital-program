@@ -39,4 +39,5 @@ We have 36 parts, all 1.25 m (`parts.ts:38-39`). KSP's first flight uses a pod, 
 
 - Plans 207 (sizes, shrouds, adapters), 208 (resources and power), 209 (chutes), 210 (SRB, clamps, vacuum engine, 2.5 m, experiments), 211 (RCS and monoprop) and 213 (transfer and flow) deliver it. Plan 231 places the parts in the tech tree.
 - Saves gain resource ids; a migration renames EVA propellant to cold gas.
+- Points 6 and 7 are delivered by plan 210 as ADR 0219: the solid engine mode, the clamp hold and save format 10.
 - The booster ring fix (plan 200) lands before the geometry tests.

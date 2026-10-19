@@ -17,7 +17,12 @@ import {
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
 import { RcsPuffs, createPuffGeometry, createPuffMaterial } from '../effects/rcs-puff.ts';
-import { articulationRotation, articulationValue, type ArticulationSpec } from './articulation.ts';
+import {
+	articulationRotation,
+	articulationScale,
+	articulationValue,
+	type ArticulationSpec
+} from './articulation.ts';
 import { GeometryBuilder, type BuiltGeometry, type SlotName } from './builder.ts';
 import { registerStockGenerators } from './generators/index.ts';
 import { revolve } from './revolve.ts';
@@ -211,11 +216,10 @@ class ProceduralModel implements PartModel {
 			};
 		}
 		if (this.pivot && this.articulation) {
-			const r = articulationRotation(
-				this.articulation.mode,
-				articulationValue(this.articulation, state.modules)
-			);
+			const value = articulationValue(this.articulation, state.modules);
+			const r = articulationRotation(this.articulation.mode, value);
 			this.pivot.rotation.set(r.x, r.y, r.z);
+			this.pivot.scale.y = articulationScale(this.articulation.mode, value);
 		}
 		if (this.puffs && this.visual.puffs) {
 			const m = state.modules[this.visual.puffs.module] as Record<string, unknown> | undefined;

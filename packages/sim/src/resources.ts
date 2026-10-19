@@ -80,7 +80,8 @@ export function reachableParts(core: SimCore, from: EntityId): EntityId[] {
 
 function sources(core: SimCore, vessel: VesselState, from: EntityId, resource: string): EntityId[] {
 	const mode = core.registries.resources.get(resource)?.flowMode ?? 'none';
-	if (mode === 'none') return [];
+	// `none`: only the part itself (KSP's NO_FLOW): a solid motor burns its own fuel (plan 210)
+	if (mode === 'none') return [from];
 	return mode === 'vessel' ? vessel.parts : reachableParts(core, from);
 }
 

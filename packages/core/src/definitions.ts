@@ -191,6 +191,11 @@ export interface VesselApi {
 	 */
 	sunExposure(dt: number, factor: (direction: Vec3 | null) => number): number;
 	/**
+	 * Height of `point` (part frame, m; the part's origin when absent) above the ground or water
+	 * under it, m (plan 210: a launch clamp's tower). Undefined off flight. Optional in test fakes.
+	 */
+	groundClearance?(point?: Vec3): number | undefined;
+	/**
 	 * Force in N, in the part's local frame, at `point` (a local-frame position in metres; the part
 	 * origin when omitted). Acts for the current step only, so call it every step. Flight mode only:
 	 * throws on rails.
@@ -362,6 +367,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * barrier like a part with `crossfeed: false` (a docking port with its crossfeed switched off).
 	 */
 	crossfeed?(config: Out, state: State): boolean;
+	/**
+	 * A launch clamp (plan 210, ADR 0203): while true and the vessel stands on the ground (it has a
+	 * ground tile), the sim holds the vessel fixed to the rotating ground. Staging the clamp cuts it
+	 * off; the rocket goes free with the ground's velocity.
+	 */
+	anchor?(config: Out, state: State): boolean;
 	/**
 	 * A module that powers its part's control source (plan 208, ADR 0214: a probe core's computer on
 	 * electric charge): the resource id it runs on for this config, or undefined. While the vessel

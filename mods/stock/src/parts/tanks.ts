@@ -2,7 +2,7 @@ import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
 import { ModuleResourceContainer } from '../modules.ts';
 import { LiquidFuel, Oxidizer } from '../resources.ts';
-import { cylinder, stackNodes } from './shared.ts';
+import { cylinder, stackNodes, WIDE_RADIUS } from './shared.ts';
 
 export const PartTankSmall = definePart({
 	id: 'stock.tank-small',
@@ -59,3 +59,45 @@ export const PartTankMedium = definePart({
 	],
 	stagingIcon: 'tank'
 });
+
+/** A 2.5 m class tank (plan 210): `fuel` + `oxidizer` u at the 0.9 : 1.1 mix. */
+function wideTank(id: string, title: string, dry: number, height: number, fuel: number) {
+	return definePart({
+		id,
+		title,
+		mass: kg(dry),
+		cost: partCost(dry, 'tank'),
+		impactTolerance: 5,
+		maxTemperature: 900,
+		shape: cylinder(height, WIDE_RADIUS),
+		visual: {
+			kind: 'tank',
+			palette: { primary: '#eceee9', secondary: '#23272d', accent: '#e0572b' },
+			params: { stripe: 0.5, bands: 2 }
+		},
+		attach: stackNodes(height, 2.5),
+		modules: [
+			[
+				ModuleResourceContainer,
+				{
+					contents: {
+						[LiquidFuel.id]: { capacity: fuel },
+						[Oxidizer.id]: { capacity: Math.round((fuel * 11) / 9) }
+					}
+				}
+			]
+		],
+		stagingIcon: 'tank'
+	});
+}
+
+/** 2.5 m, about 4.5 t full (plan 210). */
+export const PartTankWideShort = wideTank(
+	'stock.tank-wide-short',
+	'Wide Tank, Short',
+	500,
+	1.1,
+	360
+);
+/** 2.5 m, about 18 t full (plan 210). */
+export const PartTankWide = wideTank('stock.tank-wide', 'Wide Tank', 2_000, 3.75, 1_440);

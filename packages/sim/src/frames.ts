@@ -16,7 +16,7 @@ import type {
 } from '@orbital/core';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { ambientAt } from './atmosphere.ts';
-import { bodyById, spinAt, type BodyRuntime } from './bodies.ts';
+import { bodyById, rotationAt, spinAt, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
 import {
 	CONTACT_DISTANCE,
@@ -769,9 +769,57 @@ export function advanceFrame(core: SimCore, frame: FlightFrame, dt: number): Gro
 	impacts.push(...frame.waterImpacts);
 	frame.waterImpacts = [];
 	frame.origin = add(frame.origin, scale(frame.velocity, dt));
+	holdAnchored(core, frame, core.t + dt);
 	for (const id of frame.vessels) refreshPose(core, frame, id);
 	reanchor(core, frame);
 	return impacts;
+}
+
+/** A vessel with a part whose `anchor` hook says so (a launch clamp, plan 210). */
+function anchoredByPart(core: SimCore, vesselId: EntityId): boolean {
+	for (const id of vesselOf(core, vesselId).parts) {
+		for (const m of partOf(core, id).modules) {
+			const hook = moduleDefOf(core, m.id).anchor;
+			if (hook?.(m.config, moduleState(core, id, m.id))) return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Launch clamps (plan 210, ADR 0203): after the step, a vessel held by a clamp on the ground goes
+ * back to the pose it had in the body-fixed frame when the hold began, moving with the ground.
+ * Thrust and contacts move it nowhere; once no part anchors it, the hold ends and the vessel keeps
+ * the ground's velocity it had.
+ */
+function holdAnchored(core: SimCore, frame: FlightFrame, t: number): void {
+	const planet = bodyOfFrame(core, frame);
+	const turn = rotationAt(planet, t);
+	const omega = spinAt(planet, t);
+	for (const id of frame.vessels) {
+		const vessel = vesselOf(core, id);
+		const body = frame.bodies.get(id);
+		if (!body || !frame.tiles.has(id) || !anchoredByPart(core, id)) {
+			delete vessel.anchor;
+			continue;
+		}
+		const now = frame.backend.getTransform(body.handle);
+		if (!vessel.anchor) {
+			vessel.anchor = {
+				r: qRotate(qConj(turn), add(frame.origin, now.position)),
+				q: qMul(qConj(turn), now.rotation)
+			};
+		}
+		const r = qRotate(turn, vessel.anchor.r);
+		frame.backend.setTransform(body.handle, {
+			position: sub(r, frame.origin),
+			rotation: qMul(turn, vessel.anchor.q)
+		});
+		frame.backend.setVelocity(body.handle, {
+			linear: sub(cross(omega, r), frame.velocity),
+			angular: omega
+		});
+	}
 }
 
 /** Re-centre the frame on its focus vessel when it has drifted more than REANCHOR_DISTANCE. */

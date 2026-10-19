@@ -343,13 +343,15 @@ export const partVisualSchema = z.object({
 	materials: z.record(z.string().min(1), z.enum(['primary', 'secondary', 'accent'])).optional(),
 	/**
 	 * A moving piece of the model driven by a number in a module's snapshot (ADR 0045): `gimbal`
-	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis.
+	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis,
+	 * `extend` a length in m that stretches the moving piece (built 1 m long, down from its pivot)
+	 * along -Y (plan 210: a launch clamp's tower down to the pad).
 	 */
 	articulation: z
 		.object({
 			module: definitionIdSchema,
 			field: z.string().min(1),
-			mode: z.enum(['gimbal', 'hinge'])
+			mode: z.enum(['gimbal', 'hinge', 'extend'])
 		})
 		.optional(),
 	/**

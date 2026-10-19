@@ -47,6 +47,8 @@ Use these terms consistently in code, docs, and UI.
 | **Part shape** | Placeholder geometry of a part (`box` or `cylinder`, metres, axis = local Y) used by the renderer and physics body until art exists. `PartDefinition.shape`, ADR 0014. |
 | **Vessel API** | `ModuleContext.vessel`: the capabilities a module hook has over its vessel (forces, control input, ambient, resources, detach); ADR 0015. |
 | **Crossfeed** | Whether resources may flow through a part (`PartDefinition.crossfeed`, default true). Engines and decouplers block it, which makes a decoupler a stage barrier. A docking port's Crossfeed switch closes it the same way (`ModuleDefinition.crossfeed`, plan 222). |
+| **Solid motor** | An engine with `solid: true` (plan 210): no throttle, no shutdown, the thrust limiter fixed once lit; it burns its own solid fuel (flow mode `none`). |
+| **Launch clamp** | A radial part whose `anchor` hook holds the vessel to the pad until staged, feeding it electric charge (ADR 0219). |
 | **Docking port** | A part whose module has a `dock` hook (`{ size, node }`): its free face node of one size (0.625, 1.25, 2.5 m) docks with an equal one (ADR 0218). |
 | **Capture** | Two aligned port faces within 0.15 m closing under 0.5 m/s merge their vessels into one; the keeper's `DockRecord` lets an undock restore both (ADR 0218). |
 | **Flight frame** | One physics backend with a local frame that moves at constant velocity; holds a cluster of flight vessels (ADR 0017). |

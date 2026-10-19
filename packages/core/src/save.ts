@@ -28,7 +28,7 @@ import type { Quat, Vec3 } from './math.ts';
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
 /** Version this build writes. Bump with a migration step in `SIM_SAVE_MIGRATIONS` and an ADR. */
-export const SIM_SAVE_VERSION = 9;
+export const SIM_SAVE_VERSION = 10;
 
 /** A plugin that was booted when the save was made. */
 export interface SaveMod {
@@ -423,8 +423,76 @@ export const SIM_SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
 	8: (data) => ({
 		...renameId(data, 'stock.eva-propellant', 'stock.cold-gas'),
 		formatVersion: 9
-	})
+	}),
+	// format 10 (plan 210, ADR 0203): the BST-1 is a solid motor; a flying one keeps its fill
+	9: (data) => ({ ...solidBst1(data), formatVersion: 10 })
 };
+
+/** The BST-1 since plan 210 (`mods/stock/src/parts/engines.ts`): the configs a migrated part takes. */
+export const BST1_SOLID = {
+	engine: {
+		thrust: 150_000,
+		ispVacuum: 200,
+		ispSeaLevel: 175,
+		propellants: [{ resource: 'stock.solid-fuel', ratio: 1 }],
+		gimbal: { range: 0, rate: 20 },
+		solid: true
+	},
+	fuel: 330,
+	/** The liquid BST-1's 225 u fuel + 275 u oxidizer. */
+	liquid: 500
+} as const;
+
+/**
+ * Format 9 → 10: every `stock.booster` part takes the solid engine and container configs, and its
+ * liquid fuel and oxidizer become solid fuel at the same fraction full. Designs only name parts, so
+ * nothing else changes.
+ */
+function solidBst1(data: Record<string, unknown>): Record<string, unknown> {
+	const world = data.world;
+	if (!isRecord(world) || !isRecord(world.components)) return data;
+	const parts = world.components['sim.part'];
+	if (!isRecord(parts)) return data;
+	const boosters = Object.entries(parts).filter(
+		([, p]) => isRecord(p) && p.definition === 'stock.booster'
+	);
+	if (boosters.length === 0) return data;
+	const components: Record<string, unknown> = { ...world.components };
+	const newParts: Record<string, unknown> = { ...parts };
+	const stateKey = Object.keys(components).find((k) => k.endsWith(':stock.resource-container'));
+	const states = stateKey && isRecord(components[stateKey]) ? { ...components[stateKey] } : null;
+	for (const [id, part] of boosters) {
+		const p = part as Record<string, unknown>;
+		const modules = Array.isArray(p.modules) ? p.modules : [];
+		newParts[id] = {
+			...p,
+			modules: modules.map((m) => {
+				if (!isRecord(m)) return m;
+				if (m.id === 'stock.engine') return { ...m, config: structuredClone(BST1_SOLID.engine) };
+				if (m.id === 'stock.resource-container') {
+					return {
+						...m,
+						config: { contents: { 'stock.solid-fuel': { capacity: BST1_SOLID.fuel } } }
+					};
+				}
+				return m;
+			})
+		};
+		if (states && isRecord(states[id])) {
+			const state = states[id] as Record<string, unknown>;
+			const amounts = isRecord(state.amounts) ? state.amounts : {};
+			const liquid = Object.values(amounts).reduce<number>(
+				(sum, v) => sum + (typeof v === 'number' ? v : 0),
+				0
+			);
+			const fraction = Math.min(1, Math.max(0, liquid / BST1_SOLID.liquid));
+			states[id] = { ...state, amounts: { 'stock.solid-fuel': BST1_SOLID.fuel * fraction } };
+		}
+	}
+	components['sim.part'] = newParts;
+	if (stateKey && states) components[stateKey] = states;
+	return { ...data, world: { ...world, components } };
+}
 
 /**
  * `value` with every object key and every string equal to `from` replaced by `to`: a definition

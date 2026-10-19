@@ -89,7 +89,10 @@ describe('engine', () => {
 			ignited: false,
 			throttle: 0,
 			flameout: false,
-			gimbal: [0, 0]
+			gimbal: [0, 0],
+			limiter: 1,
+			gimbalLock: false,
+			gimbalLimit: 1
 		});
 		ModuleEngine.onStage?.(ctx);
 		expect(ctx.state.ignited).toBe(true);
@@ -102,7 +105,10 @@ describe('engine', () => {
 			ignited: false,
 			throttle: 0,
 			flameout: true,
-			gimbal: [0, 0]
+			gimbal: [0, 0],
+			limiter: 1,
+			gimbalLock: false,
+			gimbalLimit: 1
 		});
 		ModuleEngine.onStage?.(ctx); // re-staging clears the flameout
 		expect(ctx.state.flameout).toBe(false);

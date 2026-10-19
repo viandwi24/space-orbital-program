@@ -1,5 +1,6 @@
 import { definePart, kg } from '@orbital/sdk';
 import { partCost } from '../costs.ts';
+import { ModuleLaunchClamp } from '../launch-clamp.ts';
 import { ModuleLandingLeg, ModuleWheel } from '../modules.ts';
 import { cylinder, stackNodes } from './shared.ts';
 
@@ -57,3 +58,27 @@ const wheelPart = (id: string, title: string, steer: number) =>
 
 export const PartWheel = wheelPart('stock.wheel', 'Wheel', 0);
 export const PartWheelSteer = wheelPart('stock.wheel-steer', 'Steering wheel', 20);
+
+/**
+ * A launch clamp (plan 210, ADR 0203): bolts to the side of a stack, holds the rocket on the pad
+ * and feeds it electric charge until staged. Its tower reaches down to the pad at the launch
+ * (`extend` articulation); it stays on the pad when the rocket leaves.
+ */
+export const PartLaunchClamp = definePart({
+	id: 'stock.launch-clamp',
+	title: 'TT18 Launch Clamp',
+	mass: kg(100),
+	cost: partCost(100, 'structure'),
+	impactTolerance: 50,
+	maxTemperature: 2_000,
+	shape: { kind: 'box', size: [0.4, 0.8, 0.4] },
+	visual: {
+		kind: 'launch-clamp',
+		palette: { primary: '#d9a33a', secondary: '#2c3036', accent: '#9aa1aa' },
+		articulation: { module: ModuleLaunchClamp.id, field: 'height', mode: 'extend' }
+	},
+	attach: { radial: { pos: [-0.2, 0, 0], dir: [-1, 0, 0] } },
+	crossfeed: false,
+	modules: [[ModuleLaunchClamp, {}]],
+	stagingIcon: 'decoupler'
+});

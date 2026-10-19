@@ -4,6 +4,7 @@ import { Euler, Vector3, type Object3D } from 'three';
 import { articulationRotation } from '../src/parts/articulation.ts';
 import { PartModelFactory } from '../src/parts/factory.ts';
 import { PRESETS, detailOf } from '../src/presets.ts';
+import { launchClampConfigSchema } from '@orbital/mod-stock';
 import { stockMaps } from './stock-fixture.ts';
 
 const maps = stockMaps();
@@ -71,6 +72,18 @@ describe('models', () => {
 		const pivot = find(model.root, 'pivot');
 		expect(pivot.rotation.x).toBeCloseTo(0.4, 12);
 		expect(model.triangles).toBeGreaterThan(24);
+		model.dispose();
+		f.dispose();
+	});
+
+	test('the launch clamp tower starts at the module foot and stretches to the snapshot height', () => {
+		const f = factory();
+		const model = f.create('stock.launch-clamp');
+		model.setState({ modules: { 'stock.launch-clamp': { height: 7.5, released: false } } });
+		const pivot = find(model.root, 'pivot');
+		const foot = launchClampConfigSchema.parse({}).foot;
+		expect([pivot.position.x, pivot.position.y, pivot.position.z]).toEqual(foot);
+		expect(pivot.scale.y).toBeCloseTo(7.5, 12);
 		model.dispose();
 		f.dispose();
 	});

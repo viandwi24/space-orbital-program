@@ -18,6 +18,8 @@ const KINDS = [
 	'adapter',
 	'rcs-block',
 	'docking-port',
+	// plan 210
+	'launch-clamp',
 	'fin',
 	'control-surface',
 	'wing',

@@ -41,7 +41,7 @@ describe('describeStack', () => {
 		s = attachNew(s, ec, 'stock.booster', outer);
 		const text = describeStack(s.design, parts);
 		expect(text).toMatch(
-			/4 Radial Decouplers on the side of the Small Fuel Tank, evenly around it, each carrying BST-1 Booster\./
+			/4 Radial Decouplers on the side of the Small Fuel Tank, evenly around it, each carrying BST-1 Solid Booster\./
 		);
 		// The boosters are not part of the stack sentence.
 		expect(text.split('Stack from the top:')[1]!.split('.')[0]).not.toContain('Booster');

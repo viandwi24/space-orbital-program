@@ -27,6 +27,7 @@ import { isFailed } from './reliability.ts';
 import { sunExposure } from './sunlight.ts';
 import { terrainBelow } from './terrain.ts';
 import { notePower } from './power.ts';
+import { waterUnder } from './water.ts';
 
 const needsFlight = (what: string): never => {
 	throw new Error(
@@ -89,6 +90,15 @@ export function makeContext(core: SimCore, partId: EntityId, moduleId: string): 
 			return { ...ambientAt(body.def, altitude), height: altitude - ground };
 		},
 		sunExposure: (dt, factor) => sunExposure(core, partId, dt, factor),
+		groundClearance(point) {
+			if (!frame) return undefined;
+			const { transform } = pose();
+			const local = point ?? { x: 0, y: 0, z: 0 };
+			const r = add(frame.origin, add(transform.position, qRotate(transform.rotation, local)));
+			const planet = bodyOfFrame(core, frame);
+			const ground = waterUnder(core, planet, r) ? 0 : (terrainBelow(core, planet, r) ?? 0);
+			return length(r) - planet.def.radius - ground;
+		},
 		applyForce(force, point) {
 			finiteVec(force, 'force');
 			const { backend, transform, handle } = pose();

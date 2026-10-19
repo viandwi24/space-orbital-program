@@ -187,7 +187,9 @@ export const engineConfigSchema = z
 				/** Slew rate, degrees per second. */
 				rate: z.number().positive().default(20)
 			})
-			.default({ range: 0, rate: 20 })
+			.default({ range: 0, rate: 20 }),
+		/** A solid motor (plan 210, ADR 0203): no throttle, no shutdown, the limiter fixed once lit. */
+		solid: z.boolean().default(false)
 	})
 	.refine((c) => c.ispSeaLevel <= c.ispVacuum, 'ispSeaLevel must not exceed ispVacuum');
 export type EngineConfig = z.output<typeof engineConfigSchema>;
@@ -200,6 +202,12 @@ export interface EngineState {
 	flameout: boolean;
 	/** Thrust tilt towards +X and towards +Z, rad (ADR 0045). */
 	gimbal: [number, number];
+	/** Thrust limiter, 0..1 (plan 210): scales the mass flow. */
+	limiter: number;
+	/** The gimbal holds the axis (plan 210). */
+	gimbalLock: boolean;
+	/** Fraction of the gimbal range used, 0..1 (plan 210). */
+	gimbalLimit: number;
 }
 
 /**
@@ -207,13 +215,17 @@ export interface EngineState {
  * or one without gimbal, relaxes to the axis at the same rate. Reads the centre of mass only when
  * there is a range to steer with.
  */
+/** The usable gimbal range, rad: none when locked, the limit's share otherwise (plan 210). */
+const gimbalRange = (config: EngineConfig, state: EngineState): number =>
+	state.gimbalLock === true ? 0 : (config.gimbal.range * Math.PI * (state.gimbalLimit ?? 1)) / 180;
+
 function steerGimbal(
 	ctx: { config: EngineConfig; state: EngineState; vessel: VesselApi },
 	dt: number
 ): void {
 	const { config, state, vessel } = ctx;
 	const step = (config.gimbal.rate * Math.PI * dt) / 180;
-	const range = (config.gimbal.range * Math.PI) / 180;
+	const range = gimbalRange(config, state);
 	const live = range > 0 && state.ignited && state.throttle > 0;
 	const [tx, tz] = live
 		? gimbalTarget(vessel.centreOfMass, vessel.torqueDemand, range)
@@ -221,20 +233,33 @@ function steerGimbal(
 	state.gimbal = [slew(state.gimbal[0], tx, step), slew(state.gimbal[1], tz, step)];
 }
 
+/** The limiter of a state saved before plan 210 (absent) is 1. */
+const limiterOf = (state: EngineState): number => state.limiter ?? 1;
+
 export const ModuleEngine = defineModule({
 	id: 'stock.engine',
 	config: engineConfigSchema,
-	state: (): EngineState => ({ ignited: false, throttle: 0, flameout: false, gimbal: [0, 0] }),
+	state: (): EngineState => ({
+		ignited: false,
+		throttle: 0,
+		flameout: false,
+		gimbal: [0, 0],
+		limiter: 1,
+		gimbalLock: false,
+		gimbalLimit: 1
+	}),
 	// What tools (stage delta-v) may know without running the sim (ADR 0033): the flow is fixed by
 	// the vacuum rating and thrust follows Isp(p) (`engineOutput`), so two curve points are exact.
 	describe: (config, state) => ({
 		engine: {
-			massFlow: config.thrust / (config.ispVacuum * G0),
+			massFlow: (config.thrust * limiterOf(state)) / (config.ispVacuum * G0),
 			thrust: [
-				{ pressure: 0, thrust: config.thrust },
+				{ pressure: 0, thrust: config.thrust * limiterOf(state) },
 				{
 					pressure: SEA_LEVEL_PRESSURE,
-					thrust: (config.thrust * ispAt(config, SEA_LEVEL_PRESSURE)) / config.ispVacuum
+					thrust:
+						(config.thrust * limiterOf(state) * ispAt(config, SEA_LEVEL_PRESSURE)) /
+						config.ispVacuum
 				}
 			],
 			propellants: config.propellants.map((p) => ({ resource: p.resource, ratio: p.ratio })),
@@ -246,13 +271,41 @@ export const ModuleEngine = defineModule({
 		actions: [
 			{
 				id: 'setActive',
-				label: 'Engine',
+				label: config.solid ? 'Ignite' : 'Engine',
 				kind: 'toggle',
 				value: state.ignited,
-				enabled: true,
+				// a lit solid motor cannot be shut down
+				enabled: !(config.solid && state.ignited),
 				group: 'stock.engines',
 				icon: 'engine'
-			}
+			},
+			{
+				id: 'setLimiter',
+				label: 'Thrust limiter',
+				kind: 'value',
+				value: limiterOf(state),
+				min: 0,
+				max: 1,
+				step: 0.005,
+				// a solid motor's limiter is set before ignition (plan 210)
+				enabled: !(config.solid && state.ignited)
+			},
+			...(config.gimbal.range > 0
+				? [
+						{
+							// 0 holds the axis; the lock itself is an action for groups and scripts (the
+							// snapshot budget of ADR 0174 has room for one more control per engine)
+							id: 'setGimbalLimit',
+							label: 'Gimbal limit',
+							kind: 'value' as const,
+							value: state.gimbalLock === true ? 0 : (state.gimbalLimit ?? 1),
+							min: 0,
+							max: 1,
+							step: 0.05,
+							enabled: true
+						}
+					]
+				: [])
 		]
 	}),
 	onStage(ctx) {
@@ -261,7 +314,7 @@ export const ModuleEngine = defineModule({
 	},
 	/** Thrust times the lever of the bell about the centre of mass (ADR 0049); nothing when cold or fixed. */
 	controlAuthority({ config, state, vessel }) {
-		const range = (config.gimbal.range * Math.PI) / 180;
+		const range = gimbalRange(config, state);
 		if (range <= 0) return { x: 0, y: 0, z: 0 };
 		const { thrust } = engineOutput(config, state, vessel.ambient.pressure);
 		if (thrust <= 0) return { x: 0, y: 0, z: 0 };
@@ -309,13 +362,31 @@ export const ModuleEngine = defineModule({
 			ctx.state.flameout = false;
 		},
 		shutdown: (ctx) => {
+			if (ctx.config.solid) return; // a lit solid motor burns out (plan 210)
 			ctx.state.ignited = false;
 		},
-		/** `(on)`: activate or shut down (the part action toggle, plan 110). */
+		/** `(on)`: activate or shut down (the part action toggle, plan 110); a solid motor only lights. */
 		setActive: (ctx, ...args) => {
 			const [on] = z.tuple([z.boolean()]).parse(args);
+			if (!on && ctx.config.solid) return;
 			ctx.state.ignited = on;
 			if (on) ctx.state.flameout = false;
+		},
+		/** `(limiter)` 0..1; a lit solid motor keeps its limiter (plan 210). */
+		setLimiter: (ctx, ...args) => {
+			const [v] = z.tuple([z.number().min(0).max(1)]).parse(args);
+			if (ctx.config.solid && ctx.state.ignited) return;
+			ctx.state.limiter = v;
+		},
+		setGimbalLock: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.gimbalLock = on;
+		},
+		/** `(fraction)` 0..1 of the gimbal range. */
+		setGimbalLimit: (ctx, ...args) => {
+			const [v] = z.tuple([z.number().min(0).max(1)]).parse(args);
+			ctx.state.gimbalLimit = v;
+			ctx.state.gimbalLock = false;
 		},
 		/** `(value)` clamped to 0..1. */
 		setThrottle: (ctx, ...args) => {
@@ -331,7 +402,10 @@ export const ModuleEngine = defineModule({
 		ignited: state.ignited,
 		throttle: state.throttle,
 		flameout: state.flameout,
-		gimbal: [state.gimbal[0], state.gimbal[1]]
+		gimbal: [state.gimbal[0], state.gimbal[1]],
+		limiter: limiterOf(state),
+		gimbalLock: state.gimbalLock === true,
+		gimbalLimit: state.gimbalLimit ?? 1
 	})
 });
 

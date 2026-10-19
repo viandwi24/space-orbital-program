@@ -326,6 +326,12 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - `set-rcs` switches the vessel's RCS (`VesselState.rcs`, `VesselSnapshot.rcs`). `attitude.translate` (vessel axes: x right, y forward, z up) sets the translation; modules read `VesselApi.rcs` and `VesselApi.translateDemand` (part frame).
 - Stock `stock.rcs` fires each nozzle at `clamp(dir · T + mix(R, lever × dir), 0, 1) × limiter`, burns `thrust / (Isp g0)` with the Isp by pressure, and reports `firing` and `dry`. While RCS is on it adds `Σ |lever × dir| × thrust / 2` to the SAS authority (`controlAuthority`).
 
+## Solid motors and launch clamps (plan 210, ADR 0219)
+
+- `stock.engine` with `solid: true` ignores the throttle and cannot shut down; every engine has `limiter` (scales the mass flow), `gimbalLock` and `gimbalLimit`. Flow mode `none` reaches only the drawing part (`sources` in `resources.ts`), so a motor burns its own solid fuel.
+- `ModuleDefinition.anchor(config, state)`: `holdAnchored` in `frames.ts` runs after the backend step and puts a vessel with an anchoring part (and a ground tile) back to its body-fixed pose (`VesselState.anchor`), moving with the ground. Stock `stock.launch-clamp` measures the ground under its tower with `VesselApi.groundClearance`, feeds 20 EC/s and detaches on staging; the clamp vessel stays held.
+- Save format 10 turns a flying liquid BST-1 into the solid one at the same fill.
+
 ## Docking (plan 222, ADR 0218)
 
 - Port module hooks: `dock(config)` gives `{ size, node }`; `crossfeed(config, state)` closes the part to stack flow (`passesFlow` in `resources.ts`). Stock `stock.docking-port` in three sizes, with Undock (detach the face node, 150 N·s) and Crossfeed.

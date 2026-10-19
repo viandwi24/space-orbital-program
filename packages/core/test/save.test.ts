@@ -286,11 +286,67 @@ describe('format 9: cold gas (plan 208, ADR 0203 point 2)', () => {
 			}
 		} as Omit<SimSave, 'checksum'>);
 		const read = readSimSave(v8);
-		expect(read.formatVersion).toBe(9);
+		expect(read.formatVersion).toBe(SIM_SAVE_VERSION);
 		const comps = read.world.components as Record<string, Record<string, unknown>>;
 		expect(comps['module:stock.resource-container']!['0']).toEqual({
 			amounts: { 'stock.cold-gas': 3.25, 'stock.oxygen': 1 }
 		});
 		expect(JSON.stringify(read)).not.toContain('stock.eva-propellant');
+	});
+});
+
+describe('format 10: the solid BST-1 (plan 210, ADR 0203)', () => {
+	test('a flying liquid BST-1 becomes a solid one at the same fraction full; other parts stay', () => {
+		const booster = {
+			vessel: 0,
+			index: 1,
+			definition: 'stock.booster',
+			modules: [
+				{ id: 'stock.engine', config: { thrust: 150_000, ispVacuum: 270, ispSeaLevel: 250 } },
+				{
+					id: 'stock.resource-container',
+					config: {
+						contents: {
+							'stock.liquid-fuel': { capacity: 225 },
+							'stock.oxidizer': { capacity: 275 }
+						}
+					}
+				}
+			]
+		};
+		const tank = {
+			vessel: 0,
+			index: 0,
+			definition: 'stock.tank-small',
+			modules: [{ id: 'stock.resource-container', config: {} }]
+		};
+		const v9 = signed({
+			...unsigned(),
+			formatVersion: 9,
+			world: {
+				formatVersion: 1,
+				nextEntity: 3,
+				entities: [1, 2],
+				components: {
+					'sim.part': { '1': tank, '2': booster },
+					'sim.module-state:stock.resource-container': {
+						'1': { amounts: { 'stock.liquid-fuel': 400, 'stock.oxidizer': 490 } },
+						'2': { amounts: { 'stock.liquid-fuel': 112.5, 'stock.oxidizer': 137.5 } }
+					}
+				}
+			}
+		} as Omit<SimSave, 'checksum'>);
+		const read = readSimSave(v9);
+		expect(read.formatVersion).toBe(10);
+		const comps = read.world.components as Record<string, Record<string, Record<string, unknown>>>;
+		const part = comps['sim.part']!['2'] as { modules: Array<{ id: string; config: unknown }> };
+		expect(part.modules[0]!.config).toMatchObject({ solid: true, ispVacuum: 200 });
+		expect(part.modules[1]!.config).toEqual({
+			contents: { 'stock.solid-fuel': { capacity: 330 } }
+		});
+		const states = comps['sim.module-state:stock.resource-container']!;
+		expect(states['2']).toEqual({ amounts: { 'stock.solid-fuel': 165 } });
+		expect(states['1']).toEqual({ amounts: { 'stock.liquid-fuel': 400, 'stock.oxidizer': 490 } });
+		expect(comps['sim.part']!['1']).toEqual(tank);
 	});
 });

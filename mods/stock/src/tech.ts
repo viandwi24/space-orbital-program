@@ -22,7 +22,9 @@ export const STOCK_TECH = [
 			'stock.fin',
 			'stock.heat-shield',
 			// the starter capsule comes home on one (plan 209, ADR 0203 point 5)
-			'stock.parachute'
+			'stock.parachute',
+			// launch clamps from the start, as in KSP (plan 210)
+			'stock.launch-clamp'
 		]
 	}),
 	defineTechNode({
@@ -32,7 +34,14 @@ export const STOCK_TECH = [
 		cost: 10,
 		requires: ['stock.basics'],
 		description: 'Measure temperature and pressure on the way up, and keep the data.',
-		unlocks: ['stock.thermometer', 'stock.barometer', 'stock.data-drive']
+		unlocks: [
+			'stock.thermometer',
+			'stock.barometer',
+			'stock.data-drive',
+			// basic experiments (plan 210); plan 231 may move them
+			'stock.goo-canister',
+			'stock.materials-bay'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.structures',
@@ -54,7 +63,13 @@ export const STOCK_TECH = [
 			'stock.nose-cone-large',
 			'stock.tail-cone-small',
 			'stock.tail-cone-medium',
-			'stock.tail-cone-large'
+			'stock.tail-cone-large',
+			// the 2.5 m class (plan 210); plan 231 may move them
+			'stock.tank-wide-short',
+			'stock.tank-wide',
+			'stock.engine-wide',
+			'stock.decoupler-wide',
+			'stock.heat-shield-wide'
 		]
 	}),
 	defineTechNode({
@@ -65,7 +80,15 @@ export const STOCK_TECH = [
 		requires: ['stock.structures'],
 		milestone: 'orbit:stock.home',
 		description: 'More thrust: the cluster engine and solid boosters.',
-		unlocks: ['stock.engine-cluster', 'stock.booster']
+		unlocks: [
+			'stock.engine-cluster',
+			'stock.booster',
+			// solid motors and the vacuum engine (plan 210); plan 231 may move them
+			'stock.srb-small',
+			'stock.srb-large',
+			'stock.booster-liquid',
+			'stock.engine-vacuum'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.probes',
@@ -115,7 +138,7 @@ export const STOCK_TECH = [
 		id: 'stock.landing',
 		label: 'Landing',
 		tier: 3,
-		cost: 220,
+		cost: 260,
 		requires: ['stock.propulsion'],
 		milestone: 'flyby:stock.cinder',
 		description: 'Legs and the instruments that need solid ground.',
@@ -125,7 +148,7 @@ export const STOCK_TECH = [
 		id: 'stock.deep-space',
 		label: 'Deep-space comms',
 		tier: 3,
-		cost: 190,
+		cost: 230,
 		requires: ['stock.probes'],
 		milestone: 'flyby:stock.cinder',
 		description: 'A dish for long links and an air sampler.',

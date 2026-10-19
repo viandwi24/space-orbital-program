@@ -50,7 +50,7 @@ function rates(sim: Sim): { core: number; booster: number } {
 		const flow = engineOutput(config, { ignited: true, throttle: 1, flameout: false }, 0).massFlow;
 		return propellantRates(config, flow, densityOf).find((x) => x.resource === LF)!.rate;
 	};
-	return { core: rate('stock.engine-lv'), booster: rate('stock.booster') };
+	return { core: rate('stock.engine-lv'), booster: rate('stock.booster-liquid') };
 }
 
 describe('fuel lines (ADR 0071)', () => {

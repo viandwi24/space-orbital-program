@@ -138,12 +138,48 @@ export const ExperimentAtmosphereSample = defineExperiment({
 	transmitFactor: 0
 });
 
+const EVERYWHERE = [
+	'stock.landed',
+	'stock.splashed',
+	'stock.flying-low',
+	'stock.flying-high',
+	'stock.space-low',
+	'stock.space-high'
+];
+/** A canister of goo to watch (plan 210, KSP's Mystery Goo): held in the part, used once until reset. */
+export const ExperimentGoo = defineExperiment({
+	id: 'stock.goo',
+	label: 'Goo observation',
+	kind: 'data',
+	situations: EVERYWHERE,
+	baseValue: 2,
+	repeatFactor: 0.3,
+	duration: 3,
+	bits: 16 * KBIT,
+	transmitFactor: 0.3
+});
+/** A bay of material samples (plan 210, KSP's Materials Bay): held in the part, used once until reset. */
+export const ExperimentMaterials = defineExperiment({
+	id: 'stock.materials',
+	label: 'Materials study',
+	kind: 'data',
+	situations: EVERYWHERE,
+	baseValue: 4,
+	repeatFactor: 0.3,
+	duration: 10,
+	power: 0.1,
+	bits: 32 * KBIT,
+	transmitFactor: 0.35
+});
+
 export const STOCK_EXPERIMENTS = [
 	ExperimentTemperature,
 	ExperimentPressure,
 	ExperimentSeismic,
 	ExperimentSurfaceSample,
-	ExperimentAtmosphereSample
+	ExperimentAtmosphereSample,
+	ExperimentGoo,
+	ExperimentMaterials
 ] as const;
 
 // ---- the experiment module (ADR 0178 point 5) ----
@@ -152,7 +188,13 @@ export const experimentConfigSchema = z.object({
 	/** Experiment id. */
 	experiment: z.string().min(1),
 	/** Action label (default "Run experiment"). */
-	label: z.string().min(1).optional()
+	label: z.string().min(1).optional(),
+	/**
+	 * The result stays in the part (plan 210, KSP's Goo and Materials Bay): View shows it, Transmit
+	 * sends it to the vessel's storage for the antennas and leaves the part spent, Reset readies it
+	 * again. Recovery credits a held result in full.
+	 */
+	held: z.boolean().default(false)
 });
 export type ExperimentConfig = z.output<typeof experimentConfigSchema>;
 
@@ -163,9 +205,15 @@ export interface ExperimentState {
 	progress: number;
 	/** A sample made and held until recovery. */
 	sample: { subject: string; value: number } | null;
+	/** A `held` experiment's result (plan 210); absent in states saved before it. */
+	result?: { subject: string; value: number; meta?: Record<string, unknown> } | null;
+	/** A `held` experiment whose result was transmitted: reset before the next run (plan 210). */
+	spent?: boolean;
 }
 
 const HOLDS_SAMPLE = 'holds a sample';
+const HOLDS_RESULT = 'holds a result: transmit or reset it';
+const SPENT = 'spent: reset it first';
 const NO_POWER = 'no electric charge';
 
 function experimentOf(ctx: ModuleContext<ExperimentConfig, ExperimentState>): ExperimentDefinition {
@@ -197,6 +245,10 @@ function finish(ctx: ModuleContext<ExperimentConfig, ExperimentState>): void {
 	if (def.kind === 'sample') {
 		state.sample = result;
 		return set(state, 'INVALID', HOLDS_SAMPLE, 1);
+	}
+	if (ctx.config.held) {
+		state.result = { subject: result.subject, value: result.value, meta: { ...result.meta } };
+		return set(state, 'INVALID', HOLDS_RESULT, 1);
 	}
 	vessel.data.store({
 		kind: DataScience.id,
@@ -238,10 +290,39 @@ export const ModuleExperiment = defineModule({
 				id: 'run',
 				label: config.label ?? 'Run experiment',
 				kind: 'trigger',
-				enabled: state.sample === null && state.status !== 'RUNNING',
-				...(state.sample !== null ? { reason: HOLDS_SAMPLE } : {}),
+				enabled:
+					state.sample === null && !state.result && !state.spent && state.status !== 'RUNNING',
+				...(state.sample !== null
+					? { reason: HOLDS_SAMPLE }
+					: state.result
+						? { reason: HOLDS_RESULT }
+						: state.spent
+							? { reason: SPENT }
+							: {}),
 				icon: 'science'
-			}
+			},
+			...(config.held
+				? [
+						{
+							id: 'view',
+							label: 'View result',
+							kind: 'trigger' as const,
+							enabled: !!state.result
+						},
+						{
+							id: 'transmit',
+							label: 'Transmit result',
+							kind: 'trigger' as const,
+							enabled: !!state.result
+						},
+						{
+							id: 'reset',
+							label: 'Reset experiment',
+							kind: 'trigger' as const,
+							enabled: !!state.result || state.spent === true
+						}
+					]
+				: [])
 		]
 	}),
 	update: advance,
@@ -251,6 +332,8 @@ export const ModuleExperiment = defineModule({
 		run: (ctx) => {
 			const { state, vessel } = ctx;
 			if (state.sample !== null) return set(state, 'INVALID', HOLDS_SAMPLE);
+			if (state.result) return set(state, 'INVALID', HOLDS_RESULT);
+			if (state.spent) return set(state, 'INVALID', SPENT);
 			if (state.status === 'RUNNING' || state.status === 'PAUSED') return;
 			const def = experimentOf(ctx);
 			const now = vessel.situation();
@@ -258,18 +341,49 @@ export const ModuleExperiment = defineModule({
 				return set(state, 'INVALID', wrongSituation(now, def), 0);
 			}
 			set(state, 'RUNNING', null, 0);
+		},
+		/** A held result is shown by the host from the snapshot (`result`); the sim keeps it as it is. */
+		view: () => {},
+		/** A held result goes to the vessel's storage at the experiment's transmit factor; the part is spent. */
+		transmit: (ctx) => {
+			const { state, vessel } = ctx;
+			const held = state.result;
+			if (!held) return;
+			const def = experimentOf(ctx);
+			vessel.data.store({
+				kind: DataScience.id,
+				bits: def.bits ?? 1,
+				value: held.value,
+				time: vessel.time,
+				subject: held.subject,
+				meta: { transmitFactor: def.transmitFactor, ...held.meta }
+			});
+			state.result = null;
+			state.spent = true;
+			set(state, 'INVALID', SPENT, 0);
+		},
+		/** Clears a held result or a spent part: ready to run again. */
+		reset: (ctx) => {
+			ctx.state.result = null;
+			ctx.state.spent = false;
+			set(ctx.state, 'READY', null, 0);
 		}
 	},
 	/** A held sample is credited at recovery, at full value. */
 	onRecover(ctx) {
-		const { sample } = ctx.state;
+		const { sample, result } = ctx.state;
 		if (sample) ctx.vessel.science.credit(sample.subject, sample.value);
+		if (result) ctx.vessel.science.credit(result.subject, result.value);
 	},
 	snapshot: (state) => ({
 		status: state.status,
 		reason: state.reason,
 		progress: state.progress,
-		holdsSample: state.sample !== null
+		holdsSample: state.sample !== null,
+		...(state.result
+			? { result: { subject: state.result.subject, value: state.result.value } }
+			: {}),
+		...(state.spent ? { spent: true } : {})
 	})
 });
 

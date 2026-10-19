@@ -237,6 +237,102 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
+          "ispSeaLevel": 175,
+          "ispVacuum": 200,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 150000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 330,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1080,
+    "id": "stock.srb-small",
+    "mass": 180,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 165,
+          "ispVacuum": 185,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 70000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 110,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 6600,
+    "id": "stock.srb-large",
+    "mass": 1100,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "ispSeaLevel": 180,
+          "ispVacuum": 210,
+          "propellants": [
+            {
+              "ratio": 1,
+              "resource": "stock.solid-fuel",
+            },
+          ],
+          "solid": true,
+          "thrust": 300000,
+        },
+      ],
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.solid-fuel": {
+              "capacity": 870,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2700,
+    "id": "stock.booster-liquid",
+    "mass": 450,
+    "modules": [
+      [
+        "stock.engine",
+        {
           "ispSeaLevel": 250,
           "ispVacuum": 270,
           "propellants": [
@@ -264,6 +360,142 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             },
           },
         },
+      ],
+    ],
+  },
+  {
+    "cost": 3000,
+    "id": "stock.engine-vacuum",
+    "mass": 500,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 4,
+            "rate": 20,
+          },
+          "ispSeaLevel": 85,
+          "ispVacuum": 345,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 60000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 750,
+    "id": "stock.tank-wide-short",
+    "mass": 500,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 360,
+            },
+            "stock.oxidizer": {
+              "capacity": 440,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 3000,
+    "id": "stock.tank-wide",
+    "mass": 2000,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.liquid-fuel": {
+              "capacity": 1440,
+            },
+            "stock.oxidizer": {
+              "capacity": 1760,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 18000,
+    "id": "stock.engine-wide",
+    "mass": 3000,
+    "modules": [
+      [
+        "stock.engine",
+        {
+          "gimbal": {
+            "range": 2,
+            "rate": 16,
+          },
+          "ispSeaLevel": 280,
+          "ispVacuum": 320,
+          "propellants": [
+            {
+              "ratio": 0.9,
+              "resource": "stock.liquid-fuel",
+            },
+            {
+              "ratio": 1.1,
+              "resource": "stock.oxidizer",
+            },
+          ],
+          "thrust": 650000,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 400,
+    "id": "stock.decoupler-wide",
+    "mass": 200,
+    "modules": [
+      [
+        "stock.decoupler",
+        {
+          "ejectionImpulse": 5000,
+          "separates": "top",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1200,
+    "id": "stock.heat-shield-wide",
+    "mass": 300,
+    "modules": [
+      [
+        "stock.heat-shield",
+        {
+          "ablator": 480,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 200,
+    "id": "stock.launch-clamp",
+    "mass": 100,
+    "modules": [
+      [
+        "stock.launch-clamp",
+        {},
       ],
     ],
   },
@@ -661,6 +893,36 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         {
           "experiment": "stock.atmosphere-sample",
           "label": "Take air sample",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.goo-canister",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.goo",
+          "held": true,
+          "label": "Observe goo",
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 2000,
+    "id": "stock.materials-bay",
+    "mass": 200,
+    "modules": [
+      [
+        "stock.experiment",
+        {
+          "experiment": "stock.materials",
+          "held": true,
+          "label": "Study materials",
         },
       ],
     ],

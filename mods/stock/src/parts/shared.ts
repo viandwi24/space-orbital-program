@@ -28,11 +28,14 @@ export function stackNodes(
 	};
 }
 
-export const cylinder = (height: number): PartShape => ({
+export const cylinder = (height: number, radius = RADIUS): PartShape => ({
 	kind: 'cylinder',
-	radius: RADIUS,
+	radius,
 	height
 });
+
+/** The 2.5 m class (plan 210): radius, m. */
+export const WIDE_RADIUS = 1.25;
 
 /** Radius of the radial booster and the nose cone that caps it, m. */
 export const BOOSTER_RADIUS = 0.4;

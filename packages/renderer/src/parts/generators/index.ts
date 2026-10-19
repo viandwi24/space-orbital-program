@@ -14,6 +14,7 @@ import { flag, suit } from './eva.ts';
 import { fin } from './fin.ts';
 import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
+import { launchClamp } from './launch-clamp.ts';
 import { noseCone } from './nose-cone.ts';
 import { parachute } from './parachute.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
@@ -43,6 +44,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('tail-cone', tailCone);
 	registerPartGenerator('adapter', adapter);
 	registerPartGenerator('rcs-block', rcsBlock);
+	registerPartGenerator('launch-clamp', launchClamp);
 	registerPartGenerator('docking-port', dockingPort);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);

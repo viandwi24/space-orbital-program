@@ -16,12 +16,16 @@ export interface EngineConfigLike {
 	readonly ispVacuum: number;
 	readonly ispSeaLevel: number;
 	readonly propellants: readonly { readonly resource: string; readonly ratio: number }[];
+	/** A solid motor (plan 210): no throttle, full limiter once lit, no shutdown. */
+	readonly solid?: boolean;
 }
 
 export interface EngineStateLike {
 	readonly ignited: boolean;
 	readonly throttle: number;
 	readonly flameout: boolean;
+	/** Thrust limiter, 0..1 (plan 210); absent = 1. It scales the mass flow, so thrust and burn time. */
+	readonly limiter?: number;
 }
 
 export interface EngineOutput {
@@ -52,7 +56,10 @@ export function engineOutput(
 	pressure: number
 ): EngineOutput {
 	const isp = ispAt(config, pressure);
-	const throttle = state.ignited && !state.flameout ? clamp01(state.throttle) : 0;
+	const lit = state.ignited && !state.flameout;
+	// a solid motor burns at its limiter whatever the throttle (plan 210)
+	const command = config.solid ? 1 : clamp01(state.throttle);
+	const throttle = lit ? command * clamp01(state.limiter ?? 1) : 0;
 	const massFlow = (throttle * config.thrust) / (config.ispVacuum * G0);
 	return { thrust: massFlow * isp * G0, massFlow, isp };
 }
