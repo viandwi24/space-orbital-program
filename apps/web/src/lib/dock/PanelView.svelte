@@ -52,6 +52,18 @@
 			{#each node.items as item, i (i)}
 				<li>
 					<span>{item.name}</span>{#if item.value}<span class="v">{item.value}</span>{/if}
+					{#if item.actions}
+						<span class="row-actions">
+							{#each item.actions as a (a.path)}
+								<Button
+									variant="ghost"
+									disabled={!a.enabled}
+									onclick={() => onaction(a.path)}
+									data-testid="panel-action-{a.path}">{a.label}</Button
+								>
+							{/each}
+						</span>
+					{/if}
 				</li>
 			{:else}
 				<li class="none">[—]</li>
@@ -126,8 +138,15 @@
 	}
 	li {
 		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.125rem 0;
+	}
+	.row-actions {
+		display: flex;
+		gap: 0.25rem;
+		margin-left: auto;
 	}
 </style>

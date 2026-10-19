@@ -1,7 +1,9 @@
 /**
  * The stock science panel (plan 191, ADR 0194): the vessel's experiments with their state, the
  * science stored aboard with its transmit value, and two buttons over the dock's fixed view: run the
- * next experiment that may run, transmit the stored result worth the most.
+ * next experiment that may run, transmit the stored result worth the most. Since plan 231 (ADR 0231
+ * point 7) each experiment has its own Run and each stored result its own Transmit and Discard; the
+ * two buttons stay as shortcuts.
  */
 import { definePanel, type PanelInput } from '@orbital/sdk';
 
@@ -57,7 +59,22 @@ export const PanelScience = definePanel({
 								? `RUNNING ${pct(e.progress)}`
 								: e.state === 'INVALID' && e.reason
 									? `INVALID: ${e.reason}`
-									: e.state
+									: e.state,
+						actions: [
+							{
+								label: 'Run',
+								command:
+									i.vessel && e.state !== 'RUNNING'
+										? {
+												type: 'action' as const,
+												vessel: i.vessel.id,
+												part: e.part,
+												module: 'stock.experiment',
+												action: 'run'
+											}
+										: null
+							}
+						]
 					}))
 			},
 			{
@@ -82,7 +99,19 @@ export const PanelScience = definePanel({
 				items: (i) =>
 					(scienceOf(i)?.stored ?? []).map((s) => ({
 						name: s.subject,
-						value: `${points(s.value)} · transmit ${pct(s.factor)} = ${points(s.value * s.factor)}`
+						value: `${points(s.value)} · transmit ${pct(s.factor)} = ${points(s.value * s.factor)}`,
+						actions: i.vessel
+							? [
+									{
+										label: 'Transmit',
+										command: { type: 'transmit-data' as const, vessel: i.vessel.id, item: s.item }
+									},
+									{
+										label: 'Discard',
+										command: { type: 'delete-data' as const, vessel: i.vessel.id, item: s.item }
+									}
+								]
+							: []
 					}))
 			},
 			{

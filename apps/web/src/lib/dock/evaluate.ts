@@ -11,7 +11,16 @@ export type ShownNode =
 	| { kind: 'meter'; label: string; value: number | null }
 	| { kind: 'switch'; label: string; on: boolean; path: string }
 	| { kind: 'button'; label: string; enabled: boolean; path: string }
-	| { kind: 'list'; label?: string; items: { name: string; value?: string }[] }
+	| {
+			kind: 'list';
+			label?: string;
+			items: {
+				name: string;
+				value?: string;
+				/** A row's own buttons (plan 231, ADR 0231 point 7): `path` is `<list path>:<row>:<action>`. */
+				actions?: { label: string; enabled: boolean; path: string }[];
+			}[];
+	  }
 	| { kind: 'sparkline'; label: string; values: number[]; last: number | null };
 
 export type PanelResult = { ok: true; nodes: ShownNode } | { ok: false; error: string };
@@ -60,9 +69,18 @@ function show(node: PanelNode, input: PanelInput, memory: PanelMemory, path: str
 			return {
 				kind: 'list',
 				...(node.label === undefined ? {} : { label: node.label }),
-				items: node.items(input).map((i) => ({
+				items: node.items(input).map((i, row) => ({
 					name: String(i.name),
-					...(i.value === undefined ? {} : { value: String(i.value) })
+					...(i.value === undefined ? {} : { value: String(i.value) }),
+					...(i.actions && i.actions.length > 0
+						? {
+								actions: i.actions.map((a, k) => ({
+									label: String(a.label),
+									enabled: a.command !== null,
+									path: `${path}:${row}:${k}`
+								}))
+							}
+						: {})
 				}))
 			};
 		case 'sparkline': {
@@ -115,6 +133,14 @@ export function commandOf(
 	on?: boolean
 ): { command: Command | null } | { error: string } {
 	try {
+		// a row's button in a list (plan 231): `<list path>:<row>:<action>`, the rows as they are now
+		const [at, row, action] = path.split(':');
+		if (row !== undefined && action !== undefined) {
+			const list = nodeAt(panel.view, at!);
+			if (list?.kind !== 'list') return { command: null };
+			const a = list.items(input)[Number(row)]?.actions?.[Number(action)];
+			return { command: a?.command ?? null };
+		}
 		const node = nodeAt(panel.view, path);
 		if (node?.kind === 'button') return { command: node.command(input) };
 		if (node?.kind === 'switch') return { command: node.command(input, on ?? !node.value(input)) };
