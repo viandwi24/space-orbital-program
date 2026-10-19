@@ -84,7 +84,8 @@
 		/>
 	</div>
 	<div class="row">
-		<Button type="submit" data-testid="mc-alarm-save">{editing ? 'Save alarm' : 'Add alarm'}</Button>
+		<Button type="submit" data-testid="mc-alarm-save">{editing ? 'Save alarm' : 'Add alarm'}</Button
+		>
 		{#if editing}<Button variant="ghost" onclick={() => oncancel?.()}>Cancel</Button>{/if}
 	</div>
 	{#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -109,7 +110,9 @@
 			<p class="num" data-testid="mc-window-result">
 				{window.date} · in {formatDuration(window.wait)} · {formatSpeed(window.dv)}
 			</p>
-			<Button onclick={() => onwindowalarm?.()} data-testid="mc-window-alarm">Alarm at window</Button>
+			<Button onclick={() => onwindowalarm?.()} data-testid="mc-window-alarm"
+				>Alarm at window</Button
+			>
 			<p class="dim small">Circular, coplanar orbits; the date is not tracked after it is set.</p>
 		{/if}
 	</div>

@@ -35,7 +35,9 @@ describe('plane nodes', () => {
 		// both lie on the reference plane and on the vessel's path at their time
 		for (const n of nodes) {
 			const there = propagateUniversal(own.r, own.v, MU, n.time).r;
-			expect(Math.hypot(there.x - n.position.x, there.y - n.position.y, there.z - n.position.z)).toBeLessThan(1e-3);
+			expect(
+				Math.hypot(there.x - n.position.x, there.y - n.position.y, there.z - n.position.z)
+			).toBeLessThan(1e-3);
 			const off =
 				n.position.x * ref.normal.x + n.position.y * ref.normal.y + n.position.z * ref.normal.z;
 			expect(Math.abs(off)).toBeLessThan(1);
@@ -65,7 +67,7 @@ describe('stretch apsides', () => {
 		const ap = marks.find((m) => m.kind === 'apoapsis')!;
 		const pe = marks.find((m) => m.kind === 'periapsis')!;
 		const r = R + 100_000;
-		const energy = ((Math.sqrt(MU / r) * 1.1) ** 2) / 2 - MU / r;
+		const energy = (Math.sqrt(MU / r) * 1.1) ** 2 / 2 - MU / r;
 		const a = -MU / (2 * energy);
 		const period = 2 * Math.PI * Math.sqrt(a ** 3 / MU);
 		expect(ap.after).toBeCloseTo(period / 2, 3);

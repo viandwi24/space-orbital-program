@@ -45,10 +45,29 @@ test('typed delta-v on the second node, warp to AN, and an alarm that stops the 
 	const errors = watchErrors(page);
 	await launchTwoStage(page);
 	// a 100 km orbit of Home, tilted 5 degrees so the equator gives an AN and a DN
-	await debugSetOrbit(page, { apoapsis: 100_000, periapsis: 100_000, i: (5 * Math.PI) / 180, m0: 0.3 });
+	await debugSetOrbit(page, {
+		apoapsis: 100_000,
+		periapsis: 100_000,
+		i: (5 * Math.PI) / 180,
+		m0: 0.3
+	});
 	const t0 = await simTime(page);
-	await send(page, { type: 'node-set', vessel: 0, time: t0 + 3_000, prograde: 0, normal: 0, radial: 0 });
-	await send(page, { type: 'node-set', vessel: 0, time: t0 + 3_600, prograde: 0, normal: 0, radial: 0 });
+	await send(page, {
+		type: 'node-set',
+		vessel: 0,
+		time: t0 + 3_000,
+		prograde: 0,
+		normal: 0,
+		radial: 0
+	});
+	await send(page, {
+		type: 'node-set',
+		vessel: 0,
+		time: t0 + 3_600,
+		prograde: 0,
+		normal: 0,
+		radial: 0
+	});
 
 	// the map view: the panel shows node 1 of 2; the next button shows the second node
 	await page.keyboard.press('KeyM');

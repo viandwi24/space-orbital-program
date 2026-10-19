@@ -185,9 +185,7 @@
 			use:reg={x.key}
 		>
 			<span class="dot"></span>
-			<span class="label"
-				>{x.text} <small>{formatDuration(Math.max(0, x.time - now))}</small></span
-			>
+			<span class="label">{x.text} <small>{formatDuration(Math.max(0, x.time - now))}</small></span>
 			{@render menu(x.key, { kind: x.kind, planned: x.planned, time: x.time })}
 		</div>
 	{/each}

@@ -304,7 +304,12 @@
 		const node = model?.maneuver?.nodes.find((n) => n.id === id);
 		if (!flight || !node) return;
 		const index = (model?.maneuver?.nodes.indexOf(node) ?? 0) + 1;
-		void flight.addAlarm({ kind: 'time', name: `Maneuver node ${index}`, time: node.time, lead: 30 });
+		void flight.addAlarm({
+			kind: 'time',
+			name: `Maneuver node ${index}`,
+			time: node.time,
+			lead: 30
+		});
 	}
 	let tall = $state(true);
 	const ballSize = $derived(tall ? 176 : 144);

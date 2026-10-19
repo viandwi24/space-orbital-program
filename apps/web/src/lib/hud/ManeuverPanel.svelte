@@ -81,9 +81,7 @@
 </script>
 
 {#if maneuver && node}
-	<Panel
-		title={maneuver.count > 1 ? `Maneuver (${index + 1} of ${maneuver.count})` : 'Maneuver'}
-	>
+	<Panel title={maneuver.count > 1 ? `Maneuver (${index + 1} of ${maneuver.count})` : 'Maneuver'}>
 		<div class="head">
 			<div
 				class="status"

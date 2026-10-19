@@ -133,8 +133,12 @@ export function stretchApsides(
 	const n = Math.sqrt(mu / Math.abs(a * a * a));
 	const nu = trueAnomalyOf(entry, mu, entry.r);
 	const m0 = trueToMean(nu > Math.PI ? nu - TWO_PI : nu, e);
-	const out: Array<{ kind: 'apoapsis' | 'periapsis'; after: number; position: Vec3; radius: number }> =
-		[];
+	const out: Array<{
+		kind: 'apoapsis' | 'periapsis';
+		after: number;
+		position: Vec3;
+		radius: number;
+	}> = [];
 	for (const kind of ['periapsis', 'apoapsis'] as const) {
 		let after: number;
 		if (e < 1) after = wrapTwoPi((kind === 'periapsis' ? 0 : Math.PI) - m0) / n;

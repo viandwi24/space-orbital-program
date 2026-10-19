@@ -379,7 +379,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		const t = v.target;
 		let sameSphere = false;
 		if (t?.kind === 'vessel') sameSphere = s.vessels.find((x) => x.id === t.id)?.soi === v.soi;
-		else if (t?.kind === 'body') sameSphere = patched.find((b) => b.id === String(t.id))?.parent === String(v.soi);
+		else if (t?.kind === 'body')
+			sameSphere = patched.find((b) => b.id === String(t.id))?.parent === String(v.soi);
 		const ref = referenceNormal(
 			own,
 			t ? { position: t.position, velocity: t.velocity, sameSphere } : null,
@@ -449,7 +450,11 @@ export function createHudController(options: HudControllerOptions): HudControlle
 	let dvView: DeltaVView | null = null;
 	const deltaVBodies = bodies
 		.filter((b) => !b.star)
-		.map((b) => ({ id: String(b.id), label: bodyLabel(b.id), atmosphere: b.atmosphere !== undefined }));
+		.map((b) => ({
+			id: String(b.id),
+			label: bodyLabel(b.id),
+			atmosphere: b.atmosphere !== undefined
+		}));
 	/** The body and situation the stage stack shows: the picker's, else where the vessel is. */
 	function stageEnvironment(body: BodyDefinition, altitude: number) {
 		const picked = dvView ? bodies.find((b) => String(b.id) === dvView!.body) : undefined;
@@ -463,7 +468,9 @@ export function createHudController(options: HudControllerOptions): HudControlle
 		}
 		return {
 			body,
-			environment: (altitude < (body.atmosphere?.height ?? 0) ? 'sea-level' : 'vacuum') as Environment,
+			environment: (altitude < (body.atmosphere?.height ?? 0)
+				? 'sea-level'
+				: 'vacuum') as Environment,
 			pressure: undefined
 		};
 	}

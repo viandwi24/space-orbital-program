@@ -210,7 +210,9 @@ describe('alarms in Upcoming (plan 224)', () => {
 				{ id: 'alarm.2', name: 'Pe', time: 50, kind: 'periapsis', vessel: 2 as EntityId }
 			]
 		};
-		const events = upcomingEvents(snap, bodies, bodyNodes(bodies)).filter((e) => e.kind === 'alarm');
+		const events = upcomingEvents(snap, bodies, bodyNodes(bodies)).filter(
+			(e) => e.kind === 'alarm'
+		);
 		expect(events).toHaveLength(1); // the one in the past is not shown
 		expect(events[0]).toMatchObject({ alarm: 'alarm.1', label: 'Alarm: Wake up', time: 400 });
 		expect(warpToCommand(events[0]!)).toEqual({

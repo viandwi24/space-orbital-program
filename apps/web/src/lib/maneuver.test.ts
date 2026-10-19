@@ -204,7 +204,9 @@ describe('node panel (plan 224)', () => {
 		const a = at(node);
 		const b = at(moved);
 		// the same point of the orbit, the same burn, the same orbit after it
-		expect(Math.hypot(a.pre.r.x - b.pre.r.x, a.pre.r.y - b.pre.r.y, a.pre.r.z - b.pre.r.z)).toBeLessThan(1e-3);
+		expect(
+			Math.hypot(a.pre.r.x - b.pre.r.x, a.pre.r.y - b.pre.r.y, a.pre.r.z - b.pre.r.z)
+		).toBeLessThan(1e-3);
 		expect(b.magnitude).toBeCloseTo(a.magnitude, 9);
 		const ea = fromStateVector(a.post.r, a.post.v, MU, a.time);
 		const eb = fromStateVector(b.post.r, b.post.v, MU, b.time);

@@ -207,7 +207,10 @@ export function shiftByOrbits<T extends NodePlan>(
 
 /** A typed value of the node panel, m/s; null for text that is not a finite number. */
 export function parseDv(text: string): number | null {
-	const cleaned = text.trim().replace(/\s*m\/s$/i, '').replace(',', '.');
+	const cleaned = text
+		.trim()
+		.replace(/\s*m\/s$/i, '')
+		.replace(',', '.');
 	if (cleaned === '') return null;
 	const n = Number(cleaned);
 	return Number.isFinite(n) ? n : null;

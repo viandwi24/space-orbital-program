@@ -3,14 +3,7 @@ import { GRAVITATIONAL_CONSTANT, loadPlugins, type BodyDefinition } from '@orbit
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { bodyMu } from '../orbit-info';
-import {
-	cross,
-	dot,
-	normalize,
-	propagateUniversal,
-	scale,
-	toStateVector
-} from '@orbital/kepler';
+import { cross, dot, normalize, propagateUniversal, scale, toStateVector } from '@orbital/kepler';
 import {
 	ascentOf,
 	bodyName,
@@ -310,7 +303,11 @@ describe('next transfer window (plan 224)', () => {
 		const r1 = home.radius + 100_000;
 		// the vessel trails the moon by 1 rad, turning the same way
 		const hu = cross(h, u);
-		const at = { x: u.x * Math.cos(-1) + hu.x * Math.sin(-1), y: u.y * Math.cos(-1) + hu.y * Math.sin(-1), z: u.z * Math.cos(-1) + hu.z * Math.sin(-1) };
+		const at = {
+			x: u.x * Math.cos(-1) + hu.x * Math.sin(-1),
+			y: u.y * Math.cos(-1) + hu.y * Math.sin(-1),
+			z: u.z * Math.cos(-1) + hu.z * Math.sin(-1)
+		};
 		const own = { r: scale(at, r1), v: scale(normalize(cross(h, at)), Math.sqrt(MU / r1)) };
 		const w = nextWindow(own, home.id, moon.id, windowBodies, now);
 		if (typeof w === 'string') throw new Error(w);
@@ -318,7 +315,10 @@ describe('next transfer window (plan 224)', () => {
 		expect(w.time).toBeCloseTo(now + w.wait, 9);
 		const ship = propagateUniversal(own.r, own.v, MU, w.wait);
 		const there = toStateVector(moon.orbit!, MU, w.time);
-		const lead = Math.atan2(dot(cross(normalize(ship.r), normalize(there.r)), h), dot(normalize(ship.r), normalize(there.r)));
+		const lead = Math.atan2(
+			dot(cross(normalize(ship.r), normalize(there.r)), h),
+			dot(normalize(ship.r), normalize(there.r))
+		);
 		const n2 = Math.sqrt(MU / moon.orbit!.a ** 3);
 		const expected = Math.PI - n2 * w.transferTime;
 		expect(Math.abs(lead - expected)).toBeLessThan(1e-6);

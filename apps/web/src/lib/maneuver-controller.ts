@@ -387,7 +387,9 @@ export function createManeuverController(options: ManeuverControllerOptions): Ma
 		const placed = prediction?.nodes.find((n) => n.id === id);
 		if (!placed || !prediction) return {};
 		const before = placed.path >= 0 ? prediction.paths[placed.path] : undefined;
-		const after = prediction.paths.find((p, i) => i > placed.path && p.planned && p.t0 >= placed.time - 1e-6);
+		const after = prediction.paths.find(
+			(p, i) => i > placed.path && p.planned && p.t0 >= placed.time - 1e-6
+		);
 		return { before, after };
 	}
 
