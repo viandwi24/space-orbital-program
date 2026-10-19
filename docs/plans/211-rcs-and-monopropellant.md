@@ -107,3 +107,4 @@ A vessel can carry RCS. A four-way monopropellant block and a small cold-gas thr
   - key-profiles, smoke and vessel-switch e2e 10/10;
   - `rcs-sas.test.ts`: 0.69° with RCS, 154° without;
   - CI green on `ready/211` (`refs/ci/pass/1076c434`).
+- 2026-10-19 — Worker A: rebased onto plan 200 (pods need crew, ADR 0216), so the RCS ADR is 0217. Re-checked after the rebase: `check:affected --e2e e2e/rcs.e2e.ts` all passed (265 s), web vitest 1116/1116, power and key-profiles e2e 2/2.
