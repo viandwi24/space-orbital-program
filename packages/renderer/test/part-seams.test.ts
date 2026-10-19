@@ -104,7 +104,9 @@ describe('part seams', () => {
 					'gear',
 					'flag',
 					'rcs-block',
-					'launch-clamp'
+					'launch-clamp',
+					// boxes only (plan 225)
+					'ladder'
 				].includes(visual.kind)
 			)
 				continue;
