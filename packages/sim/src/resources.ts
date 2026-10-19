@@ -35,6 +35,20 @@ function feeders(core: SimCore, vessel: VesselState): Map<EntityId, EntityId[]> 
  * explicit connection) and what that part reaches, ahead of the visited part, so the outer tanks
  * of an asparagus build empty first. Lines are one way (ADR 0071).
  */
+/**
+ * Whether stack flow may pass through the part: not a `crossfeed: false` part, and no module says
+ * no right now (`ModuleDefinition.crossfeed`: a docking port with its crossfeed off, plan 222).
+ */
+function passesFlow(core: SimCore, id: EntityId): boolean {
+	const part = partOf(core, id);
+	if (partDefOf(core, part).crossfeed === false) return false;
+	for (const m of part.modules) {
+		const hook = moduleDefOf(core, m.id).crossfeed;
+		if (hook && !hook(m.config, moduleState(core, id, m.id))) return false;
+	}
+	return true;
+}
+
 export function reachableParts(core: SimCore, from: EntityId): EntityId[] {
 	const feeds = feeders(core, vesselOf(core, partOf(core, from).vessel));
 	const seen = new Set<EntityId>([from]);
@@ -55,7 +69,7 @@ export function reachableParts(core: SimCore, from: EntityId): EntityId[] {
 			for (const peer of peers) {
 				if (seen.has(peer)) continue;
 				seen.add(peer);
-				if (partDefOf(core, partOf(core, peer)).crossfeed === false) continue;
+				if (!passesFlow(core, peer)) continue;
 				queue.push(peer);
 			}
 		}

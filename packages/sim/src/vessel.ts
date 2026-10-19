@@ -2,6 +2,7 @@
  * Vessel lifecycle: assembly from a resolved design, placement, splitting at a node (staging) and
  * destruction. Vessels and parts are world entities holding plain-data components (state.ts).
  */
+import { restoreUndocked } from './docking.ts';
 import {
 	cloneData,
 	parseModuleConfig,
@@ -500,6 +501,8 @@ function splitAt(
 		delete vessel.controlPart;
 	}
 	core.events.emit('vessel:created', { vessel: newId, from: vesselId });
+	// an undock gives the docked side its name and design back (plan 222, ADR 0218)
+	restoreUndocked(core, vesselId, newId, partId, peerId);
 	// each side's design indices (plan 221, ADR 0208 point 1): the host's records follow them
 	const kept = (ids: readonly EntityId[]) =>
 		ids.map((id) => partOf(core, id).index).sort((a, b) => a - b);
