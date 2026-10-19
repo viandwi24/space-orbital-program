@@ -62,17 +62,33 @@ Run these first, and **wait 2 minutes and check again** while any limit is excee
 - **Subagents:** no background subagents, except at most one read-only research agent.
 - **Where you work:** only in your own git worktree. **Never** touch, switch or stash the owner's checkout at `/Users/solpochi/Projects/oss/space-orbital`, which stays on `main`.
 
+## Machines and workers (since 2026-10-19)
+
+| Worker | Machine | Ports | Machine guard |
+|---|---|---|---|
+| A, B, C | Agent 1: MacBook Pro M5 (owner's desk, coordinator session) | A 5230–5239, B 5240–5249, C 5250–5259 | watchdog + `/tmp/orbital-pause` as above |
+| D | Agent 2: MacBook Pro M2 13" | 5260–5269 | no watchdog: before a heavy job check `memory_pressure -Q` free ≥ 20 %, 1-min load ≤ 6, `pmset -g therm` CPU_Speed_Limit ≥ 80; keep it plugged in |
+| E | Agent 3: Linux Mint, 6 CPU, 8 GB | 5270–5279 | no watchdog: before a heavy job check `MemAvailable` in `/proc/meminfo` ≥ 25 % of `MemTotal`, 1-min load in `/proc/loadavg` ≤ 4; never a build and a browser at once |
+
+Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a time per machine). The queues below are the owner-approved split; the coordinator changes them, nobody else.
+
+| Worker | Queue (in order) |
+|---|---|
+| A | 219 → 218 → 220 |
+| B | 214 → **233** → 235 → 234 → 236 |
+| C | 224 → 226 → 230 → 223 |
+| D | 225 → 227 → 228 |
+| E | 231 → 229 (only after 224 is done) |
+| any (coordinator decides) | 232 release QA, last |
+
 ## Picking work
 
-1. **Sync:** run `git fetch origin --tags --prune` and read `docs/roadmap/release-roadmap.md`.
-2. **Your queue first:** take the first plan in your starting queue (given in your start prompt) that is not yet done.
-3. **Then the shared list:** once your queue is empty, take the **lowest-numbered** plan 200–232 that meets all of these:
-   - its status is `draft` or `ready`;
-   - every plan in its `depends` is `done` on `origin/main`;
-   - no `claim/NNN` tag exists for it;
-   - the "do not run together" table in the roadmap allows it.
-4. **Claim it:** push the tag `claim/NNN`. If the push is refused, someone else claimed it; pick again.
-5. **When nothing is free:** if every remaining plan waits on work in progress, **end your turn** with one line in Indonesian saying what you wait for. The coordinator wakes you again.
+1. **Sync before every pick and every merge:** `git fetch origin --tags --prune --prune-tags`, then `git switch main && git pull --ff-only` in your main clone (or `git rebase origin/main` on your branch). Read `docs/roadmap/release-roadmap.md` and open `docs/roadmap/release-roadmap.html` if you want the graph.
+2. **Your queue first:** take the first plan in your queue that is not `done` and has no claim by someone else.
+3. **Then the shared list:** when your queue is empty, take the lowest-numbered plan that is `draft`/`ready`, has all `depends` done on `origin/main`, has no `claim/NNN` tag, and is **not in another worker's queue** (unless that worker's queue is finished). If none, help with nothing and report (step 5).
+4. **Claim it with your name:** `git tag -a claim/NNN -m "Worker X (machine)" origin/main && git push origin claim/NNN`. A refused push means someone else has it: pick again. The annotated message is how the roadmap page and the other workers see who works on what.
+5. **Waiting for another worker:** if your next plan depends on a plan another worker holds, run a background loop that does `git fetch origin --tags` every 10 minutes and continues when the dependency's `docs(plan-NNN): complete` commit is on `origin/main`. Meanwhile take any other free plan; if there is none, end your turn with one Indonesian line saying what you wait for.
+6. **Ready and CI tags** (`ready/NNN`, `refs/ci/pass|fail/<sha>`) work as before; delete your `claim/NNN` and `ready/NNN` after the merge so the state stays true.
 
 ## Doing a plan
 

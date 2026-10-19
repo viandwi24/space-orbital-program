@@ -130,10 +130,27 @@ if (tags.length === 0) {
 		.split('\n')
 		.filter(Boolean);
 }
+// Who holds a claim: the annotated claim tag's message ("Worker D (M2)"), read from local tags after a fetch.
+if (source === 'remote origin')
+	Bun.spawnSync(['git', 'fetch', '-q', 'origin', '--tags', '--force'], {
+		cwd: ROOT,
+		stderr: 'pipe'
+	});
+const claimedBy = new Map<string, string>();
+for (const line of Bun.spawnSync(
+	['git', 'for-each-ref', 'refs/tags/claim', '--format=%(refname:short)|%(contents:subject)'],
+	{ cwd: ROOT }
+)
+	.stdout.toString()
+	.split('\n')) {
+	const [ref, subject] = line.split('|');
+	if (ref && subject) claimedBy.set(ref.slice('claim/'.length), subject.trim());
+}
 for (const p of Object.values(plans)) {
 	if (p.state === 'done') continue;
 	if (tags.includes(`ready/${p.id}`)) p.state = 'ready';
 	else if (tags.includes(`claim/${p.id}`)) p.state = 'wip';
+	if (p.state !== 'todo' && tags.includes(`claim/${p.id}`)) p.who = claimedBy.get(p.id) || p.who;
 }
 
 // ---- waves, critical path, a three-stream schedule ----

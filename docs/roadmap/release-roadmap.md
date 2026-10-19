@@ -8,6 +8,18 @@
 
 **Plans:** 200–236 (233–236 added 2026-10-19 from the owner's manual test, ADR 0222). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
 
+## Machines and queues (since 2026-10-19)
+
+Five workers on three machines; the owner-approved split is in [`worker-brief.md`](worker-brief.md) ("Machines and workers"):
+
+| Worker | Machine | Queue |
+|---|---|---|
+| A, B, C | Agent 1, MacBook Pro M5 | A: 219 → 218 → 220 · B: 214 → 233 → 235 → 234 → 236 · C: 224 → 226 → 230 → 223 |
+| D | Agent 2, MacBook Pro M2 13" | 225 → 227 → 228 |
+| E | Agent 3, Linux Mint (6 CPU, 8 GB) | 231 → 229 |
+
+Claims are annotated tags (`claim/NNN` with the worker's name); the visual page shows who holds what. Everyone syncs with `git fetch origin --tags --prune --prune-tags` before each pick and merge.
+
 ## How to work
 
 **Worker sessions follow [`worker-brief.md`](worker-brief.md)** (machine guard, picking, merging). The points below summarise it.
