@@ -87,4 +87,48 @@ describe('RCS for SAS (plan 211)', () => {
 		expect(on).toBeLessThan(2);
 		expect(off).toBeGreaterThan(2);
 	}, 120_000);
+
+	test('translating forward on RCS pushes the probe along its nose', async () => {
+		const sim = await newSasSim();
+		const id = launchInOrbit(sim, rcsProbe());
+		expect(sim.dispatch({ type: 'set-rcs', vessel: id, on: true }).ok).toBe(true);
+		const before = vesselOf(sim, id);
+		const nose = rotate(before.orientation, { x: 0, y: 1, z: 0 });
+		expect(
+			sim.dispatch({
+				type: 'attitude',
+				vessel: id,
+				pitch: 0,
+				yaw: 0,
+				roll: 0,
+				translate: { x: 0, y: 1, z: 0 }
+			}).ok
+		).toBe(true);
+		for (let i = 0; i < 25; i++) sim.step(0.02);
+		const after = vesselOf(sim, id);
+		const dv = {
+			x: after.velocity.x - before.velocity.x,
+			y: after.velocity.y - before.velocity.y,
+			z: after.velocity.z - before.velocity.z
+		};
+		const along = dv.x * nose.x + dv.y * nose.y + dv.z * nose.z;
+		console.log(`rcs forward: ${along.toFixed(4)} m/s along the nose in 0.5 s`);
+		expect(along).toBeGreaterThan(0.05);
+		sim.dispose();
+	}, 60_000);
 });
+
+/** `v` rotated by the unit quaternion `q`. */
+function rotate(
+	q: { x: number; y: number; z: number; w: number },
+	v: { x: number; y: number; z: number }
+) {
+	const tx = 2 * (q.y * v.z - q.z * v.y);
+	const ty = 2 * (q.z * v.x - q.x * v.z);
+	const tz = 2 * (q.x * v.y - q.y * v.x);
+	return {
+		x: v.x + q.w * tx + (q.y * tz - q.z * ty),
+		y: v.y + q.w * ty + (q.z * tx - q.x * tz),
+		z: v.z + q.w * tz + (q.x * ty - q.y * tx)
+	};
+}

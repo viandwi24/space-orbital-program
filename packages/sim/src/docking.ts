@@ -103,7 +103,8 @@ function aligned(a: Port, b: Port): boolean {
 	if (dot(a.dir, scale(b.dir, -1)) < cosAlign) return false;
 	const d = sub(b.at, a.at);
 	const dist = length(d);
-	if (dist < 0.05) return true;
+	// inside the capture range only the faces' angle counts: a small sideways miss still captures
+	if (dist <= CAPTURE_RANGE) return true;
 	const n = scale(d, 1 / dist);
 	return dot(a.dir, n) >= cosAlign && dot(b.dir, scale(n, -1)) >= cosAlign;
 }
