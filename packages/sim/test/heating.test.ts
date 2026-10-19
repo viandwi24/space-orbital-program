@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { EntityId } from '@orbital/core';
 import Stock, { PartTankSmall } from '@orbital/mod-stock';
-import { definePart, definePlugin } from '@orbital/sdk';
+import { definePlugin } from '@orbital/sdk';
 import { advanceTemperature, noseRadius, stagnationFlux, surfaceArea } from '../src/thermal.ts';
 import { PART } from '../src/state.ts';
 import {
@@ -19,7 +19,11 @@ const HotTank = definePlugin({
 	meta: { id: 'test', version: '1.0.0', api: '^0.1' },
 	depends: [Stock],
 	setup(ctx) {
-		ctx.parts.register(definePart({ ...PartTankSmall, id: 'test.tank-800', maxTemperature: 800 }));
+		ctx.parts.register({
+			...PartTankSmall,
+			id: 'test.tank-800',
+			maxTemperature: 800
+		} as typeof PartTankSmall);
 	}
 });
 const probeHotEntry = () =>
