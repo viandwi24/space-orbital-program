@@ -112,13 +112,13 @@ export const PartMonopropRadial = definePart({
 	cost: partCost(20, 'tank'),
 	impactTolerance: 6,
 	maxTemperature: 900,
-	shape: { kind: 'cylinder', radius: 0.2, height: 0.6 },
+	shape: { kind: 'cylinder', radius: 0.3125, height: 0.6 },
 	visual: {
 		kind: 'tank',
 		palette: { primary: '#f2f2ee', secondary: '#2a2e35', accent: '#e3a61f' },
 		params: { stripe: 0, bands: 1 }
 	},
-	attach: radial(0.2),
+	attach: radial(0.3125),
 	modules: [[ModuleResourceContainer, { contents: { [Monopropellant.id]: { capacity: 30 } } }]],
 	stagingIcon: 'tank'
 });

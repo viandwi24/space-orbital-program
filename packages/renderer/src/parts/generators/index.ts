@@ -15,6 +15,7 @@ import { heatShield } from './heat-shield.ts';
 import { landingLegs } from './legs.ts';
 import { noseCone } from './nose-cone.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
+import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
 import { reactionWheel } from './wheel.ts';
@@ -39,6 +40,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('nose-cone', noseCone);
 	registerPartGenerator('tail-cone', tailCone);
 	registerPartGenerator('adapter', adapter);
+	registerPartGenerator('rcs-block', rcsBlock);
 	registerPartGenerator('fin', fin);
 	registerPartGenerator('control-surface', controlSurface);
 	registerPartGenerator('wing', wing);

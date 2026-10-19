@@ -93,7 +93,15 @@ describe('part seams', () => {
 		for (const visual of maps.visuals.values()) {
 			if (visual.kind === 'strut' || visual.kind === 'fuel-line') continue; // no revolve: bars
 			if (
-				['fin', 'control-surface', 'wing', 'radial-decoupler', 'gear', 'flag'].includes(visual.kind)
+				[
+					'fin',
+					'control-surface',
+					'wing',
+					'radial-decoupler',
+					'gear',
+					'flag',
+					'rcs-block'
+				].includes(visual.kind)
 			)
 				continue;
 			expect(kinds.has(visual.kind), visual.kind).toBe(true);

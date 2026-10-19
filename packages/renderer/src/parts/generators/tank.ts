@@ -77,7 +77,8 @@ export function tank(ctx: GenContext): void {
 
 	// Feed line with two clamps on one side.
 	// (a part too short for the line between its collars has none: it would poke through a face)
-	if (detail.extras >= 2 && H - 2 * collar - 0.1 > 0.1) {
+	// (nor one too slim: the line and its clamps would stand out of the part's shape)
+	if (detail.extras >= 2 && H - 2 * collar - 0.1 > 0.1 && rb + 0.03 <= R) {
 		const a = Math.PI * 0.25;
 		const px = Math.sin(a) * (rb + 0.004);
 		const pz = Math.cos(a) * (rb + 0.004);
