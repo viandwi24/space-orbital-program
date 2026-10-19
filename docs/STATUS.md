@@ -169,7 +169,7 @@
 | 220 | [Roomier Hangar and high detail in the Hangar](plans/220-roomier-hangar.md) | done | Worker A | Towers at (±15, −13), arms aimed at the stack stop 1 m outside the vessel (`setVesselRadius`) or at the platform edge; movers moved clear; camera limits 70 / 27.5 / 18 m; high part detail on every preset (`hangarDetail`); four captures in the journal for the owner. M5 timing budgets only log on CI (testing convention). |
 | 221 | [Vessel switching and per-vessel designs](plans/221-vessel-switching.md) | done | Worker B | Design records on every vessel (ADR 0215), switch with `[`/`]`, Switch to, Fly any vessel, control from here; save envelope 3. |
 | 222 | [Docking ports and docking](plans/222-docking.md) | done | Worker A | ADR 0218: ports 0.625/1.25/2.5 m pull within 5 m and 15°, capture at 0.15 m under 0.5 m/s, merge into one vessel with a `DockRecord`; Undock restores names and designs; crossfeed switch; port targets with alignment text; on-rails port vessels wake within 50 m. |
-| 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | in-progress | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
+| 223 | [Fleet management: vessel list, recover anywhere, terminate, rename, debris](plans/223-fleet-management.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [221]. |
 | 224 | [Navigation tools: numeric node editor, AN/DN, alarms, transfer windows](plans/224-navigation-tools.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [206]. |
 | 225 | [EVA v2: suit focus, keys, jetpack, ladders, boarding at the hatch](plans/225-eva-v2.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216, 221]. |
 | 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | done | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
@@ -252,6 +252,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 - [231 — Career content for the new parts](journal/231-career-content-for-new-parts.md)
 - [229 — Lessons: landing, maneuver nodes, rendezvous and docking, transfers](journal/229-lessons-past-first-orbit.md)
+- [223 — Fleet management](journal/223-fleet-management.md)
 - [234 — Deep-space dish](journal/234-deep-space-dish.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)

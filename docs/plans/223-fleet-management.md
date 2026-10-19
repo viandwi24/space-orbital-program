@@ -1,7 +1,7 @@
 ---
 id: 223
 title: "Fleet management: vessel list, recover anywhere, terminate, rename, debris"
-status: in-progress
+status: done
 owner: "Worker C"
 depends: [221]
 phase: 7
@@ -70,22 +70,24 @@ The Mission Center has a vessel list with type filters. From it the player can F
 
 E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 203; if 203 is not done yet, set up with `launchTwoStage` and `runScript` from `apps/web/e2e/support.ts` and record that in the Log.
 
-- [ ] `bun test packages/sim` passes, including `test/fleet.test.ts`: recovery factor is 1.0 on the pad, 0.98 at 2 km from the pad, and lower at 200 km; rename and set-type round-trip through a save; terminate removes the vessel and its crew follow the `stock.crew-death` rule.
-- [ ] Same file: 300 debris objects with cap 250 leave the 250 newest; debris at rest is no longer deleted after 10 s.
-- [ ] `apps/web` vitest: the list model filters by each type and counts match.
-- [ ] Chromium e2e `apps/web/e2e/fleet.e2e.ts`: in a Career world, use `debug.setLocation` (plan 203) to land a vessel 50 km from the pad; open the Mission Center; filter Probe; Recover shows a factor below 98 %; confirm; funds rise by the quoted credit. Rename another vessel and see the new name after reload.
-- [ ] `bun run check:affected --build --e2e e2e/fleet.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun test packages/sim` passes, including `test/fleet.test.ts`: recovery factor is 1.0 on the pad, 0.98 at 2 km from the pad, and lower at 200 km; rename and set-type round-trip through a save; terminate removes the vessel and its crew follow the `stock.crew-death` rule.
+- [x] Same file: 300 debris objects with cap 250 leave the 250 newest; debris at rest is no longer deleted after 10 s.
+- [x] `apps/web` vitest: the list model filters by each type and counts match.
+- [x] Chromium e2e `apps/web/e2e/fleet.e2e.ts`: in a Career world, use `debug.setLocation` (plan 203) to land a vessel 50 km from the pad; open the Mission Center; filter Probe; Recover shows a factor below 98 %; confirm; funds rise by the quoted credit. Rename another vessel and see the new name after reload.
+- [x] `bun run check:affected --build --e2e e2e/fleet.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/223-fleet-management.md` written.
-- [ ] `docs/architecture/simulation.md` updated (vessel types, debris cap, recovery rule).
-- [ ] ADR 0021 status line notes the amendment by ADR 0208.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/223-fleet-management.md` written.
+- [x] `docs/architecture/simulation.md` updated (vessel types, debris cap, recovery rule).
+- [x] ADR 0021 status line notes the amendment by ADR 0208.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-20 — Worker C refined to ready and claimed (claim/223; moved from Worker A by the coordinator). Checked against the code: the recovery quote is computed in the sim for every landed vessel at rest (`VesselSnapshot.recovery`) with one fixed recovery site; `recover-vessel` already takes any vessel id; debris is every uncontrolled, not kept vessel of the player and `reapDebris` deleted it at rest; plan 203's debug API is on main.
 - 2026-10-20 — Defaults (not asked): the vessel type is an optional field on the vessel (no save format bump, like the other optional sections); the guess is flag, suit, debris, then plane (wing parts), rover (rover wheels), lander (legs), ship (seats), else probe; station, base and relay are the player's choice. Every world site on the home body is a recovery site; the pad radius is 200 m and the Space Center area 3 km. Debris at rest goes on surface rails; debris on a falling path still burns up on re-entry. The cap counts uncontrolled vessels the player has not retyped, oldest (lowest entity id) out first, and is checked after every step's debris pass.
+- 2026-10-20 — The e2e retypes the landed pod to Probe (a pod is guessed a ship) before filtering Probe; the probe core in orbit also lists as Probe.
+- 2026-10-20 — Evidence: `packages/sim/test/fleet.test.ts` 5 pass (factor 1.0 on the pad, 0.98 at 2 km, lower at 200 km and recovered at its quote; rename and type through a save; terminate with crew death permanent and off; 300 debris with cap 250 leave the 250 newest, cap 0 none; debris at rest kept after 24 s); `mission-center/model.test.ts` (each type filtered, counts match); `check:affected --build --e2e e2e/fleet.e2e.ts` all passed in 358 s (e2e: recovered 50 km out at 95.8 %, funds up by the quote; the rename survives a reload). API 0.1.86.
