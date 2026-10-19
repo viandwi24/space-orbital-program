@@ -21,7 +21,7 @@
 
 ## What surprised me
 
-- **The picker's first click landed 43° south of the pointer.** The dialog scales in when it opens, and a client rect read during that animation is the scaled one. The click's own offset over the canvas's layout size is right at any moment.
+- **The picker's spot landed 43° south of where the e2e meant to click.** The dialog slides in as it opens, and the test measured the map's box before the slide ended, so its clicks hit lower than intended; the e2e now measures before each click. The picker also reads the click's own offset over the canvas, which stays right while the dialog moves.
 - **The terrain probe reads the map without zones**, so the HQ itself stands in the sea there (its zone makes the land). The picker checks the sites before the sea and draws each zone as land.
 - **A Career world's debug API needs Debug mode in the sim**, which only the flight page sent. The world layout now does it for every page.
 - **The Launch screen read the world record**, which the Space Center writes only after a change: a pad finished on the world tick would not have shown. It now takes each site's buildings from the running sim.

@@ -53,10 +53,11 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 	await page.getByTestId('sc-found-branch').click();
 	const map = page.getByTestId('branch-map');
 	await expect(map).toBeVisible();
-	const box = (await map.boundingBox())!;
 	const found = page.getByTestId('branch-found');
 	let allowed = false;
 	for (let f = 0.56; f < 0.95 && !allowed; f += 0.01) {
+		// measured each time: the dialog slides in as it opens
+		const box = (await map.boundingBox())!;
 		await page.mouse.click(box.x + box.width * f, box.y + box.height * 0.5);
 		allowed = await found.isEnabled();
 	}
