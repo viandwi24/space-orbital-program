@@ -219,3 +219,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0221 | [Hangar carry details: drag to carry, empty hand after a place, mirror plane, carry keys](0221-hangar-carry-details.md) | accepted | 2026-10-19 |
 | 0222 | [UI v2 fidelity, a categorised build menu, branch space centers and a deep-space dish](0222-ui-fidelity-build-menu-branch-centers-deep-space-dish.md) | accepted | 2026-10-19 |
 | 0223 | [User alarms in the sim, the node panel and the navigation markers](0223-user-alarms-and-navigation-tools.md) | accepted | 2026-10-19 |
+| 0224 | [Per-part design settings, module mass and shells, thrown-off debris, per-instance visuals](0224-per-part-settings-fairings-debris.md) | accepted | 2026-10-19 |

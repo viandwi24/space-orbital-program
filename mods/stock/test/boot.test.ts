@@ -33,6 +33,8 @@ describe('stock boots through the loader', () => {
 			'stock.drill',
 			'stock.engine',
 			'stock.experiment',
+			'stock.fairing',
+			'stock.fairing-panel',
 			'stock.fin',
 			'stock.flag',
 			'stock.heat-shield',
@@ -76,6 +78,10 @@ describe('stock boots through the loader', () => {
 			'stock.engine-vacuum',
 			'stock.engine-wide',
 			'stock.eva-suit',
+			'stock.fairing-base',
+			'stock.fairing-base-large',
+			'stock.fairing-base-small',
+			'stock.fairing-panel',
 			'stock.fin',
 			'stock.flag',
 			'stock.flotation-collar',
@@ -209,6 +215,8 @@ describe('stock boots through the loader', () => {
 			'stock.srb-large',
 			// the launch clamp: one radial node (plan 210)
 			'stock.launch-clamp',
+			// a thrown-off fairing panel has no nodes (plan 219)
+			'stock.fairing-panel',
 			'stock.rcs-block',
 			'stock.rcs-cold-gas',
 			'stock.monoprop-radial',

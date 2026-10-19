@@ -64,6 +64,10 @@ export const STOCK_TECH = [
 			'stock.tail-cone-small',
 			'stock.tail-cone-medium',
 			'stock.tail-cone-large',
+			// fairings (plan 219); plan 231 may move them
+			'stock.fairing-base-small',
+			'stock.fairing-base',
+			'stock.fairing-base-large',
 			// the 2.5 m class (plan 210); plan 231 may move them
 			'stock.tank-wide-short',
 			'stock.tank-wide',

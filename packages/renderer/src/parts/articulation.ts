@@ -3,7 +3,7 @@
  * thrust vector, a control surface turns about its span. Pure maths so it can be tested without a GPU.
  */
 
-export type ArticulationMode = 'gimbal' | 'hinge' | 'extend';
+export type ArticulationMode = 'gimbal' | 'hinge' | 'extend' | 'visible';
 
 export interface ArticulationSpec {
 	module: string;
@@ -26,7 +26,7 @@ const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFi
  * missing or malformed value is the rest pose.
  */
 export function articulationRotation(mode: ArticulationMode, value: unknown): EulerXYZ {
-	if (mode === 'extend') return { x: 0, y: 0, z: 0 };
+	if (mode === 'extend' || mode === 'visible') return { x: 0, y: 0, z: 0 };
 	if (mode === 'hinge') return { x: finite(value) ? value : 0, y: 0, z: 0 };
 	if (Array.isArray(value) && finite(value[0]) && finite(value[1])) {
 		return { x: value[1], y: 0, z: 0 - value[0] };

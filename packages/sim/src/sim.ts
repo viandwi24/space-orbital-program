@@ -80,6 +80,7 @@ import { fireAlarms, freshAlarms, nextAlarm } from './alarms.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
 import { runTransfers, updateRates } from './transfer.ts';
+import { spawnQueuedDebris } from './debris.ts';
 
 /** A warp-to runs at most `remaining / this` times real time, so it eases into real time over the last seconds (ADR 0056). */
 const WARP_TO_TAPER = 1;
@@ -478,6 +479,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		// Splits requested by `update` hooks are applied after the backend step: rebuilding bodies
 		// earlier would drop the forces already queued for this step (ADR 0018).
 		processPending(core);
+		spawnQueuedDebris(core); // thrown-off pieces after the splits (plan 219)
 		capturePorts(core);
 		stepRailsVessels(dt);
 		core.t += dt;

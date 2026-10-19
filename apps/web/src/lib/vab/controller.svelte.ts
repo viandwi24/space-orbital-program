@@ -39,6 +39,13 @@ import { blocksLaunch, checkDesign } from '../editor/checks';
 import { partsLimit } from '../capacity';
 import { describeStack } from '../editor/describe';
 import { partFacts } from '../editor/part-info';
+import {
+	addFairingSection,
+	fairingOf,
+	removeFairingSection,
+	setFairingClosed,
+	setFairingSection
+} from '../editor/fairing';
 import { buildScene, defaultCursor, partKey, withoutCarried } from '../editor/scene';
 import { stabilityOf } from '../editor/stability';
 import { designCost } from '@orbital/core';
@@ -131,7 +138,8 @@ export class VabController {
 	readonly content = this.loaded.content;
 	readonly lookup = partLookup(this.catalog);
 	readonly editorContent = { parts: this.lookup, modules: this.content.modules };
-	readonly parts = this.catalog.parts;
+	/** The catalogue: every part but debris-only pieces (`catalog.hidden`, plan 219). */
+	readonly parts = this.catalog.parts.filter((p) => p.catalog?.hidden !== true);
 	/** The catalogue rail, in order (plan 069). */
 	readonly categories = categoriesOf(this.loaded.categories);
 	readonly techNodes = this.loaded.techNodes;
@@ -336,7 +344,7 @@ export class VabController {
 			cursor: this.held ? this.active : null,
 			pointer: this.pointerTarget,
 			radialMarkers: this.keyboardRadial,
-			symmetry: this.copies,
+			symmetry: this.armed?.kind === 'carry' ? this.copies : this.symmetrySpec,
 			followers: this.shown.followers,
 			markers: this.armed ? [] : this.markers,
 			kind: this.armed?.kind === 'carry' ? 'carry' : 'new',
@@ -1227,6 +1235,49 @@ export class VabController {
 	fineSnap = false;
 	/** The touch chip for Alt (plan 217): the next part tapped is copied, then it turns off. */
 	copyMode = $state(false);
+	/** Fairing edit mode (plan 219): a click in the view adds a section to the selected base. */
+	fairingEdit = $state(false);
+	/** The selected part's fairing, or null (plan 219). */
+	readonly selectedFairing = $derived(
+		this.selected === null ? null : fairingOf(this.current.design, this.lookup, this.selected)
+	);
+
+	/** Adds a section on top of the selected fairing: as wide as the last, half a metre tall. */
+	addFairingSection(section?: { height: number; radius: number }): void {
+		const sel = this.selected;
+		const f = this.selectedFairing;
+		if (sel === null || !f) return;
+		const next = section ?? {
+			height: 0.5,
+			radius: f.sections.at(-1)?.radius ?? f.size / 2
+		};
+		this.attempt(() => {
+			this.editor = addFairingSection(this.editor, this.editorContent, sel, next);
+			this.say(`Fairing: ${f.sections.length + 1} sections.`);
+		});
+	}
+	setFairingSection(i: number, change: { height?: number; radius?: number }): void {
+		const sel = this.selected;
+		if (sel === null) return;
+		this.attempt(() => {
+			this.editor = setFairingSection(this.editor, this.editorContent, sel, i, change);
+		});
+	}
+	removeFairingSection(): void {
+		const sel = this.selected;
+		if (sel === null) return;
+		this.attempt(() => {
+			this.editor = removeFairingSection(this.editor, this.editorContent, sel);
+		});
+	}
+	closeFairing(closed: boolean): void {
+		const sel = this.selected;
+		if (sel === null) return;
+		this.attempt(() => {
+			this.editor = setFairingClosed(this.editor, this.editorContent, sel, closed);
+			this.say(closed ? 'Fairing closed.' : 'Fairing opened.');
+		});
+	}
 
 	/** Copies a placed part and what hangs on it onto the cursor (Alt-click, plan 217). */
 	copyPart(index: number): void {
@@ -1417,6 +1468,11 @@ export class VabController {
 			return;
 		}
 		if (!d || d.moved || d.button !== 0) return;
+		if (this.fairingEdit && this.selectedFairing && !this.armed) {
+			// fairing edit mode (plan 219): each click adds a section
+			this.addFairingSection();
+			return;
+		}
 		const hit = this.pick(e);
 		if (this.armed?.kind === 'connect') {
 			const end = hit?.kind === 'part' ? this.endAt(Number(hit.key), hit.point, e.altKey) : null;

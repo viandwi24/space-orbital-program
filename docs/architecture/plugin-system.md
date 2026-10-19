@@ -233,6 +233,10 @@ The values belong to the world, not to the registry: `WorldInfo.rules` in `SimSa
 
 `ctx.buildings` fills the `buildings` registry (`buildingDefinitionSchema`; report kind `building`; patch target `building`). `packages/core/src/buildings.ts` holds the grid (10 m cells centred on multiples of 10 m, east and north of the site centre), `footprint`, `entranceFronts`, `canPlace` with its reasons, `pathToRoad` (BFS over free cells) and `LEGACY_LAYOUT`, today's launch site on the grid, which `LEGACY_SITE` carries. It does not import `schemas.ts` (that module imports `sites.ts`, which imports this one).
 
+## Per-part settings, shells and debris (API 0.1.81, plan 219, ADR 0224)
+
+A design part may carry `settings` by module id; the fields merge over the definition's module config and the module's schema parses the result at load. Three optional module hooks: `mass(config, state)` adds kg to the part, `shell(config, state)` returns a closed profile (`{ y, r }` bottom to top) whose enclosed parts take no drag or convective heat, and `VesselApi.spawnDebris({ part, settings, offset, velocity })` throws a one-part vessel off (its mass must leave through `mass`). `PartVisual.paramsFrom` names the module whose config becomes the generator's params per part. Stock `stock.fairing` config: `size` (base diameter), `sections` (`{ height, radius }[]`), `closed`, `arealDensity` (kg/m², default 4), `ejectionImpulse` (N·s per panel, default 300), `baseTop`.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

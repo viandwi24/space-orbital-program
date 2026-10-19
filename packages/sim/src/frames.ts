@@ -64,6 +64,7 @@ import {
 	stoneNormalAt
 } from './stones.ts';
 import { groundPlane } from './terrain.ts';
+import { SHELL_DRAG_COEFFICIENT, hasShell, shellShape, shieldedParts } from './debris.ts';
 import { stepWater, waterUnder } from './water.ts';
 
 export function createFrame(id: number, backend: PhysicsBackend): FlightFrame {
@@ -525,7 +526,11 @@ function applyDrag(
 	const flight = frame.bodies.get(vesselId)!;
 	const motion = bodyMotion(frame, flight); // one backend read for the whole vessel
 	const rootDesign = partOf(core, vessel.root).designPos;
+	// parts inside a closed fairing take no drag and no convective heat (plan 219, ADR 0224)
+	const shielded = shieldedParts(core, vesselId);
+	const shieldedAny = shielded.size > 0 || hasShell(core, vesselId);
 	for (const partId of vessel.parts) {
+		if (shielded.has(partId)) continue;
 		const part = partOf(core, partId);
 		const pose = {
 			position: add(motion.origin, qRotate(motion.rotation, sub(part.designPos, rootDesign))),
@@ -542,16 +547,19 @@ function applyDrag(
 		const turned = isTurned(part) ? qMul(pose.rotation, partRotation(part)) : pose.rotation;
 		const local = qRotate(qConj(turned), rel);
 		const def = partDefOf(core, part);
+		// a closed fairing meets the air as its shell, its nose open to the wind (plan 219)
+		const shell = shieldedAny ? shellShape(core, partId) : null;
 		const covered = { top: false, bottom: false };
 		for (const att of part.attachments) {
 			const dirY = def.attach?.[att.node]?.dir[1] ?? 0;
-			if (dirY > 0.5) covered.top = true;
+			if (dirY > 0.5) covered.top = !shell;
 			else if (dirY < -0.5) covered.bottom = true;
 		}
-		const area = axisAreas(def.shape, local.y, covered);
+		const area = axisAreas(shell ?? def.shape, local.y, covered);
 		// the transonic drag rise (plan 212, ADR 0204 point 3) from the part's own airspeed
 		const mach = speedOfSound ? Math.hypot(local.x, local.y, local.z) / speedOfSound : 0;
-		const k = -0.5 * density * (def.dragCoefficient ?? DRAG_COEFFICIENT) * machDragFactor(mach);
+		const cd = shell ? SHELL_DRAG_COEFFICIENT : (def.dragCoefficient ?? DRAG_COEFFICIENT);
+		const k = -0.5 * density * cd * machDragFactor(mach);
 		const force = {
 			x: k * area.x * Math.abs(local.x) * local.x,
 			y: k * area.y * Math.abs(local.y) * local.y,

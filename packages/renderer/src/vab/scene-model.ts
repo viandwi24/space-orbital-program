@@ -18,6 +18,8 @@ export interface VabPart {
 	group: string;
 	/** `ghost` is the translucent preview of an attach; it cannot be picked. */
 	role: 'solid' | 'ghost';
+	/** Per-instance generator parameters (plan 219: a fairing's sections); a change rebuilds the model. */
+	params?: Readonly<Record<string, number | string | boolean>>;
 }
 
 /** A bar from a connector part (strut, fuel line) to the far end of its link, relative to the group's root origin (ADR 0071). */
@@ -91,7 +93,11 @@ export const EMPTY_SCENE: VabScene = { parts: [], groups: [], nodes: [] };
 export interface PartSlot {
 	definition: string;
 	role: VabPart['role'];
+	params?: VabPart['params'];
 }
+
+const sameParams = (a: PartSlot['params'], b: PartSlot['params']): boolean =>
+	JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /** What to create, remove and merely move when the scene changes from `prev` to `next`. */
 export function diffParts(
@@ -105,7 +111,13 @@ export function diffParts(
 	for (const p of next) {
 		seen.add(p.key);
 		const old = prev.get(p.key);
-		if (old && old.definition === p.definition && old.role === p.role) keep.push(p);
+		if (
+			old &&
+			old.definition === p.definition &&
+			old.role === p.role &&
+			sameParams(old.params, p.params)
+		)
+			keep.push(p);
 		else {
 			add.push(p);
 			if (old) remove.push(p.key);

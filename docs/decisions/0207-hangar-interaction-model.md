@@ -31,7 +31,7 @@ The Hangar's data model works; its hand feel does not (research doc 02 §15, doc
 
 ## Consequences
 
-- Plan 217's choices for points 1–4 and 11 are in ADR 0221.
+- Plan 217's choices for points 1–4 and 11 are in ADR 0221; plan 219's for point 10 in ADR 0224.
 - Plan 217 delivers points 1–4 and 11; plan 218 points 5–9; plan 219 point 10.
 - The controller is split by concern while the carry loop lands.
 - Fairing shielding adds an occlusion test to part drag.

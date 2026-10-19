@@ -1745,7 +1745,12 @@ export class SceneModel {
 			extent = Math.max(extent, Math.hypot(part.position.x, part.position.y, part.position.z) + 2);
 			let p = entry.parts.get(pid);
 			if (!p) {
-				p = { model: this.factory.create(part.definition), definition: part.definition };
+				// a fairing draws its own sections (plan 219, `PartVisual.paramsFrom`)
+				const params = this.factory.paramsOf(part.definition, part.modules);
+				p = {
+					model: this.factory.create(part.definition, params ? { params } : {}),
+					definition: part.definition
+				};
 				entry.group.add(p.model.root);
 				entry.parts.set(pid, p);
 				changed = true;

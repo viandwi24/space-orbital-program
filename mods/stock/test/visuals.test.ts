@@ -20,6 +20,9 @@ const KINDS = [
 	'docking-port',
 	// plan 210
 	'launch-clamp',
+	// plan 219
+	'fairing',
+	'fairing-panel',
 	'fin',
 	'control-surface',
 	'wing',

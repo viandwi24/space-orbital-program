@@ -500,6 +500,62 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 80,
+    "id": "stock.fairing-base-small",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 0.625,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 150,
+    "id": "stock.fairing-base",
+    "mass": 75,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 1.25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 350,
+    "id": "stock.fairing-base-large",
+    "mass": 175,
+    "modules": [
+      [
+        "stock.fairing",
+        {
+          "baseTop": 0.1,
+          "size": 2.5,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 0,
+    "id": "stock.fairing-panel",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.fairing-panel",
+        {
+          "half": 0,
+          "size": 1.25,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 50,
     "id": "stock.nose-cone",
     "mass": 25,

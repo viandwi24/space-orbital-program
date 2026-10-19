@@ -25,7 +25,13 @@ import {
 } from './engines.ts';
 import { PartLaunchClamp } from './ground.ts';
 import { PartHeatShieldWide } from './recovery.ts';
-import { PartDecouplerWide } from './structure.ts';
+import {
+	PartDecouplerWide,
+	PartFairingBase,
+	PartFairingBaseLarge,
+	PartFairingBaseSmall,
+	PartFairingPanel
+} from './structure.ts';
 import { PartTankWide, PartTankWideShort } from './tanks.ts';
 
 /** Plan 210: two more solid motors, the vacuum engine, the 2.5 m class and the launch clamp. */
@@ -40,4 +46,12 @@ export const STOCK_PROPULSION_PACK = [
 	PartDecouplerWide,
 	PartHeatShieldWide,
 	PartLaunchClamp
+] as const;
+
+/** Plan 219: fairing bases in three sizes and the panel they throw off. */
+export const STOCK_FAIRING_PARTS = [
+	PartFairingBaseSmall,
+	PartFairingBase,
+	PartFairingBaseLarge,
+	PartFairingPanel
 ] as const;

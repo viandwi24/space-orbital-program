@@ -104,7 +104,9 @@ describe('part seams', () => {
 					'gear',
 					'flag',
 					'rcs-block',
-					'launch-clamp'
+					'launch-clamp',
+					// a panel without sections is a plate (plan 219; the fairing case below draws one)
+					'fairing-panel'
 				].includes(visual.kind)
 			)
 				continue;
@@ -184,5 +186,39 @@ describe('part seams', () => {
 		}
 		expect(wrong).toEqual([]);
 		expect(checked).toBeGreaterThan(40);
+	});
+
+	test('a fairing with sections: every profile runs bottom to top, the panels too (plan 219)', () => {
+		const factory = new PartModelFactory({
+			shapes: maps.shapes,
+			visuals: maps.visuals,
+			attach: maps.attach,
+			detail: DETAILS.high
+		});
+		const sections = JSON.stringify([
+			{ height: 1, radius: 0.8 },
+			{ height: 1.5, radius: 0.8 },
+			{ height: 0.5, radius: 0.6 }
+		]);
+		const start = recorded.length;
+		current = { part: 'stock.fairing-base', kind: 'fairing', index: 0 };
+		const base = factory.create('stock.fairing-base', { params: { sections, closed: true } });
+		for (const half of [0, 1]) {
+			current = { part: 'stock.fairing-panel', kind: 'fairing-panel', index: 0 };
+			factory
+				.create('stock.fairing-panel', {
+					params: { sections, closed: true, size: 1.25, baseTop: 0.1, half }
+				})
+				.dispose();
+		}
+		const mine = recorded.slice(start);
+		expect(mine.filter((e) => e.kind === 'fairing').length).toBeGreaterThanOrEqual(2);
+		expect(mine.filter((e) => e.kind === 'fairing-panel').length).toBe(2);
+		expect(windingProblems(mine)).toEqual([]);
+		// the base rim meets its 1.25 m node with the shell on it
+		const top = maps.byId.get('stock.fairing-base')!.attach!.top!;
+		expect(Math.abs(rimRadius(base.root, top) - 0.625)).toBeLessThan(1e-3);
+		base.dispose();
+		factory.dispose();
 	});
 });

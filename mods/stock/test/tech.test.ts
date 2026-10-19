@@ -69,7 +69,8 @@ describe('stock tech tree pacing', () => {
 			.list()
 			.filter((p) => !tiered.has(p.id))
 			.map((p) => p.id);
-		expect(untiered.sort()).toEqual(['stock.eva-suit', 'stock.flag']);
+		// a thrown-off fairing panel is debris, never built (plan 219)
+		expect(untiered.sort()).toEqual(['stock.eva-suit', 'stock.fairing-panel', 'stock.flag']);
 		const basics = registries.techNodes.get('stock.basics')!;
 		for (const p of ['stock.command-pod', 'stock.tank-small', 'stock.engine-lv', 'stock.decoupler'])
 			expect(basics.unlocks).toContain(p);

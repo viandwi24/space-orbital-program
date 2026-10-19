@@ -32,6 +32,11 @@ export interface PartModelRequest {
 	attach?: Readonly<Record<string, PartNode>>;
 	/** Level of detail from the graphics preset. */
 	detail: PartDetail;
+	/**
+	 * Per-instance generator parameters (plan 219, `PartVisual.paramsFrom`): added to
+	 * `visual.params` for this model only (a fairing's sections).
+	 */
+	params?: Readonly<Record<string, number | string | boolean>>;
 }
 
 /** Detail knobs from the preset table (`PresetSettings`). */

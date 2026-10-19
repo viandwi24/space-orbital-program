@@ -5,6 +5,7 @@
 	import { stageOf } from '../editor/state';
 	import type { VabController } from './controller.svelte';
 	import { settings } from '../settings/settings.svelte';
+	import FairingEditor from './FairingEditor.svelte';
 
 	let { vab }: { vab: VabController } = $props();
 
@@ -111,6 +112,8 @@
 				>
 			</label>
 		{/if}
+
+		<FairingEditor {vab} />
 
 		{#if !vab.selectedLoose}
 			<label class="row">

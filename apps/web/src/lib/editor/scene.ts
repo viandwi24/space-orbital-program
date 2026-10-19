@@ -21,8 +21,33 @@ import {
 	rootOf,
 	type AttachTarget,
 	type CarryPlan,
-	type Doc
+	type Doc,
+	type SymmetrySpec
 } from './state';
+
+/**
+ * Per-instance generator parameters of a design part (plan 219, `PartVisual.paramsFrom`): the
+ * named module's config from the definition with the part's design settings over it; lists and
+ * objects as JSON text. None for a part whose visual names no module.
+ */
+export function partParams(
+	part: VesselDesign['parts'][number],
+	def: PartDefinition | undefined
+): { params?: Record<string, number | string | boolean> } {
+	const from = def?.visual?.paramsFrom;
+	if (!from) return {};
+	const base = def.modules?.find(([id]) => id === from)?.[1];
+	const merged: Record<string, unknown> = {
+		...(typeof base === 'object' && base !== null ? (base as Record<string, unknown>) : {}),
+		...(part.settings?.[from] ?? {})
+	};
+	const params: Record<string, number | string | boolean> = {};
+	for (const [k, v] of Object.entries(merged)) {
+		if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') params[k] = v;
+		else if (v !== undefined && v !== null) params[k] = JSON.stringify(v);
+	}
+	return { params };
+}
 
 /** Floor positions of loose assemblies: alternate right and left of the platform, nearest first. */
 export const looseX = (i: number): number => (i % 2 === 0 ? 1 : -1) * (7.6 + Math.floor(i / 2) * 3);
@@ -78,8 +103,8 @@ export interface SceneInput {
 	cursor: number | null;
 	/** A target the pointer is over (a radial site between the listed ones): shown as the ghost instead of `cursor`'s. */
 	pointer?: AttachTarget | null;
-	/** Copies made by a radial placement of a new part (the ghost shows them all). Default 1. */
-	symmetry?: number;
+	/** Copies made by a radial placement of a new part, or a mirror pair (the ghost shows them all). Default 1. */
+	symmetry?: number | SymmetrySpec;
 	/** Draw rings for the keyboard's radial sites (default true); the pointer needs none. */
 	radialMarkers?: boolean;
 	/** The other members of a carried symmetry group (see `withoutCarried`). */
@@ -155,7 +180,8 @@ export function buildScene(input: SceneInput): BuiltScene {
 				position: [l.position.x, l.position.y, l.position.z],
 				...turnOf(l),
 				group,
-				role
+				role,
+				...partParams(p, parts.get(p.part))
 			});
 			if (l.link && role === 'solid') {
 				links.push({
@@ -213,7 +239,8 @@ export function buildScene(input: SceneInput): BuiltScene {
 						position: [l.position.x, l.position.y, l.position.z],
 						...turnOf(l),
 						group: 'main',
-						role: 'ghost'
+						role: 'ghost',
+						...partParams(p, parts.get(p.part))
 					});
 				}
 			}

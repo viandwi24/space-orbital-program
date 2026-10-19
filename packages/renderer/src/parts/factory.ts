@@ -220,6 +220,8 @@ class ProceduralModel implements PartModel {
 			const r = articulationRotation(this.articulation.mode, value);
 			this.pivot.rotation.set(r.x, r.y, r.z);
 			this.pivot.scale.y = articulationScale(this.articulation.mode, value);
+			// hidden only by an explicit false: the Hangar's models have no module state
+			if (this.articulation.mode === 'visible') this.pivot.visible = value !== false;
 		}
 		if (this.puffs && this.visual.puffs) {
 			const m = state.modules[this.visual.puffs.module] as Record<string, unknown> | undefined;
@@ -303,14 +305,18 @@ export class ProceduralProvider implements PartModelProvider {
 	}
 
 	create(request: PartModelRequest, context: ProviderContext): PartModel | null {
-		const { visual, shape } = request;
+		const { shape } = request;
+		const visual =
+			request.visual && request.params
+				? { ...request.visual, params: { ...request.visual.params, ...request.params } }
+				: request.visual;
 		if (!visual || !shape) return null;
 		// An asset part whose model did not load falls back to the generator it names (ADR 0047).
 		const fallback = visual.params?.fallbackKind;
 		const kind = visual.kind === 'model' && typeof fallback === 'string' ? fallback : visual.kind;
 		const generator = getPartGenerator(kind);
 		if (!generator) return null;
-		const key = `${request.definition}|${request.detail.segments}|${request.detail.extras}`;
+		const key = `${request.definition}|${request.detail.segments}|${request.detail.extras}${request.params ? `|${JSON.stringify(request.params)}` : ''}`;
 		let template = this.templates.get(key);
 		if (!template) {
 			const builder = new GeometryBuilder({
@@ -454,19 +460,45 @@ export class PartModelFactory {
 	}
 
 	/** `options.detail` overrides the preset's detail for this model (see `repeatedDetail`). */
-	create(definition: string, options: { detail?: PartDetail } = {}): PartModel {
+	create(
+		definition: string,
+		options: {
+			detail?: PartDetail;
+			/** Per-instance parameters (plan 219): see `PartModelRequest.params`. */
+			params?: Readonly<Record<string, number | string | boolean>>;
+		} = {}
+	): PartModel {
 		const request: PartModelRequest = {
 			definition,
 			shape: this.config.shapes.get(definition),
 			visual: this.config.visuals?.get(definition),
 			attach: this.config.attach?.get(definition),
-			detail: options.detail ?? this.detail
+			detail: options.detail ?? this.detail,
+			...(options.params ? { params: options.params } : {})
 		};
 		for (const provider of this.providers) {
 			const model = provider.create(request, { materials: this.materials });
 			if (model) return model;
 		}
 		throw new Error(`No part model provider handled "${definition}"`);
+	}
+
+	/**
+	 * Per-instance parameters of a part from its module snapshots (plan 219): the primitive fields
+	 * of the module its visual names in `paramsFrom`, or undefined.
+	 */
+	paramsOf(
+		definition: string,
+		modules: Readonly<Record<string, unknown>> | undefined
+	): Record<string, number | string | boolean> | undefined {
+		const from = this.config.visuals?.get(definition)?.paramsFrom;
+		const source = from ? (modules?.[from] as Record<string, unknown> | undefined) : undefined;
+		if (!source) return undefined;
+		const out: Record<string, number | string | boolean> = {};
+		for (const [k, v] of Object.entries(source)) {
+			if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') out[k] = v;
+		}
+		return out;
 	}
 
 	/** Awaits every provider's `preload` (asset loading) for the given definitions. */
