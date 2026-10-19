@@ -116,7 +116,8 @@ describe('resume after a rule change', () => {
 	test('the save resumes with the same value and changelog, byte for byte', async () => {
 		const sim = await make({ preset: 'stock.career' });
 		sim.step(0.5);
-		sim.dispatch({ type: 'set-rule', rule: 'stock.life-support', value: 'full' });
+		// toward easier, as play allows (plan 230)
+		sim.dispatch({ type: 'set-rule', rule: 'stock.life-support', value: 'off' });
 		sim.step(0.5);
 		sim.dispatch({ type: 'set-rule', rule: 'stock.funds-multiplier', value: 2.5 });
 		const text = JSON.stringify(sim.save());
@@ -126,10 +127,10 @@ describe('resume after a rule change', () => {
 			resume: JSON.parse(text)
 		});
 		expect(JSON.stringify(resumed.save())).toBe(text);
-		expect(resumed.snapshot().rules!['stock.life-support']).toBe('full');
+		expect(resumed.snapshot().rules!['stock.life-support']).toBe('off');
 		expect(resumed.snapshot().rules!['stock.funds-multiplier']).toBe(2.5);
 		expect(resumed.worldInfo.changelog.map((c) => [c.rule, c.from, c.to])).toEqual([
-			['stock.life-support', 'simple', 'full'],
+			['stock.life-support', 'simple', 'off'],
 			['stock.funds-multiplier', 1, 2.5]
 		]);
 		expect(resumed.worldInfo.preset).toBe('stock.career');

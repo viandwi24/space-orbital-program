@@ -1,12 +1,12 @@
 ---
 id: 230
 title: World rules and save safety
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker C"
 depends: [205, 212]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-20
 ---
 
 # 230 — World rules and save safety
@@ -89,3 +89,5 @@ World rules cover the options KSP players expect, and saves are hard to lose. A 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-20 — Worker C refined to ready and claimed (claim/230; moved from Worker D by the coordinator). Checked against the code: `set-rule` and the changelog exist (ADR 0111); no Revert existed at all (only the words "Revert to the VAB" on the lost-vessel card), quickload is F9 and the Load dialog; `requestSavePersistence()` exists in `store-idb.ts`. ADR 0230 (0229 is taken).
+- 2026-10-20 — Defaults (not asked): the sim refuses a harder change unless the world's debug tools are on (Sandbox always; Science and Career with Debug mode), so tests that set a harder rule turn Debug mode on first. Rules without `easier` (contracts, science depth, professions) are fixed once the world is made. Revert is **Revert to the Hangar**: the flight page keeps the sim's save from just before the launch and Revert restarts the world from it.

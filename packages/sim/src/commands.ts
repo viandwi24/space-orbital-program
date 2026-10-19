@@ -29,6 +29,7 @@ import {
 	IDENTITY_RULES,
 	padLatLon,
 	resolveVesselDesign,
+	ruleChangeProblem,
 	ruleValueProblem,
 	sitesOf,
 	type Command,
@@ -64,6 +65,7 @@ import { dropForThrust, requestWarp, requestWarpTo } from './warp.ts';
 /** The rule that allows pausing the clock (plan 205, ADR 0201 point 5). */
 export const PAUSE_RULE = 'stock.pause-allowed';
 import {
+	debugAllowed,
 	debugRefusal,
 	grant,
 	setCheat,
@@ -759,6 +761,12 @@ function setRule(core: SimCore, id: string, value: boolean | number | string): C
 	if (why) return refuse(`invalid value for rule "${id}": ${why}`);
 	const from = core.info.rules[id] ?? rule.default;
 	if (from === value) return accept();
+	// toward easier only during play (plan 230, ADR 0229); debug mode may change anything
+	if (!debugAllowed(core)) {
+		const current = ruleOf(core, id) ?? from;
+		const harder = ruleChangeProblem(rule, current, value);
+		if (harder) return refuse(`${rule.label}: ${harder}`);
+	}
 	core.info.rules[id] = value;
 	core.info.changelog.push({ time: core.t, rule: id, from, to: value });
 	core.rulesView = null;

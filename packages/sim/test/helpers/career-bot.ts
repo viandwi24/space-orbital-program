@@ -78,6 +78,8 @@ export async function runCareerBot(options: {
 		if (e.currency === 'funds') funds += e.amount;
 	});
 	sim.events.on('world:tick', () => daily.push(funds));
+	// the bot switches the economy back on, a harder change: debug mode allows it (plan 230)
+	must(sim.dispatch({ type: 'debug-mode', on: true }), 'debug mode');
 	const economy = (on: boolean) =>
 		must(sim.dispatch({ type: 'set-rule', rule: 'stock.economy', value: on }), 'economy');
 

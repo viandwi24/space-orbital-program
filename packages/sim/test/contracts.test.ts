@@ -205,6 +205,7 @@ describe('accepted contracts', () => {
 
 	test('with the rule off there are no offers', async () => {
 		const sim = await make(3);
+		sim.dispatch({ type: 'debug-mode', on: true }); // a rule fixed at creation (plan 230)
 		sim.dispatch({ type: 'set-rule', rule: 'stock.contracts', value: false });
 		warpDays(sim, 10);
 		expect(sim.snapshot().contracts).toBeUndefined();

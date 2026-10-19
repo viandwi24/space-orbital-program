@@ -168,6 +168,7 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 		sandbox.dispose();
 
 		const full = await make(1);
+		full.dispatch({ type: 'debug-mode', on: true }); // a harder rule needs debug mode (plan 230)
 		expect(full.dispatch({ type: 'set-rule', rule: 'stock.life-support', value: 'full' }).ok).toBe(
 			true
 		);
@@ -185,6 +186,7 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 		full.dispose();
 
 		const scrubbed = await make(1);
+		scrubbed.dispatch({ type: 'debug-mode', on: true });
 		scrubbed.dispatch({ type: 'set-rule', rule: 'stock.life-support', value: 'full' });
 		const c = launch(scrubbed, ['fix.cabin', 'stock.scrubber']);
 		const none: string[] = [];
@@ -224,6 +226,7 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 describe('condition (ADR 0181 points 4 to 7)', () => {
 	test('morale and fatigue follow the closed forms; a hard burn blacks the crew out', async () => {
 		const sim = await make(10);
+		sim.dispatch({ type: 'debug-mode', on: true }); // a harder rule needs debug mode (plan 230)
 		sim.dispatch({ type: 'set-rule', rule: 'stock.crew-rest', value: true });
 		const id = launch(sim, ['fix.cabin', 'fix.thruster'], {
 			kind: 'state',

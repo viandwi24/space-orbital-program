@@ -176,7 +176,7 @@
 | 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
 | 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | done | Worker E | Lessons page and four lessons in throwaway Sandbox worlds set by the debug API, key and place permissions with reasons; `[manual]` playthrough open for the owner |
-| 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
+| 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | in-progress | Worker C | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
 | 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | done | Worker E | ADR 0231: 22-node tech tree with every part placed, rescue/satellite/station/docking contracts (a rescue spawns its pod), the richer objective view, per-row science panel buttons |
 | 232 | [Release QA and launch](plans/232-release-qa.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231]. |
 | 233 | [Base layout, Flight and Space Center: match the v2 design package exactly](plans/233-base-layout-fidelity-to-refs-v2.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |

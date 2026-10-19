@@ -27,6 +27,7 @@ export const RuleEconomy = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(false, false, true),
+	easier: false,
 	changeable: true
 });
 /** The procedural contract offers (plan 099, ADR 0186 point 2); only where the economy runs. */
@@ -48,6 +49,7 @@ export const RuleFundsMultiplier = defineRule({
 	min: 0.1,
 	max: 10,
 	default: 1,
+	easier: 'higher',
 	changeable: true
 });
 export const RuleCostMultiplier = defineRule({
@@ -58,6 +60,7 @@ export const RuleCostMultiplier = defineRule({
 	min: 0.1,
 	max: 10,
 	default: 1,
+	easier: 'lower',
 	changeable: true
 });
 
@@ -80,6 +83,7 @@ export const RuleScienceMultiplier = defineRule({
 	min: 0.1,
 	max: 10,
 	default: 1,
+	easier: 'higher',
 	changeable: true
 });
 export const RuleTechTree = defineRule({
@@ -89,6 +93,7 @@ export const RuleTechTree = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(false, true, true),
+	easier: false,
 	changeable: true
 });
 
@@ -109,6 +114,7 @@ export const RuleCrewSalaries = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(false, false, true),
+	easier: false,
 	changeable: true
 });
 export const RuleLifeSupport = defineRule({
@@ -119,12 +125,13 @@ export const RuleLifeSupport = defineRule({
 	values: ['off', 'simple', 'full'],
 	default: 'simple',
 	presets: byMode('off', 'simple', 'simple', 'full'),
+	easier: ['full', 'simple', 'off'],
 	changeable: true
 });
 /**
  * Whether the player may pause the world clock (plan 205, ADR 0201 point 5): yes in Sandbox,
  * Science and Career, no in Hardcore (default per owner review, rancangan §15 #1). It may change
- * during play only toward easier; the editor for that is plan 230.
+ * during play only toward easier (plan 230's World settings).
  */
 export const RulePauseAllowed = defineRule({
 	id: 'stock.pause-allowed',
@@ -135,6 +142,33 @@ export const RulePauseAllowed = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(true, true, true, false),
+	easier: true,
+	changeable: true
+});
+/**
+ * Revert a flight to the Hangar, and quickload (plan 230, ADR 0229): allowed but in Career
+ * Hardcore (default per owner review, rancangan §12.2). The page gates them; easier is allowed.
+ */
+export const RuleAllowRevert = defineRule({
+	id: 'stock.allow-revert',
+	label: 'Allow revert',
+	category: 'world',
+	description: 'Revert a flight to the Hangar as it was before the launch.',
+	type: 'boolean',
+	default: true,
+	presets: byMode(true, true, true, false),
+	easier: true,
+	changeable: true
+});
+export const RuleAllowQuickload = defineRule({
+	id: 'stock.allow-quickload',
+	label: 'Allow quickload',
+	category: 'world',
+	description: 'Load the quicksave (F9) during play.',
+	type: 'boolean',
+	default: true,
+	presets: byMode(true, true, true, false),
+	easier: true,
 	changeable: true
 });
 /**
@@ -150,6 +184,7 @@ export const RuleEvaBoardAssist = defineRule({
 	type: 'boolean',
 	default: false,
 	presets: byMode(true, false, false, false),
+	easier: true,
 	changeable: true
 });
 /**
@@ -174,6 +209,7 @@ export const RuleCrewMorale = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(false, false, true),
+	easier: false,
 	changeable: true
 });
 export const RuleCrewRest = defineRule({
@@ -183,6 +219,7 @@ export const RuleCrewRest = defineRule({
 	type: 'boolean',
 	default: false,
 	presets: byMode(false, false, false, true),
+	easier: false,
 	changeable: true
 });
 export const RuleCrewExposure = defineRule({
@@ -192,6 +229,7 @@ export const RuleCrewExposure = defineRule({
 	type: 'boolean',
 	default: true,
 	presets: byMode(false, false, true),
+	easier: false,
 	changeable: true
 });
 export const RuleCrewDeath = defineRule({
@@ -203,6 +241,7 @@ export const RuleCrewDeath = defineRule({
 	values: ['permanent', 'return', 'off'],
 	default: 'permanent',
 	presets: byMode('off', 'off', 'permanent'),
+	easier: ['permanent', 'return', 'off'],
 	changeable: true
 });
 export const RuleCrewReturnDays = defineRule({
@@ -214,6 +253,7 @@ export const RuleCrewReturnDays = defineRule({
 	max: 365,
 	integer: true,
 	default: 14,
+	easier: 'lower',
 	changeable: true
 });
 
@@ -224,6 +264,7 @@ export const RuleComms = defineRule({
 	category: 'comms',
 	type: 'boolean',
 	default: true,
+	easier: false,
 	changeable: true
 });
 /** Links on one band's channel that reach each other's receiver lose 3 dB each (plan 120, ADR 0191). */
@@ -233,6 +274,7 @@ export const RuleCommsInterference = defineRule({
 	category: 'comms',
 	type: 'boolean',
 	default: true,
+	easier: false,
 	changeable: true
 });
 export const RuleSignalDelay = defineRule({
@@ -242,6 +284,7 @@ export const RuleSignalDelay = defineRule({
 	type: 'enum',
 	values: ['display', 'enforced', 'flight-computer'],
 	default: 'display',
+	easier: ['enforced', 'flight-computer', 'display'],
 	changeable: true
 });
 export const RuleControlWithoutSignal = defineRule({
@@ -252,6 +295,7 @@ export const RuleControlWithoutSignal = defineRule({
 	values: ['full', 'partial', 'none'],
 	default: 'none',
 	presets: byMode('full', 'none', 'none'),
+	easier: ['none', 'partial', 'full'],
 	changeable: true
 });
 export const RuleCommsScale = defineRule({
@@ -262,6 +306,7 @@ export const RuleCommsScale = defineRule({
 	min: 0.1,
 	max: 10,
 	default: 1,
+	easier: 'higher',
 	changeable: true
 });
 
@@ -278,6 +323,7 @@ export const RuleReentryHeating = defineRule({
 	min: 0,
 	max: 1.2,
 	default: 1,
+	easier: 'lower',
 	changeable: true
 });
 
@@ -291,6 +337,7 @@ export const RuleRangeSafety = defineRule({
 	values: ['cost', 'hard', 'off'],
 	default: 'cost',
 	presets: byMode('off', 'off', 'cost'),
+	easier: ['hard', 'cost', 'off'],
 	changeable: true
 });
 export const RuleReliability = defineRule({
@@ -299,6 +346,7 @@ export const RuleReliability = defineRule({
 	category: 'launch',
 	type: 'boolean',
 	default: false,
+	easier: false,
 	changeable: true
 });
 
@@ -322,6 +370,7 @@ export const RuleAgencyCount = defineRule({
 	integer: true,
 	default: 3,
 	presets: byMode(0, 3, 3),
+	easier: 'lower',
 	changeable: true
 });
 
@@ -366,7 +415,9 @@ export const STOCK_RULES = [
 	RuleAgencyCount,
 	RuleDebugTools,
 	RulePauseAllowed,
-	RuleEvaBoardAssist
+	RuleEvaBoardAssist,
+	RuleAllowRevert,
+	RuleAllowQuickload
 ] as const;
 
 export const PresetSandbox = definePreset({
