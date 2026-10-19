@@ -911,24 +911,40 @@
 	$effect(() => {
 		pageShell.actions = flightActions;
 	});
-	$effect(() => {
+	// The bars take new values only when what they show changes, not on every HUD frame: T+ in
+	// whole seconds, the warp level, its limit and the vessel's situation.
+	const shellTime = $derived.by(() => {
 		const steps = warpSteps;
 		const warp = hud?.warp ?? 1;
 		const limit = hud?.warpLimit ?? null;
 		const clamp = hud?.warpClamp ?? null;
 		const index = steps.reduce((at, step, i) => (step <= warp ? i : at), 0);
 		const limited = limit?.reason && limit.max < steps[steps.length - 1]!;
-		const usable = warpUsable;
-		pageShell.time = {
+		return JSON.stringify({
 			steps,
 			index,
 			limit: limit?.max ?? null,
 			reason: clamp ?? (limited ? `Max ${warpText(limit.max)} — ${limit.reason}` : ''),
-			elapsed: model ? (model.prelaunch ? model.time : model.met) : 0,
+			elapsed: Math.floor(model ? (model.prelaunch ? model.time : model.met) : 0),
 			date: model?.date ?? '',
+			usable: warpUsable
+		});
+	});
+	$effect(() => {
+		const t = JSON.parse(shellTime) as {
+			steps: number[];
+			index: number;
+			limit: number | null;
+			reason: string;
+			elapsed: number;
+			date: string;
+			usable: boolean;
+		};
+		pageShell.time = {
+			...t,
 			onpick: (i) => {
-				if (i > index && !usable) return;
-				flight?.stepWarp(i - index);
+				if (i > t.index && !t.usable) return;
+				flight?.stepWarp(i - t.index);
 			},
 			catchUp,
 			oncatchup: () =>
@@ -937,13 +953,14 @@
 				})
 		};
 	});
+	const shellPlace = $derived(model ? JSON.stringify([model.name, model.situation]) : '');
 	$effect(() => {
-		pageShell.location = model
-			? { icon: 'vessel', text: model.name, situation: model.situation }
-			: null;
+		const place = shellPlace ? (JSON.parse(shellPlace) as [string, string]) : null;
+		pageShell.location = place ? { icon: 'vessel', text: place[0], situation: place[1] } : null;
 	});
+	const mapOn = $derived(hud?.map ?? false);
 	$effect(() => {
-		const on = hud?.map ?? false;
+		const on = mapOn;
 		pageShell.map = { on, toggle: () => flight?.toggleMap() };
 		pageShell.menu = () => (pauseOpen = true);
 	});
