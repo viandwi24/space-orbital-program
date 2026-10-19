@@ -29,6 +29,15 @@
 	let missing = $state<string[] | null>(null);
 	onMount(() => {
 		settings.start();
+		// once after the key profiles arrived (plan 216, ADR 0206 point 5): say which keys are in force
+		if (settings.keyNotice) {
+			note =
+				settings.keyProfile === 'ksp'
+					? "Keys now follow KSP's. Orbital classic is in Settings, Controls."
+					: "Your changed keys stay on Orbital classic. KSP's keys are in Settings, Controls.";
+			noteTimer = setTimeout(() => (note = null), 8000);
+			settings.dismissKeyNotice();
+		}
 		missing = missingFeatures(detectInBrowser());
 		// The engine listens for the first gesture from here on (autoplay policy, plan 053).
 		pageAudio();

@@ -599,6 +599,8 @@
 				targetMarks?.place(f.target ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
+			// the player's profile and keys (plan 216; before it the flight read the defaults only)
+			keymap: () => settings.keymap,
 			onKey: (key) => {
 				if (key === 'escape') pauseOpen = true;
 				else if (key === 'quicksave') void quicksave();

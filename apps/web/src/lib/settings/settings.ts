@@ -133,7 +133,7 @@ export interface Settings {
 	time: TimeSettings;
 	/** The key profile under `bindings` (plan 216): KSP for new players. */
 	keyProfile: KeyProfile;
-	/** Show once: "Orbital now uses KSP keys; switch?" (a player migrated to `classic`). */
+	/** Show once after the migration to format 4: which key profile is in force. */
 	keyNotice: boolean;
 }
 export type TutorialProgress = Settings['tutorial'];
@@ -156,17 +156,15 @@ export const defaultSettings = (): Settings => ({
 });
 
 /**
- * A player who changed keys before plan 216 keeps their hands: `classic` with the same overrides,
- * and the notice offers KSP once. A player who changed nothing gets KSP (ADR 0206).
+ * A player who changed keys before plan 216 keeps their hands: `classic` with the same overrides.
+ * A player who changed nothing gets KSP. Both see the notice once (ADR 0206 point 5).
  */
 function profileFor(bindings: Readonly<Record<string, unknown>>): {
 	keyProfile: KeyProfile;
 	keyNotice: boolean;
 } {
 	const changed = Object.keys(repairBindings(bindings, 'classic')).length > 0;
-	return changed
-		? { keyProfile: 'classic', keyNotice: true }
-		: { keyProfile: 'ksp', keyNotice: false };
+	return { keyProfile: changed ? 'classic' : 'ksp', keyNotice: true };
 }
 
 /** Settings from stored text: anything that is not a valid settings object gives the defaults. */

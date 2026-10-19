@@ -12,11 +12,11 @@ Our bindings clash with KSP habits (`keybindings.ts:57-133`; research docs 12 an
 ## Decision
 
 1. **Two profiles in one binding table:** a **KSP-compatible default** and **"Orbital classic"** (today's layout) for existing players (default per owner review, rancangan §15 #7; may change). Settings has a profile selector; per-action rebinding works on top of either.
-2. **KSP default:** B brakes (hold), C free until IVA; `[`/`]` switch vessel; trim on Alt+WASDQE, reset Alt+X; V camera mode, speed reference by clicking the speed readout; N RCS back, mute on Ctrl+M; 1–0 action groups, SAS modes on navball buttons and Alt+1..0; R RCS, G gear, U lights, Backspace abort, F2 hide UI, F1 screenshot, `/` stop warp, Caps Lock precision, H N I K J L translation; backtick camera reset.
+2. **KSP default:** B brakes (a toggle in plan 216, like C before), C free until IVA; `[`/`]` switch vessel; trim on Alt+WASDQE, reset Alt+X; V camera mode, speed reference by clicking the speed readout; N RCS back, mute on Ctrl+M; 1–0 action groups, SAS modes on navball buttons and Alt+1..0; R RCS, G gear, U lights, Backspace abort, F2 hide UI, F10 screenshot (F1 stays help and F12 is the debug panel's, plan 216), `/` stop warp, Caps Lock precision, H N I K J L translation; backtick camera reset.
 3. **Pause:** `P` on every page; Space pauses only outside Flight (default per owner review, rancangan §15 #6; may change; see ADR 0201 point 6).
 4. **Node keys are scoped:** node editing keys work only while the map is open and a node is selected, so they never clash with translation.
 5. **Migration:** a player's custom binds move to the profile they were made on (Orbital classic); a player with no custom binds lands on the KSP default and sees a one-time toast naming the change and the selector.
-6. **Camera and capture keys** (plan 226) use this table: V cycles Auto/Free/Orbital/Locked with a toast, F2 hides the UI, F1 saves a PNG.
+6. **Camera and capture keys** (plan 226) use this table: V cycles Auto/Free/Orbital/Locked with a toast, F2 hides the UI, F10 saves a PNG (plan 216 moved it from F1, which is help).
 
 ## Alternatives considered
 

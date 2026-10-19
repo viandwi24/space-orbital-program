@@ -92,7 +92,9 @@ describe('settings parsing', () => {
 		expect(changed.keyNotice).toBe(true);
 		const plain = parseSettings(JSON.stringify(v3));
 		expect(plain.keyProfile).toBe('ksp');
-		expect(plain.keyNotice).toBe(false);
+		expect(plain.keyNotice).toBe(true);
+		// a new player has nothing to be told
+		expect(defaultSettings().keyNotice).toBe(false);
 		expect(plain.bindings).toEqual({});
 	});
 	it('a format 3 value without a dock, or with a damaged one, takes the default dock (plan 112)', () => {
@@ -142,7 +144,9 @@ describe('settings parsing', () => {
 		const s = parseSettings(text);
 		expect(s).toEqual({
 			...defaultSettings(),
-			tutorial: { status: 'done', step: 0 }
+			tutorial: { status: 'done', step: 0 },
+			// an old value: the key profile notice shows once (plan 216)
+			keyNotice: true
 		});
 		expect('extra' in s).toBe(false);
 	});

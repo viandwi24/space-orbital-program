@@ -5,10 +5,41 @@
 import { expect, test, type Page } from '@playwright/test';
 import { watchErrors } from './support';
 
-/** /vab → the glider (it has wheels, so a Brakes group) → Launch → /flight. */
-async function launchGlider(page: Page): Promise<void> {
+/** A pod on a tank with a wheel on its side (a Brakes group), imported into the library and launched. */
+async function launchRover(page: Page): Promise<void> {
+	const design = {
+		formatVersion: 3,
+		name: 'Brake test',
+		parts: [
+			{ index: 0, part: 'stock.command-pod', parent: null },
+			{
+				index: 1,
+				part: 'stock.tank-small',
+				parent: { index: 0, parentNode: 'bottom', node: 'top' }
+			},
+			{
+				index: 2,
+				part: 'stock.wheel',
+				parent: { index: 1, parentNode: 'surface', node: 'radial', radial: { angle: 0, y: 0 } }
+			}
+		],
+		stages: []
+	};
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the glider' }).click();
+	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await page.goto('/vab?library');
+	const library = page.getByRole('dialog', { name: 'Vessel library' });
+	await library.locator('input[type=file]').setInputFiles({
+		name: 'brake-test.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify(design))
+	});
+	await expect(library.getByRole('status')).toHaveText('Imported Brake test.');
+	await library
+		.getByRole('listitem')
+		.filter({ hasText: 'Brake test' })
+		.getByRole('button', { name: 'Open' })
+		.click();
 	const launch = page.getByRole('button', { name: /^Launch/ });
 	await expect(launch).toBeEnabled();
 	await launch.click();
@@ -46,21 +77,19 @@ test('KSP keys by default, Orbital classic from Settings, node keys only on a se
 	page
 }) => {
 	const errors = watchErrors(page);
-	await launchGlider(page);
+	await launchRover(page);
 	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
+	// the vessel panel lists a vessel's groups while it is in flight; a key wakes it from the pad's rails
 	const brakes = page.getByTestId('group-stock.brakes');
 	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await expect(brakes).toBeVisible({ timeout: 30_000 });
-	const before = await brakes.getAttribute('aria-checked');
 	await page
 		.locator('canvas')
 		.first()
 		.click({ position: { x: 20, y: 20 } });
 
-	// B is brakes in the KSP profile
+	// B is brakes in the KSP profile: the Overview reads Brakes on
 	await page.keyboard.press('KeyB');
-	await expect(brakes).not.toHaveAttribute('aria-checked', before ?? '', { timeout: 10_000 });
-	const braked = await brakes.getAttribute('aria-checked');
+	await expect(brakes).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 });
 
 	// Alt+2 is SAS prograde
 	await page.keyboard.press('Alt+Digit2');
@@ -89,6 +118,6 @@ test('KSP keys by default, Orbital classic from Settings, node keys only on a se
 		.first()
 		.click({ position: { x: 20, y: 20 } });
 	await page.keyboard.press('KeyC');
-	await expect(brakes).not.toHaveAttribute('aria-checked', braked ?? '', { timeout: 10_000 });
+	await expect(brakes).toHaveAttribute('aria-checked', 'false', { timeout: 15_000 });
 	expect(errors).toEqual([]);
 });
