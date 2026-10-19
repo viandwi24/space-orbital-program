@@ -43,6 +43,7 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 					})
 					.nullable(),
 				symmetry: index.optional(),
+				mirror: z.literal(true).optional(),
 				tilt: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
 				link: z.object({ index, angle: z.number(), y: z.number() }).optional()
 			})

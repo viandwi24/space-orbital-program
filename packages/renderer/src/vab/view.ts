@@ -29,7 +29,8 @@ import {
 	SpotLight,
 	MeshStandardMaterial,
 	Mesh,
-	BoxGeometry
+	BoxGeometry,
+	Quaternion
 } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -67,10 +68,12 @@ import {
 	orbit,
 	pan,
 	cameraPosition,
+	focus,
+	raise,
 	zoom,
 	type VabCameraState
 } from './orbit-camera.ts';
-import { pickNode, toNdc, type PickRay } from './picking.ts';
+import { pickNode, toNdc, worldNormalOf, type PickRay } from './picking.ts';
 import {
 	EMPTY_SCENE,
 	applyPartTurn,
@@ -102,7 +105,13 @@ export interface VabViewConfig {
 export type VabHit =
 	| { kind: 'node'; key: string }
 	/** `point` is where the ray meets the part, in the design frame of its group (root origin, vessel axes), metres. */
-	| { kind: 'part'; key: string; point: [number, number, number] }
+	| {
+			kind: 'part';
+			key: string;
+			point: [number, number, number];
+			/** The face's outward normal in the group's frame (plan 217); absent for a hit without a face. */
+			normal?: [number, number, number];
+	  }
 	| { kind: 'ghost' };
 
 export interface VabStats {
@@ -543,6 +552,23 @@ export class VabView {
 		this.goal = zoom(this.goal, factor);
 	}
 
+	/** The turntable's wheel (plan 217): `dy` metres up or down the vessel. */
+	raiseBy(dy: number): void {
+		this.follow = false;
+		this.goal = raise(this.goal, dy);
+		this.cam = { ...this.cam, target: this.goal.target };
+	}
+
+	/** Centres the camera on a part (a middle click, plan 217); false for an unknown key. */
+	focusOn(key: string): boolean {
+		const e = this.layer.parts.get(key);
+		if (!e) return false;
+		this.follow = false;
+		const c = new Box3().setFromObject(e.model.root).getCenter(new Vector3());
+		this.goal = focus(this.goal, [c.x, c.y, c.z]);
+		return true;
+	}
+
 	/** Back to following the vessel with a framing that fits it. */
 	frame(): void {
 		this.follow = true;
@@ -650,9 +676,31 @@ export class VabView {
 			}
 			const group = entry && this.layer.groups.get(entry.group);
 			const local = group ? group.object.worldToLocal(h.point.clone()) : h.point;
-			return { kind: 'part', key: o.userData.key as string, point: [local.x, local.y, local.z] };
+			const world = worldNormalOf(h);
+			let normal: [number, number, number] | undefined;
+			if (world) {
+				const n = new Vector3(...world);
+				// into the group's frame: its rotation only
+				if (group) n.applyQuaternion(group.object.getWorldQuaternion(new Quaternion()).invert());
+				normal = [n.x, n.y, n.z];
+			}
+			return {
+				kind: 'part',
+				key: o.userData.key as string,
+				point: [local.x, local.y, local.z],
+				...(normal ? { normal } : {})
+			};
 		}
 		return null;
+	}
+
+	/** Screen position (CSS pixels in the canvas) of a node marker (`t<i>` for target `i`), or null. */
+	screenPositionOfMarker(key: string): { x: number; y: number } | null {
+		const m = this.markers.get(key);
+		if (!m) return null;
+		const p = m.getWorldPosition(new Vector3()).project(this.camera);
+		if (p.z > 1) return null;
+		return { x: ((p.x + 1) / 2) * this.width, y: ((1 - p.y) / 2) * this.height };
 	}
 
 	/** Screen position (CSS pixels in the canvas) of a part's centre, or null if it is unknown or behind the camera. */

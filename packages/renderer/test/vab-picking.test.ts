@@ -1,0 +1,46 @@
+/** Plan 217: picking a part's side returns that face's normal; the turntable camera's height and focus. */
+import { describe, expect, it } from 'bun:test';
+import { BoxGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
+import { VAB_CAMERA_LIMITS, focus, initialCamera, raise } from '../src/vab/orbit-camera.ts';
+import { worldNormalOf } from '../src/vab/picking.ts';
+
+const hitNormal = (mesh: Mesh, origin: Vector3, dir: Vector3) => {
+	mesh.updateMatrixWorld(true);
+	const hit = new Raycaster(origin, dir.normalize()).intersectObject(mesh)[0];
+	if (!hit) throw new Error('missed');
+	return worldNormalOf(hit)!;
+};
+
+describe('picking a face (plan 217)', () => {
+	it('a ray to the side of a box part returns that face normal', () => {
+		const box = new Mesh(new BoxGeometry(1, 2, 1), new MeshBasicMaterial());
+		const n = hitNormal(box, new Vector3(5, 0.3, 0.1), new Vector3(-1, 0, 0));
+		expect(n[0]).toBeCloseTo(1, 9);
+		expect(Math.abs(n[1]) + Math.abs(n[2])).toBeLessThan(1e-9);
+		const top = hitNormal(box, new Vector3(0.2, 5, 0), new Vector3(0, -1, 0));
+		expect(top[1]).toBeCloseTo(1, 9);
+	});
+
+	it('the normal turns with the part', () => {
+		const box = new Mesh(new BoxGeometry(1, 2, 1), new MeshBasicMaterial());
+		box.rotation.y = Math.PI / 2; // its +X face now looks along -Z
+		const n = hitNormal(box, new Vector3(0, 0, -5), new Vector3(0, 0, 1));
+		expect(n[2]).toBeCloseTo(-1, 9);
+	});
+});
+
+describe('turntable camera (plan 217)', () => {
+	it('the wheel moves the target up and down the vessel, clamped to the pan box', () => {
+		const c = initialCamera();
+		const up = raise(c, 3);
+		expect(up.target[1]).toBeCloseTo(c.target[1] + 3, 9);
+		expect(up.distance).toBe(c.distance);
+		expect(raise(c, 1_000).target[1]).toBe(VAB_CAMERA_LIMITS.panTop);
+		expect(raise(c, -1_000).target[1]).toBe(0);
+	});
+
+	it('a focus puts the target on the point', () => {
+		const f = focus(initialCamera(), [1, 7, -2]);
+		expect(f.target).toEqual([1, 7, -2]);
+	});
+});

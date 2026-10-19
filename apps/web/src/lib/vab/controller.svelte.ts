@@ -48,6 +48,7 @@ import {
 	attachConnector,
 	attachNew,
 	attachTargets,
+	copyOf,
 	canRedo,
 	canUndo,
 	createEditor,
@@ -78,7 +79,10 @@ import {
 	SYMMETRY_COUNTS,
 	tiltOf,
 	undo,
+	withRootTilt,
+	NO_TILT,
 	type AttachTarget,
+	type SymmetrySpec,
 	type ConnectorEnd,
 	type EditorState
 } from '../editor/state';
@@ -108,7 +112,13 @@ export type Armed =
 	/** A strut or fuel line: the first end once it is picked, then the second (ADR 0071). */
 	| { kind: 'connect'; part: string; from: ConnectorEnd | null }
 	| { kind: 'assembly'; id: string }
-	| { kind: 'carry'; index: number; single: boolean };
+	| { kind: 'carry'; index: number; single: boolean }
+	/** An Alt-click copy of a subtree on the cursor (plan 217); dropping it on the catalogue discards it. */
+	| { kind: 'copy'; assembly: VesselDesign; title: string };
+
+/** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
+const TURN_STEP = Math.PI / 2;
+const TURN_FINE = (5 * Math.PI) / 180;
 
 /** Autosave waits this long after the last edit (ms). */
 const AUTOSAVE_DELAY = 800;
@@ -148,6 +158,12 @@ export class VabController {
 	hoverNode = $state<number | null>(null);
 	lastPlaced = $state<number | null>(null);
 	symmetry = $state(1);
+	/** Mirror symmetry (R, plan 217): two copies reflected across the vessel's plane. */
+	mirror = $state(false);
+	/** The carried part's turn from the keys (plan 217). */
+	turn = $state.raw<DesignTilt>(NO_TILT);
+	/** Angle snap of radial sites (C, plan 217): 15 degrees, 5 with Shift held. */
+	angleSnap = $state(true);
 	radialAngle = $state(0);
 	pointerTarget = $state.raw<AttachTarget | null>(null);
 	/** While a connector is armed: the spot under the pointer, as a point of the main group and as an end of a link. */
@@ -189,8 +205,17 @@ export class VabController {
 	private readonly store: LibraryStore & { readonly degraded: boolean };
 	private readonly env = browserEnv();
 	private saveTimer: ReturnType<typeof setTimeout> | undefined;
-	private drag: { x: number; y: number; moved: boolean; button: number; shift: boolean } | null =
-		null;
+	private drag: {
+		x: number;
+		y: number;
+		moved: boolean;
+		button: number;
+		shift: boolean;
+		/** The part under the press (plan 217): a drag from it picks it up. */
+		part?: string;
+	} | null = null;
+	/** The carry started by dragging a part (plan 217): letting go places or drops it. */
+	private dragCarry = false;
 
 	// --- derived ---------------------------------------------------------------------------------------------
 	/** What the scene, stats and checks show: the live slider preview, else the committed state. */
@@ -205,19 +230,25 @@ export class VabController {
 	readonly held = $derived.by((): VesselDesign | null => {
 		const a = this.armed;
 		if (!a || a.kind === 'connect') return null;
-		if (a.kind === 'new') return singlePart(a.part, this.editor.nextIndex);
+		if (a.kind === 'new') return withRootTilt(singlePart(a.part, this.editor.nextIndex), this.turn);
 		if (a.kind === 'assembly') {
 			const d = this.assemblyOf(a.id);
-			return d ? reindex(d, this.editor.nextIndex) : null;
+			return d ? withRootTilt(reindex(d, this.editor.nextIndex), this.turn) : null;
 		}
-		return this.shown.assembly;
+		if (a.kind === 'copy')
+			return withRootTilt(reindex(a.assembly, this.editor.nextIndex), this.turn);
+		return this.shown.assembly ? withRootTilt(this.shown.assembly, this.turn) : null;
 	});
+	/** The symmetry setting placements use: a mirror pair, else the count. */
+	readonly symmetrySpec = $derived<SymmetrySpec>(
+		this.mirror ? { count: 1, mirror: true } : { count: this.symmetry }
+	);
 	readonly heldRootDef = $derived(
 		this.held ? this.defOf(this.held.parts.find((p) => p.parent === null)?.part ?? '') : undefined
 	);
 	readonly radialCapable = $derived(radialNodeOf(this.heldRootDef) !== undefined);
 	readonly copies = $derived(
-		this.armed?.kind === 'carry' ? this.shown.followers.length + 1 : this.symmetry
+		this.armed?.kind === 'carry' ? this.shown.followers.length + 1 : this.mirror ? 2 : this.symmetry
 	);
 	readonly targets = $derived(
 		this.held ? attachTargets(this.shown.design, this.held, this.lookup, this.radialAngle) : []
@@ -537,6 +568,18 @@ export class VabController {
 		this.view.start();
 		this.viewReady = true;
 		if (import.meta.env.DEV) (window as unknown as { __vab?: VabView }).__vab = this.view;
+		// a read-only view of the Hangar for tests (plan 217): where parts and target rings are on
+		// the page, and what the editor holds
+		(window as unknown as { __orbitalVab?: unknown }).__orbitalVab = {
+			partAt: (index: number) => this.pageOf(this.view?.screenPositionOf(String(index)) ?? null),
+			targetAt: (i: number) => this.pageOf(this.view?.screenPositionOfMarker(`t${i}`) ?? null),
+			targets: () =>
+				this.targets.map((t, i) => ({ i, parent: t.parent, node: t.node, radial: t.radial })),
+			active: () => this.active,
+			parts: () => this.editor.design.parts.map((p) => ({ index: p.index, part: p.part })),
+			looseParts: () => this.editor.loose.reduce((n, a) => n + a.parts.length, 0),
+			armed: () => this.armed?.kind ?? null
+		};
 		ro.observe(els.stage);
 		ro.observe(els.left);
 		ro.observe(els.right);
@@ -557,6 +600,12 @@ export class VabController {
 			this.view = null;
 			this.viewReady = false;
 		};
+	}
+
+	/** A canvas position as page coordinates (for the test hook). */
+	private pageOf(p: { x: number; y: number } | null): { x: number; y: number } | null {
+		const r = this.canvas?.getBoundingClientRect();
+		return p && r ? { x: r.left + p.x, y: r.top + p.y } : null;
 	}
 
 	resize(): void {
@@ -774,6 +823,11 @@ export class VabController {
 	// --- placing ---------------------------------------------------------------------------------------------
 
 	arm(part: string): void {
+		// a carried part or a copy brought to the catalogue goes back into it (plan 217)
+		if (this.armed?.kind === 'carry' || this.armed?.kind === 'copy') {
+			this.dropOnCatalogue();
+			return;
+		}
 		if (this.defOf(part)?.connector) {
 			this.armed =
 				this.armed?.kind === 'connect' && this.armed.part === part
@@ -797,6 +851,7 @@ export class VabController {
 	}
 
 	private afterArm(text: string, connect = false): void {
+		this.turn = NO_TILT;
 		this.selected = null;
 		this.hoverNode = null;
 		if (this.armed && connect) {
@@ -890,8 +945,15 @@ export class VabController {
 			if (armed.kind === 'new') {
 				const index = this.editor.nextIndex;
 				const before = this.editor.design.parts.length;
-				this.editor = attachNew(this.editor, this.editorContent, armed.part, target, this.symmetry);
+				const held = this.held;
+				// a turned part goes in as an assembly with its tilt: still one undo step
+				this.editor =
+					held && (this.turn.x !== 0 || this.turn.y !== 0 || this.turn.z !== 0)
+						? attachAssembly(this.editor, this.editorContent, held, target, this.symmetrySpec)
+						: attachNew(this.editor, this.editorContent, armed.part, target, this.symmetrySpec);
 				this.lastPlaced = index;
+				// the carry loop (plan 217): the hand is empty after a click places the part
+				this.armed = null;
 				const n = this.editor.design.parts.length - before;
 				this.say(`Attached ${n > 1 ? `${n} ` : ''}${this.defOf(armed.part)?.title}.`);
 			} else if (armed.kind === 'assembly') {
@@ -899,13 +961,36 @@ export class VabController {
 				if (!d) throw new Error('that sub-assembly is gone');
 				const index = this.editor.nextIndex;
 				const before = this.editor.design.parts.length;
-				this.editor = attachAssembly(this.editor, this.editorContent, d, target, this.symmetry);
+				this.editor = attachAssembly(
+					this.editor,
+					this.editorContent,
+					withRootTilt(d, this.turn),
+					target,
+					this.symmetrySpec
+				);
 				this.lastPlaced = index;
+				this.armed = null;
 				this.say(`Attached ${d.name}: ${this.editor.design.parts.length - before} parts.`);
+			} else if (armed.kind === 'copy') {
+				const index = this.editor.nextIndex;
+				const before = this.editor.design.parts.length;
+				this.editor = attachAssembly(
+					this.editor,
+					this.editorContent,
+					withRootTilt(armed.assembly, this.turn),
+					target,
+					this.symmetrySpec
+				);
+				this.lastPlaced = index;
+				this.armed = null;
+				this.say(
+					`Placed a copy of ${armed.title}: ${this.editor.design.parts.length - before} parts.`
+				);
 			} else if (armed.kind === 'carry') {
 				const before = groupOf(this.editor.design, armed.index).length;
 				this.editor = moveGroup(this.editor, this.editorContent, armed.index, target, {
-					single: armed.single
+					single: armed.single,
+					tilt: this.turn
 				});
 				this.selected = armed.index;
 				this.armed = null;
@@ -937,9 +1022,12 @@ export class VabController {
 			def?.shape?.kind === 'cylinder' ? def.shape.height : (def?.shape?.size[1] ?? 1);
 		const n = this.copies;
 		const step = n > 1 ? (2 * Math.PI) / (n * Math.max(1, Math.round(24 / n))) : Math.PI / 12;
-		const site = free
-			? raw
-			: snapRadial(raw, surfaceHalfHeight(shape) * 2, childHeight, { angleStep: step });
+		const site =
+			free || !this.angleSnap
+				? raw
+				: snapRadial(raw, surfaceHalfHeight(shape) * 2, childHeight, {
+						angleStep: this.fineSnap ? Math.PI / 36 : step
+					});
 		return radialTarget(this.shown.design, held, this.lookup, parentIndex, site.angle, site.y);
 	}
 
@@ -992,6 +1080,7 @@ export class VabController {
 		const sel = this.selected;
 		if (sel === null) return;
 		this.armed = { kind: 'carry', index: sel, single };
+		this.turn = tiltOf(this.editor.design, sel);
 		this.hoverNode = null;
 		const group = !single && this.groupSize > 1;
 		this.say(
@@ -1134,6 +1223,55 @@ export class VabController {
 		this.say(this.highContrast ? 'High-contrast markers on.' : 'High-contrast markers off.');
 	}
 
+	/** Shift held while carrying: 5 degree steps for the snap and the turn keys (plan 217). */
+	fineSnap = false;
+	/** The touch chip for Alt (plan 217): the next part tapped is copied, then it turns off. */
+	copyMode = $state(false);
+
+	/** Copies a placed part and what hangs on it onto the cursor (Alt-click, plan 217). */
+	copyPart(index: number): void {
+		const assembly = copyOf(this.editor, index);
+		if (!assembly) return;
+		const title = this.titleOfPart(index);
+		this.armed = { kind: 'copy', assembly, title };
+		this.afterArm(
+			`Copied ${title}${assembly.parts.length > 1 ? ` and ${assembly.parts.length - 1} parts on it` : ''}.`
+		);
+		this.turn = tiltOf(assembly, index);
+	}
+
+	/**
+	 * The carried thing let go over the catalogue (plan 217, ADR 0207 point 1): a carried part is
+	 * deleted with what hangs on it (one undo step), a new part or a copy is put back.
+	 */
+	dropOnCatalogue(): void {
+		const armed = this.armed;
+		if (!armed || armed.kind === 'connect') return;
+		if (armed.kind === 'carry') {
+			const name = this.titleOfPart(armed.index);
+			this.attempt(() => {
+				this.editor = deleteSubtree(this.editor, this.editorContent, armed.index, {
+					single: armed.single
+				});
+				this.say(`Deleted ${name}.`);
+			});
+		} else {
+			this.say('Put back.');
+		}
+		this.disarm();
+	}
+
+	/** Turns the carried part about its parent's axes by `d` (plan 217). */
+	turnCarried(d: Partial<DesignTilt>): void {
+		const t = this.turn;
+		const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
+		this.turn = {
+			x: wrap(t.x + (d.x ?? 0)),
+			y: wrap(t.y + (d.y ?? 0)),
+			z: wrap(t.z + (d.z ?? 0))
+		};
+	}
+
 	/** Shift+Launch skips the Launch screen (plan 094, ADR 0150 point 4). */
 	quickLaunch = false;
 
@@ -1177,7 +1315,22 @@ export class VabController {
 			return;
 		}
 		this.canvas?.focus({ preventScroll: true });
-		this.drag = { x: e.clientX, y: e.clientY, moved: false, button: e.button, shift: e.shiftKey };
+		const hit = e.button === 0 && !this.armed ? this.pick(e) : null;
+		if (hit?.kind === 'part' && (e.altKey || this.copyMode)) {
+			// Alt-click copies the part and what hangs on it onto the cursor (plan 217)
+			this.copyMode = false;
+			this.copyPart(Number(hit.key));
+			this.drag = null;
+			return;
+		}
+		this.drag = {
+			x: e.clientX,
+			y: e.clientY,
+			moved: false,
+			button: e.button,
+			shift: e.shiftKey,
+			...(hit?.kind === 'part' ? { part: hit.key } : {})
+		};
 	};
 	pointerMove = (e: PointerEvent): void => {
 		const tracked = this.pointers.get(e.pointerId);
@@ -1196,6 +1349,18 @@ export class VabController {
 			const dx = e.clientX - d.x;
 			const dy = e.clientY - d.y;
 			if (!d.moved && Math.hypot(dx, dy) < 4) return;
+			if (!d.moved && d.part !== undefined && d.button === 0 && !d.shift && !this.armed) {
+				// a drag from a placed part picks it up with what hangs on it (plan 217)
+				this.drag = null;
+				this.selected = Number(d.part);
+				this.carrySelected();
+				this.dragCarry = true;
+			}
+		}
+		if (this.drag) {
+			const d = this.drag;
+			const dx = e.clientX - d.x;
+			const dy = e.clientY - d.y;
 			d.moved = true;
 			d.x = e.clientX;
 			d.y = e.clientY;
@@ -1241,6 +1406,16 @@ export class VabController {
 		this.drag = null;
 		this.canvas?.releasePointerCapture(e.pointerId);
 		if (wasPinch) return;
+		if (this.dragCarry) {
+			this.dragCarry = false;
+			this.letGo(e);
+			return;
+		}
+		if (d && !d.moved && d.button === 1 && d.part !== undefined) {
+			// a middle click centres the view on the part (plan 217)
+			this.view?.focusOn(d.part);
+			return;
+		}
 		if (!d || d.moved || d.button !== 0) return;
 		const hit = this.pick(e);
 		if (this.armed?.kind === 'connect') {
@@ -1269,9 +1444,47 @@ export class VabController {
 		this.pointerTarget = null;
 		this.view?.setHover(null);
 	};
+	/**
+	 * A dragged part let go (plan 217): over the catalogue it is deleted; over a ring or a side it is
+	 * placed; anywhere else it stays on the floor as a loose assembly. Each is one undo step.
+	 */
+	private letGo(e: PointerEvent): void {
+		const armed = this.armed;
+		if (armed?.kind !== 'carry') return;
+		const r = this.leftEl?.getBoundingClientRect();
+		if (
+			r &&
+			e.clientX >= r.left &&
+			e.clientX <= r.right &&
+			e.clientY >= r.top &&
+			e.clientY <= r.bottom
+		) {
+			this.dropOnCatalogue();
+			return;
+		}
+		const hit = this.pick(e);
+		const site = this.radialFromHit(hit, e.altKey);
+		if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
+		else if (site) this.placeAt(site);
+		else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
+		else {
+			const index = armed.index;
+			this.disarm();
+			if (!this.editor.loose.some((a) => a.parts.some((p) => p.index === index))) {
+				this.attempt(() => {
+					this.editor = detach(this.editor, this.editorContent, index, { single: armed.single });
+					this.say(`${this.titleOfPart(index)} stays on the floor.`);
+				});
+			}
+		}
+	}
+
 	wheel = (e: WheelEvent): void => {
 		e.preventDefault();
-		this.view?.zoomBy(Math.exp(e.deltaY * 0.0012));
+		// the turntable (plan 217, ADR 0207 point 4): the wheel moves the view up and down the
+		// vessel; with Shift or Ctrl (a trackpad pinch) it zooms
+		if (e.shiftKey || e.ctrlKey || e.metaKey) this.view?.zoomBy(Math.exp(e.deltaY * 0.0012));
+		else this.view?.raiseBy(-e.deltaY * 0.01);
 	};
 
 	// --- keyboard --------------------------------------------------------------------------------------------
@@ -1319,6 +1532,37 @@ export class VabController {
 		}
 		if (typing || mod || e.altKey) return;
 		const onCanvas = t === this.canvas;
+		// while a part rides the cursor its own keys come first (plan 217, ADR 0207 point 3)
+		if (this.armed && this.armed.kind !== 'connect') {
+			const turn = settings.keymap.actionFor('carry', keyIdOf(e));
+			const step = e.shiftKey ? TURN_FINE : TURN_STEP;
+			const turns: Partial<Record<string, Partial<DesignTilt>>> = {
+				pitchUp: { x: step },
+				pitchDown: { x: -step },
+				yawLeft: { y: step },
+				yawRight: { y: -step },
+				rollLeft: { z: step },
+				rollRight: { z: -step }
+			};
+			if (turn && turns[turn]) {
+				e.preventDefault();
+				this.turnCarried(turns[turn]!);
+				return;
+			}
+			if (turn === 'turnReset') {
+				e.preventDefault();
+				this.turn = NO_TILT;
+				this.say('Turn reset.');
+				return;
+			}
+			if (turn === 'angleSnap') {
+				e.preventDefault();
+				this.angleSnap = !this.angleSnap;
+				this.say(this.angleSnap ? 'Angle snap on.' : 'Angle snap off.');
+				return;
+			}
+		}
+		this.fineSnap = e.shiftKey;
 		// Backspace is a fixed second key for Delete (ADR 0061); every other key goes through the table.
 		const action: ActionId | 'escape' | null =
 			e.key === 'Escape'
@@ -1345,13 +1589,19 @@ export class VabController {
 				e.preventDefault();
 				this.removeSelected(e.shiftKey);
 				return;
-			case 'symmetry':
+			case 'symmetry': {
 				if (this.armed?.kind === 'carry' || !this.armed) return;
-				this.symmetry =
-					SYMMETRY_COUNTS[
-						(SYMMETRY_COUNTS.indexOf(this.symmetry as 1) + 1) % SYMMETRY_COUNTS.length
-					]!;
+				// X up, Shift+X down (plan 217)
+				const n = SYMMETRY_COUNTS.length;
+				const at = SYMMETRY_COUNTS.indexOf(this.symmetry as 1);
+				this.symmetry = SYMMETRY_COUNTS[(at + (e.shiftKey ? n - 1 : 1)) % n]!;
+				this.mirror = false;
 				this.say(this.symmetry === 1 ? 'Symmetry off.' : `${this.symmetry}-way symmetry.`);
+				return;
+			}
+			case 'mirror':
+				this.mirror = !this.mirror;
+				this.say(this.mirror ? 'Mirror symmetry on.' : 'Mirror symmetry off.');
 				return;
 			case 'turnPlus':
 			case 'turnMinus': {

@@ -1,12 +1,12 @@
 ---
 id: 217
 title: "Hangar: carry loop, symmetry, rotation, turntable camera"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker A"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 217 — Hangar: carry loop, symmetry, rotation, turntable camera
@@ -97,3 +97,10 @@ Building in the Hangar feels like KSP's VAB. A part rides on the cursor; nodes l
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker A. Defaults (owner rule, ADR 0207), recorded here and in ADR 0221:
+  - Drag picks a part up; a click still selects (keeps the selection card, M carry and screen readers). Placing empties the hand.
+  - Mirror reflects across the vessel's YZ plane (not the camera's plane), so the result does not depend on the view.
+  - No design format bump: `mirror: true` is an additive field; a format 3 design with groups migrates and resolves unchanged.
+  - The carry keys get their own scope (`carry`), so WASD, Space and C act only while a part rides the cursor.
+  - Deferred, with the reason in ADR 0221: surface attach on top and bottom faces and cones (needs a general surface link), a ghost free under the cursor, Shift-click for the whole vessel.
+  - `e2e/editor.e2e.ts` is the script editor's (plus the Hangar size mark); it is run unchanged.

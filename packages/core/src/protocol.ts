@@ -549,6 +549,11 @@ export interface VesselDesign {
 		parent: DesignLink | null;
 		/** Symmetry group (version 2): parts made together by the editor share the number. The sim ignores it. */
 		symmetry?: number;
+		/**
+		 * The group is a mirror pair (plan 217, ADR 0207 point 2): this member is the reflection of the
+		 * other across the vessel's YZ plane. Any version; the editor reads it, the sim ignores it.
+		 */
+		mirror?: true;
 		/** Rotation of the part about its parent's axes (version 3). Absent: none. */
 		tilt?: DesignTilt;
 		/** Connector parts only (version 3): where the part's other end lands (struts and fuel lines, ADR 0071). */

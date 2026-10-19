@@ -95,6 +95,43 @@ export function zoom(
 	return normalised({ ...state, distance: state.distance * factor }, limits);
 }
 
+/**
+ * The turntable's height (plan 217, ADR 0207 point 4): the target moves `dy` metres up or down the
+ * vessel axis, inside the pan box; distance, yaw and pitch stay.
+ */
+export function raise(
+	state: VabCameraState,
+	dy: number,
+	limits = VAB_CAMERA_LIMITS
+): VabCameraState {
+	return normalised(
+		{
+			...state,
+			target: [state.target[0], clamp(state.target[1] + dy, 0, limits.panTop), state.target[2]]
+		},
+		limits
+	);
+}
+
+/** The target on `point` (a middle click on a part), inside the pan box. */
+export function focus(
+	state: VabCameraState,
+	point: V3,
+	limits = VAB_CAMERA_LIMITS
+): VabCameraState {
+	return normalised(
+		{
+			...state,
+			target: [
+				clamp(point[0], -limits.panExtent, limits.panExtent),
+				clamp(point[1], 0, limits.panTop),
+				clamp(point[2], -limits.panExtent, limits.panExtent)
+			]
+		},
+		limits
+	);
+}
+
 /** Camera position. */
 export function cameraPosition(s: VabCameraState): V3 {
 	return [

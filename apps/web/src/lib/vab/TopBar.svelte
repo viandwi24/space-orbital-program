@@ -54,6 +54,9 @@
 						{armed.from
 							? `now click the part it ends on (from ${vab.titleOfPart(armed.from.index)})`
 							: 'click the part it hangs on'}
+					{:else if armed.kind === 'copy'}
+						Placing a copy of <strong>{armed.title}</strong>
+						<span class="dim">(drop it on the catalogue to discard it)</span>
 					{:else}
 						Moving <strong>{vab.titleOfPart(armed.index)}</strong>
 						{#if vab.shown.followers.length > 0}<span class="dim"

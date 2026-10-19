@@ -289,6 +289,23 @@ describe('radial attachment (ADR 0034)', () => {
 			}).success
 		).toBe(false);
 	});
+
+	test('a format 3 design with symmetry groups resolves unchanged; a mirror group round-trips', () => {
+		const d = rd([
+			{ ...radialLink(1, 0.5), symmetry: 3 },
+			{ ...radialLink(2, Math.PI - 0.5), symmetry: 3, mirror: true as const }
+		]);
+		const v3 = migrateVesselDesign(d);
+		expect(vesselDesignSchema.parse(JSON.parse(JSON.stringify(v3)))).toEqual(v3);
+		const plain = rd([
+			{ ...radialLink(1, 0.5), symmetry: 3 },
+			{ ...radialLink(2, Math.PI - 0.5), symmetry: 3 }
+		]);
+		// the flag is editor data: the resolved vessel is the same with or without it
+		expect(JSON.stringify(resolveVesselDesign(d, lookup))).toBe(
+			JSON.stringify(resolveVesselDesign(plain, lookup))
+		);
+	});
 });
 
 describe('custom action groups in a design (plan 110)', () => {

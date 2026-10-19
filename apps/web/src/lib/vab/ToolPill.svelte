@@ -21,10 +21,35 @@
 				class:on={vab.symmetry === n}
 				aria-pressed={vab.symmetry === n}
 				title={n === 1 ? 'One part' : `${n} copies around the vessel`}
-				onclick={() => (vab.symmetry = n)}>×{n}</button
+				onclick={() => ((vab.symmetry = n), (vab.mirror = false))}>×{n}</button
 			>
 		{/each}
 	</div>
+	<!-- touch chips for the modifier keys (plan 217, ADR 0207 point 11) -->
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.mirror}
+		title="Mirror symmetry: two copies reflected ({settings.keymap.label('mirror')})"
+		data-testid="tool-mirror"
+		onclick={() => (vab.mirror = !vab.mirror)}>Mirror</button
+	>
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.angleSnap}
+		title="Angle snap of side sites ({settings.keymap.label('angleSnap')})"
+		data-testid="tool-snap"
+		onclick={() => (vab.angleSnap = !vab.angleSnap)}>Snap</button
+	>
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.copyMode}
+		title="Copy: the next part you tap goes on the cursor as a copy (Alt+click)"
+		data-testid="tool-copy"
+		onclick={() => (vab.copyMode = !vab.copyMode)}>Copy</button
+	>
 	<span class="sep" aria-hidden="true"></span>
 	<button
 		type="button"
@@ -110,9 +135,18 @@
 	.toggle:hover {
 		background: var(--surface-hover);
 	}
-	.seg.on {
+	.seg.on,
+	.toggle[data-testid^='tool-'][aria-pressed='true'] {
 		background: var(--selected-bg);
 		color: var(--selected-fg);
+	}
+	/* touch: 44 px targets (plan 217, ADR 0207 point 11) */
+	@media (pointer: coarse) {
+		.seg,
+		.toggle {
+			min-width: 2.75rem;
+			height: 2.75rem;
+		}
 	}
 	.seg:focus-visible,
 	.toggle:focus-visible {

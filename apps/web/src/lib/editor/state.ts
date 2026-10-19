@@ -180,8 +180,24 @@ export function groupOf(design: Pick<VesselDesign, 'parts'>, index: number): num
 		.sort((a, b) => a - b);
 }
 
-/** Symmetry counts the VAB offers, ordered. */
-export const SYMMETRY_COUNTS = [1, 2, 3, 4, 6] as const;
+/** Symmetry counts the VAB offers, ordered (plan 217: 1 to 8). */
+export const SYMMETRY_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+
+/** A symmetry setting: a count around the parent, or a mirror pair across the vessel's YZ plane. */
+export interface SymmetrySpec {
+	count: number;
+	mirror?: boolean;
+}
+
+const specOf = (s: number | SymmetrySpec): SymmetrySpec =>
+	typeof s === 'number' ? { count: s } : s;
+
+/** Azimuth reflected across the vessel's YZ plane (`azimuthOf` is `atan2(-z, x)`): x goes to -x. */
+const mirrorAngle = (a: number): number => wrapAngle(Math.PI - a);
+
+/** A tilt reflected with its part across that plane: the turns about the outward and up axes flip. */
+const mirrorTilt = (t: DesignTilt | undefined): DesignTilt | undefined =>
+	t && (t.x !== 0 || t.y !== 0) ? { x: -t.x, y: -t.y, z: t.z } : t;
 
 /** Copy of `assembly` with its indices renumbered to `base`, `base + 1`, ... in ascending order of the old ones. */
 export function reindex(assembly: VesselDesign, base: number): VesselDesign {
@@ -211,30 +227,69 @@ export function planAttachAssembly(
 	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
 	assembly: VesselDesign,
 	target: AttachTarget,
-	symmetry = 1
+	symmetry: number | SymmetrySpec = 1
 ): { design: VesselDesign; added: number[] } {
+	const spec = specOf(symmetry);
 	const base = state.nextIndex;
-	const targets: AttachTarget[] = [];
-	if (target.parent && target.radial && symmetry > 1) {
-		for (let k = 0; k < symmetry; k++) {
+	/** Each copy's target and whether it is the mirrored one of a mirror pair. */
+	const targets: Array<{ target: AttachTarget; mirrored: boolean }> = [];
+	const parentGroup = target.parent ? groupOf(state.design, target.parent.index) : [];
+	const mirroredParent = (m: number): boolean =>
+		state.design.parts.find((p) => p.index === m)?.mirror === true;
+	if (target.parent && target.radial && parentGroup.length > 1) {
+		// inherited symmetry (ADR 0207 point 2): one copy on every member of the parent's group, at
+		// the same spot in each member's frame (reflected on the mirrored member of a mirror pair)
+		for (const m of parentGroup) {
+			const mirrored = mirroredParent(m);
 			targets.push({
+				target: {
+					...target,
+					parent: { index: m, parentNode: target.parent.parentNode },
+					radial: {
+						angle: mirrored ? wrapAngle(-target.radial.angle) : target.radial.angle,
+						y: target.radial.y
+					}
+				},
+				mirrored
+			});
+		}
+	} else if (target.parent && target.radial && spec.mirror) {
+		targets.push({ target, mirrored: false });
+		targets.push({
+			target: {
 				...target,
-				radial: { angle: target.radial.angle + (2 * Math.PI * k) / symmetry, y: target.radial.y }
+				radial: { angle: mirrorAngle(target.radial.angle), y: target.radial.y }
+			},
+			mirrored: true
+		});
+	} else if (target.parent && target.radial && spec.count > 1) {
+		for (let k = 0; k < spec.count; k++) {
+			targets.push({
+				target: {
+					...target,
+					radial: {
+						angle: target.radial.angle + (2 * Math.PI * k) / spec.count,
+						y: target.radial.y
+					}
+				},
+				mirrored: false
 			});
 		}
 	} else if (target.parent && !target.radial) {
-		const members = groupOf(state.design, target.parent.index);
 		const used = (m: number): boolean =>
 			state.design.parts.some(
 				(p) => p.parent?.index === m && p.parent.parentNode === target.parent!.parentNode
 			);
-		if (members.length > 1 && !members.some(used)) {
-			for (const m of members) {
-				targets.push({ ...target, parent: { index: m, parentNode: target.parent.parentNode } });
+		if (parentGroup.length > 1 && !parentGroup.some(used)) {
+			for (const m of parentGroup) {
+				targets.push({
+					target: { ...target, parent: { index: m, parentNode: target.parent.parentNode } },
+					mirrored: mirroredParent(m)
+				});
 			}
 		}
 	}
-	if (targets.length === 0) targets.push(target);
+	if (targets.length === 0) targets.push({ target, mirrored: false });
 	const sorted = [...assembly.parts].sort((a, b) => a.index - b.index);
 	const size = sorted.length;
 	let nextGroup = maxSymmetry([state.design, ...state.loose]) + 1;
@@ -245,7 +300,7 @@ export function planAttachAssembly(
 	}
 	let design = state.design;
 	const added: number[] = [];
-	targets.forEach((t, k) => {
+	targets.forEach(({ target: t, mirrored }, k) => {
 		const copy = reindex(assembly, base + k * size);
 		const own = new Map<number, number>();
 		const parts = copy.parts.map((p, j) => {
@@ -257,8 +312,14 @@ export function planAttachAssembly(
 			} else {
 				group = shared.get(old.index);
 			}
-			const { symmetry: _drop, ...rest } = p;
-			return group === undefined ? rest : { ...rest, symmetry: group };
+			const { symmetry: _drop, mirror: _was, tilt, ...rest } = p;
+			const turned = mirrored ? mirrorTilt(tilt) : tilt;
+			return {
+				...rest,
+				...(turned ? { tilt: turned } : {}),
+				...(group === undefined ? {} : { symmetry: group }),
+				...(mirrored && group !== undefined ? { mirror: true as const } : {})
+			};
 		});
 		design = join(design, { ...copy, parts }, t);
 		added.push(...parts.map((p) => p.index));
@@ -271,7 +332,7 @@ export function planAttach(
 	state: Pick<Doc, 'design' | 'loose' | 'nextIndex'>,
 	part: string,
 	target: AttachTarget,
-	symmetry = 1
+	symmetry: number | SymmetrySpec = 1
 ): { design: VesselDesign; added: number[] } {
 	return planAttachAssembly(state, singlePart(part, state.nextIndex), target, symmetry);
 }
@@ -282,7 +343,7 @@ export function attachNew(
 	content: Content,
 	part: string,
 	target: AttachTarget,
-	symmetry = 1
+	symmetry: number | SymmetrySpec = 1
 ): EditorState {
 	if (!content.parts.get(part)) throw new Error(`unknown part "${part}"`);
 	const { design, added } = planAttach(state, part, target, symmetry);
@@ -296,7 +357,7 @@ export function attachAssembly(
 	content: Content,
 	assembly: VesselDesign,
 	target: AttachTarget,
-	symmetry = 1
+	symmetry: number | SymmetrySpec = 1
 ): EditorState {
 	const { design, added } = planAttachAssembly(
 		state,
@@ -342,6 +403,38 @@ export function extract(
 		k !== looseAt ? [a] : rest.parts.length > 0 ? [rest] : []
 	);
 	return { design: state.design, loose, assembly };
+}
+
+/**
+ * A copy of the subtree under `index` to carry (Alt-click, plan 217): its parts keep their tilts and
+ * the symmetry groups inside it; the root leaves the group it is in. Null when `index` does not
+ * exist. The state is unchanged; `attachAssembly` places the copy as one undo step.
+ */
+export function copyOf(state: Pick<Doc, 'design' | 'loose'>, index: number): VesselDesign | null {
+	const out = extract(state, index);
+	if (!out) return null;
+	return {
+		...out.assembly,
+		parts: out.assembly.parts.map((p) => {
+			if (p.index !== index) return p;
+			const { symmetry: _group, mirror: _mirror, ...rest } = p;
+			return rest;
+		})
+	};
+}
+
+/** The assembly with its root's tilt set (none for a zero tilt): a carried part turned by the keys. */
+export function withRootTilt(assembly: VesselDesign, tilt: DesignTilt | undefined): VesselDesign {
+	const root = rootOf(assembly);
+	const zero = !tilt || (tilt.x === 0 && tilt.y === 0 && tilt.z === 0);
+	return {
+		...assembly,
+		parts: assembly.parts.map((p) => {
+			if (p.index !== root) return p;
+			const { tilt: _old, ...rest } = p;
+			return zero ? rest : { ...rest, tilt: { ...tilt! } };
+		})
+	};
 }
 
 /** Group members of `index` in the design or the loose assembly that holds it. */
@@ -404,15 +497,17 @@ export function moveSubtree(
 	state: EditorState,
 	content: Content,
 	index: number,
-	target: AttachTarget
+	target: AttachTarget,
+	options: { tilt?: DesignTilt } = {}
 ): EditorState {
 	const out = extract(state, index);
 	if (!out) throw new Error(`no part ${index}`);
 	// A part moved on its own leaves its symmetry group.
-	const alone: VesselDesign = {
-		...out.assembly,
-		parts: out.assembly.parts.map(({ symmetry: _group, ...p }) => p)
-	};
+	const parts = out.assembly.parts.map(({ symmetry: _group, mirror: _mirror, ...p }) => p);
+	const alone: VesselDesign =
+		options.tilt === undefined
+			? { ...out.assembly, parts }
+			: withRootTilt({ ...out.assembly, parts }, options.tilt);
 	const design = join(out.design, alone, target);
 	assertResolves(design, content);
 	return commit(state, { ...state, design, loose: out.loose }, content);
@@ -575,14 +670,15 @@ export function moveGroup(
 	content: Content,
 	index: number,
 	target: AttachTarget,
-	options: { single?: boolean } = {}
+	options: { single?: boolean; tilt?: DesignTilt } = {}
 ): EditorState {
 	if (options.single || !target.radial || !target.parent) {
-		return moveSubtree(state, content, index, target);
+		return moveSubtree(state, content, index, target, { tilt: options.tilt });
 	}
 	const plan = planCarry(state, index);
 	if (!plan) throw new Error(`no part ${index}`);
-	let design = join(plan.design, plan.held, target);
+	const held = options.tilt === undefined ? plan.held : withRootTilt(plan.held, options.tilt);
+	let design = join(plan.design, held, target);
 	for (const f of plan.followers) {
 		const angle = target.radial.angle + f.dAngle;
 		const t = radialTarget(

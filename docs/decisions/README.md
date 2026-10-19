@@ -216,3 +216,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0218 | [Docking: capture numbers, merge into one vessel, undock restore](0218-docking-capture-merge-and-undock.md) | accepted | 2026-10-19 |
 | 0219 | [Solid motors, launch clamps and held experiments](0219-solid-motors-launch-clamps-held-experiments.md) | accepted | 2026-10-19 |
 | 0220 | [Flow locks, transfers as vessel jobs, measured rates, and keyed action ids](0220-flow-locks-transfers-measured-rates.md) | accepted | 2026-10-19 |
+| 0221 | [Hangar carry details: drag to carry, empty hand after a place, mirror plane, carry keys](0221-hangar-carry-details.md) | accepted | 2026-10-19 |

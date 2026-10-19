@@ -13,12 +13,12 @@
  * Key profiles (plan 216, ADR 0206): `ksp`, the default, follows KSP; `classic` keeps the keys of
  * Orbital before plan 216. A profile is a full default table; the player's overrides apply on top.
  */
-export type BindingMode = 'flight' | 'map' | 'vab';
+export type BindingMode = 'flight' | 'map' | 'vab' | 'carry';
 /**
  * Clash scopes. Map keys act only in the map with a node selected, before the flight keys, so they
  * may share keys with flight actions (plan 216: I is a node key and RCS translation).
  */
-export type BindingScope = 'flight' | 'map' | 'vab';
+export type BindingScope = 'flight' | 'map' | 'vab' | 'carry';
 
 export const KEY_PROFILES = ['ksp', 'classic'] as const;
 export type KeyProfile = (typeof KEY_PROFILES)[number];
@@ -32,7 +32,8 @@ export const DEFAULT_KEY_PROFILE: KeyProfile = 'ksp';
 export const BINDING_MODE_LABEL: Record<BindingMode, string> = {
 	flight: 'Flight',
 	map: 'Map view',
-	vab: 'Vehicle assembly'
+	vab: 'Vehicle assembly',
+	carry: 'Carrying a part (Hangar)'
 };
 
 export const scopeOf = (mode: BindingMode): BindingScope => mode;
@@ -76,6 +77,14 @@ const vab = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
 	id,
 	mode: 'vab',
 	group: 'Build',
+	label,
+	defaults
+});
+/** Keys while a part rides the cursor in the Hangar (plan 217): they may share keys with `vab`. */
+const carry = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
+	id,
+	mode: 'carry',
+	group: 'Carrying a part',
 	label,
 	defaults
 });
@@ -179,7 +188,8 @@ export const ACTIONS = [
 	map('nodeRadialOut', 'Selected node: radial out', 'KeyO'),
 	map('nodeRadialIn', 'Selected node: radial in', 'KeyU'),
 	map('nodeDelete', 'Remove the selected node', 'Delete'),
-	vab('symmetry', 'Symmetry: 1, 2, 3, 4, 6-way', 'KeyX'),
+	vab('symmetry', 'Symmetry: 1 to 8 copies (Shift: fewer)', 'KeyX'),
+	vab('mirror', 'Mirror symmetry on or off', 'KeyR'),
 	vab('turnPlus', 'Turn radial sites, or a selected radial part', 'KeyQ'),
 	vab('turnMinus', 'Turn the other way', 'KeyE'),
 	vab('nextSite', 'Choose the next site', 'Tab'),
@@ -191,7 +201,15 @@ export const ACTIONS = [
 	vab('delete', 'Delete the selected part (Shift: with what hangs on it)', 'Delete'),
 	vab('subAssembly', 'Save the selection as a sub-assembly', 'KeyA'),
 	vab('frame', 'Frame the vessel', 'KeyF'),
-	vab('search', 'Search the catalogue', '/')
+	vab('search', 'Search the catalogue', '/'),
+	carry('pitchUp', 'Turn the carried part: pitch up', 'KeyW'),
+	carry('pitchDown', 'Turn the carried part: pitch down', 'KeyS'),
+	carry('rollLeft', 'Turn the carried part: roll left', 'KeyA'),
+	carry('rollRight', 'Turn the carried part: roll right', 'KeyD'),
+	carry('yawLeft', 'Turn the carried part: yaw left', 'KeyQ'),
+	carry('yawRight', 'Turn the carried part: yaw right', 'KeyE'),
+	carry('turnReset', 'Reset the turn of the carried part', 'Space'),
+	carry('angleSnap', 'Angle snap on or off', 'KeyC')
 ] as const satisfies readonly ActionSpec[];
 
 export type ActionId = (typeof ACTIONS)[number]['id'];
@@ -677,7 +695,16 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 				fixed: ['Click'],
 				text: 'Pick a part, then click a ring or a tank side to attach it'
 			},
-			{ actions: ['symmetry'], text: 'Symmetry: 1, 2, 3, 4, 6-way' },
+			{
+				actions: [],
+				fixed: ['Drag'],
+				text: 'Drag a placed part to carry it with what hangs on it; drop it on the catalogue to delete it'
+			},
+			{ actions: [], fixed: ['Alt+Click'], text: 'Copy a part and what hangs on it' },
+			{ actions: [], fixed: ['Wheel'], text: 'Move the view up and down (Shift or Ctrl: zoom)' },
+			{ actions: [], fixed: ['Middle click'], text: 'Centre the view on a part' },
+			{ actions: ['symmetry'], text: 'Symmetry: 1 to 8 copies (Shift: fewer)' },
+			{ actions: ['mirror'], text: 'Mirror symmetry on or off' },
 			{ actions: ['turnPlus', 'turnMinus'], text: 'Turn radial sites, or a selected radial part' },
 			{ actions: ['nextSite', 'place'], text: 'Choose a site, place the part' },
 			{ actions: ['prevPart', 'nextPart'], text: 'Select the previous, next part' },
@@ -690,6 +717,18 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: [], fixed: ['Ctrl+Z', 'Ctrl+Y'], text: 'Undo, redo' },
 			{ actions: [], fixed: ['Ctrl+S'], text: 'Save to the library' },
 			{ actions: [], fixed: ['Esc'], text: 'Let go of the part, clear the selection' }
+		]
+	},
+	{
+		id: 'carry',
+		title: 'Carrying a part',
+		mode: 'carry',
+		rows: [
+			{ actions: ['pitchUp', 'pitchDown'], text: 'Pitch the carried part (Shift: 5 degrees)' },
+			{ actions: ['rollLeft', 'rollRight'], text: 'Roll it' },
+			{ actions: ['yawLeft', 'yawRight'], text: 'Yaw it' },
+			{ actions: ['turnReset'], text: 'Reset its turn' },
+			{ actions: ['angleSnap'], text: 'Angle snap on or off' }
 		]
 	},
 	{

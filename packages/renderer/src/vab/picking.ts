@@ -3,6 +3,7 @@
  * ray in plain numbers, so the choice is unit-tested without WebGL. Parts are picked with the
  * three.js `Raycaster` in `view.ts`.
  */
+import { Matrix3, Vector3, type Intersection } from 'three';
 import type { V3 } from './orbit-camera.ts';
 
 export interface PickRay {
@@ -70,4 +71,17 @@ export function toNdc(
 		((clientX - rect.left) / rect.width) * 2 - 1,
 		-(((clientY - rect.top) / rect.height) * 2 - 1)
 	];
+}
+
+/**
+ * The world-space normal of the face a ray hit (plan 217: a part attaches on that side), unit
+ * length; null when the hit carries no face (a line or a point).
+ */
+export function worldNormalOf(hit: Pick<Intersection, 'face' | 'object'>): V3 | null {
+	const n = hit.face?.normal;
+	if (!n) return null;
+	hit.object.updateMatrixWorld(true);
+	const m = new Matrix3().getNormalMatrix(hit.object.matrixWorld);
+	const w = new Vector3(n.x, n.y, n.z).applyMatrix3(m).normalize();
+	return [w.x, w.y, w.z];
 }
