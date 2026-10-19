@@ -104,7 +104,7 @@ export interface EnvironmentState {
 }
 
 const SHADOW_BIAS = -0.00006;
-/** Frames a preset switch waits before it reallocates the shadow map (ADR 0055). */
+/** Frames a switch to a larger shadow map waits before it reallocates it (ADR 0055). */
 const SHADOW_SETTLE_FRAMES = 3;
 /** The camera is held at least this far above the terrain under it (no hills in the near plane), m. */
 export const CAMERA_CLEARANCE = 0.5;
@@ -130,7 +130,11 @@ export class Environment {
 	};
 
 	private preset: GraphicsPreset;
-	/** Side of the sun shadow map as allocated (0 = none), and frames until it follows the preset (ADR 0055). */
+	/**
+	 * Side of the sun shadow map as allocated (0 = none), and frames until it grows (ADR 0055). The map
+	 * is allocated once and only grows (plan 201): a lower preset keeps it, so the governor's switches
+	 * never reallocate the depth texture the planet shader samples.
+	 */
 	private shadowSize = 0;
 	private shadowDelay = 0;
 	private sunOverride: { elevation: number; azimuth: number } | null = null;
@@ -239,25 +243,22 @@ export class Environment {
 			// no map is allocated yet: the first render allocates it at this size
 			this.shadowSize = s.shadowMapSize;
 			this.sunLight.shadow.mapSize.set(s.shadowMapSize, s.shadowMapSize);
-		} else {
-			// A new size reallocates the map, 20 to 30 ms for 4096: not in the frame that switches everything else.
+		} else if (s.shadowMapSize > this.shadowSize) {
+			// The player raised the preset: a larger map, 20 to 30 ms for 4096, not in the frame that
+			// switches everything else. A smaller or no shadow keeps the map as it is.
 			this.shadowDelay = SHADOW_SETTLE_FRAMES;
 		}
 	}
 
-	/** Moves the shadow map to the preset's size once the frames after a switch have passed. */
+	/** Grows the shadow map to the preset's size once the frames after a switch have passed. */
 	private settleShadowMap(): void {
 		if (this.shadowDelay === 0 || --this.shadowDelay > 0) return;
 		const size = PRESETS[this.preset].shadowMapSize;
+		if (size <= this.shadowSize) return; // the preset went back down meanwhile
 		this.shadowSize = size;
 		const shadow = this.sunLight.shadow;
-		if (size > 0) {
-			shadow.mapSize.set(size, size);
-			shadow.map?.setSize(size, size);
-		} else {
-			shadow.map?.dispose();
-			shadow.map = null;
-		}
+		shadow.mapSize.set(size, size);
+		shadow.map?.setSize(size, size);
 	}
 
 	/** Moves the camera up along its radial when it is inside the terrain (or closer than `CAMERA_CLEARANCE`). */
@@ -412,6 +413,9 @@ export class Environment {
 		}
 		this.sunLight.updateMatrixWorld();
 		this.sunLight.target.updateMatrixWorld();
+		// This frame's shadow matrix (plan 201): the shadow pass computes the same one from the same
+		// light; copying `shadow.matrix` before it gave the planet last frame's, a flicker as it moved.
+		if (shadowActive) this.sunLight.shadow.updateMatrices(this.sunLight);
 
 		this.cloudAngle += input.dt * 2.2e-5;
 		this.time += input.dt;

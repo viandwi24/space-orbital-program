@@ -178,3 +178,73 @@ describe('QualityGovernor', () => {
 		expect(governorLadder('medium')[0]).toEqual(g.level);
 	});
 });
+
+describe('hysteresis (plan 201)', () => {
+	/** Frames that swing around 55 fps: `period` seconds at 50 fps, then as long at 62 fps, for `seconds`. */
+	function swing(g: QualityGovernor, seconds: number, period: number): GovernorLevel[] {
+		const changes: GovernorLevel[] = [];
+		let t = 0;
+		while (t < seconds) {
+			const ms = Math.floor(t / period) % 2 === 0 ? 20 : 1000 / 62;
+			const c = g.frame(ms);
+			if (c) changes.push(c);
+			t += ms / 1000;
+		}
+		return changes;
+	}
+	const presetChanges = (start: GovernorLevel, changes: GovernorLevel[]): number => {
+		let last = start.preset;
+		let n = 0;
+		for (const c of changes) {
+			if (c.preset !== last) n += 1;
+			last = c.preset;
+		}
+		return n;
+	};
+
+	for (const period of [1, 2, 4, 6, 10]) {
+		test(`a trace swinging around 55 fps every ${period} s changes the preset at most once in 30 s`, () => {
+			const g = new QualityGovernor('high');
+			const start = g.level;
+			expect(presetChanges(start, swing(g, 30, period))).toBeLessThanOrEqual(1);
+		});
+	}
+
+	/** A CPU-bound machine: high is over budget at every rung, medium and below under it. */
+	function bound(g: QualityGovernor, seconds: number): { t: number; level: GovernorLevel }[] {
+		const changes: { t: number; level: GovernorLevel }[] = [];
+		for (let t = 0; t < seconds;) {
+			const ms = g.level.preset === 'high' ? 19.5 : 16;
+			const c = g.frame(ms);
+			if (c) changes.push({ t, level: c });
+			t += ms / 1000;
+		}
+		return changes;
+	}
+
+	test('a machine just too slow for high never changes preset twice within 30 s', () => {
+		const g = new QualityGovernor('high');
+		let last = g.level.preset;
+		const at: number[] = [];
+		for (const c of bound(g, 600)) {
+			if (c.level.preset !== last) at.push(c.t);
+			last = c.level.preset;
+		}
+		expect(at.length).toBeGreaterThan(0);
+		for (let i = 1; i < at.length; i++) expect(at[i]! - at[i - 1]!).toBeGreaterThanOrEqual(30);
+	});
+
+	test('a trial up into the next preset waits the longer calm', () => {
+		const g = new QualityGovernor('high');
+		while (g.level.preset === 'high') untilChange(g, 25);
+		expect(g.level.preset).toBe('medium');
+		let calm = 0;
+		let up: GovernorLevel | null = null;
+		while (!up && calm < 600) {
+			up = g.frame(10);
+			calm += 0.01;
+		}
+		expect(up!.preset).toBe('high');
+		expect(calm).toBeGreaterThanOrEqual(DEFAULT_GOVERNOR.presetProbationSeconds);
+	});
+});

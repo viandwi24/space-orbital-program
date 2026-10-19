@@ -72,6 +72,14 @@ export interface GovernorConfig {
 	probeSeconds: number;
 	/** Intervals longer than this (hidden tab, breakpoint, pause) are not frames, ms. */
 	ignoreOverMs: number;
+	/**
+	 * A preset change waits at least this long after the last one, either way, s (plan 201): a
+	 * preset switch recompiles shaders and swaps detail, so bouncing between two is the flicker the
+	 * owner saw. Resolution rungs inside a preset are not held.
+	 */
+	presetDwellSeconds: number;
+	/** Calm this long at least before a trial step up into the next preset, s (plan 201). */
+	presetProbationSeconds: number;
 }
 
 export const DEFAULT_GOVERNOR: GovernorConfig = {
@@ -82,7 +90,9 @@ export const DEFAULT_GOVERNOR: GovernorConfig = {
 	probationSeconds: 20,
 	maxProbationSeconds: 160,
 	probeSeconds: 8,
-	ignoreOverMs: 250
+	ignoreOverMs: 250,
+	presetDwellSeconds: 30,
+	presetProbationSeconds: 60
 };
 
 export class QualityGovernor {
@@ -96,6 +106,8 @@ export class QualityGovernor {
 	private probation: number;
 	/** Seconds since the last step up while it is still on trial, else null. */
 	private trial: number | null = null;
+	/** Seconds since the last preset change (infinite at the ceiling after a restart). */
+	private sincePreset = Infinity;
 
 	constructor(
 		ceiling: GraphicsPreset,
@@ -144,6 +156,13 @@ export class QualityGovernor {
 		this.probation = this.config.probationSeconds;
 		this.settle = this.config.settleSeconds;
 		this.smoothed = this.config.budgetMs * 0.5;
+		this.sincePreset = Infinity;
+	}
+
+	/** Whether the rung `step` away is in another preset. */
+	private crosses(step: number): boolean {
+		const next = this.ladder[this.index + step];
+		return next !== undefined && next.preset !== this.level.preset;
 	}
 
 	/** One frame took `intervalMs` since the previous one. Returns the new level when it changed, else null. */
@@ -155,6 +174,7 @@ export class QualityGovernor {
 			return null;
 		}
 		const dt = intervalMs / 1000;
+		this.sincePreset += dt;
 		if (this.settle > 0) {
 			this.settle -= dt;
 			return null;
@@ -177,7 +197,11 @@ export class QualityGovernor {
 			this.over = 0;
 			if (this.index > 0) {
 				this.calm += dt;
-				if (this.calm >= this.probation) return this.stepUp();
+				const crossing = this.crosses(-1);
+				const wait = crossing
+					? Math.max(this.probation, this.config.presetProbationSeconds)
+					: this.probation;
+				if (this.calm >= wait && (!crossing || this.held())) return this.stepUp();
 			}
 		}
 		return null;
@@ -192,18 +216,27 @@ export class QualityGovernor {
 		this.over = 0;
 		this.calm = 0;
 		if (this.index >= this.ladder.length - 1) return null;
+		if (this.crosses(1) && !this.held()) return null; // over budget a while longer, then again
+		const from = this.level.preset;
 		this.index += 1;
-		return this.changed();
+		return this.changed(from);
+	}
+
+	/** The last preset change is far enough back for another one. */
+	private held(): boolean {
+		return this.sincePreset >= this.config.presetDwellSeconds;
 	}
 
 	private stepUp(): GovernorLevel {
+		const from = this.level.preset;
 		this.calm = 0;
 		this.index -= 1;
 		this.trial = 0;
-		return this.changed();
+		return this.changed(from);
 	}
 
-	private changed(): GovernorLevel {
+	private changed(from: GraphicsPreset): GovernorLevel {
+		if (from !== this.level.preset) this.sincePreset = 0;
 		this.settle = this.config.settleSeconds;
 		this.smoothed = this.config.budgetMs * 0.5;
 		return this.level;

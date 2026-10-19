@@ -249,42 +249,74 @@ describe('part materials of the other presets', () => {
 		model.dispose();
 	});
 
-	test('the shadow map follows a new preset size a few frames later, and goes with low', () => {
-		const model = new SceneModel({
-			bodies: [
-				{
-					id: BODY,
-					radius: R,
-					atmosphere: { scaleHeight: 5600, surfacePressure: 101_325, height: 70_000 }
-				}
-			],
-			partShapes: maps.shapes,
-			partVisuals: maps.visuals,
-			partAttach: maps.attach,
-			preset: 'high',
-			launchSite: { latitude: 0, longitude: 0 }
-		});
-		model.sync({
-			t: 0,
-			bodies: [{ id: BODY, position: { x: 0, y: 0, z: 0 }, rotation: q0 }],
-			vessels: []
-		});
+	test('the shadow map is allocated once: High → Medium → Low → High keeps the depth texture and never resizes (plan 201)', () => {
+		const model = shadowModel('high');
 		const shadow = model.environment.sunLight.shadow;
 		expect(shadow.mapSize.x).toBe(PRESETS.high.shadowMapSize);
-		model.setPreset('medium');
-		model.prepareFrame(1 / 60);
-		model.prepareFrame(1 / 60);
+		// what the first render allocates (no WebGL here): a map whose resizes and frees are counted
+		const depthTexture = {};
+		let resized = 0;
+		let freed = 0;
+		shadow.map = {
+			depthTexture,
+			setSize: () => (resized += 1),
+			dispose: () => (freed += 1)
+		} as never;
+		const map = shadow.map;
+		for (const preset of ['medium', 'low', 'high', 'medium', 'high'] as const) {
+			model.setPreset(preset);
+			expect(model.environment.sunLight.castShadow).toBe(PRESETS[preset].shadowMapSize > 0);
+			for (let i = 0; i < 5; i++) model.prepareFrame(1 / 60);
+		}
+		expect(shadow.map).toBe(map);
+		expect(shadow.map!.depthTexture).toBe(depthTexture);
 		expect(shadow.mapSize.x).toBe(PRESETS.high.shadowMapSize);
+		expect(resized).toBe(0);
+		expect(freed).toBe(0);
+		model.dispose();
+	});
+
+	test('a raised preset grows the map a few frames later (the player chose more)', () => {
+		const model = shadowModel('medium');
+		const shadow = model.environment.sunLight.shadow;
+		expect(shadow.mapSize.x).toBe(PRESETS.medium.shadowMapSize);
+		model.setPreset('high');
+		model.prepareFrame(1 / 60);
 		model.prepareFrame(1 / 60);
 		expect(shadow.mapSize.x).toBe(PRESETS.medium.shadowMapSize);
-		// low turns the sun shadow off at once; the next frames free the map
-		model.setPreset('low');
-		expect(model.environment.sunLight.castShadow).toBe(false);
-		for (let i = 0; i < 3; i++) model.prepareFrame(1 / 60);
-		expect(shadow.map).toBeNull();
-		// a map that is not allocated is allocated at the new size without waiting
-		model.setPreset('high');
+		model.prepareFrame(1 / 60);
+		expect(shadow.mapSize.x).toBe(PRESETS.high.shadowMapSize);
+		// and back down keeps the larger map
+		model.setPreset('medium');
+		for (let i = 0; i < 5; i++) model.prepareFrame(1 / 60);
 		expect(shadow.mapSize.x).toBe(PRESETS.high.shadowMapSize);
 		model.dispose();
 	});
 });
+
+/** A scene on one atmospheric body at the pad, synced once, at `preset`. */
+function shadowModel(preset: 'high' | 'medium'): SceneModel {
+	const BODY = 'stock.home' as BodyId;
+	const q0 = { x: 0, y: 0, z: 0, w: 1 };
+	const maps = stockMaps();
+	const model = new SceneModel({
+		bodies: [
+			{
+				id: BODY,
+				radius: R,
+				atmosphere: { scaleHeight: 5600, surfacePressure: 101_325, height: 70_000 }
+			}
+		],
+		partShapes: maps.shapes,
+		partVisuals: maps.visuals,
+		partAttach: maps.attach,
+		preset,
+		launchSite: { latitude: 0, longitude: 0 }
+	});
+	model.sync({
+		t: 0,
+		bodies: [{ id: BODY, position: { x: 0, y: 0, z: 0 }, rotation: q0 }],
+		vessels: []
+	});
+	return model;
+}
