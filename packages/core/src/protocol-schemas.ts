@@ -12,6 +12,7 @@ import {
 	DEBUG_CHEATS,
 	MAX_NODE_DV,
 	SAS_MODES,
+	VESSEL_TYPES,
 	type Command,
 	type VesselDesign,
 	type VesselPlacement
@@ -194,6 +195,18 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 			'a time or transfer alarm needs a time; an event alarm needs a vessel'
 		),
 	z.object({ type: z.literal('remove-alarm'), id: z.string().min(1) }),
+	z.object({
+		type: z.literal('rename-vessel'),
+		vessel: entity,
+		name: z.string().trim().min(1).max(60)
+	}),
+	z.object({
+		type: z.literal('set-vessel-type'),
+		vessel: entity,
+		vesselType: z.enum(VESSEL_TYPES)
+	}),
+	z.object({ type: z.literal('terminate-vessel'), vessel: entity }),
+	z.object({ type: z.literal('set-debris-cap'), cap: z.int().min(0).max(10_000) }),
 	z.object({ type: z.literal('node-remove'), vessel: entity, id: index.optional() }),
 	z.object({ type: z.literal('target-set'), vessel: entity, target: targetRefSchema.nullable() }),
 	z.object({

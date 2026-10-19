@@ -14,6 +14,7 @@ import {
 	greatCircle,
 	recoveryQuote,
 	REPUTATION_DECAY_EVERY,
+	sitesOf,
 	chargeOn,
 	type Currency,
 	type EntityId,
@@ -137,11 +138,24 @@ function bodyFixedDirection(
 	return normalize(qRotate(qConj(rotationAt(core.root, core.t)), vessel.com));
 }
 
+/** The home body's sites as body-fixed unit directions (plan 223): every site recovers. */
+function recoverySites(core: SimCore): Array<{ x: number; y: number; z: number }> {
+	const home = core.root.def.id;
+	const sites = sitesOf(core.info)
+		.filter((s) => s.body === home)
+		.map((s) => ({
+			x: Math.cos(s.latitude) * Math.cos(s.longitude),
+			y: Math.sin(s.latitude),
+			z: -Math.cos(s.latitude) * Math.sin(s.longitude)
+		}));
+	return sites.length > 0 ? sites : RECOVERY_SITES;
+}
+
 export function quoteRecovery(core: SimCore, vesselId: EntityId): RecoveryQuote {
 	const dir = bodyFixedDirection(core, vesselId);
 	const radius = core.root.def.radius;
 	const distance =
-		dir === null ? null : Math.min(...RECOVERY_SITES.map((s) => greatCircle(dir, s, radius)));
+		dir === null ? null : Math.min(...recoverySites(core).map((s) => greatCircle(dir, s, radius)));
 	return recoveryQuote(vesselValue(core, vesselId), distance, radius);
 }
 

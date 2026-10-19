@@ -3,6 +3,7 @@
  * follows kepler and attitude is frozen; in flight the vessel is one compound rigid body in a flight frame.
  */
 import type { EntityId } from '@orbital/core';
+import { enforceDebrisCap } from './fleet.ts';
 import { PHYSICS_WARP_MAX } from '@orbital/core';
 import { cross, dot, length, sub } from '@orbital/kepler';
 import {
@@ -216,6 +217,7 @@ export function reapDebris(core: SimCore): void {
 		const top = body.def.atmosphere?.height ?? 0;
 		const omega = spinAt(body, core.t);
 		if (vessel.rails?.kind === 'frozen') continue; // held still during rails warp, not lost (ADR 0202)
+		if (vessel.rails?.kind === 'surface') continue; // debris at rest stays (plan 223)
 		if (vessel.mode === 'on-rails') {
 			const motion = motionOf(core, vessel);
 			if (isStableOrbit(body, motion.r, motion.v)) continue;
@@ -225,9 +227,11 @@ export function reapDebris(core: SimCore): void {
 			}
 		} else if (vessel.landed && vessel.idle >= DEBRIS_REST_TIME) {
 			const ground = cross(omega, vessel.com);
+			// persistent debris (plan 223, amending ADR 0021): it stays where it came to rest
 			if (length(sub(vessel.velocity, ground)) < DEBRIS_REST_SPEED) {
-				destroyVessel(core, id, 'debris at rest on the surface');
+				toSurfaceRails(core, id, 'debris at rest on the surface');
 			}
 		}
 	}
+	enforceDebrisCap(core);
 }

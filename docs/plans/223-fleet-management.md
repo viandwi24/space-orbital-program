@@ -1,12 +1,12 @@
 ---
 id: 223
 title: "Fleet management: vessel list, recover anywhere, terminate, rename, debris"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker C"
 depends: [221]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-20
 ---
 
 # 223 — Fleet management: vessel list, recover anywhere, terminate, rename, debris
@@ -87,3 +87,5 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-20 — Worker C refined to ready and claimed (claim/223; moved from Worker A by the coordinator). Checked against the code: the recovery quote is computed in the sim for every landed vessel at rest (`VesselSnapshot.recovery`) with one fixed recovery site; `recover-vessel` already takes any vessel id; debris is every uncontrolled, not kept vessel of the player and `reapDebris` deleted it at rest; plan 203's debug API is on main.
+- 2026-10-20 — Defaults (not asked): the vessel type is an optional field on the vessel (no save format bump, like the other optional sections); the guess is flag, suit, debris, then plane (wing parts), rover (rover wheels), lander (legs), ship (seats), else probe; station, base and relay are the player's choice. Every world site on the home body is a recovery site; the pad radius is 200 m and the Space Center area 3 km. Debris at rest goes on surface rails; debris on a falling path still burns up on re-entry. The cap counts uncontrolled vessels the player has not retyped, oldest (lowest entity id) out first, and is checked after every step's debris pass.

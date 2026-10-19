@@ -14,7 +14,8 @@ import {
 	type SasReference,
 	type Vec3,
 	type VesselDesign,
-	type VesselMode
+	type VesselMode,
+	type VesselType
 } from '@orbital/core';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { StoneField } from './stones.ts';
@@ -101,6 +102,8 @@ export type TargetState =
 
 export interface VesselState {
 	name: string;
+	/** The player's type for the fleet list (plan 223); absent: guessed from the parts. */
+	type?: VesselType;
 	/** The agency that owns it (plan 126, ADR 0190 point 3); absent for the player's vessels. */
 	owner?: string;
 	mode: VesselMode;

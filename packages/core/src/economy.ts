@@ -278,9 +278,21 @@ export function designCost(design: VesselDesign, registries: CostRegistries): De
 	return { total: parts + contents, parts, contents, byIndex, uncosted: [...uncosted].sort() };
 }
 
-/** Recovery fraction at great-circle distance `d` from the nearest recovery site (ADR 0113 point 6). */
+/** Within this distance of a site's pad a recovery pays in full (plan 223), m. */
+export const RECOVERY_PAD_RADIUS = 200;
+/** Within this distance of a site a recovery pays 98 % (the Space Center area, plan 223), m. */
+export const RECOVERY_CENTER_RADIUS = 3_000;
+
+/**
+ * Recovery fraction at great-circle distance `d` from the nearest recovery site (ADR 0113 point 6;
+ * plan 223, ADR 0208): 100 % on the pad, 98 % in the Space Center area, then falling linearly to
+ * 10 % at the far side of the body.
+ */
 export function recoveryFactor(distance: number, radius: number): number {
-	return Math.max(0.1, 0.98 - 0.88 * Math.min(1, distance / (Math.PI * radius)));
+	if (distance <= RECOVERY_PAD_RADIUS) return 1;
+	if (distance <= RECOVERY_CENTER_RADIUS) return 0.98;
+	const span = Math.max(1, Math.PI * radius - RECOVERY_CENTER_RADIUS);
+	return Math.max(0.1, 0.98 - 0.88 * Math.min(1, (distance - RECOVERY_CENTER_RADIUS) / span));
 }
 
 /** Great-circle distance between two body-fixed unit directions on a sphere of `radius`. */
