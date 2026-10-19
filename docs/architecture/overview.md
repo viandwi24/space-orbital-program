@@ -71,6 +71,27 @@ Every in-world page sits in the SvelteKit route group `apps/web/src/routes/(worl
 
 Flight takes the session's client (`FlightOptions.client`): a launch adds the design to the running world, coming back without a launch takes up the focus vessel (`attach`), and leaving the page leaves the vessel flying.
 
+### Lessons (plan 229)
+
+The lessons after the first orbit are data in `apps/web/src/lib/onboarding/lessons.ts`. Each lesson has:
+- a design;
+- setup calls, which are `DebugApi` functions by name with their arguments;
+- blocked actions and places, each with a reason;
+- steps on the first-flight guide's observation model, and a goal.
+
+`advanceLesson` completes one step per observation, and the goal ends the lesson at once. Progress is `settings.lessons`.
+
+- **The lesson world** (`lesson-world.ts`): Start on the Lessons page (`/lessons`) creates a Sandbox world with a fixed seed, marked `WorldRecord.lesson`.
+  - `Worlds.list()` leaves it out, so the Worlds page, Continue and unique names never see it.
+  - The session (`orbital.lesson`) remembers the player's active world, which comes back on leaving.
+  - Flight takes the lesson's design when it has no focus vessel. On the first flying HUD it runs the setup through `createDebugApi` (Sandbox allows it).
+  - The Lessons, Home and Worlds pages end a session left running and remove lesson worlds. Leaving the world saves first, so the removal happens after it.
+- **Permissions** (`lesson-gate.svelte.ts`) are a filter, not a sim change:
+  - `lessonKeymap` takes the blocked actions out of the keymap. Their keys and held axes do nothing, and a try shows the reason on the lesson card.
+  - The (world) layout's `beforeNavigate` cancels a move to a closed place (the Hangar, Launch, the buildings) and shows the reason.
+  - HUD buttons and touch controls are not filtered.
+- **The first-flight guide does not run in a lesson world.**
+
 ## Layers
 
 | Layer | Packages | Environment | Knows about |

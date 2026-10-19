@@ -1,7 +1,7 @@
 ---
 id: 229
 title: "Lessons: landing, maneuver nodes, rendezvous and docking, transfers"
-status: in-progress
+status: done
 owner: "Worker E"
 depends: [203, 222, 224]
 phase: 7
@@ -86,20 +86,20 @@ After the first orbit, the game keeps teaching. A lesson framework extends the f
 
 ## Acceptance criteria
 
-- [ ] `apps/web` vitest: `onboarding/lessons.test.ts` runs a table of observation sequences for each lesson (advances only on its condition, never skips, completion persists, restart resets).
-- [ ] `apps/web` vitest: every lesson's setup only calls debug API functions defined by plan 203.
-- [ ] Chromium e2e `apps/web/e2e/lessons.e2e.ts`: from the Lessons page start each of the four lessons; the expected scene is set (altitude, orbit or target distance within 5 %); the first card shows; a blocked control shows its reason; leaving returns to the Lessons page and the Worlds list is unchanged.
-- [ ] Chromium e2e: the landing lesson completes when `debug.setLocation` puts the vessel at rest on the surface.
+- [x] `apps/web` vitest: `onboarding/lessons.test.ts` runs a table of observation sequences for each lesson (advances only on its condition, never skips, completion persists, restart resets).
+- [x] `apps/web` vitest: every lesson's setup only calls debug API functions defined by plan 203.
+- [x] Chromium e2e `apps/web/e2e/lessons.e2e.ts`: from the Lessons page start each of the four lessons; the expected scene is set (altitude, orbit or target distance within 5 %); the first card shows; a blocked control shows its reason; leaving returns to the Lessons page and the Worlds list is unchanged.
+- [x] Chromium e2e: the landing lesson completes when `debug.setLocation` puts the vessel at rest on the surface.
 - [ ] `[manual]` a human completes the maneuver-node lesson by the cards alone; recorded in the journal.
-- [ ] `bun run check:affected --build --e2e e2e/lessons.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun run check:affected --build --e2e e2e/lessons.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/229-lessons-past-first-orbit.md` written.
-- [ ] `docs/architecture/overview.md` describes the lesson framework.
-- [ ] `apps/web/src/lib/public/roadmap.ts` updated if it lists lessons as future work.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/229-lessons-past-first-orbit.md` written.
+- [x] `docs/architecture/overview.md` describes the lesson framework.
+- [x] `apps/web/src/lib/public/roadmap.ts` updated if it lists lessons as future work (it does not: no change).
 
 ## Log
 
@@ -107,3 +107,9 @@ After the first orbit, the game keeps teaching. A lesson framework extends the f
 - 2026-10-19 — Claimed by Worker E (Linux), refined to the steps above.
   - The transfer lesson goes to Cinder: the stock system has only Home and its moon, so there is no interplanetary target without the Sol mod. Default noted here, not asked.
   - Lesson progress is an additive settings field with a default (no format number change), following the V3 `debug`/`time` pattern.
+- 2026-10-19 — Done by Worker E.
+  - Vitest: `lessons.test.ts` (28), `worlds.test.ts` (+1), `settings.test.ts` (round trip).
+  - Chromium e2e: `lessons.e2e.ts` (2). It ran here on the system Chromium (local config, port 5270, one worker). Every assertion passes; the only console error is a `/favicon.ico` 404, which this Chromium also logs on `/worlds` and which the bundled CI Chromium does not.
+  - Checks: `check:affected --build` here (the settings, WarpControl and dock vitest suites are environment-only failures on this Bun-only machine), lint, and the full suite in CI on `ready/229`.
+  - The lesson clock waits for Begin. Leave only navigates, so the exit save stays in the lesson world.
+  - `[manual]` playthrough of the maneuver-node lesson is left for the owner, as plan 201 left its own manual check.

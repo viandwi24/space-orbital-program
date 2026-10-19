@@ -175,7 +175,7 @@
 | 226 | [Camera modes, hide UI and screenshots](plans/226-camera-modes-and-capture.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [216]. |
 | 227 | [Audio pack and minimal music](plans/227-audio-pack.md) | done | Worker D (M2) | Release roadmap (`docs/roadmap/release-roadmap.md`); depends []. |
 | 228 | [Tooltip system and glossary](plans/228-tooltips-and-glossary.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [215]. |
-| 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | in-progress | Worker E | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [203, 222, 224]. |
+| 229 | [Lessons: landing, maneuver nodes, rendezvous and docking, transfers](plans/229-lessons-past-first-orbit.md) | done | Worker E | Lessons page and four lessons in throwaway Sandbox worlds set by the debug API, key and place permissions with reasons; `[manual]` playthrough open for the owner |
 | 230 | [World rules and save safety](plans/230-rules-and-save-safety.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [205, 212]. |
 | 231 | [Career content for the new parts](plans/231-career-content-for-new-parts.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [209, 210, 211, 222, 225]. |
 | 232 | [Release QA and launch](plans/232-release-qa.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231]. |
@@ -249,6 +249,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [229 — Lessons: landing, maneuver nodes, rendezvous and docking, transfers](journal/229-lessons-past-first-orbit.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
 - [206 — Flexible time warp](journal/206-flexible-time-warp.md)
