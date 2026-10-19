@@ -6,7 +6,7 @@
 
 **Visual:** [`release-roadmap.html`](release-roadmap.html). Open it in a browser to see the dependency graph, the waves, the critical path and the plan details.
 
-**Plans:** 200–232, all `draft` until refined. **ADRs:** 0200–0210.
+**Plans:** 200–236 (233–236 added 2026-10-19 from the owner's manual test, ADR 0222). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
 
 ## How to work
 

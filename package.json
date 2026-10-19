@@ -32,6 +32,7 @@
 		"docs:check": "bun run tools/docs-check.ts",
 		"check:affected": "bun run tools/check-affected.ts",
 		"roadmap:progress": "bun run tools/roadmap-progress.ts",
+		"roadmap:release": "bun run tools/release-roadmap.ts",
 		"e2e": "bun run --filter @orbital/web test:e2e"
 	},
 	"devDependencies": {

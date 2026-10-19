@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Base layout — time bar, menu bar, status bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- content safe area (top 80 · sides 24 · bottom 56) -->
+  <div aria-hidden="true" style="position: absolute; left: 24px; right: 24px; top: 80px; bottom: 56px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+    <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #6B6B73;">PAGE CONTENT</div>
+  </div>
+
+  <!-- ===== TIME BAR (top-left) ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 10px; height: 44px; box-sizing: border-box; padding: 4px 14px 4px 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <button aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor"></path></svg>
+      </sc-if>
+      <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"></rect></svg>
+      </sc-if>
+    </button>
+    <div role="group" aria-label="Time warp" style="display: flex; align-items: center; gap: 3px;">
+      <sc-for list="{{warps}}" as="w" hint-placeholder-count="8">
+        <button aria-label="{{w.label}}" aria-pressed="{{w.on}}" onClick="{{w.pick}}" style="{{w.style}}"></button>
+      </sc-for>
+    </div>
+    <div style="min-width: 34px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{warpLabel}}</div>
+    <div aria-hidden="true" style="width: 1px; height: 18px; background: rgba(255,255,255,0.12);"></div>
+    <div style="font-size: 12px; line-height: 1; font-weight: 500; color: #FFFFFF;">T+ 2y 70d 26:32</div>
+  </div>
+
+  <!-- ===== MENU BAR (top-right) — [page actions] | [Vessel · Space Center · VAB] | [Menu] ===== -->
+  <div style="position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-if value="{{hasPageActions}}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="5">
+        <button aria-label="{{a.label}}" aria-pressed="{{a.on}}" title="{{a.label}}" onClick="{{a.toggle}}" style="{{a.style}}">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{a.d}}"></path></svg>
+          <span aria-hidden="true" style="{{a.dot}}"></span>
+        </button>
+      </sc-for>
+      <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    </sc-if>
+    <sc-for list="{{fixed}}" as="f" hint-placeholder-count="4">
+      <a href="{{f.href}}" aria-label="{{f.label}}" title="{{f.label}}" style="{{f.style}}">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{f.d}}"></path></svg>
+        <span aria-hidden="true" style="{{f.dot}}"></span>
+      </a>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Menu" title="Menu" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #E4E4E7; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7 H20 M4 12 H20 M4 17 H20"></path></svg>
+    </button>
+  </div>
+
+  <!-- ===== STATUS BAR (bottom, full width) ===== -->
+  <footer role="status" aria-label="Status bar" style="position: absolute; left: 0; right: 0; bottom: 0; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 24px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; line-height: 1; color: #A1A1AA;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 11px; font-weight: 700; color: #FFFFFF;">[WORLD NAME 1]</span>
+      <span style="height: 16px; padding: 0 6px; display: flex; align-items: center; border-radius: 999px; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; background: rgba(255,255,255,0.1); color: #E4E4E7;">CAREER</span>
+      <span>Kerbin system</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{accent}};"></span><span style="color: #FFFFFF; font-weight: 600;">Connected</span><span>KSC network · 2 relays</span></div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 21 V10 L9 7.5 V21 M9 21 V3 L15 6 V21 M15 21 V11 L20 13 V21 M3 21 H21"></path></svg>
+      <span>{{location}}</span>
+    </div>
+    <div style="margin: 0 auto; display: flex; align-items: center; gap: 16px;">
+      <span>Funds <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Science <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Reputation <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Contracts <b style="color: #FFFFFF; font-weight: 600;">[—] active</b></span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21"></path></svg>
+      <span>Autosave 2 h ago</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20"></path></svg>
+      <span>[—] mods</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 2px; margin-right: -6px;">
+      <sc-for list="{{tray}}" as="t" hint-placeholder-count="1">
+        <button aria-label="{{t.label}}" title="{{t.label}}" style="position: relative; width: 26px; height: 26px; border: none; border-radius: 6px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #C4C4CC;">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{t.d}}"></path></svg>
+          <sc-if value="{{t.hasBadge}}" hint-placeholder-val="{{ false }}">
+            <span aria-hidden="true" style="position: absolute; right: 1px; top: 2px; min-width: 12px; height: 12px; padding: 0 3px; box-sizing: border-box; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">{{t.badge}}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"location":{"editor":"text","default":"Space Center · Kerbin"},"page":{"editor":"enum","options":["base","vessel"],"default":"base"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { paused: false, warp: 0, on: {} };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    const rates = [1, 2, 4, 10, 50, 100, 1000, 10000];
+    const warps = rates.map((r, i) => ({
+      label: 'Time warp ' + r + '×', on: i === st.warp,
+      pick: () => this.setState({ warp: i, paused: false }),
+      style: 'width:' + (i < 4 ? 6 : 10) + 'px;height:18px;border:none;padding:0;border-radius:3px;background:' + (st.paused ? 'rgba(255,255,255,0.12)' : (i <= st.warp ? (i === st.warp ? accent : '#F4F4F5') : 'rgba(255,255,255,0.12)'))
+    }));
+    const fmt = (r) => r >= 1000 ? (r / 1000) + 'k×' : r + '×';
+    // which page this frame is showing: 'base' (fixed menu only) or 'vessel' (example with page actions)
+    const page = this.props.page ?? 'base';
+    // page-specific actions — the vessel page example
+    const A = [
+      { id: 'a1', label: 'Panels', d: 'M4 4 H20 V20 H4 Z M9 4 V20', toggle: true },
+      { id: 'a2', label: 'Vessel info', d: 'M12 4 A8 8 0 1 1 11.99 4 Z M12 11 V16 M12 8 V8.5', toggle: true },
+      { id: 'a3', label: 'Navball', d: 'M12 4 A8 8 0 1 1 11.99 4 Z M4 12 H20 M8.5 12 L12 15 L15.5 12', toggle: true },
+      { id: 'a4', label: 'Crew', d: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19', toggle: true },
+      { id: 'a5', label: 'Change camera', d: 'M3 8 H7 L9 5 H15 L17 8 H21 V19 H3 Z M12 9.5 A3.5 3.5 0 1 1 11.99 9.5 Z', toggle: false }
+    ];
+    // fixed on every page
+    const FIXED = [
+      { id: 'vessel', label: 'Vessel', href: 'Main.dc.html', d: 'M12 3 C15 5.5 16 9 16 13 V16 L18.5 19 H5.5 L8 16 V13 C8 9 9 5.5 12 3 Z M10 19 V21 M14 19 V21' },
+      { id: 'map', label: 'Map', href: 'MapView.dc.html', d: 'M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z M9 4 V18 M15 6 V20' },
+      { id: 'spacecenter', label: 'Space Center', href: 'SpaceCenterV2.dc.html', d: 'M4 21 V10 L9 7.5 V21 M9 21 V3 L15 6 V21 M15 21 V11 L20 13 V21 M3 21 H21' },
+      { id: 'vab', label: 'VAB', href: 'Hangar.dc.html', d: 'M4 21 V9 L12 3 L20 9 V21 Z M12 10 C13.6 11.4 14 13.4 14 16 V21 H10 V16 C10 13.4 10.4 11.4 12 10 Z' }
+    ];
+    const current = page === 'vessel' ? 'vessel' : null;
+    const fixed = FIXED.map((f) => {
+      const on = current === f.id;
+      return {
+        label: f.label + (on ? ' (current)' : ''), href: f.href, d: f.d,
+        style: 'position:relative;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const actions = A.map((a) => {
+      const on = a.toggle && st.on[a.id] !== false;
+      return {
+        label: a.label, d: a.d, on,
+        toggle: () => { if (a.toggle) this.setState({ on: Object.assign({}, st.on, { [a.id]: !on }) }); },
+        style: 'position:relative;width:36px;height:36px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;padding:0;background:transparent;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const tray = [
+      { label: 'Notifications, 4 new', d: 'M6 16 V11 A6 6 0 0 1 18 11 V16 L20 18 H4 Z M10 21 H14', hasBadge: true, badge: '4' }
+    ];
+    return {
+      accent, warps, warpLabel: st.paused ? '—' : fmt(rates[st.warp]),
+      paused: st.paused, playing: !st.paused, playLabel: st.paused ? 'Resume' : 'Pause',
+      togglePlay: () => this.setState({ paused: !st.paused }),
+      actions, fixed, hasPageActions: page === 'vessel', tray, location: this.props.location ?? 'Space Center · Kerbin'
+    };
+  }
+}
+</script>
+</body>
+</html>

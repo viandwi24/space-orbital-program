@@ -76,6 +76,8 @@ Run these first, and **wait 2 minutes and check again** while any limit is excee
 
 ## Doing a plan
 
+**UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
+
 **One plan at a time (owner's rule):** finish a plan, merge it into main, then start the next. Never keep two of your own plans open at once, and never leave a finished plan unmerged.
 
 1. **Branch and refine.** Create the branch `rel/NNN-<slug>` from `origin/main` in your worktree. Refine the draft to `ready`: check Steps and Acceptance criteria against the code. Then set it to `in-progress` with `owner: "Worker X"`.
@@ -91,7 +93,7 @@ Run these first, and **wait 2 minutes and check again** while any limit is excee
      - STATUS row set to `done`;
      - journal `docs/journal/NNN-<slug>.md`;
      - the `docs:check` pass.
-   - Push to main as a fast-forward: `git push origin HEAD:main`. If it is refused, rebase and repeat.
+   - Run `bun run roadmap:release` and include `docs/roadmap/release-roadmap.html` in the completion commit, so the visual roadmap shows the new state. Push to main as a fast-forward: `git push origin HEAD:main`. If it is refused, rebase and repeat.
    - Delete the `claim/NNN` and `ready/NNN` tags and the plan's `refs/ci/*` refs.
 6. **Report.** Write one Indonesian line to the owner, then take the next plan. **Do not stop while work remains.** End a turn only when nothing is free (Picking work, step 5) or when you are blocked.
 

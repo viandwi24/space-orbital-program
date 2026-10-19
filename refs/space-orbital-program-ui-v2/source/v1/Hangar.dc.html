@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hangar — build a vessel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #0A0C0F; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- build floor grid -->
+  <svg aria-hidden="true" width="1920" height="1080" viewBox="0 0 1920 1080" style="position: absolute; left: 0; top: 0;">
+    <sc-for list="{{grid}}" as="g" hint-placeholder-count="40">
+      <line x1="{{g.x1}}" y1="{{g.y1}}" x2="{{g.x2}}" y2="{{g.y2}}" stroke="{{g.c}}" stroke-width="1"></line>
+    </sc-for>
+    <line x1="960" y1="70" x2="960" y2="1010" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4 6"></line>
+  </svg>
+
+  <!-- vessel being built (upright) -->
+  <svg role="img" aria-label="Vessel under construction" width="860" height="520" viewBox="0 0 860 520" style="position: absolute; left: 530px; top: 280px; overflow: visible; transform: scale(0.92); transform-origin: 430px 260px;">
+    <g transform="rotate(-90 430 260)">
+      <rect x="150" y="150" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+      <path d="M340 150 Q382 152 386 168 Q382 184 340 186 Z" fill="#C9CDD3"></path>
+      <rect x="150" y="334" width="190" height="36" rx="4" fill="#C9CDD3"></rect>
+      <path d="M340 334 Q382 336 386 352 Q382 368 340 370 Z" fill="#C9CDD3"></path>
+      <path d="M58 236 L82 228 L82 292 L58 284 Z" fill="#2B2D31"></path>
+      <rect x="80" y="222" width="440" height="76" rx="6" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <rect x="196" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+      <rect x="330" y="222" width="10" height="76" fill="#1A1B1E"></rect>
+      <rect x="236" y="226" width="34" height="18" rx="2" fill="#1A1B1E"></rect>
+      <rect x="520" y="228" width="44" height="64" fill="#D9DCE1" stroke="#B9BEC5" stroke-width="1.5"></rect>
+      <rect x="564" y="230" width="126" height="60" rx="4" fill="#F1F2F4" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M690 230 L742 240 Q770 248 774 260 Q770 272 742 280 L690 290 Z" fill="#E7E9EC" stroke="{{accent}}" stroke-width="3"></path>
+      <circle cx="776" cy="260" r="11" fill="#141518" stroke="#C3C7CD" stroke-width="2"></circle>
+      <rect x="110" y="168" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M330 168 Q382 170 388 190 Q382 210 330 212 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+      <path d="M110 168 L84 150 L84 168 Z" fill="#9EA4AC"></path>
+      <rect x="110" y="308" width="220" height="44" rx="5" fill="#F7F8F9" stroke="#C3C7CD" stroke-width="1.5"></rect>
+      <path d="M330 308 Q382 310 388 330 Q382 350 330 352 Z" fill="#EDEFF2" stroke="#C3C7CD" stroke-width="1.5"></path>
+      <path d="M110 352 L84 370 L84 352 Z" fill="#9EA4AC"></path>
+    </g>
+  </svg>
+  <!-- centre-of-mass / thrust markers -->
+  <sc-if value="{{showCom}}" hint-placeholder-val="{{ true }}">
+    <div title="Centre of mass" style="position: absolute; left: 949px; top: 560px; width: 22px; height: 22px; border-radius: 50%; box-sizing: border-box; border: 2px solid #FFFFFF; background: conic-gradient(#FFFFFF 0 25%, transparent 0 50%, #FFFFFF 0 75%, transparent 0);"></div>
+  </sc-if>
+  <sc-if value="{{showCot}}" hint-placeholder-val="{{ true }}">
+    <div title="Centre of thrust" style="position: absolute; left: 950px; top: 900px; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; border: 2px solid {{accent}};"></div>
+  </sc-if>
+  <div style="position: absolute; left: 1010px; top: 312px; display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; background: #F4F4F5; color: #0B0B0C;">
+    <div style="font-size: 10px; line-height: 1; font-weight: 700;">Command pod</div>
+    <div style="font-size: 9px; line-height: 1; color: #52525B;">selected · root</div>
+  </div>
+
+  <!-- ===== Top-left · back + vessel name ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <a href="SpaceCenter.dc.html" aria-label="Back to Space Center" title="Back to Space Center" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08);">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12 H5 M11 6 L5 12 L11 18"></path></svg>
+    </a>
+    <div style="display: flex; align-items: center; gap: 10px; height: 44px; box-sizing: border-box; padding: 0 6px 0 16px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">HANGAR</div>
+      <label style="display: flex; align-items: center;">
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Vessel name</span>
+        <input type="text" value="{{vesselName}}" onChange="{{setName}}" style="width: 200px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #FFFFFF; font-size: 12px; font-weight: 600; outline: none;">
+      </label>
+    </div>
+  </div>
+
+  <!-- ===== Top-right · file + launch ===== -->
+  <div style="position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 4px; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <sc-for list="{{fileActs}}" as="a" hint-placeholder-count="3">
+        <button aria-label="{{a.label}}" title="{{a.label}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #C4C4CC;">
+          <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{a.d}}"></path></svg>
+        </button>
+      </sc-for>
+    </div>
+    <a href="Launch.dc.html" style="height: 44px; padding: 0 20px; display: flex; align-items: center; gap: 8px; border-radius: 999px; text-decoration: none; font-size: 12px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z"></path></svg>
+      Launch
+    </a>
+  </div>
+
+  <!-- ===== Left · parts catalog ===== -->
+  <div style="position: absolute; left: 24px; top: 80px; bottom: 24px; width: 340px; box-sizing: border-box; display: flex; gap: 8px; padding: 10px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+    <div role="tablist" aria-orientation="vertical" aria-label="Part categories" style="width: 36px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="9">
+        <button role="tab" aria-selected="{{c.on}}" aria-label="{{c.label}}" title="{{c.label}}" onClick="{{c.pick}}" style="{{c.style}}">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{c.d}}"></path></svg>
+          <span aria-hidden="true" style="{{c.dot}}"></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 18px; padding: 0 2px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{catTitle}}</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">{{partCount}} parts</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border-radius: 8px; background: rgba(255,255,255,0.06); color: #A1A1AA;">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16 L21 21"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Search parts</span>
+        <input type="search" placeholder="Search parts" style="flex: 1; min-width: 0; height: 26px; border: none; outline: none; background: transparent; color: #FFFFFF; font-size: 11px;">
+      </label>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; overflow-y: auto;">
+        <sc-for list="{{parts}}" as="p" hint-placeholder-count="6">
+          <button title="{{p.name}}" style="height: 96px; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 10px; border-radius: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.04); color: #E4E4E7;">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="{{p.d}}"></path></svg>
+            <span style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 10px; line-height: 1.15; font-weight: 600; color: #FFFFFF;">{{p.name}}</span>
+              <span style="font-size: 9px; line-height: 1; color: #8B8B93;">{{p.meta}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Right · vessel stats + staging + checks ===== -->
+  <div style="position: absolute; right: 24px; top: 80px; width: 300px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; height: 18px; padding: 0 6px; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">VESSEL</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+        <sc-for list="{{stats}}" as="s" hint-placeholder-count="6">
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 8px; background: rgba(255,255,255,0.05);">
+            <div style="font-size: 7px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{s.k}}</div>
+            <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF; white-space: nowrap;">{{s.v}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">STAGING · Δv</div>
+        <div style="font-size: 9px; line-height: 1; font-weight: 600; color: #8B8B93;">vacuum</div>
+      </div>
+      <sc-for list="{{stages}}" as="g" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 6px; border-radius: 8px;">
+          <div style="width: 20px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{g.n}}</div>
+          <div style="font-size: 10px; line-height: 1; color: #C4C4CC;">{{g.name}}</div>
+          <div style="margin-left: auto; font-size: 10px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{g.dv}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; height: 22px; padding: 0 6px; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">PRE-FLIGHT CHECKS</div>
+      <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 6px; font-size: 10px; line-height: 1; color: #E4E4E7;">
+          <div style="{{c.dot}}"></div>{{c.text}}
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ===== Bottom · build tools ===== -->
+  <div style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; height: 48px; box-sizing: border-box; padding: 4px 8px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <sc-for list="{{tools}}" as="t" hint-placeholder-count="5">
+      <button aria-label="{{t.label}}" aria-pressed="{{t.on}}" title="{{t.label}}" onClick="{{t.pick}}" style="{{t.style}}">
+        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{t.d}}"></path></svg>
+        <span aria-hidden="true" style="{{t.dot}}"></span>
+      </button>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 20px; margin: 0 6px; background: rgba(255,255,255,0.12);"></div>
+    <div style="font-size: 9px; line-height: 1; letter-spacing: 0.1em; font-weight: 700; color: #A1A1AA; padding-right: 4px;">SYM</div>
+    <sc-for list="{{sym}}" as="s" hint-placeholder-count="5">
+      <button aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 20px; margin: 0 6px; background: rgba(255,255,255,0.12);"></div>
+    <sc-for list="{{markers}}" as="m" hint-placeholder-count="2">
+      <button aria-pressed="{{m.on}}" onClick="{{m.toggle}}" style="{{m.style}}">{{m.label}}<span aria-hidden="true" style="{{m.dot}}"></span></button>
+    </sc-for>
+    <div aria-hidden="true" style="width: 1px; height: 20px; margin: 0 6px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Undo" title="Undo" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #C4C4CC;">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 L4 9 L9 4 M4 9 H15 A5 5 0 0 1 15 19 H11"></path></svg>
+    </button>
+    <button aria-label="Redo" title="Redo" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #C4C4CC;">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 L20 9 L15 4 M20 9 H9 A5 5 0 0 0 9 19 H13"></path></svg>
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { name: '[VESSEL NAME]', cat: 'pods', tool: 'place', sym: 4, com: true, cot: true };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    const grid = [];
+    for (let x = 0; x <= 1920; x += 40) grid.push({ x1: x, y1: 0, x2: x, y2: 1080, c: x % 200 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)' });
+    for (let y = 0; y <= 1080; y += 40) grid.push({ x1: 0, y1: y, x2: 1920, y2: y, c: y % 200 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)' });
+
+    const D = {
+      pod: 'M9 3 H15 L20 19 H4 Z M12 9.5 A2.5 2.5 0 1 1 11.99 9.5 Z',
+      tank: 'M9 3 H15 A3 3 0 0 1 18 6 V18 A3 3 0 0 1 15 21 H9 A3 3 0 0 1 6 18 V6 A3 3 0 0 1 9 3 Z M6 12 H18',
+      engine: 'M8 3 H16 V11 L19 21 H5 L8 11 Z',
+      struct: 'M4 4 H20 V20 H4 Z M4 4 L20 20 M20 4 L4 20',
+      coupler: 'M4 9 H20 M4 15 H20 M12 3 V7 M12 17 V21',
+      aero: 'M12 3 C16 8 17 14 17 21 H7 C7 14 8 8 12 3 Z',
+      power: 'M3 7 H19 V17 H3 Z M21 10 V14 M11 9 L9 12 H13 L11 15',
+      comms: 'M4 6 A11 11 0 0 0 16 18 Z M10 12 L17 5 M12 21 H20 M16 18 V21',
+      science: 'M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17',
+      chute: 'M3 11 Q12 1 21 11 Z M3 11 L12 21 L21 11 M12 11 V21'
+    };
+    const CATS = [
+      ['pods', 'Command', D.pod], ['tanks', 'Fuel tanks', D.tank], ['engines', 'Engines', D.engine], ['struct', 'Structural', D.struct],
+      ['couplers', 'Couplers', D.coupler], ['aero', 'Aerodynamics', D.aero], ['power', 'Power', D.power], ['comms', 'Communication', D.comms],
+      ['science', 'Science', D.science], ['utility', 'Utility', D.chute]
+    ];
+    const cats = CATS.map(([k, label, d]) => {
+      const on = st.cat === k;
+      return {
+        label, d, on, pick: () => this.setState({ cat: k }),
+        style: 'position:relative;width:36px;height:36px;border:none;border-radius:10px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;right:0;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const PARTS = {
+      pods: [['Command pod · 3 seats', D.pod], ['Command pod · 1 seat', D.pod], ['Probe core', D.pod], ['Lander can', D.pod]],
+      tanks: [['Methalox tank S', D.tank], ['Methalox tank M', D.tank], ['Methalox tank L', D.tank], ['Monoprop tank', D.tank]],
+      engines: [['Core engine', D.engine], ['Booster engine', D.engine], ['Vacuum engine', D.engine], ['RCS thruster', D.engine]],
+      struct: [['Girder', D.struct], ['Adapter', D.struct], ['Strut', D.struct], ['Fin', D.aero]],
+      couplers: [['Stack decoupler', D.coupler], ['Radial decoupler', D.coupler], ['Docking port', D.coupler], ['Separator', D.coupler]],
+      aero: [['Nose cone', D.aero], ['Fairing', D.aero], ['Heat shield', D.aero], ['Air brake', D.aero]],
+      power: [['Battery bank', D.power], ['Solar array', D.power], ['Fuel cell', D.power], ['Floodlight', D.power]],
+      comms: [['Relay antenna', D.comms], ['Direct antenna', D.comms], ['Dish', D.comms]],
+      science: [['Science bay', D.science], ['Thermometer', D.science], ['Barometer', D.science]],
+      utility: [['Parachute', D.chute], ['Landing leg', D.struct], ['Ladder', D.struct]]
+    };
+    const list = PARTS[st.cat] || [];
+    const parts = list.map(([name, d]) => ({ name, d, meta: '[—] t · [—] funds' }));
+    const catTitle = (CATS.find((c) => c[0] === st.cat) || CATS[0])[1].toUpperCase();
+
+    const TOOLS = [
+      ['place', 'Place', 'M12 5 V19 M5 12 H19'],
+      ['move', 'Move / offset', 'M12 3 V21 M3 12 H21 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15'],
+      ['rotate', 'Rotate', 'M20 12 A8 8 0 1 1 17.7 6.3 M20 4 V9 H15'],
+      ['root', 'Re-root', 'M12 3 V21 M12 8 L7 13 M12 8 L17 13 M7 21 H17'],
+      ['stage', 'Staging editor', 'M4 5 H20 V8.5 H4 Z M4 10.5 H20 V14 H4 Z M4 16 H20 V19.5 H4 Z']
+    ];
+    const tools = TOOLS.map(([k, label, d]) => {
+      const on = st.tool === k;
+      return {
+        label, d, on, pick: () => this.setState({ tool: k }),
+        style: 'position:relative;width:36px;height:36px;border:none;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;color:' + (on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;left:50%;bottom:2px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent')
+      };
+    });
+    const sym = [1, 2, 3, 4, 6].map((n) => ({
+      label: '×' + n, on: st.sym === n, pick: () => this.setState({ sym: n }),
+      style: 'height:28px;padding:0 8px;border:none;border-radius:999px;font-size:10px;line-height:1;font-weight:700;background:' + (st.sym === n ? '#F4F4F5' : 'transparent') + ';color:' + (st.sym === n ? '#0B0B0C' : '#A1A1AA')
+    }));
+    const markers = [['com', 'CoM'], ['cot', 'CoT']].map(([k, label]) => ({
+      label, on: !!st[k], toggle: () => this.setState({ [k]: !st[k] }),
+      style: 'position:relative;height:32px;padding:0 8px;border:none;border-radius:999px;font-size:10px;line-height:1;font-weight:700;background:transparent;color:' + (st[k] ? '#FFFFFF' : '#8B8B93'),
+      dot: 'position:absolute;left:50%;bottom:1px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (st[k] ? '#FFFFFF' : 'transparent')
+    }));
+
+    const fileActs = [
+      { label: 'New vessel', d: 'M6 3 H14 L18 7 V21 H6 Z M14 3 V7 H18 M12 11 V17 M9 14 H15' },
+      { label: 'Open from library', d: 'M4 6 H10 L12 8 H20 V19 H4 Z' },
+      { label: 'Save', d: 'M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21' }
+    ];
+    const stats = [
+      { k: 'MASS', v: '[—] t' }, { k: 'PARTS', v: '[—]' }, { k: 'HEIGHT', v: '[—] m' },
+      { k: 'TOTAL Δv', v: '6,354 m/s' }, { k: 'TWR', v: '[—]' }, { k: 'COST', v: '[—]' }
+    ];
+    const stages = [
+      { n: '06', name: 'Parachute', dv: '—' },
+      { n: '05', name: 'Decoupler', dv: '—' },
+      { n: '04', name: 'Decouple + engine', dv: '[—] m/s' },
+      { n: '03', name: 'Boosters', dv: '[—] m/s' },
+      { n: '02', name: 'Core stage', dv: '4,384 m/s' }
+    ];
+    const ok = 'width:6px;height:6px;flex:none;border-radius:50%;background:#7BD88F';
+    const warn = 'width:6px;height:6px;flex:none;border-radius:50%;background:#FFB86B';
+    const checks = [
+      { text: 'Control source on board', dot: ok },
+      { text: 'Crew seats: 3 / 3', dot: ok },
+      { text: 'Parachute staged last', dot: ok },
+      { text: '[—] warnings from engineer report', dot: warn }
+    ];
+
+    return {
+      accent, grid, cats, parts, partCount: String(parts.length), catTitle, tools, sym, markers, fileActs, stats, stages, checks,
+      showCom: st.com, showCot: st.cot,
+      vesselName: st.name, setName: (e) => this.setState({ name: e.target.value })
+    };
+  }
+}
+</script>
+</body>
+</html>
