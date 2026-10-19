@@ -1,12 +1,12 @@
 ---
 id: 224
 title: "Navigation tools: numeric node editor, AN/DN, alarms, transfer windows"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker C"
 depends: [206]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 224 — Navigation tools: numeric node editor, AN/DN, alarms, transfer windows
@@ -90,3 +90,6 @@ E2E setup uses the plan 203 debug API (ADR 0200). This plan does not depend on 2
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker C refined to ready and claimed (claim/224). Checked against the code: plan 206's `warp-to` already takes `{ kind: 'alarm', id }` and refused it until this plan; the bell is `createBellFeed` in the world layout (plan 205); plan 203's debug API exists, so the e2e uses `debug.setOrbit`. ADR 0223 (0221 is Worker A's, 0222 left for Worker B).
+- 2026-10-19 — Default (not asked): `SimSave.alarms` is an optional field, not a format bump. Every save section added since format 5 (economy, contracts, reliability, …) came the same way, an older save simply has none, and two other workers are bumping the format in parallel. The plan text said "version bump"; this is the one deviation.
+- 2026-10-19 — Default: an apsis, sphere or node alarm fires the warp-to margin before its event (15 s, 30 s for a node) unless the player gives a lead; its time is fixed when set, like the transfer alarm. A fired alarm leaves the list; the bell keeps the record.

@@ -34,6 +34,7 @@ import type { CommsRuntime } from './comms.ts';
 import type { LifeRuntime } from './life.ts';
 import type { RangeRuntime } from './range.ts';
 import type { ReliabilityRuntime } from './reliability.ts';
+import type { SaveAlarms } from '@orbital/core';
 import type { TrajectoryProvider } from '@orbital/kepler';
 import {
 	moduleStateToken,
@@ -81,6 +82,8 @@ export interface SimCore {
 	warpFocus: EntityId | null;
 	/** The clock is paused (plan 205, ADR 0201 point 4); not saved: a loaded world runs. */
 	paused: boolean;
+	/** User alarms in time order (plan 224, ADR 0223); saved once any was set. */
+	readonly alarms: SaveAlarms;
 	/**
 	 * The world this run belongs to (plan 077, ADR 0110). Only `set-rule` changes it (its `rules`
 	 * and `changelog`, ADR 0111), and then resets `rulesView`.

@@ -59,18 +59,33 @@ export function requestWarpTo(
 
 /** The time a warp-to target means, margin included, or why there is none. */
 function targetTime(core: SimCore, target: WarpTarget): number | string {
-	if (target.kind === 'alarm') return 'alarms come with the navigation tools (plan 224)';
-	if (!core.world.hasEntity(target.vessel)) return `unknown vessel ${target.vessel}`;
-	const vessel = vesselOf(core, target.vessel);
-	if (target.kind === 'node') {
+	if (target.kind === 'alarm') {
+		const alarm = core.alarms.list.find((a) => a.id === target.id);
+		return alarm ? alarm.time : `no alarm ${target.id}`;
+	}
+	const time = eventTime(core, target.kind, target.vessel);
+	if (typeof time === 'string') return time;
+	return Math.max(core.t + 1, time - (target.kind === 'node' ? NODE_MARGIN : WARP_TO_MARGIN));
+}
+
+/**
+ * When a vessel's next apsis, sphere change or node comes (no margin), or why there is none. Alarms
+ * (plan 224) share it with warp-to.
+ */
+export function eventTime(
+	core: SimCore,
+	kind: 'apoapsis' | 'periapsis' | 'soi' | 'node',
+	id: EntityId
+): number | string {
+	if (!core.world.hasEntity(id)) return `unknown vessel ${id}`;
+	const vessel = vesselOf(core, id);
+	if (kind === 'node') {
 		const next = vessel.nodes.filter((n) => n.time > core.t).sort((a, b) => a.time - b.time)[0];
-		return next
-			? Math.max(core.t + 1, next.time - NODE_MARGIN)
-			: 'the vessel has no maneuver node ahead';
+		return next ? next.time : 'the vessel has no maneuver node ahead';
 	}
 	const body = bodyOfVessel(core, vessel);
 	const m = motionOf(core, vessel);
-	if (target.kind === 'soi') {
+	if (kind === 'soi') {
 		const path = core.trajectory.predict(
 			{ body: vessel.soi, r: m.r, v: m.v, t: core.t },
 			400 * 86_400,
@@ -80,18 +95,18 @@ function targetTime(core: SimCore, target: WarpTarget): number | string {
 			}
 		);
 		const change = path.find((s) => s.end === 'transition');
-		return change ? Math.max(core.t + 1, change.t1 - WARP_TO_MARGIN) : 'no change of sphere ahead';
+		return change ? change.t1 : 'no change of sphere ahead';
 	}
 	const el = vessel.rails?.kind === 'elements' ? vessel.rails.elements : undefined;
-	const elements = el ?? elementsNow(core, target.vessel);
+	const elements = el ?? elementsNow(core, id);
 	if (!elements) return 'the vessel follows no orbit';
-	if (target.kind === 'apoapsis' && elements.e >= 1) return 'an escape path has no apoapsis';
+	if (kind === 'apoapsis' && elements.e >= 1) return 'an escape path has no apoapsis';
 	const n = meanMotion(elements, body.mu);
 	const mNow = wrapTwoPi(elements.m0 + n * (core.t - elements.epoch));
-	const goal = target.kind === 'periapsis' ? 2 * Math.PI : Math.PI;
+	const goal = kind === 'periapsis' ? 2 * Math.PI : Math.PI;
 	let dM = wrapTwoPi(goal - mNow);
 	if (dM < 1e-6) dM += 2 * Math.PI;
-	return Math.max(core.t + 1, core.t + dM / n - WARP_TO_MARGIN);
+	return core.t + dM / n;
 }
 
 function elementsNow(core: SimCore, id: EntityId) {

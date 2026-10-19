@@ -24,6 +24,7 @@ import { saveDiscoverySchema, type SaveDiscovery } from './discovery.ts';
 import { legacyWorldInfo, type WorldData, type WorldInfo } from './world.ts';
 import { routeModeSchema, type RouteMode } from './comms.ts';
 import type { Quat, Vec3 } from './math.ts';
+import type { AlarmSnapshot } from './protocol.ts';
 
 /** Marker that tells a sim save from any other JSON the player might feed the loader. */
 export const SIM_SAVE_FORMAT = 'orbital-sim-save';
@@ -158,6 +159,12 @@ export interface SaveTransmission {
 	hops: number;
 }
 
+/** User alarms (plan 224): the next id number and the alarms in time order. */
+export interface SaveAlarms {
+	next: number;
+	list: AlarmSnapshot[];
+}
+
 export interface SimSave {
 	format: typeof SIM_SAVE_FORMAT;
 	formatVersion: number;
@@ -221,6 +228,8 @@ export interface SimSave {
 	range?: SaveRange;
 	/** Part reliability (plan 130, ADR 0156); optional in format 5, absent = rule never on. */
 	reliability?: SaveReliability;
+	/** User alarms (plan 224, ADR 0223); optional, absent = none set yet. */
+	alarms?: SaveAlarms;
 	world: WorldData;
 	frames: SaveFrame[];
 	/** Hash of everything above; detects truncated or edited files (not tamper-proof). */
@@ -307,6 +316,21 @@ export const simSaveSchema = z.object({
 	tech: saveTechSchema.optional(),
 	range: saveRangeSchema.optional(),
 	reliability: saveReliabilitySchema.optional(),
+	alarms: z
+		.object({
+			next: z.int().min(1),
+			list: z.array(
+				z.object({
+					id: z.string().min(1),
+					name: z.string(),
+					time: finite,
+					kind: z.enum(['time', 'apoapsis', 'periapsis', 'soi', 'node', 'transfer']),
+					vessel: entity.optional(),
+					body: z.string().min(1).optional()
+				})
+			)
+		})
+		.optional(),
 	world: worldDataSchema,
 	frames: z.array(saveFrameSchema),
 	checksum: z.string().min(1)

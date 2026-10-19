@@ -75,6 +75,26 @@ export interface ManeuverNodeSnapshot {
 	vector?: Vec3;
 }
 
+/** What an alarm waits for (plan 224, ADR 0223): its time is worked out once, when it is set. */
+export type AlarmKind = 'time' | 'apoapsis' | 'periapsis' | 'soi' | 'node' | 'transfer';
+
+/**
+ * A user alarm (plan 224, ADR 0223): it stops any warp at `time` and fires once, for any vessel,
+ * focused or not. A fired alarm leaves the list.
+ */
+export interface AlarmSnapshot {
+	/** `alarm.<n>`, given by the sim. */
+	id: string;
+	name: string;
+	/** Sim time it fires, s. */
+	time: number;
+	kind: AlarmKind;
+	/** The vessel whose event it waits for (apsis, sphere change, node), or the one it was set for. */
+	vessel?: EntityId;
+	/** The destination of a transfer-window alarm. */
+	body?: string;
+}
+
 /**
  * What a vessel can aim at (plan 035, ADR 0064): another body, or another vessel (debris included).
  * Vessel ids are entity ids, body ids are definition ids.
@@ -337,6 +357,8 @@ export interface Snapshot {
 	warpLimit?: WarpLimitSnapshot;
 	/** The clock is paused (plan 205); absent while it runs. */
 	paused?: boolean;
+	/** User alarms in time order (plan 224); absent while there are none. */
+	alarms?: AlarmSnapshot[];
 	/** The world's debug state (plan 203). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	debug?: DebugSnapshot;
 	/** The world's rule values, every registered rule (plan 078); the same object until a change. */
@@ -734,6 +756,22 @@ export type Command =
 			normal: number;
 			radial: number;
 	  }
+	/**
+	 * Set a user alarm (plan 224, ADR 0223); with the `id` of one it replaces it (the result carries
+	 * `alarm`). `time` and `transfer` alarms need `time`; `apoapsis`, `periapsis`, `soi` and `node`
+	 * need `vessel` and fire `lead` s before the event (the warp-to margin when absent).
+	 */
+	| {
+			type: 'add-alarm';
+			id?: string;
+			name?: string;
+			kind?: AlarmKind;
+			time?: number;
+			vessel?: EntityId;
+			lead?: number;
+			body?: string;
+	  }
+	| { type: 'remove-alarm'; id: string }
 	/** Remove one node, or all of the vessel's nodes without an `id`. */
 	| { type: 'node-remove'; vessel: EntityId; id?: number }
 	/** Select (or with `null` clear) the vessel's target (plan 035, ADR 0064). */
@@ -911,7 +949,7 @@ export type Command =
 	/** Set a crew member's level. */
 	| { type: 'debug-set-crew-level'; member: string; level: number };
 
-/** What a `warp-to` can head for (plan 206, ADR 0202 point 6); alarms come with plan 224. */
+/** What a `warp-to` can head for (plan 206, ADR 0202 point 6); a user alarm by id (plan 224). */
 export type WarpTarget =
 	| { kind: 'apoapsis' | 'periapsis' | 'soi' | 'node'; vessel: EntityId }
 	| { kind: 'alarm'; id: string };
@@ -937,6 +975,8 @@ export type CommandResult =
 			vessel?: EntityId;
 			/** The node `node-set` created or replaced. */
 			node?: number;
+			/** The alarm `add-alarm` set (plan 224). */
+			alarm?: string;
 			/** Sim time a delayed command applies (signal delay, plan 117, ADR 0188 point 6). */
 			queued?: number;
 			/** `warp` and `warp-to` (plan 206): the level granted, and why when it is below the ask. */

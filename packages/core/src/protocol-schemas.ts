@@ -173,6 +173,25 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		normal: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV),
 		radial: z.number().min(-MAX_NODE_DV).max(MAX_NODE_DV)
 	}),
+	z
+		.object({
+			type: z.literal('add-alarm'),
+			id: z.string().min(1).optional(),
+			name: z.string().max(80).optional(),
+			kind: z.enum(['time', 'apoapsis', 'periapsis', 'soi', 'node', 'transfer']).optional(),
+			time: z.number().refine(Number.isFinite, 'time must be finite').optional(),
+			vessel: entity.optional(),
+			lead: z.number().min(0).max(86_400).optional(),
+			body: z.string().min(1).optional()
+		})
+		.refine(
+			(c) =>
+				['time', 'transfer'].includes(c.kind ?? 'time')
+					? c.time !== undefined
+					: c.vessel !== undefined,
+			'a time or transfer alarm needs a time; an event alarm needs a vessel'
+		),
+	z.object({ type: z.literal('remove-alarm'), id: z.string().min(1) }),
 	z.object({ type: z.literal('node-remove'), vessel: entity, id: index.optional() }),
 	z.object({ type: z.literal('target-set'), vessel: entity, target: targetRefSchema.nullable() }),
 	z.object({

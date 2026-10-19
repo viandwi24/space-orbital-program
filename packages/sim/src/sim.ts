@@ -76,6 +76,7 @@ import { freshEconomy } from './economy.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
+import { fireAlarms, freshAlarms, nextAlarm } from './alarms.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
 import { runTransfers, updateRates } from './transfer.ts';
@@ -85,17 +86,24 @@ const WARP_TO_TAPER = 1;
 
 /** Simulated seconds this `step` call adds: the warp, tapered and capped while a warp-to is under way. */
 function warpedDelta(core: SimCore, wallDelta: number): number {
-	if (core.warpTarget === null) return wallDelta * core.warp;
-	const remaining = core.warpTarget - core.t - core.accumulator;
+	const stop = stopAt(core);
+	if (stop === null) return wallDelta * core.warp;
+	const remaining = stop - core.t - core.accumulator;
 	if (remaining <= 0) return 0;
 	const factor = Math.min(core.warp, Math.max(1, remaining / WARP_TO_TAPER));
 	return Math.min(wallDelta * factor, remaining);
 }
 
+/** Where a warp must stop: the warp-to target, or an alarm before it (plan 224, ADR 0223). */
+function stopAt(core: SimCore): number | null {
+	const alarm = core.warp > 1 ? nextAlarm(core)?.time : undefined;
+	if (alarm === undefined) return core.warpTarget;
+	return core.warpTarget === null ? alarm : Math.min(alarm, core.warpTarget);
+}
+
 /** Lands the clock exactly on the target (the last piece is shorter than a step) and ends the warp. */
-function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void): void {
-	if (core.warpTarget === null) return;
-	const left = core.warpTarget - core.t;
+function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void, stop: number): void {
+	const left = stop - core.t;
 	if (hasFlightVessels(core)) {
 		// physics warp (plan 206): fixed steps cannot land exactly; it ends within one step
 		if (left > core.dt) return;
@@ -104,6 +112,17 @@ function arriveAtWarpTarget(core: SimCore, railsStep: (h: number) => void): void
 		const h = core.accumulator;
 		core.accumulator = 0;
 		railsStep(h);
+	}
+	const alarm = nextAlarm(core);
+	if (alarm && alarm.time === stop && stop !== core.warpTarget) {
+		// an alarm ends the warp (plan 224): on rails the clock is on it now; in physics within a step
+		fireAlarms(core);
+		if (core.warp > 1 || core.warpTarget !== null) {
+			core.warp = 1;
+			core.warpTarget = null;
+			core.events.emit('warp:stopped', { reason: `alarm "${alarm.name}"` });
+		}
+		return;
 	}
 	core.warp = 1;
 	core.warpTarget = null;
@@ -331,6 +350,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		warpStopped: false,
 		paused: false,
 		warpFocus: null,
+		alarms: freshAlarms(resume?.alarms),
 		info,
 		rulesView: null,
 		trajectory: createTrajectoryProvider(info.gravityModel, patchedBodiesOf(bodies)),
@@ -559,7 +579,9 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 					return;
 				}
 			}
-			if (core.warpTarget !== null) arriveAtWarpTarget(core, railsStep);
+			const stop = stopAt(core);
+			if (stop !== null) arriveAtWarpTarget(core, railsStep, stop);
+			fireAlarms(core);
 			holdWarp();
 		},
 		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),

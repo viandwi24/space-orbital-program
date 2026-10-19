@@ -7,6 +7,7 @@ import { warpLimit } from './warp-limits.ts';
 import { milestonesSnapshot } from './milestones.ts';
 import { rangeSnapshot } from './range.ts';
 import { reliabilitySnapshot } from './reliability.ts';
+import { alarmsSnapshot } from './alarms.ts';
 import {
 	bodyId,
 	partId,
@@ -241,6 +242,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 	const tech = techSnapshot(core);
 	const range = rangeSnapshot(core);
 	const reliability = reliabilitySnapshot(core);
+	const alarms = alarmsSnapshot(core);
 	return {
 		t: core.t,
 		vessels: vesselIds(core).map((id) => vesselSnapshot(core, id)),
@@ -253,6 +255,7 @@ export function takeSnapshot(core: SimCore): Snapshot {
 		debug: debugSnapshot(core),
 		warpLimit: warpLimit(core),
 		...(core.paused ? { paused: true } : {}),
+		...(alarms ? { alarms } : {}),
 		economy: { ...economySnapshot(core), ...marketSnapshot(core) },
 		sites: sitesSnapshot(core),
 		day: core.ticks.lastDay,

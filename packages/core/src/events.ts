@@ -75,6 +75,8 @@ export interface EventMap {
 	'warp:limited': { factor: number; reason: string };
 	/** The sim ended a warp by itself (plan 205, ADR 0201 point 10): an SOI change, a warp-to that arrived, a vessel that woke. */
 	'warp:stopped': { reason: string };
+	/** A user alarm reached its time (plan 224, ADR 0223); it has left the list. */
+	'alarm:fired': { id: string; name: string; kind: string; vessel?: EntityId };
 	/** A warp was granted lower than asked (plan 206, ADR 0202 point 4). */
 	'warp:clamped': { requested: number; granted: number; reason: string };
 	/** A vessel nobody watches in an atmosphere is held still during rails warp (ADR 0202 point 7). */

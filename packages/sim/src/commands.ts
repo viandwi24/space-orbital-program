@@ -7,6 +7,7 @@ import { endRent, ownedRefusal, rentRelay } from './agencies.ts';
 import { DEFAULT_TRANSFER_RATE, transferRefusal } from './transfer.ts';
 import { setFlowLock } from './resources.ts';
 import { moduleAction } from './actions.ts';
+import { addAlarm, removeAlarm } from './alarms.ts';
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import { stageRefusal, violation, watchAscent } from './range.ts';
@@ -517,6 +518,10 @@ export function dispatch(
 			return requestWarp(core, command.factor, command.vessel);
 		case 'warp-to':
 			return requestWarpTo(core, command);
+		case 'add-alarm':
+			return addAlarm(core, command);
+		case 'remove-alarm':
+			return removeAlarm(core, command.id);
 		case 'node-set': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
