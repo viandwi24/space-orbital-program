@@ -1,12 +1,12 @@
 ---
 id: 206
 title: Flexible time warp
-status: draft
-owner: ""
+status: done
+owner: "Worker B"
 depends: [204]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 206 — Flexible time warp
@@ -64,22 +64,23 @@ Warp is never refused without a reason. Physics warp ×2, ×4 and ×10 works any
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including `test/warp-limits.test.ts`: at 5 km with an engine on, max is 10× ("engine running"); at 80 km coasting over the home body, max is the rails tier for 80 km; landed, rails warp is allowed; a 100k× request in a stock world is clamped with a reason.
-- [ ] `bun test packages/sim` passes `test/warp-transitions.test.ts`: starting an engine during 1k× drops to physics warp in the same tick; an unseen vessel at 30 km in the atmosphere is frozen during 1k× and not deleted.
-- [ ] `bun test packages/sim` passes `test/physics-warp.test.ts`: 4× physics warp over 10 s matches 1× over 10 s step for step (same final state).
-- [ ] `apps/web` vitest `hud/WarpControl.test.ts` (extended): the reason text shows next to the clamped segment.
-- [ ] Chromium e2e `e2e/warp.e2e.ts`: `debugSetOrbit` to 100 km, warp-to Ap stops within the margin before apoapsis; `debugSetLocation` at 10 km, a 1k× request is clamped and the time bar shows the reason.
-- [ ] `bun run check:affected --e2e e2e/warp.e2e.ts` passes.
-- [ ] CI green on the `ready/206` tag (`refs/ci/pass/<sha>`, ADR 0126).
+- [x] `bun test packages/sim` passes, including `test/warp-limits.test.ts`: at 5 km with an engine on, max is 10× ("engine running"); at 80 km coasting over the home body, max is the rails tier for 80 km; landed, rails warp is allowed; a 100k× request in a stock world is clamped with a reason.
+- [x] `bun test packages/sim` passes `test/warp-transitions.test.ts`: starting an engine during 1k× drops to physics warp in the same tick; an unseen vessel at 30 km in the atmosphere is frozen during 1k× and not deleted.
+- [x] `bun test packages/sim` passes `test/physics-warp.test.ts`: 4× physics warp over 10 s matches 1× over 10 s step for step (same final state).
+- [x] `apps/web` vitest `hud/WarpControl.test.ts` (extended): the reason text shows next to the clamped segment.
+- [x] Chromium e2e `e2e/warp.e2e.ts`: `debugSetOrbit` to 100 km, warp-to Ap stops within the margin before apoapsis; `debugSetLocation` at 10 km, a 1k× request is clamped and the time bar shows the reason.
+- [x] `bun run check:affected --e2e e2e/warp.e2e.ts` passes.
+- [x] CI green on the `ready/206` tag (`refs/ci/pass/<sha>`, ADR 0126).
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/206-flexible-time-warp.md` written.
-- [ ] `docs/architecture/simulation.md` updated (warp limits, physics warp, freezing).
-- [ ] `docs/architecture/scripting.md` updated (`warpTo` targets).
-- [ ] ADR 0202 linked.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/206-flexible-time-warp.md` written.
+- [x] `docs/architecture/simulation.md` updated (warp limits, physics warp, freezing).
+- [x] `docs/architecture/scripting.md` updated (`warpTo` targets).
+- [x] ADR 0202 linked.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Refined and done by Worker B (`claim/206`). Decisions (default per owner review): the rails tiers come from the atmosphere top and fractions of the radius (KSP's Kerbin table for the stock home), so no per-body override was needed in `mods/stock/src/bodies.ts`; "engine running" is the throttle up in flight (saved state, so a resumed sim agrees); a stock world's top is 10k×, so sim tests that warped at 1e5–1e6× to skip days now warp at 1e4× with longer steps; the tests that asserted a refusal in flight now assert the physics warp or the clamp; the host's frame-budget fallback stays the n-body budget of ADR 0122 (physics warp runs whole steps, and `maxStepsPerCall` already bounds a frame). Evidence: `bun test packages/sim` 516 pass, including `warp-limits.test.ts` (5), `warp-transitions.test.ts` (2), `physics-warp.test.ts` (1); scripting 62 pass; web vitest 1099 pass including `WarpControl.test.ts` (5) and `sim-host-warp.test.ts` (9); Chromium `e2e/warp.e2e.ts` 2/2 with `debug`, `smoke`, `leave-flight`; `check:affected --build --e2e e2e/warp.e2e.ts` and CI on `ready/206` (journal).

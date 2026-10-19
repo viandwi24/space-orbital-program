@@ -152,7 +152,7 @@
 | 203 | [Debug panel, cheats, set orbit/location/resources, log](plans/203-debug-panel-and-cheats.md) | done | Worker B | Debug panel (Alt+F12), cheats, set orbit/location/resources, log; debug API `window.__orbitalDebug` and e2e helpers (`debugSetOrbit`, …) for later plans; ADR 0213. |
 | 204 | [World shell: Base layout, one sim per world, client navigation](plans/204-world-shell-one-sim.md) | done | Worker B | One sim per world: `(world)` route group, world session, Base layout bars (funds of plan 132 in the status bar), two-tab lock, 60 s autosave. |
 | 205 | [Clock states, pause rules, tab policy, leaving active flight](plans/205-clock-states-and-pause-rules.md) | done | Worker B | Clock states, pause rule `stock.pause-allowed` and the `pause` command, place pauses (Settings → Time), hidden-tab policy, leave-flight warning, warp-stop events in the bell. |
-| 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [204]. |
+| 206 | [Flexible time warp](plans/206-flexible-time-warp.md) | done | Worker B | Physics warp to 10× anywhere, per-body rails tiers, clamp with a reason, engine drops rails warp, unseen atmospheric vessels freeze, warp-to Ap/Pe/SOI/node; 8 levels (9 in Sol). |
 | 207 | [Part size classes, seam tests, auto shrouds, adapters and cones](plans/207-part-sizes-shrouds-adapters.md) | done | Worker A | ADR 0212: stock parts split into `mods/stock/src/parts/<family>.ts`; node `size` (API 0.1.75); booster ring and bell winding fixed; seam test for every generator; auto shrouds; adapters and nose/tail cones per size; Hangar size-mismatch check |
 | 208 | [Resources and power: monoprop, solid fuel, batteries, real solar, RTG, transmit cost](plans/208-power-and-resources.md) | done | Worker A | ADR 0214: monoprop, solid fuel, cold gas (save format 9); batteries, fixed/folding/tracking panels with angle, distance and shadow, RTG; probe drain and no-power control; transmit EC cost; `powerBudget`; merged by the brief's fallback (CI red with no visible cause) |
 | 209 | [Parachutes](plans/209-parachutes.md) | draft | | Release roadmap (`docs/roadmap/release-roadmap.md`); depends [207]. |
@@ -245,6 +245,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [206 — Flexible time warp](journal/206-flexible-time-warp.md)
 - [205 — Clock states, pause rules, tab policy, leaving active flight](journal/205-clock-states-and-pause-rules.md)
 - [204 — World shell: Base layout, one sim per world](journal/204-world-shell-one-sim.md)
 - [203 — Debug panel, cheats, set orbit/location/resources, log](journal/203-debug-panel-and-cheats.md)

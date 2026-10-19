@@ -39,6 +39,10 @@ The runner is a function of snapshots: it never holds the sim, so untrusted code
 
 Invalid arguments throw inside the script (`RangeError`/`TypeError`), so a script sees a normal exception and nothing invalid is issued. A repeated `throttle`/`attitude` setpoint produces no new command. Commands are built from named fields with the vessel fixed by the runner and validated with core's `commandSchema`: a script cannot address another vessel or load vessels; `warp` is the one command without a vessel and the host decides (ADR 0039).
 
+### Warp (plan 206, ADR 0202)
+
+`warp(f)` and `warpTo(...)` name the script's vessel as the watched one, so the sim's limit is the vessel's: 10× in the air or under thrust, the rails tier of its altitude above it. A request above the limit is granted lower, never refused. `warpTo` takes a time or a target string, `'apoapsis'`, `'periapsis'`, `'soi'` or `'node'`, whose time the sim works out with its margin. The sim host holds a script's attitude (ADR 0039) only for rails levels; physics warp needs no rails.
+
 ### The debug API (plan 203, ADR 0200 point 9)
 
 With `ScriptEnvironment.debug` true the prelude defines a frozen `debug` global: `setOrbit({ body?, apoapsis, periapsis } | { body?, a, e, i?, raan?, argp?, m0? })` (altitudes in m above the body's radius, angles in rad, the body defaulting to the current one), `setLocation(location)`, `setResource({ part?, resource?, fraction? | amount? })`, `setTemperature({ part?, temperature })`, `setCheat(cheat, on = true)` and `log(...)` (a `print` marked `[debug]`). Each issues the matching `debug-*` command for the script's own vessel and resolves with the verdict. The web sim host sets `debug` from `Snapshot.debug.allowed` when a Run starts; the sim refuses the commands anyway when the world does not allow them. `script-api.ts` lists the members in `DEBUG`, apart from `GLOBALS`.
