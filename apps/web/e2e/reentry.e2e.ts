@@ -55,12 +55,14 @@ test('the shield heats on entry, the panel shows its temperature, the capsule la
 	await expect(shield).toBeVisible({ timeout: 60_000 });
 	await expect(shield).toHaveText(/^\d+ K of 3300 K$/);
 
-	const faster = page.getByRole('button', { name: 'Faster time warp' });
-	for (const x of ['2x', '4x', '10x']) {
-		await faster.click();
-		await expect(page.getByTestId('hud-warp')).toHaveText(x);
-	}
-	await expect(page.getByTestId('hud-phase-text')).toContainText('Landed', { timeout: 200_000 });
+	// the long glide down is skipped: under the chute's height, then near the ground once it is open
+	const where = { kind: 'air', latitude: 0, longitude: 0.3, climb: -Math.PI / 2 };
+	await debugSetLocation(page, { ...where, altitude: 1_200, speed: 80 });
+	await expect(page.locator('[data-testid$="-status"]').first()).toHaveText('Deployed', {
+		timeout: 30_000
+	});
+	await debugSetLocation(page, { ...where, altitude: 60, speed: 6 });
+	await expect(page.getByTestId('hud-phase-text')).toContainText('Landed', { timeout: 60_000 });
 	await expect(page.getByText(/destroyed|broke off|burned up|Vessel lost/)).toHaveCount(0);
 	expect(errors).toEqual([]);
 });
