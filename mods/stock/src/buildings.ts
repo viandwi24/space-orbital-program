@@ -206,7 +206,7 @@ export const BuildingBranchHq = defineBuilding({
 	label: 'Branch HQ',
 	size: { w: 5, d: 4 },
 	entrances: southDoor(5),
-	levels: [{ cost: 250_000, buildDays: 20, upkeep: 2_500, power: 0, capacity: {} }],
+	levels: levels({}, [250_000, 400_000, 600_000], [20, 25, 30]),
 	provides: ['branch-hq'],
 	placement: 'home',
 	category: 'stock.infrastructure',
