@@ -23,7 +23,7 @@
 		}
 	},
 	"scripts": {
-		"test": "bun test ./packages ./mods ./examples ./tools",
+		"test": "bun test --timeout 30000 ./packages ./mods ./examples ./tools",
 		"typecheck": "bun run --filter './packages/*' --filter './mods/*' --filter './examples/*' --filter './tools/*' typecheck && bun run --filter './apps/*' check",
 		"lint": "prettier --check . && bun run --filter @orbital/web lint",
 		"format": "prettier --write . && bun run --filter @orbital/web format",

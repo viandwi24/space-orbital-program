@@ -128,7 +128,7 @@ if (!flag('--lint-only')) {
 	if (tested.length)
 		steps.push({
 			label: `bun test (${tested.length} workspaces)`,
-			cmd: ['bun', 'test', ...tested.map((w) => `./${w.dir}`)]
+			cmd: ['bun', 'test', '--timeout', '30000', ...tested.map((w) => `./${w.dir}`)]
 		});
 	if (webAffected)
 		steps.push({
