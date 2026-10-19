@@ -16,6 +16,7 @@ import {
 } from 'three';
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
+import { RcsPuffs, createPuffGeometry, createPuffMaterial } from '../effects/rcs-puff.ts';
 import { articulationRotation, articulationValue, type ArticulationSpec } from './articulation.ts';
 import { GeometryBuilder, type BuiltGeometry, type SlotName } from './builder.ts';
 import { registerStockGenerators } from './generators/index.ts';
@@ -63,6 +64,8 @@ interface SharedGeometry {
 	plumeGeometry: BufferGeometry;
 	spriteGeometry: BufferGeometry;
 	shrouds: Map<string, BufferGeometry>;
+	puffGeometry: BufferGeometry;
+	puffMaterial: Material;
 }
 
 interface Template {
@@ -96,6 +99,7 @@ class ProceduralModel implements PartModel {
 	private owned: Material[] = [];
 	private hot = false;
 	private shroudMesh: Mesh | null = null;
+	private readonly puffs: RcsPuffs | null;
 	private shroudSize: number | null = null;
 
 	constructor(
@@ -145,6 +149,10 @@ class ProceduralModel implements PartModel {
 		this.plume = visual.plume
 			? new PlumeEffect(visual.plume, shared.plumeGeometry, shared.spriteGeometry)
 			: null;
+		this.puffs = visual.puffs
+			? new RcsPuffs(visual.puffs, shared.puffGeometry, shared.puffMaterial)
+			: null;
+		if (this.puffs) this.root.add(this.puffs.root);
 		if (this.plume) {
 			// The plume belongs to the bell: it leaves along the thrust vector (ADR 0045).
 			if (this.pivot && visual.articulation?.mode === 'gimbal') {
@@ -206,6 +214,11 @@ class ProceduralModel implements PartModel {
 				articulationValue(this.articulation, state.modules)
 			);
 			this.pivot.rotation.set(r.x, r.y, r.z);
+		}
+		if (this.puffs && this.visual.puffs) {
+			const m = state.modules[this.visual.puffs.module] as Record<string, unknown> | undefined;
+			const f = m?.[this.visual.puffs.field];
+			this.puffs.update(Array.isArray(f) ? f : undefined);
 		}
 		this.applyGlow(state.temperature);
 		this.dynamic?.animate(this.progress);
@@ -274,7 +287,9 @@ export class ProceduralProvider implements PartModelProvider {
 	private readonly shared: SharedGeometry = {
 		plumeGeometry: createPlumeGeometry(24),
 		spriteGeometry: createSpriteGeometry(),
-		shrouds: new Map()
+		shrouds: new Map(),
+		puffGeometry: createPuffGeometry(),
+		puffMaterial: createPuffMaterial()
 	};
 
 	constructor() {
@@ -350,6 +365,8 @@ export class ProceduralProvider implements PartModelProvider {
 		this.shared.spriteGeometry.dispose();
 		for (const g of this.shared.shrouds.values()) g.dispose();
 		this.shared.shrouds.clear();
+		this.shared.puffGeometry.dispose();
+		this.shared.puffMaterial.dispose();
 	}
 }
 

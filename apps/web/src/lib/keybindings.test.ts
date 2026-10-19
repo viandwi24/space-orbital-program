@@ -278,4 +278,17 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 		expect(createKeymap(kept.bindings, 'ksp').actionFor('flight', 'KeyB')).toBe('brakes');
 		expect(bindingClashes(resolveBindings(kept.bindings, 'ksp'))).toEqual([]);
 	});
+
+	it('in ksp, R toggles RCS and H N J L I K translate (plan 211)', () => {
+		expect(ksp.actionFor('flight', 'KeyR')).toBe('rcsToggle');
+		expect(ksp.actionFor('flight', 'KeyH')).toBe('translateForward');
+		expect(ksp.actionFor('flight', 'KeyN')).toBe('translateBack');
+		expect(ksp.actionFor('flight', 'KeyJ')).toBe('translateLeft');
+		expect(ksp.actionFor('flight', 'KeyL')).toBe('translateRight');
+		expect(ksp.actionFor('flight', 'KeyI')).toBe('translateDown');
+		expect(ksp.actionFor('flight', 'KeyK')).toBe('translateUp');
+		expect(ksp.actionFor('flight', 'CapsLock')).toBe('precision');
+		// the node keys stay on I K J L in the map
+		expect(ksp.actionFor('map', 'KeyI')).toBe('nodePrograde');
+	});
 });

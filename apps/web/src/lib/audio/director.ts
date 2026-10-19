@@ -16,6 +16,8 @@ export interface AudioFlightView {
 	speed: number;
 	heat: number;
 	atmosphere: AtmosphereLike | undefined;
+	/** RCS firing 0..1 (plan 211). */
+	rcs?: number;
 }
 
 export const PERIOD_MS = 50;
@@ -49,7 +51,8 @@ export function createDirector(engine: AudioEngine): Director {
 						pressure: pressureRatio(view.altitude, view.atmosphere),
 						speed: view.speed,
 						warp,
-						paused
+						paused,
+						rcs: view.rcs ?? 0
 					});
 					if (!paused && warningDue(view.heat, lastBeep, now)) {
 						lastBeep = now;

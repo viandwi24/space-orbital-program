@@ -1036,6 +1036,7 @@
 						sas={model?.sas}
 						controllable={model?.controllable ?? true}
 						onsas={(mode) => flight?.setSas(mode)}
+						onrcs={() => flight?.toggleRcs()}
 					/>
 				</div>
 			</div>

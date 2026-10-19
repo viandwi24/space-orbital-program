@@ -350,6 +350,23 @@ export const partVisualSchema = z.object({
 			field: z.string().min(1),
 			mode: z.enum(['gimbal', 'hinge'])
 		})
+		.optional(),
+	/**
+	 * Thruster puffs (plan 211, ADR 0216): a small jet at each nozzle while the number at the same
+	 * index of the module snapshot's `field` array (0..1) is above zero. `dir` is where the nozzle
+	 * pushes the vessel; the jet leaves the other way.
+	 */
+	puffs: z
+		.object({
+			module: definitionIdSchema,
+			field: z.string().min(1),
+			nozzles: z
+				.array(z.object({ pos: vec3Tuple, dir: vec3Tuple }))
+				.min(1)
+				.max(16),
+			/** Length of a jet at full fire, m. */
+			length: z.number().positive().optional()
+		})
 		.optional()
 });
 

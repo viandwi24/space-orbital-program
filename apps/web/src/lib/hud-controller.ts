@@ -3,6 +3,7 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
+import { rcsFiring, rcsState, type RcsState } from './hud/rcs-model';
 import { aeroReadout, wingStallAngle, type AeroReadout } from './aircraft/aero-readout';
 import { projectGhost, type GhostTrack, type ScreenGhost } from './replays/ghost-model';
 import { rangeWarning } from './range/range-model';
@@ -153,6 +154,10 @@ export interface HudModel {
 	controllable: boolean;
 	/** Why the sim takes no control commands now (plan 208, ADR 0214): the "Uncontrolled" chip. */
 	uncontrolled: 'no-source' | 'no-crew' | 'no-power' | null;
+	/** The RCS pill (plan 211). */
+	rcs: RcsState;
+	/** How hard the RCS fires, 0..1 (the hiss). */
+	rcsFiring: number;
 	/** The earliest maneuver node, if any (plan 045). */
 	maneuver: ManeuverHud | null;
 	/** The vessel's target and what to show about it (plan 035); null without one. */
@@ -581,6 +586,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				sas: v.sas,
 				controllable: hasControlSource(v) && v.uncontrolled === undefined,
 				uncontrolled: v.uncontrolled ?? null,
+				rcs: rcsState(v, content.parts),
+				rcsFiring: rcsFiring(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),
 				target: targetHud(v, snap.t),
 				targets: targetChoices(snap, Number(v.id), bodies),

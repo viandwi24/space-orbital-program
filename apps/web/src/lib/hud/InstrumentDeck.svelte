@@ -30,7 +30,8 @@
 		oncyclespeed,
 		sas,
 		controllable = true,
-		onsas
+		onsas,
+		onrcs
 	}: {
 		model: HudModel | null;
 		throttle: number;
@@ -40,6 +41,8 @@
 		sas?: SasSnapshot | undefined;
 		controllable?: boolean;
 		onsas?: (mode: SasMode) => void;
+		/** The RCS pill was pressed (plan 211). */
+		onrcs?: () => void;
 	} = $props();
 
 	let ball: Navball;
@@ -165,6 +168,8 @@
 				{controllable}
 				hasNode={model?.maneuver != null}
 				hasTarget={model?.target != null}
+				rcs={model?.rcs ?? 'none'}
+				{onrcs}
 				onmode={onsas}
 			/>
 		</div>

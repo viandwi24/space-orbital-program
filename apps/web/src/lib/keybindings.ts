@@ -153,14 +153,14 @@ export const ACTIONS = [
 	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
 	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
 	later('Fly', 'abort', 'Abort', 'Backspace'),
-	later('Fly', 'precision', 'Fine control', 'CapsLock'),
-	later('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
-	later('RCS', 'translateForward', 'Translate forward', 'KeyH'),
-	later('RCS', 'translateBack', 'Translate back'),
-	later('RCS', 'translateLeft', 'Translate left', 'KeyJ'),
-	later('RCS', 'translateRight', 'Translate right', 'KeyL'),
-	later('RCS', 'translateDown', 'Translate down', 'KeyI'),
-	later('RCS', 'translateUp', 'Translate up', 'KeyK'),
+	flight('Fly', 'precision', 'Fine control', 'CapsLock'),
+	flight('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
+	flight('RCS', 'translateForward', 'Translate forward', 'KeyH'),
+	flight('RCS', 'translateBack', 'Translate back', "'"),
+	flight('RCS', 'translateLeft', 'Translate left', 'KeyJ'),
+	flight('RCS', 'translateRight', 'Translate right', 'KeyL'),
+	flight('RCS', 'translateDown', 'Translate down', 'KeyI'),
+	flight('RCS', 'translateUp', 'Translate up', 'KeyK'),
 	later('Aircraft', 'trimYawLeft', 'Trim yaw left', 'Alt+KeyA'),
 	later('Aircraft', 'trimYawRight', 'Trim yaw right', 'Alt+KeyD'),
 	later('Aircraft', 'trimRollLeft', 'Trim roll left', 'Alt+KeyQ'),
@@ -571,7 +571,8 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['yawMinus', 'yawPlus'], text: 'Yaw' },
 			{ actions: ['rollMinus', 'rollPlus'], text: 'Roll' },
 			{ actions: ['stage'], text: 'Fire the next stage' },
-			{ actions: ['gear', 'lights'], text: 'Landing gear, lights' }
+			{ actions: ['gear', 'lights'], text: 'Landing gear, lights' },
+			{ actions: ['precision'], text: 'Fine control (Caps Lock on)' }
 		]
 	},
 	{
@@ -596,6 +597,17 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['sasManeuver'], text: 'Point at the maneuver node' },
 			{ actions: ['sasTarget', 'sasAntiTarget'], text: 'Point at the target, away from it' },
 			{ actions: ['sasLevel'], text: 'Level wings (aircraft)' }
+		]
+	},
+	{
+		id: 'rcs',
+		title: 'RCS',
+		mode: 'flight',
+		rows: [
+			{ actions: ['rcsToggle'], text: 'RCS on or off' },
+			{ actions: ['translateForward', 'translateBack'], text: 'Translate forward, back' },
+			{ actions: ['translateLeft', 'translateRight'], text: 'Translate left, right' },
+			{ actions: ['translateDown', 'translateUp'], text: 'Translate down, up' }
 		]
 	},
 	{

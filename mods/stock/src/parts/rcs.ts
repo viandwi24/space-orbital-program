@@ -8,6 +8,16 @@ import { stackNodes, type Vec3Tuple } from './shared.ts';
 
 // Reaction control (plan 211, ADR 0216): thrusters and their tanks.
 
+const BLOCK_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [0.05, 0.14, 0], dir: [0, -1, 0] },
+	{ pos: [0.05, -0.14, 0], dir: [0, 1, 0] },
+	{ pos: [0.05, 0, 0.14], dir: [0, 0, -1] },
+	{ pos: [0.05, 0, -0.14], dir: [0, 0, 1] }
+];
+const PORT_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [0.07, 0, 0], dir: [-1, 0, 0] }
+];
+
 const radial = (half: number) => ({
 	radial: { pos: [-half, 0, 0] as Vec3Tuple, dir: [-1, 0, 0] as Vec3Tuple }
 });
@@ -27,7 +37,8 @@ export const PartRcsBlock = definePart({
 	visual: {
 		kind: 'rcs-block',
 		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' },
-		params: { nozzles: 4 }
+		params: { nozzles: 4 },
+		puffs: { module: ModuleRcs.id, field: 'firing', nozzles: BLOCK_NOZZLES, length: 0.6 }
 	},
 	attach: radial(0.1),
 	crossfeed: false,
@@ -35,12 +46,7 @@ export const PartRcsBlock = definePart({
 		[
 			ModuleRcs,
 			{
-				nozzles: [
-					{ pos: [0.05, 0.14, 0], dir: [0, -1, 0] },
-					{ pos: [0.05, -0.14, 0], dir: [0, 1, 0] },
-					{ pos: [0.05, 0, 0.14], dir: [0, 0, -1] },
-					{ pos: [0.05, 0, -0.14], dir: [0, 0, 1] }
-				],
+				nozzles: BLOCK_NOZZLES,
 				thrust: 1_000,
 				ispVacuum: 240,
 				ispSeaLevel: 100,
@@ -66,14 +72,15 @@ export const PartColdGasThruster = definePart({
 	visual: {
 		kind: 'rcs-block',
 		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#2f8fa3' },
-		params: { nozzles: 1 }
+		params: { nozzles: 1 },
+		puffs: { module: ModuleRcs.id, field: 'firing', nozzles: PORT_NOZZLES, length: 0.35 }
 	},
 	attach: radial(0.07),
 	modules: [
 		[
 			ModuleRcs,
 			{
-				nozzles: [{ pos: [0.07, 0, 0], dir: [-1, 0, 0] }],
+				nozzles: PORT_NOZZLES,
 				thrust: 200,
 				ispVacuum: 70,
 				ispSeaLevel: 40,

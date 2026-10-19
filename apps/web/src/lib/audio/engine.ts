@@ -79,6 +79,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		rumbleOsc: OscillatorNode;
 		windGain: GainNode;
 		windFilter: BiquadFilterNode;
+		hissGain: GainNode;
 		noise: AudioBuffer;
 	};
 	let g: Graph | null = null;
@@ -112,6 +113,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		ramp(g.rumbleOsc.frequency, flight.rumbleFreq);
 		ramp(g.windGain.gain, flight.windGain);
 		ramp(g.windFilter.frequency, flight.windCutoff);
+		ramp(g.hissGain.gain, flight.hissGain);
 	}
 
 	function build(c: AudioContext): Graph {
@@ -167,6 +169,14 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 		windGain.gain.value = 0;
 		noiseSource(1.3).connect(windFilter).connect(windBoost).connect(windGain).connect(effects);
 
+		// RCS hiss (plan 211): the bright part of the noise, by the thrusters' firing
+		const hissFilter = c.createBiquadFilter();
+		hissFilter.type = 'highpass';
+		hissFilter.frequency.value = 1800;
+		const hissGain = c.createGain();
+		hissGain.gain.value = 0;
+		noiseSource(2.1).connect(hissFilter).connect(hissGain).connect(effects);
+
 		return {
 			master,
 			effects,
@@ -177,6 +187,7 @@ export function createAudioEngine(env: AudioEnv): AudioEngine {
 			rumbleOsc,
 			windGain,
 			windFilter,
+			hissGain,
 			noise
 		};
 	}

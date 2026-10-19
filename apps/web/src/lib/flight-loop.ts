@@ -101,6 +101,8 @@ import {
 /** How far `[` and `]` look for another vessel, m: the physics range (plan 221). */
 const SWITCH_RANGE = 2_500;
 
+/** What fine control (Caps Lock) scales the pilot's keys by (plan 211). */
+const PRECISION = 0.25;
 /** Throttle change per second while Shift/Ctrl is held. */
 const THROTTLE_RATE = 0.5;
 /**
@@ -223,6 +225,8 @@ export interface Flight {
 	cycleSpeedMode(): void;
 	/** Ask for a stability assist mode (the SAS buttons next to the navball; plan 042). */
 	setSas(mode: SasMode): void;
+	/** RCS on or off (the R key and the RCS pill; plan 211). */
+	toggleRcs(): void;
 	/** Select the target with this key (`TargetChoice.key`), or clear it with null (plan 035). */
 	setTarget(key: string | null): void;
 	/** EVA (plan 109, ADR 0120): step out, walk (heading from north, rad; null stops), plant a flag, board again. */
@@ -464,6 +468,8 @@ export function startFlight(options: FlightOptions): Flight {
 
 	// --- input state -------------------------------------------------------------------------
 	const held = new Set<string>();
+	/** Caps Lock is on: fine control (plan 211); read from the modifier state of each key event. */
+	let precision = false;
 	let throttle = 0;
 	/** The pitch trim sent last (plan 063): R and F step it. */
 	let trim = 0;
@@ -508,15 +514,30 @@ export function startFlight(options: FlightOptions): Flight {
 			void send({ type: 'throttle', vessel, value: throttle });
 		}
 		if (!auto) {
+			// fine control (Caps Lock, plan 211) scales the pilot's keys, not SAS
+			const k = precision ? PRECISION : 1;
 			const a = [
-				Math.max(-1, Math.min(1, axis('pitchMinus', 'pitchPlus') + touchAttitude.pitch)),
-				Math.max(-1, Math.min(1, axis('yawMinus', 'yawPlus') + touchAttitude.yaw)),
-				Math.max(-1, Math.min(1, axis('rollMinus', 'rollPlus') + touchAttitude.roll))
+				Math.max(-1, Math.min(1, k * axis('pitchMinus', 'pitchPlus') + touchAttitude.pitch)),
+				Math.max(-1, Math.min(1, k * axis('yawMinus', 'yawPlus') + touchAttitude.yaw)),
+				Math.max(-1, Math.min(1, k * axis('rollMinus', 'rollPlus') + touchAttitude.roll))
 			];
-			const key = a.join(',');
+			// RCS translation (plan 211): x right, y forward along the nose, z up
+			const t = [
+				k * axis('translateLeft', 'translateRight'),
+				k * axis('translateBack', 'translateForward'),
+				k * axis('translateDown', 'translateUp')
+			];
+			const key = [...a, ...t].join(',');
 			if (key !== sentAttitude) {
 				sentAttitude = key;
-				void send({ type: 'attitude', vessel, pitch: a[0]!, yaw: a[1]!, roll: a[2]! });
+				void send({
+					type: 'attitude',
+					vessel,
+					pitch: a[0]!,
+					yaw: a[1]!,
+					roll: a[2]!,
+					translate: { x: t[0]!, y: t[1]!, z: t[2]! }
+				});
 			}
 		}
 	}
@@ -564,6 +585,7 @@ export function startFlight(options: FlightOptions): Flight {
 			}
 			return;
 		}
+		precision = e.getModifierState?.('CapsLock') ?? false;
 		if (modal || e.repeat || typingInField(e)) return;
 		const id = keyIdOf(e);
 		const chord = chordIdOf(e);
@@ -638,6 +660,9 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'brakes':
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.brakes' });
 				break;
+			case 'rcsToggle':
+				toggleRcs();
+				break;
 			case 'gear':
 				if (vessel !== null)
 					void send({ type: 'action-group', vessel, group: 'stock.landing-gear' });
@@ -698,6 +723,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
+		precision = e.getModifierState?.('CapsLock') ?? false;
 		held.delete(keyIdOf(e));
 		// A key released after Shift changed its character (`,` held, Shift pressed, `<` released): drop the code too.
 		held.delete(e.code);
@@ -774,6 +800,13 @@ export function startFlight(options: FlightOptions): Flight {
 			void send(command);
 			director.event(command.type === 'sas' && command.mode === 'off' ? 'sasOff' : 'sasOn');
 		}
+	}
+
+	function toggleRcs(): void {
+		if (vessel === null) return;
+		const on = hud.model?.rcs === 'on' || hud.model?.rcs === 'dry';
+		void send({ type: 'set-rcs', vessel, on: !on });
+		director.event(on ? 'sasOff' : 'sasOn');
 	}
 
 	function setTarget(key: string | null): void {
@@ -967,7 +1000,8 @@ export function startFlight(options: FlightOptions): Flight {
 						altitude: m.altitude,
 						speed: m.speed,
 						heat: m.heat,
-						atmosphere: catalog?.bodies.find((b) => b.id === soi)?.atmosphere
+						atmosphere: catalog?.bodies.find((b) => b.id === soi)?.atmosphere,
+						rcs: m.rcsFiring
 					}
 				: null;
 			// The prograde reference follows the speed readout (V, or the automatic switch).
@@ -1460,6 +1494,7 @@ export function startFlight(options: FlightOptions): Flight {
 			hudCtl?.cycleSpeedMode();
 		},
 		setSas,
+		toggleRcs,
 		setTarget,
 		eva: (member) => void eva(member),
 		walk,

@@ -2,12 +2,15 @@
 	import type { SasMode, SasSnapshot } from '@orbital/core';
 	import { settings } from '../settings/settings.svelte';
 	import { buttonStates, errorText, masterLabel, toggledMode } from './sas-model';
+	import { RCS_LABEL, type RcsState } from './rcs-model';
 
 	let {
 		sas,
 		controllable = true,
 		hasNode = false,
 		hasTarget = false,
+		rcs = 'none',
+		onrcs,
 		onmode
 	}: {
 		sas: SasSnapshot | undefined;
@@ -18,6 +21,9 @@
 		hasTarget?: boolean;
 		/** Called with the mode a press asks for (the caller adds the speed reference and sends it). */
 		onmode: (mode: SasMode) => void;
+		/** The RCS pill (plan 211): its state, and a press toggles RCS. */
+		rcs?: RcsState;
+		onrcs?: () => void;
 	} = $props();
 
 	const buttons = $derived(buttonStates(sas, controllable, hasNode, settings.keymap, hasTarget));
@@ -40,7 +46,18 @@
 				: 'Stability assist: no command part'}
 			onclick={() => onmode(toggledMode(sas?.mode ?? 'off'))}>SAS</button
 		>
-		<button type="button" class="master" disabled title="No RCS yet">RCS</button>
+		<button
+			type="button"
+			class="master"
+			class:on={rcs === 'on'}
+			class:dry={rcs === 'dry'}
+			aria-pressed={rcs === 'on' || rcs === 'dry'}
+			aria-label={RCS_LABEL[rcs]}
+			data-testid="hud-rcs"
+			disabled={rcs === 'none' || !controllable || !onrcs}
+			title="{RCS_LABEL[rcs]} ({settings.keymap.label('rcsToggle')})"
+			onclick={() => onrcs?.()}>{rcs === 'dry' ? 'RCS !' : 'RCS'}</button
+		>
 	</div>
 	<div class="modes" class:dim={!on}>
 		{#each buttons as b (b.mode)}
@@ -131,6 +148,11 @@
 	.master.on {
 		background: var(--accent);
 		color: var(--on-accent);
+	}
+	.master.dry {
+		background: var(--surface-chip);
+		color: var(--c-warning);
+		box-shadow: inset 0 0 0 1px var(--c-warning);
 	}
 	.master:disabled {
 		opacity: 0.55;

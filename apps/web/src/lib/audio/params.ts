@@ -43,6 +43,8 @@ export interface FlightSoundInput {
 	warp: number;
 	/** The sim is frozen (pause menu). */
 	paused: boolean;
+	/** RCS firing, 0..1 of all its nozzles at full thrust (plan 211); absent is none. */
+	rcs?: number;
 }
 
 export interface FlightSound {
@@ -54,6 +56,8 @@ export interface FlightSound {
 	rumbleFreq: number;
 	windGain: number;
 	windCutoff: number;
+	/** The RCS hiss (plan 211): high-passed noise by the thrusters' firing, heard in vacuum too. */
+	hissGain: number;
 }
 
 export const SILENCE: FlightSound = {
@@ -62,11 +66,14 @@ export const SILENCE: FlightSound = {
 	rumbleGain: 0,
 	rumbleFreq: 38,
 	windGain: 0,
-	windCutoff: 400
+	windCutoff: 400,
+	hissGain: 0
 };
 
 /** Peak rumble level against a full-throttle sea-level roar of 1. */
 export const RUMBLE_MAX = 0.12;
+/** The RCS hiss with every nozzle at full fire (plan 211). */
+export const HISS_MAX = 0.18;
 /** Below this speed through the air there is no wind to hear, m/s. */
 export const WIND_MIN_SPEED = 30;
 
@@ -82,7 +89,9 @@ export function flightSound(input: FlightSoundInput): FlightSound {
 		rumbleGain: thr * RUMBLE_MAX,
 		rumbleFreq: 38 + 32 * thr,
 		windGain: 0.6 * smooth(0, 700, drive),
-		windCutoff: 400 + 3000 * smooth(0, 900, drive)
+		windCutoff: 400 + 3000 * smooth(0, 900, drive),
+		// a short, soft hiss: plan 227 sets the final level
+		hissGain: HISS_MAX * Math.sqrt(unit(input.rcs ?? 0))
 	};
 }
 
