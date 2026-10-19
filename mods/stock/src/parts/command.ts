@@ -21,6 +21,9 @@ export const PartCommandPod = definePart({
 	},
 	// The docking collar on top is 0.625 m across (a parachute's size), the drum below 1.25 m.
 	attach: stackNodes(1, 0.625, 1.25),
+	// the hatch on the +Z side and a short ladder beside it (plan 225, ADR 0209 points 4 and 5)
+	hatch: { pos: [0, 0.05, 0.63], dir: [0, 0, 1] },
+	ladder: { from: [0.3, -0.45, 0.6], to: [0.3, 0.4, 0.6], out: [0, 0, 1] },
 	modules: [
 		[ModuleCommand],
 		// a monopropellant reserve for RCS (plan 211, ADR 0203 point 5), empty at build: filling it

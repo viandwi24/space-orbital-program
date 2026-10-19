@@ -1155,7 +1155,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         {
           "contents": {
             "stock.cold-gas": {
-              "capacity": 5,
+              "capacity": 20,
             },
             "stock.electric-charge": {
               "capacity": 20,
@@ -1176,17 +1176,11 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         },
       ],
       [
-        "stock.engine",
+        "stock.jetpack",
         {
-          "ispSeaLevel": 60,
-          "ispVacuum": 60,
-          "propellants": [
-            {
-              "ratio": 1,
-              "resource": "stock.cold-gas",
-            },
-          ],
-          "thrust": 50,
+          "isp": 200,
+          "propellant": "stock.cold-gas",
+          "thrust": 270,
         },
       ],
       [
@@ -1221,6 +1215,12 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         undefined,
       ],
     ],
+  },
+  {
+    "cost": 20,
+    "id": "stock.ladder",
+    "mass": 10,
+    "modules": [],
   },
   {
     "cost": 90,

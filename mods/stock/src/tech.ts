@@ -146,7 +146,7 @@ export const STOCK_TECH = [
 		requires: ['stock.propulsion'],
 		milestone: 'flyby:stock.cinder',
 		description: 'Legs and the instruments that need solid ground.',
-		unlocks: ['stock.landing-legs', 'stock.seismometer', 'stock.surface-sampler']
+		unlocks: ['stock.landing-legs', 'stock.seismometer', 'stock.surface-sampler', 'stock.ladder']
 	}),
 	defineTechNode({
 		id: 'stock.deep-space',

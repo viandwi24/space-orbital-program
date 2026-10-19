@@ -154,6 +154,11 @@ export interface Renderer {
 	partAt(x: number, y: number): EntityId | null;
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void;
 	/**
+	 * Where the camera looks, a unit vector in the sim's inertial axes (plan 225: EVA keys move the
+	 * suit relative to the view).
+	 */
+	viewDirection(): Vec3;
+	/**
 	 * Screen position of a point in the sim's inertial frame (a body's `position` plus a vessel's
 	 * SOI-relative `position`) through the camera as drawn, in CSS pixels of the canvas box; `null`
 	 * when behind the camera, `hidden` when a body is in the way (plan 024, ADR 0033).
@@ -529,6 +534,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		highlightPart: (id) => model.highlightPart(id),
 		partAt: (x, y) => model.partAt(x, y),
 		orbitCamera: (input) => model.orbitCamera(input),
+		viewDirection: () => model.viewDirection(),
 		project: (world) => model.project(world),
 		setSiteView: (on) => model.setSiteView(on),
 		setSiteBuildings: (list, roads) => model.setSiteBuildings(list, roads),

@@ -416,8 +416,28 @@ export const partDefinitionSchema = z.object({
 	impactTolerance: z.number().positive().optional(),
 	/** Seats for crew (plan 106, ADR 0176 point 3); absent: none. */
 	crewCapacity: z.int().min(0).max(32).optional(),
-	/** The vessel can walk on the ground at up to `speed` m/s (plan 109, ADR 0120 point 3: the EVA suit). */
-	walk: z.object({ speed: z.number().positive() }).optional(),
+	/**
+	 * The vessel can walk on the ground at up to `speed` m/s (plan 109, ADR 0120 point 3: the EVA
+	 * suit), and run at up to `run` (plan 225). `propellant` is the resource its jetpack burns: a
+	 * crew member keeps it between EVAs and boarding tops it up from the vessel (plan 225).
+	 */
+	walk: z
+		.object({
+			speed: z.number().positive(),
+			run: z.number().positive().optional(),
+			propellant: z.string().min(1).optional()
+		})
+		.optional(),
+	/**
+	 * A ladder on the part (plan 225, ADR 0209 point 4): the segment `from`→`to` in the part frame, m,
+	 * and the side `out` a suit hangs on (a direction in the part frame).
+	 */
+	ladder: z.object({ from: vec3Tuple, to: vec3Tuple, out: vec3Tuple }).optional(),
+	/**
+	 * The part's hatch (plan 225, ADR 0209 point 5): where crew step out (`pos`, part frame, m) and
+	 * which way (`dir`). Suits board within reach of it.
+	 */
+	hatch: z.object({ pos: vec3Tuple, dir: vec3Tuple }).optional(),
 	/**
 	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); the sim
 	 * assumes 1000 when absent.

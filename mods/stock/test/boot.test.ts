@@ -38,6 +38,7 @@ describe('stock boots through the loader', () => {
 			'stock.fin',
 			'stock.flag',
 			'stock.heat-shield',
+			'stock.jetpack',
 			'stock.landing-leg',
 			'stock.launch-clamp',
 			'stock.parachute',
@@ -89,6 +90,7 @@ describe('stock boots through the loader', () => {
 			'stock.goo-canister',
 			'stock.heat-shield',
 			'stock.heat-shield-wide',
+			'stock.ladder',
 			'stock.landing-legs',
 			'stock.launch-clamp',
 			'stock.life-support-pack',
@@ -237,7 +239,9 @@ describe('stock boots through the loader', () => {
 			// a chute's only node is its bottom one, or a radial one (plan 209)
 			'stock.parachute',
 			'stock.drogue-chute',
-			'stock.radial-parachute'
+			'stock.radial-parachute',
+			// a ladder hangs radially (plan 225)
+			'stock.ladder'
 		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();

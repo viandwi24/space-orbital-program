@@ -138,6 +138,21 @@ export const RulePauseAllowed = defineRule({
 	changeable: true
 });
 /**
+ * Board a vessel from up to 50 m away (plan 225, ADR 0209 point 5): an assist on in Sandbox only;
+ * otherwise a suit boards at a hatch or from a ladder (default per owner review, rancangan §15 #4).
+ */
+export const RuleEvaBoardAssist = defineRule({
+	id: 'stock.eva-board-assist',
+	label: 'Board from 50 m',
+	category: 'world',
+	description:
+		'A suit boards a vessel from up to 50 m away. Without it, crew board at a hatch or from a ladder.',
+	type: 'boolean',
+	default: false,
+	presets: byMode(true, false, false, false),
+	changeable: true
+});
+/**
  * Who may use the debug panel and API (plan 203, ADR 0213 point 1): Sandbox always, Science and
  * Career after Debug mode is turned on, Hardcore never (default per owner review, rancangan §15 #14).
  */
@@ -350,7 +365,8 @@ export const STOCK_RULES = [
 	RuleAgencyType,
 	RuleAgencyCount,
 	RuleDebugTools,
-	RulePauseAllowed
+	RulePauseAllowed,
+	RuleEvaBoardAssist
 ] as const;
 
 export const PresetSandbox = definePreset({
