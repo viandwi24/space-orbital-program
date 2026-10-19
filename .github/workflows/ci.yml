@@ -103,6 +103,8 @@ jobs:
               tail -n 80 /tmp/ci-$f.log
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
+            # the summary and the raw log need a login; an annotation does not (one per step: the tail)
+            echo "::error title=$f tail::$(tail -n 40 /tmp/ci-$f.log | cut -c1-160 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
           done
       - run: bun run build
       - name: e2e smoke (chromium, informational)

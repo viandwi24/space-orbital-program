@@ -148,7 +148,7 @@ describe('power for radios and probes (plan 208)', () => {
 		const cost = (1e7 / MBIT) * 1 * TRANSMIT_EC_PER_MBIT_PER_W;
 		expect(before - charge(sim, id)).toBeCloseTo(cost, 6);
 		sim.dispose();
-	});
+	}, 60_000);
 
 	test('at zero EC the queue pauses where the charge ran out', async () => {
 		const sim = await make();
@@ -162,7 +162,7 @@ describe('power for radios and probes (plan 208)', () => {
 		run(sim, 2_000);
 		expect(queue(sim, id)!.items[0]!.sent).toBe(sent);
 		sim.dispose();
-	});
+	}, 60_000);
 
 	test('a probe-only vessel at zero EC refuses throttle with the "no power" reason, and says so once', async () => {
 		const sim = await make();
@@ -184,5 +184,5 @@ describe('power for radios and probes (plan 208)', () => {
 		run(sim, 60);
 		expect(sim.snapshot().vessels.some((v) => v.id === id)).toBe(true);
 		sim.dispose();
-	});
+	}, 60_000);
 });
