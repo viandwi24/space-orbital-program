@@ -1,12 +1,12 @@
 ---
 id: 229
 title: "Lessons: landing, maneuver nodes, rendezvous and docking, transfers"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker E"
 depends: [203, 222, 224]
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 229 — Lessons: landing, maneuver nodes, rendezvous and docking, transfers
@@ -58,13 +58,31 @@ After the first orbit, the game keeps teaching. A lesson framework extends the f
 
 ## Steps
 
-1. Lesson data model and the shared step machine.
-2. Lesson world creation and setup through the debug API.
-3. Scene permissions with reasons.
-4. Lessons page and progress.
-5. Landing and maneuver-node lessons.
-6. Rendezvous-docking and transfer lessons.
-7. Chromium e2e that drives each lesson's setup and first two steps.
+1. **Lesson data model and the shared step machine** in `apps/web/src/lib/onboarding/lessons.ts`. A lesson has these parts:
+   - id, title and summary;
+   - a design;
+   - setup calls, each naming a `DebugApi` function and its arguments;
+   - permissions: blocked actions and blocked places, each with a reason;
+   - steps;
+   - a goal;
+   - a debrief and a hint.
+
+   `advanceLesson` works like `tutorial.ts`'s `advance`: at most one step per observation, and the goal completes the lesson at once. `stepText`/`stepKeys` take any step with `text`/`touchText`/`actions`.
+2. **Lesson world** (`onboarding/lesson-world.ts`):
+   - A Sandbox world with a fixed seed. `WorldRecord.lesson` marks it.
+   - `Worlds.list()` leaves lesson worlds out, so the Worlds page, Continue and unique names never see them.
+   - The previous active world is restored on leaving, and the lesson world is removed.
+   - Flight takes the lesson's design when it has no focus vessel, then runs the setup once through the debug API (Sandbox: always allowed).
+   - The first-flight guide does not run in a lesson world.
+3. **Scene permissions with reasons.** A keymap filter makes blocked actions resolve to nothing in flight, and pressing one shows the reason on the lesson card. The (world) layout cancels navigation to a blocked place (for example the Hangar) and shows the reason. The Space Center's building action for a blocked place says why.
+4. **Lessons page and progress.** `/lessons` shows a grid of lesson cards (Worlds-style, `refs/space-orbital-program-ui-v2/source/v1/Worlds.dc.html`) with status and Start or Restart. Progress lives in settings as `lessons` (an additive default `{}`). The main menu and the Controls help overlay link to it.
+5. **Landing and maneuver-node lessons.**
+   - **Landing:** a lander 30 km above Cinder, falling.
+   - **Maneuver nodes:** a 100 km Home orbit.
+6. **Rendezvous-docking and transfer lessons.**
+   - **Docking:** a port probe with RCS, and a target probe spawned 2 km ahead.
+   - **Transfer:** a parking orbit; Cinder is the destination, because the stock system has one moon and no second planet (default noted in the Log).
+7. **Chromium e2e** (`apps/web/e2e/lessons.e2e.ts`). It starts each lesson, checks the scene and the first card, a blocked control's reason, and Leave; then it completes the landing lesson with `debug.setLocation`.
 
 ## Acceptance criteria
 
@@ -86,3 +104,6 @@ After the first orbit, the game keeps teaching. A lesson framework extends the f
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Claimed by Worker E (Linux), refined to the steps above.
+  - The transfer lesson goes to Cinder: the stock system has only Home and its moon, so there is no interplanetary target without the Sol mod. Default noted here, not asked.
+  - Lesson progress is an additive settings field with a default (no format number change), following the V3 `debug`/`time` pattern.
