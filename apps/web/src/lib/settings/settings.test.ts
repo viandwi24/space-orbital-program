@@ -88,7 +88,9 @@ describe('settings parsing', () => {
 			time: { places: {}, keepRunningHidden: false, askLeaveFlight: true },
 			// it has overrides: the classic profile, and the notice offers KSP (plan 216)
 			keyProfile: 'classic',
-			keyNotice: true
+			keyNotice: true,
+			// no lesson started yet (plan 229)
+			lessons: {}
 		});
 	});
 	it('format 3 migrates to 4 (plan 216): overrides keep classic, nothing changed gets ksp', () => {
