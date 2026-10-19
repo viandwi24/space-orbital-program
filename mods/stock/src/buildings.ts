@@ -162,12 +162,7 @@ export const BuildingDeepSpaceDish = defineBuilding({
 	label: 'Deep-space dish',
 	size: { w: 8, d: 8 },
 	entrances: southDoor(8),
-	levels: levels(
-		{ 'comms-node': [4, 5, 6] },
-		[600_000, 1_200_000, 2_400_000],
-		[40, 60, 90],
-		400
-	),
+	levels: levels({ 'comms-node': [4, 5, 6] }, [600_000, 1_200_000, 2_400_000], [40, 60, 90], 400),
 	provides: ['comms-node'],
 	placement: 'home',
 	visual: gen('deep-space-dish')

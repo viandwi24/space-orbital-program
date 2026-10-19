@@ -757,7 +757,14 @@ export class LaunchSite {
 			).applyQuaternion(this.root.quaternion.clone().invert());
 		}
 		for (const d of this.dishes) {
-			const goal = local ? aimOf(local.clone().sub(d.at).setY(local.y - DISH.axisHeight)) : null;
+			const goal = local
+				? aimOf(
+						local
+							.clone()
+							.sub(d.at)
+							.setY(local.y - DISH.axisHeight)
+					)
+				: null;
 			d.aim = trackStep(d.aim, goal, dt);
 			d.near.setAim(d.aim);
 			d.far.setAim(d.aim);

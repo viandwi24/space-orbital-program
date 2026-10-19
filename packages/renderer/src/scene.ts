@@ -255,8 +255,7 @@ export class SceneModel {
 		bodyRotation: Quat;
 		vesselRender: Vec3 | null;
 		dishTarget: Vec3 | null;
-	} | null =
-		null;
+	} | null = null;
 	private readonly vessels = new Map<number, VesselEntry>();
 	/** How long each vessel has lain still on the ground, and stages kept after the sim removed them (plan 040). */
 	private readonly resting = new Map<number, RestState>();
