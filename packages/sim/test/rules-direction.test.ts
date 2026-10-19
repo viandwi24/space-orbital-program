@@ -1,4 +1,4 @@
-/** Plan 230 / ADR 0229: rules change during play only toward easier, and the changelog shows it. */
+/** Plan 230 / ADR 0230: rules change during play only toward easier, and the changelog shows it. */
 import { describe, expect, test } from 'bun:test';
 import { legacyWorldInfo, type WorldInfo } from '@orbital/core';
 import Stock from '@orbital/mod-stock';

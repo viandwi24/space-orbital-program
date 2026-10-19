@@ -19,7 +19,7 @@ interface RuleBase {
 }
 
 /**
- * Which way is easier (plan 230, ADR 0229): a boolean rule names its easier value, a number rule
+ * Which way is easier (plan 230, ADR 0230): a boolean rule names its easier value, a number rule
  * whether `higher` or `lower` is easier, an enum lists its values from hardest to easiest. A world
  * may change a rule during play only toward easier; a rule without it is fixed after creation
  * (outside debug mode).
@@ -214,7 +214,7 @@ export function resolveRules(
 }
 
 /**
- * Whether changing `rule` from `from` to `to` during play is allowed (plan 230, ADR 0229): toward
+ * Whether changing `rule` from `from` to `to` during play is allowed (plan 230, ADR 0230): toward
  * easier or no change; undefined when it is, else the reason.
  */
 export function ruleChangeProblem(

@@ -761,7 +761,7 @@ function setRule(core: SimCore, id: string, value: boolean | number | string): C
 	if (why) return refuse(`invalid value for rule "${id}": ${why}`);
 	const from = core.info.rules[id] ?? rule.default;
 	if (from === value) return accept();
-	// toward easier only during play (plan 230, ADR 0229); debug mode may change anything
+	// toward easier only during play (plan 230, ADR 0230); debug mode may change anything
 	if (!debugAllowed(core)) {
 		const current = ruleOf(core, id) ?? from;
 		const harder = ruleChangeProblem(rule, current, value);

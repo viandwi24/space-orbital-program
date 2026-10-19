@@ -146,7 +146,7 @@ export const RulePauseAllowed = defineRule({
 	changeable: true
 });
 /**
- * Revert a flight to the Hangar, and quickload (plan 230, ADR 0229): allowed but in Career
+ * Revert a flight to the Hangar, and quickload (plan 230, ADR 0230): allowed but in Career
  * Hardcore (default per owner review, rancangan §12.2). The page gates them; easier is allowed.
  */
 export const RuleAllowRevert = defineRule({
