@@ -1,7 +1,7 @@
 ---
 id: 235
 title: "Space Center build menu: categories along the bottom, cards with building thumbnails"
-status: in-progress
+status: done
 owner: "Worker B (M5)"
 depends: [233]
 phase: 7
@@ -61,15 +61,15 @@ Building at the Space Center feels like a city builder. A category bar runs alon
 
 ## Acceptance criteria
 
-- [ ] `packages/core` tests and `apps/web` vitest for the category model pass.
-- [ ] `e2e/build-menu.e2e.ts` passes on Chromium, with a screenshot of the menu in the journal.
-- [ ] `bun run check:affected` passes, and CI is green on `ready/235`.
+- [x] `packages/core` tests and `apps/web` vitest for the category model pass.
+- [x] `e2e/build-menu.e2e.ts` passes on Chromium, with a screenshot of the menu in the journal.
+- [x] `bun run check:affected` passes, and CI is green on `ready/235`.
 
 ## Docs checklist
 
-- [ ] STATUS updated.
-- [ ] Journal written.
-- [ ] Mod SDK docs updated for `category`.
+- [x] STATUS updated.
+- [x] Journal written.
+- [x] Mod SDK docs updated for `category`.
 
 ## Log
 

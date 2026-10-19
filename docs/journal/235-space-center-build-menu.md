@@ -45,4 +45,5 @@ bun run check:affected --build --e2e e2e/build-menu.e2e.ts (under /tmp/orbital-h
 bun run lint: all matched files use Prettier code style
 core categories 11 pass · stock 128 pass · renderer building-thumbnail 4 pass · web build-menu 4 pass
 e2e (Chromium): build-menu, space-center, base-layout: 6 passed
+CI: refs/ci/pass/8d5869ae2ea6cec795e4b968d9620b1d65a65436 (ready/235)
 ```
