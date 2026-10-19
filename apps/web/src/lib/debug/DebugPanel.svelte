@@ -481,6 +481,10 @@
 						? ', adjusted automatically'
 						: ''}
 				</dd>
+				<dt>Graphics changes</dt>
+				<dd data-testid="debug-governor-changes">
+					{infoNow?.governorChanges.length ? infoNow.governorChanges.join(' · ') : 'none'}
+				</dd>
 				<dt>Version</dt>
 				<dd>{infoNow?.versions ?? '–'}</dd>
 				<dt>Used cheats</dt>

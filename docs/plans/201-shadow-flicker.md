@@ -1,12 +1,12 @@
 ---
 id: 201
 title: Shadow flicker on the high preset
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker B"
 depends: []
 phase: 7
 created: 2026-10-18
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # 201 — Shadow flicker on the high preset
@@ -71,3 +71,4 @@ Keep the depth texture object stable for the life of the renderer. A lower shado
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
+- 2026-10-19 — Worker B. The map is allocated at the first preset's size and only grows when the player raises the preset (the governor never goes above the player's choice). A lower preset keeps the map at its size: no viewport sub-rectangle (three's object shaders map the whole texture, so a sub-rectangle needs a patched shadow matrix for every material) and no skipped updates (a stale map with a moving floating origin is a flicker of its own). The shadow matrix is computed with `LightShadow.updateMatrices` after the light is placed, so the planet gets this frame's. The governor holds 30 s between preset changes (`presetDwellSeconds`) and waits 60 s of calm before a trial into the next preset up (`presetProbationSeconds`). Its last five changes show in Debug → Info ("Graphics changes"); each still goes to the debug log as before.

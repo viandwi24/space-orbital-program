@@ -111,6 +111,8 @@ const THROTTLE_RATE = 0.5;
  * rest on the pad (a raised throttle wakes it and caps warp).
  */
 export const DEFAULT_THROTTLE = 0.5;
+/** Governor changes Debug → Info lists (plan 201). */
+const GOVERNOR_LOG = 5;
 const HUD_PERIOD_MS = 100;
 
 export interface FlightHud {
@@ -285,6 +287,8 @@ export interface DebugInfo {
 	preset: string | null;
 	scale: number;
 	governor: boolean;
+	/** The governor's latest changes, newest last (plan 201): `mm:ss preset at NN%`. */
+	governorChanges: readonly string[];
 	/** The game's API version and the mods running. */
 	versions: string;
 }
@@ -316,6 +320,9 @@ export function startFlight(options: FlightOptions): Flight {
 	const offClient: Array<() => void> = [];
 	let renderer: Renderer | null = null;
 	let governor: QualityGovernor | null = null;
+	/** The governor's latest changes for Debug → Info (plan 201), at most `GOVERNOR_LOG`. */
+	const governorChanges: string[] = [];
+	const governorStart = performance.now();
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
 	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
@@ -934,6 +941,10 @@ export function startFlight(options: FlightOptions): Flight {
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
 			logBuffer.add('info', 'graphics', `governor: ${level.preset} at ${percent}%`);
+			const s = Math.floor((performance.now() - governorStart) / 1000);
+			const at = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+			governorChanges.push(`${at} ${level.preset} at ${percent}%`);
+			if (governorChanges.length > GOVERNOR_LOG) governorChanges.shift();
 			hudCtl?.notice({
 				kind: 'info',
 				title: 'Graphics adjusted',
@@ -1362,6 +1373,7 @@ export function startFlight(options: FlightOptions): Flight {
 			preset: renderer?.preset ?? null,
 			scale: governor?.level.scale ?? 1,
 			governor: autoQuality,
+			governorChanges: [...governorChanges],
 			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', ')
 		}),
 		runScript(source) {
