@@ -1,7 +1,7 @@
 ---
 id: 230
 title: World rules and save safety
-status: in-progress
+status: done
 owner: "Worker C"
 depends: [205, 212]
 phase: 7
@@ -71,23 +71,25 @@ World rules cover the options KSP players expect, and saves are hard to lose. A 
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/sim` passes, including `test/rules-direction.test.ts`: `set-rule stock.allow-revert true` succeeds in a Hardcore world; `false` back is refused with a reason; the changelog has one entry.
-- [ ] `bun test mods/stock` passes: every stock rule that the World settings dialog shows declares `easier`.
-- [ ] `apps/web` vitest: the export prompt schedule (first after 1 h, then every 7 days, "later" snoozes 1 day).
-- [ ] Chromium e2e `apps/web/e2e/rules.e2e.ts`: create a Career Hardcore world with heating 50 %; Revert is disabled with its reason; turn on "Allow revert" in World settings; Revert is enabled; the changelog shows the change; the harder direction is disabled.
-- [ ] Chromium e2e: Settings → Saves shows the storage state; "Export all" downloads one file; importing it into a fresh profile lists the same worlds.
-- [ ] `bun run check:affected --build --e2e e2e/rules.e2e.ts` passes.
-- [ ] CI is green on the `ready/*` tag for this plan.
+- [x] `bun test packages/sim` passes, including `test/rules-direction.test.ts`: `set-rule stock.allow-revert true` succeeds in a Hardcore world; `false` back is refused with a reason; the changelog has one entry.
+- [x] `bun test mods/stock` passes: every stock rule that the World settings dialog shows declares `easier`.
+- [x] `apps/web` vitest: the export prompt schedule (first after 1 h, then every 7 days, "later" snoozes 1 day).
+- [x] Chromium e2e `apps/web/e2e/rules.e2e.ts`: create a Career Hardcore world with heating 50 %; Revert is disabled with its reason; turn on "Allow revert" in World settings; Revert is enabled; the changelog shows the change; the harder direction is disabled.
+- [x] Chromium e2e: Settings → Saves shows the storage state; "Export all" downloads one file; importing it into a fresh profile lists the same worlds.
+- [x] `bun run check:affected --build --e2e e2e/rules.e2e.ts` passes.
+- [x] CI is green on the `ready/*` tag for this plan.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/230-rules-and-save-safety.md` written.
-- [ ] `docs/architecture/simulation.md` updated (rule direction).
-- [ ] `docs/guides/writing-a-mod.md` updated for the `easier` field.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/230-rules-and-save-safety.md` written.
+- [x] `docs/architecture/simulation.md` updated (rule direction).
+- [x] `docs/guides/writing-a-mod.md` updated for the `easier` field.
 
 ## Log
 
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-20 — Worker C refined to ready and claimed (claim/230; moved from Worker D by the coordinator). Checked against the code: `set-rule` and the changelog exist (ADR 0111); no Revert existed at all (only the words "Revert to the VAB" on the lost-vessel card), quickload is F9 and the Load dialog; `requestSavePersistence()` exists in `store-idb.ts`. ADR 0230 (0229 is taken).
 - 2026-10-20 — Defaults (not asked): the sim refuses a harder change unless the world's debug tools are on (Sandbox always; Science and Career with Debug mode), so tests that set a harder rule turn Debug mode on first. Rules without `easier` (contracts, science depth, professions) are fixed once the world is made. Revert is **Revert to the Hangar**: the flight page keeps the sim's save from just before the launch and Revert restarts the world from it.
+- 2026-10-20 — World settings opens from the world menu and from the flight's pause menu (the flight's menu button is the pause menu). The hidden-tab policy was already the Settings → Time entry "Keep running in a hidden tab" with its explanation (plan 205); unchanged.
+- 2026-10-20 — Evidence: `packages/sim/test/rules-direction.test.ts` 3 pass (Hardcore allow-revert true accepted, false back refused with the reason, one changelog entry; numbers and enums by direction; debug mode and Sandbox bypass); `mods/stock/test/rule-easier.test.ts` 2 pass; `save/backup.test.ts` 3 pass (first prompt after 1 h, then 7 days, later snoozes 1 day; export and import round trip); `check:affected --build --e2e e2e/rules.e2e.ts` all passed in 325 s (both e2e: Hardcore at 50 % heating, Revert closed with the reason, allowed in World settings, changelog line, harder closed, Revert to the Hangar; Settings → Saves, Export all, import into a fresh profile lists the world).
