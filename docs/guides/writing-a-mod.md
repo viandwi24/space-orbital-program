@@ -481,6 +481,13 @@ ctx.achievements.register(defineAchievement({
 - **A kept vessel** has a module with `keep: true`: it is never removed as resting debris. `plant-flag` spawns the first registered part with such a module beside a standing suit.
 - A module's `onRecover` also runs when its suit boards a vessel: what it credits then goes into that vessel's sample locker and counts at the vessel's recovery.
 
+### Hatches, ladders and the jetpack (API 0.1.81, plan 225, ADR 0209)
+
+- **A hatch:** give a crewed part `hatch: { pos: [x, y, z], dir: [x, y, z] }` in its own frame. Crew step out 1 m along `dir`, and suits board within 2 m of that point. A part in the way blocks the hatch, and `crew-eva` says which one.
+- **A ladder:** `ladder: { from, to, out }` is a segment in the part frame plus the side a suit hangs on. `crew-grab` latches a suit within 1 m, and `crew-climb` moves it along. Any part may carry one: the stock pod has a short one beside its hatch, and `stock.ladder` is a 2 m radial one.
+- **The suit:** `walk: { speed, run, propellant }`. `run` is the running speed; `propellant` is the resource a member keeps between EVAs, topped up from the vessel when boarding.
+- **The stock jetpack** is the module `stock.jetpack` (`{ thrust, isp, propellant }`). It is switched by its `setOn` action and pushes along the vessel's translation demand, the same input RCS reads.
+
 ## A second hills planet (API 0.1.51, plan 071, ADR 0121)
 
 - **Its own continents:** `terrain: { kind: 'hills', seed: 11 }` gives the planet its own biome map and noise. Without a `seed` a later hills body takes the world's terrain seed mixed with its id (`hillsSeedOf`), so two planets never share continents; the home planet keeps the world's seed.
