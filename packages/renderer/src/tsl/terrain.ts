@@ -37,6 +37,7 @@ import {
 import type { PlanetPass } from '../planet.ts';
 import { PATCH_BLEND, patchTexel, type PatchFrame } from '../terrain-patch.ts';
 import { hash13i, noiseT, octaveRotate, warpedLatLon } from './noise.ts';
+import { atlasBakeDirection, atlasCoord } from './cube-atlas.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -231,35 +232,7 @@ export class TerrainTSL {
 		// the atlas: face f's tile is columns [f (N + 2), (f + 1)(N + 2)), its texel i at st = 2 (i - 0.5) / N - 1
 		this.cubePass = pass(
 			Fn(() => {
-				const px = uv().x.mul(6 * tile);
-				const face = floor(px.div(tile));
-				const st = vec2(px.sub(face.mul(tile)), uv().y.mul(tile))
-					.sub(1.0)
-					.div(cubeSize)
-					.mul(2.0)
-					.sub(1.0);
-				// OpenGL's cube convention, as the WebGL bake: +X, -X, +Y, -Y, +Z, -Z
-				const dir = select(
-					face.lessThan(0.5),
-					vec3(1.0, st.y.negate(), st.x.negate()),
-					select(
-						face.lessThan(1.5),
-						vec3(-1.0, st.y.negate(), st.x),
-						select(
-							face.lessThan(2.5),
-							vec3(st.x, 1.0, st.y),
-							select(
-								face.lessThan(3.5),
-								vec3(st.x, -1.0, st.y.negate()),
-								select(
-									face.lessThan(4.5),
-									vec3(st.x, st.y.negate(), 1.0),
-									vec3(st.x.negate(), st.y.negate(), -1.0)
-								)
-							)
-						)
-					)
-				);
+				const dir = atlasBakeDirection(cubeSize);
 				const { h0, g } = texel(normalize(dir), this.uTexel);
 				const hi = floor(h0.div(16.0)).mul(16.0);
 				return vec4(hi, h0.sub(hi), g);
@@ -574,85 +547,13 @@ export class TerrainTSL {
 
 	/** `heightAt(n)`: the terrain height (m) at a unit body-fixed direction, as a shader function. */
 	private heightFn(map: DataTexture): (n: N) => N {
-		const R = this.radius;
-		const shift = this.uShift;
-		const fbmT = (
-			q0: N,
-			wavelengthKm: number,
-			octaves: number,
-			salt: number,
-			ridged: boolean
-		): N => {
-			let sum: N = float(0.0);
-			let q = q0;
-			let amp = 1;
-			let norm = 0;
-			let freq = 1 / wavelengthKm;
-			for (let i = 0; i < octaves; i++) {
-				const v = noiseT(q, freq, salt + i, shift);
-				// x * x, not pow(x, 2): pow of a negative base is NaN in WGSL
-				const rx = v.mul(2.0).sub(1.0);
-				const term = ridged
-					? float(1.0).sub(sqrt(rx.mul(rx).add(S.ridgeSoftness ** 2)).sub(S.ridgeSoftness))
-					: v;
-				sum = sum.add(term.mul(amp));
-				norm += amp;
-				amp *= 0.5;
-				freq *= 2;
-				q = octaveRotate(q);
-			}
-			return sum.div(norm);
-		};
-		const zones = (n: N): N => this.zones(n);
-		const fn = Fn(([n]: N[]) => {
-			const h = float(0.0).toVar();
-			const ll = warpedLatLon(n, float(R), shift);
-			const e = texture(map, vec2(ll.y.div(2 * PI).add(0.5), ll.x.div(PI).add(0.5))).level(0).r;
-			const land = smoothstep(S.landStart, S.landFull, e);
-			If(land.greaterThan(0.0), () => {
-				const z = zones(n);
-				If(z.x.greaterThan(0.0), () => {
-					const q = n.mul(R / 1000);
-					const hills = smoothstep(
-						S.hillLow,
-						S.hillHigh,
-						fbmT(q, S.hillWavelengthKm, S.hillOctaves, 11, false)
-					).mul(S.hillAmplitude);
-					const rangeN = noiseT(q, 1 / S.rangeWavelengthsKm[0], S.rangeSalts[0], shift)
-						.mul(0.65)
-						.add(noiseT(q, 1 / S.rangeWavelengthsKm[1], S.rangeSalts[1], shift).mul(0.35));
-					const arc = z.y;
-					const backdrop = smoothstep(S.backdropRiseMetres[0], S.backdropRiseMetres[1], arc)
-						.mul(smoothstep(S.backdropFallMetres[0], S.backdropFallMetres[1], arc).oneMinus())
-						.mul(
-							smoothstep(
-								S.backdropLow,
-								S.backdropHigh,
-								noiseT(q, 1 / S.backdropWavelengthKm, S.backdropSalt, shift)
-							)
-						);
-					const rangeA = smoothstep(S.rangeLow, S.rangeHigh, rangeN);
-					const rangeH = max(float(S.rangeBlend).sub(abs(rangeA.sub(backdrop))), 0.0);
-					const range = max(rangeA, backdrop).add(rangeH.mul(rangeH).div(4 * S.rangeBlend));
-					const ridge = fbmT(q, S.ridgeWavelengthKm, S.ridgeOctaves, 31, true);
-					const upland = smoothstep(S.uplandLow, S.uplandHigh, e);
-					const mountains = range
-						.mul(smoothstep(0.25, 0.8, ridge))
-						.mul(upland.mul(0.3).add(0.7))
-						.mul(S.mountainAmplitude);
-					const lakeLevel = noiseT(q, 1 / LAKE.wavelengthKm, LAKE.salt, shift).mul(z.z);
-					const lakeCap = max(
-						float(LAKE.to)
-							.sub(lakeLevel)
-							.mul(LAKE.slope / LAKE.gradientBound),
-						0.0
-					);
-					h.assign(min(land.mul(z.x).mul(hills.add(mountains)), lakeCap));
-				});
-			});
-			return h;
+		return heightAtFn({
+			map,
+			radius: this.radius,
+			shift: this.uShift,
+			zones: (n: N) => this.zones(n),
+			bilinear: false
 		});
-		return (n: N): N => fn(n);
 	}
 
 	/**
@@ -663,44 +564,7 @@ export class TerrainTSL {
 		const atlas = this.atlas;
 		if (!atlas) return null;
 		const size = this.atlasSize;
-		const tile = size + 2;
-		const cube = (n: N): N => {
-			const a = abs(n);
-			const isX = a.x.greaterThanEqual(a.y).and(a.x.greaterThanEqual(a.z));
-			const isY = isX.not().and(a.y.greaterThanEqual(a.z));
-			const sx = select(
-				isX,
-				select(n.x.greaterThan(0.0), n.z.negate(), n.z).div(a.x),
-				select(isY, n.x.div(a.y), select(n.z.greaterThan(0.0), n.x, n.x.negate()).div(a.z))
-			);
-			const sy = select(
-				isX,
-				n.y.negate().div(a.x),
-				select(isY, select(n.y.greaterThan(0.0), n.z, n.z.negate()).div(a.y), n.y.negate().div(a.z))
-			);
-			const face = select(
-				isX,
-				select(n.x.greaterThan(0.0), float(0.0), float(1.0)),
-				select(
-					isY,
-					select(n.y.greaterThan(0.0), float(2.0), float(3.0)),
-					select(n.z.greaterThan(0.0), float(4.0), float(5.0))
-				)
-			);
-			const st = vec2(
-				face
-					.mul(tile)
-					.add(1.0)
-					.add(sx.add(1.0).mul(0.5 * size))
-					.div(6 * tile),
-				sy
-					.add(1.0)
-					.mul(0.5 * size)
-					.add(1.0)
-					.div(tile)
-			);
-			return texture(atlas.texture, st).level(0);
-		};
+		const cube = (n: N): N => texture(atlas.texture, atlasCoord(n, size)).level(0);
 		const patchSize = this.patchSize;
 		const patchFetch = (target: RenderTarget, st: N): N => {
 			const at = st.mul(0.5).add(0.5);
@@ -805,4 +669,109 @@ export class TerrainTSL {
 		this.cubePass?.m.dispose();
 		this.patchPass?.m.dispose();
 	}
+}
+
+/** The map's elevation, bilinear by hand in 32-bit floats (\`biomeElevation\` of \`moon.glsl.ts\`). */
+function biomeElevation(map: DataTexture, st: N): N {
+	const W = map.image.width as number;
+	const H = map.image.height as number;
+	const p = vec2(st.x.mul(W).sub(0.5), clamp(st.y.mul(H).sub(0.5), 0.0, H - 1));
+	const fl = floor(p);
+	const t = p.sub(fl);
+	const x0 = int(T.mod(fl.x, W));
+	const x1 = int(T.mod(fl.x.add(1.0), W));
+	const y0 = int(clamp(fl.y, 0.0, H - 1));
+	const y1 = int(clamp(fl.y.add(1.0), 0.0, H - 1));
+	const at = (x: N, y: N): N => textureLoad(map, ivec2(x, y)).r;
+	return mix(mix(at(x0, y0), at(x1, y0), t.x), mix(at(x0, y1), at(x1, y1), t.x), t.y);
+}
+
+/**
+ * \`heightAt(n)\` (the twin of \`terrainHeightGLSL\`, core's \`terrainHeight\`): the terrain height (m) at a
+ * unit body-fixed direction, as a shader function. \`zones(n)\` gives (site weight, arc to the first
+ * zone, lake gate); \`bilinear\` reads the map's elevation by hand in 32-bit floats (a hills moon's
+ * bake, \`hillsHeightGLSL\`: the hardware filter's 8-bit weights shift a ridge on a small body).
+ */
+export function heightAtFn(o: {
+	map: DataTexture;
+	radius: number;
+	shift: N;
+	zones: (n: N) => N;
+	bilinear: boolean;
+}): (n: N) => N {
+	const map = o.map;
+	const R = o.radius;
+	const shift = o.shift;
+	const fbmT = (q0: N, wavelengthKm: number, octaves: number, salt: number, ridged: boolean): N => {
+		let sum: N = float(0.0);
+		let q = q0;
+		let amp = 1;
+		let norm = 0;
+		let freq = 1 / wavelengthKm;
+		for (let i = 0; i < octaves; i++) {
+			const v = noiseT(q, freq, salt + i, shift);
+			// x * x, not pow(x, 2): pow of a negative base is NaN in WGSL
+			const rx = v.mul(2.0).sub(1.0);
+			const term = ridged
+				? float(1.0).sub(sqrt(rx.mul(rx).add(S.ridgeSoftness ** 2)).sub(S.ridgeSoftness))
+				: v;
+			sum = sum.add(term.mul(amp));
+			norm += amp;
+			amp *= 0.5;
+			freq *= 2;
+			q = octaveRotate(q);
+		}
+		return sum.div(norm);
+	};
+	const zones = o.zones;
+	const fn = Fn(([n]: N[]) => {
+		const h = float(0.0).toVar();
+		const ll = warpedLatLon(n, float(R), shift);
+		const st = vec2(ll.y.div(2 * PI).add(0.5), ll.x.div(PI).add(0.5)).toVar();
+		const e = (o.bilinear ? biomeElevation(map, st) : texture(map, st).level(0).r).toVar();
+		const land = smoothstep(S.landStart, S.landFull, e);
+		If(land.greaterThan(0.0), () => {
+			const z = zones(n);
+			If(z.x.greaterThan(0.0), () => {
+				const q = n.mul(R / 1000);
+				const hills = smoothstep(
+					S.hillLow,
+					S.hillHigh,
+					fbmT(q, S.hillWavelengthKm, S.hillOctaves, 11, false)
+				).mul(S.hillAmplitude);
+				const rangeN = noiseT(q, 1 / S.rangeWavelengthsKm[0], S.rangeSalts[0], shift)
+					.mul(0.65)
+					.add(noiseT(q, 1 / S.rangeWavelengthsKm[1], S.rangeSalts[1], shift).mul(0.35));
+				const arc = z.y;
+				const backdrop = smoothstep(S.backdropRiseMetres[0], S.backdropRiseMetres[1], arc)
+					.mul(smoothstep(S.backdropFallMetres[0], S.backdropFallMetres[1], arc).oneMinus())
+					.mul(
+						smoothstep(
+							S.backdropLow,
+							S.backdropHigh,
+							noiseT(q, 1 / S.backdropWavelengthKm, S.backdropSalt, shift)
+						)
+					);
+				const rangeA = smoothstep(S.rangeLow, S.rangeHigh, rangeN);
+				const rangeH = max(float(S.rangeBlend).sub(abs(rangeA.sub(backdrop))), 0.0);
+				const range = max(rangeA, backdrop).add(rangeH.mul(rangeH).div(4 * S.rangeBlend));
+				const ridge = fbmT(q, S.ridgeWavelengthKm, S.ridgeOctaves, 31, true);
+				const upland = smoothstep(S.uplandLow, S.uplandHigh, e);
+				const mountains = range
+					.mul(smoothstep(0.25, 0.8, ridge))
+					.mul(upland.mul(0.3).add(0.7))
+					.mul(S.mountainAmplitude);
+				const lakeLevel = noiseT(q, 1 / LAKE.wavelengthKm, LAKE.salt, shift).mul(z.z);
+				const lakeCap = max(
+					float(LAKE.to)
+						.sub(lakeLevel)
+						.mul(LAKE.slope / LAKE.gradientBound),
+					0.0
+				);
+				h.assign(min(land.mul(z.x).mul(hills.add(mountains)), lakeCap));
+			});
+		});
+		return h;
+	});
+	return (n: N): N => fn(n);
 }

@@ -95,7 +95,7 @@ export const noiseT = (q: N, freq: number, salt: number, shift: N): N => {
 	const p = q.mul(freq);
 	const fl = floor(p);
 	const c = ivec3(fl)
-		.add(ivec3(salt * 131, salt * 71, salt * 17))
+		.add(ivec3(Math.imul(salt, 131), Math.imul(salt, 71), Math.imul(salt, 17)))
 		.add(ivec3(shift));
 	return valueNoiseCell(c, p.sub(fl));
 };
@@ -109,7 +109,7 @@ export const noiseA = (pl: N, lam: number, salt: number, anchorCell: N): N => {
 	const fl = floor(f);
 	const c = ivec3(fl)
 		.add(ivec3(anchorCell).mul(int(Math.round(1024 / lam))))
-		.add(ivec3(salt * 131, salt * 71, salt * 17));
+		.add(ivec3(Math.imul(salt, 131), Math.imul(salt, 71), Math.imul(salt, 17)));
 	return valueNoiseCell(c, f.sub(fl));
 };
 

@@ -337,3 +337,31 @@ Three's node renderer cannot draw a `ShaderMaterial`, and it ignores `onBeforeCo
 - **Handing three a mesh's own `instanceMatrix` steps it per vertex.** The draw failed validation and the whole frame broke. A buffer of our own over the same array (`InstancedInterleavedBuffer`) steps per instance, and it is marked dirty when the original changes (the steam moves every frame).
 - **Meshes share materials.** A twin that reads its mesh (instance matrices) is cached per mesh, not per material, or one mesh's buffer is bound to another's draw.
 - With every effect twinned, Debug → Info's "Not drawn yet" lists only the GLSL planet mesh (on purpose) and, as patched, the moons' Lambert materials (part 2).
+
+## Phase 4, part 2: the moons
+
+`MoonPass` still decides what to bake and where the patches sit. Its new hooks (`bakeJobs`, `markCubeBaked`, `markPatchBaked`) let the WebGPU renderer run the bakes itself, the way the planet's terrain does. `tsl/moon.ts` holds the twins of `moonHeightGLSL` (craters, with the site zones) and `hillsHeightGLSL` (the planet's `heightAt` on the body's biome map, bilinear by hand). The cube is a six-face atlas like the planet's (`tsl/cube-atlas.ts`, now shared). The layers are rebuilt as node materials:
+
+- **the globe** (displaced by the atlas, the normal by differences);
+- **the two patches** (the patch point and normal, the skirt);
+- **the instanced stones**, on the fine patch.
+
+Each layer has the regolith or the hills' colours, the grain and stone-dome bump, the terrain-shadow march, and on a body with air the sea and the aerial perspective (`tsl/air.ts`, the twin of `marchAtmosphere` with the sun-depth table). The sky shell gets its own twin. Every uniform is read from the GLSL layer's own uniform objects once a frame, so `moon.ts` and the WebGL path are unchanged.
+
+| WebGL | WebGPU |
+|---|---|
+| ![](assets/261-4-moon-webgl-surface.jpg) | ![](assets/261-4-moon-webgpu-surface.jpg) |
+
+![Cinder from 120 km on WebGPU](assets/261-4-moon-webgpu-120km.jpg)
+
+### What surprised me
+
+- **The terrain shadow lights only the sun.** GLSL edits `lights_fragment_begin` so that only directional lights are multiplied. In TSL a lighting model of our own (`PhongLightingModel` with `direct` overridden) sees the light node, and it multiplies only a `DirectionalLight`.
+- **The stones' shadow needs no depth material.** WebGPU's shadow pass takes the material's `positionNode`, so the displaced stones cast where they stand. The GLSL path needs a `customDepthMaterial` for that.
+- **Salts overflow.** A crater layer's salt times 131 can exceed 32 bits for a large seed. GLSL wraps it, and JavaScript did not. `noiseT` now multiplies with `Math.imul`.
+- **The part highlight is invisible on WebGL in flight.** Its `ShaderMaterial` has no logarithmic depth, and the flight scene uses it. The overlay is there, but the depth test hides it. The WebGPU twin draws it, because node materials get log depth by themselves. This is a bug on `main`, for the look-over before the merge.
+- **One startup error is still unexplained**: "Destroyed texture ShadowDepthTexture used in a submit", once, in about half the runs. Ruled out so far:
+  - the shadow map's size, which changes before the first draw;
+  - the warm-ups running side by side (run in turn, it still happens).
+  
+  Nothing shows on screen.

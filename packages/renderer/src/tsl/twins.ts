@@ -7,7 +7,8 @@
  * A twin is found by the original's shader source (the effects share theirs from `effects/
  * shaders.ts`), so nothing in the scene has to be renamed. Twins here: the map's orbit lines
  * (`LineMaterial`), the engine plume and its nozzle sprite, the smoke and fire fields, the plasma
- * shell and wake, the exhaust trail, the ground glow, the site steam.
+ * shell and wake, the exhaust trail, the ground glow, the site steam; the moons' layers and sky
+ * shells (`moon.ts`).
  */
 import {
 	Color,
@@ -35,6 +36,9 @@ import {
 	TRAIL_VERT
 } from '../effects/shaders.ts';
 import { SMOKE_NOISE_CELLS } from '../effects/smoke-noise.ts';
+import type { MoonMaterialInfo } from '../moon.ts';
+import { HIGHLIGHT_FRAG, HIGHLIGHT_VERT } from '../vab/highlight.ts';
+import { skyShellTwin } from './moon.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -636,8 +640,34 @@ const wind = (m: Material, o: Object3D, w: WindOptions): Twin => {
 	return { material: twin, sync };
 };
 
+/** The part highlight's additive rim (\`vab/highlight.ts\`, plan 111). */
+const highlight = (m: ShaderMaterial): Twin => {
+	const syncs: (() => void)[] = [];
+	const u = linker(m, syncs);
+	const twin = new MeshBasicNodeMaterial();
+	withState(twin, m, syncs);
+	const f = pow(
+		max(abs(dot(normalize(normalView), normalize(positionView.negate()))).oneMinus(), 0.0),
+		u('uPower')
+	);
+	const p = sin(u('uTime').mul(4.0)).mul(u('uPulse')).add(1.0);
+	twin.colorNode = vec4(
+		u('uColor')
+			.mul(f.mul(u('uRim')).add(u('uBase')))
+			.mul(p),
+		1.0
+	);
+	twin.fog = false;
+	return { material: twin, sync: () => syncs.forEach((s) => s()) };
+};
+
 /** Builds and caches the twin of a material, or null when it has none (the mesh is then hidden). */
 export class Twins {
+	constructor(
+		/** The twin of a moon layer (`userData.moon`, `tsl/moon.ts`), from the renderer that bakes the moons. */
+		private readonly moonTwin: (info: MoonMaterialInfo) => Twin | null = () => null
+	) {}
+
 	private readonly cache = new WeakMap<Material, Twin | null>();
 	/** Twins that read their mesh (its instance matrices): one per mesh, as meshes share materials. */
 	private readonly perObject = new WeakMap<Object3D, Twin | null>();
@@ -658,7 +688,13 @@ export class Twins {
 	private make(m: Material, o: Object3D): Twin | null {
 		const sm = m as ShaderMaterial & { isLineMaterial?: boolean };
 		if (sm.isLineMaterial) return line(sm as never);
-		const ud = m.userData as { weather?: Required<WeatherOptions>; wind?: WindOptions };
+		const ud = m.userData as {
+			weather?: Required<WeatherOptions>;
+			wind?: WindOptions;
+			moon?: MoonMaterialInfo;
+		};
+		if (ud.moon) return this.moonTwin(ud.moon);
+		if (o.name === 'sky-shell' && sm.isShaderMaterial) return skyShellTwin(sm);
 		if ((m as { isMeshStandardMaterial?: boolean }).isMeshStandardMaterial) {
 			if (ud.weather) return weather(m, ud.weather);
 			if (ud.wind) return wind(m, o, ud.wind);
@@ -672,6 +708,7 @@ export class Twins {
 		if (v === FIELD_VERT && f === FIRE_FRAG) return field(sm, 'fire');
 		if (v === SHELL_VERT && f === SHELL_FRAG) return shell(sm);
 		if (v === TRAIL_VERT && f === TRAIL_FRAG) return trail(sm);
+		if (v === HIGHLIGHT_VERT && f === HIGHLIGHT_FRAG) return highlight(sm);
 		if (o.parent?.name === 'ground-glow') return groundGlow(sm);
 		if (o.name === 'site-steam') return siteSteam(sm, o);
 		return null;

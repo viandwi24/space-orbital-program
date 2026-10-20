@@ -1390,6 +1390,11 @@ export class SceneModel {
 		for (const moon of this.moons.values()) moon.setDetail(shadows, stones);
 	}
 
+	/** The moon passes (plan 261: the WebGPU renderer bakes and draws them with its TSL twins). */
+	get moonPasses(): Iterable<MoonPass> {
+		return this.moons.values();
+	}
+
 	/** Bakes what the moon passes asked for this frame (needs a context; the facade calls it). */
 	bakeMoons(gl: WebGLRenderer): void {
 		for (const moon of this.moons.values()) moon.bake(gl);

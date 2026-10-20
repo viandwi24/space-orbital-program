@@ -114,7 +114,16 @@ import type { Atmosphere } from './atmosphere-model.ts';
 type U<T> = Uniform<T>;
 const u = <T>(value: T): U<T> => new Uniform(value);
 
-type PatchKind = 'mid' | 'fine';
+export type PatchKind = 'mid' | 'fine';
+export type MoonLayer = 'globe' | 'patch' | 'stone';
+
+/** What a moon layer's material carries for the WebGPU renderer's twin (plan 261, \`tsl/moon.ts\`). */
+export interface MoonMaterialInfo {
+	pass: MoonPass;
+	kind: MoonLayer;
+	patch: PatchKind | null;
+	uniforms: Record<string, U<unknown>>;
+}
 
 /** The biome map of `terrain` (the one the sim's height function reads) as a texture, for a hills body's bake and colours. */
 function biomeTexture(terrain: WorldTerrainSpec): DataTexture {
@@ -402,7 +411,7 @@ export class MoonPass {
 				uSecK: u(0.01),
 				uSecOn: u(0)
 			};
-			const mesh = new Mesh(patchGrid(spec.quads), this.material('patch', uniforms));
+			const mesh = new Mesh(patchGrid(spec.quads), this.material('patch', uniforms, kind));
 			mesh.frustumCulled = false;
 			mesh.receiveShadow = true;
 			mesh.visible = false;
@@ -437,7 +446,7 @@ export class MoonPass {
 		this.stoneCam = stoneUniforms.uStoneCam as U<Vector3>;
 		this.stones = new MoonStones(
 			radius,
-			this.material('stone', stoneUniforms),
+			this.material('stone', stoneUniforms, 'fine'),
 			this.stoneDepthMaterial(stoneUniforms),
 			this.seed
 		);
@@ -447,10 +456,14 @@ export class MoonPass {
 	private bakeQuad: Mesh;
 
 	private material(
-		kind: 'globe' | 'patch' | 'stone',
-		uniforms: Record<string, U<unknown>>
+		kind: MoonLayer,
+		uniforms: Record<string, U<unknown>>,
+		/** The patch a patch or stone layer reads. */
+		patch: PatchKind | null = null
 	): MeshLambertMaterial {
 		const material = new MeshLambertMaterial({ color: 0xffffff });
+		// the WebGPU renderer's twin rebuilds the layer from these (plan 261, tsl/moon.ts)
+		material.userData.moon = { pass: this, kind, patch, uniforms } satisfies MoonMaterialInfo;
 		const hills = this.kind === 'hills';
 		material.onBeforeCompile = (shader) => {
 			Object.assign(shader.uniforms, uniforms);
@@ -754,6 +767,11 @@ export class MoonPass {
 		uniforms.uHalfTan!.value = frame.halfTan;
 		gl.setRenderTarget(slot.target);
 		gl.render(this.bakeScene, this.bakeCamera);
+		this.placePatch(slot, frame);
+	}
+
+	/** After a patch is baked for \`frame\`: its uniforms and the mesh's place (the CPU half of the bake). */
+	private placePatch(slot: PatchSlot, frame: PatchFrame): void {
 		const hc = this.groundHeight(frame.centre);
 		const m = slot.uniforms;
 		(m.uC!.value as Vector3).set(frame.centre.x, frame.centre.y, frame.centre.z);
@@ -767,6 +785,52 @@ export class MoonPass {
 		if (slot.kind === 'fine') this.stones.setOrigin(centre.x, centre.y, centre.z);
 		slot.frame = frame;
 		slot.wanted = null;
+	}
+
+	/**
+	 * The bakes due now, for a renderer that bakes the moon itself (plan 261: the WebGPU twin,
+	 * \`tsl/moon.ts\`): the cube (all faces at once) and the patches \`update\` asked for.
+	 */
+	bakeJobs(): {
+		cube: boolean;
+		cubeSize: number;
+		patches: { kind: PatchKind; frame: PatchFrame; texels: number }[];
+	} {
+		const patches: { kind: PatchKind; frame: PatchFrame; texels: number }[] = [];
+		for (const slot of Object.values(this.slots))
+			if (slot.wanted) patches.push({ kind: slot.kind, frame: slot.wanted, texels: slot.texels });
+		return { cube: this.cubeWanted && this.cubeFaces < 6, cubeSize: this.spec.cubeSize, patches };
+	}
+
+	/** The cube of \`bakeJobs\` is baked: the globe is displaced. */
+	markCubeBaked(): void {
+		this.cubeFaces = 6;
+		(this.globe.userData.uniforms as Record<string, U<number>>).uCubeOn!.value = 1;
+	}
+
+	/** A patch of \`bakeJobs\` is baked for \`frame\`. */
+	markPatchBaked(kind: PatchKind, frame: PatchFrame): void {
+		this.placePatch(this.slots[kind], frame);
+	}
+
+	/** A craters body's site zones with their centre heights (the bakes flatten toward them). */
+	get craterZoneList(): readonly CratersZone[] {
+		return this.cratersZones;
+	}
+
+	/** The globe is displaced by a baked cube now (false before the bake and after a release). */
+	get cubeOn(): boolean {
+		return (this.globe.userData.uniforms as Record<string, U<number>>).uCubeOn!.value > 0.5;
+	}
+
+	/** The biome map a hills body is baked and coloured from (null on a craters body). */
+	get biomeMap(): DataTexture | null {
+		return this.biome;
+	}
+
+	/** The uniforms every layer shares (radius, tint, sun, zones, the air). */
+	get sharedUniforms(): Readonly<Record<string, U<unknown>>> {
+		return this.shared;
 	}
 
 	/** Debug: the baked patch read back as heights (m), row by row, with its frame; null when not baked. */

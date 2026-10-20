@@ -64,7 +64,7 @@ const HIGH_CONTRAST: Record<HighlightKind, Look> = {
 	xray: { colour: 0xa8ffd0, base: 0.12, rim: 1.2, pulse: 0, power: 0.9 }
 };
 
-const VERT = `
+export const HIGHLIGHT_VERT = `
 varying vec3 vN;
 varying vec3 vV;
 void main() {
@@ -74,7 +74,7 @@ void main() {
 	gl_Position = projectionMatrix * mv;
 }`;
 
-const FRAG = `
+export const HIGHLIGHT_FRAG = `
 uniform vec3 uColor;
 uniform float uBase;
 uniform float uRim;
@@ -110,8 +110,8 @@ export class HighlightMaterials {
 		if (!m) {
 			const look = this.look(kind);
 			m = new ShaderMaterial({
-				vertexShader: VERT,
-				fragmentShader: FRAG,
+				vertexShader: HIGHLIGHT_VERT,
+				fragmentShader: HIGHLIGHT_FRAG,
 				transparent: true,
 				depthWrite: false,
 				// The x-ray pass shows through whatever stands in front.

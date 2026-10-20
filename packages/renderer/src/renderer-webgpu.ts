@@ -32,6 +32,8 @@ import { SceneModel } from './scene.ts';
 import { PlanetPassTSL } from './tsl/planet-pass.ts';
 import { hideUnported } from './webgpu-compat.ts';
 import { Twins } from './tsl/twins.ts';
+import { MoonTSL } from './tsl/moon.ts';
+import type { MoonPass } from './moon.ts';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
 const VEGETATION_STEPS = 34;
@@ -68,11 +70,21 @@ export function createWebGPURenderer(
 	const model = new SceneModel(config);
 	const env = model.environment;
 	let preset: GraphicsPreset = config.preset ?? 'high';
-	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
+	// the moons' bakes and layers in TSL (Phase 4), one per moon pass of the scene
+	const moons = new Map<MoonPass, MoonTSL>();
+	const moonOf = (pass: MoonPass): MoonTSL => {
+		let m = moons.get(pass);
+		if (!m) {
+			m = new MoonTSL(pass, { sun: env.sunLight, hemisphere: env.hemisphere });
+			moons.set(pass, m);
+		}
+		return m;
+	};
 	// TSL twins of the scene's GLSL materials (Phase 4), swapped in for each draw
-	const twins = new Twins();
+	const twins = new Twins((info) => moonOf(info.pass).twin(info));
 	const twinOf = (m: Parameters<Twins['twinOf']>[0], o: Parameters<Twins['twinOf']>[1]) =>
 		twins.twinOf(m, o);
+	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
 	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset]);
 	for (const m of planet.meshes) env.planet.mesh.parent?.add(m);
 	let width = 1;
@@ -229,6 +241,7 @@ export function createWebGPURenderer(
 			Math.max(1, Math.round(width * pixelRatio)),
 			Math.max(1, Math.round(height * pixelRatio))
 		);
+		for (const pass of model.moonPasses) moonOf(pass).update(r);
 		r.toneMappingExposure = env.state.exposure;
 		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));
 		drawn = { calls: r.info.render.drawCalls, triangles: r.info.render.triangles };
@@ -464,6 +477,7 @@ export function createWebGPURenderer(
 				pipeline?.dispose();
 				for (const m of planet.meshes) m.removeFromParent();
 				planet.dispose();
+				for (const m of moons.values()) m.dispose();
 				model.dispose();
 				gpu?.dispose();
 				gpu = null;
