@@ -401,6 +401,8 @@
 		gap: var(--s-2);
 		align-self: end;
 		min-width: 0;
+		/* the tool pill compacts against this column's width (plan 238) */
+		container-type: inline-size;
 	}
 	.context-slot {
 		grid-column: 2;
