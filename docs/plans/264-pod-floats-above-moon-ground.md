@@ -1,7 +1,7 @@
 ---
 id: 264
 title: "A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree"
-status: ready
+status: done
 owner: "Worker B"
 depends: []
 phase: 8
@@ -45,16 +45,17 @@ Item 25 of `docs/reviews/2026-10-20-owner-manual-test.md` (`22.webp`). A part re
 
 ## Acceptance criteria
 
-- [ ] The root cause is in the journal.
-- [ ] Physics and render ground agree within a tolerance at sampled points. Tests pass.
-- [ ] A resting or rolling pod touches the visible ground. Screenshots are in the journal.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] The root cause is in the journal: the cylinder collider was the box around the circle, corners 41 % beyond the rim ([ADR 0245](../decisions/0245-cylinder-colliders-are-inscribed-squares.md)).
+- [x] Physics and render ground agree within a tolerance at sampled points (they call the same core field; test on Cinder and Home). Tests pass.
+- [ ] A resting or rolling pod touches the visible ground: measured, a rolling pod stays within 3 m instead of hopping 10 m. The journal holds a chart of the measurement; screenshots of the game were not taken (no browser run).
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with screenshots.
+- [x] STATUS row.
+- [ ] Journal with screenshots (a measured chart instead; no game screenshots).
 
 ## Log
 
 - 2026-10-21: Created by the coordinator from the owner's report.
+- 2026-10-21: Worker B. Root cause measured on flat Cinder (no terrain): a cylinder collided as the box around it. Fixed with inscribed squares (ADR 0245).

@@ -13,8 +13,9 @@ export const isTurned = (part: Pick<PartState, 'yaw' | 'rotation'>): boolean =>
 	part.rotation !== undefined || part.yaw !== 0;
 
 /**
- * Half extents of the part's collision box. Cylinders use the box `(r, h/2, r)`: exact along the
+ * Half extents of the part's bounding box. Cylinders use the box `(r, h/2, r)`: exact along the
  * stack axis (what stacking and separation depend on), conservative sideways. No shape: a 1 m box.
+ * The colliders are `colliderBoxes` (plan 264).
  */
 export function halfExtentsOf(def: PartDefinition): Vec3 {
 	const s = def.shape;
@@ -22,6 +23,26 @@ export function halfExtentsOf(def: PartDefinition): Vec3 {
 		return { x: FALLBACK_PART_SIZE / 2, y: FALLBACK_PART_SIZE / 2, z: FALLBACK_PART_SIZE / 2 };
 	if (s.kind === 'box') return { x: s.size[0] / 2, y: s.size[1] / 2, z: s.size[2] / 2 };
 	return { x: s.radius, y: s.height / 2, z: s.radius };
+}
+
+/** Squares a cylinder's collider is made of, turned by equal steps within a quarter turn (plan 264). */
+export const CYLINDER_SQUARES = 4;
+
+/**
+ * The collision boxes of a part, each with its yaw about the part's stack axis. A box part is one
+ * box. A cylinder is `CYLINDER_SQUARES` squares inscribed in its circle (half side `r / sqrt 2`,
+ * the full height), each turned by an equal step: 16 corners on the circle instead of the 4 of a
+ * circumscribed box, which reached `r sqrt 2` and made a rolling pod ride on invisible corners
+ * (plan 264). Along the axis the extent is exact, as before.
+ */
+export function colliderBoxes(def: PartDefinition): { halfExtents: Vec3; yaw: number }[] {
+	const s = def.shape;
+	if (s?.kind !== 'cylinder') return [{ halfExtents: halfExtentsOf(def), yaw: 0 }];
+	const side = s.radius * Math.SQRT1_2;
+	return Array.from({ length: CYLINDER_SQUARES }, (_, j) => ({
+		halfExtents: { x: side, y: s.height / 2, z: side },
+		yaw: (j * Math.PI) / 2 / CYLINDER_SQUARES
+	}));
 }
 
 /**

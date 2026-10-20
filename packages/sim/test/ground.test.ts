@@ -6,6 +6,7 @@ import { drop, dropOnto, groundRelativeVelocity, tiltDegrees } from './helpers/g
 import { altitude } from './helpers/measure.ts';
 import { lander, newSim, rapier, stack, twoStage } from './helpers/vessels.ts';
 import { length } from '@orbital/kepler';
+import { CYLINDER_SQUARES } from '../src/parts.ts';
 
 function damages(sim: Awaited<ReturnType<typeof newSim>>) {
 	const out: Array<{ definition: string; outcome: string; speed: number }> = [];
@@ -159,8 +160,11 @@ describe('determinism', () => {
 	});
 });
 
+/** The lander's six cylinder parts, each `CYLINDER_SQUARES` boxes (plan 264). */
+const PARTS = 6 * CYLINDER_SQUARES;
+
 describe('landing legs (module colliders)', () => {
-	test('deploy and retract rebuild the body (6 -> 10 -> 6 colliders) and keep pose and velocity', async () => {
+	test('deploy and retract rebuild the body (6 parts of 4 squares, 4 feet more while deployed) and keep pose and velocity', async () => {
 		const real = await rapier()();
 		const shapes: number[] = [];
 		const spy: PhysicsBackend = {
@@ -209,10 +213,10 @@ describe('landing legs (module colliders)', () => {
 		});
 		run(sim, 0.5);
 		expect(act('retract').ok).toBe(true);
-		expect(shapes).toEqual([6, 10, 6]);
+		expect(shapes).toEqual([PARTS, PARTS + 4, PARTS]);
 		// A repeated deploy that changes nothing does not rebuild.
 		act('retract');
-		expect(shapes).toEqual([6, 10, 6]);
+		expect(shapes).toEqual([PARTS, PARTS + 4, PARTS]);
 		sim.dispose();
 	});
 });
