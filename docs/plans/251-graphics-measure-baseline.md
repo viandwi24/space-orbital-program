@@ -1,7 +1,7 @@
 ---
 id: 251
 title: "Graphics phase 0: measurement tools, feature switches, a frame-time histogram and the M5 Retina baseline"
-status: ready
+status: in-progress
 owner: "Worker A"
 depends: []
 phase: 7
@@ -94,3 +94,4 @@ Get numbers that judge every graphics change before v1.0.0. The numbers are:
 ## Log
 
 - 2026-10-20: Created by the coordinator from `refs/graphics-performance/06-plan-and-cost.md` phase 0, at the owner's order to ship phases 0 and 1 in v1.0.0. Ready: checked against main @ 8bf82bb9 (`presets.ts:133` pixel ratio 2; governor defaults `quality-governor.ts:85-96`).
+- 2026-10-20 — Worker A: steps 1 and 2 coded. `FeatureSwitches` (`packages/renderer/src/feature-switches.ts`): eight switches (shadowMap, cloudShadow, shafts, clouds, terrain, aurora, tufts, msaa) rewrite the drawn preset's table entry and re-apply it; `renderer.debug.setFeature / features / resetFeatures / featureNames`. `FrameHistogram` (`apps/web/src/lib/debug/frame-histogram.ts`) feeds Debug → Info (there is no separate Performance tab: the Info tab holds the FPS) with p50/p95/p99, the shares over 16.7 and 33.3 ms, the last two minutes, and a Reset. `apps/web/scripts/measure-graphics.ts` folds in `measure-dpr.ts` (viewport, scale factor, presets, ratios, five scenes, the ablation, a governor-on trace). The canvas `antialias` flag is fixed at context creation, so it has no switch; the post chain draws into its own MSAA target in `high`, and the `msaa` switch covers it. Baseline run waits for B's integration e2e.
