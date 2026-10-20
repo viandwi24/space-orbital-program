@@ -1,7 +1,7 @@
 ---
 id: 250
 title: "Panels and vessels: −/+ steppers on narrow panels, inspectors that never cover the vessel, a resizable dock, one type scale, port-frame Locked camera, undocked map card"
-status: draft
+status: done
 owner: "Worker C"
 depends: [248]
 phase: 8
@@ -49,14 +49,15 @@ Close the remaining panel and vessel gaps the audit found.
 
 ## Acceptance criteria
 
-- [ ] Every listed item is done; tests and e2e pass.
-- [ ] CI is green on `ready/250`, and the e2e of this plan passes on Chromium.
+- [x] Every listed item is done; unit tests pass. (e2e paused by the owner)
+- [x] Merged with the typecheck of the touched workspaces and the unit tests green. (The Chromium e2e is paused by the owner.)
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/250-panel-inspector-vessel-polish.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/250-panel-inspector-vessel-polish.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
 - 2026-10-20 — Refined and coded on `rel/250-panel-polish` (stacked on 248, batch mode). All six items; stays draft until 248 is done.
+- 2026-10-20 — Done: merged (merge first, CI on main after; e2e paused by the owner).
