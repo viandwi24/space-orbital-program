@@ -16,17 +16,18 @@ import {
 import { ENV_RECAPTURE_MIN_MS, RecaptureGate } from '../src/recapture-gate.ts';
 
 describe('the planet pixel budget', () => {
-	test('1080p at pixel ratio 1 fits the budget and draws at full size', () => {
+	test('1080p at pixel ratio 1 draws at full size, and so does a frame a little over it', () => {
 		expect(budgetScale(1920, 1080, PLANET_PIXEL_BUDGET)).toBe(1);
 		expect(budgetScale(1280, 720, PLANET_PIXEL_BUDGET)).toBe(1);
-		// a little over the budget is not worth an upsample
-		expect(budgetScale(1920 * 1.1, 1080 * 1.1, PLANET_PIXEL_BUDGET)).toBe(1);
+		// within 10 % of the side of the budget: not worth an upsample
+		expect(budgetScale(1980, 1090, PLANET_PIXEL_BUDGET)).toBe(1);
+		expect(budgetScale(2000, 1100, PLANET_PIXEL_BUDGET)).toBe(0.85);
 	});
 
-	test('1440p, a 14" Retina screen and 4K get 0.75, 0.6 and 0.5 of the side', () => {
-		expect(budgetScale(2560, 1440, PLANET_PIXEL_BUDGET)).toBe(0.75);
+	test('1440p, a 14" Retina screen and 4K get 0.65, 0.55 and 0.5 of the side', () => {
+		expect(budgetScale(2560, 1440, PLANET_PIXEL_BUDGET)).toBe(0.65);
 		// 1512 x 945 CSS at pixel ratio 2
-		expect(budgetScale(3024, 1890, PLANET_PIXEL_BUDGET)).toBe(0.6);
+		expect(budgetScale(3024, 1890, PLANET_PIXEL_BUDGET)).toBe(0.55);
 		expect(budgetScale(3840, 2160, PLANET_PIXEL_BUDGET)).toBe(0.5);
 		// the floor is the half rung's scale
 		expect(budgetScale(7680, 4320, PLANET_PIXEL_BUDGET)).toBe(HALF_PLANET_SCALE);
@@ -68,8 +69,8 @@ describe('the planet pass at a fractional scale', () => {
 		planet.setPixelBudget(PLANET_PIXEL_BUDGET);
 		planet.setTargetSize(3024, 1890);
 		planet.beginFrame(gl);
-		expect(planet.planetScale).toBe(0.6);
-		expect(planet.edge.uniforms.uMarchScale!.value as number).toBe(0.6);
+		expect(planet.planetScale).toBe(0.55);
+		expect(planet.edge.uniforms.uMarchScale!.value as number).toBe(0.55);
 		planet.setTargetSize(1920, 1080);
 		planet.beginFrame(gl);
 		expect(planet.planetScale).toBe(1);
@@ -84,7 +85,7 @@ describe('the planet pass at a fractional scale', () => {
 		expect(planet.planetScale).toBe(HALF_PLANET_SCALE);
 		planet.setPlanetScale(1);
 		planet.beginFrame(gl);
-		expect(planet.planetScale).toBe(0.6);
+		expect(planet.planetScale).toBe(0.55);
 	});
 
 	test('without a budget the scale is the governor’s alone, and without float targets always 1', () => {

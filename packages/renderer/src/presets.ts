@@ -74,12 +74,14 @@ export interface PresetSettings {
 }
 
 /**
- * The default pixel budget of the planet pass (plan 252, ADR 0232): the pixels of a 1920 x 1080 frame,
- * what every frame-time budget of ADR 0053 was set at. A 14" Retina screen draws 5.7 Mpx at pixel ratio
- * 2, so the pass runs at about 0.6 of the side there and at full size up to this count. A starting
- * value: plan 251's baseline on the M5 sets the final one.
+ * The default pixel budget of the planet pass (plan 252, ADR 0232): 1.75 Mpx, a little under a
+ * 1920 x 1080 frame (2.07 Mpx). Plan 251's baseline on the M5 showed the frame cost follows the planet
+ * pass's pixels (at pixel ratio 2, `high` at 2.07 Mpx read 17.8 / 16.8 / 18.6 ms at the pad, 3 km and
+ * 12 km, with the governor still bouncing between 100 % and 85 %). At 1.75 Mpx a 14" Retina screen
+ * (5.7 Mpx) runs the pass at 0.55 of the side and the same scenes should read about 15 / 14 / 16 ms; a
+ * 1080p frame at pixel ratio 1 still draws it at full size.
  */
-export const PLANET_PIXEL_BUDGET = 1920 * 1080;
+export const PLANET_PIXEL_BUDGET = 1_750_000;
 
 /** From this pixel ratio up the frame is dense enough for lighter multisampling and shadows (plan 252). */
 export const RETINA_RATIO = 2;
