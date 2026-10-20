@@ -1,7 +1,7 @@
 ---
 id: 238
 title: "Hangar: the camera reaches the top of a tall vessel; one top bar"
-status: ready
+status: in-progress
 owner: "Worker A"
 depends: []
 phase: 7

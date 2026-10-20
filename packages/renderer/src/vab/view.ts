@@ -64,6 +64,8 @@ import {
 	approachCamera,
 	maxDistanceInRoom,
 	frameDistance,
+	limitsForVessel,
+	type VabCameraLimits,
 	initialCamera,
 	orbit,
 	pan,
@@ -189,6 +191,8 @@ export class VabView {
 	private cam: VabCameraState = initialCamera();
 	private goal: VabCameraState = initialCamera();
 	private follow = true;
+	/** The camera limits for the vessel on the platform (plan 238: its top sets `panTop`). */
+	private limits: VabCameraLimits = limitsForVessel(null);
 	private width = 1;
 	private height = 1;
 	private insets = { left: 0, right: 0, top: 0, bottom: 0 };
@@ -554,24 +558,24 @@ export class VabView {
 	}
 
 	orbitBy(dx: number, dy: number): void {
-		this.goal = orbit(this.goal, dx, dy);
+		this.goal = orbit(this.goal, dx, dy, this.limits);
 		this.cam = { ...this.cam, yaw: this.goal.yaw, pitch: this.goal.pitch };
 	}
 
 	panBy(dx: number, dy: number): void {
 		this.follow = false;
-		this.goal = pan(this.goal, dx, dy, this.height, FOV);
+		this.goal = pan(this.goal, dx, dy, this.height, FOV, this.limits);
 		this.cam = { ...this.cam, target: this.goal.target };
 	}
 
 	zoomBy(factor: number): void {
-		this.goal = zoom(this.goal, factor);
+		this.goal = zoom(this.goal, factor, this.limits);
 	}
 
 	/** The turntable's wheel (plan 217): `dy` metres up or down the vessel. */
 	raiseBy(dy: number): void {
 		this.follow = false;
-		this.goal = raise(this.goal, dy);
+		this.goal = raise(this.goal, dy, this.limits);
 		this.cam = { ...this.cam, target: this.goal.target };
 	}
 
@@ -581,7 +585,7 @@ export class VabView {
 		if (!e) return false;
 		this.follow = false;
 		const c = new Box3().setFromObject(e.model.root).getCenter(new Vector3());
-		this.goal = focus(this.goal, [c.x, c.y, c.z]);
+		this.goal = focus(this.goal, [c.x, c.y, c.z], this.limits);
 		return true;
 	}
 
@@ -622,6 +626,11 @@ export class VabView {
 
 	private updateCameraGoal(snap = false): void {
 		const ext = this.mainExtent();
+		// the turntable's ceiling follows the vessel's top (plan 238)
+		const empty = !this.sceneModel.parts.some((p) => p.group === 'main');
+		this.limits = limitsForVessel(empty ? null : PLATFORM_TOP + ext.height);
+		const [tx, ty, tz] = this.goal.target;
+		if (ty > this.limits.panTop) this.goal = { ...this.goal, target: [tx, this.limits.panTop, tz] };
 		if (this.follow) {
 			this.goal = { ...this.goal, target: [0, ext.centreY, 0] };
 		}
@@ -992,6 +1001,14 @@ export class VabView {
 				this.goal = { yaw, pitch, distance, target: target ?? this.goal.target };
 				this.cam = { ...this.goal };
 			}
+		};
+	}
+
+	/** Where the camera is headed and how high its target may go (plan 238), for tests. */
+	get cameraGoal(): { target: readonly [number, number, number]; panTop: number } {
+		return {
+			target: [...this.goal.target] as [number, number, number],
+			panTop: this.limits.panTop
 		};
 	}
 

@@ -13,7 +13,8 @@
 	import { loadRoster } from '../../../lib/launch/roster';
 	import ActionGroupEditor from '../../../lib/vab/ActionGroupEditor.svelte';
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
-	import TopBar from '../../../lib/vab/TopBar.svelte';
+	import VesselName from '../../../lib/vab/VesselName.svelte';
+	import BuildContext from '../../../lib/vab/BuildContext.svelte';
 	import { pageActions } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../../lib/vab/controller.svelte';
@@ -128,8 +129,13 @@
 	>
 	<Button
 		variant="primary"
+		disabled={vab.launchBlocked}
 		onclick={(e) => vab.launch(false, e.shiftKey)}
-		aria-label="Go to the launch screen"
+		data-tip={vab.launchBlocked
+			? vab.checks.find((c) => c.severity === 'error')?.text
+			: vab.warnings > 0
+				? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
+				: 'Go to the launch screen (Shift: fly at once)'}
 		data-testid="menu-launch">Launch</Button
 	>
 {/snippet}
@@ -168,9 +174,12 @@
 	{/if}
 
 	<div class="ui">
-		<TopBar {vab} />
+		<div class="context-slot">
+			<BuildContext {vab} />
+		</div>
 
 		<div class="leftcol" class:open={vab.drawer === 'parts'} bind:this={left}>
+			<VesselName {vab} />
 			<Catalogue
 				bind:this={catalogueRef}
 				parts={vab.parts}
@@ -332,7 +341,8 @@
 		inset: 0;
 		display: grid;
 		grid-template-columns: var(--col-l) minmax(0, 1fr) var(--col-r);
-		grid-template-rows: auto minmax(0, 1fr) auto;
+		/* no bar of its own (plan 238): the shell's menu bar is the page's only top bar */
+		grid-template-rows: minmax(0, 1fr) auto;
 		gap: var(--s-3);
 		padding: var(--margin-hud);
 		pointer-events: none;
@@ -343,7 +353,7 @@
 	}
 	.leftcol {
 		grid-column: 1;
-		grid-row: 2 / 4;
+		grid-row: 1 / 3;
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
@@ -353,7 +363,7 @@
 	}
 	.rightcol {
 		grid-column: 3;
-		grid-row: 2 / 4;
+		grid-row: 1 / 3;
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-2);
@@ -385,16 +395,25 @@
 	}
 	.bottom {
 		grid-column: 2;
-		grid-row: 3;
+		grid-row: 2;
 		display: grid;
 		justify-items: center;
 		gap: var(--s-2);
 		align-self: end;
 		min-width: 0;
 	}
+	.context-slot {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: start;
+		justify-self: center;
+		min-width: 0;
+		pointer-events: none;
+	}
 	.guide {
 		grid-column: 2;
-		grid-row: 2;
+		grid-row: 1;
+		margin-top: 3rem;
 		align-self: start;
 		justify-self: center;
 	}
@@ -453,7 +472,7 @@
 		gap: var(--s-3);
 		justify-content: flex-end;
 	}
-	/* Narrow windows: the panels become drawers opened from the top bar, the vessel gets the width. */
+	/* Narrow windows: the panels become drawers opened from the tool pill, the vessel gets the width. */
 	@media (max-width: 899px) {
 		.vab {
 			--col-l: 0px;
@@ -463,7 +482,7 @@
 		.rightcol {
 			display: none;
 			position: absolute;
-			top: 72px;
+			top: var(--s-3);
 			bottom: var(--s-3);
 			width: min(340px, calc(100vw - 24px));
 			z-index: 2;
