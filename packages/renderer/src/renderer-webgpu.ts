@@ -31,6 +31,7 @@ import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './render
 import { SceneModel } from './scene.ts';
 import { PlanetPassTSL } from './tsl/planet-pass.ts';
 import { hideUnported } from './webgpu-compat.ts';
+import { Twins } from './tsl/twins.ts';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
 const VEGETATION_STEPS = 34;
@@ -68,6 +69,10 @@ export function createWebGPURenderer(
 	const env = model.environment;
 	let preset: GraphicsPreset = config.preset ?? 'high';
 	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
+	// TSL twins of the scene's GLSL materials (Phase 4), swapped in for each draw
+	const twins = new Twins();
+	const twinOf = (m: Parameters<Twins['twinOf']>[0], o: Parameters<Twins['twinOf']>[1]) =>
+		twins.twinOf(m, o);
 	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset]);
 	for (const m of planet.meshes) env.planet.mesh.parent?.add(m);
 	let width = 1;
@@ -181,7 +186,7 @@ export function createWebGPURenderer(
 
 	/** Draws with the GLSL meshes hidden; `draw` is the pipeline or a plain render. */
 	const withPorted = <T>(draw: () => T): T => {
-		const u = hideUnported(model.scene);
+		const u = hideUnported(model.scene, twinOf);
 		unported = u.glsl;
 		patched = u.patched;
 		try {
@@ -277,7 +282,7 @@ export function createWebGPURenderer(
 				if (!r) return Promise.resolve();
 				tracker.expect(1);
 				// compileAsync collects the objects before its first await: hide around the call only
-				const u = hideUnported(scene);
+				const u = hideUnported(scene, twinOf);
 				try {
 					return r.compileAsync(scene, camera, lights).finally(() => tracker.finish());
 				} finally {

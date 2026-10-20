@@ -44,6 +44,8 @@ export function weatherMaterial(
 ): void {
 	const amount = options.amount ?? 1;
 	const key = `weather-${options.rust ? 'r' : 'p'}-${amount}`;
+	// the WebGPU renderer's twin rebuilds the patch from these (plan 261, tsl/twins.ts)
+	material.userData.weather = { rust: options.rust === true, amount };
 	material.customProgramCacheKey = () => key;
 	material.onBeforeCompile = (shader: Shader) => {
 		shader.vertexShader = shader.vertexShader
@@ -97,6 +99,7 @@ export interface WindOptions {
 
 export function windMaterial(material: MeshStandardMaterial, options: WindOptions): void {
 	const key = `wind-${options.height}-${options.strength}-${options.fade?.join('-') ?? 'x'}-${options.leaves ? 'l' : 'p'}`;
+	material.userData.wind = { ...options };
 	const fadeCode = options.fade
 		? `	transformed *= 1.0 - smoothstep(${options.fade[0].toFixed(1)}, ${options.fade[1].toFixed(1)}, distance((modelMatrix * vec4(iOrigin, 1.0)).xyz, cameraPosition));\n`
 		: '';

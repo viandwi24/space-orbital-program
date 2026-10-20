@@ -309,3 +309,31 @@ Mid patch (512 × 512, around the site) read back after a bake in each mode, eve
 
 - **`main` moved under the branch.** ADR 0242 to 0245 were taken there meanwhile; this branch's 0242 is now 0246. And `main` marks plan 261 dropped by the owner, from another session, while the owner in this one asked to carry on and merge. The branch carries on; the merge waits for the owner.
 - **The shared half of the facade wins.** `withShared` copies the shared properties over the facade's own, so a facade that needs its own version of a shared debug call sets it afterwards.
+
+## Phase 4, part 1: twins of the scene's GLSL materials
+
+Three's node renderer cannot draw a `ShaderMaterial`, and it ignores `onBeforeCompile` patches. Rather than rewrite the scene's effects, each GLSL material gets a **twin**: a node material built once, reading the original's uniforms (and its mesh's attributes) every frame. The twin is swapped in for the WebGPU draw and swapped back after it (`webgpu-compat.ts`). The scene code and the WebGL path are unchanged. Twins are found by the original's shader source, or by the options a patch leaves on `userData`.
+
+| Twin (`tsl/twins.ts`) | Original |
+|---|---|
+| fat line in screen space, the original's `resolution` | the map's orbit lines (`LineMaterial`) |
+| plume cone, nozzle sprite | `PLUME_*`, `SPRITE_*` |
+| smoke puffs (noise texture, sun-lit lumps), fireballs | `FIELD_VERT` with `SMOKE_FRAG` / `FIRE_FRAG` |
+| plasma shell and wake | `SHELL_*`, `PLUME_*` |
+| exhaust trail ribbon | `TRAIL_*` |
+| ground glow, site steam | `ground-glow.ts`, `site-steam.ts` |
+| weathered standard material (stains, streaks, rust, roughness) | `weatherMaterial` (`userData.weather`) |
+| swaying foliage and grass (and their distance fade, leaf mottling) | `windMaterial` (`userData.wind`) |
+
+![](assets/261-4-webgpu-pad.jpg)
+
+| Liftoff | The map |
+|---|---|
+| ![](assets/261-4-webgpu-liftoff.jpg) | ![](assets/261-4-webgpu-map.jpg) |
+
+### What surprised me
+
+- **three's `Line2NodeMaterial` drew the orbit as a band across the screen.** It divides by the viewport, which inside the post pipeline's scene pass is not the screen's. The twin is `LineMaterial`'s own screen-space math with the resolution the scene already sets. The joins show small seams where `LineMaterial` draws round caps.
+- **Handing three a mesh's own `instanceMatrix` steps it per vertex.** The draw failed validation and the whole frame broke. A buffer of our own over the same array (`InstancedInterleavedBuffer`) steps per instance, and it is marked dirty when the original changes (the steam moves every frame).
+- **Meshes share materials.** A twin that reads its mesh (instance matrices) is cached per mesh, not per material, or one mesh's buffer is bound to another's draw.
+- With every effect twinned, Debug → Info's "Not drawn yet" lists only the GLSL planet mesh (on purpose) and, as patched, the moons' Lambert materials (part 2).
