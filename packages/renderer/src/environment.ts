@@ -256,7 +256,7 @@ export class Environment {
 	}
 
 	/**
-	 * The pixel ratio the view draws at before the governor's render scale (plan 252, ADR 0228): from
+	 * The pixel ratio the view draws at before the governor's render scale (plan 252, ADR 0232): from
 	 * `RETINA_RATIO` up the shadow map is at most 2048. A map that is not allocated yet is sized at once; a
 	 * larger one shrinks in place (a change of display, rare), a smaller one grows after the settle frames.
 	 */
