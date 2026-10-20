@@ -19,6 +19,7 @@
 	import type { DebugInfo } from '../flight-loop';
 	import { createDebugApi, type DebugHost } from './api';
 	import {
+		uniqueDesigns,
 		DEBUG_TABS,
 		DEG,
 		TAB_LABELS,
@@ -114,7 +115,7 @@
 	let spawn = $state('');
 	let designList = $state.raw<Array<{ name: string; design: VesselDesign }>>([]);
 	$effect(() => {
-		if (open && tab === 'orbit') void designs().then((list) => (designList = list));
+		if (open && tab === 'orbit') void designs().then((list) => (designList = uniqueDesigns(list)));
 	});
 	$effect(() => {
 		if (orbitBody === '' && host) orbitBody = vessel?.soi ?? host.home();

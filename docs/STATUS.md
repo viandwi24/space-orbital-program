@@ -203,7 +203,7 @@
 | 254 | [Part controls, the rest: crew transfer in the pod inspector, Set as target on a docking port, Take (EVA), a wheel motor, a pod SAS level, the RCS navball mark](plans/254-part-controls-followups.md) | draft | Worker C | Left by plan 241: each needs new sim or UI support. |
 | 255 | [Hangar fixes from the owner's test: a clear middle, no EVA items in the parts list, a compact right panel, the shell bars as in Flight](plans/255-hangar-owner-fixes.md) | done | Worker A | ADR 0240: tower arms retracted to stubs, EVA Suit and Flag out of the catalogue, a folding right panel (trip on one line, remembered sections), the Hangar as an immersive page with icon actions. Unit tests only; owner approval of the look pending. |
 | 256 | [Flight UI fixes from the owner's test: a vessel panel with accordions and icon buttons, dock tabs that do not stretch, the camera anchor, one paused badge, aligned map tabs](plans/256-flight-ui-owner-fixes.md) | done | Worker A | ADR 0241: the vessel panel's Parts tab as an accordion with icon actions, the dock rail at the height of its tabs, camera clearances that ignore hidden panels, one pause badge, the map tabs on the bars' row. Unit tests only; owner approval of the look pending. |
-| 257 | [Flight runtime bugs from the owner's test: set-orbit crash, Debug does not pause, stray touchdown toast, no free physics frame, throttle and SAS after warp, hotkey focus, crash camera noise](plans/257-flight-runtime-bugs.md) | in-progress | Worker C | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
+| 257 | [Flight runtime bugs from the owner's test: set-orbit crash, Debug does not pause, stray touchdown toast, no free physics frame, throttle and SAS after warp, hotkey focus, crash camera noise](plans/257-flight-runtime-bugs.md) | done | Worker C | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 | 258 | [Map view like KSP: active and inactive orbit styles, vessel icons by type, comms links, and show/hide filters](plans/258-map-view-ksp-style.md) | ready | Worker B | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 | 259 | [Space Center building UI: research building-game interfaces, then labels that fit the scene, a proper building panel and a tidy right panel](plans/259-space-center-building-ui.md) | ready | Worker B | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 
@@ -285,6 +285,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [240 — Part read-outs](journal/240-part-readouts-engine-power.md)
 - [250 — Panels and vessels: the audit's leftovers](journal/250-panel-inspector-vessel-polish.md)
 - [241 — Part controls](journal/241-part-controls-completion.md)
+- [257 — Flight runtime bugs](journal/257-flight-runtime-bugs.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)

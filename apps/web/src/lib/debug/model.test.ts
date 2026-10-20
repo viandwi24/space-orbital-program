@@ -4,6 +4,7 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { createLogBuffer } from '../log-buffer';
 import {
+	uniqueDesigns,
 	filterLog,
 	formatLogLine,
 	fromApsides,
@@ -109,5 +110,19 @@ describe('Set orbit', () => {
 		const cinder = bodies.find((b) => b.id === 'stock.cinder')!;
 		expect(transfer.a * (1 + transfer.e)).toBeCloseTo(cinder.orbit!.a, 3);
 		expect(transfer.a * (1 - transfer.e)).toBeCloseTo(low.a, 3);
+	});
+});
+
+describe('uniqueDesigns (plan 257)', () => {
+	it('keeps one design per name so the picker keys never repeat', () => {
+		const list = [
+			{ name: 'Capsule', n: 1 },
+			{ name: 'Rocket', n: 2 },
+			{ name: 'Capsule', n: 3 }
+		];
+		expect(uniqueDesigns(list)).toEqual([
+			{ name: 'Capsule', n: 1 },
+			{ name: 'Rocket', n: 2 }
+		]);
 	});
 });

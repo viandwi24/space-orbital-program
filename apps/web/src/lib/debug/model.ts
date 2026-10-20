@@ -106,6 +106,16 @@ export interface OrbitPreset {
  * "Low orbit" around `home`, "Moon orbit" around each of its moons, and "Transfer to <moon>": the
  * ellipse from low orbit out to the moon's distance, at periapsis now.
  */
+/**
+ * The designs Set orbit can spawn, each name once (plan 257): the library can hold several vessels
+ * with one name, and the picker keys its options by name (a repeated key is `each_key_duplicate`,
+ * the "Internal Error" card of the owner's test). The first of a name wins.
+ */
+export function uniqueDesigns<T extends { name: string }>(list: readonly T[]): T[] {
+	const seen = new Set<string>();
+	return list.filter((d) => (seen.has(d.name) ? false : (seen.add(d.name), true)));
+}
+
 export function orbitPresets(bodies: readonly BodyDefinition[], home: string): OrbitPreset[] {
 	const base = bodies.find((b) => b.id === home);
 	if (!base) return [];

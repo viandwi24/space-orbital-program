@@ -6,7 +6,7 @@
 
 | # | Item | Root cause | Fix and test |
 |---|---|---|---|
-| 9 | Set orbit: "Internal Error" | **Not reproduced.** In the dev build on this branch Set orbit worked from the pad, from orbit, for Low orbit, Cinder orbit, Transfer to Cinder and a spawn from a design, with the map open after it; the sim tests (spawn, repeat, throttle after) pass. "Internal Error" is not a string of this code: it reads like a browser error name (Firefox's `InternalError`) shown by the fatal card. Open until the coordinator's investigation or a stack from the owner's browser | none yet |
+| 9 | Set orbit: "Internal Error" | the Debug panel's "Apply to" picker keys its options by design name (`{#each designList as d (d.name)}`); the library can hold several vessels with one name, and Svelte throws `each_key_duplicate` in a production build, which the fatal card shows (found by the coordinator's investigation; the dev build here did not show it because my library had no repeated name) | `uniqueDesigns` (`debug/model.ts`) keeps one design per name, used where the panel loads the list. Test `model.test.ts` |
 | 10 | Debug does not pause | the Flight page's modal effect held the clock and froze the sim for the menu, help, settings and the Save and Load dialogs, and only quieted the keys for Debug (plan 203's choice); on other pages (plan 248) nothing held it | `dialogOpen` (`flight-modal.ts`) counts Debug with the rest; the layout holds `debug` while its panel is open. Test `flight-modal.test.ts`. Seen working in the browser: the chip reads "PAUSED · MENU" |
 | 11 | Touchdown toast while flying | `part-damaged` of **any** vessel called `director.touch`, which shows the toast: a booster or debris landing far away read as the player's touchdown | `isOwnTouchdown`: the event must be the active vessel's. Test `touchdown-cue.test.ts` |
 | 12 | "no free physics frame" | a world keeps two physics frames; vessels left landed or in orbit far away (in flight, not yet idle long enough for rails) hold them, and waking the vessel the player flies had no way to make room | `makeRoom`/`makeRoomAt` (`modes.ts`): the first frame whose vessels are all landed or in a stable orbit goes on rails; used by `wake`, `ensureFlight` and Debug's set location. Test `free-frame.test.ts` (failed before: refused) |
@@ -17,5 +17,5 @@
 
 ## Notes
 
-- Items 11–16 reproduce from the code and tests above, not from the owner's screenshots; each test fails on the old behaviour (the sim ones were run before the fix).
+- Items 11–16 follow the code and the coordinator's investigation (main @ bb8c9665), not the owner's screenshots; each rule is from the code unit-tested; the sim tests (items 12 and 14) were run and failed before the fix.
 - The e2e is paused by the owner.

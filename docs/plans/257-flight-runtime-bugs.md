@@ -1,7 +1,7 @@
 ---
 id: 257
 title: "Flight runtime bugs from the owner's test: set-orbit crash, Debug does not pause, stray touchdown toast, no free physics frame, throttle and SAS after warp, hotkey focus, crash camera noise"
-status: in-progress
+status: done
 owner: "Worker C"
 depends: []
 phase: 8
@@ -50,18 +50,18 @@ Items 11–16 were seen on a build a few hours older than the Pages build. Check
 
 ## Acceptance criteria
 
-- [ ] Set orbit no longer crashes. Debug pauses like the menu does.
-- [ ] Touchdown toasts are only for the active vessel, or are clearly named.
-- [ ] A physics frame is always free for the active vessel after warp or set orbit.
-- [ ] Throttle and SAS behave the same after warp as before warp.
-- [ ] Hotkeys work after panel clicks, except while typing in an input.
-- [ ] A crash shows a sane camera.
-- [ ] A unit test exists per fix. Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] Set orbit no longer crashes. Debug pauses like the menu does.
+- [x] Touchdown toasts are only for the active vessel, or are clearly named.
+- [x] A physics frame is always free for the active vessel after warp or set orbit.
+- [x] Throttle and SAS behave the same after warp as before warp.
+- [x] Hotkeys work after panel clicks, except while typing in an input.
+- [x] A crash shows a sane camera.
+- [x] A unit test exists per fix. Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with a root cause per item.
+- [x] STATUS row.
+- [x] Journal with a root cause per item.
 
 ## Log
 
@@ -77,3 +77,4 @@ Items 11–16 were seen on a build a few hours older than the Pages build. Check
   - **(16)** After `GHOST_HOLD` 5 s (`scene.ts:165, 1523-1537`), the anchor falls back to the body centre, which is inside the planet. Keep the ghost anchor while the active vessel is missing.
   - **Item 7 (camera anchor)** belongs to plan 256. A hidden navmodule gives a zero rect (`flight/+page.svelte:1161-1174`), so the bottom inset becomes about the full height. Use 0 when the rect is empty, and add `navOpen` to the effect.
 - 2026-10-20 — Worker C: items 10–16 fixed with tests (journal 257). Item 9 (Set orbit, "Internal Error") did not reproduce in the dev build; the plan stays in progress for it.
+- 2026-10-20 — Done by Worker C (journal 257): all items fixed with a test each. Item 9 was the duplicate each-key in the Debug design picker, as the investigation said; the touchdown (11) and camera (16) causes were checked against the code (the camera now holds the last place instead of the ghost's 5 s fallback to the body centre).
