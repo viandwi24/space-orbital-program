@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import type { GhostTrack } from './replays/ghost-model';
 import { API_VERSION, designCost } from '@orbital/core';
 import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
@@ -336,6 +337,8 @@ export interface Flight {
 	readonly debug: DebugHost;
 	/** The Debug panel's Info tab: sim step time, graphics level, vessels (plan 203). */
 	debugInfo(): DebugInfo;
+	/** Empties the frame-interval histogram of the Info tab (plan 251). */
+	resetFrameStats(): void;
 	dispose(): void;
 }
 
@@ -352,6 +355,8 @@ export interface DebugInfo {
 	governorChanges: readonly string[];
 	/** The game's API version and the mods running. */
 	versions: string;
+	/** The frame-interval distribution of the last two minutes (plan 251). */
+	frames: FrameSummary;
 }
 
 /** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
@@ -384,6 +389,8 @@ export function startFlight(options: FlightOptions): Flight {
 	/** The governor's latest changes for Debug → Info (plan 201), at most `GOVERNOR_LOG`. */
 	const governorChanges: string[] = [];
 	const governorStart = performance.now();
+	/** Frame intervals of the last two minutes for the Debug panel's percentiles (plan 251). */
+	const frameStats = new FrameHistogram();
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
 	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
@@ -1224,6 +1231,7 @@ export function startFlight(options: FlightOptions): Flight {
 		const interval = now - lastFrame;
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
+		frameStats.add(now, interval);
 		if (governor) {
 			const level = governor.frame(interval);
 			if (level) applyLevel(level, true);
@@ -1569,6 +1577,10 @@ export function startFlight(options: FlightOptions): Flight {
 	if (import.meta.env.DEV) {
 		// Debug hook for the manual run (journal 009): capture the canvas plus a text HUD overlay.
 		(window as unknown as { __orbital: unknown }).__orbital = {
+			// the frame-interval histogram and the governor's level, for `scripts/measure-graphics.ts` (plan 251)
+			frameStats: () => frameStats.summary(performance.now()),
+			resetFrameStats: () => frameStats.reset(),
+			level: () => ({ preset: renderer?.preset ?? null, scale: governor?.level.scale ?? 1 }),
 			hud: () => ({ ...hud }),
 			hudStats: () => ({
 				paintAvgMs: stats.total.paint / Math.max(1, stats.n.paint),
@@ -1695,8 +1707,10 @@ export function startFlight(options: FlightOptions): Flight {
 			scale: governor?.level.scale ?? 1,
 			governor: autoQuality,
 			governorChanges: [...governorChanges],
-			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', ')
+			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
+			frames: frameStats.summary(performance.now())
 		}),
+		resetFrameStats: () => frameStats.reset(),
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);

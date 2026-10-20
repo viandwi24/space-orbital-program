@@ -1753,6 +1753,7 @@
 			onclose={() => (debugOpen = false)}
 			host={debugHost}
 			info={() => flight?.debugInfo() ?? null}
+			resetFrames={() => flight?.resetFrameStats()}
 			world={world.name}
 			designs={() => debugDesigns()}
 		/>
