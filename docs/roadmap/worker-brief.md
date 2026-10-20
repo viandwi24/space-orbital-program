@@ -1,4 +1,4 @@
-# Worker brief for the release roadmap (plans 200–232)
+# Worker brief for the release roadmap (plans 200–239)
 
 This is the brief that each worker session reads first. The coordinating session starts workers with `Baca docs/roadmap/worker-brief.md. Kamu adalah Worker <X>.` Workers report to the owner in Bahasa Indonesia.
 
@@ -79,7 +79,9 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 | C | 224 → 226 → 234 → moon-shot TWR fix → 223 → 230 |
 | D | 225 → 227 → 228 |
 | E | 231 → 229 |
-| B | 232 release QA, last (after 228, 230 and the owner review of 234) |
+| A | **238** (audit bug fixes, 2026-10-20) |
+| C | **237** → **239** (audit bug fixes, 2026-10-20) |
+| B | 232 release QA, last (after 228, 230, the owner review of 234, and 237–239) |
 
 ## Picking work
 
