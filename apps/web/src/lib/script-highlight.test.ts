@@ -29,6 +29,7 @@ describe('script highlight', () => {
 			'addNode',
 			'setNode',
 			'removeNode',
+			'setAlarm',
 			'setTarget',
 			'runExperiment',
 			'bodies'

@@ -1,7 +1,7 @@
 /**
  * The Hangar's part inspector (plan 218, ADR 0225): on the moon shot, a click on a side booster
- * shows its build settings; the thrust limiter typed as 50 goes to all four boosters, and in
- * flight the vessel panel shows 50 % for each of them.
+ * shows its build settings; the thrust limiter typed as 60 goes to all four boosters, and in
+ * flight the vessel panel shows 60 % for each of them. The moon shot's LB-1 boosters start at 50 %.
  */
 import { expect, test } from '@playwright/test';
 import { watchErrors } from './support';
@@ -10,7 +10,7 @@ interface Hook {
 	partAt(index: number): { x: number; y: number } | null;
 }
 
-test('a limiter set in the Hangar flies: 50 % on the boosters in the vessel panel', async ({
+test('a limiter set in the Hangar flies: 60 % on the boosters in the vessel panel', async ({
 	page
 }) => {
 	test.setTimeout(180_000);
@@ -36,9 +36,10 @@ test('a limiter set in the Hangar flies: 50 % on the boosters in the vessel pane
 	}
 	await expect(typed).toBeVisible();
 	await expect(page.getByTestId('build-settings')).toContainText('Thrust limiter');
-	await typed.fill('50');
-	await typed.press('Enter');
 	await expect(typed).toHaveValue('50 %');
+	await typed.fill('60');
+	await typed.press('Enter');
+	await expect(typed).toHaveValue('60 %');
 
 	// the moon shot is heavier than the Legacy pad takes: Shift+Launch flies it directly (ADR 0150)
 	await page.getByRole('button', { name: /^Launch/ }).click({ modifiers: ['Shift'] });
@@ -55,7 +56,7 @@ test('a limiter set in the Hangar flies: 50 % on the boosters in the vessel pane
 			}
 		).__orbitalDebug
 			.vessel()
-			.parts.filter((p) => p.definition === 'stock.booster')
+			.parts.filter((p) => p.definition === 'stock.booster-liquid')
 			.map((p) => p.id)
 	);
 	expect(boosters).toHaveLength(4);
@@ -63,8 +64,8 @@ test('a limiter set in the Hangar flies: 50 % on the boosters in the vessel pane
 	await page.getByTestId('vessel-tab-parts').click();
 	for (const id of boosters) {
 		const slider = page.getByTestId(`part-${id}-setLimiter`);
-		await expect(slider).toHaveValue('0.5', { timeout: 20_000 });
-		await expect(slider.locator('xpath=..')).toContainText('50 %');
+		await expect(slider).toHaveValue('0.6', { timeout: 20_000 });
+		await expect(slider.locator('xpath=..')).toContainText('60 %');
 	}
 	expect(errors).toEqual([]);
 });

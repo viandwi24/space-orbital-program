@@ -75,7 +75,11 @@ describe('the contact timeline (ADR 0163 point 2)', () => {
 			const plan = contactTimeline(world, relay, station, t0, DAY);
 
 			sim.dispatch({ type: 'warp', factor: 100_000 });
-			for (let i = 0; i < 400 && sim.time < t0 + DAY; i++) sim.step(0.05); // 10k× is the top (plan 206)
+			for (let i = 0; i < 400 && sim.time < t0 + DAY; i++) {
+				// an event (a construction done, plan 247) stops the warp: ask for it again
+				if (sim.warp === 1) sim.dispatch({ type: 'warp', factor: 100_000 });
+				sim.step(0.05); // 10k× is the top (plan 206)
+			}
 			expect(sim.time).toBeGreaterThanOrEqual(t0 + DAY);
 			const seen = events.filter((e) => e.time <= t0 + DAY);
 

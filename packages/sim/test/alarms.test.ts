@@ -48,6 +48,19 @@ describe('alarms', () => {
 		sim.dispose();
 	});
 
+	test('under physics warp a long frame still stops on the alarm within one step', async () => {
+		const { sim } = await inOrbit();
+		sim.dispatch({ type: 'throttle', vessel: 1 as EntityId, value: 0 });
+		const at = sim.time + 20;
+		expect(sim.dispatch({ type: 'add-alarm', name: 'Soon', time: at }).ok).toBe(true);
+		sim.dispatch({ type: 'warp', factor: 10 });
+		sim.step(30); // one slow frame: 300 s at 10x
+		expect(sim.warp).toBe(1);
+		expect(sim.time).toBeGreaterThanOrEqual(at - 1e-6);
+		expect(sim.time - at).toBeLessThan(0.05);
+		sim.dispose();
+	});
+
 	test("an alarm on an unfocused vessel's periapsis fires under warp", async () => {
 		const { sim, ids } = await inOrbit([500_000, 700_000]);
 		const [focus, other] = ids as [EntityId, EntityId];
