@@ -19,7 +19,10 @@ Item 25 of `docs/reviews/2026-10-20-owner-manual-test.md` (`22.webp`). A part re
 
 ## Context
 
-- **The report:** on Cinder, a fallen pod rolls along visibly above the ground, well above its own shadow.
+- **The report:** on Cinder, a fallen pod rolls along visibly above the ground, well above its own shadow (`22.webp`). Once it stops, it rests on the ground correctly (`23.webp`). So the static ground height is probably right, and the gap appears only while it rolls or tumbles. Check these first:
+  - a rolling collider shape that does not match the mesh, for example a sphere, capsule or hull rounder or bigger than the pod's edge it rolls on;
+  - honest low-gravity bounces on Cinder (about 1/6 g), which would look like floating; measure the contact state while it rolls;
+  - render interpolation or extrapolation lagging the physics pose while the vessel spins fast.
 - **Candidates to check:**
   - **Physics and render terrain disagree.** The physics ground (heightfield or collider in `packages/sim` and the Rapier adapter, ground contact from plan 012) may differ from the rendered terrain (`packages/renderer` planet pass, terrain bake and patches; detail octaves that only the shader adds, ADR 0053). One may be smoothed, at a lower resolution, or offset.
   - **The collider is bigger than the mesh.** The pod's collider shape or size may not match its mesh (`mods/stock` part colliders, rigid grouping from plan 011).
