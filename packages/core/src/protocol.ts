@@ -290,6 +290,8 @@ export interface VesselSnapshot {
 	frozen?: boolean;
 	/** Sim time of liftoff (plan 200); absent while it waits on the pad (the "pre-launch" situation). */
 	launchedAt?: number;
+	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
+	trim?: { pitch: number; yaw: number; roll: number };
 	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */
 	nextStage?: number;
 	/** "Control from here" (plan 221): the part SAS and the navball follow; absent for the root. */
@@ -613,7 +615,7 @@ export interface VesselDesign {
 	stages: number[][];
 	/** An aircraft starts level on a runway, nose along it (plan 063, ADR 0161 point 3). */
 	aircraft?: boolean;
-	/** Custom action groups (plan 110, ADR 0174): slot 1..10, members by part index. Any version. */
+	/** Custom action groups (plan 110, ADR 0174): slot 1..10, members by part index; slot 0 is the Abort group (plan 245, ADR 0233). Any version. */
 	groups?: Array<{
 		slot: number;
 		label: string;
@@ -751,8 +753,11 @@ export type Command =
 	/** Lock or unlock one resource of a part's stores (plan 213): flow and transfers skip it. */
 	| { type: 'set-flow-lock'; vessel: EntityId; part: EntityId; resource: string; locked: boolean }
 	| { type: 'stage'; vessel: EntityId }
-	/** Pitch trim (plan 063, ADR 0161 point 4): -1..1 added to the pitch demand; kept until changed. */
-	| { type: 'trim'; vessel: EntityId; pitch: number }
+	/**
+	 * Trim (plan 063, ADR 0161 point 4; yaw and roll plan 245, ADR 0233): -1..1 added to the axis's
+	 * demand, kept until changed; an omitted axis keeps its value, 0 clears it.
+	 */
+	| { type: 'trim'; vessel: EntityId; pitch?: number; yaw?: number; roll?: number }
 	/** Set the stability assist mode and/or the prograde reference; an omitted field keeps its value (ADR 0049). */
 	| { type: 'sas'; vessel: EntityId; mode?: SasMode; reference?: SasReference }
 	| {

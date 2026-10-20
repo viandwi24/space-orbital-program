@@ -1,8 +1,8 @@
 ---
 id: 245
 title: "Keys: abort (Backspace) and the abort group, stop warp (/), yaw and roll trim and reset, brakes on hold"
-status: draft
-owner: "Worker E"
+status: in-progress
+owner: "Worker B (M5)"
 depends: []
 phase: 8
 created: 2026-10-20
@@ -46,19 +46,21 @@ Every KSP-profile key that is still `pending` works.
 
 1. Refine and decide the abort default in an ADR if 218's group editor cannot edit stock groups.
 2. Wire each key with a unit test in the keybindings and flight-loop tests.
-3. Chromium e2e on the Linux machine: Backspace fires abort; / drops warp; Alt+A trims yaw.
+3. Chromium e2e on the Linux machine: Backspace fires abort; / drops warp; Alt+A trims yaw. (Skipped: e2e paused by the owner, 2026-10-20.)
 4. Light checks locally, push `ready/245` for CI, and follow the worker brief (batch mode while it is in force).
 
 ## Acceptance criteria
 
-- [ ] No KSP-profile action is left `pending`; tests pass.
-- [ ] Abort fires the abort group; / stops warp; trims and reset work; brakes hold.
-- [ ] CI is green on `ready/245`, and the e2e of this plan passes on Chromium.
+- [x] No KSP-profile action is left `pending`; tests pass.
+- [x] Abort fires the abort group; / stops warp; trims and reset work; brakes hold.
+- [ ] CI is green on `ready/245`. The Chromium e2e of this plan was not written or run (e2e paused by the owner, 2026-10-20).
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/245-keys-abort-stopwarp-trim.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/245-keys-abort-stopwarp-trim.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker E) refines it against current main before claiming.
+- 2026-10-20 — Worker B (M5) took Worker E's queue (coordinator, owner's order) and refined it against main. ADR 0233. Findings that changed the plan: pitch trim had no HUD read-out at all (the plan assumed one), so the chip is new; stock groups are descriptor-based and one descriptor belongs to one group, so the Abort group is the design's custom slot 0 instead of a `stock.abort` group (Hangar-editable at once); B's toggle and the held brakes are two actions (`brakes`, `brakesHold`) because the profiles differ.
+- 2026-10-20 — Tests (no e2e): keybindings (28), sim `abort-and-trim.test.ts` (Abort group, trim axes, control offsets), core `design.test.ts` (trim and slot 0 schema), web `groups.test.ts` and `vessel-model.test.ts`. API 0.1.89.

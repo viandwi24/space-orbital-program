@@ -1,6 +1,7 @@
 /**
  * The Hangar's action group editor (plan 218, ADR 0174 and 0225): the stock groups a part's
- * controls belong to by their descriptors, and the custom groups 1–10 the design lists. A part's
+ * controls belong to by their descriptors, and the custom groups 1–10 the design lists, and slot 0,
+ * the Abort group Backspace fires in flight (plan 245, ADR 0233). A part's
  * switches and triggers can join a custom group; the edit goes to the symmetry group unless "Only
  * this part", as one undo step.
  */
@@ -11,9 +12,15 @@ import {
 	type PartActionDescriptor,
 	type VesselDesign
 } from '@orbital/core';
+import { ABORT_SLOT } from '@orbital/core';
 import { commitDesign, groupOf, type Content, type EditorState } from './state';
 
 export const CUSTOM_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+/** Every slot the editor can fill: the Abort group, then Custom 1–10. */
+export const EDITOR_SLOTS = [ABORT_SLOT, ...CUSTOM_SLOTS] as const;
+/** A slot's name: `Abort` for slot 0, else `Custom 3`. */
+export const slotLabel = (slot: number): string =>
+	slot === ABORT_SLOT ? 'Abort' : `Custom ${slot}`;
 
 export interface GroupMember {
 	part: number;
@@ -102,7 +109,7 @@ export function setGroupMember(
 	on: boolean,
 	options: { single?: boolean } = {}
 ): EditorState {
-	if (!CUSTOM_SLOTS.includes(slot as (typeof CUSTOM_SLOTS)[number]))
+	if (!EDITOR_SLOTS.includes(slot as (typeof EDITOR_SLOTS)[number]))
 		throw new Error(`no custom group ${slot}`);
 	const parts = options.single ? [member.part] : groupOf(state.design, member.part);
 	const wanted = parts
@@ -118,7 +125,7 @@ export function setGroupMember(
 		? [...old, ...wanted.filter((m) => !old.some((o) => same(o, m)))]
 		: old.filter((o) => !wanted.some((m) => same(o, m)));
 	const others = (state.design.groups ?? []).filter((g) => g.slot !== slot);
-	const label = state.design.groups?.find((g) => g.slot === slot)?.label ?? `Custom ${slot}`;
+	const label = state.design.groups?.find((g) => g.slot === slot)?.label ?? slotLabel(slot);
 	const groups = [...others, ...(members.length > 0 ? [{ slot, label, members }] : [])].sort(
 		(a, b) => a.slot - b.slot
 	);

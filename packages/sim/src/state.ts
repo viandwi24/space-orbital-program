@@ -160,6 +160,9 @@ export interface VesselState {
 	latch?: { vessel: number; part: number; s: number; rate: number };
 	/** Pitch trim, -1..1, added to the pitch demand (plan 063, ADR 0161 point 4). */
 	trim?: number;
+	/** Yaw and roll trim, -1..1, added to those demands (plan 245, ADR 0233). */
+	trimYaw?: number;
+	trimRoll?: number;
 	/**
 	 * The design this vessel came from (plan 221, ADR 0208 point 1): the launch design, shared by
 	 * every piece that split off; a piece keeps the parts whose `PartState.index` it still has.
@@ -196,14 +199,24 @@ export interface VesselState {
 export function effectiveControl(vessel: VesselState): ControlState {
 	const { sas, control } = vessel;
 	const trim = vessel.trim ?? 0;
-	// pitch trim offsets the demand, whoever makes it (plan 063, ADR 0161 point 4)
-	const trimmed = (pitch: number): number => Math.max(-1, Math.min(1, pitch + trim));
-	if (!sas.active) return trim === 0 ? control : { ...control, pitch: trimmed(control.pitch) };
+	const trimYaw = vessel.trimYaw ?? 0;
+	const trimRoll = vessel.trimRoll ?? 0;
+	// trim offsets the demand of its axis, whoever makes it (plan 063, ADR 0161 point 4; plan 245)
+	const trimmed = (demand: number, by: number): number => Math.max(-1, Math.min(1, demand + by));
+	if (!sas.active) {
+		if (trim === 0 && trimYaw === 0 && trimRoll === 0) return control;
+		return {
+			...control,
+			pitch: trimmed(control.pitch, trim),
+			yaw: trimmed(control.yaw, trimYaw),
+			roll: trimmed(control.roll, trimRoll)
+		};
+	}
 	return {
 		throttle: control.throttle,
-		pitch: trimmed(sas.demand.x),
-		roll: sas.demand.y,
-		yaw: sas.demand.z
+		pitch: trimmed(sas.demand.x, trim),
+		roll: trimmed(sas.demand.y, trimRoll),
+		yaw: trimmed(sas.demand.z, trimYaw)
 	};
 }
 
