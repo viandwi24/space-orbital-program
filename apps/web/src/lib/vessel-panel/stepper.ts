@@ -1,6 +1,6 @@
 /** − and + on a narrow panel (plan 250, rancangan §7.1): one step of a value control, kept in range. */
 export interface Steppable {
-	value: boolean | number | string;
+	value?: boolean | number | string;
 	min?: number;
 	max?: number;
 	step?: number;
