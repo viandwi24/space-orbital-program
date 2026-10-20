@@ -1,4 +1,4 @@
-/** Plan 252 (ADR 0228): the pixel budget of the planet pass, lighter MSAA and shadows at Retina, no canvas MSAA, spaced recaptures. */
+/** Plan 252 (ADR 0232): the pixel budget of the planet pass, lighter MSAA and shadows at Retina, no canvas MSAA, spaced recaptures. */
 import { describe, expect, test } from 'bun:test';
 import type { WebGLRenderer } from 'three';
 import { atmosphereFor } from '../src/atmosphere-model.ts';

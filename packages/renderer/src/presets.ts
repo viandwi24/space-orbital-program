@@ -13,7 +13,7 @@ export interface PresetSettings {
 	/** Shadow map side in texels (0 = shadows off). */
 	shadowMapSize: 0 | 1024 | 2048 | 4096;
 	/**
-	 * Pixel budget of the planet pass, in pixels (plan 252, ADR 0228): the fullscreen sky, cloud and
+	 * Pixel budget of the planet pass, in pixels (plan 252, ADR 0232): the fullscreen sky, cloud and
 	 * terrain shader draws at the largest scale in [0.5, 1] of the scene target's side that keeps it under
 	 * this many pixels, and the depth-aware upsample (ADR 0061) brings it to full size. The vessel, the
 	 * meshes and the HUD keep the full pixel ratio. 0 = no budget.
@@ -74,7 +74,7 @@ export interface PresetSettings {
 }
 
 /**
- * The default pixel budget of the planet pass (plan 252, ADR 0228): the pixels of a 1920 x 1080 frame,
+ * The default pixel budget of the planet pass (plan 252, ADR 0232): the pixels of a 1920 x 1080 frame,
  * what every frame-time budget of ADR 0053 was set at. A 14" Retina screen draws 5.7 Mpx at pixel ratio
  * 2, so the pass runs at about 0.6 of the side there and at full size up to this count. A starting
  * value: plan 251's baseline on the M5 sets the final one.
@@ -175,7 +175,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		viewSamples: 12,
 		groundOctaves: 11,
 		cloudOctaves: 4,
-		// the baked cloud-shadow map, as `medium` (plan 252, ADR 0228): +1.0 ms at 1080p for the noise, +0.1 for the map
+		// the baked cloud-shadow map, as `medium` (plan 252, ADR 0232): +1.0 ms at 1080p for the noise, +0.1 for the map
 		cloudShadowOctaves: 0,
 		cloudShadowMap: true,
 		cloudSteps: 6,

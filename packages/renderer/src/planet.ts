@@ -260,7 +260,7 @@ export class PlanetPass {
 	private halfTarget: WebGLRenderTarget | null = null;
 	private wantedScale = 1;
 	private activeScale = 1;
-	/** The pixel budget of the pass (plan 252, ADR 0228): 0 = none. */
+	/** The pixel budget of the pass (plan 252, ADR 0232): 0 = none. */
 	private pixelBudget = 0;
 	private halfSupported: boolean | null = null;
 	/** The pixel angle at the scene target's resolution (the pass's is that over `activeScale`). */
@@ -896,7 +896,7 @@ export class PlanetPass {
 	}
 
 	/**
-	 * The most pixels the planet pass may draw (plan 252, ADR 0228), or 0 for no limit. The pass runs at
+	 * The most pixels the planet pass may draw (plan 252, ADR 0232), or 0 for no limit. The pass runs at
 	 * the smaller of this budget's scale and what `setPlanetScale` asked for, so a Retina screen starts on
 	 * a fractional rung and the governor's half rung still goes lower. Takes effect at the next `beginFrame`.
 	 */
