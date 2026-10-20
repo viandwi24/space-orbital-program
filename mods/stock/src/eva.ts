@@ -194,7 +194,7 @@ export const PartEvaSuit = definePart({
 		bottom: { pos: [0, -0.9, 0], dir: [0, -1, 0] }
 	},
 	modules: [
-		[ModuleCommand],
+		[ModuleCommand, {}],
 		[
 			ModuleResourceContainer,
 			{

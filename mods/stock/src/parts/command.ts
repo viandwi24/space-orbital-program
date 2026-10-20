@@ -25,7 +25,7 @@ export const PartCommandPod = definePart({
 	hatch: { pos: [0, 0.05, 0.63], dir: [0, 0, 1] },
 	ladder: { from: [0.3, -0.45, 0.6], to: [0.3, 0.4, 0.6], out: [0, 0, 1] },
 	modules: [
-		[ModuleCommand],
+		[ModuleCommand, {}],
 		// a monopropellant reserve for RCS (plan 211, ADR 0203 point 5), empty at build: filling it
 		// would change the reference rockets' mass and every frozen flight of the tests
 		[

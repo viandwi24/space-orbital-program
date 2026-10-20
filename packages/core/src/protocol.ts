@@ -49,6 +49,9 @@ export interface SasSnapshot {
 	error: number;
 }
 
+/** How near a suit must be to a part to take the sample it holds, m (plan 260). */
+export const EVA_TAKE_RANGE = 3;
+
 /** Largest number of maneuver nodes one vessel keeps (ADR 0056). */
 export const MAX_NODES = 8;
 /** Largest magnitude of one node component, m/s. */
@@ -944,6 +947,11 @@ export type Command =
 	 * `stock.eva-board-assist`); the suit's samples come aboard.
 	 */
 	| { type: 'crew-board'; suit: EntityId; vessel: EntityId }
+	/**
+	 * A suit takes the sample a part of `vessel` holds (plan 260): within reach of the part; the sample
+	 * rides in the suit and comes aboard with it at a hatch.
+	 */
+	| { type: 'crew-take'; suit: EntityId; vessel: EntityId; part: EntityId }
 	/** Walk a landed vessel that can (its part declares `walk`): heading from north, rad; speed 0 stops. */
 	| { type: 'crew-walk'; vessel: EntityId; heading: number; speed: number }
 	/** A suit on the ground plants a flag beside it: a kept one-part vessel (ADR 0120 point 5). */

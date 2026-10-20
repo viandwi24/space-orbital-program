@@ -22,7 +22,7 @@ export const PartProbeCore = definePart({
 	},
 	attach: stackNodes(0.4),
 	modules: [
-		[ModuleCommand],
+		[ModuleCommand, {}],
 		// the computer draws 0.025 EC/s: 20 EC last about 13 minutes without a panel (plan 208)
 		[ModuleProbeComputer, {}],
 		[ModuleAntenna, { antenna: AntennaWhip.id }],

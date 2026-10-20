@@ -355,6 +355,8 @@ export interface WheelSpec {
 	brake: number;
 	/** Steering angle at full yaw demand, rad (0: the wheel does not steer). */
 	steer: number;
+	/** Drive force along the rolling direction at full throttle, N (plan 260; negative reverses, 0: no motor or it is off). */
+	drive?: number;
 }
 
 /** Heat the airflow delivers to a part this step (what `ModuleDefinition.absorbHeat` receives). */
@@ -378,6 +380,12 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	requires?: readonly string[];
 	/** True when a part with this module is a control source: a vessel with one accepts control commands. */
 	controlSource?: boolean;
+	/**
+	 * The assist level a control source gives, 0 to 3 (plan 260): 0 hold only, 1 adds prograde and
+	 * retrograde, 2 the normal and radial modes, 3 the maneuver and target modes. A source without the
+	 * hook gives 3; the vessel has the highest of its sources.
+	 */
+	sasLevel?(config: Out): number;
 	/**
 	 * A part the player may "control from here" without it being a control source (plan 221, ADR
 	 * 0208 point 2): a docking port (plan 222). Control sources always may.
@@ -457,6 +465,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	state?(config: Out): State;
 	/** The vessel is recovered (plan 103): credit what the module holds before it is removed. */
 	onRecover?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
+	/**
+	 * A crew member on EVA takes what the part holds (plan 260: a sample held by an experiment): the
+	 * part lets it go and returns it, or null when it holds nothing.
+	 */
+	takeSample?(ctx: ModuleContext<Out, State>): { subject: string; value: number } | null;
 	/** The part's stage fires (engine ignites, decoupler separates). */
 	onStage?: Bivariant<(ctx: ModuleContext<Out, State>) => void>;
 	/** Every fixed step while the owning vessel is in flight mode. */

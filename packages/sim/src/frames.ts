@@ -474,8 +474,14 @@ function stepWheels(
 		const stop = (speed: number, limit: number): number =>
 			-Math.max(-limit, Math.min(limit, (WHEEL_SETTLE * speed * share) / dt));
 		const fRoll = stop(dot(tangential, roll), (spec.rolling + spec.brake * spec.grip) * load);
+		// a motor pushes along the wheel with the throttle, not against the brakes (plan 260)
+		const drive = spec.brake > 0 ? 0 : (spec.drive ?? 0) * effectiveControl(vessel).throttle;
 		const fSide = stop(dot(tangential, side), spec.grip * load);
-		frame.backend.applyForce(body.handle, add(scale(roll, fRoll), scale(side, fSide)), point);
+		frame.backend.applyForce(
+			body.handle,
+			add(scale(roll, fRoll + drive), scale(side, fSide)),
+			point
+		);
 	}
 }
 

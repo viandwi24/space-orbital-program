@@ -369,6 +369,15 @@ export const ModuleExperiment = defineModule({
 			set(ctx.state, 'READY', null, 0);
 		}
 	},
+	/** A crew member takes a held sample (plan 260): the part is ready for a new run. */
+	takeSample(ctx) {
+		const { state } = ctx;
+		if (state.sample === null) return null;
+		const sample = state.sample;
+		state.sample = null;
+		set(state, 'READY', null, 0);
+		return sample;
+	},
 	/** A held sample is credited at recovery, at full value. */
 	onRecover(ctx) {
 		const { sample, result } = ctx.state;

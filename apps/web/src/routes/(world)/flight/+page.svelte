@@ -79,6 +79,7 @@
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import { dialogOpen } from '../../../lib/flight-modal';
 	import { crewSeats } from '../../../lib/inspector/crew-seats';
+	import { takeableSample } from '../../../lib/hud/take-sample';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import { panelRoom } from '../../../lib/hud/panel-room';
@@ -204,6 +205,12 @@
 	const panelWidth = $derived(
 		clampSpan(REGIONS.vessel, settings.ui.panelWidth ?? REGIONS.vessel.default)
 	);
+	/** A sample the suit on EVA can take from a vessel part within reach (plan 260). */
+	const takeOffer = $derived(
+		hud?.eva && panelInput ? takeableSample(panelInput.snapshot, hud.eva.suit) : null
+	);
+	const partLabel = (definition: string): string =>
+		vesselContent?.parts.get(definition)?.title ?? definition;
 	/** The card of a map vessel just clicked (plan 250). */
 	let mapCard = $state<MapCard | null>(null);
 	/** The dock panel's width, px at 100 % (plan 250), dragged at its free edge. */
@@ -1621,6 +1628,16 @@
 						onflag={() => flight?.plantFlag()}
 						onboard={() => flight?.board()}
 						onhelmet={() => flight?.helmet()}
+						sample={takeOffer ? { label: partLabel(takeOffer.definition) } : null}
+						ontake={() =>
+							takeOffer &&
+							hud?.eva &&
+							void flight?.command({
+								type: 'crew-take',
+								suit: hud.eva.suit as EntityId,
+								vessel: takeOffer.vessel,
+								part: takeOffer.part
+							})}
 						onchute={() => flight?.chute()}
 					/>
 				</div>

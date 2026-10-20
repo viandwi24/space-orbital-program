@@ -9,7 +9,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        undefined,
+        {},
       ],
       [
         "stock.resource-container",
@@ -172,6 +172,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "driveCharge": 0.3,
+          "driveForce": 4000,
           "offset": [
             0.45,
             0,
@@ -192,6 +194,8 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.wheel",
         {
+          "driveCharge": 0.3,
+          "driveForce": 4000,
           "offset": [
             0.45,
             0,
@@ -990,7 +994,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        undefined,
+        {},
       ],
       [
         "stock.probe-computer",
@@ -1174,7 +1178,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     "modules": [
       [
         "stock.command",
-        undefined,
+        {},
       ],
       [
         "stock.resource-container",
