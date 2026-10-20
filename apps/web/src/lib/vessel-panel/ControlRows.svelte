@@ -9,6 +9,7 @@
 	import Button from '../ui/Button.svelte';
 	import Meter from '../ui/Meter.svelte';
 	import Switch from '../ui/Switch.svelte';
+	import { resourceLabel } from '../format';
 	import { formatTyped, parseTyped, unitsOf } from '../inspector/units';
 	import type { ControlRow, PartRow } from './vessel-model';
 
@@ -129,6 +130,14 @@
 		>
 	</div>
 {/if}
+{#each part.resources ?? [] as r (r.resource)}
+	{@const f = r.capacity > 0 ? r.amount / r.capacity : 0}
+	<div class="row heat" data-testid="{prefix}-{part.entity}-store-{r.resource}">
+		<span>{resourceLabel(r.resource)}</span>
+		<span class="bar"><Meter value={f} label="{part.title} {resourceLabel(r.resource)}" /></span>
+		<span class="value num">{Math.round(r.amount)} / {Math.round(r.capacity)}</span>
+	</div>
+{/each}
 {#each part.readouts as r (r.module + '/' + r.id)}
 	<div class="row readout">
 		<span>{r.label}</span>

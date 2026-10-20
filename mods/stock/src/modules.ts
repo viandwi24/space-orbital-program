@@ -274,7 +274,17 @@ export interface EngineState {
 	gimbalLock: boolean;
 	/** Fraction of the gimbal range used, 0..1 (plan 210). */
 	gimbalLimit: number;
+	/** What the engine does now (plan 240): thrust N, Isp s and mass flow kg/s, set each step. */
+	live?: { thrust: number; isp: number; flow: number };
+	/** The propellant that ran short when it flamed out (plan 240). */
+	flameoutCause?: string;
 }
+
+const resourceName = (id: string): string => id.replace(/^[^.]*\./, '').replace(/-/g, ' ');
+
+/** "Flameout: out of liquid fuel" (plan 240); a flameout from the action alone has no cause. */
+const flameoutText = (state: EngineState): string =>
+	`Flameout: out of ${state.flameoutCause ? resourceName(state.flameoutCause) : 'propellant'}`;
 
 /**
  * Move the thrust vector towards the angles the mixer asks for (ADR 0045); a cold or idle engine,
@@ -340,13 +350,24 @@ export const ModuleEngine = defineModule({
 				id: 'status',
 				label: 'Status',
 				value: state.flameout
-					? 'Flameout: out of propellant'
+					? flameoutText(state)
 					: state.ignited
 						? state.throttle > 0
 							? `Running at ${Math.round(state.throttle * 100)} %`
 							: 'Idle'
 						: 'Off'
 			},
+			...(state.live && state.ignited && state.live.thrust > 0
+				? [
+						{
+							id: 'now',
+							label: 'Now',
+							value: `${(state.live.thrust / 1000).toFixed(1)} kN · Isp ${Math.round(
+								state.live.isp
+							)} s · ${state.live.flow.toFixed(2)} kg/s`
+						}
+					]
+				: []),
 			{
 				id: 'thrust',
 				label: 'Thrust',
@@ -407,6 +428,7 @@ export const ModuleEngine = defineModule({
 	onStage(ctx) {
 		ctx.state.ignited = true;
 		ctx.state.flameout = false;
+		delete ctx.state.flameoutCause;
 	},
 	/** Thrust times the lever of the bell about the centre of mass (ADR 0049); nothing when cold or fixed. */
 	controlAuthority({ config, state, vessel }) {
@@ -426,18 +448,34 @@ export const ModuleEngine = defineModule({
 		const { state, config, vessel } = ctx;
 		state.throttle = Math.min(1, Math.max(0, vessel.control.throttle));
 		steerGimbal(ctx, dt);
-		if (!state.ignited) return;
+		if (!state.ignited) {
+			delete state.live;
+			return;
+		}
 		const out = engineOutput(config, state, vessel.ambient.pressure);
-		if (out.massFlow <= 0) return;
+		if (out.massFlow <= 0) {
+			state.live = { thrust: 0, isp: ispAt(config, vessel.ambient.pressure), flow: 0 };
+			return;
+		}
 		const rates = propellantRates(
 			config,
 			out.massFlow,
 			(resource) => ctx.registries.resources.get(resource)?.density ?? 0
 		);
 		let satisfied = 1;
+		let short: string | undefined;
 		for (const { resource, rate } of rates) {
-			satisfied = Math.min(satisfied, vessel.resources.amount(resource) / (rate * dt));
+			const share = vessel.resources.amount(resource) / (rate * dt);
+			if (share < satisfied) {
+				satisfied = share;
+				short = resource;
+			}
 		}
+		state.live = {
+			thrust: out.thrust * Math.min(1, satisfied),
+			isp: ispAt(config, vessel.ambient.pressure),
+			flow: out.massFlow * Math.min(1, satisfied)
+		};
 		for (const { resource, rate } of rates) {
 			vessel.resources.withdraw(resource, rate * dt * satisfied);
 		}
@@ -449,6 +487,7 @@ export const ModuleEngine = defineModule({
 		if (satisfied < 1) {
 			state.ignited = false;
 			state.flameout = true;
+			if (short !== undefined) state.flameoutCause = short;
 			ctx.events.emit('stock:engine-flameout', { part: ctx.entity });
 		}
 	},
@@ -456,6 +495,7 @@ export const ModuleEngine = defineModule({
 		activate: (ctx) => {
 			ctx.state.ignited = true;
 			ctx.state.flameout = false;
+			delete ctx.state.flameoutCause;
 		},
 		shutdown: (ctx) => {
 			if (ctx.config.solid) return; // a lit solid motor burns out (plan 210)
@@ -466,7 +506,10 @@ export const ModuleEngine = defineModule({
 			const [on] = z.tuple([z.boolean()]).parse(args);
 			if (!on && ctx.config.solid) return;
 			ctx.state.ignited = on;
-			if (on) ctx.state.flameout = false;
+			if (on) {
+				ctx.state.flameout = false;
+				delete ctx.state.flameoutCause;
+			}
 		},
 		/** `(limiter)` 0..1; a lit solid motor keeps its limiter (plan 210). */
 		setLimiter: (ctx, ...args) => {
@@ -501,7 +544,10 @@ export const ModuleEngine = defineModule({
 		gimbal: [state.gimbal[0], state.gimbal[1]],
 		limiter: limiterOf(state),
 		gimbalLock: state.gimbalLock === true,
-		gimbalLimit: state.gimbalLimit ?? 1
+		gimbalLimit: state.gimbalLimit ?? 1,
+		// the live read-outs reach the page through the snapshot (plan 240)
+		...(state.live ? { live: { ...state.live } } : {}),
+		...(state.flameoutCause ? { flameoutCause: state.flameoutCause } : {})
 	})
 });
 

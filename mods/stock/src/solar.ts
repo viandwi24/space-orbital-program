@@ -27,6 +27,8 @@ export const solarPanelConfigSchema = z.object({
 export type SolarPanelConfig = z.output<typeof solarPanelConfigSchema>;
 export interface SolarPanelState {
 	deployed: boolean;
+	/** The share of `rate` it gives now, 0..1 (plan 240); 0 in shadow or folded. */
+	exposure?: number;
 }
 
 /** The share of `rate` the panel gives for the star in `direction` (part frame); 1 without a star. */
@@ -49,8 +51,13 @@ type SolarContext = {
 
 /** Charge for `dt` seconds; the batteries keep what fits. */
 function charge(ctx: SolarContext, dt: number): void {
-	if (dt <= 0 || (ctx.config.deployable && !ctx.state.deployed)) return;
+	if (dt <= 0) return;
+	if (ctx.config.deployable && !ctx.state.deployed) {
+		ctx.state.exposure = 0;
+		return;
+	}
 	const exposure = ctx.vessel.sunExposure(dt, (d) => panelFactor(ctx.config, d));
+	ctx.state.exposure = exposure;
 	if (exposure > 0)
 		ctx.vessel.resources.deposit(ElectricCharge.id, ctx.config.rate * exposure * dt);
 }
@@ -61,6 +68,23 @@ export const ModuleSolarPanel = defineModule({
 	state: (config): SolarPanelState => ({ deployed: config.deployed || !config.deployable }),
 	describe: (config, state) => ({
 		category: 'stock.other',
+		// what it gives now (plan 240); a panel not yet stepped reads as its rating
+		readouts: [
+			{
+				id: 'output',
+				label: 'Output',
+				value:
+					config.deployable && !state.deployed
+						? 'Folded: 0 EC/s'
+						: state.exposure === undefined
+							? `up to ${config.rate} EC/s`
+							: state.exposure > 0
+								? `${(config.rate * state.exposure).toFixed(2)} EC/s · sunlight ${Math.round(
+										state.exposure * 100
+									)} %`
+								: '0 EC/s · in shadow or facing away'
+			}
+		],
 		actions: !config.deployable
 			? []
 			: [
@@ -92,7 +116,10 @@ export const ModuleSolarPanel = defineModule({
 			if (ctx.config.deployable) ctx.state.deployed = deployed;
 		}
 	},
-	snapshot: (state) => ({ deployed: state.deployed })
+	snapshot: (state) => ({
+		deployed: state.deployed,
+		...(state.exposure === undefined ? {} : { exposure: state.exposure })
+	})
 });
 
 export const rtgConfigSchema = z.object({
@@ -114,7 +141,10 @@ function rtgCharge(
 export const ModuleRtg = defineModule({
 	id: 'stock.rtg',
 	config: rtgConfigSchema,
-	describe: () => ({ category: 'stock.other' }),
+	describe: (config) => ({
+		category: 'stock.other',
+		readouts: [{ id: 'output', label: 'Output', value: `${config.rate} EC/s, always` }]
+	}),
 	power: (config) => ({ rate: config.rate }),
 	update: rtgCharge,
 	background: rtgCharge

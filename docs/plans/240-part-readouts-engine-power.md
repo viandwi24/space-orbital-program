@@ -1,8 +1,8 @@
 ---
 id: 240
 title: "Part read-outs: live engine thrust, Isp and flow, flameout reason, solar and RTG output, tank bars in the inspector"
-status: draft
-owner: "Worker D"
+status: in-progress
+owner: "Worker C"
 depends: []
 phase: 8
 created: 2026-10-20
@@ -62,3 +62,4 @@ Every part that produces or uses something shows what it does right now, not a s
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker D) refines it against current main before claiming.
+- 2026-10-20 — Worker C claimed and coded it (queue of Worker D). The e2e (step 4) is paused by the owner; the sim and module tests cover the values.
