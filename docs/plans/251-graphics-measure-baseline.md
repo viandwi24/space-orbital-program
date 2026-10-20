@@ -1,7 +1,7 @@
 ---
 id: 251
 title: "Graphics phase 0: measurement tools, feature switches, a frame-time histogram and the M5 Retina baseline"
-status: ready
+status: done
 owner: "Worker A"
 depends: []
 phase: 7
@@ -81,16 +81,18 @@ Get numbers that judge every graphics change before v1.0.0. The numbers are:
 
 ## Acceptance criteria
 
-- [ ] The script measures any preset, pixel ratio and scene on a chosen viewport and scale factor.
-- [ ] Debug switches toggle each `high` extra; tests pass.
-- [ ] Debug → Performance shows p50/p95/p99 and the over-budget shares.
-- [ ] `refs/graphics-performance/07-m5-baseline.md` holds the M5 table at ratios 1, 1.5 and 2, the ablation, and a governor-on trace.
-- [ ] CI is green on `ready/251`.
+- [x] The script measures any preset, pixel ratio and scene on a chosen viewport and scale factor.
+- [x] Debug switches toggle each `high` extra; tests pass.
+- [x] Debug → Performance shows p50/p95/p99 and the over-budget shares.
+- [x] `refs/graphics-performance/07-m5-baseline.md` holds the M5 table at ratios 1, 1.5 and 2, the ablation, and a governor-on trace.
+- [x] CI is green on `ready/251`.
 
 ## Docs checklist
 
-- [ ] STATUS row; journal `docs/journal/251-graphics-measure-baseline.md`.
+- [x] STATUS row; journal `docs/journal/251-graphics-measure-baseline.md`.
 
 ## Log
 
 - 2026-10-20: Created by the coordinator from `refs/graphics-performance/06-plan-and-cost.md` phase 0, at the owner's order to ship phases 0 and 1 in v1.0.0. Ready: checked against main @ 8bf82bb9 (`presets.ts:133` pixel ratio 2; governor defaults `quality-governor.ts:85-96`).
+- 2026-10-20 — Worker A: steps 1 and 2 coded. `FeatureSwitches` (`packages/renderer/src/feature-switches.ts`): eight switches (shadowMap, cloudShadow, shafts, clouds, terrain, aurora, tufts, msaa) rewrite the drawn preset's table entry and re-apply it; `renderer.debug.setFeature / features / resetFeatures / featureNames`. `FrameHistogram` (`apps/web/src/lib/debug/frame-histogram.ts`) feeds Debug → Info (there is no separate Performance tab: the Info tab holds the FPS) with p50/p95/p99, the shares over 16.7 and 33.3 ms, the last two minutes, and a Reset. `apps/web/scripts/measure-graphics.ts` folds in `measure-dpr.ts` (viewport, scale factor, presets, ratios, five scenes, the ablation, a governor-on trace). The canvas `antialias` flag is fixed at context creation, so it has no switch; the post chain draws into its own MSAA target in `high`, and the `msaa` switch covers it. Baseline run waits for B's integration e2e.
+- 2026-10-20 — Worker A: complete. The baseline ran in five passes (the first two disturbed by the window being clicked and by the charger coming off; the ablation method fixed to apply switches at page load): `refs/graphics-performance/07-m5-baseline.md`, `data/m5-run1…5`. "Debug → Performance" is the Info tab (there is no Performance tab). Unit tests for the switches and the percentile maths; CI pass on ready/251.

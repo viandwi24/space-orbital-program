@@ -21,7 +21,14 @@ import { findPreset } from './camera-presets.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
-import { GRAPHICS_PRESETS, PRESETS, type GraphicsPreset } from './presets.ts';
+import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
+import {
+	GRAPHICS_PRESETS,
+	PRESETS,
+	canvasAntialias,
+	type GraphicsPreset,
+	type PresetSettings
+} from './presets.ts';
 import type { ScreenPoint } from './project.ts';
 import { SceneModel, type MapPathSegment, type MapScope, type SceneConfig } from './scene.ts';
 import type { Vec3 } from '@orbital/core';
@@ -94,6 +101,16 @@ export interface RendererDebug {
 	dishAims(): Array<{ azimuth: number; elevation: number }>;
 	/** The scene graph, for inspection in the browser console. */
 	readonly scene: Scene;
+	/**
+	 * Measurement switches (plan 251): `setFeature` takes one `high` extra down to what `medium` draws
+	 * (or off) on the preset drawn now, so its cost is the difference of two benchmarks; `on` is false
+	 * to put the preset's own values back. `features()` lists the switches that are on; `resetFeatures()`
+	 * puts every preset's table back. Never used by gameplay.
+	 */
+	setFeature(name: FeatureName, on: boolean): void;
+	features(): FeatureName[];
+	resetFeatures(): void;
+	readonly featureNames: readonly FeatureName[];
 	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
 	benchmark(frames: number): number;
 	info(): {
@@ -238,7 +255,8 @@ export interface Renderer {
 export function createRenderer(config: RendererConfig): Renderer {
 	const gl = new WebGLRenderer({
 		canvas: config.canvas,
-		antialias: true,
+		// the canvas only receives the post chain's output quad on a dense screen (plan 252, ADR 0234)
+		antialias: canvasAntialias(config.pixelRatio ?? globalThis.devicePixelRatio ?? 1),
 		logarithmicDepthBuffer: true,
 		powerPreference: 'high-performance'
 	});
@@ -257,18 +275,19 @@ export function createRenderer(config: RendererConfig): Renderer {
 
 	let forcedRatio: number | null = null;
 	let renderScale = 1;
-	const ratio = (): number =>
-		(forcedRatio ??
-			Math.min(
-				config.pixelRatio ?? globalThis.devicePixelRatio ?? 1,
-				PRESETS[preset].pixelRatioCap
-			)) * renderScale;
+	/** The preset's pixel ratio before the governor's render scale: what MSAA and the shadow map are sized for (plan 252). */
+	const baseRatio = (): number =>
+		forcedRatio ??
+		Math.min(config.pixelRatio ?? globalThis.devicePixelRatio ?? 1, PRESETS[preset].pixelRatioCap);
+	const ratio = (): number => baseRatio() * renderScale;
 	const applySize = (): void => {
 		pixelRatio = ratio();
 		gl.setPixelRatio(pixelRatio);
 		gl.setSize(width, height, false);
 		model.setPixelRatio(pixelRatio);
-		post.setSize(width, height, pixelRatio);
+		post.setSize(width, height, pixelRatio, baseRatio());
+		env.setViewRatio(baseRatio());
+		env.planet.setPixelBudget(PRESETS[preset].planetPixels);
 		// the planet pass's march prepass matches the pixels of the target the scene is drawn into
 		const target = post.active
 			? post.targetSize
@@ -463,6 +482,15 @@ export function createRenderer(config: RendererConfig): Renderer {
 		const ext = ctx.getExtension('WEBGL_debug_renderer_info');
 		return ext ? String(ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : 'unknown';
 	};
+	// Re-applies the drawn preset after a switch changed its table entry (the entry is read at every use)
+	const switches = new FeatureSwitches(
+		PRESETS as unknown as Record<GraphicsPreset, PresetSettings>,
+		() => {
+			model.setPreset(preset);
+			post.setSettings(PRESETS[preset]);
+			applySize();
+		}
+	);
 	const debugApi: RendererDebug = {
 		setSun: (value) => env.setSunOverride(value),
 		setCamera: (rig) => model.setFlightRig(rig),
@@ -493,6 +521,10 @@ export function createRenderer(config: RendererConfig): Renderer {
 		readPatch: (which) => env.planet.debugReadPatch(gl, which),
 		bakeMode: (rebake, gradient) => env.planet.debugBakeMode(rebake, gradient),
 		silhouetteAA: (on) => env.planet.debugSilhouetteAA(on),
+		setFeature: (name, on) => switches.set(preset, name, on),
+		features: () => switches.active(preset),
+		resetFeatures: () => switches.reset(),
+		featureNames: FEATURE_NAMES,
 		benchmark(frames) {
 			const ctx = gl.getContext();
 			const pixel = new Uint8Array(4);

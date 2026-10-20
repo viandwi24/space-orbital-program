@@ -12,6 +12,13 @@ export interface PresetSettings {
 	msaa: 0 | 2 | 4;
 	/** Shadow map side in texels (0 = shadows off). */
 	shadowMapSize: 0 | 1024 | 2048 | 4096;
+	/**
+	 * Pixel budget of the planet pass, in pixels (plan 252, ADR 0234): the fullscreen sky, cloud and
+	 * terrain shader draws at the largest scale in [0.5, 1] of the scene target's side that keeps it under
+	 * this many pixels, and the depth-aware upsample (ADR 0061) brings it to full size. The vessel, the
+	 * meshes and the HUD keep the full pixel ratio. 0 = no budget.
+	 */
+	planetPixels: number;
 	/** Bloom and the half-float post chain; false renders straight to the canvas. */
 	post: boolean;
 	/** Bloom runs at this fraction of the canvas size. */
@@ -66,9 +73,39 @@ export interface PresetSettings {
 	debrisShards: number;
 }
 
+/**
+ * The default pixel budget of the planet pass (plan 252, ADR 0234): 1.75 Mpx, a little under a
+ * 1920 x 1080 frame (2.07 Mpx). Plan 251's baseline on the M5 showed the frame cost follows the planet
+ * pass's pixels (at pixel ratio 2, `high` at 2.07 Mpx read 17.8 / 16.8 / 18.6 ms at the pad, 3 km and
+ * 12 km, with the governor still bouncing between 100 % and 85 %). At 1.75 Mpx a 14" Retina screen
+ * (5.7 Mpx) runs the pass at 0.55 of the side and the same scenes should read about 15 / 14 / 16 ms; a
+ * 1080p frame at pixel ratio 1 still draws it at full size.
+ */
+export const PLANET_PIXEL_BUDGET = 1_750_000;
+
+/** From this pixel ratio up the frame is dense enough for lighter multisampling and shadows (plan 252). */
+export const RETINA_RATIO = 2;
+
+/** MSAA samples of the scene target at `baseRatio` (the preset's pixel ratio before any render scale): at most 2 from `RETINA_RATIO` up. */
+export const msaaSamples = (msaa: 0 | 2 | 4, baseRatio: number): 0 | 2 | 4 =>
+	baseRatio >= RETINA_RATIO && msaa > 2 ? 2 : msaa;
+
+/** Shadow map side at `baseRatio`: at most 2048 from `RETINA_RATIO` up, where each texel covers more pixels' worth of screen. */
+export const shadowSizeAt = (size: number, baseRatio: number): number =>
+	baseRatio >= RETINA_RATIO ? Math.min(size, 2048) : size;
+
+/**
+ * Whether the canvas itself is multisampled (plan 252): the canvas only receives the post chain's output
+ * quad, and on a dense screen the scene's own MSAA is enough. `low` draws straight into the canvas, so a
+ * 1x screen keeps it.
+ */
+export const canvasAntialias = (devicePixelRatio: number): boolean =>
+	devicePixelRatio < RETINA_RATIO;
+
 export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 	low: {
 		pixelRatioCap: 1,
+		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 0,
 		shadowMapSize: 0,
 		post: false,
@@ -100,6 +137,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 	},
 	medium: {
 		pixelRatioCap: 1.5,
+		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 4,
 		shadowMapSize: 2048,
 		post: true,
@@ -131,6 +169,7 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 	},
 	high: {
 		pixelRatioCap: 2,
+		planetPixels: PLANET_PIXEL_BUDGET,
 		msaa: 4,
 		shadowMapSize: 4096,
 		post: true,
@@ -138,8 +177,9 @@ export const PRESETS: Readonly<Record<GraphicsPreset, PresetSettings>> = {
 		viewSamples: 12,
 		groundOctaves: 11,
 		cloudOctaves: 4,
-		cloudShadowOctaves: 4,
-		cloudShadowMap: false,
+		// the baked cloud-shadow map, as `medium` (plan 252, ADR 0234): +1.0 ms at 1080p for the noise, +0.1 for the map
+		cloudShadowOctaves: 0,
+		cloudShadowMap: true,
 		cloudSteps: 6,
 		cloudDetail: 3,
 		shaftSteps: 8,
