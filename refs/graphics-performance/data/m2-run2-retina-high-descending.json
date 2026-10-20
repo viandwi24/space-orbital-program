@@ -1,0 +1,32 @@
+{
+ "when": "2026-10-18T18:33:17.327Z",
+ "viewport": "1512x945 css, deviceScaleFactor 2",
+ "high": {
+  "ratio 2 (3024x1890)": {
+   "pad": 336.42,
+   "3 km": 407.5,
+   "12 km": 380.75,
+   "orbit 100 km": 235.38
+  },
+  "ratio 1.5 (2268x1417)": {
+   "pad": 194.33,
+   "3 km": 232.87,
+   "12 km": 218.73,
+   "orbit 100 km": 137.3
+  },
+  "ratio 1 (1512x945)": {
+   "pad": 95.08,
+   "3 km": 108.93,
+   "12 km": 101.73,
+   "orbit 100 km": 62.82
+  },
+  "ratio 2, planet pass at half": {
+   "pad": 117.18,
+   "3 km": 128.22
+  },
+  "ratio 2, render scale 0.67": {
+   "pad": 162.23,
+   "3 km": 188.68
+  }
+ }
+}
