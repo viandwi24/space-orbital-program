@@ -1,5 +1,5 @@
 /**
- * The planet pass in TSL for the WebGPU renderer (plan 261 Phase 2, slice 2a; ADR 0246).
+ * The planet pass in TSL for the WebGPU renderer (plan 261 Phase 2, slice 2a; ADR 0249).
  *
  * It draws what `planet.glsl.ts` draws for a ray that meets the sea-level sphere or the sky, from
  * the uniforms the WebGL `PlanetPass` already keeps (its `update` runs on the CPU either way):

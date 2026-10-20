@@ -19,6 +19,7 @@ import type {
 	WorldInfo
 } from '@orbital/core';
 import type { BodyRuntime } from './bodies.ts';
+import { massOffset } from './parts.ts';
 import type { TickState } from './tick.ts';
 import type { ObjectivesState } from './objectives.ts';
 import type {
@@ -280,11 +281,13 @@ export function designCom(core: SimCore, parts: readonly EntityId[]): Vec3 {
 	let z = 0;
 	for (const id of parts) {
 		const mass = partMass(core, id);
-		const p = partOf(core, id).designPos;
+		const part = partOf(core, id);
+		const off = massOffset(partDefOf(core, part), part);
+		const p = part.designPos;
 		m += mass;
-		x += mass * p.x;
-		y += mass * p.y;
-		z += mass * p.z;
+		x += mass * (p.x + off.x);
+		y += mass * (p.y + off.y);
+		z += mass * (p.z + off.z);
 	}
 	return m > 0 ? { x: x / m, y: y / m, z: z / m } : { x: 0, y: 0, z: 0 };
 }

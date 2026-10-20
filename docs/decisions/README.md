@@ -242,6 +242,7 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0243 | [Wheel motors, a SAS level on control parts, and taking a sample on EVA](0243-wheel-motors-sas-level-and-taking-samples.md) | accepted | 2026-10-21 |
 | 0244 | [Space Center: pins instead of permanent labels, a building panel with an upgrade block, one compact list](0244-space-center-pins-building-panel-compact-list.md) | accepted | 2026-10-21 |
 | 0245 | [A cylinder part collides as squares inscribed in its circle](0245-cylinder-colliders-are-inscribed-squares.md) | accepted | 2026-10-21 |
-| 0246 | [The renderer moves to WebGPURenderer with TSL, on its own branch](0246-webgpu-renderer-backend.md) | accepted | 2026-10-20 |
+| 0246 | [A pod's mass sits low and its blunt base turns to the airflow](0246-pod-low-mass-and-blunt-base-moment.md) | accepted | 2026-10-21 |
 | 0247 | [The WebGPU terrain bakes stay render passes, with the analytic gradient](0247-webgpu-bakes-stay-render-passes.md) | accepted | 2026-10-21 |
 | 0248 | [On WebGPU the frame is bound by its full-size pixels, not the planet march: Phases 6–8 wait for numbers](0248-webgpu-frame-is-not-the-planet-march.md) | accepted | 2026-10-21 |
+| 0249 | [The renderer moves to WebGPURenderer with TSL, on its own branch](0249-webgpu-renderer-backend.md) | accepted | 2026-10-20 |

@@ -2,7 +2,7 @@
  * The browser-facing facade: a `WebGLRenderer` (logarithmic depth buffer, ADR 0007) driving a
  * `SceneModel`, the post chain and image-based light (ADR 0027). Needs a canvas, so it is
  * exercised by the manual runs in the journals, not by Bun tests. `?renderer=webgpu` hands the
- * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0246).
+ * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0249).
  */
 import type { SiteBuildingView } from './site-list.ts';
 import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';

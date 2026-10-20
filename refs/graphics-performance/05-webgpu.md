@@ -64,3 +64,15 @@ From the audit ([01](01-diagnosis.md), counted 2026-10-19):
   - Avoid new `onBeforeCompile` hacks.
   - Isolate the noise and atmosphere functions so they can become `wgslFn`/TSL nodes.
 - **After the release:** a spike plan that ports one pass (the sky LUTs from Phase 2, which are new and small) to TSL on WebGPURenderer behind a flag, and measures it on the M2 and M5. Decide the full move from that number.
+
+## What happened (plan 261, 2026-10-21)
+
+The move was made after all, at the owner's word, behind `?renderer=webgpu` (WebGL stays the default; ADR 0249). Every pass is in TSL:
+
+- the planet pass, with a LUT sky;
+- the terrain, with its bakes as render passes and the analytic gradient (ADR 0247);
+- the clouds, water, shafts and aurora;
+- the moons;
+- every effect, through twins of the GLSL materials.
+
+The gain came from the port itself, not from compute: on the M2 at Retina the frame went from 100–150 ms to 18–33 ms. What limits it now is the frame's full-size pixels, not the planet march (ADR 0248).

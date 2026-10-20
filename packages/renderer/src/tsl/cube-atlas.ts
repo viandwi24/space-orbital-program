@@ -1,5 +1,5 @@
 /**
- * A cube map as one 2D atlas (plan 261, ADR 0246 point 9): six face tiles side by side, each with
+ * A cube map as one 2D atlas (plan 261, ADR 0249 point 9): six face tiles side by side, each with
  * a one-texel gutter baked from directions just past its edge, so hardware filtering never mixes
  * two faces. The OpenGL cube convention (+X, -X, +Y, -Y, +Z, -Z), as the WebGL bakes.
  */

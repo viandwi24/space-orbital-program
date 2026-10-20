@@ -2,6 +2,7 @@
 import { GRAVITATIONAL_CONSTANT, type Vec3, type VesselSnapshot } from '@orbital/core';
 import { add, length, scale } from '@orbital/kepler';
 import type { Sim } from '../../src/index.ts';
+import { qRotate } from '../../src/math.ts';
 
 export const RADIUS = 600_000;
 
@@ -25,12 +26,26 @@ export function partMasses(sim: Sim, v: VesselSnapshot): number[] {
 export const vesselMass = (sim: Sim, v: VesselSnapshot): number =>
 	partMasses(sim, v).reduce((a, b) => a + b, 0);
 
+/**
+ * Where each part's mass sits, relative to the vessel root's origin in BCI axes: the part's origin
+ * plus its definition's `centerOfMass` offset turned with the part (plan 265).
+ */
+export function partMassCentres(sim: Sim, v: VesselSnapshot): Vec3[] {
+	return v.parts.map((p) => {
+		const off = sim.registries.parts.get(p.definition)!.centerOfMass;
+		return off
+			? add(p.position, qRotate(p.orientation, { x: off[0], y: off[1], z: off[2] }))
+			: p.position;
+	});
+}
+
 /** Centre-of-mass position in BCI. */
 export function centreOfMass(sim: Sim, v: VesselSnapshot): Vec3 {
 	const masses = partMasses(sim, v);
 	const total = masses.reduce((a, b) => a + b, 0);
+	const centres = partMassCentres(sim, v);
 	let c: Vec3 = { x: 0, y: 0, z: 0 };
-	v.parts.forEach((p, i) => (c = add(c, scale(add(v.position, p.position), masses[i]! / total))));
+	centres.forEach((p, i) => (c = add(c, scale(add(v.position, p), masses[i]! / total))));
 	return c;
 }
 

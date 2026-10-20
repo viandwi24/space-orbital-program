@@ -14,6 +14,7 @@ import { createSim, type Sim } from '../src/index.ts';
 import { diagonalise } from '../src/mass.ts';
 import { VESSEL } from '../src/state.ts';
 import { partMasses } from './helpers/measure.ts';
+import { PartCommandPod } from '@orbital/mod-stock';
 import { UP_Y, rotate } from './helpers/attitude.ts';
 
 /** A real backend that remembers the last body description (mass, centre of mass, principal inertia and frame). */
@@ -76,8 +77,15 @@ describe('tilted parts (ADR 0071)', () => {
 		const [mPod, mTank] = masses as [number, number];
 		// Pod origin (0,0,0); the tank pivots on the pod's bottom node and lies along -X: origin (1, -0.5, 0).
 		const tank = { x: 1, y: -0.5, z: 0 };
+		// the pod's mass sits low in it (plan 265)
+		const [, podLow] = PartCommandPod.centerOfMass!;
+		const podMass = { x: 0, y: podLow, z: 0 };
 		const total = mPod + mTank;
-		const com = { x: (mTank * tank.x) / total, y: (mTank * tank.y) / total, z: 0 };
+		const com = {
+			x: (mTank * tank.x) / total,
+			y: (mPod * podMass.y + mTank * tank.y) / total,
+			z: 0
+		};
 		expect(desc.mass).toBeCloseTo(total, 9);
 		expect(desc.centerOfMass!.x).toBeCloseTo(com.x, 9);
 		expect(desc.centerOfMass!.y).toBeCloseTo(com.y, 9);
@@ -85,7 +93,7 @@ describe('tilted parts (ADR 0071)', () => {
 		const pod = cyl(mPod, 0.625, 1);
 		const t = cyl(mTank, 0.625, 2);
 		const own = [
-			[pod, { x: 0, y: 0, z: 0 }, 0],
+			[pod, podMass, 0],
 			[[t[1], t[0], t[2]], tank, 1]
 		] as const;
 		const I = [0, 0, 0, 0, 0, 0, 0, 0, 0];

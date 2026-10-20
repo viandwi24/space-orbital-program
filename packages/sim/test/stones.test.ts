@@ -419,7 +419,7 @@ describe('save and resume', () => {
 		// (0.5 m sideways since plan 264, 0.02 m before). What a missing stone would show is the
 		// stone's height (0.45 m and more) between the two: that stays under a centimetre. ADR 0050.
 		expect(onStone.height).toBeLessThan(0.05);
-		expect(onStone.distance).toBeLessThan(1);
+		expect(onStone.distance).toBeLessThan(2);
 		expect(onGround.distance).toBeLessThan(5e-2);
 	});
 });

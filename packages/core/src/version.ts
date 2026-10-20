@@ -2,4 +2,4 @@
 export const CORE_VERSION = '0.0.0';
 
 /** Public API version of the mod/plugin contract. Bump per docs/conventions/versioning.md. */
-export const API_VERSION = '0.1.94';
+export const API_VERSION = '0.1.95';

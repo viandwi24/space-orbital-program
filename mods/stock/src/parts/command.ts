@@ -15,6 +15,9 @@ export const PartCommandPod = definePart({
 	// a pod takes more heat than most parts, a shield more again (plan 212, ADR 0204 point 5)
 	maxTemperature: 2_400,
 	shape: cylinder(1),
+	// the mass sits low, towards the heat shield, and the base is blunt: a pod flies base first (plan 265, ADR 0246)
+	centerOfMass: [0, -0.12, 0],
+	bluntBase: 0.35,
 	visual: {
 		kind: 'capsule',
 		palette: { primary: '#e9ebee', secondary: '#2b2f36', accent: '#e0572b' }

@@ -3,7 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-21
 **Plan:** plans/261-webgpu-renderer-migration.md (Phases 6, 7 and 8)
-**Builds on:** ADR 0246 (the WebGPU renderer), ADR 0233 (the governor), ADR 0234 (the planet pass's pixel budget)
+**Builds on:** ADR 0249 (the WebGPU renderer), ADR 0233 (the governor), ADR 0234 (the planet pass's pixel budget)
 
 ## Context
 
