@@ -271,6 +271,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [230 — World rules and save safety](journal/230-rules-and-save-safety.md)
 - [223 — Fleet management](journal/223-fleet-management.md)
 - [234 — Deep-space dish](journal/234-deep-space-dish.md)
+- [237 — Flight and sim bug fixes](journal/237-flight-and-sim-bug-fixes.md)
+- [239 — Scripts keep running off Flight](journal/239-scripts-keep-running-off-flight.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
