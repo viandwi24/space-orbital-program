@@ -194,7 +194,7 @@
 | 245 | [Keys: abort (Backspace) and the abort group, stop warp (/), yaw and roll trim and reset, brakes on hold](plans/245-keys-abort-stopwarp-trim.md) | done | Worker B | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 246 | [Visuals: touchdown dust, heat bars on hot parts, the Splashed situation, reduced motion for flashes, term tooltips on every HUD read-out](plans/246-visual-polish-dust-heat-splash.md) | draft | Worker E | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 247 | [World time and alerts: warp stops for every event, frozen-vessel warning, frame-lag warp drop, script alarms](plans/247-world-time-alerts.md) | done | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
-| 248 | [Shell everywhere: warp and Debug on every page, Save/Load in the menu, a place-pause chip, branch buildings in the Space Center 3D view](plans/248-shell-everywhere-branches-3d.md) | draft | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). Code on `rel/248-shell-everywhere` (stacked on 247). |
+| 248 | [Shell everywhere: warp and Debug on every page, Save/Load in the menu, a place-pause chip, branch buildings in the Space Center 3D view](plans/248-shell-everywhere-branches-3d.md) | done | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 249 | [EVA: helmet on and off, a personal parachute](plans/249-eva-helmet-chute.md) | draft | Worker E | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 250 | [Panels and vessels: −/+ steppers on narrow panels, inspectors that never cover the vessel, a resizable dock, one type scale, port-frame Locked camera, undocked map card](plans/250-panel-inspector-vessel-polish.md) | draft | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 251 | [Graphics phase 0: measurement tools, feature switches, a frame-time histogram and the M5 Retina baseline](plans/251-graphics-measure-baseline.md) | done | Worker A | Eight debug feature switches (applied at page load for the ones that change a shader define), a frame-interval histogram in Debug → Info, `scripts/measure-graphics.ts`, and the M5 baseline (`refs/graphics-performance/07-m5-baseline.md`): cost follows pixels (Retina `high` 43.7–50.4 ms, 2.6–3× over budget), `high` is 1.37× `medium`, `msaa` is the largest single extra. |
@@ -274,6 +274,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [237 — Flight and sim bug fixes](journal/237-flight-and-sim-bug-fixes.md)
 - [239 — Scripts keep running off Flight](journal/239-scripts-keep-running-off-flight.md)
 - [247 — World time and alerts](journal/247-world-time-alerts.md)
+- [248 — Shell everywhere](journal/248-shell-everywhere-branches-3d.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)

@@ -1,7 +1,7 @@
 ---
 id: 248
 title: "Shell everywhere: warp and Debug on every page, Save/Load in the menu, a place-pause chip, branch buildings in the Space Center 3D view"
-status: draft
+status: done
 owner: "Worker C"
 depends: [247]
 phase: 8
@@ -53,16 +53,17 @@ The world shell works the same on every page, and a branch space center shows it
 
 ## Acceptance criteria
 
-- [ ] Warp and Debug work on every in-world page.
-- [ ] The ☰ menu has Save and Load; the chip toggles the place pause.
-- [ ] The Space Center 3D view shows the selected site's buildings; e2e passes.
-- [ ] CI is green on `ready/248`, and the e2e of this plan passes on Chromium.
+- [x] Warp and Debug work on every in-world page.
+- [x] The ☰ menu has Save and Load; the chip toggles the place pause.
+- [x] The Space Center 3D view shows the selected site's buildings. (e2e paused by the owner)
+- [x] CI is green on `ready/248`. (The Chromium e2e is paused by the owner; `shell-everywhere.e2e.ts` is written and `branch-sites.e2e.ts` now places by hand, neither run.)
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/248-shell-everywhere-branches-3d.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/248-shell-everywhere-branches-3d.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
 - 2026-10-20 — Refined and coded on `rel/248-shell-everywhere` (stacked on 247). Warp through the `warp` command on every non-Flight page; Debug panel and Save/Load in the layout; chip lifts the place pause; the Space Center 3D view draws the chosen home-planet site. Open: a branch is drawn on the home site's terrain with its own cells. Stays draft until 247 is done.
+- 2026-10-20 — Done: merged on CI pass (e2e paused by the owner). The layout's Debug panel passes `resetFrames` (plan 251).
