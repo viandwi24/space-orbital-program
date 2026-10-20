@@ -17,6 +17,7 @@
  *   RATIOS      pixel ratios forced with `debug.setPixelRatio` (default 1,1.5,2)
  *   SCENES      pad, 3km, 12km, orbit, hillside (default pad,3km,12km,orbit,hillside)
  *   ABLATE      the ratio to run the per-feature ablation at, on every preset in PRESETS ("" = skip, default 2)
+ *   ABLATE_ONLY comma list of switch names (and `all`) to run in the ablation, for a rerun of disturbed rows
  *   TRACE       seconds of free-flight frame intervals with the governor on (default 0 = skip)
  *   MEASURE_ANGLE   the GPU backend (default `metal`; `d3d11` on Windows, `vulkan` or `gl` on Linux)
  *   MEASURE_HEADLESS=1   a quick smoke run only: a headless Chromium reads frames about 3x slow
@@ -40,6 +41,7 @@ const ratios = (process.env.RATIOS ?? '1,1.5,2').split(',').map(Number);
 const sceneNames = (process.env.SCENES ?? 'pad,3km,12km,orbit,hillside').split(',');
 const ablate = process.env.ABLATE === undefined ? '2' : process.env.ABLATE;
 const traceSeconds = Number(process.env.TRACE ?? 0);
+const ablateOnly = process.env.ABLATE_ONLY ? process.env.ABLATE_ONLY.split(',') : null;
 
 type Scene = { up: number } | { latitude: number; longitude: number; ground: number } | null;
 /** The scenes of journals 039 and 050; the hillside is at 1.7 km above the sea, latitude 0.009166, longitude 0.04416. */
@@ -153,9 +155,55 @@ async function setRatio(page: Page, ratio: number): Promise<string> {
 	});
 }
 
-async function allScenes(page: Page): Promise<Record<string, number>> {
+/** Whether the page is on screen and focused: a hidden or occluded window reads wrong (a click or a cover can too). */
+async function pageState(page: Page): Promise<string> {
+	return page.evaluate(
+		() => `${document.visibilityState}${document.hasFocus() ? '+focus' : '+nofocus'}`
+	);
+}
+
+/** A feature switched off cannot cost this many times more than the row it is measured against. */
+const BAND = 1.3;
+/** Rows that were measured while the page was not visible, or that stayed over the band: not to be trusted. */
+const suspect: string[] = [];
+
+/**
+ * One scene's frame time, measured again (up to 4 times, 5 s apart) when the page was hidden during it or
+ * when it came out over `BAND` times `reference`; the smallest valid reading wins, since a disturbance (a
+ * click on the window, a cover, a background job) only ever adds time. -1 when none was valid.
+ */
+async function steady(
+	page: Page,
+	scene: Scene,
+	label: string,
+	reference?: number
+): Promise<number> {
+	let best = Infinity;
+	for (let attempt = 0; attempt < 4; attempt++) {
+		const before = await pageState(page);
+		const ms = await bench(page, scene);
+		const after = await pageState(page);
+		if (before.startsWith('visible') && after.startsWith('visible')) best = Math.min(best, ms);
+		else suspect.push(`${label}, attempt ${attempt + 1}: page ${before} then ${after}`);
+		if (best < Infinity && (reference === undefined || best <= reference * BAND)) return best;
+		await page.waitForTimeout(5000);
+	}
+	suspect.push(
+		best === Infinity
+			? `${label}: never measured while visible`
+			: `${label}: ${best} ms stays over ${BAND} x ${reference} ms`
+	);
+	return best === Infinity ? -1 : best;
+}
+
+async function allScenes(
+	page: Page,
+	label = '',
+	reference?: Record<string, number>
+): Promise<Record<string, number>> {
 	const res: Record<string, number> = {};
-	for (const n of sceneNames) res[n] = await bench(page, SCENES[n]!);
+	for (const n of sceneNames)
+		res[n] = await steady(page, SCENES[n]!, `${label} ${n}`.trim(), reference?.[n]);
 	return res;
 }
 
@@ -189,7 +237,7 @@ for (const preset of presets) {
 	const res: Record<string, unknown> = {};
 	for (const ratio of ratios) {
 		const size = await setRatio(page, ratio);
-		res[`ratio ${ratio} (${size})`] = await allScenes(page);
+		res[`ratio ${ratio} (${size})`] = await allScenes(page, `${preset} ratio ${ratio}`);
 		console.log(preset, ratio, JSON.stringify(res[`ratio ${ratio} (${size})`]));
 	}
 	byRatio[preset] = res;
@@ -204,17 +252,19 @@ if (ablate !== '') {
 	for (const preset of presets) {
 		const page = await openFlight(preset, 'off');
 		const size = await setRatio(page, ratio);
-		const names: string[] = await page.evaluate(() => [
+		const allNames: string[] = await page.evaluate(() => [
 			...(window as any).__orbital.renderer().debug.featureNames
 		]);
-		const res: Record<string, Record<string, number>> = { none: await allScenes(page) };
+		const names = ablateOnly ? allNames.filter((n) => ablateOnly.includes(n)) : allNames;
+		const none = await allScenes(page, `${preset} none`);
+		const res: Record<string, Record<string, number>> = { none };
 		for (const name of names) {
 			await page.evaluate(
 				(n) => (window as any).__orbital.renderer().debug.setFeature(n, true),
 				name
 			);
 			await page.waitForTimeout(1500);
-			res[name] = await allScenes(page);
+			res[name] = await allScenes(page, `${preset} ${name}`, none);
 			await page.evaluate(
 				(n) => (window as any).__orbital.renderer().debug.setFeature(n, false),
 				name
@@ -222,14 +272,24 @@ if (ablate !== '') {
 			console.log(preset, 'ablate', name, JSON.stringify(res[name]));
 		}
 		// every switch at once: what the preset would cost with all its extras taken down
-		for (const name of names)
-			await page.evaluate(
-				(n) => (window as any).__orbital.renderer().debug.setFeature(n, true),
-				name
-			);
-		await page.waitForTimeout(1500);
-		res.all = await allScenes(page);
-		await page.evaluate(() => (window as any).__orbital.renderer().debug.resetFeatures());
+		if (!ablateOnly || ablateOnly.includes('all')) {
+			for (const name of allNames)
+				await page.evaluate(
+					(n) => (window as any).__orbital.renderer().debug.setFeature(n, true),
+					name
+				);
+			await page.waitForTimeout(1500);
+			res.all = await allScenes(page, `${preset} all`, none);
+			await page.evaluate(() => (window as any).__orbital.renderer().debug.resetFeatures());
+		}
+		// the plain preset again at the end: it must read as it did at the start, or the run drifted
+		const noneEnd = await allScenes(page, `${preset} none (end)`);
+		res.noneEnd = noneEnd;
+		for (const n of sceneNames)
+			if (Math.abs(noneEnd[n]! - none[n]!) > 0.25 * none[n]!)
+				suspect.push(
+					`${preset} ablation drifted on ${n}: ${none[n]} ms at the start, ${noneEnd[n]} at the end`
+				);
 		ablation[`${preset}, ratio ${ratio} (${size})`] = res;
 		await page.close();
 	}
@@ -277,6 +337,8 @@ if (traceSeconds > 0) {
 	await page.close();
 }
 
+rows.suspect = suspect;
+if (suspect.length > 0) console.log('SUSPECT rows:\n' + suspect.join('\n'));
 await browser.close();
 if (out) writeFileSync(out, JSON.stringify(rows, null, 1));
 console.log(JSON.stringify(rows, null, 1));
