@@ -224,6 +224,8 @@ export class Effects {
 	private readonly accumulators = new Map<string, { blast: number; trail: number }>();
 	private seed = 1;
 	private settings: PresetSettings;
+	/** Reduced motion (plan 246): no bright flashes; the fireball keeps its shape but not its glare. */
+	private reducedMotion = false;
 
 	constructor(
 		private readonly bodies: ReadonlyMap<string, EffectBody>,
@@ -276,6 +278,10 @@ export class Effects {
 		mesh.castShadow = false;
 		mesh.visible = false;
 		return { mesh, positions, colours };
+	}
+
+	setReducedMotion(on: boolean): void {
+		this.reducedMotion = on;
 	}
 
 	setPreset(settings: PresetSettings): void {
@@ -724,6 +730,27 @@ export class Effects {
 				}
 				continue;
 			}
+			if (ev.kind === 'touchdown') {
+				if (ev.soi !== this.primary) continue;
+				const up = normalize(local);
+				const n = Math.min(14, Math.max(3, Math.floor(this.pool.capacity / 20)));
+				const reach = Math.min(8, 1.5 + ev.size * 2 + ev.speed * 0.3);
+				for (let i = 0; i < n; i++) {
+					const a = (i / n) * 2 * Math.PI + this.pool.random() * 0.5;
+					const out = toBody(vec(Math.cos(a), 0, Math.sin(a)));
+					this.pool.emit({
+						position: local,
+						velocity: add(scale(out, reach * (0.6 + 0.4 * this.pool.random())), scale(up, 0.6)),
+						life: 1.6 + 1.2 * this.pool.random(),
+						size0: 0.6,
+						size1: 2 + ev.size,
+						kind: ParticleKind.Dust,
+						opacity: 0.5,
+						heat: 0
+					});
+				}
+				continue;
+			}
 			this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
 			const size = Math.max(1.2, ev.size * (ev.cause === 'burn' ? 2 : 3.6));
 			const impact = ev.cause === 'impact';
@@ -831,7 +858,7 @@ export class Effects {
 		};
 		for (const f of this.flashes) {
 			const body = frame.bodies.get(f.soi);
-			if (!body) continue;
+			if (!body || this.reducedMotion) continue;
 			const k = 1 - f.age / f.life;
 			put(
 				this.render(body, f.local, frame.origin),
@@ -879,7 +906,7 @@ export class Effects {
 					((e.seed >> i) % 89) / 89
 				);
 			}
-			if (s.flash > 0.01)
+			if (s.flash > 0.01 && !this.reducedMotion)
 				put(c, e.size * 5 * s.flash + e.size, 10 * s.flash, 9 * s.flash, 7 * s.flash, 1, 0.5);
 		}
 		field.commit(n);

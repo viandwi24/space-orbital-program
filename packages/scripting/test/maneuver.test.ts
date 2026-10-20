@@ -146,3 +146,24 @@ test('setNode keeps the fields it is not given, removeNode with and without an i
 	expect(run.logs[4]).toBe('RangeError');
 	sim.dispose();
 });
+
+test('a script sets an alarm and removes it through ship.alarms (plan 247)', async () => {
+	const { sim, runner, drive } = await rig();
+	const run = await runner(`
+		const r = await setAlarm({ name: 'Check fuel', time: time() + 600 });
+		print(JSON.stringify(r));
+		await nextTick();
+		print(ship.alarms.length, ship.alarms[0].name);
+		await removeAlarm(ship.alarms[0].id);
+		await nextTick();
+		print(ship.alarms.length);
+		try { await setAlarm(); } catch (e) { print(e.name); }
+	`);
+	for (let i = 0; i < 30 && run.status === 'running'; i++) {
+		sim.step(0.02);
+		drive(run);
+	}
+	expect(run.status).toBe('finished');
+	expect(run.logs).toEqual(['{"ok":true}', '1 Check fuel', '0', 'TypeError']);
+	sim.dispose();
+});

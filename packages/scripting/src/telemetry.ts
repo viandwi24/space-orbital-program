@@ -164,6 +164,8 @@ export interface Telemetry {
 	sas: SasMode;
 	/** Maneuver nodes in time order (plan 045). */
 	nodes: TelemetryNode[];
+	/** The world's user alarms in time order (plan 247): `removeAlarm(id)` takes one away. */
+	alarms: Array<{ id: string; name: string; time: number; kind: string }>;
 	/** The ship's target, or null (plan 035). */
 	target: TelemetryTarget | null;
 	/** Every body and every other vessel (debris included) the ship could target, bodies first. */
@@ -318,6 +320,12 @@ export function buildTelemetry(
 			dv: n.dv,
 			body: n.body === undefined ? null : String(n.body),
 			vector: n.vector ? { ...n.vector } : null
+		})),
+		alarms: (snapshot.alarms ?? []).map((a) => ({
+			id: a.id,
+			name: a.name,
+			time: a.time,
+			kind: a.kind
 		})),
 		target: v.target
 			? {

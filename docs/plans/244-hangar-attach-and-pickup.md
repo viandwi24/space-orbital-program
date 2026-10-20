@@ -1,7 +1,7 @@
 ---
 id: 244
 title: "Hangar: a ghost that follows the cursor, surface attach on any face, whole-vessel pick-up, Alt for nodes only, a 3D size-mismatch mark"
-status: draft
+status: done
 owner: "Worker A"
 depends: [238]
 phase: 8
@@ -53,16 +53,18 @@ Building feels like KSP: the carried part follows the cursor, sticks to any surf
 
 ## Acceptance criteria
 
-- [ ] The ghost follows the cursor; nodes glow when near.
-- [ ] Surface attach works on top and bottom faces and cones and survives save/load; tests pass.
-- [ ] Alt is node-only; Shift-click picks up the whole vessel; e2e passes.
-- [ ] A mismatched joint shows a mark in 3D.
-- [ ] CI is green on `ready/244`, and the e2e of this plan passes on Chromium.
+- [x] The ghost follows the cursor; nodes glow when near.
+- [x] Surface attach works on top and bottom faces and cones and survives save/load; tests pass.
+- [x] Alt is node-only; Shift-click picks up the whole vessel; unit tests pass (e2e paused by the owner).
+- [x] A mismatched joint shows a mark in 3D.
+- [x] CI is green on `ready/244`.
+- [ ] The e2e of this plan passes on Chromium (e2e paused by the owner).
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/244-hangar-attach-and-pickup.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/244-hangar-attach-and-pickup.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker A) refines it against current main before claiming.
+- 2026-10-20 — Worker A: ADR 0235. Core surface links (`placeSurface`, validation, schema), editor `surfaceTarget` with symmetric copies, controller (faces, Alt = rings only, ring snap 36 px and glow 80 px, free ghost, Shift-click the whole vessel), 3D mismatch ring. Unit tests only (e2e paused by the owner).

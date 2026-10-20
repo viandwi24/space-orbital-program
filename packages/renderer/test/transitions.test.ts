@@ -74,3 +74,23 @@ describe('snapshot transitions', () => {
 		expect(detectTransitions([], a, ctx)).toEqual([]);
 	});
 });
+
+describe('touchdown (plan 246)', () => {
+	const flying = (extraSpeed: number): FxVessel => ({
+		...onGround([part(1, 0)], 1, extraSpeed),
+		surface: false
+	});
+	const landed: FxVessel = { ...onGround([part(1, 0)]), surface: true };
+
+	test('a vessel that goes onto surface rails kicks up dust at its landing speed', () => {
+		const events = detectTransitions([flying(3)], [landed], ctx);
+		expect(kinds(events)).toEqual(['touchdown']);
+		expect(events[0]).toMatchObject({ kind: 'touchdown', soi: 'home', speed: 3 });
+	});
+
+	test('a vessel that settles without moving, or that was already landed, raises none', () => {
+		expect(detectTransitions([flying(0.1)], [landed], ctx)).toEqual([]);
+		expect(detectTransitions([landed], [landed], ctx)).toEqual([]);
+		expect(detectTransitions([flying(3)], [flying(3)], ctx)).toEqual([]);
+	});
+});

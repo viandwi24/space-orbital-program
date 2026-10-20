@@ -4,7 +4,7 @@
 	 * view; for a custom group, click a part and tick the switches and triggers it should fire.
 	 * Stock groups follow the parts' own controls and are shown, not edited.
 	 */
-	import { CUSTOM_SLOTS, customMembers } from '../editor/groups';
+	import { EDITOR_SLOTS, customMembers, slotLabel } from '../editor/groups';
 	import type { VabController } from './controller.svelte';
 
 	let { vab }: { vab: VabController } = $props();
@@ -15,7 +15,7 @@
 	const label = $derived.by(() => {
 		const pick = vab.groupPick;
 		if (pick === null) return '';
-		if (vab.groupSlot !== null) return `Custom ${vab.groupSlot}`;
+		if (vab.groupSlot !== null) return slotLabel(vab.groupSlot);
 		return vab.stockGroups.find((g) => g.id === pick)?.label ?? pick;
 	});
 </script>
@@ -40,8 +40,10 @@
 				onchange={(e) => vab.pickGroup(e.currentTarget.value)}
 			>
 				{#each vab.stockGroups as g (g.id)}<option value={g.id}>{g.label}</option>{/each}
-				{#each CUSTOM_SLOTS as k (k)}
-					<option value="custom.{k}">Custom {k}{countOf(k) > 0 ? ` · ${countOf(k)}` : ''}</option>
+				{#each EDITOR_SLOTS as k (k)}
+					<option value="custom.{k}"
+						>{slotLabel(k)}{countOf(k) > 0 ? ` · ${countOf(k)}` : ''}</option
+					>
 				{/each}
 			</select>
 		</label>
@@ -53,7 +55,8 @@
 		</p>
 		{#if vab.groupSlot === null}
 			<p class="dim">
-				A stock group holds the controls made for it. Pick a custom group to add others.
+				A stock group holds the controls made for it. Pick a custom group to add others; the Abort
+				group is what Backspace fires in flight.
 			</p>
 		{:else if vab.selected === null}
 			<p class="dim">Click a part to choose what it does in this group.</p>

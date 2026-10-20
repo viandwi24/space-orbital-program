@@ -3,6 +3,7 @@
  * of the power they need and says so once, with `vessel:power-depleted`, for the host's notices.
  */
 import type { EntityId } from '@orbital/core';
+import { stopWarp } from './warp-stop.ts';
 import { controlProblem, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
 
 /** Vessels last seen out of power, per sim: the event fires on the change only. */
@@ -27,5 +28,6 @@ export function notePower(core: SimCore, vesselId: EntityId): void {
 	if (out && !set.has(vesselId)) {
 		set.add(vesselId);
 		core.events.emit('vessel:power-depleted', { vessel: vesselId, time: core.t });
+		if (vesselOf(core, vesselId).owner === undefined) stopWarp(core, 'a vessel is out of power');
 	} else if (!out) set.delete(vesselId);
 }

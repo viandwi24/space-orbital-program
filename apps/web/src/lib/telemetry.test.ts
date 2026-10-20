@@ -48,6 +48,13 @@ describe('computeTelemetry', () => {
 			bodies
 		);
 		expect(landed).toMatchObject({ phase: 'landed', mode: 'on-rails', altitude: 0 });
+		expect(landed?.splashed).toBe(false);
+		const water = computeTelemetry(
+			snapshot({ mode: 'on-rails', surface: true, position: ground, splashed: true }),
+			entityId(1),
+			bodies
+		);
+		expect(water?.splashed).toBe(true);
 		expect(landed?.apoapsis).toBeUndefined();
 		expect(landed?.periapsis).toBeUndefined();
 		const onRails = (o: object) =>

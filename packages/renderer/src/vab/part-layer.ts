@@ -233,7 +233,7 @@ export class PartLayer {
 		});
 		model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
 		model.root.userData.key = key;
-		if (part.role === 'ghost') makeGhost(model.root, this.highlights.ghost);
+		if (part.role !== 'solid') makeGhost(model.root, this.highlights.ghost);
 		this.groups.get(part.group)?.object.add(model.root);
 		this.parts.set(key, {
 			slot: {
@@ -264,7 +264,7 @@ export class PartLayer {
 	): void {
 		for (const [key, e] of this.parts) {
 			const wanted: HighlightKind[] = [];
-			if (e.slot.role === 'ghost') wanted.push('ghost', 'xray');
+			if (e.slot.role !== 'solid') wanted.push('ghost', 'xray');
 			else {
 				if (flagged.has(key)) wanted.push('flag');
 				if (selected.has(key)) wanted.push('select');

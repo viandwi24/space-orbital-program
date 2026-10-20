@@ -152,6 +152,17 @@ describe('vessel panel v2 (plan 214)', () => {
 		expect(groupText(engines)).toBe('Engines 3/4');
 	});
 
+	it("the design's Abort group (custom slot 0) is named Abort in the Overview (plan 245)", () => {
+		const snap = fourEngines([true, true, true, true]);
+		(snap as unknown as { actions: { groups: unknown[] } }).actions.groups.push(
+			{ id: 'custom.0', state: 'off', parts: 2 },
+			{ id: 'custom.3', state: 'off', parts: 1 }
+		);
+		const labels = vesselView(snap, content).groups.map((g) => g.label);
+		expect(labels).toContain('Abort');
+		expect(labels).toContain('Group 3');
+	});
+
 	it('the stage filter keeps only that stage parts; search by name', () => {
 		const view = vesselView(
 			fourEngines([true, true, true, true]),

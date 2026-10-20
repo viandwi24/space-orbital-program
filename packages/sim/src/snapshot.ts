@@ -37,7 +37,7 @@ import {
 } from './core.ts';
 import { dataUse, storagesOf } from './data.ts';
 import { rosterSnapshot, vesselCrewSnapshot } from './crew.ts';
-import { scienceSnapshot, vesselScienceSnapshot } from './science.ts';
+import { scienceSnapshot, situationView, vesselScienceSnapshot } from './science.ts';
 import { networkSnapshot } from './comms.ts';
 import { lifeSupportSnapshot } from './life.ts';
 import { actionsSnapshot } from './actions.ts';
@@ -158,6 +158,10 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		parts,
 		nextStage: vessel.nextStage,
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
+		...(situationView(core, id).splashed ? { splashed: true } : {}),
+		...(vessel.trim || vessel.trimYaw || vessel.trimRoll
+			? { trim: { pitch: vessel.trim ?? 0, yaw: vessel.trimYaw ?? 0, roll: vessel.trimRoll ?? 0 } }
+			: {}),
 		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {})
 	};
 	snapshot.sas = {

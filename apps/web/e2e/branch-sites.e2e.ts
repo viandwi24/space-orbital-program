@@ -24,6 +24,29 @@ const instantConstruction = (page: Page) =>
 		)
 	);
 
+/** Build mode (plan 248): walk the pointer over the ground until the ghost may be placed, then click. */
+async function placeGhost(page: Page): Promise<void> {
+	const box = (await page.getByTestId('sc-canvas').boundingBox())!;
+	for (const [fx, fy] of [
+		[0.7, 0.7],
+		[0.8, 0.6],
+		[0.3, 0.75],
+		[0.6, 0.85],
+		[0.2, 0.6],
+		[0.85, 0.8],
+		[0.5, 0.8]
+	] as const) {
+		await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
+		await page.waitForTimeout(150);
+		if ((await page.getByTestId('sc-ghost').innerText()).includes('Click to place')) {
+			await page.mouse.down();
+			await page.mouse.up();
+			return;
+		}
+	}
+	throw new Error('no cell took the building');
+}
+
 test('found a branch, finish its HQ, build a pad and a dish, launch from it', async ({ page }) => {
 	test.skip(test.info().project.name !== 'chromium', 'one engine is enough for the branch');
 	test.setTimeout(240_000);
@@ -93,9 +116,11 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 		timeout: 10_000
 	});
 	await page.getByTestId('sc-build-stock.launchpad-s').click();
+	await placeGhost(page);
 	await expect(page.locator('[data-testid^="sc-row-"]')).toHaveCount(2, { timeout: 10_000 });
 	await page.getByTestId('sc-cat-stock.comms').click();
 	await page.getByTestId('sc-build-stock.tracking-dish').click();
+	await placeGhost(page);
 	await expect(page.locator('[data-testid^="sc-row-"]')).toHaveCount(3, { timeout: 10_000 });
 	await expect(page.getByTestId('sc-problem')).toHaveCount(0);
 

@@ -40,7 +40,13 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 						index,
 						parentNode: nodeName,
 						node: nodeName,
-						radial: z.object({ angle: z.number(), y: z.number() }).optional()
+						radial: z.object({ angle: z.number(), y: z.number() }).optional(),
+						surface: z
+							.object({
+								point: z.tuple([finite, finite, finite]),
+								normal: z.tuple([finite, finite, finite])
+							})
+							.optional()
 					})
 					.nullable(),
 				symmetry: index.optional(),
@@ -56,7 +62,7 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 	groups: z
 		.array(
 			z.object({
-				slot: z.int().min(1).max(10),
+				slot: z.int().min(0).max(10),
 				label: z.string().min(1).max(40),
 				members: z.array(
 					z.object({ part: index, module: z.string().min(1), action: z.string().min(1) })
@@ -132,7 +138,13 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		locked: z.boolean()
 	}),
 	z.object({ type: z.literal('stage'), vessel: entity }),
-	z.object({ type: z.literal('trim'), vessel: entity, pitch: z.number().min(-1).max(1) }),
+	z.object({
+		type: z.literal('trim'),
+		vessel: entity,
+		pitch: z.number().min(-1).max(1).optional(),
+		yaw: z.number().min(-1).max(1).optional(),
+		roll: z.number().min(-1).max(1).optional()
+	}),
 	z.object({
 		type: z.literal('sas'),
 		vessel: entity,

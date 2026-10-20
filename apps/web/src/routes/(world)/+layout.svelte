@@ -15,13 +15,21 @@
 		type Epoch,
 		type RuleValue,
 		type Snapshot,
+		type VesselDesign,
 		type WorldInfo
 	} from '@orbital/core';
+	import DebugPanel from '../../lib/debug/DebugPanel.svelte';
+	import SaveDialog from '../../lib/save/SaveDialog.svelte';
+	import LoadDialog from '../../lib/save/LoadDialog.svelte';
+	import { listEntries, withFallback } from '../../lib/vab/library';
+	import { indexedDbStore } from '../../lib/vab/library-idb';
+	import { partLookup } from '../../lib/catalog';
 	import WorldShell from '../../lib/layout/WorldShell.svelte';
 	import SettingsDialog from '../../lib/ui/SettingsDialog.svelte';
 	import Button from '../../lib/ui/Button.svelte';
 	import { createBellFeed } from '../../lib/layout/status-bar';
 	import { worldSession } from '../../lib/world-session';
+	import { WARP_STEPS, warpStepsFor } from '../../lib/warp';
 	import { bootWorld } from '../../lib/world-boot';
 	import { createWorldLock, type LockState, type WorldLock } from '../../lib/world-lock';
 	import { createAutosaver, type AutosaveReason } from '../../lib/save/autosave';
@@ -93,10 +101,28 @@
 	let lock: WorldLock | null = null;
 	let snapshot = $state.raw<Snapshot | null>(null);
 	let warp = $state(1);
+	/** The warp levels of the world's system (a Sol world adds 100k×). */
+	let warpSteps = $state<readonly number[]>(WARP_STEPS);
 	let catalog = $state.raw<Catalog | null>(null);
 	let savedAt = $state<number | null>(null);
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox' });
 	let settingsOpen = $state(false);
+	/** The Debug panel on every page but Flight, which has its own with the flight's Info tab (plan 248). */
+	let debugOpen = $state(false);
+	let debugHost = $state.raw<DebugHost | null>(null);
+	async function debugDesigns(): Promise<Array<{ name: string; design: VesselDesign }>> {
+		if (!catalog) return [];
+		try {
+			const entries = await listEntries(
+				withFallback(indexedDbStore()),
+				partLookup(catalog),
+				'vessel'
+			);
+			return entries.flatMap((e) => (e.ok ? [{ name: e.record.name, design: e.design }] : []));
+		} catch {
+			return [];
+		}
+	}
 	/** A script runs in the world (plan 239): outside Flight a sign offers to go back or stop it. */
 	let scriptRunning = $state(false);
 	function stopScript(): void {
@@ -223,6 +249,12 @@
 		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		world: () => worldSession.worldId ?? worldId
 	});
+	// a result of the menu's Save or Load shows for a few seconds
+	$effect(() => {
+		if (saves.note === null || saves.loadOpen || saves.saveOpen) return;
+		const timer = setTimeout(() => (saves.note = null), 3500);
+		return () => clearTimeout(timer);
+	});
 	const autosaver = createAutosaver(() => performance.now());
 	let saving = false;
 
@@ -324,6 +356,9 @@
 			offClient = [];
 			const client = worldSession.client;
 			snapshot = worldSession.snapshot;
+			void worldSession.client?.ready
+				.then((r) => (warpSteps = warpStepsFor(r.systemId)))
+				.catch(() => {});
 			if (!client) return;
 			// the debug API on every in-world page (plan 203, from the layout since plan 205)
 			const host: DebugHost = {
@@ -341,6 +376,8 @@
 				partOnScreen: (part) => flightDebug.current?.partOnScreen?.(part) ?? null
 			};
 			offClient.push(exposeDebugApi(window, createDebugApi(host), host));
+			debugHost = host;
+			offClient.push(() => (debugHost = null));
 			void client.ready.then((c) => (catalog = c)).catch(() => {});
 			// the player's debris cap (plan 223): a setting, not a world rule, so sent each session
 			void client.ready
@@ -383,6 +420,11 @@
 						bell.push({ source: 'clock', text: `Warp stopped: ${e.reason}` });
 					else if (e.type === 'power-depleted')
 						bell.push({ source: 'sim', text: 'Out of power: a probe is uncontrolled' });
+					else if (e.type === 'vessel-frozen')
+						bell.push({
+							source: 'sim',
+							text: `A vessel was frozen by time warp (${e.reason}); slow down to bring it back`
+						});
 					else if (e.type === 'building-ready')
 						bell.push({
 							source: 'construction',
@@ -435,6 +477,11 @@
 		};
 		// P pauses on every page; Space too where it has no job of its own (not Flight, not Hangar)
 		const onKey = (e: KeyboardEvent): void => {
+			if (e.altKey && e.code === 'F12' && !e.repeat && place !== 'Flight') {
+				e.preventDefault();
+				debugOpen = true;
+				return;
+			}
 			if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing(e)) return;
 			const id = keyIdOf(e);
 			const space = id === 'Space' && place !== 'Flight' && place !== 'Hangar' && place !== '';
@@ -526,11 +573,35 @@
 		paused={!clockView.ticks}
 		pauseLocked={!pauseAllowed}
 		onpause={togglePause}
+		onsave={canSave() ? () => saves.showSave() : undefined}
+		onload={() => void saves.showLoad()}
+		ondebug={() => (debugOpen = true)}
+		onchip={clockView.state === 'paused-place'
+			? () => settings.setTime({ places: { [menuHeld && !placeHere ? 'Menu' : place]: false } })
+			: undefined}
+		{warpSteps}
+		onwarp={(factor) => void worldSession.client?.dispatch({ type: 'warp', factor })}
 	>
 		{@render children()}
 	</WorldShell>
 	{#if lessonNotice.reason && local(page.url.pathname) !== '/flight'}
 		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
+	{/if}
+	{#if local(page.url.pathname) !== '/flight'}
+		<DebugPanel
+			open={debugOpen}
+			onclose={() => (debugOpen = false)}
+			host={debugHost}
+			info={() => null}
+			resetFrames={() => {}}
+			world={world.name}
+			designs={debugDesigns}
+		/>
+		<SaveDialog {saves} suggestion={`${world.name} ${place}`.trim()} />
+		<LoadDialog {saves} />
+		{#if saves.note && !saves.loadOpen && !saves.saveOpen}
+			<p class="savenote" class:error={saves.noteIsError} role="status">{saves.note}</p>
+		{/if}
 	{/if}
 	<SettingsDialog open={settingsOpen} onclose={() => (settingsOpen = false)} />
 	{#if scriptRunning && local(page.url.pathname) !== '/flight'}
@@ -639,6 +710,24 @@
 		border: 0;
 		border-radius: var(--radius-row);
 		cursor: pointer;
+	}
+	.savenote {
+		position: fixed;
+		z-index: 45;
+		top: calc(5rem + var(--safe-top));
+		left: 50%;
+		transform: translateX(-50%);
+		margin: 0;
+		padding: var(--s-2, 0.5rem) var(--s-4, 1rem);
+		font-size: var(--t-small);
+		color: var(--text-primary);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		pointer-events: none;
+	}
+	.savenote.error {
+		border-color: var(--c-danger);
 	}
 	.lesson-notice {
 		position: fixed;

@@ -558,6 +558,12 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							event: { type: 'power-depleted', vessel: Number(e.vessel) }
 						})
 					),
+					created.events.on('vessel:frozen', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'vessel-frozen', vessel: Number(e.vessel), reason: e.reason }
+						})
+					),
 					created.events.on('part:damaged', (e) =>
 						options.post({
 							kind: 'sim-event',

@@ -141,8 +141,10 @@
 		if (JSON.stringify(s.economy) !== JSON.stringify(economy)) economy = s.economy;
 		if (s.vessels.length !== vessels.length || s.sites?.some((x) => x.members?.length))
 			vessels = s.vessels;
-		// the 3D view is the primary site's (ADR 0125 point 7); the overlay shows the chosen site
-		const primary = s.sites?.[0];
+		// the 3D view draws the chosen site while it is on the home planet (the HQ or a branch,
+		// plan 248); a base on another body keeps the primary site's view (ADR 0125 point 7)
+		const primary =
+			(homeSelected ? s.sites?.find((x) => x.id === siteInfo.id) : undefined) ?? s.sites?.[0];
 		if (JSON.stringify(primary) !== JSON.stringify(shown)) {
 			shown = primary;
 			center?.setBuildings(siteViews(primary, buildingRegistry), primary?.roads ?? []);
@@ -242,9 +244,9 @@
 	}
 
 	function setBuild(kind: string | null): void {
-		// a base and a branch have no 3D view yet: the building goes on the first free cell near the
-		// centre (ADR 0125 point 7, ADR 0229 point 7); the view draws the HQ's site
-		if (kind && siteInfo.id !== allSites[0]?.id) {
+		// a base on another body has no 3D view yet: the building goes on the first free cell near
+		// the centre (ADR 0125 point 7); the HQ and the branches are drawn and placed by hand (plan 248)
+		if (kind && !homeSelected) {
 			const cell = firstFreeCell(siteInfo, site, buildingRegistry, kind, homeSelected);
 			if (!cell) {
 				const why = checkGhost(

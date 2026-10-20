@@ -344,6 +344,19 @@ export async function createScriptRunnerIn(
 							}
 						: { type: 'warp-to', time: p.time, factor: p.factor, vessel };
 				break;
+			case 'alarm-set':
+				candidate = {
+					type: 'add-alarm',
+					...(p.name === undefined ? {} : { name: p.name }),
+					kind: p.kind ?? 'time',
+					...(p.time === undefined ? {} : { time: p.time }),
+					...(p.lead === undefined ? {} : { lead: p.lead }),
+					...(p.kind !== undefined && p.kind !== 'time' ? { vessel } : {})
+				};
+				break;
+			case 'alarm-remove':
+				candidate = { type: 'remove-alarm', id: p.id };
+				break;
 			case 'target-set':
 				candidate = { type: 'target-set', vessel, target: p.target };
 				break;

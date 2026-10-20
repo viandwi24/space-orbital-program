@@ -5,7 +5,7 @@
  */
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import type { GhostTrack } from './replays/ghost-model';
-import { API_VERSION, designCost } from '@orbital/core';
+import { ABORT_SLOT, API_VERSION, customGroupId, designCost } from '@orbital/core';
 import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
 import { designStats } from './editor/stats';
 import type { ReplayFile } from '@orbital/core';
@@ -60,10 +60,12 @@ import {
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
+import { heatMarks } from './hud/heat-marks';
 import { modeForAction } from './hud/sas-model';
 import {
 	DEFAULT_KEYMAP,
 	chordIdOf,
+	chordKey,
 	keyIdOf,
 	type ActionId,
 	type Keymap,
@@ -388,6 +390,8 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Unsubscribes from the shared client on dispose. */
 	const offClient: Array<() => void> = [];
 	let renderer: Renderer | null = null;
+	let motion: MediaQueryList | null = null;
+	const onMotion = (e: MediaQueryListEvent): void => renderer?.setReducedMotion(e.matches);
 	let governor: QualityGovernor | null = null;
 	/** The governor's latest changes for Debug → Info (plan 201), at most `GOVERNOR_LOG`. */
 	const governorChanges: string[] = [];
@@ -589,6 +593,11 @@ export function startFlight(options: FlightOptions): Flight {
 	let throttle = 0;
 	/** The pitch trim sent last (plan 063): R and F step it. */
 	let trim = 0;
+	/** The yaw and roll trim sent last (plan 245, ADR 0233). */
+	let trimYaw = 0;
+	let trimRoll = 0;
+	/** The brakes are on because their key is held (plan 245). */
+	let brakesHeld = false;
 	let sentThrottle = 0;
 	/** The HUD's pad throttle the sim has not been sent yet (`DEFAULT_THROTTLE`). */
 	let padThrottle = false;
@@ -608,6 +617,40 @@ export function startFlight(options: FlightOptions): Flight {
 	let auto: { update(s: Snapshot): unknown; phase: string; note: string } | null = null;
 
 	const keymap = (): Keymap => options.keymap?.() ?? DEFAULT_KEYMAP;
+
+	/** Let go of held brakes (plan 245). */
+	function releaseBrakes(): void {
+		if (!brakesHeld) return;
+		brakesHeld = false;
+		if (vessel !== null)
+			void send({ type: 'action-group', vessel, group: 'stock.brakes', value: false });
+	}
+
+	/**
+	 * Abort (plan 245, ADR 0233): the engines are cut at once, then the design's Abort group (custom
+	 * slot 0) fires; with no part in it the toast says so and points at the Hangar.
+	 */
+	function abort(): void {
+		if (vessel === null) return;
+		throttle = sentThrottle = 0;
+		void send({ type: 'throttle', vessel, value: 0 });
+		void client
+			.dispatch({ type: 'action-group', vessel, group: customGroupId(ABORT_SLOT) })
+			.then((r) => {
+				hudCtl?.notice(
+					r.ok
+						? { kind: 'warning', title: 'Abort: engines cut, Abort group fired', key: 'abort' }
+						: {
+								kind: 'warning',
+								title: 'Abort: engines cut',
+								detail: /no part|unknown action group/.test(r.reason)
+									? 'The Abort group has no part: set it in the Hangar.'
+									: r.reason,
+								key: 'abort'
+							}
+				);
+			});
+	}
 	/** Any key of the action is down (held keys are key ids, `keybindings.ts`). */
 	const isHeld = (action: ActionId): boolean =>
 		keymap()
@@ -835,8 +878,43 @@ export function startFlight(options: FlightOptions): Flight {
 					void send({ type: 'trim', vessel, pitch: trim });
 				}
 				break;
+			case 'trimYawLeft':
+			case 'trimYawRight':
+			case 'trimRollLeft':
+			case 'trimRollRight': {
+				// yaw and roll trim in steps of 0.05, like the pitch trim (plan 245, ADR 0233)
+				if (vessel === null) break;
+				const step = action === 'trimYawRight' || action === 'trimRollRight' ? 0.05 : -0.05;
+				const next = (t: number): number =>
+					Math.max(-1, Math.min(1, Math.round((t + step) * 100) / 100));
+				if (action.startsWith('trimYaw')) {
+					trimYaw = next(trimYaw);
+					void send({ type: 'trim', vessel, yaw: trimYaw });
+				} else {
+					trimRoll = next(trimRoll);
+					void send({ type: 'trim', vessel, roll: trimRoll });
+				}
+				break;
+			}
+			case 'trimReset':
+				if (vessel !== null) {
+					trim = trimYaw = trimRoll = 0;
+					void send({ type: 'trim', vessel, pitch: 0, yaw: 0, roll: 0 });
+					hudCtl?.notice({ kind: 'info', title: 'Trim reset', key: 'trim' });
+				}
+				break;
 			case 'brakes':
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.brakes' });
+				break;
+			case 'brakesHold':
+				// on while the key is down; the key-up (or losing the window) lets go (plan 245)
+				if (vessel !== null && !brakesHeld) {
+					brakesHeld = true;
+					void send({ type: 'action-group', vessel, group: 'stock.brakes', value: true });
+				}
+				break;
+			case 'stopWarp':
+				setWarp(0);
 				break;
 			case 'rcsToggle':
 				toggleRcs();
@@ -849,8 +927,9 @@ export function startFlight(options: FlightOptions): Flight {
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.lights' });
 				break;
 			case 'abort':
-				// Abort is a later plan's; in the map it still removes the selected node (ADR 0061)
+				// in the map a selected node goes first (ADR 0061); otherwise the abort (plan 245, ADR 0233)
 				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
+				else abort();
 				break;
 			case 'map':
 				toggleMap();
@@ -916,11 +995,21 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
 		precision = e.getModifierState?.('CapsLock') ?? false;
+		if (
+			brakesHeld &&
+			keymap()
+				.keys('brakesHold')
+				.some((k) => chordKey(k) === keyIdOf(e) || chordKey(k) === e.code)
+		)
+			releaseBrakes();
 		held.delete(keyIdOf(e));
 		// A key released after Shift changed its character (`,` held, Shift pressed, `<` released): drop the code too.
 		held.delete(e.code);
 	};
-	const onBlur = (): void => held.clear();
+	const onBlur = (): void => {
+		held.clear();
+		releaseBrakes();
+	};
 
 	// One finger or the mouse orbits the camera; two fingers pinch to zoom (plan 053, ADR 0063).
 	const pointers = new Map<number, { x: number; y: number }>();
@@ -1269,6 +1358,10 @@ export function startFlight(options: FlightOptions): Flight {
 			const frameData = hudCtl.frame();
 			frameData.maneuver = maneuverCtl?.frame() ?? null;
 			frameData.target = targetView?.frame() ?? null;
+			frameData.heat =
+				renderer && snap && vessel !== null && !renderer.isMapView
+					? heatMarks(snap, vessel, (p) => renderer!.project(p))
+					: null;
 			options.onFrame?.(frameData);
 			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
 		}
@@ -1499,6 +1592,10 @@ export function startFlight(options: FlightOptions): Flight {
 				...(c.terrain ? { terrain: c.terrain } : {}),
 				...(c.launchSite ? { launchSite: c.launchSite } : {})
 			});
+			// no bright flashes while the system asks for reduced motion (plan 246)
+			motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
+			renderer.setReducedMotion(motion?.matches ?? false);
+			motion?.addEventListener('change', onMotion);
 			renderer.setCameraMode(cameraMode);
 			const draw = renderer;
 			maneuverCtl = createManeuverController({
@@ -1934,6 +2031,7 @@ export function startFlight(options: FlightOptions): Flight {
 			director.stop();
 			cancelAnimationFrame(raf);
 			observer.disconnect();
+			motion?.removeEventListener('change', onMotion);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);

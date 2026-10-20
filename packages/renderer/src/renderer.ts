@@ -222,6 +222,8 @@ export interface Renderer {
 	/** Switch the graphics preset at runtime (shadows, post chain, sample counts, vegetation). */
 	setPreset(preset: GraphicsPreset): void;
 	readonly preset: GraphicsPreset;
+	/** Drop the bright flashes of explosions and separations (plan 246: prefers-reduced-motion). */
+	setReducedMotion(on: boolean): void;
 	/**
 	 * Fraction (0.4 to 1) of the preset's drawing-buffer size the scene renders at; the browser scales
 	 * the canvas up. The quality governor's cheap knob (plan 039, ADR 0053): no shader recompile.
@@ -618,6 +620,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			post.setSettings(PRESETS[next]);
 			applySize();
 		},
+		setReducedMotion: (on) => model.setReducedMotion(on),
 		get preset() {
 			return preset;
 		},

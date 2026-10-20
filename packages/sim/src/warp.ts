@@ -17,6 +17,7 @@ import { acquireFrame, enterFlight, leaveFlight, refreshPose } from './frames.ts
 import { qConj, qMul, qNormalize, qRotate } from './math.ts';
 import { toRails, toSurfaceRails } from './modes.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
+import { stopWarp } from './warp-stop.ts';
 import { limitingVessels, warpLimit, clampText, thrusting } from './warp-limits.ts';
 
 /** How long before an apsis or a sphere change a warp-to stops, s (ADR 0202 point 6). */
@@ -183,6 +184,10 @@ export function holdWarpLimit(core: SimCore): void {
 	const limit = warpLimit(core);
 	if (limit.max < core.warp) {
 		const reason = limit.reason ?? 'the warp limit';
+		if (limit.reason === 'in the atmosphere') {
+			stopWarp(core, 'a vessel entered the atmosphere'); // to 1×: the player must see the entry
+			return;
+		}
 		core.warp = Math.max(1, limit.max);
 		if (core.warp <= PHYSICS_WARP_MAX) core.warpTarget = null;
 		core.events.emit('warp:stopped', { reason });

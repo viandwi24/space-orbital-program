@@ -85,6 +85,8 @@ import {
 	radialNodeOf,
 	radialOf,
 	radialTarget,
+	surfaceTarget,
+	rootOf,
 	redo,
 	reindex,
 	removeEmptyStage,
@@ -137,6 +139,12 @@ export type Armed =
 	/** An Alt-click copy of a subtree on the cursor (plan 217); dropping it on the catalogue discards it. */
 	| { kind: 'copy'; assembly: VesselDesign; title: string };
 
+/** A face whose normal is at least this far from horizontal is a top, a bottom or a slope (plan 244): a surface link, not a radial site. */
+const SLOPE_NORMAL_Y = 0.25;
+/** Screen radii (CSS pixels) of a ring's glow and of its snap (plan 244). */
+const GLOW_PX = 80;
+const SNAP_PX = 36;
+
 /** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
 const TURN_STEP = Math.PI / 2;
 const TURN_FINE = (5 * Math.PI) / 180;
@@ -188,6 +196,10 @@ export class VabController {
 	angleSnap = $state(true);
 	radialAngle = $state(0);
 	pointerTarget = $state.raw<AttachTarget | null>(null);
+	/** Where the held part floats while no site is under the pointer (plan 244). */
+	freePoint = $state.raw<[number, number, number] | null>(null);
+	/** Targets whose rings glow because the pointer is near them (plan 244). */
+	nearTargets = $state.raw<ReadonlySet<number>>(new Set());
 	/** While a connector is armed: the spot under the pointer, as a point of the main group and as an end of a link. */
 	connectPointer = $state.raw<{ point: [number, number, number]; end: ConnectorEnd | null } | null>(
 		null
@@ -387,6 +399,8 @@ export class VabController {
 			targets: this.targets,
 			cursor: this.held ? this.active : null,
 			pointer: this.pointerTarget,
+			free: this.armed?.kind === 'connect' ? null : this.freePoint,
+			near: this.nearTargets,
 			radialMarkers: this.keyboardRadial,
 			symmetry: this.armed?.kind === 'carry' ? this.copies : this.symmetrySpec,
 			followers: this.shown.followers,
@@ -933,6 +947,8 @@ export class VabController {
 
 	disarm(): void {
 		this.armed = null;
+		this.freePoint = null;
+		this.nearTargets = new Set();
 		this.hoverNode = null;
 		this.pointerTarget = null;
 		this.connectPointer = null;
@@ -1067,6 +1083,28 @@ export class VabController {
 		});
 		this.hoverNode = null;
 		this.pointerTarget = null;
+	}
+
+	/**
+	 * Where the held part lands on the part under the pointer (plan 244, ADR 0235): the radial site on a
+	 * side for a part with a side node, else a surface link at the hit point and face normal (the top
+	 * and bottom faces, a cone's slope, a side for a part with no side node). Null with Alt held (the
+	 * nodes only), or off a part.
+	 */
+	private siteFromHit(hit: ReturnType<VabView['pick']>, nodesOnly: boolean): AttachTarget | null {
+		const held = this.held;
+		if (nodesOnly || !held || hit?.kind !== 'part') return null;
+		const normal = hit.normal;
+		const slanted = normal !== undefined && Math.abs(normal[1]) >= SLOPE_NORMAL_Y;
+		if (this.radialCapable && !slanted) {
+			const side = this.radialFromHit(hit, false);
+			if (side) return side;
+		}
+		if (!normal) return null;
+		return surfaceTarget(this.shown.design, held, this.lookup, Number(hit.key), {
+			point: { x: hit.point[0], y: hit.point[1], z: hit.point[2] },
+			normal
+		});
 	}
 
 	/** The radial site under a part hit while a radial part is armed, snapped; null elsewhere. */
@@ -1595,7 +1633,18 @@ export class VabController {
 						? this.hoverNode
 						: null;
 			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
-			this.pointerTarget = this.radialFromHit(hit, e.altKey);
+			this.pointerTarget = this.siteFromHit(hit, e.altKey);
+			// a ring near the pointer glows, and the nearest one in snap range wins over a face
+			const near = this.ringsNear(e);
+			this.nearTargets = near.glow;
+			if (near.snap !== null) {
+				this.hoverNode = near.snap;
+				this.pointerTarget = null;
+			}
+			this.freePoint =
+				this.pointerTarget || this.hoverNode !== null || hit?.kind === 'ghost'
+					? null
+					: (this.view?.cursorPoint(e.clientX, e.clientY) ?? null);
 			this.keyboardRadial = false;
 			this.view?.setHover(null);
 		} else {
@@ -1633,10 +1682,20 @@ export class VabController {
 			if (end) this.pickConnectorEnd(end);
 			else if (hit?.kind === 'part') this.notice = 'A strut or fuel line joins two ordinary parts.';
 		} else if (this.armed) {
-			const site = this.radialFromHit(hit, e.altKey);
+			const site = this.siteFromHit(hit, e.altKey);
+			const snap = this.ringsNear(e).snap;
 			if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
+			else if (snap !== null) this.place(snap);
 			else if (site) this.placeAt(site);
 			else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
+		} else if (hit?.kind === 'part' && d.shift) {
+			// Shift-click picks up the whole vessel (or loose assembly) the part belongs to (plan 244)
+			const at = Number(hit.key);
+			const whole = [this.editor.design, ...this.editor.loose].find((a) =>
+				a.parts.some((p) => p.index === at)
+			);
+			this.selected = whole ? rootOf(whole) : at;
+			this.carrySelected();
 		} else if (hit?.kind === 'part') {
 			this.selected = Number(hit.key);
 			this.say(`Selected ${this.titleOfPart(this.selected)}.`);
@@ -1652,8 +1711,19 @@ export class VabController {
 	pointerLeave = (): void => {
 		this.hoverNode = null;
 		this.pointerTarget = null;
+		this.freePoint = null;
+		this.nearTargets = new Set();
 		this.view?.setHover(null);
 	};
+	/** Rings within reach of the pointer: those that glow and the one a click would snap to (plan 244). */
+	private ringsNear(e: PointerEvent): { glow: Set<number>; snap: number | null } {
+		const r = this.view?.nodesNearPointer(e.clientX, e.clientY, GLOW_PX, SNAP_PX);
+		const index = (key: string): number => Number(key.slice(1));
+		return {
+			glow: new Set((r?.glow ?? []).map(index)),
+			snap: r?.snap != null ? index(r.snap) : null
+		};
+	}
 	/**
 	 * A dragged part let go (plan 217): over the catalogue it is deleted; over a ring or a side it is
 	 * placed; anywhere else it stays on the floor as a loose assembly. Each is one undo step.
@@ -1673,8 +1743,10 @@ export class VabController {
 			return;
 		}
 		const hit = this.pick(e);
-		const site = this.radialFromHit(hit, e.altKey);
+		const site = this.siteFromHit(hit, e.altKey);
+		const snap = this.ringsNear(e).snap;
 		if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
+		else if (snap !== null) this.place(snap);
 		else if (site) this.placeAt(site);
 		else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
 		else {
@@ -1702,6 +1774,7 @@ export class VabController {
 	private cycle(step: number): void {
 		if (this.held) {
 			this.keyboardRadial = true;
+			this.freePoint = null;
 			if (this.targets.length === 0) return;
 			this.cursor = ((this.cursor ?? 0) + step + this.targets.length) % this.targets.length;
 			this.hoverNode = null;

@@ -3,6 +3,7 @@
  * validated by core's `canPlace`, and the snapshot view. The site list lives in the world info.
  */
 import { cheatOn } from './cheats.ts';
+import { stopWarp } from './warp-stop.ts';
 import {
 	canPlace,
 	cloneData,
@@ -196,6 +197,7 @@ export function buildingsTick(core: SimCore, day: number): boolean {
 				level: b.state === 'upgrading' ? b.level + 1 : b.level
 			});
 		}
+		stopWarp(core, due.length === 1 ? 'construction is done' : 'constructions are done');
 	}
 	if (economyOn(core) && day > 0 && day % UPKEEP_EVERY_DAYS === 0) {
 		const k = costMultiplier(core);

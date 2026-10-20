@@ -90,4 +90,13 @@ describe('carry (plan 217)', () => {
 		const a = withRootTilt(singlePart('stock.fin', 0), { x: 0, y: 0, z: 0 });
 		expect('tilt' in a.parts[0]!).toBe(false);
 	});
+
+	it('carries the whole vessel from its root (Shift-click, plan 244)', () => {
+		const s = stackOnPad();
+		const root = s.design.parts.find((p) => p.parent === null)!.index;
+		const plan = planCarry(s, root);
+		expect(plan).not.toBeNull();
+		expect(plan!.design.parts).toHaveLength(0);
+		expect(plan!.held.parts).toHaveLength(s.design.parts.length);
+	});
 });
