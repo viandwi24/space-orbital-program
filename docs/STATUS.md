@@ -208,6 +208,8 @@
 | 258 | [Map view like KSP: active and inactive orbit styles, vessel icons by type, comms links, and show/hide filters](plans/258-map-view-ksp-style.md) | done | Worker A | ADR 0242: white active, amber target, grey other orbits; icons by vessel type; link colours; a remembered filter bar (layers and types). Unit tests only; owner approval of the look pending. |
 | 259 | [Space Center building UI: research building-game interfaces, then labels that fit the scene, a proper building panel and a tidy right panel](plans/259-space-center-building-ui.md) | done | Worker B | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 | 261 | [WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset](plans/261-webgpu-renderer-migration.md) | draft | | Owner's request 2026-10-20 after the graphics research: quality first, on its own branch `gfx/261-webgpu`, manual test before merge; 55–95 agent hours |
+| 262 | [Throttle climbs back to 100 % by itself in the Landing lesson, even after X](plans/262-lesson-throttle-runaway.md) | ready | Worker C | Owner report 2026-10-21. |
+| 263 | [Black slivers through the Moon's ground near the surface at some view angles](plans/263-moon-terrain-black-slivers.md) | ready | Worker A | Owner report 2026-10-21. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

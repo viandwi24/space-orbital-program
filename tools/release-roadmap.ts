@@ -81,7 +81,9 @@ const TRACK: Record<string, string> = {
 	'256': 'UI',
 	'257': 'FIX',
 	'258': 'NAV',
-	'259': 'SC'
+	'259': 'SC',
+	'262': 'FIX',
+	'263': 'FIX'
 };
 
 interface Plan {
