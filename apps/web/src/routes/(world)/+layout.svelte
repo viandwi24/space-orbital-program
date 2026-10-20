@@ -32,6 +32,7 @@
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import WorldSettingsDialog from '../../lib/worlds/WorldSettingsDialog.svelte';
+	import { scriptIsActive } from '../../lib/script-state';
 	import {
 		backupFileName,
 		exportBackup,
@@ -95,6 +96,13 @@
 	let savedAt = $state<number | null>(null);
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox' });
 	let settingsOpen = $state(false);
+	/** A script runs in the world (plan 239): outside Flight a sign offers to go back or stop it. */
+	let scriptRunning = $state(false);
+	function stopScript(): void {
+		worldSession.client?.stopScript();
+		worldSession.scriptSandbox()?.close();
+		scriptRunning = false;
+	}
 	// the backup reminder (plan 230): after the first hour of play, then weekly; "later" waits a day
 	let backupDue = $state(false);
 	$effect(() => {
@@ -347,6 +355,13 @@
 						void saves.worldsService().then((x) => x.markUsedCheats(worldId));
 					}
 				}),
+				// a script keeps flying when the player leaves Flight (plan 239, ADR 0232)
+				client.onScript((e) => {
+					if (e.kind !== 'script-status') return;
+					scriptRunning = scriptIsActive(e.status);
+					// the script ended: the iframe goes, and with it a Worker still spinning (ADR 0038)
+					if (!scriptRunning) worldSession.scriptSandbox()?.close();
+				}),
 				client.onSimEvent((e) => {
 					if (e.type === 'vessel-destroyed')
 						bell.push({ source: 'sim', text: `Vessel lost: ${e.reason}` });
@@ -504,6 +519,17 @@
 		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
 	{/if}
 	<SettingsDialog open={settingsOpen} onclose={() => (settingsOpen = false)} />
+	{#if scriptRunning && local(page.url.pathname) !== '/flight'}
+		<div class="script-sign" role="status" data-testid="script-running">
+			<span>A script is flying your vessel.</span>
+			<button
+				type="button"
+				onclick={() => void goto(resolve('/(world)/flight'))}
+				data-testid="script-back">Back to Flight</button
+			>
+			<button type="button" onclick={stopScript} data-testid="script-stop">Stop</button>
+		</div>
+	{/if}
 	{#if backupDue}
 		<div class="backup" role="status" data-testid="backup-prompt">
 			<span>Back up your worlds: one file keeps every world and save safe from the browser.</span>
@@ -546,6 +572,32 @@
 		margin: 0;
 		font-weight: 300;
 		color: var(--text-primary);
+	}
+	.script-sign {
+		position: fixed;
+		left: 50%;
+		top: calc(5rem + var(--safe-top, 0px));
+		transform: translateX(-50%);
+		z-index: 45;
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		padding: var(--s-2) var(--s-3);
+		font-size: var(--t-small);
+		color: var(--text-primary);
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-left: 3px solid var(--accent-text);
+		border-radius: var(--radius-card);
+	}
+	.script-sign button {
+		padding: 0.25rem 0.625rem;
+		font: inherit;
+		color: var(--text-body);
+		background: rgb(255 255 255 / 0.08);
+		border: 0;
+		border-radius: var(--radius-row);
+		cursor: pointer;
 	}
 	.backup {
 		position: fixed;

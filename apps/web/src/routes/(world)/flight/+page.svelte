@@ -741,7 +741,8 @@
 	): () => void {
 		designName = design.name;
 		source = loadScript(designName) ?? '';
-		const scriptSandbox = startScriptSandbox();
+		// the world's sandbox (plan 239): a script keeps running when this page goes
+		const scriptSandbox = worldSession.scriptSandbox() ?? startScriptSandbox();
 		const offSandbox = scriptSandbox.onStatus((s) => (sandbox = s));
 		// The syntax check uses a sandbox of its own, opened on the first check (plan 058, ADR 0085).
 		const checkSandbox = startScriptSandbox();

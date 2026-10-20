@@ -59,3 +59,37 @@ describe('world session', () => {
 		expect(started).toHaveLength(3);
 	});
 });
+
+describe('the script sandbox lives with the world (plan 239)', () => {
+	it('one sandbox for the world, kept while pages come and go, closed with a stop when the world ends', async () => {
+		const posted: unknown[] = [];
+		let closes = 0;
+		let made = 0;
+		const session = createWorldSession(
+			() =>
+				createSimClient({
+					postMessage: (m: unknown) => void posted.push(m),
+					onmessage: null,
+					onerror: null,
+					terminate: () => {}
+				} as WorkerLike),
+			() => {
+				made++;
+				return {
+					open: async () => new MessageChannel().port1,
+					close: () => void closes++,
+					status: { state: 'none', reports: [], contained: false },
+					onStatus: () => () => {}
+				};
+			}
+		);
+		await session.acquire('w-1', async () => ({}));
+		const a = session.scriptSandbox();
+		expect(session.scriptSandbox()).toBe(a); // a page leaving and coming back finds the same one
+		expect(made).toBe(1);
+		expect(closes).toBe(0);
+		session.end();
+		expect(closes).toBe(1);
+		expect(posted.some((m) => (m as { kind?: string }).kind === 'script-stop')).toBe(true);
+	});
+});
