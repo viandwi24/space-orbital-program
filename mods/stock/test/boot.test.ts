@@ -38,6 +38,7 @@ describe('stock boots through the loader', () => {
 			'stock.fin',
 			'stock.flag',
 			'stock.heat-shield',
+			'stock.helmet',
 			'stock.jetpack',
 			'stock.landing-leg',
 			'stock.launch-clamp',

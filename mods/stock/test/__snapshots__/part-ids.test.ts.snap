@@ -1191,6 +1191,23 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         },
       ],
       [
+        "stock.helmet",
+        undefined,
+      ],
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.9,
+            0,
+          ],
+          "deployHeight": 300,
+          "fullDragArea": 55,
+          "semiDragArea": 1.2,
+        },
+      ],
+      [
         "stock.experiment",
         {
           "experiment": "stock.surface-sample",
