@@ -35,7 +35,7 @@ async function warpUp(page: Page): Promise<void> {
 		.first()
 		.click({ position: { x: 10, y: 10 } });
 	for (let i = 0; i < 6; i++) await page.keyboard.press('.');
-	await expect(page.getByTestId('hud-warp')).not.toHaveText('1x', { timeout: 10_000 });
+	await expect(page.getByTestId('hud-warp')).not.toHaveText('1×', { timeout: 10_000 });
 }
 
 test('typed delta-v on the second node, warp to AN, and an alarm that stops the warp', async ({
@@ -93,8 +93,8 @@ test('typed delta-v on the second node, warp to AN, and an alarm that stops the 
 	expect(anTime).toBeGreaterThan(t0);
 	await page.getByTestId('mark-ascending').dispatchEvent('click');
 	await page.getByTestId('mark-ascending-warp').dispatchEvent('click');
-	await expect(page.getByTestId('hud-warp')).not.toHaveText('1x', { timeout: 10_000 });
-	await expect(page.getByTestId('hud-warp')).toHaveText('1x', { timeout: 120_000 });
+	await expect(page.getByTestId('hud-warp')).not.toHaveText('1×', { timeout: 10_000 });
+	await expect(page.getByTestId('hud-warp')).toHaveText('1×', { timeout: 120_000 });
 	const atAn = await simTime(page);
 	expect(atAn).toBeLessThan(anTime);
 	expect(anTime - atAn).toBeLessThan(25); // the 15 s margin, and the frames since
@@ -103,7 +103,7 @@ test('typed delta-v on the second node, warp to AN, and an alarm that stops the 
 	const t1 = await simTime(page);
 	await send(page, { type: 'add-alarm', name: 'Five minutes', time: t1 + 300 });
 	await warpUp(page);
-	await expect(page.getByTestId('hud-warp')).toHaveText('1x', { timeout: 60_000 });
+	await expect(page.getByTestId('hud-warp')).toHaveText('1×', { timeout: 60_000 });
 	const stopped = await simTime(page);
 	expect(stopped).toBeLessThanOrEqual(t1 + 300 + 1);
 	expect(stopped).toBeGreaterThan(t1 + 250);
