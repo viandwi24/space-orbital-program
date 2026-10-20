@@ -40,8 +40,12 @@ test('recover on the pad in a Career world credits the funds', async ({ page }) 
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(funds).toBeVisible({ timeout: 60_000 });
-	// the second launch pays the vessel's price again (its value at the pad, credit / 0.98)
+	// the second launch pays the vessel's price again: on the pad the recovery factor is 100 % (plan 223), so
+	// its value at the pad is the credit and the funds come back to where they were
 	const after = fundsOf(await funds.innerText());
-	expect(Math.abs(after - (before + credit - credit / 0.98))).toBeLessThanOrEqual(2);
+	expect(
+		Math.abs(after - before),
+		`before ${before} credit ${credit} after ${after}`
+	).toBeLessThanOrEqual(2);
 	expect(errors).toEqual([]);
 });
