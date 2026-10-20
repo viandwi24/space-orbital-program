@@ -6,7 +6,7 @@
 
 **Visual:** [`release-roadmap.html`](release-roadmap.html). Open it in a browser to see the dependency graph, the waves, the critical path and the plan details.
 
-**Plans:** 200–236 (233–236 added 2026-10-19 from the owner's manual test, ADR 0222). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
+**Plans:** 200–239 (233–236 added 2026-10-19 from the owner's manual test, ADR 0222; 237–239 added 2026-10-20 from the release audit, bugs fixed before v1.0.0). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
 
 ## Machines and queues (since 2026-10-19)
 
@@ -45,7 +45,8 @@ Claims are annotated tags (`claim/NNN` with the worker's name); the visual page 
 | 3 | **210** propulsion and structure pack (L), **211** RCS and monopropellant (M), **213** tank transfer and flow (S), **223** fleet management (M), **224** navigation tools (L), **225** EVA v2 (L), **228** tooltips and glossary (M), **230** rules and save safety (M) |
 | 4 | **214** vessel panel v2 (L), **222** docking (L) |
 | 5 | **218** Hangar inspector, groups, report (L), **229** lessons past the first orbit (L), **231** career content for new parts (M) |
-| 6 | **232** release QA and launch (M) |
+| 6 | **237** audit bug fixes (S), **238** Hangar camera and one top bar (M), **239** scripts keep running off Flight (M, after 237 in C's queue) |
+| 7 | **232** release QA and launch (M): the `v1.0.0` tag waits for 237–239 |
 
 **Critical path** (the longest dependency chain):
 
