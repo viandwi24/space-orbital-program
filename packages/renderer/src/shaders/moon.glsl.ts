@@ -414,6 +414,10 @@ float shadowSample(sampler2D t, float texels, vec2 st) {
 	int m = int(texels) - 1;
 	return mix(mix(shadowFetch(t, m, i), shadowFetch(t, m, i + ivec2(1, 0)), fr.x), mix(shadowFetch(t, m, i + ivec2(0, 1)), shadowFetch(t, m, i + ivec2(1, 1)), fr.x), fr.y);
 }
+/* A phase in [0, 1) per pixel (interleaved gradient noise): the march's samples sit at a different place along the ray in each pixel, so a ridge thinner than the spacing is caught by a share of the pixels in its shadow band and does not make thin stripes (plan 263). */
+float shadowPhase() {
+	return fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+}
 float moonSunVisibility(vec2 st, float h0, float lift) {
 	vec3 n0 = normalize(uC + uK * (st.x * uE + st.y * uF));
 	float mu = dot(n0, uSunBody);
@@ -424,9 +428,10 @@ float moonSunVisibility(vec2 st, float h0, float lift) {
 	float r0 = uRadius + hh;
 	float len = clamp(${f(M.relief)} / max(mu, ${f(M.minSine)}), ${f(M.minLength)}, ${f(M.maxDistance)});
 	float vis = 1.0;
+	float phase = shadowPhase();
 	for (int i = 1; i <= ${M.steps}; i++) {
 		if (i > uShadowSteps) break;
-		float fi = float(i) / float(uShadowSteps);
+		float fi = (float(i) - phase) / float(uShadowSteps);
 		float t = ${f(M.minDistance)} + (len - ${f(M.minDistance)}) * fi * fi;
 		float d = hh * (2.0 * uRadius + hh) + 2.0 * t * r0 * mu + t * t;
 		vec3 q = r0 * n0 + t * uSunBody;

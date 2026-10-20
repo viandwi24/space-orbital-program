@@ -61,13 +61,17 @@ export function shadowRayLength(mu: number, s: ShadowMarch = SHADOW_MARCH): numb
 	return clamp(s.relief / Math.max(mu, s.minSine), s.minLength, s.maxDistance);
 }
 
-/** Distance of step `i` (1-based of `steps`) of a ray of length `len`, m. */
+/**
+ * Distance of step `i` (1-based of `steps`) of a ray of length `len`, m. `phase` in [0, 1) moves the
+ * sample back within its step (the shader gives each pixel its own, plan 263); 0 is the even spacing.
+ */
 export function shadowStepDistance(
 	i: number,
 	len: number,
-	steps: number = SHADOW_MARCH.steps
+	steps: number = SHADOW_MARCH.steps,
+	phase = 0
 ): number {
-	const f = i / steps;
+	const f = (i - phase) / steps;
 	return SHADOW_MARCH.minDistance + (len - SHADOW_MARCH.minDistance) * f * f; // the same for both marches
 }
 
@@ -87,6 +91,8 @@ export interface ShadowInput {
 	steps?: number;
 	/** The march's constants (default the craters', `SHADOW_MARCH`). */
 	march?: ShadowMarch;
+	/** Where in its step each sample sits, [0, 1): the shader's per-pixel phase (plan 263); default 0. */
+	phase?: number;
 }
 
 /** Sun visibility in 0 (fully shadowed) to 1 (fully lit) at a point of the ground or just above it. */
@@ -103,7 +109,7 @@ export function terrainSunVisibility(input: ShadowInput): number {
 	let vis = 1;
 	const steps = input.steps ?? s.steps;
 	for (let i = 1; i <= steps; i++) {
-		const t = shadowStepDistance(i, len, steps);
+		const t = shadowStepDistance(i, len, steps, input.phase ?? 0);
 		// |Q|^2 - R^2 written without subtracting two large numbers (Q = r0 n0 + t sun).
 		const d = hh * (2 * R + hh) + 2 * t * r0 * mu + t * t;
 		const q = vec(
