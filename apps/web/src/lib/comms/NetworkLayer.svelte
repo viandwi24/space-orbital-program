@@ -33,6 +33,10 @@
 	line.full {
 		stroke: var(--ok, #7bd88f);
 	}
+	/* CommNet's colours: green full, yellow weak, orange partial (plan 258) */
+	line.weak {
+		stroke: #facc15;
+	}
 	line.partial {
 		stroke: var(--warn, #f0b35a);
 	}

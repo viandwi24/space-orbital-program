@@ -9,13 +9,16 @@
 		orbit,
 		now = 0,
 		onwarp,
-		onalarm
+		onalarm,
+		labels = true
 	}: {
 		orbit: OrbitInfo | null;
 		/** Sim time, for the countdowns of the node and planned markers. */
 		now?: number;
 		onwarp?: (mark: NavMark) => void;
 		onalarm?: (mark: NavMark) => void;
+		/** Show the names and times at the apsides and nodes (the map filter, plan 258). */
+		labels?: boolean;
 	} = $props();
 	let ap = $state<HTMLElement>();
 	let pe = $state<HTMLElement>();
@@ -154,7 +157,7 @@
 	{/if}
 {/snippet}
 
-<div class="layer">
+<div class="layer" class:nolabels={!labels}>
 	<div class="m ap" bind:this={ap}>
 		<span class="dot"></span>
 		<span class="label"
@@ -200,6 +203,9 @@
 		inset: 0;
 		overflow: hidden;
 		pointer-events: none;
+	}
+	.nolabels .label {
+		display: none;
 	}
 	.m {
 		position: absolute;

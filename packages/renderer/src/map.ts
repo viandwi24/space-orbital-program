@@ -6,7 +6,9 @@ import type { Vec3 } from '@orbital/core';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { Mesh, MeshBasicMaterial, SphereGeometry } from 'three';
+import { CanvasTexture, SRGBColorSpace, Sprite, SpriteMaterial, type Texture } from 'three';
+import type { VesselType } from '@orbital/core';
+import { iconPath } from './map-style.ts';
 import { sampleOrbit, type OrbitalElements } from './orbit-line.ts';
 
 const orbitKey = (el: OrbitalElements): string =>
@@ -68,6 +70,11 @@ export class OrbitLine {
 		this.material.color.setHex(color);
 	}
 
+	/** Line width in px (the active orbit is drawn wider). */
+	setWidth(width: number): void {
+		this.material.linewidth = width;
+	}
+
 	/** `LineMaterial.linewidth` is in pixels and needs the viewport size. */
 	setResolution(width: number, height: number): void {
 		this.material.resolution.set(width, height);
@@ -79,26 +86,71 @@ export class OrbitLine {
 	}
 }
 
-const markerGeometry = new SphereGeometry(1, 16, 8);
+const iconTextures = new Map<VesselType | 'none', Texture | null>();
+const ICON_SIZE = 64;
 
-/** A vessel dot sized by the host each frame (`setScale`) so it stays visible from any distance. */
+/** The white glyph of a type on a transparent square (tinted by the sprite); null without a DOM. */
+function iconTexture(type: VesselType | undefined): Texture | null {
+	const key = type ?? 'none';
+	if (iconTextures.has(key)) return iconTextures.get(key)!;
+	let texture: Texture | null = null;
+	if (typeof document !== 'undefined' && typeof Path2D !== 'undefined') {
+		const canvas = document.createElement('canvas');
+		canvas.width = canvas.height = ICON_SIZE;
+		const g = canvas.getContext('2d');
+		if (g) {
+			const k = ICON_SIZE / 24;
+			g.scale(k, k);
+			g.lineCap = 'round';
+			g.lineJoin = 'round';
+			const path = new Path2D(iconPath(type));
+			// a dark outline under a white stroke keeps the glyph readable over a bright planet
+			g.strokeStyle = 'rgba(8, 10, 14, 0.85)';
+			g.lineWidth = 3.6;
+			g.stroke(path);
+			g.strokeStyle = '#ffffff';
+			g.lineWidth = 1.9;
+			g.stroke(path);
+			texture = new CanvasTexture(canvas);
+			texture.colorSpace = SRGBColorSpace;
+		}
+	}
+	iconTextures.set(key, texture);
+	return texture;
+}
+
+/**
+ * A vessel on the map: the icon of its type (plan 258), sized by the host each frame so it stays
+ * visible from any distance. Without a DOM (tests) it is a plain tinted square.
+ */
 export class VesselMarker {
-	readonly object: Mesh;
-	private readonly material: MeshBasicMaterial;
+	readonly object: Sprite;
+	private readonly material: SpriteMaterial;
+	private type: VesselType | undefined;
 
 	constructor(color = 0xffd54f) {
-		this.material = new MeshBasicMaterial({ color });
-		this.object = new Mesh(markerGeometry, this.material);
+		this.material = new SpriteMaterial({ color, depthTest: false, transparent: true });
+		this.material.map = iconTexture(undefined);
+		this.object = new Sprite(this.material);
+		this.object.renderOrder = 10;
 		this.object.visible = false;
+	}
+
+	setType(type: VesselType | undefined): void {
+		if (type === this.type && this.material.map !== undefined) return;
+		this.type = type;
+		this.material.map = iconTexture(type);
+		this.material.needsUpdate = true;
 	}
 
 	setColor(color: number): void {
 		this.material.color.setHex(color);
 	}
 
+	/** `radius` is the old dot's radius; the icon is a little wider than the dot was. */
 	place(position: Vec3, radius: number): void {
 		this.object.position.set(position.x, position.y, position.z);
-		this.object.scale.setScalar(radius);
+		this.object.scale.setScalar(radius * 2.6);
 	}
 
 	dispose(): void {

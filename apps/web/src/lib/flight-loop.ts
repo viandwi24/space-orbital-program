@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import type { GhostTrack } from './replays/ghost-model';
 import { ABORT_SLOT, API_VERSION, customGroupId, designCost } from '@orbital/core';
@@ -282,6 +283,8 @@ export interface Flight {
 	/** Remove the earliest maneuver node. */
 	removeNode(): void;
 	toggleMap(): void;
+	/** The map's filters (plan 258): orbit lines and the vessels of the types that are off. */
+	setMapFilters(filters: MapFilters): void;
 	/** The flight camera (plan 226): the next mode (V), the mode now, a part to look at or none. */
 	cycleCameraMode(): void;
 	readonly cameraMode: CameraMode;
@@ -1298,6 +1301,25 @@ export function startFlight(options: FlightOptions): Flight {
 		if (command) void send(command);
 	}
 
+	/** The map's filters (plan 258) as the renderer takes them: orbits, the vessels hidden, the target. */
+	let mapFilters: MapFilters = defaultFilters();
+	let mapLayersDirty = true;
+	function applyMapLayers(s: Snapshot): void {
+		mapLayersDirty = false;
+		const flown = vessel !== null ? Number(vessel) : null;
+		const me = s.vessels.find((v) => Number(v.id) === flown);
+		const target = me?.target?.kind === 'vessel' ? Number(me.target.id) : null;
+		renderer?.setMapLayers({
+			orbits: mapFilters.orbits,
+			hidden: hiddenVessels(
+				mapFilters,
+				s.vessels.map((v) => ({ id: Number(v.id), type: v.type })),
+				flown
+			),
+			target
+		});
+	}
+
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
 		director.cue(hud.map ? 'map-open' : 'map-close');
@@ -1411,8 +1433,9 @@ export function startFlight(options: FlightOptions): Flight {
 		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {
 			renderer.update(snap);
+			applyMapLayers(snap);
 			dirty = false;
-		}
+		} else if (renderer && snap && mapLayersDirty) applyMapLayers(snap);
 		updateMapPath(now);
 		targetView?.update(now);
 		renderer?.render();
@@ -2053,6 +2076,10 @@ export function startFlight(options: FlightOptions): Flight {
 			hudCtl?.setDeltaVView(view);
 		},
 		toggleMap,
+		setMapFilters(f) {
+			mapFilters = f;
+			mapLayersDirty = true;
+		},
 		cycleCameraMode,
 		get cameraMode() {
 			return cameraMode;

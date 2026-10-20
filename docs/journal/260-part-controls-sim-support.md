@@ -1,6 +1,6 @@
 # 260 — Part controls that need sim support
 
-**Plan:** [plans/260-part-controls-sim-support.md](../plans/260-part-controls-sim-support.md) · **Session:** Worker C, 2026-10-21 · **ADRs:** [0242](../decisions/0242-wheel-motors-sas-level-and-taking-samples.md)
+**Plan:** [plans/260-part-controls-sim-support.md](../plans/260-part-controls-sim-support.md) · **Session:** Worker C, 2026-10-21 · **ADRs:** [0243](../decisions/0243-wheel-motors-sas-level-and-taking-samples.md)
 
 ## What was done
 

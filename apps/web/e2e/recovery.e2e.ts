@@ -24,7 +24,8 @@ test('recover on the pad in a Career world credits the funds', async ({ page }) 
 	const before = fundsOf(await funds.innerText());
 	await recover.click();
 	const lines = page.getByTestId('recover-lines');
-	await expect(lines).toContainText('98 %');
+	// on the pad the factor is 100 % (plan 223's distance curve; 98 % is the Space Center's)
+	await expect(lines).toContainText('100 %');
 	const credit = fundsOf(await lines.locator('dd').last().innerText());
 	expect(credit).toBeGreaterThan(0);
 	await page.getByTestId('recover-confirm').click();

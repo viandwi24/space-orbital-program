@@ -48,4 +48,4 @@ The three controls plans 241 and 254 left because each needs a new sim feature, 
 ## Log
 
 - 2026-10-20 — Created by Worker C while finishing plan 254, for what that plan could not do without new sim support.
-- 2026-10-21 — Done by Worker C: ADR 0242 and journal 260. The wheel motor and the SAS level are module and sim features; Take sample is a suit command with a crew-panel button.
+- 2026-10-21 — Done by Worker C: ADR 0243 and journal 260. The wheel motor and the SAS level are module and sim features; Take sample is a suit command with a crew-panel button.

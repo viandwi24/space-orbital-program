@@ -339,8 +339,21 @@ export interface NetworkLine {
 	/** System-frame ends of the line. */
 	from: Vec3;
 	to: Vec3;
-	state: 'full' | 'partial';
+	/** CommNet's colours (plan 258): `full` green, `weak` (the margin under `WEAK_MARGIN_DB`) yellow, `partial` orange. */
+	state: LinkState;
 }
+
+export type LinkState = 'full' | 'weak' | 'partial';
+
+/** A link whose margin at the ladder's first step is under this is drawn as weak (plan 258), dB. */
+export const WEAK_MARGIN_DB = 6;
+
+/** The state a link is drawn in. */
+export const linkState = (
+	control: 'full' | 'partial' | 'none',
+	margin: number | null
+): LinkState =>
+	control === 'partial' ? 'partial' : margin !== null && margin < WEAK_MARGIN_DB ? 'weak' : 'full';
 
 /** The Network layer's lines: one per vessel with a link, in the system frame. */
 export function networkLines(
@@ -362,7 +375,7 @@ export function networkLines(
 			? where(Number(n.to.slice(7)))
 			: (snapshot.network.stations.find((s) => s.id === n.to)?.position ?? null);
 		if (!from || !to) continue;
-		out.push({ key: `${n.vessel}`, from, to, state: n.control === 'partial' ? 'partial' : 'full' });
+		out.push({ key: `${n.vessel}`, from, to, state: linkState(n.control, n.margin ?? null) });
 	}
 	return out;
 }
@@ -382,7 +395,7 @@ export interface ScreenNetwork {
 		y1: number;
 		x2: number;
 		y2: number;
-		state: 'full' | 'partial';
+		state: LinkState;
 	}>;
 	stations: Array<{ id: string; label: string; x: number; y: number }>;
 }

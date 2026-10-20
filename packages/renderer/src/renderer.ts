@@ -156,7 +156,13 @@ export interface Renderer {
 	/** Map view: this vessel or body (`vessel:<id>`, `body:<id>`) in the highlight colour, `null` none. */
 	setMapHighlight(key: string | null): void;
 	/** Map view layers: `orbits` false hides every orbit line. */
-	setMapLayers(layers: { orbits: boolean }): void;
+	setMapLayers(layers: {
+		orbits: boolean;
+		/** Vessels the map filters hide (plan 258). */
+		hidden?: ReadonlySet<number>;
+		/** The vessel whose orbit is drawn as the target's. */
+		target?: number | null;
+	}): void;
 	/** Map view: tint these bodies by their science regions, `null` none (plan 192). */
 	setRegionOverlay(
 		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null
