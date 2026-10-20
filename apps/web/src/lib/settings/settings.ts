@@ -73,7 +73,9 @@ const interfaceSchema = z
 		/** The camera centres the vessel in the area the panels leave free (plan 215; default off). */
 		centreVessel: z.boolean().catch(false),
 		/** The vessel panel's width, px at 100 % (plan 214, ADR 0205 point 1: 300 to 440); absent: 340. */
-		panelWidth: z.number().min(300).max(440).optional().catch(undefined)
+		panelWidth: z.number().min(300).max(440).optional().catch(undefined),
+		/** The dock panel's width, px at 100 % (plan 250: 260 to 400); absent: 280. */
+		dockWidth: z.number().min(260).max(400).optional().catch(undefined)
 	})
 	.catch({ ...DEFAULT_INTERFACE });
 
@@ -157,7 +159,13 @@ export interface Settings {
 	bindings: Bindings;
 	audio: { master: number; effects: number; ui: number; music: number; muted: boolean };
 	touch: TouchChoice;
-	interface: { scale: number; highContrast: boolean; centreVessel: boolean; panelWidth?: number };
+	interface: {
+		scale: number;
+		highContrast: boolean;
+		centreVessel: boolean;
+		panelWidth?: number;
+		dockWidth?: number;
+	};
 	dock: DockChoice;
 	/** Debug mode: the debug tools in worlds that need it turned on (plan 203). */
 	debug: boolean;

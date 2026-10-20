@@ -5,6 +5,7 @@ import {
 	cameraPose,
 	modeFrame,
 	nextCameraMode,
+	portFrame,
 	reframe,
 	resolveMode,
 	rotate,
@@ -82,5 +83,21 @@ describe('camera modes', () => {
 			'locked',
 			'auto'
 		]);
+	});
+});
+
+describe('the port frame (plan 250)', () => {
+	const id = { x: 0, y: 0, z: 0, w: 1 };
+	test('a port facing the part’s +Y gives the part’s own orientation', () => {
+		const q = portFrame(id, { x: 0, y: 1, z: 0 });
+		expect(rotate(q, { x: 0, y: 1, z: 0 }).y).toBeCloseTo(1, 9);
+	});
+	test('the rig’s +Y points out of the port face, whatever the part’s turn', () => {
+		const turned = { x: 0, y: 0, z: Math.SQRT1_2, w: Math.SQRT1_2 }; // 90° about +Z: part +Y → world −X
+		const face = { x: 0, y: 0, z: 1 }; // the port looks along world +Z
+		const up = rotate(portFrame(turned, face), { x: 0, y: 1, z: 0 });
+		expect(up.x).toBeCloseTo(0, 9);
+		expect(up.y).toBeCloseTo(0, 9);
+		expect(up.z).toBeCloseTo(1, 9);
 	});
 });

@@ -69,6 +69,22 @@ export function rotate(q: Quat, v: Vec3): Vec3 {
 }
 
 const conj = (q: Quat): Quat => ({ x: -q.x, y: -q.y, z: -q.z, w: q.w });
+const mul = (a: Quat, b: Quat): Quat => ({
+	x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+	y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+	z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+	w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
+});
+
+/**
+ * The Locked frame of a docking port (plan 250, rancangan §6.2): the part's orientation turned so
+ * the rig's +Y points out of the port's face (`direction`, world axes), keeping the part's roll. A
+ * port whose face is along the part's +Y gives the part's own orientation back.
+ */
+export function portFrame(orientation: Quat, direction: Vec3): Quat {
+	const local = rotate(conj(orientation), unit(direction));
+	return mul(orientation, fromUnitVectors(Y, local));
+}
 
 /** What a mode needs of the vessel, SOI-relative. */
 export interface CameraSubject {

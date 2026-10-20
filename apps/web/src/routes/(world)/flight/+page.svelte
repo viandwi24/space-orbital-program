@@ -76,6 +76,9 @@
 	import type { NavMark } from '../../../lib/nav-markers';
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
+	import MapCardView from '../../../lib/hud/MapCardView.svelte';
+	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
+	import { panelRoom } from '../../../lib/hud/panel-room';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
 	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
 	import LessonCard from '../../../lib/hud/LessonCard.svelte';
@@ -196,6 +199,12 @@
 	/** The vessel panel's width, px at 100 % (plan 214), dragged at its left edge. */
 	const panelWidth = $derived(
 		clampSpan(REGIONS.vessel, settings.ui.panelWidth ?? REGIONS.vessel.default)
+	);
+	/** The card of a map vessel just clicked (plan 250). */
+	let mapCard = $state<MapCard | null>(null);
+	/** The dock panel's width, px at 100 % (plan 250), dragged at its free edge. */
+	const dockWidth = $derived(
+		clampSpan(REGIONS.dock, settings.ui.dockWidth ?? REGIONS.dock.default)
 	);
 	function startResize(e: PointerEvent): void {
 		const grip = e.currentTarget as HTMLElement;
@@ -840,6 +849,7 @@
 				launchedHere = true;
 			},
 			onCameraMode: saveCameraMode,
+			onMapPick: (key, at) => (mapCard = mapCardFor(key, model?.targets ?? [], at)),
 			onKey: (key) => {
 				if (key === 'escape' && uiHidden) uiHidden = false;
 				else if (key === 'escape') pauseOpen = true;
@@ -1336,6 +1346,18 @@
 			}
 		}}
 	></canvas>
+	{#if mapCard && hud?.map}
+		<MapCardView
+			card={mapCard}
+			onclose={() => (mapCard = null)}
+			onswitch={(id) => {
+				mapCard = null;
+				void flight?.switchVessel(id).then((r) => {
+					if (!r.ok) notice = r.reason;
+				});
+			}}
+		/>
+	{/if}
 	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
 	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
 	<input
@@ -1502,10 +1524,7 @@
 			{/if}
 			{#if inspectView && vesselShown}
 				<!-- pinned and open inspectors, left of the vessel panel, never over the vessel (plan 214) -->
-				<div
-					class="ins"
-					style:--panel-room={vesselOpen && !narrow ? `${panelWidth / 16}rem` : '0rem'}
-				>
+				<div class="ins" style:--panel-room={panelRoom(vesselOpen, panelWidth)}>
 					{#each inspected as id (id)}
 						{@const row = inspectView.parts.find((p) => p.entity === id)}
 						{#if row}
@@ -1619,6 +1638,8 @@
 					open={settings.dock.open}
 					ontoggle={(id) => settings.setDock(togglePanel(settings.dock, id))}
 					onlibrary={() => (libraryOpen = true)}
+					width={dockWidth}
+					onresize={(w) => settings.setInterface({ dockWidth: Math.round(w) })}
 				>
 					{#snippet body(id: string)}
 						{#if id === 'host.script'}

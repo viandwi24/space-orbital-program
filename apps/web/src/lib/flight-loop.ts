@@ -189,6 +189,8 @@ export interface FlightOptions {
 	/** The camera mode to start in (plan 226: the world's last one) and where a change goes. */
 	cameraMode?: CameraMode;
 	onCameraMode?(mode: CameraMode): void;
+	/** A map click picked a target (plan 250): its key and where the click was, px over the canvas. */
+	onMapPick?(key: string, at: { x: number; y: number }): void;
 	/** A loaded flight (plan 043): the sim resumes it instead of launching `design`, which is the save's own. */
 	resume?: GameSave;
 	/**
@@ -951,7 +953,10 @@ export function startFlight(options: FlightOptions): Flight {
 			if (renderer?.isMapView) {
 				// A body disc or a vessel dot first, then the vessel's own path (a node), then an orbit line.
 				const mark = targetView?.pick(x, y, false);
-				if (mark) return setTarget(mark);
+				if (mark) {
+					options.onMapPick?.(mark, { x, y });
+					return setTarget(mark);
+				}
 				if (!maneuverCtl?.onPath(x, y)) {
 					const line = targetView?.pick(x, y);
 					if (line) return setTarget(line);

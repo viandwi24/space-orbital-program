@@ -96,7 +96,7 @@
 		grid-template-columns: auto 1fr;
 		gap: 3px var(--s-4);
 		margin: 0;
-		font-size: var(--t-sm);
+		font-size: var(--t-value);
 	}
 	dt {
 		color: var(--text-dim);
@@ -108,7 +108,7 @@
 	}
 	.t {
 		margin-left: var(--s-2);
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		color: var(--text-dim);
 		display: inline-block;
 		min-width: 9ch;
@@ -120,7 +120,7 @@
 	.note {
 		margin: var(--s-2) 0 0;
 		max-width: 30ch;
-		font-size: var(--t-sm);
+		font-size: var(--t-value);
 		color: var(--text-dim);
 	}
 </style>

@@ -59,3 +59,4 @@ Close the remaining panel and vessel gaps the audit found.
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
+- 2026-10-20 — Refined and coded on `rel/250-panel-polish` (stacked on 248, batch mode). All six items; stays draft until 248 is done.

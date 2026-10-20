@@ -44,15 +44,15 @@
 		justify-content: space-between;
 		gap: var(--s-4);
 		margin-bottom: 3px;
-		font-size: var(--t-sm);
+		font-size: var(--t-value);
 	}
 	.u {
 		color: var(--text-dim);
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 	}
 	.empty {
 		margin: 0;
 		color: var(--text-dim);
-		font-size: var(--t-sm);
+		font-size: var(--t-value);
 	}
 </style>

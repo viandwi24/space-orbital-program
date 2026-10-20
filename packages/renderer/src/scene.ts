@@ -18,7 +18,14 @@ import type {
 } from '@orbital/core';
 import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
 import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
-import { cameraPose, modeFrame, reframe, resolveMode, type CameraMode } from './camera-modes.ts';
+import {
+	cameraPose,
+	modeFrame,
+	portFrame,
+	reframe,
+	resolveMode,
+	type CameraMode
+} from './camera-modes.ts';
 import type { WorldTerrainSpec } from './terrain-zones.ts';
 import {
 	DataTexture,
@@ -1750,10 +1757,19 @@ export class SceneModel {
 		let frame: Quat = { x: 0, y: 0, z: 0, w: 1 };
 		if (!this.map && active) {
 			const body = this.bodies.get(active.soi);
-			const control =
+			// Locked follows the control part; a docking port's frame points out of its face (plan 250)
+			const controlOrientation =
 				active.controlPart === undefined
 					? undefined
 					: active.parts.find((p) => p.id === active.controlPart)?.orientation;
+			const port =
+				active.controlPart === undefined
+					? undefined
+					: active.ports?.find((p) => p.part === active.controlPart);
+			const control =
+				port && controlOrientation
+					? portFrame(controlOrientation, port.direction)
+					: controlOrientation;
 			const subject = {
 				position: active.position,
 				velocity: active.velocity,

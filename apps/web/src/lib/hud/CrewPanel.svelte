@@ -182,11 +182,11 @@
 		scrollbar-width: thin;
 	}
 	.name {
-		font-size: var(--t-sm);
+		font-size: var(--t-value);
 		color: var(--text);
 	}
 	.stats {
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		color: var(--text-dim);
 	}
 	.suit-status {
@@ -194,13 +194,13 @@
 		flex-direction: column;
 		gap: 0.125rem;
 		margin: var(--s-1) 0;
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		color: var(--text-dim);
 	}
 	.cause,
 	.supplies small {
 		display: block;
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		line-height: 1.3;
 		color: var(--text-dim);
 	}
@@ -228,7 +228,7 @@
 	}
 	.offer small {
 		display: block;
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		color: var(--text-dim);
 	}
 	.buttons {
@@ -246,7 +246,7 @@
 		background: transparent;
 		color: var(--text);
 		font: inherit;
-		font-size: var(--t-xs);
+		font-size: var(--t-button);
 		cursor: pointer;
 	}
 	.buttons button:disabled {

@@ -11,6 +11,7 @@
 	import Switch from '../ui/Switch.svelte';
 	import { formatTyped, parseTyped, unitsOf } from '../inspector/units';
 	import type { ControlRow, PartRow } from './vessel-model';
+	import { stepped } from './stepper';
 
 	let {
 		part,
@@ -60,6 +61,14 @@
 		{:else if c.kind === 'value'}
 			<label class="slider">
 				<span>{c.label}</span>
+				<button
+					type="button"
+					class="step"
+					aria-label="{c.label}, less"
+					disabled={!c.enabled}
+					data-testid="{prefix}-{part.entity}-{c.id}-down"
+					onclick={() => send(part.entity, c, stepped(c, -1))}>−</button
+				>
 				<input
 					type="range"
 					min={c.min}
@@ -70,6 +79,14 @@
 					data-testid="{prefix}-{part.entity}-{c.id}"
 					onchange={(e) => send(part.entity, c, Number(e.currentTarget.value))}
 				/>
+				<button
+					type="button"
+					class="step"
+					aria-label="{c.label}, more"
+					disabled={!c.enabled}
+					data-testid="{prefix}-{part.entity}-{c.id}-up"
+					onclick={() => send(part.entity, c, stepped(c, 1))}>+</button
+				>
 				{#if typed}
 					<input
 						class="typed num"
@@ -150,6 +167,29 @@
 		min-height: 2.75rem;
 		display: flex;
 		align-items: center;
+		/* below 300 px a slider gives way to − and + (plan 250, rancangan §7.1) */
+		container-type: inline-size;
+	}
+	.step {
+		display: none;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
+		border: 0;
+		border-radius: var(--radius-tile);
+		background: var(--surface-button);
+		color: var(--text-primary);
+		font: inherit;
+	}
+	@container (max-width: 299px) {
+		.slider {
+			grid-template-columns: 1fr auto auto auto;
+		}
+		.slider input[type='range'] {
+			display: none;
+		}
+		.step {
+			display: inline-block;
+		}
 	}
 	.readout {
 		justify-content: space-between;
