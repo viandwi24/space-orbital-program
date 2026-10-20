@@ -1,0 +1,80 @@
+{
+ "when": "2026-10-20T10:56:22.256Z",
+ "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+ "angle": "metal",
+ "viewport": "1512x945 css, deviceScaleFactor 2",
+ "notes": "Now drawing from AC Power |  -InternalBattery-0 (id=22347875) 38%; charging; 2:17 remaining present: true | therm: Note: No thermal warning level has been recorded;Note: No performance warning level has been recorded;Note: No CPU power status has been recorded; | load averages: 2.51 2.39 3.32; branch rel/252 commit aa5be3f4; started Tue Oct 20 17:56:18 WIB 2026",
+ "scenes": [
+  "pad",
+  "3km",
+  "12km",
+  "orbit",
+  "hillside"
+ ],
+ "byRatio": {
+  "medium": {
+   "ratio 1 (1512x945)": {
+    "pad": 9.62,
+    "3km": 9.18,
+    "12km": 10.2,
+    "orbit": 6.07,
+    "hillside": 2.9
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 12.18,
+    "3km": 12.2,
+    "12km": 13.47,
+    "orbit": 8.72,
+    "hillside": 4.13
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 13.58,
+    "3km": 13.08,
+    "12km": 14.48,
+    "orbit": 9.32,
+    "hillside": 4.5
+   }
+  },
+  "high": {
+   "ratio 1 (1512x945)": {
+    "pad": 12.38,
+    "3km": 10.75,
+    "12km": 11.9,
+    "orbit": 6.57,
+    "hillside": 2.97
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 15.07,
+    "3km": 13.97,
+    "12km": 15.43,
+    "orbit": 9.38,
+    "hillside": 4.17
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 16.53,
+    "3km": 15.1,
+    "12km": 16.75,
+    "orbit": 9.88,
+    "hillside": 4.48
+   }
+  }
+ },
+ "governorTrace": {
+  "preset": "high",
+  "seconds": 120,
+  "frames": 6818,
+  "p50": 16.69999999999709,
+  "p95": 25,
+  "p99": 25.19999999999709,
+  "over16_7": 0.12026987386330303,
+  "over33_3": 0.0008800234672924611,
+  "fps": 56.8,
+  "levels": [
+   "high 85%",
+   "high 100%",
+   "high 85%",
+   "high 100%"
+  ]
+ },
+ "suspect": []
+}
