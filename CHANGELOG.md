@@ -2,7 +2,7 @@
 
 ## 1.0.0 — unreleased
 
-> Checked line by line against the journals of plans 200–236 (plan 232). The line marked _(pending: 234)_ waits for the owner's review of the deep-space dish.
+> Checked line by line against the journals of plans 200–236 (plan 232).
 
 The first public release of Space Orbital Program: build rockets in a 3D hangar, fly them to orbit and beyond, run a career, and mod everything, all in your browser.
 
@@ -13,7 +13,7 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
 - Time warp is never refused without a reason. Physics warp works in the air and under thrust. A request above the limit takes the highest allowed level, and the time bar says why. (206)
 - The Space Center's build menu works like a city builder. A category bar opens cards with a picture of each building, its cost, size, build time and levels, and what it still lacks. (235)
 - Found branch space centers on the home planet from a map of its terrain. Founding costs money and the HQ takes days to build. A branch builds its own pads and dishes, becomes a ground station with a comms building, and can launch vessels. (236)
-- _(pending: 234)_ A deep-space dish (64 m class, 8 × 8 cells, under Comms) adds ground-station tiers 4 to 6 for a stronger, faster link far from home. At the Space Center it turns to track your vessel or the nearest moon. The tracking dish is now 9 to 18 m. (234)
+- A deep-space dish (64 m class, 8 × 8 cells, under Comms) adds ground-station tiers 4 to 6 for a stronger, faster link far from home. At the Space Center it turns to track your vessel or the nearest moon. The tracking dish is now 9 to 18 m. (234)
 
 ### Building
 
