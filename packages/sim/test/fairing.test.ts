@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import type { Quat, VesselDesign } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { createSim } from '../src/index.ts';
-import { fairingStack, shellMass } from './helpers/fairing.ts';
+import { fairingStack, interstageStack, shellMass } from './helpers/fairing.ts';
 import { homeMu, RADIUS, vesselMass } from './helpers/measure.ts';
 import { rapier } from './helpers/vessels.ts';
 
@@ -57,5 +57,28 @@ describe('fairings (plan 219)', () => {
 		expect(bare).toBeGreaterThan(0);
 		expect(faired).toBeLessThan(0.7 * bare);
 		expect(Math.abs(thrown - bare) / bare).toBeLessThan(0.05);
+	}, 60_000);
+
+	test('an interstage carries the next stage on its top node; staging throws off the panels, the stack stays one vessel (plan 243)', async () => {
+		const sim = await createSim({ plugins: [Stock], backendFactory: rapier(), seed: 1 });
+		const loaded = sim.dispatch({
+			type: 'load-vessel',
+			design: interstageStack(),
+			placement: {
+				kind: 'state',
+				position: { x: RADIUS + 2_000, y: 0, z: 0 },
+				velocity: { x: 0, y: 0, z: 0 },
+				orientation: NOSE_OUT
+			}
+		});
+		if (!loaded.ok) throw new Error(loaded.reason);
+		const id = loaded.vessel!;
+		const parts = (): number => sim.snapshot().vessels.find((v) => v.id === id)!.parts.length;
+		expect(parts()).toBe(4);
+		expect(sim.dispatch({ type: 'stage', vessel: id }).ok).toBe(true);
+		sim.step(0.02);
+		expect(parts()).toBe(4);
+		expect(sim.snapshot().vessels.length).toBe(3);
+		sim.dispose();
 	}, 60_000);
 });

@@ -269,7 +269,17 @@ export function designCost(design: VesselDesign, registries: CostRegistries): De
 			if (!parsed.success) continue;
 			fresh.push({ module, config: parsed.data, state: module.state?.(parsed.data) });
 		}
-		const part = def.cost ?? 0;
+		let part = def.cost ?? 0;
+		// a module that sells its own work, over the entry's settings (plan 243: the fairing shell)
+		for (const [moduleId, raw] of def.modules ?? []) {
+			const module = registries.modules.get(moduleId);
+			if (!module?.cost) continue;
+			const merged = { ...(raw as object), ...entry.settings?.[moduleId] };
+			const parsed = module.config
+				? module.config.safeParse(merged)
+				: { success: true as const, data: merged };
+			if (parsed.success) part += module.cost(parsed.data);
+		}
 		const inside = contentsValue(fresh, registries.resources);
 		byIndex.set(entry.index, { part, contents: inside });
 		parts += part;

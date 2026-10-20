@@ -64,8 +64,7 @@ export function effectiveDef(
 			continue;
 		}
 		const base = def.modules?.find(([id]) => id === node.shellTop)?.[1] as
-			| Record<string, unknown>
-			| undefined;
+			Record<string, unknown> | undefined;
 		const cfg = { ...base, ...settings?.[node.shellTop] } as {
 			interstage?: unknown;
 			baseTop?: unknown;

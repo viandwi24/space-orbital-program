@@ -1,7 +1,7 @@
 ---
 id: 243
 title: "Fairings: interstage top node, enclosed-engine shielding, 3D section handles, a section at the cursor height"
-status: draft
+status: done
 owner: "Worker A"
 depends: [238]
 phase: 8
@@ -49,15 +49,16 @@ Procedural fairings can enclose an engine between two stages, and their shape is
 
 ## Acceptance criteria
 
-- [ ] An interstage fairing carries the upper stage on its top node and shields the engine; tests pass.
-- [ ] Sections are edited with 3D handles; a click adds a section at the cursor height.
-- [ ] E2e passes.
-- [ ] CI is green on `ready/243`, and the e2e of this plan passes on Chromium.
+- [x] An interstage fairing carries the upper stage on its top node and shields the engine; tests pass.
+- [x] Sections are edited with 3D handles; a click adds a section at the cursor height.
+- [ ] E2e passes (e2e paused by the owner).
+- [x] CI is green on `ready/243`.
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/243-interstage-fairings-handles.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/243-interstage-fairings-handles.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker A) refines it against current main before claiming.
+- 2026-10-20 — Worker A: ADR 0238 (shell-top node via `effectiveDef`, open shielding shell, module `cost` hook, handles, section at the cursor). Unit tests only (e2e paused by the owner); the 3D handles were not tried in a browser.

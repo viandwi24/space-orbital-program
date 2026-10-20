@@ -5,6 +5,7 @@
  * the shell's mass, pushed apart sideways so their momentum cancels.
  */
 import { defineModule, z } from '@orbital/sdk';
+import { partCost } from './costs.ts';
 
 export const fairingSectionSchema = z.object({
 	/** Height of the section, m. */
@@ -104,6 +105,10 @@ export function fairingArea(config: FairingConfig): number {
 export const fairingMass = (config: FairingConfig): number =>
 	fairingArea(config) * config.arealDensity;
 
+/** What the shell costs, funds: its mass at the structure rate (plan 243; the base costs its own). */
+export const fairingCost = (config: FairingConfig): number =>
+	partCost(fairingMass(config), 'structure');
+
 /** Settings of one panel: the shell's config and which half it is. */
 export const panelSettings = (config: FairingConfig, half: 0 | 1) => ({
 	size: config.size,
@@ -155,6 +160,7 @@ export const ModuleFairing = defineModule({
 		interstage: config.interstage
 	}),
 	mass: (config, state) => (state.jettisoned ? 0 : fairingMass(config)),
+	cost: (config) => fairingCost(config),
 	shell: (config, state) =>
 		state.jettisoned || !(config.closed || config.interstage) ? null : fairingProfile(config),
 	describe: (config, state) => ({

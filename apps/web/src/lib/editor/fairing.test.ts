@@ -1,10 +1,11 @@
 /** Plan 219: fairing sections in the Hangar, each an undo step; a steep taper is refused. */
-import { loadPlugins } from '@orbital/core';
+import { designCost, loadPlugins } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { emptyDesign } from '../design';
 import {
 	addFairingSection,
+	addFairingSectionAt,
 	fairingOf,
 	removeFairingSection,
 	setFairingClosed,
@@ -121,5 +122,33 @@ describe('interstage (plan 243, ADR 0238)', () => {
 		const s = stage(setFairingInterstage(withShell(), content, 1, true));
 		expect(() => setFairingInterstage(s, content, 1, false)).toThrow('Move the stage');
 		expect(() => setFairingInterstage(base(), content, 1, true)).toThrow('Add a section first');
+	});
+
+	it('the shell adds its cost to the part, and the view reports it (plan 243)', () => {
+		const bare = base();
+		const shell = addFairingSection(bare, content, 1, { height: 1, radius: 0.7 });
+		const funds = (st: EditorState) => designCost(st.design, registries).total;
+		const f = fairingOf(shell.design, content.parts, 1)!;
+		expect(f.cost).toBeGreaterThan(0);
+		expect(funds(shell) - funds(bare)).toBe(f.cost);
+	});
+
+	it('a section at the cursor height cuts the shell without changing its shape (plan 243)', () => {
+		let s = addFairingSection(base(), content, 1, { height: 1, radius: 0.825 });
+		// base rim 0.625 at y 0.1; the section ends at y 1.1 with radius 0.825
+		s = addFairingSectionAt(s, content, 1, 0.6);
+		const f = fairingOf(s.design, content.parts, 1)!;
+		expect(f.sections).toHaveLength(2);
+		expect(f.sections[0]!.height).toBeCloseTo(0.5, 9);
+		expect(f.sections[0]!.radius).toBeCloseTo(0.725, 9);
+		expect(f.sections[1]!.height).toBeCloseTo(0.5, 9);
+		expect(f.sections[1]!.radius).toBeCloseTo(0.825, 9);
+		expect(() => addFairingSectionAt(s, content, 1, 0.62)).toThrow('Too close');
+		// above the top: a section up to the cursor at the last radius
+		const up = addFairingSectionAt(s, content, 1, 1.9);
+		expect(fairingOf(up.design, content.parts, 1)!.sections.at(-1)).toEqual({
+			height: expect.closeTo(0.8, 9),
+			radius: 0.825
+		});
 	});
 });
