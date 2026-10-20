@@ -31,5 +31,9 @@
 ## Verification output
 
 ```
-VERIFY
+bun run check:affected (no e2e: paused by the owner; under /tmp/orbital-heavy.lock)
+  ✓ prettier (28 changed files) · ✓ docs:check · ✓ typecheck (11 workspaces) · ✓ typecheck (web)
+  ✓ bun test (10 workspaces) · ✓ web vitest (related to the change)
+  check-affected: all passed in 288.3 s
+keybindings 28 · sim abort-and-trim + part-actions 9 · core design 16 · web groups and vessel panel 11
 ```
