@@ -242,6 +242,9 @@ export class SceneModel {
 	private vesselRadius = 10;
 	/** Centre of the active vessel's parts relative to its root, inertial axes, m: the flight camera looks here. */
 	private vesselCentre: Vec3 = ZERO;
+	/** Site view (plan 259): where the orbit camera looks, as an offset from the site centre, and where it is easing to. */
+	private siteFocusNow: Vec3 = ZERO;
+	private siteFocusTo: Vec3 = ZERO;
 	/** The last vessel the flight camera followed, for when it is gone (plan 257). */
 	private lastFollowed: VesselSnapshot | undefined;
 	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -1251,6 +1254,7 @@ export class SceneModel {
 	prepareFrame(dt: number, force = false): void {
 		this.stepInsets(dt);
 		if (!this.frameState) return;
+		if (this.siteView) this.stepSiteFocus(dt);
 		if (this.cameraDirty && this.lastView) {
 			this.placeCamera(this.lastView.active, this.lastView.anchorBody, this.lastView.bodyWorld);
 			this.cameraDirty = false;
@@ -1498,12 +1502,49 @@ export class SceneModel {
 	/** Site view on or off (ADR 0117): the orbit camera looks at the site centre. */
 	setSiteView(on: boolean): void {
 		if (on && !this.siteView) {
+			this.siteFocusNow = ZERO;
+			this.siteFocusTo = ZERO;
 			this.flightRig = { yaw: 0.7, pitch: 0.45, distance: 420 };
 			this.vesselCentre = { x: 0, y: 0, z: 0 };
 		}
 		this.siteView = on;
 		this.cameraDirty = true;
 	}
+	/**
+	 * Site view (plan 259): look at a point of the site (m east, north and up of its centre) instead
+	 * of the centre, easing there, and bring the camera to `distance` m at most when given; null goes
+	 * back to the centre. `animate: false` jumps (reduced motion).
+	 */
+	setSiteFocus(
+		p: { east: number; north: number; up?: number } | null,
+		options: { distance?: number; animate?: boolean } = {}
+	): void {
+		if (!this.siteView) return;
+		if (p) {
+			const w = this.environment.site.siteToWorld(p);
+			const c = this.environment.site.siteToWorld({ east: 0, north: 0, up: 0 });
+			this.siteFocusTo = { x: w.x - c.x, y: w.y - c.y, z: w.z - c.z };
+		} else this.siteFocusTo = ZERO;
+		if (options.animate === false) this.siteFocusNow = this.siteFocusTo;
+		if (options.distance !== undefined && this.flightRig.distance > options.distance)
+			this.flightRig = { ...this.flightRig, distance: options.distance };
+		this.cameraDirty = true;
+	}
+
+	/** Eases the focus offset towards its target (about a quarter second to settle). */
+	private stepSiteFocus(dt: number): void {
+		const a = this.siteFocusNow;
+		const b = this.siteFocusTo;
+		const d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+		if (d === 0) return;
+		const k = d < 0.05 ? 1 : 1 - Math.exp(-Math.max(dt, 0) * 12);
+		this.siteFocusNow =
+			k >= 1
+				? b
+				: { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k };
+		this.cameraDirty = true;
+	}
+
 	get siteViewOn(): boolean {
 		return this.siteView;
 	}
@@ -1817,6 +1858,13 @@ export class SceneModel {
 					x: target.x + this.vesselCentre.x,
 					y: target.y + this.vesselCentre.y,
 					z: target.z + this.vesselCentre.z
+				};
+			}
+			if (this.siteView) {
+				target = {
+					x: target.x + this.siteFocusNow.x,
+					y: target.y + this.siteFocusNow.y,
+					z: target.z + this.siteFocusNow.z
 				};
 			}
 			rig = this.flightRig;

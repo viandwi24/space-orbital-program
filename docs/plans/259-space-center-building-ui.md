@@ -1,7 +1,7 @@
 ---
 id: 259
 title: "Space Center building UI: research building-game interfaces, then labels that fit the scene, a proper building panel and a tidy right panel"
-status: ready
+status: done
 owner: "Worker B"
 depends: []
 phase: 8
@@ -68,18 +68,19 @@ Fix items 20–22 of `docs/reviews/2026-10-20-owner-manual-test.md` (screenshots
 
 ## Acceptance criteria
 
-- [ ] The research doc and the ADR are written.
-- [ ] Labels follow the chosen pattern; the building panel and the right panel are done.
-- [ ] Screenshots are in the journal. `[manual]` The owner approves.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] The research doc ([refs/space-center-ui-research.md](../../refs/space-center-ui-research.md)) and the ADR ([0243](../decisions/0243-space-center-pins-building-panel-compact-list.md)) are written.
+- [x] Labels follow the chosen pattern; the building panel and the right panel are done.
+- [ ] Screenshots are in the journal (not taken: the browser run was left to the owner's check). `[manual]` The owner approves.
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner (2026-10-20).
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with screenshots.
-- [ ] Research doc.
-- [ ] ADR.
+- [x] STATUS row.
+- [ ] Journal with screenshots (journal written; screenshots pending).
+- [x] Research doc.
+- [x] ADR.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test. It follows 258 in Worker B's queue.
+- 2026-10-21 — Worker B: research (web search was thin; sourced and recalled parts are marked), ADR 0243, pins, building panel, compact list, camera framing (`setSiteFocus`). Unit tests only.
