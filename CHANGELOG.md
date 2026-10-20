@@ -106,3 +106,8 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
   - building categories with `scope: 'buildings'` (0.1.84);
   - branch HQ buildings (`provides: ['branch-hq']`), the `found-branch` command and site placement at a spot (0.1.87);
   - and the additions listed in `docs/architecture/plugin-system.md` and `docs/guides/writing-a-mod.md` for each plan.
+
+### Known issues
+
+- The full browser test suite was not run on Firefox and WebKit, nor after the graphics changes (251–253), before this release; Chromium was run once on the release candidate before the pause (90 passed, six red, all triaged). The release was checked by unit tests, type checks, the build, graphics measurements and a manual checklist.
+- The EVA ladder test (plan 225) fails intermittently; the cause is not yet known (it also fails on a clean main).
