@@ -8,8 +8,10 @@ import {
 	ModuleFin,
 	ModuleHeatShield,
 	ModuleLandingLeg,
+	ModuleWheel,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
+	wheelServes,
 	ModuleRtg,
 	ModuleSolarPanel,
 	PartControlSurface,
@@ -522,6 +524,7 @@ describe('descriptors for the part inspector (plan 214, rancangan §7.6b)', () =
 		)!;
 		expect(info.actions!.map((a) => [a.id, a.value, a.more ?? false])).toEqual([
 			['setAuthority', 1, false],
+			['setDeploy', 0, false],
 			['setAxis:pitch', false, true],
 			['setAxis:yaw', true, true],
 			['setAxis:roll', true, true]
@@ -585,5 +588,74 @@ describe('solar and RTG read-outs (plan 240)', () => {
 	test('a folded panel gives nothing and the RTG always gives its rate', () => {
 		expect(out(ModuleSolarPanel, { deployed: false }, { deployed: false })).toBe('Folded: 0 EC/s');
 		expect(out(ModuleRtg, { rate: 0.75 }, {})).toBe('0.75 EC/s, always');
+	});
+});
+
+describe('part controls (plan 241)', () => {
+	const ids = (
+		m: { describe?: (c: never, s: never) => { actions?: Array<{ id: string }> } },
+		c: object,
+		s: object
+	) => (m.describe!(c as never, s as never).actions ?? []).map((a) => a.id);
+
+	test('a reaction wheel answers the pilot, the assist or both by its mode', () => {
+		expect(wheelServes(undefined, true)).toBe(true);
+		expect(wheelServes('normal', false)).toBe(true);
+		expect(wheelServes('sas', true)).toBe(true);
+		expect(wheelServes('sas', false)).toBe(false);
+		expect(wheelServes('pilot', false)).toBe(true);
+		expect(wheelServes('pilot', true)).toBe(false);
+		const v = fakeVessel();
+		const ctx = contextFor(ModuleReactionWheel, { torque: 10 }, v);
+		ModuleReactionWheel.actions!.setMode!(ctx, 'pilot');
+		expect(ModuleReactionWheel.controlAuthority!(ctx)).toEqual({ x: 0, y: 0, z: 0 });
+		ModuleReactionWheel.actions!.setMode!(ctx, 'sas');
+		expect(ModuleReactionWheel.controlAuthority!(ctx)).toEqual({ x: 10, y: 10, z: 10 });
+	});
+
+	test('a decoupler switched out of staging does not fire with its stage', () => {
+		const v = fakeVessel();
+		const ctx = contextFor(ModuleDecoupler, {}, v);
+		ModuleDecoupler.actions!.setStaged!(ctx, false);
+		ModuleDecoupler.onStage!(ctx);
+		expect(ctx.state.decoupled).toBe(false);
+		ModuleDecoupler.actions!.decouple!(ctx); // its own action still fires it
+		expect(ctx.state.decoupled).toBe(true);
+	});
+
+	test('a steering wheel can stop steering and invert', () => {
+		const cfg = { steer: 30 };
+		const ctx = contextFor(ModuleWheel, cfg);
+		expect(ids(ModuleWheel, ctx.config, ctx.state)).toContain('setSteering');
+		const steer = () => ModuleWheel.colliders!(ctx.config, ctx.state)[0]!.wheel!.steer;
+		expect(steer()).toBeCloseTo((30 * Math.PI) / 180, 9);
+		ModuleWheel.actions!.setInvert!(ctx, true);
+		expect(steer()).toBeCloseTo((-30 * Math.PI) / 180, 9);
+		ModuleWheel.actions!.setSteering!(ctx, false);
+		expect(steer()).toBe(0);
+		expect(ids(ModuleWheel, { steer: 0 }, { brakes: false })).not.toContain('setSteering');
+	});
+
+	test('the electric charge lock belongs to the batteries group', () => {
+		const config = containerConfigSchema.parse({
+			contents: { 'stock.electric-charge': { capacity: 100, amount: 100 } }
+		});
+		const actions = ModuleResourceContainer.describe!(config, { amounts: {} } as never).actions!;
+		expect(actions.find((a) => a.id === 'setLock:stock.electric-charge')).toMatchObject({
+			group: 'stock.batteries'
+		});
+	});
+
+	test('a control surface deploy adds a steady deflection', () => {
+		const config = PartControlSurface.modules!.find(([m]) => m === ModuleControlSurface.id)![1];
+		const v = fakeVessel();
+		const ctx = contextFor(ModuleControlSurface, config as never, v);
+		v.ambient = { pressure: SEA_LEVEL_PRESSURE, density: 1.225, altitude: 0 };
+		v.air = { x: 0, y: -120, z: 0 };
+		v.centre = { x: 0, y: 5, z: 0 };
+		ModuleControlSurface.actions!.setDeploy!(ctx, 1);
+		for (let i = 0; i < 400; i++) ModuleControlSurface.update!(ctx, 0.02);
+		expect(Math.abs(ctx.state.deflection)).toBeGreaterThan(0.1);
+		expect(ModuleControlSurface.snapshot!(ctx.state)).toMatchObject({ deploy: 1 });
 	});
 });

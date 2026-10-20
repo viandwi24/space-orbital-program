@@ -148,7 +148,7 @@ describe('action groups', () => {
 		expect(decouplerState()![4]).toBe(false);
 	});
 
-	test('snapshot actions of a 100-part vessel stay under 8 kB', async () => {
+	test('snapshot actions of a 100-part vessel stay under 12 kB', async () => {
 		const parts = ['stock.command-pod'];
 		while (parts.length < 100)
 			parts.push(['stock.reaction-wheel', 'stock.decoupler', 'stock.engine-lv'][parts.length % 3]!);
@@ -166,9 +166,11 @@ describe('action groups', () => {
 		const actions = vesselSnap(sim, vessel).actions!;
 		// 33 engines carry a thrust limiter and a gimbal limit too (plan 210)
 		// and the pod's container a lock per resource and the two transfer triggers (plan 213)
-		expect(actions.states).toHaveLength(99 + 33 * 2 + 4);
+		// plus a mode on each wheel and a staging switch on each decoupler (plan 241)
+		expect(actions.states).toHaveLength(99 + 33 * 2 + 4 + 33 * 2);
 		const bytes = JSON.stringify(actions).length;
 		console.log(`snapshot actions of a 100-part vessel: ${bytes} bytes`);
-		expect(bytes).toBeLessThan(8_192);
+		// plan 241 added a mode per wheel and a staging switch per decoupler: 8 kB became 12 kB
+		expect(bytes).toBeLessThan(12_288);
 	});
 });

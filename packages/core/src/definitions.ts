@@ -155,6 +155,8 @@ export interface VesselControl {
 	readonly pitch: number;
 	readonly roll: number;
 	readonly yaw: number;
+	/** The attitude demand is the assist's (SAS holds the vessel), not the player's (plan 241). */
+	readonly assisted?: boolean;
 }
 
 /** Ambient conditions at the part. Vacuum (all zero) outside the atmosphere. */

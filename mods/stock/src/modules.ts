@@ -162,7 +162,9 @@ export const ModuleResourceContainer = defineModule({
 					label: `Lock ${resourceWords(r)}`,
 					kind: 'toggle' as const,
 					value: state.locked?.[r] === true,
-					enabled: true
+					enabled: true,
+					// a battery's lock is the Batteries group's (plan 241)
+					...(r === ElectricCharge.id ? { group: 'stock.batteries' } : {})
 				})),
 				// how full it starts (plan 218): the Hangar writes `contents.<resource>.amount`
 				...resources.map((r) => ({
@@ -565,6 +567,8 @@ export type DecouplerConfig = z.output<typeof decouplerConfigSchema>;
 export interface DecouplerState {
 	/** True once fired. The sim performs the split when it sees the flag flip. */
 	decoupled: boolean;
+	/** Staging fires it (plan 241); off, only its own action does. Absent: on. */
+	staged?: boolean;
 }
 
 /** Fire once: mark the state and ask the vessel to sever the configured node with the ejection impulse. */
@@ -593,18 +597,35 @@ export const ModuleDecoupler = defineModule({
 				enabled: !state.decoupled,
 				...(state.decoupled ? { reason: 'Already decoupled' } : {}),
 				icon: 'decouple'
+			},
+			{
+				id: 'setStaged',
+				label: 'Fires with staging',
+				kind: 'toggle' as const,
+				value: state.staged !== false,
+				enabled: !state.decoupled,
+				...(state.decoupled ? { reason: 'Already decoupled' } : {})
 			}
 		]
 	}),
 	onStage(ctx) {
+		if (ctx.state.staged === false) return;
 		fire(ctx);
 	},
 	actions: {
 		decouple: (ctx) => {
 			fire(ctx);
+		},
+		/** `(staged)`: whether the stage that holds it fires it (plan 241). */
+		setStaged: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.staged = on;
 		}
 	},
-	snapshot: (state) => ({ decoupled: state.decoupled })
+	snapshot: (state) => ({
+		decoupled: state.decoupled,
+		...(state.staged === false ? { staged: false } : {})
+	})
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -618,9 +639,16 @@ export const reactionWheelConfigSchema = z.object({
 	chargeRate: z.number().nonnegative().default(0)
 });
 export type ReactionWheelConfig = z.output<typeof reactionWheelConfigSchema>;
+/** Who a wheel works for (plan 241): both, the assist alone, or the pilot alone. */
+export type WheelMode = 'normal' | 'sas' | 'pilot';
 export interface ReactionWheelState {
 	enabled: boolean;
+	mode?: WheelMode;
 }
+
+/** Whether a wheel in `mode` answers a demand that is `assisted` or the player's. */
+export const wheelServes = (mode: WheelMode | undefined, assisted: boolean): boolean =>
+	mode === undefined || mode === 'normal' || (mode === 'sas') === assisted;
 
 export const ModuleReactionWheel = defineModule({
 	id: 'stock.reaction-wheel',
@@ -636,13 +664,26 @@ export const ModuleReactionWheel = defineModule({
 				value: state.enabled,
 				enabled: true,
 				icon: 'wheel'
+			},
+			{
+				id: 'setMode',
+				label: 'Wheel mode',
+				kind: 'mode' as const,
+				value: state.mode ?? 'normal',
+				options: [
+					{ value: 'normal', label: 'Normal' },
+					{ value: 'sas', label: 'SAS only' },
+					{ value: 'pilot', label: 'Pilot only' }
+				],
+				enabled: true
 			}
 		]
 	}),
 	/** `torque` about every axis while enabled and powered (ADR 0049). */
 	controlAuthority({ state, config, vessel }) {
 		const powered = config.chargeRate <= 0 || vessel.resources.amount(ElectricCharge.id) > 0;
-		const t = state.enabled && powered ? config.torque : 0;
+		// the assist counts only on wheels that serve it (plan 241)
+		const t = state.enabled && powered && wheelServes(state.mode, true) ? config.torque : 0;
 		return { x: t, y: t, z: t };
 	},
 	/**
@@ -654,6 +695,7 @@ export const ModuleReactionWheel = defineModule({
 		const { state, config, vessel } = ctx;
 		if (!state.enabled) return;
 		const { pitch, roll, yaw } = vessel.control;
+		if (!wheelServes(state.mode, vessel.control.assisted === true)) return;
 		const demand = Math.min(1, Math.hypot(pitch, roll, yaw));
 		if (demand === 0) return;
 		let supplied = 1;
@@ -670,9 +712,17 @@ export const ModuleReactionWheel = defineModule({
 		setEnabled: (ctx, ...args) => {
 			const [enabled] = z.tuple([z.boolean()]).parse(args);
 			ctx.state.enabled = enabled;
+		},
+		/** `(mode)`: normal, sas or pilot (plan 241). */
+		setMode: (ctx, ...args) => {
+			const [mode] = z.tuple([z.enum(['normal', 'sas', 'pilot'])]).parse(args);
+			ctx.state.mode = mode;
 		}
 	},
-	snapshot: (state) => ({ enabled: state.enabled })
+	snapshot: (state) => ({
+		enabled: state.enabled,
+		...(state.mode && state.mode !== 'normal' ? { mode: state.mode } : {})
+	})
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -935,6 +985,8 @@ export interface ControlSurfaceState {
 	pitch?: boolean;
 	yaw?: boolean;
 	roll?: boolean;
+	/** A steady deflection added to the control demand, 0..1 of the full range (plan 241). */
+	deploy?: number;
 }
 
 /** The torque demand a control surface answers: its axes and its authority (plan 214). */
@@ -992,6 +1044,17 @@ export const ModuleControlSurface = defineModule({
 				units: [{ unit: '%', factor: 100 }],
 				enabled: true
 			},
+			{
+				id: 'setDeploy',
+				label: 'Deploy',
+				kind: 'value' as const,
+				value: state.deploy ?? 0,
+				min: 0,
+				max: 1,
+				step: 0.05,
+				units: [{ unit: '%', factor: 100 }],
+				enabled: true
+			},
 			...(['pitch', 'yaw', 'roll'] as const).map((axis) => ({
 				id: `setAxis:${axis}`,
 				label: axis[0]!.toUpperCase() + axis.slice(1),
@@ -1003,6 +1066,11 @@ export const ModuleControlSurface = defineModule({
 		]
 	}),
 	actions: {
+		/** `(deploy)`, 0..1: a steady deflection added to the control demand, as a flap or an air brake (plan 241). */
+		setDeploy: (ctx, ...args) => {
+			const [d] = z.tuple([z.number().min(0).max(1)]).parse(args);
+			ctx.state.deploy = d;
+		},
 		/** `(authority)`, 0..1. */
 		setAuthority: (ctx, ...args) => {
 			const [a] = z.tuple([z.number().min(0).max(1)]).parse(args);
@@ -1019,7 +1087,8 @@ export const ModuleControlSurface = defineModule({
 		authority: state.authority ?? 1,
 		pitch: state.pitch !== false,
 		yaw: state.yaw !== false,
-		roll: state.roll !== false
+		roll: state.roll !== false,
+		...(state.deploy ? { deploy: state.deploy } : {})
 	}),
 	/** The force change over the full range in the present airflow, times the lever (ADR 0049). */
 	controlAuthority({ config, state, vessel }) {
@@ -1045,7 +1114,13 @@ export const ModuleControlSurface = defineModule({
 		const rho = vessel.ambient.density;
 		const max = (config.maxDeflection * Math.PI) / 180;
 		const demand = surfaceDemand(state, vessel.torqueDemand);
-		const target = surfaceTarget(at, vessel.centreOfMass, demand, max, v.y <= 0);
+		const target = Math.max(
+			-max,
+			Math.min(
+				max,
+				surfaceTarget(at, vessel.centreOfMass, demand, max, v.y <= 0) + (state.deploy ?? 0) * max
+			)
+		);
 		state.deflection = slew(state.deflection, target, (config.deflectionRate * Math.PI * dt) / 180);
 		if (rho === 0) return;
 		const force = controlSurfaceForce(config, v, rho, state.deflection);
@@ -1267,7 +1342,15 @@ export const wheelConfigSchema = z.object({
 export type WheelConfig = z.output<typeof wheelConfigSchema>;
 export interface WheelState {
 	brakes: boolean;
+	/** The wheel steers with yaw (plan 241); absent: it does when it can. */
+	steering?: boolean;
+	/** Steering turns the other way (plan 241). */
+	invert?: boolean;
 }
+
+/** The steering angle sign: 0 when the wheel does not steer, -1 when inverted. */
+export const wheelSteerSign = (config: Pick<WheelConfig, 'steer'>, state: WheelState): number =>
+	config.steer > 0 && state.steering !== false ? (state.invert === true ? -1 : 1) : 0;
 
 /**
  * A wheel (ADR 0161): one frictionless box at `offset`, rolling along the part's +Y; the sim applies
@@ -1288,7 +1371,26 @@ export const ModuleWheel = defineModule({
 				enabled: true,
 				group: 'stock.brakes',
 				icon: 'legs'
-			}
+			},
+			...(config.steer > 0
+				? [
+						{
+							id: 'setSteering',
+							label: 'Steering',
+							kind: 'toggle' as const,
+							value: state.steering !== false,
+							enabled: true
+						},
+						{
+							id: 'setInvert',
+							label: 'Invert steering',
+							kind: 'toggle' as const,
+							value: state.invert === true,
+							more: true,
+							enabled: state.steering !== false
+						}
+					]
+				: [])
 		]
 	}),
 	colliders: (config, state) => [
@@ -1300,7 +1402,7 @@ export const ModuleWheel = defineModule({
 				rolling: config.rolling,
 				grip: config.grip,
 				brake: state.brakes ? 1 : 0,
-				steer: (config.steer * Math.PI) / 180
+				steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180
 			}
 		}
 	],
@@ -1309,7 +1411,21 @@ export const ModuleWheel = defineModule({
 		setBrakes: (ctx, ...args) => {
 			const [on] = z.tuple([z.boolean()]).parse(args);
 			ctx.state.brakes = on;
+		},
+		/** `(on)`: the wheel answers yaw (plan 241). */
+		setSteering: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.steering = on;
+		},
+		/** `(on)`: steering turns the other way. */
+		setInvert: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.invert = on;
 		}
 	},
-	snapshot: (state) => ({ brakes: state.brakes })
+	snapshot: (state) => ({
+		brakes: state.brakes,
+		...(state.steering === false ? { steering: false } : {}),
+		...(state.invert === true ? { invert: true } : {})
+	})
 });

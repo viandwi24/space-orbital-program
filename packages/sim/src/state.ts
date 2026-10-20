@@ -26,6 +26,8 @@ export interface ControlState {
 	pitch: number;
 	roll: number;
 	yaw: number;
+	/** The attitude demand comes from the assist (plan 241). */
+	assisted?: boolean;
 }
 
 /**
@@ -216,7 +218,8 @@ export function effectiveControl(vessel: VesselState): ControlState {
 		throttle: control.throttle,
 		pitch: trimmed(sas.demand.x, trim),
 		roll: trimmed(sas.demand.y, trimRoll),
-		yaw: trimmed(sas.demand.z, trimYaw)
+		yaw: trimmed(sas.demand.z, trimYaw),
+		assisted: true
 	};
 }
 

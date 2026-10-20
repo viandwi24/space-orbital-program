@@ -22,7 +22,11 @@ export const rcsConfigSchema = z.object({
 	ispVacuum: z.number().positive(),
 	ispSeaLevel: z.number().positive(),
 	/** The resource the nozzles burn (monopropellant or cold gas). */
-	propellant: z.string().min(1)
+	propellant: z.string().min(1),
+	/** Where the part starts (plan 241: the Hangar's build settings write these). */
+	limiter: z.number().min(0).max(1).default(1),
+	rotate: z.boolean().default(true),
+	translate: z.boolean().default(true)
 });
 export type RcsConfig = z.output<typeof rcsConfigSchema>;
 
@@ -75,9 +79,9 @@ export const ModuleRcs = defineModule({
 	id: 'stock.rcs',
 	config: rcsConfigSchema,
 	state: (config): RcsState => ({
-		limiter: 1,
-		rotate: true,
-		translate: true,
+		limiter: config.limiter,
+		rotate: config.rotate,
+		translate: config.translate,
 		firing: config.nozzles.map(() => 0),
 		dry: false
 	}),
@@ -92,21 +96,26 @@ export const ModuleRcs = defineModule({
 				min: 0,
 				max: 1,
 				step: 0.05,
-				enabled: true
+				enabled: true,
+				build: 'limiter'
 			},
 			{
 				id: 'setRotate',
 				label: 'RCS rotation',
 				kind: 'toggle',
 				value: state.rotate,
-				enabled: true
+				enabled: true,
+				group: 'stock.rcs',
+				icon: 'rcs',
+				build: 'rotate'
 			},
 			{
 				id: 'setTranslate',
 				label: 'RCS translation',
 				kind: 'toggle',
 				value: state.translate,
-				enabled: true
+				enabled: true,
+				build: 'translate'
 			}
 		]
 	}),

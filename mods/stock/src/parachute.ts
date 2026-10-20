@@ -62,10 +62,15 @@ export interface ParachuteState {
 	/** atm, m: the player's settings (start at the config's). */
 	minPressure: number;
 	deployHeight: number;
+	/** Canopy lines spread, degrees (plan 241): the drag acts that far off the part's axis. */
+	spread?: number;
 	/** 0..1 of the opening towards the current stage (semi or full). */
 	opening: number;
 	safety: ParachuteSafety;
 }
+
+/** Length of the canopy lines for the spread offset, m. */
+const SPREAD_LINES = 1.5;
 
 /** The airflow class a canopy feels at `speed` (m/s) in air of `density` (kg/m³). */
 export function parachuteSafety(
@@ -197,6 +202,18 @@ export const ModuleParachute = defineModule({
 					unit: 'm',
 					enabled: !done && s !== 'full',
 					build: 'deployHeight'
+				},
+				{
+					id: 'setSpread',
+					label: 'Spread',
+					kind: 'value',
+					value: state.spread ?? 0,
+					min: 0,
+					max: 30,
+					step: 1,
+					unit: '°',
+					more: true,
+					enabled: !done && s !== 'full'
 				}
 			]
 		};
@@ -241,7 +258,14 @@ export const ModuleParachute = defineModule({
 		// (any force keeps a vessel awake, off surface rails)
 		if (speed < STILL_AIR) return;
 		const k = 0.5 * ambient.density * parachuteDragArea(config, state) * speed;
-		if (k > 0) ctx.vessel.applyForce({ x: -k * air.x, y: -k * air.y, z: -k * air.z }, point);
+		if (k > 0) {
+			// the spread moves the drag off the axis: lines of 1.5 m at that angle (plan 241)
+			const lateral = Math.tan(((state.spread ?? 0) * Math.PI) / 180) * SPREAD_LINES;
+			ctx.vessel.applyForce(
+				{ x: -k * air.x, y: -k * air.y, z: -k * air.z },
+				lateral === 0 ? point : { ...point, x: point.x + lateral }
+			);
+		}
 	},
 	actions: {
 		deploy: (ctx) => {
@@ -279,6 +303,11 @@ export const ModuleParachute = defineModule({
 				.tuple([z.number().min(DEPLOY_HEIGHT_RANGE.min).max(DEPLOY_HEIGHT_RANGE.max)])
 				.parse(args);
 			ctx.state.deployHeight = m;
+		},
+		/** `(degrees)` 0..30 (plan 241). */
+		setSpread: (ctx, ...args) => {
+			const [deg] = z.tuple([z.number().min(0).max(30)]).parse(args);
+			ctx.state.spread = deg;
 		}
 	},
 	snapshot: (state) => ({
@@ -286,6 +315,7 @@ export const ModuleParachute = defineModule({
 		mode: state.mode,
 		minPressure: state.minPressure,
 		deployHeight: state.deployHeight,
+		...(state.spread ? { spread: state.spread } : {}),
 		opening: state.opening,
 		safety: state.safety,
 		canopy: canopyOpening(state),
