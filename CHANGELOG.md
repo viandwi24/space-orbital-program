@@ -22,6 +22,8 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
 - Procedural fairings: add and size sections in the Hangar's fairing editor, close the nose, and jettison the shell in flight as two panels. A closed fairing shields its payload from drag. (219)
 - Click a part for the flight inspector's controls, with build-time settings applied to its symmetry group: fill, thrust limiter, gimbal, chute and crossfeed. Also new: an action group editor, crew seats, Δv and TWR for any body and situation, a power budget, and a pre-flight report. (218)
 
+- The Hangar camera climbs a tall rocket to its very top with the wheel, and there is one top bar: the vessel's name and Aircraft switch sit top-left above the catalogue, and New, Open, Save and Launch are in the menu bar. (238)
+
 ### Parts and physics
 
 - Parachutes (top, radial, drogue) work like KSP since 1.2: arm on staging, deploy when safe, and the state is shown in words. (209)
@@ -62,6 +64,11 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
   - AN/DN and the planned orbit's Ap and Pe;
   - warp to any marker, and alarms that stop warp;
   - the next transfer window. (224)
+- Fixes from the pre-release audit: (237)
+  - the heat warning appears at the same 2000 K default limit the simulation uses;
+  - a docked vessel gets its type (station, relay, ...) back when it undocks;
+  - founding a branch in a world with no save yet keeps its spending across the reload.
+- A script that flies a vessel keeps running when you leave Flight for the Map, the Space Center or the Hangar; it stops when you stop it, leave the world, or the script ends. (239)
 - EVA: walk, run, jump, fly a 270 N jetpack, climb ladders and board at the hatch. (225)
 - Four camera modes (Auto, Free, Orbital, Locked) on V. Middle-click a part to focus it, F2 hides the interface, and F10 saves a PNG of the scene. (226)
 - The Mission Center's fleet list: filter by type, recover a landed vessel anywhere, rename, terminate, and keep debris up to a cap. Recovery pays less the farther the vessel is from the pad (100 %) and the Space Center (98 %). (223)
@@ -76,6 +83,10 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
 ### Career
 
 - Every new part has a place in a larger tech tree. New contracts: rescue, satellite, station and docking. The science panel lets you pick which experiment to run and which result to send. (231)
+
+### Graphics
+
+- _(pending: 251–253)_ Graphics phases 0 and 1: measured frame times on a Retina display, a pixel budget for the planet pass, and a steadier quality governor. Filled in from the plans' journals when they land.
 
 ### Saves, safety and tools
 
