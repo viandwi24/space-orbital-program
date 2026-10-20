@@ -42,10 +42,13 @@ test('recover on the pad in a Career world credits the funds', async ({ page }) 
 	await expect(funds).toBeVisible({ timeout: 60_000 });
 	// the second launch pays the vessel's price again: on the pad the recovery factor is 100 % (plan 223), so
 	// its value at the pad is the credit and the funds come back to where they were
-	const after = fundsOf(await funds.innerText());
-	expect(
-		Math.abs(after - before),
-		`before ${before} credit ${credit} after ${after}`
-	).toBeLessThanOrEqual(2);
+	// (the HUD may show the resumed save's funds for a moment before the launch charge reaches it)
+	const settled = async (): Promise<number> => Math.abs(fundsOf(await funds.innerText()) - before);
+	await expect
+		.poll(settled, {
+			timeout: 30_000,
+			message: `funds before ${before}, credit ${credit}: the second launch must cost the credit`
+		})
+		.toBeLessThanOrEqual(2);
 	expect(errors).toEqual([]);
 });
