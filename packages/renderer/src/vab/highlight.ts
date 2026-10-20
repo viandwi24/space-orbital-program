@@ -206,6 +206,7 @@ export function makeGhost(root: Object3D, material: Material): void {
 const NODE_STYLE: Record<VabNodeState, { colour: number; opacity: number; scale: number }> = {
 	free: { colour: HIGHLIGHT_COLOURS.accent, opacity: 0.55, scale: 1 },
 	target: { colour: HIGHLIGHT_COLOURS.accent, opacity: 1, scale: 1.08 },
+	near: { colour: 0xb4ecff, opacity: 1, scale: 1.28 },
 	active: { colour: HIGHLIGHT_COLOURS.positive, opacity: 1, scale: 1.18 }
 };
 

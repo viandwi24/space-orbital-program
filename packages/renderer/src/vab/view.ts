@@ -75,7 +75,15 @@ import {
 	zoom,
 	type VabCameraState
 } from './orbit-camera.ts';
-import { pickNode, toNdc, worldNormalOf, type PickRay } from './picking.ts';
+import {
+	nearestByScreen,
+	pickNode,
+	toNdc,
+	withinScreen,
+	worldNormalOf,
+	type PickRay,
+	type ScreenPoint
+} from './picking.ts';
 import {
 	EMPTY_SCENE,
 	applyPartTurn,
@@ -695,6 +703,8 @@ export class VabView {
 			const entry = this.layer.parts.get(o.userData.key as string);
 			// A preview bar of a connector being placed belongs to no part: look through it.
 			if (!entry) continue;
+			// the cursor ghost is never in the way of a pick (plan 244)
+			if (entry.slot.role === 'free') continue;
 			if (entry.slot.role === 'ghost') {
 				if (options.ignoreGhost) continue;
 				return { kind: 'ghost' };
@@ -717,6 +727,47 @@ export class VabView {
 			};
 		}
 		return null;
+	}
+
+	/**
+	 * The node markers near the pointer (plan 244): `glow` are those within `glowPx` screen pixels (they
+	 * light up), `snap` the nearest within `snapPx` (the pointer snaps to it), by marker key (`t<i>`).
+	 */
+	nodesNearPointer(
+		clientX: number,
+		clientY: number,
+		glowPx: number,
+		snapPx: number
+	): { glow: string[]; snap: string | null } {
+		const rect = this.config.canvas.getBoundingClientRect();
+		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
+		const points: ScreenPoint[] = [];
+		for (const key of this.markers.keys()) {
+			const at = this.screenPositionOfMarker(key);
+			if (at) points.push({ key, ...at });
+		}
+		return {
+			glow: withinScreen(points, pointer, glowPx).map((p) => p.key),
+			snap: nearestByScreen(points, pointer, snapPx)?.key ?? null
+		};
+	}
+
+	/**
+	 * Where the carried part floats under the pointer (plan 244): the point of the pointer's ray at the
+	 * camera's distance from its target, in the main group's frame; null before the scene exists.
+	 */
+	cursorPoint(clientX: number, clientY: number): [number, number, number] | null {
+		const ray = this.rayAt(clientX, clientY);
+		const group = this.layer.groups.get('main');
+		const d = this.goal.distance;
+		const world = new Vector3(
+			ray.origin[0] + ray.dir[0] * d,
+			ray.origin[1] + ray.dir[1] * d,
+			ray.origin[2] + ray.dir[2] * d
+		);
+		this.layer.root.updateMatrixWorld(true);
+		const local = group ? group.object.worldToLocal(world) : world;
+		return [local.x, local.y, local.z];
 	}
 
 	/** Screen position (CSS pixels in the canvas) of a node marker (`t<i>` for target `i`), or null. */

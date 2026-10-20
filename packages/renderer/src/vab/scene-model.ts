@@ -17,7 +17,8 @@ export interface VabPart {
 	rotation?: readonly [number, number, number, number];
 	group: string;
 	/** `ghost` is the translucent preview of an attach; it cannot be picked. */
-	role: 'solid' | 'ghost';
+	/** `free` is the ghost that follows the cursor where no site is near (plan 244): drawn like a ghost, never picked. */
+	role: 'solid' | 'ghost' | 'free';
 	/** Per-instance generator parameters (plan 219: a fairing's sections); a change rebuilds the model. */
 	params?: Readonly<Record<string, number | string | boolean>>;
 }
@@ -39,7 +40,8 @@ export interface VabGroup {
 	z: number;
 }
 
-export type VabNodeState = 'free' | 'target' | 'active';
+/** `near` is a target within reach of the pointer (plan 244): it glows before the pointer snaps to it. */
+export type VabNodeState = 'free' | 'target' | 'near' | 'active';
 
 export interface VabNode {
 	key: string;

@@ -11,7 +11,7 @@ import {
 	pan,
 	raise
 } from '../src/vab/orbit-camera.ts';
-import { worldNormalOf } from '../src/vab/picking.ts';
+import { nearestByScreen, withinScreen, worldNormalOf } from '../src/vab/picking.ts';
 
 const hitNormal = (mesh: Mesh, origin: Vector3, dir: Vector3) => {
 	mesh.updateMatrixWorld(true);
@@ -73,5 +73,26 @@ describe('the camera reaches the top of a tall vessel (plan 238)', () => {
 		expect(top).toBeLessThanOrEqual(5 + PAN_TOP_MARGIN);
 		expect(limitsForVessel(null).panTop).toBe(PAN_TOP_MIN);
 		expect(limitsForVessel(1).panTop).toBe(PAN_TOP_MIN);
+	});
+});
+
+describe('nodes near the pointer (plan 244)', () => {
+	const nodes = [
+		{ key: 't0', x: 100, y: 100 },
+		{ key: 't1', x: 130, y: 100 },
+		{ key: 't2', x: 400, y: 300 }
+	];
+	it('the ones within the glow radius, nearest first', () => {
+		expect(withinScreen(nodes, { x: 118, y: 100 }, 40).map((n) => n.key)).toEqual(['t1', 't0']);
+		expect(withinScreen(nodes, { x: 118, y: 100 }, 15).map((n) => n.key)).toEqual(['t1']);
+		expect(withinScreen(nodes, { x: 900, y: 900 }, 80)).toEqual([]);
+	});
+	it('snaps to the nearest within its radius, and to none beyond it', () => {
+		expect(nearestByScreen(nodes, { x: 125, y: 104 }, 30)?.key).toBe('t1');
+		expect(nearestByScreen(nodes, { x: 115, y: 100 }, 30)?.key).toBe('t0');
+		expect(nearestByScreen(nodes, { x: 200, y: 200 }, 30)).toBeNull();
+	});
+	it('a tie goes to the lower key, so the choice does not flicker', () => {
+		expect(nearestByScreen(nodes, { x: 115, y: 100 }, 30)?.key).toBe('t0');
 	});
 });

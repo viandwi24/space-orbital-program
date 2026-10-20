@@ -61,6 +61,35 @@ export function pickNode<T extends PickableNode>(
 	return best ? { node: best.node, t: best.t } : null;
 }
 
+/** A point on the screen with a name (a node marker's projection), CSS pixels. */
+export interface ScreenPoint {
+	key: string;
+	x: number;
+	y: number;
+}
+
+/** The points within `radius` pixels of `pointer`, nearest first (plan 244: the nodes that glow). */
+export function withinScreen<T extends ScreenPoint>(
+	points: readonly T[],
+	pointer: { x: number; y: number },
+	radius: number
+): T[] {
+	return points
+		.map((p) => ({ p, d: Math.hypot(p.x - pointer.x, p.y - pointer.y) }))
+		.filter((e) => e.d <= radius)
+		.sort((a, b) => a.d - b.d || (a.p.key < b.p.key ? -1 : 1))
+		.map((e) => e.p);
+}
+
+/** The point nearest to `pointer` within `radius` pixels, or null (plan 244: the node the pointer snaps to). */
+export function nearestByScreen<T extends ScreenPoint>(
+	points: readonly T[],
+	pointer: { x: number; y: number },
+	radius: number
+): T | null {
+	return withinScreen(points, pointer, radius)[0] ?? null;
+}
+
 /** Pixel position in an element to normalised device coordinates (x right, y up). */
 export function toNdc(
 	clientX: number,
