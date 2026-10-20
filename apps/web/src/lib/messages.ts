@@ -107,6 +107,8 @@ export type SimEvent =
 	| { type: 'building-ready'; kind: string; level: number }
 	/** Every control source of the vessel ran out of power (plan 208, ADR 0214). */
 	| { type: 'power-depleted'; vessel: number }
+	/** A vessel nobody watches was frozen by rails warp (plan 247): it waits where it is. */
+	| { type: 'vessel-frozen'; vessel: number; reason: string }
 	/** Two vessels docked (plan 222): `absorbed` is now part of `vessel`. */
 	| { type: 'docked'; vessel: number; absorbed: number }
 	/** An undock split `vessel` (plan 222): `restored` has its old name back. */
@@ -200,6 +202,7 @@ const SIM_EVENT_TYPES: readonly unknown[] = [
 	'alarm',
 	'building-ready',
 	'power-depleted',
+	'vessel-frozen',
 	'docked',
 	'undocked',
 	'parachute-deployed',

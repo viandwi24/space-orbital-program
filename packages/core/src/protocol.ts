@@ -112,6 +112,8 @@ export interface AlarmSnapshot {
 	vessel?: EntityId;
 	/** The destination of a transfer-window alarm. */
 	body?: string;
+	/** Seconds before the event an apsis or node alarm fires (plan 247): the alarm follows burns by it. */
+	lead?: number;
 }
 
 /**

@@ -64,3 +64,4 @@ Warp is safe: every event that needs the player stops it and tells them why.
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
+- 2026-10-20 — Refined against main and coded on `rel/247-world-time-alerts` (batch mode, light checks only). Stops for construction, power, crew shortage, deadline and atmosphere entry (1×); frame-budget warp drop for physics warp in every world (count-based, constant to tune after 251); apsis alarms follow burns; `setAlarm`/`removeAlarm`/`ship.alarms`; frozen-vessel bell warning. The construction e2e waits for warp on the Space Center page (plan 248), so this plan's e2e covers atmosphere entry instead. Stays `draft` until 239 is done on main (`docs:check` dependency rule).

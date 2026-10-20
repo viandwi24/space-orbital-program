@@ -26,6 +26,7 @@ import { vesselOfMember } from './crew.ts';
 import { generatedContract } from './contracts.ts';
 import { economyOn, record } from './economy.ts';
 import { elementsOf, motionOf } from './orbit.ts';
+import { stopWarp } from './warp-stop.ts';
 
 export interface ObjectivesState {
 	state: SaveObjectives;
@@ -229,6 +230,7 @@ export function finishObjective(
 			time: core.t,
 			reason
 		});
+		if (reason === 'deadline passed') stopWarp(core, 'a contract deadline passed');
 	}
 }
 

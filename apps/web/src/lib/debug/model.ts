@@ -180,6 +180,8 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 			return { level: 'info', message: `construction done: ${event.kind} level ${event.level}` };
 		case 'power-depleted':
 			return { level: 'warn', message: `vessel ${event.vessel} out of power` };
+		case 'vessel-frozen':
+			return { level: 'warn', message: `vessel ${event.vessel} frozen by warp: ${event.reason}` };
 		case 'docked':
 			return {
 				level: 'info',

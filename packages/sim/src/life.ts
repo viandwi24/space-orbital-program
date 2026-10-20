@@ -33,6 +33,7 @@ import { moduleDefOf, partDefOf, partOf, vesselIds, vesselOf, type SimCore } fro
 import { crewDay, deathRule, loseMember, vesselOfMember } from './crew.ts';
 import { ruleOf } from './economy.ts';
 import { motionOf } from './orbit.ts';
+import { stopWarp } from './warp-stop.ts';
 import { amountAvailable, withdrawResource } from './resources.ts';
 
 /** Run-time state that is not saved: each flight vessel's last velocity, for g-load. */
@@ -112,6 +113,7 @@ function startShortage(
 		if (list.some((x) => x.resource === resource)) continue;
 		list.push({ resource, since: time });
 		core.events.emit('crew:shortage', { vessel: vesselId, member: m.id, resource, time });
+		stopWarp(core, `the crew is short of ${resource}`);
 	}
 }
 

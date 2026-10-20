@@ -374,6 +374,11 @@
 						bell.push({ source: 'clock', text: `Warp stopped: ${e.reason}` });
 					else if (e.type === 'power-depleted')
 						bell.push({ source: 'sim', text: 'Out of power: a probe is uncontrolled' });
+					else if (e.type === 'vessel-frozen')
+						bell.push({
+							source: 'sim',
+							text: `A vessel was frozen by time warp (${e.reason}); slow down to bring it back`
+						});
 					else if (e.type === 'building-ready')
 						bell.push({
 							source: 'construction',

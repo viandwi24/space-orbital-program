@@ -183,6 +183,13 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn) {
 		typeof when === 'string'
 			? { target: when, factor: factor === undefined ? 100000 : factor }
 			: { time: when, factor: factor === undefined ? 100000 : factor })));
+	// Alarms (plan 247): setAlarm({ name?, time }) or setAlarm({ name?, kind: 'apoapsis' | 'periapsis' | 'soi' | 'node', lead? });
+	// ship.alarms lists the world's alarms (their ids); removeAlarm(id) takes one away. An alarm stops the warp when it fires.
+	fixed('setAlarm', (spec) => {
+		if (typeof spec !== 'object' || spec === null) throw new TypeError('setAlarm needs { time } or { kind, lead }');
+		return request('alarm-set', JSON.stringify(spec));
+	});
+	fixed('removeAlarm', (id) => request('alarm-remove', JSON.stringify({ id })));
 	// Targets (plan 035, ADR 0064): a body id, a vessel id, an entry of ship.targets, or null to clear.
 	const targetRef = (spec) => {
 		if (spec === null) return null;
