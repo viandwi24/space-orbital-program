@@ -128,6 +128,13 @@
 		border-radius: var(--radius-pill);
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
+		/* never wider than the space between the side panels (plan 238: it covered the right column) */
+		max-width: 100%;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.pill > :global(*) {
+		flex: none;
 	}
 	.cap {
 		padding: 0 0.25rem 0 0.375rem;
@@ -217,8 +224,9 @@
 		font-size: var(--t-label);
 		color: var(--text-muted);
 	}
-	/* narrower windows: the pill fits between the side panels */
-	@media (max-width: 1279px) {
+	/* a narrow middle column: the pill fits between the side panels (the page makes `.bottom` the
+	   container; plan 238 measured it against the column, the window's width is not enough) */
+	@container (max-width: 860px) {
 		.keys,
 		.cap {
 			display: none;
