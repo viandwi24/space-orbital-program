@@ -1,7 +1,7 @@
 ---
 id: 245
 title: "Keys: abort (Backspace) and the abort group, stop warp (/), yaw and roll trim and reset, brakes on hold"
-status: in-progress
+status: done
 owner: "Worker B (M5)"
 depends: []
 phase: 8
@@ -53,7 +53,7 @@ Every KSP-profile key that is still `pending` works.
 
 - [x] No KSP-profile action is left `pending`; tests pass.
 - [x] Abort fires the abort group; / stops warp; trims and reset work; brakes hold.
-- [ ] CI is green on `ready/245`. The Chromium e2e of this plan was not written or run (e2e paused by the owner, 2026-10-20).
+- [x] CI is green on `ready/245`. The Chromium e2e of this plan was not written or run (e2e paused by the owner, 2026-10-20).
 
 ## Docs checklist
 
