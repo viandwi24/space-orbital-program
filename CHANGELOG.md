@@ -86,7 +86,9 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
 
 ### Graphics
 
-- _(pending: 251–253)_ Graphics phases 0 and 1: measured frame times on a Retina display, a pixel budget for the planet pass, and a steadier quality governor. Filled in from the plans' journals when they land.
+- On a Retina screen the High preset is about 2.6 to 3.1 times cheaper at the same look: on the M5's built-in display the frame time at the pad, 3 km, 12 km and in orbit went from 43.7, 47.3, 50.4 and 27.1 ms to 16.5, 15.1, 16.8 and 9.9 ms, with a softer ground at the Space Center. (252)
+- Debug → Performance shows the frame-time distribution (p50, p95, p99 and the share of slow frames), and the debug API can switch each High extra off to see what it costs. (251)
+- _(pending: 253)_ A quality governor that drops quality fast, raises it only on measured headroom, and does not stutter in a loop.
 
 ### Saves, safety and tools
 
