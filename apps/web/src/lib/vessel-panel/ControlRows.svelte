@@ -38,6 +38,9 @@
 			return;
 		}
 		note = null;
+		// shown in the control's own unit at once: a value equal to the current one changes no prop, so
+		// the field would keep the raw text (plan 238, "50" stayed "50" instead of "50 %")
+		input.value = formatTyped(c, r.value);
 		send(part.entity, c, r.value);
 	}
 	const shown = (c: ControlRow): string =>
