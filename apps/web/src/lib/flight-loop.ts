@@ -1881,13 +1881,13 @@ export function startFlight(options: FlightOptions): Flight {
 			canvas.removeEventListener('wheel', onWheel);
 			renderer?.dispose();
 			setGlassFallback(document.documentElement, false);
-			options.sandbox?.close();
 			for (const off of offClient) off();
-			if (ownsClient) client.dispose();
-			else {
-				// the world keeps running without this page (ADR 0201 point 1)
-				client.stopScript();
+			if (ownsClient) {
+				options.sandbox?.close();
+				client.dispose();
 			}
+			// else the world keeps running without this page (ADR 0201 point 1), and with it a
+			// running script and its sandbox (point 9, plan 239)
 		}
 	};
 }

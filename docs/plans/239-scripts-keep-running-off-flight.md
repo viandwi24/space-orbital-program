@@ -1,7 +1,7 @@
 ---
 id: 239
 title: "A running script keeps running when the player leaves Flight"
-status: ready
+status: in-progress
 owner: "Worker C"
 depends: []
 phase: 7
@@ -59,3 +59,4 @@ The release audit (2026-10-20) found that leaving Flight stops the script. The c
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit; ready (checked against main @ b2d2abb2). Owner order: fix before v1.0.0. It follows 237 in Worker C's queue; there is no code dependency, so `depends` is empty.
+- 2026-10-20 — Worker C claimed (claim/239). Step 1: the wiring needs an ADR (the sandbox's owner moves): ADR 0232, written before the code. The sim needed nothing. Batch mode (owner's order): light checks here, the e2e `script-off-flight.e2e.ts` runs in the integration batch.
