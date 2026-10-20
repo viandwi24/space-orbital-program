@@ -1,0 +1,731 @@
+{
+ "machine": "MacBook Pro M2 13\"",
+ "browser": "Chromium (Playwright, headed, Metal)",
+ "date": "2026-10-20",
+ "plan": "261 phase 6 spike",
+ "note": "ms per frame, synchronous; bake = the one-off transmittance + multiple-scattering tables, ms",
+ "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+ "rows": [
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.18,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.1,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.16,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 0.35,
+   "bake": 7,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 0.41,
+   "bake": 11.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 1.17,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 1.12,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 1.15,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 0.35,
+   "bake": 7.4,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 0.39,
+   "bake": 9.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.16,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.12,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.13,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 0.34,
+   "bake": 7.1,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 0.37,
+   "bake": 9.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.66,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.62,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.64,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.33,
+   "bake": 5.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.48,
+   "bake": 9.1,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.58,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.32,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.53,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 0.78,
+   "bake": 7.8,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 0.85,
+   "bake": 13.3,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 4.57,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 4.37,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 4.52,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 0.79,
+   "bake": 8.6,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 0.82,
+   "bake": 12.5,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.54,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.48,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.47,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 0.77,
+   "bake": 11,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 0.78,
+   "bake": 9.4,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.57,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.44,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.46,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 0.64,
+   "bake": 9.4,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 0.68,
+   "bake": 10.6,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.32,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.3,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.32,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.49,
+   "bake": 9.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.48,
+   "bake": 12.3,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 2.39,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 2.31,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 2.33,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 1.49,
+   "bake": 9.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "sunset",
+   "ms": 1.47,
+   "bake": 13.7,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.35,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.33,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.3,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.55,
+   "bake": 8.2,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.52,
+   "bake": 13.8,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.78,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.85,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.76,
+   "bake": "",
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.48,
+   "bake": 6.8,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.41,
+   "bake": 9.6,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 9.11,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 8.88,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 9.1,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 5.08,
+   "bake": 7.5,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 5.1,
+   "bake": 13.5,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 9.13,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 8.9,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 9.09,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 5.1,
+   "bake": 10,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "sunset",
+   "ms": 5.11,
+   "bake": 13,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 9.15,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 8.92,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 9.14,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 5.1,
+   "bake": 9.7,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 5.12,
+   "bake": 15.4,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 7.03,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 6.83,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 6.89,
+   "bake": "",
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 4.93,
+   "bake": 9.3,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-lut-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 4.98,
+   "bake": 16,
+   "px": "2320×1890"
+  }
+ ],
+ "errors": 0
+}

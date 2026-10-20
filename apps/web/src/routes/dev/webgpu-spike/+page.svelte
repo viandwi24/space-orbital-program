@@ -2,20 +2,28 @@
 	/**
 	 * Plan 261, phase 0: the spike page. The same sky drawn by the WebGL renderer (our GLSL) and by
 	 * three's WebGPU renderer (TSL), measured per frame at pixel ratio 1 and 2. Development only: it
-	 * exists on the plan's branch and is not linked from the game.
+	 * exists on the plan's branch and is not linked from the game. Phase 6 adds `webgpu-lut`: the
+	 * same air through Hillaire's tables, with multiple scattering.
 	 */
 	import { onMount } from 'svelte';
 	import type { SkySpike, SpikeBackend, SpikeView } from '@orbital/renderer/webgpu-spike';
 
 	const VIEWS: Record<string, SpikeView> = {
 		pad: { altitude: 20, sunElevation: 0.6, pitch: 0.12 },
+		sunset: { altitude: 20, sunElevation: 0.02, pitch: 0.12 },
 		'12 km': { altitude: 12_000, sunElevation: 0.25, pitch: -0.05 },
 		orbit: { altitude: 100_000, sunElevation: 0.15, pitch: -0.35 }
 	};
-	const BACKENDS: SpikeBackend[] = ['webgl', 'webgpu', 'webgpu-fallback'];
+	const BACKENDS: SpikeBackend[] = [
+		'webgl',
+		'webgpu',
+		'webgpu-fallback',
+		'webgpu-lut',
+		'webgpu-lut-fallback'
+	];
 
 	let host: HTMLDivElement;
-	let backend = $state<SpikeBackend>('webgpu');
+	let backend = $state<SpikeBackend>('webgpu-lut');
 	let octaves = $state(0);
 	let ratio = $state(2);
 	let view = $state('pad');
@@ -59,6 +67,7 @@
 				ratio,
 				view,
 				ms,
+				bake: spike?.bakeMs ?? '',
 				px: `${canvas?.width}×${canvas?.height}`
 			}
 		];
@@ -81,6 +90,7 @@
 								ratio: r,
 								view: v,
 								ms,
+								bake: spike?.bakeMs ?? '',
 								px: `${canvas?.width}×${canvas?.height}`
 							}
 						];
@@ -89,13 +99,17 @@
 		(window as unknown as { __spike: unknown }).__spike = { userAgent: navigator.userAgent, rows };
 	}
 
+	/** Draws the chosen backend, ratio and view, to look at it. */
+	async function show(): Promise<void> {
+		const s = await make(backend, octaves);
+		s.setSize(host.clientWidth, host.clientHeight, ratio);
+		s.setView(VIEWS[view]!);
+		s.draw();
+	}
+
 	onMount(() => {
 		gpuAvailable = 'gpu' in navigator;
-		void make(backend, octaves).then((s) => {
-			s.setSize(host.clientWidth, host.clientHeight, ratio);
-			s.setView(VIEWS[view]!);
-			s.draw();
-		});
+		void show();
 		return () => spike?.dispose();
 	});
 
@@ -136,6 +150,7 @@
 			></label
 		>
 		<div class="buttons">
+			<button type="button" onclick={() => void show()} data-testid="spike-show">Show</button>
 			<button type="button" onclick={() => void one()} data-testid="spike-one">Measure this</button>
 			<button type="button" onclick={() => void all()} data-testid="spike-all"
 				>Run the whole matrix</button
@@ -144,7 +159,7 @@
 		<p class="status" data-testid="spike-status">{status}</p>
 		<table>
 			<thead
-				><tr><th>backend</th><th>oct</th><th>ratio</th><th>view</th><th>px</th><th>ms</th></tr
+				><tr><th>backend</th><th>oct</th><th>ratio</th><th>view</th><th>px</th><th>ms</th><th>bake</th></tr
 				></thead
 			>
 			<tbody>
@@ -152,7 +167,7 @@
 					<tr
 						><td>{r.backend}</td><td>{r.octaves}</td><td>{r.ratio}</td><td>{r.view}</td><td
 							>{r.px}</td
-						><td class="num">{r.ms}</td></tr
+						><td class="num">{r.ms}</td><td class="num">{r.bake}</td></tr
 					>
 				{/each}
 			</tbody>

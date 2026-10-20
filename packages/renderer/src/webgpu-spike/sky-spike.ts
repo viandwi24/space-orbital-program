@@ -25,7 +25,12 @@ import { createAtmosphereUniforms } from '../planet.ts';
 import { atmosphereGLSL, hashNoiseGLSL } from '../shaders/atmosphere.glsl.ts';
 import { SUN_DEPTH_H, SUN_DEPTH_MU, SUN_DEPTH_SCALE } from '../sun-depth-table.ts';
 
-export type SpikeBackend = 'webgl' | 'webgpu' | 'webgpu-fallback';
+/**
+ * `webgpu-lut` is phase 6's sky (lut-sky.ts: Hillaire's tables, multiple scattering) on the WebGPU
+ * renderer; the `-fallback` ones run the WebGPU renderer on its WebGL2 backend.
+ */
+export type SpikeBackend =
+	'webgl' | 'webgpu' | 'webgpu-fallback' | 'webgpu-lut' | 'webgpu-lut-fallback';
 
 export interface SpikeView {
 	/** Camera height above the surface, m. */
@@ -39,6 +44,8 @@ export interface SpikeView {
 export interface SkySpike {
 	/** The backend in use: `webgpu-fallback` is the WebGPU renderer on its WebGL2 backend. */
 	readonly backend: SpikeBackend | 'webgpu-requested-but-webgl2';
+	/** The one-off table bake (LUT sky only), ms. */
+	readonly bakeMs?: number;
 	setSize(width: number, height: number, pixelRatio: number): void;
 	setView(view: SpikeView): void;
 	/** Draws `frames` frames back to back and waits for the GPU; returns ms per frame. */
@@ -59,6 +66,8 @@ export interface SpikeOptions {
 /** The home planet's air, as the renderer builds it (600 km, 70 km of atmosphere). */
 export const SPIKE_ATMOSPHERE: Atmosphere = atmosphereFor(600_000, 70_000);
 const FOV = (60 * Math.PI) / 180;
+/** The LUT sky's exposure against the march's tone map (see lutColour). */
+const LUT_EXPOSURE = 1.6;
 
 /** Camera basis for a view: position above the north pole, looking along +X tilted by pitch. */
 function basis(atm: Atmosphere, v: SpikeView) {
@@ -224,7 +233,7 @@ async function webgpuSpike(canvas: HTMLCanvasElement, options: SpikeOptions): Pr
 		canvas,
 		antialias: false,
 		powerPreference: 'high-performance',
-		forceWebGL: options.backend === 'webgpu-fallback'
+		forceWebGL: options.backend.endsWith('fallback')
 	});
 	await renderer.init();
 	// our GLSL writes linear values straight to the canvas: no sRGB conversion here either
@@ -393,8 +402,24 @@ async function webgpuSpike(canvas: HTMLCanvasElement, options: SpikeOptions): Pr
 		return vec4(float(1.0).sub(exp(col.mul(-1.4))), 1.0);
 	});
 
+	const lutMode = options.backend.startsWith('webgpu-lut');
+	const lutSky = lutMode ? (await import('./lut-sky.ts')).createLutSky(atm) : null;
+	const lutColour = Fn(() => {
+		const col = vec3(lutSky!.radiance).toVar();
+		const acc = float(0.0).toVar();
+		const q = lutSky!.rayDir.mul(40.0).toVar();
+		Loop(options.noiseOctaves, ({ i }: { i: any }) => {
+			acc.addAssign(noiseF(q).div(float(i).add(1.0)));
+			q.mulAssign(2.03);
+		});
+		col.addAssign(vec3(acc.mul(1e-4)));
+		// the march's 2.2 boost stood in for multiple scattering and lit the whole sky; the tables
+		// compute it, so only an exposure brings the brightness to the march's
+		return vec4(float(1.0).sub(exp(col.mul(-1.4 * LUT_EXPOSURE))), 1.0);
+	});
+
 	const material = new MeshBasicNodeMaterial();
-	material.colorNode = sky();
+	material.colorNode = lutSky ? lutColour() : sky();
 	material.depthTest = false;
 	material.depthWrite = false;
 	const quad = new QuadMesh(material);
@@ -407,20 +432,38 @@ async function webgpuSpike(canvas: HTMLCanvasElement, options: SpikeOptions): Pr
 		};
 		if (backend.device) await backend.device.queue.onSubmittedWorkDone();
 		else if (backend.gl) {
-			const px = new Uint8Array(4);
-			backend.gl.readPixels(0, 0, 1, 1, backend.gl.RGBA, backend.gl.UNSIGNED_BYTE, px);
+			// read the canvas, not a half-float table left bound by a bake, then put three's binding back
+			const gl = backend.gl;
+			const bound = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+			gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+			gl.bindFramebuffer(gl.READ_FRAMEBUFFER, bound);
 		}
 	};
+	let bakeMs: number | undefined;
+	if (lutSky) {
+		await wait();
+		const t0 = performance.now();
+		lutSky.bake(renderer);
+		await wait();
+		bakeMs = Math.round((performance.now() - t0) * 10) / 10;
+	}
+	const frame = () => {
+		lutSky?.update(renderer);
+		quad.render(renderer);
+	};
+	const fallback = options.backend.endsWith('fallback');
 	return {
-		backend: onWebGPU
-			? 'webgpu'
-			: options.backend === 'webgpu-fallback'
-				? 'webgpu-fallback'
-				: 'webgpu-requested-but-webgl2',
+		backend: onWebGPU || fallback ? options.backend : 'webgpu-requested-but-webgl2',
+		bakeMs,
 		setSize(w, h, ratio) {
 			renderer.setPixelRatio(ratio);
 			renderer.setSize(w, h, false);
 			uAspect.value = w / h;
+			if (lutSky) {
+				lutSky.uniforms.aspect.value = w / h;
+				lutSky.uniforms.tanHalf.value = Math.tan(FOV / 2);
+			}
 		},
 		setView(v) {
 			const b = basis(atm, v);
@@ -429,18 +472,27 @@ async function webgpuSpike(canvas: HTMLCanvasElement, options: SpikeOptions): Pr
 			uRight.value.copy(b.right);
 			uUp.value.copy(b.up);
 			uSun.value.copy(b.sun);
+			if (lutSky) {
+				const u = lutSky.uniforms;
+				u.camPos.value.copy(b.pos);
+				u.forward.value.copy(b.forward);
+				u.right.value.copy(b.right);
+				u.up.value.copy(b.up);
+				u.sun.value.copy(b.sun);
+			}
 		},
 		async benchmark(frames) {
-			quad.render(renderer);
+			frame();
 			await wait();
 			const t0 = performance.now();
-			for (let i = 0; i < frames; i++) quad.render(renderer);
+			for (let i = 0; i < frames; i++) frame();
 			await wait();
 			return (performance.now() - t0) / frames;
 		},
-		draw: () => quad.render(renderer),
+		draw: frame,
 		dispose() {
 			material.dispose();
+			lutSky?.dispose();
 			renderer.dispose();
 		}
 	};
