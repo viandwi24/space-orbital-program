@@ -116,9 +116,11 @@
 		gap: 0.5rem;
 		min-height: 0;
 	}
-	/* the rail keeps inside the left stack: it takes the dock's height and scrolls when the stack is short */
+	/* the rail is as tall as its tabs (plan 256: it used to stretch with a tall panel beside it) and
+	   scrolls only when the left stack is shorter than that */
 	.rail {
-		align-self: stretch;
+		align-self: flex-start;
+		max-height: 100%;
 		min-height: 0;
 		overflow-y: auto;
 		scrollbar-width: none;

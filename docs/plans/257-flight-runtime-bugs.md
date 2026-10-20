@@ -66,4 +66,14 @@ Items 11–16 were seen on a build a few hours older than the Pages build. Check
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test.
+- 2026-10-20 — Coordinator's read-only investigation on main @ bb8c9665 found all items still present. Likely causes:
+  - **(9)** `DebugPanel.svelte:346` keys `{#each designList}` by design name. Names repeat (`vab/library.ts:94-109`), and Svelte throws `each_key_duplicate` in production, which shows `+error.svelte`. Key the list by index or id, dedupe in `(world)/+layout.svelte:113-125` and `flight/+page.svelte:887-901`, and wrap `run()` in try/catch.
+  - **(10)** `flight/+page.svelte:926-934` leaves Debug out of `modal`, and opening Debug from the menu clears `pauseOpen`. Hold `'debug'` in both places; this amends plan 203.
+  - **(11)** `flight-loop.ts:1571-1575` fires the touchdown, explosion and warning cues for any vessel's `part-damaged` event. Guard them with the active vessel.
+  - **(12)** Only 2 physics frames exist (`constants.ts:22`). `thawFrozen` (`warp.ts:160-178`) hands frames to frozen debris after warp, and descending debris keeps its frame (`modes.ts:149-162`). Thaw only vessels that join a frame already in use. When a controlled vessel needs a frame, evict uncontrolled vessels from the farthest frame (`frames.ts`, `wakeBlocker` in `modes.ts:66-81`).
+  - **(13)** `flight-loop.ts:729-732` sets `sentThrottle` before the result arrives. On a refusal, reset it so the next frame resends, and reconcile with the snapshot.
+  - **(14)** `stepSasOnRails` (`sas.ts:324-347`) snaps the attitude while the vessel stays on rails at 1×. In `case 'sas'` (`commands.ts:455-470`), call `ensureFlight` when warp is within physics range.
+  - **(15)** `typingInField` (`flight-loop.ts:788-808`) counts range and checkbox inputs as typing. Count only text-like fields.
+  - **(16)** After `GHOST_HOLD` 5 s (`scene.ts:165, 1523-1537`), the anchor falls back to the body centre, which is inside the planet. Keep the ghost anchor while the active vessel is missing.
+  - **Item 7 (camera anchor)** belongs to plan 256. A hidden navmodule gives a zero rect (`flight/+page.svelte:1161-1174`), so the bottom inset becomes about the full height. Use 0 when the rect is empty, and add `navOpen` to the effect.
 - 2026-10-20 — Worker C: items 10–16 fixed with tests (journal 257). Item 9 (Set orbit, "Internal Error") did not reproduce in the dev build; the plan stays in progress for it.

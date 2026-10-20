@@ -5,6 +5,7 @@
 	 */
 	import type { PowerView } from '../editor/power';
 	import { formatDuration } from '../format';
+	import { panelFolds } from './panel-folds.svelte';
 
 	let { power }: { power: PowerView | null } = $props();
 
@@ -13,7 +14,13 @@
 
 {#if power}
 	{@const t = power.total}
-	<details class="power" aria-label="Power budget" data-testid="power-budget">
+	<details
+		class="power"
+		aria-label="Power budget"
+		data-testid="power-budget"
+		open={panelFolds.isOpen('power')}
+		ontoggle={(e) => panelFolds.set('power', e.currentTarget.open)}
+	>
 		<summary>
 			<h3>Power · EC/s</h3>
 			<span class="sum num" class:neg={t.night < 0 || t.day < 0}

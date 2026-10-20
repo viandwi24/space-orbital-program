@@ -179,6 +179,8 @@ export const PartEvaSuit = definePart({
 	impactTolerance: 8,
 	maxTemperature: 800,
 	shape: SUIT,
+	// the astronaut's own gear, not a catalogue part (plan 255; KSP keeps it in the kerbal's inventory)
+	catalog: { hidden: true },
 	walk: { speed: 1.5, run: 3, propellant: ColdGas.id },
 	visual: {
 		kind: 'suit',
@@ -229,6 +231,8 @@ export const PartFlag = definePart({
 	maxTemperature: 1200,
 	// a wide footprint so the pole stands; the figure is drawn thin
 	shape: { kind: 'box', size: [0.8, 2, 0.8] },
+	// planted by an EVA crew member, not built (plan 255)
+	catalog: { hidden: true },
 	visual: {
 		kind: 'flag',
 		palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#3e6ae1' }

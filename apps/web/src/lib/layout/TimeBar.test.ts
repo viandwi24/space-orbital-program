@@ -126,3 +126,28 @@ describe('warp limits in the time bar (plan 206)', () => {
 		expect(body.match(/class="seg[ "]/g)?.length).toBe(9);
 	});
 });
+
+describe('one badge for every pause state (plan 256)', () => {
+	const states = ['PAUSED', 'PAUSED · HANGAR', 'PAUSED · MENU', 'LOCKED', 'BACKGROUND'];
+	const chips = (props: Partial<Parameters<typeof TimeBar>[1]>) => [
+		...bar(props).matchAll(
+			/<(span|button)[^>]*class="chip[^"]*"[^>]*data-testid="time-chip"[^>]*>([^<]*)</g
+		)
+	];
+	it('every state draws the same chip class and the chip test id, as a span', () => {
+		for (const chip of states) {
+			const found = chips({ chip });
+			expect(found, chip).toHaveLength(1);
+			expect(found[0]![1]).toBe('span');
+			expect(found[0]![2]).toBe(chip);
+		}
+	});
+	it('where it can lift the place pause it is a button of the same chip class', () => {
+		const found = chips({ chip: 'PAUSED · HANGAR', onchip: () => {} });
+		expect(found).toHaveLength(1);
+		expect(found[0]![0]).toMatch(/class="chip toggle[ "]/);
+	});
+	it('no chip while the clock runs', () => {
+		expect(chips({ chip: null })).toHaveLength(0);
+	});
+});

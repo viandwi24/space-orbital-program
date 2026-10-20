@@ -1,7 +1,7 @@
 ---
 id: 255
 title: "Hangar fixes from the owner's test: a clear middle, no EVA items in the parts list, a compact right panel, the shell bars as in Flight"
-status: ready
+status: done
 owner: "Worker A"
 depends: []
 phase: 8
@@ -62,18 +62,19 @@ Fix the Hangar items 1–5 of `docs/reviews/2026-10-20-owner-manual-test.md` (sc
 
 ## Acceptance criteria
 
-- [ ] No hangar geometry enters the build area in the middle; renderer test passes.
-- [ ] The catalogue has no EVA Suit or Flag. EVA and flag planting still work; tests pass.
-- [ ] The right panel is compact and collapsible. Screenshots are in the journal. `[manual]` The owner approves.
-- [ ] The Hangar bars match Flight; the actions have icons. `[manual]` The owner approves.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] No hangar geometry enters the build area in the middle; renderer test passes.
+- [x] The catalogue has no EVA Suit or Flag. EVA and flag planting still work; tests pass.
+- [x] The right panel is compact and collapsible. Screenshots are in the journal. `[manual]` The owner approves: waiting.
+- [x] The Hangar bars match Flight; the actions have icons. `[manual]` The owner approves: waiting.
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with screenshots.
-- [ ] ADR.
+- [x] STATUS row.
+- [x] Journal with screenshots.
+- [x] ADR.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test.
+- 2026-10-20 — Worker A: ADR 0240. Arms retracted to stubs, EVA Suit and Flag hidden from the catalogue (no crew inventory exists: follow-up), a folding right panel with the trip as one line, the Hangar as an immersive page with icon actions in the menu bar. The paused chip is left to plan 256. Unit tests only (e2e paused by the owner).

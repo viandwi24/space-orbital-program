@@ -109,3 +109,43 @@ export function smallScreenAdvice(cls: ScreenClass): string {
 			return `Make the window larger. ${need}`;
 	}
 }
+
+/** A measured box in the flight page's frame, px. */
+export interface MeasuredBox {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+	width: number;
+	height: number;
+}
+
+const shown = (b: MeasuredBox | undefined): b is MeasuredBox =>
+	b !== undefined && b.width > 0 && b.height > 0;
+
+/**
+ * The clearances the camera keeps when it centres the vessel in the free area (plan 215, plan 256):
+ * the time bar's foot at the top, the instrument deck's top at the bottom, the side panels when the
+ * player asked to centre in the free area. A panel that is hidden (the navball module takes its
+ * deck out with `display: none`, so it measures as an empty box at the origin) leaves no clearance:
+ * hiding it frees its space and the vessel moves down into it, not up.
+ */
+export function viewInsets(args: {
+	frame: Viewport;
+	/** The time bar. */
+	bar?: MeasuredBox;
+	/** The instrument deck. */
+	deck?: MeasuredBox;
+	/** The side panel on the right. */
+	right?: MeasuredBox;
+	/** Right edge of the left stack and open dock panel, 0 for none. */
+	dockRight: number;
+	/** Centre the vessel in the area the side panels leave free (`settings.ui.centreVessel`). */
+	centre: boolean;
+}): { top: number; right: number; bottom: number; left: number } {
+	const { frame, bar, deck, right, dockRight, centre } = args;
+	const top = shown(bar) ? bar.bottom + 8 : 0;
+	const bottom = shown(deck) ? Math.max(0, frame.height - deck.top + 8) : 0;
+	const side = shown(right) ? Math.max(0, frame.width - right.left + 8) : 0;
+	return { top, right: centre ? side : 0, bottom, left: centre ? dockRight : 0 };
+}

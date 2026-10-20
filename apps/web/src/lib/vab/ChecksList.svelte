@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { verdictOf, type Check } from '../editor/checks';
+	import FoldButton from './FoldButton.svelte';
+	import { panelFolds } from './panel-folds.svelte';
 
 	/**
 	 * Pre-flight checks (plan 093, ADR 0148; refs Hangar): one verdict, then each check with a dot for
@@ -28,50 +30,52 @@
 
 <section class="checks" aria-label="Pre-flight checks">
 	<header>
-		<h2>Pre-flight checks</h2>
+		<FoldButton id="checks"><h2>Pre-flight checks</h2></FoldButton>
 		<span class="verdict {verdict}" data-testid="preflight-verdict"
 			><span class="dot" aria-hidden="true"></span>{VERDICT[verdict]}</span
 		>
 	</header>
-	{#if checks.length === 0}
-		<p class="ok"><span class="dot go" aria-hidden="true"></span>Ready for launch.</p>
-	{:else}
-		<ul>
-			{#each checks as c (c.id)}
-				{@const at = where(c)}
-				<li onmouseenter={() => onflag(c.parts)} onmouseleave={() => onflag([])}>
-					<button
-						type="button"
-						onfocus={() => onflag(c.parts)}
-						onblur={() => onflag([])}
-						aria-label="{c.level === 'no-go' ? 'No-go' : 'Caution'}: {c.text}{at
-							? ` At ${at}.`
-							: ''} {c.hint}"
-					>
-						<span class="dot {c.level}" aria-hidden="true"></span>
-						{#if c.id === 'size-mismatch'}
-							<!-- a wide block on a narrow one: the mark of a joint whose sizes differ (plan 207) -->
-							<svg
-								class="icon"
-								data-testid="size-mismatch-mark"
-								viewBox="0 0 16 16"
-								width="16"
-								height="16"
-								aria-hidden="true"
-							>
-								<rect x="1" y="2" width="14" height="5" rx="1" />
-								<rect x="5" y="9" width="6" height="5" rx="1" />
-							</svg>
-						{/if}
-						<span class="text">
-							<span class="what">{c.text}</span>
-							{#if at}<span class="at">{at}</span>{/if}
-							<span class="how">{c.hint}</span>
-						</span>
-					</button>
-				</li>
-			{/each}
-		</ul>
+	{#if panelFolds.isOpen('checks')}
+		{#if checks.length === 0}
+			<p class="ok"><span class="dot go" aria-hidden="true"></span>Ready for launch.</p>
+		{:else}
+			<ul>
+				{#each checks as c (c.id)}
+					{@const at = where(c)}
+					<li onmouseenter={() => onflag(c.parts)} onmouseleave={() => onflag([])}>
+						<button
+							type="button"
+							onfocus={() => onflag(c.parts)}
+							onblur={() => onflag([])}
+							aria-label="{c.level === 'no-go' ? 'No-go' : 'Caution'}: {c.text}{at
+								? ` At ${at}.`
+								: ''} {c.hint}"
+						>
+							<span class="dot {c.level}" aria-hidden="true"></span>
+							{#if c.id === 'size-mismatch'}
+								<!-- a wide block on a narrow one: the mark of a joint whose sizes differ (plan 207) -->
+								<svg
+									class="icon"
+									data-testid="size-mismatch-mark"
+									viewBox="0 0 16 16"
+									width="16"
+									height="16"
+									aria-hidden="true"
+								>
+									<rect x="1" y="2" width="14" height="5" rx="1" />
+									<rect x="5" y="9" width="6" height="5" rx="1" />
+								</svg>
+							{/if}
+							<span class="text">
+								<span class="what">{c.text}</span>
+								{#if at}<span class="at">{at}</span>{/if}
+								<span class="how">{c.hint}</span>
+							</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	{/if}
 </section>
 

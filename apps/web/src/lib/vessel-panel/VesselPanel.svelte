@@ -26,6 +26,10 @@
 		type VesselView
 	} from './vessel-model';
 	import ControlRows from './ControlRows.svelte';
+	import IconButton from '../ui/IconButton.svelte';
+	import Icon from '../ui/Icon.svelte';
+	import { openRows } from './open-rows.svelte';
+	import { categoryKey, partKey, partSummary } from './part-summary';
 	import { formatDuration, resourceLabel } from '../format';
 	import type { ResourceSnapshot, TransferSnapshot } from '@orbital/core';
 
@@ -69,6 +73,17 @@
 	let stage = $state<number | null>(null);
 	const shownParts = $derived(filterParts(view.parts, { search, stage }));
 	const stages = $derived(stagesOf(view.parts));
+	/** The shown parts under their category, in order; the category is a foldable heading (plan 256). */
+	const categories = $derived(
+		shownParts.reduce<{ name: string; parts: PartRow[] }[]>((out, p) => {
+			const name = p.category.replace(/^.*\./, '');
+			const last = out.at(-1);
+			if (last && last.name === name) last.parts.push(p);
+			else out.push({ name, parts: [p] });
+			return out;
+		}, [])
+	);
+	const vesselKey = $derived(String(vessel));
 	const groups = $derived(resourceGroups(view, { resources: [...totals] }));
 	/** The transfer picker: resource, from and to containers (plan 214 on plan 213's command). */
 	let pick = $state<{ resource: string; from: string; to: string }>({
@@ -338,40 +353,62 @@
 				</select>
 			{/if}
 		</div>
-		{#each shownParts as p, i (p.entity)}
-			{#if i === 0 || shownParts[i - 1]!.category !== p.category}
-				<div class="cap">{p.category.replace(/^.*\./, '')}</div>
-			{/if}
-			<!-- svelte-ignore a11y_no_static_element_interactions: hover points at the part in the view -->
-			<section
-				class="part"
-				class:lit={highlighted === p.entity}
-				aria-label={p.title}
-				data-testid="vessel-part"
-				data-part={p.entity}
-				onmouseenter={() => onhighlight(p.entity)}
-				onmouseleave={() => onhighlight(null)}
-				onfocusin={() => onhighlight(p.entity)}
-				onfocusout={() => onhighlight(null)}
+		{#each categories as cat (cat.name)}
+			<details
+				class="cat"
+				open={openRows.isOpen(vesselKey, categoryKey(cat.name), true)}
+				ontoggle={(e) => openRows.set(vesselKey, categoryKey(cat.name), e.currentTarget.open)}
 			>
-				<div class="head">
-					<h3>{p.title}</h3>
-					<Button onclick={() => oninspect(p.entity)} data-testid="part-{p.entity}-inspect"
-						>Inspect</Button
+				<summary class="cap">
+					<span class="chev" aria-hidden="true"><Icon name="chevron" size={12} /></span>
+					{cat.name}<span class="count">{cat.parts.length}</span>
+				</summary>
+				{#each cat.parts as p (p.entity)}
+					{@const sum = partSummary(p)}
+					<!-- svelte-ignore a11y_no_static_element_interactions: hover points at the part in the view -->
+					<section
+						class="part"
+						class:lit={highlighted === p.entity}
+						aria-label={p.title}
+						data-testid="vessel-part"
+						data-part={p.entity}
+						onmouseenter={() => onhighlight(p.entity)}
+						onmouseleave={() => onhighlight(null)}
+						onfocusin={() => onhighlight(p.entity)}
+						onfocusout={() => onhighlight(null)}
 					>
-				</div>
-				{#if p.controlPoint}
-					<div class="row">
-						<Button
-							disabled={p.controlling}
-							onclick={() => oncommand({ type: 'set-control-part', vessel, part: p.entity })}
-							data-testid="part-{p.entity}-control-from"
-							>{p.controlling ? 'Controlling from here' : 'Control from here'}</Button
+						<details
+							open={openRows.isOpen(vesselKey, partKey(p.entity), false)}
+							ontoggle={(e) => openRows.set(vesselKey, partKey(p.entity), e.currentTarget.open)}
 						>
-					</div>
-				{/if}
-				<ControlRows part={p} {send} />
-			</section>
+							<summary class="head" data-testid="part-{p.entity}-row">
+								<span class="chev" aria-hidden="true"><Icon name="chevron" size={14} /></span>
+								<span class="title">{p.title}</span>
+								<span class="sum {sum.tone}">{sum.text}</span>
+							</summary>
+							<div class="body"><ControlRows part={p} {send} /></div>
+						</details>
+						<div class="acts">
+							{#if p.controlPoint}
+								<IconButton
+									icon="navball"
+									label={p.controlling ? 'Controlling from here' : 'Control from here'}
+									pressed={p.controlling === true}
+									disabled={p.controlling}
+									data-testid="part-{p.entity}-control-from"
+									onclick={() => oncommand({ type: 'set-control-part', vessel, part: p.entity })}
+								/>
+							{/if}
+							<IconButton
+								icon="info"
+								label="Inspect"
+								data-testid="part-{p.entity}-inspect"
+								onclick={() => oninspect(p.entity)}
+							/>
+						</div>
+					</section>
+				{/each}
+			</details>
 		{:else}
 			<p class="none">No part matches.</p>
 		{/each}
@@ -411,9 +448,10 @@
 		cursor: default;
 		opacity: 0.5;
 	}
+	/* a part is one collapsed line: chevron, name, what matters, then icon actions (plan 256) */
 	.part {
-		padding: 0.5rem;
-		margin-bottom: 0.375rem;
+		position: relative;
+		margin-bottom: 0.25rem;
 		border-radius: var(--radius-tile);
 		background: var(--surface-inset);
 	}
@@ -421,11 +459,82 @@
 	.part:focus-within {
 		outline: 1px solid var(--border-strong);
 	}
-	h3 {
-		margin: 0 0 0.25rem;
+	summary {
+		list-style: none;
+		cursor: pointer;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+	.head {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		min-height: 2.25rem;
+		/* room for the two icon buttons on the right */
+		padding: 0 4.75rem 0 0.5rem;
+		min-width: 0;
+	}
+	.title {
+		flex: none;
+		max-width: 55%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		font-size: var(--t-button);
 		font-weight: 600;
 		color: var(--text-primary);
+	}
+	.sum {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: var(--t-label);
+		color: var(--text-muted);
+	}
+	.sum.warn {
+		color: var(--warn);
+	}
+	.sum.danger {
+		color: var(--danger);
+	}
+	.acts {
+		position: absolute;
+		top: 0;
+		right: 0.25rem;
+		height: 2.25rem;
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+	}
+	.acts :global(.ib) {
+		min-width: 2rem;
+		height: 2rem;
+	}
+	.body {
+		padding: 0 0.5rem 0.5rem;
+	}
+	.chev {
+		display: grid;
+		flex: none;
+		color: var(--text-muted);
+		transition: transform 0.15s;
+	}
+	details[open] > summary > .chev,
+	details[open] > summary .chev {
+		transform: rotate(90deg);
+	}
+	.cat > summary.cap {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	.count {
+		margin-left: 0.25rem;
+		font-weight: 500;
+		color: var(--text-faint);
 	}
 	.row {
 		min-height: 2.75rem;
@@ -547,12 +656,6 @@
 		outline: 1px solid var(--accent-text);
 		outline-offset: 2px;
 		border-radius: var(--radius-tile);
-	}
-	.head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
 	}
 	.resources {
 		display: grid;

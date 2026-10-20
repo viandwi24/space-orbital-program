@@ -6,7 +6,9 @@ import {
 	GAP,
 	scriptPanelWidth,
 	smallScreenAdvice,
-	throttleAnchor
+	throttleAnchor,
+	viewInsets,
+	type MeasuredBox
 } from './layout-model';
 import { isSmallScreen } from '../touch/touch-model';
 
@@ -98,5 +100,54 @@ describe('which small screen is it', () => {
 		expect(smallScreenAdvice('tablet-portrait')).toMatch(/landscape/);
 		expect(smallScreenAdvice('small-window')).toMatch(/larger/);
 		expect(smallScreenAdvice('phone-landscape')).toMatch(/not supported/);
+	});
+});
+
+describe('the camera clearances (plan 256)', () => {
+	const box = (left: number, top: number, width: number, height: number): MeasuredBox => ({
+		left,
+		top,
+		width,
+		height,
+		right: left + width,
+		bottom: top + height
+	});
+	const frame = { width: 1440, height: 900 };
+	const bar = box(24, 24, 500, 44);
+	const deck = box(400, 640, 640, 236);
+	const right = box(1100, 80, 316, 500);
+
+	it('keeps the time bar and the deck clear, and the side panels only when asked', () => {
+		expect(viewInsets({ frame, bar, deck, right, dockRight: 300, centre: false })).toEqual({
+			top: 76,
+			right: 0,
+			bottom: 900 - 640 + 8,
+			left: 0
+		});
+		expect(viewInsets({ frame, bar, deck, right, dockRight: 300, centre: true })).toEqual({
+			top: 76,
+			right: 1440 - 1100 + 8,
+			bottom: 268,
+			left: 300
+		});
+	});
+
+	it('a hidden deck leaves no clearance: the box of a display:none element is empty at the origin', () => {
+		const hidden = box(0, 0, 0, 0);
+		const shownInsets = viewInsets({ frame, bar, deck, dockRight: 0, centre: false });
+		const hiddenInsets = viewInsets({ frame, bar, deck: hidden, dockRight: 0, centre: false });
+		expect(hiddenInsets.bottom).toBe(0);
+		expect(viewInsets({ frame, bar, dockRight: 0, centre: false }).bottom).toBe(0);
+		// the free area grew at the bottom, so the vessel (the middle of what is free) moves down
+		const mid = (i: { top: number; bottom: number }): number =>
+			(i.top + (frame.height - i.bottom)) / 2;
+		expect(mid(hiddenInsets)).toBeGreaterThan(mid(shownInsets));
+	});
+
+	it('a hidden bar or side panel leaves none either', () => {
+		const hidden = box(0, 0, 0, 0);
+		const i = viewInsets({ frame, bar: hidden, deck, right: hidden, dockRight: 0, centre: true });
+		expect(i.top).toBe(0);
+		expect(i.right).toBe(0);
 	});
 });

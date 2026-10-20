@@ -52,7 +52,7 @@
 </script>
 
 {#snippet row(c: ControlRow)}
-	<div class="row" data-tip={c.enabled ? undefined : c.reason}>
+	<div class="row" class:trigger={c.kind === 'trigger'} data-tip={c.enabled ? undefined : c.reason}>
 		{#if c.kind === 'toggle'}
 			<span class="toggle-label">{c.label}</span>
 			<Switch
@@ -175,12 +175,29 @@
 {#if note}<p class="note" role="status" data-testid="{prefix}-{part.entity}-note">{note}</p>{/if}
 
 <style>
+	/* compact rows (plan 256); a touch screen keeps the 44 px targets */
 	.row {
-		min-height: 2.75rem;
+		min-height: 2rem;
 		display: flex;
 		align-items: center;
 		/* below 300 px a slider gives way to − and + (plan 250, rancangan §7.1) */
 		container-type: inline-size;
+	}
+	@media (pointer: coarse) {
+		.row {
+			min-height: 2.75rem;
+		}
+	}
+	/* triggers sit side by side as small buttons instead of one tall button per line */
+	.row.trigger {
+		display: inline-flex;
+		min-height: 1.75rem;
+		margin: 0.125rem 0.25rem 0.125rem 0;
+	}
+	.row.trigger :global(button) {
+		height: 1.75rem;
+		padding: 0 0.625rem;
+		font-size: var(--t-small);
 	}
 	.step {
 		display: none;
@@ -246,7 +263,7 @@
 		gap: 2px;
 	}
 	.modes button {
-		min-height: 2.75rem;
+		min-height: 2rem;
 		padding: 0 0.625rem;
 		border: 0;
 		border-radius: var(--radius-tile);

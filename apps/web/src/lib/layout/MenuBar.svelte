@@ -53,6 +53,7 @@
 				type="button"
 				class="mb"
 				class:on={a.on === true}
+				class:primary={a.primary === true}
 				aria-label={a.label}
 				aria-pressed={a.on}
 				data-tip={a.title ?? a.label}
@@ -185,6 +186,10 @@
 		margin-left: -2px;
 		border-radius: 50%;
 		background: transparent;
+	}
+	.mb.primary:not(:disabled) {
+		color: #fff;
+		background: rgb(92 207 255 / 0.18);
 	}
 	.mb.on .dot {
 		background: #fff;
