@@ -1,7 +1,7 @@
 ---
 id: 252
 title: "Graphics phase 1: a pixel budget for the planet pass, baked cloud shadows on high, lighter MSAA and shadows at Retina, spread PMREM recaptures"
-status: ready
+status: draft
 owner: "Worker A"
 depends: [251]
 phase: 7
