@@ -120,6 +120,18 @@ The owner wants 237, 238, 239 and the release finished as fast as possible, with
 
 **v1.1 wave (240–250, owner's order 2026-10-20):** they do not block `v1.0.0`. Each owner refines its draft against current main before claiming. Workers D (M2) and E (Linux) run their own Chromium e2e on their own machine; Workers A and C on the M5 follow batch mode (light checks, CI, then one integration e2e run per batch).
 
+## E2E paused (owner's order, 2026-10-20, until the owner says otherwise)
+
+The owner paused all local Playwright e2e ("sementara skip dulu aja sampai saya bilang kita aktifkan lagi"). Until the owner turns them back on, these rules apply:
+- **No e2e on any machine:** Chromium, Firefox and WebKit, plan e2e and integration runs alike. Each plan's e2e acceptance line stays unticked, with "(e2e paused by the owner, 2026-10-20)".
+- **What a merge needs:**
+  - the plan's unit tests;
+  - `docs:check`;
+  - `refs/ci/pass` on `ready/NNN`. CI on GitHub runs lint, typecheck, unit tests and build; its informational smoke e2e runs off this laptop and may stay.
+- **Merge order:** no integration e2e batch. Each plan fast-forwards to main as soon as its CI passes, one at a time, after a rebase.
+- **Plan 232:** the full e2e and the Firefox/WebKit gates are deferred. Record them as a known issue of v1.0.0 ("full e2e not run on Firefox and WebKit, nor after 251–253"), not as a pass.
+- **Graphics measurements are not e2e:** plans 251–253 still take their measurements under the lock.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

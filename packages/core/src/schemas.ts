@@ -397,6 +397,9 @@ export const partVisualSchema = z.object({
 		.optional()
 });
 
+/** Temperature above which a part that declares no `maxTemperature` fails, K (KSP's usual limit, plan 212). */
+export const DEFAULT_MAX_TEMPERATURE = 2_000;
+
 export const partDefinitionSchema = z.object({
 	id: definitionIdSchema,
 	title: z.string().min(1),
@@ -439,8 +442,8 @@ export const partDefinitionSchema = z.object({
 	 */
 	hatch: z.object({ pos: vec3Tuple, dir: vec3Tuple }).optional(),
 	/**
-	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); the sim
-	 * assumes 1000 when absent.
+	 * Skin temperature in kelvin above which the part is lost to overheating (ADR 0023); absent,
+	 * `DEFAULT_MAX_TEMPERATURE` (2000 K since plan 212).
 	 */
 	maxTemperature: z.number().positive().optional(),
 	/**

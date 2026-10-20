@@ -76,6 +76,7 @@ import { computeTelemetry, type FlightPhase, type Telemetry } from './telemetry'
 import {
 	addToast,
 	pruneToasts,
+	heatRatio,
 	toastForHeat,
 	toastForPhase,
 	toastForSimEvent,
@@ -676,11 +677,8 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				push(toastForPhase(lastPhase, tele.phase, tele));
 			}
 			lastPhase = tele.phase;
-			let heat = 0;
-			for (const p of v.parts) {
-				const limit = content.parts.get(p.definition)?.maxTemperature ?? 1000;
-				if (p.temperature !== undefined) heat = Math.max(heat, p.temperature / limit);
-			}
+			// the sim's limits, 2000 K when a part names none (plan 237)
+			const heat = heatRatio(v.parts, (d) => content.parts.get(d)?.maxTemperature);
 			const h = toastForHeat(heat, heatArmed);
 			heatArmed = h.armed;
 			push(h.toast);

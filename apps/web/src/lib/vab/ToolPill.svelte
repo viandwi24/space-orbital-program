@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
 	 * The Hangar's bottom bar (plan 093, ADR 0148 point 3; refs): symmetry, the CoM and CoT markers,
-	 * undo and redo. Only what the editor does today: no tool modes.
+	 * undo and redo, the high-contrast markers and, on narrow windows, the two drawers (plan 238: the
+	 * Hangar's own top bar is gone). Only what the editor does today: no tool modes.
 	 */
 	import IconButton from '../ui/IconButton.svelte';
 	import Kbd from '../ui/Kbd.svelte';
@@ -71,6 +72,30 @@
 		onclick={() => (vab.showCot = !vab.showCot)}
 		>CoT<span class="dot cot" aria-hidden="true"></span></button
 	>
+	<!-- from the old Hangar top bar (plan 238) -->
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.highContrast}
+		aria-label="High-contrast markers"
+		data-tip="High-contrast markers"
+		onclick={() => vab.toggleContrast()}
+		>Contrast<span class="dot" aria-hidden="true"></span></button
+	>
+	<span class="drawer-btns">
+		<IconButton
+			icon="part"
+			label="Parts and sub-assemblies"
+			pressed={vab.drawer === 'parts'}
+			onclick={() => (vab.drawer = vab.drawer === 'parts' ? null : 'parts')}
+		/>
+		<IconButton
+			icon="stage"
+			label="Stages and launch checks"
+			pressed={vab.drawer === 'stages'}
+			onclick={() => (vab.drawer = vab.drawer === 'stages' ? null : 'stages')}
+		/>
+	</span>
 	<span class="sep" aria-hidden="true"></span>
 	<IconButton
 		icon="undo"
@@ -103,6 +128,13 @@
 		border-radius: var(--radius-pill);
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
+		/* never wider than the space between the side panels (plan 238: it covered the right column) */
+		max-width: 100%;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.pill > :global(*) {
+		flex: none;
 	}
 	.cap {
 		padding: 0 0.25rem 0 0.375rem;
@@ -192,8 +224,9 @@
 		font-size: var(--t-label);
 		color: var(--text-muted);
 	}
-	/* narrower windows: the pill fits between the side panels */
-	@media (max-width: 1279px) {
+	/* a narrow middle column: the pill fits between the side panels (the page makes `.bottom` the
+	   container; plan 238 measured it against the column, the window's width is not enough) */
+	@container (max-width: 860px) {
 		.keys,
 		.cap {
 			display: none;
@@ -207,6 +240,14 @@
 		}
 		.sep {
 			margin: 0 0.125rem;
+		}
+	}
+	.drawer-btns {
+		display: none;
+	}
+	@media (max-width: 899px) {
+		.drawer-btns {
+			display: inline-flex;
 		}
 	}
 </style>

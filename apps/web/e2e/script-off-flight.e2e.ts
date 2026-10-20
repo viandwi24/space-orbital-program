@@ -16,10 +16,10 @@ const radius = (page: Page): Promise<number> =>
 		return p ? Math.hypot(p.x, p.y, p.z) : NaN;
 	});
 
-/** The script panel open (its state is the page's, not the world's). */
+/** The script dock panel open (its state is the page's, not the world's). */
 async function scriptPanel(page: Page): Promise<void> {
-	const button = page.getByRole('button', { name: 'Script panel' });
-	if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click();
+	const tab = page.getByTestId('dock-tab-host.script');
+	if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
 }
 
 async function leaveFlight(page: Page): Promise<void> {

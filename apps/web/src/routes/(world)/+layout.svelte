@@ -32,6 +32,7 @@
 	import { activeWorldId } from '../../lib/worlds/worlds';
 	import { loadWorldCatalog } from '../../lib/worlds/catalog';
 	import WorldSettingsDialog from '../../lib/worlds/WorldSettingsDialog.svelte';
+	import { starterRocket } from '../../lib/design';
 	import { scriptIsActive } from '../../lib/script-state';
 	import {
 		backupFileName,
@@ -225,13 +226,21 @@
 	const autosaver = createAutosaver(() => performance.now());
 	let saving = false;
 
+	/**
+	 * A save of a world with no flight yet (plan 237): only an explicit `saveNow` writes one (a
+	 * branch founded before the first launch); the envelope then carries the starter design and no
+	 * focus. The timer keeps waiting for a flight.
+	 */
+	let saveWithoutFlight = false;
+
 	/** The vessel in focus if it still exists, else the save's. */
 	async function collect(): Promise<SaveRequest> {
 		if (worldSession.collect) return worldSession.collect();
 		const client = worldSession.client;
 		const focus = worldSession.focus;
 		const from = worldSession.base;
-		const design = focus?.design ?? from?.design;
+		const design =
+			focus?.design ?? from?.design ?? (saveWithoutFlight ? starterRocket() : undefined);
 		if (!client || !design) throw new Error('There is nothing to save in this world yet.');
 		const alive = (id: number | null | undefined): number | null =>
 			id != null && (snapshot?.vessels.some((v) => v.id === id) ?? false) ? id : null;
@@ -410,8 +419,13 @@
 		};
 		worldSession.openWorldSettings = openWorldSettings;
 		worldSession.saveNow = async () => {
-			if (!canSave() || saving) return false;
-			await save('change');
+			if (worldSession.client === null || saving) return false;
+			saveWithoutFlight = !canSave();
+			try {
+				await save('change');
+			} finally {
+				saveWithoutFlight = false;
+			}
 			return true;
 		};
 
