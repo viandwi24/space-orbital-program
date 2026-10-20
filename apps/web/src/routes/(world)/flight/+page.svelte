@@ -78,6 +78,7 @@
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import { dialogOpen } from '../../../lib/flight-modal';
+	import { crewSeats } from '../../../lib/inspector/crew-seats';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import { panelRoom } from '../../../lib/hud/panel-room';
@@ -1549,6 +1550,7 @@
 								onclose={() => (inspector = closePart(inspector, id))}
 								onhighlight={(part) => flight?.highlightPart(part)}
 								onfocus={(part) => flight?.focusPart(Number(part))}
+								seats={crewSeats(vesselShown, panelInput?.snapshot.crew, vesselContent!.parts, id)}
 							/>
 						{/if}
 					{/each}

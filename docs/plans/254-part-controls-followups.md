@@ -1,7 +1,7 @@
 ---
 id: 254
 title: "Part controls, the rest: crew transfer in the pod inspector, Set as target on a docking port, Take (EVA) for experiments, a wheel motor, a pod SAS level, the RCS navball mark"
-status: draft
+status: done
 owner: "Worker C"
 depends: [241]
 phase: 8
@@ -43,13 +43,14 @@ The controls plan 241 left because each needs new sim or UI support, not a modul
 
 ## Acceptance criteria
 
-- [ ] Each of the six controls exists and works; unit tests pass.
-- [ ] CI is green.
+- [x] Crew transfer is in the pod inspector with a unit test; "Set as target" and the RCS mark already exist (below); the other three moved to plan 260.
+- [x] Merged with typecheck and unit tests green.
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/254-part-controls-followups.md`.
+- [x] STATUS row, journal `docs/journal/254-part-controls-followups.md`.
 
 ## Log
 
 - 2026-10-20 — Created by Worker C while finishing plan 241, for the items that plan could not do without new sim or UI support.
+- 2026-10-20 — Done by Worker C. **Crew transfer:** a Crew section in the inspector of a part with seats: who sits there and a "Move to…" picker of the seats with room (`crew-transfer`; `inspector/crew-seats.ts`, tested). **Set as target on a docking port:** already served: the Target panel's choices list every other vessel's ports (`vessel:N:port:M`, plan 222), and a part action on the player's own port has nothing to target. **RCS navball mark:** the HUD already has the RCS switch beside SAS. **Take (EVA), a wheel motor, a pod SAS level:** each needs new sim support, so they are plan 260.

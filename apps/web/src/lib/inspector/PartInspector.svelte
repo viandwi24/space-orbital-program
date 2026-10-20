@@ -10,6 +10,7 @@
 	import Button from '../ui/Button.svelte';
 	import ControlRows from '../vessel-panel/ControlRows.svelte';
 	import { controlCommand, type ControlRow, type PartRow } from '../vessel-panel/vessel-model';
+	import type { CrewSeats } from './crew-seats';
 
 	let {
 		vessel,
@@ -19,7 +20,8 @@
 		onpin,
 		onclose,
 		onhighlight,
-		onfocus
+		onfocus,
+		seats = null
 	}: {
 		vessel: EntityId;
 		part: PartRow;
@@ -30,6 +32,8 @@
 		onhighlight: (part: EntityId | null) => void;
 		/** Point the flight camera at this part (plan 226); absent in the Hangar. */
 		onfocus?: (part: EntityId) => void;
+		/** Who sits in the part and where they may move (plan 254); null for a part without seats. */
+		seats?: CrewSeats | null;
 	} = $props();
 
 	let problem = $state<string | null>(null);
@@ -85,6 +89,40 @@
 				>
 			</div>
 		{/if}
+		{#if seats}
+			<section class="crew" data-testid="inspector-{part.entity}-crew">
+				<h4>Crew {seats.aboard.length} / {seats.capacity}</h4>
+				{#each seats.aboard as m (m.member)}
+					<div class="member">
+						<span>{m.name}</span>
+						{#if seats.targets.length > 0}
+							<select
+								aria-label="Move {m.name} to"
+								data-testid="inspector-{part.entity}-move-{m.member}"
+								onchange={(e) => {
+									const to = Number(e.currentTarget.value);
+									e.currentTarget.value = '';
+									if (to)
+										oncommand({
+											type: 'crew-transfer',
+											vessel,
+											member: m.member,
+											to: to as EntityId
+										});
+								}}
+							>
+								<option value="">Move to…</option>
+								{#each seats.targets as t (t.part)}
+									<option value={t.part}>{t.title} ({t.free} free)</option>
+								{/each}
+							</select>
+						{/if}
+					</div>
+				{:else}
+					<p class="dim">Nobody aboard.</p>
+				{/each}
+			</section>
+		{/if}
 		<ControlRows {part} {send} prefix="insp" typed />
 		{#if part.controls.length === 0 && part.readouts.length === 0 && !part.heat}
 			<p class="dim">No controls on this part.</p>
@@ -125,6 +163,28 @@
 		min-height: 2.75rem;
 		display: flex;
 		align-items: center;
+	}
+	.crew h4 {
+		margin: 0.25rem 0;
+		font-size: var(--t-small);
+		font-weight: 600;
+		color: var(--text-secondary);
+	}
+	.member {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		min-height: 2rem;
+		font-size: var(--t-value);
+	}
+	.member select {
+		max-width: 11rem;
+		font: inherit;
+		color: var(--text-primary);
+		background: var(--surface-inset);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-tile);
 	}
 	.dim {
 		margin: 0.25rem 0 0;
