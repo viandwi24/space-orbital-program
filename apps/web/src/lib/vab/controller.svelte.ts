@@ -55,9 +55,12 @@ import { describeStack } from '../editor/describe';
 import { partFacts } from '../editor/part-info';
 import {
 	addFairingSection,
+	addFairingSectionAt,
 	fairingOf,
+	MIN_SECTION,
 	removeFairingSection,
 	setFairingClosed,
+	setFairingInterstage,
 	setFairingSection
 } from '../editor/fairing';
 import { buildScene, defaultCursor, partKey, withoutCarried } from '../editor/scene';
@@ -143,6 +146,8 @@ export type Armed =
 const SLOPE_NORMAL_Y = 0.25;
 /** Screen radii (CSS pixels) of a ring's glow and of its snap (plan 244). */
 const GLOW_PX = 80;
+/** How close (CSS pixels) a press must be to grab a fairing handle (plan 243). */
+const HANDLE_PX = 28;
 const SNAP_PX = 36;
 
 /** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
@@ -399,6 +404,7 @@ export class VabController {
 			targets: this.targets,
 			cursor: this.held ? this.active : null,
 			pointer: this.pointerTarget,
+			handles: this.handlesNow(),
 			free: this.armed?.kind === 'connect' ? null : this.freePoint,
 			near: this.nearTargets,
 			radialMarkers: this.keyboardRadial,
@@ -1338,6 +1344,94 @@ export class VabController {
 		this.selected === null ? null : fairingOf(this.current.design, this.lookup, this.selected)
 	);
 
+	/**
+	 * The handles of the fairing being edited (plan 243): `hb` marks the base rim, and each section
+	 * top has `h<i>` on the axis (drag up or down for the height) and `r<i>` on its rim (drag out or
+	 * in for the radius). None for a tilted or loose base.
+	 */
+	readonly fairingHandles = $derived.by(() => {
+		const f = this.selectedFairing;
+		const sel = this.selected;
+		if (!this.fairingEdit || !f || sel === null || this.armed) return [];
+		const at = layoutOf(this.shown.design, this.lookup)?.get(sel);
+		if (!at || at.tilted) return [];
+		const { x, y, z } = at.position;
+		const out: Array<{
+			key: string;
+			position: readonly [number, number, number];
+			radius: number;
+		}> = [{ key: 'hb', position: [x, y + f.baseTop, z], radius: f.size / 2 }];
+		let top = f.baseTop;
+		for (const [i, s] of f.sections.entries()) {
+			top += s.height;
+			out.push(
+				{ key: `h${i}`, position: [x, y + top, z], radius: s.radius },
+				{ key: `r${i}`, position: [x + s.radius, y + top, z], radius: 0.07 }
+			);
+		}
+		return out;
+	});
+	private handlesNow(): typeof this.fairingHandles {
+		return this.fairingHandles;
+	}
+	/** A handle being dragged (plan 243): which section and what, the grab offset and the start. */
+	private handleDrag: {
+		i: number;
+		what: 'h' | 'r';
+		dUp: number;
+		dAcross: number;
+		before: number;
+	} | null = null;
+
+	/** Starts dragging a fairing handle under the pointer; true when it took the press. */
+	private grabHandle(e: PointerEvent): boolean {
+		const f = this.selectedFairing;
+		if (!this.fairingEdit || !f || this.armed || e.button !== 0) return false;
+		const key = this.view?.handleNear(e.clientX, e.clientY, HANDLE_PX);
+		if (!key) return false;
+		const i = Number(key.slice(1));
+		const s = f.sections[i];
+		const off = this.view?.offsetOnPlane(e.clientX, e.clientY, 'hb');
+		if (!s || !off) return false;
+		const what = key[0] === 'r' ? 'r' : 'h';
+		const before = f.sections.slice(0, i).reduce((h, x) => h + x.height, 0);
+		this.handleDrag = {
+			i,
+			what,
+			before,
+			dUp: off.up - (before + s.height),
+			dAcross: what === 'r' ? Math.abs(off.across) - s.radius : 0
+		};
+		return true;
+	}
+	/** Moves the grabbed handle: a live preview, committed on release as one undo step. */
+	private dragHandle(e: PointerEvent): void {
+		const d = this.handleDrag;
+		const sel = this.selected;
+		if (!d || sel === null) return;
+		const off = this.view?.offsetOnPlane(e.clientX, e.clientY, 'hb');
+		if (!off) return;
+		const change =
+			d.what === 'h'
+				? { height: Math.max(MIN_SECTION, off.up - d.dUp - d.before) }
+				: { radius: Math.abs(off.across) - d.dAcross };
+		try {
+			this.preview = setFairingSection(this.editor, this.editorContent, sel, d.i, change);
+			this.notice = '';
+		} catch (err) {
+			// out of limits: the shell stays where it last fitted, and the reason shows
+			this.notice = err instanceof Error ? err.message : String(err);
+		}
+	}
+	private releaseHandle(): void {
+		if (!this.handleDrag) return;
+		this.handleDrag = null;
+		if (this.preview) {
+			this.editor = this.preview;
+			this.preview = null;
+		}
+	}
+
 	/** Adds a section on top of the selected fairing: as wide as the last, half a metre tall. */
 	addFairingSection(section?: { height: number; radius: number }): void {
 		const sel = this.selected;
@@ -1364,6 +1458,14 @@ export class VabController {
 		if (sel === null) return;
 		this.attempt(() => {
 			this.editor = removeFairingSection(this.editor, this.editorContent, sel);
+		});
+	}
+	setInterstage(on: boolean): void {
+		const sel = this.selected;
+		if (sel === null) return;
+		this.attempt(() => {
+			this.editor = setFairingInterstage(this.editor, this.editorContent, sel, on);
+			this.say(on ? 'Interstage: the next stage attaches at the shell top.' : 'Interstage off.');
 		});
 	}
 	closeFairing(closed: boolean): void {
@@ -1558,6 +1660,10 @@ export class VabController {
 			return;
 		}
 		this.canvas?.focus({ preventScroll: true });
+		if (this.grabHandle(e)) {
+			this.drag = null;
+			return;
+		}
 		const hit = e.button === 0 && !this.armed ? this.pick(e) : null;
 		if (hit?.kind === 'part' && (e.altKey || this.copyMode)) {
 			// Alt-click copies the part and what hangs on it onto the cursor (plan 217)
@@ -1585,6 +1691,10 @@ export class VabController {
 			const now = this.pinchNow();
 			if (this.pinch > 0) this.view?.zoomBy(pinchZoomFactor(this.pinch, now));
 			this.pinch = now;
+			return;
+		}
+		if (this.handleDrag) {
+			this.dragHandle(e);
 			return;
 		}
 		const d = this.drag;
@@ -1660,6 +1770,10 @@ export class VabController {
 		this.drag = null;
 		this.canvas?.releasePointerCapture(e.pointerId);
 		if (wasPinch) return;
+		if (this.handleDrag) {
+			this.releaseHandle();
+			return;
+		}
 		if (this.dragCarry) {
 			this.dragCarry = false;
 			this.letGo(e);
@@ -1672,8 +1786,19 @@ export class VabController {
 		}
 		if (!d || d.moved || d.button !== 0) return;
 		if (this.fairingEdit && this.selectedFairing && !this.armed) {
-			// fairing edit mode (plan 219): each click adds a section
-			this.addFairingSection();
+			// fairing edit mode (plan 219, 243): a click on the shell adds a section at that height
+			const over = this.pick(e);
+			const sel = this.selected;
+			const at = layoutOf(this.shown.design, this.lookup)?.get(sel ?? -1);
+			if (over?.kind === 'part' && Number(over.key) === sel && at && !at.tilted) {
+				const y = over.point[1] - at.position.y;
+				this.attempt(() => {
+					this.editor = addFairingSectionAt(this.editor, this.editorContent, sel!, y);
+					this.say('Fairing: a section at that height.');
+				});
+			} else {
+				this.addFairingSection();
+			}
 			return;
 		}
 		const hit = this.pick(e);
@@ -1707,6 +1832,10 @@ export class VabController {
 		this.pointers.delete(e.pointerId);
 		this.pinch = 0;
 		this.drag = null;
+		if (this.handleDrag) {
+			this.handleDrag = null;
+			this.preview = null;
+		}
 	};
 	pointerLeave = (): void => {
 		this.hoverNode = null;

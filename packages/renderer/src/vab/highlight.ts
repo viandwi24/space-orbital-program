@@ -208,7 +208,8 @@ const NODE_STYLE: Record<VabNodeState, { colour: number; opacity: number; scale:
 	target: { colour: HIGHLIGHT_COLOURS.accent, opacity: 1, scale: 1.08 },
 	near: { colour: 0xb4ecff, opacity: 1, scale: 1.28 },
 	active: { colour: HIGHLIGHT_COLOURS.positive, opacity: 1, scale: 1.18 },
-	mismatch: { colour: 0xffa23c, opacity: 1, scale: 1.15 }
+	mismatch: { colour: 0xffa23c, opacity: 1, scale: 1.15 },
+	handle: { colour: 0xffd166, opacity: 1, scale: 1 }
 };
 
 /** Geometry and materials shared by all node markers. */

@@ -247,7 +247,11 @@ describe('stock boots through the loader', () => {
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();
 			if (special.has(part.id)) continue;
-			expect(Object.keys(part.attach ?? {}).sort(), part.id).toEqual(['bottom', 'top']);
+			// a fairing base also has the interstage node at its shell top (plan 243)
+			const nodes = Object.keys(part.attach ?? {})
+				.filter((n) => part.attach![n]!.shellTop === undefined)
+				.sort();
+			expect(nodes, part.id).toEqual(['bottom', 'top']);
 			const { top, bottom } = part.attach ?? {};
 			expect(top?.dir).toEqual([0, 1, 0]);
 			expect(bottom?.dir).toEqual([0, -1, 0]);

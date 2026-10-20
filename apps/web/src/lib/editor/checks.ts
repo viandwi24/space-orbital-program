@@ -2,7 +2,13 @@
  * Warnings and errors shown in the VAB before launch (ADR 0029). Errors block Launch; warnings ask
  * for a confirmation. Pure: the page passes the readouts it already computed.
  */
-import { effectiveDef, nodeSize, nodeSizesMatch, resolveVesselDesign, type PartLookup } from '@orbital/core';
+import {
+	effectiveDef,
+	nodeSize,
+	nodeSizesMatch,
+	resolveVesselDesign,
+	type PartLookup
+} from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { groupActions } from './groups';
 import { isAutoStaged } from './staging';

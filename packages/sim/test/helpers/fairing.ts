@@ -33,3 +33,28 @@ export function fairingStack(sections = SECTIONS, closed = true): VesselDesign {
 /** The shell's mass for these sections on the 1.25 m base, kg. */
 export const shellMass = (sections = SECTIONS, closed = true): number =>
 	fairingMass(fairingConfigSchema.parse({ size: 1.25, baseTop: 0.1, sections, closed }));
+
+/**
+ * Tank (root), an interstage on it with a probe core inside and a second tank on its top node
+ * (plan 243, ADR 0238).
+ */
+export function interstageStack(sections = SECTIONS): VesselDesign {
+	const d = fairingStack(sections, false);
+	const parts = d.parts.map((p) =>
+		p.index === 1
+			? { ...p, settings: { 'stock.fairing': { sections, closed: false, interstage: true } } }
+			: p
+	);
+	return {
+		...d,
+		name: 'Interstage',
+		parts: [
+			...parts,
+			{
+				index: 3,
+				part: partId('stock.tank-small'),
+				parent: { index: 1, parentNode: 'interstage', node: 'bottom' }
+			}
+		]
+	} as VesselDesign;
+}

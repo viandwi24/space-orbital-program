@@ -162,6 +162,24 @@ describe('scene for the 3D view', () => {
 		// the mark sits where the cone meets the tank's top
 		expect(wrong[0]!.position[1]).toBeCloseTo(1, 5);
 	});
+	it('draws fairing handles as handle nodes that are never targets (plan 243)', () => {
+		const { scene } = buildScene({
+			design: base.design,
+			loose: [],
+			parts: content.parts,
+			held: null,
+			targets: [],
+			cursor: null,
+			handles: [
+				{ key: 'hb', position: [0, 1, 0], radius: 0.625 },
+				{ key: 'h0', position: [0, 2, 0], radius: 0.8 }
+			]
+		});
+		const handles = scene.nodes.filter((n) => n.state === 'handle');
+		expect(handles.map((n) => n.key)).toEqual(['hb', 'h0']);
+		expect(handles[1]!.position).toEqual([0, 2, 0]);
+		expect(handles[1]!.radius).toBe(0.8);
+	});
 });
 
 describe('part facts', () => {

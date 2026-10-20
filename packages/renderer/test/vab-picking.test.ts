@@ -11,7 +11,12 @@ import {
 	pan,
 	raise
 } from '../src/vab/orbit-camera.ts';
-import { nearestByScreen, withinScreen, worldNormalOf } from '../src/vab/picking.ts';
+import {
+	nearestByScreen,
+	onVerticalPlane,
+	withinScreen,
+	worldNormalOf
+} from '../src/vab/picking.ts';
 
 const hitNormal = (mesh: Mesh, origin: Vector3, dir: Vector3) => {
 	mesh.updateMatrixWorld(true);
@@ -94,5 +99,26 @@ describe('nodes near the pointer (plan 244)', () => {
 	});
 	it('a tie goes to the lower key, so the choice does not flicker', () => {
 		expect(nearestByScreen(nodes, { x: 115, y: 100 }, 30)?.key).toBe('t0');
+	});
+});
+
+describe('the vertical plane of a fairing handle (plan 243)', () => {
+	// camera on the +z axis looking down -z: the plane through the anchor faces it
+	const ray = (origin: [number, number, number], to: [number, number, number]) => {
+		const d = [to[0] - origin[0], to[1] - origin[1], to[2] - origin[2]];
+		const l = Math.hypot(d[0]!, d[1]!, d[2]!);
+		return { origin, dir: [d[0]! / l, d[1]! / l, d[2]! / l] as [number, number, number] };
+	};
+	it('gives the offset across and up from the anchor', () => {
+		const hit = onVerticalPlane(ray([0, 0, 10], [0.6, 1.5, 0]), [0, 0, 0], [0, -1]);
+		expect(hit!.across).toBeCloseTo(0.6, 9);
+		expect(hit!.up).toBeCloseTo(1.5, 9);
+		const left = onVerticalPlane(ray([0, 0, 10], [-0.6, -1, 0]), [0, 0, 0], [0, -1]);
+		expect(left!.across).toBeCloseTo(-0.6, 9);
+		expect(left!.up).toBeCloseTo(-1, 9);
+	});
+	it('is null for a ray parallel to the plane or crossing it behind', () => {
+		expect(onVerticalPlane({ origin: [0, 0, 10], dir: [1, 0, 0] }, [0, 0, 0], [0, -1])).toBeNull();
+		expect(onVerticalPlane({ origin: [0, 0, 10], dir: [0, 0, 1] }, [0, 0, 0], [0, -1])).toBeNull();
 	});
 });
