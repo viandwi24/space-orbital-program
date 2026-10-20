@@ -10,6 +10,8 @@ import {
 	ModuleLandingLeg,
 	ModuleReactionWheel,
 	ModuleResourceContainer,
+	ModuleRtg,
+	ModuleSolarPanel,
 	PartControlSurface,
 	containerConfigSchema,
 	deposit,
@@ -524,5 +526,64 @@ describe('descriptors for the part inspector (plan 214, rancangan §7.6b)', () =
 			['setAxis:yaw', true, true],
 			['setAxis:roll', true, true]
 		]);
+	});
+});
+
+describe('live read-outs (plan 240)', () => {
+	const readouts = (state: object) =>
+		Object.fromEntries(
+			(ModuleEngine.describe!(engineConfigSchema.parse(engine), state as never).readouts ?? []).map(
+				(r) => [r.id, r.value]
+			)
+		);
+
+	test('a firing engine reports its thrust, Isp and flow; a cold one does not', () => {
+		const v = fakeVessel({ [LF]: 1000, [OX]: 1000 });
+		const ctx = contextFor(ModuleEngine, engine, v);
+		v.control.throttle = 1;
+		v.ambient.pressure = 0;
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, 0.02);
+		const vac = readouts(ctx.state);
+		expect(vac.now).toBe(`215.0 kN · Isp 300 s · ${(215_000 / (300 * G0)).toFixed(2)} kg/s`);
+		v.ambient.pressure = SEA_LEVEL_PRESSURE;
+		ModuleEngine.update?.(ctx, 0.02);
+		expect(readouts(ctx.state).now).toContain('Isp 280 s');
+		expect(readouts({ ignited: false, throttle: 0, flameout: false }).now).toBeUndefined();
+	});
+
+	test('a flameout names the propellant that ran out', () => {
+		const v = fakeVessel({ [LF]: 1000, [OX]: 0 });
+		const ctx = contextFor(ModuleEngine, engine, v);
+		v.control.throttle = 1;
+		ModuleEngine.onStage?.(ctx);
+		ModuleEngine.update?.(ctx, 0.02);
+		expect(ctx.state.flameout).toBe(true);
+		expect(readouts(ctx.state).status).toBe('Flameout: out of oxidizer');
+		ModuleEngine.onStage?.(ctx);
+		expect(ctx.state.flameoutCause).toBeUndefined();
+	});
+});
+
+describe('solar and RTG read-outs (plan 240)', () => {
+	const out = (m: typeof ModuleSolarPanel | typeof ModuleRtg, config: object, state: object) =>
+		(m.describe!(m.config!.parse(config) as never, state as never).readouts ?? []).find(
+			(r) => r.id === 'output'
+		)?.value;
+
+	test('a panel in shadow gives 0 and says why; in sun it gives rate times exposure', () => {
+		const v = fakeVessel();
+		const ctx = contextFor(ModuleSolarPanel, { deployed: true }, v);
+		v.sun = { direction: { x: 0, y: 0, z: 1 }, flux: 1 };
+		ModuleSolarPanel.update?.(ctx, 1);
+		expect(out(ModuleSolarPanel, ctx.config, ctx.state)).toBe('0.50 EC/s · sunlight 100 %');
+		v.sun = { direction: { x: 0, y: 0, z: 1 }, flux: 0 };
+		ModuleSolarPanel.update?.(ctx, 1);
+		expect(out(ModuleSolarPanel, ctx.config, ctx.state)).toBe('0 EC/s · in shadow or facing away');
+	});
+
+	test('a folded panel gives nothing and the RTG always gives its rate', () => {
+		expect(out(ModuleSolarPanel, { deployed: false }, { deployed: false })).toBe('Folded: 0 EC/s');
+		expect(out(ModuleRtg, { rate: 0.75 }, {})).toBe('0.75 EC/s, always');
 	});
 });

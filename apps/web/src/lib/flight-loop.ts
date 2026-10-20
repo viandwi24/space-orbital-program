@@ -3,8 +3,9 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import type { GhostTrack } from './replays/ghost-model';
-import { API_VERSION, designCost } from '@orbital/core';
+import { ABORT_SLOT, API_VERSION, customGroupId, designCost } from '@orbital/core';
 import { bookStore, finishRun, scoreText } from './challenges/challenge-model';
 import { designStats } from './editor/stats';
 import type { ReplayFile } from '@orbital/core';
@@ -37,6 +38,7 @@ import {
 	CAMERA_MODE_LABEL,
 	QualityGovernor,
 	createRenderer,
+	sceneKeyOf,
 	nextCameraMode,
 	type CameraMode,
 	type GovernorLevel,
@@ -58,10 +60,12 @@ import {
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
+import { heatMarks } from './hud/heat-marks';
 import { modeForAction } from './hud/sas-model';
 import {
 	DEFAULT_KEYMAP,
 	chordIdOf,
+	chordKey,
 	keyIdOf,
 	type ActionId,
 	type Keymap,
@@ -70,6 +74,9 @@ import {
 import type { Catalog } from './messages';
 import {
 	boardTarget,
+	CHUTE_MODULE,
+	chuteStep,
+	HELMET_MODULE,
 	isSuit,
 	jetpackTranslate,
 	JETPACK_MODULE,
@@ -290,6 +297,9 @@ export interface Flight {
 	walk(heading: number | null): void;
 	plantFlag(): void;
 	board(): void;
+	/** The EVA helmet and personal parachute (plan 249). */
+	helmet(): void;
+	chute(): void;
 	/** Select the next entry of the target list; the one after the last is none. */
 	cycleTarget(): void;
 	/** Place the node of a rendezvous aid of the Target card (plan 057). */
@@ -338,6 +348,8 @@ export interface Flight {
 	readonly debug: DebugHost;
 	/** The Debug panel's Info tab: sim step time, graphics level, vessels (plan 203). */
 	debugInfo(): DebugInfo;
+	/** Empties the frame-interval histogram of the Info tab (plan 251). */
+	resetFrameStats(): void;
 	dispose(): void;
 }
 
@@ -350,10 +362,14 @@ export interface DebugInfo {
 	preset: string | null;
 	scale: number;
 	governor: boolean;
-	/** The governor's latest changes, newest last (plan 201): `mm:ss preset at NN%`. */
+	/** The governor's latest changes, newest last (plan 201): `mm:ss preset at NN% — why` (plan 253). */
 	governorChanges: readonly string[];
+	/** What the governor holds: the locked frame rate, the display's rate and the drawing cadence (plan 253). */
+	governorPacing: string | null;
 	/** The game's API version and the mods running. */
 	versions: string;
+	/** The frame-interval distribution of the last two minutes (plan 251). */
+	frames: FrameSummary;
 }
 
 /** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
@@ -382,10 +398,15 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Unsubscribes from the shared client on dispose. */
 	const offClient: Array<() => void> = [];
 	let renderer: Renderer | null = null;
+	let motion: MediaQueryList | null = null;
+	const onMotion = (e: MediaQueryListEvent): void => renderer?.setReducedMotion(e.matches);
 	let governor: QualityGovernor | null = null;
 	/** The governor's latest changes for Debug → Info (plan 201), at most `GOVERNOR_LOG`. */
 	const governorChanges: string[] = [];
 	const governorStart = performance.now();
+	/** Frame intervals of the last two minutes for the Debug panel's percentiles (plan 251). */
+	const frameStats = new FrameHistogram();
+	let budgetLook = 0;
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
 	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
@@ -402,6 +423,8 @@ export function startFlight(options: FlightOptions): Flight {
 	let disposed = false;
 	let raf = 0;
 	let lastFrame = 0;
+	/** The previous rAF, drawn or not (the governor's cadence, plan 253). */
+	let lastRaf = 0;
 	let lastHud = 0;
 
 	const hud: FlightHud = {
@@ -578,6 +601,11 @@ export function startFlight(options: FlightOptions): Flight {
 	let throttle = 0;
 	/** The pitch trim sent last (plan 063): R and F step it. */
 	let trim = 0;
+	/** The yaw and roll trim sent last (plan 245, ADR 0233). */
+	let trimYaw = 0;
+	let trimRoll = 0;
+	/** The brakes are on because their key is held (plan 245). */
+	let brakesHeld = false;
 	let sentThrottle = 0;
 	/** The HUD's pad throttle the sim has not been sent yet (`DEFAULT_THROTTLE`). */
 	let padThrottle = false;
@@ -597,6 +625,40 @@ export function startFlight(options: FlightOptions): Flight {
 	let auto: { update(s: Snapshot): unknown; phase: string; note: string } | null = null;
 
 	const keymap = (): Keymap => options.keymap?.() ?? DEFAULT_KEYMAP;
+
+	/** Let go of held brakes (plan 245). */
+	function releaseBrakes(): void {
+		if (!brakesHeld) return;
+		brakesHeld = false;
+		if (vessel !== null)
+			void send({ type: 'action-group', vessel, group: 'stock.brakes', value: false });
+	}
+
+	/**
+	 * Abort (plan 245, ADR 0233): the engines are cut at once, then the design's Abort group (custom
+	 * slot 0) fires; with no part in it the toast says so and points at the Hangar.
+	 */
+	function abort(): void {
+		if (vessel === null) return;
+		throttle = sentThrottle = 0;
+		void send({ type: 'throttle', vessel, value: 0 });
+		void client
+			.dispatch({ type: 'action-group', vessel, group: customGroupId(ABORT_SLOT) })
+			.then((r) => {
+				hudCtl?.notice(
+					r.ok
+						? { kind: 'warning', title: 'Abort: engines cut, Abort group fired', key: 'abort' }
+						: {
+								kind: 'warning',
+								title: 'Abort: engines cut',
+								detail: /no part|unknown action group/.test(r.reason)
+									? 'The Abort group has no part: set it in the Hangar.'
+									: r.reason,
+								key: 'abort'
+							}
+				);
+			});
+	}
 	/** Any key of the action is down (held keys are key ids, `keybindings.ts`). */
 	const isHeld = (action: ActionId): boolean =>
 		keymap()
@@ -824,8 +886,43 @@ export function startFlight(options: FlightOptions): Flight {
 					void send({ type: 'trim', vessel, pitch: trim });
 				}
 				break;
+			case 'trimYawLeft':
+			case 'trimYawRight':
+			case 'trimRollLeft':
+			case 'trimRollRight': {
+				// yaw and roll trim in steps of 0.05, like the pitch trim (plan 245, ADR 0233)
+				if (vessel === null) break;
+				const step = action === 'trimYawRight' || action === 'trimRollRight' ? 0.05 : -0.05;
+				const next = (t: number): number =>
+					Math.max(-1, Math.min(1, Math.round((t + step) * 100) / 100));
+				if (action.startsWith('trimYaw')) {
+					trimYaw = next(trimYaw);
+					void send({ type: 'trim', vessel, yaw: trimYaw });
+				} else {
+					trimRoll = next(trimRoll);
+					void send({ type: 'trim', vessel, roll: trimRoll });
+				}
+				break;
+			}
+			case 'trimReset':
+				if (vessel !== null) {
+					trim = trimYaw = trimRoll = 0;
+					void send({ type: 'trim', vessel, pitch: 0, yaw: 0, roll: 0 });
+					hudCtl?.notice({ kind: 'info', title: 'Trim reset', key: 'trim' });
+				}
+				break;
 			case 'brakes':
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.brakes' });
+				break;
+			case 'brakesHold':
+				// on while the key is down; the key-up (or losing the window) lets go (plan 245)
+				if (vessel !== null && !brakesHeld) {
+					brakesHeld = true;
+					void send({ type: 'action-group', vessel, group: 'stock.brakes', value: true });
+				}
+				break;
+			case 'stopWarp':
+				setWarp(0);
 				break;
 			case 'rcsToggle':
 				toggleRcs();
@@ -838,8 +935,9 @@ export function startFlight(options: FlightOptions): Flight {
 				if (vessel !== null) void send({ type: 'action-group', vessel, group: 'stock.lights' });
 				break;
 			case 'abort':
-				// Abort is a later plan's; in the map it still removes the selected node (ADR 0061)
+				// in the map a selected node goes first (ADR 0061); otherwise the abort (plan 245, ADR 0233)
 				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
+				else abort();
 				break;
 			case 'map':
 				toggleMap();
@@ -905,11 +1003,21 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
 		precision = e.getModifierState?.('CapsLock') ?? false;
+		if (
+			brakesHeld &&
+			keymap()
+				.keys('brakesHold')
+				.some((k) => chordKey(k) === keyIdOf(e) || chordKey(k) === e.code)
+		)
+			releaseBrakes();
 		held.delete(keyIdOf(e));
 		// A key released after Shift changed its character (`,` held, Shift pressed, `<` released): drop the code too.
 		held.delete(e.code);
 	};
-	const onBlur = (): void => held.clear();
+	const onBlur = (): void => {
+		held.clear();
+		releaseBrakes();
+	};
 
 	// One finger or the mouse orbits the camera; two fingers pinch to zoom (plan 053, ADR 0063).
 	const pointers = new Map<number, { x: number; y: number }>();
@@ -1085,6 +1193,12 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'evaBoard':
 				void board();
 				return;
+			case 'evaHelmet':
+				helmet();
+				return;
+			case 'evaChute':
+				chute();
+				return;
 		}
 	}
 	function walk(heading: number | null): void {
@@ -1098,6 +1212,50 @@ export function startFlight(options: FlightOptions): Flight {
 		});
 		hud.eva = { ...e, walking: heading !== null };
 		publish();
+	}
+	/** The helmet key (plan 249): off only where the air allows, with the reason when it does not. */
+	function helmet(): void {
+		const h = hud.eva?.status?.helmet;
+		if (!h || vessel === null) return;
+		if (h.on && !h.breathable) {
+			hudCtl?.notice({
+				kind: 'warning',
+				title: 'Keep the helmet on',
+				detail: 'The air here is not breathable.',
+				key: 'helmet'
+			});
+			return;
+		}
+		void send({
+			type: 'action',
+			vessel,
+			part: h.part as EntityId,
+			module: HELMET_MODULE,
+			action: 'setOn',
+			args: [!h.on]
+		});
+	}
+	/** The chute key (plan 249): arm it, disarm it, or cut the open canopy. */
+	function chute(): void {
+		const c = hud.eva?.status?.chute;
+		if (!c || vessel === null) return;
+		const step = chuteStep(c.status);
+		if (step === null) {
+			hudCtl?.notice({
+				kind: 'warning',
+				title: 'The parachute is spent',
+				detail: 'A cut or torn canopy does not pack again; board and step out for a new one.',
+				key: 'chute'
+			});
+			return;
+		}
+		void send({
+			type: 'action',
+			vessel,
+			part: c.part as EntityId,
+			module: CHUTE_MODULE,
+			action: step
+		});
 	}
 	function plantFlag(): void {
 		if (hud.eva) void send({ type: 'plant-flag', vessel: hud.eva.suit as EntityId });
@@ -1201,7 +1359,7 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
-	function applyLevel(level: GovernorLevel, announce: boolean): void {
+	function applyLevel(level: GovernorLevel, announce: boolean, reason?: string): void {
 		if (!renderer) return;
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
 		syncGlass();
@@ -1209,10 +1367,15 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer.setPlanetScale(level.planetScale);
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
-			logBuffer.add('info', 'graphics', `governor: ${level.preset} at ${percent}%`);
+			logBuffer.add(
+				'info',
+				'graphics',
+				`governor: ${level.preset} at ${percent}%${reason ? ` — ${reason}` : ''}`
+			);
 			const s = Math.floor((performance.now() - governorStart) / 1000);
 			const at = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-			governorChanges.push(`${at} ${level.preset} at ${percent}%`);
+			// Debug says why (plan 253, ADR 0233)
+			governorChanges.push(`${at} ${level.preset} at ${percent}%${reason ? ` — ${reason}` : ''}`);
 			if (governorChanges.length > GOVERNOR_LOG) governorChanges.shift();
 			hudCtl?.notice({
 				kind: 'info',
@@ -1226,13 +1389,22 @@ export function startFlight(options: FlightOptions): Flight {
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
+		// the governor paces the drawing to its locked target (plan 253): a 120 Hz display draws every
+		// second rAF at 60, and a drawn frame is judged by the time since the previous drawn one
+		if (governor) {
+			const tick = governor.tick(now - lastRaf);
+			lastRaf = now;
+			if (tick.level) applyLevel(tick.level, true, governor.history.at(-1)?.reason);
+			if (!tick.render) return;
+		}
+		lastRaf = now;
 		const interval = now - lastFrame;
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
-		if (governor) {
-			const level = governor.frame(interval);
-			if (level) applyLevel(level, true);
-		}
+		frameStats.add(now, interval);
+		// the planet pass's pixel budget on this screen (plan 252) shapes the governor's rungs (plan 253)
+		if (governor && renderer && ++budgetLook === 30)
+			governor.setBudgetedPlanetScale(renderer.planetScale);
 		sendInput(dt);
 		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {
@@ -1247,13 +1419,31 @@ export function startFlight(options: FlightOptions): Flight {
 			const frameData = hudCtl.frame();
 			frameData.maneuver = maneuverCtl?.frame() ?? null;
 			frameData.target = targetView?.frame() ?? null;
+			frameData.heat =
+				renderer && snap && vessel !== null && !renderer.isMapView
+					? heatMarks(snap, vessel, (p) => renderer!.project(p))
+					: null;
 			options.onFrame?.(frameData);
 			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
 		}
 		if (now - lastHud >= HUD_PERIOD_MS) {
 			lastHud = now;
 			if (catalog && vessel !== null && snap) {
-				hud.telemetry = computeTelemetry(snap, vessel, catalog.bodies);
+				const telemetry = computeTelemetry(snap, vessel, catalog.bodies);
+				hud.telemetry = telemetry;
+				// the scene a rung is judged in: a rung that failed a trial waits for it to change (ADR 0233)
+				if (governor && telemetry) {
+					const soi = snap.vessels.find((v) => v.id === vessel)?.soi;
+					const body = soi ? catalog.bodies.find((b) => b.id === soi) : undefined;
+					governor.setScene(
+						sceneKeyOf({
+							body: String(soi ?? ''),
+							altitude: telemetry.altitude,
+							...(body?.atmosphere ? { atmosphereTop: body.atmosphere.height } : {}),
+							map: renderer?.isMapView ?? false
+						})
+					);
+				}
 				if (presence.lost() && hud.status === 'flying' && !recovered) {
 					hud.status = 'lost';
 					hud.message = 'the vessel was destroyed';
@@ -1463,6 +1653,10 @@ export function startFlight(options: FlightOptions): Flight {
 				...(c.terrain ? { terrain: c.terrain } : {}),
 				...(c.launchSite ? { launchSite: c.launchSite } : {})
 			});
+			// no bright flashes while the system asks for reduced motion (plan 246)
+			motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
+			renderer.setReducedMotion(motion?.matches ?? false);
+			motion?.addEventListener('change', onMotion);
 			renderer.setCameraMode(cameraMode);
 			const draw = renderer;
 			maneuverCtl = createManeuverController({
@@ -1490,6 +1684,18 @@ export function startFlight(options: FlightOptions): Flight {
 			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
 			syncGlass();
+			// Measurement (plan 251): the switches named in localStorage `orbital.graphics.features` go down
+			// before the programs are compiled, so a switch that changes a shader define is measured on a
+			// program compiled at load (one compiled later reads 2 to 3 times slow, journal 050).
+			if (import.meta.env.DEV) {
+				try {
+					const names = renderer.debug.featureNames as readonly string[];
+					for (const name of (localStorage.getItem('orbital.graphics.features') ?? '').split(','))
+						if (names.includes(name)) renderer.debug.setFeature(name as never, true);
+				} catch {
+					// no storage: no switches
+				}
+			}
 			// compile this preset's programs and the other presets' planet pass off the main thread
 			void renderer.precompile(options.onGraphics);
 			resize();
@@ -1567,13 +1773,17 @@ export function startFlight(options: FlightOptions): Flight {
 	canvas.addEventListener('pointermove', onPointerMove);
 	canvas.addEventListener('wheel', onWheel, { passive: false });
 	observer.observe(canvas.parentElement ?? canvas);
-	lastFrame = performance.now();
+	lastFrame = lastRaf = performance.now();
 	raf = requestAnimationFrame(frame);
 	publish();
 
 	if (import.meta.env.DEV) {
 		// Debug hook for the manual run (journal 009): capture the canvas plus a text HUD overlay.
 		(window as unknown as { __orbital: unknown }).__orbital = {
+			// the frame-interval histogram and the governor's level, for `scripts/measure-graphics.ts` (plan 251)
+			frameStats: () => frameStats.summary(performance.now()),
+			resetFrameStats: () => frameStats.reset(),
+			level: () => ({ preset: renderer?.preset ?? null, scale: governor?.level.scale ?? 1 }),
 			hud: () => ({ ...hud }),
 			hudStats: () => ({
 				paintAvgMs: stats.total.paint / Math.max(1, stats.n.paint),
@@ -1700,8 +1910,14 @@ export function startFlight(options: FlightOptions): Flight {
 			scale: governor?.level.scale ?? 1,
 			governor: autoQuality,
 			governorChanges: [...governorChanges],
-			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', ')
+			governorPacing:
+				governor && autoQuality
+					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${governor.renderEvery}th `}frame`
+					: null,
+			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
+			frames: frameStats.summary(performance.now())
 		}),
+		resetFrameStats: () => frameStats.reset(),
 		runScript(source) {
 			if (vessel === null) return;
 			const target = Number(vessel);
@@ -1849,6 +2065,8 @@ export function startFlight(options: FlightOptions): Flight {
 		walk,
 		plantFlag,
 		board: () => void board(),
+		helmet,
+		chute,
 		cycleTarget,
 		planAid,
 		setPaused(paused) {
@@ -1876,6 +2094,7 @@ export function startFlight(options: FlightOptions): Flight {
 			director.stop();
 			cancelAnimationFrame(raf);
 			observer.disconnect();
+			motion?.removeEventListener('change', onMotion);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);

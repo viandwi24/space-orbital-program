@@ -3,6 +3,7 @@
  * events and input; it answers with (a) `frame()`, cheap per-frame data for the canvas and the map
  * markers, and (b) `model()`, the complete display model Svelte renders at ~10 Hz.
  */
+import type { HeatMark } from './hud/heat-marks';
 import { rcsFiring, rcsState, type RcsState } from './hud/rcs-model';
 import { aeroReadout, wingStallAngle, type AeroReadout } from './aircraft/aero-readout';
 import { projectGhost, type GhostTrack, type ScreenGhost } from './replays/ghost-model';
@@ -188,6 +189,8 @@ export interface HudModel {
 	controllable: boolean;
 	/** Why the sim takes no control commands now (plan 208, ADR 0214): the "Uncontrolled" chip. */
 	uncontrolled: 'no-source' | 'no-crew' | 'no-power' | null;
+	/** The trim on each axis, -1..1 (plan 245); null while all three are zero. */
+	trim: { pitch: number; yaw: number; roll: number } | null;
 	/** The RCS pill (plan 211). */
 	rcs: RcsState;
 	/** How hard the RCS fires, 0..1 (the hiss). */
@@ -252,6 +255,8 @@ export interface FrameData {
 	maneuver?: ManeuverFrame | null;
 	/** The target's markers in the map, or its label and arrow in the flight view (plan 057). */
 	target?: TargetViewFrame | null;
+	/** Heat bars over the hottest parts in the flight view (plan 246); filled in by the flight loop. */
+	heat?: HeatMark[] | null;
 }
 /** An ascending or descending node marker (plan 224). */
 export interface NavNodeFrame {
@@ -688,7 +693,13 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			return {
 				name,
 				body: bodyLabel(body.id),
-				situation: situationLabel(tele.phase, tele.escape, bodyLabel(body.id), tele.prelaunch),
+				situation: situationLabel(
+					tele.phase,
+					tele.escape,
+					bodyLabel(body.id),
+					tele.prelaunch,
+					tele.splashed
+				),
 				prelaunch: tele.prelaunch,
 				phase: tele.phase,
 				// MET counts from liftoff (plan 200): 0 on the pad; a vessel from an older save, from t = 0
@@ -726,6 +737,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				sas: v.sas,
 				controllable: hasControlSource(v) && v.uncontrolled === undefined,
 				uncontrolled: v.uncontrolled ?? null,
+				trim: v.trim ?? null,
 				rcs: rcsState(v, content.parts),
 				rcsFiring: rcsFiring(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),

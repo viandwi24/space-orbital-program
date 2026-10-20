@@ -12,7 +12,10 @@ import {
 	partId,
 	placeRadial,
 	placeStack,
+	placeSurface,
+	pointNearShape,
 	resolveVesselDesign,
+	rotateY,
 	surfaceHalfHeight,
 	surfacePoint,
 	surfaceSite,
@@ -52,6 +55,11 @@ export interface AttachTarget {
 	parent: { index: number; parentNode: string } | null;
 	/** Azimuth (rad, in the parent's frame) and height on the parent's side, for a radial target. */
 	radial?: { angle: number; y: number };
+	/**
+	 * A point and outward normal in the parent's own frame, for a surface target (plan 244, ADR 0235):
+	 * a top or bottom face, a slope. `parentNode` is `"surface"`, as for a radial target.
+	 */
+	surface?: { point: [number, number, number]; normal: [number, number, number] };
 	/** Node of the attaching part used for the link. */
 	node: string;
 	/** Origin of the attaching part relative to the design root's origin, metres. */
@@ -140,21 +148,23 @@ export function singlePart(part: string, index: number): VesselDesign {
 /** Appends `assembly` (one root) to `design` at `target`; no validation beyond the target's shape. */
 function join(design: VesselDesign, assembly: VesselDesign, target: AttachTarget): VesselDesign {
 	const root = rootOf(assembly);
-	const parts = assembly.parts.map((p) =>
-		p.index === root
-			? {
-					...p,
-					parent: target.parent
-						? {
-								index: target.parent.index,
-								parentNode: target.parent.parentNode,
-								node: target.node,
-								...(target.radial ? { radial: { ...target.radial } } : {})
+	const link: VesselDesign['parts'][number]['parent'] = target.parent
+		? {
+				index: target.parent.index,
+				parentNode: target.parent.parentNode,
+				node: target.node,
+				...(target.radial ? { radial: { ...target.radial } } : {}),
+				...(target.surface
+					? {
+							surface: {
+								point: [...target.surface.point] as [number, number, number],
+								normal: [...target.surface.normal] as [number, number, number]
 							}
-						: null
-				}
-			: p
-	);
+						}
+					: {})
+			}
+		: null;
+	const parts = assembly.parts.map((p) => (p.index === root ? { ...p, parent: link } : p));
 	if (design.parts.length === 0) {
 		if (target.parent !== null) throw new Error('an empty design can only take a root part');
 		return { ...design, parts };
@@ -218,6 +228,43 @@ const specOf = (s: number | SymmetrySpec): SymmetrySpec =>
 /** Azimuth reflected across the vessel's YZ plane (`azimuthOf` is `atan2(-z, x)`): x goes to -x. */
 const mirrorAngle = (a: number): number => wrapAngle(Math.PI - a);
 
+type Surface = NonNullable<AttachTarget['surface']>;
+const turnedAbout = (v: readonly [number, number, number], a: number): [number, number, number] => {
+	const r = rotateY(v, a);
+	return [r.x, r.y, r.z];
+};
+/** A surface site turned about the parent's vertical axis, or reflected across its YZ (`x`) or XY (`z`) plane. */
+const turnSurface = (s: Surface, a: number): Surface => ({
+	point: turnedAbout(s.point, a),
+	normal: turnedAbout(s.normal, a)
+});
+const reflectSurface = (s: Surface, axis: 'x' | 'z'): Surface => {
+	const flip = (v: [number, number, number]): [number, number, number] =>
+		axis === 'x' ? [-v[0], v[1], v[2]] : [v[0], v[1], -v[2]];
+	return { point: flip(s.point), normal: flip(s.normal) };
+};
+/** A target reflected for the mirrored member of a mirror pair (inherited symmetry): azimuth negated. */
+const reflectedInMember = (t: AttachTarget): AttachTarget =>
+	t.radial
+		? { ...t, radial: { angle: wrapAngle(-t.radial.angle), y: t.radial.y } }
+		: t.surface
+			? { ...t, surface: reflectSurface(t.surface, 'z') }
+			: t;
+/** A target for the other half of a mirror pair: across the vessel's YZ plane. */
+const mirroredTarget = (t: AttachTarget): AttachTarget =>
+	t.radial
+		? { ...t, radial: { angle: mirrorAngle(t.radial.angle), y: t.radial.y } }
+		: t.surface
+			? { ...t, surface: reflectSurface(t.surface, 'x') }
+			: t;
+/** A target turned about its parent's vertical axis by `a`. */
+const turnedTarget = (t: AttachTarget, a: number): AttachTarget =>
+	t.radial
+		? { ...t, radial: { angle: t.radial.angle + a, y: t.radial.y } }
+		: t.surface
+			? { ...t, surface: turnSurface(t.surface, a) }
+			: t;
+
 /** A tilt reflected with its part across that plane: the turns about the outward and up axes flip. */
 const mirrorTilt = (t: DesignTilt | undefined): DesignTilt | undefined =>
 	t && (t.x !== 0 || t.y !== 0) ? { x: -t.x, y: -t.y, z: t.z } : t;
@@ -259,46 +306,29 @@ export function planAttachAssembly(
 	const parentGroup = target.parent ? groupOf(state.design, target.parent.index) : [];
 	const mirroredParent = (m: number): boolean =>
 		state.design.parts.find((p) => p.index === m)?.mirror === true;
-	if (target.parent && target.radial && parentGroup.length > 1) {
+	const onSurface = target.radial !== undefined || target.surface !== undefined;
+	if (target.parent && onSurface && parentGroup.length > 1) {
 		// inherited symmetry (ADR 0207 point 2): one copy on every member of the parent's group, at
 		// the same spot in each member's frame (reflected on the mirrored member of a mirror pair)
 		for (const m of parentGroup) {
 			const mirrored = mirroredParent(m);
-			targets.push({
-				target: {
-					...target,
-					parent: { index: m, parentNode: target.parent.parentNode },
-					radial: {
-						angle: mirrored ? wrapAngle(-target.radial.angle) : target.radial.angle,
-						y: target.radial.y
-					}
-				},
-				mirrored
-			});
-		}
-	} else if (target.parent && target.radial && spec.mirror) {
-		targets.push({ target, mirrored: false });
-		targets.push({
-			target: {
+			const here: AttachTarget = {
 				...target,
-				radial: { angle: mirrorAngle(target.radial.angle), y: target.radial.y }
-			},
-			mirrored: true
-		});
-	} else if (target.parent && target.radial && spec.count > 1) {
+				parent: { index: m, parentNode: target.parent.parentNode }
+			};
+			targets.push({ target: mirrored ? reflectedInMember(here) : here, mirrored });
+		}
+	} else if (target.parent && onSurface && spec.mirror) {
+		targets.push({ target, mirrored: false });
+		targets.push({ target: mirroredTarget(target), mirrored: true });
+	} else if (target.parent && onSurface && spec.count > 1) {
 		for (let k = 0; k < spec.count; k++) {
 			targets.push({
-				target: {
-					...target,
-					radial: {
-						angle: target.radial.angle + (2 * Math.PI * k) / spec.count,
-						y: target.radial.y
-					}
-				},
+				target: turnedTarget(target, (2 * Math.PI * k) / spec.count),
 				mirrored: false
 			});
 		}
-	} else if (target.parent && !target.radial) {
+	} else if (target.parent && !onSurface) {
 		const used = (m: number): boolean =>
 			state.design.parts.some(
 				(p) => p.parent?.index === m && p.parent.parentNode === target.parent!.parentNode
@@ -1103,6 +1133,73 @@ export function radialTarget(
 		radial: { angle, y },
 		position: at.position,
 		point
+	};
+}
+
+/**
+ * The surface target for `assembly` on part `parentIndex` at a pointer hit (plan 244, ADR 0235):
+ * `hit.point` and `hit.normal` are in the design's frame. The assembly's root attaches by the node
+ * best facing the surface (the one whose direction is closest to the opposite of the normal), which
+ * turns it to lie against the face: a tank stands on a top face, a fin lies on a cone's slope.
+ * Null when the parent has no shape, is a connector, the point is not on the parent, or the
+ * assembly has no node. Geometry is exactly `resolveVesselDesign`'s.
+ */
+export function surfaceTarget(
+	design: VesselDesign,
+	assembly: VesselDesign,
+	parts: PartLookup,
+	parentIndex: number,
+	hit: { point: Vec3; normal: readonly [number, number, number] }
+): AttachTarget | null {
+	const childDef = rootDefOf(assembly, parts);
+	const entry = design.parts.find((p) => p.index === parentIndex);
+	const parentDef = entry && parts.get(entry.part);
+	const layout = layoutOf(design, parts)?.get(parentIndex);
+	if (!childDef?.attach || !layout || !parentDef?.shape || parentDef.connector) return null;
+	if (childDef.connector) return null;
+	const r = mat3OfQuat(layout.rotation);
+	const local = (v: readonly [number, number, number]): [number, number, number] => [
+		r[0] * v[0] + r[3] * v[1] + r[6] * v[2],
+		r[1] * v[0] + r[4] * v[1] + r[7] * v[2],
+		r[2] * v[0] + r[5] * v[1] + r[8] * v[2]
+	];
+	const round = (v: readonly [number, number, number]): [number, number, number] => [
+		Math.round(v[0] * 1e4) / 1e4,
+		Math.round(v[1] * 1e4) / 1e4,
+		Math.round(v[2] * 1e4) / 1e4
+	];
+	const point = round(
+		local([
+			hit.point.x - layout.position.x,
+			hit.point.y - layout.position.y,
+			hit.point.z - layout.position.z
+		])
+	);
+	if (!(Math.hypot(...hit.normal) > 1e-9)) return null;
+	const normal = round(unit(local(hit.normal)));
+	if (!pointNearShape(parentDef.shape, point)) return null;
+	// the node facing the surface best: the largest dot of its direction with the inward normal
+	let node: string | null = null;
+	let best = -Infinity;
+	for (const name of Object.keys(childDef.attach).sort()) {
+		const d = unit(childDef.attach[name]!.dir);
+		const score = -dot(d, normal) + (name === 'bottom' ? 1e-6 : 0);
+		if (score > best) {
+			best = score;
+			node = name;
+		}
+	}
+	if (node === null) return null;
+	const here = placementOf(layout);
+	const at = placeSurface(here, { point, normal }, childDef.attach[node]!, rootTiltOf(assembly));
+	if (!at) return null;
+	const on = mat3Apply(here.rotation, point);
+	return {
+		parent: { index: parentIndex, parentNode: SURFACE_NODE },
+		node,
+		surface: { point, normal },
+		position: at.position,
+		point: { x: here.position.x + on.x, y: here.position.y + on.y, z: here.position.z + on.z }
 	};
 }
 

@@ -115,7 +115,7 @@ actions: {
 
 - `id` is the name of one of your `actions`. A `toggle` is called with `true` or `false`, a `value` with a number in `min..max`, a `mode` with one of `options[].value`, and a `trigger` with nothing. The sim checks the argument and `enabled` before calling.
 - `group` puts the control in an action group: the Overview tab of the vessel panel (plan 111) shows one switch per group, and `action-group` sets every member in the same tick. Stock groups are `stock.engines`, `stock.batteries`, `stock.solar`, `stock.lights`, `stock.antennas`, `stock.science`, `stock.docking`, `stock.landing-gear` and `stock.parachutes`. Add your own with `ctx.actionGroups.register(defineActionGroup({ id: 'acme.winches', label: 'Winches' }))`.
-- Players can also make custom groups in a design (slots 1 to 10, on the number pad by default); they call your actions the same way.
+- Players can also make custom groups in a design (slots 1 to 10, on the number pad by default) and an Abort group (slot 0, Backspace in flight, ADR 0233); they call your actions the same way.
 
 ## 3. Parts
 

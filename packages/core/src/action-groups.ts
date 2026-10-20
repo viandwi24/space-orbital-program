@@ -84,7 +84,7 @@ export function actionArgumentProblem(d: PartActionDescriptor, value: unknown): 
 	}
 }
 
-/** Custom group of a design (ADR 0174 point 4): slot 1..10, members by design part index. */
+/** Custom group of a design (ADR 0174 point 4): slot 1..10 (0 is Abort, ADR 0233), members by design part index. */
 export interface DesignActionGroup {
 	slot: number;
 	label: string;
@@ -92,5 +92,7 @@ export interface DesignActionGroup {
 }
 
 export const MAX_CUSTOM_GROUPS = 10;
+/** The design's Abort group (plan 245, ADR 0233): the custom slot 0, fired by Backspace in flight. */
+export const ABORT_SLOT = 0;
 /** Group id of a vessel's custom group. */
 export const customGroupId = (slot: number): string => `custom.${slot}`;

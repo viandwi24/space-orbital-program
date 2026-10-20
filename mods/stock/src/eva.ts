@@ -11,10 +11,12 @@ import {
 	kg,
 	STANDARD_GRAVITY,
 	z,
+	type Ambient,
 	type PartShape
 } from '@orbital/sdk';
 import { AntennaSuitRadio, ModuleAntenna } from './comms.ts';
 import { partCost } from './costs.ts';
+import { ModuleParachute } from './parachute.ts';
 import { ModuleCommand, ModuleReactionWheel, ModuleResourceContainer } from './modules.ts';
 import { ElectricCharge, Food, Oxygen, Supplies, Water } from './resources.ts';
 import { ExperimentSurfaceSample, ModuleExperiment } from './science.ts';
@@ -90,6 +92,82 @@ export const ModuleJetpack = defineModule({
 	snapshot: (state) => ({ on: state.on, firing: state.firing })
 });
 
+/**
+ * The helmet (plan 249, ADR 0237): on, a suit is sealed; off, its wearer breathes the air, which
+ * only breathable air allows: the body says so (`atmosphere.breathable`), with pressure and
+ * temperature a person can stand (the pressure of about 4 km up on Home, -30 to 45 °C).
+ */
+export const HELMET_AIR = {
+	minPressure: 60_000,
+	minTemperature: 243,
+	maxTemperature: 318
+} as const;
+
+/** Whether a helmet may come off in `air`. */
+export function helmetMayComeOff(
+	air: Pick<Ambient, 'breathable' | 'pressure' | 'temperature'>
+): boolean {
+	return (
+		air.breathable === true &&
+		air.pressure >= HELMET_AIR.minPressure &&
+		(air.temperature ?? 288) >= HELMET_AIR.minTemperature &&
+		(air.temperature ?? 288) <= HELMET_AIR.maxTemperature
+	);
+}
+
+export interface HelmetState {
+	on: boolean;
+	/** Whether the air around the suit allows the helmet off, as of the last step. */
+	breathable: boolean;
+}
+
+export const ModuleHelmet = defineModule({
+	id: 'stock.helmet',
+	state: (): HelmetState => ({ on: true, breathable: false }),
+	describe: (_config, state) => ({
+		category: 'command',
+		readouts: [{ id: 'helmet', label: 'Helmet', value: state.on ? 'On' : 'Off' }],
+		actions: [
+			{
+				id: 'setOn',
+				label: 'Helmet',
+				kind: 'toggle',
+				value: state.on,
+				enabled: !state.on || state.breathable,
+				...(!state.on || state.breathable ? {} : { reason: 'The air here is not breathable' })
+			}
+		]
+	}),
+	// a helmet off in air that stops being breathable (climbing, a thin or cold layer) goes back on
+	update: (ctx) => {
+		const s = ctx.state;
+		s.breathable = helmetMayComeOff(ctx.vessel.ambient);
+		if (!s.on && !s.breathable) s.on = true;
+	},
+	actions: {
+		/** `(on)`; taking it off is refused in air that is not breathable. */
+		setOn: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			if (!on && !helmetMayComeOff(ctx.vessel.ambient)) return;
+			ctx.state.on = on;
+		}
+	},
+	snapshot: (state) => ({ on: state.on, breathable: state.breathable })
+});
+
+/**
+ * The personal parachute (plan 249, ADR 0237): the stock parachute module at a suit's scale. KSP's
+ * main brings 1 t down at about 6 m/s on 480 m² of drag area; a suit (about 110 kg with its
+ * loads) gets 55 m², about 5.5 m/s at sea level, under the suit's 8 m/s impact tolerance. It opens
+ * lower than a capsule's (300 m).
+ */
+export const PERSONAL_CHUTE = {
+	semiDragArea: 1.2,
+	fullDragArea: 55,
+	deployHeight: 300,
+	anchor: [0, 0.9, 0] as [number, number, number]
+} as const;
+
 const SUIT: PartShape = { kind: 'box', size: [0.7, 1.8, 0.5] };
 
 export const PartEvaSuit = definePart({
@@ -104,7 +182,10 @@ export const PartEvaSuit = definePart({
 	walk: { speed: 1.5, run: 3, propellant: ColdGas.id },
 	visual: {
 		kind: 'suit',
-		palette: { primary: '#f1f2f4', secondary: '#2a2e35', accent: '#e0572b' }
+		palette: { primary: '#f1f2f4', secondary: '#2a2e35', accent: '#e0572b' },
+		// the helmet is the moving piece, hidden while it is off; the canopy follows the chute
+		articulation: { module: ModuleHelmet.id, field: 'on', mode: 'visible' },
+		deploy: { module: ModuleParachute.id, flag: 'canopy', seconds: 1 }
 	},
 	attach: {
 		top: { pos: [0, 0.9, 0], dir: [0, 1, 0] },
@@ -128,6 +209,8 @@ export const PartEvaSuit = definePart({
 		],
 		[ModuleJetpack, { thrust: JETPACK.thrust, isp: JETPACK.isp, propellant: ColdGas.id }],
 		[ModuleReactionWheel, { torque: 20, chargeRate: 0.01 }],
+		[ModuleHelmet],
+		[ModuleParachute, { ...PERSONAL_CHUTE }],
 		[ModuleExperiment, { experiment: ExperimentSurfaceSample.id, label: 'Take surface sample' }],
 		// relayed by a crewed vessel in sight (plan 121, ADR 0193 point 1)
 		[ModuleAntenna, { antenna: AntennaSuitRadio.id }]

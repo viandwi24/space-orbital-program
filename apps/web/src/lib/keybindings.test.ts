@@ -228,8 +228,8 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 	const ksp = createKeymap({}, 'ksp');
 	const classic = createKeymap({}, 'classic');
 
-	it('in ksp: B brakes, Digit1 group 1, Alt+Digit2 prograde, Alt+KeyW trim pitch, Backspace abort', () => {
-		expect(ksp.actionFor('flight', 'KeyB')).toBe('brakes');
+	it('in ksp: B brakes while held, Digit1 group 1, Alt+Digit2 prograde, Alt+KeyW trim pitch, Backspace abort', () => {
+		expect(ksp.actionFor('flight', 'KeyB')).toBe('brakesHold');
 		expect(ksp.actionFor('flight', 'Digit1')).toBe('customGroup1');
 		expect(ksp.actionFor('flight', 'Alt+Digit2')).toBe('sasPrograde');
 		expect(ksp.actionFor('flight', 'Alt+KeyW')).toBe('trimDown');
@@ -249,8 +249,29 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 			expect(actionSpec(id).pending).toBeUndefined();
 	});
 
-	it('in classic: C brakes and [ trims down', () => {
+	it('no key is left pending (plan 245): abort, stop warp, the yaw and roll trims and the held brakes work', () => {
+		for (const a of ACTIONS) expect('pending' in a, a.id).toBe(false);
+		expect(ksp.actionFor('flight', 'Backspace')).toBe('abort');
+		expect(ksp.actionFor('flight', '/')).toBe('stopWarp');
+		expect(ksp.actionFor('flight', 'Alt+KeyA')).toBe('trimYawLeft');
+		expect(ksp.actionFor('flight', 'Alt+KeyD')).toBe('trimYawRight');
+		expect(ksp.actionFor('flight', 'Alt+KeyQ')).toBe('trimRollLeft');
+		expect(ksp.actionFor('flight', 'Alt+KeyE')).toBe('trimRollRight');
+		expect(ksp.actionFor('flight', 'Alt+KeyX')).toBe('trimReset');
+	});
+
+	it('on EVA O is the helmet and U the personal chute, while P stays pause (plan 249)', () => {
+		for (const km of [ksp, classic]) {
+			expect(km.actionFor('eva', 'KeyO')).toBe('evaHelmet');
+			expect(km.actionFor('eva', 'KeyU')).toBe('evaChute');
+			expect(km.actionFor('flight', 'KeyP')).toBe('pause');
+			expect(km.actionFor('eva', 'KeyP')).toBeNull();
+		}
+	});
+
+	it('in classic: C brakes (a toggle) and [ trims down; Alt+C holds them', () => {
 		expect(classic.actionFor('flight', 'KeyC')).toBe('brakes');
+		expect(classic.actionFor('flight', 'Alt+KeyC')).toBe('brakesHold');
 		expect(classic.actionFor('flight', '[')).toBe('trimDown');
 		expect(classic.actionFor('flight', 'Digit2')).toBe('sasPrograde');
 	});
@@ -285,8 +306,8 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 		expect(plain.clashes).toEqual(['map']);
 		expect(plain.bindings).toEqual({ stage: ['KeyF'] });
 		const kept = switchProfile(mine, 'ksp', ['map']);
-		// brakes have no other key in ksp, so they keep B and the map goes back to M
-		expect(createKeymap(kept.bindings, 'ksp').actionFor('flight', 'KeyB')).toBe('brakes');
+		// the brakes (held) have no other key in ksp, so they keep B and the map goes back to M
+		expect(createKeymap(kept.bindings, 'ksp').actionFor('flight', 'KeyB')).toBe('brakesHold');
 		expect(bindingClashes(resolveBindings(kept.bindings, 'ksp'))).toEqual([]);
 	});
 

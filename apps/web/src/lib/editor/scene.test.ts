@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyDesign, referenceTwoStage } from '../design';
 import { partFacts } from './part-info';
 import { buildScene, looseGroup, looseX, withoutCarried } from './scene';
-import { attachTargets, createEditor, detach, replaceDesign, singlePart } from './state';
+import { attachNew, attachTargets, createEditor, detach, replaceDesign, singlePart } from './state';
 
 const { registries } = loadPlugins([Stock]);
 const content = { parts: registries.parts, modules: registries.modules };
@@ -106,6 +106,61 @@ describe('scene for the 3D view', () => {
 		expect(w.design.parts).toHaveLength(4);
 		expect(w.assembly!.parts).toHaveLength(3);
 		expect(withoutCarried(base, null).assembly).toBeNull();
+	});
+	it('floats the held part at the cursor as a free ghost, and glows the rings that are near (plan 244)', () => {
+		const held = singlePart('stock.tank-small', 99);
+		const design = detach(base, content, 6).design;
+		const targets = attachTargets(design, held, content.parts);
+		const input = { design, loose: [], parts: content.parts, held, targets, cursor: 1 };
+		const { scene, ghost } = buildScene({
+			...input,
+			free: [3, 2, 1],
+			near: new Set([0])
+		});
+		expect(ghost).toBeNull();
+		const free = scene.parts.filter((p) => p.role === 'free');
+		expect(free).toHaveLength(1);
+		expect(free[0]!.position).toEqual([3, 2, 1]);
+		expect(scene.parts.some((p) => p.role === 'ghost')).toBe(false);
+		expect(scene.nodes.find((n) => n.key === 't0')!.state).toBe('near');
+		expect(scene.nodes.some((n) => n.state === 'active')).toBe(false);
+		// a pointer site wins over the free spot
+		const sited = buildScene({ ...input, free: [3, 2, 1], pointer: targets[0]! });
+		expect(sited.scene.parts.some((p) => p.role === 'free')).toBe(false);
+		expect(sited.ghost).toBe(targets[0]);
+	});
+	it('marks a joint whose node sizes differ, and nothing otherwise (plan 244)', () => {
+		const marks = (d: typeof base.design) =>
+			buildScene({
+				design: d,
+				loose: [],
+				parts: content.parts,
+				held: null,
+				targets: [],
+				cursor: null
+			}).scene.nodes.filter((n) => n.state === 'mismatch');
+		expect(marks(base.design)).toEqual([]);
+		const stack = (top: string) => {
+			const s = attachNew(
+				createEditor(emptyDesign(), content),
+				content,
+				'stock.tank-small',
+				attachTargets(emptyDesign(), singlePart('stock.tank-small', 0), content.parts)[0]!
+			);
+			return attachNew(
+				s,
+				content,
+				top,
+				attachTargets(s.design, singlePart(top, 1), content.parts).find(
+					(x) => x.parent!.parentNode === 'top'
+				)!
+			);
+		};
+		expect(marks(stack('stock.nose-cone-medium').design)).toEqual([]);
+		const wrong = marks(stack('stock.nose-cone-large').design);
+		expect(wrong).toHaveLength(1);
+		// the mark sits where the cone meets the tank's top
+		expect(wrong[0]!.position[1]).toBeCloseTo(1, 5);
 	});
 });
 

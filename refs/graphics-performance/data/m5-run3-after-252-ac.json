@@ -1,0 +1,161 @@
+{
+ "when": "2026-10-20T10:35:12.416Z",
+ "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+ "angle": "metal",
+ "viewport": "1512x945 css, deviceScaleFactor 2",
+ "notes": "Now drawing from AC Power |  -InternalBattery-0 (id=22347875) 22%; charging; 2:13 remaining present: true | therm: Note: No thermal warning level has been recorded;Note: No performance warning level has been recorded;Note: No CPU power status has been recorded; | load averages: 2.80 5.40 6.66; branch rel/252-graphics-retina-quick-wins commit 42cccf13; started Tue Oct 20 17:35:08 WIB 2026",
+ "scenes": [
+  "pad",
+  "3km",
+  "12km",
+  "orbit",
+  "hillside"
+ ],
+ "byRatio": {
+  "medium": {
+   "ratio 1 (1512x945)": {
+    "pad": 9.47,
+    "3km": 9.12,
+    "12km": 10.12,
+    "orbit": 5.92,
+    "hillside": 2.88
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 13.68,
+    "3km": 14.45,
+    "12km": 15.98,
+    "orbit": 9.92,
+    "hillside": 4.23
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 14.47,
+    "3km": 14.55,
+    "12km": 16.12,
+    "orbit": 10.05,
+    "hillside": 4.45
+   }
+  },
+  "high": {
+   "ratio 1 (1512x945)": {
+    "pad": 12.03,
+    "3km": 10.65,
+    "12km": 11.73,
+    "orbit": 6.48,
+    "hillside": 2.92
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 17.08,
+    "3km": 16.8,
+    "12km": 18.5,
+    "orbit": 10.8,
+    "hillside": 4.27
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 17.75,
+    "3km": 16.78,
+    "12km": 18.58,
+    "orbit": 10.75,
+    "hillside": 4.52
+   }
+  }
+ },
+ "ablation": {
+  "high, ratio 2 (3024x1890)": {
+   "none": {
+    "pad": 18.08,
+    "3km": 17.02,
+    "12km": 18.77,
+    "orbit": 10.92,
+    "hillside": 4.57
+   },
+   "shadowMap": {
+    "pad": 18.23,
+    "3km": 17.38,
+    "12km": 19.08,
+    "orbit": 11.07,
+    "hillside": 4.08
+   },
+   "cloudShadow": {
+    "pad": 18.47,
+    "3km": 17.42,
+    "12km": 19.15,
+    "orbit": 11.15,
+    "hillside": 4.2
+   },
+   "shafts": {
+    "pad": 16.98,
+    "3km": 15.97,
+    "12km": 18.2,
+    "orbit": 11.1,
+    "hillside": 5.75
+   },
+   "clouds": {
+    "pad": 18.33,
+    "3km": 17.4,
+    "12km": 18.48,
+    "orbit": 10.68,
+    "hillside": 5.73
+   },
+   "terrain": {
+    "pad": 18.12,
+    "3km": 17.08,
+    "12km": 18.68,
+    "orbit": 11.05,
+    "hillside": 5.78
+   },
+   "aurora": {
+    "pad": 18.37,
+    "3km": 17.45,
+    "12km": 19.13,
+    "orbit": 11.07,
+    "hillside": 5.8
+   },
+   "tufts": {
+    "pad": 17.43,
+    "3km": 17.42,
+    "12km": 19.15,
+    "orbit": 11,
+    "hillside": 4.25
+   },
+   "msaa": {
+    "pad": 16.15,
+    "3km": 15.55,
+    "12km": 17.3,
+    "orbit": 9.28,
+    "hillside": 2.75
+   },
+   "all": {
+    "pad": 13.52,
+    "3km": 13.73,
+    "12km": 15.32,
+    "orbit": 8.85,
+    "hillside": 3.28
+   },
+   "noneEnd": {
+    "pad": 18.33,
+    "3km": 17.43,
+    "12km": 18.93,
+    "orbit": 11.07,
+    "hillside": 4.27
+   }
+  }
+ },
+ "governorTrace": {
+  "preset": "high",
+  "seconds": 120,
+  "frames": 7123,
+  "p50": 16.69999999999709,
+  "p95": 23.30000000000291,
+  "p99": 25.19999999999709,
+  "over16_7": 0.5737750947634424,
+  "over33_3": 0.0009827319949459498,
+  "levels": [
+   "high 85%",
+   "high 100%",
+   "high 85%",
+   "high 100%",
+   "high 85%"
+  ]
+ },
+ "suspect": []
+}

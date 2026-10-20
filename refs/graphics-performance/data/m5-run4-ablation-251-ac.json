@@ -1,0 +1,114 @@
+{
+ "when": "2026-10-20T10:44:58.352Z",
+ "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+ "angle": "metal",
+ "viewport": "1512x945 css, deviceScaleFactor 2",
+ "notes": "Now drawing from AC Power |  -InternalBattery-0 (id=22347875) 29%; charging; 2:35 remaining present: true | therm: Note: No thermal warning level has been recorded;Note: No performance warning level has been recorded;Note: No CPU power status has been recorded; | load averages: 1.31 2.67 4.58; branch rel/251-graphics-measure-baseline commit d15a397e; started Tue Oct 20 17:44:54 WIB 2026",
+ "scenes": [
+  "pad",
+  "3km",
+  "12km",
+  "orbit",
+  "hillside"
+ ],
+ "byRatio": {
+  "high": {
+   "ratio 2 (3024x1890)": {
+    "pad": 40.57,
+    "3km": 43.22,
+    "12km": 46.55,
+    "orbit": 25.38,
+    "hillside": 10.2
+   }
+  }
+ },
+ "ablation": {
+  "high, ratio 2 (3024x1890)": {
+   "none": {
+    "pad": 41.42,
+    "3km": 44.53,
+    "12km": 48.07,
+    "orbit": 26.45,
+    "hillside": 7.33
+   },
+   "shadowMap": {
+    "pad": 42.88,
+    "3km": 45.87,
+    "12km": 49.17,
+    "orbit": 26.8,
+    "hillside": 7.42
+   },
+   "cloudShadow": {
+    "pad": 41.13,
+    "3km": 44.28,
+    "12km": 47.62,
+    "orbit": 25.62,
+    "hillside": 10.57
+   },
+   "shafts": {
+    "pad": 39.68,
+    "3km": 42.6,
+    "12km": 47.18,
+    "orbit": 27,
+    "hillside": 10.62
+   },
+   "clouds": {
+    "pad": 43.55,
+    "3km": 46.48,
+    "12km": 48.1,
+    "orbit": 25.78,
+    "hillside": 10.52
+   },
+   "terrain": {
+    "pad": 44.07,
+    "3km": 46.73,
+    "12km": 49.68,
+    "orbit": 27.4,
+    "hillside": 10.78
+   },
+   "aurora": {
+    "pad": 43.13,
+    "3km": 46.12,
+    "12km": 49.2,
+    "orbit": 26.65,
+    "hillside": 10.47
+   },
+   "tufts": {
+    "pad": 41,
+    "3km": 45.68,
+    "12km": 48.48,
+    "orbit": 26.25,
+    "hillside": 10.37
+   },
+   "msaa": {
+    "pad": 37.62,
+    "3km": 41.82,
+    "12km": 44.55,
+    "orbit": 22.58,
+    "hillside": 4.42
+   },
+   "all": {
+    "pad": 29.1,
+    "3km": 34.52,
+    "12km": 37.33,
+    "orbit": 19.7,
+    "hillside": 7.37
+   },
+   "noneEnd": {
+    "pad": 41.67,
+    "3km": 44.45,
+    "12km": 46.82,
+    "orbit": 25.4,
+    "hillside": 7.33
+   }
+  }
+ },
+ "suspect": [
+  "high cloudShadow hillside: 10.57 ms stays over 1.3 x 7.33 ms",
+  "high shafts hillside: 10.62 ms stays over 1.3 x 7.33 ms",
+  "high clouds hillside: 10.52 ms stays over 1.3 x 7.33 ms",
+  "high terrain hillside: 10.78 ms stays over 1.3 x 7.33 ms",
+  "high aurora hillside: 10.47 ms stays over 1.3 x 7.33 ms",
+  "high tufts hillside: 10.37 ms stays over 1.3 x 7.33 ms"
+ ]
+}

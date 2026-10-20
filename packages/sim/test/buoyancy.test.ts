@@ -204,6 +204,7 @@ describe('impacts and splashdown (ADR 0182 points 5 to 7)', () => {
 			snap = vessel(sim, id)!;
 		}
 		expect(snap.science!.situation).toBe('stock.splashed');
+		expect(snap.splashed).toBe(true);
 		expect(snap.recovery).toBeDefined();
 		expect(sim.dispatch({ type: 'recover-vessel', vessel: id })).toEqual({ ok: true });
 		sim.dispose();

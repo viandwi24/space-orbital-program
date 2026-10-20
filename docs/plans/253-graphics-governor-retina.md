@@ -1,7 +1,7 @@
 ---
 id: 253
 title: "Graphics phase 1(e): a governor that knows the pixel ratio, steps the planet budget first, and does not stutter on retries"
-status: draft
+status: done
 owner: "Worker C"
 depends: [251]
 phase: 7
@@ -71,17 +71,21 @@ The quality governor keeps frames steady:
 
 ## Acceptance criteria
 
-- [ ] Governor tests pass for settle, fast drop, and no blind retries.
-- [ ] In a 2-minute free flight on the M5 at Retina `high`: frames over 33.3 ms are under 1 %, and there is at most one preset or rung change per 30 s.
-- [ ] Debug shows why each change happened.
-- [ ] CI is green on `ready/253`.
+- [x] Governor tests pass for settle, fast drop, and no blind retries.
+- [x] In a 2-minute free flight on the M5 at Retina `high`: frames over 33.3 ms are under 1 %, and there is at most one preset or rung change per 30 s.
+- [x] Debug shows why each change happened.
+- [x] CI is green on `ready/253`.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with the trace.
-- [ ] ADR amending 0053.
+- [x] STATUS row.
+- [x] Journal with the trace.
+- [x] ADR amending 0053.
 
 ## Log
 
 - 2026-10-20: Created by the coordinator from `refs/graphics-performance/06-plan-and-cost.md` phase 1(e), on the owner's order to ship it in v1.0.0. Left as a draft: refine with plan 251's trace. One owner for the governor, as the research advises.
+- 2026-10-20 — Worker C claimed (claim/253), before 251 and 252 have landed, on the coordinator's word that the rules and their synthetic tests can start first. ADR 0233 amends 0053. Done: the rules (locked 60/30 with a cadence estimate and a 30 Hz throttle check, fast drops, evidence-only step ups with one trial per rung and scene and a ban on failure), `tick` pacing, `sceneKeyOf`, the host wiring (`flight-loop.ts`: `tick`, the scene key from altitude band, view and body, the reasons and the pacing in Debug → Info). 24 governor tests on synthetic series: a Retina-like series settles without oscillating, a sudden heavy scene drops in about a second, no step up without evidence however long, a failed trial is banned until the scene changes, measured headroom steps up, 120 Hz and 30 Hz displays, the lock to 30.
+- 2026-10-20 — Open until 251 and 252 land: the pixel-ratio rungs (the first rungs lower the planet pass's pixel budget; `governorLadder` takes a pixel ratio) and the 2-minute M5 free-flight trace with the frame histogram (acceptance: under 1 % of frames over 33.3 ms, at most one change per 30 s). `Renderer`/the histogram may feed `frame(interval, workMs)` with a GPU work time where one reads sanely; the governor already accepts it.
+- 2026-10-20 — Rebased on main with 251 and 252. The ladder reads the pass's budgeted scale (after 30 frames, while at the top): where the pixel budget already draws it near half size (Retina) the half rungs are left out, since they would save almost nothing and cost a trial. A's M5 numbers fed the rules: a 120 Hz screen targets 60 and a frame that just misses takes the third vsync (25 ms), so the over-budget factor and the 50 % window ignore it; a flat 30 ms interval is a cap (Energy Saver), not the GPU (the throttle check). The 2-minute AC trace with this governor is Worker A's run.
+- 2026-10-20 — Done: merged on CI pass. The M5 AC trace (Worker A, journal 253): 0.045 % of frames over 33.3 ms, one rung change in 120 s.

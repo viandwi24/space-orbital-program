@@ -487,6 +487,11 @@ export class SceneModel {
 		return new ConnectorBars(this.factory, this.config.partVisuals ?? new Map(), group);
 	}
 
+	/** Reduced motion (plan 246): the effects drop their bright flashes. */
+	setReducedMotion(on: boolean): void {
+		this.effects.setReducedMotion(on);
+	}
+
 	/** Switch the graphics preset: environment, part detail (models are rebuilt), effect budgets. */
 	setPreset(preset: GraphicsPreset): void {
 		this.environment.setPreset(preset);
@@ -1614,6 +1619,7 @@ export class SceneModel {
 			soi: v.soi,
 			position: v.position,
 			velocity: v.velocity,
+			surface: v.surface,
 			parts: v.parts.map((p) => ({
 				id: p.id,
 				definition: p.definition,

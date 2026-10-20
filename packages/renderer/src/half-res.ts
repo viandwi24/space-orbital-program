@@ -11,6 +11,21 @@
 export const HALF_PLANET_SCALE = 0.5;
 
 /**
+ * Side of the planet pass's target relative to the scene target's for a pixel budget (plan 252, ADR
+ * 0228): the largest scale in [`HALF_PLANET_SCALE`, 1] whose area, `width * height * scale^2`, is within
+ * `budget` pixels. 1 when the target already fits (and when the scale would be too close to 1 to repay
+ * the upsample: above `BUDGET_FULL_ABOVE`), `HALF_PLANET_SCALE` as the floor. 1 without a budget.
+ */
+export const BUDGET_FULL_ABOVE = 0.9;
+export function budgetScale(width: number, height: number, budget: number): number {
+	if (!(budget > 0) || !(width > 0) || !(height > 0)) return 1;
+	const fit = Math.sqrt(budget / (width * height));
+	if (fit >= BUDGET_FULL_ABOVE) return 1;
+	// steps of 0.05, rounded down so the area stays within the budget
+	return Math.max(HALF_PLANET_SCALE, Math.floor(fit * 20) / 20);
+}
+
+/**
  * Two texels whose distance along the ray differs by more than about this many octaves (log2 of the
  * ratio) are not blended: 0.5 passes a ground plane seen at a grazing angle (about 0.26 per texel pair
  * ten texels under the horizon) and rejects a ridge against the valley behind it, or any ground

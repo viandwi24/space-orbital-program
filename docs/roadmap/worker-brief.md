@@ -81,8 +81,8 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 | E | 231 → 229 |
 | A | **238** (audit bug fixes) → **251** → **252** (graphics, in v1.0.0) → 244 → 243 |
 | C | **237** → **239** (audit bug fixes) → **253** (graphics governor, in v1.0.0) → 247 → 248 → 250 |
-| D | 240 → 241 → 242 (v1.1 wave, 2026-10-20) |
-| E | 245 → 246 → 249 (v1.1 wave, 2026-10-20) |
+| D | 240 → 241 → 242 (v1.1 wave; taken by Worker C while D is not running, see below) |
+| E | 245 → 246 → 249 (v1.1 wave; taken by Worker B while E is not running, see below) |
 | B | 232 release QA, last (after 237–239 and the graphics plans 251–253); then the shared list |
 
 ## Picking work
@@ -131,6 +131,16 @@ The owner paused all local Playwright e2e ("sementara skip dulu aja sampai saya 
 - **Merge order:** no integration e2e batch. Each plan fast-forwards to main as soon as its CI passes, one at a time, after a rebase.
 - **Plan 232:** the full e2e and the Firefox/WebKit gates are deferred. Record them as a known issue of v1.0.0 ("full e2e not run on Firefox and WebKit, nor after 251–253"), not as a pass.
 - **Graphics measurements are not e2e:** plans 251–253 still take their measurements under the lock.
+
+## Work everything, push, no e2e (owner's order, 2026-10-20, evening)
+
+The owner's words: "kerjakan semua terus push, e2e nya sementara diskip dulu, unit test biasa aja sesuai fitur yang terdampak".
+- **Tests:** locally run only the unit tests of the packages and files a plan touches (`bun test <files>`, one vitest file, or `check:affected` without `--full` and without `--e2e`). CI runs everything else. E2E stays paused (section above).
+- **Keep going:** each worker works its queue to the end and merges each plan as soon as its CI passes. No waiting for batches.
+- **Queues while Workers D and E are not running:**
+  - Worker B takes E's queue (245 → 246 → 249) once its 232 handover to the owner is done.
+  - Worker C takes D's queue (240 → 241 → 242) after 253, 247, 248 and 250.
+  - If D or E come online, they take whatever is still unclaimed. A claim tag always wins.
 
 ## Doing a plan
 

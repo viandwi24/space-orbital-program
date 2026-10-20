@@ -34,7 +34,7 @@ import { AIRLESS_EXPOSURE, airlessLight, type AirlessLight } from './airless-lig
 import { adaptExposure, exposureFor, starVisibility } from './exposure.ts';
 import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
-import { PRESETS, type GraphicsPreset } from './presets.ts';
+import { PRESETS, shadowSizeAt, type GraphicsPreset } from './presets.ts';
 import { fitShadow } from './shadow-fit.ts';
 import { liftAboveTerrain } from './terrain-patch.ts';
 import { LaunchSite } from './site-meshes.ts';
@@ -139,6 +139,8 @@ export class Environment {
 	 */
 	private shadowSize = 0;
 	private shadowDelay = 0;
+	/** The preset's pixel ratio before the render scale (plan 252): from 2 up the shadow map is at most 2048. */
+	private viewRatio = 1;
 	private sunOverride: { elevation: number; azimuth: number } | null = null;
 	/** Toward the system's star from the home body (plan 122, ADR 0119); null: the fixed direction. */
 	private star: Vec3 | null = null;
@@ -241,13 +243,35 @@ export class Environment {
 		this.site.setTrees(s.trees, s.tufts);
 		const shadows = s.shadowMapSize > 0;
 		this.sunLight.castShadow = shadows;
+		const wanted = shadowSizeAt(s.shadowMapSize, this.viewRatio);
 		if (shadows && this.shadowSize === 0) {
 			// no map is allocated yet: the first render allocates it at this size
-			this.shadowSize = s.shadowMapSize;
-			this.sunLight.shadow.mapSize.set(s.shadowMapSize, s.shadowMapSize);
-		} else if (s.shadowMapSize > this.shadowSize) {
+			this.shadowSize = wanted;
+			this.sunLight.shadow.mapSize.set(wanted, wanted);
+		} else if (wanted > this.shadowSize) {
 			// The player raised the preset: a larger map, 20 to 30 ms for 4096, not in the frame that
 			// switches everything else. A smaller or no shadow keeps the map as it is.
+			this.shadowDelay = SHADOW_SETTLE_FRAMES;
+		}
+	}
+
+	/**
+	 * The pixel ratio the view draws at before the governor's render scale (plan 252, ADR 0234): from
+	 * `RETINA_RATIO` up the shadow map is at most 2048. A map that is not allocated yet is sized at once; a
+	 * larger one shrinks in place (a change of display, rare), a smaller one grows after the settle frames.
+	 */
+	setViewRatio(ratio: number): void {
+		if (ratio === this.viewRatio) return;
+		this.viewRatio = ratio;
+		const s = PRESETS[this.preset];
+		if (s.shadowMapSize === 0) return;
+		const wanted = shadowSizeAt(s.shadowMapSize, ratio);
+		const shadow = this.sunLight.shadow;
+		if (wanted < this.shadowSize || !shadow.map) {
+			this.shadowSize = wanted;
+			shadow.mapSize.set(wanted, wanted);
+			shadow.map?.setSize(wanted, wanted);
+		} else if (wanted > this.shadowSize) {
 			this.shadowDelay = SHADOW_SETTLE_FRAMES;
 		}
 	}
@@ -255,7 +279,7 @@ export class Environment {
 	/** Grows the shadow map to the preset's size once the frames after a switch have passed. */
 	private settleShadowMap(): void {
 		if (this.shadowDelay === 0 || --this.shadowDelay > 0) return;
-		const size = PRESETS[this.preset].shadowMapSize;
+		const size = shadowSizeAt(PRESETS[this.preset].shadowMapSize, this.viewRatio);
 		if (size <= this.shadowSize) return; // the preset went back down meanwhile
 		this.shadowSize = size;
 		const shadow = this.sunLight.shadow;

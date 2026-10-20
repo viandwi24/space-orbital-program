@@ -68,6 +68,7 @@
 	import InstrumentDeck from '../../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../../lib/hud/ManeuverLayer.svelte';
 	import ManeuverPanel from '../../../lib/hud/ManeuverPanel.svelte';
+	import HeatBars from '../../../lib/hud/HeatBars.svelte';
 	import TargetMarkers from '../../../lib/hud/TargetMarkers.svelte';
 	import TargetPanel from '../../../lib/hud/TargetPanel.svelte';
 	import MapMarkers from '../../../lib/hud/MapMarkers.svelte';
@@ -302,6 +303,7 @@
 	let ghostInput = $state<HTMLInputElement>();
 	let ghostNote = $state<string | null>(null);
 	let targetMarks = $state<TargetMarkers>();
+	let heatBars = $state<HeatBars>();
 	let nodeLayer = $state<ManeuverLayer>();
 	/** The map view's maneuver planner, available once the sim has started (plan 045). */
 	let planner = $state.raw<Flight['maneuver']>(null);
@@ -836,6 +838,7 @@
 				const g = f.ghost ?? null;
 				if (JSON.stringify(g) !== JSON.stringify(ghostFrame)) ghostFrame = g;
 				targetMarks?.place(f.target ?? null);
+				heatBars?.place(f.heat ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
 			// the player's profile and keys (plan 216; before it the flight read the defaults only)
@@ -1380,6 +1383,7 @@
 		onalarm={alarmAtMark}
 	/>
 	<TargetMarkers bind:this={targetMarks} />
+	<HeatBars bind:this={heatBars} />
 	<ManeuverLayer bind:this={nodeLayer} controller={planner} />
 
 	{#if problem}
@@ -1606,6 +1610,8 @@
 						onwalk={(h) => flight?.walk(h)}
 						onflag={() => flight?.plantFlag()}
 						onboard={() => flight?.board()}
+						onhelmet={() => flight?.helmet()}
+						onchute={() => flight?.chute()}
 					/>
 				</div>
 			{/if}
@@ -1775,6 +1781,7 @@
 			onclose={() => (debugOpen = false)}
 			host={debugHost}
 			info={() => flight?.debugInfo() ?? null}
+			resetFrames={() => flight?.resetFrameStats()}
 			world={world.name}
 			designs={() => debugDesigns()}
 		/>

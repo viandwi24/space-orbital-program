@@ -593,6 +593,7 @@
 			onclose={() => (debugOpen = false)}
 			host={debugHost}
 			info={() => null}
+			resetFrames={() => {}}
 			world={world.name}
 			designs={debugDesigns}
 		/>

@@ -154,6 +154,8 @@ export const bodyDefinitionSchema = z.object({
 			/** Heat capacity ratio and specific gas constant of the gas, J/(kg·K); air: 1.4 and 287.05. */
 			gamma: z.number().positive().optional(),
 			gasConstant: z.number().positive().optional(),
+			/** Whether a suited kerbal may take the helmet off in this air (plan 249, ADR 0237); off unless `true`. */
+			breathable: z.boolean().optional(),
 			/** Whether the night sky shows an aurora around the magnetic pole (plan 061, ADR 0093); on unless `false`. */
 			aurora: z.boolean().optional()
 		})
