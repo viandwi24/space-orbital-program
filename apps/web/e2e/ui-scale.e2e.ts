@@ -33,9 +33,29 @@ test('at UI scale 150 % no flight HUD panel extends past a 1024 x 768 viewport',
 	const outside = await page.evaluate(() => {
 		const panels = document.querySelectorAll<HTMLElement>('.ui > div, .ui > div > *');
 		const out: string[] = [];
+		const ui = document.querySelector('.ui');
+		// what the player can see: a panel inside a box that scrolls (plan 215: staging scrolls inside its
+		// capped box) is clipped to that box, so only the visible part must stay on screen
+		const visible = (el: HTMLElement): DOMRect => {
+			let r = el.getBoundingClientRect();
+			for (let p = el.parentElement; p && p !== ui; p = p.parentElement) {
+				const o = getComputedStyle(p);
+				if (/(auto|scroll|hidden|clip)/.test(`${o.overflowX} ${o.overflowY}`)) {
+					const c = p.getBoundingClientRect();
+					r = new DOMRect(
+						Math.max(r.left, c.left),
+						Math.max(r.top, c.top),
+						Math.max(0, Math.min(r.right, c.right) - Math.max(r.left, c.left)),
+						Math.max(0, Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top))
+					);
+				}
+			}
+			return r;
+		};
 		for (const el of panels) {
-			const r = el.getBoundingClientRect();
-			if (r.width === 0 || r.height === 0) continue;
+			const full = el.getBoundingClientRect();
+			if (full.width === 0 || full.height === 0) continue;
+			const r = visible(el);
 			if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) {
 				const name = el.dataset.testid ?? el.getAttribute('aria-label') ?? el.className;
 				out.push(
