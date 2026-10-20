@@ -1,0 +1,294 @@
+{
+ "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+ "rows": [
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.16,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.1,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.14,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.15,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.1,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.14,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.66,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.65,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.84,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.45,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.27,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.35,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.41,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.37,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.43,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.54,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.42,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.42,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.25,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.23,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.23,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.24,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.21,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.25,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.75,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.81,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.74,
+   "px": "1160×945"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 8.9,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 8.78,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 8.82,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 8.84,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 8.78,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 8.84,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 6.82,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 6.79,
+   "px": "2320×1890"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 6.73,
+   "px": "2320×1890"
+  }
+ ],
+ "errors": []
+}

@@ -9,7 +9,8 @@
 		".": "./src/index.ts",
 		"./presets": "./src/presets.ts",
 		"./precompile-progress": "./src/precompile-progress.ts",
-		"./reentry": "./src/effects/reentry.ts"
+		"./reentry": "./src/effects/reentry.ts",
+		"./webgpu-spike": "./src/webgpu-spike/sky-spike.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {
