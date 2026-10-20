@@ -228,6 +228,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Known issues / open questions
 
+- **Full e2e not run on Firefox and WebKit, nor after plans 251–253** (owner's order, 2026-10-20: all local e2e paused until the owner says otherwise): a known issue of v1.0.0, not a pass. Chromium ran once on the integration tree before the pause (90 passed, 6 red, all triaged in plan 232's Log). The release rests on CI (lint, typecheck, unit tests, build), the graphics measurements and the owner's manual checklist. `eva.e2e` (plan 225) is a known flake.
 - **Plan 232 release gates**: the `v1.0.0` tag and the public deploy wait for the owner's filled acceptance checklist (`release/1.0.0-acceptance-checklist.md`); its M5 performance pass is where the open frame items below get re-measured.
 - **Second hills planet** (plan 071, journal 071): the image-based light cube still reflects the home sky on a later body with air; hills terrain shadows reach 5 km (the mid patch); a mod hills planet without a `seed` got new continents with plan 071.
 - **Sun at the root** (plan 122, journal 122): body positions in snapshots and scripts' `system` frame are Sun-centred (13.6 Gm); day-based constants written against 21 600 s (stock data, crew rest) are 0.2 % off the solar day of 21 650.8 s; the Mission Center's system scope frames the whole Sun system.
