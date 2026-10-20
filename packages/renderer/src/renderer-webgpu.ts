@@ -69,7 +69,7 @@ export function createWebGPURenderer(
 	let preset: GraphicsPreset = config.preset ?? 'high';
 	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
 	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset]);
-	env.planet.mesh.parent?.add(planet.mesh);
+	for (const m of planet.meshes) env.planet.mesh.parent?.add(m);
 	let width = 1;
 	let height = 1;
 	let pixelRatio = 1;
@@ -218,7 +218,12 @@ export function createWebGPURenderer(
 		// it (null.depthTexture, then a pass that binds its own target): the sun keeps casting while the
 		// preset has shadows, and the planet pass ignores the map when the environment says it is off
 		if (PRESETS[preset].shadowMapSize > 0) env.sunLight.castShadow = true;
-		planet.update(r, model.camera, Math.max(1, Math.round(height * pixelRatio)));
+		planet.update(
+			r,
+			model.camera,
+			Math.max(1, Math.round(width * pixelRatio)),
+			Math.max(1, Math.round(height * pixelRatio))
+		);
 		r.toneMappingExposure = env.state.exposure;
 		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));
 		drawn = { calls: r.info.render.drawCalls, triangles: r.info.render.triangles };
@@ -344,7 +349,9 @@ export function createWebGPURenderer(
 				if (!r) return 0;
 				// the GPU's own time where it has timestamp queries: waiting for the queue undercounts
 				// on WebGPU (it returned about 1 ms for frames the timestamps put at 3)
-				const timed = (r.backend as { trackTimestamp?: boolean }).trackTimestamp === true;
+				// the WebGPU backend's timestamps; the WebGL2 fallback's timer queries are not read back here
+				const b = r.backend as { trackTimestamp?: boolean; isWebGPUBackend?: boolean };
+				const timed = b.trackTimestamp === true && b.isWebGPUBackend === true;
 				benchmarking = true;
 				try {
 					drawFrame(1 / 60);
@@ -423,13 +430,15 @@ export function createWebGPURenderer(
 			get renderScale() {
 				return renderScale;
 			},
-			// the half-resolution planet pass is a WebGL program; Phase 5's upscaler replaces it
-			setPlanetScale() {},
+			// the half-size planet pass (plan 050, ADR 0061): the governor's rung and the pixel budget
+			setPlanetScale(scale: number) {
+				planet.setScale(scale);
+			},
 			get planetScale() {
-				return 1;
+				return planet.scale;
 			},
 			get halfPlanetAvailable() {
-				return false;
+				return true;
 			},
 			capabilities() {
 				const b = gpu?.backend as { device?: GPUDevice; gl?: WebGL2RenderingContext } | undefined;
@@ -443,7 +452,7 @@ export function createWebGPURenderer(
 				for (const v of variants) v.clear();
 				variants = [];
 				pipeline?.dispose();
-				planet.mesh.removeFromParent();
+				for (const m of planet.meshes) m.removeFromParent();
 				planet.dispose();
 				model.dispose();
 				gpu?.dispose();

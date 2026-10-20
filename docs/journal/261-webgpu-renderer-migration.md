@@ -1,4 +1,4 @@
-# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b, Phase 2c)
+# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b, Phase 2c, Phase 2 step 10)
 
 **Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
@@ -259,3 +259,29 @@ bun run typecheck                                     0 errors
 bun run build                                         done
 headed Chromium, /flight?renderer=webgpu, high: pad, low sun, 12 km, orbit, 3 km at 69° N, the sea; console: the one startup error above
 ```
+
+## Phase 2 step 10: the prepass and the half-size pass
+
+Measured first, at the M2's own Retina size (1440 × 900 CSS px at ratio 2), `high`, governor off. Without the planet pass the WebGPU frame costs 1 to 3 ms of GPU time; with it, 19 to 30. So the pass is the frame, and the pixel budget is the lever.
+
+| Where | What |
+|---|---|
+| `tsl/planet-pass.ts` | `graph(mode)` builds the pass four ways. `full`: the scene's mesh when the scale is 1. `half`: rendered into a 32-bit float target, radiance and the logarithmic depth in alpha. `edge`: full resolution, discarding every pixel whose half texels agree (`isEdgePixel`'s depth and sky-colour tests). `prepass`: `coneStart` per 4 × 4 block into a float target. The upsample is `upsampleWeights`, writing the weighted depth. The march starts where the prepass says and takes `terrainRefineSteps`. Near and far are uniforms, so a quad's own camera does not change the depth |
+| `renderer-webgpu.ts` | The pass's three meshes in the scene; the drawing-buffer size each frame; `setPlanetScale`, `planetScale`, `halfPlanetAvailable` |
+
+| Frame interval p50, M2 Retina, `high` | pad | low sun | 12 km | orbit |
+|---|---|---|---|---|
+| WebGL | 100 ms | 150 ms | 100 ms | 34 ms |
+| WebGPU before step 10 | 50 ms | 83 ms | 67 ms | 17 ms |
+| **WebGPU after step 10** | **18 ms** | **33 ms** | **33 ms** | **17 ms** |
+| WebGPU's WebGL2 fallback | 33 ms | 33 ms | 33 ms | 17 ms |
+
+![](assets/261-2s10-webgpu-retina-pad.jpg)
+
+The dark specks in the sky above the horizon are in WebGL's frame too, at the same places; they are not the upsample.
+
+### What surprised me
+
+- **The planet pass was nearly the whole frame.** Everything else (the vessel, the site, vegetation, shadows, bloom) costs 1 to 3 ms at Retina.
+- **A quad's camera is not the scene's.** The half and prepass draws go through `QuadMesh`, whose orthographic camera would have given `cameraNear` and `cameraFar` to the depth; the pass reads its own near and far uniforms.
+- **The fallback's timer is not WebGPU's.** `benchmarkAsync` reads timestamps on the WebGPU backend only; on the fallback it is wall time with a pixel read, which counts the stall.
