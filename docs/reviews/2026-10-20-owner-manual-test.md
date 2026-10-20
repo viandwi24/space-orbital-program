@@ -46,3 +46,4 @@ The owner tested by hand on the GitHub Pages build of `main` (https://viandwi24.
 | 23 | `20.webp` | In the Landing lesson, during the Touch down step, the throttle keeps climbing from 0 to 100 %, even after X is pressed. | 262 |
 | 24 | `21.webp` | Close to the Moon's surface, at some angles, black slivers appear in the ground, as if the crust were see-through to the sky. | 263 |
 | 25 | `22.webp` | On the Moon, a pod that fell rolls along without touching the ground. It hovers visibly above its own shadow. Is the collider wrong? Once it stops, it rests on the ground (second screenshot, chat only). | 264 |
+| 26 | (none) | Reentry with a bare pod is hard to control: it does not stay blunt end first. When it stops rolling on the Moon, it often rests on its top. Is the centre of mass wrong? | 265 |
