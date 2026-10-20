@@ -19,7 +19,7 @@ test('the trip planner lays the legs over the stages', async ({ page }) => {
 	await expect(page.locator('.legs li').last()).toContainText('Land on Cinder');
 
 	// A new vessel and the two-stage example: short of the moon, enough for low orbit.
-	await page.getByRole('button', { name: 'New vessel' }).click();
+	await page.getByTestId('menu-new').click();
 	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
 	await expect(page.locator('.trip .note')).toContainText('Short by about');
 	await pick.selectOption('low-orbit');

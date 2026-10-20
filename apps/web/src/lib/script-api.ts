@@ -79,6 +79,12 @@ export const GLOBALS: readonly ApiEntry[] = [
 	fn('setNode', 'setNode(id, { time?, prograde?, normal?, radial? }): Promise', 'Change a node.'),
 	fn('removeNode', 'removeNode(id?): Promise', 'Remove one node, or all of them.'),
 	fn(
+		'setAlarm',
+		'setAlarm({ name?, time } | { name?, kind, lead? }): Promise<{ ok, reason? }>',
+		"Set an alarm at a time, or before this vessel's apoapsis, periapsis, sphere change or node; the warp stops when it fires."
+	),
+	fn('removeAlarm', 'removeAlarm(id): Promise', 'Remove an alarm listed in ship.alarms.'),
+	fn(
 		'setTarget',
 		'setTarget(spec): Promise<{ ok, reason? }>',
 		'Choose a target: a body id, a vessel id, an entry of ship.targets, or null.'
@@ -171,6 +177,11 @@ export const SHIP: readonly ApiEntry[] = [
 		'nodes',
 		'[{ id, time, prograde, normal, radial, dv, body, vector }]',
 		'Maneuver nodes in time order; the burn that is left.'
+	),
+	value(
+		'alarms',
+		'[{ id, name, time, kind }]',
+		"The world's alarms in time order; removeAlarm takes an id from here."
 	),
 	value(
 		'target',

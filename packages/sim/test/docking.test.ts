@@ -276,6 +276,40 @@ describe('docking (plan 222)', () => {
 		resumed.dispose();
 	}, 60_000);
 
+	test('the player types survive the dock, the undock and a save and resume (plan 237)', async () => {
+		const { sim, a, b } = await approach(0.2);
+		expect(sim.dispatch({ type: 'set-vessel-type', vessel: a, vesselType: 'station' }).ok).toBe(
+			true
+		);
+		expect(sim.dispatch({ type: 'set-vessel-type', vessel: b, vesselType: 'relay' }).ok).toBe(true);
+		run(sim, 10);
+		expect(sim.snapshot().vessels).toHaveLength(1);
+		const port = sim
+			.snapshot()
+			.vessels[0]!.parts.find((p) => p.definition === 'stock.docking-port')!;
+		expect(
+			sim.dispatch({
+				type: 'action',
+				vessel: sim.snapshot().vessels[0]!.id,
+				part: port.id,
+				module: 'stock.docking-port',
+				action: 'undock'
+			}).ok
+		).toBe(true);
+		sim.step(0.02);
+		const typeOf = (x: Sim, name: string) =>
+			x.snapshot().vessels.find((v) => v.name === name)?.type;
+		expect([typeOf(sim, 'Alpha'), typeOf(sim, 'Beta')]).toEqual(['station', 'relay']);
+		const resumed = await createSim({
+			plugins: [Stock, awake],
+			backendFactory: rapier(),
+			resume: JSON.parse(JSON.stringify(sim.save()))
+		});
+		expect([typeOf(resumed, 'Alpha'), typeOf(resumed, 'Beta')]).toEqual(['station', 'relay']);
+		sim.dispose();
+		resumed.dispose();
+	}, 60_000);
+
 	test('a port vessel stays in flight within 50 m of another; farther it goes idle on rails', async () => {
 		for (const [gap, mode] of [
 			[30, 'flight'],
