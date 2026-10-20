@@ -158,6 +158,9 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 		parts,
 		nextStage: vessel.nextStage,
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
+		...(vessel.trim || vessel.trimYaw || vessel.trimRoll
+			? { trim: { pitch: vessel.trim ?? 0, yaw: vessel.trimYaw ?? 0, roll: vessel.trimRoll ?? 0 } }
+			: {}),
 		...(vessel.controlPart !== undefined ? { controlPart: vessel.controlPart } : {})
 	};
 	snapshot.sas = {

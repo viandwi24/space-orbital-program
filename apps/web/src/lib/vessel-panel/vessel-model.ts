@@ -94,7 +94,8 @@ export function vesselView(
 ): VesselView {
 	const labels = new Map(content.groups.map((g) => [g.id, g.label]));
 	const labelOf = (id: string): string =>
-		labels.get(id) ?? (id.startsWith('custom.') ? `Group ${id.slice(7)}` : id);
+		labels.get(id) ??
+		(id === 'custom.0' ? 'Abort' : id.startsWith('custom.') ? `Group ${id.slice(7)}` : id);
 	const order = new Map(categories.map((c, i) => [c.id, i]));
 	const parts: PartRow[] = [];
 	for (const p of vessel.parts) {

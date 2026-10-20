@@ -253,6 +253,10 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 `SITE_KINDS` gains `branch`; the command `found-branch` founds one on the home body; the site placement gains `at: { east, north }` for a spot instead of a pad index; `BRANCH_HQ`, `branchHqOf` and `hqReady` are core helpers and `PlacementSite.branch` makes `canPlace` wait for the HQ. A building providing `branch-hq` sets the founding cost and time.
 
+## Abort group and trim axes (API 0.1.90, plan 245, ADR 0233)
+
+`ABORT_SLOT` (0) is the design's Abort group: a custom group at slot 0, group id `custom.0`, fired by Backspace in flight after the throttle is cut. The design's slot range is 0–10. The `trim` command takes `pitch`, `yaw` and `roll`, each optional (an omitted axis keeps its value, 0 clears it), and the vessel snapshot carries `trim` while any axis is not zero.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

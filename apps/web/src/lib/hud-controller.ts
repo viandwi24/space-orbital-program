@@ -188,6 +188,8 @@ export interface HudModel {
 	controllable: boolean;
 	/** Why the sim takes no control commands now (plan 208, ADR 0214): the "Uncontrolled" chip. */
 	uncontrolled: 'no-source' | 'no-crew' | 'no-power' | null;
+	/** The trim on each axis, -1..1 (plan 245); null while all three are zero. */
+	trim: { pitch: number; yaw: number; roll: number } | null;
 	/** The RCS pill (plan 211). */
 	rcs: RcsState;
 	/** How hard the RCS fires, 0..1 (the hiss). */
@@ -726,6 +728,7 @@ export function createHudController(options: HudControllerOptions): HudControlle
 				sas: v.sas,
 				controllable: hasControlSource(v) && v.uncontrolled === undefined,
 				uncontrolled: v.uncontrolled ?? null,
+				trim: v.trim ?? null,
 				rcs: rcsState(v, content.parts),
 				rcsFiring: rcsFiring(v),
 				maneuver: maneuverHud(v, snap.t, cache.report),

@@ -126,6 +126,24 @@ describe('protocol schemas', () => {
 			{ type: 'stage', vessel: 3 },
 			{ type: 'action', vessel: 3, part: 4, module: 'stock.engine', action: 'shutdown' },
 			{ type: 'warp', factor: 100 },
+			// trim on any axis, each optional (plan 245)
+			{ type: 'trim', vessel: 3, pitch: 0.1 },
+			{ type: 'trim', vessel: 3, yaw: -0.5, roll: 0.25 },
+			{ type: 'trim', vessel: 3, pitch: 0, yaw: 0, roll: 0 },
+			// the design's Abort group is custom slot 0 (plan 245, ADR 0233)
+			{
+				type: 'load-vessel',
+				design: {
+					...design(),
+					groups: [
+						{
+							slot: 0,
+							label: 'Abort',
+							members: [{ part: 0, module: 'stock.engine', action: 'shutdown' }]
+						}
+					]
+				}
+			},
 			{ type: 'load-vessel', design: design(), placement: { kind: 'surface', latitude: 0.1 } }
 		];
 		for (const c of ok) expect(commandSchema.safeParse(c).success).toBe(true);
@@ -134,6 +152,12 @@ describe('protocol schemas', () => {
 			{ type: 'throttle', vessel: -1, value: 0.5 },
 			{ type: 'throttle', vessel: 3, value: Number.NaN },
 			{ type: 'attitude', vessel: 3, pitch: 2, yaw: 0, roll: 0 },
+			{ type: 'trim', vessel: 3, yaw: 1.5 },
+			{ type: 'trim', vessel: 3, roll: -2 },
+			{
+				type: 'load-vessel',
+				design: { ...design(), groups: [{ slot: 11, label: 'Too far', members: [] }] }
+			},
 			{ type: 'warp', factor: 0.5 },
 			{ type: 'warp', factor: Number.POSITIVE_INFINITY },
 			{ type: 'explode', vessel: 1 },

@@ -73,7 +73,13 @@ export {
 } from '@orbital/core';
 export { homeBodyOf, positionFromStar, subSolarLatitude } from '@orbital/core';
 export { ABILITY_KEYS, abilitiesOf, PROFESSIONS } from '@orbital/core';
-export { actionArgumentProblem, customGroupId, groupState, MAX_CUSTOM_GROUPS } from '@orbital/core';
+export {
+	ABORT_SLOT,
+	actionArgumentProblem,
+	customGroupId,
+	groupState,
+	MAX_CUSTOM_GROUPS
+} from '@orbital/core';
 export { evaluateObjectives, objectiveNodeSchema } from '@orbital/core';
 export {
 	dataItemSchema,
