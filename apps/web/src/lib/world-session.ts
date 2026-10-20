@@ -171,6 +171,7 @@ export function createWorldSession(
 			// the script ends with its world (plan 239): its Worker goes with the sandbox's iframe
 			client?.stopScript();
 			sandbox?.close();
+			sandbox = null; // a closed sandbox is not handed to the next world (plan 262)
 			client?.dispose();
 			client = null;
 			booting = null;

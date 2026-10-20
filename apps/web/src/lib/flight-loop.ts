@@ -52,6 +52,7 @@ import { createDirector, type AudioFlightView } from './audio/director';
 import { isOwnTouchdown } from './touchdown-cue';
 import * as throttleRetry from './throttle-retry';
 import { isTypingTarget } from './typing-target';
+import { dropStaleModifiers } from './held-modifiers';
 import { partShapesOf } from './catalog';
 import { modelProviders } from './mods/asset-models';
 import { pinchZoomFactor } from './touch/touch-model';
@@ -800,6 +801,7 @@ export function startFlight(options: FlightOptions): Flight {
 		e.target instanceof HTMLElement && isTypingTarget(e.target);
 
 	function onKeyDown(e: KeyboardEvent): void {
+		dropStaleModifiers(held, e); // a stuck Shift is a throttle that climbs by itself (plan 262)
 		if (e.key === 'Escape' && !e.repeat) {
 			// The dialog closes itself on Escape; this only opens the menu.
 			if (!modal) {
@@ -855,6 +857,9 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'throttleCut':
 				throttle = 0;
+				// a key that kept throttle up or down held does not undo the cut (plan 262)
+				for (const a of ['throttleUp', 'throttleDown'] as const)
+					for (const k of keymap().keys(a)) held.delete(k);
 				break;
 			case 'stage':
 				e.preventDefault();
@@ -1007,6 +1012,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
+		dropStaleModifiers(held, e);
 		precision = e.getModifierState?.('CapsLock') ?? false;
 		if (
 			brakesHeld &&
@@ -1033,6 +1039,7 @@ export function startFlight(options: FlightOptions): Flight {
 		return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
 	};
 	const onPointerDown = (e: PointerEvent): void => {
+		dropStaleModifiers(held, e);
 		// The middle button looks at the part under it (plan 226); Backtick looks at the vessel again.
 		if (e.button === 1 && e.pointerType === 'mouse') {
 			e.preventDefault();
@@ -1079,6 +1086,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	};
 	const onPointerMove = (e: PointerEvent): void => {
+		dropStaleModifiers(held, e);
 		const at = pointers.get(e.pointerId);
 		if (!at) return;
 		const dx = e.clientX - at.x;

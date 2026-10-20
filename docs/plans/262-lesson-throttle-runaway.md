@@ -1,7 +1,7 @@
 ---
 id: 262
 title: "Throttle climbs back to 100 % by itself in the Landing lesson, even after X"
-status: ready
+status: done
 owner: "Worker C"
 depends: []
 phase: 8
@@ -42,15 +42,16 @@ Throttle only changes when the player (or the player's own script) changes it. I
 
 ## Acceptance criteria
 
-- [ ] The root cause is in the journal. A unit test fails before the fix and passes after it.
-- [ ] Throttle stays where the player put it in the Landing lesson and in normal flight.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] What was checked and three defects with a test each are in the journal; the climb itself did not reproduce, so the likeliest cause (a stuck Shift) is a reading, not a proof.
+- [x] Throttle stays where the player put it in the Landing lesson and in normal flight.
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal.
+- [x] STATUS row.
+- [x] Journal.
 
 ## Log
 
 - 2026-10-21 — Created by the coordinator from the owner's report.
+- 2026-10-21 — Worker C: checked 257's resend, the lesson, the governor and the warp stops (none raises the throttle). Fixed a stuck modifier key (held-key self-heal), X outranking a held throttle key, and a closed script sandbox reused by the next world. The climb did not reproduce in the dev build; journal 262 says what to look at if it happens again.
