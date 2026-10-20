@@ -47,6 +47,7 @@ import {
 	type WebGLRenderer
 } from 'three';
 import { regionTexture, type RegionBody } from './region-overlay.ts';
+import { ORBIT_STYLES, iconColour, orbitRole } from './map-style.ts';
 import { LampPool, type LampLight } from './lamps.ts';
 import { WaterlineEffects, waterlineCrossings, type WaterlinePart } from './effects/waterline.ts';
 import {
@@ -176,9 +177,7 @@ const latLonDir = (s: { latitude: number; longitude: number }, radius: number): 
 const BODY_COLORS = [0x3d7a4a, 0x8a8f98, 0xb5764a, 0x4a6fa5];
 /** A star's disc (it is unlit: the colour is what the camera sees). */
 const STAR_COLOR = 0xfff1c9;
-/** Map colours: vessel orbit and marker, body orbit, and the highlight (the refs accent text, ADR 0140). */
-const VESSEL_ORBIT_COLOR = 0x4fc3f7;
-const VESSEL_MARKER_COLOR = 0xffd54f;
+/** Map colours: body orbit and the highlight (the refs accent text, ADR 0140); vessel orbits and icons are in `map-style.ts`. */
 const BODY_ORBIT_COLOR = 0x6f8bb0;
 export const MAP_HIGHLIGHT_COLOR = 0x8fa9f0;
 const HIGHLIGHT_COLOR = MAP_HIGHLIGHT_COLOR;
@@ -315,6 +314,9 @@ export class SceneModel {
 	/** The map object drawn in the highlight colour: `vessel:<id>` or `body:<id>` (the keys of the web's pick). */
 	private mapHighlight: string | null = null;
 	private mapOrbits = true;
+	/** Vessels the map filters hide, and the vessel whose orbit is drawn as the target's (plan 258). */
+	private mapHidden: ReadonlySet<number> = new Set();
+	private mapTarget: number | null = null;
 	/** Largest apoapsis of a body with a parent, m: the system scope frames it. */
 	private systemExtent = 0;
 
@@ -695,9 +697,18 @@ export class SceneModel {
 	get mapHighlightKey(): string | null {
 		return this.mapHighlight;
 	}
-	/** Map view layers: `orbits` false hides every orbit line (vessels and bodies). */
-	setMapLayers(layers: { orbits: boolean }): void {
+	/**
+	 * Map view layers: `orbits` false hides every orbit line (vessels and bodies); `hidden` vessels
+	 * (the filters', plan 258) draw neither orbit nor icon; `target` is drawn as the target's.
+	 */
+	setMapLayers(layers: {
+		orbits: boolean;
+		hidden?: ReadonlySet<number>;
+		target?: number | null;
+	}): void {
 		this.mapOrbits = layers.orbits;
+		this.mapHidden = layers.hidden ?? new Set();
+		this.mapTarget = layers.target ?? null;
 	}
 
 	// --- ripples and splashes at the waterline (plan 193, ADR 0182) -------------------------------
@@ -1136,10 +1147,17 @@ export class SceneModel {
 			const bp = toRenderSpace(base, this.origin);
 			entry.line.object.position.set(bp.x, bp.y, bp.z);
 			const lit = this.mapHighlight === `vessel:${id}`;
-			entry.line.setOrbit(this.map && this.mapOrbits ? v.orbit : undefined);
-			entry.line.setColor(lit ? HIGHLIGHT_COLOR : VESSEL_ORBIT_COLOR);
-			entry.marker.object.visible = this.map;
-			entry.marker.setColor(lit ? HIGHLIGHT_COLOR : VESSEL_MARKER_COLOR);
+			// the map's styles (plan 258): white for the active vessel, grey for the rest, the target's
+			// stands out; a vessel the filters hide has neither line nor icon
+			const shown = !this.mapHidden.has(id);
+			const role = orbitRole({ id, type: v.type }, { active: this.active, target: this.mapTarget });
+			const style = ORBIT_STYLES[role];
+			entry.line.setOrbit(this.map && this.mapOrbits && shown ? v.orbit : undefined);
+			entry.line.setColor(lit ? HIGHLIGHT_COLOR : style.colour);
+			entry.line.setWidth(lit ? style.width + 1 : style.width);
+			entry.marker.object.visible = this.map && shown;
+			entry.marker.setType(v.type);
+			entry.marker.setColor(lit ? HIGHLIGHT_COLOR : iconColour(role));
 			entry.marker.place(p, this.markerRadius(p) * (lit ? 1.6 : 1));
 			this.trackRest(v, snapshot.t);
 		}
