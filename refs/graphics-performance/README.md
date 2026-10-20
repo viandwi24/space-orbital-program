@@ -33,12 +33,14 @@ Implications are tagged **Adopt / Improve / Avoid**. They are options for the ow
 | 04 | [Techniques](04-techniques.md) | Resolution and upscaling, the sky, clouds, noise, bandwidth on Apple GPUs, depth, shadows, frame pacing and the governor, each tagged for us |
 | 05 | [WebGPU](05-webgpu.md) | Browser status in October 2026, three.js WebGPURenderer and TSL, what moving would cost, recommendation |
 | 06 | [Plan and cost](06-plan-and-cost.md) | Phases, sizes, agent hours, wall-clock, expected gains, acceptance numbers, risks |
+| 07 | [The M5 baseline](07-m5-baseline.md) | Plan 251's measurements on the M5 (frame time by pixel ratio, the ablation, the governor trace) and what plan 252 changed |
 
 ## Raw data and the tool
 
 - `data/m2-run1-retina.json`: `medium` and `high` at pixel ratios 1, 1.5 and 2 on a 1512 × 945 viewport at scale factor 2, plus the half planet pass and render scale 0.67 rungs at ratio 2.
 - `data/m2-run2-retina-high-descending.json`: `high` again, ratios in the opposite order with an 8 s settle.
 - `data/m2-run3-1080p-control.json`: a 1080p control run that disagreed with journal 066; see the caveats in [02](02-measurements.md).
+- `data/m5-run1…5-*.json`: the M5 runs of 2026-10-20 (plans 251 and 252), made with `apps/web/scripts/measure-graphics.ts`, which folds in `measure-dpr.ts` and adds the ablation, the trace and the power notes.
 - `tools/measure-dpr.ts`: the script that produced them, with options for the viewport, scale factor, presets and ratios, and how to run it. The baseline still needed is this run on the M5 ([02](02-measurements.md), "Needed next").
 
 ## Glossary
