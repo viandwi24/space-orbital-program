@@ -46,6 +46,7 @@ import {
 	type WebGLRenderer
 } from 'three';
 import { regionTexture, type RegionBody } from './region-overlay.ts';
+import { LampPool, type LampLight } from './lamps.ts';
 import { WaterlineEffects, waterlineCrossings, type WaterlinePart } from './effects/waterline.ts';
 import {
 	FLIGHT_RIG_LIMITS,
@@ -313,6 +314,10 @@ export class SceneModel {
 	private mapOrbits = true;
 	/** Largest apoapsis of a body with a parent, m: the system scope frames it. */
 	private systemExtent = 0;
+
+	/** The few spot lights vessel lamps share (plan 242, ADR 0239). */
+	private readonly lampPool = new LampPool(this.scene);
+	private readonly lampBeam = new Vector3();
 
 	constructor(config: SceneConfig) {
 		this.config = config;
@@ -1371,12 +1376,43 @@ export class SceneModel {
 		return this.moons.get(body)?.debugReadPatch(gl, which) ?? null;
 	}
 
+	/** Gives the nearest lit vessel lamps a light each, within the pool's budget (plan 242). */
+	private updateLamps(): void {
+		const lit: LampLight[] = [];
+		for (const entry of this.vessels.values()) {
+			let updated = false;
+			for (const p of entry.parts.values()) {
+				const lamp = p.model.lamp;
+				const reading = lamp?.read();
+				if (!lamp || !reading) continue;
+				if (!updated) {
+					entry.group.updateWorldMatrix(true, true);
+					updated = true;
+				}
+				const at = lamp.object.getWorldPosition(this.lampBeam);
+				const position = [at.x, at.y, at.z] as const;
+				// the lamp object looks along its +Y
+				const dir = this.lampBeam.set(0, 1, 0).transformDirection(lamp.object.matrixWorld);
+				lit.push({
+					position,
+					direction: [dir.x, dir.y, dir.z],
+					colour: reading.colour,
+					intensity: reading.intensity,
+					angle: reading.angle,
+					range: reading.range
+				});
+			}
+		}
+		this.lampPool.update(lit, this.camera);
+	}
+
 	private updateEffects(dt: number, force: boolean): void {
 		this.sinceSync += dt;
 		this.effectsTime += dt;
 		for (const entry of this.vessels.values()) {
 			for (const p of entry.parts.values()) p.model.tick(dt);
 		}
+		this.updateLamps();
 		const events = this.fxEvents;
 		this.fxEvents = [];
 		const live = force || (this.simAdvancing && this.sinceSync < 0.5);

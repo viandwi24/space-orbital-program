@@ -269,6 +269,10 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 An attach node may carry `shellTop: "<module id>"`: it sits at the top of that module's shell (`baseTop` plus the section heights, as wide as the last section) and exists only while the module's per-part `interstage` setting is on. `effectiveDef(def, settings)` gives the definition as one design entry has it; `resolveVesselDesign` and the Hangar use it. The fairing's `interstage` setting (and a shell that shields while open at the top) is `stock.fairing`'s.
 
+## Lamps (API 0.1.94, plan 242, ADR 0239)
+
+`PartVisual.lamp` (`module`, `pos`, `dir`, optional `angle` in degrees and `range` in metres) marks a part as a lamp: while that module's snapshot says `on`, the part shows a lit lens at `pos` in the snapshot's `colour` (hex) and `brightness`, blinking if `blink`; the scene gives the nearest few a spot light. `stock.light` is the stock module.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

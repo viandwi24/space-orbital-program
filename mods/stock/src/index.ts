@@ -52,6 +52,7 @@ import {
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
 	STOCK_POWER_PARTS,
+	STOCK_LIGHT_PARTS,
 	STOCK_LIFE_SUPPORT_PARTS,
 	PartWing,
 	STOCK_ADAPTER_PARTS,
@@ -87,6 +88,7 @@ import { STOCK_FAILURE_MODES } from './reliability.ts';
 import { STOCK_CREW_NAMES, STOCK_CREW_TRAITS } from './crew.ts';
 import { STOCK_ACTION_GROUPS } from './action-groups.ts';
 import { PanelScience } from './panels.ts';
+import { ModuleLight } from './lights.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleRcs } from './rcs.ts';
 import { ModuleDockingPort } from './docking.ts';
@@ -139,6 +141,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleScrubber);
 		ctx.modules.register(ModuleSolarPanel);
 		ctx.modules.register(ModuleRtg);
+		ctx.modules.register(ModuleLight);
 		ctx.modules.register(ModuleRcs);
 		ctx.modules.register(ModuleDockingPort);
 		ctx.modules.register(ModuleParachute);
@@ -211,6 +214,8 @@ export const Stock = definePlugin({
 		for (const part of STOCK_SCIENCE_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_COMMS_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_POWER_PARTS) ctx.parts.register(part);
+		// lights (plan 242, ADR 0239)
+		for (const part of STOCK_LIGHT_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_EVA_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_LIFE_SUPPORT_PARTS) ctx.parts.register(part);
 		// parachutes (plan 209, ADR 0203 point 4)
@@ -249,6 +254,7 @@ export * from './parts/index.ts';
 export * from './bodies.ts';
 export * from './eva.ts';
 export * from './panels.ts';
+export * from './lights.ts';
 export * from './solar.ts';
 export * from './rcs.ts';
 export * from './launch-clamp.ts';

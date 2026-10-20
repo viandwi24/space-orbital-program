@@ -59,7 +59,26 @@ export interface PartRuntimeState {
 	ambientPressure?: number;
 }
 
+/** What a lamp shows now (plan 242): read each frame by the scene, which lights the nearest few. */
+export interface LampReading {
+	/** Lit at this moment (a blinking lamp is off half the time). */
+	on: boolean;
+	/** 0xRRGGBB */
+	colour: number;
+	/** 0..1 */
+	intensity: number;
+	/** Half-angle of the cone, radians. */
+	angle: number;
+	/** Reach, m. */
+	range: number;
+}
+
 export interface PartModel {
+	/**
+	 * A lamp on this part (plan 242, `PartVisual.lamp`): `object` sits at the lens and looks along
+	 * its +Y; `read` is null while the lamp is off.
+	 */
+	readonly lamp?: { readonly object: Object3D; read(): LampReading | null };
 	/** Add this to the vessel group; position and orientation are set by the scene. */
 	readonly root: Object3D;
 	/** Bounding box of the retracted, static geometry in the part frame (effects excluded). */

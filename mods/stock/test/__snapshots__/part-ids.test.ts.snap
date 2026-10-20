@@ -1142,6 +1142,32 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 40,
+    "id": "stock.light-spot",
+    "mass": 4,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.04,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 80,
+    "id": "stock.light-flood",
+    "mass": 8,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.08,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 850,
     "id": "stock.eva-suit",
     "mass": 85,

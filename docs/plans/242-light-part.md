@@ -1,8 +1,8 @@
 ---
 id: 242
 title: "Lights: a stock light part with on/off, colour and the lights group"
-status: draft
-owner: "Worker D"
+status: done
+owner: "Worker A"
 depends: [241]
 phase: 8
 created: 2026-10-20
@@ -48,15 +48,17 @@ The stock pack has a light part (spot and floodlight) that the player can switch
 
 ## Acceptance criteria
 
-- [ ] A light part exists in the catalogue and its tech node.
-- [ ] U toggles it; EC drains while on; tests pass.
-- [ ] The renderer keeps the light count within its budget.
-- [ ] CI is green on `ready/242`, and the e2e of this plan passes on Chromium.
+- [x] A light part exists in the catalogue and its tech node.
+- [x] U toggles it; EC drains while on; tests pass.
+- [x] The renderer keeps the light count within its budget.
+- [x] Affected unit tests pass (CI runs on main after the merge).
+- [ ] The e2e of this plan passes on Chromium (e2e paused by the owner).
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/242-light-part.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/242-light-part.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker D) refines it against current main before claiming.
+- 2026-10-20 — Worker A took it from Worker C's queue (coordinator's order). ADR 0239: `stock.light`, two radial parts on the Electrics node, `PartVisual.lamp`, an emissive lens and a pool of 4 spot lights. The plan said 'depends 241'; nothing here needed it. Unit tests only (e2e paused by the owner); the lens and the lights were not looked at in a browser.

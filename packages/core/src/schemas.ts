@@ -385,6 +385,20 @@ export const partVisualSchema = z.object({
 	 * draws a different shape per part (a fairing's sections).
 	 */
 	paramsFrom: definitionIdSchema.optional(),
+	/**
+	 * A lamp (plan 242, ADR 0239): while the module's snapshot says `on`, the part shows a lit lens at
+	 * `pos` and may throw a spot cone along `dir` (part frame) of half-angle `angle` degrees and
+	 * reach `range` m. The module's `colour` (hex), `brightness` (0..1) and `blink` shape it.
+	 */
+	lamp: z
+		.object({
+			module: definitionIdSchema,
+			pos: vec3Tuple,
+			dir: vec3Tuple,
+			angle: z.number().min(2).max(89).optional(),
+			range: z.number().positive().max(1000).optional()
+		})
+		.optional(),
 	puffs: z
 		.object({
 			module: definitionIdSchema,

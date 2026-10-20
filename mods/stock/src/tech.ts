@@ -116,12 +116,14 @@ export const STOCK_TECH = [
 		cost: 10,
 		requires: ['stock.instruments'],
 		milestone: 'orbit:stock.home',
-		description: 'Solar panels and batteries to keep a probe alive.',
+		description: 'Solar panels, batteries and lights to keep a probe alive.',
 		unlocks: [
 			'stock.solar-panel',
 			'stock.solar-panel-fixed',
 			'stock.battery-small',
-			'stock.battery-medium'
+			'stock.battery-medium',
+			'stock.light-spot',
+			'stock.light-flood'
 		]
 	}),
 	defineTechNode({

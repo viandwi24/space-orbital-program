@@ -16,6 +16,7 @@ import {
 } from 'three';
 import { glowEmissive } from '../effects/glow.ts';
 import { PlumeEffect, createPlumeGeometry, createSpriteGeometry } from '../effects/plume-mesh.ts';
+import { LampEffect, createLensGeometry } from '../effects/lamp.ts';
 import { RcsPuffs, createPuffGeometry, createPuffMaterial } from '../effects/rcs-puff.ts';
 import {
 	articulationRotation,
@@ -71,6 +72,7 @@ interface SharedGeometry {
 	shrouds: Map<string, BufferGeometry>;
 	puffGeometry: BufferGeometry;
 	puffMaterial: Material;
+	lensGeometry: BufferGeometry;
 }
 
 interface Template {
@@ -105,7 +107,9 @@ class ProceduralModel implements PartModel {
 	private hot = false;
 	private shroudMesh: Mesh | null = null;
 	private readonly puffs: RcsPuffs | null;
+	private readonly lampEffect: LampEffect | null;
 	private shroudSize: number | null = null;
+	private lampState: Record<string, unknown> | undefined;
 
 	constructor(
 		readonly definition: string,
@@ -158,6 +162,10 @@ class ProceduralModel implements PartModel {
 			? new RcsPuffs(visual.puffs, shared.puffGeometry, shared.puffMaterial)
 			: null;
 		if (this.puffs) this.root.add(this.puffs.root);
+		this.lampEffect = visual.lamp
+			? new LampEffect(visual.lamp, shared.lensGeometry as CylinderGeometry)
+			: null;
+		if (this.lampEffect) this.root.add(this.lampEffect.object);
 		if (this.plume) {
 			// The plume belongs to the bell: it leaves along the thrust vector (ADR 0045).
 			if (this.pivot && visual.articulation?.mode === 'gimbal') {
@@ -165,6 +173,11 @@ class ProceduralModel implements PartModel {
 				this.pivot.add(this.plume.root);
 			} else this.root.add(this.plume.root);
 		}
+	}
+
+	get lamp(): PartModel['lamp'] {
+		const lamp = this.lampEffect;
+		return lamp ? { object: lamp.object, read: () => lamp.read() } : undefined;
 	}
 
 	get shroud(): number | null {
@@ -228,6 +241,10 @@ class ProceduralModel implements PartModel {
 			const f = m?.[this.visual.puffs.field];
 			this.puffs.update(Array.isArray(f) ? f : undefined);
 		}
+		this.lampState = this.visual.lamp
+			? (state.modules[this.visual.lamp.module] as Record<string, unknown> | undefined)
+			: undefined;
+		this.lampEffect?.update(this.lampState, this.time);
 		this.applyGlow(state.temperature);
 		this.dynamic?.animate(this.progress);
 		this.plume?.update(this.engine, this.pressure, this.time);
@@ -235,6 +252,8 @@ class ProceduralModel implements PartModel {
 
 	tick(dt: number): void {
 		this.time += dt;
+		// a blinking lamp changes between snapshots
+		if (this.lampState?.blink === true) this.lampEffect?.update(this.lampState, this.time);
 		if (this.deploy && this.progress !== this.target) {
 			const seconds = this.deploy.seconds ?? 1.2;
 			const step = dt / seconds;
@@ -284,6 +303,7 @@ class ProceduralModel implements PartModel {
 		for (const m of this.owned) m.dispose();
 		this.owned = [];
 		this.plume?.dispose();
+		this.lampEffect?.dispose();
 		this.dynamic?.dispose();
 	}
 }
@@ -297,7 +317,8 @@ export class ProceduralProvider implements PartModelProvider {
 		spriteGeometry: createSpriteGeometry(),
 		shrouds: new Map(),
 		puffGeometry: createPuffGeometry(),
-		puffMaterial: createPuffMaterial()
+		puffMaterial: createPuffMaterial(),
+		lensGeometry: createLensGeometry()
 	};
 
 	constructor() {
@@ -379,6 +400,7 @@ export class ProceduralProvider implements PartModelProvider {
 		this.shared.shrouds.clear();
 		this.shared.puffGeometry.dispose();
 		this.shared.puffMaterial.dispose();
+		this.shared.lensGeometry.dispose();
 	}
 }
 

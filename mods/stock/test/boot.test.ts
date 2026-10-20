@@ -42,6 +42,7 @@ describe('stock boots through the loader', () => {
 			'stock.jetpack',
 			'stock.landing-leg',
 			'stock.launch-clamp',
+			'stock.light',
 			'stock.parachute',
 			'stock.probe-computer',
 			'stock.rcs',
@@ -95,6 +96,8 @@ describe('stock boots through the loader', () => {
 			'stock.landing-legs',
 			'stock.launch-clamp',
 			'stock.life-support-pack',
+			'stock.light-flood',
+			'stock.light-spot',
 			'stock.materials-bay',
 			'stock.monoprop-radial',
 			'stock.monoprop-tank',
@@ -242,7 +245,10 @@ describe('stock boots through the loader', () => {
 			'stock.drogue-chute',
 			'stock.radial-parachute',
 			// a ladder hangs radially (plan 225)
-			'stock.ladder'
+			'stock.ladder',
+			// lights hang radially (plan 242)
+			'stock.light-spot',
+			'stock.light-flood'
 		]);
 		for (const part of registries.parts.list()) {
 			expect(part.shape, part.id).toBeDefined();

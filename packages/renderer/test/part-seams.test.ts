@@ -108,7 +108,9 @@ describe('part seams', () => {
 					// a panel without sections is a plate (plan 219; the fairing case below draws one)
 					'fairing-panel',
 					// boxes only (plan 225)
-					'ladder'
+					'ladder',
+					// boxes and a cylinder, no revolve (plan 242)
+					'light'
 				].includes(visual.kind)
 			)
 				continue;
