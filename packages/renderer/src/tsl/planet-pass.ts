@@ -36,6 +36,7 @@ import {
 	EDGE_CHROMA,
 	EDGE_DEPTH_OCTAVES,
 	SKY_DEPTH,
+	UPSAMPLE_SHARPNESS,
 	UPSAMPLE_TOLERANCE_OCTAVES,
 	budgetScale
 } from '../half-res.ts';
@@ -190,6 +191,8 @@ export class PlanetPassTSL {
 	private readonly uFullSize = uniform(new Vector2(1, 1));
 	private readonly uHalfSize = uniform(new Vector2(1, 1));
 	private readonly uOctaves = uniform(32);
+	/** FSR1's RCAS sharpness on the half rung, in stops (0 the sharpest; plan 261 Phase 5). */
+	private readonly uSharpness = uniform(UPSAMPLE_SHARPNESS);
 	private readonly halfTarget = new RenderTarget(1, 1, {
 		type: FloatType,
 		minFilter: NearestFilter,
@@ -2242,10 +2245,42 @@ export class PlanetPassTSL {
 			const hi = ivec2(this.uHalfSize).sub(1);
 			const i0 = clamp(ivec2(base), ivec2(0), hi);
 			const i1 = clamp(ivec2(base).add(1), ivec2(0), hi);
-			const t0 = textureLoad(halfTex, i0).toVar();
-			const t1 = textureLoad(halfTex, ivec2(i1.x, i0.y)).toVar();
-			const t2 = textureLoad(halfTex, ivec2(i0.x, i1.y)).toVar();
-			const t3 = textureLoad(halfTex, i1).toVar();
+			// each of the four texels sharpened by FSR1's RCAS first (in a Reinhard-mapped range, as RCAS
+			// wants [0, 1]); a neighbour more than the upsample's tolerance away in depth stands in as the
+			// texel itself, so ground against sky gets no halo
+			const lobeScale = exp2(this.uSharpness.negate());
+			const sharpened = (i: N): N => {
+				const e = textureLoad(halfTex, i).toVar();
+				const tm = (c: N): N => c.div(c.add(1.0));
+				const near = (j: N): N => {
+					const t = textureLoad(halfTex, clamp(j, ivec2(0), hi));
+					const same = abs(t.w.sub(e.w)).mul(this.uOctaves).lessThan(UPSAMPLE_TOLERANCE_OCTAVES);
+					return tm(select(same, t.xyz, e.xyz));
+				};
+				const c = tm(e.xyz).toVar();
+				const b = near(i.add(ivec2(0, -1))).toVar();
+				const d = near(i.add(ivec2(-1, 0))).toVar();
+				const f2 = near(i.add(ivec2(1, 0))).toVar();
+				const h = near(i.add(ivec2(0, 1))).toVar();
+				const mn = min(min(b, d), min(f2, h));
+				const mx = max(max(b, d), max(f2, h));
+				const hitMin = min(mn, c).div(mx.mul(4.0).max(1e-5));
+				const hitMax = float(1.0).sub(max(mx, c)).div(mn.mul(4.0).sub(4.0).min(-1e-5));
+				const lobeRGB = max(hitMin.negate(), hitMax);
+				const lobe = max(-0.1875, min(max(lobeRGB.x, max(lobeRGB.y, lobeRGB.z)), 0.0)).mul(
+					lobeScale
+				);
+				const out = clamp(
+					b.add(d).add(f2).add(h).mul(lobe).add(c).div(lobe.mul(4.0).add(1.0)),
+					0.0,
+					0.999
+				);
+				return vec4(out.div(out.oneMinus()), e.w);
+			};
+			const t0 = sharpened(i0).toVar();
+			const t1 = sharpened(ivec2(i1.x, i0.y)).toVar();
+			const t2 = sharpened(ivec2(i0.x, i1.y)).toVar();
+			const t3 = sharpened(i1).toVar();
 			const b = vec4(
 				f.x.oneMinus().mul(f.y.oneMinus()),
 				f.x.mul(f.y.oneMinus()),
