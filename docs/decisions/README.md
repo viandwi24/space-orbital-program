@@ -227,3 +227,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0229 | [Branch space centers on the home planet](0229-branch-space-centers.md) | accepted | 2026-10-20 |
 | 0231 | [Career content: a tiered tech tree with every part placed, contracts that see milestones and spawn a rescue, a richer objective view, per-item panel actions](0231-career-content-tech-tiers-rescue-spawn-objective-view.md) | accepted | 2026-10-19 |
 | 0230 | [Rules only easier during play; revert and quickload rules; save safety](0230-rule-direction-revert-quickload-save-safety.md) | accepted | 2026-10-20 |
+| 0232 | [A pixel budget for the planet pass, and the other Retina quick wins](0232-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
