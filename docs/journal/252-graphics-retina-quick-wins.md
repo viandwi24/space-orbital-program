@@ -1,6 +1,6 @@
 # 252 — Graphics phase 1: a pixel budget for the planet pass, baked cloud shadows on high, lighter MSAA and shadows at Retina, spaced PMREM recaptures
 
-**Plan:** [plans/252-graphics-retina-quick-wins.md](../plans/252-graphics-retina-quick-wins.md) · **Session:** Worker A, 2026-10-20 · **ADRs:** [0232](../decisions/0232-planet-pixel-budget-retina-quick-wins.md), 0053, 0061, 0064, 0086 · **Research:** [refs/graphics-performance/](../../refs/graphics-performance/README.md), [07-m5-baseline.md](../../refs/graphics-performance/07-m5-baseline.md)
+**Plan:** [plans/252-graphics-retina-quick-wins.md](../plans/252-graphics-retina-quick-wins.md) · **Session:** Worker A, 2026-10-20 · **ADRs:** [0234](../decisions/0234-planet-pixel-budget-retina-quick-wins.md), 0053, 0061, 0064, 0086 · **Research:** [refs/graphics-performance/](../../refs/graphics-performance/README.md), [07-m5-baseline.md](../../refs/graphics-performance/07-m5-baseline.md)
 
 ## What was done
 
@@ -47,5 +47,5 @@ Same camera, same build settings (`high`, 1512 × 945 at ratio 2), the 251 code 
 
 ## Decisions made (link ADRs)
 
-- ADR 0232: the pixel budget, the baked cloud shadows on `high`, MSAA 2 and a 2048 shadow map from ratio 2, no canvas MSAA there, recaptures one per 1.5 s.
+- ADR 0234: the pixel budget, the baked cloud shadows on `high`, MSAA 2 and a 2048 shadow map from ratio 2, no canvas MSAA there, recaptures one per 1.5 s.
 - Left out: the governor's rules (plans 253 and 201), and the Space Center's exemption (the owner's call after the look check).

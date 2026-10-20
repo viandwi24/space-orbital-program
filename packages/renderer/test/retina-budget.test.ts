@@ -1,6 +1,6 @@
-/** Plan 252 (ADR 0232): the pixel budget of the planet pass, lighter MSAA and shadows at Retina, no canvas MSAA, spaced recaptures. */
+/** Plan 252 (ADR 0234): the pixel budget of the planet pass, lighter MSAA and shadows at Retina, no canvas MSAA, spaced recaptures. */
 import { describe, expect, test } from 'bun:test';
-import type { WebGLRenderer } from 'three';
+import type { ShaderMaterial, WebGLRenderer } from 'three';
 import { atmosphereFor } from '../src/atmosphere-model.ts';
 import { BUDGET_FULL_ABOVE, HALF_PLANET_SCALE, budgetScale } from '../src/half-res.ts';
 import { PlanetPass } from '../src/planet.ts';
@@ -70,7 +70,9 @@ describe('the planet pass at a fractional scale', () => {
 		planet.setTargetSize(3024, 1890);
 		planet.beginFrame(gl);
 		expect(planet.planetScale).toBe(0.55);
-		expect(planet.edge.uniforms.uMarchScale!.value as number).toBe(0.55);
+		expect(
+			(planet as unknown as { edge: ShaderMaterial }).edge.uniforms.uMarchScale!.value as number
+		).toBe(0.55);
 		planet.setTargetSize(1920, 1080);
 		planet.beginFrame(gl);
 		expect(planet.planetScale).toBe(1);

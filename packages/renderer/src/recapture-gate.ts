@@ -1,5 +1,5 @@
 /**
- * Rate limit of the image-based light's recaptures (plan 252, ADR 0232). Each capture renders the sky
+ * Rate limit of the image-based light's recaptures (plan 252, ADR 0234). Each capture renders the sky
  * to a cube and prefilters it with PMREM, 5 to 6 ms in one frame (journal 048); the environment key
  * changes with every 2 degrees of sun and every half octave of altitude, in quick succession on an
  * ascent or under warp. A change of key inside `ENV_RECAPTURE_MIN_MS` of the last capture waits: the
