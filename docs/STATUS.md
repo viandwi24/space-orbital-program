@@ -210,6 +210,7 @@
 | 261 | [WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset](plans/261-webgpu-renderer-migration.md) | draft | | Owner's request 2026-10-20 after the graphics research: quality first, on its own branch `gfx/261-webgpu`, manual test before merge; 55–95 agent hours |
 | 262 | [Throttle climbs back to 100 % by itself in the Landing lesson, even after X](plans/262-lesson-throttle-runaway.md) | ready | Worker C | Owner report 2026-10-21. |
 | 263 | [Black slivers through the Moon's ground near the surface at some view angles](plans/263-moon-terrain-black-slivers.md) | ready | Worker A | Owner report 2026-10-21. |
+| 264 | [A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree](plans/264-pod-floats-above-moon-ground.md) | ready | Worker B | Owner report 2026-10-21. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

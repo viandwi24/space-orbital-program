@@ -1,0 +1,57 @@
+---
+id: 264
+title: "A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree"
+status: ready
+owner: "Worker B"
+depends: []
+phase: 8
+created: 2026-10-21
+updated: 2026-10-21
+---
+
+# 264 — A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree
+
+**Size:** M
+
+## Goal
+
+Item 25 of `docs/reviews/2026-10-20-owner-manual-test.md` (`22.webp`). A part resting or rolling on any body touches the ground the player sees, with no visible gap.
+
+## Context
+
+- **The report:** on Cinder, a fallen pod rolls along visibly above the ground, well above its own shadow.
+- **Candidates to check:**
+  - **Physics and render terrain disagree.** The physics ground (heightfield or collider in `packages/sim` and the Rapier adapter, ground contact from plan 012) may differ from the rendered terrain (`packages/renderer` planet pass, terrain bake and patches; detail octaves that only the shader adds, ADR 0053). One may be smoothed, at a lower resolution, or offset.
+  - **The collider is bigger than the mesh.** The pod's collider shape or size may not match its mesh (`mods/stock` part colliders, rigid grouping from plan 011).
+  - **Cinder uses another path.** An airless body may use a different height function or seed for physics than for rendering.
+
+## Scope
+
+**In:**
+- **Root cause:** a measured gap at the screenshot's spot, comparing physics ground height, render ground height and collider extent.
+- **Fix** with a test: the physics and render heights agree within a tolerance at sampled points on Cinder and Home, and the pod's collider matches its mesh bounds.
+- **Screenshots** before and after.
+
+**Out:** nothing else.
+
+## Steps
+
+1. **Reproduce through the debug API.** Set a location low over Cinder, drop the pod and let it settle, then read the gap.
+2. **Unit tests:** height agreement between sim and renderer at sample points, and collider against mesh bounds.
+3. **Fix and merge first.** Run the affected unit tests and the typecheck.
+
+## Acceptance criteria
+
+- [ ] The root cause is in the journal.
+- [ ] Physics and render ground agree within a tolerance at sampled points. Tests pass.
+- [ ] A resting or rolling pod touches the visible ground. Screenshots are in the journal.
+- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+
+## Docs checklist
+
+- [ ] STATUS row.
+- [ ] Journal with screenshots.
+
+## Log
+
+- 2026-10-21: Created by the coordinator from the owner's report.
