@@ -4,6 +4,7 @@
  * (semantics). No DOM here, so it is unit-tested in Node.
  */
 import {
+	effectiveDef,
 	migrateVesselDesign,
 	partId,
 	resolveVesselDesign,
@@ -131,7 +132,8 @@ export const stageOf = (design: VesselDesign, index: number): number | null => {
 /** Nodes of `index`'s part definition that no attachment in the design uses yet. */
 export function freeNodes(design: VesselDesign, parts: PartLookup, index: number): string[] {
 	const entry = design.parts.find((p) => p.index === index);
-	const def = entry && parts.get(entry.part);
+	const raw = entry && parts.get(entry.part);
+	const def = raw && effectiveDef(raw, entry.settings);
 	if (!entry || !def?.attach) return [];
 	const used = new Set<string>();
 	for (const p of design.parts) {

@@ -18,6 +18,8 @@ export interface FairingView {
 	size: number;
 	sections: FairingSection[];
 	closed: boolean;
+	/** An interstage: open at the top, a node there for the next stage (plan 243). */
+	interstage: boolean;
 	/** Shell mass, kg. */
 	mass: number;
 	/** Why it cannot be made, or null. */
@@ -44,6 +46,7 @@ export function fairingOf(
 		size: c.size,
 		sections: c.sections,
 		closed: c.closed,
+		interstage: c.interstage,
 		mass: fairingMass(c),
 		problem: fairingProblem(c.size, c.sections)
 	};
@@ -54,7 +57,8 @@ function write(
 	content: Content,
 	index: number,
 	sections: FairingSection[],
-	closed: boolean
+	closed: boolean,
+	interstage = fairingOf(state.design, content.parts, index)?.interstage ?? false
 ): EditorState {
 	const f = fairingOf(state.design, content.parts, index);
 	if (!f) throw new Error('that part has no fairing');
@@ -65,7 +69,9 @@ function write(
 		content,
 		index,
 		FAIRING_MODULE,
-		sections.length === 0 && !closed ? null : { sections, closed }
+		sections.length === 0 && !closed && !interstage
+			? null
+			: { sections, closed: closed && !interstage, interstage }
 	);
 }
 
@@ -116,5 +122,30 @@ export function setFairingClosed(
 	const f = fairingOf(state.design, content.parts, index);
 	if (!f) throw new Error('that part has no fairing');
 	if (closed && f.sections.length === 0) throw new Error('Add a section first');
+	if (closed && f.interstage) throw new Error('An interstage stays open at the top');
 	return write(state, content, index, f.sections, closed);
+}
+
+/**
+ * Makes the shell an interstage (open at the top, a node there for the next stage) or a plain
+ * fairing again (plan 243, ADR 0238). Off is refused while a part hangs on that node.
+ */
+export function setFairingInterstage(
+	state: EditorState,
+	content: Content,
+	index: number,
+	interstage: boolean
+): EditorState {
+	const f = fairingOf(state.design, content.parts, index);
+	if (!f) throw new Error('that part has no fairing');
+	if (interstage && f.sections.length === 0) throw new Error('Add a section first');
+	if (
+		!interstage &&
+		state.design.parts.some(
+			(p) => p.parent?.index === index && p.parent.parentNode === 'interstage'
+		)
+	) {
+		throw new Error('Move the stage off the interstage first');
+	}
+	return write(state, content, index, f.sections, f.closed && !interstage, interstage);
 }

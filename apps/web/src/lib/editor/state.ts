@@ -9,6 +9,7 @@ import {
 	azimuthOf,
 	mat3Apply,
 	mat3OfQuat,
+	effectiveDef,
 	partId,
 	placeRadial,
 	placeStack,
@@ -1267,7 +1268,8 @@ export function attachTargets(
 	if (!placed) return [];
 	const out: AttachTarget[] = [];
 	for (const p of design.parts) {
-		const def = parts.get(p.part);
+		const raw = parts.get(p.part);
+		const def = raw && effectiveDef(raw, p.settings);
 		const at = placed.get(p.index);
 		if (!def?.attach || !at) continue;
 		for (const pn of freeNodes(design, parts, p.index)) {

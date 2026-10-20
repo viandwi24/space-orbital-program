@@ -4,6 +4,7 @@
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
 import {
+	effectiveDef,
 	mat3Apply,
 	mat3OfQuat,
 	surfaceSite,
@@ -282,9 +283,11 @@ export function buildScene(input: SceneInput): BuiltScene {
 		const rootDef = parts.get(held.parts.find((p) => p.parent === null)?.part ?? '');
 		targets.forEach((t, i) => {
 			if (t.radial && input.radialMarkers === false) return;
-			const parentDef = t.parent
-				? parts.get(design.parts.find((p) => p.index === t.parent!.index)?.part ?? '')
+			const parentEntry = t.parent
+				? design.parts.find((p) => p.index === t.parent!.index)
 				: undefined;
+			const parentRaw = parentEntry && parts.get(parentEntry.part);
+			const parentDef = parentRaw && effectiveDef(parentRaw, parentEntry.settings);
 			let dir: readonly number[] | undefined = t.parent
 				? parentDef?.attach?.[t.parent.parentNode]?.dir
 				: undefined;

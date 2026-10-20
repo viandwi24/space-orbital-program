@@ -4,6 +4,7 @@
  */
 import type { PartDefinition, PartShape } from './definitions.ts';
 import type { Quat, Vec3 } from './math.ts';
+import { effectiveDef } from './node-size.ts';
 import type { DesignLink, DesignTilt, VesselDesign } from './protocol.ts';
 
 /** Reserved `parentNode` of a radial link: the parent's side surface, not a node (ADR 0034). */
@@ -402,7 +403,7 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 	for (const p of byIndex.values()) {
 		const def = parts.get(p.part);
 		if (!def) errors.push(`part #${p.index}: unknown part "${p.part}"`);
-		else defs.set(p.index, def);
+		else defs.set(p.index, effectiveDef(def, p.settings));
 	}
 
 	if (design.formatVersion === 1) {

@@ -60,4 +60,19 @@ describe('fairing (plan 219)', () => {
 		expect(ModuleFairing.mass!(ctx.config, ctx.state)).toBe(0);
 		expect(ModuleFairing.shell!(ctx.config, ctx.state)).toBeNull();
 	});
+
+	test('an interstage shields while open at the top, with no nose cap (plan 243)', () => {
+		const c = fairingConfigSchema.parse({
+			size: 1.25,
+			baseTop: 0.1,
+			sections: [{ height: 2, radius: 0.7 }],
+			interstage: true
+		});
+		const state = { jettisoned: false, sections: [], closed: false };
+		const profile = ModuleFairing.shell!(c, state);
+		expect(profile).not.toBeNull();
+		expect(profile!.at(-1)).toEqual({ y: 2.1, r: 0.7 });
+		expect(ModuleFairing.shell!(c, { ...state, jettisoned: true })).toBeNull();
+		expect(fairingConfigSchema.parse({ size: 1.25 }).interstage).toBe(false);
+	});
 });

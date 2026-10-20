@@ -551,8 +551,10 @@ function applyDrag(
 		const shell = shieldedAny ? shellShape(core, partId) : null;
 		const covered = { top: false, bottom: false };
 		for (const att of part.attachments) {
-			const dirY = def.attach?.[att.node]?.dir[1] ?? 0;
-			if (dirY > 0.5) covered.top = !shell;
+			const node = def.attach?.[att.node];
+			const dirY = node?.dir[1] ?? 0;
+			// an interstage carries the next stage on its top: that end is not open to the wind (plan 243)
+			if (dirY > 0.5) covered.top = !shell || node?.shellTop !== undefined;
 			else if (dirY < -0.5) covered.bottom = true;
 		}
 		const area = axisAreas(shell ?? def.shape, local.y, covered);
