@@ -73,6 +73,8 @@ export const tangent1 = (n: N): N =>
 	normalize(cross(n, select(abs(n.y).greaterThan(0.99), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0))));
 
 export interface TerrainSampler {
+	/** The far field's height (m) at a unit body-fixed direction (the light shafts' terrain test). */
+	cubeHeight(nB: N): N;
 	/** Height (x, m) and gradient magnitude (y) at a planet-centred inertial position. */
 	heightAndSlope(pI: N): N;
 	/** Height (x, m) and body-fixed tangent gradient (yzw) at a planet-centred inertial position. */
@@ -254,6 +256,28 @@ export class TerrainTSL {
 		}
 	}
 
+	/**
+	 * `terrainZones`: (site weight, arc to the first zone in m, lake gate) at a unit body-fixed
+	 * direction, from the world's zones (the lakes read the gate too).
+	 */
+	zones(n: N): N {
+		const R = this.radius;
+		const arcTo = (i: number): N =>
+			acos(clamp(dot(n, this.uZones.element(i).xyz), -1.0, 1.0)).mul(R);
+		const arc0 = arcTo(0);
+		const site = float(1.0).toVar();
+		const gate = float(1.0).toVar();
+		for (let i = 0; i < MAX_TERRAIN_ZONES; i++) {
+			If(int(i).lessThan(this.uZoneCount), () => {
+				const a = i === 0 ? arc0 : arcTo(i);
+				const z = this.uZones.element(i);
+				site.mulAssign(smoothstep(z.w, z.w.add(this.uZoneBlend.element(i)), a));
+				gate.assign(min(gate, smoothstep(LAKE.siteFrom, LAKE.siteTo, a)));
+			});
+		}
+		return vec3(site, arc0, gate);
+	}
+
 	/** `heightAt(n)`: the terrain height (m) at a unit body-fixed direction, as a shader function. */
 	private heightFn(map: DataTexture): (n: N) => N {
 		const R = this.radius;
@@ -285,22 +309,7 @@ export class TerrainTSL {
 			}
 			return sum.div(norm);
 		};
-		const zones = (n: N): N => {
-			const arcTo = (i: number): N =>
-				acos(clamp(dot(n, this.uZones.element(i).xyz), -1.0, 1.0)).mul(R);
-			const arc0 = arcTo(0);
-			const site = float(1.0).toVar();
-			const gate = float(1.0).toVar();
-			for (let i = 0; i < MAX_TERRAIN_ZONES; i++) {
-				If(int(i).lessThan(this.uZoneCount), () => {
-					const a = i === 0 ? arc0 : arcTo(i);
-					const z = this.uZones.element(i);
-					site.mulAssign(smoothstep(z.w, z.w.add(this.uZoneBlend.element(i)), a));
-					gate.assign(min(gate, smoothstep(LAKE.siteFrom, LAKE.siteTo, a)));
-				});
-			}
-			return vec3(site, arc0, gate);
-		};
+		const zones = (n: N): N => this.zones(n);
 		const fn = Fn(([n]: N[]) => {
 			const h = float(0.0).toVar();
 			const ll = warpedLatLon(n, float(R), shift);
@@ -485,7 +494,14 @@ export class TerrainTSL {
 			return t;
 		});
 
-		return { heightAndSlope: (p: N) => heightAndSlope(p), terrainAt: (p: N) => terrainAt(p) };
+		return {
+			heightAndSlope: (p: N) => heightAndSlope(p),
+			terrainAt: (p: N) => terrainAt(p),
+			cubeHeight: (nB: N) => {
+				const c = cube(nB);
+				return c.r.add(c.g);
+			}
+		};
 	}
 
 	dispose(): void {

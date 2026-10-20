@@ -1,4 +1,4 @@
-# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b)
+# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b, Phase 2c)
 
 **Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
@@ -208,4 +208,54 @@ bun run check:affected                                ✓ prettier ✓ docs ✓ 
 bun run typecheck                                     0 errors
 bun run build                                         done
 headed Chromium, /flight?renderer=webgpu and webgpu-fallback, high and medium, pad, low sun, 12 km, orbit: 0 console errors
+```
+
+## Phase 2, slice 2c: clouds, water, light shafts and aurora
+
+| Where | What |
+|---|---|
+| `tsl/clouds.ts` | `cloudDensityQ` (the coverage field, puffs and billows), `cirrusDensity`, the slab's profile, multiple-scattering phase, fill, gain, billow shade, powder, sun depth and erosion; `CloudMapTSL`, the equirectangular map baked when the cover changes |
+| `tsl/water.ts` | `waveGradient`, `swashOffset`, `surfFoam`, `rippleAt`, `riverField` |
+| `tsl/lut-sky.ts` | `march`: the air between two distances with the in-scatter and transmittance at the two cloud distances (the twin of `marchAtmosphere`, on the tables) |
+| `tsl/terrain.ts` | `zones` (the lakes' gate) and `cubeHeight` (the shafts' terrain test) are public |
+| `tsl/planet-pass.ts` | Lakes with their ragged shore, shore swash and surf, rivers with the flow of their ripples, foam, wave crests and caps, the water normal, floodlights. Cloud shadows from the map. The cumulus march and the cirrus layer composited nearest first. The shafts' second march (cloud map and terrain). The aurora shell, behind and in front of the air |
+| `renderer-webgpu.ts` | The sun keeps `castShadow` on while the preset has shadows (see below) |
+
+| M2, Chromium, 1280 × 800, `high` | WebGL | WebGPU, 2c |
+|---|---|---|
+| a cloud layer from 3 km | ![](assets/261-2c-webgl-clouds-3km.jpg) | ![](assets/261-2c-webgpu-clouds-3km.jpg) |
+| the sea from 120 m (the vessel has just hit it) | ![](assets/261-2c-webgl-sea.jpg) | ![](assets/261-2c-webgpu-sea.jpg) |
+| 12 km | ![](assets/261-2b-webgl-12km.jpg) | ![](assets/261-2c-webgpu-12km.jpg) |
+| pad, noon | ![](assets/261-2b-webgl-pad.jpg) | ![](assets/261-2c-webgpu-pad.jpg) |
+
+Band brightness against WebGL: pad within 5 %, including the band the cloud shadows cross (98 against 101); the low sun and 12 km within about 10 %.
+
+| GPU and frame interval (M2, `high`) | pad | low sun | 12 km | orbit |
+|---|---|---|---|---|
+| WebGPU, GPU time (live meter) | 4.8 ms | 7.2 ms | 5.0 ms | 0.7 ms |
+| WebGPU, frame interval p50 | 16.7 ms | 17.6 ms | 16.7 ms | 16.7 ms |
+| WebGL, frame interval p50 | 50.0 ms | 83.3 ms | 50.1 ms | 16.7 ms |
+
+What WebGPU does not draw yet is now only the march prepass and the half-size pass, both performance passes rather than looks; so this is close to a like-for-like comparison of the planet pass. It is not yet a measurement under Phase 8's rules (the M5, Retina, every preset).
+
+### What surprised me
+
+- **Three r186's WebGPU shadow node does not survive `castShadow` going off.** At night the environment turns the sun's shadow off; the node disposes its map and then reads it (`null.depthTexture`), and the frame after binds its own colour target as a texture (hundreds of validation errors). The WebGPU facade keeps the sun casting while the preset has shadows; the planet pass ignores the map when the environment says it is off (`uShadowOn`).
+- **The water and the clouds needed no new rules**, only the ones 2b found: shared values as variables, derivatives with a finite fallback, data passes through `fragmentNode`.
+- **Finding water took core's own map.** Guessed positions were snow; `isWater` over a spiral from the site found the sea 75 km north.
+
+### Known
+
+- One error at startup, once: three's Lambert pipeline meets the sun's depth texture while the environment grows the shadow map (`shadow.map.setSize`, ADR 0055). It is gone the frame after. The fix belongs with the shadow map's sizing under the node renderer (`shadow.mapSize`), in Phase 4 with the shadow sampling (step 17).
+- The aurora is ported but not seen on screen: no view in this session had it lit (`uAurora` 0 in WebGL and WebGPU alike).
+- The light shafts are on, but no view checked them against WebGL.
+
+### Verification
+
+```
+cd packages/renderer && bun test                      708 pass, 0 fail
+bun run check:affected                                ✓ prettier ✓ docs ✓ typecheck ✓ bun test; web vitest 1323 passed, 2 failed (sim-host-script-worker.test.ts, the known environment failure)
+bun run typecheck                                     0 errors
+bun run build                                         done
+headed Chromium, /flight?renderer=webgpu, high: pad, low sun, 12 km, orbit, 3 km at 69° N, the sea; console: the one startup error above
 ```

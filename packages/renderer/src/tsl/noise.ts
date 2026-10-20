@@ -52,6 +52,23 @@ export const noiseF = (p: N): N => {
 	return valueNoiseCell(ivec3(fl), p.sub(fl));
 };
 
+/** `noiseF3`: three values per lattice fetch (one pcg3d hash gives a whole vec3). */
+export const noiseF3 = Fn(([p]: N[]) => {
+	const fl = floor(p);
+	const f0 = p.sub(fl);
+	const f = f0
+		.mul(f0)
+		.mul(f0)
+		.mul(f0.mul(f0.mul(6.0).sub(15.0)).add(10.0));
+	const c = ivec3(fl);
+	const I = (x: number, y: number, z: number): N => hash33i(c.add(ivec3(x, y, z)));
+	const a = mix(I(0, 0, 0), I(1, 0, 0), f.x);
+	const b = mix(I(0, 1, 0), I(1, 1, 0), f.x);
+	const cc = mix(I(0, 0, 1), I(1, 0, 1), f.x);
+	const d = mix(I(0, 1, 1), I(1, 1, 1), f.x);
+	return mix(mix(a, b, f.y), mix(cc, d, f.y), f.z);
+});
+
 /** The octave rotation of core's terrain (rows), applied between octaves. */
 export const octaveRotate = (p: N): N => {
 	const r = OCTAVE_ROTATION;

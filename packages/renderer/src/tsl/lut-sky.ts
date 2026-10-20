@@ -85,6 +85,22 @@ export interface LutSky {
 	 * transmittance, as shader variables.
 	 */
 	segment(ro: N, rd: N, tA: N, tB: N, steps: number): { inscatter: N; transmittance: N };
+	/**
+	 * The twin of the GLSL's \`marchAtmosphere\` on the tables: t0..t1 in \`steps\` samples spaced by
+	 * \`power\` (2 inside the air: denser near the camera), jittered; with the state at tcA and tcB
+	 * (the cloud layers; past t1 they are the whole path).
+	 */
+	march(
+		ro: N,
+		rd: N,
+		t0: N,
+		t1: N,
+		tcA: N,
+		tcB: N,
+		steps: number,
+		power: N,
+		jitter: N
+	): { inscatter: N; transmittance: N; insA: N; transA: N; insB: N; transB: N };
 	/** Sunlight reaching planet-centred point `p` (a fraction per channel), faded across the sun's disc. */
 	sunlight(p: N, l: N): N;
 	/** Bakes the transmittance and multiple-scattering tables (once per atmosphere). */
@@ -374,6 +390,69 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		return { inscatter: L.mul(atm.sunIrradiance), transmittance: thr };
 	};
 
+	const march = (
+		ro: N,
+		rd: N,
+		t0: N,
+		t1: N,
+		tcA: N,
+		tcB: N,
+		steps: number,
+		power: N,
+		jitter: N
+	) => {
+		const L = vec3(0.0).toVar();
+		const thr = vec3(1.0).toVar();
+		const insA = vec3(0.0).toVar();
+		const transA = vec3(1.0).toVar();
+		const insB = vec3(0.0).toVar();
+		const transB = vec3(1.0).toVar();
+		const snapA = float(0.0).toVar();
+		const snapB = float(0.0).toVar();
+		const len = max(t1.sub(t0), 0.0).toVar();
+		Loop({ start: 0, end: steps, type: 'int', name: 'ai' }, ({ ai }: { ai: N }) => {
+			const u = float(ai).add(jitter).div(steps);
+			const s = t0.add(len.mul(pow(u, power)));
+			const ds = len
+				.mul(power)
+				.mul(pow(max(u, 1e-4), power.sub(1.0)))
+				.div(steps);
+			If(snapA.lessThan(0.5).and(s.greaterThanEqual(tcA)), () => {
+				snapA.assign(1.0);
+				insA.assign(L);
+				transA.assign(thr);
+			});
+			If(snapB.lessThan(0.5).and(s.greaterThanEqual(tcB)), () => {
+				snapB.assign(1.0);
+				insB.assign(L);
+				transB.assign(thr);
+			});
+			const p = ro.add(rd.mul(s));
+			const sigT = max(extinctionOf(density(max(length(p).sub(Rg), 0.0))), vec3(1e-20));
+			const stepT = exp(sigT.negate().mul(ds));
+			const S = inscatterAt(p, rd, uSun);
+			L.addAssign(thr.mul(S.sub(S.mul(stepT)).div(sigT)));
+			thr.mulAssign(stepT);
+		});
+		If(snapA.lessThan(0.5), () => {
+			insA.assign(L);
+			transA.assign(thr);
+		});
+		If(snapB.lessThan(0.5), () => {
+			insB.assign(L);
+			transB.assign(thr);
+		});
+		const k = atm.sunIrradiance;
+		return {
+			inscatter: L.mul(k),
+			transmittance: thr,
+			insA: insA.mul(k),
+			transA,
+			insB: insB.mul(k),
+			transB
+		};
+	};
+
 	const pass = (frag: N) => {
 		const m = new MeshBasicNodeMaterial();
 		// raw output, as the tables are data, not colour
@@ -396,6 +475,7 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		inscatter,
 		viewTransmittance,
 		segment,
+		march,
 		sunlight,
 		bake(renderer) {
 			run(renderer, transRT, transPass);

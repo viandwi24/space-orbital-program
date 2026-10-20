@@ -214,6 +214,10 @@ export function createWebGPURenderer(
 		const r = gpu;
 		if (!r) return;
 		model.prepareFrame(dt);
+		// three r186's WebGPU shadow node throws its map away when castShadow goes off and then reads
+		// it (null.depthTexture, then a pass that binds its own target): the sun keeps casting while the
+		// preset has shadows, and the planet pass ignores the map when the environment says it is off
+		if (PRESETS[preset].shadowMapSize > 0) env.sunLight.castShadow = true;
 		planet.update(r, model.camera, Math.max(1, Math.round(height * pixelRatio)));
 		r.toneMappingExposure = env.state.exposure;
 		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));

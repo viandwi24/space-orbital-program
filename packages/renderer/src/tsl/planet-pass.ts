@@ -33,7 +33,8 @@ import {
 	HIGHLAND,
 	SEA_LEVEL,
 	TERRAIN_MAX_HEIGHT,
-	TERRAIN_MAX_SLOPE
+	TERRAIN_MAX_SLOPE,
+	LAKE_SHAPE
 } from '@orbital/core';
 import { TERRAIN_VEIL, type Atmosphere } from '../atmosphere-model.ts';
 import type { PresetSettings } from '../presets.ts';
@@ -47,6 +48,35 @@ import {
 	TERRAIN_MARCH_SLOPE_MIN
 } from '../terrain-model.ts';
 import { TerrainTSL, type TerrainSampler } from './terrain.ts';
+import {
+	CloudMapTSL,
+	cirrusDensity,
+	cloudBillowShade,
+	cloudDensityQ,
+	cloudErosion,
+	cloudFill,
+	cloudPowder,
+	cloudScatterGain,
+	cloudSlabDensity,
+	cloudSunDepth,
+	hgPhase,
+	rotY
+} from './clouds.ts';
+import { riverField, rippleAt, surfFoam, swashOffset, waveGradient } from './water.ts';
+import {
+	CLOUD_EXTRA_PATH,
+	CLOUD_MAX_PATH,
+	CLOUD_RADIANCE_KNEE,
+	CLOUD_SIGMA,
+	CLOUD_THICKNESS
+} from '../cloud-volume.ts';
+import { SHAFT, SHAFT_TERRAIN } from '../light-shaft.ts';
+import { AURORA } from '../aurora-model.ts';
+import { LAKE_WAVE_SHARE, SHORE_WAVE_HEIGHT } from '../shore-wave.ts';
+import { WAVES } from '../water-model.ts';
+import { FLOW_CYCLE, FLOW_SPEED } from '../water-flow.ts';
+import { FLOOD_LIGHT_INTENSITY, floodLightPositions } from '../site.ts';
+import { noiseT } from './noise.ts';
 import type { PlanetPass } from '../planet.ts';
 import { APRONS, PAD_RADIUS, ROADS, SCORCH_RADIUS } from '../site.ts';
 import { createLutSky, type LutSky } from './lut-sky.ts';
@@ -59,6 +89,12 @@ const {
 	Fn,
 	If,
 	Loop,
+	atan,
+	acos,
+	cos,
+	sin,
+	screenCoordinate,
+	uniformArray,
 	floatBitsToUint,
 	uint,
 	Break,
@@ -130,12 +166,13 @@ export class PlanetPassTSL {
 	private needsBuild = true;
 	private baked = false;
 	private terrain: TerrainTSL | null = null;
+	private cloudMap: CloudMapTSL | null = null;
 	private readonly up = new Vector3();
 	private readonly sun = new Vector3();
 
 	constructor(
 		private readonly planet: PlanetPass,
-		atm: Atmosphere,
+		private readonly atm: Atmosphere,
 		private settings: PresetSettings
 	) {
 		this.sky = createLutSky(atm);
@@ -154,7 +191,15 @@ export class PlanetPassTSL {
 		this.needsBuild ||=
 			settings.groundOctaves !== s.groundOctaves ||
 			settings.terrainSteps !== s.terrainSteps ||
-			settings.terrainShadowSteps !== s.terrainShadowSteps;
+			settings.terrainShadowSteps !== s.terrainShadowSteps ||
+			settings.cloudOctaves !== s.cloudOctaves ||
+			settings.cloudSteps !== s.cloudSteps ||
+			settings.cloudDetail !== s.cloudDetail ||
+			settings.viewSamples !== s.viewSamples ||
+			settings.shaftSteps !== s.shaftSteps ||
+			settings.shaftTerrain !== s.shaftTerrain ||
+			settings.auroraSteps !== s.auroraSteps ||
+			settings.cloudShadowMap !== s.cloudShadowMap;
 		this.settings = settings;
 	}
 
@@ -170,6 +215,8 @@ export class PlanetPassTSL {
 		const R = u.uR!.value as number;
 		this.terrain ??= new TerrainTSL(this.planet, R, float32Filterable(renderer));
 		this.terrain.bake(renderer);
+		this.cloudMap ??= new CloudMapTSL(R);
+		this.cloudMap.update(renderer, u.uCloudCover!.value as number);
 		if (
 			this.needsBuild ||
 			u.uMap!.value !== this.builtMap ||
@@ -193,6 +240,7 @@ export class PlanetPassTSL {
 		this.material.dispose();
 		this.sky.dispose();
 		this.terrain?.dispose();
+		this.cloudMap?.dispose();
 	}
 
 	/**
@@ -244,10 +292,36 @@ export class PlanetPassTSL {
 		const uSunIrr = this.link('uSunIrr');
 		const uSiteRadius = this.link('uSiteRadius');
 		const uTerrainShift = this.link('uTerrainShift', 'int');
+		const uTime = this.link('uTime');
+		const uSiteLamps = this.link('uSiteLamps');
+		const uCloudCover = this.link('uCloudCover');
+		const uCloudAngle = this.link('uCloudAngle');
+		const uCloudAlt = this.link('uCloudAlt');
+		const uCloudTop = this.link('uCloudTop');
+		const uCirrusAlt = this.link('uCirrusAlt');
+		const uShaft = this.link('uShaft');
+		const uAurora = this.link('uAurora');
+		const uAuroraAxis = this.link('uAuroraAxis');
+		const uAuroraMid = this.link('uAuroraMid');
+		const uAuroraSide = this.link('uAuroraSide');
+		const uAuroraTime = this.link('uAuroraTime');
+		// the waves' phases at the anchor, one uniform each, copied from the GLSL pass's array
+		const anchorSrc = U.uWaveAnchor!.value as number[];
+		const anchors = WAVES.map((_, i) => {
+			const node = uniform(anchorSrc[i] ?? 0);
+			this.syncs.push(() => {
+				node.value = (U.uWaveAnchor!.value as number[])[i] ?? 0;
+			});
+			return node;
+		});
+		void uniformArray;
 		const map = this.builtMap;
 		const pixelAngle = this.pixelAngle;
 		const sky = this.sky;
 		const octaves = this.settings.groundOctaves;
+		const cfg = this.settings;
+		const cloudMap = this.cloudMap;
+		const zonesOf = (n: N): N => this.terrain?.zones(n) ?? vec3(1.0, 1e9, 1.0);
 		const steps = Math.max(1, this.settings.terrainSteps);
 		const shadowSteps = this.settings.terrainShadowSteps;
 		const uAtmH = this.link('uAtmH');
@@ -291,6 +365,11 @@ export class PlanetPassTSL {
 		const nA = (pl: N, lam: number, salt: number): N => noiseA(pl, lam, salt, uAnchorCell);
 		// NaN or infinity by the bits: fast math may fold x != x away (Metal)
 		const nan = (x: N): N => floatBitsToUint(x).bitAnd(uint(0x7f800000)).equal(uint(0x7f800000));
+		/** x, or the fallback where x is NaN or infinite (screen derivatives next to a silhouette). */
+		const finite = (x: N, fallback: number): N => {
+			const v = float(x).toVar();
+			return select(nan(v), float(fallback), v);
+		};
 		const mapAt = (st: N, lod: N): N => texture(map, st).level(lod);
 
 		/** sitePaving: the pad, its ring and scorch, roads and aprons; (colour, pave, dirt). */
@@ -445,8 +524,71 @@ export class PlanetPassTSL {
 			const aa = max(footprint.mul(gPerM), 0.0004);
 			const landW = smoothstep(float(SEA_LEVEL).sub(aa), float(SEA_LEVEL).add(aa), e2).toVar();
 			const sdCoast = float(SEA_LEVEL).sub(e2).div(gPerM).toVar();
-			const depth = clamp(float(SEA_LEVEL).sub(e2).div(0.18), 0.0, 1.0);
-			const depthNear = clamp(sdCoast.div(60.0), 0.0, 1.0);
+			const depth = clamp(float(SEA_LEVEL).sub(e2).div(0.18), 0.0, 1.0).toVar();
+			const depthNear = clamp(sdCoast.div(60.0), 0.0, 1.0).toVar();
+			const depthSea = float(depth).toVar();
+
+			// lakes (plan 038, ADR 0072): basins of the core terrain, gated by every site's zone
+			const lakeLvl = noiseT(
+				nBF.mul(uR.div(1000.0)),
+				1 / LAKE_SHAPE.wavelengthKm,
+				LAKE_SHAPE.salt,
+				uTerrainShift
+			)
+				.mul(zonesOf(nBF).z)
+				.toVar();
+			const lakeGradPx = finite(length(vec2(dFdx(lakeLvl), dFdy(lakeLvl))), 0.0);
+			const lakeIn = float(-1.0e5).toVar();
+			const lakeOnly = float(0.0).toVar();
+			If(footprint.lessThan(2500.0).and(lakeLvl.greaterThan(LAKE_SHAPE.to - 0.1)), () => {
+				const gl = clamp(
+					lakeGradPx.div(max(footprint, 0.05)),
+					0.3 * LAKE_SHAPE.gradientBound,
+					1.1 * LAKE_SHAPE.gradientBound
+				);
+				// the shore is ragged inward only, so it never moves onto ground above the water
+				lakeIn.assign(
+					lakeLvl
+						.sub(LAKE_SHAPE.to)
+						.div(gl)
+						.sub(
+							nA(pl, 32, 77)
+								.mul(7.0)
+								.mul(smoothstep(30.0, 160.0, footprint).oneMinus())
+						)
+				);
+				landW.mulAssign(smoothstep(footprint.negate(), footprint, lakeIn).oneMinus());
+				sdCoast.assign(max(sdCoast, lakeIn));
+				depth.assign(max(depth, clamp(lakeIn.div(LAKE_SHAPE.depthRampMetres), 0.0, 1.0).mul(0.3)));
+				depthNear.assign(clamp(sdCoast.div(60.0), 0.0, 1.0));
+				lakeOnly.assign(
+					smoothstep(0.0, 6.0, lakeIn).mul(smoothstep(0.0, 0.05, depthSea).oneMinus())
+				);
+			});
+			// shore waves: the waterline runs up and down the beach; surf bands parallel to the shore
+			const sdGrad = finite(length(vec2(dFdx(sdCoast), dFdy(sdCoast))), 1.0).div(
+				max(footprint, 0.02)
+			);
+			const sdM = sdCoast.div(clamp(sdGrad, 1.0, 12.0)).toVar();
+			const shoreH = mix(
+				float(SHORE_WAVE_HEIGHT),
+				SHORE_WAVE_HEIGHT * LAKE_WAVE_SHARE,
+				lakeOnly
+			).toVar();
+			const swash = float(0.0).toVar();
+			const nearShore = smoothstep(12.0, 50.0, footprint)
+				.oneMinus()
+				.mul(smoothstep(14.0, 30.0, abs(sdM)).oneMinus());
+			If(nearShore.greaterThan(0.0), () => {
+				swash.assign(swashOffset(uTime, shoreH).mul(0.5));
+				landW.assign(
+					mix(
+						landW,
+						smoothstep(footprint.negate(), footprint, sdM.add(swash)).oneMinus(),
+						nearShore
+					)
+				);
+			});
 			const vS = uCamToSite.add(viewBF).toVar();
 			const siteDist = length(vS).toVar();
 
@@ -568,7 +710,19 @@ export class PlanetPassTSL {
 			const wBeach = smoothstep(SEA_LEVEL + BEACH_WIDTH * 0.5, SEA_LEVEL + BEACH_WIDTH * 1.6, e2)
 				.oneMinus()
 				.mul(wRock.oneMinus())
-				.mul(smoothstep(300.0, 3000.0, footprint).oneMinus());
+				.mul(smoothstep(300.0, 3000.0, footprint).oneMinus())
+				.toVar();
+			If(lakeIn.greaterThan(-60.0).and(lakeIn.lessThanEqual(0.0)), () => {
+				wBeach.assign(
+					max(
+						wBeach,
+						smoothstep(1.0, 22.0, lakeIn.negate())
+							.oneMinus()
+							.mul(wRock.oneMinus())
+							.mul(smoothstep(300.0, 3000.0, footprint).oneMinus())
+					)
+				);
+			});
 			const land = mix(
 				mix(mix(veg, rockc, wRock), sand, wBeach),
 				snow,
@@ -577,13 +731,92 @@ export class PlanetPassTSL {
 			// wet sand along the shore
 			land.mulAssign(
 				float(1.0).sub(
-					smoothstep(0.0, 3.0, sdCoast.negate()).oneMinus().mul(0.35).mul(wRock.oneMinus())
+					smoothstep(0.0, 3.0, sdM.add(swash).negate()).oneMinus().mul(0.35).mul(wRock.oneMinus())
 				)
 			);
+
+			// rivers: thin level-set curves of a low-frequency field on lowland, antialiased by distance
+			const riverMask = float(0.0).toVar();
+			const riverFlow3 = vec3(0.0).toVar();
+			If(
+				landW
+					.greaterThan(0.5)
+					.and(siteDist.greaterThan(900.0))
+					.and(footprint.lessThan(40.0))
+					.and(e2.lessThan(0.68))
+					.and(wDesert.lessThan(0.5)),
+				() => {
+					const rn = riverField(pl, nA).toVar();
+					const rr = abs(rn.sub(0.5));
+					const fw = max(finite(length(vec2(dFdx(rn), dFdy(rn))), 1.0), 1e-7);
+					const dist = rr.div(fw).mul(footprint);
+					const W = nA(pl, 1024, 44).mul(17.0).add(5.0);
+					const vis = smoothstep(0.35, 1.2, W.div(footprint))
+						.mul(smoothstep(0.55, 0.68, e2).oneMinus())
+						.mul(smoothstep(60.0, 260.0, hT).oneMinus());
+					riverMask.assign(
+						smoothstep(W.sub(footprint), W.add(footprint), dist).oneMinus().mul(vis)
+					);
+					const bank = smoothstep(W, W.mul(2.2).add(footprint), dist).oneMinus().mul(vis);
+					land.assign(mix(land, land.mul(vec3(0.55, 0.7, 0.5)), bank.mul(0.7)));
+					If(riverMask.greaterThan(0.02), () => {
+						// flow along the level set, signed toward lower ground (twin: flowVector in water-flow.ts)
+						const T1b = normalize(
+							cross(
+								nBF,
+								select(abs(nBF.y).greaterThan(0.99), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0))
+							)
+						);
+						const T2b = cross(nBF, T1b);
+						const gR = T1b.mul(riverField(pl.add(T1b.mul(14.0)), nA).sub(rn))
+							.add(T2b.mul(riverField(pl.add(T2b.mul(14.0)), nA).sub(rn)))
+							.div(14.0);
+						const tang = cross(nBF, gR);
+						const tl = length(tang);
+						const lod2 = max(lod, 2.0);
+						const tw2 = uMapTexel.div(uR.mul(2 * PI)).mul(exp2(lod2));
+						const ex2 = mapAt(st.add(vec2(tw2, 0.0)), lod2).r.sub(
+							mapAt(st.sub(vec2(tw2, 0.0)), lod2).r
+						);
+						const ey2 = mapAt(st.add(vec2(0.0, tw2.mul(2.0))), lod2).r.sub(
+							mapAt(st.sub(vec2(0.0, tw2.mul(2.0))), lod2).r
+						);
+						const texel2 = uMapTexel.mul(exp2(lod2));
+						const eastV = normalize(cross(vec3(0.0, 1.0, 0.0), nBF));
+						const northV = cross(nBF, eastV);
+						const gE = eastV
+							.mul(ex2.div(texel2.mul(2.0).mul(max(cos(ll.x), 0.2))))
+							.add(northV.mul(ey2.div(texel2.mul(2.0))));
+						const downhill = dot(tang, gE).negate().div(max(tl, 1e-9));
+						const el = length(gE);
+						const along = downhill.div(
+							sqrt(downhill.mul(downhill).add(el.mul(el).mul(0.1225)).add(1e-30))
+						);
+						riverFlow3.assign(tang.div(max(tl, 1e-9)).mul(along));
+					});
+				}
+			);
+			const lampE = vec3(0.0).toVar();
 
 			// the launch site, painted flush on the ground
 			If(dot(vS, vS).lessThan(uSiteRadius.mul(uSiteRadius)), () => {
 				const q = vec2(dot(vS, uSiteEast), dot(vS, uSiteNorth).negate());
+				If(uSiteLamps.greaterThan(0.001), () => {
+					let e: N = vec3(0.0);
+					for (const l of floodLightPositions()) {
+						const dd = vec3(q.x, 0.0, q.y).sub(vec3(l.x, l.y, l.z));
+						const d2 = dot(dd, dd);
+						e = e.add(
+							vec3(1.0, 0.82, 0.58).mul(
+								dd.y
+									.negate()
+									.mul(FLOOD_LIGHT_INTENSITY)
+									.div(d2.mul(sqrt(d2)))
+							)
+						);
+					}
+					lampE.assign(e.mul(uSiteLamps));
+				});
 				const site = sitePaving(q, land, max(footprint, 0.05));
 				const dirtc = vec3(0.2, 0.15, 0.09)
 					.mul(
@@ -616,11 +849,123 @@ export class PlanetPassTSL {
 				shallow,
 				vec3(0.004, 0.035, 0.1),
 				smoothstep(0.0, 0.7, max(depth, depthNear.mul(0.25)))
+			).toVar();
+			// lake water is greener and murkier than the sea and darkens toward the middle
+			water.assign(
+				mix(
+					water,
+					mix(vec3(0.045, 0.17, 0.15), vec3(0.012, 0.075, 0.085), smoothstep(0.0, 90.0, lakeIn)),
+					lakeOnly
+				)
 			);
+			// breaking foam along the shore, only where a pixel is smaller than the band
+			const foamFade = smoothstep(4.0, 40.0, footprint).oneMinus();
+			If(foamFade.greaterThan(0.01).and(landW.lessThan(0.999)), () => {
+				const fn = nA(pl, 4, 71)
+					.mul(0.6)
+					.add(nA(pl, 1, 72).mul(0.4))
+					.toVar();
+				const band = smoothstep(1.0, 9.0, sdCoast.add(fn.sub(0.5).mul(10.0))).oneMinus();
+				const lines = smoothstep(0.34, 0.6, fn);
+				const surf = surfFoam(sdM.add(swash).add(fn.sub(0.5).mul(3.0)), uTime, shoreH);
+				const foam = clamp(
+					max(surf.mul(lines.mul(0.45).add(0.55)), band.mul(lines.mul(0.2).add(0.15))),
+					0.0,
+					1.0
+				);
+				water.assign(
+					mix(
+						water,
+						vec3(0.8, 0.84, 0.86),
+						foam.mul(foamFade).mul(step(0.0, sdM.add(1.0).add(swash)))
+					)
+				);
+			});
+			const gWave = vec3(0.0).toVar();
+			If(landW.lessThan(0.999).and(footprint.lessThan(120.0)), () => {
+				const wv = waveGradient(pl, nBF, footprint, {
+					east: uSiteEast,
+					north: uSiteNorth,
+					time: uTime,
+					anchors,
+					noiseA: nA
+				});
+				const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
+				gWave.assign(wv.gradient.mul(calm));
+				const crest = wv.crest.mul(calm);
+				const capFade = smoothstep(6.0, 40.0, footprint).oneMinus();
+				const cap = smoothstep(
+					0.85,
+					1.35,
+					crest
+						.div(2.4)
+						.add(nA(pl, 1.5, 73).sub(0.5).mul(0.55))
+						.add(length(gWave).mul(0.8))
+				);
+				water.assign(
+					mix(
+						water.mul(crest.mul(0.08).add(1.0)),
+						vec3(0.8, 0.85, 0.87),
+						cap.mul(capFade).mul(smoothstep(0.1, 0.5, depth.add(depthNear)))
+					)
+				);
+			});
+			const riverCol = mix(vec3(0.03, 0.07, 0.06), vec3(0.02, 0.1, 0.1), noiseF(pl.mul(0.1)));
+			water.assign(mix(water, riverCol, riverMask));
+			const lw = landW.mul(riverMask.oneMinus()).toVar();
+			const col = mix(water, land, lw).toVar();
+			const Nw = vec3(Nb).toVar();
+			const wRip = float(0.5).toVar();
+			If(lw.lessThan(1.0).and(footprint.lessThan(400.0)), () => {
+				const f1 = clamp(float(8.0).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
+				const f2 = clamp(float(2.0).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
+				const f3 = clamp(float(0.5).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
+				const w = float(0.0).toVar();
+				If(riverMask.greaterThan(0.02).and(dot(riverFlow3, riverFlow3).greaterThan(0.0004)), () => {
+					// two phases half a cycle apart, each invisible at its own reset (water-flow.ts)
+					const pa = fract(uTime.div(FLOW_CYCLE));
+					const pb = fract(uTime.div(FLOW_CYCLE).add(0.5));
+					const sh = FLOW_SPEED * FLOW_CYCLE;
+					w.assign(
+						float(1.0)
+							.sub(abs(float(1.0).sub(pa.mul(2.0))))
+							.mul(rippleAt(pl.sub(riverFlow3.mul(pa.mul(sh))), f1, f2, f3, nA))
+							.add(
+								float(1.0)
+									.sub(abs(float(1.0).sub(pb.mul(2.0))))
+									.mul(rippleAt(pl.sub(riverFlow3.mul(pb.mul(sh))), f1, f2, f3, nA))
+							)
+					);
+				}).Else(() => {
+					w.assign(rippleAt(pl, f1, f2, f3, nA));
+				});
+				wRip.assign(w);
+				const rw1 = cross(dpdy, nBF);
+				const rw2 = cross(nBF, dpdx);
+				const dw = dot(dpdx, rw1);
+				const gw = nBF
+					.mul(abs(dw))
+					.sub(
+						rw1
+							.mul(dFdx(w))
+							.add(rw2.mul(dFdy(w)))
+							.mul(sign(dw))
+							.mul(1.8)
+					)
+					.toVar();
+				const gwOk = dot(gw, gw)
+					.greaterThan(1e-24)
+					.and(nan(gw.x).or(nan(gw.y)).or(nan(gw.z)).not());
+				Nw.assign(select(gwOk, normalize(gw), nBF));
+				Nw.assign(normalize(Nw.add(normalize(nBF.sub(gWave)).sub(nBF))));
+			});
+			// the ripples of a river pass over its dark surface (moving brightness along the flow)
+			col.mulAssign(riverMask.mul(lw.oneMinus()).mul(1.6).mul(wRip.sub(0.4)).add(1.0));
 			return {
-				albedo: mix(water, land, landW),
-				normal: normalize(mix(nBF, Nb, landW)),
-				spec: landW.oneMinus()
+				albedo: col,
+				normal: normalize(mix(Nw, Nb, lw)),
+				spec: landW.oneMinus().add(riverMask.mul(0.3)),
+				lampE
 			};
 		};
 
@@ -852,6 +1197,231 @@ export class PlanetPassTSL {
 			return vis;
 		};
 
+		const R0 = U.uR!.value as number;
+		const atm = this.atm;
+		const mieScat = atm.betaMie / 1.1;
+		/**
+		 * \`shaftLoss\` (plan 054, ADR 0070): a second march along the ray; a sample under the cumulus slab
+		 * loses the share of its sun that the slab (and the terrain) blocks. Mie in-scatter removed,
+		 * before the gain, over the whole path and in front of tcA and tcB.
+		 */
+		const shaftLoss = (ro: N, rd: N, t0: N, t1: N, l: N, jit: N, tcA: N, tcB: N) => {
+			const all = vec3(0.0).toVar();
+			const toA = vec3(0.0).toVar();
+			const toB = vec3(0.0).toVar();
+			const len = max(min(t1, t0.add(SHAFT.range)).sub(t0), 0.0).toVar();
+			const g = atm.mieG;
+			const mieK = float(mieScat).mul(
+				float((1 - g * g) / (4 * PI)).div(pow(float(1 + g * g).sub(dot(rd, l).mul(2 * g)), 1.5))
+			);
+			const maskC = clamp(uCloudCover.mul(2.0), 0.0, 1.0);
+			const midAlt = uCloudAlt.add(CLOUD_THICKNESS / 2);
+			const od = vec3(0.0).toVar();
+			Loop({ start: 0, end: cfg.shaftSteps, type: 'int', name: 'hi' }, ({ hi }: { hi: N }) => {
+				const u = float(hi).add(jit).div(cfg.shaftSteps);
+				const sDist = t0.add(len.mul(u).mul(u)).toVar();
+				const ds = len.mul(2.0).mul(u).div(cfg.shaftSteps);
+				const p = ro.add(rd.mul(sDist)).toVar();
+				const rr = length(p).toVar();
+				const hh = max(rr.sub(uR), 0.0).toVar();
+				const dM = exp(hh.negate().div(atm.mieHeight)).mul(ds).toVar();
+				const oz = max(
+					select(
+						hh.lessThan(25000.0),
+						hh.sub(10000.0).div(15000.0),
+						float(40000.0).sub(hh).div(15000.0)
+					),
+					0.0
+				);
+				od.addAssign(vec3(exp(hh.negate().div(atm.rayleighHeight)).mul(ds), dM, oz.mul(ds)));
+				const np = p.div(rr);
+				const sunMu = dot(np, l).toVar();
+				If(sunMu.greaterThanEqual(SHAFT.minSunMu), () => {
+					const occ = float(0.0).toVar();
+					If(rr.lessThan(uCloudTop), () => {
+						const tq = select(
+							rr.lessThan(midAlt),
+							max(raySphere(rr, sunMu, midAlt).y, 0.0),
+							float(0.0)
+						).toVar();
+						const q = p.add(l.mul(tq));
+						const rq = rotY(uBodyInv.mul(normalize(q)), uCloudAngle);
+						const cov = (cloudMap ? cloudMap.at(rq).x : float(0.0)).mul(maskC);
+						occ.assign(
+							smoothstep(uCloudAlt, uCloudTop, rr)
+								.oneMinus()
+								.mul(1 - SHAFT.leak)
+								.mul(float(1.0).sub(exp(cov.mul(-SHAFT.tau).div(max(sunMu, SHAFT.muMin)))))
+								.mul(smoothstep(SHAFT.fadeFrom, SHAFT.fadeTo, tq).oneMinus())
+						);
+					});
+					if (terrain && cfg.shaftTerrain > 0) {
+						If(uTerrainOn.greaterThan(0.5), () => {
+							const reach = min(
+								float(SHAFT_TERRAIN.maxReach),
+								float(SHAFT_TERRAIN.topHeight).sub(hh).div(max(sunMu, SHAFT_TERRAIN.minMu))
+							).toVar();
+							If(reach.greaterThan(0.0), () => {
+								let vis: N = float(1.0);
+								for (let k = 0; k < cfg.shaftTerrain; k++) {
+									const fk = (k + 1) / cfg.shaftTerrain;
+									const sq = reach.mul(fk * fk);
+									const q = p.add(l.mul(sq));
+									const c = length(q)
+										.sub(uR)
+										.sub(terrain.cubeHeight(uBodyInv.mul(normalize(q))));
+									vis = min(
+										vis,
+										clamp(
+											c.div(
+												max(sunMu, SHAFT_TERRAIN.minPenumbraMu).mul(SHAFT_TERRAIN.penumbra).mul(sq)
+											),
+											0.0,
+											1.0
+										)
+									);
+								}
+								occ.assign(float(1.0).sub(occ.oneMinus().mul(vis)));
+							});
+						});
+					}
+					If(occ.greaterThan(0.0), () => {
+						const tCam = exp(
+							vec3(...atm.betaRayleigh)
+								.mul(od.x)
+								.add(vec3(od.y.mul(atm.betaMie * 1.1)))
+								.add(vec3(...atm.betaOzone).mul(od.z))
+								.negate()
+						);
+						const loss = tCam.mul(sky.sunlight(p, l)).mul(mieK.mul(dM).mul(occ));
+						all.addAssign(loss);
+						If(sDist.lessThan(tcA), () => {
+							toA.addAssign(loss);
+						});
+						If(sDist.lessThan(tcB), () => {
+							toB.addAssign(loss);
+						});
+					});
+				});
+			});
+			return { all, toA, toB };
+		};
+
+		const auroraProfile = (hgt: N): N => {
+			let e: N = vec3(0.0);
+			for (const lobe of AURORA.lobes) {
+				const sg = select(hgt.lessThan(lobe.peak), float(lobe.below), float(lobe.above));
+				const x = hgt.sub(lobe.peak).div(sg);
+				const k = (lobe.share * 2) / (Math.sqrt(2 * Math.PI) * (lobe.below + lobe.above));
+				e = e.add(vec3(...lobe.colour.map((c) => c * k)).mul(exp(x.mul(x).mul(-0.5))));
+			}
+			return e;
+		};
+		const rate = (turns: number): number => (2 * Math.PI * turns) / AURORA.period;
+		const auroraFootprint = (colat: N, psi: N, t: N, filt: N): N => {
+			const warp = sin(psi.mul(3.0).add(t.mul(rate(AURORA.turns.foldA))))
+				.mul(AURORA.foldAmplitude[0])
+				.add(
+					sin(
+						psi
+							.mul(7.0)
+							.sub(t.mul(rate(AURORA.turns.foldB)))
+							.add(1.3)
+					).mul(AURORA.foldAmplitude[1])
+				)
+				.add(
+					sin(
+						psi
+							.mul(13.0)
+							.add(t.mul(rate(AURORA.turns.foldC)))
+							.add(2.1)
+					).mul(AURORA.foldAmplitude[2])
+				);
+			const cw = colat.sub(warp);
+			const k = cos(psi).mul(0.5).add(0.5);
+			const width = mix(AURORA.widthDay, AURORA.widthNight, k);
+			const wide = sqrt(width.mul(width).add(filt.mul(filt)));
+			const x = cw.sub(mix(AURORA.colatDay, AURORA.colatNight, k)).div(wide);
+			const band = exp(x.mul(x).negate()).mul(width).div(wide);
+			const sf = filt.div(AURORA.streakFilter);
+			const streak = float(0.35)
+				.div(sf.mul(sf).add(1.0))
+				.mul(
+					sin(
+						psi
+							.mul(23.0)
+							.sub(t.mul(rate(AURORA.turns.rays)))
+							.add(cw.mul(4.0 / (Math.PI / 180)))
+					)
+				)
+				.add(0.65);
+			const gaps = smoothstep(
+				-0.4,
+				0.5,
+				sin(psi.mul(2.0).add(0.7)).mul(sin(psi.mul(5.0).sub(t.mul(rate(2)))))
+			)
+				.mul(0.75)
+				.add(0.25);
+			return clamp(band.mul(streak).mul(gaps), 0.0, 1.0);
+		};
+		/** Aurora emission between the ray's stretches of the shell; \`far\` lies beyond splitDist. */
+		const auroraMarch = (ro: N, rd: N, r0: N, d: N, hitG: N, splitDist: N, jit: N) => {
+			const near = vec3(0.0).toVar();
+			const far = vec3(0.0).toVar();
+			const sT = raySphere(r0, d, uR.add(AURORA.shellTop)).toVar();
+			const sB = raySphere(r0, d, uR.add(AURORA.shellBase)).toVar();
+			const a0 = max(sT.x, 0.0).toVar();
+			const a1 = float(sT.y).toVar();
+			const b0 = float(0.0).toVar();
+			const b1 = float(0.0).toVar();
+			const skip = sT.y.lessThanEqual(0.0).toVar();
+			If(sB.y.greaterThan(0.0), () => {
+				If(sB.x.greaterThan(0.0), () => {
+					// outside the hollow, the ray dips into it
+					b0.assign(sB.y);
+					b1.assign(a1);
+					a1.assign(sB.x);
+					If(hitG, () => {
+						b1.assign(b0);
+					});
+				}).Else(() => {
+					// inside the hollow
+					If(hitG, () => {
+						skip.assign(true);
+					});
+					a0.assign(max(a0, sB.y));
+				});
+			});
+			const len1 = max(a1.sub(a0), 0.0).toVar();
+			const total = len1.add(max(b1.sub(b0), 0.0)).toVar();
+			If(skip.not().and(total.greaterThan(0.0)), () => {
+				const ds = total.div(cfg.auroraSteps).toVar();
+				const filt = ds.mul(AURORA.filterShare / (R0 + AURORA.lobes[0]!.peak));
+				Loop({ start: 0, end: cfg.auroraSteps, type: 'int', name: 'ri' }, ({ ri }: { ri: N }) => {
+					const s0 = float(ri).add(jit).mul(ds);
+					const sDist = select(s0.lessThan(len1), a0.add(s0), b0.add(s0.sub(len1))).toVar();
+					const p = ro.add(rd.mul(sDist));
+					const r = length(p);
+					const n = p.div(r);
+					const night = smoothstep(AURORA.nightNone, AURORA.nightFull, dot(n, uSunDir)).toVar();
+					If(night.greaterThan(0.0), () => {
+						const nb = uBodyInv.mul(n);
+						const ca = clamp(dot(nb, uAuroraAxis), -1.0, 1.0);
+						const pp = nb.sub(uAuroraAxis.mul(ca));
+						const psi = atan(dot(pp, uAuroraSide), dot(pp, uAuroraMid));
+						const fpA = auroraFootprint(acos(ca), psi, uAuroraTime, filt);
+						const e = auroraProfile(r.sub(uR)).mul(fpA.mul(night).mul(ds).mul(AURORA.gain));
+						If(sDist.lessThan(splitDist), () => {
+							near.addAssign(e);
+						}).Else(() => {
+							far.addAssign(e);
+						});
+					});
+				});
+			});
+			return { near, far };
+		};
+
 		const ndc = varying(positionGeometry.xy);
 		const main = Fn(() => {
 			// Every value the branches below share is a variable declared here: TSL declares a shared
@@ -949,7 +1519,18 @@ export class PlanetPassTSL {
 					.mul(k)
 					.mul(skyVis)
 					.add(vec3(...NIGHT_AMBIENT).mul(PI));
-				const lit = sf.albedo.div(PI).mul(uSunIrr.mul(sunT).mul(ndl).mul(sh).add(amb)).toVar();
+				if (cfg.cloudShadowMap && cloudMap) {
+					// one fetch of the baked density instead of the noise (plan 056): the sun ray through the slab
+					If(geo.greaterThan(0.04), () => {
+						const scl = raySphere(R, geo, uCloudAlt).y;
+						const q = nBF.mul(R).add(Lb.mul(scl));
+						sh.mulAssign(float(1.0).sub(cloudMap.at(rotY(normalize(q), uCloudAngle)).y.mul(0.45)));
+					});
+				}
+				const lit = sf.albedo
+					.div(PI)
+					.mul(uSunIrr.mul(sunT).mul(ndl).mul(sh).add(amb).add(sf.lampE))
+					.toVar();
 				If(sf.spec.greaterThan(0.0), () => {
 					const V = rdBF.negate();
 					const Hh = normalize(Lb.add(V));
@@ -988,26 +1569,325 @@ export class PlanetPassTSL {
 				);
 				base.addAssign(vec3(1.0, 0.96, 0.9).mul(SUN_DISC_RADIANCE).mul(disc2).mul(limb));
 			});
-			// the air in front: the sky view for rays to the sea sphere or out of the air; terrain
-			// stands in front of where those rays end, so its air is marched (thinner near the camera,
-			// as \`terrainVeil\` in atmosphere-model.ts)
-			const colour = vec3(0.0).toVar();
-			If(hitT, () => {
-				const at = raySphere(r0, d, uR.add(uAtmH));
-				const seg = sky.segment(ro, rd, max(at.x, 0.0), tG, 12);
-				const veil = mix(
-					float(TERRAIN_VEIL.near),
-					1.0,
-					smoothstep(TERRAIN_VEIL.fadeFrom, TERRAIN_VEIL.fadeTo, tG)
+			// --- the air, the clouds, the shafts and the aurora in front of base ----------------------
+			const jitter = fract(
+				fract(dot(screenCoordinate.xy, vec2(0.06711056, 0.00583715))).mul(52.9829189)
+			).toVar();
+			const atmS = raySphere(r0, d, uR.add(uAtmH)).toVar();
+			const t0 = max(atmS.x, 0.0).toVar();
+			const t1 = select(hitG, min(atmS.y, tG), atmS.y).toVar();
+			const inAtm = atmS.y.greaterThan(0.0).and(t1.greaterThan(t0)).toVar();
+			const auroraNear = vec3(0.0).toVar();
+			if (cfg.auroraSteps > 0) {
+				If(uAurora.greaterThan(0.001), () => {
+					const ar = auroraMarch(
+						ro,
+						rd,
+						r0,
+						d,
+						hitG,
+						select(inAtm, t0, float(1e30)),
+						fract(sin(dot(screenCoordinate.xy, vec2(12.9898, 78.233))).mul(43758.5453))
+					);
+					base.addAssign(ar.far.mul(uAurora));
+					auroraNear.assign(ar.near.mul(uAurora));
+				});
+			}
+			// cloud layers (ADR 0037): 1 = cumulus, 2 = cirrus; a layer the ray misses or finds clear stays at 1e30
+			const tcA = float(1e30).toVar();
+			const tcB = float(1e30).toVar();
+			const hitA = bool(false).toVar();
+			const alphaA = float(0.0).toVar();
+			const lightA = vec3(0.0).toVar();
+			const cloudTA = float(1e30).toVar();
+			const csT = raySphere(r0, d, uCloudTop).toVar();
+			const csA = raySphere(r0, d, uCloudAlt).toVar();
+			If(inAtm.and(csT.y.greaterThan(0.0)), () => {
+				// the stretch of the ray inside the slab (twin: slabInterval in cloud-volume.ts)
+				const a0 = max(csT.x, 0.0).toVar();
+				const a1 = float(csT.y).toVar();
+				If(csA.y.greaterThan(0.0), () => {
+					If(r0.lessThanEqual(uCloudAlt), () => {
+						a0.assign(max(csA.y, 0.0));
+					})
+						.ElseIf(csA.x.greaterThan(a0), () => {
+							a1.assign(min(a1, csA.x));
+						})
+						.Else(() => {
+							a0.assign(max(a0, csA.y));
+						});
+				});
+				If(hitG, () => {
+					a1.assign(min(a1, tG));
+				});
+				If(a1.greaterThan(a0), () => {
+					const len = a1.sub(a0).toVar();
+					const marchLen = min(len, CLOUD_MAX_PATH).toVar();
+					const dt = marchLen.div(cfg.cloudSteps).toVar();
+					const tm = a0.add(marchLen.mul(0.5)).toVar();
+					const nm = normalize(ro.add(rd.mul(tm))).toVar();
+					const fp = tm
+						.mul(pixelAngle)
+						.div(max(abs(dot(nm, rd)), 0.05))
+						.toVar();
+					const coverD = cloudDensityQ(
+						rotY(uBodyInv.mul(nm), uCloudAngle).mul(R0 / 16000),
+						false,
+						fp,
+						cfg.cloudOctaves,
+						uCloudCover
+					);
+					const cover = smoothstep(0.08, 0.55, coverD).toVar();
+					const mask = clamp(uCloudCover.mul(2.0), 0.0, 1.0)
+						.mul(smoothstep(45000.0, 120000.0, tm).oneMinus())
+						.toVar();
+					If(cover.mul(mask).greaterThanEqual(0.004), () => {
+						const cj = fract(jitter.add(0.381966)).mul(0.5).add(0.25);
+						const cosS = dot(rd, uSunDir).toVar();
+						const sunTc = sky
+							.sunlight(nm.mul(uCloudAlt.add(0.5 * CLOUD_THICKNESS)), uSunDir)
+							.toVar();
+						const trans = float(1.0).toVar();
+						const acc = vec3(0.0).toVar();
+						const densSum = float(0.0).toVar();
+						Loop(
+							{ start: 0, end: cfg.cloudSteps, type: 'int', name: 'ci' },
+							({ ci }: { ci: N }) => {
+								const t = a0.add(float(ci).add(cj).mul(dt));
+								const pp = ro.add(rd.mul(t)).toVar();
+								const rr = length(pp);
+								const np = pp.div(rr).toVar();
+								const hh = clamp(rr.sub(uCloudAlt).div(CLOUD_THICKNESS), 0.0, 1.0).toVar();
+								const eP = cloudErosion(
+									uBodyInv.mul(np),
+									fp,
+									cfg.cloudDetail,
+									uCloudAngle,
+									R0
+								).toVar();
+								const dn = cloudSlabDensity(cover, hh, eP).toVar();
+								densSum.addAssign(dn);
+								If(dn.greaterThan(0.002), () => {
+									const tauL = cloudSunDepth(hh, cover, dot(np, uSunDir)).toVar();
+									const ps = pp.add(uSunDir.mul(450.0));
+									const rs = length(ps);
+									const hs = clamp(rs.sub(uCloudAlt).div(CLOUD_THICKNESS), 0.0, 1.0);
+									tauL.addAssign(
+										cloudSlabDensity(
+											cover,
+											hs,
+											cloudErosion(uBodyInv.mul(ps.div(rs)), fp, 1, uCloudAngle, R0)
+										).mul(CLOUD_SIGMA * 450)
+									);
+									const stepTau = dn.mul(CLOUD_SIGMA).mul(dt);
+									const direct = uSunIrr
+										.mul(sunTc)
+										.mul(
+											cloudScatterGain(tauL, cosS)
+												.mul(cloudPowder(stepTau, cosS))
+												.add(cloudFill(tauL, hh))
+										);
+									const ambC = uAmbient.mul(hh.mul(0.55).add(0.65));
+									const Ls = vec3(0.93 / PI)
+										.mul(direct.add(ambC))
+										.mul(cloudBillowShade(eP))
+										.add(vec3(...NIGHT_AMBIENT).mul(0.6));
+									const stepA = float(1.0).sub(exp(stepTau.negate()));
+									acc.addAssign(Ls.mul(trans).mul(stepA));
+									trans.mulAssign(stepA.oneMinus());
+								});
+							}
+						);
+						const opacity = float(1.0).sub(trans).toVar();
+						If(len.greaterThan(marchLen), () => {
+							// the rest of a grazing path: the average density, lit like what was marched
+							const eTau = densSum
+								.div(cfg.cloudSteps)
+								.mul(CLOUD_SIGMA)
+								.mul(min(len.sub(marchLen), CLOUD_EXTRA_PATH));
+							const Lm = acc.div(max(opacity, 1e-3));
+							acc.addAssign(Lm.mul(trans).mul(float(1.0).sub(exp(eTau.negate()))));
+							trans.mulAssign(exp(eTau.negate()));
+							opacity.assign(float(1.0).sub(trans));
+						});
+						alphaA.assign(opacity.mul(mask));
+						const lm = acc.div(max(opacity, 1e-4));
+						lightA.assign(lm.div(lm.div(CLOUD_RADIANCE_KNEE).add(1.0)));
+						cloudTA.assign(tm);
+						hitA.assign(alphaA.greaterThanEqual(0.002));
+						alphaA.assign(select(hitA, alphaA, float(0.0)));
+					});
+				});
+			});
+			const csB = raySphere(r0, d, uCirrusAlt).toVar();
+			const cloudTB = select(r0.lessThan(uCirrusAlt), csB.y, csB.x).toVar();
+			const hitB = inAtm
+				.and(csB.y.greaterThan(0.0))
+				.and(cloudTB.greaterThan(0.0))
+				.and(hitG.not().or(cloudTB.lessThan(tG)))
+				.toVar();
+			const alphaB = float(0.0).toVar();
+			If(hitB, () => {
+				alphaB.assign(
+					cirrusDensity(uBodyInv.mul(normalize(ro.add(rd.mul(cloudTB)))), uCloudAngle, R0)
 				);
-				colour.assign(base.mul(seg.transmittance).add(seg.inscatter.mul(veil).mul(SKY_GAIN)));
-			}).Else(() => {
+				If(alphaB.lessThan(0.003), () => {
+					hitB.assign(false);
+					alphaB.assign(0.0);
+				});
+			});
+			// nearest layer first: slot 1 snapshot at tcA, slot 2 at tcB
+			const aFirst = hitB
+				.not()
+				.or(hitA.and(cloudTA.lessThanEqual(cloudTB)))
+				.toVar();
+			If(hitA.and(hitB), () => {
+				tcA.assign(select(aFirst, cloudTA, cloudTB));
+				tcB.assign(select(aFirst, cloudTB, cloudTA));
+			})
+				.ElseIf(hitA, () => {
+					tcA.assign(cloudTA);
+				})
+				.ElseIf(hitB, () => {
+					tcA.assign(cloudTB);
+				});
+
+			// the in-scatter and transmittance in front of base (and up to each cloud layer)
+			const ins = vec3(0.0).toVar();
+			const tr = vec3(1.0).toVar();
+			const insA = vec3(0.0).toVar();
+			const trA = vec3(1.0).toVar();
+			const insB = vec3(0.0).toVar();
+			const trB = vec3(1.0).toVar();
+			If(inAtm, () => {
+				// terrain reads through a thinner veil than the model gives (terrainVeil in atmosphere-model.ts)
+				const veil = select(
+					hitT,
+					mix(
+						float(TERRAIN_VEIL.near),
+						1.0,
+						smoothstep(TERRAIN_VEIL.fadeFrom, TERRAIN_VEIL.fadeTo, tG)
+					),
+					float(1.0)
+				)
+					.mul(SKY_GAIN)
+					.toVar();
+				If(hitA.or(hitB), () => {
+					// clouds: one march of the air with the state at each layer, as the GLSL's marchAtmosphere
+					const sc = sky.march(
+						ro,
+						rd,
+						t0,
+						t1,
+						tcA,
+						tcB,
+						cfg.viewSamples,
+						select(h.lessThan(uAtmH), float(2.0), float(1.0)),
+						jitter
+					);
+					ins.assign(sc.inscatter.mul(veil));
+					tr.assign(sc.transmittance);
+					insA.assign(sc.insA.mul(veil));
+					trA.assign(sc.transA);
+					insB.assign(sc.insB.mul(veil));
+					trB.assign(sc.transB);
+				})
+					.ElseIf(hitT, () => {
+						const seg = sky.segment(ro, rd, t0, tG, 12);
+						ins.assign(seg.inscatter.mul(veil));
+						tr.assign(seg.transmittance);
+					})
+					.Else(() => {
+						ins.assign(sky.inscatter(ro, rd).mul(SKY_GAIN));
+						tr.assign(sky.viewTransmittance(ro, rd, hitP, tHit));
+					});
+				if (cfg.shaftSteps > 0) {
+					If(
+						uShaft
+							.greaterThan(0.01)
+							.and(
+								uCloudCover.greaterThan(0.02).or(cfg.shaftTerrain > 0 ? bool(true) : bool(false))
+							)
+							.and(dot(rd, uSunDir).greaterThan(SHAFT.minCosToSun)),
+						() => {
+							const sl = shaftLoss(ro, rd, t0, t1, uSunDir, fract(jitter.add(0.618034)), tcA, tcB);
+							const k = uShaft.mul(uSunIrr).mul(SHAFT.gain * SKY_GAIN);
+							// segment by segment (the composite subtracts neighbours), never more than maxShare of one
+							const dA = min(sl.toA.mul(k), insA.mul(SHAFT.maxShare));
+							const dB = min(
+								max(sl.toB.sub(sl.toA), 0.0).mul(k),
+								insB.sub(insA).mul(SHAFT.maxShare)
+							);
+							const dC = min(
+								max(sl.all.sub(sl.toB), 0.0).mul(k),
+								ins.sub(insB).mul(SHAFT.maxShare)
+							);
+							If(hitA.or(hitB), () => {
+								insA.subAssign(dA);
+								insB.subAssign(dA.add(dB));
+							});
+							ins.subAssign(
+								select(
+									hitA.or(hitB),
+									dA.add(dB).add(dC),
+									min(sl.all.mul(k), ins.mul(SHAFT.maxShare))
+								)
+							);
+						}
+					);
+				}
+			});
+			const colour = base.mul(tr).add(ins).toVar();
+			If(inAtm.and(hitA.or(hitB)), () => {
+				const lightB = vec3(0.0).toVar();
+				If(hitB, () => {
+					const dirI = normalize(ro.add(rd.mul(cloudTB)));
+					const muc = dot(dirI, uSunDir);
+					const sunTc = sky.sunlight(dirI.mul(uCirrusAlt), uSunDir);
+					const hg = hgPhase(dot(rd, uSunDir), 0.65).mul(4 * PI);
+					const phase = clamp(hg, 0.0, 4.0).mul(0.3).add(0.7);
+					lightB.assign(
+						vec3(0.97 / PI)
+							.mul(
+								uSunIrr.mul(sunTc).mul(max(muc, 0.0)).mul(phase).mul(1.35).add(uAmbient.mul(0.7))
+							)
+							.add(vec3(...NIGHT_AMBIENT).mul(0.5))
+					);
+				});
+				// slot order: (1) the nearer layer, (2) the farther one
+				const l1 = vec3(lightA).toVar();
+				const l2 = vec3(lightB).toVar();
+				const a1 = float(alphaA).toVar();
+				const a2 = float(alphaB).toVar();
+				If(hitA.and(hitB), () => {
+					If(aFirst.not(), () => {
+						l1.assign(lightB);
+						l2.assign(lightA);
+						a1.assign(alphaB);
+						a2.assign(alphaA);
+					});
+				})
+					.ElseIf(hitB, () => {
+						l1.assign(lightB);
+						a1.assign(alphaB);
+						l2.assign(vec3(0.0));
+						a2.assign(0.0);
+					})
+					.Else(() => {
+						l2.assign(vec3(0.0));
+						a2.assign(0.0);
+					});
 				colour.assign(
-					base
-						.mul(sky.viewTransmittance(ro, rd, hitP, tHit))
-						.add(sky.inscatter(ro, rd).mul(SKY_GAIN))
+					insA.add(trA.mul(l1).mul(a1)).add(
+						a1.oneMinus().mul(
+							max(insB.sub(insA), 0.0)
+								.add(trB.mul(l2).mul(a2))
+								.add(a2.oneMinus().mul(max(ins.sub(insB), 0.0).add(tr.mul(base))))
+						)
+					)
 				);
 			});
+			colour.addAssign(auroraNear);
 			// one NaN would smear through the bloom over the whole frame
 			const bad = nan(colour.x).or(nan(colour.y)).or(nan(colour.z));
 			colour.assign(select(bad, vec3(0.0), min(colour, vec3(200.0))));
