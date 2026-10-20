@@ -96,6 +96,8 @@
 		return `M58 104 A96 96 0 0 ${fraction >= 0 ? 1 : 0} ${x.toFixed(2)} ${y.toFixed(2)}`;
 	});
 	const k = $derived(ballSize / 176);
+	/** `+0.05`, `-0.10`, `0.00`: a trim value with its sign (plan 245). */
+	const signed = (v: number): string => (v > 0 ? '+' : '') + v.toFixed(2);
 </script>
 
 <section class="deck" aria-label="Flight instruments" style:--k={k}>
@@ -138,6 +140,17 @@
 			label="Navball: attitude relative to the horizon"
 		/>
 	</div>
+
+	{#if model?.trim}
+		<span
+			class="chip trim num"
+			data-testid="hud-trim"
+			data-tip="Trim: Alt+W/S pitch, Alt+A/D yaw, Alt+Q/E roll, Alt+X resets"
+			>TRIM P {signed(model.trim.pitch)} Y {signed(model.trim.yaw)} R {signed(
+				model.trim.roll
+			)}</span
+		>
+	{/if}
 
 	<div class="readouts">
 		<div class="row">
@@ -281,6 +294,12 @@
 		height: calc(176 * var(--u));
 		display: grid;
 		place-items: center;
+	}
+	.trim {
+		position: absolute;
+		left: calc(66 * var(--u));
+		top: calc(186 * var(--u));
+		color: var(--text-primary);
 	}
 	.readouts {
 		position: absolute;

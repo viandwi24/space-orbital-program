@@ -41,7 +41,8 @@ export function ambientAt(body: BodyDefinition, altitude: number): Ambient {
 		density: pressure / (gas * temperature),
 		altitude,
 		temperature,
-		speedOfSound: Math.sqrt((atmo.gamma ?? AIR_GAMMA) * gas * temperature)
+		speedOfSound: Math.sqrt((atmo.gamma ?? AIR_GAMMA) * gas * temperature),
+		...(atmo.breathable ? { breathable: true } : {})
 	};
 }
 

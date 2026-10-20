@@ -100,7 +100,8 @@
 			<div class="card" class:burning={hand.current}>
 				<div class="head">
 					<span class="badge num">{hand.label.padStart(2, '0')}</span>
-					<span class="lab">{hand.current ? 'Current' : 'Next'} · Δv</span>
+					<span class="lab">{hand.current ? 'Current' : 'Next'} · <Term id="delta-v">Δv</Term></span
+					>
 					<span class="big num">{dv(hand.dv)}<span class="u"> {speedUnit()}</span></span>
 				</div>
 				{#if hand.fuel !== null}
@@ -131,7 +132,7 @@
 			data-tip="Activate the next stage ({settings.keymap.label('stage')})"
 			onclick={onstage}>GO</button
 		>
-		<span class="lab">Total Δv</span>
+		<span class="lab">Total <Term id="delta-v">Δv</Term></span>
 		<span
 			class="total num"
 			data-tip="Total delta-v of the remaining stages, {environment === 'vacuum'

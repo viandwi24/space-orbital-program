@@ -36,6 +36,7 @@
 		onclose,
 		host,
 		info,
+		resetFrames,
 		world,
 		designs
 	}: {
@@ -43,6 +44,8 @@
 		onclose: () => void;
 		host: DebugHost | null;
 		info: () => DebugInfo | null;
+		/** Empties the frame-interval histogram (plan 251). */
+		resetFrames: () => void;
 		/** The world's name, for the log file. */
 		world: string;
 		/** Designs Set orbit can spawn: the vessel library's and the flight's own. */
@@ -469,6 +472,24 @@
 			<dl class="info" data-testid="debug-info">
 				<dt>Frames per second</dt>
 				<dd>{fps}</dd>
+				<dt>Frame interval</dt>
+				<dd data-testid="debug-frames">
+					{#if infoNow && infoNow.frames.count > 0}
+						{@const f = infoNow.frames}
+						p50 {f.p50.toFixed(1)} · p95 {f.p95.toFixed(1)} · p99 {f.p99.toFixed(1)} ms, over 16.7 ms:
+						{(f.over60 * 100).toFixed(1)} %, over 33.3 ms: {(f.over30 * 100).toFixed(1)} % ({f.count}
+						frames, {Math.round(f.seconds)} s)
+					{:else}
+						no frames yet
+					{/if}
+					<Button
+						onclick={() => {
+							resetFrames();
+							infoNow = info();
+						}}
+						data-testid="debug-frames-reset">Reset</Button
+					>
+				</dd>
 				<dt>Sim step</dt>
 				<dd>{infoNow?.stepMs == null ? '–' : `${infoNow.stepMs.toFixed(2)} ms`}</dd>
 				<dt>Vessels</dt>
@@ -480,6 +501,10 @@
 					{infoNow?.preset ?? '–'} at {Math.round((infoNow?.scale ?? 1) * 100)} %{infoNow?.governor
 						? ', adjusted automatically'
 						: ''}
+				</dd>
+				<dt>Frame pacing</dt>
+				<dd data-testid="debug-governor-pacing">
+					{infoNow?.governorPacing ?? 'not adjusted automatically'}
 				</dd>
 				<dt>Graphics changes</dt>
 				<dd data-testid="debug-governor-changes">

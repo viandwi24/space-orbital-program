@@ -6,7 +6,7 @@
  */
 import type { AlarmKind, AlarmSnapshot, CommandResult, EntityId, SaveAlarms } from '@orbital/core';
 import { cloneData } from '@orbital/core';
-import type { SimCore } from './core.ts';
+import { vesselOf, type SimCore } from './core.ts';
 import { eventTime, NODE_MARGIN, WARP_TO_MARGIN } from './warp.ts';
 
 /** Most alarms a world keeps. */
@@ -64,7 +64,8 @@ export function addAlarm(
 		time,
 		kind,
 		...(command.vessel !== undefined ? { vessel: command.vessel } : {}),
-		...(command.body !== undefined ? { body: command.body } : {})
+		...(command.body !== undefined ? { body: command.body } : {}),
+		...(kind === 'apoapsis' || kind === 'periapsis' ? { lead: command.lead ?? WARP_TO_MARGIN } : {})
 	};
 	if (at >= 0) list.splice(at, 1);
 	list.push(alarm);
@@ -100,6 +101,27 @@ export function fireAlarms(core: SimCore): void {
 			...(alarm.vessel !== undefined ? { vessel: alarm.vessel } : {})
 		});
 	}
+}
+
+/**
+ * Apsis alarms follow their vessel's orbit (plan 247): while it flies (a burn changes the orbit),
+ * the alarm is moved to the new next apsis less its lead. One already inside its lead keeps its time.
+ */
+export function followAlarms(core: SimCore): void {
+	let moved = false;
+	for (const alarm of core.alarms.list) {
+		if ((alarm.kind !== 'apoapsis' && alarm.kind !== 'periapsis') || alarm.vessel === undefined)
+			continue;
+		if (!core.world.hasEntity(alarm.vessel)) continue;
+		if (vesselOf(core, alarm.vessel).mode !== 'flight') continue;
+		const at = eventTime(core, alarm.kind, alarm.vessel);
+		if (typeof at === 'string') continue;
+		const time = at - (alarm.lead ?? WARP_TO_MARGIN);
+		if (time <= core.t || Math.abs(time - alarm.time) < 1e-3) continue;
+		alarm.time = time;
+		moved = true;
+	}
+	if (moved) core.alarms.list.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
 }
 
 export const alarmsSnapshot = (core: SimCore): AlarmSnapshot[] | undefined =>

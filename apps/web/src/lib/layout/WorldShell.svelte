@@ -13,7 +13,7 @@
 	import MenuBar from './MenuBar.svelte';
 	import StatusBar from './StatusBar.svelte';
 	import { pageShell } from './page-actions.svelte';
-	import { activeFixed, elapsedText, isImmersive } from './shell-model';
+	import { activeFixed, elapsedText, isImmersive, warpText } from './shell-model';
 	import type { BellFeed } from './status-bar';
 
 	let {
@@ -37,6 +37,12 @@
 		paused = false,
 		pauseLocked = false,
 		onpause,
+		warpSteps = WARP_STEPS,
+		onwarp,
+		onsave,
+		onload,
+		ondebug,
+		onchip,
 		children
 	}: {
 		snapshot: Snapshot | null;
@@ -68,18 +74,40 @@
 		paused?: boolean;
 		pauseLocked?: boolean;
 		onpause?: () => void;
+		/** The world's warp levels, for pages that do not drive the warp themselves (plan 248). */
+		warpSteps?: readonly number[];
+		/** Ask the sim for a warp factor; it grants what the world allows. */
+		onwarp?: (factor: number) => void;
+		/** Save and Load in the menu (plan 248); Save is absent while there is nothing to save. */
+		onsave?: () => void;
+		onload?: () => void;
+		/** Debug in the menu, where debug tools are allowed. */
+		ondebug?: () => void;
+		/** The clock chip toggles the place's pause (plan 248). */
+		onchip?: () => void;
 		children: Snippet;
 	} = $props();
 
 	const time = $derived(pageShell.time);
 	const index = $derived(
-		time?.index ?? WARP_STEPS.reduce((at, step, i) => (step <= warp ? i : at), 0)
+		time?.index ?? warpSteps.reduce((at, step, i) => (step <= warp ? i : at), 0)
+	);
+	// A page that does not drive the warp (everything but Flight) gets the world's own: the sim
+	// grants what the world allows, the limit comes from the snapshot (plan 248).
+	const pageLimit = $derived(snapshot?.warpLimit?.reason ? snapshot.warpLimit.max : null);
+	const pageReason = $derived(
+		snapshot?.warpLimit?.reason
+			? `Max ${warpText(snapshot.warpLimit.max)} — ${snapshot.warpLimit.reason}`
+			: ''
 	);
 	const location = $derived(
 		pageShell.location ?? {
 			icon: 'spaceCenter' as const,
 			text: home ? `${place} · ${home}` : place
 		}
+	);
+	const debugAllowed = $derived(
+		snapshot?.debug !== undefined && snapshot.debug.access !== 'locked'
 	);
 	let menuOpen = $state(false);
 	function onmenu(): void {
@@ -95,15 +123,16 @@
 	{paused}
 	{pauseLocked}
 	{onpause}
-	steps={time?.steps ?? WARP_STEPS}
+	steps={time?.steps ?? warpSteps}
 	{index}
-	limit={time?.limit ?? null}
-	reason={time?.reason ?? ''}
+	limit={time ? time.limit : pageLimit}
+	reason={time ? time.reason : pageReason}
 	time={elapsedText(time?.elapsed ?? snapshot?.t ?? 0, calendar.day, calendar.year)}
 	date={time?.date ?? date}
 	met={time !== null}
 	chip={clockChip}
-	onpick={time?.onpick}
+	{onchip}
+	onpick={time ? time.onpick : onwarp ? (i) => onwarp(warpSteps[i] ?? 1) : undefined}
 	catchUp={time?.catchUp}
 	oncatchup={time?.oncatchup}
 />
@@ -135,6 +164,39 @@
 					menuOpen = false;
 					onworldsettings();
 				}}>World settings</button
+			>
+		{/if}
+		{#if onsave}
+			<button
+				type="button"
+				role="menuitem"
+				data-testid="nav-save"
+				onclick={() => {
+					menuOpen = false;
+					onsave();
+				}}>Save</button
+			>
+		{/if}
+		{#if onload}
+			<button
+				type="button"
+				role="menuitem"
+				data-testid="nav-load"
+				onclick={() => {
+					menuOpen = false;
+					onload();
+				}}>Load</button
+			>
+		{/if}
+		{#if ondebug && debugAllowed}
+			<button
+				type="button"
+				role="menuitem"
+				data-testid="nav-debug"
+				onclick={() => {
+					menuOpen = false;
+					ondebug();
+				}}>Debug (Alt+F12)</button
 			>
 		{/if}
 		<button

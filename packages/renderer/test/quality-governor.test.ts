@@ -1,32 +1,78 @@
+/** Plan 039 / 201 / 253 (ADRs 0053, 0233): the ladder and the governor's rules on synthetic frame series. */
 import { describe, expect, test } from 'bun:test';
 import {
 	DEFAULT_GOVERNOR,
 	QualityGovernor,
 	governorLadder,
+	levelCost,
+	sceneKeyOf,
 	type GovernorLevel
 } from '../src/quality-governor.ts';
 import { GRAPHICS_PRESETS } from '../src/presets.ts';
 
-/** Feeds `seconds` of frames of `ms` each; returns every level change in order. */
-function run(g: QualityGovernor, seconds: number, ms: number): GovernorLevel[] {
-	const changes: GovernorLevel[] = [];
-	const frames = Math.round((seconds * 1000) / ms);
-	for (let i = 0; i < frames; i++) {
-		const c = g.frame(ms);
-		if (c) changes.push(c);
-	}
-	return changes;
+interface Run {
+	changes: Array<{ t: number; level: GovernorLevel; reason: string }>;
+	/** Intervals of every drawn frame, ms. */
+	drawn: number[];
+	/** Seconds of play simulated. */
+	seconds: number;
 }
 
-/** Feeds frames of `ms` until the level changes (or `maxSeconds` pass); returns the new level or null. */
-function untilChange(g: QualityGovernor, ms: number, maxSeconds = 120): GovernorLevel | null {
-	const frames = Math.round((maxSeconds * 1000) / ms);
-	for (let i = 0; i < frames; i++) {
-		const c = g.frame(ms);
-		if (c) return c;
+/**
+ * A display of `hz` and a page whose frame costs `cost(level, t)` ms: the next rAF comes at the first
+ * vsync after the frame is done, the way a vsync-locked display shows it. `scene(t)` names the scene.
+ */
+function play(
+	g: QualityGovernor,
+	seconds: number,
+	cost: (level: GovernorLevel, tMs: number) => number,
+	options: {
+		hz?: number;
+		scene?: (tSeconds: number) => string;
+		work?: (level: GovernorLevel, tMs: number) => number;
+	} = {}
+): Run {
+	const period = 1000 / (options.hz ?? 60);
+	const out: Run = { changes: [], drawn: [], seconds };
+	let t = 0;
+	let last = period;
+	let lastDraw = 0;
+	let known = g.history.length;
+	while (t < seconds * 1000) {
+		if (options.scene) g.setScene(options.scene(t / 1000));
+		const r = g.tick(last);
+		if (g.history.length > known) {
+			const c = g.history[g.history.length - 1]!;
+			out.changes.push({ t: t / 1000, level: c.level, reason: c.reason });
+			known = g.history.length;
+		}
+		let step = period;
+		if (r.render) {
+			const c = cost(g.level, t);
+			step = Math.max(period, Math.ceil(c / period - 1e-9) * period);
+			out.drawn.push(t - lastDraw);
+			lastDraw = t;
+		}
+		t += step;
+		last = step;
 	}
-	return null;
+	return out;
 }
+
+/** A Retina-like machine: the top rung costs `top` ms, the others by their relative pixel cost. */
+const retina = (top: number) => (level: GovernorLevel) => top * levelCost(level);
+const over = (run: Run, ms: number, afterSeconds = 0): number => {
+	let t = 0;
+	let n = 0;
+	let total = 0;
+	for (const d of run.drawn) {
+		t += d / 1000;
+		if (t < afterSeconds) continue;
+		total++;
+		if (d > ms) n++;
+	}
+	return total === 0 ? 0 : n / total;
+};
 
 describe('governorLadder', () => {
 	test('resolution first, then the half-resolution planet pass, then the next preset, ending at low', () => {
@@ -60,7 +106,7 @@ describe('governorLadder', () => {
 			'low@0.85'
 		]);
 		const g = new QualityGovernor('high', DEFAULT_GOVERNOR, false);
-		run(g, 900, 60);
+		play(g, 900, () => 60);
 		expect(g.level).toEqual({ preset: 'low', scale: 0.85, planetScale: 1 });
 	});
 	test('the planet pass goes to half size before the frame drops to 0.7 and before the preset falls', () => {
@@ -83,168 +129,258 @@ describe('governorLadder', () => {
 	});
 });
 
-describe('QualityGovernor', () => {
+describe('QualityGovernor: rules on synthetic frame series (plan 253)', () => {
 	test('a machine inside the budget never changes level', () => {
 		const g = new QualityGovernor('high');
-		expect(run(g, 120, 16.7)).toEqual([]);
+		const run = play(g, 120, () => 9);
+		expect(run.changes).toEqual([]);
 		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 	});
 
-	test('steps down after the smoothed interval stays over budget, not on a short spike', () => {
+	test('a Retina-like series settles on a rung and never oscillates', () => {
 		const g = new QualityGovernor('high');
-		run(g, 5, 16.7);
-		// a one second hitch at 40 ms is not enough
-		expect(run(g, 1, 40)).toEqual([]);
-		expect(run(g, 5, 16.7)).toEqual([]);
-		// sustained 25 ms (40 fps) is
-		const changes = run(g, 6, 25);
-		expect(changes[0]).toEqual({ preset: 'high', scale: 0.85, planetScale: 1 });
+		const run = play(g, 300, retina(40));
+		expect(run.changes.length).toBeGreaterThan(0);
+		// downward only, and quiet after the settle: nothing changes after the first 20 s
+		for (const c of run.changes) expect(c.t).toBeLessThan(20);
+		const names = run.changes.map(
+			(c) => `${c.level.preset}@${c.level.scale}${c.level.planetScale < 1 ? '+h' : ''}`
+		);
+		expect(new Set(names).size).toBe(names.length);
+		// frames over 33.3 ms are rare once it has settled
+		expect(over(run, 34, 20)).toBeLessThan(0.01);
+		expect(g.level.planetScale).toBeLessThan(1);
 	});
 
-	test('keeps stepping down while the machine stays slow and stops at the floor', () => {
+	test('a sudden heavy scene drops within about a second, two rungs when it is very heavy', () => {
 		const g = new QualityGovernor('high');
-		run(g, 600, 40);
-		expect(g.level).toEqual({ preset: 'low', scale: 0.55, planetScale: 0.5 });
-		expect(run(g, 60, 40)).toEqual([]);
+		const run = play(g, 20, (l, t) => (t < 8_000 ? 9 : 45 * levelCost(l)));
+		const first = run.changes[0]!;
+		expect(first.t).toBeGreaterThanOrEqual(8);
+		expect(first.t).toBeLessThan(9.3);
+		expect(first.reason).toContain('two rungs');
+		expect(first.level).toEqual(governorLadder('high')[2]!);
 	});
 
-	test('the first seconds and the seconds after a change are not judged (shader compiles)', () => {
+	test('a one-frame spike is not a drop', () => {
 		const g = new QualityGovernor('high');
-		expect(run(g, DEFAULT_GOVERNOR.settleSeconds - 0.5, 200)).toEqual([]);
-		const first = untilChange(g, 25)!;
-		expect(first.scale).toBe(0.85);
-		// right after the change a slow stretch shorter than the settle time does not count
-		expect(run(g, DEFAULT_GOVERNOR.settleSeconds - 0.1, 60)).toEqual([]);
+		const run = play(g, 20, (_l, t) => (Math.floor(t / 100) % 50 === 7 ? 90 : 9));
+		expect(run.changes).toEqual([]);
+	});
+
+	test('no step up without evidence: a clean machine at a lowered rung stays there, however long', () => {
+		const g = new QualityGovernor('high');
+		play(g, 12, retina(40));
+		const level = g.level;
+		expect(level).not.toEqual(governorLadder('high')[0]!);
+		// 20 minutes of frames well inside the budget, the same scene: no timer retries
+		const run = play(g, 1_200, () => 6);
+		expect(run.changes).toEqual([]);
+		expect(g.level).toEqual(level);
+	});
+
+	test('a changed scene earns one trial per rung; a failed trial bans the rung for that scene', () => {
+		const g = new QualityGovernor('high');
+		const scene = (t: number) => (t < 40 ? 'A' : t < 400 ? 'B' : 'C');
+		const ladder = governorLadder('high');
+		const index = (l: GovernorLevel) =>
+			ladder.findIndex(
+				(x) => x.preset === l.preset && x.scale === l.scale && x.planetScale === l.planetScale
+			);
+		// the two top rungs never hold (two vsyncs); from the third down the frame is easy
+		const run = play(g, 600, (l) => (index(l) < 2 ? 40 : 9), { scene });
+		expect(index(g.level)).toBe(2);
+		const ups = run.changes.filter((c) => c.reason === 'scene changed, one trial up');
+		const failed = run.changes.filter((c) => c.reason.startsWith('trial failed'));
+		// A: the descent only. B: one trial up (fails, banned in B). C: one trial up (fails, banned in C).
+		expect(ups.length).toBe(2);
+		expect(failed.length).toBe(2);
+		for (const f of failed) expect(f.reason).toContain('banned in this scene');
+		expect(ups[0]!.t).toBeGreaterThanOrEqual(40);
+		expect(ups[1]!.t).toBeGreaterThanOrEqual(400);
+		expect(run.changes.filter((c) => !c.reason.includes('trial')).length).toBeGreaterThanOrEqual(1);
+		expect(run.changes[run.changes.length - 1]!.t).toBeLessThan(410);
+	});
+
+	test('measured headroom steps up, one rung at least 30 s after the last change', () => {
+		const g = new QualityGovernor('high');
+		const lowered = (l: GovernorLevel) => (levelCost(l) > 0.7 ? 40 : 6);
+		// the work times (5 ms at the rung above's pixel cost) leave room
+		let run = play(g, 12, lowered);
+		const down = g.level;
+		expect(down).not.toEqual(governorLadder('high')[0]!);
+		// feed work times through `frame`: 16.67 ms intervals, 4 ms of work
+		const ups: number[] = [];
+		for (let i = 0; i < 60 * 60; i++) {
+			const level = g.frame(1000 / 60, 4);
+			if (level) ups.push(i / 60);
+		}
+		expect(ups.length).toBeGreaterThan(0);
+		expect(ups[0]!).toBeGreaterThanOrEqual(30 - 12); // never sooner than the minimum gap
+		expect(g.history.some((h) => h.reason === 'measured headroom')).toBe(true);
+		run = play(g, 1, () => 5);
+		void run;
+	});
+
+	test('measured work too close to the budget does not step up', () => {
+		const g = new QualityGovernor('high');
+		play(g, 12, retina(40));
+		const before = g.history.length;
+		for (let i = 0; i < 60 * 600; i++) g.frame(1000 / 60, 13.5);
+		expect(g.history.length).toBe(before);
+	});
+
+	test('every change says why', () => {
+		const g = new QualityGovernor('high');
+		play(g, 60, retina(40), { scene: (t) => (t < 30 ? 'A' : 'B') });
+		expect(g.history.length).toBeGreaterThan(0);
+		for (const h of g.history) expect(h.reason.length).toBeGreaterThan(8);
+	});
+
+	test('a 120 Hz display is judged against 60 fps and draws every second rAF', () => {
+		const g = new QualityGovernor('high');
+		const run = play(g, 60, () => 7, { hz: 120 });
+		expect(g.displayRate).toBe(120);
+		expect(g.targetFps).toBe(60);
+		expect(g.renderEvery).toBe(2);
+		expect(run.changes).toEqual([]);
+		const steady = run.drawn.slice(200);
+		expect(Math.min(...steady)).toBeGreaterThan(15);
+		expect(Math.max(...steady)).toBeLessThan(18);
+	});
+
+	test('a display throttled to 30 Hz is found out and not fought: quality goes back, 30 is the target', () => {
+		const g = new QualityGovernor('high');
+		const run = play(g, 90, () => 9, { hz: 30 });
+		expect(g.displayRate).toBe(30);
+		expect(g.targetFps).toBe(30);
+		expect(g.renderEvery).toBe(1);
+		expect(g.level).toEqual(governorLadder('high')[0]!);
+		expect(run.changes[run.changes.length - 1]!.reason).toContain('30 Hz');
+		// the search for a lever takes some seconds; after it nothing moves
+		expect(run.changes[run.changes.length - 1]!.t).toBeLessThan(25);
+	});
+
+	test('a CPU-bound machine whose next preset is cheaper is not mistaken for a 30 Hz display', () => {
+		const g = new QualityGovernor('high');
+		play(g, 90, (l) => (l.preset === 'high' ? 19.5 : 9));
+		expect(g.targetFps).toBe(60);
+		expect(g.level.preset).toBe('medium');
+	});
+
+	test('60 is out of reach at the lowest rung: it locks to 30 and paces every second rAF', () => {
+		const g = new QualityGovernor('high');
+		const run = play(g, 120, (l) => 25 + 100 * levelCost(l));
+		expect(g.isLockedTo30).toBe(true);
+		expect(g.targetFps).toBe(30);
+		expect(g.renderEvery).toBe(2);
+		expect(g.history.some((h) => h.reason.startsWith('locked to 30'))).toBe(true);
+		// even pacing: after the lock the drawn frames are 33 ms, not 40-55 fps floating
+		const late = run.drawn.slice(-200);
+		expect(Math.min(...late)).toBeGreaterThan(30);
+		expect(Math.max(...late)).toBeLessThan(55);
 	});
 
 	test('intervals longer than the cutoff (hidden tab) are not frames', () => {
 		const g = new QualityGovernor('high');
-		run(g, 5, 16.7);
+		play(g, 5, () => 9);
 		for (let i = 0; i < 50; i++) expect(g.frame(2000)).toBeNull();
 		expect(g.level.scale).toBe(1);
 	});
 
-	test('steps back up after a calm spell and stays up when the trial holds', () => {
-		const g = new QualityGovernor('high');
-		const lowered = untilChange(g, 25)!;
-		expect(lowered).toEqual({ preset: 'high', scale: 0.85, planetScale: 1 });
-		const up = untilChange(g, 15, DEFAULT_GOVERNOR.probationSeconds + 10)!;
-		expect(up).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
-		// the trial held for longer than the probe window: nothing changes and the wait is the base again
-		expect(run(g, DEFAULT_GOVERNOR.probeSeconds + 2, 15)).toEqual([]);
-		expect(g.nextProbationSeconds).toBe(DEFAULT_GOVERNOR.probationSeconds);
-	});
-
-	test('a failed trial doubles the calm needed for the next one, up to the cap', () => {
-		const g = new QualityGovernor('high');
-		expect(untilChange(g, 25)!.scale).toBe(0.85); // one rung down
-		let waits: number[] = [];
-		for (let round = 0; round < 8; round++) {
-			waits.push(g.nextProbationSeconds);
-			// calm until the trial step up, then slow again at once: the trial fails
-			expect(untilChange(g, 15, 400)!.scale).toBe(1); // the trial step up
-			expect(untilChange(g, 25)!.scale).toBe(0.85); // and straight back down
-		}
-		expect(waits[0]).toBe(DEFAULT_GOVERNOR.probationSeconds);
-		expect(waits[1]).toBe(DEFAULT_GOVERNOR.probationSeconds * 2);
-		expect(waits[2]).toBe(DEFAULT_GOVERNOR.probationSeconds * 4);
-		expect(Math.max(...waits)).toBe(DEFAULT_GOVERNOR.maxProbationSeconds);
-		waits = [];
-	});
-
 	test('never goes above the ceiling', () => {
 		const g = new QualityGovernor('medium');
-		run(g, 400, 15);
+		play(g, 400, () => 6);
 		expect(g.level).toEqual({ preset: 'medium', scale: 1, planetScale: 1 });
 	});
 
-	test('disabled: always the ceiling at full resolution, whatever the interval', () => {
+	test('disabled: always the ceiling at full resolution, every rAF drawn', () => {
 		const g = new QualityGovernor('high');
-		run(g, 30, 25);
+		play(g, 30, retina(40));
 		expect(g.level.scale).toBeLessThan(1);
 		expect(g.setEnabled(false)).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
-		expect(run(g, 200, 50)).toEqual([]);
-		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
+		const run = play(g, 60, retina(80));
+		expect(run.changes).toEqual([]);
+		expect(g.tick(16.7)).toEqual({ render: true, level: null });
 		expect(g.isEnabled).toBe(false);
 		g.setEnabled(true);
-		expect(run(g, 20, 25).length).toBeGreaterThan(0);
+		expect(play(g, 30, retina(40)).changes.length).toBeGreaterThan(0);
 	});
 
-	test('a new ceiling restarts from it', () => {
+	test('a new ceiling restarts from it and forgets the bans', () => {
 		const g = new QualityGovernor('high');
-		run(g, 60, 40);
-		expect(g.level.preset).not.toBe('high');
+		play(g, 60, retina(40));
+		expect(g.level.preset === 'high' && g.level.scale === 1).toBe(false);
 		expect(g.setCeiling('medium')).toEqual({ preset: 'medium', scale: 1, planetScale: 1 });
 		expect(governorLadder('medium')[0]).toEqual(g.level);
 	});
 });
 
-describe('hysteresis (plan 201)', () => {
-	/** Frames that swing around 55 fps: `period` seconds at 50 fps, then as long at 62 fps, for `seconds`. */
-	function swing(g: QualityGovernor, seconds: number, period: number): GovernorLevel[] {
-		const changes: GovernorLevel[] = [];
-		let t = 0;
-		while (t < seconds) {
-			const ms = Math.floor(t / period) % 2 === 0 ? 20 : 1000 / 62;
-			const c = g.frame(ms);
-			if (c) changes.push(c);
-			t += ms / 1000;
-		}
-		return changes;
-	}
-	const presetChanges = (start: GovernorLevel, changes: GovernorLevel[]): number => {
-		let last = start.preset;
-		let n = 0;
-		for (const c of changes) {
-			if (c.preset !== last) n += 1;
-			last = c.preset;
-		}
-		return n;
-	};
-
-	for (const period of [1, 2, 4, 6, 10]) {
-		test(`a trace swinging around 55 fps every ${period} s changes the preset at most once in 30 s`, () => {
+describe('hysteresis (plan 201, kept by plan 253)', () => {
+	test('a trace swinging around 55 fps changes the preset at most once in 30 s', () => {
+		// raw intervals: `period` seconds at 50 fps, then as long at 62 fps
+		for (const period of [1, 2, 4, 6, 10]) {
 			const g = new QualityGovernor('high');
-			const start = g.level;
-			expect(presetChanges(start, swing(g, 30, period))).toBeLessThanOrEqual(1);
-		});
-	}
-
-	/** A CPU-bound machine: high is over budget at every rung, medium and below under it. */
-	function bound(g: QualityGovernor, seconds: number): { t: number; level: GovernorLevel }[] {
-		const changes: { t: number; level: GovernorLevel }[] = [];
-		for (let t = 0; t < seconds;) {
-			const ms = g.level.preset === 'high' ? 19.5 : 16;
-			const c = g.frame(ms);
-			if (c) changes.push({ t, level: c });
-			t += ms / 1000;
+			let last = 'high';
+			let n = 0;
+			let t = 0;
+			while (t < 30) {
+				const ms = Math.floor(t / period) % 2 === 0 ? 20 : 1000 / 62;
+				const level = g.frame(ms);
+				if (level && level.preset !== last) n++;
+				if (level) last = level.preset;
+				t += ms / 1000;
+			}
+			expect(n).toBeLessThanOrEqual(1);
 		}
-		return changes;
-	}
+	});
 
-	test('a machine just too slow for high never changes preset twice within 30 s', () => {
+	test('a machine just too slow for high never changes preset twice within 30 s, scenes flipping', () => {
 		const g = new QualityGovernor('high');
-		let last = g.level.preset;
+		const run = play(g, 900, (l) => (l.preset === 'high' ? 19.5 : 9), {
+			scene: (t) => (Math.floor(t / 20) % 2 === 0 ? 'A' : 'B')
+		});
 		const at: number[] = [];
-		for (const c of bound(g, 600)) {
+		let last = 'high';
+		for (const c of run.changes) {
 			if (c.level.preset !== last) at.push(c.t);
 			last = c.level.preset;
 		}
 		expect(at.length).toBeGreaterThan(0);
 		for (let i = 1; i < at.length; i++) expect(at[i]! - at[i - 1]!).toBeGreaterThanOrEqual(30);
 	});
+});
 
-	test('a trial up into the next preset waits the longer calm', () => {
+describe('sceneKeyOf', () => {
+	test('names the body, the altitude band and the view', () => {
+		const at = (altitude: number, map = false) =>
+			sceneKeyOf({ body: 'stock.home', altitude, atmosphereTop: 70_000, map });
+		expect(at(100)).toBe('stock.home:ground:flight');
+		expect(at(5_000)).toBe('stock.home:air:flight');
+		expect(at(40_000)).toBe('stock.home:upper:flight');
+		expect(at(200_000)).toBe('stock.home:space:flight');
+		expect(at(200_000, true)).toBe('stock.home:space:map');
+		expect(new Set([at(100), at(5_000), at(40_000), at(200_000)]).size).toBe(4);
+	});
+});
+
+describe('the pixel budget shapes the rungs (plan 253 with plan 252)', () => {
+	test('a pass the budget already draws near half size has no half rungs', () => {
+		const ladder = governorLadder('high', true, 0.55);
+		expect(ladder.filter((l) => l.planetScale < 1)).toEqual([]);
+		expect(ladder[0]).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
+		expect(ladder.some((l) => l.preset === 'medium')).toBe(true);
+	});
+
+	test('at full budget the half rungs stay', () => {
+		expect(governorLadder('high', true, 1).some((l) => l.planetScale < 1)).toBe(true);
+	});
+
+	test('learning the budget at the top rebuilds the ladder; later it waits', () => {
 		const g = new QualityGovernor('high');
-		while (g.level.preset === 'high') untilChange(g, 25);
-		expect(g.level.preset).toBe('medium');
-		let calm = 0;
-		let up: GovernorLevel | null = null;
-		while (!up && calm < 600) {
-			up = g.frame(10);
-			calm += 0.01;
-		}
-		expect(up!.preset).toBe('high');
-		expect(calm).toBeGreaterThanOrEqual(DEFAULT_GOVERNOR.presetProbationSeconds);
+		expect(g.ladderLength).toBe(governorLadder('high').length);
+		g.setBudgetedPlanetScale(0.55);
+		expect(g.ladderLength).toBe(governorLadder('high', true, 0.55).length);
+		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
 	});
 });

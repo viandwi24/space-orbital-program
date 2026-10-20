@@ -113,10 +113,10 @@ describe('warp limits in the time bar (plan 206)', () => {
 		// 8 levels: 1, 2, 4 and 10 reachable, the four rails levels out of reach
 		expect(body.match(/class="seg[ "]/g)?.length).toBe(8);
 		expect(body.match(/class="seg [^"]*\blocked\b/g)?.length).toBe(4);
-		expect(body).toContain('data-testid="hud-warp">10×<');
+		expect(body).toMatch(/data-testid="hud-warp"[^>]*>10×</);
 		// paused: every segment dim, the multiple reads —
 		const paused = bar({ index: 3, paused: true });
-		expect(paused).toContain('data-testid="hud-warp">—<');
+		expect(paused).toMatch(/data-testid="hud-warp"[^>]*>—</);
 		expect(paused.match(/class="seg off/g)?.length).toBe(8);
 	});
 

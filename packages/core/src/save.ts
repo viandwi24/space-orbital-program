@@ -326,7 +326,8 @@ export const simSaveSchema = z.object({
 					time: finite,
 					kind: z.enum(['time', 'apoapsis', 'periapsis', 'soi', 'node', 'transfer']),
 					vessel: entity.optional(),
-					body: z.string().min(1).optional()
+					body: z.string().min(1).optional(),
+					lead: z.number().min(0).max(86_400).optional()
 				})
 			)
 		})

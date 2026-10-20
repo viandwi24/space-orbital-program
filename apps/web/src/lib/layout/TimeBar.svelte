@@ -5,6 +5,7 @@
 	 * offer (plan 087) follow the time while they apply.
 	 */
 	import { behindText, type CatchUp } from '../worlds/world-model';
+	import { termTip } from '../public/glossary';
 	import { warpSegments, warpText } from './shell-model';
 
 	let {
@@ -20,6 +21,7 @@
 		date = '',
 		met = false,
 		chip = null,
+		onchip,
 		onpick,
 		catchUp = { kind: 'none' },
 		oncatchup
@@ -40,6 +42,8 @@
 		/** The time is the flight's mission time. */
 		met?: boolean;
 		chip?: string | null;
+		/** The chip toggles the place's pause (plan 248); absent where it only displays. */
+		onchip?: () => void;
 		onpick?: (index: number) => void;
 		catchUp?: CatchUp;
 		oncatchup?: () => void;
@@ -92,14 +96,28 @@
 			></button>
 		{/each}
 	</div>
-	<div class="x" data-testid="hud-warp">{warpText(factor, paused)}</div>
+	<div class="x" data-testid="hud-warp" {...termTip('time-warp')}>{warpText(factor, paused)}</div>
 	<span class="sr-only" data-testid="world-warp">{warpText(factor)}</span>
 	{#if reason}<span class="why" data-testid="warp-reason">{reason}</span>{/if}
 	<div class="rule" aria-hidden="true"></div>
-	<div class="when" data-testid="world-clock" data-t={t} data-tip={date}>
+	<div
+		class="when"
+		data-testid="world-clock"
+		data-t={t}
+		data-tip={date}
+		data-tip-term={met ? 'met' : undefined}
+	>
 		{#if met}<span data-testid="hud-met">{time}</span>{:else}{time}{/if}
 	</div>
-	{#if chip}<span class="chip" data-testid="time-chip">{chip}</span>{/if}
+	{#if chip && onchip}
+		<button
+			type="button"
+			class="chip toggle"
+			data-testid="time-chip"
+			data-tip="Run the clock here too (Settings → Time puts the pause back)"
+			onclick={onchip}>{chip}</button
+		>
+	{:else if chip}<span class="chip" data-testid="time-chip">{chip}</span>{/if}
 	{#if catchUp.kind !== 'none'}
 		<button
 			type="button"
@@ -217,6 +235,10 @@
 		white-space: nowrap;
 	}
 	/* the clock's state, in the status bar's mode chip style */
+	.chip.toggle {
+		font: inherit;
+		cursor: pointer;
+	}
 	.chip {
 		height: 1rem;
 		padding: 0 0.375rem;

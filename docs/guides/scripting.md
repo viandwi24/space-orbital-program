@@ -64,6 +64,8 @@ The bracket next to the caret and its partner are highlighted. Under the editor 
 | `addNode({ time, prograde, normal, radial })` | plan a maneuver node (plan 045): `time` is simulation time, the three numbers are m/s in the orbital frame at the node (prograde = along the velocity, normal = `r x v`, radial = prograde x normal; missing ones are 0); returns a promise of `{ ok, reason? }`, the new node shows up in `ship.nodes` on a later tick |
 | `setNode(id, { time?, prograde?, normal?, radial? })` | change fields of a node, the others keep their value |
 | `removeNode(id?)` | remove one node, or all of them without an id |
+| `setAlarm({ name?, time })` / `setAlarm({ name?, kind, lead? })` | set an alarm (plan 247): at a simulation `time`, or `kind` `'apoapsis'`, `'periapsis'`, `'soi'` or `'node'` of this vessel, `lead` seconds before it (an apsis alarm follows later burns); the warp stops when it fires; `ship.alarms` lists them |
+| `removeAlarm(id)` | remove the alarm with that id from `ship.alarms` |
 | `warpTo(time, factor = 100000)` | time warp that slows down by itself and stops at `time` (simulation time) with warp 1; resolves like `warp`, refused while the vessel is in flight; an SOI change ends it |
 | `warp(factor)` | ask for time warp, 1 to 100 000; returns a promise of `{ ok, reason? }` that settles when the game has answered (see "Time warp") |
 | `bodies` | frozen data of every body in the game, by id: `bodies[ship.body]` is `{ id, radius, mass, mu, rotationPeriod, atmosphere?: { scaleHeight, surfacePressure, height }, parent?, orbit? }` (SI) |

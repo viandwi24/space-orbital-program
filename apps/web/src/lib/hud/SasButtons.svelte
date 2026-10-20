@@ -41,6 +41,7 @@
 			aria-pressed={on}
 			aria-label={masterLabel(sas)}
 			disabled={!controllable}
+			data-tip-term="sas"
 			data-tip={controllable
 				? `Stability assist (${settings.keymap.label('sasToggle')})`
 				: 'Stability assist: no command part'}
@@ -54,6 +55,7 @@
 			aria-pressed={rcs === 'on' || rcs === 'dry'}
 			aria-label={RCS_LABEL[rcs]}
 			data-testid="hud-rcs"
+			data-tip-term="rcs"
 			disabled={rcs === 'none' || !controllable || !onrcs}
 			data-tip="{RCS_LABEL[rcs]} ({settings.keymap.label('rcsToggle')})"
 			onclick={() => onrcs?.()}>{rcs === 'dry' ? 'RCS !' : 'RCS'}</button

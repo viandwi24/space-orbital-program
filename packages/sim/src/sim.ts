@@ -12,6 +12,7 @@ import {
 	createWorld,
 	legacyWorldInfo,
 	loadPlugins,
+	PHYSICS_WARP_MAX,
 	resolveRules,
 	readSimSave,
 	SaveError,
@@ -42,7 +43,12 @@ import { NBODY_FRAME_EVALUATIONS, nBodyOn, takeEvaluations } from './nbody.ts';
 import { dispatch } from './commands.ts';
 import { freshAgencies } from './agencies.ts';
 import { drainQueue, type CommandSource } from './delay.ts';
-import { DEFAULT_MAX_FLIGHT_FRAMES, RAILS_MAX_STEP, SIM_DT } from './constants.ts';
+import {
+	DEFAULT_MAX_FLIGHT_FRAMES,
+	FLIGHT_FRAME_PART_STEPS,
+	RAILS_MAX_STEP,
+	SIM_DT
+} from './constants.ts';
 import { hasFlightVessels, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { advanceFrame, createFrame, prepareFrame } from './frames.ts';
 import { runUpdateHooks } from './hooks.ts';
@@ -76,7 +82,7 @@ import { freshEconomy } from './economy.ts';
 import { stepThermal, type HeatInput, type Overheat } from './thermal.ts';
 import { burnPart, damagePart, processPending } from './vessel.ts';
 import { holdWarpLimit, thawFrozen } from './warp.ts';
-import { fireAlarms, freshAlarms, nextAlarm } from './alarms.ts';
+import { fireAlarms, followAlarms, freshAlarms, nextAlarm } from './alarms.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
 import { runTransfers, updateRates } from './transfer.ts';
@@ -440,15 +446,34 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 	 * The n-body warp budget (ADR 0122 point 5), once per real frame: the integrator's evaluations,
 	 * not the wall clock, so the warp a world reaches is the same on every machine.
 	 */
-	const holdWarp = (): void => {
+	const holdWarp = (flightSteps: number): void => {
 		const used = takeEvaluations();
-		if (!nBodyOn(core) || core.warp <= 1 || used <= NBODY_FRAME_EVALUATIONS) return;
+		if (core.warp <= 1) return;
+		const nbody = nBodyOn(core) && used > NBODY_FRAME_EVALUATIONS;
+		// Physics warp in any world (plan 247): the work of one frame is the flight steps times the
+		// parts in flight, a count rather than a clock, so a replay agrees on every machine.
+		const physics =
+			core.warp <= PHYSICS_WARP_MAX &&
+			flightSteps > 1 &&
+			flightSteps * flightParts() > FLIGHT_FRAME_PART_STEPS;
+		if (!nbody && !physics) return;
 		const factor = Math.max(1, Math.floor(core.warp / 2));
 		core.warp = factor;
 		core.events.emit('warp:limited', {
 			factor,
-			reason: `n-body integration limits warp to ${factor}x`
+			reason: nbody
+				? `n-body integration limits warp to ${factor}x`
+				: `the simulation cannot keep up: warp limited to ${factor}x`
 		});
+	};
+	/** Parts of the vessels in flight: what one flight step costs. */
+	const flightParts = (): number => {
+		let n = 0;
+		for (const id of vesselIds(core)) {
+			const v = vesselOf(core, id);
+			if (v.mode === 'flight') n += v.parts.length;
+		}
+		return n;
 	};
 
 	/** Commands whose light time has passed apply first (signal delay, plan 117, ADR 0188 point 6). */
@@ -568,7 +593,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			const flightStop = stopAt(core);
 			while (core.accumulator >= dt) {
 				if (hasFlightVessels(core)) {
-					if (flightSteps++ >= maxSteps) return;
+					if (flightSteps++ >= maxSteps) {
+						holdWarp(flightSteps);
+						return;
+					}
 					flightStep();
 					core.accumulator -= dt;
 					if (flightStop !== null && core.t + dt > flightStop) {
@@ -590,7 +618,8 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			const stop = stopAt(core);
 			if (stop !== null) arriveAtWarpTarget(core, railsStep, stop);
 			fireAlarms(core);
-			holdWarp();
+			followAlarms(core);
+			holdWarp(flightSteps);
 		},
 		dispatch: (command, options) => dispatch(core, command, options?.source ?? 'player'),
 		snapshot: () => takeSnapshot(core),

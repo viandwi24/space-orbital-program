@@ -63,11 +63,6 @@ const flight = (group: string, id: string, label: string, ...defaults: string[])
 	label,
 	defaults
 });
-/** An action a later plan wires (`ActionSpec.pending`). */
-const later = (group: string, id: string, label: string, ...defaults: string[]): ActionSpec => ({
-	...flight(group, id, label, ...defaults),
-	pending: true
-});
 const map = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
 	id,
 	mode: 'map',
@@ -142,6 +137,8 @@ export const ACTIONS = [
 	flight('See', 'vesselNext', 'Next vessel within 2.5 km', 'PageDown'),
 	flight('See', 'vesselPrev', 'Previous vessel within 2.5 km', 'PageUp'),
 	flight('Aircraft', 'brakes', 'Brakes on or off', 'KeyC'),
+	// plan 245: the KSP profile brakes while B is held; classic keeps the C toggle and has this on Alt+C
+	flight('Aircraft', 'brakesHold', 'Brakes while the key is held', 'Alt+KeyC'),
 	flight('See', 'map', 'Map view', 'KeyM'),
 	flight('See', 'speedMode', 'Speed reference: auto, surface, orbit, target', 'KeyV'),
 	flight('See', 'targetNext', 'Next target: each body, each other vessel, none', 'KeyY'),
@@ -172,7 +169,7 @@ export const ACTIONS = [
 	// Plan 216 (ADR 0206): keys the KSP profile has, for the plans that wire them
 	flight('Parts', 'gear', 'Landing gear up or down', 'KeyG'),
 	flight('Parts', 'lights', 'Lights on or off', 'KeyU'),
-	later('Fly', 'abort', 'Abort', 'Backspace'),
+	flight('Fly', 'abort', 'Abort: cut the engines and fire the Abort group', 'Backspace'),
 	flight('Fly', 'precision', 'Fine control', 'CapsLock'),
 	flight('RCS', 'rcsToggle', 'RCS on or off', 'KeyR'),
 	flight('RCS', 'translateForward', 'Translate forward', 'KeyH'),
@@ -181,16 +178,16 @@ export const ACTIONS = [
 	flight('RCS', 'translateRight', 'Translate right', 'KeyL'),
 	flight('RCS', 'translateDown', 'Translate down', 'KeyI'),
 	flight('RCS', 'translateUp', 'Translate up', 'KeyK'),
-	later('Aircraft', 'trimYawLeft', 'Trim yaw left', 'Alt+KeyA'),
-	later('Aircraft', 'trimYawRight', 'Trim yaw right', 'Alt+KeyD'),
-	later('Aircraft', 'trimRollLeft', 'Trim roll left', 'Alt+KeyQ'),
-	later('Aircraft', 'trimRollRight', 'Trim roll right', 'Alt+KeyE'),
-	later('Aircraft', 'trimReset', 'Reset the trim', 'Alt+KeyX'),
+	flight('Aircraft', 'trimYawLeft', 'Trim yaw left', 'Alt+KeyA'),
+	flight('Aircraft', 'trimYawRight', 'Trim yaw right', 'Alt+KeyD'),
+	flight('Aircraft', 'trimRollLeft', 'Trim roll left', 'Alt+KeyQ'),
+	flight('Aircraft', 'trimRollRight', 'Trim roll right', 'Alt+KeyE'),
+	flight('Aircraft', 'trimReset', 'Reset the trim', 'Alt+KeyX'),
 	flight('See', 'cameraMode', 'Next camera mode', '\\'),
 	flight('See', 'cameraReset', 'Camera back on the vessel', '`'),
 	flight('See', 'hideUi', 'Hide the interface', 'F2'),
 	flight('See', 'screenshot', 'Screenshot', 'F10'),
-	later('Time and menus', 'stopWarp', 'Stop time warp', '/'),
+	flight('Time and menus', 'stopWarp', 'Stop time warp', '/'),
 	map('mapFocus', 'Look at the next body', 'Tab'),
 	map('nodePrograde', 'Selected node: prograde up', 'KeyI'),
 	map('nodeRetrograde', 'Selected node: prograde down', 'KeyK'),
@@ -232,19 +229,23 @@ export const ACTIONS = [
 	eva('evaJump', 'Jump (let go of a ladder)', 'Space'),
 	eva('evaJetpack', 'Jetpack on or off', 'KeyR'),
 	eva('evaGrab', 'Grab or let go of a ladder', 'KeyF'),
-	eva('evaBoard', 'Board at a hatch or ladder', 'KeyB')
+	eva('evaBoard', 'Board at a hatch or ladder', 'KeyB'),
+	eva('evaHelmet', 'Helmet on or off (breathable air only)', 'KeyO'),
+	// P is pause on every page (plan 205), so the personal chute takes U (ADR 0237)
+	eva('evaChute', 'Personal parachute: deploy, then cut', 'KeyU')
 ] as const satisfies readonly ActionSpec[];
 
 export type ActionId = (typeof ACTIONS)[number]['id'];
 
 /**
  * Where the KSP profile differs from `ACTIONS` (whose defaults are the classic profile; ADR 0206):
- * brakes on B, action groups on the digits, SAS modes and the trim on Alt, the vessel keys on the
+ * brakes held on B (plan 245), action groups on the digits, SAS modes and the trim on Alt, the vessel keys on the
  * brackets, the camera on V and translate-back on N, so the mute moves to Ctrl+M and the speed
  * reference to a click on its read-out.
  */
 const KSP_DEFAULTS: Partial<Record<string, readonly string[]>> = {
-	brakes: ['KeyB'],
+	brakes: [],
+	brakesHold: ['KeyB'],
 	sasHold: ['Alt+Digit1'],
 	sasPrograde: ['Alt+Digit2'],
 	sasRetrograde: ['Alt+Digit3'],
@@ -613,6 +614,10 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['rollMinus', 'rollPlus'], text: 'Roll' },
 			{ actions: ['stage'], text: 'Fire the next stage' },
 			{ actions: ['gear', 'lights'], text: 'Landing gear, lights' },
+			{
+				actions: ['abort'],
+				text: 'Abort: cut the engines, fire the Abort group (set in the Hangar)'
+			},
 			{ actions: ['precision'], text: 'Fine control (Caps Lock on)' }
 		]
 	},
@@ -657,7 +662,11 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 		mode: 'flight',
 		rows: [
 			{ actions: ['trimUp', 'trimDown'], text: 'Trim nose up, down' },
-			{ actions: ['brakes'], text: 'Brakes on or off' }
+			{ actions: ['trimYawLeft', 'trimYawRight'], text: 'Trim yaw left, right' },
+			{ actions: ['trimRollLeft', 'trimRollRight'], text: 'Trim roll left, right' },
+			{ actions: ['trimReset'], text: 'Reset the trim' },
+			{ actions: ['brakes'], text: 'Brakes on or off' },
+			{ actions: ['brakesHold'], text: 'Brakes while the key is held' }
 		]
 	},
 	{
@@ -686,6 +695,7 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 		mode: 'flight',
 		rows: [
 			{ actions: ['warpDown', 'warpUp'], text: 'Time warp down, up' },
+			{ actions: ['stopWarp'], text: 'Stop time warp (back to 1×)' },
 			{ actions: ['quicksave', 'quickload'], text: 'Quicksave, quickload' },
 			{ actions: [], fixed: ['Esc'], text: 'Pause menu' },
 			{ actions: ['help'], text: 'This list' },
@@ -777,7 +787,9 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['evaDown'], text: 'Jetpack: down' },
 			{ actions: ['evaTurnLeft', 'evaTurnRight'], text: 'Jetpack: turn' },
 			{ actions: ['evaGrab'], text: 'Grab a ladder within 1 m, or let go' },
-			{ actions: ['evaBoard'], text: 'Board at a hatch or from a ladder' }
+			{ actions: ['evaBoard'], text: 'Board at a hatch or from a ladder' },
+			{ actions: ['evaHelmet'], text: 'Helmet on or off; off only in breathable air' },
+			{ actions: ['evaChute'], text: 'Personal parachute: deploy, then cut the canopy' }
 		]
 	},
 	{

@@ -53,6 +53,8 @@ export const HomeBody = defineBody({
 		scaleHeight: 5_600,
 		surfacePressure: 101_325,
 		height: km(70),
+		// a suited crew member may take the helmet off here (plan 249, ADR 0237)
+		breathable: true,
 		// the 1976 standard atmosphere's layers to its top (plan 212): a = 340 m/s at sea level
 		temperatureCurve: STANDARD_ATMOSPHERE_TEMPERATURE.filter(([h]) => h <= km(71)).map(
 			([h, t]) => [h, t] as [number, number]

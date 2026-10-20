@@ -2,6 +2,12 @@
 
 /** Fixed flight step, s (50 Hz). */
 export const SIM_DT = 0.02;
+/**
+ * Flight work one real frame may take at physics warp, in part-steps (flight steps × parts in
+ * flight; plan 247). Over it the warp halves. 3000 is about 8 ms on the M5 at the measured cost
+ * of a step (to be tuned with the plan-251 baseline); a count, so a replay agrees everywhere.
+ */
+export const FLIGHT_FRAME_PART_STEPS = 3_000;
 /** Largest chunk of simulated time propagated in one on-rails step, s. */
 export const RAILS_MAX_STEP = 10;
 /** A vessel with no force or torque applied for this long may go on rails, s. */

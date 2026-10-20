@@ -93,6 +93,7 @@ export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | nu
 			return { kind: 'warning', title: `Alarm: ${event.name}`, key: `alarm-${event.id}` };
 		case 'warp-stopped':
 		case 'building-ready':
+		case 'vessel-frozen':
 			return null; // the world layout's bell shows them (plan 205)
 		case 'part-failed': {
 			if (!ctx.isActiveVessel(event.vessel)) return null;

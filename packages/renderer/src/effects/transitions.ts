@@ -19,6 +19,8 @@ export interface FxVessel {
 	soi: string;
 	position: Vec3;
 	velocity: Vec3;
+	/** On surface rails (fixed to the ground; ADR 0024). */
+	surface?: boolean;
 	parts: readonly FxPart[];
 }
 
@@ -37,7 +39,9 @@ export type FxEvent =
 			/** Definitions of the parts that were lost (their meshes become the debris, ADR 0047). */
 			definitions: readonly string[];
 	  }
-	| { kind: 'separated'; soi: string; position: Vec3; speed: number };
+	| { kind: 'separated'; soi: string; position: Vec3; speed: number }
+	/** A vessel came to rest on the ground (plan 246): the dust it kicks up. */
+	| { kind: 'touchdown'; soi: string; position: Vec3; speed: number; size: number };
 
 export interface TransitionContext {
 	/** Angular velocity of a body in inertial axes, rad/s. */
@@ -48,6 +52,8 @@ export interface TransitionContext {
 
 /** A part this hot when it vanishes burned up rather than crashed, K. */
 export const BURN_TEMPERATURE = 700;
+/** Slowest ground-relative speed at which a settling vessel kicks up dust, m/s. */
+export const MIN_TOUCHDOWN_SPEED = 0.5;
 /** Slowest ground-relative speed at which a vanishing part counts as destroyed, m/s. */
 export const MIN_DESTROY_SPEED = 4;
 
@@ -62,7 +68,17 @@ export function detectTransitions(
 	const nextHome = new Map<number, number>();
 	for (const v of next) for (const p of v.parts) nextHome.set(p.id, v.id);
 
+	const nextById = new Map(next.map((v) => [v.id, v]));
+
 	for (const v of prev) {
+		const after = nextById.get(v.id);
+		if (after?.surface && !v.surface) {
+			const speed = length(sub(v.velocity, cross(ctx.omega(v.soi), v.position)));
+			if (speed >= MIN_TOUCHDOWN_SPEED) {
+				const size = Math.max(0.5, ...v.parts.map((p) => ctx.sizeOf(p.definition)));
+				events.push({ kind: 'touchdown', soi: v.soi, position: after.position, speed, size });
+			}
+		}
 		const lost = v.parts.filter((p) => !nextHome.has(p.id));
 		if (lost.length > 0) {
 			const centre = scale(

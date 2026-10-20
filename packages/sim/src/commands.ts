@@ -370,8 +370,19 @@ export function dispatch(
 		case 'trim': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
-			if (command.pitch === 0) delete v.trim;
-			else v.trim = command.pitch;
+			// an omitted axis keeps its value, 0 clears it (plan 245, ADR 0233)
+			if (command.pitch !== undefined) {
+				if (command.pitch === 0) delete v.trim;
+				else v.trim = command.pitch;
+			}
+			if (command.yaw !== undefined) {
+				if (command.yaw === 0) delete v.trimYaw;
+				else v.trimYaw = command.yaw;
+			}
+			if (command.roll !== undefined) {
+				if (command.roll === 0) delete v.trimRoll;
+				else v.trimRoll = command.roll;
+			}
 			return accept();
 		}
 		case 'attitude': {

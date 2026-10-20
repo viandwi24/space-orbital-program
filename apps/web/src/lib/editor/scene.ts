@@ -12,6 +12,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import type { VabGroup, VabLink, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
+import { sizeMismatches } from './checks';
 import {
 	layoutOf,
 	planCarry,
@@ -105,6 +106,10 @@ export interface SceneInput {
 	pointer?: AttachTarget | null;
 	/** Copies made by a radial placement of a new part, or a mirror pair (the ghost shows them all). Default 1. */
 	symmetry?: number | SymmetrySpec;
+	/** Where the held part floats when no site is under the pointer (plan 244): shown as a free ghost. */
+	free?: readonly [number, number, number] | null;
+	/** Targets whose rings glow because the pointer is near them (plan 244). */
+	near?: ReadonlySet<number>;
 	/** Draw rings for the keyboard's radial sites (default true); the pointer needs none. */
 	radialMarkers?: boolean;
 	/** The other members of a carried symmetry group (see `withoutCarried`). */
@@ -215,7 +220,12 @@ export function buildScene(input: SceneInput): BuiltScene {
 	// A radial cursor site is shown only to the keyboard (its rings are on); the pointer has its own.
 	const cursorTarget = cursor !== null ? (targets[cursor] ?? null) : null;
 	const shown =
-		pointer ?? (cursorTarget?.radial && input.radialMarkers === false ? null : cursorTarget);
+		pointer ??
+		(input.free
+			? null
+			: cursorTarget?.radial && input.radialMarkers === false
+				? null
+				: cursorTarget);
 	if (held && shown) {
 		ghost = shown;
 		const merged =
@@ -243,6 +253,27 @@ export function buildScene(input: SceneInput): BuiltScene {
 						...partParams(p, parts.get(p.part))
 					});
 				}
+			}
+		}
+	}
+
+	if (held && !shown && input.free) {
+		// nothing to attach to under the pointer: the part floats at the cursor, undimmed by a site
+		const at = layoutOf(held, parts);
+		if (at) {
+			const [fx, fy, fz] = input.free;
+			for (const p of held.parts) {
+				const l = at.get(p.index);
+				if (!l) continue;
+				out.push({
+					key: `f${partKey(p.index)}`,
+					definition: p.part,
+					position: [l.position.x + fx, l.position.y + fy, l.position.z + fz],
+					...turnOf(l),
+					group: 'main',
+					role: 'free',
+					...partParams(p, parts.get(p.part))
+				});
 			}
 		}
 	}
@@ -277,8 +308,30 @@ export function buildScene(input: SceneInput): BuiltScene {
 				position: t.parent ? [t.point.x, t.point.y, t.point.z] : [0, -heightOf(rootDef) / 2, 0],
 				dir: dir ? [dir[0]!, dir[1]!, dir[2]!] : [0, 1, 0],
 				radius: t.radial ? 0.3 : Math.max(radiusOf(parentDef), radiusOf(rootDef), 0.5),
-				state: !pointer && i === cursor ? 'active' : 'target'
+				state:
+					!pointer && !input.free && i === cursor
+						? 'active'
+						: input.near?.has(i)
+							? 'near'
+							: 'target'
 			});
+		});
+	}
+	// a joint whose two node sizes differ carries a mark where the parts meet (plan 244, 8b.3)
+	const joints = layoutOf(design, parts);
+	for (const m of sizeMismatches(design, parts)) {
+		const child = design.parts.find((p) => p.index === m.index);
+		const l = joints?.get(m.index);
+		const node = child?.parent && parts.get(child.part)?.attach?.[child.parent.node];
+		if (!l || !node) continue;
+		const at = mat3Apply(mat3OfQuat(l.rotation), [node.pos[0], node.pos[1], node.pos[2]]);
+		nodes.push({
+			key: `m${m.index}`,
+			group: 'main',
+			position: [l.position.x + at.x, l.position.y + at.y, l.position.z + at.z],
+			dir: [0, 1, 0],
+			radius: Math.max(m.child, m.parent) / 2,
+			state: 'mismatch'
 		});
 	}
 	return {
