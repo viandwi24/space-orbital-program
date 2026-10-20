@@ -564,11 +564,17 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			takeEvaluations(); // this frame's budget counts from here (ADR 0122 point 5)
 			core.accumulator += warpedDelta(core, wallDelta);
 			let flightSteps = 0;
+			// physics warp lands on an alarm or warp-to time within one step, not within one frame
+			const flightStop = stopAt(core);
 			while (core.accumulator >= dt) {
 				if (hasFlightVessels(core)) {
 					if (flightSteps++ >= maxSteps) return;
 					flightStep();
 					core.accumulator -= dt;
+					if (flightStop !== null && core.t + dt > flightStop) {
+						core.accumulator = 0;
+						break;
+					}
 				} else {
 					const h = Math.min(core.accumulator, RAILS_MAX_STEP);
 					railsStep(h);
