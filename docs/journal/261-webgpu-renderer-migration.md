@@ -1,4 +1,4 @@
-# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike)
+# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1)
 
 **Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
@@ -83,3 +83,44 @@ The tables bake in 7–16 ms, once per atmosphere.
 - The aerial-perspective volume (the fourth table) for terrain and clouds (step 22).
 - The pmndrs/sky evaluation (step 21).
 - A rebuild only when the sun or the altitude band changes (today the sky view rebuilds every frame; it costs well under the 0.78 ms).
+
+## Phase 1: the foundation
+
+| Where | What |
+|---|---|
+| `backend.ts` | `?renderer=webgpu` and `webgpu-fallback`; anything else is WebGL |
+| `renderer-facade.ts` | The half of the facade that only talks to the `SceneModel` (camera, map, site, picking, the model's debug calls), shared by both renderers; getters stay getters (`withShared`) |
+| `renderer.ts` | Uses the shared half; `createRenderer` hands a WebGPU request to `renderer-webgpu.ts`; `benchmarkAsync`, and `info()` gains renderer, GPU time and the lists |
+| `renderer-webgpu.ts` | `WebGPURenderer` (log depth, PCF shadows, ACES, timestamps). The TSL `RenderPipeline`: scene pass with the preset's MSAA, `BloomNode` at the preset's bloom scale with the WebGL chain's strength, radius and threshold, output transform. `compileAsync` warm-up of the scene and of the other presets' parts, then vegetation. A lost device or context rebuilds the renderer up to 3 times. The adapter's name, the texture limit |
+| `webgpu-compat.ts` | Hides the GLSL meshes for the frame; lists them and the patched materials |
+| Debug → Info | Renderer, GPU and GPU time; "Not drawn yet" on WebGPU |
+
+| M2, Chromium, 1440 × 900, ratio 1 | WebGL (all of it) | WebGPU (what is ported) | Fallback |
+|---|---|---|---|
+| frame interval p50 (`high`) | 33.2 ms | 16.7 ms (vsync) | 16.7 ms |
+| `benchmarkAsync` (`high`) | 24.6 ms | 0.47–0.59 ms | 0.42 ms |
+| GPU time from timestamps | – | about 1.2–2.8 ms | – |
+| console errors | 0 | 0 | 0 |
+
+The WebGPU frame is cheap because the planet pass is not drawn yet: it is the cost, as `refs/graphics-performance/01` found. These numbers are not a comparison yet; Phase 2 makes them one.
+
+| WebGL (today) | WebGPU after Phase 1 |
+|---|---|
+| ![](assets/261-phase1-webgl-high.jpg) | ![](assets/261-phase1-webgpu-high.jpg) |
+
+### What surprised me
+
+- **A `ShaderMaterial` is not skipped, it is replaced.** The node renderer logs "Material ShaderMaterial is not compatible" and draws a blank material, so hiding has to happen around each draw and each `compileAsync` (which collects the objects before its first `await`).
+- **The timestamp pool sums up to when it is read**, not to when the read was asked for. Dividing by the frames counted at the request gave 25–50 ms for a 2 ms frame. The frames are now counted from one finished read to the next.
+- **`info.render.drawCalls` reads 0 between frames**: a `compileAsync` resets it. The counts are now taken right after the facade's own draw.
+- **The grass draws as plain standard material.** Its wind and colour patch is an `onBeforeCompile`, which the node renderer ignores; it is on the "drawn without its patch" list for Phase 4.
+
+### Verification
+
+```
+cd packages/renderer && bun test                      708 pass, 0 fail
+bun run check:affected                                ✓ prettier ✓ docs ✓ typecheck; web vitest 1323 passed, 2 failed (sim-host-script-worker.test.ts, the known environment failure on this machine)
+bun run typecheck                                     0 errors
+bun run build                                         done
+headed Chromium, /flight?renderer=webgpu|webgpu-fallback, presets low, medium, high: 0 console errors; Debug → Info "webgpu · WebGPU: apple metal-3 · GPU 2.19 ms a frame"
+```

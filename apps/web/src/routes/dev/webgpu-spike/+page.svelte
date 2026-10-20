@@ -159,7 +159,9 @@
 		<p class="status" data-testid="spike-status">{status}</p>
 		<table>
 			<thead
-				><tr><th>backend</th><th>oct</th><th>ratio</th><th>view</th><th>px</th><th>ms</th><th>bake</th></tr
+				><tr
+					><th>backend</th><th>oct</th><th>ratio</th><th>view</th><th>px</th><th>ms</th><th>bake</th
+					></tr
 				></thead
 			>
 			<tbody>

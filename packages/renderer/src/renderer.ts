@@ -1,7 +1,8 @@
 /**
  * The browser-facing facade: a `WebGLRenderer` (logarithmic depth buffer, ADR 0007) driving a
  * `SceneModel`, the post chain and image-based light (ADR 0027). Needs a canvas, so it is
- * exercised by the manual runs in the journals, not by Bun tests.
+ * exercised by the manual runs in the journals, not by Bun tests. `?renderer=webgpu` hands the
+ * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0242).
  */
 import type { SiteBuildingView } from './site-list.ts';
 import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
@@ -17,9 +18,11 @@ import {
 	WebGLRenderer,
 	type ShaderMaterial
 } from 'three';
-import { findPreset } from './camera-presets.ts';
+import { rendererBackendFrom, type RendererBackend } from './backend.ts';
 import { EnvironmentLight } from './environment-light.ts';
 import { PostChain } from './post.ts';
+import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './renderer-facade.ts';
+import { createWebGPURenderer } from './renderer-webgpu.ts';
 import { PrecompileTracker, type PrecompileProgress } from './precompile-progress.ts';
 import { FEATURE_NAMES, FeatureSwitches, type FeatureName } from './feature-switches.ts';
 import {
@@ -40,13 +43,15 @@ const VEGETATION_STEPS = 34;
 const VEGETATION_SLICE_MS = 6;
 const VEGETATION_SLICE_MAX_MS = 12;
 
-/** Lowest render scale the governor may ask for; below this the picture is too soft to play. */
-export const MIN_RENDER_SCALE = 0.4;
+export { MIN_RENDER_SCALE } from './renderer-facade.ts';
+export type { RendererBackend } from './backend.ts';
 
 export interface RendererConfig extends SceneConfig {
 	canvas: HTMLCanvasElement;
 	/** Defaults to `window.devicePixelRatio`, capped by the preset. */
 	pixelRatio?: number;
+	/** Defaults to what the page's `?renderer=` asks for (plan 261), else WebGL. */
+	backend?: RendererBackend;
 }
 
 /** Dev/screenshot tooling (plan 019): deterministic sun and camera, frame timing. Never used by gameplay. */
@@ -111,9 +116,22 @@ export interface RendererDebug {
 	features(): FeatureName[];
 	resetFeatures(): void;
 	readonly featureNames: readonly FeatureName[];
-	/** Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. */
+	/**
+	 * Renders `frames` frames back to back and waits for the GPU; returns milliseconds per frame. On
+	 * WebGPU it cannot wait inside a call: the time is the CPU's, use `benchmarkAsync`.
+	 */
 	benchmark(frames: number): number;
+	/** `benchmark` on every backend: waits for the GPU's queue (WebGPU) or a pixel read (WebGL). */
+	benchmarkAsync(frames: number): Promise<number>;
 	info(): {
+		/** The renderer drawing (plan 261). */
+		renderer: RendererBackend;
+		/** GPU time of the last measured frame from timestamp queries, ms; null where the browser has none. */
+		gpuMs: number | null;
+		/** Materials the WebGPU renderer cannot draw yet and hides (plan 261); empty on WebGL. */
+		unported: string[];
+		/** Materials it draws without their `onBeforeCompile` patch; empty on WebGL. */
+		patched: string[];
 		preset: GraphicsPreset;
 		altitude: number;
 		sunElevationDeg: number;
@@ -255,6 +273,8 @@ export interface Renderer {
 }
 
 export function createRenderer(config: RendererConfig): Renderer {
+	const backend = config.backend ?? rendererBackendFrom(globalThis.location?.search ?? '');
+	if (backend !== 'webgl') return createWebGPURenderer(config, backend);
 	const gl = new WebGLRenderer({
 		canvas: config.canvas,
 		// the canvas only receives the post chain's output quad on a dense screen (plan 252, ADR 0234)
@@ -493,167 +513,113 @@ export function createRenderer(config: RendererConfig): Renderer {
 			applySize();
 		}
 	);
-	const debugApi: RendererDebug = {
-		setSun: (value) => env.setSunOverride(value),
-		setCamera: (rig) => model.setFlightRig(rig),
-		applyPreset(name) {
-			const p = findPreset(name);
-			if (!p) return false;
-			env.setSunOverride(p.sun);
-			model.setFlightRig(p.rig);
-			return true;
+	function benchmark(frames: number): number {
+		const ctx = gl.getContext();
+		const pixel = new Uint8Array(4);
+		const start = performance.now();
+		for (let i = 0; i < frames; i++) drawFrame(1 / 60);
+		ctx.readPixels(0, 0, 1, 1, ctx.RGBA, ctx.UNSIGNED_BYTE, pixel);
+		return (performance.now() - start) / frames;
+	}
+	const debugApi: RendererDebug = withShared(
+		{
+			setPixelRatio(ratio: number | null) {
+				forcedRatio = ratio;
+				applySize();
+			},
+			readMoonPatch: (body: string, which: 'fine' | 'mid') => model.debugMoonPatch(gl, body, which),
+			readPatch: (which: 'fine' | 'mid') => env.planet.debugReadPatch(gl, which),
+			setFeature: (name: FeatureName, on: boolean) => switches.set(preset, name, on),
+			features: () => switches.active(preset),
+			resetFeatures: () => switches.reset(),
+			featureNames: FEATURE_NAMES,
+			benchmark,
+			benchmarkAsync: async (frames: number) => benchmark(frames),
+			info: () => ({
+				renderer: 'webgl' as const,
+				gpuMs: null,
+				unported: [] as string[],
+				patched: [] as string[],
+				preset,
+				altitude: env.state.altitude,
+				sunElevationDeg: env.state.sunElevationDeg,
+				exposure: env.state.exposure,
+				drawCalls: gl.info.render.calls,
+				triangles: gl.info.render.triangles,
+				pixelRatio,
+				size: [width, height] as [number, number],
+				gpu: gpuName()
+			})
 		},
-		setPixelRatio(ratio) {
-			forcedRatio = ratio;
-			applySize();
-		},
-		setPartTemperature: (kelvin) => model.setDebugTemperature(kelvin),
-		focusPart: (definition, occurrence) => model.setDebugFocus(definition, occurrence),
-		dishAims: () => model.environment.site.dishAims.map((a) => ({ ...a })),
-		stepEffects(seconds) {
-			const steps = Math.max(1, Math.round(seconds * 60));
-			for (let i = 0; i < steps; i++) model.prepareFrame(1 / 60, true);
-		},
-		setMoonTint: (r, g, b) => model.setMoonTint(r, g, b),
-		setMoonDetail: (shadows, stones) => model.setMoonDetail(shadows, stones),
-		readMoonPatch: (body, which) => model.debugMoonPatch(gl, body, which),
-		scene: model.scene,
-		setTerrain: (terrain) => env.setTerrain(terrain),
-		terrainHeightAt: (direction) => env.groundHeight(direction),
-		readPatch: (which) => env.planet.debugReadPatch(gl, which),
-		bakeMode: (rebake, gradient) => env.planet.debugBakeMode(rebake, gradient),
-		silhouetteAA: (on) => env.planet.debugSilhouetteAA(on),
-		setFeature: (name, on) => switches.set(preset, name, on),
-		features: () => switches.active(preset),
-		resetFeatures: () => switches.reset(),
-		featureNames: FEATURE_NAMES,
-		benchmark(frames) {
-			const ctx = gl.getContext();
-			const pixel = new Uint8Array(4);
-			const start = performance.now();
-			for (let i = 0; i < frames; i++) drawFrame(1 / 60);
-			ctx.readPixels(0, 0, 1, 1, ctx.RGBA, ctx.UNSIGNED_BYTE, pixel);
-			return (performance.now() - start) / frames;
-		},
-		info: () => ({
-			preset,
-			altitude: env.state.altitude,
-			sunElevationDeg: env.state.sunElevationDeg,
-			exposure: env.state.exposure,
-			drawCalls: gl.info.render.calls,
-			triangles: gl.info.render.triangles,
-			pixelRatio,
-			size: [width, height],
-			gpu: gpuName()
-		})
-	};
+		debugFacade(model)
+	);
 
-	return {
-		update: (snapshot) => model.sync(snapshot),
-		render() {
-			const now = performance.now();
-			const dt = Math.min((now - last) / 1000, 0.1);
-			last = now;
-			drawFrame(dt);
+	return withShared(
+		{
+			render() {
+				const now = performance.now();
+				const dt = Math.min((now - last) / 1000, 0.1);
+				last = now;
+				drawFrame(dt);
+			},
+			resize(w: number, h: number) {
+				width = w;
+				height = h;
+				applySize();
+				model.resize(w, h);
+			},
+			capture(): Promise<Blob> {
+				// Read the drawing buffer in the same task as the draw: without preserveDrawingBuffer the
+				// browser clears it only after compositing, so the PNG costs nothing on other frames.
+				drawFrame(0);
+				return new Promise((resolve, reject) =>
+					config.canvas.toBlob(
+						(blob) => (blob ? resolve(blob) : reject(new Error('no image'))),
+						'image/png'
+					)
+				);
+			},
+			setPreset(next: GraphicsPreset) {
+				preset = next;
+				model.setPreset(next);
+				post.setSettings(PRESETS[next]);
+				applySize();
+			},
+			get preset() {
+				return preset;
+			},
+			precompile,
+			setRenderScale(scale: number) {
+				const next = Math.min(Math.max(Number.isFinite(scale) ? scale : 1, MIN_RENDER_SCALE), 1);
+				if (next === renderScale) return;
+				renderScale = next;
+				applySize();
+			},
+			get renderScale() {
+				return renderScale;
+			},
+			setPlanetScale(scale: number) {
+				env.planet.setPlanetScale(scale);
+			},
+			get planetScale() {
+				return env.planet.planetScale;
+			},
+			get halfPlanetAvailable() {
+				return env.planet.halfAvailable(gl);
+			},
+			capabilities() {
+				return { gpu: gpuName(), maxTextureSize: gl.capabilities.maxTextureSize };
+			},
+			debug: debugApi,
+			dispose() {
+				for (const v of variants) v.dispose();
+				variants = [];
+				envLight.dispose();
+				post.dispose();
+				model.dispose();
+				gl.dispose();
+			}
 		},
-		resize(w, h) {
-			width = w;
-			height = h;
-			applySize();
-			model.resize(w, h);
-		},
-		setViewInsets: (insets, options) => model.setViewInsets(insets, options),
-		setMapView: (on) => model.setMapView(on),
-		setMapPath: (segments) => model.setMapPath(segments),
-		setMapFocus: (body) => model.setMapFocus(body),
-		setMapScope: (scope) => model.setMapScope(scope),
-		setMapHighlight: (key) => model.setMapHighlight(key),
-		setMapLayers: (layers) => model.setMapLayers(layers),
-		setRegionOverlay: (bodies) => model.setRegionOverlay(bodies),
-		bodyDirectionAt: (x, y) => model.bodyDirectionAt(x, y),
-		get mapFocus() {
-			return model.mapFocusBody;
-		},
-		get bodyIds() {
-			return model.bodyIds;
-		},
-		toggleMapView: () => model.toggleMapView(),
-		get isMapView() {
-			return model.isMapView;
-		},
-		setActiveVessel: (id) => model.setActiveVessel(id),
-		setCameraMode: (mode) => model.setCameraMode(mode),
-		get cameraMode() {
-			return model.flightCameraMode;
-		},
-		get resolvedCameraMode() {
-			return model.resolvedCameraMode;
-		},
-		focusPart: (id) => model.setFocusPart(id),
-		get focusedPart() {
-			return model.focusedPart;
-		},
-		capture() {
-			// Read the drawing buffer in the same task as the draw: without preserveDrawingBuffer the
-			// browser clears it only after compositing, so the PNG costs nothing on other frames.
-			drawFrame(0);
-			return new Promise((resolve, reject) =>
-				config.canvas.toBlob(
-					(blob) => (blob ? resolve(blob) : reject(new Error('no image'))),
-					'image/png'
-				)
-			);
-		},
-		highlightPart: (id) => model.highlightPart(id),
-		partAt: (x, y) => model.partAt(x, y),
-		orbitCamera: (input) => model.orbitCamera(input),
-		viewDirection: () => model.viewDirection(),
-		project: (world) => model.project(world),
-		setSiteView: (on) => model.setSiteView(on),
-		setSiteBuildings: (list, roads) => model.setSiteBuildings(list, roads),
-		setSiteGhost: (g) => model.setSiteGhost(g),
-		pickSite: (x, y) => model.pickSite(x, y),
-		projectSite: (p) => model.projectSite(p),
-		setPreset(next) {
-			preset = next;
-			model.setPreset(next);
-			post.setSettings(PRESETS[next]);
-			applySize();
-		},
-		setReducedMotion: (on) => model.setReducedMotion(on),
-		get preset() {
-			return preset;
-		},
-		precompile,
-		setRenderScale(scale) {
-			const next = Math.min(Math.max(Number.isFinite(scale) ? scale : 1, MIN_RENDER_SCALE), 1);
-			if (next === renderScale) return;
-			renderScale = next;
-			applySize();
-		},
-		get renderScale() {
-			return renderScale;
-		},
-		setPlanetScale(scale) {
-			env.planet.setPlanetScale(scale);
-		},
-		get planetScale() {
-			return env.planet.planetScale;
-		},
-		get halfPlanetAvailable() {
-			return env.planet.halfAvailable(gl);
-		},
-		capabilities() {
-			return { gpu: gpuName(), maxTextureSize: gl.capabilities.maxTextureSize };
-		},
-		debug: debugApi,
-		dispose() {
-			for (const v of variants) v.dispose();
-			variants = [];
-			envLight.dispose();
-			post.dispose();
-			model.dispose();
-			gl.dispose();
-		}
-	};
+		sceneFacade(model)
+	);
 }

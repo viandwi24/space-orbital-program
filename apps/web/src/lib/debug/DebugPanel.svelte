@@ -503,6 +503,25 @@
 						? ', adjusted automatically'
 						: ''}
 				</dd>
+				<dt>Renderer</dt>
+				<dd data-testid="debug-renderer">
+					{#if infoNow?.renderer}
+						{@const r = infoNow.renderer}
+						{r.backend} · {r.gpu}{r.gpuMs === null ? '' : ` · GPU ${r.gpuMs.toFixed(2)} ms a frame`}
+					{:else}
+						–
+					{/if}
+				</dd>
+				{#if infoNow?.renderer && infoNow.renderer.backend !== 'webgl'}
+					<dt>Not drawn yet</dt>
+					<dd data-testid="debug-unported">
+						{infoNow.renderer.unported.length
+							? infoNow.renderer.unported.join(', ')
+							: 'nothing: every mesh is ported'}{infoNow.renderer.patched.length
+							? ` · drawn without its patch: ${infoNow.renderer.patched.join(', ')}`
+							: ''}
+					</dd>
+				{/if}
 				<dt>Frame pacing</dt>
 				<dd data-testid="debug-governor-pacing">
 					{infoNow?.governorPacing ?? 'not adjusted automatically'}

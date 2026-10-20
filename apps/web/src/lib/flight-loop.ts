@@ -373,6 +373,17 @@ export interface DebugInfo {
 	versions: string;
 	/** The frame-interval distribution of the last two minutes (plan 251). */
 	frames: FrameSummary;
+	/**
+	 * The renderer drawing, its GPU and GPU time a frame, and what it cannot draw yet (plan 261's
+	 * WebGPU renderer); null before the renderer exists.
+	 */
+	renderer: {
+		backend: string;
+		gpu: string;
+		gpuMs: number | null;
+		unported: string[];
+		patched: string[];
+	} | null;
 }
 
 /** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
@@ -1921,7 +1932,19 @@ export function startFlight(options: FlightOptions): Flight {
 					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${governor.renderEvery}th `}frame`
 					: null,
 			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
-			frames: frameStats.summary(performance.now())
+			frames: frameStats.summary(performance.now()),
+			renderer: renderer
+				? (() => {
+						const i = renderer.debug.info();
+						return {
+							backend: i.renderer,
+							gpu: i.gpu,
+							gpuMs: i.gpuMs,
+							unported: i.unported,
+							patched: i.patched
+						};
+					})()
+				: null
 		}),
 		resetFrameStats: () => frameStats.reset(),
 		runScript(source) {
