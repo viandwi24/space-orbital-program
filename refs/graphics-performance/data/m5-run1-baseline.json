@@ -1,0 +1,226 @@
+{
+ "when": "2026-10-20T09:11:39.006Z",
+ "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+ "angle": "metal",
+ "viewport": "1512x945 css, deviceScaleFactor 2",
+ "notes": "Now drawing from AC Power |  -InternalBattery-0 (id=22347875) 32%; charging; 2:01 remaining present: true | therm: Note: No thermal warning level has been recorded;Note: No performance warning level has been recorded;Note: No CPU power status has been recorded; | load averages: 2.40 4.44 7.27; branch rel/251-graphics-measure-baseline commit 17419d93; started Tue Oct 20 16:11:27 WIB 2026",
+ "scenes": [
+  "pad",
+  "3km",
+  "12km",
+  "orbit",
+  "hillside"
+ ],
+ "byRatio": {
+  "medium": {
+   "ratio 1 (1512x945)": {
+    "pad": 9.65,
+    "3km": 9.35,
+    "12km": 10.3,
+    "orbit": 6.2,
+    "hillside": 3.03
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 19.07,
+    "3km": 20.38,
+    "12km": 22.4,
+    "orbit": 12.97,
+    "hillside": 6.05
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 31.87,
+    "3km": 36.12,
+    "12km": 39.45,
+    "orbit": 22.58,
+    "hillside": 10.12
+   }
+  },
+  "high": {
+   "ratio 1 (1512x945)": {
+    "pad": 13.15,
+    "3km": 12.27,
+    "12km": 13.52,
+    "orbit": 7.52,
+    "hillside": 3.33
+   },
+   "ratio 1.5 (2268x1417)": {
+    "pad": 26.2,
+    "3km": 26.1,
+    "12km": 28.35,
+    "orbit": 16.6,
+    "hillside": 6.33
+   },
+   "ratio 2 (3024x1890)": {
+    "pad": 43.65,
+    "3km": 47.32,
+    "12km": 50.37,
+    "orbit": 27.1,
+    "hillside": 10.6
+   }
+  }
+ },
+ "ablation": {
+  "medium, ratio 2 (3024x1890)": {
+   "none": {
+    "pad": 34.4,
+    "3km": 38.98,
+    "12km": 42.58,
+    "orbit": 24.4,
+    "hillside": 7.43
+   },
+   "shadowMap": {
+    "pad": 34.05,
+    "3km": 39.58,
+    "12km": 42.87,
+    "orbit": 24.6,
+    "hillside": 7.75
+   },
+   "cloudShadow": {
+    "pad": 34.42,
+    "3km": 39.25,
+    "12km": 42.68,
+    "orbit": 24.42,
+    "hillside": 7.62
+   },
+   "shafts": {
+    "pad": 34.37,
+    "3km": 39.7,
+    "12km": 42.82,
+    "orbit": 25.12,
+    "hillside": 8.55
+   },
+   "clouds": {
+    "pad": 34.5,
+    "3km": 39.65,
+    "12km": 43.3,
+    "orbit": 24.52,
+    "hillside": 7.65
+   },
+   "terrain": {
+    "pad": 34.37,
+    "3km": 40.68,
+    "12km": 43.7,
+    "orbit": 24.5,
+    "hillside": 8.4
+   },
+   "aurora": {
+    "pad": 34.3,
+    "3km": 40.85,
+    "12km": 44.52,
+    "orbit": 25.28,
+    "hillside": 8.12
+   },
+   "tufts": {
+    "pad": 34.85,
+    "3km": 39.78,
+    "12km": 43.48,
+    "orbit": 24.65,
+    "hillside": 7.75
+   },
+   "msaa": {
+    "pad": 30.22,
+    "3km": 36.7,
+    "12km": 40.07,
+    "orbit": 20.8,
+    "hillside": 4.58
+   },
+   "all": {
+    "pad": 32.85,
+    "3km": 36.17,
+    "12km": 40.25,
+    "orbit": 20.78,
+    "hillside": 4.72
+   }
+  },
+  "high, ratio 2 (3024x1890)": {
+   "none": {
+    "pad": 46.02,
+    "3km": 48.45,
+    "12km": 50.53,
+    "orbit": 28.8,
+    "hillside": 7.6
+   },
+   "shadowMap": {
+    "pad": 44.33,
+    "3km": 47.33,
+    "12km": 52.42,
+    "orbit": 30.32,
+    "hillside": 8.2
+   },
+   "cloudShadow": {
+    "pad": 122.18,
+    "3km": 139.6,
+    "12km": 144.95,
+    "orbit": 67.38,
+    "hillside": 10.4
+   },
+   "shafts": {
+    "pad": 96.78,
+    "3km": 114.4,
+    "12km": 131.07,
+    "orbit": 66.67,
+    "hillside": 10.22
+   },
+   "clouds": {
+    "pad": 114.23,
+    "3km": 141.3,
+    "12km": 149.12,
+    "orbit": 66.12,
+    "hillside": 10.4
+   },
+   "terrain": {
+    "pad": 115.42,
+    "3km": 135.17,
+    "12km": 149.07,
+    "orbit": 66.72,
+    "hillside": 10.42
+   },
+   "aurora": {
+    "pad": 42.85,
+    "3km": 45.73,
+    "12km": 53.75,
+    "orbit": 27.3,
+    "hillside": 10.48
+   },
+   "tufts": {
+    "pad": 40.57,
+    "3km": 45.55,
+    "12km": 53.62,
+    "orbit": 27.33,
+    "hillside": 7.48
+   },
+   "msaa": {
+    "pad": 37.48,
+    "3km": 42.17,
+    "12km": 51.05,
+    "orbit": 24.03,
+    "hillside": 4.48
+   },
+   "all": {
+    "pad": 28.92,
+    "3km": 34.98,
+    "12km": 41.85,
+    "orbit": 21,
+    "hillside": 7.55
+   }
+  }
+ },
+ "governorTrace": {
+  "preset": "high",
+  "seconds": 120,
+  "frames": 9522,
+  "p50": 10,
+  "p95": 20.10000000000582,
+  "p99": 21,
+  "over16_7": 0.25078764965343414,
+  "over33_3": 0.0011552194917034237,
+  "levels": [
+   "high 100%",
+   "high 70%",
+   "high 100%",
+   "high 70%",
+   "high 100%",
+   "high 70%"
+  ]
+ }
+}
