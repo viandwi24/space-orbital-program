@@ -64,7 +64,11 @@ const HIGH_CONTRAST: Record<HighlightKind, Look> = {
 	xray: { colour: 0xa8ffd0, base: 0.12, rim: 1.2, pulse: 0, power: 0.9 }
 };
 
+// the flight scene draws with a logarithmic depth buffer: without its chunks the overlay's depth
+// was the plain one and the part's own depth hid it (plan 261's look-over); a no-op elsewhere
 export const HIGHLIGHT_VERT = `
+#include <common>
+#include <logdepthbuf_pars_vertex>
 varying vec3 vN;
 varying vec3 vV;
 void main() {
@@ -72,9 +76,12 @@ void main() {
 	vN = normalize(normalMatrix * normal);
 	vV = normalize(-mv.xyz);
 	gl_Position = projectionMatrix * mv;
+	#include <logdepthbuf_vertex>
 }`;
 
 export const HIGHLIGHT_FRAG = `
+#include <common>
+#include <logdepthbuf_pars_fragment>
 uniform vec3 uColor;
 uniform float uBase;
 uniform float uRim;
@@ -84,6 +91,7 @@ uniform float uPower;
 varying vec3 vN;
 varying vec3 vV;
 void main() {
+	#include <logdepthbuf_fragment>
 	// max(): a rounding error can push the dot product past 1, and pow of a negative is NaN, which the bloom blur spreads into black blocks.
 	float f = pow(max(0.0, 1.0 - abs(dot(normalize(vN), normalize(vV)))), uPower);
 	float p = 1.0 + uPulse * sin(uTime * 4.0);
