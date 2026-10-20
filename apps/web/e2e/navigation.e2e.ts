@@ -105,7 +105,9 @@ test('typed delta-v on the second node, warp to AN, and an alarm that stops the 
 	await warpUp(page);
 	await expect(page.getByTestId('hud-warp')).toHaveText('1×', { timeout: 60_000 });
 	const stopped = await simTime(page);
-	expect(stopped).toBeLessThanOrEqual(t1 + 300 + 1);
+	// the warp stopped at the alarm (a missed stop at 10x or more would read tens of seconds late); the clock
+	// then runs at 1x until this read, so a second or two of real time under load is not an overshoot
+	expect(stopped).toBeLessThanOrEqual(t1 + 300 + 5);
 	expect(stopped).toBeGreaterThan(t1 + 250);
 	await page.getByTestId('status-bell').click();
 	await expect(page.getByTestId('bell-feed')).toContainText('Alarm: Five minutes');
