@@ -16,7 +16,8 @@
  *   PRESETS     comma list (default medium,high)
  *   RATIOS      pixel ratios forced with `debug.setPixelRatio` (default 1,1.5,2)
  *   SCENES      pad, 3km, 12km, orbit, hillside (default pad,3km,12km,orbit,hillside)
- *   ABLATE      the ratio to run the per-feature ablation at, on every preset in PRESETS ("" = skip, default 2)
+ *   ABLATE      the ratio to run the per-feature ablation at ("" = skip, default 2)
+ *   ABLATE_PRESETS  presets the ablation runs on (default high: a switch takes `high` down to `medium`, a no-op on medium)
  *   ABLATE_ONLY comma list of switch names (and `all`) to run in the ablation, for a rerun of disturbed rows
  *   TRACE       seconds of free-flight frame intervals with the governor on (default 0 = skip)
  *   MEASURE_ANGLE   the GPU backend (default `metal`; `d3d11` on Windows, `vulkan` or `gl` on Linux)
@@ -125,14 +126,20 @@ async function waitForFlight(page: Page): Promise<void> {
 }
 
 /** A page at `preset` on its second load, programs compiled and the preset's bakes finished. */
-async function openFlight(preset: string, governor: 'off' | 'on'): Promise<Page> {
+async function openFlight(
+	preset: string,
+	governor: 'off' | 'on',
+	features: string[] = []
+): Promise<Page> {
 	const page = await context.newPage();
+	// `features` go down at page load, before the programs compile (the hook in flight-loop.ts)
 	await page.addInitScript(
-		([p, g]) => {
+		([p, g, f]) => {
 			localStorage.setItem('orbital.graphics', p!);
 			localStorage.setItem('orbital.graphics.auto', g!);
+			localStorage.setItem('orbital.graphics.features', f!);
 		},
-		[preset, governor]
+		[preset, governor, features.join(',')]
 	);
 	// the first load compiles the programs; the second is measured
 	await page.goto('/flight');
@@ -245,45 +252,45 @@ for (const preset of presets) {
 }
 rows.byRatio = byRatio;
 
-// 2. Each feature's share: one switch on at a time, on every preset's own table, against none.
+// 2. Each feature's share: one switch down at a time, on the presets in ABLATE_PRESETS, against none. A
+// switch is applied at page load (before the programs compile) on a fresh page: switched at runtime, the
+// ones that change a shader define read 2 to 3 times slow (journal 050), which the first baseline showed.
 if (ablate !== '') {
 	const ratio = Number(ablate);
+	const ablatePresets = (process.env.ABLATE_PRESETS ?? 'high').split(',');
 	const ablation: Record<string, unknown> = {};
-	for (const preset of presets) {
-		const page = await openFlight(preset, 'off');
-		const size = await setRatio(page, ratio);
-		const allNames: string[] = await page.evaluate(() => [
+	for (const preset of ablatePresets) {
+		const probe = await openFlight(preset, 'off');
+		const allNames: string[] = await probe.evaluate(() => [
 			...(window as any).__orbital.renderer().debug.featureNames
 		]);
-		const names = ablateOnly ? allNames.filter((n) => ablateOnly.includes(n)) : allNames;
-		const none = await allScenes(page, `${preset} none`);
+		const size = await setRatio(probe, ratio);
+		const none = await allScenes(probe, `${preset} none`);
+		await probe.close();
 		const res: Record<string, Record<string, number>> = { none };
-		for (const name of names) {
-			await page.evaluate(
-				(n) => (window as any).__orbital.renderer().debug.setFeature(n, true),
-				name
-			);
-			await page.waitForTimeout(1500);
-			res[name] = await allScenes(page, `${preset} ${name}`, none);
-			await page.evaluate(
-				(n) => (window as any).__orbital.renderer().debug.setFeature(n, false),
-				name
-			);
-			console.log(preset, 'ablate', name, JSON.stringify(res[name]));
-		}
+		const names = ablateOnly ? allNames.filter((n) => ablateOnly.includes(n)) : allNames;
+		const runs: [string, string[]][] = names.map((n) => [n, [n]]);
 		// every switch at once: what the preset would cost with all its extras taken down
-		if (!ablateOnly || ablateOnly.includes('all')) {
-			for (const name of allNames)
-				await page.evaluate(
-					(n) => (window as any).__orbital.renderer().debug.setFeature(n, true),
-					name
+		if (!ablateOnly || ablateOnly.includes('all')) runs.push(['all', allNames]);
+		for (const [name, features] of runs) {
+			const page = await openFlight(preset, 'off', features);
+			await setRatio(page, ratio);
+			const on: string[] = await page.evaluate(() =>
+				(window as any).__orbital.renderer().debug.features()
+			);
+			if (on.length !== features.length)
+				suspect.push(
+					`${preset} ${name}: ${on.length} of ${features.length} switches were on at load`
 				);
-			await page.waitForTimeout(1500);
-			res.all = await allScenes(page, `${preset} all`, none);
-			await page.evaluate(() => (window as any).__orbital.renderer().debug.resetFeatures());
+			res[name] = await allScenes(page, `${preset} ${name}`, none);
+			console.log(preset, 'ablate', name, JSON.stringify(res[name]));
+			await page.close();
 		}
 		// the plain preset again at the end: it must read as it did at the start, or the run drifted
-		const noneEnd = await allScenes(page, `${preset} none (end)`);
+		const tail = await openFlight(preset, 'off');
+		await setRatio(tail, ratio);
+		const noneEnd = await allScenes(tail, `${preset} none (end)`);
+		await tail.close();
 		res.noneEnd = noneEnd;
 		for (const n of sceneNames)
 			if (Math.abs(noneEnd[n]! - none[n]!) > 0.25 * none[n]!)
@@ -291,7 +298,6 @@ if (ablate !== '') {
 					`${preset} ablation drifted on ${n}: ${none[n]} ms at the start, ${noneEnd[n]} at the end`
 				);
 		ablation[`${preset}, ratio ${ratio} (${size})`] = res;
-		await page.close();
 	}
 	rows.ablation = ablation;
 }

@@ -1493,6 +1493,18 @@ export function startFlight(options: FlightOptions): Flight {
 			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
 			governor.setEnabled(autoQuality);
 			syncGlass();
+			// Measurement (plan 251): the switches named in localStorage `orbital.graphics.features` go down
+			// before the programs are compiled, so a switch that changes a shader define is measured on a
+			// program compiled at load (one compiled later reads 2 to 3 times slow, journal 050).
+			if (import.meta.env.DEV) {
+				try {
+					const names = renderer.debug.featureNames as readonly string[];
+					for (const name of (localStorage.getItem('orbital.graphics.features') ?? '').split(','))
+						if (names.includes(name)) renderer.debug.setFeature(name as never, true);
+				} catch {
+					// no storage: no switches
+				}
+			}
 			// compile this preset's programs and the other presets' planet pass off the main thread
 			void renderer.precompile(options.onGraphics);
 			resize();
