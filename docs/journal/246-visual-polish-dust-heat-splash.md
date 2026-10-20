@@ -1,6 +1,6 @@
 # 246 — Visuals: splashed, heat bars, touchdown dust, reduced motion, tooltips
 
-**Plan:** [plans/246-visual-polish-dust-heat-splash.md](../plans/246-visual-polish-dust-heat-splash.md) · **Session:** Worker B (M5), 2026-10-20 · **ADRs:** [0235](../decisions/0235-splashed-flag-heat-bars-dust-reduced-motion.md), 0182, 0204, 0026
+**Plan:** [plans/246-visual-polish-dust-heat-splash.md](../plans/246-visual-polish-dust-heat-splash.md) · **Session:** Worker B (M5), 2026-10-20 · **ADRs:** [0236](../decisions/0236-splashed-flag-heat-bars-dust-reduced-motion.md), 0182, 0204, 0026
 
 ## What was done
 

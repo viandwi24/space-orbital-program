@@ -693,7 +693,13 @@ export function createHudController(options: HudControllerOptions): HudControlle
 			return {
 				name,
 				body: bodyLabel(body.id),
-				situation: situationLabel(tele.phase, tele.escape, bodyLabel(body.id), tele.prelaunch, tele.splashed),
+				situation: situationLabel(
+					tele.phase,
+					tele.escape,
+					bodyLabel(body.id),
+					tele.prelaunch,
+					tele.splashed
+				),
 				prelaunch: tele.prelaunch,
 				phase: tele.phase,
 				// MET counts from liftoff (plan 200): 0 on the pad; a vessel from an older save, from t = 0

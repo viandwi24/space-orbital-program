@@ -1,4 +1,4 @@
-# 0235 — The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view
+# 0236 — The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view
 
 **Status:** accepted
 **Date:** 2026-10-20
