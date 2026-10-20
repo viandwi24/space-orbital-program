@@ -222,6 +222,14 @@ describe('QualityGovernor: rules on synthetic frame series (plan 253)', () => {
 		void run;
 	});
 
+	test('tick passes the GPU time on: measured headroom steps up (plan 261 Phase 8)', () => {
+		const g = new QualityGovernor('high');
+		play(g, 12, (l: GovernorLevel) => (levelCost(l) > 0.7 ? 40 : 6));
+		const before = g.history.length;
+		for (let i = 0; i < 60 * 60; i++) g.tick(1000 / 60, 4);
+		expect(g.history.slice(before).some((h) => h.reason === 'measured headroom')).toBe(true);
+	});
+
 	test('measured work too close to the budget does not step up', () => {
 		const g = new QualityGovernor('high');
 		play(g, 12, retina(40));

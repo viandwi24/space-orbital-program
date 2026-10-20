@@ -4,7 +4,7 @@
  * rAF interval (`tick`) and applies the level it returns (`Renderer.setPreset`,
  * `Renderer.setRenderScale`).
  *
- * The browser gives no GPU time, only the frame interval, and a vsync-locked interval cannot show
+ * WebGL gives no GPU time, only the frame interval, and a vsync-locked interval cannot show
  * headroom. So it steps down fast (a second of mostly missed vsyncs), and steps back up only on
  * evidence: a measured work time with room to spare, or a scene that changed since the rung above
  * was left, one trial per scene. A failed trial bans that rung for that scene, so there is no
@@ -342,9 +342,10 @@ export class QualityGovernor {
 
 	/**
 	 * One rAF, `rafMs` after the previous one. Says whether to draw it; a drawn frame is judged by the
-	 * time since the previous drawn one. The page calls this on every rAF while the governor is on.
+	 * time since the previous drawn one. The page calls this on every rAF while the governor is on;
+	 * `workMs` is the GPU time per frame where the renderer measures it (WebGPU, plan 261), else omitted.
 	 */
-	tick(rafMs: number): GovernorTick {
+	tick(rafMs: number, workMs?: number): GovernorTick {
 		if (!this.enabled || !Number.isFinite(rafMs) || rafMs <= 0)
 			return { render: true, level: null };
 		if (rafMs <= this.config.ignoreOverMs) this.estimateCadence(rafMs);
@@ -355,7 +356,7 @@ export class QualityGovernor {
 		}
 		const interval = this.sinceRender;
 		this.sinceRender = 0;
-		return { render: true, level: this.frame(interval) };
+		return { render: true, level: this.frame(interval, workMs) };
 	}
 
 	/**

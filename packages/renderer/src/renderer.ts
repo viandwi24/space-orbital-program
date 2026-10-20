@@ -270,6 +270,11 @@ export interface Renderer {
 	/** Whether this context can draw the half-resolution planet pass (the governor skips the rung when not). */
 	readonly halfPlanetAvailable: boolean;
 	/**
+	 * The GPU's time per frame from timestamp queries, ms, or null where there are none (WebGL; plan 261
+	 * Phase 8): the governor's evidence of headroom (ADR 0233).
+	 */
+	readonly gpuFrameMs: number | null;
+	/**
 	 * Compiles the shader programs of this preset's scene and, after the first frame, of every preset's
 	 * scene state and its planet and march passes in the background (`compileAsync`), so the first frame
 	 * and a later `setPreset` do not stall on the driver's shader compiler, then builds the biome maps and
@@ -615,6 +620,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 			get planetScale() {
 				return env.planet.planetScale;
 			},
+			gpuFrameMs: null,
 			get halfPlanetAvailable() {
 				return env.planet.halfAvailable(gl);
 			},

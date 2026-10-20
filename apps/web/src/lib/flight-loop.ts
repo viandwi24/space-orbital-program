@@ -1435,7 +1435,8 @@ export function startFlight(options: FlightOptions): Flight {
 		// the governor paces the drawing to its locked target (plan 253): a 120 Hz display draws every
 		// second rAF at 60, and a drawn frame is judged by the time since the previous drawn one
 		if (governor) {
-			const tick = governor.tick(now - lastRaf);
+			// the GPU's time where the renderer measures it (WebGPU, plan 261): headroom to step up on
+			const tick = governor.tick(now - lastRaf, renderer?.gpuFrameMs ?? undefined);
 			lastRaf = now;
 			if (tick.level) applyLevel(tick.level, true, governor.history.at(-1)?.reason);
 			if (!tick.render) return;

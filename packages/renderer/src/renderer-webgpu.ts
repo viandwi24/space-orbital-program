@@ -463,6 +463,9 @@ export function createWebGPURenderer(
 			get halfPlanetAvailable() {
 				return true;
 			},
+			get gpuFrameMs() {
+				return gpuMs;
+			},
 			capabilities() {
 				const b = gpu?.backend as { device?: GPUDevice; gl?: WebGL2RenderingContext } | undefined;
 				const max =
