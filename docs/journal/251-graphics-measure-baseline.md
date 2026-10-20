@@ -24,6 +24,6 @@
 
 ## Decisions made
 
-- No ADR: tooling. The baseline's findings feed plan 252's ADR 0232 and plan 253.
+- No ADR: tooling. The baseline's findings feed plan 252's ADR 0234 and plan 253.
 - The canvas `antialias` flag is fixed at context creation, so it has no switch; `high` draws into its own multisampled target and the `msaa` switch covers it.
 - There is no separate Performance tab in the Debug panel; the histogram is in Info, where the FPS already was.

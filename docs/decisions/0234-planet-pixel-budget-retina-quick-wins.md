@@ -1,4 +1,4 @@
-# 0232 — A pixel budget for the planet pass, and the other Retina quick wins
+# 0234 — A pixel budget for the planet pass, and the other Retina quick wins
 
 **Status:** accepted
 **Date:** 2026-10-20
