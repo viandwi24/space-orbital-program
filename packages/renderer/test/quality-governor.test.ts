@@ -40,7 +40,7 @@ function play(
 	let known = g.history.length;
 	while (t < seconds * 1000) {
 		if (options.scene) g.setScene(options.scene(t / 1000));
-		const r = g.tick(last);
+		const r = g.tick(last, options.work?.(g.level, t));
 		if (g.history.length > known) {
 			const c = g.history[g.history.length - 1]!;
 			out.changes.push({ t: t / 1000, level: c.level, reason: c.reason });
@@ -228,6 +228,16 @@ describe('QualityGovernor: rules on synthetic frame series (plan 253)', () => {
 		const before = g.history.length;
 		for (let i = 0; i < 60 * 60; i++) g.tick(1000 / 60, 4);
 		expect(g.history.slice(before).some((h) => h.reason === 'measured headroom')).toBe(true);
+	});
+
+	test('a work time that under-reports tries the rung above once per scene, not every gap', () => {
+		const g = new QualityGovernor('high');
+		// the frame at the top rung misses vsync, at the rungs below it holds 60; the work time says 6 ms everywhere
+		const cost = (l: GovernorLevel) => (levelCost(l) > 0.9 ? 30 : 10);
+		play(g, 10, cost, { work: () => 6 });
+		const run = play(g, 600, cost, { work: () => 6 });
+		const ups = run.changes.filter((c) => c.reason === 'measured headroom');
+		expect(ups.length).toBeLessThanOrEqual(1);
 	});
 
 	test('measured work too close to the budget does not step up', () => {

@@ -441,6 +441,9 @@ export class QualityGovernor {
 		const overMs = budget * this.config.overFactor;
 		if (clean.samples.some((x) => x.ms > overMs)) return null;
 		const scene = this.scene;
+		// a rung that failed in this scene stays banned whatever the work time says: WebGPU's timestamps
+		// on Apple GPUs leave out the frame's end (an M2 at Retina: 11 ms measured, 30 fps drawn; plan 261)
+		if (this.bans.get(up) === scene) return null;
 		// the work-time evidence: room to spare at the rung above
 		const works = clean.samples.map((x) => x.work);
 		if (works.every((w): w is number => w !== null)) {
@@ -452,7 +455,6 @@ export class QualityGovernor {
 			return null;
 		}
 		// no work time: one trial per rung and scene, once the scene is not the one it was left in
-		if (this.bans.get(up) === scene) return null;
 		const left = this.leftIn.get(up);
 		if (left === undefined || left === scene) return null;
 		return this.raise(up, 'scene changed, one trial up');
