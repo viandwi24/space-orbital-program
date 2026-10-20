@@ -36,6 +36,15 @@ export interface BuildingRow {
 	upgrade: { level: number; cost: number; days: number } | null;
 	provides: string[];
 	action: BuildingAction;
+	/** The level it runs at, from 1, and the top level (plan 259). */
+	level: number;
+	maxLevel: number;
+	/** One line of what it is for, from the definition (plan 259). */
+	description: string;
+	/** Funds per 30 days at this level (plan 259). */
+	upkeep: number;
+	/** What this level provides, as "Part count 120" lines (plan 259). */
+	capacity: readonly string[];
 	/** Where the label sits: site metres east, north and up. */
 	anchor: { east: number; north: number; up: number };
 }
@@ -84,6 +93,19 @@ export function footprintCentreMetres(cells: readonly Cell[]): { east: number; n
 	const i = cells.reduce((s, c) => s + c.i, 0) / cells.length;
 	const j = cells.reduce((s, c) => s + c.j, 0) / cells.length;
 	return { east: i * 10, north: j * 10 };
+}
+
+/** "launch-pad" → "Launch pad": a capability id as a label. */
+const capacityLabel = (id: string): string => {
+	const words = id.replace(/^[^.]*\./, '').replace(/[-_]/g, ' ');
+	return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** The capacity of a level as "Hangar 120" lines (plan 259). */
+export function capacityLines(capacity: Readonly<Record<string, number>> | undefined): string[] {
+	return Object.entries(capacity ?? {}).map(
+		([id, n]) => `${capacityLabel(id)} ${n.toLocaleString('en-US')}`
+	);
 }
 
 /** What a building is doing, as the player reads it (plan 096, ADR 0123 point 1). */
@@ -135,6 +157,11 @@ export function buildingRows(
 						: null,
 				provides: [...def.provides],
 				action: actionOf(def.provides),
+				level: Math.min(b.level, def.levels.length - 1) + 1,
+				maxLevel: def.levels.length,
+				description: def.description ?? '',
+				upkeep: def.levels[Math.min(b.level, def.levels.length - 1)]?.upkeep ?? 0,
+				capacity: capacityLines(def.levels[Math.min(b.level, def.levels.length - 1)]?.capacity),
 				anchor: { ...c, up: (HEIGHTS[generator] ?? 10) + 4 }
 			}
 		];

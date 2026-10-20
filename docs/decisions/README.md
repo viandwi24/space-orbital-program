@@ -238,3 +238,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0239 | [Vessel lights: a module, a lamp visual and a small light budget](0239-vessel-lights.md) | accepted | 2026-10-20 |
 | 0240 | [The Hangar after the owner's test: a clear bay, a folding right panel, Flight's bars](0240-hangar-owner-fixes-panel-and-bars.md) | accepted | 2026-10-20 |
 | 0241 | [Flight UI after the owner's test: a collapsed vessel panel, a dock rail of its own height, one pause badge, clearances that follow what is shown](0241-flight-ui-owner-fixes.md) | accepted | 2026-10-20 |
+| 0242 | [Space Center: pins instead of permanent labels, a building panel with an upgrade block, one compact list](0242-space-center-pins-building-panel-compact-list.md) | accepted | 2026-10-21 |

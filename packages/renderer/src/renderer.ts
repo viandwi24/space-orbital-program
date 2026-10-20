@@ -202,6 +202,11 @@ export interface Renderer {
 	 * With `siteBuildings: true` in the config, the site's buildings come from `setSiteBuildings`.
 	 */
 	setSiteView(on: boolean): void;
+	/** Site view (plan 259): look at a point of the site, or null for its centre; see `Scene.setSiteFocus`. */
+	setSiteFocus(
+		p: { east: number; north: number; up?: number } | null,
+		options?: { distance?: number; animate?: boolean }
+	): void;
 	setSiteBuildings(
 		list: readonly SiteBuildingView[],
 		roads: readonly { i: number; j: number }[]
@@ -610,6 +615,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 		viewDirection: () => model.viewDirection(),
 		project: (world) => model.project(world),
 		setSiteView: (on) => model.setSiteView(on),
+		setSiteFocus: (p, options) => model.setSiteFocus(p, options),
 		setSiteBuildings: (list, roads) => model.setSiteBuildings(list, roads),
 		setSiteGhost: (g) => model.setSiteGhost(g),
 		pickSite: (x, y) => model.pickSite(x, y),
