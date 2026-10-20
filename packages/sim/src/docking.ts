@@ -270,6 +270,8 @@ function merge(core: SimCore, frame: FlightFrame, pa: Port, pb: Port): void {
 		peerPort: gone.part,
 		vessel: gone.vessel,
 		name: other.name,
+		// the player's type of the docked vessel (plan 237): undock gives it back
+		...(other.type !== undefined ? { type: other.type } : {}),
 		...(other.design ? { design: other.design } : {}),
 		...(keeper.design ? { keeperDesign: keeper.design } : {}),
 		offset,
@@ -373,6 +375,8 @@ export function restoreUndocked(
 	);
 	if (i < 0) return;
 	const rec = docks[i]!;
+	// the combined vessel's type stays with the keeper's side, whichever entity that is now (plan 237)
+	const combinedType = keeper.type;
 	keeper.docks = docks.filter((_, k) => k !== i);
 	if (keeper.docks.length === 0) delete keeper.docks;
 	const other = vesselOf(core, split);
@@ -394,6 +398,10 @@ export function restoreUndocked(
 		.filter((s) => s.length > 0 || rec.stages.length === 0);
 	if (rec.controlPart !== undefined && kept_.has(rec.controlPart))
 		dockedSide.controlPart = rec.controlPart;
+	if (rec.type !== undefined) dockedSide.type = rec.type;
+	else delete dockedSide.type;
+	if (combinedType !== undefined) home.type = combinedType;
+	else delete home.type;
 	home.name = homeName;
 	if (rec.keeperDesign) home.design = rec.keeperDesign;
 	// the docked vessel's stages were appended after the keeper's own

@@ -183,7 +183,7 @@
 | 234 | [Deep-space dish: a large, realistic parabolic antenna building](plans/234-deep-space-dish.md) | done | Worker C | Owner approved the realism 2026-10-20 (ADR 0222, 0228). |
 | 235 | [Space Center build menu: categories along the bottom, cards with building thumbnails](plans/235-space-center-build-menu.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
-| 237 | [Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds](plans/237-flight-and-sim-bug-fixes.md) | ready | Worker C | Release audit 2026-10-20; before v1.0.0. |
+| 237 | [Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds](plans/237-flight-and-sim-bug-fixes.md) | in-progress | Worker C | Release audit 2026-10-20; before v1.0.0. |
 | 238 | [Hangar: the camera reaches the top of a tall vessel; one top bar](plans/238-hangar-camera-tall-vessels-one-top-bar.md) | ready | Worker A | Release audit 2026-10-20 (C3, C15); before v1.0.0. |
 | 239 | [A running script keeps running when the player leaves Flight](plans/239-scripts-keep-running-off-flight.md) | ready | Worker C | Release audit 2026-10-20 (ADR 0201 point 9); before v1.0.0. |
 | 240 | [Part read-outs: live engine thrust, Isp and flow, flameout reason, solar and RTG output, tank bars in the inspector](plans/240-part-readouts-engine-power.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |

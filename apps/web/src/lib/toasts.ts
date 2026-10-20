@@ -2,6 +2,7 @@
  * Toasts: short notices for events the player should not miss (plan 021, ADR 0026). The mapping
  * from sim events and HUD transitions is pure; the store keeps at most `MAX_TOASTS`.
  */
+import { DEFAULT_MAX_TEMPERATURE } from '@orbital/core';
 import { bodyName, milestoneTitle } from './achievements/milestone-text';
 import type { SimEvent } from './messages';
 import type { FlightPhase } from './telemetry';
@@ -187,6 +188,22 @@ export const toastForRefusal = (command: string, reason: string): Toast => ({
 	detail: reason,
 	key: `refused-${command}`
 });
+
+/**
+ * The hottest part's temperature over its limit (plan 237): the part's `maxTemperature`, else the
+ * sim's default of 2000 K, so the HUD warns where the sim will fail the part.
+ */
+export function heatRatio(
+	parts: ReadonlyArray<{ definition: string; temperature?: number }>,
+	limitOf: (definition: string) => number | undefined
+): number {
+	let heat = 0;
+	for (const p of parts) {
+		const limit = limitOf(p.definition) ?? DEFAULT_MAX_TEMPERATURE;
+		if (p.temperature !== undefined) heat = Math.max(heat, p.temperature / limit);
+	}
+	return heat;
+}
 
 /** Warn at 85 % of a part's maximum temperature; re-arm below 70 %. */
 export const HEAT_WARN = 0.85;
