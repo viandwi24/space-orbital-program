@@ -20,6 +20,7 @@
  *   TRACE       seconds of free-flight frame intervals with the governor on (default 0 = skip)
  *   MEASURE_ANGLE   the GPU backend (default `metal`; `d3d11` on Windows, `vulkan` or `gl` on Linux)
  *   MEASURE_HEADLESS=1   a quick smoke run only: a headless Chromium reads frames about 3x slow
+ *   MEASURE_NOTES   free text stored in the JSON: the power state, `pmset -g therm`, the commit measured
  *
  * Numbers are "sync ms": the minimum over 10 windows of the mean of 6 single frames
  * (`renderer.debug.benchmark(1)`, draw plus a readPixels stall). The browser window must stay in view
@@ -177,6 +178,7 @@ const rows: Record<string, unknown> = {
 	gpu,
 	angle,
 	viewport: `${VW}x${VH} css, deviceScaleFactor ${DSF}`,
+	notes: process.env.MEASURE_NOTES ?? '',
 	scenes: sceneNames
 };
 
