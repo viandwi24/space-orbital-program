@@ -333,8 +333,10 @@ if (traceSeconds > 0) {
 			p50: at(0.5),
 			p95: at(0.95),
 			p99: at(0.99),
-			over16_7: sorted.filter((v) => v > 1000 / 60).length / sorted.length,
-			over33_3: sorted.filter((v) => v > 1000 / 30).length / sorted.length,
+			// 1 ms of allowance: the timestamps jitter, a steady 60 fps reads 16.6 to 16.8 ms
+			over16_7: sorted.filter((v) => v > 1000 / 60 + 1).length / sorted.length,
+			over33_3: sorted.filter((v) => v > 1000 / 30 + 1).length / sorted.length,
+			fps: Math.round((sorted.length / seconds) * 10) / 10,
 			levels: changes
 		};
 	}, traceSeconds);
