@@ -255,7 +255,7 @@ export interface Renderer {
 export function createRenderer(config: RendererConfig): Renderer {
 	const gl = new WebGLRenderer({
 		canvas: config.canvas,
-		// the canvas only receives the post chain's output quad on a dense screen (plan 252, ADR 0228)
+		// the canvas only receives the post chain's output quad on a dense screen (plan 252, ADR 0232)
 		antialias: canvasAntialias(config.pixelRatio ?? globalThis.devicePixelRatio ?? 1),
 		logarithmicDepthBuffer: true,
 		powerPreference: 'high-performance'
