@@ -5,6 +5,7 @@ import {
 	FrameHistogram,
 	GAP_MS,
 	HISTOGRAM_WINDOW_MS,
+	JITTER_MS,
 	percentile
 } from './frame-histogram';
 
@@ -40,6 +41,21 @@ describe('the frame histogram', () => {
 		expect(s.p99).toBeCloseTo(BUDGET_60_MS - 0.2, 9);
 		expect(s.over60).toBe(0);
 		expect(s.over30).toBe(0);
+	});
+
+	it('a steady 60 fps, whose timestamps read 16.6 to 16.8 ms, is not over budget', () => {
+		const h = new FrameHistogram();
+		const t = feed(
+			h,
+			Array.from({ length: 600 }, (_, i) => (i % 2 === 0 ? 16.8 : 16.6))
+		);
+		const s = h.summary(t);
+		expect(s.over60).toBe(0);
+		expect(16.8).toBeLessThan(BUDGET_60_MS + JITTER_MS);
+		// a frame that took 1.5 periods is over
+		const late = new FrameHistogram();
+		feed(late, [16.7, 16.7, 25, 16.7]);
+		expect(late.summary(1000).over60).toBeCloseTo(0.25, 9);
 	});
 
 	it('a few long frames show in p99 and the over-budget shares, not in the median', () => {

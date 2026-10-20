@@ -8,6 +8,13 @@
 export const BUDGET_60_MS = 1000 / 60;
 export const BUDGET_30_MS = 1000 / 30;
 
+/**
+ * Allowance on those budgets, ms: the frame timestamps are quantised and jitter by a fraction of a
+ * millisecond, so a steady 60 fps reads 16.6 to 16.8 ms and half of its frames would count as late. A
+ * frame is over budget when it is longer than the budget plus this.
+ */
+export const JITTER_MS = 1;
+
 /** The window the numbers cover, ms (two minutes). */
 export const HISTOGRAM_WINDOW_MS = 120_000;
 
@@ -81,8 +88,8 @@ export class FrameHistogram {
 		let over60 = 0;
 		let over30 = 0;
 		for (const v of sorted) {
-			if (v > BUDGET_60_MS) over60++;
-			if (v > BUDGET_30_MS) over30++;
+			if (v > BUDGET_60_MS + JITTER_MS) over60++;
+			if (v > BUDGET_30_MS + JITTER_MS) over30++;
 		}
 		return {
 			count: n,
