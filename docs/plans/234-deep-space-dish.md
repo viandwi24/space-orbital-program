@@ -1,7 +1,7 @@
 ---
 id: 234
 title: "Deep-space dish: a large, realistic parabolic antenna building"
-status: blocked
+status: done
 owner: "Worker C"
 depends: [233]
 phase: 7
@@ -63,7 +63,7 @@ The Space Center can build a deep-space dish (`stock.deep-space-dish`) that look
 
 - [x] Renderer tests pass: the dish bounds stay within its footprint; the tracking function respects its slew limits and points within 0.5° at steady state.
 - [x] A sim or core test passes: a vessel at Moon distance links through the dish with a higher data rate than through the tracking dish.
-- [ ] `e2e/deep-space-dish.e2e.ts` passes on Chromium, with 4 screenshots in the journal. `[manual]` The owner judges the realism (screenshots in the journal; open).
+- [x] `e2e/deep-space-dish.e2e.ts` passes on Chromium, with 4 screenshots in the journal. `[manual]` The owner judges the realism (approved 2026-10-20).
 - [x] `bun run check:affected` passes, and CI is green on `ready/234`.
 
 ## Docs checklist
@@ -78,3 +78,4 @@ The Space Center can build a deep-space dish (`stock.deep-space-dish`) that look
 - 2026-10-20 — ADR 0228. Default: the tracking dish's apertures become 9, 12 and 18 m (they were 10, 34 and 70 m on a 20 m footprint) so the deep-space dish's 64, 70 and ≈99 m are the step up; one link-budget test moved by 20 log 0.9.
 - 2026-10-20 — Evidence: `packages/renderer/test/site-dish.test.ts` 4 pass (every vertex within the 39 m circle and above the ground at 20 aims; far model under half the vertices; slew limits per step and within 0.5° at steady state; short way round; stow); `packages/sim/test/deep-space-dish.test.ts` 1 pass (≈17 dB more margin and a higher rate at the moon's distance); `check:affected --build --e2e e2e/deep-space-dish.e2e.ts` all passed in 340 s; four screenshots in the journal. The `[manual]` realism check is the owner's.
 - 2026-10-20 — **Blocked on the owner** (`[manual]`, worker brief: Owner decisions): every automated criterion passes and the code is on main; the realism check is open. Checklist for the owner: look at the four screenshots in `docs/journal/234-deep-space-dish.md` (or build the dish at the Space Center in a Sandbox world: Build → Deep-space dish) and say whether the dish reads as a real deep-space antenna; anything to change goes into a new plan. The e2e line stays unticked only for its `[manual]` part.
+- 2026-10-20 — The owner approved the dish's realism ("234 aman aja segera merge"); the `[manual]` check is closed and the plan is done. Merged by the coordinator.

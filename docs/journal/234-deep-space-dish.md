@@ -35,3 +35,7 @@
 
 - A camera that frames a selected building at the Space Center would help screenshots and players alike.
 - The flight's legacy site layout has no list buildings, so the dish moves only at the Space Center.
+
+## Owner review
+
+- 2026-10-20: the owner approved the realism of the dish, so the plan is closed.
