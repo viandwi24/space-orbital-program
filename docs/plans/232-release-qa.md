@@ -1,7 +1,7 @@
 ---
 id: 232
 title: Release QA and launch
-status: draft
+status: dropped
 owner: "Worker B (M5)"
 depends: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 233, 234, 235, 236, 237, 238, 239, 251, 252, 253]
 phase: 7
@@ -135,3 +135,4 @@ Run on the production build at the public URL, in Chrome or Edge on a laptop, th
 - 2026-10-20 — Coordinator (owner order): graphics phases 0 and 1 are in v1.0.0: plans 251 (measurement and M5 baseline), 252 (Retina pixel budget) and 253 (governor) join the depends. They are a second integration batch, after 237–239; then rerun only the e2es they touch (flight, smoke, debug). The M5 performance pass reuses 251's tool and 252's acceptance numbers, without measuring twice. After the 237–239 batch the lock is released and the M5 stays quiet (load ≤ 3, no e2e) for 251's baseline. No `v1.0.0` tag until 237–239 and 251–253 are done.
 - 2026-10-20 — Owner's order (worker brief, "E2E paused"): all local e2e is paused. Not run: Firefox, WebKit, the batch-2 rerun after 251–253, `E2E_HEADERS=1` smoke. **Known issue of v1.0.0: the full e2e was not run on Firefox and WebKit, nor after plans 251–253.** The e2e gates stay unticked (e2e paused by the owner, 2026-10-20). The release proceeds on CI (lint, typecheck, unit tests, build), the graphics measurements and the owner's manual checklist. No e2e waiter of mine is queued.
 - 2026-10-21 — Release-prep commits merged to `main` (version 1.0.0, CHANGELOG with the 253 governor line, release and acceptance checklists, e2e test fixes). CI passed on `ready/232` (0181aaf0). Not done: the owner's manual checklist, the roadmap trim, the deploy and the `v1.0.0` tag, so the status stays as it was.
+- 2026-10-21 — **Dropped by the owner** ("untuk 261 atau 232 udah drop aja itu mah"). Work already merged stays on main; nothing more is done under this plan.

@@ -118,6 +118,8 @@ for (const file of readdirSync(PLANS)
 		(a) => a >= '0200'
 	);
 	const status = fm('status');
+	// A plan the owner cancelled leaves the roadmap.
+	if (status === 'dropped') continue;
 	const owner = fm('owner').replace(/"/g, '');
 	plans[id] = {
 		id,

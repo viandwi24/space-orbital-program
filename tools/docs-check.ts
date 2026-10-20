@@ -19,7 +19,7 @@ const ADRS = join(ROOT, 'docs/decisions');
 const JOURNAL = join(ROOT, 'docs/journal');
 const STATUS = join(ROOT, 'docs/STATUS.md');
 
-const STATUSES = new Set(['draft', 'ready', 'in-progress', 'done', 'blocked']);
+const STATUSES = new Set(['draft', 'ready', 'in-progress', 'done', 'blocked', 'dropped']);
 const errors: string[] = [];
 const fail = (m: string) => errors.push(m);
 

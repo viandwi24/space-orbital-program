@@ -1,7 +1,7 @@
 ---
 id: 261
 title: "WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset"
-status: draft
+status: dropped
 owner: ""
 depends: [251, 252, 253]
 phase: 8
@@ -262,3 +262,4 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 ## Log
 
 - 2026-10-20 — Created at the owner's request after the graphics research (`refs/graphics-performance/`) and its October 2026 update: quality first, its own branch, manual test before merge.
+- 2026-10-21 — **Dropped by the owner** ("untuk 261 atau 232 udah drop aja itu mah"). Work already merged stays on main; nothing more is done under this plan.
