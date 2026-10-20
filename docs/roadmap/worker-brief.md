@@ -1,4 +1,4 @@
-# Worker brief for the release roadmap (plans 200–239)
+# Worker brief for the release roadmap (plans 200–253)
 
 This is the brief that each worker session reads first. The coordinating session starts workers with `Baca docs/roadmap/worker-brief.md. Kamu adalah Worker <X>.` Workers report to the owner in Bahasa Indonesia.
 
@@ -79,9 +79,11 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 | C | 224 → 226 → 234 → moon-shot TWR fix → 223 → 230 |
 | D | 225 → 227 → 228 |
 | E | 231 → 229 |
-| A | **238** (audit bug fixes, 2026-10-20) |
-| C | **237** → **239** (audit bug fixes, 2026-10-20) |
-| B | 232 release QA, last (after 228, 230, the owner review of 234, and 237–239) |
+| A | **238** (audit bug fixes) → **251** → **252** (graphics, in v1.0.0) → 244 → 243 |
+| C | **237** → **239** (audit bug fixes) → **253** (graphics governor, in v1.0.0) → 247 → 248 → 250 |
+| D | 240 → 241 → 242 (v1.1 wave, 2026-10-20) |
+| E | 245 → 246 → 249 (v1.1 wave, 2026-10-20) |
+| B | 232 release QA, last (after 237–239 and the graphics plans 251–253); then the shared list |
 
 ## Picking work
 
@@ -91,6 +93,32 @@ Every machine uses its **own** `/tmp/orbital-heavy.lock` (one heavy job at a tim
 4. **Claim it with your name:** `git tag -a claim/NNN -m "Worker X (machine)" origin/main && git push origin claim/NNN`. A refused push means someone else has it: pick again. The annotated message is how the roadmap page and the other workers see who works on what.
 5. **Waiting for another worker:** if your next plan depends on a plan another worker holds, run a background loop that does `git fetch origin --tags` every 10 minutes and continues when the dependency's `docs(plan-NNN): complete` commit is on `origin/main`. Meanwhile take any other free plan; if there is none, end your turn with one Indonesian line saying what you wait for.
 6. **Ready and CI tags** (`ready/NNN`, `refs/ci/pass|fail/<sha>`) work as before; delete your `claim/NNN` and `ready/NNN` after the merge so the state stays true.
+
+## Batch mode for the last release plans (owner's order, 2026-10-20)
+
+The owner wants 237, 238, 239 and the release finished as fast as possible, with less waiting on the laptop's single heavy lock. Until `v1.0.0` is tagged, these rules replace "Check" and "Hand over" below:
+
+1. **Code first, all in parallel.** Each worker finishes its plan's code and its own unit tests on its `rel/NNN-*` branch. Locally run only light checks:
+   - targeted `bun test <files>` / one vitest file;
+   - `docs:check`;
+   - the typecheck of the package you changed.
+
+   No local e2e and no `check:affected --full`. Push the branch and the `ready/NNN` tag: CI (on GitHub, not this laptop) runs lint, typecheck, unit tests and build. Worker C writes 239 now, without waiting for 237 to merge.
+2. **One integration run.** Worker B builds `rel/integration-v1` from `origin/main` and merges, in order:
+   - `rel/237-*`, `rel/238-*`, `rel/239-*`;
+   - the QA fixes from `rel/232-release-qa`.
+
+   B then runs the heavy checks **once** on it, under the lock:
+   - `check:affected --full --build`;
+   - the full e2e on Chromium, then Firefox, then WebKit (`E2E_WORKERS=1`, one engine per lock job).
+
+   B starts as soon as all three branches have `refs/ci/pass`. A conflict or a red test goes back to the plan's owner with the file and the failing test. The owner fixes it on their branch, and B re-merges and reruns **only the failing files**.
+3. **Merge in one go.** When the integration run is green, each owner rebases on `origin/main` and fast-forwards their plan with its `docs(plan-NNN): complete` commit, in the order 237 → 238 → 239. No further e2e is needed: the integration run covered the merged code. If a rebase changes code, rerun only that plan's unit tests. B then finishes 232.
+4. **No e2e runs on stale code.** Do not run the full e2e on `main` before the integration branch exists; its result would have to be redone.
+
+**Graphics in v1.0.0 (251–253, owner's order 2026-10-20):** phases 0 and 1 of `refs/graphics-performance/`. Measurements are heavy jobs on a quiet M5 (load ≤ 3, plugged in, no e2e running): take the lock and wait for quiet. They form the second integration batch after 237–239.
+
+**v1.1 wave (240–250, owner's order 2026-10-20):** they do not block `v1.0.0`. Each owner refines its draft against current main before claiming. Workers D (M2) and E (Linux) run their own Chromium e2e on their own machine; Workers A and C on the M5 follow batch mode (light checks, CI, then one integration e2e run per batch).
 
 ## Doing a plan
 
