@@ -65,3 +65,4 @@ The world shell works the same on every page, and a branch space center shows it
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
+- 2026-10-20 — Refined and coded on `rel/248-shell-everywhere` (stacked on 247). Warp through the `warp` command on every non-Flight page; Debug panel and Save/Load in the layout; chip lifts the place pause; the Space Center 3D view draws the chosen home-planet site. Open: a branch is drawn on the home site's terrain with its own cells. Stays draft until 247 is done.

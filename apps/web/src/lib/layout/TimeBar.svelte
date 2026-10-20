@@ -20,6 +20,7 @@
 		date = '',
 		met = false,
 		chip = null,
+		onchip,
 		onpick,
 		catchUp = { kind: 'none' },
 		oncatchup
@@ -40,6 +41,8 @@
 		/** The time is the flight's mission time. */
 		met?: boolean;
 		chip?: string | null;
+		/** The chip toggles the place's pause (plan 248); absent where it only displays. */
+		onchip?: () => void;
 		onpick?: (index: number) => void;
 		catchUp?: CatchUp;
 		oncatchup?: () => void;
@@ -99,7 +102,15 @@
 	<div class="when" data-testid="world-clock" data-t={t} data-tip={date}>
 		{#if met}<span data-testid="hud-met">{time}</span>{:else}{time}{/if}
 	</div>
-	{#if chip}<span class="chip" data-testid="time-chip">{chip}</span>{/if}
+	{#if chip && onchip}
+		<button
+			type="button"
+			class="chip toggle"
+			data-testid="time-chip"
+			data-tip="Run the clock here too (Settings → Time puts the pause back)"
+			onclick={onchip}>{chip}</button
+		>
+	{:else if chip}<span class="chip" data-testid="time-chip">{chip}</span>{/if}
 	{#if catchUp.kind !== 'none'}
 		<button
 			type="button"
@@ -217,6 +228,10 @@
 		white-space: nowrap;
 	}
 	/* the clock's state, in the status bar's mode chip style */
+	.chip.toggle {
+		font: inherit;
+		cursor: pointer;
+	}
 	.chip {
 		height: 1rem;
 		padding: 0 0.375rem;
