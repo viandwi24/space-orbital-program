@@ -74,6 +74,9 @@ import {
 import type { Catalog } from './messages';
 import {
 	boardTarget,
+	CHUTE_MODULE,
+	chuteStep,
+	HELMET_MODULE,
 	isSuit,
 	jetpackTranslate,
 	JETPACK_MODULE,
@@ -292,6 +295,9 @@ export interface Flight {
 	walk(heading: number | null): void;
 	plantFlag(): void;
 	board(): void;
+	/** The EVA helmet and personal parachute (plan 249). */
+	helmet(): void;
+	chute(): void;
 	/** Select the next entry of the target list; the one after the last is none. */
 	cycleTarget(): void;
 	/** Place the node of a rendezvous aid of the Target card (plan 057). */
@@ -1182,6 +1188,12 @@ export function startFlight(options: FlightOptions): Flight {
 			case 'evaBoard':
 				void board();
 				return;
+			case 'evaHelmet':
+				helmet();
+				return;
+			case 'evaChute':
+				chute();
+				return;
 		}
 	}
 	function walk(heading: number | null): void {
@@ -1195,6 +1207,50 @@ export function startFlight(options: FlightOptions): Flight {
 		});
 		hud.eva = { ...e, walking: heading !== null };
 		publish();
+	}
+	/** The helmet key (plan 249): off only where the air allows, with the reason when it does not. */
+	function helmet(): void {
+		const h = hud.eva?.status?.helmet;
+		if (!h || vessel === null) return;
+		if (h.on && !h.breathable) {
+			hudCtl?.notice({
+				kind: 'warning',
+				title: 'Keep the helmet on',
+				detail: 'The air here is not breathable.',
+				key: 'helmet'
+			});
+			return;
+		}
+		void send({
+			type: 'action',
+			vessel,
+			part: h.part as EntityId,
+			module: HELMET_MODULE,
+			action: 'setOn',
+			args: [!h.on]
+		});
+	}
+	/** The chute key (plan 249): arm it, disarm it, or cut the open canopy. */
+	function chute(): void {
+		const c = hud.eva?.status?.chute;
+		if (!c || vessel === null) return;
+		const step = chuteStep(c.status);
+		if (step === null) {
+			hudCtl?.notice({
+				kind: 'warning',
+				title: 'The parachute is spent',
+				detail: 'A cut or torn canopy does not pack again; board and step out for a new one.',
+				key: 'chute'
+			});
+			return;
+		}
+		void send({
+			type: 'action',
+			vessel,
+			part: c.part as EntityId,
+			module: CHUTE_MODULE,
+			action: step
+		});
 	}
 	function plantFlag(): void {
 		if (hud.eva) void send({ type: 'plant-flag', vessel: hud.eva.suit as EntityId });
@@ -2004,6 +2060,8 @@ export function startFlight(options: FlightOptions): Flight {
 		walk,
 		plantFlag,
 		board: () => void board(),
+		helmet,
+		chute,
 		cycleTarget,
 		planAid,
 		setPaused(paused) {

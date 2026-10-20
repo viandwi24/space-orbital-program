@@ -168,6 +168,8 @@ export interface Ambient {
 	/** Air temperature, K, and the speed of sound in it, m/s (plan 212); absent in vacuum. */
 	readonly temperature?: number;
 	readonly speedOfSound?: number;
+	/** Whether the air is breathable (plan 249: the body's `atmosphere.breathable`); absent in vacuum. */
+	readonly breathable?: boolean;
 	/**
 	 * Height above the ground under the part, m (plan 209: a parachute's full-deploy height): the
 	 * altitude less the terrain there, or the altitude itself above the highest terrain. Absent

@@ -4,7 +4,7 @@
  */
 import { definePlugin } from '@orbital/sdk';
 import { HomeBody, MoonBody, SunBody } from './bodies.ts';
-import { ColdGas, ModuleFlag, ModuleJetpack, STOCK_EVA_PARTS } from './eva.ts';
+import { ColdGas, ModuleFlag, ModuleHelmet, ModuleJetpack, STOCK_EVA_PARTS } from './eva.ts';
 import { engineOutput, ispAt, propellantRates } from './engine.ts';
 import {
 	ModuleCommand,
@@ -147,6 +147,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleFairingPanel);
 		ctx.modules.register(ModuleFlag);
 		ctx.modules.register(ModuleJetpack);
+		ctx.modules.register(ModuleHelmet);
 
 		for (const kind of STOCK_DATA_KINDS) ctx.dataKinds.register(kind);
 		ctx.modules.register(ModuleDataStorage);

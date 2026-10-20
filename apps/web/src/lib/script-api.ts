@@ -364,6 +364,11 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 			'temperatureCurve',
 			'[number, number][]',
 			'Air temperature over altitude: [altitude m, K] keys, linear between (plan 212).'
+		),
+		field(
+			'breathable',
+			'boolean',
+			'Whether a suited crew member may take the helmet off (plan 249).'
 		)
 	],
 	'bodies[].orbit': ORBIT

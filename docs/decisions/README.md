@@ -233,3 +233,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0233 | [The quality governor: a locked 60 or 30, fast down, up only on evidence](0233-governor-paced-fast-down-measured-up.md) | accepted | 2026-10-20 |
 | 0235 | [Surface links: a part attached at a point and normal of its parent's surface](0235-surface-links.md) | accepted | 2026-10-20 |
 | 0236 | [The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view](0236-splashed-flag-heat-bars-dust-reduced-motion.md) | accepted | 2026-10-20 |
+| 0237 | [The EVA helmet and the personal parachute](0237-eva-helmet-and-personal-parachute.md) | accepted | 2026-10-20 |

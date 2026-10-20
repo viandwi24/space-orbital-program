@@ -1591,6 +1591,8 @@
 						onwalk={(h) => flight?.walk(h)}
 						onflag={() => flight?.plantFlag()}
 						onboard={() => flight?.board()}
+						onhelmet={() => flight?.helmet()}
+						onchute={() => flight?.chute()}
 					/>
 				</div>
 			{/if}

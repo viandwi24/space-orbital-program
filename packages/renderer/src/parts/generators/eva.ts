@@ -3,10 +3,14 @@
  * helmet with a visor; no KSP likeness) and a planted flag (pole, cloth, foot). Both fit the part's
  * box shape.
  */
-import type { GenContext } from '../registry.ts';
+import type { GenContext, GeneratedPart } from '../registry.ts';
+import { canopyDynamic } from './parachute.ts';
 
-export function suit(ctx: GenContext): void {
-	const { builder: b, size } = ctx;
+/** The suit's canopy: a personal chute, a dome of 4 m radius (plan 249). */
+const SUIT_CANOPY = 4;
+
+export function suit(ctx: GenContext): GeneratedPart {
+	const { builder: b, moving: m, size } = ctx;
 	const k = size[1] / 1.8; // the figures are drawn for a 1.8 m suit
 	const y = (v: number) => v * k;
 	for (const side of [-1, 1]) {
@@ -18,7 +22,8 @@ export function suit(ctx: GenContext): void {
 	b.box('paint-primary', [0.5 * k, 0.64 * k, 0.32 * k], [0, y(0.22), 0]);
 	b.box('paint-accent', [0.5 * k, 0.05 * k, 0.33 * k], [0, y(0.0), 0]);
 	b.box('paint-secondary', [0.42 * k, 0.52 * k, 0.16 * k], [0, y(0.24), -0.23 * k]);
-	b.revolveAt(
+	// the helmet is the moving piece: the `visible` articulation hides it while it is off (plan 249)
+	m.revolveAt(
 		'paint-primary',
 		[
 			{ r: 0, y: -0.17 * k },
@@ -29,7 +34,8 @@ export function suit(ctx: GenContext): void {
 		],
 		[0, y(0.72), 0]
 	);
-	b.box('glass', [0.22 * k, 0.12 * k, 0.04 * k], [0, y(0.73), 0.15 * k]);
+	m.box('glass', [0.22 * k, 0.12 * k, 0.04 * k], [0, y(0.73), 0.15 * k]);
+	return { pivot: [0, y(0.72), 0], dynamic: canopyDynamic(ctx, SUIT_CANOPY, size[1] / 2) };
 }
 
 export function flag(ctx: GenContext): void {

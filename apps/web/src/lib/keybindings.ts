@@ -229,7 +229,10 @@ export const ACTIONS = [
 	eva('evaJump', 'Jump (let go of a ladder)', 'Space'),
 	eva('evaJetpack', 'Jetpack on or off', 'KeyR'),
 	eva('evaGrab', 'Grab or let go of a ladder', 'KeyF'),
-	eva('evaBoard', 'Board at a hatch or ladder', 'KeyB')
+	eva('evaBoard', 'Board at a hatch or ladder', 'KeyB'),
+	eva('evaHelmet', 'Helmet on or off (breathable air only)', 'KeyO'),
+	// P is pause on every page (plan 205), so the personal chute takes U (ADR 0237)
+	eva('evaChute', 'Personal parachute: deploy, then cut', 'KeyU')
 ] as const satisfies readonly ActionSpec[];
 
 export type ActionId = (typeof ACTIONS)[number]['id'];
@@ -784,7 +787,9 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['evaDown'], text: 'Jetpack: down' },
 			{ actions: ['evaTurnLeft', 'evaTurnRight'], text: 'Jetpack: turn' },
 			{ actions: ['evaGrab'], text: 'Grab a ladder within 1 m, or let go' },
-			{ actions: ['evaBoard'], text: 'Board at a hatch or from a ladder' }
+			{ actions: ['evaBoard'], text: 'Board at a hatch or from a ladder' },
+			{ actions: ['evaHelmet'], text: 'Helmet on or off; off only in breathable air' },
+			{ actions: ['evaChute'], text: 'Personal parachute: deploy, then cut the canopy' }
 		]
 	},
 	{

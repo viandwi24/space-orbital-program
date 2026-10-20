@@ -261,6 +261,10 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 `VesselSnapshot.splashed` is `true` while the vessel rests on water (the sim's `stock.splashed` situation) and absent otherwise.
 
+## Breathable air (API 0.1.92, plan 249, ADR 0237)
+
+`atmosphere.breathable` (optional boolean, off unless `true`) says a suited crew member may take the helmet off in that air; `Ambient.breathable` carries it to module hooks. `stock.helmet` is the suit's helmet module and `helmetMayComeOff` its rule.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.
