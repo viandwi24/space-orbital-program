@@ -1,7 +1,7 @@
 ---
 id: 237
 title: "Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds"
-status: in-progress
+status: done
 owner: "Worker C"
 depends: []
 phase: 7
@@ -46,16 +46,18 @@ The owner ordered these fixed before the release ("untuk bug bug benar segera bu
 
 ## Acceptance criteria
 
-- [ ] The heat toast uses 2000 K for a part without `maxTemperature`; test passes.
-- [ ] A docked vessel's type survives undock and a save/load; test passes.
-- [ ] After founding a branch in a world with no prior save, the funds spent are kept after the reload; test passes.
-- [ ] `bun run check:affected` passes, and CI is green on `ready/237`.
+- [x] The heat toast uses 2000 K for a part without `maxTemperature`; test passes.
+- [x] A docked vessel's type survives undock and a save/load; test passes.
+- [x] After founding a branch in a world with no prior save, the funds spent are kept after the reload; test passes.
+- [x] `bun run check:affected` passes, and CI is green on `ready/237`.
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/237-flight-and-sim-bug-fixes.md`; remove the matching lines from STATUS "Known issues".
+- [x] STATUS row, journal `docs/journal/237-flight-and-sim-bug-fixes.md`; remove the matching lines from STATUS "Known issues".
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit; ready (each bug checked against main @ b2d2abb2). Owner order: fix before v1.0.0.
 - 2026-10-20 — Worker C claimed (claim/237). Heat: the constant moved to core (`DEFAULT_MAX_TEMPERATURE`, re-exported by the sim) and the HUD reads it through `heatRatio`. Undock: `DockRecord.type`; the keeper's side keeps the combined vessel's type, whichever entity it is after the split. Branch funds: `saveNow` writes a save with no flight yet (starter design in the envelope, focus null); the autosave timer is unchanged.
+- 2026-10-20 — The coordinator asked to check two release e2e failures (warp.e2e at 10 km, vessel-switch '['). A sim-level probe grants 10× at 10 km for every ask from 50× up; `cycleVessel`/`switchVessel` are unchanged since plan 221. No fix folded in: both look like load/timing (reported to the coordinator).
+- 2026-10-20 — Evidence: `toasts.test.ts` (15 pass: 1500 K no warning, 1900 K the warning, a declared limit wins); `docking.test.ts` "the player types survive the dock, the undock and a save and resume"; `check:affected --build --e2e e2e/branch-sites.e2e.ts` all passed in 468 s (the e2e reads 2,850,000 funds after the founding reload in a world with no prior save). The first local run failed only the patch benchmark under load 14 (880 ms); the rerun passed.
