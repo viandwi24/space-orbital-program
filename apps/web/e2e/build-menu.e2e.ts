@@ -46,6 +46,8 @@ test('open Comms, see the dish card with its thumbnail, place it, construction s
 	await expect(page.getByTestId('sc-cat-stock.comms')).toBeFocused();
 	await page.keyboard.press('Enter');
 	await expect(page.getByTestId('build-row')).toBeVisible();
+	// the focused button's tooltip takes the first Escape (plan 228); the next one closes the row
+	await page.keyboard.press('Escape');
 	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('build-row')).toHaveCount(0);
 
