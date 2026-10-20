@@ -17,6 +17,7 @@ import {
 } from 'three';
 import type { Environment } from './environment.ts';
 import { PRESETS } from './presets.ts';
+import { RecaptureGate } from './recapture-gate.ts';
 import { createAtmosphereUniforms } from './planet.ts';
 import { skyEnvFragment, skyEnvVertex } from './shaders/sky-env.glsl.ts';
 import type { Vec3 } from '@orbital/core';
@@ -27,6 +28,8 @@ export class EnvironmentLight {
 	private readonly material: ShaderMaterial;
 	private target: WebGLRenderTarget | null = null;
 	private key = '';
+	/** At most one capture per `ENV_RECAPTURE_MIN_MS` while the sun or altitude moves (plan 252). */
+	private readonly gate = new RecaptureGate();
 
 	constructor(gl: WebGLRenderer, environment: Environment) {
 		this.pmrem = new PMREMGenerator(gl);
@@ -57,12 +60,23 @@ export class EnvironmentLight {
 	/** Forces a new capture on the next update (preset change). */
 	invalidate(): void {
 		this.key = '';
+		this.gate.reset();
 	}
 
 	/** Re-captures when the environment key changed; returns the prefiltered cube or null before the first capture. */
-	update(environment: Environment, up: Vec3, sun: Vec3): WebGLRenderTarget | null {
+	update(
+		environment: Environment,
+		up: Vec3,
+		sun: Vec3,
+		now = performance.now()
+	): WebGLRenderTarget | null {
 		const key = environment.state.envKey;
 		if (key === this.key && this.target) return this.target;
+		// a new key too soon after the last capture keeps the old cube for now (plan 252)
+		if (!this.gate.due(key, environment.currentPreset, now, this.target !== null)) {
+			return this.target;
+		}
+		this.gate.captured(key, environment.currentPreset, now);
 		this.key = key;
 		const u = this.material.uniforms;
 		(u.uUp!.value as Vector3).set(up.x, up.y, up.z);
