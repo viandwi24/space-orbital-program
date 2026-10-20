@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { mapCardFor } from './map-card';
 import type { TargetChoice } from '../target-model';
 

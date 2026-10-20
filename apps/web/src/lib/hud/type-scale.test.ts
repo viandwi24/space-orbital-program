@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 /** Plan 250 (rancangan §7.6): the HUD panels use the one type scale, not the legacy --t-xs/--t-sm. */

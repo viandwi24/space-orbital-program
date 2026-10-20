@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 import { panelRoom } from './panel-room';
 
 test('the inspectors leave room for the open vessel panel at any width', () => {
