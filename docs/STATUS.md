@@ -186,7 +186,7 @@
 | 237 | [Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds](plans/237-flight-and-sim-bug-fixes.md) | done | Worker C | Release audit 2026-10-20; before v1.0.0. |
 | 238 | [Hangar: the camera reaches the top of a tall vessel; one top bar](plans/238-hangar-camera-tall-vessels-one-top-bar.md) | done | Worker A | The Hangar camera's height limit follows the vessel (top + 2 m, at least 6 m); the Hangar's own top bar is gone (name and Aircraft in the left column, the placing chip over the view, contrast and drawers in the tool pill, Launch in the menu bar with its checks); the tool pill never covers the right column; a typed value equal to the current one redraws in its unit. |
 | 239 | [A running script keeps running when the player leaves Flight](plans/239-scripts-keep-running-off-flight.md) | done | Worker C | Release audit 2026-10-20 (ADR 0201 point 9); before v1.0.0. |
-| 240 | [Part read-outs: live engine thrust, Isp and flow, flameout reason, solar and RTG output, tank bars in the inspector](plans/240-part-readouts-engine-power.md) | in-progress | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 240 | [Part read-outs: live engine thrust, Isp and flow, flameout reason, solar and RTG output, tank bars in the inspector](plans/240-part-readouts-engine-power.md) | done | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 241 | [Part controls: reaction wheel mode, decoupler staging switch, docking port target, wheel motor and steering, RCS and battery groups, parachute spread, pod and experiment actions](plans/241-part-controls-completion.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 242 | [Lights: a stock light part with on/off, colour and the lights group](plans/242-light-part.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 | 243 | [Fairings: interstage top node, enclosed-engine shielding, 3D section handles, a section at the cursor height](plans/243-interstage-fairings-handles.md) | draft | Worker A | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
@@ -276,6 +276,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [247 — World time and alerts](journal/247-world-time-alerts.md)
 - [248 — Shell everywhere](journal/248-shell-everywhere-branches-3d.md)
 - [253 — The graphics governor at Retina](journal/253-graphics-governor-retina.md)
+- [240 — Part read-outs](journal/240-part-readouts-engine-power.md)
 - [226 — Camera modes, hide UI and screenshots](journal/226-camera-modes-and-capture.md)
 - [224 — Navigation tools: node editor, AN/DN, alarms, transfer windows](journal/224-navigation-tools.md)
 - [221 — Vessel switching and per-vessel designs](journal/221-vessel-switching.md)
