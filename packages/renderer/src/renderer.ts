@@ -121,7 +121,7 @@ export interface RendererDebug {
 	 * WebGPU it cannot wait inside a call: the time is the CPU's, use `benchmarkAsync`.
 	 */
 	benchmark(frames: number): number;
-	/** `benchmark` on every backend: waits for the GPU's queue (WebGPU) or a pixel read (WebGL). */
+	/** `benchmark` on every backend: the GPU timestamps where WebGPU has them, else the time to the GPU queue or a pixel read. */
 	benchmarkAsync(frames: number): Promise<number>;
 	info(): {
 		/** The renderer drawing (plan 261). */

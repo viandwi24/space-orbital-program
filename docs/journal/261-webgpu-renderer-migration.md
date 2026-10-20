@@ -1,4 +1,4 @@
-# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a)
+# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b)
 
 **Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
@@ -156,3 +156,56 @@ The planet pass is about 2 000 lines of GLSL: a terrain ray march with root find
 
 - 2b: the terrain bake (in TSL, Phase 3's compute later), the march, root finding and silhouette, relief and slope normals, the terrain's and the vessel's shadows on the ground.
 - 2c: lakes, rivers, shore and sea waves, ripples; cumulus, cirrus and their shadows; light shafts; aurora; the half-size pass (Phase 2 step 10).
+
+## Phase 2, slice 2b: the terrain and the shadows on the ground
+
+| Where | What |
+|---|---|
+| `planet.ts` | `terrainJobs`, `markCubeBaked`, `markPatchBaked`: the bakes the CPU plans, for a renderer that bakes them itself (the WebGL path is unchanged) |
+| `tsl/terrain.ts` | `heightAt` in TSL (zones, coast warp, hills, ranges and the site's massif, ridged octaves, the lake cap). The far field is a six-face atlas with gutters (ADR 0242 point 9); the patches are 32-bit targets, read filtered where the GPU filters 32-bit floats, else four texels by hand. Samplers: height and slope (the march), height and gradient (shading) |
+| `tsl/planet-pass.ts` | The march (steps, crest look-ahead, Illinois, silhouette parabola, the crest-between-samples hit), `macroRelief` and the slope normal from screen derivatives, rock, alpine and snow by height and slope, the grazing fix, `terrainShadow`, `shadowFactor` over three's shadow map. The air in front of terrain is marched with the tables (12 steps) and its veil |
+| `tsl/lut-sky.ts` | `segment`: in-scatter and transmittance between two distances along a ray |
+| `renderer-webgpu.ts` | `benchmarkAsync` reads the GPU timestamps on WebGPU |
+
+| M2, Chromium, 1280 × 800, `high` | WebGL | WebGPU, 2b |
+|---|---|---|
+| pad | ![](assets/261-2b-webgl-pad.jpg) | ![](assets/261-2b-webgpu-pad.jpg) |
+| low sun | ![](assets/261-2b-webgl-sunset.jpg) | ![](assets/261-2b-webgpu-sunset.jpg) |
+| 12 km | ![](assets/261-2b-webgl-12km.jpg) | ![](assets/261-2b-webgpu-12km.jpg) |
+| orbit | ![](assets/261-2b-webgl-orbit.jpg) | ![](assets/261-2b-webgpu-orbit.jpg) |
+
+Mean brightness per horizontal band, WebGPU against WebGL: within about 10 % in all four views (the sky gain is 1.3, see below).
+
+| Frame interval p50 | pad | low sun | 12 km | orbit |
+|---|---|---|---|---|
+| WebGL | 50.0 ms | 83.3 ms | 50.1 ms | 16.7 ms |
+| WebGPU (2b) | 16.7 ms | 16.7 ms | 16.7 ms | 16.7 ms |
+
+The WebGPU frames are held at the display's 60 Hz. Their GPU time is 1.3 to 4 ms by the live meter, and 2.5 to 16 ms by `benchmarkAsync`'s timestamp sum. The two disagree; Phase 8 settles the measurement. **This is not yet a comparison**: the clouds, water detail, shafts and aurora are in WebGL's time and not yet in WebGPU's.
+
+### What surprised me
+
+- **TSL declares a shared expression where it is first used.** The camera position was first used inside the terrain's air march (an `if` and a loop), so the sky's lookup in the `else` read a variable that was never set, and the sky from orbit glowed blue. The ground's `posRel` had the same problem inside `if (hitT)`. Every value that several branches use is now a `.toVar()` before them. This is the rule for every later TSL port.
+- **`colorNode` replaces alpha with the opacity.** The terrain atlas lost its fourth channel (g2), so every slope read as steep and all mountains turned to rock and snow. Data passes write through `fragmentNode`.
+- **Uniforms inside `setLayout` functions** get their own names, apart from the material's uniform block, and the shader does not compile (three r186). The terrain samplers are inlined.
+- **Fast math folds `x != x` away on Metal,** so the NaN guard did not guard. NaN and infinity are now caught by the exponent bits.
+- **Screen derivatives next to a silhouette are undefined** on Metal when the neighbouring pixel took the other branch. The slope normal went NaN in a band along far ridges; it now falls back to the geometric normal.
+- **`pow(x, 2.0)` with a negative x is NaN in WGSL.** The ridged noise and the sky view's mapping square by multiplication.
+- **The sky gain moved from 1.6 to 1.3** once the sky read the right camera; the spike's 1.6 was calibrated on the sea-level-only pass.
+
+### Not in 2b
+
+- Lakes, rivers, shore and sea waves, ripples (2c).
+- Cumulus and cirrus and their shadows, light shafts, aurora (2c).
+- The march prepass, the half-size pass and its edge pass (Phase 2 step 10). Without the prepass every pixel marches from the camera.
+- The analytic gradient and the bakes on compute (Phase 3).
+
+### Verification
+
+```
+cd packages/renderer && bun test                      708 pass, 0 fail
+bun run check:affected                                ✓ prettier ✓ docs ✓ typecheck ✓ bun test; web vitest 1323 passed, 2 failed (sim-host-script-worker.test.ts, the known environment failure)
+bun run typecheck                                     0 errors
+bun run build                                         done
+headed Chromium, /flight?renderer=webgpu and webgpu-fallback, high and medium, pad, low sun, 12 km, orbit: 0 console errors
+```

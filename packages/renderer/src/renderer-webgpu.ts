@@ -68,7 +68,7 @@ export function createWebGPURenderer(
 	const env = model.environment;
 	let preset: GraphicsPreset = config.preset ?? 'high';
 	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
-	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset].groundOctaves);
+	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset]);
 	env.planet.mesh.parent?.add(planet.mesh);
 	let width = 1;
 	let height = 1;
@@ -91,6 +91,8 @@ export function createWebGPURenderer(
 	let drawn = { calls: 0, triangles: 0 };
 	let framesSinceResolve = 0;
 	let resolving = false;
+	/** A benchmark reads the timestamp pool itself; the live meter waits meanwhile. */
+	let benchmarking = false;
 
 	const baseRatio = (): number =>
 		forcedRatio ??
@@ -216,7 +218,7 @@ export function createWebGPURenderer(
 		r.toneMappingExposure = env.state.exposure;
 		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));
 		drawn = { calls: r.info.render.drawCalls, triangles: r.info.render.triangles };
-		if ((r.backend as { trackTimestamp?: boolean }).trackTimestamp) measureGpu(r);
+		if (!benchmarking && (r.backend as { trackTimestamp?: boolean }).trackTimestamp) measureGpu(r);
 	}
 
 	const waitForGpu = async (): Promise<void> => {
@@ -334,12 +336,26 @@ export function createWebGPURenderer(
 			benchmark: benchmarkCpu,
 			async benchmarkAsync(frames: number) {
 				await started;
-				drawFrame(1 / 60);
-				await waitForGpu();
-				const t0 = performance.now();
-				for (let i = 0; i < frames; i++) drawFrame(1 / 60);
-				await waitForGpu();
-				return (performance.now() - t0) / frames;
+				const r = gpu;
+				if (!r) return 0;
+				// the GPU's own time where it has timestamp queries: waiting for the queue undercounts
+				// on WebGPU (it returned about 1 ms for frames the timestamps put at 3)
+				const timed = (r.backend as { trackTimestamp?: boolean }).trackTimestamp === true;
+				benchmarking = true;
+				try {
+					drawFrame(1 / 60);
+					await waitForGpu();
+					if (timed) await r.resolveTimestampsAsync('render').catch(() => undefined);
+					const t0 = performance.now();
+					for (let i = 0; i < frames; i++) drawFrame(1 / 60);
+					await waitForGpu();
+					const wall = (performance.now() - t0) / frames;
+					if (!timed) return wall;
+					const ms = await r.resolveTimestampsAsync('render').catch(() => undefined);
+					return typeof ms === 'number' && ms > 0 ? ms / frames : wall;
+				} finally {
+					benchmarking = false;
+				}
 			},
 			info: () => ({
 				renderer: backend,
@@ -387,7 +403,7 @@ export function createWebGPURenderer(
 			setPreset(next: GraphicsPreset) {
 				preset = next;
 				model.setPreset(next);
-				planet.setOctaves(PRESETS[next].groundOctaves);
+				planet.setSettings(PRESETS[next]);
 				applySize();
 			},
 			get preset() {

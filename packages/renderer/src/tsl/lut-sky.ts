@@ -79,6 +79,12 @@ export interface LutSky {
 	inscatter(ro: N, rd: N): N;
 	/** Transmittance of that ray: to the ground at `tG` where it hits it, else out of the air. */
 	viewTransmittance(ro: N, rd: N, hitGround: N, tG: N): N;
+	/**
+	 * The air between `ro + rd tA` and `ro + rd tB` marched in `steps` steps with the tables (for a
+	 * ray that ends on terrain, which the sky view's sea-level rays do not reach): in-scatter and
+	 * transmittance, as shader variables.
+	 */
+	segment(ro: N, rd: N, tA: N, tB: N, steps: number): { inscatter: N; transmittance: N };
 	/** Sunlight reaching planet-centred point `p` (a fraction per channel), faded across the sun's disc. */
 	sunlight(p: N, l: N): N;
 	/** Bakes the transmittance and multiple-scattering tables (once per atmosphere). */
@@ -282,10 +288,10 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		const v = fromTexel(uv().y, VIEW.h);
 		const r = uViewR;
 		const { beta, zha } = horizon(r);
-		const above = float(1.0)
-			.sub(pow(float(1.0).sub(v.mul(2.0)), 2.0))
-			.mul(zha);
-		const below = zha.add(beta.mul(pow(v.mul(2.0).sub(1.0), 2.0)));
+		// squares by multiplication: pow of a negative base is NaN in WGSL
+		const c2 = v.mul(2.0).sub(1.0);
+		const above = float(1.0).sub(c2.mul(c2)).mul(zha);
+		const below = zha.add(beta.mul(c2.mul(c2)));
 		const vz = select(v.lessThan(0.5), above, below);
 		const cz = cos(vz);
 		const sz = sin(vz);
@@ -353,9 +359,25 @@ export function createLutSky(atm: Atmosphere): LutSky {
 		return select(atmHit.y.greaterThan(0.0), select(hitGround, toGround, toSpace), vec3(1.0));
 	};
 
+	const segment = (ro: N, rd: N, tA: N, tB: N, steps: number) => {
+		const L = vec3(0.0).toVar();
+		const thr = vec3(1.0).toVar();
+		const dt = max(tB.sub(tA), 0.0).div(steps);
+		Loop({ start: 0, end: steps, type: 'int', name: 'si' }, ({ si }: { si: N }) => {
+			const p = ro.add(rd.mul(tA.add(float(si).add(0.5).mul(dt))));
+			const sigT = max(extinctionOf(density(max(length(p).sub(Rg), 0.0))), vec3(1e-20));
+			const stepT = exp(sigT.negate().mul(dt));
+			const S = inscatterAt(p, rd, uSun);
+			L.addAssign(thr.mul(S.sub(S.mul(stepT)).div(sigT)));
+			thr.mulAssign(stepT);
+		});
+		return { inscatter: L.mul(atm.sunIrradiance), transmittance: thr };
+	};
+
 	const pass = (frag: N) => {
 		const m = new MeshBasicNodeMaterial();
-		m.colorNode = frag();
+		// raw output, as the tables are data, not colour
+		m.fragmentNode = frag();
 		m.depthTest = false;
 		m.depthWrite = false;
 		return { m, q: new QuadMesh(m) };
@@ -373,6 +395,7 @@ export function createLutSky(atm: Atmosphere): LutSky {
 	return {
 		inscatter,
 		viewTransmittance,
+		segment,
 		sunlight,
 		bake(renderer) {
 			run(renderer, transRT, transPass);

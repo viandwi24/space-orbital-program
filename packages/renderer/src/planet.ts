@@ -730,6 +730,54 @@ export class PlanetPass {
 		return true;
 	}
 
+	/**
+	 * The terrain bakes due now, for a renderer that bakes them itself (plan 261: the WebGPU pass,
+	 * `tsl/terrain.ts`): the cube when it is stale (`cube`, at `cubeSize` texels a face), the patches
+	 * `update` asked for, the map the heights read and the zone uniforms. Report each done with
+	 * `markCubeBaked` and `markPatchBaked`, which set the uniforms the march reads.
+	 */
+	terrainJobs(): {
+		cube: boolean;
+		cubeSize: number;
+		patchSize: number;
+		patches: { slot: 'fine' | 'mid'; frame: PatchFrame }[];
+		map: DataTexture;
+		zones: ZoneUniforms;
+	} {
+		const patches: { slot: 'fine' | 'mid'; frame: PatchFrame }[] = [];
+		if (this.patchSize > 0)
+			for (const slot of ['fine', 'mid'] as const) {
+				const frame = this.patches[slot].wanted;
+				if (frame) patches.push({ slot, frame });
+			}
+		return {
+			cube: this.terrainSize > 0 && (this.terrainDirty || this.debugRebake),
+			cubeSize: this.terrainSize,
+			patchSize: this.patchSize,
+			patches,
+			map: this.heightMap(),
+			zones: this.zones
+		};
+	}
+
+	/** The cube of `terrainJobs` is baked: the march may read the heights. */
+	markCubeBaked(): void {
+		this.terrainDirty = false;
+		this.material.uniforms.uTerrainOn!.value = 1;
+	}
+
+	/** A patch of `terrainJobs` is baked for `frame`: the march reads it inside its window. */
+	markPatchBaked(which: 'fine' | 'mid', frame: PatchFrame): void {
+		const slot = this.patches[which];
+		const m = this.material.uniforms;
+		(m[slot.names.c]!.value as Vector3).set(frame.centre.x, frame.centre.y, frame.centre.z);
+		(m[slot.names.e]!.value as Vector3).set(frame.east.x, frame.east.y, frame.east.z);
+		(m[slot.names.f]!.value as Vector3).set(frame.north.x, frame.north.y, frame.north.z);
+		(m[slot.names.k]!.value as Vector2).set(1 / frame.halfTan, 1);
+		slot.frame = frame;
+		slot.wanted = null;
+	}
+
 	/** Bakes the patch frame `update` wanted, then points the planet pass at it. */
 	private bakePatch(gl: WebGLRenderer, slot: PatchSlot): void {
 		const frame = slot.wanted;
