@@ -1,6 +1,6 @@
 # 0232 — A pixel budget for the planet pass, and the other Retina quick wins
 
-**Status:** accepted (the budget's value is a starting value; plan 251's baseline sets the final one)
+**Status:** accepted
 **Date:** 2026-10-20
 **Plan:** plans/252-graphics-retina-quick-wins.md
 **Builds on:** ADR 0053 (graphics presets and the governor), ADR 0061 and 0064 (the half-resolution planet pass), ADR 0086 (the baked cloud-shadow map), ADR 0055 (the post chain), journal 048 (PMREM recaptures)
@@ -17,7 +17,7 @@ Every frame-time budget in this repo was set at 1920 × 1080 with pixel ratio 1 
    - The pass runs at the smaller of that and the governor's wish (`setPlanetScale`), so the governor's half rung still goes lower, and the governor's "full" is the budget's rung.
    - The vessel, the meshes and the HUD keep the full pixel ratio: the upsample of ADR 0061 puts the planet colour and depth back at full size, and the edge pass of ADR 0087 redraws the pixels where the low-resolution texels disagree.
    - The shaders already work from the ratio of the two target sizes, so a scale other than 0.5 needs no new shader. The edge pass's `uMarchScale` (the march prepass texel per pixel of that draw) follows the active scale instead of the constant 0.5.
-   - The default budget is 1920 × 1080 pixels for every preset. At 1512 × 945 CSS and ratio 2 the pass runs at 0.6 of the side (2.06 Mpx). 1440p gets 0.75, 4K 0.5.
+   - The default budget is 1.75 Mpx for every preset, a little under a 1920 × 1080 frame (2.07 Mpx). At 1512 × 945 CSS and ratio 2 the pass runs at 0.55 of the side (1.73 Mpx). 1080p at ratio 1 stays at full size, 1440p gets 0.65, 4K 0.5. Plan 251's M5 baseline chose it: the frame cost follows the planet pass's pixels, and at the first starting value (2.07 Mpx) `high` read 17.8 / 16.8 / 18.6 ms at the pad, 3 km and 12 km with the governor still bouncing between 100 % and 85 %.
 2. **Baked cloud shadows on `high`:** `cloudShadowMap: true`, `cloudShadowOctaves: 0`, as `medium` since ADR 0086. The noise costs about 1.0 ms at 1080p against about 0.1 for the map. One line reverts it if the look check shows a loss.
 3. **MSAA from pixel ratio 2 up:**
    - The scene target takes at most 2 samples (`msaaSamples`). The decision uses the preset's ratio before the governor's render scale, so a render-scale step does not rebuild the chain.
@@ -30,7 +30,6 @@ Every frame-time budget in this repo was set at 1920 × 1080 with pixel ratio 1 
 
 - The governor's rules (pixel-ratio aware, Valve-style, locked 60/30, no timer retries): plan 253 and plan 201.
 - A scale below 0.5 and other upsamplers (EASU, temporal): phases 2 to 5 of the research.
-- The final budget value and the acceptance numbers: from plan 251's M5 baseline, in plan 252's journal.
 
 ## Consequences
 
