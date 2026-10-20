@@ -15,12 +15,14 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import type { PresetSettings } from './presets.ts';
+import { msaaSamples, type PresetSettings } from './presets.ts';
 
 export class PostChain {
 	private composer: EffectComposer | null = null;
 	private bloom: UnrealBloomPass | null = null;
 	private builtSamples = -1;
+	/** The preset's pixel ratio before the render scale: from 2 up the target takes 2 samples (plan 252). */
+	private baseRatio = 1;
 	/** Drawing-buffer size in device pixels. */
 	private width = 1;
 	private height = 1;
@@ -48,10 +50,24 @@ export class PostChain {
 		this.apply();
 	}
 
-	/** `width`/`height` in CSS pixels; the chain renders at device resolution. */
-	setSize(width: number, height: number, pixelRatio: number): void {
+	/** MSAA samples of the target now: the preset's, at most 2 from pixel ratio 2 up. */
+	get samples(): number {
+		return msaaSamples(this.settings.msaa, this.baseRatio);
+	}
+
+	/**
+	 * `width`/`height` in CSS pixels; the chain renders at device resolution. `baseRatio` is the pixel
+	 * ratio before the governor's render scale (default `pixelRatio`): the samples follow it, so a render
+	 * scale step does not rebuild the chain.
+	 */
+	setSize(width: number, height: number, pixelRatio: number, baseRatio = pixelRatio): void {
 		this.width = Math.max(1, Math.round(width * pixelRatio));
 		this.height = Math.max(1, Math.round(height * pixelRatio));
+		this.baseRatio = baseRatio;
+		if (this.composer && this.settings.post && this.builtSamples !== this.samples) {
+			this.disposeChain();
+			this.build();
+		}
 		if (this.composer) this.resizeChain();
 	}
 
@@ -71,16 +87,16 @@ export class PostChain {
 
 	private apply(): void {
 		if (!this.settings.post && !this.composer) return;
-		if (this.settings.post && this.builtSamples !== this.settings.msaa) this.disposeChain();
+		if (this.settings.post && this.builtSamples !== this.samples) this.disposeChain();
 		if (!this.composer) this.build();
 		this.resizeChain();
 	}
 
 	private build(): void {
-		this.builtSamples = this.settings.msaa;
+		this.builtSamples = this.samples;
 		const target = new WebGLRenderTarget(this.width, this.height, {
 			type: HalfFloatType,
-			samples: this.settings.msaa
+			samples: this.samples
 		});
 		const composer = new EffectComposer(this.gl, target);
 		this.bloom = new UnrealBloomPass(

@@ -64,7 +64,7 @@ import {
 } from './shaders/terrain.glsl.ts';
 import { marchFragment, marchVertex } from './shaders/march.glsl.ts';
 import { upsampleFragment, upsampleVertex } from './shaders/upsample.glsl.ts';
-import { HALF_PLANET_SCALE } from './half-res.ts';
+import { HALF_PLANET_SCALE, budgetScale } from './half-res.ts';
 import { siteAxes, surfaceUp } from './sun.ts';
 import { ORIGIN_GRID } from './origin.ts';
 import { MARCH_BLOCK, MARCH_CONE_PIXELS, flatSkipRadius } from './terrain-model.ts';
@@ -260,6 +260,8 @@ export class PlanetPass {
 	private halfTarget: WebGLRenderTarget | null = null;
 	private wantedScale = 1;
 	private activeScale = 1;
+	/** The pixel budget of the pass (plan 252, ADR 0228): 0 = none. */
+	private pixelBudget = 0;
 	private halfSupported: boolean | null = null;
 	/** The pixel angle at the scene target's resolution (the pass's is that over `activeScale`). */
 	private fullPixelAngle = 0.001;
@@ -893,6 +895,23 @@ export class PlanetPass {
 		this.wantedScale = scale < 1 ? HALF_PLANET_SCALE : 1;
 	}
 
+	/**
+	 * The most pixels the planet pass may draw (plan 252, ADR 0228), or 0 for no limit. The pass runs at
+	 * the smaller of this budget's scale and what `setPlanetScale` asked for, so a Retina screen starts on
+	 * a fractional rung and the governor's half rung still goes lower. Takes effect at the next `beginFrame`.
+	 */
+	setPixelBudget(pixels: number): void {
+		this.pixelBudget = pixels > 0 ? pixels : 0;
+	}
+
+	/** The scale of the planet pass for the governor's wish and the budget, before the float-target check. */
+	private scaleWanted(): number {
+		return Math.min(
+			this.wantedScale,
+			budgetScale(this.targetWidth, this.targetHeight, this.pixelBudget)
+		);
+	}
+
 	/** The material of the full-resolution upsample, for `precompile`. */
 	get upsampleMaterial(): ShaderMaterial {
 		return this.half.upsample;
@@ -913,8 +932,11 @@ export class PlanetPass {
 	 * puts the matching mesh material in the scene (the pass itself, or the upsample that replaces it).
 	 */
 	beginFrame(gl: WebGLRenderer): void {
-		this.activeScale = this.wantedScale < 1 && this.halfAvailable(gl) ? HALF_PLANET_SCALE : 1;
+		const wanted = this.scaleWanted();
+		this.activeScale = wanted < 1 && this.halfAvailable(gl) ? wanted : 1;
 		const half = this.activeScale < 1;
+		// the edge pass draws full-resolution pixels: its march texel is the pass's own, `activeScale` smaller
+		this.edge.uniforms.uMarchScale!.value = this.activeScale;
 		this.mesh.material = half ? this.half.upsample : this.material;
 		this.edgeMesh.visible = half;
 		this.edge.uniforms.uPixelAngle!.value = this.fullPixelAngle;
