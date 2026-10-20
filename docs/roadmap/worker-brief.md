@@ -142,6 +142,26 @@ The owner's words: "kerjakan semua terus push, e2e nya sementara diskip dulu, un
   - Worker C takes D's queue (240 → 241 → 242) after 253, 247, 248 and 250.
   - If D or E come online, they take whatever is still unclaimed. A claim tag always wins.
 
+## Merge first, CI on main after (owner's order, 2026-10-20, 21:20)
+
+The owner found the per-plan CI wait too slow and asked to merge straight away, with one CI run covering several merges. Until the owner says otherwise, this replaces "Hand over" and the merge steps of batch mode:
+1. **Before you merge, run these fast local checks:**
+   - the affected unit tests;
+   - the typecheck of every workspace you touched (`bun run --filter <ws> typecheck`, or the web `svelte-check`), under the lock, since unit tests miss type errors (plan 250 showed this);
+   - prettier on the changed files;
+   - `docs:check`.
+2. **Merge without waiting for CI:**
+   - rebase on `origin/main`;
+   - add the `docs(plan-NNN): complete` commit;
+   - fast-forward `main`;
+   - delete the plan's claim, ready and CI refs.
+
+   No `ready/NNN` tag is needed.
+3. **CI runs on `main` pushes**, and a newer push cancels an older run (`ci.yml` concurrency), so several merges close together share one run. Its result appears as `refs/ci/pass|fail/<main sha>`.
+4. **Main red:**
+   - The coordinator watches main's CI. When it fails, the workers who merged since the last green fix it at once, starting with the newest merge, or revert their commit.
+   - Nobody merges a new plan onto a red `main` except the fix.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.
