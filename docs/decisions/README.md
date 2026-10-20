@@ -243,3 +243,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0244 | [Space Center: pins instead of permanent labels, a building panel with an upgrade block, one compact list](0244-space-center-pins-building-panel-compact-list.md) | accepted | 2026-10-21 |
 | 0245 | [A cylinder part collides as squares inscribed in its circle](0245-cylinder-colliders-are-inscribed-squares.md) | accepted | 2026-10-21 |
 | 0246 | [The renderer moves to WebGPURenderer with TSL, on its own branch](0246-webgpu-renderer-backend.md) | accepted | 2026-10-20 |
+| 0247 | [The WebGPU terrain bakes stay render passes, with the analytic gradient](0247-webgpu-bakes-stay-render-passes.md) | accepted | 2026-10-21 |

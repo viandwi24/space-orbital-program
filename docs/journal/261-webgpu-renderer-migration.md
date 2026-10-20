@@ -285,3 +285,27 @@ The dark specks in the sky above the horizon are in WebGL's frame too, at the sa
 - **The planet pass was nearly the whole frame.** Everything else (the vessel, the site, vegetation, shadows, bloom) costs 1 to 3 ms at Retina.
 - **A quad's camera is not the scene's.** The half and prepass draws go through `QuadMesh`, whose orthographic camera would have given `cameraNear` and `cameraFar` to the depth; the pass reads its own near and far uniforms.
 - **The fallback's timer is not WebGPU's.** `benchmarkAsync` reads timestamps on the WebGPU backend only; on the fallback it is wall time with a pixel read, which counts the stall.
+
+## Phase 3: the bakes (ADR 0247)
+
+The plan said compute passes. Three runs compute on the WebGPU backend only, and the WebGL2 fallback that ADR 0246 keeps has no storage textures; a compute bake would be a second path for the fallback. The bakes stay render passes and take the analytic gradient instead, which is where the bake's time went (three heights a texel with forward differences).
+
+| Where | What |
+|---|---|
+| `tsl/terrain.ts` | `heightGradFn`: the twin of `terrainHeightGradGLSL`. Forward mode with vec4, the map's derivative from four `textureLoad`s, the octave rotations' transposes accumulated on the CPU, the zones' arcs, the lake cap. The bake writes `(h, g · t1, g · t2)`; `debugBakeMode` switches to forward differences and bakes every frame |
+| `planet.ts` | `terrainJobs` lists the patches every frame while `debugRebake` is on |
+| `renderer-webgpu.ts` | `debug.bakeMode` reaches the TSL bakes (set after the shared half of the facade, which would replace it) |
+
+Mid patch (512 × 512, around the site) read back after a bake in each mode, every 97th texel (10 811):
+
+| | Result |
+|---|---|
+| largest height difference | 0.0005 m |
+| mean gradient difference / mean gradient | 0.0047 / 0.113 (4 %) |
+| largest gradient difference | 0.054 |
+| frame with every bake every frame, 1280 × 800, `high` | 35 ms forward differences, 28 ms analytic |
+
+### What surprised me
+
+- **`main` moved under the branch.** ADR 0242 to 0245 were taken there meanwhile; this branch's 0242 is now 0246. And `main` marks plan 261 dropped by the owner, from another session, while the owner in this one asked to carry on and merge. The branch carries on; the merge waits for the owner.
+- **The shared half of the facade wins.** `withShared` copies the shared properties over the facade's own, so a facade that needs its own version of a shared debug call sets it afterwards.

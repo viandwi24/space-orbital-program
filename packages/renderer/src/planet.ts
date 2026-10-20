@@ -747,7 +747,9 @@ export class PlanetPass {
 		const patches: { slot: 'fine' | 'mid'; frame: PatchFrame }[] = [];
 		if (this.patchSize > 0)
 			for (const slot of ['fine', 'mid'] as const) {
-				const frame = this.patches[slot].wanted;
+				// plan 068's rebake measurement bakes the patches in place every frame too
+				const frame =
+					this.patches[slot].wanted ?? (this.debugRebake ? this.patches[slot].frame : null);
 				if (frame) patches.push({ slot, frame });
 			}
 		return {

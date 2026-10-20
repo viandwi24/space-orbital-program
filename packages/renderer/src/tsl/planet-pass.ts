@@ -263,6 +263,11 @@ export class PlanetPassTSL {
 		this.meshes = [this.mesh, this.upMesh, this.edgeMesh];
 	}
 
+	/** Plan 068's bake measurement on WebGPU (`debug.bakeMode`). */
+	debugBakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void {
+		this.terrain?.debugBakeMode(rebake, gradient);
+	}
+
 	/** The governor's planet scale: 0.5 asks for the half-size pass, 1 for the full one (plan 050). */
 	setScale(scale: number): void {
 		this.wantedScale = scale < 1 ? scale : 1;
@@ -478,7 +483,7 @@ export class PlanetPassTSL {
 			const uShadowTexel = this.link('uShadowTexel');
 			const uCamPos = this.link('uCamPos');
 			/**
-			 * \`shadowFactor\`: the vessel's and the site's shadow on the ground from the sun's shadow map,
+			 * `shadowFactor`: the vessel's and the site's shadow on the ground from the sun's shadow map,
 			 * 3 × 3 comparison taps; WebGPU's texture rows run top-down (as three's ShadowNode).
 			 */
 			const shadowFactor = (posRender: N): N => {
@@ -602,8 +607,8 @@ export class PlanetPassTSL {
 			};
 
 			/**
-			 * Hill relief for shading only (the GLSL's \`macroRelief\`): metres from the octaves at or above
-			 * lamMin; the two largest only on mountains (\`mount\` > 0.05).
+			 * Hill relief for shading only (the GLSL's `macroRelief`): metres from the octaves at or above
+			 * lamMin; the two largest only on mountains (`mount` > 0.05).
 			 */
 			const macroRelief = Fn(([p, lamMin, mount]: N[]) => {
 				const h = float(0.0).toVar();
@@ -624,7 +629,7 @@ export class PlanetPassTSL {
 			});
 
 			/**
-			 * surfaceAt: albedo, normal (body-fixed) and how much is water (the GLSL's \`spec\`), at height hT
+			 * surfaceAt: albedo, normal (body-fixed) and how much is water (the GLSL's `spec`), at height hT
 			 * with the terrain's body-fixed gradient gT (0 on the sea-level sphere).
 			 */
 			const surfaceAt = (nBF: N, pl: N, footprint: N, viewBF: N, hT: N, gT: N) => {
@@ -1159,7 +1164,7 @@ export class PlanetPassTSL {
 			};
 
 			/**
-			 * \`marchTerrain\`: sphere-traces the baked heights from the camera; hit and distance, and for a
+			 * `marchTerrain`: sphere-traces the baked heights from the camera; hit and distance, and for a
 			 * miss the closest clearance in pixel footprints (sMin, negative across a crest) and where (tMin).
 			 */
 			const marchTerrain = (ro: N, rd: N, r0: N, d: N, tLimit: N, tFrom: N) => {
@@ -1354,7 +1359,7 @@ export class PlanetPassTSL {
 			const atm = this.atm;
 			const mieScat = atm.betaMie / 1.1;
 			/**
-			 * \`shaftLoss\` (plan 054, ADR 0070): a second march along the ray; a sample under the cumulus slab
+			 * `shaftLoss` (plan 054, ADR 0070): a second march along the ray; a sample under the cumulus slab
 			 * loses the share of its sun that the slab (and the terrain) blocks. Mie in-scatter removed,
 			 * before the gain, over the whole path and in front of tcA and tcB.
 			 */
@@ -1519,7 +1524,7 @@ export class PlanetPassTSL {
 					.add(0.25);
 				return clamp(band.mul(streak).mul(gaps), 0.0, 1.0);
 			};
-			/** Aurora emission between the ray's stretches of the shell; \`far\` lies beyond splitDist. */
+			/** Aurora emission between the ray's stretches of the shell; `far` lies beyond splitDist. */
 			const auroraMarch = (ro: N, rd: N, r0: N, d: N, hitG: N, splitDist: N, jit: N) => {
 				const near = vec3(0.0).toVar();
 				const far = vec3(0.0).toVar();
@@ -1580,7 +1585,7 @@ export class PlanetPassTSL {
 			const ndc = varying(positionGeometry.xy);
 			const marchTex = this.marchTarget.texture;
 			const halfTex = this.halfTarget.texture;
-			/** \`isEdgePixel\` (half-res.ts): the half texels around this pixel disagree in depth or, on the sky, in colour. */
+			/** `isEdgePixel` (half-res.ts): the half texels around this pixel disagree in depth or, on the sky, in colour. */
 			const halfEdge = (): N => {
 				const pp = screenCoordinate.xy.div(this.uFullSize).mul(this.uHalfSize).sub(0.5);
 				const base = floor(pp);
@@ -1606,7 +1611,7 @@ export class PlanetPassTSL {
 				return depthEdge.or(sky.and(spread.greaterThan(EDGE_CHROMA)));
 			};
 			if (mode === 'prepass') {
-				/** \`coneStart\` (march.glsl.ts): a cone-widened march of a block's centre ray. */
+				/** `coneStart` (march.glsl.ts): a cone-widened march of a block's centre ray. */
 				return Fn(() => {
 					const out = float(MARCH_NO_HIT).toVar();
 					if (!terrain) return vec4(out, 0.0, 0.0, 1.0);

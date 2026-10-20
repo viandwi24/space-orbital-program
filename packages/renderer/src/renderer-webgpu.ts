@@ -386,6 +386,11 @@ export function createWebGPURenderer(
 		},
 		debugFacade(model)
 	);
+	// the bake measurement reaches the TSL bakes as well as the GLSL pass's flags (set after the shared half)
+	debugApi.bakeMode = (rebake, gradient) => {
+		env.planet.debugBakeMode(rebake, gradient);
+		planet.debugBakeMode(rebake, gradient);
+	};
 
 	return withShared(
 		{

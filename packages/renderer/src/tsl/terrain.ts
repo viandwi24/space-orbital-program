@@ -27,10 +27,16 @@ import {
 } from 'three';
 import * as TSL from 'three/tsl';
 import { MeshBasicNodeMaterial, QuadMesh, type WebGPURenderer } from 'three/webgpu';
-import { LAKE_SHAPE as LAKE, MAX_TERRAIN_ZONES, TERRAIN_SHAPE as S } from '@orbital/core';
+import {
+	LAKE_SHAPE as LAKE,
+	MAP_WARP as W_,
+	MAX_TERRAIN_ZONES,
+	OCTAVE_ROTATION,
+	TERRAIN_SHAPE as S
+} from '@orbital/core';
 import type { PlanetPass } from '../planet.ts';
 import { PATCH_BLEND, patchTexel, type PatchFrame } from '../terrain-patch.ts';
-import { noiseT, octaveRotate, warpedLatLon } from './noise.ts';
+import { hash13i, noiseT, octaveRotate, warpedLatLon } from './noise.ts';
 
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
@@ -39,6 +45,11 @@ const {
 	Fn,
 	If,
 	abs,
+	asin,
+	atan,
+	cos,
+	sin,
+	ivec3,
 	acos,
 	clamp,
 	cross,
@@ -106,6 +117,20 @@ export class TerrainTSL {
 	private readonly uHalfTan = uniform(0.01);
 	/** Bumped when a target or the map is replaced: the planet pass rebuilds its shader. */
 	version = 0;
+	/** The bake's gradient: analytic (ADR 0116) or plan 068's forward differences (debug). */
+	private gradient: 'analytic' | 'fd' = 'analytic';
+	/** Bake everything every frame (plan 068's bake-cost measurement). */
+	private rebakeAll = false;
+
+	/** Plan 068's measurement on WebGPU: rebake every frame, and the gradient to bake with. */
+	debugBakeMode(rebake: boolean, gradient: 'analytic' | 'fd' | 'none'): void {
+		this.rebakeAll = rebake;
+		const g = gradient === 'fd' ? 'fd' : 'analytic';
+		if (g !== this.gradient) {
+			this.gradient = g;
+			this.atlasSize = -1; // rebuild the passes, bake again
+		}
+	}
 
 	constructor(
 		private readonly planet: PlanetPass,
@@ -131,7 +156,7 @@ export class TerrainTSL {
 		if (resized) this.rebuild(jobs.cubeSize, jobs.patchSize, jobs.map);
 		if (jobs.cubeSize <= 0) return;
 		const prev = renderer.getRenderTarget();
-		if (jobs.cube || resized) {
+		if (jobs.cube || resized || this.rebakeAll) {
 			this.uTexel.value = (1.2 * PI) / 2 / jobs.cubeSize;
 			renderer.setRenderTarget(this.atlas);
 			this.cubePass!.q.render(renderer);
@@ -185,9 +210,17 @@ export class TerrainTSL {
 			return { m, q: new QuadMesh(m) };
 		};
 		const height = this.heightFn(map);
+		const heightGrad = this.heightGradFn(map);
+		const analytic = this.gradient === 'analytic';
 		const texel = (n: N, d: N): N => {
 			const t1 = tangent1(n);
 			const t2 = cross(n, t1);
+			if (analytic) {
+				// the analytic gradient (ADR 0116): one pass, rise over run along t1 and t2
+				const hg = heightGrad(n).toVar();
+				return { h0: hg.x, g: vec2(dot(hg.yzw, t1), dot(hg.yzw, t2)).div(this.radius) };
+			}
+			// plan 068's forward differences: two more heights (the debug comparison)
 			const h0 = height(n);
 			const g = vec2(
 				height(normalize(n.add(t1.mul(d)))).sub(h0),
@@ -276,6 +309,267 @@ export class TerrainTSL {
 			});
 		}
 		return vec3(site, arc0, gate);
+	}
+
+	/**
+	 * `heightGrad(n)` (ADR 0116): the height and its gradient with respect to n in one pass, the
+	 * twin of core's `terrainHeightAndGradient` and of `terrainHeightGradGLSL`; forward mode on
+	 * vec4(value, gradient). The map's value is the filtered fetch `heightAt` uses, its derivative
+	 * comes from its four texels.
+	 */
+	private heightGradFn(map: DataTexture): (n: N) => N {
+		const R = this.radius;
+		const kq = R / 1000;
+		const shift = this.uShift;
+		const cD = (v: N | number): N => vec4(v, 0.0, 0.0, 0.0);
+		const mulD = (a: N, b: N): N => vec4(a.x.mul(b.x), a.yzw.mul(b.x).add(b.yzw.mul(a.x)));
+		const chainD = (v: N, dv: N, a: N): N => vec4(v, a.yzw.mul(dv));
+		const smoothstepD = (e0: number | N, e1: number | N, x: N): N => {
+			const span = float(e1).sub(e0);
+			const r = x.x.sub(e0).div(span).toVar();
+			return select(
+				r.lessThanEqual(0.0),
+				cD(0.0),
+				select(
+					r.greaterThanEqual(1.0),
+					cD(1.0),
+					chainD(
+						r.mul(r).mul(float(3.0).sub(r.mul(2.0))),
+						r.mul(6.0).mul(r.oneMinus()).div(span),
+						x
+					)
+				)
+			);
+		};
+		const minD = (a: N, b: N): N => select(b.x.lessThan(a.x), b, a);
+		const valueNoiseCellD = (c: N, r: N): N => {
+			const f = r
+				.mul(r)
+				.mul(r)
+				.mul(r.mul(r.mul(6.0).sub(15.0)).add(10.0));
+			const df = r
+				.mul(r)
+				.mul(r.mul(r.sub(2.0)).add(1.0))
+				.mul(30.0);
+			const H = (x: number, y: number, z: number): N => hash13i(c.add(ivec3(x, y, z))).toVar();
+			const h000 = H(0, 0, 0);
+			const h100 = H(1, 0, 0);
+			const h010 = H(0, 1, 0);
+			const h110 = H(1, 1, 0);
+			const h001 = H(0, 0, 1);
+			const h101 = H(1, 0, 1);
+			const h011 = H(0, 1, 1);
+			const h111 = H(1, 1, 1);
+			const a = mix(h000, h100, f.x);
+			const b = mix(h010, h110, f.x);
+			const cc = mix(h001, h101, f.x);
+			const d = mix(h011, h111, f.x);
+			const ab = mix(a, b, f.y);
+			const cd = mix(cc, d, f.y);
+			const dx = mix(
+				mix(h100.sub(h000), h110.sub(h010), f.y),
+				mix(h101.sub(h001), h111.sub(h011), f.y),
+				f.z
+			);
+			return vec4(mix(ab, cd, f.z), vec3(dx, mix(b.sub(a), d.sub(cc), f.z), cd.sub(ab)).mul(df));
+		};
+		const noiseTD = (q: N, freq: number, salt: number): N => {
+			const p = q.mul(freq);
+			const fl = floor(p);
+			const c = ivec3(fl)
+				.add(ivec3(salt * 131, salt * 71, salt * 17))
+				.add(ivec3(shift));
+			const r = valueNoiseCellD(c, p.sub(fl)).toVar();
+			return vec4(r.x, r.yzw.mul(freq));
+		};
+		// the octave rotation's transpose, accumulated per octave on the CPU (rows)
+		const rot = OCTAVE_ROTATION;
+		const rotT = [0, 1, 2].map((r) => [0, 1, 2].map((c) => rot[c]![r]!));
+		const mul3 = (a: number[][], b: number[][]): number[][] =>
+			[0, 1, 2].map((r) =>
+				[0, 1, 2].map((c) => a[r]![0]! * b[0]![c]! + a[r]![1]! * b[1]![c]! + a[r]![2]! * b[2]![c]!)
+			);
+		const apply = (m: number[][], v: N): N =>
+			vec3(dot(vec3(...m[0]!), v), dot(vec3(...m[1]!), v), dot(vec3(...m[2]!), v));
+		const octavesD = (
+			q0: N,
+			wavelengthKm: number,
+			octaves: number,
+			salt: number,
+			ridge: boolean
+		): N => {
+			let sum: N = cD(0.0);
+			let amp = 1;
+			let norm = 0;
+			let freq = 1 / wavelengthKm;
+			let q = q0;
+			let back = [
+				[1, 0, 0],
+				[0, 1, 0],
+				[0, 0, 1]
+			];
+			for (let i = 0; i < octaves; i++) {
+				const r = noiseTD(q, freq, salt + i).toVar();
+				let term: N = vec4(r.x, apply(back, r.yzw).mul(kq));
+				if (ridge) {
+					const t = term.toVar();
+					const x = t.x.mul(2.0).sub(1.0);
+					const sq = sqrt(x.mul(x).add(S.ridgeSoftness ** 2));
+					term = chainD(float(1.0).sub(sq.sub(S.ridgeSoftness)), x.mul(-2.0).div(sq), t);
+				}
+				sum = sum.add(term.mul(amp));
+				norm += amp;
+				amp *= 0.5;
+				freq *= 2;
+				q = octaveRotate(q);
+				back = mul3(back, rotT);
+			}
+			return sum.div(norm);
+		};
+		const arcD = (n: N, dir: N): N => {
+			const c = clamp(dot(n, dir), -1.0, 1.0);
+			const sn = sqrt(float(1.0).sub(c.mul(c)));
+			return vec4(
+				acos(c).mul(R),
+				select(sn.greaterThan(0.0), dir.mul(float(-R).div(max(sn, 1e-12))), vec3(0.0))
+			);
+		};
+		const W = map.image.width as number;
+		const Hm = map.image.height as number;
+		const fn = Fn(([n]: N[]) => {
+			const out = cD(0.0).toVar();
+			const q = n.mul(kq).toVar();
+			const y = clamp(n.y, -1.0, 1.0);
+			const lat = vec4(
+				asin(y),
+				0.0,
+				select(
+					abs(n.y).lessThan(1.0),
+					float(1.0).div(sqrt(max(float(1.0).sub(y.mul(y)), 1e-12))),
+					float(0.0)
+				),
+				0.0
+			).toVar();
+			const r2 = n.x.mul(n.x).add(n.z.mul(n.z));
+			const lon = vec4(
+				atan(n.z.negate(), n.x),
+				select(r2.greaterThan(0.0), vec3(n.z, 0.0, n.x.negate()).div(max(r2, 1e-12)), vec3(0.0))
+			).toVar();
+			const warp = (salts: readonly [number, number]): N => {
+				const a = noiseTD(q, 1 / W_.wavelengthsKm[0], salts[0])
+					.mul(2.0)
+					.sub(cD(1.0))
+					.mul(W_.weights[0]);
+				const b = noiseTD(q, 1 / W_.wavelengthsKm[1], salts[1])
+					.mul(2.0)
+					.sub(cD(1.0))
+					.mul(W_.weights[1]);
+				const s2 = a.add(b);
+				return vec4(s2.x, s2.yzw.mul(kq));
+			};
+			const dLat = warp(W_.saltsLat).toVar();
+			const dLon = warp(W_.saltsLon).toVar();
+			const k = W_.amplitude / (W_.weights[0] + W_.weights[1]);
+			const cosLat = cos(lat.x);
+			const inv = select(
+				cosLat.greaterThan(0.2),
+				chainD(float(1.0).div(cosLat), sin(lat.x).div(cosLat.mul(cosLat)), lat),
+				cD(1.0 / 0.2)
+			);
+			const wLat = lat.add(dLat.mul(k)).toVar();
+			const wLon = lon.add(mulD(dLon.mul(k), inv)).toVar();
+			// the map: the value from the filtered fetch heightAt uses, the derivative from its four texels
+			const st = vec2(wLon.x.div(2 * PI).add(0.5), wLat.x.div(PI).add(0.5)).toVar();
+			const e = texture(map, st).level(0).r;
+			const fx = st.x.mul(W).sub(0.5);
+			const rawY = st.y.mul(Hm).sub(0.5);
+			const fy = clamp(rawY, 0.0, Hm - 1);
+			const x0 = floor(fx);
+			const y0 = floor(fy);
+			const tx = fx.sub(x0);
+			const ty = fy.sub(y0);
+			const ix0 = int(T.mod(x0, W));
+			const ix1 = int(T.mod(x0.add(1.0), W));
+			const iy0 = int(clamp(y0, 0.0, Hm - 1));
+			const iy1 = int(clamp(y0.add(1.0), 0.0, Hm - 1));
+			const a = textureLoad(map, ivec2(ix0, iy0)).r;
+			const b = textureLoad(map, ivec2(ix1, iy0)).r;
+			const cc = textureLoad(map, ivec2(ix0, iy1)).r;
+			const d = textureLoad(map, ivec2(ix1, iy1)).r;
+			const dTx = b.sub(a).mul(ty.oneMinus()).add(d.sub(cc).mul(ty));
+			const dTy = select(
+				fy.notEqual(rawY),
+				float(0.0),
+				cc.add(d.sub(cc).mul(tx)).sub(a.add(b.sub(a).mul(tx)))
+			);
+			const eD = vec4(
+				e,
+				wLat.yzw.mul(dTy.mul(Hm / PI)).add(wLon.yzw.mul(dTx.mul(W / (2 * PI))))
+			).toVar();
+			const land = smoothstepD(S.landStart, S.landFull, eD).toVar();
+			If(land.x.greaterThan(0.0), () => {
+				const arc = arcD(n, this.uZones.element(0).xyz).toVar();
+				const site = cD(1.0).toVar();
+				const gate = cD(1.0).toVar();
+				for (let i = 0; i < MAX_TERRAIN_ZONES; i++) {
+					If(int(i).lessThan(this.uZoneCount), () => {
+						const z = this.uZones.element(i);
+						const az = i === 0 ? arc : arcD(n, z.xyz);
+						site.assign(mulD(site, smoothstepD(z.w, z.w.add(this.uZoneBlend.element(i)), az)));
+						gate.assign(minD(gate, smoothstepD(LAKE.siteFrom, LAKE.siteTo, az)));
+					});
+				}
+				If(site.x.greaterThan(0.0), () => {
+					const hills = smoothstepD(
+						S.hillLow,
+						S.hillHigh,
+						octavesD(q, S.hillWavelengthKm, S.hillOctaves, 11, false)
+					).mul(S.hillAmplitude);
+					const n0 = noiseTD(q, 1 / S.rangeWavelengthsKm[0], S.rangeSalts[0]).toVar();
+					const n1 = noiseTD(q, 1 / S.rangeWavelengthsKm[1], S.rangeSalts[1]).toVar();
+					const rangeN = vec4(
+						n0.x.mul(0.65).add(n1.x.mul(0.35)),
+						n0.yzw.mul(0.65).add(n1.yzw.mul(0.35)).mul(kq)
+					);
+					const bn0 = noiseTD(q, 1 / S.backdropWavelengthKm, S.backdropSalt).toVar();
+					const bn = vec4(bn0.x, bn0.yzw.mul(kq));
+					const backdrop = mulD(
+						mulD(
+							smoothstepD(S.backdropRiseMetres[0], S.backdropRiseMetres[1], arc),
+							cD(1.0).sub(smoothstepD(S.backdropFallMetres[0], S.backdropFallMetres[1], arc))
+						),
+						smoothstepD(S.backdropLow, S.backdropHigh, bn)
+					).toVar();
+					const rangeA = smoothstepD(S.rangeLow, S.rangeHigh, rangeN).toVar();
+					const diff = rangeA.sub(backdrop).toVar();
+					const rangeH = max(float(S.rangeBlend).sub(abs(diff.x)), 0.0).toVar();
+					const range = select(rangeA.x.greaterThanEqual(backdrop.x), rangeA, backdrop).toVar();
+					If(rangeH.greaterThan(0.0), () => {
+						const dh = diff.yzw.mul(select(diff.x.greaterThanEqual(0.0), float(-1.0), float(1.0)));
+						range.addAssign(
+							vec4(rangeH.mul(rangeH).div(4 * S.rangeBlend), dh.mul(rangeH).div(2 * S.rangeBlend))
+						);
+					});
+					const ridgeV = octavesD(q, S.ridgeWavelengthKm, S.ridgeOctaves, 31, true);
+					const upland = smoothstepD(S.uplandLow, S.uplandHigh, eD);
+					const mountains = mulD(
+						mulD(range, smoothstepD(0.25, 0.8, ridgeV)),
+						cD(0.7).add(upland.mul(0.3))
+					).mul(S.mountainAmplitude);
+					const relief = mulD(mulD(land, site), hills.add(mountains));
+					const ln0 = noiseTD(q, 1 / LAKE.wavelengthKm, LAKE.salt).toVar();
+					const level = mulD(vec4(ln0.x, ln0.yzw.mul(kq)), gate);
+					const capRaw = cD(LAKE.to)
+						.sub(level)
+						.mul(LAKE.slope / LAKE.gradientBound)
+						.toVar();
+					const cap = select(capRaw.x.greaterThan(0.0), capRaw, cD(0.0));
+					out.assign(minD(relief, cap));
+				});
+			});
+			return out;
+		});
+		return (n: N): N => fn(n);
 	}
 
 	/** `heightAt(n)`: the terrain height (m) at a unit body-fixed direction, as a shader function. */
