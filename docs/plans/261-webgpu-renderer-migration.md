@@ -1,5 +1,5 @@
 ---
-id: 260
+id: 261
 title: "WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset"
 status: draft
 owner: ""
@@ -9,14 +9,14 @@ created: 2026-10-20
 updated: 2026-10-20
 ---
 
-# 260 — WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset
+# 261 — WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset
 
 **Size:** XL × many. One plan in ten phases, about 60–100 agent hours (see Estimate).
 
 ## Owner's rules for this plan (2026-10-20)
 
 1. **Quality first, not speed of release.** A release with poor performance makes players leave and not come back. This plan may delay the public release; that is accepted.
-2. **Its own branch, always.** All work happens on one long-lived branch, `gfx/260-webgpu`, never on `main`. `main` keeps today's WebGL renderer as the default for the whole life of the plan. The branch takes `main` in regularly (rebase or merge from `main`, never the other way) so gameplay plans keep landing.
+2. **Its own branch, always.** All work happens on one long-lived branch, `gfx/261-webgpu`, never on `main`. `main` keeps today's WebGL renderer as the default for the whole life of the plan. The branch takes `main` in regularly (rebase or merge from `main`, never the other way) so gameplay plans keep landing.
 3. **Behind a switch until the end.** On the branch the new renderer is chosen with a development switch (`?renderer=webgpu`, or Settings → Graphics → Renderer in debug mode). The old renderer stays selectable on the branch, so every scene can be compared side by side.
 4. **Manual test before merge.** The plan is merged into `main` only after the owner has run the manual checklist (Phase 9) on the M5, and on the M2 if possible, and signed it off in this plan's Log. Until then the plan stays `in-progress` (or `blocked` waiting for the owner), whatever CI says.
 5. **Decision gate after Phase 0.** If the spike's numbers do not justify the move, stop. Record why in the Log and journal, and keep the WebGL path with research phases 2–4 (`refs/graphics-performance/06`) instead.
@@ -106,7 +106,7 @@ The saved time is then spent on more realism.
 
 ### Phase 0 — Spike and decision gate (about 4–6 h)
 
-1. Create the branch `gfx/260-webgpu` from `main`. Add the `?renderer=webgpu` switch: `WebGPURenderer` with `await renderer.init()`, `forceWebGL` for the fallback test.
+1. Create the branch `gfx/261-webgpu` from `main`. Add the `?renderer=webgpu` switch: `WebGPURenderer` with `await renderer.init()`, `forceWebGL` for the fallback test.
 2. Port the smallest end-to-end slice to TSL: the sky and atmosphere part of the planet pass (`atmosphere.glsl.ts`) on a fullscreen node, plus the output pass. Everything else draws as today, or is left out of the spike scene.
 3. Measure with `measure-graphics.ts` (plan 251's method), WebGL against WebGPU on the same scene:
    - the M5 and the M2;
@@ -200,7 +200,7 @@ The saved time is then spent on more realism.
 - [ ] The full e2e suite passes in Chromium and WebKit on the WebGPU renderer, and in Chromium with `forceWebGL`.
 - [ ] `bun test packages/renderer` passes with tests for the LUT rebuild triggers, the temporal fallback on cuts and warp, the upscaler's budget maths and the backend choice.
 - [ ] No GLSL `ShaderMaterial` and no `onBeforeCompile` is left in `packages/renderer/src`, enforced by a test that scans for them (the old path's files are excluded while it exists).
-- [ ] `bun run typecheck`, `bun run build`, `bun run docs:check` pass. CI is green on the branch's `ready/260` tag.
+- [ ] `bun run typecheck`, `bun run build`, `bun run docs:check` pass. CI is green on the branch's `ready/261` tag.
 
 **Manual** (the owner's sign-off, required before merge):
 - [ ] `[manual]` The checklist below is done on the M5 (and the M2 if available) and signed in the Log.
@@ -254,7 +254,7 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, open issues).
-- [ ] `docs/journal/260-webgpu-renderer-migration.md` written, with the Phase 0 numbers, the parity images and the final measurements.
+- [ ] `docs/journal/261-webgpu-renderer-migration.md` written, with the Phase 0 numbers, the parity images and the final measurements.
 - [ ] The backend ADR (Phase 0), the depth ADR (Phase 2) and the sky ADR (Phase 6) written and linked.
 - [ ] `docs/architecture/` rendering docs updated; `docs/guides/writing-a-mod.md` says how a mod's custom shader moves to TSL.
 - [ ] `refs/graphics-performance/` gets the results as a new section.
