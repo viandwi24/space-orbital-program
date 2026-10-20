@@ -6,7 +6,7 @@
 
 **Visual:** [`release-roadmap.html`](release-roadmap.html). Open it in a browser to see the dependency graph, the waves, the critical path and the plan details.
 
-**Plans:** 200–239 (233–236 added 2026-10-19 from the owner's manual test, ADR 0222; 237–239 added 2026-10-20 from the release audit, bugs fixed before v1.0.0). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
+**Plans:** 200–250 (240–250 added 2026-10-20 as the v1.1 wave from the release audit, owner's order; 233–236 added 2026-10-19 from the owner's manual test, ADR 0222; 237–239 added 2026-10-20 from the release audit, bugs fixed before v1.0.0). **ADRs:** 0200 onward. The visual page is generated: `bun run roadmap:release`.
 
 ## Machines and queues (since 2026-10-19)
 
@@ -47,6 +47,7 @@ Claims are annotated tags (`claim/NNN` with the worker's name); the visual page 
 | 5 | **218** Hangar inspector, groups, report (L), **229** lessons past the first orbit (L), **231** career content for new parts (M) |
 | 6 | **237** audit bug fixes (S), **238** Hangar camera and one top bar (M), **239** scripts keep running off Flight (M, after 237 in C's queue) |
 | 7 | **232** release QA and launch (M): the `v1.0.0` tag waits for 237–239 |
+| v1.1 | A: **244** Hangar attach and pick-up (L) → **243** interstage fairings (L) · C: **247** warp stops and alerts (M) → **248** shell everywhere, branch 3D (M) → **250** panel polish (M) · D: **240** part read-outs (M) → **241** part controls (L) → **242** lights (M) · E: **245** abort, stop warp, trim (M) → **246** dust, heat bars, Splashed, tooltips (M) → **249** EVA helmet and chute (M) |
 
 **Critical path** (the longest dependency chain):
 

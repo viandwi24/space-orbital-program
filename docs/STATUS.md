@@ -186,6 +186,17 @@
 | 237 | [Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds](plans/237-flight-and-sim-bug-fixes.md) | ready | Worker C | Release audit 2026-10-20; before v1.0.0. |
 | 238 | [Hangar: the camera reaches the top of a tall vessel; one top bar](plans/238-hangar-camera-tall-vessels-one-top-bar.md) | ready | Worker A | Release audit 2026-10-20 (C3, C15); before v1.0.0. |
 | 239 | [A running script keeps running when the player leaves Flight](plans/239-scripts-keep-running-off-flight.md) | ready | Worker C | Release audit 2026-10-20 (ADR 0201 point 9); before v1.0.0. |
+| 240 | [Part read-outs: live engine thrust, Isp and flow, flameout reason, solar and RTG output, tank bars in the inspector](plans/240-part-readouts-engine-power.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 241 | [Part controls: reaction wheel mode, decoupler staging switch, docking port target, wheel motor and steering, RCS and battery groups, parachute spread, pod and experiment actions](plans/241-part-controls-completion.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 242 | [Lights: a stock light part with on/off, colour and the lights group](plans/242-light-part.md) | draft | Worker D | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 243 | [Fairings: interstage top node, enclosed-engine shielding, 3D section handles, a section at the cursor height](plans/243-interstage-fairings-handles.md) | draft | Worker A | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 244 | [Hangar: a ghost that follows the cursor, surface attach on any face, whole-vessel pick-up, Alt for nodes only, a 3D size-mismatch mark](plans/244-hangar-attach-and-pickup.md) | draft | Worker A | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 245 | [Keys: abort (Backspace) and the abort group, stop warp (/), yaw and roll trim and reset, brakes on hold](plans/245-keys-abort-stopwarp-trim.md) | draft | Worker E | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 246 | [Visuals: touchdown dust, heat bars on hot parts, the Splashed situation, reduced motion for flashes, term tooltips on every HUD read-out](plans/246-visual-polish-dust-heat-splash.md) | draft | Worker E | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 247 | [World time and alerts: warp stops for every event, frozen-vessel warning, frame-lag warp drop, script alarms](plans/247-world-time-alerts.md) | draft | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 248 | [Shell everywhere: warp and Debug on every page, Save/Load in the menu, a place-pause chip, branch buildings in the Space Center 3D view](plans/248-shell-everywhere-branches-3d.md) | draft | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 249 | [EVA: helmet on and off, a personal parachute](plans/249-eva-helmet-chute.md) | draft | Worker E | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
+| 250 | [Panels and vessels: −/+ steppers on narrow panels, inspectors that never cover the vessel, a resizable dock, one type scale, port-frame Locked camera, undocked map card](plans/250-panel-inspector-vessel-polish.md) | draft | Worker C | Release audit 2026-10-20; v1.1 wave (does not block v1.0.0). |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
