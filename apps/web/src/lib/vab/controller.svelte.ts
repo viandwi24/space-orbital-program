@@ -641,6 +641,7 @@ export class VabController {
 			armed: () => this.armed?.kind ?? null,
 			// for captures (plan 220): the vessel's draw cost, and a fixed camera
 			stats: () => (this.view ? { ...this.view.stats } : null),
+			camera: () => this.view?.cameraGoal ?? null,
 			aim: (yaw: number, pitch: number, distance: number, target?: [number, number, number]) =>
 				this.view?.debug.setCamera(yaw, pitch, distance, target)
 		};
@@ -687,7 +688,8 @@ export class VabController {
 		this.view?.setInsets({
 			left: visible(this.leftEl),
 			right: visible(this.rightEl),
-			top: 72,
+			// no top bar of its own (plan 238): room for the context chip only
+			top: 40,
 			bottom: 150
 		});
 	}

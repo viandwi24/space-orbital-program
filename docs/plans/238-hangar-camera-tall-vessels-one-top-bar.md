@@ -1,7 +1,7 @@
 ---
 id: 238
 title: "Hangar: the camera reaches the top of a tall vessel; one top bar"
-status: ready
+status: in-progress
 owner: "Worker A"
 depends: []
 phase: 7
@@ -57,3 +57,5 @@ The owner ordered real bugs fixed before v1.0.0 (2026-10-20).
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit; ready (both checked against main @ b2d2abb2). Owner order: fix before v1.0.0.
+- 2026-10-20 — Worker A: camera `panTop` from the vessel (`limitsForVessel`: top + 2 m, at least 6 m); the Hangar's top bar removed (name and Aircraft to the left column, placing chip over the view, contrast and drawers to the tool pill, the menu bar's Launch keeps the checks).
+- 2026-10-20 — Worker A: Worker B's release e2e found hangar-inspector's typed limiter staying "50". Real bug: the moon shot's LB-1 boosters start at 50 %, so the same value committed nothing and the field kept its raw text. ControlRows now writes the value back in its unit; the e2e types 60 on `stock.booster-liquid`. hangar-groups was a real layout bug too: at 1440 px the bottom tool pill was wider than the middle column and covered the right column's foot (the group editor's checkbox). The pill now compacts by a container query on its column and never overflows it; hangar-tall checks it.

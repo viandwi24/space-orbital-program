@@ -37,6 +37,22 @@ export const VAB_CAMERA_LIMITS: VabCameraLimits = {
 	panTop: 34
 };
 
+/** Above the vessel's top the turntable may rise this far, m (plan 238). */
+export const PAN_TOP_MARGIN = 2;
+/** The lowest ceiling of the target, m: an empty platform or a small probe still gets some room. */
+export const PAN_TOP_MIN = 6;
+
+/**
+ * The camera limits for a vessel whose top stands `top` metres above the floor (plan 238): the
+ * target rises to the top plus `PAN_TOP_MARGIN`, never below `PAN_TOP_MIN`; null keeps the minimum.
+ */
+export function limitsForVessel(
+	top: number | null,
+	limits: VabCameraLimits = VAB_CAMERA_LIMITS
+): VabCameraLimits {
+	return { ...limits, panTop: Math.max(PAN_TOP_MIN, (top ?? 0) + PAN_TOP_MARGIN) };
+}
+
 export const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
 export const initialCamera = (distance = 16, target: V3 = [0, 4, 0]): VabCameraState => ({
