@@ -68,7 +68,7 @@ The saved time is then spent on more realism.
 - **Not touched:** the simulation (ADR 0003: sim and renderer are separate). Only `packages/renderer` and its wiring in `apps/web` change.
 
 **ADRs.**
-- To write: an ADR for the renderer backend (this plan's decision gate), superseding ADR 0027's WebGL-only pipeline where it differs.
+- Written: [0242](../decisions/0242-webgpu-renderer-backend.md), the renderer backend (the decision gate). It supersedes ADR 0027's WebGL-only pipeline where it differs, once the branch merges.
 - To revisit: 0053 (budget and governor), 0064 (half planet pass), 0086, 0087, 0233, 0234.
 
 ## Scope
@@ -261,6 +261,7 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 
 ## Log
 
+- 2026-10-20 — Worker D (M2): the owner ran the matrix in Safari 26 on the M2 (`refs/graphics-performance/data/m2-spike-261-safari.json`): WebGPU 0–4 % behind WebGL (pixel ratio 2, 8 octaves, pad: 9.7 / 9.9 / fallback 9.5 ms), inside Safari's 0.1 ms timer step. The owner chose to skip the M5 for the gate. **Gate passed:** parity on both browsers, the same image, nothing blocking. Backend ADR 0242.
 - 2026-10-20 — Worker D (M2): Phase 0 steps 1–3 on the M2 in Chromium. A TSL port of the atmosphere march (`packages/renderer/src/webgpu-spike/`, page `/dev/webgpu-spike`) draws the same image as the GLSL one on all three backends. Its cost is the same within ±5 % (pixel ratio 2, 8 noise octaves, pad: WebGL 8.90 ms, WebGPU 8.78, fallback 8.82). Data in `refs/graphics-performance/data/m2-spike-261-chromium.json`. A plain port gives parity, not a gain, as the plan expects; the gain has to come from Phases 3–5. The gate still needs the M5 and Safari 26 numbers (the same page), then the backend ADR.
 - 2026-10-20 — Worker D (M2): claimed at the owner's word ("gas mulai sekarang"); branch `gfx/261-webgpu`. Phase 0 (spike) first.
 - 2026-10-20 — Created at the owner's request after the graphics research (`refs/graphics-performance/`) and its October 2026 update: quality first, its own branch, manual test before merge.

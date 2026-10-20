@@ -1,6 +1,6 @@
 # 261 — WebGPU renderer (Phase 0 spike)
 
-**Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** the backend ADR follows the gate
+**Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
 ## What was done
 
@@ -30,7 +30,17 @@ A plain port costs the same on every backend (within ±5 %). The three screensho
 - **Output colour space.** `WebGPURenderer` converts to sRGB at output by default; the GLSL writes straight to the canvas, so the spike sets `LinearSRGBColorSpace` to compare like with like.
 - `waitForGPU` is gone in r186; the benchmark waits on `device.queue.onSubmittedWorkDone()` (WebGPU) or a 1-pixel `readPixels` (fallback).
 
-## Still open for the gate
+## Safari 26 (M2, run by the owner)
 
-- The M5 and Safari 26 numbers: open `/dev/webgpu-spike` and press "Run the whole matrix".
-- GPU timestamp queries (Phase 1 step 7); the spike times the CPU wait.
+| Octaves | Ratio | View | WebGL | WebGPU | Fallback |
+|---|---|---|---|---|---|
+| 0 | 2 | pad | 4.8 | 4.9 | 4.7 |
+| 8 | 2 | pad | 9.7 | 9.9 | 9.5 |
+| 8 | 2 | 12 km | 9.6 | 10.0 | 9.6 |
+| 8 | 2 | orbit | 7.4 | 7.7 | 7.3 |
+
+WebGPU is 0–4 % behind in Safari, which is about one step of its 0.1 ms timer. The fallback is as fast as WebGL.
+
+## Gate
+
+Passed. The owner skipped the M5 ("skip dulu m5 nya"). GPU timestamp queries come with Phase 1 step 7; the spike times the CPU wait.

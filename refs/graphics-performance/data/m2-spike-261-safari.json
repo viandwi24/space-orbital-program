@@ -1,0 +1,296 @@
+{
+ "machine": "MacBook Pro M2 13\"",
+ "browser": "Safari 26 (run by the owner)",
+ "date": "2026-10-20",
+ "note": "Safari rounds the timer to 0.1 ms",
+ "rows": [
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.2,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.3,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 1.2,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.2,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.2,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 1.3,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.7,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.8,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 0.7,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.8,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.9,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 4.7,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.8,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.9,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 4.7,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.6,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.7,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 0,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 2.6,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.5,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.5,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "pad",
+   "ms": 2.4,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.4,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.5,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "12 km",
+   "ms": 2.4,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.9,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 2.0,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 1,
+   "view": "orbit",
+   "ms": 1.9,
+   "px": "1328×909"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 9.7,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 9.9,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "pad",
+   "ms": 9.5,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 9.6,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 10.0,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "12 km",
+   "ms": 9.6,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgl",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 7.4,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 7.7,
+   "px": "2656×1818"
+  },
+  {
+   "backend": "webgpu-fallback",
+   "octaves": 8,
+   "ratio": 2,
+   "view": "orbit",
+   "ms": 7.3,
+   "px": "2656×1818"
+  }
+ ]
+}
