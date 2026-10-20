@@ -394,6 +394,7 @@ export function startFlight(options: FlightOptions): Flight {
 	const governorStart = performance.now();
 	/** Frame intervals of the last two minutes for the Debug panel's percentiles (plan 251). */
 	const frameStats = new FrameHistogram();
+	let budgetLook = 0;
 	let autoQuality = loadAutoQuality();
 	let catalog: Catalog | null = null;
 	// achievements (plan 102): the tracker once the sim is ready; the loaded records are checked once
@@ -1251,6 +1252,9 @@ export function startFlight(options: FlightOptions): Flight {
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
 		frameStats.add(now, interval);
+		// the planet pass's pixel budget on this screen (plan 252) shapes the governor's rungs (plan 253)
+		if (governor && renderer && ++budgetLook === 30)
+			governor.setBudgetedPlanetScale(renderer.planetScale);
 		sendInput(dt);
 		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {

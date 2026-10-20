@@ -44,7 +44,14 @@ export const GOVERNOR_FLOOR_STEPS: readonly { scale: number; planetScale: number
  * preset at full resolution. The player's choice is the ceiling; the governor never goes above it.
  * `halfPlanet: false` (no float render targets) leaves out the rungs that need the half-resolution pass.
  */
-export function governorLadder(ceiling: GraphicsPreset, halfPlanet = true): GovernorLevel[] {
+export function governorLadder(
+	ceiling: GraphicsPreset,
+	halfPlanet = true,
+	budgetedPlanet = 1
+): GovernorLevel[] {
+	// plan 253: when the pixel budget already draws the planet pass near half size (a Retina screen,
+	// plan 252), the half rung would save almost nothing: the steps are resolution only
+	if (budgetedPlanet <= BUDGETED_NEAR_HALF) halfPlanet = false;
 	const from = GRAPHICS_PRESETS.indexOf(ceiling);
 	const presets = GRAPHICS_PRESETS.slice(0, from + 1).reverse();
 	const out: GovernorLevel[] = [];
@@ -56,6 +63,9 @@ export function governorLadder(ceiling: GraphicsPreset, halfPlanet = true): Gove
 	});
 	return out;
 }
+
+/** At or under this planet scale the pixel budget has the pass about as small as its half rung. */
+export const BUDGETED_NEAR_HALF = HALF_PLANET_SCALE * 1.25;
 
 /** The display rates the cadence estimate snaps to, Hz. */
 const DISPLAY_RATES = [30, 60, 90, 120, 144] as const;
@@ -195,6 +205,7 @@ export class QualityGovernor {
 	/** The display was found to run at 30 Hz (a throttle): the target follows it and quality stays. */
 	private throttled30 = false;
 	/** Consecutive drops that left the interval at about 33 ms: four, across a preset, say the display is the limit. */
+	private ceiling: GraphicsPreset;
 	private noEffect: { from: number; drops: number } | null = null;
 	private sinceRender = 0;
 	private changes: GovernorChange[] = [];
@@ -204,8 +215,31 @@ export class QualityGovernor {
 		private readonly config: GovernorConfig = DEFAULT_GOVERNOR,
 		private readonly halfPlanet = true
 	) {
+		this.ceiling = ceiling;
 		this.ladder = governorLadder(ceiling, halfPlanet);
 		this.settle = config.presetSettleSeconds;
+	}
+
+	private budgetedPlanet = 1;
+
+	/**
+	 * What the planet pass draws at full quality (plan 252's pixel budget on this screen): near half
+	 * size, the half rungs are left out. Applies while the governor is still at the top.
+	 */
+	setBudgetedPlanetScale(scale: number): void {
+		const near = scale <= BUDGETED_NEAR_HALF;
+		if (near === this.budgetedPlanet <= BUDGETED_NEAR_HALF) {
+			this.budgetedPlanet = scale;
+			return;
+		}
+		this.budgetedPlanet = scale;
+		if (this.index !== 0) return;
+		this.ladder = governorLadder(this.ceiling, this.halfPlanet, scale);
+	}
+
+	/** How many rungs the ladder has (tests, Debug). */
+	get ladderLength(): number {
+		return this.ladder.length;
 	}
 
 	/** The level the host should be drawing at. */
@@ -248,7 +282,8 @@ export class QualityGovernor {
 
 	/** The player picked a preset: it is the new ceiling and the governor starts again from it. Returns the level to draw. */
 	setCeiling(ceiling: GraphicsPreset): GovernorLevel {
-		this.ladder = governorLadder(ceiling, this.halfPlanet);
+		this.ceiling = ceiling;
+		this.ladder = governorLadder(ceiling, this.halfPlanet, this.budgetedPlanet);
 		this.restart();
 		return this.level;
 	}

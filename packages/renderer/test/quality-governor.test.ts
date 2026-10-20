@@ -363,3 +363,24 @@ describe('sceneKeyOf', () => {
 		expect(new Set([at(100), at(5_000), at(40_000), at(200_000)]).size).toBe(4);
 	});
 });
+
+describe('the pixel budget shapes the rungs (plan 253 with plan 252)', () => {
+	test('a pass the budget already draws near half size has no half rungs', () => {
+		const ladder = governorLadder('high', true, 0.55);
+		expect(ladder.filter((l) => l.planetScale < 1)).toEqual([]);
+		expect(ladder[0]).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
+		expect(ladder.some((l) => l.preset === 'medium')).toBe(true);
+	});
+
+	test('at full budget the half rungs stay', () => {
+		expect(governorLadder('high', true, 1).some((l) => l.planetScale < 1)).toBe(true);
+	});
+
+	test('learning the budget at the top rebuilds the ladder; later it waits', () => {
+		const g = new QualityGovernor('high');
+		expect(g.ladderLength).toBe(governorLadder('high').length);
+		g.setBudgetedPlanetScale(0.55);
+		expect(g.ladderLength).toBe(governorLadder('high', true, 0.55).length);
+		expect(g.level).toEqual({ preset: 'high', scale: 1, planetScale: 1 });
+	});
+});
