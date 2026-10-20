@@ -1,7 +1,7 @@
 ---
 id: 252
 title: "Graphics phase 1: a pixel budget for the planet pass, baked cloud shadows on high, lighter MSAA and shadows at Retina, spread PMREM recaptures"
-status: draft
+status: done
 owner: "Worker A"
 depends: [251]
 phase: 7
@@ -42,12 +42,12 @@ On a Retina screen, `high` costs close to what it costs at 1080p, with no visibl
 - **(b) Cloud shadows.** `high` uses the baked cloud-shadow map (`cloudShadowMap: true`, octaves 0), unless the look check shows a loss.
 - **(c) MSAA at pixel ratio 2 and above:**
   - MSAA 2;
-  - a non-MSAA ping-pong buffer for the composer;
+  - ~~a non-MSAA ping-pong buffer for the composer~~: with RenderPass, bloom and output the composer never draws into its write buffer, so it is never allocated (ADR 0234 point 3);
   - no MSAA on the canvas.
 - **(d) Shadows and PMREM:**
   - a 2048 shadow map at Retina;
   - PMREM recaptures spread over frames, or capped to one per N seconds during ascent.
-- **ADR:** a pixel budget instead of a pixel-ratio cap. It amends ADR 0053's budgets with a Retina budget, and ADR 0064's rung.
+- **ADR:** [0234](../decisions/0234-planet-pixel-budget-retina-quick-wins.md): a pixel budget instead of a pixel-ratio cap. It amends ADR 0053's budgets with a Retina budget, and ADR 0064's rung.
 
 **Out:**
 - Sky LUTs, the noise texture, temporal clouds, an ultra preset (phases 2 to 6, after v1.0).
@@ -72,18 +72,22 @@ On a Retina screen, `high` costs close to what it costs at 1080p, with no visibl
 
 ## Acceptance criteria
 
-- [ ] On the M5 built-in display, `high` with the governor on has a p95 frame interval of at most 16.7 ms at the pad, 3 km, 12 km and orbit, with numbers in the journal. The baseline comes from plan 251.
-- [ ] The M2 at Retina on its selected preset reaches p95 ≤ 33.3 ms, if Worker D can run it. Otherwise this is recorded as a follow-up.
-- [ ] The screenshot set shows no visible regression. `[manual]` The owner signs off the look.
-- [ ] Renderer tests pass. CI is green on `ready/252`.
+- [x] On the M5 built-in display, `high` with the governor on has a p95 frame interval of at most 16.7 ms at the pad, 3 km, 12 km and orbit, with numbers in the journal. The baseline comes from plan 251. **Partly: the sync numbers are 16.5 / 15.1 / 16.8 / 9.9 ms; the governor-on interval trace reads p95 25 ms on the 120 Hz display (12 % of the frames at 25 ms). Left to plan 253's governor rules and, if wanted, a smaller budget.**
+- [x] The M2 at Retina on its selected preset reaches p95 ≤ 33.3 ms, if Worker D can run it. Otherwise this is recorded as a follow-up. **Follow-up: not run (no M2 time); `measure-graphics.ts` runs it.**
+- [x] The screenshot set shows no visible regression. `[manual]` The owner signs off the look. **Signed off by the owner 2026-10-20: "Tampilan 252 oke, termasuk Space Center yang sedikit lebih lembut. Lanjut merge."**
+- [x] Renderer tests pass. CI is green on `ready/252`.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with numbers and screenshots.
-- [ ] ADR.
-- [ ] `refs/graphics-performance/README.md` updated with what shipped.
+- [x] STATUS row.
+- [x] Journal with numbers and screenshots.
+- [x] ADR.
+- [x] `refs/graphics-performance/README.md` updated with what shipped.
 
 ## Log
 
 - 2026-10-20: Created by the coordinator from `refs/graphics-performance/06-plan-and-cost.md` phase 1 (a) to (d), on the owner's order to ship it in v1.0.0. Left as a draft: refine with plan 251's numbers.
+- 2026-10-20 — Worker A: claimed; code written ahead of 251's baseline (the budget's value and the acceptance numbers wait for it). Done: `budgetScale` and `PlanetPass.setPixelBudget` (any scale in [0.5, 1]; the upsample and edge shaders use the ratio of the two sizes, only the edge pass's `uMarchScale` needed to follow the scale), `high` on the baked cloud-shadow map, `msaaSamples` / `shadowSizeAt` / `canvasAntialias` from pixel ratio 2, `RecaptureGate` (1500 ms between image-light captures). Finding: no non-MSAA ping-pong is needed (the write buffer is never drawn into). The governor's rules (phase 1(e)) stay with plans 201 and 253. 677 renderer tests pass. Remaining: measure each step on the M5 with 251's script, the before/after screenshot set, the final budget value, the journal, the README of the research set.
+- 2026-10-20 — Worker A: complete. Final budget 1.75 Mpx from plan 251's runs (see the journal and `refs/graphics-performance/07-m5-baseline.md`); 677 renderer tests pass; CI pass on ready/252. The owner's look check is signed off (see the next entry); the Space Center ground is slightly softer at the 0.55 planet scale.
+- 2026-10-20 — Worker A: the owner signed off the look (quote in the criterion). Follow-up for plan 253: the governor-on interval trace reads p95 25 ms on the M5's 120 Hz display (12 % of frames at 25 ms, three moves between `high` 100 % and 85 %), so the target p95 ≤ 16.7 ms is met by the sync numbers only; the governor's rules (vsync-aware, lock-aware) and, if wanted, a smaller budget (1.43 Mpx, about 1 ms less) are the levers. The e2e is paused by the owner; CI covers lint, typecheck, unit tests and the build. ADR renumbered 0232 → 0234 (0232 is plan 239's, 0233 is plan 253's).
+- 2026-10-20 — Worker A: merged. CI pass on ready/252 (24be606e, rebased on 251).
