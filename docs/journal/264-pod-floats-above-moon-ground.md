@@ -40,4 +40,8 @@ Flat Cinder, pod dropped from 3 m at 9 m/s sideways, centre of mass over the gro
 
 ## Verification output
 
-pending
+```
+bun run lint ✓ · bun run check:affected (no e2e: paused by the owner) ✓ prettier · docs:check · typecheck · bun test (affected workspaces, sim 617 tests) · web vitest
+check-affected: all passed in 257.5 s
+CI: not waited for (merge-first rule); it runs on main after the merge
+```
