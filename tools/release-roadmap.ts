@@ -72,7 +72,10 @@ const TRACK: Record<string, string> = {
 	'247': 'SHELL',
 	'248': 'SHELL',
 	'249': 'EVA',
-	'250': 'UI'
+	'250': 'UI',
+	'251': 'GFX',
+	'252': 'GFX',
+	'253': 'GFX'
 };
 
 interface Plan {
