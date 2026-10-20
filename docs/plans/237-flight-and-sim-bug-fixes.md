@@ -1,7 +1,7 @@
 ---
 id: 237
 title: "Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds"
-status: ready
+status: in-progress
 owner: "Worker C"
 depends: []
 phase: 7
@@ -58,3 +58,4 @@ The owner ordered these fixed before the release ("untuk bug bug benar segera bu
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit; ready (each bug checked against main @ b2d2abb2). Owner order: fix before v1.0.0.
+- 2026-10-20 — Worker C claimed (claim/237). Heat: the constant moved to core (`DEFAULT_MAX_TEMPERATURE`, re-exported by the sim) and the HUD reads it through `heatRatio`. Undock: `DockRecord.type`; the keeper's side keeps the combined vessel's type, whichever entity it is after the split. Branch funds: `saveNow` writes a save with no flight yet (starter design in the envelope, focus null); the autosave timer is unchanged.

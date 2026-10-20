@@ -75,6 +75,8 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 	await page.waitForLoadState('load');
 	const select = page.getByTestId('sc-site');
 	await expect(select).toBeVisible({ timeout: 60_000 });
+	// a world with no save yet keeps what was spent (plan 237): 3,100,000 less the 250,000 founding
+	await expect(page.getByTestId('hud-funds')).toContainText('2,850,000', { timeout: 20_000 });
 	await select.selectOption('branch-1');
 	await expect(page.getByTestId('status-location')).toContainText('East Branch');
 	await expect(page.getByTestId('sc-row-branch-1-hq')).toContainText('Under construction');

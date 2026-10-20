@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	heatRatio,
 	addToast,
 	MAX_TOASTS,
 	pruneToasts,
@@ -195,5 +196,18 @@ describe('toast store', () => {
 		expect(
 			toastForSimEvent({ type: 'parachute-deployed', part: 8, stage: 'full' }, ctx)
 		).toBeNull();
+	});
+});
+
+describe('heat ratio (plan 237)', () => {
+	it('a part without maxTemperature is measured against the sim default of 2000 K', () => {
+		const none = () => undefined;
+		const at = (t: number) => heatRatio([{ definition: 'x', temperature: t }], none);
+		// 1500 K: 75 % of 2000, no warning (it was 150 % of the old 1000 K fallback)
+		expect(toastForHeat(at(1_500), true).toast).toBeNull();
+		// 1900 K: 95 %, the warning
+		expect(toastForHeat(at(1_900), true).toast?.title).toBe('Overheating');
+		// a declared limit wins
+		expect(heatRatio([{ definition: 'x', temperature: 1_200 }], () => 2_400)).toBeCloseTo(0.5, 12);
 	});
 });
