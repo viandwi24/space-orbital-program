@@ -1521,9 +1521,7 @@ export class SceneModel {
 		if (d === 0) return;
 		const k = d < 0.05 ? 1 : 1 - Math.exp(-Math.max(dt, 0) * 12);
 		this.siteFocusNow =
-			k >= 1
-				? b
-				: { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k };
+			k >= 1 ? b : { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k };
 		this.cameraDirty = true;
 	}
 
