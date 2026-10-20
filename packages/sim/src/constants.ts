@@ -64,8 +64,8 @@ export const SUTTON_GRAVES_K = 1.74e-4;
 export const SKIN_HEAT_CAPACITY = 2_700 * 900 * 0.003;
 /** Temperature of the surroundings a part starts at and radiates towards, K. */
 export const AMBIENT_TEMPERATURE = AIR_TEMPERATURE;
-/** Temperature above which a part that declares no `maxTemperature` fails, K (KSP's usual limit, plan 212). */
-export const DEFAULT_MAX_TEMPERATURE = 2_000;
+/** Temperature above which a part that declares no `maxTemperature` fails, K (core's, plan 212; the HUD reads the same). */
+export { DEFAULT_MAX_TEMPERATURE } from '@orbital/core';
 /** World rule scaling the convective heating, 0..1.2 (plan 212, ADR 0204 point 4). */
 export const REENTRY_HEATING_RULE = 'stock.reentry-heating';
 /** Newton iterations of the implicit temperature update (converges in 4-6 from above). */

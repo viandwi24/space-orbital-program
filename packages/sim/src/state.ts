@@ -223,6 +223,8 @@ export interface DockRecord {
 	/** The docked vessel's entity id before the merge (retired), name and design. */
 	vessel: EntityId;
 	name: string;
+	/** The docked vessel's type set by the player (plan 237); absent: guessed again on undock. */
+	type?: VesselType;
 	design?: VesselDesign;
 	/** This vessel's design before the merge. */
 	keeperDesign?: VesselDesign;
