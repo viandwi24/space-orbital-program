@@ -221,7 +221,11 @@ export function buildScene(input: SceneInput): BuiltScene {
 	const cursorTarget = cursor !== null ? (targets[cursor] ?? null) : null;
 	const shown =
 		pointer ??
-		(input.free ? null : cursorTarget?.radial && input.radialMarkers === false ? null : cursorTarget);
+		(input.free
+			? null
+			: cursorTarget?.radial && input.radialMarkers === false
+				? null
+				: cursorTarget);
 	if (held && shown) {
 		ghost = shown;
 		const merged =
@@ -304,7 +308,12 @@ export function buildScene(input: SceneInput): BuiltScene {
 				position: t.parent ? [t.point.x, t.point.y, t.point.z] : [0, -heightOf(rootDef) / 2, 0],
 				dir: dir ? [dir[0]!, dir[1]!, dir[2]!] : [0, 1, 0],
 				radius: t.radial ? 0.3 : Math.max(radiusOf(parentDef), radiusOf(rootDef), 0.5),
-				state: !pointer && !input.free && i === cursor ? 'active' : input.near?.has(i) ? 'near' : 'target'
+				state:
+					!pointer && !input.free && i === cursor
+						? 'active'
+						: input.near?.has(i)
+							? 'near'
+							: 'target'
 			});
 		});
 	}

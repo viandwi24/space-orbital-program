@@ -162,7 +162,6 @@ describe('scene for the 3D view', () => {
 		// the mark sits where the cone meets the tank's top
 		expect(wrong[0]!.position[1]).toBeCloseTo(1, 5);
 	});
-
 });
 
 describe('part facts', () => {
