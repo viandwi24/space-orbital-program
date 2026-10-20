@@ -48,6 +48,9 @@ import {
 } from '@orbital/renderer';
 import { pageAudio } from './audio/audio';
 import { createDirector, type AudioFlightView } from './audio/director';
+import { isOwnTouchdown } from './touchdown-cue';
+import * as throttleRetry from './throttle-retry';
+import { isTypingTarget } from './typing-target';
 import { partShapesOf } from './catalog';
 import { modelProviders } from './mods/asset-models';
 import { pinchZoomFactor } from './touch/touch-model';
@@ -607,6 +610,7 @@ export function startFlight(options: FlightOptions): Flight {
 	/** The brakes are on because their key is held (plan 245). */
 	let brakesHeld = false;
 	let sentThrottle = 0;
+	const throttleLink = throttleRetry.fresh();
 	/** The HUD's pad throttle the sim has not been sent yet (`DEFAULT_THROTTLE`). */
 	let padThrottle = false;
 	/** Fires the next stage; the pad throttle goes first (quietly: an uncontrolled vessel's chip says why). */
@@ -726,10 +730,14 @@ export function startFlight(options: FlightOptions): Flight {
 			1,
 			Math.max(0, throttle + ((up ? 1 : 0) - (down ? 1 : 0)) * THROTTLE_RATE * dt)
 		);
+		// a throttle the sim refused (rails warp, no free frame) goes again when the warp changes (plan 257)
+		if (throttleRetry.shouldResend(throttleLink, hud.warp)) sentThrottle = -1;
 		if (!auto && Math.abs(throttle - sentThrottle) > 0.004) {
 			sentThrottle = throttle;
 			padThrottle = false;
-			void send({ type: 'throttle', vessel, value: throttle });
+			void send({ type: 'throttle', vessel, value: throttle }).then((ok) => {
+				if (!ok) throttleRetry.refused(throttleLink, hud.warp);
+			});
 		}
 		if (!auto) {
 			// fine control (Caps Lock, plan 211) scales the pilot's keys, not SAS
@@ -785,14 +793,8 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	/** Typing in the script panel must not fly the vessel (Space stages, WASD steers). */
-	const typingInField = (e: KeyboardEvent): boolean => {
-		const target = e.target;
-		return (
-			target instanceof HTMLTextAreaElement ||
-			target instanceof HTMLInputElement ||
-			(target instanceof HTMLElement && target.isContentEditable)
-		);
-	};
+	const typingInField = (e: KeyboardEvent): boolean =>
+		e.target instanceof HTMLElement && isTypingTarget(e.target);
 
 	function onKeyDown(e: KeyboardEvent): void {
 		if (e.key === 'Escape' && !e.repeat) {
@@ -1570,7 +1572,11 @@ export function startFlight(options: FlightOptions): Flight {
 			}
 			if (event.type === 'flameout' || event.type === 'part-damaged') director.event('warning');
 			// a hard landing is a touchdown the radar may not catch between two readings (plan 227)
-			if (event.type === 'part-damaged' && event.cause !== 'overheat') director.touch(event.speed);
+			if (
+				event.type === 'part-damaged' &&
+				isOwnTouchdown(event, vessel === null ? null : Number(vessel))
+			)
+				director.touch(event.speed);
 			// a destroyed part explodes, louder the heavier it was (plan 227)
 			if (event.type === 'part-damaged' && event.outcome === 'destroyed') {
 				const mass = catalog?.parts.find((p) => String(p.id) === event.definition)?.mass ?? 500;

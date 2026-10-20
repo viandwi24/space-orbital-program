@@ -434,12 +434,12 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		}
 		processPending(core);
 	};
-	const rebaseAll = (): void => {
+	const rebaseAll = (step: number): void => {
 		for (const id of vesselIds(core)) {
 			const vessel = vesselOf(core, id);
 			if (vessel.owner !== undefined) continue;
 			rebaseRails(core, vessel, core.t);
-			if (vessel.mode === 'on-rails') stepSasOnRails(core, vessel);
+			if (vessel.mode === 'on-rails') stepSasOnRails(core, vessel, step);
 		}
 	};
 	/**
@@ -508,7 +508,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		capturePorts(core);
 		stepRailsVessels(dt);
 		core.t += dt;
-		rebaseAll();
+		rebaseAll(dt);
 		applySoiTransitions(core, tStart);
 		completeNodes(core);
 		reapDebris(core);
@@ -559,7 +559,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		runSystems(core.pre, h);
 		stepRailsVessels(h);
 		core.t += h;
-		rebaseAll();
+		rebaseAll(h);
 		applySoiTransitions(core, tStart);
 		completeNodes(core);
 		reapDebris(core);

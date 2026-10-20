@@ -77,6 +77,7 @@
 	import type { NavMark } from '../../../lib/nav-markers';
 	import OrbitStrip from '../../../lib/hud/OrbitStrip.svelte';
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
+	import { dialogOpen } from '../../../lib/flight-modal';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import { panelRoom } from '../../../lib/hud/panel-room';
@@ -925,12 +926,19 @@
 
 	// The sim freezes and the flight keys go quiet while a dialog is open.
 	$effect(() => {
-		const modal = pauseOpen || helpOpen || settingsOpen || saves.loadOpen || saves.saveOpen;
+		// the Debug panel pauses like the menu (plan 257; it let the sim run in plan 203)
+		const modal = dialogOpen({
+			pause: pauseOpen,
+			help: helpOpen,
+			settings: settingsOpen,
+			load: saves.loadOpen,
+			save: saves.saveOpen,
+			debug: debugOpen
+		});
 		flight?.setPaused(modal);
 		// the world clock pauses for a menu as the player's "Menu" place says (plan 205)
 		worldSession.hold('flight-menu', modal);
-		// the Debug panel quiets the flight keys but lets the sim run (plan 203)
-		flight?.setModal(modal || debugOpen);
+		flight?.setModal(modal);
 	});
 
 	/** Edits and "Load sample" both go through here so the text is saved per design. */

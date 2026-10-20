@@ -110,7 +110,7 @@ import {
 } from './core.ts';
 import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
 import { makeContext, runStageHooks } from './hooks.ts';
-import { wake, wakeBlocker } from './modes.ts';
+import { makeRoom, wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
 import { setTarget } from './target.ts';
@@ -149,6 +149,7 @@ function withStations(core: SimCore, result: CommandResult): CommandResult {
 
 /** Put the vessel in flight if it is not; returns a refusal reason when that is impossible. */
 function ensureFlight(core: SimCore, id: EntityId, why: string): string | undefined {
+	makeRoom(core, id);
 	const blocker = wakeBlocker(core, id);
 	if (blocker) return blocker;
 	wake(core, id, why);

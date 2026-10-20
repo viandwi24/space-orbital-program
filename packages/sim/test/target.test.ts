@@ -223,7 +223,7 @@ describe('SAS target and anti-target', () => {
 			['anti-target', -1]
 		] as const) {
 			expect(sim.dispatch({ type: 'sas', vessel: a, mode }).ok).toBe(true);
-			sim.step(1);
+			for (let i = 0; i < 8; i++) sim.step(1); // a bounded turn rate at 1x (plan 257)
 			const v = vesselOf(sim, a);
 			expect(v.mode).toBe('on-rails');
 			const aim = normalize({

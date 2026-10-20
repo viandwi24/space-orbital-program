@@ -29,6 +29,7 @@
 	import Button from '../../lib/ui/Button.svelte';
 	import { createBellFeed } from '../../lib/layout/status-bar';
 	import { worldSession } from '../../lib/world-session';
+	import { isTypingTarget } from '../../lib/typing-target';
 	import { WARP_STEPS, warpStepsFor } from '../../lib/warp';
 	import { bootWorld } from '../../lib/world-boot';
 	import { createWorldLock, type LockState, type WorldLock } from '../../lib/world-lock';
@@ -249,6 +250,11 @@
 		startLoad: (id) => goto(resolve(`/(world)/flight?load=${encodeURIComponent(id)}`)),
 		world: () => worldSession.worldId ?? worldId
 	});
+	// the Debug panel pauses like the menu (plan 257)
+	$effect(() => {
+		worldSession.hold('debug', debugOpen);
+		return () => worldSession.hold('debug', false);
+	});
 	// a result of the menu's Save or Load shows for a few seconds
 	$effect(() => {
 		if (saves.note === null || saves.loadOpen || saves.saveOpen) return;
@@ -468,12 +474,7 @@
 
 		const typing = (e: Event): boolean => {
 			const t = e.target;
-			return (
-				t instanceof HTMLTextAreaElement ||
-				t instanceof HTMLInputElement ||
-				t instanceof HTMLSelectElement ||
-				(t instanceof HTMLElement && t.isContentEditable)
-			);
+			return t instanceof HTMLElement && isTypingTarget(t);
 		};
 		// P pauses on every page; Space too where it has no job of its own (not Flight, not Hangar)
 		const onKey = (e: KeyboardEvent): void => {

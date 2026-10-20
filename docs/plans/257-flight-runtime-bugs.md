@@ -1,7 +1,7 @@
 ---
 id: 257
 title: "Flight runtime bugs from the owner's test: set-orbit crash, Debug does not pause, stray touchdown toast, no free physics frame, throttle and SAS after warp, hotkey focus, crash camera noise"
-status: ready
+status: in-progress
 owner: "Worker C"
 depends: []
 phase: 8
@@ -66,3 +66,4 @@ Items 11–16 were seen on a build a few hours older than the Pages build. Check
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test.
+- 2026-10-20 — Worker C: items 10–16 fixed with tests (journal 257). Item 9 (Set orbit, "Internal Error") did not reproduce in the dev build; the plan stays in progress for it.

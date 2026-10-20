@@ -27,6 +27,7 @@ import { acquireFrame, enterFlight, leaveFlight } from './frames.ts';
 import { qFromBasis, qRotate } from './math.ts';
 import { autoCrew } from './crew.ts';
 import { computeRails } from './orbit.ts';
+import { makeRoomAt } from './modes.ts';
 import { VESSEL, PART } from './state.ts';
 import { hasBackground } from './tick.ts';
 import { placeOnSurface, spawnVessel } from './vessel.ts';
@@ -158,7 +159,12 @@ function flightAt(core: SimCore, id: EntityId): string | undefined {
 	const vessel = vesselOf(core, id);
 	core.warp = 1;
 	core.warpTarget = null;
-	const frame = acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
+	let frame = acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
+	if (!frame) {
+		// the same room-making as a wake: far vessels that can be on rails make way (plan 257)
+		makeRoomAt(core, vessel.soi, vessel.com);
+		frame = acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
+	}
 	if (!frame) return 'no free physics frame (another vessel is in flight far away)';
 	enterFlight(core, id, frame);
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: 'flight', reason: 'debug' });

@@ -273,6 +273,11 @@ describe('the moon encounter', () => {
 	}, 60_000);
 });
 
+/** Enough 1 s steps for the rails SAS to finish a turn at its bounded rate (plan 257). */
+const settle = (sim: { step(t: number): void }): void => {
+	for (let i = 0; i < 8; i++) sim.step(1);
+};
+
 describe('SAS maneuver', () => {
 	test('points at the burn vector on rails and follows an edit of the node', async () => {
 		const { sim, id } = await inOrbit();
@@ -285,7 +290,7 @@ describe('SAS maneuver', () => {
 			radial: 0
 		});
 		expect(sim.dispatch({ type: 'sas', vessel: id, mode: 'maneuver' }).ok).toBe(true);
-		sim.step(1);
+		settle(sim); // a pointing change turns at a bounded rate at 1x (plan 257)
 		const burnDir = () => normalize(vesselOf(sim, id).nodes![0]!.vector!);
 		let v = vesselOf(sim, id);
 		expect(v.mode).toBe('on-rails');
@@ -300,7 +305,7 @@ describe('SAS maneuver', () => {
 			normal: 150,
 			radial: 0
 		});
-		sim.step(1);
+		settle(sim);
 		v = vesselOf(sim, id);
 		expect(pointingError(v.orientation, burnDir()) * DEG).toBeLessThan(1);
 		// the direction of a normal burn is the orbit normal

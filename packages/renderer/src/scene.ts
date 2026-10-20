@@ -18,6 +18,7 @@ import type {
 } from '@orbital/core';
 import { LEGACY_TERRAIN_SEED, hillsSeedOf } from '@orbital/core';
 import { atmosphereFor, type Atmosphere } from './atmosphere-model.ts';
+import { holdSubject } from './camera-hold.ts';
 import {
 	cameraPose,
 	modeFrame,
@@ -242,6 +243,8 @@ export class SceneModel {
 	private vesselRadius = 10;
 	/** Centre of the active vessel's parts relative to its root, inertial axes, m: the flight camera looks here. */
 	private vesselCentre: Vec3 = ZERO;
+	/** The last vessel the flight camera followed, for when it is gone (plan 257). */
+	private lastFollowed: VesselSnapshot | undefined;
 	private insets = { top: 0, right: 0, bottom: 0, left: 0 };
 	private insetTween: {
 		from: SceneModel['insets'];
@@ -608,7 +611,10 @@ export class SceneModel {
 		return this.map;
 	}
 	setActiveVessel(id: EntityId | null): void {
-		if (id !== this.active) this.focusId = null;
+		if (id !== this.active) {
+			this.focusId = null;
+			this.lastFollowed = undefined; // a new vessel to follow: the old one's place is not held (plan 257)
+		}
 		this.active = id;
 	}
 
@@ -1730,10 +1736,15 @@ export class SceneModel {
 	}
 
 	private placeCamera(
-		active: VesselSnapshot | undefined,
-		anchorBody: string | undefined,
+		liveActive: VesselSnapshot | undefined,
+		liveAnchor: string | undefined,
 		bodyWorld: ReadonlyMap<string, Vec3>
 	): void {
+		// a crash removes the vessel: the camera holds where it last looked (plan 257)
+		const held = holdSubject(liveActive, this.lastFollowed, this.map);
+		this.lastFollowed = held.last;
+		const active = held.subject;
+		const anchorBody = liveAnchor ?? (liveActive === undefined ? active?.soi : undefined);
 		let target: Vec3;
 		let rig: RigState;
 		if (this.map) {

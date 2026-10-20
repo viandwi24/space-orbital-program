@@ -2,7 +2,7 @@
  * Flight <-> on-rails transitions (simulation.md "Vessel modes"). On rails the centre of mass
  * follows kepler and attitude is frozen; in flight the vessel is one compound rigid body in a flight frame.
  */
-import type { EntityId } from '@orbital/core';
+import type { EntityId, Vec3 } from '@orbital/core';
 import { enforceDebrisCap } from './fleet.ts';
 import { PHYSICS_WARP_MAX } from '@orbital/core';
 import { cross, dot, length, sub } from '@orbital/kepler';
@@ -62,6 +62,45 @@ export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string
 	core.events.emit('vessel:mode-changed', { vessel: vesselId, mode: 'on-rails', reason });
 }
 
+/**
+ * Make a physics frame free for `vesselId` (plan 257): when every frame is held by vessels far from
+ * it, the first frame whose vessels can all go on rails (landed ones on surface rails, those in a
+ * stable orbit on their conic) hands them over. A vessel in the air stays: it cannot be put on rails.
+ * Nothing happens when the vessel joins a frame or one is free already.
+ */
+export function makeRoom(core: SimCore, vesselId: EntityId): void {
+	const vessel = vesselOf(core, vesselId);
+	if (vessel.mode === 'flight' || core.warp > PHYSICS_WARP_MAX) return;
+	makeRoomAt(core, vessel.soi, motionOf(core, vessel).r);
+}
+
+/** `makeRoom` for a place: a sphere of influence and a position in it (a vessel just put there). */
+export function makeRoomAt(core: SimCore, soi: string, position: Vec3): void {
+	const joins = core.frames.some(
+		(f) =>
+			f.inUse &&
+			f.soi === soi &&
+			f.vessels.length > 0 &&
+			length(sub(position, f.origin)) < PHYSICS_RANGE
+	);
+	if (joins || core.frames.some((f) => !f.inUse)) return;
+	for (const frame of core.frames) {
+		if (!frame.inUse) continue;
+		const rail = frame.vessels.map((id) => {
+			const v = vesselOf(core, id);
+			if (v.landed) return 'surface' as const;
+			return isStableOrbit(bodyOfVessel(core, v), v.com, v.velocity) ? ('orbit' as const) : null;
+		});
+		if (rail.some((r) => r === null)) continue;
+		[...frame.vessels].forEach((id, i) =>
+			rail[i] === 'surface'
+				? toSurfaceRails(core, id, 'making room')
+				: toRails(core, id, 'making room')
+		);
+		return;
+	}
+}
+
 /** Why the vessel cannot go in flight right now, or undefined if it can. */
 export function wakeBlocker(core: SimCore, vesselId: EntityId): string | undefined {
 	const vessel = vesselOf(core, vesselId);
@@ -84,6 +123,7 @@ export function wakeBlocker(core: SimCore, vesselId: EntityId): string | undefin
 export function wake(core: SimCore, vesselId: EntityId, reason: string): void {
 	const vessel = vesselOf(core, vesselId);
 	if (vessel.mode === 'flight') return;
+	makeRoom(core, vesselId);
 	const blocker = wakeBlocker(core, vesselId);
 	if (blocker) throw new Error(`cannot put vessel ${vesselId} in flight: ${blocker}`);
 	const motion = motionOf(core, vessel);

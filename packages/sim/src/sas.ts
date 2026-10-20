@@ -5,7 +5,7 @@
  * a pure function of sim state.
  */
 import { isFailed } from './reliability.ts';
-import type { EntityId, Quat, SasMode, Vec3 } from '@orbital/core';
+import { PHYSICS_WARP_MAX, type EntityId, type Quat, type SasMode, type Vec3 } from '@orbital/core';
 import { cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { bodyOfVessel, spinAt } from './bodies.ts';
 import { isControlled, moduleDefOf, partOf, vesselOf, type SimCore } from './core.ts';
@@ -321,7 +321,7 @@ export function stepSas(
  * Rails step (ADR 0049): a pointing mode keeps the nose on its direction analytically on orbital
  * rails; `hold` keeps the frozen attitude; surface rails are untouched.
  */
-export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
+export function stepSasOnRails(core: SimCore, vessel: VesselState, step = Infinity): void {
 	const sas = vessel.sas;
 	sas.active = false;
 	if (
@@ -342,8 +342,30 @@ export function stepSasOnRails(core: SimCore, vessel: VesselState): void {
 	);
 	if (!d) return;
 	const nose = qRotate(vessel.orientation, controlNose(core, vessel));
-	vessel.orientation = qNormalize(qMul(qBetween(nose, d), vessel.orientation));
-	sas.error = 0;
+	const turn = qBetween(nose, d);
+	// Rails warp holds the direction analytically; at 1x to 10x a change turns the vessel at a
+	// bounded rate instead of snapping it in one step (plan 257)
+	const angle = 2 * Math.acos(Math.min(1, Math.abs(turn.w)));
+	const limit = core.warp <= PHYSICS_WARP_MAX ? SAS_RAILS_RATE * step : Infinity;
+	const part = angle > limit ? limit / angle : 1;
+	vessel.orientation = qNormalize(
+		qMul(part === 1 ? turn : scaleTurn(turn, part), vessel.orientation)
+	);
+	sas.error = part === 1 ? 0 : angle - limit;
+}
+
+/** How fast a vessel on rails turns at physics warp, rad/s (about what a small reaction wheel gives). */
+export const SAS_RAILS_RATE = Math.PI / 6;
+
+/** The rotation `turn` taken by the fraction `f` of its angle. */
+function scaleTurn(turn: Quat, f: number): Quat {
+	const w = Math.max(-1, Math.min(1, turn.w));
+	const half = Math.acos(Math.abs(w));
+	const sign = w < 0 ? -1 : 1;
+	const s = Math.sin(half);
+	if (s < 1e-12) return { x: 0, y: 0, z: 0, w: 1 };
+	const k = (Math.sin(half * f) / s) * sign;
+	return { x: turn.x * k, y: turn.y * k, z: turn.z * k, w: Math.cos(half * f) };
 }
 
 /** Latch the current attitude and start settling (switching `hold` on). */
