@@ -40,4 +40,8 @@ A bare pod released at 45° is within 5° of base first from 3 s on and stays; a
 
 ## Verification output
 
-pending
+```
+bun run lint ✓ · bun run check:affected (no e2e: paused by the owner) ✓ prettier · docs:check · typecheck · bun test (affected workspaces: sim 621 tests) · web vitest (739)
+check-affected: all passed in 292.0 s
+CI: not waited for (merge-first rule); it runs on main after the merge
+```
