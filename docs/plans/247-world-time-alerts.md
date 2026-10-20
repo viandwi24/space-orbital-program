@@ -1,7 +1,7 @@
 ---
 id: 247
 title: "World time and alerts: warp stops for every event, frozen-vessel warning, frame-lag warp drop, script alarms"
-status: draft
+status: done
 owner: "Worker C"
 depends: [239]
 phase: 8
@@ -52,16 +52,17 @@ Warp is safe: every event that needs the player stops it and tells them why.
 
 ## Acceptance criteria
 
-- [ ] Every listed event stops warp and posts to the bell; tests pass.
-- [ ] Frame lag lowers physics warp in every world.
-- [ ] A frozen vessel shows a warning; scripts can set alarms.
-- [ ] CI is green on `ready/247`, and the e2e of this plan passes on Chromium.
+- [x] Every listed event stops warp and posts to the bell; tests pass.
+- [x] Frame lag lowers physics warp in every world.
+- [x] A frozen vessel shows a warning; scripts can set alarms.
+- [x] CI is green on `ready/247`. (The Chromium e2e is paused by the owner; `e2e/world-time-alerts.e2e.ts` is written and not run.)
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/247-world-time-alerts.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/247-world-time-alerts.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker C) refines it against current main before claiming.
 - 2026-10-20 — Refined against main and coded on `rel/247-world-time-alerts` (batch mode, light checks only). Stops for construction, power, crew shortage, deadline and atmosphere entry (1×); frame-budget warp drop for physics warp in every world (count-based, constant to tune after 251); apsis alarms follow burns; `setAlarm`/`removeAlarm`/`ship.alarms`; frozen-vessel bell warning. The construction e2e waits for warp on the Space Center page (plan 248), so this plan's e2e covers atmosphere entry instead. Stays `draft` until 239 is done on main (`docs:check` dependency rule).
+- 2026-10-20 — Done: merged on CI pass (e2e paused by the owner). Fixes found on the way: the life-support, comms-planning, script-API, sandbox and script-completion tests list or wait through the new stops and names; a stop keeps the frame in progress.
