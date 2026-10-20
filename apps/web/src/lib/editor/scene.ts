@@ -12,6 +12,7 @@ import {
 	type VesselDesign
 } from '@orbital/core';
 import type { VabGroup, VabLink, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
+import { sizeMismatches } from './checks';
 import {
 	layoutOf,
 	planCarry,
@@ -305,6 +306,23 @@ export function buildScene(input: SceneInput): BuiltScene {
 				radius: t.radial ? 0.3 : Math.max(radiusOf(parentDef), radiusOf(rootDef), 0.5),
 				state: !pointer && !input.free && i === cursor ? 'active' : input.near?.has(i) ? 'near' : 'target'
 			});
+		});
+	}
+	// a joint whose two node sizes differ carries a mark where the parts meet (plan 244, 8b.3)
+	const joints = layoutOf(design, parts);
+	for (const m of sizeMismatches(design, parts)) {
+		const child = design.parts.find((p) => p.index === m.index);
+		const l = joints?.get(m.index);
+		const node = child?.parent && parts.get(child.part)?.attach?.[child.parent.node];
+		if (!l || !node) continue;
+		const at = mat3Apply(mat3OfQuat(l.rotation), [node.pos[0], node.pos[1], node.pos[2]]);
+		nodes.push({
+			key: `m${m.index}`,
+			group: 'main',
+			position: [l.position.x + at.x, l.position.y + at.y, l.position.z + at.z],
+			dir: [0, 1, 0],
+			radius: Math.max(m.child, m.parent) / 2,
+			state: 'mismatch'
 		});
 	}
 	return {

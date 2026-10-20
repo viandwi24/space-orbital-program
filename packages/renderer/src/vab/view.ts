@@ -444,6 +444,11 @@ export class VabView {
 		);
 	}
 
+	/** A marker that is somewhere to attach (the mismatch mark of a joint is only a mark). */
+	private isPlace(key: string): boolean {
+		return this.nodes.find((n) => n.key === key)?.state !== 'mismatch';
+	}
+
 	private rebuildMarkers(nodes: readonly VabNode[]): void {
 		for (const m of this.markers.values()) m.removeFromParent();
 		this.markers.clear();
@@ -686,11 +691,13 @@ export class VabView {
 	pick(clientX: number, clientY: number, options: { ignoreGhost?: boolean } = {}): VabHit | null {
 		const ray = this.rayAt(clientX, clientY);
 		this.layer.root.updateMatrixWorld(true);
-		const candidates = [...this.markers.entries()].map(([key, m]) => {
-			const p = m.getWorldPosition(new Vector3());
-			const node = this.nodes.find((n) => n.key === key);
-			return { key, position: [p.x, p.y, p.z] as const, radius: (node?.radius ?? 0.5) * 0.9 };
-		});
+		const candidates = [...this.markers.entries()]
+			.filter(([key]) => this.isPlace(key))
+			.map(([key, m]) => {
+				const p = m.getWorldPosition(new Vector3());
+				const node = this.nodes.find((n) => n.key === key);
+				return { key, position: [p.x, p.y, p.z] as const, radius: (node?.radius ?? 0.5) * 0.9 };
+			});
 		const node = pickNode(ray, candidates);
 		if (node) return { kind: 'node', key: node.node.key };
 		const roots: Object3D[] = [...this.layer.barRoots];
@@ -743,6 +750,7 @@ export class VabView {
 		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
 		const points: ScreenPoint[] = [];
 		for (const key of this.markers.keys()) {
+			if (!this.isPlace(key)) continue;
 			const at = this.screenPositionOfMarker(key);
 			if (at) points.push({ key, ...at });
 		}

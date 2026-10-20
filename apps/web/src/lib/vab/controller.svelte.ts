@@ -86,6 +86,7 @@ import {
 	radialOf,
 	radialTarget,
 	surfaceTarget,
+	rootOf,
 	redo,
 	reindex,
 	removeEmptyStage,
@@ -1687,6 +1688,14 @@ export class VabController {
 			else if (snap !== null) this.place(snap);
 			else if (site) this.placeAt(site);
 			else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
+		} else if (hit?.kind === 'part' && d.shift) {
+			// Shift-click picks up the whole vessel (or loose assembly) the part belongs to (plan 244)
+			const at = Number(hit.key);
+			const whole = [this.editor.design, ...this.editor.loose].find((a) =>
+				a.parts.some((p) => p.index === at)
+			);
+			this.selected = whole ? rootOf(whole) : at;
+			this.carrySelected();
 		} else if (hit?.kind === 'part') {
 			this.selected = Number(hit.key);
 			this.say(`Selected ${this.titleOfPart(this.selected)}.`);
