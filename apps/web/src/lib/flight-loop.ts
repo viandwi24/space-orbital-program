@@ -38,6 +38,7 @@ import {
 	CAMERA_MODE_LABEL,
 	QualityGovernor,
 	createRenderer,
+	sceneKeyOf,
 	nextCameraMode,
 	type CameraMode,
 	type GovernorLevel,
@@ -351,8 +352,10 @@ export interface DebugInfo {
 	preset: string | null;
 	scale: number;
 	governor: boolean;
-	/** The governor's latest changes, newest last (plan 201): `mm:ss preset at NN%`. */
+	/** The governor's latest changes, newest last (plan 201): `mm:ss preset at NN% — why` (plan 253). */
 	governorChanges: readonly string[];
+	/** What the governor holds: the locked frame rate, the display's rate and the drawing cadence (plan 253). */
+	governorPacing: string | null;
 	/** The game's API version and the mods running. */
 	versions: string;
 	/** The frame-interval distribution of the last two minutes (plan 251). */
@@ -407,6 +410,8 @@ export function startFlight(options: FlightOptions): Flight {
 	let disposed = false;
 	let raf = 0;
 	let lastFrame = 0;
+	/** The previous rAF, drawn or not (the governor's cadence, plan 253). */
+	let lastRaf = 0;
 	let lastHud = 0;
 
 	const hud: FlightHud = {
@@ -1203,7 +1208,7 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 
 	/** Draws at the governor's level and, when it moved by itself, tells the player once (plan 039). */
-	function applyLevel(level: GovernorLevel, announce: boolean): void {
+	function applyLevel(level: GovernorLevel, announce: boolean, reason?: string): void {
 		if (!renderer) return;
 		if (level.preset !== renderer.preset) renderer.setPreset(level.preset);
 		syncGlass();
@@ -1211,10 +1216,15 @@ export function startFlight(options: FlightOptions): Flight {
 		renderer.setPlanetScale(level.planetScale);
 		if (announce) {
 			const percent = Math.round(level.scale * 100);
-			logBuffer.add('info', 'graphics', `governor: ${level.preset} at ${percent}%`);
+			logBuffer.add(
+				'info',
+				'graphics',
+				`governor: ${level.preset} at ${percent}%${reason ? ` — ${reason}` : ''}`
+			);
 			const s = Math.floor((performance.now() - governorStart) / 1000);
 			const at = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-			governorChanges.push(`${at} ${level.preset} at ${percent}%`);
+			// Debug says why (plan 253, ADR 0233)
+			governorChanges.push(`${at} ${level.preset} at ${percent}%${reason ? ` — ${reason}` : ''}`);
 			if (governorChanges.length > GOVERNOR_LOG) governorChanges.shift();
 			hudCtl?.notice({
 				kind: 'info',
@@ -1228,14 +1238,19 @@ export function startFlight(options: FlightOptions): Flight {
 	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
+		// the governor paces the drawing to its locked target (plan 253): a 120 Hz display draws every
+		// second rAF at 60, and a drawn frame is judged by the time since the previous drawn one
+		if (governor) {
+			const tick = governor.tick(now - lastRaf);
+			lastRaf = now;
+			if (tick.level) applyLevel(tick.level, true, governor.history.at(-1)?.reason);
+			if (!tick.render) return;
+		}
+		lastRaf = now;
 		const interval = now - lastFrame;
 		const dt = Math.min(interval / 1000, 0.1);
 		lastFrame = now;
 		frameStats.add(now, interval);
-		if (governor) {
-			const level = governor.frame(interval);
-			if (level) applyLevel(level, true);
-		}
 		sendInput(dt);
 		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {
@@ -1256,7 +1271,21 @@ export function startFlight(options: FlightOptions): Flight {
 		if (now - lastHud >= HUD_PERIOD_MS) {
 			lastHud = now;
 			if (catalog && vessel !== null && snap) {
-				hud.telemetry = computeTelemetry(snap, vessel, catalog.bodies);
+				const telemetry = computeTelemetry(snap, vessel, catalog.bodies);
+				hud.telemetry = telemetry;
+				// the scene a rung is judged in: a rung that failed a trial waits for it to change (ADR 0233)
+				if (governor && telemetry) {
+					const soi = snap.vessels.find((v) => v.id === vessel)?.soi;
+					const body = soi ? catalog.bodies.find((b) => b.id === soi) : undefined;
+					governor.setScene(
+						sceneKeyOf({
+							body: String(soi ?? ''),
+							altitude: telemetry.altitude,
+							...(body?.atmosphere ? { atmosphereTop: body.atmosphere.height } : {}),
+							map: renderer?.isMapView ?? false
+						})
+					);
+				}
 				if (presence.lost() && hud.status === 'flying' && !recovered) {
 					hud.status = 'lost';
 					hud.message = 'the vessel was destroyed';
@@ -1582,7 +1611,7 @@ export function startFlight(options: FlightOptions): Flight {
 	canvas.addEventListener('pointermove', onPointerMove);
 	canvas.addEventListener('wheel', onWheel, { passive: false });
 	observer.observe(canvas.parentElement ?? canvas);
-	lastFrame = performance.now();
+	lastFrame = lastRaf = performance.now();
 	raf = requestAnimationFrame(frame);
 	publish();
 
@@ -1719,6 +1748,10 @@ export function startFlight(options: FlightOptions): Flight {
 			scale: governor?.level.scale ?? 1,
 			governor: autoQuality,
 			governorChanges: [...governorChanges],
+			governorPacing:
+				governor && autoQuality
+					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${governor.renderEvery}th `}frame`
+					: null,
 			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
 			frames: frameStats.summary(performance.now())
 		}),

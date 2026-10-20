@@ -229,3 +229,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0230 | [Rules only easier during play; revert and quickload rules; save safety](0230-rule-direction-revert-quickload-save-safety.md) | accepted | 2026-10-20 |
 | 0232 | [The script sandbox lives with the world, not with Flight](0232-script-sandbox-lives-with-the-world.md) | accepted | 2026-10-20 |
 | 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
+| 0233 | [The quality governor: a locked 60 or 30, fast down, up only on evidence](0233-governor-paced-fast-down-measured-up.md) | accepted | 2026-10-20 |

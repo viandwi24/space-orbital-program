@@ -502,6 +502,10 @@
 						? ', adjusted automatically'
 						: ''}
 				</dd>
+				<dt>Frame pacing</dt>
+				<dd data-testid="debug-governor-pacing">
+					{infoNow?.governorPacing ?? 'not adjusted automatically'}
+				</dd>
 				<dt>Graphics changes</dt>
 				<dd data-testid="debug-governor-changes">
 					{infoNow?.governorChanges.length ? infoNow.governorChanges.join(' · ') : 'none'}
