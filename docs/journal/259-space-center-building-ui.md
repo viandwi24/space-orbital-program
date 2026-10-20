@@ -27,4 +27,8 @@
 
 ## Verification output
 
-pending
+```
+bun run lint ✓ · bun run check:affected (no e2e: paused by the owner) ✓ prettier · docs:check · typecheck · bun test · web vitest
+web vitest src/lib/space-center: 26 passed
+CI: not waited for (merge-first rule); it runs on main after the merge
+```
