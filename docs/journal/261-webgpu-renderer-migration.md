@@ -365,3 +365,25 @@ Each layer has the regolith or the hills' colours, the grain and stone-dome bump
   - the warm-ups running side by side (run in turn, it still happens).
   
   Nothing shows on screen.
+
+## Phases 5 to 8: what the frame is made of
+
+**Phase 5.** The half rung's upsample now sharpens each half-size texel with FSR1's RCAS before it blends them. three's `FSR1Node` sharpens the whole frame and knows no depth. Here a neighbour across a depth edge stands in as the texel itself, so the horizon gets no halo. Half a stop is enough: at full strength the march's jitter on the sea turns to grain. It costs nothing measurable.
+
+**What holds the frame.** Before Phases 6 and 7 (the aerial-perspective volume and temporal clouds), I measured what they would save, on the M2 at Retina (2560 × 1600), `high`:
+
+| | pad | low sun | 12 km |
+|---|---|---|---|
+| GPU time, timestamp queries | 11.0 ms | 17.7 ms | 19.1 ms |
+| clouds at `medium`'s settings save | 0.8 | 0.8 | ≈ 0 |
+| terrain at `medium`'s settings saves | 0.4 | 1.4 | 0.5 |
+| frame interval | 31.5 ms | 33 ms | 33 ms |
+
+The main thread is idle three quarters of the time (about 3 ms of JavaScript a frame). Lowering the render scale alone gives 33 ms at 1, and 16.7 ms at 0.85, 0.7 and 0.5. The time the frame lacks scales with its full-size pixels, and the timestamp queries do not see it: on a tile GPU it is the resolve and the present at the end of the frame. The planet march is a few milliseconds of what they do see. [ADR 0248](../decisions/0248-webgpu-frame-is-not-the-planet-march.md) defers Phase 7, the volume and `ultra` until a measurement shows the march holding a frame back.
+
+**Phase 8 step 26.** The governor now takes WebGPU's GPU time as its evidence for stepping up. The first simulation found the trap: with a work time that under-reports, the governor stepped up to the failed rung again after every 30 s gap. A banned rung now stays banned whatever the work time says.
+
+### What surprised me
+
+- **Timestamp queries on Apple GPUs are not the frame.** 11 ms measured, 33 ms drawn. They show which pass costs more, not whether a frame fits.
+- **The planet march is no longer the expensive part.** Since Phase 2 it is cheap. At full Retina size, what limits the frame is the number of pixels.
