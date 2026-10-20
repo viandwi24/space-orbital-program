@@ -1,7 +1,7 @@
 ---
 id: 232
 title: Release QA and launch
-status: draft
+status: in-progress
 owner: "Worker B (M5)"
 depends: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 233, 234, 235, 236]
 phase: 7
@@ -129,3 +129,4 @@ Run on the production build at the public URL, in Chrome or Edge on a laptop, th
 - 2026-10-18 — Created from refs/rancangan-terpadu.md (release roadmap).
 - 2026-10-20 — Preparation by Worker B (M5), before the claim, on branch `prep/232-release-qa` (coordinator's request): the human acceptance checklist as a fillable sheet (`docs/release/1.0.0-acceptance-checklist.md`, items 1–23 plus 24–27 for plans 233–236) and a draft `CHANGELOG.md` from the plans' goals. The integration suite and the deploy wait for 228, 230 and the owner's review of 234.
 - 2026-10-20 — Claimed by Worker B (M5) at the coordinator's word: the automated part now (integration, three-engine e2e, performance pass, release notes); the `v1.0.0` tag and the public deploy wait for the owner's review of 234 and the filled acceptance checklist. `status` stays `draft` until then: 232 depends on 234, which is `blocked`, and docs:check refuses an in-progress plan on a blocked one.
+- 2026-10-20 — The owner approved plan 234's dish, so 234 is done and 232 is `in-progress`. The `v1.0.0` tag and the public deploy still wait for the owner's filled acceptance checklist (`docs/release/1.0.0-acceptance-checklist.md`).
