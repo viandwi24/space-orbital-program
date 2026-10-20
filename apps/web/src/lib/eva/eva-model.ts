@@ -7,6 +7,8 @@ import type { PartDefinition, Quat, Snapshot, Vec3, VesselSnapshot } from '@orbi
 
 export const COLD_GAS = 'stock.cold-gas';
 export const JETPACK_MODULE = 'stock.jetpack';
+export const HELMET_MODULE = 'stock.helmet';
+export const CHUTE_MODULE = 'stock.parachute';
 /** Walking and running speeds asked of `crew-walk`, m/s (the stock suit's `walk`). */
 export const WALK_SPEED = 1.5;
 export const RUN_SPEED = 3;
@@ -54,6 +56,32 @@ export interface SuitStatus {
 	jetpackPart: number | null;
 	/** 0..1 of the jetpack's thrust last step (plan 227: its hiss). */
 	jetpackFiring: number;
+	/** The helmet (plan 249): on or off, whether the air allows it off, and its part. */
+	helmet: { on: boolean; breathable: boolean; part: number } | null;
+	/** The personal parachute (plan 249): its status and part. */
+	chute: { status: string; part: number } | null;
+}
+
+function helmetOf(v: VesselSnapshot): SuitStatus['helmet'] {
+	const part = v.parts.find((p) => p.modules[HELMET_MODULE] !== undefined);
+	const s = part?.modules[HELMET_MODULE] as { on?: boolean; breathable?: boolean } | undefined;
+	return part && s
+		? { on: s.on !== false, breathable: s.breathable === true, part: Number(part.id) }
+		: null;
+}
+
+function chuteOf(v: VesselSnapshot): SuitStatus['chute'] {
+	const part = v.parts.find((p) => p.modules[CHUTE_MODULE] !== undefined);
+	const s = part?.modules[CHUTE_MODULE] as { status?: string } | undefined;
+	return part && s ? { status: s.status ?? 'stowed', part: Number(part.id) } : null;
+}
+
+/** What the chute key does in `status`: arm it, disarm it, cut the open canopy, or nothing (spent). */
+export function chuteStep(status: string): 'deploy' | 'disarm' | 'cut' | null {
+	if (status === 'stowed') return 'deploy';
+	if (status === 'armed') return 'disarm';
+	if (status === 'semi' || status === 'full') return 'cut';
+	return null;
 }
 
 export function suitStatus(v: VesselSnapshot): SuitStatus {
@@ -69,7 +97,9 @@ export function suitStatus(v: VesselSnapshot): SuitStatus {
 		charge: res('stock.electric-charge'),
 		jetpack: state?.on === true,
 		jetpackPart: part ? Number(part.id) : null,
-		jetpackFiring: typeof state?.firing === 'number' ? state.firing : 0
+		jetpackFiring: typeof state?.firing === 'number' ? state.firing : 0,
+		helmet: helmetOf(v),
+		chute: chuteOf(v)
 	};
 }
 

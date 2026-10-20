@@ -19,7 +19,9 @@
 		oneva,
 		onwalk,
 		onflag,
-		onboard
+		onboard,
+		onhelmet,
+		onchute
 	}: {
 		card?: CrewCard | null;
 		/** The suit radio (plan 121, ADR 0193): its bars, what it relays through, why it is cut. */
@@ -38,6 +40,8 @@
 		onwalk?: (heading: number | null) => void;
 		onflag?: () => void;
 		onboard?: () => void;
+		onhelmet?: () => void;
+		onchute?: () => void;
 	} = $props();
 
 	const pct = (r: { amount: number; capacity: number } | null | undefined): string =>
@@ -64,6 +68,15 @@
 							: 'no propellant'}</span
 					>
 					<span>O₂ {pct(eva.status.oxygen)} · EC {pct(eva.status.charge)}</span>
+					{#if eva.status.helmet || eva.status.chute}
+						<span data-testid="suit-gear"
+							>{#if eva.status.helmet}Helmet {eva.status.helmet.on
+									? 'on'
+									: 'off'}{/if}{#if eva.status.helmet && eva.status.chute}
+								·
+							{/if}{#if eva.status.chute}Chute {eva.status.chute.status}{/if}</span
+						>
+					{/if}
 				</div>
 			{/if}
 			{#if eva.radio}
@@ -84,6 +97,20 @@
 			<div class="buttons">
 				<button type="button" onclick={() => onflag?.()} data-testid="eva-flag">Plant flag</button>
 				<button type="button" onclick={() => onboard?.()} data-testid="eva-board">Board</button>
+			</div>
+			<div class="buttons">
+				<button
+					type="button"
+					onclick={() => onhelmet?.()}
+					disabled={!eva.status?.helmet}
+					data-testid="eva-helmet">Helmet</button
+				>
+				<button
+					type="button"
+					onclick={() => onchute?.()}
+					disabled={!eva.status?.chute}
+					data-testid="eva-chute">Chute</button
+				>
 			</div>
 		</div>
 	{/if}

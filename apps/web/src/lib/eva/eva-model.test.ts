@@ -1,7 +1,14 @@
 /** EVA v2 page model (plan 225): headings and translations relative to the view, the suit's status. */
 import type { VesselSnapshot } from '@orbital/core';
 import { describe, expect, it } from 'vitest';
-import { horizonAt, jetpackTranslate, rotate, suitStatus, walkHeading } from './eva-model';
+import {
+	chuteStep,
+	horizonAt,
+	jetpackTranslate,
+	rotate,
+	suitStatus,
+	walkHeading
+} from './eva-model';
 
 const ID = { x: 0, y: 0, z: 0, w: 1 };
 /** On the equator at +X; the body's pole is +Y, so up is +X, north +Y and east -Z. */
@@ -51,5 +58,35 @@ describe('EVA v2 page model', () => {
 		expect(st.charge).toBeNull();
 		expect(st.jetpack).toBe(true);
 		expect(st.jetpackPart).toBe(8);
+	});
+
+	it('reads the helmet and the personal chute, and what the chute key does in each state', () => {
+		const v = {
+			id: 7,
+			parts: [
+				{
+					id: 8,
+					definition: 'stock.eva-suit',
+					modules: {
+						'stock.helmet': { on: false, breathable: true },
+						'stock.parachute': { status: 'armed' }
+					}
+				}
+			]
+		} as unknown as VesselSnapshot;
+		const st = suitStatus(v);
+		expect(st.helmet).toEqual({ on: false, breathable: true, part: 8 });
+		expect(st.chute).toEqual({ status: 'armed', part: 8 });
+		const bare = suitStatus({ id: 7, parts: [] } as unknown as VesselSnapshot);
+		expect(bare.helmet).toBeNull();
+		expect(bare.chute).toBeNull();
+		expect(['stowed', 'armed', 'semi', 'full', 'cut', 'torn'].map(chuteStep)).toEqual([
+			'deploy',
+			'disarm',
+			'cut',
+			'cut',
+			null,
+			null
+		]);
 	});
 });

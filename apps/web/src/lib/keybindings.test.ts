@@ -260,6 +260,15 @@ describe('key profiles and chords (plan 216, ADR 0206)', () => {
 		expect(ksp.actionFor('flight', 'Alt+KeyX')).toBe('trimReset');
 	});
 
+	it('on EVA O is the helmet and U the personal chute, while P stays pause (plan 249)', () => {
+		for (const km of [ksp, classic]) {
+			expect(km.actionFor('eva', 'KeyO')).toBe('evaHelmet');
+			expect(km.actionFor('eva', 'KeyU')).toBe('evaChute');
+			expect(km.actionFor('flight', 'KeyP')).toBe('pause');
+			expect(km.actionFor('eva', 'KeyP')).toBeNull();
+		}
+	});
+
 	it('in classic: C brakes (a toggle) and [ trims down; Alt+C holds them', () => {
 		expect(classic.actionFor('flight', 'KeyC')).toBe('brakes');
 		expect(classic.actionFor('flight', 'Alt+KeyC')).toBe('brakesHold');

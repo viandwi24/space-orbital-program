@@ -33,7 +33,7 @@ export function canopyShape(progress: number): { radius: number; lines: number; 
 }
 
 export function parachute(ctx: GenContext): GeneratedPart {
-	const { radius: R, height: H, builder: b, size, detail } = ctx;
+	const { radius: R, height: H, builder: b, size } = ctx;
 	const h2 = H / 2;
 	const radial = ctx.visual.params?.radial === true;
 	const canopyRadius = ctx.param('canopy', 11, 1, 40);
@@ -60,81 +60,90 @@ export function parachute(ctx: GenContext): GeneratedPart {
 			{ r: 0, y: h2 }
 		]);
 	}
-	const anchorY = h2;
+	return { dynamic: canopyDynamic(ctx, canopyRadius, h2) };
+}
 
-	return {
-		dynamic(material: (slot: SlotName) => Material) {
-			const root = new Group();
-			root.name = 'canopy';
-			// the canopy follows the preset's detail like the revolved parts
-			const segments = Math.max(8, Math.round(detail.segments * 0.75));
-			const rings = Math.max(4, Math.round(segments / 3));
-			// a unit hemisphere, open side down; the inside drawn too (seen from the capsule)
-			const outer = new SphereGeometry(1, segments, rings, 0, Math.PI * 2, 0, Math.PI / 2);
-			const inner = outer.clone();
-			const index = inner.getIndex();
-			if (index) {
-				const a = index.array;
-				for (let i = 0; i < a.length; i += 3) {
-					const t = a[i + 1]!;
-					a[i + 1] = a[i + 2]!;
-					a[i + 2] = t;
-				}
-				index.needsUpdate = true;
+/**
+ * The canopy as a dynamic piece (a stack or radial chute's, and the suit's, plan 249): `anchorY` is
+ * where the lines meet the part, in the part frame, and `canopyRadius` the full dome's radius, m.
+ */
+export function canopyDynamic(
+	ctx: GenContext,
+	canopyRadius: number,
+	anchorY: number
+): NonNullable<GeneratedPart['dynamic']> {
+	const { detail } = ctx;
+	return (material: (slot: SlotName) => Material) => {
+		const root = new Group();
+		root.name = 'canopy';
+		// the canopy follows the preset's detail like the revolved parts
+		const segments = Math.max(8, Math.round(detail.segments * 0.75));
+		const rings = Math.max(4, Math.round(segments / 3));
+		// a unit hemisphere, open side down; the inside drawn too (seen from the capsule)
+		const outer = new SphereGeometry(1, segments, rings, 0, Math.PI * 2, 0, Math.PI / 2);
+		const inner = outer.clone();
+		const index = inner.getIndex();
+		if (index) {
+			const a = index.array;
+			for (let i = 0; i < a.length; i += 3) {
+				const t = a[i + 1]!;
+				a[i + 1] = a[i + 2]!;
+				a[i + 2] = t;
 			}
-			const line: BufferGeometry = new CylinderGeometry(0.012, 0.012, 1, 3, 1).translate(0, 0.5, 0);
-			const dome = new Group();
-			dome.name = 'dome';
-			for (const [g, slot] of [
-				[outer, 'paint-primary'],
-				[inner, 'paint-accent']
-			] as const) {
-				const m = new Mesh(g, material(slot));
-				m.castShadow = true;
-				m.receiveShadow = true;
-				dome.add(m);
-			}
-			root.add(dome);
-			const lines: Mesh[] = [];
-			for (let i = 0; i < LINES; i++) {
-				const m = new Mesh(line, material('dark-metal'));
-				m.name = `line-${i}`;
-				lines.push(m);
-				root.add(m);
-			}
-			const animate = (progress: number): void => {
-				const s = canopyShape(progress);
-				root.visible = s.visible;
-				if (!s.visible) return;
-				const r = canopyRadius * s.radius;
-				const length = canopyRadius * s.lines;
-				// the skirt sits `length` above the anchor; the dome is flattened like a real canopy
-				const skirt = anchorY + length;
-				dome.position.set(0, skirt, 0);
-				dome.scale.set(r, r * (s.radius < 0.2 ? 2.5 : 0.6), r);
-				lines.forEach((m, i) => {
-					const a = (i / LINES) * Math.PI * 2;
-					const tip = { x: Math.cos(a) * r, y: skirt, z: Math.sin(a) * r };
-					const dx = tip.x;
-					const dy = tip.y - anchorY;
-					const dz = tip.z;
-					const len = Math.hypot(dx, dy, dz);
-					m.position.set(0, anchorY, 0);
-					m.scale.set(1, len, 1);
-					// tilt the unit +Y line toward the rim point
-					m.rotation.set(0, -a, 0);
-					m.rotateZ(-Math.atan2(Math.hypot(dx, dz), dy));
-				});
-			};
-			animate(0);
-			return {
-				object: root,
-				animate,
-				triangles: segments * rings * 2 * 2 + LINES * 6,
-				dispose() {
-					for (const g of [outer, inner, line]) g.dispose();
-				}
-			};
+			index.needsUpdate = true;
 		}
+		const line: BufferGeometry = new CylinderGeometry(0.012, 0.012, 1, 3, 1).translate(0, 0.5, 0);
+		const dome = new Group();
+		dome.name = 'dome';
+		for (const [g, slot] of [
+			[outer, 'paint-primary'],
+			[inner, 'paint-accent']
+		] as const) {
+			const m = new Mesh(g, material(slot));
+			m.castShadow = true;
+			m.receiveShadow = true;
+			dome.add(m);
+		}
+		root.add(dome);
+		const lines: Mesh[] = [];
+		for (let i = 0; i < LINES; i++) {
+			const m = new Mesh(line, material('dark-metal'));
+			m.name = `line-${i}`;
+			lines.push(m);
+			root.add(m);
+		}
+		const animate = (progress: number): void => {
+			const s = canopyShape(progress);
+			root.visible = s.visible;
+			if (!s.visible) return;
+			const r = canopyRadius * s.radius;
+			const length = canopyRadius * s.lines;
+			// the skirt sits `length` above the anchor; the dome is flattened like a real canopy
+			const skirt = anchorY + length;
+			dome.position.set(0, skirt, 0);
+			dome.scale.set(r, r * (s.radius < 0.2 ? 2.5 : 0.6), r);
+			lines.forEach((m, i) => {
+				const a = (i / LINES) * Math.PI * 2;
+				const tip = { x: Math.cos(a) * r, y: skirt, z: Math.sin(a) * r };
+				const dx = tip.x;
+				const dy = tip.y - anchorY;
+				const dz = tip.z;
+				const len = Math.hypot(dx, dy, dz);
+				m.position.set(0, anchorY, 0);
+				m.scale.set(1, len, 1);
+				// tilt the unit +Y line toward the rim point
+				m.rotation.set(0, -a, 0);
+				m.rotateZ(-Math.atan2(Math.hypot(dx, dz), dy));
+			});
+		};
+		animate(0);
+		return {
+			object: root,
+			animate,
+			triangles: segments * rings * 2 * 2 + LINES * 6,
+			dispose() {
+				for (const g of [outer, inner, line]) g.dispose();
+			}
+		};
 	};
 }
