@@ -1,8 +1,8 @@
 ---
 id: 261
 title: "WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset"
-status: draft
-owner: ""
+status: in-progress
+owner: "Worker D"
 depends: [251, 252, 253]
 phase: 8
 created: 2026-10-20
@@ -261,4 +261,5 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 
 ## Log
 
+- 2026-10-20 — Worker D (M2): claimed at the owner's word ("gas mulai sekarang"); branch `gfx/261-webgpu`. Phase 0 (spike) first.
 - 2026-10-20 — Created at the owner's request after the graphics research (`refs/graphics-performance/`) and its October 2026 update: quality first, its own branch, manual test before merge.

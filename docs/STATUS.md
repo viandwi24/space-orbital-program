@@ -207,7 +207,7 @@
 | 257 | [Flight runtime bugs from the owner's test: set-orbit crash, Debug does not pause, stray touchdown toast, no free physics frame, throttle and SAS after warp, hotkey focus, crash camera noise](plans/257-flight-runtime-bugs.md) | done | Worker C | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 | 258 | [Map view like KSP: active and inactive orbit styles, vessel icons by type, comms links, and show/hide filters](plans/258-map-view-ksp-style.md) | ready | Worker B | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
 | 259 | [Space Center building UI: research building-game interfaces, then labels that fit the scene, a proper building panel and a tidy right panel](plans/259-space-center-building-ui.md) | ready | Worker B | Owner's manual test 2026-10-20 (`docs/reviews/2026-10-20-owner-manual-test.md`). |
-| 261 | [WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset](plans/261-webgpu-renderer-migration.md) | draft | | Owner's request 2026-10-20 after the graphics research: quality first, on its own branch `gfx/261-webgpu`, manual test before merge; 55–95 agent hours |
+| 261 | [WebGPU renderer: TSL shaders with the WebGL2 fallback, compute bakes, upscaling, a LUT sky, temporal clouds and an ultra preset](plans/261-webgpu-renderer-migration.md) | in-progress | Worker D (M2) | Owner's request 2026-10-20 after the graphics research: quality first, on its own branch `gfx/261-webgpu`, manual test before merge; 55–95 agent hours |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
