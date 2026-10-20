@@ -22,6 +22,11 @@ Implications are tagged **Adopt / Improve / Avoid**. They are options for the ow
 
    Cost and order are in [06](06-plan-and-cost.md).
 
+## What shipped (2026-10-20, plans 251 and 252)
+
+- **Plan 251:** the measurement tools, the debug feature switches, the frame-interval histogram and the M5 baseline ([07](07-m5-baseline.md)).
+- **Plan 252 (phase 1 a, b, c, d):** a pixel budget for the planet pass (1.75 Mpx), `high` on the baked cloud-shadow map, 2 MSAA samples and a 2048 shadow map from pixel ratio 2 with no canvas MSAA, image-light recaptures at most every 1.5 s (ADR 0232). Retina `high` on the M5: 43.7 / 47.3 / 50.4 / 27.1 ms to 16.5 / 15.1 / 16.8 / 9.9 ms. The non-MSAA ping-pong of the plan was not needed. Phase 1 (e), the governor's rules, is plan 253.
+
 ## Index
 
 | # | Document | What it answers |
