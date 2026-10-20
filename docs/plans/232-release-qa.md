@@ -3,7 +3,7 @@ id: 232
 title: Release QA and launch
 status: draft
 owner: "Worker B (M5)"
-depends: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 233, 234, 235, 236, 237, 238, 239]
+depends: [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 233, 234, 235, 236, 237, 238, 239, 251, 252, 253]
 phase: 7
 created: 2026-10-18
 updated: 2026-10-18
@@ -132,3 +132,4 @@ Run on the production build at the public URL, in Chrome or Edge on a laptop, th
 - 2026-10-20 — The owner approved plan 234's dish, so 234 is done and 232 is `in-progress`. The `v1.0.0` tag and the public deploy still wait for the owner's filled acceptance checklist (`docs/release/1.0.0-acceptance-checklist.md`).
 - 2026-10-20 — Coordinator (owner order): plans 237, 238 and 239 (bugs found in the audit) join the depends; no `v1.0.0` tag or deploy until all three are done on main. After they merge: rebase and rerun the e2es their files touch (the Hangar e2es and a Flight/script e2e). `status` is `draft` again until then (docs:check refuses an in-progress plan on open ones).
 - 2026-10-20 — Batch mode (owner's order, worker brief): `GAME_VERSION` is `1.0.0` on this branch, `CHANGELOG.md` is checked against the journals, and the release record is `docs/release/1.0.0-release-checklist.md`. The heavy checks run once on `rel/integration-v1`; Firefox and WebKit wait for it.
+- 2026-10-20 — Coordinator (owner order): graphics phases 0 and 1 are in v1.0.0: plans 251 (measurement and M5 baseline), 252 (Retina pixel budget) and 253 (governor) join the depends. They are a second integration batch, after 237–239; then rerun only the e2es they touch (flight, smoke, debug). The M5 performance pass reuses 251's tool and 252's acceptance numbers, without measuring twice. After the 237–239 batch the lock is released and the M5 stays quiet (load ≤ 3, no e2e) for 251's baseline. No `v1.0.0` tag until 237–239 and 251–253 are done.
