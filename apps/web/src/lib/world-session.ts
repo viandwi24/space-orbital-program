@@ -4,6 +4,8 @@
  * instead of starting its own Worker, so moving between pages never restarts the clock.
  */
 import type { SimSave, Snapshot, VesselDesign, WorldInfo } from '@orbital/core';
+import type { ScriptSandbox } from './script-sandbox';
+import { startScriptSandbox } from './script-sandbox-web';
 import type { GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { startSimWorker, type SimClient } from './sim-client';
@@ -65,6 +67,12 @@ export interface WorldSession {
 	/** Open World settings (plan 230): the layout owns the dialog; a page's menu asks for it. */
 	openWorldSettings(): void;
 	/**
+	 * The script sandbox of this world (plan 239, ADR 0232): it lives as long as the world, so a
+	 * script keeps flying its vessel when the player leaves Flight. Flight runs and stops scripts
+	 * in it; leaving the world or a restart (a load) closes it. Null where scripting is unavailable.
+	 */
+	scriptSandbox(): ScriptSandbox | null;
+	/**
 	 * A menu or dialog that pauses as the place "Menu" does (plan 205): `source` holds it while
 	 * `on`; the layout decides with the player's choices and the world's rule.
 	 */
@@ -76,7 +84,11 @@ export interface WorldSession {
 	onChange(listener: () => void): () => void;
 }
 
-export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSession {
+export function createWorldSession(
+	start: (boot: SimBoot) => SimClient,
+	makeSandbox?: () => ScriptSandbox
+): WorldSession {
+	let sandbox: ScriptSandbox | null = null;
 	let worldId: string | null = null;
 	let client: SimClient | null = null;
 	let booting: Promise<SimClient> | null = null;
@@ -149,9 +161,16 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 			session.end();
 			return adopt(id, start(boot));
 		},
+		scriptSandbox() {
+			if (!sandbox && makeSandbox) sandbox = makeSandbox();
+			return sandbox;
+		},
 		end() {
 			offSnapshot?.();
 			offSnapshot = null;
+			// the script ends with its world (plan 239): its Worker goes with the sandbox's iframe
+			client?.stopScript();
+			sandbox?.close();
 			client?.dispose();
 			client = null;
 			booting = null;
@@ -172,4 +191,7 @@ export function createWorldSession(start: (boot: SimBoot) => SimClient): WorldSe
 }
 
 /** The page's one session; the `(world)` layout ends it on the way out. */
-export const worldSession: WorldSession = createWorldSession((boot) => startSimWorker(boot));
+export const worldSession: WorldSession = createWorldSession(
+	(boot) => startSimWorker(boot),
+	() => startScriptSandbox()
+);
