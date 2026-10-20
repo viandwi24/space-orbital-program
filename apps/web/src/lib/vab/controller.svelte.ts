@@ -85,6 +85,7 @@ import {
 	radialNodeOf,
 	radialOf,
 	radialTarget,
+	surfaceTarget,
 	redo,
 	reindex,
 	removeEmptyStage,
@@ -136,6 +137,9 @@ export type Armed =
 	| { kind: 'carry'; index: number; single: boolean }
 	/** An Alt-click copy of a subtree on the cursor (plan 217); dropping it on the catalogue discards it. */
 	| { kind: 'copy'; assembly: VesselDesign; title: string };
+
+/** A face whose normal is at least this far from horizontal is a top, a bottom or a slope (plan 244): a surface link, not a radial site. */
+const SLOPE_NORMAL_Y = 0.25;
 
 /** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
 const TURN_STEP = Math.PI / 2;
@@ -1069,6 +1073,28 @@ export class VabController {
 		this.pointerTarget = null;
 	}
 
+	/**
+	 * Where the held part lands on the part under the pointer (plan 244, ADR 0235): the radial site on a
+	 * side for a part with a side node, else a surface link at the hit point and face normal (the top
+	 * and bottom faces, a cone's slope, a side for a part with no side node). Null with Alt held (the
+	 * nodes only), or off a part.
+	 */
+	private siteFromHit(hit: ReturnType<VabView['pick']>, nodesOnly: boolean): AttachTarget | null {
+		const held = this.held;
+		if (nodesOnly || !held || hit?.kind !== 'part') return null;
+		const normal = hit.normal;
+		const slanted = normal !== undefined && Math.abs(normal[1]) >= SLOPE_NORMAL_Y;
+		if (this.radialCapable && !slanted) {
+			const side = this.radialFromHit(hit, false);
+			if (side) return side;
+		}
+		if (!normal) return null;
+		return surfaceTarget(this.shown.design, held, this.lookup, Number(hit.key), {
+			point: { x: hit.point[0], y: hit.point[1], z: hit.point[2] },
+			normal
+		});
+	}
+
 	/** The radial site under a part hit while a radial part is armed, snapped; null elsewhere. */
 	private radialFromHit(hit: ReturnType<VabView['pick']>, free: boolean): AttachTarget | null {
 		const held = this.held;
@@ -1595,7 +1621,7 @@ export class VabController {
 						? this.hoverNode
 						: null;
 			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
-			this.pointerTarget = this.radialFromHit(hit, e.altKey);
+			this.pointerTarget = this.siteFromHit(hit, e.altKey);
 			this.keyboardRadial = false;
 			this.view?.setHover(null);
 		} else {
@@ -1633,7 +1659,7 @@ export class VabController {
 			if (end) this.pickConnectorEnd(end);
 			else if (hit?.kind === 'part') this.notice = 'A strut or fuel line joins two ordinary parts.';
 		} else if (this.armed) {
-			const site = this.radialFromHit(hit, e.altKey);
+			const site = this.siteFromHit(hit, e.altKey);
 			if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
 			else if (site) this.placeAt(site);
 			else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);
@@ -1673,7 +1699,7 @@ export class VabController {
 			return;
 		}
 		const hit = this.pick(e);
-		const site = this.radialFromHit(hit, e.altKey);
+		const site = this.siteFromHit(hit, e.altKey);
 		if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
 		else if (site) this.placeAt(site);
 		else if (hit?.kind === 'ghost' && this.active !== null) this.place(this.active);

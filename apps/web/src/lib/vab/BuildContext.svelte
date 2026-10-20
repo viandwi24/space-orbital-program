@@ -44,13 +44,16 @@
 			{:else if vab.targets.length === 0}
 				Nowhere to attach this.
 			{:else if vab.radialCapable}
-				Click the side of a tank or a ring. <Kbd>Alt</Kbd> frees the angle, <Kbd
+				Click a ring or any face of a part; <Kbd>Alt</Kbd> keeps to the rings. <Kbd
 					>{key('turnPlus')}</Kbd
 				>
 				<Kbd>{key('turnMinus')}</Kbd> turn the keyboard sites, <Kbd>{key('nextSite')}</Kbd> and
 				<Kbd>{key('place')}</Kbd> place.
 			{:else}
-				Click a ring, or <Kbd>{key('nextSite')}</Kbd> to choose and <Kbd>{key('place')}</Kbd> to place.
+				Click a ring or any face of a part; <Kbd>Alt</Kbd> keeps to the rings. <Kbd
+					>{key('nextSite')}</Kbd
+				>
+				to choose and <Kbd>{key('place')}</Kbd> to place.
 			{/if}
 			<Kbd>Esc</Kbd> to stop.
 		</span>
