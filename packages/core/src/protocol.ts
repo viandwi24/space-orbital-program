@@ -561,6 +561,12 @@ export interface DesignLink {
 	parentNode: string;
 	node: string;
 	radial?: { angle: number; y: number };
+	/**
+	 * A surface link (plan 244, ADR 0235; `parentNode` `"surface"`, version 3): the child's `node` lies
+	 * at `point` of the parent's own frame, its direction against `normal`. For a place a radial link
+	 * cannot name: the top or bottom face of a part, or the slope of a cone.
+	 */
+	surface?: { point: [number, number, number]; normal: [number, number, number] };
 }
 
 /**

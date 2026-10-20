@@ -235,6 +235,106 @@ export function placeRadial(
 	};
 }
 
+/** The shortest turn taking unit vector `a` to unit vector `b`; for opposite ones a half turn about the vertical (or X when `a` is vertical). */
+export function rotationBetween(
+	a: readonly [number, number, number],
+	b: readonly [number, number, number]
+): Mat3 {
+	const c = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+	if (c > 1 - 1e-12) return IDENTITY;
+	if (c < -1 + 1e-12) {
+		// opposite: a half turn about an axis perpendicular to `a`
+		const axis: [number, number, number] = Math.abs(a[1]) < 1 - 1e-9 ? [0, 1, 0] : [1, 0, 0];
+		const [x, y, z] = axis;
+		return [
+			2 * x * x - 1,
+			2 * x * y,
+			2 * x * z,
+			2 * y * x,
+			2 * y * y - 1,
+			2 * y * z,
+			2 * z * x,
+			2 * z * y,
+			2 * z * z - 1
+		];
+	}
+	const vx = a[1] * b[2] - a[2] * b[1];
+	const vy = a[2] * b[0] - a[0] * b[2];
+	const vz = a[0] * b[1] - a[1] * b[0];
+	const k = 1 / (1 + c);
+	return [
+		1 - (vz * vz + vy * vy) * k,
+		-vz + vx * vy * k,
+		vy + vx * vz * k,
+		vz + vx * vy * k,
+		1 - (vz * vz + vx * vx) * k,
+		-vx + vy * vz * k,
+		-vy + vx * vz * k,
+		vx + vy * vz * k,
+		1 - (vy * vy + vx * vx) * k
+	];
+}
+
+/** Tolerance of a surface link's point to its parent's shape, m: inside the shape or within this of it. */
+export const SURFACE_TOLERANCE = 0.05;
+
+/** Whether `point` (the part's own frame) is inside `shape` or within `tolerance` of it. */
+export function pointNearShape(
+	shape: PartShape | undefined,
+	point: readonly [number, number, number],
+	tolerance = SURFACE_TOLERANCE
+): boolean {
+	if (shape?.kind === 'cylinder') {
+		return (
+			Math.hypot(point[0], point[2]) <= shape.radius + tolerance &&
+			Math.abs(point[1]) <= shape.height / 2 + tolerance
+		);
+	}
+	if (shape?.kind === 'box') {
+		return (
+			Math.abs(point[0]) <= shape.size[0] / 2 + tolerance &&
+			Math.abs(point[1]) <= shape.size[1] / 2 + tolerance &&
+			Math.abs(point[2]) <= shape.size[2] / 2 + tolerance
+		);
+	}
+	return false;
+}
+
+/**
+ * A child on a surface link (plan 244, ADR 0235): its `childNode` lies at `site.point` of the parent's
+ * frame with its direction against `site.normal` (the shortest turn; a vertical normal on a top or
+ * bottom face leaves the part upright, a horizontal one turns it about +Y like a radial link). The
+ * tilt, if any, turns the child about the parent's axes after it faces the surface, as for a radial
+ * link. Undefined for a zero normal or a node without a direction.
+ */
+export function placeSurface(
+	parent: Placement,
+	site: { point: readonly [number, number, number]; normal: readonly [number, number, number] },
+	childNode: { pos: readonly [number, number, number]; dir: readonly [number, number, number] },
+	tilt?: DesignTilt
+): Placement | undefined {
+	const n = unit(site.normal);
+	const d = unit(childNode.dir);
+	if (!n || !d) return undefined;
+	const face = rotationBetween([d.x, d.y, d.z], [-n.x, -n.y, -n.z]);
+	const local = isTilted(tilt) ? mat3Mul(tiltMatrix(tilt), face) : face;
+	const rotation = mat3Mul(parent.rotation, local);
+	// upright when the face turn keeps +Y (a pure turn about the vertical) and nothing above tilts
+	const upright =
+		!parent.tilted &&
+		!isTilted(tilt) &&
+		Math.abs(face[1]) < 1e-9 &&
+		Math.abs(face[7]) < 1e-9 &&
+		Math.abs(face[4] - 1) < 1e-9;
+	const on = addV(parent.position, mat3Apply(parent.rotation, site.point));
+	return {
+		position: subV(on, mat3Apply(rotation, childNode.pos)),
+		yaw: upright ? wrap(parent.yaw + Math.atan2(face[2], face[0])) : parent.yaw,
+		rotation,
+		tilted: !upright
+	};
+}
+
 /** The point of a part's surface at (`angle`, `y`), relative to the root origin: the far end of a link or a radial contact. */
 export function surfacePoint(
 	at: Placement,
@@ -360,7 +460,7 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 	};
 	for (const p of byIndex.values()) {
 		if (!p.parent) continue;
-		const { index: pi, parentNode, node, radial } = p.parent;
+		const { index: pi, parentNode, node, radial, surface } = p.parent;
 		const parentPart = byIndex.get(pi);
 		if (!parentPart) {
 			errors.push(`part #${p.index}: parent #${pi} does not exist`);
@@ -378,6 +478,33 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 		const def = defs.get(p.index);
 		const cn = def?.attach?.[node];
 		if (def && !cn) errors.push(`part #${p.index} ("${def.id}") has no node "${node}"`);
+		if (surface) {
+			// a surface link (plan 244, ADR 0235): a point of the parent's frame and the outward normal there
+			if (radial || parentNode !== SURFACE_NODE) {
+				errors.push(
+					`part #${p.index}: a surface link needs parentNode "${SURFACE_NODE}" and no radial position`
+				);
+				continue;
+			}
+			if (design.formatVersion < 3)
+				errors.push(`part #${p.index}: a surface link needs formatVersion 3`);
+			const normalLength = Math.hypot(...surface.normal);
+			if (![...surface.point, ...surface.normal].every(Number.isFinite) || !(normalLength > 1e-9)) {
+				errors.push(`part #${p.index}: a surface link needs a finite point and a normal`);
+			} else if (parentDef && !pointNearShape(parentDef.shape, surface.point)) {
+				errors.push(
+					`part #${p.index}: surface point (${surface.point.join(', ')}) is not on parent #${pi} ("${parentDef.id}")`
+				);
+			}
+			if (cn && !(Math.hypot(...cn.dir) > 1e-9)) {
+				errors.push(`part #${p.index}: node "${node}" has no direction to face the surface`);
+			}
+			const site = `${pi}:s:${surface.point.map((v) => v.toFixed(3)).join(':')}`;
+			if (sites.has(site))
+				errors.push(`part #${p.index}: another part is already at that surface point`);
+			sites.add(site);
+			continue;
+		}
 		if (radial || parentNode === SURFACE_NODE) {
 			if (!radial || parentNode !== SURFACE_NODE) {
 				errors.push(
@@ -474,7 +601,9 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 				const def = defs.get(c)!;
 				const cn = def.attach![link.node]!;
 				let at: Placement;
-				if (link.radial) {
+				if (link.surface) {
+					at = placeSurface(here, link.surface, cn, entry.tilt)!;
+				} else if (link.radial) {
 					at = placeRadial(here, hereDef.shape, link.radial, cn, entry.tilt)!;
 				} else {
 					const pn = hereDef.attach![link.parentNode]!;

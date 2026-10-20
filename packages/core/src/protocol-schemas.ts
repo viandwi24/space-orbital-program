@@ -40,7 +40,13 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 						index,
 						parentNode: nodeName,
 						node: nodeName,
-						radial: z.object({ angle: z.number(), y: z.number() }).optional()
+						radial: z.object({ angle: z.number(), y: z.number() }).optional(),
+						surface: z
+							.object({
+								point: z.tuple([finite, finite, finite]),
+								normal: z.tuple([finite, finite, finite])
+							})
+							.optional()
 					})
 					.nullable(),
 				symmetry: index.optional(),
