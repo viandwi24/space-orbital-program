@@ -77,6 +77,7 @@ import {
 } from './orbit-camera.ts';
 import {
 	nearestByScreen,
+	onVerticalPlane,
 	pickNode,
 	toNdc,
 	withinScreen,
@@ -446,7 +447,8 @@ export class VabView {
 
 	/** A marker that is somewhere to attach (the mismatch mark of a joint is only a mark). */
 	private isPlace(key: string): boolean {
-		return this.nodes.find((n) => n.key === key)?.state !== 'mismatch';
+		const state = this.nodes.find((n) => n.key === key)?.state;
+		return state !== 'mismatch' && state !== 'handle';
 	}
 
 	private rebuildMarkers(nodes: readonly VabNode[]): void {
@@ -758,6 +760,40 @@ export class VabView {
 			glow: withinScreen(points, pointer, glowPx).map((p) => p.key),
 			snap: nearestByScreen(points, pointer, snapPx)?.key ?? null
 		};
+	}
+
+	/**
+	 * The fairing handle (`h<i>` markers, plan 243) nearest the pointer within `px` CSS pixels, or
+	 * null: handles are picked by screen distance, so a thin ring is as easy to grab as a large one.
+	 */
+	handleNear(clientX: number, clientY: number, px: number): string | null {
+		const rect = this.config.canvas.getBoundingClientRect();
+		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
+		const points: ScreenPoint[] = [];
+		for (const [key] of this.markers) {
+			if (!/^[hr]\d+$/.test(key) || this.nodes.find((n) => n.key === key)?.state !== 'handle')
+				continue;
+			const at = this.screenPositionOfMarker(key);
+			if (at) points.push({ key, ...at });
+		}
+		return nearestByScreen(points, pointer, px)?.key ?? null;
+	}
+
+	/**
+	 * The pointer's position relative to marker `key` on the vertical plane through it that faces
+	 * the camera: `across` (horizontal) and `up` (vertical) in metres. Null without the marker.
+	 */
+	offsetOnPlane(
+		clientX: number,
+		clientY: number,
+		key: string
+	): { across: number; up: number } | null {
+		const m = this.markers.get(key);
+		if (!m) return null;
+		this.layer.root.updateMatrixWorld(true);
+		const p = m.getWorldPosition(new Vector3());
+		const look = this.camera.getWorldDirection(new Vector3());
+		return onVerticalPlane(this.rayAt(clientX, clientY), [p.x, p.y, p.z], [look.x, look.z]);
 	}
 
 	/**

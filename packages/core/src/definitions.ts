@@ -398,6 +398,8 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * off; the rocket goes free with the ground's velocity.
 	 */
 	anchor?(config: Out, state: State): boolean;
+	/** Extra funds the module adds to its part's cost for this config (plan 243: a fairing shell). */
+	cost?(config: Out): number;
 	/** Extra mass the module adds to its part now, kg (plan 219: a fairing shell until it is thrown off). */
 	mass?(config: Out, state: State): number;
 	/**

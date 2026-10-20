@@ -41,8 +41,9 @@ export interface VabGroup {
 }
 
 /** `near` is a target within reach of the pointer (plan 244): it glows before the pointer snaps to it. */
+/** `handle` is a fairing section's drag handle (plan 243): a ring at the section top, grabbed at its centre; never a place to attach. */
 /** `mismatch` marks a joint whose two node sizes differ (plan 244, 8b.3); it is not a place to attach. */
-export type VabNodeState = 'free' | 'target' | 'near' | 'active' | 'mismatch';
+export type VabNodeState = 'free' | 'target' | 'near' | 'active' | 'mismatch' | 'handle';
 
 export interface VabNode {
 	key: string;

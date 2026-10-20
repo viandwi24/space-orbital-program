@@ -4,6 +4,7 @@
  * and a marker on every place it can go. Pure; the page feeds the result to `VabView.setScene`.
  */
 import {
+	effectiveDef,
 	mat3Apply,
 	mat3OfQuat,
 	surfaceSite,
@@ -110,6 +111,8 @@ export interface SceneInput {
 	free?: readonly [number, number, number] | null;
 	/** Targets whose rings glow because the pointer is near them (plan 244). */
 	near?: ReadonlySet<number>;
+	/** Fairing handles (plan 243): rings the Hangar draws on the shell being edited, in the main group's frame. */
+	handles?: readonly { key: string; position: readonly [number, number, number]; radius: number }[];
 	/** Draw rings for the keyboard's radial sites (default true); the pointer needs none. */
 	radialMarkers?: boolean;
 	/** The other members of a carried symmetry group (see `withoutCarried`). */
@@ -282,9 +285,11 @@ export function buildScene(input: SceneInput): BuiltScene {
 		const rootDef = parts.get(held.parts.find((p) => p.parent === null)?.part ?? '');
 		targets.forEach((t, i) => {
 			if (t.radial && input.radialMarkers === false) return;
-			const parentDef = t.parent
-				? parts.get(design.parts.find((p) => p.index === t.parent!.index)?.part ?? '')
+			const parentEntry = t.parent
+				? design.parts.find((p) => p.index === t.parent!.index)
 				: undefined;
+			const parentRaw = parentEntry && parts.get(parentEntry.part);
+			const parentDef = parentRaw && effectiveDef(parentRaw, parentEntry.settings);
 			let dir: readonly number[] | undefined = t.parent
 				? parentDef?.attach?.[t.parent.parentNode]?.dir
 				: undefined;
@@ -315,6 +320,16 @@ export function buildScene(input: SceneInput): BuiltScene {
 							? 'near'
 							: 'target'
 			});
+		});
+	}
+	for (const h of input.handles ?? []) {
+		nodes.push({
+			key: h.key,
+			group: 'main',
+			position: [h.position[0], h.position[1], h.position[2]],
+			dir: [0, 1, 0],
+			radius: h.radius,
+			state: 'handle'
 		});
 	}
 	// a joint whose two node sizes differ carries a mark where the parts meet (plan 244, 8b.3)

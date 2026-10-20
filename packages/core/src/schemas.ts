@@ -467,7 +467,13 @@ export const partDefinitionSchema = z.object({
 	attach: z
 		.record(
 			z.string(),
-			z.object({ pos: vec3Tuple, dir: vec3Tuple, size: z.number().positive().optional() })
+			z.object({
+				pos: vec3Tuple,
+				dir: vec3Tuple,
+				size: z.number().positive().optional(),
+				/** The node sits at the top of the shell of this module (plan 243, ADR 0238); see `effectiveDef`. */
+				shellTop: z.string().min(1).optional()
+			})
 		)
 		.refine((a) => !('surface' in a), 'the node name "surface" is reserved for radial attachment')
 		.optional(),

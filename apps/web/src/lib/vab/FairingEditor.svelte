@@ -12,11 +12,13 @@
 			? null
 			: f.problem
 				? { kind: 'bad', text: `Cannot be made: ${f.problem}` }
-				: f.closed
-					? { kind: 'ok', text: 'Closed: it shields what is inside' }
-					: f.sections.length > 0
-						? { kind: 'open', text: 'Open: Close it to shield the payload' }
-						: { kind: 'open', text: 'No shell yet: add a section' }
+				: f.interstage
+					? { kind: 'ok', text: 'Interstage: shields what is inside, the next stage sits on top' }
+					: f.closed
+						? { kind: 'ok', text: 'Closed: it shields what is inside' }
+						: f.sections.length > 0
+							? { kind: 'open', text: 'Open: Close it to shield the payload' }
+							: { kind: 'open', text: 'No shell yet: add a section' }
 	);
 	const num = (e: Event): number => Number((e.currentTarget as HTMLInputElement).value);
 </script>
@@ -27,13 +29,13 @@
 			<h3>Fairing</h3>
 			<label class="edit">
 				<input type="checkbox" bind:checked={vab.fairingEdit} data-testid="fairing-edit" />
-				<span>Edit: a click adds a section</span>
+				<span>Edit: drag the handles; a click on the shell adds a section there</span>
 			</label>
 		</header>
 		<p class="status" data-testid="fairing-status">
 			<span class="dot {status?.kind}" aria-hidden="true"></span>{status?.text} · {f.mass.toFixed(
 				0
-			)} kg
+			)} kg · {f.cost.toLocaleString('en-US')} funds
 		</p>
 		{#each f.sections as s, i (i)}
 			<div class="row" data-testid="fairing-section">
@@ -78,6 +80,13 @@
 				aria-pressed={f.closed}
 				data-testid="fairing-close"
 				onclick={() => vab.closeFairing(!f.closed)}>{f.closed ? 'Open' : 'Close'}</button
+			>
+			<button
+				type="button"
+				disabled={f.sections.length === 0}
+				aria-pressed={f.interstage}
+				data-testid="fairing-interstage"
+				onclick={() => vab.setInterstage(!f.interstage)}>Interstage</button
 			>
 		</div>
 	</section>

@@ -43,3 +43,46 @@ export function nodeSize(
 export function nodeSizesMatch(a: number | undefined, b: number | undefined): boolean {
 	return a === undefined || b === undefined || Math.abs(a - b) <= NODE_SIZE_TOLERANCE;
 }
+
+/**
+ * The definition as one design entry has it (plan 243, ADR 0238): a node marked `shellTop` sits at
+ * the top of its module's shell, `baseTop` plus the heights of the sections, and is as wide as the
+ * last section; it exists only while the module's `interstage` setting is on and has a section.
+ * `settings` are the entry's per-part settings, merged over the definition's module config. A
+ * definition without such a node is returned as it is.
+ */
+export function effectiveDef(
+	def: PartDefinition,
+	settings?: Readonly<Record<string, Readonly<Record<string, unknown>>>>
+): PartDefinition {
+	const attach = def.attach;
+	if (!attach || !Object.values(attach).some((n) => n.shellTop !== undefined)) return def;
+	const nodes: Record<string, NonNullable<PartDefinition['attach']>[string]> = {};
+	for (const [name, node] of Object.entries(attach)) {
+		if (node.shellTop === undefined) {
+			nodes[name] = node;
+			continue;
+		}
+		const base = def.modules?.find(([id]) => id === node.shellTop)?.[1] as
+			Record<string, unknown> | undefined;
+		const cfg = { ...base, ...settings?.[node.shellTop] } as {
+			interstage?: unknown;
+			baseTop?: unknown;
+			sections?: unknown;
+		};
+		const sections = Array.isArray(cfg.sections)
+			? (cfg.sections as Array<{ height?: unknown; radius?: unknown }>)
+			: [];
+		const last = sections.at(-1);
+		if (cfg.interstage !== true || !last) continue;
+		const top =
+			(typeof cfg.baseTop === 'number' ? cfg.baseTop : 0) +
+			sections.reduce((h, s) => h + (typeof s.height === 'number' ? s.height : 0), 0);
+		nodes[name] = {
+			pos: [node.pos[0], top, node.pos[2]],
+			dir: node.dir,
+			size: (typeof last.radius === 'number' ? last.radius : 0.5) * 2
+		};
+	}
+	return { ...def, attach: nodes };
+}

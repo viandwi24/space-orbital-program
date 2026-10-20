@@ -2,7 +2,13 @@
  * Warnings and errors shown in the VAB before launch (ADR 0029). Errors block Launch; warnings ask
  * for a confirmation. Pure: the page passes the readouts it already computed.
  */
-import { nodeSize, nodeSizesMatch, resolveVesselDesign, type PartLookup } from '@orbital/core';
+import {
+	effectiveDef,
+	nodeSize,
+	nodeSizesMatch,
+	resolveVesselDesign,
+	type PartLookup
+} from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
 import { groupActions } from './groups';
 import { isAutoStaged } from './staging';
@@ -323,7 +329,8 @@ export function sizeMismatches(
 		if (!p.parent) continue;
 		const parent = byIndex.get(p.parent.index);
 		const childDef = parts.get(p.part);
-		const parentDef = parent && parts.get(parent.part);
+		const parentRaw = parent && parts.get(parent.part);
+		const parentDef = parentRaw && effectiveDef(parentRaw, parent.settings);
 		if (!childDef || !parentDef) continue;
 		const child = nodeSize(childDef, p.parent.node);
 		const at = nodeSize(parentDef, p.parent.parentNode);

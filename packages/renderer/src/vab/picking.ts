@@ -114,3 +114,30 @@ export function worldNormalOf(hit: Pick<Intersection, 'face' | 'object'>): V3 | 
 	const w = new Vector3(n.x, n.y, n.z).applyMatrix3(m).normalize();
 	return [w.x, w.y, w.z];
 }
+
+/**
+ * Where a pointer ray crosses the vertical plane through `anchor` whose normal is the horizontal
+ * direction `normal` (the way the camera looks, plan 243's fairing handles): `across` is the
+ * horizontal distance from the anchor along the plane (the positive side is the camera's right
+ * for a camera looking along `normal`), `up` the height above it. Null when the ray runs parallel
+ * to the plane or crosses it behind the origin.
+ */
+export function onVerticalPlane(
+	ray: PickRay,
+	anchor: V3,
+	normal: readonly [number, number]
+): { across: number; up: number } | null {
+	const len = Math.hypot(normal[0], normal[1]);
+	if (len < 1e-9) return null;
+	const nx = normal[0] / len;
+	const nz = normal[1] / len;
+	const denom = ray.dir[0] * nx + ray.dir[2] * nz;
+	if (Math.abs(denom) < 1e-9) return null;
+	const t = ((anchor[0] - ray.origin[0]) * nx + (anchor[2] - ray.origin[2]) * nz) / denom;
+	if (t < 0) return null;
+	const hx = ray.origin[0] + ray.dir[0] * t - anchor[0];
+	const hz = ray.origin[2] + ray.dir[2] * t - anchor[2];
+	const hy = ray.origin[1] + ray.dir[1] * t - anchor[1];
+	// right-hand side of the look direction seen from above: (-nz, nx) turned a quarter
+	return { across: hx * -nz + hz * nx, up: hy };
+}
