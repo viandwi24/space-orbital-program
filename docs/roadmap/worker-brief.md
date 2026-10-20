@@ -162,6 +162,15 @@ The owner found the per-plan CI wait too slow and asked to merge straight away, 
    - The coordinator watches main's CI. When it fails, the workers who merged since the last green fix it at once, starting with the newest merge, or revert their commit.
    - Nobody merges a new plan onto a red `main` except the fix.
 
+## Owner test fixes (2026-10-20, night)
+
+The owner's manual test is in `docs/reviews/2026-10-20-owner-manual-test.md`. Queues, one plan at a time, merge-first:
+- Worker A: **255** (Hangar fixes) → **256** (Flight UI fixes)
+- Worker B: **232** (release prep; skip the owner's manual checklist for now) → **258** (map view) → **259** (Space Center UI)
+- Worker C: **257** (flight runtime bugs) → **254** (the rest of the part controls)
+
+Still skipped: e2e, the owner's manual checklist and the graphics wave.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

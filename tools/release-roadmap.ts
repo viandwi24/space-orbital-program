@@ -75,7 +75,13 @@ const TRACK: Record<string, string> = {
 	'250': 'UI',
 	'251': 'GFX',
 	'252': 'GFX',
-	'253': 'GFX'
+	'253': 'GFX',
+	'254': 'PARTS',
+	'255': 'HANGAR',
+	'256': 'UI',
+	'257': 'FIX',
+	'258': 'NAV',
+	'259': 'SC'
 };
 
 interface Plan {
