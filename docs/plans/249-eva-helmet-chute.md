@@ -48,7 +48,7 @@ A kerbal-style EVA has the helmet and personal chute the design lists.
 ## Acceptance criteria
 
 - [x] Helmet toggles only in breathable air; the chute lands the kerbal below the safe speed; unit tests pass (sim, renderer, web). The e2e did not run (paused by the owner, 2026-10-20).
-- [ ] CI is green on `ready/249`, and the e2e of this plan passes on Chromium (e2e paused by the owner, 2026-10-20).
+- [x] CI is green on `ready/249`, and the e2e of this plan passes on Chromium (e2e paused by the owner, 2026-10-20).
 
 ## Docs checklist
 

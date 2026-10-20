@@ -36,4 +36,4 @@ bun run check:affected (no e2e: paused by the owner; under /tmp/orbital-heavy.lo
   check-affected: all passed in 254.4 s
 sim eva-helmet-chute 5 · renderer suit-helmet-chute 2 · web eva-model, keybindings, script-api-members
 ```
-CI: see the completion commit.
+CI: refs/ci/pass/44df9948f2e99adb11f7d069a2ec80dd6d701c8f (ready/249)
