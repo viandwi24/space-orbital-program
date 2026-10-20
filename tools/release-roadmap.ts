@@ -81,7 +81,11 @@ const TRACK: Record<string, string> = {
 	'256': 'UI',
 	'257': 'FIX',
 	'258': 'NAV',
-	'259': 'SC'
+	'259': 'SC',
+	'262': 'FIX',
+	'263': 'FIX',
+	'264': 'FIX',
+	'265': 'PARTS'
 };
 
 interface Plan {
@@ -114,6 +118,8 @@ for (const file of readdirSync(PLANS)
 		(a) => a >= '0200'
 	);
 	const status = fm('status');
+	// A plan the owner cancelled leaves the roadmap.
+	if (status === 'dropped') continue;
 	const owner = fm('owner').replace(/"/g, '');
 	plans[id] = {
 		id,

@@ -1,7 +1,7 @@
 ---
 id: 260
 title: "Part controls that need sim support: Take (EVA) from an experiment, a wheel motor, a pod SAS level"
-status: draft
+status: done
 owner: "Worker C"
 depends: [254]
 phase: 8
@@ -38,13 +38,14 @@ The three controls plans 241 and 254 left because each needs a new sim feature, 
 
 ## Acceptance criteria
 
-- [ ] Each of the three controls works; unit tests pass.
-- [ ] Merged with typecheck and unit tests green.
+- [x] Each of the three controls works; unit tests pass.
+- [x] Merged with typecheck and unit tests green. (e2e paused by the owner)
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/260-part-controls-sim-support.md`.
+- [x] STATUS row, journal `docs/journal/260-part-controls-sim-support.md`.
 
 ## Log
 
 - 2026-10-20 — Created by Worker C while finishing plan 254, for what that plan could not do without new sim support.
+- 2026-10-21 — Done by Worker C: ADR 0243 and journal 260. The wheel motor and the SAS level are module and sim features; Take sample is a suit command with a crew-panel button.

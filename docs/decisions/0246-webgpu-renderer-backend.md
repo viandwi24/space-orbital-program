@@ -1,4 +1,4 @@
-# 0242 — The renderer moves to WebGPURenderer with TSL, on its own branch
+# 0246 — The renderer moves to WebGPURenderer with TSL, on its own branch
 
 **Status:** accepted
 **Date:** 2026-10-20

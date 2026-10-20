@@ -41,10 +41,41 @@ const resourceKey = z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/, 
  * Marks a part as a control source: a vessel is controllable while it contains a command part.
  * No config, no state.
  */
+export const commandConfigSchema = z
+	.object({
+		/** The assist level this part gives, 0 to 3 (plan 260); the Hangar's build settings write it. */
+		sasLevel: z.int().min(0).max(3).default(3)
+	})
+	.default({ sasLevel: 3 });
+
+export const SAS_LEVEL_LABEL = ['Hold only', 'Basic', 'Advanced', 'Full'] as const;
+
 export const ModuleCommand = defineModule({
 	id: 'stock.command',
+	config: commandConfigSchema,
 	controlSource: true,
-	describe: () => ({ category: 'command' })
+	// a save from before plan 260 stored the part without a config: full assist, as it was
+	sasLevel: (config) => config?.sasLevel ?? 3,
+	describe: (config) => ({
+		category: 'command',
+		readouts: [
+			{ id: 'sasLevel', label: 'SAS level', value: SAS_LEVEL_LABEL[config?.sasLevel ?? 3]! }
+		],
+		actions: [
+			{
+				id: 'setSasLevel',
+				label: 'SAS level',
+				kind: 'value' as const,
+				value: config?.sasLevel ?? 3,
+				min: 0,
+				max: 3,
+				step: 1,
+				enabled: true,
+				build: 'sasLevel',
+				buildOnly: true
+			}
+		]
+	})
 });
 
 export const probeComputerConfigSchema = z.object({
@@ -1337,7 +1368,11 @@ export const wheelConfigSchema = z.object({
 	/** Side grip coefficient (and the brakes' friction). */
 	grip: z.number().positive().default(0.8),
 	/** Steering angle at full yaw demand, degrees (0: a fixed wheel). */
-	steer: z.number().min(0).max(45).default(0)
+	steer: z.number().min(0).max(45).default(0),
+	/** Motor force at full throttle, N (plan 260; 0: no motor). */
+	driveForce: z.number().nonnegative().default(0),
+	/** Electric charge drawn per second at full drive, EC/s. */
+	driveCharge: z.number().nonnegative().default(0)
 });
 export type WheelConfig = z.output<typeof wheelConfigSchema>;
 export interface WheelState {
@@ -1346,7 +1381,24 @@ export interface WheelState {
 	steering?: boolean;
 	/** Steering turns the other way (plan 241). */
 	invert?: boolean;
+	/** The motor drives with the vessel throttle (plan 260); absent: off. */
+	motor?: boolean;
+	/** Share of the motor's force it may use, 0..1 (absent: 1). */
+	motorLimit?: number;
+	/** The motor turns the wheel backwards. */
+	reverse?: boolean;
+	/** The share of the electric charge it asked for that it got last step (absent: 1). */
+	powered?: number;
 }
+
+/** The motor's force at full throttle, N: 0 while it is off, powerless or absent (plan 260). */
+export const wheelDrive = (
+	config: Pick<WheelConfig, 'driveForce'>,
+	state: Pick<WheelState, 'motor' | 'motorLimit' | 'reverse' | 'powered'>
+): number =>
+	config.driveForce > 0 && state.motor === true
+		? config.driveForce * (state.motorLimit ?? 1) * (state.powered ?? 1) * (state.reverse ? -1 : 1)
+		: 0;
 
 /** The steering angle sign: 0 when the wheel does not steer, -1 when inverted. */
 export const wheelSteerSign = (config: Pick<WheelConfig, 'steer'>, state: WheelState): number =>
@@ -1372,6 +1424,37 @@ export const ModuleWheel = defineModule({
 				group: 'stock.brakes',
 				icon: 'legs'
 			},
+			...(config.driveForce > 0
+				? [
+						{
+							id: 'setMotor',
+							label: 'Motor',
+							kind: 'toggle' as const,
+							value: state.motor === true,
+							enabled: true,
+							group: 'stock.motors'
+						},
+						{
+							id: 'setMotorLimit',
+							label: 'Motor limit',
+							kind: 'value' as const,
+							value: state.motorLimit ?? 1,
+							min: 0,
+							max: 1,
+							step: 0.05,
+							units: [{ unit: '%', factor: 100 }],
+							enabled: state.motor === true
+						},
+						{
+							id: 'setReverse',
+							label: 'Reverse',
+							kind: 'toggle' as const,
+							value: state.reverse === true,
+							more: true,
+							enabled: state.motor === true
+						}
+					]
+				: []),
 			...(config.steer > 0
 				? [
 						{
@@ -1402,11 +1485,42 @@ export const ModuleWheel = defineModule({
 				rolling: config.rolling,
 				grip: config.grip,
 				brake: state.brakes ? 1 : 0,
-				steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180
+				steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180,
+				drive: wheelDrive(config, state)
 			}
 		}
 	],
+	/** The motor draws electric charge in proportion to the throttle and its limit (plan 260). */
+	update(ctx, dt) {
+		const { config, state, vessel } = ctx;
+		if (config.driveForce <= 0 || state.motor !== true) {
+			delete state.powered;
+			return;
+		}
+		const demand = vessel.control.throttle * (state.motorLimit ?? 1);
+		const need = config.driveCharge * demand * dt;
+		if (need <= 0) {
+			state.powered = 1;
+			return;
+		}
+		state.powered = vessel.resources.withdraw(ElectricCharge.id, need) / need;
+	},
 	actions: {
+		/** `(on)`: the motor drives with the throttle (plan 260). */
+		setMotor: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.motor = on;
+		},
+		/** `(limit)` 0..1 of the motor's force. */
+		setMotorLimit: (ctx, ...args) => {
+			const [v] = z.tuple([z.number().min(0).max(1)]).parse(args);
+			ctx.state.motorLimit = v;
+		},
+		/** `(on)`: drive backwards. */
+		setReverse: (ctx, ...args) => {
+			const [on] = z.tuple([z.boolean()]).parse(args);
+			ctx.state.reverse = on;
+		},
 		/** `(on)`: the brakes. */
 		setBrakes: (ctx, ...args) => {
 			const [on] = z.tuple([z.boolean()]).parse(args);
@@ -1426,6 +1540,11 @@ export const ModuleWheel = defineModule({
 	snapshot: (state) => ({
 		brakes: state.brakes,
 		...(state.steering === false ? { steering: false } : {}),
-		...(state.invert === true ? { invert: true } : {})
+		...(state.invert === true ? { invert: true } : {}),
+		...(state.motor === true ? { motor: true } : {}),
+		...(state.motorLimit !== undefined && state.motorLimit !== 1
+			? { motorLimit: state.motorLimit }
+			: {}),
+		...(state.reverse === true ? { reverse: true } : {})
 	})
 });

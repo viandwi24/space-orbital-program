@@ -1,5 +1,5 @@
 /**
- * The `Renderer` facade on three's `WebGPURenderer` (plan 261 Phase 1, ADR 0242), picked by
+ * The `Renderer` facade on three's `WebGPURenderer` (plan 261 Phase 1, ADR 0246), picked by
  * `?renderer=webgpu` (or `webgpu-fallback`: the same renderer on its WebGL2 backend).
  *
  * The same `SceneModel` as the WebGL facade, drawn by the node renderer:

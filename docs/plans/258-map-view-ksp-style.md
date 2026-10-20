@@ -1,8 +1,8 @@
 ---
 id: 258
 title: "Map view like KSP: active and inactive orbit styles, vessel icons by type, comms links, and show/hide filters"
-status: ready
-owner: "Worker B"
+status: done
+owner: "Worker A"
 depends: []
 phase: 8
 created: 2026-10-20
@@ -63,18 +63,19 @@ Fix item 18 of `docs/reviews/2026-10-20-owner-manual-test.md` (screenshot `15.we
 
 ## Acceptance criteria
 
-- [ ] Active, other and target orbits are styled distinctly.
-- [ ] Vessels show type icons.
-- [ ] Comms links are drawn.
-- [ ] The filters show and hide each layer and persist; tests pass. `[manual]` The owner approves the look.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] Active, other and target orbits are styled distinctly.
+- [x] Vessels show type icons.
+- [x] Comms links are drawn.
+- [x] The filters show and hide each layer and persist; tests pass. `[manual]` The owner approves the look: waiting.
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with screenshots.
-- [ ] ADR.
+- [x] STATUS row.
+- [x] Journal with screenshots.
+- [x] ADR.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test.
+- 2026-10-21 — Worker A took it from Worker B (coordinator's order). ADR 0242: four orbit styles, icons by type, link colours (green, yellow, orange), a remembered filter bar. Unit tests only (e2e paused by the owner).

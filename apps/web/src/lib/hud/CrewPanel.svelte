@@ -21,7 +21,9 @@
 		onflag,
 		onboard,
 		onhelmet,
-		onchute
+		onchute,
+		sample = null,
+		ontake
 	}: {
 		card?: CrewCard | null;
 		/** The suit radio (plan 121, ADR 0193): its bars, what it relays through, why it is cut. */
@@ -42,6 +44,9 @@
 		onboard?: () => void;
 		onhelmet?: () => void;
 		onchute?: () => void;
+		/** A sample the suit can take now (plan 260): the part's name and the take action. */
+		sample?: { label: string } | null;
+		ontake?: () => void;
 	} = $props();
 
 	const pct = (r: { amount: number; capacity: number } | null | undefined): string =>
@@ -98,6 +103,13 @@
 				<button type="button" onclick={() => onflag?.()} data-testid="eva-flag">Plant flag</button>
 				<button type="button" onclick={() => onboard?.()} data-testid="eva-board">Board</button>
 			</div>
+			{#if sample}
+				<div class="buttons">
+					<button type="button" onclick={() => ontake?.()} data-testid="eva-take"
+						>Take sample · {sample.label}</button
+					>
+				</div>
+			{/if}
 			<div class="buttons">
 				<button
 					type="button"

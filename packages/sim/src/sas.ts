@@ -317,6 +317,39 @@ export function stepSas(
 	sas.active = true;
 }
 
+/** The assist level a mode needs (plan 260): 0 hold, 1 prograde, 2 normal and radial, 3 maneuver and target. */
+export function sasLevelNeeded(mode: SasMode): number {
+	switch (mode) {
+		case 'off':
+		case 'hold':
+		case 'level':
+			return 0;
+		case 'prograde':
+		case 'retrograde':
+			return 1;
+		case 'normal':
+		case 'antinormal':
+		case 'radial-in':
+		case 'radial-out':
+			return 2;
+		default:
+			return 3;
+	}
+}
+
+/** The best assist level of the vessel's control sources (plan 260); a source without a level gives 3. */
+export function sasLevelOf(core: SimCore, vessel: VesselState): number {
+	let level = 0;
+	for (const id of vessel.parts) {
+		for (const m of partOf(core, id).modules) {
+			const def = moduleDefOf(core, m.id);
+			if (def.controlSource !== true) continue;
+			level = Math.max(level, def.sasLevel ? def.sasLevel(m.config as never) : 3);
+		}
+	}
+	return level;
+}
+
 /**
  * Rails step (ADR 0049): a pointing mode keeps the nose on its direction analytically on orbital
  * rails; `hold` keeps the frozen attitude; surface rails are untouched.

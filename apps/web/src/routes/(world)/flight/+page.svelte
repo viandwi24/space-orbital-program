@@ -56,6 +56,8 @@
 	import CrewPanel from '../../../lib/hud/CrewPanel.svelte';
 	import RecoverDialog from '../../../lib/hud/RecoverDialog.svelte';
 	import MapSwitch from '../../../lib/hud/MapSwitch.svelte';
+	import MapFilterBar from '../../../lib/map/MapFilterBar.svelte';
+	import { mapFilters } from '../../../lib/map/map-filters.svelte';
 	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
 	import { loadWorldCatalog } from '../../../lib/worlds/catalog';
 	import { WARP_STEPS, warpStepsFor } from '../../../lib/warp';
@@ -79,6 +81,7 @@
 	import PauseMenu from '../../../lib/hud/PauseMenu.svelte';
 	import { dialogOpen } from '../../../lib/flight-modal';
 	import { crewSeats } from '../../../lib/inspector/crew-seats';
+	import { takeableSample } from '../../../lib/hud/take-sample';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import { panelRoom } from '../../../lib/hud/panel-room';
@@ -204,6 +207,12 @@
 	const panelWidth = $derived(
 		clampSpan(REGIONS.vessel, settings.ui.panelWidth ?? REGIONS.vessel.default)
 	);
+	/** A sample the suit on EVA can take from a vessel part within reach (plan 260). */
+	const takeOffer = $derived(
+		hud?.eva && panelInput ? takeableSample(panelInput.snapshot, hud.eva.suit) : null
+	);
+	const partLabel = (definition: string): string =>
+		vesselContent?.parts.get(definition)?.title ?? definition;
 	/** The card of a map vessel just clicked (plan 250). */
 	let mapCard = $state<MapCard | null>(null);
 	/** The dock panel's width, px at 100 % (plan 250), dragged at its free edge. */
@@ -461,6 +470,10 @@
 
 	/** The Regions layer of map view (plan 192): the tint and the region under the cursor. */
 	let regionsOn = $state(false);
+	// the map's filters reach the renderer through the flight (plan 258)
+	$effect(() => {
+		flight?.setMapFilters(mapFilters.filters);
+	});
 	let regionHover = $state<{ label: string; x: number; y: number } | null>(null);
 	function toggleRegions(): void {
 		regionsOn = !regionsOn;
@@ -868,6 +881,8 @@
 			}
 		});
 		flight = started;
+		// the player's map filters, remembered from before (plan 258)
+		started.setMapFilters(mapFilters.filters);
 		worldSession.collect = () => started.collectSave();
 		// the debug panel's host (plan 203; `window.__orbitalDebug` is the world layout's since plan
 		// 205), the log of uncaught errors, Debug mode from Settings, and the world's "used cheats" mark
@@ -1370,7 +1385,12 @@
 			}}
 		/>
 	{/if}
-	{#if mapNetwork}<NetworkLayer network={mapNetwork} />{/if}
+	{#if mapNetwork && (mapFilters.filters.links || mapFilters.filters.stations)}<NetworkLayer
+			network={{
+				lines: mapFilters.filters.links ? mapNetwork.lines : [],
+				stations: mapFilters.filters.stations ? mapNetwork.stations : []
+			}}
+		/>{/if}
 	{#if ghostFrame}<GhostLayer ghost={ghostFrame} />{/if}
 	<input
 		bind:this={ghostInput}
@@ -1390,6 +1410,7 @@
 		now={model?.time ?? 0}
 		onwarp={warpToMark}
 		onalarm={alarmAtMark}
+		labels={mapFilters.filters.labels}
 	/>
 	<TargetMarkers bind:this={targetMarks} />
 	<HeatBars bind:this={heatBars} />
@@ -1478,6 +1499,7 @@
 						busy={saves.busy}
 						onmissioncenter={() => void openMissionCenter()}
 					/>
+					<MapFilterBar />
 					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
 				{#if hud?.recovery}
 					<!-- the funds and Recover sit here, not in the capsule row: that row sets the top-left stack's width, which the touch throttle must clear (plan 132) -->
@@ -1621,6 +1643,16 @@
 						onflag={() => flight?.plantFlag()}
 						onboard={() => flight?.board()}
 						onhelmet={() => flight?.helmet()}
+						sample={takeOffer ? { label: partLabel(takeOffer.definition) } : null}
+						ontake={() =>
+							takeOffer &&
+							hud?.eva &&
+							void flight?.command({
+								type: 'crew-take',
+								suit: hud.eva.suit as EntityId,
+								vessel: takeOffer.vessel,
+								part: takeOffer.part
+							})}
 						onchute={() => flight?.chute()}
 					/>
 				</div>

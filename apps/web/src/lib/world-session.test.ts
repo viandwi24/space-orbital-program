@@ -91,5 +91,9 @@ describe('the script sandbox lives with the world (plan 239)', () => {
 		session.end();
 		expect(closes).toBe(1);
 		expect(posted.some((m) => (m as { kind?: string }).kind === 'script-stop')).toBe(true);
+		// the next world gets a sandbox of its own, not the closed one (plan 262)
+		await session.acquire('w-2', async () => ({}));
+		expect(session.scriptSandbox()).not.toBe(a);
+		expect(made).toBe(2);
 	});
 });

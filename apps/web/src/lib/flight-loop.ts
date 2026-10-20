@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import type { GhostTrack } from './replays/ghost-model';
 import { ABORT_SLOT, API_VERSION, customGroupId, designCost } from '@orbital/core';
@@ -51,6 +52,7 @@ import { createDirector, type AudioFlightView } from './audio/director';
 import { isOwnTouchdown } from './touchdown-cue';
 import * as throttleRetry from './throttle-retry';
 import { isTypingTarget } from './typing-target';
+import { dropStaleModifiers } from './held-modifiers';
 import { partShapesOf } from './catalog';
 import { modelProviders } from './mods/asset-models';
 import { pinchZoomFactor } from './touch/touch-model';
@@ -282,6 +284,8 @@ export interface Flight {
 	/** Remove the earliest maneuver node. */
 	removeNode(): void;
 	toggleMap(): void;
+	/** The map's filters (plan 258): orbit lines and the vessels of the types that are off. */
+	setMapFilters(filters: MapFilters): void;
 	/** The flight camera (plan 226): the next mode (V), the mode now, a part to look at or none. */
 	cycleCameraMode(): void;
 	readonly cameraMode: CameraMode;
@@ -808,6 +812,7 @@ export function startFlight(options: FlightOptions): Flight {
 		e.target instanceof HTMLElement && isTypingTarget(e.target);
 
 	function onKeyDown(e: KeyboardEvent): void {
+		dropStaleModifiers(held, e); // a stuck Shift is a throttle that climbs by itself (plan 262)
 		if (e.key === 'Escape' && !e.repeat) {
 			// The dialog closes itself on Escape; this only opens the menu.
 			if (!modal) {
@@ -863,6 +868,9 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'throttleCut':
 				throttle = 0;
+				// a key that kept throttle up or down held does not undo the cut (plan 262)
+				for (const a of ['throttleUp', 'throttleDown'] as const)
+					for (const k of keymap().keys(a)) held.delete(k);
 				break;
 			case 'stage':
 				e.preventDefault();
@@ -1015,6 +1023,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	}
 	const onKeyUp = (e: KeyboardEvent): void => {
+		dropStaleModifiers(held, e);
 		precision = e.getModifierState?.('CapsLock') ?? false;
 		if (
 			brakesHeld &&
@@ -1041,6 +1050,7 @@ export function startFlight(options: FlightOptions): Flight {
 		return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
 	};
 	const onPointerDown = (e: PointerEvent): void => {
+		dropStaleModifiers(held, e);
 		// The middle button looks at the part under it (plan 226); Backtick looks at the vessel again.
 		if (e.button === 1 && e.pointerType === 'mouse') {
 			e.preventDefault();
@@ -1087,6 +1097,7 @@ export function startFlight(options: FlightOptions): Flight {
 		}
 	};
 	const onPointerMove = (e: PointerEvent): void => {
+		dropStaleModifiers(held, e);
 		const at = pointers.get(e.pointerId);
 		if (!at) return;
 		const dx = e.clientX - at.x;
@@ -1309,6 +1320,25 @@ export function startFlight(options: FlightOptions): Flight {
 		if (command) void send(command);
 	}
 
+	/** The map's filters (plan 258) as the renderer takes them: orbits, the vessels hidden, the target. */
+	let mapFilters: MapFilters = defaultFilters();
+	let mapLayersDirty = true;
+	function applyMapLayers(s: Snapshot): void {
+		mapLayersDirty = false;
+		const flown = vessel !== null ? Number(vessel) : null;
+		const me = s.vessels.find((v) => Number(v.id) === flown);
+		const target = me?.target?.kind === 'vessel' ? Number(me.target.id) : null;
+		renderer?.setMapLayers({
+			orbits: mapFilters.orbits,
+			hidden: hiddenVessels(
+				mapFilters,
+				s.vessels.map((v) => ({ id: Number(v.id), type: v.type })),
+				flown
+			),
+			target
+		});
+	}
+
 	function toggleMap(): void {
 		hud.map = renderer?.toggleMapView() ?? false;
 		director.cue(hud.map ? 'map-open' : 'map-close');
@@ -1422,8 +1452,9 @@ export function startFlight(options: FlightOptions): Flight {
 		director.frame(now, audioView, hud.warp, hud.paused);
 		if (renderer && snap && dirty) {
 			renderer.update(snap);
+			applyMapLayers(snap);
 			dirty = false;
-		}
+		} else if (renderer && snap && mapLayersDirty) applyMapLayers(snap);
 		updateMapPath(now);
 		targetView?.update(now);
 		renderer?.render();
@@ -2076,6 +2107,10 @@ export function startFlight(options: FlightOptions): Flight {
 			hudCtl?.setDeltaVView(view);
 		},
 		toggleMap,
+		setMapFilters(f) {
+			mapFilters = f;
+			mapLayersDirty = true;
+		},
 		cycleCameraMode,
 		get cameraMode() {
 			return cameraMode;

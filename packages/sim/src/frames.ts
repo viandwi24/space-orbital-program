@@ -48,11 +48,11 @@ import {
 } from './core.ts';
 import { runUpdateHooks } from './hooks.ts';
 import { heatInput, stepThermal, type HeatInput, type Overheat } from './thermal.ts';
-import { ZERO, qConj, qMul, qRotate, uprightRotation } from './math.ts';
+import { ZERO, qAboutY, qConj, qMul, qRotate, uprightRotation } from './math.ts';
 import { stepWalking } from './eva.ts';
 import { nBodyOn, thirdBody } from './nbody.ts';
 import { massProperties } from './mass.ts';
-import { halfExtentsOf, isTurned, partRotation } from './parts.ts';
+import { colliderBoxes, halfExtentsOf, isTurned, partRotation } from './parts.ts';
 import { stepSas } from './sas.ts';
 import { effectiveControl, type FlightBody, type FlightFrame, type GroundTile } from './state.ts';
 import {
@@ -230,12 +230,16 @@ export function collectColliders(
 		const part = partOf(core, id);
 		const at = sub(part.designPos, rootDesign);
 		const turn = isTurned(part) ? partRotation(part) : undefined;
-		shapes.push({
-			shape: { type: 'box', halfExtents: halfExtentsOf(partDefOf(core, part)) },
-			position: at,
-			...(turn ? { rotation: turn } : {})
-		});
-		shapeParts.push(id);
+		for (const box of colliderBoxes(partDefOf(core, part))) {
+			const rotation =
+				box.yaw === 0 ? turn : turn ? qMul(turn, qAboutY(box.yaw)) : qAboutY(box.yaw);
+			shapes.push({
+				shape: { type: 'box', halfExtents: box.halfExtents },
+				position: at,
+				...(rotation ? { rotation } : {})
+			});
+			shapeParts.push(id);
+		}
 		for (const m of part.modules) {
 			const colliders = moduleDefOf(core, m.id).colliders;
 			if (!colliders) continue;
@@ -474,8 +478,14 @@ function stepWheels(
 		const stop = (speed: number, limit: number): number =>
 			-Math.max(-limit, Math.min(limit, (WHEEL_SETTLE * speed * share) / dt));
 		const fRoll = stop(dot(tangential, roll), (spec.rolling + spec.brake * spec.grip) * load);
+		// a motor pushes along the wheel with the throttle, not against the brakes (plan 260)
+		const drive = spec.brake > 0 ? 0 : (spec.drive ?? 0) * effectiveControl(vessel).throttle;
 		const fSide = stop(dot(tangential, side), spec.grip * load);
-		frame.backend.applyForce(body.handle, add(scale(roll, fRoll), scale(side, fSide)), point);
+		frame.backend.applyForce(
+			body.handle,
+			add(scale(roll, fRoll + drive), scale(side, fSide)),
+			point
+		);
 	}
 }
 

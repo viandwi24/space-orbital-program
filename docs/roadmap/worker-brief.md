@@ -171,6 +171,12 @@ The owner's manual test is in `docs/reviews/2026-10-20-owner-manual-test.md`. Qu
 
 Still skipped: e2e, the owner's manual checklist and the graphics wave.
 
+## Dropped (owner, 2026-10-21)
+
+The owner dropped plans **232** (release QA, the v1.0.0 tag and the deploy) and **261** (the WebGPU migration). Do not work on them. Worker D (M2) stops 261.
+
+Worker B's queue is now **264 → 265**: merge each plan on main as soon as it is done, then start the next.
+
 ## Doing a plan
 
 **UI fixes come first (owner's rule, ADR 0222):** when the coordinator reports that a screen you built is off the design package (`refs/space-orbital-program-ui-v2/`), finish and merge your current plan, then fix that screen (plan 233 and the like) before taking any other plan. Always compare UI work with the matching `.dc.html` source and `docs/BASE_LAYOUT.md`.

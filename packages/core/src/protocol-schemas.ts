@@ -320,6 +320,7 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	}),
 	z.object({ type: z.literal('crew-eva'), vessel: entity, member: z.string().min(1) }),
 	z.object({ type: z.literal('crew-board'), suit: entity, vessel: entity }),
+	z.object({ type: z.literal('crew-take'), suit: entity, vessel: entity, part: entity }),
 	z.object({
 		type: z.literal('crew-walk'),
 		vessel: entity,

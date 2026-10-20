@@ -6,7 +6,9 @@ import {
 	commsTab,
 	linkBadge,
 	linkText,
+	linkState,
 	networkLines,
+	WEAK_MARGIN_DB,
 	networkStations,
 	rateText
 } from './network-model';
@@ -121,6 +123,18 @@ describe('comms on the page (plan 115)', () => {
 		]);
 		expect(networkLines(down)).toEqual([]);
 		expect(networkStations(s).map((x) => x.label)).toEqual(['KSC Dish']);
+	});
+
+	it('a link is drawn weak while its margin is thin, partial while control is partial (plan 258)', () => {
+		expect(linkState('full', null)).toBe('full');
+		expect(linkState('full', 12)).toBe('full');
+		expect(linkState('full', WEAK_MARGIN_DB)).toBe('full');
+		expect(linkState('full', 3)).toBe('weak');
+		expect(linkState('partial', 30)).toBe('partial');
+		const s = snap([
+			{ vessel: 1 as never, to: 'stock.ksc', reason: null, control: 'full', blackout: 0, margin: 2 }
+		]);
+		expect(networkLines(s)[0]!.state).toBe('weak');
 	});
 
 	it('bars and words follow the rate (plan 116, ADR 0185 point 9)', () => {

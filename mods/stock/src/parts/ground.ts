@@ -50,7 +50,20 @@ const wheelPart = (id: string, title: string, steer: number) =>
 		},
 		attach: { radial: { pos: [-0.2, 0, 0], dir: [-1, 0, 0] } },
 		crossfeed: false,
-		modules: [[ModuleWheel, { radius: 0.3, width: 0.15, offset: [0.45, 0, 0], steer }]],
+		modules: [
+			[
+				ModuleWheel,
+				{
+					radius: 0.3,
+					width: 0.15,
+					offset: [0.45, 0, 0],
+					steer,
+					// a motor that is off until the player turns it on (plan 260)
+					driveForce: 4_000,
+					driveCharge: 0.3
+				}
+			]
+		],
 		stagingIcon: 'legs'
 	});
 

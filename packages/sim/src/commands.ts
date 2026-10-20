@@ -77,7 +77,16 @@ import {
 	setTemperature
 } from './debug.ts';
 import { applyActionGroup } from './actions.ts';
-import { crewBoard, crewClimb, crewEva, crewGrab, crewJump, crewWalk, plantFlag } from './eva.ts';
+import {
+	crewBoard,
+	crewTakeSample,
+	crewClimb,
+	crewEva,
+	crewGrab,
+	crewJump,
+	crewWalk,
+	plantFlag
+} from './eva.ts';
 import { startObjective } from './objectives.ts';
 import { acceptContract, cancelContract, declineContract } from './contracts.ts';
 import { activateStrategy, endStrategy } from './strategies.ts';
@@ -114,7 +123,7 @@ import { makeRoom, wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
 import { setTarget } from './target.ts';
-import { beginHold } from './sas.ts';
+import { beginHold, sasLevelNeeded, sasLevelOf } from './sas.ts';
 import { IDENTITY, qNormalize } from './math.ts';
 import {
 	destroyVessel,
@@ -458,6 +467,12 @@ export function dispatch(
 			if (typeof v === 'string') return refuse(v);
 			const noSignal = signalRefusal(core, command.vessel, 'sas');
 			if (noSignal) return refuse(noSignal);
+			if (command.mode !== undefined && sasLevelNeeded(command.mode) > sasLevelOf(core, v)) {
+				const labels = ['hold only', 'basic', 'advanced', 'full'];
+				return refuse(
+					`this vessel's control parts give ${labels[sasLevelOf(core, v)]} assist; ${command.mode} needs more`
+				);
+			}
 			if (command.reference !== undefined) v.sas.reference = command.reference;
 			if (command.mode !== undefined && command.mode !== v.sas.mode) {
 				v.sas.mode = command.mode;
@@ -659,6 +674,8 @@ export function dispatch(
 			return crewEva(core, command.vessel, command.member);
 		case 'crew-board':
 			return crewBoard(core, command.suit, command.vessel);
+		case 'crew-take':
+			return crewTakeSample(core, command.suit, command.vessel, command.part);
 		case 'crew-walk':
 			if (!core.world.has(command.vessel, VESSEL)) return refuse(`no vessel ${command.vessel}`);
 			return crewWalk(core, command.vessel, command.heading, command.speed);

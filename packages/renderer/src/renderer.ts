@@ -2,7 +2,7 @@
  * The browser-facing facade: a `WebGLRenderer` (logarithmic depth buffer, ADR 0007) driving a
  * `SceneModel`, the post chain and image-based light (ADR 0027). Needs a canvas, so it is
  * exercised by the manual runs in the journals, not by Bun tests. `?renderer=webgpu` hands the
- * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0242).
+ * same facade to three's `WebGPURenderer` instead (`renderer-webgpu.ts`, plan 261, ADR 0246).
  */
 import type { SiteBuildingView } from './site-list.ts';
 import type { EntityId, RegionWorld, Snapshot } from '@orbital/core';
@@ -174,7 +174,13 @@ export interface Renderer {
 	/** Map view: this vessel or body (`vessel:<id>`, `body:<id>`) in the highlight colour, `null` none. */
 	setMapHighlight(key: string | null): void;
 	/** Map view layers: `orbits` false hides every orbit line. */
-	setMapLayers(layers: { orbits: boolean }): void;
+	setMapLayers(layers: {
+		orbits: boolean;
+		/** Vessels the map filters hide (plan 258). */
+		hidden?: ReadonlySet<number>;
+		/** The vessel whose orbit is drawn as the target's. */
+		target?: number | null;
+	}): void;
 	/** Map view: tint these bodies by their science regions, `null` none (plan 192). */
 	setRegionOverlay(
 		bodies: ReadonlyArray<{ id: string; body: RegionBody; world?: RegionWorld }> | null
@@ -220,6 +226,11 @@ export interface Renderer {
 	 * With `siteBuildings: true` in the config, the site's buildings come from `setSiteBuildings`.
 	 */
 	setSiteView(on: boolean): void;
+	/** Site view (plan 259): look at a point of the site, or null for its centre; see `Scene.setSiteFocus`. */
+	setSiteFocus(
+		p: { east: number; north: number; up?: number } | null,
+		options?: { distance?: number; animate?: boolean }
+	): void;
 	setSiteBuildings(
 		list: readonly SiteBuildingView[],
 		roads: readonly { i: number; j: number }[]

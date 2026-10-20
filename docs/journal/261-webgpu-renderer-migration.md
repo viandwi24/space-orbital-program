@@ -1,6 +1,6 @@
 # 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a, Phase 2b, Phase 2c, Phase 2 step 10)
 
-**Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
+**Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0246](../decisions/0246-webgpu-renderer-backend.md)
 
 ## What was done
 
@@ -162,7 +162,7 @@ The planet pass is about 2 000 lines of GLSL: a terrain ray march with root find
 | Where | What |
 |---|---|
 | `planet.ts` | `terrainJobs`, `markCubeBaked`, `markPatchBaked`: the bakes the CPU plans, for a renderer that bakes them itself (the WebGL path is unchanged) |
-| `tsl/terrain.ts` | `heightAt` in TSL (zones, coast warp, hills, ranges and the site's massif, ridged octaves, the lake cap). The far field is a six-face atlas with gutters (ADR 0242 point 9); the patches are 32-bit targets, read filtered where the GPU filters 32-bit floats, else four texels by hand. Samplers: height and slope (the march), height and gradient (shading) |
+| `tsl/terrain.ts` | `heightAt` in TSL (zones, coast warp, hills, ranges and the site's massif, ridged octaves, the lake cap). The far field is a six-face atlas with gutters (ADR 0246 point 9); the patches are 32-bit targets, read filtered where the GPU filters 32-bit floats, else four texels by hand. Samplers: height and slope (the march), height and gradient (shading) |
 | `tsl/planet-pass.ts` | The march (steps, crest look-ahead, Illinois, silhouette parabola, the crest-between-samples hit), `macroRelief` and the slope normal from screen derivatives, rock, alpine and snow by height and slope, the grazing fix, `terrainShadow`, `shadowFactor` over three's shadow map. The air in front of terrain is marched with the tables (12 steps) and its veil |
 | `tsl/lut-sky.ts` | `segment`: in-scatter and transmittance between two distances along a ray |
 | `renderer-webgpu.ts` | `benchmarkAsync` reads the GPU timestamps on WebGPU |

@@ -1,5 +1,5 @@
 /**
- * Which renderer draws the game (plan 261, ADR 0242): today's `WebGLRenderer`, or three's
+ * Which renderer draws the game (plan 261, ADR 0246): today's `WebGLRenderer`, or three's
  * `WebGPURenderer` on its WebGPU backend or, for testing the fallback, on its WebGL2 backend.
  * Picked by `?renderer=webgpu` or `?renderer=webgpu-fallback` on the page's address; anything else
  * is WebGL. The WebGPU renderer lives on the plan's branch until the owner's manual test.

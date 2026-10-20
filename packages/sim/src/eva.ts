@@ -5,6 +5,7 @@
  * seat and `walk`; a `keep` module), so a mod can replace them.
  */
 import {
+	EVA_TAKE_RANGE,
 	resolveVesselDesign,
 	type CommandResult,
 	type EntityId,
@@ -31,7 +32,7 @@ import { makeContext } from './hooks.ts';
 import { reachMilestone } from './milestones.ts';
 import { wake, wakeBlocker } from './modes.ts';
 import { motionOf, orientationOf } from './orbit.ts';
-import { VESSEL, type FlightBody, type FlightFrame } from './state.ts';
+import { PART, VESSEL, type FlightBody, type FlightFrame } from './state.ts';
 import { add, cross, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import { destroyVessel, placeAtState, placeOnSurface, spawnVessel } from './vessel.ts';
 
@@ -201,6 +202,45 @@ export function crewEva(core: SimCore, vesselId: EntityId, memberId: string): Co
 	return { ok: true, vessel: id };
 }
 
+const TAKE_RANGE = EVA_TAKE_RANGE;
+
+/**
+ * `crew-take` (plan 260): a suit takes the sample a part of `vessel` holds. The suit must carry a
+ * crew member and stand within `TAKE_RANGE` of the part; the sample goes into the suit's locker and
+ * comes aboard with it when it boards.
+ */
+export function crewTakeSample(
+	core: SimCore,
+	suitId: EntityId,
+	vesselId: EntityId,
+	partId: EntityId
+): CommandResult {
+	if (!core.world.hasEntity(suitId) || !core.world.hasEntity(vesselId))
+		return refuse('unknown vessel');
+	const suit = vesselOf(core, suitId);
+	const vessel = vesselOf(core, vesselId);
+	if (suit.soi !== vessel.soi) return refuse(`vessel ${vesselId} is not near (another sphere)`);
+	if (!core.crew.members.some((m) => vesselOfMember(core, m) === suitId))
+		return refuse(`vessel ${suitId} carries no crew member`);
+	const part = core.world.get(partId, PART);
+	if (!part || part.vessel !== vesselId)
+		return refuse(`part ${partId} is not part of vessel ${vesselId}`);
+	const distance = length(
+		sub(motionOf(core, suit).r, pointOf(core, vesselId, partId, { x: 0, y: 0, z: 0 }))
+	);
+	if (distance > TAKE_RANGE)
+		return refuse(`${Math.round(distance)} m from the part (take within ${TAKE_RANGE} m)`);
+	for (const mod of partOf(core, partId).modules) {
+		const hook = moduleDefOf(core, mod.id).takeSample;
+		if (!hook) continue;
+		const sample = hook(makeContext(core, partId, mod.id));
+		if (!sample) continue;
+		(suit.samples ??= []).push(sample);
+		return { ok: true };
+	}
+	return refuse('that part holds no sample');
+}
+
 /** `crew-board` (ADR 0120 point 2). */
 export function crewBoard(core: SimCore, suitId: EntityId, targetId: EntityId): CommandResult {
 	if (suitId === targetId) return refuse('a suit cannot board itself');
@@ -275,6 +315,8 @@ export function crewBoard(core: SimCore, suitId: EntityId, targetId: EntityId): 
 			hook({ ...ctx, vessel });
 		}
 	}
+	// samples the suit took from a part of another vessel come aboard too (plan 260)
+	for (const s of suit.samples ?? []) locker.push(s);
 	destroyVessel(core, suitId, 'recovered');
 	return { ok: true };
 }

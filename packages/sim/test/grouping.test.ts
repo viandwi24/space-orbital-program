@@ -18,6 +18,7 @@ import { createSim, type Sim, type SimOptions } from '../src/index.ts';
 import { diagonalise } from '../src/mass.ts';
 import { partMasses } from './helpers/measure.ts';
 import { tower, twoStage } from './helpers/vessels.ts';
+import { CYLINDER_SQUARES } from '../src/parts.ts';
 
 interface Recorded {
 	desc: BodyDesc;
@@ -118,7 +119,8 @@ describe('bodies (ADR 0018)', () => {
 		expect(rec.live.size).toBe(1);
 		expect(rec.joints.count).toBe(0);
 		const shapes = [...rec.live.values()][0]!.desc.shape;
-		expect(shapes.type === 'compound' && shapes.shapes.length).toBe(100);
+		// every part of the tower is a cylinder: `CYLINDER_SQUARES` boxes each (plan 264)
+		expect(shapes.type === 'compound' && shapes.shapes.length).toBe(100 * CYLINDER_SQUARES);
 		sim.dispatch({ type: 'stage', vessel: id }); // engine
 		sim.step(0.02);
 		expect(rec.live.size).toBe(1);

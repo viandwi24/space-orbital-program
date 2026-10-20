@@ -237,3 +237,81 @@ describe('the GLSL twin carries the constants', () => {
 		expect(SHADOW_STEPS.low).toBeLessThan(SHADOW_STEPS.medium);
 	});
 });
+
+describe('a ridge thinner than the step spacing (plan 263)', () => {
+	// the owner's black slivers: a 24 m rim, a 4 degree sun; the even spacing of the march (about 55 m
+	// at 100 m from the point) catches the rim from some points of its shadow band and misses it from
+	// the next, so the band showed as thin stripes
+	const along = (n: Vec3) => R * Math.atan2(n.y, n.x);
+	const ridge = (x0: number, w: number, H: number) => (n: Vec3) =>
+		Math.abs(along(n) - x0) < w / 2 ? H : 0;
+	const elevation = (4 * Math.PI) / 180;
+	const x0 = 1_000;
+	const visibility = (x: number, phase: number): number => {
+		const phi = x / R;
+		const n0 = vec(Math.cos(phi), Math.sin(phi), 0);
+		const east = vec(-Math.sin(phi), Math.cos(phi), 0);
+		const sun = normalize(
+			vec(
+				Math.cos(elevation) * east.x + Math.sin(elevation) * n0.x,
+				Math.cos(elevation) * east.y + Math.sin(elevation) * n0.y,
+				0
+			)
+		);
+		return terrainSunVisibility({
+			groundAt: ridge(x0, 24, 15),
+			radius: R,
+			direction: n0,
+			height: 0,
+			sun,
+			phase
+		});
+	};
+	/** The shader's per-pixel phase: interleaved gradient noise of the pixel. */
+	const phaseOf = (px: number): number => {
+		const a = 0.06711056 * px + 0.00583715 * 7;
+		const f = a - Math.floor(a);
+		const g = 52.9829189 * f;
+		return g - Math.floor(g);
+	};
+	const shadowLength = 15 / Math.tan(elevation);
+	/** Longest run of neighbouring ground points inside the shadow the march calls lit. */
+	function longestLitRun(phased: boolean): { run: number; lit: number; total: number } {
+		let run = 0;
+		let best = 0;
+		let lit = 0;
+		let total = 0;
+		for (let d = 14; d < shadowLength - 5; d += 2) {
+			total++;
+			const v = visibility(x0 - d, phased ? phaseOf(d / 2) : 0);
+			if (v > 0.5) {
+				lit++;
+				run++;
+				best = Math.max(best, run);
+			} else run = 0;
+		}
+		return { run: best, lit, total };
+	}
+
+	test('the even spacing misses the rim in long runs of its own shadow', () => {
+		const even = longestLitRun(false);
+		expect(even.run).toBeGreaterThanOrEqual(15);
+	});
+
+	test('with a phase per pixel the misses are short and scattered, and the point is still shadowed by the rim', () => {
+		const even = longestLitRun(false);
+		const spread = longestLitRun(true);
+		expect(spread.run).toBeLessThan(even.run / 2);
+		// nothing is lit that the truth leaves lit: beyond the shadow the ground stays lit
+		for (let d = shadowLength + 10; d < 2_000; d += 37) {
+			expect(visibility(x0 - d, phaseOf(d))).toBeGreaterThan(0.99);
+		}
+	});
+
+	test('phase 0 is the even spacing, and a phase moves a sample nearer, never beyond the ray', () => {
+		expect(shadowStepDistance(5, 800, 24, 0)).toBe(shadowStepDistance(5, 800));
+		expect(shadowStepDistance(5, 800, 24, 0.9)).toBeLessThan(shadowStepDistance(5, 800));
+		expect(shadowStepDistance(1, 800, 24, 0.999)).toBeGreaterThanOrEqual(SHADOW_MARCH.minDistance);
+		expect(shadowStepDistance(24, 800, 24, 0)).toBeCloseTo(800, 9);
+	});
+});

@@ -22,7 +22,7 @@ draft ──► ready ──► in-progress ──► done
 ---
 id: 002
 title: Kepler orbital mechanics
-status: ready            # draft | ready | in-progress | done | blocked
+status: ready            # draft | ready | in-progress | done | blocked | dropped (the owner cancelled it)
 owner: ""                # agent/session label when in-progress
 depends: []              # plan ids that must be done first
 phase: 0

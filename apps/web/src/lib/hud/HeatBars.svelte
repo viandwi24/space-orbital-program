@@ -49,7 +49,7 @@
 		border-radius: 3px;
 		background: var(--c-warning, #e8a33d);
 	}
-	.bar[data-critical='true'] i {
+	:global(.bar[data-critical='true']) i {
 		background: var(--c-danger);
 	}
 </style>
