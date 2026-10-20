@@ -109,6 +109,7 @@
 	>
 		{#if met}<span data-testid="hud-met">{time}</span>{:else}{time}{/if}
 	</div>
+	<!-- one badge for every pause state (plan 256); it is a button only where it can lift the place's pause -->
 	{#if chip && onchip}
 		<button
 			type="button"
@@ -235,11 +236,12 @@
 		white-space: nowrap;
 	}
 	/* the clock's state, in the status bar's mode chip style */
-	.chip.toggle {
-		font: inherit;
-		cursor: pointer;
-	}
 	.chip {
+		box-sizing: border-box;
+		margin: 0;
+		border: 0;
+		appearance: none;
+		font-family: inherit;
 		height: 1rem;
 		padding: 0 0.375rem;
 		display: flex;
@@ -251,6 +253,17 @@
 		background: rgb(255 255 255 / 0.1);
 		color: #e4e4e7;
 		white-space: nowrap;
+	}
+	/* a button badge looks like the plain one; only the pointer and a hover tell it is pressable */
+	.chip.toggle {
+		cursor: pointer;
+	}
+	.chip.toggle:hover {
+		background: rgb(255 255 255 / 0.18);
+	}
+	.chip.toggle:focus-visible {
+		outline: 2px solid #fff;
+		outline-offset: 1px;
 	}
 	.catch-up {
 		height: 1.5rem;

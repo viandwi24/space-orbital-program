@@ -106,7 +106,8 @@
 		aboveDeckHeight,
 		DECK_FALLBACK,
 		scriptPanelWidth,
-		throttleAnchor
+		throttleAnchor,
+		viewInsets
 	} from '../../../lib/layout/layout-model';
 	import { REGIONS, clampSpan, layoutFor, type SidePanel } from '../../../lib/layout/regions';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
@@ -1170,9 +1171,6 @@
 		const open = box('.tl .dock .open');
 		// beside the whole left stack: the capsules can be wider than the open panel
 		dockRight = open && open.width > 0 && left ? Math.round(Math.max(open.right, left.right)) : 0;
-		const top = bar ? bar.bottom + 8 : 0;
-		const bottom = deck ? Math.max(0, frame.height - deck.top + 8) : 0;
-		const side = right && right.width > 0 ? Math.max(0, frame.width - right.left + 8) : 0;
 		const crew = box('.ui > .br');
 		crewTop = crew && crew.height > 0 ? Math.round(crew.top) : 0;
 		const staging = box('.bl');
@@ -1182,13 +1180,14 @@
 				: undefined;
 		// Side panels float over the view and do not move the camera (plan 215, ADR 0205 point 7):
 		// only the fixed bars count, unless the player asked to centre the vessel in the free area.
-		const centre = settings.ui.centreVessel;
-		const insets = {
-			top,
-			right: centre ? side : 0,
-			bottom,
-			left: centre ? dockRight : 0
-		};
+		const insets = viewInsets({
+			frame,
+			bar,
+			deck,
+			right,
+			dockRight,
+			centre: settings.ui.centreVessel
+		});
 		const key = [insets.top, insets.right, insets.bottom, insets.left].map(Math.round).join(',');
 		if (key === lastInsets) return;
 		const first = lastInsets === '';
@@ -1207,6 +1206,7 @@
 		void settings.ui.centreVessel;
 		void settings.ui.scale;
 		void vesselOpen;
+		void navOpen;
 		void model?.crew?.rows.length;
 		queueMicrotask(updateInsets);
 	});
@@ -1464,7 +1464,7 @@
 				{#if !narrow}{@render dock('left')}{/if}
 			</div>
 
-			<div class="tc">
+			<div class="tc" class:on-bars={hud.map}>
 				{#if hud.map}<MapSwitch
 						busy={saves.busy}
 						onmissioncenter={() => void openMissionCenter()}
@@ -1917,6 +1917,13 @@
 		align-items: center;
 		gap: var(--s-3);
 		pointer-events: none;
+	}
+	/* the map's Map | Mission Center tabs stand on the bars' row, centred between them (plan 256);
+	   where the bars leave no room (under 1280 px) they stay on the row below */
+	@media (min-width: 1280px) {
+		.tc.on-bars {
+			top: calc(var(--margin-hud) + var(--safe-top));
+		}
 	}
 	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
 	/* the vessel panel ends above the crew panel at the bottom right (plan 214: a tall panel ran under it) */

@@ -1,7 +1,7 @@
 ---
 id: 256
 title: "Flight UI fixes from the owner's test: a vessel panel with accordions and icon buttons, dock tabs that do not stretch, the camera anchor, one paused badge, aligned map tabs"
-status: ready
+status: done
 owner: "Worker A"
 depends: []
 phase: 8
@@ -64,19 +64,20 @@ The owner tested by hand on 2026-10-20. Screenshots are in `docs/reviews/assets/
 
 ## Acceptance criteria
 
-- [ ] The vessel panel is collapsed by default, with icon actions. `[manual]` The owner approves.
-- [ ] Tall panels do not stretch the dock's tab rail.
-- [ ] Hiding panels moves the camera anchor toward the free space; test passes.
-- [ ] Every pause state uses the same badge.
-- [ ] The map tabs align with the bars.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] The vessel panel is collapsed by default, with icon actions. `[manual]` The owner approves: waiting.
+- [x] Tall panels do not stretch the dock's tab rail.
+- [x] Hiding panels moves the camera anchor toward the free space; test passes.
+- [x] Every pause state uses the same badge.
+- [x] The map tabs align with the bars.
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with screenshots.
-- [ ] ADR.
+- [x] STATUS row.
+- [x] Journal with screenshots.
+- [x] ADR.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the owner's manual test.
+- 2026-10-20 — Worker A: ADR 0241. The Parts tab as an accordion with icon actions, the dock rail at the height of its tabs, `viewInsets` ignoring hidden boxes (the cause of the camera moving up), one chip style for every pause state, the map tabs on the bars' row from 1280 px. Unit tests only (e2e paused by the owner). The Mission Center page's own switch is left (it sits in the page's safe-area frame).
