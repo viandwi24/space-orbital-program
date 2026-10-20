@@ -120,6 +120,12 @@ function launch(sim: Sim, parts = ['fix.cabin'], placement?: unknown): EntityId 
 const life = (sim: Sim, id: EntityId) =>
 	sim.snapshot().vessels.find((v) => v.id === id)!.lifeSupport;
 
+/** One frame at 1e5×; a shortage stops the warp (plan 247), so the test asks for it again. */
+const warpStep = (sim: Sim): void => {
+	if (sim.warp === 1) sim.dispatch({ type: 'warp', factor: 100_000 });
+	sim.step(0.02);
+};
+
 describe('life support (ADR 0181 points 1 to 3)', () => {
 	test('time left is the closed form and the shortage comes then, at warp 1', async () => {
 		const sim = await make(0.01); // 216 s for three
@@ -144,10 +150,10 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 		sim.events.on('crew:shortage', (e) => shortages.push(e.time));
 		sim.events.on('crew:lost', (e) => lost.push(e.status));
 		expect(sim.dispatch({ type: 'warp', factor: 100_000 }).ok).toBe(true);
-		while (sim.snapshot().t < t0 + 2 * DAY + 100) sim.step(0.02);
+		while (sim.snapshot().t < t0 + 2 * DAY + 100) warpStep(sim);
 		expect(Math.abs(shortages[0]! - (t0 + 2 * DAY)) / (2 * DAY)).toBeLessThan(0.01);
 		expect(lost).toEqual([]);
-		while (sim.snapshot().t < t0 + 5 * DAY + 100) sim.step(0.02); // grace: 3 days
+		while (sim.snapshot().t < t0 + 5 * DAY + 100) warpStep(sim); // grace: 3 days
 		expect(lost).toEqual(['lost', 'lost', 'lost']);
 		expect(life(sim, id)).toBeUndefined();
 		sim.dispose();
@@ -204,7 +210,7 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 		launch(sim);
 		const t0 = sim.snapshot().t;
 		sim.dispatch({ type: 'warp', factor: 100_000 });
-		while (sim.snapshot().t < t0 + 1 * DAY) sim.step(0.02);
+		while (sim.snapshot().t < t0 + 1 * DAY) warpStep(sim);
 		const save = sim.save();
 		const since = save.crew!.members[0]!.shortages![0]!.since;
 		expect(Math.abs(since - (t0 + 0.5 * DAY))).toBeLessThan(1);
@@ -216,7 +222,7 @@ describe('life support (ADR 0181 points 1 to 3)', () => {
 		const lost: number[] = [];
 		again.events.on('crew:lost', () => lost.push(again.snapshot().t));
 		again.dispatch({ type: 'warp', factor: 100_000 });
-		while (again.snapshot().t < since + 3 * DAY + 2_100) again.step(0.02);
+		while (again.snapshot().t < since + 3 * DAY + 2_100) warpStep(again);
 		expect(lost).toHaveLength(3);
 		expect(lost[0]!).toBeGreaterThanOrEqual(since + 3 * DAY);
 		again.dispose();
