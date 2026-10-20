@@ -184,7 +184,7 @@
 | 235 | [Space Center build menu: categories along the bottom, cards with building thumbnails](plans/235-space-center-build-menu.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 236 | [Branch space centers on the home planet, linked into the network](plans/236-branch-space-centers.md) | done | Worker B | Owner review 2026-10-19 (ADR 0222). |
 | 237 | [Bug fixes from the release audit: heat warning, vessel type on undock, branch founding funds](plans/237-flight-and-sim-bug-fixes.md) | ready | Worker C | Release audit 2026-10-20; before v1.0.0. |
-| 238 | [Hangar: the camera reaches the top of a tall vessel; one top bar](plans/238-hangar-camera-tall-vessels-one-top-bar.md) | ready | Worker A | Release audit 2026-10-20 (C3, C15); before v1.0.0. |
+| 238 | [Hangar: the camera reaches the top of a tall vessel; one top bar](plans/238-hangar-camera-tall-vessels-one-top-bar.md) | in-progress | Worker A | Release audit 2026-10-20 (C3, C15); before v1.0.0. |
 | 239 | [A running script keeps running when the player leaves Flight](plans/239-scripts-keep-running-off-flight.md) | ready | Worker C | Release audit 2026-10-20 (ADR 0201 point 9); before v1.0.0. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.

@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
 	 * The Hangar's bottom bar (plan 093, ADR 0148 point 3; refs): symmetry, the CoM and CoT markers,
-	 * undo and redo. Only what the editor does today: no tool modes.
+	 * undo and redo, the high-contrast markers and, on narrow windows, the two drawers (plan 238: the
+	 * Hangar's own top bar is gone). Only what the editor does today: no tool modes.
 	 */
 	import IconButton from '../ui/IconButton.svelte';
 	import Kbd from '../ui/Kbd.svelte';
@@ -71,6 +72,30 @@
 		onclick={() => (vab.showCot = !vab.showCot)}
 		>CoT<span class="dot cot" aria-hidden="true"></span></button
 	>
+	<!-- from the old Hangar top bar (plan 238) -->
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.highContrast}
+		aria-label="High-contrast markers"
+		data-tip="High-contrast markers"
+		onclick={() => vab.toggleContrast()}
+		>Contrast<span class="dot" aria-hidden="true"></span></button
+	>
+	<span class="drawer-btns">
+		<IconButton
+			icon="part"
+			label="Parts and sub-assemblies"
+			pressed={vab.drawer === 'parts'}
+			onclick={() => (vab.drawer = vab.drawer === 'parts' ? null : 'parts')}
+		/>
+		<IconButton
+			icon="stage"
+			label="Stages and launch checks"
+			pressed={vab.drawer === 'stages'}
+			onclick={() => (vab.drawer = vab.drawer === 'stages' ? null : 'stages')}
+		/>
+	</span>
 	<span class="sep" aria-hidden="true"></span>
 	<IconButton
 		icon="undo"
@@ -207,6 +232,14 @@
 		}
 		.sep {
 			margin: 0 0.125rem;
+		}
+	}
+	.drawer-btns {
+		display: none;
+	}
+	@media (max-width: 899px) {
+		.drawer-btns {
+			display: inline-flex;
 		}
 	}
 </style>
