@@ -1,7 +1,7 @@
 ---
 id: 252
 title: "Graphics phase 1: a pixel budget for the planet pass, baked cloud shadows on high, lighter MSAA and shadows at Retina, spread PMREM recaptures"
-status: draft
+status: ready
 owner: "Worker A"
 depends: [251]
 phase: 7
@@ -42,12 +42,12 @@ On a Retina screen, `high` costs close to what it costs at 1080p, with no visibl
 - **(b) Cloud shadows.** `high` uses the baked cloud-shadow map (`cloudShadowMap: true`, octaves 0), unless the look check shows a loss.
 - **(c) MSAA at pixel ratio 2 and above:**
   - MSAA 2;
-  - a non-MSAA ping-pong buffer for the composer;
+  - ~~a non-MSAA ping-pong buffer for the composer~~: with RenderPass, bloom and output the composer never draws into its write buffer, so it is never allocated (ADR 0232 point 3);
   - no MSAA on the canvas.
 - **(d) Shadows and PMREM:**
   - a 2048 shadow map at Retina;
   - PMREM recaptures spread over frames, or capped to one per N seconds during ascent.
-- **ADR:** a pixel budget instead of a pixel-ratio cap. It amends ADR 0053's budgets with a Retina budget, and ADR 0064's rung.
+- **ADR:** [0232](../decisions/0232-planet-pixel-budget-retina-quick-wins.md): a pixel budget instead of a pixel-ratio cap. It amends ADR 0053's budgets with a Retina budget, and ADR 0064's rung.
 
 **Out:**
 - Sky LUTs, the noise texture, temporal clouds, an ultra preset (phases 2 to 6, after v1.0).
@@ -87,3 +87,4 @@ On a Retina screen, `high` costs close to what it costs at 1080p, with no visibl
 ## Log
 
 - 2026-10-20: Created by the coordinator from `refs/graphics-performance/06-plan-and-cost.md` phase 1 (a) to (d), on the owner's order to ship it in v1.0.0. Left as a draft: refine with plan 251's numbers.
+- 2026-10-20 — Worker A: claimed; code written ahead of 251's baseline (the budget's value and the acceptance numbers wait for it). Done: `budgetScale` and `PlanetPass.setPixelBudget` (any scale in [0.5, 1]; the upsample and edge shaders use the ratio of the two sizes, only the edge pass's `uMarchScale` needed to follow the scale), `high` on the baked cloud-shadow map, `msaaSamples` / `shadowSizeAt` / `canvasAntialias` from pixel ratio 2, `RecaptureGate` (1500 ms between image-light captures). Finding: no non-MSAA ping-pong is needed (the write buffer is never drawn into). The governor's rules (phase 1(e)) stay with plans 201 and 253. 677 renderer tests pass. Remaining: measure each step on the M5 with 251's script, the before/after screenshot set, the final budget value, the journal, the README of the research set.
