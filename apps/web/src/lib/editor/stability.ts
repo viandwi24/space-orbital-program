@@ -103,12 +103,23 @@ export function stabilityOf(design: VesselDesign, content: ContentLookups): Stab
 		let wet = part.def.mass;
 		for (const [r, a] of Object.entries(part.full))
 			wet += a * (content.resources.get(r)?.density ?? 0);
+		// the part's mass sits at its `centerOfMass` offset, turned with the part (plan 265); drag
+		// and pressure stay on the part's centre, as in the sim
+		const o = part.def.centerOfMass
+			? at
+				? mat3Apply(mat3OfQuat(at.rotation), [
+						part.def.centerOfMass[0],
+						part.def.centerOfMass[1],
+						part.def.centerOfMass[2]
+					])
+				: { x: part.def.centerOfMass[0], y: part.def.centerOfMass[1], z: part.def.centerOfMass[2] }
+			: { x: 0, y: 0, z: 0 };
 		mass += wet;
-		moment += wet * y;
-		mx += wet * x;
-		mz += wet * z;
+		moment += wet * (y + o.y);
+		mx += wet * (x + o.x);
+		mz += wet * (z + o.z);
 		dry += part.def.mass;
-		dryMoment += part.def.mass * y;
+		dryMoment += part.def.mass * (y + o.y);
 		calibre = Math.max(calibre, calibreOf(part.def));
 		widest = Math.max(widest, widthOf(part.def));
 		const body = (part.def.dragCoefficient ?? DEFAULT_DRAG) * lateralArea(part.def) * sin * sin;

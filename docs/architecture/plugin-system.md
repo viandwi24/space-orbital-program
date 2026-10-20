@@ -273,6 +273,10 @@ An attach node may carry `shellTop: "<module id>"`: it sits at the top of that m
 
 `PartVisual.lamp` (`module`, `pos`, `dir`, optional `angle` in degrees and `range` in metres) marks a part as a lamp: while that module's snapshot says `on`, the part shows a lit lens at `pos` in the snapshot's `colour` (hex) and `brightness`, blinking if `blink`; the scene gives the nearest few a spot light. `stock.light` is the stock module.
 
+## Capsule stability (API 0.1.95, plan 265, ADR 0246)
+
+`PartDefinition.centerOfMass` (optional, part frame, m) is where the part's mass sits, offset from its shape's centre; the sim's mass properties, the snapshot's centre of mass and the Hangar's stability line use it, while drag, colliders and attachments stay on the shape's centre. `PartDefinition.bluntBase` (optional) is the moment coefficient of a blunt -Y end on a cylinder part: while that end is open to the wind the airflow turns the part base first.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

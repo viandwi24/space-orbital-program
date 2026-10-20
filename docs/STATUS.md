@@ -211,7 +211,7 @@
 | 262 | [Throttle climbs back to 100 % by itself in the Landing lesson, even after X](plans/262-lesson-throttle-runaway.md) | done | Worker C | Owner report 2026-10-21. |
 | 263 | [Black slivers through the Moon's ground near the surface at some view angles](plans/263-moon-terrain-black-slivers.md) | done | Worker A | The black slivers were the sun-shadow march's step aliasing (not plan 252): a per-pixel phase of the samples; test with a thin ridge. Owner check of the view pending. |
 | 264 | [A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree](plans/264-pod-floats-above-moon-ground.md) | done | Worker B | Owner report 2026-10-21. |
-| 265 | [Capsules fly heat shield first on reentry and settle upright: centre of mass, centre of pressure and blunt-body drag](plans/265-capsule-reentry-stability.md) | ready | Worker B | Owner report 2026-10-21. |
+| 265 | [Capsules fly heat shield first on reentry and settle upright: centre of mass, centre of pressure and blunt-body drag](plans/265-capsule-reentry-stability.md) | done | Worker B | Owner report 2026-10-21. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 

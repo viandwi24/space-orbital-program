@@ -23,6 +23,12 @@ export const DEFAULT_MAX_FLIGHT_FRAMES = 2;
 
 /** Dimensionless drag coefficient used for every part (no per-part data yet). */
 export const DRAG_COEFFICIENT = 0.3;
+/**
+ * Pitch damping of a blunt end (plan 265) as a fraction of critical damping for the restoring
+ * stiffness and the vessel's lateral inertia: the turn to base first settles in a few swings
+ * whatever the vessel's size and the airflow.
+ */
+export const BLUNT_DAMPING_RATIO = 0.4;
 /** Specific gas constant of air, J/(kg·K). */
 export const AIR_GAS_CONSTANT = 287.05;
 /** Air temperature of a body without a temperature curve, K (plan 212). */

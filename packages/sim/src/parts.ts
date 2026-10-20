@@ -1,7 +1,7 @@
 /** Physics shape and inertia of a part, from its placeholder `shape` (ADR 0014, ADR 0017). */
 import type { PartDefinition, Quat, Vec3 } from '@orbital/core';
 import { FALLBACK_PART_SIZE } from './constants.ts';
-import { qAboutY } from './math.ts';
+import { qAboutY, qRotate } from './math.ts';
 import type { PartState } from './state.ts';
 
 /** The part's rotation relative to the vessel axes: its full `rotation`, or its yaw about +Y. */
@@ -23,6 +23,17 @@ export function halfExtentsOf(def: PartDefinition): Vec3 {
 		return { x: FALLBACK_PART_SIZE / 2, y: FALLBACK_PART_SIZE / 2, z: FALLBACK_PART_SIZE / 2 };
 	if (s.kind === 'box') return { x: s.size[0] / 2, y: s.size[1] / 2, z: s.size[2] / 2 };
 	return { x: s.radius, y: s.height / 2, z: s.radius };
+}
+
+/**
+ * The part's mass centre relative to its origin in the vessel's design axes: the definition's
+ * `centerOfMass` offset turned with the part (plan 265); zero without one.
+ */
+export function massOffset(def: PartDefinition, part: Pick<PartState, 'yaw' | 'rotation'>): Vec3 {
+	const off = def.centerOfMass;
+	if (!off) return { x: 0, y: 0, z: 0 };
+	const v = { x: off[0], y: off[1], z: off[2] };
+	return isTurned(part) ? qRotate(partRotation(part), v) : v;
 }
 
 /** Squares a cylinder's collider is made of, turned by equal steps within a quarter turn (plan 264). */

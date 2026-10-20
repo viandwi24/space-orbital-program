@@ -185,7 +185,9 @@ for (const [variant, cfg] of Object.entries(VARIANTS)) {
 				turnStart: 300,
 				turnEnd: cfg.turnEnd,
 				turnPitch: cfg.turnPitch,
-				apoapsis: 1.8 * air,
+				// 1.6 since plan 265: the pod's mass sits low now, the ascent differs by a kilometre of
+				// periapsis, and the planner below (a grid search) then misses by twice as much from 1.8
+				apoapsis: 1.6 * air,
 				periapsis: 1.2 * air,
 				stageCount: 1,
 				stageAnyPhase: true,

@@ -1,7 +1,7 @@
 ---
 id: 265
 title: "Capsules fly heat shield first on reentry and settle upright: centre of mass, centre of pressure and blunt-body drag"
-status: ready
+status: done
 owner: "Worker B"
 depends: []
 phase: 8
@@ -56,17 +56,18 @@ Fix item 26 of `docs/reviews/2026-10-20-owner-manual-test.md`. Two things should
 
 ## Acceptance criteria
 
-- [ ] A bare pod reenters heat shield first by itself; test passes.
-- [ ] A pod at rest settles on its base; test passes.
-- [ ] The stock examples' sim tests still pass, and the Hangar stability readout is unchanged in sign for them.
-- [ ] Affected unit tests and the typecheck pass. E2E is paused by the owner.
+- [x] A bare pod reenters heat shield first by itself; test passes (`capsule-stability.test.ts`).
+- [x] A pod at rest: **not as written.** A cylinder lying on its side is in stable equilibrium, so a pod dropped exactly on its side stays on its side, with any centre of mass. What the plan meant is that a pod does not rest on its top: a pod thrown past the horizontal now ends on its side or its base, never on its top (before, two of seven throws ended on top); test passes.
+- [x] The stock examples' sim tests pass (frozen flights re-frozen, see the journal) and the Hangar stability line keeps its sign (its tests pass with the pod's offset).
+- [x] Affected unit tests and the typecheck pass. E2E is paused by the owner.
 
 ## Docs checklist
 
-- [ ] STATUS row.
-- [ ] Journal with the measured CoM and CoP.
-- [ ] ADR if the drag model changes.
+- [x] STATUS row.
+- [x] Journal with the measured CoM and CoP.
+- [x] ADR ([0246](../decisions/0246-pod-low-mass-and-blunt-base-moment.md)).
 
 ## Log
 
 - 2026-10-21 — Created by the coordinator from the owner's report. It follows 264 in Worker B's queue.
+- 2026-10-21: Worker B. CoM and CoP measured (they coincide on a bare pod), a low CoM offset and a blunt-base moment added (ADR 0246).

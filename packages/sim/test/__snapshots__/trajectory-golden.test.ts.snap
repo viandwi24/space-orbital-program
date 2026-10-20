@@ -6,7 +6,7 @@ exports[`trajectory goldens (plan 080) SOI crossings of a moon flyby on rails 1`
     "from": "stock.home",
     "position": {
       "x": -2117139.776,
-      "y": 1.595744667,
+      "y": 1.613617008,
       "z": 833113.5248,
     },
     "t": 22940,
@@ -21,7 +21,7 @@ exports[`trajectory goldens (plan 080) SOI crossings of a moon flyby on rails 1`
     "from": "stock.cinder",
     "position": {
       "x": -7796928.941,
-      "y": 1.595744667,
+      "y": 1.613617008,
       "z": -5905563.17,
     },
     "t": 34330,

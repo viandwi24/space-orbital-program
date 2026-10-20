@@ -16,7 +16,7 @@ import { definePart, definePlugin } from '@orbital/sdk';
 import { add, cross, length, scale, sub } from '@orbital/kepler';
 import { createSim, type Sim, type SimOptions } from '../src/index.ts';
 import { diagonalise } from '../src/mass.ts';
-import { partMasses } from './helpers/measure.ts';
+import { partMassCentres, partMasses } from './helpers/measure.ts';
 import { tower, twoStage } from './helpers/vessels.ts';
 import { CYLINDER_SQUARES } from '../src/parts.ts';
 
@@ -221,8 +221,9 @@ describe('split continuity', () => {
 function comOf(sim: Sim, v: VesselSnapshot): Vec3 {
 	const masses = partMasses(sim, v);
 	const total = masses.reduce((s, m) => s + m, 0);
+	const centres = partMassCentres(sim, v);
 	let c: Vec3 = { x: 0, y: 0, z: 0 };
-	v.parts.forEach((p, i) => (c = add(c, scale(add(v.position, p.position), masses[i]! / total))));
+	centres.forEach((p, i) => (c = add(c, scale(add(v.position, p), masses[i]! / total))));
 	return c;
 }
 
@@ -266,8 +267,8 @@ describe('inertia', () => {
 		const id = load(sim, design);
 		const v = sim.snapshot().vessels.find((s) => s.id === id)!;
 		const masses = partMasses(sim, v);
-		const pos = v.parts.map((p) => rot(conj(v.orientation), p.position)); // body axes, root at 0
-		expect(pos[1]!.x).toBeCloseTo(-0.4, 9); // hung off the axis as designed
+		const pos = partMassCentres(sim, v).map((p) => rot(conj(v.orientation), p)); // mass centres, body axes, root at 0
+		expect(pos[1]!.x).toBeCloseTo(-0.4, 9); // hung off the axis as designed (the block has no offset)
 		const M = masses[0]! + masses[1]!;
 		const com = scale(add(scale(pos[0]!, masses[0]!), scale(pos[1]!, masses[1]!)), 1 / M);
 		// Own inertia: pod is a cylinder r 0.625 h 1; block a cube of side 1.
@@ -326,9 +327,9 @@ describe('inertia', () => {
 		expect(last.com!.y).toBeGreaterThan(initial);
 		const masses = partMasses(sim, v);
 		const total = masses.reduce((s, m) => s + m, 0);
+		const centres = partMassCentres(sim, v);
 		const y =
-			v.parts.reduce((s, p, i) => s + masses[i]! * rot(conj(v.orientation), p.position).y, 0) /
-			total;
+			centres.reduce((s, p, i) => s + masses[i]! * rot(conj(v.orientation), p).y, 0) / total;
 		expect(Math.abs(last.com!.y - y)).toBeLessThan(0.01); // one step of burn behind
 		sim.dispose();
 	});

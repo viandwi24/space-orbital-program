@@ -5,7 +5,7 @@
 import type { EntityId, Quat, Vec3 } from '@orbital/core';
 import { partDefOf, partMass, partOf, type SimCore } from './core.ts';
 import { IDENTITY, qFromBasis } from './math.ts';
-import { inertiaOf } from './parts.ts';
+import { inertiaOf, massOffset } from './parts.ts';
 
 export interface MassProperties {
 	mass: number;
@@ -108,8 +108,11 @@ export function massProperties(
 	const rows: Array<{ m: number; d: Vec3; id: EntityId }> = [];
 	for (const id of parts) {
 		const m = partMass(core, id);
-		const p = partOf(core, id).designPos;
-		const d = { x: p.x - origin.x, y: p.y - origin.y, z: p.z - origin.z };
+		const part = partOf(core, id);
+		const p = part.designPos;
+		// a part's mass sits at its `centerOfMass`, turned with the part (plan 265)
+		const o = massOffset(partDefOf(core, part), part);
+		const d = { x: p.x + o.x - origin.x, y: p.y + o.y - origin.y, z: p.z + o.z - origin.z };
 		mass += m;
 		cx += m * d.x;
 		cy += m * d.y;

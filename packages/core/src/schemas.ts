@@ -468,6 +468,19 @@ export const partDefinitionSchema = z.object({
 	 */
 	dragCoefficient: z.number().positive().optional(),
 	/**
+	 * Where the part's mass sits, as an offset from its shape's centre in the part frame, m (plan
+	 * 265): a capsule keeps its mass low, towards its heat shield. Drag, colliders and attachments
+	 * stay on the shape's centre. Absent: the centre.
+	 */
+	centerOfMass: vec3Tuple.optional(),
+	/**
+	 * A blunt -Y end (plan 265): while that end is open to the wind, the airflow turns the part
+	 * base first. The value is the moment coefficient per radian of angle to the flow
+	 * (`M = Cm q A D sin a` about the vessel's centre of mass, `A` the end area, `D` its diameter);
+	 * real capsules sit at about 0.1 to 0.4. A pitch damping goes with it.
+	 */
+	bluntBase: z.number().positive().optional(),
+	/**
 	 * The part is a connector (ADR 0071): it hangs on one part like any other and its design entry
 	 * names a second part its far end lands on. `feeds` makes it a fuel line: resources of the
 	 * part it hangs on are available to the part it ends on.

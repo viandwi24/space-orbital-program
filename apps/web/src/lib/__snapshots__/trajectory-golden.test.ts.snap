@@ -3,24 +3,24 @@
 exports[`trajectory goldens (plan 080) > closest approach and aids for the moon as target (snapshot from the sim) 1`] = `
 {
   "body": "stock.cinder",
-  "distance": 494920.5992,
+  "distance": 494920.5993,
   "relative": {
     "r": {
-      "x": -64186.33427,
-      "y": -16.69246541,
+      "x": -64186.33429,
+      "y": -16.87942103,
       "z": -490740.7806,
     },
     "v": {
       "x": 556.7291015,
-      "y": 0.01203811855,
-      "z": -72.8150389,
+      "y": 0.01217294549,
+      "z": -72.81503892,
     },
   },
   "relativeSpeed": 561.4706782,
   "relativeVelocity": {
     "x": -556.7291015,
-    "y": -0.01203811855,
-    "z": 72.8150389,
+    "y": -0.01217294549,
+    "z": 72.81503892,
   },
   "target": {
     "x": -6464526545,

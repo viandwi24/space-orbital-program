@@ -370,9 +370,14 @@ function splitAt(
 		let v: Vec3 = { x: 0, y: 0, z: 0 };
 		for (const id of parts) {
 			const mass = partMass(core, id);
+			// the part's mass sits at its `centerOfMass` offset (plan 265)
+			const off = partDefOf(core, partOf(core, id)).centerOfMass;
+			const turn = partTransform(core, frame, id).rotation;
+			const away = off ? qRotate(turn, { x: off[0], y: off[1], z: off[2] }) : { x: 0, y: 0, z: 0 };
 			m += mass;
-			c = add(c, scale(add(frame.origin, partPositions.get(id)!), mass));
-			v = add(v, scale(add(frame.velocity, partVelocity(core, frame, id)), mass));
+			c = add(c, scale(add(add(frame.origin, partPositions.get(id)!), away), mass));
+			const spin = rootPose ? cross(rootPose.angular, away) : { x: 0, y: 0, z: 0 };
+			v = add(v, scale(add(add(frame.velocity, partVelocity(core, frame, id)), spin), mass));
 		}
 		return { com: scale(c, 1 / m), velocity: scale(v, 1 / m) };
 	};

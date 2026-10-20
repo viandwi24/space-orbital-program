@@ -20,6 +20,7 @@ import { bodyById, rotationAt, spinAt, type BodyRuntime } from './bodies.ts';
 import { axisAreas } from './aero.ts';
 import { ruleOf } from './economy.ts';
 import {
+	BLUNT_DAMPING_RATIO,
 	CONTACT_DISTANCE,
 	DEFAULT_IMPACT_TOLERANCE,
 	DESTROY_FACTOR,
@@ -400,7 +401,7 @@ export function prepareFrame(core: SimCore, frame: FlightFrame, dt: number): Ove
 		stepWalking(core, frame, vesselId, body, dt);
 		stepSas(core, frame, vesselId, body, dt);
 		runUpdateHooks(core, vesselId, dt);
-		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId), dt));
+		overheated.push(...stepThermal(core, vesselId, applyDrag(core, frame, vesselId, dt), dt));
 		// Buoyancy and water drag (plan 067, ADR 0182)
 		let wasWet = frame.wet.get(vesselId);
 		if (!wasWet) frame.wet.set(vesselId, (wasWet = new Set()));
@@ -522,7 +523,8 @@ function updateMassProperties(
 function applyDrag(
 	core: SimCore,
 	frame: FlightFrame,
-	vesselId: EntityId
+	vesselId: EntityId,
+	dt: number
 ): Map<EntityId, HeatInput> {
 	const heat = new Map<EntityId, HeatInput>();
 	const planet = bodyOfFrame(core, frame);
@@ -578,6 +580,36 @@ function applyDrag(
 			z: k * area.z * Math.abs(local.z) * local.z
 		};
 		frame.backend.applyForce(flight.handle, qRotate(turned, force), pose.position);
+		if (def.bluntBase !== undefined && !covered.bottom && def.shape?.kind === 'cylinder') {
+			// the airflow turns an open blunt end to face it (plan 265): a moment about the vessel's
+			// centre of mass, first order in the angle to the flow, with pitch damping
+			const speed = Math.hypot(local.x, local.y, local.z);
+			if (speed > 1e-3) {
+				const { radius } = def.shape;
+				const q = 0.5 * density * speed * speed;
+				const area = Math.PI * radius * radius;
+				const k = def.bluntBase * q * area * 2 * radius;
+				// base (-Y) towards the part's velocity: a x v / |v| with a = -Y
+				const spin = qRotate(qConj(turned), motion.angular);
+				// an explicit step must not overshoot: at most half the rate removed per step
+				const [, lateralLow, lateralHigh] = [
+					flight.inertia.x,
+					flight.inertia.y,
+					flight.inertia.z
+				].sort((a, b) => a - b) as [number, number, number];
+				const lateral = (lateralLow + lateralHigh) / 2;
+				const damping = Math.min(
+					2 * BLUNT_DAMPING_RATIO * Math.sqrt(k * lateral),
+					(0.5 * lateralLow) / dt
+				);
+				const torque = {
+					x: (-k * local.z) / speed - damping * spin.x,
+					y: 0,
+					z: (k * local.x) / speed - damping * spin.z
+				};
+				frame.backend.applyTorque(flight.handle, qRotate(turned, torque));
+			}
+		}
 		const input = heatInput(density, def.shape, area, local);
 		heat.set(partId, heating === 1 ? input : { ...input, power: input.power * heating });
 	}
