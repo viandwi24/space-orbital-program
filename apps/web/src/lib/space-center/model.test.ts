@@ -4,6 +4,7 @@ import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import {
+	capacityLines,
 	actionOf,
 	buildingRows,
 	checkGhost,
@@ -343,5 +344,36 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 			false
 		);
 		expect(cell).not.toBeNull();
+	});
+
+	it('a pin shows its name when selected, hovered or in always mode; the panel lists level, upkeep and upgrade (plan 259)', () => {
+		const rows = buildingRows(site, reg);
+		const hangar = rows.find((r) => r.kind === 'stock.hangar')!;
+		expect(hangar.level).toBe(1);
+		expect(hangar.maxLevel).toBe(3);
+		expect(hangar.upkeep).toBeGreaterThan(0);
+		expect(hangar.capacity[0]).toMatch(/^Hangar \d/);
+		expect(hangar.description).not.toBe('');
+		const shown = (over: Record<string, unknown>) =>
+			(render(SpaceCenterOverlay, {
+				props: props({ labels: { [hangar.id]: { x: 300, y: 200 } }, ...over })
+			}).body.match(/class="pin[^"]*"/) ?? [''])[0];
+		expect(shown({})).not.toContain('shown');
+		expect(shown({ selected: hangar.id })).toContain('shown');
+		expect(shown({ hovered: hangar.id })).toContain('shown');
+		expect(shown({ labelMode: 'always' })).toContain('shown');
+		const html = render(SpaceCenterOverlay, { props: props({ selected: hangar.id }) }).body;
+		expect(html).toContain('Level 1 of 3');
+		expect(html).toContain('Upkeep');
+		expect(html).toContain('data-testid="sc-upgrade"');
+		expect(html).toContain('data-testid="sc-frame"');
+	});
+
+	it('capacity lines read as labels with grouped numbers', () => {
+		expect(capacityLines({ 'launch-pad': 18, hangar: 1200 })).toEqual([
+			'Launch pad 18',
+			'Hangar 1,200'
+		]);
+		expect(capacityLines(undefined)).toEqual([]);
 	});
 });

@@ -83,6 +83,34 @@
 	let site = $state.raw<SiteState | undefined>(undefined);
 	let selected = $state<string | null>(null);
 	let labels = $state.raw<Record<string, { x: number; y: number } | null>>({});
+	/** Building names on the pins (plan 259): on hover and selection, or always; remembered per browser. */
+	const LABELS_KEY = 'orbital.space-center.labels';
+	const readLabelMode = (): 'hover' | 'always' => {
+		try {
+			return localStorage.getItem(LABELS_KEY) === 'always' ? 'always' : 'hover';
+		} catch {
+			return 'hover';
+		}
+	};
+	let labelMode = $state<'hover' | 'always'>(readLabelMode());
+	let hovered = $state<string | null>(null);
+	function setLabelMode(mode: 'hover' | 'always'): void {
+		labelMode = mode;
+		try {
+			localStorage.setItem(LABELS_KEY, mode);
+		} catch {
+			// private window or blocked storage: the choice lasts for this visit
+		}
+	}
+	/** Frames the camera on a building; the camera eases there unless the player prefers reduced motion. */
+	function frame(id: string | null): void {
+		const row = id === null ? undefined : rows.find((r) => r.id === id);
+		const still = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+		center?.renderer?.setSiteFocus(
+			row ? { east: row.anchor.east, north: row.anchor.north, up: 0 } : null,
+			{ ...(row ? { distance: 160 } : {}), animate: !still }
+		);
+	}
 	let problem = $state<string | null>(null);
 	let build = $state<{ kind: string; rotation: Rotation } | null>(null);
 	let hover = $state.raw<{ cell: { i: number; j: number }; check: GhostCheck } | null>(null);
@@ -232,6 +260,7 @@
 		if (r && !r.ok) problem = r.reason;
 		else {
 			selected = null;
+			frame(null);
 			changed();
 		}
 	}
@@ -412,7 +441,15 @@
 		{rows}
 		{labels}
 		{selected}
-		onselect={(id) => (selected = id)}
+		onselect={(id) => {
+			selected = id;
+			frame(id);
+		}}
+		{labelMode}
+		onlabelmode={setLabelMode}
+		{hovered}
+		onhover={(id) => (hovered = id)}
+		onframe={frame}
 		{menu}
 		{thumbnail}
 		build={build
@@ -437,6 +474,7 @@
 			siteId = id;
 			site = undefined;
 			selected = null;
+			frame(null);
 			setBuild(null);
 		}}
 		{flows}
