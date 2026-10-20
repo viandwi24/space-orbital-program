@@ -230,4 +230,9 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0232 | [The script sandbox lives with the world, not with Flight](0232-script-sandbox-lives-with-the-world.md) | accepted | 2026-10-20 |
 | 0233 | [The Abort group is the design's custom slot 0; trim on three axes; keys that were pending](0233-abort-group-trim-axes-held-brakes.md) | accepted | 2026-10-20 |
 | 0234 | [A pixel budget for the planet pass, and the other Retina quick wins](0234-planet-pixel-budget-retina-quick-wins.md) | accepted | 2026-10-20 |
+<<<<<<< HEAD
 | 0235 | [Surface links: a part attached at a point and normal of its parent's surface](0235-surface-links.md) | accepted | 2026-10-20 |
+||||||| parent of eb844498 (feat(core,sim,renderer,web): Splashed situation, heat bars, touchdown dust, reduced-motion glare, more term tooltips (plan 246, ADR 0235))
+=======
+| 0235 | [The snapshot says splashed; heat bars, touchdown dust and reduced motion in the flight view](0235-splashed-flag-heat-bars-dust-reduced-motion.md) | accepted | 2026-10-20 |
+>>>>>>> eb844498 (feat(core,sim,renderer,web): Splashed situation, heat bars, touchdown dust, reduced-motion glare, more term tooltips (plan 246, ADR 0235))

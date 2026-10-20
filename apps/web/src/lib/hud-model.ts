@@ -46,11 +46,13 @@ export function situationLabel(
 	phase: FlightPhase | null,
 	escape: boolean,
 	body: string,
-	prelaunch = false
+	prelaunch = false,
+	splashed = false
 ): string {
 	if (prelaunch) return 'On the pad, ready to launch';
 	switch (phase) {
 		case 'landed':
+			if (splashed) return `Splashed down on ${body}`;
 			return `Landed on ${body}`;
 		case 'flight':
 			return `Flying over ${body}`;

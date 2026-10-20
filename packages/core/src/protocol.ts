@@ -290,6 +290,8 @@ export interface VesselSnapshot {
 	frozen?: boolean;
 	/** Sim time of liftoff (plan 200); absent while it waits on the pad (the "pre-launch" situation). */
 	launchedAt?: number;
+	/** Resting on water (plan 246): a splashdown, not a landing; absent otherwise. */
+	splashed?: boolean;
 	/** The trim on each axis, -1..1 (plan 245); absent while all three are zero. */
 	trim?: { pitch: number; yaw: number; roll: number };
 	/** Stages fired so far (plan 221): the HUD of a vessel it switched to starts from it. */

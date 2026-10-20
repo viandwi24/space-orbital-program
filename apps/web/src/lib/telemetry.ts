@@ -24,6 +24,8 @@ export interface Telemetry {
 	escape: boolean;
 	/** On the pad before the first stage (plan 200): no liftoff yet, so no MET. */
 	prelaunch: boolean;
+	/** Resting on water (plan 246). */
+	splashed: boolean;
 }
 
 /** Above this height over the ground a vessel without a liftoff time is no longer on the pad, m. */
@@ -45,7 +47,8 @@ export function computeTelemetry(
 		altitude: Math.hypot(x, y, z) - radius,
 		speed: Math.hypot(v.velocity.x, v.velocity.y, v.velocity.z),
 		escape: false,
-		prelaunch: false
+		prelaunch: false,
+		splashed: v.splashed === true
 	};
 	out.prelaunch =
 		v.launchedAt === undefined &&

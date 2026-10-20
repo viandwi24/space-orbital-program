@@ -59,6 +59,7 @@ import {
 	saveAutoQuality,
 	saveGraphicsPreset
 } from './graphics';
+import { heatMarks } from './hud/heat-marks';
 import { modeForAction } from './hud/sas-model';
 import {
 	DEFAULT_KEYMAP,
@@ -386,6 +387,8 @@ export function startFlight(options: FlightOptions): Flight {
 	/** Unsubscribes from the shared client on dispose. */
 	const offClient: Array<() => void> = [];
 	let renderer: Renderer | null = null;
+	let motion: MediaQueryList | null = null;
+	const onMotion = (e: MediaQueryListEvent): void => renderer?.setReducedMotion(e.matches);
 	let governor: QualityGovernor | null = null;
 	/** The governor's latest changes for Debug → Info (plan 201), at most `GOVERNOR_LOG`. */
 	const governorChanges: string[] = [];
@@ -1336,6 +1339,10 @@ export function startFlight(options: FlightOptions): Flight {
 			const frameData = hudCtl.frame();
 			frameData.maneuver = maneuverCtl?.frame() ?? null;
 			frameData.target = targetView?.frame() ?? null;
+			frameData.heat =
+				renderer && snap && vessel !== null && !renderer.isMapView
+					? heatMarks(snap, vessel, (p) => renderer!.project(p))
+					: null;
 			options.onFrame?.(frameData);
 			if (import.meta.env.DEV) stats.add('paint', performance.now() - t0);
 		}
@@ -1552,6 +1559,10 @@ export function startFlight(options: FlightOptions): Flight {
 				...(c.terrain ? { terrain: c.terrain } : {}),
 				...(c.launchSite ? { launchSite: c.launchSite } : {})
 			});
+			// no bright flashes while the system asks for reduced motion (plan 246)
+			motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
+			renderer.setReducedMotion(motion?.matches ?? false);
+			motion?.addEventListener('change', onMotion);
 			renderer.setCameraMode(cameraMode);
 			const draw = renderer;
 			maneuverCtl = createManeuverController({
@@ -1983,6 +1994,7 @@ export function startFlight(options: FlightOptions): Flight {
 			director.stop();
 			cancelAnimationFrame(raf);
 			observer.disconnect();
+			motion?.removeEventListener('change', onMotion);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);

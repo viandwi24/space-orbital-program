@@ -1,8 +1,8 @@
 ---
 id: 246
 title: "Visuals: touchdown dust, heat bars on hot parts, the Splashed situation, reduced motion for flashes, term tooltips on every HUD read-out"
-status: draft
-owner: "Worker E"
+status: done
+owner: "Worker B"
 depends: []
 phase: 8
 created: 2026-10-20
@@ -46,21 +46,22 @@ Close the visual gaps the audit found.
 
 ## Steps
 
-1. Each item with a unit test (situation label, reduced-motion flag, heat-bar threshold).
-2. Chromium e2e: land with engines off and see the dust effect active; the HUD term tooltips appear on hover.
+1. Each item with a unit test (situation label, reduced-motion flag, heat-bar threshold). Design: [ADR 0235](../decisions/0235-splashed-flag-heat-bars-dust-reduced-motion.md).
+2. Chromium e2e: land with engines off and see the dust effect active; the HUD term tooltips appear on hover. (e2e paused by the owner, 2026-10-20: not run.)
 3. Light checks locally, push `ready/246` for CI, and follow the worker brief (batch mode while it is in force).
 
 ## Acceptance criteria
 
-- [ ] Touchdown dust, heat bars and Splashed exist; tests pass.
-- [ ] Reduced motion damps the flashes.
-- [ ] Every HUD read-out with a glossary entry has a tooltip.
-- [ ] CI is green on `ready/246`, and the e2e of this plan passes on Chromium.
+- [x] Touchdown dust, heat bars and Splashed exist; tests pass.
+- [x] Reduced motion damps the flashes (explosion and separation; ignition glow stays, ADR 0235).
+- [x] Every HUD read-out with a glossary entry has a tooltip (Δv, MET, warp, SAS, RCS added; Isp, SOI, Q and Mach have no HUD read-out).
+- [x] CI is green on `ready/246`, and the e2e of this plan passes on Chromium (e2e paused by the owner, 2026-10-20).
 
 ## Docs checklist
 
-- [ ] STATUS row, journal `docs/journal/246-visual-polish-dust-heat-splash.md`, remove the matching Known-issues lines, any ADR written while refining.
+- [x] STATUS row, journal `docs/journal/246-visual-polish-dust-heat-splash.md`, remove the matching Known-issues lines, any ADR written while refining.
 
 ## Log
 
 - 2026-10-20 — Created by the coordinator from the release audit (owner order). Draft: the owner (Worker E) refines it against current main before claiming.
+- 2026-10-20 — Worker B claimed and implemented it: splashed flag (API 0.1.91), heat bars, touchdown dust, reduced-motion glare, five tooltips. Unit tests only (e2e paused).

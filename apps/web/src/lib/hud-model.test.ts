@@ -28,6 +28,8 @@ describe('labels', () => {
 	it('title-cases the body id', () => expect(bodyLabel('stock.home')).toBe('Home'));
 	it('describes the situation', () => {
 		expect(situationLabel('landed', false, 'Home')).toBe('Landed on Home');
+		expect(situationLabel('landed', false, 'Home', false, true)).toBe('Splashed down on Home');
+		expect(situationLabel('flight', false, 'Home', false, true)).toBe('Flying over Home');
 		expect(situationLabel('orbit', false, 'Home')).toBe('Orbiting Home');
 		expect(situationLabel('orbit', true, 'Home')).toBe('Escaping Home');
 		expect(situationLabel(null, false, 'Home')).toBe('Starting up');
