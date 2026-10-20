@@ -21,6 +21,11 @@ export const fairingConfigSchema = z.object({
 	sections: z.array(fairingSectionSchema).max(24).default([]),
 	/** Capped with a nose: only a closed shell shields. */
 	closed: z.boolean().default(false),
+	/**
+	 * An interstage (plan 243, ADR 0238): the shell is open at the top and carries the next stage on
+	 * a node at its top; it shields what is inside like a closed one. Excludes `closed`.
+	 */
+	interstage: z.boolean().default(false),
 	/** Shell mass per square metre, kg. */
 	arealDensity: z.number().positive().default(4),
 	/** Push on each panel at jettison, N·s, outward. */
@@ -35,6 +40,7 @@ export interface FairingState {
 	/** The shell as built, for the snapshot (the renderer draws it per part, plan 219). */
 	sections: FairingSection[];
 	closed: boolean;
+	interstage?: boolean;
 }
 
 /** A panel's origin stands this far outside the shell's widest radius, m. */
@@ -145,10 +151,12 @@ export const ModuleFairing = defineModule({
 	state: (config): FairingState => ({
 		jettisoned: false,
 		sections: config.sections.map((s) => ({ ...s })),
-		closed: config.closed
+		closed: config.closed,
+		interstage: config.interstage
 	}),
 	mass: (config, state) => (state.jettisoned ? 0 : fairingMass(config)),
-	shell: (config, state) => (state.jettisoned || !config.closed ? null : fairingProfile(config)),
+	shell: (config, state) =>
+		state.jettisoned || !(config.closed || config.interstage) ? null : fairingProfile(config),
 	describe: (config, state) => ({
 		category: 'structural',
 		actions: [
@@ -169,7 +177,8 @@ export const ModuleFairing = defineModule({
 		jettisoned: state.jettisoned,
 		shown: !state.jettisoned,
 		sections: JSON.stringify(state.sections ?? []),
-		closed: state.closed === true
+		closed: state.closed === true,
+		interstage: state.interstage === true
 	})
 });
 

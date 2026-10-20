@@ -265,6 +265,10 @@ Stock fields: engine `limiter` and `gimbalLimit` (0..1, default 1), docking port
 
 `atmosphere.breathable` (optional boolean, off unless `true`) says a suited crew member may take the helmet off in that air; `Ambient.breathable` carries it to module hooks. `stock.helmet` is the suit's helmet module and `helmetMayComeOff` its rule.
 
+## Interstage nodes (API 0.1.93, plan 243, ADR 0238)
+
+An attach node may carry `shellTop: "<module id>"`: it sits at the top of that module's shell (`baseTop` plus the section heights, as wide as the last section) and exists only while the module's per-part `interstage` setting is on. `effectiveDef(def, settings)` gives the definition as one design entry has it; `resolveVesselDesign` and the Hangar use it. The fairing's `interstage` setting (and a shell that shields while open at the top) is `stock.fairing`'s.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

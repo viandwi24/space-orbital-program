@@ -171,7 +171,11 @@ function fairingBase(id: string, title: string, size: number, dry: number) {
 			paramsFrom: ModuleFairing.id,
 			articulation: { module: ModuleFairing.id, field: 'shown', mode: 'visible' }
 		},
-		attach: stackNodes(height, size),
+		// the 'interstage' node exists while the shell is an interstage (plan 243, ADR 0238)
+		attach: {
+			...stackNodes(height, size),
+			interstage: { pos: [0, height / 2, 0], dir: [0, 1, 0], size, shellTop: ModuleFairing.id }
+		},
 		modules: [[ModuleFairing, { size, baseTop: height / 2 }]],
 		stagingIcon: 'decoupler'
 	});
