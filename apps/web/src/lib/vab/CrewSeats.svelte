@@ -5,6 +5,7 @@
 	 * starts from this seating.
 	 */
 	import type { VabController } from './controller.svelte';
+	import { panelFolds } from './panel-folds.svelte';
 
 	let { vab }: { vab: VabController } = $props();
 
@@ -13,7 +14,13 @@
 </script>
 
 {#if vab.seats.length > 0}
-	<details class="crew" aria-label="Crew seats" data-testid="crew-seats">
+	<details
+		class="crew"
+		aria-label="Crew seats"
+		data-testid="crew-seats"
+		open={panelFolds.isOpen('crew')}
+		ontoggle={(e) => panelFolds.set('crew', e.currentTarget.open)}
+	>
 		<summary>
 			<h3>Crew · {vab.seated.length} / {total} seats</h3>
 			<span class="sum"

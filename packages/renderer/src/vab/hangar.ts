@@ -62,15 +62,16 @@ import { SAFETY_CELLS, SIGN_ATLAS, numberCell, type SignCell } from './hangar-si
 export const HANGAR = { half: 30, height: 46, platformRadius: 6.2 } as const;
 
 /**
- * The service towers (plan 220): bases well back from the platform, the left one taller. Their arms
- * stop at the platform edge plus `ARM_MARGIN`, or `ARM_CLEARANCE` outside a vessel's radius.
+ * The service towers (plan 220): bases well back from the platform, the left one taller. Since plan
+ * 255 their arms stay retracted: a stub of `ARM_STUB` past each deck, so the whole middle of the
+ * bay is free whatever the vessel's size.
  */
 export const TOWERS = [
 	{ x: -15, z: -13, height: 30 },
 	{ x: 15, z: -13, height: 26 }
 ] as const;
-export const ARM_MARGIN = 0.2;
-export const ARM_CLEARANCE = 1.0;
+/** How far a retracted arm reaches past its tower's deck edge, m (plan 255). */
+export const ARM_STUB = 1.2;
 
 /** Colours of the room. The accent is the UI accent (`--c-accent`), so the platform ring ties the scene to the panels. */
 export const HANGAR_COLOURS = {
@@ -331,7 +332,7 @@ export interface Hangar {
 	daylight: DayLight;
 	/**
 	 * The widest horizontal reach of the vessel from the platform axis, m, or null for none (plan
-	 * 220): the swing arms stop `ARM_CLEARANCE` outside it, or at the platform edge without one.
+	 * 220); the swing arms no longer follow it (plan 255).
 	 */
 	setVesselRadius(radius: number | null): void;
 	/** Crane, tug and crew freeze at the rest pose (true) or move again (false). */
@@ -816,14 +817,11 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	}
 	for (const t of TOWERS) tower(t.x, t.z, t.height);
 
-	// Swing arms: one truss per deck from the tower towards the vessel's axis. They stop at the
-	// platform's edge, or `ARM_CLEARANCE` outside the vessel once the view gives its radius; rebuilt
-	// only when the reach moves by more than 0.1 m.
+	// Swing arms, retracted to the towers (plan 255): one short truss per deck, nothing in the middle.
 	const arms = new Group();
 	arms.name = 'arms';
 	root.add(arms);
-	let armReach = -1;
-	function buildArms(reach: number): void {
+	function buildArms(): void {
 		for (const c of [...arms.children]) {
 			arms.remove(c);
 			if (c instanceof Mesh) c.geometry.dispose();
@@ -840,8 +838,8 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 			const out = 1.95 / Math.max(Math.abs(ux), Math.abs(uz));
 			const x0 = t.x + ux * out;
 			const z0 = t.z + uz * out;
-			const x1 = -ux * reach;
-			const z1 = -uz * reach;
+			const x1 = x0 + ux * ARM_STUB;
+			const z1 = z0 + uz * ARM_STUB;
 			const len = Math.hypot(x1 - x0, z1 - z0);
 			const yaw = Math.atan2(ux, uz);
 			for (let y = 6; y <= t.height - 3; y += 6) {
@@ -869,14 +867,10 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 			const mesh = b.build(name);
 			if (mesh) arms.add(mesh);
 		}
-		armReach = reach;
 	}
-	const setVesselRadius = (radius: number | null): void => {
-		const reach =
-			radius === null ? HANGAR.platformRadius + ARM_MARGIN : Math.max(radius + ARM_CLEARANCE, 1);
-		if (Math.abs(reach - armReach) > 0.1) buildArms(reach);
-	};
-	setVesselRadius(null);
+	buildArms();
+	/** Kept for the view's sake: the arms no longer follow the vessel (plan 255). */
+	const setVesselRadius = (_radius: number | null): void => {};
 
 	// Floodlights on the towers' lower decks, aimed at the vessel. The fixtures are always there;
 	// the high variant adds real spot lights at the same places.

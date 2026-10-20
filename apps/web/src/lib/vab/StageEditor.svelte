@@ -5,6 +5,8 @@
 	import type { StageEditRow, Environment } from '../editor/stats';
 	import { formatDeltaV, formatDuration } from '../format';
 	import { speedUnit } from '../units.svelte';
+	import FoldButton from './FoldButton.svelte';
+	import { panelFolds } from './panel-folds.svelte';
 
 	let {
 		design,
@@ -114,9 +116,9 @@
 	</button>
 {/snippet}
 
-<section class="stages" aria-label="Stages">
+<section class="stages" class:folded={!panelFolds.isOpen('staging')} aria-label="Stages">
 	<header>
-		<h2>Staging · Δv</h2>
+		<FoldButton id="staging"><h2>Staging · Δv</h2></FoldButton>
 		<div
 			class="total num"
 			data-tip="Total delta-v, {environment === 'vacuum'
@@ -129,150 +131,152 @@
 		</div>
 	</header>
 
-	<div class="env" role="group" aria-label="Delta-v and thrust are shown for">
-		<button
-			type="button"
-			aria-pressed={environment === 'sea-level' && altitude === null}
-			onclick={() => {
-				onenv('sea-level');
-				onaltitude(null);
-			}}
-		>
-			Sea level
-		</button>
-		<button
-			type="button"
-			aria-pressed={environment === 'sea-level' && altitude !== null}
-			onclick={() => {
-				onenv('sea-level');
-				onaltitude(altitude ?? 10_000);
-			}}
-		>
-			Altitude
-		</button>
-		<button type="button" aria-pressed={environment === 'vacuum'} onclick={() => onenv('vacuum')}>
-			Vacuum
-		</button>
-	</div>
-	{#if bodies.length > 1 || (environment === 'sea-level' && altitude !== null)}
-		<div class="where">
-			{#if bodies.length > 1}
-				<label>
-					<span class="dim">At</span>
-					<select
-						data-testid="stats-body"
-						value={bodyId}
-						onchange={(e) => onbody(e.currentTarget.value)}
-					>
-						{#each bodies as b (b.id)}<option value={b.id}>{b.label}</option>{/each}
-					</select>
-				</label>
-			{/if}
-			{#if environment === 'sea-level' && altitude !== null}
-				<label>
-					<input
-						class="num"
-						type="number"
-						min="0"
-						step="1000"
-						value={altitude}
-						aria-label="Altitude, m"
-						data-testid="stats-altitude"
-						onchange={(e) => {
-							const m = Number(e.currentTarget.value);
-							if (Number.isFinite(m) && m >= 0) onaltitude(m);
-						}}
-					/>
-					<span class="dim">m</span>
-				</label>
-			{/if}
-		</div>
-	{/if}
-
-	{#if design.parts.length === 0}
-		<p class="empty">Stages appear here once you attach an engine.</p>
-	{:else}
-		<ol class="list">
-			<li
-				class="row new"
-				class:over={over === 'new'}
-				ondragover={(e) => allow(e, 'new')}
-				ondragleave={() => (over = null)}
-				ondrop={(e) => drop(e, 'new')}
-			>
-				<span class="badge"><Icon name="plus" size={14} /></span>
-				<span class="drop">Drop here for a new last stage</span>
-			</li>
-			{#each order as k (k)}
-				{@const r = rowOf(k)}
-				<li
-					class="row"
-					class:over={over === k}
-					class:empty={(design.stages[k] ?? []).length === 0}
-					ondragover={(e) => allow(e, k)}
-					ondragleave={() => (over = null)}
-					ondrop={(e) => drop(e, k)}
-				>
-					<span class="badge num" data-tip="Pressing Space number {k + 1} fires this stage"
-						>{k + 1}</span
-					>
-					<div class="chips">
-						{#each design.stages[k] ?? [] as index (index)}
-							{@render chip(index, k)}
-						{:else}
-							<span class="drop">Empty</span>
-						{/each}
-					</div>
-					<div class="nums num">
-						{#if r && r.engines > 0}
-							<span class="dv">{dv(r.dv)}<span class="u"> {speedUnit()}</span></span>
-							<span class="meta" data-tip="Thrust to weight when the stage ignites"
-								>TWR {r.twr.toFixed(2)}</span
-							>
-							<span class="meta">{formatDuration(r.burnTime)}</span>
-						{:else if (design.stages[k] ?? []).length === 0}
-							<button
-								type="button"
-								class="x"
-								aria-label="Remove empty stage {k + 1}"
-								onclick={() => onremove(k)}
-							>
-								<Icon name="close" size={14} />
-							</button>
-						{:else}
-							<span class="meta">No burn</span>
-						{/if}
-					</div>
-				</li>
-			{/each}
-			<li
-				class="row tray"
-				class:over={over === 'tray'}
-				ondragover={(e) => allow(e, 'tray')}
-				ondragleave={() => (over = null)}
-				ondrop={(e) => drop(e, 'tray')}
-			>
-				<span class="badge" data-tip="Not staged"><Icon name="stage" size={14} /></span>
-				<div class="chips">
-					{#each unstaged as index (index)}
-						{@render chip(index, null)}
-					{:else}
-						<span class="drop">Nothing waiting</span>
-					{/each}
-				</div>
-			</li>
-		</ol>
-		<footer>
+	{#if panelFolds.isOpen('staging')}
+		<div class="env" role="group" aria-label="Delta-v and thrust are shown for">
 			<button
 				type="button"
-				class="auto"
-				aria-pressed={autoStage}
-				disabled={autoStage}
-				onclick={onauto}
+				aria-pressed={environment === 'sea-level' && altitude === null}
+				onclick={() => {
+					onenv('sea-level');
+					onaltitude(null);
+				}}
 			>
-				{autoStage ? 'Staging follows the design' : 'Auto-stage'}
+				Sea level
 			</button>
-		</footer>
+			<button
+				type="button"
+				aria-pressed={environment === 'sea-level' && altitude !== null}
+				onclick={() => {
+					onenv('sea-level');
+					onaltitude(altitude ?? 10_000);
+				}}
+			>
+				Altitude
+			</button>
+			<button type="button" aria-pressed={environment === 'vacuum'} onclick={() => onenv('vacuum')}>
+				Vacuum
+			</button>
+		</div>
+		{#if bodies.length > 1 || (environment === 'sea-level' && altitude !== null)}
+			<div class="where">
+				{#if bodies.length > 1}
+					<label>
+						<span class="dim">At</span>
+						<select
+							data-testid="stats-body"
+							value={bodyId}
+							onchange={(e) => onbody(e.currentTarget.value)}
+						>
+							{#each bodies as b (b.id)}<option value={b.id}>{b.label}</option>{/each}
+						</select>
+					</label>
+				{/if}
+				{#if environment === 'sea-level' && altitude !== null}
+					<label>
+						<input
+							class="num"
+							type="number"
+							min="0"
+							step="1000"
+							value={altitude}
+							aria-label="Altitude, m"
+							data-testid="stats-altitude"
+							onchange={(e) => {
+								const m = Number(e.currentTarget.value);
+								if (Number.isFinite(m) && m >= 0) onaltitude(m);
+							}}
+						/>
+						<span class="dim">m</span>
+					</label>
+				{/if}
+			</div>
+		{/if}
+
+		{#if design.parts.length === 0}
+			<p class="empty">Stages appear here once you attach an engine.</p>
+		{:else}
+			<ol class="list">
+				<li
+					class="row new"
+					class:over={over === 'new'}
+					ondragover={(e) => allow(e, 'new')}
+					ondragleave={() => (over = null)}
+					ondrop={(e) => drop(e, 'new')}
+				>
+					<span class="badge"><Icon name="plus" size={14} /></span>
+					<span class="drop">Drop here for a new last stage</span>
+				</li>
+				{#each order as k (k)}
+					{@const r = rowOf(k)}
+					<li
+						class="row"
+						class:over={over === k}
+						class:empty={(design.stages[k] ?? []).length === 0}
+						ondragover={(e) => allow(e, k)}
+						ondragleave={() => (over = null)}
+						ondrop={(e) => drop(e, k)}
+					>
+						<span class="badge num" data-tip="Pressing Space number {k + 1} fires this stage"
+							>{k + 1}</span
+						>
+						<div class="chips">
+							{#each design.stages[k] ?? [] as index (index)}
+								{@render chip(index, k)}
+							{:else}
+								<span class="drop">Empty</span>
+							{/each}
+						</div>
+						<div class="nums num">
+							{#if r && r.engines > 0}
+								<span class="dv">{dv(r.dv)}<span class="u"> {speedUnit()}</span></span>
+								<span class="meta" data-tip="Thrust to weight when the stage ignites"
+									>TWR {r.twr.toFixed(2)}</span
+								>
+								<span class="meta">{formatDuration(r.burnTime)}</span>
+							{:else if (design.stages[k] ?? []).length === 0}
+								<button
+									type="button"
+									class="x"
+									aria-label="Remove empty stage {k + 1}"
+									onclick={() => onremove(k)}
+								>
+									<Icon name="close" size={14} />
+								</button>
+							{:else}
+								<span class="meta">No burn</span>
+							{/if}
+						</div>
+					</li>
+				{/each}
+				<li
+					class="row tray"
+					class:over={over === 'tray'}
+					ondragover={(e) => allow(e, 'tray')}
+					ondragleave={() => (over = null)}
+					ondrop={(e) => drop(e, 'tray')}
+				>
+					<span class="badge" data-tip="Not staged"><Icon name="stage" size={14} /></span>
+					<div class="chips">
+						{#each unstaged as index (index)}
+							{@render chip(index, null)}
+						{:else}
+							<span class="drop">Nothing waiting</span>
+						{/each}
+					</div>
+				</li>
+			</ol>
+			<footer>
+				<button
+					type="button"
+					class="auto"
+					aria-pressed={autoStage}
+					disabled={autoStage}
+					onclick={onauto}
+				>
+					{autoStage ? 'Staging follows the design' : 'Auto-stage'}
+				</button>
+			</footer>
+		{/if}
 	{/if}
 </section>
 
@@ -380,9 +384,11 @@
 		scrollbar-width: thin;
 	}
 	.row {
+		/* rows keep their height (a wrapped row of chips used to be squeezed over the next) and share one grid */
+		flex: none;
 		display: grid;
-		grid-template-columns: 24px 1fr auto;
-		align-items: center;
+		grid-template-columns: 24px minmax(0, 1fr) 5.5rem;
+		align-items: start;
 		gap: var(--s-2);
 		min-height: 46px;
 		padding: 4px var(--s-2);
@@ -405,6 +411,7 @@
 		background: transparent;
 	}
 	.badge {
+		align-self: center;
 		display: grid;
 		place-items: center;
 		width: 22px;
@@ -453,6 +460,7 @@
 	.nums {
 		display: grid;
 		justify-items: end;
+		align-self: center;
 		line-height: 1.15;
 	}
 	.dv {

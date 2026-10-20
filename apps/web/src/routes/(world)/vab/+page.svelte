@@ -15,7 +15,7 @@
 	import StatsStrip from '../../../lib/vab/StatsStrip.svelte';
 	import VesselName from '../../../lib/vab/VesselName.svelte';
 	import BuildContext from '../../../lib/vab/BuildContext.svelte';
-	import { pageActions } from '../../../lib/layout/page-actions.svelte';
+	import { pageShell } from '../../../lib/layout/page-actions.svelte';
 	import ToolPill from '../../../lib/vab/ToolPill.svelte';
 	import { VabController } from '../../../lib/vab/controller.svelte';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
@@ -100,45 +100,57 @@
 		void vab.drawer;
 		queueMicrotask(() => vab.updateInsets());
 	});
-	// the Hangar's actions in the world menu bar (plan 204, rancangan §2.4)
+	// the Hangar's actions in the world menu bar, as icons like Flight's (plan 204, plan 255)
 	$effect(() => {
-		pageActions.current = menuActions;
+		pageShell.actions = [
+			{
+				id: 'new',
+				label: 'New',
+				icon: 'new',
+				title: 'A new, empty vessel',
+				testid: 'menu-new',
+				onclick: () => vab.newVessel()
+			},
+			{
+				id: 'open',
+				label: 'Open',
+				icon: 'open',
+				title: 'Open a vessel from the library',
+				testid: 'menu-open',
+				onclick: () => void vab.openLibrary()
+			},
+			{
+				id: 'save',
+				label: 'Save',
+				icon: 'save',
+				title: 'Save to the library (Ctrl+S)',
+				testid: 'menu-save',
+				disabled: vab.editor.design.parts.length === 0,
+				onclick: () => {
+					vab.saveState = 'saving';
+					void vab.flushSave();
+				}
+			},
+			{
+				id: 'launch',
+				label: 'Launch',
+				icon: 'launch',
+				primary: true,
+				title: vab.launchBlocked
+					? vab.checks.find((c) => c.severity === 'error')?.text
+					: vab.warnings > 0
+						? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
+						: 'Go to the launch screen (Shift-click: fly at once)',
+				testid: 'menu-launch',
+				disabled: vab.launchBlocked,
+				onclick: (e) => vab.launch(false, e.shiftKey)
+			}
+		];
 		return () => {
-			if (pageActions.current === menuActions) pageActions.current = null;
+			pageShell.actions = [];
 		};
 	});
 </script>
-
-{#snippet menuActions()}
-	<Button onclick={() => vab.newVessel()} data-tip="A new, empty vessel" data-testid="menu-new"
-		>New</Button
-	>
-	<Button
-		onclick={() => vab.openLibrary()}
-		data-tip="Open a vessel from the library"
-		data-testid="menu-open">Open</Button
-	>
-	<Button
-		disabled={vab.editor.design.parts.length === 0}
-		onclick={() => {
-			vab.saveState = 'saving';
-			void vab.flushSave();
-		}}
-		data-tip="Save to the library (Ctrl+S)"
-		data-testid="menu-save">Save</Button
-	>
-	<Button
-		variant="primary"
-		disabled={vab.launchBlocked}
-		onclick={(e) => vab.launch(false, e.shiftKey)}
-		data-tip={vab.launchBlocked
-			? vab.checks.find((c) => c.severity === 'error')?.text
-			: vab.warnings > 0
-				? `${vab.warnings} warning${vab.warnings === 1 ? '' : 's'}: you will be asked to confirm`
-				: 'Go to the launch screen (Shift: fly at once)'}
-		data-testid="menu-launch">Launch</Button
-	>
-{/snippet}
 
 <PageMeta
 	title="Vehicle assembly · {GAME_NAME}"
@@ -344,7 +356,8 @@
 		/* no bar of its own (plan 238): the shell's menu bar is the page's only top bar */
 		grid-template-rows: minmax(0, 1fr) auto;
 		gap: var(--s-3);
-		padding: var(--margin-hud);
+		/* under the bars (plan 255): the time and menu bars float over the view, 80 px at the top, 56 at the foot */
+		padding: calc(5rem + var(--safe-top)) var(--margin-hud) calc(3.5rem + var(--safe-bottom));
 		pointer-events: none;
 		min-height: 0;
 	}
@@ -366,7 +379,7 @@
 		grid-row: 1 / 3;
 		display: flex;
 		flex-direction: column;
-		gap: var(--s-2);
+		gap: 0.375rem;
 		min-height: 0;
 		overflow-x: hidden;
 		overflow-y: auto;
@@ -375,11 +388,13 @@
 	/* Nothing in the right column can be cut off: the stage list and the checks scroll inside their
 	   own panels, the Launch button always keeps its place at the foot. */
 	.rightcol :global(.stages) {
-		flex: 1 1 0;
-		/* the header, the situation picker and at least three stage rows; the column scrolls past it */
-		min-height: 300px;
-		overflow-y: auto;
-		scrollbar-width: thin;
+		/* its natural height: the column scrolls, no stage row is cut off (plan 255) */
+		flex: none;
+	}
+	/* folded (plan 255): just its header */
+	.rightcol :global(.stages.folded) {
+		flex: none;
+		min-height: 0;
 	}
 	.rightcol :global(.checks) {
 		flex: 0 1 auto;

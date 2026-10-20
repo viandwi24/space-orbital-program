@@ -15,9 +15,11 @@ export interface PageAction {
 	/** A panel toggle (BASE_LAYOUT §3: the dot while open); undefined for a one-press action. */
 	on?: boolean;
 	disabled?: boolean;
+	/** The main action of the page (the Hangar's Launch): its icon is lit. */
+	primary?: boolean;
 	title?: string;
 	testid?: string;
-	onclick?: () => void;
+	onclick?: (e: MouseEvent) => void;
 }
 
 /** The time bar while a page drives the warp (Flight, plan 206's levels). */

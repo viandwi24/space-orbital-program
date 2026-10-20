@@ -7,6 +7,9 @@
 	import type { Stability } from '../editor/stability';
 	import type { Destination } from '../editor/trip';
 	import type { TripView } from '../editor/trip-view';
+	import { panelFolds } from './panel-folds.svelte';
+	import { tripSummary } from './panel-model';
+	import Icon from '../ui/Icon.svelte';
 
 	let {
 		stats,
@@ -66,6 +69,7 @@
 				}`
 	);
 	const n = formatDeltaV;
+	const summary = $derived(tripSummary(trip, n, speedUnit()));
 </script>
 
 <section class="strip" aria-label="Vessel summary">
@@ -121,7 +125,20 @@
 			<span class="legend" aria-hidden="true"><b>◉</b> mass <b class="cop">△</b> pressure</span>
 		{/if}
 	</div>
-	<div class="trip">
+	<details
+		class="trip"
+		open={panelFolds.isOpen('trip')}
+		ontoggle={(e) => panelFolds.set('trip', e.currentTarget.open)}
+		data-testid="trip"
+	>
+		<summary
+			class="tripline"
+			data-tip="The trip plan: the stages' delta-v against what the trip needs"
+		>
+			<span class="dot {summary.tone}" aria-hidden="true"></span>
+			<span class="txt">{summary.text}</span>
+			<span class="chev" aria-hidden="true"><Icon name="chevron" size={14} /></span>
+		</summary>
 		<label class="pick">
 			<span class="u">Trip</span>
 			<select
@@ -186,7 +203,7 @@
 				from the loaded bodies.
 			</p>
 		</details>
-	</div>
+	</details>
 </section>
 
 <style>
@@ -271,8 +288,52 @@
 	.trip {
 		display: grid;
 		gap: 4px;
-		padding: 0.375rem 0.375rem 0;
+		padding: 0.25rem 0.375rem 0;
 		border-top: 1px solid var(--border-divider);
+	}
+	/* the trip as one line, the detail under a chevron (plan 255) */
+	.tripline {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 1.5rem;
+		cursor: pointer;
+		list-style: none;
+		font-size: var(--t-small);
+	}
+	.tripline::-webkit-details-marker {
+		display: none;
+	}
+	.tripline .txt {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	.tripline .dot {
+		flex: none;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--text-muted);
+	}
+	.tripline .dot.good {
+		background: var(--ok);
+	}
+	.tripline .dot.warn {
+		background: var(--warn);
+	}
+	.chev {
+		display: grid;
+		color: var(--text-muted);
+		transition: transform 0.15s;
+	}
+	.trip[open] .chev {
+		transform: rotate(90deg);
+	}
+	.trip[open] > :not(summary) {
+		margin-top: 2px;
 	}
 	.line {
 		display: flex;
@@ -308,7 +369,8 @@
 		padding: 2px var(--s-2);
 	}
 	select:focus-visible,
-	summary:focus-visible {
+	summary:focus-visible,
+	.tripline:focus-visible {
 		outline: 2px solid var(--text-primary);
 		outline-offset: 1px;
 	}

@@ -75,19 +75,15 @@ describe('hangar', () => {
 		}
 	});
 
-	it('the swing arms stop at the platform edge, or 1 m outside a set vessel radius', () => {
+	it('the swing arms stay retracted: nothing of them comes within 10 m of the axis, whatever the vessel (plan 255)', () => {
 		const h = createHangar({ dust: 0, textureSize: 16 });
-		expect(nearest(armsOf(h))).toBeGreaterThanOrEqual(HANGAR.platformRadius);
-		h.setVesselRadius(1.875);
-		const close = nearest(armsOf(h));
-		expect(close).toBeGreaterThanOrEqual(2.5);
-		expect(close).toBeLessThan(HANGAR.platformRadius);
-		// a change under 0.1 m keeps the geometry
-		const before = armsOf(h).children[0];
-		h.setVesselRadius(1.9);
-		expect(armsOf(h).children[0]).toBe(before);
+		const far = nearest(armsOf(h));
+		expect(far).toBeGreaterThanOrEqual(10);
+		expect(far).toBeGreaterThan(HANGAR.platformRadius * 1.5);
+		h.setVesselRadius(5);
+		expect(nearest(armsOf(h))).toBe(far);
 		h.setVesselRadius(null);
-		expect(nearest(armsOf(h))).toBeGreaterThanOrEqual(HANGAR.platformRadius);
+		expect(nearest(armsOf(h))).toBe(far);
 		h.dispose();
 	});
 

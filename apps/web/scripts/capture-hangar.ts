@@ -1,68 +1,44 @@
 /**
- * Screenshots of the Hangar from four angles (plan 220: the roomier towers), with the moon shot on
- * the platform, at 1920x1080. Playwright's bundled Chromium with software WebGL, against a running
- * dev server or build:
+ * The Hangar's look check (plan 255): the booster example at 1440 x 900, the right panel as it
+ * starts and with the trip opened, for the journal's before and after. Against a dev server:
  *
- *   SHOT_URL=http://localhost:5211 bun scripts/capture-hangar.ts
+ *   SHOT_TAG=after SHOT_URL=http://localhost:5230 bun scripts/capture-hangar.ts
  *
- * Output: `docs/journal/assets/220-hangar-<angle>.jpg`; prints the vessel's triangles.
+ * Output: `docs/journal/assets/255-<tag>-hangar.jpg` and `255-<tag>-hangar-trip.jpg`.
  */
 import { chromium } from '@playwright/test';
 import { join } from 'node:path';
 
-const base = process.env.SHOT_URL ?? 'http://localhost:5211';
+const base = process.env.SHOT_URL ?? 'http://localhost:5230';
+const tag = process.env.SHOT_TAG ?? 'after';
 const out = process.env.SHOT_OUT ?? join(import.meta.dir, '../../../docs/journal/assets');
 
-/** Yaw, pitch (rad) and distance (m) of each view, looking at 8 m up the stack. */
-const ANGLES = [
-	{ name: 'front', yaw: 0, pitch: 0.12, distance: 36 },
-	{ name: 'side', yaw: Math.PI / 2, pitch: 0.12, distance: 36 },
-	{ name: 'high', yaw: Math.PI / 4, pitch: Math.PI / 4, distance: 42 },
-	{ name: 'top', yaw: 0, pitch: 1.35, distance: 28 } // under the crane: the debug camera skips the room limits
-] as const;
-
-type Hook = {
-	aim(yaw: number, pitch: number, distance: number, target?: [number, number, number]): void;
-	stats(): { vesselTriangles: number; vesselDrawCalls: number } | null;
-};
-
 const browser = await chromium.launch({
-	args: ['--use-gl=angle', '--use-angle=swiftshader', '--ignore-gpu-blocklist']
+	headless: false,
+	args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist']
 });
 const context = await browser.newContext({
-	viewport: { width: 1920, height: 1080 },
+	viewport: { width: 1440, height: 900 },
+	deviceScaleFactor: 1,
 	baseURL: base
 });
 const page = await context.newPage();
 page.on('pageerror', (e) => console.log('  pageerror', e.message));
+await page.addInitScript(() => {
+	localStorage.removeItem('orbital.vab.folds');
+});
 await page.goto('/vab');
-await page.waitForFunction(() => '__orbitalVab' in window, null, { timeout: 60_000 });
-await page.getByRole('button', { name: 'Load the moon shot' }).click();
-const skip = page.getByTestId('tutorial-skip');
-if (await skip.isVisible().catch(() => false)) await skip.click();
-await page.waitForTimeout(3000);
-for (const a of ANGLES) {
-	await page.evaluate(
-		(v) =>
-			(window as unknown as { __orbitalVab: Hook }).__orbitalVab.aim(
-				v.yaw,
-				v.pitch,
-				v.distance,
-				[0, 8, 0]
-			),
-		a
-	);
-	await page.waitForTimeout(1500);
+await page.getByRole('button', { name: 'Load the booster rocket' }).click();
+await page.waitForTimeout(4000);
+await page.screenshot({ path: join(out, `255-${tag}-hangar.jpg`), type: 'jpeg', quality: 88 });
+const trip = page.getByTestId('trip').locator('summary').first();
+if (await trip.count()) {
+	await trip.click();
+	await page.waitForTimeout(400);
 	await page.screenshot({
-		path: join(out, `220-hangar-${a.name}.jpg`),
+		path: join(out, `255-${tag}-hangar-trip.jpg`),
 		type: 'jpeg',
-		quality: 82
+		quality: 88
 	});
-	console.log(`  220-hangar-${a.name}`);
 }
-const stats = await page.evaluate(() =>
-	(window as unknown as { __orbitalVab: Hook }).__orbitalVab.stats()
-);
-console.log('  vessel', stats);
-await context.close();
 await browser.close();

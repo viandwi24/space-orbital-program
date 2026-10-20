@@ -38,6 +38,12 @@ export const SHELL_ICONS = {
 	camera: 'M3 8 H7 L9 5 H15 L17 8 H21 V19 H3 Z M12 9.5 A3.5 3.5 0 1 1 11.99 9.5 Z',
 	// the status bar's small icons (`Base.dc.html`)
 	autosave: 'M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21',
+	// the Hangar's actions (plan 255): a new sheet, an open folder, a disk, a rocket lifting off
+	new: 'M6 3 H14 L18 7 V21 H6 Z M14 3 V7 H18 M12 11 V17 M9 14 H15',
+	open: 'M3 6 H9 L11 8 H19 V10 M3 6 V19 H18 L21 10 H7 L3 19',
+	save: 'M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21',
+	launch:
+		'M12 2 C15 5 16 8 16 12 L18 15 H6 L8 12 C8 8 9 5 12 2 Z M12 8.5 A1.5 1.5 0 1 1 11.99 8.5 Z M9.5 18 C10 20 11 21 12 22 C13 21 14 20 14.5 18',
 	mods: 'M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20'
 } as const;
 
@@ -120,6 +126,6 @@ export const STATUS_ZONES = {
 	right: ['autosave', 'mods', 'bell']
 } as const;
 
-/** Pages that draw a 3D view under the bars; the others sit in the safe area. */
-export const IMMERSIVE = ['/flight', '/space-center'] as const;
+/** Pages that draw a 3D view under the bars; the others sit in the safe area. The Hangar joined them with plan 255. */
+export const IMMERSIVE = ['/flight', '/space-center', '/vab'] as const;
 export const isImmersive = (path: string): boolean => IMMERSIVE.some((p) => path.endsWith(p));

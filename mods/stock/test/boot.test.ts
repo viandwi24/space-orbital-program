@@ -368,4 +368,11 @@ describe('stock data kinds (plan 083)', () => {
 			'stock.bulk'
 		]);
 	});
+
+	test('the EVA suit and the flag are not catalogue parts; the ladder is (plan 255)', () => {
+		const hidden = (id: string) => loaded.registries.parts.get(id)!.catalog?.hidden === true;
+		expect(hidden('stock.eva-suit')).toBe(true);
+		expect(hidden('stock.flag')).toBe(true);
+		expect(hidden('stock.ladder')).toBe(false);
+	});
 });
