@@ -8,7 +8,7 @@
 |---|---|
 | `keybindings.ts` | no key is `pending` any more: Backspace abort, `/` stop warp, Alt+A/D/Q/E yaw and roll trim, Alt+X reset; the new action `brakesHold` (B in the KSP profile, Alt+C in Classic, whose C toggle stays); the help overlay lists them |
 | `flight-loop.ts` | `abort()` cuts the throttle and fires `custom.0` with a toast that says when the group is empty; `/` sets warp 1×; the trims step 0.05 per axis; reset sends three zeros; the brakes go on at key-down and off at key-up or when the window loses focus |
-| `packages/core` | `ABORT_SLOT` (0); the design's slot range 0–10; `trim` takes optional `pitch`, `yaw`, `roll`; `VesselSnapshot.trim`; API 0.1.89 |
+| `packages/core` | `ABORT_SLOT` (0); the design's slot range 0–10; `trim` takes optional `pitch`, `yaw`, `roll`; `VesselSnapshot.trim`; API 0.1.90 |
 | `packages/sim` | `trimYaw` and `trimRoll` beside the pitch trim; `effectiveControl` offsets each axis with and without SAS; the snapshot carries `trim` while any axis is set |
 | Hangar | the group editor lists Abort first, then Custom 1–10; the vessel panel names `custom.0` Abort |
 | HUD | a `TRIM P +0.05 Y 0.00 R 0.00` chip over the read-outs while a trim is set |
