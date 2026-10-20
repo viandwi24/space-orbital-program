@@ -190,8 +190,8 @@ describe('completions', () => {
 	it('offers the globals for a word being typed, by prefix', () => {
 		expect(names('wa')).toEqual(['wait', 'waitUntil', 'warp', 'warpTo']);
 		expect(names('await war')).toEqual(['warp', 'warpTo']);
-		expect(names('x = set')).toEqual(['setNode', 'setTarget']);
-		expect(names('x = SET')).toEqual(['setNode', 'setTarget']);
+		expect(names('x = set')).toEqual(['setNode', 'setAlarm', 'setTarget']);
+		expect(names('x = SET')).toEqual(['setNode', 'setAlarm', 'setTarget']);
 	});
 
 	it('offers the members of ship after the dot, with writable ones marked', () => {
@@ -201,7 +201,7 @@ describe('completions', () => {
 		expect(c.from).toBe(5);
 		expect(names('ship.ta')).toEqual(['target', 'targets']);
 		expect(names('ship.', 5)).toContain('altitude');
-		expect(names('ship.', 5)).toHaveLength(29);
+		expect(names('ship.', 5)).toHaveLength(30);
 		expect(names('ship. t')).toEqual(expect.arrayContaining(['t', 'throttle']));
 	});
 
