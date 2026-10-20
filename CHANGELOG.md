@@ -88,7 +88,7 @@ The first public release of Space Orbital Program: build rockets in a 3D hangar,
 
 - On a Retina screen the High preset is about 2.6 to 3.1 times cheaper at the same look: on the M5's built-in display the frame time at the pad, 3 km, 12 km and in orbit went from 43.7, 47.3, 50.4 and 27.1 ms to 16.5, 15.1, 16.8 and 9.9 ms, with a softer ground at the Space Center. (252)
 - Debug → Performance shows the frame-time distribution (p50, p95, p99 and the share of slow frames), and the debug API can switch each High extra off to see what it costs. (251)
-- _(pending: 253)_ A quality governor that drops quality fast, raises it only on measured headroom, and does not stutter in a loop.
+- The quality governor drops quality within about a second of a heavy scene, raises it only when it has measured headroom (or one trial per step, banned for the scene if it fails), and reads a 30 ms cap as a cap. On the M5's built-in display (120 Hz) a two-minute run at the pad changed quality once, against five times before, with 0.045 % of frames over 33 ms; the screen's third vsync still makes 25 % of frames 25 ms. (253)
 
 ### Saves, safety and tools
 
