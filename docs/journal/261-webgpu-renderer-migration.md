@@ -1,4 +1,4 @@
-# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1)
+# 261 — WebGPU renderer (Phase 0 spike, Phase 6 sky spike, Phase 1, Phase 2a)
 
 **Plan:** [plans/261-webgpu-renderer-migration.md](../plans/261-webgpu-renderer-migration.md) · **Session:** Worker D (MacBook Pro M2 13"), 2026-10-20 · **Branch:** `gfx/261-webgpu` · **ADRs:** [0242](../decisions/0242-webgpu-renderer-backend.md)
 
@@ -124,3 +124,35 @@ bun run typecheck                                     0 errors
 bun run build                                         done
 headed Chromium, /flight?renderer=webgpu|webgpu-fallback, presets low, medium, high: 0 console errors; Debug → Info "webgpu · WebGPU: apple metal-3 · GPU 2.19 ms a frame"
 ```
+
+## Phase 2, slice 2a: the planet and the sky in the game
+
+The planet pass is about 2 000 lines of GLSL: a terrain ray march with root finding, patches, clouds, waves, shafts and aurora. It comes over in slices, each one shown in the game. 2a is everything a ray needs to meet the sea-level sphere or the sky.
+
+| Where | What |
+|---|---|
+| `tsl/noise.ts` | pcg3d value noise, `noiseT`, `noiseA` (the anchored lattice), `fbmF`, the octave rotation, `warpedLatLon`: the same lattice and hashes as the GLSL |
+| `tsl/lut-sky.ts` | The spike's tables as a module: in-scatter along any camera ray to the sea-level sphere or out of the air, its transmittance (to the ground by Bruneton's ratio), the sunlight at a point |
+| `tsl/planet-pass.ts` | The pass: the camera ray from `uInvProj` and `uCamRot`. The sphere hit. `surfaceAt` on the sphere: the biome map through the warp, the gradient, the coast and colour octaves, grass, forest, desert, rock, snow, beach, wet sand and sea. `sitePaving`: pad, slabs, scorch, ring and cross, roads with dashes and edge lines, aprons, lawn stripes. Sun, ambient (the GLSL's `k`), sea reflection and glint. Stars, the sun's disc. The veil over land as `terrainVeil`. The NaN guard, log depth |
+| `renderer-webgpu.ts` | Builds the TSL pass beside the GLSL mesh, updates it after `prepareFrame` (uniforms, visibility, the sky view), follows the preset's ground octaves |
+
+| M2, Chromium, 1280 × 800, `high` | WebGL | WebGPU, 2a |
+|---|---|---|
+| pad | ![](assets/261-2a-webgl-pad.jpg) | ![](assets/261-2a-webgpu-pad.jpg) |
+| low sun | ![](assets/261-2a-webgl-sunset.jpg) | ![](assets/261-2a-webgpu-sunset.jpg) |
+| 12 km | ![](assets/261-2a-webgl-12km.jpg) | ![](assets/261-2a-webgpu-12km.jpg) |
+| orbit | ![](assets/261-2a-webgl-orbit.jpg) | ![](assets/261-2a-webgpu-orbit.jpg) |
+
+`benchmarkAsync(20)`: WebGL 60 / 91 / 59 / 22 ms, WebGPU 1.7 / 1.1 / 1.1 / 0.6 ms (pad, low sun, 12 km, orbit). **Not a comparison yet**: WebGPU draws no terrain march, clouds or water detail, which are most of WebGL's time. The comparison is meaningful once 2b and 2c are in.
+
+### What surprised me
+
+- **A one-line `If` callback is a return.** `If(c, () => x.assign(y))` hands TSL the assign as the callback's value. TSL warns "Return statement used in an inline Fn()" and treats it as a `return`, so callbacks are written with braces.
+- **Colour and depth come from one node.** A `property` written in the colour node and read in the depth node depends on the order in which the material sets them up. Returning `vec4(colour, viewZ)` from one `Fn` and reading `.xyz` and `.w` makes TSL emit the pass once.
+- **The comparison runs need a profile each.** The WebGL run autosaved the vessel in orbit, and the next page loaded that save.
+- **Land needs the terrain veil.** Without it the WebGPU ground at 12 km read paler than WebGL's, whose terrain uses the thinner veil near the camera.
+
+### Not in 2a (next slices)
+
+- 2b: the terrain bake (in TSL, Phase 3's compute later), the march, root finding and silhouette, relief and slope normals, the terrain's and the vessel's shadows on the ground.
+- 2c: lakes, rivers, shore and sea waves, ripples; cumulus, cirrus and their shadows; light shafts; aurora; the half-size pass (Phase 2 step 10).

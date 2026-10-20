@@ -9,7 +9,8 @@
  * - warm-up with `compileAsync`, which no longer blocks drawing on WebGPU;
  * - a lost device or context builds a new renderer on the same canvas.
  *
- * Meshes still on GLSL (the planet pass, moons, effects; Phases 2–4) are hidden each frame
+ * The planet pass is `tsl/planet-pass.ts` (Phase 2), drawn in the GLSL pass's place from the
+ * uniforms the GLSL pass keeps. Meshes still on GLSL (moons, effects; Phases 2–4) are hidden each frame
  * (`webgpu-compat.ts`) and listed in Debug → Info, so the scene draws what is ported and the
  * hemisphere light stands in for the sky light until the planet pass is.
  */
@@ -28,6 +29,7 @@ import {
 import type { Renderer, RendererConfig, RendererDebug } from './renderer.ts';
 import { MIN_RENDER_SCALE, debugFacade, sceneFacade, withShared } from './renderer-facade.ts';
 import { SceneModel } from './scene.ts';
+import { PlanetPassTSL } from './tsl/planet-pass.ts';
 import { hideUnported } from './webgpu-compat.ts';
 
 /** Steps `LaunchSite.warmVegetation` takes for the three presets' sets (as in renderer.ts). */
@@ -65,6 +67,9 @@ export function createWebGPURenderer(
 	const model = new SceneModel(config);
 	const env = model.environment;
 	let preset: GraphicsPreset = config.preset ?? 'high';
+	// the TSL planet pass beside the GLSL one, which stays in the scene for its CPU side and is hidden
+	const planet = new PlanetPassTSL(env.planet, env.atmosphere, PRESETS[preset].groundOctaves);
+	env.planet.mesh.parent?.add(planet.mesh);
 	let width = 1;
 	let height = 1;
 	let pixelRatio = 1;
@@ -207,6 +212,7 @@ export function createWebGPURenderer(
 		const r = gpu;
 		if (!r) return;
 		model.prepareFrame(dt);
+		planet.update(r, model.camera, Math.max(1, Math.round(height * pixelRatio)));
 		r.toneMappingExposure = env.state.exposure;
 		withPorted(() => (pipeline ? pipeline.render() : r.render(model.scene, model.camera)));
 		drawn = { calls: r.info.render.drawCalls, triangles: r.info.render.triangles };
@@ -381,6 +387,7 @@ export function createWebGPURenderer(
 			setPreset(next: GraphicsPreset) {
 				preset = next;
 				model.setPreset(next);
+				planet.setOctaves(PRESETS[next].groundOctaves);
 				applySize();
 			},
 			get preset() {
@@ -416,6 +423,8 @@ export function createWebGPURenderer(
 				for (const v of variants) v.clear();
 				variants = [];
 				pipeline?.dispose();
+				planet.mesh.removeFromParent();
+				planet.dispose();
 				model.dispose();
 				gpu?.dispose();
 				gpu = null;
