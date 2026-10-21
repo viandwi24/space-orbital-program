@@ -73,7 +73,9 @@ export function statusChips(input: ChipInput): StatusChip[] {
 			title: plasma ? 'Plasma blackout' : 'No signal',
 			body: plasma
 				? 'The shock layer swallows the radio. The link returns when the vessel slows down.'
-				: `${link.text}.`,
+				: link.text === 'No antenna'
+					? 'No antenna: this vessel has nothing to talk to the ground with. Add an antenna in the Hangar; the Space Center is a ground station already, and a dish only adds range.'
+					: `${link.text}.`,
 			reason: link.text,
 			fix: plasma ? null : { label: 'Open Comms', panel: 'host.comms' },
 			testid: 'hud-link'
