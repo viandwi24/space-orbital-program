@@ -75,8 +75,7 @@
 		'/astronauts',
 		'/rnd',
 		'/administration',
-		'/test-stand',
-		'/mods'
+		'/test-stand'
 	];
 	const PLACES: Record<string, string> = {
 		'/flight': 'Flight',
@@ -87,8 +86,7 @@
 		'/astronauts': 'Astronaut Complex',
 		'/rnd': 'R&D',
 		'/administration': 'Administration',
-		'/test-stand': 'Test Stand',
-		'/mods': 'Mods'
+		'/test-stand': 'Test Stand'
 	};
 	const base = resolve('/').replace(/\/$/, '');
 	const local = (path: string): string =>

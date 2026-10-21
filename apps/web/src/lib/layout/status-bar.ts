@@ -35,20 +35,38 @@ export interface Connection {
 
 const count = (n: number, one: string): string => `${n} ${one}${n === 1 ? '' : 's'}`;
 
-/** The focused vessel's link when it has one in the comms network, else the network's size. */
+/** A hop's name: a station's label, a vessel's name ("crewed" when it is a control point), or the id. */
+function hopLabel(snapshot: Snapshot, hop: string, end: boolean): string {
+	const station = snapshot.network?.stations.find((s) => s.id === hop);
+	if (station) return station.label;
+	if (hop.startsWith('vessel:')) {
+		const id = Number(hop.slice(7));
+		const name = snapshot.vessels.find((v) => Number(v.id) === id)?.name ?? `vessel ${id}`;
+		// a vessel at the end of the route is a crewed control point, not a ground station
+		return end ? `${name} (crewed)` : name;
+	}
+	return hop.replace(/^site:/, '');
+}
+
+/**
+ * The focused vessel's link when it has one in the comms network, else the network's size. A link
+ * names where it ends, so a vessel that links to a crewed ship rather than the ground says so.
+ */
 export function connection(snapshot: Snapshot | null, focus: number | null = null): Connection {
 	const net = snapshot?.network;
-	if (!net) return { online: true, text: 'Connected', detail: 'Comms off' };
-	const link = focus === null ? undefined : net.vessels.find((v) => v.vessel === focus);
+	if (!snapshot || !net) return { online: true, text: 'Connected', detail: 'Comms off' };
+	const link = focus === null ? undefined : net.vessels.find((v) => Number(v.vessel) === focus);
 	if (link && link.to === null)
 		return { online: false, text: 'No signal', detail: link.reason ?? 'Out of range' };
-	const relays = link ? Math.max(0, link.route.length - 1) : 0;
+	if (!link || link.route.length === 0)
+		return { online: true, text: 'Connected', detail: count(net.stations.length, 'station') };
+	const end = link.route[link.route.length - 1]!;
+	const relays = link.route.length - 1;
+	const via = `via ${hopLabel(snapshot, end, true)}`;
 	return {
 		online: true,
 		text: 'Connected',
-		detail: link
-			? `${count(net.stations.length, 'station')} · ${count(relays, 'relay')}`
-			: count(net.stations.length, 'station')
+		detail: relays > 0 ? `${via} · ${count(relays, 'relay')}` : via
 	};
 }
 
