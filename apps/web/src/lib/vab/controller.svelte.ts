@@ -794,7 +794,10 @@ export class VabController {
 			stats: () => (this.view ? { ...this.view.stats } : null),
 			camera: () => this.view?.cameraGoal ?? null,
 			aim: (yaw: number, pitch: number, distance: number, target?: [number, number, number]) =>
-				this.view?.debug.setCamera(yaw, pitch, distance, target)
+				this.view?.debug.setCamera(yaw, pitch, distance, target),
+			// for captures and measurements: the examples left the empty Hangar's buttons
+			loadBooster: () => this.loadBoosterExample(),
+			loadMission: (id: string) => this.loadMission(id)
 		};
 		ro.observe(els.stage);
 		ro.observe(els.left);

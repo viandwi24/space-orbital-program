@@ -22,10 +22,16 @@ const catalog: WorldCatalog = {
 	achievements: registries.achievements.list(),
 	scenarios: registries.scenarios.list()
 };
-const html = (initialSite?: string): string =>
+const html = (
+	initialSite?: string,
+	initialStep: 'mode' | 'world' | 'rules' = 'world',
+	initialCategory?: string
+): string =>
 	render(CreateWorld, {
 		props: {
 			...(initialSite ? { initialSite } : {}),
+			initialStep,
+			...(initialCategory ? { initialCategory } : {}),
 			open: true,
 			catalog,
 			onclose: () => {},
@@ -43,6 +49,7 @@ describe('Create World form', () => {
 			props: {
 				open: true,
 				catalog: { ...catalog, systems: [sol, ...catalog.systems.filter((x) => x !== sol)] },
+				initialStep: 'world',
 				onclose: () => {},
 				oncreate: () => {},
 				newId: () => 'w-1',
@@ -55,7 +62,10 @@ describe('Create World form', () => {
 			expect(h).toContain(`Δv to orbit ≈ ${(f.dvToOrbit / 1000).toFixed(1)} km/s`);
 			expect(h).toContain(`Moon in ${(f.moonTransfer! / 86_400).toFixed(1)} days`);
 		}
-		expect(h).toMatch(/<option value="sol"[^>]*>The real solar system<\/option>/);
+		// the systems are cards with generated art (plan 317, ADR 0273)
+		expect(h).toContain('data-testid="world-system-sol"');
+		expect(h).toContain('The real solar system');
+		expect(h).toContain('data-testid="system-art"');
 	});
 
 	it('offers n-body beside patched conics since plan 125', () => {
@@ -67,11 +77,16 @@ describe('Create World form', () => {
 	});
 
 	it('shows every registered rule, grouped, with the identity rules marked', () => {
-		const h = html();
-		for (const rule of catalog.rules) expect(h).toContain(`data-testid="rule-${rule.id}"`);
+		const first = html(undefined, 'rules');
 		for (const c of ['economy', 'science', 'crew', 'comms', 'launch', 'agency']) {
-			expect(h).toContain(`data-testid="rules-${c}"`);
+			expect(first).toContain(`data-testid="rules-${c}"`);
 		}
+		// one category at a time (V3 §4.4): together they hold every rule
+		const all = [...new Set(catalog.rules.map((r) => r.category))]
+			.map((c) => html(undefined, 'rules', c))
+			.join('');
+		for (const rule of catalog.rules) expect(all).toContain(`data-testid="rule-${rule.id}"`);
+		const h = html(undefined, 'rules', 'agency');
 		const agency = h.slice(
 			h.indexOf('Agency type'),
 			h.indexOf('data-testid="rule-stock.agency-type"')
@@ -126,5 +141,28 @@ describe('Create World form', () => {
 		});
 		const plain = createWorldInfo(input, catalog, catalog.calendar, 0);
 		expect(plain.ok && plain.world.sites).toEqual([]);
+	});
+
+	it("a mod's preset with its own illustration shows it; the stock modes show their line art (ADR 0273)", () => {
+		const image = 'data:image/svg+xml,%3Csvg xmlns%3D%22http://www.w3.org/2000/svg%22/%3E';
+		const h = render(CreateWorld, {
+			props: {
+				open: true,
+				catalog: {
+					...catalog,
+					presets: [
+						...catalog.presets,
+						{ id: 'mod.speedrun', label: 'Speedrun', illustration: image }
+					]
+				},
+				onclose: () => {},
+				oncreate: () => {},
+				newId: () => 'w-1',
+				newSeed: () => 42
+			}
+		}).body;
+		expect(h).toContain(`<img src="${image}"`);
+		expect(h).toContain('data-testid="world-preset-stock.career"');
+		expect(h.match(/<svg viewBox="0 0 240 150"/g)).toHaveLength(catalog.presets.length);
 	});
 });
