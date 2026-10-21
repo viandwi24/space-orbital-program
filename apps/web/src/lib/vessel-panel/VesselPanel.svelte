@@ -97,6 +97,15 @@
 		}, [])
 	);
 	const vesselKey = $derived(String(vessel));
+	/**
+	 * A click on a row's summary flips the stored state itself (plan 290): Svelte rewrites `open`
+	 * from the store whenever the row's summary text changes, every tick in flight, so the native
+	 * toggle was undone before its async `toggle` event could store it.
+	 */
+	function flipRow(e: MouseEvent, key: string, fallback: boolean): void {
+		e.preventDefault();
+		openRows.set(vesselKey, key, !openRows.isOpen(vesselKey, key, fallback));
+	}
 	const groups = $derived(resourceGroups(view, { resources: [...totals] }));
 	/** The transfer picker: resource, from and to containers (plan 214 on plan 213's command). */
 	let pick = $state<{ resource: string; from: string; to: string }>({
@@ -373,7 +382,7 @@
 				open={openRows.isOpen(vesselKey, categoryKey(cat.name), true)}
 				ontoggle={(e) => openRows.set(vesselKey, categoryKey(cat.name), e.currentTarget.open)}
 			>
-				<summary class="cap">
+				<summary class="cap" onclick={(e) => flipRow(e, categoryKey(cat.name), true)}>
 					<span class="chev" aria-hidden="true"><Icon name="chevron" size={12} /></span>
 					{cat.name}<span class="count">{cat.parts.length}</span>
 				</summary>
@@ -395,7 +404,11 @@
 							open={openRows.isOpen(vesselKey, partKey(p.entity), false)}
 							ontoggle={(e) => openRows.set(vesselKey, partKey(p.entity), e.currentTarget.open)}
 						>
-							<summary class="head" data-testid="part-{p.entity}-row">
+							<summary
+								class="head"
+								data-testid="part-{p.entity}-row"
+								onclick={(e) => flipRow(e, partKey(p.entity), false)}
+							>
 								<span class="chev" aria-hidden="true"><Icon name="chevron" size={14} /></span>
 								<span class="title">{p.title}</span>
 								<span class="sum {sum.tone}">{sum.text}</span>

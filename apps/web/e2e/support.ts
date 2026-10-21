@@ -65,10 +65,11 @@ export async function openDock(page: Page, id: string): Promise<void> {
 		await expect(panel.locator('[data-testid="vessel-part"]').first()).toBeAttached({
 			timeout: 30_000
 		});
-		// open each folded part row as a player does, by its summary
+		// open each folded part row by a click on its summary (plan 290), all in one page call: one
+		// Playwright click per row takes about 8 s on a busy software-rendered flight
 		const folded = panel.locator('details:not([open]) > summary[data-testid$="-row"]');
-		for (let n = await folded.count(), i = 0; n > 0 && i < 80; n = await folded.count(), i++)
-			await folded.first().click();
+		await folded.evaluateAll((all) => all.forEach((s) => (s as HTMLElement).click()));
+		await expect(folded).toHaveCount(0);
 	}
 }
 
