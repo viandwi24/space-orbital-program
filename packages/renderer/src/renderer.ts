@@ -123,6 +123,11 @@ export interface RendererDebug {
 	benchmark(frames: number): number;
 	/** `benchmark` on every backend: the GPU timestamps where WebGPU has them, else the time to the GPU queue or a pixel read. */
 	benchmarkAsync(frames: number): Promise<number>;
+	/**
+	 * The backend and the last frame's draw counters without `info()`'s GPU name, whose WebGL query
+	 * stalls the pipeline (tens of ms): cheap enough for the performance overlay (plan 294).
+	 */
+	counters(): { renderer: RendererBackend; drawCalls: number; triangles: number };
 	info(): {
 		/** The renderer drawing (plan 261). */
 		renderer: RendererBackend;
@@ -557,6 +562,11 @@ export function createRenderer(config: RendererConfig): Renderer {
 			featureNames: FEATURE_NAMES,
 			benchmark,
 			benchmarkAsync: async (frames: number) => benchmark(frames),
+			counters: () => ({
+				renderer: 'webgl' as const,
+				drawCalls: gl.info.render.calls,
+				triangles: gl.info.render.triangles
+			}),
 			info: () => ({
 				renderer: 'webgl' as const,
 				gpuMs: null,

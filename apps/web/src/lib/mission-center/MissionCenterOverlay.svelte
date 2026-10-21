@@ -22,6 +22,8 @@
 	import Dialog from '../ui/Dialog.svelte';
 	import RecoverDialog from '../hud/RecoverDialog.svelte';
 	import { VESSEL_TYPES, type VesselType } from '@orbital/core';
+	import PerfOverlay from '../perf/PerfOverlay.svelte';
+	import type { PerfSample } from '../perf/perf-stats';
 	import {
 		TRACK_FILTERS,
 		VESSEL_TYPE_LABEL,
@@ -86,8 +88,11 @@
 		note,
 		planningOpen = false,
 		onplanning,
-		planning
+		planning,
+		perf = null
 	}: {
+		/** The performance overlay's sample (plan 294): shown at the head of the right column; null hides it. */
+		perf?: (() => PerfSample | null) | null;
 		worldName: string;
 		clock: string;
 		warp: number;
@@ -297,6 +302,7 @@
 	</aside>
 
 	<aside class="right">
+		{#if perf}<PerfOverlay sample={perf} />{/if}
 		<Panel title="Upcoming">
 			{#if upcoming.length === 0}
 				<p class="calm">Nothing scheduled.</p>

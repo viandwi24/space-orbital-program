@@ -230,6 +230,21 @@
 					testid="setting-centre-vessel"
 				/>
 			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Performance overlay</h3>
+					<p>
+						A small read-out in the top right: frame rate, frame and GPU time, the sim step, the
+						renderer and its quality, draw calls and memory, with a few seconds of history.
+					</p>
+				</div>
+				<Switch
+					checked={settings.ui.perfOverlay ?? false}
+					label="Performance overlay"
+					onchange={(on) => settings.setInterface({ perfOverlay: on })}
+					testid="setting-perf-overlay"
+				/>
+			</div>
 		{:else if tab === 'game'}
 			<div class="row">
 				<div class="what">

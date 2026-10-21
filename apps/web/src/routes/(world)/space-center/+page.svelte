@@ -36,6 +36,8 @@
 	import { goto } from '$app/navigation';
 	import { activePlugins } from '../../../lib/mods/runtime';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
+	import PerfOverlay from '../../../lib/perf/PerfOverlay.svelte';
+	import { settings } from '../../../lib/settings/settings.svelte';
 	import SpaceCenterOverlay from '../../../lib/space-center/SpaceCenterOverlay.svelte';
 	import {
 		buildingRows,
@@ -485,6 +487,10 @@
 		onclose={() => (branchOpen = false)}
 	/>
 	{#if problem}<p class="problem" role="alert" data-testid="sc-problem">{problem}</p>{/if}
+	{#if settings.ui.perfOverlay}
+		<!-- the performance overlay (plan 294), clear of the bars and the side panels -->
+		<div class="perf-at"><PerfOverlay sample={() => center?.perfSample() ?? null} /></div>
+	{/if}
 </main>
 
 <style>
@@ -499,6 +505,13 @@
 		width: 100%;
 		height: 100%;
 		touch-action: none;
+	}
+	.perf-at {
+		position: absolute;
+		z-index: 4;
+		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top, 0px));
+		right: calc(var(--margin-hud) + var(--safe-right, 0px));
+		pointer-events: none;
 	}
 	.problem {
 		position: absolute;

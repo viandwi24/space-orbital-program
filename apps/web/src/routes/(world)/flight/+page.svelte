@@ -91,6 +91,7 @@
 	} from '../../../lib/hud/map-stack';
 	import type { MapTargetFrame } from '../../../lib/target-view';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
+	import PerfOverlay from '../../../lib/perf/PerfOverlay.svelte';
 	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
 	import LessonCard from '../../../lib/hud/LessonCard.svelte';
 	import {
@@ -1568,25 +1569,34 @@
 				<PrecompileBadge progress={graphics} />
 			</div>
 
-			{#if inspectView && vesselShown}
-				<!-- pinned and open inspectors at the top right, above staging (ADR 0253 point 3) -->
+			{#if (inspectView && vesselShown) || settings.ui.perfOverlay}
+				<!-- pinned and open inspectors at the top right, above staging (ADR 0253 point 3); the
+				     performance overlay (plan 294) heads the column so it never covers an inspector -->
 				<div class="ins">
-					{#each inspected as id (id)}
-						{@const row = inspectView.parts.find((p) => p.entity === id)}
-						{#if row}
-							<PartInspector
-								vessel={vesselShown.id}
-								part={row}
-								pinned={inspector.pinned.includes(id)}
-								oncommand={(c) => void flight?.command(c)}
-								onpin={() => (inspector = togglePin(inspector, id))}
-								onclose={() => (inspector = closePart(inspector, id))}
-								onhighlight={(part) => flight?.highlightPart(part)}
-								onfocus={(part) => flight?.focusPart(Number(part))}
-								seats={crewSeats(vesselShown, panelInput?.snapshot.crew, vesselContent!.parts, id)}
-							/>
-						{/if}
-					{/each}
+					{#if settings.ui.perfOverlay}<PerfOverlay
+							sample={() => flight?.perfSample() ?? null}
+						/>{/if}
+					{#if inspectView && vesselShown}{#each inspected as id (id)}
+							{@const row = inspectView.parts.find((p) => p.entity === id)}
+							{#if row}
+								<PartInspector
+									vessel={vesselShown.id}
+									part={row}
+									pinned={inspector.pinned.includes(id)}
+									oncommand={(c) => void flight?.command(c)}
+									onpin={() => (inspector = togglePin(inspector, id))}
+									onclose={() => (inspector = closePart(inspector, id))}
+									onhighlight={(part) => flight?.highlightPart(part)}
+									onfocus={(part) => flight?.focusPart(Number(part))}
+									seats={crewSeats(
+										vesselShown,
+										panelInput?.snapshot.crew,
+										vesselContent!.parts,
+										id
+									)}
+								/>
+							{/if}
+						{/each}{/if}
 				</div>
 			{/if}
 			{#if model && stagingOpen}

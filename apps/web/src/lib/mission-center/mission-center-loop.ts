@@ -18,6 +18,7 @@ import { partShapesOf } from '../catalog';
 import type { Catalog } from '../messages';
 import { initialGraphicsPreset, rendererBackend } from '../graphics';
 import { startSimWorker } from '../sim-client';
+import { PerfSource, type PerfSample } from '../perf/perf-stats';
 
 export interface MissionCenterOptions {
 	canvas: HTMLCanvasElement;
@@ -46,6 +47,8 @@ export interface MissionCenter {
 	/** The sim's state now, for the Fly autosave. */
 	save(): Promise<SimSave>;
 	readonly renderer: Renderer | null;
+	/** The performance overlay's sample (plan 294); no governor here, so full resolution. */
+	perfSample(): PerfSample;
 	dispose(): void;
 }
 
@@ -63,6 +66,8 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 	let dirty = false;
 	let disposed = false;
 	let raf = 0;
+	/** The drawn frames since the performance overlay's last sample (plan 294). */
+	const perf = new PerfSource();
 
 	const offError = client.onError((m) => options.onError(m));
 	const offSnapshot = client.onSnapshot((s, warp) => {
@@ -76,7 +81,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 		return s ? { x: s.x, y: s.y, hidden: s.hidden === true } : null;
 	};
 
-	function frame(): void {
+	function frame(now: number): void {
 		if (disposed) return;
 		raf = requestAnimationFrame(frame);
 		if (!renderer) return;
@@ -85,6 +90,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			dirty = false;
 		}
 		renderer.render();
+		perf.frames.frame(now);
 		options.onFrame(project);
 	}
 
@@ -191,6 +197,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 		get renderer() {
 			return renderer;
 		},
+		perfSample: () => perf.sample(renderer, { simMs: client.stepMs, scale: 1, auto: null }),
 		dispose() {
 			disposed = true;
 			cancelAnimationFrame(raf);

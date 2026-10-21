@@ -442,6 +442,7 @@ export function createWebGPURenderer(
 					benchmarking = false;
 				}
 			},
+			counters: () => ({ renderer: backend, drawCalls: drawn.calls, triangles: drawn.triangles }),
 			info: () => ({
 				renderer: backend,
 				gpuMs,
