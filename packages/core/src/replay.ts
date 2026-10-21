@@ -41,7 +41,8 @@ export interface ReplayFile {
 	terrain: boolean;
 	/** The `SimSave` the recording started from (validated by `createSim` on resume). */
 	start: unknown;
-	commands: Array<{ t: number; command: unknown }>;
+	/** `source`: a program's command keeps who sent it (plan 311, ADR 0272 point 2); absent is the player. */
+	commands: Array<{ t: number; command: unknown; source?: 'script' | 'autopilot' }>;
 	checkpoints: Checkpoint[];
 }
 
@@ -54,7 +55,13 @@ export const replayFileSchema = z.object({
 	name: z.string(),
 	terrain: z.boolean(),
 	start: z.unknown(),
-	commands: z.array(z.object({ t: z.number().finite().min(0), command: commandSchema })),
+	commands: z.array(
+		z.object({
+			t: z.number().finite().min(0),
+			command: commandSchema,
+			source: z.enum(['script', 'autopilot']).optional()
+		})
+	),
 	checkpoints: z.array(
 		z.object({
 			t: z.number().finite().min(0),

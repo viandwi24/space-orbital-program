@@ -11,6 +11,7 @@
 	import {
 		calendarOf,
 		formatDate,
+		entityId,
 		homeBodyOf,
 		type Epoch,
 		type RuleValue,
@@ -567,6 +568,12 @@
 		{savedAt}
 		mods={activePlugins().length}
 		{bell}
+		onstopprogram={(vessel) =>
+			void worldSession.client?.dispatch({
+				type: 'program-stop',
+				vessel: entityId(vessel),
+				reason: 'stopped from the programs list'
+			})}
 		onsettings={() => (settingsOpen = true)}
 		onworldsettings={openWorldSettings}
 		onhome={() => void goto(resolve('/'))}

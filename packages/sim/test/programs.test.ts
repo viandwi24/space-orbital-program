@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SCRIPT_MEMORY_MAX, type EntityId } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
-import { createSim } from '../src/index.ts';
+import { createSim, recordReplay } from '../src/index.ts';
 import { VESSEL } from '../src/state.ts';
 import { newSim, rapier, stack } from './helpers/vessels.ts';
 
@@ -77,9 +77,20 @@ describe('the player wins per channel (ADR 0272 point 3)', () => {
 		sim.dispose();
 	});
 
+	test("the replay recorder keeps a script command a script's (no override, logged with its source)", async () => {
+		const { sim, vessel, state } = await withScript();
+		const rec = recordReplay(sim, 'test');
+		expect(rec.dispatch({ type: 'throttle', vessel, value: 0.4 }, asScript).ok).toBe(true);
+		expect(state().override).toBeUndefined();
+		expect(rec.finish().commands.at(-1)).toMatchObject({ source: 'script' });
+		sim.dispose();
+	});
+
 	test('without a program the player keeps no override', async () => {
 		const sim = await newSim();
-		const vessel = sim.dispatch({ type: 'load-vessel', design }).vessel! as EntityId;
+		const loaded = sim.dispatch({ type: 'load-vessel', design });
+		if (!loaded.ok) throw new Error(loaded.reason);
+		const vessel = loaded.vessel! as EntityId;
 		sim.dispatch(attitude(vessel, 1, 0));
 		sim.dispatch({ type: 'throttle', vessel, value: 0.5 });
 		expect(sim.world.get(vessel, VESSEL)!.override).toBeUndefined();

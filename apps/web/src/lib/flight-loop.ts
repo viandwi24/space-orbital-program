@@ -685,6 +685,8 @@ export function startFlight(options: FlightOptions): Flight {
 	 */
 	function abort(): void {
 		if (vessel === null) return;
+		// an abort is the player's: the vessel's programs stop first (plan 311, ADR 0272 point 5)
+		void send({ type: 'program-stop', vessel, reason: 'Abort' });
 		throttle = sentThrottle = 0;
 		void send({ type: 'throttle', vessel, value: 0 });
 		void client
@@ -985,6 +987,13 @@ export function startFlight(options: FlightOptions): Flight {
 				// in the map a selected node goes first (ADR 0061); otherwise the abort (plan 245, ADR 0233)
 				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
 				else abort();
+				break;
+			case 'programStop':
+				// in the map a selected node goes first (Delete removes it, ADR 0061); otherwise the
+				// kill switch (plan 311, ADR 0272 point 5): every program of the flown vessel stops
+				if (renderer?.isMapView && maneuverCtl?.key('nodeDelete', {})) e.preventDefault();
+				else if (vessel !== null)
+					void send({ type: 'program-stop', vessel, reason: 'Delete key' });
 				break;
 			case 'map':
 				toggleMap();

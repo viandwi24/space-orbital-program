@@ -30,6 +30,7 @@
 		savedAt,
 		mods,
 		bell,
+		onstopprogram,
 		onsettings,
 		onworldsettings,
 		onhome,
@@ -63,6 +64,8 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
+		/** Stop every program on a vessel, from the status bar's programs list (plan 311). */
+		onstopprogram?: (vessel: number) => void;
 		onsettings: () => void;
 		/** World settings during play (plan 230). */
 		onworldsettings?: () => void;
@@ -210,7 +213,7 @@
 		>
 	</div>
 {/if}
-<StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} />
+<StatusBar {snapshot} {focus} {world} {system} {location} {savedAt} {mods} {bell} {onstopprogram} />
 
 <style>
 	/* F2 in flight (plan 226): the bars and the menu step aside with the rest of the interface */
