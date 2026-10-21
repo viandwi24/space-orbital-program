@@ -839,10 +839,14 @@ float swashOffsetG(float t, float H) {
 float surfPhaseG(float x, float t) {
 	return 2.0 * SHORE_W * sqrt(max(x, SHORE_XMIN) / SHORE_GS) + SHORE_W * t;
 }
-float surfFoamG(float x, float t, float H) {
+// fp: the pixel's footprint, m. A breaker line is a fraction of the spacing of the lines (which
+// narrows toward the shore); a pixel near a third of it gets the line's mean, not dashes of it
+float surfFoamG(float x, float t, float H, float fp) {
 	float xb = H / (SHORE_BREAK * SHORE_SLOPE);
 	float c = 0.5 + 0.5 * cos(surfPhaseG(x - swashOffsetG(t, H) * 0.5, t));
-	float crest = c * c * c * c;
+	float spacing = 6.2832 * sqrt(SHORE_GS * max(x, SHORE_XMIN)) / SHORE_W;
+	// a line is about a sixth of the spacing wide: a pixel wider than half of that gets its mean
+	float crest = mix(c * c * c * c, 35.0 / 128.0, smoothstep(spacing * 0.08, spacing * 0.3, fp));
 	float breaking = 1.0 - smoothstep(xb * 0.9, xb * 1.6, x);
 	float reach = 1.0 - smoothstep(xb * 2.5, xb * 5.0, x);
 	return min(1.0, smoothstep(-2.0, 1.0, x) * (0.12 * crest * reach + breaking * (0.25 + 0.75 * crest)));
@@ -883,7 +887,9 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float eDetail = 0.0;
 	float colourNoise = 0.0;
 	float fine = 0.0;
-	float lamMin = footprint * 1.6;
+	// an octave fades in from three pixels a wavelength: at 1.6 (the Nyquist edge) the detail and the
+	// bump made from its screen differences shimmered as the camera moved (the owner, 2026-10-21)
+	float lamMin = footprint * 3.0;
 	for (int i = 0; i < GROUND_OCTAVES; i++) {
 		float lam = 1024.0 / exp2(float(i));
 		if (lam < lamMin) break;
@@ -985,10 +991,14 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		float b2 = noiseA(pl, 0.125, 32);
 		float b3 = noiseA(pl, 0.0625, 33);
 		float b4 = noiseA(pl, 0.03125, 34);
-		float blades = smoothstep(0.38, 0.78, b3 * 0.6 + b4 * 0.4);
-		float gaps = 1.0 - smoothstep(0.25, 0.6, b2 * 0.7 + b1 * 0.3);
+		// each fades by its own cell size: blades (3 to 6 cm) only while a pixel is a few
+		// centimetres, clumps and gaps (12 to 50 cm) a little further; sampled by wider pixels they were static
+		float bladeFade = 1.0 - smoothstep(0.02, 0.12, footprint);
+		float clumpFade = 1.0 - smoothstep(0.1, 0.8, footprint);
+		float blades = mix(0.5, smoothstep(0.38, 0.78, b3 * 0.6 + b4 * 0.4), bladeFade);
+		float gaps = (1.0 - smoothstep(0.25, 0.6, b2 * 0.7 + b1 * 0.3)) * clumpFade;
 		vec3 tuft = mix(grass * 0.62, grass * vec3(1.3, 1.34, 1.02), blades);
-		tuft *= 0.82 + 0.38 * b1;
+		tuft *= 0.82 + 0.38 * mix(0.5, b1, clumpFade);
 		tuft = mix(tuft, grass * vec3(0.3, 0.33, 0.2), gaps * 0.5);
 		grass = mix(grass, tuft, fadeMicro);
 	}
@@ -1124,12 +1134,20 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	// lake water is greener and murkier than the sea and darkens toward the middle
 	water = mix(water, mix(vec3(0.045, 0.17, 0.15), vec3(0.012, 0.075, 0.085), smoothstep(0.0, 90.0, lakeIn)), lakeOnly);
 	// breaking foam along the shore, only where a pixel is smaller than the band
-	float foamFade = 1.0 - smoothstep(4.0, 40.0, footprint);
+	// its 1 m noise fades before a pixel is wider than it: wider pixels sampled it as flicker
+	float foamFade = 1.0 - smoothstep(1.5, 12.0, footprint);
 	if (foamFade > 0.01 && landW < 0.999) {
-		float fn = noiseA(pl, 4.0, 71) * 0.6 + noiseA(pl, 1.0, 72) * 0.4;
+		// the 1 m noise only where a pixel resolves it, and the lines' break-up soft: a hard threshold
+		// of it cut the breaker lines into rows of white dashes (the owner, 2026-10-21)
+		float fine1 = 1.0 - smoothstep(0.25, 1.0, footprint);
+		float fn = noiseA(pl, 4.0, 71) * 0.6 + mix(0.5, noiseA(pl, 1.0, 72), fine1) * 0.4;
 		float band = 1.0 - smoothstep(1.0, 9.0, sdCoast + (fn - 0.5) * 10.0);
-		float lines = smoothstep(0.34, 0.6, fn);
-		float surf = surfFoamG(sdM + swash + (fn - 0.5) * 3.0, uTime, shoreH);
+		float lines = smoothstep(0.15, 0.85, fn);
+		// The breaker lines follow the map's smooth coast (metres by its gradient, no screen
+		// differences) and bend with a 16 m noise. On the fractal coast distance divided by its 2 x 2
+		// pixel derivatives they broke into rows of white dashes (the owner, 2026-10-21).
+		float sdSurf = (SEA - e) / gPerM;
+		float surf = surfFoamG(sdSurf + swash + (noiseA(pl, 16.0, 74) - 0.5) * 3.0, uTime, shoreH, footprint);
 		float foam = clamp(max(surf * (0.55 + 0.45 * lines), band * (0.15 + 0.2 * lines)), 0.0, 1.0);
 		water = mix(water, vec3(0.8, 0.84, 0.86), foam * foamFade * step(0.0, sdM + 1.0 + swash));
 	}
@@ -1140,8 +1158,11 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		float calm = 1.0 - 0.8 * lakeOnly; // a lake has no swell
 		gWave *= calm;
 		crest *= calm;
-		float capFade = 1.0 - smoothstep(6.0, 40.0, footprint);
-		float cap = smoothstep(0.85, 1.35, crest / 2.4 + (noiseA(pl, 1.5, 73) - 0.5) * 0.55 + length(gWave) * 0.8);
+		// white caps only where a pixel resolves them, and their 1.5 m noise only nearer still: wider
+		// pixels sampled them as white specks that flickered with the waves (the owner, 2026-10-21)
+		float capFade = 1.0 - smoothstep(1.5, 8.0, footprint);
+		float capNoise = (noiseA(pl, 1.5, 73) - 0.5) * 0.55 * (1.0 - smoothstep(0.4, 1.5, footprint));
+		float cap = smoothstep(0.85, 1.35, crest / 2.4 + capNoise + length(gWave) * 0.8);
 		water = mix(water * (1.0 + 0.08 * crest), vec3(0.8, 0.85, 0.87), cap * capFade * smoothstep(0.1, 0.5, depth + depthNear));
 	}
 	vec3 riverCol = mix(vec3(0.03, 0.07, 0.06), vec3(0.02, 0.1, 0.1), noiseF(vec3(pl * 0.1)));
@@ -1152,9 +1173,11 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float wRip = 0.5;
 	if (lw < 1.0 && footprint < 400.0) {
 		vec3 wp = pl + vec3(0.0);
-		float f1 = clamp(8.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
-		float f2 = clamp(2.0 / (footprint * 1.6) - 1.0, 0.0, 1.0);
-		float f3 = clamp(0.5 / (footprint * 1.6) - 1.0, 0.0, 1.0);
+		// a ripple fades in from three pixels a wavelength (it was held to 1.6, the Nyquist edge, and
+		// its normal from screen differences sparkled)
+		float f1 = clamp(8.0 / (footprint * 3.2) - 1.0, 0.0, 1.0);
+		float f2 = clamp(2.0 / (footprint * 3.2) - 1.0, 0.0, 1.0);
+		float f3 = clamp(0.5 / (footprint * 3.2) - 1.0, 0.0, 1.0);
 		float w;
 		if (riverMask > 0.02 && dot(riverFlow3, riverFlow3) > 0.0004) {
 			// two phases half a cycle apart, each invisible at its own reset (water-flow.ts)
@@ -1266,7 +1289,11 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 			vec3 Hh = normalize(Lb + V);
 			float nh = max(dot(sf.normal, Hh), 0.0);
 			float fres = 0.02 + 0.98 * pow(1.0 - max(dot(sf.normal, V), 0.0), 5.0);
-			float glint = pow(nh, 900.0) * 900.0 / (8.0 * kPI) * ndl * sh;
+			// the sun's glint, widened by the slopes a pixel averages (Toksvig, from its footprint) with
+			// its energy kept: a fixed 900 sparkled on pixel-sized waves
+			float sigma2 = (0.012 * footprint) * (0.012 * footprint);
+			float gloss = 900.0 / (1.0 + 900.0 * sigma2);
+			float glint = pow(nh, gloss) * gloss / (8.0 * kPI) * ndl * sh;
 			vec3 refl = uSkyColour * fres * 1.2;
 			lit = mix(lit, refl, fres * 0.9) + uSunIrr * sunT * glint * fres * 0.5 * sf.spec;
 		}

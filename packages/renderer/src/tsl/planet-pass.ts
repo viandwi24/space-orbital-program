@@ -781,7 +781,9 @@ export class PlanetPassTSL {
 				const eDetail = float(0.0).toVar();
 				const colourNoise = float(0.0).toVar();
 				const fine = float(0.0).toVar();
-				const lamMin = footprint.mul(1.6);
+				// an octave fades in from three pixels a wavelength: at 1.6 (the Nyquist edge) the detail and
+				// the bump made from its screen differences shimmered as the camera moved
+				const lamMin = footprint.mul(3.0);
 				for (let i = 0; i < octaves; i++) {
 					const lam = 1024 / 2 ** i;
 					If(lamMin.lessThanEqual(lam), () => {
@@ -952,10 +954,16 @@ export class PlanetPassTSL {
 					const b2 = nA(pl, 0.125, 32);
 					const b3 = nA(pl, 0.0625, 33);
 					const b4 = nA(pl, 0.03125, 34);
-					const blades = smoothstep(0.38, 0.78, b3.mul(0.6).add(b4.mul(0.4)));
-					const gaps = smoothstep(0.25, 0.6, b2.mul(0.7).add(b1.mul(0.3))).oneMinus();
+					// each fades by its own cell size (blades 3 to 6 cm, clumps and gaps 12 to 50 cm):
+					// sampled by wider pixels they were static
+					const bladeFade = smoothstep(0.02, 0.12, footprint).oneMinus();
+					const clumpFade = smoothstep(0.1, 0.8, footprint).oneMinus();
+					const blades = mix(0.5, smoothstep(0.38, 0.78, b3.mul(0.6).add(b4.mul(0.4))), bladeFade);
+					const gaps = smoothstep(0.25, 0.6, b2.mul(0.7).add(b1.mul(0.3)))
+						.oneMinus()
+						.mul(clumpFade);
 					const tuft = mix(grass.mul(0.62), grass.mul(vec3(1.3, 1.34, 1.02)), blades)
-						.mul(b1.mul(0.38).add(0.82))
+						.mul(mix(0.5, b1, clumpFade).mul(0.38).add(0.82))
 						.toVar();
 					tuft.assign(mix(tuft, grass.mul(vec3(0.3, 0.33, 0.2)), gaps.mul(0.5)));
 					grass.assign(mix(grass, tuft, fadeMicro));
@@ -1196,15 +1204,31 @@ export class PlanetPassTSL {
 					)
 				);
 				// breaking foam along the shore, only where a pixel is smaller than the band
-				const foamFade = smoothstep(4.0, 40.0, footprint).oneMinus();
+				// its 1 m noise fades before a pixel is wider than it: wider pixels sampled it as flicker
+				const foamFade = smoothstep(1.5, 12.0, footprint).oneMinus();
 				If(foamFade.greaterThan(0.01).and(landW.lessThan(0.999)), () => {
+					// the 1 m noise only where a pixel resolves it, and the lines' break-up soft: a hard
+					// threshold of it cut the breaker lines into rows of white dashes
+					const fine1 = smoothstep(0.25, 1.0, footprint).oneMinus();
 					const fn = nA(pl, 4, 71)
 						.mul(0.6)
-						.add(nA(pl, 1, 72).mul(0.4))
+						.add(mix(0.5, nA(pl, 1, 72), fine1).mul(0.4))
 						.toVar();
 					const band = smoothstep(1.0, 9.0, sdCoast.add(fn.sub(0.5).mul(10.0))).oneMinus();
-					const lines = smoothstep(0.34, 0.6, fn);
-					const surf = surfFoam(sdM.add(swash).add(fn.sub(0.5).mul(3.0)), uTime, shoreH);
+					const lines = smoothstep(0.15, 0.85, fn);
+					const surf = surfFoam(
+						// the breaker lines follow the map's smooth coast (metres by its gradient, no screen
+						// differences) and bend with a 16 m noise: on the fractal coast distance over its
+						// 2 x 2 pixel derivatives they broke into rows of white dashes
+						float(SEA_LEVEL)
+							.sub(e)
+							.div(gPerM)
+							.add(swash)
+							.add(nA(pl, 16, 74).sub(0.5).mul(3.0)),
+						uTime,
+						shoreH,
+						footprint
+					);
 					const foam = clamp(
 						max(surf.mul(lines.mul(0.45).add(0.55)), band.mul(lines.mul(0.2).add(0.15))),
 						0.0,
@@ -1230,14 +1254,17 @@ export class PlanetPassTSL {
 					const calm = lakeOnly.mul(-0.8).add(1.0); // a lake has no swell
 					gWave.assign(wv.gradient.mul(calm));
 					const crest = wv.crest.mul(calm);
-					const capFade = smoothstep(6.0, 40.0, footprint).oneMinus();
+					// white caps only where a pixel resolves them, and their 1.5 m noise only nearer still:
+					// wider pixels sampled them as white specks that flickered with the waves
+					const capFade = smoothstep(1.5, 8.0, footprint).oneMinus();
+					const capNoise = nA(pl, 1.5, 73)
+						.sub(0.5)
+						.mul(0.55)
+						.mul(smoothstep(0.4, 1.5, footprint).oneMinus());
 					const cap = smoothstep(
 						0.85,
 						1.35,
-						crest
-							.div(2.4)
-							.add(nA(pl, 1.5, 73).sub(0.5).mul(0.55))
-							.add(length(gWave).mul(0.8))
+						crest.div(2.4).add(capNoise).add(length(gWave).mul(0.8))
 					);
 					water.assign(
 						mix(
@@ -1254,9 +1281,10 @@ export class PlanetPassTSL {
 				const Nw = vec3(Nb).toVar();
 				const wRip = float(0.5).toVar();
 				If(lw.lessThan(1.0).and(footprint.lessThan(400.0)), () => {
-					const f1 = clamp(float(8.0).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
-					const f2 = clamp(float(2.0).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
-					const f3 = clamp(float(0.5).div(footprint.mul(1.6)).sub(1.0), 0.0, 1.0);
+					// a ripple fades in from three pixels a wavelength (it was held to 1.6, the Nyquist edge)
+					const f1 = clamp(float(8.0).div(footprint.mul(3.2)).sub(1.0), 0.0, 1.0);
+					const f2 = clamp(float(2.0).div(footprint.mul(3.2)).sub(1.0), 0.0, 1.0);
+					const f3 = clamp(float(0.5).div(footprint.mul(3.2)).sub(1.0), 0.0, 1.0);
 					const w = float(0.0).toVar();
 					If(
 						riverMask.greaterThan(0.02).and(dot(riverFlow3, riverFlow3).greaterThan(0.0004)),
@@ -2024,8 +2052,12 @@ export class PlanetPassTSL {
 						const fres = pow(float(1.0).sub(max(dot(normal, V), 0.0)), 5.0)
 							.mul(0.98)
 							.add(0.02);
-						const glint = pow(nh, 900.0)
-							.mul(900.0 / (8.0 * PI))
+						// the sun's glint widened by the slopes a pixel averages (Toksvig, from its footprint),
+						// its energy kept: a fixed 900 sparkled on pixel-sized waves
+						const fp = footprint.mul(0.012);
+						const gloss = float(900.0).div(fp.mul(fp).mul(900.0).add(1.0));
+						const glint = pow(nh, gloss)
+							.mul(gloss.div(8.0 * PI))
 							.mul(ndl)
 							.mul(sh);
 						const refl = uSkyColour.mul(fres).mul(1.2);

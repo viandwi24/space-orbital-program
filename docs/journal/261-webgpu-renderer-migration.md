@@ -387,3 +387,21 @@ The main thread is idle three quarters of the time (about 3 ms of JavaScript a f
 
 - **Timestamp queries on Apple GPUs are not the frame.** 11 ms measured, 33 ms drawn. They show which pass costs more, not whether a frame fits.
 - **The planet march is no longer the expensive part.** Since Phase 2 it is cheap. At full Retina size, what limits the frame is the number of pixels.
+
+## The ground and the sea's noise (both renderers)
+
+The owner saw the ground and the sea flicker "kaya tv rusak" when the camera came close, on WebGL as on WebGPU. Most of it was detail drawn at the edge of what a pixel can hold:
+
+- ground octaves down to 1.6 pixels a wavelength;
+- grass blades of 3 cm under 3 m pixels;
+- whitecaps of 1.5 m noise under 40 m pixels;
+- ripples at 1.6 pixels a wavelength;
+- a sun glint of exponent 900 on all of these.
+
+Everything now fades by its own size against the pixel's footprint, and the glint widens with the footprint (Toksvig). The rows of white dashes on the shallow sea were different: they stayed with the planet at full size and with the whitecaps and the glint off, and went with the shore foam off. The breaker lines followed the fractal coast distance divided by its 2 × 2 pixel derivatives, and that broke every line every few pixels. They now follow the map's smooth coast.
+
+| Before | After |
+|---|---|
+| ![](assets/261-noise-sea-before.jpg) | ![](assets/261-noise-sea-after.jpg) |
+
+Left: the coastline's stair-steps and the march's grain toward the horizon.

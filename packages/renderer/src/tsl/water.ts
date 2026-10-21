@@ -10,7 +10,7 @@ import { WAVES, WAVE_GRAVITY, waveNumber, waveOmega } from '../water-model.ts';
 /* TSL nodes are untyped proxies; three's TSL typings lag its runtime */
 type N = any;
 const T = TSL as any;
-const { cos, dot, float, max, min, sin, smoothstep, sqrt, vec3 } = T;
+const { cos, dot, float, max, min, mix, sin, smoothstep, sqrt, vec3 } = T;
 
 const SHORE_W = shoreOmega();
 const SHORE_GS = WAVE_GRAVITY * BEACH_SLOPE;
@@ -63,12 +63,19 @@ const surfPhase = (x: N, t: N): N =>
 		.add(t.mul(SHORE_W));
 
 /** Surf foam at x metres from the shoreline into the water. */
-export const surfFoam = (x: N, t: N, H: N): N => {
+export const surfFoam = (x: N, t: N, H: N, fp: N): N => {
 	const xb = H.div(BREAKER_INDEX * BEACH_SLOPE);
 	const c = cos(surfPhase(x.sub(swashOffset(t, H).mul(0.5)), t))
 		.mul(0.5)
 		.add(0.5);
-	const crest = c.mul(c).mul(c).mul(c);
+	// a breaker line is a fraction of the lines' spacing (it narrows toward the shore): a pixel near a
+	// third of the spacing gets the line's mean (35/128), not dashes of it
+	const spacing = sqrt(max(x, SHORE_MIN_DISTANCE).mul(SHORE_GS)).mul((2 * Math.PI) / SHORE_W);
+	const crest = mix(
+		c.mul(c).mul(c).mul(c),
+		35 / 128,
+		smoothstep(spacing.mul(0.08), spacing.mul(0.3), fp)
+	);
 	const breaking = smoothstep(xb.mul(0.9), xb.mul(1.6), x).oneMinus();
 	const reach = smoothstep(xb.mul(2.5), xb.mul(5.0), x).oneMinus();
 	return min(

@@ -261,6 +261,15 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 
 ## Log
 
+- 2026-10-21 — Worker D (M2): **The ground and sea's flicker and "broken TV" noise**, which the owner saw on both renderers since WebGL. Fixed in `planet.glsl.ts` and `tsl/planet-pass.ts` alike:
+  - **Ground octaves** fade in from three pixels a wavelength, where it was 1.6, the Nyquist edge; the bump made from their screen differences shimmered.
+  - **Grass blades and clumps** fade by their own cell sizes (3 to 50 cm), no longer by one 0.35 to 3 m range.
+  - **Ripples** need three pixels a wavelength.
+  - **Whitecaps** show only under 8 m pixels, their 1.5 m noise under 1.5 m.
+  - **The sun's glint** widens with the footprint (Toksvig, energy kept), where it was a fixed 900.
+  - **Breaker lines** follow the map's smooth coast and bend with 16 m noise. Before, they followed the fractal coast distance divided by its 2 × 2 pixel derivatives, which cut them into rows of white dashes. Each test (whitecaps, glint, then foam turned off) narrowed it to this.
+  - **Shore foam's 1 m noise** fades with the footprint.
+  - **Still to do:** the coastline's stair-steps, and the atmosphere march's grain toward the horizon.
 - 2026-10-21 — Worker D (M2): **The owner's report from the M5 (WebGPU): every quality change froze the view for 3 to 5 s, and moving to `low` and back crashed with "Cannot read properties of null (reading 'depthTexture')".**
   - **The crash:** the sun now casts shadows on every preset on WebGPU. Three r186's shadow node loses its map when `castShadow` goes off.
   - **The freezes:** a preset change brings a new biome map and new terrain targets, and the TSL planet pass rebuilt every shader for them. Now:
