@@ -15,12 +15,10 @@ import {
 	type Site,
 	type Snapshot
 } from '@orbital/core';
-import type { SiteBuildingView } from '@orbital/renderer';
 
-export interface BuildingLookup {
-	get(id: string): BuildingDefinition | undefined;
-	list(): BuildingDefinition[];
-}
+import type { BuildingLookup } from './site-views';
+
+export { siteViews, type BuildingLookup } from './site-views';
 
 /** What a building's label opens. */
 export type BuildingAction =
@@ -163,27 +161,6 @@ export function buildingRows(
 				upkeep: def.levels[Math.min(b.level, def.levels.length - 1)]?.upkeep ?? 0,
 				capacity: capacityLines(def.levels[Math.min(b.level, def.levels.length - 1)]?.capacity),
 				anchor: { ...c, up: (HEIGHTS[generator] ?? 10) + 4 }
-			}
-		];
-	});
-}
-
-/** The renderer's building list for a site. */
-export function siteViews(
-	site: SiteState | undefined,
-	registry: BuildingLookup
-): SiteBuildingView[] {
-	if (!site) return [];
-	return site.buildings.flatMap((b) => {
-		const def = registry.get(b.kind);
-		if (!def) return [];
-		return [
-			{
-				id: b.id,
-				generator: def.visual.kind === 'generator' ? def.visual.generator : 'block',
-				size: { ...def.size },
-				cell: { ...b.cell },
-				rotation: b.rotation
 			}
 		];
 	});

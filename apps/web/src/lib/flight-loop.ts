@@ -102,6 +102,7 @@ import { createTargetView, type TargetView } from './target-view';
 import { computeTelemetry, type Telemetry } from './telemetry';
 import { createVesselPresence } from './vessel-presence';
 import type { ContentLookups } from './delta-v';
+import { siteViews, type BuildingLookup } from './space-center/site-views';
 import { resumeInfo, type GameSave } from './save/game-save';
 import type { SaveRequest } from './save/saves';
 import { captureThumbnail } from './save/thumbnail';
@@ -241,6 +242,11 @@ export interface FlightOptions {
 	sandbox?: ScriptSandbox;
 	/** The achievements profile (plan 102, ADR 0147); without one nothing unlocks (tests). */
 	profile?: ProfileStore;
+	/**
+	 * The world's buildings (ADR 0117): with them the launch site draws the buildings the player
+	 * built, as the Space Center does; without them (tests) the hard-coded layout.
+	 */
+	buildings?: BuildingLookup;
 }
 
 export interface Flight {
@@ -1568,6 +1574,18 @@ export function startFlight(options: FlightOptions): Flight {
 	}
 	const observer = new ResizeObserver(resize);
 
+	// The primary site's buildings, redrawn when the world's layout changed (built in the Space Center)
+	let siteKey = '';
+	function showSite(s: Snapshot): void {
+		if (!options.buildings || !renderer) return;
+		const site = s.sites?.find((x) => x.body === homeBody) ?? s.sites?.[0];
+		const key = JSON.stringify([site?.buildings, site?.roads]);
+		if (key === siteKey) return;
+		siteKey = key;
+		renderer.setSiteBuildings(siteViews(site, options.buildings), site?.roads ?? []);
+	}
+	let homeBody: string | undefined;
+
 	// --- boot --------------------------------------------------------------------------------
 	offClient.push(
 		client.onSnapshot((s, simWarp) => {
@@ -1588,6 +1606,7 @@ export function startFlight(options: FlightOptions): Flight {
 			}
 			hud.warpLimit = s.warpLimit ?? null;
 			presence.snapshot(s);
+			showSite(s);
 			hudCtl?.snapshot(s);
 			dirty = true;
 			auto?.update(s);
@@ -1719,8 +1738,12 @@ export function startFlight(options: FlightOptions): Flight {
 				preset: initialGraphicsPreset(),
 				// the world's terrain and Space Center (plan 084, ADR 0142)
 				...(c.terrain ? { terrain: c.terrain } : {}),
-				...(c.launchSite ? { launchSite: c.launchSite } : {})
+				...(c.launchSite ? { launchSite: c.launchSite } : {}),
+				// the player's own buildings at the site (ADR 0117), not the hard-coded layout
+				...(options.buildings ? { siteBuildings: true } : {})
 			});
+			homeBody = c.home ?? homeOfCatalog(c)?.id;
+			if (snap) showSite(snap);
 			// no bright flashes while the system asks for reduced motion (plan 246)
 			motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
 			renderer.setReducedMotion(motion?.matches ?? false);

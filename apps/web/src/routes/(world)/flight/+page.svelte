@@ -647,8 +647,17 @@
 				presets.find((p) => p.id === `stock.${record.preset}`);
 			world = { name: record.name, mode: preset?.label ?? record.preset, system: 'Stock system' };
 		});
-		const { catalog, content, panels, missions, objectiveLabels, actionGroups, categories } =
-			loadContent();
+		const {
+			catalog,
+			content,
+			panels,
+			missions,
+			objectiveLabels,
+			actionGroups,
+			categories,
+			world: worldContent
+		} = loadContent();
+		siteBuildings = worldContent.buildings;
 		vesselContent = {
 			parts: content.parts,
 			modules: content.modules,
@@ -696,6 +705,9 @@
 	 * Start the flight on the world's one sim (plan 204, ADR 0201): a save restarts it, a launch adds
 	 * the design to the running world, and coming back without either takes up the focus vessel.
 	 */
+	/** The world's buildings, so the launch site draws what the player built (ADR 0117). */
+	let siteBuildings: ReturnType<typeof loadContent>['world']['buildings'] | undefined;
+
 	async function startFlightOf(
 		loadId: string | null,
 		catalog: ReturnType<typeof loadContent>['catalog'],
@@ -765,6 +777,7 @@
 			worldSession.base?.sim.worldInfo ??
 			(await saves.worldStartInfo(activeWorldId()));
 		const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
+		if (own) siteBuildings = own.world.buildings;
 		if (gone() || !ready) return undefined;
 		return begin(
 			own?.catalog ?? catalog,
@@ -862,6 +875,7 @@
 					: {}),
 			...(crew?.length ? { crew } : {}),
 			content,
+			...(siteBuildings ? { buildings: siteBuildings } : {}),
 			profile: profileStore(),
 			onHud: (h) => {
 				hud = h;

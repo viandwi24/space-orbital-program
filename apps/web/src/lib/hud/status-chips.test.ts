@@ -41,6 +41,15 @@ describe('statusChips', () => {
 		).toEqual([]);
 	});
 
+	it('no antenna says to add one, and that the Space Center is a ground station already', () => {
+		const [c] = statusChips({
+			...none,
+			link: { state: 'lost', text: 'No antenna', bars: 0, blackout: 0 }
+		});
+		expect(c!.body).toContain('Add an antenna in the Hangar');
+		expect(c!.body).toContain('ground station already');
+	});
+
 	it('a blackout without a comms network is PLASMA BLACKOUT; the range warning follows', () => {
 		const chips = statusChips({ ...none, blackout: 0.8, range: 'Booster lands in the sea' });
 		expect(chips.map((c) => c.id)).toEqual(['plasma', 'range']);
