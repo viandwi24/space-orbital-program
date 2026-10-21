@@ -1043,7 +1043,7 @@
 	}
 	.modes {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
 		gap: 1rem;
 	}
 	.mcard {
@@ -1185,10 +1185,16 @@
 		font-size: 0.875rem;
 	}
 	/* step 2 · world */
+	/* two columns only where the globe has room beside the choices (V3 §4.3); else it goes below */
 	.world {
 		display: grid;
-		grid-template-columns: minmax(0, 41rem) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		gap: 2.5rem;
+	}
+	@media (min-width: 1700px) {
+		.world {
+			grid-template-columns: minmax(0, 41rem) minmax(0, 1fr);
+		}
 	}
 	.col {
 		display: flex;
@@ -1358,8 +1364,9 @@
 		overflow: hidden;
 	}
 	.globe svg {
-		width: 22.5rem;
-		height: 22.5rem;
+		width: min(22.5rem, 100%);
+		height: auto;
+		aspect-ratio: 1;
 	}
 	.sea {
 		fill: #0d1b33;

@@ -6,7 +6,7 @@
 	 */
 	import type { AchievementDefinition } from '@orbital/core';
 	import { downloadText } from '../download';
-	import { HIDDEN_ICON, MILESTONE_ICONS } from '../worlds/milestone-icons';
+	import { HIDDEN_ICON, milestoneIcon } from '../worlds/milestone-icons';
 	import { mergeProfiles, parseProfile, serializeProfile, type Profile } from './profile';
 	import type { ProfileStore } from './store';
 
@@ -129,7 +129,11 @@
 				<div class="top">
 					<span class="medal" aria-hidden="true"
 						><svg viewBox="0 0 24 24" width="30" height="30"
-							><path d={secret ? HIDDEN_ICON : MILESTONE_ICONS[a.criteria.milestone]} /></svg
+							><path
+								d={secret
+									? HIDDEN_ICON
+									: milestoneIcon(a.criteria.milestone, a.criteria.crewed === true)}
+							/></svg
 						></span
 					>
 					<span class="state">{u ? 'Unlocked' : secret ? 'Hidden' : 'Locked'}</span>

@@ -191,7 +191,8 @@ export function systemPicture(
 	const shown = planets.slice(0, 9);
 	const n = shown.length;
 	// spread the planets from just right of the star to the right edge
-	const first = 34;
+	// one planet sits in the middle, several spread from just right of the star
+	const first = n === 1 ? 130 : 34;
 	const last = width - sx - 16;
 	const gap = n > 1 ? (last - first) / (n - 1) : 0;
 	const orbits: string[] = [];
