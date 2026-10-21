@@ -820,6 +820,8 @@ export const ModuleLandingLeg = defineModule({
 				value: state.deployed,
 				enabled: true,
 				group: 'stock.landing-gear',
+				// the Hangar sets whether they start out (plan 316)
+				build: 'deployed',
 				icon: 'legs'
 			}
 		]

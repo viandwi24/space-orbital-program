@@ -5,6 +5,7 @@
  */
 import {
 	GRAVITATIONAL_CONSTANT,
+	createVesselPilot,
 	type BodyDefinition,
 	type Epoch,
 	type PartDefinition,
@@ -103,6 +104,8 @@ export interface TelemetryTarget {
 	distance: number;
 	relativeSpeed: number;
 	approach: { time: number; distance: number; relativeSpeed: number } | null;
+	/** The targeted docking port's part id (plan 310), or null for the whole vessel or a body. */
+	part: number | null;
 }
 
 /** One entry of `ship.targets`: something the ship could aim at. */
@@ -110,6 +113,22 @@ export interface TelemetryTargetChoice {
 	kind: 'body' | 'vessel';
 	id: string | number;
 	name: string;
+	/** A vessel's free docking ports (plan 310): `setTarget({ vessel: id, port })`. */
+	ports?: number[];
+}
+
+/**
+ * Port to port (plan 310, ADR 0271): the own control port against the targeted port, from
+ * `VesselPilot.alignment()`. Angles in rad, m, m/s; the approach axis runs out of the target face.
+ */
+export interface TelemetryDock {
+	angle: number;
+	along: number;
+	lateral: Vec3;
+	lateralDistance: number;
+	distance: number;
+	closing: number;
+	sameSize: boolean;
 }
 
 /**
@@ -172,6 +191,22 @@ export interface Telemetry {
 	targets: TelemetryTargetChoice[];
 	/** Science aboard (plan 103). */
 	science: TelemetryScience;
+	/** RCS is on (plan 310). */
+	rcs: boolean;
+	/** The part the ship is controlled from (plan 221), or null for the root. */
+	controlPart: number | null;
+	/** The ship's docking ports: part id, size (m), free, outward direction (inertial). */
+	ports: Array<{ part: number; size: number; free: boolean; direction: Vec3 }>;
+	/** Port to port while controlled from a port and targeting a port (plan 310), else null. */
+	dock: TelemetryDock | null;
+	/** The engaged autopilot (plan 310), or null. */
+	autopilot: {
+		id: string;
+		title: string;
+		phase: string;
+		status: string;
+		readouts: Record<string, number | string>;
+	} | null;
 }
 
 const length = (v: Vec3): number => Math.hypot(v.x, v.y, v.z);
@@ -336,18 +371,24 @@ export function buildTelemetry(
 					velocity: { ...v.target.velocity },
 					distance: v.target.distance,
 					relativeSpeed: v.target.relativeSpeed,
-					approach: v.target.approach ? { ...v.target.approach } : null
+					approach: v.target.approach ? { ...v.target.approach } : null,
+					part:
+						v.target.kind === 'vessel' && v.target.part !== undefined ? Number(v.target.part) : null
 				}
 			: null,
 		targets: [
 			...env.bodies.map((b) => ({ kind: 'body' as const, id: String(b.id), name: String(b.id) })),
 			...snapshot.vessels
 				.filter((o) => Number(o.id) !== vessel)
-				.map((o) => ({
-					kind: 'vessel' as const,
-					id: Number(o.id),
-					name: o.name ?? `vessel ${Number(o.id)}`
-				}))
+				.map((o) => {
+					const ports = (o.ports ?? []).filter((p) => p.free).map((p) => Number(p.part));
+					return {
+						kind: 'vessel' as const,
+						id: Number(o.id),
+						name: o.name ?? `vessel ${Number(o.id)}`,
+						...(ports.length > 0 ? { ports } : {})
+					};
+				})
 		],
 		science: {
 			situation: v.science?.situation ?? null,
@@ -358,6 +399,31 @@ export function buildTelemetry(
 				reason: e.reason ?? null,
 				progress: e.progress
 			}))
-		}
+		},
+		rcs: v.rcs === true,
+		controlPart: v.controlPart === undefined ? null : Number(v.controlPart),
+		ports: (v.ports ?? []).map((p) => ({
+			part: Number(p.part),
+			size: p.size,
+			free: p.free,
+			direction: { ...p.direction }
+		})),
+		dock: dockOf(snapshot, v),
+		autopilot: v.autopilot ? { ...v.autopilot, readouts: { ...v.autopilot.readouts } } : null
+	};
+}
+
+/** `ship.dock` from the core's vessel pilot (no commands go anywhere). */
+function dockOf(snapshot: Snapshot, v: VesselSnapshot): TelemetryDock | null {
+	const a = createVesselPilot(snapshot, v.id, () => undefined).alignment();
+	if (!a) return null;
+	return {
+		angle: a.angle,
+		along: a.along,
+		lateral: { ...a.lateral },
+		lateralDistance: a.lateralDistance,
+		distance: a.distance,
+		closing: a.closing,
+		sameSize: a.sameSize
 	};
 }

@@ -58,8 +58,22 @@ import {
 } from './hangar-movers.ts';
 import { SAFETY_CELLS, SIGN_ATLAS, numberCell, type SignCell } from './hangar-signs.ts';
 
-/** Room half-extent on x and z, and height, metres. */
-export const HANGAR = { half: 30, height: 46, platformRadius: 6.2 } as const;
+/**
+ * The building as authored, metres: walls at ±30, roof at 46. The shell is built at this size and
+ * scaled by `HANGAR_SCALE` (owner, 2026-10-21: Kronos V, 46 m, reached the roof).
+ */
+const AUTHORED = { half: 30, height: 46 } as const;
+/**
+ * How much bigger the built shell is than authored (walls, roof, trusses, crane, towers, lamps).
+ * The platform, the walking crew and the tug keep their size: they are human scale.
+ */
+export const HANGAR_SCALE = 1.5;
+/** Room half-extent on x and z, and height, metres, as the player sees it (90 × 90 × 69 m). */
+export const HANGAR = {
+	half: AUTHORED.half * HANGAR_SCALE,
+	height: AUTHORED.height * HANGAR_SCALE,
+	platformRadius: 6.2
+} as const;
 
 /**
  * The service towers (plan 220): bases well back from the platform, the left one taller. Since plan
@@ -355,10 +369,10 @@ export interface HangarOptions {
 
 /** The four walls as [x, z, rotation about y]; a plane faces +z at rotation 0, so each faces into the room. */
 const WALLS = [
-	[0, -HANGAR.half, 0],
-	[0, HANGAR.half, Math.PI],
-	[-HANGAR.half, 0, Math.PI / 2],
-	[HANGAR.half, 0, -Math.PI / 2]
+	[0, -AUTHORED.half, 0],
+	[0, AUTHORED.half, Math.PI],
+	[-AUTHORED.half, 0, Math.PI / 2],
+	[AUTHORED.half, 0, -Math.PI / 2]
 ] as const;
 
 /**
@@ -372,7 +386,7 @@ export function wallStrip(
 	offset: number,
 	uv: (along: number, y: number) => readonly [number, number]
 ): BufferGeometry {
-	const W = HANGAR.half;
+	const W = AUTHORED.half;
 	const parts = WALLS.map(([x, z, ry]) => {
 		const g = new PlaneGeometry(2 * W, y1 - y0);
 		const pos = g.getAttribute('position');
@@ -414,7 +428,7 @@ function plateGeometry(
 	}
 	g.rotateY(ry);
 	// Along-wall direction for rotation ry is (cos ry, 0, -sin ry); the column face stands 1.2 m off the cladding.
-	const inward = HANGAR.half - 1.2 - 0.015;
+	const inward = AUTHORED.half - 1.2 - 0.015;
 	g.translate(
 		(x === 0 ? 0 : Math.sign(x) * inward) + Math.cos(ry) * along,
 		y,
@@ -425,8 +439,8 @@ function plateGeometry(
 
 export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	const C = HANGAR_COLOURS;
-	const H = HANGAR.height;
-	const W = HANGAR.half;
+	const H = AUTHORED.height;
+	const W = AUTHORED.half;
 	const high = (options.quality ?? 'high') === 'high';
 	let reduced = options.reducedMotion === true;
 	const daylight = dayLight(options.timeOfDay ?? DEFAULT_TIME_OF_DAY);
@@ -1324,9 +1338,36 @@ export function createHangar(options: HangarOptions = { dust: 400 }): Hangar {
 	}
 	const base = dust ? new Float32Array(dust.geometry.getAttribute('position').array) : null;
 
+	// Everything but the human-scale pieces goes into the scaled shell (see `HANGAR_SCALE`).
+	const shell = new Group();
+	shell.name = 'hangar-shell';
+	shell.scale.setScalar(HANGAR_SCALE);
+	const humanScale = new Set<Object3D | null>([
+		platform,
+		hazardRing,
+		glowRing,
+		innerRing,
+		pad,
+		spokesMesh,
+		tug.tug,
+		tug.trailer,
+		...crew.meshes
+	]);
+	for (const child of [...root.children]) if (!humanScale.has(child)) shell.add(child);
+	root.add(shell);
+	// the work lights live in the view's scene, not under the shell: place and reach them by hand
+	for (const light of workLights) {
+		light.position.multiplyScalar(HANGAR_SCALE);
+		light.distance *= HANGAR_SCALE;
+		light.intensity *= HANGAR_SCALE * HANGAR_SCALE;
+	}
+	const scaledLamps = lamps.map(
+		([x, y, z]) => [x * HANGAR_SCALE, y * HANGAR_SCALE, z * HANGAR_SCALE] as const
+	);
+
 	return {
 		root,
-		lamps,
+		lamps: scaledLamps,
 		shafts,
 		workLights,
 		daylight,

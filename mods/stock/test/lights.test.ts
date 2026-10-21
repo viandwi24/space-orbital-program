@@ -1,4 +1,4 @@
-/** Lights (plan 242, ADR 0239): the toggle, the group, the colours, the charge drain. */
+/** Lights (plans 242 and 311, ADR 0239): the toggle, the group, the colours, the charge drain. */
 import { describe, expect, test } from 'bun:test';
 import { ElectricCharge, LIGHT_COLOURS, ModuleLight } from '../src/index.ts';
 import { contextFor, fakeVessel, loaded } from './helpers.ts';
@@ -65,5 +65,16 @@ describe('stock.light', () => {
 			expect(part.attach?.radial).toBeDefined();
 			expect(loaded.registries.techNodes.get('stock.power')!.unlocks).toContain(id);
 		}
+	});
+
+	// owner, 2026-10-21: a flying vessel's panel reads the snapshot view, whose colour is a hex
+	test('the panel described from a live snapshot is valid: the colour reads as its name', () => {
+		const ctx = contextFor(ModuleLight, { colour: 'red', blink: true }, fakeVessel({ [EC]: 10 }));
+		const view = ModuleLight.snapshot!(ctx.state) as typeof ctx.state;
+		const colour = ModuleLight.describe!(ctx.config, view).actions!.find(
+			(a) => a.id === 'setColour'
+		)!;
+		expect(colour.value).toBe('red');
+		expect(colour.options!.map((o) => o.value)).toContain(colour.value as string);
 	});
 });

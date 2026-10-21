@@ -42,7 +42,7 @@ Per ADR 0263; the blue grid is CSS behind a transparent render.
 - [x] ~~e2e~~ (owner: no e2e): `blueprints.test.ts` filters "moon" and builds every card; `mission-flights.test.ts` launches one headless.
 - [x] A mod-defined blueprint appears under "Mod" (`blueprints.test.ts`, with a test plugin).
 - [x] `bun test`, `bun run typecheck` and `bun run docs:check` pass.
-- [ ] Screenshots of the Library and the empty Hangar in the journal (added with plan 309).
+- [x] Screenshots of the Library and the empty Hangar in the journal.
 
 ## Docs checklist
 

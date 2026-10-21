@@ -254,8 +254,14 @@
 | 306 | [Robotics: kinematic hinges, servos, rotors and pistons](plans/306-robotics-kinematic-joints.md) | done | part visuals session | ADR 0269 supersedes 0262 points 1, 2, 5, 7 and 0265: joints re-pose parts inside the one body, rebuilt at most 10 Hz; 7 parts; limit 4 in series, 16 per vessel. Journal 306. |
 | 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | done | part visuals session | First slice of plan 283: `wheel-throttle` (API 0.1.99), wheel top speed, rover wheels S/M/L and a deck, Flight drive mode (Alt+G, on by itself near the ground), Trailblazer Rover driven headless off the pad. Journal 307. |
 | 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
-| 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
+| 309 | [Mission flight tests: shuttle, capsule, lander, docking, rover](plans/309-mission-flight-tests.md) | done | part visuals session | Five headless flights. Fixed: Wayfarer turned over (core engines now under the tank, Energia style), SRB-XL gimbal 6°, plates 5°, pod-3 semi canopy 10× too big. Journal 309. |
+| 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | done | auto dock session | ADRs 0270, 0271. Click a vessel in Flight for a menu; port targets; `VesselPilot` and `defineAutopilot`; built-in Auto Dock mod; SAS turns at the vessel's torque. Journal 310. |
+| 311 | [Lights (panel, angled, navigation), the RCS jet redrawn, RCS propellant](plans/311-lights-panel-angled-nav.md) | done | part visuals session | Owner's question and report 2026-10-21. 5 lights, OrbitX names for spot and flood. Monoprop on Horizon (it had none), the Kronos SM, the satellite bus, and full new pods; a test guards it. RCS jet: a core and sprite puffs (a cone read as a light beam; WebGPU ignored additive opacity). Journal 311. |
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
+| 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
+| 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
+| 315 | [Hangar: see inside fairings, bays and petals](plans/315-hangar-see-inside.md) | done | part visuals session | Owner's request. Hover tip (name, mass, holds), x-ray shells, Open/Close in the editor, Show payload; picks reach through a shell only to what it holds. Journal 315. |
+| 316 | [Hangar: part list and start state](plans/316-hangar-part-list-and-start-state.md) | done | part visuals session | Owner's request. A Parts tree in the right panel (select, hover to find); start switches for panels, legs, bays, doors and fuel cells saved in the design; the Hangar draws each part from its start snapshot. Journal 316. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -323,6 +329,11 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [316 — Part list and start state](journal/316-hangar-part-list-and-start-state.md)
+- [315 — Seeing inside in the Hangar](journal/315-hangar-see-inside.md)
+- [314 — A bigger Hangar](journal/314-bigger-hangar.md)
+- [311 — Lights, the RCS jet, RCS propellant](journal/311-lights-panel-angled-nav.md)
+- [309 — Mission flight tests](journal/309-mission-flight-tests.md)
 - [285 — Blueprint Library](journal/285-blueprint-library.md)
 - [307 — Rover: wheels, drive mode, blueprint](journal/307-rover-wheels-and-drive-mode.md)
 - [308 — Attach to sideways nodes](journal/308-sideways-node-attach.md)

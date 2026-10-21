@@ -69,4 +69,23 @@ describe('mission blueprints (plan 286)', () => {
 			);
 		});
 	}
+
+	// owner, 2026-10-21: Horizon Station's RCS said "no propellant"
+	it('every blueprint with RCS thrusters carries monopropellant for them', () => {
+		for (const mission of MISSION_BLUEPRINTS) {
+			const design = mission.build(content);
+			let rcs = false;
+			let mono = 0;
+			for (const p of design.parts) {
+				const def = content.parts.get(p.part);
+				for (const [id, config] of def?.modules ?? []) {
+					if (id === 'stock.rcs') rcs = true;
+					const c = (config as { contents?: Record<string, { capacity: number; amount?: number }> })
+						.contents?.['stock.monopropellant'];
+					if (c) mono += c.amount ?? c.capacity;
+				}
+			}
+			if (rcs) expect(mono, mission.id).toBeGreaterThanOrEqual(30);
+		}
+	});
 });

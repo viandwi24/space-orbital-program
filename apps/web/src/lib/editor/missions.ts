@@ -146,6 +146,8 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const shield = b.below('stock.heat-shield-wide', pod);
 			const sm = b.below('stock.tank-wide-short', shield);
 			b.side('stock.rcs-block-5', sm, Math.PI / 4, 0.3, 4);
+			// the quads' monopropellant (owner, 2026-10-21: RCS said "no propellant")
+			b.side('stock.monoprop-radial', sm, Math.PI / 2, 0, 2);
 			b.side('stock.antenna-dish-fold', sm, 0, -0.3);
 			b.side('stock.fuel-cell', sm, Math.PI, -0.3);
 			const smEngine = b.below('stock.engine-wide', sm);
@@ -172,11 +174,12 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 	{
 		id: 'wayfarer-shuttle',
 		title: 'Wayfarer Shuttle',
-		inspiredBy: 'the Space Shuttle (orbiter, external tank, solid boosters, payload bay)',
+		inspiredBy:
+			'the Space Shuttle and Energia-Buran (winged orbiter, solid boosters, main engines under the tank)',
 		goal: 'orbit',
 		crew: 4,
 		summary:
-			'A winged orbiter with a satellite in its cargo bay, on a foam-covered external tank between two solid boosters.',
+			'A winged orbiter with a satellite in its cargo bay, on a foam-covered tank between two solid boosters. The main engines are under the tank, so the thrust runs through the stack.',
 		build(content) {
 			const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
 			const bay = b.below('stock.cargo-bay', 0);
@@ -195,10 +198,12 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			// one attach: the decouplers' symmetry puts a booster on each
 			b.on('stock.nose-cone-1875', b.on('stock.srb-xl', srbDecs.at(-1)!, 'outer'), 'top');
 			const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-xl').map((p) => p.index);
-			// the main engines burn the external tank's propellant through a feed line
-			b.line(et, -Math.PI / 2, -0.8, aft, Math.PI, 0);
-			// main engines and boosters light together; the boosters drop, then the tank
-			return b.done([[aft, ...srbs], srbDecs, [rd]]);
+			// the main engines sit under the tank, on the stack's axis (as Energia under Buran): the
+			// orbiter's own engines, 3 m off the centre of mass, would turn the stack over (plan 309)
+			const core = b.below('stock.engine-plate-8', et);
+			void aft;
+			// core engines and boosters light together; the boosters drop, then the tank
+			return b.done([[core, ...srbs], srbDecs, [rd]]);
 		}
 	},
 	{
@@ -220,6 +225,8 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
 			b.side('stock.radiator', hab, 0, -0.3, 2);
 			b.side('stock.rcs-block', hab, Math.PI / 4, 0.8, 4);
+			// the station's RCS propellant (owner, 2026-10-21: RCS said "no propellant")
+			b.side('stock.monoprop-radial', hab, (3 * Math.PI) / 4, -1, 2);
 			b.side('stock.antenna-dish-fold', hab, Math.PI, -0.6);
 			const bus = b.below('stock.service-bay-wide', hab);
 			const core = b.on('stock.satellite-bus', bus, 'bottom');

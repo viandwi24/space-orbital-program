@@ -42,7 +42,9 @@ export const ModuleAnimate = defineModule({
 				value: state.open,
 				enabled: true,
 				group: 'stock.animate',
-				icon: 'deploy'
+				icon: 'deploy',
+				// the Hangar sets how it starts (plan 316)
+				build: 'open'
 			}
 		]
 	}),
@@ -98,7 +100,9 @@ export const ModuleBay = defineModule({
 				value: state.open,
 				enabled: true,
 				group: 'stock.bay',
-				icon: 'deploy'
+				icon: 'deploy',
+				// the Hangar sets how it starts (plan 316)
+				build: 'open'
 			}
 		]
 	}),
@@ -155,7 +159,9 @@ export const ModuleFuelCell = defineModule({
 				value: state.running,
 				enabled: true,
 				group: 'stock.fuel-cell',
-				icon: 'solar'
+				icon: 'solar',
+				// the Hangar sets how it starts (plan 316)
+				build: 'running'
 			}
 		]
 	}),

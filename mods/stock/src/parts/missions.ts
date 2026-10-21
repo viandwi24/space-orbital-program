@@ -612,7 +612,8 @@ const pod = (opts: {
 				{
 					contents: {
 						[ElectricCharge.id]: { capacity: 50 * opts.crew + 50 },
-						[Monopropellant.id]: { capacity: 10 * opts.crew, amount: 0 }
+						// full at build (plan 309): a crewed ship's RCS flies on it
+						[Monopropellant.id]: { capacity: 10 * opts.crew }
 					}
 				}
 			],
@@ -621,7 +622,8 @@ const pod = (opts: {
 						[
 							ModuleParachute,
 							{
-								semiDragArea: 10 * opts.chutes,
+								// a reefed canopy, as the stock chute's 10 of 480 (plan 309: was 10× the full one)
+								semiDragArea: opts.chutes / 40,
 								fullDragArea: opts.chutes,
 								anchor: [0, opts.shape.height / 2, 0] as [number, number, number]
 							}
@@ -788,7 +790,16 @@ export const PartSatelliteBus = definePart({
 		[ModuleCommand, {}],
 		[ModuleProbeComputer, {}],
 		[ModuleReactionWheel, { torque: 5_000, chargeRate: 0.6 }],
-		[ModuleResourceContainer, { contents: { [ElectricCharge.id]: { capacity: 400 } } }]
+		[
+			ModuleResourceContainer,
+			{
+				contents: {
+					[ElectricCharge.id]: { capacity: 400 },
+					// a bus carries its thrusters' propellant (owner, 2026-10-21: RCS said "no propellant")
+					[Monopropellant.id]: { capacity: 60 }
+				}
+			}
+		]
 	],
 	stagingIcon: 'command'
 });
@@ -973,7 +984,8 @@ function enginePlate(opts: {
 					ispVacuum: 304,
 					ispSeaLevel: 265,
 					propellants: lfox,
-					gimbal: { range: 2, rate: 10 }
+					// big first-stage engines gimbal 5–10° (F-1 6°, RS-25 10.5°; plan 309)
+					gimbal: { range: 5, rate: 10 }
 				}
 			]
 		],
@@ -1226,7 +1238,9 @@ export const PartSrbXl = definePart({
 				ispVacuum: 268,
 				ispSeaLevel: 242,
 				propellants: [{ resource: SolidFuel.id, ratio: 1 }],
-				solid: true
+				solid: true,
+				// the shuttle's boosters steered the stack (8°, plan 309): an off-axis orbiter needs it
+				gimbal: { range: 6, rate: 10 }
 			}
 		],
 		[ModuleResourceContainer, { contents: { [SolidFuel.id]: { capacity: 9_000 } } }]

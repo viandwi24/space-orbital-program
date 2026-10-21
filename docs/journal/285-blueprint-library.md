@@ -14,6 +14,15 @@
 - **`BlueprintLibrary.svelte`:** each card is the design drawn by the Hangar's view on a blue grid, with badges, the summary, the numbers and a Load button. Pictures and numbers are worked out once per card.
 - **The empty Hangar:** four featured cards (Two-stage starter, Kronos V + Selene, Wayfarer Shuttle, Trailblazer Rover), "Open the Library", and "Open a saved vessel" when there is one. They replace the ten text buttons.
 
+The empty Hangar's featured cards:
+
+![The empty Hangar with four featured blueprints](assets/285-empty-hangar.jpg)
+
+The Library, and the same filtered to the moon:
+
+![The Blueprint Library](assets/285-library.jpg)
+![The Library filtered to Moon](assets/285-library-moon.jpg)
+
 ## What surprised me
 
 - ADR 0263 wanted the stock blueprints as mod data. They are built with the editor's operations (attach targets, radial sites, symmetry), which only the web app has. So they stay code in `apps/web`, and mods get the registry. Generating stock data from them would need a build step: draft 312 notes it.
@@ -21,7 +30,6 @@
 ## Open questions / follow-ups
 
 - Draft 312: leader-line labels, the completeness checklist, a thumbnail cache, career locks, and tabs for saved designs and sub-assemblies.
-- Screenshots: the heavy-job lock was held by another session at commit time; they come with plan 309's journal.
 
 ## Verification output
 

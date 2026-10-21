@@ -159,7 +159,12 @@ describe('stock boots through the loader', () => {
 			'stock.launch-clamp',
 			'stock.life-support-pack',
 			'stock.life-support-radial',
+			'stock.light-angled',
 			'stock.light-flood',
+			'stock.light-nav-green',
+			'stock.light-nav-red',
+			'stock.light-nav-white',
+			'stock.light-panel',
 			'stock.light-spot',
 			'stock.magnetometer-boom',
 			'stock.materials-bay',
@@ -382,9 +387,14 @@ describe('stock boots through the loader', () => {
 			'stock.radial-parachute',
 			// a ladder hangs radially (plan 225)
 			'stock.ladder',
-			// lights hang radially (plan 242)
+			// lights hang radially (plans 242, 311)
 			'stock.light-spot',
-			'stock.light-flood'
+			'stock.light-flood',
+			'stock.light-panel',
+			'stock.light-angled',
+			'stock.light-nav-red',
+			'stock.light-nav-green',
+			'stock.light-nav-white'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

@@ -1124,6 +1124,7 @@
 			link: model?.link ?? null,
 			blackout: model?.blackout ?? 0,
 			range: model?.range ?? null,
+			sas: model?.sas ?? null,
 			drive: hud?.drive ?? false
 		})
 	);

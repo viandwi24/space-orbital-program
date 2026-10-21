@@ -55,4 +55,15 @@ describe('statusChips', () => {
 		expect(chips.map((c) => c.id)).toEqual(['plasma', 'range']);
 		expect(chips[1]!.reason).toBe('Booster lands in the sea (predicted)');
 	});
+
+	it('SAS on with little torque is LOW TORQUE with the half-turn time; none is NO TORQUE (plan 310)', () => {
+		const low = statusChips({ ...none, sas: { mode: 'prograde', accel: 0.0004 } });
+		expect(low.map((c) => c.label)).toEqual(['Low torque']);
+		expect(low[0]!.body).toContain('177 s');
+		const zero = statusChips({ ...none, sas: { mode: 'hold', accel: 0 } });
+		expect(zero.map((c) => [c.label, c.fix?.panel])).toEqual([['No torque', 'host.parts']]);
+		expect(statusChips({ ...none, sas: { mode: 'off', accel: 0 } })).toEqual([]);
+		expect(statusChips({ ...none, sas: { mode: 'hold', accel: 0.05 } })).toEqual([]);
+		expect(statusChips({ ...none, sas: { mode: 'hold' } })).toEqual([]);
+	});
 });

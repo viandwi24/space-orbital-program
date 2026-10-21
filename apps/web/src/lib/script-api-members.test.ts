@@ -6,7 +6,7 @@ import { createSim } from '@orbital/sim';
 import { describe, expect, it } from 'vitest';
 import { MEMBERS } from './script-api';
 
-/** Top to bottom: pod, thermometer, wheel, tank, engine: every kind of part the nested tables describe. */
+/** Top to bottom: port, pod, thermometer, wheel, tank, engine: every kind of part the nested tables describe. */
 const craft: VesselDesign = {
 	formatVersion: 1,
 	name: 'Probe',
@@ -23,6 +23,12 @@ const craft: VesselDesign = {
 	})),
 	stages: [[4]]
 };
+// a docking port on the pod's top (plan 310: ship.ports, ship.dock)
+craft.parts.push({
+	index: 5,
+	part: partId('stock.docking-port'),
+	parent: { index: 0, parentNode: 'top', node: 'bottom' }
+});
 
 describe('the nested member tables against the real sandbox', () => {
 	it('lists exactly the keys the engine produces for each nested object', async () => {
@@ -56,7 +62,9 @@ describe('the nested member tables against the real sandbox', () => {
 				stage(); // nothing left to fire: refused, so ship.refusals has an entry next tick
 				await nextTick();
 				const refused = ship.refusals.map((r) => ({ ...r }));
-				await setTarget(${other});
+				await controlFrom(ship.ports[0].part);
+				const station = ship.targets.find((t) => t.id === ${other});
+				await setTarget({ vessel: station.id, port: station.ports[0] });
 				await addNode({ time: time() + 1000, prograde: 10 });
 				await nextTick();
 				await nextTick();
@@ -84,6 +92,10 @@ describe('the nested member tables against the real sandbox', () => {
 					'ship.target.velocity': keys(ship.target.velocity),
 					'ship.target.approach': keys(ship.target.approach),
 					'ship.targets[]': union(ship.targets),
+					'ship.ports[]': keys(ship.ports[0]),
+					'ship.ports[].direction': keys(ship.ports[0].direction),
+					'ship.dock': keys(ship.dock),
+					'ship.dock.lateral': keys(ship.dock.lateral),
 					'ship.refusals[]': keys(refused[0]),
 					'bodies[]': [...union(all), 'state'].sort(),
 					'bodies[].atmosphere': keys(all.find((b) => b.atmosphere).atmosphere),

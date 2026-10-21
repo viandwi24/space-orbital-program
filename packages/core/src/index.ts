@@ -66,6 +66,8 @@ export * from './tech-tree.ts';
 export * from './scenarios.ts';
 export * from './blueprints.ts';
 export * from './panels.ts';
+export * from './autopilots.ts';
+export * from './vessel-pilot.ts';
 export * from './range-safety.ts';
 export * from './reliability.ts';
 export * from './replay.ts';

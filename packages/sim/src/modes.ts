@@ -182,6 +182,8 @@ export function railsEligible(
 		vessel.mode === 'flight' &&
 		vessel.idle >= minIdle &&
 		!vessel.landed &&
+		// an engaged autopilot keeps its vessel in flight (plan 310, ADR 0271)
+		vessel.autopilot === undefined &&
 		isStableOrbit(bodyOfVessel(core, vessel), vessel.com, vessel.velocity)
 	);
 }

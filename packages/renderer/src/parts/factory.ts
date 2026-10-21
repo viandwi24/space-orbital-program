@@ -268,6 +268,7 @@ class ProceduralModel implements PartModel {
 			this.dynamic?.animate(this.progress);
 		}
 		this.plume?.update(this.engine, this.pressure, this.time);
+		this.puffs?.tick(dt);
 	}
 
 	/** Temperature glow needs per-part emissive, so materials are cloned the first time the skin is hot. */

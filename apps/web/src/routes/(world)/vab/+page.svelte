@@ -7,6 +7,7 @@
 	import ChecksList from '../../../lib/vab/ChecksList.svelte';
 	import LibraryDialog from '../../../lib/vab/LibraryDialog.svelte';
 	import BlueprintLibrary from '../../../lib/vab/BlueprintLibrary.svelte';
+	import PartList from '../../../lib/vab/PartList.svelte';
 	import SelectionCard from '../../../lib/vab/SelectionCard.svelte';
 	import StageEditor from '../../../lib/vab/StageEditor.svelte';
 	import PowerBudget from '../../../lib/vab/PowerBudget.svelte';
@@ -177,6 +178,31 @@
 			oncontextmenu={(e) => e.preventDefault()}
 			onwheel={vab.wheel}
 		></canvas>
+		{#if vab.hoverInfo}
+			<!-- the part under the pointer (plan 315): name, mass and, for a shell, what it holds -->
+			<div
+				class="part-tip"
+				role="tooltip"
+				style:left="{vab.hoverInfo.at.x + 16}px"
+				style:top="{vab.hoverInfo.at.y + 16}px"
+			>
+				<strong>{vab.hoverInfo.title}</strong>
+				<span class="dim">{(vab.hoverInfo.mass / 1000).toFixed(2)} t dry</span>
+				{#if vab.hoverInfo.shell}
+					{#if vab.hoverInfo.holds.length > 0}
+						<span class="dim">Holds:</span>
+						<ul>
+							{#each vab.hoverInfo.holds.slice(0, 8) as name, k (k)}<li>{name}</li>{/each}
+							{#if vab.hoverInfo.holds.length > 8}<li>
+									and {vab.hoverInfo.holds.length - 8} more
+								</li>{/if}
+						</ul>
+					{:else}
+						<span class="dim">Empty</span>
+					{/if}
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	{#if !vab.webgl}
@@ -192,6 +218,18 @@
 		<div class="context-slot">
 			<BuildContext {vab} />
 		</div>
+		{#if vab.shells.size > 0}
+			<button
+				type="button"
+				class="payload-toggle"
+				class:on={vab.showPayload}
+				aria-pressed={vab.showPayload}
+				data-tip="See through every fairing, bay and petal set (the Hangar only)"
+				onclick={() => vab.toggleShowPayload()}
+			>
+				{vab.showPayload ? 'Hide payload' : 'Show payload'}
+			</button>
+		{/if}
 
 		<div class="leftcol" class:open={vab.drawer === 'parts'} bind:this={left}>
 			<VesselName {vab} />
@@ -247,6 +285,7 @@
 			<ChecksList checks={vab.checks} onflag={(p) => (vab.flagged = p)} titleOf={vab.titleOfPart} />
 			<PowerBudget power={vab.power} />
 			<CrewSeats {vab} />
+			<PartList {vab} />
 			<ActionGroupEditor {vab} />
 		</div>
 
@@ -277,7 +316,7 @@
 						{#if card}
 							<button class="feature" onclick={() => vab.loadBlueprint(card.id)}>
 								<strong>{card.title}</strong>
-								<span>{card.inspiredBy ?? card.summary}</span>
+								<span>{card.inspiredBy ? `Inspired by ${card.inspiredBy}` : card.summary}</span>
 							</button>
 						{/if}
 					{/each}
@@ -416,6 +455,7 @@
 	}
 	.rightcol :global(.power),
 	.rightcol :global(.crew),
+	.rightcol :global(.partlist),
 	.rightcol :global(.groups) {
 		flex: none;
 	}
@@ -429,6 +469,44 @@
 		min-width: 0;
 		/* the tool pill compacts against this column's width (plan 238) */
 		container-type: inline-size;
+	}
+	.part-tip {
+		position: absolute;
+		z-index: 5;
+		display: grid;
+		gap: 0.15rem;
+		max-width: 16rem;
+		padding: 0.45rem 0.6rem;
+		border-radius: 0.5rem;
+		background: color-mix(in srgb, var(--bg-void) 88%, transparent);
+		border: 1px solid rgb(255 255 255 / 0.14);
+		font-size: var(--t-sm);
+		pointer-events: none;
+	}
+	.part-tip ul {
+		margin: 0;
+		padding-left: 1rem;
+	}
+	.part-tip .dim {
+		color: var(--text-dim);
+	}
+	.payload-toggle {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: end;
+		justify-self: end;
+		margin: 0 0.75rem 0.75rem 0;
+		padding: 0.35rem 0.8rem;
+		border-radius: 999px;
+		border: 1px solid rgb(255 255 255 / 0.2);
+		background: color-mix(in srgb, var(--bg-void) 80%, transparent);
+		color: inherit;
+		font: inherit;
+		font-size: var(--t-sm);
+		cursor: pointer;
+	}
+	.payload-toggle.on {
+		border-color: var(--c-accent, #4fc3f7);
 	}
 	.context-slot {
 		grid-column: 2;

@@ -13,6 +13,7 @@ import type { ReliabilitySnapshot } from './reliability.ts';
 import type { OrbitalElements } from '@orbital/kepler';
 import type { BodyId, EntityId, PartId } from './ids.ts';
 import type { Quat, Vec3 } from './math.ts';
+import type { AutopilotSnapshot } from './autopilots.ts';
 
 export type VesselMode = 'flight' | 'on-rails';
 
@@ -35,7 +36,9 @@ export const SAS_MODES = [
 	'target',
 	'anti-target',
 	/** Wings level and the nose on the horizon (plan 063, ADR 0161 point 5). */
-	'level'
+	'level',
+	/** The control part's nose along a free direction (plan 310, ADR 0271 point 2): autopilots and scripts. */
+	'direction'
 ] as const;
 export type SasMode = (typeof SAS_MODES)[number];
 
@@ -47,6 +50,13 @@ export interface SasSnapshot {
 	reference: SasReference;
 	/** Angle between the nose (or, for `hold`, the attitude) and its target, rad; 0 when off or without a direction. */
 	error: number;
+	/**
+	 * Angular acceleration the vessel can give its nose, rad/s² (plan 310): its torque over its
+	 * inertia, slowest axis. In flight with SAS on; the HUD shows "low torque" when it is small.
+	 */
+	accel?: number;
+	/** The direction `direction` points the nose along (inertial axes, unit); absent in the other modes. */
+	direction?: Vec3;
 }
 
 /** How near a suit must be to a part to take the sample it holds, m (plan 260). */
@@ -320,6 +330,8 @@ export interface VesselSnapshot {
 	nodes?: ManeuverNodeSnapshot[];
 	/** The vessel's target (plan 035); absent without one. */
 	target?: TargetSnapshot;
+	/** The engaged autopilot (plan 310, ADR 0271 point 5); absent without one. */
+	autopilot?: AutopilotSnapshot;
 	/** Crew aboard (plan 106): who sits in which part, with their ability factors. */
 	crew?: Array<{
 		member: string;
@@ -790,7 +802,20 @@ export type Command =
 	 */
 	| { type: 'trim'; vessel: EntityId; pitch?: number; yaw?: number; roll?: number }
 	/** Set the stability assist mode and/or the prograde reference; an omitted field keeps its value (ADR 0049). */
-	| { type: 'sas'; vessel: EntityId; mode?: SasMode; reference?: SasReference }
+	| {
+			type: 'sas';
+			vessel: EntityId;
+			mode?: SasMode;
+			reference?: SasReference;
+			/** With mode `direction`: where the control part's nose points, inertial axes (ADR 0271 point 2). */
+			direction?: Vec3;
+			/** With mode `hold`: the control part's orientation to turn to and hold (ADR 0271 point 2). */
+			attitude?: Quat;
+	  }
+	/** Start an autopilot on the vessel (plan 310, ADR 0271): `params` go to its `start`. */
+	| { type: 'autopilot-engage'; vessel: EntityId; autopilot: string; params?: unknown }
+	/** Stop the vessel's autopilot (outcome `disengaged`). */
+	| { type: 'autopilot-disengage'; vessel: EntityId }
 	| {
 			type: 'action';
 			vessel: EntityId;

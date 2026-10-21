@@ -154,6 +154,11 @@ export interface VabStats {
 /** Top of the assembly platform, metres: the vessel stands on it. */
 const PLATFORM_TOP = 0.3;
 const FOV = 38;
+/**
+ * The widest view, degrees: a craft too tall to frame from inside the room at `FOV` widens the
+ * view instead (owner, 2026-10-21: Kronos V did not fit).
+ */
+const FOV_MAX = 75;
 /** Direction from a vessel to the thumbnail camera: from the front-right, slightly above. */
 const THUMBNAIL_DIR = new Vector3(0.55, 0.22, 0.8).normalize();
 
@@ -215,6 +220,9 @@ export class VabView {
 	private follow = true;
 	/** The camera limits for the vessel on the platform (plan 238: its top sets `panTop`). */
 	private limits: VabCameraLimits = limitsForVessel(null);
+	/** The view's field now and the one it is headed for, degrees (`FOV` unless a tall craft needs more). */
+	private fov = FOV;
+	private fovGoal = FOV;
 	private width = 1;
 	private height = 1;
 	private insets = { left: 0, right: 0, top: 0, bottom: 0 };
@@ -664,7 +672,7 @@ export class VabView {
 
 	panBy(dx: number, dy: number): void {
 		this.follow = false;
-		this.goal = pan(this.goal, dx, dy, this.height, FOV, this.limits);
+		this.goal = pan(this.goal, dx, dy, this.height, this.fov, this.limits);
 		this.cam = { ...this.cam, target: this.goal.target };
 	}
 
@@ -755,11 +763,17 @@ export class VabView {
 			// Zoom in when the vessel is small only if the user has not moved the camera far in.
 			if (this.goal.distance > need * 1.6) this.goal = { ...this.goal, distance: need * 1.3 };
 		}
-		this.goal = {
-			...this.goal,
-			distance: Math.min(this.goal.distance, maxDistanceInRoom(this.goal))
-		};
-		if (snap) this.cam = { ...this.goal };
+		const room = maxDistanceInRoom(this.goal);
+		// too tall to frame from inside the room: widen the view rather than leave the room
+		if (this.follow) {
+			const tanNeed = Math.tan((FOV * Math.PI) / 360) * Math.max(1, need / room);
+			this.fovGoal = Math.min(FOV_MAX, (2 * Math.atan(tanNeed) * 180) / Math.PI);
+		}
+		this.goal = { ...this.goal, distance: Math.min(this.goal.distance, room) };
+		if (snap) {
+			this.cam = { ...this.goal };
+			this.fov = this.fovGoal;
+		}
 	}
 
 	// --- picking -----------------------------------------------------------------------------------------------------
@@ -795,20 +809,9 @@ export class VabView {
 		const roots: Object3D[] = [...this.layer.barRoots];
 		for (const e of this.layer.parts.values()) roots.push(e.model.root);
 		const hits = this.raycaster.intersectObjects(roots, true);
-		for (const h of hits) {
-			let o: Object3D | null = h.object;
-			while (o && o.userData.key === undefined) o = o.parent;
-			if (!o) continue;
-			const entry = this.layer.parts.get(o.userData.key as string);
-			// A preview bar of a connector being placed belongs to no part: look through it.
-			if (!entry) continue;
-			// the cursor ghost is never in the way of a pick (plan 244)
-			if (entry.slot.role === 'free') continue;
-			if (entry.slot.role === 'ghost') {
-				if (options.ignoreGhost) continue;
-				return { kind: 'ghost' };
-			}
-			const group = entry && this.layer.groups.get(entry.group);
+		/** A hit on part `key` in its group's frame. */
+		const partHit = (h: (typeof hits)[number], key: string, groupId: string): VabHit => {
+			const group = this.layer.groups.get(groupId);
 			const local = group ? group.object.worldToLocal(h.point.clone()) : h.point;
 			const world = worldNormalOf(h);
 			let normal: [number, number, number] | undefined;
@@ -820,12 +823,40 @@ export class VabView {
 			}
 			return {
 				kind: 'part',
-				key: o.userData.key as string,
+				key,
 				point: [local.x, local.y, local.z],
 				...(normal ? { normal } : {})
 			};
+		};
+		let throughShell: VabHit | null = null;
+		let holds: ReadonlySet<string> | null = null;
+		for (const h of hits) {
+			let o: Object3D | null = h.object;
+			while (o && o.userData.key === undefined) o = o.parent;
+			if (!o) continue;
+			const entry = this.layer.parts.get(o.userData.key as string);
+			// A preview bar of a connector being placed belongs to no part: look through it.
+			if (!entry) continue;
+			// the cursor ghost is never in the way of a pick (plan 244)
+			if (entry.slot.role === 'free') continue;
+			// a see-through shell lets the pointer reach what it encloses (plan 315); with nothing
+			// behind, the shell itself is the pick
+			if (entry.seeThrough) {
+				if (!throughShell) {
+					throughShell = partHit(h, o.userData.key as string, entry.group);
+					holds = entry.holds;
+				}
+				continue;
+			}
+			// past a see-through shell only what it holds is reached; anything else, the shell
+			if (throughShell && holds && !holds.has(o.userData.key as string)) return throughShell;
+			if (entry.slot.role === 'ghost') {
+				if (options.ignoreGhost) continue;
+				return { kind: 'ghost' };
+			}
+			return partHit(h, o.userData.key as string, entry.group);
 		}
-		return null;
+		return throughShell;
 	}
 
 	/**
@@ -1126,11 +1157,16 @@ export class VabView {
 		};
 		const p = cameraPosition(placed);
 		this.camera.position.set(...p);
+		this.fov = approach(this.fov, this.fovGoal, dt, 8 * ease);
+		if (Math.abs(this.camera.fov - this.fov) > 1e-3) {
+			this.camera.fov = this.fov;
+			this.camera.updateProjectionMatrix();
+		}
 		this.camera.lookAt(...this.cam.target);
 		this.highlights.setTime(this.reduced ? 0 : this.time);
 		if (!this.reduced) pulseMarkers(this.markers.values(), this.time);
 		this.hangar.update(dt, this.time);
-		this.glyphKit.orient(this.glyphs.values(), this.camera, FOV, this.height);
+		this.glyphKit.orient(this.glyphs.values(), this.camera, this.fov, this.height);
 		if (this.gizmoKit.root.visible && this.gizmoKit.root.parent) {
 			const at = this.gizmoKit.root.getWorldPosition(new Vector3());
 			this.gizmoKit.fit(at.distanceTo(this.camera.position));
