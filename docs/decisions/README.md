@@ -272,3 +272,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0273 | [Star-system and mode art is generated from data; a mod may ship its own](0273-generated-system-and-mode-art-with-mod-override.md) | accepted | 2026-10-22 |
 | 0276 | [Vessel programs: the player wins per control channel, programs resume, and their state is saved](0276-vessel-programs-player-wins-per-channel-and-saved-state.md) | accepted | 2026-10-21 |
 | 0277 | [The vessel pilot reads the body, the mass and the engines, and sets maneuver nodes](0277-pilot-read-outs-body-mass-engines-and-nodes.md) | accepted | 2026-10-21 |
+| 0285 | [Autopilot settings and logs; mod panels: built-in nodes plus a mod's own UI in a sandboxed frame](0285-autopilot-settings-logs-and-mod-panel-ui.md) | accepted | 2026-10-22 |

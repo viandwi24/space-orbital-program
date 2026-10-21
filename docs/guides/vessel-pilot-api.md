@@ -92,3 +92,35 @@ export default definePlugin({
 
 Its panel ("Guidance Computer") engages each one and shows the phase and read-outs. `mods/guidance/test` flies all four headless (a 300 m/s node to under 1 m/s, a 100 x 75 km orbit to e < 0.005, the two-stage rocket from the pad to a periapsis above 70 km, a lander down on the moon under 2 m/s).
 
+
+## Settings, logs and the last run (plan 330, ADR 0285)
+
+- **Settings.** `{ type: 'autopilot-settings', vessel, autopilot, settings }` stores plain values (boolean, number, string) for one autopilot on the vessel. They are saved, and the snapshot shows them as `vessel.autopilotSettings[id]`. `autopilot-engage` passes them to `start`, with the command's `params` on top. Panel options are `select` or `switch` nodes that send this command.
+- **Log.** A step may return `log: 'a line'` or several lines. The sim keeps the last 30, each stamped with the seconds since engage. The snapshot shows them as `vessel.autopilot.log`.
+- **Last run.** When an autopilot ends, or `autopilot-engage` is refused, the vessel keeps `autopilotLast: { id, title, outcome, reason, time, log }`. `outcome` is `done`, `aborted`, `disengaged` or `refused`. A panel can always say why the last run stopped.
+
+## Mod panel UIs: built-in, or your own
+
+**Built-in** (the default; themed, keyboard-reachable). `definePanel({ view, canvas? })` with these nodes: `section`, `readout`, `meter`, `switch`, `button`, `select` (plan 330), `list` and `sparkline`, plus a 2D canvas. Auto Dock's panel uses `select` for its options, `list` for its log and the canvas for its alignment display (`mods/autodock/src/index.ts`, `display.ts`).
+
+**Your own UI.** `definePanel({ ..., custom: { height, source } })`. `source` is the text of an ES module that exports `mount(root, host)`. It runs under the view in an iframe with `sandbox="allow-scripts"` (an opaque origin, no network). Its `host` is:
+
+| Member | What it does |
+|---|---|
+| `onInput(fn)` | `fn({ time, altitude, speed, vessel, targetVessel })` at every HUD update (plain data) |
+| `command(c)` | sends a command; the sim validates it like a button's |
+| `resize(px)` | asks for a height (40–600 px) |
+| `theme` | the HUD's colours and font: `text`, `dim`, `accent`, `surface`, `button`, `font` (also CSS variables `--text` …) |
+
+```ts
+const source = `
+export function mount(root, host) {
+	root.innerHTML = '<button id="go">Stage</button> <span id="alt"></span>';
+	let vessel = null;
+	host.onInput((i) => { vessel = i.vessel; root.querySelector('#alt').textContent = Math.round(i.altitude) + ' m'; });
+	root.querySelector('#go').onclick = () => vessel && host.command({ type: 'stage', vessel: vessel.id });
+}`;
+ctx.panels.register(definePanel({ id: 'my-mod.hud', title: 'My HUD', icon: 'gear', order: 900, contexts: ['flight'], view: { kind: 'section', children: [] }, custom: { height: 80, source } }));
+```
+
+An error inside the frame shows in the panel ("This panel stopped: …") and nothing else is affected.

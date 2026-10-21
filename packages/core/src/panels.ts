@@ -40,6 +40,14 @@ export type PanelNode =
 			command(input: PanelInput, on: boolean): Command | null;
 	  }
 	| { kind: 'button'; label: string; command(input: PanelInput): Command | null }
+	/** A choice among a few values (plan 330, ADR 0285 point 2), drawn as a segmented control. */
+	| {
+			kind: 'select';
+			label: string;
+			options: readonly { value: string; label: string }[];
+			value(input: PanelInput): string | null;
+			command(input: PanelInput, value: string): Command | null;
+	  }
 	| {
 			kind: 'list';
 			label?: string;
@@ -92,6 +100,12 @@ export interface PanelDefinition {
 	view: PanelNode;
 	/** A drawing area under the view, drawn only while the panel is open. */
 	canvas?: { height: number; draw(canvas: PanelCanvas, input: PanelInput): void };
+	/**
+	 * The mod's own UI (plan 330, ADR 0285 point 1): `source` is an ES module exporting
+	 * `mount(root, host)`, run in a sandboxed frame under the view. `host.onInput(fn)`,
+	 * `host.command(c)`, `host.resize(px)`, `host.theme`.
+	 */
+	custom?: { height: number; source: string };
 }
 
 const fn = z.custom<(...args: never[]) => unknown>(
@@ -111,6 +125,16 @@ export const panelNodeSchema: z.ZodType<PanelNode> = z.lazy(() =>
 		z.object({ kind: z.literal('meter'), label, value: fn }),
 		z.object({ kind: z.literal('switch'), label, value: fn, command: fn }),
 		z.object({ kind: z.literal('button'), label, command: fn }),
+		z.object({
+			kind: z.literal('select'),
+			label,
+			options: z
+				.array(z.object({ value: z.string().min(1), label }))
+				.min(2)
+				.max(8),
+			value: fn,
+			command: fn
+		}),
 		z.object({ kind: z.literal('list'), label: z.string().optional(), items: fn }),
 		z.object({
 			kind: z.literal('sparkline'),
@@ -130,7 +154,10 @@ export const panelDefinitionSchema = z.object({
 	order: z.number().finite(),
 	contexts: z.array(z.enum(PANEL_CONTEXTS)).min(1),
 	view: panelNodeSchema,
-	canvas: z.object({ height: z.number().positive().max(600), draw: fn }).optional()
+	canvas: z.object({ height: z.number().positive().max(600), draw: fn }).optional(),
+	custom: z
+		.object({ height: z.number().positive().max(600), source: z.string().min(1).max(500_000) })
+		.optional()
 });
 
 /** Panels in rail order: `order` ascending, ties in registration order. */
