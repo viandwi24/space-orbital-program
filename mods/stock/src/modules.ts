@@ -768,7 +768,12 @@ export const landingLegConfigSchema = z.object({
 	/** Edge length of a foot, m. */
 	footSize: z.number().positive().default(0.3),
 	/** Whether the legs start deployed. */
-	deployed: z.boolean().default(false)
+	deployed: z.boolean().default(false),
+	/**
+	 * `ring`: four feet around the stack (the stock ring of legs). `single`: one leg on the side of
+	 * a hull (plan 302): its radial node is on -X and its foot sits `spread` out along +X.
+	 */
+	layout: z.enum(['ring', 'single']).default('ring')
 });
 export type LandingLegConfig = z.output<typeof landingLegConfigSchema>;
 export interface LandingLegState {
@@ -780,7 +785,9 @@ export interface LandingLegState {
  * retracted. The sim turns them into extra colliders of the vessel's body (ADR 0019).
  */
 export function landingLegColliders(
-	config: LandingLegConfig,
+	config: Pick<LandingLegConfig, 'spread' | 'drop' | 'footSize'> & {
+		layout?: LandingLegConfig['layout'];
+	},
 	state: LandingLegState
 ): {
 	offset: { x: number; y: number; z: number };
@@ -789,6 +796,8 @@ export function landingLegColliders(
 	if (!state.deployed) return [];
 	const h = config.footSize / 2;
 	const halfExtents = { x: h, y: h, z: h };
+	if (config.layout === 'single')
+		return [{ offset: { x: config.spread, y: -config.drop, z: 0 }, halfExtents }];
 	return [
 		[config.spread, 0],
 		[-config.spread, 0],

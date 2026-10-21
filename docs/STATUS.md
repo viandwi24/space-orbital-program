@@ -246,6 +246,7 @@
 | 298 | [Satellites and a space telescope](plans/298-satellites-and-telescope.md) | draft | — | Mission targets: orbiter, telescope, research satellite. |
 | 299 | [RCS follow-ups: bipropellant thruster, pitch/yaw/roll toggles](plans/299-rcs-bipropellant-and-axis-toggles.md) | draft | — | Split from 277: both need sim work. |
 | 300 | [New pods: 3-seat, headlight, sphere, small cone, lander cans, crew cabin](plans/300-new-pods.md) | draft | — | Split from 278. |
+| 302 | [Part-support modules: open/close, bay doors, fuel cell, single leg, staged panels](plans/302-part-support-modules.md) | done | part visuals session | Preparation audit for all the new parts. Journal 302. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -313,6 +314,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [302 — Part-support modules](journal/302-part-support-modules.md)
 - [278 — Parachutes that continue the pod, a docking chute ring, an octagonal probe core](journal/278-pods-probes-and-parachutes.md)
 - [277 — The RCS family](journal/277-rcs-family.md)
 - [291 — Part detail kit, liveries and honest catalogue icons](journal/291-part-detail-kit-livery-and-icons.md)

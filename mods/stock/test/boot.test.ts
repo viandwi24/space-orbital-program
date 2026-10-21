@@ -23,8 +23,10 @@ describe('stock boots through the loader', () => {
 			'stock.water'
 		]);
 		expect(ids('module')).toEqual([
+			'stock.animate',
 			'stock.antenna',
 			'stock.base-kit',
+			'stock.bay',
 			'stock.command',
 			'stock.control-surface',
 			'stock.data-storage',
@@ -37,6 +39,7 @@ describe('stock boots through the loader', () => {
 			'stock.fairing-panel',
 			'stock.fin',
 			'stock.flag',
+			'stock.fuel-cell',
 			'stock.heat-shield',
 			'stock.helmet',
 			'stock.jetpack',

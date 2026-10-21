@@ -22,7 +22,9 @@ export const solarPanelConfigSchema = z.object({
 	 * star's angle to that axis.
 	 */
 	mode: z.enum(['flat', 'track']).default('flat'),
-	normal: vec3.default([0, 0, 1])
+	normal: vec3.default([0, 0, 1]),
+	/** Staging unfolds the panel (plan 302: a panel may sit in the staging stack, as in KSP). */
+	stageable: z.boolean().default(false)
 });
 export type SolarPanelConfig = z.output<typeof solarPanelConfigSchema>;
 export interface SolarPanelState {
@@ -103,6 +105,9 @@ export const ModuleSolarPanel = defineModule({
 	power: (config) => ({ rate: config.rate, sun: true }),
 	update: charge,
 	background: charge,
+	onStage(ctx) {
+		if (ctx.config.stageable && ctx.config.deployable) ctx.state.deployed = true;
+	},
 	actions: {
 		deploy: (ctx) => {
 			ctx.state.deployed = true;
