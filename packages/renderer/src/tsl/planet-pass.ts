@@ -170,11 +170,58 @@ function float32Filterable(renderer: WebGPURenderer): boolean {
 	return b.gl?.getExtension('OES_texture_float_linear') != null;
 }
 
+/** One preset's set of planet-pass materials and the uniform copies they read. */
+interface Variant {
+	full: MeshBasicNodeMaterial;
+	half: MeshBasicNodeMaterial;
+	edge: MeshBasicNodeMaterial;
+	up: MeshBasicNodeMaterial;
+	pre: MeshBasicNodeMaterial;
+	syncs: (() => void)[];
+}
+
+function newVariant(): Variant {
+	const v: Variant = {
+		full: new MeshBasicNodeMaterial(),
+		half: new MeshBasicNodeMaterial(),
+		edge: new MeshBasicNodeMaterial(),
+		up: new MeshBasicNodeMaterial(),
+		pre: new MeshBasicNodeMaterial(),
+		syncs: []
+	};
+	v.full.name = 'planet-pass-tsl';
+	v.full.depthFunc = AlwaysDepth;
+	v.full.depthWrite = true;
+	for (const m of [v.half, v.pre]) {
+		m.depthTest = false;
+		m.depthWrite = false;
+	}
+	for (const m of [v.edge, v.up]) {
+		m.depthFunc = AlwaysDepth;
+		m.depthWrite = true;
+	}
+	v.edge.name = 'planet-pass-tsl-edge';
+	v.up.name = 'planet-pass-tsl-upsample';
+	return v;
+}
+
+function disposeVariant(v: Variant): void {
+	for (const m of [v.full, v.half, v.edge, v.up, v.pre]) m.dispose();
+}
+
 export class PlanetPassTSL {
 	readonly mesh: Mesh;
 	private readonly sky: LutSky;
-	private readonly material = new MeshBasicNodeMaterial();
-	private readonly syncs: (() => void)[] = [];
+	private material: MeshBasicNodeMaterial;
+	/** The active variant's per-frame copies of the WebGL pass's uniforms. */
+	private syncs: (() => void)[] = [];
+	/**
+	 * The built shaders, one set per preset's settings, kept for the life of the map, terrain and
+	 * shadow they were built with: a preset change on WebGPU recompiled the whole planet pass, a
+	 * 2 to 4 s freeze each time the governor moved (plan 261).
+	 */
+	private readonly variants = new Map<string, Variant>();
+	private variantContext = '';
 	private readonly pixelAngle = uniform(0.001);
 	/** The half-size pass's pixel angle (the full one over the scale). */
 	private readonly pixelAngleHalf = uniform(0.002);
@@ -208,12 +255,12 @@ export class PlanetPassTSL {
 		depthBuffer: false,
 		generateMipmaps: false
 	});
-	private readonly halfMaterial = new MeshBasicNodeMaterial();
-	private readonly edgeMaterial = new MeshBasicNodeMaterial();
-	private readonly upMaterial = new MeshBasicNodeMaterial();
-	private readonly preMaterial = new MeshBasicNodeMaterial();
-	private readonly halfQuad = new QuadMesh(this.halfMaterial);
-	private readonly preQuad = new QuadMesh(this.preMaterial);
+	private halfMaterial: MeshBasicNodeMaterial;
+	private edgeMaterial: MeshBasicNodeMaterial;
+	private upMaterial: MeshBasicNodeMaterial;
+	private preMaterial: MeshBasicNodeMaterial;
+	private readonly halfQuad: QuadMesh;
+	private readonly preQuad: QuadMesh;
 	/** The upsample and the edge pass, in the scene in the full pass's place on the half rung. */
 	readonly upMesh: Mesh;
 	readonly edgeMesh: Mesh;
@@ -223,6 +270,8 @@ export class PlanetPassTSL {
 	private wantedScale = 1;
 	private activeScale = 1;
 	private builtMap: DataTexture | null = null;
+	/** The node every variant reads the biome map through; its texture follows the WebGL pass's. */
+	private mapNode: N = null;
 	private builtTerrain = -1;
 	/** The sun's shadow map the shader samples (three's, once it exists), or null before. */
 	private builtShadow: unknown = null;
@@ -239,23 +288,18 @@ export class PlanetPassTSL {
 		private settings: PresetSettings
 	) {
 		this.sky = createLutSky(atm);
-		this.material.name = 'planet-pass-tsl';
-		this.material.depthFunc = AlwaysDepth;
-		this.material.depthWrite = true;
+		const v = newVariant();
+		this.material = v.full;
+		this.halfMaterial = v.half;
+		this.edgeMaterial = v.edge;
+		this.upMaterial = v.up;
+		this.preMaterial = v.pre;
+		this.halfQuad = new QuadMesh(this.halfMaterial);
+		this.preQuad = new QuadMesh(this.preMaterial);
 		this.mesh = new Mesh(planet.mesh.geometry, this.material);
 		this.mesh.frustumCulled = false;
 		this.mesh.renderOrder = planet.mesh.renderOrder;
 		this.mesh.name = 'planet-pass-tsl';
-		for (const m of [this.halfMaterial, this.preMaterial]) {
-			m.depthTest = false;
-			m.depthWrite = false;
-		}
-		for (const m of [this.edgeMaterial, this.upMaterial]) {
-			m.depthFunc = AlwaysDepth;
-			m.depthWrite = true;
-		}
-		this.edgeMaterial.name = 'planet-pass-tsl-edge';
-		this.upMaterial.name = 'planet-pass-tsl-upsample';
 		this.upMesh = new Mesh(planet.mesh.geometry, this.upMaterial);
 		this.upMesh.frustumCulled = false;
 		this.upMesh.renderOrder = planet.mesh.renderOrder;
@@ -296,7 +340,9 @@ export class PlanetPassTSL {
 			settings.shaftSteps !== s.shaftSteps ||
 			settings.shaftTerrain !== s.shaftTerrain ||
 			settings.auroraSteps !== s.auroraSteps ||
-			settings.cloudShadowMap !== s.cloudShadowMap;
+			settings.cloudShadowMap !== s.cloudShadowMap ||
+			settings.terrainSize > 0 !== s.terrainSize > 0 ||
+			settings.terrainPatch > 0 !== s.terrainPatch > 0;
 		this.settings = settings;
 	}
 
@@ -315,14 +361,10 @@ export class PlanetPassTSL {
 		this.terrain.bake(renderer);
 		this.cloudMap ??= new CloudMapTSL(R);
 		this.cloudMap.update(renderer, u.uCloudCover!.value as number);
-		if (
-			this.needsBuild ||
-			u.uMap!.value !== this.builtMap ||
-			this.shadowChanged() ||
-			this.terrain.version !== this.builtTerrain
-		)
-			this.build();
+		if (this.needsBuild || this.builtMap === null || this.shadowChanged()) this.build();
 		for (const s of this.syncs) s();
+		// the biome map is replaced at a preset change: the shader reads it through one node
+		if (this.mapNode) this.mapNode.value = u.uMap!.value;
 		const scale = Math.min(
 			this.wantedScale,
 			budgetScale(width, height, this.settings.planetPixels)
@@ -377,14 +419,8 @@ export class PlanetPassTSL {
 	}
 
 	dispose(): void {
-		for (const m of [
-			this.material,
-			this.halfMaterial,
-			this.edgeMaterial,
-			this.upMaterial,
-			this.preMaterial
-		])
-			m.dispose();
+		for (const v of this.variants.values()) disposeVariant(v);
+		this.variants.clear();
 		this.halfTarget.dispose();
 		this.marchTarget.dispose();
 		this.sky.dispose();
@@ -392,10 +428,6 @@ export class PlanetPassTSL {
 		this.cloudMap?.dispose();
 	}
 
-	/**
-	 * The depth texture of the sun's shadow (three's own on WebGPU, once the shadow pass has run), or
-	 * null while the planet pass holds its 1 × 1 stand-in.
-	 */
 	/**
 	 * A new shadow map to build with. At night the environment hands the planet pass a 1×1 stand-in
 	 * and turns `uShadowOn` off: the pass keeps the map it was built with, so a sunrise in orbit does
@@ -406,6 +438,10 @@ export class PlanetPassTSL {
 		return map !== null && map !== this.builtShadow;
 	}
 
+	/**
+	 * The depth texture of the sun's shadow (three's own on WebGPU, once the shadow pass has run), or
+	 * null while the planet pass holds its 1 × 1 stand-in.
+	 */
 	private shadowMap(): unknown {
 		const t = this.planet.material.uniforms.uShadowMap!.value as {
 			image?: { width?: number };
@@ -423,13 +459,133 @@ export class PlanetPassTSL {
 		return node;
 	}
 
+	/** The planet pass has built its shaders once (the precompile of other presets waits for it). */
+	get built(): boolean {
+		return this.builtMap !== null && !this.needsBuild;
+	}
+
+	/** The settings a variant's shaders are built from (`setSettings`'s list). */
+	private static variantKey(s: PresetSettings): string {
+		return [
+			s.groundOctaves,
+			s.terrainSteps,
+			s.terrainShadowSteps,
+			s.cloudOctaves,
+			s.cloudSteps,
+			s.cloudDetail,
+			s.viewSamples,
+			s.shaftSteps,
+			s.shaftTerrain,
+			s.auroraSteps,
+			s.cloudShadowMap,
+			s.terrainSize > 0,
+			s.terrainPatch > 0
+		].join(',');
+	}
+
+	private use(v: Variant): void {
+		this.material = v.full;
+		this.halfMaterial = v.half;
+		this.edgeMaterial = v.edge;
+		this.upMaterial = v.up;
+		this.preMaterial = v.pre;
+		this.syncs = v.syncs;
+		this.mesh.material = v.full;
+		this.upMesh.material = v.up;
+		this.edgeMesh.material = v.edge;
+		this.halfQuad.material = v.half;
+		this.preQuad.material = v.pre;
+	}
+
+	/** The current variant, from the cache or built now. */
 	private build(): void {
-		this.syncs.length = 0;
 		const U = this.planet.material.uniforms;
 		this.builtMap = U.uMap!.value as DataTexture;
 		this.builtTerrain = this.terrain?.version ?? -1;
 		this.builtShadow = this.shadowMap() ?? this.builtShadow;
 		this.needsBuild = false;
+		console.warn(
+			JSON.stringify({
+				key: PlanetPassTSL.variantKey(this.settings),
+				map: this.builtMap?.uuid?.slice(0, 6),
+				terrain: this.builtTerrain,
+				shadow: (this.builtShadow as { uuid?: string } | null)?.uuid?.slice(0, 6),
+				cached: this.variants.size
+			})
+		);
+		// the map and the terrain targets are read through swapped nodes; only a new shadow map changes the shaders
+		const context = `${(this.builtShadow as { uuid?: string } | null)?.uuid}`;
+		if (context !== this.variantContext) {
+			// the map, the terrain targets or the shadow map changed: every variant reads the old ones
+			for (const v of this.variants.values()) if (v.full !== this.material) disposeVariant(v);
+			this.variants.clear();
+			this.variantContext = context;
+		}
+		const key = PlanetPassTSL.variantKey(this.settings);
+		const hit = this.variants.get(key);
+		if (hit) {
+			this.use(hit);
+			return;
+		}
+		const v = newVariant();
+		this.variants.set(key, v);
+		this.use(v);
+		this.compose();
+	}
+
+	/**
+	 * Builds the variant of `settings` and compiles it where it is drawn, in the background, so the
+	 * governor's later move to that preset swaps shaders instead of compiling them. three's WebGPU
+	 * renderer keys a compiled pipeline on the object and the scene it is drawn in, so the variant is
+	 * swapped into the real meshes and quads just for `compileScene` to collect them (it collects
+	 * before its first await), then the active variant is put back.
+	 */
+	async precompile(
+		renderer: WebGPURenderer,
+		settings: PresetSettings,
+		compileScene: () => Promise<unknown>
+	): Promise<void> {
+		if (!this.builtMap || this.needsBuild) return;
+		const active = { settings: this.settings, v: this.variantOf(this.material) };
+		if (!active.v) return;
+		const key = PlanetPassTSL.variantKey(settings);
+		let v = this.variants.get(key);
+		if (!v) {
+			v = newVariant();
+			this.settings = settings;
+			this.variants.set(key, v);
+			this.use(v);
+			try {
+				this.compose();
+			} finally {
+				this.settings = active.settings;
+			}
+		}
+		this.use(v);
+		const shown = [this.mesh.visible, this.upMesh.visible, this.edgeMesh.visible];
+		this.mesh.visible = this.upMesh.visible = this.edgeMesh.visible = true;
+		let jobs: Promise<unknown>[];
+		try {
+			const quad = (q: QuadMesh): Promise<unknown> =>
+				renderer.compileAsync(q, (q as unknown as { camera: PerspectiveCamera }).camera);
+			jobs = [compileScene(), quad(this.halfQuad), quad(this.preQuad)];
+		} finally {
+			this.mesh.visible = shown[0]!;
+			this.upMesh.visible = shown[1]!;
+			this.edgeMesh.visible = shown[2]!;
+			this.use(active.v);
+		}
+		await Promise.all(jobs);
+	}
+
+	private variantOf(full: MeshBasicNodeMaterial): Variant | undefined {
+		for (const v of this.variants.values()) if (v.full === full) return v;
+		return undefined;
+	}
+
+	/** Writes the shaders of the current settings into the active variant's materials. */
+	private compose(): void {
+		const U = this.planet.material.uniforms;
 		const graph = (mode: 'full' | 'half' | 'edge' | 'prepass'): N => {
 			const uR = this.link('uR');
 			const uInvProj = this.link('uInvProj');
@@ -475,7 +631,8 @@ export class PlanetPassTSL {
 				return node;
 			});
 			void uniformArray;
-			const map = this.builtMap;
+			this.mapNode ??= texture(this.builtMap);
+			const map = this.mapNode;
 			const pixelAngle =
 				mode === 'half' || mode === 'prepass' ? this.pixelAngleHalf : this.pixelAngle;
 			const sky = this.sky;
@@ -520,8 +677,9 @@ export class PlanetPassTSL {
 				return select(inside, sum.div(9.0), float(1.0));
 			};
 			const terrain: TerrainSampler | null =
-				this.settings.terrainSteps > 0
-					? (this.terrain?.sampler((n) => this.link(n), uBodyInv) ?? null)
+				this.settings.terrainSteps > 0 && this.settings.terrainSize > 0
+					? (this.terrain?.sampler((n) => this.link(n), uBodyInv, this.settings.terrainPatch > 0) ??
+						null)
 					: null;
 			const nA = (pl: N, lam: number, salt: number): N => noiseA(pl, lam, salt, uAnchorCell);
 			// NaN or infinity by the bits: fast math may fold x != x away (Metal)

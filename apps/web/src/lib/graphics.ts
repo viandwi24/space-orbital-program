@@ -144,12 +144,31 @@ export function saveRendererChoice(choice: RendererChoice): void {
 	}
 }
 
-/** The backend a view draws with now: the address's, else the player's choice. */
-export function rendererBackend(): RendererBackend {
-	const nav = globalThis.navigator as (Navigator & { gpu?: unknown }) | undefined;
+/**
+ * Whether the browser has a WebGPU adapter, asked once. `navigator.gpu` alone is not enough: a
+ * browser without a usable GPU (headless, a blocked driver) has the object and no adapter, and
+ * three's WebGPU renderer then runs on its WebGL2 fallback, slower than the WebGL renderer.
+ */
+let webgpuProbe: Promise<boolean> | null = null;
+export function hasWebGPUAdapter(): Promise<boolean> {
+	const gpu = (
+		globalThis.navigator as
+			(Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }) | undefined
+	)?.gpu;
+	webgpuProbe ??= gpu
+		? gpu
+				.requestAdapter()
+				.then((a) => a !== null && a !== undefined)
+				.catch(() => false)
+		: Promise.resolve(false);
+	return webgpuProbe;
+}
+
+/** The backend a view draws with: the address's, else the player's choice (Automatic: WebGPU where an adapter exists). */
+export async function rendererBackend(): Promise<RendererBackend> {
 	return resolveRendererBackend(
 		globalThis.location?.search ?? '',
 		loadRendererChoice(),
-		nav?.gpu !== undefined
+		await hasWebGPUAdapter()
 	);
 }
