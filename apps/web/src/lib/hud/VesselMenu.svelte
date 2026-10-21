@@ -91,7 +91,7 @@
 		role="menuitem"
 		data-testid="vessel-menu-control"
 		disabled={menu.controlBlocked !== null}
-		title={menu.controlBlocked ?? 'Fly this vessel'}
+		data-tip={menu.controlBlocked ?? 'Fly this vessel'}
 		onclick={oncontrol}>Control this vessel</button
 	>
 	<button
@@ -110,7 +110,7 @@
 		aria-expanded={portsOpen}
 		data-testid="vessel-menu-ports"
 		disabled={menu.ports.length === 0}
-		title={menu.ports.length === 0 ? 'No free docking port' : undefined}
+		data-tip={menu.ports.length === 0 ? 'No free docking port' : undefined}
 		onclick={() => (portsOpen = !portsOpen)}
 		>Target a docking port {menu.ports.length > 0 ? `(${menu.ports.length})` : ''} ▸</button
 	>
