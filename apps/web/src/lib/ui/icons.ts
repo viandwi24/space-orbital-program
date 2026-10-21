@@ -58,6 +58,8 @@ export const ICONS = {
 	mods: 'M4 4h6v6H4ZM14 4h6v6h-6ZM4 14h6v6H4ZM17 14v6M14 17h6',
 	gear: 'M12 9a3 3 0 1 1 0 6a3 3 0 0 1 0-6ZM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
 	chevron: 'M9.5 6l6 6-6 6',
+	// the maneuver card's alarm (plan 292)
+	bell: 'M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14ZM10 20.5h4M12 3.5v2',
 	// the map's filters (plan 258)
 	signal: 'M12 12.5v7M8.5 17l3.5-4.5 3.5 4.5M7 8.5a7 7 0 0 1 10 0M4.5 6a10.5 10.5 0 0 1 15 0',
 	station: 'M12 4l8 15H4ZM12 19v2',

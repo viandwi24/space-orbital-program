@@ -1,8 +1,9 @@
-/** The Regions layer of map view (plan 192, ADR 0180): the toggle and the label under the cursor. */
+/** The Regions layer of map view (plan 192, ADR 0180): the toggle (in the filter row since plan 292) and the label under the cursor. */
 import { loadPlugins, regionAt, regionsOf } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import MapFilterBar from '../map/MapFilterBar.svelte';
 import RegionsLayer from './RegionsLayer.svelte';
 import { regionHoverLabel, regionLayer } from './regions-model';
 
@@ -10,7 +11,9 @@ const bodies = loadPlugins([Stock]).registries.bodies.list();
 const terrain = { seed: 4242, zones: [] };
 
 const layer = (on: boolean, hover: { label: string; x: number; y: number } | null) =>
-	render(RegionsLayer, { props: { on, ontoggle: () => {}, hover } }).body;
+	render(RegionsLayer, { props: { on, hover } }).body;
+const bar = (on: boolean) =>
+	render(MapFilterBar, { props: { regions: { on, ontoggle: () => {} } } }).body;
 
 describe('the Regions layer', () => {
 	it('lists the bodies with regions; the home body carries the world terrain', () => {
@@ -19,13 +22,17 @@ describe('the Regions layer', () => {
 		expect(layer.find((l) => l.id === 'stock.home')!.world).toEqual(terrain);
 		expect(layer.find((l) => l.id === 'stock.cinder')!.world).toBeUndefined();
 	});
-	it('the toggle shows as a layer button and the hover label only with it on', () => {
-		const on = layer(true, { label: 'Cinder · Maria', x: 10, y: 20 });
-		expect(on).toContain('aria-pressed="true"');
-		expect(on).toContain('Cinder · Maria');
-		const off = layer(false, { label: 'Cinder · Maria', x: 10, y: 20 });
-		expect(off).toContain('aria-pressed="false"');
-		expect(off).not.toContain('map-region-hover');
+	it('the toggle is a chip in the map filter row (plan 292); the hover label shows only with it on', () => {
+		const chip = (html: string) =>
+			/<button[^>]*data-testid="map-regions"[^>]*>/.exec(html)?.[0] ?? '';
+		expect(chip(bar(true))).toContain('aria-pressed="true"');
+		expect(chip(bar(true))).toContain('data-tip="Science regions"');
+		expect(chip(bar(false))).toContain('aria-pressed="false"');
+		expect(render(MapFilterBar, { props: {} }).body).not.toContain('map-regions');
+		expect(layer(true, { label: 'Cinder · Maria', x: 10, y: 20 })).toContain('Cinder · Maria');
+		expect(layer(false, { label: 'Cinder · Maria', x: 10, y: 20 })).not.toContain(
+			'map-region-hover'
+		);
 	});
 	it('the hover label names the region regionAt finds there', () => {
 		const moon = bodies.find((b) => b.id === 'stock.cinder')!;

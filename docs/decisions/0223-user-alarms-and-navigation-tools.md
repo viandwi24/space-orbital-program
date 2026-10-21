@@ -1,6 +1,6 @@
 # 0223 — User alarms in the sim, the node panel and the navigation markers
 
-**Status:** accepted
+**Status:** accepted; amended by ADR 0267 (plan 292): the node panel's editor is folded behind a toggle in a compact card
 **Date:** 2026-10-19
 **Plan:** plans/224-navigation-tools.md
 **Builds on:** ADR 0056 (maneuver nodes, warp-to), ADR 0083 (trip planner), ADR 0084 (rendezvous aids), ADR 0201 (the bell), ADR 0202 (flexible time warp, warp-to targets)

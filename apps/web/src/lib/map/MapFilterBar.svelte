@@ -2,7 +2,7 @@
 	/**
 	 * The map's filters (plan 258, ADR 0242), after KSP's map filter row: a switch per layer (orbit
 	 * lines, comms links, ground stations, labels) and, under "Vessels", one per vessel type. What
-	 * the player switches off is remembered.
+	 * the player switches off is remembered. The Regions layer's switch shares the row (plan 292).
 	 */
 	import { VESSEL_TYPES, type VesselType } from '@orbital/core';
 	import { VESSEL_ICON_PATHS } from '@orbital/renderer';
@@ -17,6 +17,12 @@
 		{ id: 'stations', label: 'Ground stations', icon: 'station' },
 		{ id: 'labels', label: 'Labels', icon: 'label' }
 	];
+	let {
+		regions = null
+	}: {
+		/** The Regions layer's switch (plan 192), in this row since plan 292 (ADR 0267). */
+		regions?: { on: boolean; ontoggle: () => void } | null;
+	} = $props();
 	const f = $derived(mapFilters.filters);
 	const typesOn = $derived(VESSEL_TYPES.filter((t) => f.types[t]).length);
 	const count = $derived(shownCount(f));
@@ -36,6 +42,18 @@
 			onclick={() => mapFilters.setLayer(l.id, !f[l.id])}><Icon name={l.icon} size={16} /></button
 		>
 	{/each}
+	{#if regions}
+		<button
+			type="button"
+			class="chip"
+			class:on={regions.on}
+			aria-pressed={regions.on}
+			aria-label="Science regions"
+			data-tip="Science regions"
+			data-testid="map-regions"
+			onclick={regions.ontoggle}><Icon name="globe" size={16} /></button
+		>
+	{/if}
 	<button
 		type="button"
 		class="chip wide"

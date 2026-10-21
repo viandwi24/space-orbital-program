@@ -1,6 +1,6 @@
 # 0253 — Flight v3: one dock that holds the vessel panel, staging on the right, a status strip under the navball
 
-**Status:** accepted
+**Status:** accepted; amended by ADR 0267 (plan 292): the node editor no longer stands above the navball but in a card on staging at the right
 **Date:** 2026-10-21
 **Plan:** plans/272-flight-v3-one-dock-navball-module-staging-right.md
 **Supersedes in part:** ADR 0205 points 1, 5 and 6 (the vessel region, staging under the left stack, two side panels from 1440 px), ADR 0153 point 4 (the vessel panel at the top right), ADR 0144 point 5 (the toolbar's Crew toggle)
