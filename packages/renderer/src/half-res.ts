@@ -34,13 +34,6 @@ export function budgetScale(width: number, height: number, budget: number): numb
 export const UPSAMPLE_TOLERANCE_OCTAVES = 0.5;
 
 /**
- * The WebGPU half rung's sharpening (plan 261 Phase 5): FSR1's RCAS on the half-size texels before the
- * upsample, in stops (0 the sharpest it goes, each stop halves it; FSR's default is 0.2). Half a stop:
- * at 0 the march's jitter on the sea turns to grain (the five views of plan 261, M2 Retina).
- */
-export const UPSAMPLE_SHARPNESS = 0.5;
-
-/**
  * The fragment depth the planet pass writes is `log2(1 + z) / log2(far + 1)`, so a difference of two
  * depths times `log2(far + 1)` is the number of octaves between their distances (up to the +1).
  */

@@ -261,6 +261,16 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 
 ## Log
 
+- 2026-10-21 — Worker D (M2): **The coastline and the horizon's grain**, both renderers:
+  - **Grain toward the horizon:** the air in front of the ground is marched at the middle of each step. With the per-pixel jitter it drew a fixed grain; the sky keeps the jitter against banding.
+  - **Phase 5's RCAS sharpening on the half rung is taken out.** It made that grain and the march noise stronger, the one look difference WebGPU had against WebGL there.
+  - **The coastline:**
+    - the waterline's antialiasing counts the coast's own slope (×4 the map's);
+    - the coast distance's slope is taken as 4, not from 2 × 2 pixel screen differences, which stepped;
+    - rivers draw only from a pixel wide;
+    - the bump and ripple normals stay geometric in a 2 × 2 block that moves more than 4 footprints a pixel, the terrain's edge on the sea sphere.
+  - **Very dark pixels along a coast (WebGL, full size):** 182 to 18.
+  - **Left:** a fainter grey dotted outline and some stair-steps on the WebGPU coast. WGSL leaves screen differences undefined where a 2 × 2 block took other branches. A check against the neighbouring pixels' own rays did not help, and was taken out again.
 - 2026-10-21 — Worker D (M2): **The ground and sea's flicker and "broken TV" noise**, which the owner saw on both renderers since WebGL. Fixed in `planet.glsl.ts` and `tsl/planet-pass.ts` alike:
   - **Ground octaves** fade in from three pixels a wavelength, where it was 1.6, the Nyquist edge; the bump made from their screen differences shimmered.
   - **Grass blades and clumps** fade by their own cell sizes (3 to 50 cm), no longer by one 0.35 to 3 m range.

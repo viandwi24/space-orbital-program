@@ -404,4 +404,11 @@ Everything now fades by its own size against the pixel's footprint, and the glin
 |---|---|
 | ![](assets/261-noise-sea-before.jpg) | ![](assets/261-noise-sea-after.jpg) |
 
-Left: the coastline's stair-steps and the march's grain toward the horizon.
+**The horizon's grain and the coast.**
+- The grain toward the horizon was the air march's per-pixel jitter. The air in front of the ground is now sampled at the middle of each step, and it does not band.
+- On WebGPU, Phase 5's RCAS sharpening made the grain stronger, so it is gone.
+- The coast lost most of its dark dotted outline and stair-steps. The waterline's antialiasing now uses the coast's own slope. The coast distance and the bumps no longer use screen differences across a 2 × 2 block that straddles land and sea. Rivers narrower than a pixel are not drawn.
+- Very dark coast pixels on WebGL at full size: 182 to 18.
+- On WebGPU a fainter grey outline remains: WGSL leaves screen differences undefined next to pixels that took another branch.
+
+![WebGL after](assets/261-noise-coast-webgl.jpg)

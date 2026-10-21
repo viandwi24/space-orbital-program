@@ -37,7 +37,6 @@ import {
 	EDGE_CHROMA,
 	EDGE_DEPTH_OCTAVES,
 	SKY_DEPTH,
-	UPSAMPLE_SHARPNESS,
 	UPSAMPLE_TOLERANCE_OCTAVES,
 	budgetScale
 } from '../half-res.ts';
@@ -162,6 +161,8 @@ const NIGHT_AMBIENT = NIGHT_SKY;
  * this brings its brightness to the march's under the same exposure (the spike's calibration).
  */
 const SKY_GAIN = 1.3;
+/** Metres of coast distance per metre of ground: the detail octaves make the coast 3 to 5 times as steep as the map. */
+const COAST_SLOPE_FACTOR = 4.0;
 
 /** Whether the GPU filters 32-bit float textures (the terrain patches are read by hand otherwise). */
 function float32Filterable(renderer: WebGPURenderer): boolean {
@@ -239,8 +240,6 @@ export class PlanetPassTSL {
 	private readonly uFullSize = uniform(new Vector2(1, 1));
 	private readonly uHalfSize = uniform(new Vector2(1, 1));
 	private readonly uOctaves = uniform(32);
-	/** FSR1's RCAS sharpness on the half rung, in stops (0 the sharpest; plan 261 Phase 5). */
-	private readonly uSharpness = uniform(UPSAMPLE_SHARPNESS);
 	private readonly halfTarget = new RenderTarget(1, 1, {
 		type: FloatType,
 		minFilter: NearestFilter,
@@ -796,7 +795,9 @@ export class PlanetPassTSL {
 					});
 				}
 				const e2 = e.add(eDetail).toVar();
-				const aa = max(footprint.mul(gPerM), 0.0004);
+				// the waterline's antialiasing over the coast's own slope (the detail makes it 3 to 5 times
+				// the map's): with the map's alone the edge was sharper than a pixel, a stepped coast
+				const aa = max(footprint.mul(gPerM).mul(COAST_SLOPE_FACTOR), 0.0004);
 				const landW = smoothstep(float(SEA_LEVEL).sub(aa), float(SEA_LEVEL).add(aa), e2).toVar();
 				const sdCoast = float(SEA_LEVEL).sub(e2).div(gPerM).toVar();
 				const depth = clamp(float(SEA_LEVEL).sub(e2).div(0.18), 0.0, 1.0).toVar();
@@ -843,10 +844,9 @@ export class PlanetPassTSL {
 					);
 				});
 				// shore waves: the waterline runs up and down the beach; surf bands parallel to the shore
-				const sdGrad = finite(length(vec2(dFdx(sdCoast), dFdy(sdCoast))), 1.0).div(
-					max(footprint, 0.02)
-				);
-				const sdM = sdCoast.div(clamp(sdGrad, 1.0, 12.0)).toVar();
+				// the coast distance's own slope taken as the detail's typical 4, not from screen
+				// differences: those step every 2 x 2 pixels, a dotted, stepped wet-sand outline
+				const sdM = sdCoast.div(COAST_SLOPE_FACTOR).toVar();
 				const shoreH = mix(
 					float(SHORE_WAVE_HEIGHT),
 					SHORE_WAVE_HEIGHT * LAKE_WAVE_SHARE,
@@ -908,6 +908,11 @@ export class PlanetPassTSL {
 				const rugged = mix(0.02, 0.5, smoothstep(0.55, 0.9, e2.add(rockMap.mul(0.25))));
 				const dpdx = dFdx(pl);
 				const dpdy = dFdy(pl);
+				// a 2 x 2 block that straddles two surfaces (the terrain's edge on the sea sphere: the coastline)
+				// moves far more than a footprint a pixel; its bumps drew a dark line along every coast
+				// a 2 x 2 block that straddles two surfaces (the terrain's edge on the sea sphere: the coastline)
+				// moves far more than a footprint a pixel; its bumps drew a dark line along every coast
+				const quadOk = max(length(dpdx), length(dpdy)).lessThan(footprint.mul(4.0)).toVar();
 				const hR = hM.mul(rugged);
 				const r1 = cross(dpdy, nBF);
 				const r2 = cross(nBF, dpdx);
@@ -923,6 +928,7 @@ export class PlanetPassTSL {
 				const gbv = vec3(gb).toVar();
 				const gbOk = dot(gbv, gbv)
 					.greaterThan(1e-24)
+					.and(quadOk)
 					.and(nan(gbv.x).or(nan(gbv.y)).or(nan(gbv.z)).not());
 				const Nb = select(gbOk, normalize(gbv), nBF).toVar();
 				Nb.assign(normalize(Nb.add(Nr.sub(nBF))));
@@ -1096,7 +1102,8 @@ export class PlanetPassTSL {
 						const fw = max(finite(length(vec2(dFdx(rn), dFdy(rn))), 1.0), 1e-7);
 						const dist = rr.div(fw).mul(footprint);
 						const W = nA(pl, 1024, 44).mul(17.0).add(5.0);
-						const vis = smoothstep(0.35, 1.2, W.div(footprint))
+						// a river from a pixel wide (fully from 2.5): narrower it drew dark dotted lines on the coasts
+						const vis = smoothstep(1.0, 2.5, W.div(footprint))
 							.mul(smoothstep(0.55, 0.68, e2).oneMinus())
 							.mul(smoothstep(60.0, 260.0, hT).oneMinus());
 						riverMask.assign(
@@ -1324,7 +1331,7 @@ export class PlanetPassTSL {
 					const gwOk = dot(gw, gw)
 						.greaterThan(1e-24)
 						.and(nan(gw.x).or(nan(gw.y)).or(nan(gw.z)).not());
-					Nw.assign(select(gwOk, normalize(gw), nBF));
+					Nw.assign(select(gwOk.and(quadOk), normalize(gw), nBF));
 					Nw.assign(normalize(Nw.add(normalize(nBF.sub(gWave)).sub(nBF))));
 				});
 				// the ripples of a river pass over its dark surface (moving brightness along the flow)
@@ -2301,7 +2308,10 @@ export class PlanetPassTSL {
 							tcB,
 							cfg.viewSamples,
 							select(h.lessThan(uAtmH), float(2.0), float(1.0)),
-							jitter
+							// the air in front of the ground at the middle of each step: its in-scatter is
+							// smooth, and the per-pixel jitter drew a fixed grain over the sea and the ground
+							// toward the horizon (the owner, 2026-10-21); the sky keeps it against banding
+							select(hitG, float(0.5), jitter)
 						);
 						ins.assign(sc.inscatter.mul(veil));
 						tr.assign(sc.transmittance);
@@ -2457,42 +2467,10 @@ export class PlanetPassTSL {
 			const hi = ivec2(this.uHalfSize).sub(1);
 			const i0 = clamp(ivec2(base), ivec2(0), hi);
 			const i1 = clamp(ivec2(base).add(1), ivec2(0), hi);
-			// each of the four texels sharpened by FSR1's RCAS first (in a Reinhard-mapped range, as RCAS
-			// wants [0, 1]); a neighbour more than the upsample's tolerance away in depth stands in as the
-			// texel itself, so ground against sky gets no halo
-			const lobeScale = exp2(this.uSharpness.negate());
-			const sharpened = (i: N): N => {
-				const e = textureLoad(halfTex, i).toVar();
-				const tm = (c: N): N => c.div(c.add(1.0));
-				const near = (j: N): N => {
-					const t = textureLoad(halfTex, clamp(j, ivec2(0), hi));
-					const same = abs(t.w.sub(e.w)).mul(this.uOctaves).lessThan(UPSAMPLE_TOLERANCE_OCTAVES);
-					return tm(select(same, t.xyz, e.xyz));
-				};
-				const c = tm(e.xyz).toVar();
-				const b = near(i.add(ivec2(0, -1))).toVar();
-				const d = near(i.add(ivec2(-1, 0))).toVar();
-				const f2 = near(i.add(ivec2(1, 0))).toVar();
-				const h = near(i.add(ivec2(0, 1))).toVar();
-				const mn = min(min(b, d), min(f2, h));
-				const mx = max(max(b, d), max(f2, h));
-				const hitMin = min(mn, c).div(mx.mul(4.0).max(1e-5));
-				const hitMax = float(1.0).sub(max(mx, c)).div(mn.mul(4.0).sub(4.0).min(-1e-5));
-				const lobeRGB = max(hitMin.negate(), hitMax);
-				const lobe = max(-0.1875, min(max(lobeRGB.x, max(lobeRGB.y, lobeRGB.z)), 0.0)).mul(
-					lobeScale
-				);
-				const out = clamp(
-					b.add(d).add(f2).add(h).mul(lobe).add(c).div(lobe.mul(4.0).add(1.0)),
-					0.0,
-					0.999
-				);
-				return vec4(out.div(out.oneMinus()), e.w);
-			};
-			const t0 = sharpened(i0).toVar();
-			const t1 = sharpened(ivec2(i1.x, i0.y)).toVar();
-			const t2 = sharpened(ivec2(i0.x, i1.y)).toVar();
-			const t3 = sharpened(i1).toVar();
+			const t0 = textureLoad(halfTex, i0).toVar();
+			const t1 = textureLoad(halfTex, ivec2(i1.x, i0.y)).toVar();
+			const t2 = textureLoad(halfTex, ivec2(i0.x, i1.y)).toVar();
+			const t3 = textureLoad(halfTex, i1).toVar();
 			const b = vec4(
 				f.x.oneMinus().mul(f.y.oneMinus()),
 				f.x.mul(f.y.oneMinus()),

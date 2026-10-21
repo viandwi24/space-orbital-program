@@ -492,6 +492,8 @@ bool halfEdge(vec2 fragCoord) {
 uniform float uWaveAnchor[${WAVES.length}]; // phase of each wave at the anchor, rad  // 0 by day, 1 at night: the mast floodlights are on
 
 const float SEA = ${f(SEA_LEVEL)};
+// metres of coast distance per metre of ground: the detail octaves make the coast 3 to 5 times as steep as the map
+const float COAST_SLOPE_FACTOR = 4.0;
 const float BEACH = ${f(BEACH_WIDTH)};
 const float HIGH = ${f(HIGHLAND)};
 const float SUN_ANGULAR_RADIUS = 0.0055;
@@ -901,7 +903,9 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		if (lam > 6.0 && lam < 200.0) colourNoise += n * fade * 0.7;
 	}
 	float e2 = e + eDetail;
-	float aa = max(footprint * gPerM, 0.0004);
+	// the waterline's antialiasing over the coast's own slope: the detail octaves make it 3 to 5 times
+	// the map's, and with the map's alone the edge was sharper than a pixel (a jagged, stepped coast)
+	float aa = max(footprint * gPerM * COAST_SLOPE_FACTOR, 0.0004);
 	float landW = smoothstep(SEA - aa, SEA + aa, e2);
 	float sdCoast = (SEA - e2) / gPerM; // metres into the water (negative on land)
 	float depth = clamp((SEA - e2) / 0.18, 0.0, 1.0);
@@ -929,8 +933,10 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	// Shore waves (plan 038, ADR 0072): the waterline runs up and down the beach with the swell, and the surf lines are
 	// spaced in metres from the shore: the coast distance is divided by its own gradient (the fractal coast displacement
 	// makes it change 3 to 5 metres per metre), so the bands are parallel to the shoreline and as wide as the model says.
-	float sdGrad = length(vec2(dFdx(sdCoast), dFdy(sdCoast))) / max(footprint, 0.02);
-	float sdM = sdCoast / clamp(sdGrad, 1.0, 12.0);
+	// The coast distance's own slope is taken as the detail octaves' typical 4, not from screen
+	// differences: those step every 2 x 2 pixels, and the wet sand and the waterline drew that as a
+	// dotted, stepped outline (the owner, 2026-10-21).
+	float sdM = sdCoast / COAST_SLOPE_FACTOR;
 	float shoreH = SHORE_H * mix(1.0, LAKE_WAVE_SHARE, lakeOnly);
 	float swash = 0.0;
 	float nearShore = (1.0 - smoothstep(12.0, 50.0, footprint)) * (1.0 - smoothstep(14.0, 30.0, abs(sdM)));
@@ -965,6 +971,10 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float rugged = mix(0.02, 0.5, smoothstep(0.55, 0.9, e2 + rockMap * 0.25));
 	vec3 dpdx = dFdx(pl);
 	vec3 dpdy = dFdy(pl);
+	// a 2 x 2 block that straddles two surfaces (the terrain's edge on the sea sphere: the coastline)
+	// moves far more than a footprint a pixel; its bumps went wild and drew a dark line along every
+	// coast (the owner, 2026-10-21): there the normals stay the geometric one
+	bool quadOk = max(length(dpdx), length(dpdy)) < 4.0 * footprint;
 	float dhx = dFdx(hM * rugged);
 	float dhy = dFdy(hM * rugged);
 	vec3 r1 = cross(dpdy, N);
@@ -972,7 +982,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 	float det = dot(dpdx, r1);
 	vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
 	vec3 gb = abs(det) * N - grad;
-	vec3 Nb = dot(gb, gb) > 1e-24 ? normalize(gb) : N;
+	vec3 Nb = quadOk && dot(gb, gb) > 1e-24 ? normalize(gb) : N;
 	Nb = normalize(Nb + (Nr - nBF));
 	float slope = 1.0 - dot(Nb, nBF);
 	float tanS = length(gT);
@@ -1067,7 +1077,9 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		float fw = max(length(vec2(dFdx(rn), dFdy(rn))), 1e-7);
 		float dist = rr / fw * footprint;
 		float W = 5.0 + 17.0 * noiseA(pl, 1024.0, 44);
-		float vis = smoothstep(0.35, 1.2, W / footprint) * smoothstep(0.68, 0.55, e2) * (1.0 - smoothstep(60.0, 260.0, hT));
+		// a river from a pixel wide (fully from 2.5): narrower, its screen-difference distance drew it
+		// as dark dotted lines along the coasts (the owner, 2026-10-21)
+		float vis = smoothstep(1.0, 2.5, W / footprint) * smoothstep(0.68, 0.55, e2) * (1.0 - smoothstep(60.0, 260.0, hT));
 		riverMask = (1.0 - smoothstep(W - footprint, W + footprint, dist)) * vis;
 		float bank = (1.0 - smoothstep(W, W * 2.2 + footprint, dist)) * vis;
 		land = mix(land, land * vec3(0.55, 0.7, 0.5), bank * 0.7);
@@ -1194,7 +1206,7 @@ Surface surfaceAt(vec3 nBF, vec3 pl, float footprint, vec3 viewBF, float hT, vec
 		vec3 rw1 = cross(dpdy, nBF), rw2 = cross(nBF, dpdx);
 		float dw = dot(dpdx, rw1);
 		vec3 gw = abs(dw) * nBF - sign(dw) * (wdx * rw1 + wdy * rw2) * 1.8;
-		Nw = dot(gw, gw) > 1e-24 ? normalize(gw) : nBF;
+		Nw = quadOk && dot(gw, gw) > 1e-24 ? normalize(gw) : nBF;
 		Nw = normalize(Nw + (normalize(nBF - gWave) - nBF));
 	}
 	s.normal = normalize(mix(Nw, Nb, lw));
@@ -1435,7 +1447,10 @@ vec3 shadeRay(vec3 ro, vec3 rd, float r0, float d, float h, bool hitG, bool hitT
 #endif
 	if (inAtm) {
 		float power = h < uAtmH ? 2.0 : 1.0;
-		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, jitter, tcA, tcB, power);
+		// the air in front of the ground at the middle of each step: its in-scatter is smooth, and the
+		// per-pixel jitter drew a fixed grain over the sea and the ground toward the horizon (the owner,
+		// 2026-10-21); the sky keeps it against banding
+		Scatter sc = marchAtmosphere(ro, rd, t0, t1, uSunDir, hitG ? 0.5 : jitter, tcA, tcB, power);
 #if SHAFT_STEPS > 0
 		if (uShaft > 0.01 && (uCloudCover > 0.02 || SHAFT_TERRAIN > 0) && dot(rd, uSunDir) > ${f(SHAFT.minCosToSun)}) {
 			ShaftLoss sl = shaftLoss(ro, rd, t0, t1, uSunDir, fract(jitter + 0.618034), tcA, tcB);
