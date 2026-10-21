@@ -132,6 +132,32 @@ describe('docking (plan 222)', () => {
 		sim.dispose();
 	}, 60_000);
 
+	test('a capture 4 degrees off the axis snaps the ports face to face with no gap (plan 321)', async () => {
+		const { sim } = await approach(0.2, (4 * Math.PI) / 180);
+		let t = 0;
+		for (; t < 60 && sim.snapshot().vessels.length > 1; t += 0.02) sim.step(0.02);
+		console.log(`4 degrees: ${sim.snapshot().vessels.length} vessels after ${t.toFixed(1)} s`);
+		expect(sim.snapshot().vessels).toHaveLength(1);
+		sim.step(0.02);
+		const ports = sim.snapshot().vessels[0]!.ports!;
+		expect(ports).toHaveLength(2);
+		const [p, q] = ports;
+		const gap = Math.hypot(
+			p!.position.x - q!.position.x,
+			p!.position.y - q!.position.y,
+			p!.position.z - q!.position.z
+		);
+		const cos =
+			p!.direction.x * q!.direction.x +
+			p!.direction.y * q!.direction.y +
+			p!.direction.z * q!.direction.z;
+		const angle = (Math.acos(Math.max(-1, Math.min(1, -cos))) * 180) / Math.PI;
+		console.log(`docking snap: gap ${gap.toFixed(4)} m, angle ${angle.toFixed(3)} deg`);
+		expect(gap).toBeLessThan(1e-3);
+		expect(angle).toBeLessThan(0.1);
+		sim.dispose();
+	}, 60_000);
+
 	test('at 3 m/s, or 30 degrees off the axis, they do not', async () => {
 		for (const [closing, off] of [
 			[3, 0],
