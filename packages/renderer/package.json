@@ -12,7 +12,8 @@
 		"./precompile-progress": "./src/precompile-progress.ts",
 		"./reentry": "./src/effects/reentry.ts",
 		"./map-style": "./src/map-style.ts",
-		"./webgpu-spike": "./src/webgpu-spike/sky-spike.ts"
+		"./webgpu-spike": "./src/webgpu-spike/sky-spike.ts",
+		"./part-viewer": "./src/part-viewer/index.ts"
 	},
 	"types": "./src/index.ts",
 	"scripts": {
