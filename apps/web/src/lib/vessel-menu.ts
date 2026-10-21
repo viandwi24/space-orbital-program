@@ -1,5 +1,5 @@
 /**
- * The Flight view's vessel menu (plan 306, ADR 0269): what a click or hover on another vessel
+ * The Flight view's vessel menu (plan 310, ADR 0270): what a click or hover on another vessel
  * offers. Pure: the snapshot, the flown vessel and the picked one in, the rows out. The page draws
  * them and sends the commands; switching uses the flight loop's `switchVessel`.
  */

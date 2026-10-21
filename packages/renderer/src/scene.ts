@@ -666,7 +666,7 @@ export class SceneModel {
 
 	/**
 	 * Another vessel's part under the canvas point (x, y) in CSS px, with its vessel, or null (plan
-	 * 306, ADR 0269): one raycast against every vessel's part meshes but the active one's.
+	 * 306, ADR 0270): one raycast against every vessel's part meshes but the active one's.
 	 */
 	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId } | null {
 		if (this.map) return null;
@@ -1899,7 +1899,7 @@ export class SceneModel {
 				group && active && this.focusId !== null
 					? active.parts.find((p) => p.id === this.focusId)
 					: undefined;
-			// a part of another vessel (plan 306: "Focus camera" in the vessel menu)
+			// a part of another vessel (plan 310: "Focus camera" in the vessel menu)
 			const elsewhere =
 				!focused && active && this.focusId !== null ? this.otherFocus(this.focusId) : undefined;
 			if (elsewhere) target = elsewhere;

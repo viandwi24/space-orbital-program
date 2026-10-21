@@ -1,4 +1,4 @@
-/** Plan 306: the Flight view's vessel menu and hover line. */
+/** Plan 310: the Flight view's vessel menu and hover line. */
 import { describe, expect, it } from 'vitest';
 import type { EntityId, Snapshot, VesselSnapshot } from '@orbital/core';
 import { vesselMenu, vesselNearPoint, vesselTooltip } from './vessel-menu';
@@ -32,7 +32,7 @@ const port = (part: number, free = true) => ({
 	orientation: { x: 0, y: 0, z: 0, w: 1 }
 });
 
-describe('vessel menu (plan 306)', () => {
+describe('vessel menu (plan 310)', () => {
 	it('shows distance, relative speed and the free ports of the picked vessel', () => {
 		const s = snapshot([
 			vessel(1),

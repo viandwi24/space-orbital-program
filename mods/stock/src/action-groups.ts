@@ -17,5 +17,7 @@ export const STOCK_ACTION_GROUPS = [
 	// plan 241: the RCS thrusters' switch
 	defineActionGroup({ id: 'stock.rcs', label: 'RCS', icon: 'rcs', order: 11 }),
 	// plan 260: the wheel motors' switch
-	defineActionGroup({ id: 'stock.motors', label: 'Wheel motors', icon: 'wheel', order: 12 })
+	defineActionGroup({ id: 'stock.motors', label: 'Wheel motors', icon: 'wheel', order: 12 }),
+	// plan 306: hinges, servos, rotors and pistons
+	defineActionGroup({ id: 'stock.robotics', label: 'Robotics', icon: 'wheel', order: 13 })
 ] as const;

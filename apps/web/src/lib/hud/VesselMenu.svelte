@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The vessel menu of the Flight view (plan 306, ADR 0269): a click on another vessel offers to fly
+	 * The vessel menu of the Flight view (plan 310, ADR 0270): a click on another vessel offers to fly
 	 * it, target it or one of its free docking ports, look at it, or rename it. Arrows move the focus,
 	 * Escape or a press outside closes it; keys pressed in it stay in it (Space would stage).
 	 */

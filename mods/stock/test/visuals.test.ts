@@ -75,7 +75,10 @@ const KINDS = [
 	'orbiter-aft',
 	'delta-wing',
 	'external-tank',
-	'escape-tower'
+	'escape-tower',
+	'hinge-joint',
+	'rotary-joint',
+	'piston-joint'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

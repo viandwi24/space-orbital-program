@@ -10,17 +10,16 @@
 	import SettingsDialog from '../lib/ui/SettingsDialog.svelte';
 	import { GAME_NAME, GAME_TAGLINE, GAME_VERSION } from '../lib/public/about';
 	import { ago } from '../lib/save/describe';
-	import LoadDialog from '../lib/save/LoadDialog.svelte';
 	import { bootedMods, modHint } from '../lib/save/mods';
 	import { SaveController } from '../lib/save/save-controller.svelte';
-	import { loadDraft } from '../lib/storage';
 	import type { WorldRecord } from '../lib/save/world-record';
 	import { enterWorld } from '../lib/worlds/enter';
 	import LastWorldCard from '../lib/worlds/LastWorldCard.svelte';
 	import type { SaveMeta } from '../lib/save/game-save';
 	import { activeWorldId, type Worlds } from '../lib/worlds/worlds';
 
-	// Load a saved flight (plan 043): the flight page resumes it from `?load=<id>`.
+	// Saves belong to a world: the main menu has none of the world's own entries (New flight, Fly the
+	// last vessel, Load a flight); they are in the world, the Hangar and the pause menu.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
@@ -31,7 +30,6 @@
 
 	let settingsOpen = $state(false);
 	let ready = $state(false);
-	let hasDraft = $state(false);
 
 	/** The world played last (plan 087, ADR 0143): Continue enters it. */
 	let lastWorld = $state<WorldRecord | null>(null);
@@ -47,7 +45,6 @@
 	const KIND = { auto: 'Autosave', quick: 'Quicksave', manual: 'Saved' } as const;
 
 	onMount(() => {
-		hasDraft = loadDraft() !== null;
 		void saves
 			.worldsService()
 			.then(async (w) => {
@@ -111,29 +108,6 @@
 			testid="menu-lessons"
 		/>
 		<MenuButton
-			icon="launch"
-			label="New flight"
-			hint="Build a rocket in the hangar"
-			href={resolve('/(world)/vab')}
-			testid="menu-new"
-		/>
-		{#if hasDraft}
-			<MenuButton
-				icon="stage"
-				label="Fly the last vessel"
-				hint="Launch what you built last"
-				href={resolve('/(world)/flight')}
-				testid="menu-last"
-			/>
-		{/if}
-		<MenuButton
-			icon="open"
-			label="Load a flight"
-			hint="The saves of the world you are in"
-			testid="menu-load"
-			onclick={() => void saves.showLoad()}
-		/>
-		<MenuButton
 			icon="cube"
 			label="Vessel library"
 			hint="Designs you can launch in any world"
@@ -178,7 +152,6 @@
 			testid="menu-credits"
 		/>
 	</div>
-	<LoadDialog {saves} />
 	<SettingsDialog open={settingsOpen} onclose={closeSettings} />
 	{#snippet aside()}
 		{#if lastWorld}

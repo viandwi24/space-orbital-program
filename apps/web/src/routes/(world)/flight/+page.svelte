@@ -208,7 +208,7 @@
 	let hoverPart = $state<EntityId | null>(null);
 	let hoverAt = 0;
 	let downAt: { x: number; y: number } | null = null;
-	/** The vessel menu open at a canvas point, and the hover line over another vessel (plan 306). */
+	/** The vessel menu open at a canvas point, and the hover line over another vessel (plan 310). */
 	let vesselMenuAt = $state<{ menu: VesselMenu; x: number; y: number } | null>(null);
 	let vesselHover = $state<{ label: string; x: number; y: number } | null>(null);
 	let vesselHoverAt = 0;
@@ -565,7 +565,7 @@
 			inspect(part);
 			return;
 		}
-		// another vessel: its menu (plan 306)
+		// another vessel: its menu (plan 310)
 		const menu = menuAt(e.clientX - r.left, e.clientY - r.top);
 		vesselMenuAt = menu ? { menu, x: e.clientX - r.left, y: e.clientY - r.top } : null;
 		vesselHover = null;
@@ -584,7 +584,7 @@
 				}
 			}
 		}
-		// the hover line over another vessel, 10 times a second at most (plan 306)
+		// the hover line over another vessel, 10 times a second at most (plan 310)
 		if (!hud?.map && e.buttons === 0 && !vesselMenuAt) {
 			const now = performance.now();
 			if (now - vesselHoverAt > 100) {

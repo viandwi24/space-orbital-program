@@ -352,7 +352,7 @@ export interface Flight {
 	/** The flown vessel's part under a point of the view (CSS px of the canvas box), or null (plan 214). */
 	partAt(x: number, y: number): EntityId | null;
 	/**
-	 * Another vessel under a point of the view (plan 306, ADR 0269): its mesh, or its projected point
+	 * Another vessel under a point of the view (plan 310, ADR 0270): its mesh, or its projected point
 	 * within a few pixels when it is too small to hit; null in the map or over nothing.
 	 */
 	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId | null } | null;

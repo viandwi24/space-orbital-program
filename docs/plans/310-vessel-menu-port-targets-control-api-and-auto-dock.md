@@ -1,5 +1,5 @@
 ---
-id: 306
+id: 310
 title: "Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod"
 status: in-progress
 owner: "auto dock session (Claude)"
@@ -9,7 +9,7 @@ created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 306 — Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod
+# 310 — Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod
 
 ## Goal
 
@@ -18,7 +18,7 @@ From the Flight view the player clicks a nearby vessel to fly it, target it or t
 ## Context
 
 - Owner's requests (2026-10-21): click nearby vessels in Flight with a menu; target another vessel's docking port, KSP-style, so it applies to maneuvers too; an "Auto Dock" mod with an autopilot that docks once Control From and the target port are set, with an API for mods; control through SAS and RCS like KSP/KSP2.
-- ADRs: 0065 (targets), 0084 (target markers), 0208 (switching, control from here), 0218 (docking), 0049 (SAS), 0149 (panels), new **0269** and **0270**.
+- ADRs: 0065 (targets), 0084 (target markers), 0208 (switching, control from here), 0218 (docking), 0049 (SAS), 0149 (panels), new **0270** and **0271**.
 - Code: `packages/sim/src/target.ts`, `docking.ts`, `sas.ts`, `commands.ts`; `apps/web/src/lib/flight-loop.ts` (`switchVessel`); `packages/scripting/src/prelude.ts`.
 
 ## Scope
@@ -29,11 +29,11 @@ From the Flight view the player clicks a nearby vessel to fly it, target it or t
 - Part 3: SAS `direction` and `hold` with `attitude`; `VesselControl` in core and SDK; `defineAutopilot`; `autopilot-engage`/`-disengage`; snapshot `autopilot`; ship API additions; docs in `docs/guides/`.
 - Part 4: `mods/autodock` (`@orbital/mod-autodock`), built in: the `autodock.dock` autopilot and its panel; headless sim tests (success from 200 m, abort paths).
 
-**Out:** e2e (owner's instruction). Roll alignment of ports (the capture needs none). Map closest approach at the port (ADR 0269 point 3).
+**Out:** e2e (owner's instruction). Roll alignment of ports (the capture needs none). Map closest approach at the port (ADR 0270 point 3).
 
 ## Steps
 
-1. Plan and ADRs 0269, 0270.
+1. Plan and ADRs 0270, 0271.
 2. Part 1, commit.
 3. Part 2 with sim tests, commit.
 4. Part 3 with core/sim/scripting tests and the guide, commit.
@@ -51,9 +51,9 @@ From the Flight view the player clicks a nearby vessel to fly it, target it or t
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/306-vessel-menu-port-targets-control-api-and-auto-dock.md` written.
+- [ ] `docs/journal/310-vessel-menu-port-targets-control-api-and-auto-dock.md` written.
 - [ ] `docs/guides/vessel-control-api.md` written; scripting guide lists the new ship calls.
-- [ ] ADRs 0269 and 0270 linked above.
+- [ ] ADRs 0270 and 0271 linked above.
 
 ## Log
 

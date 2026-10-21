@@ -48,13 +48,21 @@ class Build {
 	private last(part: string): number {
 		return this.s.design.parts.filter((p) => p.part === part).at(-1)!.index;
 	}
-	/** Attach `part` to `node` of `parent` (the child's matching node is found by the editor). */
-	on(part: string, parent: number, node: string): number {
+	/**
+	 * Attach `part` to `node` of `parent`; the child's matching node is found by the editor, or is
+	 * `childNode`. A sideways node (a hub's side port) turns the part onto it (plan 308).
+	 */
+	on(part: string, parent: number, node: string, childNode?: string): number {
 		const t = attachTargets(
 			this.s.design,
 			singlePart(part, this.s.nextIndex),
 			this.content.parts
-		).find((x) => x.parent?.index === parent && x.parent.parentNode === node);
+		).find(
+			(x) =>
+				x.parent?.index === parent &&
+				x.parent.parentNode === node &&
+				(childNode === undefined || x.node === childNode)
+		);
 		if (!t)
 			throw new Error(
 				`no ${node} node on part ${parent} for ${part}: ${JSON.stringify(this.s.design.parts.map((p) => [p.index, p.part]))} targets ${JSON.stringify(attachTargets(this.s.design, singlePart(part, this.s.nextIndex), this.content.parts).map((x) => [x.parent?.index, x.parent?.parentNode, x.node]))}`
@@ -199,10 +207,14 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'station',
 		crew: 0,
 		summary:
-			'The station core: a habitat under a six-port hub with a docking port, two big tracking arrays and radiators, flown up uncrewed on a heavy launcher.',
+			'The station core: a habitat under a six-port hub with a docking port on top, an airlock and a cupola on its sides, two big tracking arrays and radiators, flown up uncrewed on a heavy launcher.',
 		build(content) {
 			const b = new Build(content, 'Horizon Station', 'stock.hub');
 			b.above('stock.docking-port', 0);
+			// the hub's side ports (plan 308): an airlock with a small port, and a cupola
+			const airlock = b.on('stock.airlock', 0, 'east', 'bottom');
+			b.above('stock.docking-port-small', airlock);
+			b.on('stock.cupola', 0, 'west', 'bottom');
 			const hab = b.below('stock.hab-module', 0);
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
 			b.side('stock.radiator', hab, 0, -0.3, 2);

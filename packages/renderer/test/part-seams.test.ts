@@ -151,7 +151,9 @@ describe('part seams', () => {
 					'radiator',
 					'boom',
 					'single-leg',
-					'delta-wing'
+					'delta-wing',
+					// boxes and cylinders, no revolve (plan 306)
+					'hinge-joint'
 				].includes(visual.kind)
 			)
 				continue;

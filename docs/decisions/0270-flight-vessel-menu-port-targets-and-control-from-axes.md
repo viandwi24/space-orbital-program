@@ -1,8 +1,8 @@
-# 0269 — Flight vessel menu, targets resolved at the docking port, controls in the control part's axes
+# 0270 — Flight vessel menu, targets resolved at the docking port, controls in the control part's axes
 
 **Status:** accepted (owner's request, 2026-10-21)
 **Date:** 2026-10-21
-**Plan:** plans/306-vessel-menu-port-targets-control-api-and-auto-dock.md
+**Plan:** plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md
 **Amends:** ADR 0065 (targets), ADR 0084 (target markers), ADR 0208 point 2 (control from here), ADR 0218 (port targets)
 
 ## Context

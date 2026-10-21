@@ -132,7 +132,7 @@ describe('SceneModel', () => {
 		expect(m.partAt(5, 5)).toBeNull(); // the sky
 	});
 
-	test('vesselAt finds another vessel under a screen point, never the active one (plan 306)', () => {
+	test('vesselAt finds another vessel under a screen point, never the active one (plan 310)', () => {
 		const m = make();
 		m.resize(800, 600);
 		const s = snap(0, vessel(1, R + 100, 0, 0), vessel(2, R + 100, 0, 30));

@@ -209,7 +209,7 @@ export interface Renderer {
 	readonly resolvedCameraMode: Exclude<CameraMode, 'auto'> | null;
 	/**
 	 * Point the flight camera at one part of the active vessel (plan 226), or of another vessel in
-	 * view (plan 306), `null` back to the vessel.
+	 * view (plan 310), `null` back to the vessel.
 	 */
 	focusPart(id: EntityId | null): void;
 	readonly focusedPart: EntityId | null;
@@ -221,7 +221,7 @@ export interface Renderer {
 	partAt(x: number, y: number): EntityId | null;
 	/**
 	 * Another vessel's part under a point of the canvas box (CSS px), with its vessel, or null
-	 * (plan 306, ADR 0269): the Flight view's vessel menu. The active vessel is skipped.
+	 * (plan 310, ADR 0270): the Flight view's vessel menu. The active vessel is skipped.
 	 */
 	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId } | null;
 	orbitCamera(input: { dYaw?: number; dPitch?: number; zoomFactor?: number }): void;
