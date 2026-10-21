@@ -5,7 +5,7 @@
  * smoke suite's business, not this test's.
  */
 import { expect, test } from '@playwright/test';
-import { launchTwoStage } from './support';
+import { launchTwoStage, loadHangarExample } from './support';
 
 test('a fresh launch stays on the pad: no "Vessel lost" card', async ({ page }) => {
 	await launchTwoStage(page);
@@ -30,7 +30,7 @@ test('Hangar, Launch screen, flight: the vessel stands on the chosen pad (plan 0
 	page
 }) => {
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.getByRole('button', { name: /^Launch/ }).click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
 	if (await anyway.isVisible().catch(() => false)) await anyway.click();

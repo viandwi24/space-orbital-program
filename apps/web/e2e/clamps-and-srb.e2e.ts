@@ -4,7 +4,7 @@
  * boosters burn on with the throttle cut, until they are empty.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugAmount, watchErrors } from './support';
+import { debugAmount, watchErrors, loadHangarExample } from './support';
 
 const SOLID = 'stock.solid-fuel';
 
@@ -36,7 +36,7 @@ const design = {
 
 async function launch(page: Page): Promise<void> {
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
 	await library.locator('input[type=file]').setInputFiles({

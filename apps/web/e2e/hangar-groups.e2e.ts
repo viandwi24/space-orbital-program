@@ -3,7 +3,7 @@
  * go into Custom 1; launched, the 1 key (KSP profile) fires the group and the legs deploy.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 const legsDeployed = (page: Page) =>
 	page.evaluate(() => {
@@ -26,7 +26,7 @@ test('legs in Custom 1 from the Hangar deploy on the 1 key in flight', async ({ 
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/vab');
 	await page.waitForFunction(() => '__orbitalVab' in window, null, { timeout: 60_000 });
-	await page.getByRole('button', { name: 'Load the moon shot' }).click();
+	await loadHangarExample(page, 'loadMoonShot');
 	await page.waitForTimeout(800); // the camera frames the vessel
 
 	// the editor opens on Custom 1; the selected legs list their switch

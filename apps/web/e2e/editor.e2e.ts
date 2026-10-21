@@ -6,7 +6,7 @@
  * Chromium, Firefox and WebKit. Also the Hangar's mark on a joint whose sizes differ (plan 207).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { launchTwoStage, watchErrors } from './support';
+import { launchTwoStage, watchErrors, loadHangarExample } from './support';
 
 test('the script editor works from the keyboard and does not trap it', async ({ page }) => {
 	const errors = watchErrors(page);
@@ -246,7 +246,7 @@ test('the Hangar marks a joint whose sizes differ, and not a cone on the booster
 }) => {
 	const errors = watchErrors(page);
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the booster rocket' }).click();
+	await loadHangarExample(page, 'loadBooster');
 	const checks = page.getByRole('region', { name: 'Pre-flight checks' });
 	await expect(checks).toBeVisible();
 	await expect(checks.getByTestId('size-mismatch-mark')).toHaveCount(0);

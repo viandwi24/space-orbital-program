@@ -5,7 +5,7 @@
  * both names back.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors, openDock } from './support';
+import { watchErrors, openDock, loadHangarExample } from './support';
 
 const radial = (index: number, parent: number) =>
 	[0, 1, 2, 3].map((k) => ({
@@ -100,7 +100,7 @@ async function setOrbit(page: Page, spec: unknown, options?: unknown): Promise<v
 
 async function launch(page: Page, design: ReturnType<typeof probe>): Promise<void> {
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
 	await library.locator('input[type=file]').setInputFiles({

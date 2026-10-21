@@ -3,7 +3,13 @@
  * monopropellant, and with the monoprop gone the pill says so. The state comes from the debug API.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugAmount, debugSetOrbit, debugSetResource, watchErrors } from './support';
+import {
+	debugAmount,
+	debugSetOrbit,
+	debugSetResource,
+	watchErrors,
+	loadHangarExample
+} from './support';
 
 const MONO = 'stock.monopropellant';
 
@@ -33,7 +39,7 @@ async function launchRcsProbe(page: Page): Promise<void> {
 		stages: []
 	};
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
 	await library.locator('input[type=file]').setInputFiles({

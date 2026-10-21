@@ -3,7 +3,7 @@
  * only in the map with a node selected), and Orbital classic from Settings (C brakes).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors, openDock } from './support';
+import { watchErrors, openDock, loadHangarExample } from './support';
 
 /** A pod on a tank with a wheel on its side (a Brakes group), imported into the library and launched. */
 async function launchRover(page: Page): Promise<void> {
@@ -26,7 +26,7 @@ async function launchRover(page: Page): Promise<void> {
 		stages: []
 	};
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
 	await library.locator('input[type=file]').setInputFiles({

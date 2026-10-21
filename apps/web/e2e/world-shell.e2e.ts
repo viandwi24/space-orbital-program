@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 /**
  * Plan 204 (ADR 0201): one sim per world. Moving between Space Center, Hangar, Mission Center and
@@ -34,7 +34,7 @@ test('the world clock runs on across pages without a reload', async ({ page }) =
 	await page.getByTestId('sc-open').click();
 	await page.waitForURL('**/vab');
 	await later();
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 
 	// Hangar -> Space Center -> Mission Center (its page action) -> Flight by the menu bar
 	await page.getByTestId('nav-space-center').click();

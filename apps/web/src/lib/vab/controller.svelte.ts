@@ -796,7 +796,9 @@ export class VabController {
 			aim: (yaw: number, pitch: number, distance: number, target?: [number, number, number]) =>
 				this.view?.debug.setCamera(yaw, pitch, distance, target),
 			// for captures and measurements: the examples left the empty Hangar's buttons
+			loadTwoStage: () => this.loadExample(),
 			loadBooster: () => this.loadBoosterExample(),
+			loadMoonShot: () => this.loadMoonExample(),
 			loadMission: (id: string) => this.loadMission(id)
 		};
 		ro.observe(els.stage);
