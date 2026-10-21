@@ -194,8 +194,10 @@ describe('labels', () => {
 		// a camera looking down at the site from `distance` metres: buildings come together as it backs off
 		const projectAt =
 			(distance: number) =>
-			(p: { east: number; north: number; up?: number }): { x: number; y: number } =>
-				({ x: 512 + (800 * p.east) / distance, y: 384 - (800 * (p.north + (p.up ?? 0))) / distance });
+			(p: { east: number; north: number; up?: number }): { x: number; y: number } => ({
+				x: 512 + (800 * p.east) / distance,
+				y: 384 - (800 * (p.north + (p.up ?? 0))) / distance
+			});
 		const rows = buildingRows(site, reg);
 		let pins: Record<string, { x: number; y: number } | null> = {};
 		const distances = [200, 260, 400, 700, 1200, 2400, 4000, 2400, 900, 300, 200];

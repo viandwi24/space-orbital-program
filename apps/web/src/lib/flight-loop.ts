@@ -1683,8 +1683,10 @@ export function startFlight(options: FlightOptions): Flight {
 				c,
 				resumed ? { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } : undefined
 			);
+			const backend = await rendererBackend();
+			if (disposed) return;
 			renderer = createRenderer({
-				backend: rendererBackend(),
+				backend,
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
 				...(c.home ? { home: c.home } : {}),

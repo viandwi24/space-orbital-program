@@ -261,6 +261,15 @@ Phases 2 to 7 all edit the planet shaders, so they run mostly in sequence. Phase
 
 ## Log
 
+- 2026-10-21 — Worker D (M2): **The owner's report from the M5 (WebGPU): every quality change froze the view for 3 to 5 s, and moving to `low` and back crashed with "Cannot read properties of null (reading 'depthTexture')".**
+  - **The crash:** the sun now casts shadows on every preset on WebGPU. Three r186's shadow node loses its map when `castShadow` goes off.
+  - **The freezes:** a preset change brings a new biome map and new terrain targets, and the TSL planet pass rebuilt every shader for them. Now:
+    - the map and the terrain textures are read through nodes whose texture is swapped, with their sizes as uniforms;
+    - the shaders are kept per preset;
+    - the other presets' shaders, and the active preset's other path (full size or half), are compiled in the background where they are drawn;
+    - the terrain's bake passes are kept per size.
+  - **Measured on the M2 at Retina:** switching between `low` and `high` takes 67 to 283 ms; before, 1.5 to 3.6 s. The first switch to `medium` still takes 3 s, and its cause is being profiled.
+  - **Automatic renderer:** it now asks for a WebGPU adapter. A browser with `navigator.gpu` but no adapter (headless Chromium, a blocked driver) draws with WebGL. Before, it got three's slower WebGL2 fallback, and Flight took about 20 s to start in the e2e run.
 - 2026-10-21 — Worker D (M2): **after the merge, from the owner's test.**
   - **WebGPU is the default** (ADR 0249 point 10). Settings → Graphics → Renderer offers Automatic, WebGPU and WebGL. Automatic is WebGPU where the browser has it.
   - **A 2.8 s freeze at every sunrise and sunset, seen warping in orbit on WebGPU, is fixed.** The TSL planet pass rebuilt every shader when the night's 1×1 shadow stand-in replaced the sun's map. It now keeps the map it was built with, and `uShadowOn` gates it. Reproduced at 50× in a 120 km orbit: 2817 ms frames before the fix, none over 60 ms after.

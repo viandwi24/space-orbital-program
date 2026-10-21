@@ -233,9 +233,10 @@ export function createWebGPURenderer(
 		if (!r) return;
 		model.prepareFrame(dt);
 		// three r186's WebGPU shadow node throws its map away when castShadow goes off and then reads
-		// it (null.depthTexture, then a pass that binds its own target): the sun keeps casting while the
-		// preset has shadows, and the planet pass ignores the map when the environment says it is off
-		if (PRESETS[preset].shadowMapSize > 0) env.sunLight.castShadow = true;
+		// it (null.depthTexture, then a pass that binds its own target): the sun always keeps casting,
+		// on every preset (the governor's move to low and back crashed the page), and the planet pass
+		// ignores the map when the environment says it is off
+		env.sunLight.castShadow = true;
 		planet.update(
 			r,
 			model.camera,
@@ -329,6 +330,21 @@ export function createWebGPURenderer(
 				jobs.push(compile(parts, model.camera, model.scene));
 			}
 			await Promise.all(jobs);
+			// the planet pass at the other presets' settings, so the governor's moves swap shaders
+			// instead of compiling them (2 to 4 s each on WebGPU); it is built at the first frame
+			// the preset in use first: its other path (full size or half) is drawn only once the
+			// governor or the pixel budget moves the planet scale, and compiled then otherwise
+			const others = [preset, ...GRAPHICS_PRESETS.filter((name) => name !== preset)];
+			tracker.expect(others.length);
+			for (const name of others) {
+				for (let i = 0; i < 100 && !planet.built; i++) await idle();
+				const r = gpu;
+				if (r)
+					await planet
+						.precompile(r, PRESETS[name], () => compile(model.scene, model.camera, model.scene))
+						.catch(() => {});
+				tracker.finish();
+			}
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
 			tracker.setStage('vegetation');
 			const budgets = GRAPHICS_PRESETS.map((name) => ({

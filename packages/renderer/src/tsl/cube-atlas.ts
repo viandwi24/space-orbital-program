@@ -50,8 +50,10 @@ export function atlasBakeDirection(size: number): N {
 }
 
 /** The atlas coordinate of a unit direction n. */
-export function atlasCoord(n: N, size: number): N {
-	const tile = size + 2;
+export function atlasCoord(n: N, size: number | N): N {
+	// a JS number bakes the size in; a uniform lets one shader read atlases of any size (plan 261)
+	const sz: N = typeof size === 'number' ? float(size) : size;
+	const tile = sz.add(2.0);
 	const a = abs(n);
 	const isX = a.x.greaterThanEqual(a.y).and(a.x.greaterThanEqual(a.z));
 	const isY = isX.not().and(a.y.greaterThanEqual(a.z));
@@ -78,12 +80,8 @@ export function atlasCoord(n: N, size: number): N {
 		face
 			.mul(tile)
 			.add(1.0)
-			.add(sx.add(1.0).mul(0.5 * size))
-			.div(6 * tile),
-		sy
-			.add(1.0)
-			.mul(0.5 * size)
-			.add(1.0)
-			.div(tile)
+			.add(sx.add(1.0).mul(sz.mul(0.5)))
+			.div(tile.mul(6.0)),
+		sy.add(1.0).mul(sz.mul(0.5)).add(1.0).div(tile)
 	);
 }

@@ -104,6 +104,36 @@ export class TerrainTSL {
 	private builtMap: DataTexture | null = null;
 	private cubePass: { m: MeshBasicNodeMaterial; q: QuadMesh } | null = null;
 	private patchPass: { m: MeshBasicNodeMaterial; q: QuadMesh } | null = null;
+	/**
+	 * The bake passes by atlas, patch and map size and gradient: a preset change brings new targets and
+	 * a new map, and the passes for sizes seen before are not compiled again (plan 261).
+	 */
+	private readonly passes = new Map<
+		string,
+		{
+			cube: { m: MeshBasicNodeMaterial; q: QuadMesh };
+			patch: { m: MeshBasicNodeMaterial; q: QuadMesh } | null;
+		}
+	>();
+	/**
+	 * What the planet pass's shader reads, as nodes whose texture is swapped when the targets or the
+	 * map are replaced, and the sizes as uniforms: one compiled planet shader serves every preset.
+	 */
+	private readonly blankHalf = new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: false });
+	private readonly blankFloat = new RenderTarget(1, 1, {
+		type: FloatType,
+		minFilter: NearestFilter,
+		magFilter: NearestFilter,
+		depthBuffer: false
+	});
+	private readonly atlasNode: N = texture(this.blankHalf.texture);
+	private readonly patchNodes: Record<'fine' | 'mid', N> = {
+		fine: texture(this.blankFloat.texture),
+		mid: texture(this.blankFloat.texture)
+	};
+	private mapNode: N = null;
+	private readonly uAtlasSize = uniform(1);
+	private readonly uPatchSize = uniform(1);
 	private readonly uZones = uniformArray(
 		Array.from({ length: MAX_TERRAIN_ZONES }, () => new Vector4()),
 		'vec4'
@@ -184,15 +214,18 @@ export class TerrainTSL {
 		this.atlas?.dispose();
 		this.patchTargets.fine?.dispose();
 		this.patchTargets.mid?.dispose();
-		this.cubePass?.m.dispose();
-		this.patchPass?.m.dispose();
 		this.atlas = null;
 		this.patchTargets.fine = this.patchTargets.mid = null;
 		this.cubePass = this.patchPass = null;
 		this.atlasSize = cubeSize;
 		this.patchSize = patchSize;
 		this.builtMap = map;
-		this.version++;
+		if (this.mapNode) this.mapNode.value = map;
+		else this.mapNode = texture(map);
+		this.uAtlasSize.value = Math.max(cubeSize, 1);
+		this.uPatchSize.value = Math.max(patchSize, 1);
+		this.atlasNode.value = this.blankHalf.texture;
+		this.patchNodes.fine.value = this.patchNodes.mid.value = this.blankFloat.texture;
 		if (cubeSize <= 0) return;
 		const tile = cubeSize + 2;
 		this.atlas = new RenderTarget(6 * tile, tile, {
@@ -202,6 +235,28 @@ export class TerrainTSL {
 			depthBuffer: false,
 			generateMipmaps: false
 		});
+		this.atlasNode.value = this.atlas.texture;
+		const passKey = `${cubeSize}:${patchSize}:${map.image.width}x${map.image.height}:${this.gradient}`;
+		const cached = this.passes.get(passKey);
+		if (patchSize > 0) {
+			const make = (): RenderTarget =>
+				new RenderTarget(patchSize, patchSize, {
+					type: FloatType,
+					minFilter: this.floatLinear ? LinearFilter : NearestFilter,
+					magFilter: this.floatLinear ? LinearFilter : NearestFilter,
+					depthBuffer: false,
+					generateMipmaps: false
+				});
+			this.patchTargets.fine = make();
+			this.patchTargets.mid = make();
+			this.patchNodes.fine.value = this.patchTargets.fine.texture;
+			this.patchNodes.mid.value = this.patchTargets.mid.texture;
+		}
+		if (cached) {
+			this.cubePass = cached.cube;
+			this.patchPass = cached.patch;
+			return;
+		}
 		const pass = (frag: N) => {
 			const m = new MeshBasicNodeMaterial();
 			// raw output: a colour node would have its alpha replaced by the opacity (g2 lost)
@@ -210,8 +265,8 @@ export class TerrainTSL {
 			m.depthWrite = false;
 			return { m, q: new QuadMesh(m) };
 		};
-		const height = this.heightFn(map);
-		const heightGrad = this.heightGradFn(map);
+		const height = this.heightFn(this.mapNode);
+		const heightGrad = this.heightGradFn(this.mapNode, map.image.width, map.image.height);
 		const analytic = this.gradient === 'analytic';
 		const texel = (n: N, d: N): N => {
 			const t1 = tangent1(n);
@@ -239,16 +294,6 @@ export class TerrainTSL {
 			})()
 		);
 		if (patchSize > 0) {
-			const make = (): RenderTarget =>
-				new RenderTarget(patchSize, patchSize, {
-					type: FloatType,
-					minFilter: this.floatLinear ? LinearFilter : NearestFilter,
-					magFilter: this.floatLinear ? LinearFilter : NearestFilter,
-					depthBuffer: false,
-					generateMipmaps: false
-				});
-			this.patchTargets.fine = make();
-			this.patchTargets.mid = make();
 			this.patchPass = pass(
 				Fn(() => {
 					const st = uv().mul(2.0).sub(1.0);
@@ -260,6 +305,7 @@ export class TerrainTSL {
 				})()
 			);
 		}
+		this.passes.set(passKey, { cube: this.cubePass, patch: this.patchPass });
 	}
 
 	/**
@@ -290,7 +336,7 @@ export class TerrainTSL {
 	 * vec4(value, gradient). The map's value is the filtered fetch `heightAt` uses, its derivative
 	 * comes from its four texels.
 	 */
-	private heightGradFn(map: DataTexture): (n: N) => N {
+	private heightGradFn(map: N, W: number, Hm: number): (n: N) => N {
 		const R = this.radius;
 		const kq = R / 1000;
 		const shift = this.uShift;
@@ -407,8 +453,6 @@ export class TerrainTSL {
 				select(sn.greaterThan(0.0), dir.mul(float(-R).div(max(sn, 1e-12))), vec3(0.0))
 			);
 		};
-		const W = map.image.width as number;
-		const Hm = map.image.height as number;
 		const fn = Fn(([n]: N[]) => {
 			const out = cD(0.0).toVar();
 			const q = n.mul(kq).toVar();
@@ -546,7 +590,7 @@ export class TerrainTSL {
 	}
 
 	/** `heightAt(n)`: the terrain height (m) at a unit body-fixed direction, as a shader function. */
-	private heightFn(map: DataTexture): (n: N) => N {
+	private heightFn(map: N): (n: N) => N {
 		return heightAtFn({
 			map,
 			radius: this.radius,
@@ -560,28 +604,25 @@ export class TerrainTSL {
 	 * The samplers over the current targets for the planet pass; `link` gives the TSL uniforms that
 	 * follow the planet pass's own (the patch frames, written by `markPatchBaked`).
 	 */
-	sampler(link: (name: string) => N, bodyInv: N): TerrainSampler | null {
-		const atlas = this.atlas;
-		if (!atlas) return null;
-		const size = this.atlasSize;
-		const cube = (n: N): N => texture(atlas.texture, atlasCoord(n, size)).level(0);
-		const patchSize = this.patchSize;
-		const patchFetch = (target: RenderTarget, st: N): N => {
+	sampler(link: (name: string) => N, bodyInv: N, patches: boolean): TerrainSampler | null {
+		const cube = (n: N): N => texture(this.atlasNode, atlasCoord(n, this.uAtlasSize)).level(0);
+		const patchSize = this.uPatchSize;
+		const patchFetch = (target: N, st: N): N => {
 			const at = st.mul(0.5).add(0.5);
-			if (this.floatLinear) return texture(target.texture, at).level(0).xyz;
+			if (this.floatLinear) return texture(target, at).level(0).xyz;
 			// four texels by hand where 32-bit floats cannot be filtered
 			const p = at.mul(patchSize).sub(0.5);
 			const f = fract(p);
 			const i0 = ivec2(floor(p));
-			const hi = ivec2(patchSize - 1);
+			const hi = ivec2(int(patchSize).sub(1));
 			const fetch = (dx: number, dy: number): N =>
-				textureLoad(target.texture, clamp(i0.add(ivec2(dx, dy)), ivec2(0), hi)).xyz;
+				textureLoad(target, clamp(i0.add(ivec2(dx, dy)), ivec2(0), hi)).xyz;
 			return mix(mix(fetch(0, 0), fetch(1, 0), f.x), mix(fetch(0, 1), fetch(1, 1), f.x), f.y);
 		};
 		const slots = (['fine', 'mid'] as const).map((which) => {
 			const pre = which === 'fine' ? 'uFine' : 'uMid';
 			return {
-				target: this.patchTargets[which],
+				target: patches ? this.patchNodes[which] : null,
 				c: link(`${pre}C`),
 				e: link(`${pre}E`),
 				f: link(`${pre}F`),
@@ -666,8 +707,13 @@ export class TerrainTSL {
 		this.atlas?.dispose();
 		this.patchTargets.fine?.dispose();
 		this.patchTargets.mid?.dispose();
-		this.cubePass?.m.dispose();
-		this.patchPass?.m.dispose();
+		for (const p of this.passes.values()) {
+			p.cube.m.dispose();
+			p.patch?.m.dispose();
+		}
+		this.passes.clear();
+		this.blankHalf.dispose();
+		this.blankFloat.dispose();
 	}
 }
 
@@ -693,7 +739,8 @@ function biomeElevation(map: DataTexture, st: N): N {
  * bake, \`hillsHeightGLSL\`: the hardware filter's 8-bit weights shift a ridge on a small body).
  */
 export function heightAtFn(o: {
-	map: DataTexture;
+	/** The biome map, or a node over it (one whose texture is swapped; not with `bilinear`). */
+	map: DataTexture | N;
 	radius: number;
 	shift: N;
 	zones: (n: N) => N;
@@ -728,7 +775,9 @@ export function heightAtFn(o: {
 		const h = float(0.0).toVar();
 		const ll = warpedLatLon(n, float(R), shift);
 		const st = vec2(ll.y.div(2 * PI).add(0.5), ll.x.div(PI).add(0.5)).toVar();
-		const e = (o.bilinear ? biomeElevation(map, st) : texture(map, st).level(0).r).toVar();
+		const e = (
+			o.bilinear ? biomeElevation(map as DataTexture, st) : texture(map, st).level(0).r
+		).toVar();
 		const land = smoothstep(S.landStart, S.landFull, e);
 		If(land.greaterThan(0.0), () => {
 			const z = zones(n);
