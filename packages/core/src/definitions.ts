@@ -157,6 +157,11 @@ export interface VesselControl {
 	readonly yaw: number;
 	/** The attitude demand is the assist's (SAS holds the vessel), not the player's (plan 241). */
 	readonly assisted?: boolean;
+	/**
+	 * The wheel motors' own throttle, -1..1 (plan 307: a rover's drive keys, negative backwards);
+	 * absent or 0: the motors follow `throttle`.
+	 */
+	readonly wheelThrottle?: number;
 }
 
 /** Ambient conditions at the part. Vacuum (all zero) outside the atmosphere. */
@@ -357,6 +362,8 @@ export interface WheelSpec {
 	steer: number;
 	/** Drive force along the rolling direction at full throttle, N (plan 260; negative reverses, 0: no motor or it is off). */
 	drive?: number;
+	/** The motor's force fades to nothing at this rolling speed, m/s (plan 307; absent: no limit). */
+	topSpeed?: number;
 }
 
 /**

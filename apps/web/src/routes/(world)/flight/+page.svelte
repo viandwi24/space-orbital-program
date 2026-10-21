@@ -1055,7 +1055,8 @@
 			uncontrolled: model?.uncontrolled ?? null,
 			link: model?.link ?? null,
 			blackout: model?.blackout ?? 0,
-			range: model?.range ?? null
+			range: model?.range ?? null,
+			drive: hud?.drive ?? false
 		})
 	);
 	// the EVA controls live in the dock's Crew entry since v3: it opens when a suit steps out (ADR 0253 point 5)

@@ -78,7 +78,9 @@ const KINDS = [
 	'escape-tower',
 	'hinge-joint',
 	'rotary-joint',
-	'piston-joint'
+	'piston-joint',
+	'rover-wheel',
+	'rover-chassis'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

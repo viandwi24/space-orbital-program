@@ -62,7 +62,8 @@ import {
 	STOCK_CONE_PARTS,
 	STOCK_SIZE_CLASS_PARTS,
 	STOCK_MISSION_PARTS,
-	STOCK_ROBOTIC_PARTS
+	STOCK_ROBOTIC_PARTS,
+	STOCK_ROVER_PARTS
 } from './parts/index.ts';
 import {
 	Ablator,
@@ -254,6 +255,7 @@ export const Stock = definePlugin({
 		// the parts of the famous-mission blueprints (plans 276, 280, 281, 295–300)
 		for (const part of STOCK_MISSION_PARTS) ctx.parts.register(part);
 		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_ROVER_PARTS) ctx.parts.register(part);
 		ctx.commodities.register(CommodityIce);
 		ctx.recipes.register(RecipeIceElectrolysis);
 		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);

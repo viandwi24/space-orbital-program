@@ -387,6 +387,20 @@ export function dispatch(
 			v.control.throttle = command.value;
 			return accept();
 		}
+		case 'wheel-throttle': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			const noSignal = signalRefusal(core, command.vessel, 'wheel-throttle');
+			if (noSignal) return refuse(noSignal);
+			if (command.value !== 0 && v.mode === 'on-rails') {
+				dropForThrust(core, command.vessel);
+				const why = ensureFlight(core, command.vessel, 'throttle');
+				if (why) return refuse(why);
+			}
+			if (command.value === 0) delete v.control.wheelThrottle;
+			else v.control.wheelThrottle = command.value;
+			return accept();
+		}
 		case 'trim': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);

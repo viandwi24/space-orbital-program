@@ -481,7 +481,14 @@ function stepWheels(
 			-Math.max(-limit, Math.min(limit, (WHEEL_SETTLE * speed * share) / dt));
 		const fRoll = stop(dot(tangential, roll), (spec.rolling + spec.brake * spec.grip) * load);
 		// a motor pushes along the wheel with the throttle, not against the brakes (plan 260)
-		const drive = spec.brake > 0 ? 0 : (spec.drive ?? 0) * effectiveControl(vessel).throttle;
+		const control = effectiveControl(vessel);
+		// the rover keys' own throttle wins while it is set (plan 307)
+		const push = control.wheelThrottle || control.throttle;
+		let drive = spec.brake > 0 ? 0 : (spec.drive ?? 0) * push;
+		// the motor fades toward its top speed in the direction it pushes (plan 307)
+		const rolling = dot(tangential, roll);
+		if (spec.topSpeed && drive * rolling > 0)
+			drive *= Math.max(0, 1 - Math.abs(rolling) / spec.topSpeed);
 		const fSide = stop(dot(tangential, side), spec.grip * load);
 		frame.backend.applyForce(
 			body.handle,

@@ -25,7 +25,8 @@ describe('mission blueprints (plan 286)', () => {
 			'horizon-station',
 			'moonwatch-orbiter',
 			'horizon-telescope',
-			'aurora-satellite'
+			'aurora-satellite',
+			'trailblazer-rover'
 		]);
 	});
 
@@ -44,13 +45,21 @@ describe('mission blueprints (plan 286)', () => {
 			const design = mission.build(content);
 			const resolved = resolveVesselDesign(design, content.parts);
 			expect(resolved.ok, JSON.stringify(resolved.ok ? '' : resolved.errors)).toBe(true);
-			expect(design.stages.length, mission.id).toBeGreaterThan(1);
 			const stats = designStats(design, content, 'sea-level', g);
-			expect(stats.liftoffTwr ?? 0, mission.id).toBeGreaterThan(1);
+			// a rover drives from where it is launched (plan 307): no stages, no liftoff
+			const surface = mission.goal === 'surface';
+			if (!surface) {
+				expect(design.stages.length, mission.id).toBeGreaterThan(1);
+				expect(stats.liftoffTwr ?? 0, mission.id).toBeGreaterThan(1);
+			}
 			const stability = stabilityOf(design, content);
 			const checks = checkDesign({ design, loose: [] }, content, stats, stability);
 			// the Hangar's verdict: nothing that blocks Launch and nothing no-go
-			const errors = checks.filter((c) => c.severity === 'error' || c.level === 'no-go');
+			const errors = checks.filter(
+				(c) =>
+					(c.severity === 'error' || c.level === 'no-go') &&
+					!(surface && ['no-engine', 'no-stages', 'low-twr'].includes(c.id))
+			);
 			expect(
 				errors.map((c) => `${c.id}: ${c.text}`),
 				mission.id

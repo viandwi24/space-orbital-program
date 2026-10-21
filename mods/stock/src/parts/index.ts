@@ -18,6 +18,7 @@ export * from './structure.ts';
 export * from './tanks.ts';
 export * from './missions.ts';
 export * from './robotics.ts';
+export * from './rover.ts';
 
 import {
 	PartBoosterLiquid,

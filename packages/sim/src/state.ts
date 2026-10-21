@@ -28,6 +28,8 @@ export interface ControlState {
 	yaw: number;
 	/** The attitude demand comes from the assist (plan 241). */
 	assisted?: boolean;
+	/** The wheel motors' throttle, -1..1 (plan 307); absent or 0: they follow `throttle`. */
+	wheelThrottle?: number;
 }
 
 /**
@@ -219,7 +221,8 @@ export function effectiveControl(vessel: VesselState): ControlState {
 		pitch: trimmed(sas.demand.x, trim),
 		roll: trimmed(sas.demand.y, trimRoll),
 		yaw: trimmed(sas.demand.z, trimYaw),
-		assisted: true
+		assisted: true,
+		...(control.wheelThrottle ? { wheelThrottle: control.wheelThrottle } : {})
 	};
 }
 
