@@ -289,7 +289,8 @@ export interface Renderer {
 }
 
 export function createRenderer(config: RendererConfig): Renderer {
-	const backend = config.backend ?? rendererBackendFrom(globalThis.location?.search ?? '');
+	const backend =
+		config.backend ?? rendererBackendFrom(globalThis.location?.search ?? '') ?? 'webgl';
 	if (backend !== 'webgl') return createWebGPURenderer(config, backend);
 	const gl = new WebGLRenderer({
 		canvas: config.canvas,

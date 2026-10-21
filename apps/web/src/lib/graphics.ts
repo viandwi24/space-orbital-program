@@ -13,6 +13,13 @@ import {
 	type GraphicsPreset
 } from '@orbital/renderer/presets';
 
+import {
+	parseRendererChoice,
+	resolveRendererBackend,
+	type RendererBackend,
+	type RendererChoice
+} from '@orbital/renderer/backend';
+
 const KEY = 'orbital.graphics';
 
 export function loadGraphicsPreset(): GraphicsPreset | null {
@@ -112,3 +119,37 @@ export function resolvePreset(
 /** The preset the flight view should start with. */
 export const initialGraphicsPreset = (): GraphicsPreset =>
 	resolvePreset(loadGraphicsPreset(), probeCapabilities());
+
+/**
+ * The renderer (plan 261, ADR 0249): Automatic (the default) draws with the newest the browser can
+ * run, WebGPU where it has it; WebGL is the older one. Read when a view creates its renderer, so a
+ * change applies when the page is next opened. `?renderer=` on the address still overrides it.
+ */
+const RENDERER_KEY = 'orbital.graphics.renderer';
+
+export function loadRendererChoice(): RendererChoice {
+	try {
+		return parseRendererChoice(localStorage.getItem(RENDERER_KEY));
+	} catch {
+		return 'auto';
+	}
+}
+
+export function saveRendererChoice(choice: RendererChoice): void {
+	try {
+		if (choice === 'auto') localStorage.removeItem(RENDERER_KEY);
+		else localStorage.setItem(RENDERER_KEY, choice);
+	} catch {
+		// private mode or quota: the choice applies for this session only
+	}
+}
+
+/** The backend a view draws with now: the address's, else the player's choice. */
+export function rendererBackend(): RendererBackend {
+	const nav = globalThis.navigator as (Navigator & { gpu?: unknown }) | undefined;
+	return resolveRendererBackend(
+		globalThis.location?.search ?? '',
+		loadRendererChoice(),
+		nav?.gpu !== undefined
+	);
+}

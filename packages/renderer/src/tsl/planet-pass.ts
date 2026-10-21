@@ -18,6 +18,7 @@
  * Not yet (slice 2c): lakes, rivers, shore and sea waves, clouds, light shafts, aurora, the
  * vessel's and the clouds' shadows, the march prepass and the half-size pass.
  */
+import { NIGHT_SKY } from '../exposure.ts';
 import {
 	AlwaysDepth,
 	FloatType,
@@ -155,7 +156,7 @@ const {
 const PI = Math.PI;
 const SUN_ANGULAR_RADIUS = 0.0055;
 const SUN_DISC_RADIANCE = 70.0;
-const NIGHT_AMBIENT: [number, number, number] = [0.0035, 0.0048, 0.0095];
+const NIGHT_AMBIENT = NIGHT_SKY;
 /**
  * The LUT sky computes multiple scattering, which lights the sky less than the march's 2.2 boost;
  * this brings its brightness to the march's under the same exposure (the spike's calibration).
@@ -317,7 +318,7 @@ export class PlanetPassTSL {
 		if (
 			this.needsBuild ||
 			u.uMap!.value !== this.builtMap ||
-			this.shadowMap() !== this.builtShadow ||
+			this.shadowChanged() ||
 			this.terrain.version !== this.builtTerrain
 		)
 			this.build();
@@ -395,6 +396,16 @@ export class PlanetPassTSL {
 	 * The depth texture of the sun's shadow (three's own on WebGPU, once the shadow pass has run), or
 	 * null while the planet pass holds its 1 × 1 stand-in.
 	 */
+	/**
+	 * A new shadow map to build with. At night the environment hands the planet pass a 1×1 stand-in
+	 * and turns `uShadowOn` off: the pass keeps the map it was built with, so a sunrise in orbit does
+	 * not recompile every planet shader (a 1–2 s freeze while warping across the terminator).
+	 */
+	private shadowChanged(): boolean {
+		const map = this.shadowMap();
+		return map !== null && map !== this.builtShadow;
+	}
+
 	private shadowMap(): unknown {
 		const t = this.planet.material.uniforms.uShadowMap!.value as {
 			image?: { width?: number };
@@ -417,7 +428,7 @@ export class PlanetPassTSL {
 		const U = this.planet.material.uniforms;
 		this.builtMap = U.uMap!.value as DataTexture;
 		this.builtTerrain = this.terrain?.version ?? -1;
-		this.builtShadow = this.shadowMap();
+		this.builtShadow = this.shadowMap() ?? this.builtShadow;
 		this.needsBuild = false;
 		const graph = (mode: 'full' | 'half' | 'edge' | 'prepass'): N => {
 			const uR = this.link('uR');
@@ -824,12 +835,38 @@ export class PlanetPassTSL {
 						smoothstep(0.62, 0.95, lush).mul(smoothstep(0.4, 0.7, moist).oneMinus())
 					)
 				);
-				const fadeMicro = smoothstep(0.35, 3.0, footprint).oneMinus();
+				// blades, clumps and gaps, resolved only when a pixel is smaller than a clump
+				const fadeMicro = smoothstep(0.35, 3.0, footprint).oneMinus().toVar();
+				If(fadeMicro.greaterThan(0.01), () => {
+					const b1 = nA(pl, 0.5, 31).toVar();
+					const b2 = nA(pl, 0.125, 32);
+					const b3 = nA(pl, 0.0625, 33);
+					const b4 = nA(pl, 0.03125, 34);
+					const blades = smoothstep(0.38, 0.78, b3.mul(0.6).add(b4.mul(0.4)));
+					const gaps = smoothstep(0.25, 0.6, b2.mul(0.7).add(b1.mul(0.3))).oneMinus();
+					const tuft = mix(grass.mul(0.62), grass.mul(vec3(1.3, 1.34, 1.02)), blades)
+						.mul(b1.mul(0.38).add(0.82))
+						.toVar();
+					tuft.assign(mix(tuft, grass.mul(vec3(0.3, 0.33, 0.2)), gaps.mul(0.5)));
+					grass.assign(mix(grass, tuft, fadeMicro));
+				});
 				const fineTone = clamp(fine.add(0.5), 0.0, 1.0).mul(0.4).add(0.82);
 				grass.mulAssign(mix(fineTone, 1.0, fadeMicro));
 				const cn = clamp(colourNoise.add(0.5), 0.0, 1.0);
-				const forest = vec3(0.03, 0.075, 0.026).mul(cn.mul(0.5).add(0.8));
-				const wForest = smoothstep(0.55, 0.72, moist).mul(smoothstep(900.0, 1600.0, hT).oneMinus());
+				// forest: crowns seen from above
+				const forest = vec3(0.03, 0.075, 0.026).mul(cn.mul(0.5).add(0.8)).toVar();
+				const wForest = smoothstep(0.55, 0.72, moist)
+					.mul(smoothstep(900.0, 1600.0, hT).oneMinus())
+					.toVar();
+				const fadeCrown = smoothstep(6.0, 40.0, footprint).oneMinus().toVar();
+				If(fadeCrown.greaterThan(0.01).and(wForest.greaterThan(0.01)), () => {
+					const c1 = nA(pl, 8.0, 51)
+						.mul(0.6)
+						.add(nA(pl, 4.0, 52).mul(0.4));
+					const crown = smoothstep(0.34, 0.66, c1);
+					const crownC = vec3(0.045, 0.105, 0.032).mul(nA(pl, 1.0, 53).mul(0.6).add(0.75));
+					forest.assign(mix(forest, mix(vec3(0.012, 0.03, 0.012), crownC, crown), fadeCrown));
+				});
 				const desert = mix(vec3(0.42, 0.29, 0.15), vec3(0.58, 0.43, 0.25), cn);
 				const rockc = mix(
 					vec3(0.17, 0.15, 0.135),
@@ -841,6 +878,39 @@ export class PlanetPassTSL {
 				const wDesert = smoothstep(0.26, 0.4, moist)
 					.oneMinus()
 					.mul(smoothstep(0.35, 0.5, temp));
+				// fields: a patchwork of tilled plots on low grassland, hedgerows at the plot boundaries
+				const fieldW = wForest
+					.oneMinus()
+					.mul(wDesert.oneMinus())
+					.mul(smoothstep(120.0, 600.0, footprint).oneMinus())
+					.mul(smoothstep(400.0, 1400.0, siteDist))
+					.mul(smoothstep(0.5, 0.62, e2).oneMinus())
+					.toVar();
+				If(fieldW.greaterThan(0.01), () => {
+					const cellF = pl.div(256.0);
+					const fl = floor(cellF);
+					const hh = hash33i(ivec3(fl).add(ivec3(uAnchorCell).mul(4))).toVar();
+					const tint = mix(
+						vec3(0.82, 0.92, 0.68),
+						vec3(1.35, 1.2, 0.62),
+						smoothstep(0.35, 0.9, hh.x)
+					).mul(hh.y.mul(0.4).add(0.8));
+					const fr = T.fract(cellF);
+					const dEdge = min(fr, vec3(1.0).sub(fr)).mul(256.0);
+					const edge = min(dEdge.x, min(dEdge.y, dEdge.z));
+					const hedge = smoothstep(0.6, footprint.mul(0.7).add(1.6), edge).oneMinus();
+					grass.assign(mix(grass, grass.mul(tint), fieldW));
+					grass.assign(
+						mix(
+							grass,
+							vec3(0.025, 0.06, 0.02),
+							hedge
+								.mul(fieldW)
+								.mul(0.8)
+								.mul(smoothstep(5.0, 30.0, footprint).oneMinus())
+						)
+					);
+				});
 				const alpine = mix(vec3(0.13, 0.15, 0.07), vec3(0.2, 0.19, 0.11), cn);
 				const veg = mix(
 					mix(mix(grass, forest, wForest), desert, wDesert),

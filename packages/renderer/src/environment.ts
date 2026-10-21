@@ -31,7 +31,13 @@ import {
 	type RGB
 } from './atmosphere-model.ts';
 import { AIRLESS_EXPOSURE, airlessLight, type AirlessLight } from './airless-light.ts';
-import { adaptExposure, exposureFor, starVisibility } from './exposure.ts';
+import {
+	NIGHT_SKY,
+	adaptExposure,
+	exposureFor,
+	horizonDipDeg,
+	starVisibility
+} from './exposure.ts';
 import { planetFrame } from './planet-frame.ts';
 import { PlanetPass } from './planet.ts';
 import { PRESETS, shadowSizeAt, type GraphicsPreset } from './presets.ts';
@@ -88,6 +94,8 @@ export interface EnvironmentFrameInput {
 	 * come from its atmosphere at this altitude, not the home planet's.
 	 */
 	air?: { atmosphere: Atmosphere; altitude: number };
+	/** The body the camera is over for the exposure's horizon, when not the home planet (a moon). */
+	horizon?: { radius: number; altitude: number };
 }
 
 export interface EnvironmentState {
@@ -358,7 +366,7 @@ export class Environment {
 		const sunT = sunTransmittance(atm, alt, elev);
 		const ambient = skyAmbient(atm, alt, elev);
 		const horizon = horizonColour(atm, alt, elev);
-		const night: RGB = [0.0035, 0.0048, 0.0095];
+		const night: RGB = [...NIGHT_SKY];
 		const skyIrr: RGB = [
 			(ambient[0] + night[0]) * Math.PI,
 			(ambient[1] + night[1]) * Math.PI,
@@ -395,7 +403,11 @@ export class Environment {
 		const siteLamps = 1 - smoothstep(-6, 3, elevDeg);
 
 		// Exposure adapts toward the day/night target.
-		const target = exposureFor(elevDeg) * (air ? AIRLESS_EXPOSURE : 1);
+		// against the horizon seen from up there, not the local horizontal: in orbit over the night side the
+		// sun still lights the vessel until it sets behind the limb, and a night exposure turned it white
+		const hz = input.horizon ?? { radius: this.radius, altitude: frame.altitude };
+		const target =
+			exposureFor(elevDeg + horizonDipDeg(hz.radius, hz.altitude)) * (air ? AIRLESS_EXPOSURE : 1);
 		this.exposure = adaptExposure(this.exposure, target, input.dt);
 
 		// Shadow camera around the casters.

@@ -3,6 +3,7 @@
  * view ray with the exact planet sphere and the atmosphere, shades ground / ocean / clouds / stars
  * / sun, and writes a logarithmic depth value so meshes and lines sort against it.
  */
+import { NIGHT_SKY } from '../exposure.ts';
 import {
 	APRONS,
 	FLOOD_LIGHT_INTENSITY,
@@ -495,7 +496,7 @@ const float BEACH = ${f(BEACH_WIDTH)};
 const float HIGH = ${f(HIGHLAND)};
 const float SUN_ANGULAR_RADIUS = 0.0055;
 const float SUN_DISC_RADIANCE = 70.0;
-const vec3 NIGHT_AMBIENT = vec3(0.0035, 0.0048, 0.0095);
+const vec3 NIGHT_AMBIENT = vec3(${NIGHT_SKY.map(f).join(', ')});
 
 float ign(vec2 p) { return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
 

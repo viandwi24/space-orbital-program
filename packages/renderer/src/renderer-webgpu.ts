@@ -199,7 +199,8 @@ export function createWebGPURenderer(
 	/** Draws with the GLSL meshes hidden; `draw` is the pipeline or a plain render. */
 	const withPorted = <T>(draw: () => T): T => {
 		const u = hideUnported(model.scene, twinOf);
-		unported = u.glsl;
+		// the GLSL planet pass is hidden on purpose: its TSL twin draws in its place
+		unported = u.glsl.filter((name) => name !== env.planet.mesh.name);
 		patched = u.patched;
 		try {
 			return draw();
@@ -260,6 +261,22 @@ export function createWebGPURenderer(
 		}
 	};
 
+	/** The GPU's name as WebGL reports it, from a throwaway context, asked once; null where hidden. */
+	let glName: string | null | undefined;
+	const glRendererName = (): string | null => {
+		if (glName !== undefined) return glName;
+		glName = null;
+		try {
+			const gl = document.createElement('canvas').getContext('webgl2');
+			const ext = gl?.getExtension('WEBGL_debug_renderer_info');
+			if (gl && ext) glName = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+			gl?.getExtension('WEBGL_lose_context')?.loseContext();
+		} catch {
+			glName = null;
+		}
+		return glName;
+	};
+
 	const gpuName = (): string => {
 		const b = gpu?.backend as
 			| { device?: GPUDevice & { adapterInfo?: GPUAdapterInfo }; gl?: WebGL2RenderingContext }
@@ -267,7 +284,8 @@ export function createWebGPURenderer(
 		const info = b?.device?.adapterInfo;
 		if (info) {
 			const name = [info.vendor, info.architecture, info.description].filter(Boolean).join(' ');
-			return `WebGPU: ${name || 'unnamed adapter'}`;
+			// Chrome leaves the adapter's fields empty unless a flag is set: the GPU's name from WebGL then
+			return `WebGPU: ${name || (glRendererName() ?? 'adapter name hidden by the browser')}`;
 		}
 		const gl = b?.gl;
 		const ext = gl?.getExtension('WEBGL_debug_renderer_info');
