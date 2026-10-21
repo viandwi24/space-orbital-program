@@ -12,6 +12,7 @@ import type {
 	AchievementDefinition,
 	TechNodeDefinition,
 	ScenarioDefinition,
+	BlueprintDefinition,
 	PanelDefinition,
 	AutopilotDefinition,
 	ExperimentDefinition,
@@ -419,6 +420,12 @@ export function defineAutopilot<Memory>(def: AutopilotDefinition<Memory>): Autop
  * world. Create World offers it. Register with `ctx.scenarios`.
  */
 export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => def;
+
+/**
+ * A blueprint (plan 285, ADR 0263): a ready-made design for the Hangar's Library, with its goal,
+ * crew and a summary. Register with `ctx.blueprints`; the Library shows it under "Mod".
+ */
+export const defineBlueprint = (def: BlueprintDefinition): BlueprintDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineSystemVariant

@@ -1,6 +1,7 @@
 import {
 	loadPlugins,
 	type ActionGroupDefinition,
+	type BlueprintDefinition,
 	type CategoryDefinition,
 	type FailureModeDefinition,
 	type MissionDefinition,
@@ -58,6 +59,8 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 	 * strategies for the Administration projection (plan 101, ADR 0187).
 	 */
 	world: Pick<Registries, 'buildings' | 'rules' | 'presets' | 'charges' | 'strategies'>;
+	/** Mods' blueprints for the Hangar's Library (plan 285, ADR 0263). */
+	blueprints: BlueprintDefinition[];
 } {
 	const { registries, report } = loadPlugins([...BUILTIN_PLUGINS, ...activePlugins()], { system });
 	return {
@@ -74,6 +77,7 @@ export function loadContent(system: SystemChoice = STOCK_CHOICE): {
 		objectiveLabels: Object.fromEntries(registries.objectives.list().map((o) => [o.id, o.label])),
 		techNodes: registries.techNodes.list(),
 		failureModes: registries.failureModes.list(),
+		blueprints: registries.blueprints.list(),
 		world: {
 			buildings: registries.buildings,
 			rules: registries.rules,

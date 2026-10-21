@@ -234,6 +234,8 @@ export type {
 	AchievementCriteria,
 	TechNodeDefinition,
 	ScenarioDefinition,
+	BlueprintDefinition,
+	BlueprintGoal,
 	ScenarioVessel,
 	AchievementDefinition,
 	FailureModeDefinition,

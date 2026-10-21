@@ -24,6 +24,7 @@ import { coupler, hub, lattice, petals, serviceBay, truss } from './bays.ts';
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
 import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
 import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
+import { roverChassis, roverWheel } from './rover-wheel.ts';
 import {
 	ascentCabin,
 	boom,
@@ -40,7 +41,7 @@ import {
 } from './spacecraft.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
 import { ladder } from './ladder.ts';
-import { light } from './light.ts';
+import { light, lightAngled, lightNav, lightPanel } from './light.ts';
 import { rcsBlock } from './rcs-block.ts';
 import { tailCone } from './tail-cone.ts';
 import { tank } from './tank.ts';
@@ -56,6 +57,10 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('capsule', capsule);
 	registerPartGenerator('ladder', ladder);
 	registerPartGenerator('light', light);
+	// plan 311: a flush strip, an angled housing, navigation lights
+	registerPartGenerator('light-panel', lightPanel);
+	registerPartGenerator('light-angled', lightAngled);
+	registerPartGenerator('light-nav', lightNav);
 	registerPartGenerator('tank', tank);
 	registerPartGenerator('engine', engine);
 	registerPartGenerator('engine-cluster', engineCluster);
@@ -126,6 +131,9 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('hinge-joint', hingeJoint);
 	registerPartGenerator('rotary-joint', rotaryJoint);
 	registerPartGenerator('piston-joint', pistonJoint);
+	// plan 307: rover
+	registerPartGenerator('rover-wheel', roverWheel);
+	registerPartGenerator('rover-chassis', roverChassis);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

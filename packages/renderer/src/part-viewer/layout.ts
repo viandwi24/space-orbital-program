@@ -56,7 +56,7 @@ export interface ViewerDrive {
 }
 
 /** Largest gimbal tilt and hinge angle the slider reaches, rad; the length of a full extend, m. */
-export const DRIVE_LIMITS = { gimbal: 0.25, hinge: 0.6, extend: 20 } as const;
+export const DRIVE_LIMITS = { gimbal: 0.25, hinge: 0.6, extend: 20, slide: 1 } as const;
 
 /**
  * Module snapshots that make a model show the drive: the deploy flag, the articulation field, and
@@ -82,7 +82,11 @@ export function driveModules(
 					? v * DRIVE_LIMITS.hinge
 					: a.mode === 'extend'
 						? Math.abs(v) * DRIVE_LIMITS.extend
-						: v > 0;
+						: a.mode === 'spin'
+							? v * Math.PI
+							: a.mode === 'slide'
+								? Math.abs(v) * DRIVE_LIMITS.slide
+								: v > 0;
 		put(a.module, a.field, value);
 	}
 	if (drive.fire) {

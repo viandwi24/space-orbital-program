@@ -798,3 +798,22 @@ export const ModuleSolarPanel = defineModule({ id: 'stock.solar-panel', /* … *
 ```
 - The HUD's throttle gauge still reads the stock engine's snapshot (a mod engine falls back to the page's own throttle display); mod-supplied VAB categories are plan 029.
 - New renderer generators from a mod (executable render code), KTX2 textures, deploy animations in models and a hosted mod repository are not built (drafts 040 and 065).
+
+## Blueprints (plan 285)
+
+A blueprint is a ready-made vessel the Hangar's Library offers under "Mod":
+
+```ts
+ctx.blueprints.register(
+	defineBlueprint({
+		id: 'acme.pebble',
+		title: 'Pebble probe',
+		goal: 'orbit', // orbit | moon | planet | station | surface
+		crew: 0,
+		summary: 'A probe core on a small tank.',
+		design // a VesselDesign, as the Hangar saves it (Export in the vessel library)
+	})
+);
+```
+
+The Library shows its picture, goal and crew, parts, mass, Δv and liftoff TWR, and loads it into the Hangar.

@@ -11,6 +11,7 @@
 		type Snapshot,
 		type VesselDesign
 	} from '@orbital/core';
+	import { resolve } from '$app/paths';
 	import Dialog from '../ui/Dialog.svelte';
 	import Button from '../ui/Button.svelte';
 	import Switch from '../ui/Switch.svelte';
@@ -470,6 +471,10 @@
 				come in a later release (P1).
 			</p>
 		{:else if tab === 'info'}
+			<p class="tools">
+				<a href={resolve('/dev/parts')} target="_blank" rel="noopener">Part viewer</a> (a new tab: every
+				part on its own, its nodes and colliders, no world loaded)
+			</p>
 			<dl class="info" data-testid="debug-info">
 				<dt>Frames per second</dt>
 				<dd>{fps}</dd>

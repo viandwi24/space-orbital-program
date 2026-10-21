@@ -6,12 +6,12 @@
 import { blackoutShown } from '../blackout';
 import type { LinkBadge } from '../comms/network-model';
 
-export type ChipTone = 'danger' | 'warning';
+export type ChipTone = 'danger' | 'warning' | 'info';
 /** What a chip's fix button does: open a dock panel. */
 export type ChipFix = { label: string; panel: 'host.parts' | 'host.comms' | 'host.crew' };
 
 export interface StatusChip {
-	id: 'control' | 'power' | 'signal' | 'plasma' | 'range' | 'torque';
+	id: 'control' | 'power' | 'signal' | 'plasma' | 'range' | 'torque' | 'drive';
 	/** The chip's words (drawn in capitals). */
 	label: string;
 	tone: ChipTone;
@@ -32,6 +32,8 @@ export interface ChipInput {
 	range: string | null;
 	/** SAS mode and the nose's angular acceleration, rad/s² (plan 310); absent before a flight step. */
 	sas?: { mode: string; accel?: number } | null;
+	/** Rover drive mode is on (plan 307). */
+	drive?: boolean;
 }
 
 /** Below this (rad/s²) a half turn takes over about 80 s: the chip says the vessel is slow to turn. */
@@ -126,6 +128,17 @@ export function statusChips(input: ChipInput): StatusChip[] {
 			reason: `${input.range} (predicted)`,
 			fix: null,
 			testid: 'hud-range'
+		});
+	if (input.drive)
+		chips.push({
+			id: 'drive',
+			label: 'Drive',
+			tone: 'info',
+			title: 'Drive mode',
+			body: 'W and S drive the wheel motors forward and back, A and D steer. It turns on near the ground with wheel motors on; Alt+G switches it.',
+			reason: 'rover drive mode',
+			fix: null,
+			testid: 'hud-drive'
 		});
 	return chips;
 }

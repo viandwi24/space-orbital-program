@@ -159,7 +159,12 @@ describe('stock boots through the loader', () => {
 			'stock.launch-clamp',
 			'stock.life-support-pack',
 			'stock.life-support-radial',
+			'stock.light-angled',
 			'stock.light-flood',
+			'stock.light-nav-green',
+			'stock.light-nav-red',
+			'stock.light-nav-white',
+			'stock.light-panel',
 			'stock.light-spot',
 			'stock.magnetometer-boom',
 			'stock.materials-bay',
@@ -195,6 +200,12 @@ describe('stock boots through the loader', () => {
 			'stock.reaction-wheel',
 			'stock.rotor-s',
 			'stock.rover-cab',
+			'stock.rover-chassis',
+			'stock.rover-wheel-l',
+			'stock.rover-wheel-m',
+			'stock.rover-wheel-m-steer',
+			'stock.rover-wheel-s',
+			'stock.rover-wheel-s-steer',
 			'stock.rtg',
 			'stock.rtg-radial',
 			'stock.satellite-bus',
@@ -363,15 +374,27 @@ describe('stock boots through the loader', () => {
 			'stock.fuel-line',
 			'stock.wheel',
 			'stock.wheel-steer',
+			// rover wheels hang radially; the deck has a third node on its top face (plan 307)
+			'stock.rover-wheel-s',
+			'stock.rover-wheel-s-steer',
+			'stock.rover-wheel-m',
+			'stock.rover-wheel-m-steer',
+			'stock.rover-wheel-l',
+			'stock.rover-chassis',
 			// a chute's only node is its bottom one, or a radial one (plan 209)
 			'stock.parachute',
 			'stock.drogue-chute',
 			'stock.radial-parachute',
 			// a ladder hangs radially (plan 225)
 			'stock.ladder',
-			// lights hang radially (plan 242)
+			// lights hang radially (plans 242, 311)
 			'stock.light-spot',
-			'stock.light-flood'
+			'stock.light-flood',
+			'stock.light-panel',
+			'stock.light-angled',
+			'stock.light-nav-red',
+			'stock.light-nav-green',
+			'stock.light-nav-white'
 		]);
 		// the mission parts of plans 276–300 with other node sets: radial-only, bottom-only, a
 		// hub's side ports, a coupler's several bottoms

@@ -10,6 +10,7 @@ import {
 	type RecipeDefinition
 } from './market.ts';
 import { scenarioDefinitionSchema, type ScenarioDefinition } from './scenarios.ts';
+import { blueprintDefinitionSchema, type BlueprintDefinition } from './blueprints.ts';
 import { panelDefinitionSchema, type PanelDefinition } from './panels.ts';
 import { autopilotDefinitionSchema, type AutopilotDefinition } from './autopilots.ts';
 import { categoryDefinitionSchema, type CategoryDefinition } from './categories.ts';
@@ -297,6 +298,8 @@ export interface Registries {
 	failureModes: Registry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: Registry<ScenarioDefinition>;
+	/** Ready-made designs for the Hangar's Library (plan 285, ADR 0263). */
+	blueprints: Registry<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: Registry<PanelDefinition>;
 	/** Autopilots (plan 310, ADR 0271). */
@@ -369,6 +372,9 @@ export function createRegistries(): Registries {
 			schema: autopilotDefinitionSchema
 		}),
 		scenarios: createRegistry<ScenarioDefinition>('scenario', { schema: scenarioDefinitionSchema }),
+		blueprints: createRegistry<BlueprintDefinition>('blueprint', {
+			schema: blueprintDefinitionSchema
+		}),
 		techNodes: createRegistry<TechNodeDefinition>('tech-node', {
 			schema: techNodeDefinitionSchema
 		}),

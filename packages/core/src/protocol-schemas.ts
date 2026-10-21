@@ -109,6 +109,11 @@ const targetRefSchema = z.discriminatedUnion('kind', [
 export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('throttle'), vessel: entity, value: z.number().min(0).max(1) }),
 	z.object({
+		type: z.literal('wheel-throttle'),
+		vessel: entity,
+		value: z.number().min(-1).max(1)
+	}),
+	z.object({
 		type: z.literal('attitude'),
 		vessel: entity,
 		pitch: z.number().min(-1).max(1),

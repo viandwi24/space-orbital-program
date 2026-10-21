@@ -230,7 +230,11 @@
 	/** Read the open menu again: closed when its vessel is gone or is now the flown one. */
 	function rereadVesselMenu(): void {
 		const input = flight?.panelInput();
-		vesselMenuAt = refreshVesselMenu(vesselMenuAt, input?.snapshot ?? null, input?.vessel?.id ?? null);
+		vesselMenuAt = refreshVesselMenu(
+			vesselMenuAt,
+			input?.snapshot ?? null,
+			input?.vessel?.id ?? null
+		);
 	}
 	/** One menu action on the menu as it is now (a switch or decouple may have closed it). */
 	function vesselMenuAction(action: VesselMenuAction): void {
@@ -1120,7 +1124,8 @@
 			link: model?.link ?? null,
 			blackout: model?.blackout ?? 0,
 			range: model?.range ?? null,
-			sas: model?.sas ?? null
+			sas: model?.sas ?? null,
+			drive: hud?.drive ?? false
 		})
 	);
 	// the EVA controls live in the dock's Crew entry since v3: it opens when a suit steps out (ADR 0253 point 5)

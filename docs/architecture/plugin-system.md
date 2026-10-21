@@ -289,6 +289,14 @@ An attach node may carry `shellTop: "<module id>"`: it sits at the top of that m
 
 `ModuleDefinition.joint(config, state)` makes a module a robotic joint. It returns `{ kind: 'rotate' | 'translate', axis, pivot, node, value }` (part frame; `value` in rad or m), or null. The module moves `value` itself (its `update`). The sim turns or slides the parts reached through `node` by the change since the pose it applied last, which it keeps as `applied` (a number) in the module state. Then it rebuilds the vessel's body, at most every 0.1 s. Every joint is kinematic: no physics joint, no reaction on the vessel. `PartVisual.articulation` gains the modes `spin` (about Y, rad) and `slide` (up Y, m) for the part's moving half. `stock.robotic` is the stock example.
 
+## Wheel throttle and top speed (API 0.1.99, plan 307)
+
+The `wheel-throttle` command (`value` -1..1) sets `VesselControl.wheelThrottle`: while it is not 0, the wheel motors push with it instead of the vessel throttle, backwards when negative (a rover's drive keys). `WheelSpec.topSpeed` (m/s) fades a motor's force to nothing at that rolling speed. `stock.wheel` takes `topSpeed` and `motorOn` (the motor starts on).
+
+## Blueprints (API 0.1.100, plan 285, ADR 0263)
+
+`ctx.blueprints.register(defineBlueprint({ id, title, inspiredBy?, goal, crew, summary, design }))` puts a ready-made design in the Hangar's Library under "Mod". `goal` is one of `orbit`, `moon`, `planet`, `station` or `surface`, and `design` is validated with `vesselDesignSchema`. The game's own learn examples and famous missions are still built in `apps/web` (`lib/editor/blueprints.ts`) with the editor's operations, which a mod cannot import.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

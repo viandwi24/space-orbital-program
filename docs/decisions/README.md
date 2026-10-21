@@ -268,3 +268,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0269 | [Robotics as built: kinematic joints inside the vessel's one body](0269-robotics-kinematic-joints-in-one-body.md) | accepted | 2026-10-21 |
 | 0270 | [Flight vessel menu, targets resolved at the docking port, controls in the control part's axes](0270-flight-vessel-menu-port-targets-and-control-from-axes.md) | accepted | 2026-10-21 |
 | 0271 | [A public vessel-control API and autopilots that mods define](0271-vessel-control-api-and-mod-autopilots.md) | accepted | 2026-10-21 |
+| 0272 | [Tethers and winches: a rope joint between two vessels; releasable struts](0272-tethers-and-winches-rope-joint-between-vessels.md) | proposed | 2026-10-21 |

@@ -163,7 +163,8 @@ export function runVesselMenuAction(
 			fx.switchVessel(vessel);
 			return false;
 		case 'target':
-			if (own !== null) fx.command({ type: 'target-set', vessel: own, target: { kind: 'vessel', id: vessel } });
+			if (own !== null)
+				fx.command({ type: 'target-set', vessel: own, target: { kind: 'vessel', id: vessel } });
 			return true;
 		case 'port':
 			if (own !== null)
