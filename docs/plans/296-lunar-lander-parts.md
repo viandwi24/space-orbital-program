@@ -3,7 +3,7 @@ id: 296
 title: "Lunar lander parts: descent stage, ascent cabin, single landing legs, lander engines, lander RCS quads"
 status: draft
 owner: ""
-depends: [291, 277, 278]
+depends: [291, 277, 278, 300]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21

@@ -3,7 +3,7 @@ id: 286
 title: "Mission blueprints: Apollo 11 (Kronos V + Selene), Space Shuttle (Ulang-Alik), a space station, an orbiter, a space telescope and a research satellite"
 status: draft
 owner: ""
-depends: [276, 277, 278, 280, 281, 285, 295, 296, 297, 298]
+depends: [276, 277, 278, 280, 281, 285, 295, 296, 297, 298, 300]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21

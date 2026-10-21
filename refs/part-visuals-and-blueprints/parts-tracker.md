@@ -120,11 +120,11 @@ KSP punya beberapa bentuk RCS. Bentuknya mengikuti **berapa arah dorong** dan **
 
 | ID | Part kita | Referensi KSP/KSP2 | Nozzle / sumbu | Bentuk & detail | Interaksi | Status | Prio |
 |---|---|---|---|---|---|---|---|
-| RCS-01 | Blok 4 arah (`rcs-block`) | RV-105 RCS Thruster Block | 4 nozzle bersilang (atas, bawah, kiri, kanan) | rumah membulat, pelat dasar gelap, keypad dan panel, 4 pipa stub, bell bertingkat berongga (README §3) | P (nyala/mati, per sumbu: pitch/yaw/roll/maju/samping), E (limiter) | 🎨 besar | P1 |
-| RCS-02 | Blok 5 arah | (blok 5 arah gaya Apollo/RV-1X, varian "5") *(nama KSP perlu verifikasi)* | 4 bersilang + 1 ke depan | rumah sama dengan RCS-01, tambah 1 nozzle menghadap luar | P, E | 🆕 | P1 (Apollo SM quad) |
-| RCS-03 | Port tunggal (`rcs-cold-gas`) | Place-Anywhere 7 Linear RCS Port | 1 nozzle lurus ke luar | lubang bell kecil di pelat bundar, bisa ditanam di dinding | P, E | 🎨 | P1 |
-| RCS-04 | Blok sudut 3 arah | RV-1X Variable Thruster Block (varian) *(perlu verifikasi)* | 2–3 nozzle (sudut) | rumah kecil, nozzle 90° | P, E | 🆕 | P2 |
-| RCS-05 | Pendorong besar bipropelan | Vernor Engine | 1 nozzle besar, bahan LF+Ox | silinder panjang dengan bell, pipa feed | P, E | 🆕 | P2 |
+| RCS-01 ✅ 277 | Blok 4 arah (`rcs-block`) | RV-105 RCS Thruster Block | 4 nozzle bersilang (atas, bawah, kiri, kanan) | rumah membulat, pelat dasar gelap, keypad dan panel, 4 pipa stub, bell bertingkat berongga (README §3) | P (nyala/mati, per sumbu: pitch/yaw/roll/maju/samping), E (limiter) | 🎨 besar | P1 |
+| RCS-02 ✅ 277 (`rcs-block-5`) | Blok 5 arah | (blok 5 arah gaya Apollo/RV-1X, varian "5") *(nama KSP perlu verifikasi)* | 4 bersilang + 1 ke depan | rumah sama dengan RCS-01, tambah 1 nozzle menghadap luar | P, E | 🆕 | P1 (Apollo SM quad) |
+| RCS-03 ✅ 277 (`rcs-linear`, `rcs-cold-gas`) | Port tunggal (`rcs-cold-gas`) | Place-Anywhere 7 Linear RCS Port | 1 nozzle lurus ke luar | lubang bell kecil di pelat bundar, bisa ditanam di dinding | P, E | 🎨 | P1 |
+| RCS-04 ✅ 277 sebagai pasangan 2 arah (`rcs-pair`) | Blok sudut 3 arah | RV-1X Variable Thruster Block (varian) *(perlu verifikasi)* | 2–3 nozzle (sudut) | rumah kecil, nozzle 90° | P, E | 🆕 | P2 |
+| RCS-05 → 299 | Pendorong besar bipropelan | Vernor Engine | 1 nozzle besar, bahan LF+Ox | silinder panjang dengan bell, pipa feed | P, E | 🆕 | P2 |
 | RCS-06 | Port tertanam di pod | (built-in di pod KSP2 / Apollo CM) | per pod | lubang nozzle terbenam di cangkang pod (bagian dari CMD-02/03) | ikut pod | 🆕 (di generator pod) | P2 |
 | RCS-07 | Mesin monoprop kecil | O-10 "Puff" | 1 bell, sebagai mesin | bell kecil, tangki bola mini | S, P | 🆕 | P3 |
 | RCS-08 | Pendorong besar KSP2 | VR-N1ER Veer-Governor [KSP2] | blok 4 arah besar | versi besar RCS-01 untuk 2,5 m | P, E | 🆕 | P3 |

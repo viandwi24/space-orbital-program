@@ -222,8 +222,8 @@
 | 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
 | 275 | [Size classes, part two: new tank shapes, size filter](plans/275-size-classes-to-7-5-m.md) | draft | — | ADR 0256; after 289. |
 | 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
-| 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | draft | — | ADR 0257; owner's RV-105 reference. |
-| 278 | [Pods, probes and parachutes (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | draft | — | ADR 0260. |
+| 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | done | part visuals session | RCS remodel after the RV-105 reference; new 5-way block, pair and linear port; bells drawn at the module\'s nozzles. Journal 277.
+| 278 | [Parachutes and probe cores (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | draft | — | ADR 0260. |
 | 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | draft | — | ADR 0258. |
 | 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
 | 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
@@ -244,6 +244,8 @@
 | 296 | [Lunar lander parts: descent stage, ascent cabin, single legs](plans/296-lunar-lander-parts.md) | draft | — | Mission target Apollo 11 ("Selene"). |
 | 297 | [Space station modules](plans/297-station-modules.md) | draft | — | Mission target "Stasiun Cakrawala". |
 | 298 | [Satellites and a space telescope](plans/298-satellites-and-telescope.md) | draft | — | Mission targets: orbiter, telescope, research satellite. |
+| 299 | [RCS follow-ups: bipropellant thruster, pitch/yaw/roll toggles](plans/299-rcs-bipropellant-and-axis-toggles.md) | draft | — | Split from 277: both need sim work. |
+| 300 | [New pods: 3-seat, headlight, sphere, small cone, lander cans, crew cabin](plans/300-new-pods.md) | draft | — | Split from 278. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -311,6 +313,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [277 — The RCS family](journal/277-rcs-family.md)
 - [291 — Part detail kit, liveries and honest catalogue icons](journal/291-part-detail-kit-livery-and-icons.md)
 - [294 — A compact performance overlay](journal/294-performance-overlay.md)
 - [289 — Size classes to 7.5 m with the existing generators](journal/289-size-classes-with-existing-generators.md)

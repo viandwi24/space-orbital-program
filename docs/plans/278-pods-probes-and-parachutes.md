@@ -1,19 +1,26 @@
 ---
 id: 278
-title: "Pods, probes and parachutes: 3-seat, headlight, sphere and small capsules, lander cabins, probe cores, chutes that continue the pod, docking chute ring"
+title: "Parachutes and probe cores: a chute that continues the pod, a docking chute ring, slim radial packs, an octagonal probe core"
 status: draft
 owner: ""
-depends: [291, 277]
+depends: [291]
 phase: 0
 created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 278 — Pods, probes and parachutes: 3-seat, headlight, sphere and small capsules, lander cabins, probe cores, chutes that continue the pod, docking chute ring
+# 278 — Parachutes and probe cores
 
 ## Goal
 
-The pod family covers the real-rocket blueprints (3-seat Apollo-like, Soyuz-like headlight descent module, Vostok-like sphere, Mercury-like small cone, lander cans, crew cabin; the LM-like cabin is plan 296 and the cupola plan 297), probes look like probes (octagon, sphere with whips; the satellite bus is plan 298), and parachutes follow ADR 0260: nose chute continuing the pod slope, docking chute ring with a top node, curved radial packs, built-in chutes on the 3-seat pod.
+The owner's complaint first: the stack chute is an upright can on the pod and cannot share the apex with a docking port. After this plan (ADR 0260):
+
+- the stack and drogue chutes are short frustums that continue the pod's slope, with a two-tone cap;
+- a docking chute ring sits on the pod's apex with a top node for a docking port, its canopies opening around the port;
+- the radial chute is a slim rounded pack;
+- the probe core is an octagonal, foil-panelled body with a status lamp, not a striped tube.
+
+The new pods moved to plan 300.
 
 ## Context
 
@@ -23,8 +30,8 @@ The pod family covers the real-rocket blueprints (3-seat Apollo-like, Soyuz-like
 
 ## Scope
 
-**In:** New and remodelled pod and probe generators with windows, hatches, ladders and built-in RCS ports; parachute generator with `taper`; docking chute ring part and multi-anchor canopies; radial chute remodel; OrbitX titles.
-**Out:** Cockpits and spaceplane parts (shuttle: plan 295); the lander cabin (296), the cupola (297), the satellite bus (298).
+**In:** the parachute generator (a `taper` parameter, frustum profile, cap, details; radial pack); multi-anchor canopies; `stock.parachute-ring` (sim: a parachute part with a top node); a `probe` generator for `stock.probe-core`; OrbitX titles for the chutes and the probe core.
+**Out:** the new pods (plan 300); built-in chutes on a 3-seat pod (300); the lander cabin (296), the cupola (297), the satellite bus (298); the pod collar drawing no step under a chute (needs the renderer to know a part's neighbours; later).
 
 ## Design notes
 
@@ -32,17 +39,18 @@ Crew capacity, masses and heat tolerances from the KSP ranges in `refs/reverse-e
 
 ## Steps
 
-1. Pod generators and parts.
-2. Probe generators and parts.
-3. Parachute rework and the docking chute ring (sim: port stays attached while the ring deploys).
-4. Re-entry test for each capsule with its heat shield.
+1. Parachute generator: frustum continuing the pod's slope, cap, details; drogue with a pointed tip; radial pack.
+2. Multi-anchor canopies; the docking chute ring part, in the recovery tech node.
+3. Probe generator and the probe core's visual.
+4. Tests and icons.
 
 ## Acceptance criteria
 
-- [ ] Each new capsule re-enters base first and lands under its chutes at under 8 m/s (headless test per capsule).
-- [ ] A pod with the docking chute ring and a docking port docks, undocks and then lands under the ring's canopies (sim test).
-- [ ] `bun test`, `bun run typecheck`, `bun run build` and `bun run docs:check` pass.
-- [ ] Screenshots of every new or remodelled part (catalogue icon and in the Hangar) in the journal, before and after.
+- [ ] A pod with the docking chute ring and a small docking port on it, dropped at 5 km and 250 m/s, lands under 8 m/s with the port still attached (sim test).
+- [ ] The stack chute's wall continues the pod's cone: its slope is within 10 % of the pod's cone slope near the collar (renderer test on the profiles).
+- [ ] Shape, seam and part-id tests pass with the new part.
+- [ ] `bun run lint`, `bun run typecheck`, `bun run test`, web vitest with `CI=true` and `bun run docs:check` pass (the two known script-thread failures aside).
+- [ ] Icons before and after in the journal.
 
 ## Docs checklist
 
