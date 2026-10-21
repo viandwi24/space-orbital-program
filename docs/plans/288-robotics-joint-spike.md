@@ -1,7 +1,7 @@
 ---
 id: 288
 title: "Robotics joint spike: can Rapier's motored joints carry our robotic parts? (benchmark and research only)"
-status: in-progress
+status: done
 owner: "Worker E"
 depends: []
 phase: 0
@@ -84,3 +84,4 @@ Run A–F for **multibody** joints (`world.createMultibodyJoint`) and for **impu
 
 - 2026-10-21 — Split from plan 282 at the owner's request ("boleh pisahkan"), sized for the Linux worker (Agent 3). Ready: steps checked against `rapier-backend.ts`, the grouping bench and the Rapier version in the catalog.
 - 2026-10-21 — Worker E (Agent 3, Linux): bench, research note and journal written. Verdict **no-go**: A, B, C and E pass for both joint kinds; D (6-joint chain: multibody diverges, impulse sags 104.5 cm) and F (13.2× and 5.8×) fail. ADR 0265 proposed (impulse joints, at most two in series, optional sub-steps, kinematic long arms); plan 282 Context and Log updated.
+- 2026-10-21 — Done: CI pass on `ready/288` (2bc00a40). Merged to main by Worker E.
