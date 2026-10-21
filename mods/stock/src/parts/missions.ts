@@ -406,7 +406,17 @@ function bay(
 			params: { doors: cargo ? 2 : 4, cargo },
 			deploy: { module: ModuleBay.id, flag: 'open', seconds: cargo ? 6 : 2 }
 		},
-		attach: stackNodes(height, size),
+		// a cargo bay has a seat on its floor, facing up, for the payload it carries
+		attach: cargo
+			? {
+					...stackNodes(height, size),
+					inner: {
+						pos: [0, -height / 2 + 0.06, 0] as Vec3Tuple,
+						dir: [0, 1, 0] as Vec3Tuple,
+						size: 1.25
+					}
+				}
+			: stackNodes(height, size),
 		modules: [
 			[
 				ModuleBay,
@@ -451,7 +461,11 @@ export const PartPayloadPetals = definePart({
 		params: { top: 1.25 },
 		deploy: { module: ModuleBay.id, flag: 'open', seconds: 3 }
 	},
-	attach: stackNodes(3.5, 2.5, 3.75),
+	// `inner`: a seat inside, on the floor, facing up: the lander rides there (Apollo's SLA)
+	attach: {
+		...stackNodes(3.5, 2.5, 3.75),
+		inner: { pos: [0, -1.7, 0], dir: [0, 1, 0], size: 1.25 }
+	},
 	modules: [
 		[
 			ModuleBay,
@@ -789,10 +803,10 @@ export const PartTelescope = definePart({
 	visual: {
 		kind: 'telescope',
 		palette: WHITE,
-		params: { node: 2.5 },
+		params: { node: 1.25 },
 		deploy: { module: ModuleAnimate.id, flag: 'open', seconds: 4 }
 	},
-	attach: bottomOnly(5, 2.5),
+	attach: bottomOnly(5, 1.25),
 	modules: [
 		[ModuleExperiment, { experiment: ExperimentObservation.id, label: 'Observe' }],
 		[ModuleAnimate, { label: 'Aperture door' }]
@@ -820,7 +834,11 @@ export const PartLanderDescent = definePart({
 			exitPressure: 20_000
 		}
 	},
-	attach: { top: { pos: [0, 0.8, 0], dir: [0, 1, 0], size: 1.25 } },
+	attach: {
+		top: { pos: [0, 0.8, 0], dir: [0, 1, 0], size: 1.25 },
+		// where it sits in its adapter (a payload seat) before the flight
+		bottom: { pos: [0, -0.8, 0], dir: [0, -1, 0], size: 1.25 }
+	},
 	modules: [
 		[
 			ModuleEngine,
@@ -1170,7 +1188,8 @@ export const PartExternalTank = definePart({
 	impactTolerance: 5,
 	shape: cyl(1.875, 20),
 	visual: { kind: 'external-tank', palette: WHITE, params: { node: 3.75 } },
-	attach: bottomOnly(20, 3.75),
+	// a radial node: the tank hangs on the orbiter's belly by a radial decoupler
+	attach: { ...bottomOnly(20, 3.75), radial: { pos: [-1.875, 0, 0], dir: [-1, 0, 0] } },
 	modules: [[ModuleResourceContainer, { contents: LFOX(17_280) }]],
 	stagingIcon: 'tank'
 });

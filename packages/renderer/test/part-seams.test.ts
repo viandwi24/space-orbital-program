@@ -52,7 +52,10 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.hub/east': 'a side port: its collar faces sideways, not along the axis',
 	'stock.hub/west': 'a side port: its collar faces sideways, not along the axis',
 	'stock.hub/north': 'a side port: its collar faces sideways, not along the axis',
-	'stock.hub/south': 'a side port: its collar faces sideways, not along the axis'
+	'stock.hub/south': 'a side port: its collar faces sideways, not along the axis',
+	'stock.payload-petals/inner': 'a payload seat on the floor inside the shell, not a face',
+	'stock.cargo-bay/inner': 'a payload seat on the floor inside the bay, not a face',
+	'stock.lander-descent/bottom': "a bell: the lander's engine is under the stage"
 };
 
 interface Recorded {
