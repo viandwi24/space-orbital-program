@@ -61,11 +61,7 @@
 	import RegionsLayer from '../../../lib/hud/RegionsLayer.svelte';
 	import { loadWorldCatalog } from '../../../lib/worlds/catalog';
 	import { WARP_STEPS, warpStepsFor } from '../../../lib/warp';
-	import BlackoutBadge from '../../../lib/hud/BlackoutBadge.svelte';
-	import RangeBadge from '../../../lib/hud/RangeBadge.svelte';
-	import UncontrolledBadge from '../../../lib/hud/UncontrolledBadge.svelte';
 	import AeroStrip from '../../../lib/hud/AeroStrip.svelte';
-	import LinkBadge from '../../../lib/hud/LinkBadge.svelte';
 	import HelpOverlay from '../../../lib/hud/HelpOverlay.svelte';
 	import InstrumentDeck from '../../../lib/hud/InstrumentDeck.svelte';
 	import ManeuverLayer from '../../../lib/hud/ManeuverLayer.svelte';
@@ -84,6 +80,8 @@
 	import { takeableSample } from '../../../lib/hud/take-sample';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
+	import StatusStrip from '../../../lib/hud/StatusStrip.svelte';
+	import { statusChips, type ChipFix } from '../../../lib/hud/status-chips';
 	import MapPickList from '../../../lib/hud/MapPickList.svelte';
 	import {
 		stackAt,
@@ -92,7 +90,6 @@
 		type StackPoint
 	} from '../../../lib/hud/map-stack';
 	import type { MapTargetFrame } from '../../../lib/target-view';
-	import { panelRoom } from '../../../lib/hud/panel-room';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
 	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
 	import LessonCard from '../../../lib/hud/LessonCard.svelte';
@@ -109,7 +106,6 @@
 	import { lessonKeymap, lessonNotice } from '../../../lib/onboarding/lesson-gate.svelte';
 	import { listEntries, withFallback } from '../../../lib/vab/library';
 	import { indexedDbStore } from '../../../lib/vab/library-idb';
-	import ResourcesPanel from '../../../lib/hud/ResourcesPanel.svelte';
 	import ScriptPanel from '../../../lib/hud/ScriptPanel.svelte';
 	import StageStack from '../../../lib/hud/StageStack.svelte';
 	import StatusCard from '../../../lib/hud/StatusCard.svelte';
@@ -122,7 +118,7 @@
 		throttleAnchor,
 		viewInsets
 	} from '../../../lib/layout/layout-model';
-	import { REGIONS, clampSpan, layoutFor, type SidePanel } from '../../../lib/layout/regions';
+	import { REGIONS, clampSpan, layoutFor } from '../../../lib/layout/regions';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
 	import Button from '../../../lib/ui/Button.svelte';
 	import Dialog from '../../../lib/ui/Dialog.svelte';
@@ -176,8 +172,17 @@
 	/** Panels mods registered, read on the main thread with the content. */
 	let modPanels = $state.raw<PanelDefinition[]>([]);
 	let panelInput = $state.raw<PanelInput | null>(null);
-	// the vessel panel (plan 111, ADR 0153)
-	let vesselOpen = $state(false);
+	// the vessel panel (plan 111, ADR 0153), since v3 the dock's Vessel entries (plan 272, ADR 0253)
+	const VESSEL_TABS = {
+		'host.vessel': 'overview',
+		'host.parts': 'parts',
+		'host.comms': 'comms',
+		'host.resources': 'resources'
+	} as const;
+	const vesselTab = $derived(
+		dockShown ? (VESSEL_TABS[settings.dock.open as keyof typeof VESSEL_TABS] ?? null) : null
+	);
+	const vesselOpen = $derived(vesselTab !== null);
 	let vesselContent = $state.raw<PanelContent | null>(null);
 	let vesselCategories = $state.raw<ReturnType<typeof categoriesOf>>([]);
 	/** The flown design's stages (design part indices), for the Parts tab's stage filter (plan 214). */
@@ -245,10 +250,6 @@
 		const alive = new Set(v.parts.map((p) => p.id));
 		untrack(() => (inspector = keepParts(inspector, alive)));
 	});
-	/** The vessel panel's width, px at 100 % (plan 214), dragged at its left edge. */
-	const panelWidth = $derived(
-		clampSpan(REGIONS.vessel, settings.ui.panelWidth ?? REGIONS.vessel.default)
-	);
 	/** A sample the suit on EVA can take from a vessel part within reach (plan 260). */
 	const takeOffer = $derived(
 		hud?.eva && panelInput ? takeableSample(panelInput.snapshot, hud.eva.suit) : null
@@ -264,24 +265,6 @@
 	const dockWidth = $derived(
 		clampSpan(REGIONS.dock, settings.ui.dockWidth ?? REGIONS.dock.default)
 	);
-	function startResize(e: PointerEvent): void {
-		const grip = e.currentTarget as HTMLElement;
-		grip.setPointerCapture(e.pointerId);
-		const startX = e.clientX;
-		const start = panelWidth;
-		const scale = settings.ui.scale;
-		const move = (m: PointerEvent): void => {
-			const width = clampSpan(REGIONS.vessel, start + (startX - m.clientX) / scale);
-			settings.setInterface({ panelWidth: Math.round(width) });
-		};
-		const up = (): void => {
-			grip.removeEventListener('pointermove', move);
-			grip.removeEventListener('pointerup', up);
-			queueMicrotask(updateInsets);
-		};
-		grip.addEventListener('pointermove', move);
-		grip.addEventListener('pointerup', up);
-	}
 	// the mission tracker (plan 100, ADR 0151 point 3)
 	let missionDefs = $state.raw<MissionDefinition[]>([]);
 	let objectiveNames = $state.raw<Record<string, string>>({});
@@ -289,8 +272,12 @@
 		trackerView(missionDefs, panelInput?.snapshot.objectives, (id) => objectiveNames[id] ?? id)
 	);
 	const HOST: { id: string; title: string; icon: string; order: number }[] = [
-		{ id: 'host.orbit', title: 'Orbit', icon: 'orbit', order: 100 },
-		{ id: 'host.resources', title: 'Resources', icon: 'tank', order: 200 },
+		{ id: 'host.vessel', title: 'Overview', icon: 'pod', order: 10 },
+		{ id: 'host.parts', title: 'Parts', icon: 'parts', order: 20 },
+		{ id: 'host.comms', title: 'Comms', icon: 'comms', order: 30 },
+		{ id: 'host.crew', title: 'Crew', icon: 'crew', order: 40 },
+		{ id: 'host.orbit', title: 'Orbit', icon: 'ellipse', order: 100 },
+		{ id: 'host.resources', title: 'Resources', icon: 'drop', order: 200 },
 		{ id: 'host.target', title: 'Target', icon: 'navball', order: 300 },
 		{ id: 'host.missions', title: 'Missions', icon: 'check', order: 400 },
 		{ id: 'host.script', title: 'Script', icon: 'script', order: 500 }
@@ -302,7 +289,10 @@
 	function openPanel(id: string): void {
 		dockShown = true;
 		settings.setDock(addPanel(settings.dock, id));
+		panelInput = flight?.panelInput() ?? null;
 	}
+	/** A status chip's fix (V3 §2.2): open the dock panel that holds the cure. */
+	const fixChip = (fix: ChipFix): void => openPanel(fix.panel);
 	function toggleScript(): void {
 		if (scriptOpen) settings.setDock({ ...settings.dock, open: null });
 		else openPanel('host.script');
@@ -466,11 +456,11 @@
 		});
 	}
 	let tall = $state(true);
-	const ballSize = $derived(tall ? 176 : 144);
+	const ballSize = $derived(tall ? 180 : 144);
 	// The toolbar's Staging and Nav buttons (plan 088, ADR 0144 point 5).
 	let navOpen = $state(true);
-	/** The crew panel at the bottom right (BASE_LAYOUT §3: a panel toggle). */
-	let crewOpen = $state(true);
+	/** The staging box at the bottom right (V3 §2.3: a menu-bar toggle). */
+	let stagingOpen = $state(true);
 	/** The world capsule: the active world's name, mode and system (ADR 0144 point 7). */
 	let world = $state({ name: 'Legacy world', mode: 'Sandbox', system: 'Stock system' });
 	/** The primary pointer is a finger (plan 053): the on-screen controls show for Automatic. */
@@ -1033,6 +1023,20 @@
 		script.errorLine !== null && source !== ranSource ? { ...script, errorLine: null } : script
 	);
 	const model = $derived(hud?.model ?? null);
+	/** The status strip under the navball (V3 §2.2, ADR 0253 point 7). */
+	const chips = $derived(
+		statusChips({
+			uncontrolled: model?.uncontrolled ?? null,
+			link: model?.link ?? null,
+			blackout: model?.blackout ?? 0,
+			range: model?.range ?? null
+		})
+	);
+	// the EVA controls live in the dock's Crew entry since v3: it opens when a suit steps out (ADR 0253 point 5)
+	const onEva = $derived(!!hud?.eva);
+	$effect(() => {
+		if (onEva) untrack(() => openPanel('host.crew'));
+	});
 	const t = $derived(hud?.telemetry ?? null);
 	const running = $derived(scriptIsActive(script.status));
 	/** The world's warp levels (plan 206). */
@@ -1041,22 +1045,7 @@
 
 	// The Base layout's bars (plan 233, BASE_LAYOUT §3 and the v2 Flight page): this page's actions
 	// in the menu bar, its warp and mission time in the time bar, the vessel in the status bar.
-	function toggleDock(): void {
-		dockShown = !dockShown;
-		if (dockShown) {
-			lastSide = 'dock';
-			// one side panel at a time below 1280 px: the dock closes the vessel panel
-			if (narrow) vesselOpen = false;
-		}
-	}
-	function toggleVessel(): void {
-		vesselOpen = !vesselOpen;
-		if (!vesselOpen) flight?.highlightPart(null);
-		else {
-			lastSide = 'vessel';
-			panelInput = flight?.panelInput() ?? null;
-		}
-	}
+	// V3 §2.3 (plan 272): Panels · Navball · Staging · Camera; white when shown, gray when hidden
 	const flightActions = $derived<PageAction[]>([
 		{
 			id: 'panels',
@@ -1064,15 +1053,11 @@
 			title: 'Panels',
 			icon: 'panels',
 			on: dockShown,
-			onclick: toggleDock
-		},
-		{
-			id: 'vessel',
-			label: 'Vessel panel',
-			title: 'Vessel info',
-			icon: 'vesselInfo',
-			on: vesselOpen,
-			onclick: toggleVessel
+			onclick: () => {
+				dockShown = !dockShown;
+				if (dockShown) panelInput = flight?.panelInput() ?? null;
+				else flight?.highlightPart(null);
+			}
 		},
 		{
 			id: 'navball',
@@ -1083,13 +1068,12 @@
 			onclick: () => (navOpen = !navOpen)
 		},
 		{
-			id: 'crew',
-			label: 'Crew panel',
-			title: touchOn ? 'Crew: hidden while the touch controls are on' : 'Crew',
-			icon: 'crew',
-			on: crewOpen && !touchOn,
-			disabled: touchOn,
-			onclick: () => (crewOpen = !crewOpen)
+			id: 'staging',
+			label: 'Staging',
+			title: 'Staging',
+			icon: 'staging',
+			on: stagingOpen,
+			onclick: () => (stagingOpen = !stagingOpen)
 		},
 		{
 			// a one-press action without a dot (BASE_LAYOUT.md; plan 226, ADR 0226)
@@ -1182,27 +1166,24 @@
 	let leftStackBottom = $state(0);
 	/** Right edge of the open dock panel, 0 when none is open (plan 112). */
 	let dockRight = $state(0);
+	/** The open dock panel reaches the navball module's left edge (a wide dock or a narrow window). */
+	let dockMeetsDeck = $state(false);
 	let viewport = $state({ width: 1440, height: 900 });
 	/** The status bar's height from the bottom of the window (plan 233): 32 px at 100 %. */
 	let statusHeight = $state(32);
-	/** The side panel opened last: with room for one, it is the one that stays (plan 215). */
-	let lastSide = $state<SidePanel>('vessel');
 	/**
-	 * The region rules (plan 215, ADR 0205 point 6): widths over the UI scale decide; below 1280 one
-	 * side panel, where the dock stands at the right (plan 112); at 1024 and below, drawers.
+	 * The region rules (plan 215, ADR 0205 point 6, revised by ADR 0253 point 8): widths over the UI
+	 * scale decide; below 1280 staging and the dock stop above the navball module; at 1024 and below,
+	 * drawers with 44 px targets.
 	 */
-	const layout = $derived(
-		layoutFor(viewport.width, settings.ui.scale, { dock: dockShown, vessel: vesselOpen }, lastSide)
-	);
+	const layout = $derived(layoutFor(viewport.width, settings.ui.scale));
 	const narrow = $derived(layout.mode !== 'two');
-	/** The staging stack's box when it stands in the left column (narrow), for the touch throttle. */
-	let stagingBox = $state<{ top: number; right: number } | undefined>(undefined);
-	/** Top of the crew panel at the bottom right, 0 when hidden: the side column stops above it (plan 214). */
-	let crewTop = $state(0);
-	let crewEl = $state<HTMLDivElement>();
+	/** Top of the staging box at the bottom right, 0 when hidden: the part inspectors stop above it. */
+	let stagingTop = $state(0);
+	let stagingEl = $state<HTMLDivElement>();
 	$effect(() => {
-		// the crew panel grows with its broadcast offers after the first measure: measure again then
-		const el = crewEl;
+		// staging grows and shrinks with its stages: measure again then
+		const el = stagingEl;
 		if (!el || typeof ResizeObserver === 'undefined') return;
 		const ro = new ResizeObserver(() => queueMicrotask(updateInsets));
 		ro.observe(el);
@@ -1231,7 +1212,6 @@
 			};
 		};
 		const deck = box('.bc .deck');
-		const right = box('.tr');
 		// the time bar is the top of the view (plan 233); the status bar is under the bottom panels
 		const bar = box('[data-testid="time-bar"]');
 		const status = box('[data-testid="status-bar"]');
@@ -1242,20 +1222,16 @@
 		const open = box('.tl .dock .open');
 		// beside the whole left stack: the capsules can be wider than the open panel
 		dockRight = open && open.width > 0 && left ? Math.round(Math.max(open.right, left.right)) : 0;
-		const crew = box('.ui > .br');
-		crewTop = crew && crew.height > 0 ? Math.round(crew.top) : 0;
-		const staging = box('.bl');
-		stagingBox =
-			narrow && staging && staging.height > 0
-				? { top: Math.round(staging.top), right: Math.round(staging.right) }
-				: undefined;
+		// a wide dock would run under the module: it stops above it then (ADR 0253 point 8)
+		dockMeetsDeck = !!deck && deck.height > 0 && dockRight > deck.left - 8;
+		const staging = box('.ui > .br');
+		stagingTop = staging && staging.height > 0 ? Math.round(staging.top) : 0;
 		// Side panels float over the view and do not move the camera (plan 215, ADR 0205 point 7):
 		// only the fixed bars count, unless the player asked to centre the vessel in the free area.
 		const insets = viewInsets({
 			frame,
 			bar,
 			deck,
-			right,
 			dockRight,
 			centre: settings.ui.centreVessel
 		});
@@ -1276,9 +1252,8 @@
 		void hud?.status;
 		void settings.ui.centreVessel;
 		void settings.ui.scale;
-		void vesselOpen;
 		void navOpen;
-		void model?.crew?.rows.length;
+		void stagingOpen;
 		queueMicrotask(updateInsets);
 	});
 
@@ -1531,9 +1506,10 @@
 		<div
 			class="ui"
 			class:narrow
+			class:dock-meets-deck={dockMeetsDeck}
 			class:drawer={layout.mode === 'drawer'}
 			style:--tl-bottom="{leftStackBottom}px"
-			style:--crew-top={crewTop > 0 ? `${crewTop}px` : '100%'}
+			style:--staging-top={stagingTop > 0 ? `${stagingTop}px` : '100%'}
 			style:--deck-h="{deckHeight}px"
 			style:--above-deck="{aboveDeckHeight(viewport.height - statusHeight, deckHeight)}px"
 			style:--script-w="{scriptPanelWidth(viewport.width)}px"
@@ -1560,7 +1536,7 @@
 						onskip={() => settings.setTutorial(skip(settings.tutorial))}
 					/>
 				{/if}
-				{#if !narrow}{@render dock('left')}{/if}
+				{@render dock('left')}
 			</div>
 
 			<div class="tc" class:on-bars={hud.map}>
@@ -1585,50 +1561,16 @@
 						onclose={() => (recoverOpen = false)}
 					/>
 				{/if}
-				{#if model?.link}<LinkBadge link={model.link} />{:else}<BlackoutBadge
-						level={model?.blackout ?? 0}
-					/>{/if}
 				{#if ghostNote}<p class="ghost-note" role="status" data-testid="ghost-note">
 						{ghostNote}
 					</p>{/if}
-				<RangeBadge warning={model?.range ?? null} />
-				<UncontrolledBadge reason={model?.uncontrolled ?? null} />
 				{#if model?.aero}<AeroStrip aero={model.aero} />{/if}
 				<PrecompileBadge progress={graphics} />
 			</div>
 
-			{#if vesselOpen && vesselShown}
-				<!-- the vessel panel (plan 111, ADR 0153 point 4): top right; below 1280 px in place of the dock -->
-				<div class="tr vr" style:width="{panelWidth / 16}rem">
-					<!-- drag to resize, 300 to 440 px (plan 214, ADR 0205 point 1) -->
-					<div
-						class="grip"
-						role="separator"
-						aria-orientation="vertical"
-						aria-label="Resize the vessel panel"
-						data-testid="vessel-panel-grip"
-						onpointerdown={startResize}
-					></div>
-					<VesselPanel
-						vessel={vesselShown.id}
-						name={vesselShown.name ?? designName}
-						view={vesselShownView!}
-						comms={vesselComms}
-						transmitters={vesselTransmitters}
-						oncommand={(c) => void flight?.command(c)}
-						onhighlight={(part) => flight?.highlightPart(part)}
-						oninspect={inspect}
-						highlighted={hoverPart}
-						totals={vesselShown.resources ?? []}
-						transfers={vesselShown.transfers ?? []}
-					/>
-				</div>
-			{:else if narrow}
-				<div class="tr">{@render dock('right')}</div>
-			{/if}
 			{#if inspectView && vesselShown}
-				<!-- pinned and open inspectors, left of the vessel panel, never over the vessel (plan 214) -->
-				<div class="ins" style:--panel-room={panelRoom(vesselOpen, panelWidth)}>
+				<!-- pinned and open inspectors at the top right, above staging (ADR 0253 point 3) -->
+				<div class="ins">
 					{#each inspected as id (id)}
 						{@const row = inspectView.parts.find((p) => p.entity === id)}
 						{#if row}
@@ -1647,9 +1589,9 @@
 					{/each}
 				</div>
 			{/if}
-			{#if model}
-				<!-- on narrow screens staging stands in the left column: it steps back while the script panel is open -->
-				<div class="bl" class:stowed={scriptOpen && viewport.width <= 1279}>
+			{#if model && stagingOpen}
+				<!-- staging at the bottom right, growing up (V3 §2.5); on narrow screens above the deck -->
+				<div class="br" bind:this={stagingEl}>
 					<StageStack
 						stages={model.stages}
 						environment={model.environment}
@@ -1662,7 +1604,7 @@
 				</div>
 			{/if}
 
-			<div class="bc" style:--ball-k={ballSize / 176}>
+			<div class="bc" style:--ball-k={ballSize / 180}>
 				{#if model && (model.maneuver || hud.map)}
 					<div class="mnv">
 						<ManeuverPanel
@@ -1695,48 +1637,19 @@
 						controllable={model?.controllable ?? true}
 						onsas={(mode) => flight?.setSas(mode)}
 						onrcs={() => flight?.toggleRcs()}
+						{chips}
+						onfix={fixChip}
 					/>
 				</div>
+				{#if !navOpen}
+					<!-- the conditions stay when the navball is hidden (ADR 0253 point 7) -->
+					<div class="strip-alone"><StatusStrip {chips} onfix={fixChip} /></div>
+				{/if}
 			</div>
-
-			{#if !touchOn && crewOpen}
-				<div class="br" bind:this={crewEl}>
-					<CrewPanel
-						card={model?.crew ?? null}
-						eva={hud.eva}
-						broadcasts={hud.broadcasts}
-						onbroadcast={(milestone) =>
-							void flight?.command({ type: 'comms-broadcast', milestone })}
-						oneva={(m) => flight?.eva(m)}
-						onwalk={(h) => flight?.walk(h)}
-						onflag={() => flight?.plantFlag()}
-						onboard={() => flight?.board()}
-						onhelmet={() => flight?.helmet()}
-						sample={takeOffer ? { label: partLabel(takeOffer.definition) } : null}
-						ontake={() =>
-							takeOffer &&
-							hud?.eva &&
-							void flight?.command({
-								type: 'crew-take',
-								suit: hud.eva.suit as EntityId,
-								vessel: takeOffer.vessel,
-								part: takeOffer.part
-							})}
-						onchute={() => flight?.chute()}
-					/>
-				</div>
-			{/if}
 
 			{#if touchOn && hud.status === 'flying' && !pauseOpen}
 				<TouchControls
-					anchor={throttleAnchor(
-						viewport,
-						deckHeight,
-						scriptOpen && !narrow,
-						leftStackBottom,
-						dockRight,
-						stagingBox
-					)}
+					anchor={throttleAnchor(viewport, deckHeight, scriptOpen, leftStackBottom, dockRight)}
 					throttle={model?.throttle ?? hud.throttle}
 					onthrottle={(v) => flight?.setThrottle(v)}
 					onattitude={(a) => flight?.setTouchAttitude(a)}
@@ -1787,6 +1700,48 @@
 							</div>
 						{:else if !model}
 							<!-- the HUD has not started yet -->
+						{:else if id === 'host.crew'}
+							<CrewPanel
+								card={model?.crew ?? null}
+								eva={hud?.eva ?? null}
+								broadcasts={hud?.broadcasts ?? []}
+								onbroadcast={(milestone) =>
+									void flight?.command({ type: 'comms-broadcast', milestone })}
+								oneva={(m) => flight?.eva(m)}
+								onwalk={(h) => flight?.walk(h)}
+								onflag={() => flight?.plantFlag()}
+								onboard={() => flight?.board()}
+								onhelmet={() => flight?.helmet()}
+								sample={takeOffer ? { label: partLabel(takeOffer.definition) } : null}
+								ontake={() =>
+									takeOffer &&
+									hud?.eva &&
+									void flight?.command({
+										type: 'crew-take',
+										suit: hud.eva.suit as EntityId,
+										vessel: takeOffer.vessel,
+										part: takeOffer.part
+									})}
+								onchute={() => flight?.chute()}
+							/>
+						{:else if id in VESSEL_TABS}
+							{#if vesselShown && vesselShownView}
+								<VesselPanel
+									bare
+									tab={VESSEL_TABS[id as keyof typeof VESSEL_TABS]}
+									vessel={vesselShown.id}
+									name={vesselShown.name ?? designName}
+									view={vesselShownView}
+									comms={vesselComms}
+									transmitters={vesselTransmitters}
+									oncommand={(c) => void flight?.command(c)}
+									onhighlight={(part) => flight?.highlightPart(part)}
+									oninspect={inspect}
+									highlighted={hoverPart}
+									totals={vesselShown.resources ?? []}
+									transfers={vesselShown.transfers ?? []}
+								/>
+							{/if}
 						{:else if id === 'host.missions'}
 							<MissionsPanel
 								view={tracker}
@@ -1803,8 +1758,6 @@
 								prelaunch={model.prelaunch}
 								onwarp={(to) => flight?.warpToApsis(to)}
 							/>
-						{:else if id === 'host.resources'}
-							<ResourcesPanel resources={model.resources} />
 						{:else if id === 'host.target'}
 							<TargetPanel
 								target={model.target}
@@ -1980,6 +1933,8 @@
 	.ui {
 		--safe-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
 	}
+	/* the dock (V3 §2.3): top 80, left 24; it reaches down to the safe area (bottom 56), or stops
+	   above the navball module where they would meet (narrow screens, a wide dock) */
 	.tl {
 		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
 		left: calc(var(--margin-hud) + var(--safe-left));
@@ -1987,16 +1942,35 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--s-2);
+		max-height: calc(
+			100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap) - var(--safe-top) -
+				var(--safe-bottom)
+		);
+	}
+	.ui.narrow .tl,
+	.ui.dock-meets-deck .tl {
 		/* The script panel and the guide scroll above the instrument deck, never under it (plan 055). */
 		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
 	}
+	/* staging (V3 §2.5): right 24, bottom 56, 260 wide; it grows up to the top of the safe area and
+	   its queue scrolls inside. On narrow screens it stands above the navball module (ADR 0253 point 5). */
 	.br {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
 		right: calc(var(--margin-hud) + var(--safe-right));
-		width: 13.75rem;
-		/* half the box at most, so the side column above keeps room (plan 214) */
-		max-height: min(var(--above-deck), calc(50% - var(--margin-hud)));
-		overflow-y: auto;
+		width: 16.25rem;
+		display: flex;
+		flex-direction: column;
+		max-height: calc(
+			100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap) - var(--safe-top) -
+				var(--safe-bottom)
+		);
+	}
+	.ui.narrow .br {
+		bottom: calc(var(--deck-h) + var(--margin-hud) * 2 + var(--safe-bottom));
+		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
+	}
+	.br > :global(.panel) {
+		min-height: 0;
 	}
 	.script {
 		width: var(--script-w, min(420px, 46vw));
@@ -2036,75 +2010,31 @@
 			top: calc(var(--margin-hud) + var(--safe-top));
 		}
 	}
-	/* the vessel panel's default width (340 px at 100 %, ADR 0205 point 1; plan 214 adds the resize) */
-	/* the vessel panel ends above the crew panel at the bottom right (plan 214: a tall panel ran under it) */
-	/* `.tr.vr`: more specific than `.tr` below, whose max-height would win */
-	.tr.vr {
-		width: 21.25rem;
-		/* a block, not the flex of .tr: the panel inside must not shrink and spill, the box scrolls */
-		display: block;
-		overflow-y: auto;
-		max-height: min(
-			calc(var(--above-deck) - var(--capsule) - var(--panel-gap)),
-			calc(
-				var(--crew-top) - var(--margin-hud) - var(--capsule) - var(--panel-gap) * 2 -
-					var(--safe-top)
-			)
-		);
-	}
-	.grip {
-		position: absolute;
-		left: -0.375rem;
-		top: 0;
-		bottom: 0;
-		width: 0.75rem;
-		cursor: ew-resize;
-		pointer-events: auto;
-		z-index: 1;
-	}
+	/* the part inspectors at the top right, above staging (ADR 0253 point 3) */
 	.ins {
-		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
-		right: calc(var(--margin-hud) * 2 + var(--panel-room, 0rem) + var(--safe-right));
-		display: flex;
-		flex-direction: column;
-		gap: var(--panel-gap);
-		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
-		overflow-y: auto;
-	}
-	.tr {
 		top: calc(var(--margin-hud) + var(--capsule) + var(--panel-gap) + var(--safe-top));
 		right: calc(var(--margin-hud) + var(--safe-right));
 		display: flex;
-		/* it starts under the toolbar, so it has the toolbar's height less than the space above the deck */
-		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
-	}
-	/* staging: a capped height under the left stack, scrolling inside (plan 215, ADR 0205 point 5) */
-	.bl {
-		bottom: calc(var(--margin-hud) + var(--safe-bottom));
-		left: calc(var(--margin-hud) + var(--safe-left));
-		width: 13.75rem;
-		display: flex;
 		flex-direction: column;
-		gap: var(--s-2);
-		max-height: calc(100% - var(--tl-bottom, 0px) - var(--margin-hud) * 2 - var(--safe-bottom));
-		overflow-y: auto;
-		scrollbar-width: thin;
-	}
-	.ui.narrow .bl {
-		bottom: calc(var(--deck-h) + var(--margin-hud) * 2 + var(--safe-bottom));
-		max-height: calc(
-			100% - var(--deck-h) - var(--tl-bottom, 0px) - var(--margin-hud) * 3 - var(--safe-bottom)
+		gap: var(--panel-gap);
+		max-height: min(
+			calc(var(--above-deck) - var(--capsule) - var(--panel-gap)),
+			calc(
+				var(--staging-top) - var(--margin-hud) - var(--capsule) - var(--panel-gap) * 2 -
+					var(--safe-top)
+			)
 		);
+		overflow-y: auto;
 	}
 	/* drawers at 1024 px and below: 44 px targets in the side panels (ADR 0205 point 6) */
 	.ui.drawer :global(.panel button),
 	.ui.drawer :global([role='tab']) {
 		min-height: var(--touch-min);
 	}
-	/* the ball, not the module, is centred (refs): its centre is 154 mock px from the module's left */
+	/* the ball, not the module, is centred (V3 §2.4): its centre is 280 design px from the module's left */
 	.bc {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
-		left: calc(50% - 9.625rem * var(--ball-k, 1));
+		left: calc(50% - 17.5rem * var(--ball-k, 1));
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
@@ -2114,10 +2044,11 @@
 		width: 22.5rem;
 		max-height: var(--above-deck);
 		overflow-y: auto;
-		margin-left: calc(9.625rem * var(--ball-k, 1) - 11.25rem);
+		margin-left: calc(17.5rem * var(--ball-k, 1) - 11.25rem);
 	}
-	.bl.stowed {
-		visibility: hidden;
+	.strip-alone {
+		position: relative;
+		width: calc(34.5rem * var(--ball-k, 1));
 	}
 	.navmodule.hidden {
 		display: none;

@@ -4,7 +4,7 @@
  * as two panels, and the base's Jettison is spent.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugSetLocation, watchErrors } from './support';
+import { debugSetLocation, watchErrors, openDock } from './support';
 
 const design = {
 	formatVersion: 3,
@@ -102,8 +102,7 @@ test('build a fairing in the Hangar, launch, and stage it off', async ({ page })
 		.poll(() => vesselState(page), { timeout: 20_000 })
 		.toMatchObject({ jettisoned: true });
 	// the vessel panel's Jettison is spent
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 	const jettison = page.locator('[data-testid$="-jettison"]').first();
 	if (await jettison.count()) await expect(jettison).toBeDisabled();
 	expect(errors).toEqual([]);

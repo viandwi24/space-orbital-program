@@ -45,6 +45,31 @@ export async function launchTwoStage(page: Page): Promise<void> {
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// T+ shows in the time bar before the HUD has its first model; staging comes with the model, which
+	// with the WebGPU default (plan 261) can take about 20 s under software rendering
+	await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
+}
+
+/**
+ * Open a dock panel (plan 272, ADR 0253: the vessel panel's tabs and the crew are dock entries
+ * `host.vessel`, `host.parts`, `host.resources`, `host.comms`, `host.crew`); a no-op when it is open.
+ */
+export async function openDock(page: Page, id: string): Promise<void> {
+	const tab = page.getByTestId(`dock-tab-${id}`);
+	if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+	if (id === 'host.parts') {
+		// the part rows fold (plan 256): unfold them all so their controls can be pressed
+		const panel = page.getByTestId('vessel-panel');
+		await panel.waitFor();
+		// the categories are <details> too: wait for the part rows themselves
+		await expect(panel.locator('[data-testid="vessel-part"]').first()).toBeAttached({
+			timeout: 30_000
+		});
+		// open each folded part row as a player does, by its summary
+		const folded = panel.locator('details:not([open]) > summary[data-testid$="-row"]');
+		for (let n = await folded.count(), i = 0; n > 0 && i < 80; n = await folded.count(), i++)
+			await folded.first().click();
+	}
 }
 
 /** Open the script panel, put `source` in the editor (or load the sample) and press Run. */

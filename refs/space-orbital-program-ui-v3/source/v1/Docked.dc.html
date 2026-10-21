@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flight deck — docked close-up</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1154px; height: 451px; position: relative; overflow: hidden; background: #000000; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0;">
+    <sc-for list="{{stars}}" as="s" hint-placeholder-count="30">
+      <div style="{{s.style}}"></div>
+    </sc-for>
+  </div>
+  <div aria-hidden="true" style="position: absolute; left: 1010px; top: 150px; width: 900px; height: 900px; border-radius: 50%; background: radial-gradient(circle at 18% 22%, #4C7FAE 0%, #24507A 28%, #123150 50%, #08182A 70%); box-shadow: 0 0 0 2px rgba(150,190,255,0.35), 0 0 70px 10px rgba(70,130,255,0.22);"></div>
+
+  <!-- Compact flight cluster (390 × 292) -->
+  <div style="position: absolute; left: 24px; top: 150px; width: 390px; height: 262px; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.6));">
+    <div style="position: absolute; left: 50px; top: 190px; width: 250px; height: 72px; border-radius: 18px; background: #141518;"></div>
+    <div style="position: absolute; left: 50px; top: 0; width: 208px; height: 208px; border-radius: 50%; background: #141518;"></div>
+    <div style="position: absolute; left: 250px; top: 124px; width: 132px; height: 132px; border-radius: 50%; background: #141518;"></div>
+
+    <svg aria-hidden="true" width="390" height="292" viewBox="0 0 390 292" style="position: absolute; left: 0; top: 0; overflow: visible;">
+      <path d="M80.5 42.3 A96 96 0 0 0 80.5 165.7" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="4" stroke-linecap="round"></path>
+      <path d="M58 104 A96 96 0 0 1 63.8 71.2" fill="none" stroke="{{accent}}" stroke-width="4" stroke-linecap="round"></path>
+      <line x1="52" y1="104" x2="62" y2="104" stroke="#FFFFFF" stroke-width="1.5"></line>
+    </svg>
+
+    <div style="position: absolute; left: 130px; top: -8px; width: 48px; text-align: center; font-size: 11px; font-weight: 700; color: #FFFFFF; padding: 3px 0; border-radius: 999px; background: #26282C;">090°</div>
+
+    <div style="position: absolute; left: 66px; top: 16px; width: 176px; height: 176px; border-radius: 50%; overflow: hidden;">
+      <svg role="img" aria-label="Attitude navball, heading 090°, pitch near level" width="176" height="176" viewBox="-140 -140 280 280">
+        <defs>
+          <clipPath id="nbClipD"><circle cx="0" cy="0" r="140"></circle></clipPath>
+          <radialGradient id="nbShadeD" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"></stop>
+            <stop offset="60%" stop-color="#000000" stop-opacity="0"></stop>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0.55"></stop>
+          </radialGradient>
+        </defs>
+        <g clip-path="url(#nbClipD)">
+          <g transform="rotate(-8)">
+            <rect x="-300" y="-300" width="600" height="300" fill="#DCDFE4"></rect>
+            <rect x="-300" y="0" width="600" height="300" fill="#26282C"></rect>
+            <line x1="-300" y1="0" x2="300" y2="0" stroke="#FFFFFF" stroke-width="2.5"></line>
+            <line x1="-24" y1="-40" x2="24" y2="-40" stroke="#5B6068" stroke-width="2"></line>
+            <line x1="-40" y1="-80" x2="40" y2="-80" stroke="#5B6068" stroke-width="2"></line>
+            <text x="48" y="-74" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#5B6068">20</text>
+            <line x1="-24" y1="40" x2="24" y2="40" stroke="#9BA0A8" stroke-width="2"></line>
+            <line x1="-40" y1="80" x2="40" y2="80" stroke="#9BA0A8" stroke-width="2"></line>
+            <text x="48" y="86" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#9BA0A8">−20</text>
+            <line x1="-110" y1="-300" x2="-110" y2="300" stroke="#8B9098" stroke-width="1.5" opacity="0.5"></line>
+            <line x1="110" y1="-300" x2="110" y2="300" stroke="#8B9098" stroke-width="1.5" opacity="0.5"></line>
+            <text x="-124" y="-10" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#3F444B">060</text>
+            <text x="96" y="-10" font-size="16" font-family="Manrope, sans-serif" font-weight="700" fill="#3F444B">120</text>
+            <g transform="translate(18 -26)" stroke="{{accent}}" stroke-width="4" fill="none">
+              <circle cx="0" cy="0" r="12"></circle>
+              <path d="M0 -12 V-24 M-12 0 H-24 M12 0 H24"></path>
+            </g>
+            <g transform="translate(-60 70)" stroke="#E4E4E7" stroke-width="3" fill="none" opacity="0.7">
+              <circle cx="0" cy="0" r="10"></circle>
+              <path d="M-6 -6 L6 6 M6 -6 L-6 6"></path>
+            </g>
+          </g>
+          <circle cx="0" cy="0" r="140" fill="url(#nbShadeD)"></circle>
+        </g>
+        <path d="M-52 0 H-20 L-10 12 L0 0 L10 12 L20 0 H52" fill="none" stroke="#0B0B0C" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"></path>
+        <path d="M-52 0 H-20 L-10 12 L0 0 L10 12 L20 0 H52" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"></path>
+        <circle cx="0" cy="0" r="4" fill="#FFFFFF" stroke="#0B0B0C" stroke-width="2.5"></circle>
+      </svg>
+    </div>
+
+    <div style="position: absolute; left: 66px; top: 216px; width: 173px; height: 14px; display: flex; align-items: center; gap: 5px;">
+      <div style="width: 22px; font-size: 8px; line-height: 1; letter-spacing: 0.12em; font-weight: 700; color: #A1A1AA;">VEL</div>
+      <div style="font-size: 13px; font-weight: 500; line-height: 1; letter-spacing: 0; color: #FFFFFF;">2,616</div>
+      <div style="font-size: 9px; line-height: 1; font-weight: 500; color: #A1A1AA;">m/s</div>
+      <button style="margin-left: auto; border: none; border-radius: 999px; padding: 2px 5px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; background: #2A2C30; color: #E4E4E7;">ORBIT</button>
+    </div>
+    <div style="position: absolute; left: 66px; top: 235px; width: 173px; height: 1px; background: rgba(255,255,255,0.07);"></div>
+    <div style="position: absolute; left: 66px; top: 240px; width: 173px; height: 14px; display: flex; align-items: center; gap: 5px;">
+      <div style="width: 22px; font-size: 8px; line-height: 1; letter-spacing: 0.12em; font-weight: 700; color: #A1A1AA;">ALT</div>
+      <div style="font-size: 13px; font-weight: 500; line-height: 1; letter-spacing: 0; color: #FFFFFF;">72,081</div>
+      <div style="font-size: 9px; line-height: 1; font-weight: 500; color: #A1A1AA;">m</div>
+      <button style="margin-left: auto; border: none; border-radius: 999px; padding: 2px 5px; font-size: 8px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; background: #2A2C30; color: #E4E4E7;">SEA</button>
+    </div>
+
+    <div style="position: absolute; left: 266px; top: 76px; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #141518;">
+      <button style="height: 26px; padding: 0 10px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; border: none; background: {{accent}}; color: #FFFFFF;">SAS</button>
+      <button style="height: 26px; padding: 0 10px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; border: none; background: #2A2C30; color: #A1A1AA;">RCS</button>
+    </div>
+
+    <button aria-label="Stability assist" style="position: absolute; left: 299px; top: 173px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor"></circle></svg>
+    </button>
+    <button aria-label="Prograde" style="position: absolute; left: 299px; top: 129px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: {{accent}}; color: #FFFFFF;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="5.5"></circle><path d="M12 7.5 V3 M6.5 13 H2 M17.5 13 H22"></path></svg>
+    </button>
+    <button aria-label="Normal" style="position: absolute; left: 337px; top: 151px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4 L20 18 H4 Z"></path></svg>
+    </button>
+    <button aria-label="Radial out" style="position: absolute; left: 337px; top: 195px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4" fill="currentColor"></circle><path d="M8.5 8.5 L4 4 M15.5 8.5 L20 4 M8.5 15.5 L4 20 M15.5 15.5 L20 20"></path></svg>
+    </button>
+    <button aria-label="Retrograde" style="position: absolute; left: 299px; top: 217px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"></circle><path d="M8 8 L16 16 M16 8 L8 16"></path></svg>
+    </button>
+    <button aria-label="Radial in" style="position: absolute; left: 261px; top: 195px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"></circle><path d="M6.3 6.3 L9.5 9.5 M17.7 6.3 L14.5 9.5 M6.3 17.7 L9.5 14.5 M17.7 17.7 L14.5 14.5"></path></svg>
+    </button>
+    <button aria-label="Anti-normal" style="position: absolute; left: 261px; top: 151px; width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; display: flex; align-items: center; justify-content: center; background: #24262A; color: #E4E4E7;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20 L20 6 H4 Z"></path><path d="M12 6 V2"></path></svg>
+    </button>
+  </div>
+
+  <!-- time control, bottom right -->
+  <div style="position: absolute; right: 24px; bottom: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="font-size: 11px; letter-spacing: 0.14em; font-weight: 600; color: #A1A1AA;">MISSION TIME</div>
+      <div style="font-size: 17px; font-weight: 500; color: #FFFFFF;">T+ 2y 70d 26:32</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; padding: 8px 18px 8px 8px; background: rgba(22,23,26,0.86); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <button aria-label="Pause" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0;">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"></rect></svg>
+      </button>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <div style="width: 14px; height: 28px; border-radius: 6px; background: {{accent}};"></div>
+        <div style="width: 14px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 14px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 14px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 22px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 22px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 22px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+        <div style="width: 22px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.12);"></div>
+      </div>
+      <div style="display: flex; flex-direction: column; min-width: 48px;">
+        <div style="font-size: 10px; letter-spacing: 0.14em; font-weight: 600; color: #A1A1AA;">WARP</div>
+        <div style="font-size: 18px; font-weight: 600; color: #FFFFFF;">1×</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"$preview":{"width":1154,"height":451}}'>
+class Component extends DCLogic {
+  renderVals() {
+    let seed = 11;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 70; i++) {
+      const s = rnd() < 0.85 ? 1 : 2;
+      stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1154) + 'px;top:' + Math.round(rnd() * 451) + 'px;width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:#FFFFFF;opacity:' + (0.25 + rnd() * 0.6).toFixed(2) });
+    }
+    return { accent: this.props.accent ?? '#3E6AE1', stars };
+  }
+}
+</script>
+</body>
+</html>

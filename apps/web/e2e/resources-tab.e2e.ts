@@ -3,7 +3,7 @@
  * fuel, the draining tank shows its rate and time to empty, and a locked tank says "Locked".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugSetOrbit, debugSetResource, launchTwoStage, watchErrors } from './support';
+import { debugSetOrbit, debugSetResource, launchTwoStage, watchErrors, openDock } from './support';
 
 const LF = 'stock.liquid-fuel';
 
@@ -37,8 +37,7 @@ test('the Resources tab: a transfer from the picker, rate and time to empty, a l
 		await debugSetResource(page, { part: t.id, resource: LF, fraction: 0.5 });
 	const half = await tanks(page);
 
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-resources').click();
+	await openDock(page, 'host.resources');
 	await expect(page.getByTestId(`container-${upper!.id}-${LF}`)).toBeVisible();
 	const picker = page.getByTestId('transfer-picker');
 	await picker.getByTestId('transfer-resource').selectOption(LF);

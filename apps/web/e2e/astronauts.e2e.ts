@@ -3,7 +3,7 @@
  * with two pods on the Launch screen, and see both in the flight's crew panel.
  */
 import { expect, test } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, openDock } from './support';
 
 const twoPods = {
 	formatVersion: 3,
@@ -47,6 +47,8 @@ test('hire two, seat them at Launch, see them in flight', async ({ page }) => {
 
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// the crew is a dock entry since v3 (plan 272, ADR 0253)
+	await openDock(page, 'host.crew');
 	await expect(page.getByTestId('crew-row')).toHaveCount(2, { timeout: 30_000 });
 	await expect(page.getByTestId('crew-suit').first()).toHaveText('IVA');
 	expect(errors).toEqual([]);

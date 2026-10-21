@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Space Center — page system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:#A8BDF5}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #05070A; font-family: 'Manrope', system-ui, sans-serif; color: #F4F4F5; font-variant-numeric: tabular-nums;">
+
+  <!-- ===== World layer (camera zooms this) ===== -->
+  <div style="{{camStyle}}">
+    <div onMouseEnter="{{clearHover}}" style="position: absolute; inset: 0;">
+      <div aria-hidden="true" style="position: absolute; inset: 0;">
+        <sc-for list="{{stars}}" as="s" hint-placeholder-count="30">
+          <div style="{{s.style}}"></div>
+        </sc-for>
+      </div>
+      <svg role="img" aria-label="Space Center campus" width="1920" height="1080" viewBox="0 0 1920 1080" style="position: absolute; left: 0; top: 0; overflow: visible;">
+        <polygon points="{{ground}}" fill="#0B0E12" stroke="rgba(255,255,255,0.08)" stroke-width="1"></polygon>
+        <sc-for list="{{grid}}" as="g" hint-placeholder-count="20">
+          <line x1="{{g.x1}}" y1="{{g.y1}}" x2="{{g.x2}}" y2="{{g.y2}}" stroke="{{gridStroke}}" stroke-width="1"></line>
+        </sc-for>
+        <sc-for list="{{faces}}" as="f" hint-placeholder-count="30">
+          <polygon points="{{f.pts}}" fill="{{f.fill}}" stroke="{{f.stroke}}" stroke-width="1" stroke-dasharray="{{f.dash}}" stroke-linejoin="round"></polygon>
+        </sc-for>
+        <sc-for list="{{ells}}" as="e" hint-placeholder-count="4">
+          <ellipse cx="{{e.cx}}" cy="{{e.cy}}" rx="{{e.rx}}" ry="{{e.ry}}" fill="{{e.fill}}" stroke="{{e.stroke}}" stroke-width="1"></ellipse>
+        </sc-for>
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="4">
+          <line x1="{{l.x1}}" y1="{{l.y1}}" x2="{{l.x2}}" y2="{{l.y2}}" stroke="{{l.stroke}}" stroke-width="{{l.w}}" stroke-dasharray="{{l.dash}}"></line>
+        </sc-for>
+      </svg>
+    </div>
+    <!-- building hit areas -->
+    <sc-for list="{{hits}}" as="h" hint-placeholder-count="7">
+      <button aria-label="{{h.label}}" title="{{h.name}}" onClick="{{h.click}}" onMouseEnter="{{h.enter}}" style="{{h.style}}"></button>
+    </sc-for>
+  </div>
+
+  <!-- hover labels (shown on hover only, or always via Labels toggle) -->
+  <sc-for list="{{labels}}" as="c" hint-placeholder-count="1">
+    <button onClick="{{c.click}}" onMouseEnter="{{c.enter}}" style="{{c.style}}">
+      <span style="{{c.nameStyle}}">{{c.name}}</span>
+      <span style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{c.sub}}</span>
+    </button>
+  </sc-for>
+
+  <!-- placement chip (Build · placing) -->
+  <sc-if value="{{showGhost}}" hint-placeholder-val="{{ false }}">
+    <div style="{{gc.style}}">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 6px 0 8px;">
+        <div style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{gc.name}}</div>
+        <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{gc.sub}}</div>
+      </div>
+      <button aria-label="Rotate" title="Rotate" onClick="{{gc.rotate}}" style="width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0; background: transparent; color: #E4E4E7; display: flex; align-items: center; justify-content: center;">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 A8 8 0 1 1 17.7 6.3 M20 3 V7 H16"></path></svg>
+      </button>
+      <button onClick="{{gc.cancel}}" style="height: 30px; padding: 0 12px; border: none; border-radius: 999px; background: rgba(255,255,255,0.08); color: #E4E4E7; font-size: 11px; line-height: 1; font-weight: 700;">Cancel</button>
+      <button onClick="{{gc.place}}" style="height: 30px; padding: 0 14px; border: none; border-radius: 999px; background: #F4F4F5; color: #0B0B0C; font-size: 11px; line-height: 1; font-weight: 700;">Place</button>
+    </div>
+  </sc-if>
+
+  <!-- demolish confirm -->
+  <sc-if value="{{showConfirm}}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-label="{{cf.title}}" style="{{cf.style}}">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,138,142,0.12); color: #FF8A8E; display: flex; align-items: center; justify-content: center;">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{icons.dozer}}"></path></svg>
+        </div>
+        <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{cf.title}}</div>
+      </div>
+      <div style="font-size: 10px; line-height: 1.45; color: #A1A1AA;">This can’t be undone. Refund: [—] funds.</div>
+      <div style="display: flex; gap: 6px;">
+        <button onClick="{{cf.cancel}}" style="flex: 1; height: 32px; border: none; border-radius: 9px; background: rgba(255,255,255,0.08); color: #E4E4E7; font-size: 11px; line-height: 1; font-weight: 700;">Cancel</button>
+        <button onClick="{{cf.ok}}" style="flex: 1; height: 32px; border: none; border-radius: 9px; background: rgba(255,138,142,0.14); color: #FF8A8E; font-size: 11px; line-height: 1; font-weight: 700;">Demolish</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== Top-left · time bar ===== -->
+  <div style="position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 10px; height: 44px; box-sizing: border-box; padding: 4px 14px 4px 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <button aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: #F4F4F5; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M7 4 L20 12 L7 20 Z" fill="currentColor"></path></svg>
+      </sc-if>
+      <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"></rect></svg>
+      </sc-if>
+    </button>
+    <div role="group" aria-label="Time warp" style="display: flex; align-items: center; gap: 3px;">
+      <sc-for list="{{warps}}" as="w" hint-placeholder-count="8">
+        <button aria-label="{{w.label}}" aria-pressed="{{w.on}}" onClick="{{w.pick}}" style="{{w.style}}"></button>
+      </sc-for>
+    </div>
+    <div style="min-width: 34px; font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{warpLabel}}</div>
+    <div aria-hidden="true" style="width: 1px; height: 18px; background: rgba(255,255,255,0.12);"></div>
+    <div style="font-size: 12px; line-height: 1; font-weight: 500; color: #FFFFFF;">T+ 2y 70d 26:32</div>
+  </div>
+
+  <!-- ===== Top-right · menu bar ===== -->
+  <div style="position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+    <a href="Map.dc.html" aria-label="Mission Center" title="Mission Center" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z"></path></svg>
+    </a>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <a href="FlightV2.dc.html" aria-label="Vessel" title="Vessel" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 C15 5.5 16 9 16 13 V16 L18.5 19 H5.5 L8 16 V13 C8 9 9 5.5 12 3 Z M10 19 V21 M14 19 V21"></path></svg>
+    </a>
+    <a href="MapView.dc.html" aria-label="Map" title="Map" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z M9 4 V18 M15 6 V20"></path></svg>
+    </a>
+    <button onClick="{{goOverview}}" aria-label="Space Center (current)" aria-current="page" title="Space Center" style="position: relative; width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #FFFFFF;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21 V10 L9 7.5 V21 M9 21 V3 L15 6 V21 M15 21 V11 L20 13 V21 M3 21 H21"></path></svg>
+      <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #FFFFFF;"></span>
+    </button>
+    <a href="Hangar.dc.html" aria-label="VAB" title="VAB" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8B8B93;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21 V9 L12 3 L20 9 V21 Z M12 10 C13.6 11.4 14 13.4 14 16 V21 H10 V16 C10 13.4 10.4 11.4 12 10 Z"></path></svg>
+    </a>
+    <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12);"></div>
+    <button aria-label="Menu" title="Menu" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #8B8B93; display: flex; align-items: center; justify-content: center; padding: 0;">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7 H20 M4 12 H20 M4 17 H20"></path></svg>
+    </button>
+  </div>
+
+  <!-- ===== Overview · buildings list (toggle) ===== -->
+  <sc-if value="{{showList}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; right: 24px; top: 80px; width: 280px; display: flex; flex-direction: column; gap: 2px; padding: 10px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 6px;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">BUILDINGS</div>
+        <div style="font-size: 10px; line-height: 1; color: #8B8B93;">{{builtCount}}</div>
+      </div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+        <button onClick="{{r.click}}" onMouseEnter="{{r.enter}}" style="{{r.style}}">
+          <span style="width: 24px; height: 24px; flex: none; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{r.d}}"></path></svg>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-start; gap: 3px;">
+            <span style="font-size: 11px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{r.name}}</span>
+            <span style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{r.sub}}</span>
+          </span>
+          <span aria-hidden="true" style="{{r.dot}}"></span>
+        </button>
+      </sc-for>
+      <div style="height: 1px; margin: 6px 6px; background: rgba(255,255,255,0.07);"></div>
+      <div style="padding: 2px 6px 4px; font-size: 10px; line-height: 1.3; color: #A1A1AA;">{{listFoot}}</div>
+    </div>
+  </sc-if>
+
+  <!-- ===== Focus · building detail ===== -->
+  <sc-if value="{{showDetail}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; right: 24px; top: 80px; width: 320px; display: flex; flex-direction: column; gap: 12px; padding: 14px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{dt.label}}</div>
+        <button aria-label="Back to overview" title="Back to overview" onClick="{{goOverview}}" style="width: 24px; height: 24px; border: none; border-radius: 50%; padding: 0; background: transparent; color: #A1A1AA; display: flex; align-items: center; justify-content: center;">
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 22px; line-height: 1.1; font-weight: 300; color: #FFFFFF;">{{dt.name}}</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div aria-hidden="true" style="display: flex; gap: 3px;">
+            <sc-for list="{{dt.segs}}" as="g" hint-placeholder-count="3">
+              <span style="{{g.style}}"></span>
+            </sc-for>
+          </div>
+          <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">{{dt.level}}</div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 10px; line-height: 1; color: #FFFFFF; font-weight: 600;"><span style="{{dt.stateDot}}"></span>{{dt.state}}</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; line-height: 1.45; color: #E4E4E7;">{{dt.desc}}</div>
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <sc-for list="{{dt.facts}}" as="f" hint-placeholder-count="2">
+          <div style="display: flex; justify-content: space-between; font-size: 10px; line-height: 1;"><span style="color: #A1A1AA;">{{f.k}}</span><span style="color: #FFFFFF; font-weight: 600;">{{f.v}}</span></div>
+        </sc-for>
+      </div>
+      <sc-if value="{{dt.hasUpgrade}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05);">
+          <div style="font-size: 8px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">{{dt.nextLabel}}</div>
+          <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{dt.next}}</div>
+          <button style="height: 36px; border: none; border-radius: 10px; background: rgba(255,255,255,0.08); color: #E4E4E7; font-size: 12px; line-height: 1; font-weight: 700;">{{dt.upgrade}}</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{dt.hasOpen}}" hint-placeholder-val="{{ true }}">
+        <a href="{{dt.href}}" style="height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; text-decoration: none; font-size: 12px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">{{dt.cta}}</a>
+      </sc-if>
+      <div style="display: flex; gap: 6px;">
+        <button onClick="{{dt.demolish}}" style="height: 30px; padding: 0 10px; display: flex; align-items: center; gap: 6px; border: none; border-radius: 8px; background: transparent; color: #FF8A8E; font-size: 11px; line-height: 1; font-weight: 600;">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{icons.dozer}}"></path></svg>
+          {{dt.demolishLabel}}
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== Bottom · Overview action bar ===== -->
+  <sc-if value="{{showOverviewBar}}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="Space Center actions" style="position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; height: 44px; box-sizing: border-box; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="3">
+        <button onClick="{{a.click}}" aria-pressed="{{a.on}}" style="{{a.style}}">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{a.d}}"></path></svg>
+          <span>{{a.name}}</span>
+          <span aria-hidden="true" style="{{a.dot}}"></span>
+        </button>
+      </sc-for>
+      <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 4px; background: rgba(255,255,255,0.12);"></div>
+      <button onClick="{{toggleLabels}}" aria-pressed="{{labelsOn}}" aria-label="Building names: always shown" title="{{labelsTitle}}" style="{{labelsStyle}}">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12 V4 H11 L21 14 L14 21 Z M7.5 8 H7.51"></path></svg>
+        <span aria-hidden="true" style="{{labelsDot}}"></span>
+      </button>
+    </nav>
+  </sc-if>
+
+  <!-- ===== Bottom · Build bar ===== -->
+  <sc-if value="{{showBuildBar}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Build" style="position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); width: 1040px; display: flex; flex-direction: column; gap: 8px; padding: 8px; box-sizing: border-box; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px;">
+      <div style="display: flex; align-items: center; gap: 4px; height: 40px;">
+        <div style="padding: 0 10px 0 8px; font-size: 9px; line-height: 1; letter-spacing: 0.14em; font-weight: 700; color: #A1A1AA;">BUILD</div>
+        <div role="tablist" aria-label="Building categories" style="display: flex; align-items: center; gap: 2px;">
+          <sc-for list="{{cats}}" as="t" hint-placeholder-count="7">
+            <button role="tab" aria-selected="{{t.on}}" onClick="{{t.click}}" style="{{t.style}}">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="{{t.d}}"></path></svg>
+              <span>{{t.name}}</span>
+              <span aria-hidden="true" style="{{t.dot}}"></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 2px;">
+          <sc-for list="{{tools}}" as="o" hint-placeholder-count="2">
+            <button aria-label="{{o.name}}" title="{{o.name}}" aria-pressed="{{o.on}}" onClick="{{o.click}}" style="{{o.style}}">
+              <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="{{o.d}}"></path></svg>
+              <span aria-hidden="true" style="{{o.dot}}"></span>
+            </button>
+          </sc-for>
+          <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 6px; background: rgba(255,255,255,0.12);"></div>
+          <button onClick="{{goOverview}}" style="height: 32px; padding: 0 14px; border: none; border-radius: 999px; background: rgba(255,255,255,0.08); color: #FFFFFF; font-size: 11px; line-height: 1; font-weight: 700;">Done</button>
+        </div>
+      </div>
+      <sc-if value="{{showCards}}" hint-placeholder-val="{{ true }}">
+        <div role="tabpanel" style="display: flex; gap: 6px;">
+          <sc-for list="{{cards}}" as="k" hint-placeholder-count="3">
+            <button onClick="{{k.click}}" aria-disabled="{{k.disabled}}" aria-pressed="{{k.on}}" title="{{k.title}}" style="{{k.style}}">
+              <span style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <span style="width: 26px; height: 26px; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: #E4E4E7;">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="{{k.d}}"></path></svg>
+                </span>
+                <span style="{{k.chipStyle}}">{{k.chip}}</span>
+              </span>
+              <span style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{k.name}}</span>
+              <span style="font-size: 9px; line-height: 1.3; color: #A1A1AA; text-align: left;">{{k.sub}}</span>
+              <span aria-hidden="true" style="{{k.dot}}"></span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{showDemoHint}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 10px; border-radius: 12px; background: rgba(255,138,142,0.06);">
+          <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(255,138,142,0.12); color: #FF8A8E; display: flex; align-items: center; justify-content: center;">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{icons.dozer}}"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">Demolish</div>
+            <div style="font-size: 10px; line-height: 1; color: #A1A1AA;">Click a building to remove it. Refund: [—] of build cost.</div>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <!-- ===== Bottom · Focus bar (back to overview) ===== -->
+  <sc-if value="{{showFocusBar}}" hint-placeholder-val="{{ false }}">
+    <nav aria-label="Building navigation" style="position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; height: 44px; box-sizing: border-box; padding: 4px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;">
+      <button onClick="{{goOverview}}" style="height: 36px; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 8px; border: none; border-radius: 999px; background: #F4F4F5; color: #0B0B0C; font-size: 12px; line-height: 1; font-weight: 700;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"></path></svg>
+        Overview
+      </button>
+      <div aria-hidden="true" style="width: 1px; height: 18px; margin: 0 6px; background: rgba(255,255,255,0.12);"></div>
+      <button aria-label="Previous building" title="Previous building" onClick="{{fb.prev}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; background: transparent; color: #E4E4E7; display: flex; align-items: center; justify-content: center;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"></path></svg>
+      </button>
+      <div style="min-width: 150px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div style="font-size: 12px; line-height: 1; font-weight: 600; color: #FFFFFF;">{{fb.name}}</div>
+        <div style="font-size: 9px; line-height: 1; color: #A1A1AA;">{{fb.idx}}</div>
+      </div>
+      <button aria-label="Next building" title="Next building" onClick="{{fb.next}}" style="width: 36px; height: 36px; border-radius: 50%; border: none; padding: 0; background: transparent; color: #E4E4E7; display: flex; align-items: center; justify-content: center;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"></path></svg>
+      </button>
+    </nav>
+  </sc-if>
+
+  <!-- ===== Status bar ===== -->
+  <footer role="status" aria-label="Status bar" style="position: absolute; left: 0; right: 0; bottom: 0; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 24px; background: rgba(22,23,26,0.6); backdrop-filter: blur(28px) saturate(160%); border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; line-height: 1; color: #A1A1AA;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 11px; font-weight: 700; color: #FFFFFF;">[WORLD NAME 1]</span>
+      <span style="height: 16px; padding: 0 6px; display: flex; align-items: center; border-radius: 999px; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; background: rgba(255,255,255,0.1); color: #E4E4E7;">CAREER</span>
+      <span>Kerbin system</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;"><span style="{{connDot}}"></span><span style="color: #FFFFFF; font-weight: 600;">Connected</span><span>KSC network · 2 relays</span></div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 21 V10 L9 7.5 V21 M9 21 V3 L15 6 V21 M15 21 V11 L20 13 V21 M3 21 H21"></path></svg>
+      <span>{{location}}</span>
+    </div>
+    <div style="margin: 0 auto; display: flex; align-items: center; gap: 16px;">
+      <span>Funds <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Science <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Reputation <b style="color: #FFFFFF; font-weight: 600;">[—]</b></span>
+      <span>Contracts <b style="color: #FFFFFF; font-weight: 600;">[—] active</b></span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M5 3 H17 L20 6 V21 H4 V3 Z M8 3 V8 H15 V3 M8 21 V14 H16 V21"></path></svg>
+      <span>Autosave 2 h ago</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M17 14 V20 M14 17 H20"></path></svg>
+      <span>[—] mods</span>
+    </div>
+    <div aria-hidden="true" style="width: 1px; height: 12px; background: rgba(255,255,255,0.12);"></div>
+    <div style="display: flex; align-items: center; gap: 2px; margin-right: -6px;">
+      <button aria-label="Notifications, 4 new" title="Notifications" style="position: relative; width: 26px; height: 26px; border: none; border-radius: 6px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: #E4E4E7;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M6 16 V11 A6 6 0 0 1 18 11 V16 L20 18 H4 Z M10 21 H14"></path></svg>
+        <span aria-hidden="true" style="position: absolute; right: 1px; top: 2px; min-width: 12px; height: 12px; padding: 0 3px; box-sizing: border-box; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 8px; line-height: 1; font-weight: 700; background: #F4F4F5; color: #0B0B0C;">4</span>
+      </button>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3E6AE1","options":["#3E6AE1","#E82127","#F4F4F5","#22A06B"]},"initialMode":{"editor":"enum","options":["overview","build","demolish","focus"],"default":"overview"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const m = props.initialMode || 'overview';
+    this.state = {
+      mode: m === 'focus' ? 'focus' : (m === 'build' || m === 'demolish') ? 'build' : 'overview',
+      tool: m === 'demolish' ? 'demolish' : 'place',
+      focus: m === 'focus' ? 'hangar' : null,
+      hover: m === 'demolish' ? 'admin' : null,
+      confirm: m === 'demolish' ? 'admin' : null,
+      cat: 'production',
+      placing: m === 'build' ? 'depot' : null,
+      rot: false,
+      list: false,
+      labels: false,
+      removed: [],
+      added: [],
+      seq: 1,
+      paused: false,
+      warp: 0
+    };
+  }
+
+  renderVals() {
+    const accent = this.props.accent ?? '#3E6AE1';
+    const st = this.state;
+    const set = (o) => this.setState(o);
+    const hexA = (hex, a) => {
+      const h = hex.replace('#', '');
+      const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    };
+
+    // ---------- icons ----------
+    const I = {
+      hangar: 'M3 21 V9 L12 4 L21 9 V21 Z M9 21 V13 H15 V21',
+      launch: 'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21',
+      runway: 'M8 21 L10 3 M16 21 L14 3 M12 5 V7 M12 10 V12 M12 15 V17',
+      mission: 'M4 6 A11 11 0 0 0 16 18 Z M10 12 L17 5 M12 21 H20 M16 18 V21',
+      astro: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19',
+      rnd: 'M9 3 H15 M10 3 V9 L4.5 19 A1.5 1.5 0 0 0 6 21 H18 A1.5 1.5 0 0 0 19.5 19 L14 9 V3 M7 15 H17',
+      admin: 'M3 21 H21 M5 21 V10 M9 21 V10 M15 21 V10 M19 21 V10 M3 10 L12 4 L21 10 Z',
+      prod: 'M3 21 V11 L8 8 V11 L13 8 V11 L18 8 V21 Z M18 21 V4 H21 V21 M7 17 H9 M12 17 H14',
+      infra: 'M10 3 H14 L18 19 H6 Z M8 12 H16 M4 21 H20',
+      build: 'M14 4 L20 10 L17 13 L11 7 Z M12.5 8.5 L4 17 A1.4 1.4 0 0 0 6 19 L14.5 10.5',
+      list: 'M8 6 H20 M8 12 H20 M8 18 H20 M4 6 H4.01 M4 12 H4.01 M4 18 H4.01',
+      branch: 'M12 21 C12 21 5 14.5 5 9.5 A7 7 0 0 1 19 9.5 C19 14.5 12 21 12 21 Z M12 7 V12 M9.5 9.5 H14.5',
+      cursor: 'M6 3 L18 13 L12.5 14 L15.5 20.5 L13 21.5 L10 15 L6 19 Z',
+      dozer: 'M5 16 H12 A2.5 2.5 0 0 1 12 21 H5 A2.5 2.5 0 0 1 5 16 Z M4 16 V10 H9 L11 13 V16 M6 10 V7 M11 14 H16 M16 9 L20 11 V21 H16 Z'
+    };
+
+    // ---------- isometric projection ----------
+    const CX = 900, CY = 330;
+    const P = (x, y, z) => [CX + (x - y) * 0.866, CY + (x + y) * 0.5 - z];
+    const pts = (arr) => arr.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const ground = pts([P(-760, -460, 0), P(760, -460, 0), P(760, 760, 0), P(-760, 760, 0)]);
+    const grid = [];
+    for (let v = -700; v <= 700; v += 100) {
+      const a = P(v, -460, 0), b = P(v, 760, 0), c = P(-760, v, 0), d = P(760, v, 0);
+      grid.push({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] });
+      grid.push({ x1: c[0], y1: c[1], x2: d[0], y2: d[1] });
+    }
+    let seed = 41;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const stars = [];
+    for (let i = 0; i < 90; i++) {
+      stars.push({ style: 'position:absolute;left:' + Math.round(rnd() * 1920) + 'px;top:' + Math.round(rnd() * 200) + 'px;width:1px;height:1px;border-radius:50%;background:#FFFFFF;opacity:' + (0.15 + rnd() * 0.45).toFixed(2) });
+    }
+
+    // ---------- campus ----------
+    const NEXT = '[—] funds · [—] days';
+    const B = [
+      { id: 'mission', name: 'Mission Center', cat: 'comms', href: 'Map.dc.html', d: I.mission, desc: 'Tracks vessels and runs the comms network.',
+        facts: [['Provides', 'Tracking · 2 relays'], ['Upkeep', '[—] funds / 30 days']], cta: 'Open Mission Center',
+        boxes: [[-300, -120, 140, 100, 52]], dish: [-230, -70, 86] },
+      { id: 'launch', name: 'Launchpad S', cat: 'launch', href: 'Launch.dc.html', d: I.launch, desc: 'Vertical launches; its level sets the max launch mass.',
+        facts: [['Provides', 'Max mass [—] t'], ['Upkeep', '[—] funds / 30 days']], cta: 'Choose vessel & launch',
+        boxes: [[260, -200, 140, 140, 8], [370, -170, 16, 16, 180, 'tower'], [315, -145, 26, 26, 120, 'rocket']] },
+      { id: 'hangar', name: 'Hangar', cat: 'production', href: 'Hangar.dc.html', d: I.hangar, desc: 'Builds and stores vessel designs; its level sets the part count.',
+        facts: [['Provides', 'Part count 30'], ['Upkeep', '400 funds / 30 days']], next: '90,000 funds · 20 days', cta: 'Open the Hangar',
+        boxes: [[-20, -40, 130, 100, 190]], door: true },
+      { id: 'astro', name: 'Astronaut Complex', cat: 'crew', href: 'Astronauts.dc.html', d: I.astro, desc: 'Hires and trains crew; its level sets the roster size.',
+        facts: [['Provides', 'Roster [—]'], ['Upkeep', '[—] funds / 30 days']], cta: 'Open Astronaut Complex',
+        boxes: [[-300, 110, 120, 86, 38]], dome: [-240, 153, 48] },
+      { id: 'rnd', name: 'R&D', cat: 'science', href: 'Research.dc.html', d: I.rnd, desc: 'Researches the tech tree with banked science.',
+        facts: [['Provides', 'Tech tier [—]'], ['Upkeep', '[—] funds / 30 days']], cta: 'Open R&D',
+        boxes: [[230, 120, 140, 96, 48]], dome: [300, 168, 60] },
+      { id: 'admin', name: 'Administration', cat: 'admin', href: 'Admin.dc.html', d: I.admin, desc: 'Contracts, funds and strategies.',
+        facts: [['Provides', 'Contracts [—]'], ['Upkeep', '[—] funds / 30 days']], cta: 'Open Administration',
+        boxes: [[-30, 230, 120, 80, 70]] },
+      { id: 'runway', name: 'Runway', cat: 'launch', href: 'Launch.dc.html', d: I.runway, desc: 'Horizontal take-off and landing.',
+        facts: [['Provides', 'Max mass [—] t'], ['Upkeep', '[—] funds / 30 days']], cta: 'Choose plane & take off',
+        boxes: [[-560, 420, 700, 64, 2, 'runway']] }
+    ];
+
+    const CATS = [
+      { id: 'launch', name: 'Launch', d: I.launch },
+      { id: 'comms', name: 'Comms', d: I.mission },
+      { id: 'science', name: 'Science', d: I.rnd },
+      { id: 'crew', name: 'Crew', d: I.astro },
+      { id: 'admin', name: 'Administration', d: I.admin },
+      { id: 'production', name: 'Production', d: I.prod },
+      { id: 'infra', name: 'Infrastructure', d: I.infra }
+    ];
+    const catIcon = (c) => (CATS.find((x) => x.id === c) || CATS[0]).d;
+    const ITEMS = [
+      { id: 'padS', cat: 'launch', name: 'Launchpad S', size: [140, 140, 8], built: 'launch' },
+      { id: 'runwayS', cat: 'launch', name: 'Runway', size: [300, 64, 2], built: 'runway' },
+      { id: 'padM', cat: 'launch', name: 'Launchpad M', size: [180, 180, 10], lock: 'Needs Launchpad S · level 2' },
+      { id: 'missionC', cat: 'comms', name: 'Mission Center', size: [140, 100, 52], built: 'mission' },
+      { id: 'ground', cat: 'comms', name: 'Ground station', size: [90, 90, 30] },
+      { id: 'relay', cat: 'comms', name: 'Relay dish', size: [70, 70, 60] },
+      { id: 'rndC', cat: 'science', name: 'R&D', size: [140, 96, 48], built: 'rnd' },
+      { id: 'obs', cat: 'science', name: 'Observatory', size: [90, 90, 70], lock: 'Needs R&D · level 2' },
+      { id: 'astroC', cat: 'crew', name: 'Astronaut Complex', size: [120, 86, 38], built: 'astro' },
+      { id: 'quarters', cat: 'crew', name: 'Crew quarters', size: [110, 80, 40] },
+      { id: 'adminC', cat: 'admin', name: 'Administration', size: [120, 80, 70], built: 'admin' },
+      { id: 'office', cat: 'admin', name: 'Branch office', size: [90, 70, 50], lock: 'Needs Administration · level 2' },
+      { id: 'hangarC', cat: 'production', name: 'Hangar', size: [130, 100, 190], built: 'hangar' },
+      { id: 'depot', cat: 'production', name: 'Fuel depot', size: [100, 100, 46] },
+      { id: 'workshop', cat: 'production', name: 'Part workshop', size: [120, 90, 60] },
+      { id: 'road', cat: 'infra', name: 'Road', size: [200, 30, 1] },
+      { id: 'power', cat: 'infra', name: 'Power plant', size: [110, 90, 54] },
+      { id: 'tank', cat: 'infra', name: 'Storage tank', size: [60, 60, 50] }
+    ];
+
+    const built = B.filter((b) => st.removed.indexOf(b.id) < 0).concat(st.added.map((a) => {
+      const it = ITEMS.find((i) => i.id === a.item);
+      return { id: a.id, name: it.name, cat: it.cat, d: catIcon(it.cat), href: '', building: true, desc: 'Under construction. It starts working when the timer ends.',
+        facts: [['Completes in', '[—] days'], ['Build cost', '[—] funds']], cta: '',
+        boxes: [[a.x, a.y, a.w, a.d, a.h, 'new']] };
+    }));
+    const byId = (id) => built.find((b) => b.id === id);
+    const statusOf = (b) => b.building ? 'Under construction' : 'Level 1 · running';
+
+    // ---------- placement ghost ----------
+    const SPOTS = [[470, 300], [-620, -330], [-640, 130], [460, 560], [520, -420], [-420, 560]];
+    const overlaps = (r, q) => r[0] < q[0] + q[2] && q[0] < r[0] + r[2] && r[1] < q[1] + q[3] && q[1] < r[1] + r[3];
+    const placingItem = st.mode === 'build' && st.tool === 'place' && st.placing ? ITEMS.find((i) => i.id === st.placing) : null;
+    let ghost = null;
+    if (placingItem) {
+      const w = st.rot ? placingItem.size[1] : placingItem.size[0];
+      const dd = st.rot ? placingItem.size[0] : placingItem.size[1];
+      const spot = SPOTS.find((s) => !st.added.some((a) => overlaps([s[0], s[1], w, dd], [a.x, a.y, a.w, a.d]))) || SPOTS[0];
+      ghost = { x: spot[0], y: spot[1], w, d: dd, h: placingItem.size[2] };
+    }
+
+    // ---------- camera ----------
+    const bbox = (b) => {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      b.boxes.forEach(([x, y, w, d, h]) => {
+        [[x, y], [x + w, y], [x, y + d], [x + w, y + d]].forEach(([a, c]) => {
+          [0, h].forEach((z) => { const p = P(a, c, z); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+        });
+      });
+      if (b.dish) { const p = P(b.dish[0], b.dish[1], b.dish[2]); y0 = Math.min(y0, p[1] - 14); }
+      return { x0, y0, x1, y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 };
+    };
+    const fbld = st.mode === 'focus' ? byId(st.focus) : null;
+    let cam = { s: 1, tx: 0, ty: 0 };
+    if (fbld) {
+      const bb = bbox(fbld);
+      const s = Math.max(1.6, Math.min(3, 760 / Math.max(bb.w, 1), 520 / Math.max(bb.h, 1)));
+      cam = { s, tx: 790 - bb.cx * s, ty: 560 - bb.cy * s };
+    }
+    const toScreen = (x, y) => [cam.tx + x * cam.s, cam.ty + y * cam.s];
+    const camStyle = 'position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transform:translate(' + cam.tx.toFixed(1) + 'px,' + cam.ty.toFixed(1) + 'px) scale(' + cam.s.toFixed(3) + ');transition:transform 700ms cubic-bezier(0.2,0.7,0.2,1)';
+
+    // ---------- draw ----------
+    const demolishing = st.mode === 'build' && st.tool === 'demolish';
+    const hotId = st.confirm || st.hover || (fbld ? fbld.id : null);
+    const look = (b, tone) => {
+      const on = b && b.id === hotId;
+      const red = on && (demolishing || st.confirm === b.id);
+      if (tone === 'ghost') return { top: hexA(accent, 0.32), left: hexA(accent, 0.18), right: hexA(accent, 0.24), stroke: accent, dash: '5 4' };
+      if (red) return { top: '#3A2224', left: '#2A1719', right: '#331C1E', stroke: '#FF8A8E', dash: '' };
+      if (tone === 'new') return { top: on ? '#2C3036' : '#1A1D21', left: '#121417', right: '#16181B', stroke: on ? '#FFFFFF' : 'rgba(255,255,255,0.4)', dash: '4 4' };
+      const stroke = on ? '#FFFFFF' : 'rgba(255,255,255,0.22)';
+      if (tone === 'rocket') return { top: '#F4F4F5', left: '#C9CDD3', right: '#E4E6EA', stroke, dash: '' };
+      if (tone === 'tower') return { top: '#3A3E46', left: '#2A2D33', right: '#33363C', stroke, dash: '' };
+      if (tone === 'runway') return { top: on ? '#2C3036' : '#1A1D21', left: '#17191D', right: '#1E2126', stroke, dash: '' };
+      return { top: on ? '#3A3E46' : '#262A30', left: on ? '#22252B' : '#17191D', right: on ? '#2C3036' : '#1E2126', stroke, dash: '' };
+    };
+    const faces = [];
+    const all = [];
+    built.forEach((b) => b.boxes.forEach((bx) => all.push({ b, bx })));
+    if (ghost) all.push({ b: null, bx: [ghost.x, ghost.y, ghost.w, ghost.d, ghost.h, 'ghost'] });
+    const depth = (bx) => bx[0] + bx[1] + (bx[2] + bx[3]) / 2;
+    all.sort((p, q) => depth(p.bx) - depth(q.bx));
+    all.forEach(({ b, bx }) => {
+      const [x, y, w, d, h, tone] = bx;
+      const L = look(b, tone);
+      faces.push({ pts: pts([P(x, y + d, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x, y + d, h)]), fill: L.left, stroke: L.stroke, dash: L.dash });
+      faces.push({ pts: pts([P(x + w, y, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x + w, y, h)]), fill: L.right, stroke: L.stroke, dash: L.dash });
+      faces.push({ pts: pts([P(x, y, h), P(x + w, y, h), P(x + w, y + d, h), P(x, y + d, h)]), fill: L.top, stroke: L.stroke, dash: L.dash });
+      if (b && b.door) faces.push({ pts: pts([P(x + 35, y + d, 0), P(x + 95, y + d, 0), P(x + 95, y + d, 150), P(x + 35, y + d, 150)]), fill: '#0E1013', stroke: L.stroke, dash: '' });
+    });
+    const ells = [], lines = [];
+    built.forEach((b) => {
+      const L = look(b, '');
+      const stroke = L.stroke === 'rgba(255,255,255,0.22)' ? 'rgba(255,255,255,0.3)' : L.stroke;
+      if (b.dish) { const c = P(b.dish[0], b.dish[1], b.dish[2]); const base = P(b.dish[0], b.dish[1], 52); lines.push({ x1: base[0], y1: base[1], x2: c[0], y2: c[1], stroke, w: 2, dash: '' }); ells.push({ cx: c[0], cy: c[1], rx: 30, ry: 14, fill: L.top, stroke }); }
+      if (b.dome) { const c = P(b.dome[0], b.dome[1], b.dome[2] - 10); ells.push({ cx: c[0], cy: c[1], rx: 26, ry: 14, fill: L.top, stroke }); }
+    });
+    if (byId('runway')) {
+      const r1 = P(-540, 452, 3), r2 = P(120, 452, 3);
+      lines.push({ x1: r1[0], y1: r1[1], x2: r2[0], y2: r2[1], stroke: 'rgba(255,255,255,0.35)', w: 1.5, dash: '10 10' });
+    }
+
+    // ---------- actions ----------
+    const focusOn = (id) => set({ mode: 'focus', focus: id, hover: null, list: false, confirm: null, placing: null });
+    const goOverview = () => set({ mode: 'overview', focus: null, confirm: null, placing: null, tool: 'place', hover: null });
+    const demolish = (id) => {
+      const isNew = st.added.some((a) => a.id === id);
+      set({
+        removed: isNew ? st.removed : st.removed.concat([id]),
+        added: isNew ? st.added.filter((a) => a.id !== id) : st.added,
+        confirm: null, hover: null,
+        mode: st.mode === 'focus' ? 'overview' : st.mode, focus: st.mode === 'focus' ? null : st.focus
+      });
+    };
+    const clickBuilding = (id) => {
+      if (st.mode === 'build') { if (st.tool === 'demolish') set({ confirm: id }); return; }
+      focusOn(id);
+    };
+
+    // hit areas: flat things at the back so they never steal clicks
+    const hits = built.slice().sort((p, q) => {
+      const fp = Math.max.apply(null, p.boxes.map((b) => b[4])) < 12 ? 0 : 1;
+      const fq = Math.max.apply(null, q.boxes.map((b) => b[4])) < 12 ? 0 : 1;
+      return fp - fq || depth(p.boxes[0]) - depth(q.boxes[0]);
+    }).map((b) => {
+      const bb = bbox(b);
+      const cursor = st.mode === 'build' && st.tool !== 'demolish' ? 'default' : 'pointer';
+      return {
+        name: b.name, label: (demolishing ? 'Demolish ' : 'Open ') + b.name,
+        click: () => clickBuilding(b.id),
+        enter: () => { if (st.hover !== b.id) set({ hover: b.id }); },
+        style: 'position:absolute;left:' + bb.x0.toFixed(0) + 'px;top:' + bb.y0.toFixed(0) + 'px;width:' + bb.w.toFixed(0) + 'px;height:' + bb.h.toFixed(0) + 'px;border:none;padding:0;background:transparent;cursor:' + cursor
+      };
+    });
+
+    const anchorOf = (b) => {
+      const bb = bbox(b);
+      const flat = Math.max.apply(null, b.boxes.map((x) => x[4])) < 12;
+      const m = b.boxes[0];
+      const cTop = P(m[0] + m[2] / 2, m[1] + m[3] / 2, m[4]);
+      return toScreen(flat ? cTop[0] : bb.cx, flat ? cTop[1] - 4 : bb.y0 + 2);
+    };
+
+    // labels: hover only (or all when Labels is on); hidden while zoomed
+    const showLabelsFor = st.mode === 'focus' ? [] : (st.labels && st.mode === 'overview' ? built : built.filter((b) => b.id === st.hover && b.id !== st.confirm));
+    const labels = showLabelsFor.map((b) => {
+      const a = anchorOf(b);
+      const red = demolishing && b.id === st.hover;
+      const hot = b.id === st.hover;
+      return {
+        name: red ? 'Demolish ' + b.name : b.name, sub: statusOf(b),
+        click: () => clickBuilding(b.id),
+        enter: () => { if (st.hover !== b.id) set({ hover: b.id }); },
+        style: 'position:absolute;left:' + a[0].toFixed(0) + 'px;top:' + a[1].toFixed(0) + 'px;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 11px;border-radius:10px;white-space:nowrap;background:rgba(22,23,26,0.72);backdrop-filter:blur(20px);border:1px solid ' + (red ? 'rgba(255,138,142,0.5)' : hot ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.1)'),
+        nameStyle: 'font-size:11px;line-height:1;font-weight:600;color:' + (red ? '#FF8A8E' : '#FFFFFF')
+      };
+    });
+
+    // placement chip
+    let gc = {};
+    if (ghost) {
+      const top = P(ghost.x + ghost.w / 2, ghost.y + ghost.d / 2, ghost.h);
+      gc = {
+        name: placingItem.name, sub: '[—] funds · [—] days',
+        style: 'position:absolute;left:' + top[0].toFixed(0) + 'px;top:' + (top[1] - 14).toFixed(0) + 'px;transform:translate(-50%,-100%);display:flex;align-items:center;gap:4px;height:40px;box-sizing:border-box;padding:4px;border-radius:999px;background:rgba(22,23,26,0.72);backdrop-filter:blur(20px);border:1px solid ' + hexA(accent, 0.5),
+        rotate: () => set({ rot: !st.rot }),
+        cancel: () => set({ placing: null }),
+        place: () => set({ added: st.added.concat([{ id: 'new' + st.seq, item: placingItem.id, x: ghost.x, y: ghost.y, w: ghost.w, d: ghost.d, h: ghost.h }]), seq: st.seq + 1, placing: null, rot: false })
+      };
+    }
+
+    // demolish confirm
+    let cf = {};
+    const cb = st.confirm ? byId(st.confirm) : null;
+    if (cb) {
+      const a = anchorOf(cb);
+      const y = Math.max(200, a[1]);
+      cf = {
+        title: 'Demolish ' + cb.name + '?',
+        style: 'position:absolute;left:' + a[0].toFixed(0) + 'px;top:' + (y - 10).toFixed(0) + 'px;transform:translate(-50%,-100%);width:248px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;background:rgba(22,23,26,0.8);backdrop-filter:blur(24px);border:1px solid rgba(255,138,142,0.35)',
+        cancel: () => set({ confirm: null }),
+        ok: () => demolish(cb.id)
+      };
+    }
+
+    // ---------- overview bar ----------
+    const pill = (on) => 'position:relative;height:36px;padding:0 14px;display:flex;align-items:center;gap:8px;border:none;border-radius:999px;background:transparent;font-size:12px;line-height:1;font-weight:600;color:' + (on ? '#FFFFFF' : '#C4C4CC');
+    const dotS = (on, extra) => 'position:absolute;width:4px;height:4px;border-radius:50%;background:' + (on ? '#FFFFFF' : 'transparent') + ';' + (extra || 'left:50%;bottom:3px;margin-left:-2px');
+    const actions = [
+      { name: 'Build', d: I.build, on: false, click: () => set({ mode: 'build', list: false, hover: null, tool: 'place' }) },
+      { name: 'Buildings', d: I.list, on: st.list, click: () => set({ list: !st.list }) },
+      { name: 'Found a branch', d: I.branch, on: false, click: () => {} }
+    ].map((a) => Object.assign(a, { style: pill(a.on), dot: dotS(a.on) }));
+
+    const rows = built.map((b) => {
+      const on = st.hover === b.id;
+      return {
+        name: b.name, sub: statusOf(b), d: b.d,
+        click: () => focusOn(b.id),
+        enter: () => { if (st.hover !== b.id) set({ hover: b.id }); },
+        style: 'position:relative;display:flex;align-items:center;gap:8px;height:40px;padding:0 6px;border:none;border-radius:8px;text-align:left;background:' + (on ? 'rgba(255,255,255,0.07)' : 'transparent'),
+        dot: dotS(on, 'right:8px;top:50%;margin-top:-2px')
+      };
+    });
+    const nBuilding = built.filter((b) => b.building).length;
+
+    // ---------- build bar ----------
+    const cats = CATS.map((c) => {
+      const on = st.cat === c.id;
+      return { name: c.name, d: c.d, on, click: () => set({ cat: c.id, tool: 'place', confirm: null }),
+        style: 'position:relative;height:36px;padding:0 11px;display:flex;align-items:center;gap:7px;border:none;border-radius:999px;background:transparent;font-size:11px;line-height:1;font-weight:600;color:' + (on && st.tool === 'place' ? '#FFFFFF' : '#8B8B93'),
+        dot: dotS(on && st.tool === 'place') };
+    });
+    const tools = [
+      { id: 'place', name: 'Place', d: I.cursor },
+      { id: 'demolish', name: 'Demolish', d: I.dozer }
+    ].map((t) => {
+      const on = st.tool === t.id;
+      const red = t.id === 'demolish' && on;
+      return { name: t.name, d: t.d, on, click: () => set({ tool: t.id, placing: null, confirm: null, hover: null }),
+        style: 'position:relative;width:36px;height:36px;border:none;border-radius:50%;padding:0;background:transparent;display:flex;align-items:center;justify-content:center;color:' + (red ? '#FF8A8E' : on ? '#FFFFFF' : '#8B8B93'),
+        dot: 'position:absolute;left:50%;bottom:2px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:' + (red ? '#FF8A8E' : on ? '#FFFFFF' : 'transparent') };
+    });
+    const cards = ITEMS.filter((i) => i.cat === st.cat).map((i) => {
+      const exists = i.built && byId(i.built);
+      const count = st.added.filter((a) => a.item === i.id).length;
+      const disabled = !!(i.lock || exists);
+      const on = st.placing === i.id;
+      const chip = i.lock ? 'LOCKED' : exists ? 'BUILT' : count ? '×' + count : '';
+      return {
+        name: i.name, d: i.d || catIcon(i.cat), chip, disabled, on,
+        title: i.lock || (exists ? 'Already built · max 1' : 'Place ' + i.name),
+        sub: i.lock ? i.lock : (exists ? 'Max 1 · already built' : '[—] funds · [—] days · ' + Math.round(i.size[0] / 20) + '×' + Math.round(i.size[1] / 20) + ' tiles'),
+        click: () => { if (!disabled) set({ placing: on ? null : i.id, rot: false }); },
+        style: 'position:relative;flex:1;max-width:240px;min-height:92px;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px;border-radius:12px;text-align:left;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';opacity:' + (i.lock ? 0.5 : 1) + ';background:' + (on ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.035)') + ';border:1px solid ' + (on ? 'rgba(255,255,255,0.22)' : 'transparent'),
+        chipStyle: chip ? 'height:16px;padding:0 6px;display:flex;align-items:center;border-radius:999px;font-size:8px;line-height:1;font-weight:700;letter-spacing:0.08em;color:#E4E4E7;background:rgba(255,255,255,0.1)' : 'display:none',
+        dot: dotS(on, 'right:10px;bottom:10px')
+      };
+    });
+
+    // ---------- focus ----------
+    let dt = {}, fb = {};
+    if (fbld) {
+      const idx = built.indexOf(fbld);
+      const n = built.length;
+      const segs = [0, 1, 2].map((k) => ({ style: 'width:22px;height:4px;border-radius:2px;background:' + (!fbld.building && k < 1 ? '#F4F4F5' : 'rgba(255,255,255,0.14)') }));
+      dt = {
+        label: fbld.name.toUpperCase(), name: fbld.name, segs,
+        level: fbld.building ? 'Level 0 of 3' : 'Level 1 of 3',
+        state: fbld.building ? 'Building' : 'Running',
+        stateDot: 'width:6px;height:6px;border-radius:50%;background:' + (fbld.building ? '#FFB86B' : '#7BD88F'),
+        desc: fbld.desc, facts: fbld.facts.map(([k, v]) => ({ k, v })),
+        hasUpgrade: !fbld.building, nextLabel: 'NEXT · LEVEL 2', next: fbld.next || NEXT, upgrade: 'Upgrade to level 2',
+        hasOpen: !fbld.building && !!fbld.href, href: fbld.href, cta: fbld.cta,
+        demolish: () => set({ confirm: fbld.id }),
+        demolishLabel: fbld.building ? 'Cancel construction' : 'Demolish'
+      };
+      fb = {
+        name: fbld.name, idx: 'Building ' + (idx + 1) + ' of ' + n,
+        prev: () => focusOn(built[(idx - 1 + n) % n].id),
+        next: () => focusOn(built[(idx + 1) % n].id)
+      };
+    }
+
+    const location = st.mode === 'focus' && fbld ? 'Space Center · ' + fbld.name : st.mode === 'build' ? 'Space Center · Build mode' : 'Space Center · Kerbin';
+
+    // ---------- time bar ----------
+    const rates = [1, 2, 4, 10, 50, 100, 1000, 10000];
+    const warps = rates.map((r, i) => ({
+      label: 'Time warp ' + r + '×', on: i === st.warp,
+      pick: () => set({ warp: i, paused: false }),
+      style: 'width:' + (i < 4 ? 6 : 10) + 'px;height:18px;border:none;padding:0;border-radius:3px;background:' + (st.paused ? 'rgba(255,255,255,0.12)' : (i <= st.warp ? (i === st.warp ? accent : '#F4F4F5') : 'rgba(255,255,255,0.12)'))
+    }));
+    const fmt = (r) => r >= 1000 ? (r / 1000) + 'k×' : r + '×';
+
+    return {
+      stars, ground, grid, faces, ells, lines, hits, labels, camStyle,
+      gridStroke: st.mode === 'build' ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.045)',
+      clearHover: () => { if (st.hover && !st.confirm) set({ hover: null }); },
+      icons: { dozer: I.dozer },
+      showGhost: !!ghost, gc,
+      showConfirm: !!cb, cf,
+      showList: st.mode === 'overview' && st.list, rows, builtCount: String(built.length),
+      listFoot: nBuilding ? nBuilding + ' under construction · the rest are running.' : 'Every building is running.',
+      showDetail: !!fbld, dt, showFocusBar: !!fbld, fb,
+      showOverviewBar: st.mode === 'overview', actions,
+      toggleLabels: () => set({ labels: !st.labels }), labelsOn: st.labels,
+      labelsTitle: st.labels ? 'Names: always' : 'Names: on hover',
+      labelsStyle: 'position:relative;width:36px;height:36px;border:none;border-radius:50%;padding:0;background:transparent;display:flex;align-items:center;justify-content:center;color:' + (st.labels ? '#FFFFFF' : '#8B8B93'),
+      labelsDot: dotS(st.labels),
+      showBuildBar: st.mode === 'build', cats, tools, cards,
+      showCards: st.mode === 'build' && st.tool === 'place', showDemoHint: demolishing,
+      goOverview, location,
+      connDot: 'width:6px;height:6px;border-radius:50%;background:' + accent,
+      warps, warpLabel: st.paused ? '—' : fmt(rates[st.warp]),
+      paused: st.paused, playing: !st.paused, playLabel: st.paused ? 'Resume' : 'Pause',
+      togglePlay: () => set({ paused: !st.paused })
+    };
+  }
+}
+</script>
+</body>
+</html>

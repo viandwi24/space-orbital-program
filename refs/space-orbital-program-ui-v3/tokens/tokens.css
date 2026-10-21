@@ -1,0 +1,179 @@
+/* Space Orbital Program UI — design tokens v3.0 */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
+
+:root {
+  /* background */
+  --sop-bg-space: #000000;
+  --sop-bg-ground: #05070A;
+  --sop-bg-hangar: #0A0C0F;
+
+  /* surfaces */
+  --sop-surface-glass: rgba(22, 23, 26, 0.60);
+  --sop-surface-solid: #141518;
+  --sop-surface-dialog: #16171A;
+  --sop-surface-inset: rgba(255, 255, 255, 0.05);
+  --sop-surface-tile: rgba(255, 255, 255, 0.06);
+  --sop-surface-hover: rgba(255, 255, 255, 0.07);
+  --sop-surface-button: rgba(255, 255, 255, 0.08);
+  --sop-surface-scrim: rgba(0, 0, 0, 0.60);
+
+  /* borders */
+  --sop-border-subtle: rgba(255, 255, 255, 0.08);
+  --sop-border-divider: rgba(255, 255, 255, 0.07);
+  --sop-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* text */
+  --sop-text-primary: #FFFFFF;
+  --sop-text-body: #F4F4F5;
+  --sop-text-secondary: #E4E4E7;
+  --sop-text-muted: #A1A1AA;
+  --sop-text-subtle: #8B8B93;
+  --sop-text-disabled: #6B6B73;
+
+  /* accent & state */
+  --sop-accent: #3E6AE1;
+  --sop-selected-bg: #F4F4F5;
+  --sop-selected-fg: #0B0B0C;
+  --sop-ok: #7BD88F;
+  --sop-warn: #FFB86B;
+  --sop-danger: #FF8A8E;
+  --sop-offline: #FF5A5F;
+  --sop-mnv-prograde: #7BD88F;
+  --sop-mnv-normal: #C792EA;
+  --sop-mnv-radial: #7FD4F5;
+
+  /* type */
+  --sop-font-ui: 'Manrope', system-ui, sans-serif;
+  --sop-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sop-tracking-label: 0.14em;
+  --sop-tracking-chip: 0.08em;
+
+  /* shape & space */
+  --sop-radius-pill: 999px;
+  --sop-radius-panel: 16px;
+  --sop-radius-card: 12px;
+  --sop-radius-row: 10px;
+  --sop-radius-tile: 8px;
+  --sop-radius-icon: 7px;
+  --sop-margin-hud: 24px;
+  --sop-margin-menu: 80px;
+  --sop-panel-pad: 10px;
+  --sop-panel-gap: 12px;
+  --sop-capsule: 44px;
+  --sop-round-btn: 36px;
+  --sop-dot: 4px;
+
+  /* effects */
+  --sop-glass-filter: blur(28px) saturate(160%);
+
+  /* base layout (v2) */
+  --sop-edge: 24px;
+  --sop-statusbar-h: 32px;
+  --sop-safe-top: 80px;
+  --sop-safe-bottom: calc(var(--sop-statusbar-h) + var(--sop-edge)); /* 56px */
+}
+
+/* ---------- base layout (v2) ---------- */
+.sop-timebar  { position: absolute; left: var(--sop-edge); top: var(--sop-edge); }
+.sop-menubar  { position: absolute; right: var(--sop-edge); top: var(--sop-edge); }
+.sop-safe     { position: absolute; left: var(--sop-edge); right: var(--sop-edge); top: var(--sop-safe-top); bottom: var(--sop-safe-bottom); }
+.sop-statusbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--sop-statusbar-h); box-sizing: border-box;
+  display: flex; align-items: center; gap: 14px; padding: 0 var(--sop-edge);
+  background: var(--sop-surface-glass); -webkit-backdrop-filter: var(--sop-glass-filter); backdrop-filter: var(--sop-glass-filter);
+  border-top: 1px solid var(--sop-border-subtle);
+  font: 400 10px/1 var(--sop-font-ui); color: var(--sop-text-muted);
+}
+.sop-statusbar .sop-sep { width: 1px; height: 12px; background: rgba(255,255,255,0.12); }
+.sop-statusbar .sop-center { margin: 0 auto; display: flex; gap: 16px; }
+.sop-statusbar b { color: var(--sop-text-primary); font-weight: 600; }
+.sop-menubar .sop-sep { width: 1px; height: 18px; margin: 0 2px; background: rgba(255,255,255,0.12); }
+.sop-warp-seg { height: 18px; border: 0; padding: 0; border-radius: 3px; background: rgba(255,255,255,0.12); }
+.sop-warp-seg[data-kind="physics"] { width: 6px; }
+.sop-warp-seg[data-kind="rails"]   { width: 10px; }
+.sop-warp-seg[data-lit]            { background: #F4F4F5; }
+.sop-warp-seg[aria-pressed="true"] { background: var(--sop-accent); }
+.sop-badge { position: absolute; right: 1px; top: 2px; min-width: 12px; height: 12px; padding: 0 3px; box-sizing: border-box; border-radius: var(--sop-radius-pill); display: flex; align-items: center; justify-content: center; font: 700 8px/1 var(--sop-font-ui); background: var(--sop-selected-bg); color: var(--sop-selected-fg); }
+
+/* ---------- base ---------- */
+.sop {
+  font-family: var(--sop-font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--sop-text-body);
+  background: var(--sop-bg-space);
+}
+
+/* ---------- glass surfaces ---------- */
+.sop-glass {
+  background: var(--sop-surface-glass);
+  -webkit-backdrop-filter: var(--sop-glass-filter);
+  backdrop-filter: var(--sop-glass-filter);
+  border: 1px solid var(--sop-border-subtle);
+}
+/* use together with .sop-glass:  <div class="sop-glass sop-panel"> */
+.sop-panel   { border-radius: var(--sop-radius-panel); padding: var(--sop-panel-pad); box-sizing: border-box; }
+.sop-capsule { height: var(--sop-capsule); border-radius: var(--sop-radius-pill); padding: 4px; display: flex; align-items: center; gap: 4px; box-sizing: border-box; }
+
+/* ---------- text roles ---------- */
+.sop-label { font-size: 9px; line-height: 1; font-weight: 700; letter-spacing: var(--sop-tracking-label); text-transform: uppercase; color: var(--sop-text-muted); }
+.sop-value { font-size: 13px; line-height: 1; font-weight: 600; color: var(--sop-text-primary); }
+.sop-sub   { font-size: 9px; line-height: 1; color: var(--sop-text-muted); }
+.sop-display { font-size: 28px; line-height: 1.1; font-weight: 300; color: var(--sop-text-primary); }
+
+/* ---------- flat active indicator ---------- */
+.sop-icon-btn {
+  position: relative; width: var(--sop-round-btn); height: var(--sop-round-btn);
+  border: 0; border-radius: 50%; background: transparent; color: var(--sop-text-subtle);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.sop-icon-btn[aria-pressed="true"],
+.sop-icon-btn[aria-selected="true"] { color: var(--sop-text-primary); }
+.sop-icon-btn::after {
+  content: ""; position: absolute; left: 50%; bottom: 3px; width: var(--sop-dot); height: var(--sop-dot);
+  margin-left: calc(var(--sop-dot) / -2); border-radius: 50%; background: transparent;
+}
+.sop-icon-btn[aria-pressed="true"]::after,
+.sop-icon-btn[aria-selected="true"]::after { background: #FFFFFF; }
+/* vertical rails put the dot on the right */
+.sop-rail .sop-icon-btn::after { left: auto; right: 1px; bottom: auto; top: 50%; margin: calc(var(--sop-dot) / -2) 0 0 0; }
+
+/* ---------- segmented ---------- */
+.sop-seg { border: 0; border-radius: var(--sop-radius-pill); height: 34px; padding: 0 14px; font: 700 11px/1 var(--sop-font-ui); background: transparent; color: var(--sop-text-muted); }
+.sop-seg[aria-selected="true"], .sop-seg[aria-pressed="true"] { background: var(--sop-selected-bg); color: var(--sop-selected-fg); }
+
+/* ---------- switch ---------- */
+.sop-switch { width: 30px; height: 18px; padding: 2px; border: 0; border-radius: var(--sop-radius-pill); background: rgba(255,255,255,0.14); display: inline-flex; justify-content: flex-start; align-items: center; }
+.sop-switch::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #FFFFFF; }
+.sop-switch[aria-pressed="true"] { background: var(--sop-accent); justify-content: flex-end; }
+.sop-switch[data-mixed] { background: rgba(62,106,225,0.45); justify-content: center; }
+
+/* ---------- buttons ---------- */
+.sop-btn-primary   { border: 0; border-radius: 12px; height: 44px; padding: 0 18px; font: 700 12px/1 var(--sop-font-ui); background: var(--sop-selected-bg); color: var(--sop-selected-fg); }
+.sop-btn-secondary { border: 0; border-radius: 12px; height: 44px; padding: 0 18px; font: 700 12px/1 var(--sop-font-ui); background: var(--sop-surface-button); color: var(--sop-text-secondary); }
+
+/* ---------- chips & stat cells ---------- */
+.sop-chip { height: 18px; padding: 0 7px; border-radius: var(--sop-radius-pill); display: inline-flex; align-items: center; font: 700 8px/1 var(--sop-font-ui); letter-spacing: var(--sop-tracking-chip); background: rgba(255,255,255,0.12); color: #FFFFFF; }
+.sop-stat { border-radius: var(--sop-radius-tile); padding: 7px 8px; background: var(--sop-surface-inset); display: flex; flex-direction: column; gap: 4px; }
+.sop-stat > :first-child { font: 700 7px/1 var(--sop-font-ui); letter-spacing: var(--sop-tracking-label); color: var(--sop-text-muted); }
+.sop-stat > :last-child  { font: 600 11px/1 var(--sop-font-ui); color: var(--sop-text-primary); }
+
+/* ---------- v3: alerts ---------- */
+:root {
+  --sop-sev-control: #FF8A8E;
+  --sop-sev-warn: #FFB86B;
+  --sop-sev-ok: #7BD88F;
+  --sop-module: #141518;
+}
+.sop-toasts { position: absolute; left: 50%; top: var(--sop-edge); transform: translateX(-50%); width: 380px; display: flex; flex-direction: column; gap: 8px; }
+.sop-toast  { display: flex; align-items: center; gap: 10px; min-height: 44px; box-sizing: border-box; padding: 8px 6px 8px 8px; border-radius: 12px; background: rgba(22,23,26,0.72); -webkit-backdrop-filter: var(--sop-glass-filter); backdrop-filter: var(--sop-glass-filter); border: 1px solid rgba(255,255,255,0.1); }
+.sop-status-chip { height: 20px; padding: 0 7px; display: inline-flex; align-items: center; gap: 5px; border-radius: var(--sop-radius-pill); border: 1px solid transparent; font: 700 8px/1 var(--sop-font-ui); letter-spacing: var(--sop-tracking-chip); background: rgba(255,255,255,0.05); }
+.sop-status-chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.sop-status-chip[data-sev="control"] { color: var(--sop-sev-control); }
+.sop-status-chip[data-sev="warn"]    { color: var(--sop-sev-warn); }
+.sop-status-chip[data-flash]         { border-color: currentColor; background: rgba(255,255,255,0.12); }
+
+/* ---------- v3: dock, staging, context bar ---------- */
+.sop-dock      { position: absolute; left: var(--sop-edge); top: var(--sop-safe-top); display: flex; align-items: stretch; }
+.sop-dock-panel{ width: 272px; max-height: 860px; overflow-y: auto; box-sizing: border-box; padding: 10px 12px 12px; border-left: 1px solid var(--sop-border-divider); }
+.sop-staging   { position: absolute; right: var(--sop-edge); bottom: var(--sop-safe-bottom); width: 260px; max-height: 944px; }
+.sop-context-bar { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); }

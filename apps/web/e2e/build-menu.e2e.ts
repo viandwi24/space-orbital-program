@@ -22,9 +22,10 @@ test('open Comms, see the dish card with its thumbnail, place it, construction s
 	await page.waitForURL('**/space-center');
 	await expect(page.locator('[data-testid^="sc-row-"]')).toHaveCount(4, { timeout: 60_000 });
 
-	// the bar: the seven stock categories, at bottom 52 over the status bar
-	const bar = page.getByRole('navigation', { name: 'Build' });
-	await expect(bar.getByRole('button')).toHaveText([
+	// v3 (plan 273, V3 §1.2): Build opens the build bar at bottom 52 with the seven stock categories
+	await page.getByTestId('sc-build').click();
+	const bar = page.getByRole('tablist', { name: 'Building categories' });
+	await expect(bar.getByRole('tab')).toHaveText([
 		'Launch',
 		'Comms',
 		'Science',
@@ -35,21 +36,23 @@ test('open Comms, see the dish card with its thumbnail, place it, construction s
 	]);
 	const dock = (await page.getByTestId('build-menu').boundingBox())!;
 	expect(Math.round(900 - (dock.y + dock.height))).toBe(52);
-	for (const b of await bar.getByRole('button').all()) {
-		const r = (await b.boundingBox())!;
-		expect(Math.min(r.width, r.height)).toBeGreaterThanOrEqual(44);
-	}
+	// the tabs are 36 high (V3 §1.2)
+	const heights = await bar
+		.getByRole('tab')
+		.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().height)));
+	expect(heights).toEqual(Array(7).fill(36));
 
-	// the keyboard walks the bar; Enter opens a row, Escape closes it
+	// the keyboard walks the tabs; Enter opens a row; Escape closes the bar (ADR 0254 point 1)
 	await page.getByTestId('sc-cat-stock.launch').focus();
 	await page.keyboard.press('ArrowRight');
 	await expect(page.getByTestId('sc-cat-stock.comms')).toBeFocused();
 	await page.keyboard.press('Enter');
 	await expect(page.getByTestId('build-row')).toBeVisible();
-	// the focused button's tooltip takes the first Escape (plan 228); the next one closes the row
 	await page.keyboard.press('Escape');
 	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('build-row')).toHaveCount(0);
+	await expect(page.getByTestId('sc-overview-bar')).toBeVisible();
+	await page.getByTestId('sc-build').click();
 
 	// a disabled card says why: the off-world kinds at home
 	await page.getByTestId('sc-cat-stock.production').click();

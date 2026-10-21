@@ -1,13 +1,15 @@
 <script lang="ts">
 	import Term from '../ui/Term.svelte';
 	/**
-	 * The navball module (plan 088, ADRs 0107 and 0144; refs `Main` bottom centre): one solid bezel
-	 * holding the monochrome navball, the vertical-speed arc, the heading chip, the SAS pod with the
-	 * SAS and RCS pills, VEL and ALT, and a slim throttle bar. Geometry is the mock's 430 x 262 px
-	 * module scaled by `--k` (ball 176 px at 1, 144 px on short screens) in rem, so the UI scale
-	 * applies. The ball paints per frame (ADR 0026); everything else follows the 10 Hz model.
+	 * The navball module (v3 since plan 272, V3 §2.4, ADR 0253 point 6; first plan 088, ADR 0144):
+	 * one solid body holding the readouts on the left, the monochrome navball with the vertical-speed
+	 * arc on its left and the throttle arc on its right, the round SAS pod with the SAS and RCS pills,
+	 * and the status strip along the bottom. Geometry is the design's 552 x 232 px module scaled by
+	 * `--k` (ball 180 px at 1, 144 px on short screens) in rem, so the UI scale applies. The ball
+	 * paints per frame (ADR 0026); everything else follows the 10 Hz model.
 	 */
-	import Meter from '../ui/Meter.svelte';
+	import StatusStrip from './StatusStrip.svelte';
+	import type { ChipFix, StatusChip } from './status-chips';
 	import { settings } from '../settings/settings.svelte';
 	import {
 		formatBearing,
@@ -32,7 +34,9 @@
 		sas,
 		controllable = true,
 		onsas,
-		onrcs
+		onrcs,
+		chips = [],
+		onfix = () => {}
 	}: {
 		model: HudModel | null;
 		throttle: number;
@@ -44,6 +48,9 @@
 		onsas?: (mode: SasMode) => void;
 		/** The RCS pill was pressed (plan 211). */
 		onrcs?: () => void;
+		/** The status strip's conditions (V3 §2.2). */
+		chips?: readonly StatusChip[];
+		onfix?: (fix: ChipFix) => void;
 	} = $props();
 
 	let ball: Navball;
@@ -79,51 +86,58 @@
 	);
 	const att = $derived(model?.attitude);
 
-	// The vertical-speed arc (refs): radius 96 around the ball's centre (154, 104), on the left,
-	// +-40 degrees around 180; up for climbing. A log scale to 2 km/s so slow and fast both read.
-	const CX = 154;
-	const CY = 104;
+	// The arcs (V3 §2.4): radius 96 around the ball's centre (280, 98). Vertical speed on the left,
+	// +-40 degrees around 180, up for climbing, on a log scale to 2 km/s so slow and fast both read.
+	// The throttle on the right, filled from the bottom (-40 degrees) up to +40 degrees.
+	const CX = 280;
+	const CY = 98;
 	const R = 96;
 	const at = (deg: number): [number, number] => [
 		CX + R * Math.cos((deg * Math.PI) / 180),
 		CY - R * Math.sin((deg * Math.PI) / 180)
 	];
+	const pt = (deg: number): string =>
+		at(deg)
+			.map((v) => v.toFixed(2))
+			.join(' ');
 	const fraction = $derived(
 		Math.max(-1, Math.min(1, (Math.sign(vs) * Math.log10(1 + Math.abs(vs))) / Math.log10(1 + 2000)))
 	);
-	const arc = $derived.by(() => {
-		const [x, y] = at(180 - fraction * 40);
-		return `M58 104 A96 96 0 0 ${fraction >= 0 ? 1 : 0} ${x.toFixed(2)} ${y.toFixed(2)}`;
-	});
-	const k = $derived(ballSize / 176);
+	const arc = $derived(`M184 98 A96 96 0 0 ${fraction >= 0 ? 1 : 0} ${pt(180 - fraction * 40)}`);
+	const thr = $derived(Math.max(0, Math.min(1, throttle)));
+	const thrArc = $derived(`M${pt(-40)} A96 96 0 0 0 ${pt(-40 + thr * 80)}`);
+	const k = $derived(ballSize / 180);
 	/** `+0.05`, `-0.10`, `0.00`: a trim value with its sign (plan 245). */
 	const signed = (v: number): string => (v > 0 ? '+' : '') + v.toFixed(2);
 </script>
 
 <section class="deck" aria-label="Flight instruments" style:--k={k}>
-	<svg class="bezel" viewBox="0 0 430 262" aria-hidden="true">
-		<circle cx="154" cy="104" r="104" />
-		<rect x="50" y="190" width="250" height="72" rx="18" />
-		<circle cx="316" cy="190" r="66" />
-		{#if onsas}<rect x="380" y="112" width="48" height="134" rx="24" />{/if}
+	<svg class="bezel" viewBox="0 0 552 232" aria-hidden="true">
+		<rect x="0" y="88" width="552" height="144" rx="20" />
+		<circle cx="280" cy="98" r="102" />
+		{#if onsas}<circle cx="468" cy="128" r="68" />{/if}
 	</svg>
 
-	<svg class="vs" viewBox="0 0 430 262" aria-hidden="true">
-		<path class="track" d="M80.5 42.3 A96 96 0 0 0 80.5 165.7" />
+	<svg class="arcs" viewBox="0 0 552 232" aria-hidden="true">
+		<path class="track" d="M206.5 36.3 A96 96 0 0 0 206.5 159.7" />
 		{#if Math.abs(fraction) > 0.002}<path class="value" d={arc} />{/if}
-		<line x1="52" y1="104" x2="62" y2="104" />
+		<line x1="178" y1="98" x2="192" y2="98" />
+		<path class="track" d="M353.5 159.7 A96 96 0 0 0 353.5 36.3" />
+		{#if thr > 0.002}<path class="thr" class:off={!controllable} d={thrArc} />{/if}
 	</svg>
-	<span class="vsv num" data-tip="Vertical speed, {speedUnit()}"
-		><span data-testid="hud-vspeed">{speedValue(Math.abs(vs)).toFixed(1)}</span><span class="vsu"
-			>{vs >= 0 ? '▲' : '▼'}
-			{model?.speedMode === 'target' ? 'range' : 'v/s'}</span
+	<span class="vsv num" data-tip="Vertical speed, {speedUnit()}: centre is level, up is climbing"
+		>{model?.speedMode === 'target' ? 'RNG' : 'V/S'}
+		<b
+			>{vs < 0 ? '−' : ''}<span data-testid="hud-vspeed">{speedValue(Math.abs(vs)).toFixed(1)}</span
+			></b
 		></span
 	>
-
-	<div class="throttle" data-tip="Throttle">
-		<div class="bar"><Meter vertical value={throttle} tone="accent" label="Throttle" /></div>
-		<span class="num pct" data-testid="hud-throttle">{formatPercent(throttle)}</span>
-	</div>
+	<span
+		class="thrv num"
+		class:off={!controllable}
+		data-tip={controllable ? 'Throttle' : 'Throttle: not responding, the vessel is uncontrolled'}
+		>THR <b data-testid="hud-throttle">{formatPercent(throttle)}</b></span
+	>
 
 	<span class="heading num" data-tip="Heading">{att ? formatBearing(att.heading) : NO_VALUE}</span>
 	<span class="sr-only" aria-label="Attitude"
@@ -164,7 +178,6 @@
 				>{modeText}</button
 			>
 		</div>
-		<div class="rule"></div>
 		<div class="row">
 			<span class="lab"><Term id="altitude">ALT</Term></span>
 			<span class="value"
@@ -179,8 +192,7 @@
 					>RAD <span data-testid="hud-radar">{formatDistance(model.radar)}</span></span
 				>
 			{:else}
-				<span class="chip quiet" data-tip="Above sea level of {model?.body ?? 'the body'}">SEA</span
-				>
+				<span class="chip" data-tip="Above sea level of {model?.body ?? 'the body'}">SEA</span>
 			{/if}
 		</div>
 	</div>
@@ -198,21 +210,23 @@
 			/>
 		</div>
 	{/if}
+
+	<span class="rule" aria-hidden="true"></span>
+	<div class="status"><StatusStrip {chips} {onfix} /></div>
 </section>
 
 <style>
-	/* 1 mock px = 0.0625rem at --k 1 */
+	/* 1 design px = 0.0625rem at --k 1 (V3 §2.4: 552 x 232, solid #141518, a drop shadow) */
 	.deck {
 		--u: calc(0.0625rem * var(--k));
 		position: relative;
-		width: calc(430 * var(--u));
-		height: calc(262 * var(--u));
-		filter: drop-shadow(0 16px 32px rgb(0 0 0 / 0.6));
+		width: calc(552 * var(--u));
+		height: calc(232 * var(--u));
 		color: var(--text-body);
 		font-variant-numeric: tabular-nums;
 	}
 	.bezel,
-	.vs {
+	.arcs {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -221,65 +235,63 @@
 	}
 	.bezel {
 		fill: var(--surface-solid);
+		filter: drop-shadow(0 16px 32px rgb(0 0 0 / 0.6));
 	}
-	.vs {
+	.arcs {
 		pointer-events: none;
 		fill: none;
 		stroke-linecap: round;
-	}
-	.vs .track {
-		stroke: var(--surface-track);
 		stroke-width: 4;
 	}
-	.vs .value {
+	.arcs .track {
+		stroke: rgb(255 255 255 / 0.12);
+	}
+	.arcs .value,
+	.arcs .thr {
 		stroke: var(--accent);
-		stroke-width: 4;
 	}
-	.vs line {
+	.arcs .thr.off {
+		stroke: #5b5d63;
+	}
+	.arcs line {
 		stroke: var(--text-primary);
-		stroke-width: 1.5;
+		stroke-width: 2;
+	}
+	.vsv,
+	.thrv {
+		position: absolute;
+		top: calc(174 * var(--u));
+		width: calc(56 * var(--u));
+		text-align: center;
+		font-size: var(--t-label);
+		line-height: 1;
+		font-weight: 600;
+		color: var(--text-muted);
+		white-space: nowrap;
 	}
 	.vsv {
-		position: absolute;
-		left: 0;
-		top: calc(6 * var(--u));
-		display: grid;
-		justify-items: start;
-		font-size: var(--t-label);
+		left: calc(158 * var(--u));
+	}
+	.thrv {
+		left: calc(346 * var(--u));
+		font-weight: 700;
+	}
+	.vsv b,
+	.thrv b {
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: var(--text-primary);
 	}
-	.vsu {
-		font-size: var(--t-label);
-		color: var(--text-muted);
-	}
-	.throttle {
-		position: absolute;
-		left: 0;
-		top: calc(60 * var(--u));
-		bottom: calc(80 * var(--u));
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.25rem;
-		width: calc(40 * var(--u));
-	}
-	.bar {
-		flex: 1;
-		display: flex;
-	}
-	.pct {
-		font-size: var(--t-label);
-		font-weight: 600;
+	.thrv.off b {
+		color: var(--text-subtle);
 	}
 	.heading {
 		position: absolute;
-		left: calc(130 * var(--u));
-		top: calc(-8 * var(--u));
+		left: calc(256 * var(--u));
+		top: calc(-14 * var(--u));
 		width: calc(48 * var(--u));
 		padding: 0.1875rem 0;
 		border-radius: var(--radius-pill);
-		background: var(--ball-ground-top);
+		background: var(--ball-ground-top, #26282c);
 		color: var(--text-primary);
 		font-size: var(--t-small);
 		font-weight: 700;
@@ -288,78 +300,102 @@
 	}
 	.ball {
 		position: absolute;
-		left: calc(66 * var(--u));
-		top: calc(16 * var(--u));
-		width: calc(176 * var(--u));
-		height: calc(176 * var(--u));
+		left: calc(190 * var(--u));
+		top: calc(8 * var(--u));
+		width: calc(180 * var(--u));
+		height: calc(180 * var(--u));
 		display: grid;
 		place-items: center;
 	}
 	.trim {
 		position: absolute;
-		left: calc(66 * var(--u));
-		top: calc(186 * var(--u));
+		left: calc(18 * var(--u));
+		top: calc(94 * var(--u));
 		color: var(--text-primary);
 	}
+	/* the left wing: numbers only, 15/500 with the reference chips (V3 §2.4) */
 	.readouts {
 		position: absolute;
-		left: calc(66 * var(--u));
-		top: calc(208 * var(--u));
-		width: calc(180 * var(--u));
+		left: calc(18 * var(--u));
+		top: calc(112 * var(--u));
+		width: calc(150 * var(--u));
 		display: grid;
-		gap: 0.1875rem;
+		gap: calc(14 * var(--u));
 	}
 	.row {
 		display: flex;
 		align-items: center;
 		gap: 0.3125rem;
 		min-height: 1rem;
+		min-width: 0;
 	}
 	.lab {
 		width: 1.625rem;
+		flex: none;
 		font-size: var(--t-label);
 		font-weight: 700;
-		letter-spacing: var(--tracking-label);
+		letter-spacing: 0.12em;
 		color: var(--text-muted);
 	}
+	/* the number never shortens; the reference chip gives way on short screens (ball 144) */
 	.value {
-		flex: 1;
+		flex: 1 0 auto;
 		white-space: nowrap;
-		font-size: var(--t-value);
+		font-size: calc(15 * var(--u));
 		font-weight: 500;
+		line-height: 1;
 		color: var(--text-primary);
 	}
 	.unit {
-		margin-left: 0.25rem;
+		margin-left: 0.3125rem;
 		font-size: var(--t-label);
 		color: var(--text-muted);
 	}
-	.rule {
-		height: 1px;
-		background: var(--border-divider);
-	}
 	.chip {
-		padding: 0.125rem 0.3125rem;
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		padding: 0.125rem 0.375rem;
 		border: 0;
 		border-radius: var(--radius-pill);
-		background: var(--surface-chip);
+		background: #2a2c30;
 		color: var(--text-secondary);
 		font-size: var(--t-label);
 		font-weight: 700;
+		line-height: 1;
 		letter-spacing: var(--tracking-chip);
 		white-space: nowrap;
+	}
+	button.chip {
+		cursor: pointer;
 	}
 	button.chip:hover {
 		background: var(--surface-track);
 	}
-	.chip.quiet {
-		color: var(--text-muted);
+	button.chip:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 1px;
 	}
 	.pod {
 		position: absolute;
-		left: calc(250 * var(--u));
-		top: calc(124 * var(--u));
-		width: calc(132 * var(--u));
-		height: calc(132 * var(--u));
+		left: calc(400 * var(--u));
+		top: calc(60 * var(--u));
+		width: calc(136 * var(--u));
+		height: calc(136 * var(--u));
+	}
+	.rule {
+		position: absolute;
+		left: calc(16 * var(--u));
+		top: calc(202 * var(--u));
+		width: calc(520 * var(--u));
+		height: 1px;
+		background: var(--border-divider);
+	}
+	.status {
+		position: absolute;
+		left: calc(16 * var(--u));
+		top: calc(207 * var(--u));
+		width: calc(520 * var(--u));
 	}
 </style>

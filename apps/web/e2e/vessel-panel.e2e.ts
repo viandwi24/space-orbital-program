@@ -1,6 +1,6 @@
 /** The vessel panel (plan 111, ADR 0153): toggle the landing legs from the Parts tab in flight. */
 import { expect, test } from '@playwright/test';
-import { launchTwoStage, watchErrors } from './support';
+import { launchTwoStage, watchErrors, openDock } from './support';
 
 test('toggle the landing legs from the Parts tab', async ({ page }) => {
 	const errors = watchErrors(page);
@@ -13,9 +13,8 @@ test('toggle the landing legs from the Parts tab', async ({ page }) => {
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
+	await openDock(page, 'host.parts');
 	await expect(page.getByTestId('vessel-panel')).toBeVisible();
-	await page.getByTestId('vessel-tab-parts').click();
 	const legs = page.locator('[data-testid$="-setDeployed"]').first();
 	await expect(legs).toBeVisible({ timeout: 30_000 });
 	const before = await legs.getAttribute('aria-checked');
@@ -35,18 +34,19 @@ test('panel width and resize; click the engine to inspect it and type its limite
 	const errors = watchErrors(page);
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await launchTwoStage(page);
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
+	// since v3 the vessel panel is the dock's Overview (plan 272, ADR 0253): 272 wide, up to 400
+	await openDock(page, 'host.vessel');
 	await expect(page.getByTestId('vessel-panel')).toBeVisible();
-	const panel = page.locator('.ui > .vr');
-	await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(340);
-	// the grip is the panel's left edge: far to the left is as wide as it goes
-	const grip = page.getByTestId('vessel-panel-grip');
+	const panel = page.locator('.ui > .tl .dock .open');
+	await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(272);
+	// the grip is the panel's right edge: far to the right is as wide as it goes
+	const grip = page.getByTestId('dock-grip');
 	const g = (await grip.boundingBox())!;
 	await page.mouse.move(g.x + g.width / 2, g.y + 40);
 	await page.mouse.down();
-	await page.mouse.move(g.x - 400, g.y + 40, { steps: 8 });
+	await page.mouse.move(g.x + 400, g.y + 40, { steps: 8 });
 	await page.mouse.up();
-	await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(440);
+	await expect.poll(async () => Math.round((await panel.boundingBox())!.width)).toBe(400);
 
 	// the lower engine of the two-stage example, on screen
 	type Api = {

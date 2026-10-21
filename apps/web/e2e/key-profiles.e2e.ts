@@ -3,7 +3,7 @@
  * only in the map with a node selected), and Orbital classic from Settings (C brakes).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, openDock } from './support';
 
 /** A pod on a tank with a wheel on its side (a Brakes group), imported into the library and launched. */
 async function launchRover(page: Page): Promise<void> {
@@ -81,7 +81,7 @@ test('KSP keys by default, Orbital classic from Settings, node keys only on a se
 	await page.waitForFunction(() => '__orbitalDebug' in window, null, { timeout: 60_000 });
 	// the vessel panel lists a vessel's groups while it is in flight; a key wakes it from the pad's rails
 	const brakes = page.getByTestId('group-stock.brakes');
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
+	await openDock(page, 'host.vessel');
 	await page
 		.locator('canvas')
 		.first()

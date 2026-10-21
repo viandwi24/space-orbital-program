@@ -4,7 +4,16 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { PanelBeacon } from '../../../../../examples/mod-sample/src/index';
 import { defaultSettings, parseSettings, serialiseSettings } from '../settings/settings';
-import { addPanel, defaultDock, railOf, removePanel, togglePanel } from './dock-model';
+import {
+	addPanel,
+	defaultDock,
+	groupOf,
+	migrateDock,
+	railGroups,
+	railOf,
+	removePanel,
+	togglePanel
+} from './dock-model';
 import { commandOf, evaluatePanel, type PanelMemory } from './evaluate';
 import ModPanel from './ModPanel.svelte';
 import { panelInputOf } from './panel-input';
@@ -131,5 +140,44 @@ describe('selector cost', () => {
 		expect(Number.isFinite(perUpdate)).toBe(true); // vitest wants an assertion on CI too
 		// a timing budget measured on the M5: CI runners only log the number
 		if (!process.env.CI) expect(perUpdate).toBeLessThan(3);
+	});
+});
+
+describe('the v3 dock (plan 272, ADR 0253)', () => {
+	it('a pre-v3 choice gets the Vessel group once, in front, and keeps its open panel', () => {
+		const old = { panels: ['host.orbit', 'sample.beacon'], open: 'host.orbit' };
+		const raw = serialiseSettings({ ...defaultSettings(), dock: old as never });
+		const parsed = parseSettings(raw).dock;
+		expect(parsed.panels).toEqual([
+			'host.vessel',
+			'host.parts',
+			'host.comms',
+			'host.crew',
+			'host.orbit',
+			'sample.beacon'
+		]);
+		expect(parsed.open).toBe('host.orbit');
+		// removing a Vessel entry later sticks: the choice is v3 now
+		const removed = removePanel(parsed, 'host.crew');
+		expect(
+			parseSettings(serialiseSettings({ ...defaultSettings(), dock: removed })).dock.panels
+		).not.toContain('host.crew');
+		expect(migrateDock(removed)).toBe(removed);
+	});
+	it('groups the rail as Vessel, Flight, Plugins, leaving empty groups out', () => {
+		const rail = [
+			{ id: 'host.script' },
+			{ id: 'host.orbit' },
+			{ id: 'host.vessel' },
+			{ id: 'sample.beacon' },
+			{ id: 'host.parts' }
+		];
+		expect(railGroups(rail).map((g) => [g.group, g.entries.map((e) => e.id)])).toEqual([
+			['vessel', ['host.vessel', 'host.parts']],
+			['flight', ['host.orbit']],
+			['plugins', ['host.script', 'sample.beacon']]
+		]);
+		expect(railGroups([{ id: 'host.orbit' }]).map((g) => g.group)).toEqual(['flight']);
+		expect(groupOf('host.crew')).toBe('vessel');
 	});
 });

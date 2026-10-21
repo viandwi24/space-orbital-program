@@ -31,7 +31,7 @@
 	const err = $derived(errorText(sas));
 </script>
 
-<!-- The refs SAS pod (ADR 0144 point 2): seven modes around hold, our three extra in a column beside. -->
+<!-- The v3 SAS pod (V3 §2.4, ADR 0253 point 6): six modes on a ring around hold, our three extra on the diagonals. -->
 <div class="sas" role="group" aria-label="Stability assist">
 	<div class="pills">
 		<button
@@ -113,7 +113,9 @@
 </div>
 
 <style>
-	/* positions in the mock's pod box (132 x 132 mock px, `--u` from the deck) */
+	/* V3 §2.4 (plan 272): positions in the pod's box (136 x 136 mock px, `--u` from the deck). Hold
+	   in the centre, six modes on a ring of radius 44, the pills above the pod; our three extra modes
+	   on the pod's outer diagonals (ADR 0253 point 6). */
 	.sas {
 		position: absolute;
 		inset: 0;
@@ -127,8 +129,10 @@
 	}
 	.pills {
 		position: absolute;
-		left: calc(16 * var(--u));
-		top: calc(-48 * var(--u));
+		left: calc(12 * var(--u));
+		top: calc(-38 * var(--u));
+		width: calc(112 * var(--u));
+		box-sizing: border-box;
 		display: flex;
 		gap: 0.25rem;
 		padding: 0.25rem;
@@ -136,12 +140,13 @@
 		background: var(--surface-solid);
 	}
 	.master {
-		height: calc(26 * var(--u));
+		flex: 1;
+		height: calc(24 * var(--u));
 		min-height: 1.25rem;
-		padding: 0 0.625rem;
+		padding: 0 0.5rem;
 		border: 0;
 		border-radius: var(--radius-pill);
-		background: var(--surface-chip);
+		background: #2a2c30;
 		color: var(--text-muted);
 		font-size: var(--t-label);
 		font-weight: 700;
@@ -152,23 +157,22 @@
 		color: var(--on-accent);
 	}
 	.master.dry {
-		background: var(--surface-chip);
 		color: var(--c-warning);
 		box-shadow: inset 0 0 0 1px var(--c-warning);
 	}
 	.master:disabled {
-		opacity: 0.55;
+		color: #4a4b50;
 	}
 	.mode {
 		position: absolute;
 		display: grid;
 		place-items: center;
-		width: calc(34 * var(--u));
-		height: calc(34 * var(--u));
+		width: calc(32 * var(--u));
+		height: calc(32 * var(--u));
 		padding: 0;
 		border: 0;
 		border-radius: 50%;
-		background: var(--surface-tile);
+		background: #24262a;
 		color: var(--text-secondary);
 	}
 	.modes.dim .mode:not(.active) {
@@ -181,53 +185,58 @@
 		background: var(--accent);
 		color: var(--on-accent);
 	}
-	.mode:disabled {
-		opacity: 0.4;
+	/* uncontrolled: dim, not-allowed (V3 §2.4) */
+	.mode:disabled,
+	.modes.dim .mode:disabled {
+		color: #4a4b50;
 	}
 	.m-hold {
-		left: calc(49 * var(--u));
-		top: calc(49 * var(--u));
+		left: calc(52 * var(--u));
+		top: calc(52 * var(--u));
 	}
 	.m-prograde {
-		left: calc(49 * var(--u));
-		top: calc(5 * var(--u));
+		left: calc(52 * var(--u));
+		top: calc(8 * var(--u));
 	}
 	.m-retrograde {
-		left: calc(49 * var(--u));
-		top: calc(93 * var(--u));
+		left: calc(52 * var(--u));
+		top: calc(96 * var(--u));
 	}
 	.m-normal {
-		left: calc(87 * var(--u));
-		top: calc(27 * var(--u));
+		left: calc(90 * var(--u));
+		top: calc(30 * var(--u));
 	}
 	.m-radial-out {
-		left: calc(87 * var(--u));
-		top: calc(71 * var(--u));
+		left: calc(90 * var(--u));
+		top: calc(74 * var(--u));
 	}
 	.m-radial-in {
-		left: calc(11 * var(--u));
-		top: calc(71 * var(--u));
+		left: calc(14 * var(--u));
+		top: calc(74 * var(--u));
 	}
 	.m-antinormal {
-		left: calc(11 * var(--u));
-		top: calc(27 * var(--u));
+		left: calc(14 * var(--u));
+		top: calc(30 * var(--u));
 	}
-	/* the three modes the mock has no slot for, in the column beside the pod */
 	.m-maneuver,
 	.m-target,
 	.m-anti-target {
-		left: calc(137 * var(--u));
-		width: calc(30 * var(--u));
-		height: calc(30 * var(--u));
+		width: calc(26 * var(--u));
+		height: calc(26 * var(--u));
+		background: var(--surface-solid);
+		box-shadow: 0 0 0 1px var(--border-subtle);
 	}
 	.m-maneuver {
-		top: calc(-6 * var(--u));
+		left: calc(108 * var(--u));
+		top: calc(-2 * var(--u));
 	}
 	.m-target {
-		top: calc(30 * var(--u));
+		left: calc(108 * var(--u));
+		top: calc(112 * var(--u));
 	}
 	.m-anti-target {
-		top: calc(66 * var(--u));
+		left: calc(2 * var(--u));
+		top: calc(112 * var(--u));
 	}
 	.mode:focus-visible,
 	.master:focus-visible {
@@ -235,8 +244,8 @@
 		outline-offset: 1px;
 	}
 	svg {
-		width: 62%;
-		height: 62%;
+		width: 52%;
+		height: 52%;
 		fill: none;
 		stroke: currentColor;
 		stroke-width: 1.8;
@@ -248,11 +257,10 @@
 	}
 	.err {
 		position: absolute;
-		left: calc(132 * var(--u));
-		top: calc(100 * var(--u));
-		width: calc(40 * var(--u));
+		left: calc(140 * var(--u));
+		top: calc(60 * var(--u));
 		font-size: var(--t-label);
-		text-align: center;
 		color: var(--text-muted);
+		white-space: nowrap;
 	}
 </style>

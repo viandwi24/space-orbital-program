@@ -84,13 +84,16 @@ for (const [width, height] of [
 		const errors = watchErrors(page);
 		await page.setViewportSize({ width, height });
 		await page.goto('/space-center');
-		await expect(page.locator('[data-testid^="sc-row-"]').first()).toBeVisible({ timeout: 60_000 });
+		await expect(page.locator('[data-testid^="sc-label-"]').first()).toBeVisible({
+			timeout: 60_000
+		});
 		await bars(page, width, height);
-		// the right column at top 80, right 24, 320 wide; the building dock at bottom 52 (§5)
-		const side = await box(page, '.overlay .side');
-		expect([side.top, width - side.right, side.width]).toEqual([80, 24, 320]);
-		const dock = await box(page, '.overlay .dock');
-		expect(height - dock.bottom).toBe(52);
+		// v3 (plan 273, V3 §1): the context bar at bottom 52; the Buildings list at top 80, right 24, 280 wide
+		const context = await box(page, '[data-testid="sc-overview-bar"]');
+		expect([height - context.bottom, context.height]).toEqual([52, 44]);
+		await page.getByTestId('sc-buildings').click();
+		const side = await box(page, '[data-testid="sc-buildings-list"]');
+		expect([side.top, width - side.right, side.width]).toEqual([80, 24, 280]);
 		await expect(page.getByTestId('nav-space-center')).toHaveAttribute('aria-current', 'page');
 		await expect(page.getByTestId('nav-mission-center')).toBeVisible();
 		await expect(page.getByTestId('status-location')).toContainText('Space Center');
@@ -112,15 +115,14 @@ for (const [width, height] of [
 			);
 		});
 		await launchTwoStage(page);
-		await expect(page.getByTestId('staging')).toBeVisible();
+		await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
 		await bars(page, width, height);
-		// the dock at top 80 and left 24; staging and crew at bottom 56 (§5)
+		// the dock at top 80 and left 24, its Overview open; staging at right 24, bottom 56 (V3 §2.5)
 		const left = await box(page, '.ui > .tl');
 		expect([left.top, left.left]).toEqual([80, 24]);
-		const staging = await box(page, '.ui > .bl');
-		expect([staging.left, height - staging.bottom]).toEqual([24, 56]);
-		const crew = await box(page, '.ui > .br');
-		expect([width - crew.right, height - crew.bottom]).toEqual([24, 56]);
+		await expect(page.getByTestId('vessel-panel')).toBeVisible();
+		const staging = await box(page, '.ui > .br');
+		expect([width - staging.right, height - staging.bottom]).toEqual([24, 56]);
 		const nav = await box(page, '.ui > .bc');
 		expect(height - nav.bottom).toBe(56);
 		// the vessel and its situation in the status bar; T+ in the time bar; Vessel active
@@ -128,18 +130,15 @@ for (const [width, height] of [
 		await expect(page.getByTestId('hud-phase-text')).toBeVisible();
 		await expect(page.getByTestId('hud-met')).toHaveText(/^T\+ /);
 		await expect(page.getByTestId('nav-vessel')).toHaveAttribute('aria-current', 'page');
-		for (const name of ['Panel dock', 'Vessel panel', 'Navball', 'Crew panel', 'Change camera'])
+		for (const name of ['Panel dock', 'Navball', 'Staging', 'Change camera'])
 			await expect(page.getByTestId('menu-bar').getByRole('button', { name })).toBeVisible();
 		expect(await aboveTheBars(page)).toEqual([]);
 		// the design's frame: in orbit, the vessel panel open
 		await debugSetOrbit(page, { apoapsis: 100_000, periapsis: 100_000 });
 		await shoot(page, `flight-${width}`);
-		// the vessel panel opens at top 80 on the right
-		await page.getByRole('button', { name: 'Vessel panel' }).click();
-		await expect(page.getByTestId('vessel-panel')).toBeVisible();
-		const panel = await box(page, '.ui > .tr');
-		expect([panel.top, width - panel.right]).toEqual([80, 24]);
-		await shoot(page, `flight-vessel-${width}`);
+		// the navball module: 552 x 232 at 100 % (V3 §2.4)
+		const deck = await box(page, '.ui > .bc .deck');
+		expect([Math.round(deck.width), Math.round(deck.height)]).toEqual([552, 232]);
 		expect(errors).toEqual([]);
 	});
 }

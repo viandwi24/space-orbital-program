@@ -397,7 +397,8 @@ describe('a base in the Space Center (plan 128, ADR 0125 point 7)', () => {
 		expect(html).toContain('Level 1 of 3');
 		expect(html).toContain('Upkeep');
 		expect(html).toContain('data-testid="sc-upgrade"');
-		expect(html).toContain('data-testid="sc-frame"');
+		// v3 (plan 273): the panel's Demolish asks first; framing is the selection itself
+		expect(html).toContain('data-testid="sc-demolish"');
 	});
 
 	it('capacity lines read as labels with grouped numbers', () => {

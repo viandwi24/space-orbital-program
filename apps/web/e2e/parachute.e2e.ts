@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { debugSetLocation, watchErrors } from './support';
+import { debugSetLocation, watchErrors, openDock } from './support';
 
 /**
  * Plan 209 (ADR 0203 point 4): a capsule under its parachute. Placed 8 km up falling at 800 m/s
@@ -35,8 +35,7 @@ test('staged in a fast fall, the chute goes Armed, Semi-deployed, Deployed and t
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 	await expect(status(page)).toHaveText('Stowed', { timeout: 30_000 });
 
 	await debugSetLocation(page, {
