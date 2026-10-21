@@ -219,7 +219,7 @@
 | 271 | [The backup reminder lets the Hangar's tool bar show through: give it the toasts' glass card](plans/271-backup-reminder-glass-card.md) | done | backup-reminder session | Owner report 2026-10-21. The reminder had the glass colour without the glass filter; now it blurs what is under it, as the toasts do. Solid with blur off and high contrast. |
 | 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | done | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
 | 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | done | ui-v3 session | ADR 0254. |
-| 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
+| 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | done | ui-v3 session | Left by 272 and 273. |
 | 275 | [Size classes, part two: new tank shapes, size filter](plans/275-size-classes-to-7-5-m.md) | draft | — | ADR 0256; after 289. |
 | 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
 | 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | done | part visuals session | RCS remodel after the RV-105 reference; new 5-way block, pair and linear port; bells drawn at the module\'s nozzles. Journal 277.
@@ -333,6 +333,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [274 — The v3 leftovers: toasts, chip flash, Orbit panel, demolish box, back to Overview](journal/274-v3-design-leftovers.md)
 - [317 — Worlds and Create World v3, with generated system art](journal/317-worlds-and-create-world-v3.md)
 - [321 — Guidance Computer](journal/321-guidance-computer-autopilots-mod.md)
 - [320 — Vessel programs](journal/320-vessel-programs.md)

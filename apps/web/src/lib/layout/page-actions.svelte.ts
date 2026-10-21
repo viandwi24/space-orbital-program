@@ -59,6 +59,11 @@ class PageShell {
 	map = $state.raw<{ on: boolean; toggle: () => void } | null>(null);
 	/** The page's own menu (Flight's pause menu); the shell's otherwise. */
 	menu = $state.raw<(() => void) | null>(null);
+	/**
+	 * The page's start view, called when the player presses the fixed icon of the page already shown
+	 * (V3 §1.4: the Space Center icon returns the Space Center to Overview; plan 274).
+	 */
+	home = $state.raw<(() => void) | null>(null);
 
 	reset(): void {
 		this.actions = [];
@@ -66,6 +71,7 @@ class PageShell {
 		this.location = null;
 		this.map = null;
 		this.menu = null;
+		this.home = null;
 	}
 }
 

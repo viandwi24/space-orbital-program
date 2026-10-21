@@ -385,6 +385,25 @@
 		};
 	});
 
+	/** Demolish (V3 §1.3, plan 274): the building under the bulldozer in a red box, like a blocked ghost. */
+	function markBuilding(id: string | null): void {
+		if (build) return;
+		const b = id === null ? undefined : site?.buildings.find((x) => x.id === id);
+		const def = b ? buildingRegistry.get(b.kind) : undefined;
+		center?.setGhost(
+			b && def ? { size: def.size, cell: b.cell, rotation: b.rotation, valid: false } : null
+		);
+	}
+
+	// the menu bar's Space Center icon brings the page back to Overview (V3 §1.4, plan 274)
+	let overlay = $state<SpaceCenterOverlay>();
+	$effect(() => {
+		pageShell.home = () => {
+			overlay?.overview();
+			frame(null);
+		};
+	});
+
 	// the Space Center's page action (BASE_LAYOUT §3): the Mission Center
 	$effect(() => {
 		pageShell.actions = [
@@ -437,6 +456,8 @@
 <main class="page">
 	<canvas bind:this={canvas} data-testid="sc-canvas"></canvas>
 	<SpaceCenterOverlay
+		bind:this={overlay}
+		onmark={markBuilding}
 		{rows}
 		{labels}
 		{selected}
