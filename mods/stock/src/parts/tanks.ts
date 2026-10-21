@@ -131,32 +131,42 @@ function classTank(id: string, title: string, size: number, height: number) {
 }
 
 /** 0.625 m, a small tank for probes. */
-export const PartTank0625 = classTank('stock.tank-0625', 'OrbitX BT-06 "Butir"', 0.625, 0.75);
+export const PartTank0625 = classTank('stock.tank-0625', 'OrbitX BT-06 "Pebble"', 0.625, 0.75);
 export const PartTank1875Short = classTank(
 	'stock.tank-1875-short',
-	'OrbitX BT-18S "Tong"',
+	'OrbitX BT-18S "Barrel"',
 	1.875,
 	1.9
 );
-export const PartTank1875 = classTank('stock.tank-1875', 'OrbitX BT-18M "Tong"', 1.875, 3.75);
+export const PartTank1875 = classTank('stock.tank-1875', 'OrbitX BT-18M "Barrel"', 1.875, 3.75);
 export const PartTank3750Short = classTank(
 	'stock.tank-3750-short',
-	'OrbitX BT-37S "Tong"',
+	'OrbitX BT-37S "Barrel"',
 	3.75,
 	1.9
 );
-export const PartTank3750 = classTank('stock.tank-3750', 'OrbitX BT-37M "Tong"', 3.75, 3.75);
+export const PartTank3750 = classTank('stock.tank-3750', 'OrbitX BT-37M "Barrel"', 3.75, 3.75);
 export const PartTank3750Long = classTank(
 	'stock.tank-3750-long',
-	'OrbitX BT-37L "Tong"',
+	'OrbitX BT-37L "Barrel"',
 	3.75,
 	7.5
 );
-export const PartTank5000Short = classTank('stock.tank-5000-short', 'OrbitX BT-50S "Tong"', 5, 2.5);
-export const PartTank5000 = classTank('stock.tank-5000', 'OrbitX BT-50M "Tong"', 5, 5);
-export const PartTank5000Long = classTank('stock.tank-5000-long', 'OrbitX BT-50L "Tong"', 5, 10);
-export const PartTank7500 = classTank('stock.tank-7500', 'OrbitX BT-75M "Tong"', 7.5, 7.5);
-export const PartTank7500Long = classTank('stock.tank-7500-long', 'OrbitX BT-75L "Tong"', 7.5, 15);
+export const PartTank5000Short = classTank(
+	'stock.tank-5000-short',
+	'OrbitX BT-50S "Barrel"',
+	5,
+	2.5
+);
+export const PartTank5000 = classTank('stock.tank-5000', 'OrbitX BT-50M "Barrel"', 5, 5);
+export const PartTank5000Long = classTank('stock.tank-5000-long', 'OrbitX BT-50L "Barrel"', 5, 10);
+export const PartTank7500 = classTank('stock.tank-7500', 'OrbitX BT-75M "Barrel"', 7.5, 7.5);
+export const PartTank7500Long = classTank(
+	'stock.tank-7500-long',
+	'OrbitX BT-75L "Barrel"',
+	7.5,
+	15
+);
 
 /** The size-class tanks of plan 289. */
 export const STOCK_CLASS_TANKS = [

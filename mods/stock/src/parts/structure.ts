@@ -72,25 +72,25 @@ function classDecoupler(id: string, title: string, size: number, height: number)
 
 export const PartDecoupler1875 = classDecoupler(
 	'stock.decoupler-1875',
-	'OrbitX RS-TD18 "Pisah"',
+	'OrbitX RS-TD18 "Split"',
 	1.875,
 	0.22
 );
 export const PartDecoupler3750 = classDecoupler(
 	'stock.decoupler-3750',
-	'OrbitX RS-TD37 "Pisah"',
+	'OrbitX RS-TD37 "Split"',
 	3.75,
 	0.3
 );
 export const PartDecoupler5000 = classDecoupler(
 	'stock.decoupler-5000',
-	'OrbitX RS-TD50 "Pisah"',
+	'OrbitX RS-TD50 "Split"',
 	5,
 	0.35
 );
 export const PartDecoupler7500 = classDecoupler(
 	'stock.decoupler-7500',
-	'OrbitX RS-TD75 "Pisah"',
+	'OrbitX RS-TD75 "Split"',
 	7.5,
 	0.45
 );
@@ -212,7 +212,7 @@ export const STOCK_ADAPTER_PARTS = [PartAdapterSmall, PartAdapterLarge] as const
 // The adapters between the size classes of plan 289 (ADR 0256), smaller face on top.
 export const PartAdapter1250To1875 = adapterPart(
 	'stock.adapter-1250-1875',
-	'OrbitX RS-AD12-18 "Corong"',
+	'OrbitX RS-AD12-18 "Funnel"',
 	1.25,
 	1.875,
 	0.6,
@@ -220,7 +220,7 @@ export const PartAdapter1250To1875 = adapterPart(
 );
 export const PartAdapter1875To2500 = adapterPart(
 	'stock.adapter-1875-2500',
-	'OrbitX RS-AD18-25 "Corong"',
+	'OrbitX RS-AD18-25 "Funnel"',
 	1.875,
 	2.5,
 	0.6,
@@ -228,7 +228,7 @@ export const PartAdapter1875To2500 = adapterPart(
 );
 export const PartAdapter2500To3750 = adapterPart(
 	'stock.adapter-2500-3750',
-	'OrbitX RS-AD25-37 "Corong"',
+	'OrbitX RS-AD25-37 "Funnel"',
 	2.5,
 	3.75,
 	1.2,
@@ -236,7 +236,7 @@ export const PartAdapter2500To3750 = adapterPart(
 );
 export const PartAdapter3750To5000 = adapterPart(
 	'stock.adapter-3750-5000',
-	'OrbitX RS-AD37-50 "Corong"',
+	'OrbitX RS-AD37-50 "Funnel"',
 	3.75,
 	5,
 	1.2,
@@ -244,7 +244,7 @@ export const PartAdapter3750To5000 = adapterPart(
 );
 export const PartAdapter5000To7500 = adapterPart(
 	'stock.adapter-5000-7500',
-	'OrbitX RS-AD50-75 "Corong"',
+	'OrbitX RS-AD50-75 "Funnel"',
 	5,
 	7.5,
 	2.4,
@@ -295,25 +295,25 @@ export const PartFairingBaseLarge = fairingBase(
 // Fairing bases of the size classes of plan 289.
 export const PartFairingBase1875 = fairingBase(
 	'stock.fairing-base-1875',
-	'OrbitX PF-18 "Kubah"',
+	'OrbitX PF-18 "Dome"',
 	1.875,
 	120
 );
 export const PartFairingBase3750 = fairingBase(
 	'stock.fairing-base-3750',
-	'OrbitX PF-37 "Kubah"',
+	'OrbitX PF-37 "Dome"',
 	3.75,
 	300
 );
 export const PartFairingBase5000 = fairingBase(
 	'stock.fairing-base-5000',
-	'OrbitX PF-50 "Kubah"',
+	'OrbitX PF-50 "Dome"',
 	5,
 	450
 );
 export const PartFairingBase7500 = fairingBase(
 	'stock.fairing-base-7500',
-	'OrbitX PF-75 "Kubah"',
+	'OrbitX PF-75 "Dome"',
 	7.5,
 	800
 );

@@ -72,7 +72,7 @@ const lfox = [
 
 export const PartSolarFlat = definePart({
 	id: 'stock.solar-flat',
-	title: 'OrbitX SD-1 "Lempeng"',
+	title: 'OrbitX SD-1 "Slate"',
 	mass: kg(10),
 	cost: partCost(10, 'command'),
 	impactTolerance: 8,
@@ -87,7 +87,7 @@ export const PartSolarFlat = definePart({
 
 export const PartSolarFold = definePart({
 	id: 'stock.solar-fold',
-	title: 'OrbitX SD-6 "Sayap"',
+	title: 'OrbitX SD-6 "Wing"',
 	mass: kg(25),
 	cost: partCost(25, 'command'),
 	impactTolerance: 6,
@@ -104,7 +104,7 @@ export const PartSolarFold = definePart({
 
 export const PartSolarArrayXl = definePart({
 	id: 'stock.solar-array-xl',
-	title: 'OrbitX SD-24 "Bentang"',
+	title: 'OrbitX SD-24 "Span"',
 	mass: kg(300),
 	cost: partCost(300, 'command'),
 	impactTolerance: 5,
@@ -121,7 +121,7 @@ export const PartSolarArrayXl = definePart({
 
 export const PartSolarWings = definePart({
 	id: 'stock.solar-wings',
-	title: 'OrbitX SD-W "Kepak"',
+	title: 'OrbitX SD-W "Flap"',
 	mass: kg(120),
 	cost: partCost(120, 'command'),
 	impactTolerance: 6,
@@ -138,7 +138,7 @@ export const PartSolarWings = definePart({
 
 export const PartBatteryRadial = definePart({
 	id: 'stock.battery-radial',
-	title: 'OrbitX BA-1R "Sel"',
+	title: 'OrbitX BA-1R "Cell"',
 	mass: kg(5),
 	cost: partCost(5, 'command'),
 	impactTolerance: 8,
@@ -154,7 +154,7 @@ export const PartBatteryRadial = definePart({
 
 export const PartRtgRadial = definePart({
 	id: 'stock.rtg-radial',
-	title: 'OrbitX SD-R "Tungku"',
+	title: 'OrbitX SD-R "Hearth"',
 	mass: kg(80),
 	cost: partCost(80, 'engine'),
 	impactTolerance: 8,
@@ -166,7 +166,7 @@ export const PartRtgRadial = definePart({
 
 export const PartFuelCell = definePart({
 	id: 'stock.fuel-cell',
-	title: 'OrbitX SD-F "Bara"',
+	title: 'OrbitX SD-F "Ember"',
 	mass: kg(50),
 	cost: partCost(50, 'command'),
 	impactTolerance: 8,
@@ -180,7 +180,7 @@ export const PartFuelCell = definePart({
 
 export const PartWhipRadial = definePart({
 	id: 'stock.antenna-whip-radial',
-	title: 'OrbitX GC-16 "Cambuk"',
+	title: 'OrbitX GC-16 "Whip"',
 	mass: kg(5),
 	cost: partCost(5, 'command'),
 	impactTolerance: 6,
@@ -197,7 +197,7 @@ export const PartWhipRadial = definePart({
 
 export const PartDishFold = definePart({
 	id: 'stock.antenna-dish-fold',
-	title: 'OrbitX GC-5 "Payung"',
+	title: 'OrbitX GC-5 "Umbrella"',
 	mass: kg(60),
 	cost: partCost(60, 'command'),
 	impactTolerance: 6,
@@ -214,7 +214,7 @@ export const PartDishFold = definePart({
 
 export const PartRelayDish = definePart({
 	id: 'stock.antenna-relay',
-	title: 'OrbitX GC-88 "Piring"',
+	title: 'OrbitX GC-88 "Dish"',
 	mass: kg(200),
 	cost: partCost(200, 'command'),
 	impactTolerance: 5,
@@ -260,7 +260,7 @@ function radialInstrument(
 
 export const PartThermometerRadial = radialInstrument(
 	'stock.thermometer-radial',
-	'OrbitX SI-T "Termo"',
+	'OrbitX SI-T "Thermo"',
 	10,
 	ExperimentTemperature.id,
 	'Log temperature',
@@ -278,7 +278,7 @@ export const PartBarometerRadial = radialInstrument(
 );
 export const PartSeismometerRadial = radialInstrument(
 	'stock.seismometer-radial',
-	'OrbitX SI-S "Getar"',
+	'OrbitX SI-S "Tremor"',
 	20,
 	ExperimentSeismic.id,
 	'Log seismic activity',
@@ -287,7 +287,7 @@ export const PartSeismometerRadial = radialInstrument(
 );
 export const PartAtmosphereRadial = radialInstrument(
 	'stock.atmosphere-radial',
-	'OrbitX SI-A "Hirup"',
+	'OrbitX SI-A "Sniffer"',
 	15,
 	ExperimentAtmosphereSample.id,
 	'Take air sample',
@@ -296,7 +296,7 @@ export const PartAtmosphereRadial = radialInstrument(
 );
 export const PartSurfaceRadial = radialInstrument(
 	'stock.surface-sampler-radial',
-	'OrbitX SI-G "Cedok"',
+	'OrbitX SI-G "Scoop"',
 	30,
 	ExperimentSurfaceSample.id,
 	'Take surface sample',
@@ -305,7 +305,7 @@ export const PartSurfaceRadial = radialInstrument(
 );
 export const PartGooRadial = radialInstrument(
 	'stock.goo-radial',
-	'OrbitX SI-L "Lendir"',
+	'OrbitX SI-L "Goo"',
 	50,
 	ExperimentGoo.id,
 	'Observe goo',
@@ -315,7 +315,7 @@ export const PartGooRadial = radialInstrument(
 );
 export const PartMaterialsRadial = radialInstrument(
 	'stock.materials-radial',
-	'OrbitX SI-M "Lab Mini"',
+	'OrbitX SI-M "Mini Lab"',
 	200,
 	ExperimentMaterials.id,
 	'Study materials',
@@ -325,7 +325,7 @@ export const PartMaterialsRadial = radialInstrument(
 );
 export const PartMagnetometer = definePart({
 	id: 'stock.magnetometer-boom',
-	title: 'OrbitX SI-B "Kompas Medan"',
+	title: 'OrbitX SI-B "Fieldfinder"',
 	mass: kg(25),
 	cost: partCost(25, 'command'),
 	impactTolerance: 6,
@@ -337,7 +337,7 @@ export const PartMagnetometer = definePart({
 
 export const PartSuppliesRadial = definePart({
 	id: 'stock.life-support-radial',
-	title: 'OrbitX LS-1 "Bekal"',
+	title: 'OrbitX LS-1 "Ration"',
 	mass: kg(40),
 	cost: partCost(40, 'command'),
 	impactTolerance: 8,
@@ -360,7 +360,7 @@ export const PartSuppliesRadial = definePart({
 });
 export const PartScrubberRadial = definePart({
 	id: 'stock.scrubber-radial',
-	title: 'OrbitX LS-2 "Saring"',
+	title: 'OrbitX LS-2 "Filter"',
 	mass: kg(30),
 	cost: partCost(30, 'command'),
 	impactTolerance: 8,
@@ -371,7 +371,7 @@ export const PartScrubberRadial = definePart({
 });
 export const PartDataRadial = definePart({
 	id: 'stock.data-drive-radial',
-	title: 'OrbitX NA-D "Arsip"',
+	title: 'OrbitX NA-D "Archive"',
 	mass: kg(20),
 	cost: partCost(20, 'command'),
 	impactTolerance: 8,
@@ -432,7 +432,7 @@ function bay(
 }
 export const PartServiceBay = bay(
 	'stock.service-bay',
-	'OrbitX RS-SB12 "Ruang"',
+	'OrbitX RS-SB12 "Bay"',
 	1.25,
 	0.8,
 	120,
@@ -440,17 +440,17 @@ export const PartServiceBay = bay(
 );
 export const PartServiceBayWide = bay(
 	'stock.service-bay-wide',
-	'OrbitX RS-SB25 "Ruang"',
+	'OrbitX RS-SB25 "Bay"',
 	2.5,
 	1.2,
 	400,
 	false
 );
-export const PartCargoBay = bay('stock.cargo-bay', 'OrbitX RS-CB25 "Palka"', 2.5, 4, 1_500, true);
+export const PartCargoBay = bay('stock.cargo-bay', 'OrbitX RS-CB25 "Hold"', 2.5, 4, 1_500, true);
 
 export const PartPayloadPetals = definePart({
 	id: 'stock.payload-petals',
-	title: 'OrbitX RS-PL "Kelopak"',
+	title: 'OrbitX RS-PL "Petal"',
 	mass: kg(1_200),
 	cost: partCost(1_200, 'structure'),
 	impactTolerance: 8,
@@ -501,7 +501,7 @@ function couplerPart(ways: 2 | 3 | 4) {
 	}
 	return definePart({
 		id: `stock.coupler-${ways}`,
-		title: `OrbitX RS-C${ways} "Cabang"`,
+		title: `OrbitX RS-C${ways} "Branch"`,
 		mass: kg(100 * ways),
 		cost: partCost(100 * ways, 'structure'),
 		impactTolerance: 8,
@@ -520,7 +520,7 @@ export const PartCoupler4 = couplerPart(4);
 
 export const PartTruss = definePart({
 	id: 'stock.truss',
-	title: 'OrbitX RS-T "Rangka"',
+	title: 'OrbitX RS-T "Frame"',
 	mass: kg(150),
 	cost: partCost(150, 'structure'),
 	impactTolerance: 10,
@@ -537,7 +537,7 @@ export const PartTruss = definePart({
 
 export const PartHub = definePart({
 	id: 'stock.hub',
-	title: 'OrbitX RS-H6 "Simpul"',
+	title: 'OrbitX RS-H6 "Node"',
 	mass: kg(400),
 	cost: partCost(400, 'structure'),
 	impactTolerance: 10,
@@ -554,7 +554,7 @@ export const PartHub = definePart({
 
 export const PartLatticeInterstage = definePart({
 	id: 'stock.lattice-interstage',
-	title: 'OrbitX RS-LI "Kisi"',
+	title: 'OrbitX RS-LI "Lattice"',
 	mass: kg(200),
 	cost: partCost(200, 'structure'),
 	impactTolerance: 8,
@@ -634,7 +634,7 @@ const pod = (opts: {
 
 export const PartPod3 = pod({
 	id: 'stock.pod-3',
-	title: 'OrbitX PC-3 "Lonceng"',
+	title: 'OrbitX PC-3 "Bell"',
 	massKg: 2_700,
 	crew: 3,
 	shape: cyl(1.25, 1.7),
@@ -646,7 +646,7 @@ export const PartPod3 = pod({
 });
 export const PartDescentModule = pod({
 	id: 'stock.descent-module',
-	title: 'OrbitX PC-D "Lentera"',
+	title: 'OrbitX PC-D "Lantern"',
 	massKg: 2_200,
 	crew: 3,
 	shape: cyl(0.9375, 1.5),
@@ -657,7 +657,7 @@ export const PartDescentModule = pod({
 });
 export const PartOrbitalModule = pod({
 	id: 'stock.orbital-module',
-	title: 'OrbitX PC-O "Bola"',
+	title: 'OrbitX PC-O "Orb"',
 	massKg: 900,
 	crew: 2,
 	shape: cyl(0.75, 1.5),
@@ -668,7 +668,7 @@ export const PartOrbitalModule = pod({
 });
 export const PartSphereCapsule = pod({
 	id: 'stock.capsule-sphere',
-	title: 'OrbitX PC-1S "Timur"',
+	title: 'OrbitX PC-1S "Orient"',
 	massKg: 1_300,
 	crew: 1,
 	shape: cyl(0.625, 1.25),
@@ -679,7 +679,7 @@ export const PartSphereCapsule = pod({
 });
 export const PartConeCapsule = pod({
 	id: 'stock.capsule-cone',
-	title: 'OrbitX PC-1K "Merkuri"',
+	title: 'OrbitX PC-1K "Quicksilver"',
 	massKg: 1_000,
 	crew: 1,
 	shape: cyl(0.625, 1.4),
@@ -690,7 +690,7 @@ export const PartConeCapsule = pod({
 });
 export const PartLanderCan = pod({
 	id: 'stock.lander-can',
-	title: 'OrbitX PC-L1 "Kaleng"',
+	title: 'OrbitX PC-L1 "Can"',
 	massKg: 600,
 	crew: 1,
 	shape: cyl(0.625, 1.0),
@@ -700,7 +700,7 @@ export const PartLanderCan = pod({
 });
 export const PartCrewCabin = pod({
 	id: 'stock.crew-cabin',
-	title: 'OrbitX PC-K2 "Kabin"',
+	title: 'OrbitX PC-K2 "Cabin"',
 	massKg: 1_000,
 	crew: 2,
 	shape: cyl(0.625, 1.6),
@@ -711,7 +711,7 @@ export const PartCrewCabin = pod({
 });
 export const PartHabModule = pod({
 	id: 'stock.hab-module',
-	title: 'OrbitX ST-H "Rumah"',
+	title: 'OrbitX ST-H "Home"',
 	massKg: 6_000,
 	crew: 4,
 	shape: cyl(1.25, 4),
@@ -722,7 +722,7 @@ export const PartHabModule = pod({
 });
 export const PartLabModule = pod({
 	id: 'stock.lab-module',
-	title: 'OrbitX ST-L "Bengkel"',
+	title: 'OrbitX ST-L "Workshop"',
 	massKg: 7_000,
 	crew: 2,
 	shape: cyl(1.25, 4),
@@ -733,7 +733,7 @@ export const PartLabModule = pod({
 });
 export const PartAirlock = pod({
 	id: 'stock.airlock',
-	title: 'OrbitX ST-A "Pintu"',
+	title: 'OrbitX ST-A "Gate"',
 	massKg: 500,
 	crew: 1,
 	shape: cyl(0.625, 1.0),
@@ -744,7 +744,7 @@ export const PartAirlock = pod({
 });
 export const PartCupola = pod({
 	id: 'stock.cupola',
-	title: 'OrbitX ST-C "Jendela"',
+	title: 'OrbitX ST-C "Window"',
 	massKg: 1_000,
 	crew: 1,
 	shape: cyl(0.625, 0.9),
@@ -753,7 +753,7 @@ export const PartCupola = pod({
 });
 export const PartRoverCab = pod({
 	id: 'stock.rover-cab',
-	title: 'OrbitX RV-2 "Jelajah"',
+	title: 'OrbitX RV-2 "Ranger"',
 	massKg: 700,
 	crew: 2,
 	shape: cyl(0.625, 1.0),
@@ -764,7 +764,7 @@ export const PartRoverCab = pod({
 
 export const PartRadiator = definePart({
 	id: 'stock.radiator',
-	title: 'OrbitX TH-R "Kipas"',
+	title: 'OrbitX TH-R "Fin"',
 	mass: kg(50),
 	cost: partCost(50, 'structure'),
 	impactTolerance: 6,
@@ -777,7 +777,7 @@ export const PartRadiator = definePart({
 
 export const PartSatelliteBus = definePart({
 	id: 'stock.satellite-bus',
-	title: 'OrbitX NA-S "Wahana"',
+	title: 'OrbitX NA-S "Carrier"',
 	mass: kg(400),
 	cost: partCost(400, 'command'),
 	impactTolerance: 8,
@@ -795,7 +795,7 @@ export const PartSatelliteBus = definePart({
 
 export const PartTelescope = definePart({
 	id: 'stock.telescope',
-	title: 'OrbitX SI-X "Teropong"',
+	title: 'OrbitX SI-X "Spyglass"',
 	mass: kg(2_000),
 	cost: partCost(2_000, 'command'),
 	impactTolerance: 6,
@@ -817,7 +817,7 @@ export const PartTelescope = definePart({
 
 export const PartLanderDescent = definePart({
 	id: 'stock.lander-descent',
-	title: 'OrbitX LD-1 "Tapak"',
+	title: 'OrbitX LD-1 "Footing"',
 	mass: kg(2_000),
 	cost: partCost(2_000, 'engine'),
 	impactTolerance: 8,
@@ -857,7 +857,7 @@ export const PartLanderDescent = definePart({
 
 export const PartLanderAscent = definePart({
 	id: 'stock.lander-ascent',
-	title: 'OrbitX LD-2 "Lompat"',
+	title: 'OrbitX LD-2 "Hopper"',
 	mass: kg(1_800),
 	crewCapacity: 2,
 	cost: partCost(1_800, 'command'),
@@ -896,7 +896,7 @@ export const PartLanderAscent = definePart({
 
 export const PartSingleLeg = definePart({
 	id: 'stock.landing-leg-single',
-	title: 'OrbitX LD-K "Kaki"',
+	title: 'OrbitX LD-K "Stilt"',
 	mass: kg(60),
 	cost: partCost(60, 'gear'),
 	impactTolerance: 14,
@@ -982,7 +982,7 @@ function enginePlate(opts: {
 }
 export const PartEnginePlate5 = enginePlate({
 	id: 'stock.engine-plate-5',
-	title: 'OrbitX GP-F5 "Raksasa"',
+	title: 'OrbitX GP-F5 "Titan"',
 	size: 5,
 	height: 3,
 	bells: 5,
@@ -994,7 +994,7 @@ export const PartEnginePlate5 = enginePlate({
 });
 export const PartEnginePlate9 = enginePlate({
 	id: 'stock.engine-plate-9',
-	title: 'OrbitX GP-M9 "Rajawali"',
+	title: 'OrbitX GP-M9 "Hawk"',
 	size: 3.75,
 	height: 2.2,
 	bells: 9,
@@ -1006,7 +1006,7 @@ export const PartEnginePlate9 = enginePlate({
 });
 export const PartEnginePlate8 = enginePlate({
 	id: 'stock.engine-plate-8',
-	title: 'OrbitX GP-R8 "Delapan"',
+	title: 'OrbitX GP-R8 "Octet"',
 	size: 3.75,
 	height: 2.2,
 	bells: 8,
@@ -1019,7 +1019,7 @@ export const PartEnginePlate8 = enginePlate({
 
 export const PartEngineVacuumXl = definePart({
 	id: 'stock.engine-vacuum-xl',
-	title: 'OrbitX GP-J2 "Hampa"',
+	title: 'OrbitX GP-J2 "Void"',
 	mass: kg(2_500),
 	cost: partCost(2_500, 'engine'),
 	impactTolerance: 4,
@@ -1057,7 +1057,7 @@ export const PartEngineVacuumXl = definePart({
 /** The launch escape tower (plan 276): a solid motor on a lattice that carries the pod away and separates from it. */
 export const PartEscapeTower = definePart({
 	id: 'stock.escape-tower',
-	title: 'OrbitX PS-LES "Penyelamat"',
+	title: 'OrbitX PS-LES "Guardian"',
 	mass: kg(900),
 	cost: partCost(900, 'engine'),
 	impactTolerance: 6,
@@ -1097,7 +1097,7 @@ export const PartEscapeTower = definePart({
 
 export const PartOrbiterNose = definePart({
 	id: 'stock.orbiter-nose',
-	title: 'OrbitX UA-1 "Paruh"',
+	title: 'OrbitX UA-1 "Beak"',
 	mass: kg(9_000),
 	crewCapacity: 4,
 	cost: partCost(9_000, 'command'),
@@ -1125,7 +1125,7 @@ export const PartOrbiterNose = definePart({
 
 export const PartOrbiterAft = definePart({
 	id: 'stock.orbiter-aft',
-	title: 'OrbitX UA-3 "Ekor"',
+	title: 'OrbitX UA-3 "Tail"',
 	mass: kg(8_000),
 	cost: partCost(8_000, 'engine'),
 	impactTolerance: 6,
@@ -1166,7 +1166,7 @@ export const PartOrbiterAft = definePart({
 
 export const PartDeltaWing = definePart({
 	id: 'stock.wing-delta',
-	title: 'OrbitX UA-2 "Sayap Delta"',
+	title: 'OrbitX UA-2 "Delta Wing"',
 	mass: kg(2_500),
 	cost: partCost(2_500, 'structure'),
 	impactTolerance: 4,
@@ -1182,7 +1182,7 @@ export const PartDeltaWing = definePart({
 
 export const PartExternalTank = definePart({
 	id: 'stock.external-tank',
-	title: 'OrbitX UA-T "Tong Raksasa"',
+	title: 'OrbitX UA-T "Big Barrel"',
 	mass: kg(24_000),
 	cost: partCost(24_000, 'tank'),
 	impactTolerance: 5,
@@ -1196,7 +1196,7 @@ export const PartExternalTank = definePart({
 
 export const PartSrbXl = definePart({
 	id: 'stock.srb-xl',
-	title: 'OrbitX PS-XL "Pilar"',
+	title: 'OrbitX PS-XL "Pillar"',
 	mass: kg(9_000),
 	cost: partCost(9_000, 'engine'),
 	impactTolerance: 5,

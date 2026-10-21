@@ -44,7 +44,7 @@ const NEW_NODES = ['stock.rcs', 'stock.docking', 'stock.heavy-lift', 'stock.nucl
 const NEW_PARTS = [
 	'BST-0 Small Solid Booster',
 	'LV-909 Vacuum Engine',
-	'OrbitX RCS-4 "Kompas"',
+	'OrbitX RCS-4 "Compass"',
 	'Docking Port 1.25 m',
 	'Fairing Base 1.25 m',
 	'Ladder',

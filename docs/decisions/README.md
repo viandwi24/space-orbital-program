@@ -264,3 +264,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0265 | [Robotics after the joint spike: impulse joints for short chains, sub-stepping for robotic vessels, kinematic poses for long arms](0265-robotics-short-impulse-chains-kinematic-arms.md) | proposed | 2026-10-21 |
 | 0266 | [Map paths are drawn in the frames of the bodies now; spheres of influence on demand](0266-map-paths-drawn-in-body-frames-and-soi-on-demand.md) | accepted | 2026-10-21 |
 | 0267 | [The map's filters and Regions in one row; the maneuver card on staging at the right](0267-map-toolbar-one-row-and-maneuver-card-on-staging.md) | accepted | 2026-10-21 |
+| 0268 | [In-game text is English; part nicknames are English words](0268-in-game-text-is-english.md) | accepted | 2026-10-21 |

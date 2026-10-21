@@ -250,6 +250,7 @@
 | 301 | [A part model viewer page for debugging (/dev/parts)](plans/301-part-model-viewer.md) | done | part viewer session | Owner request 2026-10-21. `/dev/parts?part=…&compare=…`: every part, searchable by category; one part or a row on a grid floor (WebGL, WebGPU or its fallback); nodes, physics shape, wireframe, detail, deploy, articulation, firing; stats. Journal 301. |
 | 303 | [Mission parts batch: 59 parts and six mission blueprints](plans/303-mission-parts-and-blueprints.md) | done | part visuals session | Owner: all parts now, short tests. Remainders stay in 276, 280, 281, 286, 295–300. Journal 303. |
 | 304 | [Hangar free placement follow-ups: the root part, plane handles, e2e](plans/304-hangar-free-placement-follow-ups.md) | draft | — | Left by 279 (ADR 0258). |
+| 305 | [English in-game text: nicknames, blueprint names, a guard test](plans/305-english-in-game-text.md) | done | part visuals session | ADR 0268 (owner: the game is global). Journal 305. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -317,6 +318,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [305 — English in-game text](journal/305-english-in-game-text.md)
 - [303 — The mission parts batch and six mission blueprints](journal/303-mission-parts-and-blueprints.md)
 - [302 — Part-support modules](journal/302-part-support-modules.md)
 - [301 — A part model viewer page for debugging](journal/301-part-model-viewer.md)

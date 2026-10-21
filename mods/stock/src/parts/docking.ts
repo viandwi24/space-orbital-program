@@ -41,7 +41,7 @@ export const PartDockingPortLarge = port(
 /** The 3.75 m port (plan 289): ports stop at 3.75 m (ADR 0256). */
 export const PartDockingPort3750 = port(
 	'stock.docking-port-3750',
-	'OrbitX DP-37 "Jabat"',
+	'OrbitX DP-37 "Clasp"',
 	3.75,
 	0.5,
 	350

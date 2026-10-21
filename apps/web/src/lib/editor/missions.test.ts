@@ -21,12 +21,22 @@ describe('mission blueprints (plan 286)', () => {
 	it('has the owner’s mission set', () => {
 		expect(MISSION_BLUEPRINTS.map((m) => m.id)).toEqual([
 			'kronos-selene',
-			'ulang-alik',
-			'stasiun-cakrawala',
-			'pengorbit',
-			'teleskop-cakrawala',
-			'satelit-peneliti'
+			'wayfarer-shuttle',
+			'horizon-station',
+			'moonwatch-orbiter',
+			'horizon-telescope',
+			'aurora-satellite'
 		]);
+	});
+
+	it('names and texts are English (owner, 2026-10-21)', () => {
+		const indonesian =
+			/\b(ulang|alik|stasiun|cakrawala|teleskop|satelit|peneliti|pengorbit|penjelajah|roket|misi|bulan|dan|yang|untuk|dengan)\b/i;
+		for (const m of MISSION_BLUEPRINTS) {
+			for (const text of [m.title, m.inspiredBy, m.summary, m.build(content).name]) {
+				expect(indonesian.test(text), text).toBe(false);
+			}
+		}
 	});
 
 	for (const mission of MISSION_BLUEPRINTS) {
