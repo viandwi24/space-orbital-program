@@ -138,7 +138,6 @@
 		align-items: stretch;
 		min-height: 0;
 		max-height: 100%;
-		overflow: hidden;
 		background: var(--surface-glass);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-panel);

@@ -29,7 +29,7 @@ The v3 design gives the Space Center a page system. It keeps the campus clean, a
    - the Open action;
    - Demolish, through the same confirm.
 
-   The context bar becomes `← Overview │ ‹ name · Building i of n ›`. The menu bar's Space Center icon also returns to Overview.
+   The context bar becomes `← Overview │ ‹ name · Building i of n ›`, and Escape or the panel's × also returns to Overview. (The design also returns on the menu bar's Space Center icon; the shell has no hook for that yet: draft 274.)
 
 ## Alternatives considered
 

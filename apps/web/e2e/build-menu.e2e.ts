@@ -36,10 +36,11 @@ test('open Comms, see the dish card with its thumbnail, place it, construction s
 	]);
 	const dock = (await page.getByTestId('build-menu').boundingBox())!;
 	expect(Math.round(900 - (dock.y + dock.height))).toBe(52);
-	for (const b of await bar.getByRole('tab').all()) {
-		const r = (await b.boundingBox())!;
-		expect(Math.round(r.height)).toBe(36);
-	}
+	// the tabs are 36 high (V3 §1.2)
+	const heights = await bar
+		.getByRole('tab')
+		.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().height)));
+	expect(heights).toEqual(Array(7).fill(36));
 
 	// the keyboard walks the tabs; Enter opens a row; Escape closes the bar (ADR 0254 point 1)
 	await page.getByTestId('sc-cat-stock.launch').focus();

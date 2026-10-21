@@ -54,6 +54,15 @@ export async function launchTwoStage(page: Page): Promise<void> {
 export async function openDock(page: Page, id: string): Promise<void> {
 	const tab = page.getByTestId(`dock-tab-${id}`);
 	if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+	if (id === 'host.parts') {
+		// the part rows fold (plan 256): unfold them all so their controls can be pressed
+		const panel = page.getByTestId('vessel-panel');
+		await panel.waitFor();
+		await expect(panel.locator('details').first()).toBeAttached({ timeout: 30_000 });
+		await panel.locator('details').evaluateAll((all) =>
+			all.forEach((d) => ((d as HTMLDetailsElement).open = true))
+		);
+	}
 }
 
 /** Open the script panel, put `source` in the editor (or load the sample) and press Run. */
