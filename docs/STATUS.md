@@ -2,7 +2,7 @@
 
 > Living document. Updated at the end of every plan. Keep it short; details go in plans, ADRs and the journal.
 
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-22
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
 **Current plan:** none: the three-agent foundation roadmap (`docs/roadmap/`) is complete, 68 of 68 plans done and the phase gates `cp/f1-done` to `cp/f6-done` passed on 2026-10-18 (full suite and 85 e2e on Chromium, Firefox and WebKit on the M5); 072 and 073 were closed on the owner's instruction with their human passes waived
 **Next plan:** the release roadmap (`docs/roadmap/release-roadmap.md`, plans 200–232, ADRs 0200–0210): take the lowest draft whose depends are done, starting with wave 1 (200, 201, 202, 203, 204, 207, 212, 216, 217, 220, 227). Earlier note: none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
@@ -268,7 +268,8 @@
 | 321 | [Guidance Computer: MechJeb-style autopilots mod](plans/321-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0277 gives the pilot body, mass, engines and nodes. Journal 321. |
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 | 330 | [Docking blueprints, Auto Dock fly-around, logs, options and mod panel UI](plans/330-docking-blueprints-auto-dock-fly-around-and-panels.md) | done | auto dock session | ADR 0285. Blueprint audit and fixes, docked ports snap face to face, Auto Dock flies round to the axis with options, a log and an alignment display; mod panels get `select` and their own UI in a sandboxed frame. Journal 330. Local commits dee491dc and 09462b18 say "plan 321": the number was taken while they were written. |
-| 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | in-progress | rendezvous session | ADR 0286. `guidance.rendezvous` flies to 100–200 m of a target (plane, transfer, match, close, hold) and can hand over to Auto Dock. |
+| 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | done | rendezvous session | ADR 0286. `guidance.rendezvous` flies from anywhere in orbit to 100–200 m of a target at rest (plane, phasing or Hohmann, correction, match, close, hold), with a Rendezvous panel and a hand-over to Auto Dock; the pilot gets `warpTo`, `engage`, `propellantMass` (API 0.1.103). Journal 331. |
+| 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | in-progress | rendezvous session | ADR 0287. A tab per program; new panel nodes tabs, progress, number, notice. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | in-progress | crew character session | ADR 0291. The NOVA chibi astronaut for every person (EVA, Hangar, Space Center), outfits as data, 1.7 m tall, portraits, `/dev/crew`. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -337,6 +338,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [331 — Rendezvous autopilot](journal/331-rendezvous-autopilot.md)
 - [318 — Terminate and Recover everywhere, the occupied pad, Clear debris](journal/318-terminate-recover-and-occupied-pad.md)
 - [274 — The v3 leftovers: toasts, chip flash, Orbit panel, demolish box, back to Overview](journal/274-v3-design-leftovers.md)
 - [317 — Worlds and Create World v3, with generated system art](journal/317-worlds-and-create-world-v3.md)

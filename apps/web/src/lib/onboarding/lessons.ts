@@ -423,8 +423,8 @@ export const LESSONS: readonly Lesson[] = [
 		],
 		goal: (o) => o.docked,
 		debrief:
-			'Docked. Rendezvous is two orbits brought together; docking is the last few metres, slow and straight.',
-		hint: 'In your world, launch a target first, then a second vessel with a docking port and RCS.'
+			'Docked. Rendezvous is two orbits brought together; docking is the last few metres, slow and straight. Once you know how, the Guidance Computer can fly it: its Rendezvous panel brings you from anywhere in orbit to 150 m of the target, and Auto Dock does the last metres.',
+		hint: 'In your world, launch a target first, then a second vessel with a docking port and RCS. Target it, stage, and press Engage in the Rendezvous panel; with "Dock when close" on and a port targeted, it hands over to Auto Dock.'
 	},
 	{
 		id: 'transfer',

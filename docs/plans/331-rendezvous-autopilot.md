@@ -1,7 +1,7 @@
 ---
 id: 331
 title: "Rendezvous autopilot in the Guidance Computer: plane, transfer, match, close and hold, with a hand-over to Auto Dock"
-status: in-progress
+status: done
 owner: "rendezvous session (Claude)"
 depends: [321, 330]
 phase: 0
@@ -39,18 +39,19 @@ See ADR 0286. Every burn of the far phases is a maneuver node flown by the plan-
 
 ## Acceptance criteria
 
-- [ ] `bun test mods/guidance`: two vessels in one 100 km orbit 20 km apart end within 200 m and under 0.5 m/s relative.
-- [ ] `bun test mods/guidance`: from 100 km to a target at 150 km inclined 2° it ends the same way.
-- [ ] `bun test mods/guidance`: with too little fuel it aborts with a delta-v reason.
-- [ ] `bun test mods/guidance`: "Dock when close" with a targeted port hands over to `autodock.dock`.
-- [ ] `bun run typecheck`, `bun test`, `bun run docs:check` pass.
+- [x] `bun test mods/guidance`: two vessels in one 100 km orbit 20 km apart end within 200 m and under 0.5 m/s relative.
+- [x] `bun test mods/guidance`: from 100 km to a target at 150 km inclined 2° it ends the same way.
+- [x] `bun test mods/guidance`: with too little fuel it aborts with a delta-v reason.
+- [x] `bun test mods/guidance`: "Dock when close" with a targeted port hands over to `autodock.dock`.
+- [x] `bun run typecheck`, `bun test`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/331-rendezvous-autopilot.md`.
-- [ ] Guide section on the rendezvous autopilot; docking lesson text.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/331-rendezvous-autopilot.md`.
+- [x] Guide section on the rendezvous autopilot; docking lesson text.
 
 ## Log
 
 - 2026-10-22 — Drafted and started by the rendezvous session on the owner's request (relayed by the session that started it).
+- 2026-10-22 — Done. `bun test mods/guidance`: 12 pass (20 km same orbit holds at 156 m / 0.15 m/s; 50 km higher and 2° inclined holds at 156 m / 0.15 m/s; a 1 % tank aborts "Not enough delta-v"; Dock when close hands over to Auto Dock). `bun run build`: done; svelte-check after the build: 0 errors. `bun run test`: 2205 pass, 0 fail; web vitest (lessons, mods): 47 pass; `bun run docs:check`: OK. Journal 331.
