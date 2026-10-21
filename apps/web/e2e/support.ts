@@ -65,9 +65,10 @@ export async function openDock(page: Page, id: string): Promise<void> {
 		await expect(panel.locator('[data-testid="vessel-part"]').first()).toBeAttached({
 			timeout: 30_000
 		});
-		await panel
-			.locator('details')
-			.evaluateAll((all) => all.forEach((d) => ((d as HTMLDetailsElement).open = true)));
+		// open each folded part row as a player does, by its summary
+		const folded = panel.locator('details:not([open]) > summary[data-testid$="-row"]');
+		for (let n = await folded.count(), i = 0; n > 0 && i < 80; n = await folded.count(), i++)
+			await folded.first().click();
 	}
 }
 

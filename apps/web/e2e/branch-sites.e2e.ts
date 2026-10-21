@@ -49,7 +49,7 @@ async function placeGhost(page: Page): Promise<void> {
 
 test('found a branch, finish its HQ, build a pad and a dish, launch from it', async ({ page }) => {
 	test.skip(test.info().project.name !== 'chromium', 'one engine is enough for the branch');
-	test.setTimeout(240_000);
+	test.setTimeout(360_000);
 	const errors = watchErrors(page);
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/worlds');
