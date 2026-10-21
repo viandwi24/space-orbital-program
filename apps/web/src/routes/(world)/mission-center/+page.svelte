@@ -30,6 +30,13 @@
 	import { bodyLabel } from '../../../lib/hud-model';
 	import type { AlarmDraft } from '../../../lib/mission-center/AlarmTools.svelte';
 	import { pickTarget, type PickCandidate } from '../../../lib/map-pick';
+	import MapPickList from '../../../lib/hud/MapPickList.svelte';
+	import {
+		stackAt,
+		stackEntries,
+		type MapStack,
+		type StackPoint
+	} from '../../../lib/hud/map-stack';
 	import MissionCenterOverlay, {
 		type Layers
 	} from '../../../lib/mission-center/MissionCenterOverlay.svelte';
@@ -78,6 +85,9 @@
 	let focus = $state<number | null>(null);
 	let filter = $state<TrackFilter>('all');
 	let selected = $state<string | null>(null);
+	/** The pick list of vessels stacked under a click (plan 270), and the vessels' points this frame. */
+	let stack = $state<MapStack | null>(null);
+	let vesselPoints: StackPoint[] = [];
 	let layers = $state<Layers>({ orbits: true, network: true, labels: true });
 	let upcoming = $state.raw<UpcomingEvent[]>([]);
 	let labels = $state.raw<MapLabel[]>([]);
@@ -190,6 +200,7 @@
 			const p = points[r.key];
 			if (p) raw.push({ key: r.key, label: r.label, kind: r.kind, x: p.x, y: p.y });
 		}
+		vesselPoints = raw.filter((l) => l.kind === 'vessel');
 		const grouped = clusterLabels(raw);
 		const spread = spreadLabels(Object.fromEntries(grouped.map((l) => [l.key, l])), 96, 26);
 		const nextLabels: MapLabel[] = grouped.map((l) => ({
@@ -203,7 +214,15 @@
 		if (JSON.stringify(nextNetwork) !== JSON.stringify(network)) network = nextNetwork;
 	}
 
+	/** The pick list for `keys` at `at` when two or more are vessels still there; true when it opened. */
+	function openStack(keys: readonly string[], at: { x: number; y: number }): boolean {
+		const entries = snapshot ? stackEntries(keys, snapshot, { bodies, active: focus }) : [];
+		stack = entries.length > 1 ? { ...at, entries } : null;
+		return stack !== null;
+	}
+
 	function onClick(x: number, y: number): void {
+		if (openStack(stackAt(vesselPoints, x, y, 14), { x, y })) return;
 		const candidates: PickCandidate[] = labels.map((l) => ({
 			key: l.members?.[0] ?? l.key,
 			marks: [{ x: l.x, y: l.y, radius: l.kind === 'body' ? 22 : 14 }],
@@ -361,6 +380,9 @@
 		{rows}
 		{selected}
 		onselect={select}
+		onstack={(keys, at) => {
+			if (!openStack(keys, at)) select(keys[0] ?? null);
+		}}
 		{upcoming}
 		onwarp={(e) => void warpTo(e)}
 		{counts}
@@ -413,6 +435,16 @@
 			/>
 		{/snippet}
 	</MissionCenterOverlay>
+	{#if stack}
+		<MapPickList
+			{stack}
+			onclose={() => (stack = null)}
+			onpick={(entry) => {
+				stack = null;
+				select(entry.key);
+			}}
+		/>
+	{/if}
 </main>
 
 <style>

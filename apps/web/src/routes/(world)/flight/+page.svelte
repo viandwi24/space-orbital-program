@@ -84,6 +84,14 @@
 	import { takeableSample } from '../../../lib/hud/take-sample';
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
+	import MapPickList from '../../../lib/hud/MapPickList.svelte';
+	import {
+		stackAt,
+		stackEntries,
+		type MapStack,
+		type StackPoint
+	} from '../../../lib/hud/map-stack';
+	import type { MapTargetFrame } from '../../../lib/target-view';
 	import { panelRoom } from '../../../lib/hud/panel-room';
 	import DebugPanel from '../../../lib/debug/DebugPanel.svelte';
 	import { createDebugApi, flightDebug, type DebugHost } from '../../../lib/debug/api';
@@ -192,6 +200,40 @@
 	let hoverPart = $state<EntityId | null>(null);
 	let hoverAt = 0;
 	let downAt: { x: number; y: number } | null = null;
+	/** The map's vessel points this frame: the others', and the target's under the key `target` (plan 270). */
+	function stackPoints(map: MapTargetFrame | null): StackPoint[] {
+		if (!map) return [];
+		const out = map.others.map((o) => ({ key: o.key, x: o.point.x, y: o.point.y }));
+		if (map.target) out.push({ key: 'target', x: map.target.point.x, y: map.target.point.y });
+		return out;
+	}
+
+	/** A map click on a vessel: the pick list when icons overlap there, else its card (plan 270). */
+	function mapPick(key: string, at: { x: number; y: number }): void {
+		const snap = worldSession.snapshot;
+		const own = flight?.panelInput()?.vessel;
+		const target = own?.target?.kind === 'vessel' ? `vessel:${Number(own.target.id)}` : null;
+		const points = mapPoints.flatMap((p) =>
+			p.key !== 'target' ? [p] : target ? [{ ...p, key: target }] : []
+		);
+		const keys = key.startsWith('vessel:') ? stackAt(points, at.x, at.y) : [];
+		const entries =
+			snap && keys.length > 1
+				? stackEntries(keys, snap, {
+						bodies: debugHost?.bodies() ?? [],
+						active: own ? Number(own.id) : null,
+						target
+					})
+				: [];
+		if (entries.length > 1) {
+			mapCard = null;
+			mapStack = { ...at, entries };
+			return;
+		}
+		mapStack = null;
+		mapCard = mapCardFor(key, model?.targets ?? [], at);
+	}
+
 	function inspect(part: EntityId): void {
 		inspector = openPart(inspector, part);
 		panelInput = flight?.panelInput() ?? null;
@@ -215,6 +257,9 @@
 		vesselContent?.parts.get(definition)?.title ?? definition;
 	/** The card of a map vessel just clicked (plan 250). */
 	let mapCard = $state<MapCard | null>(null);
+	/** The pick list of vessels stacked under a map click (plan 270), and the map's vessel points. */
+	let mapStack = $state<MapStack | null>(null);
+	let mapPoints: StackPoint[] = [];
 	/** The dock panel's width, px at 100 % (plan 250), dragged at its free edge. */
 	const dockWidth = $derived(
 		clampSpan(REGIONS.dock, settings.ui.dockWidth ?? REGIONS.dock.default)
@@ -854,6 +899,7 @@
 				const g = f.ghost ?? null;
 				if (JSON.stringify(g) !== JSON.stringify(ghostFrame)) ghostFrame = g;
 				targetMarks?.place(f.target ?? null);
+				mapPoints = stackPoints(f.target?.map ?? null);
 				heatBars?.place(f.heat ?? null);
 				nodeLayer?.place(f.maneuver ?? null);
 			},
@@ -868,9 +914,10 @@
 				launchedHere = true;
 			},
 			onCameraMode: saveCameraMode,
-			onMapPick: (key, at) => (mapCard = mapCardFor(key, model?.targets ?? [], at)),
+			onMapPick: mapPick,
 			onKey: (key) => {
-				if (key === 'escape' && uiHidden) uiHidden = false;
+				if (key === 'escape' && mapStack) mapStack = null;
+				else if (key === 'escape' && uiHidden) uiHidden = false;
 				else if (key === 'escape') pauseOpen = true;
 				else if (key === 'hideUi') uiHidden = !uiHidden;
 				else if (key === 'screenshot') void screenshot();
@@ -1373,6 +1420,18 @@
 			}
 		}}
 	></canvas>
+	{#if mapStack && hud?.map}
+		<MapPickList
+			stack={mapStack}
+			onclose={() => (mapStack = null)}
+			onpick={(entry) => {
+				const at = { x: mapStack?.x ?? 0, y: mapStack?.y ?? 0 };
+				mapStack = null;
+				flight?.setTarget(entry.key);
+				mapCard = mapCardFor(entry.key, model?.targets ?? [], at);
+			}}
+		/>
+	{/if}
 	{#if mapCard && hud?.map}
 		<MapCardView
 			card={mapCard}

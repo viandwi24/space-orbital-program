@@ -49,6 +49,7 @@
 		rows,
 		selected,
 		onselect,
+		onstack,
 		upcoming,
 		onwarp,
 		onalarmsave,
@@ -96,6 +97,8 @@
 		rows: readonly TrackRow[];
 		selected: string | null;
 		onselect: (key: string | null) => void;
+		/** A cluster's label: the pick list of its members (plan 270); without it, the first member. */
+		onstack?: (keys: readonly string[], at: { x: number; y: number }) => void;
 		upcoming: readonly UpcomingEvent[];
 		onwarp: (e: UpcomingEvent) => void;
 		/** The fleet list (plan 223): counts per type, the type kept, the search and the order. */
@@ -167,7 +170,10 @@
 					(selected !== null && l.members?.includes(selected) === true)}
 				style:left="{l.x}px"
 				style:top="{l.y}px"
-				onclick={() => onselect(l.members?.[0] ?? l.key)}
+				onclick={() =>
+					l.members && onstack
+						? onstack(l.members, { x: l.x, y: l.y })
+						: onselect(l.members?.[0] ?? l.key)}
 				data-testid="mc-label-{l.key}">{l.label}</button
 			>
 		{/each}
