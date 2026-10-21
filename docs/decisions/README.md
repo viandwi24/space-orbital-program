@@ -261,3 +261,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0262 | [Robotics: rigid groups joined by motored Rapier joints](0262-robotics-articulated-vessels.md) | accepted | 2026-10-21 |
 | 0263 | [Blueprints are mod content, shown in one Library](0263-blueprints-are-mod-content-in-one-library.md) | accepted | 2026-10-21 |
 | 0264 | [EVA inventory and deployed science stations](0264-eva-inventory-and-deployed-science.md) | accepted | 2026-10-21 |
+| 0265 | [Robotics after the joint spike: impulse joints for short chains, sub-stepping for robotic vessels, kinematic poses for long arms](0265-robotics-short-impulse-chains-kinematic-arms.md) | proposed | 2026-10-21 |

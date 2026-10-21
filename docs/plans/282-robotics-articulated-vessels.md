@@ -18,7 +18,8 @@ A vessel with robotic parts splits into rigid groups joined by motored Rapier jo
 ## Context
 
 - Research: `refs/part-visuals-and-blueprints/README.md` and `refs/part-visuals-and-blueprints/parts-tracker.md` (tracker IDs name the parts this plan delivers).
-- ADRs: 0262
+- ADRs: 0262; [0265](../decisions/0265-robotics-short-impulse-chains-kinematic-arms.md) (proposed after the spike's no-go).
+- Spike: [`docs/research/rapier-joints.md`](../research/rapier-joints.md) (plan 288): the Rapier 0.21 joint API, the measurements and the API mapping for ADR 0262 point 2.
 - Code: `packages/renderer/src/parts/generators/`, `mods/stock/src/parts/`.
 
 ## Scope
@@ -55,5 +56,6 @@ Per ADR 0262. Gate: if the spike fails its numbers, stop and write a superseding
 
 ## Log
 
+- 2026-10-21 — Plan 288's spike: no-go for ADR 0262 as written (no multibody motors in Rapier 0.21 JS; a 6-joint impulse chain sags and costs 5–6× at dt 0.02). ADR 0265 is proposed; this plan waits for its decision.
 - 2026-10-21 — The joint spike moved to plan 288 (Linux worker); this plan starts only on its "go" verdict.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.
