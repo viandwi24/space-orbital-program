@@ -1,0 +1,26 @@
+{
+	"name": "@orbital/mod-guidance",
+	"version": "0.0.0",
+	"license": "Apache-2.0",
+	"private": true,
+	"description": "Guidance Computer (plan 316): MechJeb-style autopilots (execute a node, circularize, ascent, landing) written with the public SDK only.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"types": "./src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@orbital/sdk": "workspace:*"
+	},
+	"devDependencies": {
+		"@orbital/mod-stock": "workspace:*",
+		"@orbital/physics": "workspace:*",
+		"@orbital/sim": "workspace:*",
+		"typescript": "catalog:",
+		"@types/bun": "latest"
+	}
+}

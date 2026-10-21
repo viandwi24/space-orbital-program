@@ -1,8 +1,8 @@
 ---
 id: 316
 title: "Guidance Computer: a built-in mod with MechJeb-style autopilots (node executor, circularize, ascent, landing)"
-status: draft
-owner: ""
+status: in-progress
+owner: "vessel programs session (Claude)"
 depends: [310, 315]
 phase: 0
 created: 2026-10-21
@@ -19,7 +19,7 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 
 - Owner's request (2026-10-21): "mods like auto docking, and several of the well-known MechJeb 2 features, in our game as mods; built-in mods appear in the Mods menu".
 - Research: `research/vessel-programs.md` (MechJeb's per-axis yield and PID reset, kRPC's AutoPilot refusing SAS).
-- ADRs: 0271 (autopilots), 0273 (arbitration, saved state), 0056 (maneuver nodes), 0049 (SAS).
+- ADRs: 0271 (autopilots), 0273 (arbitration, saved state), **0274** (pilot read-outs: body, mass, engines, nodes), 0056 (maneuver nodes), 0049 (SAS).
 - Depends on plan 310 Part 3 (`defineAutopilot`, `autopilot-engage`/`-disengage`, snapshot `autopilot`) and plan 315.
 
 ## Scope
@@ -38,7 +38,7 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 
 ## Steps
 
-1. Refine to `ready` once plan 310 Part 3 is on `main`; check the autopilot API against ADR 0271.
+1. ADR 0274: the pilot reads the body, mass and engines and sets nodes (the sim's runner passes them); commit.
 2. Mod skeleton and the node executor with sim tests; commit.
 3. Circularize and ascent with sim tests; commit.
 4. Landing with a moon test; commit.
@@ -60,3 +60,4 @@ A built-in mod, `@orbital/mod-guidance` ("Guidance Computer"), ships the autopil
 ## Log
 
 - 2026-10-21 — Drafted by the vessel programs session (plan 315) from the owner's request; waits for plan 310 Part 3.
+- 2026-10-21 — Refined and started in the same session at the owner's request; plan 310 Part 3 is on main. The pilot lacked body, mass, thrust and nodes: ADR 0274.

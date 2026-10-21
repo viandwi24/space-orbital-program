@@ -12,6 +12,12 @@ describe('builtinModRows', () => {
 		expect(stock?.description).toBeTruthy();
 	});
 
+	it('lists the Guidance Computer and Auto Dock', () => {
+		const ids = builtinModRows(BUILTIN_PLUGINS).map((r) => r.id);
+		expect(ids).toContain('guidance');
+		expect(ids).toContain('autodock');
+	});
+
 	it('falls back to the id when a plugin has no title', () => {
 		const rows = builtinModRows([
 			{ meta: { id: 'acme.x', version: '1.0.0', api: '^0.1' }, setup: () => {} } as never

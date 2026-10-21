@@ -2,8 +2,9 @@
  * Autopilots (plan 310, ADR 0271): a mod's `AutopilotDefinition` flies one vessel. The sim steps an
  * engaged autopilot at its rate on sim time, before the step's physics, with a `VesselPilot` built
  * from fresh snapshots of the vessel and its target vessel. Every control call is a command
- * through `dispatch`, the handler the keys and scripts use, sent as a flight computer's (`script`:
- * the signal-delay rule treats it like a script). A throwing autopilot ends as `aborted`.
+ * through `dispatch`, the handler the keys and scripts use, sent with source `autopilot` (a program,
+ * ADR 0273; the signal-delay rule treats it like a script). The pilot gets the sim's facts (body,
+ * mass, engines; ADR 0274). A throwing autopilot ends as `aborted`.
  */
 import {
 	AUTOPILOT_RATE,
@@ -19,6 +20,7 @@ import {
 import { dispatch } from './commands.ts';
 import { isControlled, vesselIds, vesselOf, type SimCore } from './core.ts';
 import { vesselSnapshot } from './snapshot.ts';
+import { pilotFacts } from './pilot-facts.ts';
 import { VESSEL, type VesselState } from './state.ts';
 
 const refuse = (reason: string): CommandResult => ({ ok: false, reason });
@@ -38,7 +40,7 @@ function pilotFor(core: SimCore, vesselId: EntityId): VesselPilot {
 		'vessel' in command && command.vessel === vesselId
 			? dispatch(core, command, 'autopilot')
 			: refuse('an autopilot commands its own vessel only');
-	return createVesselPilot({ t: core.t, vessels }, vesselId, send);
+	return createVesselPilot({ t: core.t, vessels }, vesselId, send, pilotFacts(core, vesselId));
 }
 
 /** Plain JSON copy of an autopilot's memory (it is saved with the vessel). */

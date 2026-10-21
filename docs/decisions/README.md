@@ -270,3 +270,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0271 | [A public vessel-control API and autopilots that mods define](0271-vessel-control-api-and-mod-autopilots.md) | accepted | 2026-10-21 |
 | 0272 | [Tethers and winches: a rope joint between two vessels; releasable struts](0272-tethers-and-winches-rope-joint-between-vessels.md) | proposed | 2026-10-21 |
 | 0273 | [Vessel programs: the player wins per control channel, programs resume, and their state is saved](0273-vessel-programs-player-wins-per-channel-and-saved-state.md) | accepted | 2026-10-21 |
+| 0274 | [The vessel pilot reads the body, the mass and the engines, and sets maneuver nodes](0274-pilot-read-outs-body-mass-engines-and-nodes.md) | accepted | 2026-10-21 |

@@ -19,6 +19,9 @@ Read-outs (SI units; inertial axes are the shared axes of `ship.position`):
 | `relative()` | `{ position, velocity, localPosition, localVelocity, distance, closing }`: target point minus own point. With a port targeted and a port as control part, both points are the port faces (ADR 0270) |
 | `alignment()` | port to port: `{ angle, along, lateral, lateralDistance, distance, closing, velocity, sameSize }`. `angle` rad between the faces (0 = face to face); `along` how far the own face is out in front of the target face along its axis (negative: behind it); `lateral` the offset from that axis; `closing` the speed along it toward the face; `velocity` own minus target |
 | `resource(id)` | `{ amount, capacity }` over the vessel, or undefined |
+| `body` | `{ id, mu, radius, atmosphereHeight, angularVelocity }` of the sphere-of-influence body (ADR 0274; undefined when the host gave no facts) |
+| `mass` | the vessel's current mass, kg (undefined without facts) |
+| `engines`, `maxThrust` | each engine module `{ part, thrustVacuum, ispVacuum, ignited, flameout }`; the vacuum thrust of those burning, N |
 
 Controls (each one command; values are clamped):
 
@@ -32,6 +35,9 @@ Controls (each one command; values are clamped):
 | `rcs(on)`, `throttle(v)`, `stage()` | `set-rcs`, `throttle`, `stage` |
 | `controlFrom(part \| null)` | `set-control-part` (a command part or a docking port) |
 | `setTarget(ref \| null)`, `setTargetPort(vessel, part)` | `target-set` (a whole vessel, a body, or one docking port) |
+| `addNode(time, prograde, normal, radial)`, `removeNode(id?)` | `node-set` (a new node) and `node-remove` (ADR 0274) |
+
+`body`, `mass` and `engines` come from the sim: inside an autopilot they are always there. A pilot a page builds from a snapshot alone has none (`createVesselPilot(view, id, send, facts?)`).
 
 `direction` and an attitude `hold` need no particular SAS level: the computer that asks for them does the aiming.
 
@@ -71,3 +77,18 @@ export default definePlugin({
 - The end is the event `autopilot:ended { vessel, autopilot, outcome, reason }` with outcome `done`, `aborted` (an `abort`, a throw, the vessel losing control, the definition not loaded) or `disengaged`. A docking ends the autopilot of both vessels with `done`, `docked`. The sim clears the RCS translation the autopilot left.
 - The memory is saved with the vessel and comes back on load. Keep it plain data.
 - The autopilot runs in the sim, at its rate on sim time, before the step's physics: it is deterministic and runs headless in `bun test`. Commands it sends follow the signal-delay rule as a script's would.
+- It is a *program* (ADR 0273): its commands carry the source `autopilot`, so a control channel the player touches is theirs until 1 s after they let go (`vessel.override` lists them), Delete and Abort stop it, and the status bar lists it. Keep the memory JSON-safe: no `Infinity` or `NaN` (they come back as `null`).
+
+## The Guidance Computer (plan 316)
+
+`mods/guidance` (built in) is the second worked example, with MechJeb-style autopilots on the pilot alone:
+
+| Autopilot | Params | What it does |
+|---|---|---|
+| `guidance.node` | | points along the next node, lights at half the burn time before it (rocket equation, vacuum Isp), throttles down over the last 1.5 s, removes the node; stages when the engines run dry |
+| `guidance.circularize` | `{ at: 'apoapsis' \| 'periapsis' }` | plans a node for the circular speed at that apsis, then burns it like `guidance.node` |
+| `guidance.ascent` | `{ altitude?, shape? }` | launches, gravity turn east (pitch `90° · (1 − f^shape)` up to 75 % of the atmosphere), eases off near the target apoapsis, coasts out of the air, circularizes; stages on flame-out |
+| `guidance.land` | | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at 1.2 m/s, touches down upright |
+
+Its panel ("Guidance Computer") engages each one and shows the phase and read-outs. `mods/guidance/test` flies all four headless (a 300 m/s node to under 1 m/s, a 100 x 75 km orbit to e < 0.005, the two-stage rocket from the pad to a periapsis above 70 km, a lander down on the moon under 2 m/s).
+
