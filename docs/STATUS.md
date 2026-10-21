@@ -237,6 +237,7 @@
 | 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | ready | — | Split from 275 for the Linux worker (Agent 3). ADR 0256. Headless; no UI. |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
 | 291 | [Part detail kit, liveries, bronze material and honest catalogue icons](plans/291-part-detail-kit-livery-and-icons.md) | draft | — | ADRs 0255, 0257. Owner research 2026-10-21 (refs/part-visuals-and-blueprints). Waits until the owner releases the parts work (main busy with renderer and UI/UX fixes). |
+| 294 | [A compact performance overlay (net_graph style)](plans/294-performance-overlay.md) | done | perf overlay session | Settings → Interface → Performance overlay (off by default): FPS, frame p50/max with spikes, GPU, sim step, renderer and quality, draw calls, triangles, heap, with 5 s graphs; Flight, Space Center, Mission Center. Tick under 0.2 ms; `debug.counters()` added because `debug.info()` stalls WebGL. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -301,6 +302,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [294 — A compact performance overlay](journal/294-performance-overlay.md)
 - [290 — Folded part rows that did not open on a click](journal/290-folded-part-rows-open-on-click.md)
 - [272 — Flight v3: one dock, the compact navball module, staging on the right](journal/272-flight-v3.md)
 - [273 — Space Center v3: Overview, Build and Focus](journal/273-space-center-v3.md)
