@@ -119,7 +119,7 @@ const NOSE_CLASS_SIZES = [
 		size: 1.875,
 		suffix: '1875',
 		label: '1.875 m',
-		title: 'OrbitX AC-18 "Runcing"',
+		title: 'OrbitX AC-18 "Spire"',
 		massKg: 85,
 		height: 1.65
 	},
@@ -127,7 +127,7 @@ const NOSE_CLASS_SIZES = [
 		size: 3.75,
 		suffix: '3750',
 		label: '3.75 m',
-		title: 'OrbitX AC-37 "Runcing"',
+		title: 'OrbitX AC-37 "Spire"',
 		massKg: 340,
 		height: 3.3
 	},
@@ -135,7 +135,7 @@ const NOSE_CLASS_SIZES = [
 		size: 5,
 		suffix: '5000',
 		label: '5 m',
-		title: 'OrbitX AC-50 "Runcing"',
+		title: 'OrbitX AC-50 "Spire"',
 		massKg: 600,
 		height: 4.4
 	},
@@ -143,7 +143,7 @@ const NOSE_CLASS_SIZES = [
 		size: 7.5,
 		suffix: '7500',
 		label: '7.5 m',
-		title: 'OrbitX AC-75 "Runcing"',
+		title: 'OrbitX AC-75 "Spire"',
 		massKg: 1_350,
 		height: 6.6
 	}

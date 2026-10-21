@@ -161,15 +161,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		}
 	},
 	{
-		id: 'ulang-alik',
-		title: 'Ulang-Alik',
+		id: 'wayfarer-shuttle',
+		title: 'Wayfarer Shuttle',
 		inspiredBy: 'the Space Shuttle (orbiter, external tank, solid boosters, payload bay)',
 		goal: 'orbit',
 		crew: 4,
 		summary:
 			'A winged orbiter with a satellite in its cargo bay, on a foam-covered external tank between two solid boosters.',
 		build(content) {
-			const b = new Build(content, 'Ulang-Alik', 'stock.orbiter-nose');
+			const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
 			const bay = b.below('stock.cargo-bay', 0);
 			const sat = b.on('stock.satellite-bus', bay, 'inner');
 			b.above('stock.antenna-relay', sat);
@@ -193,15 +193,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		}
 	},
 	{
-		id: 'stasiun-cakrawala',
-		title: 'Stasiun Cakrawala',
+		id: 'horizon-station',
+		title: 'Horizon Station',
 		inspiredBy: 'a modular space station (ISS, Mir)',
 		goal: 'station',
 		crew: 0,
 		summary:
 			'The station core: a habitat under a six-port hub with a docking port, two big tracking arrays and radiators, flown up uncrewed on a heavy launcher.',
 		build(content) {
-			const b = new Build(content, 'Stasiun Cakrawala', 'stock.hub');
+			const b = new Build(content, 'Horizon Station', 'stock.hub');
 			b.above('stock.docking-port', 0);
 			const hab = b.below('stock.hab-module', 0);
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
@@ -220,15 +220,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		}
 	},
 	{
-		id: 'pengorbit',
-		title: 'Pengorbit',
+		id: 'moonwatch-orbiter',
+		title: 'Moonwatch Orbiter',
 		inspiredBy: 'a planetary orbiter (a Mars or moon orbiter)',
 		goal: 'moon',
 		crew: 0,
 		summary:
 			'A probe that flies to the moon and stays in orbit: a satellite bus with a relay dish, solar wings, an RTG, instruments and its own engine.',
 		build(content) {
-			const b = new Build(content, 'Pengorbit', 'stock.antenna-relay');
+			const b = new Build(content, 'Moonwatch Orbiter', 'stock.antenna-relay');
 			const bus = b.below('stock.satellite-bus', 0);
 			b.side('stock.rtg-radial', bus, 0, 0);
 			b.side('stock.thermometer-radial', bus, Math.PI / 2, 0.3);
@@ -242,15 +242,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		}
 	},
 	{
-		id: 'teleskop-cakrawala',
-		title: 'Teleskop Cakrawala',
+		id: 'horizon-telescope',
+		title: 'Horizon Telescope',
 		inspiredBy: 'a space telescope (Hubble)',
 		goal: 'orbit',
 		crew: 0,
 		summary:
 			'A telescope with an aperture door on a satellite bus with solar wings, a dish and RCS, for high orbit.',
 		build(content) {
-			const b = new Build(content, 'Teleskop Cakrawala', 'stock.telescope');
+			const b = new Build(content, 'Horizon Telescope', 'stock.telescope');
 			const bus = b.below('stock.satellite-bus', 0);
 			b.side('stock.antenna-dish-fold', bus, 0, 0.2);
 			b.side('stock.rcs-block', bus, Math.PI / 4, 0, 4);
@@ -262,15 +262,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		}
 	},
 	{
-		id: 'satelit-peneliti',
-		title: 'Satelit Peneliti',
+		id: 'aurora-satellite',
+		title: 'Aurora Research Satellite',
 		inspiredBy: 'a research satellite (Explorer, Sputnik 3)',
 		goal: 'orbit',
 		crew: 0,
 		summary:
 			'A satellite bus with a magnetometer boom, a barometer and a thermometer, folding solar arrays, a whip antenna and RCS, on a light launcher.',
 		build(content) {
-			const b = new Build(content, 'Satelit Peneliti', 'stock.satellite-bus');
+			const b = new Build(content, 'Aurora Research Satellite', 'stock.satellite-bus');
 			b.side('stock.magnetometer-boom', 0, 0, 0);
 			b.side('stock.solar-fold', 0, Math.PI / 2, 0, 2);
 			b.side('stock.antenna-whip-radial', 0, Math.PI, 0.3);

@@ -70,19 +70,19 @@ function classHeatShield(id: string, title: string, size: number, height: number
 
 export const PartHeatShield1875 = classHeatShield(
 	'stock.heat-shield-1875',
-	'OrbitX PR-HS18 "Perisai"',
+	'OrbitX PR-HS18 "Shield"',
 	1.875,
 	0.25
 );
 export const PartHeatShield3750 = classHeatShield(
 	'stock.heat-shield-3750',
-	'OrbitX PR-HS37 "Perisai"',
+	'OrbitX PR-HS37 "Shield"',
 	3.75,
 	0.4
 );
 export const PartHeatShield5000 = classHeatShield(
 	'stock.heat-shield-5000',
-	'OrbitX PR-HS50 "Perisai"',
+	'OrbitX PR-HS50 "Shield"',
 	5,
 	0.5
 );
@@ -124,7 +124,7 @@ const canopy = { module: ModuleParachute.id, flag: 'canopy', seconds: 1.5 } as c
 /** The main chute that caps a capsule: 0.625 m, on the pod's top node. */
 export const PartParachute = definePart({
 	id: 'stock.parachute',
-	title: 'OrbitX PR-16 "Kuncup"',
+	title: 'OrbitX PR-16 "Bud"',
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
@@ -149,7 +149,7 @@ export const PartParachute = definePart({
 /** A radial main chute: the same canopy on the side of a part, for capsules with a full top. */
 export const PartRadialParachute = definePart({
 	id: 'stock.radial-parachute',
-	title: 'OrbitX PR-16R "Kuncup"',
+	title: 'OrbitX PR-16R "Bud"',
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
@@ -177,7 +177,7 @@ export const PartRadialParachute = definePart({
  */
 export const PartDrogueChute = definePart({
 	id: 'stock.drogue-chute',
-	title: 'OrbitX PR-25 "Kuncup Kecil"',
+	title: 'OrbitX PR-25 "Little Bud"',
 	mass: kg(60),
 	cost: partCost(60, 'gear'),
 	impactTolerance: 12,
@@ -216,7 +216,7 @@ export const PartDrogueChute = definePart({
  */
 export const PartParachuteRing = definePart({
 	id: 'stock.parachute-ring',
-	title: 'OrbitX PR-D16 "Mahkota"',
+	title: 'OrbitX PR-D16 "Crown"',
 	mass: kg(140),
 	cost: partCost(140, 'gear'),
 	impactTolerance: 12,

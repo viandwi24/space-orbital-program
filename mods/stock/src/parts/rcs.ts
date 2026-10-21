@@ -84,7 +84,7 @@ const radial = (half: number) => ({
  */
 export const PartRcsBlock = definePart({
 	id: 'stock.rcs-block',
-	title: 'OrbitX RCS-4 "Kompas"',
+	title: 'OrbitX RCS-4 "Compass"',
 	mass: kg(50),
 	cost: partCost(50, 'engine'),
 	impactTolerance: 8,
@@ -118,7 +118,7 @@ export const PartRcsBlock = definePart({
  */
 export const PartColdGasThruster = definePart({
 	id: 'stock.rcs-cold-gas',
-	title: 'OrbitX CG-1 "Hembus"',
+	title: 'OrbitX CG-1 "Puff"',
 	mass: kg(15),
 	cost: partCost(15, 'engine'),
 	impactTolerance: 8,
@@ -149,7 +149,7 @@ export const PartColdGasThruster = definePart({
 /** Plan 277: the four-way block with a fifth nozzle out of the front, as on a service module's quads. */
 export const PartRcsBlock5 = monopropThruster({
 	id: 'stock.rcs-block-5',
-	title: 'OrbitX RCS-5 "Bintang"',
+	title: 'OrbitX RCS-5 "Star"',
 	massKg: 60,
 	size: [0.26, 0.3, 0.3],
 	nozzles: BLOCK5_NOZZLES
@@ -158,7 +158,7 @@ export const PartRcsBlock5 = monopropThruster({
 /** Plan 277: two nozzles along the hull, for translation fore and aft and pitch or yaw. */
 export const PartRcsPair = monopropThruster({
 	id: 'stock.rcs-pair',
-	title: 'OrbitX RCS-2 "Sepasang"',
+	title: 'OrbitX RCS-2 "Pair"',
 	massKg: 30,
 	size: [0.16, 0.3, 0.2],
 	nozzles: PAIR_NOZZLES
@@ -167,7 +167,7 @@ export const PartRcsPair = monopropThruster({
 /** Plan 277: a single nozzle set into the hull, pushing the vessel inward. */
 export const PartRcsLinear = monopropThruster({
 	id: 'stock.rcs-linear',
-	title: 'OrbitX RCS-1 "Tunggal"',
+	title: 'OrbitX RCS-1 "Single"',
 	massKg: 20,
 	size: [0.1, 0.16, 0.16],
 	nozzles: LINEAR_NOZZLES
