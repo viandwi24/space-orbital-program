@@ -260,7 +260,7 @@
 	.vsv,
 	.thrv {
 		position: absolute;
-		top: calc(168 * var(--u));
+		top: calc(174 * var(--u));
 		width: calc(56 * var(--u));
 		text-align: center;
 		font-size: var(--t-label);
@@ -317,16 +317,17 @@
 	.readouts {
 		position: absolute;
 		left: calc(18 * var(--u));
-		top: calc(118 * var(--u));
+		top: calc(112 * var(--u));
 		width: calc(150 * var(--u));
 		display: grid;
-		gap: calc(16 * var(--u));
+		gap: calc(14 * var(--u));
 	}
 	.row {
 		display: flex;
 		align-items: center;
 		gap: 0.3125rem;
 		min-height: 1rem;
+		min-width: 0;
 	}
 	.lab {
 		width: 1.625rem;
@@ -338,6 +339,9 @@
 	}
 	.value {
 		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-size: calc(15 * var(--u));
 		font-weight: 500;

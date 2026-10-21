@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, openDock } from './support';
 
 /**
  * Plan 215 (ADR 0205 points 5 to 7): the flight HUD's regions at three window sizes do not overlap,
@@ -47,10 +47,9 @@ async function regions(page: Page): Promise<Record<string, DOMRect>> {
 			timeBar: '[data-testid="time-bar"]',
 			menuBar: '[data-testid="menu-bar"]',
 			statusBar: '[data-testid="status-bar"]',
-			staging: '.ui > .bl',
+			staging: '.ui > .br',
 			navball: '.ui > .bc',
-			crew: '.ui > .br',
-			side: '.ui > .tr'
+			dock: '.ui > .tl'
 		};
 		for (const [name, sel] of Object.entries(pick)) {
 			const el = document.querySelector(sel);
@@ -88,9 +87,9 @@ for (const [width, height] of [
 		// staging stays on screen and scrolls inside its capped box
 		const staging = boxes.staging!;
 		expect(staging.top).toBeGreaterThanOrEqual(0);
-		expect(await page.locator('.ui > .bl').evaluate((el) => getComputedStyle(el).overflowY)).toBe(
-			'auto'
-		);
+		expect(
+			await page.locator('.ui > .br .queue').evaluate((el) => getComputedStyle(el).overflowY)
+		).toBe('auto');
 
 		await page.evaluate(() => {
 			const api = (
@@ -125,11 +124,12 @@ test('opening and closing the vessel panel does not move the vessel on screen', 
 	await expect.poll(at, { timeout: 30_000 }).not.toBeNull();
 	await page.waitForTimeout(1500);
 	const before = (await at())!;
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await expect(page.getByTestId('vessel-panel')).toBeVisible();
+	// the vessel panel is the dock's Overview since v3 (plan 272): close it, then open it again
+	await page.getByTestId('dock-tab-host.vessel').click();
 	await page.waitForTimeout(600);
 	const open = (await at())!;
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
+	await openDock(page, 'host.vessel');
+	await expect(page.getByTestId('vessel-panel')).toBeVisible();
 	await page.waitForTimeout(600);
 	const closed = (await at())!;
 	for (const p of [open, closed]) {

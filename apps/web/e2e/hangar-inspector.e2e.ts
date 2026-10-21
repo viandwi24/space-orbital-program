@@ -4,7 +4,7 @@
  * flight the vessel panel shows 60 % for each of them. The moon shot's LB-1 boosters start at 50 %.
  */
 import { expect, test } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, openDock } from './support';
 
 interface Hook {
 	partAt(index: number): { x: number; y: number } | null;
@@ -60,8 +60,7 @@ test('a limiter set in the Hangar flies: 60 % on the boosters in the vessel pane
 			.map((p) => p.id)
 	);
 	expect(boosters).toHaveLength(4);
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 	for (const id of boosters) {
 		const slider = page.getByTestId(`part-${id}-setLimiter`);
 		await expect(slider).toHaveValue('0.6', { timeout: 20_000 });

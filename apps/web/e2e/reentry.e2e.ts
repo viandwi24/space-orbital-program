@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { debugSetLocation, watchErrors } from './support';
+import { debugSetLocation, watchErrors, openDock } from './support';
 
 /**
  * Plan 212 (ADR 0204): a capsule entering at 60 km and 2300 m/s heats its shield. The vessel panel
@@ -37,8 +37,7 @@ test('the shield heats on entry, the panel shows its temperature, the capsule la
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 
 	// 23 degrees down: steep enough to heat, shallow enough for the chute to save it
 	await debugSetLocation(page, {

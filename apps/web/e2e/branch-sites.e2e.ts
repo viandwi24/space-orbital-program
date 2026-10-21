@@ -96,6 +96,8 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 
 	// the world saves and reloads with the branch's ground; switch to it
 	await page.waitForLoadState('load');
+	// the site picker is in the Buildings list (plan 273, ADR 0254 point 2)
+	await page.getByTestId('sc-buildings').click({ timeout: 60_000 });
 	const select = page.getByTestId('sc-site');
 	await expect(select).toBeVisible({ timeout: 60_000 });
 	// a world with no save yet keeps what was spent (plan 237): 3,100,000 less the 250,000 founding
@@ -104,6 +106,7 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 	await expect(page.getByTestId('status-location')).toContainText('East Branch');
 	await expect(page.getByTestId('sc-row-branch-1-hq')).toContainText('Under construction');
 	// nothing else is built before the HQ
+	await page.getByTestId('sc-build').click();
 	await page.getByTestId('sc-cat-stock.launch').click();
 	await expect(page.getByTestId('sc-build-stock.launchpad-s')).toContainText(
 		'The branch HQ is still under construction'

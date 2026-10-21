@@ -19,7 +19,8 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	const rows = page.locator('[data-testid^="sc-row-"]');
 	await expect(rows).toHaveCount(4, { timeout: 60_000 });
 
-	// the build menu (plan 235): Comms, then the dish's card
+	// the build bar (plans 235 and 273): Build, Comms, then the dish's card
+	await page.getByTestId('sc-build').click();
 	await page.getByTestId('sc-cat-stock.comms').click();
 	await page.getByTestId('sc-build-stock.tracking-dish').click();
 	// build mode: walk the pointer over the canvas until the ghost may be placed, then click
@@ -53,6 +54,7 @@ test('enter a world, place a building, open the Hangar from its label', async ({
 	// the read-only Market panel of a Career world (plan 097, ADR 0124 point 8)
 	await expect(page.getByTestId('sc-market-stock.liquid-fuel')).toContainText('0.80 / u');
 	await page.getByTestId('sc-build-stop').click();
+	await page.getByTestId('sc-build-done').click();
 
 	await page.getByTestId('sc-label-stock.hangar').click();
 	await expect(page.getByTestId('sc-detail')).toContainText('Hangar');

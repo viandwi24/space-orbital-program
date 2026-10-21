@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { debugSetLocation, watchErrors } from './support';
+import { debugSetLocation, watchErrors, openDock } from './support';
 
 /**
  * EVA v2 (plan 225, ADR 0209): a crewed pod landed on Cinder by the debug API (plan 203). The
@@ -46,6 +46,8 @@ test('step out on Cinder, walk, grab the ladder, climb and board', async ({ page
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// the crew is a dock entry since v3 (plan 272, ADR 0253)
+	await openDock(page, 'host.crew');
 	await expect(page.getByTestId('crew-row')).toHaveCount(1, { timeout: 30_000 });
 
 	await debugSetLocation(page, {

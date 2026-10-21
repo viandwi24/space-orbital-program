@@ -4,7 +4,7 @@
  * The state comes from the debug API of plan 203.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugAmount, debugSetLocation, debugSetResource, watchErrors } from './support';
+import { debugAmount, debugSetLocation, debugSetResource, watchErrors, openDock } from './support';
 
 const EC = 'stock.electric-charge';
 
@@ -58,8 +58,7 @@ test('a probe charges by day, not at night, and at zero charge it is uncontrolle
 	await launchProbe(page);
 
 	// deploy the array from the vessel panel's Parts tab
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 	const deploy = page.locator('[data-testid$="-setDeployed"]').first();
 	await expect(deploy).toBeVisible({ timeout: 30_000 });
 	await deploy.click();

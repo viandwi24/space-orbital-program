@@ -47,6 +47,15 @@ export async function launchTwoStage(page: Page): Promise<void> {
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
 }
 
+/**
+ * Open a dock panel (plan 272, ADR 0253: the vessel panel's tabs and the crew are dock entries
+ * `host.vessel`, `host.parts`, `host.resources`, `host.comms`, `host.crew`); a no-op when it is open.
+ */
+export async function openDock(page: Page, id: string): Promise<void> {
+	const tab = page.getByTestId(`dock-tab-${id}`);
+	if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+}
+
 /** Open the script panel, put `source` in the editor (or load the sample) and press Run. */
 export async function runScript(page: Page, source: string | 'sample'): Promise<void> {
 	// the script editor is a dock panel (the flight toolbar's Script button went with plan 233)

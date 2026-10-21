@@ -138,6 +138,7 @@
 		align-items: stretch;
 		min-height: 0;
 		max-height: 100%;
+		overflow: hidden;
 		background: var(--surface-glass);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-panel);
@@ -146,8 +147,7 @@
 	}
 	/* the rail is as tall as its tabs and scrolls only when the stack is shorter than that */
 	.rail {
-		align-self: flex-start;
-		max-height: 100%;
+		align-self: stretch;
 		min-height: 0;
 		overflow-y: auto;
 		scrollbar-width: none;
@@ -235,7 +235,7 @@
 	/* a host or mod panel inside the box is flat: the box is its glass; its header is the v3 header
 	   (9/700 caps, the aside as a sub-title beside it, room for the close button) */
 	.open > :global(.panel) {
-		width: calc(var(--dock-w, 17rem) - 1.5rem);
+		width: calc(var(--dock-w, 17rem) - 1.5rem - 1px);
 		padding: 0;
 		background: none;
 		border: 0;

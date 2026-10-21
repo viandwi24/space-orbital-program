@@ -5,7 +5,7 @@
  * both names back.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, openDock } from './support';
 
 const radial = (index: number, parent: number) =>
 	[0, 1, 2, 3].map((k) => ({
@@ -222,8 +222,7 @@ test('two port probes 20 m apart dock on RCS, and Undock gives both names back',
 	).toHaveCount(0);
 
 	// Undock from the Parts tab: Beta is back by name
-	await page.getByRole('button', { name: 'Vessel panel' }).click();
-	await page.getByTestId('vessel-tab-parts').click();
+	await openDock(page, 'host.parts');
 	const undock = page.locator('[data-testid$="-undock"]').first();
 	await expect(undock).toBeVisible({ timeout: 30_000 });
 	await undock.click();
