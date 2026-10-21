@@ -274,8 +274,9 @@ describe('the moon encounter', () => {
 });
 
 /** Enough 1 s steps for the rails SAS to finish a turn at its bounded rate (plan 257). */
+/** A real turn wakes the vessel and takes its own torque (plan 310); a minute is plenty for the probe. */
 const settle = (sim: { step(t: number): void }): void => {
-	for (let i = 0; i < 8; i++) sim.step(1);
+	for (let i = 0; i < 60; i++) sim.step(1);
 };
 
 describe('SAS maneuver', () => {
@@ -290,10 +291,9 @@ describe('SAS maneuver', () => {
 			radial: 0
 		});
 		expect(sim.dispatch({ type: 'sas', vessel: id, mode: 'maneuver' }).ok).toBe(true);
-		settle(sim); // a pointing change turns at a bounded rate at 1x (plan 257)
+		settle(sim); // a pointing change wakes the vessel and turns it by its torque at 1x (plan 310)
 		const burnDir = () => normalize(vesselOf(sim, id).nodes![0]!.vector!);
 		let v = vesselOf(sim, id);
-		expect(v.mode).toBe('on-rails');
 		expect(pointingError(v.orientation, burnDir()) * DEG).toBeLessThan(1);
 		// a normal burn flips the target by 90 degrees; the nose follows
 		sim.dispatch({

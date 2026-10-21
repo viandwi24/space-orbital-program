@@ -13,6 +13,7 @@ import type {
 	TechNodeDefinition,
 	ScenarioDefinition,
 	PanelDefinition,
+	AutopilotDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
 	AntennaDefinition,
@@ -392,6 +393,21 @@ export const defineAchievement = (def: AchievementDefinition): AchievementDefini
  * An optional canvas is drawn through `PanelCanvas`. Register with `ctx.panels`.
  */
 export const definePanel = (def: PanelDefinition): PanelDefinition => def;
+
+// ---------------------------------------------------------------------------------------------
+// defineAutopilot
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * An autopilot (plan 310, ADR 0271): `start` checks the vessel and returns the memory (plain JSON),
+ * `step` runs at `rate` per second of sim time (default 10) and flies the vessel through the
+ * `VesselPilot` it gets: SAS modes, a free direction or attitude, RCS translation, throttle,
+ * staging, the control part and the target, all commands the sim validates. Players engage it
+ * with `autopilot-engage` (a panel button). Register with `ctx.autopilots`.
+ */
+export function defineAutopilot<Memory>(def: AutopilotDefinition<Memory>): AutopilotDefinition {
+	return def as unknown as AutopilotDefinition;
+}
 
 // ---------------------------------------------------------------------------------------------
 // defineScenario

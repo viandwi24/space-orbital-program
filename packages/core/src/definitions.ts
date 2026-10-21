@@ -7,6 +7,7 @@ import type { TechNodeDefinition } from './tech-tree.ts';
 import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
 import type { PanelDefinition } from './panels.ts';
+import type { AutopilotDefinition } from './autopilots.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
 import type { FailureModeDefinition } from './reliability.ts';
@@ -142,6 +143,8 @@ export interface ReadonlyRegistries {
 	scenarios: ReadonlyRegistry<ScenarioDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: ReadonlyRegistry<PanelDefinition>;
+	/** Autopilots (plan 310, ADR 0271). */
+	autopilots: ReadonlyRegistry<AutopilotDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
 	crewTraits: ReadonlyRegistry<CrewTraitDefinition>;
 	crewNames: ReadonlyRegistry<CrewNamesDefinition>;

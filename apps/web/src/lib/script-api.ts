@@ -87,8 +87,35 @@ export const GLOBALS: readonly ApiEntry[] = [
 	fn(
 		'setTarget',
 		'setTarget(spec): Promise<{ ok, reason? }>',
-		'Choose a target: a body id, a vessel id, an entry of ship.targets, or null.'
+		'Choose a target: a body id, a vessel id, { vessel, port }, an entry of ship.targets, or null.'
 	),
+	fn(
+		'translate',
+		'translate(x, y, z)',
+		'RCS translation, each -1..1 in the control part axes: x right, y forward, z up.'
+	),
+	fn('setRcs', 'setRcs(on): Promise<{ ok, reason? }>', 'Switch RCS on or off.'),
+	fn(
+		'controlFrom',
+		'controlFrom(part | null): Promise<{ ok, reason? }>',
+		'Control from a command part or docking port; null goes back to the root.'
+	),
+	fn(
+		'pointAt',
+		'pointAt({ x, y, z })',
+		'SAS points the control part nose along an inertial direction.'
+	),
+	fn(
+		'holdAttitude',
+		'holdAttitude({ x, y, z, w })',
+		'SAS turns the control part to an inertial orientation and holds it.'
+	),
+	fn(
+		'engage',
+		'engage(id, params?): Promise<{ ok, reason? }>',
+		'Start a mod autopilot on this vessel, e.g. engage("autodock.dock").'
+	),
+	fn('disengage', 'disengage(): Promise<{ ok, reason? }>', 'Stop the engaged autopilot.'),
 	value(
 		'bodies',
 		'bodies[id]',
@@ -194,7 +221,20 @@ export const SHIP: readonly ApiEntry[] = [
 		'{ situation, experiments: [{ part, experiment, state, reason, progress }] }',
 		'The science situation and each experiment aboard: READY, RUNNING, PAUSED or INVALID.'
 	),
-	value('refusals', '[{ command, reason }]', 'Commands the game refused since the last tick.')
+	value('refusals', '[{ command, reason }]', 'Commands the game refused since the last tick.'),
+	value('rcs', 'boolean', 'RCS is switched on.'),
+	value('controlPart', 'number | null', 'The part the ship is controlled from; null for the root.'),
+	value('ports', '[{ part, size, free, direction }]', 'The docking ports of the ship.'),
+	value(
+		'dock',
+		'{ angle, along, lateral, lateralDistance, distance, closing, sameSize } | null',
+		'Your control port against the targeted port; null otherwise.'
+	),
+	value(
+		'autopilot',
+		'{ id, title, phase, status, readouts } | null',
+		'The engaged autopilot and what it reports.'
+	)
 ];
 
 /** `ship` members the editor knows, by name. */
@@ -318,7 +358,8 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 			'approach',
 			'{ time, distance, relativeSpeed } | null',
 			'Closest approach within the next orbit.'
-		)
+		),
+		field('part', 'number | null', 'The targeted docking port, or null.')
 	],
 	'ship.target.position': VEC3,
 	'ship.target.velocity': VEC3,
@@ -326,8 +367,26 @@ export const MEMBERS: Readonly<Record<string, readonly ApiEntry[]>> = {
 	'ship.targets[]': [
 		field('kind', "'body' | 'vessel'", 'What kind of target it is.'),
 		field('id', 'string | number', 'Body id, or vessel id.'),
-		field('name', 'string', 'Display name.')
+		field('name', 'string', 'Display name.'),
+		field('ports', 'number[]', 'Free docking ports of a vessel: setTarget({ vessel: id, port }).')
 	],
+	'ship.ports[]': [
+		field('part', 'number', 'Part instance id: controlFrom(part).'),
+		field('size', 'number', 'Port size, m.'),
+		field('free', 'boolean', 'Nothing is docked to it.'),
+		field('direction', '{ x, y, z }', 'Out of the face, inertial axes.')
+	],
+	'ship.ports[].direction': VEC3,
+	'ship.dock': [
+		field('angle', 'number', 'Angle between the faces, rad; 0 is face to face.'),
+		field('along', 'number', 'Distance out in front of the target face along its axis, m.'),
+		field('lateral', '{ x, y, z }', 'Offset from the target axis, m, inertial axes.'),
+		field('lateralDistance', 'number', 'Length of lateral, m.'),
+		field('distance', 'number', 'Face to face, m.'),
+		field('closing', 'number', 'Approach speed along the axis, m/s.'),
+		field('sameSize', 'boolean', 'The two ports can dock.')
+	],
+	'ship.dock.lateral': VEC3,
 	'ship.refusals[]': [
 		field('command', 'string', 'The command the game refused.'),
 		field('reason', 'string', 'Why it was refused.')

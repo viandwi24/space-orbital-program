@@ -53,6 +53,7 @@ import { qAboutY, qMul, qRotate } from './math.ts';
 import { isTurned, partRotation } from './parts.ts';
 import { elementsOf, motionOf, orientationOf } from './orbit.ts';
 import { resolveTarget } from './target.ts';
+import { autopilotSnapshot } from './autopilot.ts';
 import { terrainUnder } from './terrain.ts';
 import { economySnapshot, quoteRecovery, recoveryBlocker } from './economy.ts';
 import { marketSnapshot } from './market.ts';
@@ -95,7 +96,8 @@ function withResources(core: SimCore, partId: EntityId): { resources?: ResourceS
 	return resources ? { resources } : {};
 }
 
-function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
+/** One vessel's snapshot (also what an autopilot reads, plan 310). */
+export function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	const vessel = vesselOf(core, id);
 	const frame = frameOfVessel(core, id);
 	const motion = motionOf(core, vessel);
@@ -167,8 +169,14 @@ function vesselSnapshot(core: SimCore, id: EntityId): VesselSnapshot {
 	snapshot.sas = {
 		mode: vessel.sas.mode,
 		reference: vessel.sas.reference,
-		error: vessel.sas.error
+		error: vessel.sas.error,
+		...(vessel.sas.direction ? { direction: { ...vessel.sas.direction } } : {}),
+		...(vessel.mode === 'flight' && vessel.sas.mode !== 'off' && vessel.sas.accel !== undefined
+			? { accel: vessel.sas.accel }
+			: {})
 	};
+	const pilot = autopilotSnapshot(core, vessel);
+	if (pilot) snapshot.autopilot = pilot;
 	snapshot.nodes = nodeSnapshots(core, vessel);
 	const target = resolveTarget(core, vessel);
 	if (target) {

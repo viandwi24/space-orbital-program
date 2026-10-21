@@ -67,6 +67,23 @@ export interface SasState {
 	quiet: boolean;
 	active: boolean;
 	demand: Vec3;
+	/** Angular acceleration the vessel can give its nose, rad/s², from the last flight step with SAS on (plan 310). */
+	accel?: number;
+	/** Mode `direction` (plan 310, ADR 0271 point 2): where the control part's nose points, inertial unit vector. */
+	direction?: Vec3;
+}
+
+/** An engaged autopilot (plan 310, ADR 0271 points 4 to 6). */
+export interface AutopilotState {
+	/** The definition id. */
+	id: string;
+	/** The definition's own memory, plain JSON. */
+	memory: unknown;
+	/** Sim time of the last step; the next runs one period later. */
+	last: number;
+	phase: string;
+	status: string;
+	readouts: Record<string, number | string>;
 }
 
 export const newSas = (): SasState => ({
@@ -178,6 +195,8 @@ export interface VesselState {
 	launchedAt?: number;
 	/** "Control from here" (plan 221): the part whose nose SAS and the navball follow; the root when absent. */
 	controlPart?: EntityId;
+	/** The engaged autopilot (plan 310, ADR 0271); absent without one. Saved with the vessel. */
+	autopilot?: AutopilotState;
 	/**
 	 * Vessels docked into this one (plan 222, ADR 0218), newest last: what an undock at the port pair
 	 * gives back to the side that came from the other vessel.

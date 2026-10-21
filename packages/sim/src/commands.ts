@@ -41,7 +41,8 @@ import {
 	type Command,
 	type CommandResult,
 	type EntityId,
-	type Quat
+	type Quat,
+	type Vec3
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
@@ -131,8 +132,9 @@ import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
 import { setTarget } from './target.ts';
 import { beginHold, sasLevelNeeded, sasLevelOf } from './sas.ts';
-import { IDENTITY, qNormalize, qRotate } from './math.ts';
+import { IDENTITY, qConj, qMul, qNormalize, qRotate } from './math.ts';
 import { isTurned, partRotation } from './parts.ts';
+import { endAutopilot, engageAutopilot } from './autopilot.ts';
 import {
 	destroyVessel,
 	placeAtState,
@@ -336,6 +338,10 @@ const OWNED_ALLOWED: ReadonlySet<string> = new Set([
 ]);
 
 const clampUnit = (n: number): number => Math.max(-1, Math.min(1, n));
+const unitOf = (v: Vec3): Vec3 => {
+	const n = Math.hypot(v.x, v.y, v.z);
+	return { x: v.x / n, y: v.y / n, z: v.z / n };
+};
 
 /** The control part's rotation in the vessel (ADR 0270 point 4), or undefined for the root or none. */
 function controlTurn(core: SimCore, v: VesselState): Quat | undefined {
@@ -489,6 +495,7 @@ export function dispatch(
 			if (noSignal) return refuse(noSignal);
 			if (command.on) v.rcs = true;
 			else delete v.rcs;
+			delete v.sas.accel; // the torque changed: measured again in flight (plan 310)
 			return accept();
 		}
 		case 'sas': {
@@ -502,7 +509,20 @@ export function dispatch(
 					`this vessel's control parts give ${labels[sasLevelOf(core, v)]} assist; ${command.mode} needs more`
 				);
 			}
+			const mode = command.mode ?? v.sas.mode;
+			if (command.direction !== undefined && mode !== 'direction')
+				return refuse('a direction goes with mode "direction"');
+			if (command.attitude !== undefined && mode !== 'hold')
+				return refuse('an attitude goes with mode "hold"');
+			if (mode === 'direction' && command.direction === undefined && !v.sas.direction)
+				return refuse('mode "direction" needs a direction');
+			if (command.attitude !== undefined && v.mode === 'on-rails') {
+				// turning to a new attitude needs the wheels: in flight (ADR 0271 point 2)
+				const why = ensureFlight(core, command.vessel, 'sas');
+				if (why) return refuse(why);
+			}
 			if (command.reference !== undefined) v.sas.reference = command.reference;
+			delete v.sas.accel; // measured again in flight (plan 310)
 			if (command.mode !== undefined && command.mode !== v.sas.mode) {
 				v.sas.mode = command.mode;
 				v.sas.integral = { x: 0, y: 0, z: 0 };
@@ -510,6 +530,16 @@ export function dispatch(
 				v.sas.quiet = false;
 				v.sas.error = 0;
 				if (command.mode === 'hold') beginHold(v.sas, orientationOf(core, v));
+			}
+			if (v.sas.mode !== 'direction') delete v.sas.direction;
+			else if (command.direction !== undefined) v.sas.direction = unitOf(command.direction);
+			if (command.attitude !== undefined) {
+				// the control part's orientation asked for, as the vessel's (ADR 0271 point 2)
+				const turn = controlTurn(core, v);
+				const q = qNormalize(command.attitude);
+				v.sas.hold = turn ? qNormalize(qMul(q, qConj(turn))) : q;
+				v.sas.settling = false;
+				v.sas.quiet = false;
 			}
 			return accept();
 		}
@@ -725,6 +755,18 @@ export function dispatch(
 			return fixAnomaly(core, command.report);
 		case 'repair':
 			return repair(core, command.suit, command.vessel, command.part);
+		case 'autopilot-engage': {
+			const v = controllable(core, command.vessel);
+			if (typeof v === 'string') return refuse(v);
+			return engageAutopilot(core, command.vessel, v, command.autopilot, command.params);
+		}
+		case 'autopilot-disengage': {
+			const v = core.world.get(command.vessel, VESSEL);
+			if (!v) return refuse(`unknown vessel ${command.vessel}`);
+			if (!v.autopilot) return refuse('no autopilot is engaged');
+			endAutopilot(core, command.vessel, 'disengaged', 'switched off');
+			return accept();
+		}
 		case 'set-control-part': {
 			const v = controllable(core, command.vessel);
 			if (typeof v === 'string') return refuse(v);
