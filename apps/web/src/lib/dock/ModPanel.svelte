@@ -29,7 +29,7 @@
 		result && !result.ok ? result.error : (actionError ?? drawError ?? frameError)
 	);
 
-	function act(path: string, on?: boolean | string): void {
+	function act(path: string, on?: boolean | string | number): void {
 		if (!input) return;
 		const r = commandOf(panel, path, input, on);
 		if ('error' in r) actionError = r.error;

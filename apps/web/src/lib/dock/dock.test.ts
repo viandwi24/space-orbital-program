@@ -181,3 +181,84 @@ describe('the v3 dock (plan 272, ADR 0253)', () => {
 		expect(groupOf('host.crew')).toBe('vessel');
 	});
 });
+
+describe('tabs, progress, number fields and notices (plan 332, ADR 0287)', () => {
+	const tabbed: PanelDefinition = {
+		...PanelBeacon,
+		id: 'mod.tabbed',
+		canvas: undefined,
+		view: {
+			kind: 'tabs',
+			label: 'Programs',
+			active: (i) => (i.altitude !== null && i.altitude > 100 ? 'b' : null),
+			tabs: [
+				{
+					id: 'a',
+					label: 'First',
+					children: [
+						{ kind: 'notice', text: () => 'Target a vessel first.', tone: () => 'warn' },
+						{ kind: 'notice', text: () => null }
+					]
+				},
+				{
+					id: 'b',
+					label: 'Second',
+					badge: () => 'ON',
+					children: [
+						{ kind: 'progress', label: 'Climb', value: (i) => (i.altitude ?? 0) / 1000, text: () => 'half' },
+						{
+							kind: 'number',
+							label: 'Altitude',
+							unit: 'km',
+							min: 70,
+							max: 500,
+							step: 5,
+							value: () => 80,
+							command: (i, v) => ({ type: 'warp', factor: v, vessel: i.vessel!.id })
+						},
+						{ kind: 'button', label: 'Go', tone: 'primary', command: (i) => ({ type: 'stage', vessel: i.vessel!.id }) }
+					]
+				}
+			]
+		}
+	};
+
+	it('every tab is evaluated with its badge, and the active tab is named', () => {
+		const r = evaluatePanel(tabbed, input(1, 500), new Map());
+		expect(r.ok).toBe(true);
+		if (!r.ok || r.nodes.kind !== 'tabs') throw new Error('not tabs');
+		expect(r.nodes.active).toBe('b');
+		expect(r.nodes.tabs.map((t) => t.badge)).toEqual([null, 'ON']);
+		expect(r.nodes.tabs[1]!.children[0]).toEqual({ kind: 'progress', label: 'Climb', value: 0.5, text: 'half' });
+		expect(r.nodes.tabs[1]!.children[1]).toMatchObject({ kind: 'number', value: 80, min: 70, max: 500, step: 5, path: 'v.1.1' });
+		expect(r.nodes.tabs[1]!.children[2]).toMatchObject({ kind: 'button', tone: 'primary', enabled: true });
+		expect(r.nodes.tabs[0]!.children).toEqual([
+			{ kind: 'notice', text: 'Target a vessel first.', tone: 'warn' },
+			{ kind: 'notice', text: null, tone: 'info' }
+		]);
+		const low = evaluatePanel(tabbed, input(1, 10), new Map());
+		expect(low.ok && low.nodes.kind === 'tabs' && low.nodes.active).toBe(null);
+	});
+
+	it('a tab child and a number field route their commands; the number is clamped to its step and range', () => {
+		expect(commandOf(tabbed, 'v.1.2', input(1, 10))).toEqual({ command: { type: 'stage', vessel: 7 } });
+		expect(commandOf(tabbed, 'v.1.1', input(1, 10), 123)).toEqual({
+			command: { type: 'warp', factor: 125, vessel: 7 }
+		});
+		expect(commandOf(tabbed, 'v.1.1', input(1, 10), 9_000)).toEqual({
+			command: { type: 'warp', factor: 500, vessel: 7 }
+		});
+		expect(commandOf(tabbed, 'v.1.1', input(1, 10), 'x')).toEqual({ command: null });
+	});
+
+	it('renders the open tab, the active tab first, the notice and the field', () => {
+		const html = render(ModPanel, { props: { panel: tabbed, input: input(1, 10), oncommand: () => {} } }).body;
+		expect(html).toContain('role="tablist"');
+		expect(html).toContain('Target a vessel first.');
+		expect(html).not.toContain('panel-number-v.1.1');
+		const high = render(ModPanel, { props: { panel: tabbed, input: input(1, 500), oncommand: () => {} } }).body;
+		expect(high).toContain('data-testid="panel-number-v.1.1"');
+		expect(high).toContain('role="progressbar"');
+		expect(high).toContain('>ON<');
+	});
+});
