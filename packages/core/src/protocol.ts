@@ -555,11 +555,11 @@ export interface Snapshot {
 }
 
 /**
- * Vessel design (`formatVersion` 1, 2 or 3, ADR 0016, 0034 and 0071): a flat list of part
+ * Vessel design (`formatVersion` 1 to 4, ADR 0016, 0034, 0071 and 0258): a flat list of part
  * instances with parent links, plus the staging sequence. Plain JSON, so the VAB can save/load it.
  * `resolveVesselDesign` (design.ts) validates it against the registries; `migrateVesselDesign`
- * turns older versions into version 3 (radial links and symmetry groups need 2; tilts, links and
- * radial links to boxes need 3).
+ * turns older versions into version 4 (radial links and symmetry groups need 2; tilts, links and
+ * radial links to boxes need 3; offsets need 4).
  */
 export interface DesignLink {
 	index: number;
@@ -585,6 +585,17 @@ export interface DesignTilt {
 	z: number;
 }
 
+/**
+ * A part's shift from its attach point, metres, in the parent part's axes (version 4, ADR 0258):
+ * applied after the attach transform and before the tilt, so the part keeps its turn and pivots
+ * about the moved attach point. Children move with it. The root ignores it.
+ */
+export interface DesignOffset {
+	x: number;
+	y: number;
+	z: number;
+}
+
 /** The far end of a connector part (version 3): the surface of part `index` at the radial site (`angle`, `y`) of ADR 0034. */
 export interface DesignEnd {
 	index: number;
@@ -593,7 +604,7 @@ export interface DesignEnd {
 }
 
 export interface VesselDesign {
-	formatVersion: 1 | 2 | 3;
+	formatVersion: 1 | 2 | 3 | 4;
 	name: string;
 	parts: Array<{
 		/** Index of this part within the design (unique, any non-negative integer); referenced by `parent` and `stages`. */
@@ -614,6 +625,8 @@ export interface VesselDesign {
 		mirror?: true;
 		/** Rotation of the part about its parent's axes (version 3). Absent: none. */
 		tilt?: DesignTilt;
+		/** Shift of the part from its attach point in the parent's axes (version 4, ADR 0258). Absent: none. */
+		offset?: DesignOffset;
 		/** Connector parts only (version 3): where the part's other end lands (struts and fuel lines, ADR 0071). */
 		link?: DesignEnd;
 		/**
@@ -626,6 +639,11 @@ export interface VesselDesign {
 	stages: number[][];
 	/** An aircraft starts level on a runway, nose along it (plan 063, ADR 0161 point 3). */
 	aircraft?: boolean;
+	/**
+	 * Free placement (plan 279, ADR 0258 point 4): the Hangar lets a moved part leave its parent's
+	 * reach. Any version; the editor reads it, the sim ignores it (the vessel is one rigid body).
+	 */
+	freePlacement?: true;
 	/** Custom action groups (plan 110, ADR 0174): slot 1..10, members by part index; slot 0 is the Abort group (plan 245, ADR 0233). Any version. */
 	groups?: Array<{
 		slot: number;

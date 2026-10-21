@@ -8,7 +8,13 @@ import {
 	SURFACE_NODE,
 	azimuthOf,
 	mat3Apply,
+	mat3Mul,
 	mat3OfQuat,
+	matAboutX,
+	matAboutY,
+	matAboutZ,
+	tiltMatrix,
+	tiltOfMatrix,
 	effectiveDef,
 	partId,
 	placeRadial,
@@ -20,7 +26,9 @@ import {
 	surfaceHalfHeight,
 	surfacePoint,
 	surfaceSite,
+	type DesignOffset,
 	type DesignTilt,
+	type Mat3,
 	type PartDefinition,
 	type PartLookup,
 	type Placement,
@@ -30,6 +38,7 @@ import {
 } from '@orbital/core';
 import { emptyDesign, freeNodes, removePart, subtreeOf, withDanglingLinks } from '../design';
 import { autoStages, sameStages, type StagingContent } from './staging';
+import { partsOffParent } from './bounds';
 
 export interface Doc {
 	design: VesselDesign;
@@ -136,6 +145,12 @@ export function setAircraft(s: EditorState, on: boolean): EditorState {
 	return { ...s, design: on ? { ...rest, aircraft: true } : rest };
 }
 
+/** Free placement (plan 279, ADR 0258 point 4): moved parts may leave their parent; like the name, not an undo step. */
+export function setFreePlacement(s: EditorState, on: boolean): EditorState {
+	const { freePlacement: _drop, ...rest } = s.design;
+	return { ...s, design: on ? { ...rest, freePlacement: true } : rest };
+}
+
 // --- building -------------------------------------------------------------------------------------
 
 /** A one-part assembly for a catalogue part. */
@@ -165,7 +180,12 @@ function join(design: VesselDesign, assembly: VesselDesign, target: AttachTarget
 					: {})
 			}
 		: null;
-	const parts = assembly.parts.map((p) => (p.index === root ? { ...p, parent: link } : p));
+	// a new attach point starts the part without an offset (plan 279): the offset belonged to the old one
+	const parts = assembly.parts.map((p) => {
+		if (p.index !== root) return p;
+		const { offset: _old, ...rest } = p;
+		return { ...rest, parent: link };
+	});
 	if (design.parts.length === 0) {
 		if (target.parent !== null) throw new Error('an empty design can only take a root part');
 		return { ...design, parts };
@@ -796,11 +816,137 @@ export const NO_TILT: DesignTilt = { x: 0, y: 0, z: 0 };
 export const tiltOf = (design: Pick<VesselDesign, 'parts'>, index: number): DesignTilt =>
 	design.parts.find((p) => p.index === index)?.tilt ?? NO_TILT;
 
+/** The offset of a part of the design (none when it has none). */
+export const offsetOf = (design: Pick<VesselDesign, 'parts'>, index: number): DesignOffset =>
+	design.parts.find((p) => p.index === index)?.offset ?? NO_OFFSET;
+
+export const NO_OFFSET: DesignOffset = { x: 0, y: 0, z: 0 };
+
+/** Azimuth of a part's site on its parent (radial or surface link), for group copies; null for a stack link. */
+function siteAzimuth(link: VesselDesign['parts'][number]['parent']): number | null {
+	if (link?.radial) return link.radial.angle;
+	if (link?.surface) {
+		const [x, , z] = link.surface.point;
+		if (Math.hypot(x, z) > 1e-6) return azimuthOf([x, 0, z]);
+		const [nx, , nz] = link.surface.normal;
+		return Math.hypot(nx, nz) > 1e-6 ? azimuthOf([nx, 0, nz]) : 0;
+	}
+	return null;
+}
+
+/** Rounds away float noise (1e-9) so a nudged value saves as written. */
+const clean = (v: number): number => {
+	const r = Math.round(v * 1e9) / 1e9;
+	return r === 0 ? 0 : r;
+};
+
+const isZero = (v: { x: number; y: number; z: number }): boolean =>
+	v.x === 0 && v.y === 0 && v.z === 0;
+
 /**
- * Sets the tilt of a part about its parent's axes (rad). The whole symmetry group takes the same
- * tilt (two wings with the same tilt are mirror images, ADR 0071); with `single` only this part
- * changes and it leaves the group. A zero tilt removes the field. One undo step; throws (design
- * unchanged) when the design would not resolve.
+ * How a change of part `from` carries over to member `to` of its symmetry group (plan 279, ADR
+ * 0071's rule): the offset turned by the members' angle on a shared parent, or reflected for the
+ * other half of a mirror pair (across the vessel's YZ plane on a shared parent, across the parent's
+ * XY plane for an inherited copy); the tilt the same, reflected (`mirrorTilt`) for the other half of
+ * a mirror pair.
+ */
+export function memberTransform(
+	design: Pick<VesselDesign, 'parts'>,
+	from: number,
+	to: number
+): { offset: (o: DesignOffset) => DesignOffset; tilt: (t: DesignTilt) => DesignTilt } {
+	const a = design.parts.find((p) => p.index === from);
+	const b = design.parts.find((p) => p.index === to);
+	if (!a || !b || from === to) return { offset: (o) => o, tilt: (t) => t };
+	const mirrored = (a.mirror === true) !== (b.mirror === true);
+	const tilt = (t: DesignTilt): DesignTilt => (mirrored ? (mirrorTilt(t) ?? t) : t);
+	const shared = a.parent?.index === b.parent?.index;
+	if (mirrored) {
+		return {
+			offset: (o) => (shared ? { x: -o.x, y: o.y, z: o.z } : { x: o.x, y: o.y, z: -o.z }),
+			tilt
+		};
+	}
+	const za = siteAzimuth(a.parent);
+	const zb = siteAzimuth(b.parent);
+	if (!shared || za === null || zb === null) return { offset: (o) => o, tilt };
+	const turn = zb - za;
+	return {
+		offset: (o) => {
+			const r = rotateY([o.x, o.y, o.z], turn);
+			return { x: clean(r.x), y: clean(r.y), z: clean(r.z) };
+		},
+		tilt
+	};
+}
+
+/**
+ * Sets the offset (m, the parent's axes, version 4) and/or the tilt (rad, ADR 0071) of a part of
+ * the design (plan 279, ADR 0258). The whole symmetry group follows as mirror images
+ * (`memberTransform`); with `single` only this part changes and it leaves the group. A zero value
+ * removes the field. Unless the design is in free placement, a part with an offset must still touch
+ * its parent's collider enlarged by 0.25 m (`partsOffParent`). One undo step; throws (design
+ * unchanged) for the root, an unknown part, a part off its parent or a design that would not resolve.
+ */
+export function setPlacement(
+	state: EditorState,
+	content: Content,
+	index: number,
+	change: { offset?: DesignOffset; tilt?: DesignTilt },
+	options: { single?: boolean } = {}
+): EditorState {
+	const entry = state.design.parts.find((p) => p.index === index);
+	if (!entry) throw new Error(`no part ${index} in the design`);
+	if (entry.parent === null) {
+		throw new Error(
+			change.offset
+				? 'the root part does not move: it is the vessel'
+				: 'the root part cannot be tilted'
+		);
+	}
+	const members = options.single ? [index] : groupOf(state.design, index);
+	const moved: number[] = [];
+	const parts = state.design.parts.map((p) => {
+		if (!members.includes(p.index) || p.parent === null) return p;
+		const map = memberTransform(state.design, index, p.index);
+		const { tilt: oldTilt, offset: oldOffset, symmetry: _group, mirror: _mirror, ...rest } = p;
+		const kept = options.single
+			? rest
+			: {
+					...rest,
+					...(p.symmetry === undefined ? {} : { symmetry: p.symmetry }),
+					...(p.mirror ? { mirror: true as const } : {})
+				};
+		const tilt = change.tilt ? map.tilt(change.tilt) : oldTilt;
+		const offset = change.offset ? map.offset(change.offset) : oldOffset;
+		if (offset && !isZero(offset)) moved.push(p.index);
+		return {
+			...kept,
+			...(tilt && !isZero(tilt) ? { tilt: { ...tilt } } : {}),
+			...(offset && !isZero(offset) ? { offset: { ...offset } } : {})
+		};
+	});
+	const design: VesselDesign = {
+		...state.design,
+		formatVersion: moved.length > 0 ? 4 : state.design.formatVersion,
+		parts
+	};
+	assertResolves(design, content);
+	if (!design.freePlacement && moved.length > 0) {
+		if (partsOffParent(design, content.parts, undefined, moved).length > 0) {
+			throw new Error(
+				'that is too far from the part it hangs on: turn on Free mode to place parts anywhere'
+			);
+		}
+	}
+	return commit(state, { ...state, design }, content);
+}
+
+/**
+ * Sets the tilt of a part about its parent's axes (rad), any angle (plan 279). The whole symmetry
+ * group follows (`setPlacement`); with `single` only this part changes and it leaves the group. A
+ * zero tilt removes the field. One undo step; throws (design unchanged) when the design would not
+ * resolve.
  */
 export function setTilt(
 	state: EditorState,
@@ -809,25 +955,73 @@ export function setTilt(
 	tilt: DesignTilt,
 	options: { single?: boolean } = {}
 ): EditorState {
-	if (!state.design.parts.some((p) => p.index === index)) {
-		throw new Error(`no part ${index} in the design`);
-	}
-	if (state.design.parts.find((p) => p.index === index)?.parent === null) {
-		throw new Error('the root part cannot be tilted');
-	}
-	const members = options.single ? [index] : groupOf(state.design, index);
-	const zero = tilt.x === 0 && tilt.y === 0 && tilt.z === 0;
-	const parts = state.design.parts.map((p) => {
-		if (!members.includes(p.index) || p.parent === null) return p;
-		const { tilt: _old, symmetry: _group, ...rest } = p;
-		const kept = options.single
-			? rest
-			: { ...rest, ...(p.symmetry === undefined ? {} : { symmetry: p.symmetry }) };
-		return zero ? kept : { ...kept, tilt: { ...tilt } };
-	});
-	const design = { ...state.design, parts };
-	assertResolves(design, content);
-	return commit(state, { ...state, design }, content);
+	return setPlacement(state, content, index, { tilt }, options);
+}
+
+const transpose = (m: Mat3): Mat3 => [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
+const IDENTITY3: Mat3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+
+/** The rotations of part `index` and of its parent relative to the design root. */
+function framesOf(
+	design: VesselDesign,
+	parts: PartLookup,
+	index: number
+): { part: Mat3; parent: Mat3 } | null {
+	const entry = design.parts.find((p) => p.index === index);
+	if (!entry?.parent) return null;
+	const layout = layoutOf(design, parts);
+	const here = layout?.get(index);
+	if (!here) return null;
+	const there = layout!.get(entry.parent.index);
+	return {
+		part: mat3OfQuat(here.rotation),
+		parent: there ? mat3OfQuat(there.rotation) : IDENTITY3
+	};
+}
+
+/**
+ * The offset of part `index` after a nudge by `delta` metres (plan 279): along the part's own axes
+ * (`local`) or the vessel's (`absolute`), turned into the parent's axes the offset is kept in. Null
+ * for the root, a loose part or a design that does not resolve.
+ */
+export function nudgedOffset(
+	design: VesselDesign,
+	parts: PartLookup,
+	index: number,
+	delta: readonly [number, number, number],
+	frame: 'local' | 'absolute'
+): DesignOffset | null {
+	const f = framesOf(design, parts, index);
+	if (!f) return null;
+	const world =
+		frame === 'local' ? mat3Apply(f.part, delta) : { x: delta[0], y: delta[1], z: delta[2] };
+	const d = mat3Apply(transpose(f.parent), [world.x, world.y, world.z]);
+	const o = offsetOf(design, index);
+	return { x: clean(o.x + d.x), y: clean(o.y + d.y), z: clean(o.z + d.z) };
+}
+
+/**
+ * The tilt of part `index` after a turn by `angle` rad about axis `axis` (plan 279): the part's own
+ * axis (`local`) or the vessel's (`absolute`), pivoting about the attach point. The part's rotation
+ * is `P T F` (parent, tilt, the attach turn), so the new tilt is `P^-1 B P T` with `B` the turn in
+ * the vessel's axes. Null for the root, a loose part or a design that does not resolve.
+ */
+export function turnedTilt(
+	design: VesselDesign,
+	parts: PartLookup,
+	index: number,
+	axis: 'x' | 'y' | 'z',
+	angle: number,
+	frame: 'local' | 'absolute'
+): DesignTilt | null {
+	const f = framesOf(design, parts, index);
+	if (!f) return null;
+	const about =
+		axis === 'x' ? matAboutX(angle) : axis === 'y' ? matAboutY(angle) : matAboutZ(angle);
+	const turn = frame === 'local' ? mat3Mul(f.part, mat3Mul(about, transpose(f.part))) : about;
+	const t = tiltMatrix(tiltOf(design, index));
+	const out = tiltOfMatrix(mat3Mul(transpose(f.parent), mat3Mul(turn, mat3Mul(f.parent, t))));
+	return { x: clean(out.x), y: clean(out.y), z: clean(out.z) };
 }
 
 // --- struts and fuel lines (ADR 0071) ------------------------------------------------------------------
@@ -1202,6 +1396,31 @@ export function surfaceTarget(
 		position: at.position,
 		point: { x: here.position.x + on.x, y: here.position.y + on.y, z: here.position.z + on.z }
 	};
+}
+
+/**
+ * Whether a pointer hit (design frame) on part `parentIndex` lies on the side of its collider shape
+ * (within `tolerance` m of the cylinder's or box's side), where a radial site puts a part on what
+ * the player sees (plan 279). A hit on a pod's slope or a nose cone inside its collider is not: a
+ * surface link at the hit point puts the part on the visible face instead.
+ */
+export function onShapeSide(
+	design: VesselDesign,
+	parts: PartLookup,
+	parentIndex: number,
+	point: Vec3,
+	tolerance = 0.03
+): boolean {
+	const entry = design.parts.find((p) => p.index === parentIndex);
+	const shape = entry && parts.get(entry.part)?.shape;
+	const layout = layoutOf(design, parts)?.get(parentIndex);
+	if (!shape || !layout) return false;
+	const r = mat3OfQuat(layout.rotation);
+	const o = [point.x - layout.position.x, point.y - layout.position.y, point.z - layout.position.z];
+	const x = r[0] * o[0]! + r[3] * o[1]! + r[6] * o[2]!;
+	const z = r[2] * o[0]! + r[5] * o[1]! + r[8] * o[2]!;
+	const site = surfaceSite(shape, azimuthOf([x, 0, z]));
+	return site !== undefined && Math.abs(Math.hypot(x, z) - site.radius) <= tolerance;
 }
 
 /** Snaps a radial site: angle to `angleStep`, height to `gridStep`, and to the parent's ends or middle when the child's end is close. */

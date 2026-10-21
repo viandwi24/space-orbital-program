@@ -31,7 +31,7 @@ describe('asparagus rocket and glider examples (plan 041)', () => {
 	it('the asparagus rocket adds a fuel line and a strut per booster to the booster rocket', () => {
 		const d = asparagusRocket(content);
 		const base = boosterRocket(content);
-		expect(d.formatVersion).toBe(3);
+		expect(d.formatVersion).toBe(4);
 		expect(d.parts).toHaveLength(base.parts.length + 8);
 		expect(d.parts.filter((p) => p.part === 'stock.fuel-line')).toHaveLength(4);
 		expect(d.parts.filter((p) => p.part === 'stock.strut')).toHaveLength(4);

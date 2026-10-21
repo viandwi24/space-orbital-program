@@ -101,14 +101,14 @@ describe('library', () => {
 		expect((await store.list()).length).toBe(2);
 	});
 
-	it('imports a format-1 file upgraded to format 3', async () => {
+	it('imports a format-1 file upgraded to format 4', async () => {
 		const store = memoryStore();
 		const v1 = { ...referenceTwoStage(), formatVersion: 1 };
 		const r = await importText(store, env(), JSON.stringify(v1), parts);
 		expect(r.ok).toBe(true);
-		if (r.ok) expect(r.design.formatVersion).toBe(3);
+		if (r.ok) expect(r.design.formatVersion).toBe(4);
 		const [entry] = await listEntries(store, parts);
-		expect(entry!.ok && entry!.design.formatVersion).toBe(3);
+		expect(entry!.ok && entry!.design.formatVersion).toBe(4);
 	});
 
 	it('exports a record to the text that imports back to the same design', async () => {

@@ -22,6 +22,7 @@
 		Math.round(((((rad * 180) / Math.PI) % 360) + 360) % 360);
 	const toRad = (deg: number): number => (deg * Math.PI) / 180;
 	const tilt = $derived(vab.selectedTilt);
+	const offset = $derived(vab.selectedOffset);
 	const signed = (rad: number): number => Math.round((rad * 180) / Math.PI);
 	const AXES: { axis: keyof DesignTilt; label: string; hint: string }[] = [
 		{ axis: 'x', label: 'Tilt X', hint: 'about the parent X axis (incidence of a wing)' },
@@ -206,8 +207,8 @@
 						<span class="dim">{a.label}</span>
 						<input
 							type="range"
-							min="-90"
-							max="90"
+							min="-180"
+							max="180"
 							step="1"
 							value={signed(tilt[a.axis])}
 							aria-valuetext="{signed(tilt[a.axis])} degrees"
@@ -233,6 +234,34 @@
 						vab.tiltSelected({ x: 0, y: 0, z: 0 }, { single: vab.onlyThis, commit: true })}
 				>
 					Reset tilt
+				</button>
+			</div>
+		{/if}
+		{#if offset}
+			<div class="turn" role="group" aria-label="Offset of {vab.titleOfPart(sel)}">
+				<p class="row">
+					<span class="dim">Offset</span>
+					<span class="num val" data-testid="part-offset"
+						>{offset.x.toFixed(2)}, {offset.y.toFixed(2)}, {offset.z.toFixed(2)} m</span
+					>
+				</p>
+				<p class="foot dim">
+					<Kbd>{settings.keymap.label('toolMove')}</Kbd> Move,
+					<Kbd>{settings.keymap.label('toolRotate')}</Kbd> Rotate, then
+					<Kbd>{settings.keymap.label('toolUp')}</Kbd><Kbd>{settings.keymap.label('toolDown')}</Kbd
+					><Kbd>{settings.keymap.label('toolLeft')}</Kbd><Kbd
+						>{settings.keymap.label('toolRight')}</Kbd
+					><Kbd>{settings.keymap.label('toolFore')}</Kbd><Kbd
+						>{settings.keymap.label('toolAft')}</Kbd
+					>
+				</p>
+				<button
+					type="button"
+					class="reset"
+					disabled={offset.x === 0 && offset.y === 0 && offset.z === 0}
+					onclick={() => vab.resetPlacement('offset')}
+				>
+					Reset offset
 				</button>
 			</div>
 		{/if}

@@ -2,7 +2,8 @@
 	/**
 	 * The Hangar's bottom bar (plan 093, ADR 0148 point 3; refs): symmetry, the CoM and CoT markers,
 	 * undo and redo, the high-contrast markers and, on narrow windows, the two drawers (plan 238: the
-	 * Hangar's own top bar is gone). Only what the editor does today: no tool modes.
+	 * Hangar's own top bar is gone). The Place, Move and Rotate tools, their axes, node snapping and
+	 * free mode (plan 279, ADR 0258).
 	 */
 	import IconButton from '../ui/IconButton.svelte';
 	import Kbd from '../ui/Kbd.svelte';
@@ -13,6 +14,53 @@
 </script>
 
 <div class="pill" role="toolbar" aria-label="Build tools">
+	<div class="group" role="group" aria-label="Tool">
+		{#each [{ id: 'place', label: 'Place', key: 'toolPlace', tip: 'Place and pick parts' }, { id: 'move', label: 'Move', key: 'toolMove', tip: 'Move the selected part (offset)' }, { id: 'rotate', label: 'Rotate', key: 'toolRotate', tip: 'Rotate the selected part' }] as const as t (t.id)}
+			<button
+				type="button"
+				class="seg"
+				class:on={vab.tool === t.id}
+				aria-pressed={vab.tool === t.id}
+				data-tip="{t.tip} ({settings.keymap.label(t.key)})"
+				data-testid="tool-{t.id}"
+				onclick={() => vab.setTool(t.id)}>{t.label}</button
+			>
+		{/each}
+	</div>
+	{#if vab.tool !== 'place'}
+		<button
+			type="button"
+			class="toggle"
+			aria-pressed={vab.toolFrame === 'local'}
+			data-tip="Local (the part’s) or absolute (the vessel’s) axes ({settings.keymap.label(
+				'toolFrame'
+			)})"
+			data-testid="tool-frame"
+			onclick={() => vab.toggleToolFrame()}
+			>{vab.toolFrame === 'local' ? 'Local' : 'Absolute'}<span class="dot" aria-hidden="true"
+			></span></button
+		>
+	{/if}
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.snapNodes}
+		data-tip="Snap to nodes: off places a part on any surface at the cursor ({settings.keymap.label(
+			'snapNodes'
+		)})"
+		data-testid="tool-snap-nodes"
+		onclick={() => vab.toggleSnapNodes()}>Nodes<span class="dot" aria-hidden="true"></span></button
+	>
+	<button
+		type="button"
+		class="toggle"
+		aria-pressed={vab.freePlacement}
+		data-tip="Free mode: moved parts may leave their parent (saved with the design)"
+		data-testid="tool-free"
+		onclick={() => vab.setFreePlacement(!vab.freePlacement)}
+		>Free<span class="dot" aria-hidden="true"></span></button
+	>
+	<span class="sep" aria-hidden="true"></span>
 	<span class="cap" data-tip="Copies per placement ({settings.keymap.label('symmetry')})">Sym</span>
 	<div class="group" role="group" aria-label="Symmetry: copies per placement">
 		{#each vab.symmetryCounts as n (n)}

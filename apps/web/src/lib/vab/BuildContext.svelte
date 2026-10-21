@@ -58,6 +58,29 @@
 			<Kbd>Esc</Kbd> to stop.
 		</span>
 	{/if}
+	{#if !vab.armed && vab.tool !== 'place'}
+		<span class="chip live" data-testid="tool-context">
+			<Icon name={vab.tool === 'move' ? 'move' : 'rotate'} size={16} />
+			{#if vab.toolTarget === null}
+				{vab.tool === 'move' ? 'Move' : 'Rotate'}: select a part attached to the vessel
+			{:else}
+				{vab.tool === 'move' ? 'Moving' : 'Rotating'}
+				<strong>{vab.titleOfPart(vab.toolTarget)}</strong>
+				<span class="dim">({vab.toolFrame} axes{vab.freePlacement ? ', free mode' : ''})</span>
+			{/if}
+		</span>
+		{#if vab.toolTarget !== null}
+			<span class="hintline">
+				Drag an {vab.tool === 'move' ? 'arrow' : 'ring'}, or
+				<Kbd>{key('toolUp')}</Kbd><Kbd>{key('toolDown')}</Kbd>
+				<Kbd>{key('toolLeft')}</Kbd><Kbd>{key('toolRight')}</Kbd>
+				<Kbd>{key('toolFore')}</Kbd><Kbd>{key('toolAft')}</Kbd>
+				{vab.tool === 'move' ? '0.1 m' : '15°'} (<Kbd>Shift</Kbd>
+				{vab.tool === 'move' ? '0.01 m' : '5°'}); <Kbd>{key('toolFrame')}</Kbd> axes,
+				<Kbd>{key('toolReset')}</Kbd> reset, <Kbd>{key('toolPlace')}</Kbd> done.
+			</span>
+		{/if}
+	{/if}
 	{#if vab.notice}
 		<span class="chip warn" role="alert"><Icon name="alert" size={16} />{vab.notice}</span>
 	{/if}

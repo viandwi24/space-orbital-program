@@ -24,7 +24,7 @@ export interface Attachment {
 }
 
 export const emptyDesign = (name = 'Untitled vessel'): VesselDesign => ({
-	formatVersion: 3,
+	formatVersion: 4,
 	name,
 	parts: [],
 	stages: []
@@ -187,7 +187,7 @@ export function referenceTwoStage(): VesselDesign {
 		'stock.engine-lv'
 	];
 	return {
-		formatVersion: 3,
+		formatVersion: 4,
 		name: 'Two-stage',
 		parts: ids.map((part, index) => ({
 			index,

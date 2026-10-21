@@ -7,6 +7,9 @@ export type {
 	VabLink,
 	VabNode,
 	VabNodeState,
-	VabMarker
+	VabMarker,
+	VabGizmo,
+	GizmoAxis
 } from './scene-model.ts';
 export { EMPTY_SCENE } from './scene-model.ts';
+export { nearestGizmoAxis, distanceToSegment, distanceToLoop, ringPoints } from './gizmo.ts';
