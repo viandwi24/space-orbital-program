@@ -6,6 +6,7 @@
 import type { TechNodeDefinition } from './tech-tree.ts';
 import type { CommodityDefinition, RecipeDefinition } from './market.ts';
 import type { ScenarioDefinition } from './scenarios.ts';
+import type { BlueprintDefinition } from './blueprints.ts';
 import type { PanelDefinition } from './panels.ts';
 import type { CategoryDefinition } from './categories.ts';
 import type { AchievementDefinition } from './milestones.ts';
@@ -140,6 +141,8 @@ export interface ReadonlyRegistries {
 	failureModes: ReadonlyRegistry<FailureModeDefinition>;
 	/** Scenarios, the mission packs (plan 100, ADR 0151). */
 	scenarios: ReadonlyRegistry<ScenarioDefinition>;
+	/** Ready-made designs for the Hangar's Library (plan 285, ADR 0263). */
+	blueprints: ReadonlyRegistry<BlueprintDefinition>;
 	/** Dock panels (plan 112, ADR 0149). */
 	panels: ReadonlyRegistry<PanelDefinition>;
 	/** Crew traits and name syllables (plan 106, ADR 0176). */
@@ -157,6 +160,11 @@ export interface VesselControl {
 	readonly yaw: number;
 	/** The attitude demand is the assist's (SAS holds the vessel), not the player's (plan 241). */
 	readonly assisted?: boolean;
+	/**
+	 * The wheel motors' own throttle, -1..1 (plan 307: a rover's drive keys, negative backwards);
+	 * absent or 0: the motors follow `throttle`.
+	 */
+	readonly wheelThrottle?: number;
 }
 
 /** Ambient conditions at the part. Vacuum (all zero) outside the atmosphere. */
@@ -357,6 +365,8 @@ export interface WheelSpec {
 	steer: number;
 	/** Drive force along the rolling direction at full throttle, N (plan 260; negative reverses, 0: no motor or it is off). */
 	drive?: number;
+	/** The motor's force fades to nothing at this rolling speed, m/s (plan 307; absent: no limit). */
+	topSpeed?: number;
 }
 
 /**

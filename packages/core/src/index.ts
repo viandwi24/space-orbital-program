@@ -64,6 +64,7 @@ export * from './science.ts';
 export * from './milestones.ts';
 export * from './tech-tree.ts';
 export * from './scenarios.ts';
+export * from './blueprints.ts';
 export * from './panels.ts';
 export * from './range-safety.ts';
 export * from './reliability.ts';

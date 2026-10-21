@@ -1157,8 +1157,16 @@ export function setRouteMode(core: SimCore, vessel: EntityId, mode: RouteMode): 
 /** Commands each control state refuses (ADR 0179 point 5). */
 const REFUSED: Record<ControlState, ReadonlySet<string>> = {
 	full: new Set(),
-	partial: new Set(['throttle', 'attitude']),
-	none: new Set(['throttle', 'attitude', 'sas', 'stage', 'action', 'action-group'])
+	partial: new Set(['throttle', 'wheel-throttle', 'attitude']),
+	none: new Set([
+		'throttle',
+		'wheel-throttle',
+		'attitude',
+		'sas',
+		'stage',
+		'action',
+		'action-group'
+	])
 };
 
 /**

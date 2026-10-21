@@ -753,6 +753,8 @@ export interface DebugSnapshot {
 
 export type Command =
 	| { type: 'throttle'; vessel: EntityId; value: number }
+	/** The wheel motors' throttle, -1..1 (plan 307); 0 hands them back to the vessel throttle. */
+	| { type: 'wheel-throttle'; vessel: EntityId; value: number }
 	| {
 			type: 'attitude';
 			vessel: EntityId;

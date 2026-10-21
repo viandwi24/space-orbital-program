@@ -3316,5 +3316,152 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       ],
     ],
   },
+  {
+    "cost": 700,
+    "id": "stock.rover-chassis",
+    "mass": 350,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 600,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 240,
+    "id": "stock.rover-wheel-s",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 0.4,
+          "driveForce": 500,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.25,
+          "rolling": 0.03,
+          "steer": 0,
+          "topSpeed": 8,
+          "width": 0.16,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 260,
+    "id": "stock.rover-wheel-s-steer",
+    "mass": 65,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 0.4,
+          "driveForce": 500,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.25,
+          "rolling": 0.03,
+          "steer": 25,
+          "topSpeed": 8,
+          "width": 0.16,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.rover-wheel-m",
+    "mass": 150,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 1,
+          "driveForce": 1200,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.7,
+            0,
+            0,
+          ],
+          "radius": 0.42,
+          "rolling": 0.03,
+          "steer": 0,
+          "topSpeed": 12,
+          "width": 0.26,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 640,
+    "id": "stock.rover-wheel-m-steer",
+    "mass": 160,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 1,
+          "driveForce": 1200,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.7,
+            0,
+            0,
+          ],
+          "radius": 0.42,
+          "rolling": 0.03,
+          "steer": 22,
+          "topSpeed": 12,
+          "width": 0.26,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1680,
+    "id": "stock.rover-wheel-l",
+    "mass": 420,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 2.5,
+          "driveForce": 4000,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            1.15,
+            0,
+            0,
+          ],
+          "radius": 0.75,
+          "rolling": 0.03,
+          "steer": 15,
+          "topSpeed": 10,
+          "width": 0.42,
+        },
+      ],
+    ],
+  },
 ]
 `;

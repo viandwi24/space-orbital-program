@@ -6,12 +6,12 @@
 import { blackoutShown } from '../blackout';
 import type { LinkBadge } from '../comms/network-model';
 
-export type ChipTone = 'danger' | 'warning';
+export type ChipTone = 'danger' | 'warning' | 'info';
 /** What a chip's fix button does: open a dock panel. */
 export type ChipFix = { label: string; panel: 'host.parts' | 'host.comms' | 'host.crew' };
 
 export interface StatusChip {
-	id: 'control' | 'power' | 'signal' | 'plasma' | 'range';
+	id: 'control' | 'power' | 'signal' | 'plasma' | 'range' | 'drive';
 	/** The chip's words (drawn in capitals). */
 	label: string;
 	tone: ChipTone;
@@ -30,6 +30,8 @@ export interface ChipInput {
 	link: LinkBadge | null;
 	blackout: number;
 	range: string | null;
+	/** Rover drive mode is on (plan 307). */
+	drive?: boolean;
 }
 
 /** Order: what takes control away first, then warnings (V3 §2.2: red is lost control, amber warns). */
@@ -102,6 +104,17 @@ export function statusChips(input: ChipInput): StatusChip[] {
 			reason: `${input.range} (predicted)`,
 			fix: null,
 			testid: 'hud-range'
+		});
+	if (input.drive)
+		chips.push({
+			id: 'drive',
+			label: 'Drive',
+			tone: 'info',
+			title: 'Drive mode',
+			body: 'W and S drive the wheel motors forward and back, A and D steer. It turns on near the ground with wheel motors on; Alt+G switches it.',
+			reason: 'rover drive mode',
+			fix: null,
+			testid: 'hud-drive'
 		});
 	return chips;
 }

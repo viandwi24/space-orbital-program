@@ -1,7 +1,7 @@
 ---
 id: 307
 title: "Rover: wheels in three sizes, a chassis, drive mode and a rover blueprint"
-status: in-progress
+status: done
 owner: "part visuals session (Claude)"
 depends: [303, 306]
 phase: 0
@@ -35,21 +35,22 @@ A rover that looks and drives like one: rover wheels in three sizes with motors 
 
 ## Steps
 
-1. Sim: `ControlState.wheelThrottle`, the `wheel-throttle` command, `stepWheels` drive from it.
+1. Sim: `ControlState.wheelThrottle`, the `wheel-throttle` command, `stepWheels` drive from it, `WheelSpec.topSpeed`.
 2. Parts and generator.
-3. Flight drive mode: key bindings, input mapping, a HUD chip.
+3. Flight drive mode: Alt+G, W/S to the wheel throttle (pitch held at 0), A/D steer as yaw, a Drive chip.
 4. Blueprint and tests.
 
 ## Acceptance criteria
 
-- [ ] Sim test: a rover on the ground drives forward with wheel throttle 1 and backward with -1.
-- [ ] The stock part tests pass with the new parts.
-- [ ] The Trailblazer Rover blueprint builds and passes the mission checks.
+- [x] Sim test: a rover on the ground drives forward with wheel throttle 1 and backward with -1.
+- [x] The stock part tests pass with the new parts.
+- [x] The Trailblazer Rover blueprint builds and passes the mission checks.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`, journal `307-rover-wheels-and-drive-mode.md`.
+- [x] `docs/STATUS.md`, journal `307-rover-wheels-and-drive-mode.md`.
 
 ## Log
 
 - 2026-10-21 — Started after plans 306 and 308.
+- 2026-10-21 — Done. Wheels got a top speed: 4 × 7 kN on a 1 t rover reached 21 m/s² and crashed in 2 s. A headless test drives the blueprint off the pad (`apps/web/src/lib/editor/mission-flights.test.ts`).

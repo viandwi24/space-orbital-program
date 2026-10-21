@@ -21,7 +21,8 @@ export interface MissionBlueprint {
 	id: string;
 	title: string;
 	inspiredBy: string;
-	goal: 'orbit' | 'moon' | 'station' | 'deep-space';
+	/** `surface`: it drives where it is launched, lying level (plan 307: a rover). */
+	goal: 'orbit' | 'moon' | 'station' | 'deep-space' | 'surface';
 	crew: number;
 	summary: string;
 	build(content: Content): VesselDesign;
@@ -291,6 +292,29 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			b.side('stock.rcs-block', 0, (3 * Math.PI) / 4, -0.3, 2);
 			launcher125(b, 0);
 			return b.done();
+		}
+	},
+	{
+		id: 'trailblazer-rover',
+		title: 'Trailblazer Rover',
+		inspiredBy: 'a crewed surface rover (the lunar roving vehicle, a Mars rover)',
+		goal: 'surface',
+		crew: 2,
+		summary:
+			'A two-seat rover on a battery deck: four driven wheels, the front pair steering, a solar panel and a whip antenna. Launched lying level; W and S drive, A and D steer.',
+		build(content) {
+			const b = new Build(content, 'Trailblazer Rover', 'stock.rover-chassis');
+			// the cab stands on the deck, turned onto its upward node (plan 308)
+			b.on('stock.rover-cab', 0, 'deck', 'bottom');
+			// under the deck, 0.6 m either side of the middle (its bottom face at angle pi/2)
+			const side = Math.atan2(0.175, 0.6);
+			for (const angle of [side, Math.PI - side]) {
+				b.side('stock.rover-wheel-m-steer', 0, angle, 0.9);
+				b.side('stock.rover-wheel-m', 0, angle, -0.9);
+			}
+			b.side('stock.solar-flat', 0, -Math.PI / 2, -0.8);
+			b.side('stock.antenna-whip-radial', 0, 0, -1);
+			return { ...b.done([]), aircraft: true };
 		}
 	}
 ];

@@ -183,8 +183,25 @@ export interface FlightHud {
 	broadcasts: BroadcastOffer[];
 	/** The world's funds with the economy on, else null (plan 132). */
 	funds: number | null;
+	/**
+	 * Drive mode (plan 307): W/S drive the wheel motors forward and back, A/D steer. On by itself
+	 * for a vessel with motor wheels near the ground; Alt+G switches it.
+	 */
+	drive?: boolean;
 	/** The focused vessel's recovery quote while it can be recovered (plan 132, ADR 0113 point 6). */
 	recovery: { value: number; factor: number; distance: number | null; credit: number } | null;
+}
+
+/** Near the ground with a wheel motor on: drive mode turns on by itself (plan 307). */
+const DRIVE_HEIGHT = 20;
+export function drivable(snap: Snapshot, vessel: EntityId, telemetry: Telemetry | null): boolean {
+	const v = snap.vessels.find((x) => Number(x.id) === Number(vessel));
+	if (!v || !telemetry) return false;
+	const height = telemetry.altitude - (v.terrainHeight ?? 0);
+	if (height > DRIVE_HEIGHT) return false;
+	return v.parts.some(
+		(p) => (p.modules['stock.wheel'] as { motor?: boolean } | undefined)?.motor === true
+	);
 }
 
 export interface FlightOptions {
@@ -665,6 +682,10 @@ export function startFlight(options: FlightOptions): Flight {
 		await send({ type: 'stage', vessel: id });
 	}
 	let sentAttitude = '0,0,0';
+	/** Drive mode (plan 307): the player's switch (null: automatic), whether it is on, the wheel throttle sent. */
+	let driveSwitch: boolean | null = null;
+	let driving = false;
+	let sentWheel = 0;
 	const touchAttitude = { pitch: 0, yaw: 0, roll: 0 };
 	let warpIndex = 0;
 	let auto: { update(s: Snapshot): unknown; phase: string; note: string } | null = null;
@@ -780,11 +801,19 @@ export function startFlight(options: FlightOptions): Flight {
 				if (!ok) throttleRetry.refused(throttleLink, hud.warp);
 			});
 		}
+		// drive mode (plan 307): the pitch keys drive the wheels instead
+		const wheel = driving && !auto ? axis('pitchMinus', 'pitchPlus') : 0;
+		if (wheel !== sentWheel) {
+			sentWheel = wheel;
+			void send({ type: 'wheel-throttle', vessel, value: wheel });
+		}
 		if (!auto) {
 			// fine control (Caps Lock, plan 211) scales the pilot's keys, not SAS
 			const k = precision ? PRECISION : 1;
 			const a = [
-				Math.max(-1, Math.min(1, k * axis('pitchMinus', 'pitchPlus') + touchAttitude.pitch)),
+				driving
+					? 0
+					: Math.max(-1, Math.min(1, k * axis('pitchMinus', 'pitchPlus') + touchAttitude.pitch)),
 				Math.max(-1, Math.min(1, k * axis('yawMinus', 'yawPlus') + touchAttitude.yaw)),
 				Math.max(-1, Math.min(1, k * axis('rollMinus', 'rollPlus') + touchAttitude.roll))
 			];
@@ -973,6 +1002,11 @@ export function startFlight(options: FlightOptions): Flight {
 				break;
 			case 'rcsToggle':
 				toggleRcs();
+				break;
+			case 'driveMode':
+				driveSwitch = !driving;
+				driving = driveSwitch;
+				hud.drive = driving;
 				break;
 			case 'gear':
 				if (vessel !== null)
@@ -1523,6 +1557,10 @@ export function startFlight(options: FlightOptions): Flight {
 				}
 			}
 			hud.throttle = throttle;
+			if (snap && vessel !== null) {
+				driving = driveSwitch ?? drivable(snap, vessel, hud.telemetry);
+				hud.drive = driving;
+			}
 			const t0 = performance.now();
 			hud.model = hudCtl?.model(now, throttle) ?? null;
 			// the suit radio and the live broadcasts (plan 121, ADR 0193 point 6)

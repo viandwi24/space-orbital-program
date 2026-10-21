@@ -24,6 +24,7 @@ import { coupler, hub, lattice, petals, serviceBay, truss } from './bays.ts';
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
 import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
 import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
+import { roverChassis, roverWheel } from './rover-wheel.ts';
 import {
 	ascentCabin,
 	boom,
@@ -126,6 +127,9 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('hinge-joint', hingeJoint);
 	registerPartGenerator('rotary-joint', rotaryJoint);
 	registerPartGenerator('piston-joint', pistonJoint);
+	// plan 307: rover
+	registerPartGenerator('rover-wheel', roverWheel);
+	registerPartGenerator('rover-chassis', roverChassis);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

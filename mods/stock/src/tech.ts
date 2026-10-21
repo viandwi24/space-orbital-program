@@ -374,6 +374,13 @@ export const STOCK_TECH = [
 			'stock.base-kit',
 			'stock.drill',
 			'stock.rover-cab',
+			// plan 307: rover
+			'stock.rover-chassis',
+			'stock.rover-wheel-s',
+			'stock.rover-wheel-s-steer',
+			'stock.rover-wheel-m',
+			'stock.rover-wheel-m-steer',
+			'stock.rover-wheel-l',
 			// plan 306: robotics
 			'stock.hinge-s',
 			'stock.hinge-m',
