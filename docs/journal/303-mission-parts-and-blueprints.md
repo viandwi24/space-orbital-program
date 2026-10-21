@@ -29,6 +29,16 @@ The owner's order: prepare first, then all the parts, then blueprints of famous 
 ![Shuttle parts in /dev/parts](assets/303-shuttle-parts.jpg)
 ![Power parts, deployed, in /dev/parts](assets/303-power-deployed.jpg)
 
+In the Hangar, the empty bay's card now has a **Famous missions** row (`vab.loadMission`).
+
+![The Hangar's card with the Famous missions row](assets/303-hangar-famous-missions.jpg)
+
+The six blueprints as the Hangar draws them (`captureThumbnail`), on a blue grid:
+
+![The six mission blueprints](assets/303-mission-blueprints.jpg)
+
+Kronos V + Selene in the Hangar: 37 parts, 497 t, 45.7 m, Δv 7,054 m/s at sea level, liftoff TWR 1.25, stable, and low orbit within reach.
+
 ## What surprised me
 
 - **Test budgets shaped the models.**

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MISSION_BLUEPRINTS } from '../../../lib/editor/missions';
 	import { resolve } from '$app/paths';
 	import { GAME_NAME } from '../../../lib/public/about';
 	import PageMeta from '../../../lib/ui/PageMeta.svelte';
@@ -278,6 +279,17 @@
 						<Button onclick={() => vab.openLibrary()}>Open a saved vessel</Button>
 					{/if}
 				</div>
+				<h3>Famous missions</h3>
+				<div class="row">
+					{#each MISSION_BLUEPRINTS as mission (mission.id)}
+						<Button
+							onclick={() => vab.loadMission(mission.id)}
+							aria-label={`${mission.title}: ${mission.inspiredBy}`}
+						>
+							{mission.title}
+						</Button>
+					{/each}
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -457,6 +469,14 @@
 	}
 	.welcome p {
 		margin: 0;
+		color: var(--text-dim);
+	}
+	.welcome h3 {
+		margin: var(--s-2) 0 0;
+		font-size: var(--t-sm);
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 		color: var(--text-dim);
 	}
 	.row {

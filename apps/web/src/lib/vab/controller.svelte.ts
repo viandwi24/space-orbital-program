@@ -4,6 +4,7 @@
  * state (an immutable value replaced per edit, ADR 0029), the 3D view, pointer and keyboard
  * handling, the vessel library (ADR 0041) and the derived read-outs.
  */
+import { MISSION_BLUEPRINTS } from '../editor/missions';
 import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
@@ -1326,6 +1327,18 @@ export class VabController {
 		this.editor = replaceDesign(this.editor, this.editorContent, glider(this.editorContent));
 		this.view?.frame();
 		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
+	}
+	/** Load a famous-mission blueprint (plan 286). */
+	loadMission(id: string): void {
+		const mission = MISSION_BLUEPRINTS.find((m) => m.id === id);
+		if (!mission) return;
+		this.disarm();
+		this.selected = null;
+		this.libraryId = null;
+		saveLibraryId(null);
+		this.editor = replaceDesign(this.editor, this.editorContent, mission.build(this.editorContent));
+		this.view?.frame();
+		this.say(`Loaded ${mission.title}, inspired by ${mission.inspiredBy}.`);
 	}
 	toggleContrast(): void {
 		this.highContrast = !this.highContrast;
