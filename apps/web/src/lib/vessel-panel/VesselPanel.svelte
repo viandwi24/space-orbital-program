@@ -451,7 +451,6 @@
 	/* a part is one collapsed line: chevron, name, what matters, then icon actions (plan 256) */
 	.part {
 		position: relative;
-		margin-bottom: 0.25rem;
 		border-radius: var(--radius-tile);
 		background: var(--surface-inset);
 	}
@@ -530,6 +529,17 @@
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
+		margin: 0 var(--s-1);
+	}
+	/* even gaps on the 4 px grid (plan 268): header to rows and row to row s-2, group to group s-4 */
+	.cat[open] > summary.cap {
+		margin-bottom: var(--s-2);
+	}
+	.part + .part {
+		margin-top: var(--s-2);
+	}
+	.cat + .cat {
+		margin-top: var(--s-4);
 	}
 	.count {
 		margin-left: 0.25rem;
@@ -629,7 +639,7 @@
 	.filters {
 		display: flex;
 		gap: 0.375rem;
-		margin: 0 0.25rem 0.25rem;
+		margin: 0 0.25rem var(--s-3);
 	}
 	.filters input,
 	.transfer select {

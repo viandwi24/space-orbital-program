@@ -193,8 +193,12 @@
 		display: inline-flex;
 		min-height: 1.75rem;
 		margin: 0.125rem 0.25rem 0.125rem 0;
+		/* an inline-size container shrinks to zero width inline, so the buttons drew on top of each
+		   other ("Transfer in" over "Transfer out", plan 268); a trigger has no slider to swap anyway */
+		container-type: normal;
 	}
 	.row.trigger :global(button) {
+		white-space: nowrap;
 		height: 1.75rem;
 		padding: 0 0.625rem;
 		font-size: var(--t-small);
