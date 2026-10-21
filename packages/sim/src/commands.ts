@@ -42,7 +42,8 @@ import {
 	type Command,
 	type CommandResult,
 	type ControlChannel,
-	type EntityId
+	type EntityId,
+	type Quat
 } from '@orbital/core';
 import { bodyOfVessel } from './bodies.ts';
 import { MAX_WARP } from './constants.ts';
@@ -141,7 +142,8 @@ import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
 import { setTarget } from './target.ts';
 import { beginHold, sasLevelNeeded, sasLevelOf } from './sas.ts';
-import { IDENTITY, qNormalize } from './math.ts';
+import { IDENTITY, qConj, qNormalize, qRotate } from './math.ts';
+import { isTurned, partRotation } from './parts.ts';
 import {
 	destroyVessel,
 	placeAtState,
@@ -344,6 +346,16 @@ const OWNED_ALLOWED: ReadonlySet<string> = new Set([
 	'comms-inspect'
 ]);
 
+const clampUnit = (n: number): number => Math.max(-1, Math.min(1, n));
+
+/** The control part's rotation in the vessel (ADR 0270 point 4), or undefined for the root or none. */
+function controlTurn(core: SimCore, v: VesselState): Quat | undefined {
+	const id = v.controlPart;
+	if (id === undefined || id === v.root || !core.world.hasEntity(id)) return undefined;
+	const part = partOf(core, id);
+	return isTurned(part) ? partRotation(part) : undefined;
+}
+
 /**
  * Validate and apply a command. `source` says who sent it (plan 117, ADR 0188 point 6): the
  * signal-delay rule may queue a player's (or, under `enforced`, a script's) vessel control
@@ -431,14 +443,20 @@ export function dispatch(
 			const asked = command.translate;
 			if (asked && ![asked.x, asked.y, asked.z].every((n) => Number.isFinite(n) && Math.abs(n) <= 1))
 				return refuse('translate must be three numbers in -1..1');
-			// a program keeps the channels the player holds as they are (plan 311, ADR 0272 point 3)
+			// The input is in the control part's axes (ADR 0270 point 4). A program keeps the channels
+			// the player holds as they are (plan 311, ADR 0272 point 3): the vessel's present demand,
+			// turned back into those axes, stands in for them.
+			const turn = controlTurn(core, v);
+			const back = turn && qConj(turn);
+			const inControl = (u: { x: number; y: number; z: number }) => (back ? qRotate(back, u) : u);
 			const dropped = program ? overriddenChannels(core, v) : [];
 			const keep = (channel: ControlChannel, mine: number, theirs: number): number =>
 				dropped.includes(channel) ? mine : theirs;
-			const pitch = keep('pitch', v.control.pitch, command.pitch);
-			const yaw = keep('yaw', v.control.yaw, command.yaw);
-			const roll = keep('roll', v.control.roll, command.roll);
-			const was = v.translate ?? { x: 0, y: 0, z: 0 };
+			const now = inControl({ x: v.control.pitch, y: v.control.roll, z: v.control.yaw });
+			const pitch = keep('pitch', now.x, command.pitch);
+			const yaw = keep('yaw', now.z, command.yaw);
+			const roll = keep('roll', now.y, command.roll);
+			const was = inControl(v.translate ?? { x: 0, y: 0, z: 0 });
 			const t = asked && {
 				x: keep('translateX', was.x, asked.x),
 				y: keep('translateY', was.y, asked.y),
@@ -450,11 +468,16 @@ export function dispatch(
 				const why = ensureFlight(core, command.vessel, 'attitude');
 				if (why) return refuse(why);
 			}
-			v.control.pitch = pitch;
-			v.control.yaw = yaw;
-			v.control.roll = roll;
+			const torque = turn
+				? qRotate(turn, { x: pitch, y: roll, z: yaw })
+				: { x: pitch, y: roll, z: yaw };
+			v.control.pitch = clampUnit(torque.x);
+			v.control.yaw = clampUnit(torque.z);
+			v.control.roll = clampUnit(torque.y);
 			if (t !== undefined) {
-				if (translating) v.translate = { x: t.x, y: t.y, z: t.z };
+				const move = turn ? qRotate(turn, t) : t;
+				if (translating)
+					v.translate = { x: clampUnit(move.x), y: clampUnit(move.y), z: clampUnit(move.z) };
 				else delete v.translate;
 			}
 			if (from === 'player') {

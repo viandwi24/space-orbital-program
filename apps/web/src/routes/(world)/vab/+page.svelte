@@ -64,7 +64,7 @@
 				vab.capacity = site ? { site, on: limitsOn(info, vab.loaded.world) } : null;
 			})
 			.catch(() => (vab.capacity = null));
-		// `/vab?library` (the main and pause menus' "Vessel library") opens the library at once.
+		// `/vab?library` (the pause menu's "Vessel library") opens the library at once.
 		if (new URLSearchParams(location.search).has('library')) {
 			history.replaceState(null, '', location.pathname);
 			void vab.openLibrary();
