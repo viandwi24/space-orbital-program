@@ -61,6 +61,9 @@ Use these terms consistently in code, docs, and UI.
 | **Module colliders** | `ModuleDefinition.colliders`: extra collision boxes a module adds to its part for its current state (landing-leg feet). |
 | **Vessel design** | The JSON a VAB saves: flat part list with parent links plus `stages` (`VesselDesign`, ADR 0016). |
 | **Script** | Untrusted player JavaScript (an async function body) run by `@orbital/scripting` against the `ship` API; sees telemetry copies, issues validated commands (ADR 0020). |
+| **Program** | Whatever flies a vessel without the player: an engaged autopilot (ADR 0271) or a running script. Recorded on the vessel, saved, listed in the status bar (ADR 0276). |
+| **Override (program)** | A control channel the player holds against a vessel's program: the program's writes to it are dropped until 1 s after the player lets go (ADR 0276). |
+| **Script memory** | The script's `memory` object: plain JSON saved with its vessel; a resumed script gets it back with `resumed === true` (ADR 0276). |
 | **Script budget** | Wall-clock ms of guest execution allowed per sim tick (default 10); exceeding it terminates the script. |
 | **Script runner** | `createScriptRunner(source, options)`: one QuickJS runtime per script; `tick(snapshot)` returns the commands to dispatch. |
 | **Loose assembly** | A subtree detached in the VAB: kept next to the design as a one-root `VesselDesign`, drawn on the hangar floor, never launched (ADR 0029). |

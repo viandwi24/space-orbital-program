@@ -62,6 +62,8 @@ export const HELD_REASON =
 	'held while time warp is requested or active (on rails the attitude is frozen); it is applied again at warp 1';
 /** While a script runs, its timing is reported at most this often, ms. */
 export const SCRIPT_STATUS_MS = 500;
+/** How often a running script's changed memory is committed to its vessel, ms (plan 320, ADR 0276). */
+export const SCRIPT_MEMORY_MS = 1_000;
 /** Lines of print output and refusals forwarded per tick; the rest of a flood is dropped. */
 export const MAX_LOG_LINES_PER_TICK = 50;
 
@@ -185,6 +187,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 	let lastRefusal = '';
 	/** Answers to the script's commands, offered with its next snapshot (ADR 0039, plan 032). */
 	let verdicts: CommandVerdict[] = [];
+	/** The script's memory not yet committed to the sim, and when it was last (plan 320, ADR 0276). */
+	let pendingMemory: Record<string, unknown> | undefined;
+	let memoryAt = 0;
 	/** Last accepted throttle per vessel: a script that burns cannot be put on rails. */
 	const throttles = new Map<number, number>();
 	/** Warp hold (ADR 0039): the script's attitude is not passed on; the latest one waits here. */
@@ -295,9 +300,32 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		lines = [];
 		options.post({ kind: 'script-log', lines: out });
 	};
-	const endScript = (): void => {
+	/** Commit the script's memory to its vessel, so a save carries it (ADR 0276 point 6). */
+	const commitMemory = (): void => {
+		const memory = pendingMemory;
+		pendingMemory = undefined;
+		memoryAt = options.now();
+		if (!memory || !sim || scriptVessel < 0) return;
+		const r = sim.dispatch({ type: 'script-memory', vessel: entityId(scriptVessel), memory });
+		if (!r.ok) lines.push(`! memory: ${r.reason}`);
+	};
+	/**
+	 * The script's run is over: `reason` detaches it from its vessel (it is no longer saved); null
+	 * keeps it saved to resume when the world opens again (ADR 0276 point 6).
+	 */
+	const forget = (reason: string | null): void => {
+		if (!sim || scriptVessel < 0) return;
+		if (reason === null) commitMemory();
+		else {
+			pendingMemory = undefined;
+			sim.dispatch({ type: 'script-detach', vessel: entityId(scriptVessel), reason });
+		}
+	};
+	const endScript = (reason: string | null = 'stopped'): void => {
+		const had = session !== null;
 		session?.close();
 		session = null;
+		if (had) forget(reason);
 		scriptGone();
 	};
 	/** Commands a script may issue (what the runner builds); the Worker is not trusted to stay within them. */
@@ -325,6 +353,8 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		lastMs = result.elapsedMs;
 		maxMs = Math.max(maxMs, result.elapsedMs);
 		lines.push(...result.lines);
+		if (result.memory) pendingMemory = result.memory;
+		if (pendingMemory && options.now() - memoryAt >= SCRIPT_MEMORY_MS) commitMemory();
 		result.commands.forEach((command, index) => {
 			const seq = result.seqs?.[index];
 			const answer = (r: CommandResult): void => {
@@ -366,6 +396,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		flushLines();
 		if (result.status !== 'running') {
 			session = null; // the session closed itself
+			forget(result.status === 'finished' ? 'finished' : (result.error ?? result.status));
 			scriptGone();
 			flushLines();
 			postStatus(result.status, result.error, result.errorLine);
@@ -374,8 +405,15 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		}
 	}
 
-	function startScript(source: string, vessel: number, port: ScriptPortLike | undefined): void {
-		endScript();
+	function startScript(
+		asked: string,
+		vessel: number,
+		port: ScriptPortLike | undefined,
+		run: { name?: string; resume?: boolean } = {}
+	): void {
+		endScript(run.resume ? null : 'replaced by a new Run');
+		pendingMemory = undefined;
+		memoryAt = options.now();
 		lastMs = 0;
 		maxMs = 0;
 		lines = [];
@@ -391,6 +429,19 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		if (!sim.snapshot().vessels.some((v) => Number(v.id) === vessel)) {
 			return refuse(`vessel ${vessel} does not exist`);
 		}
+		// a resumed run is the script saved on the vessel, with its memory (ADR 0276 point 6)
+		const saved = run.resume ? sim.scripts().find((x) => Number(x.vessel) === vessel) : undefined;
+		if (run.resume && !saved) return refuse(`vessel ${vessel} has no saved script`);
+		const source = saved?.source ?? asked;
+		const name = saved?.name ?? run.name ?? 'Script';
+		const attached = sim.dispatch({
+			type: 'script-attach',
+			vessel: entityId(vessel),
+			name,
+			source,
+			...(saved ? { resumed: true } : {})
+		});
+		if (!attached.ok) return refuse(attached.reason);
 		postStatus('starting');
 		scriptVessel = vessel;
 		let created: ScriptSession;
@@ -405,6 +456,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				...((options.scriptFuelPolls ?? SCRIPT_FUEL_POLLS) === Infinity
 					? {}
 					: { fuelPolls: options.scriptFuelPolls ?? SCRIPT_FUEL_POLLS }),
+				...(saved ? { memory: saved.memory, resumed: true } : {}),
 				env: {
 					bodies: sim.registries.bodies.list(),
 					parts: sim.registries.parts.list(),
@@ -424,6 +476,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				onDead: (status, error) => {
 					if (created !== session) return;
 					session = null;
+					forget(error);
 					scriptGone();
 					flushLines();
 					postStatus(status, error);
@@ -435,8 +488,9 @@ export function createSimHost(options: SimHostOptions): SimHost {
 		session = created;
 	}
 
-	function stopScript(): void {
-		endScript();
+	/** `keep`: the world is closing; the script stays saved on its vessel (ADR 0276 point 6). */
+	function stopScript(keep = false): void {
+		endScript(keep ? null : 'stopped');
 		lines = [];
 		postStatus('stopped');
 	}
@@ -648,6 +702,35 @@ export function createSimHost(options: SimHostOptions): SimHost {
 							event: { type: 'building-ready', kind: e.kind, level: e.level }
 						})
 					),
+					// who flies is never silent (plan 320, ADR 0276 point 4)
+					created.events.on('program:override', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'program-override', vessel: Number(e.vessel), channels: e.channels }
+						})
+					),
+					created.events.on('program:resumed', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'program-resumed', vessel: Number(e.vessel) }
+						})
+					),
+					created.events.on('program:stopped', (e) =>
+						options.post({
+							kind: 'sim-event',
+							event: { type: 'program-stopped', vessel: Number(e.vessel), reason: e.reason }
+						})
+					),
+					// `program-stop` (the Delete key, Abort) ended the running script in the sim
+					created.events.on('script:detached', (e) => {
+						if (session === null || Number(e.vessel) !== scriptVessel) return;
+						session.close();
+						session = null;
+						scriptGone();
+						lines.push(`script stopped: ${e.reason}`);
+						flushLines();
+						postStatus('stopped');
+					}),
 					created.events.on('vessel:destroyed', (e) =>
 						options.post({
 							kind: 'sim-event',
@@ -656,7 +739,14 @@ export function createSimHost(options: SimHostOptions): SimHost {
 					)
 				];
 				last = options.now();
-				options.post({ kind: 'ready', ...catalogOf(created) });
+				const savedScripts = created
+					.scripts()
+					.map((x) => ({ vessel: Number(x.vessel), name: x.name }));
+				options.post({
+					kind: 'ready',
+					...catalogOf(created),
+					...(savedScripts.length > 0 ? { savedScripts } : {})
+				});
 				cancel = options.schedule?.(tick, TICK_MS) ?? null;
 			} catch (error) {
 				fail(error);
@@ -673,7 +763,10 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				return;
 			}
 			if (message.kind === 'script-start') {
-				startScript(message.source, message.vessel, message.port);
+				startScript(message.source, message.vessel, message.port, {
+					...(message.name === undefined ? {} : { name: message.name }),
+					...(message.resume ? { resume: true } : {})
+				});
 				return;
 			}
 			if (message.kind === 'pause') {
@@ -689,7 +782,7 @@ export function createSimHost(options: SimHostOptions): SimHost {
 				return;
 			}
 			if (message.kind === 'script-stop') {
-				stopScript();
+				stopScript(message.keep === true);
 				return;
 			}
 			// `init` and `save` are answered by the Worker entry (save/worker-save.ts), not by the host.

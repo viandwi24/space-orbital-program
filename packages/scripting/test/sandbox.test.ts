@@ -101,7 +101,7 @@ test('the host bridge is not reachable: ship has only the documented surface', a
 	`);
 	// Lower-case globals: ECMAScript functions plus the documented script API, nothing else.
 	expect(lines[0]).toBe(
-		'action,addNode,bodies,controlFrom,date,decodeURI,decodeURIComponent,disengage,encodeURI,encodeURIComponent,engage,escape,eval,globalThis,holdAttitude,isFinite,isNaN,nextTick,parseFloat,parseInt,pointAt,print,removeAlarm,removeNode,runExperiment,setAlarm,setNode,setRcs,setTarget,ship,stage,time,translate,undefined,unescape,wait,waitUntil,warp,warpTo'
+		'action,addNode,bodies,controlFrom,date,decodeURI,decodeURIComponent,disengage,encodeURI,encodeURIComponent,engage,escape,eval,globalThis,holdAttitude,isFinite,isNaN,memory,nextTick,parseFloat,parseInt,pointAt,print,removeAlarm,removeNode,resumed,runExperiment,setAlarm,setNode,setRcs,setTarget,ship,stage,time,translate,undefined,unescape,wait,waitUntil,warp,warpTo'
 	);
 	expect(lines[1]).toBe(
 		'alarms,altitude,apoapsis,attitude,autopilot,body,bodyRadius,controlPart,dock,eccentricity,engines,inertia,mass,mode,mu,nodes,nose,orbit,orientation,parts,periapsis,ports,position,rcs,refusals,sas,science,speed,t,target,targets,throttle,up,velocity,wheels'

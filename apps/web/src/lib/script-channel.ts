@@ -29,6 +29,9 @@ export interface ScriptSessionOptions {
 	/** Deterministic work budget per tick, interrupt polls; omitted: wall clock only. */
 	fuelPolls?: number;
 	env: ScriptEnvironment;
+	/** The script's saved memory and whether this run resumes it (plan 320, ADR 0276). */
+	memory?: Record<string, unknown>;
+	resumed?: boolean;
 	watchdogMs?: number;
 	bootTimeoutMs?: number;
 	/** The runner is created; ticks start flowing. */
@@ -113,7 +116,9 @@ export function createScriptSession(options: ScriptSessionOptions): ScriptSessio
 		budgetMs: options.budgetMs,
 		firstTickBudgetMs: options.firstTickBudgetMs,
 		...(options.fuelPolls === undefined ? {} : { fuelPolls: options.fuelPolls }),
-		env: options.env
+		env: options.env,
+		...(options.memory === undefined ? {} : { memory: options.memory }),
+		...(options.resumed === undefined ? {} : { resumed: options.resumed })
 	});
 
 	return {

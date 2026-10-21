@@ -136,7 +136,13 @@ export interface SaveComms {
 	/** Vessels whose route is not Auto. */
 	routes: Array<{ vessel: number; mode: RouteMode }>;
 	/** Commands waiting for their light time under `enforced` or `flight-computer`. */
-	queue: Array<{ at: number; seq: number; command: Record<string, unknown> }>;
+	/** `source`: a program's command keeps who sent it (plan 320, ADR 0276 point 2); absent is the player. */
+	queue: Array<{
+		at: number;
+		seq: number;
+		command: Record<string, unknown>;
+		source?: 'script' | 'autopilot';
+	}>;
 	/** Data items being sent (format 8, plan 119, ADR 0189 point 2), in order of `seq`. */
 	transmissions: SaveTransmission[];
 	/** Licensed channels beyond channel 0 (plan 120, ADR 0191 point 2); optional. */
@@ -275,7 +281,12 @@ export const simSaveSchema = z.object({
 		seq: z.int().min(0),
 		routes: z.array(z.object({ vessel: z.int(), mode: routeModeSchema })),
 		queue: z.array(
-			z.object({ at: z.number(), seq: z.int().min(0), command: z.record(z.string(), z.unknown()) })
+			z.object({
+				at: z.number(),
+				seq: z.int().min(0),
+				command: z.record(z.string(), z.unknown()),
+				source: z.enum(['script', 'autopilot']).optional()
+			})
 		),
 		transmissions: z.array(
 			z.object({

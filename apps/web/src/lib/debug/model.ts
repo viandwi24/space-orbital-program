@@ -209,5 +209,14 @@ export function simEventLine(event: SimEventMessage): { level: LogLevel; message
 				level: 'warn',
 				message: `parachute on part ${event.part} torn at ${event.speed.toFixed(1)} m/s`
 			};
+		case 'program-override':
+			return {
+				level: 'info',
+				message: `vessel ${event.vessel}: the player holds ${event.channels.join(', ')}`
+			};
+		case 'program-resumed':
+			return { level: 'info', message: `vessel ${event.vessel}: program resumed` };
+		case 'program-stopped':
+			return { level: 'warn', message: `vessel ${event.vessel}: programs stopped (${event.reason})` };
 	}
 }

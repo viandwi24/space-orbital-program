@@ -4,6 +4,7 @@
  * validates saved designs with `vesselDesignSchema`. Output types equal the hand-written
  * protocol types (the `z.ZodType<...>` annotations make the compiler check that).
  */
+import { SCRIPT_SOURCE_MAX } from './programs.ts';
 import { routeModeSchema } from './comms.ts';
 import * as z from 'zod';
 import { entityId, partId, bodyId } from './ids.ts';
@@ -384,6 +385,28 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('repair'), suit: entity, vessel: entity, part: entity }),
 	z.object({ type: z.literal('pause'), on: z.boolean() }),
 	z.object({ type: z.literal('set-control-part'), vessel: entity, part: entity.nullable() }),
+	z.object({
+		type: z.literal('program-stop'),
+		vessel: entity,
+		reason: z.string().max(200).optional()
+	}),
+	z.object({
+		type: z.literal('script-attach'),
+		vessel: entity,
+		name: z.string().min(1).max(200),
+		source: z.string().max(SCRIPT_SOURCE_MAX),
+		resumed: z.boolean().optional()
+	}),
+	z.object({
+		type: z.literal('script-memory'),
+		vessel: entity,
+		memory: z.record(z.string(), z.unknown())
+	}),
+	z.object({
+		type: z.literal('script-detach'),
+		vessel: entity,
+		reason: z.string().max(500).optional()
+	}),
 	z.object({ type: z.literal('debug-mode'), on: z.boolean() }),
 	z.object({ type: z.literal('debug-cheat'), cheat: z.enum(DEBUG_CHEATS), on: z.boolean() }),
 	z.object({

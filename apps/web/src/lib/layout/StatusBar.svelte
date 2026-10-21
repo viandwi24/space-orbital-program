@@ -8,6 +8,7 @@
 	import { SHELL_ICONS } from './shell-model';
 	import { connection, savedAgo, statusItems, type BellFeed } from './status-bar';
 	import type { PageLocation } from './page-actions.svelte';
+	import { manualText, programRows, programsLabel } from '../programs-model';
 
 	let {
 		snapshot,
@@ -17,7 +18,8 @@
 		location,
 		savedAt,
 		mods,
-		bell
+		bell,
+		onstopprogram
 	}: {
 		snapshot: Snapshot | null;
 		/** The vessel in focus, for its link. */
@@ -29,7 +31,16 @@
 		savedAt: number | null;
 		mods: number;
 		bell: BellFeed;
+		/** Stop every program on a vessel (plan 320, ADR 0276 point 5). */
+		onstopprogram?: (vessel: number) => void;
 	} = $props();
+
+	// the programs flying vessels right now (plan 320, ADR 0276 point 8)
+	const programs = $derived(programRows(snapshot));
+	let programsOpen = $state(false);
+	$effect(() => {
+		if (programs.length === 0) programsOpen = false;
+	});
 
 	const items = $derived(statusItems(snapshot));
 	const link = $derived(connection(snapshot, focus));
@@ -100,6 +111,20 @@
 		>
 		<span data-testid="status-saved">{savedAgo(savedAt, now)}</span>
 	</div>
+	{#if programs.length > 0}
+		<div class="rule" aria-hidden="true"></div>
+		<button
+			type="button"
+			class="programs"
+			class:manual={programs.some((p) => p.manual.length > 0)}
+			data-testid="status-programs"
+			aria-expanded={programsOpen}
+			data-tip="Programs flying your vessels"
+			onclick={() => (programsOpen = !programsOpen)}
+		>
+			<span class="pulse" aria-hidden="true"></span>{programsLabel(programs.length)}
+		</button>
+	{/if}
 	<div class="rule" aria-hidden="true"></div>
 	<div class="group">
 		<svg
@@ -143,6 +168,28 @@
 			{#if unread > 0}<span class="badge" aria-hidden="true">{unread}</span>{/if}
 		</button>
 	</div>
+	{#if programsOpen && programs.length > 0}
+		<div class="feed list" role="region" aria-label="Running programs" data-testid="programs-list">
+			<p class="head">Programs keep flying when you look away. Touch a control to take it; the program resumes 1 s after you let go. Delete stops the programs of the vessel you fly.</p>
+			{#each programs as p (`${p.vessel}-${p.kind}`)}
+				<div class="row">
+					<div class="what">
+						<b>{p.title}</b>
+						<span>{p.vesselName} · {p.kind === 'autopilot' ? 'Autopilot' : 'Script'}{p.detail ? ` · ${p.detail}` : ''}</span>
+						{#if p.manual.length > 0}<span class="held">Manual: {manualText(p.manual)}</span>{/if}
+					</div>
+					{#if onstopprogram}
+						<button
+							type="button"
+							class="stop"
+							aria-label="Stop the programs of {p.vesselName}"
+							onclick={() => onstopprogram(p.vessel)}>Stop</button
+						>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	{/if}
 	{#if bellOpen}
 		<div class="feed" role="log" aria-label="Notifications" data-testid="bell-feed">
 			{#each entries as e (e.id)}
@@ -296,6 +343,74 @@
 	}
 	.feed p {
 		margin: var(--s-1) 0;
+	}
+	.programs {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		height: 1.375rem;
+		padding: 0 0.5rem;
+		border: none;
+		border-radius: 999px;
+		background: rgb(255 255 255 / 0.08);
+		color: #fff;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.programs:hover {
+		background: rgb(255 255 255 / 0.14);
+	}
+	.pulse {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--accent);
+	}
+	.programs.manual .pulse {
+		background: #f5a524;
+	}
+	.list {
+		right: auto;
+		left: 50%;
+		transform: translateX(-50%);
+		width: min(26rem, calc(100vw - 2rem));
+	}
+	.list .head {
+		color: var(--text-dim);
+	}
+	.row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--s-3);
+		padding: var(--s-2) 0;
+		border-top: 1px solid var(--border-subtle);
+	}
+	.what {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+	.what span {
+		color: var(--text-dim);
+		overflow-wrap: anywhere;
+	}
+	.what .held {
+		color: #f5a524;
+	}
+	.stop {
+		flex: none;
+		padding: 0.25rem 0.625rem;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-row);
+		background: transparent;
+		color: var(--text-primary);
+		font: inherit;
+		cursor: pointer;
+	}
+	.stop:hover {
+		background: rgb(255 255 255 / 0.06);
 	}
 	.feed .unread {
 		color: var(--text-primary);

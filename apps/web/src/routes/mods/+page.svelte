@@ -21,11 +21,14 @@
 	import { ModManager } from '../../lib/mods/manager.svelte';
 	import ModPatches from '../../lib/mods/ModPatches.svelte';
 	import { openModStore } from '../../lib/mods/store-idb';
+	import { builtinModRows } from '../../lib/mods/builtin-list';
+	import { BUILTIN_PLUGINS } from '../../lib/builtins';
 
 	const manager = new ModManager({
 		open: openModStore,
 		reload: () => location.assign(resolve('/mods'))
 	});
+	const builtins = builtinModRows(BUILTIN_PLUGINS);
 	let fileInput = $state<HTMLInputElement>();
 	let url = $state('');
 
@@ -68,13 +71,29 @@
 		<p class="error" role="alert"><Icon name="alert" size={16} /> {manager.error}</p>
 	{/if}
 
+	<section aria-labelledby="builtin">
+		<h2 id="builtin">Built in</h2>
+		<ul class="mods" aria-label="Built-in mods">
+			{#each builtins as mod (mod.id)}
+				<li data-state="builtin">
+					<div class="main">
+						<strong>{mod.title}</strong>
+						<span class="num dim">{mod.id} {mod.version} · mod API {mod.api}</span>
+						{#if mod.description}<span class="dim">{mod.description}</span>{/if}
+						<span class="status">Built in · always on</span>
+					</div>
+				</li>
+			{/each}
+		</ul>
+	</section>
+
 	<section aria-labelledby="installed">
 		<h2 id="installed">Installed</h2>
 		{#if manager.loading}
 			<p class="dim">Loading…</p>
 		{:else if manager.records.length === 0}
 			<p class="dim empty">
-				No mods installed. Stock parts are always available. Install a package (a
+				No mods installed. The built-in mods above are always on. Install a package (a
 				<code>.orbital-mod.json</code> file) below.
 			</p>
 		{:else}

@@ -41,6 +41,8 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 				budgetMs: message.budgetMs,
 				firstTickBudgetMs: message.firstTickBudgetMs,
 				...(message.fuelPolls === undefined ? {} : { fuelPolls: message.fuelPolls }),
+				...(message.memory === undefined ? {} : { memory: message.memory }),
+				...(message.resumed === undefined ? {} : { resumed: message.resumed }),
 				now: options.now,
 				onPrint: (line) => void lines.push(line)
 			})
@@ -72,7 +74,8 @@ export function createScriptWorkerCore(options: ScriptWorkerCoreOptions): Script
 				...(active.error === undefined ? {} : { error: active.error }),
 				...(active.errorLine === undefined ? {} : { errorLine: active.errorLine }),
 				elapsedMs: result.elapsedMs,
-				lines: out
+				lines: out,
+				...(result.memory === undefined ? {} : { memory: result.memory })
 			});
 			if (result.status !== 'running') runner = null;
 		} catch (error) {
