@@ -1,13 +1,16 @@
 /** Propellant tank: painted barrel, forged end collars, stripe, bands, ribs and a feed line. */
 import type { ProfilePoint } from '../revolve.ts';
 import type { GenContext } from '../registry.ts';
+import { barrelSlot, keepsStripe, liveryOf, paintLivery } from './kit.ts';
 
 export function tank(ctx: GenContext): void {
 	const { radius: R, height: H, builder: b, detail } = ctx;
 	const h2 = H / 2;
 	const rb = R * 0.955;
 	const collar = ctx.param('collar', 0.12, 0.06, 0.3);
-	const stripe = ctx.param('stripe', 0.28, 0, 0.9);
+	const livery = liveryOf(ctx.visual.params);
+	const barrel = barrelSlot(livery);
+	const stripe = keepsStripe(livery) ? ctx.param('stripe', 0.28, 0, 0.9) : 0;
 	const bands = Math.round(ctx.param('bands', Math.max(1, Math.round(H / 1.4)), 0, 8));
 
 	// End collars: dark forged rings that carry the attach faces.
@@ -23,11 +26,12 @@ export function tank(ctx: GenContext): void {
 	b.revolve('dark-metal', lower);
 	b.revolve('dark-metal', lower.map((p) => ({ ...p, y: -p.y })).reverse());
 
-	// Barrel in the primary paint.
-	b.revolve('paint-primary', [
+	// Barrel in the primary paint (or the livery's foam or steel), then the livery's overlays (plan 291).
+	b.revolve(barrel, [
 		{ r: rb, y: -h2 + collar + 0.01 },
 		{ r: rb, y: h2 - collar - 0.01 }
 	]);
+	paintLivery(b, livery, rb, -h2 + collar + 0.01, h2 - collar - 0.01);
 
 	// A painted roll stripe near the top (secondary), a thin accent line under it.
 	let stripeBottom = h2 - collar;
@@ -67,7 +71,7 @@ export function tank(ctx: GenContext): void {
 		for (let i = 0; i < ribs && len > 0.2; i++) {
 			const a = ((i + 0.5) / ribs) * Math.PI * 2;
 			b.box(
-				'paint-primary',
+				barrel,
 				[0.035, len, 0.012],
 				[Math.sin(a) * (rb + 0.005), ribBottom + len / 2, Math.cos(a) * (rb + 0.005)],
 				a

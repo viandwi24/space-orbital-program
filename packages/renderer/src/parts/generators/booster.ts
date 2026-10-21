@@ -1,6 +1,7 @@
 /** Side booster: painted body with stripes and rings, a skirt around a bell nozzle, a flat top ring. */
 import type { ProfilePoint } from '../revolve.ts';
 import type { GenContext } from '../registry.ts';
+import { barrelSlot, keepsStripe, liveryOf, paintLivery } from './kit.ts';
 
 export function booster(ctx: GenContext): void {
 	const { radius: R, height: H, builder: b, detail } = ctx;
@@ -18,13 +19,16 @@ export function booster(ctx: GenContext): void {
 		{ r: R * 0.94, y: h2 },
 		{ r: 0, y: h2 }
 	]);
-	// Body.
-	b.revolve('paint-primary', [
+	// Body in the primary paint (or the livery's foam or steel) with the livery's overlays (plan 291).
+	const livery = liveryOf(ctx.visual.params);
+	const body = barrelSlot(livery);
+	b.revolve(body, [
 		{ r: rb, y: skirtTop + 0.18 },
 		{ r: rb, y: h2 - 0.155 }
 	]);
+	paintLivery(b, livery, rb, skirtTop + 0.18, h2 - 0.155);
 	// Stripes: a secondary band under the top ring and an accent line below it.
-	const band = ctx.param('stripe', 0.5, 0, 1.2);
+	const band = keepsStripe(livery) ? ctx.param('stripe', 0.5, 0, 1.2) : 0;
 	if (band > 0.01) {
 		b.revolve('paint-secondary', [
 			{ r: rb + 0.004, y: h2 - 0.3 - band },
@@ -49,7 +53,7 @@ export function booster(ctx: GenContext): void {
 		for (let i = 0; i < ribs; i++) {
 			const a = ((i + 0.5) / ribs) * Math.PI * 2;
 			b.box(
-				'paint-primary',
+				body,
 				[0.03, h2 - 0.6 - (skirtTop + 0.3), 0.012],
 				[Math.sin(a) * (rb + 0.005), (h2 - 0.6 + skirtTop + 0.3) / 2, Math.cos(a) * (rb + 0.005)],
 				a

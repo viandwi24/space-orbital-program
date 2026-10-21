@@ -37,7 +37,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { hangarDetail } from '../presets.ts';
-import { ConnectorBars } from '../parts/connector.ts';
+import { ConnectorBars, connectorRadius } from '../parts/connector.ts';
 import { PartModelFactory, type PartModelFactoryConfig } from '../parts/factory.ts';
 import {
 	repeatedDetail,
@@ -58,7 +58,7 @@ import {
 	type SignContext
 } from './hangar-signs.ts';
 import { StabilityMarkerKit } from './stability-markers.ts';
-import { frameIcon } from './icons.ts';
+import { frameIcon, visibleBounds } from './icons.ts';
 import {
 	approach,
 	approachCamera,
@@ -846,14 +846,21 @@ export class VabView {
 		model.setState({ modules: {}, temperature: 0, ambientPressure: 101_325 });
 		const holder = new Object3D();
 		holder.add(model.root);
+		// A strut or fuel line is a bar between two parts: show a sample bar, not only its end cap (plan 291).
+		const visuals = this.config.visuals ?? new Map();
+		const bars = connectorRadius(visuals.get(definition))
+			? new ConnectorBars(this.factory, visuals, holder)
+			: null;
+		bars?.sync([{ key: 'icon', definition, from: [0, 0, 0], to: [0, 1.4, -1.1] }]);
 		scene.add(holder);
 		holder.updateMatrixWorld(true);
-		const box = new Box3().setFromObject(holder);
+		const box = visibleBounds(holder);
 		const cam = new OrthographicCamera(-1, 1, 1, -1);
 		frameIcon(box, cam);
 
 		const url = this.captureWith(scene, cam, size, size);
 		scene.remove(holder);
+		bars?.dispose();
 		model.dispose();
 		return url;
 	}
@@ -945,7 +952,7 @@ export class VabView {
 		holder.add(bars.root);
 		scene.add(holder);
 		holder.updateMatrixWorld(true);
-		const box = new Box3().setFromObject(holder);
+		const box = visibleBounds(holder);
 		const cam = new OrthographicCamera(-1, 1, 1, -1);
 		frameIcon(box, cam, 1.05, width / height, THUMBNAIL_DIR);
 		const url = this.captureWith(scene, cam, width, height);
@@ -959,11 +966,13 @@ export class VabView {
 		const scene = new Scene();
 		scene.environment = this.env?.texture ?? null;
 		scene.environmentIntensity = 1.1;
+		// Neutral light from the side (plan 291): a blue sky light made every top joint a pale blue disc
+		// that outshone the part's silhouette.
 		const key = new DirectionalLight(0xfff1de, 4.2);
-		key.position.set(4, 7, 5);
-		const rim = new DirectionalLight(0x9ec8ff, 2.0);
-		rim.position.set(-6, 3, -5);
-		scene.add(key, rim, new HemisphereLight(0xb7cdea, 0x3a2f24, 0.7));
+		key.position.set(5, 4, 6);
+		const rim = new DirectionalLight(0xdfe6ee, 1.4);
+		rim.position.set(-6, 2, -5);
+		scene.add(key, rim, new HemisphereLight(0xd6d1c8, 0x3a2f24, 0.45));
 		return scene;
 	}
 

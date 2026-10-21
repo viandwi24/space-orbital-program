@@ -124,7 +124,8 @@ function solidBooster(spec: {
 		visual: {
 			kind: 'booster',
 			palette: { primary: '#ecebe6', secondary: '#23272d', accent: '#d9552b' },
-			params: { bellExit: spec.bellExit },
+			// white with black bands, as solid motors are painted (plan 291 livery)
+			params: { bellExit: spec.bellExit, livery: 'bands' },
 			plume: {
 				module: ModuleEngine.id,
 				nozzle: [0, -h2, 0],

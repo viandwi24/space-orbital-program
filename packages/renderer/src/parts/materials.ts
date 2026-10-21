@@ -129,6 +129,32 @@ export class MaterialLibrary {
 				return new MeshStandardMaterial({ color: 0x1b1612, metalness: 0.6, roughness: 0.72 });
 			case 'rubber':
 				return new MeshStandardMaterial({ color: 0x15171a, metalness: 0, roughness: 0.9 });
+			case 'bronze':
+				return new MeshStandardMaterial({
+					color: 0x8c6a3c,
+					metalness: 1,
+					roughness: 0.38,
+					normalMap: t.hullNormal,
+					normalScale: new Vector2(0.35, 0.35)
+				});
+			case 'foam':
+				return new MeshStandardMaterial({
+					color: 0xc0632a,
+					metalness: 0,
+					roughness: 0.88,
+					map: t.hullWeather,
+					normalMap: t.hullNormal,
+					normalScale: new Vector2(0.9, 0.9)
+				});
+			case 'tile':
+				return new MeshStandardMaterial({
+					color: 0x1c1d20,
+					metalness: 0,
+					roughness: 0.82,
+					map: t.tileMap,
+					normalMap: t.tileNormal,
+					normalScale: new Vector2(0.8, 0.8)
+				});
 			case 'lamp':
 				return new MeshStandardMaterial({
 					color: 0x000000,

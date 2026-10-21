@@ -1,5 +1,6 @@
 /** Stack decoupler: separation ring with a hazard-yellow band and pyro bolts. */
 import type { GenContext, GeneratedPart } from '../registry.ts';
+import { hazardStripe } from './kit.ts';
 
 export function decoupler(ctx: GenContext): GeneratedPart {
 	const { radius: R, height: H, builder: b, detail } = ctx;
@@ -18,10 +19,11 @@ export function decoupler(ctx: GenContext): GeneratedPart {
 		{ r: R * 0.94, y: h2 },
 		{ r: 0, y: h2 }
 	]);
-	b.revolve('paint-accent', [
-		{ r: groove + 0.003, y: -lip + 0.004 },
-		{ r: groove + 0.003, y: lip - 0.004 }
-	]);
+	// The hazard band in the groove: yellow and black blocks (plan 291).
+	hazardStripe(b, groove, -lip + 0.004, lip - 0.004, {
+		count: Math.max(8, Math.round(R * 16)),
+		out: 0.003
+	});
 	if (detail.extras >= 1) {
 		const bolts = detail.extras >= 2 ? 16 : 8;
 		for (let i = 0; i < bolts; i++) {

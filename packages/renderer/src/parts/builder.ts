@@ -26,7 +26,11 @@ export type SlotName =
 	| 'nozzle'
 	| 'nozzle-inner'
 	| 'rubber'
-	| 'lamp';
+	| 'lamp'
+	// plan 291: a ribbed bronze bell, insulation foam (an external tank), black heat tiles
+	| 'bronze'
+	| 'foam'
+	| 'tile';
 
 export interface BuiltGeometry {
 	geometry: BufferGeometry;
