@@ -97,6 +97,18 @@
 				false,
 				() => vab.removeSelected(vab.onlyThis)
 			)}
+			{#if vab.canOpen(sel)}
+				{@render act(
+					'eye',
+					vab.openParts.has(sel)
+						? 'Close it again (the Hangar only)'
+						: 'Open it in the Hangar to see inside (not saved, not in flight)',
+					vab.openParts.has(sel) ? 'Close' : 'Open',
+					'the Hangar only',
+					false,
+					() => vab.toggleOpen(sel)
+				)}
+			{/if}
 			{@render act(
 				'assembly',
 				'Keep this part and what hangs on it as a sub-assembly',

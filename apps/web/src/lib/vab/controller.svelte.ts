@@ -6,6 +6,7 @@
  */
 import { MISSION_BLUEPRINTS } from '../editor/missions';
 import { allBlueprints, blueprintStats, type BlueprintStats } from '../editor/blueprints';
+import { openModules, seeThroughOf, shellsOf } from '../editor/inside';
 import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
@@ -310,6 +311,48 @@ export class VabController {
 	readonly carried = $derived(this.armed?.kind === 'carry' ? this.armed.index : null);
 	readonly carriedSingle = $derived(this.armed?.kind === 'carry' && this.armed.single);
 	readonly shown = $derived(withoutCarried(this.current, this.carried, this.carriedSingle));
+	// --- seeing inside (plan 315) --------------------------------------------------------------------------------
+	/** The design part under the pointer and where the pointer is on the canvas (for the tip). */
+	hoverIndex = $state<number | null>(null);
+	hoverAt = $state<{ x: number; y: number } | null>(null);
+	/** Parts drawn open in the editor (bay doors, petals, a fairing's shell); never saved. */
+	openParts = $state.raw<ReadonlySet<number>>(new Set());
+	/** Every fairing, bay and petal set drawn see-through. */
+	showPayload = $state(false);
+	/** Every enclosing part of the design and what it holds. */
+	readonly shells = $derived(shellsOf(this.current.design, this.lookup, this.content));
+	/** The tip for the part under the pointer: its name, mass and what it holds. */
+	readonly hoverInfo = $derived.by(() => {
+		const i = this.hoverIndex;
+		const at = this.hoverAt;
+		if (i === null || !at || this.armed) return null;
+		const part = this.current.design.parts.find((p) => p.index === i);
+		const def = part && this.defOf(part.part);
+		if (!def) return null;
+		const holds = (this.shells.get(i) ?? []).map((j) => this.titleOfPart(j));
+		return { title: def.title, mass: def.mass, holds, shell: this.shells.has(i), at };
+	});
+	/** Show part `index` open, or closed again (plan 315). */
+	toggleOpen(index: number): void {
+		const next = new Set(this.openParts);
+		if (next.has(index)) next.delete(index);
+		else next.add(index);
+		this.openParts = next;
+	}
+	/** Whether part `index` has anything to open in the editor. */
+	canOpen(index: number): boolean {
+		const part = this.current.design.parts.find((p) => p.index === index);
+		return !!openModules(part && this.defOf(part.part));
+	}
+	toggleShowPayload(): void {
+		this.showPayload = !this.showPayload;
+		this.say(
+			this.showPayload
+				? 'Showing the payload: fairings and bays are see-through.'
+				: 'Fairings and bays drawn solid again.'
+		);
+	}
+
 	readonly assemblyOf = (id: string): VesselDesign | null => {
 		const e = this.assemblyEntries.find((x) => x.record.id === id);
 		return e?.ok ? e.design : null;
@@ -438,7 +481,16 @@ export class VabController {
 			followers: this.shown.followers,
 			markers: this.armed ? [] : this.markers,
 			kind: this.armed?.kind === 'carry' ? 'carry' : 'new',
-			preview: this.connectPreview
+			preview: this.connectPreview,
+			inside: {
+				seeThrough: seeThroughOf(this.shells, {
+					hover: this.armed ? null : this.hoverIndex,
+					open: this.openParts,
+					showPayload: this.showPayload
+				}),
+				open: this.openParts,
+				holds: this.shells
+			}
 		})
 	);
 	/** Parts the active world's tech tree locks (plan 105, ADR 0154 point 4); set by the page. */
@@ -2113,6 +2165,12 @@ export class VabController {
 		} else {
 			this.view?.setHover(hit?.kind === 'part' ? hit.key : null);
 		}
+		// the part under the pointer, for its tip and to see inside its shell (plan 315)
+		const over = hit?.kind === 'part' && /^\d+$/.test(hit.key) ? Number(hit.key) : null;
+		if (over !== this.hoverIndex) this.hoverIndex = over;
+		const rect = this.canvas?.getBoundingClientRect();
+		this.hoverAt =
+			over !== null && rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null;
 		if (this.canvas) this.canvas.style.cursor = hit ? 'pointer' : '';
 	};
 	pointerUp = (e: PointerEvent): void => {
@@ -2205,6 +2263,8 @@ export class VabController {
 		this.freePoint = null;
 		this.nearTargets = new Set();
 		this.view?.setHover(null);
+		this.hoverIndex = null;
+		this.hoverAt = null;
 	};
 	/** Rings within reach of the pointer: those that glow and the one a click would snap to (plan 244). */
 	private ringsNear(e: PointerEvent): { glow: Set<number>; snap: number | null } {

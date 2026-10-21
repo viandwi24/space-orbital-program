@@ -14,6 +14,7 @@ import {
 } from '@orbital/core';
 import type { VabGroup, VabLink, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
 import { sizeMismatches } from './checks';
+import { openModules } from './inside';
 import {
 	layoutOf,
 	planCarry,
@@ -121,6 +122,16 @@ export interface SceneInput {
 	markers?: VabMarker[];
 	/** `held` is a catalogue part not yet in the design (default) or an assembly being moved. */
 	kind?: 'new' | 'carry';
+	/**
+	 * Seeing inside (plan 315): design parts drawn see-through and parts shown open, in the editor
+	 * only.
+	 */
+	inside?: {
+		seeThrough: ReadonlySet<number>;
+		open: ReadonlySet<number>;
+		/** What each shell holds (design indices). */
+		holds?: ReadonlyMap<number, readonly number[]>;
+	};
 	/** A strut or fuel line being placed: the bar from the first end to the pointer (ADR 0071). */
 	preview?: {
 		definition: string;
@@ -171,6 +182,19 @@ export function buildScene(input: SceneInput): BuiltScene {
 	const groups: VabGroup[] = [{ id: 'main', x: 0, z: 0 }];
 	const nodes: VabNode[] = [];
 
+	/** See-through and open, for a part of the design (plan 315). */
+	const insideOf = (index: number, part: string): Partial<VabPart> => {
+		const inside = input.inside;
+		if (!inside) return {};
+		const modules = inside.open.has(index) ? openModules(parts.get(part)) : null;
+		const holds = inside.holds?.get(index);
+		return {
+			...(inside.seeThrough.has(index)
+				? { seeThrough: true, ...(holds ? { holds: holds.map(partKey) } : {}) }
+				: {}),
+			...(modules ? { modules } : {})
+		};
+	};
 	const place = (
 		assembly: VesselDesign,
 		group: string,
@@ -189,7 +213,8 @@ export function buildScene(input: SceneInput): BuiltScene {
 				...turnOf(l),
 				group,
 				role,
-				...partParams(p, parts.get(p.part))
+				...partParams(p, parts.get(p.part)),
+				...(group === 'main' && role === 'solid' ? insideOf(p.index, p.part) : {})
 			});
 			if (l.link && role === 'solid') {
 				links.push({
