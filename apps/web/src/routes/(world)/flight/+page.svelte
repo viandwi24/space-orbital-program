@@ -224,7 +224,12 @@
 		const open = vesselMenuAt;
 		const input = flight?.panelInput();
 		if (!open || !input) return;
-		const next = vesselMenu(input.snapshot, input.vessel?.id ?? null, open.menu.vessel, open.menu.focusPart);
+		const next = vesselMenu(
+			input.snapshot,
+			input.vessel?.id ?? null,
+			open.menu.vessel,
+			open.menu.focusPart
+		);
 		vesselMenuAt = next ? { ...open, menu: next } : null;
 	}
 	function vesselCommand(command: Command): void {
