@@ -1,7 +1,7 @@
 ---
 id: 273
 title: "Space Center v3: Overview, Build and Focus modes with a context bar"
-status: done
+status: in-progress
 owner: "ui-v3 session (Claude, 2026-10-21)"
 depends: [259, 267]
 phase: 7
