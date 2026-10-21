@@ -75,6 +75,6 @@ describe('stock.light', () => {
 			(a) => a.id === 'setColour'
 		)!;
 		expect(colour.value).toBe('red');
-		expect(colour.options!.map((o) => o.value)).toContain(colour.value);
+		expect(colour.options!.map((o) => o.value)).toContain(colour.value as string);
 	});
 });
