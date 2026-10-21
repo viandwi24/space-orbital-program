@@ -212,6 +212,7 @@
 | 263 | [Black slivers through the Moon's ground near the surface at some view angles](plans/263-moon-terrain-black-slivers.md) | done | Worker A | The black slivers were the sun-shadow march's step aliasing (not plan 252): a per-pixel phase of the samples; test with a thin ridge. Owner check of the view pending. |
 | 264 | [A crashed pod rolls above the Moon's ground instead of on it: physics ground and rendered ground disagree](plans/264-pod-floats-above-moon-ground.md) | done | Worker B | Owner report 2026-10-21. |
 | 265 | [Capsules fly heat shield first on reentry and settle upright: centre of mass, centre of pressure and blunt-body drag](plans/265-capsule-reentry-stability.md) | done | Worker B | Owner report 2026-10-21. |
+| 268 | [Vessel panel Parts tab: even gaps between groups and part rows, and the two transfer buttons drawn on top of each other](plans/268-vessel-panel-parts-spacing.md) | done | vessel-panel session | Owner report 2026-10-21. A trigger row was an inline-size container, so it shrank to zero width and "Transfer out" drew over "Transfer in"; gaps on the 4 px tokens (8 px rows, 16 px groups). Checked at 300, 340 and 440 px and in high contrast. |
 | 271 | [The backup reminder lets the Hangar's tool bar show through: give it the toasts' glass card](plans/271-backup-reminder-glass-card.md) | done | backup-reminder session | Owner report 2026-10-21. The reminder had the glass colour without the glass filter; now it blurs what is under it, as the toasts do. Solid with blur off and high contrast. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -277,6 +278,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [268 — Vessel panel Parts tab spacing and the stacked transfer buttons](journal/268-vessel-panel-parts-spacing.md)
 - [271 — The backup reminder's glass card](journal/271-backup-reminder-glass-card.md)
 - [231 — Career content for the new parts](journal/231-career-content-for-new-parts.md)
 - [229 — Lessons: landing, maneuver nodes, rendezvous and docking, transfers](journal/229-lessons-past-first-orbit.md)
