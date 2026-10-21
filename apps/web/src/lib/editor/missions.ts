@@ -50,9 +50,11 @@ class Build {
 	}
 	/** Attach `part` to `node` of `parent` (the child's matching node is found by the editor). */
 	on(part: string, parent: number, node: string): number {
-		const t = attachTargets(this.s.design, singlePart(part, this.s.nextIndex), this.content.parts).find(
-			(x) => x.parent?.index === parent && x.parent.parentNode === node
-		);
+		const t = attachTargets(
+			this.s.design,
+			singlePart(part, this.s.nextIndex),
+			this.content.parts
+		).find((x) => x.parent?.index === parent && x.parent.parentNode === node);
 		if (!t)
 			throw new Error(
 				`no ${node} node on part ${parent} for ${part}: ${JSON.stringify(this.s.design.parts.map((p) => [p.index, p.part]))} targets ${JSON.stringify(attachTargets(this.s.design, singlePart(part, this.s.nextIndex), this.content.parts).map((x) => [x.parent?.index, x.parent?.parentNode, x.node]))}`
@@ -68,13 +70,27 @@ class Build {
 	}
 	/** `n` copies round `parent` from `angle` at height `y` (fraction of its half height). */
 	side(part: string, parent: number, angle: number, y: number, n = 1): number {
-		const t = radialTarget(this.s.design, singlePart(part, this.s.nextIndex), this.content.parts, parent, angle, y);
+		const t = radialTarget(
+			this.s.design,
+			singlePart(part, this.s.nextIndex),
+			this.content.parts,
+			parent,
+			angle,
+			y
+		);
 		if (!t) throw new Error(`no radial site on part ${parent} for ${part}`);
 		this.s = attachNew(this.s, this.content, part, t, n);
 		return this.last(part);
 	}
 	/** A fuel line from `from` (its surface at `fromAngle`, `fromY`) to `to` (ADR 0071). */
-	line(from: number, fromAngle: number, fromY: number, to: number, toAngle: number, toY: number): void {
+	line(
+		from: number,
+		fromAngle: number,
+		fromY: number,
+		to: number,
+		toAngle: number,
+		toY: number
+	): void {
 		this.s = attachConnector(
 			this.s,
 			this.content,
@@ -164,7 +180,9 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const rd = b.side('stock.radial-decoupler', bay, Math.PI, 0);
 			const et = b.on('stock.external-tank', rd, 'outer');
 			b.side('stock.radial-decoupler', et, Math.PI / 2, -0.2, 2);
-			const srbDecs = b.s.design.parts.filter((p) => p.part === 'stock.radial-decoupler' && p.parent?.index === et).map((p) => p.index);
+			const srbDecs = b.s.design.parts
+				.filter((p) => p.part === 'stock.radial-decoupler' && p.parent?.index === et)
+				.map((p) => p.index);
 			// one attach: the decouplers' symmetry puts a booster on each
 			b.on('stock.nose-cone-1875', b.on('stock.srb-xl', srbDecs.at(-1)!, 'outer'), 'top');
 			const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-xl').map((p) => p.index);

@@ -41,9 +41,12 @@ describe('mission blueprints (plan 286)', () => {
 			const checks = checkDesign({ design, loose: [] }, content, stats, stability);
 			// the Hangar's verdict: nothing that blocks Launch and nothing no-go
 			const errors = checks.filter((c) => c.severity === 'error' || c.level === 'no-go');
-			expect(errors.map((c) => `${c.id}: ${c.text}`), mission.id).toEqual([]);
+			expect(
+				errors.map((c) => `${c.id}: ${c.text}`),
+				mission.id
+			).toEqual([]);
 			console.log(
-				`${mission.title}: ${design.parts.length} parts, ${design.stages.length} stages, liftoff TWR ${stats.liftoffTwr.toFixed(2)}, warnings: ${checks.map((c) => c.id).join(', ') || 'none'}`
+				`${mission.title}: ${design.parts.length} parts, ${design.stages.length} stages, liftoff TWR ${(stats.liftoffTwr ?? 0).toFixed(2)}, warnings: ${checks.map((c) => c.id).join(', ') || 'none'}`
 			);
 		});
 	}
