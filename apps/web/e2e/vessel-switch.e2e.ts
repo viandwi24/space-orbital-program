@@ -24,7 +24,7 @@ test('] flies the spent stage, [ comes back; no reload', async ({ page }) => {
 	await expect(title).toHaveText('Two-stage');
 	await page.keyboard.press(']');
 	await expect(title).toHaveText('Two-stage debris');
-	await expect(page.getByTestId('staging')).toBeVisible();
+	await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
 	await page.keyboard.press('[');
 	await expect(title).toHaveText('Two-stage');
 	expect(await page.evaluate(() => (window as unknown as { __marker?: number }).__marker)).toBe(7);

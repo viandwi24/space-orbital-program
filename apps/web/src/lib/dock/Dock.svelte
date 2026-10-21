@@ -301,6 +301,8 @@
 		width: 0.75rem;
 		cursor: ew-resize;
 		z-index: 1;
+		/* the HUD layer passes the pointer through; the grip takes it */
+		pointer-events: auto;
 	}
 	.grip.edge-right {
 		left: auto;

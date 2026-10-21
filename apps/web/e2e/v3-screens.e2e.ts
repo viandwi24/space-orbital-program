@@ -16,12 +16,15 @@ const shot = (page: Page, name: string) =>
 
 test('Flight at 1440, 1280 and 1024', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
+	// the first-flight guide is not in the design's frame
+	await page.addInitScript(() => {
+		const stored = JSON.parse(localStorage.getItem('orbital.settings') ?? '{}');
+		localStorage.setItem(
+			'orbital.settings',
+			JSON.stringify({ ...stored, v: 4, tutorial: { status: 'skipped', step: 0 } })
+		);
+	});
 	await launchTwoStage(page);
-	// the guide covers the dock: skip it for the pictures
-	await page
-		.getByRole('button', { name: 'Skip the guide' })
-		.click({ timeout: 5000 })
-		.catch(() => {});
 	// the vessel panel: the v3 dock's Overview, or the v2 toggle
 	const overview = page.getByTestId('dock-tab-host.vessel');
 	if (await overview.count()) {

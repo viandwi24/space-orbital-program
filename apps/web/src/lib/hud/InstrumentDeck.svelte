@@ -337,11 +337,9 @@
 		letter-spacing: 0.12em;
 		color: var(--text-muted);
 	}
+	/* the number never shortens; the reference chip gives way on short screens (ball 144) */
 	.value {
-		flex: 1;
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		flex: 1 0 auto;
 		white-space: nowrap;
 		font-size: calc(15 * var(--u));
 		font-weight: 500;
@@ -354,7 +352,10 @@
 		color: var(--text-muted);
 	}
 	.chip {
-		flex: none;
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		padding: 0.125rem 0.375rem;
 		border: 0;
 		border-radius: var(--radius-pill);

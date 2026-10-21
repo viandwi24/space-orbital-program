@@ -109,7 +109,8 @@
 		confirm = null;
 	}
 	function setTool(t: 'place' | 'demolish'): void {
-		if (t === 'demolish') onbuild(null);
+		// a tool or a category tab puts the ghost away, so the cards show again
+		onbuild(null);
 		tool = t;
 		confirm = null;
 	}

@@ -45,6 +45,9 @@ export async function launchTwoStage(page: Page): Promise<void> {
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
+	// T+ shows in the time bar before the HUD has its first model; staging comes with the model, which
+	// with the WebGPU default (plan 261) can take about 20 s under software rendering
+	await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
 }
 
 /**
@@ -58,7 +61,10 @@ export async function openDock(page: Page, id: string): Promise<void> {
 		// the part rows fold (plan 256): unfold them all so their controls can be pressed
 		const panel = page.getByTestId('vessel-panel');
 		await panel.waitFor();
-		await expect(panel.locator('details').first()).toBeAttached({ timeout: 30_000 });
+		// the categories are <details> too: wait for the part rows themselves
+		await expect(panel.locator('[data-testid="vessel-part"]').first()).toBeAttached({
+			timeout: 30_000
+		});
 		await panel.locator('details').evaluateAll((all) =>
 			all.forEach((d) => ((d as HTMLDetailsElement).open = true))
 		);

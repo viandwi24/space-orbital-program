@@ -115,7 +115,7 @@ for (const [width, height] of [
 			);
 		});
 		await launchTwoStage(page);
-		await expect(page.getByTestId('staging')).toBeVisible();
+		await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
 		await bars(page, width, height);
 		// the dock at top 80 and left 24, its Overview open; staging at right 24, bottom 56 (V3 §2.5)
 		const left = await box(page, '.ui > .tl');

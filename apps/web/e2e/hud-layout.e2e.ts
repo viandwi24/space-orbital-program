@@ -36,7 +36,7 @@ async function fly(page: Page, width: number, height: number): Promise<void> {
 	await page.getByTestId('launch-go').click();
 	await page.waitForURL('**/flight');
 	await expect(page.getByTestId('hud-met')).toBeVisible({ timeout: 60_000 });
-	await expect(page.getByTestId('staging')).toBeVisible();
+	await expect(page.getByTestId('staging')).toBeVisible({ timeout: 60_000 });
 }
 
 /** Visible boxes of the HUD's regions, by name. */
