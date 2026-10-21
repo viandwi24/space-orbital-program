@@ -168,8 +168,8 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 		setView(v) {
 			const views: Record<LineupView, [number, number, number, number, number, number]> = {
 				all: [0, 1.9, 12.5, 0, 0.9, 0],
-				outfits: [0, 1.5, 6.4, 0, 0.85, -1.2],
-				faces: [0, 1.4, 6.5, 0, 0.9, 1.2],
+				outfits: [-0.7, 1.25, 8.4, -0.7, 0.95, -1.2],
+				faces: [0, 1.3, 8.8, 0, 0.95, 1.2],
 				close: [-1.6, 1.35, 3.6, -1.6, 1.0, 1.2]
 			};
 			view = v;
@@ -188,7 +188,7 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 				.filter((p) => p.person.mesh.visible)
 				.map((p) => {
 					const v = p.person.mesh.position.clone();
-					v.y = -0.12;
+					v.y = -0.32;
 					v.project(camera);
 					return { text: p.label, x: ((v.x + 1) / 2) * width, y: ((1 - v.y) / 2) * height };
 				});

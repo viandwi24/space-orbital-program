@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { Color, InstancedMesh, Mesh, Object3D, PerspectiveCamera, Vector3, SkinnedMesh } from 'three';
+import {
+	Color,
+	InstancedMesh,
+	Mesh,
+	Object3D,
+	PerspectiveCamera,
+	Vector3,
+	SkinnedMesh
+} from 'three';
 import { DEFAULT_TIME_OF_DAY, dayLight, floorPatch } from '../src/vab/hangar-light.ts';
 import {
 	CREW,

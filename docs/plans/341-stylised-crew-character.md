@@ -1,7 +1,7 @@
 ---
 id: 341
 title: "Stylised crew character (NOVA) at true scale: EVA, Hangar walkers, Space Center people, portraits and /dev/crew"
-status: in-progress
+status: done
 owner: "crew character session (Claude)"
 depends: [109, 029]
 phase: 0
@@ -40,19 +40,20 @@ See ADR 0291.
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/renderer`: every outfit's figure is 1.6–1.85 m tall; poses are pure functions of time; `appearanceOf` is stable per id.
-- [ ] The EVA suit part is the character in the EVA outfit, under the part's 1.8 m box.
-- [ ] The Hangar shows engineers, scientists, mechanics and researchers walking, at human scale beside the platform.
-- [ ] The launch site (Space Center and pad) shows a few people near the buildings.
-- [ ] The Astronaut Complex shows a portrait per member (happy; sad for lost or missing).
-- [ ] `/dev/crew` shows every outfit and expression side by side.
-- [ ] `bun run typecheck`, `bun test`, `bun run docs:check`, `bun run build` pass.
+- [x] `bun test packages/renderer`: every outfit's figure is 1.6–1.85 m tall; poses are pure functions of time; `appearanceOf` is stable per id.
+- [x] The EVA suit part is the character in the EVA outfit, under the part's 1.8 m box.
+- [x] The Hangar shows engineers, scientists, mechanics and researchers walking, at human scale beside the platform.
+- [x] The launch site (Space Center and pad) shows a few people near the buildings.
+- [x] The Astronaut Complex shows a portrait per member (happy; sad for lost or missing).
+- [x] `/dev/crew` shows every outfit and expression side by side.
+- [x] `bun run typecheck`, `bun test`, `bun run docs:check`, `bun run build` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/341-stylised-crew-character.md`.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/341-stylised-crew-character.md`.
 
 ## Log
 
+- 2026-10-22 — Done: crew module, EVA, Hangar (10 people), launch site (6 staff), portraits, `/dev/crew`. People are 1.7 m and taller than the 1 m stock pod; see journal 341.
 - 2026-10-22 — Drafted and started by the crew character session on the owner's request (relayed by the session that started it).

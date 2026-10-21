@@ -360,7 +360,7 @@ function hair(add: Add, look: Appearance, cover: 'none' | 'hat' | 'helmet'): voi
 	add('head', 'hair', put(cap, [0, HEAD.y, -0.004]));
 	const r = rng(look.seed);
 	const tuft = (len: number, rad: number, at: Vector3, dir: Vector3): void => {
-		const g = new ConeGeometry(rad, len, 6, 1).translate(0, len / 2, 0).rotateX(Math.PI / 2);
+		const g = new ConeGeometry(rad, len, 8, 1).translate(0, len / 2, 0).rotateX(Math.PI / 2);
 		add('head', 'hair', aim(g, at, dir));
 	};
 	const top = HEAD.y + b + 0.01;
