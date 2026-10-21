@@ -258,6 +258,7 @@
 | 311 | [Lights (panel, angled, navigation), the RCS jet redrawn, RCS propellant](plans/311-lights-panel-angled-nav.md) | done | part visuals session | Owner's question and report 2026-10-21. 5 lights, OrbitX names for spot and flood. Monoprop on Horizon (it had none), the Kronos SM, the satellite bus, and full new pods; a test guards it. RCS jet: a core and sprite puffs (a cone read as a light beam; WebGPU ignored additive opacity). Journal 311. |
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
+| 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
