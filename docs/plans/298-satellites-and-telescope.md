@@ -53,4 +53,5 @@ The observation experiment reuses `ModuleExperiment` with a pointing condition (
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: satellite bus, telescope, magnetometer boom, observation and magnetometer experiments. Open: the pointing condition.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.

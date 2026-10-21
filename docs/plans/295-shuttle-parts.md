@@ -55,4 +55,5 @@ The orbiter is several parts, as in KSP (Mk3 fuselage, wings, tail), so the payl
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: orbiter nose and aft, delta wing, external tank, cargo bay. Open: the glide test.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.

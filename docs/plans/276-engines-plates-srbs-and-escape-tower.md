@@ -55,4 +55,5 @@ Presets are params of one generator family, not separate code paths where they s
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: engine plates 5/8/9, vacuum engine XL, escape tower, SRB XL. Open: engine presets, SRB remodel, separatron, abort test.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

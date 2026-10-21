@@ -61,4 +61,5 @@ Each capsule's centre of mass and blunt base follow ADR 0246.
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: 3-seat capsule with built-in chutes, descent and orbital modules, sphere and cone capsules, lander can, crew cabin. Open: per-capsule re-entry tests.
 - 2026-10-21 — Split from plan 278, so the parachutes the owner asked about come first.

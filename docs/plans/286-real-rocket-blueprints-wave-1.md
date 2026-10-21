@@ -55,5 +55,6 @@ Names and part lists from the tracker §9.
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: six blueprints in apps/web/src/lib/editor/missions.ts that pass the pre-flight checks. Open: the Library (285), headless mission flights.
 - 2026-10-21 — Re-scoped to the owner's mission targets: famous missions first, other real rockets later.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

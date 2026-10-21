@@ -248,6 +248,7 @@
 | 300 | [New pods: 3-seat, headlight, sphere, small cone, lander cans, crew cabin](plans/300-new-pods.md) | draft | — | Split from 278. |
 | 302 | [Part-support modules: open/close, bay doors, fuel cell, single leg, staged panels](plans/302-part-support-modules.md) | done | part visuals session | Preparation audit for all the new parts. Journal 302. |
 | 301 | [A part model viewer page for debugging (/dev/parts)](plans/301-part-model-viewer.md) | done | part viewer session | Owner request 2026-10-21. `/dev/parts?part=…&compare=…`: every part, searchable by category; one part or a row on a grid floor (WebGL, WebGPU or its fallback); nodes, physics shape, wireframe, detail, deploy, articulation, firing; stats. Journal 301. |
+| 303 | [Mission parts batch: 59 parts and six mission blueprints](plans/303-mission-parts-and-blueprints.md) | done | part visuals session | Owner: all parts now, short tests. Remainders stay in 276, 280, 281, 286, 295–300. Journal 303. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -315,6 +316,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [303 — The mission parts batch and six mission blueprints](journal/303-mission-parts-and-blueprints.md)
 - [302 — Part-support modules](journal/302-part-support-modules.md)
 - [301 — A part model viewer page for debugging](journal/301-part-model-viewer.md)
 - [278 — Parachutes that continue the pod, a docking chute ring, an octagonal probe core](journal/278-pods-probes-and-parachutes.md)

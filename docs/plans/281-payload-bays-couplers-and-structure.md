@@ -54,4 +54,5 @@ Reuse `ModuleDefinition.shell` profiles; doors add drag when open.
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: service bays, cargo bay, petals, couplers, truss, hub, lattice. Open: the decouple refusal inside a closed bay.
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

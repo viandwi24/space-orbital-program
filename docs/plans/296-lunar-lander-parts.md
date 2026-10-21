@@ -55,4 +55,5 @@ The single leg uses the existing `ModuleLandingLeg` colliders per leg (radial), 
 
 ## Log
 
+- 2026-10-21 — Parts delivered in plan 303: descent and ascent stages, single leg. Open: the landing and ascent tests.
 - 2026-10-21 — Drafted from the owner's mission targets of 2026-10-21 (Apollo 11, Space Shuttle, station, rover, orbiter, space telescope, research satellite): rocket parts first, rover after, robotics last.
