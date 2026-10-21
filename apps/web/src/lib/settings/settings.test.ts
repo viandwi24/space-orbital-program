@@ -31,7 +31,7 @@ describe('settings parsing', () => {
 			audio: { master: 0.4, effects: 0.5, ui: 0.1, music: 0.6, muted: true },
 			touch: 'on' as const,
 			interface: { scale: 1.25, highContrast: true, centreVessel: true },
-			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon' },
+			dock: { panels: ['host.orbit', 'sample.beacon'], open: 'sample.beacon', v: 3 as const },
 			debug: true,
 			time: {
 				places: { Hangar: false },

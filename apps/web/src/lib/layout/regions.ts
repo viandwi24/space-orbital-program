@@ -1,7 +1,7 @@
 /**
  * The flight HUD's region table (plan 215, ADR 0205 points 5 and 6): sizes in px at 100 % UI scale
  * (min – default – max), the caps, and the breakpoints. Pure: `layoutFor` says which side panels may
- * be open for a viewport, a UI scale and what the player asked for. Plans 214 (panel width), 218
+ * be open for a viewport and a UI scale (one side panel since v3, ADR 0253). Plans 214 (panel width), 218
  * (Hangar columns) and 228 (tooltip placement) read the same numbers.
  */
 
@@ -12,63 +12,46 @@ export interface Span {
 }
 
 export const REGIONS = {
-	/** The left dock's panel. */
-	dock: { min: 260, default: 280, max: 400 } satisfies Span,
-	/** The vessel panel (ADR 0205 point 1). */
-	vessel: { min: 300, default: 340, max: 440 } satisfies Span,
-	/** The navball module, fixed (ADR 0144). */
-	navball: { width: 390, height: 262 },
-	/** The staging stack: its height is capped and it scrolls inside. */
-	staging: { min: 200, default: 220, max: 280 } satisfies Span,
-	/** Rows of the crew panel before it scrolls. */
-	crewRows: 3,
+	/** The dock's open panel (V3 §2.3: 272 by default; ADR 0253 point 1). */
+	dock: { min: 260, default: 272, max: 400 } satisfies Span,
+	/** The navball module, fixed (V3 §2.4, ADR 0253 point 6). */
+	navball: { width: 552, height: 232 },
+	/** The staging box at the bottom right (V3 §2.5): fixed width, its list scrolls inside. */
+	staging: { width: 260 },
 	/** Toasts on screen at once. */
 	toasts: 4,
 	/** The touch target floor in drawer mode, px. */
 	touchTarget: 44
 } as const;
 
-/** Viewport widths in CSS px at 100 % UI scale (ADR 0205 point 6). */
+/** Viewport widths in CSS px at 100 % UI scale (ADR 0205 point 6, revised by ADR 0253 point 8). */
 export const BREAKPOINTS = {
-	/** At and above: both side panels may be open (and from 1280 to 1439 too, as before plan 215). */
+	/** At and above: staging at the bottom right, the dock down to the status bar. */
 	twoPanels: 1440,
-	/** Below: one side panel at a time; opening one closes the other. */
+	/** Below: staging stands above the navball module, and the dock stops above it too. */
 	onePanel: 1280,
-	/** At and below: side panels are drawers with 44 px targets. */
+	/** At and below: the dock's targets grow to 44 px (drawers). */
 	drawers: 1024
 } as const;
 
 export type LayoutMode = 'two' | 'one' | 'drawer';
-export type SidePanel = 'dock' | 'vessel';
 
 export interface Layout {
 	mode: LayoutMode;
 	/** The viewport width the breakpoints were read at: CSS px over the UI scale. */
 	width: number;
-	/** The side panels open after the rule. */
-	open: Record<SidePanel, boolean>;
 }
 
 /**
  * The layout for a viewport `width` (CSS px) at UI `scale`. Regions are sized in rem, so the scaled
- * width decides: at 125 % a 1440 px window holds what 1152 px holds at 100 % (one panel). With one
- * panel allowed and both asked for, the one opened `last` stays.
+ * width decides: at 125 % a 1440 px window holds what 1152 px holds at 100 %. Since v3 (ADR 0253)
+ * there is one side panel, the dock, so the mode only says where staging and the dock's foot stand.
  */
-export function layoutFor(
-	width: number,
-	scale: number,
-	asked: Record<SidePanel, boolean>,
-	last: SidePanel = 'vessel'
-): Layout {
+export function layoutFor(width: number, scale: number): Layout {
 	const w = width / (scale > 0 ? scale : 1);
 	const mode: LayoutMode =
 		w <= BREAKPOINTS.drawers ? 'drawer' : w < BREAKPOINTS.onePanel ? 'one' : 'two';
-	const open = { ...asked };
-	if (mode !== 'two' && open.dock && open.vessel) {
-		if (last === 'dock') open.vessel = false;
-		else open.dock = false;
-	}
-	return { mode, width: w, open };
+	return { mode, width: w };
 }
 
 /** Clamp a requested width (px at 100 %) to a region's span. */

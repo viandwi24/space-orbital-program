@@ -1,4 +1,5 @@
 /** The pad before liftoff (plan 200, ADR 0216 point 3): "On the pad", no orbit, MET 0. */
+import { statusChips } from './status-chips';
 import { readFileSync } from 'node:fs';
 import { calendarOf, epochFromUnixMs, partId, type VesselDesign } from '@orbital/core';
 import { SOL_BODIES } from '@orbital/mod-sol';
@@ -82,12 +83,14 @@ describe('the pad state', () => {
 });
 
 describe('flight page details (plan 200)', () => {
-	it('draws one blackout badge', () => {
+	it('draws the blackout once: a chip of the status strip, no badge of its own (plan 272)', () => {
 		const page = readFileSync(
 			new URL('../../routes/(world)/flight/+page.svelte', import.meta.url),
 			'utf8'
 		);
-		expect(page.match(/<BlackoutBadge\b/g)).toHaveLength(1);
+		expect(page.match(/<BlackoutBadge\b/g)).toBeNull();
+		const chips = statusChips({ uncontrolled: null, link: null, blackout: 0.9, range: null });
+		expect(chips.filter((c) => c.id === 'plasma')).toHaveLength(1);
 	});
 
 	it('offers "Catch up to now" in a Sol world only', async () => {

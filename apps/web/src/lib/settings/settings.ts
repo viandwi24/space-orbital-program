@@ -6,7 +6,7 @@
  * from an earlier build keeps its choices. Everything read from storage is parsed, never asserted.
  */
 import { DEFAULT_DEBRIS_CAP } from '@orbital/core';
-import { defaultDock, type DockChoice } from '../dock/dock-model';
+import { defaultDock, migrateDock, type DockChoice } from '../dock/dock-model';
 import { z } from 'zod';
 import {
 	DEFAULT_KEY_PROFILE,
@@ -94,8 +94,12 @@ const settingsV2 = z.object({ v: z.literal(2), ...v2Fields });
 const dockSchema = z
 	.object({
 		panels: z.array(z.string().min(1).max(80)).max(64),
-		open: z.string().min(1).max(80).nullable()
+		open: z.string().min(1).max(80).nullable(),
+		v: z.literal(3).optional()
 	})
+	.transform((d): DockChoice =>
+		migrateDock(d.v === 3 ? { ...d, v: 3 } : { panels: d.panels, open: d.open })
+	)
 	.catch(defaultDock());
 
 /** Settings → Time (plan 205): place pauses the player changed, the hidden-tab policy, the leave-flight prompt. */

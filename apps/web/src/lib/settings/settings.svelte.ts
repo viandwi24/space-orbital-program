@@ -96,7 +96,7 @@ class SettingsStore {
 			audio: { ...this.audio },
 			touch: this.touch,
 			interface: { ...this.ui },
-			dock: { panels: [...this.dock.panels], open: this.dock.open },
+			dock: { ...this.dock, panels: [...this.dock.panels] },
 			debug: this.debug,
 			time: { ...this.time, places: { ...this.time.places } },
 			keyProfile: this.keyProfile,

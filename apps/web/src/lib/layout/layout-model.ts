@@ -15,8 +15,8 @@ export const EDGE = 24;
 /** Gap between a column and the deck under it (`--panel-gap`). */
 export const GAP = 12;
 
-/** The deck's height before it is measured (the compact deck with a target line, plan 035). */
-export const DECK_FALLBACK = 262;
+/** The deck's height before it is measured: the v3 navball module (V3 §2.4, plan 272). */
+export const DECK_FALLBACK = 232;
 
 /** The script panel's width: 420 px, never more than 46 % of the screen (CSS had `min(420px, 46vw)`). */
 export function scriptPanelWidth(viewportWidth: number): number {

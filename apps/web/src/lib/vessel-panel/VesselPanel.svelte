@@ -42,6 +42,8 @@
 		comms = null,
 		transmitters = [],
 		initialTab = 'overview',
+		tab: shownTab = undefined,
+		bare = false,
 		oninspect = () => {},
 		highlighted = null,
 		totals = [],
@@ -57,6 +59,10 @@
 		comms?: CommsTab | null;
 		transmitters?: PartRow[];
 		initialTab?: Tab;
+		/** The tab chosen from outside (the v3 dock's Vessel entries, plan 272); absent: its own tabs. */
+		tab?: Tab;
+		/** Inside the dock: no tab strip, the tab's name as the title (ADR 0253 point 1). */
+		bare?: boolean;
 		/** Open the part inspector (plan 214). */
 		oninspect?: (part: EntityId) => void;
 		/** The part lit in the 3D view (two-way highlight, plan 214). */
@@ -68,7 +74,14 @@
 
 	type Tab = 'overview' | 'parts' | 'resources' | 'comms';
 	// svelte-ignore state_referenced_locally
-	let tab = $state<Tab>(initialTab);
+	let picked = $state<Tab>(initialTab);
+	const tab = $derived(shownTab ?? picked);
+	const TAB_TITLES: Record<Tab, string> = {
+		overview: 'Overview',
+		parts: 'Parts',
+		resources: 'Resources',
+		comms: 'Comms'
+	};
 	let search = $state('');
 	let stage = $state<number | null>(null);
 	const shownParts = $derived(filterParts(view.parts, { search, stage }));
@@ -117,28 +130,29 @@
 	}
 </script>
 
-<Panel title="Vessel" data-testid="vessel-panel">
+<Panel title={bare ? TAB_TITLES[tab] : 'Vessel'} data-testid="vessel-panel">
 	{#snippet aside()}<span class="vname">{name}</span>{/snippet}
-	<div class="tabs" role="tablist" aria-label="Vessel panel">
+	{#if bare && tab === 'comms' && !comms}<p class="none">This world has no comms network.</p>{/if}
+	<div class="tabs" role="tablist" aria-label="Vessel panel" hidden={bare}>
 		<button
 			type="button"
 			role="tab"
 			aria-selected={tab === 'overview'}
-			onclick={() => (tab = 'overview')}>Overview</button
+			onclick={() => (picked = 'overview')}>Overview</button
 		>
 		<button
 			type="button"
 			role="tab"
 			aria-selected={tab === 'parts'}
 			data-testid="vessel-tab-parts"
-			onclick={() => (tab = 'parts')}>Parts</button
+			onclick={() => (picked = 'parts')}>Parts</button
 		>
 		<button
 			type="button"
 			role="tab"
 			aria-selected={tab === 'resources'}
 			data-testid="vessel-tab-resources"
-			onclick={() => (tab = 'resources')}>Resources</button
+			onclick={() => (picked = 'resources')}>Resources</button
 		>
 		<button
 			type="button"
@@ -147,7 +161,7 @@
 			disabled={!comms}
 			data-tip={comms ? undefined : 'This world has no comms network'}
 			data-testid="vessel-tab-comms"
-			onclick={() => (tab = 'comms')}>Comms</button
+			onclick={() => (picked = 'comms')}>Comms</button
 		>
 	</div>
 	{#if problem}<p class="problem" role="status">{problem}</p>{/if}
@@ -419,6 +433,9 @@
 	.vname {
 		font-size: var(--t-label);
 		color: var(--text-muted);
+	}
+	.tabs[hidden] {
+		display: none;
 	}
 	.tabs {
 		display: flex;

@@ -34,6 +34,8 @@ export const SHELL_ICONS = {
 	vesselInfo:
 		'M12 2 C15 5 16 9 16 13 L18 17 H6 L8 13 C8 9 9 5 12 2 Z M10 17 L9.5 21 M14 17 L14.5 21 M12 8 A1.5 1.5 0 1 1 11.99 8 Z',
 	navball: 'M12 4 A8 8 0 1 1 11.99 4 Z M4 12 H20 M8.5 12 L12 15 L15.5 12',
+	/** FlightV3's Staging toggle (plan 272). */
+	staging: 'M5 4 H19 V8 H5 Z M5 10 H19 V14 H5 Z M5 16 H19 V20 H5 Z',
 	crew: 'M9 5 A3 3 0 1 1 8.99 5 Z M3 20 C3 16 6 14 9 14 C12 14 15 16 15 20 M16 5.5 A2.5 2.5 0 1 1 15.99 5.5 Z M17 13.5 C19.5 14 21 16 21 19',
 	camera: 'M3 8 H7 L9 5 H15 L17 8 H21 V19 H3 Z M12 9.5 A3.5 3.5 0 1 1 11.99 9.5 Z',
 	// the status bar's small icons (`Base.dc.html`)

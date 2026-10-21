@@ -39,42 +39,57 @@
 	/** The queue above it, the stage that fires last at the top. */
 	const queue = $derived(rows.filter((r) => r !== hand));
 	const dv = formatDeltaV;
+	/** The row's parts in words from their staging icons (V3 §2.5: "Engine · decoupler ×3"). */
+	const words = (icons: readonly string[]): string => {
+		const counts = new Map<string, number>();
+		for (const i of icons) counts.set(i, (counts.get(i) ?? 0) + 1);
+		const list = [...counts].map(([i, n]) => `${i.replace(/[-_]/g, ' ')}${n > 1 ? ` ×${n}` : ''}`);
+		const text = list.join(' · ');
+		return text.charAt(0).toUpperCase() + text.slice(1);
+	};
 </script>
 
-<!-- The refs staging panel (plan 088): the queue, the stage in hand with its delta-v and propellant, GO and the total. -->
+<!-- V3 §2.5 (plan 272): staging at the bottom right; the queue scrolls, the stage in hand, GO and the total. -->
 <Panel title="Staging" data-testid="staging">
 	{#snippet aside()}
 		<span class="num order"
-			>{rows.length > 0 ? `${rows[0]!.label} → ${rows.at(-1)!.label}` : ''}</span
+			>{rows.length > 0 ? `${Number(rows[0]!.label)} → ${Number(rows.at(-1)!.label)}` : ''}</span
 		>
+		{#if onview && bodies.length > 0}
+			<!-- the "Δv · Here" chip (V3 §2.5): where the delta-v is read -->
+			<span class="dvchip">
+				<select
+					value={view?.body ?? ''}
+					aria-label="Delta-v for body"
+					data-tip="Δv is calculated here, for the vessel as flown, or at another body"
+					data-testid="dv-body"
+					onchange={(e) => {
+						const id = e.currentTarget.value;
+						onview(id ? { body: id, situation: view?.situation ?? 'vacuum' } : null);
+					}}
+				>
+					<option value="">Δv · Here</option>
+					{#each bodies as b (b.id)}<option value={b.id}>Δv · {b.label}</option>{/each}
+				</select>
+				<svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true"
+					><path d="M6 9 L12 15 L18 9" /></svg
+				>
+			</span>
+		{/if}
 	{/snippet}
 
-	{#if onview && bodies.length > 0}
+	{#if view}
 		<div class="dvpick">
 			<select
-				value={view?.body ?? ''}
-				aria-label="Delta-v for body"
-				data-testid="dv-body"
-				onchange={(e) => {
-					const id = e.currentTarget.value;
-					onview(id ? { body: id, situation: view?.situation ?? 'vacuum' } : null);
-				}}
+				value={view.situation}
+				aria-label="Situation"
+				data-testid="dv-situation"
+				onchange={(e) =>
+					onview?.({ body: view.body, situation: e.currentTarget.value as 'vacuum' | 'surface' })}
 			>
-				<option value="">Here, as flown</option>
-				{#each bodies as b (b.id)}<option value={b.id}>{b.label}</option>{/each}
+				<option value="vacuum">Vacuum</option>
+				<option value="surface" disabled={!pickedAir}>Surface</option>
 			</select>
-			{#if view}
-				<select
-					value={view.situation}
-					aria-label="Situation"
-					data-testid="dv-situation"
-					onchange={(e) =>
-						onview({ body: view.body, situation: e.currentTarget.value as 'vacuum' | 'surface' })}
-				>
-					<option value="vacuum">Vacuum</option>
-					<option value="surface" disabled={!pickedAir}>Surface</option>
-				</select>
-			{/if}
 		</div>
 	{/if}
 	{#if stages.empty === 'no-staging'}
@@ -88,11 +103,16 @@
 			{#each queue as r (r.stage)}
 				<li class:next={r.next} aria-current={r.next ? 'step' : undefined}>
 					<span class="n num">{r.label.padStart(2, '0')}</span>
-					<span class="icons">
-						{#each r.icons.slice(0, 3) as icon, i (i)}<Icon name={icon} size={14} />{/each}
+					<span class="what">
+						<span class="icons">
+							{#each r.icons.slice(0, 4) as icon, i (i)}<Icon name={icon} size={13} />{/each}
+						</span>
+						<span class="parts">{words(r.icons)}</span>
 					</span>
-					<span class="dvs num">{dv(r.dv)}</span>
-					{#if r.next}<span class="tag">Next</span>{/if}
+					<span class="dvs">
+						<span class="num dv">{dv(r.dv)} {speedUnit()}</span>
+						<span class="num twr">TWR {r.twr > 0 ? r.twr.toFixed(2) : '—'}</span>
+					</span>
 				</li>
 			{/each}
 		</ol>
@@ -105,9 +125,6 @@
 					<span class="big num">{dv(hand.dv)}<span class="u"> {speedUnit()}</span></span>
 				</div>
 				{#if hand.fuel !== null}
-					<div class="tank">
-						<span>Propellant</span><span class="num">{formatPercent(hand.fuel)}</span>
-					</div>
 					<Meter
 						value={hand.fuel}
 						tone={hand.fuel < 0.05 ? 'danger' : hand.fuel < 0.15 ? 'warning' : 'accent'}
@@ -116,9 +133,11 @@
 				{/if}
 				<div class="meta num">
 					<span><Term id="twr">TWR</Term> {hand.twr.toFixed(2)}</span>
-					<span>{hand.burnTime > 0 ? formatDuration(hand.burnTime) : '-'} burn</span>
-					{#if hand.current}<span>{throttle > 0 ? 'burning' : 'engine idle'}</span>{/if}
+					{#if hand.fuel !== null}<span>{formatPercent(hand.fuel)} propellant</span>{/if}
+					<span>Burn {hand.burnTime > 0 ? formatDuration(hand.burnTime) : '—'}</span>
 				</div>
+				{#if hand.current}<span class="sr-only">{throttle > 0 ? 'burning' : 'engine idle'}</span
+					>{/if}
 			</div>
 		{/if}
 	{/if}
@@ -146,14 +165,76 @@
 </Panel>
 
 <style>
+	/* V3 §2.5: right 24, bottom 56, 260 wide, padding 10, radius 16; it grows up and its queue scrolls */
+	:global(.panel[data-testid='staging']) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		max-height: 100%;
+		min-height: 0;
+		box-sizing: border-box;
+	}
+	:global(.panel[data-testid='staging'] > header) {
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.5rem;
+		min-height: 1.375rem;
+		margin-bottom: 0;
+		padding-left: 0.375rem;
+	}
+	:global(.panel[data-testid='staging'] > header .aside) {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.order {
+		font-size: var(--t-label);
+		font-weight: 600;
+		color: var(--text-subtle);
+	}
+	.dvchip {
+		position: relative;
+		margin-left: auto;
+		display: inline-flex;
+		align-items: center;
+		height: 1.375rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-tile);
+		color: var(--text-secondary);
+	}
+	.dvchip select {
+		appearance: none;
+		height: 100%;
+		max-width: 8rem;
+		padding: 0 1.125rem 0 0.5rem;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-size: var(--t-label);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.dvchip select:focus-visible {
+		outline: 2px solid var(--text-primary);
+	}
+	.dvchip svg {
+		position: absolute;
+		right: 0.375rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2.6;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		pointer-events: none;
+	}
 	.dvpick {
 		display: flex;
-		gap: 0.25rem;
-		margin-bottom: 0.375rem;
+		justify-content: flex-end;
 	}
 	.dvpick select {
-		flex: 1 1 0;
-		min-width: 0;
 		padding: 0.125rem 0.25rem;
 		font: inherit;
 		font-size: var(--t-xs);
@@ -162,16 +243,9 @@
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-row);
 	}
-	:global(.panel[data-testid='staging']) {
-		display: grid;
-		gap: 0.375rem;
-	}
-	.order {
-		font-size: var(--t-label);
-		color: var(--text-subtle);
-	}
 	.empty {
 		margin: 0;
+		padding: 0 0.375rem;
 		font-size: var(--t-small);
 		color: var(--text-muted);
 	}
@@ -179,60 +253,93 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		display: grid;
-		gap: 0.125rem;
+		display: flex;
+		flex-direction: column;
+		flex: 0 1 auto;
+		min-height: 2.5rem;
+		overflow-y: auto;
+		scrollbar-width: thin;
 	}
 	.queue li {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		min-height: 1.625rem;
-		padding: 0 0.5rem;
-		border: 1px solid transparent;
-		border-radius: var(--radius-tile);
+		flex: none;
+		min-height: 2.5rem;
+		padding: 0 0.375rem;
+		border-top: 1px solid var(--border-divider);
 		color: var(--text-subtle);
-		font-size: var(--t-small);
 	}
-	.queue li.next {
-		border-color: var(--border-strong);
+	.queue li.next .n {
 		color: var(--text-primary);
-		font-weight: 600;
 	}
 	.n {
 		width: 1.125rem;
 		font-size: var(--t-button);
 		font-weight: 600;
+		color: var(--text-subtle);
+	}
+	.what {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 0;
 	}
 	.icons {
 		display: inline-flex;
-		gap: 0.125rem;
+		gap: 0.1875rem;
+		color: var(--text-secondary);
+	}
+	.parts {
+		font-size: var(--t-label);
+		color: var(--text-subtle);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.dvs {
-		flex: 1;
-		text-align: right;
+		margin-left: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.25rem;
+		white-space: nowrap;
 	}
-	.tag,
+	.dv {
+		font-size: var(--t-small);
+		font-weight: 600;
+		color: var(--text-body);
+	}
+	.twr {
+		font-size: var(--t-label);
+		color: var(--text-subtle);
+	}
 	.lab {
 		font-size: var(--t-label);
 		font-weight: 700;
-		letter-spacing: var(--tracking-label);
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: var(--text-muted);
 	}
 	.card {
+		flex: none;
 		display: grid;
-		gap: 0.375rem;
+		gap: 0.5rem;
 		padding: 0.625rem 0.5rem;
-		border-radius: var(--radius-row);
+		border-radius: 0.625rem;
 		background: var(--surface-hover);
 	}
 	.head {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		min-height: 1.125rem;
 	}
 	.badge {
-		padding: 0.0625rem 0.375rem;
+		height: 1.125rem;
+		display: flex;
+		align-items: center;
+		padding: 0 0.375rem;
 		border-radius: 0.3125rem;
 		background: var(--accent);
 		color: var(--on-accent);
@@ -241,7 +348,7 @@
 	}
 	.big {
 		margin-left: auto;
-		font-size: var(--t-value);
+		font-size: 0.875rem;
 		font-weight: 600;
 		color: var(--text-primary);
 	}
@@ -251,7 +358,6 @@
 		font-weight: 500;
 		color: var(--text-muted);
 	}
-	.tank,
 	.meta {
 		display: flex;
 		justify-content: space-between;
@@ -260,21 +366,23 @@
 		color: var(--text-muted);
 	}
 	.foot {
+		flex: none;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		min-height: 1.75rem;
+		min-height: 1.875rem;
 	}
 	.go {
-		min-height: 1.75rem;
-		padding: 0 0.875rem;
+		min-height: 1.875rem;
+		padding: 0 1rem;
 		border: 0;
-		border-radius: var(--radius-tile);
+		border-radius: 0.5rem;
 		background: var(--selected-bg);
 		color: var(--selected-fg);
 		font-size: var(--t-small);
 		font-weight: 700;
 		letter-spacing: 0.1em;
+		cursor: pointer;
 	}
 	@media (pointer: coarse) {
 		.go {
@@ -285,10 +393,14 @@
 		opacity: 0.45;
 		cursor: not-allowed;
 	}
+	.go:focus-visible {
+		outline: 2px solid var(--text-primary);
+		outline-offset: 2px;
+	}
 	.total {
 		margin-left: auto;
-		padding-right: 0.5rem;
-		font-size: var(--t-value);
+		padding-right: 0.375rem;
+		font-size: 0.8125rem;
 		font-weight: 600;
 		color: var(--text-primary);
 	}
