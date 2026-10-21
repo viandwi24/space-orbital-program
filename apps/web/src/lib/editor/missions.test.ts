@@ -3,7 +3,7 @@ import { loadPlugins, resolveVesselDesign } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import type { ContentLookups } from '../delta-v';
-import { checkDesign } from './checks';
+import { checkDesign, sizeMismatches } from './checks';
 import { MISSION_BLUEPRINTS } from './missions';
 import { stabilityOf } from './stability';
 import { designStats } from './stats';
@@ -86,6 +86,69 @@ describe('mission blueprints (plan 286)', () => {
 				}
 			}
 			if (rcs) expect(mono, mission.id).toBeGreaterThanOrEqual(30);
+		}
+	});
+
+	// owner, 2026-10-22: "make every blueprint really work: the bays, the docking..."
+	const modulesOf = (part: string): string[] =>
+		(content.parts.get(part as never)?.modules ?? []).map((m) => String(m[0]));
+	const separates = (part: string): boolean =>
+		modulesOf(part).some((m) => m === 'stock.decoupler' || m === 'stock.docking-port');
+
+	it('a payload in a bay or the petals sits on a decoupler or a port, so it can leave', () => {
+		for (const mission of MISSION_BLUEPRINTS) {
+			const design = mission.build(content);
+			for (const p of design.parts) {
+				if (p.parent?.parentNode !== 'inner') continue;
+				expect(separates(p.part), `${mission.id}: ${p.part} in a bay`).toBe(true);
+			}
+		}
+	});
+
+	it('every engine fires in some stage', () => {
+		for (const mission of MISSION_BLUEPRINTS) {
+			const design = mission.build(content);
+			const staged = new Set(design.stages.flat());
+			for (const p of design.parts) {
+				if (!modulesOf(p.part).includes('stock.engine')) continue;
+				expect(staged.has(p.index), `${mission.id}: engine ${p.part} #${p.index}`).toBe(true);
+			}
+		}
+	});
+
+	it('Kronos V: the capsule and the lander carry ports of one size; the capsule can leave its service module', () => {
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'kronos-selene')!.build(content);
+		const ports = design.parts.filter((p) => modulesOf(p.part).includes('stock.docking-port'));
+		expect(ports.map((p) => p.part)).toEqual(['stock.docking-port-small', 'stock.docking-port-small']);
+		const pod = design.parts[0]!;
+		const shield = design.parts.find((p) => p.parent?.index === pod.index && p.parent.parentNode === 'bottom')!;
+		const below = design.parts.find((p) => p.parent?.index === shield.index)!;
+		expect(separates(below.part)).toBe(true);
+		// the lander's engines do not light on the pad (they did, 2026-10-22)
+		const lander = design.parts.filter((p) => p.part === 'stock.lander-descent' || p.part === 'stock.lander-ascent');
+		for (const l of lander) expect(design.stages[0]!.includes(l.index)).toBe(false);
+	});
+
+	it('Horizon Station has five berths, two free 1.25 m ones after staging, and no size mismatch', () => {
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'horizon-station')!.build(content);
+		const ports = design.parts.filter((p) => modulesOf(p.part).includes('stock.docking-port'));
+		expect(ports).toHaveLength(5);
+		expect(sizeMismatches(design, content.parts as never)).toEqual([]);
+	});
+
+	it('Wayfarer: the orbiter has propellant of its own once the tank drops', () => {
+		const design = MISSION_BLUEPRINTS.find((m) => m.id === 'wayfarer-shuttle')!.build(content);
+		const stats = designStats(design, content, 'vacuum', g);
+		const orbiterBurn = stats.report!.stages.find((s) =>
+			s.parts.some((i) => design.parts.find((p) => p.index === i)?.part === 'stock.orbiter-aft')
+		)!;
+		expect(orbiterBurn.dvVacuum).toBeGreaterThan(300);
+	});
+
+	it('only Kronos V keeps a size mismatch (its escape tower over the small port, jettisoned)', () => {
+		for (const mission of MISSION_BLUEPRINTS) {
+			const n = sizeMismatches(mission.build(content), content.parts as never).length;
+			expect(n, mission.id).toBe(mission.id === 'kronos-selene' ? 1 : 0);
 		}
 	});
 });

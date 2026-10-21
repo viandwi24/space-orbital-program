@@ -138,13 +138,19 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'moon',
 		crew: 3,
 		summary:
-			'Three stages to the moon. The 3-seat capsule under its escape tower, a service module with four RCS quads, a dish and a fuel cell, and a two-stage lander in the petals.',
+			'Three stages to the moon. The 3-seat capsule with a docking port under its escape tower (after the tower goes it turns round and docks with the lander), a service module with four RCS quads, a dish and a fuel cell, and a two-stage lander in the petals.',
 		build(content) {
 			const b = new Build(content, 'Kronos V + Selene', 'stock.pod-3');
 			const pod = 0;
-			b.above('stock.escape-tower', pod);
+			// the capsule's docking port (Apollo's probe) under the escape tower: after the tower goes,
+			// the command ship turns round and docks with the lander's port (owner, 2026-10-22)
+			const neck = b.above('stock.adapter-small', pod);
+			const probe = b.above('stock.docking-port-small', neck);
+			const tower = b.above('stock.escape-tower', probe);
 			const shield = b.below('stock.heat-shield-wide', pod);
-			const sm = b.below('stock.tank-wide-short', shield);
+			// the capsule leaves the service module before re-entry (Apollo's CM/SM separation)
+			const cmSep = b.below('stock.decoupler-wide', shield);
+			const sm = b.below('stock.tank-wide-short', cmSep);
 			b.side('stock.rcs-block-5', sm, Math.PI / 4, 0.3, 4);
 			// the quads' monopropellant (owner, 2026-10-21: RCS said "no propellant")
 			b.side('stock.monoprop-radial', sm, Math.PI / 2, 0, 2);
@@ -153,10 +159,15 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const smEngine = b.below('stock.engine-wide', sm);
 			const smDec = b.below('stock.decoupler-wide', smEngine);
 			const petals = b.below('stock.payload-petals', smDec);
-			const descent = b.on('stock.lander-descent', petals, 'inner');
+			// the lander sits on a decoupler in the petals: released once the capsule has docked with it
+			const lmRelease = b.on('stock.decoupler', petals, 'inner');
+			const descent = b.above('stock.lander-descent', lmRelease);
 			b.side('stock.landing-leg-single', descent, Math.PI / 4, -0.2, 4);
-			const ascent = b.above('stock.lander-ascent', descent);
+			// the ascent stage lifts off the descent stage, as Apollo's did
+			const lmStage = b.above('stock.decoupler', descent);
+			const ascent = b.above('stock.lander-ascent', lmStage);
 			b.side('stock.rcs-block', ascent, Math.PI / 4, 0.4, 4);
+			b.side('stock.antenna-whip-radial', ascent, Math.PI / 2, -0.3);
 			b.above('stock.docking-port-small', ascent);
 			const sivb = b.below('stock.tank-3750', petals);
 			const sivbEngine = b.below('stock.engine-plate-8', sivb);
@@ -166,9 +177,24 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const siiEngine = b.below('stock.engine-plate-5', sii);
 			const d1 = b.below('stock.decoupler-5000', siiEngine);
 			const sic = b.below('stock.tank-5000-long', d1);
-			b.below('stock.engine-plate-5', sic);
+			const sicEngine = b.below('stock.engine-plate-5', sic);
 			b.side('stock.fin', sic, Math.PI / 4, -0.7, 4);
-			return b.done();
+			// the Apollo sequence, one press each (owner, 2026-10-22: the lander engines lit at launch):
+			// S-IC; S-II and the tower; S-IVB (orbit, then the burn to the moon); the command ship
+			// leaves the S-IVB and the petals open (turn round, dock with the lander); the lander is
+			// released; the descent engine; the ascent stage leaves the descent stage; the capsule
+			// leaves the service module; the parachutes
+			return b.done([
+				[sicEngine],
+				[d1, siiEngine, tower],
+				[d2, sivbEngine],
+				[smDec, petals, smEngine],
+				[lmRelease],
+				[descent],
+				[lmStage, ascent],
+				[cmSep],
+				[pod]
+			]);
 		}
 	},
 	{
@@ -179,15 +205,21 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'orbit',
 		crew: 4,
 		summary:
-			'A winged orbiter with a satellite in its cargo bay, on a foam-covered tank between two solid boosters. The main engines are under the tank, so the thrust runs through the stack.',
+			'A winged orbiter with a satellite in its cargo bay, on a foam-covered tank between two solid boosters. The main engines are under the tank, so the thrust runs through the stack. In orbit the orbiter burns on its own engines; open the bay doors and stage to set the satellite free.',
 		build(content) {
 			const b = new Build(content, 'Wayfarer Shuttle', 'stock.orbiter-nose');
-			const bay = b.below('stock.cargo-bay', 0);
-			const sat = b.on('stock.satellite-bus', bay, 'inner');
+			// the orbiter's own propellant behind the crew deck (the Shuttle's OMS): with the tank gone
+			// it still has to finish the orbit, deorbit and come home (it had none, 2026-10-22)
+			const oms = b.below('stock.tank-wide-short', 0);
+			const bay = b.below('stock.cargo-bay', oms);
+			// the satellite rides on a decoupler: open the bay doors, then stage to set it free
+			const satRelease = b.on('stock.decoupler', bay, 'inner');
+			const sat = b.above('stock.satellite-bus', satRelease);
 			b.above('stock.antenna-relay', sat);
 			b.side('stock.solar-flat', sat, 0, 0, 4);
 			const aft = b.below('stock.orbiter-aft', bay);
-			b.side('stock.wing-delta', bay, Math.PI / 2, -0.4, 2);
+			// the wings far aft, behind the centre of mass (they sat ahead of it: "unstable")
+			b.side('stock.wing-delta', bay, Math.PI / 2, -0.85, 2);
 			b.side('stock.rcs-block', bay, Math.PI / 4, 0.8, 4);
 			const rd = b.side('stock.radial-decoupler', bay, Math.PI, 0);
 			const et = b.on('stock.external-tank', rd, 'outer');
@@ -201,9 +233,10 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			// the main engines sit under the tank, on the stack's axis (as Energia under Buran): the
 			// orbiter's own engines, 3 m off the centre of mass, would turn the stack over (plan 309)
 			const core = b.below('stock.engine-plate-8', et);
-			void aft;
-			// core engines and boosters light together; the boosters drop, then the tank
-			return b.done([[core, ...srbs], srbDecs, [rd]]);
+			// core engines and boosters light together; the boosters drop; the tank drops and the
+			// orbiter's own engines light for the orbit burn (they never did before, 2026-10-22); then
+			// the satellite is released from the open bay
+			return b.done([[core, ...srbs], srbDecs, [rd, aft], [satRelease]]);
 		}
 	},
 	{
@@ -213,7 +246,7 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 		goal: 'station',
 		crew: 0,
 		summary:
-			'The station core: a habitat under a six-port hub with a docking port on top, an airlock and a cupola on its sides, two big tracking arrays and radiators, flown up uncrewed on a heavy launcher.',
+			'The station core: a habitat under a six-port hub. Five docking berths: 1.25 m ports on top, north (on the control module) and south, a small port on the airlock, and a 2.5 m port under the habitat that is free once the launcher drops. A cupola, two big tracking arrays, radiators, RCS and a dish; flown up uncrewed on a core stage with four solid boosters.',
 		build(content) {
 			const b = new Build(content, 'Horizon Station', 'stock.hub');
 			b.above('stock.docking-port', 0);
@@ -221,22 +254,35 @@ export const MISSION_BLUEPRINTS: readonly MissionBlueprint[] = [
 			const airlock = b.on('stock.airlock', 0, 'east', 'bottom');
 			b.above('stock.docking-port-small', airlock);
 			b.on('stock.cupola', 0, 'west', 'bottom');
-			const hab = b.below('stock.hab-module', 0);
+			// the control module on the north port (it flies the station up uncrewed), with a port of
+			// its own, and a port on the south side: four 1.25 m berths for ferries and modules
+			const control = b.on('stock.satellite-bus', 0, 'north', 'bottom');
+			b.above('stock.docking-port', control);
+			b.on('stock.docking-port', 0, 'south', 'bottom');
+			// the hub's 1.25 m bottom widens to the 2.5 m habitat (they met without an adapter)
+			const neck = b.below('stock.adapter-large', 0);
+			const hab = b.below('stock.hab-module', neck);
 			b.side('stock.solar-array-xl', hab, Math.PI / 2, 0.5, 2);
 			b.side('stock.radiator', hab, 0, -0.3, 2);
 			b.side('stock.rcs-block', hab, Math.PI / 4, 0.8, 4);
 			// the station's RCS propellant (owner, 2026-10-21: RCS said "no propellant")
 			b.side('stock.monoprop-radial', hab, (3 * Math.PI) / 4, -1, 2);
 			b.side('stock.antenna-dish-fold', hab, Math.PI, -0.6);
-			const bus = b.below('stock.service-bay-wide', hab);
-			const core = b.on('stock.satellite-bus', bus, 'bottom');
-			const dec = b.below('stock.decoupler', core);
-			const adapter = b.below('stock.adapter-large', dec);
-			const tank = b.below('stock.tank-wide', adapter);
+			// a 2.5 m berth under the habitat, free once the launcher drops (owner, 2026-10-22)
+			const berth = b.below('stock.docking-port-large', hab);
+			const dec = b.below('stock.decoupler-wide', berth);
+			const tank = b.below('stock.tank-wide', dec);
 			const tank2 = b.below('stock.tank-wide', tank);
-			b.below('stock.engine-wide', tank2);
+			const engine = b.below('stock.engine-wide', tank2);
 			b.side('stock.fin', tank2, Math.PI / 4, -0.7, 4);
-			return b.done();
+			// four solid boosters: liftoff thrust-to-weight was 1.16 and the core alone barely made orbit
+			const boosterDecs = b.side('stock.radial-decoupler', tank2, 0, 0, 4);
+			b.on('stock.srb-large', boosterDecs, 'outer');
+			const decs = b.s.design.parts
+				.filter((p) => p.part === 'stock.radial-decoupler')
+				.map((p) => p.index);
+			const srbs = b.s.design.parts.filter((p) => p.part === 'stock.srb-large').map((p) => p.index);
+			return b.done([[engine, ...srbs], decs, [dec]]);
 		}
 	},
 	{
