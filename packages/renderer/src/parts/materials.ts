@@ -155,6 +155,15 @@ export class MaterialLibrary {
 					normalMap: t.tileNormal,
 					normalScale: new Vector2(0.8, 0.8)
 				});
+			// plan 341: the crew character's face and hair on the EVA suit (ADR 0291)
+			case 'skin':
+				return new MeshStandardMaterial({ color: 0x8ec5f2, roughness: 0.55, metalness: 0 });
+			case 'hair':
+				return new MeshStandardMaterial({ color: 0x7a4a26, roughness: 0.72, metalness: 0 });
+			case 'eye':
+				return new MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0 });
+			case 'blush':
+				return new MeshStandardMaterial({ color: 0xf29ab4, roughness: 0.6, metalness: 0 });
 			case 'lamp':
 				return new MeshStandardMaterial({
 					color: 0x000000,

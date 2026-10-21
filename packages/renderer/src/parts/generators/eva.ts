@@ -1,8 +1,9 @@
 /**
- * EVA figures (plan 109, ADR 0120 point 7): a suited crew member (boots, legs, torso, arms, pack,
- * helmet with a visor; no KSP likeness) and a planted flag (pole, cloth, foot). Both fit the part's
- * box shape.
+ * EVA figures (plan 109, ADR 0120 point 7; plan 341, ADR 0291): the crew character in the EVA
+ * outfit (white suit, life-support pack, an open helmet so the face shows) and a planted flag
+ * (pole, cloth, foot). The figure stands on the bottom of the part's box at true scale.
  */
+import { addCharacterToPart } from '../../crew/person.ts';
 import type { GenContext, GeneratedPart } from '../registry.ts';
 import { canopyDynamic } from './parachute.ts';
 
@@ -11,31 +12,11 @@ const SUIT_CANOPY = 4;
 
 export function suit(ctx: GenContext): GeneratedPart {
 	const { builder: b, moving: m, size } = ctx;
-	const k = size[1] / 1.8; // the figures are drawn for a 1.8 m suit
-	const y = (v: number) => v * k;
-	for (const side of [-1, 1]) {
-		b.box('dark-metal', [0.2 * k, 0.12 * k, 0.28 * k], [side * 0.12 * k, y(-0.84), 0.03 * k]);
-		b.box('paint-primary', [0.18 * k, 0.72 * k, 0.2 * k], [side * 0.12 * k, y(-0.42), 0]);
-		b.box('paint-primary', [0.13 * k, 0.56 * k, 0.14 * k], [side * 0.32 * k, y(0.18), 0]);
-		b.box('rubber', [0.12 * k, 0.1 * k, 0.12 * k], [side * 0.32 * k, y(-0.14), 0]);
-	}
-	b.box('paint-primary', [0.5 * k, 0.64 * k, 0.32 * k], [0, y(0.22), 0]);
-	b.box('paint-accent', [0.5 * k, 0.05 * k, 0.33 * k], [0, y(0.0), 0]);
-	b.box('paint-secondary', [0.42 * k, 0.52 * k, 0.16 * k], [0, y(0.24), -0.23 * k]);
+	// the stock suit's box is 1.8 m: the figure is `CREW_HEIGHT` tall in it; another box scales it
+	const k = size[1] / 1.8;
 	// the helmet is the moving piece: the `visible` articulation hides it while it is off (plan 249)
-	m.revolveAt(
-		'paint-primary',
-		[
-			{ r: 0, y: -0.17 * k },
-			{ r: 0.13 * k, y: -0.14 * k },
-			{ r: 0.17 * k, y: 0 },
-			{ r: 0.13 * k, y: 0.14 * k },
-			{ r: 0, y: 0.17 * k }
-		],
-		[0, y(0.72), 0]
-	);
-	m.box('glass', [0.22 * k, 0.12 * k, 0.04 * k], [0, y(0.73), 0.15 * k]);
-	return { pivot: [0, y(0.72), 0], dynamic: canopyDynamic(ctx, SUIT_CANOPY, size[1] / 2) };
+	const pivot = addCharacterToPart(b, m, { outfit: 'eva' }, k, -size[1] / 2);
+	return { pivot, dynamic: canopyDynamic(ctx, SUIT_CANOPY, size[1] / 2) };
 }
 
 export function flag(ctx: GenContext): void {

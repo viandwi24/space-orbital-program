@@ -6,6 +6,7 @@
  */
 import { createRng } from '@orbital/core';
 import { fbm3 } from './noise.ts';
+import type { CrewSpec } from './crew/walkers.ts';
 
 /** Concrete pad radius, m. The vessel stands at the centre. */
 export const PAD_RADIUS = 11;
@@ -122,6 +123,18 @@ export const ROADS: readonly RoadSpec[] = [
 	{ ax: 135, az: -82, bx: 135, bz: 44, width: 7 },
 	{ ax: -PAD_RADIUS + 2, az: 0, bx: -62, bz: 0, width: 6 },
 	{ ax: -62, az: 0, bx: -62, bz: 50, width: 6 }
+];
+/**
+ * The Space Center's people (plan 341, ADR 0291): staff walking the pad road and the west road and
+ * standing about near the pad's edge, clear of the pad, the tower and the exhaust's flat zone.
+ */
+export const SITE_PEOPLE: readonly CrewSpec[] = [
+	{ outfit: 'engineer', id: 'site-1', path: { kind: 'line', from: [2.6, -16], to: [2.6, -46], pause: 5 } },
+	{ outfit: 'scientist', id: 'site-2', path: { kind: 'line', from: [-46, 2.2], to: [-17, 2.2], pause: 6 } },
+	{ outfit: 'flight-control', id: 'site-3', action: 'wave', path: { kind: 'stand', x: -18.5, z: -14.5, facing: -0.7 } },
+	{ outfit: 'doctor', id: 'site-4', action: 'idle', path: { kind: 'stand', x: -19.6, z: -15.6, facing: 2.2 } },
+	{ outfit: 'field-worker', id: 'site-5', action: 'work', path: { kind: 'stand', x: 16.5, z: -15.5, facing: 2.4 } },
+	{ outfit: 'engineer', id: 'site-6', action: 'work', path: { kind: 'stand', x: 17.4, z: -14.6, facing: -2.6 } }
 ];
 /** Paved aprons as centre + half extents (x, z). */
 export const APRONS: readonly { x: number; z: number; hx: number; hz: number }[] = [
