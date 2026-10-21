@@ -12,6 +12,7 @@ export * from './units.ts';
 export * from './events.ts';
 export * from './world.ts';
 export * from './calendar.ts';
+export * from './vessel-names.ts';
 export * from './body-rotation.ts';
 export * from './seasons.ts';
 export * from './schemas.ts';

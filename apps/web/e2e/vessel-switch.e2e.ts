@@ -23,7 +23,7 @@ test('] flies the spent stage, [ comes back; no reload', async ({ page }) => {
 	const title = page.getByTestId('status-place');
 	await expect(title).toHaveText('Two-stage');
 	await page.keyboard.press(']');
-	await expect(title).toHaveText('Two-stage (debris)');
+	await expect(title).toHaveText('Two-stage debris');
 	await expect(page.getByTestId('staging')).toBeVisible();
 	await page.keyboard.press('[');
 	await expect(title).toHaveText('Two-stage');
@@ -47,7 +47,7 @@ test('Fly on a vessel that is not the focus opens Flight on it (Mission Center)'
 	await debris.first().click({ timeout: 60_000 });
 	await page.getByTestId('mc-fly').click();
 	await page.waitForURL('**/flight');
-	await expect(page.getByTestId('status-place')).toHaveText('Two-stage (debris)', {
+	await expect(page.getByTestId('status-place')).toHaveText('Two-stage debris', {
 		timeout: 60_000
 	});
 	expect(errors).toEqual([]);

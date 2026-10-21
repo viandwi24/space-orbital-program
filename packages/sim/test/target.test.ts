@@ -42,7 +42,7 @@ describe('target-set', () => {
 		let t = vesselOf(sim, a).target!;
 		expect(t.kind).toBe('vessel');
 		expect(t.id).toBe(b);
-		expect(t.name).toBe('Probe');
+		expect(t.name).toBe('Probe 2'); // the second launch of the design is numbered (ADR 0252);
 		expect(
 			sim.dispatch({
 				type: 'target-set',

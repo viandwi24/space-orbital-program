@@ -64,8 +64,7 @@ export function toSurfaceRails(core: SimCore, vesselId: EntityId, reason: string
 
 /**
  * Make a physics frame free for `vesselId` (plan 257): when every frame is held by vessels far from
- * it, the first frame whose vessels can all go on rails (landed ones on surface rails, those in a
- * stable orbit on their conic) hands them over. A vessel in the air stays: it cannot be put on rails.
+ * it, the first frame whose vessels can all go on rails hands them over (`makeRoomAt`).
  * Nothing happens when the vessel joins a frame or one is free already.
  */
 export function makeRoom(core: SimCore, vesselId: EntityId): void {
@@ -74,8 +73,21 @@ export function makeRoom(core: SimCore, vesselId: EntityId): void {
 	makeRoomAt(core, vessel.soi, motionOf(core, vessel).r);
 }
 
-/** `makeRoom` for a place: a sphere of influence and a position in it (a vessel just put there). */
-export function makeRoomAt(core: SimCore, soi: string, position: Vec3): void {
+/**
+ * How a flight vessel goes on rails to make room: landed on surface rails, in a stable orbit on its
+ * conic, and uncontrolled debris in the air on a ballistic conic (ADR 0250; `reapDebris` takes it at
+ * the atmosphere as ADR 0021 rule 2 says). Null: it cannot, a controlled vessel in the air.
+ */
+function roomRail(core: SimCore, id: EntityId): 'surface' | 'orbit' | 'ballistic' | null {
+	const v = vesselOf(core, id);
+	if (v.landed) return 'surface';
+	if (isStableOrbit(bodyOfVessel(core, v), v.com, v.velocity)) return 'orbit';
+	const debris = v.owner === undefined && !isControlled(core, v) && !isKept(core, v);
+	return debris ? 'ballistic' : null;
+}
+
+/** Whether a vessel at this place joins a flight frame in use, or a frame is free for it. */
+function hasRoom(core: SimCore, soi: string, position: Vec3): boolean {
 	const joins = core.frames.some(
 		(f) =>
 			f.inUse &&
@@ -83,22 +95,44 @@ export function makeRoomAt(core: SimCore, soi: string, position: Vec3): void {
 			f.vessels.length > 0 &&
 			length(sub(position, f.origin)) < PHYSICS_RANGE
 	);
-	if (joins || core.frames.some((f) => !f.inUse)) return;
+	return joins || core.frames.some((f) => !f.inUse);
+}
+
+/**
+ * `makeRoom` for a place: a sphere of influence and a position in it (a vessel just put there, or
+ * a launch). A frame whose vessels are all landed or in orbit goes first; then one with debris in the
+ * air (ADR 0250). A frame with a controlled vessel in the air keeps it.
+ */
+export function makeRoomAt(core: SimCore, soi: string, position: Vec3): void {
+	if (hasRoom(core, soi, position)) return;
+	const candidates = core.frames
+		.filter((f) => f.inUse)
+		.map((frame) => ({ frame, rails: frame.vessels.map((id) => roomRail(core, id)) }))
+		.filter((c) => c.rails.every((r) => r !== null));
+	const pick = candidates.find((c) => !c.rails.includes('ballistic')) ?? candidates[0];
+	if (!pick) return;
+	[...pick.frame.vessels].forEach((id, i) =>
+		pick.rails[i] === 'surface'
+			? toSurfaceRails(core, id, 'making room')
+			: toRails(core, id, pick.rails[i] === 'ballistic' ? 'ballistic debris' : 'making room')
+	);
+}
+
+/**
+ * Why no flight frame is free at this place (after `makeRoomAt`), or undefined if one is: names a
+ * controlled vessel in the air that holds a frame, and what the player can do about it (ADR 0250).
+ */
+export function roomBlocker(core: SimCore, soi: string, position: Vec3): string | undefined {
+	if (hasRoom(core, soi, position)) return undefined;
 	for (const frame of core.frames) {
-		if (!frame.inUse) continue;
-		const rail = frame.vessels.map((id) => {
-			const v = vesselOf(core, id);
-			if (v.landed) return 'surface' as const;
-			return isStableOrbit(bodyOfVessel(core, v), v.com, v.velocity) ? ('orbit' as const) : null;
-		});
-		if (rail.some((r) => r === null)) continue;
-		[...frame.vessels].forEach((id, i) =>
-			rail[i] === 'surface'
-				? toSurfaceRails(core, id, 'making room')
-				: toRails(core, id, 'making room')
+		const id = frame.inUse ? frame.vessels.find((v) => roomRail(core, v) === null) : undefined;
+		if (id === undefined) continue;
+		return (
+			`no free physics frame: "${vesselOf(core, id).name}" is in flight far away, in the air ` +
+			'(not landed or in orbit); land it, reach orbit, or recover or end it in the Mission Center'
 		);
-		return;
 	}
+	return 'no free physics frame (another vessel is in flight far away)';
 }
 
 /** Why the vessel cannot go in flight right now, or undefined if it can. */
@@ -107,16 +141,7 @@ export function wakeBlocker(core: SimCore, vesselId: EntityId): string | undefin
 	if (vessel.mode === 'flight') return undefined;
 	if (core.warp > PHYSICS_WARP_MAX)
 		return `time warp is ${core.warp}x; physics runs up to ${PHYSICS_WARP_MAX}x`;
-	const motion = motionOf(core, vessel);
-	const joins = core.frames.some(
-		(f) =>
-			f.inUse &&
-			f.soi === vessel.soi &&
-			f.vessels.length > 0 &&
-			length(sub(motion.r, f.origin)) < PHYSICS_RANGE
-	);
-	const free = joins || core.frames.some((f) => !f.inUse);
-	return free ? undefined : 'no free physics frame (another vessel is in flight far away)';
+	return roomBlocker(core, vessel.soi, motionOf(core, vessel).r);
 }
 
 /** Put an on-rails vessel in flight (creates its bodies). Throws if `wakeBlocker` is set. */

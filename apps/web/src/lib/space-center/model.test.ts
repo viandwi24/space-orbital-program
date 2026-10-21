@@ -21,7 +21,8 @@ import {
 	flowRows,
 	kindsFor,
 	firstFreeCell,
-	steadyLabels
+	steadyLabels,
+	pinPositions
 } from './model';
 import SpaceCenterOverlay from './SpaceCenterOverlay.svelte';
 import { buildMenu } from './build-menu';
@@ -187,6 +188,34 @@ describe('labels', () => {
 		const prev = { a: { x: 100, y: 50 } };
 		expect(steadyLabels({ a: { x: 100.4, y: 49.7 } }, prev).a).toBe(prev.a);
 		expect(steadyLabels({ a: { x: 103.6, y: 50.2 } }, prev).a).toEqual({ x: 104, y: 50 });
+	});
+
+	it('pins follow their buildings through an eased zoom out and back in (plan 267)', () => {
+		// a camera looking down at the site from `distance` metres: buildings come together as it backs off
+		const projectAt =
+			(distance: number) =>
+			(p: { east: number; north: number; up?: number }): { x: number; y: number } =>
+				({ x: 512 + (800 * p.east) / distance, y: 384 - (800 * (p.north + (p.up ?? 0))) / distance });
+		const rows = buildingRows(site, reg);
+		let pins: Record<string, { x: number; y: number } | null> = {};
+		const distances = [200, 260, 400, 700, 1200, 2400, 4000, 2400, 900, 300, 200];
+		for (const d of distances) {
+			const project = projectAt(d);
+			pins = pinPositions(rows, project, pins);
+			for (const r of rows) {
+				const at = project(r.anchor);
+				const pin = pins[r.id]!;
+				// on the building within the steadying pixel, even where the pins crowd together
+				expect(Math.abs(pin.x - at.x)).toBeLessThan(1);
+				expect(Math.abs(pin.y - at.y)).toBeLessThan(1);
+			}
+		}
+	});
+
+	it('a pin behind the camera is hidden', () => {
+		const rows = buildingRows(site, reg);
+		const pins = pinPositions(rows, () => null, {});
+		expect(Object.values(pins).every((p) => p === null)).toBe(true);
 	});
 });
 
