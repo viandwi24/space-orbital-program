@@ -2,7 +2,7 @@
 
 > Living document. Updated at the end of every plan. Keep it short; details go in plans, ADRs and the journal.
 
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-21
 **Phase:** v1 release candidate (plan 023 done 2026-10-17): every v1 plan of ADR 0048 is done; the licence is decided (Apache-2.0, ADR 0106, `LICENSE` added) and the product is named Space Orbital Program (ADR 0105, rename pending in plan 074). Post-v1: the foundation roadmap decided by the owner on 2026-10-17 (ADRs 0094 to 0108, plans 074 to 131, see "Next: foundation roadmap")
 **Current plan:** none: the three-agent foundation roadmap (`docs/roadmap/`) is complete, 68 of 68 plans done and the phase gates `cp/f1-done` to `cp/f6-done` passed on 2026-10-18 (full suite and 85 e2e on Chromium, Firefox and WebKit on the M5); 072 and 073 were closed on the owner's instruction with their human passes waived
 **Next plan:** the release roadmap (`docs/roadmap/release-roadmap.md`, plans 200–232, ADRs 0200–0210): take the lowest draft whose depends are done, starting with wave 1 (200, 201, 202, 203, 204, 207, 212, 216, 217, 220, 227). Earlier note: none is required for v1 beyond plans 074 (rename) and 075 (licence metadata); the human tests by hand (journal 023, "How to test manually"). Then the foundation roadmap below, starting with phase F1. Every plan from 074 is a `draft`: refine one into `ready` before implementing it. Target for all visual plans: [`product/visual-direction.md`](product/visual-direction.md) and ADR 0107.
@@ -217,6 +217,9 @@
 | 268 | [Vessel panel Parts tab: even gaps between groups and part rows, and the two transfer buttons drawn on top of each other](plans/268-vessel-panel-parts-spacing.md) | done | vessel-panel session | Owner report 2026-10-21. A trigger row was an inline-size container, so it shrank to zero width and "Transfer out" drew over "Transfer in"; gaps on the 4 px tokens (8 px rows, 16 px groups). Checked at 300, 340 and 440 px and in high contrast. |
 | 270 | [Map pick list for stacked vessels, and distinct vessel names](plans/270-map-pick-list-and-distinct-vessel-names.md) | done | map pick list / vessel names session | Owner request 2026-10-21. ADR 0252: "Moon shot 2", "Moon shot debris 2", legacy "(debris)" chains tidied on load; a click on stacked map icons lists them (flight map, Mission Center). |
 | 271 | [The backup reminder lets the Hangar's tool bar show through: give it the toasts' glass card](plans/271-backup-reminder-glass-card.md) | done | backup-reminder session | Owner report 2026-10-21. The reminder had the glass colour without the glass filter; now it blurs what is under it, as the toasts do. Solid with blur off and high contrast. |
+| 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | done | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
+| 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | done | ui-v3 session | ADR 0254. |
+| 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -281,6 +284,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [272 — Flight v3: one dock, the compact navball module, staging on the right](journal/272-flight-v3.md)
+- [273 — Space Center v3: Overview, Build and Focus](journal/273-space-center-v3.md)
 - [270 — A pick list for stacked map vessels, and distinct vessel names](journal/270-map-pick-list-and-distinct-vessel-names.md)
 - [267 — Space Center pins that stayed behind on a zoom](journal/267-space-center-pins-follow-zoom.md)
 - [266 — A launch refused with "no free physics frame"](journal/266-launch-refused-no-free-physics-frame.md)

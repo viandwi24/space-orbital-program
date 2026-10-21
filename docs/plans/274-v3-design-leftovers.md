@@ -38,6 +38,11 @@ Finish the parts of `refs/space-orbital-program-ui-v3` that plans 272 and 273 le
 
 - [ ] Each item is shown by a screenshot next to the design, with a vitest for any pure part (toast merge, flash timing).
 
+## Docs checklist
+
+- [ ] `docs/STATUS.md`
+- [ ] Journal `274-…`
+
 ## Log
 
 - 2026-10-21 — Drafted by plans 272 and 273.

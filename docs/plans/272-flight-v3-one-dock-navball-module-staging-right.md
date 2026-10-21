@@ -1,7 +1,7 @@
 ---
 id: 272
 title: "Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right"
-status: in-progress
+status: done
 owner: "ui-v3 session (Claude, 2026-10-21)"
 depends: [233, 268]
 phase: 7
