@@ -7,6 +7,7 @@
 import { MISSION_BLUEPRINTS } from '../editor/missions';
 import { allBlueprints, blueprintStats, type BlueprintStats } from '../editor/blueprints';
 import { openModules, seeThroughOf, shellsOf } from '../editor/inside';
+import { partRows } from '../editor/part-list';
 import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
@@ -332,6 +333,14 @@ export class VabController {
 		const holds = (this.shells.get(i) ?? []).map((j) => this.titleOfPart(j));
 		return { title: def.title, mass: def.mass, holds, shell: this.shells.has(i), at };
 	});
+	/** The vessel's parts as a tree (plan 316). */
+	readonly partList = $derived(partRows(this.current.design, this.lookup, this.shells));
+	/** A row of the part list under the pointer: the part lights in the view, its shell turns see-through. */
+	hoverFromList(index: number | null): void {
+		this.hoverIndex = index;
+		this.hoverAt = null;
+		this.view?.setHover(index === null ? null : String(index));
+	}
 	/** Show part `index` open, or closed again (plan 315). */
 	toggleOpen(index: number): void {
 		const next = new Set(this.openParts);
@@ -482,6 +491,7 @@ export class VabController {
 			markers: this.armed ? [] : this.markers,
 			kind: this.armed?.kind === 'carry' ? 'carry' : 'new',
 			preview: this.connectPreview,
+			modules: this.content.modules,
 			inside: {
 				seeThrough: seeThroughOf(this.shells, {
 					hover: this.armed ? null : this.hoverIndex,

@@ -8,13 +8,14 @@ import {
 	mat3Apply,
 	mat3OfQuat,
 	surfaceSite,
+	type ModuleDefinition,
 	type PartDefinition,
 	type PartLookup,
 	type VesselDesign
 } from '@orbital/core';
 import type { VabGroup, VabLink, VabMarker, VabNode, VabPart, VabScene } from '@orbital/renderer';
 import { sizeMismatches } from './checks';
-import { openModules } from './inside';
+import { openModules, startModules } from './inside';
 import {
 	layoutOf,
 	planCarry,
@@ -126,6 +127,8 @@ export interface SceneInput {
 	 * Seeing inside (plan 315): design parts drawn see-through and parts shown open, in the editor
 	 * only.
 	 */
+	/** The module registry: parts are drawn in their start state (plan 316). */
+	modules?: { get(id: string): ModuleDefinition | undefined };
 	inside?: {
 		seeThrough: ReadonlySet<number>;
 		open: ReadonlySet<number>;
@@ -173,6 +176,16 @@ function carryPreview(
 	return { design: merged, added };
 }
 
+/** `over` on top of `base`, module by module. */
+const mergeModules = (
+	base: Record<string, Record<string, unknown>>,
+	over: Record<string, Record<string, unknown>>
+): Record<string, Record<string, unknown>> => {
+	const out = { ...base };
+	for (const [id, fields] of Object.entries(over)) out[id] = { ...(base[id] ?? {}), ...fields };
+	return out;
+};
+
 export function buildScene(input: SceneInput): BuiltScene {
 	const { design, loose, parts, held, targets, cursor, pointer } = input;
 	const symmetry = input.symmetry ?? 1;
@@ -182,17 +195,22 @@ export function buildScene(input: SceneInput): BuiltScene {
 	const groups: VabGroup[] = [{ id: 'main', x: 0, z: 0 }];
 	const nodes: VabNode[] = [];
 
-	/** See-through and open, for a part of the design (plan 315). */
-	const insideOf = (index: number, part: string): Partial<VabPart> => {
+	/** See-through and open (plan 315), and the start state (plan 316), for a part of the design. */
+	const insideOf = (p: VesselDesign['parts'][number]): Partial<VabPart> => {
+		const index = p.index;
+		const def = parts.get(p.part);
+		const start = input.modules ? startModules(p, def, { modules: input.modules }) : {};
 		const inside = input.inside;
-		if (!inside) return {};
-		const modules = inside.open.has(index) ? openModules(parts.get(part)) : null;
+		const open = inside?.open.has(index) ? openModules(def) : null;
+		const modules = open ? mergeModules(start, open) : start;
+		const shown = Object.keys(modules).length > 0 ? { modules } : {};
+		if (!inside) return shown;
 		const holds = inside.holds?.get(index);
 		return {
 			...(inside.seeThrough.has(index)
 				? { seeThrough: true, ...(holds ? { holds: holds.map(partKey) } : {}) }
 				: {}),
-			...(modules ? { modules } : {})
+			...shown
 		};
 	};
 	const place = (
@@ -214,7 +232,7 @@ export function buildScene(input: SceneInput): BuiltScene {
 				group,
 				role,
 				...partParams(p, parts.get(p.part)),
-				...(group === 'main' && role === 'solid' ? insideOf(p.index, p.part) : {})
+				...(group === 'main' && role === 'solid' ? insideOf(p) : {})
 			});
 			if (l.link && role === 'solid') {
 				links.push({

@@ -7,6 +7,7 @@
 	import ChecksList from '../../../lib/vab/ChecksList.svelte';
 	import LibraryDialog from '../../../lib/vab/LibraryDialog.svelte';
 	import BlueprintLibrary from '../../../lib/vab/BlueprintLibrary.svelte';
+	import PartList from '../../../lib/vab/PartList.svelte';
 	import SelectionCard from '../../../lib/vab/SelectionCard.svelte';
 	import StageEditor from '../../../lib/vab/StageEditor.svelte';
 	import PowerBudget from '../../../lib/vab/PowerBudget.svelte';
@@ -284,6 +285,7 @@
 			<ChecksList checks={vab.checks} onflag={(p) => (vab.flagged = p)} titleOf={vab.titleOfPart} />
 			<PowerBudget power={vab.power} />
 			<CrewSeats {vab} />
+			<PartList {vab} />
 			<ActionGroupEditor {vab} />
 		</div>
 
@@ -453,6 +455,7 @@
 	}
 	.rightcol :global(.power),
 	.rightcol :global(.crew),
+	.rightcol :global(.partlist),
 	.rightcol :global(.groups) {
 		flex: none;
 	}

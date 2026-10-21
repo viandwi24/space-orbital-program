@@ -97,7 +97,9 @@ export const ModuleSolarPanel = defineModule({
 						value: state.deployed,
 						enabled: true,
 						group: 'stock.solar',
-						icon: 'solar'
+						icon: 'solar',
+						// the Hangar sets whether it starts open (plan 316)
+						build: 'deployed'
 					}
 				]
 	}),

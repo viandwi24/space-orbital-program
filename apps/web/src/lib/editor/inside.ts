@@ -119,6 +119,36 @@ export function openModules(
 	return null;
 }
 
+const startCache = new Map<string, Record<string, Record<string, unknown>>>();
+
+/**
+ * How a part starts (plan 316): every module's snapshot from its config with the design's
+ * settings (panels deployed, a lamp on, bay doors open), the same view the renderer reads in
+ * flight, so the Hangar draws the part as it will launch.
+ */
+export function startModules(
+	part: VesselDesign['parts'][number],
+	def: PartDefinition | undefined,
+	content: Pick<ContentLookups, 'modules'>
+): Record<string, Record<string, unknown>> {
+	if (!def) return {};
+	const key = `${def.id}|${JSON.stringify(part.settings ?? {})}`;
+	const known = startCache.get(key);
+	if (known) return known;
+	const out: Record<string, Record<string, unknown>> = {};
+	for (const [id, base] of def.modules ?? []) {
+		const module = content.modules.get(id);
+		if (!module?.snapshot) continue;
+		const parsed = parseModuleConfig(module, withSettings(base, part.settings?.[id]));
+		if (!parsed.ok) continue;
+		const view = module.snapshot(module.state?.(parsed.value) as never);
+		if (view && typeof view === 'object') out[id] = view as Record<string, unknown>;
+	}
+	if (startCache.size > 2000) startCache.clear();
+	startCache.set(key, out);
+	return out;
+}
+
 export interface InsideState {
 	/** The part under the pointer (design index), or null. */
 	hover: number | null;
