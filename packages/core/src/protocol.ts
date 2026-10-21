@@ -271,7 +271,7 @@ export interface VesselSnapshot {
 	ports?: PortSnapshot[];
 	/** Its type (plan 223): set by the player, else guessed from its parts. Always set by the sim. */
 	type?: VesselType;
-	/** The vessel's name (the design's, or "<name> (debris)" for a piece that broke off; plan 035). Always set by the sim; optional so older hosts' fixtures stay valid. */
+	/** The vessel's name (the design's, numbered when taken, or "<name> debris" for a piece that broke off; plan 035, ADR 0252). Always set by the sim; optional so older hosts' fixtures stay valid. */
 	name?: string;
 	mode: VesselMode;
 	/** Body whose sphere of influence the vessel is in; `position`/`velocity` are relative to it (BCI). */

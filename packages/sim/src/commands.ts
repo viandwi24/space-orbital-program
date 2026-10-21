@@ -8,7 +8,13 @@ import { DEFAULT_TRANSFER_RATE, transferRefusal } from './transfer.ts';
 import { setFlowLock } from './resources.ts';
 import { moduleAction } from './actions.ts';
 import { addAlarm, removeAlarm } from './alarms.ts';
-import { renameVessel, setDebrisCap, setVesselType, terminateVessel } from './fleet.ts';
+import {
+	nameLaunched,
+	renameVessel,
+	setDebrisCap,
+	setVesselType,
+	terminateVessel
+} from './fleet.ts';
 import { lockRefusal, research } from './tech.ts';
 import { recoverMilestones } from './milestones.ts';
 import { stageRefusal, violation, watchAscent } from './range.ts';
@@ -233,6 +239,7 @@ function loadVessel(
 		);
 	}
 	const id = spawnVessel(core, command.design, resolved);
+	nameLaunched(core, id);
 	const vessel = vesselOf(core, id);
 	vessel.soi = bodyName ?? core.root.def.id;
 	const body = bodyOfVessel(core, vessel);

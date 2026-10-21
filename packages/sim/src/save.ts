@@ -20,6 +20,7 @@ import {
 	deserializeWorld,
 	SaveError,
 	simSaveChecksum,
+	tidyLegacyNames,
 	type EntityId,
 	type EventBus,
 	type EventMap,
@@ -288,6 +289,10 @@ export function restoreWorld(
 			`This save needs content that is not loaded: ${[...missing].sort().join(', ')}. Enable the mod that provides it.`
 		);
 	}
+	// names from before ADR 0252 lose their "(debris) (debris)" chains: "Moon shot debris 2"
+	const vessels = world.query([VESSEL]);
+	const names = tidyLegacyNames(vessels.map((id) => world.get(id, VESSEL)!.name));
+	vessels.forEach((id, i) => (world.get(id, VESSEL)!.name = names[i]!));
 	return world;
 }
 

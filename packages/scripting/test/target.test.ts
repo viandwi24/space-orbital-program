@@ -87,7 +87,7 @@ test('ship.target is null, ship.targets lists the bodies and the other vessels w
 		targets.filter((t: { kind: string }) => t.kind === 'body').map((t: { id: string }) => t.id)
 	).toEqual(sim.registries.bodies.list().map((b) => String(b.id)));
 	expect(targets.filter((t: { kind: string }) => t.kind === 'vessel')).toEqual([
-		{ kind: 'vessel', id: other, name: 'Probe' }
+		{ kind: 'vessel', id: other, name: 'Probe 2' }
 	]);
 	expect(targets.some((t: { id: unknown }) => t.id === vessel)).toBe(false);
 	sim.dispose();
@@ -105,7 +105,7 @@ test('setTarget by vessel id, then the target, its relative state and its approa
 	expect(run.status).toBe('finished');
 	const out = JSON.parse(run.logs[0]!);
 	expect(out.first).toEqual({ ok: true });
-	expect(out).toMatchObject({ kind: 'vessel', id: other, name: 'Probe' });
+	expect(out).toMatchObject({ kind: 'vessel', id: other, name: 'Probe 2' });
 	const truth = sim.snapshot().vessels.find((v) => v.target !== undefined)!.target!;
 	expect(out.distance).toBe(truth.distance);
 	expect(out.approach).toEqual(truth.approach);
@@ -136,7 +136,7 @@ test('a script can pick a body or a listed entry, clear the target, and a refusa
 	expect(log[0]).toEqual({ ok: true });
 	expect(log[1]).toBe('body:stock.cinder');
 	expect(log[2]).toEqual({ ok: true });
-	expect(log[3]).toBe('vessel:Probe');
+	expect(log[3]).toBe('vessel:Probe 2');
 	expect(log[4]).toEqual({ ok: true });
 	expect(log[5]).toBe('null');
 	expect(log[6].ok).toBe(false);

@@ -5,13 +5,14 @@
  * keeps its id remembers the other (`VesselState.docks`), so an undock at that port pair gives
  * the other side its name and design back (`restoreUndocked`, called from the split).
  */
-import type {
-	EntityId,
-	PartSnapshot,
-	PortAlignment,
-	PortSnapshot,
-	Quat,
-	Vec3
+import {
+	uniqueVesselName,
+	type EntityId,
+	type PartSnapshot,
+	type PortAlignment,
+	type PortSnapshot,
+	type Quat,
+	type Vec3
 } from '@orbital/core';
 import { add, dot, length, normalize, scale, sub } from '@orbital/kepler';
 import {
@@ -23,6 +24,7 @@ import {
 	partOf,
 	totalMass,
 	vesselIds,
+	vesselNames,
 	vesselOf,
 	type SimCore
 } from './core.ts';
@@ -384,12 +386,14 @@ export function restoreUndocked(
 	const [dockedSide, home] = otherHasDocked ? [other, keeper] : [keeper, other];
 	const dockedId = otherHasDocked ? split : kept;
 	const homeId = otherHasDocked ? kept : split;
-	const homeName = otherHasDocked ? keeper.name : other.name.replace(/ \(debris\)$/, '');
+	// the keeper still has the combined vessel's name; the split side's was a new one (ADR 0252)
+	const homeName = keeper.name;
 	for (const p of dockedSide.parts) {
 		const part = partOf(core, p);
 		if (rec.parts.includes(p)) part.index -= rec.offset;
 	}
-	dockedSide.name = rec.name;
+	// a launch may have taken the recorded name while the two were docked (ADR 0252)
+	dockedSide.name = uniqueVesselName(rec.name, [...vesselNames(core, kept, split), homeName]);
 	if (rec.design) dockedSide.design = rec.design;
 	else delete dockedSide.design;
 	const kept_ = new Set(dockedSide.parts);

@@ -32,7 +32,7 @@ const snapshot = (vessels: VesselSnapshot[]): Snapshot => ({ t: 100, vessels, bo
 
 describe('target choices', () => {
 	const choices = targetChoices(
-		snapshot([vessel(1, 'Rocket'), vessel(2, 'Rocket (debris)'), vessel(3)]),
+		snapshot([vessel(1, 'Rocket'), vessel(2, 'Rocket debris'), vessel(3)]),
 		1,
 		[body('stock.home'), body('stock.cinder')]
 	);
@@ -41,7 +41,7 @@ describe('target choices', () => {
 		expect(choices.map((c) => [c.key, c.label])).toEqual([
 			['body:stock.home', 'Home'],
 			['body:stock.cinder', 'Cinder'],
-			['vessel:2', 'Rocket (debris)'],
+			['vessel:2', 'Rocket debris'],
 			['vessel:3', 'Vessel 3']
 		]);
 	});
