@@ -21,6 +21,7 @@ import {
 	placeStack,
 	placeSurface,
 	pointNearShape,
+	rotationBetween,
 	resolveVesselDesign,
 	rotateY,
 	surfaceHalfHeight,
@@ -72,6 +73,11 @@ export interface AttachTarget {
 	surface?: { point: [number, number, number]; normal: [number, number, number] };
 	/** Node of the attaching part used for the link. */
 	node: string;
+	/**
+	 * The turn that makes the attaching part's node face a sideways node (a hub's side port, plan
+	 * 308): written as the part's tilt when it attaches.
+	 */
+	tilt?: DesignTilt;
 	/** Origin of the attaching part relative to the design root's origin, metres. */
 	position: Vec3;
 	/** The attach point itself, same frame. */
@@ -184,7 +190,7 @@ function join(design: VesselDesign, assembly: VesselDesign, target: AttachTarget
 	const parts = assembly.parts.map((p) => {
 		if (p.index !== root) return p;
 		const { offset: _old, ...rest } = p;
-		return { ...rest, parent: link };
+		return { ...rest, parent: link, ...(target.tilt ? { tilt: { ...target.tilt } } : {}) };
 	});
 	if (design.parts.length === 0) {
 		if (target.parent !== null) throw new Error('an empty design can only take a root part');
@@ -1495,13 +1501,26 @@ export function attachTargets(
 			const parentNode = def.attach[pn]!;
 			for (const cn of mine) {
 				const child = rootDef.attach?.[cn];
-				if (!child || dot(unit(parentNode.dir), unit(child.dir)) > -1 + 1e-6) continue;
+				if (!child) continue;
+				// a node at right angles to this one (a hub's side port): turn the part onto it (plan
+				// 308), unless the picked part carries a tilt of its own; never flip a part over
+				let tilt = rootTiltOf(assembly);
+				let turn: DesignTilt | undefined;
+				const facing = dot(unit(parentNode.dir), unit(child.dir));
+				if (facing > -1 + 1e-6) {
+					if (tilt || Math.abs(facing) > 1e-6) continue;
+					const from = unit(child.dir);
+					const to = unit(parentNode.dir);
+					turn = tiltOfMatrix(rotationBetween(from, [-to[0], -to[1], -to[2]]));
+					tilt = turn;
+				}
 				const here = placementOf(at);
 				const on = mat3Apply(here.rotation, parentNode.pos);
 				out.push({
 					parent: { index: p.index, parentNode: pn },
 					node: cn,
-					position: placeStack(here, parentNode.pos, child.pos, rootTiltOf(assembly)).position,
+					...(turn ? { tilt: turn } : {}),
+					position: placeStack(here, parentNode.pos, child.pos, tilt).position,
 					point: { x: at.position.x + on.x, y: at.position.y + on.y, z: at.position.z + on.z }
 				});
 			}
@@ -1524,13 +1543,19 @@ export function attachTargets(
 			}
 		}
 	}
-	return out.sort(
-		(a, b) =>
-			b.point.y - a.point.y ||
-			a.parent!.index - b.parent!.index ||
-			a.parent!.parentNode.localeCompare(b.parent!.parentNode) ||
-			(a.radial?.y ?? 0) - (b.radial?.y ?? 0)
+	// a turned match is a fallback: a node that something fits straight onto offers only that
+	const straight = new Set(
+		out.filter((t) => !t.tilt).map((t) => `${t.parent!.index}:${t.parent!.parentNode}`)
 	);
+	return out
+		.filter((t) => !t.tilt || !straight.has(`${t.parent!.index}:${t.parent!.parentNode}`))
+		.sort(
+			(a, b) =>
+				b.point.y - a.point.y ||
+				a.parent!.index - b.parent!.index ||
+				a.parent!.parentNode.localeCompare(b.parent!.parentNode) ||
+				(a.radial?.y ?? 0) - (b.radial?.y ?? 0)
+		);
 }
 
 /** The design as it would be after attaching `assembly` at `target` (for the ghost preview). */

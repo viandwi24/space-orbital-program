@@ -252,6 +252,8 @@
 | 304 | [Hangar free placement follow-ups: the root part, plane handles, e2e](plans/304-hangar-free-placement-follow-ups.md) | draft | — | Left by 279 (ADR 0258). |
 | 305 | [English in-game text: nicknames, blueprint names, a guard test](plans/305-english-in-game-text.md) | done | part visuals session | ADR 0268 (owner: the game is global). Journal 305. |
 | 306 | [Robotics: kinematic hinges, servos, rotors and pistons](plans/306-robotics-kinematic-joints.md) | done | part visuals session | ADR 0269 supersedes 0262 points 1, 2, 5, 7 and 0265: joints re-pose parts inside the one body, rebuilt at most 10 Hz; 7 parts; limit 4 in series, 16 per vessel. Journal 306. |
+| 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | in-progress | part visuals session | First slice of plan 283: wheel throttle, rover wheels, drive mode, Trailblazer Rover. |
+| 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -319,6 +321,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [308 — Attach to sideways nodes](journal/308-sideways-node-attach.md)
 - [306 — Robotics: kinematic joints](journal/306-robotics-kinematic-joints.md)
 - [305 — English in-game text](journal/305-english-in-game-text.md)
 - [303 — The mission parts batch and six mission blueprints](journal/303-mission-parts-and-blueprints.md)

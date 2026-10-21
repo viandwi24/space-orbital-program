@@ -587,7 +587,12 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 		if (pn && cn) {
 			const a = unit(pn.dir);
 			const b = unit(cn.dir);
-			if (!a || !b || a.x * b.x + a.y * b.y + a.z * b.z > -ANTI_PARALLEL) {
+			// or the part's tilt turns its node to face the parent's (a hub's side port, plan 308)
+			const t = isTilted(p.tilt) ? mat3Apply(tiltMatrix(p.tilt), cn.dir) : undefined;
+			const turned = t ? unit([t.x, t.y, t.z]) : undefined;
+			const faces = (c: typeof b): boolean =>
+				!!a && !!c && a.x * c.x + a.y * c.y + a.z * c.z <= -ANTI_PARALLEL;
+			if (!faces(b) && !faces(turned)) {
 				errors.push(
 					`part #${p.index}: node "${node}" must face opposite to parent node "${parentNode}" (use a radial link for side attachment)`
 				);
