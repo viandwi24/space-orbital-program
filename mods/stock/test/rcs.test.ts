@@ -123,3 +123,36 @@ describe('RCS nozzle allocation (plan 211)', () => {
 		expect(vessel.forces).toHaveLength(50);
 	});
 });
+
+describe('RCS family (plan 277)', () => {
+	test("every thruster part's puffs (the model's bells) are its module's nozzles", async () => {
+		const { STOCK_RCS_PARTS } = await import('../src/parts/rcs.ts');
+		const thrusters = STOCK_RCS_PARTS.filter((p) => p.modules?.some(([m]) => m === ModuleRcs.id));
+		expect(thrusters.map((p) => p.id).sort()).toEqual([
+			'stock.rcs-block',
+			'stock.rcs-block-5',
+			'stock.rcs-cold-gas',
+			'stock.rcs-linear',
+			'stock.rcs-pair'
+		]);
+		for (const part of thrusters) {
+			const config = rcsConfigSchema.parse(part.modules!.find(([m]) => m === ModuleRcs.id)![1]);
+			expect(part.visual?.puffs?.nozzles, part.id).toEqual(config.nozzles);
+			// every nozzle's exit lies inside the part's box, so the bell is inside the shape
+			const shape = part.shape!;
+			if (shape.kind !== 'box') throw new Error(`${part.id} is not a box`);
+			for (const n of config.nozzles) {
+				for (let i = 0; i < 3; i++)
+					expect(Math.abs(n.pos[i]!), part.id).toBeLessThanOrEqual(shape.size[i]! / 2 + 1e-9);
+			}
+		}
+	});
+
+	test('the five-way block can push the vessel inward; the pair only along the hull', async () => {
+		const { PartRcsBlock5, PartRcsPair } = await import('../src/parts/rcs.ts');
+		const nozzlesOf = (p: typeof PartRcsBlock5) =>
+			rcsConfigSchema.parse(p.modules!.find(([m]) => m === ModuleRcs.id)![1]).nozzles;
+		expect(nozzlesOf(PartRcsBlock5).some((n) => n.dir[0] < -0.9)).toBe(true);
+		expect(nozzlesOf(PartRcsPair).every((n) => Math.abs(n.dir[1]) > 0.99)).toBe(true);
+	});
+});

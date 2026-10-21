@@ -17,6 +17,62 @@ const BLOCK_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
 const PORT_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
 	{ pos: [0.07, 0, 0], dir: [-1, 0, 0] }
 ];
+/** Plan 277: the four-way cross plus one nozzle out of the front (an Apollo-style quad). */
+const BLOCK5_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [-0.01, 0.14, 0], dir: [0, -1, 0] },
+	{ pos: [-0.01, -0.14, 0], dir: [0, 1, 0] },
+	{ pos: [-0.01, 0, 0.14], dir: [0, 0, -1] },
+	{ pos: [-0.01, 0, -0.14], dir: [0, 0, 1] },
+	{ pos: [0.13, 0, 0], dir: [-1, 0, 0] }
+];
+/** Plan 277: up and down along the hull only. */
+const PAIR_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [0.03, 0.14, 0], dir: [0, -1, 0] },
+	{ pos: [0.03, -0.14, 0], dir: [0, 1, 0] }
+];
+/** Plan 277: one monopropellant nozzle straight out of the hull. */
+const LINEAR_NOZZLES: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }> = [
+	{ pos: [0.05, 0, 0], dir: [-1, 0, 0] }
+];
+
+/** A monopropellant thruster part (plan 277) on the RCS block's numbers: 1 kN per nozzle, Isp 240 / 100 s. */
+function monopropThruster(spec: {
+	id: string;
+	title: string;
+	massKg: number;
+	size: [number, number, number];
+	nozzles: Array<{ pos: Vec3Tuple; dir: Vec3Tuple }>;
+}) {
+	return definePart({
+		id: spec.id,
+		title: spec.title,
+		mass: kg(spec.massKg),
+		cost: partCost(spec.massKg, 'engine'),
+		impactTolerance: 8,
+		shape: { kind: 'box', size: spec.size },
+		visual: {
+			kind: 'rcs-block',
+			palette: { primary: '#d5d8dc', secondary: '#2a2e35', accent: '#e3a61f' },
+			params: { nozzles: spec.nozzles.length },
+			puffs: { module: ModuleRcs.id, field: 'firing', nozzles: spec.nozzles, length: 0.6 }
+		},
+		attach: radial(spec.size[0] / 2),
+		crossfeed: false,
+		modules: [
+			[
+				ModuleRcs,
+				{
+					nozzles: spec.nozzles,
+					thrust: 1_000,
+					ispVacuum: 240,
+					ispSeaLevel: 100,
+					propellant: Monopropellant.id
+				}
+			]
+		],
+		stagingIcon: 'rcs'
+	});
+}
 
 const radial = (half: number) => ({
 	radial: { pos: [-half, 0, 0] as Vec3Tuple, dir: [-1, 0, 0] as Vec3Tuple }
@@ -28,7 +84,7 @@ const radial = (half: number) => ({
  */
 export const PartRcsBlock = definePart({
 	id: 'stock.rcs-block',
-	title: 'RCS Block',
+	title: 'OrbitX RCS-4 "Kompas"',
 	mass: kg(50),
 	cost: partCost(50, 'engine'),
 	impactTolerance: 8,
@@ -62,7 +118,7 @@ export const PartRcsBlock = definePart({
  */
 export const PartColdGasThruster = definePart({
 	id: 'stock.rcs-cold-gas',
-	title: 'Cold Gas Thruster',
+	title: 'OrbitX CG-1 "Hembus"',
 	mass: kg(15),
 	cost: partCost(15, 'engine'),
 	impactTolerance: 8,
@@ -88,6 +144,33 @@ export const PartColdGasThruster = definePart({
 		[ModuleResourceContainer, { contents: { [ColdGas.id]: { capacity: 8 } } }]
 	],
 	stagingIcon: 'rcs'
+});
+
+/** Plan 277: the four-way block with a fifth nozzle out of the front, as on a service module's quads. */
+export const PartRcsBlock5 = monopropThruster({
+	id: 'stock.rcs-block-5',
+	title: 'OrbitX RCS-5 "Bintang"',
+	massKg: 60,
+	size: [0.26, 0.3, 0.3],
+	nozzles: BLOCK5_NOZZLES
+});
+
+/** Plan 277: two nozzles along the hull, for translation fore and aft and pitch or yaw. */
+export const PartRcsPair = monopropThruster({
+	id: 'stock.rcs-pair',
+	title: 'OrbitX RCS-2 "Sepasang"',
+	massKg: 30,
+	size: [0.16, 0.3, 0.2],
+	nozzles: PAIR_NOZZLES
+});
+
+/** Plan 277: a single nozzle set into the hull, pushing the vessel inward. */
+export const PartRcsLinear = monopropThruster({
+	id: 'stock.rcs-linear',
+	title: 'OrbitX RCS-1 "Tunggal"',
+	massKg: 20,
+	size: [0.1, 0.16, 0.16],
+	nozzles: LINEAR_NOZZLES
 });
 
 /** An inline monopropellant tank, 1.25 m: 120 u (480 kg). */
@@ -128,6 +211,9 @@ export const PartMonopropRadial = definePart({
 
 export const STOCK_RCS_PARTS = [
 	PartRcsBlock,
+	PartRcsBlock5,
+	PartRcsPair,
+	PartRcsLinear,
 	PartColdGasThruster,
 	PartMonopropTank,
 	PartMonopropRadial

@@ -194,6 +194,9 @@ export const STOCK_TECH = [
 		description: 'Thrusters that push without turning, and their monopropellant.',
 		unlocks: [
 			'stock.rcs-block',
+			'stock.rcs-block-5',
+			'stock.rcs-pair',
+			'stock.rcs-linear',
 			'stock.rcs-cold-gas',
 			'stock.monoprop-tank',
 			'stock.monoprop-radial'
