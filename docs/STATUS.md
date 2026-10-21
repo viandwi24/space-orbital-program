@@ -220,6 +220,7 @@
 | 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | in-progress | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
 | 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | in-progress | ui-v3 session | ADR 0254. |
 | 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
+| 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -284,6 +285,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [290 — Folded part rows that did not open on a click](journal/290-folded-part-rows-open-on-click.md)
 - [272 — Flight v3: one dock, the compact navball module, staging on the right](journal/272-flight-v3.md)
 - [273 — Space Center v3: Overview, Build and Focus](journal/273-space-center-v3.md)
 - [270 — A pick list for stacked map vessels, and distinct vessel names](journal/270-map-pick-list-and-distinct-vessel-names.md)
