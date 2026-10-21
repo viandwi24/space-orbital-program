@@ -156,7 +156,7 @@ describe('tilt (ADR 0071)', () => {
 		expect(axisY(a)).toBeCloseTo(Math.sin(0.12), 9);
 		expect(axisY(b)).toBeCloseTo(Math.sin(0.12), 9);
 		expect(layout.get(a)!.tilted && layout.get(b)!.tilted).toBe(true);
-		expect(tilted.design.formatVersion).toBe(3);
+		expect(tilted.design.formatVersion).toBeGreaterThanOrEqual(3);
 		const back = undo(tilted);
 		expect(tiltOf(back.design, a)).toEqual({ x: 0, y: 0, z: 0 });
 		expect(back.design.parts.some((p) => p.tilt)).toBe(false);
@@ -209,7 +209,7 @@ describe('struts and fuel lines (ADR 0071)', () => {
 		expect(line.part).toBe('stock.fuel-line');
 		expect(line.parent).toMatchObject({ index: booster, parentNode: 'surface', node: 'end' });
 		expect(line.link).toEqual({ index: TANK, angle: 0, y: 0.5 });
-		expect(placed.design.formatVersion).toBe(3);
+		expect(placed.design.formatVersion).toBeGreaterThanOrEqual(3);
 		const resolved = resolveVesselDesign(placed.design, content.parts);
 		expect(resolved.ok).toBe(true);
 		if (resolved.ok) {

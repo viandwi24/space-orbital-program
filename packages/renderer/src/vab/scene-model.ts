@@ -70,6 +70,24 @@ export interface VabMarker {
 	position: V3;
 }
 
+/** An axis of the Hangar's gizmo (plan 279). */
+export type GizmoAxis = 'x' | 'y' | 'z';
+
+/**
+ * The move (three arrows) or rotate (three rings) gizmo at the selected part (plan 279, ADR 0258
+ * point 3). Drawn over everything at a constant size on screen; picked by screen distance.
+ */
+export interface VabGizmo {
+	group: string;
+	mode: 'move' | 'rotate';
+	/** Centre, relative to the group's root origin like parts. */
+	position: V3;
+	/** The x, y and z axes of the tool's frame (unit vectors in the group's frame). */
+	axes: readonly [V3, V3, V3];
+	/** The axis being dragged: drawn highlighted. */
+	active?: GizmoAxis | null;
+}
+
 export interface VabScene {
 	parts: VabPart[];
 	groups: VabGroup[];
@@ -78,6 +96,8 @@ export interface VabScene {
 	links?: VabLink[];
 	/** Stability glyphs; absent means none. */
 	markers?: VabMarker[];
+	/** The move or rotate gizmo (plan 279); absent means none. */
+	gizmo?: VabGizmo | null;
 }
 
 /** Applies the part's turn: its full rotation when tilted, else its yaw about the vertical. */

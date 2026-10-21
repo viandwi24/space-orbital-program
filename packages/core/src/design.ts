@@ -5,7 +5,7 @@
 import type { PartDefinition, PartShape } from './definitions.ts';
 import type { Quat, Vec3 } from './math.ts';
 import { effectiveDef } from './node-size.ts';
-import type { DesignLink, DesignTilt, VesselDesign } from './protocol.ts';
+import type { DesignLink, DesignOffset, DesignTilt, VesselDesign } from './protocol.ts';
 
 /** Reserved `parentNode` of a radial link: the parent's side surface, not a node (ADR 0034). */
 export const SURFACE_NODE = 'surface';
@@ -29,9 +29,14 @@ export interface ResolvedPart {
 	link?: { index: number; point: Vec3 };
 }
 
-/** Older designs become version 3 unchanged (each version only adds optional fields, ADR 0034, 0071). */
+/** The newest design format (plan 279, ADR 0258: the part offset). */
+export const DESIGN_FORMAT_VERSION = 4;
+
+/** Older designs become version 4 unchanged (each version only adds optional fields, ADR 0034, 0071, 0258). */
 export function migrateVesselDesign(design: VesselDesign): VesselDesign {
-	return design.formatVersion === 3 ? design : { ...design, formatVersion: 3 };
+	return design.formatVersion === DESIGN_FORMAT_VERSION
+		? design
+		: { ...design, formatVersion: DESIGN_FORMAT_VERSION };
 }
 
 /** 3 x 3 rotation matrix, row-major. */
@@ -106,6 +111,37 @@ export const tiltMatrix = (t: DesignTilt): Mat3 =>
 
 export const isTilted = (t: DesignTilt | undefined): t is DesignTilt =>
 	t !== undefined && (t.x !== 0 || t.y !== 0 || t.z !== 0);
+
+export const isOffset = (o: DesignOffset | undefined): o is DesignOffset =>
+	o !== undefined && (o.x !== 0 || o.y !== 0 || o.z !== 0);
+
+/**
+ * The tilt angles of a rotation matrix, the inverse of `tiltMatrix` (`Rx(x) Ry(y) Rz(z)`): `y` in
+ * [-pi/2, pi/2], `x` and `z` in (-pi, pi]. At `y` = +-pi/2 (gimbal lock) `z` takes the whole turn.
+ */
+export function tiltOfMatrix(m: Mat3): DesignTilt {
+	const sy = Math.max(-1, Math.min(1, m[2]));
+	const y = Math.asin(sy);
+	if (Math.abs(sy) < 1 - 1e-9) {
+		return { x: Math.atan2(-m[5], m[8]), y, z: Math.atan2(-m[1], m[0]) };
+	}
+	// gimbal lock: Rx(x) Ry(+-pi/2) Rz(z) depends on z +- x only
+	return { x: 0, y, z: Math.atan2(m[3], m[4]) };
+}
+
+/**
+ * A placement moved by `offset` (version 4, ADR 0258): the offset is in the parent's axes, so the
+ * child and its attach point shift together and its turn stays.
+ */
+export function withOffset(
+	at: Placement,
+	parent: Placement,
+	offset: DesignOffset | undefined
+): Placement {
+	if (!isOffset(offset)) return at;
+	const d = mat3Apply(parent.rotation, [offset.x, offset.y, offset.z]);
+	return { ...at, position: addV(at.position, d) };
+}
 
 /** Unit quaternion of a rotation matrix. */
 export function quatOfMat3(m: Mat3): Quat {
@@ -420,6 +456,13 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 		if (p.tilt && !Object.values(p.tilt).every(Number.isFinite)) {
 			errors.push(`part #${p.index}: tilt angles must be finite`);
 		}
+		if (p.offset !== undefined) {
+			if (design.formatVersion < 4)
+				errors.push(`part #${p.index}: an offset needs formatVersion 4`);
+			if (!Object.values(p.offset).every(Number.isFinite)) {
+				errors.push(`part #${p.index}: offset must be finite`);
+			}
+		}
 		const def = defs.get(p.index);
 		if (def?.connector && !p.link) {
 			errors.push(`part #${p.index} ("${def.id}") is a connector and needs a link`);
@@ -610,6 +653,7 @@ export function resolveVesselDesign(design: VesselDesign, parts: PartLookup): Re
 					const pn = hereDef.attach![link.parentNode]!;
 					at = placeStack(here, pn.pos, cn.pos, entry.tilt);
 				}
+				at = withOffset(at, here, entry.offset);
 				frames.set(c, at);
 				placed.set(c, make(c, link, at));
 				queue.push(c);

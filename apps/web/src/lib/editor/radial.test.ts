@@ -109,7 +109,7 @@ describe('radial placement', () => {
 		expect(layout.position.y).toBeCloseTo(t.position.y, 9);
 		expect(layout.position.z).toBeCloseTo(t.position.z, 9);
 		expect(layout.yaw).toBeCloseTo(Math.PI / 2, 9);
-		expect(placed.design.formatVersion).toBe(3);
+		expect(placed.design.formatVersion).toBe(4);
 	});
 
 	it('refuses spots outside the parent and parts without a cylinder', () => {

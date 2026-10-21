@@ -9,7 +9,9 @@
 	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
 
 	// One list feeds this overlay and the settings dialog (plan 023); the VAB keys show there only.
-	const groups = BINDING_GROUPS.filter((g) => g.mode !== 'vab' && g.mode !== 'carry');
+	const groups = BINDING_GROUPS.filter(
+		(g) => g.mode !== 'vab' && g.mode !== 'carry' && g.mode !== 'tool'
+	);
 </script>
 
 <Dialog {open} title="Controls" {onclose}>

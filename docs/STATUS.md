@@ -224,7 +224,7 @@
 | 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
 | 277 | [RCS family: 4-way remodel, 5-way, linear, corner, bipropellant, axis toggles](plans/277-rcs-family.md) | done | part visuals session | RCS remodel after the RV-105 reference; new 5-way block, pair and linear port; bells drawn at the module\'s nozzles. Journal 277.
 | 278 | [Parachutes and probe cores (chute continues the pod, docking chute ring)](plans/278-pods-probes-and-parachutes.md) | done | part visuals session | Chutes continue the pod's slope; docking chute ring (port on top, three canopies); slim radial pack; octagonal probe core. Journal 278.
-| 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | draft | — | ADR 0258. |
+| 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | done | worker (Claude) | ADR 0258, API 0.1.97: design format 4 (`offset`, `freePlacement`); Move (2) and Rotate (3) tools on W/S A/D Q/E with F axes and R reset, a draggable gizmo, snap-to-nodes toggle (H), free mode with an off-parent launch warning; ports tilted 90° dock in a sim test. Leftovers in 301. Journal 279. |
 | 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
 | 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
 | 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | ADR 0262 (gated by a spike): spike 288 no-go, ADR 0265 proposed. |
@@ -249,6 +249,7 @@
 | 302 | [Part-support modules: open/close, bay doors, fuel cell, single leg, staged panels](plans/302-part-support-modules.md) | done | part visuals session | Preparation audit for all the new parts. Journal 302. |
 | 301 | [A part model viewer page for debugging (/dev/parts)](plans/301-part-model-viewer.md) | done | part viewer session | Owner request 2026-10-21. `/dev/parts?part=…&compare=…`: every part, searchable by category; one part or a row on a grid floor (WebGL, WebGPU or its fallback); nodes, physics shape, wireframe, detail, deploy, articulation, firing; stats. Journal 301. |
 | 303 | [Mission parts batch: 59 parts and six mission blueprints](plans/303-mission-parts-and-blueprints.md) | done | part visuals session | Owner: all parts now, short tests. Remainders stay in 276, 280, 281, 286, 295–300. Journal 303. |
+| 304 | [Hangar free placement follow-ups: the root part, plane handles, e2e](plans/304-hangar-free-placement-follow-ups.md) | draft | — | Left by 279 (ADR 0258). |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -319,6 +320,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 - [303 — The mission parts batch and six mission blueprints](journal/303-mission-parts-and-blueprints.md)
 - [302 — Part-support modules](journal/302-part-support-modules.md)
 - [301 — A part model viewer page for debugging](journal/301-part-model-viewer.md)
+- [279 — Hangar free placement: surface attach anywhere, the offset, Move and Rotate tools, free mode, tilted ports dock](journal/279-hangar-free-placement-and-surface-mount.md)
 - [278 — Parachutes that continue the pod, a docking chute ring, an octagonal probe core](journal/278-pods-probes-and-parachutes.md)
 - [277 — The RCS family](journal/277-rcs-family.md)
 - [291 — Part detail kit, liveries and honest catalogue icons](journal/291-part-detail-kit-livery-and-icons.md)

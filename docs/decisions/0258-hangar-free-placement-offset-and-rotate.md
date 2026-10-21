@@ -30,3 +30,4 @@ The owner: in KSP a docking port (and any part) can be placed "anarchically": ti
 
 - API minor bump (format 4 field), `guides/` and the Hangar help card updated.
 - The Δv and stability read-outs already use resolved positions; no change.
+- As built by plan 279 (2026-10-21): the fine move step is 0.01 m (not 0.02 m); the move gizmo has the three axis arrows but no plane handles; the root part is neither offset nor tilted (the resolver ignores both, as it already ignored a root tilt) and the bound applies to parts with an offset (a tilt alone pivots about the attach point). Those three are plan 304. Snap to nodes is a toggle (key H, the "Nodes" button): off, a held part goes on any face at the cursor; on, a radial site is used only on the collider's side, so parts sit on a pod's or a cone's visible face. The API went to 0.1.97, a patch: the field is additive (`conventions/versioning.md`).

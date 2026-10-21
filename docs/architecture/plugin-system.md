@@ -277,6 +277,10 @@ An attach node may carry `shellTop: "<module id>"`: it sits at the top of that m
 
 `PartDefinition.centerOfMass` (optional, part frame, m) is where the part's mass sits, offset from its shape's centre; the sim's mass properties, the snapshot's centre of mass and the Hangar's stability line use it, while drag, colliders and attachments stay on the shape's centre. `PartDefinition.bluntBase` (optional) is the moment coefficient of a blunt -Y end on a cylinder part: while that end is open to the wind the airflow turns the part base first.
 
+## Design format 4: part offset (API 0.1.97, plan 279, ADR 0258)
+
+`VesselDesign.formatVersion` 4 adds `parts[i].offset` (`{x, y, z}`, metres in the parent part's axes, applied after the attach transform and before the tilt; children move with the part; the root ignores it) and `freePlacement: true` (the Hangar's free mode; the sim ignores it). `migrateVesselDesign` turns versions 1 to 3 into 4 unchanged (`DESIGN_FORMAT_VERSION`). `resolveVesselDesign` applies the offset (`withOffset`), so the sim's colliders, mass and centre of mass, the Δv read-out and drag see the moved part. Tilts take any angle; `tiltOfMatrix` inverts `tiltMatrix`.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

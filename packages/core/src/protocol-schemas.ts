@@ -28,7 +28,7 @@ const index = z.int().nonnegative();
 const finite = z.number().finite();
 
 export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
-	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+	formatVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
 	name: z.string().min(1),
 	parts: z
 		.array(
@@ -53,12 +53,14 @@ export const vesselDesignSchema: z.ZodType<VesselDesign> = z.object({
 				mirror: z.literal(true).optional(),
 				settings: z.record(definitionIdSchema, z.record(z.string(), z.unknown())).optional(),
 				tilt: z.object({ x: z.number(), y: z.number(), z: z.number() }).optional(),
+				offset: z.object({ x: finite, y: finite, z: finite }).optional(),
 				link: z.object({ index, angle: z.number(), y: z.number() }).optional()
 			})
 		)
 		.min(1),
 	stages: z.array(z.array(index)),
 	aircraft: z.boolean().optional(),
+	freePlacement: z.literal(true).optional(),
 	groups: z
 		.array(
 			z.object({

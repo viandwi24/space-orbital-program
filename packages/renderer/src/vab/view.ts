@@ -58,6 +58,15 @@ import {
 	type SignContext
 } from './hangar-signs.ts';
 import { StabilityMarkerKit } from './stability-markers.ts';
+import {
+	ARROW_LENGTH,
+	GIZMO_AXES,
+	GizmoKit,
+	RING_RADIUS,
+	nearestGizmoAxis,
+	ringPoints,
+	type ScreenXY
+} from './gizmo.ts';
 import { frameIcon, visibleBounds } from './icons.ts';
 import {
 	approach,
@@ -91,6 +100,8 @@ import {
 	floorShift,
 	repeatedDefinitions,
 	sameMarkers,
+	type GizmoAxis,
+	type VabGizmo,
 	type VabMarker,
 	type VabNode,
 	type VabScene
@@ -173,6 +184,8 @@ export class VabView {
 	private readonly glowLight: PointLight;
 	private readonly layer: PartLayer;
 	private readonly glyphKit = new StabilityMarkerKit();
+	/** The move and rotate gizmo (plan 279). */
+	private readonly gizmoKit = new GizmoKit();
 	private readonly glyphs = new Map<string, Mesh>();
 	private markerList: readonly VabMarker[] = [];
 	private highContrast = false;
@@ -426,6 +439,7 @@ export class VabView {
 		this.applyHighlights();
 		this.rebuildMarkers(next.nodes);
 		this.rebuildGlyphs(next.markers ?? []);
+		this.placeGizmo(next.gizmo ?? null);
 		this.updateFloorShifts();
 		this.updateCameraGoal();
 	}
@@ -463,6 +477,77 @@ export class VabView {
 			group.markers.add(marker);
 			this.markers.set(n.key, marker);
 		}
+	}
+
+	/** The gizmo rides in its group (so it follows the floor shift), over everything. */
+	private placeGizmo(gizmo: VabGizmo | null): void {
+		const group = gizmo ? this.layer.groups.get(gizmo.group) : undefined;
+		this.gizmoKit.set(group ? gizmo : null);
+		if (group && this.gizmoKit.root.parent !== group.object) group.object.add(this.gizmoKit.root);
+		if (!group) this.gizmoKit.root.removeFromParent();
+	}
+
+	/** Screen position (CSS pixels in the canvas) of a world point, or null behind the camera. */
+	private toScreen(world: Vector3): ScreenXY | null {
+		const p = world.clone().project(this.camera);
+		if (p.z > 1) return null;
+		return { x: ((p.x + 1) / 2) * this.width, y: ((1 - p.y) / 2) * this.height };
+	}
+
+	/**
+	 * The gizmo on screen (plan 279): its centre, where 1 m along each axis lands (a move drag turns
+	 * pixels into metres with it), and per axis +1 when the axis points at the camera (a turn about it
+	 * runs anticlockwise on screen) or -1. Null without a gizmo.
+	 */
+	gizmoScreen(): {
+		centre: ScreenXY;
+		tips: Record<GizmoAxis, ScreenXY | null>;
+		facing: Record<GizmoAxis, 1 | -1>;
+	} | null {
+		const g = this.gizmoKit.current;
+		const root = this.gizmoKit.root;
+		if (!g || !root.parent) return null;
+		this.layer.root.updateMatrixWorld(true);
+		const centreW = root.getWorldPosition(new Vector3());
+		const centre = this.toScreen(centreW);
+		if (!centre) return null;
+		const toCamera = this.camera.position.clone().sub(centreW);
+		const tips = {} as Record<GizmoAxis, ScreenXY | null>;
+		const facing = {} as Record<GizmoAxis, 1 | -1>;
+		const q = root.parent.getWorldQuaternion(new Quaternion());
+		g.axes.forEach((a, i) => {
+			const axis = GIZMO_AXES[i]!;
+			const d = new Vector3(...a).applyQuaternion(q);
+			tips[axis] = this.toScreen(centreW.clone().add(d));
+			facing[axis] = d.dot(toCamera) >= 0 ? 1 : -1;
+		});
+		return { centre, tips, facing };
+	}
+
+	/** The gizmo axis (arrow or ring) within `px` CSS pixels of the pointer, or null (plan 279). */
+	gizmoAxisNear(clientX: number, clientY: number, px: number): GizmoAxis | null {
+		const g = this.gizmoKit.current;
+		const root = this.gizmoKit.root;
+		if (!g || !root.parent || !root.visible) return null;
+		const rect = this.config.canvas.getBoundingClientRect();
+		const pointer = { x: clientX - rect.left, y: clientY - rect.top };
+		this.layer.root.updateMatrixWorld(true);
+		const shapes: Partial<Record<GizmoAxis, ScreenXY[]>> = {};
+		g.axes.forEach((a, i) => {
+			const axis = GIZMO_AXES[i]!;
+			const local =
+				g.mode === 'move'
+					? [
+							[0, 0, 0],
+							[a[0] * ARROW_LENGTH, a[1] * ARROW_LENGTH, a[2] * ARROW_LENGTH]
+						]
+					: ringPoints([0, 0, 0], a, RING_RADIUS);
+			const pts = local
+				.map((p) => this.toScreen(root.localToWorld(new Vector3(p[0], p[1], p[2]))))
+				.filter((p): p is ScreenXY => p !== null);
+			shapes[axis] = pts;
+		});
+		return nearestGizmoAxis(pointer, shapes, g.mode, px);
 	}
 
 	/** Stability glyphs (centre of mass and pressure) are re-created only when the list changes. */
@@ -690,7 +775,11 @@ export class VabView {
 	}
 
 	/** Node markers win over parts when the ray is near one (they sit on the part's end faces). */
-	pick(clientX: number, clientY: number, options: { ignoreGhost?: boolean } = {}): VabHit | null {
+	pick(
+		clientX: number,
+		clientY: number,
+		options: { ignoreGhost?: boolean; ignoreNodes?: boolean } = {}
+	): VabHit | null {
 		const ray = this.rayAt(clientX, clientY);
 		this.layer.root.updateMatrixWorld(true);
 		const candidates = [...this.markers.entries()]
@@ -700,7 +789,8 @@ export class VabView {
 				const node = this.nodes.find((n) => n.key === key);
 				return { key, position: [p.x, p.y, p.z] as const, radius: (node?.radius ?? 0.5) * 0.9 };
 			});
-		const node = pickNode(ray, candidates);
+		// with node snapping off (plan 279) the rings are not in the way of a surface
+		const node = options.ignoreNodes ? null : pickNode(ray, candidates);
 		if (node) return { kind: 'node', key: node.node.key };
 		const roots: Object3D[] = [...this.layer.barRoots];
 		for (const e of this.layer.parts.values()) roots.push(e.model.root);
@@ -1041,6 +1131,10 @@ export class VabView {
 		if (!this.reduced) pulseMarkers(this.markers.values(), this.time);
 		this.hangar.update(dt, this.time);
 		this.glyphKit.orient(this.glyphs.values(), this.camera, FOV, this.height);
+		if (this.gizmoKit.root.visible && this.gizmoKit.root.parent) {
+			const at = this.gizmoKit.root.getWorldPosition(new Vector3());
+			this.gizmoKit.fit(at.distanceTo(this.camera.position));
+		}
 		this.fitShadow();
 		for (const e of this.layer.parts.values()) e.model.tick(dt);
 		if (this.composer) this.composer.render(dt);
@@ -1125,6 +1219,7 @@ export class VabView {
 		this.stop();
 		this.layer.dispose();
 		this.glyphKit.dispose();
+		this.gizmoKit.dispose();
 		this.markerKit.dispose();
 		this.highlights.dispose();
 		this.hangar.dispose();

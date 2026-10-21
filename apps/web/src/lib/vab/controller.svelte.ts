@@ -9,6 +9,7 @@ import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
 	homeBodyOf,
+	mat3OfQuat,
 	surfaceHalfHeight,
 	surfacePoint,
 	surfaceSite,
@@ -17,7 +18,7 @@ import {
 	type PlacedBuilding,
 	type VesselDesign
 } from '@orbital/core';
-import { VabView, type VabMarker } from '@orbital/renderer';
+import { VabView, type GizmoAxis, type VabGizmo, type VabMarker } from '@orbital/renderer';
 import { goto } from '$app/navigation';
 import { loadContent, partLookup, partShapesOf } from '../catalog';
 import { categoriesOf } from '../editor/categories';
@@ -84,7 +85,13 @@ import {
 	groupOf,
 	layoutOf,
 	moveGroup,
+	nudgedOffset,
+	offsetOf,
+	onShapeSide,
 	placementOf,
+	setFreePlacement,
+	setPlacement,
+	turnedTilt,
 	moveToStage,
 	radialNodeOf,
 	radialOf,
@@ -133,6 +140,7 @@ import {
 	type LibraryStore
 } from './library';
 import { indexedDbStore, requestPersistence } from './library-idb';
+import { MOVE_FINE, MOVE_STEP, ROTATE_FINE, ROTATE_STEP, snapTo, toolKeyEffect } from './tool-keys';
 
 export type Armed =
 	| { kind: 'new'; part: string }
@@ -154,6 +162,9 @@ const SNAP_PX = 36;
 /** Rotation steps of a carried part (plan 217, ADR 0207 point 3), rad. */
 const TURN_STEP = Math.PI / 2;
 const TURN_FINE = (5 * Math.PI) / 180;
+
+/** How close (CSS pixels) a press must be to grab a gizmo arrow or ring. */
+const GIZMO_PX = 14;
 
 /** Autosave waits this long after the last edit (ms). */
 const AUTOSAVE_DELAY = 800;
@@ -246,6 +257,14 @@ export class VabController {
 	drawer = $state<'parts' | 'stages' | null>(null);
 	/** Group operations (move, delete, turn) apply to the selected part alone. */
 	onlyThis = $state(false);
+	/** The Hangar tool (plan 279, ADR 0258 point 3): place and pick, move (offset) or rotate the selected part. */
+	tool = $state<'place' | 'move' | 'rotate'>('place');
+	/** Axes of the Move and Rotate tools: the part's own (`local`) or the vessel's (`absolute`). */
+	toolFrame = $state<'local' | 'absolute'>('absolute');
+	/** Snap to nodes (plan 279): off, a held part goes on any surface at the cursor and rings are ignored. */
+	snapNodes = $state(true);
+	/** The gizmo axis being dragged (drawn highlighted). */
+	gizmoActive = $state<GizmoAxis | null>(null);
 
 	// library
 	libraryOpen = $state(false);
@@ -499,6 +518,45 @@ export class VabController {
 			? null
 			: tiltOf(this.current.design, this.selected)
 	);
+	/** The offset of the selected part of the design (plan 279; null for the root and loose parts). */
+	readonly selectedOffset = $derived(
+		this.selectedTilt === null || this.selected === null
+			? null
+			: offsetOf(this.current.design, this.selected)
+	);
+	/** Free placement of the design (plan 279, ADR 0258 point 4): saved with it. */
+	readonly freePlacement = $derived(this.editor.design.freePlacement === true);
+	/** The part the Move and Rotate tools act on: the selected part of the design, not its root. */
+	readonly toolTarget = $derived(
+		this.tool === 'place' || this.armed || this.selectedTilt === null ? null : this.selected
+	);
+	/** The gizmo at the tool's part (plan 279): arrows for Move, rings for Rotate, in the tool's axes. */
+	readonly gizmo = $derived.by((): VabGizmo | null => {
+		const sel = this.toolTarget;
+		if (sel === null || this.tool === 'place') return null;
+		const at = layoutOf(this.current.design, this.lookup)?.get(sel);
+		if (!at) return null;
+		const m = mat3OfQuat(at.rotation);
+		const axes: VabGizmo['axes'] =
+			this.toolFrame === 'local'
+				? [
+						[m[0], m[3], m[6]],
+						[m[1], m[4], m[7]],
+						[m[2], m[5], m[8]]
+					]
+				: [
+						[1, 0, 0],
+						[0, 1, 0],
+						[0, 0, 1]
+					];
+		return {
+			group: 'main',
+			mode: this.tool,
+			position: [at.position.x, at.position.y, at.position.z],
+			axes,
+			active: this.gizmoActive
+		};
+	});
 	/** The connector the selected part is, and its far end: for the info card. */
 	readonly selectedLink = $derived(
 		this.selected === null
@@ -545,7 +603,11 @@ export class VabController {
 
 		$effect(() => {
 			if (this.viewReady)
-				this.view?.setScene({ ...this.built.scene, markers: this.built.scene.markers ?? [] });
+				this.view?.setScene({
+					...this.built.scene,
+					markers: this.built.scene.markers ?? [],
+					gizmo: this.gizmo
+				});
 		});
 		$effect(() => {
 			if (this.viewReady)
@@ -1103,7 +1165,15 @@ export class VabController {
 		if (nodesOnly || !held || hit?.kind !== 'part') return null;
 		const normal = hit.normal;
 		const slanted = normal !== undefined && Math.abs(normal[1]) >= SLOPE_NORMAL_Y;
-		if (this.radialCapable && !slanted) {
+		const point = { x: hit.point[0], y: hit.point[1], z: hit.point[2] };
+		// a radial site only where the face is the collider's side (plan 279): on a pod's slope or a
+		// cone the radial site would float off the visible face, so the surface link takes the hit point
+		if (
+			this.snapNodes &&
+			this.radialCapable &&
+			!slanted &&
+			onShapeSide(this.shown.design, this.lookup, Number(hit.key), point)
+		) {
 			const side = this.radialFromHit(hit, false);
 			if (side) return side;
 		}
@@ -1250,6 +1320,226 @@ export class VabController {
 			}
 		});
 		if (this.notice) this.preview = null;
+	}
+
+	// --- move and rotate tools (plan 279, ADR 0258) -----------------------------------------------------------
+
+	/** Picks the Place, Move or Rotate tool; Move and Rotate act on the selected part. */
+	setTool(tool: 'place' | 'move' | 'rotate'): void {
+		this.tool = tool;
+		this.gizmoActive = null;
+		if (tool === 'place') {
+			this.say('Place tool.');
+			return;
+		}
+		if (this.armed) this.disarm();
+		const name = tool === 'move' ? 'Move' : 'Rotate';
+		this.say(
+			this.toolTarget === null
+				? `${name} tool: select a part attached to the vessel.`
+				: `${name} tool on ${this.titleOfPart(this.toolTarget)}, ${this.toolFrame} axes.`
+		);
+	}
+	toggleToolFrame(): void {
+		this.toolFrame = this.toolFrame === 'local' ? 'absolute' : 'local';
+		this.say(
+			this.toolFrame === 'local' ? 'Local axes (the part’s).' : 'Absolute axes (the vessel’s).'
+		);
+	}
+	toggleSnapNodes(): void {
+		this.snapNodes = !this.snapNodes;
+		this.say(
+			this.snapNodes
+				? 'Snap to nodes on.'
+				: 'Snap to nodes off: parts go on any surface at the cursor.'
+		);
+	}
+	setFreePlacement(on: boolean): void {
+		this.editor = setFreePlacement(this.editor, on);
+		this.say(
+			on
+				? 'Free mode: parts may be moved anywhere.'
+				: 'Free mode off: moved parts must touch their parent.'
+		);
+	}
+
+	/** Moves the tool's part by `delta` m along the tool's axes; one undo step. */
+	nudgeSelected(delta: readonly [number, number, number]): void {
+		const sel = this.toolTarget;
+		if (sel === null) return;
+		const offset = nudgedOffset(this.editor.design, this.lookup, sel, delta, this.toolFrame);
+		if (!offset) return;
+		this.attempt(() => {
+			this.editor = setPlacement(
+				this.editor,
+				this.editorContent,
+				sel,
+				{ offset },
+				{
+					single: this.onlyThis
+				}
+			);
+			const f = (v: number) => v.toFixed(2);
+			this.say(`Offset ${f(offset.x)}, ${f(offset.y)}, ${f(offset.z)} m.`);
+		});
+	}
+	/** Turns the tool's part by `angle` rad about the tool's `axis`; one undo step. */
+	rotateSelected(axis: GizmoAxis, angle: number): void {
+		const sel = this.toolTarget;
+		if (sel === null) return;
+		const tilt = turnedTilt(this.editor.design, this.lookup, sel, axis, angle, this.toolFrame);
+		if (!tilt) return;
+		this.attempt(() => {
+			this.editor = setPlacement(
+				this.editor,
+				this.editorContent,
+				sel,
+				{ tilt },
+				{
+					single: this.onlyThis
+				}
+			);
+			const d = (v: number) => Math.round((v * 180) / Math.PI);
+			this.say(`Tilt ${d(tilt.x)}, ${d(tilt.y)}, ${d(tilt.z)} degrees.`);
+		});
+	}
+	/** Offset (Move tool) or tilt (Rotate tool) of the tool's part back to zero. */
+	resetPlacement(what: 'offset' | 'tilt' = this.tool === 'rotate' ? 'tilt' : 'offset'): void {
+		const sel = this.toolTarget ?? (this.selectedTilt ? this.selected : null);
+		if (sel === null) return;
+		this.attempt(() => {
+			this.editor = setPlacement(
+				this.editor,
+				this.editorContent,
+				sel,
+				what === 'tilt' ? { tilt: NO_TILT } : { offset: { x: 0, y: 0, z: 0 } },
+				{ single: this.onlyThis }
+			);
+			this.say(what === 'tilt' ? 'Rotation reset.' : 'Offset reset.');
+		});
+	}
+	/** A tool key (`tool` scope); true when it did something. */
+	private toolKey(action: ActionId, fine: boolean): boolean {
+		if (this.tool === 'place') return false;
+		const effect = toolKeyEffect(action, this.tool, fine);
+		if (!effect) return false;
+		if (effect.kind === 'frame') this.toggleToolFrame();
+		else if (effect.kind === 'reset') this.resetPlacement();
+		else if (effect.kind === 'nudge') this.nudgeSelected(effect.delta);
+		else this.rotateSelected(effect.axis, effect.angle);
+		return true;
+	}
+
+	/** A gizmo drag (plan 279): the axis, where it started on screen and the state it started from. */
+	private gizmoDrag: {
+		axis: GizmoAxis;
+		x: number;
+		y: number;
+		start: EditorState;
+		index: number;
+		/** Rotate: the pointer's last screen angle about the centre and the turn so far, rad. */
+		last: number;
+		turned: number;
+	} | null = null;
+
+	/** Starts dragging a gizmo arrow or ring under the pointer; true when it took the press. */
+	private grabGizmo(e: PointerEvent): boolean {
+		const sel = this.toolTarget;
+		if (sel === null || e.button !== 0) return false;
+		const axis = this.view?.gizmoAxisNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
+		if (!axis) return false;
+		this.gizmoDrag = {
+			axis,
+			x: e.clientX,
+			y: e.clientY,
+			start: this.editor,
+			index: sel,
+			last: this.screenAngle(e),
+			turned: 0
+		};
+		this.gizmoActive = axis;
+		return true;
+	}
+	/** The pointer's angle about the gizmo's centre on screen, anticlockwise, rad. */
+	private screenAngle(e: PointerEvent): number {
+		const s = this.view?.gizmoScreen();
+		const r = this.canvas?.getBoundingClientRect();
+		if (!s || !r) return 0;
+		return Math.atan2(-(e.clientY - r.top - s.centre.y), e.clientX - r.left - s.centre.x);
+	}
+	/** Moves or turns the part with the dragged gizmo axis: a live preview, committed on release. */
+	private dragGizmo(e: PointerEvent): void {
+		const d = this.gizmoDrag;
+		const s = this.view?.gizmoScreen();
+		if (!d || !s) return;
+		const snap = (v: number, step: number) => snapTo(v, step, e.altKey);
+		try {
+			if (this.tool === 'move') {
+				const tip = s.tips[d.axis];
+				if (!tip) return;
+				const tx = tip.x - s.centre.x;
+				const ty = tip.y - s.centre.y;
+				const l2 = tx * tx + ty * ty;
+				if (l2 < 1) return;
+				const metres = snap(
+					((e.clientX - d.x) * tx + (e.clientY - d.y) * ty) / l2,
+					e.shiftKey ? MOVE_FINE : MOVE_STEP
+				);
+				const delta: [number, number, number] = [
+					d.axis === 'x' ? metres : 0,
+					d.axis === 'y' ? metres : 0,
+					d.axis === 'z' ? metres : 0
+				];
+				const offset = nudgedOffset(d.start.design, this.lookup, d.index, delta, this.toolFrame);
+				if (!offset) return;
+				this.preview = setPlacement(
+					d.start,
+					this.editorContent,
+					d.index,
+					{ offset },
+					{
+						single: this.onlyThis
+					}
+				);
+			} else {
+				const now = this.screenAngle(e);
+				let step = now - d.last;
+				step = Math.atan2(Math.sin(step), Math.cos(step));
+				d.last = now;
+				d.turned += step * s.facing[d.axis];
+				const angle = snap(d.turned, e.shiftKey ? ROTATE_FINE : ROTATE_STEP);
+				const tilt = turnedTilt(
+					d.start.design,
+					this.lookup,
+					d.index,
+					d.axis,
+					angle,
+					this.toolFrame
+				);
+				if (!tilt) return;
+				this.preview = setPlacement(
+					d.start,
+					this.editorContent,
+					d.index,
+					{ tilt },
+					{
+						single: this.onlyThis
+					}
+				);
+			}
+			this.notice = '';
+		} catch (err) {
+			// out of bounds: the part stays where it last fitted, and the reason shows
+			this.notice = err instanceof Error ? err.message : String(err);
+		}
+	}
+	private releaseGizmo(): void {
+		this.gizmoDrag = null;
+		this.gizmoActive = null;
+		if (this.preview) {
+			this.editor = this.preview;
+			this.preview = null;
+		}
 	}
 
 	moveStage(index: number, to: number | null): void {
@@ -1650,7 +1940,8 @@ export class VabController {
 	private pick(e: PointerEvent): ReturnType<VabView['pick']> {
 		return (
 			this.view?.pick(e.clientX, e.clientY, {
-				ignoreGhost: this.armed !== null && this.radialCapable
+				ignoreGhost: this.armed !== null && this.radialCapable,
+				ignoreNodes: this.armed !== null && !this.snapNodes
 			}) ?? null
 		);
 	}
@@ -1673,7 +1964,7 @@ export class VabController {
 			return;
 		}
 		this.canvas?.focus({ preventScroll: true });
-		if (this.grabHandle(e)) {
+		if (this.grabHandle(e) || this.grabGizmo(e)) {
 			this.drag = null;
 			return;
 		}
@@ -1710,12 +2001,27 @@ export class VabController {
 			this.dragHandle(e);
 			return;
 		}
+		if (this.gizmoDrag) {
+			this.dragGizmo(e);
+			return;
+		}
+		if (this.toolTarget !== null && !this.drag && this.canvas) {
+			const over = this.view?.gizmoAxisNear(e.clientX, e.clientY, GIZMO_PX) ?? null;
+			this.canvas.style.cursor = over ? 'grab' : '';
+		}
 		const d = this.drag;
 		if (d) {
 			const dx = e.clientX - d.x;
 			const dy = e.clientY - d.y;
 			if (!d.moved && Math.hypot(dx, dy) < 4) return;
-			if (!d.moved && d.part !== undefined && d.button === 0 && !d.shift && !this.armed) {
+			if (
+				!d.moved &&
+				d.part !== undefined &&
+				d.button === 0 &&
+				!d.shift &&
+				!this.armed &&
+				this.tool === 'place'
+			) {
 				// a drag from a placed part picks it up with what hangs on it (plan 217)
 				this.drag = null;
 				this.selected = Number(d.part);
@@ -1758,7 +2064,8 @@ export class VabController {
 			// A radial part follows the pointer over the sides of cylindrical parts (Alt: no snapping).
 			this.pointerTarget = this.siteFromHit(hit, e.altKey);
 			// a ring near the pointer glows, and the nearest one in snap range wins over a face
-			const near = this.ringsNear(e);
+			// (with node snapping off, plan 279, no ring is in play)
+			const near = this.snapNodes ? this.ringsNear(e) : { glow: new Set<number>(), snap: null };
 			this.nearTargets = near.glow;
 			if (near.snap !== null) {
 				this.hoverNode = near.snap;
@@ -1785,6 +2092,10 @@ export class VabController {
 		if (wasPinch) return;
 		if (this.handleDrag) {
 			this.releaseHandle();
+			return;
+		}
+		if (this.gizmoDrag) {
+			this.releaseGizmo();
 			return;
 		}
 		if (this.dragCarry) {
@@ -1821,7 +2132,7 @@ export class VabController {
 			else if (hit?.kind === 'part') this.notice = 'A strut or fuel line joins two ordinary parts.';
 		} else if (this.armed) {
 			const site = this.siteFromHit(hit, e.altKey);
-			const snap = this.ringsNear(e).snap;
+			const snap = this.snapNodes ? this.ringsNear(e).snap : null;
 			if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
 			else if (snap !== null) this.place(snap);
 			else if (site) this.placeAt(site);
@@ -1847,6 +2158,11 @@ export class VabController {
 		this.drag = null;
 		if (this.handleDrag) {
 			this.handleDrag = null;
+			this.preview = null;
+		}
+		if (this.gizmoDrag) {
+			this.gizmoDrag = null;
+			this.gizmoActive = null;
 			this.preview = null;
 		}
 	};
@@ -1886,7 +2202,7 @@ export class VabController {
 		}
 		const hit = this.pick(e);
 		const site = this.siteFromHit(hit, e.altKey);
-		const snap = this.ringsNear(e).snap;
+		const snap = this.snapNodes ? this.ringsNear(e).snap : null;
 		if (hit?.kind === 'node') this.place(Number(hit.key.slice(1)));
 		else if (snap !== null) this.place(snap);
 		else if (site) this.placeAt(site);
@@ -1987,6 +2303,14 @@ export class VabController {
 				return;
 			}
 		}
+		// the Move and Rotate tools' keys while a part is selected (plan 279, ADR 0258 point 3)
+		if (this.toolTarget !== null) {
+			const act = settings.keymap.actionFor('tool', keyIdOf(e));
+			if (act && this.toolKey(act, e.shiftKey)) {
+				e.preventDefault();
+				return;
+			}
+		}
 		this.fineSnap = e.shiftKey;
 		// Backspace is a fixed second key for Delete (ADR 0061); every other key goes through the table.
 		const action: ActionId | 'escape' | null =
@@ -2005,6 +2329,14 @@ export class VabController {
 			case 'search':
 				e.preventDefault();
 				this.focusSearch();
+				return;
+			case 'toolPlace':
+			case 'toolMove':
+			case 'toolRotate':
+				this.setTool(action === 'toolMove' ? 'move' : action === 'toolRotate' ? 'rotate' : 'place');
+				return;
+			case 'snapNodes':
+				this.toggleSnapNodes();
 				return;
 			case 'frame':
 				this.view?.frame();

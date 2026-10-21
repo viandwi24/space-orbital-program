@@ -13,13 +13,13 @@
  * Key profiles (plan 216, ADR 0206): `ksp`, the default, follows KSP; `classic` keeps the keys of
  * Orbital before plan 216. A profile is a full default table; the player's overrides apply on top.
  */
-export type BindingMode = 'flight' | 'map' | 'vab' | 'carry' | 'eva';
+export type BindingMode = 'flight' | 'map' | 'vab' | 'carry' | 'tool' | 'eva';
 /**
  * Clash scopes. Map keys act only in the map with a node selected, before the flight keys, so they
  * may share keys with flight actions (plan 216: I is a node key and RCS translation). EVA keys act
  * while a suit has focus, instead of the flight keys (plan 225).
  */
-export type BindingScope = 'flight' | 'map' | 'vab' | 'carry' | 'eva';
+export type BindingScope = 'flight' | 'map' | 'vab' | 'carry' | 'tool' | 'eva';
 
 export const KEY_PROFILES = ['ksp', 'classic'] as const;
 export type KeyProfile = (typeof KEY_PROFILES)[number];
@@ -35,6 +35,7 @@ export const BINDING_MODE_LABEL: Record<BindingMode, string> = {
 	map: 'Map view',
 	vab: 'Vehicle assembly',
 	carry: 'Carrying a part (Hangar)',
+	tool: 'Move and rotate tools (Hangar)',
 	eva: 'On EVA'
 };
 
@@ -82,6 +83,18 @@ const carry = (id: string, label: string, ...defaults: string[]): ActionSpec => 
 	id,
 	mode: 'carry',
 	group: 'Carrying a part',
+	label,
+	defaults
+});
+
+/**
+ * Keys of the Hangar's Move and Rotate tools while a part is selected (plan 279, ADR 0258): they may
+ * share keys with `vab` and `carry`, as they act only while a tool is on.
+ */
+const tool = (id: string, label: string, ...defaults: string[]): ActionSpec => ({
+	id,
+	mode: 'tool',
+	group: 'Move and rotate tools',
 	label,
 	defaults
 });
@@ -210,6 +223,10 @@ export const ACTIONS = [
 	vab('subAssembly', 'Save the selection as a sub-assembly', 'KeyA'),
 	vab('frame', 'Frame the vessel', 'KeyF'),
 	vab('search', 'Search the catalogue', '/'),
+	vab('toolPlace', 'Tool: place and pick parts', 'Digit1'),
+	vab('toolMove', 'Tool: move the selected part (offset)', 'Digit2'),
+	vab('toolRotate', 'Tool: rotate the selected part', 'Digit3'),
+	vab('snapNodes', 'Snap to nodes on or off (off: any surface at the cursor)', 'KeyH'),
 	carry('pitchUp', 'Turn the carried part: pitch up', 'KeyW'),
 	carry('pitchDown', 'Turn the carried part: pitch down', 'KeyS'),
 	carry('rollLeft', 'Turn the carried part: roll left', 'KeyA'),
@@ -218,6 +235,14 @@ export const ACTIONS = [
 	carry('yawRight', 'Turn the carried part: yaw right', 'KeyE'),
 	carry('turnReset', 'Reset the turn of the carried part', 'Space'),
 	carry('angleSnap', 'Angle snap on or off', 'KeyC'),
+	tool('toolUp', 'Move up (+Y), or pitch (+X turn)', 'KeyW'),
+	tool('toolDown', 'Move down (-Y), or pitch back', 'KeyS'),
+	tool('toolLeft', 'Move left (-X), or roll (+Z turn)', 'KeyA'),
+	tool('toolRight', 'Move right (+X), or roll back', 'KeyD'),
+	tool('toolFore', 'Move forward (+Z), or yaw (+Y turn)', 'KeyQ'),
+	tool('toolAft', 'Move back (-Z), or yaw back', 'KeyE'),
+	tool('toolFrame', 'Local or absolute axes', 'KeyF'),
+	tool('toolReset', 'Reset the offset or the rotation', 'KeyR'),
 	eva('evaForward', 'Walk or fly forward (climb up a ladder)', 'KeyW'),
 	eva('evaBack', 'Walk or fly back (climb down a ladder)', 'KeyS'),
 	eva('evaLeft', 'Walk or fly left', 'KeyA'),
@@ -770,6 +795,28 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['yawLeft', 'yawRight'], text: 'Yaw it' },
 			{ actions: ['turnReset'], text: 'Reset its turn' },
 			{ actions: ['angleSnap'], text: 'Angle snap on or off' }
+		]
+	},
+	{
+		id: 'tool',
+		title: 'Move and rotate tools',
+		mode: 'tool',
+		rows: [
+			{ actions: ['toolPlace', 'toolMove', 'toolRotate'], text: 'Place, Move or Rotate tool' },
+			{
+				actions: ['toolUp', 'toolDown'],
+				text: 'Move: up, down 0.1 m (Shift 0.01 m). Rotate: pitch 15 degrees (Shift 5)'
+			},
+			{ actions: ['toolLeft', 'toolRight'], text: 'Move: left, right. Rotate: roll' },
+			{ actions: ['toolFore', 'toolAft'], text: 'Move: forward, back. Rotate: yaw' },
+			{ actions: ['toolFrame'], text: 'Local (the part’s) or absolute (the vessel’s) axes' },
+			{ actions: ['toolReset'], text: 'Reset the offset (Move) or the rotation (Rotate)' },
+			{
+				actions: [],
+				fixed: ['Drag'],
+				text: 'Drag an arrow or a ring of the gizmo (Shift: fine, Alt: no snap)'
+			},
+			{ actions: ['snapNodes'], text: 'Snap to nodes on or off: off places on any surface' }
 		]
 	},
 	{

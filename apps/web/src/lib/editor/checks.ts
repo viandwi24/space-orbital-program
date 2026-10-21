@@ -10,6 +10,7 @@ import {
 	type PartLookup
 } from '@orbital/core';
 import { stagingModelFromDesign, type ContentLookups } from '../delta-v';
+import { partsOffParent } from './bounds';
 import { groupActions } from './groups';
 import { isAutoStaged } from './staging';
 import type { EditorState } from './state';
@@ -32,6 +33,7 @@ export type CheckId =
 	| 'locked'
 	| 'over-capacity'
 	| 'size-mismatch'
+	| 'off-parent'
 	| 'no-crew'
 	| 'no-antenna'
 	| 'no-parachute';
@@ -277,6 +279,21 @@ export function checkDesign(
 					: `Size mismatch at ${mismatched.length} joints, such as a ${metres(first.child)} part on a ${metres(first.parent)} joint.`,
 			hint: 'Put an adapter between the two sizes, or pick a part of the same size.',
 			parts: mismatched.flatMap((m) => [m.index, m.parentIndex])
+		});
+	}
+	// free placement (plan 279, ADR 0258 point 4): a part may float off its parent; say so before launch
+	const off = design.freePlacement ? partsOffParent(design, content.parts as PartLookup) : [];
+	if (off.length > 0) {
+		out.push({
+			id: 'off-parent',
+			severity: 'warning',
+			level: 'caution',
+			text:
+				off.length === 1
+					? 'A part is not touching its parent.'
+					: `${off.length} parts are not touching their parents.`,
+			hint: 'Free mode lets parts float; they still fly as one rigid vessel. Move them back to look right.',
+			parts: off
 		});
 	}
 	if (loose.length > 0) {
