@@ -43,7 +43,7 @@
 	import Panel from '../../../lib/ui/Panel.svelte';
 	import { takeLaunchChoice } from '../../../lib/launch/launch-model';
 	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
-	import type { Command, WorldInfo } from '@orbital/core';
+	import type { WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
 	import { profileStore } from '../../../lib/achievements/store';
 	import type { CatchUp } from '../../../lib/worlds/world-model';
@@ -84,7 +84,15 @@
 	import { statusChips, type ChipFix } from '../../../lib/hud/status-chips';
 	import MapPickList from '../../../lib/hud/MapPickList.svelte';
 	import VesselMenuView from '../../../lib/hud/VesselMenu.svelte';
-	import { vesselMenu, vesselTooltip, type VesselMenu } from '../../../lib/vessel-menu';
+	import {
+		refreshVesselMenu,
+		runVesselMenuAction,
+		vesselMenu,
+		vesselTooltip,
+		type OpenVesselMenu,
+		type VesselMenu,
+		type VesselMenuAction
+	} from '../../../lib/vessel-menu';
 	import {
 		stackAt,
 		stackEntries,
@@ -209,7 +217,7 @@
 	let hoverAt = 0;
 	let downAt: { x: number; y: number } | null = null;
 	/** The vessel menu open at a canvas point, and the hover line over another vessel (plan 310). */
-	let vesselMenuAt = $state<{ menu: VesselMenu; x: number; y: number } | null>(null);
+	let vesselMenuAt = $state<OpenVesselMenu | null>(null);
 	let vesselHover = $state<{ label: string; x: number; y: number } | null>(null);
 	let vesselHoverAt = 0;
 	/** The menu for a vessel under a canvas point, or null. */
@@ -219,22 +227,35 @@
 		if (!hit || !input) return null;
 		return vesselMenu(input.snapshot, input.vessel?.id ?? null, hit.vessel, hit.part);
 	}
-	/** Re-read the open menu after a command (its target marks change). */
-	function refreshVesselMenu(): void {
-		const open = vesselMenuAt;
+	/** Read the open menu again: closed when its vessel is gone or is now the flown one. */
+	function rereadVesselMenu(): void {
 		const input = flight?.panelInput();
-		if (!open || !input) return;
-		const next = vesselMenu(
-			input.snapshot,
-			input.vessel?.id ?? null,
-			open.menu.vessel,
-			open.menu.focusPart
+		vesselMenuAt = refreshVesselMenu(
+			vesselMenuAt,
+			input?.snapshot ?? null,
+			input?.vessel?.id ?? null
 		);
-		vesselMenuAt = next ? { ...open, menu: next } : null;
 	}
-	function vesselCommand(command: Command): void {
-		void flight?.command(command).then(() => setTimeout(refreshVesselMenu, 150));
+	/** One menu action on the menu as it is now (a switch or decouple may have closed it). */
+	function vesselMenuAction(action: VesselMenuAction): void {
+		const open = vesselMenuAt;
+		const own = flight?.panelInput()?.vessel?.id ?? null;
+		const keep = runVesselMenuAction(open, own, action, {
+			switchVessel: (id) =>
+				void flight?.switchVessel(Number(id)).then((r) => {
+					if (!r.ok) notice = r.reason;
+				}),
+			command: (command) =>
+				void flight?.command(command).then(() => setTimeout(rereadVesselMenu, 150)),
+			focusPart: (part) => flight?.focusPart(part === null ? null : Number(part))
+		});
+		if (!keep) vesselMenuAt = null;
 	}
+	// the snapshot moves on (a decouple, a docking, a switch): the open menu follows or closes
+	$effect(() => {
+		void model;
+		untrack(rereadVesselMenu);
+	});
 	/**
 	 * A press on the canvas or a map layer (a camera drag, a node or handle drag) is under way: no text
 	 * selection may start until it ends, and one left from before is cleared (plan 293). The owner's
@@ -1487,43 +1508,16 @@
 		}}
 	></canvas>
 	{#if vesselMenuAt && !hud?.map}
-		{@const open = vesselMenuAt}
-		{@const own = flight?.panelInput()?.vessel?.id ?? null}
 		<VesselMenuView
-			menu={open.menu}
-			x={open.x}
-			y={open.y}
+			menu={vesselMenuAt.menu}
+			x={vesselMenuAt.x}
+			y={vesselMenuAt.y}
 			onclose={() => (vesselMenuAt = null)}
-			oncontrol={() => {
-				vesselMenuAt = null;
-				void flight?.switchVessel(Number(open.menu.vessel)).then((r) => {
-					if (!r.ok) notice = r.reason;
-				});
-			}}
-			ontarget={() => {
-				if (own === null) return;
-				vesselCommand({
-					type: 'target-set',
-					vessel: own,
-					target: { kind: 'vessel', id: open.menu.vessel }
-				});
-			}}
-			onport={(part) => {
-				if (own === null) return;
-				vesselCommand({
-					type: 'target-set',
-					vessel: own,
-					target: { kind: 'vessel', id: open.menu.vessel, part }
-				});
-			}}
-			onfocus={() => {
-				vesselMenuAt = null;
-				flight?.focusPart(open.menu.focusPart === null ? null : Number(open.menu.focusPart));
-			}}
-			onrename={(name) => {
-				vesselMenuAt = null;
-				vesselCommand({ type: 'rename-vessel', vessel: open.menu.vessel, name });
-			}}
+			oncontrol={() => vesselMenuAction({ kind: 'control' })}
+			ontarget={() => vesselMenuAction({ kind: 'target' })}
+			onport={(part) => vesselMenuAction({ kind: 'port', part })}
+			onfocus={() => vesselMenuAction({ kind: 'focus' })}
+			onrename={(name) => vesselMenuAction({ kind: 'rename', name })}
 		/>
 	{/if}
 	{#if vesselHover && !vesselMenuAt && !hud?.map}
