@@ -238,6 +238,8 @@ export class SceneModel {
 	private readonly pathDots: VesselMarker[] = [];
 	private readonly pathGhosts: Mesh[] = [];
 	private mapFocus: string | null = null;
+	/** The snapshot `sync` drew last: `warmViews` draws the other views of it (plan 340). */
+	private lastSnapshot: Snapshot | null = null;
 	/** Flight environment of the first body: planet pass, sun, sky, launch site (ADR 0027). */
 	readonly environment: Environment;
 	private readonly primaryBody: string | undefined;
@@ -1131,6 +1133,7 @@ export class SceneModel {
 
 	/** Brings the scene in line with `snapshot`. Call once per received snapshot. */
 	sync(snapshot: Snapshot): void {
+		this.lastSnapshot = snapshot;
 		const bodyWorld = new Map<string, Vec3>();
 		for (const b of snapshot.bodies) bodyWorld.set(b.id, b.position);
 
@@ -1348,6 +1351,14 @@ export class SceneModel {
 		// divides this out in its own shader, ADR 0068).
 		if (this.moonSunScale < 1) this.environment.sunLight.intensity *= this.moonSunScale;
 		this.updateEffects(dt, force);
+		const reveal = this.revealEffects;
+		if (reveal) {
+			this.effects.root.traverse((o) => {
+				if (o.visible) return;
+				o.visible = true;
+				reveal.push(o);
+			});
+		}
 	}
 
 	/**
@@ -1623,6 +1634,106 @@ export class SceneModel {
 	}
 	setSiteGhost(g: Parameters<LaunchSite['setGhost']>[0]): void {
 		this.environment.site.setGhost(g);
+	}
+
+	/**
+	 * Plan 340 (ADR 0290): the view state of a new scene again, for a page that takes the world's
+	 * shared renderer. The site's buildings and the vessels stay; they follow the world.
+	 */
+	/** The effect meshes `warmViews` showed for its flight frame (shown at the end of `prepareFrame`), or null. */
+	private revealEffects: Object3D[] | null = null;
+	private hideRevealed(): void {
+		for (const o of this.revealEffects ?? []) o.visible = false;
+		this.revealEffects = null;
+	}
+
+	resetView(): void {
+		this.setMapView(false);
+		this.siteView = false;
+		this.siteFocusNow = ZERO;
+		this.siteFocusTo = ZERO;
+		this.vesselCentre = ZERO;
+		this.mapScope = 'vessel';
+		this.mapFocus = null;
+		this.mapHighlight = null;
+		this.setMapLayers({ orbits: true });
+		this.setMapPath(null);
+		this.setRegionOverlay(null);
+		this.environment.site.setGhost(null);
+		this.highlightPart(null);
+		this.focusId = null;
+		this.focus = null;
+		this.cameraMode = 'free';
+		this.active = null;
+		this.lastFollowed = undefined;
+		this.flightRig = initialRig(25);
+		this.mapRig = initialRig(0);
+		this.insets = { top: 0, right: 0, bottom: 0, left: 0 };
+		this.insetTween = null;
+		this.applyViewOffset();
+		this.cameraDirty = true;
+	}
+
+	/**
+	 * Plan 340 (ADR 0290): draws one frame of each view a world session moves between, so three builds
+	 * their programs and pipelines now and not on the first switch: flight with every effect mesh shown,
+	 * map view in vessel and system scope, and site view. `draw` draws one frame of the scene as it is.
+	 * The view state is put back afterwards; nothing happens before the first `sync`.
+	 */
+	warmViews(draw: () => void): void {
+		const snap = this.lastSnapshot;
+		if (!snap) return;
+		const saved = {
+			map: this.map,
+			scope: this.mapScope,
+			site: this.siteView,
+			flightRig: this.flightRig,
+			mapRig: this.mapRig,
+			siteFocusNow: this.siteFocusNow,
+			siteFocusTo: this.siteFocusTo,
+			vesselCentre: this.vesselCentre
+		};
+		const views: Array<() => void> = [
+			() => {
+				this.setMapView(false);
+				this.siteView = false;
+				// the effect meshes are hidden until something burns or breaks: shown for this one frame
+				this.revealEffects = [];
+			},
+			() => {
+				this.hideRevealed();
+				this.setMapView(true);
+				this.mapScope = 'vessel';
+			},
+			() => {
+				this.mapScope = 'system';
+				this.mapRig = { ...this.mapRig, distance: 0 };
+			},
+			() => {
+				this.setMapView(false);
+				this.setSiteView(true);
+			}
+		];
+		try {
+			for (const view of views) {
+				view();
+				this.cameraDirty = true;
+				this.sync(snap);
+				draw();
+			}
+		} finally {
+			this.hideRevealed();
+			this.siteView = saved.site;
+			this.mapScope = saved.scope;
+			this.setMapView(saved.map);
+			this.flightRig = saved.flightRig;
+			this.mapRig = saved.mapRig;
+			this.siteFocusNow = saved.siteFocusNow;
+			this.siteFocusTo = saved.siteFocusTo;
+			this.vesselCentre = saved.vesselCentre;
+			this.cameraDirty = true;
+			this.sync(snap);
+		}
 	}
 
 	/** The site point (m east and north) under a CSS pixel of the viewport, or null. */

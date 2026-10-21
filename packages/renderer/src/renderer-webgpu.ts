@@ -367,6 +367,13 @@ export function createWebGPURenderer(
 				}
 			}
 			tracker.finish();
+			// plan 340 (ADR 0290): one frame of each view the world moves between (flight with its
+			// effects, map in vessel and system scope, the site), so no switch builds a pipeline later
+			tracker.setStage('warm');
+			tracker.expect(1);
+			await idle();
+			if (gpu) model.warmViews(() => drawFrame(0));
+			tracker.finish();
 			// the instanced vegetation of the other presets, a few milliseconds per idle period (ADR 0055)
 			tracker.setStage('vegetation');
 			const budgets = GRAPHICS_PRESETS.map((name) => ({

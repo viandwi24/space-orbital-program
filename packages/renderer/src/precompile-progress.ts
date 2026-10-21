@@ -3,7 +3,8 @@
  * shows as a badge. Pure, tested in Bun; `renderer.ts` feeds it.
  */
 
-export type PrecompileStage = 'programs' | 'maps' | 'vegetation' | 'done';
+/** In order; `warm` (plan 340) draws the session's views once, after which the world is ready to show. */
+export type PrecompileStage = 'programs' | 'warm' | 'maps' | 'vegetation' | 'done';
 
 export interface PrecompileProgress {
 	/** Units finished and expected so far; `total` can still grow while a stage is being planned. */
@@ -16,6 +17,7 @@ export interface PrecompileProgress {
 
 const LABELS: Record<PrecompileStage, string> = {
 	programs: 'Compiling graphics programs',
+	warm: 'Preparing views',
 	maps: 'Preparing terrain maps',
 	vegetation: 'Preparing scenery',
 	done: 'Graphics ready'

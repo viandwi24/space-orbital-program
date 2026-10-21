@@ -269,6 +269,12 @@ export interface Renderer {
 	/** Drop the bright flashes of explosions and separations (plan 246: prefers-reduced-motion). */
 	setReducedMotion(on: boolean): void;
 	/**
+	 * The view state of a new scene again (plan 340, ADR 0290): map and site views off, the map's
+	 * scope, focus, highlight, path, layers and region overlay, the ghost, the part focus, the camera
+	 * mode and both rigs. A page that takes the world's shared renderer calls it before it sets its mode.
+	 */
+	resetView(): void;
+	/**
 	 * Fraction (0.4 to 1) of the preset's drawing-buffer size the scene renders at; the browser scales
 	 * the canvas up. The quality governor's cheap knob (plan 039, ADR 0053): no shader recompile.
 	 */
@@ -501,6 +507,13 @@ export function createRenderer(config: RendererConfig): Renderer {
 			// about 10 s of the first frame on the M5, journal 038), and each job's state is put back at once
 			await Promise.all([first, ...jobs.map((job) => job())]);
 			compileTarget.dispose();
+			// plan 340 (ADR 0290): one frame of each view the world moves between (flight with its
+			// effects, map in vessel and system scope, the site), so no switch compiles a program later
+			tracker.setStage('warm');
+			tracker.expect(1);
+			await idle();
+			model.warmViews(() => drawFrame(0));
+			tracker.finish();
 			// the biome maps of the other presets, one per idle period: each takes up to a second to build
 			tracker.setStage('maps');
 			const widths = new Set(GRAPHICS_PRESETS.map((name) => PRESETS[name].mapWidth));
