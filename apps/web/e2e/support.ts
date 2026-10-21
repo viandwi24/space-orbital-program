@@ -65,9 +65,9 @@ export async function openDock(page: Page, id: string): Promise<void> {
 		await expect(panel.locator('[data-testid="vessel-part"]').first()).toBeAttached({
 			timeout: 30_000
 		});
-		await panel.locator('details').evaluateAll((all) =>
-			all.forEach((d) => ((d as HTMLDetailsElement).open = true))
-		);
+		await panel
+			.locator('details')
+			.evaluateAll((all) => all.forEach((d) => ((d as HTMLDetailsElement).open = true)));
 	}
 }
 
