@@ -182,7 +182,8 @@
 	import SaveDialog from '../../../lib/save/SaveDialog.svelte';
 	import { SaveController } from '../../../lib/save/save-controller.svelte';
 
-	let canvas: HTMLCanvasElement;
+	/** Where the world's shared canvas goes (plan 340, ADR 0290); its pointer events bubble here. */
+	let view: HTMLDivElement;
 	let hud = $state.raw<FlightHud | null>(null);
 	/** Progress of the renderer's background shader compile (plan 038), null until it reports. */
 	let graphics = $state.raw<PrecompileProgress | null>(null);
@@ -278,7 +279,7 @@
 	let mapPress = false;
 	function onPressCapture(e: PointerEvent): void {
 		const at = e.target instanceof Element ? e.target : null;
-		mapPress = at !== null && at.closest('.stage > canvas, .stage > .layer') !== null;
+		mapPress = at !== null && at.closest('.stage > .view, .stage > .layer') !== null;
 		if (mapPress) globalThis.getSelection?.()?.removeAllRanges();
 	}
 	/** The map's vessel points this frame: the others', and the target's under the key `target` (plan 270). */
@@ -645,7 +646,7 @@
 		const from = downAt;
 		downAt = null;
 		if (!from || hud?.map || Math.hypot(e.clientX - from.x, e.clientY - from.y) > 4) return;
-		const r = canvas.getBoundingClientRect();
+		const r = view.getBoundingClientRect();
 		const part = flight?.partAt(e.clientX - r.left, e.clientY - r.top) ?? null;
 		if (part !== null) {
 			inspect(part);
@@ -662,7 +663,7 @@
 			const now = performance.now();
 			if (now - hoverAt > 50) {
 				hoverAt = now;
-				const r = canvas.getBoundingClientRect();
+				const r = view.getBoundingClientRect();
 				const part = flight?.partAt(e.clientX - r.left, e.clientY - r.top) ?? null;
 				if (part !== hoverPart) {
 					hoverPart = part;
@@ -675,7 +676,7 @@
 			const now = performance.now();
 			if (now - vesselHoverAt > 100) {
 				vesselHoverAt = now;
-				const r = canvas.getBoundingClientRect();
+				const r = view.getBoundingClientRect();
 				const menu = menuAt(e.clientX - r.left, e.clientY - r.top);
 				vesselHover = menu ? { label: vesselTooltip(menu), x: e.clientX, y: e.clientY } : null;
 			}
@@ -684,7 +685,7 @@
 			regionHover = null;
 			return;
 		}
-		const r = canvas.getBoundingClientRect();
+		const r = view.getBoundingClientRect();
 		const label = flight?.regionLabelAt(e.clientX - r.left, e.clientY - r.top) ?? null;
 		regionHover = label ? { label, x: e.clientX, y: e.clientY } : null;
 	}
@@ -988,7 +989,7 @@
 		sync();
 		small.addEventListener('change', sync);
 		const started: Flight = startFlight({
-			canvas,
+			host: view,
 			design,
 			client,
 			...(resume ? { resume } : {}),
@@ -1572,8 +1573,11 @@
 />
 
 <div class="stage" class:bare={uiHidden} bind:this={stageEl}>
-	<canvas
-		bind:this={canvas}
+	<div
+		class="view"
+		role="application"
+		aria-label="Flight view"
+		bind:this={view}
 		onpointermove={onCanvasMove}
 		onpointerdown={onCanvasDown}
 		onpointerup={onCanvasUp}
@@ -1585,7 +1589,7 @@
 				flight?.highlightPart(null);
 			}
 		}}
-	></canvas>
+	></div>
 	{#if vesselMenuAt && !hud?.map}
 		<VesselMenuView
 			menu={vesselMenuAt.menu}
@@ -2176,11 +2180,10 @@
 		overflow: hidden;
 	}
 	/* F2 (plan 226): the canvas alone */
-	.stage.bare > :not(canvas) {
+	.stage.bare > :not(.view) {
 		display: none;
 	}
-	canvas {
-		display: block;
+	.view {
 		width: 100%;
 		height: 100%;
 		touch-action: none;
@@ -2189,7 +2192,7 @@
 	 * A drag on the map (the camera, a node handle) must not select page text: a selection that starts
 	 * on the canvas or on a map label runs over the labels and the top bar (plan 293).
 	 */
-	canvas,
+	.view,
 	.stage > :global(.layer) {
 		user-select: none;
 		-webkit-user-select: none;

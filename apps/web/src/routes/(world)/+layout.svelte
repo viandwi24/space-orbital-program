@@ -30,6 +30,8 @@
 	import Button from '../../lib/ui/Button.svelte';
 	import { createBellFeed } from '../../lib/layout/status-bar';
 	import { worldSession } from '../../lib/world-session';
+	import { WORLD_LOAD_STEPS, worldRenderer } from '../../lib/world-renderer.svelte';
+	import LoadingScreen from '../../lib/ui/LoadingScreen.svelte';
 	import { isTypingTarget } from '../../lib/typing-target';
 	import { WARP_STEPS, warpStepsFor } from '../../lib/warp';
 	import { bootWorld } from '../../lib/world-boot';
@@ -95,6 +97,29 @@
 	const inWorld = (path: string): boolean =>
 		IN_WORLD.some((p) => local(path) === p || local(path).startsWith(`${p}/`));
 	const place = $derived(PLACES[local(page.url.pathname)] ?? '');
+	/**
+	 * The pages that draw the world's shared 3D view (plan 340, ADR 0290): they wait behind the
+	 * world's loading screen until its renderer has warmed up and drawn a frame.
+	 */
+	const WORLD_VIEW = ['/flight', '/mission-center', '/space-center'];
+	const worldView = $derived(WORLD_VIEW.includes(local(page.url.pathname)));
+	let holder = $state<HTMLDivElement | null>(null);
+	$effect(() => {
+		worldRenderer.setHolder(holder);
+		return () => worldRenderer.setHolder(null);
+	});
+	const loadAt = $derived(WORLD_LOAD_STEPS.findIndex((s) => s.step === worldRenderer.step));
+	const loadSteps = $derived(
+		WORLD_LOAD_STEPS.map((s, i) => ({
+			label: s.label,
+			state: (i < loadAt ? 'done' : i === loadAt ? 'now' : 'todo') as 'done' | 'now' | 'todo'
+		}))
+	);
+	const loadFraction = $derived.by(() => {
+		const p = worldRenderer.progress;
+		if (worldRenderer.step !== 'programs' || !p || p.total === 0) return null;
+		return p.done / p.total;
+	});
 
 	const worldId = activeWorldId();
 	let lockState = $state<LockState>('asking');
@@ -351,8 +376,11 @@
 		lockState = lock.state;
 		const offLock = lock.onChange((s) => {
 			lockState = s;
-			// another tab took over: this one lets go of the sim
-			if (s === 'blocked') worldSession.end();
+			// another tab took over: this one lets go of the sim and of its renderer
+			if (s === 'blocked') {
+				worldSession.end();
+				worldRenderer.end();
+			}
 		});
 
 		let offClient: Array<() => void> = [];
@@ -365,6 +393,8 @@
 				.then((r) => (warpSteps = warpStepsFor(r.systemId)))
 				.catch(() => {});
 			if (!client) return;
+			// the world's one renderer starts and warms up with the world (plan 340, ADR 0290)
+			void worldRenderer.prepare(client).catch(() => {});
 			// the debug API on every in-world page (plan 203, from the layout since plan 205)
 			const host: DebugHost = {
 				snapshot: () => worldSession.snapshot,
@@ -530,6 +560,7 @@
 			worldSession.openWorldSettings = () => {};
 			fatalSave.current = null;
 			worldSession.end();
+			worldRenderer.end();
 		};
 	});
 
@@ -590,6 +621,18 @@
 	>
 		{@render children()}
 	</WorldShell>
+	<!-- the world's canvas between pages, drawing its warm-up while the loading screen shows (plan 340) -->
+	<div class="world-holder" bind:this={holder} aria-hidden="true"></div>
+	{#if worldView && !worldRenderer.ready}
+		<div class="world-loading" data-testid="world-loading">
+			<LoadingScreen
+				overlay
+				step={worldRenderer.error ?? WORLD_LOAD_STEPS[Math.max(0, loadAt)]!.label}
+				steps={loadSteps}
+				fraction={loadFraction}
+			/>
+		</div>
+	{/if}
 	{#if lessonNotice.reason && local(page.url.pathname) !== '/flight'}
 		<p class="lesson-notice" role="status" data-testid="lesson-notice">{lessonNotice.reason}</p>
 	{/if}
@@ -650,6 +693,18 @@
 {/if}
 
 <style>
+	.world-holder {
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		opacity: 0;
+		pointer-events: none;
+	}
+	.world-loading {
+		position: fixed;
+		inset: 0;
+		z-index: 90;
+	}
 	.blocked {
 		display: grid;
 		place-content: center;

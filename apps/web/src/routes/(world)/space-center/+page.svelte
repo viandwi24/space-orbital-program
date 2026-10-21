@@ -76,7 +76,8 @@
 	/** The site shown in the overlay (plan 128): the primary site, or a base on another body. */
 	let siteId = $state<string | null>(null);
 
-	let canvas: HTMLCanvasElement;
+	/** Where the world's shared canvas goes (plan 340, ADR 0290). */
+	let view: HTMLDivElement;
 	let center: SpaceCenter | null = null;
 	let worldId = activeWorldId();
 	let world = $state.raw<WorldInfo | undefined>(undefined);
@@ -428,7 +429,7 @@
 			if (gone) return;
 			if (world) registries = registriesOf(world);
 			center = startSpaceCenter({
-				canvas,
+				host: view,
 				client,
 				onSnapshot,
 				onFrame: (project) => {
@@ -454,7 +455,7 @@
 <svelte:window onkeydown={onKey} />
 
 <main class="page">
-	<canvas bind:this={canvas} data-testid="sc-canvas"></canvas>
+	<div class="view" bind:this={view} data-testid="sc-canvas"></div>
 	<SpaceCenterOverlay
 		bind:this={overlay}
 		onmark={markBuilding}
@@ -521,8 +522,7 @@
 		background: #000;
 		overflow: hidden;
 	}
-	canvas {
-		display: block;
+	.view {
 		width: 100%;
 		height: 100%;
 		touch-action: none;

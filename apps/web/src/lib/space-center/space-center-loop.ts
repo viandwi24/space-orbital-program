@@ -5,14 +5,14 @@
  * from what the page decides; the pointer's site point comes from `pick`.
  */
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
-import { createRenderer, type Renderer, type SiteBuildingView } from '@orbital/renderer';
-import { partShapesOf } from '../catalog';
-import { initialGraphicsPreset, rendererBackend } from '../graphics';
+import type { Renderer, SiteBuildingView } from '@orbital/renderer';
+import { worldRenderer } from '../world-renderer.svelte';
 import { startSimWorker } from '../sim-client';
 import { PerfSource, type PerfSample } from '../perf/perf-stats';
 
 export interface SpaceCenterOptions {
-	canvas: HTMLCanvasElement;
+	/** Where the world's canvas goes while the Space Center shows (plan 340, ADR 0290). */
+	host: HTMLElement;
 	world?: WorldInfo;
 	/** The world's newest save, resumed so its funds, day and crew are the world's (plan 096, ADR 0123). */
 	resume?: SimSave;
@@ -45,7 +45,7 @@ export interface SpaceCenter {
 }
 
 export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
-	const { canvas } = options;
+	const canvas = worldRenderer.canvas;
 	// the world's one sim when the page has it (plan 204, ADR 0201), else a Worker of its own
 	const ownsClient = options.client === undefined;
 	const client =
@@ -136,33 +136,14 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 	canvas.addEventListener('pointerup', onUp);
 	canvas.addEventListener('wheel', onWheel, { passive: false });
 
+	// the world's renderer (plan 340, ADR 0290): the canvas moves here now; no device, bake or
+	// shader is built for this page
+	const acquired = worldRenderer.acquire(options.host, client);
 	client.ready.then(
-		async (c) => {
-			const backend = await rendererBackend();
-			if (disposed) return;
-			renderer = createRenderer({
-				backend,
-				canvas,
-				// the home body has the planet pass (plan 122, ADR 0119)
-				...(c.home ? { home: c.home } : {}),
-				...(c.bodyTerrain ? { bodyTerrain: c.bodyTerrain } : {}),
-				bodies: [...c.bodies]
-					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
-					.map((b) => ({
-						id: b.id,
-						radius: b.radius,
-						mass: b.mass,
-						atmosphere: b.atmosphere,
-						...(b.terrain ? { terrain: b.terrain } : {}),
-						...(b.star ? { star: true } : {}),
-						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
-					})),
-				partShapes: partShapesOf(c),
-				preset: initialGraphicsPreset(),
-				siteBuildings: true,
-				...(c.terrain ? { terrain: c.terrain } : {}),
-				...(c.launchSite ? { launchSite: c.launchSite } : {})
-			});
+		async () => {
+			const shared = await acquired.catch(() => null);
+			if (disposed || !shared) return;
+			renderer = shared;
 			renderer.setSiteView(true);
 			if (pending) renderer.setSiteBuildings(pending.list, pending.roads);
 			renderer.setSiteGhost(ghost);
@@ -204,7 +185,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 			canvas.removeEventListener('pointermove', onMove);
 			canvas.removeEventListener('pointerup', onUp);
 			canvas.removeEventListener('wheel', onWheel);
-			renderer?.dispose();
+			worldRenderer.release(options.host);
 			offError();
 			if (ownsClient) client.dispose();
 		}

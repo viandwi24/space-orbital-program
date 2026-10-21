@@ -71,7 +71,8 @@
 	import { siteRows } from '../../../lib/space-center/branch-model';
 	import { sitesOf, type Site } from '@orbital/core';
 
-	let canvas: HTMLCanvasElement;
+	/** Where the world's shared canvas goes (plan 340, ADR 0290). */
+	let view: HTMLDivElement;
 	let mc: MissionCenter | null = null;
 	let bodies = $state.raw<BodyDefinition[]>([]);
 	let parts = $state.raw<PartDefinition[]>([]);
@@ -383,7 +384,7 @@
 			// the vessel last flown in this world, or the boot save's (the map's active vessel)
 			focus = worldSession.focus?.vessel ?? worldSession.base?.focus ?? null;
 			mc = startMissionCenter({
-				canvas,
+				host: view,
 				client,
 				focus,
 				onReady: (c) => {
@@ -412,7 +413,7 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && select(null)} />
 
 <main class="page">
-	<canvas bind:this={canvas} data-testid="mc-canvas"></canvas>
+	<div class="view" bind:this={view} data-testid="mc-canvas"></div>
 	<MissionCenterOverlay
 		perf={settings.ui.perfOverlay ? () => mc?.perfSample() ?? null : null}
 		{worldName}
@@ -511,8 +512,7 @@
 		background: #000;
 		overflow: hidden;
 	}
-	canvas {
-		display: block;
+	.view {
 		width: 100%;
 		height: 100%;
 		touch-action: none;

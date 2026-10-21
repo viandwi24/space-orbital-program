@@ -40,7 +40,6 @@ import {
 import {
 	CAMERA_MODE_LABEL,
 	QualityGovernor,
-	createRenderer,
 	sceneKeyOf,
 	nextCameraMode,
 	type CameraMode,
@@ -55,15 +54,13 @@ import { isOwnTouchdown } from './touchdown-cue';
 import * as throttleRetry from './throttle-retry';
 import { isTypingTarget } from './typing-target';
 import { dropStaleModifiers } from './held-modifiers';
-import { partShapesOf } from './catalog';
-import { modelProviders } from './mods/asset-models';
+import { worldRenderer } from './world-renderer.svelte';
 import { pinchZoomFactor } from './touch/touch-model';
 import {
 	clearGraphicsPreset,
 	initialGraphicsPreset,
 	loadAutoQuality,
 	probeCapabilities,
-	rendererBackend,
 	resolvePreset,
 	saveAutoQuality,
 	saveGraphicsPreset
@@ -205,7 +202,8 @@ export function drivable(snap: Snapshot, vessel: EntityId, telemetry: Telemetry 
 }
 
 export interface FlightOptions {
-	canvas: HTMLCanvasElement;
+	/** Where the world's shared canvas goes while Flight shows (plan 340, ADR 0290). */
+	host: HTMLElement;
 	design: VesselDesign;
 	/** Parts, modules and resources for the HUD's stage maths (plan 021). */
 	content: ContentLookups;
@@ -444,7 +442,7 @@ const ordinal = (n: number): string => {
 };
 
 export function startFlight(options: FlightOptions): Flight {
-	const { canvas } = options;
+	const canvas = worldRenderer.canvas;
 	/** The flown vessel's design (plan 221): the launch design, or the record of a vessel switched to. */
 	let design = options.design;
 	const de440 = options.ephemeris ? { ephemeris: options.ephemeris } : {};
@@ -1745,6 +1743,8 @@ export function startFlight(options: FlightOptions): Flight {
 			publish();
 		})
 	);
+	// the canvas moves into Flight's host now; the renderer comes with the world (plan 340)
+	const acquired = worldRenderer.acquire(options.host, client);
 	client.ready.then(
 		async (c) => {
 			if (disposed) return;
@@ -1770,39 +1770,12 @@ export function startFlight(options: FlightOptions): Flight {
 				c,
 				resumed ? { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } : undefined
 			);
-			const backend = await rendererBackend();
-			if (disposed) return;
-			renderer = createRenderer({
-				backend,
-				canvas,
-				// the home body has the planet pass (plan 122, ADR 0119)
-				...(c.home ? { home: c.home } : {}),
-				...(c.bodyTerrain ? { bodyTerrain: c.bodyTerrain } : {}),
-				// The root body first (the tree's order; `home` names the body with the planet pass);
-				// a moon's `parent` and `orbit` let the map view draw its orbit and sphere (plan 044).
-				bodies: [...c.bodies]
-					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
-					.map((b) => ({
-						id: b.id,
-						radius: b.radius,
-						mass: b.mass,
-						atmosphere: b.atmosphere,
-						// the kind of ground each body is drawn with (plan 052, ADR 0067)
-						...(b.terrain ? { terrain: b.terrain } : {}),
-						...(b.star ? { star: true } : {}),
-						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
-					})),
-				partShapes: partShapesOf(c),
-				partVisuals: new Map(c.parts.flatMap((p) => (p.visual ? [[p.id, p.visual] as const] : []))),
-				partAttach: new Map(c.parts.flatMap((p) => (p.attach ? [[p.id, p.attach] as const] : []))),
-				partProviders: modelProviders(),
-				preset: initialGraphicsPreset(),
-				// the world's terrain and Space Center (plan 084, ADR 0142)
-				...(c.terrain ? { terrain: c.terrain } : {}),
-				...(c.launchSite ? { launchSite: c.launchSite } : {}),
-				// the player's own buildings at the site (ADR 0117), not the hard-coded layout
-				...(options.buildings ? { siteBuildings: true } : {})
-			});
+			// the world's renderer (plan 340, ADR 0290): built and warmed up when the world loaded
+			const shared = await acquired.catch(() => null);
+			if (disposed || !shared) return;
+			renderer = shared;
+			// the page may have set them before the renderer came
+			renderer.setViewInsets(viewInsets);
 			homeBody = c.home ?? homeOfCatalog(c)?.id;
 			if (snap) showSite(snap);
 			// no bright flashes while the system asks for reduced motion (plan 246)
@@ -2303,7 +2276,7 @@ export function startFlight(options: FlightOptions): Flight {
 			canvas.removeEventListener('pointercancel', onPointerUp);
 			canvas.removeEventListener('pointermove', onPointerMove);
 			canvas.removeEventListener('wheel', onWheel);
-			renderer?.dispose();
+			worldRenderer.release(options.host);
 			setGlassFallback(document.documentElement, false);
 			for (const off of offClient) off();
 			if (ownsClient) {

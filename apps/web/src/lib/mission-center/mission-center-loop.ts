@@ -1,6 +1,6 @@
 /**
  * The Mission Center's runtime (plan 113, ADR 0118): a sim Worker from the world's save (or its
- * start info), the renderer in map view with the system scope, drag to orbit, wheel to zoom, and
+ * start info), the world's shared renderer (plan 340, ADR 0290) in map view with the system scope, drag to orbit, wheel to zoom, and
  * each frame a projection for the overlay's labels and network lines. A click is handed to the page,
  * which picks with `map-pick.ts`.
  */
@@ -13,15 +13,15 @@ import type {
 	Vec3,
 	WorldInfo
 } from '@orbital/core';
-import { createRenderer, type Renderer } from '@orbital/renderer';
-import { partShapesOf } from '../catalog';
+import type { Renderer } from '@orbital/renderer';
 import type { Catalog } from '../messages';
-import { initialGraphicsPreset, rendererBackend } from '../graphics';
+import { worldRenderer } from '../world-renderer.svelte';
 import { startSimWorker } from '../sim-client';
 import { PerfSource, type PerfSample } from '../perf/perf-stats';
 
 export interface MissionCenterOptions {
-	canvas: HTMLCanvasElement;
+	/** Where the world's canvas goes while the Mission Center shows (plan 340). */
+	host: HTMLElement;
 	resume?: SimSave;
 	world?: WorldInfo;
 	/** The world's running sim (plan 204): used instead of a Worker of its own, and left running. */
@@ -53,7 +53,7 @@ export interface MissionCenter {
 }
 
 export function startMissionCenter(options: MissionCenterOptions): MissionCenter {
-	const { canvas } = options;
+	const canvas = worldRenderer.canvas;
 	// the world's one sim when the page has it (plan 204, ADR 0201), else a Worker of its own
 	const ownsClient = options.client === undefined;
 	const client =
@@ -132,32 +132,14 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 	canvas.addEventListener('pointerup', onUp);
 	canvas.addEventListener('wheel', onWheel, { passive: false });
 
+	// the world's renderer (plan 340, ADR 0290): the canvas moves here now; no device, bake or
+	// shader is built for this page
+	const acquired = worldRenderer.acquire(options.host, client);
 	client.ready.then(
 		async (c) => {
-			const backend = await rendererBackend();
-			if (disposed) return;
-			renderer = createRenderer({
-				backend,
-				canvas,
-				// the home body has the planet pass (plan 122, ADR 0119)
-				...(c.home ? { home: c.home } : {}),
-				...(c.bodyTerrain ? { bodyTerrain: c.bodyTerrain } : {}),
-				bodies: [...c.bodies]
-					.sort((x, y) => Number(x.parent !== undefined) - Number(y.parent !== undefined))
-					.map((b) => ({
-						id: b.id,
-						radius: b.radius,
-						mass: b.mass,
-						atmosphere: b.atmosphere,
-						...(b.terrain ? { terrain: b.terrain } : {}),
-						...(b.star ? { star: true } : {}),
-						...(b.parent !== undefined && b.orbit ? { parent: b.parent, orbit: b.orbit } : {})
-					})),
-				partShapes: partShapesOf(c),
-				preset: initialGraphicsPreset(),
-				...(c.terrain ? { terrain: c.terrain } : {}),
-				...(c.launchSite ? { launchSite: c.launchSite } : {})
-			});
+			const shared = await acquired.catch(() => null);
+			if (disposed || !shared) return;
+			renderer = shared;
 			renderer.setMapView(true);
 			renderer.setMapScope('system');
 			if (options.focus !== null) renderer.setActiveVessel(options.focus as EntityId);
@@ -207,7 +189,7 @@ export function startMissionCenter(options: MissionCenterOptions): MissionCenter
 			canvas.removeEventListener('pointermove', onMove);
 			canvas.removeEventListener('pointerup', onUp);
 			canvas.removeEventListener('wheel', onWheel);
-			renderer?.dispose();
+			worldRenderer.release(options.host);
 			offError();
 			if (ownsClient) client.dispose();
 		}
