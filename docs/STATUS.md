@@ -269,6 +269,7 @@
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 | 330 | [Docking blueprints, Auto Dock fly-around, logs, options and mod panel UI](plans/330-docking-blueprints-auto-dock-fly-around-and-panels.md) | done | auto dock session | ADR 0285. Blueprint audit and fixes, docked ports snap face to face, Auto Dock flies round to the axis with options, a log and an alignment display; mod panels get `select` and their own UI in a sandboxed frame. Journal 330. Local commits dee491dc and 09462b18 say "plan 321": the number was taken while they were written. |
 | 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | done | rendezvous session | ADR 0286. `guidance.rendezvous` flies from anywhere in orbit to 100–200 m of a target at rest (plane, phasing or Hohmann, correction, match, close, hold), with a Rendezvous panel and a hand-over to Auto Dock; the pilot gets `warpTo`, `engage`, `propellantMass` (API 0.1.103). Journal 331. |
+| 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | in-progress | rendezvous session | ADR 0287. A tab per program; new panel nodes tabs, progress, number, notice. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
