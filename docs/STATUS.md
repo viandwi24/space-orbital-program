@@ -227,7 +227,7 @@
 | 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | done | worker (Claude) | ADR 0258, API 0.1.97: design format 4 (`offset`, `freePlacement`); Move (2) and Rotate (3) tools on W/S A/D Q/E with F axes and R reset, a draggable gizmo, snap-to-nodes toggle (H), free mode with an off-parent launch warning; ports tilted 90° dock in a sim test. Leftovers in 301. Journal 279. |
 | 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
 | 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
-| 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | ADR 0262 (gated by a spike): spike 288 no-go, ADR 0265 proposed. |
+| 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | Superseded for robotics: built as plan 306 (ADR 0269: kinematic joints). The sequencer and alligator hinges stay here as ideas. |
 | 283 | [Rovers: suspension, wheels, cab, seat, scanning arms, drill](plans/283-rover-and-arms.md) | draft | — | ADRs 0262, 0264. |
 | 284 | [EVA inventory and deployed science stations](plans/284-eva-inventory-and-deployed-science.md) | draft | — | ADR 0264. |
 | 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | draft | — | ADR 0263. |
@@ -251,6 +251,7 @@
 | 303 | [Mission parts batch: 59 parts and six mission blueprints](plans/303-mission-parts-and-blueprints.md) | done | part visuals session | Owner: all parts now, short tests. Remainders stay in 276, 280, 281, 286, 295–300. Journal 303. |
 | 304 | [Hangar free placement follow-ups: the root part, plane handles, e2e](plans/304-hangar-free-placement-follow-ups.md) | draft | — | Left by 279 (ADR 0258). |
 | 305 | [English in-game text: nicknames, blueprint names, a guard test](plans/305-english-in-game-text.md) | done | part visuals session | ADR 0268 (owner: the game is global). Journal 305. |
+| 306 | [Robotics: kinematic hinges, servos, rotors and pistons](plans/306-robotics-kinematic-joints.md) | done | part visuals session | ADR 0269 supersedes 0262 points 1, 2, 5, 7 and 0265: joints re-pose parts inside the one body, rebuilt at most 10 Hz; 7 parts; limit 4 in series, 16 per vessel. Journal 306. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
@@ -318,6 +319,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [306 — Robotics: kinematic joints](journal/306-robotics-kinematic-joints.md)
 - [305 — English in-game text](journal/305-english-in-game-text.md)
 - [303 — The mission parts batch and six mission blueprints](journal/303-mission-parts-and-blueprints.md)
 - [302 — Part-support modules](journal/302-part-support-modules.md)

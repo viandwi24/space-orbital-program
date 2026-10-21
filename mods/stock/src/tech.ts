@@ -369,8 +369,20 @@ export const STOCK_TECH = [
 		requires: ['stock.life-support'],
 		milestone: 'landing:stock.cinder',
 		description:
-			'A base kit to found a site on another body, and a drill for its outposts (plan 128).',
-		unlocks: ['stock.base-kit', 'stock.drill', 'stock.rover-cab']
+			'A base kit to found a site on another body, a drill for its outposts (plan 128), and hinges, servos, rotors and pistons (plan 306).',
+		unlocks: [
+			'stock.base-kit',
+			'stock.drill',
+			'stock.rover-cab',
+			// plan 306: robotics
+			'stock.hinge-s',
+			'stock.hinge-m',
+			'stock.servo-s',
+			'stock.servo-m',
+			'stock.rotor-s',
+			'stock.piston-s',
+			'stock.piston-m'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.nuclear-power',

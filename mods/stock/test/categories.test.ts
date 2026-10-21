@@ -5,7 +5,7 @@ import Stock, { STOCK_CATEGORIES } from '../src/index.ts';
 import { STOCK_BUILDING_CATEGORIES } from '../src/categories.ts';
 
 describe('stock categories', () => {
-	test('stock alone gives exactly the nine part categories, in the rail order, Other last', () => {
+	test('stock alone gives exactly the ten part categories, in the rail order, Other last', () => {
 		const { registries } = loadPlugins([Stock]);
 		const parts = registries.categories.list().filter((c) => scopeOf(c) === 'parts');
 		expect(sortCategories(parts).map((c) => c.id)).toEqual([
@@ -17,6 +17,7 @@ describe('stock categories', () => {
 			'stock.control',
 			'stock.landing',
 			'stock.thermal',
+			'stock.robotics',
 			'stock.other'
 		]);
 		expect(parts).toHaveLength(STOCK_CATEGORIES.length);

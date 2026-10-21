@@ -23,6 +23,7 @@ import { antennaDish, antennaRelay, antennaWhip, container, instrument } from '.
 import { coupler, hub, lattice, petals, serviceBay, truss } from './bays.ts';
 import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
 import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
+import { hingeJoint, pistonJoint, rotaryJoint } from './robotic.ts';
 import {
 	ascentCabin,
 	boom,
@@ -121,6 +122,10 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('delta-wing', deltaWing);
 	registerPartGenerator('external-tank', externalTank);
 	registerPartGenerator('escape-tower', escapeTower);
+	// plan 306: robotics
+	registerPartGenerator('hinge-joint', hingeJoint);
+	registerPartGenerator('rotary-joint', rotaryJoint);
+	registerPartGenerator('piston-joint', pistonJoint);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

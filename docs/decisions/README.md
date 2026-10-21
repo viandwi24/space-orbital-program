@@ -261,7 +261,8 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0262 | [Robotics: rigid groups joined by motored Rapier joints](0262-robotics-articulated-vessels.md) | accepted | 2026-10-21 |
 | 0263 | [Blueprints are mod content, shown in one Library](0263-blueprints-are-mod-content-in-one-library.md) | accepted | 2026-10-21 |
 | 0264 | [EVA inventory and deployed science stations](0264-eva-inventory-and-deployed-science.md) | accepted | 2026-10-21 |
-| 0265 | [Robotics after the joint spike: impulse joints for short chains, sub-stepping for robotic vessels, kinematic poses for long arms](0265-robotics-short-impulse-chains-kinematic-arms.md) | proposed | 2026-10-21 |
+| 0265 | [Robotics after the joint spike: impulse joints for short chains, sub-stepping for robotic vessels, kinematic poses for long arms](0265-robotics-short-impulse-chains-kinematic-arms.md) | superseded by 0269 | 2026-10-21 |
 | 0266 | [Map paths are drawn in the frames of the bodies now; spheres of influence on demand](0266-map-paths-drawn-in-body-frames-and-soi-on-demand.md) | accepted | 2026-10-21 |
 | 0267 | [The map's filters and Regions in one row; the maneuver card on staging at the right](0267-map-toolbar-one-row-and-maneuver-card-on-staging.md) | accepted | 2026-10-21 |
 | 0268 | [In-game text is English; part nicknames are English words](0268-in-game-text-is-english.md) | accepted | 2026-10-21 |
+| 0269 | [Robotics as built: kinematic joints inside the vessel's one body](0269-robotics-kinematic-joints-in-one-body.md) | accepted | 2026-10-21 |

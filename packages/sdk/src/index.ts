@@ -172,6 +172,7 @@ export type {
 	LoadReport,
 	LoadResult,
 	ModuleCollider,
+	JointSpec,
 	WheelSpec,
 	ModuleContext,
 	ModuleDefinition,

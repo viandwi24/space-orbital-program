@@ -85,6 +85,7 @@ import { holdWarpLimit, thawFrozen } from './warp.ts';
 import { fireAlarms, followAlarms, freshAlarms, nextAlarm } from './alarms.ts';
 import { designRecord, type DesignRecord } from './vessel-design.ts';
 import { capturePorts, pullPorts, wakePortNeighbours } from './docking.ts';
+import { stepJoints } from './robotics.ts';
 import { runTransfers, updateRates } from './transfer.ts';
 import { spawnQueuedDebris } from './debris.ts';
 
@@ -506,6 +507,7 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 		processPending(core);
 		spawnQueuedDebris(core); // thrown-off pieces after the splits (plan 219)
 		capturePorts(core);
+		stepJoints(core); // robotic joints re-pose their parts (plan 306, ADR 0269)
 		stepRailsVessels(dt);
 		core.t += dt;
 		rebaseAll(dt);

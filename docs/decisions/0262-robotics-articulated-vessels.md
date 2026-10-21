@@ -1,6 +1,7 @@
 # 0262 — Robotics: a vessel splits into rigid groups at robotic joints, joined by motored Rapier joints
 
 **Status:** accepted with a gate (CTO call delegated by the owner, 2026-10-21): plan 282 starts with a spike. If the spike misses its numbers, a new ADR supersedes this one before any robotics part ships.
+**Superseded in part (2026-10-21):** points 1, 2, 5 and 7 by [ADR 0269](0269-robotics-kinematic-joints-in-one-body.md) (kinematic joints inside the one body, plan 306).
 **Gate result (plan 288, 2026-10-21):** no-go as written. Multibody joints have no motors in Rapier 0.21 JS, and a 6-joint impulse chain sags and costs 5–6× at our step. [ADR 0265](0265-robotics-short-impulse-chains-kinematic-arms.md) (proposed) would supersede points 2 and 7.
 **Date:** 2026-10-21
 **Plan:** plans/282-robotics-articulated-vessels.md, plans/283-rover-and-arms.md

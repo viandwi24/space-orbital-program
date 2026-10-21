@@ -61,7 +61,8 @@ import {
 	STOCK_DOCKING_PARTS,
 	STOCK_CONE_PARTS,
 	STOCK_SIZE_CLASS_PARTS,
-	STOCK_MISSION_PARTS
+	STOCK_MISSION_PARTS,
+	STOCK_ROBOTIC_PARTS
 } from './parts/index.ts';
 import {
 	Ablator,
@@ -94,6 +95,7 @@ import { PanelScience } from './panels.ts';
 import { ModuleLight } from './lights.ts';
 import { ModuleRtg, ModuleSolarPanel } from './solar.ts';
 import { ModuleAnimate, ModuleBay, ModuleFuelCell } from './animate.ts';
+import { ModuleRobotic } from './robotics.ts';
 import { ModuleRcs } from './rcs.ts';
 import { ModuleDockingPort } from './docking.ts';
 import { ModuleParachute } from './parachute.ts';
@@ -147,6 +149,7 @@ export const Stock = definePlugin({
 		ctx.modules.register(ModuleAnimate);
 		ctx.modules.register(ModuleBay);
 		ctx.modules.register(ModuleFuelCell);
+		ctx.modules.register(ModuleRobotic);
 		ctx.modules.register(ModuleRtg);
 		ctx.modules.register(ModuleLight);
 		ctx.modules.register(ModuleRcs);
@@ -250,6 +253,7 @@ export const Stock = definePlugin({
 		for (const part of STOCK_SIZE_CLASS_PARTS) ctx.parts.register(part);
 		// the parts of the famous-mission blueprints (plans 276, 280, 281, 295–300)
 		for (const part of STOCK_MISSION_PARTS) ctx.parts.register(part);
+		for (const part of STOCK_ROBOTIC_PARTS) ctx.parts.register(part);
 		ctx.commodities.register(CommodityIce);
 		ctx.recipes.register(RecipeIceElectrolysis);
 		for (const building of STOCK_BUILDINGS) ctx.buildings.register(building);

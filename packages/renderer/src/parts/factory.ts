@@ -20,6 +20,7 @@ import { LampEffect, createLensGeometry } from '../effects/lamp.ts';
 import { RcsPuffs, createPuffGeometry, createPuffMaterial } from '../effects/rcs-puff.ts';
 import {
 	articulationRotation,
+	articulationLift,
 	articulationScale,
 	articulationValue,
 	type ArticulationSpec
@@ -94,6 +95,7 @@ class ProceduralModel implements PartModel {
 	private movingMesh: Mesh | null = null;
 	private readonly dynamic: DynamicPart | null;
 	private readonly pivot: Object3D | null = null;
+	private pivotY = 0;
 	private readonly articulation: ArticulationSpec | undefined;
 	private readonly plume: PlumeEffect | null;
 	private readonly deploy: PartVisual['deploy'];
@@ -142,6 +144,7 @@ class ProceduralModel implements PartModel {
 			this.pivot = new Object3D();
 			this.pivot.name = 'pivot';
 			this.pivot.position.set(pivotAt[0], pivotAt[1], pivotAt[2]);
+			this.pivotY = pivotAt[1];
 			const moving = new Mesh(
 				template.moving.geometry,
 				template.moving.slots.map((s) => materials.get(s, visual.palette))
@@ -233,6 +236,7 @@ class ProceduralModel implements PartModel {
 			const r = articulationRotation(this.articulation.mode, value);
 			this.pivot.rotation.set(r.x, r.y, r.z);
 			this.pivot.scale.y = articulationScale(this.articulation.mode, value);
+			this.pivot.position.y = this.pivotY + articulationLift(this.articulation.mode, value);
 			// hidden only by an explicit false: the Hangar's models have no module state
 			if (this.articulation.mode === 'visible') this.pivot.visible = value !== false;
 		}

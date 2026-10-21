@@ -36,7 +36,8 @@ export type CheckId =
 	| 'off-parent'
 	| 'no-crew'
 	| 'no-antenna'
-	| 'no-parachute';
+	| 'no-parachute'
+	| 'robotics';
 
 /** The stock group parachutes put their deploy switch in: how the report knows a part is one. */
 export const PARACHUTE_GROUP = 'stock.parachutes';
@@ -57,6 +58,10 @@ export interface Check {
 
 /** Below this liftoff TWR the verdict is caution (ADR 0148 point 1). */
 export const MARGINAL_TWR = 1.2;
+
+/** Robotic joints (plan 306, ADR 0269 point 6): most in series from the root, most per vessel. */
+export const MAX_JOINTS_IN_SERIES = 4;
+export const MAX_JOINTS = 16;
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
@@ -295,6 +300,38 @@ export function checkDesign(
 			hint: 'Free mode lets parts float; they still fly as one rigid vessel. Move them back to look right.',
 			parts: off
 		});
+	}
+	const robotic = new Set(
+		design.parts
+			.filter((p) =>
+				(content.parts.get(p.part)?.modules ?? []).some(
+					([id]) => content.modules.get(id)?.joint !== undefined
+				)
+			)
+			.map((p) => p.index)
+	);
+	if (robotic.size > 0) {
+		const byIndex = new Map(design.parts.map((p) => [p.index, p]));
+		const chain = (index: number): number => {
+			let n = 0;
+			for (let p = byIndex.get(index); p; p = p.parent ? byIndex.get(p.parent.index) : undefined)
+				if (robotic.has(p.index)) n++;
+			return n;
+		};
+		const deep = [...robotic].filter((i) => chain(i) > MAX_JOINTS_IN_SERIES);
+		if (robotic.size > MAX_JOINTS || deep.length > 0) {
+			out.push({
+				id: 'robotics',
+				severity: 'error',
+				level: 'no-go',
+				text:
+					robotic.size > MAX_JOINTS
+						? `${robotic.size} robotic parts: a vessel takes ${MAX_JOINTS}.`
+						: `More than ${MAX_JOINTS_IN_SERIES} robotic parts in a row.`,
+				hint: `At most ${MAX_JOINTS_IN_SERIES} hinges, servos, rotors or pistons one after another, and ${MAX_JOINTS} on a vessel.`,
+				parts: robotic.size > MAX_JOINTS ? [...robotic] : deep
+			});
+		}
 	}
 	if (loose.length > 0) {
 		const n = loose.reduce((m, a) => m + a.parts.length, 0);

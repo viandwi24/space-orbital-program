@@ -3,7 +3,7 @@
  * thrust vector, a control surface turns about its span. Pure maths so it can be tested without a GPU.
  */
 
-export type ArticulationMode = 'gimbal' | 'hinge' | 'extend' | 'visible';
+export type ArticulationMode = 'gimbal' | 'hinge' | 'extend' | 'visible' | 'spin' | 'slide';
 
 export interface ArticulationSpec {
 	module: string;
@@ -26,8 +26,9 @@ const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFi
  * missing or malformed value is the rest pose.
  */
 export function articulationRotation(mode: ArticulationMode, value: unknown): EulerXYZ {
-	if (mode === 'extend' || mode === 'visible') return { x: 0, y: 0, z: 0 };
+	if (mode === 'extend' || mode === 'visible' || mode === 'slide') return { x: 0, y: 0, z: 0 };
 	if (mode === 'hinge') return { x: finite(value) ? value : 0, y: 0, z: 0 };
+	if (mode === 'spin') return { x: 0, y: finite(value) ? value : 0, z: 0 };
 	if (Array.isArray(value) && finite(value[0]) && finite(value[1])) {
 		return { x: value[1], y: 0, z: 0 - value[0] };
 	}
@@ -41,6 +42,11 @@ export function articulationRotation(mode: ArticulationMode, value: unknown): Eu
 export function articulationScale(mode: ArticulationMode, value: unknown): number {
 	if (mode !== 'extend') return 1;
 	return finite(value) ? Math.max(0.01, value) : 0.01;
+}
+
+/** How far the moving group slides up Y, m: `slide` by the snapshot's length (plan 306), else 0. */
+export function articulationLift(mode: ArticulationMode, value: unknown): number {
+	return mode === 'slide' && finite(value) ? value : 0;
 }
 
 /** Reads the field the spec names from a part's module snapshots. */

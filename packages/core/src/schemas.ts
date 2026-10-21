@@ -365,13 +365,14 @@ export const partVisualSchema = z.object({
 	 * reads `[towardX, towardZ]` thrust tilt angles in rad, `hinge` one angle about the part's X axis,
 	 * `extend` a length in m that stretches the moving piece (built 1 m long, down from its pivot)
 	 * along -Y (plan 210: a launch clamp's tower down to the pad), `visible` shows the moving piece
-	 * while the value is truthy (plan 219: a fairing shell until it is thrown off).
+	 * while the value is truthy (plan 219: a fairing shell until it is thrown off), `spin` turns it
+	 * about Y by an angle in rad and `slide` moves it up Y by a length in m (plan 306, robotic joints).
 	 */
 	articulation: z
 		.object({
 			module: definitionIdSchema,
 			field: z.string().min(1),
-			mode: z.enum(['gimbal', 'hinge', 'extend', 'visible'])
+			mode: z.enum(['gimbal', 'hinge', 'extend', 'visible', 'spin', 'slide'])
 		})
 		.optional(),
 	/**

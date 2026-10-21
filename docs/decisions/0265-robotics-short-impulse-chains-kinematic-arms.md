@@ -1,6 +1,6 @@
 # 0265 — Robotics after the joint spike: impulse joints for short chains, sub-stepping for robotic vessels, kinematic poses for long arms
 
-**Status:** proposed (supersedes ADR 0262 point 2 and point 7 once accepted; the owner or the CTO decides)
+**Status:** superseded by 0269 before acceptance (2026-10-21; [ADR 0269](0269-robotics-kinematic-joints-in-one-body.md)): every joint is kinematic, no impulse joints.
 **Date:** 2026-10-21
 **Plan:** plans/288-robotics-joint-spike.md (the gate's verdict); plans/282-robotics-articulated-vessels.md (would build on it)
 **Builds on:** ADR 0262 (rigid groups joined by motored joints), 0018 (one compound body per vessel), 0004 (physics behind an adapter)
