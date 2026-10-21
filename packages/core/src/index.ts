@@ -34,6 +34,7 @@ export * from './sites.ts';
 export * from './site-templates.ts';
 export * from './comms.ts';
 export * from './systems.ts';
+export * from './illustration.ts';
 export * from './regions.ts';
 export * from './dossier.ts';
 export * from './life-support.ts';

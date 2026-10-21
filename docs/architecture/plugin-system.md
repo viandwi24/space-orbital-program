@@ -300,3 +300,12 @@ The `wheel-throttle` command (`value` -1..1) sets `VesselControl.wheelThrottle`:
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.
+
+## Card art for presets and system variants (API 0.1.101, plan 317, ADR 0273)
+
+`PresetDefinition` and `SystemVariantDefinition` take two optional fields:
+
+- `illustration`: the card art;
+- `icon`: the square badge.
+
+Each is a `data:` URL of an SVG, PNG, WebP or JPEG image of at most 128 KiB (`illustrationSchema`). Create World and Worlds show them as images. Without them, the host draws generated art from the system's bodies, or from the preset's id, so a mod's system always has a picture.

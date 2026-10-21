@@ -6,11 +6,12 @@
 import * as z from 'zod';
 import type { AnyPatchDefinition } from './patch.ts';
 import { definitionIdSchema } from './schemas.ts';
+import { illustrationSchema, type Illustrated } from './illustration.ts';
 
 /** Id of the system made of every body no declared system owns. */
 export const STOCK_SYSTEM = 'stock';
 
-export interface SystemVariantDefinition {
+export interface SystemVariantDefinition extends Illustrated {
 	/** `<plugin>.<name>`. */
 	id: string;
 	/** The declaring plugin's id: the system. */
@@ -41,7 +42,9 @@ export const systemVariantDefinitionSchema = z.object({
 	}),
 	patches: z
 		.array(z.custom<AnyPatchDefinition>((v) => typeof v === 'object' && v !== null))
-		.optional()
+		.optional(),
+	illustration: illustrationSchema.optional(),
+	icon: illustrationSchema.optional()
 });
 
 /** What `loadPlugins` is told about the world (ADR 0184 point 2). */
