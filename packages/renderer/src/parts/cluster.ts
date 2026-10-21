@@ -14,9 +14,11 @@ export const MAX_BELLS = 9;
  * `count` points evenly spaced on a ring of radius `ring` at height `y`; the first sits at an
  * angle of half a step (45 degrees for four), so a square cluster has no bell on an axis.
  */
-export function clusterLayout(count: number, ring: number, y: number): Point3[] {
-	const n = Math.round(Math.min(MAX_BELLS, Math.max(MIN_BELLS, count)));
-	const out: Point3[] = [];
+export function clusterLayout(count: number, ring: number, y: number, centre = false): Point3[] {
+	const all = Math.round(Math.min(MAX_BELLS, Math.max(MIN_BELLS, count)));
+	// plan 276: one bell on the axis and the rest on the ring (a quincunx of 5, an octaweb of 9)
+	const out: Point3[] = centre ? [[0, y, 0]] : [];
+	const n = centre ? all - 1 : all;
 	for (let k = 0; k < n; k++) {
 		const a = Math.PI / n + (2 * Math.PI * k) / n;
 		out.push([ring * Math.cos(a), y, ring * Math.sin(a)]);

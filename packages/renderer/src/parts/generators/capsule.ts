@@ -1,7 +1,8 @@
 /** Command capsule: heat shield disc, painted drum, convex cone with windows, docking collar. */
 import { Matrix4, Path, Quaternion, Shape, Vector3 } from 'three';
 import type { ProfilePoint } from '../revolve.ts';
-import type { GenContext } from '../registry.ts';
+import type { GenContext, GeneratedPart } from '../registry.ts';
+import { canopyDynamic } from './parachute.ts';
 
 /** Rounded rectangle outline centred on the origin in the XY plane. */
 export function roundedRect(w: number, h: number, r: number, into: Path = new Shape()): Path {
@@ -23,7 +24,7 @@ export function roundedRect(w: number, h: number, r: number, into: Path = new Sh
 const coneRadius = (R: number, noseR: number, t: number): number =>
 	R + (noseR - R) * t - 0.045 * Math.sin(Math.PI * t) * (1 - t);
 
-export function capsule(ctx: GenContext): void {
+export function capsule(ctx: GenContext): GeneratedPart | void {
 	const { radius: R, height: H, builder: b, detail } = ctx;
 	const h2 = H / 2;
 	// The retaining ring reaches the full radius within the joint band of the bottom face (plan 207).
@@ -119,5 +120,16 @@ export function capsule(ctx: GenContext): void {
 				a
 			);
 		}
+	}
+	// built-in mains around the apex (ADR 0260 point 4): a 3-seat capsule's three canopies
+	if (ctx.visual.params?.chutes === true) {
+		const r = collarR * 0.8;
+		const anchors: [number, number][] = [0, 1, 2].map((i) => {
+			const a = (i / 3) * Math.PI * 2;
+			return [Math.sin(a) * r, Math.cos(a) * r];
+		});
+		return {
+			dynamic: canopyDynamic(ctx, ctx.param('canopy', 14, 1, 40) / Math.sqrt(3), h2, anchors)
+		};
 	}
 }

@@ -33,7 +33,26 @@ const NOT_A_FLAT_JOINT: Record<string, string> = {
 	'stock.engine-vacuum/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.engine-wide/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
 	'stock.flotation-collar/top': 'a ring around the stack, wider than its joint by design',
-	'stock.flotation-collar/bottom': 'a ring around the stack, wider than its joint by design'
+	'stock.flotation-collar/bottom': 'a ring around the stack, wider than its joint by design',
+	// plans 276, 281: bells under engine plates, and joints off the part's axis (the rim is
+	// measured from the axis)
+	'stock.engine-plate-5/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
+	'stock.engine-plate-9/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
+	'stock.engine-plate-8/bottom': 'bells: the shroud carries the joint (shrouds.test.ts)',
+	'stock.engine-vacuum-xl/bottom': 'a bell: the shroud carries the joint (shrouds.test.ts)',
+	'stock.coupler-2/bottom': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-2/bottom2': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-3/bottom': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-3/bottom2': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-3/bottom3': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-4/bottom': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-4/bottom2': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-4/bottom3': 'an off-axis joint: its own collar has the node radius',
+	'stock.coupler-4/bottom4': 'an off-axis joint: its own collar has the node radius',
+	'stock.hub/east': 'a side port: its collar faces sideways, not along the axis',
+	'stock.hub/west': 'a side port: its collar faces sideways, not along the axis',
+	'stock.hub/north': 'a side port: its collar faces sideways, not along the axis',
+	'stock.hub/south': 'a side port: its collar faces sideways, not along the axis'
 };
 
 interface Recorded {
@@ -114,7 +133,22 @@ describe('part seams', () => {
 					// boxes only (plan 225)
 					'ladder',
 					// boxes and a cylinder, no revolve (plan 242)
-					'light'
+					'light',
+					// radial boxes, plates and extrusions, no revolve (plans 280, 281, 295–300)
+					'solar-flat',
+					'solar-fold',
+					'solar-array',
+					'rtg',
+					'fuel-cell',
+					'antenna-whip',
+					'antenna-dish',
+					'instrument',
+					'container',
+					'truss',
+					'radiator',
+					'boom',
+					'single-leg',
+					'delta-wing'
 				].includes(visual.kind)
 			)
 				continue;

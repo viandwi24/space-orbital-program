@@ -133,8 +133,8 @@ describe('stock part models (plan 020)', () => {
 				}
 				if (attach.top && attach.bottom) expect(e.maxY - e.minY).toBeCloseTo(shape.height, 2);
 				expect(model.nodes.top?.pos[1]).toBe(attach.top?.pos[1]);
-				expect(e.radial).toBeLessThanOrEqual(shape.radius * 1.002);
-				expect(e.radial).toBeGreaterThanOrEqual(shape.radius * 0.9);
+				expect(e.radial, id).toBeLessThanOrEqual(shape.radius * 1.002);
+				expect(e.radial, id).toBeGreaterThanOrEqual(shape.radius * 0.9);
 				model.dispose();
 			}
 			f.dispose();

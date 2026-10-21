@@ -49,10 +49,13 @@ export function engineCluster(ctx: GenContext): GeneratedPart {
 		inner.push({ r: Math.max(0.008, bellR(y)), y, smooth: i > 0 && i < steps });
 	}
 
-	for (const [x, , z] of clusterLayout(bells, ring, 0)) {
-		m.revolveAt('nozzle', outer, [x, 0, z]);
-		m.revolveAt('nozzle-inner', inner, [x, 0, z]);
-		if (detail.extras >= 1) {
+	// many bells share the part's triangle budget: fewer sides each past four (plan 276)
+	const bellSeg =
+		bells > 4 ? { segments: Math.max(6, Math.round((m.segments * 4) / bells)) } : undefined;
+	for (const [x, , z] of clusterLayout(bells, ring, 0, ctx.visual.params?.centre === true)) {
+		m.revolveAt('nozzle', outer, [x, 0, z], bellSeg);
+		m.revolveAt('nozzle-inner', inner, [x, 0, z], bellSeg);
+		if (detail.extras >= 1 && bells <= 5) {
 			for (const k of [2, 4]) {
 				const y = throatY - (bellLen * k) / 6;
 				m.revolveAt(

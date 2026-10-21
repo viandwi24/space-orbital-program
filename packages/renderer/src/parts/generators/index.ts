@@ -19,6 +19,24 @@ import { fairing, fairingPanel } from './fairing.ts';
 import { noseCone } from './nose-cone.ts';
 import { parachute } from './parachute.ts';
 import { probe } from './probe.ts';
+import { antennaDish, antennaRelay, antennaWhip, container, instrument } from './comms.ts';
+import { coupler, hub, lattice, petals, serviceBay, truss } from './bays.ts';
+import { battery, fuelCell, rtg, solarArray, solarFlat, solarFold, solarWings } from './power.ts';
+import { deltaWing, escapeTower, externalTank, orbiterAft, orbiterNose } from './shuttle.ts';
+import {
+	ascentCabin,
+	boom,
+	coneCapsule,
+	crewCan,
+	cupola,
+	descentStage,
+	headlight,
+	radiator,
+	satelliteBus,
+	singleLeg,
+	sphereCapsule,
+	telescope
+} from './spacecraft.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
 import { ladder } from './ladder.ts';
 import { light } from './light.ts';
@@ -64,6 +82,45 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('flag', flag);
 	registerPartGenerator('parachute', parachute);
 	registerPartGenerator('probe', probe);
+	// plan 280: power, comms, science, containers
+	registerPartGenerator('solar-flat', solarFlat);
+	registerPartGenerator('solar-fold', solarFold);
+	registerPartGenerator('solar-array', solarArray);
+	registerPartGenerator('solar-wings', solarWings);
+	registerPartGenerator('battery', battery);
+	registerPartGenerator('rtg', rtg);
+	registerPartGenerator('fuel-cell', fuelCell);
+	registerPartGenerator('antenna-whip', antennaWhip);
+	registerPartGenerator('antenna-dish', antennaDish);
+	registerPartGenerator('antenna-relay', antennaRelay);
+	registerPartGenerator('instrument', instrument);
+	registerPartGenerator('container', container);
+	// plan 281: payload and structure
+	registerPartGenerator('service-bay', serviceBay);
+	registerPartGenerator('petals', petals);
+	registerPartGenerator('coupler', coupler);
+	registerPartGenerator('truss', truss);
+	registerPartGenerator('hub', hub);
+	registerPartGenerator('lattice', lattice);
+	// plans 296–300: spacecraft
+	registerPartGenerator('headlight', headlight);
+	registerPartGenerator('sphere-capsule', sphereCapsule);
+	registerPartGenerator('cone-capsule', coneCapsule);
+	registerPartGenerator('crew-can', crewCan);
+	registerPartGenerator('cupola', cupola);
+	registerPartGenerator('radiator', radiator);
+	registerPartGenerator('satellite-bus', satelliteBus);
+	registerPartGenerator('telescope', telescope);
+	registerPartGenerator('boom', boom);
+	registerPartGenerator('descent-stage', descentStage);
+	registerPartGenerator('ascent-cabin', ascentCabin);
+	registerPartGenerator('single-leg', singleLeg);
+	// plan 295 and the escape tower (276)
+	registerPartGenerator('orbiter-nose', orbiterNose);
+	registerPartGenerator('orbiter-aft', orbiterAft);
+	registerPartGenerator('delta-wing', deltaWing);
+	registerPartGenerator('external-tank', externalTank);
+	registerPartGenerator('escape-tower', escapeTower);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({
