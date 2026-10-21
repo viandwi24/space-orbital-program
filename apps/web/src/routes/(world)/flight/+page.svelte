@@ -44,6 +44,14 @@
 	import { takeLaunchChoice } from '../../../lib/launch/launch-model';
 	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
 	import type { WorldInfo } from '@orbital/core';
+	import {
+		sitesOf,
+		type Command,
+		type CommandResult,
+		type Site,
+		type Snapshot
+	} from '@orbital/core';
+	import { occupiedPrompt, spotOccupants, type OccupiedPrompt } from '../../../lib/fleet-actions';
 	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
 	import { profileStore } from '../../../lib/achievements/store';
 	import type { CatchUp } from '../../../lib/worlds/world-model';
@@ -320,6 +328,52 @@
 		vesselContent?.parts.get(definition)?.title ?? definition;
 	/** The card of a map vessel just clicked (plan 250). */
 	let mapCard = $state<MapCard | null>(null);
+	/** The world's sites, for the launch spot (plan 318). */
+	let launchSites: readonly Site[] = [];
+	/** KSP's "launch site is occupied" (plan 318, ADR 0274): who is there, and the answer. */
+	let occupied = $state<{
+		prompt: OccupiedPrompt;
+		answer: (choice: 'recover' | 'terminate' | 'cancel') => void;
+	} | null>(null);
+	/** Clear the launch spot before a launch: true goes on, a string stops it (flight-loop's `clearLaunchSite`). */
+	async function clearLaunchSite(
+		at: VesselPlacement | undefined,
+		snap: Snapshot | null,
+		dispatch: (command: Command) => Promise<CommandResult>
+	): Promise<true | string> {
+		if (!snap || at?.kind !== 'site') return true;
+		const spot = at.at ?? launchSites.find((x) => x.id === at.site)?.pads[at.pad ?? 0];
+		if (!spot) return true;
+		const prompt = occupiedPrompt(spotOccupants(snap, at.site, spot));
+		if (!prompt) return true;
+		const choice = await new Promise<'recover' | 'terminate' | 'cancel'>(
+			(answer) => (occupied = { prompt, answer })
+		);
+		occupied = null;
+		if (choice === 'cancel') {
+			void goto(resolve('/(world)/vab'));
+			return 'the launch site is occupied';
+		}
+		for (const vessel of prompt.ids) {
+			const type = choice === 'recover' ? 'recover-vessel' : 'terminate-vessel';
+			const r = await dispatch({ type, vessel } as Command);
+			if (!r.ok) return `the launch site is still occupied: ${r.reason}`;
+		}
+		return true;
+	}
+	/** The map card's vessel as the vessel menu reads it (plan 318): Recover and Terminate. */
+	const mapCardMenu = $derived.by(() => {
+		void model;
+		const input = flight?.panelInput();
+		if (!mapCard || !input) return null;
+		return vesselMenu(input.snapshot, input.vessel?.id ?? null, mapCard.vessel as EntityId);
+	});
+	function mapCardCommand(type: 'recover-vessel' | 'terminate-vessel'): void {
+		const id = mapCard?.vessel;
+		mapCard = null;
+		if (id === undefined) return;
+		void flight?.command({ type, vessel: id as EntityId }); // a refusal shows as a toast
+	}
 	/** The pick list of vessels stacked under a map click (plan 270), and the map's vessel points. */
 	let mapStack = $state<MapStack | null>(null);
 	let mapPoints: StackPoint[] = [];
@@ -845,6 +899,7 @@
 			(await saves.worldStartInfo(activeWorldId()));
 		const own = info ? loadContent({ id: info.systemId, variant: info.variant }) : undefined;
 		if (own) siteBuildings = own.world.buildings;
+		if (info) launchSites = sitesOf(info);
 		if (gone() || !ready) return undefined;
 		return begin(
 			own?.catalog ?? catalog,
@@ -992,6 +1047,9 @@
 					? lessonKeymap(settings.keymap, lesson, (reason) => lessonNotice.show(reason))
 					: settings.keymap,
 			cameraMode: loadCameraMode(),
+			...(start
+				? {}
+				: { clearLaunchSite: (snap, dispatch) => clearLaunchSite(placement, snap, dispatch) }),
 			onLaunchPoint: (sim) => {
 				worldSession.revertPoint = { worldId: activeWorldId(), sim };
 				launchedHere = true;
@@ -1519,6 +1577,8 @@
 			onport={(part) => vesselMenuAction({ kind: 'port', part })}
 			onfocus={() => vesselMenuAction({ kind: 'focus' })}
 			onrename={(name) => vesselMenuAction({ kind: 'rename', name })}
+			onrecover={() => vesselMenuAction({ kind: 'recover' })}
+			onterminate={() => vesselMenuAction({ kind: 'terminate' })}
 		/>
 	{/if}
 	{#if vesselHover && !vesselMenuAt && !hud?.map}
@@ -1543,9 +1603,46 @@
 			}}
 		/>
 	{/if}
+	<Dialog
+		open={occupied !== null}
+		title={occupied?.prompt.title ?? ''}
+		onclose={() => occupied?.answer('cancel')}
+	>
+		{#if occupied}
+			{@const p = occupied.prompt}
+			<p class="occupied-why" data-testid="launch-occupied">
+				The launch site is occupied by {p.names}. Clear it to launch.
+				{#if p.crewWarning}<br />{p.crewWarning}{/if}
+			</p>
+			<div class="occupied-acts">
+				{#if p.canRecover}
+					<Button
+						variant="primary"
+						onclick={() => occupied?.answer('recover')}
+						data-testid="launch-occupied-recover"
+						>Recover {p.ids.length === 1 ? 'it' : 'them'}{p.credit ? ` · ${p.credit}` : ''}</Button
+					>
+				{/if}
+				<Button
+					variant={p.canRecover ? 'ghost' : 'primary'}
+					onclick={() => occupied?.answer('terminate')}
+					data-testid="launch-occupied-terminate"
+					>Terminate {p.ids.length === 1 ? 'it' : 'them'}</Button
+				>
+				<Button
+					variant="ghost"
+					onclick={() => occupied?.answer('cancel')}
+					data-testid="launch-occupied-cancel">Cancel</Button
+				>
+			</div>
+		{/if}
+	</Dialog>
 	{#if mapCard && hud?.map}
 		<MapCardView
 			card={mapCard}
+			menu={mapCardMenu}
+			onrecover={() => mapCardCommand('recover-vessel')}
+			onterminate={() => mapCardCommand('terminate-vessel')}
 			onclose={() => (mapCard = null)}
 			onswitch={(id) => {
 				mapCard = null;
@@ -2031,6 +2128,16 @@
 </div>
 
 <style>
+	.occupied-why {
+		margin: 0 0 1rem;
+		color: var(--text-body);
+	}
+	.occupied-acts {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0.5rem;
+	}
 	.leave {
 		display: block;
 		margin: 0 0 var(--s-3);

@@ -133,7 +133,9 @@ describe('vessel menu actions (plan 310, the decouple crash)', () => {
 			{ kind: 'target' },
 			{ kind: 'port', part: id(21) },
 			{ kind: 'focus' },
-			{ kind: 'rename', name: 'X' }
+			{ kind: 'rename', name: 'X' },
+			{ kind: 'recover' },
+			{ kind: 'terminate' }
 		] as const)
 			expect(runVesselMenuAction(null, id(1), action, f)).toBe(false);
 		expect(calls).toEqual([]);
@@ -145,6 +147,23 @@ describe('vessel menu actions (plan 310, the decouple crash)', () => {
 		expect(runVesselMenuAction(open(s), id(1), { kind: 'port', part: id(21) }, f)).toBe(true);
 		expect(runVesselMenuAction(open(s), null, { kind: 'target' }, f)).toBe(true);
 		expect(calls).toEqual(['target-set']);
+	});
+
+	it('recovers only a vessel at rest and terminates only the player’s (plan 318)', () => {
+		const quote = { value: 10, factor: 1, distance: 0, credit: 10 };
+		const { calls, fx: f } = fx();
+		const moving = snapshot([vessel(1), vessel(2)]);
+		expect(runVesselMenuAction(open(moving), id(1), { kind: 'recover' }, f)).toBe(false);
+		expect(calls).toEqual([]);
+		const landed = snapshot([vessel(1), vessel(2, { recovery: quote })]);
+		expect(open(landed).menu.recovery).toEqual({ credit: 10, factor: 1 });
+		runVesselMenuAction(open(landed), id(1), { kind: 'recover' }, f);
+		runVesselMenuAction(open(landed), id(1), { kind: 'terminate' }, f);
+		const rival = snapshot([vessel(1), vessel(2, { owner: 'rival', recovery: quote })]);
+		expect(open(rival).menu.ours).toBe(false);
+		runVesselMenuAction(open(rival), id(1), { kind: 'terminate' }, f);
+		runVesselMenuAction(open(rival), id(1), { kind: 'recover' }, f);
+		expect(calls).toEqual(['recover-vessel', 'terminate-vessel']);
 	});
 
 	it('closes when its vessel is destroyed or docked away, or becomes the flown one', () => {

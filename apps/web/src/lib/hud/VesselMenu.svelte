@@ -17,6 +17,8 @@
 		onport,
 		onfocus,
 		onrename,
+		onrecover,
+		onterminate,
 		onclose
 	}: {
 		menu: VesselMenu;
@@ -27,12 +29,16 @@
 		onport: (part: EntityId) => void;
 		onfocus: () => void;
 		onrename: (name: string) => void;
+		/** Plan 318: recover it (landed at rest) or end it; Terminate asks again when crew are aboard. */
+		onrecover?: () => void;
+		onterminate?: () => void;
 		onclose: () => void;
 	} = $props();
 
 	let box = $state<HTMLElement>();
 	let portsOpen = $state(false);
 	let renaming = $state(false);
+	let ending = $state(false);
 	let name = $state('');
 
 	const items = (): HTMLElement[] => [
@@ -162,6 +168,41 @@
 			}}>Rename…</button
 		>
 	{/if}
+	{#if menu.ours && onrecover}
+		<button
+			type="button"
+			data-item
+			role="menuitem"
+			data-testid="vessel-menu-recover"
+			disabled={menu.recovery === null}
+			data-tip={menu.recovery === null
+				? 'Only a vessel landed or splashed at rest can be recovered'
+				: `Recover for ${Math.round(menu.recovery.factor * 1000) / 10} % of its value`}
+			onclick={onrecover}>Recover</button
+		>
+	{/if}
+	{#if menu.ours && onterminate}
+		{#if ending}
+			<button
+				type="button"
+				data-item
+				role="menuitem"
+				class="danger"
+				data-testid="vessel-menu-terminate-confirm"
+				onclick={onterminate}
+				>Terminate: {menu.crew === 1 ? '1 crew member' : `${menu.crew} crew members`} aboard</button
+			>
+		{:else}
+			<button
+				type="button"
+				data-item
+				role="menuitem"
+				data-testid="vessel-menu-terminate"
+				data-tip="Remove it from the world"
+				onclick={() => (menu.crew > 0 ? (ending = true) : onterminate())}>Terminate</button
+			>
+		{/if}
+	{/if}
 </div>
 
 <style>
@@ -222,6 +263,9 @@
 	}
 	button.on {
 		color: var(--c-accent);
+	}
+	button.danger {
+		color: var(--c-danger);
 	}
 	.sub {
 		display: grid;

@@ -31,6 +31,12 @@ export interface VesselMenu {
 	ports: VesselMenuPort[];
 	/** The part the camera looks at with "Focus camera". */
 	focusPart: EntityId | null;
+	/** The player's own vessel (plan 318): it can be recovered or terminated. */
+	ours: boolean;
+	/** The sim's recovery quote while it can be recovered (landed or splashed at rest). */
+	recovery: { credit: number; factor: number } | null;
+	/** Crew aboard: Terminate asks first when there are any. */
+	crew: number;
 }
 
 const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -90,7 +96,12 @@ export function vesselMenu(
 			label: `Docking port ${i + 1} · ${p.size} m`,
 			targeted: target?.part === p.part
 		})),
-		focusPart: pickedPart ?? other.parts[0]?.id ?? null
+		focusPart: pickedPart ?? other.parts[0]?.id ?? null,
+		ours: other.owner === undefined,
+		recovery: other.recovery
+			? { credit: other.recovery.credit, factor: other.recovery.factor }
+			: null,
+		crew: other.crew?.length ?? 0
 	};
 }
 
@@ -137,7 +148,9 @@ export type VesselMenuAction =
 	| { kind: 'target' }
 	| { kind: 'port'; part: EntityId }
 	| { kind: 'focus' }
-	| { kind: 'rename'; name: string };
+	| { kind: 'rename'; name: string }
+	| { kind: 'recover' }
+	| { kind: 'terminate' };
 
 export interface VesselMenuEffects {
 	switchVessel(id: EntityId): void;
@@ -179,6 +192,12 @@ export function runVesselMenuAction(
 			return false;
 		case 'rename':
 			fx.command({ type: 'rename-vessel', vessel, name: action.name });
+			return false;
+		case 'recover':
+			if (open.menu.ours && open.menu.recovery) fx.command({ type: 'recover-vessel', vessel });
+			return false;
+		case 'terminate':
+			if (open.menu.ours) fx.command({ type: 'terminate-vessel', vessel });
 			return false;
 	}
 }

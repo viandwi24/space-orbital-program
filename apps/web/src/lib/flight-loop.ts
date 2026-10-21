@@ -220,6 +220,14 @@ export interface FlightOptions {
 	): void;
 	/** The sim's save just before a fresh launch (plan 230): what Revert to the Hangar restores. */
 	onLaunchPoint?(sim: SimSave): void;
+	/**
+	 * Before a fresh launch (plan 318, ADR 0274): clear the launch spot of the vessels on it (KSP's
+	 * "launch site is occupied"). True goes on with the launch; a string stops it and says why.
+	 */
+	clearLaunchSite?(
+		snapshot: Snapshot | null,
+		dispatch: (command: Command) => Promise<CommandResult>
+	): Promise<true | string>;
 	/** The camera mode to start in (plan 226: the world's last one) and where a change goes. */
 	cameraMode?: CameraMode;
 	onCameraMode?(mode: CameraMode): void;
@@ -1867,6 +1875,16 @@ export function startFlight(options: FlightOptions): Flight {
 					return;
 				}
 			} else {
+				// a vessel or debris on the launch spot: recover it, terminate it or stay (plan 318)
+				const clear = options.clearLaunchSite
+					? await options.clearLaunchSite(client.latest ?? null, (c) => client.dispatch(c))
+					: true;
+				if (clear !== true) {
+					hud.status = 'refused';
+					hud.message = clear;
+					publish();
+					return;
+				}
 				// the world as it was before the launch: Revert goes back to it (plan 230)
 				if (options.onLaunchPoint) options.onLaunchPoint(await client.save());
 				const result = await client.dispatch({
