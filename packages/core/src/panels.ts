@@ -24,8 +24,47 @@ export interface PanelInput {
 	time: number;
 }
 
+/** A notice's colour (ADR 0287 point 4). */
+export type PanelTone = 'info' | 'warn' | 'active';
+
 export type PanelNode =
-	| { kind: 'section'; title?: string; children: readonly PanelNode[] }
+	/** `columns`: 2 (default) puts read-outs side by side, 1 stacks them (ADR 0287 point 5). */
+	| { kind: 'section'; title?: string; columns?: 1 | 2; children: readonly PanelNode[] }
+	/**
+	 * Pages of a panel (ADR 0287 point 1): the host shows one tab's children. `active` names the tab
+	 * to open when it changes (an engaged program); a tab's `badge` marks it (null: none).
+	 */
+	| {
+			kind: 'tabs';
+			label: string;
+			tabs: readonly {
+				id: string;
+				label: string;
+				badge?(input: PanelInput): string | null;
+				children: readonly PanelNode[];
+			}[];
+			active?(input: PanelInput): string | null;
+	  }
+	/** A share of a job done, 0..1 (null: none), with a caption (ADR 0287 point 2). */
+	| {
+			kind: 'progress';
+			label: string;
+			value(input: PanelInput): number | null;
+			text?(input: PanelInput): string | null;
+	  }
+	/** A numeric field (ADR 0287 point 3): clamped to `min..max`, sent when the player commits it. */
+	| {
+			kind: 'number';
+			label: string;
+			unit?: string;
+			min: number;
+			max: number;
+			step?: number;
+			value(input: PanelInput): number | null;
+			command(input: PanelInput, value: number): Command | null;
+	  }
+	/** One line, hidden when the text is null (ADR 0287 point 4). */
+	| { kind: 'notice'; text(input: PanelInput): string | null; tone?(input: PanelInput): PanelTone }
 	| {
 			kind: 'readout';
 			label: string;
@@ -39,7 +78,13 @@ export type PanelNode =
 			value(input: PanelInput): boolean;
 			command(input: PanelInput, on: boolean): Command | null;
 	  }
-	| { kind: 'button'; label: string; command(input: PanelInput): Command | null }
+	/** `tone`: `primary` for the main action, `danger` for a stop (ADR 0287 point 5). */
+	| {
+			kind: 'button';
+			label: string;
+			tone?: 'primary' | 'danger';
+			command(input: PanelInput): Command | null;
+	  }
 	/** A choice among a few values (plan 330, ADR 0285 point 2), drawn as a segmented control. */
 	| {
 			kind: 'select';
@@ -119,12 +164,49 @@ export const panelNodeSchema: z.ZodType<PanelNode> = z.lazy(() =>
 		z.object({
 			kind: z.literal('section'),
 			title: z.string().optional(),
+			columns: z.union([z.literal(1), z.literal(2)]).optional(),
 			children: z.array(panelNodeSchema)
 		}),
+		z.object({
+			kind: z.literal('tabs'),
+			label,
+			tabs: z
+				.array(
+					z.object({
+						id: z.string().min(1),
+						label,
+						badge: fn.optional(),
+						children: z.array(panelNodeSchema)
+					})
+				)
+				.min(1)
+				.max(8)
+				.refine((t) => new Set(t.map((x) => x.id)).size === t.length, 'tab ids must be unique'),
+			active: fn.optional()
+		}),
+		z.object({ kind: z.literal('progress'), label, value: fn, text: fn.optional() }),
+		z
+			.object({
+				kind: z.literal('number'),
+				label,
+				unit: z.string().optional(),
+				min: z.number().finite(),
+				max: z.number().finite(),
+				step: z.number().positive().optional(),
+				value: fn,
+				command: fn
+			})
+			.refine((n) => n.min <= n.max, 'min must not be above max'),
+		z.object({ kind: z.literal('notice'), text: fn, tone: fn.optional() }),
 		z.object({ kind: z.literal('readout'), label, value: fn, unit: z.string().optional() }),
 		z.object({ kind: z.literal('meter'), label, value: fn }),
 		z.object({ kind: z.literal('switch'), label, value: fn, command: fn }),
-		z.object({ kind: z.literal('button'), label, command: fn }),
+		z.object({
+			kind: z.literal('button'),
+			label,
+			tone: z.enum(['primary', 'danger']).optional(),
+			command: fn
+		}),
 		z.object({
 			kind: z.literal('select'),
 			label,

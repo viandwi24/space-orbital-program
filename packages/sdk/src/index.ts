@@ -278,6 +278,7 @@ export type {
 	PanelDefinition,
 	PanelInput,
 	PanelNode,
+	PanelTone,
 	ExperimentDefinition,
 	ExperimentStatus,
 	ScienceSubject,

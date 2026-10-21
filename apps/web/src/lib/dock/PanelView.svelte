@@ -7,27 +7,84 @@
 	import Button from '../ui/Button.svelte';
 	import Segmented from '../ui/Segmented.svelte';
 	import Self from './PanelView.svelte';
-	import type { ShownNode } from './evaluate';
+	import PanelTabs from './PanelTabs.svelte';
+	import { clampEntry, type ShownNode } from './evaluate';
 
 	let {
 		node,
 		onaction
 	}: {
 		node: ShownNode;
-		/** A button, switch or select at `path` was used (`on` for a switch, the value for a select). */
-		onaction: (path: string, on?: boolean | string) => void;
+		/**
+		 * A button, switch, select or number field at `path` was used (`on` for a switch, the value
+		 * for a select or a number field).
+		 */
+		onaction: (path: string, on?: boolean | string | number) => void;
 	} = $props();
+
+	/** A number field committed (Enter or leaving it): clamped, then sent. */
+	function commit(e: Event, n: Extract<ShownNode, { kind: 'number' }>): void {
+		const input = e.currentTarget as HTMLInputElement;
+		const v = Number(input.value);
+		if (input.value.trim() === '' || !Number.isFinite(v)) {
+			input.value = n.value === null ? '' : String(n.value);
+			return;
+		}
+		const c = clampEntry(n, v);
+		input.value = String(c);
+		onaction(n.path, c);
+	}
 </script>
 
 {#if node.kind === 'section'}
 	<div class="section">
 		{#if node.title}<h3>{node.title}</h3>{/if}
-		<div class="grid">
+		<div class="grid" class:one={node.columns === 1}>
 			{#each node.children as child, i (i)}
 				<Self node={child} {onaction} />
 			{/each}
 		</div>
 	</div>
+{:else if node.kind === 'tabs'}
+	<PanelTabs {node} {onaction} />
+{:else if node.kind === 'progress'}
+	<div class="wide">
+		<span class="k">{node.label}{#if node.text}<span class="v">{node.text}</span>{/if}</span>
+		<div
+			class="bar"
+			role="progressbar"
+			aria-label={node.label}
+			aria-valuemin="0"
+			aria-valuemax="100"
+			aria-valuenow={node.value === null ? undefined : Math.round(node.value * 100)}
+		>
+			<div class="fill" style="width: {node.value === null ? 0 : node.value * 100}%"></div>
+		</div>
+	</div>
+{:else if node.kind === 'number'}
+	<label class="field">
+		<span class="k">{node.label}</span>
+		<span class="entry">
+			<input
+				type="number"
+				inputmode="decimal"
+				min={node.min}
+				max={node.max}
+				step={node.step ?? 'any'}
+				value={node.value ?? ''}
+				onchange={(e) => commit(e, node)}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
+					e.stopPropagation(); // typing digits must not fire flight keys
+				}}
+				data-testid="panel-number-{node.path}"
+			/>{#if node.unit}<span class="unit">{node.unit}</span>{/if}
+		</span>
+	</label>
+{:else if node.kind === 'notice'}
+	{#if node.text}
+		<p class="notice {node.tone}" role={node.tone === 'warn' ? 'note' : 'status'}>{node.text}</p>
+	{/if}
 {:else if node.kind === 'readout'}
 	<StatCell label={node.label} value={node.value} {...node.unit ? { unit: node.unit } : {}} />
 {:else if node.kind === 'meter'}
@@ -54,7 +111,12 @@
 	</div>
 {:else if node.kind === 'button'}
 	<div class="wide">
-		<Button disabled={!node.enabled} onclick={() => onaction(node.path)}>{node.label}</Button>
+		<Button
+			variant={node.tone ?? 'default'}
+			disabled={!node.enabled}
+			onclick={() => onaction(node.path)}
+			data-testid="panel-button-{node.path}">{node.label}</Button
+		>
 	</div>
 {:else if node.kind === 'list'}
 	<div class="wide">
@@ -115,6 +177,73 @@
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.25rem;
+	}
+	.grid.one {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.bar {
+		height: 0.375rem;
+		border-radius: var(--radius-pill);
+		background: var(--surface-track);
+		overflow: hidden;
+	}
+	.fill {
+		height: 100%;
+		border-radius: inherit;
+		background: var(--accent);
+		transition: width var(--dur-med, 0.2s) var(--ease, ease);
+	}
+	.field {
+		display: grid;
+		gap: 0.25rem;
+		padding: 0.375rem 0.5rem;
+		border-radius: var(--radius-tile);
+		background: var(--surface-inset);
+	}
+	.entry {
+		display: flex;
+		align-items: baseline;
+		gap: 0.25rem;
+	}
+	input {
+		width: 100%;
+		min-width: 0;
+		padding: 0.125rem 0.25rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-icon);
+		background: var(--surface-button);
+		color: var(--text-primary);
+		font: inherit;
+		font-size: var(--t-small);
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+	input:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 0;
+	}
+	.unit {
+		font-size: var(--t-label);
+		color: var(--text-muted);
+	}
+	.notice {
+		grid-column: 1 / -1;
+		margin: 0;
+		padding: 0.375rem 0.5rem;
+		border-radius: var(--radius-tile);
+		border-left: 2px solid var(--border-strong);
+		background: var(--surface-inset);
+		font-size: var(--t-small);
+		line-height: 1.35;
+		color: var(--text-secondary);
+	}
+	.notice.warn {
+		border-left-color: var(--warn);
+		color: var(--text-primary);
+	}
+	.notice.active {
+		border-left-color: var(--accent);
+		color: var(--text-primary);
 	}
 	.wide {
 		grid-column: 1 / -1;
