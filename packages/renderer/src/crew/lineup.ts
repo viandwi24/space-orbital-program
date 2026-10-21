@@ -184,12 +184,14 @@ export function createCrewLineup(canvas: HTMLCanvasElement): CrewLineup {
 			build();
 		},
 		labels() {
-			return people.filter((p) => p.person.mesh.visible).map((p) => {
-				const v = p.person.mesh.position.clone();
-				v.y = -0.12;
-				v.project(camera);
-				return { text: p.label, x: ((v.x + 1) / 2) * width, y: ((1 - v.y) / 2) * height };
-			});
+			return people
+				.filter((p) => p.person.mesh.visible)
+				.map((p) => {
+					const v = p.person.mesh.position.clone();
+					v.y = -0.12;
+					v.project(camera);
+					return { text: p.label, x: ((v.x + 1) / 2) * width, y: ((1 - v.y) / 2) * height };
+				});
 		},
 		get triangles() {
 			return gl.info.render.triangles;

@@ -159,4 +159,3 @@ export function addCharacterToPart(
 	}
 	return [0, footY + PIVOTS.head[1] * scale + 0.32 * scale, 0];
 }
-

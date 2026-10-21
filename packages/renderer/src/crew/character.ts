@@ -233,8 +233,16 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 	const open = (side: 1 | -1, scale = 1): void => {
 		const x = side * ex;
 		add('head', 'pupil', onFace(ellipsoid(0.06 * scale, 0.078 * scale, 0.028, 12, 8), x, ey, 0));
-		add('head', 'eye', onFace(ellipsoid(0.02, 0.022, 0.01, 6, 4), x + side * 0.018, ey + 0.03, 0.024));
-		add('head', 'eye', onFace(ellipsoid(0.01, 0.011, 0.008, 6, 4), x - side * 0.022, ey - 0.03, 0.02));
+		add(
+			'head',
+			'eye',
+			onFace(ellipsoid(0.02, 0.022, 0.01, 6, 4), x + side * 0.018, ey + 0.03, 0.024)
+		);
+		add(
+			'head',
+			'eye',
+			onFace(ellipsoid(0.01, 0.011, 0.008, 6, 4), x - side * 0.022, ey - 0.03, 0.02)
+		);
 	};
 	/** A closed eye: an arc, ∩ for a smiling squint, ∪ for sleep. */
 	const closed = (side: 1 | -1, up: boolean): void => {
@@ -279,7 +287,17 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 		[-1, tr]
 	] as const) {
 		const brow = new CapsuleGeometry(0.011, 0.06, 3, 6).rotateZ(Math.PI / 2);
-		add('head', 'hair', onFace(brow, side * ex, by + (expression === 'confused' && side === 1 ? 0.02 : 0), 0.004, side * t));
+		add(
+			'head',
+			'hair',
+			onFace(
+				brow,
+				side * ex,
+				by + (expression === 'confused' && side === 1 ? 0.02 : 0),
+				0.004,
+				side * t
+			)
+		);
 	}
 	// cheeks
 	for (const side of [1, -1]) {
@@ -292,9 +310,16 @@ function face(add: Add, expression: Expression, eyewear: Outfit['eyewear']): voi
 		case 'wink':
 		case 'excited': {
 			const big = expression === 'excited' ? 1.3 : 1;
-			const m = superEllipsoid(0.06 * big, 0.05 * big, 0.018, 2.2, 14, 8, [Math.PI / 2, Math.PI / 2]);
+			const m = superEllipsoid(0.06 * big, 0.05 * big, 0.018, 2.2, 14, 8, [
+				Math.PI / 2,
+				Math.PI / 2
+			]);
 			add('head', 'mouth', onFace(m, 0, my + 0.012, 0.002));
-			add('head', 'tongue', onFace(ellipsoid(0.03 * big, 0.016 * big, 0.008, 8, 5), 0, my - 0.02 * big, 0.008));
+			add(
+				'head',
+				'tongue',
+				onFace(ellipsoid(0.03 * big, 0.016 * big, 0.008, 8, 5), 0, my - 0.02 * big, 0.008)
+			);
 			break;
 		}
 		case 'surprised':
@@ -380,31 +405,99 @@ function headwear(add: Add, o: Outfit, noHelmet: boolean): void {
 			add('head', 'hat', put(shell, [0, cy, 0]), true);
 			const rim = new TorusGeometry(r * Math.sin(open), 0.032, 6, 28);
 			add('head', 'trim', put(rim, [0, cy, r * Math.cos(open)]), true);
-			add('head', 'trim', put(new TorusGeometry(0.2, 0.04, 6, 20).rotateX(Math.PI / 2), [0, 0.95, 0]), true);
-			add('head', 'metal', put(new CylinderGeometry(0.04, 0.045, 0.08, 10).rotateZ(Math.PI / 2), [0.41, cy + 0.12, 0.08]), true);
-			add('head', 'lens', put(new CylinderGeometry(0.03, 0.03, 0.01, 10).rotateX(Math.PI / 2), [0.41, cy + 0.12, 0.125]), true);
-			add('head', 'accent', put(new TorusGeometry(r * 0.99, 0.012, 4, 30, Math.PI).rotateY(Math.PI / 2), [0, cy, 0]), true);
+			add(
+				'head',
+				'trim',
+				put(new TorusGeometry(0.2, 0.04, 6, 20).rotateX(Math.PI / 2), [0, 0.95, 0]),
+				true
+			);
+			add(
+				'head',
+				'metal',
+				put(new CylinderGeometry(0.04, 0.045, 0.08, 10).rotateZ(Math.PI / 2), [
+					0.41,
+					cy + 0.12,
+					0.08
+				]),
+				true
+			);
+			add(
+				'head',
+				'lens',
+				put(new CylinderGeometry(0.03, 0.03, 0.01, 10).rotateX(Math.PI / 2), [
+					0.41,
+					cy + 0.12,
+					0.125
+				]),
+				true
+			);
+			add(
+				'head',
+				'accent',
+				put(new TorusGeometry(r * 0.99, 0.012, 4, 30, Math.PI).rotateY(Math.PI / 2), [0, cy, 0]),
+				true
+			);
 			return;
 		}
 		case 'hard-hat': {
-			add('head', 'hat', put(superEllipsoid(0.32, 0.2, 0.3, 2.4, 20, 8, [0, Math.PI / 2]), [0, hy + 0.17, 0]));
-			add('head', 'hat', put(new CylinderGeometry(0.37, 0.37, 0.022, 24).scale(1, 1, 0.95), [0, hy + 0.17, 0.02]));
+			add(
+				'head',
+				'hat',
+				put(superEllipsoid(0.32, 0.2, 0.3, 2.4, 20, 8, [0, Math.PI / 2]), [0, hy + 0.17, 0])
+			);
+			add(
+				'head',
+				'hat',
+				put(new CylinderGeometry(0.37, 0.37, 0.022, 24).scale(1, 1, 0.95), [0, hy + 0.17, 0.02])
+			);
 			add('head', 'hat', put(new BoxGeometry(0.05, 0.07, 0.5), [0, hy + 0.36, 0]));
-			add('head', 'accent', put(new CylinderGeometry(0.035, 0.035, 0.012, 12).rotateX(Math.PI / 2), [0, hy + 0.27, 0.27]));
+			add(
+				'head',
+				'accent',
+				put(new CylinderGeometry(0.035, 0.035, 0.012, 12).rotateX(Math.PI / 2), [
+					0,
+					hy + 0.27,
+					0.27
+				])
+			);
 			return;
 		}
 		case 'cap': {
-			add('head', 'hat', put(superEllipsoid(0.305, 0.17, 0.285, 2.4, 20, 8, [0, Math.PI / 2]), [0, hy + 0.2, -0.005]));
+			add(
+				'head',
+				'hat',
+				put(superEllipsoid(0.305, 0.17, 0.285, 2.4, 20, 8, [0, Math.PI / 2]), [0, hy + 0.2, -0.005])
+			);
 			add('head', 'hat', put(superEllipsoid(0.17, 0.016, 0.14, 2.2, 14, 6), [0, hy + 0.2, 0.3]));
 			add('head', 'hat', put(new SphereGeometry(0.025, 8, 6), [0, hy + 0.37, 0]));
 			add('head', 'accent', put(ellipsoid(0.05, 0.035, 0.01), [0, hy + 0.28, 0.25], [-0.6, 0, 0]));
 			return;
 		}
 		case 'headset': {
-			add('head', 'hat', put(new TorusGeometry(0.31, 0.022, 6, 20, Math.PI), [0, hy + 0.02, -0.01]));
+			add(
+				'head',
+				'hat',
+				put(new TorusGeometry(0.31, 0.022, 6, 20, Math.PI), [0, hy + 0.02, -0.01])
+			);
 			for (const side of [1, -1]) {
-				add('head', 'hat', put(new CylinderGeometry(0.075, 0.075, 0.07, 14).rotateZ(Math.PI / 2), [side * 0.3, hy - 0.02, 0]));
-				add('head', 'accent', put(new CylinderGeometry(0.04, 0.04, 0.072, 10).rotateZ(Math.PI / 2), [side * 0.302, hy - 0.02, 0]));
+				add(
+					'head',
+					'hat',
+					put(new CylinderGeometry(0.075, 0.075, 0.07, 14).rotateZ(Math.PI / 2), [
+						side * 0.3,
+						hy - 0.02,
+						0
+					])
+				);
+				add(
+					'head',
+					'accent',
+					put(new CylinderGeometry(0.04, 0.04, 0.072, 10).rotateZ(Math.PI / 2), [
+						side * 0.302,
+						hy - 0.02,
+						0
+					])
+				);
 			}
 			const boom = new CylinderGeometry(0.009, 0.009, 0.24, 6).rotateX(Math.PI / 2);
 			add('head', 'hat', put(boom, [0.25, hy - 0.11, 0.13], [0, -0.55, 0]));
@@ -414,11 +507,31 @@ function headwear(add: Add, o: Outfit, noHelmet: boolean): void {
 		case 'goggles':
 		case 'pilot-goggles': {
 			const y = hy + 0.17;
-			add('head', 'hat', put(superEllipsoid(HEAD.a + 0.012, 0.03, HEAD.c + 0.03, 2.6, 22, 4), [0, y, -0.01]));
+			add(
+				'head',
+				'hat',
+				put(superEllipsoid(HEAD.a + 0.012, 0.03, HEAD.c + 0.03, 2.6, 22, 4), [0, y, -0.01])
+			);
 			for (const side of [1, -1]) {
 				const s = headSurface(side * 0.1, y);
-				add('head', 'metal', aim(new CylinderGeometry(0.065, 0.07, 0.05, 14).rotateX(Math.PI / 2), s.point.addScaledVector(s.normal, 0.03), s.normal));
-				add('head', 'lens', aim(new CylinderGeometry(0.05, 0.05, 0.012, 14).rotateX(Math.PI / 2), s.point.addScaledVector(s.normal, 0.058), s.normal));
+				add(
+					'head',
+					'metal',
+					aim(
+						new CylinderGeometry(0.065, 0.07, 0.05, 14).rotateX(Math.PI / 2),
+						s.point.addScaledVector(s.normal, 0.03),
+						s.normal
+					)
+				);
+				add(
+					'head',
+					'lens',
+					aim(
+						new CylinderGeometry(0.05, 0.05, 0.012, 14).rotateX(Math.PI / 2),
+						s.point.addScaledVector(s.normal, 0.058),
+						s.normal
+					)
+				);
 			}
 			return;
 		}
@@ -433,12 +546,21 @@ function eyewear(add: Add, o: Outfit): void {
 	for (const side of [1, -1]) {
 		const s = headSurface(side * 0.112, ey);
 		const at = s.point.addScaledVector(s.normal, 0.035);
-		if (o.eyewear === 'glasses') add('head', 'dark', aim(new TorusGeometry(0.075, 0.011, 5, 20), at, s.normal));
+		if (o.eyewear === 'glasses')
+			add('head', 'dark', aim(new TorusGeometry(0.075, 0.011, 5, 20), at, s.normal));
 		else add('head', 'lens', aim(ellipsoid(0.075, 0.06, 0.015, 14, 8), at, s.normal));
 		// arm back to the ear
 		add('head', 'dark', put(new BoxGeometry(0.01, 0.012, 0.2), [side * 0.255, ey + 0.02, 0.1]));
 	}
-	add('head', 'dark', put(new CylinderGeometry(0.008, 0.008, 0.06, 5).rotateZ(Math.PI / 2), [0, ey + 0.02, HEAD.c + 0.035]));
+	add(
+		'head',
+		'dark',
+		put(new CylinderGeometry(0.008, 0.008, 0.06, 5).rotateZ(Math.PI / 2), [
+			0,
+			ey + 0.02,
+			HEAD.c + 0.035
+		])
+	);
 }
 
 /** Removes the triangles of a unit-normal sphere geometry whose centre direction has z above `cos`. */
@@ -497,17 +619,41 @@ function body(add: Add, o: Outfit): void {
 		20
 	).scale(1, 1, 0.8);
 	add('body', 'suit', torso);
-	add('body', 'trim', put(new TorusGeometry(0.13, 0.035, 6, 18).rotateX(Math.PI / 2).scale(1, 1, 0.85), [0, 0.95, 0]));
+	add(
+		'body',
+		'trim',
+		put(new TorusGeometry(0.13, 0.035, 6, 18).rotateX(Math.PI / 2).scale(1, 1, 0.85), [0, 0.95, 0])
+	);
 	const front = 0.172;
 	if (o.body === 'suit') {
-		add('body', 'dark', put(new CylinderGeometry(0.218, 0.218, 0.05, 20).scale(1, 1, 0.8), [0, 0.56, 0]));
+		add(
+			'body',
+			'dark',
+			put(new CylinderGeometry(0.218, 0.218, 0.05, 20).scale(1, 1, 0.8), [0, 0.56, 0])
+		);
 		add('body', 'metal', put(new BoxGeometry(0.07, 0.05, 0.02), [0, 0.56, 0.178]));
 		// the chest patch on the left, a name strip on the right
-		add('body', 'accent', put(new CylinderGeometry(0.045, 0.045, 0.012, 16).rotateX(Math.PI / 2), [0.1, 0.8, front + 0.002]));
+		add(
+			'body',
+			'accent',
+			put(new CylinderGeometry(0.045, 0.045, 0.012, 16).rotateX(Math.PI / 2), [
+				0.1,
+				0.8,
+				front + 0.002
+			])
+		);
 		add('body', 'trim', put(new BoxGeometry(0.08, 0.025, 0.01), [-0.1, 0.8, front]));
 		if (o.harness) {
 			for (const side of [1, -1]) {
-				add('body', 'dark', put(new BoxGeometry(0.04, 0.36, 0.015), [side * 0.075, 0.76, front + 0.002], [0, 0, side * 0.08]));
+				add(
+					'body',
+					'dark',
+					put(
+						new BoxGeometry(0.04, 0.36, 0.015),
+						[side * 0.075, 0.76, front + 0.002],
+						[0, 0, side * 0.08]
+					)
+				);
 			}
 			add('body', 'dark', put(new BoxGeometry(0.26, 0.035, 0.015), [0, 0.7, front + 0.004]));
 			add('body', 'metal', put(new BoxGeometry(0.045, 0.045, 0.016), [0, 0.7, front + 0.008]));
@@ -516,7 +662,11 @@ function body(add: Add, o: Outfit): void {
 	if (coat) {
 		add('body', 'trim', put(new BoxGeometry(0.012, 0.56, 0.01), [0, 0.6, 0.176]));
 		for (const side of [1, -1]) {
-			add('body', 'trim', put(new BoxGeometry(0.06, 0.18, 0.012), [side * 0.07, 0.87, 0.16], [0, 0, side * 0.35]));
+			add(
+				'body',
+				'trim',
+				put(new BoxGeometry(0.06, 0.18, 0.012), [side * 0.07, 0.87, 0.16], [0, 0, side * 0.35])
+			);
 			add('body', 'trim', put(new BoxGeometry(0.09, 0.07, 0.01), [side * 0.13, 0.5, 0.185]));
 		}
 		add('body', 'accent', put(new BoxGeometry(0.03, 0.06, 0.01), [0.12, 0.82, 0.172]));
@@ -525,8 +675,21 @@ function body(add: Add, o: Outfit): void {
 			add('body', 'accent', put(new BoxGeometry(0.035, 0.18, 0.012), [0, 0.8, 0.168]));
 		}
 		if (o.stethoscope) {
-			add('body', 'dark', put(new TorusGeometry(0.15, 0.011, 4, 18, Math.PI * 1.2).rotateX(Math.PI / 2 + 0.5).rotateY(Math.PI * -0.1), [0, 0.9, 0.04]));
-			add('body', 'metal', put(new CylinderGeometry(0.03, 0.03, 0.015, 12).rotateX(Math.PI / 2), [0.06, 0.74, 0.185]));
+			add(
+				'body',
+				'dark',
+				put(
+					new TorusGeometry(0.15, 0.011, 4, 18, Math.PI * 1.2)
+						.rotateX(Math.PI / 2 + 0.5)
+						.rotateY(Math.PI * -0.1),
+					[0, 0.9, 0.04]
+				)
+			);
+			add(
+				'body',
+				'metal',
+				put(new CylinderGeometry(0.03, 0.03, 0.015, 12).rotateX(Math.PI / 2), [0.06, 0.74, 0.185])
+			);
 		}
 	}
 	if (shirt) {
@@ -534,7 +697,15 @@ function body(add: Add, o: Outfit): void {
 		for (let i = 0; i < 9; i++) {
 			const ang = -0.9 + r() * 1.8;
 			const y = 0.5 + r() * 0.4;
-			add('body', 'accent', put(ellipsoid(0.03, 0.03, 0.006), [Math.sin(ang) * 0.2, y, Math.cos(ang) * 0.165 + 0.005], [0, ang, 0]));
+			add(
+				'body',
+				'accent',
+				put(
+					ellipsoid(0.03, 0.03, 0.006),
+					[Math.sin(ang) * 0.2, y, Math.cos(ang) * 0.165 + 0.005],
+					[0, ang, 0]
+				)
+			);
 		}
 		// a camera strap across the chest
 		add('body', 'dark', put(new BoxGeometry(0.025, 0.5, 0.012), [0, 0.72, 0.17], [0, 0, 0.7]));
@@ -546,7 +717,11 @@ function body(add: Add, o: Outfit): void {
 		add('body', 'pack', put(superEllipsoid(a, b, c, 4, 14, 10), [0, 0.74, back]));
 		if (eva) {
 			add('body', 'accent', put(new BoxGeometry(0.3, 0.03, 0.02), [0, 0.86, back - c + 0.005]));
-			add('body', 'dark', put(new CylinderGeometry(0.05, 0.05, 0.02, 14).rotateX(Math.PI / 2), [0, 0.68, back - c]));
+			add(
+				'body',
+				'dark',
+				put(new CylinderGeometry(0.05, 0.05, 0.02, 14).rotateX(Math.PI / 2), [0, 0.68, back - c])
+			);
 			for (const side of [1, -1]) {
 				add('body', 'trim', put(new BoxGeometry(0.04, 0.22, 0.04), [side * 0.25, 0.74, back]));
 			}
@@ -563,31 +738,88 @@ function arms(add: Add, o: Outfit, prop: Outfit['prop']): void {
 		const sx = side * JOINTS.shoulderX;
 		const out = side * 0.06;
 		const sleeve = new CapsuleGeometry(0.068, 0.2, 4, 10);
-		add(bone, o.body === 'coat' ? 'suit' : 'suit', put(sleeve, [sx + out * 0.5, 0.75, 0], [0, 0, side * 0.12]));
-		if (short) add(bone, 'skin', put(new CapsuleGeometry(0.055, 0.12, 3, 8), [sx + out, 0.64, 0], [0, 0, side * 0.12]));
-		add(bone, 'trim', put(new TorusGeometry(0.06, 0.02, 5, 14).rotateX(Math.PI / 2), [sx + out * 1.05, 0.62, 0], [0, 0, side * 0.12]));
+		add(
+			bone,
+			o.body === 'coat' ? 'suit' : 'suit',
+			put(sleeve, [sx + out * 0.5, 0.75, 0], [0, 0, side * 0.12])
+		);
+		if (short)
+			add(
+				bone,
+				'skin',
+				put(new CapsuleGeometry(0.055, 0.12, 3, 8), [sx + out, 0.64, 0], [0, 0, side * 0.12])
+			);
+		add(
+			bone,
+			'trim',
+			put(
+				new TorusGeometry(0.06, 0.02, 5, 14).rotateX(Math.PI / 2),
+				[sx + out * 1.05, 0.62, 0],
+				[0, 0, side * 0.12]
+			)
+		);
 		add(bone, 'gloves', put(ellipsoid(0.075, 0.08, 0.07), [sx + out * 1.2, 0.55, 0.01]));
-		add(bone, 'gloves', put(ellipsoid(0.025, 0.04, 0.025, 8, 6), [sx + out * 1.2 - side * 0.055, 0.57, 0.04]));
+		add(
+			bone,
+			'gloves',
+			put(ellipsoid(0.025, 0.04, 0.025, 8, 6), [sx + out * 1.2 - side * 0.055, 0.57, 0.04])
+		);
 	}
 	const hx = -JOINTS.shoulderX - 0.072;
 	switch (prop) {
 		case 'wrench':
 			add('armR', 'metal', put(new BoxGeometry(0.028, 0.24, 0.014), [hx, 0.44, 0.04]));
-			add('armR', 'metal', put(new TorusGeometry(0.035, 0.014, 5, 12, Math.PI * 1.5).rotateZ(-Math.PI / 4), [hx, 0.32, 0.04]));
+			add(
+				'armR',
+				'metal',
+				put(new TorusGeometry(0.035, 0.014, 5, 12, Math.PI * 1.5).rotateZ(-Math.PI / 4), [
+					hx,
+					0.32,
+					0.04
+				])
+			);
 			add('armR', 'metal', put(new TorusGeometry(0.03, 0.012, 5, 12), [hx, 0.56, 0.04]));
 			break;
 		case 'tablet':
-			add('armR', 'dark', put(new BoxGeometry(0.2, 0.26, 0.016), [hx + 0.06, 0.5, 0.11], [-0.25, 0.6, 0]));
-			add('armR', 'lens', put(new BoxGeometry(0.17, 0.22, 0.004), [hx + 0.065, 0.502, 0.121], [-0.25, 0.6, 0]));
+			add(
+				'armR',
+				'dark',
+				put(new BoxGeometry(0.2, 0.26, 0.016), [hx + 0.06, 0.5, 0.11], [-0.25, 0.6, 0])
+			);
+			add(
+				'armR',
+				'lens',
+				put(new BoxGeometry(0.17, 0.22, 0.004), [hx + 0.065, 0.502, 0.121], [-0.25, 0.6, 0])
+			);
 			break;
 		case 'clipboard':
-			add('armR', 'hat', put(new BoxGeometry(0.18, 0.24, 0.012), [hx + 0.05, 0.5, 0.1], [-0.25, 0.6, 0]));
-			add('armR', 'paper', put(new BoxGeometry(0.15, 0.19, 0.004), [hx + 0.054, 0.49, 0.108], [-0.25, 0.6, 0]));
-			add('armR', 'metal', put(new BoxGeometry(0.07, 0.025, 0.016), [hx + 0.046, 0.61, 0.11], [-0.25, 0.6, 0]));
+			add(
+				'armR',
+				'hat',
+				put(new BoxGeometry(0.18, 0.24, 0.012), [hx + 0.05, 0.5, 0.1], [-0.25, 0.6, 0])
+			);
+			add(
+				'armR',
+				'paper',
+				put(new BoxGeometry(0.15, 0.19, 0.004), [hx + 0.054, 0.49, 0.108], [-0.25, 0.6, 0])
+			);
+			add(
+				'armR',
+				'metal',
+				put(new BoxGeometry(0.07, 0.025, 0.016), [hx + 0.046, 0.61, 0.11], [-0.25, 0.6, 0])
+			);
 			break;
 		case 'camera':
 			add('armR', 'dark', put(new BoxGeometry(0.13, 0.08, 0.07), [hx + 0.02, 0.52, 0.09]));
-			add('armR', 'lens', put(new CylinderGeometry(0.03, 0.032, 0.05, 12).rotateX(Math.PI / 2), [hx + 0.03, 0.52, 0.14]));
+			add(
+				'armR',
+				'lens',
+				put(new CylinderGeometry(0.03, 0.032, 0.05, 12).rotateX(Math.PI / 2), [
+					hx + 0.03,
+					0.52,
+					0.14
+				])
+			);
 			break;
 		case 'none':
 			break;
@@ -609,10 +841,22 @@ function legs(add: Add, o: Outfit): void {
 		}
 		add(bone, 'boots', put(superEllipsoid(0.095, 0.075, 0.135, 3, 12, 8), [x, 0.08, 0.025]));
 		add(bone, 'dark', put(superEllipsoid(0.1, 0.02, 0.14, 3, 12, 4), [x, 0.018, 0.025]));
-		if (o.body === 'suit') add(bone, 'trim', put(new TorusGeometry(0.083, 0.018, 5, 14).rotateX(Math.PI / 2), [x, 0.16, 0]));
+		if (o.body === 'suit')
+			add(
+				bone,
+				'trim',
+				put(new TorusGeometry(0.083, 0.018, 5, 14).rotateX(Math.PI / 2), [x, 0.16, 0])
+			);
 	}
 	// hips: a short bridge between the legs, on the body
-	add('body', o.body === 'coat' ? 'legs' : 'legs', put(new CapsuleGeometry(0.11, 0.1, 4, 10).rotateZ(Math.PI / 2).scale(1, 0.9, 0.85), [0, 0.49, 0]));
+	add(
+		'body',
+		o.body === 'coat' ? 'legs' : 'legs',
+		put(
+			new CapsuleGeometry(0.11, 0.1, 4, 10).rotateZ(Math.PI / 2).scale(1, 0.9, 0.85),
+			[0, 0.49, 0]
+		)
+	);
 }
 
 /** Every piece of a figure, in the figure frame, bind pose. */
@@ -631,7 +875,12 @@ export function buildCharacter(spec: CharacterSpec): Piece[] {
 	};
 	add('head', 'skin', put(superEllipsoid(HEAD.a, HEAD.b, HEAD.c, HEAD.n, 24, 16), [0, HEAD.y, 0]));
 	// small ears
-	for (const side of [1, -1]) add('head', 'skin', put(ellipsoid(0.04, 0.06, 0.035, 10, 8), [side * (HEAD.a - 0.005), HEAD.y - 0.02, -0.01]));
+	for (const side of [1, -1])
+		add(
+			'head',
+			'skin',
+			put(ellipsoid(0.04, 0.06, 0.035, 10, 8), [side * (HEAD.a - 0.005), HEAD.y - 0.02, -0.01])
+		);
 	face(add, expression, o.eyewear);
 	const cover =
 		o.headwear === 'helmet' && !spec.noHelmet

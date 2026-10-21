@@ -35,13 +35,7 @@ export const HAIR_STYLES = ['tousled', 'swept', 'short'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 
 export type Headwear =
-	| 'none'
-	| 'helmet'
-	| 'hard-hat'
-	| 'cap'
-	| 'headset'
-	| 'goggles'
-	| 'pilot-goggles';
+	'none' | 'helmet' | 'hard-hat' | 'cap' | 'headset' | 'goggles' | 'pilot-goggles';
 export type Eyewear = 'none' | 'glasses' | 'sunglasses';
 export type Prop = 'none' | 'wrench' | 'tablet' | 'clipboard' | 'camera';
 export type Body = 'suit' | 'coat' | 'shirt';

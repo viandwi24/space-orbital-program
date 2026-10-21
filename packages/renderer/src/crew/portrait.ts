@@ -22,7 +22,8 @@ const hex = (c: number, a = 1): string => {
 	return a === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${a})`;
 };
 const shade = (c: number, k: number): number => {
-	const f = (v: number) => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))));
+	const f = (v: number) =>
+		Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))));
 	return (f((c >> 16) & 255) << 16) | (f((c >> 8) & 255) << 8) | f(c & 255);
 };
 
@@ -157,7 +158,12 @@ export function paintPortrait(ctx: Ctx, size: number, spec: CharacterSpec, backd
 	ctx.fill();
 
 	// back hair is hidden behind the head; the crown and fringe go on top
-	const cover = o.headwear === 'hard-hat' || o.headwear === 'cap' ? 'hat' : o.headwear === 'helmet' && !spec.noHelmet ? 'helmet' : 'none';
+	const cover =
+		o.headwear === 'hard-hat' || o.headwear === 'cap'
+			? 'hat'
+			: o.headwear === 'helmet' && !spec.noHelmet
+				? 'helmet'
+				: 'none';
 	paintHair(ctx, look, cover, X, Y, s);
 
 	// --- face ------------------------------------------------------------------------------------
@@ -327,7 +333,14 @@ function paintFace(
 			ctx.beginPath();
 			ctx.moveTo(X(-0.06 * k), Y(my + 0.012));
 			ctx.lineTo(X(0.06 * k), Y(my + 0.012));
-			ctx.bezierCurveTo(X(0.06 * k), Y(my - 0.05 * k), X(-0.06 * k), Y(my - 0.05 * k), X(-0.06 * k), Y(my + 0.012));
+			ctx.bezierCurveTo(
+				X(0.06 * k),
+				Y(my - 0.05 * k),
+				X(-0.06 * k),
+				Y(my - 0.05 * k),
+				X(-0.06 * k),
+				Y(my + 0.012)
+			);
 			ctx.fill();
 			ctx.fillStyle = '#e8747c';
 			ctx.beginPath();

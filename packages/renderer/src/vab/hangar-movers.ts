@@ -106,8 +106,16 @@ export const TUG_LENGTH = 3.6;
 
 /** The Hangar's people: engineers, scientists, mechanics and researchers at work (owner, 2026-10-22). */
 export const CREW: readonly CrewSpec[] = [
-	{ outfit: 'engineer', id: 'hangar-1', path: { kind: 'circle', radius: 8.3, start: 0.9, direction: 1 } },
-	{ outfit: 'scientist', id: 'hangar-2', path: { kind: 'circle', radius: 8.9, start: 4.1, direction: -1 } },
+	{
+		outfit: 'engineer',
+		id: 'hangar-1',
+		path: { kind: 'circle', radius: 8.3, start: 0.9, direction: 1 }
+	},
+	{
+		outfit: 'scientist',
+		id: 'hangar-2',
+		path: { kind: 'circle', radius: 8.9, start: 4.1, direction: -1 }
+	},
 	{
 		outfit: 'mechanic',
 		id: 'hangar-3',
