@@ -1,7 +1,7 @@
 ---
 id: 272
 title: "Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right"
-status: in-progress
+status: done
 owner: "ui-v3 session (Claude, 2026-10-21)"
 depends: [233, 268]
 phase: 7
@@ -156,3 +156,4 @@ The app followed v2 (plan 233). The differences found by reading `FlightV3.dc.ht
   - `power` and `vessel-panel` (landing legs) still fail. A folded part row in the Parts tab does not open on a click on its summary: neither `summary.click()` nor a real mouse click opens it.
   - Main without v3 (the old vessel panel, the same check in a clean worktree) behaves the same, so the fault comes from the folding rows of plan 256, not from v3. Both tests stop at that step.
   - The fault is not fixed here.
+- 2026-10-22 — Plan 290 (325932da) fixed the part rows that did not unfold; its session reports `power` and `vessel-panel` passing on Chromium against the production build. With that, every e2e of this plan's list passes except `eva`, which fails on the baseline too. Done.

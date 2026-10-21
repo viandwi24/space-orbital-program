@@ -30,9 +30,10 @@ describe('the right panel sections (plan 255)', () => {
 			staging: true,
 			checks: true,
 			power: false,
-			crew: false
+			crew: false,
+			parts: false
 		});
-		expect(Object.keys(FOLD_DEFAULTS)).toHaveLength(5);
+		expect(Object.keys(FOLD_DEFAULTS)).toHaveLength(6);
 	});
 	it('round trip, and a damaged or partial value falls back per section', () => {
 		const state = { ...defaultFolds(), trip: true, staging: false };

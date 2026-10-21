@@ -13,6 +13,7 @@ import {
 	InstancedMesh,
 	Matrix4,
 	Mesh,
+	MeshBasicMaterial,
 	type BufferGeometry,
 	type Material,
 	type Object3D
@@ -44,6 +45,12 @@ export interface PartEntry {
 	/** `repeated` models were built with `repeatedDetail`. */
 	lod: 'full' | 'repeated';
 	overlays: Map<HighlightKind, ReturnType<typeof addOverlay>>;
+	/** The module states the model was last posed with, as JSON (plan 315). */
+	modules: string;
+	/** Drawn see-through: its own materials hidden, an x-ray overlay shown (plan 315). */
+	seeThrough: boolean;
+	/** What a see-through shell holds: the pointer reaches these through it (plan 315). */
+	holds: ReadonlySet<string>;
 }
 
 export interface GroupEntry {
@@ -179,6 +186,18 @@ export class PartLayer {
 			e.model.root.position.set(...p.position);
 			applyPartTurn(e.model.root, p);
 			e.model.root.updateMatrix();
+			// open in the Hangar, or stowed (plan 315): a pose, not a rebuild
+			const modules = JSON.stringify(p.modules ?? {});
+			if (modules !== e.modules) {
+				e.modules = modules;
+				e.model.setState({
+					modules: (p.modules ?? {}) as Record<string, unknown>,
+					temperature: 0,
+					ambientPressure: 101_325
+				});
+			}
+			setSeeThrough(e, p.seeThrough === true && p.role === 'solid');
+			e.holds = new Set(p.holds ?? []);
 		}
 		// Auto shrouds (plan 207): per group, from where the parts' nodes meet.
 		for (const id of this.groups.keys()) {
@@ -244,7 +263,10 @@ export class PartLayer {
 			model,
 			group: part.group,
 			lod,
-			overlays: new Map()
+			overlays: new Map(),
+			modules: '{}',
+			seeThrough: false,
+			holds: new Set()
 		});
 	}
 
@@ -265,7 +287,11 @@ export class PartLayer {
 		for (const [key, e] of this.parts) {
 			const wanted: HighlightKind[] = [];
 			if (e.slot.role !== 'solid') wanted.push('ghost', 'xray');
-			else {
+			else if (e.seeThrough) {
+				wanted.push('xray');
+				if (selected.has(key)) wanted.push('select');
+				else if (hover === key) wanted.push('hover');
+			} else {
 				if (flagged.has(key)) wanted.push('flag');
 				if (selected.has(key)) wanted.push('select');
 				else if (hover === key) wanted.push('hover');
@@ -358,4 +384,24 @@ export class PartLayer {
 		for (const key of [...this.parts.keys()]) this.removePart(key);
 		for (const g of this.groups.values()) g.bars.dispose();
 	}
+}
+
+/** A material that draws nothing: the meshes of a see-through part keep their overlays (children). */
+const HIDDEN = new MeshBasicMaterial({ visible: false });
+
+/** Hide a part's own materials (keeping them to put back) or show them again (plan 315). */
+function setSeeThrough(e: PartEntry, on: boolean): void {
+	if (e.seeThrough === on) return;
+	e.seeThrough = on;
+	e.model.root.userData.seeThrough = on;
+	e.model.root.traverse((o) => {
+		if (!(o instanceof Mesh) || o.userData.overlay) return;
+		if (on) {
+			o.userData.ownMaterial = o.material;
+			o.material = HIDDEN;
+		} else if (o.userData.ownMaterial) {
+			o.material = o.userData.ownMaterial as Mesh['material'];
+			delete o.userData.ownMaterial;
+		}
+	});
 }

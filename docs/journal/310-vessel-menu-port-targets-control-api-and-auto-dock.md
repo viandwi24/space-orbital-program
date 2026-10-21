@@ -21,7 +21,7 @@
 
 ## Surprises
 
-- **Rails chunks.** When every vessel is on rails, the sim advances in an analytic rails chunk. A command applied inside that chunk can put a vessel in flight. The chunk then advances the clock without moving that vessel, so it lands one step behind: 45 m at orbital speed. Running the autopilots before the sim chooses the kind of step fixed it for autopilots. **The signal-delay queue (`drain()` inside `railsChunk`) can do the same thing to a delayed command.** Not fixed here; it is a follow-up.
+- **Rails chunks.** When every vessel is on rails, the sim advances in an analytic rails chunk. A command applied inside that chunk can put a vessel in flight. The chunk then advances the clock without moving that vessel, so it lands one step behind: 45 m at orbital speed. Running the autopilots before the sim chooses the kind of step fixed it for autopilots. The signal-delay queue could do the same to a delayed command (`drain()` inside `railsChunk`). It is fixed the same way: due commands now drain at the top of the step loop (test `packages/sim/test/delay-wake.test.ts`: 44.9 m before, 0.013 m after).
 - **Auto-rails.** The sim clears its "active" mark at the start of each step (`prepareFrame`). An autopilot could therefore not keep its vessel out of auto-rails by marking it. `railsEligible` now leaves a vessel with an engaged autopilot alone.
 - **RCS strength.** The stock RCS on a 2 t chaser gives about 4 m/s². A fixed gain chattered between full forward and full back at 10 Hz and drifted. The learned-acceleration push fixed it.
 - **Numbering.** Plan 306 and ADR 0269 were taken by the robotics plan at the same time. Renumbered to 310, 0270 and 0271 before the first push.
@@ -39,5 +39,4 @@ bun run typecheck: exit 0
 
 ## Open questions / follow-ups
 
-- The signal-delay queue's rails-chunk lag (above).
 - The vessel menu has not been tried by a person in the browser; the owner tests on the deployed site.

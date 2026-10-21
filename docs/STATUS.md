@@ -217,8 +217,8 @@
 | 268 | [Vessel panel Parts tab: even gaps between groups and part rows, and the two transfer buttons drawn on top of each other](plans/268-vessel-panel-parts-spacing.md) | done | vessel-panel session | Owner report 2026-10-21. A trigger row was an inline-size container, so it shrank to zero width and "Transfer out" drew over "Transfer in"; gaps on the 4 px tokens (8 px rows, 16 px groups). Checked at 300, 340 and 440 px and in high contrast. |
 | 270 | [Map pick list for stacked vessels, and distinct vessel names](plans/270-map-pick-list-and-distinct-vessel-names.md) | done | map pick list / vessel names session | Owner request 2026-10-21. ADR 0252: "Moon shot 2", "Moon shot debris 2", legacy "(debris)" chains tidied on load; a click on stacked map icons lists them (flight map, Mission Center). |
 | 271 | [The backup reminder lets the Hangar's tool bar show through: give it the toasts' glass card](plans/271-backup-reminder-glass-card.md) | done | backup-reminder session | Owner report 2026-10-21. The reminder had the glass colour without the glass filter; now it blurs what is under it, as the toasts do. Solid with blur off and high contrast. |
-| 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | in-progress | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
-| 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | in-progress | ui-v3 session | ADR 0254. |
+| 272 | [Flight v3: one dock with the vessel panel inside, the compact navball module with status chips, staging on the right](plans/272-flight-v3-one-dock-navball-module-staging-right.md) | done | ui-v3 session | Owner's v3 design package (`refs/space-orbital-program-ui-v3`); ADR 0253; diff of v3 against the app in the plan. |
+| 273 | [Space Center v3: Overview, Build and Focus modes with a context bar](plans/273-space-center-v3-modes.md) | done | ui-v3 session | ADR 0254. |
 | 274 | [v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook](plans/274-v3-design-leftovers.md) | draft | — | Left by 272 and 273. |
 | 275 | [Size classes, part two: new tank shapes, size filter](plans/275-size-classes-to-7-5-m.md) | draft | — | ADR 0256; after 289. |
 | 276 | [Engines, engine plates 5/8/9, segmented SRBs, escape tower](plans/276-engines-plates-srbs-and-escape-tower.md) | draft | — | ADR 0257. |
@@ -260,6 +260,9 @@
 | 312 | [Blueprint Library follow-ups: labels, checklist, thumbnail cache, career locks](plans/312-blueprint-library-follow-ups.md) | draft | — | Leftovers of 285. |
 | 313 | [Tethers and winches between vessels, and releasable struts](plans/313-tethers-winches-and-strut-release.md) | draft | — | Owner's question 2026-10-21 (KSP struts and KAS cables). ADR 0272 proposed; research in `refs/part-visuals-and-blueprints/connectors-and-tethers.md`. |
 | 314 | [A bigger Hangar, and tall craft framed whole](plans/314-bigger-hangar.md) | done | part visuals session | Owner: Kronos V reached the roof. Room 90 × 90 × 69 m (×1.5), camera limits scaled, the view widens to 75° for tall craft; a test fits every blueprint with 1.3× room. Journal 314. |
+| 315 | [Hangar: see inside fairings, bays and petals](plans/315-hangar-see-inside.md) | done | part visuals session | Owner's request. Hover tip (name, mass, holds), x-ray shells, Open/Close in the editor, Show payload; picks reach through a shell only to what it holds. Journal 315. |
+| 316 | [Hangar: part list and start state](plans/316-hangar-part-list-and-start-state.md) | done | part visuals session | Owner's request. A Parts tree in the right panel (select, hover to find); start switches for panels, legs, bays, doors and fuel cells saved in the design; the Hangar draws each part from its start snapshot. Journal 316. |
+| 317 | [Worlds and Create World v3: the console-style library, a full-page Create World, generated system art](plans/317-worlds-and-create-world-v3.md) | in-progress | ui-v3 session | Owner's v3-2 package; ADR 0273 (generated art, optional mod `illustration`/`icon`, API 0.1.101). |
 | 320 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/320-vessel-programs.md) | done | vessel programs session | ADR 0276, research `vessel-programs.md`: the player takes any control channel from a script or autopilot and gets it back 1 s after letting go; scripts are saved with their `memory` and resume; "N programs" in the status bar; Delete and Abort stop programs; built-in mods on the Mods page; the replay recorder kept no command source (fixed). Journal 320. |
 | 321 | [Guidance Computer: MechJeb-style autopilots mod](plans/321-guidance-computer-autopilots-mod.md) | done | vessel programs session | Built-in mod: execute node, circularize, ascent to orbit, land on the moon, all headless-tested; ADR 0277 gives the pilot body, mass, engines and nodes. Journal 321. |
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
@@ -332,6 +335,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 - [321 — Guidance Computer](journal/321-guidance-computer-autopilots-mod.md)
 - [320 — Vessel programs](journal/320-vessel-programs.md)
+- [316 — Part list and start state](journal/316-hangar-part-list-and-start-state.md)
+- [315 — Seeing inside in the Hangar](journal/315-hangar-see-inside.md)
 - [314 — A bigger Hangar](journal/314-bigger-hangar.md)
 - [311 — Lights, the RCS jet, RCS propellant](journal/311-lights-panel-angled-nav.md)
 - [309 — Mission flight tests](journal/309-mission-flight-tests.md)

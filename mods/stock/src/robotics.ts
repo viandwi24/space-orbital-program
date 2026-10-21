@@ -179,6 +179,7 @@ export const ModuleRobotic = defineModule({
 		target: state.target,
 		locked: state.locked,
 		running: state.running,
+		reverse: state.reverse,
 		starved: state.starved,
 		/** The applied pose for the model's moving half: rad or m. */
 		pose: state.applied

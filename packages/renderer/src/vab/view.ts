@@ -809,20 +809,9 @@ export class VabView {
 		const roots: Object3D[] = [...this.layer.barRoots];
 		for (const e of this.layer.parts.values()) roots.push(e.model.root);
 		const hits = this.raycaster.intersectObjects(roots, true);
-		for (const h of hits) {
-			let o: Object3D | null = h.object;
-			while (o && o.userData.key === undefined) o = o.parent;
-			if (!o) continue;
-			const entry = this.layer.parts.get(o.userData.key as string);
-			// A preview bar of a connector being placed belongs to no part: look through it.
-			if (!entry) continue;
-			// the cursor ghost is never in the way of a pick (plan 244)
-			if (entry.slot.role === 'free') continue;
-			if (entry.slot.role === 'ghost') {
-				if (options.ignoreGhost) continue;
-				return { kind: 'ghost' };
-			}
-			const group = entry && this.layer.groups.get(entry.group);
+		/** A hit on part `key` in its group's frame. */
+		const partHit = (h: (typeof hits)[number], key: string, groupId: string): VabHit => {
+			const group = this.layer.groups.get(groupId);
 			const local = group ? group.object.worldToLocal(h.point.clone()) : h.point;
 			const world = worldNormalOf(h);
 			let normal: [number, number, number] | undefined;
@@ -834,12 +823,40 @@ export class VabView {
 			}
 			return {
 				kind: 'part',
-				key: o.userData.key as string,
+				key,
 				point: [local.x, local.y, local.z],
 				...(normal ? { normal } : {})
 			};
+		};
+		let throughShell: VabHit | null = null;
+		let holds: ReadonlySet<string> | null = null;
+		for (const h of hits) {
+			let o: Object3D | null = h.object;
+			while (o && o.userData.key === undefined) o = o.parent;
+			if (!o) continue;
+			const entry = this.layer.parts.get(o.userData.key as string);
+			// A preview bar of a connector being placed belongs to no part: look through it.
+			if (!entry) continue;
+			// the cursor ghost is never in the way of a pick (plan 244)
+			if (entry.slot.role === 'free') continue;
+			// a see-through shell lets the pointer reach what it encloses (plan 315); with nothing
+			// behind, the shell itself is the pick
+			if (entry.seeThrough) {
+				if (!throughShell) {
+					throughShell = partHit(h, o.userData.key as string, entry.group);
+					holds = entry.holds;
+				}
+				continue;
+			}
+			// past a see-through shell only what it holds is reached; anything else, the shell
+			if (throughShell && holds && !holds.has(o.userData.key as string)) return throughShell;
+			if (entry.slot.role === 'ghost') {
+				if (options.ignoreGhost) continue;
+				return { kind: 'ghost' };
+			}
+			return partHit(h, o.userData.key as string, entry.group);
 		}
-		return null;
+		return throughShell;
 	}
 
 	/**

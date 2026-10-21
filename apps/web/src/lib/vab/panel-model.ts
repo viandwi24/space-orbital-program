@@ -12,7 +12,9 @@ export const FOLD_DEFAULTS = {
 	staging: true,
 	checks: true,
 	power: false,
-	crew: false
+	crew: false,
+	/** The vessel's part list (plan 316). */
+	parts: false
 } as const;
 export type FoldId = keyof typeof FOLD_DEFAULTS;
 export type FoldState = Record<FoldId, boolean>;

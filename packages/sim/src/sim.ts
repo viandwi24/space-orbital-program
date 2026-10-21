@@ -605,8 +605,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			// physics warp lands on an alarm or warp-to time within one step, not within one frame
 			const flightStop = stopAt(core);
 			while (core.accumulator >= dt) {
-				// mod autopilots fly their vessels (plan 310, ADR 0271): before the choice of step, so a
-				// vessel one wakes into flight takes this step in physics, not a rails chunk that leaves it behind
+				// Before the choice of step, so a vessel they wake into flight takes this step in physics,
+				// not a rails chunk that leaves it one step behind: delayed commands now due (ADR 0188) and
+				// mod autopilots (plan 310, ADR 0271)
+				drain();
 				runAutopilots(core);
 				wakeTurningVessels(core); // a real SAS turn takes the vessel's own torque (plan 310)
 				if (hasFlightVessels(core)) {

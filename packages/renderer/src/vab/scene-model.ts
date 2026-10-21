@@ -21,6 +21,18 @@ export interface VabPart {
 	role: 'solid' | 'ghost' | 'free';
 	/** Per-instance generator parameters (plan 219: a fairing's sections); a change rebuilds the model. */
 	params?: Readonly<Record<string, number | string | boolean>>;
+	/**
+	 * Module states the model is drawn with (plan 315: a bay shown open in the Hangar), as a flight
+	 * snapshot gives them; absent: closed and stowed. A change re-poses the model, no rebuild.
+	 */
+	modules?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+	/**
+	 * Drawn as an x-ray outline so what it encloses shows (plan 315), and the pointer reaches through
+	 * it to the parts inside.
+	 */
+	seeThrough?: boolean;
+	/** The keys of the parts a see-through shell holds: only these are reached through it. */
+	holds?: readonly string[];
 }
 
 /** A bar from a connector part (strut, fuel line) to the far end of its link, relative to the group's root origin (ADR 0071). */
