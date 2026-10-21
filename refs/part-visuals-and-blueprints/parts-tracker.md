@@ -24,7 +24,7 @@ Owner memutuskan: semua lapis 1–4 penting, robotika masuk roadmap rilis (terut
 | 0255 | Satu merek fiksi **OrbitX**; dari KSP ditiru jenis dan bentuk, bukan nama atau art; blueprint memakai nama tiruan | 291 |
 | 0256 | Tujuh kelas ukuran: 0,625 / 1,25 / 1,875 / 2,5 / 3,75 / 5 / **7,5 m** (KSP dan KSP2 berhenti di 5 m) | 275 |
 | 0257 | Tetap prosedural, dengan detail kit bersama, livery, satu generator per jenis part, dan ikon yang jujur | 291 ✅ (kit, livery, ikon), 276–281 |
-| 0258 | Hangar bebas: gizmo geser x/y/z dan putar, offset (format 4), mode bebas, docking port boleh miring atau di mana saja | 279 |
+| 0258 | Hangar bebas: gizmo geser x/y/z dan putar, offset (format 4), mode bebas, docking port boleh miring atau di mana saja | 279 ✅ |
 | 0259 | Part fungsional ditempel di dinding; versi stack lama tetap ada sebagai part legacy tersembunyi (tanpa migrasi) | 280 |
 | 0260 | Puncak pod: parasut kerucut yang meneruskan kemiringan pod, **cincin parasut dengan node docking** (lebih baik dari KSP), parasut radial, atau parasut bawaan pod 3 kursi | 278 |
 | 0261 | Bay berpintu melindungi isi hanya saat tertutup; muatan dilepas hanya saat pintu terbuka | 281 |
