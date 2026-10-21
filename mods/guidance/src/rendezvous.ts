@@ -335,6 +335,12 @@ export function newRendezvousMemory(pilot: VesselPilot, params: RendezvousParams
 	};
 }
 
+/** Why the target does not do for a rendezvous, or null (the panel's check: it needs no facts). */
+export function targetProblem(pilot: VesselPilot): string | null {
+	const t = targetOf(pilot);
+	return typeof t === 'string' ? t : null;
+}
+
 /** Why the vessel cannot start, or null. */
 export function rendezvousProblem(pilot: VesselPilot): string | null {
 	const f = facts(pilot);

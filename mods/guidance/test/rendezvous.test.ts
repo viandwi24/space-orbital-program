@@ -4,12 +4,20 @@
  * 0.5 m/s; short of fuel it aborts; "Dock when close" hands over to Auto Dock.
  */
 import { describe, expect, test } from 'bun:test';
-import { partId, type CommandResult, type EntityId, type Vec3, type VesselDesign } from '@orbital/sdk';
+import {
+	partId,
+	type CommandResult,
+	type EntityId,
+	type PanelInput,
+	type PanelNode,
+	type Vec3,
+	type VesselDesign
+} from '@orbital/sdk';
 import Stock from '@orbital/mod-stock';
 import AutoDockMod from '@orbital/mod-autodock';
 import { createRapierBackend } from '@orbital/physics';
 import { createSim, type Sim } from '@orbital/sim';
-import GuidanceMod, { HOLD_DISTANCE, aimBurn, phasingBurn } from '../src/index.ts';
+import GuidanceMod, { HOLD_DISTANCE, RendezvousPanel, aimBurn, phasingBurn } from '../src/index.ts';
 
 type Part = VesselDesign['parts'][number];
 const link = (index: number, part: string, parent: number, parentNode = 'bottom'): Part => ({
@@ -210,6 +218,54 @@ describe('Rendezvous autopilot (plan 331)', () => {
 		expect(r.result).toStartWith('aborted: Not enough delta-v');
 		sim.dispose();
 	}, 60_000);
+
+	test('"Dock when close" with a targeted port hands over to Auto Dock', async () => {
+		const { sim, a, b } = await scene(100_000, 1_500 / 700_000, 0);
+		const port = vesselOf(sim, b).ports![0]!.part;
+		sim.dispatch({ type: 'target-set', vessel: a, target: { kind: 'vessel', id: b, part: port } });
+		sim.dispatch({ type: 'autopilot-settings', vessel: a, autopilot: 'guidance.rendezvous', settings: { dock: 'on' } });
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel: a, autopilot: 'guidance.rendezvous' }).ok).toBe(true);
+		const start = sim.time;
+		while (sim.time - start < 1_800 && vesselOf(sim, a).autopilot?.id !== 'autodock.dock') sim.step(0.1);
+		const v = vesselOf(sim, a);
+		expect(v.autopilot?.id).toBe('autodock.dock');
+		expect(v.autopilotLast?.id).toBe('guidance.rendezvous');
+		expect(v.autopilotLast?.reason).toContain('replaced by Auto Dock');
+		expect(v.controlPart).toBe(v.ports![0]!.part);
+		expect(v.target?.distance).toBeLessThan(HOLD_DISTANCE);
+		sim.dispose();
+	}, 120_000);
+
+	test('the panel shows the target before it engages, and engages and stores its settings', async () => {
+		const { sim, a } = await scene(100_000, 5_000 / 700_000, 0);
+		const nodes = (n: PanelNode): PanelNode[] => (n.kind === 'section' ? n.children.flatMap(nodes) : [n]);
+		const all = nodes(RendezvousPanel.view);
+		const input = (): PanelInput =>
+			({ snapshot: sim.snapshot(), vessel: vesselOf(sim, a), altitude: 0, speed: 0, time: sim.time }) as unknown as PanelInput;
+		const readout = (label: string) => {
+			const n = all.find((x) => x.kind === 'readout' && x.label === label);
+			return n?.kind === 'readout' ? n.value(input()) : undefined;
+		};
+		expect(readout('Status')).toBe('Ready to engage');
+		expect(Number(readout('Distance'))).toBeGreaterThan(4_900);
+		const dock = all.find((x) => x.kind === 'select' && x.label === 'Dock when close');
+		if (dock?.kind !== 'select') throw new Error('no dock select');
+		expect(dock.value(input())).toBe('off');
+		const set = dock.command(input(), 'on')!;
+		expect(sim.dispatch(set).ok).toBe(true);
+		expect(dock.value(input())).toBe('on');
+		const engage = all.find((x) => x.kind === 'button' && x.label === 'Engage');
+		if (engage?.kind !== 'button') throw new Error('no engage');
+		expect(sim.dispatch(engage.command(input())!).ok).toBe(true);
+		for (let k = 0; k < 5; k++) sim.step(0.1);
+		expect(readout('Phase')).not.toBe('off');
+		expect(typeof readout('Delta-v estimate')).toBe('number');
+		const abort = all.find((x) => x.kind === 'button' && x.label === 'Abort');
+		if (abort?.kind !== 'button') throw new Error('no abort');
+		expect(sim.dispatch(abort.command(input())!).ok).toBe(true);
+		expect(vesselOf(sim, a).autopilot).toBeUndefined();
+		sim.dispose();
+	});
 
 	test('refuses without a target', async () => {
 		const { sim, a } = await scene(100_000, 0.01, 0);
