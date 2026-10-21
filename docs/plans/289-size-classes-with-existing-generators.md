@@ -1,7 +1,7 @@
 ---
 id: 289
 title: "Size classes 1.875, 3.75, 5 and 7.5 m with the existing generators: tanks, decouplers, adapters, nose cones, heat shields, docking ports, fairing bases"
-status: in-progress
+status: done
 owner: "Worker E"
 depends: []
 phase: 0
@@ -118,4 +118,4 @@ updated: 2026-10-21
   - The 1.875 m set goes into Heavy lift (tier 3). The 3.75, 5 and 7.5 m sets go into a new tier-5 node, `stock.super-heavy-lift` (300 science, after a Cinder landing), outside the tier 1–4 pacing sums. The 3.75 m port and the 1.875 and 3.75 m fairing bases go into Docking and Fairings.
   - The seam test has three new exemptions. They are the heat shields' bottom dishes, for the same reason as the two existing shields.
   - The pad test empties the 7.5 m tank through a design setting. Full, it weighs about 320 t, against the six motors' 1.8 MN.
-
+- 2026-10-21 — Done: CI pass on `ready/289` (4cb557d6). Rebased over plan 292 (a conflict in the STATUS journal list only), and merged to main by Worker E.
