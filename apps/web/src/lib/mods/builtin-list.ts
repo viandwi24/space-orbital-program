@@ -15,7 +15,8 @@ export interface BuiltinModRow {
 /** Short descriptions for the plugins the game ships; a plugin without one shows none. */
 const DESCRIPTIONS: Readonly<Record<string, string>> = {
 	stock: 'The stock parts, modules, resources, bodies, buildings and tech tree.',
-	sol: 'The real solar system, for worlds that choose it.'
+	sol: 'The real solar system, for worlds that choose it.',
+	autodock: 'An autopilot that docks with the targeted docking port; a program you can take over or stop.'
 };
 
 export function builtinModRows(plugins: readonly Plugin[]): BuiltinModRow[] {
