@@ -1331,11 +1331,14 @@ export class SceneModel {
 	private activeMoon: { moon: MoonPass; altitude: number } | null = null;
 
 	/** What the environment hears about the active vessel's moon: its air, or that it has none. */
-	private moonAir(): { airless: true } | { air: { atmosphere: Atmosphere; altitude: number } } {
+	private moonAir(): ({ airless: true } | { air: { atmosphere: Atmosphere; altitude: number } }) & {
+		horizon?: { radius: number; altitude: number };
+	} {
 		const m = this.activeMoon;
+		const horizon = m ? { horizon: { radius: m.moon.radius, altitude: m.altitude } } : {};
 		return m?.moon.atmosphere
-			? { air: { atmosphere: m.moon.atmosphere, altitude: m.altitude } }
-			: { airless: true };
+			? { air: { atmosphere: m.moon.atmosphere, altitude: m.altitude }, ...horizon }
+			: { airless: true, ...horizon };
 	}
 
 	/**

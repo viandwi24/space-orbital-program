@@ -28,6 +28,10 @@ The three images are identical.
 7. **Depth stays logarithmic (Phase 2 step 11).** The TSL planet pass writes three's own logarithmic depth (`viewZToLogarithmicDepth` with the camera's near and far, what node materials write under `logarithmicDepthBuffer`), so the vessel, the site and the planet pass share one depth space as on WebGL. Reversed depth was not taken: it would change every material for no gain the spike showed.
 8. **The TSL planet pass reads the GLSL pass's uniforms.** `PlanetPass.update` keeps computing the frame on the CPU (camera, sun, body rotation, ambient, exposure). `tsl/planet-pass.ts` links a TSL uniform to each of those it needs and draws in the GLSL mesh's place. The CPU side is not duplicated and stays tested, and the GLSL pass can leave the codebase without touching it.
 9. **The terrain's far field is a 2D atlas of the six cube faces (Phase 2b).** Each face tile has a one-texel gutter baked from directions past its edge, so hardware filtering never mixes faces, and the lookup picks the face by hand. This avoids depending on cube render targets and their face conventions on two backends; the texel layout `(hi, lo, g1, g2)` is the cube map's. The bakes are planned by `PlanetPass` (`terrainJobs`, `markCubeBaked`, `markPatchBaked`) as before. The gradient is a forward difference of three heights until Phase 3 bakes on compute with the analytic one (ADR 0116).
+10. **The default is the newest renderer, chosen in Settings (2026-10-21, the owner: "yang grafis terbaru jadi default, tapi tetap sediakan di setting untuk diganti").** Settings → Graphics → Renderer offers Automatic, WebGPU and WebGL (`RendererChoice`, `orbital.graphics.renderer`).
+    - Automatic is the default. It draws with WebGPU where the browser has `navigator.gpu`, else with WebGL.
+    - Each view reads the choice when it creates its renderer, so a change applies when the view next opens.
+    - `?renderer=` on the address overrides it. This replaces point 3's "main keeps `WebGLRenderer`".
 
 ## Consequences
 

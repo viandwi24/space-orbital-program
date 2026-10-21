@@ -11,10 +11,13 @@
 		clearGraphicsPreset,
 		loadAutoQuality,
 		presetChoice,
+		loadRendererChoice,
+		saveRendererChoice,
 		saveAutoQuality,
 		saveGraphicsPreset,
 		type PresetChoice
 	} from '../graphics';
+	import type { RendererChoice } from '@orbital/renderer/backend';
 	import { settings } from '../settings/settings.svelte';
 	import { markActiveWorldForDebug } from '../debug/world-mark';
 	import { PLACE_PAUSE_DEFAULTS, placePauses } from '../clock-state';
@@ -40,12 +43,14 @@
 	let tab = $state<Tab>('graphics');
 	let preset = $state<PresetChoice>('auto');
 	let auto = $state(true);
+	let rendererChoice = $state<RendererChoice>('auto');
 
 	// Read the stored choices each time the dialog opens, so two pages never disagree.
 	$effect(() => {
 		if (!open) return;
 		preset = presetChoice();
 		auto = loadAutoQuality();
+		rendererChoice = loadRendererChoice();
 	});
 
 	function choosePreset(choice: PresetChoice): void {
@@ -53,6 +58,10 @@
 		if (choice === 'auto') clearGraphicsPreset();
 		else saveGraphicsPreset(choice);
 		onpreset?.(choice);
+	}
+	function chooseRenderer(choice: RendererChoice): void {
+		rendererChoice = choice;
+		saveRendererChoice(choice);
 	}
 	function chooseAuto(on: boolean): void {
 		auto = on;
@@ -74,6 +83,11 @@
 		{ value: 'low', label: 'Low', hint: 'Fewest effects, fastest' },
 		{ value: 'medium', label: 'Medium', hint: 'Shadows and denser terrain' },
 		{ value: 'high', label: 'High', hint: 'Everything on' }
+	] as const;
+	const rendererOptions = [
+		{ value: 'auto', label: 'Automatic', hint: 'The newest your browser runs: WebGPU, else WebGL' },
+		{ value: 'webgpu', label: 'WebGPU', hint: 'The new renderer' },
+		{ value: 'webgl', label: 'WebGL', hint: 'The older renderer' }
 	] as const;
 	const unitOptions = [
 		{ value: 'metric', label: 'Metric', hint: 'Metres, kilometres, m/s, kg, tonnes' },
@@ -143,6 +157,21 @@
 					options={presetOptions}
 					onchange={choosePreset}
 					testid="setting-preset"
+				/>
+			</div>
+			<div class="row">
+				<div class="what">
+					<h3>Renderer</h3>
+					<p>
+						Automatic uses the newest your browser runs. A change applies when the view next opens.
+					</p>
+				</div>
+				<Segmented
+					label="Renderer"
+					value={rendererChoice}
+					options={rendererOptions}
+					onchange={chooseRenderer}
+					testid="setting-renderer"
 				/>
 			</div>
 			<label class="row check">

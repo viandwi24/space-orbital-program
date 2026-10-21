@@ -61,6 +61,7 @@ import {
 	initialGraphicsPreset,
 	loadAutoQuality,
 	probeCapabilities,
+	rendererBackend,
 	resolvePreset,
 	saveAutoQuality,
 	saveGraphicsPreset
@@ -394,6 +395,13 @@ export interface DebugInfo {
 /** The home body of a sim's catalog (plan 122, ADR 0119): the sim's `home`, else the same rule as core's. */
 const homeOfCatalog = (c: Catalog): BodyDefinition | undefined =>
 	c.bodies.find((b) => b.id === c.home) ?? homeBodyOf(c.bodies);
+
+/** 2 → "2nd", 3 → "3rd", 4 → "4th" (Debug → Info's frame pacing). */
+const ordinal = (n: number): string => {
+	const t = n % 100;
+	if (t >= 11 && t <= 13) return `${n}th`;
+	return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+};
 
 export function startFlight(options: FlightOptions): Flight {
 	const { canvas } = options;
@@ -1676,6 +1684,7 @@ export function startFlight(options: FlightOptions): Flight {
 				resumed ? { entityIndex: resumed.entityIndex, stagesFired: resumed.stagesFired } : undefined
 			);
 			renderer = createRenderer({
+				backend: rendererBackend(),
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
 				...(c.home ? { home: c.home } : {}),
@@ -1962,7 +1971,7 @@ export function startFlight(options: FlightOptions): Flight {
 			governorChanges: [...governorChanges],
 			governorPacing:
 				governor && autoQuality
-					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${governor.renderEvery}th `}frame`
+					? `${governor.targetFps} fps${governor.isLockedTo30 ? ' (locked)' : ''} on ${governor.displayRate} Hz, every ${governor.renderEvery === 1 ? '' : `${ordinal(governor.renderEvery)} `}frame`
 					: null,
 			versions: [`api ${API_VERSION}`, ...(catalog?.plugins ?? [])].join(', '),
 			frames: frameStats.summary(performance.now()),

@@ -8,6 +8,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./presets": "./src/presets.ts",
+		"./backend": "./src/backend.ts",
 		"./precompile-progress": "./src/precompile-progress.ts",
 		"./reentry": "./src/effects/reentry.ts",
 		"./map-style": "./src/map-style.ts",

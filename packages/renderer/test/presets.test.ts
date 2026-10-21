@@ -13,6 +13,7 @@ import {
 	NIGHT_EXPOSURE,
 	adaptExposure,
 	exposureFor,
+	horizonDipDeg,
 	starVisibility
 } from '../src/exposure.ts';
 
@@ -115,6 +116,13 @@ describe('exposure', () => {
 		}
 		expect(exposureFor(-40)).toBe(NIGHT_EXPOSURE);
 		expect(exposureFor(60)).toBeCloseTo(DAY_EXPOSURE, 9);
+	});
+	test('the horizon dip: none on the ground, 41.4 degrees at 200 km over 600 km', () => {
+		expect(horizonDipDeg(600_000, 0)).toBe(0);
+		expect(horizonDipDeg(600_000, -5)).toBe(0);
+		expect(horizonDipDeg(600_000, 200_000)).toBeCloseTo(41.41, 2);
+		// a sun 30 degrees under the local horizontal is still up from 200 km: the day exposure
+		expect(exposureFor(-30 + horizonDipDeg(600_000, 200_000))).toBeCloseTo(DAY_EXPOSURE, 9);
 	});
 	test('adaptation moves toward the target without overshoot and ignores dt = 0', () => {
 		expect(adaptExposure(1, 5, 0)).toBe(1);

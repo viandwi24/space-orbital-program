@@ -7,7 +7,7 @@
 import type { Command, CommandResult, SimSave, Snapshot, WorldInfo } from '@orbital/core';
 import { createRenderer, type Renderer, type SiteBuildingView } from '@orbital/renderer';
 import { partShapesOf } from '../catalog';
-import { initialGraphicsPreset } from '../graphics';
+import { initialGraphicsPreset, rendererBackend } from '../graphics';
 import { startSimWorker } from '../sim-client';
 
 export interface SpaceCenterOptions {
@@ -134,6 +134,7 @@ export function startSpaceCenter(options: SpaceCenterOptions): SpaceCenter {
 		(c) => {
 			if (disposed) return;
 			renderer = createRenderer({
+				backend: rendererBackend(),
 				canvas,
 				// the home body has the planet pass (plan 122, ADR 0119)
 				...(c.home ? { home: c.home } : {}),

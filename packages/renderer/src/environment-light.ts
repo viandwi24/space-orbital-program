@@ -3,6 +3,7 @@
  * rendered to a cube and prefiltered with PMREM whenever the sun or the altitude changed enough.
  * Needs a `WebGLRenderer`, so it lives outside `scene.ts`.
  */
+import { NIGHT_SKY } from './exposure.ts';
 import {
 	BackSide,
 	Color,
@@ -46,7 +47,7 @@ export class EnvironmentLight {
 				uAlt: { value: 0 },
 				uSunDir: { value: new Vector3(1, 0, 0) },
 				uGroundAlbedo: { value: new Color(0.14, 0.2, 0.07) },
-				uNight: { value: new Vector3(0.0035, 0.0048, 0.0095) },
+				uNight: { value: new Vector3(...NIGHT_SKY) },
 				uAirless: { value: 0 },
 				uAirSky: { value: new Vector3() },
 				uAirGround: { value: new Vector3() }
