@@ -57,3 +57,27 @@ export function layoutFor(width: number, scale: number): Layout {
 /** Clamp a requested width (px at 100 %) to a region's span. */
 export const clampSpan = (span: Span, px: number): number =>
 	Math.min(span.max, Math.max(span.min, Number.isFinite(px) ? px : span.default));
+
+/** A box in the flight view's own px (left/right/top/bottom from its top-left corner). */
+export interface Box {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}
+
+/**
+ * The highest the right column (the maneuver card on staging, ADR 0267) may reach: `top` (the
+ * safe area's), unless the map toolbar at the top centre reaches into the column's width (a narrow
+ * window or a large UI scale); then `gap` px under the toolbar. `column` gives the column's left edge.
+ */
+export function cornerTop(
+	top: number,
+	column: Pick<Box, 'left'> | undefined,
+	tools: Box | undefined,
+	gap = 8
+): number {
+	if (!column || !tools || tools.bottom <= tools.top) return top;
+	if (tools.right + gap <= column.left || tools.bottom + gap <= top) return top;
+	return Math.max(top, Math.round(tools.bottom + gap));
+}

@@ -1,8 +1,8 @@
 ---
 id: 288
 title: "Robotics joint spike: can Rapier's motored joints carry our robotic parts? (benchmark and research only)"
-status: ready
-owner: ""
+status: done
+owner: "Worker E"
 depends: []
 phase: 0
 created: 2026-10-21
@@ -67,19 +67,21 @@ Run A–F for **multibody** joints (`world.createMultibodyJoint`) and for **impu
 
 ## Acceptance criteria
 
-- [ ] `bun packages/physics/bench/joints.ts all` runs to the end on the Linux worker and prints the A–F table for both joint kinds (output in the journal).
-- [ ] `docs/research/rapier-joints.md` gives the version, the URLs, the API calls used and the verdict, with the numbers behind each rule.
-- [ ] No file under `packages/*/src`, `mods/` or `apps/` changed (`git diff --stat` in the journal).
-- [ ] `bun run typecheck` and `bun run docs:check` pass. Typecheck covers the bench if it is in the package's tsconfig; if it is not, say so in the journal.
+- [x] `bun packages/physics/bench/joints.ts all` runs to the end on the Linux worker and prints the A–F table for both joint kinds (output in the journal).
+- [x] `docs/research/rapier-joints.md` gives the version, the URLs, the API calls used and the verdict, with the numbers behind each rule.
+- [x] No file under `packages/*/src`, `mods/` or `apps/` changed (`git diff --stat` in the journal).
+- [x] `bun run typecheck` and `bun run docs:check` pass. Typecheck covers the bench if it is in the package's tsconfig; if it is not, say so in the journal.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/288-robotics-joint-spike.md` written.
-- [ ] Affected `docs/architecture/*.md` updated to match what shipped (none expected).
-- [ ] New ADRs written for any decision made here, linked above (only for a no-go).
-- [ ] `docs/research/stack-versions.md` updated for anything looked up.
+- [x] `docs/STATUS.md` updated (board row, next plan, open issues).
+- [x] `docs/journal/288-robotics-joint-spike.md` written.
+- [x] Affected `docs/architecture/*.md` updated to match what shipped (none expected).
+- [x] New ADRs written for any decision made here, linked above (only for a no-go): [ADR 0265](../decisions/0265-robotics-short-impulse-chains-kinematic-arms.md), proposed.
+- [x] `docs/research/stack-versions.md` updated for anything looked up.
 
 ## Log
 
 - 2026-10-21 — Split from plan 282 at the owner's request ("boleh pisahkan"), sized for the Linux worker (Agent 3). Ready: steps checked against `rapier-backend.ts`, the grouping bench and the Rapier version in the catalog.
+- 2026-10-21 — Worker E (Agent 3, Linux): bench, research note and journal written. Verdict **no-go**: A, B, C and E pass for both joint kinds; D (6-joint chain: multibody diverges, impulse sags 104.5 cm) and F (13.2× and 5.8×) fail. ADR 0265 proposed (impulse joints, at most two in series, optional sub-steps, kinematic long arms); plan 282 Context and Log updated.
+- 2026-10-21 — Done: CI pass on `ready/288` (2bc00a40). Merged to main by Worker E.

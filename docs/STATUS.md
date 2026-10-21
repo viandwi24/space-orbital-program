@@ -227,16 +227,17 @@
 | 279 | [Hangar free placement: move/rotate gizmos, offset (format 4), docking ports anywhere](plans/279-hangar-free-placement-and-surface-mount.md) | draft | — | ADR 0258. |
 | 280 | [Power, comms, science, life support: surface-mount shapes, deploy, fuel cell](plans/280-power-comms-science-life-support.md) | draft | — | ADR 0259. |
 | 281 | [Payload bays with doors, petals, multi-couplers, trusses, lattice interstage](plans/281-payload-bays-couplers-and-structure.md) | draft | — | ADR 0261. |
-| 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | ADR 0262 (gated by a spike). |
+| 282 | [Robotics: rigid groups and motored joints](plans/282-robotics-articulated-vessels.md) | draft | — | ADR 0262 (gated by a spike): spike 288 no-go, ADR 0265 proposed. |
 | 283 | [Rovers: suspension, wheels, cab, seat, scanning arms, drill](plans/283-rover-and-arms.md) | draft | — | ADRs 0262, 0264. |
 | 284 | [EVA inventory and deployed science stations](plans/284-eva-inventory-and-deployed-science.md) | draft | — | ADR 0264. |
 | 285 | [Blueprint Library: cards, filters, labels, defineBlueprint](plans/285-blueprint-library.md) | draft | — | ADR 0263. |
 | 286 | [Real-rocket blueprints wave 1 (Kronos V, Semyorka-S, Rajawali 9, Hermes-R)](plans/286-real-rocket-blueprints-wave-1.md) | draft | — | ADRs 0263, 0255. |
 | 287 | [Real-rocket blueprints waves 2 and 3](plans/287-real-rocket-blueprints-waves-2-and-3.md) | draft | — | ADRs 0263, 0255. |
-| 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | ready | — | Split from 282 for the Linux worker (Agent 3): Rapier 0.21 motored joints, determinism, 6-joint chain, cost. Gate of ADR 0262. |
+| 288 | [Robotics joint spike (benchmark and research only)](plans/288-robotics-joint-spike.md) | done | Worker E | Verdict no-go for ADR 0262 as written: single joints and determinism pass, the 6-joint chain and its cost fail on both joint kinds (journal 288). ADR 0265 proposed: impulse joints, two in series, kinematic long arms. Plan 282 waits for it. |
 | 289 | [Size classes 1.875–7.5 m with the existing generators](plans/289-size-classes-with-existing-generators.md) | ready | — | Split from 275 for the Linux worker (Agent 3). ADR 0256. Headless; no UI. |
 | 290 | [A folded part row in the vessel panel does not open when its summary is clicked](plans/290-folded-part-rows-open-on-click.md) | done | part-row fold session | Found by plan 272's e2e. The row's `open` shared a Svelte effect with its summary text, rewritten every tick, so the native toggle was undone before its `toggle` event stored it; a summary click now flips the stored state. |
 | 291 | [Part detail kit, liveries, bronze material and honest catalogue icons](plans/291-part-detail-kit-livery-and-icons.md) | draft | — | ADRs 0255, 0257. Owner research 2026-10-21 (refs/part-visuals-and-blueprints). Waits until the owner releases the parts work (main busy with renderer and UI/UX fixes). |
+| 292 | [Map toolbar in one row, and a compact maneuver card on staging](plans/292-map-toolbar-one-row-and-compact-maneuver-card.md) | done | map HUD compact session | Owner request 2026-10-21. ADR 0267: Regions is a chip in the map filter row; the node panel is a 260 px card on staging in the right column (summary, icon actions, editor folded behind the pencil with steppers), never over the middle of the view. |
 | 293 | [Flight map: no crash on escape burns, no text selection on drags, SOI on demand, steady orbit lines](plans/293-flight-map-crash-selection-soi-and-steady-lines.md) | done | map crash + jitter session | Owner screenshots 2026-10-21. ADR 0266: the χ solve converges (hyperbolic guess, safeguarded Newton) and a failed step ends a path instead of the page; drags select no text; spheres of influence are a map filter, off by default; predicted stretches hang at their body as it is now (a planned orbit 20 min ahead used to hang 11 Mm away along the planet's orbit) and are sampled on a fixed time grid. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
@@ -267,6 +268,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Known issues / open questions
 
 - **Full e2e not run on Firefox and WebKit, nor after plans 251–253** (owner's order, 2026-10-20: all local e2e paused until the owner says otherwise): a known issue of v1.0.0, not a pass. Chromium ran once on the integration tree before the pause (90 passed, 6 red, all triaged in plan 232's Log). The release rests on CI (lint, typecheck, unit tests, build), the graphics measurements and the owner's manual checklist. `eva.e2e` (plan 225) is a known flake.
+- **Robotics gate** (plan 288, journal 288): Rapier 0.21 JS has no multibody motors, and a 6-joint impulse chain sags about 1 m and costs 5–6× a vessel's step. ADR 0265 (proposed) waits for the owner or the CTO, and plan 282 is gated on it.
 - **Plan 232 release gates**: the `v1.0.0` tag and the public deploy wait for the owner's filled acceptance checklist (`release/1.0.0-acceptance-checklist.md`); its M5 performance pass is where the open frame items below get re-measured.
 - **Second hills planet** (plan 071, journal 071): the image-based light cube still reflects the home sky on a later body with air; hills terrain shadows reach 5 km (the mid patch); a mod hills planet without a `seed` got new continents with plan 071.
 - **Sun at the root** (plan 122, journal 122): body positions in snapshots and scripts' `system` frame are Sun-centred (13.6 Gm); day-based constants written against 21 600 s (stock data, crew rest) are 0.2 % off the solar day of 21 650.8 s; the Mission Center's system scope frames the whole Sun system.
@@ -303,6 +305,8 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 ## Recent journal entries
 
 - [293 — Flight map: the escape-burn crash, text selection, spheres of influence, steady lines](journal/293-flight-map-crash-selection-soi-and-steady-lines.md)
+- [292 — Map toolbar in one row, compact maneuver card](journal/292-map-toolbar-and-maneuver-card.md)
+- [288 — Robotics joint spike](journal/288-robotics-joint-spike.md)
 - [290 — Folded part rows that did not open on a click](journal/290-folded-part-rows-open-on-click.md)
 - [272 — Flight v3: one dock, the compact navball module, staging on the right](journal/272-flight-v3.md)
 - [273 — Space Center v3: Overview, Build and Focus](journal/273-space-center-v3.md)
