@@ -62,6 +62,20 @@ export {
 	SECONDS_PER_CENTURY,
 	type LevelARow
 } from '@orbital/kepler';
+// Rendezvous aids for autopilots (plan 331, ADR 0286).
+export {
+	burnComponents,
+	closestApproach,
+	hohmannToTarget,
+	orbitalAxes,
+	propagateUniversal,
+	relativeNodes,
+	type BurnComponents,
+	type ClosestApproach,
+	type HohmannPlan,
+	type RelativeNode,
+	type StateVector
+} from '@orbital/kepler';
 export { poleQuaternion } from '@orbital/core';
 export {
 	buildingCategoryOf,

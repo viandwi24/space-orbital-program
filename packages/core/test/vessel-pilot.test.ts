@@ -129,6 +129,29 @@ describe('vessel pilot (plan 310)', () => {
 		]);
 	});
 
+	test('warps, hands over and reads the propellant (ADR 0286)', () => {
+		const out: Command[] = [];
+		const p = createVesselPilot(
+			{ t: 7, vessels: [chaser, station] },
+			entityId(1),
+			(c) => {
+				out.push(c);
+				return { ok: c.type !== 'autopilot-engage' || c.autopilot === 'autodock.dock' };
+			},
+			{ body: undefined as never, mass: 1_000, engines: [], propellantMass: 400 }
+		);
+		expect(p.propellantMass).toBe(400);
+		p.warpTo(500);
+		expect(p.engage('autodock.dock')).toBe(true);
+		expect(p.engage('nope.none', { a: 1 })).toBe(false);
+		expect(out).toEqual([
+			{ type: 'warp-to', vessel: entityId(1), time: 500, factor: 100_000 },
+			{ type: 'autopilot-engage', vessel: entityId(1), autopilot: 'autodock.dock' },
+			{ type: 'autopilot-engage', vessel: entityId(1), autopilot: 'nope.none', params: { a: 1 } }
+		]);
+		expect(pilot.propellantMass).toBeUndefined();
+	});
+
 	test('no alignment without a control port', () => {
 		const p = createVesselPilot(
 			{ t: 0, vessels: [{ ...chaser, controlPart: undefined } as VesselSnapshot, station] },

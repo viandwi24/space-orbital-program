@@ -89,6 +89,11 @@ export interface PilotFacts {
 	/** Current mass of the vessel, kg. */
 	mass: number;
 	engines: PilotEngine[];
+	/**
+	 * Mass of the propellant mix the burning engines draw, over the whole vessel, kg (ADR 0286
+	 * point 4): the first burning engine's mix, limited by its scarcest resource; 0 when none burns.
+	 */
+	propellantMass?: number;
 }
 
 export interface VesselPilot {
@@ -101,6 +106,8 @@ export interface VesselPilot {
 	readonly engines: readonly PilotEngine[];
 	/** Vacuum thrust of the engines that burn (ignited, not flamed out), N; 0 without facts. */
 	readonly maxThrust: number;
+	/** Propellant the burning engines can draw, kg (ADR 0286); undefined without facts. */
+	readonly propellantMass: number | undefined;
 	readonly vessel: VesselSnapshot;
 	/** The part the vessel is controlled from: the chosen control part, or the root. */
 	readonly controlPart: EntityId;
@@ -144,7 +151,20 @@ export interface VesselPilot {
 	addNode(time: number, prograde: number, normal: number, radial: number): void;
 	/** Remove a node by id, or the first one. */
 	removeNode(id?: number): void;
+	/**
+	 * Warp the clock to sim time `time` (ADR 0286 point 2): `warp-to` at the highest level the
+	 * world's warp limits allow; an engine that lights drops it to physics warp, as for the player.
+	 */
+	warpTo(time: number): void;
+	/**
+	 * Engage another autopilot on this vessel (ADR 0286 point 3): it replaces the calling one, which
+	 * ends as `disengaged`. A refusal (unknown id, its `start` throws) leaves the caller running.
+	 */
+	engage(autopilot: string, params?: unknown): boolean;
 }
+
+/** The level `warpTo` asks for: the sim grants up to the world's limit. */
+const WARP_ASK = 100_000;
 
 const add = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
 const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -202,6 +222,7 @@ export function createVesselPilot(
 		mass: facts?.mass,
 		engines,
 		maxThrust: engines.reduce((sum, e) => sum + (e.ignited && !e.flameout ? e.thrustVacuum : 0), 0),
+		propellantMass: facts ? (facts.propellantMass ?? 0) : undefined,
 		vessel,
 		controlPart,
 		controlOrientation,
@@ -298,6 +319,18 @@ export function createVesselPilot(
 		},
 		removeNode(node) {
 			send({ type: 'node-remove', vessel: id, ...(node === undefined ? {} : { id: node }) });
+		},
+		warpTo(time) {
+			send({ type: 'warp-to', vessel: id, time, factor: WARP_ASK });
+		},
+		engage(autopilot, params) {
+			const r = send({
+				type: 'autopilot-engage',
+				vessel: id,
+				autopilot,
+				...(params === undefined ? {} : { params })
+			}) as { ok?: boolean } | undefined;
+			return r?.ok === true;
 		}
 	};
 	return ctrl;
