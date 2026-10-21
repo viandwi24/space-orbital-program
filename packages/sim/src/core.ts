@@ -157,6 +157,12 @@ export function moduleDefOf(core: SimCore, id: string): ModuleDefinition {
 /** All vessel entities, ascending. */
 export const vesselIds = (core: SimCore): EntityId[] => core.world.query([VESSEL]);
 
+/** Every vessel's name but those of `except`: the names a new name must differ from (ADR 0252). */
+export const vesselNames = (core: SimCore, ...except: EntityId[]): string[] =>
+	vesselIds(core)
+		.filter((id) => !except.includes(id))
+		.map((id) => vesselOf(core, id).name);
+
 export const hasFlightVessels = (core: SimCore): boolean =>
 	core.frames.some((f) => f.inUse && f.vessels.length > 0);
 

@@ -5,6 +5,7 @@
  */
 import {
 	DEFAULT_DEBRIS_CAP,
+	uniqueVesselName,
 	type CommandResult,
 	type EntityId,
 	type VesselType
@@ -15,6 +16,7 @@ import {
 	partDefOf,
 	partOf,
 	vesselIds,
+	vesselNames,
 	vesselOf,
 	type SimCore
 } from './core.ts';
@@ -68,6 +70,12 @@ const ownVessel = (core: SimCore, id: EntityId): VesselState | string => {
 	if (v.owner !== undefined) return 'that vessel belongs to another agency';
 	return v;
 };
+
+/** A launched vessel's name differs from every other vessel's: "Moon shot 2" (ADR 0252). */
+export function nameLaunched(core: SimCore, id: EntityId): void {
+	const v = vesselOf(core, id);
+	v.name = uniqueVesselName(v.name, vesselNames(core, id));
+}
 
 export function renameVessel(core: SimCore, id: EntityId, name: string): CommandResult {
 	const v = ownVessel(core, id);

@@ -146,8 +146,9 @@ const GOVERNOR_LOG = 5;
 const HUD_PERIOD_MS = 100;
 
 export interface FlightHud {
-	status: 'booting' | 'flying' | 'lost' | 'error';
-	/** Human-readable detail for `booting`, `error` and `lost`. */
+	/** `refused`: the sim runs on, but it would not load this launch (`message` says why, ADR 0250). */
+	status: 'booting' | 'flying' | 'lost' | 'refused' | 'error';
+	/** Human-readable detail for `booting`, `refused`, `error` and `lost`. */
 	message: string;
 	vesselName: string;
 	telemetry: Telemetry | null;
@@ -1794,8 +1795,8 @@ export function startFlight(options: FlightOptions): Flight {
 					...(options.crew?.length ? { crew: options.crew } : {})
 				});
 				if (!result.ok || result.vessel === undefined) {
-					hud.status = 'error';
-					hud.message = `launch refused: ${result.ok ? 'no vessel id returned' : result.reason}`;
+					hud.status = result.ok ? 'error' : 'refused';
+					hud.message = result.ok ? 'launch refused: no vessel id returned' : result.reason;
 					publish();
 					return;
 				}

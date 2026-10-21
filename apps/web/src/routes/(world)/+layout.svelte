@@ -698,9 +698,12 @@
 		padding: var(--s-2) var(--s-3);
 		font-size: var(--t-small);
 		color: var(--text-primary);
+		/* a glass card like the toasts: it can sit on the Hangar's tool bar, whose labels must not show through */
 		background: var(--surface-glass);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-card);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
 	}
 	.backup button {
 		flex: none;

@@ -5,7 +5,9 @@
 import { restoreUndocked } from './docking.ts';
 import {
 	cloneData,
+	debrisName,
 	parseModuleConfig,
+	splitName,
 	SURFACE_NODE,
 	type EntityId,
 	type Quat,
@@ -26,6 +28,7 @@ import {
 	partMass,
 	partOf,
 	totalMass,
+	vesselNames,
 	vesselOf,
 	type SimCore
 } from './core.ts';
@@ -430,7 +433,8 @@ function splitAt(
 	const newRoot = newSide.includes(vessel.root) ? vessel.root : cutOf(newSide);
 	const keepSet = new Set(keepSide);
 	const newState: VesselState = {
-		name: `${vessel.name} (debris)`,
+		// one "debris" tail, or a number for a side that can be flown (ADR 0252)
+		name: (controlled(newSide) ? splitName : debrisName)(vessel.name, vesselNames(core)),
 		...(vessel.design ? { design: vessel.design } : {}),
 		...(vessel.launchedAt !== undefined ? { launchedAt: vessel.launchedAt } : {}),
 		mode: vessel.mode,

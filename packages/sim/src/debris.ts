@@ -6,7 +6,14 @@
  * (`ModuleDefinition.shell`) shields every part of the vessel inside its profile from drag and
  * convective heat.
  */
-import { partId, resolveVesselDesign, type EntityId, type Vec3 } from '@orbital/core';
+import {
+	debrisName,
+	partId,
+	resolveVesselDesign,
+	uniqueVesselName,
+	type EntityId,
+	type Vec3
+} from '@orbital/core';
 import { add, sub } from '@orbital/kepler';
 import {
 	frameOfPart,
@@ -14,6 +21,7 @@ import {
 	moduleState,
 	partDefOf,
 	partOf,
+	vesselNames,
 	vesselOf,
 	type SimCore
 } from './core.ts';
@@ -51,7 +59,9 @@ export function spawnQueuedDebris(core: SimCore): void {
 		const source = vesselOf(core, partOf(core, r.from).vessel);
 		const design = {
 			formatVersion: 3 as const,
-			name: r.name ?? `${source.name} (debris)`,
+			name: r.name
+				? uniqueVesselName(r.name, vesselNames(core))
+				: debrisName(source.name, vesselNames(core)),
 			parts: [
 				{
 					index: 0,
