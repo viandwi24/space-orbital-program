@@ -142,3 +142,25 @@ export function statusChips(input: ChipInput): StatusChip[] {
 		});
 	return chips;
 }
+
+/** How long a chip flashes when a failed action points at it (V3 §2.2). */
+export const FLASH_MS = 1200;
+
+/**
+ * The chip a failed action points at (V3 §2.2, plan 274): a refused command or the out-of-power
+ * event flashes the condition that caused it, so the player sees why at once. Null when no chip on
+ * the strip explains it.
+ */
+export function chipToFlash(
+	toast: { key?: string; title: string; detail?: string },
+	chips: readonly StatusChip[]
+): StatusChip['id'] | null {
+	const has = (id: StatusChip['id']) => chips.some((c) => c.id === id);
+	if (toast.key === 'power') return has('power') ? 'power' : has('control') ? 'control' : null;
+	if (!toast.key?.startsWith('refused-')) return null;
+	const text = `${toast.title} ${toast.detail ?? ''}`.toLowerCase();
+	if (/power|charge/.test(text) && has('power')) return 'power';
+	if (/signal|link|comms|antenna/.test(text) && has('signal')) return 'signal';
+	if (/torque|turn/.test(text) && has('torque')) return 'torque';
+	return has('control') ? 'control' : null;
+}

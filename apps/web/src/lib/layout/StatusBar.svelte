@@ -170,12 +170,19 @@
 	</div>
 	{#if programsOpen && programs.length > 0}
 		<div class="feed list" role="region" aria-label="Running programs" data-testid="programs-list">
-			<p class="head">Programs keep flying when you look away. Touch a control to take it; the program resumes 1 s after you let go. Delete stops the programs of the vessel you fly.</p>
+			<p class="head">
+				Programs keep flying when you look away. Touch a control to take it; the program resumes 1 s
+				after you let go. Delete stops the programs of the vessel you fly.
+			</p>
 			{#each programs as p (`${p.vessel}-${p.kind}`)}
 				<div class="row">
 					<div class="what">
 						<b>{p.title}</b>
-						<span>{p.vesselName} · {p.kind === 'autopilot' ? 'Autopilot' : 'Script'}{p.detail ? ` · ${p.detail}` : ''}</span>
+						<span
+							>{p.vesselName} · {p.kind === 'autopilot' ? 'Autopilot' : 'Script'}{p.detail
+								? ` · ${p.detail}`
+								: ''}</span
+						>
 						{#if p.manual.length > 0}<span class="held">Manual: {manualText(p.manual)}</span>{/if}
 					</div>
 					{#if onstopprogram}

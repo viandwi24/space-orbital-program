@@ -8,9 +8,12 @@
 
 	let {
 		chips,
-		onfix
+		onfix,
+		flash = null
 	}: {
 		chips: readonly StatusChip[];
+		/** A chip a failed action points at flashes for 1.2 s (V3 §2.2, plan 274). */
+		flash?: StatusChip['id'] | null;
 		/** A chip's fix was pressed: open that dock panel. */
 		onfix: (fix: ChipFix) => void;
 	} = $props();
@@ -36,6 +39,7 @@
 			type="button"
 			class="chip {c.tone}"
 			class:open={open === c.id}
+			class:flash={flash === c.id}
 			aria-expanded={open === c.id}
 			data-testid={c.testid}
 			data-tip="{c.title}: click for details"
@@ -123,6 +127,25 @@
 	}
 	.chip.open {
 		border-color: rgb(255 255 255 / 0.22);
+	}
+	.chip.flash {
+		background: var(--surface-chip);
+		border-color: var(--tone);
+		animation: flash 1.2s ease-out;
+	}
+	@keyframes flash {
+		0%,
+		50% {
+			box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 35%, transparent);
+		}
+		100% {
+			box-shadow: 0 0 0 0 transparent;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.chip.flash {
+			animation: none;
+		}
 	}
 	.chip:focus-visible,
 	.x:focus-visible,

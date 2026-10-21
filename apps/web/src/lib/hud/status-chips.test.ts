@@ -1,6 +1,6 @@
 /** Plan 272 (V3 §2.2, ADR 0253 point 7): the status strip's chips. */
 import { describe, expect, it } from 'vitest';
-import { statusChips } from './status-chips';
+import { chipToFlash, statusChips } from './status-chips';
 
 const none = { uncontrolled: null, link: null, blackout: 0, range: null } as const;
 
@@ -65,5 +65,25 @@ describe('statusChips', () => {
 		expect(statusChips({ ...none, sas: { mode: 'off', accel: 0 } })).toEqual([]);
 		expect(statusChips({ ...none, sas: { mode: 'hold', accel: 0.05 } })).toEqual([]);
 		expect(statusChips({ ...none, sas: { mode: 'hold' } })).toEqual([]);
+	});
+});
+
+describe('chipToFlash (V3 §2.2, plan 274)', () => {
+	const noPower = statusChips({ ...none, uncontrolled: 'no-power' });
+	it('a refused command flashes the chip that explains it', () => {
+		expect(
+			chipToFlash(
+				{ key: 'refused-throttle', title: 'Cannot throttle', detail: 'No electric charge' },
+				noPower
+			)
+		).toBe('power');
+		expect(
+			chipToFlash({ key: 'refused-stage', title: 'Cannot stage', detail: 'Uncontrolled' }, noPower)
+		).toBe('control');
+		expect(chipToFlash({ key: 'power', title: 'Out of power' }, noPower)).toBe('power');
+	});
+	it('other toasts, or no chip to point at, flash nothing', () => {
+		expect(chipToFlash({ key: 'stage', title: 'Stage 2 fired' }, noPower)).toBeNull();
+		expect(chipToFlash({ key: 'refused-throttle', title: 'Cannot throttle' }, [])).toBeNull();
 	});
 });

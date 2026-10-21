@@ -18,8 +18,8 @@ export const REGIONS = {
 	navball: { width: 552, height: 232 },
 	/** The staging box at the bottom right (V3 §2.5): fixed width, its list scrolls inside. */
 	staging: { width: 260 },
-	/** Toasts on screen at once. */
-	toasts: 4,
+	/** Toasts on screen at once (V3 §2.2). */
+	toasts: 2,
 	/** The touch target floor in drawer mode, px. */
 	touchTarget: 44
 } as const;

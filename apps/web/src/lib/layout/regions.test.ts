@@ -29,7 +29,7 @@ describe('layoutFor', () => {
 		expect(REGIONS.dock).toEqual({ min: 260, default: 272, max: 400 });
 		expect(REGIONS.navball).toEqual({ width: 552, height: 232 });
 		expect(REGIONS.staging).toEqual({ width: 260 });
-		expect(REGIONS.toasts).toBe(4);
+		expect(REGIONS.toasts).toBe(2);
 		expect(clampSpan(REGIONS.dock, 600)).toBe(400);
 		expect(clampSpan(REGIONS.dock, Number.NaN)).toBe(272);
 	});

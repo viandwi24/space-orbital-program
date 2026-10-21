@@ -3,6 +3,7 @@ import {
 	heatRatio,
 	addToast,
 	MAX_TOASTS,
+	TOAST_MS,
 	pruneToasts,
 	toastForHeat,
 	toastForPhase,
@@ -164,15 +165,37 @@ describe('toast store', () => {
 		expect(pruneToasts(list, 21)).toBe(list);
 	});
 
-	it('past four, the oldest that is not a danger leaves first (plan 215)', () => {
+	it('past two (V3 §2.2), the oldest that is not a danger leaves first (plan 215)', () => {
 		let list = addToast([], { kind: 'danger', title: 'fire' }, 0, 1);
 		for (let i = 0; i < 6; i++)
 			list = addToast(list, { kind: 'warning', title: `w${i}` }, 1, 2 + i);
-		expect(list.map((t) => t.title)).toEqual(['fire', 'w3', 'w4', 'w5']);
+		expect(list.map((t) => t.title)).toEqual(['fire', 'w5']);
 		// all dangers: the oldest goes
 		let red = addToast([], { kind: 'danger', title: 'd0' }, 0, 1);
 		for (let i = 1; i < 6; i++) red = addToast(red, { kind: 'danger', title: `d${i}` }, 0, 1 + i);
-		expect(red.map((t) => t.title)).toEqual(['d2', 'd3', 'd4', 'd5']);
+		expect(red.map((t) => t.title)).toEqual(['d4', 'd5']);
+	});
+
+	it('the same event again merges into one toast that counts up (V3 §2.2, plan 274)', () => {
+		const refusal = {
+			kind: 'warning' as const,
+			title: 'Cannot throttle',
+			detail: 'No power',
+			key: 'refused-throttle'
+		};
+		let list = addToast([], refusal, 0, 1);
+		list = addToast(list, refusal, 1000, 2);
+		list = addToast(list, refusal, 2000, 3);
+		expect(list).toHaveLength(1);
+		expect(list[0]).toMatchObject({ count: 3, until: 2000 + TOAST_MS.warning });
+		// without a key, the same words merge; other words stack
+		let plain = addToast([], { kind: 'info', title: 'Hi' }, 0, 1);
+		plain = addToast(plain, { kind: 'info', title: 'Hi' }, 0, 2);
+		plain = addToast(plain, { kind: 'info', title: 'Bye' }, 0, 3);
+		expect(plain.map((t) => [t.title, t.count])).toEqual([
+			['Hi', 2],
+			['Bye', 1]
+		]);
 	});
 
 	it('out of power on the flown vessel is a danger toast, on another vessel nothing (plan 208)', () => {
