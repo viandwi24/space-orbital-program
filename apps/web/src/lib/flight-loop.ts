@@ -1742,7 +1742,12 @@ export function startFlight(options: FlightOptions): Flight {
 				mapOn: () => draw.isMapView,
 				size: () => ({ width: canvas.clientWidth, height: canvas.clientHeight, insets: viewInsets })
 			});
-			governor = new QualityGovernor(renderer.preset, undefined, renderer.halfPlanetAvailable);
+			governor = new QualityGovernor(
+				renderer.preset,
+				undefined,
+				renderer.halfPlanetAvailable,
+				renderer.governorPresetSteps
+			);
 			governor.setEnabled(autoQuality);
 			syncGlass();
 			// Measurement (plan 251): the switches named in localStorage `orbital.graphics.features` go down

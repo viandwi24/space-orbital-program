@@ -47,13 +47,18 @@ export const GOVERNOR_FLOOR_STEPS: readonly { scale: number; planetScale: number
 export function governorLadder(
 	ceiling: GraphicsPreset,
 	halfPlanet = true,
-	budgetedPlanet = 1
+	budgetedPlanet = 1,
+	/**
+	 * false: resolution only, never a lower preset (WebGPU, plan 261): there the frame's cost follows
+	 * its pixels, not the preset (ADR 0248), and a preset change rebuilds shaders for seconds.
+	 */
+	presetSteps = true
 ): GovernorLevel[] {
 	// plan 253: when the pixel budget already draws the planet pass near half size (a Retina screen,
 	// plan 252), the half rung would save almost nothing: the steps are resolution only
 	if (budgetedPlanet <= BUDGETED_NEAR_HALF) halfPlanet = false;
 	const from = GRAPHICS_PRESETS.indexOf(ceiling);
-	const presets = GRAPHICS_PRESETS.slice(0, from + 1).reverse();
+	const presets = presetSteps ? GRAPHICS_PRESETS.slice(0, from + 1).reverse() : [ceiling];
 	const out: GovernorLevel[] = [];
 	presets.forEach((preset, i) => {
 		const last = i === presets.length - 1;
@@ -213,10 +218,12 @@ export class QualityGovernor {
 	constructor(
 		ceiling: GraphicsPreset,
 		private readonly config: GovernorConfig = DEFAULT_GOVERNOR,
-		private readonly halfPlanet = true
+		private readonly halfPlanet = true,
+		/** false: the governor changes resolution only, never the preset (`governorLadder`). */
+		private readonly presetSteps = true
 	) {
 		this.ceiling = ceiling;
-		this.ladder = governorLadder(ceiling, halfPlanet);
+		this.ladder = governorLadder(ceiling, halfPlanet, 1, presetSteps);
 		this.settle = config.presetSettleSeconds;
 	}
 
@@ -234,7 +241,7 @@ export class QualityGovernor {
 		}
 		this.budgetedPlanet = scale;
 		if (this.index !== 0) return;
-		this.ladder = governorLadder(this.ceiling, this.halfPlanet, scale);
+		this.ladder = governorLadder(this.ceiling, this.halfPlanet, scale, this.presetSteps);
 	}
 
 	/** How many rungs the ladder has (tests, Debug). */
@@ -283,7 +290,7 @@ export class QualityGovernor {
 	/** The player picked a preset: it is the new ceiling and the governor starts again from it. Returns the level to draw. */
 	setCeiling(ceiling: GraphicsPreset): GovernorLevel {
 		this.ceiling = ceiling;
-		this.ladder = governorLadder(ceiling, this.halfPlanet, this.budgetedPlanet);
+		this.ladder = governorLadder(ceiling, this.halfPlanet, this.budgetedPlanet, this.presetSteps);
 		this.restart();
 		return this.level;
 	}

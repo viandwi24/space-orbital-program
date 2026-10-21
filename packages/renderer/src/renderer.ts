@@ -275,6 +275,11 @@ export interface Renderer {
 	 */
 	readonly gpuFrameMs: number | null;
 	/**
+	 * Whether the quality governor may lower the preset (WebGL), or only the resolution (WebGPU, plan
+	 * 261: its cost follows the pixels, and a preset change rebuilds shaders for seconds).
+	 */
+	readonly governorPresetSteps: boolean;
+	/**
 	 * Compiles the shader programs of this preset's scene and, after the first frame, of every preset's
 	 * scene state and its planet and march passes in the background (`compileAsync`), so the first frame
 	 * and a later `setPreset` do not stall on the driver's shader compiler, then builds the biome maps and
@@ -622,6 +627,7 @@ export function createRenderer(config: RendererConfig): Renderer {
 				return env.planet.planetScale;
 			},
 			gpuFrameMs: null,
+			governorPresetSteps: true,
 			get halfPlanetAvailable() {
 				return env.planet.halfAvailable(gl);
 			},
