@@ -127,6 +127,7 @@ describe('stock boots through the loader', () => {
 			'stock.nose-cone-medium',
 			'stock.nose-cone-small',
 			'stock.parachute',
+			'stock.parachute-ring',
 			'stock.probe-core',
 			'stock.radial-decoupler',
 			'stock.radial-parachute',

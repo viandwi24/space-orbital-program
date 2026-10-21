@@ -124,7 +124,7 @@ const canopy = { module: ModuleParachute.id, flag: 'canopy', seconds: 1.5 } as c
 /** The main chute that caps a capsule: 0.625 m, on the pod's top node. */
 export const PartParachute = definePart({
 	id: 'stock.parachute',
-	title: 'Parachute',
+	title: 'OrbitX PR-16 "Kuncup"',
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
@@ -149,7 +149,7 @@ export const PartParachute = definePart({
 /** A radial main chute: the same canopy on the side of a part, for capsules with a full top. */
 export const PartRadialParachute = definePart({
 	id: 'stock.radial-parachute',
-	title: 'Radial Parachute',
+	title: 'OrbitX PR-16R "Kuncup"',
 	mass: kg(100),
 	cost: partCost(100, 'gear'),
 	impactTolerance: 12,
@@ -177,7 +177,7 @@ export const PartRadialParachute = definePart({
  */
 export const PartDrogueChute = definePart({
 	id: 'stock.drogue-chute',
-	title: 'Drogue Chute',
+	title: 'OrbitX PR-25 "Kuncup Kecil"',
 	mass: kg(60),
 	cost: partCost(60, 'gear'),
 	impactTolerance: 12,
@@ -185,7 +185,7 @@ export const PartDrogueChute = definePart({
 	visual: {
 		kind: 'parachute',
 		palette: { primary: '#d9552b', secondary: '#2a2e35', accent: '#e9ebee' },
-		params: { canopy: 4 },
+		params: { canopy: 4, drogue: true },
 		deploy: canopy
 	},
 	attach: { bottom: { pos: [0, -0.13, 0], dir: [0, -1, 0], size: 0.625 } },
@@ -204,6 +204,38 @@ export const PartDrogueChute = definePart({
 				unsafeQ: 200_000,
 				anchor: [0, 0.13, 0] as [number, number, number]
 			}
+		]
+	],
+	stagingIcon: 'parachute'
+});
+
+/**
+ * The docking chute ring (plan 278, ADR 0260): it sits on a pod's 0.625 m apex and carries three
+ * mains around a central tunnel, with its own 0.625 m top node for a docking port, so a pod can
+ * have both. Its canopies open around the port; together they drag like one main.
+ */
+export const PartParachuteRing = definePart({
+	id: 'stock.parachute-ring',
+	title: 'OrbitX PR-D16 "Mahkota"',
+	mass: kg(140),
+	cost: partCost(140, 'gear'),
+	impactTolerance: 12,
+	shape: { kind: 'cylinder', radius: 0.375, height: 0.34 },
+	visual: {
+		kind: 'parachute',
+		palette: { primary: '#e9ebee', secondary: '#2a2e35', accent: '#e0572b' },
+		params: { canopy: 11, ring: true, tunnel: 0.3125 },
+		deploy: canopy
+	},
+	attach: {
+		bottom: { pos: [0, -0.17, 0], dir: [0, -1, 0], size: 0.625 },
+		top: { pos: [0, 0.17, 0], dir: [0, 1, 0], size: 0.625 }
+	},
+	crossfeed: false,
+	modules: [
+		[
+			ModuleParachute,
+			{ semiDragArea: 10, fullDragArea: 480, anchor: [0, 0.17, 0] as [number, number, number] }
 		]
 	],
 	stagingIcon: 'parachute'

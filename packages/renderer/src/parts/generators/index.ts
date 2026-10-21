@@ -18,6 +18,7 @@ import { launchClamp } from './launch-clamp.ts';
 import { fairing, fairingPanel } from './fairing.ts';
 import { noseCone } from './nose-cone.ts';
 import { parachute } from './parachute.ts';
+import { probe } from './probe.ts';
 import { radialDecoupler } from './radial-decoupler.ts';
 import { ladder } from './ladder.ts';
 import { light } from './light.ts';
@@ -62,6 +63,7 @@ export function registerStockGenerators(): void {
 	registerPartGenerator('suit', suit);
 	registerPartGenerator('flag', flag);
 	registerPartGenerator('parachute', parachute);
+	registerPartGenerator('probe', probe);
 	// A plain painted barrel for mods that only give a colour: a tank without stripe and bands.
 	registerPartGenerator('plain', (ctx: GenContext) =>
 		tank({

@@ -228,3 +228,53 @@ describe('catalogue icons frame what is drawn (plan 291)', () => {
 		}
 	});
 });
+
+describe('the stack chute continues the pod (plan 278, ADR 0260)', () => {
+	/** Largest radius where the model's triangle edges cross the height `y` (a horizontal slice). */
+	function radiusAt(root: Object3D, y: number): number {
+		let r = 0;
+		root.updateMatrixWorld(true);
+		const a = new Vector3();
+		const b = new Vector3();
+		root.traverseVisible((o) => {
+			const mesh = o as Mesh;
+			if (!mesh.isMesh) return;
+			const g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+			const pos = g.getAttribute('position');
+			for (let t = 0; t < pos.count; t += 3) {
+				for (const [i, j] of [
+					[0, 1],
+					[1, 2],
+					[2, 0]
+				] as const) {
+					a.fromBufferAttribute(pos, t + i).applyMatrix4(mesh.matrixWorld);
+					b.fromBufferAttribute(pos, t + j).applyMatrix4(mesh.matrixWorld);
+					if ((a.y - y) * (b.y - y) > 0 || a.y === b.y) continue;
+					const f = (y - a.y) / (b.y - a.y);
+					r = Math.max(r, Math.hypot(a.x + (b.x - a.x) * f, a.z + (b.z - a.z) * f));
+				}
+			}
+		});
+		return r;
+	}
+
+	test("the chute's wall slope is within 10 % of the pod cone's near the collar", () => {
+		const maps = stockMaps();
+		const factory = new PartModelFactory({
+			shapes: maps.shapes,
+			visuals: maps.visuals,
+			attach: maps.attach,
+			detail: detailOf(PRESETS.low)
+		});
+		const pod = factory.create('stock.command-pod')!;
+		// the pod's cone between 0.15 m and 0.30 m (its collar starts at 0.40)
+		const podSlope = (radiusAt(pod.root, 0.15) - radiusAt(pod.root, 0.3)) / 0.15;
+		const chute = factory.create('stock.parachute')!;
+		// the chute's body between 0.02 m and 0.08 m above its seat (its bottom face is at -0.16)
+		const chuteSlope = (radiusAt(chute.root, -0.13) - radiusAt(chute.root, -0.07)) / 0.06;
+		expect(podSlope).toBeGreaterThan(0.3);
+		expect(Math.abs(chuteSlope - podSlope) / podSlope).toBeLessThan(0.1);
+		pod.dispose();
+		chute.dispose();
+	});
+});

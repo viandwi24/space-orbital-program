@@ -49,6 +49,7 @@ import {
 	PartParachute,
 	PartRadialParachute,
 	PartDrogueChute,
+	PartParachuteRing,
 	STOCK_SCIENCE_PARTS,
 	STOCK_COMMS_PARTS,
 	STOCK_POWER_PARTS,
@@ -223,6 +224,7 @@ export const Stock = definePlugin({
 		ctx.parts.register(PartParachute);
 		ctx.parts.register(PartRadialParachute);
 		ctx.parts.register(PartDrogueChute);
+		ctx.parts.register(PartParachuteRing);
 
 		// the Sun first: hosts list bodies in registration order and the tree's root comes first
 		ctx.bodies.register(SunBody);

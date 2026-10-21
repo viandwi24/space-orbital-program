@@ -10,15 +10,15 @@ import { cylinder, stackNodes } from './shared.ts';
 /** A probe core: a control source without seats, with a whip antenna and a small battery. */
 export const PartProbeCore = definePart({
 	id: 'stock.probe-core',
-	title: 'Probe Core',
+	title: 'OrbitX NA-8 "Oktaf"',
 	mass: kg(50),
 	cost: partCost(50, 'command'),
 	impactTolerance: 8,
 	shape: cylinder(0.4),
+	// an octagonal, foil-panelled body (plan 278), not a striped tank
 	visual: {
-		kind: 'tank',
-		palette: { primary: '#2a2e35', secondary: '#d5d8dc', accent: '#e0572b' },
-		params: { stripe: 0.5, bands: 2 }
+		kind: 'probe',
+		palette: { primary: '#e9ebee', secondary: '#2a2e35', accent: '#e0572b' }
 	},
 	attach: stackNodes(0.4),
 	modules: [

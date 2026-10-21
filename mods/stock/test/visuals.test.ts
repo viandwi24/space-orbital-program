@@ -37,7 +37,9 @@ const KINDS = [
 	// plan 225
 	'ladder',
 	// plan 242
-	'light'
+	'light',
+	// plan 278
+	'probe'
 ];
 
 const parts = () => loadPlugins([Stock]).registries.parts.list();

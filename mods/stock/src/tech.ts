@@ -150,8 +150,9 @@ export const STOCK_TECH = [
 		cost: 5,
 		requires: ['stock.basics'],
 		milestone: 'orbit:stock.home',
-		description: 'More parachutes: a radial one and a drogue for fast descents.',
-		unlocks: ['stock.radial-parachute', 'stock.drogue-chute']
+		description:
+			'More parachutes: a radial one, a drogue for fast descents, and a ring of mains that leaves the apex free for a docking port.',
+		unlocks: ['stock.radial-parachute', 'stock.drogue-chute', 'stock.parachute-ring']
 	}),
 	// ---- tier 3: 490 science, after a Cinder flyby ----
 	defineTechNode({

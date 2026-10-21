@@ -1523,6 +1523,25 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 560,
+    "id": "stock.parachute-ring",
+    "mass": 140,
+    "modules": [
+      [
+        "stock.parachute",
+        {
+          "anchor": [
+            0,
+            0.17,
+            0,
+          ],
+          "fullDragArea": 480,
+          "semiDragArea": 10,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 12000,
     "id": "stock.base-kit",
     "mass": 1200,
