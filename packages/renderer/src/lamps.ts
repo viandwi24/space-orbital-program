@@ -50,7 +50,12 @@ export function chooseLamps<T extends Pick<LampLight, 'position' | 'range' | 'in
 		.map(({ l }) => l);
 }
 
-/** A fixed set of spot lights that follow the chosen lamps; unused ones are switched off. */
+/**
+ * A fixed set of spot lights that follow the chosen lamps; unused ones stay in the scene at zero
+ * intensity. They are never hidden: the number of visible lights is part of every lit material's
+ * shader, so a light that showed or hid rebuilt them all (1-2 s on WebGL, up to 6 s on WebGPU when a
+ * lamp went on; owner, 2026-10-22).
+ */
 export class LampPool {
 	readonly lights: SpotLight[] = [];
 	private readonly targets: Object3D[] = [];
@@ -63,7 +68,6 @@ export class LampPool {
 		for (let i = 0; i < budget; i++) {
 			const light = new SpotLight(0xffffff, 0, 0, Math.PI / 6, 0.5, 2);
 			light.castShadow = false;
-			light.visible = false;
 			const target = new Object3D();
 			light.target = target;
 			scene.add(light, target);
@@ -78,7 +82,6 @@ export class LampPool {
 		const chosen = chooseLamps(lamps, [e.x, e.y, e.z], this.budget);
 		for (const [i, light] of this.lights.entries()) {
 			const lamp = chosen[i];
-			light.visible = lamp !== undefined;
 			if (!lamp) {
 				light.intensity = 0;
 				continue;

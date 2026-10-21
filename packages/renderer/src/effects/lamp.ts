@@ -23,6 +23,9 @@ export function colourNumber(value: unknown): number {
 /** Whether a blinking lamp is lit at `time` seconds: on for the first half of each period. */
 export const blinkOn = (time: number): boolean => time % BLINK_PERIOD < BLINK_PERIOD / 2;
 
+/** The lens of a lamp that is off: dark glass. */
+const LENS_OFF = 0x1a1d22;
+
 export class LampEffect {
 	/** Sits at the lens, looking along +Y; the lens disc is its child. */
 	readonly object = new Object3D();
@@ -39,7 +42,9 @@ export class LampEffect {
 		const dir = new Vector3(spec.dir[0], spec.dir[1], spec.dir[2]).normalize();
 		this.object.quaternion.copy(new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir));
 		this.lens = new Mesh(geometry, this.material);
-		this.lens.visible = false;
+		// always drawn, dark while off: a mesh that first shows when the lamp goes on compiles its
+		// pipeline then, a stall of seconds on WebGPU (owner, 2026-10-22)
+		this.material.color.setHex(LENS_OFF);
 		this.object.add(this.lens);
 	}
 
@@ -50,12 +55,11 @@ export class LampEffect {
 			typeof module?.brightness === 'number' ? Math.min(1, Math.max(0, module.brightness)) : 1;
 		if (!lit || brightness <= 0) {
 			this.current = null;
-			this.lens.visible = false;
+			this.material.color.setHex(LENS_OFF);
 			return;
 		}
 		const colour = colourNumber(module?.colour);
 		this.material.color.setHex(colour).multiplyScalar(0.4 + 0.6 * brightness);
-		this.lens.visible = true;
 		this.current = {
 			on: true,
 			colour,
