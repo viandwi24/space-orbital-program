@@ -255,6 +255,7 @@
 | 307 | [Rover: wheels in three sizes, chassis, drive mode, blueprint](plans/307-rover-wheels-and-drive-mode.md) | in-progress | part visuals session | First slice of plan 283: wheel throttle, rover wheels, drive mode, Trailblazer Rover. |
 | 308 | [Attach to sideways nodes (a hub's side ports)](plans/308-sideways-node-attach.md) | done | part visuals session | The editor turns a part onto a node at right angles (as a fallback, never a flip); the resolver accepts the tilt; Horizon Station gets an airlock and a cupola on the hub's sides. Journal 308. |
 | 310 | [Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod](plans/310-vessel-menu-port-targets-control-api-and-auto-dock.md) | in-progress | auto dock session | ADRs 0270, 0271 |
+| 311 | [Vessel programs: the player wins per channel, saved scripts, the programs list](plans/311-vessel-programs.md) | in-progress | vessel programs session | ADR 0272, research `vessel-programs.md`; builds on 310's autopilots. |
 
 Statuses: `draft` (needs refinement before an agent takes it) · `ready` · `in-progress` · `done` · `blocked`.
 
