@@ -19,6 +19,16 @@ export const LIGHT_COLOURS = {
 export type LightColour = keyof typeof LIGHT_COLOURS;
 const COLOUR_NAMES = Object.keys(LIGHT_COLOURS) as [LightColour, ...LightColour[]];
 
+/**
+ * The colour's name from a state (a name) or from the snapshot view a live vessel's panel reads (a
+ * hex, for the renderer). Owner, 2026-10-21: the panel of a flying vessel with a lamp threw "a mode
+ * needs options and a value that is one of them".
+ */
+export const colourName = (colour: string): LightColour =>
+	(COLOUR_NAMES as readonly string[]).includes(colour)
+		? (colour as LightColour)
+		: (COLOUR_NAMES.find((n) => LIGHT_COLOURS[n] === colour) ?? 'warm');
+
 export const lightConfigSchema = z.object({
 	/** Electric charge per second at full brightness. */
 	drain: z.number().nonnegative().default(0.04),
@@ -90,7 +100,7 @@ export const ModuleLight = defineModule({
 				id: 'setColour',
 				label: 'Colour',
 				kind: 'mode',
-				value: state.colour,
+				value: colourName(state.colour),
 				options: COLOUR_NAMES.map((value) => ({
 					value,
 					label: value[0]!.toUpperCase() + value.slice(1)
