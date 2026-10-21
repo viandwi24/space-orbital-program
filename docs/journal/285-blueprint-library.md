@@ -16,11 +16,11 @@
 
 ## What surprised me
 
-- ADR 0263 wanted the stock blueprints as mod data. They are built with the editor's operations (attach targets, radial sites, symmetry), which only the web app has. So they stay code in `apps/web`, and mods get the registry. Generating stock data from them would need a build step: draft 310 notes it.
+- ADR 0263 wanted the stock blueprints as mod data. They are built with the editor's operations (attach targets, radial sites, symmetry), which only the web app has. So they stay code in `apps/web`, and mods get the registry. Generating stock data from them would need a build step: draft 312 notes it.
 
 ## Open questions / follow-ups
 
-- Draft 310: leader-line labels, the completeness checklist, a thumbnail cache, career locks, and tabs for saved designs and sub-assemblies.
+- Draft 312: leader-line labels, the completeness checklist, a thumbnail cache, career locks, and tabs for saved designs and sub-assemblies.
 - Screenshots: the heavy-job lock was held by another session at commit time; they come with plan 309's journal.
 
 ## Verification output

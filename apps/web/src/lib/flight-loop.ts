@@ -3,6 +3,7 @@
  * renderer, the rAF loop and the keyboard live here as plain TypeScript. Svelte only receives a
  * ~10 Hz `FlightHud` copy through `onHud` and paints it.
  */
+import { vesselNearPoint } from './vessel-menu';
 import { defaultFilters, hiddenVessels, type MapFilters } from './map/map-filters';
 import { FrameHistogram, type FrameSummary } from './debug/frame-histogram';
 import { PerfSource, type PerfSample } from './perf/perf-stats';
@@ -367,6 +368,11 @@ export interface Flight {
 	highlightPart(part: EntityId | null): void;
 	/** The flown vessel's part under a point of the view (CSS px of the canvas box), or null (plan 214). */
 	partAt(x: number, y: number): EntityId | null;
+	/**
+	 * Another vessel under a point of the view (plan 310, ADR 0270): its mesh, or its projected point
+	 * within a few pixels when it is too small to hit; null in the map or over nothing.
+	 */
+	vesselAt(x: number, y: number): { vessel: EntityId; part: EntityId | null } | null;
 	/** The flight recorded since the sim booted, as a replay file (plan 131, ADR 0159). */
 	replay(name: string): Promise<ReplayFile | null>;
 	/** Draw a replay's ghost over this flight, or none (plan 131). */
@@ -1974,6 +1980,13 @@ export function startFlight(options: FlightOptions): Flight {
 		panelInput: () => (snap && catalog ? panelInputOf(snap, vessel, catalog.bodies) : null),
 		highlightPart: (part) => renderer?.highlightPart(part),
 		partAt: (x, y) => renderer?.partAt(x, y) ?? null,
+		vesselAt(x, y) {
+			if (!renderer || renderer.isMapView || !snap) return null;
+			const hit = renderer.vesselAt(x, y);
+			if (hit) return hit;
+			const near = vesselNearPoint(snap, vessel, x, y, (w) => renderer?.project(w) ?? null);
+			return near === null ? null : { vessel: near, part: null };
+		},
 		replay: (name) => client.replay(name),
 		setGhost: (track) => hudCtl?.setGhost(track),
 		setRegions: (on) =>

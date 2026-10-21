@@ -132,6 +132,21 @@ describe('SceneModel', () => {
 		expect(m.partAt(5, 5)).toBeNull(); // the sky
 	});
 
+	test('vesselAt finds another vessel under a screen point, never the active one (plan 310)', () => {
+		const m = make();
+		m.resize(800, 600);
+		const s = snap(0, vessel(1, R + 100, 0, 0), vessel(2, R + 100, 0, 30));
+		m.setActiveVessel(id(1));
+		m.sync(s);
+		m.prepareFrame(0.016);
+		const at = (z: number) => m.project({ x: ROOT.x + R + 100, y: ROOT.y, z: ROOT.z + z })!;
+		const other = at(30);
+		expect(m.vesselAt(other.x, other.y)).toEqual({ vessel: id(2), part: id(201) });
+		const own = at(0);
+		expect(m.vesselAt(own.x, own.y)).toBeNull();
+		expect(m.vesselAt(5, 5)).toBeNull();
+	});
+
 	test('partCentre is the middle of the parts bounding box', () => {
 		expect(partCentre([])).toEqual({ x: 0, y: 0, z: 0 });
 		expect(

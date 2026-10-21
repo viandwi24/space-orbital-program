@@ -34,6 +34,7 @@ export type SceneFacade = Pick<
 	| 'focusedPart'
 	| 'highlightPart'
 	| 'partAt'
+	| 'vesselAt'
 	| 'orbitCamera'
 	| 'viewDirection'
 	| 'project'
@@ -100,6 +101,7 @@ export function sceneFacade(model: SceneModel): SceneFacade {
 		},
 		highlightPart: (id) => model.highlightPart(id),
 		partAt: (x, y) => model.partAt(x, y),
+		vesselAt: (x, y) => model.vesselAt(x, y),
 		orbitCamera: (input) => model.orbitCamera(input),
 		viewDirection: () => model.viewDirection(),
 		project: (world) => model.project(world),

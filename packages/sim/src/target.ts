@@ -25,8 +25,20 @@ import {
 	type StateVector
 } from '@orbital/kepler';
 import { bodyOfVessel, elementsAt, stateInParent, type BodyRuntime } from './bodies.ts';
-import { moduleDefOf, partOf, vesselIds, vesselOf, type SimCore } from './core.ts';
-import { elementsOf, motionOf } from './orbit.ts';
+import {
+	designCom,
+	frameOfVessel,
+	moduleDefOf,
+	partDefOf,
+	partOf,
+	vesselIds,
+	vesselOf,
+	type SimCore
+} from './core.ts';
+import { bodyMotion, partTransform } from './frames.ts';
+import { qMul, qRotate } from './math.ts';
+import { elementsOf, motionOf, orientationOf } from './orbit.ts';
+import { isTurned, partRotation } from './parts.ts';
 import { VESSEL, type TargetState, type VesselState } from './state.ts';
 
 /** Longest window the closest-approach search looks ahead, s (ten days, like node prediction). */
@@ -56,6 +68,61 @@ function vesselState(core: SimCore, vessel: VesselState): StateVector {
 	const m = motionOf(core, vessel);
 	return { r: add(body.r, m.r), v: add(body.v, m.v) };
 }
+
+/** A docking port's face node in its part's axes, or undefined when the part has no dock module. */
+function portNode(core: SimCore, partId: EntityId): { pos: Vec3 } | undefined {
+	const part = partOf(core, partId);
+	for (const m of part.modules) {
+		const dock = moduleDefOf(core, m.id).dock?.(m.config);
+		const node = dock && partDefOf(core, part).attach?.[dock.node];
+		if (node) return { pos: { x: node.pos[0], y: node.pos[1], z: node.pos[2] } };
+	}
+	return undefined;
+}
+
+/**
+ * State in the system frame of a vessel's reference point (plan 310, ADR 0270): the face of
+ * docking port `port` when it is one of the vessel's ports, else the centre of mass. A flight
+ * vessel's point moves with the body's spin; an on-rails one's with the centre of mass.
+ */
+function pointState(core: SimCore, vessel: VesselState, port: EntityId | undefined): StateVector {
+	const com = vesselState(core, vessel);
+	if (port === undefined || !core.world.hasEntity(port) || !vessel.parts.includes(port)) return com;
+	const node = portNode(core, port);
+	if (!node) return com;
+	const id = partOf(core, vessel.root).vessel;
+	const frame = frameOfVessel(core, id);
+	const flight = frame?.bodies.get(id);
+	const body = bodyState(bodyOfVessel(core, vessel), core.t);
+	if (frame && flight) {
+		const t = partTransform(core, frame, port);
+		const at = add(t.position, qRotate(t.rotation, node.pos));
+		const m = bodyMotion(frame, flight);
+		const w = m.angular;
+		const r = sub(at, m.centre);
+		const spin = { x: w.y * r.z - w.z * r.y, y: w.z * r.x - w.x * r.z, z: w.x * r.y - w.y * r.x };
+		return {
+			r: add(body.r, add(frame.origin, at)),
+			v: add(body.v, add(frame.velocity, add(m.linear, spin)))
+		};
+	}
+	const q = orientationOf(core, vessel);
+	const part = partOf(core, port);
+	const turn = isTurned(part) ? qMul(q, partRotation(part)) : q;
+	const offset = add(
+		qRotate(q, sub(part.designPos, designCom(core, vessel.parts))),
+		qRotate(turn, node.pos)
+	);
+	return { r: add(com.r, offset), v: com.v };
+}
+
+/** The own reference point: the control part when it is a docking port (ADR 0270), else undefined (the centre of mass). */
+const ownPoint = (core: SimCore, vessel: VesselState): EntityId | undefined =>
+	vessel.controlPart !== undefined &&
+	core.world.hasEntity(vessel.controlPart) &&
+	portNode(core, vessel.controlPart)
+		? vessel.controlPart
+		: undefined;
 
 /** The vessel a ref names, or undefined when it is gone. */
 function targetVessel(core: SimCore, id: EntityId): VesselState | undefined {
@@ -120,9 +187,9 @@ export function resolveTarget(core: SimCore, vessel: VesselState): TargetSnapsho
 		other = targetVessel(core, ref.id);
 		if (!other) return undefined;
 		name = other.name;
-		state = vesselState(core, other);
+		state = pointState(core, other, ref.part);
 	}
-	const own = vesselState(core, vessel);
+	const own = pointState(core, vessel, ownPoint(core, vessel));
 	const position = sub(state.r, own.r);
 	const velocity = sub(state.v, own.v);
 	return {
@@ -154,9 +221,9 @@ export function targetDirection(core: SimCore, vessel: VesselState): Vec3 | unde
 	} else {
 		const other = targetVessel(core, ref.id);
 		if (!other) return undefined;
-		state = vesselState(core, other);
+		state = pointState(core, other, ref.part);
 	}
-	const d = sub(state.r, vesselState(core, vessel).r);
+	const d = sub(state.r, pointState(core, vessel, ownPoint(core, vessel)).r);
 	return length(d) < MIN_TARGET_DISTANCE ? undefined : normalize(d);
 }
 

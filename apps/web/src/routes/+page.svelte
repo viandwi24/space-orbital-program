@@ -19,7 +19,7 @@
 	import { activeWorldId, type Worlds } from '../lib/worlds/worlds';
 
 	// Saves belong to a world: the main menu has none of the world's own entries (New flight, Fly the
-	// last vessel, Load a flight); they are in the world, the Hangar and the pause menu.
+	// last vessel, Load a flight, the vessel library); they are in the world: the Hangar and the pause menu.
 	const saves = new SaveController({
 		loadedMods: bootedMods,
 		modHint,
@@ -106,13 +106,6 @@
 			hint="Landing, maneuver nodes, docking and a transfer, step by step"
 			href={resolve('/lessons')}
 			testid="menu-lessons"
-		/>
-		<MenuButton
-			icon="cube"
-			label="Vessel library"
-			hint="Designs you can launch in any world"
-			href={resolve('/(world)/vab?library')}
-			testid="menu-library"
 		/>
 		<MenuButton
 			icon="mods"

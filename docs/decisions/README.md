@@ -266,3 +266,5 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0267 | [The map's filters and Regions in one row; the maneuver card on staging at the right](0267-map-toolbar-one-row-and-maneuver-card-on-staging.md) | accepted | 2026-10-21 |
 | 0268 | [In-game text is English; part nicknames are English words](0268-in-game-text-is-english.md) | accepted | 2026-10-21 |
 | 0269 | [Robotics as built: kinematic joints inside the vessel's one body](0269-robotics-kinematic-joints-in-one-body.md) | accepted | 2026-10-21 |
+| 0270 | [Flight vessel menu, targets resolved at the docking port, controls in the control part's axes](0270-flight-vessel-menu-port-targets-and-control-from-axes.md) | accepted | 2026-10-21 |
+| 0271 | [A public vessel-control API and autopilots that mods define](0271-vessel-control-api-and-mod-autopilots.md) | accepted | 2026-10-21 |

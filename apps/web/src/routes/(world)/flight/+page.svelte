@@ -43,7 +43,7 @@
 	import Panel from '../../../lib/ui/Panel.svelte';
 	import { takeLaunchChoice } from '../../../lib/launch/launch-model';
 	import { loadEphemeris, needsEphemeris } from '../../../lib/ephemeris-asset';
-	import type { WorldInfo } from '@orbital/core';
+	import type { Command, WorldInfo } from '@orbital/core';
 	import { activeWorldId, setActiveWorld } from '../../../lib/worlds/worlds';
 	import { profileStore } from '../../../lib/achievements/store';
 	import type { CatchUp } from '../../../lib/worlds/world-model';
@@ -83,6 +83,8 @@
 	import StatusStrip from '../../../lib/hud/StatusStrip.svelte';
 	import { statusChips, type ChipFix } from '../../../lib/hud/status-chips';
 	import MapPickList from '../../../lib/hud/MapPickList.svelte';
+	import VesselMenuView from '../../../lib/hud/VesselMenu.svelte';
+	import { vesselMenu, vesselTooltip, type VesselMenu } from '../../../lib/vessel-menu';
 	import {
 		stackAt,
 		stackEntries,
@@ -206,6 +208,28 @@
 	let hoverPart = $state<EntityId | null>(null);
 	let hoverAt = 0;
 	let downAt: { x: number; y: number } | null = null;
+	/** The vessel menu open at a canvas point, and the hover line over another vessel (plan 310). */
+	let vesselMenuAt = $state<{ menu: VesselMenu; x: number; y: number } | null>(null);
+	let vesselHover = $state<{ label: string; x: number; y: number } | null>(null);
+	let vesselHoverAt = 0;
+	/** The menu for a vessel under a canvas point, or null. */
+	function menuAt(x: number, y: number): VesselMenu | null {
+		const hit = flight?.vesselAt(x, y);
+		const input = flight?.panelInput();
+		if (!hit || !input) return null;
+		return vesselMenu(input.snapshot, input.vessel?.id ?? null, hit.vessel, hit.part);
+	}
+	/** Re-read the open menu after a command (its target marks change). */
+	function refreshVesselMenu(): void {
+		const open = vesselMenuAt;
+		const input = flight?.panelInput();
+		if (!open || !input) return;
+		const next = vesselMenu(input.snapshot, input.vessel?.id ?? null, open.menu.vessel, open.menu.focusPart);
+		vesselMenuAt = next ? { ...open, menu: next } : null;
+	}
+	function vesselCommand(command: Command): void {
+		void flight?.command(command).then(() => setTimeout(refreshVesselMenu, 150));
+	}
 	/**
 	 * A press on the canvas or a map layer (a camera drag, a node or handle drag) is under way: no text
 	 * selection may start until it ends, and one left from before is cleared (plan 293). The owner's
@@ -537,7 +561,14 @@
 		if (!from || hud?.map || Math.hypot(e.clientX - from.x, e.clientY - from.y) > 4) return;
 		const r = canvas.getBoundingClientRect();
 		const part = flight?.partAt(e.clientX - r.left, e.clientY - r.top) ?? null;
-		if (part !== null) inspect(part);
+		if (part !== null) {
+			inspect(part);
+			return;
+		}
+		// another vessel: its menu (plan 310)
+		const menu = menuAt(e.clientX - r.left, e.clientY - r.top);
+		vesselMenuAt = menu ? { menu, x: e.clientX - r.left, y: e.clientY - r.top } : null;
+		vesselHover = null;
 	}
 	function onCanvasMove(e: PointerEvent): void {
 		// the part under the pointer lights its row and itself, 20 times a second at most
@@ -553,6 +584,16 @@
 				}
 			}
 		}
+		// the hover line over another vessel, 10 times a second at most (plan 310)
+		if (!hud?.map && e.buttons === 0 && !vesselMenuAt) {
+			const now = performance.now();
+			if (now - vesselHoverAt > 100) {
+				vesselHoverAt = now;
+				const r = canvas.getBoundingClientRect();
+				const menu = menuAt(e.clientX - r.left, e.clientY - r.top);
+				vesselHover = menu ? { label: vesselTooltip(menu), x: e.clientX, y: e.clientY } : null;
+			}
+		} else vesselHover = null;
 		if (!regionsOn || !hud?.map || e.buttons !== 0) {
 			regionHover = null;
 			return;
@@ -933,6 +974,7 @@
 			onMapPick: mapPick,
 			onKey: (key) => {
 				if (key === 'escape' && mapStack) mapStack = null;
+				else if (key === 'escape' && vesselMenuAt) vesselMenuAt = null;
 				else if (key === 'escape' && uiHidden) uiHidden = false;
 				else if (key === 'escape') pauseOpen = true;
 				else if (key === 'hideUi') uiHidden = !uiHidden;
@@ -1432,12 +1474,63 @@
 		onpointerup={onCanvasUp}
 		onpointerleave={() => {
 			regionHover = null;
+			vesselHover = null;
 			if (hoverPart !== null) {
 				hoverPart = null;
 				flight?.highlightPart(null);
 			}
 		}}
 	></canvas>
+	{#if vesselMenuAt && !hud?.map}
+		{@const open = vesselMenuAt}
+		{@const own = flight?.panelInput()?.vessel?.id ?? null}
+		<VesselMenuView
+			menu={open.menu}
+			x={open.x}
+			y={open.y}
+			onclose={() => (vesselMenuAt = null)}
+			oncontrol={() => {
+				vesselMenuAt = null;
+				void flight?.switchVessel(Number(open.menu.vessel)).then((r) => {
+					if (!r.ok) notice = r.reason;
+				});
+			}}
+			ontarget={() => {
+				if (own === null) return;
+				vesselCommand({
+					type: 'target-set',
+					vessel: own,
+					target: { kind: 'vessel', id: open.menu.vessel }
+				});
+			}}
+			onport={(part) => {
+				if (own === null) return;
+				vesselCommand({
+					type: 'target-set',
+					vessel: own,
+					target: { kind: 'vessel', id: open.menu.vessel, part }
+				});
+			}}
+			onfocus={() => {
+				vesselMenuAt = null;
+				flight?.focusPart(open.menu.focusPart === null ? null : Number(open.menu.focusPart));
+			}}
+			onrename={(name) => {
+				vesselMenuAt = null;
+				vesselCommand({ type: 'rename-vessel', vessel: open.menu.vessel, name });
+			}}
+		/>
+	{/if}
+	{#if vesselHover && !vesselMenuAt && !hud?.map}
+		<div
+			class="vessel-hover"
+			data-testid="vessel-hover"
+			style:left="{vesselHover.x + 14}px"
+			style:top="{vesselHover.y + 14}px"
+		>
+			{vesselHover.label}
+		</div>
+	{/if}
 	{#if mapStack && hud?.map}
 		<MapPickList
 			stack={mapStack}
@@ -2176,5 +2269,18 @@
 		border-radius: 999px;
 		font-size: var(--t-sm);
 		color: var(--c-warning);
+	}
+	.vessel-hover {
+		position: fixed;
+		z-index: 6;
+		padding: 0.25rem 0.5rem;
+		font-family: var(--font-num);
+		font-size: var(--t-xs);
+		color: var(--text-primary);
+		white-space: nowrap;
+		pointer-events: none;
+		background: var(--surface-glass);
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
 	}
 </style>

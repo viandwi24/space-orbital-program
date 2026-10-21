@@ -60,6 +60,6 @@ Per ADR 0263; the blue grid is CSS behind a transparent render.
   - the Library dialog: cards on a blue grid, filters, search, stats, Load;
   - four featured cards in the empty Hangar.
 
-  The stock blueprints stay in `apps/web`: they are built with the editor's operations, which a mod cannot import. Leader-line labels, the completeness checklist, the IndexedDB thumbnail cache, career locks and sub-assembly tabs are not done; they are draft 310.
+  The stock blueprints stay in `apps/web`: they are built with the editor's operations, which a mod cannot import. Leader-line labels, the completeness checklist, the IndexedDB thumbnail cache, career locks and sub-assembly tabs are not done; they are draft 312.
 
 - 2026-10-21 — Drafted from the part-visuals research and the owner's decisions of 2026-10-21 (CTO calls delegated by the owner). Not to be started until the owner releases the parts work: on 2026-10-21 main is busy with renderer fixes and a UI/UX agent.

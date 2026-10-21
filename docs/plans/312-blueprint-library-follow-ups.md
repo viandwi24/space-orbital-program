@@ -1,5 +1,5 @@
 ---
-id: 310
+id: 312
 title: "Blueprint Library follow-ups: labels, completeness checklist, thumbnail cache, career locks"
 status: draft
 owner: ""
@@ -9,7 +9,7 @@ created: 2026-10-21
 updated: 2026-10-21
 ---
 
-# 310 — Blueprint Library follow-ups
+# 312 — Blueprint Library follow-ups
 
 ## Goal
 
@@ -44,7 +44,7 @@ The rest of ADR 0263 that plan 285 left:
 ## Docs checklist
 
 - [ ] `docs/STATUS.md` updated (board row, next plan, open issues).
-- [ ] `docs/journal/310-blueprint-library-follow-ups.md` written.
+- [ ] `docs/journal/312-blueprint-library-follow-ups.md` written.
 
 ## Log
 
