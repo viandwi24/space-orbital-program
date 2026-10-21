@@ -44,8 +44,7 @@
 		ghostCell,
 		nextRotation,
 		siteViews,
-		spreadLabels,
-		steadyLabels,
+		pinPositions,
 		upkeepWarning,
 		flowRows,
 		firstFreeCell,
@@ -412,9 +411,7 @@
 				client,
 				onSnapshot,
 				onFrame: (project) => {
-					const next: Record<string, { x: number; y: number } | null> = {};
-					for (const r of rows) next[r.id] = project(r.anchor);
-					const steady = steadyLabels(spreadLabels(next), labels);
+					const steady = pinPositions(rows, project, labels);
 					if (JSON.stringify(steady) !== JSON.stringify(labels)) labels = steady;
 				},
 				onClick: (at) => void onClick(at),

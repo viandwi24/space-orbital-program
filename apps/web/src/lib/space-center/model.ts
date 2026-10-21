@@ -322,6 +322,21 @@ export function steadyLabels(
 }
 
 /**
+ * Where each building's pin sits (plan 267, ADR 0251): on its anchor's screen point, never moved
+ * off it to make room for a neighbour (that was the old labels' spreading, which left the pins
+ * hanging over the buildings when a zoom out brought them together), and steady as `steadyLabels`.
+ */
+export function pinPositions(
+	rows: readonly { id: string; anchor: { east: number; north: number; up?: number } }[],
+	project: (p: { east: number; north: number; up?: number }) => { x: number; y: number } | null,
+	prev: Readonly<Record<string, { x: number; y: number } | null>>
+): Record<string, { x: number; y: number } | null> {
+	const next: Record<string, { x: number; y: number } | null> = {};
+	for (const r of rows) next[r.id] = project(r.anchor);
+	return steadyLabels(next, prev);
+}
+
+/**
  * "Needs attention" lines beyond the building rows (plan 096, ADR 0123 point 6): the next upkeep
  * when it is more than the funds. `upkeep` is the total per 30 days after the cost multiplier.
  */
