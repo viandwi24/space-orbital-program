@@ -19,6 +19,7 @@
         "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
         "@orbital/core": "workspace:*",
         "@orbital/kepler": "workspace:*",
+        "@orbital/mod-autodock": "workspace:*",
         "@orbital/mod-sol": "workspace:*",
         "@orbital/mod-stock": "workspace:*",
         "@orbital/physics": "workspace:*",
@@ -58,6 +59,20 @@
       },
       "peerDependencies": {
         "@orbital/sdk": "workspace:*",
+      },
+    },
+    "mods/autodock": {
+      "name": "@orbital/mod-autodock",
+      "version": "0.0.0",
+      "dependencies": {
+        "@orbital/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@orbital/mod-stock": "workspace:*",
+        "@orbital/physics": "workspace:*",
+        "@orbital/sim": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "catalog:",
       },
     },
     "mods/sol": {
@@ -246,6 +261,8 @@
     "@orbital/example-mod-sample": ["@orbital/example-mod-sample@workspace:examples/mod-sample"],
 
     "@orbital/kepler": ["@orbital/kepler@workspace:packages/kepler"],
+
+    "@orbital/mod-autodock": ["@orbital/mod-autodock@workspace:mods/autodock"],
 
     "@orbital/mod-sol": ["@orbital/mod-sol@workspace:mods/sol"],
 

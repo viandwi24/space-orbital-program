@@ -111,7 +111,7 @@ export const checkVesselState: Check = shape({
 	soi: str,
 	root: entity,
 	parts: arrayOf(entity),
-	control: shape({ throttle: num, pitch: num, roll: num, yaw: num }),
+	control: shape({ throttle: num, pitch: num, roll: num, yaw: num, wheelThrottle: optional(num) }),
 	sas: shape({
 		mode: oneOf(...SAS_MODES),
 		reference: oneOf('surface', 'orbit'),

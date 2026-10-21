@@ -153,7 +153,14 @@ describe('part seams', () => {
 					'single-leg',
 					'delta-wing',
 					// boxes and cylinders, no revolve (plan 306)
-					'hinge-joint'
+					'hinge-joint',
+					// boxes and extrusions (plan 307)
+					'rover-wheel',
+					'rover-chassis',
+					// boxes and cylinders (plan 311)
+					'light-panel',
+					'light-angled',
+					'light-nav'
 				].includes(visual.kind)
 			)
 				continue;

@@ -2,6 +2,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SCRIPT_MEMORY_MAX, type EntityId } from '@orbital/core';
 import Stock from '@orbital/mod-stock';
+import { defineAutopilot, definePlugin } from '@orbital/sdk';
 import { createSim, recordReplay } from '../src/index.ts';
 import { VESSEL } from '../src/state.ts';
 import { newSim, rapier, stack } from './helpers/vessels.ts';
@@ -161,3 +162,60 @@ describe('saved scripts (ADR 0273 point 6)', () => {
 		again.dispose();
 	});
 });
+
+/** `test.burn` holds the throttle at 0.8 on every step. */
+const burner = definePlugin({
+	meta: { id: 'test', version: '1.0.0', api: '^0.1' },
+	depends: ['stock'],
+	setup(ctx) {
+		ctx.autopilots.register(
+			defineAutopilot<{ n: number }>({
+				id: 'test.burn',
+				title: 'Burner',
+				start: () => ({ n: 0 }),
+				step(pilot, memory) {
+					memory.n++;
+					pilot.throttle(0.8);
+					return { phase: 'burn' };
+				}
+			})
+		);
+	}
+});
+
+describe('autopilots are programs too (ADR 0273 with ADR 0271)', () => {
+	async function engaged() {
+		const sim = await createSim({ plugins: [Stock, burner], backendFactory: rapier(8), seed: 3 });
+		const r = sim.dispatch({ type: 'load-vessel', design });
+		if (!r.ok) throw new Error(r.reason);
+		const vessel = r.vessel! as EntityId;
+		expect(sim.dispatch({ type: 'autopilot-engage', vessel, autopilot: 'test.burn' }).ok).toBe(true);
+		const state = () => sim.world.get(vessel, VESSEL)!;
+		return { sim, vessel, state };
+	}
+
+	test('the player takes the throttle from an autopilot and it takes it back after 1 s', async () => {
+		const { sim, vessel, state } = await engaged();
+		for (let i = 0; i < 10; i++) sim.step(0.02);
+		expect(state().control.throttle).toBe(0.8);
+		sim.dispatch({ type: 'throttle', vessel, value: 0 });
+		for (let i = 0; i < 10; i++) sim.step(0.02);
+		expect(state().control.throttle).toBe(0);
+		expect(state().override).toBeDefined();
+		for (let i = 0; i < 75; i++) sim.step(0.02);
+		expect(state().override).toBeUndefined();
+		expect(state().control.throttle).toBe(0.8);
+		sim.dispose();
+	});
+
+	test('program-stop disengages the autopilot with outcome disengaged', async () => {
+		const { sim, vessel, state } = await engaged();
+		const ended: string[] = [];
+		sim.events.on('autopilot:ended', (e) => ended.push(`${e.outcome} ${e.reason}`));
+		expect(sim.dispatch({ type: 'program-stop', vessel, reason: 'Delete key' }).ok).toBe(true);
+		expect(state().autopilot).toBeUndefined();
+		expect(ended).toEqual(['disengaged Delete key']);
+		sim.dispose();
+	});
+});
+

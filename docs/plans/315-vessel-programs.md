@@ -66,4 +66,4 @@ A script or a mod autopilot is a *program* attached to one vessel. It keeps flyi
   - `bun run test`: 2151 pass, 4 fail under load (two benchmarks, the 3 600-day career bot, the 1 000-staging reliability run); all four pass when run alone (benchmarks 2 + 2 pass, career bot and reliability 2 pass).
   - Web vitest with `CI=true`: 1420 pass, 3 fail before the help row fix (keybindings, now passing) and the two real-thread tests of `sim-host-script-worker.test.ts`, which fail on `main` too on this machine (Node 26 has no `--experimental-transform-types`).
   - Browser: Mods page "Built in"; a script resumed after reload (`resumed true runs 2`); Delete stopped it with a toast.
-
+- 2026-10-21 — Renumbered from 311/0272 (taken on main) to 315/0273, drafts to 316/317. Merged origin/main 7b4622c0 (plan 310 Part 3 and Auto Dock): autopilot commands use source `autopilot`; `program-stop` calls `endAutopilot`; `programs.test.ts` 10 pass.

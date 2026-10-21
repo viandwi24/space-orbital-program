@@ -196,12 +196,41 @@ export const PRELUDE = String.raw`(function (host, seed, bodiesJson, debugOn, me
 		if (spec === null) return null;
 		if (typeof spec === 'string') return { kind: 'body', id: spec };
 		if (typeof spec === 'number') return { kind: 'vessel', id: spec };
+		if (typeof spec === 'object' && spec.kind === 'vessel' && spec.part !== undefined) {
+			return { kind: 'vessel', id: spec.id, part: spec.part };
+		}
 		if (typeof spec === 'object' && (spec.kind === 'body' || spec.kind === 'vessel')) {
 			return { kind: spec.kind, id: spec.id };
 		}
-		throw new TypeError('setTarget needs a body id, a vessel id, an entry of ship.targets, or null');
+		// a docking port of another vessel (plan 310): { vessel, port }
+		if (typeof spec === 'object' && typeof spec.vessel === 'number' && typeof spec.port === 'number') {
+			return { kind: 'vessel', id: spec.vessel, part: spec.port };
+		}
+		throw new TypeError('setTarget needs a body id, a vessel id, { vessel, port }, an entry of ship.targets, or null');
 	};
 	fixed('setTarget', (spec) => request('target-set', JSON.stringify({ target: targetRef(spec) })));
+	// The vessel-pilot controls (plan 310, ADR 0271 point 7): the same commands a mod autopilot sends.
+	const vec = (v, what) => {
+		if (typeof v !== 'object' || v === null) throw new TypeError(what + ' needs { x, y, z }');
+		return { x: v.x, y: v.y, z: v.z };
+	};
+	fixed('translate', (x, y, z) => {
+		const t = typeof x === 'object' && x !== null ? vec(x, 'translate') : { x: x || 0, y: y || 0, z: z || 0 };
+		track('attitude', host.cmd('attitude', JSON.stringify({ pitch: attitude.pitch, yaw: attitude.yaw, roll: attitude.roll, translate: t })));
+	});
+	fixed('setRcs', (on) => request('set-rcs', JSON.stringify({ on: on !== false })));
+	fixed('controlFrom', (part) => request('set-control-part', JSON.stringify({ part: part === undefined ? null : part })));
+	fixed('pointAt', (direction) => {
+		track('sas', host.cmd('sas', JSON.stringify({ mode: 'direction', direction: vec(direction, 'pointAt') })));
+		sasPending = 'direction';
+	});
+	fixed('holdAttitude', (q) => {
+		if (typeof q !== 'object' || q === null) throw new TypeError('holdAttitude needs { x, y, z, w }');
+		track('sas', host.cmd('sas', JSON.stringify({ mode: 'hold', attitude: { x: q.x, y: q.y, z: q.z, w: q.w } })));
+		sasPending = 'hold';
+	});
+	fixed('engage', (id, params) => request('autopilot-engage', JSON.stringify(params === undefined ? { autopilot: id } : { autopilot: id, params })));
+	fixed('disengage', () => request('autopilot-disengage', '{}'));
 	fixed('bodies', bodies);
 	// The debug API (plan 203): only while the world allows debug tools. Each call resolves with the
 	// sim's verdict, like stage(). setOrbit takes { body, apoapsis, periapsis } altitudes (m) or the

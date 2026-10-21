@@ -3,7 +3,7 @@
  * offers. Pure: the snapshot, the flown vessel and the picked one in, the rows out. The page draws
  * them and sends the commands; switching uses the flight loop's `switchVessel`.
  */
-import type { EntityId, Snapshot, Vec3, VesselSnapshot } from '@orbital/core';
+import type { Command, EntityId, Snapshot, Vec3, VesselSnapshot } from '@orbital/core';
 import { formatDistance, formatSpeed } from './format';
 
 /** Within this many CSS px of a vessel's projected position, a click picks it (it may be a dot). */
@@ -123,4 +123,76 @@ export function vesselNearPoint(
 		if (d <= MARKER_PICK_PX && (!best || d < best.d)) best = { id: v.id, d };
 	}
 	return best?.id ?? null;
+}
+
+/** The menu open at a canvas point. */
+export interface OpenVesselMenu {
+	menu: VesselMenu;
+	x: number;
+	y: number;
+}
+
+export type VesselMenuAction =
+	| { kind: 'control' }
+	| { kind: 'target' }
+	| { kind: 'port'; part: EntityId }
+	| { kind: 'focus' }
+	| { kind: 'rename'; name: string };
+
+export interface VesselMenuEffects {
+	switchVessel(id: EntityId): void;
+	command(command: Command): void;
+	focusPart(part: EntityId | null): void;
+}
+
+/**
+ * Run one menu action on the menu as it is now (plan 310). Every value is read before anything
+ * changes, so a switch, a decouple or a snapshot that closes the menu meanwhile cannot leave a
+ * handler reading a closed menu. Returns whether the menu stays open; a closed menu does nothing.
+ */
+export function runVesselMenuAction(
+	open: OpenVesselMenu | null,
+	own: EntityId | null,
+	action: VesselMenuAction,
+	fx: VesselMenuEffects
+): boolean {
+	if (!open) return false;
+	const { vessel, focusPart } = open.menu;
+	switch (action.kind) {
+		case 'control':
+			fx.switchVessel(vessel);
+			return false;
+		case 'target':
+			if (own !== null)
+				fx.command({ type: 'target-set', vessel: own, target: { kind: 'vessel', id: vessel } });
+			return true;
+		case 'port':
+			if (own !== null)
+				fx.command({
+					type: 'target-set',
+					vessel: own,
+					target: { kind: 'vessel', id: vessel, part: action.part }
+				});
+			return true;
+		case 'focus':
+			fx.focusPart(focusPart);
+			return false;
+		case 'rename':
+			fx.command({ type: 'rename-vessel', vessel, name: action.name });
+			return false;
+	}
+}
+
+/**
+ * The open menu read again from a newer snapshot: closed when its vessel is gone (destroyed,
+ * docked into another) or is now the flown one; otherwise its rows follow the snapshot.
+ */
+export function refreshVesselMenu(
+	open: OpenVesselMenu | null,
+	snapshot: Snapshot | null,
+	active: EntityId | null
+): OpenVesselMenu | null {
+	if (!open || !snapshot) return open;
+	const menu = vesselMenu(snapshot, active, open.menu.vessel, open.menu.focusPart);
+	return menu ? { ...open, menu } : null;
 }

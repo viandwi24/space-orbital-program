@@ -1322,6 +1322,77 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
     ],
   },
   {
+    "cost": 30,
+    "id": "stock.light-panel",
+    "mass": 3,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.05,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 50,
+    "id": "stock.light-angled",
+    "mass": 5,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "drain": 0.05,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-red",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "red",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-green",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "green",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 10,
+    "id": "stock.light-nav-white",
+    "mass": 1,
+    "modules": [
+      [
+        "stock.light",
+        {
+          "blink": true,
+          "colour": "white",
+          "drain": 0.01,
+        },
+      ],
+    ],
+  },
+  {
     "cost": 850,
     "id": "stock.eva-suit",
     "mass": 85,
@@ -2474,7 +2545,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 200,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 30,
             },
           },
@@ -2489,7 +2559,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
             0,
           ],
           "fullDragArea": 1400,
-          "semiDragArea": 14000,
+          "semiDragArea": 35,
         },
       ],
     ],
@@ -2511,7 +2581,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 200,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 30,
             },
           },
@@ -2532,7 +2601,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2557,7 +2625,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2582,7 +2649,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2607,7 +2673,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2628,7 +2693,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2649,7 +2713,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 250,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 40,
             },
           },
@@ -2670,7 +2733,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2691,7 +2753,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2716,7 +2777,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 100,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 10,
             },
           },
@@ -2741,7 +2801,6 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
               "capacity": 150,
             },
             "stock.monopropellant": {
-              "amount": 0,
               "capacity": 20,
             },
           },
@@ -2781,6 +2840,9 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "contents": {
             "stock.electric-charge": {
               "capacity": 400,
+            },
+            "stock.monopropellant": {
+              "capacity": 60,
             },
           },
         },
@@ -2922,7 +2984,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -2951,7 +3013,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -2980,7 +3042,7 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
         "stock.engine",
         {
           "gimbal": {
-            "range": 2,
+            "range": 5,
             "rate": 10,
           },
           "ispSeaLevel": 265,
@@ -3175,6 +3237,10 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       [
         "stock.engine",
         {
+          "gimbal": {
+            "range": 6,
+            "rate": 10,
+          },
           "ispSeaLevel": 242,
           "ispVacuum": 268,
           "propellants": [
@@ -3312,6 +3378,153 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
           "min": 0,
           "power": 1.5,
           "speed": 0.2,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 700,
+    "id": "stock.rover-chassis",
+    "mass": 350,
+    "modules": [
+      [
+        "stock.resource-container",
+        {
+          "contents": {
+            "stock.electric-charge": {
+              "capacity": 600,
+            },
+          },
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 240,
+    "id": "stock.rover-wheel-s",
+    "mass": 60,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 0.4,
+          "driveForce": 500,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.25,
+          "rolling": 0.03,
+          "steer": 0,
+          "topSpeed": 8,
+          "width": 0.16,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 260,
+    "id": "stock.rover-wheel-s-steer",
+    "mass": 65,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 0.4,
+          "driveForce": 500,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.45,
+            0,
+            0,
+          ],
+          "radius": 0.25,
+          "rolling": 0.03,
+          "steer": 25,
+          "topSpeed": 8,
+          "width": 0.16,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 600,
+    "id": "stock.rover-wheel-m",
+    "mass": 150,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 1,
+          "driveForce": 1200,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.7,
+            0,
+            0,
+          ],
+          "radius": 0.42,
+          "rolling": 0.03,
+          "steer": 0,
+          "topSpeed": 12,
+          "width": 0.26,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 640,
+    "id": "stock.rover-wheel-m-steer",
+    "mass": 160,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 1,
+          "driveForce": 1200,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            0.7,
+            0,
+            0,
+          ],
+          "radius": 0.42,
+          "rolling": 0.03,
+          "steer": 22,
+          "topSpeed": 12,
+          "width": 0.26,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1680,
+    "id": "stock.rover-wheel-l",
+    "mass": 420,
+    "modules": [
+      [
+        "stock.wheel",
+        {
+          "driveCharge": 2.5,
+          "driveForce": 4000,
+          "grip": 1,
+          "motorOn": true,
+          "offset": [
+            1.15,
+            0,
+            0,
+          ],
+          "radius": 0.75,
+          "rolling": 0.03,
+          "steer": 15,
+          "topSpeed": 10,
+          "width": 0.42,
         },
       ],
     ],

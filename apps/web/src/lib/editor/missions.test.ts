@@ -25,7 +25,8 @@ describe('mission blueprints (plan 286)', () => {
 			'horizon-station',
 			'moonwatch-orbiter',
 			'horizon-telescope',
-			'aurora-satellite'
+			'aurora-satellite',
+			'trailblazer-rover'
 		]);
 	});
 
@@ -44,13 +45,21 @@ describe('mission blueprints (plan 286)', () => {
 			const design = mission.build(content);
 			const resolved = resolveVesselDesign(design, content.parts);
 			expect(resolved.ok, JSON.stringify(resolved.ok ? '' : resolved.errors)).toBe(true);
-			expect(design.stages.length, mission.id).toBeGreaterThan(1);
 			const stats = designStats(design, content, 'sea-level', g);
-			expect(stats.liftoffTwr ?? 0, mission.id).toBeGreaterThan(1);
+			// a rover drives from where it is launched (plan 307): no stages, no liftoff
+			const surface = mission.goal === 'surface';
+			if (!surface) {
+				expect(design.stages.length, mission.id).toBeGreaterThan(1);
+				expect(stats.liftoffTwr ?? 0, mission.id).toBeGreaterThan(1);
+			}
 			const stability = stabilityOf(design, content);
 			const checks = checkDesign({ design, loose: [] }, content, stats, stability);
 			// the Hangar's verdict: nothing that blocks Launch and nothing no-go
-			const errors = checks.filter((c) => c.severity === 'error' || c.level === 'no-go');
+			const errors = checks.filter(
+				(c) =>
+					(c.severity === 'error' || c.level === 'no-go') &&
+					!(surface && ['no-engine', 'no-stages', 'low-twr'].includes(c.id))
+			);
 			expect(
 				errors.map((c) => `${c.id}: ${c.text}`),
 				mission.id
@@ -60,4 +69,23 @@ describe('mission blueprints (plan 286)', () => {
 			);
 		});
 	}
+
+	// owner, 2026-10-21: Horizon Station's RCS said "no propellant"
+	it('every blueprint with RCS thrusters carries monopropellant for them', () => {
+		for (const mission of MISSION_BLUEPRINTS) {
+			const design = mission.build(content);
+			let rcs = false;
+			let mono = 0;
+			for (const p of design.parts) {
+				const def = content.parts.get(p.part);
+				for (const [id, config] of def?.modules ?? []) {
+					if (id === 'stock.rcs') rcs = true;
+					const c = (config as { contents?: Record<string, { capacity: number; amount?: number }> })
+						.contents?.['stock.monopropellant'];
+					if (c) mono += c.amount ?? c.capacity;
+				}
+			}
+			if (rcs) expect(mono, mission.id).toBeGreaterThanOrEqual(30);
+		}
+	});
 });

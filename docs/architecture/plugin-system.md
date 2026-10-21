@@ -158,6 +158,10 @@ Config literals are checked against the module's schema input type (wrong type, 
 - Regions (plan 104, ADR 0180): bodies may carry `regions` (`biomes`, `cells` or `bands`), and situations `regional: true`. `defineDossierEntry({ id, label, order, fact, unlock })` (`ctx.dossierEntries`, report kind `dossier-entry`). Core has `regionAt`, `regionsOf`, `dossierOf` and `parseSubjectId`.
 - `defineAntenna({ id, label, kind, range, power })` (`ctx.antennas`) and `defineGroundStation({ id, label, body, latitude, longitude, altitude?, range })` (`ctx.groundStations`), plan 114, ADR 0179. A module is an antenna through its `antenna(config, state)` hook (`{ antenna, enabled }`). Modules read the link with `ctx.vessel.signal()` (`{ connected, to, reason, control }`). Load-report kinds are `antenna` and `ground-station`. Tier 2 (plan 116, ADR 0185): `defineBand({ id, label, frequency, noiseTemperature })` (`ctx.bands`, report kind `band`), the antenna fields `band`, `gain` (dBi) and `aperture` (m), the station field `aperture`, and `signal().rate` (bit/s, or null without a budget). Tier 3 (plan 117, ADR 0188): `defineRoutePolicy({ id, label, choose(routes) })` (`ctx.routePolicies`, report kind `route-policy`; `choose` returns the index of a `{ hops, width, latency }` candidate), `AntennaDefinition.beamWidth`, the antenna hook's `target`, and `signal().latency`. Tier 6 (plan 121, ADR 0193): `AntennaDefinition.suit` makes a suit radio, relayed only by a crewed vessel in sight, with its range scaled by the crew `radio` ability.
 
+### Autopilots and the vessel pilot (plan 310, ADR 0271)
+
+`ctx.autopilots.register(defineAutopilot({ id, title, rate?, start, step }))` adds an autopilot the sim runs for one vessel at `rate` per second of sim time (default 10), before it chooses between a physics step and a rails chunk. `start(pilot, params)` returns the memory (plain JSON, saved with the vessel) or throws to refuse `autopilot-engage`. `step(pilot, memory, dt)` returns `{ phase, status?, readouts?, done?, abort? }`. The `VesselPilot` it gets (`createVesselPilot` in core) reads the vessel, its control part and target port and the port to port alignment, and sends every control as a command through the sim's own handler. The snapshot carries `vessel.autopilot`; `autopilot:ended` reports the end. A vessel with an engaged autopilot stays out of auto-rails. Code: `packages/core/src/vessel-pilot.ts`, `packages/core/src/autopilots.ts`, `packages/sim/src/autopilot.ts`; guide `docs/guides/vessel-pilot-api.md`; example `mods/autodock`.
+
 ### Dock panels (API 0.1.45, plan 112, ADR 0149)
 
 `ctx.panels.register(definePanel({ id, title, icon, order, contexts, view, canvas? }))` adds a panel to the flight dock. `view` is a tree of plain nodes (`section`, `readout`, `meter`, `switch`, `button`, `list`, `sparkline`) whose functions are pure selectors over a `PanelInput` (snapshot, active vessel, altitude, speed, time) or return a `Command` the sim validates. `canvas.draw` receives a `PanelCanvas`, a declared subset of 2D drawing, so a panel needs no DOM types. The page evaluates panels at the 10 Hz HUD update, draws a canvas only while its panel is open, and shows a panel that throws as failed without stopping anything else. Code: `packages/core/src/panels.ts`, `apps/web/src/lib/dock/`.
@@ -284,6 +288,14 @@ An attach node may carry `shellTop: "<module id>"`: it sits at the top of that m
 ## Robotic joints (API 0.1.98, plan 306, ADR 0269)
 
 `ModuleDefinition.joint(config, state)` makes a module a robotic joint. It returns `{ kind: 'rotate' | 'translate', axis, pivot, node, value }` (part frame; `value` in rad or m), or null. The module moves `value` itself (its `update`). The sim turns or slides the parts reached through `node` by the change since the pose it applied last, which it keeps as `applied` (a number) in the module state. Then it rebuilds the vessel's body, at most every 0.1 s. Every joint is kinematic: no physics joint, no reaction on the vessel. `PartVisual.articulation` gains the modes `spin` (about Y, rad) and `slide` (up Y, m) for the part's moving half. `stock.robotic` is the stock example.
+
+## Wheel throttle and top speed (API 0.1.99, plan 307)
+
+The `wheel-throttle` command (`value` -1..1) sets `VesselControl.wheelThrottle`: while it is not 0, the wheel motors push with it instead of the vessel throttle, backwards when negative (a rover's drive keys). `WheelSpec.topSpeed` (m/s) fades a motor's force to nothing at that rolling speed. `stock.wheel` takes `topSpeed` and `motorOn` (the motor starts on).
+
+## Blueprints (API 0.1.100, plan 285, ADR 0263)
+
+`ctx.blueprints.register(defineBlueprint({ id, title, inspiredBy?, goal, crew, summary, design }))` puts a ready-made design in the Hangar's Library under "Mod". `goal` is one of `orbit`, `moon`, `planet`, `station` or `surface`, and `design` is validated with `vesselDesignSchema`. The game's own learn examples and famous missions are still built in `apps/web` (`lib/editor/blueprints.ts`) with the editor's operations, which a mod cannot import.
 
 ## Non-TypeScript mods
 

@@ -270,6 +270,7 @@ describe('registration and report', () => {
 			'failure-mode': [],
 			panel: [],
 			scenario: [],
+			blueprint: [],
 			'tech-node': [],
 			commodity: [],
 			recipe: []

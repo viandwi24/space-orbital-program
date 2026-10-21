@@ -110,6 +110,11 @@ const targetRefSchema = z.discriminatedUnion('kind', [
 export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('throttle'), vessel: entity, value: z.number().min(0).max(1) }),
 	z.object({
+		type: z.literal('wheel-throttle'),
+		vessel: entity,
+		value: z.number().min(-1).max(1)
+	}),
+	z.object({
 		type: z.literal('attitude'),
 		vessel: entity,
 		pitch: z.number().min(-1).max(1),
@@ -152,8 +157,20 @@ export const commandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
 		type: z.literal('sas'),
 		vessel: entity,
 		mode: z.enum(SAS_MODES).optional(),
-		reference: z.enum(['surface', 'orbit']).optional()
+		reference: z.enum(['surface', 'orbit']).optional(),
+		direction: vec3
+			.refine((v) => [v.x, v.y, v.z].every(Number.isFinite), 'direction must be finite')
+			.refine((v) => Math.hypot(v.x, v.y, v.z) > 1e-9, 'direction must not be zero')
+			.optional(),
+		attitude: quat.optional()
 	}),
+	z.object({
+		type: z.literal('autopilot-engage'),
+		vessel: entity,
+		autopilot: definitionIdSchema,
+		params: z.unknown().optional()
+	}),
+	z.object({ type: z.literal('autopilot-disengage'), vessel: entity }),
 	z.object({
 		type: z.literal('action'),
 		vessel: entity,

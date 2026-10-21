@@ -38,8 +38,10 @@
 	const items = (): HTMLElement[] => [
 		...(box?.querySelectorAll<HTMLElement>('button[data-item], input') ?? [])
 	];
+	// the menu is re-read with every snapshot: move the focus only for another vessel
+	const vesselId = $derived(menu.vessel);
 	$effect(() => {
-		void menu.vessel;
+		void vesselId;
 		items()[0]?.focus();
 	});
 

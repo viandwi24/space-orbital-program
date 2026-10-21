@@ -111,6 +111,9 @@
 	.chip.warning {
 		--tone: var(--warn);
 	}
+	.chip.info {
+		--tone: var(--ok);
+	}
 	.chip {
 		color: var(--tone);
 	}

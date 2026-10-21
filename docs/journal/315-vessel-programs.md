@@ -28,5 +28,5 @@ See the plan's Log for the final command output. Browser (dev server on the work
 ## Open questions
 
 - Several scripts at once (draft 317) and the MechJeb-style autopilots (draft 316, waits for plan 310 Part 3).
-- `stopAutopilot` is a placeholder until plan 310's runner lands; the auto dock session was told to wire its disengage there.
+- Plan 310 Part 3 merged in: its runner dispatches with source `autopilot` (changed here) and `program-stop` calls its `endAutopilot(..., 'disengaged', reason)`; `programs.test.ts` flies a test autopilot through both.
 - The HUD's throttle gauge shows the page's throttle, not the sim's: a script's throttle is not reflected (as before this plan).

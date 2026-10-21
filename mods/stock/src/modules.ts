@@ -1381,7 +1381,11 @@ export const wheelConfigSchema = z.object({
 	/** Motor force at full throttle, N (plan 260; 0: no motor). */
 	driveForce: z.number().nonnegative().default(0),
 	/** Electric charge drawn per second at full drive, EC/s. */
-	driveCharge: z.number().nonnegative().default(0)
+	driveCharge: z.number().nonnegative().default(0),
+	/** The motor's force fades to nothing at this rolling speed, m/s (plan 307; 0: no limit). */
+	topSpeed: z.number().nonnegative().default(0),
+	/** The motor starts on (plan 307: a rover wheel; landing gear starts off). */
+	motorOn: z.boolean().default(false)
 });
 export type WheelConfig = z.output<typeof wheelConfigSchema>;
 export interface WheelState {
@@ -1420,7 +1424,7 @@ export const wheelSteerSign = (config: Pick<WheelConfig, 'steer'>, state: WheelS
 export const ModuleWheel = defineModule({
 	id: 'stock.wheel',
 	config: wheelConfigSchema,
-	state: (): WheelState => ({ brakes: false }),
+	state: (config): WheelState => ({ brakes: false, ...(config.motorOn ? { motor: true } : {}) }),
 	describe: (config, state) => ({
 		category: 'landing',
 		actions: [
@@ -1495,7 +1499,8 @@ export const ModuleWheel = defineModule({
 				grip: config.grip,
 				brake: state.brakes ? 1 : 0,
 				steer: (config.steer * wheelSteerSign(config, state) * Math.PI) / 180,
-				drive: wheelDrive(config, state)
+				drive: wheelDrive(config, state),
+				...(config.topSpeed > 0 ? { topSpeed: config.topSpeed } : {})
 			}
 		}
 	],
@@ -1506,7 +1511,8 @@ export const ModuleWheel = defineModule({
 			delete state.powered;
 			return;
 		}
-		const demand = vessel.control.throttle * (state.motorLimit ?? 1);
+		const demand =
+			Math.abs(vessel.control.wheelThrottle || vessel.control.throttle) * (state.motorLimit ?? 1);
 		const need = config.driveCharge * demand * dt;
 		if (need <= 0) {
 			state.powered = 1;

@@ -43,7 +43,7 @@ describe('status bar', () => {
 			network: { stations: [station, { ...station, id: 'b' }], vessels: [link] }
 		} as unknown as Partial<Snapshot>);
 		expect(connection(s)).toMatchObject({ online: true, detail: '2 stations' });
-		expect(connection(s, 4)).toMatchObject({ online: true, detail: '2 stations · 2 relays' });
+		expect(connection(s, 4)).toMatchObject({ online: true, detail: 'via KSC · 2 relays' });
 		const lost = snap({
 			network: { stations: [station], vessels: [{ ...link, to: null, reason: 'Out of range' }] }
 		} as unknown as Partial<Snapshot>);
@@ -52,6 +52,35 @@ describe('status bar', () => {
 			text: 'No signal',
 			detail: 'Out of range'
 		});
+	});
+
+	it('names a crewed vessel at the end of the route: linked to it, not to the ground', () => {
+		const station = {
+			id: 'site:hq',
+			label: 'Space Center',
+			body: 'home',
+			position: { x: 0, y: 0, z: 0 },
+			range: 1
+		};
+		const s = snap({
+			vessels: [
+				{ id: 7, name: 'Kronos V + Selene' },
+				{ id: 9, name: 'Horizon Station' }
+			],
+			network: {
+				stations: [station],
+				vessels: [
+					{ vessel: 9, to: 'vessel:7', reason: null, route: ['vessel:7'] },
+					{ vessel: 7, to: 'site:hq', reason: null, route: ['site:hq'] }
+				]
+			}
+		} as unknown as Partial<Snapshot>);
+		expect(connection(s, 9)).toMatchObject({
+			online: true,
+			detail: 'via Kronos V + Selene (crewed)'
+		});
+		expect(connection(s, 7)).toMatchObject({ online: true, detail: 'via Space Center' });
+		expect(connection(s, null)).toMatchObject({ detail: '1 station' });
 	});
 
 	it('says how long ago the world was saved', () => {

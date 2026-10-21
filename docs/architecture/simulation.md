@@ -348,6 +348,13 @@ The tier-1 rule still decides whether a vessel is linked. At each network update
 - **Auto-crew:** `load-vessel` without a `crew` field calls `autoCrew` (`crew.ts`) when the vessel would be `no-crew`: the first available member takes the first seat of a crewed control part; with nobody available and `stock.economy` off, a pilot is hired first. `crew: []` keeps the vessel empty.
 - **Liftoff:** `VesselState.launchedAt` is set by the first `stage` command, or at load for a vessel not placed on the surface; split pieces copy it, and the snapshot carries it. Before it the vessel is pre-launch. The web's 50 % launch throttle is sent with the first stage, so the vessel rests on the pad until then. The web reads pre-launch from the snapshot (no `launchedAt`, `nextStage` 0, within 200 m of the ground) and counts MET from `launchedAt`.
 
+## Port targets, control parts and autopilots (plan 310, ADRs 0270 and 0271)
+
+- A target that names a docking port resolves `target.position`/`velocity` from the own reference point (the control part's port face when the control part is a port, else the centre of mass) to that port's face, each with its own velocity (`target.ts`). The closest approach stays between centres of mass.
+- `attitude` input is in the control part's axes; the sim turns it into the vessel's before storing it.
+- SAS `direction` points the control nose along `sas.direction`. `hold` with an `attitude` holds the control part at that orientation.
+- Engaged autopilots (`autopilot.ts`) step at their rate, once per fixed step, before the sim chooses a flight step or a rails chunk. A docking ends both vessels' autopilots as `done`.
+
 ## RCS (plan 211, ADR 0217)
 
 - `set-rcs` switches the vessel's RCS (`VesselState.rcs`, `VesselSnapshot.rcs`). `attitude.translate` (vessel axes: x right, y forward, z up) sets the translation; modules read `VesselApi.rcs` and `VesselApi.translateDemand` (part frame).

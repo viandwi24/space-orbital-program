@@ -73,9 +73,10 @@ import {
 } from './tick.ts';
 import { patchedBodiesOf, completeNodes, refreshPatchedBodies } from './maneuver.ts';
 import { pruneTargets } from './target.ts';
+import { runAutopilots } from './autopilot.ts';
 import { autoRails, reapDebris, trackRest } from './modes.ts';
 import { rebaseRails } from './orbit.ts';
-import { stepSasOnRails } from './sas.ts';
+import { stepSasOnRails, wakeTurningVessels } from './sas.ts';
 import { applySoiTransitions } from './soi.ts';
 import { restoreFrames, restoreWorld, writeSave } from './save.ts';
 import { rulesView, takeSnapshot } from './snapshot.ts';
@@ -604,6 +605,10 @@ export async function createSim(options: SimOptions): Promise<Sim> {
 			// physics warp lands on an alarm or warp-to time within one step, not within one frame
 			const flightStop = stopAt(core);
 			while (core.accumulator >= dt) {
+				// mod autopilots fly their vessels (plan 310, ADR 0271): before the choice of step, so a
+				// vessel one wakes into flight takes this step in physics, not a rails chunk that leaves it behind
+				runAutopilots(core);
+				wakeTurningVessels(core); // a real SAS turn takes the vessel's own torque (plan 310)
 				if (hasFlightVessels(core)) {
 					if (flightSteps++ >= maxSteps) {
 						holdWarp(flightSteps);

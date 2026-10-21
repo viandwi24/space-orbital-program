@@ -12,7 +12,9 @@ import type {
 	AchievementDefinition,
 	TechNodeDefinition,
 	ScenarioDefinition,
+	BlueprintDefinition,
 	PanelDefinition,
+	AutopilotDefinition,
 	ExperimentDefinition,
 	SituationDefinition,
 	AntennaDefinition,
@@ -394,6 +396,21 @@ export const defineAchievement = (def: AchievementDefinition): AchievementDefini
 export const definePanel = (def: PanelDefinition): PanelDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
+// defineAutopilot
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * An autopilot (plan 310, ADR 0271): `start` checks the vessel and returns the memory (plain JSON),
+ * `step` runs at `rate` per second of sim time (default 10) and flies the vessel through the
+ * `VesselPilot` it gets: SAS modes, a free direction or attitude, RCS translation, throttle,
+ * staging, the control part and the target, all commands the sim validates. Players engage it
+ * with `autopilot-engage` (a panel button). Register with `ctx.autopilots`.
+ */
+export function defineAutopilot<Memory>(def: AutopilotDefinition<Memory>): AutopilotDefinition {
+	return def as unknown as AutopilotDefinition;
+}
+
+// ---------------------------------------------------------------------------------------------
 // defineScenario
 // ---------------------------------------------------------------------------------------------
 
@@ -403,6 +420,12 @@ export const definePanel = (def: PanelDefinition): PanelDefinition => def;
  * world. Create World offers it. Register with `ctx.scenarios`.
  */
 export const defineScenario = (def: ScenarioDefinition): ScenarioDefinition => def;
+
+/**
+ * A blueprint (plan 285, ADR 0263): a ready-made design for the Hangar's Library, with its goal,
+ * crew and a summary. Register with `ctx.blueprints`; the Library shows it under "Mod".
+ */
+export const defineBlueprint = (def: BlueprintDefinition): BlueprintDefinition => def;
 
 // ---------------------------------------------------------------------------------------------
 // defineSystemVariant

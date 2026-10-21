@@ -338,6 +338,7 @@ export const routePolicyDefinitionSchema = z.object({
 /** Commands the signal-delay rule queues for a linked probe (ADR 0188 point 6). */
 export const DELAYED_COMMANDS: ReadonlySet<string> = new Set([
 	'throttle',
+	'wheel-throttle',
 	'attitude',
 	'sas',
 	'stage',

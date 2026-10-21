@@ -149,6 +149,8 @@ export const ACTIONS = [
 	flight('Aircraft', 'trimDown', 'Trim nose down', '['),
 	flight('See', 'vesselNext', 'Next vessel within 2.5 km', 'PageDown'),
 	flight('See', 'vesselPrev', 'Previous vessel within 2.5 km', 'PageUp'),
+	// plan 307: W/S drive the wheel motors and A/D steer; on by itself near the ground with motor wheels
+	flight('Aircraft', 'driveMode', 'Rover drive mode on or off', 'Alt+KeyG'),
 	flight('Aircraft', 'brakes', 'Brakes on or off', 'KeyC'),
 	// plan 245: the KSP profile brakes while B is held; classic keeps the C toggle and has this on Alt+C
 	flight('Aircraft', 'brakesHold', 'Brakes while the key is held', 'Alt+KeyC'),
@@ -694,7 +696,8 @@ export const BINDING_GROUPS: readonly BindingGroup[] = [
 			{ actions: ['trimRollLeft', 'trimRollRight'], text: 'Trim roll left, right' },
 			{ actions: ['trimReset'], text: 'Reset the trim' },
 			{ actions: ['brakes'], text: 'Brakes on or off' },
-			{ actions: ['brakesHold'], text: 'Brakes while the key is held' }
+			{ actions: ['brakesHold'], text: 'Brakes while the key is held' },
+			{ actions: ['driveMode'], text: 'Rover drive mode: W/S drive, A/D steer' }
 		]
 	},
 	{

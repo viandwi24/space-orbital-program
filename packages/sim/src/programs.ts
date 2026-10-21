@@ -16,6 +16,7 @@ import {
 import type { SimCore } from './core.ts';
 import type { CommandSource } from './delay.ts';
 import { VESSEL, type VesselState } from './state.ts';
+import { endAutopilot } from './autopilot.ts';
 
 /** Sources that are programs (ADR 0273 point 2). */
 export const isProgramSource = (source: CommandSource): boolean =>
@@ -23,7 +24,7 @@ export const isProgramSource = (source: CommandSource): boolean =>
 
 /** The vessel has an engaged autopilot (ADR 0271) or a running script. */
 export function hasProgram(v: VesselState): boolean {
-	return v.script !== undefined || (v as { autopilot?: unknown }).autopilot != null;
+	return v.script !== undefined || v.autopilot != null;
 }
 
 /** The channel is overridden by the player at the current sim time. */
@@ -98,16 +99,9 @@ export function detachScript(core: SimCore, vessel: EntityId, v: VesselState, re
 	return true;
 }
 
-/**
- * Disengage the vessel's autopilot (ADR 0271) for `program-stop`: the autopilot record goes, with
- * the RCS translation it left (ADR 0271 point 5). Plan 310's runner owns the `autopilot:ended`
- * event; once it lands this calls its disengage instead (plan 315 log).
- */
-export function stopAutopilot(_core: SimCore, _vessel: EntityId, v: VesselState): void {
-	const record = v as { autopilot?: unknown };
-	if (record.autopilot == null) return;
-	delete record.autopilot;
-	delete v.translate;
+/** Disengage the vessel's autopilot (ADR 0271) for `program-stop`: `autopilot:ended`, outcome `disengaged`. */
+export function stopAutopilot(core: SimCore, vessel: EntityId, v: VesselState, reason: string): void {
+	if (v.autopilot) endAutopilot(core, vessel, 'disengaged', reason);
 }
 
 /** The scripts saved on vessels, for the host to restart when a world opens (ADR 0273 point 6). */

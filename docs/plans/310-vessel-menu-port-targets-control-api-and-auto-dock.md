@@ -1,7 +1,7 @@
 ---
 id: 310
 title: "Vessel menu in Flight, docking-port targets, a vessel-control API and the Auto Dock mod"
-status: in-progress
+status: done
 owner: "auto dock session (Claude)"
 depends: [222, 221, 035, 057]
 phase: 0
@@ -42,19 +42,24 @@ From the Flight view the player clicks a nearby vessel to fly it, target it or t
 
 ## Acceptance criteria
 
-- [ ] Flight: clicking another vessel's mesh or marker opens the menu with Control, Set as target, Target a docking port, Focus camera and Rename; hovering shows name, distance and relative speed (web vitest for the menu model).
-- [ ] `bun test packages/sim`: with a port targeted, `target.position` is the port face minus the own control port face; `attitude` translate with a sideways control part pushes along that part's axes.
-- [ ] `bun test packages/sim`: SAS `direction` points the control nose within 1 degree of the asked direction; `autopilot-engage` runs a test autopilot at 10 Hz and its commands are applied; a throwing autopilot ends as `aborted`.
-- [ ] `bun test mods/autodock`: two vessels 200 m apart in orbit dock with Auto Dock within 15 minutes of sim time; engaging without Control From on a port, or from behind the target port, aborts with a reason.
-- [ ] `bun run typecheck`, `bun run test` (or `bun test`), web vitest with `CI=true`, `bun run docs:check` pass.
+- [x] Flight: clicking another vessel's mesh or marker opens the menu with Control, Set as target, Target a docking port, Focus camera and Rename; hovering shows name, distance and relative speed (web vitest for the menu model).
+- [x] `bun test packages/sim`: with a port targeted, `target.position` is the port face minus the own control port face; `attitude` translate with a sideways control part pushes along that part's axes.
+- [x] `bun test packages/sim`: SAS `direction` points the control nose within 1 degree of the asked direction; `autopilot-engage` runs a test autopilot at 10 Hz and its commands are applied; a throwing autopilot ends as `aborted`.
+- [x] `bun test mods/autodock`: two vessels 200 m apart in orbit dock with Auto Dock within 15 minutes of sim time; engaging without Control From on a port, or from behind the target port, aborts with a reason.
+- [x] `bun run typecheck`, `bun run test` (or `bun test`), web vitest with `CI=true`, `bun run docs:check` pass. Exceptions: the two script-worker vitest cases need Node's `--experimental-transform-types`, which Node 26 removed, so they fail on main too. Three wall-clock benchmarks fail only while another session's tests share the CPU.
+- [x] Owner reports, same day:
+  - The vessel menu no longer throws `reading 'menu'` after Control or a decouple (vitest).
+  - SAS turns are torque-limited (`packages/sim/test/torque-turn.test.ts`: probe 6 s, long stack 166 s; no torque, no turn; RCS spends monopropellant).
+  - LOW TORQUE / NO TORQUE chip.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` updated (board row).
-- [ ] `docs/journal/310-vessel-menu-port-targets-control-api-and-auto-dock.md` written.
-- [ ] `docs/guides/vessel-control-api.md` written; scripting guide lists the new ship calls.
-- [ ] ADRs 0270 and 0271 linked above.
+- [x] `docs/STATUS.md` updated (board row).
+- [x] `docs/journal/310-vessel-menu-port-targets-control-api-and-auto-dock.md` written.
+- [x] `docs/guides/vessel-pilot-api.md` written; scripting guide lists the new ship calls.
+- [x] ADRs 0270 and 0271 linked above.
 
 ## Log
 
 - 2026-10-21 — Created and started by the auto dock session; defaults chosen without waiting (owner's instruction).
+- 2026-10-21 — Done. Also fixed the vessel-menu crash and made SAS turns torque-limited (owner reports). The public API is named `VesselPilot` (`VesselControl` was taken). Auto Dock docks from 200 m in about 3 minutes of sim time. Journal 310.

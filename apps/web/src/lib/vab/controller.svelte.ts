@@ -5,6 +5,7 @@
  * handling, the vessel library (ADR 0041) and the derived read-outs.
  */
 import { MISSION_BLUEPRINTS } from '../editor/missions';
+import { allBlueprints, blueprintStats, type BlueprintStats } from '../editor/blueprints';
 import { resolve } from '$app/paths';
 import { untrack } from 'svelte';
 import {
@@ -268,6 +269,11 @@ export class VabController {
 
 	// library
 	libraryOpen = $state(false);
+	/** The blueprint Library dialog (plan 285). */
+	blueprintsOpen = $state(false);
+	/** Every blueprint card: learn, famous missions, mods (plan 285, ADR 0263). */
+	readonly blueprints = allBlueprints(this.loaded.blueprints);
+	private readonly blueprintThumbs = new Map<string, string | null>();
 	vesselEntries = $state.raw<LibraryEntry[]>([]);
 	assemblyEntries = $state.raw<LibraryEntry[]>([]);
 	libraryId = $state<string | null>(null);
@@ -1618,6 +1624,33 @@ export class VabController {
 		this.view?.frame();
 		this.say('Loaded the glider: a pod and tank with two wings and a tail.');
 	}
+	/** Load any Library blueprint (plan 285). */
+	loadBlueprint(id: string): void {
+		const card = this.blueprints.find((b) => b.id === id);
+		if (!card) return;
+		this.disarm();
+		this.selected = null;
+		this.libraryId = null;
+		saveLibraryId(null);
+		this.editor = replaceDesign(this.editor, this.editorContent, card.build(this.editorContent));
+		this.blueprintsOpen = false;
+		this.view?.frame();
+		this.say(`Loaded ${card.title}${card.inspiredBy ? `, inspired by ${card.inspiredBy}` : ''}.`);
+	}
+	/** A card's picture, drawn once from the Hangar's view and kept (plan 285); null without a view. */
+	blueprintThumbnail(id: string): string | null {
+		if (this.blueprintThumbs.has(id)) return this.blueprintThumbs.get(id)!;
+		const card = this.blueprints.find((b) => b.id === id);
+		if (!card || !this.view) return null;
+		const url = this.assemblyThumbnail(card.build(this.editorContent));
+		this.blueprintThumbs.set(id, url);
+		return url;
+	}
+	/** The card read-outs (plan 285). */
+	blueprintStats(id: string): BlueprintStats | null {
+		const card = this.blueprints.find((b) => b.id === id);
+		return card ? blueprintStats(card.build(this.editorContent), this.content, this.gravity) : null;
+	}
 	/** Load a famous-mission blueprint (plan 286). */
 	loadMission(id: string): void {
 		const mission = MISSION_BLUEPRINTS.find((m) => m.id === id);
@@ -2250,7 +2283,7 @@ export class VabController {
 
 	onKey = (e: KeyboardEvent): void => {
 		const t = e.target as HTMLElement | null;
-		if (this.confirmOpen || this.libraryOpen || t?.closest('dialog')) return;
+		if (this.confirmOpen || this.libraryOpen || this.blueprintsOpen || t?.closest('dialog')) return;
 		const typing = t?.matches('input, textarea, select') ?? false;
 		const mod = e.metaKey || e.ctrlKey;
 		if (mod && e.key.toLowerCase() === 'z') {

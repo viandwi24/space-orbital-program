@@ -171,8 +171,7 @@
 		{#if saves.note}
 			<p class="note" class:error={saves.noteIsError} role="status">
 				{saves.note}
-				{#if saves.note.includes('mod manager')}<a href={resolve('/(world)/mods')}>Mod manager</a
-					>{/if}
+				{#if saves.note.includes('mod manager')}<a href={resolve('/mods')}>Mod manager</a>{/if}
 			</p>
 		{/if}
 
