@@ -3199,5 +3199,122 @@ exports[`stock part ids, masses, costs and modules match the snapshot 1`] = `
       ],
     ],
   },
+  {
+    "cost": 400,
+    "id": "stock.hinge-s",
+    "mass": 40,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "hinge",
+          "max": 90,
+          "min": -90,
+          "power": 0.4,
+          "speed": 30,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1600,
+    "id": "stock.hinge-m",
+    "mass": 160,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "hinge",
+          "max": 90,
+          "min": -90,
+          "power": 1.5,
+          "speed": 20,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 500,
+    "id": "stock.servo-s",
+    "mass": 50,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "servo",
+          "max": 180,
+          "min": -180,
+          "power": 0.4,
+          "speed": 40,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1800,
+    "id": "stock.servo-m",
+    "mass": 180,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "servo",
+          "max": 180,
+          "min": -180,
+          "power": 1.5,
+          "speed": 25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 700,
+    "id": "stock.rotor-s",
+    "mass": 70,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "rotor",
+          "power": 1,
+          "speed": 30,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 450,
+    "id": "stock.piston-s",
+    "mass": 45,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "piston",
+          "max": 0.6,
+          "min": 0,
+          "power": 0.4,
+          "speed": 0.25,
+        },
+      ],
+    ],
+  },
+  {
+    "cost": 1700,
+    "id": "stock.piston-m",
+    "mass": 170,
+    "modules": [
+      [
+        "stock.robotic",
+        {
+          "kind": "piston",
+          "max": 1.1,
+          "min": 0,
+          "power": 1.5,
+          "speed": 0.2,
+        },
+      ],
+    ],
+  },
 ]
 `;

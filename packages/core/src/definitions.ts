@@ -359,6 +359,20 @@ export interface WheelSpec {
 	drive?: number;
 }
 
+/**
+ * A robotic joint (plan 306, ADR 0269): the module turns or slides the parts on its `node` side
+ * about `pivot` along `axis` (part frame) to `value` (rad for `rotate`, m for `translate`). The sim
+ * re-poses those parts inside the vessel's one body and keeps the pose it applied in the module
+ * state's `applied` (a number the module's `state` starts at 0).
+ */
+export interface JointSpec {
+	kind: 'rotate' | 'translate';
+	axis: Vec3;
+	pivot: Vec3;
+	node: string;
+	value: number;
+}
+
 /** Heat the airflow delivers to a part this step (what `ModuleDefinition.absorbHeat` receives). */
 export interface HeatLoad {
 	/** Convective power on the part, W. */
@@ -493,6 +507,11 @@ export interface ModuleDefinition<In = unknown, Out = In, State = unknown> {
 	 * when the result changed. Must be a pure function of config and state (ADR 0019).
 	 */
 	colliders?: Bivariant<(config: Out, state: State) => readonly ModuleCollider[]>;
+	/**
+	 * A robotic joint (plan 306, ADR 0269): where the module's moving side is now. Pure; null while
+	 * the module moves nothing.
+	 */
+	joint?: Bivariant<(config: Out, state: State) => JointSpec | null>;
 	/**
 	 * The largest torque this module can add about each part axis right now, N·m, all >= 0: `x`
 	 * pitch, `y` roll, `z` yaw (the axes of `VesselApi.torqueDemand`). The stability assist divides

@@ -281,6 +281,10 @@ An attach node may carry `shellTop: "<module id>"`: it sits at the top of that m
 
 `VesselDesign.formatVersion` 4 adds `parts[i].offset` (`{x, y, z}`, metres in the parent part's axes, applied after the attach transform and before the tilt; children move with the part; the root ignores it) and `freePlacement: true` (the Hangar's free mode; the sim ignores it). `migrateVesselDesign` turns versions 1 to 3 into 4 unchanged (`DESIGN_FORMAT_VERSION`). `resolveVesselDesign` applies the offset (`withOffset`), so the sim's colliders, mass and centre of mass, the Δv read-out and drag see the moved part. Tilts take any angle; `tiltOfMatrix` inverts `tiltMatrix`.
 
+## Robotic joints (API 0.1.98, plan 306, ADR 0269)
+
+`ModuleDefinition.joint(config, state)` makes a module a robotic joint. It returns `{ kind: 'rotate' | 'translate', axis, pivot, node, value }` (part frame; `value` in rad or m), or null. The module moves `value` itself (its `update`). The sim turns or slides the parts reached through `node` by the change since the pose it applied last, which it keeps as `applied` (a number) in the module state. Then it rebuilds the vessel's body, at most every 0.1 s. Every joint is kinematic: no physics joint, no reaction on the vessel. `PartVisual.articulation` gains the modes `spin` (about Y, rad) and `slide` (up Y, m) for the part's moving half. `stock.robotic` is the stock example.
+
 ## Non-TypeScript mods
 
 JSON data files (`part.json`, `resource.json`) that reference module ids by string are accepted and validated with the same zod schemas. Same registry, no second system.

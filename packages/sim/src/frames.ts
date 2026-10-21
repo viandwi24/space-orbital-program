@@ -313,13 +313,14 @@ export function createVesselBody(
 
 /**
  * Rebuild a flight vessel's body when the boxes its modules contribute changed (a landing leg
- * deployed). Same pose and motion; call between steps, never with forces queued (ADR 0019).
+ * deployed), or always with `force`. Same pose and motion; call between steps, never with forces queued (ADR 0019).
  */
-export function refreshColliders(core: SimCore, vesselId: EntityId): void {
+export function refreshColliders(core: SimCore, vesselId: EntityId, force = false): void {
 	const frame = frameOfVessel(core, vesselId);
 	const body = frame?.bodies.get(vesselId);
 	if (!frame || !body) return;
-	if (collectColliders(core, vesselId).signature === body.signature) return;
+	// `force`: parts moved in the design frame (a robotic joint, ADR 0269)
+	if (!force && collectColliders(core, vesselId).signature === body.signature) return;
 	const m = bodyMotion(frame, body);
 	frame.backend.removeBody(body.handle);
 	frame.bodies.delete(vesselId);

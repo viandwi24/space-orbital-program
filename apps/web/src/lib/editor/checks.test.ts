@@ -4,7 +4,14 @@ import Stock from '@orbital/mod-stock';
 import { describe, expect, it } from 'vitest';
 import { emptyDesign, referenceTwoStage, starterRocket } from '../design';
 import type { ContentLookups } from '../delta-v';
-import { blocksLaunch, checkDesign, MARGINAL_TWR, sizeMismatches, verdictOf } from './checks';
+import {
+	blocksLaunch,
+	checkDesign,
+	MARGINAL_TWR,
+	MAX_JOINTS_IN_SERIES,
+	sizeMismatches,
+	verdictOf
+} from './checks';
 import { asparagusRocket, boosterRocket, glider, moonShot } from './examples';
 import { attachNew, attachTargets, createEditor, replaceDesign, singlePart } from './state';
 import { designStats } from './stats';
@@ -180,5 +187,40 @@ describe('the pre-flight report (plan 218)', () => {
 		};
 		expect(textOf(run(probe, null, bare))).toContain('Probe without antenna');
 		expect(run(probe, null).some((c) => c.id === 'no-antenna')).toBe(false);
+	});
+});
+
+describe('robotics limits (plan 306, ADR 0269 point 6)', () => {
+	const chainOf = (n: number) => {
+		let t = createEditor(emptyDesign(), content);
+		t = attachNew(
+			t,
+			content,
+			'stock.probe-core',
+			attachTargets(t.design, singlePart('stock.probe-core', 0), content.parts)[0]!
+		);
+		for (let i = 0; i < n; i++) {
+			const index = t.design.parts.length;
+			const target = attachTargets(
+				t.design,
+				singlePart('stock.servo-s', index),
+				content.parts
+			).find((x) => x.parent!.index === index - 1 && x.parent!.parentNode === 'bottom')!;
+			t = attachNew(t, content, 'stock.servo-s', target);
+		}
+		return t;
+	};
+	it(`${MAX_JOINTS_IN_SERIES} servos in a row are fine, one more is no-go`, () => {
+		const ok = chainOf(MAX_JOINTS_IN_SERIES);
+		const stats = designStats(ok.design, content, 'sea-level', g);
+		expect(checkDesign(ok, content, stats).some((c) => c.id === 'robotics')).toBe(false);
+		const deep = chainOf(MAX_JOINTS_IN_SERIES + 1);
+		const check = checkDesign(
+			deep,
+			content,
+			designStats(deep.design, content, 'sea-level', g)
+		).find((c) => c.id === 'robotics')!;
+		expect(check.level).toBe('no-go');
+		expect(check.parts).toEqual([MAX_JOINTS_IN_SERIES + 1]);
 	});
 });

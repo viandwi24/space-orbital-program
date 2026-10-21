@@ -13,6 +13,7 @@ export const STOCK_CATEGORIES = [
 	defineCategory({ id: 'stock.control', label: 'Control', icon: 'wheel', order: 600 }),
 	defineCategory({ id: 'stock.landing', label: 'Landing', icon: 'legs', order: 700 }),
 	defineCategory({ id: 'stock.thermal', label: 'Thermal', icon: 'shield', order: 800 }),
+	defineCategory({ id: 'stock.robotics', label: 'Robotics', icon: 'wheel', order: 900 }),
 	defineCategory({ id: 'stock.other', label: 'Other', icon: 'part', order: 10_000 })
 ];
 

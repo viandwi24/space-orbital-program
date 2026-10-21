@@ -74,6 +74,7 @@ describe('catalogue categories from the registry', () => {
 			'stock.control',
 			'stock.landing',
 			'stock.thermal',
+			'stock.robotics',
 			'stock.other'
 		]);
 	});
@@ -122,6 +123,7 @@ describe('catalogue categories from the registry', () => {
 			'Control',
 			'Landing',
 			'Thermal',
+			'Robotics',
 			'Other',
 			'Sub-assemblies'
 		]);
