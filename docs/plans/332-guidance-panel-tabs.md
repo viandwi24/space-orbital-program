@@ -1,7 +1,7 @@
 ---
 id: 332
 title: "Guidance Computer panel with a tab per program; panel nodes tabs, progress, number, notice"
-status: in-progress
+status: done
 owner: "rendezvous session (Claude)"
 depends: [321, 331]
 phase: 0
@@ -35,17 +35,18 @@ The Guidance Computer's panel looks tidy and follows the v3 design: a tab per pr
 
 ## Acceptance criteria
 
-- [ ] `bun test packages/core mods/guidance`: the new nodes validate; the Guidance panel has the five tabs, opens the engaged program's tab, and its buttons give engage and disengage commands with the settings.
-- [ ] web vitest (`CI=true`): `evaluate.ts` evaluates tabs, progress, number and notice and routes a number field's and a tab child's command.
-- [ ] A screenshot of the panel in the dev build.
-- [ ] `bun run typecheck`, `bun run test`, `bun run docs:check` pass.
+- [x] `bun test packages/core mods/guidance`: the new nodes validate; the Guidance panel has the five tabs, opens the engaged program's tab, and its buttons give engage and disengage commands with the settings.
+- [x] web vitest (`CI=true`): `evaluate.ts` evaluates tabs, progress, number and notice and routes a number field's and a tab child's command.
+- [x] A screenshot of the panel in the dev build.
+- [x] `bun run typecheck`, `bun run test`, `bun run docs:check` pass.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md` board row.
-- [ ] `docs/journal/332-guidance-panel-tabs.md`.
-- [ ] Guide: the new panel nodes; the Guidance Computer section.
+- [x] `docs/STATUS.md` board row.
+- [x] `docs/journal/332-guidance-panel-tabs.md`.
+- [x] Guide: the new panel nodes; the Guidance Computer section.
 
 ## Log
 
 - 2026-10-22 — Drafted and started by the rendezvous session on the owner's request.
+- 2026-10-22 — Done. `bun test mods/guidance mods/autodock packages/core/test/panels.test.ts`: 31 pass; web vitest dock + mods: 49 pass; svelte-check 0 errors; screenshots in the session notes (`screens-332/`). `bun run test`: 2223 pass, 0 fail; `bun run build`: done; `bun run docs:check`: OK. Journal 332.

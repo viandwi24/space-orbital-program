@@ -90,16 +90,16 @@ export default definePlugin({
 |---|---|---|
 | `guidance.node` | | points along the next node, lights at half the burn time before it (rocket equation, vacuum Isp), throttles down over the last 1.5 s, removes the node; stages when the engines run dry |
 | `guidance.circularize` | `{ at: 'apoapsis' \| 'periapsis' }` | plans a node for the circular speed at that apsis, then burns it like `guidance.node` |
-| `guidance.ascent` | `{ altitude?, shape? }` | launches, gravity turn east (pitch `90° · (1 − f^shape)` up to 75 % of the atmosphere), eases off near the target apoapsis, coasts out of the air, circularizes; stages on flame-out |
-| `guidance.land` | | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at 1.2 m/s, touches down upright |
+| `guidance.ascent` | `{ altitude?, shape?, inclination? }` | launches, gravity turn east (or on the launch azimuth for `inclination`°, steered closed loop on the inclination error) (pitch `90° · (1 − f^shape)` up to 75 % of the atmosphere), eases off near the target apoapsis, coasts out of the air, circularizes; stages on flame-out |
+| `guidance.land` | `{ touchdown? }` | burns retrograde until the periapsis is underground, coasts to the suicide-burn height, brakes along a speed profile that ends at the touchdown speed (default 1.2 m/s, 0.5–3), touches down upright |
 
 | `guidance.rendezvous` | `{ standoff?, dock?, warp? }` | flies to the target vessel (or a targeted port's vessel) from anywhere in the same sphere of influence and stops 100–200 m from it, at rest (below). Plan 331, ADR 0286 |
 
-Its panel ("Guidance Computer") engages each one and shows the phase and read-outs. `mods/guidance/test` flies all four headless (a 300 m/s node to under 1 m/s, a 100 x 75 km orbit to e < 0.005, the two-stage rocket from the pad to a periapsis above 70 km, a lander down on the moon under 2 m/s).
+Its panel ("Guidance Computer", plan 332) has a tab per program: **Ascent** (target altitude and inclination, gravity turn), **Orbit** (execute the next node; circularize at an apsis), **Rendezvous**, **Landing** (touchdown speed) and **Log**. Each tab has a status line (what is flying, or why the program cannot start), a progress bar while it flies, its read-outs and its own Engage and Abort; the engaged program's tab opens by itself and is marked ON. `mods/guidance/test` flies all four headless (a 300 m/s node to under 1 m/s, a 100 x 75 km orbit to e < 0.005, the two-stage rocket from the pad to a periapsis above 70 km, a lander down on the moon under 2 m/s).
 
 ### Rendezvous (plan 331)
 
-Like MechJeb's rendezvous autopilot. Target a vessel or one of its docking ports, open the **Rendezvous** panel and press **Engage**. It needs a burning engine (stage first), and RCS with monopropellant for the last kilometre if you have it. Phases, shown in the panel with the distance, the relative speed, the delta-v used, an estimate of what is still needed and what is left:
+Like MechJeb's rendezvous autopilot. Target a vessel or one of its docking ports, open the Guidance Computer's **Rendezvous** tab and press **Engage**. It needs a burning engine (stage first), and RCS with monopropellant for the last kilometre if you have it. Phases, shown in the tab with the distance, the relative speed, the delta-v used, an estimate of what is still needed and what is left:
 
 1. **plane** — above 0.05° between the two orbit planes, a plane change at the nearer relative node;
 2. **phasing** or **transfer** — in the same orbit, a phasing orbit of one or more turns that comes back to the burn point as the target gets there; otherwise a Hohmann transfer at its phase window, or (when the window is more than 12 orbits away) a Hohmann to the target's height and a circularization, then the phasing; a **course correction** when the predicted closest approach is farther than 2 km (it aims 300 m above the target);
@@ -121,6 +121,19 @@ Headless (`mods/guidance/test/rendezvous.test.ts`): 20 km apart in one 100 km or
 ## Mod panel UIs: built-in, or your own
 
 **Built-in** (the default; themed, keyboard-reachable). `definePanel({ view, canvas? })` with these nodes: `section`, `readout`, `meter`, `switch`, `button`, `select` (plan 330), `list` and `sparkline`, plus a 2D canvas. Auto Dock's panel uses `select` for its options, `list` for its log and the canvas for its alignment display (`mods/autodock/src/index.ts`, `display.ts`).
+
+Plan 332 (ADR 0287) adds, for panels with several jobs:
+
+| Node | What it is |
+|---|---|
+| `{ kind: 'tabs', label, tabs: [{ id, label, badge?(i), children }], active?(i) }` | a v3 tab strip and the open tab's nodes. The open tab is the host's UI state; when `active(i)` names a new tab (a program was engaged) it opens, and it gets an accent dot. `badge` marks a tab (`'ON'`, or null). Every tab is evaluated each update. |
+| `{ kind: 'progress', label, value(i), text?(i) }` | a bar, 0..1, with a caption; hidden while both are null |
+| `{ kind: 'number', label, unit?, min, max, step?, value(i), command(i, v) }` | a numeric field, clamped and rounded to `step`, sent on Enter or when the field loses focus; typing does not fire flight keys |
+| `{ kind: 'notice', text(i), tone?(i) }` | one line with a coloured edge: `info`, `warn` (why something is off), `active` (what is flying); hidden when the text is null |
+| button `tone: 'primary' \| 'danger'` | the main action and a stop; toned buttons take one column, so two sit side by side |
+| section `columns: 1` | stacks its nodes instead of two per row |
+
+The Guidance Computer's panel is the worked example (`mods/guidance/src/panel.ts`).
 
 **Your own UI.** `definePanel({ ..., custom: { height, source } })`. `source` is the text of an ES module that exports `mount(root, host)`. It runs under the view in an iframe with `sandbox="allow-scripts"` (an opaque origin, no network). Its `host` is:
 

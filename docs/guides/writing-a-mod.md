@@ -529,7 +529,7 @@ ctx.panels.register(definePanel({
 ```
 
 - The input (`PanelInput`) holds the snapshot, the vessel the player flies, its altitude and speed relative to its body, and the sim time. Selectors run ten times a second; keep them cheap.
-- Nodes: `section`, `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button`, `list`, `sparkline` (the game keeps the last `samples`, default 60).
+- Nodes: `section` (`columns` 1 or 2), `readout` (a value or `null` for `[—]`), `meter` (0 to 1), `switch`, `button` (`tone` `primary` or `danger`), `select`, `list`, `sparkline` (the game keeps the last `samples`, default 60), and (plan 332, ADR 0287) `tabs`, `progress`, `number` and `notice`; see `guides/vessel-pilot-api.md`, "Mod panel UIs".
 - `canvas.draw` gets a `PanelCanvas` (clear, fill and stroke styles, paths, arcs, rectangles, text). It runs only while the panel is open. Mods import only `@orbital/sdk`: no DOM.
 - A panel that throws shows "This panel stopped" with the message; the game and the other panels go on.
 - The player adds and removes panels with the Panel library (the plus at the foot of the dock); `examples/mod-sample` has a complete panel.

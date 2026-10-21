@@ -269,7 +269,7 @@
 | 322 | [Several scripts at once; Switch to from the programs list](plans/322-several-scripts-and-programs-list-switch.md) | draft | | One script session per vessel in the host. |
 | 330 | [Docking blueprints, Auto Dock fly-around, logs, options and mod panel UI](plans/330-docking-blueprints-auto-dock-fly-around-and-panels.md) | done | auto dock session | ADR 0285. Blueprint audit and fixes, docked ports snap face to face, Auto Dock flies round to the axis with options, a log and an alignment display; mod panels get `select` and their own UI in a sandboxed frame. Journal 330. Local commits dee491dc and 09462b18 say "plan 321": the number was taken while they were written. |
 | 331 | [Rendezvous autopilot](plans/331-rendezvous-autopilot.md) | done | rendezvous session | ADR 0286. `guidance.rendezvous` flies from anywhere in orbit to 100–200 m of a target at rest (plane, phasing or Hohmann, correction, match, close, hold), with a Rendezvous panel and a hand-over to Auto Dock; the pilot gets `warpTo`, `engage`, `propellantMass` (API 0.1.103). Journal 331. |
-| 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | in-progress | rendezvous session | ADR 0287. A tab per program; new panel nodes tabs, progress, number, notice. |
+| 332 | [Guidance Computer panel with tabs](plans/332-guidance-panel-tabs.md) | done | rendezvous session | ADR 0287. One Guidance panel with tabs Ascent / Orbit / Rendezvous / Landing / Log (settings, status line, progress, Engage/Abort; the engaged tab opens and shows ON); panel nodes `tabs`, `progress`, `number`, `notice`, button tones (API 0.1.104); ascent inclination, landing touchdown speed. Journal 332. |
 | 340 | [One renderer for the world session, warm-up at world load, loading screen](plans/340-world-renderer-warm-up-and-loading-screen.md) | done | world renderer session | ADR 0290. Flight, Mission Center and Space Center share one renderer and canvas owned by the `(world)` layout; every view is drawn once behind a loading screen when the world loads. Page switches went from 1.5–2.8 s (WebGPU) and 0.2–0.4 s (WebGL) worst frames to 19 ms. Journal 340. |
 | 341 | [Stylised crew character](plans/341-stylised-crew-character.md) | done | crew character session | ADR 0291. The NOVA chibi astronaut for every person: EVA suit, 10 Hangar walkers, 6 Space Center staff, one skinned mesh each on one material; 12 outfits as data, looks from the crew id, 8 expressions, 1.7 m tall; portraits in the Astronaut Complex and crew seats; `/dev/crew`. Journal 341. |
 | 342 | [The first map toggle and the last hitch after loading](plans/342-first-map-toggle-and-post-load-hitch.md) | draft | | Plan 340's leftovers: about 150 ms on the first Flight → Map, one 567 ms frame on WebGPU after the loading screen. |
@@ -340,6 +340,7 @@ Existing drafts realigned on 2026-10-17: 063 (runway building), 065, 066, 067, 0
 
 ## Recent journal entries
 
+- [332 — Guidance Computer panel with tabs](journal/332-guidance-panel-tabs.md)
 - [340 — One renderer for the world, warm-up and a loading screen](journal/340-world-renderer-warm-up-and-loading-screen.md)
 - [331 — Rendezvous autopilot](journal/331-rendezvous-autopilot.md)
 - [318 — Terminate and Recover everywhere, the occupied pad, Clear debris](journal/318-terminate-recover-and-occupied-pad.md)
