@@ -119,7 +119,7 @@
 		throttleAnchor,
 		viewInsets
 	} from '../../../lib/layout/layout-model';
-	import { REGIONS, clampSpan, layoutFor } from '../../../lib/layout/regions';
+	import { REGIONS, clampSpan, cornerTop, layoutFor } from '../../../lib/layout/regions';
 	import { touchControlsOn } from '../../../lib/touch/touch-model';
 	import Button from '../../../lib/ui/Button.svelte';
 	import Dialog from '../../../lib/ui/Dialog.svelte';
@@ -1181,6 +1181,8 @@
 	const narrow = $derived(layout.mode !== 'two');
 	/** Top of the staging box at the bottom right, 0 when hidden: the part inspectors stop above it. */
 	let stagingTop = $state(0);
+	/** How much the right column's top stands under the safe area's, clear of the map toolbar (ADR 0267). */
+	let brCap = $state(0);
 	let stagingEl = $state<HTMLDivElement>();
 	$effect(() => {
 		// staging grows and shrinks with its stages: measure again then
@@ -1227,6 +1229,8 @@
 		dockMeetsDeck = !!deck && deck.height > 0 && dockRight > deck.left - 8;
 		const staging = box('.ui > .br');
 		stagingTop = staging && staging.height > 0 ? Math.round(staging.top) : 0;
+		const top = box('.tl')?.top;
+		brCap = staging && top !== undefined ? cornerTop(top, staging, box('.tc .maptools')) - top : 0;
 		// Side panels float over the view and do not move the camera (plan 215, ADR 0205 point 7):
 		// only the fixed bars count, unless the player asked to centre the vessel in the free area.
 		const insets = viewInsets({
@@ -1255,6 +1259,8 @@
 		void settings.ui.scale;
 		void navOpen;
 		void stagingOpen;
+		void hud?.map;
+		void !!model?.maneuver;
 		queueMicrotask(updateInsets);
 	});
 
@@ -1541,12 +1547,13 @@
 			</div>
 
 			<div class="tc" class:on-bars={hud.map}>
-				{#if hud.map}<MapSwitch
-						busy={saves.busy}
-						onmissioncenter={() => void openMissionCenter()}
-					/>
-					<MapFilterBar />
-					<RegionsLayer on={regionsOn} ontoggle={toggleRegions} hover={regionHover} />{/if}
+				{#if hud.map}
+					<!-- the switch, then one row of filters with Regions in it (plan 292, ADR 0267) -->
+					<div class="maptools">
+						<MapSwitch busy={saves.busy} onmissioncenter={() => void openMissionCenter()} />
+						<MapFilterBar regions={{ on: regionsOn, ontoggle: toggleRegions }} />
+					</div>
+					<RegionsLayer on={regionsOn} hover={regionHover} />{/if}
 				{#if hud?.recovery}
 					<!-- the funds and Recover sit here, not in the capsule row: that row sets the top-left stack's width, which the touch throttle must clear (plan 132) -->
 					<Button variant="primary" onclick={() => (recoverOpen = true)} data-testid="hud-recover"
@@ -1599,24 +1606,11 @@
 						{/each}{/if}
 				</div>
 			{/if}
-			{#if model && stagingOpen}
-				<!-- staging at the bottom right, growing up (V3 §2.5); on narrow screens above the deck -->
-				<div class="br" bind:this={stagingEl}>
-					<StageStack
-						stages={model.stages}
-						environment={model.environment}
-						throttle={model?.throttle ?? hud.throttle}
-						onstage={() => flight?.stage()}
-						bodies={model.deltaVBodies}
-						view={model.deltaVView}
-						onview={(v) => flight?.setDeltaVView(v)}
-					/>
-				</div>
-			{/if}
-
-			<div class="bc" style:--ball-k={ballSize / 180}>
-				{#if model && (model.maneuver || hud.map)}
-					<div class="mnv">
+			{#if model && (stagingOpen || model.maneuver || hud.map)}
+				<!-- the right column (V3 §2.5, ADR 0267): the maneuver card over staging at the bottom right,
+				     growing up; on narrow screens above the deck. Staging's queue scrolls when they meet. -->
+				<div class="br" bind:this={stagingEl} style:--br-cap={brCap > 0 ? `${brCap}px` : null}>
+					{#if model.maneuver || hud.map}
 						<ManeuverPanel
 							maneuver={model.maneuver}
 							map={hud.map}
@@ -1634,8 +1628,22 @@
 							onshift={(id, by) => planner?.shift(id, by)}
 							onalarm={alarmAtNode}
 						/>
-					</div>
-				{/if}
+					{/if}
+					{#if stagingOpen}
+						<StageStack
+							stages={model.stages}
+							environment={model.environment}
+							throttle={model?.throttle ?? hud.throttle}
+							onstage={() => flight?.stage()}
+							bodies={model.deltaVBodies}
+							view={model.deltaVView}
+							onview={(v) => flight?.setDeltaVView(v)}
+						/>
+					{/if}
+				</div>
+			{/if}
+
+			<div class="bc" style:--ball-k={ballSize / 180}>
 				<div class="navmodule" class:hidden={!navOpen}>
 					<InstrumentDeck
 						bind:this={deck}
@@ -1963,21 +1971,23 @@
 		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
 	}
 	/* staging (V3 §2.5): right 24, bottom 56, 260 wide; it grows up to the top of the safe area and
-	   its queue scrolls inside. On narrow screens it stands above the navball module (ADR 0253 point 5). */
+	   its queue scrolls inside. On narrow screens it stands above the navball module (ADR 0253 point 5).
+	   The maneuver card stands on it, and the column stops under the map toolbar (ADR 0267). */
 	.br {
 		bottom: calc(var(--margin-hud) + var(--safe-bottom));
 		right: calc(var(--margin-hud) + var(--safe-right));
 		width: 16.25rem;
 		display: flex;
 		flex-direction: column;
+		gap: var(--panel-gap);
 		max-height: calc(
 			100% - var(--margin-hud) * 2 - var(--capsule) - var(--panel-gap) - var(--safe-top) -
-				var(--safe-bottom)
+				var(--safe-bottom) - var(--br-cap, 0px)
 		);
 	}
 	.ui.narrow .br {
 		bottom: calc(var(--deck-h) + var(--margin-hud) * 2 + var(--safe-bottom));
-		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap));
+		max-height: calc(var(--above-deck) - var(--capsule) - var(--panel-gap) - var(--br-cap, 0px));
 	}
 	.br > :global(.panel) {
 		min-height: 0;
@@ -2012,6 +2022,12 @@
 		align-items: center;
 		gap: var(--s-3);
 		pointer-events: none;
+	}
+	.maptools {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--s-3);
 	}
 	/* the map's Map | Mission Center tabs stand on the bars' row, centred between them (plan 256);
 	   where the bars leave no room (under 1280 px) they stay on the row below */
@@ -2049,12 +2065,6 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--panel-gap);
-	}
-	.mnv {
-		width: 22.5rem;
-		max-height: var(--above-deck);
-		overflow-y: auto;
-		margin-left: calc(17.5rem * var(--ball-k, 1) - 11.25rem);
 	}
 	.strip-alone {
 		position: relative;

@@ -58,7 +58,14 @@ export const STOCK_TECH = [
 		cost: 5,
 		requires: ['stock.basics'],
 		description: 'A bigger tank, side mounts and the links between them.',
-		unlocks: ['stock.tank-medium', 'stock.radial-decoupler', 'stock.strut', 'stock.fuel-line']
+		unlocks: [
+			'stock.tank-medium',
+			'stock.radial-decoupler',
+			'stock.strut',
+			'stock.fuel-line',
+			// a small tank for probes (plan 289)
+			'stock.tank-0625'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.shapes',
@@ -199,13 +206,22 @@ export const STOCK_TECH = [
 		cost: 80,
 		requires: ['stock.propulsion'],
 		milestone: 'flyby:stock.cinder',
-		description: 'The 2.5 m class: wide tanks, the wide engine and its decoupler and shield.',
+		description:
+			'The 1.875 m and 2.5 m classes: wide tanks, the wide engine, their decouplers, shields and adapters.',
 		unlocks: [
 			'stock.tank-wide-short',
 			'stock.tank-wide',
 			'stock.engine-wide',
 			'stock.decoupler-wide',
-			'stock.heat-shield-wide'
+			'stock.heat-shield-wide',
+			// the 1.875 m class (plan 289)
+			'stock.tank-1875-short',
+			'stock.tank-1875',
+			'stock.decoupler-1875',
+			'stock.adapter-1250-1875',
+			'stock.adapter-1875-2500',
+			'stock.nose-cone-1875',
+			'stock.heat-shield-1875'
 		]
 	}),
 	// ---- tier 4: 300 science, after a landing on Cinder ----
@@ -217,7 +233,12 @@ export const STOCK_TECH = [
 		requires: ['stock.rcs'],
 		milestone: 'landing:stock.cinder',
 		description: 'Ports in three sizes to join vessels in orbit.',
-		unlocks: ['stock.docking-port-small', 'stock.docking-port', 'stock.docking-port-large']
+		unlocks: [
+			'stock.docking-port-small',
+			'stock.docking-port',
+			'stock.docking-port-large',
+			'stock.docking-port-3750'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.fairings',
@@ -227,7 +248,13 @@ export const STOCK_TECH = [
 		requires: ['stock.heavy-lift'],
 		milestone: 'landing:stock.cinder',
 		description: 'Shells that keep a payload out of the air on the way up.',
-		unlocks: ['stock.fairing-base-small', 'stock.fairing-base', 'stock.fairing-base-large']
+		unlocks: [
+			'stock.fairing-base-small',
+			'stock.fairing-base',
+			'stock.fairing-base-large',
+			'stock.fairing-base-1875',
+			'stock.fairing-base-3750'
+		]
 	}),
 	defineTechNode({
 		id: 'stock.life-support',
@@ -270,5 +297,38 @@ export const STOCK_TECH = [
 		milestone: 'landing:stock.cinder',
 		description: 'A radioisotope generator: power far from the star, day and night.',
 		unlocks: ['stock.rtg']
+	}),
+	defineTechNode({
+		id: 'stock.super-heavy-lift',
+		label: 'Super-heavy lift',
+		tier: 5,
+		cost: 300,
+		requires: ['stock.heavy-lift'],
+		milestone: 'landing:stock.cinder',
+		description:
+			'The 3.75, 5 and 7.5 m classes: tanks, decouplers, adapters, nose cones, shields and fairing bases (plan 289).',
+		unlocks: [
+			'stock.tank-3750-short',
+			'stock.tank-3750',
+			'stock.tank-3750-long',
+			'stock.tank-5000-short',
+			'stock.tank-5000',
+			'stock.tank-5000-long',
+			'stock.tank-7500',
+			'stock.tank-7500-long',
+			'stock.decoupler-3750',
+			'stock.decoupler-5000',
+			'stock.decoupler-7500',
+			'stock.adapter-2500-3750',
+			'stock.adapter-3750-5000',
+			'stock.adapter-5000-7500',
+			'stock.nose-cone-3750',
+			'stock.nose-cone-5000',
+			'stock.nose-cone-7500',
+			'stock.heat-shield-3750',
+			'stock.heat-shield-5000',
+			'stock.fairing-base-5000',
+			'stock.fairing-base-7500'
+		]
 	})
 ];

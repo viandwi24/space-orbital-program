@@ -46,3 +46,9 @@ Always re-check the docs linked above before running: flags change.
 ## Standard atmosphere (plan 212, 2026-10-19)
 
 - **US Standard Atmosphere 1976** layer table (public, NOAA/NASA/USAF, NOAA-S/T 76-1562): base temperatures 288.15 K at 0 km, 216.65 K at 11 and 20 km, 228.65 K at 32 km, 270.65 K at 47 and 51 km, 214.65 K at 71 km, 186.87 K at 86 km; 195.08 K at 100 km on the thermosphere's rise. Speed of sound `√(1.4 · 287.05 · T)`: 340.3 m/s at sea level, 295.1 m/s at 11 km. In `packages/core/src/module-info.ts` (`STANDARD_ATMOSPHERE_TEMPERATURE`).
+
+## Rapier motored joints (plan 288, 2026-10-21)
+
+- **`@dimforge/rapier3d-compat` 0.21.0** (root catalog `^0.21.0`; `RAPIER.version()` 0.21.0). Typings `dist/dynamics/impulse_joint.d.ts`, `multibody_joint.d.ts`, `pipeline/world.d.ts`, read 2026-10-21. Guide https://rapier.rs/docs/user_guides/javascript/joints.
+- **Impulse joints** have `configureMotorModel`, `configureMotorPosition`, `configureMotorVelocity`, `configureMotor` and `setLimits`. **Multibody joints** have no motor and no limit setter in the JS build, which `RawMultibodyJointSet` confirms. There is no `maxForce` on either kind. Details in `docs/research/rapier-joints.md`.
+

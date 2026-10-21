@@ -71,13 +71,16 @@ test('typed delta-v on the second node, warp to AN, and an alarm that stops the 
 
 	// the map view: the panel shows node 1 of 2; the next button shows the second node
 	await page.keyboard.press('KeyM');
-	await expect(page.getByText('Maneuver (1 of 2)')).toBeVisible({ timeout: 20_000 });
+	const index = page.getByTestId('maneuver-index');
+	await expect(index).toHaveText('Node 1/2', { timeout: 20_000 });
 	await page.getByTestId('maneuver-next').click();
-	await expect(page.getByText('Maneuver (2 of 2)')).toBeVisible();
+	await expect(index).toHaveText('Node 2/2');
 	const ap = page.getByTestId('maneuver-planned-ap');
 	await expect(ap).toBeVisible({ timeout: 20_000 });
 	const before = metres(await ap.innerText());
 	expect(before).toBeLessThan(120_000);
+	// the editor is folded behind the card's pencil (plan 292, ADR 0267)
+	await page.getByTestId('maneuver-expand').click();
 	const prograde = page.getByTestId('node-prograde');
 	await prograde.fill('250');
 	await prograde.press('Enter');

@@ -44,6 +44,57 @@ export const PartHeatShieldWide = definePart({
 });
 
 /**
+ * A heat shield of class `size` m (plan 289): mass and ablator grow with the area from the 1.25 m
+ * shield (80 kg, 120 ablator). Heat shields stop at 5 m (ADR 0256).
+ */
+function classHeatShield(id: string, title: string, size: number, height: number) {
+	const area = (size / 1.25) ** 2;
+	const massKg = Math.round((80 * area) / 10) * 10;
+	return definePart({
+		id,
+		title,
+		mass: kg(massKg),
+		cost: partCost(massKg, 'gear'),
+		impactTolerance: 8,
+		maxTemperature: 3_300,
+		shape: cylinder(height, size / 2),
+		centerOfMass: [0, -0.2 * height, 0],
+		bluntBase: 0.35,
+		visual: { kind: 'heat-shield', palette: { primary: '#3a2d27' } },
+		attach: stackNodes(height, size),
+		crossfeed: false,
+		modules: [[ModuleHeatShield, { ablator: Math.round(120 * area) }]],
+		stagingIcon: 'shield'
+	});
+}
+
+export const PartHeatShield1875 = classHeatShield(
+	'stock.heat-shield-1875',
+	'OrbitX PR-HS18 "Perisai"',
+	1.875,
+	0.25
+);
+export const PartHeatShield3750 = classHeatShield(
+	'stock.heat-shield-3750',
+	'OrbitX PR-HS37 "Perisai"',
+	3.75,
+	0.4
+);
+export const PartHeatShield5000 = classHeatShield(
+	'stock.heat-shield-5000',
+	'OrbitX PR-HS50 "Perisai"',
+	5,
+	0.5
+);
+
+/** The heat shields of the size classes of plan 289. */
+export const STOCK_CLASS_HEAT_SHIELDS = [
+	PartHeatShield1875,
+	PartHeatShield3750,
+	PartHeatShield5000
+] as const;
+
+/**
  * A flotation collar (plan 067, ADR 0182 point 8): a wide, light ring of about 2.9 m³ that keeps a
  * capsule afloat and upright.
  */
