@@ -15,7 +15,8 @@
 		active,
 		map = null,
 		onmenu,
-		menuOpen = false
+		menuOpen = false,
+		home = null
 	}: {
 		actions?: readonly PageAction[];
 		/** A page's own buttons (the Hangar's), before the fixed group. */
@@ -25,6 +26,8 @@
 		map?: { on: boolean; toggle: () => void } | null;
 		onmenu: () => void;
 		menuOpen?: boolean;
+		/** The page's start view, for its own fixed icon (plan 274). */
+		home?: (() => void) | null;
 	} = $props();
 
 	const hrefs: Record<FixedId, string> = {
@@ -40,6 +43,12 @@
 		vab: 'nav-vab'
 	};
 	function onfixed(e: MouseEvent, id: FixedId): void {
+		if (id === active && home && !map) {
+			// the page already shown: back to its start view instead of a reload
+			e.preventDefault();
+			home();
+			return;
+		}
 		if (!map || (id !== 'vessel' && id !== 'map')) return;
 		e.preventDefault();
 		if ((id === 'map') !== map.on) map.toggle();

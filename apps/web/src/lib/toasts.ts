@@ -37,7 +37,8 @@ export const TOAST_MS: Record<ToastKind, number> = {
 	warning: 6_000,
 	danger: 8_000
 };
-export const MAX_TOASTS = 4;
+/** Toasts on screen at once (V3 §2.2: two; repeats merge into a ×n badge). */
+export const MAX_TOASTS = 2;
 
 /** `null` when the event is not worth a toast (another vessel, debris, bookkeeping). */
 export function toastForSimEvent(event: SimEvent, ctx: ToastContext): Toast | null {
@@ -249,11 +250,20 @@ export function toastForHeat(
 export interface LiveToast extends Toast {
 	id: number;
 	until: number;
+	/** How many times it came (V3 §2.2: the same event merges into one toast with a ×n badge). */
+	count: number;
 }
 
+/** The same event again: the same key, or with no key the same kind, title and detail. */
+const sameEvent = (a: Toast, b: Toast): boolean =>
+	a.key !== undefined || b.key !== undefined
+		? a.key === b.key
+		: a.kind === b.kind && a.title === b.title && a.detail === b.detail;
+
 /**
- * Adds `toast` (replacing one with the same key) and keeps at most `MAX_TOASTS`: past the cap the
- * oldest that is not a danger leaves first, so an error stays on screen (plan 215, ADR 0205 point 5).
+ * Adds `toast` and keeps at most `MAX_TOASTS`: past the cap the oldest that is not a danger leaves
+ * first, so an error stays on screen (plan 215, ADR 0205 point 5). The same event again (V3 §2.2)
+ * takes the new words and time and counts up; a toast with a key replaces the earlier one.
  */
 export function addToast(
 	list: readonly LiveToast[],
@@ -261,8 +271,10 @@ export function addToast(
 	now: number,
 	id: number
 ): LiveToast[] {
-	const rest = toast.key === undefined ? list : list.filter((t) => t.key !== toast.key);
-	const out = [...rest, { ...toast, id, until: now + TOAST_MS[toast.kind] }];
+	const before = list.find((t) => sameEvent(t, toast));
+	const rest = before ? list.filter((t) => t !== before) : list;
+	const count = before && before.title === toast.title ? before.count + 1 : 1;
+	const out = [...rest, { ...toast, id, until: now + TOAST_MS[toast.kind], count }];
 	while (out.length > MAX_TOASTS) {
 		const calm = out.findIndex((t) => t.kind !== 'danger');
 		out.splice(calm >= 0 ? calm : 0, 1);

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 /** Plan 125 (ADR 0122): a world made with n-body gravity flies, with its rails integrated. */
 test('create an n-body world, launch from the Hangar and fly without errors', async ({ page }) => {
@@ -15,7 +15,7 @@ test('create an n-body world, launch from the Hangar and fly without errors', as
 	await page.getByTestId('sc-label-stock.hangar').click({ timeout: 60_000 });
 	await page.getByTestId('sc-open').click();
 	await page.waitForURL('**/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.getByRole('button', { name: /^Launch/ }).click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
 	if (await anyway.isVisible().catch(() => false)) await anyway.click();
@@ -50,7 +50,7 @@ test('an n-body world of the 1:1 Sol system fetches DE440 once and flies on it',
 	await page.getByTestId('sc-label-stock.hangar').click({ timeout: 60_000 });
 	await page.getByTestId('sc-open').click();
 	await page.waitForURL('**/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.getByRole('button', { name: /^Launch/ }).click();
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });
 	if (await anyway.isVisible().catch(() => false)) await anyway.click();

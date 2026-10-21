@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 /**
  * Worlds (plan 087, ADR 0143): create a Career world, enter it (the Space Center, then the VAB), launch and
@@ -27,7 +27,7 @@ test('create a Career world, enter it, fly and save in it, and it is listed firs
 	await page.getByTestId('sc-label-stock.hangar').click({ timeout: 60_000 });
 	await page.getByTestId('sc-open').click();
 	await page.waitForURL('**/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	const launch = page.getByRole('button', { name: /^Launch/ });
 	await expect(launch).toBeEnabled();
 	await launch.click();

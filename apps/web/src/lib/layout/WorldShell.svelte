@@ -144,6 +144,7 @@
 	custom={pageShell.current ?? undefined}
 	active={activeFixed(path, pageShell.map?.on ?? false)}
 	map={pageShell.map}
+	home={pageShell.home}
 	{onmenu}
 	{menuOpen}
 />

@@ -3,12 +3,12 @@
  * two-stage example does not, and the legs name the stages. One short run, one engine.
  */
 import { expect, test } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 test('the trip planner lays the legs over the stages', async ({ page }) => {
 	const errors = watchErrors(page);
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the moon shot' }).click();
+	await loadHangarExample(page, 'loadMoonShot');
 	const pick = page.getByLabel('Destination for the trip plan');
 	await expect(pick.locator('option')).toHaveCount(6);
 	await pick.selectOption('stock.cinder:landing');
@@ -20,7 +20,7 @@ test('the trip planner lays the legs over the stages', async ({ page }) => {
 
 	// A new vessel and the two-stage example: short of the moon, enough for low orbit.
 	await page.getByTestId('menu-new').click();
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await expect(page.locator('.trip .note')).toContainText('Short by about');
 	await pick.selectOption('low-orbit');
 	await expect(page.locator('.trip .note')).toContainText('Enough for the trip');

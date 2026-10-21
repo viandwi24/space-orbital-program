@@ -37,7 +37,8 @@
 		onlabelmode = () => {},
 		hovered = null,
 		onhover = () => {},
-		onframe = () => {}
+		onframe = () => {},
+		onmark = () => {}
 	}: {
 		rows: readonly BuildingRow[];
 		/** CSS pixel of each building's label, or null when off screen. */
@@ -75,6 +76,8 @@
 		onhover?: (id: string | null) => void;
 		/** Frame the camera on a building (plan 259). */
 		onframe?: (id: string) => void;
+		/** The building the bulldozer points at, to tint in the scene, or null (V3 §1.3, plan 274). */
+		onmark?: (id: string | null) => void;
 	} = $props();
 
 	const current = $derived(rows.find((r) => r.id === selected) ?? null);
@@ -126,6 +129,17 @@
 	function demolish(id: string): void {
 		confirm = null;
 		onremove(id);
+	}
+	// the bulldozer tints the building it points at, or the one being confirmed (V3 §1.3)
+	const marked = $derived(demolishing ? (confirm ?? hovered) : null);
+	$effect(() => onmark(marked));
+
+	/** Back to Overview from any mode (the menu bar's Space Center icon, V3 §1.4). */
+	export function overview(): void {
+		if (buildOpen || build) closeBuild();
+		confirm = null;
+		listOpen = false;
+		if (selected) onselect(null);
 	}
 	function onWindowKey(e: KeyboardEvent): void {
 		if (e.key !== 'Escape' || e.defaultPrevented) return;

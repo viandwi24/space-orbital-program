@@ -13,7 +13,8 @@ import {
 	runScript,
 	scriptLog,
 	scriptStatus,
-	watchErrors
+	watchErrors,
+	loadHangarExample
 } from './support';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
@@ -24,13 +25,13 @@ test('the start page and the VAB load without errors', async ({ page }) => {
 	// the product name (plan 074, ADR 0105)
 	await expect(page).toHaveTitle(/^Space Orbital Program: /);
 	await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
-	await expect(page.getByRole('link', { name: /New flight/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: /Worlds/ })).toBeVisible();
 	await expect(page.getByTestId('menu-continue')).toBeDisabled();
 	await expect(page.getByTestId('browser-notice')).toHaveCount(0);
 
 	await page.goto('/vab');
-	await expect(page.getByRole('button', { name: 'Load the two-stage example' })).toBeVisible();
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await page.waitForFunction(() => '__orbitalVab' in window, null, { timeout: 60_000 });
+	await loadHangarExample(page, 'loadTwoStage');
 	await expect(page.getByRole('button', { name: /^Launch/ })).toBeEnabled();
 	expect(errors).toEqual([]);
 });
@@ -138,7 +139,6 @@ test('the capability gate shows the notice instead of the game when WebGL2 is mi
 	const notice = page.getByTestId('browser-notice');
 	await expect(notice).toBeVisible();
 	await expect(notice).toContainText('WebGL 2');
-	await expect(page.getByRole('button', { name: 'Load the two-stage example' })).toHaveCount(0);
 });
 
 test('launch, run the sample: liftoff, climbing, sandbox isolated, no errors', async ({ page }) => {

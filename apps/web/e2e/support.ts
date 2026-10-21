@@ -32,9 +32,27 @@ export function watchErrors(page: Page): string[] {
 }
 
 /** /vab -> load the two-stage example -> Launch -> the Launch screen -> /flight with the vessel flying. */
+/**
+ * Loads one of the Hangar's examples through its debug global: the examples moved from the empty
+ * Hangar's buttons into the blueprint library.
+ */
+export async function loadHangarExample(
+	page: Page,
+	example: 'loadTwoStage' | 'loadBooster' | 'loadMoonShot'
+): Promise<void> {
+	await page.waitForFunction((name) => {
+		const vab = (window as unknown as { __orbitalVab?: Record<string, unknown> }).__orbitalVab;
+		return typeof vab?.[name] === 'function';
+	}, example);
+	await page.evaluate((name) => {
+		const vab = (window as unknown as { __orbitalVab: Record<string, () => void> }).__orbitalVab;
+		vab[name]!();
+	}, example);
+}
+
 export async function launchTwoStage(page: Page): Promise<void> {
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	const launch = page.getByRole('button', { name: /^Launch/ });
 	await expect(launch).toBeEnabled();
 	await launch.click();

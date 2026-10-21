@@ -89,7 +89,13 @@
 	import MapCardView from '../../../lib/hud/MapCardView.svelte';
 	import { mapCardFor, type MapCard } from '../../../lib/hud/map-card';
 	import StatusStrip from '../../../lib/hud/StatusStrip.svelte';
-	import { statusChips, type ChipFix } from '../../../lib/hud/status-chips';
+	import {
+		chipToFlash,
+		FLASH_MS,
+		statusChips,
+		type ChipFix,
+		type StatusChip
+	} from '../../../lib/hud/status-chips';
 	import MapPickList from '../../../lib/hud/MapPickList.svelte';
 	import VesselMenuView from '../../../lib/hud/VesselMenu.svelte';
 	import {
@@ -1186,6 +1192,20 @@
 			drive: hud?.drive ?? false
 		})
 	);
+	// a failed action flashes the chip that explains it (V3 §2.2, plan 274)
+	let flashChip = $state<StatusChip['id'] | null>(null);
+	let flashedToast = 0;
+	let chipFlashTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		const newest = model?.toasts.at(-1);
+		if (!newest || newest.id === flashedToast) return;
+		flashedToast = newest.id;
+		const id = untrack(() => chipToFlash(newest, chips));
+		if (!id) return;
+		flashChip = id;
+		clearTimeout(chipFlashTimer);
+		chipFlashTimer = setTimeout(() => (flashChip = null), FLASH_MS);
+	});
 	// the EVA controls live in the dock's Crew entry since v3: it opens when a suit steps out (ADR 0253 point 5)
 	const onEva = $derived(!!hud?.eva);
 	$effect(() => {
@@ -1883,11 +1903,12 @@
 						onrcs={() => flight?.toggleRcs()}
 						{chips}
 						onfix={fixChip}
+						flash={flashChip}
 					/>
 				</div>
 				{#if !navOpen}
 					<!-- the conditions stay when the navball is hidden (ADR 0253 point 7) -->
-					<div class="strip-alone"><StatusStrip {chips} onfix={fixChip} /></div>
+					<div class="strip-alone"><StatusStrip {chips} onfix={fixChip} flash={flashChip} /></div>
 				{/if}
 			</div>
 

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { watchErrors } from './support';
+import { watchErrors, loadHangarExample } from './support';
 
 /**
  * Branch space centers (plan 236, ADR 0229): found a branch through the map picker in a Career
@@ -138,7 +138,7 @@ test('found a branch, finish its HQ, build a pad and a dish, launch from it', as
 
 	// launch from the branch's pad
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	const launch = page.getByRole('button', { name: /^Launch/ });
 	await expect(launch).toBeEnabled();
 	await launch.click();

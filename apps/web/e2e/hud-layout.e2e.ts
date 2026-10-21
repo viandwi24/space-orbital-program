@@ -70,7 +70,7 @@ for (const [width, height] of [
 	[1280, 800],
 	[1024, 768]
 ] as const) {
-	test(`${width} × ${height}: regions do not overlap, staging scrolls inside, four toasts at most`, async ({
+	test(`${width} × ${height}: regions do not overlap, staging scrolls inside, two toasts at most`, async ({
 		page
 	}) => {
 		test.skip(test.info().project.name !== 'chromium', 'one engine is enough for the layout');
@@ -100,7 +100,7 @@ for (const [width, height] of [
 			for (let i = 0; i < 6; i++) api.toast('warning', `Warning ${i + 1}`);
 		});
 		await expect(page.getByText('Warning 6')).toBeVisible();
-		expect(await page.locator('.toasts > .toast').count()).toBeLessThanOrEqual(4);
+		expect(await page.locator('.toasts > .toast').count()).toBeLessThanOrEqual(2);
 		// the toasts never cover the navball
 		const toasts = await page.locator('.toasts').boundingBox();
 		expect(overlaps(toasts as DOMRect, boxes.navball!)).toBe(false);

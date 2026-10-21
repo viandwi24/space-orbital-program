@@ -4,7 +4,14 @@
  * The state comes from the debug API of plan 203.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { debugAmount, debugSetLocation, debugSetResource, watchErrors, openDock } from './support';
+import {
+	debugAmount,
+	debugSetLocation,
+	debugSetResource,
+	watchErrors,
+	openDock,
+	loadHangarExample
+} from './support';
 
 const EC = 'stock.electric-charge';
 
@@ -24,7 +31,7 @@ async function launchProbe(page: Page): Promise<void> {
 	};
 	await page.goto('/vab');
 	// opening from the library replaces what the Hangar holds; start from the example, as a player would
-	await page.getByRole('button', { name: 'Load the two-stage example' }).click();
+	await loadHangarExample(page, 'loadTwoStage');
 	await page.goto('/vab?library');
 	const library = page.getByRole('dialog', { name: 'Vessel library' });
 	await expect(library).toBeVisible();

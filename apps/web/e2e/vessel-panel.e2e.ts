@@ -1,11 +1,11 @@
 /** The vessel panel (plan 111, ADR 0153): toggle the landing legs from the Parts tab in flight. */
 import { expect, test } from '@playwright/test';
-import { launchTwoStage, watchErrors, openDock } from './support';
+import { launchTwoStage, watchErrors, openDock, loadHangarExample } from './support';
 
 test('toggle the landing legs from the Parts tab', async ({ page }) => {
 	const errors = watchErrors(page);
 	await page.goto('/vab');
-	await page.getByRole('button', { name: 'Load the moon shot' }).click();
+	await loadHangarExample(page, 'loadMoonShot');
 	// the moon shot is heavier than the Legacy pad takes: Shift+Launch flies it directly (ADR 0150)
 	await page.getByRole('button', { name: /^Launch/ }).click({ modifiers: ['Shift'] });
 	const anyway = page.getByRole('button', { name: 'Launch anyway' });

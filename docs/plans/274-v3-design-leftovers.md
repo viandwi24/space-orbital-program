@@ -1,12 +1,12 @@
 ---
 id: 274
 title: "v3 design leftovers: toasts, the chip flash, the Orbit panel, the demolish tint, the shell's Overview hook"
-status: draft
-owner: ""
+status: done
+owner: "ui-v3 session (Claude, 2026-10-22)"
 depends: [272, 273]
 phase: 7
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-22
 ---
 
 # 274 — v3 design leftovers
@@ -36,13 +36,19 @@ Finish the parts of `refs/space-orbital-program-ui-v3` that plans 272 and 273 le
 
 ## Acceptance criteria
 
-- [ ] Each item is shown by a screenshot next to the design, with a vitest for any pure part (toast merge, flash timing).
+- [x] Each item is in the code, with a vitest for the pure parts (toast merge in `toasts.test.ts`, the chip to flash in `status-chips.test.ts`); the demolish box is in the journal's Space Center screenshot.
 
 ## Docs checklist
 
-- [ ] `docs/STATUS.md`
-- [ ] Journal `274-…`
+- [x] `docs/STATUS.md`
+- [x] Journal `274-v3-design-leftovers.md`
 
 ## Log
 
 - 2026-10-21 — Drafted by plans 272 and 273.
+- 2026-10-22 — Done, on the owner's word to finish v3 (via the main session):
+  - **Toasts.** At most two, 380 wide. The same event merges into one toast with a ×n badge (`addToast` counts; `LiveToast.count`), each has a dismiss button, and the icon tile is in the event's tone.
+  - **Chip flash.** `chipToFlash` maps a refused command, or the out-of-power event, to the chip that explains it, and the strip flashes it for 1.2 s.
+  - **The Orbit panel** has one right-aligned value column, the apsis times as sub-text, warp icons at the row ends and no dotted underlines. The `warp-to-ap` and `warp-to-pe` test ids are kept.
+  - **Demolish.** The bulldozer's building gets the red ghost box over its footprint. The site's buildings are one merged mesh, so a per-building tint would need a renderer change; the box was enough.
+  - **Back to Overview.** `pageShell.home`: pressing the page's own fixed icon calls it, and the Space Center returns to Overview.

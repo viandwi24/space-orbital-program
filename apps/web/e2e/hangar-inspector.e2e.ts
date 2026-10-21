@@ -4,7 +4,7 @@
  * flight the vessel panel shows 60 % for each of them. The moon shot's LB-1 boosters start at 50 %.
  */
 import { expect, test } from '@playwright/test';
-import { watchErrors, openDock } from './support';
+import { watchErrors, openDock, loadHangarExample } from './support';
 
 interface Hook {
 	partAt(index: number): { x: number; y: number } | null;
@@ -18,7 +18,7 @@ test('a limiter set in the Hangar flies: 60 % on the boosters in the vessel pane
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/vab');
 	await page.waitForFunction(() => '__orbitalVab' in window, null, { timeout: 60_000 });
-	await page.getByRole('button', { name: 'Load the moon shot' }).click();
+	await loadHangarExample(page, 'loadMoonShot');
 	await page.waitForTimeout(800); // the camera frames the vessel
 
 	// a side booster (design indices 21, 24, 27, 30): the first one the click selects

@@ -36,7 +36,8 @@
 		onsas,
 		onrcs,
 		chips = [],
-		onfix = () => {}
+		onfix = () => {},
+		flash = null
 	}: {
 		model: HudModel | null;
 		throttle: number;
@@ -51,6 +52,8 @@
 		/** The status strip's conditions (V3 §2.2). */
 		chips?: readonly StatusChip[];
 		onfix?: (fix: ChipFix) => void;
+		/** The chip that flashes (V3 §2.2). */
+		flash?: StatusChip['id'] | null;
 	} = $props();
 
 	let ball: Navball;
@@ -212,7 +215,7 @@
 	{/if}
 
 	<span class="rule" aria-hidden="true"></span>
-	<div class="status"><StatusStrip {chips} {onfix} /></div>
+	<div class="status"><StatusStrip {chips} {onfix} {flash} /></div>
 </section>
 
 <style>
