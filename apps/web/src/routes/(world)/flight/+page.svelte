@@ -1448,6 +1448,16 @@
 					{/snippet}
 				</StatusCard>
 			</div>
+		{:else if hud.status === 'refused'}
+			<div class="center cover">
+				<StatusCard tone="warning" title="Launch refused">
+					<p>{hud.message}.</p>
+					{#snippet actions()}
+						<a class="cta" href={resolve('/(world)/vab')}>Back to the VAB</a>
+						<a class="cta quiet" href={resolve('/(world)/mission-center')}>Mission Center</a>
+					{/snippet}
+				</StatusCard>
+			</div>
 		{:else if hud.status === 'lost'}
 			<div class="center">
 				<StatusCard tone="danger" title="Vessel lost">

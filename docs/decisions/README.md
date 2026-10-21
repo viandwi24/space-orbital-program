@@ -246,3 +246,4 @@ An ADR records one decision, its context, and its consequences. ADRs are **appen
 | 0247 | [The WebGPU terrain bakes stay render passes, with the analytic gradient](0247-webgpu-bakes-stay-render-passes.md) | accepted | 2026-10-21 |
 | 0248 | [On WebGPU the frame is bound by its full-size pixels, not the planet march: Phases 6–8 wait for numbers](0248-webgpu-frame-is-not-the-planet-march.md) | accepted | 2026-10-21 |
 | 0249 | [The renderer moves to WebGPURenderer with TSL, on its own branch](0249-webgpu-renderer-backend.md) | accepted | 2026-10-20 |
+| 0250 | [A launch makes room in the flight frames; only a controlled vessel in the air keeps its frame](0250-a-launch-makes-room-in-flight-frames.md) | accepted | 2026-10-21 |

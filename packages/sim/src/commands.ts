@@ -119,7 +119,7 @@ import {
 } from './core.ts';
 import { acquireFrame, enterFlight, refreshColliders } from './frames.ts';
 import { makeContext, runStageHooks } from './hooks.ts';
-import { makeRoom, wake, wakeBlocker } from './modes.ts';
+import { makeRoom, makeRoomAt, roomBlocker, wake, wakeBlocker } from './modes.ts';
 import { computeRails, isStableOrbit, orientationOf } from './orbit.ts';
 import { removeNode, setNode } from './maneuver.ts';
 import { setTarget } from './target.ts';
@@ -259,17 +259,20 @@ function loadVessel(
 		);
 		if (hasBackground(core, id)) vessel.backgroundAt = core.t; // background counts from the load (ADR 0171)
 	} else {
+		// far vessels that can be on rails make way for the launch, as for a wake (ADR 0250)
+		if (core.warp <= PHYSICS_WARP_MAX) makeRoomAt(core, vessel.soi, vessel.com);
 		const frame =
 			core.warp > PHYSICS_WARP_MAX
 				? undefined
 				: acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
 		if (!frame) {
-			destroyVessel(core, id, 'could not be placed');
-			return refuse(
+			const reason =
 				core.warp > PHYSICS_WARP_MAX
 					? `time warp is ${core.warp}x; set warp to ${PHYSICS_WARP_MAX}x or less before loading a vessel into flight`
-					: 'no free physics frame (another vessel is in flight far away)'
-			);
+					: (roomBlocker(core, vessel.soi, vessel.com) ??
+						'no free physics frame (another vessel is in flight far away)');
+			destroyVessel(core, id, 'could not be placed');
+			return refuse(reason);
 		}
 		enterFlight(core, id, frame);
 	}

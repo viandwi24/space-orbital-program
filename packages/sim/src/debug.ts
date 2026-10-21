@@ -27,7 +27,7 @@ import { acquireFrame, enterFlight, leaveFlight } from './frames.ts';
 import { qFromBasis, qRotate } from './math.ts';
 import { autoCrew } from './crew.ts';
 import { computeRails } from './orbit.ts';
-import { makeRoomAt } from './modes.ts';
+import { makeRoomAt, roomBlocker } from './modes.ts';
 import { VESSEL, PART } from './state.ts';
 import { hasBackground } from './tick.ts';
 import { placeOnSurface, spawnVessel } from './vessel.ts';
@@ -165,7 +165,11 @@ function flightAt(core: SimCore, id: EntityId): string | undefined {
 		makeRoomAt(core, vessel.soi, vessel.com);
 		frame = acquireFrame(core, vessel.soi, vessel.com, vessel.velocity);
 	}
-	if (!frame) return 'no free physics frame (another vessel is in flight far away)';
+	if (!frame)
+		return (
+			roomBlocker(core, vessel.soi, vessel.com) ??
+			'no free physics frame (another vessel is in flight far away)'
+		);
 	enterFlight(core, id, frame);
 	core.events.emit('vessel:mode-changed', { vessel: id, mode: 'flight', reason: 'debug' });
 	return undefined;
